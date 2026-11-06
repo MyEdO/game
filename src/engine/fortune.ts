@@ -21,7 +21,7 @@ export function canReroll(ownRollFailed: boolean, alreadyRerolled: boolean): boo
  * effets actifs déplacent au-dessus du seul Indice de Destin — jamais `fate` nu.
  * SOURCE UNIQUE partagée par l'Effet de scène `restoreFortune` (combatEffects), l'action de store
  * `restoreFortuneNow()` (règle optionnelle « Longues Séances de Jeu », LDB 17 l.47) et la fin de
- * séance (`endSession`, partyFlow).
+ * séance (`terminerLaSeance`, partyFlow).
  */
 export function restoreFortune(party: Combatant[]): Combatant[] {
   return party.map((h) => (h.kind === 'hero'

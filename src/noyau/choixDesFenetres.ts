@@ -9,10 +9,10 @@
  * `jetRegler` (`ReglagesDuJet`) : aucune clé n'a les deux.
  */
 import type { FateSaveOption } from '../engine/fortune';
-import type { IdDeChoixDePaie, IdDeHeros, IdDePlaieDeLOperation, IdDeReponseDeDialogue, IdDuCoupleMonte } from './designations';
+import type { IdDActiviteEnMer, IdDeChoixDePaie, IdDeHeros, IdDePlaieDeLOperation, IdDeReponseDeDialogue, IdDuCoupleMonte } from './designations';
 import type { FlowKey } from './flowVerbs';
 import type { CleDeRegistre } from './modalArbiter';
-import type { EffetDuChoix } from './reglagesDuJet';
+import type { EffetDuChoix, PorteeDuReglage } from './reglagesDuJet';
 import type { Reglage } from './reglages';
 import type { Jeu } from './etat';
 
@@ -58,6 +58,26 @@ export interface ChoixDesFenetres {
     /** EDO 02 l.91 */
     heros: IdDeHeros;
   };
+  seaActivities: {
+    /** MDG 15 l.268 ; `null` : aucune Activité. */
+    activite: IdDActiviteEnMer | null;
+    /** MDG 15 l.276 */
+    investir: number;
+    /** MDG 15 l.292 */
+    cacher: number;
+  };
+  finDeSeance: {
+    /** LDB 05 l.837 */
+    ambitionCourte: boolean;
+    /** LDB 05 l.841 */
+    ambitionLongue: boolean;
+    /** LDB 05 l.795 */
+    ambitionPersonnelleCourte: boolean;
+    /** LDB 05 l.799 */
+    ambitionPersonnelleLongue: boolean;
+    /** LDB 17 l.81 */
+    motivation: boolean;
+  };
 }
 
 /** Une fenêtre qui a des choix. */
@@ -74,15 +94,21 @@ type _HorsDesFlux = [Extract<FenetreAChoix, FlowKey>] extends [never] ? true : [
 const _domainesDisjoints: [_ClesDeRegistre, _HorsDesFlux] = [true, true];
 void _domainesDisjoints;
 
-/** La déclaration d'un choix : son effet, et le siège qui le joue (`hote` : l'hôte seul ; `proprietaire` : le siège du
- *  propriétaire de la fenêtre, `'*'` : tout siège). */
+/** La déclaration d'un choix : son effet, sa portée (`fenetre`, ou `rangee` : le choix d'un héros de la fenêtre, que
+ *  désigne `pid`), et le siège qui le joue (`hote` : l'hôte seul ; `proprietaire` : le siège du propriétaire de la
+ *  fenêtre, `'*'` : tout siège, ou, sur une rangée, celui de son héros). */
 export interface DeclarationDuChoix {
   effet: EffetDuChoix;
+  portee: PorteeDuReglage;
   qui: 'hote' | 'proprietaire';
 }
 
-const clot = { effet: 'clot', qui: 'proprietaire' } as const;
-const clotParLHote = { effet: 'clot', qui: 'hote' } as const;
+const clot = { effet: 'clot', portee: 'fenetre', qui: 'proprietaire' } as const;
+const clotParLHote = { effet: 'clot', portee: 'fenetre', qui: 'hote' } as const;
+const reprenable = { effet: 'reprenable', portee: 'fenetre', qui: 'proprietaire' } as const;
+const duHeros = { effet: 'reprenable', portee: 'rangee', qui: 'proprietaire' } as const;
+const coche = { effet: 'reprenable', portee: 'fenetre', qui: 'hote' } as const;
+const cocheDuHeros = { effet: 'reprenable', portee: 'rangee', qui: 'hote' } as const;
 
 /** La déclaration de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
 export const CHOIX_DES_FENETRES = {
@@ -92,9 +118,11 @@ export const CHOIX_DES_FENETRES = {
   council: { paie: clotParLHote },
   manannPriest: { payer: clotParLHote },
   shoreLeave: { accorder: clotParLHote },
-  medic: { patient: { effet: 'reprenable', qui: 'proprietaire' }, abandon: clot, plaie: { effet: 'reprenable', qui: 'proprietaire' } },
+  medic: { patient: reprenable, abandon: clot, plaie: reprenable },
   dialogue: { reponse: clot },
   designationHeros: { heros: clot },
+  seaActivities: { activite: duHeros, investir: duHeros, cacher: duHeros },
+  finDeSeance: { ambitionCourte: coche, ambitionLongue: coche, ambitionPersonnelleCourte: cocheDuHeros, ambitionPersonnelleLongue: cocheDuHeros, motivation: cocheDuHeros },
 } as const satisfies { [F in FenetreAChoix]: { [A in AxeDe<F>]: DeclarationDuChoix } };
 
 /** La fenêtre `fenetre` (une donnée de frontière) a-t-elle des choix ? */
@@ -111,7 +139,8 @@ export function declarationDuChoix(fenetre: unknown, axe: unknown): DeclarationD
 /** Les axes de la fenêtre `cle`, dans leur ordre de déclaration ; aucun pour une fenêtre qui n'en a pas. */
 export const axesDeLaFenetre = (cle: string): readonly AxeDuChoix[] => (estFenetreAChoix(cle) ? Object.keys(CHOIX_DES_FENETRES[cle]) as AxeDuChoix[] : []);
 
-/** Le verbe qui choisit dans une fenêtre : l'axe `axe` de la fenêtre `fenetre` prend la valeur `valeur`. */
+/** Le verbe qui choisit dans une fenêtre : l'axe `axe` de la fenêtre `fenetre` prend la valeur `valeur`, pour le héros
+ *  `pid` d'un choix de rangée. */
 export interface VerbeDeChoix {
   fenetreChoisir: (...args: ArgumentsDuChoix) => void;
 }
@@ -119,14 +148,15 @@ export interface VerbeDeChoix {
 /** Les arguments du verbe, union corrélée sur chaque axe : la valeur suit son axe jusque dans une intention
  *  (`Parameters<ActionsDuNoyau['fenetreChoisir']>`). */
 export type ArgumentsDuChoix = {
-  [F in FenetreAChoix]: { [A in AxeDe<F>]: [fenetre: F, axe: A, valeur: ChoixDesFenetres[F][A]] }[AxeDe<F>];
+  [F in FenetreAChoix]: { [A in AxeDe<F>]: [fenetre: F, axe: A, valeur: ChoixDesFenetres[F][A], pid?: IdDeHeros] }[AxeDe<F>];
 }[FenetreAChoix];
 
 /** Le corps de chaque choix, table TOTALE sur `ChoixDesFenetres` : il reçoit la valeur, que `fenetreChoisir` n'a admise
- *  que parmi les valeurs ouvertes de l'axe (`OuvertsDuChoix`). */
-export type CorpsDesChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (valeur: ChoixDesFenetres[F][A]) => void } };
+ *  que parmi les valeurs ouvertes de l'axe (`OuvertsDuChoix`), et le héros d'un choix de rangée. */
+export type CorpsDesChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (valeur: ChoixDesFenetres[F][A], pid: IdDeHeros) => void } };
 
 /** Les valeurs que l'état ouvre à chaque choix, table TOTALE sur `ChoixDesFenetres` : le réglage de l'argument
- *  `valeur` (son libellé, sa valeur courante, chaque valeur avec la raison qui la ferme), que lisent le refus du verbe
- *  et les hôtes du noyau. Aucune valeur hors de ce réglage ne se joue. */
-export type OuvertsDuChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (s: Jeu) => Reglage } };
+ *  `valeur` (son libellé, sa valeur courante, chaque valeur avec la raison qui la ferme, ou ses bornes), sur le héros
+ *  `pid` d'un choix de rangée, que lisent le refus du verbe et les hôtes du noyau. Aucune valeur hors de ce réglage ne se
+ *  joue. */
+export type OuvertsDuChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (s: Jeu, pid: IdDeHeros | undefined) => Reglage } };

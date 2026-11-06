@@ -23,7 +23,7 @@ import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
 import { creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
-import { creerActionsDuGroupe, sortiesDuGroupe } from './partyFlow';
+import { choixDeLaFinDeSeance, creerActionsDuGroupe, sortiesDuGroupe, validationsDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
 import { creerActionsDeMarche } from './marcheDuGroupe';
 import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
@@ -49,7 +49,7 @@ import { creerActionsDuPort, sortiesDuPort } from './portFlow';
 import { choixDuVoyageEnMer, creerActionsDuVoyageEnMer } from './seaVoyageFlow';
 import { creerActionsDuMarcheTerrestre, sortiesDuMarcheTerrestre } from './landMarketFlow';
 import { creerActionsDeLAuberge } from './innFlow';
-import { creerActionsDesActivitesEnMer } from './seaActivities';
+import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 
 /** Les actions MANUSCRITES : aucune ne porte le nom d'un verbe de jet (`NomDeVerbeDeJet`) ni un nom `<flux><Verbe>`
  *  (clé de `FLOW_VERBS`, verbe de `RollVerb`) — un geste de jet est le verbe générique de son verbe, le flux en
@@ -59,14 +59,14 @@ import { creerActionsDesActivitesEnMer } from './seaActivities';
  *  `…Abandon…`, `…Choose`, `…All`, `…Choisir`) : une fenêtre fait choisir par `fenetreChoisir`, le choix déclaré dans `ChoixDesFenetres` et son corps
  *  dans `choixDesFenetres`. Ni un nom de sortie de fenêtre (`close…`, `dismiss…`, `…Cancel`, `…Skip`) : une fenêtre se
  *  ferme par `fenetreFermer`, la fenêtre déclarée dans son registre (`sortie`) et son corps dans `sortiesDeFenetre` ; ni
- *  un nom de validation (`…Ready`) : une fenêtre se valide par `fenetreValider`, la fenêtre déclarée dans son registre
+ *  un nom de validation (`…Ready`, `…Confirm`) : une fenêtre se valide par `fenetreValider`, la fenêtre déclarée dans son registre
  *  (`validation`) et son corps dans `validationsDeFenetre`.
  *  Une telle clé ne compile pas.
  *  Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. */
 type NomDeDelegue = `${FlowKey}${Capitalize<RollVerb>}` | NomDeVerbeDeJet
   | `${FlowKey}${'Set' | 'Toggle' | 'Alloc'}${string}`
   | `${string}Select` | `${string}Abandon${string}` | `${string}Choose` | `${string}All` | `${string}Choisir`
-  | `close${string}` | `dismiss${string}` | `${string}Cancel` | `${string}Skip` | `${string}Ready`;
+  | `close${string}` | `dismiss${string}` | `${string}Cancel` | `${string}Skip` | `${string}Ready` | `${string}Confirm`;
 function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, NomDeDelegue>]: 'geste de jet, réglage de jet, choix, sortie ou validation de fenêtre : verbe générique' }): T {
   return actions;
 }
@@ -107,6 +107,8 @@ function choixDesFenetres(get: Get, set: SetDesClesReservees): CorpsDesChoix {
     ...choixDeCampagne(get, set),
     ...choixDeLEquipage(get, set),
     ...choixDuVoyageEnMer(get, set),
+    ...choixDeLaSemaineEnMer(get, set),
+    ...choixDeLaFinDeSeance(get, set),
   } satisfies CorpsDesChoix;
 }
 
@@ -141,6 +143,8 @@ function validationsDeFenetre(get: Get, set: SetDesClesReservees): ValidationsDe
     ...validationsDuMarchand(get, set),
     ...validationsDuRepos(get, set),
     ...validationsDuVoyage(get, set),
+    ...validationsDeLaSemaineEnMer(get, set),
+    ...validationsDuGroupe(get, set),
   } satisfies ValidationsDeFenetre;
 }
 
@@ -192,7 +196,6 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
       ...creerActionsDuVoyageEnMer(get, set),
       ...creerActionsDuMarcheTerrestre(get, set),
       ...creerActionsDeLAuberge(get, set),
-      ...creerActionsDesActivitesEnMer(get, set),
     }),
   };
 }

@@ -636,11 +636,14 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['fenetreFermer', routeDuGesteDeFenetre((args) => sortieDeLaFenetre(args[0]))],
     ['fenetreValider', routeDuGesteDeFenetre((args) => validationDeLaFenetre(args[0]))],
     // Le choix d'une fenêtre (`fenetreChoisir`), par ce que sa déclaration nomme (`CHOIX_DES_FENETRES`) : le siège du
-    // propriétaire de la fenêtre nommée, pas celui de la modale prioritaire (`modalOwnerOf`).
-    ['fenetreChoisir', routeDuGesteDeFenetre(([fenetre, axe]) => {
-      const qui = declarationDuChoix(fenetre, axe)?.qui;
+    // propriétaire de la fenêtre nommée, pas celui de la modale prioritaire (`modalOwnerOf`), ou, sur une rangée, celui
+    // de son héros (`pid`, 4ᵉ argument).
+    ['fenetreChoisir', routeDuGesteDeFenetre(([fenetre, axe, , pid]) => {
+      const declaration = declarationDuChoix(fenetre, axe);
       const registre = fenetreDuRegistre(fenetre);
-      return qui && registre ? { ...registre, qui } : undefined;
+      if (!declaration || !registre) return undefined;
+      const duHeros = declaration.portee === 'rangee' && declaration.qui === 'proprietaire';
+      return { ...registre, qui: declaration.qui, ...(duHeros ? { proprietaire: () => idArg(pid) } : {}) };
     })],
     // #669 — la marche d'exploration est une décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) ;
     // la réponse d'un dialogue et la désignation d'un héros sont des choix de fenêtre (`fenetreChoisir`), au siège du
