@@ -7,8 +7,11 @@
  * Ce module = TYPES + chargement + lookup ; ajouter/régler = éditer `tables.json`, jamais ce fichier.
  */
 import type { GameOp } from '../engine/ops';
+import type { DiceSpec } from '../engine/dice';
 import { tableOuverte, type BandeOuverte } from '../engine/tables';
 import effectTablesJson from './tables.json';
+import { deDeTirageDe } from './rangees';
+import type * as tablesDEffets from './schemas/defs/tables';
 
 /** Une rangée d'une table d'effets : fourchette `[min,max]` du jet → `ops` appliquées (même ctx).
  *  `label` = libellé d'affichage RAW de la rangée (colonne du Tableau), optionnel. Bornes telles que
@@ -44,4 +47,9 @@ export function findEffectTableById(id: string): EffectTable {
   const t = BY_ID.get(id);
   if (!t) throw new Error(`findEffectTableById : table d'effets « ${id} » introuvable (tables.json)`);
   return t;
+}
+
+/** Le DÉ DE TIRAGE de la table d'effets `id` (`die`), lu VIVANT à l'appel (`deDeTirageDe`). */
+export function effectTableDie(id: string): DiceSpec {
+  return deDeTirageDe<typeof tablesDEffets>(effectTablesJson, id);
 }

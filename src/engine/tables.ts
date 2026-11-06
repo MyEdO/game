@@ -1,4 +1,4 @@
-import { formatDice, parseDiceRequired, totalDuDe } from './dice';
+import { formatDice, parseDiceRequired, totalDuDe, type DiceSpec } from './dice';
 
 /**
  * Lookup PARTAGÉ d'une entrée de table d100 par fourchette `[min, max]` — SOURCE UNIQUE des tirages
@@ -62,18 +62,23 @@ export function fourchette(min: number | null, max: number | null, dieMax = 0): 
   return bas < 0 || haut < 0 ? `${borne(bas)} à ${borne(haut)}` : `${borne(bas)}–${borne(haut)}`;
 }
 
-/** SOURCE UNIQUE du plus grand total d'un dé de tirage (`deDeTirageSchema`) : `d10` → 10, `d100` → 100,
- *  `2d10` → 20. PUR. */
-export function facesDuDe(die: string): number {
-  const de = parseDiceRequired(die, 'die');
+/** Un dé de tirage : le `DiceSpec` lu sur son document (`deDeTirageDe`), ou l'expression écrite
+ *  (`deDeTirageSchema`) d'une table qui n'en porte pas. */
+type DeDeTirage = DiceSpec | string;
+const specDe = (die: DeDeTirage): DiceSpec => (typeof die === 'string' ? parseDiceRequired(die, 'die') : die);
+
+/** SOURCE UNIQUE du plus grand total d'un dé de tirage : `d10` → 10, `d100` → 100, `2d10` → 20. PUR. */
+export function facesDuDe(die: DeDeTirage): number {
+  const de = specDe(die);
   return totalDuDe(de, de.n * de.sides);
 }
 
 /** GRAPHIE UNIQUE d'une bande précédée de son dé (« 1d100 01–35 », « 1d10 9–10 ») : libellé du dé
  *  par `formatDice`, bande par `fourchette` cadrée sur `facesDuDe`. docs/charte-ui.md,
  *  « Bande de table ». PUR. */
-export function bandeAuDe(die: string, min: number | null, max: number | null): string {
-  return `${formatDice(parseDiceRequired(die, 'die'))} ${fourchette(min, max, facesDuDe(die))}`;
+export function bandeAuDe(die: DeDeTirage, min: number | null, max: number | null): string {
+  const de = specDe(die);
+  return `${formatDice(de)} ${fourchette(min, max, facesDuDe(de))}`;
 }
 
 /** Variante INDEX de `findTableEntry` — pour les appelants qui doivent ensuite décaler l'entrée
