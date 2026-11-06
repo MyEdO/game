@@ -123,7 +123,7 @@ import { stepPrecision, idDansLaSequence } from './rollSeam';
 import { actorIn, equipageApte } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import type { PlayerText } from '../i18n/playerText';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
@@ -2639,7 +2639,7 @@ export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
     portRepair: () => portRepairVessel(get, set).forEach((l) => get().log(l)),
     portCareen: () => portCareenVessel(get, set).forEach((l) => get().log(l)),
     portInstallUpgrade: (traitId, units) => portInstallUpgrade(get, set, traitId, units).forEach((l) => get().log(l)),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

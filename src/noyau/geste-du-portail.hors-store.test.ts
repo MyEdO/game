@@ -12,6 +12,7 @@ import { aretesUtilisables } from './aretes';
 import { computeStateVisible } from './visionState';
 import { gesteDuPortail } from './marcheDuGroupe';
 import { gestesDExploration } from './gestesDExploration';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -48,6 +49,13 @@ describe('le geste d’un accès : une source pour le noyau et l’écran', () =
     expect(ouverte.kind).toBe('door-open');
     expect(gesteDuPortail(g(), fermee)).toEqual({ verbe: 'actionnerLaPorte', args: [fermee.id] });
     expect(gesteDuPortail(g(), ouverte)).toEqual({ verbe: 'cliquerLaCase', args: [ouverte.to] });
+  });
+
+  it('la porte se désigne par son id : actionnée par lui, refusée et dite quand aucun accès à portée ne le porte', () => {
+    const { fermee } = enExploration();
+    expect(g().actionnerLaPorte(fermee.id)).toBe(true);
+    expect(g().actionnerLaPorte('porte-inconnue')).toBe(false);
+    expect(g().journal.slice(-1)[0]).toBe(t('porte.refus.inconnue', { id: 'porte-inconnue' }));
   });
 
   it('les gestes d’exploration offrent exactement ces deux gestes pour les deux portes', () => {

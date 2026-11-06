@@ -76,7 +76,7 @@ export function discreditClue(
   return { ...clues, [indice.id]: { ...réfuté, statut: 'réfuté' } };
 }
 
-/** Épingle/désépingle un indice PRÉSENT au carnet — no-op si l'indice est encore caché. */
+/** Épingle/désépingle un indice PRÉSENT au carnet. */
 export function togglePin(clues: Record<string, ClueState>, indiceId: string): Record<string, ClueState> {
   const existing = clues[indiceId];
   if (!existing) return clues;

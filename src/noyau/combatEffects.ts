@@ -2,6 +2,7 @@ import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scene
 import type { Jeu } from './etat';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
+import { ouvrirLaFinDeSeance } from './partyFlow';
 import { tableTotale } from '../lib/tableTotale';
 import { tablesPosees, type ClotureApplier, type FragmentDeTables, type PartDeTable } from './tablesPosees';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite, RevealEntry } from './pendings';
@@ -1462,7 +1463,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   sessionEnd: {
     group: 'Récompenses', label: libelleEffet('sessionEnd'), icon: 'journal/detail',
     make: () => ({ type: 'sessionEnd' }),
-    apply: (_e, env) => { env.get().openSessionEnd(); }, // la fin de séance (`fenetreValider('finDeSeance')`)
+    apply: (_e, env) => { ouvrirLaFinDeSeance(env.set); }, // la fin de séance (`fenetreValider('finDeSeance')`)
   },
   openCharacterCreator: {
     group: 'Récompenses', label: libelleEffet('openCharacterCreator'), icon: 'ui/add',

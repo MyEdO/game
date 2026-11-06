@@ -190,7 +190,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
   openRest: 'hôte', assignLootGear: 'hôte', harvestCreature: 'hôte',
   // ── Offres : la porte du registre en intention (`creerActionsDuRegistre`, #2898), la Chance regagnée (règle optionnelle) ──
-  jouerLOffre: 'hôte', restoreFortuneNow: 'hôte',
+  jouerLOffre: 'hôte', restoreFortuneNow: 'hôte', ouvrirLaFinDeSeance: 'hôte',
   // Armement d'intention au clavier (registre `state/clavier/keybindings.ts`) : n'écrit que `localIntent`.
   battleArmIntent: 'local',
 } as const satisfies TableDesClasses;
