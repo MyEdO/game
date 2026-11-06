@@ -2019,7 +2019,7 @@
     "type": "primitives.manifest",
     "label": "PorteeDeComposition/porteeDeComposition/porteeDuCombattant/porteesDesObjets",
     "fichier": "src/noyau/apparence/composition.ts",
-    "concept": "ce que porte un corps, sans élément 3D : têtes, pièces et objets en `Portee` (clé de garde-robe ou d'apparence, point, ce qui l'apporte), le rapport des objets ni tenus ni rangés, l'emblème, les facteurs du gabarit et le corps habillé (`sex`, `build`, `couleurs`) ; deux producteurs, une composition de preset (`porteeDeComposition`) et un combattant (`porteeDuCombattant`, `src/noyau/apparence/combattant.ts`), et un seul assembleur d'objet (`porteesDesObjets`) ; l'hôte la résout en éléments de sa base",
+    "concept": "ce que porte un corps, sans élément 3D : têtes, pièces et objets en `Portee` (clé de garde-robe ou d'apparence, une apparence variante avec sa `racine`, point, ce qui l'apporte), le rapport des objets ni tenus ni rangés, l'emblème, les facteurs du gabarit et le corps habillé (`sex`, `build`, `couleurs`) ; deux producteurs, une composition de preset (`porteeDeComposition`) et un combattant (`porteeDuCombattant`, `src/noyau/apparence/combattant.ts`), et un seul assembleur d'objet (`porteesDesObjets`) ; l'hôte la résout en éléments de sa base",
     "perimetre": "toute chose portée par un personnage dessiné sur une base modulaire (atelier, combat, projection)",
     "verrou": "src/noyau/apparence/composition.test.ts, src/noyau/apparence/combattant.test.ts, src/hote/projection.hors-store.test.ts"
   },

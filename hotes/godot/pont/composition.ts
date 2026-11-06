@@ -54,7 +54,8 @@ function ouMonter({ cle, point }: Portee): string {
 }
 
 /** `portee` sur la base `base` des modèles de l'atelier : `manifestes` (id de modèle → manifeste) lit la base et la
- *  `cle` de ses éléments. Chaque chose portée se monte à l'élément de son emplacement dont la clé la désigne. */
+ *  `cle` de ses éléments. Chaque chose portée se monte à l'élément de son emplacement dont la clé la désigne, une
+ *  apparence variante à défaut à celui de sa `racine`. */
 export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Record<string, unknown>>, portee: PorteeDeComposition, surcharges: SurchargesDEmblemes = {}): CompositionSurLaBase {
   const elementsDe = new Map<string, string[]>([
     ...base.points.map((p): [string, string[]] => [p.id, p.elements]),
@@ -64,7 +65,9 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
   const manquants: Manquant[] = [];
   for (const p of portee.portees) {
     const ligne = ouMonter(p);
-    const element = (elementsDe.get(ligne) ?? []).find((e) => cleDe(manifestes[e])[p.cle.champ] === p.cle.id);
+    const ids = p.cle.champ === 'apparence' && p.cle.racine !== undefined ? [p.cle.id, p.cle.racine] : [p.cle.id];
+    const elements = elementsDe.get(ligne) ?? [];
+    const element = ids.map((id) => elements.find((e) => cleDe(manifestes[e])[p.cle.champ] === id)).find((e) => e !== undefined);
     const embleme = Object.prototype.hasOwnProperty.call(surcharges, ligne) ? emblemeDuPorteur(surcharges[ligne]) : portee.embleme;
     const porteUnBlason = element !== undefined && blasonsDe(manifestes[element]).length > 0;
     montes.push({ ligne, element: element ?? null, ...(porteUnBlason && embleme ? { embleme } : {}) });

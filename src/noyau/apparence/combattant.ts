@@ -25,11 +25,11 @@ export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
   const { tenues, rangees } = armesDuCombattant(c);
   const armes = new Set([...tenues.map((t) => t.arme), ...rangees].flatMap((w) => (w.uid ? [w.uid] : [])));
   const objets: ObjetPorte[] = [
-    ...tenues.filter(({ arme }) => !arme.natural).map(({ arme, hand }) => ({ nom: arme.trappingId ?? arme.label, trappingId: arme.trappingId, apparence: apparencesCandidates(arme)[0], prise: hand })),
-    ...rangees.filter((w) => !w.natural).map((w) => ({ nom: w.trappingId ?? w.label, trappingId: w.trappingId, apparence: apparencesCandidates(w)[0] })),
+    ...tenues.filter(({ arme }) => !arme.natural).map(({ arme, hand }) => ({ nom: arme.trappingId ?? arme.label, trappingId: arme.trappingId, candidats: apparencesCandidates(arme), prise: hand })),
+    ...rangees.filter((w) => !w.natural).map((w) => ({ nom: w.trappingId ?? w.label, trappingId: w.trappingId, candidats: apparencesCandidates(w) })),
     ...(c.items ?? [])
       .filter((i) => i.equipped && !armes.has(i.uid) && i.trappingId !== undefined && piecesDEnsemble({ type: 'trapping', id: i.trappingId }).length > 0)
-      .map((i) => ({ nom: i.trappingId!, trappingId: i.trappingId })),
+      .map((i) => ({ nom: i.trappingId!, trappingId: i.trappingId, candidats: [] })),
   ];
   const { portees, rapport } = porteesDesObjets(objets);
   const embleme = emblemeDe(c.appearanceOverride, c.creatureId);

@@ -3,8 +3,8 @@
 ## ou à son point, rigide, tenu, rangé ou skinné (#3086 D4, #3319), habillé de la palette de la composition et de son
 ## emblème (#3111), le gabarit (`GabaritDuSquelette`) et les morphes posés. L'atelier (`atelier.gd`) et chaque combattant
 ## du plateau (`combattant.gd`) en sont deux porteurs : l'un l'offre au joueur, l'autre le monte d'après la vue.
-## La réponse de `modeles` retenue (`retenir_les_modeles`) est commune à tous les montages : chaque GLB s'y lit une fois,
-## et chaque emblème s'y rastérise une fois, d'un chargement des modèles au suivant.
+## La réponse de `modeles` retenue (`retenir_les_modeles`) est commune à tous les montages : chaque GLB s'y télécharge une
+## fois, et chaque emblème s'y rastérise une fois, d'un chargement des modèles au suivant.
 class_name MontageDeComposition
 extends Node3D
 
@@ -18,11 +18,11 @@ const BLOC_DE_TELECHARGEMENT := 16777216
 const LARGEUR_D_EMBLEME := 512.0
 
 
-## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis lu (`etat`) ou en échec (`erreurs`).
+## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
 class Lecture extends RefCounted:
 	signal lue
 	var en_vol := true
-	var etat: GLTFState = null
+	var octets := PackedByteArray()
 	var erreurs: Array[String] = []
 
 
@@ -153,10 +153,11 @@ static func _telecharger(hote: Node, relative: String, recueil: Array[String]) -
 	return resultat[3]
 
 
-## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en scène : lu à l'exécution une fois
-## par chargement des modèles, chaque demande d'un même fichier attendant la première ; `null` (et une erreur à
-## `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et un fichier qui ne s'est pas lu se redemande. Chaque
-## liaison d'un skin y porte le nom de son os (#3086, D4 ; `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`,
+## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en scène neuve : téléchargé une fois
+## par chargement des modèles, chaque demande d'un même fichier attendant la première, puis lu à chaque demande, car un
+## `GLTFState` ne génère qu'une scène dont le squelette trouve ses os par leur nom (`generate_scene` rappelé : `find_bone`
+## rend -1), par le `GLTFDocument` qui l'a lu (un autre rend des `ImporterMeshInstance3D`, Godot 4.7-stable) ; `null` (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et un
+## fichier qui ne s'est pas téléchargé se redemande. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ; `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`,
 ## `modules/gltf/gltf_document.cpp` `_create_skins`, `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`,
 ## Godot 4.7-stable).
 func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
@@ -168,26 +169,25 @@ func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
 	if lecture == null:
 		lecture = Lecture.new()
 		_lectures[fichier] = lecture
-		await _lire(id, fichier, lecture)
+		await _lire(fichier, lecture)
 	elif lecture.en_vol:
 		await lecture.lue
 	recueil.append_array(lecture.erreurs)
-	if lecture.etat == null:
+	if lecture.octets.is_empty():
 		return null
-	return GLTFDocument.new().generate_scene(lecture.etat) as Node3D
+	var document := GLTFDocument.new()
+	var etat := GLTFState.new()
+	etat.handle_binary_image_mode = GLTFState.HANDLE_BINARY_IMAGE_MODE_EMBED_AS_UNCOMPRESSED
+	var code := document.append_from_buffer(lecture.octets, "", etat, GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS)
+	if code != OK:
+		recueil.append("glb-illisible : %s (%s)" % [id, error_string(code)])
+		return null
+	return document.generate_scene(etat) as Node3D
 
 
-func _lire(id: String, fichier: String, lecture: Lecture) -> void:
-	var octets := await _telecharger(self, "modeles/%s" % fichier, lecture.erreurs)
-	if not octets.is_empty():
-		var etat := GLTFState.new()
-		etat.handle_binary_image_mode = GLTFState.HANDLE_BINARY_IMAGE_MODE_EMBED_AS_UNCOMPRESSED
-		var code := GLTFDocument.new().append_from_buffer(octets, "", etat, GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS)
-		if code == OK:
-			lecture.etat = etat
-		else:
-			lecture.erreurs.append("glb-illisible : %s (%s)" % [id, error_string(code)])
-	if lecture.etat == null and _lectures.get(fichier) == lecture:
+func _lire(fichier: String, lecture: Lecture) -> void:
+	lecture.octets = await _telecharger(self, "modeles/%s" % fichier, lecture.erreurs)
+	if lecture.octets.is_empty() and _lectures.get(fichier) == lecture:
 		_lectures.erase(fichier)
 	lecture.en_vol = false
 	lecture.lue.emit()

@@ -25,7 +25,7 @@ describe('projection d’un objet de campagne', () => {
       };
       const vue = projeter(etat, 0, 0, { autres: 100, offres: 100, cibles: 100, gestes: 100, entites: 100 });
       expect(candidats).toEqual(['hache_naine', 'hache']);
-      const tenue = expect.objectContaining({ cle: { champ: 'apparence', id: 'hache_naine' }, point: 'main' });
+      const tenue = expect.objectContaining({ cle: { champ: 'apparence', id: 'hache_naine', racine: 'hache' }, point: 'main' });
       expect(vue.combat!.actif!.portee?.portees).toContainEqual(tenue);
       expect(vue.combat!.voisins.liste.find((c) => c.id === hero.id)!.portee?.portees).toContainEqual(tenue);
     } finally {

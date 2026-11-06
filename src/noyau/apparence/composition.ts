@@ -8,6 +8,8 @@
  */
 import { choixDeLaFeuilleDId, matieresDe, findApparenceById, findCoiffureById, findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTeteById, findTrappingById, presetsDePersonnage, raceAppearance, trappingsInstanciables, type GabaritId } from '../../data';
 import { serializeDataset } from '../../data/serialize';
+import { candidatsDApparenceDObjet } from '../../data/apparencesObjets';
+import { racineDesCandidats } from '../../engine/items';
 import type { TenueId } from '../../data/schemas/defs/garde-robe';
 import { compositionSchema, surchargesDEmblemesSchema, file as FICHIER_DES_PRESETS, meta as metaDesPresets, schema as schemaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
 import { defDe, enfantsDe, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
@@ -64,11 +66,15 @@ export type SurchargesDEmblemes = typeof surchargesDEmblemesSchema._output;
 /** `brut` lu au schéma des surcharges d'emblème (`surchargesDEmblemesSchema`). */
 export const lireSurchargesDEmblemes = (brut: unknown): LectureAuSchema<SurchargesDEmblemes> => lireAuSchema(surchargesDEmblemesSchema, brut);
 
+/** La clé de l'élément qui monte une chose portée : son champ et son id ; une apparence variante porte aussi sa forme
+ *  `racine` (`racineDesCandidats`), dont l'élément la monte à défaut du sien. */
+type CleDePortee = { champ: Exclude<ChampDeCleResolu, 'apparence'>; id: string } | { champ: 'apparence'; id: string; racine?: string };
+
 /** Une chose portée : la clé de l'élément qui la monte, son libellé, son point d'accroche (la prise ou le rangement
  *  d'un objet, l'emplacement d'une pièce d'accessoire) et ce qui l'apporte (la tenue ou l'objet que son ensemble
  *  habille, l'objet dont elle est l'apparence). */
 export interface Portee {
-  cle: { champ: ChampDeCleResolu; id: string };
+  cle: CleDePortee;
   label: string;
   point?: string;
   par?: { type: 'tenue' | 'trapping'; id: string; label: string };
@@ -96,23 +102,27 @@ const par = (habille: { type: 'tenue'; id: TenueId } | { type: 'trapping'; id: s
 const portees = (pieces: readonly string[], apport?: Portee['par']): Portee[] =>
   pieces.map((id) => ({ cle: { champ: 'piece', id }, label: labelDePiece(id), ...(emplacementDePiece(id) ? { point: emplacementDePiece(id) } : {}), ...(apport ? { par: apport } : {}) }));
 
-/** Un objet porté : ce qui le nomme au rapport, son trapping, son apparence résolue, et sa prise s'il est tenu. */
+/** Un objet porté : ce qui le nomme au rapport, son trapping, ses apparences candidates (`apparencesCandidates`, `candidatsDApparenceDObjet` :
+ *  la racine en dernière entrée ; vide, aucune), et sa prise s'il est tenu. */
 export interface ObjetPorte {
   nom: string;
   trappingId?: string;
-  apparence?: string;
+  candidats: readonly string[];
   prise?: string;
 }
 
-/** Ce que porte `objet` : les pièces de l'ensemble qui habille son trapping, sinon son apparence à sa prise s'il est
- *  tenu, sinon au `rangement` de son trapping (D1) ; sans apparence ou sans point, sa ligne de rapport. */
-function porteesDeLObjet({ nom, trappingId, apparence, prise }: ObjetPorte): { portees: Portee[] } | { rapport: string } {
+/** Ce que porte `objet` : les pièces de l'ensemble qui habille son trapping, sinon son premier candidat, avec sa racine
+ *  s'il en est une variante, à sa prise s'il est tenu, sinon au `rangement` de son trapping (D1) ; sans candidat ou sans
+ *  point, sa ligne de rapport. */
+function porteesDeLObjet({ nom, trappingId, candidats, prise }: ObjetPorte): { portees: Portee[] } | { rapport: string } {
   const habille = trappingId === undefined ? undefined : { type: 'trapping' as const, id: trappingId };
   const habits = habille ? piecesDEnsemble(habille) : [];
   if (habille && habits.length) return { portees: portees(habits, par(habille)) };
   const point = prise ?? findTrappingById(trappingId)?.rangement?.id;
+  const [apparence] = candidats;
   if (apparence === undefined || point === undefined) return { rapport: t(apparence === undefined ? 'compo.objetSansApparence' : 'compo.objetSansPoint', { objet: nom }) };
-  return { portees: [{ cle: { champ: 'apparence', id: apparence }, label: findApparenceById(apparence)?.label ?? apparence, point, ...(habille ? { par: par(habille) } : {}) }] };
+  const racine = racineDesCandidats(candidats)!;
+  return { portees: [{ cle: { champ: 'apparence', id: apparence, ...(racine === apparence ? {} : { racine }) }, label: findApparenceById(apparence)?.label ?? apparence, point, ...(habille ? { par: par(habille) } : {}) }] };
 }
 
 /** Ce que portent `objets`, chacun par `porteesDeLObjet`, dans leur ordre. */
@@ -131,7 +141,7 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
   if (composition.coiffure) liste.push({ cle: { champ: 'coiffure', id: composition.coiffure.id }, label: findCoiffureById(composition.coiffure.id)?.label ?? composition.coiffure.id });
   if (composition.tenue) liste.push(...portees(piecesDEnsemble({ id: composition.tenue.id, type: 'tenue' }), par({ type: 'tenue', id: composition.tenue.id })));
   liste.push(...portees(composition.pieces ?? []));
-  const objet = (id: string, prise?: string): ObjetPorte => ({ nom: id, trappingId: id, apparence: composition.apparencesObjets?.[id]?.id ?? findTrappingById(id)?.shape?.id, ...(prise ? { prise } : {}) });
+  const objet = (id: string, prise?: string): ObjetPorte => ({ nom: id, trappingId: id, candidats: candidatsDApparenceDObjet(id, composition.apparencesObjets?.[id]?.id), ...(prise ? { prise } : {}) });
   const objets = porteesDesObjets([
     ...Object.entries(composition.prises ?? {}).map(([main, tenu]) => objet(tenu.id, main)),
     ...(composition.objets ?? []).map((id) => objet(id)),

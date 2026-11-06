@@ -1,6 +1,6 @@
 ## Un combattant du plateau : son corps, la base composée que la vue lui donne (`vue.corps.combattants[id]`,
 ## `hotes/godot/pont/CONTRAT.md`), posée par son montage (`MontageDeComposition`, le nœud `Modele`) à l'échelle métrique
-## du plateau et animée par les clips de sa base selon leur rôle (`clips` de la réponse de `modeles`) ; son nom et ses
+## du plateau (`vue.plateau.metresParCase`) et animée par les clips de sa base selon leur rôle (`clips` de la réponse de `modeles`) ; son nom et ses
 ## Points de Blessures (`pb`) en étiquette au-dessus de sa tête, l'anneau de l'actif. Il glisse vers sa nouvelle case,
 ## frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
 ## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`).
@@ -40,14 +40,15 @@ var _hauteur_de_tete := 0.0
 
 
 func _ready() -> void:
-	var echelle := MiseEnPage.echelle_metrique(MiseEnPage.METRES_PAR_CASE)
-	_montage.scale = Vector3(echelle, echelle, echelle)
 	_etiquette.position.y = MiseEnPage.HAUTEUR_DU_NOM
 
 
-## `c` : un combattant projeté (`voisins`) ; `lieu` : le centre de sa case ; `corps` : son corps (`null` : aucun).
-func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant) -> void:
+## `c` : un combattant projeté (`voisins`) ; `lieu` : le centre de sa case ; `corps` : son corps (`null` : aucun) ;
+## `metres_par_case` : l'échelle du plateau (`vue.plateau.metresParCase`).
+func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, metres_par_case: float) -> void:
 	_id = c.id
+	var echelle := MiseEnPage.echelle_metrique(metres_par_case)
+	_montage.scale = Vector3(echelle, echelle, echelle)
 	_etiquette.text = "%s\n%d / %d" % [c.nom, int(c.pb[0]), int(c.pb[1])]
 	_selection.visible = actif and not c.horsCombat
 	if c.horsCombat and not _hors_combat:

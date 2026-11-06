@@ -31,8 +31,6 @@ const ECART_DE_BULLE := 12.0
 const LARGEUR_DE_BULLE := 420.0
 ## La hauteur, au-dessus du sol, du nom d'une entité de la scène.
 const HAUTEUR_DU_NOM := 1.2
-## Les mètres d'une case du plateau, l'unité du monde : `sceneMetresPerTile` (`src/noyau/monde/scene.ts`), LDB 15 l.12.
-const METRES_PAR_CASE := 2.0
 
 
 ## La largeur du texte d'une bulle qui, sur une ligne, en prendrait `largeur` : la sienne, au pixel supérieur, au plus

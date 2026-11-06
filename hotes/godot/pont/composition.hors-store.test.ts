@@ -1,7 +1,8 @@
 /**
  * LA COMPOSITION D'UN PERSONNAGE SUR UNE BASE (#3086, D2 ; `CONTRAT.md`, section « Composition d'un personnage ») : le
  * Soldat de `catalogues` sur une base sans élément est tout entier manquant, chaque chose nommée par sa clé et par ce qui
- * l'apporte ; un plastron skinné et un accessoire de la base le montent sous la clé de leur ligne au panneau ; le sexe pose `feminin`, un gabarit non neutre change l'échelle de la racine, ses pieds sont ceux des appuis ;
+ * l'apporte ; un plastron skinné et un accessoire de la base le montent sous la clé de leur ligne au panneau ; une
+ * apparence variante monte son élément, à défaut celui de sa racine ; le sexe pose `feminin`, un gabarit non neutre change l'échelle de la racine, ses pieds sont ceux des appuis ;
  * le pont sert `composer` après `modeles`, `catalogues` et ses axes, et `presetDeComposition`, l'enveloppe du preset nommé
  * reprise, et refuse en `validation` une composition absente ou fautive, au chemin de la faute, et un preset inconnu.
  */
@@ -68,6 +69,15 @@ describe('composerSurLaBase', () => {
     expect(neutre.gabarit.racine).toEqual({ os: 'root', echelle: 1 });
     expect(neutre.gabarit.pieds).toEqual(humanoide.appuis.pieds);
     expect(composer({ humanoide }, { ...soldat, gabarit: { id: 'brute' } }).gabarit.racine.echelle).toBe(1.35);
+  });
+
+  it('une apparence variante monte l’élément qui la désigne, à défaut celui de sa racine ; sans l’un ni l’autre, le manquant garde son id', () => {
+    const epee = { ...elementSchema3('humanoide'), cle: { apparence: 'epee' } };
+    const epeeDeSoldat = { ...elementSchema3('humanoide'), cle: { apparence: 'epee_soldat' } };
+    const tenue = { ...soldat, prises: { main: { id: 'arme-simple' } }, apparencesObjets: { 'arme-simple': { id: 'epee_soldat' } } };
+    expect(composer({ humanoide, epee }, tenue).montes).toContainEqual({ ligne: 'main', element: 'epee' });
+    expect(composer({ humanoide, epee, epeeDeSoldat }, tenue).montes).toContainEqual({ ligne: 'main', element: 'epeeDeSoldat' });
+    expect(composer({ humanoide }, tenue).manquants).toContainEqual(expect.objectContaining({ ligne: 'main', champ: 'apparence', id: 'epee_soldat' }));
   });
 
   it('un objet porté sans ensemble ni rangement va au rapport, sans point', () => {
