@@ -1,13 +1,16 @@
 /**
  * La session d'édition (#3508) : la couche éditée suit l'historique (annuler l'ajout d'une couche ramène au rez), un
  * geste du pointeur s'arrête au changement d'outil ou de couche, le pinceau choisi quitte le rectangle, et
- * l'enregistrement au dépôt ne tient la scène pour enregistrée qu'à l'écriture réussie.
+ * l'enregistrement au dépôt ne tient la scène pour enregistrée qu'à l'écriture réussie ; la volée se trace case à
+ * case, se pose par son plan (`planStairFlight`) sur un cran, et son tracé s'efface avec la couche.
  */
 import { describe, expect, it } from 'vitest';
-import { emptyScene } from '../monde/scene';
-import { editer, ouvrirLEdition, sceneEditee, type SessionDEdition } from './session';
+import { emptyScene, heightAt, type Scene } from '../monde/scene';
+import { buildScene, type MapSpec } from '../mapSpec';
+import { editer, ouvrirLEdition, planDeLaVolee, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
 
-const ouverte = (duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [emptyScene('session', 4, 4)] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
+const ouverteSur = (scene: Scene, duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
+const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 
 describe('session d’édition', () => {
@@ -42,5 +45,27 @@ describe('session d’édition', () => {
     expect(editer(enCours, { geste: 'enregistrement', reussi: true }).depot).toEqual({ enregistree: sceneEditee(modifiee), enCours: null });
     expect(editer(enCours, { geste: 'enregistrement', reussi: false }).depot).toEqual({ enregistree: sceneEditee(ouverte(true)), enCours: null });
     expect(editer(modifiee, { geste: 'enregistrement', reussi: true }), 'aucun enregistrement en cours').toBe(modifiee);
+  });
+
+  it('la volée : tracée case à case (repasser retire), posée par son plan sur un cran, refusée sans plan ; la couche change, le tracé s’efface', () => {
+    // Foyer coté 1 m (F), trois cases de volée (E), galerie cotée 4 m (G) sur la couche 1.
+    const scene = buildScene({
+      id: 's', label: 'S', size: [4, 3], terrain: 'mur',
+      levels: { z0: ['....', 'FEEE', '....'].join('\n'), z1: ['...G', '....', '....'].join('\n') },
+      elevate: { F: 1, G: 4 }, legend: { F: 'pave', G: 'pierre', E: 'pierre' },
+    } as MapSpec);
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    let s = jouer(ouverteSur(scene), { geste: 'outil', outil: { mode: 'stair', toZ: 1 } }, { geste: 'appui', point: point(1, 1) }, { geste: 'glisse', point: point(2, 1) });
+    expect(jouer(s, { geste: 'poserVolee' }), 'deux cases ne franchissent pas 3 m').toBe(s);
+    expect(planDeLaVolee(s)).toMatchObject({ ok: false });
+    s = jouer(s, { geste: 'glisse', point: point(3, 1) }, { geste: 'relache', point: point(3, 1) });
+    expect(s.volee).toEqual([{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }]);
+    expect(sceneEditee(s), 'le tracé n’écrit rien').toBe(scene);
+    const posee = jouer(s, { geste: 'poserVolee' });
+    expect([1, 2, 3].map((x) => heightAt(sceneEditee(posee), x, 1, 0))).toEqual([2, 3, 4]);
+    expect([posee.volee, sceneEditee(jouer(posee, { geste: 'annuler' }))]).toEqual([[], scene]);
+    expect(jouer(s, { geste: 'appui', point: point(2, 1) }).volee, 'repasser sur une case la retire').toEqual([{ x: 1, y: 1 }, { x: 3, y: 1 }]);
+    expect(jouer(s, { geste: 'effacerVolee' }).volee).toEqual([]);
+    expect(jouer(s, { geste: 'couche', z: 0 }).volee).toEqual([]);
   });
 });
