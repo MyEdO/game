@@ -62,7 +62,9 @@
 //   l'emprise du pinceau sur chaque case et le monde reste tel quel ; relâché, la surface des cases peintes monte à
 //   l'écran. « Enregistrer » l'écrit à la copie du dépôt, puis rien à enregistrer ; « Annuler » rend la surface à sa
 //   place. L'outil Murs, un clic sur le côté commun de deux de ces cases pose une cloison sur le monde ; l'outil
-//   Sélection, un clic au même point la choisit, gainée, et la dit ; « Annuler » la retire. « Couche 1 » édite l'étage.
+//   Sélection, un clic au même point la choisit, gainée, et la dit ; « Annuler » la retire. L'outil Volée, un clic trace
+//   une case, en surcouche, et « Poser la volée » se refuse d'une case seule, sa raison en clair au panneau ; « Effacer le tracé » la retire.
+//   « Couche 1 » édite l'étage.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -973,6 +975,18 @@ async function parcoursEditeur() {
   await cliquerBouton({ element: 'bouton/annuler' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes} && globalThis.wfrpEcran.editeur.surcouche.arete === null`)
   noter('« Annuler » : la cloison retirée')
+  await cliquerBouton({ element: 'bouton/outil/stair' })
+  await cliquerPoint(ax, ay)
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 1')
+  e = await editeur()
+  const poser = boutonDeLEditeur(e, 'volee/poser')
+  assert.ok(poser?.refus, '« Poser la volée » se refuse d’une case seule')
+  assert.equal(e.zones['editeur.options'].find((l) => l.id === 'plan')?.texte, poser.refus, 'la raison du refus, en clair au panneau')
+  noter(`outil Volée, un clic : ${e.zones['editeur.options'].find((l) => l.id === 'trace')?.texte}, en surcouche ; « Poser la volée » refusé : ${poser.refus}`)
+  await capturer('3508-l2-2-volee-tracee')
+  await cliquerBouton({ element: 'bouton/volee/effacer' })
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0')
+  noter('« Effacer le tracé » : la surcouche vide')
   await cliquerBouton({ element: 'bouton/couche/1' })
   e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, 'la couche 1 s’édite')

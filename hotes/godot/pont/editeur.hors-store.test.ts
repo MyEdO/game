@@ -37,6 +37,13 @@ function boutonDe(e: Edition, id: string): Bouton {
   return b;
 }
 
+/** Les valeurs du choix d'id `id` des options de l'outil. */
+function valeursDe(e: Edition, id: string): Bouton[] {
+  const c = e.vue.zones['editeur.options'].find((el) => el.id === id);
+  if (c?.type !== 'choix' && c?.type !== 'liste') throw new Error(`aucun choix ${id}`);
+  return c.valeurs;
+}
+
 /** La première campagne du jeu : chaque scène a au moins deux cases de côté. */
 const CAMPAGNE = allBuiltinCampaigns[0].id;
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
@@ -66,7 +73,7 @@ describe('l’éditeur de carte par le pont', () => {
     jouer({ geste: 'relache', point: point(1, 1) });
 
     const terrain = presser(boutonDe(visee, 'outil/tile'));
-    const autre = (terrain.vue.zones['editeur.options'].find((c) => c.id === 'terrains')!.valeurs).find((b) => !avant.includes(` · ${b.libelle} · `))!;
+    const autre = valeursDe(terrain, 'terrains').find((b) => !avant.includes(` · ${b.libelle} · `))!;
     presser(autre);
     const trait = jouer({ geste: 'appui', point: point(1, 1) });
     expect(trait.surcouche.cases, 'la case peinte, à la surcouche').toEqual([{ x: 1, y: 1, z: 0 }]);
@@ -121,7 +128,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const murs = presser(boutonDe(ouverte, 'outil/wall'));
     expect(boutonDe(murs, 'arete/wall').presse).toBe(true);
     const portes = presser(boutonDe(murs, 'arete/door'));
-    const materiau = portes.vue.zones['editeur.options'].find((c) => c.id === 'structures')!.valeurs[1];
+    const materiau = valeursDe(portes, 'structures')[1];
     presser(materiau);
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
     expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, porte: true, ouverte: true }]);
@@ -134,6 +141,26 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     expect(auNord(presser(boutonDe(choisie, 'annuler')).aretes!)).toEqual([]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, la volée', () => {
+  it('l’outil volée trace ses cases en surcouche ; poser une volée que son plan refuse se refuse, sa raison en clair ; effacer vide le tracé', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const volee = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/stair'));
+    expect(boutonDe(volee, 'volee/effacer').refus).toBe('Aucune case tracée');
+    const tracee = jouer({ geste: 'appui', point: point(1, 1) });
+    jouer({ geste: 'relache', point: point(1, 1) });
+    expect(tracee.surcouche.cases).toEqual([{ x: 1, y: 1, z: 0 }]);
+    const ligneDes = (id: string) => tracee.vue.zones['editeur.options'].find((e) => e.id === id);
+    expect(ligneDes('trace')).toMatchObject({ texte: 'Tracé : 1 case' });
+    const poser = boutonDe(tracee, 'volee/poser');
+    expect(poser.refus).toBeTruthy();
+    expect(ligneDes('plan'), 'la raison du plan, en clair').toMatchObject({ texte: poser.refus });
+    expect(erreurDe(appel('editer', poser.jeu))).toEqual({ categorie: 'regle', message: `editer : ${poser.refus}` });
+    expect(presser(boutonDe(tracee, 'volee/effacer')).surcouche.cases).toEqual([]);
   });
 });
 
@@ -163,7 +190,7 @@ describe('l’éditeur de carte par le pont, au dépôt', () => {
     expect(erreurDe(appel('editer', { edition: { geste: 'enregistrement', reussi: true } })).message).toBe('editer : aucun enregistrement en cours');
     const terrain = presser(boutonDe(ouverte, 'outil/tile'));
     const avant = jouer({ geste: 'appui', point: point(1, 1) });
-    const autre = terrain.vue.zones['editeur.options'].find((c) => c.id === 'terrains')!.valeurs.find((b) => !b.presse)!;
+    const autre = valeursDe(terrain, 'terrains').find((b) => !b.presse)!;
     jouer({ geste: 'relache', point: point(1, 1) });
     presser(autre);
     jouer({ geste: 'appui', point: point(1, 1) });

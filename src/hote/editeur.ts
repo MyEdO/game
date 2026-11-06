@@ -1,13 +1,13 @@
 /**
  * L'ÉDITEUR DE CARTE À L'ÉCRAN D'UN HÔTE (#3508) : ses zones et leurs éléments (`elements.ts`), lus de la session
  * d'édition du noyau (`SessionDEdition`). Les outils, les options de l'outil actif (pinceau, terrains, hauteurs, sorte
- * et structure d'une arête), les couches de la scène, l'historique, l'enregistrement au dépôt, la case pointée et
+ * et structure d'une arête, étage rejoint et plan d'une volée), les couches de la scène, l'historique, l'enregistrement au dépôt, la case pointée et
  * l'arête sélectionnée ; chaque geste porte le geste d'édition qu'il joue (`{ edition }`), prêt à envoyer. Ce que le
- * pointeur trace sur la carte en cours de geste, et l'arête sélectionnée, vont à la surcouche (`surcoucheDeLEdition`),
+ * pointeur trace sur la carte en cours de geste, le tracé de la volée et l'arête sélectionnée, vont à la surcouche (`surcoucheDeLEdition`),
  * que l'hôte pose sur le monde.
  */
-import { HAUTEURS, PINCEAUX, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, segmentDeLaSelection, structuresDeLArete, terrainIds, terrainLabel, tileAt, type AreteDessinee, type GesteDEdition, type SessionDEdition, type WallPaint } from '../noyau/index';
-import { t } from '../i18n';
+import { HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, segmentDeLaSelection, structuresDeLArete, terrainIds, terrainLabel, tileAt, type AreteDessinee, type GesteDEdition, type SessionDEdition, type WallPaint } from '../noyau/index';
+import { pluriel, t } from '../i18n';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from './formes';
 import { ligne, type Bouton, type Choix, type Ligne } from './elements';
@@ -16,7 +16,7 @@ import { ligne, type Bouton, type Choix, type Ligne } from './elements';
 export interface ZonesDeLEditeur {
   'editeur.titre': Ligne[];
   'editeur.outils': Choix[];
-  'editeur.options': Choix[];
+  'editeur.options': (Choix | Ligne | Bouton)[];
   'editeur.couches': (Choix | Bouton)[];
   'editeur.historique': Bouton[];
   'editeur.fichier': Bouton[];
@@ -24,7 +24,8 @@ export interface ZonesDeLEditeur {
 }
 
 /** Les cases que le geste en cours trace sur la carte, chacune sur sa couche : le rectangle tiré, ou les cases que le
- *  pinceau a couvertes, que le monde ne montre qu'au relâché ; et l'arête sélectionnée, sur la couche éditée. */
+ *  pinceau a couvertes, que le monde ne montre qu'au relâché, puis le tracé de la volée ; et l'arête sélectionnée, sur
+ *  la couche éditée. */
 export interface SurcoucheDeLEdition {
   cases: { x: number; y: number; z: number }[];
   arete: AreteDessinee | null;
@@ -41,10 +42,29 @@ const choix = (id: string, libelle: string, valeurs: Bouton[], type: Choix['type
   type, id, ton: 'neutre', libelle, focus: false, refus: null, valeurs,
 });
 
-/** Les options de l'outil actif : la taille du pinceau (et le rectangle du terrain), puis les terrains ou les hauteurs. */
-function options(s: SessionDEdition): Choix[] {
+/** Les options de la volée de la session `s` : l'étage qu'elle rejoint, son tracé, ses cotes si son plan tient, sinon,
+ *  une case tracée, la raison du plan, en clair ; la poser (refusée avec cette raison) et effacer son tracé. */
+function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bouton)[] {
+  const plan = planDeLaVolee(s)!;
+  const etages = sceneEditee(s).layers.map((l) => l.z).sort((a, b) => a - b)
+    .map((z) => bouton(`etage/${z}`, t('ecran.editeur.couche', { z }), { geste: 'outil', outil: { mode: 'stair', toZ: z } }, toZ === z));
+  const arrondi = (m: number) => Math.round(m * 100) / 100;
+  return [
+    choix('etages', t('ecran.editeur.volee.etage'), etages),
+    ligne('trace', t('ecran.editeur.volee.trace', { n: s.volee.length, s: pluriel(s.volee.length) })),
+    ...(plan.ok ? [ligne('plan', t('ecran.editeur.volee.cotes', { de: arrondi(plan.from), a: arrondi(plan.to), cotes: plan.steps.map((p) => arrondi(p.height)).join(' · ') }))]
+      : s.volee.length ? [ligne('plan', plan.reason)] : []),
+    bouton('volee/poser', t('ecran.editeur.volee.poser'), { geste: 'poserVolee' }, false, plan.ok ? null : plan.reason),
+    bouton('volee/effacer', t('ecran.editeur.volee.effacer'), { geste: 'effacerVolee' }, false, s.volee.length ? null : t('ecran.editeur.volee.vide')),
+  ];
+}
+
+/** Les options de l'outil actif : la taille du pinceau (et le rectangle du terrain), puis les terrains ou les hauteurs ;
+ *  la sorte et le matériau d'une arête ; la volée. */
+function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const outil = s.outil;
   if (outil.mode === 'select') return [];
+  if (outil.mode === 'stair') return optionsDeLaVolee(s, outil.toZ);
   const pinceaux = PINCEAUX.map((n) => bouton(`pinceau/${n}`, t('ecran.editeur.pinceau.taille', { n }), { geste: 'pinceau', taille: n }, s.pinceau === n && !s.rectangle));
   if (outil.mode === 'tile') {
     const rectangle = bouton('pinceau/rectangle', t('ecran.editeur.pinceau.rectangle'), { geste: 'rectangle', actif: !s.rectangle }, s.rectangle);
@@ -86,13 +106,15 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
 export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
   const scene = sceneEditee(s);
   const terrain = s.outil.mode === 'tile' ? s.outil.terrain : terrainIds()[0];
+  const etages = scene.layers.map((l) => l.z).sort((a, b) => a - b);
   const outils = [
     bouton('outil/select', t('ecran.editeur.outil.select'), { geste: 'outil', outil: { mode: 'select' } }, s.outil.mode === 'select'),
     bouton('outil/tile', t('ecran.editeur.outil.tile'), { geste: 'outil', outil: { mode: 'tile', terrain } }, s.outil.mode === 'tile'),
     bouton('outil/height', t('ecran.editeur.outil.height'), { geste: 'outil', outil: { mode: 'height', metres: HAUTEURS[0].metres } }, s.outil.mode === 'height'),
     bouton('outil/wall', t('ecran.editeur.outil.wall'), { geste: 'outil', outil: { mode: 'wall', paint: 'wall' } }, s.outil.mode === 'wall'),
+    bouton('outil/stair', t('ecran.editeur.outil.stair'), { geste: 'outil', outil: { mode: 'stair', toZ: etages.find((z) => z > s.z) ?? s.z } }, s.outil.mode === 'stair'),
   ];
-  const couches = scene.layers.map((l) => l.z).sort((a, b) => a - b).map((z) => bouton(`couche/${z}`, t('ecran.editeur.couche', { z }), { geste: 'couche', z }, s.z === z));
+  const couches = etages.map((z) => bouton(`couche/${z}`, t('ecran.editeur.couche', { z }), { geste: 'couche', z }, s.z === z));
   const p = s.pointee;
   return {
     'editeur.titre': [ligne('scene', scene.label || scene.id)],
@@ -122,7 +144,7 @@ export function surcoucheDeLEdition(s: SessionDEdition): SurcoucheDeLEdition {
     : g?.sorte === 'rectangle' ? Array.from({ length: g.rect.w * g.rect.h }, (_, i) => ({ x: g.rect.x + (i % g.rect.w), y: g.rect.y + Math.floor(i / g.rect.w) }))
     : [];
   const seg = segmentDeLaSelection(sceneEditee(s), s.sel);
-  return { cases: cases.map((c) => ({ x: c.x, y: c.y, z: s.z })), arete: seg ? areteDessinee(sceneEditee(s), seg) : null };
+  return { cases: [...cases, ...s.volee].map((c) => ({ x: c.x, y: c.y, z: s.z })), arete: seg ? areteDessinee(sceneEditee(s), seg) : null };
 }
 
 /** Le bouton des zones `z` qui joue le geste d'édition `edition`, `undefined` si aucun ne le joue. */
