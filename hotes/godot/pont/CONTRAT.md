@@ -72,6 +72,7 @@ type Vue = {
   zones: ZonesDeLEcran;                 // zonesDeLEcran, src/hote/ecran.ts
   cases: { zone: string; case: { x: number; y: number }; cout: number }[]; // casesAtteignables
   plateau: { w: number; h: number; metresParCase: number; aretes: { milieu: { x: number; y: number }; sens: { x: number; y: number }; porte: boolean; ouverte: boolean }[] } | null; // plateauDeLaScene
+  lumiere: LumiereDeLaScene | null;     // lumiereDeLaScene, src/noyau/lumiereDeLaScene.ts : section « Lumière » ; null sans scène
   champ: { combattant: string; case: string } | { case: string } | null; // CLICS_DU_CHAMP, la barre de l'actif ouverte ; CLICS_DE_L_EXPLORATION
   occupants: Record<string, string>;    // "x,y" → id du combattant qui s'y tient
 };
@@ -100,6 +101,10 @@ type Monde = {
 ```
 
 Le volume du monde (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) est la géométrie que les builders purs du noyau dérivent de la scène, triangulée, orientée et colorée depuis la donnée : au lot A de #3476, le sol de toutes les couches (terrain par case et sa variance de teinte, relief, raccords, piliers). Il se publie dans le repère des builders, en mètres : X à l'est, Y en haut, Z au sud, la case (x, y) centrée sur (x · `metresParCase`, y · `metresParCase`). Chaque triangle porte le dehors que lui donne la loi d'orientation (`orienterPoly`, `src/noyau/monde/volume/worldTris.ts`) : vers le haut une face horizontale, hors de la carte une face verticale ouverte (une falaise, une paroi), qui peut donc tourner le dos à la caméra ; le monde de Godot rend et touche le volume des deux côtés. Le monde (`projet/scenes/Monde.tscn`, que le plateau du jeu et l'éditeur de carte instancient, #3508) le pose une fois, à l'échelle `1 / metresParCase` et décalé d'une demi-case, dans son repère d'une unité par case, sous sa lumière et sa caméra ; les pions, les surbrillances et les noms se posent à la hauteur de leur case (`hauteurs`, en mètres), et la case cliquée est celle du triangle que le rayon du pointeur touche (`cases`). Les tableaux plats se chargent tels quels en tableaux de vecteurs et de couleurs (`PackedByteArray.to_vector3_array`, `to_color_array`). Aucune géométrie ni couleur ne se réécrit en GDScript.
+
+## Lumière
+
+`vue.lumiere` (`LumiereDeLaScene`, `src/noyau/lumiereDeLaScene.ts`) est la lumière de la scène à l'heure de la partie, que le noyau calcule entière : Godot n'en pose que les valeurs. Le soleil (`soleil` : la direction unitaire vers lui dans le repère du monde, sa couleur `#rrggbb`, son énergie ; `null` en intérieur et la nuit) suit l'heure et le nord de la scène (`src/noyau/monde/soleil.ts`) ; l'ambiante (`ambiante`) suit le palier de lumière (`ambientScalar`) ; le ciel (`ciel` : zénith et horizon, `null` en intérieur, dont le fond est la brume) et la brume de profondeur (`brume` : sa couleur, puis où elle commence et où elle couvre tout, en cases au-delà du point que la caméra vise) viennent de l'ambiance du lieu, la nuit et la météo les teintent ; chaque source ponctuelle (`sources` : son foyer en cases, sa couche, sa hauteur en mètres, son rayon en cases, sa couleur, son énergie, son vacillement ou `null`) vient des lumières posées et portées de la scène (`sceneLightSources`). Le combat la pose sur la `Lumiere` du monde (`projet/scenes/Monde.tscn`) (`projet/scripts/lumiere.gd`) à chaque vue.
 
 ## L'écran de Godot
 

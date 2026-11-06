@@ -50,6 +50,7 @@ export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
 export { plateauDeLaScene, type Scene } from './monde/scene';
 export { volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
+export { lumiereDeLaScene, type LumiereDeLaScene } from './lumiereDeLaScene';
 export { registerScene } from './monde/registreDesScenes';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';

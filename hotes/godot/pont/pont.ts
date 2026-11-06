@@ -8,7 +8,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, porteeDeComposition, presetDeComposition, volumeDuMonde, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, plateauDeLaScene, porteeDeComposition, presetDeComposition, volumeDuMonde, type Composition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -61,6 +61,7 @@ export interface VueDuPont {
   zones: ZonesDeLEcran;
   cases: CaseAtteignable[];
   plateau: ReturnType<typeof plateauDeLaScene> | null;
+  lumiere: LumiereDeLaScene | null;
   champ: typeof CLICS_DU_CHAMP | typeof CLICS_DE_L_EXPLORATION | null;
   occupants: Record<string, string>;
 }
@@ -146,6 +147,7 @@ export function creerPont() {
       zones: zonesDeLEcran(etat, projection, fenetre, o.fiche, o.creation),
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene) : null,
+      lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }) : null,
       champ: combat ? (combat.barre.forme === 'ouverte' ? CLICS_DU_CHAMP : null) : projection.exploration && !fenetre ? CLICS_DE_L_EXPLORATION : null,
       occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]}`, c.id]] : []))),
     };
