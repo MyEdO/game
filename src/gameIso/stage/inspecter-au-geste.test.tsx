@@ -59,7 +59,7 @@ function monter(dims: Dims) {
   const Probe = () => {
     const svgRef = useRef(svg as unknown as SVGSVGElement);
     const camRef = useRef({ x: 0, y: 0 });
-    pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: undefined, activeZ: 0, aretes: [] });
+    pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, activeZ: 0, aretes: [] });
     return null;
   };
   root = createRoot(document.createElement('div'));
@@ -286,7 +286,7 @@ describe('hors combat : le SURVOL publie la fiche que le POINTEUR désigne — c
     const Probe = () => {
       const svgRef = useRef(svg as unknown as SVGSVGElement);
       const camRef = useRef({ x: 0, y: 0 });
-      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: undefined, activeZ: 0, aretes: [] });
+      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, activeZ: 0, aretes: [] });
       useHoverTargeting(useGame.getState().scene, pointer.hover, false, null, pointer.ficheSurvolee);
       return null;
     };

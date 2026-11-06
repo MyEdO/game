@@ -8,10 +8,14 @@
  * - `pieces` : les pièces ajoutées à celles de l'ensemble qui habille la `tenue` (D6(b)).
  * - `objets` : les objets instanciables portés hors des mains, revêtus par l'ensemble qui les habille, sinon à leur
  *   `rangement` (`trappings.json`).
+ * - `rangementsObjets` : l'emplacement où le personnage range un de ses `objets`, à la place de son `rangement`
+ *   (`rangerSesObjets`).
  * - `prises` : les objets instanciables tenus, par main.
  * - `apparencesObjets` : l'apparence d'un objet porté, comme `EntityAppearance.apparencesObjets`.
  * - `couleurs` : la palette du personnage, une couleur du nuancier (`materials.json`, domaine `couleur`) par emplacement
  *   de palette ; chaque surface d'un élément monté prend celle de son emplacement.
+ * - `variantesPieces` : l'apparence d'une pièce portée, une de ses variantes de la garde-robe (#3446) ; absente, la pièce
+ *   elle-même (`varierSesPieces`).
  * - Rien n'est porté deux fois, ni un objet ni une pièce (`refuserLesPortesDeuxFois`).
  *
  * `compositionSchema` est l'entrée sans son enveloppe, règles comprises : la composition
@@ -23,10 +27,10 @@
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
-import { ref, refs } from '../grammaire/ref';
+import { recordDIds, ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { apparencesDObjetsSchema, emblemeSchema, mainSchema, sexeSchema, slotSchema } from '../grammaire/valeurs';
-import { findEnsembleParHabille } from '../../index';
+import { findEnsembleParHabille, findVarianteById } from '../../index';
 import type { HabilleDEnsemble, TenueId } from './garde-robe';
 
 export const file = 'presets-de-personnage.json';
@@ -42,6 +46,8 @@ const champs = {
   tenue: ref('gardeRobe', undefined, 'tenue').optional(),
   pieces: refs('gardeRobe', { sousListe: 'piece' }).optional(),
   objets: refs('trapping', { sousListe: INSTANCIABLE_PAR_ID }).optional(),
+  rangementsObjets: recordDIds('trapping', ref('gardeRobe', undefined, 'emplacement'), INSTANCIABLE_PAR_ID).optional(),
+  variantesPieces: recordDIds('gardeRobe', ref('gardeRobe', undefined, 'variante'), 'piece').optional(),
   prises: z.partialRecord(mainSchema, ref('trapping', undefined, INSTANCIABLE_PAR_ID)).optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
   embleme: emblemeSchema.optional(),
@@ -59,6 +65,8 @@ const metaDesChampsDuPreset = {
   tenue: { label: 'Tenue', hint: 'Tenue de la garde-robe, revêtue des pièces de son ensemble' },
   pieces: { label: 'Pièces', hint: 'Pièces ajoutées à celles de l’ensemble de la tenue' },
   objets: { label: 'Objets portés', hint: 'Objets hors des mains : revêtus par leur ensemble, sinon à leur emplacement de rangement' },
+  rangementsObjets: { label: 'Rangements des objets', hint: 'Emplacement où se range un objet porté ; absent, son rangement' },
+  variantesPieces: { label: 'Variantes des pièces', hint: 'Apparence d’une pièce portée ; absente, la pièce elle-même' },
   prises: { label: 'Objets tenus', hint: 'Objet tenu par chaque main' },
   apparencesObjets: { label: 'Apparences des objets', hint: 'Apparence d’un objet porté ; absente, sa forme' },
   couleurs: { label: 'Couleurs', hint: 'Couleur du nuancier par emplacement de palette ; absente, la matière du modèle' },
@@ -67,8 +75,9 @@ const metaDesChampsDuPreset = {
 type Chemin = (string | number)[];
 
 /** Aucune chose portée deux fois : aucun objet sur `prises` puis `objets` ; aucune pièce sur l'ensemble de la tenue, les
- *  `pieces` puis l'ensemble de chaque objet (`findEnsembleParHabille`). L'issue va à l'élément qui la porte la seconde fois. */
-function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): void {
+ *  `pieces` puis l'ensemble de chaque objet (`findEnsembleParHabille`). L'issue va à l'élément qui la porte la seconde fois.
+ *  Rend les pièces portées. */
+function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): ReadonlySet<string> {
   const e = v as Pick<PresetDePersonnage, 'tenue' | 'pieces' | 'objets' | 'prises'>;
   const pieces = new Map<string, string>();
   const objets = new Map<string, string>();
@@ -96,10 +105,35 @@ function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): void {
     objets.set(id, ou);
     porter(ensemble({ id, type: 'trapping' }), path, `l’ensemble de l’objet « ${id} »`);
   }
+  return new Set(pieces.keys());
 }
 
+/** Chaque clé de `rangementsObjets` est un des `objets` : un objet tenu ou absent ne se range pas. */
+function rangerSesObjets(v: unknown, ctx: z.RefinementCtx): void {
+  const e = v as Pick<PresetDePersonnage, 'objets' | 'rangementsObjets'>;
+  const portes = new Set<string>(e.objets ?? []);
+  for (const id of Object.keys(e.rangementsObjets ?? {}))
+    if (!portes.has(id)) ctx.addIssue({ code: 'custom', path: ['rangementsObjets', id], message: `« ${id} » se range sans être un des objets portés.` });
+}
+
+/** Chaque clé de `variantesPieces` est une des pièces `portees`, et sa valeur une variante de cette pièce. */
+function varierSesPieces(v: unknown, portees: ReadonlySet<string>, ctx: z.RefinementCtx): void {
+  const e = v as Pick<PresetDePersonnage, 'variantesPieces'>;
+  for (const [piece, variante] of Object.entries(e.variantesPieces ?? {})) {
+    const path = ['variantesPieces', piece];
+    if (!portees.has(piece)) ctx.addIssue({ code: 'custom', path, message: `« ${piece} » prend une variante sans être une des pièces portées.` });
+    const de = findVarianteById(variante.id)?.piece.id;
+    if (de !== undefined && de !== piece) ctx.addIssue({ code: 'custom', path, message: `« ${variante.id} » est une variante de « ${de} », pas de « ${piece} ».` });
+  }
+}
+
+const affiner = (v: unknown, ctx: z.RefinementCtx): void => {
+  varierSesPieces(v, refuserLesPortesDeuxFois(v, ctx), ctx);
+  rangerSesObjets(v, ctx);
+};
+
 /** L'entrée sans son enveloppe (`CLES_ENVELOPPE`), règles comprises. */
-export const compositionSchema = nommerChamps(z.strictObject(champs), metaDesChampsDuPreset).superRefine(refuserLesPortesDeuxFois);
+export const compositionSchema = nommerChamps(z.strictObject(champs), metaDesChampsDuPreset).superRefine(affiner);
 export const surchargesDEmblemesSchema = z.record(z.string(), emblemeSchema.nullable());
 
 const doc = document(
@@ -119,7 +153,7 @@ const doc = document(
   },
   {
     exiges: ['source'],
-    affinerEntree: (entree) => entree.superRefine(refuserLesPortesDeuxFois),
+    affinerEntree: (entree) => entree.superRefine(affiner),
   },
 );
 

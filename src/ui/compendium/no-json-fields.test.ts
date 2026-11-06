@@ -8,10 +8,11 @@
  * nouveau dataset/champ introduit un `json`, ce test casse jusqu'à ce qu'il ait un éditeur structuré.
  */
 import { describe, it, expect } from 'vitest';
-import { CODEX } from './registry';
+import { CODEX } from '../../noyau/codex/registry';
 import { inferFields } from '../../noyau/codex/editFields';
 import { refFieldCfg } from './refField/RefField';
-import { isEditableCategory, editableEntries, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
+import { dedicatedFieldKeys } from '../editor/codex/CodexEdit';
+import { isEditableCategory, editableEntries } from '../../data/atelierDuCodex';
 
 describe('Codex — aucun champ éditable n’infère kind:json (E3b)', () => {
   const editable = CODEX.filter((c) => isEditableCategory(c.key));

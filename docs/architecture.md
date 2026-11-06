@@ -225,6 +225,8 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             rendu ; `Grade`, lien vertical lu par le noyau pour le déplacement),
                             `structureAppearance.types.ts` (`StructureAppearanceDef`, `WALL_PARTS`),
                             `ambiance.types.ts` (`AmbianceDef`, `Visibility`)
+                            VALEURS NEUVES de l'atelier qui ne lisent que schémas et donnée
+                            (`valeursNeuves.ts`) : le défaut d'une union fermée est son premier membre, lu au schéma
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
                               `defs-scenes/<nom>.ts`) qui DÉCLARE son document par la fabrique
                               `document()` (`grammaire/document.ts`) : enveloppe commune posée par la
@@ -440,7 +442,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `interactionsDExploration.ts` (offres, assise, fouille), `conversation.ts`,
                             `testsDeScene.ts`, `issueDeCombat.ts`, `campagne.ts` (indices, documents, héros
                             désignés), `orientation.ts`, `horloge.ts`, `journal.ts` ; `fabriquesDuNoyau.ts`
-                            (`creerActionsDuNoyau`) les compose, pour le store comme pour la partie.
+                            (`creerActionsDuNoyau`) les compose, pour le store comme pour la partie, avec la
+                            machinerie (`machinerieDuNoyau.ts`, #3370) : les écritures que le noyau, l'éditeur ou
+                            un test appellent et qu'aucun hôte ne joue, hors de `Intention` et de `VERBES`.
                             `partie.ts` (`creerPartie`, #2817 D9) : le propriétaire de l'état d'un hôte qui
                             n'est pas le web ; chaque `envoyer`/`lancer`/`reprendre` rend `{ issue,
                             evenements, journal }`. `lancementDeScenario.ts` (#2898) : le lancement d'un
@@ -470,6 +474,14 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             une liste `ResolvedPlaceService[]` — payloads RÉFÉRENCÉS, jamais recopiés (zéro
                             duplication de vérité). Consommée par le hub de lieu (#343) et l'auberge ; les
                             consommateurs actuels (portFlow/landMarketFlow/restPlacesHere) restent inchangés.
+  worldMapEdit.ts           ÉCRIVAINS PURS de la carte du monde (WorldMap → WorldMap) que l'éditeur appelle :
+                            patchs, ajout de lieu (bornes `BORNES_DE_CARTE`, décalage, libellé de la semence),
+                            liaison dédoublonnée par sens, suppressions en cascade (routes, `suite` des billets).
+                            Ses valeurs neuves (péripétie, port, marché) : `peripetieNeuve`, `portNeuf`, `marcheNeuf`.
+  valeursNeuves.ts          VALEURS NEUVES de l'atelier qui lisent le moteur ou le monde : `newOp`,
+                            `formulaForShape`/`shapeOf`, `newEffect`. Celles qui ne lisent que schémas et
+                            donnée vivent dans `data/valeursNeuves.ts` (`recast`, `convertTo`/`memoriser`,
+                            les blocs neufs d'un Flow authoré `noeudTestNeuf`/`blocNeuf`, `emptyStatblock`).
   combatFlow.ts               flux de combat tour par tour (IA, attaques, effets, fin de combat).
                               Les clusters FEUILLES extraits sont des modules séparés, que chaque importeur
                               nomme directement : monde/combatGeometry.ts (géométrie pure),

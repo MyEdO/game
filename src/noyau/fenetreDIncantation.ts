@@ -4,19 +4,22 @@
  * (ton de la Prière, forme de l'arme invoquée, effet d'Incantation Critique, Surincantation, jets sur le Tableau, pose
  * de la zone), chacun avec la raison qui le refuse, les fermetures du flux `cast`, l'annulation et l'issue. Lecteur PUR,
  * partagé par l'écran web (`ui/CastModal.tsx`) et par tout hôte qui lit la partie sans écran ; ses refus sont ceux que
- * les verbes appliquent (`combatSlice.ts`). Ses textes sortent du catalogue par `t()`.
+ * les réglages du jet (`jetRegler('cast', …)`, `reglagesDuCombat`) et la pose de la zone appliquent (`combatSlice.ts`).
+ * Ses textes sortent du catalogue par `t()`.
  */
 import type { Jeu } from './etat';
 import type { FermeturesDuJet } from './rollFlowFactory';
+import { REGLAGE_DE_L_AXE, type ReglageDu } from './reglagesDuJet';
+import type { IdDeFormeConjuree } from './designations';
 import { actorIn } from './monde/combatants';
 import { aiDriven, influencesLocally } from './netOwnership';
 import { ventsAnnonces } from './combatOrParty';
 import { fermeturesDuFlux } from './verbesOuverts';
-import { fermeturesDeLIncantation } from './reglagesDIncantation';
+import { fermetureDuReglage } from './rollFlowSpecs';
 import { castOvercastAxes, effectiveSpellOf, overcastTargetCandidates, previewCast } from './combatFlow';
 import { resultLine, freeCons } from './rollSeam';
-import { libelleDeLaFermeture, libelleDuVerbe } from './libelles';
-import { REGLAGES_DE_L_INCANTATION, type ChoixNomme } from './reglages';
+import { libelleDeLaFermeture, libelleDuReglage } from './libelles';
+import { gesteDuReglage, type ChoixNomme } from './reglages';
 import { libelleDIncantation } from './jetsEnVue';
 import { findSpellById, findTrappingById, weaponGroupLabel } from '../data/index';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
@@ -28,8 +31,6 @@ import {
 import { extraTargetCapacity, missileOvercastDamageBonus, overcastSourceOf, overcastStepCost, type OvercastAxis } from '../engine/overcast';
 import type { ModLine } from '../engine/types';
 import { t } from '../i18n';
-
-type ReglageDeLIncantation = (typeof REGLAGES_DE_L_INCANTATION)[number];
 
 /** Les effets d'Incantation Critique, dans l'ordre de la fenêtre. LDB 46 l.30-32 */
 const EFFETS_CRITIQUES: readonly CritChoice[] = ['critique', 'puissance', 'ineluctable'];
@@ -61,8 +62,8 @@ interface LigneDIncantation {
 }
 
 /** La vue désigne les combattants par id, comme `fenetreDAttaque` ; ses valeurs sont explicites (`null`, jamais une clé
- *  `undefined`). Un réglage absent (`null`) est fermé maintenant (`fermeturesDeLIncantation`) ; présent, chacune de
- *  ses options porte la raison qui la refuse. */
+ *  `undefined`). Un réglage absent (`null`) est fermé maintenant (`fermetureDuReglage`) ; présent, chacune de ses
+ *  options porte la raison qui la refuse. */
 export interface FenetreDIncantation {
   lanceurId: string;
   cibleId: string;
@@ -81,6 +82,9 @@ export interface FenetreDIncantation {
   forme: ChoixNomme | null;
   critique: ChoixNomme<CritChoice> | null;
   surincantation: SurincantationEnVue | null;
+  /** Les pas de Surincantation de chaque axe ouvert, en choix réglés (`REGLAGE_DE_L_AXE`) : de 0 au budget, chaque pas
+   *  avec la raison qui le refuse ; vide quand le jet n'ouvre aucun pas. LDB 47 l.15-17 */
+  crans: ChoixNomme<number>[];
   /** La pose de la zone après le jet (`castPlaceZone(true)`) : la raison qui la refuse ; `null` sans zone à poser. */
   pose: { refus: string | null } | null;
   /** Les fermetures du flux `cast` (`FLOWS.cast.fermetures`). */
@@ -91,17 +95,18 @@ export interface FenetreDIncantation {
   issue: string;
 }
 
-/** Ce que refuse le réglage `verbe` maintenant, en mots du joueur ; `null` : ouvert. Lu par ses verbes et la fenêtre. */
-export function refusDuReglage(s: Jeu, verbe: ReglageDeLIncantation): string | null {
-  const fermes = fermeturesDeLIncantation(s);
-  const f = fermes ? fermes[verbe] : 'sansJet';
+/** Ce que refuse le réglage `reglage` de l'incantation maintenant, en mots du joueur ; `null` : ouvert. La fermeture
+ *  est celle que `jetRegler` applique (`fermetureDuReglage` : sa phase, puis son offre) ; la fenêtre et les refus de
+ *  valeur ci-dessous la lisent ici. */
+export function refusDuReglage(s: Jeu, reglage: ReglageDu<'cast'>): string | null {
+  const f = fermetureDuReglage(() => s, 'cast', reglage);
   return f ? libelleDeLaFermeture(f) : null;
 }
 
 /** Ce qui refuse l'effet d'Incantation Critique `choix` (`null` : offert) : le réglage fermé, ou la Blessure Critique
  *  d'un Sort qui n'inflige pas de Dégâts. LDB 46 l.30 ; LDB 47 l.453 */
 export function refusDuChoixCritique(s: Jeu, choix: CritChoice): string | null {
-  const ferme = refusDuReglage(s, 'castSetCritChoice');
+  const ferme = refusDuReglage(s, 'effetCritique');
   if (ferme) return ferme;
   const sort = s.pendingCast && effectiveSpellOf(s.pendingCast);
   return choix === 'critique' && sort && !sortInfligeDesDegats(sort) ? t('incantation.refus.sansDegats') : null;
@@ -109,8 +114,8 @@ export function refusDuChoixCritique(s: Jeu, choix: CritChoice): string | null {
 
 /** Ce qui refuse la forme d'arme invoquée `arme` (id de l'arme) : le réglage fermé, ou une forme que le lanceur
  *  n'a pas. LDB 47 */
-export function refusDeLaForme(s: Jeu, arme: string): string | null {
-  const ferme = refusDuReglage(s, 'castSetConjureForm');
+export function refusDeLaForme(s: Jeu, arme: IdDeFormeConjuree): string | null {
+  const ferme = refusDuReglage(s, 'formeConjuree');
   if (ferme) return ferme;
   const lanceur = s.pendingCast && actorIn(s, s.pendingCast.casterId);
   return lanceur && conjureFormOptions(lanceur).some((f) => f.weapon === arme) ? null : t('incantation.refus.formeNonOfferte');
@@ -128,15 +133,16 @@ function etatDeLaSurincantation(s: Jeu) {
   return { pc, sort, lanceur, budget, oc, restant: budget - depense, axes: castOvercastAxes(pc, sort) };
 }
 
-/** Ce qui refuse un pas (`delta` +1 : allouer, −1 : rendre) de Surincantation sur `axe` : jet non lancé, lanceur d'un
- *  autre siège, axe que le Sort n'ouvre pas, budget épuisé, aucun pas à rendre. LDB 47 l.15-17 */
-export function refusDuPasDeSurincantation(s: Jeu, axe: OvercastAxis, delta: number): string | null {
+/** Ce qui refuse `pas` pas alloués à la Surincantation sur `axe` (la valeur de son réglage, `REGLAGE_DE_L_AXE`) : jet
+ *  non lancé, lanceur d'un autre siège, axe que le Sort n'ouvre pas, aucun pas à rendre, budget dépassé. LDB 47
+ *  l.15-17 */
+export function refusDuPasDeSurincantation(s: Jeu, axe: OvercastAxis, pas: number): string | null {
   const e = etatDeLaSurincantation(s);
   if (!e) return libelleDeLaFermeture('jetNonLance');
   if (!influencesLocally(s, e.lanceur.id)) return libelleDeLaFermeture('rangeeTemoin');
   if (!e.axes.includes(axe)) return t('incantation.refus.axeFerme');
-  if (delta > 0 && e.restant <= 0) return t('incantation.refus.budgetEpuise');
-  if (e.oc[axe] + delta < 0) return t('incantation.refus.aucunPas');
+  if (!Number.isInteger(pas) || pas < 0) return t('incantation.refus.aucunPas');
+  if (pas > e.oc[axe] && e.restant - (pas - e.oc[axe]) < 0) return t('incantation.refus.budgetEpuise');
   return null;
 }
 
@@ -151,9 +157,9 @@ export function refusDeLaPose(s: Jeu, on: boolean): string | null {
   return influencesLocally(s, pc.casterId) ? null : libelleDeLaFermeture('rangeeTemoin');
 }
 
-/** Le réglage `verbe` se montre : ouvert, ou refusé au seul siège qui ne pilote pas le lanceur (`rangeeTemoin`). */
-const seMontre = (s: Jeu, verbe: ReglageDeLIncantation): boolean => {
-  const f = fermeturesDeLIncantation(s)?.[verbe];
+/** Le réglage `reglage` se montre : ouvert, ou refusé au seul siège qui ne pilote pas le lanceur (`rangeeTemoin`). */
+const seMontre = (s: Jeu, reglage: ReglageDu<'cast'>): boolean => {
+  const f = fermetureDuReglage(() => s, 'cast', reglage);
   return !f || f === 'rangeeTemoin';
 };
 
@@ -166,14 +172,14 @@ function surincantationEnVue(s: Jeu): SurincantationEnVue | null {
   const source = overcastSourceOf(sort);
   const capacite = extraTargetCapacity(source, oc.targets, spellTargetCount(sort, lanceur));
   const pool = s.battle?.combatants ?? s.party;
-  const tableau = refusDuReglage(s, 'castSetChosenTableRolls');
+  const tableau = refusDuReglage(s, 'jetsDeTable');
   const choisis = pc.chosenTableRolls ?? oc.duration;
   return {
     budget: e.budget,
     restant: e.restant,
     coutDuPas: overcastStepCost(source),
     axes: e.axes.map((axe) => ({
-      axe, pas: oc[axe], refusDeRendre: refusDuPasDeSurincantation(s, axe, -1), refusDAllouer: refusDuPasDeSurincantation(s, axe, 1),
+      axe, pas: oc[axe], refusDeRendre: refusDuPasDeSurincantation(s, axe, oc[axe] - 1), refusDAllouer: refusDuPasDeSurincantation(s, axe, oc[axe] + 1),
     })),
     cibles: e.axes.includes('targets') && capacite > 0
       ? {
@@ -182,7 +188,7 @@ function surincantationEnVue(s: Jeu): SurincantationEnVue | null {
         }
       : null,
     bonusDeDegats: missileOvercastDamageBonus(source, oc.damage),
-    jetsSurLeTableau: !seMontre(s, 'castSetChosenTableRolls')
+    jetsSurLeTableau: !seMontre(s, 'jetsDeTable')
       ? null
       : {
           choisis, max: oc.duration,
@@ -202,14 +208,15 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
   if (!lanceur || !cible || !sort) return null;
   const res = pc.result;
   const priere = castInfoIsPrayer(sort);
-  const montre = (verbe: ReglageDeLIncantation): boolean => seMontre(s, verbe);
-  const choix = <V extends string | boolean>(verbe: ReglageDeLIncantation, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> =>
-    ({ verbe, libelle: libelleDuVerbe(verbe)!, choisie, options });
+  const montre = (reglage: ReglageDu<'cast'>): boolean => seMontre(s, reglage);
+  const choix = <V extends string | number | boolean>(reglage: ReglageDu<'cast'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> =>
+    ({ geste: gesteDuReglage('cast', reglage), libelle: libelleDuReglage('cast', reglage), choisie, options });
   const zoneAPoser = !!pc.zone && !pc.zone.center;
   const apercu = previewCast(lanceur, sort, { missile: pc.missile, focused: pc.focused, jete: !!res, ctx: { s, target: cible, skipWard: zoneAPoser } });
   const formes = conjureFormOptions(lanceur);
-  const refusDeForme = refusDuReglage(s, 'castSetConjureForm');
+  const refusDeForme = refusDuReglage(s, 'formeConjuree');
   const fermetures = fermeturesDuFlux(s, 'cast');
+  const surincantation = surincantationEnVue(s);
   return {
     lanceurId: lanceur.id,
     cibleId: cible.id,
@@ -229,25 +236,28 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
       jet: res ? { roll: res.roll, target: res.target, sl: res.sl, success: evaluateTest(res.roll, res.target).success } : null,
     },
     // LDB 40 l.40-42
-    ton: montre('castSetDiscreet')
-      ? choix('castSetDiscreet', !!pc.discreet, [
-          { valeur: false, libelle: t('incantation.ton.aVoixHaute'), refus: refusDuReglage(s, 'castSetDiscreet') },
-          { valeur: true, libelle: t('incantation.ton.discretement'), refus: refusDuReglage(s, 'castSetDiscreet') },
+    ton: montre('discret')
+      ? choix('discret', !!pc.discreet, [
+          { valeur: false, libelle: t('incantation.ton.aVoixHaute'), refus: refusDuReglage(s, 'discret') },
+          { valeur: true, libelle: t('incantation.ton.discretement'), refus: refusDuReglage(s, 'discret') },
         ])
       : null,
     // LDB 47
-    forme: montre('castSetConjureForm')
-      ? choix('castSetConjureForm', pc.conjureForm?.weapon ?? formes[0]?.weapon ?? null, formes.map((f) => ({
+    forme: montre('formeConjuree')
+      ? choix('formeConjuree', pc.conjureForm?.weapon ?? formes[0]?.weapon ?? null, formes.map((f) => ({
           valeur: f.weapon, libelle: t('incantation.forme', { arme: findTrappingById(f.weapon)?.label ?? f.weapon, groupe: weaponGroupLabel(f.group) }), refus: refusDeForme,
         })))
       : null,
     // LDB 46 l.26-32 : aucun effet n'est retenu tant que le lanceur n'a pas choisi.
-    critique: montre('castSetCritChoice')
-      ? choix('castSetCritChoice', pc.critChoice ?? null, EFFETS_CRITIQUES.map((c) => ({
+    critique: montre('effetCritique')
+      ? choix('effetCritique', pc.critChoice ?? null, EFFETS_CRITIQUES.map((c) => ({
           valeur: c, libelle: t(`valeur.${c}`), refus: refusDuChoixCritique(s, c),
         })))
       : null,
-    surincantation: surincantationEnVue(s),
+    surincantation,
+    crans: (surincantation?.axes ?? []).map(({ axe, pas }) => choix(REGLAGE_DE_L_AXE[axe], pas, Array.from({ length: surincantation!.budget + 1 }, (_, n) => ({
+      valeur: n, libelle: String(n), refus: refusDuPasDeSurincantation(s, axe, n),
+    })))),
     pose: zoneAPoser && res && s.battle ? { refus: refusDeLaPose(s, true) } : null,
     fermetures,
     annulation: fermetures.cancel ? libelleDeLaFermeture(fermetures.cancel) : null,

@@ -10,7 +10,7 @@
 import { useMemo, useState } from 'react';
 import { Icon } from './Icon';
 
-/** Filtre pur (substring insensible à la casse, PAS d'accent-fold — cf. `compendium/search.ts` pour
+/** Filtre pur (substring insensible à la casse, PAS d'accent-fold — cf. `noyau/codex/search.ts` pour
  *  le besoin multi-champs/accent-insensible du Codex, contrat distinct). */
 export function filterByLabel<T>(items: T[], getLabel: (item: T) => string, search: string): T[] {
   const q = search.trim().toLowerCase();

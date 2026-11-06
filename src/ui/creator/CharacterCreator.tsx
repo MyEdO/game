@@ -81,7 +81,7 @@ import { SpecSelect } from '../compendium/refField/RefField';
 import { Prose, mdToText } from '../Prose';
 import { CodexSections } from '../compendium/CodexEntry';
 import { EntityRef, EntityChoice, cleDAvancement, SkillChip, TalentChip } from '../EntityChip';
-import { raceSkillSection, raceTalentSection, type CodexSection } from '../compendium/registry';
+import { raceSkillSection, raceTalentSection, type CodexSection } from '../../noyau/codex/registry';
 import { CharStatsGrid } from '../CharStatsGrid';
 import { GameOpChips } from '../GameOpChips';
 import { previewHero } from './CreatorSummary';

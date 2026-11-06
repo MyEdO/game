@@ -15,7 +15,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Option « Succès / échec stupéfiants » (LDB 12 l.127) : un Test résolu sur un DOUBLE devient un
  * Succès / Échec Stupéfiant — PUREMENT un libellé (aucune mécanique nouvelle). On vérifie (1) que
  * `pendingTest.isDouble` est bien PROPAGÉ par la fabrique de flux jusqu'au pending, (2) que le
- * libellé pur `amazingTestLabel` lit ce flag correctement, piloté par la règle.
+ * libellé `amazingTestLabel` lit ce flag et la règle `test-critiques-doubles`.
  */
 
 const hero = (p: Partial<Combatant>): Combatant =>
@@ -33,7 +33,8 @@ const basePending = (over: Partial<PendingTest> = {}): PendingTest => ({
   roll: null, success: false, sl: 0, ...over,
 });
 
-describe('amazingTestLabel — libellé du double (LDB 12 l.127), PUR', () => {
+describe('amazingTestLabel — libellé du double (LDB 12 l.127), règle `test-critiques-doubles` activée', () => {
+  beforeEach(() => { setRule('test-critiques-doubles', true); });
   it('aucun badge avant le jet', () => {
     expect(amazingTestLabel(basePending({ roll: null }))).toBeNull();
   });
@@ -53,20 +54,11 @@ describe('amazingTestLabel — libellé du double (LDB 12 l.127), PUR', () => {
   });
 });
 
-describe('test-critiques-doubles — la règle pilote l’affichage du badge', () => {
-  it('défaut false → le badge reste éteint même sur un double', () => {
+describe('test-critiques-doubles — le noyau n’annonce le double que sous la règle', () => {
+  it('règle coupée (défaut) : aucun badge, même sur un double', () => {
     expect(rule('test-critiques-doubles')).toBe(false);
-    const pt = basePending({ roll: 22, success: true, isDouble: true });
-    // L'UI ne calcule `amazingTestLabel` QUE si la règle est vraie.
-    const amazing = rule('test-critiques-doubles') ? amazingTestLabel(pt) : null;
-    expect(amazing).toBeNull();
-  });
-
-  it('règle activée → le badge s’affiche sur un double', () => {
-    setRule('test-critiques-doubles', true);
-    const pt = basePending({ roll: 22, success: true, isDouble: true });
-    const amazing = rule('test-critiques-doubles') ? amazingTestLabel(pt) : null;
-    expect(amazing).toEqual({ success: true, text: 'Succès Stupéfiant' });
+    expect(amazingTestLabel(basePending({ roll: 22, success: true, isDouble: true }))).toBeNull();
+    expect(amazingTestLabel(basePending({ roll: 88, success: false, isDouble: true }))).toBeNull();
   });
 });
 

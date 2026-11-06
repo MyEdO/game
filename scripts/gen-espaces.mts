@@ -154,7 +154,7 @@ function cheminResolu(
 /** L'INDEX DES IDS (clé d'espace → ids, dans l'ordre de la donnée), les CLÉS DE DATASET et les documents
  *  de leur image. Les modules qui importent l'index se chargent ICI, par `import()` : l'appelant a déjà
  *  rendu l'index chargeable. */
-export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; collections: CollectionDeCategorie[]; datasetsDeRacine: [string, string][]; racines: DocumentDeDataset[] }> {
+export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; clesCodex: string[]; collections: CollectionDeCategorie[]; datasetsDeRacine: [string, string][]; racines: DocumentDeDataset[] }> {
   const { SCHEMA_DEFS } = (await import('../src/data/schemas/_registry.generated')) as { SCHEMA_DEFS: SchemaDef[] };
   const { atteindre, cleDesLibellesDeLaSource, collectionsDesDocuments, idsDeLEspace, lectureDeLEspace } = await import('../src/data/schemas/grammaire/collection-cle');
   const { lectureDuVocabulaire } = await import('../src/data/schemas/grammaire/vocabulaires');
@@ -198,6 +198,10 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
     const codex = d.exposition?.codex;
     return codex && 'keys' in codex && codex.keys.length === 1 ? [[d.file, codex.keys[0]]] : [];
   }).sort(([a], [b]) => parUnitesDeCode(a, b));
+  const clesCodex = [...new Set(SCHEMA_DEFS.flatMap((d) => {
+    const codex = d.exposition?.codex;
+    return codex && 'keys' in codex ? [...codex.keys] : [];
+  }))].sort(parUnitesDeCode);
   // Dataset d'une catégorie : sa route d'édition, sinon l'UNIQUE clé de dataset du fichier dont elle est
   // l'unique catégorie (route `none` + `dataset`) ; sa collection, au bout de sa suite (`DATASET_SUITE_DERIVE`).
   const datasetDe = new Map(Object.entries(CATEGORY_DATASET_DERIVE));
@@ -243,6 +247,7 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
     table: new Map([...table].sort(([a], [b]) => parUnitesDeCode(a, b))),
     clesDeDataset: Object.keys(DATASET_FICHIER_DERIVE).sort(parUnitesDeCode),
     categories,
+    clesCodex,
     collections,
     datasetsDeRacine: [...datasetsDeRacine].sort(([a], [b]) => parUnitesDeCode(a, b)),
     racines,
@@ -262,7 +267,7 @@ function specificateur(sortie: string, chemin: string): string {
 
 /** Les trois modules de la phase 2, rendus sans écrire, et ce dont leurs statistiques sont faites. */
 async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
-  const { table, clesDeDataset, categories, collections, datasetsDeRacine, racines } = await indexDesIds();
+  const { table, clesDeDataset, categories, clesCodex, collections, datasetsDeRacine, racines } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
@@ -302,6 +307,13 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     `export const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\n\n` +
     `/** Table LITTÉRALE fichier → catégorie, dont \`RenvoiCodex\` (\`grammaire/ref.ts\`) dérive ses renvois typés. */\n` +
     `export type CategorieCodexDuFichier = typeof CATEGORIES;\n\n` +
+    `/** CLÉS DE CATÉGORIE CODEX : l'union des \`exposition.codex.keys\` des defs, le domaine EXHAUSTIF du\n` +
+    ` *  registre du Codex (\`CODEX_SPECS\`, \`src/noyau/codex/registry.ts\`, \`satisfies Record<CleCodex, …>\`). */\n` +
+    `export const CLES_CODEX = [\n` +
+    clesCodex.map((c) => `  ${litteralJs(c)},\n`).join('') +
+    `] as const;\n\n` +
+    `/** Une clé de catégorie Codex. */\n` +
+    `export type CleCodex = (typeof CLES_CODEX)[number];\n\n` +
     `/** DATASET de chaque catégorie Codex dont la collection est une liste d'entrées { id, label } : sa clé (index\n` +
     ` *  vivant, \`indexParId\`), son fichier (\`RACINES_VIVANTES\`) et le chemin de sa collection dans sa racine\n` +
     ` *  (\`suivreLeChemin\`) — la porte \`entreeDeCategorie\` (\`src/data/index.ts\`). */\n` +
@@ -351,7 +363,7 @@ export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TA
  *  manquent (clone neuf, #2203 A2) ou qu'il leur manque un export de l'amorce (module rendu avant que
  *  la phase 2 n'en rende un de plus), puis rendus. */
 const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
-  [SORTIE_CLES, TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nconst CATEGORIES = {} as const;\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\nexport type CategorieCodexDuFichier = typeof CATEGORIES;\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\nexport const DATASET_DE_LA_RACINE: Readonly<Record<string, CleDeDataset>> = {};\n'],
+  [SORTIE_CLES, TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nconst CATEGORIES = {} as const;\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\nexport type CategorieCodexDuFichier = typeof CATEGORIES;\nexport const CLES_CODEX = [] as const;\nexport type CleCodex = (typeof CLES_CODEX)[number];\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\nexport const DATASET_DE_LA_RACINE: Readonly<Record<string, CleDeDataset>> = {};\n'],
   [SORTIE_RACINES, 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n'],
 ]);
 

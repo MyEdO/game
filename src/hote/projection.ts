@@ -6,7 +6,7 @@
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
 import { garanti } from '../lib/garanti';
-import { activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt } from '../noyau/index';
+import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt } from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
@@ -44,6 +44,20 @@ export interface OffreEnVue {
   cout: string | null;
   economie: Offre['def']['coutAction'];
   refus: string | null;
+  /** L'offre est armée (`offreArmee`) : son intention visée, ou son mode celui du combat. */
+  armee: boolean;
+  /** Les candidats d'une offre qui s'offre par candidat (le sort, l'arme, l'attaque de trait), chacun nommé, le
+   *  contexte qui le désigne (`offreDesignee`) et la raison qui le refuse ; vide pour une offre sans argument. */
+  candidats: CandidatEnVue[];
+}
+
+/** Un candidat d'une offre : son nom (`Offre.candidat`, sinon l'entité du champ qui le porte), son contexte, son refus,
+ *  et s'il est armé (`offreArmee`). */
+export interface CandidatEnVue {
+  nom: string;
+  ctx: Offre['args'];
+  refus: string | null;
+  armee: boolean;
 }
 
 /** Les éléments au plus de chaque liste de la projection, le reste compté (`enPlus`) : les combattants après l'actif et
@@ -164,10 +178,17 @@ export const offresDeLaBarreOuverte = (etat: Jeu, barre: Extract<EtatDeLaBarre, 
 
 /** Les offres, une par action, dans l'ordre du registre : ses candidats ouverts comptés ; fermée quand aucun ne
  *  l'ouvre, avec la raison de son premier candidat (loi du refus visible, `offresDeLActif`). */
-function offresEnVue(offres: readonly Offre[]): OffreEnVue[] {
+function offresEnVue(etat: Jeu, offres: readonly Offre[]): OffreEnVue[] {
   const parId = new Map<string, OffreEnVue>();
   for (const o of offres) {
-    const vue = parId.get(o.actionId) ?? { id: o.actionId, n: 0, cout: o.cost, economie: o.def.coutAction, refus: o.gate.ok ? null : garanti(o.gate.reason, o.actionId, 'raison du refus de l’offre') };
+    const refus = o.gate.ok ? null : garanti(o.gate.reason, o.actionId, 'raison du refus de l’offre');
+    const vue = parId.get(o.actionId) ?? { id: o.actionId, n: 0, cout: o.cost, economie: o.def.coutAction, refus, armee: false, candidats: [] };
+    const armee = offreArmee(etat, o.def, o.args);
+    vue.armee ||= armee;
+    if (Object.keys(o.args).length) {
+      const nom = o.candidat ?? (o.porteurId === undefined ? undefined : porteurParId(etat, o.porteurId)?.label);
+      vue.candidats.push({ nom: garanti(nom, o.actionId, 'nom du candidat de l’offre'), ctx: o.args, refus, armee });
+    }
     if (o.gate.ok) {
       vue.n++;
       vue.refus = null;
@@ -234,7 +255,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           intention: etat.localIntent?.actionId ?? null,
           finDeTourArmee: endTurnArmed(b),
           cibles: tranche(offres ? validTargets(() => etat).map((c) => c.id) : [], bornes.cibles),
-          offres: offres ? tranche(offresEnVue(offres), bornes.offres) : null,
+          offres: offres ? tranche(offresEnVue(etat, offres), bornes.offres) : null,
           voisins: { liste: [...engages, ...autres.slice(0, bornes.autres)], enPlus: Math.max(0, autres.length - bornes.autres) },
         }
       : null,

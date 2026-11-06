@@ -9,11 +9,11 @@ import { testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { describeTest, amazingTestLabel } from '../../noyau/flowOutcomes';
-import { rule } from '../../engine/policy';
 import { CodexRef } from '../compendium/CodexRef';
 import { libelleDuTestDeScene } from '../../noyau/jetsEnVue';
 import { t } from '../../i18n';
 import { useGesteDeJet } from '../useGesteDeJet';
+import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test de compétence de scène
@@ -36,7 +36,8 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const determination = useGesteDeJet('jetDetermine', 'test');
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'test');
   const reverseVerb = useGesteDeJet('jetReverse', 'test');
-  const setActor = useGame((s) => s.testSetActor);
+  const regler = useGame((s) => s.jetRegler);
+  const setActor = (v: ReglagesDuJet['test']['testeur']) => regler('test', 'testeur', v);
   const resolve = useGesteDeJet('jetConfirm', 'test');
   const cancel = useGesteDeJet('jetCancel', 'test');
   if (!pt) return null;
@@ -58,8 +59,8 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   // il décale le DR du Test résolu (`FLOWS.test`), donc il s'affiche comme une ligne de mod de DR.
   const capLabel = pt.capriciousRoll == null ? null
     : `Capricieux (d10 ${pt.capriciousRoll} → ${pt.capriciousDR ? `${pt.capriciousDR > 0 ? '+' : '−'}${Math.abs(pt.capriciousDR)} DR` : 'DR indiqué'})`;
-  // Option « Succès / échec stupéfiants » (LDB 12 l.127) : badge du double, pilotée par la règle.
-  const amazing = rule('test-critiques-doubles') ? amazingTestLabel(pt) : null;
+  // LDB 12 l.127
+  const amazing = amazingTestLabel(pt);
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie
   // (Talent/jeton) est applicable (`reverseAvailable`, pure) ; `reversePreview` rend l'issue LISIBLE
   // avant le clic (le jeton, libre, peut dégrader un succès existant — jamais un automatisme).

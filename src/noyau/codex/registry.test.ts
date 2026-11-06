@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookup, creatureStatblock, raceTalentSection, type CodexItem, type CodexFacet } from './registry';
+import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexGroupLabel, codexLookupById, creatureStatblock, raceTalentSection, type CodexItem } from './registry';
 import { woundsForSize } from '../../engine/size';
-import { codexMatch, filterItems, facetValues } from './search';
 import { replier } from '../../lib/ordre.mjs';
-import { isEditableCategory } from '../editor/codex/CodexEdit';
+import { isEditableCategory } from '../../data/atelierDuCodex';
 import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { datasetObject, setDataset } from '../../data/overrides';
@@ -30,6 +29,17 @@ describe('Codex registry', () => {
     for (const c of CODEX) expect(CODEX_GROUPS).toContain(c.group);
   });
 
+  it('chaque groupe a un id STABLE ASCII et son propre libellé au catalogue', () => {
+    const libelles = CODEX_GROUPS.map(codexGroupLabel);
+    for (const [i, g] of CODEX_GROUPS.entries()) {
+      expect(g, 'id stable ASCII').toMatch(/^[a-z]+$/);
+      // `t()` rend la clé nue quand le catalogue ne la porte pas : un libellé résolu n'en est pas une.
+      expect(libelles[i], `libellé de « ${g} »`).not.toMatch(/^codex\./);
+      expect(libelles[i], `libellé de « ${g} »`).not.toBe(g);
+    }
+    expect(new Set(libelles).size, `libellés : ${libelles.join(', ')}`).toBe(CODEX_GROUPS.length);
+  });
+
   it('categoriesIn / categoryByKey cohérents', () => {
     for (const g of CODEX_GROUPS) {
       for (const c of categoriesIn(g)) {
@@ -46,12 +56,13 @@ describe('Codex registry', () => {
     expect(races.items.every((i) => i.source?.book)).toBe(true);
   });
 
-  it('codexLookup résout exact + casse ignorée, undefined sinon', () => {
+  it('codexLookupById résout par id stable, undefined sans catégorie, sans id ou sur une catégorie inconnue', () => {
     const first = categoryByKey('etats')!.items[0];
-    expect(codexLookup('etats', first.label)).toBe(first);
-    expect(codexLookup('etats', first.label.toUpperCase())).toBe(first);
-    expect(codexLookup('etats', 'libellé inexistant')).toBeUndefined();
-    expect(codexLookup('categorie-inexistante', first.label)).toBeUndefined();
+    expect(codexLookupById('etats', first.id)).toBe(first);
+    expect(codexLookupById('etats', 'id-inexistant')).toBeUndefined();
+    expect(codexLookupById('etats', undefined)).toBeUndefined();
+    expect(codexLookupById(undefined, first.id)).toBeUndefined();
+    expect(codexLookupById('categorie-inexistante', first.id)).toBeUndefined();
   });
 
   it('FRAÎCHEUR après persist : setDataset (mutation en place) → items re-projetés + lookup à jour, sans autre geste', () => {
@@ -62,12 +73,11 @@ describe('Codex registry', () => {
     const original = etats[0];
     const renamed = `${original.label} (renommé-test)`;
     try {
-      expect(codexLookup('etats', renamed)).toBeUndefined(); // construit l'index de la catégorie
+      expect(codexLookupById('etats', original.id)?.label).toBe(original.label); // construit l'index de la catégorie
       setDataset('etats', etats.map((e, i) => (i === 0 ? { ...e, label: renamed } : e)));
-      // Re-projection : la catégorie reflète le nouveau libellé, le lookup le résout.
+      // Re-projection : la catégorie reflète le nouveau libellé, l'index rendu par le lookup aussi.
       expect(cat.items.find((i) => i.id === original.id)?.label).toBe(renamed);
-      expect(codexLookup('etats', renamed)?.label).toBe(renamed);
-      expect(codexLookup('etats', original.label)).toBeUndefined(); // l'ancien libellé a disparu
+      expect(codexLookupById('etats', original.id)?.label).toBe(renamed);
     } finally {
       setDataset('etats', before);
     }
@@ -79,7 +89,7 @@ describe('Codex registry — références INVERSES (relations.ts → fiches)', (
     // Donnée → attendu : une créature réelle + son 1er trait → la fiche du trait DOIT la lister.
     const c = creatures.find((x) => x.traits.length > 0 && findTraitById(x.traits[0].id))!;
     const trait = findTraitById(c.traits[0].id)!;
-    const item = codexLookup('traits', trait.label);
+    const item = codexLookupById('traits', trait.id);
     expect(item, trait.label).toBeTruthy();
     const sec = item!.sections?.find((s) => s.title === 'Créatures ayant ce trait');
     expect(sec, `${trait.label} → section inverse`).toBeTruthy();
@@ -127,7 +137,7 @@ describe('Codex registry — références INVERSES (relations.ts → fiches)', (
 
   it('catégorie « Psychologie » = filtre data-driven des traits à capacité psy, groupée par type', () => {
     const psy = categoryByKey('psychologie');
-    expect(psy?.group).toBe('Effets');
+    expect(psy?.group).toBe('effets');
     expect(psy!.items.length).toBeGreaterThan(0);
     // Peur DOIT en faire partie, groupée « Peur ».
     const peur = psy!.items.find((i) => i.label.toLowerCase() === 'peur');
@@ -506,38 +516,6 @@ describe('Codex registry — LOT 1 #422 (famille RÈGLES LDB : Coût des Augment
 });
 
 describe('Codex — facettes', () => {
-  it('filterItems : ET entre facettes, OU à l’intérieur, item sans valeur écarté par une facette active', () => {
-    const items: CodexItem[] = [
-      { id: 'averland', label: 'Averland', source: { book: 'LDB', page: 1 }, group: 'G1' },
-      { id: 'barak', label: 'Barak', source: { book: 'ADE', page: 2 }, group: 'G1' },
-      { id: 'carroburg', label: 'Carroburg', source: { book: 'LDB', page: 3 }, group: 'G2' },
-      { id: 'dotern', label: 'Dötern' },
-    ];
-    const facets: CodexFacet[] = [
-      { key: 'book', label: 'Livre', valueOf: (i) => i.source?.book },
-      { key: 'group', label: 'Groupe', valueOf: (i) => i.group },
-    ];
-    expect(filterItems(items, '', facets, {})).toHaveLength(4); // aucune facette active = tout passe
-    expect(filterItems(items, '', facets, { book: ['LDB'] }).map((i) => i.label)).toEqual(['Averland', 'Carroburg']);
-    expect(filterItems(items, '', facets, { book: ['LDB', 'ADE'] })).toHaveLength(3); // OU interne ; Dötern sans livre écarté
-    expect(filterItems(items, '', facets, { book: ['LDB'], group: ['G1'] }).map((i) => i.label)).toEqual(['Averland']); // ET entre facettes
-    expect(filterItems(items, 'carro', facets, { book: ['LDB'] }).map((i) => i.label)).toEqual(['Carroburg']); // recherche + facette
-  });
-
-  it('facetValues dérive les valeurs des items (comptées, triées FR)', () => {
-    const facet: CodexFacet = { key: 'book', label: 'Livre', valueOf: (i) => i.source?.book };
-    const items: CodexItem[] = [
-      { id: 'a', label: 'A', source: { book: 'LDB', page: 1 } },
-      { id: 'b', label: 'B', source: { book: 'ADE', page: 1 } },
-      { id: 'c', label: 'C', source: { book: 'LDB', page: 2 } },
-      { id: 'd', label: 'D' },
-    ];
-    expect(facetValues(items, facet)).toEqual([
-      { value: 'ADE', count: 1 },
-      { value: 'LDB', count: 2 },
-    ]);
-  });
-
   it('chaque catégorie déclare ses facettes sur la donnée RÉELLE (livre / groupe ssi porté par des items)', () => {
     for (const c of CODEX) {
       const hasBook = c.items.some((i) => i.source?.book);
@@ -568,7 +546,7 @@ describe('Codex registry — sous-groupes repliables (clusters, #378 volet B)', 
   });
 
   it('les familles touffues Effets/Tables sont dégonflées (anti-avalanche)', () => {
-    for (const g of ['Effets', 'Tables'] as const) {
+    for (const g of ['effets', 'tables'] as const) {
       const { flat, clusters } = clustersIn(g);
       // Éléments visibles dans la barre (pastilles à plat + en-têtes de dépliables) ≪ nombre brut de catégories.
       expect(flat.length + clusters.length, g).toBeLessThan(categoriesIn(g).length);
@@ -595,27 +573,6 @@ describe('Codex registry — fiche de Carrière étoffée (#378 volet C)', () =>
       expect(prog, it.label).toBeTruthy();
       expect(prog!.sections.length, it.label).toBeGreaterThan(0);
     }
-  });
-});
-
-describe('Codex search', () => {
-  it('le repli de la recherche couvre les LIGATURES : « coeur » trouve « Cœur vaillant »', () => {
-    expect(codexMatch({ id: 'coeur-vaillant', label: 'Cœur vaillant' }, 'coeur')).toBe(true);
-    expect(codexMatch({ id: 'coeur-vaillant', label: 'Cœur vaillant' }, 'CŒUR')).toBe(true);
-  });
-
-  it('terme vide = tout passe', () => {
-    expect(codexMatch({ id: 'x', label: 'X' }, '')).toBe(true);
-    expect(codexMatch({ id: 'x', label: 'X' }, '   ')).toBe(true);
-  });
-
-  it('match insensible casse/accents sur label, sub et desc', () => {
-    const it = { id: 'benediction-de-chance', label: 'Bénédiction de Chance', sub: 'Béni', desc: 'relancer un Test' };
-    expect(codexMatch(it, 'benediction')).toBe(true);
-    expect(codexMatch(it, 'CHANCE')).toBe(true);
-    expect(codexMatch(it, 'beni')).toBe(true);
-    expect(codexMatch(it, 'relancer')).toBe(true);
-    expect(codexMatch(it, 'dragon')).toBe(false);
   });
 });
 

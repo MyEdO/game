@@ -1,12 +1,12 @@
 import { useGame } from '../state/store';
 import { flowStakeRef, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
-import { valeurDecomposee } from '../engine/skills';
 import { groupAdvantage } from '../engine/advantagePool';
 import { retreatAdvantageCost } from '../engine/combatFeatures/dispatch';
 import { voieDAvantage, ligneDEsquiveDeDesengagement } from '../noyau/combat/desengagement';
 import { ligneDeCorpsACorpsBrut } from '../noyau/combatManeuvers';
-import { cibleBrute } from '../engine/tests';
+import { cibleBrute, cibleMesuree } from '../engine/tests';
+import { ligneDuTestNomme } from '../noyau/rollFlowSpecs';
 import { ResilienceButton } from './ResilienceButton';
 import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
@@ -141,8 +141,8 @@ export function DisengageModal() {
     // Le Test du fuyard (fiche `fuite`) : sa ligne AVANT le jet comme après, par les mêmes primitives.
     const ligneDuTest = (test: NonNullable<typeof toucheSlot>['test'], r: typeof jet) => {
       const label = libelleDuTestNomme(test);
-      const { base, mods } = valeurDecomposee(mover, test);
-      return r ? { d: testBreakdown(label, base, r, test.difficulty, mods) } : { pending: testPending(label, base, undefined, test.difficulty, mods) };
+      const l = ligneDuTestNomme(mover, test); // la ligne que le résolveur `flee` jette
+      return r ? { d: testBreakdown(label, l.base, r, l.difficulty, l.mods) } : { pending: testPending(label, l.base, cibleMesuree(l), l.difficulty, l.mods) };
     };
     const rows = buildParticipantRows(parts, battle.combatants, {
       onRoll: fleeRoll,

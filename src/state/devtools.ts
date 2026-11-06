@@ -56,6 +56,7 @@ import { opPsy } from '../engine/psych/opsPsy';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from '../noyau/monde/terrain';
+import { categoryByKey, codexGroupLabel } from '../noyau/codex/registry';
 import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from '../noyau/cascade';
@@ -179,12 +180,6 @@ function coordonneesFinies(tile: unknown): tile is { x: number; y: number; z?: n
 }
 
 export type CodexLocation = { tab: string; group: string; cluster: string | null };
-export type CodexProbe = (categoryId: string) => CodexLocation | null;
-let lireCodex: CodexProbe | null = null;
-
-export function setCodexProbe(probe: CodexProbe | null): void {
-  lireCodex = probe;
-}
 
 let lireDialogue: (() => HTMLElement | null) | null = null;
 let dialogueMarque: HTMLElement | null = null;
@@ -656,9 +651,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
   return {
     dialogueDuDessus: observerDialogueDuDessus,
     codexLocate: (categoryId: string): CodexLocation => {
-      const location = lireCodex?.(categoryId);
-      if (!location) throw new Error(`__wfrp.codexLocate : catégorie « ${categoryId} » inconnue`);
-      return { ...location };
+      const cat = categoryByKey(categoryId);
+      if (!cat) throw new Error(`__wfrp.codexLocate : catégorie « ${categoryId} » inconnue`);
+      return { tab: cat.label, group: codexGroupLabel(cat.group), cluster: cat.cluster ?? null };
     },
     camera: () => {
       const s = g();

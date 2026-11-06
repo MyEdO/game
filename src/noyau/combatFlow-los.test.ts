@@ -9,7 +9,8 @@ import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { RULE_REF } from '../engine/ruleRefs';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
-import { initialNet, type Jeu } from './etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
+import { initialNet } from './etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 
 const shooter = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
@@ -38,8 +39,8 @@ function scene(w: number, tiles?: Record<string, string>): Scene {
   return { id: 's', name: 's', dimensions: { w, h: 1 }, ambiance: 'jour', layers: [{ z: 0, tiles: grid }], entities: [], dialogues: [], triggers: [], encounters: [] } as unknown as Scene;
 }
 
-const mkGet = (sc: Scene, combatants: Combatant[]): (() => Jeu) =>
-  (() => ({ scene: sc, battle: { combatants }, facing: {}, net: initialNet(), log: () => {} })) as unknown as () => Jeu;
+const mkGet = (sc: Scene, combatants: Combatant[]): (() => JeuDuNoyau) =>
+  (() => ({ scene: sc, battle: { combatants }, facing: {}, net: initialNet(), log: () => {} })) as unknown as () => JeuDuNoyau;
 
 /** TOUT ce que la ligne du jet NOMME : les chips (modificateurs du jeteur) ET la composition de sa
  *  Difficulté (les circonstances de la table, `LDB 14 l.91-96`, que porte le palier — #1153). Un test
@@ -78,7 +79,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const s = scene(7);
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
-    const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 99 }, net: initialNet(), log: () => {} })) as unknown as () => Jeu;
+    const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 99 }, net: initialNet(), log: () => {} })) as unknown as () => JeuDuNoyau;
     const r = resolveAttack(get, a, b);
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)?.value).toBe(-10);
   });

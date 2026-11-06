@@ -16,10 +16,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { CODEX } from '../registry';
+import { CODEX } from '../../../noyau/codex/registry';
 import { inferFields } from '../../../noyau/codex/editFields';
 import { REF_FIELD } from './RefField';
-import { isEditableCategory, editableEntries } from '../../editor/codex/CodexEdit';
+import { isEditableCategory, editableEntries } from '../../../data/atelierDuCodex';
 import { schemaForFile } from '../../../data/schemas/validate';
 
 /** Valeur qu'aucun schéma de champ de la base n'accepte — sert d'appât au parse. */

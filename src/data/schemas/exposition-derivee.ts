@@ -2,7 +2,7 @@
  * Tables d'exposition du Codex DÉRIVÉES du registre de schémas (#1472). Aucune table à la main :
  * une déclaration `exposition` de plus sur un def (`document(type, famille, champs, meta, exposition)`)
  * est une entrée de plus ici. Les contrats sont tenus par `exposition-contrats.test.ts` et, face au
- * registre du Codex, par `src/ui/compendium/codex-exposition-contrats.test.ts`.
+ * registre du Codex, par `src/noyau/codex/codex-exposition-contrats.test.ts`.
  *
  * La dérivation est une FONCTION PURE (`deriveExposition`) que le module applique à `SCHEMA_DEFS` :
  * ses refus (fail-fast, nominatifs) se prouvent sur des defs SYNTHÉTIQUES, sans toucher la vraie donnée.
@@ -170,8 +170,3 @@ export const FICHIERS_DECLARES: ReadonlySet<string> = derive.fichiersDeclares;
 
 /** Fichier → exemption d'exposition au Codex déclarée par son def. */
 export const EXEMPTS: Readonly<Record<string, ExemptionCodex>> = derive.exempts;
-
-/** Union des clés de catégorie Codex déclarées par les defs. */
-export const CLES_CODEX_DECLAREES: ReadonlySet<string> = new Set(
-  SCHEMA_DEFS.flatMap((d) => (d.exposition && 'keys' in d.exposition.codex ? [...d.exposition.codex.keys] : [])),
-);

@@ -1,7 +1,7 @@
 /** Journal de la partie : son puits unique (#319, #939). */
 import { fixedJetOpen, markFixedDie } from './fixedDieMark';
 import type { Get, SetDesClesReservees } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import { bus, EVT } from './bus';
 
 export function creerActionsDuJournal(get: Get, set: SetDesClesReservees) {
@@ -14,5 +14,5 @@ export function creerActionsDuJournal(get: Get, set: SetDesClesReservees) {
       set((s) => ({ journal: [...s.journal.slice(-40), ...lignes] }));
       for (const texte of lignes) bus.emit(EVT.LIGNE_AU_JOURNAL, { texte });
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

@@ -1,12 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { validateEntry } from '../editor/codex/CodexEdit';
-import { traits, creatures } from '../../data';
-import { datasetArray, DATASET_KEYS } from '../../data/overrides';
-import { entryKey } from './registry';
+import { validateEntry } from './atelierDuCodex';
+import { traits, creatures, entryKey } from '.';
+import { datasetArray, DATASET_KEYS } from './overrides';
 
 type Entry = Record<string, unknown>;
 
-describe('validateEntry — garde du persist de CodexEdit (Enregistrer bloqué tant que non vide)', () => {
+describe('validateEntry — porte d’`enregistrerEntree` (Enregistrer bloqué tant que non vide)', () => {
   const traitEntries = traits as unknown as Entry[];
   const creatureEntries = creatures as unknown as Entry[];
 

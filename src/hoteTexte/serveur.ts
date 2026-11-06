@@ -8,7 +8,7 @@
  */
 import { empreinte, jouerUnGeste, ligneDuFichier, lireLeFichier, rejouer, PISTES_DU_TEXTE, type LigneNumerotee, type PartieRejouee } from './partieTexte';
 import { ErreurDeGeste, nouvelEntete, type CategorieDErreur } from '../hote/partie';
-import { gesteDuVerbe, lireGeste, offresDeLaBarre, type Geste } from '../hote/geste';
+import { lireGeste, offresDeLaBarre, type Geste } from '../hote/geste';
 import { VERBES } from '../hote/verbes.generated';
 import { appelEcrit, type Lecture } from './outils';
 import { casesAtteignables } from '../hote/projection';
@@ -56,10 +56,8 @@ export interface EntreesDeJouer {
   partie?: string;
 }
 
-/** Le geste du fichier d'un geste de l'agent : une offre lue telle quelle, un verbe contrôlé contre son type
- *  (`gesteDuVerbe`). */
-const gesteControle = (r: PartieRejouee, g: GesteDeLAgent): Geste =>
-  'offre' in g ? lireGeste(g) : gesteDuVerbe(r.partie.etat(), { type: g.verbe, args: g.args, siege: g.siege }, PISTES_DU_TEXTE);
+/** Le geste lu d'un geste de l'agent : une offre, ou un verbe et ses arguments, que `jouerUnGeste` contrôle. */
+const gesteLu = (g: GesteDeLAgent): Geste => lireGeste('offre' in g ? g : { type: g.verbe, args: g.args ?? [], siege: g.siege });
 
 /** Le nom d'un geste dans une réponse. */
 const nomDuGeste = (g: Geste): string => ('offre' in g ? `offre ${g.offre}` : g.type);
@@ -165,8 +163,8 @@ export function creerHote(disque: Disque) {
       const avant = empreinte(r.partie.etat());
       const suspendus = enSuspens(r.partie.etat());
       try {
-        const geste = gesteControle(r, brut);
-        lignes.push(...jouerUnGeste(r, geste));
+        lignes.push(...jouerUnGeste(r, gesteLu(brut)));
+        const geste = r.gestes[r.gestes.length - 1];
         const ligne = ligneDuFichier(geste);
         disque.ajouter(nom, ligne);
         ouverte!.texte += ligne;

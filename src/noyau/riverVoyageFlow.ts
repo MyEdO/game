@@ -73,6 +73,7 @@ import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog } from './combatEffects';
 import { stepDetail, stepPrecision } from './rollSeam';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
+import type { Jeu } from './etat';
 
 /** SPÉCIALISATIONS de Métier lues par la réparation de bateau (l.107-117) — ids STABLES de
  *  `skills.json`, JAMAIS des libellés : `testValue` compare `s.spec === spec` à l'ID que porte
@@ -151,7 +152,7 @@ const log = (get: Get, _set: Set, lines: string[]) => {
 /** La COQUE de trajet fluviale : le navire de campagne si c'en est un, sinon le véhicule-bateau de la route
  *  (`vehicles.json`, facette `ship`+`hull`). Repart des Blessures persistées (#30) si c'est le navire de
  *  campagne. `null` si aucun bateau exploitable. */
-function riverHull(get: Get, route: MapRoute): { coque: Combatant } | null {
+function riverHull(get: Get<Jeu>, route: MapRoute): { coque: Combatant } | null {
   const boatMode = route.modes.find((m) => findVehicleById(m)?.ship && findVehicleById(m)?.hull);
   const vessel = get().vessel;
   const vId = vessel && findVehicleById(vessel.vehicleId)?.ship ? vessel.vehicleId : boatMode;
@@ -180,14 +181,14 @@ function aAugmente(c: Combatant, competence: RefDesignee): boolean {
 
 /** La coque d'une descente JOUABLE : un bateau et un batelier — `null` sinon (→ repli transport payant) ;
  *  un bateau à 0 Blessure navigue (MSRC 07 l.74, l.90). */
-function coqueJouable(get: Get, route: MapRoute): Combatant | null {
+function coqueJouable(get: Get<Jeu>, route: MapRoute): Combatant | null {
   const hull = riverHull(get, route);
   return hull && hasBatelier(get().party, riverNavSkill(hull.coque)) ? hull.coque : null;
 }
 
 /** Le départ de `route` en `mode` est-il une descente fluviale JOUÉE (MSRC 7) : route `river`, véhicule
  *  bateau, coque jouable ? */
-export function descenteJouee(get: Get, route: MapRoute, mode: TravelMode): boolean {
+export function descenteJouee(get: Get<Jeu>, route: MapRoute, mode: TravelMode): boolean {
   return !!route.river && mode !== 'pied' && mode !== 'monture' && !!findVehicleById(mode)?.ship && !!coqueJouable(get, route);
 }
 

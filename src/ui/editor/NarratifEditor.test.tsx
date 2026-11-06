@@ -8,7 +8,8 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { choisirMediaSelect } from '../MediaSelect.testkit';
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
+import { NarratifEditor } from './NarratifEditor';
+import type { ProjetEdite } from '../../noyau/narratifEdit';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { narratifSchema, type NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
@@ -488,6 +489,17 @@ describe('NarratifEditor — l\'éditeur ne produit jamais un bloc invalide (#67
     setValue(field('Identifiant'), '  ');
     expect(last.affaires[0].id).toBe('affaire-a');
     expect(message(field('Identifiant'))).toBe('Identifiant vide : non retenu. L\'identifiant retenu reste « affaire-a ».');
+  });
+
+  it('renommer une affaire vers l’id d’une créature globale est REFUSÉ, comme au schéma (#3059)', () => {
+    const global = creatures[0].id;
+    mount(withOneAffaire());
+    click(btn('Affaires'));
+    click(btn('Le Marché noir'));
+    setValue(field('Identifiant'), global);
+    expect(last.affaires[0].id).toBe('affaire-a');
+    expect(message(field('Identifiant'))).toBe(`Identifiant « ${global} » déjà porté par la règle globale (créature/possession) : non retenu. L'identifiant retenu reste « affaire-a ».`);
+    expect(narratifSchema.safeParse({ ...last, affaires: [{ ...last.affaires[0], id: global }] }).success, 'le schéma accepte l’id global').toBe(false);
   });
 
   it('stade : un id déjà porté par un AUTRE stade est refusé, puis retenu dès que l’autre le libère', () => {

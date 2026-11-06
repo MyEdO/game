@@ -3,7 +3,7 @@
  * (hors combat) : Caractéristique + Augmentations de la compétence.
  */
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
-import { Combatant, CharKey, Difficulty } from './types';
+import { Combatant, CharKey } from './types';
 import { byId, psychologies, refLabel, testSkillLabel } from '../data';
 import { t, deElide } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
@@ -292,11 +292,6 @@ export function isSocialTest(skill?: string, characteristic?: CharKey): boolean 
   return false;
 }
 
-/** Descripteur NEUTRE d'un Test « posté » (Activité de voyage/interlude, Scène ou Activité de bataille) :
- *  compétence(s) AU CHOIX, caractéristique de repli, Difficulté, et Test COMBINÉ éventuel. Champs plats,
- *  partagés tels quels par les données JSON — vocabulaire commun, sans logique de résolution attachée. */
-export interface TestSpec { skills?: RefDesignee[]; char?: CharKey; difficulty?: Difficulty; combined?: boolean }
-
 /** Meilleur membre du groupe pour un test donné, parmi ceux qui peuvent le tenter (`peutTenter`). `extraMod` ajoute un modificateur PAR acteur (ex. malus
  *  psy de Sociabilité, qui dépend du personnage) — la valeur effective sert au choix ET au résultat.
  *  `sense` (optionnel) : transmis tel quel à `testValue` (sens NARRATIVEMENT sollicité par CE Test précis). */
@@ -312,49 +307,55 @@ export function partyBest(
   return r ? { actor: r.item, value: r.value } : null;
 }
 
-/** Meilleur PJ pour une liste de compétences AU CHOIX (celle qui donne la plus haute valeur décide).
- *  `skills` vide/absent ⇒ une unique option de PURE Caractéristique (`id`/`spec` indéfinis).
- *  `sense` (optionnel) : transmis tel quel à `partyBest`/`testValue`. */
-export function bestForSkills(
-  party: Combatant[],
-  skills: RefDesignee[] | undefined,
-  char: CharKey | undefined,
-  sense?: PairedSense,
-): { actor: Combatant; value: number; skillId?: string; spec?: string } | null {
-  const choices: RefDesignee[] = skills?.length ? skills : [{ id: undefined as unknown as string, spec: undefined }];
-  // Le meilleur ACTEUR par option, puis argmax sur les options (first-max via `maxBy`). Une option
-  // ne concourt que si le groupe fournit un porteur (`partyBest` null ⇒ groupe vide ⇒ résultat null).
-  const perChoice = choices
-    .map((sk) => ({ sk, best: partyBest(party, sk.id, char, undefined, sk.spec, sense) }))
-    .filter((x): x is { sk: RefDesignee; best: { actor: Combatant; value: number } } => x.best !== null);
-  const r = maxBy(perChoice, (x) => x.best.value);
-  return r ? { actor: r.item.best.actor, value: r.item.best.value, skillId: r.item.sk.id, spec: r.item.sk.spec } : null;
+/** Le Test désigné est-il tentable par `c` (`peutTenter`, LDB 09 l.30) ? */
+function peutTenterLeTest(c: Combatant, test: TestDesigne): boolean {
+  const ids = idsDuTest(test);
+  return peutTenter(c, ids.skill, ids.spec);
 }
 
-/** Meilleur PJ pour un Test COMBINÉ de deux compétences (LDB 12 l.202-206) : celui dont le PLUS FAIBLE des
+/** Meilleur PJ pour une liste de Tests AU CHOIX (celui qui donne la plus haute valeur décide) ; le
+ *  `test` rendu EST l'élément retenu de `tests`. `sense` (optionnel) : transmis tel quel à
+ *  `partyBest`/`testValue`. */
+export function bestForTests(
+  party: Combatant[],
+  tests: readonly TestDesigne[],
+  sense?: PairedSense,
+): { actor: Combatant; value: number; test: TestDesigne } | null {
+  // Le meilleur ACTEUR par Test, puis argmax sur les Tests (first-max via `maxBy`). Un Test ne
+  // concourt que si le groupe fournit un porteur (`partyBest` null ⇒ groupe vide ⇒ résultat null).
+  const perTest = tests.flatMap((test) => {
+    const ids = idsDuTest(test);
+    const best = partyBest(party, ids.skill, ids.char, undefined, ids.spec, sense);
+    return best ? [{ test, best }] : [];
+  });
+  const r = maxBy(perTest, (x) => x.best.value);
+  return r ? { actor: r.item.best.actor, value: r.item.best.value, test: r.item.test } : null;
+}
+
+/** Meilleur PJ pour un Test COMBINÉ de deux Tests (LDB 12 l.202-206) : celui dont le PLUS FAIBLE des
  *  deux (le facteur limitant du Test combiné) est le plus élevé. Renvoie l'acteur + ses deux valeurs. */
 export function bestForCombined(
   party: Combatant[],
-  sk1: RefDesignee,
-  sk2: RefDesignee,
-  char: CharKey | undefined,
+  t1: TestDesigne,
+  t2: TestDesigne,
 ): { actor: Combatant; value1: number; value2: number } | null {
-  const able = party.filter((c) => peutTenter(c, sk1.id, sk1.spec) && peutTenter(c, sk2.id, sk2.spec));
-  const r = maxBy(able, (c) => Math.min(testValue(c, sk1.id, char, sk1.spec), testValue(c, sk2.id, char, sk2.spec)));
+  const able = party.filter((c) => peutTenterLeTest(c, t1) && peutTenterLeTest(c, t2));
+  const r = maxBy(able, (c) => Math.min(valeurDuTest(c, t1), valeurDuTest(c, t2)));
   if (!r) return null;
-  return { actor: r.item, value1: testValue(r.item, sk1.id, char, sk1.spec), value2: testValue(r.item, sk2.id, char, sk2.spec) };
+  return { actor: r.item, value1: valeurDuTest(r.item, t1), value2: valeurDuTest(r.item, t2) };
 }
 
-/** Meilleure OPTION TENTABLE pour un acteur parmi un catalogue d'options portant des `skills` : score d'une
- *  option = la meilleure compétence que l'acteur peut tenter dedans (`bestForSkills([actor], opt.skills)`,
+/** Meilleure OPTION TENTABLE pour un acteur parmi un catalogue d'options portant des Tests (`testsDe`) :
+ *  score d'une option = le meilleur Test que l'acteur peut tenter dedans (`bestForTests([actor], …)`,
  *  `peutTenter`) ; une option qu'il ne peut pas tenter ne concourt pas. Argmax via `maxBy` ; `null` si
  *  aucune option n'est tentable. LDB 09 l.30. */
-export function bestSkilledOption<T extends { skills?: RefDesignee[] }>(
+export function bestSkilledOption<T>(
   actor: Combatant,
   options: readonly T[],
+  testsDe: (option: T) => readonly TestDesigne[],
 ): { option: T; value: number } | null {
   const tentables = options.flatMap((option) => {
-    const b = bestForSkills([actor], option.skills ?? [], undefined);
+    const b = bestForTests([actor], testsDe(option));
     return b ? [{ option, value: b.value }] : [];
   });
   return maxBy(tentables, (x) => x.value)?.item ?? null;
@@ -511,32 +512,26 @@ export function soutienBonus(
   return soutienDetail(party, leader, skill, characteristic, spec, eligible).bonus;
 }
 
-/** Meilleur résultat SOUTENU d'un groupe pour une Scène à compétences AU CHOIX (ADE II 8) : pour chaque
- *  option, `partyAssisted(crew, skill…)` (meneur + Soutien LDB 12) ; on garde l'option au plus haut score
- *  soutenu (argmax `maxBy`). `crew` vide ⇒ null. Réutilise `partyAssisted` + `maxBy`. Miroir SOUTENU de
- *  `bestForSkills` : là où celle-ci prend le meilleur PJ SEUL, celle-ci fait coopérer TOUT l'équipage
+/** Meilleur résultat SOUTENU d'un groupe pour une Scène à Tests AU CHOIX (ADE II 8) : pour chaque
+ *  Test, `partyAssisted(crew, …)` (meneur + Soutien LDB 12) ; on garde le Test au plus haut score
+ *  soutenu (argmax `maxBy`), rendu tel que l'élément de `tests`. `crew` vide ⇒ null. Réutilise `partyAssisted` + `maxBy`. Miroir SOUTENU de
+ *  `bestForTests` : là où celle-ci prend le meilleur PJ SEUL, celle-ci fait coopérer TOUT l'équipage
  *  affecté (les Personnages engagés dans la Scène, ADE II 8 l.153/157) — le meneur lance, les assistants
- *  capables ajoutent +10 chacun (plafonné). L'option de PURE Caractéristique (`skills` vide) reste possible. */
+ *  capables ajoutent +10 chacun (plafonné). */
 export function bestAssistedOption(
   crew: Combatant[],
-  skills: RefDesignee[] | undefined,
-  char: CharKey | undefined,
+  tests: readonly TestDesigne[],
   meneur?: Combatant,
-): { actor: Combatant; value: number; skillId?: string; spec?: string; support: SupportDetail } | null {
-  // Options = les compétences AU CHOIX de la Scène, ou une unique option de PURE Caractéristique (repli
-  // char-only, calqué sur `bestForSkills`). Chaque option est résolue en Soutien sur TOUT l'équipage `crew`,
-  // menée par `meneur` quand le geste le nomme, par le plus compétent sinon.
-  const options: RefDesignee[] = skills?.length ? skills : [{ id: undefined as unknown as string, spec: undefined }];
-  const perOption = options
-    .map((opt) => ({
-      opt,
-      res: meneur
-        ? soutenuPar(crew, partyBest([meneur], opt.id, char, undefined, opt.spec), opt.id, char, opt.spec)
-        : partyAssisted(crew, opt.id, char, undefined, opt.spec),
-    }))
-    .filter((x): x is { opt: RefDesignee; res: NonNullable<ReturnType<typeof partyAssisted>> } => x.res !== null);
-  const r = maxBy(perOption, (x) => x.res.value);
-  return r
-    ? { actor: r.item.res.actor, value: r.item.res.value, skillId: r.item.opt.id, spec: r.item.opt.spec, support: r.item.res.support }
-    : null;
+): { actor: Combatant; value: number; test: TestDesigne; support: SupportDetail } | null {
+  // Chaque Test est résolu en Soutien sur TOUT l'équipage `crew`, mené par `meneur` quand le geste le
+  // nomme, par le plus compétent sinon.
+  const perTest = tests.flatMap((test) => {
+    const ids = idsDuTest(test);
+    const res = meneur
+      ? soutenuPar(crew, partyBest([meneur], ids.skill, ids.char, undefined, ids.spec), ids.skill, ids.char, ids.spec)
+      : partyAssisted(crew, ids.skill, ids.char, undefined, ids.spec);
+    return res ? [{ test, res }] : [];
+  });
+  const r = maxBy(perTest, (x) => x.res.value);
+  return r ? { actor: r.item.res.actor, value: r.item.res.value, test: r.item.test, support: r.item.res.support } : null;
 }

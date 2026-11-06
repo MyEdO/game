@@ -3,57 +3,79 @@
  * peut offrir (`VERBES_DES_FENETRES`), chacun de ses paramètres (`VERBES`), et chaque champ d'un objet, a son libellé
  * (`libelleDuParametre`), hormis ce que la fenêtre pose (`argumentsPosesDuGeste` : `pid`, `flux`, `fenetre`) ; chaque valeur littérale que sa forme énumère a le
  * sien (`libelleDuLitteral`) ; chaque désignation qu'elle cite est une désignation du noyau (`DESIGNATIONS`), qui
- * nomme ses éléments. `fenetreADessiner` dessine ainsi, sans id à l'écran, toute fenêtre ouverte.
+ * nomme ses éléments. La valeur d'un réglage de jet (`jetRegler`, `REGLAGES`) se dit par son réglage
+ * (`libelleDuReglage`), ses valeurs littérales par le nom du réglage. `fenetreADessiner` dessine ainsi, sans id à
+ * l'écran, toute fenêtre ouverte.
  */
 import { describe, it, expect } from 'vitest';
-import { DESIGNATIONS, libelleDuLitteral, libelleDuParametre } from '../noyau/index';
+import { DESIGNATIONS, VERBE_DE_REGLAGE, libelleDuLitteral, libelleDuParametre, libelleDuReglage } from '../noyau/index';
 import { VERBES_DES_FENETRES } from '../noyau/fenetres.testkit';
 import type { Forme } from './formes';
-import { VERBES } from './verbes.generated';
+import { REGLAGES, VERBES } from './verbes.generated';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 
 /** Les paramètres que la fenêtre pose d'office (`argumentsPosesDuGeste`) : aucun ne se saisit. */
 const POSES = new Set(['pid', 'flux', 'fenetre']);
 
+/** Ce qui manque aux valeurs de la forme `f` de l'argument `ou`, dont les littéraux se nomment par `nom`, pour se
+ *  dessiner. */
+function fautesDesValeurs(verbe: string, nom: string, f: Forme, ou: string): string[] {
+  switch (f.genre) {
+    case 'litteral': return libelleDuLitteral(f.valeur, nom) === null ? [`${ou} : valeur ${JSON.stringify(f.valeur)} sans \`valeur.${nom}.<v>\` ni \`valeur.<v>\``] : [];
+    case 'chaine': return f.designe && !(f.designe.cle in DESIGNATIONS) ? [`${ou} : désignation ${f.designe.cle} hors de DESIGNATIONS`] : [];
+    case 'tableau': return fautesDesValeurs(verbe, nom, f.element, ou);
+    case 'union': return f.membres.filter((m) => m.genre !== 'objet').flatMap((m) => fautesDesValeurs(verbe, nom, m, ou));
+    case 'objet': return (f.champs ?? []).flatMap((c) => fautes(verbe, c.nom, c.forme, `${ou}.${c.nom}`));
+    default: return [];
+  }
+}
+
 /** Ce qui manque à la forme `f` de l'argument `ou` du verbe `verbe` pour se dessiner. */
 function fautes(verbe: string, nom: string, f: Forme, ou: string): string[] {
-  const ici = [
-    ...(!POSES.has(nom) && libelleDuParametre(verbe, nom) === null ? [`${ou} : ni \`parametre.${verbe}.${nom}\` ni \`parametre.${nom}\``] : []),
+  if (POSES.has(nom)) return [];
+  return [
+    ...(libelleDuParametre(verbe, nom) === null ? [`${ou} : ni \`parametre.${verbe}.${nom}\` ni \`parametre.${nom}\``] : []),
+    ...fautesDesValeurs(verbe, nom, f, ou),
   ];
-  const dans = (g: Forme): string[] => {
-    switch (g.genre) {
-      case 'litteral': return libelleDuLitteral(g.valeur, nom) === null ? [`${ou} : valeur ${JSON.stringify(g.valeur)} sans \`valeur.${nom}.<v>\` ni \`valeur.<v>\``] : [];
-      case 'chaine': return g.designe && !(g.designe.cle in DESIGNATIONS) ? [`${ou} : désignation ${g.designe.cle} hors de DESIGNATIONS`] : [];
-      case 'union': return g.membres.filter((m) => m.genre !== 'objet').flatMap(dans);
-      case 'objet': return (g.champs ?? []).flatMap((c) => fautes(verbe, c.nom, c.forme, `${ou}.${c.nom}`));
-      default: return [];
-    }
-  };
-  return POSES.has(nom) ? ici : [...ici, ...dans(f)];
 }
 
 describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur', () => {
   it('le relevé couvre les verbes des fenêtres', () => {
-    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres').toBeGreaterThan(80);
+    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres, les réglages des jets en un seul (#3368)').toBeGreaterThan(50);
     expect([...VERBES_DES_FENETRES].filter((v) => !(v in VERBES)), 'verbe de fenêtre hors de VERBES').toEqual([]);
   });
 
-  it.each([...VERBES_DES_FENETRES].filter((v) => VERBES[v]?.length).map((v) => [v] as const))('%s', (verbe) => {
+  it.each([...VERBES_DES_FENETRES].filter((v) => v !== VERBE_DE_REGLAGE && VERBES[v]?.length).map((v) => [v] as const))('%s', (verbe) => {
     expect(VERBES[verbe].flatMap((p) => fautes(verbe, p.nom, p.forme, `${verbe}.${p.nom}`))).toEqual([]);
+  });
+
+  it.each(Object.entries(REGLAGES).flatMap(([flux, formes]) => Object.entries(formes).map(([reglage, forme]) => [`${flux}.${reglage}`, flux, reglage, forme] as const)))('réglage %s', (_ou, flux, reglage, forme) => {
+    expect(libelleDuReglage(flux, reglage)).toBeTruthy();
+    expect(fautesDesValeurs(VERBE_DE_REGLAGE, reglage, forme, `${flux}.${reglage}`)).toEqual([]);
   });
 });
 
 describe('un argument qui désigne un élément de l’état se choisit parmi ses éléments nommés (#2937)', () => {
   it.each([
-    ['shantySetSong', 'shantyId', 'IdDeChanson'],
     ['councilPay', 'decision', 'IdDeChoixDePaie'],
     ['harvestCreature', 'creatureId', 'IdDeCreatureADepecer'],
     ['roundStartPromote', 'heroId', 'IdDeCombattantPromouvable'],
     ['armPreempt', 'heroId', 'IdDeTireurRapide'],
-    ['preemptRangedShot', 'heroId', 'IdDeTireurRapide'],
   ])('%s.%s désigne %s', (verbe, nom, cle) => {
     const p = VERBES[verbe].find((x) => x.nom === nom)!;
     const membres = p.forme.genre === 'union' ? p.forme.membres : [p.forme];
+    expect(membres.flatMap((m) => (m.genre === 'chaine' && m.designe ? [m.designe.cle] : []))).toEqual([cle]);
+  });
+
+  it.each([
+    ['shanty', 'chanson', 'IdDeChanson'],
+    ['cast', 'formeConjuree', 'IdDeFormeConjuree'],
+    ['heal', 'bandages', 'IdDeHeros'],
+    ['test', 'testeur', 'IdDeCombattant'],
+    ['forceDoor', 'arme', 'IdDObjet'],
+  ])('réglage %s.%s désigne %s', (flux, reglage, cle) => {
+    const f = REGLAGES[flux][reglage];
+    const membres = f.genre === 'union' ? f.membres : [f];
     expect(membres.flatMap((m) => (m.genre === 'chaine' && m.designe ? [m.designe.cle] : []))).toEqual([cle]);
   });
 

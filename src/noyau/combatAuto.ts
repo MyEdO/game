@@ -29,7 +29,8 @@ import { beatHold } from './combatDirector';
 import { programmer, enAttente, type Jeton } from './plateforme';
 import { fateSaveOptions } from '../engine/fortune';
 import { sequence } from '../engine/sequences';
-import { REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, REGLAGES_DE_L_INCANTATION, reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
+import { reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
+import { reglagesDuFlux, VERBE_DE_REGLAGE } from './reglagesDuJet';
 
 /**
  * Politique d'auto-résolution par TYPE de jet de cascade de COMBAT. `self` = jet propre piloté par son
@@ -55,18 +56,16 @@ type RangeeReactive = RangeeDeFenetre & { declared?: string };
  *  fermée), et le drive d'auto-cadence qui la résout (`stepWindowDrive` ; absent : l'étape garde le sien). */
 interface FenetreReactive { flux: FlowKey; rangees: (s: Jeu) => readonly RangeeReactive[] | undefined; drive?: readonly GesteDuJeu[] }
 
-/** Le flux de jet (`FLOW_VERBS`) de chaque étape-jet de COMBAT : ses verbes (pose du dé, relance, Fortune…)
- *  s'ajoutent à son drive. Un flux multi déclare ses `rangees`, que ses verbes
- *  désignent par leur id (`pid`). `reglages` : les actions `<flux>Set…` qui règlent le jet en attente, verbes de la
- *  fenêtre comme les autres. `reactives` : les fenêtres que l'étape ouvre en son sein, dans l'ordre de la chaîne
+/** Le flux de jet (`FLOW_VERBS`) de chaque étape-jet de COMBAT : ses verbes (pose du dé, relance, Fortune…) et ses
+ *  réglages (`REGLAGES_DU_JET`) s'ajoutent à son drive. Un flux multi déclare ses `rangees`, que ses verbes
+ *  désignent par leur id (`pid`). `reactives` : les fenêtres que l'étape ouvre en son sein, dans l'ordre de la chaîne
  *  réelle (`resolveCastChain` : le Contre-sort précède l'opposition). Record total : un `jet` neuf nomme son flux. */
-export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: FlowKey; rangees?: (s: Jeu) => readonly RangeeDeFenetre[] | undefined; reglages?: readonly (keyof ActionsDuNoyau)[]; reactives?: readonly FenetreReactive[] }> = {
-  attack: { flux: 'attack', reglages: REGLAGES_DE_L_ATTAQUE },
-  defense: { flux: 'defense', reglages: REGLAGES_DE_LA_DEFENSE },
+export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: FlowKey; rangees?: (s: Jeu) => readonly RangeeDeFenetre[] | undefined; reactives?: readonly FenetreReactive[] }> = {
+  attack: { flux: 'attack' },
+  defense: { flux: 'defense' },
   fumble: { flux: 'fumble', rangees: (s) => { const m = maladresseCourante(s.pendingCascade); return m && [{ id: m.id, result: m.fumble.result }]; } },
   cast: {
     flux: 'cast',
-    reglages: REGLAGES_DE_L_INCANTATION,
     reactives: [
       // Contre-sort : la fenêtre a une PHASE 1 de déclaration (#1042/#1059) — la cadence déclare les
       // rangées de CE siège (« contrer seul » = le geste que le joueur posait en lançant) avant de rouler.
@@ -74,7 +73,7 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
       { flux: 'opposition', rangees: (s) => s.pendingCastOpposition?.participants, drive: [{ verbe: 'jetRoll', flux: 'opposition' }, { verbe: 'jetConfirm', flux: 'opposition' }] },
     ],
   },
-  test: { flux: 'test', reglages: ['testSetActor'] },
+  test: { flux: 'test' },
   extended: { flux: 'extendedTest', rangees: (s) => s.pendingExtendedTest?.rounds },
   disengage: {
     flux: 'disengage',
@@ -91,10 +90,11 @@ const idDeLaRangeeDue = (rangees: readonly RangeeDeFenetre[] | undefined): strin
 /** Les gestes nommés par les seuls verbes `verbes` (aucun ne vise un flux de jet). */
 const nommes = (verbes: VerbesDeFenetre): GesteDuJeu[] => verbes.map((verbe) => ({ verbe }));
 
-/** Les gestes d'un flux de jet : chacun de ses verbes de jet sur lui (`NOM_DU_VERBE_DE_JET`), clôture comprise. */
+/** Les gestes d'un flux de jet : chacun de ses verbes de jet sur lui (`NOM_DU_VERBE_DE_JET`), clôture comprise, puis
+ *  chacun de ses réglages (`jetRegler`, `REGLAGES_DU_JET`). */
 const gestesDuFlux = (cle: FlowKey): GesteDuJeu[] => {
   const flux: FlowVerbs = FLOW_VERBS[cle];
-  return flux.verbs.map((v) => ({ verbe: NOM_DU_VERBE_DE_JET[v], flux: cle }));
+  return [...flux.verbs.map((v) => ({ verbe: NOM_DU_VERBE_DE_JET[v], flux: cle })), ...reglagesDuFlux(cle).map((reglage) => ({ verbe: VERBE_DE_REGLAGE, flux: cle, reglage }))];
 };
 
 /** La navigation de la cascade, jugée sur sa clôture : valider l'étape, tout résoudre, terminer le bilan (sa sortie). */
@@ -113,8 +113,8 @@ const pidDuFlux = (cle: 'cascade' | 'cascadeBatch') => (e: CascadeStep): string 
 const joueePar = (cle: 'cascade' | 'cascadeBatch') => ({ flux: cle, gestes: gestesDuFlux(cle), pid: pidDuFlux(cle) });
 
 /** L'interaction d'étape que règle le seul verbe `verbe`, qui prend l'id d'étape puis l'argument que `lecture` règle. */
-const regleePar = (verbe: keyof ActionsDuNoyau, lecture: (v: keyof ActionsDuNoyau) => (e: CascadeStep) => Reglage) =>
-  ({ gestes: nommes([verbe]), pid: idDEtape, reglage: lecture(verbe) });
+const regleePar = (verbe: keyof ActionsDuNoyau, lecture: (g: GesteDuJeu) => (e: CascadeStep) => Reglage) =>
+  ({ gestes: nommes([verbe]), pid: idDEtape, reglage: lecture({ verbe }) });
 
 /** Les gestes d'une étape de cascade sans jet de COMBAT, par son interaction (`stepInteraction`), l'id qu'ils désignent
  *  (`pid`), le réglage de l'argument qui suit (`reglage` : les clés d'un choix, les bornes d'une quantité) et le flux de
@@ -142,10 +142,10 @@ export function gestesDeLaFenetre(def: ModalDef | HorsModalDef): readonly GesteD
 }
 
 /** Les gestes d'une étape-jet de COMBAT : son drive (`JET_AUTO`), ou celui de la fenêtre réactive ouverte dans l'étape
- *  (`reactive`), puis les gestes de son flux, ceux du flux de la fenêtre réactive, et ses réglages (`FENETRE_DU_JET`). */
+ *  (`reactive`), puis les gestes de son flux (`FENETRE_DU_JET`) et ceux du flux de la fenêtre réactive. */
 export function gestesDuJet(jet: NonNullable<CascadeStep['jet']>, reactive?: FenetreReactive): readonly GesteDuJeu[] {
-  const { flux, reglages = [] } = FENETRE_DU_JET[jet];
-  return uniques([...(reactive?.drive ?? gestesDuDrive(JET_AUTO[jet])), ...gestesDuFlux(flux), ...(reactive ? gestesDuFlux(reactive.flux) : []), ...nommes(reglages)]);
+  const { flux } = FENETRE_DU_JET[jet];
+  return uniques([...(reactive?.drive ?? gestesDuDrive(JET_AUTO[jet])), ...gestesDuFlux(flux), ...(reactive ? gestesDuFlux(reactive.flux) : [])]);
 }
 
 /** Les surfaces partagées hors `pending*` qui se ferment (`sortie`) : celles que `fenetreDuJeu` rend. */

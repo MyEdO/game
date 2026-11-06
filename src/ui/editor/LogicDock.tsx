@@ -15,7 +15,7 @@ import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { Warning } from '../../noyau/validateScene';
-import { removeMember, patchMember, addTrigger, patchTrigger, deleteSel, addDialogue, replaceDialogue, removeDialogue, addEncounter, patchEncounter, removeEncounter, renameTrigger, renameEncounter } from '../../noyau/sceneEdit';
+import { removeMember, patchMember, addTrigger, patchTrigger, deleteSel, addDialogue, replaceDialogue, removeDialogue, renameDialogue, addEncounter, patchEncounter, removeEncounter, renameTrigger, renameEncounter } from '../../noyau/sceneEdit';
 import { EntryRename } from './EntryRename';
 import { flowEffectCount } from '../../noyau/sceneEditLecture';
 import { LayerChip, sceneLayerZs } from './LayerField';
@@ -273,9 +273,12 @@ function DialoguesTab({
             key={cles[scene.dialogues.indexOf(d)]}
             dialogue={d}
             ctx={ctx}
-            onChange={(nd: Dialogue) => {
-              setScene(replaceDialogue(scene, d.id, nd));
-              if (nd.id !== d.id) setSel(nd.id);
+            onChange={(nd: Dialogue) => setScene(replaceDialogue(scene, d.id, nd))}
+            onRename={(next) => {
+              const out = renameDialogue(scene, d.id, next);
+              if (out === scene) return;
+              setScene(out);
+              setSel(next.trim());
             }}
           />
         </div>

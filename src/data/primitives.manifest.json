@@ -152,7 +152,7 @@
     "label": "fermeturesDuFlux / fermeturesDeLaFenetre",
     "fichier": "src/noyau/verbesOuverts.ts",
     "concept": "ce qui ferme MAINTENANT chaque verbe du cycle d'un flux de jet (`FermetureDuJet`, libellé `libelleDeLaFermeture`), le prédicat même que gardent ses ops (`RollFlowHandlers.fermetures` : Résilience `fermetureDuForcage`, clôtures `cloture`/`jetPose`/`jetImpose`, annulation `annulation`, issue perdue `perdu` du spec), et chaque verbe de la fenêtre qui tient la main qu'un de ses flux joue ; une fermeture qui attend une décision du joueur (`FERMETURES_DITES`) se montre refusée avec sa raison ; aucun site ne date un verbe « avant » ou « après » le jet",
-    "perimetre": "barre d'actions de `RollShell` (`RollAction.verbe`), Résistance et Détermination des rangées, gestes des hôtes du noyau (`fenetreADessiner` : `attendu`, `ouvert`, `raison` ; `projection.fenetre.fermes`), réglages manuscrits du store (`siOuvert`)",
+    "perimetre": "barre d'actions de `RollShell` (`RollAction.verbe`), Résistance et Détermination des rangées, gestes des hôtes du noyau (`fenetreADessiner` : `attendu`, `ouvert`, `raison` ; `projection.fenetre.fermes`), réglages des jets (`jetRegler`, `fermetureDuReglage`)",
     "verrou": "verbesOuverts.hors-store.test.ts, gestes-a-l-etat.hors-store.test.ts"
   },
   {
@@ -945,7 +945,7 @@
     "id": "opRows",
     "type": "primitives.manifest",
     "label": "opRows",
-    "fichier": "src/ui/compendium/opRows.ts",
+    "fichier": "src/noyau/codex/opRows.ts",
     "concept": "structure de rangées d’un GameOp[] pour le Codex",
     "perimetre": "vue joueur des effets et fiches du compendium",
     "verrou": "—"
@@ -1399,7 +1399,7 @@
     "nature": "organisme",
     "concept": "panneau d’INSPECTION en lecture seule : identité + jauge, badges de camp/états, puis onglets « Profil » (statbloc) et « Description » (prose de la fiche, avec son porteur) — sans prose, ni onglet ni barre",
     "perimetre": "clic sur l’ordre de bataille ; l’en-tête est partagé avec l’inspecteur de l’éditeur",
-    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/ui/compendium/registry.ts)"
+    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/noyau/codex/registry.ts)"
   },
   {
     "id": "equipmentPanel",

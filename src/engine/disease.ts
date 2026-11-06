@@ -27,7 +27,7 @@
  */
 import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type ModLine, type TestIds } from './types';
 import type { Duration } from './duration';
-import { RNG, roll, type DiceSpec, rollDice, formatDice } from './dice';
+import { RNG, roll, rollDice, formatDice } from './dice';
 import { MINUTES_PER_DAY } from './clock';
 import { findTableEntry } from './tables';
 import { spellOps, type FlowTestNode } from './flowCore';
@@ -46,19 +46,11 @@ import { fateSaveOrDie } from './fortune';
 import { addCondition } from './conditions';
 import { sourceSuspended, suspendSource } from './suspension'; // module FEUILLE : suspension GÉNÉRALE d'une source passive
 import type { CodexTarget } from './ruleRefs';
+import type { DiseaseDef, DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
 
 /** Unité d'un temps de maladie (incubation/durée). La base de calcul/stockage reste la MINUTE (`clock.ts`). */
-export type TimeUnit = 'days' | 'hours' | 'minutes';
-const UNIT_MINUTES: Record<TimeUnit, number> = { days: MINUTES_PER_DAY, hours: 60, minutes: 1 };
+const UNIT_MINUTES: Record<DiseaseTime['unit'], number> = { days: MINUTES_PER_DAY, hours: 60, minutes: 1 };
 
-/** Incubation/durée d'une maladie : un jet de dés (`dice`) + son `unit`. Source UNIQUE (RAW « Incubation »/
- *  « Durée »), convertie en MINUTES par `rollDiseaseTime` → plus de perte « sous-journalier ≈ 0 jour ».
- *  Une valeur FIXE (Colique « 2 heures ») = `{ dice:{n:0,sides:0,plus:2}, unit:'hours' }` ; « instantanée »
- *  = `{ dice:{n:0,sides:0}, unit:'hours' }` (= 0). */
-export interface DiseaseTime {
-  dice: DiceSpec;
-  unit: TimeUnit;
-}
 /** Tire un `DiseaseTime` → MINUTES (jet × facteur d'unité). PUR (RNG injecté). */
 export const rollDiseaseTime = (t: DiseaseTime, rng: RNG): number => rollDice(t.dice, rng) * UNIT_MINUTES[t.unit];
 /** Écriture d'affichage : « 1d10 heures », « 3d10+10 jours », « 2 heures » (valeur fixe). */
@@ -74,61 +66,6 @@ export function formatRemaining(minutes: number): string {
   if (m >= MINUTES_PER_DAY) return t('dz.remainDays', { n: Math.round(m / MINUTES_PER_DAY) });
   if (m >= 60) return t('dz.remainHours', { n: Math.round(m / 60) });
   return t('dz.remainMinutes', { n: Math.round(m) });
-}
-
-/** Instance de symptôme sur une maladie : RÉFÉRENCE un symptôme de `symptoms.json` par `symptomId`,
- *  + `severity`/`difficulty` PAR-INSTANCE (Convulsions (Modéré) → `passiveBySeverity.moderee` ; Persistant
- *  (Accessible) → difficulté du Test de fin). La mécanique (passive/onTick/capabilities) vit sur la
- *  DONNÉE du symptôme, lue par les helpers ci-dessous — plus d'enum de kinds en dur. */
-export interface DiseaseSymptom {
-  symptomId: string;
-  severity?: 'moderee' | 'grave';
-  difficulty?: Difficulty;
-  /** LOCALISATION/précision imprimée de l'instance (« Gonflement (Visage et tête) », Fièvre Cérébrale
-   *  Pourpre — EDO 11 l.119) : affichage seul (convention `spec` des compétences/talents) — la mécanique
-   *  par-localisation du symptôme vit dans sa `desc`. */
-  spec?: string;
-}
-
-export interface DiseaseDef {
-  /** id STABLE (slug du nom) — clé de `maladies.json`, cible de `Disease.name` et des refs. */
-  id: string;
-  type: 'maladies';
-  /** Libellé d'affichage (français) — résolu via `diseaseLabel` ; ≠ id. Convention `label` des catalogues. */
-  label: string;
-  /** Description VERBATIM (LDB 20) — affichage seul (jamais lue par le moteur), comme toute entité. */
-  desc: string;
-  /** Difficulté du Test de Contraction (pour mémoire/journal — la contraction est déclenchée par l'appelant). */
-  contractDifficulty: Difficulty;
-  /** Incubation RAW (jours/heures/minutes) — tirée en minutes à la contraction. */
-  incubation: DiseaseTime;
-  /** Durée active RAW (jours/heures/minutes) — tirée en minutes à la contraction. */
-  duration: DiseaseTime;
-  symptoms: DiseaseSymptom[];
-  /** Vérole Urticante (l.97) : « vous ne pouvez pas l'attraper une seconde fois » — immunité après guérison. */
-  immuneAfterCure?: boolean;
-  /** Passifs actifs pendant toute l'INFECTION (incubation ET phase active — Vers du Reik : « −5 à tous les
-   *  Tests de Résistance permettant de résister aux maladies » pour chaque période complète de 30 jours
-   *  d'infection, MSRC 16 l.138). Un op `diseaseTestMod` y est RAMPÉ par tranche de 30 jours écoulés depuis
-   *  la contraction (`activeDiseaseTestMod`), puis DÉCROÎT de 1/jour après la fin (résidu). Éditable au Codex. */
-  infectionPassive?: OpPassive[];
-  /** Un porteur ACTIF qui boit à un tonneau d'eau risque de le rendre contagieux pour quiconque y boit
-   *  ensuite (MDG 14 l.209). Drapeau DÉCLARATIF lu par `buildBarrelSteps` (`noyau/seaVoyageFlow`). */
-  contaminatesWaterBarrel?: boolean;
-  /** Test de cycle quotidien porté par la MALADIE elle-même (≠ par un de ses symptômes) — EDOC 08
-   *  l.104-108. `test` est le nœud `test` du Flow : il porte le jet ET sa conséquence (branche `fail`),
-   *  appliquée par le MÊME canal différé/influençable que les `onTick` de symptôme (`diseaseTick`).
-   *  `symptomId` NOMME le symptôme que le Test met en jeu (libellé d'étape + réf d'enjeu). CADENCE
-   *  RÉELLE : chaque JOUR D'ENTRETIEN — écart mesuré à la condition de déclenchement de `EDOC 08 l.104`,
-   *  consigné au site de roulage (#674, `tickDisease`). */
-  dailyTest?: { test: FlowTestNode; symptomId: string };
-  /** MUE en une autre maladie au-delà de `afterDays` jours de phase ACTIVE — EDOC 08 l.122.
-   *  `into` = id d'une entrée de `maladies.json`. */
-  mutation?: { afterDays: number; into: string };
-  /** RÉ-EXPOSITION à la cause de contraction alors que la maladie est DÉJÀ portée — EDOC 08 l.122 :
-   *  `prolonge` (même graphie que `incubation`/`duration`) est tiré et allonge la durée en cours.
-   *  Absent = une ré-exposition ne fait rien. */
-  reExposition?: { prolonge: DiseaseTime };
 }
 
 /** La maladie est-elle DÉCLARÉE : sortie d'incubation, ses symptômes actifs ? LDB 20 l.12-13 */
@@ -173,7 +110,7 @@ export interface Disease {
 // par `id`. Les valeurs verbatim (LDB 20) vivent dans la donnée ; le COMPORTEMENT (cycle,
 // symptômes) reste ici. Ajouter une maladie = une entrée dans `maladies.json`.
 export const diseaseDefs = memoParVersion('maladies', (): Record<string, DiseaseDef> => Object.fromEntries(
-  (maladies as DiseaseDef[]).map((m) => [m.id, m]),
+  maladies.map((m) => [m.id, m]),
 ));
 
 /** Construit une instance de maladie (tire incubation/durée → MINUTES). `opts.incubation`/`opts.duration`

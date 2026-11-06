@@ -10,7 +10,7 @@ import type { JSX } from 'react';
  */
 import { isValidElement, type ReactNode } from 'react';
 import { useGame } from '../../state/store';
-import { codexLookup, codexLookupById } from './registry';
+import { codexLookupById } from '../../noyau/codex/registry';
 import { mdToText } from '../Prose';
 import { useInfobulle } from '../Infobulle';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
@@ -78,8 +78,7 @@ export function CodexRef({
    *  naît au survol ET au focus (clavier comme manette). Une infobulle peut n'avoir QUE cela (aucune
    *  cible au Codex). */
   refus?: string;
-  /** Identité STABLE de la cible — PRÉFÉRÉE quand fournie (`codexLookupById`) ; `label` reste requis
-   *  (affichage + repli de résolution pour l'auto-liage de prose depuis une donnée sans id). */
+  /** Identité STABLE de la cible, SEULE clé de résolution (`codexLookupById`) ; `label` est l'affichage. */
   id?: string;
   label: string;
   /** Texte affiché si différent du libellé d'entrée (ex. libellé avec spécialisation). */
@@ -129,7 +128,7 @@ export function CodexRef({
   fallback?: { sub?: string; body?: string };
 }) {
   const openCodex = useGame((s) => s.openCodex);
-  const item = category ? (id ? codexLookupById(category, id) : undefined) ?? codexLookup(category, label) : undefined;
+  const item = codexLookupById(category, id);
   // La PORTE vers la fiche : sous `wrap`, un vrai bouton DANS l'infobulle ; sinon le déclencheur lui-même.
   const porte = !tooltipOnly && !!item;
   const wrapperOpens = !wrap && porte;

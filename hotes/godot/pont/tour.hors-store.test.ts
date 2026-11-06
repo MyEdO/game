@@ -87,7 +87,7 @@ describe('un tour complet par le pont', () => {
     ({ suite } = jouer({ type: CLICS_DU_CHAMP.combattant, args: [cible] }));
     expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'attackJet' } });
     expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attack');
-    expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('attackSetLocation');
+    expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('jetRegler@attack#localisation');
     expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetRoll@attack');
     expect(corpsDe(suite.vue, 'degats'), 'les Dégâts de l’arme, à part').toMatchObject({ type: 'puce', valeur: expect.stringMatching(/^\+\d+$/) });
     expect(corpsDe(suite.vue, 'cible'), 'la fenêtre nomme la cible').toMatchObject({ type: 'ligne', texte: expect.stringContaining(nomDeLaCible) });
@@ -95,7 +95,7 @@ describe('un tour complet par le pont', () => {
     expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetRoll@attack');
 
     const localiser = () => {
-      const g = gesteDe(suite.vue, 'attackSetLocation');
+      const g = gesteDe(suite.vue, 'jetRegler@attack#localisation');
       if (g.type !== 'choix' && g.type !== 'liste') throw new Error(`la Localisation : ${g.type}, pas un choix`);
       return g.valeurs;
     };
@@ -114,10 +114,11 @@ describe('un tour complet par le pont', () => {
     suite = confirmee.suite;
     expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('attackJet');
     expect(confirmee.lignes.map((l) => l.texte), 'l’issue confirmée entre au journal de l’écran').toContain((issue as Ligne).texte);
-    const offres = suite.vue.zones['combat.offres'].flatMap((o) => o.valeurs);
+    const barre = suite.vue.zones['combat.offres'];
+    const offres = [...barre.flatMap((o) => o.valeurs), ...barre.filter((c) => c.id.startsWith('offre/')).map((c) => ({ ...c, id: c.id.slice('offre/'.length) }))];
     const fermees = suite.vue.projection.combat!.offres!.liste.filter((o) => o.refus !== null);
     expect(fermees.length, 'l’Action jouée, des offres se ferment').toBeGreaterThan(0);
-    expect(fermees.map((o) => offres.find((b) => b.id === o.id)?.refus), 'chaque offre fermée reste à la barre, refusée avec sa raison').toEqual(fermees.map((o) => o.refus));
+    expect(fermees.map((o) => offres.find((b) => b.id === o.id)?.refus), 'chaque offre fermée reste à la barre, son bouton ou le choix de ses candidats refusé avec sa raison').toEqual(fermees.map((o) => o.refus));
     ({ suite } = finirLeTour());
 
     const second = actifDe(suite);

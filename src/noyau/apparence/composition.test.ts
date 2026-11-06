@@ -5,7 +5,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { cataloguesDeComposition, compositionDuPreset, lireComposition, porteeDeComposition, presetDeComposition, type Axe, type Composition } from './composition';
-import { findEnsembleParHabille, findPresetDePersonnageById, gardeRobe, trappingsInstanciables } from '../../data';
+import { findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTrappingById, findVarianteById, gardeRobe, trappingsInstanciables } from '../../data';
 import { resetData, setDataset } from '../../data/overrides';
 import { CLES_ENVELOPPE } from '../../data/schemas/grammaire/document';
 import { file as FICHIER_DES_PRESETS, meta as metaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
@@ -33,6 +33,20 @@ describe('porteeDeComposition', () => {
 
   it('un objet tenu porte son apparence à sa prise', () => {
     expect(porteeDeComposition(soldat).portees).toContainEqual(expect.objectContaining({ cle: { champ: 'apparence', id: 'hallebarde' }, point: 'main' }));
+  });
+
+  it('un objet porté se range à l’emplacement que la composition lui choisit, à défaut au `rangement` de son trapping', () => {
+    const { portees } = porteeDeComposition(lue({ ...composition, objets: [...(composition.objets ?? []), 'arme-simple', 'dague'], rangementsObjets: { 'arme-simple': { id: 'dos' } } }));
+    expect(portees.find((p) => p.par?.id === 'arme-simple')?.point).toBe('dos');
+    expect(portees.find((p) => p.par?.id === 'dague')?.point).toBe(findTrappingById('dague')?.rangement?.id);
+  });
+
+  it('une pièce portée prend sa variante (#3446), à son libellé, à l’emplacement de sa pièce, apportée comme elle', () => {
+    const { portees } = porteeDeComposition(lue({ ...composition, variantesPieces: { 'haut-de-chausses': { id: 'haut-de-chausses-ample' }, plumet: { id: 'plumet-simple' } } }));
+    const ample = portees.find((p) => p.cle.id === 'haut-de-chausses-ample');
+    expect(ample).toMatchObject({ cle: { champ: 'piece', id: 'haut-de-chausses-ample' }, label: findVarianteById('haut-de-chausses-ample')!.label, par: { type: 'tenue', id: 'uniforme-de-soldat' } });
+    expect(portees.find((p) => p.cle.id === 'plumet-simple')?.point).toBe(findPieceById('plumet')!.emplacement!.id);
+    expect(portees.map((p) => p.cle.id)).not.toContain('haut-de-chausses');
   });
 
   it('ce qui apporte une pièce porte le libellé de son ensemble : la chemise du Soldat, par l’uniforme de soldat', () => {
@@ -93,6 +107,25 @@ describe('lireComposition', () => {
     expect(lireComposition({ ...composition, prises: { main: { id: 'hallebarde' }, off: { id: 'hallebarde' } } })).toEqual({
       ok: false,
       fautes: [{ chemin: ['prises', 'off'], message: expect.stringContaining('porté deux fois') }],
+    });
+  });
+
+  it('ranger un objet qui n’est pas un des `objets` est une faute à sa clé', () => {
+    expect(lireComposition({ ...composition, rangementsObjets: { 'arme-simple': { id: 'dos' } } })).toEqual({
+      ok: false,
+      fautes: [{ chemin: ['rangementsObjets', 'arme-simple'], message: expect.stringContaining('arme-simple') }],
+    });
+  });
+
+  it('la variante d’une pièce non portée, ou d’une autre pièce, est une faute à sa clé (#3446)', () => {
+    const sansPlumet = { ...composition, pieces: composition.pieces!.filter((p) => p !== 'plumet') };
+    expect(lireComposition({ ...sansPlumet, variantesPieces: { plumet: { id: 'plumet-simple' } } })).toEqual({
+      ok: false,
+      fautes: [{ chemin: ['variantesPieces', 'plumet'], message: expect.stringContaining('sans être une des pièces portées') }],
+    });
+    expect(lireComposition({ ...composition, variantesPieces: { bottes: { id: 'casque-a-cornes' } } })).toEqual({
+      ok: false,
+      fautes: [{ chemin: ['variantesPieces', 'bottes'], message: expect.stringContaining('variante de « casque »') }],
     });
   });
 

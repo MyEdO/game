@@ -53,7 +53,7 @@ const talentTestSchema = nommerChamps(z.strictObject({
 /**
  * Champs qu'une variante réglée de `talents.json` peut republier — ceux dont la lecture PASSE par
  * `effectiveEntry` (`src/engine/variants.ts`), preuve par consommateur :
- *  - `desc`/`source` → Codex `src/ui/compendium/registry.ts`
+ *  - `desc`/`source` → Codex `src/noyau/codex/registry.ts`
  *  - `test` → `talentTestSLBonus` (`src/engine/magic.ts`)
  *  - `max` → `talentMaxById` (`src/engine/careerSlots.ts`), Apprentissage (`LearnPane`, `src/ui/InterludeScreen.tsx`)
  *  - `combat` → `featuresOf` (`src/engine/combatFeatures/dispatch.ts`), `castingKindOf` (l.17)

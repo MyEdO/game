@@ -136,7 +136,7 @@ const champs = {
 /**
  * Champs qu'une variante réglée de `spells.json` peut republier — ceux dont la lecture PASSE par
  * `effectiveEntry` (`src/engine/variants.ts`), preuve par consommateur :
- *  - `desc`/`source` → fiche Codex `src/ui/compendium/registry.ts` (bâtie sur `effectiveEntry`,
+ *  - `desc`/`source` → fiche Codex `src/noyau/codex/registry.ts` (bâtie sur `effectiveEntry`,
  *    `registry.ts`)
  *  - `cn` → NI effectif `castingNumberOf` (`src/engine/magic.ts`), lu par `evaluateCasting`
  *    (`magic.ts`) et `castLandProbability` (`magic.ts`) ; aperçu pré-jet `previewCast`

@@ -7,7 +7,7 @@
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
-import { findCouleurById, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
+import { findCouleurById, pieceRacine, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
 import { blasonsDe, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
 
 /** Un emplacement de montage d'une chose portée (`"<point>"` ou la clé de sa ligne, `cleDuPanneau`) et l'élément de
@@ -46,11 +46,12 @@ const cleDeLigne = (l: LigneDePiece): string => ('choix' in l ? cleDuPanneau(l.s
 const elementsDeLigne = (l: LigneDePiece): string[] => ('choix' in l ? l.choix.flatMap((c) => c.elements) : l.elements);
 
 /** L'emplacement de montage d'une chose portée : la ligne de sa tête, de sa coiffure ou de sa pièce de vêtement ou
- *  d'armure ; la ligne de l'emplacement d'une pièce d'accessoire, rigide comprise ; le point d'un objet. */
+ *  d'armure, celle de sa pièce pour une variante (#3446) ; la ligne de l'emplacement d'une pièce d'accessoire, rigide
+ *  comprise ; le point d'un objet. */
 function ouMonter({ cle, point }: Portee): string {
   if (cle.champ === 'tete' || cle.champ === 'coiffure') return cleDuPanneau(cle.champ);
   if (cle.champ === 'apparence') return point!;
-  return point === undefined ? cleDuPanneau('piece', cle.id) : cleDuPanneau('emplacement', point);
+  return point === undefined ? cleDuPanneau('piece', pieceRacine(cle.id)?.id ?? cle.id) : cleDuPanneau('emplacement', point);
 }
 
 /** `portee` sur la base `base` des modèles de l'atelier : `manifestes` (id de modèle → manifeste) lit la base et la

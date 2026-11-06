@@ -17,7 +17,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { CODEX } from './registry';
-import { editableDataset, editableObjectDataset } from '../editor/codex/CodexEdit';
+import { editableDataset, editableObjectDataset } from '../../data/atelierDuCodex';
 import { datasetArray } from '../../data/overrides';
 
 /** Catégories projetées sur un dataset-TABLEAU éditable (mesurées, pas déclarées ici). */

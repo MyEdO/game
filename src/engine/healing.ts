@@ -53,7 +53,7 @@ export const actePanse = (mode: HealMode): boolean => mode === 'wounds' || mode 
 /** Pourquoi le Test déclaré `p.test` est refusé au soigneur pour l'acte `mode`, `null` s'il s'offre. `soigneur` `null` :
  *  un PNJ soigneur, sans fiche, qui ne jette que sa Guérison imprimée. Dextérité : LDB 74 l.41 ; Hémorragie seule ;
  *  décision de l'orchestrateur (2026-11-03, #3059) : ouverte à tout soigneur, Bandages exigés. VERDICT UNIQUE de
- *  l'ouverture (`soinDOuverture`), du choix du Test (`healSetTest`), du choix d'acte (`healSetMode`) et de la fenêtre. */
+ *  l'ouverture (`soinDOuverture`), du choix du Test (réglage `heal.test`), du choix d'acte (réglage `heal.mode`) et de la fenêtre. */
 export function refusDuTestDeSoin(soigneur: Combatant | null, mode: HealMode, p: ParametresDeSoin): string | null {
   if (p.test === 'guerison') return soigneur && !possesses(soigneur, HEAL_SKILL) ? t('heal.raisonSansGuerison') : null;
   if (!soigneur) return t('heal.raisonDexteriteSansFiche');
@@ -123,7 +123,7 @@ export function raisonDeModeDeSoin(target: Combatant, mode: HealMode): string | 
 }
 
 /** Modes disponibles pour soigner `target` : ceux dont `raisonDeModeDeSoin` est `null`. Le mode `trauma`
- *  (LDB 18 l.222) est hors-combat — les consommateurs en combat le filtrent (`combatHealModes`). */
+ *  (LDB 18 l.222) est hors-combat — les consommateurs en combat le filtrent (`raisonDeModeDeSoinEnCombat`). */
 export function availableHealModes(target: Combatant): HealMode[] {
   return HEAL_MODES.filter((m) => raisonDeModeDeSoin(target, m) === null);
 }
@@ -144,15 +144,9 @@ const ACTES_IMMEDIATS: readonly HealMode[] = ['wounds', 'bleed', 'ammo'];
 export const estActeImmediat = (mode: HealMode): boolean => ACTES_IMMEDIATS.includes(mode);
 
 /** `raisonDeModeDeSoin` en combat : un mode hors-combat y est fermé. Verdict UNIQUE des gestes de soin en
- *  combat (`battleHeal`, `healSetMode`) et de `combatHealModes`. */
+ *  combat (`battleHeal`, réglage `heal.mode` et fenêtre du soin, `refusDuModeDuSoin`). */
 export function raisonDeModeDeSoinEnCombat(target: Combatant, mode: HealMode): string | null {
   return estActeImmediat(mode) ? raisonDeModeDeSoin(target, mode) : t('heal.raisonHorsCombat');
-}
-
-/** Modes de soin offerts EN COMBAT au soin déclaré `p` : ceux que le patient (`raisonDeModeDeSoinEnCombat`) et le Test
- *  (`refusDuTestDeSoin`) ouvrent. Lu par le sélecteur de la fenêtre de soin. */
-export function combatHealModes(target: Combatant, soigneur: Combatant | null, p: ParametresDeSoin): HealMode[] {
-  return HEAL_MODES.filter((m) => raisonDeModeDeSoinEnCombat(target, m) === null && refusDuTestDeSoin(soigneur, m, p) === null);
 }
 
 /** Modes de soin qu'un soigneur combattant OUVRE sur `target` en combat (`soinDOuverture`) : lus par le ciblage-carte

@@ -6,7 +6,7 @@ import { difficultyText, texteDuMod } from '../noyau/difficultyText';
 import { Dice } from './Dice';
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
-import { codexLookupById } from './compendium/registry';
+import { codexLookupById } from '../noyau/codex/registry';
 import { RULE_REF, type ModProvenance } from '../engine/ruleRefs';
 import type { StakeRef } from '../data';
 import { actorIn } from '../noyau/monde/combatants';

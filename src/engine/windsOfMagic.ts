@@ -24,7 +24,7 @@ import type * as vents from '../data/schemas/defs/vents-tourbillonnants';
 import { effectiveTalents } from './talentEffects';
 
 /** Le Tableau VIVANT — la collection que le Codex expose et édite (`ventsTourbillonnants`,
- *  `data/overrides.ts`, `src/ui/compendium/registry.ts`) ; le lookup n'en lit que `min`/`max`/`mod`. */
+ *  `data/overrides.ts`, `src/noyau/codex/registry.ts`) ; le lookup n'en lit que `min`/`max`/`mod`. */
 export const windsOfMagicTable = rangeesDe<typeof vents>(ventsJson);
 
 /** Modificateur (LDB 46 l.183-190) pour un jet donné — lecture LIVE de la donnée éditable. */
