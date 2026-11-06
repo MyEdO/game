@@ -4,13 +4,14 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { dossierDe, porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 import { iconRefsIn } from '../../scripts/guards/lib/iconRefs.mjs';
-import { ICON_DEFS } from '../data/icons';
+import { ICON_DEFS } from './icons';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou anti-icône-fantôme (#269) : une réf d'icône `icon: '...'`/`"icon": "..."` posée en
- * DONNÉE (`src/state/**`, `src/scenes/**`, `src/data/*.json`) porte le type large `IconIdInput`
+ * DONNÉE (`src/noyau/**`, `src/scenes/**`, `src/data/*.json`, et `src/state/**` de l'hôte web, #3556) porte le type large `IconIdInput`
  * (`src/data/icons/types.ts`) — pas l'union `IconId` GÉNÉRÉE qui verrouille `src/ui/**` à la
  * compilation. Une réf inconnue n'y throw QU'AU RENDU (DEV), absorbée en silence par
  * `SceneErrorBoundary` — c'est ce trou que ce test de BUILD ferme : toute réf littérale hors du
@@ -19,8 +20,8 @@ import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichier
  * `scripts/guards/lib/iconRefs.mjs` (module .mjs pur).
  */
 
-const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // racine du projet (src/ui/ → ../../)
-const SCAN_DIRS = ['src/state', 'src/noyau', 'src/scenes'];
+const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // racine du projet (src/data/ → ../../)
+const SCAN_DIRS = porteeDeGarde(['noyau', 'scenes'], ['state']);
 
 /** `*.test.*` et kits de test (`estKitDeTest`) exclus : les tests portent parfois des ids de fixture forgés (pas rendus à
  *  l'utilisateur, pas des affordances réelles). */
@@ -29,17 +30,17 @@ const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel);
 /** Les SOURCES des deux racines de donnée (tests compris — `EXCLUDED` les écarte au site), plus les
  *  datasets PLATS de `src/data`, chacun avec son texte. */
 function scanFiles(): { rel: string; text: string }[] {
-  const data = join(ROOT, 'src/data');
+  const data = join(ROOT, dossierDe('data'));
   return [
     ...readCorpus(SCAN_DIRS, { tests: true }).map(({ rel, text }) => ({ rel, text })),
     ...listerDossier(data)
       .filter((e) => e.endsWith('.json'))
-      .map((e) => ({ rel: `src/data/${e}`, text: readFileSync(join(data, e), 'utf8') })),
+      .map((e) => ({ rel: `${dossierDe('data')}/${e}`, text: readFileSync(join(data, e), 'utf8') })),
   ];
 }
 
 describe('garde-fou anti-icône-fantôme (réfs de donnée → registre d’icônes)', () => {
-  it('toute réf `icon:`/`"icon":` de src/state, src/scenes et src/data/*.json résout dans le registre', () => {
+  it('toute réf `icon:`/`"icon":` du noyau, des scènes, de src/data/*.json et de src/state résout dans le registre', () => {
     const offenders: string[] = [];
     let scanned = 0;
     for (const { rel, text } of scanFiles()) {

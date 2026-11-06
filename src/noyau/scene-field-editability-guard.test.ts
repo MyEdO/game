@@ -1,5 +1,5 @@
 import { API, SymbolFlags } from 'typescript/unstable/sync';
-import { ast } from '../../../scripts/guards/lib/dialecte.mjs';
+import { ast } from '../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect, vi } from 'vitest';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -10,9 +10,9 @@ import {
   orphanFields,
   sceneScope,
   programmeDuPerimetre,
-} from '../../../scripts/guards/lib/sceneFieldEditability.mjs';
-import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../../../scripts/guards/lib/tsProgram.mjs';
-import { detenteur } from '../../lib/detenteur.testkit';
+} from '../../scripts/guards/lib/sceneFieldEditability.mjs';
+import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../../scripts/guards/lib/tsProgram.mjs';
+import { detenteur } from '../lib/detenteur.testkit';
 
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
@@ -36,7 +36,7 @@ import { detenteur } from '../../lib/detenteur.testkit';
  * mesure sur le programme RÉEL (cliquet de compte + la mesure du SEAM, qui bâtit le programme du
  * DOCUMENT avec un module modifié EN MÉMOIRE).
  */
-const ROOT = path.resolve(__dirname, '..', '..', '..');
+const ROOT = path.resolve(__dirname, '..', '..');
 
 const ids = (rows: { id: string }[]) => rows.map((r) => r.id);
 

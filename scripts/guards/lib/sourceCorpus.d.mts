@@ -20,7 +20,7 @@ export interface ReadCorpusOptions {
  *  LÈVE dès qu'une BASE rend 0 fichier, en la nommant (REFUS DU VIDE, en-tête de
  *  `sourceCorpus.mjs`) : un corpus vide rendrait toute garde verte par vacuité, et sur un total
  *  agrégé une base vide resterait muette derrière une base peuplée. */
-export function readCorpus(dirs: string[], opts?: ReadCorpusOptions): readonly CorpusFile[];
+export function readCorpus(dirs: readonly string[], opts?: ReadCorpusOptions): readonly CorpusFile[];
 
 /** L'entrée de `p` (absolu), lue au disque la première fois qu'une clé ou un appelant la demande, puis
  *  partagée : un chemin n'a qu'un texte. Son `rel` est POSIX depuis la racine de CE dépôt (`../` hors de lui). */

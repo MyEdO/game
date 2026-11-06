@@ -1,6 +1,6 @@
-import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
+import { ast, analyserCorpus } from '../../../scripts/guards/lib/dialecte.mjs';
 /**
- * GARDE — toute référence Codex écrite EN LITTÉRAL dans l'UI pointe une fiche qui EXISTE.
+ * GARDE — toute référence Codex écrite EN LITTÉRAL (projecteurs du Codex, UI de l'hôte web) pointe une fiche qui EXISTE.
  *
  * ANGLE MORT COMBLÉ (mesuré 2026-08-17) : `src/noyau/codex/codex-rule-refs.test.ts` ne parcourt que le registre
  * `RULE_REF` (et les deux producteurs dynamiques énumérés). Les refs écrites à la main au site
@@ -14,7 +14,7 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  * loi (couple `category` + `id` tous DEUX littéraux de chaîne) :
  *   - littéral d'objet : `{ category: 'x', id: 'y' }` — quel que soit le champ porteur (`rule`,
  *     `kref`, `src`, `stakeRule`, ou aucun) ;
- *   - élément JSX : `<CodexRef category="x" id="y" …>`.
+ *   - élément JSX : `<CodexRef category="x" id="y" …>`, forme de la seule zone `ui` de l'hôte web (#3556).
  * Chaque couple est résolu par la couture RÉELLE d'affichage — `codexLookupById`, la porte du Codex
  * (`CodexRef` l'appelle pour peupler son popover). Introuvable = ROUGE, avec `fichier:ligne` et le
  * couple fautif.
@@ -32,10 +32,11 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  */
 import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { codexLookupById } from '../noyau/codex/registry';
-import { ACTIONS, ACTIVITY_STAKES, STAKES, cibleCodex, crewTestTypes } from '../data/index';
-import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
+import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
+import { dossierDe, porteeDeGarde } from '../../../scripts/guards/lib/couches.mjs';
+import { codexLookupById } from './registry';
+import { ACTIONS, ACTIVITY_STAKES, STAKES, cibleCodex, crewTestTypes } from '../../data/index';
+import type { FoyerDeRegle } from '../../data/schemas/grammaire/valeurs';
 
 export interface CodexRefLiteral {
   line: number;
@@ -122,13 +123,14 @@ export function codexRefLiterals(file: string, src: string, sf = ast({ rel: file
 
 interface Site extends CodexRefLiteral { rel: string }
 
-/** Les sources d'UI (`src/ui/**`) et les projecteurs du Codex (`src/noyau/codex/**`), hors tests :
+/** Les projecteurs du Codex (`src/noyau/codex/**`) et les sources de la zone `ui` de l'hôte web (#3556), hors tests :
  *  `.tsx` ET `.ts` — une ref littérale vit aussi bien dans un projecteur (`noyau/codex/opRows.ts`) que
  *  dans un composant —, rendues par la primitive de marche `readCorpus`. */
+const PORTEE = [`${dossierDe('noyau')}/codex`, ...porteeDeGarde([], ['ui'])];
 function corpus(): { sites: Site[]; dynamiques: number } {
   const sites: Site[] = [];
   let dynamiques = 0;
-  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(['src/ui', 'src/noyau/codex']))) {
+  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(PORTEE))) {
     const r = codexRefLiterals(rel, text, sourceFile!);
     for (const s of r.statiques) sites.push({ rel, ...s });
     dynamiques += r.dynamiques;
@@ -136,7 +138,7 @@ function corpus(): { sites: Site[]; dynamiques: number } {
   return { sites, dynamiques };
 }
 
-describe('refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fiche RÉELLE', () => {
+describe('refs Codex écrites EN LITTÉRAL — chacune pointe une fiche RÉELLE', () => {
   it('MORSURE : le littéral d’objet est lu sur la STRUCTURE (champ porteur quelconque, multi-lignes)', () => {
     const src = "const c = { key: 'k', rule: {\n  category: 'regles',\n  id: 'mouvement',\n} };";
     expect(codexRefLiterals('x.ts', src).statiques).toEqual([
@@ -243,7 +245,7 @@ describe('refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fi
     expect(ecarts, `Foyer absent de la fiche en lecture :\n  ${ecarts.join('\n  ')}`).toEqual([]);
   });
 
-  it('chaque ref littérale de `src/ui/**` résout au Codex, par id STABLE', () => {
+  it('chaque ref littérale du corpus résout au Codex, par id STABLE', () => {
     const { sites } = corpus();
     const mortes = sites
       .filter((s) => !codexLookupById(s.category, s.id))

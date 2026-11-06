@@ -1,21 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { emojisIn } from '../../scripts/guards/lib/emojiAffordance.mjs';
-import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { emojisIn } from '../scripts/guards/lib/emojiAffordance.mjs';
+import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { RACINES_DES_ZONES } from '../scripts/guards/lib/couches.mjs';
 
 /**
- * Garde-fou anti-emoji (LOT 4) : les AFFORDANCES de l'UI passent par le registre d'icônes
- * (`src/data/icons/` + `<Icon id>` / `<IconG id>`), plus jamais par un emoji dans le code ou la
- * donnée — et un emoji de LOG/journal/prose se retire tout autant (texte affiché à l'utilisateur).
- * Couverture EXHAUSTIVE par défaut : ce test de BUILD balaie TOUT `src/` (walk récursif, .ts/.tsx/
- * .json) ; il n'y a PAS de liste opt-in de dossiers (tout nouveau dossier naît couvert). Seules des
- * EXCLUSIONS explicites et justifiées existent (ci-dessous), chacune par NATURE, jamais par état de
- * migration.
+ * Garde-fou anti-emoji (LOT 4) : aucun emoji dans le code, la donnée ni la prose affichée (journal, logs) — une
+ * icône de donnée est un id du registre (`src/data/icons/`).
+ * Couverture EXHAUSTIVE par défaut : ce test de BUILD balaie TOUTES les racines des zones (`RACINES_DES_ZONES`,
+ * `couches.mjs` : walk récursif, .ts/.tsx/.json) ; il n'y a PAS de liste opt-in de dossiers (tout nouveau dossier
+ * naît couvert). Seules des EXCLUSIONS explicites et justifiées existent (ci-dessous), chacune par NATURE, jamais par
+ * état de migration.
  * Mécanique de détection (plages Unicode, glyphes tolérés `✓ ☰ …`, `emojisIn`) :
  * `scripts/guards/lib/emojiAffordance.mjs` (module .mjs pur, partagé avec le hook pre-commit).
  */
-
-const SRC = 'src';
 
 /** Exclusions par NATURE (jamais par état de migration) :
  *  - `*.test.*` : les tests portent les emojis de leurs composants non migrés et sont réécrits AVEC
@@ -29,9 +27,9 @@ const EXCLUDED = (rel: string): boolean =>
   rel.includes('__snapshots__/');
 
 describe('garde-fou anti-emoji (affordances → registre d’icônes)', () => {
-  it('aucun emoji dans TOUT src/ (.ts/.tsx/.json), hors exclusions par nature', () => {
+  it('aucun emoji dans toutes les racines des zones (.ts/.tsx/.json), hors exclusions par nature', () => {
     const offenders: string[] = [];
-    for (const { rel, text } of readCorpus([SRC], { exts: ['.ts', '.tsx', '.json'], tests: true })) {
+    for (const { rel, text } of readCorpus(RACINES_DES_ZONES, { exts: ['.ts', '.tsx', '.json'], tests: true })) {
       if (EXCLUDED(rel)) continue;
       const hits = emojisIn(text);
       if (hits.length) offenders.push(`${rel} → ${hits.join(' ')}`);

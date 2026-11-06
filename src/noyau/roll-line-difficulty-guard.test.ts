@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 
 /**
  * GARDE — une LIGNE DE JET fabriquée à la main DIT sa Difficulté (#1112 G8b). Le contrat : une ligne
@@ -8,10 +9,10 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * (`{ label, base, modifier, target, roll, success, sl }`) court-circuite la fabrique : sans
  * `difficulty`, la cible affichée ne dit plus de quelle Difficulté elle est faite.
  *
- * ABSOLUE : aucun site.
+ * ABSOLUE : aucun site. Portée : le noyau, et les zones `ui` et `state` de l'hôte web qui l'appellent (#3556).
  */
 
-const SCAN_DIRS = ['src/ui', 'src/state', 'src/noyau'];
+const SCAN_DIRS = porteeDeGarde(['noyau'], ['ui', 'state']);
 
 /** Littéraux de LIGNE DE JET sans `difficulty` — exporté pour la preuve fail-closed. */
 export function scanHandmadeRollLines(src: string): number[] {

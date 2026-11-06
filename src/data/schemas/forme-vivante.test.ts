@@ -1,11 +1,11 @@
 /**
- * `validerFormeVivante` (#2001, `data/schemas/validate.ts`), côté web : la modale « Avancé » de l'éditeur
+ * `validerFormeVivante` (#2001, `data/schemas/validate.ts`) : la lecture des blocs avancés de l'éditeur
  * (`lireBlocsAvances`) passe la même porte. Ses trois sites du noyau se jouent en
  * `src/noyau/forme-vivante.hors-store.test.ts`.
  */
 import { describe, it, expect } from 'vitest';
-import { lireBlocsAvances } from '../data/schemas/blocsAvances';
-import type { DescRef } from '../data/schemas/grammaire/valeurs';
+import { lireBlocsAvances } from './blocsAvances';
+import type { DescRef } from './grammaire/valeurs';
 
 const DESC_REF = {
   book: 'ennemi-dans-l-ombre',

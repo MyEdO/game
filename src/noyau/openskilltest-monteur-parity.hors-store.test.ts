@@ -27,7 +27,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * (`valeur` fondue + `soutien` + `dansLaValeur` + `surLaCible`) — sa garde d'exactitude (`exact`,
  * THROW en DEV) juge au passage que la valeur d'`openSkillTest` se RECONSTRUIT depuis le Niveau de
  * Compétence nu, ce qu'aucune mesure n'avait établi. Les fiches du Codex que citent les lignes sociales se jouent en
- * `src/state/openskilltest-monteur-parity.test.ts`.
+ * `src/noyau/codex/lignes-sociales-fiches.hors-store.test.ts`.
  */
 
 let banc: Banc;

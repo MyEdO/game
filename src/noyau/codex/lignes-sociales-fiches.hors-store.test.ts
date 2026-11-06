@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { RULE_REF } from '../engine/ruleRefs';
-import { psychologies } from '../data';
-import { codexLookupById } from '../noyau/codex/registry';
+import { RULE_REF } from '../../engine/ruleRefs';
+import { psychologies } from '../../data';
+import { codexLookupById } from './registry';
 
 /**
  * La fiche que NOMME une ligne sociale doit S'OUVRIR. Un `{category, id}` qui ne résout pas rend une
