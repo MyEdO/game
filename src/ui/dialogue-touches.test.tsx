@@ -68,7 +68,6 @@ function monter(over: Partial<GameState> = {}) {
 }
 
 describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => {
-  const vrai = useGame.getState();
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   });
@@ -76,7 +75,7 @@ describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => 
   afterEach(() => {
     act(() => { root.unmount(); });
     host.remove();
-    useGame.setState({ dialogue: null, battle: null, fenetreChoisir: vrai.fenetreChoisir });
+    useGame.setState({ dialogue: null, battle: null });
   });
 
   it('la touche 2 choisit la 2ᵉ réponse VISIBLE, par son id de donnée', () => {
