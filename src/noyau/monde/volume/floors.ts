@@ -5,11 +5,11 @@
  * de terrain, et les VÉRITÉS DE SCÈNE (visible/surplomb/fantôme/surplomb plein). PUR et
  * projection-agnostique : géométrie en unités de GRILLE + MÈTRES (`GP`), aucune notion de caméra.
  */
-import { Scene, tileAt, heightAt, isWalkable } from '../../noyau/monde/scene';
-import { gradeBetween } from '../../noyau/monde/relief';
-import { estAbsent, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../../noyau/monde/terrain';
-import type { PartRelief } from '../../data/materials.types';
-import type { CellSide, Face, FloorEl } from './types';
+import { Scene, tileAt, heightAt, isWalkable, type CellSide } from '../scene';
+import { gradeBetween } from '../relief';
+import { estAbsent, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../terrain';
+import type { PartRelief } from '../../../data/materials.types';
+import type { Face, FloorEl } from './types';
 import { viewedBuilder, type Viewed } from './viewTruth';
 
 /** Épaisseur (mètres) de la DALLE ajourée d'un tablier de surplomb : la face de bord donnant sur le

@@ -1,10 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { terrainDef, terrainGradient, terrainGradientId, MISSING_GRADIENT } from './terrain';
+import { terrainGradient, terrainGradientId, MISSING_GRADIENT } from './terrain';
+import { terrainDef } from '../../noyau/monde/volume/matieres';
 import { tousLesTerrains, terrainEntree, terrainWalkable, terrainStopsOrdonnes } from '../../noyau/monde/terrain';
 import { setDataset } from '../../data/overrides';
 import { type TerrainDef } from '../../data/terrains.types';
 import { defsGlobaux, degradesDeTerrains } from '../sprites';
-import { MISSING_ID, MISSING_TONE } from './missing';
+import { MISSING_ID, MISSING_TONE } from '../../noyau/monde/volume/missing';
 
 const AVANT = tousLesTerrains().map((t) => ({ ...t }));
 afterEach(() => setDataset('terrains', AVANT as never));

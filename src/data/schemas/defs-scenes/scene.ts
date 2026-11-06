@@ -308,7 +308,7 @@ const matiereReliefSchema: z.ZodType<string, string> = idDe('material', 'relief'
 /**
  * MATIÈRES DE RELIEF de la scène, UNE par PARTIE émise (#1691) : falaise, rampe, dalle de tablier,
  * pilier. Les clés sont EXACTEMENT le vocabulaire `PARTS_RELIEF` de la couche donnée — celui que
- * `gameIso/builders/floors.ts` pose en `MaterialRef.part`, jamais une traduction.
+ * `noyau/monde/volume/floors.ts` pose en `MaterialRef.part`, jamais une traduction.
  *
  * Le champ est EXIGÉ sur la scène : le builder n'a plus AUCUN choix de matière à faire, donc aucun
  * repli à offrir — une scène qui n'en porte pas est refusée AU PARSE, nommément, plutôt que rendue

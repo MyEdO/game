@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { useGame } from '../../state/store';
 import { scenario } from '../../scenes/test-scenarios/siege-enceinte';
 import { buildTokens } from './tokens';
-import { isOverhang, capsSolid } from './floors';
+import { isOverhang, capsSolid } from '../../noyau/monde/volume/floors';
 import { computeStateVisibleAndLight } from '../../noyau/visionState';
 
 const scenarioConstruit = scenario.construire();

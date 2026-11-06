@@ -68,7 +68,7 @@ import { hauteurDe, type LectureDArete, type Scene } from '../../noyau/monde/sce
 import type { Dir8 } from '../../geometry/dir8';
 import { reposerAffineCamera, reposerPovCamera, StretchedOrthographicCamera } from '../backends/webgl/cameras';
 import { fogCurveOf, povDepth } from '../pov/camera';
-import { pxPerM } from '../backends/webgl/worldTris';
+import { pxPerM } from '../../noyau/monde/volume/worldTris';
 import {
   billboardView,
   subjectQuad,
@@ -697,7 +697,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   // matériaux est une fonction de la frame, écrite par la passe de pose).
   const poolsHalos = useRef<HaloPools>({});
   // Le SOL d'une case : la hauteur MÉTRIQUE de sa surface, celle où le monde volumique bâtit sa dalle
-  // (`builders/floors.ts`) — la couche 0 porte du relief comme les autres, et c'est de là que le
+  // (`noyau/monde/volume/floors.ts`) — la couche 0 porte du relief comme les autres, et c'est de là que le
   // glissement vertical de la marche se compte. RETENU sur la scène : c'est une DÉPENDANCE du redessin
   // (la passe de frame le lit), et une fonction neuve par rendu y ferait peindre une image à chaque
   // commit de l'hôte.

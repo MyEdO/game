@@ -37,7 +37,7 @@ import {
 } from '../builders/interactHalos';
 import { HALO_SLOT_OPACITY, haloSlotLiftM, type HaloSlot } from '../backends/webgl/interactHaloMeshes';
 import { billboardPose } from '../backends/webgl/sceneMeshes';
-import { pxPerM } from '../backends/webgl/worldTris';
+import { pxPerM } from '../../noyau/monde/volume/worldTris';
 import { poserCompteInstances } from '../backends/webgl/instancePools';
 import { ringDashes, writeRingChords } from './dynamicMarkPose';
 

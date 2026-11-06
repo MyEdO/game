@@ -36,11 +36,12 @@ import {
   SUN_ELEVATION_DEG,
   SUN_INTENSITY,
 } from './sceneMeshes';
-import { facesGeometry, polyBounds, type Vec3 } from './worldTris';
+import { facesGeometry, polyBounds, type Vec3 } from '../../../noyau/monde/volume/worldTris';
 import { faceDepthOf } from './faceRelief';
 import { anchorAndSize, BILLBOARD_H_M, BILLBOARD_BOX_ASPECT } from './billboardMath';
 import { tintOf } from './visibilityTint';
-import { faceSurface, tintVarFactor } from './faceColors';
+import { faceSurface } from './faceColors';
+import { tintVarFactor } from '../../../noyau/monde/volume/matieres';
 import { faceBakeData, FACE_PX_PER_M } from './faceBake';
 import { coursesPeriodM, groundPeriodM, roofCourseStepM, variantOf, N_VARIANTS } from '../../detail/courses';
 import { facadeStructureAppearance } from '../../catalog/facades';
@@ -50,7 +51,8 @@ import { WALL_PARTS } from '../../../data/structureAppearance.types';
 import { ROOF_SLOPE_M } from '../../builders/roofs';
 import { buildWalls } from '../../builders/walls';
 import { tousLesTerrains } from '../../../noyau/monde/terrain';
-import { estPropVolumique, type Face, type SceneEl } from '../../builders/types';
+import { estPropVolumique, type SceneEl } from '../../builders/types';
+import { type Face } from '../../../noyau/monde/volume/types';
 import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';

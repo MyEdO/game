@@ -44,7 +44,7 @@ test('ordre : l’appartenance à une liste littérale de nombres ou à un `rang
 
 test('la mise en scène sans calcul passe : moins unaire, chaîne mise en forme ou concaténée, égalité, chemin de nœud', () => {
   const src = [
-    'var p := MiseEnPage.centre_de_case(case)',
+    'var p := MiseEnPage.centre_de_case(case, 0.0)',
     'cadre.offset_right = -LARGEUR',
     'var t := "%s : %d" % [nom, int(pb[0])]',
     'var u := "Round " + str(n)',
