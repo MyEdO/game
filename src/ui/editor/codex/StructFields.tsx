@@ -11,7 +11,7 @@ import { ChoixDeSpec, ChoixDeSpecs, RefField, reposerLId, typeDuDataset, useSugg
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { datasetArray } from '../../../data/overrides';
 import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, type Difficulty, type CharKey } from '../../../engine/types';
-import type { DiseaseSymptom } from '../../../engine/disease';
+import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, DotationDePossession, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';

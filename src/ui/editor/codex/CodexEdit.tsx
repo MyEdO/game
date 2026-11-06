@@ -63,7 +63,7 @@ import type { TraitPose } from '../../../data/schemas/grammaire/reference';
 import type { DomainData } from '../../../data';
 import type { CharKey, Difficulty, Trauma } from '../../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP } from '../../../engine/types';
-import type { DiseaseSymptom } from '../../../engine/disease';
+import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import type { CombatFeature } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../../data';
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../../data';
