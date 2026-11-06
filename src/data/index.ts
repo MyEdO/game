@@ -1602,6 +1602,10 @@ export interface SemencesDeSceneData {
   facade: string;
   /** Libellé d'un lieu posé sur la carte du monde (`ajouterLieu`). */
   lieu: string;
+  /** Libellé d'une carte du monde neuve (`emptyWorldMap`). */
+  carte: string;
+  /** Libellé d'un statbloc personnalisé neuf d'une fiche sans nom (`emptyStatblock`). */
+  profil: string;
 }
 /**
  * DÉFAUTS DE COMPILATION (#1716/#1789) — ce que le compilateur de scène (`noyau/mapSpec.ts`) pose
