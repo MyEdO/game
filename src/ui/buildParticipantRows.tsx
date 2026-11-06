@@ -6,6 +6,7 @@ import type { PanelRowData } from './RollPanel';
 import { participantRow, type BuiltRollRow } from './rollRowBuild';
 import { refusSansJet, cibleMesuree, type EchecSansJet } from '../engine/tests';
 import type { PlayerText } from '../i18n/playerText';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ShipManeuverParticipant } from '../noyau/pendings';
 import { ligneDuRole } from '../noyau/shipManeuver';
 import { testBreakdown, testPending } from './breakdown';
@@ -23,9 +24,8 @@ import { libelleDeRangee, libelleDeRole } from '../noyau/jetsEnVue';
  */
 export interface ParticipantRow {
   id: string;
-  /** Compétence RÉELLEMENT lancée (paire id + spécialisation) — le libellé de ligne s'en DÉRIVE. */
-  skillId?: string;
-  spec?: string;
+  /** Compétence RÉELLEMENT lancée — le libellé de ligne s'en DÉRIVE. */
+  skill?: RefDesignee;
   interactive?: boolean;
   rerolled?: boolean;
   /** `EchecSansJet` : ligne non tentable, résolue sans dé (LDB 09 l.30) — la rangée rend son `refus`. */
@@ -93,7 +93,7 @@ export function buildParticipantRows<P extends ParticipantRow>(
     const res = part.result as ResultatJete<P>;
     const extendedDr = bundle.extendedDrOf?.(part, actor);
     // Z5 (docs/charte-ui.md) — SOURCE UNIQUE du libellé de LIGNE d'une rangée-participant : la
-    // Compétence lancée, DÉRIVÉE de la paire `{skillId, spec}` par le résolveur canonique (« Voile
+    // Compétence lancée, DÉRIVÉE de sa référence par le résolveur canonique (« Voile
     // (Chaland) »). Le producteur ne fournit plus de libellé libre : un `part.label` ne peut plus
     // faire passer un RÔLE (« Timonier ») pour la Compétence (#1117).
     const skillLabel = libelleDeRangee(part);

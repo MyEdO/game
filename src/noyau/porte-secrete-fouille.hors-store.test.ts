@@ -68,7 +68,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     explorer(plan([A]), { x: 1, y: 2 });
     fouiller();
     const pt = banc.getState().pendingTest!;
-    expect(pt.skillId).toBe('perception');
+    expect(pt.sujet?.skill?.id).toBe('perception');
     expect(pt.difficulty).toBe('complexe');
     expect(pt.label).toBe(t('eff.porteSecreteTest'));
     expect(pt.support?.bonus).toBeGreaterThan(0); // LDB 12 l.189

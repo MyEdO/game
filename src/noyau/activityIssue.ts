@@ -34,7 +34,7 @@ export function appliquerIssueActivite(
   const cons: Consequence[] = [];
   if (roll == null && spec.refus != null) cons.push(...freeCons([spec.refus]));
   else if (roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });
-  const jetonDePratique: GameOp[] = r.success && r.stageOutcome === 'reverseToken' && spec.target != null && 'skill' in spec.test
+  const jetonDePratique: GameOp[] = r.success && r.stageOutcome === 'reverseToken' && spec.target != null && spec.test.skill
     ? [{ op: 'grantReverseToken', skill: spec.test.skill }]
     : [];
   const ops = [...r.ops, ...jetonDePratique];

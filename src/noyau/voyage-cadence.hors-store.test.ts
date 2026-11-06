@@ -295,10 +295,10 @@ describe('DEFAULT_VOYAGE_ORDERS — source unique du défaut de cadence (mer ⇄
 
 /**
  * #1117 G1 — DURCISSEMENT Z5 des rangées d'équipage : le producteur ne fournit plus de libellé de
- * ligne, il fournit la PAIRE `{skillId, spec}` (+ le rôle en id, provenance). Le libellé se DÉRIVE au
+ * ligne, il fournit la Compétence lancée en référence (+ le rôle en id, provenance). Le libellé se DÉRIVE au
  * fabricant par le résolveur canonique — « Voile (Chaland) », jamais « Timonier ».
  */
-describe('rangées d’équipage — le libellé de ligne est DÉRIVÉ de {skillId, spec} (#1117 G1)', () => {
+describe('rangées d’équipage — le libellé de ligne est DÉRIVÉ de la Compétence lancée (#1117 G1)', () => {
   beforeEach(freshSea);
 
   it('chaque contributeur porte sa paire Compétence + son rôle en ID (provenance)', () => {
@@ -309,10 +309,10 @@ describe('rangées d’équipage — le libellé de ligne est DÉRIVÉ de {skill
       const cur = p.participants[p.cursor];
       if (cur?.participants?.length) {
         for (const part of cur.participants) {
-          expect(part.skillId, 'la Compétence lancée est une DONNÉE (id), pas un texte').toBeTruthy();
+          expect(part.skill, 'la Compétence lancée est une DONNÉE (id), pas un texte').toBeTruthy();
           expect(part.roleId, 'le rôle tenu voyage en id — provenance').toBeTruthy();
           // Le libellé RENDU vient du catalogue, spécialisation comprise.
-          const attendu = refLabel('skills', { id: part.skillId!, spec: part.spec });
+          const attendu = refLabel('skills', part.skill!);
           expect(attendu.length).toBeGreaterThan(0);
           expect(CREW_ROLES.some((r) => r.label === attendu), 'jamais un libellé de RÔLE').toBe(false);
         }

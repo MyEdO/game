@@ -287,7 +287,7 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
   it('barre non tentable : le refus NOMMÉ du barreur imposé, ou de personne sans barreur, et le journal le porte (LDB 09 l.30 ; #2588 Q1)', () => {
     const sansVoile = { ...helm2(), skills: [] } as unknown as Combatant;
     const { id: skill, spec } = shipManeuverParams(ship2(), 'maritime').competence;
-    for (const [imposee, attendu] of [['helm', refusNePeutTenter(sansVoile, { skill, spec })], [undefined, refusPersonneNePeutTenter({ skill, spec })]] as const) {
+    for (const [imposee, attendu] of [['helm', refusNePeutTenter(sansVoile, { skill: { id: skill, spec } })], [undefined, refusPersonneNePeutTenter({ skill: { id: skill, spec } })]] as const) {
       banc.setState({ battle: { combatants: [ship2(), sansVoile], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never, journal: [] });
       const res = rollShipManeuver(() => banc.getState(), 'ship', imposee)!;
       expect(res.refus).toBe(attendu);

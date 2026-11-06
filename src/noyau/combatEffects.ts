@@ -805,7 +805,7 @@ export function openSkillTest(
 ): boolean {
   // Modulateurs sociaux PAR ACTEUR (un Test social vs un interlocuteur) : malus psy Animosité/Préjugé
   // (LDB 21) + mod de Statut Échelon/Standing (LDB 08). Le Statut compare l'acteur à la cible `vsStatus`.
-  const isSocial = isSocialTest(spec.skill?.id, spec.characteristic);
+  const isSocial = isSocialTest(spec);
   const tgtStatus = isSocial && spec.vsStatus ? statutDeDonnee(spec.vsStatus) : undefined;
   const psychMod = spec.vsGroups?.length && isSocial ? (c: Combatant) => socialPsychMod(c, spec.vsGroups!) : undefined;
   // 1d10 « réaction au Statut » (option, LDB 08 l.40/59) tiré UNE fois par Test (RNG seedé) — appliqué à
@@ -855,11 +855,11 @@ export function openSkillTest(
   const imposed = restrictId ? actorIn(get(), restrictId) : undefined;
   const best = restrictId
     ? (imposed && !imposed.dead ? { actor: imposed } : null)
-    : partyBest(get().party, spec.skill?.id, spec.characteristic, socialMod, spec.skill?.spec);
+    : partyBest(get().party, spec, socialMod);
   if (!best) return false;
   const baseDifficulty = spec.difficulty ?? 'intermediaire';
   const eased = !!spec.easierIf && get().party.some((c) => !c.dead && (
-    (!!spec.easierIf!.hasSkill && actorHasSkill(c, spec.easierIf!.hasSkill.id, spec.easierIf!.hasSkill.spec)) ||
+    (!!spec.easierIf!.hasSkill && actorHasSkill(c, spec.easierIf!.hasSkill)) ||
     (!!spec.easierIf!.hasTalent && hasTalent(c, spec.easierIf!.hasTalent))
   ));
   const difficulty = eased ? easeDifficulty(baseDifficulty, spec.easierIf!.steps ?? 1) : baseDifficulty;
@@ -881,15 +881,14 @@ export function openSkillTest(
   // `opts.actorId`). Un Test qu'on ne peut pas soutenir se déclare `noSupport` (l.197), il ne se
   // dérive pas de la restriction du lanceur.
   const allies = (a: Combatant): Combatant[] => pool.filter((c) => c.kind === a.kind && !c.dead);
-  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && peutTenter(c, spec.skill?.id, spec.skill?.spec));
+  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && peutTenter(c, { skill: spec.skill }));
   const candidates = runners.map((actor) => {
     const living = allies(actor);
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
     // Bonus de Carac). Calculé par candidat car le sélecteur laisse le joueur choisir qui lance. `noSupport`
     // (l.197 : maladie/poison/peur/danger) coupe le Soutien à la source ; adjacence (l.196), gate GÉOMÉTRIQUE
     // via `combatDistance`, active quand `actor.pos` est posé (combat en cours).
-    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec.skill?.id, spec.characteristic, spec.skill?.spec,
-      battle && actor.pos ? (c) => !!c.pos && combatDistance(actor, c) <= 1 : undefined);
+    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec, battle && actor.pos ? (c) => !!c.pos && combatDistance(actor, c) <= 1 : undefined);
     const sout = soutD?.bonus ?? 0;
     // `spec.sense` (vue/ouïe, LDB 18) restreint le malus de Surdité au seul Test de Perception auditif — le
     // Soutien (`sout`, plafonné au Bonus de Carac du meneur) et le mod social ne dépendent pas du sens.
@@ -903,7 +902,7 @@ export function openSkillTest(
     // Compétence nu ; la cible et l'écrêtage en dérivent par la MÊME primitive que `rollTest`.
     const line = rollStep({
       actor,
-      test: { skill: spec.skill?.id, characteristic: spec.characteristic, spec: spec.skill?.spec, sense: spec.sense },
+      test: { skill: spec.skill, characteristic: spec.characteristic, sense: spec.sense },
       difficulty,
       valeur: value,
       ...(soutD ? { soutien: soutD } : {}),
@@ -935,7 +934,7 @@ export function openSkillTest(
   set({
     pendingTest: {
       actorId: def.id, actorName: def.label, label, skill, skillValue: def.value, difficulty,
-      skillId: spec.skill?.id, spec: spec.skill?.spec, characteristic: spec.characteristic, // réf structurée pour talentTestSLBonus (LDB 10)
+      sujet: { skill: spec.skill && structuredClone(spec.skill), characteristic: spec.characteristic }, // #2097 ; réf structurée pour talentTestSLBonus (LDB 10)
       requireSL: spec.requireSL ?? 0, target: def.target, clamped: def.clamped, base: def.base, mods: def.mods, psychMod: def.psychMod, psychDetail: def.psychDetail,
       itemUid: def.itemUid, isDouble: false, roll: null, success: false, sl: 0,
       support: def.support, easedBy,
@@ -2039,7 +2038,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!ctx.entityIds.has(e.entityId)) return [{ level: 'error', message: `Soins payants → PNJ soigneur inexistant « ${e.entityId || '(aucun)'} »` }];
       const npc = ctx.npcSheet(e.entityId);
       if (!npc) return [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » n'a aucune fiche (ni réf de bestiaire, ni profil, ni preset)` }];
-      return possesses(npc, HEAL_SKILL) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
+      return possesses(npc, { id: HEAL_SKILL }) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
     },
   },
   castSpell: {
@@ -2084,15 +2083,15 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // pool `battle.combatants` (héros positionnés) que `openSkillTest` quand un combat est en cours.
       const battle = env.get().battle;
       const pool = battle?.combatants.filter((c) => c.kind === 'hero') ?? env.get().party;
-      const leader = partyBest(pool, e.skill?.id, e.characteristic, undefined, e.skill?.spec)?.actor;
+      const leader = partyBest(pool, e)?.actor;
       const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && combatDistance(leader, c) <= 1 : undefined;
-      const best = leader ? partyAssisted(pool, e.skill?.id, e.characteristic, undefined, e.skill?.spec, eligible) : null;
+      const best = leader ? partyAssisted(pool, e, undefined, eligible) : null;
       if (!best) return;
       const difficulty = e.difficulty ?? 'intermediaire';
       // Cible montée par le MONTEUR CANONIQUE : la valeur SOUTENUE de `partyAssisted` se déclare avec
       // son Soutien, l'écrêtage est celui de `rollTest` (`clampTarget`), plus une borne recopiée ici.
       const { target } = rollStep({
-        actor: best.actor, test: { skill: e.skill?.id, characteristic: e.characteristic, spec: e.skill?.spec },
+        actor: best.actor, test: { skill: e.skill, characteristic: e.characteristic },
         difficulty, valeur: best.value, soutien: best.support,
       });
       env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
@@ -2138,7 +2137,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
       label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
       difficulty: WATER_EXPOSURE.test.difficulty,
       ligne: {
-        test: { skill: WATER_EXPOSURE.test.skill.id, spec: WATER_EXPOSURE.test.skill.spec },
+        test: { skill: WATER_EXPOSURE.test.skill },
         surLaCible: parts.map((m): ModLine => ({
           label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
         })),
@@ -2214,7 +2213,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
   const npc = sceneNpc(get().scene, e.entityId, presetDuNarratif(get().campaignNarratif));
   if (!npc) { get().log(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
-  if (!possesses(npc, HEAL_SKILL)) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
+  if (!possesses(npc, { id: HEAL_SKILL })) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
   openMedic(get, set, {
     npc: {
       id: e.entityId,

@@ -118,7 +118,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant, _sink: (line: 
   if (rule('combat-aa-blessures') === 'aa' && aaBleedUnconsciousDue(c)) {
     const step = monoStep({
       id: `aaBleed-${c.id}`, kind: 'aaBleedUnconscious', icon: 'condition/bleeding', label: t('step.perteDeSang'),
-      actor: c, ligne: { test: { skill: 'resistance' } }, difficulty: 'intermediaire',
+      actor: c, ligne: { test: { skill: { id: 'resistance' } } }, difficulty: 'intermediaire',
       stake: combatStakeRef('aaBleedUnconscious'),
     });
     pousseSi(steps, step);
@@ -132,7 +132,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant, _sink: (line: 
   if (rule('combat-se-fatiguer') && (c.effortRounds ?? 0) >= fatigueThreshold(c)) {
     const step = monoStep({
       id: `fatigue-${c.id}`, kind: 'fatigue', icon: 'condition/fatigued', label: t('step.effortSoutenu'),
-      actor: c, ligne: { test: { skill: 'resistance' } }, difficulty: 'intermediaire',
+      actor: c, ligne: { test: { skill: { id: 'resistance' } } }, difficulty: 'intermediaire',
       stake: combatStakeRef('fatigue'),
     });
     pousseSi(steps, step);

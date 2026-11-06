@@ -168,9 +168,9 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     const { H, A } = setup();
     // Mêmes valeurs NUES des deux camps → le départage à DR égal (LDB 12 l.160) ne tranche pas non plus.
     A.characteristics.force = 50;
-    const fNue = skillBaseValue(A, undefined, undefined, 'force');
-    H.characteristics.force += fNue - skillBaseValue(H, undefined, undefined, 'force');
-    expect(skillBaseValue(H, undefined, undefined, 'force')).toBe(fNue);
+    const fNue = skillBaseValue(A, { characteristic: 'force' });
+    H.characteristics.force += fNue - skillBaseValue(H, { characteristic: 'force' });
+    expect(skillBaseValue(H, { characteristic: 'force' })).toBe(fNue);
     const weapon = bladedWeapon('atk-blade');
     A.weapons = [weapon];
 

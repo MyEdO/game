@@ -124,7 +124,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
     expect(surfaceHerosDe(h, cleDeFixture('x'), 'Résistance'), 'possédé par le siège MJ n’est pas CONDUIT par lui — le joueur roule son héros').toBe('M');
     const bande = buildBand(get, {
       id: 'b', kind: cleDeFixture('x'), label: fixtureText('Bande'), difficulty: 'intermediaire',
-      porteurs: [{ actor: h, ligne: { test: { skill: 'resistance', characteristic: 'endurance' } } }],
+      porteurs: [{ actor: h, ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } }],
     })!;
     expect(surfaceDesEtapes(get, [bande]), 'la SÉQUENCE répond comme la requête — même calcul').toBe('M');
     expect(surfaceMonde(), 'CONTRÔLE : le dé de MONDE, même montage, revient au MJ').toBe('V');

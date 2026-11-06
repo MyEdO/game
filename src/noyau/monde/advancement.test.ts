@@ -60,8 +60,8 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
 
   it('Compétences connues : Charme in-carrière (10), Esquive hors-carrière (×2 = 20)', () => {
     const v = buildAdvancementView({ battle: null, flags: {} }, hero());
-    const charme = v.skills.find((s) => s.skillId === 'charme')!;
-    const esquive = v.skills.find((s) => s.skillId === 'esquive')!;
+    const charme = v.skills.find((s) => s.skill.id === 'charme')!;
+    const esquive = v.skills.find((s) => s.skill.id === 'esquive')!;
     expect(charme.known).toBe(true);
     expect(charme.inCareer).toBe(true);
     expect(charme.nextCost).toBe(10);
@@ -71,7 +71,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
 
   it('Compétences in-carrière non connues : acquérables à advances 0 (coût 10)', () => {
     const v = buildAdvancementView({ battle: null, flags: {} }, hero());
-    const ragot = v.skills.find((s) => s.skillId === 'ragot')!;
+    const ragot = v.skills.find((s) => s.skill.id === 'ragot')!;
     expect(ragot).toBeTruthy();
     expect(ragot.known).toBe(false);
     expect(ragot.inCareer).toBe(true);
@@ -113,7 +113,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
   it('niveau 2 : Compétences cumulatives (l.78), Talents du niveau courant seul (l.100)', () => {
     const v = buildAdvancementView({ battle: null, flags: {} }, hero({ careerLevel: 2 }));
     // « Charme » (Niveau 1) reste in-carrière au Niveau 2.
-    expect(v.skills.find((s) => s.skillId === 'charme')!.inCareer).toBe(true);
+    expect(v.skills.find((s) => s.skill.id === 'charme')!.inCareer).toBe(true);
     // « Sociable » (talent du Niveau 1) n'est PLUS proposé au Niveau 2.
     expect(v.talents.some((t) => t.talentId === 'sociable')).toBe(false);
     expect(v.talents.length).toBeGreaterThan(0);
@@ -190,7 +190,7 @@ describe('remise « 5 PX de moins par Augmentation » sur une Compétence ajout�
       skills: [{ id: 'metier', spec: 'imprimerie', characteristic: 'dexterite', advances: 0 }],
       talents: [{ talentId: 'maitre-artisan', times: 1 }],
     }));
-    const metier = v.skills.find((s) => s.skillId === 'metier' && s.spec === 'imprimerie')!;
+    const metier = v.skills.find((s) => s.skill.id === 'metier' && s.skill.spec === 'imprimerie')!;
     expect(metier.inCareer).toBe(true);
     expect(metier.nextCost).toBe(5);
   });
@@ -200,7 +200,7 @@ describe('remise « 5 PX de moins par Augmentation » sur une Compétence ajout�
       skills: [{ id: 'savoir', spec: 'politique', characteristic: 'intelligence', advances: 0 }],
       talents: [{ talentId: 'voyageur-aguerri', times: 1 }],
     }));
-    const savoir = v.skills.find((s) => s.skillId === 'savoir' && s.spec === 'politique')!;
+    const savoir = v.skills.find((s) => s.skill.id === 'savoir' && s.skill.spec === 'politique')!;
     expect(savoir.inCareer).toBe(true);
     expect(savoir.nextCost).toBe(10);
   });

@@ -244,7 +244,7 @@ export function portBuyCargo(get: Get, set: Set, cargoId: string, enc: number): 
   if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return; }
   const { offre: offer, enc: want } = devis;
   const partial = want < offer.enc;
-  const best = partyAssisted(get().party, 'marchandage');
+  const best = partyAssisted(get().party, { skill: { id: 'marchandage' } });
   // Toujours tiré (même sans marchandeur) — parité RNG avec la vente (la porte du seam ne touche pas le rng).
   const merchant = rollMerchantSkill(!!st.port.cosmopolite, battleRng());
   if (!best) {
@@ -254,7 +254,7 @@ export function portBuyCargo(get: Get, set: Set, cargoId: string, enc: number): 
   // DR de camp du vendeur NPC (MDG 15 l.339-341 — écart de camp ouvert en #1140).
   const sellerDR = buySellerDR(partial, offer.surplus);
   openPartyTest(get, set, {
-    skill: 'marchandage',
+    skill: { id: 'marchandage' },
     actionLabel: t('port.actionBuy'),
     difficulty: 'intermediaire',
     stake: combatStakeRef(PORT_BUY_BARGAIN_KIND, { values: { sellerDR: signedDR(sellerDR) } }),
@@ -298,7 +298,7 @@ function openPortSellBargainStep(get: Get, set: Set, cargoIndex: number, sellEnc
   const lot = vessel?.cargo?.[cargoIndex];
   if (!st || !vessel || !lot) return;
   const offerPct = offerPricePct(st.port, lot.cargoId);
-  const best = partyAssisted(get().party, 'marchandage');
+  const best = partyAssisted(get().party, { skill: { id: 'marchandage' } });
   // Toujours tiré (même sans marchandeur) — préserve l'ordre des tirages RNG de l'ancienne résolution
   // synchrone (déterminisme seedé conservé, la porte du seam ne touche pas le rng).
   const merchant = rollMerchantSkill(!!st.port.cosmopolite, battleRng());
@@ -308,7 +308,7 @@ function openPortSellBargainStep(get: Get, set: Set, cargoIndex: number, sellEnc
   }
   const sellerDR = sellChance(st.port, lot.cargoId, vessel.lastVoyageMilles ?? 0).sellerDR;
   openPartyTest(get, set, {
-    skill: 'marchandage',
+    skill: { id: 'marchandage' },
     actionLabel: t('port.actionSell'),
     difficulty: 'intermediaire',
     stake: combatStakeRef(PORT_SELL_BARGAIN_KIND, { values: { sellerDR: signedDR(sellerDR) } }),
@@ -355,13 +355,13 @@ export function portSellCargo(get: Get, set: Set, cargoIndex: number): void {
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
 
   if (chance.gossip) {
-    const best = partyAssisted(get().party, 'ragot');
+    const best = partyAssisted(get().party, { skill: { id: 'ragot' } });
     if (!best) {
       log(get, set, [t('port.noCamelot', { label, relation: sellRelation(st.port, lot.cargoId) === 'surplus' ? t('port.hasSurplus') : t('port.produces') })]);
       return;
     }
     openPartyTest(get, set, {
-      skill: 'ragot',
+      skill: { id: 'ragot' },
       actionLabel: t('port.buyerSearch'),
       difficulty: chance.gossip.difficulty,
       stake: combatStakeRef(PORT_SELL_GOSSIP_KIND),
