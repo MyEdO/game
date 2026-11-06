@@ -57,7 +57,8 @@ describe('Palette — « Poser un personnage » choisit une FICHE du bestiaire',
 
   it('cliquer une fiche arme l’outil sur son id stable', () => {
     const h = palette({ mode: 'entity', kind: 'personnage', ref: 'humain' });
-    const fiche = fichesDePersonnage().at(-1)!;
+    const fiches = fichesDePersonnage();
+    const fiche = fiches[fiches.length - 1];
     act(() => h.items().find((b) => b.textContent === fiche.label)!.click());
     expect(h.outils[h.outils.length - 1]).toEqual({ mode: 'entity', kind: 'personnage', ref: fiche.id });
   });
