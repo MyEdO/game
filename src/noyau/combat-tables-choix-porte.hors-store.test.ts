@@ -333,7 +333,7 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     const b = banc.getState().battle!;
     banc.setState({ battle: { ...b, turn: b.order.indexOf(hero.id), action: null, movementUsed: 0, acted: false } } as never);
 
-    banc.getState().battleSelectAttack('pietinement');
+    banc.getState().armerLAttaque('pietinement');
     banc.getState().battleClickEntity(cible.id, { confirm: true });
 
     expect(banc.getState().pendingAttack?.freeKind, 'la donnée que la fenêtre rend').toBe('pietinement');

@@ -51,7 +51,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     engage(H, E); // Engagé (prérequis l.103)
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(3);
 
-    banc.getState().battleBattement(); // OUVRE la modale (défaut = 1er foe éligible), sans tirer
+    banc.getState().faireUnBattement(); // OUVRE la modale (défaut = 1er foe éligible), sans tirer
     const pb = banc.getState().pendingBattement;
     expect(pb).toBeTruthy();
     expect(pb!.foeId).toBe(E.id);
@@ -75,7 +75,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     E.characteristics['force-mentale'] = 5; // Calme (figé à l’ouverture) très bas → perd
     expect(E.distractedRounds ?? 0).toBe(0);
 
-    banc.getState().battleDistraire(); // OUVRE (fige le Calme du foe), sans tirer l’Athlétisme
+    banc.getState().tenterDeDistraire(); // OUVRE (fige le Calme du foe), sans tirer l’Athlétisme
     const pd = banc.getState().pendingDistraire;
     expect(pd).toBeTruthy();
     expect(pd!.foeId).toBe(E.id);
@@ -98,7 +98,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     const { H, E } = setup();
     H.characteristics['capacite-de-combat'] = 1; // échec quasi certain
     engage(H, E);
-    banc.getState().battleBattement();
+    banc.getState().faireUnBattement();
     banc.getState().jetRoll('battement');
     expect(banc.getState().pendingBattement!.result!.success).toBe(false);
     banc.getState().jetConfirm('battement');
@@ -156,7 +156,7 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
       battle: { ...b, zones: [{ id: 'fumee', label: 'Fumée', tiles: [{ x: 8, y: 10 }], rounds: 1, permanent: true, blocksLoS: true }] } as typeof b,
     });
     expect(actionGate('distraire', ctx(H)).ok, 'une fumée entre les deux ne ferme pas le geste').toBe(true);
-    banc.getState().battleDistraire();
+    banc.getState().tenterDeDistraire();
     expect(banc.getState().pendingDistraire?.foeId, 'le dispatcher ouvre bien sur cet adversaire').toBe(E.id);
     banc.getState().jetCancel('distraire');
     const b2 = banc.getState().battle!;

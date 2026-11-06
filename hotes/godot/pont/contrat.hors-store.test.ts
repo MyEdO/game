@@ -110,8 +110,8 @@ describe('le pont et sa partie', () => {
 
   it('chaque catégorie d’un geste refusé : `validation`, `permission`, `regle`', { timeout: 120_000 }, () => {
     drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['roundStart'] }));
-    expect(erreurDe(appel('jouer', { type: 'jouerLOffre', args: ['end-turn'], siege: 0 })).categorie).toBe('validation');
-    expect(erreurDe(appel('jouer', { type: 'battleEndTurn', args: [], siege: 1 })).categorie).toBe('permission');
+    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 0 })).categorie).toBe('validation');
+    expect(erreurDe(appel('jouer', { type: 'jouerLOffre', args: ['end-turn'], siege: 1 })).categorie).toBe('permission');
     expect(erreurDe(appel('jouer', { offre: 'disengage' })).categorie).toBe('regle');
   });
 

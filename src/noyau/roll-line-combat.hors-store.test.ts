@@ -98,7 +98,7 @@ describe('Rechargement (combatSlice) — canal COMBAT du monteur', () => {
     expect(jetee, 'la valeur de COMBAT n’est pas la valeur hors combat : le canal a un sens')
       .not.toBe(testValue(tireur, { skill: { id: 'projectiles' }, characteristic: 'capacite-de-tir' }));
 
-    get().battleReload();
+    get().rechargerLArme();
     const pr = get().pendingReload!;
     expect(pr.target).toBe(clampTarget(jetee + DIFFICULTY_MODIFIERS.intermediaire).target);
 

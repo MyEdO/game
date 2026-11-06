@@ -64,7 +64,7 @@ brancherArdoise();
 function monter(retouche: Record<string, unknown>): HTMLDivElement {
   useGame.setState({
     scene: emptyScene('scene-test', 12, 12),
-    mode: 'battle',
+    mode: 'battle', screen: 'campaign',
     viewMode: 'iso',
     partyPos: { x: 6, y: 6 },
     dialogue: null,

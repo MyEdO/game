@@ -195,7 +195,7 @@ describe('Balayage en combat (store)', () => {
     const turn = b.order.indexOf(H.id);
     banc.setState({ battle: { ...b, turn, action: null, movementUsed: 99, acted: false } });
 
-    banc.getState().battleSelectAttack('morsure');
+    banc.getState().armerLAttaque('morsure');
     banc.getState().battleClickEntity(E1.id, { confirm: true });
     expect(banc.getState().pendingAttack!.freeKind).toBe('morsure');
     banc.getState().jetRoll('attack');

@@ -30,7 +30,7 @@ describe('Désengagement après avoir attaqué (option A — LDB 15 l.47)', () =
     // L'Action est DÉJÀ dépensée (le héros vient d'attaquer) :
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, acted: true } });
 
-    banc.getState().battleDisengage(); // doit ouvrir le menu malgré l'Action dépensée
+    banc.getState().rompreLEngagement(); // doit ouvrir le menu malgré l'Action dépensée
     const pd = banc.getState().pendingDisengage;
     expect(pd).not.toBeNull();
     expect(pd!.canSacrifice).toBe(true);

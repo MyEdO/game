@@ -40,7 +40,7 @@ function engage(): { H: Combatant; E: Combatant } {
 
 /** Cible annoncée par le réticule de l'attaque armée, puis cible du jet que le clic ouvre. */
 function reticuleEtJet(attaque: string, H: Combatant, E: Combatant): { reticule: number; jet: number; avantage: number } {
-  g().battleSelectAttack(attaque);
+  g().armerLAttaque(attaque);
   const ht = hoverTargeting(g, H, E);
   if (ht.kind !== 'ok' || ht.base == null || ht.mod == null) throw new Error(`réticule ${ht.kind}`);
   g().battleClickEntity(E.id, { confirm: true });

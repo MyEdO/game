@@ -25,22 +25,22 @@ beforeEach(() => {
 });
 
 describe('gates d\'incantation', () => {
-  it('blocage de Prière actif → oocCastSpell refuse (pas de modale), journal explicite', () => {
+  it('blocage de Prière actif → incanterLeSort refuse (pas de modale), journal explicite', () => {
     const p = priest();
     p.castPenalties = [{ label: 'Vous abusez de ma patience', skill: 'priere', blocked: true, roundsLeft: 5 }];
     banc.setState({ party: [p] as Combatant[] });
-    banc.getState().oocCastSpell(p.id, 'benediction-de-guerison', p.id);
+    banc.getState().incanterLeSort(p.id, 'benediction-de-guerison', p.id);
     expect(banc.getState().pendingCast).toBeNull();
     expect(banc.getState().journal.join('\n')).toMatch(/ne peut pas prier/);
   });
 
-  it('blocage de Focalisation → oocFocusSpell refuse', () => {
+  it('blocage de Focalisation → focaliserLeSort refuse', () => {
     const wiz = pregen(PREGEN.sorcier);
     wiz.spells = ['arme-aethyrique'];
     wiz.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 5 } as never);
     wiz.castPenalties = [{ label: 'Vue assombrie', skill: 'focalisation', blocked: true, roundsLeft: 3 }];
     banc.setState({ party: [wiz] as Combatant[] });
-    banc.getState().oocFocusSpell(wiz.id, 'arme-aethyrique');
+    banc.getState().focaliserLeSort(wiz.id, 'arme-aethyrique');
     expect(banc.getState().pendingFocus).toBeNull();
   });
 });

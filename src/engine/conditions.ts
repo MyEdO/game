@@ -386,7 +386,7 @@ function opPorteuseDEtat(c: Combatant, conditionId: string): Extract<GameOp, { o
 
 /**
  * FENÊTRE ouverte par un Point de Détermination sur l'État `conditionId` — `undefined` = REFUS.
- * SOURCE UNIQUE, PURE (`now` injecté), lue par le store (`spendResolveCondition`) et par la raison
+ * SOURCE UNIQUE, PURE (`now` injecté), lue par le noyau (`depenserLaDetermination`) et par la raison
  * ci-dessous. La fenêtre est celle que l'op PORTEUSE déclare (`ResolveWindow`), quel que soit le type
  * de son porteur : rien ici ne nomme une famille d'entité.
  */
@@ -424,7 +424,7 @@ export function refusDeReserveDeDetermination(resolve: number): string | undefin
 
 /**
  * Verdict UNIQUE d'une dépense de Détermination (LDB 17 l.59-61) — `undefined` = ouverte. Lu par le gate
- * `determination-en-reserve`, par le geste `spendResolveCondition` et par `DeterminationButton`.
+ * `determination-en-reserve`, par le geste `depenserLaDetermination` et par `DeterminationButton`.
  * `conditionId` absent (LDB 17 l.59-60) : seule la réserve compte.
  */
 export function refusDeDetermination(c: Combatant, conditionId?: string): string | undefined {
@@ -842,7 +842,7 @@ export function refusVerrouDAction(c: Combatant): string | null {
 }
 
 /** Le combattant porte-t-il un État qui VERROUILLE son Action (`restrictsAction`) ? Une seule vérité de
- *  données partagée par le gate de hotbar (`battleSelectAction`) ET l'IA (`planProactiveSpend`). */
+ *  données partagée par le gate de hotbar (`armerLeMode`) ET l'IA (`planProactiveSpend`). */
 export function isActionLocked(c: Combatant): boolean {
   return restrictingConditions(c).length > 0;
 }

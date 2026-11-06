@@ -106,7 +106,7 @@ describe('Poste servi à effectif COMPLET — la cible appliquée est celle anno
     serveChef(servants[0], poste); // le chef sert la pièce : il en porte l'arme dérivée (`shipPostes.ts`)
     banc.setState({ battle: { combatants: [ship, ...servants], order: ['ship'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
       party: crew.map(servant), facing: { ship: 'N' }, pendingReload: null, scene: null as never });
-    banc.getState().battleShipReload('ship', 'canon');
+    banc.getState().rechargerLaPiece('ship', 'canon');
     const pr = banc.getState().pendingReload!;
     expect(pr.reload).toBe(6);
     banc.setState({ pendingReload: { ...pr, roll: 20, sl: 2, success: true } });

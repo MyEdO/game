@@ -41,7 +41,7 @@ describe('Incantation hors combat (couture D)', () => {
     ally.wounds.current = ally.wounds.max - 3;
     banc.setState({ party });
 
-    banc.getState().oocCastSpell(priest.id, 'benediction-de-guerison', ally.id);
+    banc.getState().incanterLeSort(priest.id, 'benediction-de-guerison', ally.id);
     const pc = banc.getState().pendingCast;
     expect(pc).toBeTruthy();
     expect(pc!.missile).toBe(false);
@@ -63,18 +63,18 @@ describe('Incantation hors combat (couture D)', () => {
   it('un Projectile magique (« Fléchette ») est refusé hors combat (offensif → combat-only)', () => {
     const wiz = pregen(PREGEN.sorcier);
     banc.setState({ party: [wiz] });
-    banc.getState().oocCastSpell(wiz.id, 'flechette', wiz.id);
+    banc.getState().incanterLeSort(wiz.id, 'flechette', wiz.id);
     expect(banc.getState().pendingCast).toBeNull(); // aucune modale ouverte
   });
 
-  it('oocCastSpell est un no-op EN combat (l\'incantation passe par l\'action de combat)', () => {
+  it('incanterLeSort est un no-op EN combat (l\'incantation passe par l\'action de combat)', () => {
     const { priest, party } = casterParty();
     banc.setState({ party, battle: { combatants: [], over: false, log: [], round: 1, turn: 0, order: [], acted: false } } as never);
-    banc.getState().oocCastSpell(priest.id, 'benediction-de-guerison', priest.id);
+    banc.getState().incanterLeSort(priest.id, 'benediction-de-guerison', priest.id);
     expect(banc.getState().pendingCast).toBeNull();
   });
 
-  it('Focalisation hors combat (sort d\'Arcane) : oocFocusSpell ouvre la modale ; jetConfirm@focus accumule caster.focus, journalisé, sans combat', () => {
+  it('Focalisation hors combat (sort d\'Arcane) : focaliserLeSort ouvre la modale ; jetConfirm@focus accumule caster.focus, journalisé, sans combat', () => {
     const wiz = pregen(PREGEN.sorcier);
     wiz.spells = ['arme-aethyrique', ...(wiz.spells ?? [])];
     const foc = wiz.skills.find((s) => s.id === 'focalisation');
@@ -83,7 +83,7 @@ describe('Incantation hors combat (couture D)', () => {
     banc.setState({ party: [wiz], battle: null, pendingFocus: null });
     banc.getState().seedRng(3);
 
-    banc.getState().oocFocusSpell(wiz.id, 'arme-aethyrique');
+    banc.getState().focaliserLeSort(wiz.id, 'arme-aethyrique');
     const pf = banc.getState().pendingFocus;
     expect(pf).toBeTruthy();
     expect(pf!.casterId).toBe(wiz.id);

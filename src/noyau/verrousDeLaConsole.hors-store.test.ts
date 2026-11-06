@@ -35,7 +35,7 @@ function jusquAuTour(partie: Partie, tenu: (c: Combatant) => boolean): Combatant
     const actif = activeCombatant(partie.etat().battle!);
     if (actif && tenu(actif)) return actif;
     const e = partie.etat();
-    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetRoll', args: ['defense'] }, { type: 'jetConfirm', args: ['defense'] }] : [actif ? { type: 'battleEndTurn', args: [] } : { type: 'fenetreValider', args: ['roundStart'] }];
+    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetRoll', args: ['defense'] }, { type: 'jetConfirm', args: ['defense'] }] : [actif ? { type: 'jouerLOffre', args: ['end-turn'] } : { type: 'fenetreValider', args: ['roundStart'] }];
     for (const i of intentions) jouer(partie, partie.envoyer(i));
   }
   throw new Error('témoin : le tour attendu n’est pas venu');
@@ -140,14 +140,14 @@ describe('Matrice des verrous d’État : le registre ferme ce que la console gr
 });
 
 describe('État qui verrouille l’Action (LDB 16 l.52) : la raison du verdict est celle du dispatcher', () => {
-  it('Brisé : le mode armé que refuse `battleSelectAction` porte la MÊME raison que le gate', () => {
+  it('Brisé : l’offre du Soin, refusée, porte la MÊME raison que le gate', () => {
     const partie = auTour('pastilles-entite', (c) => c.kind === 'hero');
     try {
       const ctx = contexte(partie);
       addCondition(ctx.active, 'brise');
-      const r = partie.envoyer({ type: 'battleSelectAction', args: ['heal'] });
+      partie.envoyer({ type: 'jouerLOffre', args: ['heal'] });
       expect(partie.etat().battle!.action, 'le Brisé a armé le Soin').toBeNull();
-      expect(r.journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []))).toContain(actionGate('defend', ctx).reason);
+      expect(partie.etat().refus?.texte).toBe(actionGate('heal', ctx).reason);
     } finally {
       partie.fermer();
     }
@@ -171,9 +171,9 @@ describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refu
     const partie = auTour('ecuries-clayonnage', tireur);
     try {
       const id = activeCombatant(partie.etat().battle!)!.id;
-      jouer(partie, partie.envoyer({ type: 'battleAim', args: [] }));
+      jouer(partie, partie.envoyer({ type: 'jouerLOffre', args: ['aim'] }));
       expect(activeCombatant(partie.etat().battle!)!.aiming, 'témoin : la visée n’a pas pris').toBe(true);
-      jouer(partie, partie.envoyer({ type: 'battleEndTurn', args: [] }));
+      jouer(partie, partie.envoyer({ type: 'jouerLOffre', args: ['end-turn'] }));
       jusquAuTour(partie, (c) => c.id === id && !partie.etat().battle!.acted);
       const ctx = contexte(partie);
       expect(actionGate('aim', ctx)).toEqual({ ok: false, reason: t('agate.alreadyAiming') });

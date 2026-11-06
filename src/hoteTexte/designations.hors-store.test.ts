@@ -94,7 +94,7 @@ describe('un champ du contexte d’une offre que rien ne lit se refuse en `valid
     const r = t.jouer({ offre: 'charge', ctx: { targetId: 'enemy-enc-dome-1' } });
     const texte = r.texte.split('\n  ').join(' ');
     expect(r.erreur, texte).toBe('validation');
-    expect(texte).toMatch(/charge ne lit pas targetId du contexte \(champs acceptés : toggleOff\) ; la cible de cette offre se choisit après elle, par le clic de son combattant/);
+    expect(texte).toMatch(/charge ne lit pas targetId du contexte \(champs acceptés : aucun\) ; la cible de cette offre se choisit après elle, par le clic de son combattant/);
     expect(t.fichier()).toBe(avant);
   });
   it('un champ que la porte de l’offre lit passe le contrôle', { timeout: 120_000 }, () => {

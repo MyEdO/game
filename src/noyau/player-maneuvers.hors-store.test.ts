@@ -130,8 +130,8 @@ describe('manœuvres en combat (store)', () => {
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90; // Test opposé CT/Esquive → touche déterministe
     H.advantage = 3;
-    // La hotbar arme l'attaque (`battleSelectAttack`) ; le clic-entité désigne le point d’impact (zone : 1er clic).
-    banc.getState().battleSelectAttack('souffle');
+    // La hotbar arme l'attaque (`armerLAttaque`) ; le clic-entité désigne le point d’impact (zone : 1er clic).
+    banc.getState().armerLAttaque('souffle');
     banc.getState().battleClickEntity(E.id);
     const pm = banc.getState().pendingManeuver;
     expect(pm).toBeTruthy(); // le Souffle ouvre la modale de jet d’attaquant
@@ -150,7 +150,7 @@ describe('manœuvres en combat (store)', () => {
     H.advantage = 3;
     const options = availableAttacks(H, banc.getState().battle!).filter((o) => o.kind === 'souffle');
     expect(options.map((o) => [o.id, o.label])).toEqual([['souffle', 'Souffle (Feu)'], ['souffle~2', 'Souffle (Froid)']]);
-    banc.getState().battleSelectAttack('souffle~2');
+    banc.getState().armerLAttaque('souffle~2');
     banc.getState().battleClickEntity(E.id);
     const pm = banc.getState().pendingManeuver!;
     expect(pm.attaque).toBe('souffle~2');
@@ -162,7 +162,7 @@ describe('manœuvres en combat (store)', () => {
     const { H, E } = setup();
     H.traits = [{ id: 'morsure', value: 10 }];
     H.advantage = 2;
-    banc.getState().battleSelectAttack('morsure');
+    banc.getState().armerLAttaque('morsure');
     banc.getState().battleClickEntity(E.id, { confirm: true }); // 2e tap (parité attaque de base : 1er = aperçu)
     const pa = banc.getState().pendingAttack;
     expect(pa).toBeTruthy();
@@ -179,7 +179,7 @@ describe('manœuvres en combat (store)', () => {
     H.advantage = 2;
     E.pos = { x: 14, y: 10 }; // hors d'Allonge
     banc.setState({ battle: { ...banc.getState().battle!, acted: true, movementUsed: 0 } }); // Action déjà dépensée
-    banc.getState().battleSelectAttack('morsure');
+    banc.getState().armerLAttaque('morsure');
     banc.getState().battleClickEntity(E.id, { confirm: true });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     const pa = banc.getState().pendingAttack;
@@ -194,7 +194,7 @@ describe('manœuvres en combat (store)', () => {
     H.advantage = 2;
     H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 0 }, range: 30, qualities: [], uid: 'bow' }] as Combatant['weapons']; // arme tenue = arc
     E.pos = { x: 14, y: 10 };
-    banc.getState().battleSelectAttack('morsure');
+    banc.getState().armerLAttaque('morsure');
     banc.getState().battleClickEntity(E.id, { confirm: true });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     const pa = banc.getState().pendingAttack;
@@ -208,7 +208,7 @@ describe('manœuvres en combat (store)', () => {
     H.traits = [{ id: 'morsure', value: 10 }];
     H.characteristics['capacite-de-combat'] = 90;
     H.advantage = 3; // assez pour 3 Morsures si elles n'étaient PAS plafonnées
-    banc.getState().battleSelectAttack('morsure');
+    banc.getState().armerLAttaque('morsure');
     banc.getState().battleClickEntity(E.id, { confirm: true }); // E adjacent → frappe directe
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');

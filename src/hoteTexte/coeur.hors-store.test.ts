@@ -43,8 +43,7 @@ function refuse(t: ReturnType<typeof table>, geste: GesteDeLAgent, categorie: st
 describe('les erreurs d’un geste : catégorie, drapeau d’erreur, fichier intact', () => {
   it.each([
     ['validation', verbe('nimporte')],
-    ['validation', { verbe: 'jouerLOffre', args: ['end-turn'], siege: 0 }],
-    ['permission', { verbe: 'battleEndTurn', args: [], siege: 1 }],
+    ['permission', { verbe: 'jouerLOffre', args: ['end-turn'], siege: 1 }],
     ['regle', { offre: 'disengage' }],
   ] satisfies [string, GesteDeLAgent][])('%s : %j', (categorie, geste) => {
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, categorie, /./);
@@ -76,7 +75,7 @@ describe('la partie et son fichier', () => {
   });
   it('une suite s’arrête au premier geste refusé : les précédents s’écrivent, lui non, la réponse dit combien sont passés', () => {
     const t = partie('dome');
-    const r = t.jouer(verbe('fenetreValider', 'roundStart'), { offre: 'charge' }, verbe('jetConfirm', 'cascade'), verbe('battleEndTurn'));
+    const r = t.jouer(verbe('fenetreValider', 'roundStart'), { offre: 'charge' }, verbe('jetConfirm', 'cascade'), verbe('terminerLeTour'));
     expect(r.erreur, r.texte).not.toBeNull();
     expect(r.lignes[0]).toMatch(/^2\/4 appliqués : fenetreValider · offre charge/);
     expect(r.texte).toMatch(/geste 3\/4 refusé, rien de lui ne s’écrit : erreur regle : jetConfirm sans effet/);
@@ -127,7 +126,7 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
     const vraie = r.partie;
     try {
       r.partie = { ...vraie, envoyer: () => { vraie.etat().battle!.combatants[0].advantage += 1; return { issue: 'appliquee', evenements: [], journal: [] }; } };
-      expect(() => jouerUnGeste(r, { type: 'battleEndTurn', args: [] })).not.toThrow();
+      expect(() => jouerUnGeste(r, { type: 'jouerLOffre', args: ['end-turn'] })).not.toThrow();
       expect(r.gestes, 'le geste à effet en place n’a pas été écrit').toHaveLength(2);
     } finally {
       vraie.fermer();
@@ -137,7 +136,7 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('jetConfirm', 'cascade'), 'regle', /jetConfirm sans effet/);
   });
   it('une Dissipation sans Langue (Magick) ne dit sa raison qu’au journal : sans effet, la ligne du journal est la raison', { timeout: 120_000 }, () => {
-    refuse(partie('revisit'), verbe('oocDispelSpell', 'pregen-101', 'nulle-part', 'pregen-101'), 'regle', /oocDispelSpell sans effet : Il faut la compétence Langue \(Magick\)/);
+    refuse(partie('revisit'), verbe('dissiperLeSort', 'pregen-101', 'nulle-part', 'pregen-101'), 'regle', /dissiperLeSort sans effet : Il faut la compétence Langue \(Magick\)/);
   });
   it('un pas bloqué n’émet qu’un événement informatif : sans effet, l’événement est la raison', { timeout: 120_000 }, () => {
     const t = partie('pont-vitrine', verbe('stepPartyRelative', 'back'));
@@ -183,7 +182,7 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
     ['un Pt écrit en tableau', verbe('battleClickTile', [3, 6]), /pt : un objet JSON \{"x": nombre, "y": nombre, "z"\?: nombre\} attendu/],
     ['un Pt sans y', verbe('battleClickTile', { x: 3 }), /pt\.y manque/],
     ['un pid nombre', verbe('jetRegler', 'cascade', 'choix', 'devier', 0), /pid : une chaîne attendue/],
-    ['un argument requis manquant', verbe('battlePickup', 'e'), /l’argument key manque/],
+    ['un argument requis manquant', verbe('dissiperLeSort', 'sorciere'), /l’argument spellId manque/],
     ['un argument en trop', verbe('jetConfirm', 'cascade', 1), /1 argument\(s\) au plus/],
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, 'validation', message);

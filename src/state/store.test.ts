@@ -82,7 +82,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
     rangedOf(H).loaded = true; H.pos = { x: 0, y: 0 };
     E.pos = { x: 2, y: 0 }; // à portée + LdV (scène vide)
-    useGame.getState().battleEndTurn(); // → Round 2, pendingRoundStart
+    useGame.getState().terminerLeTour(); // → Round 2, pendingRoundStart
     seedBattleRng(1);
     // Touche T : arme la visée du tireur (source unique preemptShooterIds → armPreempt).
     useGame.getState().armPreempt(H.id);

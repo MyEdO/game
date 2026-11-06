@@ -22,7 +22,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { computeChargeReach, computeRunReach, displayedReach } from './combatFlow';
 import { intentReach, armedIntentPortee } from './localIntent';
-import { runAction } from './actionRegistry';
 import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 import { GUEST_INTENTS } from './intentionsDeSiege';
 import { chargeReach } from '../engine/movement';
@@ -33,7 +32,7 @@ import { effectiveMovement } from '../engine/encumbrance';
 /** Combat témoin : un héros au tour ENTIER, les ennemis parqués au loin (grille libre autour de lui). */
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-  banc.setState({ party: [hero] });
+  banc.setState({ party: [hero], screen: 'campaign' });
   banc.getState().startScene(testScene());
   banc.getState().startCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
@@ -62,7 +61,7 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
   it('Charge armée → la bande peinte EST `computeChargeReach`, de rayon `chargeReach` = 2×M', () => {
     const { H } = setup();
     const M = effectiveMovement(H);
-    runAction('charge', get);
+    get().jouerLOffre('charge');
     const bande = intentReach(get);
     expect([...bande.keys()].sort()).toEqual([...computeChargeReach(get).keys()].sort());
     // La bande DÉBORDE la Marche : c'est tout l'objet du bouton (« difficile de connaître la distance »).
@@ -73,13 +72,13 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
 
   it('Mouvement armé → la bande peinte EST la portée de Marche affichée', () => {
     setup();
-    runAction('mouvement', get);
+    get().jouerLOffre('mouvement');
     expect([...intentReach(get).keys()].sort()).toEqual([...displayedReach(get).keys()].sort());
   });
 
   it('Attaque armée → AUCUNE bande de cases : sa portée se lit aux bandes de tir existantes', () => {
     setup();
-    runAction('attaque', get, { attackId: 'arme' });
+    get().jouerLOffre('attaque', { attackId: 'arme' });
     expect(armedIntentPortee(get)).toBe('portee-arme');
     expect(intentReach(get).size).toBe(0);
   });
@@ -95,22 +94,22 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
 describe('(b) annulation', () => {
   it('re-clic de la MÊME case dissout l’intention (bascule)', () => {
     setup();
-    runAction('course', get);
-    runAction('course', get);
+    get().jouerLOffre('course');
+    get().jouerLOffre('course');
     expect(get().localIntent).toBeNull();
   });
 
   it('armer une AUTRE intention remplace la première (une seule à la fois)', () => {
     setup();
-    runAction('course', get);
-    runAction('charge', get);
+    get().jouerLOffre('course');
+    get().jouerLOffre('charge');
     expect(get().localIntent).toEqual({ actionId: 'charge' });
   });
 
   it('le tour qui s’achève emporte l’intention', () => {
     setup();
-    runAction('charge', get);
-    get().battleEndTurn();
+    get().jouerLOffre('charge');
+    get().terminerLeTour();
     expect(get().localIntent).toBeNull();
   });
 });
@@ -143,7 +142,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
   it('AVEC intention, le MÊME clic commet le geste et dissout l’intention', () => {
     const { H } = setup();
     const dest = pickAtDist(displayedReach(get), 2);
-    runAction('mouvement', get);
+    get().jouerLOffre('mouvement');
     get().battleClickTile(dest); // pas de `confirm` : l'intention armée VAUT confirmation
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(dest);
     expect(get().localIntent, 'l’intention doit se dissoudre au commit').toBeNull();
@@ -155,7 +154,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
     const course = computeRunReach(get);
     const loin = [...course.keys()].find((k) => !marche.has(k))!;
     const [x, y] = loin.split(',').map(Number);
-    runAction('course', get);
+    get().jouerLOffre('course');
     get().battleClickTile({ x, y });
     expect(get().pendingRun ?? get().pendingCascade, 'la Course réelle n’a pas démarré').toBeTruthy();
     expect(get().localIntent).toBeNull();
@@ -165,7 +164,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
 describe('(d) COOP : l’intention est LOCALE au client', () => {
   it('un snapshot de l’hôte NE TUE PAS l’intention armée', () => {
     setup();
-    runAction('charge', get);
+    get().jouerLOffre('charge');
     const snap = JSON.parse(JSON.stringify({ ...instantaneDeLaCoop(get()) })) as Record<string, unknown>;
     banc.setState(appliquerLInstantane(snap, banc.getState()).etat);
     expect(get().localIntent, 'le snapshot a désarmé la case du client').toEqual({ actionId: 'charge' });
@@ -173,7 +172,7 @@ describe('(d) COOP : l’intention est LOCALE au client', () => {
 
   it('l’intention ne VOYAGE pas dans le snapshot (la case armée de l’hôte n’allume rien chez l’invité)', () => {
     setup();
-    runAction('charge', get);
+    get().jouerLOffre('charge');
     expect('localIntent' in instantaneDeLaCoop(get())).toBe(false);
   });
 
