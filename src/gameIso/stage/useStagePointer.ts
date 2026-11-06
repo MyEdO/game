@@ -22,7 +22,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useGame } from '../../state/store';
 import { sceneNpc } from '../../noyau/monde/sceneNpc';
 import type { Pt } from '../../noyau/monde/path';
-import { marcheOuverte, porteActionnable } from '../../noyau/marcheDuGroupe';
+import { gesteDuPortail } from '../../noyau/marcheDuGroupe';
 import { bus, EVT } from '../../noyau/bus';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsActive } from '../../noyau/netOwnership';
@@ -185,15 +185,15 @@ export function useStagePointer({
 
   const activatePortal = (portal: RoomPortal) => {
     const st = useGame.getState();
-    if (st.dialogue || !st.scene) return;
-    if (porteActionnable(st.mode, portal)) {
-      if (st.actionnerLaPorte(portal)) setAreteSurvolee(null);
+    const geste = gesteDuPortail(st, portal);
+    if (!geste) return;
+    if (geste.verbe === 'actionnerLaPorte') {
+      if (st.actionnerLaPorte(...geste.args)) setAreteSurvolee(null);
       return;
     }
-    if (!marcheOuverte(st)) return;
     setHover(null);
     setAreteSurvolee(null);
-    st.cliquerLaCase(portal.to);
+    st.cliquerLaCase(...geste.args);
   };
 
   /** Les VERBES que la table des gestes appelle (`stage/geste.ts`) : le franchissement vit ici, parce

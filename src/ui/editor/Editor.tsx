@@ -36,7 +36,7 @@ import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { publierEditeur } from '../../state/editeurBridge';
-import { type Tool, type Sel } from '../../noyau/sceneEditLecture';
+import { etageSuivant, type Tool, type Sel } from '../../noyau/sceneEditLecture';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { Row } from '../Layout';
@@ -1078,7 +1078,7 @@ export function Editor({
             className="btn small"
             title="Ajouter un étage au-dessus"
             onClick={() => {
-              const z = Math.max(...scene.layers.map((l) => l.z)) + 1;
+              const z = etageSuivant(scene);
               setScene(addLayer(scene, z));
               setCurrentLayer(z);
             }}
