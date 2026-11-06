@@ -44,7 +44,7 @@ import { Row } from '../Layout';
 import { TraceLayerPanel } from './TraceLayerPanel';
 import { useEditorAutosave } from './useEditorAutosave';
 import { autosaveDelete } from '../../state/editorAutosave';
-import { advanceCalibration, identityTransform, nearestNode, type CalibProgress } from './traceCalibration';
+import { advanceCalibration, identityTransform, nearestNode, type CalibProgress } from '../../noyau/edition/calage';
 import {
   traceLayerLoad, takeCalqueEcarte, traceLayerSave, traceLayerDelete, panelExpandedLoad, panelExpandedSave, type TraceLayerRecord,
 } from '../../state/traceLayer';

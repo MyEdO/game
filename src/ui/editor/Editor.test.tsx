@@ -25,7 +25,7 @@ import { basculerSur, boutonParTitre, scenesDuSelecteur, selecteurDeScene } from
 import { parseProject } from '../../noyau/worldMap';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { traceLayerSave } from '../../state/traceLayer';
-import { identityTransform } from './traceCalibration';
+import { identityTransform } from '../../noyau/edition/calage';
 
 const BIBLIOTHEQUE = 'wfrp4-library';
 const AUTOSAVE = 'wfrp4-editor-autosave';
