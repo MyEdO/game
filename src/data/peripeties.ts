@@ -1,6 +1,6 @@
 /**
- * Table des Péripéties de voyage — `LDB 51 l.210-221` ; seuil du d10 quotidien : `LDB 51 l.208`
- * (`MapRoute.perilDie`, défaut 8, 0 = éteint).
+ * Table des Péripéties de voyage — `LDB 51 l.210-221` ; seuil quotidien : `LDB 51 l.208` (son dé
+ * `tirageQuotidien` en donnée ; sa face, `MapRoute.perilDie`, défaut 8, 0 = éteint).
  *
  * La DONNÉE vit dans `peripeties.json` (éditable, comme `creatures.json`), dé `die` compris ; ce
  * module = type + chargement. Ajouter/régler une péripétie = éditer le JSON, jamais ce fichier. Le
@@ -29,3 +29,5 @@ export interface Peripetie {
 export const PERIPETIES = peripeties;
 /** Le dé de la Table des Péripéties, lu à l'appel. */
 export const peripetieDie = (): DiceSpec => deDeTirageDe<typeof tableDesPeripeties>(peripetiesJson);
+/** Le dé du seuil quotidien des Péripéties (`tirageQuotidien`), lu à l'appel. */
+export const peripetieSeuilDie = (): DiceSpec => peripetiesJson.tirageQuotidien.dice;
