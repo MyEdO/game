@@ -13,7 +13,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Dissipation HORS COMBAT (couture D, #461, LDB 46 l.160-162) : « pour votre Action » n'est pas
- *  bornée au combat — calque `oocFocusSpell`, réutilise `dispel.ts`/`jetConfirm('dispel')` tels quels. */
+ *  bornée au combat — calque `focaliserLeSort`, réutilise `dispel.ts`/`jetConfirm('dispel')` tels quels. */
 describe('Dissipation permanente — hors combat (couture D, #461)', () => {
   const langue = { id: 'langue', spec: 'magick', characteristic: 'intelligence' as const, advances: 20 };
   const mk = (id: string, spells: string[], extra: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
@@ -38,16 +38,16 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
     return { mage, allie, cible };
   }
 
-  it('n’ouvre rien EN combat : oocDispelSpell est un no-op (battle ouvert = action de combat)', () => {
+  it('n’ouvre rien EN combat : dissiperLeSort est un no-op (battle ouvert = action de combat)', () => {
     const { mage } = setup();
     banc.setState({ battle: { combatants: [mage], order: ['mage'], turn: 0, round: 1, acted: false, over: false, log: [] } as never });
-    banc.getState().oocDispelSpell('mage', 'malefice', 'ennemi');
+    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     expect(banc.getState().pendingDispel).toBeNull();
   });
 
   it('ouvre le pending hors combat, Soutien « même Domaine » compté sans géométrie (l.162)', () => {
     setup();
-    banc.getState().oocDispelSpell('mage', 'malefice', 'ennemi');
+    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     const pd = banc.getState().pendingDispel!;
     expect(pd).toBeTruthy();
     expect(pd.ni).toBe(1);
@@ -57,7 +57,7 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
 
   it('Test résolu (Round unique DR≥NI) dissipe le sort permanent sur la cible du groupe', () => {
     const { cible } = setup();
-    banc.getState().oocDispelSpell('mage', 'malefice', 'ennemi');
+    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     const pd = banc.getState().pendingDispel!;
     banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
     banc.getState().jetConfirm('dispel');
@@ -79,7 +79,7 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
     const roundDR = (rule: boolean) => {
       banc.setState({ party: [freshMage()], pendingDispel: null });
       if (rule) setRule('magic-vdm-incantation', true);
-      banc.getState().oocDispelSpell('mage', 'malefice', 'mage');
+      banc.getState().dissiperLeSort('mage', 'malefice', 'mage');
       const pd = banc.getState().pendingDispel!;
       banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
       banc.getState().jetConfirm('dispel');
@@ -98,13 +98,13 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
         spell: { spellId: 'malefice', ni: 1, casterId: 'ennemi', label: 'Maléfice' } }],
     });
     banc.setState({ party: [mage, cible] });
-    banc.getState().oocDispelSpell('mage', 'malefice', 'ennemi');
+    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     expect(banc.getState().pendingDispel).toBeNull();
   });
 
   it('aucun sort dissipable ne matche : no-op', () => {
     setup();
-    banc.getState().oocDispelSpell('mage', 'introuvable', 'ennemi');
+    banc.getState().dissiperLeSort('mage', 'introuvable', 'ennemi');
     expect(banc.getState().pendingDispel).toBeNull();
   });
 });

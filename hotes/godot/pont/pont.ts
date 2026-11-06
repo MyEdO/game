@@ -8,7 +8,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, plateauDeLaScene, porteeDeComposition, presetDeComposition, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, porteeDeComposition, presetDeComposition, couronnesDeLaCouche, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -176,7 +176,7 @@ export function creerPont() {
       disposition: fenetre?.disposition ?? null,
       zones: zonesDeLEcran(etat, projection, fenetre, o.fiche, o.creation),
       cases: casesAtteignables(etat),
-      plateau: etat.scene ? plateauDeLaScene(etat.scene) : null,
+      plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat)) : null,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }) : null,
       champ: combat ? (combat.barre.forme === 'ouverte' ? CLICS_DU_CHAMP : null) : projection.exploration && !fenetre ? CLICS_DE_L_EXPLORATION : null,
       occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]}`, c.id]] : []))),
@@ -219,7 +219,7 @@ export function creerPont() {
     monde(json) {
       entreeDe('monde', json, []);
       const scene = demarree().partie.etat().scene;
-      return { monde: scene ? volumeDuMonde(scene) : null };
+      return { monde: scene ? volumeDuMonde(scene) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDeLaCouche(scene, 0) : [] };
     },
     jouer(json) {
       const o = demarree();

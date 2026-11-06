@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { structures } from '../../../data';
-import { structureAppearance } from './index';
+import { structureAppearance } from './structures';
 import { structureEdgeKind } from '../../../engine/structures';
 
 /**

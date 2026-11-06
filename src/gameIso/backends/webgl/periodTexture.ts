@@ -31,7 +31,7 @@ import {
   type CourseVertical,
 } from '../../detail/courses';
 import { BLOCK_SHADE_K } from '../../detail/expand';
-import { srgbToLinear } from '../../shade';
+import { srgbToLinear } from '../../../lib/ombrage';
 import { parseHex } from '../../../lib/couleurHex';
 import type { DetailRecipe } from '../../../data/materials.types';
 

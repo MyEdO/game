@@ -225,7 +225,7 @@ export function seesInDark(c: Combatant): boolean {
   return traitSeesInDark(c.traits) || effectiveTalents(c).some((t) => t.talentId === 'vision-nocturne');
 }
 
-/** Instantané de `cancelMove` (R6/LOT 6, #199) : ce que capture le PREMIER segment de Mouvement (ou de
+/** Instantané de `annulerLeDeplacement` (R6/LOT 6, #199) : ce que capture le PREMIER segment de Mouvement (ou de
  *  poussée d'engin, `pushCommitTile`) du Tour, pour tout défaire tant qu'aucune Action n'a été prise —
  *  positions de TOUS les combattants (un grand/une poussée a pu en déplacer d'autres), orientation,
  *  `movedPreAction` et le `loseNextMovement` que la poussée pose sur les servants (siegePush.ts). */
@@ -237,7 +237,7 @@ export interface MoveSnapshot {
 }
 
 /** Capture `MoveSnapshot` — SOURCE UNIQUE, réutilisée par `battleClickTile`/`moveAttack`/`pushCommitTile`
- *  pour que `cancelMove` défasse TOUJOURS exactement ce qu'un premier segment a posé. */
+ *  pour que `annulerLeDeplacement` défasse TOUJOURS exactement ce qu'un premier segment a posé. */
 export function captureMoveSnapshot(battle: BattleState, facing: Record<string, Dir8>): MoveSnapshot {
   return {
     pos: Object.fromEntries(battle.combatants.filter((c) => c.pos).map((c) => [c.id, { ...c.pos! }])),

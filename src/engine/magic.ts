@@ -138,8 +138,8 @@ function penaltyMatches(p: { skill: string }, skill: 'priere' | 'langue' | 'foca
  *  Compétences Langue (Magick) et Focalisation ») porté par le `passive: OpPassive[]` d'un Trait/mutation —
  *  MÊME vocabulaire `{op:'castPenalty', skill, blocked}` que le contrecoup temporisé (`applyOps`), sans
  *  `rounds`/`minutes`/`hours`/`days` → jamais purgé (dure tant que le Trait est porté). L'exception « sauf
- *  pour dissiper » (l.250) est satisfaite STRUCTURELLEMENT : la Dissipation (`battleDispelSpell`/
- *  `oocDispelSpell`, `dispel.ts`) est une Action DISTINCTE de l'incantation qui ne consulte JAMAIS
+ *  pour dissiper » (l.250) est satisfaite STRUCTURELLEMENT : la Dissipation (`dissiperLeSort`,
+ *  `dispel.ts`) est une Action DISTINCTE de l'incantation qui ne consulte JAMAIS
  *  `castBlockedBy` — aucun champ d'exception à porter en donnée. */
 function passiveCastPenalties(c: Combatant): CastPenalty[] {
   const sources: { label: string; ops: import('./ops').GameOp[] }[] = [

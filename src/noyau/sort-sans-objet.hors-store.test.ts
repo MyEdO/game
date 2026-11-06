@@ -26,7 +26,7 @@ function auTemple(allie: (h: Combatant) => void = () => {}): { banc: Banc; pretr
 /** Lance la Bénédiction de Ténacité sur la cible, réussie, et rend les lignes que le lancer a dites. */
 function benir(banc: Banc, pretreId: string, cibleId: string): string[] {
   const avant = banc.getState().journal.length;
-  banc.getState().oocCastSpell(pretreId, 'benediction-de-tenacite', cibleId);
+  banc.getState().incanterLeSort(pretreId, 'benediction-de-tenacite', cibleId);
   expect(banc.getState().pendingCast?.targetId, 'témoin : le lancer s’ouvre sur la cible').toBe(cibleId);
   banc.getState().jetRoll('cast');
   if (!banc.getState().pendingCast!.result!.cast) {

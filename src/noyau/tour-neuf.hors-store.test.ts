@@ -49,7 +49,7 @@ describe('Tour neuf — `etatDeTourNeuf`, source unique du début de Tour', () =
     g().battle!.combatants.find((c) => c.id === B.id)!.loseNextMovement = true;
     advanceTurn(g, banc.setState);
     expect(g().battle!.moveSnapshot ?? null, 'l’instantané du Tour de A ne survit pas').toBeNull();
-    g().cancelMove();
+    g().annulerLeDeplacement();
     expect(g().battle!.combatants.find((c) => c.id === A.id)!.pos).toEqual(arrivee);
   });
 
@@ -73,7 +73,7 @@ describe('Tour neuf — `etatDeTourNeuf`, source unique du début de Tour', () =
     expect(b.movementUsed, 'B a perdu son Mouvement').toBeGreaterThan(0);
     expect(b.selectedSpellId).toBeNull();
     expect(b.moveSnapshot ?? null).toBeNull();
-    g().cancelMove();
+    g().annulerLeDeplacement();
     expect(de(A.id).pos).toEqual(arrivee);
   });
 
@@ -82,10 +82,10 @@ describe('Tour neuf — `etatDeTourNeuf`, source unique du début de Tour', () =
     advanceTurn(g, banc.setState);
     expect(g().pendingRoundStart, 'la pause').toBeTruthy();
     const pause = g().battle!;
-    // Les écrivains de l'état de Tour (`battleSelectAttack`, `battleClickTile` → aperçu/déplacement) exigent
+    // Les écrivains de l'état de Tour (`armerLAttaque`, `battleClickTile` → aperçu/déplacement) exigent
     // un combattant ACTIF : sous la pause (aucun), ils ne posent rien — la remise à neuf d'`ouvrirLeRound`
     // part donc d'un état déjà neuf.
-    g().battleSelectAttack('feinte');
+    g().armerLAttaque('feinte');
     g().battleClickTile({ x: A.pos!.x + 2, y: A.pos!.y });
     g().battleClickTile({ x: A.pos!.x + 2, y: A.pos!.y }, { confirm: true });
     expect(g().battle, 'aucun geste n’a réécrit la bataille sous la pause').toBe(pause);

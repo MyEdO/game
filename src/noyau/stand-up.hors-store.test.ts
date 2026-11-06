@@ -28,12 +28,12 @@ describe('À Terre — se relever / pas de Course (LDB 16 l.37, 18 l.15)', () =>
     return { H };
   }
 
-  it('À Terre + ≥1 PB → battleStandUp retire À Terre et consomme le Mouvement (pas l’Action)', () => {
+  it('À Terre + ≥1 PB → seRelever retire À Terre et consomme le Mouvement (pas l’Action)', () => {
     const { H } = setup();
     H.conditions = [{ id: 'a-terre', value: 1 }];
     H.wounds = blessuresDeBase(12, 5, H);
     banc.setState({ battle: { ...banc.getState().battle! } });
-    banc.getState().battleStandUp();
+    banc.getState().seRelever();
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, 'a-terre')).toBe(false);
@@ -46,7 +46,7 @@ describe('À Terre — se relever / pas de Course (LDB 16 l.37, 18 l.15)', () =>
     H.conditions = [{ id: 'a-terre', value: 1 }];
     H.wounds = blessuresDeBase(12, 0, H);
     banc.setState({ battle: { ...banc.getState().battle! } });
-    banc.getState().battleStandUp();
+    banc.getState().seRelever();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, 'a-terre')).toBe(true); // reste au sol
   });

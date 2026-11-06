@@ -177,7 +177,7 @@ export interface CombatFeature {
   commandTeam?: boolean;
   /** Chanson de marin (MDG 09 l.32-40) : peut ENTONNER une chanson de marin connue (une spec du Talent =
    *  une chanson apprise, l.36) — Test de Divertissement (Chant), effet 3 min + DR sur tout l'équipage,
-   *  une seule chanson par quart. Lu par `shantySingers` (affordance) + `battleSingShanty` (state). */
+   *  une seule chanson par quart. Lu par `shantySingers` (affordance) + `chanterLaChanson` (state). */
   seaShanty?: boolean;
   /** Frappe blessante — variante « Nouveaux talents et talents mis à jour » (AA 13 l.57) : au lieu de
    *  Blessures supplémentaires (`critExtraWounds`), lance deux fois le tableau de Blessures Critiques et

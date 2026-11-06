@@ -18,7 +18,7 @@
  * Malaise (l.188, « dont vous ne pourrez vous défaire qu'une fois votre maladie guérie ») en est le
  * second témoin — il survit à toutes les dépenses.
  *
- * Le chemin est le VRAI : le noyau (`spendResolveCondition`), sur un héros dont la Fièvre est passée
+ * Le chemin est le VRAI : le noyau (`depenserLaDetermination`), sur un héros dont la Fièvre est passée
  * (Grave) par le Test quotidien de la Pneumonie.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -76,7 +76,7 @@ describe('Détermination et État porté par un passif (LDB 20 l.170)', () => {
   it('la dépense RAMÈNE à la conscience, débite le point, et ouvre une fenêtre d’HORLOGE maison', () => {
     const h = malade();
     banc.setState({ mode: 'battle', battle: mkBattle(h), party: [h], gameTime: 10_000 } as never);
-    banc.getState().spendResolveCondition(h.id, 'inconscient');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'inconscient');
     const c0 = banc.getState().battle!.combatants[0];
     expect(c0.resolve, 'le point de Détermination n’a pas été débité').toBe(1);
     expect(stacks(c0, 'inconscient'), 'le porteur n’est pas revenu à lui').toBe(0);
@@ -100,7 +100,7 @@ describe('Détermination et État porté par un passif (LDB 20 l.170)', () => {
   it('à l’ÉCHÉANCE de la fenêtre, la fièvre le rendort (la réconciliation repose l’État)', () => {
     const h = malade();
     banc.setState({ mode: 'battle', battle: mkBattle(h), party: [h], gameTime: 10_000 } as never);
-    banc.getState().spendResolveCondition(h.id, 'inconscient');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'inconscient');
     const minutes = rule('maladie-conscience-determination-minutes') as number;
 
     // Une minute AVANT l'échéance : rien n'expire, le porteur est toujours conscient.
@@ -121,7 +121,7 @@ describe('Détermination et État porté par un passif (LDB 20 l.170)', () => {
     // l'entretien est DIFFÉRÉ à la cascade de nuit — rien n'y appelle `runDailyUpkeep`.
     const h = malade();
     banc.setState({ mode: 'exploration', battle: null, party: [h], gameTime: 10_000, journal: [] } as never);
-    banc.getState().spendResolveCondition(h.id, 'inconscient');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'inconscient');
     expect(stacks(banc.getState().party[0], 'inconscient'), 'la dépense n’a pas réveillé le fiévreux').toBe(0);
 
     const minutes = rule('maladie-conscience-determination-minutes') as number;
@@ -137,7 +137,7 @@ describe('Détermination et État porté par un passif (LDB 20 l.170)', () => {
     const h = malade();
     h.conditions = [{ id: 'aveugle', value: 2 }];
     banc.setState({ mode: 'battle', battle: mkBattle(h), party: [h], gameTime: 10_000 } as never);
-    banc.getState().spendResolveCondition(h.id, 'aveugle');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'aveugle');
     const c0 = banc.getState().battle!.combatants[0];
     expect(c0.conditions.find((x) => x.id === 'aveugle')!.value).toBe(1);
     expect(c0.activeEffects?.some((e) => e.effectId === determinationWindowId('aveugle')) ?? false).toBe(false);
@@ -147,7 +147,7 @@ describe('Détermination et État porté par un passif (LDB 20 l.170)', () => {
     const h = malade();
     const avant = diseasePassiveOps(h).length;
     banc.setState({ mode: 'battle', battle: mkBattle(h), party: [h], gameTime: 10_000 } as never);
-    banc.getState().spendResolveCondition(h.id, 'inconscient');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'inconscient');
     const pendant = banc.getState().battle!.combatants[0];
     // PENDANT la fenêtre : la Fièvre est toujours un symptôme ACTIF (donc son Test de cycle quotidien
     // et ses `onTick` tombent comme d'habitude — `engine/disease.ts:712/741` les gatent sur
@@ -180,7 +180,7 @@ describe('la fenêtre ne déborde jamais du symptôme dépensé (LDB 20 l.188)',
   it('l’Exténué du Malaise SURVIT à la dépense qui réveille le fiévreux', () => {
     const h = doubleMalade();
     banc.setState({ mode: 'battle', battle: mkBattle(h), party: [h], gameTime: 10_000 } as never);
-    banc.getState().spendResolveCondition(h.id, 'inconscient');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'inconscient');
     const c0 = banc.getState().battle!.combatants[0];
     expect(stacks(c0, 'inconscient'), 'le fiévreux n’est pas revenu à lui').toBe(0);
     expect(stacks(c0, 'extenue'), 'l’Exténué du Malaise est parti avec la fenêtre').toBe(1);
@@ -191,7 +191,7 @@ describe('la fenêtre ne déborde jamais du symptôme dépensé (LDB 20 l.188)',
   it('l’Exténué du Malaise SURVIT aussi à une dépense dirigée SUR LUI, et le point n’est pas débité', () => {
     const h = doubleMalade();
     banc.setState({ mode: 'battle', battle: mkBattle(h), party: [h], gameTime: 10_000 } as never);
-    banc.getState().spendResolveCondition(h.id, 'extenue');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'extenue');
     const c0 = banc.getState().battle!.combatants[0];
     expect(stacks(c0, 'extenue'), 'l’Exténué est parti sans que la maladie soit guérie').toBe(1);
     // Le Malaise ne CÈDE pas à la Détermination : son op porteuse déclare `resolveWindow: 'none'`
@@ -234,7 +234,7 @@ describe('KO à 0 PB + Fièvre (Grave) : un seul pion, et la dépense réveille 
     addCondition(h, 'inconscient'); // KO à 0 PB — le pion est partagé avec la Fièvre
     expect(stacks(h, 'inconscient'), 'les deux causes ont empilé deux pions').toBe(1);
     banc.setState({ mode: 'battle', battle: mkBattle(h), party: [h], gameTime: 10_000 } as never);
-    banc.getState().spendResolveCondition(h.id, 'inconscient');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'inconscient');
     const c0 = banc.getState().battle!.combatants[0];
     expect(c0.resolve, 'le point de Détermination n’a pas été débité').toBe(1);
     expect(stacks(c0, 'inconscient'), 'le porteur n’est pas revenu à lui').toBe(0);
@@ -245,7 +245,7 @@ describe('KO à 0 PB + Fièvre (Grave) : un seul pion, et la dépense réveille 
     h.wounds.current = 0;
     addCondition(h, 'inconscient');
     banc.setState({ mode: 'battle', battle: mkBattle(h), party: [h], gameTime: 10_000 } as never);
-    banc.getState().spendResolveCondition(h.id, 'inconscient');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'inconscient');
     banc.setState({ gameTime: 10_000 + (rule('maladie-conscience-determination-minutes') as number) } as never);
     purgeClockEffects(banc.getState, banc.setState);
     expect(stacks(banc.getState().battle!.combatants[0], 'inconscient')).toBe(1);

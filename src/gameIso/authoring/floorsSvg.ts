@@ -4,7 +4,7 @@
  * du pivot en SVG, en projetant sa géométrie GRILLE+MÈTRES via la projection partagée (`tileCenter`/
  * `diamondCorners`/`metricToLift`). La ROTATION caméra vit ENTIÈREMENT ici (le builder n'en sait rien) ;
  * l'ÉCLAIRAGE d'une paroi (face avant/arrière) est une vérité d'ÉCRAN → déduit ici de l'arête projetée.
- * Les couleurs viennent des matériaux JSON (`reliefMaterial`/`terrainGradient`) et de `shade.ts`.
+ * Les couleurs viennent des matériaux JSON (`reliefMaterial`/`terrainGradient`) et de `lib/ombrage.ts`.
  * MATÉRIAUX v2 : le fill de sol prend sa VARIANTE de teinte par tuile, une falaise porteuse d'une recette
  * reçoit le motif d'appareillage partagé (LOD ≥ 1) ; les ACCENTS seedés (touffes, cailloux, blocs) sont
  * La couche d'ACCENTS seedés est morte avec ses consommateurs (#1176 P3-4 C5b) : l'aperçu d'authoring
@@ -14,7 +14,7 @@ import { Dims, depth, diamondCorners, tileCenter } from '../../geometry/iso';
 import { metricToLift } from '../../noyau/monde/relief';
 import { terrainGradient } from '../catalog/terrain';
 import { reliefMaterial } from '../../noyau/monde/volume/matieres';
-import { shade, ao, warm, spec } from '../shade';
+import { shade, ao, warm, spec } from '../../lib/ombrage';
 import { projGP, type Pt2 } from './project';
 import {
   detailOf,

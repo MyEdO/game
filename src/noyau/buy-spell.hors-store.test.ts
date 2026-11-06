@@ -147,10 +147,10 @@ describe('lecture au grimoire — NI doublé dans le flux', () => {
     expect(doubled!.cn).toBe((base!.cn ?? 0) * 2);
   });
 
-  it('oocCastSpell(fromGrimoire) refuse sans grimoire porté', () => {
+  it('incanterLeSort(fromGrimoire) refuse sans grimoire porté', () => {
     const w = pregen(PREGEN.sorcier);
     banc.setState({ party: [w] as Combatant[] });
-    banc.getState().oocCastSpell(w.id, 'arme-aethyrique', w.id, true);
+    banc.getState().incanterLeSort(w.id, 'arme-aethyrique', w.id, true);
     expect(banc.getState().pendingCast).toBeNull();
     expect(banc.getState().journal.join('\n')).toMatch(/grimoire/);
   });
@@ -161,7 +161,7 @@ describe('lecture au grimoire — NI doublé dans le flux', () => {
     w.spells = (w.spells ?? []).filter((s) => s !== 'arme-aethyrique'); // id de sort (runtime)
     w.items = [...(w.items ?? []), { uid: 'g1', name: 'Grimoire', trappingId: 'grimoire', kind: 'misc', enc: 1, qualities: [] } as never];
     banc.setState({ party: [w] as Combatant[] });
-    banc.getState().oocCastSpell(w.id, 'arme-aethyrique', w.id, true);
+    banc.getState().incanterLeSort(w.id, 'arme-aethyrique', w.id, true);
     expect(banc.getState().pendingCast?.grimoire).toBe(true);
   });
 });

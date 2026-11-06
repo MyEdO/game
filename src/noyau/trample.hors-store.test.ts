@@ -79,7 +79,7 @@ describe('Piétinement en combat (store)', () => {
 
   /** Le héros joue le Piétinement par l'attaque gratuite CANONIQUE : option armée, clic-cible commis. */
   const pietiner = (cibleId: string): void => {
-    banc.getState().battleSelectAttack('pietinement');
+    banc.getState().armerLAttaque('pietinement');
     banc.getState().battleClickEntity(cibleId, { confirm: true });
   };
   const advDe = (id: string): number => banc.getState().battle!.combatants.find((c) => c.id === id)!.advantage;
@@ -106,7 +106,7 @@ describe('Piétinement en combat (store)', () => {
     const { H, E } = setup();
     H.traits = [{ id: 'morsure', value: 10 }];
     H.advantage = 2;
-    banc.getState().battleSelectAttack('morsure');
+    banc.getState().armerLAttaque('morsure');
     banc.getState().battleClickEntity(E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     const pa = banc.getState().pendingAttack!;
@@ -216,7 +216,7 @@ describe('Piétinement en combat (store)', () => {
     if (taille) H.size = taille;
     H.traits = [...traits] as unknown as Combatant['traits'];
     H.advantage = 2;
-    banc.getState().battleSelectAttack(attaque);
+    banc.getState().armerLAttaque(attaque);
     banc.getState().battleClickEntity(E.id, { confirm: true });
     const paye = banc.getState();
     expect(paye.pendingAttack, 'la déclaration a ouvert le jet').toBeTruthy();

@@ -1,4 +1,4 @@
-import type { FacadeAppearanceDef } from '../../types';
+import type { FacadeAppearanceDef } from '..';
 
 export const facade: FacadeAppearanceDef = {
   id: 'chapelle',

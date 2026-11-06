@@ -10,9 +10,9 @@ import type { Combatant } from '../../engine/types';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
-import { clearedSpace, massSpaceCells, shelterField, shelterSectionAt } from '../builders/roofs';
+import { clearedSpace, massSpaceCells, shelterField, shelterSectionAt } from '../../noyau/monde/volume/toits';
 import { massFootprintCells } from '../../noyau/monde/buildings';
-import { cutawayForSection } from './architectureVisibility';
+import { cutawayForSection } from '../../noyau/monde/volume/architectureVisibility';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 /**

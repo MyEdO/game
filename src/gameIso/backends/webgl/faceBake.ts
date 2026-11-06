@@ -102,7 +102,7 @@ export function bakeResolution(
  *  `authoring/wallsSvg.ts` (la face `part === 'face'` d'un `WallEl`, puis la couche
  *  d'accents, même filtre `f.material.part !== 'face'`) et `structureFaceSvg` (`authoring/wallsSvg.ts`),
  *  qui ne reçoit que des fermetures de comble et des raccords de nappe — tous authorés `part: 'face'`
- *  (`builders/roofs.ts:1308`, `builders/walls.ts:525`). Toute autre part (poteau, plinthe, panneau,
+ *  (`noyau/monde/volume/toits.ts`, `builders/walls.ts:525`). Toute autre part (poteau, plinthe, panneau,
  *  moulure, vitre, meneau…) est un DÉCOR posé sur la joue : elle garde son chemin de période ou son
  *  aplat, jamais des pans de bois. */
 const TIMBERED_PARTS: ReadonlySet<string> = new Set(['face']);

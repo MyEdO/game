@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cutawayForSection, cutawayOverhead, exteriorWallViewZ, frontFacadeCutaway, type ClearedSpace } from './architectureVisibility';
-import { buildRoofs, clearedSpace, massRoomZoneIds } from '../builders/roofs';
+import { cutawayForSection, cutawayOverhead, exteriorWallViewZ, frontFacadeCutaway, type ClearedSpace } from '../../noyau/monde/volume/architectureVisibility';
+import { buildRoofs, clearedSpace, massRoomZoneIds } from '../../noyau/monde/volume/toits';
 import { massFootprintCells } from '../../noyau/monde/buildings';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../noyau/monde/scene';

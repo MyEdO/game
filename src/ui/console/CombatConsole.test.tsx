@@ -37,7 +37,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { baseSection, mediaBlock } from '../../../scripts/guards/lib/cssCouches.mjs';
 import { hpColor, ENEMY_TINT } from '../../gameIso/teamColors';
-import { srgbToLinear } from '../../gameIso/shade';
+import { srgbToLinear } from '../../lib/ombrage';
 import { testDeRegle } from '../../engine/reglesChiffrees';
 import { withActingSeat } from '../../noyau/netOwnership';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
@@ -98,6 +98,7 @@ it('l’arche respecte le camp résolu par campOf sans surcharge de son hôte', 
 });
 
 beforeEach(() => {
+  useGame.setState({ screen: 'campaign' });
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -1702,7 +1703,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
 
 // ── LA CONSOLE CONSOMME LE REGISTRE DES ACTIONS (spec HUD « Zone 12 », lot branchements) ────────
 // Plus aucune case n'est écrite à la main : chacune naît d'une entrée de `src/data/actions.json`
-// (libellé, icône, foyer de règle, verdict d'offre) et s'exécute par `runAction`. Ce bloc mesure le
+// (libellé, icône, foyer de règle, verdict d'offre) et s'exécute par `jouerLOffre`. Ce bloc mesure le
 // CÂBLAGE sur le store réel — un clic qui ne bouge pas le moteur est une case morte.
 describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement)', () => {
   const caseAction = (id: string) => host.querySelector(`[data-action="${id}"]`) as HTMLButtonElement | null;
@@ -1722,7 +1723,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     expect(caseAction('defend')!.querySelector('.cc-lbl')!.textContent).toBe(findActionById('defend')!.label);
   });
 
-  it('R-2 — la case Défensive EXÉCUTE son dispatcher (`battleDefendTotal`) par le registre', () => {
+  it('R-2 — la case Défensive EXÉCUTE son dispatcher (`prendreLaDefensive`) par le registre', () => {
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
@@ -1879,7 +1880,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     const rouler = caseAction('roll-fire');
     expect(rouler, 'En flammes : le remède doit être offert à la grille').not.toBeNull();
     act(() => rouler!.click());
-    // `battleRecoverState('en-flammes')` ouvre le Test de récupération de l'État (donnée `EtatData.recover`).
+    // `seRemettreDeLEtat('en-flammes')` ouvre le Test de récupération de l'État (donnée `EtatData.recover`).
     expect(useGame.getState().pendingStateRecovery, 'la case n’a rien exécuté').toBeTruthy();
   });
 });
@@ -2299,7 +2300,7 @@ describe('CombatConsole — intention armée : aucune infobulle de règle au-des
     expect(infobulles().length, 'la case armée rouvre son infobulle au survol').toBe(0);
     survoler(enveloppeDe(caseAction('defend')!));
     expect(infobulles().length, 'une case VOISINE rouvre son infobulle au survol').toBe(0);
-    // Désarmement (re-clic, `toggleOff` du registre) → l'information de règle n'était pas retirée, elle attendait.
+    // Désarmement (re-clic, `desarmerLeMode`) → l'information de règle n'était pas retirée, elle attendait.
     act(() => { caseAction('course')!.click(); });
     expect(useGame.getState().localIntent).toBeNull();
     survoler(enveloppeDe(caseAction('course')!));
@@ -2312,7 +2313,7 @@ describe('CombatConsole — intention armée : aucune infobulle de règle au-des
  * Surincantation, pose de zone, bordée, téléportation) doit porter SA SORTIE à l'écran : sans elle, le
  * joueur a seulement le clic-carte pour quitter le mode. Le bandeau la tire du REGISTRE (entrées
  * `surface: 'interlude'`, appariées par leur `mode` au mode de ciblage courant) — la console ne nomme
- * aucun état de flux, et le dispatcher exécuté est celui du registre (`runAction`).
+ * aucun état de flux, et le dispatcher exécuté est celui du registre (`jouerLOffre`).
  */
 /** COÛT d'une attaque gratuite à la case (`AttackOption.cost`) : l'Action de Mouvement se dit dans la
  *  MÊME colonne de crans que l'Avantage. LDB 85 l.314 */
@@ -2358,7 +2359,7 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     sansFlux();
     const h = hero('h1', 'Gunnar');
     monter(h, { foes: [foe('e1', 9, 9)] });
-    // La scène est requise par `battleSelectAction` (le désarmement lit `{ battle, scene }`).
+    // La scène est requise par `armerLeMode` (le désarmement lit `{ battle, scene }`).
     act(() => { useGame.setState({ scene: emptyScene('scene-test'), battle: { ...useGame.getState().battle!, action: 'battery' } }); });
     expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Bordée');
     const b = sortie('battery-cancel');
@@ -2609,7 +2610,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
   const panneau = () => document.body.querySelector('[data-panneau-parametre]');
   const options = () => [...(panneau()?.querySelectorAll('button') ?? [])];
 
-  // `battleSelectAction` (l'armement du mode) exige une SCÈNE : sans elle, la case cliquée n'arme rien.
+  // `armerLeMode` (l'armement du mode) exige une SCÈNE : sans elle, la case cliquée n'arme rien.
   beforeEach(() => { useGame.setState({ scene: emptyScene('scene-test') }); });
   afterEach(() => { useGame.setState({ dispelCarrierId: null, pendingDispel: null, battle: null }); });
 
@@ -2696,7 +2697,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
  * MUNITION JOUABLE DEPUIS LA CONSOLE (#1411 P1-B, spec §1a + zone 10) : la munition vit à l'EN-TÊTE de
  * travée, et ce chip EST le déclencheur du choix — panneau BORNÉ aux munitions compatibles de l'arme,
  * conséquence RENDUE sur le candidat qui déchargera, annulation gratuite. Le commit passe par le
- * registre (`select-ammo` → `battleSelectAmmo`), jamais par une closure de site.
+ * registre (`select-ammo` → `approvisionnerLArme`), jamais par une closure de site.
  */
 describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix', () => {
   const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) =>
@@ -2820,7 +2821,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     monter(h);
     ouvrir();
     expect(panneau(), 'témoin : le panneau doit être ouvert avant la commutation').toBeTruthy();
-    act(() => { useGame.getState().battleSwitchLoadout('lo-arc'); });
+    act(() => { useGame.getState().prendreLaPanoplie(h.id, 'lo-arc'); });
     act(() => { root.render(<CombatConsole />); });
     expect(acteur().weapons.some((w) => w.type === 'ranged'), 'témoin : l’autre set porte AUSSI une arme de tir').toBe(true);
     expect(panneau(), 'panneau FANTÔME : il a survécu à l’arme qui l’avait ouvert').toBeNull();
@@ -2829,8 +2830,8 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
 
 // ── GESTE ADOSSÉ À LA GOUTTIÈRE DE MOUVEMENT (#1411 P1 lot C, spec §1c) ─────────────────────────
 // L'annulation du déplacement n'est pas une case de plus : elle vit sur la ressource qu'elle rend.
-// Le contrat est une AFFORDANCE-VÉRITÉ — elle n'est à l'écran que là où `cancelMove` mordrait
-// vraiment. Le compteur `movementUsed` ne suffit pas à le dire : `battleStandUp` l'écrit SANS poser
+// Le contrat est une AFFORDANCE-VÉRITÉ — elle n'est à l'écran que là où `annulerLeDeplacement` mordrait
+// vraiment. Le compteur `movementUsed` ne suffit pas à le dire : `seRelever` l'écrit SANS poser
 // de `moveSnapshot` (`combatSlice.ts:1664`), et le dispatcher n'aurait alors rien à restaurer.
 describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvement', () => {
   const geste = () => host.querySelector('.cc-gutter-move [data-action="undo-move"]') as HTMLButtonElement | null;
@@ -2841,13 +2842,13 @@ describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvem
     const h = hero('h1', 'Gunnar');
     h.conditions = [{ id: 'a-terre', value: 1 }] as ConditionInstance[];
     monter(h);
-    act(() => { useGame.getState().battleStandUp(); });
+    act(() => { useGame.getState().seRelever(); });
     const st = useGame.getState().battle!;
     // Le relevé a bien consommé du Mouvement — et n'a laissé AUCUN instantané à défaire.
     expect(st.movementUsed, 'la sonde ne mesurerait rien sans Mouvement dépensé').toBeGreaterThan(0);
     expect(st.moveSnapshot ?? null).toBeNull();
     act(() => { root.render(<CombatConsole />); });
-    expect(geste(), 'geste rendu alors que `cancelMove` no-operait : affordance morte').toBeNull();
+    expect(geste(), 'geste rendu alors que `annulerLeDeplacement` no-operait : affordance morte').toBeNull();
   });
 
   it('après une Marche : le geste EXISTE, le clic RESTAURE la position, puis le geste meurt', () => {
@@ -2882,7 +2883,7 @@ describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvem
     expect(geste()).toBeTruthy();
     act(() => { useGame.setState({ battle: { ...useGame.getState().battle!, acted: true } }); });
     act(() => { root.render(<CombatConsole />); });
-    expect(geste(), 'l’Action prise, `cancelMove` ne mord plus : le geste ne doit pas rester offert').toBeNull();
+    expect(geste(), 'l’Action prise, `annulerLeDeplacement` ne mord plus : le geste ne doit pas rester offert').toBeNull();
   });
 
   // GÉOMÉTRIE IMMUABLE (loi 1) : la venue du geste ne DÉPLACE rien — sa place est réservée dans
@@ -2987,7 +2988,7 @@ describe('CombatConsole — Avantage au plafond : la case reste, FERMÉE, avec s
 /**
  * UNE CASE QUI ARME UN MODE LIT SON MODE AU REGISTRE (`armed` de son entrée d'`actions.json`) — la
  * console ne recopie aucune valeur de `battle.action`. Même patron que l'intention locale : allumée
- * tant que SON mode est armé, et le re-clic le dissout (`toggleOff` déduit, jamais passé au site).
+ * tant que SON mode est armé, et le re-clic le dissout (`desarmerLeMode`).
  */
 describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE', () => {
   const caseCell = (key: string) => host.querySelector(`[data-cell="${key}"]`) as HTMLButtonElement | null;
@@ -3002,7 +3003,7 @@ describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE',
   }
 
   it('Soigner : la case s’allume quand `battle.action` vaut l’`armed` de son entrée, et le re-clic désarme', () => {
-    act(() => { useGame.setState({ scene: emptyScene('scene-test') }); }); // `battleSelectAction` lit { battle, scene }
+    act(() => { useGame.setState({ scene: emptyScene('scene-test') }); }); // `armerLeMode` lit { battle, scene }
     monter(soigneur());
     const armed = findActionById('heal')!.armed;
     expect(armed, 'l’entrée « Soigner » du registre déclare le mode qu’elle arme').toBe('heal');
@@ -3014,7 +3015,7 @@ describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE',
     expect(caseCell('q-soigner')!.className, 'mode armé → la case est allumée').toContain(' on');
 
     act(() => { caseCell('q-soigner')!.click(); });
-    expect(useGame.getState().battle!.action, 'le re-clic dissout le mode (toggleOff déduit)').toBeNull();
+    expect(useGame.getState().battle!.action, 'le re-clic dissout le mode (`desarmerLeMode`)').toBeNull();
     expect(caseCell('q-soigner')!.className).not.toContain(' on');
   });
 });
@@ -3479,7 +3480,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     const fabrique: ActionDef = {
       id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
       surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
-      run: 'battleFocusSpell', candidates: 'sorts-du-heros', coutAction: 'gratuit',
+      run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     ACTIONS.push(fabrique);
     try {
@@ -3520,7 +3521,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     const fabrique: ActionDef = {
       id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
       surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
-      run: 'battleFocusSpell', candidates: 'sorts-du-heros', coutAction: 'gratuit',
+      run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     vi.useFakeTimers();
     ACTIONS.push(fabrique);
@@ -3617,7 +3618,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     const fabrique: ActionDef = {
       id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
       surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
-      run: 'battleFocusSpell', candidates: 'sorts-du-heros', coutAction: 'gratuit',
+      run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     vi.useFakeTimers();
     ACTIONS.push(fabrique);
@@ -3666,7 +3667,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     const fabrique: ActionDef = {
       id: 'test-geste-2e-reload', label: 'Geste de recharge', icon: 'flag/focus',
       surface: 'geste-secondaire', hote: 'reload', gate: 'toujours',
-      run: 'battleReload', candidates: 'armes-a-distance', coutAction: 'gratuit',
+      run: 'rechargerLArme', candidates: 'armes-a-distance', coutAction: 'gratuit',
     };
     monter(tireur());
     expect(host.querySelector('[data-action="reload"]'), 'témoin : l’alvéole hôte est bien rendue').toBeTruthy();

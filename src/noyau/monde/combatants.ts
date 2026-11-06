@@ -14,6 +14,7 @@ import { isOutOfAction } from '../../engine/conditions';
 import type { Combatant } from '../../engine/types';
 import type { Dir8 } from '../../geometry/dir8';
 import type { Jeu } from '../etat';
+import type { Pt } from './path';
 
 /**
  * TAILLE MAXIMALE du groupe — les quatre aventuriers de la campagne. Constante CANONIQUE : toute
@@ -175,6 +176,12 @@ export const CAP_GROUPE = '__party';
  */
 export function capDuGroupe(monde: Pick<Jeu, 'facing'>): Dir8 | null {
   return monde.facing[CAP_GROUPE] ?? null;
+}
+
+/** Les cases où se tient le groupe, couche comprise : chaque héros posé en combat, sinon la case du groupe. PUR. */
+export function casesDuGroupe(monde: Pick<Jeu, 'battle' | 'partyPos'>): Pt[] {
+  if (!monde.battle) return [{ ...monde.partyPos }];
+  return monde.battle.combatants.flatMap((c) => (c.kind === 'hero' && c.pos ? [{ x: c.pos.x, y: c.pos.y, z: c.pos.z ?? 0 }] : []));
 }
 
 /**

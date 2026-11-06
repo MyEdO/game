@@ -39,7 +39,7 @@ export function porteDesBandages(c: Combatant): boolean {
   return objetDuTrapping(c, BANDAGES) !== undefined;
 }
 
-/** Retire UNE unité de Bandages à `c` (une instance, comme `usePartyItem`). Rend `false` s'il n'en porte aucune. */
+/** Retire UNE unité de Bandages à `c` (une instance, comme `utiliserLObjet`). Rend `false` s'il n'en porte aucune. */
 export function retirerUnBandage(c: Combatant): boolean {
   const unite = objetDuTrapping(c, BANDAGES);
   if (!unite) return false;

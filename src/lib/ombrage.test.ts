@@ -4,7 +4,7 @@
  * NON-RÉGRESSION visuelle du passage « palette pré-ombrée → base + shade() » (Phase 1+).
  */
 import { describe, it, expect } from 'vitest';
-import { shade, mix, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from './shade';
+import { shade, mix, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from './ombrage';
 
 /** Bases (face E/éclairée) → face N (ombre) telles que codées aujourd'hui dans walls.ts::houseWallIso. */
 const WOOD_LIT_TO_N: [string, string][] = [

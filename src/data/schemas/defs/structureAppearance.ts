@@ -7,8 +7,8 @@ import { nommerChamps } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { detailRecipeSchema } from '../grammaire/valeurs';
-import { WALL_PARTS, type WallPart } from '../../structureAppearance.types';
+import { detailRecipeSchema, enumNomme } from '../grammaire/valeurs';
+import { WALL_PARTS, type FamilleDuKit, type WallPart } from '../../structureAppearance.types';
 
 export const file = 'structureAppearance.json';
 export const famille = 'entite';
@@ -33,6 +33,7 @@ const doc = document(
   'structureAppearance',
   famille,
   {
+    kit: enumNomme({ colombage: 'Pan de bois', pierre: 'Pierre', cloture: 'Clôture' } satisfies Record<FamilleDuKit, string>),
     wallHeightM: z.number().positive().optional(),
     detail: detailRecipeSchema.optional(),
     face: z.string(),
@@ -129,7 +130,7 @@ const doc = document(
       .optional(),
     // RELIEF MINCE (m) par partie de mur : `jut` = saillie par côté, `thick` = épaisseur totale d'une
     // partie traversante (`wallPartDepthM`), `wallM` = épaisseur de la MATIÈRE PLEINE de cette
-    // apparence (le défaut est `WALL_MATTER_M`, `catalog/structures`). Les clés de `jut`/`thick` sont
+    // apparence (le défaut est `WALL_MATTER_M`, `noyau/monde/volume/structures`). Les clés de `jut`/`thick` sont
     // CONTRAINTES aux parties RÉELLEMENT surchargeables (`RELIEF_PART_KEYS`) — une clé fautive, comme
     // une clé inerte, échoue au CHARGEMENT au lieu d'être ignorée en silence.
     relief: nommerChamps(z
@@ -141,6 +142,7 @@ const doc = document(
       .optional(),
   },
   {
+    kit: { label: 'Famille du kit 3D', hint: 'Les pièces 3D que l’hôte Godot pose sur une arête de cette apparence' },
     wallHeightM: { label: 'Hauteur de mur', hint: 'En mètres' },
     detail: { label: 'Recette de détail' },
     face: { label: 'Couleur de face', hint: 'Teinte de base du pan de mur' },

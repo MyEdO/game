@@ -7,7 +7,7 @@ import { empriseLocaleM, type PropPrimitive } from '../../data/props.types';
 import { emptyScene, heightAt, tileAt, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { propFootTiles } from '../../noyau/monde/footprint';
 import { parseProject } from '../../noyau/worldMap';
-import { fieldHeightAt, massCovers, resolveNappes } from './roofs';
+import { fieldHeightAt, massCovers, resolveNappes } from '../../noyau/monde/volume/toits';
 import { SCENARIOS } from '../../scenes/test-scenarios/_registry.generated';
 
 /**

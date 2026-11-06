@@ -69,8 +69,10 @@
 //   tracé » la retire. L'outil Crénelage, un clic marque la case d'un parapet, que la case pointée dit ; « Annuler »
 //   l'efface. L'outil Décor, un clic sur une case libre y pose le premier décor du catalogue, sélectionné, son nom au-dessus d'elle ;
 //   son nom effacé au champ de l'inspecteur, un autre tapé, « Renommer » le pose au-dessus de la case ; « Copier »,
-//   l'outil Sélection, un clic sur une case libre puis « Coller » y pose la copie, nommée de même ; un clic sur une case
-//   libre vide la sélection.
+//   l'outil Sélection, un clic sur une case libre puis « Coller » y pose la copie, nommée de même ; à l'inspecteur de la
+//   copie, « Source de lumière » l'allume à 6 m, « Rayon +1 m » la porte à 7 m. L'outil Emplacement de siège, un clic sur
+//   une case libre y pose le premier engin, nommé comme lui ; « Droite (tribord) » fixe son créneau. L'outil Sélection,
+//   un clic sur une case libre vide la sélection.
 //   « Charger une planche… » ouvre le choix d'un fichier de la page, que la recette remplit d'une planche quadrillée : le
 //   calque se pose sur toute la carte ; « Caler par deux points », puis le centre d'une case comme premier point de
 //   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
@@ -346,14 +348,14 @@ async function parcoursCombat() {
   noter(`fin du tour de ${heros.nom} ; actif ${second.nom}`)
   await cliquerCase(vers)
   v = await vue()
-  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y]], 'le premier clic montre l’aperçu')
+  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y, vers.z ?? 0]], 'le premier clic montre l’aperçu')
   const apercu = element(v, 'combat.apercu', 'apercu')
   assert.ok(apercu, 'l’aperçu dit ce qu’il coûte, près de sa case')
   noter(`premier clic sur (${vers.x}, ${vers.y}) : ${apercu.texte}`)
   await capturer('2928-6c-4-deplacement-apercu')
   await cliquerCase(vers)
   v = await vue()
-  assert.deepEqual(actif(v).pos, [vers.x, vers.y], 'le second clic déplace le héros')
+  assert.deepEqual(actif(v).pos, [vers.x, vers.y, vers.z ?? 0], 'le second clic déplace le héros')
   noter(`second clic : ${second.nom} en ${actif(v).pos}`)
   await finirLeTour()
   await attendreLaVue("v.projection.fenetre?.etape?.genre === 'defenseJet'", 60000)
@@ -461,7 +463,7 @@ async function parcoursExploration() {
   }
   const x = v.projection.exploration
   assert.ok(x, 'hors combat, la vue est celle de l’exploration')
-  assert.deepEqual(x.heros.map((h) => h.pos), x.heros.map(() => x.groupe), 'chaque héros se tient à la case du groupe')
+  assert.deepEqual(x.heros.map((h) => h.pos), x.heros.map(() => [...x.groupe, x.etage ?? 0]), 'chaque héros se tient à la case du groupe')
   noter(`Entrée : l’entrée de la scène poursuivie ; groupe en ${x.groupe}, gestes ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
   await capturer('3328-e1-2-exploration')
   const porte = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.type === 'actionnerLaPorte'))
@@ -493,7 +495,7 @@ async function parcoursRelief() {
   const vers = plateau[0].case
   await cliquerCase(vers)
   v = await vue()
-  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y]], 'la case cliquée est celle du plateau sous le pointeur')
+  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y, vers.z ?? 0]], 'la case cliquée est celle du plateau sous le pointeur')
   noter(`clic sur (${vers.x}, ${vers.y}), au bord du plateau de 4 m : son aperçu`)
   await capturer('3476-r2-plateau')
 }
@@ -949,12 +951,17 @@ function ecrirePlanche(chemin, cote = 400, pas = 40) {
 async function parcoursEditeur() {
   await cliquerBouton('Éditeur')
   await waitFor(session, '!!globalThis.wfrpEcran?.editeur && !!wfrpEcran.cases', { timeoutMs: 120000 })
-  /** Le bouton `quoi` du panneau d'outils, amené à l'écran par la molette sur le panneau, vers le bas puis vers le haut,
-   *  puis cliqué : chaque cran republie l'écran. */
+  /** Le bouton `quoi` du panneau d'outils, amené à l'écran par la molette sur le panneau, vers le bas jusqu'à ce que
+   *  l'écran ne bouge plus, puis vers le haut, puis cliqué : chaque cran republie l'écran. */
   const cliquerAuPanneau = async (quoi) => {
+    let sens = 100
+    let avant = null
     for (let n = 0; !trouver((await ecran()).boutons, quoi); n++) {
       assert.ok(n < 40, `${JSON.stringify(quoi)} amené par la molette sur le panneau`)
-      await molette(session, { surface: 'canvas', x: 160, y: 400 }, n < 20 ? 100 : -100)
+      const vus = JSON.stringify((await ecran()).boutons.map((b) => [b.element, b.y]))
+      if (vus === avant) sens = -sens
+      avant = vus
+      await molette(session, { surface: 'canvas', x: 160, y: 400 }, sens)
       await sleep(250)
     }
     await cliquerBouton(quoi)
@@ -1014,7 +1021,7 @@ async function parcoursEditeur() {
   await cliquerPoint(...cote)
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes + 1}`)
   noter(`outil Murs, clic entre (${x0}, ${y0}) et (${x0 + 1}, ${y0}) : ${aretes} puis ${aretes + 1} arêtes sur le monde`)
-  await cliquerBouton({ element: 'bouton/outil/select' })
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
   await cliquerPoint(...cote)
   await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.arete != null')
   e = await editeur()
@@ -1067,24 +1074,51 @@ async function parcoursEditeur() {
   const decor = e.surcouche.reperes.find((r) => r.choisi)
   assert.deepEqual([decor.sorte, decor.x, decor.y, decor.nom, e.noms[`${dx},${dy},0`]], ['prop', dx, dy, catalogue.libelle, catalogue.libelle], 'l’outil Décor pose le décor choisi sur la case cliquée, sélectionné, nommé au-dessus d’elle')
   noter(`outil Décor, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
-  const champ = (await ecran()).saisies.find((x) => x.element === 'saisieTexte/nommer/nom')
+  const champDuNom = async () => (await ecran()).saisies.find((x) => x.element === 'saisieTexte/nommer/nom')
+  for (let n = 0; (await champDuNom()).y > 480; n++) {
+    assert.ok(n < 20, 'le champ du nom amené par la molette au milieu du panneau')
+    await molette(session, { surface: 'canvas', x: 160, y: 400 }, 100)
+    await sleep(250)
+  }
+  const champ = await champDuNom()
   assert.equal(champ?.texte, decor.nom, 'le champ du nom, prérempli, à l’inspecteur')
   await geste(session, { surface: 'canvas', x: champ.x, y: champ.y }, { qui: 'le champ du nom' }, clic())
   await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
   for (let n = 0; n < champ.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
   for (const lettre of 'Comptoir') await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
+  await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === 'saisieTexte/nommer/nom')?.texte === 'Comptoir'`)
   await cliquerBouton({ element: 'formulaire/nommer' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.noms['${dx},${dy},0'] === 'Comptoir'`)
   noter(`« Renommer » : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
   await capturer('3508-l3-1-decor-nomme')
-  await cliquerBouton({ element: 'bouton/copier' })
-  await cliquerBouton({ element: 'bouton/outil/select' })
+  await cliquerAuPanneau({ element: 'bouton/copier' })
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
   await cliquerPoint(...cases[`${dx + 2},${dy}`])
-  await cliquerBouton({ element: 'bouton/coller' })
+  await cliquerAuPanneau({ element: 'bouton/coller' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.noms['${dx + 2},${dy},0'] === 'Comptoir'`)
   e = await editeur()
   noter(`« Copier », un clic sur la case ${dx + 2}, ${dy}, « Coller » : ${e.surcouche.reperes.filter((r) => r.nom === 'Comptoir').map((r) => `${r.x}, ${r.y}`).join(' et ')}`)
   await capturer('3508-l3-2-decor-colle')
+  const inspecte = (e, id) => e.zones['editeur.inspecteur'].find((el) => el.id === id)
+  await cliquerAuPanneau({ element: 'bouton/lumiere' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'lumiere/rayon')`)
+  await cliquerAuPanneau({ element: 'bouton/lumiere/plus' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'lumiere/rayon')?.texte.includes('7 m')`)
+  e = await editeur()
+  noter(`« Source de lumière », « Rayon +1 m » : ${inspecte(e, 'lumiere/rayon').texte}`)
+  await capturer('3508-l3b-1-lumiere')
+  const [ex, ey] = Object.keys(cases).map((k) => k.split(',').map(Number)).find(([x, y]) => libre([x, y]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2))
+  await cliquerAuPanneau({ element: 'bouton/outil/emplacement' })
+  await cliquerPoint(...cases[`${ex},${ey}`])
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((c) => c.id === 'poste/arc')`)
+  await cliquerAuPanneau({ element: 'bouton/poste/arc/tribord' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((c) => c.id === 'poste/arc')?.valeurs.find((b) => b.id === 'poste/arc/tribord')?.presse === true`)
+  e = await editeur()
+  const engin = inspecte(e, 'poste/engin').valeurs.find((b) => b.presse).libelle
+  assert.equal(e.surcouche.reperes.find((r) => r.choisi)?.nom, engin, 'l’emplacement porte le nom de son engin')
+  noter(`outil Emplacement de siège, un clic sur la case ${ex}, ${ey}, puis « Droite (tribord) » : ${engin}, créneau tribord`)
+  await capturer('3508-l3b-2-emplacement')
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
   await waitFor(session, 'globalThis.wfrpEcran?.editeur?.zones["editeur.inspecteur"].length === 0')
   const planche = join(depot, 'planche.png')

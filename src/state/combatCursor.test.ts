@@ -204,7 +204,7 @@ describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) —
     const b0 = useGame.getState().battle!;
     const soldat = b0.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
     useGame.setState({ battle: { ...b0, turn: b0.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
-    useGame.getState().battlePushEngine();
+    useGame.getState().pousserLEngin();
     expect(useGame.getState().battle!.action).toBe('push');
     // Pousser vers le NORD (vers la porte) : un pas AXIAL de grille (dx=0,dy=-1) — le cas que le biais
     // diagonal-only de `nextCursorTile` ne pouvait jamais atteindre en un seul appui.

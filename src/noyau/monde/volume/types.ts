@@ -76,3 +76,43 @@ export interface FloorEl extends ElBase {
   kind: 'floor';
   faces: Face[];
 }
+/** Ligne SÉMANTIQUE d'un toit, en MONDE : faîte (crête horizontale), arêtier (crête/noue diagonale),
+ *  égout (bord bas de la nappe), rang (rangée de tuiles le long de la pente). Les backends la stylent
+ *  depuis la def du matériau (`line`/`course`) — le builder ne connaît que la géométrie. */
+export type RoofLineKind = 'faite' | 'aretier' | 'egout' | 'rang';
+export interface RoofLine {
+  a: GP;
+  b: GP;
+  kind: RoofLineKind;
+}
+export interface RoofEl extends ElBase {
+  kind: 'roof';
+  /** Relations stables d'une masse architecturale authorée. Absentes sur un `RoofEl` construit à la main. */
+  bodyId?: string;
+  sectionId?: string;
+  panId?: string;
+  roomZoneIds?: string[];
+  profile?: 'gable' | 'hip' | 'shed' | 'flat';
+  ridge?: 'x' | 'y';
+  pitch?: number;
+  /** ALTITUDE (m) du bord bas de la nappe — SEULE vérité de hauteur du toit, requise : les DEUX
+   *  backends s'en servent (pans par `projGP`, modes plan par `metricToLift`). L'index de couche
+   *  `cell.z` désigne un étage, pas une hauteur (le plancher porte du relief). */
+  eaveHeightM: number;
+  /** Cellules exactes de l'empreinte, triées par y puis x. */
+  cells: { x: number; y: number }[];
+  /** Empreinte du toit (cases) — profondeur de tri au coin caméra-proche (`footprintDepth`). */
+  span: { w: number; h: number };
+  /** Matériau de couverture (id `RoofMaterialDef`) : chaque backend résout les teintes par `part`. */
+  material: string;
+  /** Grande union irrégulière : rangs espacés et détail clippé désactivé. */
+  simplifiedCourses?: boolean;
+  /** Étiquette du mode plan (vue du dessus / éditeur). */
+  label: string;
+  /** PANS CONTINUS : UNE face par pan (plane 'slope', part = orientation N/E/S/O de la pente
+   *  DESCENDANTE) — plus aucune nappe par-cellule. Le VOLUME de l'avant-toit ajoute, par égout, une face
+   *  `part:'soffite'` (débord coplanaire) et une face `part:'fascia'` (planche de rive verticale, sombre)
+   *  — teintées par le backend depuis la def du matériau (`soffite`/`fascia`). */
+  faces: Face[];
+  lines: RoofLine[];
+}

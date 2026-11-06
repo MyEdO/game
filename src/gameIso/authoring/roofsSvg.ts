@@ -15,10 +15,11 @@
  * de l'élément. Toute couleur vient du JSON (`materials.json`, domaine `roof`) ou de `shade`.
  */
 import { diamondPath, footprintDepth, isSquareView, tileCenter, type Dims } from '../../geometry/iso';
-import { roofMaterial, type RoofMaterialDef } from '../catalog/roofs';
-import { ROOF_SLOPE_M } from '../builders/roofs';
+import { roofMaterial } from '../../noyau/monde/volume/matieres';
+import type { RoofMaterialDef } from '../../data/materials.types';
+import { ROOF_SLOPE_M } from '../../noyau/monde/volume/toits';
 import { roofCourseStepM } from '../detail/courses';
-import { ISO_PX_PER_M } from '../iso';
+import { ISO_PX_PER_M } from '../../noyau/monde/iso';
 import {
   detailOf,
   projTag,
@@ -32,12 +33,12 @@ import {
 import { hash32, seedStream } from '../../data/hash';
 import { matierePlan } from '../../data';
 import { ACCENT_FRAC, BLOCK_INSET_M, BLOCK_SHADE_K } from '../detail/expand';
-import { shade, mix } from '../shade';
+import { shade, mix } from '../../lib/ombrage';
 import type { DetailRecipe } from '../../data/materials.types';
 import { projGP, type Pt2 } from './project';
 import { structureFaceSvg } from './wallsSvg';
 import { metricToLift } from '../../noyau/monde/relief';
-import type { RoofEl } from '../builders/types';
+import type { RoofEl } from '../../noyau/monde/volume/types';
 import type { GP } from '../../noyau/monde/volume/types';
 
 // Épaisseurs ÉCRAN (px) des lignes — des formes, jamais des identités de couleur.
@@ -78,7 +79,7 @@ const roofLift = (el: RoofEl): number => metricToLift(el.eaveHeightM);
  *  d'égout de son propre toit. */
 const CLOSURE_DEPTH_BIAS = 0.05;
 
-/** Une fermeture de comble ne porte QUE de la matière de mur (cf. `builders/roofs.ts`) : c'est ce qui
+/** Une fermeture de comble ne porte QUE de la matière de mur (cf. `noyau/monde/volume/toits.ts`) : c'est ce qui
  *  la distingue d'un pan, sans champ de plus sur l'élément. */
 const isClosure = (el: RoofEl): boolean => !el.faces.some((f) => f.material.domain === 'roof');
 
@@ -255,7 +256,7 @@ function pansSvg(el: RoofEl, dims: Dims, opts?: DetailOpts): string {
   const detailLod = el.simplifiedCourses ? 0 : lod;
   const c = sh.detail?.courses;
   // FERMETURE DE COMBLE : une face de la nappe dont la matière est celle du MUR qu'elle prolonge
-  // (`domain:'structure'`, cf. `builders/roofs.ts`) — peinte par le backend des MURS, la source unique
+  // (`domain:'structure'`, cf. `noyau/monde/volume/toits.ts`) — peinte par le backend des MURS, la source unique
   // de l'appareillage et du colombage. Elle vit dans la nappe pour en suivre le dégagement, pas pour en
   // prendre la couverture.
   const structure = el.faces
