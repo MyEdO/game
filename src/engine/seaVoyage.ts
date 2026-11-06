@@ -19,13 +19,13 @@
 import seaEventsJson from '../data/sea-events.json';
 import { t } from '../i18n';
 import seaCargoJson from '../data/sea-cargo.json';
+import type { SeaCargoData } from '../data/schemas/defs/sea-cargo';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { d10, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { TestExige } from './flowCore';
-import type { CibleEtendue } from '../data/schemas/grammaire/valeurs';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
@@ -72,30 +72,9 @@ const EVENTS = seaEventsJson as unknown as {
 
 /** Palier de SURCHARGE de la cale (MDG 12 l.70-75) : `fromPct` = seuil strict (>) en % de la Contenance,
  *  `mMod`/`manoeuvreDR` = −M et −DR Manœuvre appliqués au navire. */
-export interface OverloadPalier { id: string; fromPct: number; label: string; mMod: number; manoeuvreDR: number }
+type OverloadPalier = SeaCargoData['overload']['paliers'][number];
 
-/** Bande du tableau du Prix d'offre (l.378-383) : fourchette de Richesse + Taille + Demande
- *  (`BandeOuverte`, tronc commun) et son % du prix de base. */
-interface OfferPriceBand extends BandeOuverte { pct: number }
-
-const CARGO = seaCargoJson as unknown as {
-  overload: { hardCapPct: number; paliers: OverloadPalier[] };
-  buy: { availabilityMultiplier: number; merchantSkill: { d10: number; plus: number }; bigPortSkill: { d10: number; plus: number }; partialPurchaseSellerDR: number; surplusSellerDR: number };
-  sell: {
-    offerPrice: OfferPriceBand[];
-    noProduceTargetPerSize: number; commerceBonus: number;
-    producesGossip: { difficulty: Difficulty; targetPerSize: number; minMilles: number };
-    surplusGossip: { difficulty: Difficulty; targetPerSize: number };
-    sellerDR: { noProduce: number; demand: number; produces: number; surplus: number };
-    dumpingPctOfBase: number;
-  };
-  opportunite: {
-    investMaxEnc: boolean;
-    test: TestExige<'skill' | 'difficulty'>;
-    maxAttempts: number;
-    outcomes: { on: 'success' | 'failure'; minMissing?: number; minExtraDR?: number; pct: number }[];
-  } & CibleEtendue;
-};
+const CARGO = seaCargoJson as SeaCargoData;
 
 export const MANANN_FACTORS = EVENTS.manann.factors;
 export const BOARD_EVENTS = EVENTS.boardEvents;
@@ -108,16 +87,17 @@ export const evenementsDeBord = memoParVersion('seaBoardEvents', () => tableOuve
 export const DE_DES_EVENEMENTS_DE_BORD = 'd100';
 const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(EVENTS.portEvents));
 const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(EVENTS.fastVoyage.paliers);
-export const OPPORTUNITE = CARGO.opportunite;
+/** `test` exige `skill` et `difficulty` au parse (`exigerDuTest`, `defs/sea-cargo.ts`). */
+export const OPPORTUNITE = CARGO.opportunite as SeaCargoData['opportunite'] & { test: TestExige<'skill' | 'difficulty'> };
 /** La table du Prix d'offre telle que `findTableEntry` la lit (`tableOuverte`, tronc commun — sa
  *  dernière bande est OUVERTE, MDG 15 l.383 « 4 ou plus »). */
-const OFFER_PRICE_LOOKUP = tableOuverte(CARGO.sell.offerPrice);
+const bandesDuPrixDOffre = memoParVersion('seaCargo', () => tableOuverte(CARGO.sell.offerPrice));
 export const findManannFactor = (id: string): ManannFactor | undefined => EVENTS.manann.factors.find((f) => f.id === id);
 
 // ── Surcharge de la cale (MDG 12 l.70-75) ──────────────────────────────────────────────────────
 
 /** Plafond DUR de charge (% de la Contenance) : au-delà « Impossible de prendre la mer » (MDG 12 l.75). */
-export const OVERLOAD_HARD_CAP_PCT: number = CARGO.overload.hardCapPct;
+export const overloadHardCapPct = (): number => CARGO.overload.hardCapPct;
 
 /** État de SURCHARGE d'une cale : palier RAW atteint + effets, et `canSail` = false au-delà du plafond dur. */
 export interface CargoOverload {
@@ -146,13 +126,13 @@ export function cargoOverload(enc: number, capacity: number): CargoOverload {
     label: chosen ? chosen.label : t('cargo.chargeNominale'),
     mMod: chosen?.mMod ?? 0,
     manoeuvreDR: chosen?.manoeuvreDR ?? 0,
-    canSail: ratio <= OVERLOAD_HARD_CAP_PCT / 100,
+    canSail: ratio <= overloadHardCapPct() / 100,
   };
 }
 
 /** Enc maximum EMBARQUABLE avant le plafond dur (MDG 12 l.75) — Contenance × 150 %. PUR. */
 export function overloadMaxEnc(capacity: number): number {
-  return Math.floor(capacity * OVERLOAD_HARD_CAP_PCT / 100);
+  return Math.floor(capacity * overloadHardCapPct() / 100);
 }
 
 /** Seuils de palier de surcharge en Enc pour une Contenance `capacity` (MDG 12 l.70-75). PUR. */
@@ -324,13 +304,14 @@ export function sellChance(port: PortProfile, cargoId: string, milles: number): 
  *  prix de base plein à un lieu que la table ne couvre pas. */
 export function offerPricePct(port: PortProfile, cargoId: string): number {
   const sum = port.richesse + port.taille + (port.demande?.[cargoId] ?? 0);
-  const i = findTableEntryIndex(OFFER_PRICE_LOOKUP, sum);
+  const bandes = bandesDuPrixDOffre();
+  const i = findTableEntryIndex(bandes, sum);
   if (i < 0) {
     throw new Error(
       `Prix d'offre : Richesse (${port.richesse}) + Taille (${port.taille}) + Demande (${port.demande?.[cargoId] ?? 0}) = ${sum}, hors du tableau (MDG 15 l.378-383, bandes 1 à « 4 ou plus ») — cargaison ${cargoId}.`,
     );
   }
-  return 100 + OFFER_PRICE_LOOKUP[i].pct;
+  return 100 + bandes[i].pct;
 }
 
 /** BRADER une cargaison invendable (l.399) : « pour un quart de son prix de base dans n'importe quel

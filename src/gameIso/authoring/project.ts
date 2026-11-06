@@ -18,7 +18,7 @@
  */
 import { tileCenter, type Dims } from '../../geometry/iso';
 import { metricToLift } from '../../noyau/monde/relief';
-import type { GP } from '../builders/types';
+import type { GP } from '../../noyau/monde/volume/types';
 
 export type Pt2 = [number, number];
 

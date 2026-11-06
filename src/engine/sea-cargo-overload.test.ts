@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cargoOverload, overloadMaxEnc, OVERLOAD_HARD_CAP_PCT } from './seaVoyage';
+import { cargoOverload, overloadMaxEnc, overloadHardCapPct } from './seaVoyage';
 
 /**
  * SURCHARGE de la cale (MDG 12 l.70-75, Contenance) : paliers d'assiette au-delà de la Contenance —
@@ -52,7 +52,7 @@ describe('cargoOverload — paliers d’assiette (MDG 12 l.70-75)', () => {
   });
 
   it('overloadMaxEnc = Contenance × plafond dur (150 %)', () => {
-    expect(OVERLOAD_HARD_CAP_PCT).toBe(150);
+    expect(overloadHardCapPct()).toBe(150);
     expect(overloadMaxEnc(CAP)).toBe(450);
     expect(overloadMaxEnc(0)).toBe(0);
   });

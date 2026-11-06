@@ -8,7 +8,7 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
-import { buildSeaPlan, runSeaDay, continueSeaDayAfterCascade, resolveShoreLeave } from './seaVoyageFlow';
+import { buildSeaPlan, runSeaDay, continueSeaDayAfterCascade } from './seaVoyageFlow';
 import { runCascadeImmediate } from './cascade';
 import { checkPartyWiped } from './partyWipe';
 import { setCadence } from '../engine/cadence';
@@ -148,7 +148,7 @@ describe('#1595 — relâche à terre résolue sur place : un groupe à terre n�
 
     set({ party: aTerre(get().party) });
     setCadence('rapide');
-    resolveShoreLeave(get, set, true);
+    get().fenetreChoisir('shoreLeave', 'accorder', true);
 
     expect(get().partyWiped).toBe(true);
     expect(get().journal.some((l) => l.includes('Événement de port')), 'aucun événement de port sous l’écran de défaite').toBe(false);

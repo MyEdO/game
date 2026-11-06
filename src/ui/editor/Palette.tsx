@@ -18,7 +18,7 @@ import { OptionChooser } from '../OptionChooser';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { terrainIds, terrainLabel } from '../../noyau/monde/terrain';
 import { propDeclaredFoot } from '../../noyau/monde/footprint';
-import { terrainDef } from '../../gameIso/catalog/terrain';
+import { terrainDef } from '../../noyau/monde/volume/matieres';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
 import { premierOffert, profilsStandard, refEstVolumique, structures } from '../../data';
 import { structureAppearance } from '../../gameIso/catalog/structures';

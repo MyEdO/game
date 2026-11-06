@@ -41,6 +41,8 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // La validation d'une fenêtre (`modalArbiter.validationDeLaFenetre`) : le bouton qui la valide ; pour la pause de
   // Round, l'entrée `round-start` du registre, que le bandeau et la touche partagent (#1411 P2-A).
   fenetreValider: { parUI: true },
+  // Le choix d'une fenêtre (`choixDesFenetres.CHOIX_DES_FENETRES`) : le bouton de chaque valeur de son écran.
+  fenetreChoisir: { parUI: true },
   // Demande de pause au prochain Round : l'interrupteur du pied de FRISE (`raise-hand`, relais du
   // registre). Les deux sens passent par le même dispatcher, d'où le retrait `interne`.
   raiseHand: { parUI: true },

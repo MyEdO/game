@@ -10,7 +10,7 @@
  */
 import { VIEWS, type View } from '../facing';
 import { tableTotale } from '../../lib/tableTotale';
-import { MISSING_TONE, MISSING_TONE_DARK } from '../teamColors';
+import { MISSING_TONE, MISSING_TONE_DARK } from '../../noyau/monde/volume/missing';
 
 /** Art orienté par FONCTIONS de rendu, une par vue déclarée.
  *  @template A arguments passés à chaque vue — `[params, ctx]` pour un prop. */

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFloors } from './floors';
+import { buildFloors } from '../../noyau/monde/volume/floors';
 import { buildWalls } from './walls';
 import { buildRoofs } from './roofs';
 import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../noyau/monde/scene';

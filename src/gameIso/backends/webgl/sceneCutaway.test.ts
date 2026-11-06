@@ -18,7 +18,7 @@ import {
   type KeepEl,
 } from './sceneMeshes';
 import { memoByRefDeps } from '../../../noyau/monde/sceneMemo';
-import { facesGeometry } from './worldTris';
+import { facesGeometry } from '../../../noyau/monde/volume/worldTris';
 import { faceDepthOf } from './faceRelief';
 import { mountGroundAccentLots, reposeGroundAccents, sceneGroundAccents } from './groundAccents';
 import type { SceneEl } from '../../builders/types';

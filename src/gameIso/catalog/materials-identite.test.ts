@@ -4,7 +4,7 @@ import { materials, matieresDe, findTeinteById, findCouleurById, structureAppear
 import { DOMAINES_MATIERE, type MaterialEntry } from '../../data/materials.types';
 import { propMaterial } from './propMaterials';
 import { roofMaterial } from './roofs';
-import { reliefMaterial } from './relief';
+import { reliefMaterial } from '../../noyau/monde/volume/matieres';
 import { terrains } from '../../data/index';
 
 /**

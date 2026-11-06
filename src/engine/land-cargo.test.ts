@@ -74,8 +74,8 @@ describe('Commerce terrestre MSRC 13 — ACHAT (l.22-131)', () => {
 
   it('Marchandage : marchand 2d10+30 (l.129) ; lot partiel +10 %, mini 10 Enc (l.131)', () => {
     expect(rollMerchantSkill(seq(6, 4))).toBe(40); // 6+4+30
-    expect(partialSurchargePct).toBe(10);
-    expect(minCargoEnc).toBe(10);
+    expect(partialSurchargePct()).toBe(10);
+    expect(minCargoEnc()).toBe(10);
   });
 });
 

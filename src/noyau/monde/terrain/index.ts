@@ -158,7 +158,7 @@ export function terrainSolidHeightM(id: string): number {
   return indexDesTerrains()[id]?.solidHeightM ?? 0;
 }
 /** MATIÈRE des faces verticales du BLOC PLEIN d'un terrain (#1691) — id de `materials.json` domaine
- *  `relief`, lu par `gameIso/builders/floors.ts`. `undefined` sur un terrain sans bloc plein : le
+ *  `relief`, lu par `noyau/monde/volume/floors.ts`. `undefined` sur un terrain sans bloc plein : le
  *  schéma exige le champ si et seulement si `solidHeightM` est posée, l'appelant n'a donc à le
  *  demander que pour un bloc. */
 export function terrainMatiere(id: string): string | undefined {

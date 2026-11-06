@@ -2,14 +2,14 @@
  * LA COMPOSITION D'UN PERSONNAGE SUR UNE BASE (#3086, D2 ; `CONTRAT.md`, section « Composition d'un personnage ») : le
  * Soldat de `catalogues` sur une base sans élément est tout entier manquant, chaque chose nommée par sa clé et par ce qui
  * l'apporte ; un plastron skinné et un accessoire de la base le montent sous la clé de leur ligne au panneau ; une
- * apparence variante monte son élément, à défaut celui de sa racine ; le sexe pose `feminin`, un gabarit non neutre change l'échelle de la racine, ses pieds sont ceux des appuis ;
+ * apparence variante monte son élément, à défaut celui de sa racine ; un élément monté prend la palette de la teinte de sa chose ; le sexe pose `feminin`, un gabarit non neutre change l'échelle de la racine, ses pieds sont ceux des appuis ;
  * le pont sert `composer` après `modeles`, `catalogues` et ses axes, et `presetDeComposition`, l'enveloppe du preset nommé
  * reprise, et refuse en `validation` une composition absente ou fautive, au chemin de la faute, et un preset inconnu.
  */
 import { describe, expect, it } from 'vitest';
 import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
 import { empreinte } from '../asset/empreinte.ts';
-import { cataloguesDeComposition, findCouleurById, lireComposition, porteeDeComposition, SLOTS } from '../../../src/noyau/index';
+import { cataloguesDeComposition, findCouleurById, findTeinteById, lireComposition, porteeDeComposition, SLOTS } from '../../../src/noyau/index';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import presets from '../../../src/data/presets-de-personnage.json';
 import { modelesDeLAtelier } from './atelier';
@@ -108,6 +108,16 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
     appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] } });
     expect(appeler('composer', { base: 'autre', composition: soldat }).erreur.categorie).toBe('validation');
     expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'montes', 'morphes', 'ok', 'palette', 'rapport']);
+  });
+
+  it('un élément monté prend la palette de la teinte de sa chose portée (#3456) ; une chose sans élément, aucune', () => {
+    const portee = porteeDeComposition(soldat);
+    const teintee = { ...portee, portees: portee.portees.map((p) => (p.cle.id === 'plastron' ? { ...p, teinte: 'aethyrique' } : p)) };
+    const modeles = modelesDeLAtelier({ humanoide, plastron }, { humanoide: [], plastron: ['root'] });
+    const { montes } = composerSurLaBase(modeles.bases[0], { humanoide, plastron }, teintee);
+    expect(montes).toContainEqual({ ligne: 'ligne/piece/plastron', element: 'plastron', palette: findTeinteById('aethyrique')!.palette });
+    const sansElement = composerSurLaBase(modeles.bases[0], { humanoide, plastron }, { ...teintee, portees: teintee.portees.map((p) => (p.cle.id === 'casque' ? { ...p, teinte: 'aethyrique' } : p)) });
+    expect(sansElement.montes).toContainEqual({ ligne: 'ligne/piece/casque', element: null });
   });
 
   it('composer publie la palette de la composition, chaque couleur du nuancier résolue en `#rrggbb` ; sans `couleurs`, aucune', () => {

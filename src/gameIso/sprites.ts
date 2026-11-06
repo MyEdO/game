@@ -2,7 +2,7 @@
  * `<defs>` de dégradés partagés du rendu iso : `defsGlobaux()` regroupe tous les dégradés.
  */
 import { MISSING_GRADIENT, terrainGradientId } from './catalog/terrain';
-import { MISSING_TONE, MISSING_TONE_DARK } from './catalog/missing';
+import { MISSING_TONE, MISSING_TONE_DARK } from '../noyau/monde/volume/missing';
 import { tousLesTerrains, terrainStopsOrdonnes } from '../noyau/monde/terrain';
 import { type TerrainDef } from '../data/terrains.types';
 import { memoParVersion } from '../data/versionDataset';

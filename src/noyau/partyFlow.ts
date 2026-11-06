@@ -10,8 +10,8 @@ import { possessionLabel } from '../engine/possession';
 import { resolveCarrier, porteurLocalise } from './monde/carrier';
 import { carriersColocated } from '../engine/cargo';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
-import { refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
-import { refusDepensePx, mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from './depenseDePx';
+import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
+import { mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from './depenseDePx';
 import {
   buyCharAdvance as engineBuyCharAdvance,
   buySkillAdvance as engineBuySkillAdvance,

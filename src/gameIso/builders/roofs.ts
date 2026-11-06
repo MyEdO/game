@@ -40,8 +40,9 @@ import type { StructureAppearanceDef } from '../../data/structureAppearance.type
 import { WALL_H_M, isoPxToM } from '../iso';
 import { roomTilesById, isRoomZone, occupiedRoomIds, roomTiles } from '../../noyau/monde/rooms';
 import { cutawayForSection, type ClearedSpace } from '../stage/architectureVisibility';
-import type { CellSide, Face, GP, RoofEl, RoofLine, RoofLineKind } from './types';
-import { viewedBuilder, type Viewed, type ViewRule } from './viewTruth';
+import type { CellSide, RoofEl, RoofLine, RoofLineKind } from './types';
+import type { Face, GP } from '../../noyau/monde/volume/types';
+import { viewedBuilder, type Viewed, type ViewRule } from '../../noyau/monde/volume/viewTruth';
 import { parUnitesDeCode } from '../../lib/ordre.mjs';
 
 /** Le nom PEINT sur le plan pour une pièce de nappe (`authoring/roofsSvg`) : le libellé authoré du

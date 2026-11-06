@@ -905,14 +905,14 @@ export function fauteDEspece(id: string): string | null {
   return especeDApparenceSchema.safeParse(id).success ? null : messageDEspeceInconnue(id);
 }
 
-/** Tenue d'apparence qui se FERME sur la donnée : carrière, classe de carrière, ou `nu`. #3116 */
-export const tenueFermeeSchema: z.ZodType<string, string> = z.union([idDe('career'), idDe('classe'), z.literal('nu')], {
+/** Tenue d’apparence qui se FERME sur la donnée : carrière ou `nu`. #3116, #3456 */
+export const tenueFermeeSchema: z.ZodType<string, string> = z.union([idDe('career'), z.literal('nu')], {
   error: (iss) => messageDeTenueInconnue(String(iss.input)),
 });
 
 /** Refus d'une tenue hors de `tenueFermeeSchema`. */
 export function messageDeTenueInconnue(id: string): string {
-  return `tenue « ${id} » inconnue : ni carrière, ni classe de carrière, ni « nu ».`;
+  return `tenue « ${id} » inconnue : ni carrière, ni « nu ».`;
 }
 
 export const emblemeSchema = ref('gardeRobe', undefined, 'embleme');
