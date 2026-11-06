@@ -34,9 +34,9 @@ const hero = (id: string, label: string): Combatant => (blessuresSurLeProfil({
 }) as Combatant);
 
 const POSTES: Poste[] = [
-  { id: 'plein-air', label: 'Plein air', skills: [] },
-  { id: 'approvisionnement', label: 'Approvisionnement', skills: [] },
-  { id: 'monter-camp', label: 'Monter le camp', skills: [] },
+  { id: 'plein-air', label: 'Plein air' },
+  { id: 'approvisionnement', label: 'Approvisionnement' },
+  { id: 'monter-camp', label: 'Monter le camp' },
 ];
 
 const HEROES = [hero('h1', 'Hilda'), hero('h2', 'Gunnar')];
