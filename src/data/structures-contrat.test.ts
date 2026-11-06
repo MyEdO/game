@@ -1489,13 +1489,10 @@ const SONDE_DEF = [
 const SAISONS = (valeur: string) =>
   `z.strictObject({ printemps: ${valeur}, ete: ${valeur}, automne: ${valeur}, hiver: ${valeur} })`;
 
-/** Une contrefaçon RE-TAPÉE dans les deux defs de commerce d'une racine (`schemas` = son dossier de schémas) : le
- *  champ `cle` de la rangée marchande (`cargaisonMarchandeSchema`) re-déclaré au site. */
-const reTape = (cle: string, valeur: string) => (schemas: string) => {
-  for (const def of ['sea-cargo.ts', 'land-cargo.ts']) {
-    const chemin = join(schemas, 'defs', def);
-    writeFileSync(chemin, `${readFileSync(chemin, 'utf8')}\nexport const contrefacon = z.strictObject({ ${cle}: ${valeur} });\n`, 'utf8');
-  }
+/** Une contrefaçon RE-TAPÉE dans le def du catalogue des cargaisons d'une racine (`schemas` = son dossier de schémas). */
+const reTape = (remplace: (source: string) => string) => (schemas: string) => {
+  const chemin = join(schemas, 'defs', 'cargoes.ts');
+  writeFileSync(chemin, remplace(readFileSync(chemin, 'utf8')), 'utf8');
 };
 
 /** Le Test COMPOSÉ de `sea-perils.ts › freeTest`, tel que le def l'écrit. */
@@ -1519,8 +1516,13 @@ const SONDES = Object.fromEntries(DOSSIERS_DE_DEFS.map((dossier) => [sondeDans(d
 /** Les mutations, chacune posée sur le dossier de schémas de SA racine `apres`. La clé nomme le verdict. */
 const MUTATIONS: Record<string, (schemas: string) => void> = {
   ...SONDES,
-  cfAvail: reTape('avail', SAISONS('plageSchema')),
-  cfPrix: reTape('price', `z.union([${SAISONS('z.number()')}, z.strictObject({ dice: diceSpecSchema })])`),
+  cfAvail: reTape((source) => source.replace('avail: dispoSaisonniereSchema.optional(),', `avail: ${SAISONS('plageSchema')}.optional(),`)),
+  cfPrix: reTape((source) =>
+    source.replace(
+      'price: z.union([prixSaisonnierSchema, tirageSchema]).optional(),',
+      `price: z.union([${SAISONS('z.number()')}, z.strictObject({ dice: diceSpecSchema })]).optional(),`,
+    ),
+  ),
   cfTestNomme: reTapeFreeTest('skill: z.string(), difficulty: difficultySchema'),
   cfTestSansSujet: reTapeFreeTest('difficulty: difficultySchema'),
 };
@@ -1589,19 +1591,18 @@ describe('scannerRedeclarations — contrôle POSITIF du détecteur (#1654)', ()
  *
  * La décrue d'un stock de redéclarations est toujours suspecte : un nœud de grammaire inventé pour
  * UN porteur ferait DISPARAÎTRE la ligne sans que la structure change (le scan ne résout ni une
- * fabrique ni un spread). Ici c'est l'INVERSE qu'on prouve : si les deux defs de commerce RE-TAPAIENT
+ * fabrique ni un spread). Ici c'est l'INVERSE qu'on prouve : si le def du catalogue des cargaisons RE-TAPAIT
  * ce que la grammaire déclare — la colonne à quatre saisons (CF1) ou l'union de prix (CF2) —, le
  * scanner le VERRAIT, nominativement. Le lot a donc rendu 3 lignes parce que les littéraux ont
  * disparu, pas parce que la mesure s'est éteinte.
  */
 describe('scannerRedeclarations — CONTREFACTUEL `parSaison` / `prix` (#1463 L-gram-3)', () => {
-  it('CF1 — `avail` re-tapé à la place de `parSaison` : DEUX lignes naissent, nominatives', () => {
+  it('CF1 — `avail` re-tapé à la place de `parSaison` : sa ligne naît, nominative', () => {
     const diff = verdictRedecl('cfAvail');
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
     expect(diff.perdues, 'la copie a PERDU des redéclarations : la contrefaçon n’est pas isolée.').toEqual([]);
     expect(diff.nees, 'un `avail` re-tapé n’est PAS vu : `parSaison` masquerait la mesure au lieu de la solder.').toEqual([
-      'land-cargo.ts | avail | automne,ete,hiver,printemps |  | hors lexique | parSaison',
-      'sea-cargo.ts | avail | automne,ete,hiver,printemps |  | hors lexique | parSaison',
+      'cargoes.ts | avail | automne,ete,hiver,printemps |  | hors lexique | parSaison',
     ]);
   });
 
@@ -1610,10 +1611,8 @@ describe('scannerRedeclarations — CONTREFACTUEL `parSaison` / `prix` (#1463 L-
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
     expect(diff.perdues, 'la copie a PERDU des redéclarations : la contrefaçon n’est pas isolée.').toEqual([]);
     expect(diff.nees, 'un `price` re-tapé n’est PAS vu : les deux nœuds `prix` masqueraient la mesure.').toEqual([
-      'land-cargo.ts | price | automne,ete,hiver,printemps | prix | declaree | parSaison',
-      'land-cargo.ts | price | dice | prix | declaree | tirageSchema',
-      'sea-cargo.ts | price | automne,ete,hiver,printemps | prix | declaree | parSaison',
-      'sea-cargo.ts | price | dice | prix | declaree | tirageSchema',
+      'cargoes.ts | price | automne,ete,hiver,printemps | prix | declaree | parSaison',
+      'cargoes.ts | price | dice | prix | declaree | tirageSchema',
     ]);
   });
 });

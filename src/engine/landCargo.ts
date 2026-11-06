@@ -1,6 +1,6 @@
 /**
  * COMMERCE TERRESTRE & FLUVIAL — couche PURE de Mort sur le Reik Compagnon ch.11 « Règles du commerce »
- * (p.70-78), données verbatim `land-cargo.json`. PARENT terrestre du commerce maritime (MDG 15) : il
+ * (p.70-78), données verbatim `land-cargo.json` et voie `terre` de `cargoes.json`. PARENT terrestre du commerce maritime (MDG 15) : il
  * réutilise le TRONC COMMUN `cargo.ts` (modèle de lot, tirage saisonnier, prix de base, Marchandage) et
  * n'ajoute QUE ce que le RAW MSRC diffère du maritime :
  *  - Disponibilité en DEUX temps (l.22-38) : d'abord une CHANCE de trouver un marchand ((Taille + Richesse)
@@ -14,54 +14,28 @@
  *    bien correspondant s'y vend le DOUBLE de son prix de base.
  */
 import landCargoJson from '../data/land-cargo.json';
+import type { LandCargoData } from '../data/schemas/defs/land-cargo';
 import { d10, d100, roll as rollDice, type RNG } from './dice';
 import { findTableEntry, findTableEntryIndex } from './tables';
-import { memoParVersion } from '../data/versionDataset';
 import type { Difficulty } from './types';
 import type { Season } from './travelStages';
-import { type CargoDef, type CargoMarkerDef, entreeDeCargaison, isEchangeable, isTradeHubColumn, marchandiseDeCargaison, rollSeasonalCargo, cargoBasePrice } from './cargo';
+import { type CargoDef, type Voie, isTradeHubColumn, marchandisesDe, rollSeasonalCargo, cargoBasePrice } from './cargo';
 
-/** Un type de cargaison terrestre = `CargoDef` + éventuel marqueur `wine` (prix par table de qualité, non
- *  par la colonne saisonnière). */
-export interface LandCargoDef extends CargoDef { wine?: boolean }
+/** La voie du catalogue que porte la table de ce livre (MSRC 13 l.71-78). */
+export const VOIE_TERRESTRE: Voie = 'terre';
 
-/** Une entrée du catalogue terrestre : marchandise ou MARQUEUR de la colonne Produits (« Commerce »,
- *  « Subsistance ») — même vocabulaire de colonne, exclusion portée en champ (`cargo.ts`). */
-export type LandCargoEntry = LandCargoDef | CargoMarkerDef;
+/** Rangée du Tableau des rumeurs commerciales (l.281-303). */
+export type RumourRow = LandCargoData['rumours'][number];
 
-interface WineTier { min: number; max: number; label: string; price: number }
-/** Bande du tableau de la Mise à prix (l.150-156) : fourchette d'Indice de richesse, bornes INCLUSIVES.
- *  Le livre imprime une ligne par indice (l.52-60 : 1 à 5) — les cinq bandes sont FERMÉES. */
-interface OfferRow { min: number; max: number; label: string; pct: number }
-export interface RumourRow { min: number; max: number; biens: string[]; desc: string }
-
-const LAND = landCargoJson as unknown as {
-  cargoes: LandCargoEntry[];
-  wineQuality: WineTier[];
-  buy: { availabilityMultiplier: number; merchantSkill: { d10: number; plus: number }; partialSurchargePct: number; minEnc: number; wineEvalDifficulty: Difficulty; wineEvalEasyDifficulty: Difficulty; wineAlcoholResistThreshold: number };
-  sell: { targetPerSize: number; commerceBonus: number; dumpingPctOfBase: number; offerByRichesse: OfferRow[] };
-  gossip: { difficulty: Difficulty; mod: number };
-  rumours: RumourRow[];
-};
+const LAND = landCargoJson as LandCargoData;
 
 export const WINE_QUALITY = LAND.wineQuality;
-/** Le catalogue COMPLET tel qu'il est authoré : marchandises ET marqueurs de la colonne Produits
- *  (MSRC 13 l.24-28, l.119). À n'employer que pour NOMMER une entrée de cette colonne. */
-export const LAND_CARGO_ENTRIES: readonly LandCargoEntry[] = LAND.cargoes;
-/** Catalogue ÉCHANGEABLE des cargaisons terrestres (Tableau des cargaisons, MSRC 13 l.71-90) : filtré
- *  À LA SOURCE sur le champ d'exclusion — source UNIQUE pour énumérer les Produits négociables d'un
- *  Lieu (éditeur de marché, négoce, Compendium), marqueurs jamais compris. */
-export const landCargoes = memoParVersion('landCargo', (): readonly LandCargoDef[] => LAND.cargoes.filter(isEchangeable) as LandCargoDef[]);
 /** Échelons de Richesse et leur Mise à prix — source UNIQUE des libellés d'authoring de l'éditeur de
  *  marché. Pourcentages de MSRC 13 l.150-156 ; libellés de l'échelle des indices l.52-60 (1 Pauvre …
  *  5 Florissant), que l'exemple l.174 confirme contre la colonne Description de l.150-156, décalée
  *  d'un cran dans le livre — arbitrage NOMMÉ en tête de
  *  `scripts/migrations/2026-09-01-1463-gram-seuils-prix-offre.mjs`. */
-export const LAND_RICHESSE_ROWS: readonly OfferRow[] = LAND.sell.offerByRichesse;
-/** Résout une MARCHANDISE terrestre (les marqueurs ne sont ni achetables ni vendables). */
-export const findLandCargoById = (id: string): LandCargoDef | undefined => marchandiseDeCargaison(LAND_CARGO_ENTRIES, id);
-/** Résout une entrée QUELCONQUE de la colonne Produits, marqueur compris (libellé d'affichage). */
-export const findLandCargoEntryById = (id: string): LandCargoEntry | undefined => entreeDeCargaison(LAND_CARGO_ENTRIES, id);
+export const LAND_RICHESSE_ROWS: readonly LandCargoData['sell']['offerByRichesse'][number][] = LAND.sell.offerByRichesse;
 
 /** Profil COMMERCIAL d'un Lieu terrestre/fluvial (Index géographique, l.183-278) — porté par le LIEU de
  *  la carte du monde (`MapPlace.market`, donnée d'auteur). Reproduit les colonnes de l'Index. */
@@ -72,14 +46,14 @@ export interface LandMarketProfile {
    *  indice, donc rien à authorer sous 1 (le schéma de scène borne la saisie à 1..5,
    *  `src/data/schemas/defs-scenes/worldmap.ts`). */
   richesse: number;
-  /** Colonne Produits : ids d'entrées de `land-cargo.json` — marchandises et/ou MARQUEURS (`echangeable:
-   *  false`), le catalogue porte les deux (l.24-28, l.119). */
+  /** Colonne Produits : ids d'entrées de la voie `terre` de `cargoes.json` — marchandises et/ou MARQUEURS
+   *  (`echangeable: false`), le catalogue porte les deux (l.24-28, l.119). */
   produits: string[];
   /** Biens en Demande (facultatif) — informatif / futur ; la Demande RAW dépend surtout de Taille+Commerce. */
   demande?: string[];
   /** Le Lieu tire sa Richesse du COMMERCE (colonne Produits « Commerce ») → centre de commerce : on inverse
    *  le d100 de quantité et on garde le plus grand (l.40-42). Champ AUTHORÉ, distinct de la qualité de
-   *  plaque tournante (`isLandTradeHub`) : l'inversion ne vise que les Lieux qui en TIRENT leur Richesse. */
+   *  plaque tournante (`isTradeHubColumn`) : l'inversion ne vise que les Lieux qui en TIRENT leur Richesse. */
   commerceRichesse?: boolean;
   /** Régions à Vin/Eau-de-vie supérieurs (Kemperbad, Brandenburg…) : +N échelons de qualité (l.95). */
   wineBonusEchelons?: number;
@@ -91,14 +65,9 @@ export interface LandMarketProfile {
   backdrop?: string;
 }
 
-/** La colonne Produits d'un Lieu TERRESTRE le désigne-t-elle comme plaque tournante (l.24-28) ? Lit le
- *  champ `tradeHub` de l'entrée marqueur du catalogue terrestre (SSOT `isTradeHubEntry`). PUR. */
-export const isLandTradeHub = (produits: readonly string[] | undefined): boolean =>
-  isTradeHubColumn(produits, findLandCargoEntryById);
-
 /** Le Lieu est-il une plaque tournante du Commerce (colonne Produits « Commerce », l.28) ? PUR. */
 export function hasCommerce(place: LandMarketProfile): boolean {
-  return isLandTradeHub(place.produits);
+  return isTradeHubColumn(place.produits);
 }
 
 /** % de CHANCE de trouver un marchand ayant une cargaison à vendre (l.24-26) : (Taille + Richesse) × 10. PUR. */
@@ -141,8 +110,8 @@ export function rollCargoQuantity(place: LandMarketProfile, rng: RNG): { d100: n
 }
 
 /** Cargaison ALÉATOIRE de la saison (Tableau des cargaisons aléatoires, l.71-78) — table TERRESTRE. PUR. */
-export function rollRandomLandCargo(season: Season, rng: RNG): LandCargoDef {
-  return rollSeasonalCargo([...landCargoes()], season, rng) as LandCargoDef;
+export function rollRandomLandCargo(season: Season, rng: RNG): CargoDef {
+  return rollSeasonalCargo([...marchandisesDe(VOIE_TERRESTRE)], season, rng);
 }
 
 /** ÉCHELON de qualité SECRÈTE d'une cargaison de Vin/Eau-de-vie (l.93-104) : 1d10 → qualité → prix de base
@@ -158,7 +127,7 @@ export function rollWineQuality(rng: RNG, bonusEchelons = 0): { roll: number; la
 
 /** Prix de BASE terrestre (CO par 10 Enc) : le Vin/Eau-de-vie passe par la table de qualité SECRÈTE
  *  (`rollWineQuality`, + bonus régional du Lieu) ; les autres biens par la colonne saisonnière. PUR. */
-export function landCargoBasePrice(cargo: LandCargoDef, season: Season, place: LandMarketProfile | undefined, rng: RNG): number {
+export function landCargoBasePrice(cargo: CargoDef, season: Season, place: LandMarketProfile | undefined, rng: RNG): number {
   if (cargo.wine) return rollWineQuality(rng, place?.wineBonusEchelons ?? 0).price;
   return cargoBasePrice(cargo, season, rng);
 }
@@ -189,12 +158,12 @@ export function wineEvalReveal(basePrice: number, success: boolean, sl: number):
 
 /** Surcoût d'un LOT PARTIEL à l'achat (l.131) : « le prix de base par 10 Points d'Encombrement doit être
  *  augmenté de 10 % ». Les marchands ne vendent pas moins de `minEnc` (l.131). */
-export const partialSurchargePct = LAND.buy.partialSurchargePct;
-export const minCargoEnc = LAND.buy.minEnc;
+export const partialSurchargePct = (): number => LAND.buy.partialSurchargePct;
+export const minCargoEnc = (): number => LAND.buy.minEnc;
 
 /** Compétence Marchandage d'un petit marchand pris au hasard (l.129) : 2d10 + 30 (≈ 32-50). PUR. */
 export function rollMerchantSkill(rng: RNG): number {
-  return rollDice(2, 10, rng) + LAND.buy.merchantSkill.plus;
+  return rollDice(LAND.buy.merchantSkill.d10, 10, rng) + LAND.buy.merchantSkill.plus;
 }
 
 /** Nombre visé du d100 « trouver un acheteur » à la VENTE (l.146) : Taille × 10, +30 si le Lieu a le
@@ -234,7 +203,7 @@ export function rollTradeRumour(rng: RNG): RumourRow {
 /** La cargaison `cargoId` correspond-elle à une rumeur (l.180 : « ils peuvent en vendre autant qu'ils le
  *  souhaitent pour le double du prix de base ») → le prix double. PUR. */
 export function rumourMatches(rumour: RumourRow, cargoId: string): boolean {
-  return rumour.biens.includes(cargoId);
+  return rumour.biens.some((b) => b === cargoId);
 }
 
 /** Rumeur commerciale PERSISTANTE (MSRC 13 l.180) : à l'Emplacement `placeId` (un AUTRE Lieu, tiré via

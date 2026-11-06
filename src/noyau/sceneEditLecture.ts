@@ -110,6 +110,10 @@ export function effectZoneArea(kind: ZoneArea['kind'], r: Rect): ZoneArea {
   return { kind: 'disc', cx: r.x + Math.floor(r.w / 2), cy: r.y + Math.floor(r.h / 2), radius };
 }
 
+/** La cote de l'étage qu'on ajoute au-dessus du plan (`addLayer`) : un cran au-dessus de la plus haute couche, le rez
+ *  (0) sur un plan sans couche. */
+export const etageSuivant = (scene: Pick<Scene, 'layers'>): number => scene.layers.reduce((z, l) => Math.max(z, l.z + 1), 0);
+
 /** La case `p` est-elle sur la carte ? La garde de bornes de tout geste à la case. */
 export function dansLaCarte(scene: Scene, p: Pt): boolean {
   return p.x >= 0 && p.y >= 0 && p.x < scene.dimensions.w && p.y < scene.dimensions.h;

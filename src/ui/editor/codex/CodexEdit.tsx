@@ -239,12 +239,14 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // `windEffect`/`capsize`/`outOfControl`/`echouage`/`temporaryRepair` sont des objets
   // (hétérogènes ou Record de Record) déjà couverts par le sous-formulaire récursif (`ObjectField`).
   if (categoryKey === 'riverNavigation') add('windForces', 'windDirections');
+  // MSRC 13 l.97-104 ; MSRC 13 l.281-303
+  if (categoryKey === 'landCargo') add('wineQuality', 'rumours');
   // Fourchettes à DEUX bornes (#1659) — toutes servies par la MÊME primitive (`PlageField`) : la
   // longueur de coque (bande finale ouverte, MDG 12 l.129), le sous-tirage astral (1d10, ADE II 03
   // l.63) ci-dessus, et les quatre colonnes de disponibilité saisonnière (d100). Sans cette ligne,
   // `avail` retombait sur le sous-formulaire générique et rendait ses clefs techniques à l'écran.
   if (categoryKey === 'shipHullSizes') add('lengthM');
-  if (categoryKey === 'seaCargo' || categoryKey === 'landCargo') add('avail');
+  if (categoryKey === 'cargoes') add('avail');
   // #168 : Activité — Test « posté » (contexts/tests « au choix »/difficulty) + table d'issues
   // `outcomes` (OutcomeBand[]) → éditeurs dédiés ; `onSuccess` couvert par opsFieldsOf ci-dessus.
   // `resolver` (#1318 V6) : vocabulaire FERMÉ → sélecteur dédié, jamais le champ texte générique.
@@ -391,8 +393,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const hasCharKeys = categoryKey === 'careerLevels';
   // Étoile : `sub` = la fourchette du 1d10 interne (Étoile du Sorcier, ADE II 03 l.63) → `PlageField`.
   const hasStarSub = categoryKey === 'stars';
-  // Cargaison (maritime/terrestre) : `avail` = quatre colonnes d100, une fourchette par saison.
-  const hasDispoSaisonniere = categoryKey === 'seaCargo' || categoryKey === 'landCargo';
+  // Cargaison : `avail` = quatre colonnes d100, une fourchette par saison.
+  const hasDispoSaisonniere = categoryKey === 'cargoes';
   // Domaine de magie : `castBonus`/`missile`/`casterOps` = attributs de domaine (éditeur dédié).
   const hasDomainEffects = categoryKey === 'domains';
   // Créature : `traits`/`optionals` = TraitPose[] (réutilise `TraitListField` du StatblockEditor),
@@ -649,6 +651,9 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {/* NADJ 16 l.119 ; NADJ 16 l.111 ; NADJ 16 l.25 ; NADJ 16 l.82 */}
         {categoryKey === 'tavernGames' && (['options', 'table', 'sides', 'specials'] as const).map((champ) => (
           <GenericArrayField key={champ} chemin={chemin(champ)} noeud={noeudDe(champ)} label={metaPourFichier(src.file)?.[champ]?.label ?? champ} value={entry[champ] as Record<string, unknown>[] | undefined} onChange={(v) => edit(champ, v.length ? v : undefined)} />
+        ))}
+        {categoryKey === 'landCargo' && (['wineQuality', 'rumours'] as const).map((champ) => (
+          <GenericArrayField key={champ} chemin={chemin(champ)} noeud={noeudDe(champ)} label={metaPourFichier(src.file)?.[champ]?.label ?? champ} value={entry[champ] as Record<string, unknown>[] | undefined} onChange={(v) => edit(champ, v)} />
         ))}
         {/* Ornements d'identité d'un bâtiment (#1715) : `{id, anchor}[]` — le nœud porte les libellés des ancrages. */}
         {categoryKey === 'buildings' && <GenericArrayField chemin={chemin('features')} noeud={noeudDe('features')} label="ornements d’identité (décor posé et son ancrage)" value={entry.features as Record<string, unknown>[] | undefined} onChange={(v) => edit('features', v.length ? v : undefined)} />}

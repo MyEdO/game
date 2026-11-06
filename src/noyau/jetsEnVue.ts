@@ -6,12 +6,13 @@
  *
  * Une ligne dont le dé n'est pas tombé est rendue « à lancer » (`jet: null`) avec la cible annoncée : celle que le
  * pending porte (flux figés), ou celle du lecteur de ligne que le résolveur jette (flux sur l'acteur vivant).
- * Le jet FIGÉ d'un adversaire n'est rendu qu'une fois la réponse jetée (`ui/opposedFrozen.ts`, #990).
+ * Le jet FIGÉ d'un adversaire est rendu « à lancer » tant qu'il n'est pas révélé à ce siège, et le Test opposé sans
+ * gagnante ni DR net : `netOwnership.jetFigeRevele` sur `JET_FIGE` (#990).
  */
 import type { Jeu } from './etat';
 import type { FlowKey } from './flowVerbs';
 import type { HostJet } from './slotsDeJet';
-import type { BatchParticipant, CascadeRoll, CascadeStep, PendingCastOpposition, SeuilDeSauvegarde } from './pendings';
+import type { BatchParticipant, CascadeRoll, CascadeStep, PendingCastOpposition, PendingDefense, SeuilDeSauvegarde } from './pendings';
 import { fleeBackstab, fleeTouche } from './pendings';
 import type { AttackResult, RollBreakdown } from '../engine/combat';
 import type { Combatant } from '../engine/types';
@@ -31,6 +32,7 @@ import { maladresseCourante, specDeEtape, tableStepDef } from './cascade';
 import { opposedAttackerLabel } from './rollSeam';
 import { APPRAISE_SKILL } from './merchantFlow';
 import { ligneDeFrenesie, ligneDuTestNomme } from './rollFlowSpecs';
+import { JET_FIGE, jetFigeRevele } from './netOwnership';
 
 /** Le dé d'une ligne de Test, une fois tombé. */
 export interface DeDuTest { d100: number; dr: number; reussi: boolean }
@@ -123,6 +125,11 @@ export function libelleDuJetFige(opp: NonNullable<Parameters<typeof opposedAttac
   return teste ? `${opp.attackerName} — ${teste}` : opp.attackerName;
 }
 
+/** Le libellé de ligne de l'attaque FIGÉE d'une Défense : l'arme d'une attaque gratuite de créature (#1858), sinon
+ *  l'Attaque. */
+export const libelleDeLAttaqueFigee = (pd: Pick<PendingDefense, 'suite' | 'weapon'>): string =>
+  (pd.suite.mode === 'machine' && pd.suite.coup.manoeuvre?.kind ? pd.weapon.label : t('jet.attack'));
+
 /** La graphie du seuil d'un dé (#1508). */
 export const libelleDuSeuil = (seuil: SeuilDeSauvegarde): string =>
   `${formatWardSave(seuil.source, seuil.indice)}${seuil.dome ? t('cf.wardFromDome') : ''}`;
@@ -159,15 +166,17 @@ const vue = (flux: JetEnVue['flux'], lignes: LigneDeJet[], oppose: OppositionEnV
 
 const drNet = (a: JetLu, b: JetLu): number => Math.abs((a?.sl ?? 0) - (b?.sl ?? 0));
 
-/** Test opposé binaire (`opposedBinaryFlow`) : le jet figé du foe d'abord, celui de l'acteur ensuite. */
+/** Test opposé binaire (`opposedBinaryFlow`) : le jet figé du foe d'abord, celui de l'acteur ensuite. `revele` : le
+ *  verdict du calendrier sur le jet figé (`jetFigeRevele`). */
 function opposeBinaire(
   flux: FlowKey,
   foe: { qui: string; test: string; r: JetLu },
   acteur: { qui: string; test: string; r: JetLu },
   issue: 'success' | 'failure' | 'tie' | null,
+  revele: boolean,
 ): JetEnVue {
-  const lignes = [...(acteur.r ? [ligne(foe.qui, foe.test, foe.r)] : []), ligne(acteur.qui, acteur.test, acteur.r)];
-  const oppose = acteur.r && foe.r && issue ? { gagnante: issue === 'tie' ? null : issue === 'success' ? 1 : 0, drNet: drNet(foe.r, acteur.r) } : null;
+  const lignes = [ligne(foe.qui, foe.test, revele ? foe.r : null), ligne(acteur.qui, acteur.test, acteur.r)];
+  const oppose = revele && acteur.r && foe.r && issue ? { gagnante: issue === 'tie' ? null : issue === 'success' ? 1 : 0, drNet: drNet(foe.r, acteur.r) } : null;
   return vue(flux, lignes, oppose);
 }
 
@@ -204,17 +213,22 @@ function rangees<P extends { id: string; result?: unknown; refus?: unknown }>(pa
  */
 const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   attack: (s) => s.pendingAttack && lireCoup('attack', s.pendingAttack.attackerId, s.pendingAttack.targetId, s.pendingAttack.result),
-  defense: (s) => s.pendingDefense && lireCoup('defense', s.pendingDefense.attackerId, s.pendingDefense.defenderId, s.pendingDefense.result),
+  defense: (s) => {
+    const pd = s.pendingDefense;
+    if (!pd) return null;
+    if (pd.result) return lireCoup('defense', pd.attackerId, pd.defenderId, pd.result);
+    return vue('defense', [ligne(pd.attackerId, libelleDeLAttaqueFigee(pd), jetFigeRevele(s, JET_FIGE.defense(pd)) ? pd.atk : null)]);
+  },
   cast: (s) => {
     const pc = s.pendingCast;
     if (!pc) return null;
-    const attente = [s.pendingCounterspell?.participants, s.pendingCastOpposition?.participants].some((ps) => !!ps?.length && ps.every((p) => !p.result));
-    const r = attente ? null : pc.result;
+    const r = jetFigeRevele(s, JET_FIGE.cast(s, pc)) ? pc.result : undefined;
     return vue('cast', [ligne(pc.casterId, libelleDIncantation(pc.spellId), r && { roll: r.roll, target: r.target, sl: r.sl })]);
   },
   counterspell: (s) => {
     const csp = s.pendingCounterspell;
-    const cast = s.pendingCast?.result;
+    const pc = s.pendingCast;
+    const cast = pc && jetFigeRevele(s, JET_FIGE.cast(s, pc)) ? pc.result : undefined;
     if (!csp) return null;
     const lignes = rangees(csp.participants, (p) => ligne(p.id, libelleDeTest('langue-magick'), p.result?.counter));
     const tranche = cast && csp.participants.length === 1 && csp.participants[0].result;
@@ -257,7 +271,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   disengage: (s) => {
     const pd = s.pendingDisengage;
     if (!pd || pd.phase !== 'esquive') return null;
-    return opposeBinaire('disengage', { qui: pd.foeId, test: libelleDeTest('corps-a-corps'), r: pd.atk }, { qui: pd.moverId, test: libelleDeTest('esquive'), r: pd.def }, pd.result);
+    return opposeBinaire('disengage', { qui: pd.foeId, test: libelleDeTest('corps-a-corps'), r: pd.atk }, { qui: pd.moverId, test: libelleDeTest('esquive'), r: pd.def }, pd.result, jetFigeRevele(s, JET_FIGE.disengage(pd)));
   },
   flee: (s) => {
     const pd = s.pendingDisengage;
@@ -274,18 +288,18 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     const pd = s.pendingAuContact;
     if (!pd) return null;
     const cac = libelleDeTest('corps-a-corps');
-    return opposeBinaire('auContact', { qui: pd.foeId, test: cac, r: pd.atk }, { qui: pd.moverId, test: cac, r: pd.def }, pd.result);
+    return opposeBinaire('auContact', { qui: pd.foeId, test: cac, r: pd.atk }, { qui: pd.moverId, test: cac, r: pd.def }, pd.result, jetFigeRevele(s, JET_FIGE.auContact(pd)));
   },
   grapple: (s) => {
     const pd = s.pendingGrapple;
     if (!pd) return null;
     const force = libelleDeTest('force');
-    return opposeBinaire('grapple', { qui: pd.foeId, test: force, r: pd.atk }, { qui: pd.actorId, test: force, r: pd.def }, pd.result);
+    return opposeBinaire('grapple', { qui: pd.foeId, test: force, r: pd.atk }, { qui: pd.actorId, test: force, r: pd.def }, pd.result, jetFigeRevele(s, JET_FIGE.grapple(pd)));
   },
   distraire: (s) => {
     const pd = s.pendingDistraire;
     if (!pd) return null;
-    return opposeBinaire('distraire', { qui: pd.foeId, test: libelleDeTest('calme'), r: pd.defRoll }, { qui: pd.moverId, test: libelleDeTest('athletisme'), r: pd.atk }, pd.result);
+    return opposeBinaire('distraire', { qui: pd.foeId, test: libelleDeTest('calme'), r: pd.defRoll }, { qui: pd.moverId, test: libelleDeTest('athletisme'), r: pd.atk }, pd.result, jetFigeRevele(s, JET_FIGE.distraire(pd)));
   },
   battement: (s) => s.pendingBattement && vue('battement', [ligne(s.pendingBattement.attackerId, libelleDeTest('corps-a-corps'), s.pendingBattement.result)]),
   maneuver: (s) => {
@@ -365,8 +379,9 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   bargain: (s) => {
     const pb = s.pendingBargain;
     if (!pb) return null;
-    const lignes = [ligne(pb.playerId, libelleDeTest('marchandage'), pb.roll), ...(pb.roll ? [ligne(null, libelleDeTest('marchandage'), pb.merchantRoll)] : [])];
-    const o = pb.roll ? pb.result : null;
+    const revele = jetFigeRevele(s, JET_FIGE.bargain(pb));
+    const lignes = [ligne(pb.playerId, libelleDeTest('marchandage'), pb.roll), ligne(null, libelleDeTest('marchandage'), revele ? pb.merchantRoll : null)];
+    const o = revele && pb.roll ? pb.result : null;
     return vue('bargain', lignes, o ? { gagnante: o.winner === 'tie' ? null : o.attackerWins ? 0 : 1, drNet: o.netSL } : null);
   },
   appraise: (s) => {
@@ -397,29 +412,31 @@ function ligneDeBande(s: Jeu, part: BatchParticipant): LigneDeJet {
   return ligne(part.id, libelleDeRangee(part) ?? part.label ?? pool(s).find((c) => c.id === part.id)?.label ?? part.id, r, part.target);
 }
 
-/** Le jet FIGÉ d'une étape opposée (`meta.opposed`) face à une réponse : rendu une fois la réponse jetée. */
-function opposeDEtape(step: CascadeStep, reponse: LigneDeJet, r: CascadeRoll | null): JetEnVue {
+/** Le jet FIGÉ d'une étape opposée (`meta.opposed`) face à une réponse, révélé selon le calendrier (`jetFigeRevele`). */
+function opposeDEtape(s: Jeu, step: CascadeStep, reponse: LigneDeJet, r: CascadeRoll | null): JetEnVue {
+  const flux = step.participants ? 'cascadeBatch' : 'cascade';
   const opp = step.meta?.opposed;
-  if (!opp || !r) return vue(step.participants ? 'cascadeBatch' : 'cascade', [reponse]);
-  const fige = ligne(opp.attackerId, libelleDuJetFige(opp), opp.aT);
-  return vue(step.participants ? 'cascadeBatch' : 'cascade', [fige, reponse], {
+  if (!opp) return vue(flux, [reponse]);
+  const revele = jetFigeRevele(s, JET_FIGE.cascade(step));
+  const fige = ligne(opp.attackerId, libelleDuJetFige(opp), revele ? opp.aT : null);
+  return vue(flux, [fige, reponse], revele && r ? {
     gagnante: r.statuQuo ? null : r.success ? 1 : 0,
     drNet: Math.abs(opp.aT.sl - (r.sl + (opp.bonusSL ?? 0))),
-  });
+  } : null);
 }
 
 /** Les jets d'UNE étape de cascade non hôte. `courante` : l'étape tient la fenêtre (le jet figé d'un Test
  *  opposé y est rendu) ; sinon elle est lue au bilan. */
 function lireEtape(s: Jeu, step: CascadeStep, courante: boolean): JetEnVue[] {
   if (step.participants) {
-    if (courante && step.meta?.opposed) return step.participants.filter((p) => p.refus == null).map((p) => opposeDEtape(step, ligneDeBande(s, p), jete(p.result)));
+    if (courante && step.meta?.opposed) return step.participants.filter((p) => p.refus == null).map((p) => opposeDEtape(s, step, ligneDeBande(s, p), jete(p.result)));
     return [vue('cascadeBatch', rangees(step.participants, (p) => ligneDeBande(s, p)))];
   }
   if (step.refus != null) return [];
   if (step.target != null) {
     const r = jete(step.result);
     const reponse = ligne(step.actorId, step.rollLabel, r, step.target);
-    return [courante ? opposeDEtape(step, reponse, r) : vue('cascade', [reponse])];
+    return [courante ? opposeDEtape(s, step, reponse, r) : vue('cascade', [reponse])];
   }
   if (step.table) {
     const r = step.table.result;

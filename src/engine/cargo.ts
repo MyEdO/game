@@ -2,36 +2,47 @@
  * TRONC COMMUN du COMMERCE DE CARGAISON — primitives PURES partagées par le commerce MARITIME
  * (Mer des Griffes ch.15, `seaVoyage.ts`) et le commerce TERRESTRE / FLUVIAL (Mort sur le Reik
  * Compagnon ch.11, `landCargo.ts`). Le RAW des deux livres suit la même structure « acheter bas /
- * transporter / revendre » ; SEULES les FORMULES (disponibilité, prix d'offre, bradage) et les
- * TABLEAUX (cargaisons, prix) diffèrent → ils vivent dans le module propre à chaque livre, ces
- * briques-ci (modèle de lot, tirage saisonnier, prix de base, Marchandage) NE SONT PAS dupliquées.
+ * transporter / revendre » ; SEULES les FORMULES (disponibilité, prix d'offre, bradage) diffèrent → elles
+ * vivent dans le module propre à chaque livre. Le CATALOGUE des cargaisons (`cargoes.json`) est UN : la
+ * table de chaque livre y est la VOIE de ses entrées. Ces briques-ci (catalogue, modèle de lot, tirage
+ * saisonnier, prix de base, Marchandage) NE SONT PAS dupliquées.
  */
+import cargoesJson from '../data/cargoes.json';
+import { memoParVersion } from '../data/versionDataset';
 import { d100, rollDice, type DiceSpec, type RNG } from './dice';
 import { findTableEntryIndex } from './tables';
 import type { Season } from './travelStages';
 import type { PossessionLocation } from './possession';
+
+/** La VOIE d'une cargaison : la table du livre qui la porte — maritime (MDG 15), terrestre et fluviale
+ *  (MSRC 13). */
+export type Voie = 'mer' | 'terre';
 
 /** Un type de cargaison (bien volumineux) : plages saisonnières d100 (Tableau des cargaisons) + prix de
  *  base par saison (CO par 10 points d'Encombrement) — ou un jet de dés (`{dice}`, ex. Vin maritime 3d10). */
 export interface CargoDef {
   id: string;
   label: string;
+  voie: Voie;
   /** Absent sur une cargaison marchande — présent et `false` sur un MARQUEUR (`CargoMarkerDef`). */
   echangeable?: true;
   avail: Record<Season, { min: number; max: number }>;
   price: Record<Season, number> | { dice: DiceSpec };
+  /** MSRC 13 l.93-104 */
+  wine?: boolean;
 }
 
 /** Un MARQUEUR de la colonne Production/Produits de l'Index (« Commerce », « Minimum vital »,
  *  « Subsistance ») : il partage le vocabulaire des cargaisons — une colonne d'Index le cite comme une
  *  marchandise — sans en être une, donc sans disponibilité ni prix. Il vit dans le MÊME catalogue
- *  (`sea-cargo.json`/`land-cargo.json`) pour que son libellé joueur ait une source unique.
+ *  (`cargoes.json`) pour que son libellé joueur ait une source unique.
  *
  *  Ce qui est PASSÉ EN DONNÉE sur le marqueur : l'EXCLUSION du négoce (`echangeable`), le LIBELLÉ
  *  (`label` + `hint`) et la qualité de PLAQUE TOURNANTE (`tradeHub`, lue par `isTradeHubEntry`). */
 export interface CargoMarkerDef {
   id: string;
   label: string;
+  voie: Voie;
   echangeable: false;
   /** Qualificatif d'AFFICHAGE du marqueur, ÉDITABLE en donnée : il reprend la forme des verbatims
    *  MSRC 13 — « plaque tournante » (l.28) vs « rien à échanger » (l.119). Deux sens DISTINCTS qu'un
@@ -51,16 +62,28 @@ export function isEchangeable(entry: CargoEntry): entry is CargoDef {
   return entry.echangeable !== false;
 }
 
-/** L'entrée d'id `id` d'un catalogue de cargaisons, marqueur compris — la recherche par id des deux
- *  commerces (`seaVoyage.ts`, `landCargo.ts`). PUR. */
-export function entreeDeCargaison<E extends CargoEntry>(catalogue: readonly E[], id: string): E | undefined {
-  return catalogue.find((c) => c.id === id);
-}
+/** Le catalogue COMPLET tel qu'il est authoré, marchandises ET marqueurs des deux voies : le dataset
+ *  éditable (`src/data/overrides.ts`). */
+export const CARGO_ENTRIES: readonly CargoEntry[] = cargoesJson as unknown as CargoEntry[];
 
-/** La MARCHANDISE d'id `id` d'un catalogue de cargaisons : un marqueur n'en est pas une. PUR. */
-export function marchandiseDeCargaison<E extends CargoEntry>(catalogue: readonly E[], id: string): Exclude<E, CargoMarkerDef> | undefined {
-  const entree = entreeDeCargaison(catalogue, id);
-  return entree && isEchangeable(entree) ? (entree as Exclude<E, CargoMarkerDef>) : undefined;
+/** Résout une entrée QUELCONQUE du catalogue, marqueur compris (libellé d'affichage) : un id y est
+ *  unique, quelle que soit sa voie. */
+export const findCargoEntryById = (id: string): CargoEntry | undefined => CARGO_ENTRIES.find((c) => c.id === id);
+
+/** Les MARCHANDISES de chaque voie, filtrées À LA SOURCE sur le champ d'exclusion : négoce, table de
+ *  cargaison aléatoire, éditeur et Compendium n'y voient jamais un marqueur. */
+const marchandisesParVoie = memoParVersion('cargoes', (): Readonly<Record<Voie, readonly CargoDef[]>> => {
+  const marchandises = CARGO_ENTRIES.filter(isEchangeable);
+  return { mer: marchandises.filter((c) => c.voie === 'mer'), terre: marchandises.filter((c) => c.voie === 'terre') };
+});
+
+/** Les marchandises de la table d'une voie, dans l'ordre du livre. */
+export const marchandisesDe = (voie: Voie): readonly CargoDef[] => marchandisesParVoie()[voie];
+
+/** Résout une MARCHANDISE, quelle que soit sa voie (les marqueurs ne sont ni achetables ni vendables). */
+export function findCargoById(id: string): CargoDef | undefined {
+  const entree = findCargoEntryById(id);
+  return entree && isEchangeable(entree) ? entree : undefined;
 }
 
 /** L'entrée désigne-t-elle une PLAQUE TOURNANTE du commerce ? Lit le CHAMP `tradeHub` du marqueur
@@ -71,16 +94,16 @@ export function isTradeHubEntry(entry: CargoEntry | undefined): boolean {
   return !!entry && !isEchangeable(entry) && entry.tradeHub === true;
 }
 
-/** La colonne Production/Produits d'un Lieu le désigne-t-elle comme plaque tournante ? `resolve` = le
- *  résolveur d'entrée du catalogue concerné (terrestre ou maritime). PUR. */
-export function isTradeHubColumn(produits: readonly string[] | undefined, resolve: (id: string) => CargoEntry | undefined): boolean {
-  return (produits ?? []).some((id) => isTradeHubEntry(resolve(id)));
+/** La colonne Production/Produits d'un Lieu, terrestre ou maritime, le désigne-t-elle comme plaque
+ *  tournante ? PUR. */
+export function isTradeHubColumn(produits: readonly string[] | undefined): boolean {
+  return (produits ?? []).some((id) => isTradeHubEntry(findCargoEntryById(id)));
 }
 
 /** Cargaison ALÉATOIRE de la saison : d100 dans la colonne saisonnière du tableau fourni (MSRC 13 l.71-78,
  *  MDG 15 l.402-418). PUR. La couverture EXACTE de la colonne (1 à 100, sans trou ni chevauchement) est un
- *  invariant de la DONNÉE, gardé au parse par le refine de `src/data/schemas/defs/sea-cargo.ts` et
- *  `src/data/schemas/defs/land-cargo.ts` ; un jet que rien ne couvre est donc une ANOMALIE NOMMÉE, jamais
+ *  invariant de la DONNÉE, gardé au parse table par table (`catalogueSaisonnier`,
+ *  `src/data/schemas/defs/cargoes.ts`) ; un jet que rien ne couvre est donc une ANOMALIE NOMMÉE, jamais
  *  le repli muet de `findTableEntry` sur la dernière cargaison du catalogue. */
 export function rollSeasonalCargo(cargoes: CargoDef[], season: Season, rng: RNG): CargoDef {
   const r = d100(rng);

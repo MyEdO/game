@@ -92,6 +92,7 @@ import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
 
 /** Meilleur soigneur du groupe pour un acte (Opérer exige AUSSI le Talent Chirurgie, LDB 10 ; la récupération
  *  d'usage est un simple Test étendu de Guérison, sans Chirurgie, LDB 18 l.120/179). */
@@ -155,13 +156,6 @@ export function openMedic(get: Get, set: Set, opts?: { patientId?: string; npc?:
   set({ medic: { npc: opts?.npc, patientId } });
 }
 
-export function medicSelectPatient(get: Get, set: Set, id: string): void {
-  const m = get().medic;
-  // Verrouillé pendant un jet posé et pendant une opération.
-  if (!m || get().pendingHeal || m.surgery) return;
-  if (!get().party.some((h) => h.id === id)) return;
-  set({ medic: { ...m, patientId: id } });
-}
 
 /** Enjeu servi par chaque acte de soin ; `surgery`/`recovery` : celui de l'opération que l'acte arme. */
 export const HEAL_STAKE: Record<HealMode, FlowStakeId> = {
@@ -346,7 +340,7 @@ function appliquerLaPasse(get: Get, set: Set): void {
 /** Annule la Chirurgie : le cumul du Test étendu (LDB 12 l.170-174) est perdu. Jamais commencée
  *  (aucune passe appliquée) → l'acte PNJ est remboursé, comme `jetCancel('heal')`. Ferme la passe en cours
  *  (`pendingSurgery`) ET l'opération armée (`medic.surgery`). */
-export function medicAbandonSurgery(get: Get, set: Set): void {
+function abandonnerLOperation(get: Get, set: Set): void {
   const m = get().medic;
   const sg = m?.surgery;
   if (!m || !sg) { set({ pendingSurgery: null }); return; }
@@ -358,12 +352,21 @@ export function medicAbandonSurgery(get: Get, set: Set): void {
 export function creerActionsDuMedecin(get: Get, set: Set) {
   return {
     openMedic: (opts) => openMedic(get, set, opts),
-    medicSelectPatient: (id) => medicSelectPatient(get, set, id),
     medicAct: (act) => medicAct(get, set, act),
     medicSetWound: (uid) => medicSetWound(get, set, uid),
     openSurgeryPass: () => openSurgeryPass(get, set),
-    medicAbandonSurgery: () => medicAbandonSurgery(get, set),
   } satisfies FabriqueDuNoyau;
+}
+
+/** Les choix de l'infirmerie (`CorpsDesChoix`) : le patient, verrouillé pendant un soin (`OUVERTS_DU_CHOIX`), et
+ *  l'abandon de l'opération. */
+export function choixDuMedecin(get: Get, set: Set) {
+  return {
+    medic: {
+      patient: (id) => set({ medic: { ...garanti(get().medic, id, 'infirmerie du patient'), patientId: id } }),
+      abandon: () => abandonnerLOperation(get, set),
+    },
+  } satisfies Partial<CorpsDesChoix>;
 }
 
 /** L'infirmerie se ferme hors soin en cours (`MODAL_DEFS.medic.sortieFermee`). */

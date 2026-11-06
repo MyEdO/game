@@ -2,10 +2,6 @@
  * Collisions d'identifiants ENTRE catalogues — l'unicité DANS un catalogue est refusée au parse
  * (collection à clé, `schemas/grammaire/collection-cle.ts`).
  *
- * Les deux catalogues de cargaisons (MDG 15, MSRC 13) y entrent : une colonne Production/Produits se
- * résout dans l'un puis l'autre (`produitsDuProfil`, `src/noyau/worldMap.ts`), un id partagé y ferait
- * lire la cargaison de l'autre livre.
- *
  * Un même id peut exister dans deux catalogues distincts. Les
  *     lookups étant SCOPÉS par catégorie (`findTraitById`/`findTalentById`/`findManeuverById`/…),
  *     ces collisions sont inoffensives à l'exécution, MAIS sources de confusion. On VERROUILLE
@@ -62,12 +58,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles, regles, characteristics } from './index';
-import seaCargo from './sea-cargo.json';
-import landCargo from './land-cargo.json';
+import cargoes from './cargoes.json';
 
 const CATEGORIES: Record<string, { id: string }[]> = {
   traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles, regles, characteristics,
-  seaCargo: seaCargo.cargoes, landCargo: landCargo.cargoes,
+  cargoes,
 };
 
 /** Ensemble VOULU des ids partagés entre ≥ 2 catalogues (cf. familles documentées ci-dessus). */

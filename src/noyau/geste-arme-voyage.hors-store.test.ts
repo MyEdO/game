@@ -83,7 +83,7 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
   it('MONTURE : le choix cavalier/monture relance AVEC le verdict — la Charge armée approche', () => {
     const { H, E } = setup();
     banc.setState({ pendingMountTarget: { riderId: H.id, mountId: E.id, approche: true } } as never);
-    get().mountTargetSelect(E.id);
+    get().fenetreChoisir('mountTarget', 'cible', E.id);
     banc.reprendreLesEnAttente();
     const h = get().battle!.combatants.find((c) => c.id === H.id)!;
     expect(get().refus, 'le geste armé avant la modale a été refusé à la relance').toBeNull();
@@ -93,7 +93,7 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
   it('MONTURE : sans verdict, la relance REFUSE et le héros reste immobile (la modale ne fabrique rien)', () => {
     const { H, E } = setup();
     banc.setState({ pendingMountTarget: { riderId: H.id, mountId: E.id, approche: false } } as never);
-    get().mountTargetSelect(E.id);
+    get().fenetreChoisir('mountTarget', 'cible', E.id);
     banc.reprendreLesEnAttente();
     expect(get().refus?.texte ?? '', 'le refus n’a pas été dit').toContain('Charge');
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos, 'la modale a déplacé un héros qui n’avait rien armé').toEqual({ x: 10, y: 10 });

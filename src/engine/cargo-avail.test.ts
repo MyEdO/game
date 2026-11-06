@@ -25,8 +25,7 @@
  * cellule par cellule contre les deux livres, à chaque exécution.
  */
 import { describe, it, expect } from 'vitest';
-import { rollSeasonalCargo, type CargoDef } from './cargo';
-import { cargoes } from './seaVoyage';
+import { marchandisesDe, rollSeasonalCargo, type CargoDef } from './cargo';
 import type { RNG } from './dice';
 import { desEnSuite } from './dice.testkit';
 
@@ -34,8 +33,8 @@ const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: 
 
 /** Deux cargaisons NUES, dont les fourchettes laissent 41–100 sans couverture. */
 const trouee: CargoDef[] = [
-  { id: 'a', label: 'A', avail: { printemps: { min: 1, max: 20 }, ete: { min: 1, max: 20 }, automne: { min: 1, max: 20 }, hiver: { min: 1, max: 20 } }, price: { printemps: 1, ete: 1, automne: 1, hiver: 1 } },
-  { id: 'b', label: 'B', avail: { printemps: { min: 21, max: 40 }, ete: { min: 21, max: 40 }, automne: { min: 21, max: 40 }, hiver: { min: 21, max: 40 } }, price: { printemps: 1, ete: 1, automne: 1, hiver: 1 } },
+  { id: 'a', label: 'A', voie: 'mer', avail: { printemps: { min: 1, max: 20 }, ete: { min: 1, max: 20 }, automne: { min: 1, max: 20 }, hiver: { min: 1, max: 20 } }, price: { printemps: 1, ete: 1, automne: 1, hiver: 1 } },
+  { id: 'b', label: 'B', voie: 'mer', avail: { printemps: { min: 21, max: 40 }, ete: { min: 21, max: 40 }, automne: { min: 21, max: 40 }, hiver: { min: 21, max: 40 } }, price: { printemps: 1, ete: 1, automne: 1, hiver: 1 } },
 ];
 
 describe('rollSeasonalCargo — la table couvre, ou elle se NOMME (#1659)', () => {
@@ -52,7 +51,7 @@ describe('rollSeasonalCargo — la table couvre, ou elle se NOMME (#1659)', () =
   });
 
   it('le catalogue maritime authoré ne lève JAMAIS : les 100 jets d’une colonne rendent une cargaison (MDG 15 l.406-418)', () => {
-    const catalogue = [...cargoes()];
+    const catalogue = [...marchandisesDe('mer')];
     for (let r = 1; r <= 100; r++) expect(rollSeasonalCargo(catalogue, 'automne', seq(r)).id).toBeTruthy();
     // Les deux bouts imprimés de la colonne d'automne : 01-18 Céréales, 91-00 Pièces détachées.
     expect(rollSeasonalCargo(catalogue, 'automne', seq(1)).id).toBe('cereales');

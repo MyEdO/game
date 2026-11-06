@@ -61,7 +61,7 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
     const cible = targetingHolder(s);
     if (cible && pickActiveModalKey(s) === 'cascade') doubleMain.push(`${cible} sur ${cur?.id}`);
     if (s.pendingRoundStart) { g().fenetreValider('roundStart'); continue; }
-    if (s.pendingFateSave) { g().fateNegate(); if (g().pendingFateSave) g().fateSurvive(); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetRoll('handGate'); else g().jetConfirm('handGate'); continue; }
+    if (s.pendingFateSave) { g().fenetreChoisir('fateSave', 'issue', 'negate'); if (g().pendingFateSave) g().fenetreChoisir('fateSave', 'issue', 'survive'); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetRoll('handGate'); else g().jetConfirm('handGate'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense && !s.pendingDefense.result) { g().jetRoll('defense'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense?.result) { g().jetConfirm('defense'); continue; }
     if (cible === 'pendingDualStrike' && !s.pendingHandGate) {

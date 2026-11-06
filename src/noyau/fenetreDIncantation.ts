@@ -85,7 +85,7 @@ export interface FenetreDIncantation {
   /** Les pas de Surincantation de chaque axe ouvert, en choix réglés (`REGLAGE_DE_L_AXE`) : de 0 au budget, chaque pas
    *  avec la raison qui le refuse ; vide quand le jet n'ouvre aucun pas. LDB 47 l.15-17 */
   crans: ChoixNomme<number>[];
-  /** La pose de la zone après le jet (`castPlaceZone(true)`) : la raison qui la refuse ; `null` sans zone à poser. */
+  /** La pose de la zone après le jet (`jetRegler('cast', 'carte', 'zone')`) : la raison qui la refuse ; `null` sans zone à poser. */
   pose: { refus: string | null } | null;
   /** Les fermetures du flux `cast` (`FLOWS.cast.fermetures`). */
   fermetures: FermeturesDuJet;

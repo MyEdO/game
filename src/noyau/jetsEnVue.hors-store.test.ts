@@ -279,9 +279,12 @@ describe('jetsEnVue — la classe des fenêtres à jet', () => {
     expect(attaque.lignes.map((l) => l.qui)).toEqual([H.id, E.id]);
   });
 
-  it('le jet figé d’un Test opposé n’est rendu qu’une fois la réponse jetée', () => {
+  it('le jet figé d’un Test opposé reste à lancer, sans gagnante ni DR net, tant que la réponse n’est pas jetée', () => {
     const s = { ...BASE, pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'roll', atk: tr(20, 50), def: null, result: null } } as Jeu;
-    expect(jetsEnVue(s)[0].lignes).toEqual([{ genre: 'test', qui: H.id, test: 'Corps à corps', cible: null, jet: null }]);
+    expect(jetsEnVue(s)).toEqual([{ flux: 'auContact', oppose: null, lignes: [
+      { genre: 'test', qui: E.id, test: 'Corps à corps', cible: null, jet: null },
+      { genre: 'test', qui: H.id, test: 'Corps à corps', cible: null, jet: null },
+    ] }]);
   });
 });
 

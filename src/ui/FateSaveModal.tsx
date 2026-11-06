@@ -26,15 +26,13 @@ const FATE_SAVE_STAKE: Record<FateSaveOption | 'choice', FlowStakeId> = { choice
 export function FateSaveModal() {
   const p = useGame((s) => s.pendingFateSave);
   const battle = useGame((s) => s.battle);
-  const negate = useGame((s) => s.fateNegate);
-  const survive = useGame((s) => s.fateSurvive);
-  const accept = useGame((s) => s.fateAccept);
+  const choisirLIssue = useGame((s) => s.fenetreChoisir);
   if (!p || !battle) return null;
   const hero = battle.combatants.find((c) => c.id === p.heroId);
   if (!hero) return null;
   const fate = hero.fate ?? 0;
   const offre = fateSaveOptions(p.source);
-  const choisir: Record<FateSaveOption, () => void> = { survive, negate };
+  const choisir = (issue: FateSaveOption | 'accept') => () => choisirLIssue('fateSave', 'issue', issue);
   const refus = flowStakeRef(FATE_SAVE_STAKE.choice);
 
   return (
@@ -42,7 +40,7 @@ export function FateSaveModal() {
       title={<><Icon id="resource/fate" size="sm" /> Le Destin <StakeRule rule={stakeRuleOf(refus)} /></>}
       subject={hero}
       champ
-      footer={<button type="button" className="btn btn-ghost danger" onClick={accept} title="Le héros meurt"><Icon id="journal/death" size="sm" /> Accepter le sort</button>}
+      footer={<button type="button" className="btn btn-ghost danger" onClick={choisir('accept')} title="Le héros meurt"><Icon id="journal/death" size="sm" /> Accepter le sort</button>}
     >
       <Stack gap="md">
         <p className="modal-log">
@@ -56,7 +54,7 @@ export function FateSaveModal() {
               key: o,
               label: <><Icon id={OPTION[o].icon} size="sm" /> {OPTION[o].label}</>,
               note: <StakeNote stake={flowStakeRef(FATE_SAVE_STAKE[o])} />,
-              onSelect: choisir[o],
+              onSelect: choisir(o),
             }))}
           />
         </div>

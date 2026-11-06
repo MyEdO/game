@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { navalPorts, findNavalPortById } from './index';
-import { cargoes, CARGO_ENTRIES } from '../engine/seaVoyage';
+import { CARGO_ENTRIES, marchandisesDe } from '../engine/cargo';
 
 describe('naval-ports.json — catalogue de l’Index des ports (#217)', () => {
   it('charge et porte au moins les entrées connues', () => {
@@ -18,11 +18,11 @@ describe('naval-ports.json — catalogue de l’Index des ports (#217)', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('chaque id de production/surplus/demande résout dans le vocabulaire de marchandise (sea-cargo.json)', () => {
-    const cargoIds = new Set(cargoes().map((c) => c.id));
-    // La colonne Production admet TOUT le vocabulaire du catalogue, marqueurs de l'Index compris
+  it('chaque id de production/surplus/demande résout dans la voie maritime du catalogue (cargoes.json)', () => {
+    const cargoIds = new Set(marchandisesDe('mer').map((c) => c.id));
+    // La colonne Production admet TOUT le vocabulaire de la voie, marqueurs de l'Index compris
     // (`echangeable: false`) — Surplus et Demande, eux, ne portent que des marchandises.
-    const columnIds = new Set(CARGO_ENTRIES.map((c) => c.id));
+    const columnIds = new Set(CARGO_ENTRIES.filter((c) => c.voie === 'mer').map((c) => c.id));
     for (const p of navalPorts) {
       for (const id of p.production ?? []) {
         expect(columnIds.has(id), `${p.id} : production id inconnu "${id}"`).toBe(true);

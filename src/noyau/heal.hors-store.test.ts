@@ -261,7 +261,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.setState({ mode: 'exploration', battle: null, party: [doc, al, bob], pendingHeal: null, medic: null });
     banc.getState().openMedic({ patientId: 'al' });
     banc.getState().medicAct('wounds');
-    banc.getState().medicSelectPatient('bob'); // refusé : jet en cours
+    banc.getState().fenetreChoisir('medic', 'patient', 'bob'); // refusé : jet en cours
     expect(banc.getState().medic!.patientId).toBe('al');
     banc.getState().fenetreFermer('medic'); // refusé aussi
     expect(banc.getState().medic).not.toBeNull();
@@ -373,7 +373,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().jetCancel('surgery');
     expect(banc.getState().pendingSurgery).toBe(jouee);
 
-    banc.getState().medicAbandonSurgery();
+    banc.getState().fenetreChoisir('medic', 'abandon', true);
     expect(banc.getState().pendingSurgery).toBeNull();
     expect(banc.getState().medic?.surgery).toBeUndefined();
     expect(banc.getState().medic).not.toBeNull();

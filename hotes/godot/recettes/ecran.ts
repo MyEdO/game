@@ -18,7 +18,7 @@
 import { creerPont, type Suite } from '../pont/pont';
 import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type GesteDeLaCreation, type Jeu, type Ligne } from '../../../src/hote/elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type Entite, type GesteDeLaCreation, type Jeu, type Ligne } from '../../../src/hote/elements';
 import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 
@@ -171,6 +171,19 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = magie.jouer('jouer', (s.vue.zones['fenetre.reglages'][0] as Choix).valeurs[1].jeu);
   figer('un pas de Surincantation alloué', s);
   magie.fermer();
+
+  const voyage = unPont([]);
+  s = viderLesFenetres(voyage.jouer, voyage.jouer('demarrer', { scenario: 'voyage', graine: 7 }));
+  s = voyage.jouer('jouer', s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
+  figer('carte du monde', s);
+  const grandRoute = s.vue.zones['fenetre.corps'].find((e): e is Entite => e.id === 'carte/r-grandroute')!;
+  s = voyage.jouer('jouer', grandRoute.elements.find((e): e is Choix => e.id === 'modes')!.valeurs[0].jeu);
+  for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'recit/issue'); pas++) {
+    if (pas > 80) throw new Error(`aucun récit de voyage après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
+    s = voyage.jouer('jouer', presse(s));
+  }
+  figer('récit de voyage, arrivée', s);
+  voyage.fermer();
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],

@@ -98,6 +98,7 @@ import calendarIntercalaryJson from './calendarIntercalary.json';
 import calendarWeekdaysJson from './calendarWeekdays.json';
 import calendarPhasesJson from './calendarPhases.json';
 import weatherJson from './weather.json';
+import { saisonParId } from './saisons';
 import symptomsJson from './symptoms.json';
 import detailsJson from './details.json';
 import semencesDeSceneJson from './semences-de-scene.json';
@@ -135,6 +136,8 @@ import seaPerilsJson from './sea-perils.json';
 import seaWeatherJson from './sea-weather.json';
 import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
+import seaCargoJson from './sea-cargo.json';
+import landCargoJson from './land-cargo.json';
 import { CharKey, Weapon, VehicleData, StructureData, Availability, type TestedAvailability, Difficulty, type NightTestKind, type StakeForm } from '../engine/types';
 import type { MutationData, MutationTable } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
 import type { DiseaseDef } from './schemas/defs/maladies';
@@ -155,6 +158,8 @@ import type { SeaPerilsData } from './schemas/defs/sea-perils';
 import type { SeaWeatherData } from './schemas/defs/sea-weather';
 import type { ShipConstructionData } from './schemas/defs/ship-construction';
 import type { RiverNavigationData } from './schemas/defs/river-navigation';
+import type { SeaCargoData } from './schemas/defs/sea-cargo';
+import type { LandCargoData } from './schemas/defs/land-cargo';
 
 /** Règle d'EMPOIGNADE en DONNÉE (LDB 14 l.159-169) : `init` = ops à la touche d'une Empoignade déclarée
  *  (Empêtré + relation via le flag `grapple`) ; `win` = les 3 options du Test opposé GAGNÉ (l.161), appliquées
@@ -2586,8 +2591,8 @@ export function findNavalTrait(id: string): NavalTraitData | undefined {
 }
 /** Index des ports de la Mer des Griffes (#217, MDG 15 l.439-506) — catalogue app-owned éditable au
  *  Codex, consommé PAR RÉFÉRENCE depuis un lieu de la carte du monde (`MapPlace.port.ref`,
- *  `noyau/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de `sea-cargo.json`
- *  (+ marqueurs `commerce`/`minimum-vital`), même vocabulaire que `PortProfile` (`engine/seaVoyage.ts`). */
+ *  `noyau/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de la voie `mer` de `cargoes.json`
+ *  (+ marqueurs `commerce-mer`/`minimum-vital`), même vocabulaire que `PortProfile` (`engine/seaVoyage.ts`). */
 export interface NavalPortData {
   id: string;
   type: 'naval-ports';
@@ -2625,6 +2630,11 @@ export const shipConstruction = shipConstructionJson as ShipConstructionData;
 /** LOT 2 #422 : Navigation fluviale (MSRC 7) — pendant fluvial de `seaNavigation`, même patron
  *  d'export (référence LIVE au même fichier physique relu par `engine/riverNavigation.ts`). */
 export const riverNavigation = riverNavigationJson as RiverNavigationData;
+
+/** Règles de négoce (#3433) : MDG 15 maritime, MSRC 13 terrestre — même patron d'export (référence
+ *  LIVE au même fichier physique relu par `engine/seaVoyage.ts` et `engine/landCargo.ts`). */
+export const seaCargo = seaCargoJson as SeaCargoData;
+export const landCargo = landCargoJson as LandCargoData;
 
 /** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE consommé par
  *  référence (`MapPlace.services[].kind`) et résolu par `placeServices` (`src/noyau/worldMap.ts`).
@@ -2838,7 +2848,7 @@ export const weather = weatherData.seasons;
  * pas de nom à afficher : elle est NOMMÉE par sa clé plutôt que passée sous silence.
  */
 export function seasonLabel(id: string): PlayerText {
-  return libelleOuAbsence(weatherData.seasons.find((s) => s.id === id), 'saison', id);
+  return libelleOuAbsence(saisonParId(id), 'saison', id);
 }
 
 /** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant

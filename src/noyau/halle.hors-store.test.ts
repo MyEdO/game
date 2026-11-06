@@ -52,12 +52,12 @@ describe('#3059 — achat de cargaison : un seul refus pour l’écran et le ges
   it('lot sous le minimum : refusé par le devis, et le geste ne charge rien en le disant', () => {
     const partie = ouvrir(true);
     try {
-      const cargoId = offre(partie, minCargoEnc);
-      const devis = devisDAchatDeCargaison(partie.etat(), cargoId, minCargoEnc - 1);
-      expect(devis.refus).toEqual({ motif: 'lot-minimal', min: minCargoEnc });
-      partie.envoyer({ type: 'landBuyCargo', args: [cargoId, minCargoEnc - 1] });
+      const cargoId = offre(partie, minCargoEnc());
+      const devis = devisDAchatDeCargaison(partie.etat(), cargoId, minCargoEnc() - 1);
+      expect(devis.refus).toEqual({ motif: 'lot-minimal', min: minCargoEnc() });
+      partie.envoyer({ type: 'landBuyCargo', args: [cargoId, minCargoEnc() - 1] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([]);
-      expect(journalDit(partie, t('lm.lotMinimal', { min: minCargoEnc }))).toBe(true);
+      expect(journalDit(partie, t('lm.lotMinimal', { min: minCargoEnc() }))).toBe(true);
     } finally {
       partie.fermer();
     }
@@ -66,8 +66,8 @@ describe('#3059 — achat de cargaison : un seul refus pour l’écran et le ges
   it('lot au minimum, porteur libre, bourse pleine : aucun refus avant Marchandage, estimation au lot partiel', () => {
     const partie = ouvrir(true, 5000);
     try {
-      const cargoId = offre(partie, minCargoEnc + 1);
-      const devis = devisDAchatDeCargaison(partie.etat(), cargoId, minCargoEnc);
+      const cargoId = offre(partie, minCargoEnc() + 1);
+      const devis = devisDAchatDeCargaison(partie.etat(), cargoId, minCargoEnc());
       expect(devis.refus).toBeNull();
       expect(devis.plancherGold).toBeLessThanOrEqual(devis.estimationGold);
       expect(devis.partiel).toBe(true);
@@ -79,8 +79,8 @@ describe('#3059 — achat de cargaison : un seul refus pour l’écran et le ges
   it('sans porteur : refus nommé, quel que soit le lot', () => {
     const partie = ouvrir(false);
     try {
-      const cargoId = offre(partie, minCargoEnc);
-      expect(devisDAchatDeCargaison(partie.etat(), cargoId, minCargoEnc).refus).toEqual({ motif: 'sans-porteur' });
+      const cargoId = offre(partie, minCargoEnc());
+      expect(devisDAchatDeCargaison(partie.etat(), cargoId, minCargoEnc()).refus).toEqual({ motif: 'sans-porteur' });
     } finally {
       partie.fermer();
     }

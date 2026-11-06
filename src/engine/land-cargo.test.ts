@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   availabilityPct, rollFindMerchant, rollCargoQuantity, rollRandomLandCargo,
   rollWineQuality, landCargoBasePrice, wineEvalDifficulty, wineEvalReveal, rollMerchantSkill, sellDemandTarget,
-  sellOfferPct, landDumpingPct, rollTradeRumour, rumourMatches, findLandCargoById, minCargoEnc, partialSurchargePct,
+  sellOfferPct, landDumpingPct, rollTradeRumour, rumourMatches, minCargoEnc, partialSurchargePct,
   tradeRumourApplies, tradeRumourMult, type LandMarketProfile, type TradeRumour,
 } from './landCargo';
-import { cargoTotalEnc, removeCargo } from './cargo';
+import { cargoTotalEnc, findCargoById, removeCargo } from './cargo';
 import type { RNG } from './dice';
 import { desEnSuite } from './dice.testkit';
 
@@ -46,16 +46,16 @@ describe('Commerce terrestre MSRC 13 — ACHAT (l.22-131)', () => {
   });
 
   it('prix de base par saison (l.84-90) : Métal = 8 CO/10 Enc toute l’année ; Vivres = 0,25 en automne', () => {
-    expect(landCargoBasePrice(findLandCargoById('metal')!, 'automne', hameau, seq())).toBe(8);
-    expect(landCargoBasePrice(findLandCargoById('vivres')!, 'automne', hameau, seq())).toBe(0.25);
+    expect(landCargoBasePrice(findCargoById('metal')!, 'automne', hameau, seq())).toBe(8);
+    expect(landCargoBasePrice(findCargoById('vivres')!, 'automne', hameau, seq())).toBe(0.25);
   });
 
   it('qualité SECRÈTE du Vin (l.97-104) : d10 6 → Bon = 3 CO (exemple Grünburg l.166) ; Kemperbad +2 échelons', () => {
     expect(rollWineQuality(seq(6))).toEqual({ roll: 6, label: 'Bon', price: 3 });
     // Kemperbad : +2 échelons — d10 4 (Moyen, idx 2) → idx 4 = Excellent (6 CO).
-    expect(landCargoBasePrice(findLandCargoById('vin-eau-de-vie')!, 'printemps', kemperbad, seq(4))).toBe(6);
+    expect(landCargoBasePrice(findCargoById('vin-eau-de-vie')!, 'printemps', kemperbad, seq(4))).toBe(6);
     // Le Vin ne suit PAS la colonne saisonnière : le prix vient de la table de qualité.
-    expect(landCargoBasePrice(findLandCargoById('vin-eau-de-vie')!, 'printemps', grunburg, seq(6))).toBe(3);
+    expect(landCargoBasePrice(findCargoById('vin-eau-de-vie')!, 'printemps', grunburg, seq(6))).toBe(3);
   });
 
   it('Test d’Évaluation du Vin : Intermédiaire, ou Accessible avec Résistance à l’alcool ≥ 50 (l.95)', () => {
@@ -74,8 +74,8 @@ describe('Commerce terrestre MSRC 13 — ACHAT (l.22-131)', () => {
 
   it('Marchandage : marchand 2d10+30 (l.129) ; lot partiel +10 %, mini 10 Enc (l.131)', () => {
     expect(rollMerchantSkill(seq(6, 4))).toBe(40); // 6+4+30
-    expect(partialSurchargePct).toBe(10);
-    expect(minCargoEnc).toBe(10);
+    expect(partialSurchargePct()).toBe(10);
+    expect(minCargoEnc()).toBe(10);
   });
 });
 

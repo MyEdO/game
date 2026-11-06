@@ -32,11 +32,11 @@ import { partyMoneyTotal, payFromGroup, distributeCredit, refusDeGesteSurLeGroup
 import { refuseSi } from './verrousDeFiche';
 import {
   type LandMarketProfile, rollFindMerchant, rollCargoQuantity, rollRandomLandCargo, landCargoBasePrice,
-  findLandCargoById, sellDemandTarget, sellOfferPct, landDumpingPct, rollMerchantSkill, partialSurchargePct, minCargoEnc,
+  sellDemandTarget, sellOfferPct, landDumpingPct, rollMerchantSkill, partialSurchargePct, minCargoEnc,
   wineEvalDifficulty, wineEvalReveal, rollTradeRumour, gossipRule,
   type TradeRumour, tradeRumourMult,
 } from '../engine/landCargo';
-import { type CargoLot, type CargoCarrier, loadCargo, carrierCanLoad, carrierFreeEnc, transferCargo } from '../engine/cargo';
+import { type CargoLot, type CargoCarrier, findCargoById, loadCargo, carrierCanLoad, carrierFreeEnc, transferCargo } from '../engine/cargo';
 import { findLieuServiceById, combatStakeRef } from '../data/index';
 import { primaryCargoCarrier, carrierById, bulkCarriers, persistCarriersCargo, planDuTransfertDemande, type CarrierStateSlice } from './carriers';
 import { refuserGeste } from './refusVisible';
@@ -112,7 +112,7 @@ function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => vo
   const find = rollFindMerchant(market, rng);
   const offers: LandOffer[] = [];
   const addOffer = (cargoId: string) => {
-    const cargo = findLandCargoById(cargoId);
+    const cargo = findCargoById(cargoId);
     if (!cargo || offers.some((o) => o.cargoId === cargoId)) return;
     phase(`Quantité — ${cargo.label}`);
     const { enc } = rollCargoQuantity(market, rng);
@@ -122,8 +122,8 @@ function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => vo
     offers.push({ cargoId, label: cargo.label, enc, basePrice, wine: !!cargo.wine });
   };
   // Marchandises LOCALES (colonne Produits) : un marqueur de l'Index (`echangeable: false`) n'est pas
-  // résolu par `findLandCargoById`, donc il n'ouvre aucune offre.
-  if (find.localFound) for (const id of market.produits.filter((p) => findLandCargoById(p))) addOffer(id);
+  // résolu par `findCargoById`, donc il n'ouvre aucune offre.
+  if (find.localFound) for (const id of market.produits.filter((p) => findCargoById(p))) addOffer(id);
   // « Commerce » (l.32-34) : une cargaison ALÉATOIRE de la table saisonnière en plus.
   if (find.randomFound) { phase('Cargaison de Commerce'); addOffer(rollRandomLandCargo(season, rng).id); }
   // Identité de HALLE (#371) : hôte + décor. Défaut partagé au catalogue `marche` (`lieux-services.json`),
@@ -176,7 +176,7 @@ export function generateTradeRumour(get: Get, set: Set, currentPlaceId: string, 
     heardDay: dayIndex(get().gameTime),
   };
   set({ tradeRumours: [...board, rumour] });
-  const biensTxt = rumour.biens.map((id) => findLandCargoById(id)?.label ?? id).join(', ');
+  const biensTxt = rumour.biens.map((id) => findCargoById(id)?.label ?? id).join(', ');
   log(get, set, [t('lm.rumeur', { biens: biensTxt, lieu: target.label })]); // MSRC 13 l.180
 }
 
@@ -214,7 +214,7 @@ export function moveCargo(get: Get, set: Set, fromId: string, toId: string, carg
   const { from, to } = plan;
   const res = transferCargo(from, to, cargoId, plan.enc);
   set(persistCarriersCargo(get(), [{ carrierId: fromId, cargo: res.from.cargo }, { carrierId: toId, cargo: res.to.cargo }]));
-  const label = findLandCargoById(cargoId)?.label ?? cargoId;
+  const label = findCargoById(cargoId)?.label ?? cargoId;
   log(get, set, [t('lm.transfert', { enc: res.moved, label, de: from.label, vers: to.label })]);
 }
 
@@ -259,7 +259,7 @@ export function raisonDuRefusDAchatDeCargaison(refus: RefusDAchatDeCargaison): s
 
 /** Prix d'un lot en CO (MSRC 13 l.127-131) : `pct` = effet du Marchandage, `partiel` = lot partiel. */
 export function prixDuLotDeCargaison(enc: number, basePrice: number, partiel: boolean, pct: number): number {
-  return Math.max(0, Math.round(enc * basePrice * (1 + (pct + (partiel ? partialSurchargePct : 0)) / 100)));
+  return Math.max(0, Math.round(enc * basePrice * (1 + (pct + (partiel ? partialSurchargePct() : 0)) / 100)));
 }
 
 /** Devis d'achat d'un lot : `enc` retenu (défaut : l'offre entière dans la place libre du porteur),
@@ -284,7 +284,7 @@ export function devisDAchatDeCargaison(s: CarrierStateSlice & Pick<Jeu, 'landMar
   const base = { enc: want, partiel, estimationGold: prixDuLotDeCargaison(want, offre.basePrice, partiel, 0), plancherGold, offre, porteur };
   if (refusDeGesteSurLeGroupe(s)) return { ...base, refus: { motif: 'invite' } };
   if (want <= 0) return { ...base, refus: { motif: 'rien' } };
-  if (want < minCargoEnc) return { ...base, refus: { motif: 'lot-minimal', min: minCargoEnc } };
+  if (want < minCargoEnc()) return { ...base, refus: { motif: 'lot-minimal', min: minCargoEnc() } };
   if (!porteur) return { ...base, refus: { motif: 'sans-porteur' } };
   if (!carrierCanLoad(porteur, want)) return { ...base, refus: { motif: 'contenance', porteur: porteur.label, libre, capacite: porteur.capacity } };
   if (!canAfford(totalDesBourses(s.party), toMoney({ gold: plancherGold }))) return { ...base, refus: { motif: 'bourse', plancher: plancherGold } };
@@ -371,7 +371,7 @@ function finishLandSale(get: Get, set: Set, carrierId: string, cargoIndex: numbe
   const lots = carrier?.cargo ?? [];
   const lot = lots[cargoIndex];
   if (!st || !carrier || !lot) return;
-  const label = findLandCargoById(lot.cargoId)?.label ?? lot.cargoId;
+  const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
   if (avant.length) log(get, set, avant);
   const rng = battleRng();
   const offerPct = sellOfferPct(st.market);
@@ -402,7 +402,7 @@ function finishLandSale(get: Get, set: Set, carrierId: string, cargoIndex: numbe
  *  Produits (`landDumpingPct` nul, MSRC 13 l.160) ; `null` sinon. Tombe dans `landDumpCargo`, lu par l'écran. */
 export function refusDeBradageALaHalle(s: Pick<Jeu, 'net' | 'landMarket'>, cargoId: string): string | null {
   return refusDeGesteSurLeGroupe(s)
-    ?? (s.landMarket && landDumpingPct(s.landMarket.market) == null ? t('lm.bradageRefuse', { label: findLandCargoById(cargoId)?.label ?? cargoId }) : null);
+    ?? (s.landMarket && landDumpingPct(s.landMarket.market) == null ? t('lm.bradageRefuse', { label: findCargoById(cargoId)?.label ?? cargoId }) : null);
 }
 
 /** BRADER un lot invendable (l.160) : la MOITIÉ du prix de base, dans un Lieu ayant le Commerce en Produits —
@@ -418,7 +418,7 @@ export function landDumpCargo(get: Get, set: Set, carrierId: string, cargoIndex:
   const refus = refusDeBradageALaHalle(get(), lot.cargoId);
   if (refus) { refuserGeste(get, set, refus); return; }
   const pct = garanti(landDumpingPct(st.market), st.placeId, 'pourcentage de bradage');
-  const label = findLandCargoById(lot.cargoId)?.label ?? lot.cargoId;
+  const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
   const gross = Math.max(0, Math.round(lot.enc * lot.basePriceGold * (pct / 100)));
   // Bradage de cargaison de GROUPE (l.160) → crédit réparti par tête sur les bourses.
   distributeCredit(get, set, fromBrass(gross * PA_PER_CO));
@@ -475,7 +475,7 @@ export const TABLES = {
       const carrier = carrierById(get(), carrierId);
       const lot = carrier?.cargo[cargoIndex];
       if (!st || !carrier || !lot) return {};
-      const label = findLandCargoById(lot.cargoId)?.label ?? lot.cargoId;
+      const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
       if (step.result.success) {
         const demi = attempt === 2 ? [`${label} : pas d’acheteur pour tout le lot — la moitié (${sellEnc} Enc) trouve preneur.`] : [];
         chainStep(get, () => finishLandSale(get, set, carrierId, cargoIndex, sellEnc, demi));

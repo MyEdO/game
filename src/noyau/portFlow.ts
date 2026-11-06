@@ -40,10 +40,11 @@ import { t } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
   rollCargoAvailability, rollMerchantSkill, rollMerchantOpposition, buySellerDR, cargoBasePrice, rollRandomCargo,
-  sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc, findCargoById,
-  cargoOverload, overloadMaxEnc, OVERLOAD_HARD_CAP_PCT, isSeaTradeHub,
+  sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc,
+  cargoOverload, overloadMaxEnc, overloadHardCapPct,
   type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
+import { findCargoById, isTradeHubColumn } from '../engine/cargo';
 import { seasonOfMonth } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
 import { chainStep } from './enchainerEtape';
@@ -119,7 +120,7 @@ function prixDuLotEnPort(enc: number, basePrice: number, pct: number): number {
 /** Cale du navire à l'escale : place libre nominale, Enc embarquable jusqu'au plafond dur, et ce plafond en %
  *  de la Contenance (MDG 12 l.70-75, donnée `hardCapPct`). Lue par l'écran du port. PUR. */
 export function caleALEscale(vessel: Jeu['vessel']): { libre: number; embarquable: number; plafondPct: number } {
-  return { libre: encLibreNominale(vessel), embarquable: encEmbarquable(vessel), plafondPct: OVERLOAD_HARD_CAP_PCT };
+  return { libre: encLibreNominale(vessel), embarquable: encEmbarquable(vessel), plafondPct: overloadHardCapPct() };
 }
 
 /** Devis d'achat d'une cargaison à l'escale, AVANT Marchandage : Enc retenu (défaut : l'offre dans la place
@@ -175,7 +176,7 @@ function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) =>
   for (const p of port.production) if (findCargoById(p)) ids.add(p);
   for (const s of Object.keys(port.surplus ?? {})) ids.add(s);
   // « commerce » → cargaison(s) aléatoire(s) (l.321/347).
-  if (isSeaTradeHub(port.production)) {
+  if (isTradeHubColumn(port.production)) {
     const draws = cur.cosmopolite ? 3 : 1;
     for (let i = 0; i < draws; i++) { phase(`Cargaison de commerce ${i + 1}`); ids.add(rollRandomCargo(season, rng).id); }
   }

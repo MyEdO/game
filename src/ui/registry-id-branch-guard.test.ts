@@ -113,11 +113,11 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/travelPostes.ts': 1,
   'src/noyau/verdictsDInterlude.ts': 1,
   'src/noyau/monde/vision.ts': 1,
-  // Le site de `ui/ownership.ts` est la comparaison au sentinel `'*'` de l'arbitre de modales (owner =
+  // Le site de `noyau/combatAuto.ts` est la comparaison au sentinel `'*'` de l'arbitre de modales (owner =
   //  tous les sièges) dans la porte de possession `spectatorSeatOfModal` : un mot du VOCABULAIRE du
   //  protocole de modales, jamais un id d'entité — c'est la décision « qui nomme le siège attendu »,
   //  et elle est UNE (`ActiveModal.tsx` la lit sans la refaire, il ne compte donc aucun site).
-  'src/ui/ownership.ts': 1,
+  'src/noyau/combatAuto.ts': 1,
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `PINNED_SEL`
   // (`'__pinned__'`) est une SENTINELLE de sélection d'écran (la rangée « Épinglés », qui n'est pas une
   // affaire), jamais l'identité d'une entrée de registre — famille du `''` d'`OP_VOCABULARY`.

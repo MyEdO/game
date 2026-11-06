@@ -27,8 +27,7 @@ import { stageWeatherRows } from '../noyau/travelFlow';
 // ce qu'on en LIT (l'id de table d'une nature + un alignement), jamais par un import d'effet de bord.
 import { mutationTableIdFor } from '../noyau/corruptionFlow';
 import { setDataset, datasetArray, setObjectDataset, datasetObject, type ObjectDatasetKey } from './overrides';
-import { cargoes, findCargoById, type CargoDef } from '../engine/seaVoyage';
-import { landCargoes, findLandCargoById, type LandCargoDef } from '../engine/landCargo';
+import { marchandisesDe, findCargoById, type CargoDef } from '../engine/cargo';
 import { advanceCost } from '../engine/advancement';
 import { shipSizeOfLength } from '../engine/shipBuild';
 import {
@@ -36,6 +35,8 @@ import {
   capsizeRightDifficulty, capsizeRightCumulative, type RiverWindForceId,
 } from '../engine/riverNavigation';
 import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
+import { overloadMaxEnc, offerPricePct } from '../engine/seaVoyage';
+import { minCargoEnc, partialSurchargePct, rollMerchantSkill } from '../engine/landCargo';
 import { rollAvailability, barterRatio } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
 import { SEA_BOARD_EVENT_TABLE } from '../noyau/seaVoyageFlow';
@@ -56,12 +57,12 @@ const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationT
 const MISCAST_MINEURE_LIVREE = [...(datasetArray('miscastMinor') as MiscastTableRow[])];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
 const LISTES_LIVREES = tableTotale(
-  ['seaCargo', 'landCargo', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
+  ['cargoes', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
   (k) => structuredClone(datasetArray(k)),
-) as { [K in 'seaCargo' | 'landCargo' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
+) as { [K in 'cargoes' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
 const OBJETS_LIVRES = tableTotale(
-  ['riverNavigation', 'seaWeather', 'disponibilite'] as const, (k) => structuredClone(datasetObject(k)),
-) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite']: ReturnType<typeof datasetObject<K>> };
+  ['riverNavigation', 'seaWeather', 'disponibilite', 'seaCargo', 'landCargo'] as const, (k) => structuredClone(datasetObject(k)),
+) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite' | 'seaCargo' | 'landCargo']: ReturnType<typeof datasetObject<K>> };
 /** Un dé qui rend toujours `n` : le cran de vent se force (seuil 1, puis « forcir »). */
 
 afterEach(() => {
@@ -233,20 +234,16 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
 });
 
 describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', () => {
-  it('une marchandise maritime NEUVE : `cargoes` et `findCargoById` la servent', () => {
-    const modele = cargoes()[0];
-    expect(findCargoById('cargo-qc-1692')).toBeUndefined();
-    setDataset('seaCargo', [...datasetArray('seaCargo'), { ...modele, id: 'cargo-qc-1692', label: 'Cargo QC' } as CargoDef]);
-    expect(cargoes().map((c) => c.id)).toContain('cargo-qc-1692');
-    expect(findCargoById('cargo-qc-1692')!.label).toBe('Cargo QC');
-  });
-
-  it('une marchandise terrestre NEUVE : `landCargoes` et `findLandCargoById` la servent', () => {
-    const modele = landCargoes()[0];
-    expect(findLandCargoById('cargo-terre-qc-1692')).toBeUndefined();
-    setDataset('landCargo', [...datasetArray('landCargo'), { ...modele, id: 'cargo-terre-qc-1692', label: 'Cargo terre QC' } as LandCargoDef]);
-    expect(landCargoes().map((c) => c.id)).toContain('cargo-terre-qc-1692');
-    expect(findLandCargoById('cargo-terre-qc-1692')!.label).toBe('Cargo terre QC');
+  it('une marchandise NEUVE : `marchandisesDe` la sert dans SA voie seule, `findCargoById` la résout', () => {
+    for (const voie of ['mer', 'terre'] as const) {
+      const id = `cargo-${voie}-qc-1692`;
+      const autre = voie === 'mer' ? 'terre' : 'mer';
+      expect(findCargoById(id)).toBeUndefined();
+      setDataset('cargoes', [...datasetArray('cargoes'), { ...marchandisesDe(voie)[0], id, label: `Cargo ${voie} QC` } as CargoDef]);
+      expect(marchandisesDe(voie).map((c) => c.id)).toContain(id);
+      expect(marchandisesDe(autre).map((c) => c.id)).not.toContain(id);
+      expect(findCargoById(id)!.label).toBe(`Cargo ${voie} QC`);
+    }
   });
 
   it('un Coût d’Augmentation ÉDITÉ : `advanceCost` lit la NOUVELLE bande', () => {
@@ -354,5 +351,29 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max);
     setDataset('seaBoardEvents', evts.map((e, i) => (i === 0 ? { ...e, max: premier.max! - 1 } : e)));
     expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max! - 1);
+  });
+
+  it('les règles de négoce maritime ÉDITÉES (#3433) : plafond de surcharge et bandes du Prix d’offre servis NEUFS', () => {
+    const fiche = structuredClone(datasetObject('seaCargo'));
+    const port = { taille: 1, richesse: 1, production: [] };
+    expect(overloadMaxEnc(100)).toBe(fiche.overload.hardCapPct);
+    expect(offerPricePct(port, 'x')).toBe(100 + fiche.sell.offerPrice.find((b) => b.min === 2)!.pct);
+    setObjectDataset('seaCargo', {
+      ...fiche,
+      overload: { ...fiche.overload, hardCapPct: 175 },
+      sell: { ...fiche.sell, offerPrice: fiche.sell.offerPrice.map((b) => (b.min === 2 ? { ...b, pct: -33 } : b)) },
+    });
+    expect(overloadMaxEnc(100)).toBe(175);
+    expect(offerPricePct(port, 'x')).toBe(67);
+  });
+
+  it('les règles de négoce terrestre ÉDITÉES (#3433) : lot minimal, surcoût partiel et dés du marchand servis NEUFS', () => {
+    const fiche = structuredClone(datasetObject('landCargo'));
+    const { d10, plus } = fiche.buy.merchantSkill;
+    expect(rollMerchantSkill(deFixe(1))).toBe(d10 + plus);
+    setObjectDataset('landCargo', { ...fiche, buy: { ...fiche.buy, minEnc: 20, partialSurchargePct: 15, merchantSkill: { d10: d10 + 1, plus } } });
+    expect(minCargoEnc()).toBe(20);
+    expect(partialSurchargePct()).toBe(15);
+    expect(rollMerchantSkill(deFixe(1))).toBe(d10 + 1 + plus);
   });
 });

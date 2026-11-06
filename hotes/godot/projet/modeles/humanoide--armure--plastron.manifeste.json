@@ -1,0 +1,44 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "armure",
+  "cle": {
+    "piece": "plastron"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "armure",
+  "couvre": [],
+  "emplacements": {
+    "poitrine": {
+      "os": "spine_03",
+      "position": [
+        0,
+        -0.002167,
+        0.173384
+      ],
+      "rotation": [
+        0.226485,
+        0,
+        0
+      ]
+    }
+  },
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "acier",
+      "palette": "metal"
+    }
+  ],
+  "glb": {
+    "sha256": "3fafd678cf85ad34d1ecd37bedea970af0e633595bb0dcf4a1535740f8e27c81",
+    "octets": 306300
+  }
+}

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
-import { influencesLocally } from '../noyau/netOwnership';
+import { JET_FIGE, influencesLocally, jetFigeRevele } from '../noyau/netOwnership';
 import { counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor } from '../noyau/combatFlow';
 import type { CounterDeclaration } from '../noyau/pendings';
 import { fenetreDIncantation } from '../noyau/fenetreDIncantation';
@@ -15,7 +15,7 @@ import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { RollRow } from './RollRow';
 import { refusDeRangee, rowForcedDie } from './forcedDieRow';
-import { maskOpposedRow, opposedResponded, opposedRevealed } from './opposedFrozen';
+import { maskOpposedRow } from './opposedFrozen';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
@@ -51,7 +51,7 @@ const EFFETS: Record<CritChoice, [Parameters<typeof Icon>[0]['id'], string]> = {
  * zone) passe par les slots `setup`/`postRollExtra` ; toute la mécanique générique vit dans la coquille.
  *
  * Surincantation « +Cible » : EN COMBAT, le choix des cibles supplémentaires se fait SUR LE CHAMP
- * DE BATAILLE (`castPickTargets` efface la modale, bandeau TargetPrompt + clic carte) ; hors
+ * DE BATAILLE (`jetRegler('cast', 'carte', 'cibles')` efface la modale, bandeau TargetPrompt + clic carte) ; hors
  * combat (pas de carte tactique), repli sur des boutons-portraits dans la modale.
  */
 export function CastModal() {
@@ -63,8 +63,6 @@ export function CastModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'cast');
   const darkPact = useGesteDeJet('jetDarkPact', 'cast');
   const regler = useGame((s) => s.jetRegler);
-  const pickTargets = useGame((s) => s.castPickTargets);
-  const placeZone = useGame((s) => s.castPlaceZone);
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'cast');
   const confirm = useGesteDeJet('jetConfirm', 'cast');
   const cancel = useGesteDeJet('jetCancel', 'cast');
@@ -102,10 +100,8 @@ export function CastModal() {
   const placeable = !!vue.pose && !vue.pose.refus;
   // #990 — CALENDRIER de découverte de l'incantation FIGÉE (arbitrage user 2026-07-30) : tant que le
   // répondant de CE siège (opposition de cible OU Contre-sort) n'a pas lancé, la rangée du lanceur ET
-  // le verdict qui la trahit restent masqués. Formule UNIQUE.
-  const responders = [...(pcs?.participants ?? []), ...(csp?.participants ?? [])];
-  const responded = opposedResponded(useGame.getState(), responders);
-  const castRevealed = opposedRevealed(useGame.getState(), pc.casterId, responded);
+  // le verdict qui la trahit restent masqués. Verdict du noyau (`jetFigeRevele`).
+  const castRevealed = jetFigeRevele(useGame.getState(), JET_FIGE.cast(useGame.getState(), pc));
   const outcome = castRevealed ? vue.issue : '';
 
   // Rangée MONO d'incantation = le jet du lanceur, porteur de son cycle d'influence (Lancer → Chance/
@@ -115,7 +111,7 @@ export function CastModal() {
   // (#1005) ; un lanceur ENNEMI (IA, ou MJ d'un AUTRE siège) rend une rangée TÉMOIN. Elle passe ENSUITE par le
   // calendrier #990 — `maskOpposedRow` MASQUE sa ligne, et le cycle d'influence, DÉRIVÉ de cette ligne, s'éteint
   // avec elle.
-  const castRow: BuiltRollRow = maskOpposedRow(useGame.getState(), { ownerId: pc.casterId, responded }, buildRollRow({
+  const castRow: BuiltRollRow = maskOpposedRow(castRevealed, buildRollRow({
     actor: caster,
     // Le ✓/✗ de la LIGNE est le verdict du TEST (`LDB 46 l.22-24`), jamais celui du Sort lancé.
     row: ligne.jet
@@ -152,7 +148,7 @@ export function CastModal() {
       // Le libellé « (dissipé) » EST le verdict de la comparaison au jet masqué : même calendrier que l'issue (#990).
       label: csp ? (castRevealed && csp.participants.some((p) => p.result?.dispelled) ? 'Appliquer (dissipé)' : 'Appliquer') : placeable ? <><Icon id="map-tool/pin" size="sm" /> Poser la zone</> : 'Appliquer',
       title: placeable && !csp ? "La modale s'efface — clique une case du champ de bataille pour déposer la zone" : undefined,
-      onClick: csp ? cspConfirm : pcs ? oppConfirm : placeable ? () => placeZone(true) : confirm,
+      onClick: csp ? cspConfirm : pcs ? oppConfirm : placeable ? () => regler('cast', 'carte', 'zone') : confirm,
       verbe: 'confirm',
       flux: csp ? 'counterspell' : pcs ? 'opposition' : 'cast',
     },
@@ -254,7 +250,7 @@ export function CastModal() {
                 // La rangée ceint le bouton à son contenu : dans la pile des réglages, un bouton seul
                 // s'étirerait sur toute la largeur.
                 <Row>
-                  <button className="btn small" onClick={() => pickTargets(true)} title="Choisir les cibles supplémentaires sur le champ de bataille">
+                  <button className="btn small" onClick={() => regler('cast', 'carte', 'cibles')} title="Choisir les cibles supplémentaires sur le champ de bataille">
                     <Icon id="nav/campaign" size="sm" /> Désigner les cibles ({sur.cibles.designees}/{sur.cibles.capacite})
                   </button>
                 </Row>

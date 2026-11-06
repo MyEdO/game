@@ -1,13 +1,12 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.309-436 */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
+import { document, type EnveloppeDocument } from '../grammaire/document';
 import {
-  cargaisonMarchandeSchema,
-  catalogueSaisonnier,
   cibleEtendueSchema,
   difficultySchema,
   ecartsDeCouverture,
+  enumNomme,
   plageOuverteSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
@@ -37,20 +36,10 @@ const offerPriceSchema = z
     }
   });
 
-/**
- * CATALOGUE DES CARGAISONS (l.406-418) — la COUVERTURE du d100 est un invariant de la COLONNE
- * saisonnière, pas d'une entrée : sans ce verrou, un trou ouvert au Codex ne lèverait rien au parse, et
- * le tirage tomberait sur un ARRÊT au jet (`rollSeasonalCargo`, `src/engine/cargo.ts`) — la faute
- * étant, elle, dans la donnée. La règle est celle des DEUX livres : elle vit dans la grammaire
- * (`catalogueSaisonnier`) avec ses rangées, ce def n'en déclare que le site cité par le refus.
- */
-const cargoesSchema = catalogueSaisonnier(cargaisonMarchandeSchema, { site: 'sea-cargo.json › cargoes' });
+/** MDG 15 l.274-286 */
+export const issueDuTestSchema = enumNomme({ success: 'Succès', failure: 'Échec' });
 
-const doc = document(
-  'sea-cargo',
-  famille,
-  {
-  cargoes: cargoesSchema,
+const champs = {
   buy: nommerChamps(z.strictObject({
     availabilityMultiplier: z.number(),
     merchantSkill: nommerChamps(z.strictObject({ d10: z.number(), plus: z.number() }), { d10: { label: 'Dés à dix faces' }, plus: { label: 'Ajout' } }),
@@ -118,12 +107,12 @@ const doc = document(
     maxAttempts: z.number(),
     outcomes: z.array(
       nommerChamps(z.strictObject({
-        on: z.enum(['success', 'failure']),
+        on: issueDuTestSchema,
         minMissing: z.number().optional(),
         minExtraDR: z.number().optional(),
         pct: z.number(),
       }), {
-        on: { label: 'Cible' },
+        on: { label: 'Issue du Test' },
         minMissing: { label: 'Manque minimal' },
         minExtraDR: { label: 'DR supplémentaires minimaux' },
         pct: { label: 'Pourcentage' },
@@ -138,9 +127,13 @@ const doc = document(
     outcomes: { label: 'Issues' },
     source: { label: 'Source' },
   }),
-  },
+};
+
+const doc = document(
+  'sea-cargo',
+  famille,
+  champs,
   {
-    cargoes: { label: 'Cargaisons', hint: 'Catalogue des cargaisons échangeables et des marqueurs de colonne Production' },
     buy: { label: "Règles d'achat", hint: 'Barème de Marchandage et bonus de disponibilité à l’achat' },
     sell: { label: 'Règles de vente', hint: 'Barème de prix, Ragot préalable, DR de camp du Marchandage de vente' },
     overload: { label: 'Surcharge', hint: 'Paliers de surcharge de cale (malus de Mouvement/manœuvre)' },
@@ -149,13 +142,11 @@ const doc = document(
       hint: 'Test, nombre de tentatives et issues (%) du placement spéculatif de cargaison',
     },
   },
-  {
-    codex: { keys: ['seaCargo'] },
-    edit: { niche: { categories: { seaCargo: 'cargoes' } } },
-  },
+  { codex: { keys: ['seaCargo'] }, edit: { object: 'single' } },
 );
 
 export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
+export type SeaCargoData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

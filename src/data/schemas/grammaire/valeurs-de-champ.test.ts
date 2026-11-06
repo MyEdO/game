@@ -94,6 +94,8 @@ const NOMMES = [
   'obsessions',
   // `windAspectSchema` (MDG 13 l.267-270).
   'arriere|lateral|face',
+  // `voie` du catalogue des cargaisons (#1684) : la table du livre qui porte l'entrée (MDG 15, MSRC 13).
+  'mer|terre',
   // `buildingAnchorSchema` (#1715) : où un ornement d'identité s'accroche sur un bâtiment.
   'ridge|facade|front',
   // `retestAt` (psychology, #1463) : le moment du re-test d'une affliction ciblée active.
@@ -152,6 +154,8 @@ const NOMMES = [
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
   'success|failure|fumble',
+  // `issueDuTestSchema` : l'issue du Test de Commerce d'opportunité (MDG 15 l.274-286).
+  'success|failure',
   'test|combat|threat|hold|rally',
   'any|all',
   'group|talent|trait|psych|immunity',
@@ -296,7 +300,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'sort|rituel',
   'source|group|any',
   'spell|prayer|talent|trait|trapping|quality|disease|symptom|mutation|condition|psychology|maneuver|creature|activity|rule|tavernGame|miscastMinor|miscastMajor|miscastWrath',
-  'success|failure',
   'success|stupefying',
   'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',
