@@ -52,7 +52,7 @@ import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../audio/music';
-import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines, MERCHANT_ARCHETYPES } from '../../data';
+import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, siegeEngines, MERCHANT_ARCHETYPES } from '../../data';
 import { renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setNorthDeg, setSceneFlags, removeSceneFlag, setSceneScalaires, setSceneLabel, renameScene, editEntry, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, patchStartMessage, setReliefDefault, patchSceneRoofDefaults, setSceneRest, patchTrigger, patchRestZone, replaceEffectZone, patchArchitectureBody, poseToitureDuCorps, addRoofExclusion, patchRoofExclusion, removeRoofExclusion, patchArchitectureStorey, patchArchitecturePart, patchFacadeSection, setFacadeSectionZ, patchBuildingMass, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE } from '../../noyau/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
@@ -78,7 +78,7 @@ import { StatblockEditor } from './StatblockEditor';
 import { emptyStatblock } from '../../data/valeursNeuves';
 import { CreatureProfile, OptionalTraitsPicker, SpellsField } from './OptionalTraitsPicker';
 import { SeatAssignmentsField } from './SeatAssignmentsField';
-import { type Sel, type Tool, effectZoneRect, effectZoneArea, flowEffectCount } from '../../noyau/sceneEditLecture';
+import { type Sel, type Tool, capDeLEntite, capsOfferts, effectZoneRect, effectZoneArea, flowEffectCount } from '../../noyau/sceneEditLecture';
 import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
@@ -90,21 +90,12 @@ import type { IconIdInput } from '../../data/icons';
 import { ListRow } from '../ListRow';
 import { OptionChooser } from '../OptionChooser';
 import { LayerField, LayerChip, sceneLayerZs } from './LayerField';
-import { estCardinal, type Dir8 } from '../../geometry/dir8';
+import { t } from '../../i18n';
 import { propFootTiles } from '../../noyau/monde/footprint';
 import { Row, Stack } from '../Layout';
 import { ChipDeRefus } from '../ChipDeRefus';
-import { CAP_IDENTITE_PROP } from '../../data/props.types';
 import { CouvreField } from './CouvreField';
 
-/** Caps OFFERTS au sélecteur d'orientation, dans l'ordre horaire de `DIR8_ORDER` : les huit pour une
- *  entité ordinaire, les quatre CARDINAUX pour un décor volumique (`Dir4`, #1680 ligne 3). Un seul
- *  couple id→libellé, jamais deux listes de `<option>` recopiées. */
-const CAPS_OFFERTS: readonly (readonly [Dir8, string])[] = [
-  ['N', 'Nord'], ['NE', 'Nord-Est'], ['E', 'Est'], ['SE', 'Sud-Est'],
-  ['S', 'Sud'], ['SO', 'Sud-Ouest'], ['O', 'Ouest'], ['NO', 'Nord-Ouest'],
-];
-const CAPS_OFFERTS_CARDINAUX = CAPS_OFFERTS.filter(([cap]) => estCardinal(cap));
 
 /** Valeur que porte le sélecteur de décor quand l'instance ne NOMME aucun type : SENTINELLE de
  *  FORMULAIRE — un `<select>` doit avoir une valeur, et sans valeur explicite le DOM élit la première
@@ -1328,23 +1319,21 @@ function EmpreinteDeLInstance({ scene, ent }: { scene: Scene; ent: SceneEntity }
 }
 
 /**
- * ORIENTATION d'une entité. Un décor VOLUMIQUE n'a que les quatre cardinaux À OFFRIR (#1509, #1680
- * ligne 3) : `data/props.types.ts` `capVolumique` ; source : le CATALOGUE (`refEstVolumique`), la même
- * que lit le schéma de scène au parse et `validateScene` à l'écran. Un cap que la donnée porte HORS de l'offre se MONTRE en option
+ * ORIENTATION d'une entité : les caps que son type admet (`capsOfferts`, #1509, #1680 ligne 3), la même
+ * règle que lit le schéma de scène au parse et `validateScene` à l'écran. Un cap que la donnée porte HORS de l'offre se MONTRE en option
  * non élisible, comme l'état de `SelecteurDeDecor` : sans elle, le DOM afficherait la première option
  * comme si c'était le cap de l'instance, et la choisir n'émettrait aucun `change`.
  */
 function SelecteurDOrientation({ ent, updateSel }: { ent: SceneEntity; updateSel: (patch: Partial<SceneEntity>) => void }) {
-  const offerts = refEstVolumique(ent.ref) && ent.kind === 'prop' ? CAPS_OFFERTS_CARDINAUX : CAPS_OFFERTS;
-  const cap = ent.facing ?? CAP_IDENTITE_PROP;
-  const horsOffre = offerts.some(([c]) => c === cap) ? null : CAPS_OFFERTS.find(([c]) => c === cap);
+  const offerts = capsOfferts(ent);
+  const cap = capDeLEntite(ent);
   return (
     <label className="ed-field">
       Orientation
       <select value={cap} onChange={(e) => updateSel({ facing: e.target.value as SceneEntity['facing'] })}>
-        {horsOffre && <option value={cap} disabled>{horsOffre[1]} — refusé pour ce décor</option>}
-        {offerts.map(([c, libelle]) => (
-          <option key={c} value={c}>{libelle}</option>
+        {!offerts.includes(cap) && <option value={cap} disabled>{t(`ecran.editeur.cap.${cap}`)} — refusé pour ce décor</option>}
+        {offerts.map((c) => (
+          <option key={c} value={c}>{t(`ecran.editeur.cap.${c}`)}</option>
         ))}
       </select>
     </label>
