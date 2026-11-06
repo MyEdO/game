@@ -173,14 +173,14 @@ describe('Arme de Cavalerie maniée à pied : Groupe de Corps à corps et Atouts
 
   it('sabre à pied avec Corps à Corps (Base) : Test de Base, Taillade (2A)', () => {
     const c = combatant({ skills: [cac('base', 10)] });
-    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'base' } });
     expect(combatValue(c, 'melee', sabre())).toBe(65);
     expect(taillade(c, sabre())).toBe(2);
   });
 
   it('sabre à pied avec Corps à Corps (Escrime) : Test d’Escrime, Taillade (1A)', () => {
     const c = combatant({ skills: [cac('escrime', 10)] });
-    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'escrime' });
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'escrime' } });
     expect(combatValue(c, 'melee', sabre())).toBe(65);
     expect(taillade(c, sabre())).toBe(1);
   });
@@ -188,7 +188,7 @@ describe('Arme de Cavalerie maniée à pied : Groupe de Corps à corps et Atouts
   it('sabre monté : Test de Cavalerie, Taillade (1A), aucun maniement à pied', () => {
     const c = combatant({ mountId: 'cheval', skills: [cac('cavalerie', 10), cac('base', 20)] });
     expect(maniementRetenu(c, sabre())).toBeUndefined();
-    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'cavalerie' });
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'cavalerie' } });
     expect(combatValue(c, 'melee', sabre())).toBe(65);
     expect(taillade(c, sabre())).toBe(1);
   });
@@ -196,7 +196,7 @@ describe('Arme de Cavalerie maniée à pied : Groupe de Corps à corps et Atouts
   it('à pied avec la seule Spé de Cavalerie : Test de Cavalerie, Taillade (1A)', () => {
     const c = combatant({ skills: [cac('cavalerie', 10)] });
     expect(maniementRetenu(c, sabre())).toBeUndefined();
-    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'cavalerie' });
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'cavalerie' } });
     expect(combatValue(c, 'melee', sabre())).toBe(65);
     expect(taillade(c, sabre())).toBe(1);
   });
@@ -222,10 +222,10 @@ describe('Arme de Cavalerie maniée à pied : Groupe de Corps à corps et Atouts
   it('marteau à bec-de-corbin : Corps à Corps (Deux mains) à pied, Cavalerie monté', () => {
     const skills = [cac('deux-mains', 10), cac('cavalerie', 5)];
     const aPied = combatant({ skills });
-    expect(attackTestOf(aPied, marteau(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'deux-mains' });
+    expect(attackTestOf(aPied, marteau(), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'deux-mains' } });
     expect(combatValue(aPied, 'melee', marteau())).toBe(65);
     const monte = combatant({ mountId: 'cheval', skills });
-    expect(attackTestOf(monte, marteau(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'cavalerie' });
+    expect(attackTestOf(monte, marteau(), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'cavalerie' } });
     expect(combatValue(monte, 'melee', marteau())).toBe(60);
   });
 });
@@ -251,7 +251,7 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
     tenirLeBouclier(c);
     expect(batarde(c).hands).toBe(1);
     expect(c.weapons.some((w) => w.hand === 'off' && w.trappingId === 'bouclier')).toBe(true);
-    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'base' } });
     expect(combatValue(c, 'melee', batarde(c))).toBe(65);
     expect(qualitesManiees(c, batarde(c))).toEqual(['defensive', 'devastatrice', 'epuisante', 'lente']);
   });
@@ -259,7 +259,7 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
   it('main secondaire libre, Deux mains plus haute : Test de Deux mains, sans ces Défauts', () => {
     const c = porteur([cac('base', 10), cac('deux-mains', 20)], ['epee-batarde']);
     expect(batarde(c).hands).toBe(2);
-    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'deux-mains' });
+    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'deux-mains' } });
     expect(combatValue(c, 'melee', batarde(c))).toBe(75);
     expect(qualitesManiees(c, batarde(c))).toEqual(['defensive', 'devastatrice']);
   });
@@ -267,14 +267,14 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
   it('Base et Deux mains à égalité, main secondaire libre : le maniement qui garde les qualités', () => {
     const c = porteur([cac('base', 10), cac('deux-mains', 10)], ['epee-batarde']);
     expect(batarde(c).hands).toBe(2);
-    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'deux-mains' });
+    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'deux-mains' } });
   });
 
   it('la seule Spé de Base : à une main, et le set par défaut lui donne le bouclier', () => {
     const c = porteur([cac('base', 10)]);
     expect(batarde(c).hands).toBe(1);
     expect(c.weapons.some((w) => w.hand === 'off' && w.trappingId === 'bouclier')).toBe(true);
-    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'base' } });
   });
 
   it('sans Corps à Corps (Base) : deux mains, la main secondaire est refusée', () => {
@@ -304,7 +304,7 @@ describe('Arme d’escrime ou main gauche maniée en Corps à Corps (Base)', () 
     ['Base et Escrime à égalité : Escrime', [cac('base', 10), cac('escrime', 10)], 'escrime'],
   ])('rapière, %s', (_cas, skills, spec) => {
     const c = combatant({ skills });
-    expect(attackTestOf(c, arme('rapiere'), 'melee')).toEqual({ skill: 'corps-a-corps', spec });
+    expect(attackTestOf(c, arme('rapiere'), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec } });
     expect(combatValue(c, 'melee', arme('rapiere'))).toBe(65);
     expect(qualitesManiees(c, arme('rapiere'))).toEqual(['empaleuse', 'rapide']);
   });
@@ -312,18 +312,18 @@ describe('Arme d’escrime ou main gauche maniée en Corps à Corps (Base)', () 
   it('toute arme du Groupe Escrime, sans ligne par arme : le fleuret en Base', () => {
     const c = combatant({ skills: [cac('base', 10)] });
     expect(itemFromTrappingById('fleuret')!.manieAussi).toBeUndefined();
-    expect(attackTestOf(c, arme('fleuret'), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+    expect(attackTestOf(c, arme('fleuret'), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'base' } });
   });
 
   it('main gauche sans Parade : Test de Base, Défensive perdue', () => {
     const c = combatant({ skills: [cac('base', 10)] });
-    expect(attackTestOf(c, arme('main-gauche'), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+    expect(attackTestOf(c, arme('main-gauche'), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'base' } });
     expect(qualitesManiees(c, arme('main-gauche'))).toEqual([]);
   });
 
   it('main gauche avec Parade : Test de Parade, Défensive gardée', () => {
     const c = combatant({ skills: [cac('base', 10), cac('parade', 10)] });
-    expect(attackTestOf(c, arme('main-gauche'), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'parade' });
+    expect(attackTestOf(c, arme('main-gauche'), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'parade' } });
     expect(qualitesManiees(c, arme('main-gauche'))).toEqual(['defensive']);
   });
 });

@@ -69,7 +69,7 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
     banc.setState({ partyPos: { x: 1, y: 3, z: 1 } });
     poserLeGroupe(banc.getState, banc.setState, { x: 2, y: 2, z: 1 });
     const pt = banc.getState().pendingTest!;
-    expect(pt.skillId).toBe('perception');
+    expect(pt.sujet?.skill?.id).toBe('perception');
     expect(pt.difficulty).toBe('complexe');
   });
 

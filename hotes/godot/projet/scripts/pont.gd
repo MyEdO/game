@@ -1,5 +1,5 @@
-## Le seul point de contact avec la page : `globalThis.wfrpPont` par JavaScriptBridge (`hotes/godot/pont/CONTRAT.md`), et
-## les requêtes au serveur qui la sert (`requeter`).
+## Le seul point de contact avec la page : `globalThis.wfrpPont` par JavaScriptBridge (`hotes/godot/pont/CONTRAT.md`), dont
+## l'image que l'auteur choisit sur son disque (`choisir_une_image`), et les requêtes au serveur qui la sert (`requeter`).
 ## Un appel envoie le nom d'une méthode et une chaîne JSON, et rend la réponse décodée ; une réponse `ok: false` est un
 ## refus, que `refus` porte ; une réponse illisible ou une erreur de la page (`erreursGlobales`) est une panne.
 ## Chargé en autoload `Pont` (`project.godot`).
@@ -102,6 +102,21 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 	return boutons
 
 
+## Les champs de texte à l'écran sous `racines` : chaque `LineEdit` éditable et visible qu'aucun défilement ne cache, son
+## texte, son centre, et l'élément que dessine le composant qui le porte (`Zone.META`) s'il en porte un.
+static func saisies_a_l_ecran(racines: Array) -> Array:
+	var saisies := []
+	for racine in racines:
+		for champ in racine.find_children("*", "LineEdit", true, false):
+			var centre: Vector2 = champ.get_global_rect().get_center()
+			if champ.is_visible_in_tree() and champ.editable and a_l_ecran(champ, centre):
+				var publie := {texte = champ.text, x = centre.x, y = centre.y}
+				if champ.owner != null and champ.owner.has_meta(Zone.META):
+					publie.element = champ.owner.get_meta(Zone.META)
+				saisies.append(publie)
+	return saisies
+
+
 ## Si `point` de `controle` se voit à travers chaque défilement qui le contient.
 static func a_l_ecran(controle: Control, point: Vector2) -> bool:
 	var parent := controle.get_parent()
@@ -153,6 +168,17 @@ func requeter(relative: String, recueil: Array[String], methode := HTTPClient.ME
 		recueil.append("requete-echouee : %s (resultat %s, HTTP %s)%s" % [relative, resultat[0], resultat[1], " : " + raison if raison != "" else ""])
 		return PackedByteArray()
 	return resultat[3]
+
+
+## L'image que l'auteur choisit sur son disque (`wfrpPont.choisirUneImage`) : `{ octets, type }`, son contenu et son type
+## MIME ; `{}` s'il renonce.
+func choisir_une_image() -> Dictionary:
+	var rendue := []
+	var rappel := JavaScriptBridge.create_callback(func(args: Array) -> void: rendue.append_array(args))
+	_pont.call("choisirUneImage", rappel)
+	while rendue.is_empty():
+		await get_tree().process_frame
+	return {} if str(rendue[0]) == "" else {octets = Marshalls.base64_to_raw(str(rendue[0])), type = str(rendue[1])}
 
 
 ## Le paramètre `cle` de l'adresse de la page, `""` s'il est absent.

@@ -10,7 +10,9 @@ import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { StructureData } from '../engine/types';
-import { structures } from '../data';
+import { creatures, profilsStandard, refEstVolumique, structureAppearances, structures, type CreatureData } from '../data';
+import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
+import { DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { decorEnCaseEtage } from './monde/decorIndex';
 import { aretesA } from './monde/wallIndex';
 import type { Rect, Pt, EffectZoneSeed } from './sceneEdit';
@@ -68,6 +70,11 @@ export type WallPaint = 'wall' | 'door' | 'diagBack' | 'diagFwd';
 
 /** Les faces d'où se découvre une porte secrète, `[valeur, libellé]` (`faceDAreteSchema`, EDO 07 l.263). */
 export const FACES_D_ARETE = optionsDuNoeud(faceDAreteSchema) as [FaceDArete, string][];
+
+/** Les structures de mur dont l'apparence porte un parapet : celles que l'outil crénelage pose (#841). */
+export function structuresCrenelables(): StructureData[] {
+  return structures.filter((s) => isWallEdgeStructure(s) && !!structureAppearances.find((a) => a.id === s.id)?.parapet);
+}
 
 /** Les structures que l'outil murs pose au sous-mode `paint` : un mur sur une cloison, une fermeture sur une porte,
  *  aucune sur une diagonale (#830). */
@@ -317,6 +324,28 @@ export function pickWallEdge(scene: Scene, fx: number, fy: number, z: number): {
 
 /** Le libellé de la structure `id` du catalogue, `undefined` sans structure. */
 export const libelleDeStructure = (id: string | undefined): string | undefined => structures.find((st) => st.id === id)?.label;
+
+/** L'entité que la sélection `sel` désigne, `undefined` hors d'une entité sélectionnée. */
+export function entiteDeLaSelection(scene: Scene, sel: Sel): SceneEntity | undefined {
+  return sel?.type === 'entity' ? scene.entities.find((e) => e.id === sel.id) : undefined;
+}
+
+/** Le cap de l'entité `ent` : le sien, sinon le cap d'identité (`CAP_IDENTITE_PROP`). */
+export const capDeLEntite = (ent: SceneEntity): Dir8 => ent.facing ?? CAP_IDENTITE_PROP;
+
+/** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet
+ *  (`capDecorAdmis`). */
+export function capsOfferts(ent: SceneEntity): Dir8[] {
+  return DIR8_ORDER.filter((cap) => capDecorAdmis(ent.kind === 'prop' && refEstVolumique(ent.ref), cap));
+}
+
+/** Les fiches qu'un personnage posé peut nommer (#1882) : les créatures du bestiaire qui ont des Blessures
+ *  (`char.B`), les profils standard (`LDB 77 l.7`, `profilsStandard`) en tête. */
+export function fichesDePersonnage(): CreatureData[] {
+  const standard = new Set(profilsStandard());
+  const fiches = creatures.filter((c) => typeof c.char.B === 'number');
+  return [...fiches.filter((c) => standard.has(c.id)), ...fiches.filter((c) => !standard.has(c.id))];
+}
 
 /** Le segment de l'arête que la sélection `sel` désigne, `undefined` hors d'une arête sélectionnée. */
 export function segmentDeLaSelection(scene: Scene, sel: Sel): WallSeg | undefined {

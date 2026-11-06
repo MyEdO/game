@@ -29,8 +29,8 @@ describe('Scénario Magie hors combat', () => {
   });
 
   it('le Sorcier maîtrise l’incantation et la Focalisation, et connaît un Sort d’Arcane focalisable', () => {
-    expect(knowsCastingSkill(wiz, 'langue', 'magick')).toBe(true);
-    expect(knowsCastingSkill(wiz, 'focalisation')).toBe(true);
+    expect(knowsCastingSkill(wiz, { id: 'langue', spec: 'magick' })).toBe(true);
+    expect(knowsCastingSkill(wiz, { id: 'focalisation' })).toBe(true);
     const arme = findSpellById('armure-aethyrique')!;
     expect(wiz.spells).toContain('armure-aethyrique'); // runtime = id de sort
     expect(isArcaneSpell(arme)).toBe(true); // → bouton « ✨ Focaliser »
@@ -39,8 +39,8 @@ describe('Scénario Magie hors combat', () => {
 
   it('le Prêtre maîtrise la Prière et porte une Bénédiction de soin (effet modélisé)', () => {
     const heal = findSpellById('benediction-de-guerison')!;
-    expect(castInfo(heal).skill).toBe('priere');
-    expect(knowsCastingSkill(priest, 'priere')).toBe(true);
+    expect(castInfo(heal).skill).toEqual({ id: 'priere' });
+    expect(knowsCastingSkill(priest, { id: 'priere' })).toBe(true);
     expect(priest.spells).toContain('benediction-de-guerison'); // runtime = id de sort
     expect(isMagicMissile(heal)).toBe(false);
   });

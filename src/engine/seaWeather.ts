@@ -169,19 +169,19 @@ export function visibilityDRPenalty(vis: SeaVisibilityId, distanceM: number): nu
   return def.drPenalty != null && def.beyondM != null && distanceM > def.beyondM ? def.drPenalty : 0;
 }
 
-/** MDG 13 l.187-200. `skillId` absent = Test de Caractéristique. PUR. */
-function precipitationMod(precip: SeaPrecipitationId, skillId: string | undefined, spec: string | undefined): number {
+/** MDG 13 l.187-200. `skill` absente = Test de Caractéristique. PUR. */
+function precipitationMod(precip: SeaPrecipitationId, skill: RefDesignee | undefined): number {
   const def = precipitationDef(precip);
-  return def.skillMods?.find((m) => m.skills.some((r) => refCouvre(r, { id: skillId, spec })))?.mod ?? def.otherMod ?? 0;
+  return def.skillMods?.find((m) => m.skills.some((r) => refCouvre(r, skill ?? {})))?.mod ?? def.otherMod ?? 0;
 }
 
 /** CANAL UNIQUE des Précipitations sur le Test d'un Personnage sur le pont (MDG 13 l.185) : la ligne
- *  « Météo : … » d'un Test de Compétence `skillId` (spécialisation `spec`) ou de Caractéristique
- *  (`skillId` absent), sous la Précipitation `precip` — vide hors mer ou sans malus. Même forme que
+ *  « Météo : … » d'un Test de Compétence `skill` (Spécialisation comprise) ou de Caractéristique
+ *  (`skill` absente), sous la Précipitation `precip` — vide hors mer ou sans malus. Même forme que
  *  `weatherTestMods` (`weatherTestMod.ts`). PUR. */
-export function precipitationTestMods(precip: SeaPrecipitationId | undefined, skillId?: string, spec?: string): ModLine[] {
+export function precipitationTestMods(precip: SeaPrecipitationId | undefined, skill?: RefDesignee): ModLine[] {
   if (!precip) return [];
-  const value = precipitationMod(precip, skillId, spec);
+  const value = precipitationMod(precip, skill);
   return value
     ? [{ label: t('tp.modWeather', { weather: precipitationDef(precip).label }), value, famille: 'circonstance', ref: RULE_REF['meteo-maritime'] }]
     : [];

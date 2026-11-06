@@ -190,10 +190,10 @@ describe('Embrigadement — base NUE + Soutien NOMMÉ, cible invariante (#1153 L
     lead.conditions = [{ id: 'empoisonne', value: 1 }] as never; // l'État MORD le jet, pas le Niveau de Compétence
     set({ party: [lead, aide, autre] });
 
-    const nue = skillBaseValue(lead, 'ragot');
+    const nue = skillBaseValue(lead, { skill: { id: 'ragot' } });
     const jetee = testValue(lead, { skill: { id: 'ragot' } });
     expect(jetee, 'l’État sépare bien la nue de la valeur jetée').toBeLessThan(nue);
-    const soutien = soutienDetail(get().party, lead, 'ragot');
+    const soutien = soutienDetail(get().party, lead, { skill: { id: 'ragot' } });
     expect(soutien.bonus, 'un camarade éligible soutient (l.195)').toBeGreaterThan(0);
 
     resolvePortArrival(get, set, undefined, ones);

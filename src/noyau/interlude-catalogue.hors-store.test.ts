@@ -201,7 +201,7 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
     const h = heros(banc, heroId);
     expect(h.psychTraits).toEqual(TRAITS);
     const jetons = (h.activeEffects ?? []).filter((e) => e.reverseToken);
-    expect(jetons.map((e) => [e.reverseToken, e.duration])).toEqual([[{ skill: 'calme', spec: undefined, contexte: 'psych' }, { scale: 'adventure' }]]);
+    expect(jetons.map((e) => [e.reverseToken, e.duration])).toEqual([[{ skill: { id: 'calme' }, contexte: 'psych' }, { scale: 'adventure' }]]);
     expect(banc.getState().interlude!.perHero[heroId].left).toBe(left - 1);
   });
 });

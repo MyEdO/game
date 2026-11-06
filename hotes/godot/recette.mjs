@@ -64,8 +64,18 @@
 //   place. L'outil Murs, un clic sur le côté commun de deux de ces cases pose une cloison sur le monde ; l'outil
 //   Sélection, un clic au même point la choisit, gainée, et la dit ; à l'inspecteur, « Porte » en fait une porte, puis
 //   « Fermée au départ » la ferme, que le monde dessine ; « Annuler » trois fois la retire. L'outil Volée, un clic trace
-//   une case, en surcouche, et « Poser la volée » se refuse d'une case seule, sa raison en clair au panneau ; « Effacer le tracé » la retire.
-//   « Couche 1 » édite l'étage.
+//   une case, en surcouche, et « Poser la volée » se refuse d'une case seule, sa raison en clair au panneau ; « Effacer le
+//   tracé » la retire. L'outil Crénelage, un clic marque la case d'un parapet, que la case pointée dit ; « Annuler »
+//   l'efface. L'outil Décor, un clic sur une case libre y pose le premier décor du catalogue, sélectionné, son nom au-dessus d'elle ;
+//   son nom effacé au champ de l'inspecteur, un autre tapé, « Renommer » le pose au-dessus de la case ; « Copier »,
+//   l'outil Sélection, un clic sur une case libre puis « Coller » y pose la copie, nommée de même ; un clic sur une case
+//   libre vide la sélection.
+//   « Charger une planche… » ouvre le choix d'un fichier de la page, que la recette remplit d'une planche quadrillée : le
+//   calque se pose sur toute la carte ; « Caler par deux points », puis le centre d'une case comme premier point de
+//   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
+//   huit plus loin comme son nœud : la planche s'étire du double, son échelle dite en pixels par case moitié de celle
+//   d'avant.
+//   « Couche 1 » édite l'étage, sans calque.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -106,10 +116,11 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { crc32, deflateSync } from 'node:zlib'
 import { servir } from './servir.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
-import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, realKeyDown, realKeyUp, shot, sleep, survoler, waitFor } from '../../scripts/recette/lib.mjs'
+import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, survoler, waitFor } from '../../scripts/recette/lib.mjs'
 
 import { chargerAssets } from './asset/charger.mjs'
 
@@ -907,9 +918,41 @@ const editeur = async () => (await ecran()).editeur
 /** Le bouton d'id `id` des zones de l'éditeur publié, posé seul ou parmi les valeurs d'un choix. */
 const boutonDeLEditeur = (e, id) => Object.values(e.zones).flat().flatMap((el) => (el.type === 'bouton' ? [el] : el.valeurs ?? [])).find((b) => b.id === id)
 
+/** Écrit au chemin `chemin` une planche PNG de `cote` pixels de côté : un fond clair quadrillé de sombre tous les
+ *  `pas` pixels. */
+function ecrirePlanche(chemin, cote = 400, pas = 40) {
+  const rangees = Buffer.alloc(cote * (1 + cote * 3))
+  for (let y = 0; y < cote; y++) {
+    for (let x = 0; x < cote; x++) rangees.fill(x % pas < 2 || y % pas < 2 ? 40 : 225, y * (1 + cote * 3) + 1 + x * 3, y * (1 + cote * 3) + 4 + x * 3)
+  }
+  const bloc = (type, donnees) => {
+    const tete = Buffer.alloc(8)
+    tete.writeUInt32BE(donnees.length)
+    tete.write(type, 4)
+    const crc = Buffer.alloc(4)
+    crc.writeUInt32BE(crc32(Buffer.concat([tete.subarray(4), donnees])))
+    return Buffer.concat([tete, donnees, crc])
+  }
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(cote, 0)
+  ihdr.writeUInt32BE(cote, 4)
+  ihdr.set([8, 2, 0, 0, 0], 8)
+  writeFileSync(chemin, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), bloc('IHDR', ihdr), bloc('IDAT', deflateSync(rangees)), bloc('IEND', Buffer.alloc(0))]))
+}
+
 async function parcoursEditeur() {
   await cliquerBouton('Éditeur')
   await waitFor(session, '!!globalThis.wfrpEcran?.editeur && !!wfrpEcran.cases', { timeoutMs: 120000 })
+  /** Le bouton `quoi` du panneau d'outils, amené à l'écran par la molette sur le panneau, vers le bas puis vers le haut,
+   *  puis cliqué : chaque cran republie l'écran. */
+  const cliquerAuPanneau = async (quoi) => {
+    for (let n = 0; !trouver((await ecran()).boutons, quoi); n++) {
+      assert.ok(n < 40, `${JSON.stringify(quoi)} amené par la molette sur le panneau`)
+      await molette(session, { surface: 'canvas', x: 160, y: 400 }, n < 20 ? 100 : -100)
+      await sleep(250)
+    }
+    await cliquerBouton(quoi)
+  }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
   assert.equal(boutonDeLEditeur(e, 'enregistrer')?.refus, 'Rien à enregistrer', 'la carte s’ouvre telle que le dépôt la sert')
@@ -998,9 +1041,79 @@ async function parcoursEditeur() {
   await cliquerBouton({ element: 'bouton/volee/effacer' })
   await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0')
   noter('« Effacer le tracé » : la surcouche vide')
-  await cliquerBouton({ element: 'bouton/couche/1' })
+  await cliquerBouton({ element: 'bouton/outil/crenellated' })
+  await cliquerPoint(ax, ay)
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.pointee'] ?? []).some((l) => l.id === 'crenelage')`)
+  e = await editeur()
+  noter(`outil Crénelage, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'crenelage').texte}`)
+  await cliquerBouton({ element: 'bouton/annuler' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.pointee'] ?? []).length > 0 && !globalThis.wfrpEcran.editeur.zones['editeur.pointee'].some((l) => l.id === 'crenelage')`)
+  noter('« Annuler » : la marque effacée')
+  await cliquerBouton({ element: 'bouton/outil/prop' })
+  e = await editeur()
+  const catalogue = e.zones['editeur.options'].find((c) => c.id === 'decors').valeurs.find((b) => b.presse)
+  /** Une case à l'écran sans repère à deux cases d'elle : aucun décor posé ne la couvre. */
+  const libre = ([x, y]) => aLEcran(cases[`${x},${y}`] ?? [0, 0]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
+  const [dx, dy] = Object.keys(cases).map((k) => k.split(',').map(Number)).find(([x, y]) => libre([x, y]) && libre([x + 2, y]))
+  await cliquerPoint(...cases[`${dx},${dy}`])
+  await waitFor(session, '(globalThis.wfrpEcran?.editeur?.surcouche.reperes ?? []).some((r) => r.choisi)')
+  e = await editeur()
+  const decor = e.surcouche.reperes.find((r) => r.choisi)
+  assert.deepEqual([decor.sorte, decor.x, decor.y, decor.nom, e.noms[`${dx},${dy},0`]], ['prop', dx, dy, catalogue.libelle, catalogue.libelle], 'l’outil Décor pose le décor choisi sur la case cliquée, sélectionné, nommé au-dessus d’elle')
+  noter(`outil Décor, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
+  const champ = (await ecran()).saisies.find((x) => x.element === 'saisieTexte/nommer/nom')
+  assert.equal(champ?.texte, decor.nom, 'le champ du nom, prérempli, à l’inspecteur')
+  await geste(session, { surface: 'canvas', x: champ.x, y: champ.y }, { qui: 'le champ du nom' }, clic())
+  await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
+  for (let n = 0; n < champ.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
+  for (const lettre of 'Comptoir') await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
+  await cliquerBouton({ element: 'formulaire/nommer' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.noms['${dx},${dy},0'] === 'Comptoir'`)
+  noter(`« Renommer » : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
+  await capturer('3508-l3-1-decor-nomme')
+  await cliquerBouton({ element: 'bouton/copier' })
+  await cliquerBouton({ element: 'bouton/outil/select' })
+  await cliquerPoint(...cases[`${dx + 2},${dy}`])
+  await cliquerBouton({ element: 'bouton/coller' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.noms['${dx + 2},${dy},0'] === 'Comptoir'`)
+  e = await editeur()
+  noter(`« Copier », un clic sur la case ${dx + 2}, ${dy}, « Coller » : ${e.surcouche.reperes.filter((r) => r.nom === 'Comptoir').map((r) => `${r.x}, ${r.y}`).join(' et ')}`)
+  await capturer('3508-l3-2-decor-colle')
+  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.zones["editeur.inspecteur"].length === 0')
+  const planche = join(depot, 'planche.png')
+  ecrirePlanche(planche)
+  await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
+  await cliquerAuPanneau({ element: 'bouton/calque/charger' })
+  await waitFor(session, '!!document.querySelector("input[data-planche]")')
+  await poserFichier(session, 'input[data-planche]', planche)
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.calque_pose === true', { timeoutMs: 30000 })
+  e = await editeur()
+  const ligneDuCalque = (e, id) => e.zones['editeur.calque'].find((l) => l.id === id)?.texte
+  const echelle = (e) => Number(ligneDuCalque(e, 'calque/echelle').split(' ')[0])
+  const avantLeCalage = echelle(e)
+  noter(`« Charger une planche… » : ${ligneDuCalque(e, 'calque')}, coins ${JSON.stringify(e.calque.coins)}, ${ligneDuCalque(e, 'calque/opacite')}, ${ligneDuCalque(e, 'calque/echelle')}`)
+  await capturer('3508-l1b-1-planche-posee')
+  const rangee = Object.keys(cases).map((k) => k.split(',').map(Number))
+    .find(([x, y]) => Array.from({ length: 20 }, (_, i) => cases[`${x + (i % 10)},${y + Math.floor(i / 10)}`]).every((c) => c && aLEcran(c)))
+  assert.ok(rangee, 'deux rangées de dix cases voisines à l’écran, hors du panneau')
+  const [cx, cy] = rangee
+  /** Le point de l'écran du nœud au coin bas-droit de la case `x`, `cy` : le milieu des centres des quatre cases qui le bordent. */
+  const noeud = (x) => [0, 1].map((axe) => [[x, cy], [x + 1, cy], [x, cy + 1], [x + 1, cy + 1]].reduce((somme, [a, b]) => somme + cases[`${a},${b}`][axe], 0) / 4)
+  await cliquerAuPanneau({ element: 'bouton/calque/caler' })
+  for (const point of [cases[`${cx},${cy}`], noeud(cx), cases[`${cx + 4},${cy}`], noeud(cx + 8)]) {
+    await cliquerPoint(...point)
+    await sleep(200)
+  }
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.calque'] ?? []).some((l) => l.id === 'calque/calage')`)
+  e = await editeur()
+  assert.ok(Math.abs(echelle(e) / avantLeCalage - 0.5) < 0.02, `calée, la planche s’étire du double : ${avantLeCalage} puis ${echelle(e)} px par case`)
+  noter(`« Caler par deux points », la case ${cx}, ${cy} sur son nœud, la case ${cx + 4}, ${cy} sur celui de la case ${cx + 8}, ${cy} : ${avantLeCalage} puis ${ligneDuCalque(e, 'calque/echelle')}`)
+  await capturer('3508-l1b-2-planche-calee')
+  await cliquerAuPanneau({ element: 'bouton/couche/1' })
   e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, 'la couche 1 s’édite')
+  assert.equal(e.calque_pose, false, 'la couche 1 n’a pas de calque')
   await capturer('3508-l1-3-couche-1')
 }
 

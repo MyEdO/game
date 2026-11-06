@@ -248,7 +248,7 @@
     "label": "Utiliser un objet",
     "icon": "action/consume",
     "surface": "deduite-du-set",
-    "gate": "action-libre-hors-frenesie",
+    "gate": "toujours",
     "run": "battleUseItem",
     "candidates": "consommables",
     "coutAction": "gratuit",
@@ -692,7 +692,11 @@
     "run": "battleManPoste",
     "candidates": "pieces-servables",
     "coutAction": "gratuit",
-    "maison": "rejoindre une pièce est GRATUIT (on sert puis on agit le même Round) — arbitrage maison, aucun verbatim de coût cité.",
+    "source": {
+      "book": "livre-de-base",
+      "page": 158,
+      "note": "LDB 13 l.106 « Actions gratuites »"
+    },
     "keys": [
       "man-poste"
     ]
@@ -703,13 +707,14 @@
     "label": "Quitter la pièce",
     "icon": "action/leave-post",
     "surface": "geste-d-etat",
-    "gate": [
-      "poste-servi",
-      "action-libre"
-    ],
+    "gate": "poste-servi",
     "run": "battleLeavePoste",
-    "coutAction": "action",
-    "maison": "quitter la pièce n’exige aucun Test : l’imputation à l’Action est notre arbitrage.",
+    "coutAction": "gratuit",
+    "source": {
+      "book": "livre-de-base",
+      "page": 158,
+      "note": "LDB 13 l.106 « Actions gratuites »"
+    },
     "keys": [
       "leave-poste"
     ]

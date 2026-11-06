@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
-import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
+import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, dupliquerLEntite, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
 import { placeStairFlight } from '../../noyau/stairFlight';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../../noyau/validateScene';
 import { idsDesPistesDeMusique } from '../../audio/music';
@@ -37,14 +37,14 @@ import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { publierEditeur } from '../../state/editeurBridge';
-import { etageSuivant, type Tool, type Sel } from '../../noyau/sceneEditLecture';
+import { entiteDeLaSelection, etageSuivant, type Tool, type Sel } from '../../noyau/sceneEditLecture';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { Row } from '../Layout';
 import { TraceLayerPanel } from './TraceLayerPanel';
 import { useEditorAutosave } from './useEditorAutosave';
 import { autosaveDelete } from '../../state/editorAutosave';
-import { advanceCalibration, identityTransform, nearestNode, type CalibProgress } from './traceCalibration';
+import { advanceCalibration, identityTransform, nearestNode, type CalibProgress } from '../../noyau/edition/calage';
 import {
   traceLayerLoad, takeCalqueEcarte, traceLayerSave, traceLayerDelete, panelExpandedLoad, panelExpandedSave, type TraceLayerRecord,
 } from '../../state/traceLayer';
@@ -454,22 +454,19 @@ export function Editor({
         annuler: undo,
         retablir: redo,
         copier: () => {
-          if (sel?.type !== 'entity') return;
-          const ent = scene.entities.find((x) => x.id === sel.id);
-          if (ent) setClip(clone(ent));
+          const ent = entiteDeLaSelection(scene, sel);
+          if (ent) setClip(ent);
         },
         coller: () => {
           if (!clip) return;
-          const out = pasteEntity(scene, clip, hoverRef.current);
+          const out = pasteEntity(scene, clip, hoverRef.current, currentLayer);
           setScene(out.scene);
           setSel({ type: 'entity', id: out.id });
         },
         dupliquer: () => {
-          if (sel?.type !== 'entity') return;
-          const ent = scene.entities.find((x) => x.id === sel.id);
+          const ent = entiteDeLaSelection(scene, sel);
           if (!ent) return;
-          const { w, h } = scene.dimensions;
-          const out = pasteEntity(scene, ent, { x: Math.min(w - 1, ent.pos.x + 1), y: Math.min(h - 1, ent.pos.y + 1) });
+          const out = dupliquerLEntite(scene, ent);
           setScene(out.scene);
           setSel({ type: 'entity', id: out.id });
         },
@@ -560,7 +557,7 @@ export function Editor({
           return `✓ entité « ${entityId} » patchée — posé : ${nommer(true)} | retiré : ${nommer(false)}`;
         },
       }),
-    [scene, sel, clip, undo, redo, setScene, worldMap, view.canvasRef, view.rot, view.viewMode],
+    [scene, sel, clip, currentLayer, undo, redo, setScene, worldMap, view.canvasRef, view.rot, view.viewMode],
   );
 
   // Avertissements de LA scène éditée + ceux de la carte du monde.

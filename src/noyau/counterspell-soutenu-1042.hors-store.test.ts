@@ -5,7 +5,7 @@ import { counterspellJoinable, counterspellSoutenu, counterspellSoutienFor, coun
 import { intentAllowedFor } from './netOwnership';
 import { seedBattleRng } from './battleRng';
 import { fermeturesDuFlux } from './verbesOuverts';
-import { castingValue } from '../engine/magic';
+import { castingValue, incantationArcane } from '../engine/magic';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
@@ -193,7 +193,7 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     expect(grp.leader.id, 'la plus forte valeur de Langue (Magick) mène').toBe(h1.id);
     expect(grp.bonus, '+10 par soutien éligible').toBe(10);
     expect(counterspellSoutienFor(s, s.pendingCounterspell, h2.id), 'le Soutien ne s’ajoute qu’au meneur').toBe(0);
-    const attendu = castingValue(live(h1.id), 'langue', 'magick') + 10;
+    const attendu = castingValue(live(h1.id), incantationArcane()) + 10;
     banc.getState().jetRoll('counterspell', h1.id);
     expect(row(h1.id).result!.counter.target, 'la cible du jet PORTE le Soutien').toBe(attendu);
     expect(row(h2.id).result, 'le groupe n’a qu’un jet (LDB 12 l.189)').toBeNull();
@@ -227,7 +227,7 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     openWindow([h1.id, h2.id]);
     declare(h1.id, 'soutenu');
     declare(h2.id, 'soutenu');
-    const attendu = castingValue(live(h1.id), 'langue', 'magick') + 10;
+    const attendu = castingValue(live(h1.id), incantationArcane()) + 10;
     // (1) RÉSILIENCE PRÉ-JET (LDB 17 l.68) : le résolveur forcé lit la valeur SOUTENUE, pas la valeur nue.
     live(h1.id).resilience = 1;
     banc.getState().jetForceSuccess('counterspell', h1.id);

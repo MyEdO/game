@@ -144,7 +144,7 @@ describe('Seconde lecture d’un jet — Test COMBINÉ (LDB 12 l.202-208)', () =
     const h = hero();
     const st = monoStep({
       id: 'm', kind: cleDeFixture('mesure-quantite'), label: fixtureText('Test combiné'), actor: h,
-      difficulty: 'intermediaire', ligne: { test: { skill: 'pari' } },
+      difficulty: 'intermediaire', ligne: { test: { skill: { id: 'pari' } } },
       second: { label: 'Initiative', target: 40, base: 40, difficulty: 'intermediaire' },
       stake: combatStakeRef('tavernGame', { values: { jeu: 'x', adversaire: 'y', mise: 'aucune' } }),
     })! as CascadeStep;

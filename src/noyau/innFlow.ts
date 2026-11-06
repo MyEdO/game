@@ -39,7 +39,7 @@ export function gatherInnInfo(get: Get, set: Set): void {
   const test = def?.tests?.[0];
   if (!def || !test?.skill) return;
   openPartyTest(get, set, {
-    skill: test.skill.id, assisted: false,
+    skill: test.skill, assisted: false,
     actionLabel: def.label,
     difficulty: test.difficulty ?? 'intermediaire',
     stake: activityStakeRef(ACTIVITY_ID),

@@ -20,7 +20,7 @@ import { composerSurLaBase, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
-import { boutonDeLEdition, estLIssueDUnEnregistrement, estUnGesteDuPointeur, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
+import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
@@ -125,6 +125,16 @@ function projetServi(id: string, texte: unknown): ProjectDoc {
   if (!passe.ok) throw new ErreurDeGeste('validation', `editer : ${passe.refus}`);
   valider(passe.valeur.id === id, `editer : projet, le projet ${passe.valeur.id} au lieu de ${id}`);
   return passe.valeur;
+}
+
+/** Les calques que l'hôte garde, lus de leur texte `texte` ; `null`, que la session tient pour d'un autre format, s'il
+ *  n'est pas du JSON. */
+function calquesGardes(texte: string): unknown {
+  try {
+    return JSON.parse(texte);
+  } catch {
+    return null;
+  }
 }
 
 /** Le pont : ses méthodes, chacune appelée par `appeler`. */
@@ -294,23 +304,29 @@ export function creerPont() {
       return rendu;
     },
     editer(json) {
-      const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet'] : ['edition']));
+      const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques'] : 'type' in e ? ['type', 'args'] : ['edition']));
+      const avant = 'ouvrir' in e ? null : edition?.session ?? null;
       let session: SessionDEdition;
       let depot: { id: string; texte: string } | null = null;
       if ('ouvrir' in e) {
         const campagne = allBuiltinCampaigns.find((c) => c.id === e.ouvrir);
         valider(campagne !== undefined, `editer : ouvrir, l’id d’une campagne du jeu (${allBuiltinCampaigns.map((c) => c.id).join(', ')})`);
-        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true);
+        valider(e.calques === undefined || typeof e.calques === 'string', 'editer : calques, le texte des calques que l’hôte garde');
+        const gardes = e.calques === undefined ? undefined : calquesGardes(e.calques as string);
+        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true, gardes);
       } else {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = edition!.session;
-        if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
+        const nomme = 'type' in e ? gesteDuFormulaire(zonesDeLEditeur(s), e) : undefined;
+        if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer, args: [nom] }');
+        else if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
+        else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
         else if (!estUnGesteDuPointeur(e.edition)) {
           const b = boutonDeLEdition(zonesDeLEditeur(s), e.edition);
-          valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers), l’issue d’un enregistrement ({ geste: enregistrement, reussi }) ou le geste `{ edition }` d’un bouton des zones editeur.*');
+          valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers), l’issue d’un enregistrement ({ geste: enregistrement, reussi }), celle d’un chargement de planche ({ geste: chargement, image: { largeur, hauteur } | null }) ou le geste `{ edition }` d’un bouton des zones editeur.*');
           if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
         }
-        const geste = e.edition as GesteDEdition;
+        const geste = nomme ?? (e.edition as GesteDEdition);
         if (geste.geste === 'enregistrer') {
           const passe = texteAEnregistrer(s);
           if (!passe.ok) throw new ErreurDeGeste('regle', `editer : ${passe.refus}`);
@@ -321,11 +337,16 @@ export function creerPont() {
       const scene = sceneEditee(session);
       const neuf = !edition || 'ouvrir' in e || (session.geste === null && (scene !== edition.monde.scene || session.z !== edition.monde.z));
       edition = { session, monde: neuf ? { scene, z: session.z } : edition!.monde };
+      const memoire = memoireDesCalques(avant, session);
+      const charge = session.chargement && !avant?.chargement ? session.chargement : null;
       return {
         vue: { zones: zonesDeLEditeur(session), couche: session.z },
         surcouche: surcoucheDeLEdition(session),
+        calque: calqueAffiche(session),
         ...(neuf ? { monde: volumeDuMonde(scene, session.z), aretes: aretesDeLaCouche(scene, session.z) } : {}),
         ...(depot ? { depot } : {}),
+        ...(charge ? { planche: { image: cheminDeLaPlanche(session.projet.id, charge.sceneId, charge.z) } } : {}),
+        ...(memoire ? { memoire } : {}),
       };
     },
     erreursGlobales(json) {

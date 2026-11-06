@@ -1832,7 +1832,7 @@ const CODEX_SPECS = {
         fact(tr('codex.fiche.resolveur'), a.resolver ?? null),
       ),
       sections: sections(
-        chips(tr('codex.fiche.testsAuChoixListe'), testsDeLActivite(a).flatMap((t) => ('skill' in t ? [idRefRow('skills', t.skill.id, t.skill.spec)] : charRefRows([t.characteristic])))),
+        chips(tr('codex.fiche.testsAuChoixListe'), testsDeLActivite(a).flatMap((t) => (t.skill ? [idRefRow('skills', t.skill.id, t.skill.spec)] : charRefRows([t.characteristic])))),
         chips(tr('codex.fiche.competenceLibre'), (a.freeSkill ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
         passiveSection(a.onSuccess, tr('codex.fiche.effetDeReussite')),
         outcomeBandsSection(a.outcomes),
@@ -2334,7 +2334,7 @@ const CODEX_SPECS = {
             rows: n.orientation.changementDeCap.entries.map((r) => ({ t: 'kv', k: fourchette(r.min, r.max, facesDuDe(n.orientation.changementDeCap.die)), v: r.desc } as CodexRow)),
           },
           {
-            title: composeRollLabel(undefined, tr('codex.fiche.pharesClochers'), { skill: 'perception' }), layout: 'list',
+            title: composeRollLabel(undefined, tr('codex.fiche.pharesClochers'), { skill: { id: 'perception' } }), layout: 'list',
             rows: n.phares.voirLaLumiere.map((r) => ({ t: 'kv', k: tr('codex.fiche.milles', { v: fourchette(r.min, r.max) }), v: DIFFICULTY_LABELS[r.difficulty] } as CodexRow)),
           },
           {
@@ -2782,7 +2782,7 @@ export function combatantSections(c: Combatant, nomDIndividu?: NomDIndividu): Co
     { t: 'kv', k: tr('codex.fiche.taille'), v: SIZE_LABEL[effectiveSize(c.size)] }, // Taille : pas une caractéristique → pas de lien Codex
   ];
   const skillRows: CodexRow[] = (c.skills ?? []).map((s) =>
-    idRefRow('skills', s.id, s.spec, `${skillInstanceLabel(s)} ${skillBaseValue(c, s.id, s.spec)}`),
+    idRefRow('skills', s.id, s.spec, `${skillInstanceLabel(s)} ${skillBaseValue(c, { skill: s })}`),
   );
   // Arme liée par son identité de catalogue (`trappingId`, sinon `builtinId`, `engine/types.ts`
   // `Weapon`) ; sans elle, pastille nue. Dégâts en badge (`damageString`).

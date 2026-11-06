@@ -94,7 +94,7 @@ import type { CorpsDesChoix } from './choixDesFenetres';
  *  d'usage est un simple Test étendu de Guérison, sans Chirurgie, LDB 18 l.120/179). */
 export function bestHealerFor(party: Combatant[], act: HealMode): { actor: Combatant; value: number; support: SupportDetail } | null {
   const pool = act === 'surgery' ? party.filter(hasSurgerySkill) : party;
-  return partyAssisted(pool, HEAL_SKILL); // Soutien (LDB 12) : assistants de chirurgie/soin
+  return partyAssisted(pool, { skill: { id: HEAL_SKILL } }); // Soutien (LDB 12) : assistants de chirurgie/soin
 }
 
 /** Ligne d'un jet de l'infirmerie — SOURCE UNIQUE des deux surfaces (acte simple `pendingHeal`, passe
@@ -104,7 +104,7 @@ export function bestHealerFor(party: Combatant[], act: HealMode): { actor: Comba
 function ligneDuSoigneur(healer: { actor?: Combatant; skill: number; support?: SupportDetail }, difficulty: Difficulty): RollLineParts {
   return rollLine({
     actor: healer.actor,
-    ...(healer.actor ? { test: { skill: HEAL_SKILL } } : {}),
+    ...(healer.actor ? { test: { skill: { id: HEAL_SKILL } } } : {}),
     valeur: healer.skill, soutien: healer.support, difficulty,
   });
 }
@@ -119,7 +119,7 @@ export function refusDeSoins(s: Pick<Jeu, 'battle' | 'party'>, heroId?: string, 
   const patient = s.party.find((h) => h.id === heroId);
   if (!patient) return t('medic.patientIntrouvable');
   if (!isHealable(patient)) return t('medic.rienASoigner', { name: patient.label });
-  return npc || s.party.some((h) => peutTenter(h, HEAL_SKILL)) ? null : t('medic.aucunSoigneur');
+  return npc || s.party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } })) ? null : t('medic.aucunSoigneur');
 }
 
 /** Refus de l'acte `act` sur le patient courant de l'infirmerie : la raison affichée, ou `null`. Verdict

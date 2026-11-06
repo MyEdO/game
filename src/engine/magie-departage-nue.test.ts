@@ -18,6 +18,7 @@ import { evaluateTest, resolveOpposed } from './tests';
 import {
   castingBaseValue, castingValue, castTestOf, counterspellOutcomeFrom, evaluateCasting,
   resolveCasting, type CastResult, type SpellLike,
+  incantationArcane,
 } from './magic';
 import type { Characteristics, Combatant, SkillInstance } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
@@ -45,9 +46,9 @@ describe('LDB 12 l.160 — le chemin MAGIE départage sur le NIVEAU DE COMPÉTEN
   it('`castingBaseValue` = Caractéristique + Augmentations SEULES ; `castingValue` y ajoute les modificateurs', () => {
     const nu = mage(48, 15);
     const avantage = mage(48, 15, { advantage: 2 });
-    expect(castingBaseValue(nu, 'langue', 'magick')).toBe(63);
-    expect(castingBaseValue(avantage, 'langue', 'magick'), 'l’Avantage est un modificateur, pas un Niveau de Compétence').toBe(63);
-    expect(castingValue(avantage, 'langue', 'magick'), 'la valeur TESTÉE, elle, porte l’Avantage (LDB 46 l.123-125)').toBe(83);
+    expect(castingBaseValue(nu, incantationArcane())).toBe(63);
+    expect(castingBaseValue(avantage, incantationArcane()), 'l’Avantage est un modificateur, pas un Niveau de Compétence').toBe(63);
+    expect(castingValue(avantage, incantationArcane()), 'la valeur TESTÉE, elle, porte l’Avantage (LDB 46 l.123-125)').toBe(83);
   });
 
   it('CONTRAT (a) : `resolveCasting.base` est la NUE — insensible à l’Avantage, au ward et à la Difficulté', () => {
@@ -65,8 +66,8 @@ describe('LDB 12 l.160 — le chemin MAGIE départage sur le NIVEAU DE COMPÉTEN
     // valeurs testées s'inversent (65 contre 50+20), les Compétences NUES restent 45 < 50.
     const caster = mage(30, 15, { advantage: 2 });     // Langue (Magick) NUE 45, testée 65
     const counter = mage(35, 15, {}, 'k');             // Langue (Magick) NUE 50
-    expect(castingBaseValue(caster, 'langue', 'magick')).toBe(45);
-    expect(castingBaseValue(counter, 'langue', 'magick')).toBe(50);
+    expect(castingBaseValue(caster, incantationArcane())).toBe(45);
+    expect(castingBaseValue(counter, incantationArcane())).toBe(50);
     const cast = evaluateCasting(caster, ARCANE, evaluateTest(13, 65, 999)); // dé 13 sur cible 65 → DR 5
     const counterT = evaluateTest(23, 70, 999);                              // Soutien +20 → cible 70, DR 7-2=5
     expect(counterT.sl).toBe(cast.sl); // DR égal : le départage joue

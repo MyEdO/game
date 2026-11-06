@@ -96,7 +96,7 @@ describe('#1064 — le pending PORTE le détail du Soutien (couture)', () => {
     const leader = skilled('h1', undefined, 'perception', 5);
     const help = skilled('h2', undefined);
     banc.setState({ party: [leader, help] });
-    openPartyTest(banc.getState, banc.setState, { skill: 'perception', actionLabel: 'Fouiller la pièce', difficulty: 'intermediaire' }, cleDeFixture('testSoutienSeam'));
+    openPartyTest(banc.getState, banc.setState, { skill: { id: 'perception' }, actionLabel: 'Fouiller la pièce', difficulty: 'intermediaire' }, cleDeFixture('testSoutienSeam'));
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.base).toBe(35); // Niveau de Compétence NU du meneur (Ag 30 + 5), LDB 09 l.17
     expect(step.target).toBe(45); // …le Soutien reste un MODIFICATEUR compris dans la cible (l.189-190)

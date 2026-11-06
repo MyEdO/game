@@ -58,6 +58,12 @@ source = "editeur.couches"
 script = ExtResource("3_zone")
 source = "editeur.historique"
 
+[node name="Presse" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Presse"]
+script = ExtResource("3_zone")
+source = "editeur.presse"
+
 [node name="Fichier" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
 
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Fichier"]
@@ -75,6 +81,12 @@ source = "editeur.pointee"
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
+
+[node name="Calque" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Calque"]
+script = ExtResource("3_zone")
+source = "editeur.calque"
 
 [node name="Avis" type="VBoxContainer" parent="Interface"]
 anchors_preset = 5

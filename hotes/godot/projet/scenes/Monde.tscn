@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/monde.gd" id="1_monde"]
 [ext_resource type="PackedScene" path="res://scenes/Lumiere.tscn" id="2_lumiere"]
@@ -45,6 +45,11 @@ roughness = 1.0
 uv1_triplanar = true
 uv1_triplanar_sharpness = 4.0
 
+[sub_resource type="StandardMaterial3D" id="Materiau_calque"]
+transparency = 1
+cull_mode = 2
+shading_mode = 0
+
 [node name="Monde" type="Node3D"]
 script = ExtResource("1_monde")
 surbrillances = ExtResource("3_cases")
@@ -54,6 +59,7 @@ mesh_seuil = SubResource("Mesh_seuil")
 mesh_arete_choisie = SubResource("Mesh_arete_choisie")
 couleur_des_sommets = SubResource("Materiau_monde")
 matiere_texturee = SubResource("Materiau_texture")
+matiere_du_calque = SubResource("Materiau_calque")
 
 [node name="Lumiere" parent="." instance=ExtResource("2_lumiere")]
 
@@ -69,7 +75,13 @@ matiere_texturee = SubResource("Materiau_texture")
 
 [node name="Aretes" type="Node3D" parent="."]
 
+[node name="Etiquettes" type="Node3D" parent="."]
+
 [node name="AreteChoisie" type="MeshInstance3D" parent="."]
+visible = false
+cast_shadow = 0
+
+[node name="Calque" type="MeshInstance3D" parent="."]
 visible = false
 cast_shadow = 0
 

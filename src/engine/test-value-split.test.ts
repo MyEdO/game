@@ -40,7 +40,7 @@ describe('#1178 — `testValueSplit` : la valeur fondue se lit en composantes NO
     const c = empoisonne();
     const value = testValue(c, { skill: { id: 'marchandage' } }) + SOUTIEN.bonus;
     const { base, mods } = testValueSplit(c, value, { sujet: { skill: { id: 'marchandage' } }, support: SOUTIEN });
-    expect(base).toBe(skillBaseValue(c, 'marchandage'));
+    expect(base).toBe(skillBaseValue(c, { skill: { id: 'marchandage' } }));
     expect(mods.map((m) => m.ref)).toEqual([RULE_REF.soutien, ...testValueParts(c, { skill: { id: 'marchandage' } }).map((p) => p.ref)]);
     expect(ligneDe(mods, EMPOISONNE)!.value).toBeLessThan(0);
     expect(base + mods.reduce((s, m) => s + m.value, 0)).toBe(value); // la CIBLE ne bouge pas
@@ -51,7 +51,7 @@ describe('#1178 — `testValueSplit` : la valeur fondue se lit en composantes NO
     const psych = -20;
     const value = testValue(c, { skill: { id: 'marchandage' } }) + psych;
     const { base, mods } = testValueSplit(c, value, { sujet: { skill: { id: 'marchandage' } }, fused: psych });
-    expect(base).toBe(skillBaseValue(c, 'marchandage') + psych);
+    expect(base).toBe(skillBaseValue(c, { skill: { id: 'marchandage' } }) + psych);
     expect(ligneDe(mods, EMPOISONNE)).toBeDefined();
     expect(base + mods.reduce((s, m) => s + m.value, 0)).toBe(value);
   });
