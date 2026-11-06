@@ -6,6 +6,7 @@
  * reste sur ses cases quand la vue tourne.
  */
 import { z } from 'zod';
+import '../../lib/zodEnFrancais';
 import type { Scene } from '../monde/scene';
 import { FORMAT_CALQUES } from '../persistance/formats.generated';
 import { advanceCalibration, nearestNode, pointDeLImage, type CalibPoint, type CalibProgress } from './calage';

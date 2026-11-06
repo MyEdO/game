@@ -20,7 +20,7 @@ import { composerSurLaBase, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
-import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
+import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
@@ -304,7 +304,7 @@ export function creerPont() {
       return rendu;
     },
     editer(json) {
-      const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques'] : ['edition']));
+      const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques'] : 'type' in e ? ['type', 'args'] : ['edition']));
       const avant = 'ouvrir' in e ? null : edition?.session ?? null;
       let session: SessionDEdition;
       let depot: { id: string; texte: string } | null = null;
@@ -317,14 +317,16 @@ export function creerPont() {
       } else {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = edition!.session;
-        if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
+        const nomme = 'type' in e ? gesteDuFormulaire(zonesDeLEditeur(s), e) : undefined;
+        if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer, args: [nom] }');
+        else if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
         else if (!estUnGesteDuPointeur(e.edition)) {
           const b = boutonDeLEdition(zonesDeLEditeur(s), e.edition);
           valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers), l’issue d’un enregistrement ({ geste: enregistrement, reussi }), celle d’un chargement de planche ({ geste: chargement, image: { largeur, hauteur } | null }) ou le geste `{ edition }` d’un bouton des zones editeur.*');
           if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
         }
-        const geste = e.edition as GesteDEdition;
+        const geste = nomme ?? (e.edition as GesteDEdition);
         if (geste.geste === 'enregistrer') {
           const passe = texteAEnregistrer(s);
           if (!passe.ok) throw new ErreurDeGeste('regle', `editer : ${passe.refus}`);

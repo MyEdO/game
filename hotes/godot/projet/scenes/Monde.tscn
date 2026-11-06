@@ -75,6 +75,8 @@ matiere_du_calque = SubResource("Materiau_calque")
 
 [node name="Aretes" type="Node3D" parent="."]
 
+[node name="Etiquettes" type="Node3D" parent="."]
+
 [node name="AreteChoisie" type="MeshInstance3D" parent="."]
 visible = false
 cast_shadow = 0
