@@ -6,7 +6,19 @@
     "apparence": "hallebarde"
   },
   "liaison": {
-    "mode": "rigide"
+    "mode": "rigide",
+    "secondePrise": {
+      "position": [
+        0,
+        -0.4,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    }
   },
   "surfaces": [
     {
