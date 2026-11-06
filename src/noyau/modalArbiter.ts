@@ -37,10 +37,10 @@ export const AUCUN_VERBE_DE_JOUEUR: readonly never[] = Object.freeze([]);
 
 /** Un geste d'une fenêtre : un verbe de la partie ; un verbe de jet (`NomDeVerbeDeJet`) nomme le flux qu'il vise, et
  *  `toutes` quand il joue sa rangée omise sur un flux à plusieurs jets (« Tout résoudre » : `jetRoll('cascade')`) ; le
- *  réglage d'un jet (`jetRegler`) son flux et son réglage ; le choix d'une fenêtre (`fenetreChoisir`) sa fenêtre et son
- *  axe, la validation (`fenetreValider`) ou la sortie (`fenetreFermer`) d'une fenêtre la fenêtre qu'elle valide ou
- *  ferme. */
-export interface GesteDuJeu { verbe: keyof ActionsDuNoyau; flux?: FlowKey; toutes?: true; reglage?: ReglageDuJet; fenetre?: FenetreQuiSeFerme | FenetreAValider | FenetreAChoix; axe?: AxeDuChoix }
+ *  réglage d'un jet (`jetRegler`) son flux et son réglage, et, dans le drive d'une fenêtre (`AutoPolicy`), la valeur
+ *  qu'il y joue sans rangée (`valeur`) ; le choix d'une fenêtre (`fenetreChoisir`) sa fenêtre et son axe, la validation
+ *  (`fenetreValider`) ou la sortie (`fenetreFermer`) d'une fenêtre la fenêtre qu'elle valide ou ferme. */
+export interface GesteDuJeu { verbe: keyof ActionsDuNoyau; flux?: FlowKey; toutes?: true; reglage?: ReglageDuJet; valeur?: string; fenetre?: FenetreQuiSeFerme | FenetreAValider | FenetreAChoix; axe?: AxeDuChoix }
 
 /** L'identité d'un geste dans sa fenêtre : son verbe, et le flux d'un verbe de jet (`jetRoll@attack`, `jetRoll@cascade*`
  *  pour sa rangée omise), le flux et le réglage d'un réglage (`jetRegler@attack#arme`), la fenêtre et l'axe d'un choix
@@ -148,10 +148,10 @@ export const MODAL_DEFS = [
   // « Au Contact » (LDB 62 l.176) : Test opposé de Corps à corps PUIS choix du vainqueur → vrai CHOIX
   // (mode 'choice', comme `renounce`/`mountTarget`). Initiée par le joueur (jamais par l'IA) → aucun
   // auto-drive : en Rapide la modale reste au joueur, l'IA ne la déclenche pas (pas de hang).
-  { key: 'auContact', when: (s) => !!s.pendingAuContact, owner: (s) => s.pendingAuContact?.moverId, auto: { mode: 'choice' }, covers: ['pendingAuContact'], flux: ['auContact'], verbes: ['auContactChoose'] },
+  { key: 'auContact', when: (s) => !!s.pendingAuContact, owner: (s) => s.pendingAuContact?.moverId, auto: { mode: 'choice' }, covers: ['pendingAuContact'], flux: ['auContact'] },
   // Empoignade (LDB 14 l.161) : Test opposé de Force OU « Briser » PUIS choix du vainqueur → vrai CHOIX
   // (mode 'choice', comme `auContact`). Initiée par le joueur (jamais par l'IA) → pas d'auto-drive.
-  { key: 'grapple', when: (s) => !!s.pendingGrapple, owner: (s) => s.pendingGrapple?.actorId, auto: { mode: 'choice' }, covers: ['pendingGrapple'], flux: ['grapple'], verbes: ['grappleBreak', 'grappleChoose'] },
+  { key: 'grapple', when: (s) => !!s.pendingGrapple, owner: (s) => s.pendingGrapple?.actorId, auto: { mode: 'choice' }, covers: ['pendingGrapple'], flux: ['grapple'] },
   { key: 'mountTarget', when: (s) => !!s.pendingMountTarget, owner: (s) => (s.battle ? s.battle.order[s.battle.turn] : undefined), auto: { mode: 'choice' }, covers: ['pendingMountTarget'], sortie: 'proprietaire' }, // l'attaquant actif qui a cliqué le couple
   { key: 'frenzy', when: (s) => !!s.pendingFrenzy, owner: (s) => s.pendingFrenzy?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'frenzy' }, { verbe: 'jetConfirm', flux: 'frenzy' }] }, covers: ['pendingFrenzy'], flux: ['frenzy'] },
   { key: 'approach', when: (s) => !!s.pendingApproach, owner: (s) => s.pendingApproach?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'approach' }, { verbe: 'jetConfirm', flux: 'approach' }] }, covers: ['pendingApproach'], flux: ['approach'] },
@@ -159,7 +159,7 @@ export const MODAL_DEFS = [
   { key: 'run', when: (s) => !!s.pendingRun, owner: (s) => s.pendingRun?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'run' }, { verbe: 'jetConfirm', flux: 'run' }] }, covers: ['pendingRun'], flux: ['run'] },
   // Chute VOLONTAIRE (LDB 15 l.82) : initiée par le JOUEUR (clic sur une arête de capacité `chute`, jamais l'IA, cf. `fallAcross`)
   // → vrai CHOIX (mode 'choice', comme `auContact`/`grapple`) : Rapide/Auto-combat ne la déclenchent jamais.
-  { key: 'fall', when: (s) => !!s.pendingFall, owner: (s) => s.pendingFall?.initiateurId, auto: { mode: 'choice' }, covers: ['pendingFall'], flux: ['fall'], verbes: ['fallChoose'], rangees: (s) => (s.pendingFall ? rangeesDuesDeChute(s.pendingFall) : undefined) },
+  { key: 'fall', when: (s) => !!s.pendingFall, owner: (s) => s.pendingFall?.initiateurId, auto: { mode: 'choice' }, covers: ['pendingFall'], flux: ['fall'], rangees: (s) => (s.pendingFall ? rangeesDuesDeChute(s.pendingFall) : undefined) },
   { key: 'shipManeuver', when: (s) => !!s.pendingShipManeuver, owner: (s) => s.pendingShipManeuver?.shipId, auto: { mode: 'choice' }, covers: ['pendingShipManeuver'], flux: ['shipManeuver'], rangees: (s) => s.pendingShipManeuver?.participants }, // Test d'équipage MULTI : chaque PJ pilote SON jet (cf. RollRow), pas d'auto-drive mono
   { key: 'shipBattery', when: (s) => !!s.pendingShipBattery, owner: (s) => s.pendingShipBattery?.shipId, auto: { mode: 'choice' }, covers: ['pendingShipBattery'], flux: ['shipBattery'], rangees: (s) => s.pendingShipBattery?.participants }, // Tir de batterie MULTI (Artilleurs) — idem manœuvre
   { key: 'crewTest', when: (s) => !!s.pendingCrewTest, owner: (s) => s.pendingCrewTest?.shipId, auto: { mode: 'choice' }, covers: ['pendingCrewTest'], flux: ['crewTest'], rangees: (s) => s.pendingCrewTest?.participants }, // Test d'équipage GÉNÉRIQUE (Rude épreuve…) — idem manœuvre

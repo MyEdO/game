@@ -37,7 +37,7 @@ export function AuContactModal() {
   const darkPact = useGesteDeJet('jetDarkPact', 'auContact');
   const force = useGesteDeJet('jetForceSuccess', 'auContact');
   const confirm = useGesteDeJet('jetConfirm', 'auContact');
-  const choose = useGame((s) => s.auContactChoose);
+  const regler = useGame((s) => s.jetRegler);
   const cancel = useGesteDeJet('jetCancel', 'auContact');
   if (!pd || !battle) return null;
   const mover = battle.combatants.find((c) => c.id === pd.moverId);
@@ -110,8 +110,8 @@ export function AuContactModal() {
             <OptionChooser
               layout="grid"
               options={[
-                { key: 'contact', label: <><Icon id="melee/close-in" size="sm" /> Au contact</>, primary: true, onSelect: () => choose('contact'), title: 'Entrer dans la longueur d’arme : toute arme plus longue que Courte est traitée comme une Arme improvisée (les deux camps)' },
-                { key: 'normal', label: <><Icon id="action/attack" size="sm" /> Combat normal</>, onSelect: () => choose('normal'), title: 'Le combat se poursuit à distance d’arme normale' },
+                { key: 'contact', label: <><Icon id="melee/close-in" size="sm" /> Au contact</>, primary: true, onSelect: () => regler('auContact', 'issue', 'contact'), title: 'Entrer dans la longueur d’arme : toute arme plus longue que Courte est traitée comme une Arme improvisée (les deux camps)' },
+                { key: 'normal', label: <><Icon id="action/attack" size="sm" /> Combat normal</>, onSelect: () => regler('auContact', 'issue', 'normal'), title: 'Le combat se poursuit à distance d’arme normale' },
               ]}
             />
           </>

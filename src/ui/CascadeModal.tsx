@@ -139,8 +139,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const resistAct = useGesteDeJet('jetResist', 'cascade'); // Résistance (Menace) : auto-succès du talent (LDB 10)
   const reverseAct = useGesteDeJet('jetReverse', 'cascade'); // Inversion (LDB 12 l.42)
   const next = useGesteDeJet('jetConfirm', 'cascade'); // valider l'étape courante
-  const choose = useGame((s) => s.cascadeChoose); // étape « choix » : pose l'option retenue
-  const setAmount = useGame((s) => s.cascadeAmount); // étape « quantité » : pose le nombre saisi
+  const regler = useGame((s) => s.jetRegler); // étape « choix » : l'option retenue ; « quantité » : le nombre saisi
   const tirerLeDe = useGesteDeJet('jetRoll', 'cascadeTirage'); // étape « table » ou « de » (#1508) : tire le dé
   const poserLeDe = useGesteDeJet('jetSetForcedRoll', 'cascadeTirage'); // POSE le dé (champ, ou ligne de table)
   const fermer = useGame((s) => s.fenetreFermer);
@@ -661,7 +660,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
               value={n}
               {...(q.step != null ? { step: q.step } : {})}
               {...(q.unit ? { unit: q.unit } : {})}
-              onChange={(v) => setAmount(cur.id, v)}
+              onChange={(v) => regler('cascade', 'quantite', v, cur.id)}
             />
           </>
         }
@@ -715,7 +714,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
                 key: o.key, label: mdToText(nommer(o.label, identites)), title: o.detail ? mdToText(o.detail) : undefined,
                 ...(o.refus ? { refus: o.refus } : {}),
                 selected: cur.chosen === o.key,
-                onSelect: () => choose(cur.id, o.key),
+                onSelect: () => regler('cascade', 'choix', o.key, cur.id),
               }))}
             />
           </>

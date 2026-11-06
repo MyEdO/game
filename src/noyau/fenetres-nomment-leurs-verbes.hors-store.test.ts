@@ -81,7 +81,7 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     const tombants = [{ id: 't1', interactive: true, attempt: false, result: { chute: 1 } }, { id: 't2', interactive: true, attempt: null, result: null }];
     const chute = fenetreDuJeu({ ...ETAT, pendingFall: { initiateurId: 't1', participants: tombants } } as unknown as Jeu);
     expect(chute).toMatchObject({ cle: 'fall', pid: 't2' });
-    expect(chute!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@fall', 'fallChoose', 'jetConfirm@fall']));
+    expect(chute!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@fall', 'jetRegler@fall#tenter', 'jetConfirm@fall']));
     const bande = fenetreDuJeu({ ...ETAT, pendingCascade: { title: 'Témoin', purpose: 'test', cursor: 0, log: [], seq: 1, participants: [ETAPE_TEMOIN] } });
     expect(bande).toMatchObject({ cle: 'cascade', pid: 'rangee' });
     expect(bande!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeBatch', 'jetConfirm@cascade']));

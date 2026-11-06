@@ -21,7 +21,8 @@ import { garanti } from '../lib/garanti';
 import { mobileDuTour, type RefusDuTour } from './combatFlow';
 import { isMount, isRider, movementRemaining } from './mount';
 import { findActionById } from '../data';
-import type { PendingFall } from './pendings';
+import type { PendingFall, TombantParticipant } from './pendings';
+import type { CorpsDesReglages } from './reglagesDuJet';
 import { jouerFlowEntier, applyEffects, ouvrirChute, effectTargets, runFlow, openSkillTest } from './combatEffects';
 import { placeCombatant } from './monde/spawn';
 import { t } from '../i18n';
@@ -147,7 +148,7 @@ export function gesteDepuis(s: Jeu, from: Pt): GesteOuvert | RefusGeste {
 }
 
 /** Le Test de chute tenté consomme l'Action (LDB 13 l.86-88) : refusé quand elle est déjà prise.
- *  `tombantId` = la rangée qui déclare. Lu par « Tenter » (`fallChoose`) et par son option dans la
+ *  `tombantId` = la rangée qui déclare. Lu par « Tenter » (`jetRegler('fall', 'tenter', …)`) et par son option dans la
  *  modale (`ui/FallModal.tsx`). */
 export function refusDuTestDeChute(s: Jeu, tombantId: string): RefusGeste | null {
   const b = s.mode === 'battle' ? s.battle : null;
@@ -156,7 +157,7 @@ export function refusDuTestDeChute(s: Jeu, tombantId: string): RefusGeste | null
 }
 
 /** Se suspendre d'abord coûte, en combat, le Mouvement de `mouvementDeLaChute` : refusé quand le
- *  Mouvement restant ne le couvre pas. Lu par la déclaration (`fallChoose`) et par son option dans la
+ *  Mouvement restant ne le couvre pas. Lu par la déclaration (`jetRegler('fall', 'suspendre', …)`) et par son option dans la
  *  modale (`ui/FallModal.tsx`). */
 export function refusDeLaSuspension(s: Jeu, tombantId: string): RefusGeste | null {
   const b = s.mode === 'battle' ? s.battle : null;
@@ -281,7 +282,7 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
     /** Chute VOLONTAIRE (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
      *  basse, `planFranchissement`) — geste JOUEUR seulement (IA hors périmètre : elle ne saute jamais). Ouvre le
      *  choix pré-jet `pendingFall` (Sauter / Tenter, et se suspendre d'abord quand la croisée l'offre),
-     *  résolu par `fallChoose`. Le Mouvement que `soldeDeLAction` imputera (`mouvementDeLaChute`) est
+     *  résolu par `jetRegler('fall', …)`. Le Mouvement que `soldeDeLAction` imputera (`mouvementDeLaChute`) est
      *  vérifié ici (le pas, l'allège) et à la déclaration (la suspension, `refusDeLaSuspension`). */
     fallAcross: (from, to) => {
       const verdict = gesteDepuis(get(), from);
@@ -310,29 +311,6 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
         ...(battle ? { battle: { ...battle, action: null, preview: null } } : {}),
       });
     },
-    fallChoose: (tombantId, attempt, suspendre) => {
-      // Un intent coop PÉRIMÉ (double clic d'un invité, saut déjà résolu) arrive jusqu'ici : refus nommé.
-      const p = get().pendingFall;
-      if (!p) return void refuserGeste(get, set, t('fall.refus.aucunSaut'));
-      const part = p.participants.find((x) => x.id === tombantId);
-      if (!part) return void refuserGeste(get, set, t('fall.refus.horsDuSaut', { id: tombantId, tombants: tombantsNommes(get(), p.participants.filter((x) => x.interactive)) }));
-      if (part.attempt !== null) return void refuserGeste(get, set, t('fall.refus.dejaDeclare'));
-      // Axe HAUTEUR (EDO 01 l.231) : déclaré avec le saut quand la suspension est offerte, jamais sinon.
-      const offerte = p.suspendu !== undefined;
-      if (offerte !== (suspendre !== undefined)) return void refuserGeste(get, set, t(offerte ? 'fall.refus.suspensionOfferte' : 'fall.refus.axeHauteur'));
-      if (attempt) {
-        const refus = refusDuTestDeChute(get(), tombantId);
-        if (refus) return void refuserGeste(get, set, t(refus.refus, refus.vars));
-      }
-      if (suspendre) {
-        const refus = refusDeLaSuspension(get(), tombantId);
-        if (refus) return void refuserGeste(get, set, t(refus.refus, refus.vars));
-      }
-      const suite: PendingFall = { ...p, participants: p.participants.map((x) => (x.id === tombantId ? { ...x, attempt, ...(offerte ? { suspendre } : {}) } : x)) };
-      // Toutes les rangées sautent SANS Test (RAW « vous pouvez tenter ») : rien à lancer, l'étape se résout.
-      if (suite.participants.every((x) => x.attempt === false)) { settleFall(get, set, suite); return; }
-      set({ pendingFall: suite });
-    },
     windowAcross: (from, to) => {
       const verdict = gesteDepuis(get(), from);
       if ('refus' in verdict) return void refuserGeste(get, set, t(verdict.refus, verdict.vars));
@@ -353,6 +331,50 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
   } satisfies FabriqueDuNoyau;
+}
+
+/** La rangée du tombant `pid` qui reste à déclarer, ou `null` après avoir refusé le geste : un intent coop PÉRIMÉ
+ *  (double clic d'un invité, tombant étranger) arrive jusqu'ici ; sans saut ouvert, le réglage est déjà fermé
+ *  (`fermetureDuReglage`). */
+function tombantADeclarer(get: Get, set: Set, pid: string): { p: PendingFall; part: TombantParticipant } | null {
+  const p = garanti(get().pendingFall, 'fall', 'saut ouvert');
+  const part = p.participants.find((x) => x.id === pid);
+  if (!part) { refuserGeste(get, set, t('fall.refus.horsDuSaut', { id: pid, tombants: tombantsNommes(get(), p.participants.filter((x) => x.interactive)) })); return null; }
+  if (part.attempt !== null) { refuserGeste(get, set, t('fall.refus.dejaDeclare')); return null; }
+  return { p, part };
+}
+
+/** Les déclarations d'un tombant (`CorpsDesReglages`), chacune figée une fois posée : l'axe HAUTEUR (EDO 01 l.231),
+ *  offert par la croisée et déclaré d'abord, puis le saut, avec ou sans Test (LDB 15 l.82). */
+export function reglagesDeFranchissement(get: Get, set: Set) {
+  return {
+    fall: {
+      suspendre: (suspendre, pid) => {
+        const tombant = tombantADeclarer(get, set, garanti(pid, 'fall', 'tombant'));
+        if (!tombant) return;
+        if (tombant.part.suspendre != null) return void refuserGeste(get, set, t('fall.refus.dejaDeclare'));
+        if (suspendre) {
+          const refus = refusDeLaSuspension(get(), tombant.part.id);
+          if (refus) return void refuserGeste(get, set, t(refus.refus, refus.vars));
+        }
+        set({ pendingFall: { ...tombant.p, participants: tombant.p.participants.map((x) => (x.id === tombant.part.id ? { ...x, suspendre } : x)) } });
+      },
+      tenter: (attempt, pid) => {
+        const tombant = tombantADeclarer(get, set, garanti(pid, 'fall', 'tombant'));
+        if (!tombant) return;
+        const { p, part } = tombant;
+        if (p.suspendu !== undefined && part.suspendre == null) return void refuserGeste(get, set, t('fall.refus.suspensionOfferte'));
+        if (attempt) {
+          const refus = refusDuTestDeChute(get(), part.id);
+          if (refus) return void refuserGeste(get, set, t(refus.refus, refus.vars));
+        }
+        const suite: PendingFall = { ...p, participants: p.participants.map((x) => (x.id === part.id ? { ...x, attempt } : x)) };
+        // Toutes les rangées sautent SANS Test (RAW « vous pouvez tenter ») : rien à lancer, l'étape se résout.
+        if (suite.participants.every((x) => x.attempt === false)) { settleFall(get, set, suite); return; }
+        set({ pendingFall: suite });
+      },
+    },
+  } satisfies Pick<CorpsDesReglages, 'fall'>;
 }
 
 /** Les clôtures du franchissement (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */

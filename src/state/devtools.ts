@@ -460,7 +460,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
                 resolve(`✓ événement présenté — « ${cur.label} » attend une décision (${cur.options.map((o) => o.key).join(' / ')}) : __wfrp.modal()/state().pendingCascade`);
                 return;
               }
-              if (cur?.options?.length) useGame.getState().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
+              if (cur?.options?.length) useGame.getState().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
             }
             real(tick, 0); return;
           }

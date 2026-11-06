@@ -13,7 +13,7 @@ import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKe
 import { cleDuGeste, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
 import { fermetureDeLaSortie } from './sortieDeFenetre';
 import { fermetureDeLaValidation } from './validationDeFenetre';
-import { FLOW_HANDLERS, fermetureDuReglage, rangeesADeclarerIci } from './rollFlowSpecs';
+import { FLOW_HANDLERS, fermetureDuReglage, rangeesAReglerIci } from './rollFlowSpecs';
 import type { FermetureDuJet, FermeturesDuJet } from './rollFlowFactory';
 import { declarationDuReglage, estFluxRegle, type ReglageDuJet } from './reglagesDuJet';
 
@@ -40,12 +40,13 @@ function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | n
 
 /** Ce qui ferme maintenant les gestes qu'une fenêtre juge elle-même, par sa clé, chacun par son identité
  *  (`cleDuGeste`) : « tout résoudre » sur la cascade, la déclaration du Contre-sort quand ce siège n'a plus de rangée à
- *  déclarer (`rangeesADeclarerIci`) ; au début du Round, la visée du Tir rapide sans tireur (`preemptShooterIds`) et le clic du combattant sans visée armée
- *  (`preemptAiming`). Les valeurs d'un choix de fenêtre se ferment à `OUVERTS_DU_CHOIX`. */
+ *  déclarer (`rangeesAReglerIci`) ; au début du Round, la visée du Tir rapide sans tireur (`preemptShooterIds`) et le
+ *  clic du combattant sans visée armée (`preemptAiming`). Les valeurs d'un choix de fenêtre se ferment à
+ *  `OUVERTS_DU_CHOIX`. */
 const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
   cascade: (s) => s.pendingCascade && {
     [cleDuGeste(TOUT_RESOUDRE)]: fermetureDeToutResoudre(s, s.pendingCascade),
-    counterspellDeclareAll: rangeesADeclarerIci(s, s.pendingCounterspell).length ? null : 'rienADeclarer',
+    [cleDuGeste({ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration' })]: rangeesAReglerIci(s, declarationDuReglage('counterspell', 'declaration')).length ? null : 'rienADeclarer',
   },
   roundStart: (s) => ({
     armPreempt: preemptShooterIds(() => s).length ? null : 'nonOffert',

@@ -10,6 +10,7 @@ import { unarmedWeapon } from '../engine/items';
 import type { AttackResult } from '../engine/combat';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -112,11 +113,28 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     banc.getState().battleGrapple(E.id);
     const pd = banc.getState().pendingGrapple!;
     expect(pd.canBreak).toBe(true);
-    banc.getState().grappleBreak();
+    banc.getState().jetRegler('grapple', 'briser', true);
     expect(banc.getState().pendingGrapple).toBeNull();
     expect(areGrappling(live(H.id), live(E.id))).toBe(false);
     expect(hasCondition(live(H.id), COND.empetre)).toBe(false);
     expect(banc.getState().battle!.acted).toBe(false); // Briser est GRATUIT
+  });
+
+  it('Avantage NON supérieur → « Briser » est fermé : refusé en le disant, l’Empoignade tient', () => {
+    const { H, enemies } = setup();
+    const E = enemies[0];
+    enemies.slice(1).forEach((e) => (e.dead = true));
+    activate(H, E);
+    const h = live(H.id), e = live(E.id);
+    setGrapple(h, e);
+    h.advantage = 0; e.advantage = 2;
+    banc.getState().battleGrapple(E.id);
+    const pd = banc.getState().pendingGrapple!;
+    expect(pd.canBreak).toBeFalsy();
+    banc.getState().jetRegler('grapple', 'briser', true);
+    expect(banc.getState().pendingGrapple).toBe(pd);
+    expect(areGrappling(live(H.id), live(E.id))).toBe(true);
+    expect(banc.getState().refus?.texte).toBe(t('jet.ferme.nonOffert'));
   });
 
   it('Test de Force gagné, option Dégâts → BF + DR en IGNORANT les PA (cible blindée subit autant que nue)', () => {
@@ -140,7 +158,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     banc.getState().jetConfirm('grapple');
     expect(banc.getState().pendingGrapple?.phase).toBe('options');
     const before = live(E.id).wounds.current;
-    banc.getState().grappleChoose('damage');
+    banc.getState().jetRegler('grapple', 'issue', 'damage');
     // BF(4) + DR(2) = 6, − BE(3) = 3, PA ignorés (armure 5 sans effet).
     expect(before - live(E.id).wounds.current).toBe(3);
     expect(banc.getState().battle!.acted).toBe(true);
@@ -157,7 +175,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     const pd = banc.getState().pendingGrapple!;
     banc.setState({ pendingGrapple: { ...pd, def: pd.atk, result: 'success', phase: 'roll' } });
     banc.getState().jetConfirm('grapple');
-    banc.getState().grappleChoose('entangle');
+    banc.getState().jetRegler('grapple', 'issue', 'entangle');
     expect(hasCondition(live(E.id), COND.empetre)).toBe(true);
   });
 
@@ -177,7 +195,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
       atk: { roll: 50, target: 40, success: true, sl: 0, isDouble: false },
       result: 'success', phase: 'roll' } });
     banc.getState().jetConfirm('grapple');
-    banc.getState().grappleChoose('free');
+    banc.getState().jetRegler('grapple', 'issue', 'free');
     expect(stacks(live(H.id), COND.empetre)).toBe(1); // 3 − (1 + DR 1) = 1
   });
 

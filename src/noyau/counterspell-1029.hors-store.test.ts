@@ -153,8 +153,8 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     banc.getState().jetRoll('counterspell', h1.id);
     expect(banc.getState().pendingCounterspell!.participants.every((p) => !p.result), 'aucun dé tant que la fenêtre n’a pas déclaré').toBe(true);
     expect(cur().find((c) => c.id === h1.id)!.dispelledThisRound, 'le verrou de phase ne brûle rien').toBeFalsy();
-    banc.getState().counterspellDeclare(h1.id, 'solo');
-    banc.getState().counterspellDeclare(h2.id, 'pass');
+    banc.getState().jetRegler('counterspell', 'declaration', 'solo', h1.id);
+    banc.getState().jetRegler('counterspell', 'declaration', 'pass', h2.id);
     banc.getState().jetRoll('counterspell', h1.id);
     expect(laisserPasser(), 'phase 2 : le déclaré chante, « Laisser passer » se ferme').toBe('jetLance');
     expect(cur().find((c) => c.id === h1.id)!.dispelledThisRound, 'l’essai du chanteur est consommé').toBe(true);

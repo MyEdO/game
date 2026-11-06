@@ -123,7 +123,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     expect(routeCounterspell(banc.getState, banc.setState)).toBe(true);
     // PHASE 1 (#1042/#1059) : la rangée du MJ déclare « contrer seul » — c'est le geste que le chemin
     // inline pose d'office pour l'IA ; les dés ne partent qu'ensuite (la différentielle porte sur eux).
-    banc.getState().counterspellDeclare(E.id, 'solo');
+    banc.getState().jetRegler('counterspell', 'declaration', 'solo', E.id);
     banc.getState().jetRoll('counterspell', E.id);
     banc.getState().jetConfirm('counterspell');
     const windowed = banc.getState().pendingCast!.result;

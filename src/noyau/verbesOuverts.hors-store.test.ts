@@ -191,10 +191,10 @@ describe('fermeturesDeLaFenetre — un geste de jet se juge sur SON flux (#3311)
 
   it('le Contre-sort ouvert : « Tout déclarer » tant qu’une rangée d’ici est vierge, l’incantation ne s’applique qu’après lui (LDB 46 l.156)', () => {
     const contre = (declared: string | undefined) => ({ participants: [{ id: H.id, interactive: true, declared, result: null }] }) as unknown as Jeu['pendingCounterspell'];
-    const vierge = verbes(enEtape('cast', { pendingCast: incantation(true), pendingCounterspell: contre(undefined) }));
-    expect(vierge.ouverts, 'une rangée du héros reste à déclarer').toContain('counterspellDeclareAll');
+    const vierge = verbes(enEtape('cast', { pendingCast: incantation(true), pendingCounterspell: contre(undefined) }), true);
+    expect(vierge.ouverts, 'une rangée du héros reste à déclarer').toContain('jetRegler@counterspell#declaration');
     const declare = verbes(enEtape('cast', { pendingCast: incantation(true), pendingCounterspell: contre('solo') }));
-    expect(declare.fermes.counterspellDeclareAll, 'plus rien à déclarer : l’Entrée passe au jet').toBe('rienADeclarer');
+    expect(verbes(enEtape('cast', { pendingCast: incantation(true), pendingCounterspell: contre('solo') }), true).fermes['jetRegler@counterspell#declaration'], 'plus rien à déclarer : l’Entrée passe au jet').toBe('rienADeclarer');
     expect(declare.ouverts).toContain('jetRoll@counterspell');
     expect(declare.fermes['jetConfirm@cast'], 'l’incantation attend son Contre-sort').toBe('contreSortDu');
     expect(verbes(enEtape('cast', { pendingCast: incantation(true) })).ouverts, 'sans Contre-sort, l’incantation s’applique').toContain('jetConfirm@cast');

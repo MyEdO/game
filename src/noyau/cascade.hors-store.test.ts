@@ -151,7 +151,7 @@ describe('Cascade séquentielle influençable', () => {
     banc.getState().jetConfirm('cascade'); // pas de choix → no-op
     expect(applied).toHaveLength(0);
     expect(banc.getState().pendingCascade!.cursor).toBe(0);
-    banc.getState().cascadeChoose('c', 'devier');
+    banc.getState().jetRegler('cascade', 'choix', 'devier', 'c');
     expect(banc.getState().pendingCascade!.participants[0].chosen).toBe('devier');
     expect(fermeturesDuFlux(banc.getState(), 'cascade').confirm, 'tranchée, l’étape se valide').toBeNull();
     banc.getState().jetConfirm('cascade'); // valide → applier voit 'devier' + insère 'suite'
@@ -218,7 +218,7 @@ describe('Cascade séquentielle influençable', () => {
     expect(annonceEtEffet(), 'une étape-jet : ouvert, joué').toEqual([null, true]);
     expect(banc.getState().pendingCascade?.cursor, 'arrêté sur le choix').toBe(1);
     expect(annonceEtEffet(), 'un choix non tranché : fermé, refusé').toEqual(['choixDu', false]);
-    banc.getState().cascadeChoose('c', 'a');
+    banc.getState().jetRegler('cascade', 'choix', 'a', 'c');
     expect(annonceEtEffet(), 'le choix tranché : ouvert, joué').toEqual([null, true]);
     expect(banc.getState().pendingCascade?.cursor, 'bilan').toBe(2);
     expect(annonceEtEffet(), 'au bilan : fermé, refusé').toEqual(['etapesJouees', false]);
@@ -239,7 +239,7 @@ describe('Cascade séquentielle influençable', () => {
     expect(applied.map((a) => a.kind)).toEqual(['tally']); // le jet est résolu, on S'ARRÊTE sur le choix
     expect(banc.getState().pendingCascade!.cursor).toBe(1); // curseur SUR le choix (le joueur doit trancher)
     // Le joueur tranche → on enchaîne le reste.
-    banc.getState().cascadeChoose('c', 'a');
+    banc.getState().jetRegler('cascade', 'choix', 'a', 'c');
     banc.getState().jetConfirm('cascade'); // valide le choix → affichage
     banc.getState().jetConfirm('cascade'); // valide l'affichage → fin
     expect(applied.map((a) => a.kind)).toEqual(['tally', 'pick', 'note']);
@@ -658,7 +658,7 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
       { id: 'x', kind: cleDeFixture('fenB'), label: fixtureText('x') },
     ];
     expect(runCascadeImmediate(g, s, steps, { title: 'T', purpose: 'test' })).toBeUndefined();
-    g().cascadeChoose('decision', 'o');
+    g().jetRegler('cascade', 'choix', 'o', 'decision');
     const done = advanceCascade(g, s)!;
     expect(done.participants.map((x) => x.id)).toEqual(['decision', 'x', 'borne']);
     expect(done.roundBoundary, 'la borne collectée à la reprise n’arrive pas au dénouement').toBe(true);
@@ -701,7 +701,7 @@ describe('reprise du pilote immédiat : le contexte de lancement voyage avec la 
     expect(runCascadeImmediate(g, s, [choix(), bande], { title: 'Jour', purpose: 'test', rowSurface: 'pv' })).toBeUndefined();
     expect(g().pendingCascade!.piloteImmediat).toEqual({ rowSurface: 'pv' });
 
-    g().cascadeChoose('decision', 'a');
+    g().jetRegler('cascade', 'choix', 'a', 'decision');
     const done = advanceCascade(g, s)!;
     expect(done.participants[1].participants?.[0].result, 'la bande n’a pas été résolue à la reprise').toBeTruthy();
     expect(done.piloteImmediat, 'la clôture ne sait pas que ses rangées vont au PV').toEqual({ rowSurface: 'pv' });
@@ -713,7 +713,7 @@ describe('reprise du pilote immédiat : le contexte de lancement voyage avec la 
     expect(runCascadeImmediate(g, s, steps)).toBeUndefined();
     expect(g().pendingCascade!.piloteImmediat).toEqual({ sansContexte: true });
 
-    g().cascadeChoose('decision', 'a');
+    g().jetRegler('cascade', 'choix', 'a', 'decision');
     advanceCascade(g, s);
     expect(g().battle, 'l’applier n’a pas ouvert son combat').toBeTruthy();
     expect(g().suspendedCascades, 'la reprise a empilé une séquence que son lancement n’aurait pas empilée').toEqual([]);

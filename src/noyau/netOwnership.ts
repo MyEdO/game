@@ -469,7 +469,9 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
  *  - le réglage de l'hôte seul (`qui`, l'abandon de la séquence) : l'hôte ;
  *  - le réglage que le siège d'un autre combattant joue (`porteurDeLaValeur` : les Bandages, LDB 74 l.41) : ce
  *    combattant ;
- *  - un réglage de rangée (l'arme d'enfoncement, EDO 11 l.93) : le combattant de la rangée (`pid`) ;
+ *  - un réglage de rangée (l'arme d'enfoncement, EDO 11 l.93) : le combattant de la rangée (`pid`) ; sans rangée, un
+ *    réglage `toutes` (la déclaration du Contre-sort) : le siège qui tient une de ses rangées encore à régler ; la
+ *    rangée d'un flux dont elle n'est pas un combattant (l'étape de cascade) : le repli universel ;
  *  - sur un flux MONO : le porteur du jet (`routeJet`), comme ses verbes de jet — sur le Sort d'un ennemi, dont la
  *    fenêtre est à tous (`'*'`), le siège qui joue l'ennemi, jamais un autre ;
  *  - un réglage de fenêtre sur un flux MULTI (le virage d'une manœuvre navale) : le repli universel (le owner de sa
@@ -482,8 +484,11 @@ const ROUTE_DU_REGLAGE: Route = {
     if (!declaration || !estFluxRegle(flux)) return false;
     if (declaration.qui === 'hote') return seatOwns(s, seat, undefined); // `undefined` → l'hôte (contrat de `seatOwns`)
     if (declaration.porteurDeLaValeur) return seatInfluences(s, seat, declaration.porteurDeLaValeur(s, valeur));
-    if (declaration.portee === 'rangee') return seatInfluences(s, seat, idArg(pid));
     const w: FlowVerbs = FLOW_VERBS[flux];
+    if (declaration.portee === 'rangee') {
+      if (w.kind === 'multi' && !w.pidIsActor) return null;
+      return pid === undefined && declaration.toutes ? declaration.toutes(s).some((id) => seatInfluences(s, seat, id)) : seatInfluences(s, seat, idArg(pid));
+    }
     return w.kind === 'mono' ? routeJet(w.jetOwner).rule(s, seat, args) : null;
   },
 };
@@ -560,14 +565,6 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     //    promotion (pas d'actif pendant la pause) ; le tir est le clic du combattant (`CLIC_ENTITE`).
     ['roundStartPromote', { rule: (s, seat, args) => !!s.pendingRoundStart && seatInfluences(s, seat, idArg(args[0])) }],
     ['armPreempt', PAUSE_DE_ROUND_PAR_ARG0],
-    // DÉCLARATION de rangée (#1042/#1059) : le geste décide de l'engagement de la Dissipation du Round
-    // de son porteur (consommée à l'engage) — même prédicat que l'affordance de la rangée
-    // (`influencesLocally`), routé par l'id porté en 1ᵉʳ argument. Le verbe NULLAIRE « tout déclarer »
-    // suit la règle de « tout lancer » : possède qui tient une rangée encore vierge.
-    ['counterspellDeclare', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
-    // DÉCLARATION d'un TOMBANT de chute volontaire (#700, EDO 01 l.231) : chaque rangée appartient au
-    // siège de SON héros, patron `counterspellDeclare`.
-    ['fallChoose', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
     // Le réglage d'un jet en attente (`routeDuReglage`).
     ['jetRegler', ROUTE_DU_REGLAGE],
     // La sortie et la validation d'une fenêtre, par ce que son registre déclare (`routeDuGesteDeFenetre`).
@@ -580,9 +577,6 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
       const registre = fenetreDuRegistre(fenetre);
       return qui && registre ? { ...registre, qui } : undefined;
     })],
-    ['counterspellDeclareAll', {
-      rule: (s, seat) => (s.pendingCounterspell?.participants ?? []).some((p) => !p.declared && p.interactive && seatInfluences(s, seat, p.id)),
-    }],
     // #669 — Dialogue = décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) : l'hôte choisit
     // la réponse, les autres LISENT. Un Test social DANS un dialogue reste arbitré par le propriétaire du héros
     // testeur (`openSkillTest`→`pendingTest`→modalArbiter).

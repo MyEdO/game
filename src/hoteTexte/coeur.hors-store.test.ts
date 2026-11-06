@@ -182,8 +182,8 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
   it.each([
     ['un Pt écrit en tableau', verbe('battleClickTile', [3, 6]), /pt : un objet JSON \{"x": nombre, "y": nombre, "z"\?: nombre\} attendu/],
     ['un Pt sans y', verbe('battleClickTile', { x: 3 }), /pt\.y manque/],
-    ['un pid nombre', verbe('cascadeChoose', 0, 'devier'), /pid : une chaîne attendue/],
-    ['un argument requis manquant', verbe('cascadeChoose', 0), /l’argument key manque/],
+    ['un pid nombre', verbe('jetRegler', 'cascade', 'choix', 'devier', 0), /pid : une chaîne attendue/],
+    ['un argument requis manquant', verbe('battlePickup', 'e'), /l’argument key manque/],
     ['un argument en trop', verbe('jetConfirm', 'cascade', 1), /1 argument\(s\) au plus/],
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, 'validation', message);

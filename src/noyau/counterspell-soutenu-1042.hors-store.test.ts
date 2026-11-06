@@ -90,7 +90,7 @@ function affaiblir(id: string) {
 
 const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!;
 const row = (id: string) => banc.getState().pendingCounterspell!.participants.find((p) => p.id === id)!;
-const declare = (id: string, choice: 'solo' | 'soutenu' | 'pass') => banc.getState().counterspellDeclare(id, choice);
+const declare = (id: string, choice: 'solo' | 'soutenu' | 'pass') => banc.getState().jetRegler('counterspell', 'declaration', choice, id);
 
 describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu (LDB 46 l.162 / LDB 12 l.189)', () => {
   it('PHASE 1 — tant qu’une rangée n’a pas déclaré, AUCUN jet ne part (ni au clic, ni au drive)', () => {
@@ -310,7 +310,7 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     seedBattleRng(11);
     banc.getState().jetRoll('counterspell');
     expect(banc.getState().pendingCounterspell!.participants.every((p) => !p.result), 'phase 1 : rien ne part').toBe(true);
-    banc.getState().counterspellDeclareAll();
+    banc.getState().jetRegler('counterspell', 'declaration', 'solo');
     expect(banc.getState().pendingCounterspell!.participants.every((p) => p.declared === 'solo')).toBe(true);
     banc.getState().jetRoll('counterspell');
     expect(banc.getState().pendingCounterspell!.participants.filter((p) => p.result).length,
@@ -324,10 +324,11 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     openWindow([h1.id, h2.id]);
     banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [h1.id]: 1, [h2.id]: 2 }, slots: [0, 1, 2, 0] } as Jeu['net'] });
     const s = banc.getState();
-    expect(intentAllowedFor(s, 1, 'counterspellDeclare', [h1.id]), 'le siège qui possède la rangée').toBe(true);
-    expect(intentAllowedFor(s, 2, 'counterspellDeclare', [h1.id]), 'un autre siège ne déclare pas à sa place').toBe(false);
-    expect(intentAllowedFor(s, 0, 'counterspellDeclare', [h1.id]), 'l’hôte non plus').toBe(false);
-    expect(intentAllowedFor(s, 1, 'counterspellDeclareAll'), '« tout déclarer » : qui tient une rangée vierge').toBe(true);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['counterspell', 'declaration', 'solo', h1.id]), 'le siège qui possède la rangée').toBe(true);
+    expect(intentAllowedFor(s, 2, 'jetRegler', ['counterspell', 'declaration', 'solo', h1.id]), 'un autre siège ne déclare pas à sa place').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['counterspell', 'declaration', 'solo', h1.id]), 'l’hôte non plus').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['counterspell', 'declaration', 'solo']), '« tout déclarer » : qui tient une rangée vierge').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['counterspell', 'declaration', 'solo']), '« tout déclarer » : pas qui n’en tient aucune').toBe(false);
     // Et le geste a un EFFET chez son possesseur (chemin réel, pas seulement l'autorisation).
     banc.setState({ net: { ...banc.getState().net, mySeat: 1 } as Jeu['net'] });
     declare(h1.id, 'solo');

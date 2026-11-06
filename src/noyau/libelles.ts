@@ -8,28 +8,16 @@
 import { estUneCle, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { HIT_LOCATION_LABELS } from '../engine/types';
-import { FLOW_VERBS, verbeDeJetDe } from './flowVerbs';
+import { verbeDeJetDe } from './flowVerbs';
 import type { GesteDuJeu } from './modalArbiter';
 import type { HostJet } from './slotsDeJet';
 import type { FermetureDuJet } from './rollFlowFactory';
 
-/** Les préfixes des flux de jet, du plus long au plus court : `cascadeBatch` avant `cascade`. */
-const PREFIXES = Object.keys(FLOW_VERBS).sort((a, b) => b.length - a.length);
-
-/** Le suffixe d'un verbe manuscrit `<flux><Suffixe>` (`grappleBreak`), son initiale en minuscule ; `null` hors d'un flux. */
-function suffixeDuFlux(verbe: string): string | null {
-  const prefixe = PREFIXES.find((p) => verbe.startsWith(p) && /^[A-Z]/.test(verbe.slice(p.length)));
-  return prefixe ? `${verbe.charAt(prefixe.length).toLowerCase()}${verbe.slice(prefixe.length + 1)}` : null;
-}
-
 /** Le texte de la clé `cle`, `null` si le catalogue ne la porte pas. */
 const texte = (cle: string): string | null => (estUneCle(cle) ? t(cle) : null);
 
-/** Le libellé d'un verbe : sa clé `verbe.<id>`, sinon celle du suffixe de son flux (`verbe.<suffixe>`). */
-export function libelleDuVerbe(verbe: string): string | null {
-  const suffixe = suffixeDuFlux(verbe);
-  return texte(`verbe.${verbe}`) ?? (suffixe ? texte(`verbe.${suffixe}`) : null);
-}
+/** Le libellé d'un verbe : sa clé `verbe.<id>`. */
+export const libelleDuVerbe = (verbe: string): string | null => texte(`verbe.${verbe}`);
 
 /** Le libellé du réglage `reglage` du jet du flux `flux` : sa clé `reglage.<flux>.<reglage>`, sinon celle du réglage
  *  (`reglage.<reglage>`) ; le catalogue nomme chaque réglage déclaré (`fenetres-nomment-leurs-verbes.hors-store.test.ts`). */

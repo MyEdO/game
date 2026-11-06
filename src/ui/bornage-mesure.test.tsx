@@ -204,7 +204,7 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
     const s = emptyScene('scene-test', 4, 4); const h = new Array(16).fill(0) as number[]; h[2] = 4; s.layers[0].height = h;
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null });
     g().fallAcross({ x: 2, y: 0 }, { x: 2, y: 1 });
-    g().fallChoose(hero.id, true);
+    g().jetRegler('fall', 'tenter', true, hero.id);
     g().jetForceSuccess('fall', hero.id);
     const p = g().pendingFall!;
     porteLaMesure(p.participants.find((x) => x.id === hero.id)!.result, cibleDuTest(valeurDuTest(hero, p.test), p.test.difficulty));

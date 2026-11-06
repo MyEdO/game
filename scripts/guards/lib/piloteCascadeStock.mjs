@@ -3,7 +3,7 @@
 //
 // Une ITÉRATION (boucle, callback d'itérateur, fonction nommée récursive) d'une suite ou d'un kit de test
 // (`fichierVitest.mjs`), tous dialectes (`EXTENSIONS_DE_SCRIPT`), qui lit `pendingCascade` et joue un
-// verbe `cascade*` du store PILOTE la cascade à la main : quand un flux est refondu, c'est elle qui
+// verbe de jet du store sur un flux de cascade PILOTE la cascade à la main : quand un flux est refondu, c'est elle qui
 // dérive. Chacun des deux vaut directement, ou par l'appel d'un HELPER — fonction locale nommée dont
 // aucune itération ne lit ni ne joue directement, au statut lu sur son seul corps. Une fonction à UNE
 // étape n'est pas un pilote ; la boucle qui l'appelle en est un. Un appel au kit

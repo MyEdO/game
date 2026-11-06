@@ -26,7 +26,7 @@ import { creerActionsDesFaveurs } from './favorFlow';
 import { creerActionsDuGroupe, sortiesDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
 import { creerActionsDeMarche } from './marcheDuGroupe';
-import { cloturesDeFranchissement, creerActionsDeFranchissement } from './gesteDArete';
+import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
 import { creerActionsDInteraction } from './interactionsDExploration';
 import { creerActionsDeConversation } from './conversation';
 import { cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand } from './merchantFlow';
@@ -90,6 +90,7 @@ function cloturesDuJet(get: Get, set: SetDesClesReservees): CloturesDuJet {
 function reglagesDuJet(get: Get, set: SetDesClesReservees): CorpsDesReglages {
   return {
     ...reglagesDuCombat(get, set),
+    ...reglagesDeFranchissement(get, set),
     ...reglagesDeCorruption(get, set),
     ...reglagesDesTestsDeScene(get, set),
   } satisfies CorpsDesReglages;

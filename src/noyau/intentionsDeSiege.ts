@@ -93,10 +93,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Le réglage d'un jet en attente (`jetRegler`, `REGLAGES_DU_JET`) : routé par le porteur de son jet, ou par celui de
   // sa rangée ou de sa valeur quand le réglage le déclare, `netOwnership.ROUTES`.
   jetRegler: 'invité',
-  // PHASE 1 du Contre-sort (#1042/#1059) : chaque candidat DÉCLARE depuis SA RANGÉE (contrer seul /
-  // s'unir / passer) — contribution de table routée par la possession de son porteur (patron #1050) ;
-  // `counterspellDeclareAll` est le verbe NULLAIRE du drive d'auto-cadence.
-  counterspellDeclare: 'invité', counterspellDeclareAll: 'invité',
   // La sortie d'une fenêtre (`fenetreFermer`) : routée sur la fenêtre de son 1ᵉʳ argument, par le siège que son
   // registre déclare (`sortie` : son propriétaire, ou l'hôte seul), `netOwnership.ROUTES`.
   fenetreFermer: 'invité',
@@ -106,18 +102,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Le choix d'une fenêtre (`fenetreChoisir`) : routé sur la fenêtre de son 1ᵉʳ argument, par le siège que son choix
   // déclare (`CHOIX_DES_FENETRES`) ; le choix de l'hôte se refuse dans l'état d'un invité (`refusDuChoix`).
   fenetreChoisir: 'invité',
-  // Cascade séquentielle (jets de nuit / voyage influençables) : choix / SAISIE d'une quantité
-  // (#1279 Sf, jumeau du choix) ; tout résoudre est le jet sans rangée (`jetRoll('cascade')`), valider l'étape la
-  // clôture de son flux (`jetConfirm('cascade')`).
-  cascadeChoose: 'invité', cascadeAmount: 'invité',
-  // désengagement : Sacrifier l'Avantage, fuir
-  disengageConfirmA: 'invité',
-  disengageFlee: 'invité',
-  // « Au Contact » (LDB 62 l.176) : choix du vainqueur
-  auContactChoose: 'invité',
-  // Empoignade (LDB 14 l.161) : « Briser », choix du vainqueur
-  grappleBreak: 'invité',
-  grappleChoose: 'invité',
   // Tour de NAVIRE (couche Mer, MDG 13-14) : le contrôleur de la coque OUVRE ; CHAQUE participant
   // (héros à un rôle) roule SA rangée, routée par la possession de son id (cf. `intentAllowedFor`,
   // primitive multi `RollParticipant`).
@@ -129,7 +113,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   battleDistraire: 'invité',
   // Chute volontaire (ouverte par `battleClickTile`) : trajet, DÉCLARATION de rangée (routée par le siège
   // du tombant, `netOwnership`).
-  fallAcross: 'invité', fallChoose: 'invité',
+  fallAcross: 'invité',
   // Contre-magie (LDB 46) : OUVREUR (réaction au sort adverse).
   battleDispelSpell: 'invité',
   // Chanson de marin (MDG 09) : OUVREUR.
@@ -141,7 +125,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   medicAct: 'invité', medicSetWound: 'invité', openSurgeryPass: 'invité',
   // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument), et se dit prêt (`fenetreValider('rest')`).
   restSet: 'invité',
-  // (Psychologie de COMBAT et à la rencontre : passent par les intents `cascade*` dérivés.)
+  // (Psychologie de COMBAT et à la rencontre : passent par les verbes de jet de la cascade.)
   roundStartPromote: 'invité',
   // Tir rapide (Talent « Tir rapide ») pendant la pause de début de Round : ARMER la visée depuis la
   // frise, routé sur le TIREUR : pendant la pause il n'y a AUCUN combattant actif (`turn: -1`), donc le

@@ -8,7 +8,7 @@
  * Chaîne mesurée ICI, de bout en bout : catalogue → `weaponFromItem` → `effectSourcesOf` (branche
  * QUALITÉ, `withArg` substitue `$indice`) → `emitCombatEvent('onCrit')` (le MÊME appel que
  * `combatFlow` fait sur un Critique) → `resolveFlowChoice` → étape de cascade `triggeredChoice` →
- * `cascadeChoose` → dépense d'Avantage + 2ᵉ État.
+ * `jetRegler('cascade', 'choix')` → dépense d'Avantage + 2ᵉ État.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -78,7 +78,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
   function repondre(key: string) {
     const pc = banc.getState().pendingCascade!;
     const cur = pc.participants[pc.cursor];
-    banc.getState().cascadeChoose(cur.id, key);
+    banc.getState().jetRegler('cascade', 'choix', key, cur.id);
     banc.getState().jetConfirm('cascade');
   }
 

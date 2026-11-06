@@ -38,8 +38,6 @@ export type IdDObjet = string;
 export type IdDeScene = string;
 /** Une entité de la scène courante (`scene.entities`). */
 export type IdDEntiteDeScene = string;
-/** Une étape de la cascade ouverte (`pendingCascade.participants`). */
-export type IdDEtapeDeCascade = string;
 /** Un combattant que `roundStartPromote` accepte (`actFirstIds`, `turnEconomy.ts`). */
 export type IdDeCombattantPromouvable = string;
 /** Un tireur que `armPreempt` et `preemptRangedShot` acceptent (`preemptShooterIds`, `targeting.ts`). */
@@ -107,7 +105,6 @@ export const DESIGNATIONS = {
     nom: (s, id) => labelParmi([...(s.scene ? [s.scene] : []), ...scenesDuRegistre()], id),
   },
   IdDEntiteDeScene: { mot: 'id d’entité de scène', lire: (s) => ids(s.scene?.entities ?? []), nom: (s, id) => labelParmi(s.scene?.entities ?? [], id) },
-  IdDEtapeDeCascade: { mot: 'id d’étape de cascade', lire: (s) => ids(s.pendingCascade?.participants ?? []), nom: (s, id) => labelParmi(s.pendingCascade?.participants ?? [], id) },
   IdDeCombattantPromouvable: { mot: 'id de combattant promouvable', lire: actFirstIds, nom: nomDeCombattant },
   IdDeTireurRapide: { mot: 'id de tireur rapide', lire: (s) => preemptShooterIds(() => s), nom: nomDeCombattant },
   IdDeChanson: { mot: 'id de chanson', lire: chansonsDuChanteur, nom: (_s, id) => findSeaShantyById(id)?.label ?? null },

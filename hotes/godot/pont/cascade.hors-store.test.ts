@@ -1,7 +1,8 @@
 /**
  * ENTRÉE DANS LA CASCADE (#3328) : « bestiaire » joué au geste en focus, comme la touche Entrée le joue. Une étape à
  * plusieurs jets (le Sang-froid face à la Terreur) jette chaque rangée puis se valide ; une étape qui attend un choix
- * (dévier ou subir le Coup Critique) ne se valide, ne se résout ni ne se termine avant lui, et rien n'y prend le focus.
+ * (dévier ou subir le Coup Critique), un réglage de l'étape (`fenetre.reglages`), ne se valide, ne se résout ni ne se
+ * termine avant lui, et rien n'y prend le focus.
  * Le Coup Critique d'une Défense ne montre pas la Défense de l'attaque suivante, déjà en attente.
  */
 import { describe, it, expect } from 'vitest';
@@ -30,7 +31,7 @@ describe('Entrée dans la cascade', () => {
         }
         if (focus) jeu = focus.jeu;
         else {
-          const choix = gestes.find((g): g is Choix => g.type === 'choix' && g.id === 'cascadeChoose');
+          const choix = suite.vue.zones['fenetre.reglages'].find((g): g is Choix => g.type === 'choix' && g.id === 'jetRegler@cascade#choix');
           expect(choix, `sans focus, la fenêtre ${fenetre.cle} attend un choix`).toBeDefined();
           expect(gestes.map((g) => g.id).filter((id) => NAVIGATION.includes(id)), 'ni valider, ni tout résoudre, ni terminer avant le choix').toEqual([]);
           vus.choix = true;
