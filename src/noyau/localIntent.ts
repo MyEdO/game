@@ -19,6 +19,7 @@ import { computeChargeReach, computeRunReach, displayedReach } from './combatFlo
 import { findActionById } from '../data/index';
 import { unSiegeAgit } from './netOwnership';
 import type { Jeu } from './etat';
+import type { ActionDeClasse } from './intentionsDeSiege';
 
 /** Le mode d'intention ARMÉ (un seul à la fois) : l'id d'action du registre qui l'a posé. */
 export interface LocalIntent {
@@ -109,10 +110,11 @@ export function chargeArmee(get: Get<Jeu>): boolean {
  * Table déclarative (jamais un `if (action === …)` au fil de `netFlow`) : une action de clic, la
  * façon d'enrichir SES args. Les intents absents d'ici voyagent inchangés.
  */
-export const INTENT_VERDICT_ARGS: Record<string, (get: Get<Jeu>, args: readonly unknown[]) => unknown[]> = {
+type VerdictJoint = (get: Get<Jeu>, args: readonly unknown[]) => unknown[];
+export const INTENT_VERDICT_ARGS: Readonly<Record<string, VerdictJoint>> = {
   battleClickEntity: (get, [id, opts]) => [id, { ...(opts as object | undefined), approche: chargeArmee(get) }],
   battleClickTile: (get, [pt, opts]) => [pt, { ...(opts as object | undefined), courseArmee: courseArmee(get) }],
-};
+} satisfies { readonly [A in ActionDeClasse<'invité'>]?: VerdictJoint };
 
 /** Args d'un intent, enrichis du verdict d'armement LOCAL quand l'action en demande un. */
 export function argsAvecVerdictLocal(get: Get<Jeu>, action: string, args: readonly unknown[]): unknown[] {

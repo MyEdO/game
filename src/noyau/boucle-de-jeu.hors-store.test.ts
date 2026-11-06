@@ -1379,14 +1379,14 @@ describe('Avancement par PX (store) — câblage moteur', () => {
 
   it('buySkillAdvance : Compétence connue in-carrière (Charme) +1, coût 10', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buySkillAdvance('h', 'charme');
+    banc.getState().buySkillAdvance('h', { id: 'charme' });
     expect(h0().skills.find((s) => s.id === 'charme')!.advances).toBe(1);
     expect(h0().xp).toBe(990);
   });
 
   it('buySkillAdvance : acquiert une Compétence de carrière non connue (Ragot) à advances 1', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buySkillAdvance('h', 'ragot');
+    banc.getState().buySkillAdvance('h', { id: 'ragot' });
     const ragot = h0().skills.find((s) => s.id === 'ragot');
     expect(ragot).toBeTruthy();
     expect(ragot!.advances).toBe(1);
@@ -1395,7 +1395,7 @@ describe('Avancement par PX (store) — câblage moteur', () => {
 
   it('buySkillAdvance : refuse une Compétence hors-carrière non connue', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buySkillAdvance('h', 'natation'); // ni connue, ni in-carrière
+    banc.getState().buySkillAdvance('h', { id: 'natation' }); // ni connue, ni in-carrière
     expect(h0().skills.find((s) => s.id === 'natation')).toBeUndefined();
     expect(h0().xp).toBe(1000);
   });
@@ -1984,7 +1984,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   });
 });
 
-describe('Utiliser un consommable en combat (store)', () => {
+describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 l.106', () => {
   beforeEach(() => reset());
 
   const combatHero = (over: Partial<Combatant> = {}): Combatant =>
@@ -2023,7 +2023,7 @@ describe('Utiliser un consommable en combat (store)', () => {
     ...over,
   });
 
-  it('Potion de guérison : soigne du Bonus d’Endurance, consomme l’objet, coûte l’Action', () => {
+  it('Potion de guérison : soigne du Bonus d’Endurance, consomme l’objet, laisse l’Action', () => {
     const h = combatHero({
       wounds: blessuresDeBase(12, 5),
       items: [potion('p1', 'potion-de-guerison')],
@@ -2033,7 +2033,7 @@ describe('Utiliser un consommable en combat (store)', () => {
     const b = banc.getState().battle!;
     expect(b.combatants[0].wounds.current).toBe(8); // 5 + BE(35) = 8
     expect(b.combatants[0].items!.find((i) => i.uid === 'p1')).toBeUndefined();
-    expect(b.acted).toBe(true);
+    expect(b.acted).toBe(false);
   });
 
   it('Potion de vitalité : retire l’État Exténué (toutes les piles)', () => {
@@ -2045,7 +2045,7 @@ describe('Utiliser un consommable en combat (store)', () => {
     banc.getState().battleUseItem('p2');
     const b = banc.getState().battle!;
     expect(b.combatants[0].conditions.find((c) => c.id === 'extenue')).toBeUndefined();
-    expect(b.acted).toBe(true);
+    expect(b.acted).toBe(false);
   });
 
   it('Potion de vitalité sans Exténué : refusée et dite avant de boire, objet et Action gardés', () => {
@@ -2060,7 +2060,7 @@ describe('Utiliser un consommable en combat (store)', () => {
     expect(b.acted, 'l’Action reste').toBe(false);
   });
 
-  it('Action déjà consommée : aucune utilisation (objet conservé)', () => {
+  it('Action déjà dépensée : la potion se boit quand même', () => {
     const h = combatHero({
       wounds: blessuresDeBase(12, 5),
       items: [potion('p3', 'potion-de-guerison')],
@@ -2068,8 +2068,8 @@ describe('Utiliser un consommable en combat (store)', () => {
     banc.setState({ mode: 'battle', battle: mkBattle(h, { acted: true }) });
     banc.getState().battleUseItem('p3');
     const b = banc.getState().battle!;
-    expect(b.combatants[0].wounds.current).toBe(5); // inchangé
-    expect(b.combatants[0].items!.find((i) => i.uid === 'p3')).toBeTruthy(); // pas consommé
+    expect(b.combatants[0].wounds.current).toBe(8);
+    expect(b.combatants[0].items!.find((i) => i.uid === 'p3')).toBeUndefined();
   });
 });
 

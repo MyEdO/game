@@ -166,7 +166,7 @@ describe('(c) un seul Test de Marchandage par billet', () => {
     get().startBilletBargain(T1, 'diligence');
     const pb = get().pendingBargain!;
     expect(pb.opposant.label).toBe('Gunnar et Hultz');
-    expect(pb.opposant.valeur).toBe(skillBaseValue(gunnar, 'marchandage'));
+    expect(pb.opposant.valeur).toBe(skillBaseValue(gunnar, { skill: { id: 'marchandage' } }));
     expect(pb.opposant.valeur).toBe(27); // Sociabilité 27, sans Augmentation en Marchandage
     vi.restoreAllMocks();
     get().jetCancel('bargain');

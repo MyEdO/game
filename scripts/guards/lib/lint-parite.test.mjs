@@ -564,6 +564,38 @@ test('murs/sujet-char : sous src, le sujet d’un Test ne reprend pas la clé `c
   }
 })
 
+test('murs/sujet-spec : sous src, la Spécialisation d’une Compétence vit dans sa référence, jamais en clé `spec` à côté de `skill`, ni dans un littéral ni dans un type', () => {
+  const REGLE='murs/sujet-spec'
+  const cas = [
+    ['src/noyau/parite-sujet-spec.ts',"export const t={skill:'savoir',spec:'loi'};",1],
+    ['src/noyau/parite-sujet-spec-non-frais.ts',"const t={skill:s,spec:p}; export const u=f(t);",1],
+    ['src/engine/parite-sujet-spec-cast.ts',"export const t={skill:'x',spec:p} as TestIds;",1],
+    ['src/state/parite-sujet-spec-spread.ts',"export const t={skill:s,...(p?{spec:p}:{})};",1],
+    ['src/data/parite-sujet-spec-logique.ts',"export const t={skill:s,...(p&&{spec:p})};",1],
+    ['src/noyau/parite-sujet-spec-inverse.ts',"export const t={spec:p,...(s?{skill:s}:{})};",1],
+    ['src/noyau/parite-sujet-spec-chaine.ts',"export const t={'skill':s,'spec':p};",1],
+    ['src/noyau/parite-sujet-spec-raccourci.ts',"export const t={skill,spec,characteristic};",1],
+    ['src/engine/parite-sujet-spec.test.ts',"export const t={skill:s,spec:p};",1],
+    ['src/ui/parite-sujet-spec.tsx',"export const t={spec:p,skill:s};",1],
+    ['src/noyau/parite-sujet-spec-type.ts',"export type T={skill?:string;spec?:string;characteristic?:CharKey};",1],
+    ['src/noyau/parite-sujet-spec-interface.ts',"export interface P {'skill':string;spec?:string}",1],
+    ['src/engine/parite-sujet-spec-union.ts',"export type D=({skill?:string;spec?:string;bonus:number}|{char:CharKey;bonus:number})[];",1],
+    ['src/noyau/parite-sujet-spec-emboite.ts',"export const t={skill:{id:s,spec:p},characteristic:c};",0],
+    ['src/noyau/parite-sujet-spec-emboite-type.ts',"export type T={skill?:{id:string;spec?:string};characteristic?:CharKey};",0],
+    ['src/noyau/parite-sujet-spec-rangee.ts',"export const r={skillId:s,spec:p,label:l};",0],
+    ['src/noyau/parite-sujet-spec-instance.ts',"export const i={id:s,spec:p,advances:0};",0],
+    ['src/noyau/parite-sujet-spec-profondeur.ts',"export const t={skill:s,ligne:{spec:p}};",0],
+    ['src/noyau/parite-sujet-spec-motif.ts',"const {skill,spec}=x; export const y=[skill,spec];",0],
+    ['scripts/parite-sujet-spec.mjs',"export const t={skill:s,spec:p};",0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.equal(vus.length,cas[i][2],`${cas[i][0]}: ${JSON.stringify(resultats[i].messages)}`)
+    for(const m of vus) {assert.equal(m.severity,2);assert.equal(m.line,1)}
+  }
+})
+
 test('murs/datalist : `<datalist>` et `<input list>` sous src sont refusés hors du dossier de RefField et des instruments Vitest', () => {
   const REGLE='murs/datalist'
   const cas = [

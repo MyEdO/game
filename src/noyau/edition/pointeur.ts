@@ -79,11 +79,14 @@ export function areteVisee(ctx: ContexteDuPointeur, pt: PointDeCarte): { x: numb
 
 const gesteDOutil = (ctx: ContexteDuPointeur): GesteDOutil => ({ z: ctx.z, brush: ctx.brush, encId: ctx.encId, encRef: ctx.encRef });
 
-/** Un pas de pinceau à la case `p` : la gomme ouvre un cran par écriture, les autres pinceaux un seul pour le trait. */
+/** Un pas de pinceau à la case `p` : la gomme ouvre un cran par écriture, les autres pinceaux un seul pour le trait.
+ *  Le trait trace l'emprise du pinceau des outils qui la peignent, la seule case `p` de la gomme et des cases d'une
+ *  zone. */
 function peindre(scene: Scene, ctx: ContexteDuPointeur, trait: Extract<GesteEnCours, { sorte: 'trait' }>, p: Pt): EffetDuPointeur {
   const out = appliquerOutil(scene, ctx.tool, p, gesteDOutil(ctx));
   if (!out || out.scene === scene) return { geste: trait };
-  const trace = [...trait.trace, ...empriseDuPinceau(scene.dimensions, p, ctx.brush).filter((c) => !trait.trace.some((t) => memeCase(t, c)))];
+  const emprise = ctx.tool.mode === 'erase' || ctx.tool.mode === 'zoneTiles' ? 1 : ctx.brush;
+  const trace = [...trait.trace, ...empriseDuPinceau(scene.dimensions, p, emprise).filter((c) => !trait.trace.some((t) => memeCase(t, c)))];
   return { geste: { sorte: 'trait', cran: true, trace }, scene: out.scene, cran: ctx.tool.mode === 'erase' || !trait.cran };
 }
 

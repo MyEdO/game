@@ -12,7 +12,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 
 /**
  * #1117 G1 — SOURCE UNIQUE du libellé de LIGNE d'une rangée-participant (Z5) : il se DÉRIVE de la
- * paire `{skillId, spec}` par le résolveur canonique. Le producteur peut porter un libellé de RÔLE
+ * référence de Compétence de la rangée par le résolveur canonique. Le producteur peut porter un libellé de RÔLE
  * (provenance) : il ne doit JAMAIS devenir le nom de la ligne — c'est le défaut vu en recette
  * (« Timonier » là où le jet est « Voile (Chaland) »).
  */
@@ -24,10 +24,10 @@ const bundle = {
   row: (part: { label?: string }, a: Combatant) => ({ combatant: a, pending: { label: part.label ?? a.label, base: 40, target: 40 } }),
 };
 
-describe('buildParticipantRows — le libellé de ligne vient de {skillId, spec} (#1117)', () => {
+describe('buildParticipantRows — le libellé de ligne vient de la Compétence de la rangée (#1117)', () => {
   it('la spécialisation est rendue : « Voile (Chaland) », jamais le rôle', () => {
     const rows = buildParticipantRows(
-      [{ id: 'h1', interactive: true, result: null, skillId: 'voile', spec: 'chaland', label: 'Timonier' } as never],
+      [{ id: 'h1', interactive: true, result: null, skill: { id: 'voile', spec: 'chaland' }, label: 'Timonier' } as never],
       [actor], bundle as never,
     );
     expect(rows[0].row.pending!.label).toBe(refLabel('skills', { id: 'voile', spec: 'chaland' }));
@@ -48,7 +48,7 @@ describe('buildParticipantRows — le libellé de ligne vient de {skillId, spec}
       row: (part: { label?: string }, a: Combatant) => ({ combatant: a, d: { label: part.label ?? a.label, base: 40, modifier: 0, target: 40, roll: 12, success: true, sl: 3 } }),
     };
     const rows = buildParticipantRows(
-      [{ id: 'h1', interactive: true, result: { roll: 12, target: 40, sl: 3, success: true }, skillId: 'ramer', label: 'Mousse' } as never],
+      [{ id: 'h1', interactive: true, result: { roll: 12, target: 40, sl: 3, success: true }, skill: { id: 'ramer' }, label: 'Mousse' } as never],
       [actor], withResult as never,
     );
     expect(rows[0].row.d!.label).toBe(refLabel('skills', { id: 'ramer' }));
@@ -145,7 +145,7 @@ describe('crewRoleRow — refus du rôle non tentable, dé jeté contre sa cible
 
   it('non jetée : la rangée annonce le refus nommé, aucun jet en attente', () => {
     const row = crewRoleRow(part as never, marin, null);
-    expect(row.note).toBe(refusNePeutTenter(marin, { skill: 'voile', spec: 'cogue' }));
+    expect(row.note).toBe(refusNePeutTenter(marin, { skill: { id: 'voile', spec: 'cogue' } }));
     expect(row.pending).toBeUndefined();
   });
 

@@ -189,8 +189,8 @@ export function pursuedMovement(h: Combatant, partyRole: 'fleeing' | 'pursuing')
  *  comparaison de la manche et `stepReady` ne l'attend jamais. */
 function pursuitRow(get: Get, h: Combatant, skill: string, label: string): BatchParticipant {
   const row: BatchParticipant = {
-    id: h.id, label, skillId: skill, difficulty: PURSUIT_DIFFICULTY, result: null, interactive: true,
-    ...rollStep({ actor: h, test: { skill }, difficulty: PURSUIT_DIFFICULTY }),
+    id: h.id, label, skill: { id: skill }, difficulty: PURSUIT_DIFFICULTY, result: null, interactive: true,
+    ...rollStep({ actor: h, test: { skill: { id: skill } }, difficulty: PURSUIT_DIFFICULTY }),
   };
   if (!cadenceAuto() && jetSurfaced(get(), h)) return row;
   return { ...row, interactive: false, result: rollBatchParticipant(row, battleRng()) };

@@ -45,13 +45,13 @@ const INCONSCIENT = { conditions: [{ id: 'inconscient', value: 1 }] } as Partial
 const appliquer = (step: CascadeStep, hero?: Combatant) =>
   applierDe(step.kind)!(banc.getState, banc.setState, step, hero, { steps: [step], index: 0 });
 const ligneDe = (out: ReturnType<typeof appliquer>): string => resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
-const refusRagot = (h: Combatant) => refusNePeutTenter(h, { skill: 'ragot' });
+const refusRagot = (h: Combatant) => refusNePeutTenter(h, { skill: { id: 'ragot' } });
 
 /** Étape MONO de Ragot non tentable, montée par `monoStep` avec le refus de son porteur. */
 const ragotSansJet = (kind: GenreDEtape, hero: Combatant, label: PlayerText, meta: Record<string, string | number>): CascadeStep =>
   monoStep({
     id: kind, kind, label, actor: hero, difficulty: 'intermediaire', stake: combatStakeRef(kind),
-    ligne: { test: { skill: 'ragot', characteristic: 'sociabilite' }, refus: refusRagot(hero) },
+    ligne: { test: { skill: { id: 'ragot' }, characteristic: 'sociabilite' }, refus: refusRagot(hero) },
     meta,
   })!;
 
@@ -72,7 +72,7 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
     const h = heros(INCONSCIENT);
     const spec = travelActivitySpec(h, activityById('rester-aux-aguets')!)!;
     expect(spec.test).toEqual({ skill: { id: 'perception' } });
-    expect(spec.refus).toBe(refusNePeutTenter(h, { skill: 'perception' }));
+    expect(spec.refus).toBe(refusNePeutTenter(h, { skill: { id: 'perception' } }));
   });
 
   it('applyTravelActivityResult : ECHEC_SANS_JET → échec, aucun effet de réussite, Exténué', () => {
@@ -99,7 +99,7 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
       const batch = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete').find((s) => s.kind === 'stagePosteBatch')!;
       const part = batch.participants!.find((p) => p.id === 'h')!;
       expect(part.result).toBe(ECHEC_SANS_JET);
-      expect(part.refus).toBe(refusNePeutTenter(banc.getState().party[0], { skill: 'perception' }));
+      expect(part.refus).toBe(refusNePeutTenter(banc.getState().party[0], { skill: { id: 'perception' } }));
       expect(part.interactive).toBe(false);
     });
 
@@ -120,7 +120,7 @@ describe('Activités en mer non tentables', () => {
     const sans = heros();
     const avec = heros({ id: 'c', skills: [{ id: 'metier', spec: 'cartographe', advances: 10 }] as Combatant['skills'] });
     const carto = activityById('cartographie')!;
-    expect(seaActivityRefus(sans, carto)).toBe(refusNePeutTenter(sans, { skill: 'metier', spec: 'cartographe' }));
+    expect(seaActivityRefus(sans, carto)).toBe(refusNePeutTenter(sans, { skill: { id: 'metier', spec: 'cartographe' } }));
     expect(seaActivityRefus(avec, carto)).toBeUndefined();
   });
 
@@ -172,7 +172,7 @@ describe('Psychologie non tentable : la source garde son emprise (LDB 21)', () =
   const decl = { kind: 'peur' as const, sourceId: 'goule', sourceName: 'la Goule', indice: 1 };
   const bande = (cle: 'encounterPsych' | 'combatPsych'): CascadeStep => {
     const hero = banc.getState().party[0];
-    const ligne = rollStep({ actor: hero, test: { skill: 'calme' }, difficulty: 'intermediaire', refus: refusNePeutTenter(hero, { skill: 'calme' }) });
+    const ligne = rollStep({ actor: hero, test: { skill: { id: 'calme' } }, difficulty: 'intermediaire', refus: refusNePeutTenter(hero, { skill: { id: 'calme' } }) });
     return bandStep({ id: cle, kind: cle, [cle]: decl }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!;
   };
 
@@ -216,7 +216,7 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
     const hero = banc.getState().party[0];
     const step = monoStep({
       id: 'mono-sans-jet', kind: cleDeFixture('mono-sans-jet'), label: t('mf.rechercheActive'), actor: hero, difficulty: 'intermediaire', stake: combatStakeRef('merchant-ragot'),
-      ligne: { test: { skill: 'ragot' }, refus: refusRagot(hero) },
+      ligne: { test: { skill: { id: 'ragot' } }, refus: refusRagot(hero) },
     })!;
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [step] });
     banc.getState().jetConfirm('cascade');
@@ -226,7 +226,7 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
 
   it('rangée de BANDE sans jet : SON porteur subit l’effet de son Test raté, à DR 0', () => {
     const hero = banc.getState().party[0];
-    const ligne = rollStep({ actor: hero, test: { skill: 'ragot' }, difficulty: 'intermediaire', refus: refusRagot(hero) });
+    const ligne = rollStep({ actor: hero, test: { skill: { id: 'ragot' } }, difficulty: 'intermediaire', refus: refusRagot(hero) });
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [bandStep({ id: 'bande-sans-jet', kind: cleDeFixture('bande-sans-jet') }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!] });
     banc.getState().jetConfirm('cascade');
     expect(hasCondition(banc.getState().party[0], 'sonne'), 'Test raté à DR 0 : Sonné posé par le symptôme').toBe(true);

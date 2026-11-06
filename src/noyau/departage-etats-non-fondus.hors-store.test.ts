@@ -43,7 +43,7 @@ function setSkill(c: Combatant, skillId: string, advances: number): void {
 /** Cale le Niveau de Compétence NU de `c` à EXACTEMENT `want`, puis l'Empoisonne. */
 function marchandeurEmpoisonne(c: Combatant): Combatant {
   setSkill(c, 'marchandage', 0);
-  setSkill(c, 'marchandage', NUE - skillBaseValue(c, 'marchandage'));
+  setSkill(c, 'marchandage', NUE - skillBaseValue(c, { skill: { id: 'marchandage' } }));
   addCondition(c, COND.empoisonne);
   return c;
 }
@@ -174,7 +174,7 @@ describe('#1153 L2 — MARCHÉ TERRESTRE : l’État ne se fond plus dans la gra
     expect(found).not.toBeNull();
     const leader = setupLand();
     expect(testValue(leader, { skill: { id: 'marchandage' } })).toBe(NUE + ETAT);
-    expect(skillBaseValue(leader, 'marchandage')).toBe(NUE);
+    expect(skillBaseValue(leader, { skill: { id: 'marchandage' } })).toBe(NUE);
     expect(found!.merchant).toBeGreaterThan(NUE + ETAT);
     expect(found!.merchant).toBeLessThan(NUE);
     seedBattleRng(found!.seed);

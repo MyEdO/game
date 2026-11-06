@@ -9,7 +9,7 @@ import { erreurDe, table, type Reponse } from './pont.testkit';
 import type { AreteDessinee, VolumeDuMonde } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Ligne } from '../../../src/hote/elements';
-import type { SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
+import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -22,6 +22,9 @@ interface Edition {
   monde?: VolumeDuMonde;
   aretes?: AreteDessinee[];
   depot?: { id: string; texte: string };
+  calque: CalqueAffiche | null;
+  planche?: { image: string };
+  memoire?: { calques: { version: string; calques: Record<string, Record<string, Record<string, unknown>>> }; oublier: string[] };
 }
 
 /** L'édition d'une réponse réussie, ou l'échec qui dit la réponse. */
@@ -183,6 +186,25 @@ describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, le crénelage et la gomme', () => {
+  it('le crénelage marque la case d’un parapet, que la case pointée dit ; sa gomme l’efface ; la gomme n’a pas d’option', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const crenelage = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/crenellated'));
+    const parapet = valeursDe(crenelage, 'parapets')[0];
+    expect(parapet.presse, 'la première structure crénelable, portée par l’outil').toBe(true);
+    const dite = (e: Edition) => e.vue.zones['editeur.pointee'].find((l) => l.id === 'crenelage')?.texte;
+    jouer({ geste: 'appui', point: point(1, 1) });
+    expect(dite(jouer({ geste: 'relache', point: point(1, 1) }))).toBe(`Parapet crénelé : ${parapet.libelle}`);
+    presser(boutonDe(crenelage, 'crenelage/gomme'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    expect(dite(jouer({ geste: 'relache', point: point(1, 1) }))).toBeUndefined();
+
+    expect(presser(boutonDe(crenelage, 'outil/erase')).vue.zones['editeur.options'], 'la gomme, sans option').toEqual([]);
+  });
+});
+
 describe('l’éditeur de carte par le pont, la volée', () => {
   it('l’outil volée trace ses cases en surcouche ; poser une volée que son plan refuse se refuse, sa raison en clair ; effacer vide le tracé', () => {
     const { appel } = table();
@@ -200,6 +222,98 @@ describe('l’éditeur de carte par le pont, la volée', () => {
     expect(ligneDes('plan'), 'la raison du plan, en clair').toMatchObject({ texte: poser.refus });
     expect(erreurDe(appel('editer', poser.jeu))).toEqual({ categorie: 'regle', message: `editer : ${poser.refus}` });
     expect(presser(boutonDe(tracee, 'volee/effacer')).surcouche.cases).toEqual([]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, le calque de référence', () => {
+  /** Le pont d'une carte ouverte, ses calques gardés `calques` s'ils sont donnés, et ses gestes. */
+  const ouvrirLaCarte = (calques?: string) => {
+    const { appel } = table();
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE, ...(calques === undefined ? {} : { calques }) }));
+    return { appel, ouverte, jouer: (edition: unknown) => editionDe(appel('editer', { edition })), presser: (b: Bouton) => editionDe(appel('editer', b.jeu)) };
+  };
+  const lignes = (e: Edition) => Object.fromEntries(e.vue.zones['editeur.calque'].flatMap((el) => (el.type === 'ligne' ? [[el.id, el.texte]] : [])));
+
+  it('charger une planche : la demande rend son chemin, son issue pose le calque neuf sur toute la carte, à garder', () => {
+    const { appel, ouverte, jouer, presser } = ouvrirLaCarte();
+    expect([ouverte.calque, ouverte.memoire]).toEqual([null, undefined]);
+    expect(lignes(ouverte)).toEqual({ calque: 'Calque de référence · couche 0', 'calque/aucun': 'Décalquer une planche de livre (image locale) sur cette couche.' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'chargement', image: null } })).message).toBe('editer : aucun chargement de planche en cours');
+    const demande = presser(boutonDe(ouverte, 'calque/charger'));
+    expect(demande.planche?.image).toMatch(new RegExp(`^calques/${CAMPAGNE}/[^/]+/0$`));
+    expect(lignes(demande)['calque/chargement']).toBe('Choisissez l’image de la planche.');
+    expect(erreurDe(appel('editer', { edition: { geste: 'chargement', image: { largeur: 0, hauteur: 10 } } })).categorie, 'une image sans pixel').toBe('validation');
+    const renonce = jouer({ geste: 'chargement', image: null });
+    expect([renonce.calque, renonce.memoire, lignes(renonce)['calque/aucun']], 'l’auteur renonce : rien de posé').toEqual([null, undefined, expect.any(String)]);
+
+    presser(boutonDe(renonce, 'calque/charger'));
+    const charge = jouer({ geste: 'chargement', image: { largeur: 200, hauteur: 100 } });
+    expect(charge.calque).toMatchObject({ image: demande.planche!.image, plan: 0, opacite: 0.6, dessus: true });
+    const [hg, hd, bd, bg] = charge.calque!.coins;
+    expect(hg, 'le coin haut-gauche de l’image au coin de la case 0, 0').toEqual({ x: -0.5, y: -0.5 });
+    expect([hd.y, bd.x - hd.x, bg.x, (hd.x - hg.x) / (bg.y - hg.y)], 'l’image droite, sans déformation').toEqual([-0.5, 0, -0.5, 2]);
+    const sceneId = demande.planche!.image.split('/')[2];
+    expect(charge.memoire).toEqual({ calques: { version: expect.any(String), calques: { [sceneId]: { 0: expect.objectContaining({ largeur: 200, hauteur: 100 }) } } }, oublier: [] });
+  });
+
+  it('caler par deux points : un point de l’image, son nœud, un second point, son nœud ; la planche se pose sur la grille', () => {
+    const { ouverte, jouer, presser } = ouvrirLaCarte();
+    presser(boutonDe(ouverte, 'calque/charger'));
+    const charge = jouer({ geste: 'chargement', image: { largeur: 100, hauteur: 100 } });
+    const [hg, hd] = charge.calque!.coins;
+    const auPixel = (px: number, py: number) => ({ case: { x: 0, y: 0 }, f: { x: hg.x + ((hd.x - hg.x) * px) / 100, y: hg.y + ((hd.x - hg.x) * py) / 100 } });
+    const enCalage = presser(boutonDe(charge, 'calque/caler'));
+    expect(lignes(enCalage)['calque/calage']).toBe('Cliquez un 1ᵉʳ coin repérable sur l’image (angle de mur, coin de bâtiment)');
+    const pas = [
+      { geste: 'appui', point: auPixel(10, 10) },
+      { geste: 'appui', point: { case: { x: 2, y: 3 }, f: { x: 2.2, y: 3.1 } } },
+      { geste: 'appui', point: auPixel(60, 10) },
+    ].map((g) => lignes(jouer(g))['calque/calage']);
+    expect(pas).toEqual([
+      'Cliquez l’intersection de la grille qui correspond à ce coin',
+      'Cliquez un 2ᵉ coin repérable sur l’image, loin du premier',
+      'Cliquez l’intersection de la grille qui correspond à ce 2ᵉ coin',
+    ]);
+    expect(jouer({ geste: 'glisse', point: point(4, 4) }).surcouche.cases, 'le glissé n’ouvre aucun geste pendant le calage').toEqual([]);
+    const cale = jouer({ geste: 'appui', point: { case: { x: 7, y: 3 }, f: { x: 7.3, y: 3.2 } } });
+    expect(lignes(cale)['calque/echelle'], 'cinquante pixels pour cinq cases').toBe('10 px par case');
+    expect(cale.calque!.coins[0], 'le pixel 10, 10 sur le nœud 2,5 · 3,5').toEqual({ x: 1.5, y: 2.5 });
+    expect(cale.vue.zones['editeur.pointee'], 'les clics du calage ne pointent aucune case').toEqual([]);
+  });
+
+  it('régler, cacher, retirer : chaque changement gardé, la planche retirée oubliée ; changer de couche abandonne le calage', () => {
+    const { ouverte, jouer, presser } = ouvrirLaCarte();
+    presser(boutonDe(ouverte, 'calque/charger'));
+    const charge = jouer({ geste: 'chargement', image: { largeur: 100, hauteur: 100 } });
+    const plus = presser(boutonDe(charge, 'calque/opacite/plus'));
+    expect([plus.calque!.opacite, lignes(plus)['calque/opacite']]).toEqual([0.7, 'Opacité : 70 %']);
+    expect(presser(boutonDe(plus, 'calque/dessous')).calque!.dessus).toBe(false);
+    const cache = presser(boutonDe(plus, 'calque/visible'));
+    expect([cache.calque, boutonDe(cache, 'calque/caler').refus]).toEqual([null, 'Un calque caché ne se cale pas']);
+    expect(cache.memoire?.calques.calques[charge.calque!.image.split('/')[2]][0]).toMatchObject({ visible: false, dessus: false, opacite: 0.7 });
+    const visible = presser(boutonDe(cache, 'calque/visible'));
+    presser(boutonDe(visible, 'calque/caler'));
+    const ajoutee = presser(boutonDe(visible, 'couche/ajouter'));
+    expect(lignes(ajoutee).calque).toBe(`Calque de référence · couche ${ajoutee.vue.couche}`);
+    const rez = presser(boutonDe(ajoutee, 'couche/0'));
+    expect(lignes(rez)['calque/calage'], 'revenue au rez, le calage abandonné').toBeUndefined();
+    const retire = presser(boutonDe(rez, 'calque/retirer'));
+    expect([retire.calque, retire.memoire?.oublier]).toEqual([null, [charge.calque!.image]]);
+  });
+
+  it('rouverte avec les calques gardés, le calque revient ; d’un autre format ou illisibles, ils sont retirés et dits', () => {
+    const premiere = ouvrirLaCarte();
+    premiere.presser(boutonDe(premiere.ouverte, 'calque/charger'));
+    const charge = premiere.jouer({ geste: 'chargement', image: { largeur: 100, hauteur: 50 } });
+    const gardes = JSON.stringify(charge.memoire!.calques);
+    const rouverte = ouvrirLaCarte(gardes).ouverte;
+    expect([rouverte.calque, rouverte.memoire]).toEqual([charge.calque, undefined]);
+    for (const autre of [JSON.stringify({ ...charge.memoire!.calques, version: 'ancien' }), '{']) {
+      const ecartee = ouvrirLaCarte(autre).ouverte;
+      expect(ecartee.calque).toBeNull();
+      expect(ecartee.memoire, 'les calques retirés, à garder vides').toEqual({ calques: { version: charge.memoire!.calques.version, calques: {} }, oublier: [] });
+      expect(lignes(ecartee)['calque/ecartes']).toBe('Calques d’un autre format : ils ont été retirés.');
+    }
   });
 });
 

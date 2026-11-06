@@ -60,7 +60,7 @@ export const REGLES = Object.freeze([
     preuve: 'src/ui/errorCollector.ts imports ../../package.json ; src/ui/App.tsx importe TestScenariosScreen',
   },
   {
-    motif: new RegExp(String.raw`^src/state/(asciiMap|mapSpec|mapSpec-seating|sceneToAscii|sceneEdit|stairFlight|encounterAuthoring|entityId|traceLayer|traceCalibration)(\.test)?\.tsx?$`),
+    motif: new RegExp(String.raw`^src/state/(asciiMap|mapSpec|mapSpec-seating|sceneToAscii|sceneEdit|stairFlight|encounterAuthoring|entityId|traceLayer)(\.test)?\.tsx?$`),
     categorie: 'moteur-generique',
     raison: 'Authoring de carte (exemple du ticket pour moteur-generique) : ASCII <-> Scene, compilateur MapSpec, mutations pures de Scene, volée d\'escalier, génération d\'id, calque de décalque de l\'éditeur.',
     preuve: 'src/noyau/mapSpec.ts:1-8 ; src/noyau/monde/sceneToAscii.ts:1-6 ; src/noyau/sceneEdit.ts:1-4 ; src/state/traceLayer.ts:5 (« aide d\'AUTHORING »)',

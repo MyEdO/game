@@ -47,7 +47,7 @@ describe('Activité — bouton « Inverser »', () => {
     const h = heros('H1', studieux);
     const pa = {
       heroId: h.id, kind: 'catalog', label: 'Recherche universitaire', skillLabel: 'Recherche', skillValue: 55, difficulty: 'intermediaire',
-      ligne: { base: 55, mods: [], target: 55, difficulty: 'intermediaire' }, roll: 64, target: 55, sl: -1, success: false, chosenSkill: 'recherche',
+      ligne: { base: 55, mods: [], target: 55, difficulty: 'intermediaire' }, roll: 64, target: 55, sl: -1, success: false, chosenSkill: { id: 'recherche' },
     } as unknown as PendingActivity;
     useGame.setState({ party: [h], pendingActivity: pa });
     act(() => { root.render(<ActivityModal />); });

@@ -330,6 +330,7 @@ import {
   resolveCounterspell,
   isDispellableSpell,
   type SpellLike,
+  incantationArcane,
 } from './magic';
 import { rollMiscast } from './miscast';
 import { deFixe, desDuTest } from './dice.testkit';
@@ -575,13 +576,12 @@ const ARCANE: SpellLike = { label: 'Boule de feu', ecole: 'Magie des Arcanes', f
 describe('Magie — routage du test par branche', () => {
   it('les Prières (Béni/Invocation) utilisent Prière (Soc), sans NI', () => {
     const info = castInfo(PRIERE);
-    expect(info.skill).toBe('priere');
+    expect(info.skill).toEqual({ id: 'priere' });
     expect(info.requireNI).toBe(false);
   });
   it('les Sorts utilisent Langue (Magick) (Int), avec NI', () => {
     const info = castInfo(ARCANE);
-    expect(info.skill).toBe('langue');
-    expect(info.spec).toBe('magick');
+    expect(info.skill).toEqual({ id: 'langue', spec: 'magick' });
     expect(info.requireNI).toBe(true);
   });
   it('isArcaneSpell distingue Arcane/Domaine de la Magie mineure et des Prières', () => {
@@ -610,15 +610,15 @@ describe('Magie — analyse des descriptions', () => {
 describe('Magie — valeur d’incantation', () => {
   it('Langue (Magick) = Int + avances', () => {
     const c = caster({ intelligence: 40 }, [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 15 }]);
-    expect(castingValue(c, 'langue', 'magick')).toBe(55);
+    expect(castingValue(c, incantationArcane())).toBe(55);
   });
   it('Prière = Soc + avances', () => {
     const c = caster({ sociabilite: 35 }, [{ id: 'priere', characteristic: 'sociabilite', advances: 10 }]);
-    expect(castingValue(c, 'priere')).toBe(45);
+    expect(castingValue(c, { skill: { id: 'priere' } })).toBe(45);
   });
   it('sans la compétence, la Caractéristique seule est utilisée', () => {
     const c = caster({ intelligence: 33 });
-    expect(castingValue(c, 'langue', 'magick')).toBe(33);
+    expect(castingValue(c, incantationArcane())).toBe(33);
   });
 });
 
@@ -756,9 +756,9 @@ describe('Magie — compétences Avancées (gating)', () => {
     const sansSkill = caster({ intelligence: 80 });
     const zero = caster({ intelligence: 80 }, [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 0 }]);
     const ok = caster({ intelligence: 80 }, [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 1 }]);
-    expect(knowsCastingSkill(sansSkill, 'langue', 'magick')).toBe(false);
-    expect(knowsCastingSkill(zero, 'langue', 'magick')).toBe(false);
-    expect(knowsCastingSkill(ok, 'langue', 'magick')).toBe(true);
+    expect(knowsCastingSkill(sansSkill, { id: 'langue', spec: 'magick' })).toBe(false);
+    expect(knowsCastingSkill(zero, { id: 'langue', spec: 'magick' })).toBe(false);
+    expect(knowsCastingSkill(ok, { id: 'langue', spec: 'magick' })).toBe(true);
   });
   it('un Sort est refusé sans la compétence Avancée (pas de repli sur la Caractéristique)', () => {
     const c = caster({ intelligence: 95 }); // aucune compétence Langue
@@ -771,8 +771,8 @@ describe('Magie — compétences Avancées (gating)', () => {
     const sans = caster({ intelligence: 80 }, skills);
     const avec = caster({ intelligence: 80 }, skills);
     avec.talents = [{ talentId: 'diction-instinctive', times: 2 }];
-    expect(castTestTalentDR(avec, 'langue', 'magick')).toBe(2);
-    expect(castTestTalentDR(sans, 'langue', 'magick')).toBe(0);
+    expect(castTestTalentDR(avec, { id: 'langue', spec: 'magick' })).toBe(2);
+    expect(castTestTalentDR(sans, { id: 'langue', spec: 'magick' })).toBe(0);
     // même graine = même d100 : sur un jet RÉUSSI, le DR final diffère exactement du niveau du Talent
     for (let seed = 1; seed <= 6; seed++) {
       const a = resolveCasting(sans, FLECHETTE, makeRNG(seed));
@@ -784,7 +784,7 @@ describe('Magie — compétences Avancées (gating)', () => {
   it('un Talent lié à une AUTRE Langue ne booste pas l’incantation (Langue (Magick) exigé)', () => {
     const c = caster({ intelligence: 80 });
     c.talents = [{ talentId: 'linguistique', times: 3 }]; // test data : « Langue (Toutes) » ? — ne doit pas matcher Magick
-    expect(castTestTalentDR(c, 'langue', 'magick')).toBe(0);
+    expect(castTestTalentDR(c, { id: 'langue', spec: 'magick' })).toBe(0);
   });
 
   it('Harmonisation aethyrique ×N : +N DR aux Tests de Focalisation réussis (LDB 10 l.19)', () => {
@@ -833,7 +833,7 @@ describe('Magie — compétences Avancées (gating)', () => {
   it('le Trait « Lanceur de Sorts » (LDB 85 : « La créature peut lancer des Sorts ») dispense de la Compétence', () => {
     const c = caster({ intelligence: 95 }); // statbloc de bestiaire : aucune Compétence
     c.traits = [{ id: 'lanceur-de-sorts', arg: 'Sorcellerie' }];
-    expect(knowsCastingSkill(c, 'langue', 'magick')).toBe(true);
+    expect(knowsCastingSkill(c, { id: 'langue', spec: 'magick' })).toBe(true);
     const res = resolveCasting(c, FLECHETTE, makeRNG(1));
     expect(res.log).not.toContain('ne maîtrise pas'); // le Test se fait sur Int seule
   });

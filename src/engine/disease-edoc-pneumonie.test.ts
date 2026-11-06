@@ -107,7 +107,7 @@ describe('Pneumonie : le Test quotidien passe par le canal INFLUENÇABLE de l’
     tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
     expect(specs.map((s) => s.kind)).toEqual(['diseaseTick']);
     expect(specs[0].difficulty).toBe('intermediaire');
-    expect(specs[0].test, 'EDOC 08 l.104 — « Test de Résistance Intermédiaire (+0) »').toEqual({ skill: 'resistance' });
+    expect(specs[0].test, 'EDOC 08 l.104 — « Test de Résistance Intermédiaire (+0) »').toEqual({ skill: { id: 'resistance' } });
     expect(specs[0].base, 'aucune valeur maison : la porte la calcule').toBeUndefined();
     expect(specs[0].meta?.diseaseName).toBe('pneumonie');
     expect(specs[0].meta?.symptomId, 'l’étape NOMME le symptôme mis en jeu').toBe('fievre');

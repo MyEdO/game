@@ -27,12 +27,12 @@ describe('Menaçant : +Niveaux de DR aux Tests d’Intimidation (LDB 10 l.787)',
     const talents = talentsFromBook(caledair!.talents);
     expect(talents.find((t) => t.talentId === 'menacant')?.times).toBe(3);
     const c = withTalents(talents);
-    expect(talentTestSLBonus(c, { skill: 'intimidation' })).toBe(3);
-    expect(talentTestSLBonus(c, { skill: 'charme' })).toBe(0);
+    expect(talentTestSLBonus(c, { skill: { id: 'intimidation' } })).toBe(3);
+    expect(talentTestSLBonus(c, { skill: { id: 'charme' } })).toBe(0);
   });
 
   it('une SEULE source — `skillDRBonus` ne recompte pas le talent (les sites somment les deux)', () => {
     const c = withTalents(talentsFromBook(caledair!.talents));
-    expect(skillDRBonus(c, 'intimidation')).toBe(0);
+    expect(skillDRBonus(c, { id: 'intimidation' })).toBe(0);
   });
 });

@@ -121,7 +121,7 @@ export function startBilletBargain(get: Get, set: Set, routeId: string, vehicule
   if (!offre || offre.couvert || !offre.vendeurPresetId || offre.issue) return;
   const vendeur = pnjAuPreset(offre.vendeurPresetId, `vendeur-${offre.cle}`, presetDuNarratif(get().campaignNarratif));
   if (!vendeur) return;
-  ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: vendeur.label, valeur: skillBaseValue(vendeur, 'marchandage'), portrait: vendeur });
+  ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: vendeur.label, valeur: skillBaseValue(vendeur, { skill: { id: 'marchandage' } }), portrait: vendeur });
 }
 
 export function creerActionsDuBillet(get: Get, set: Set) {

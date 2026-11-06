@@ -2,12 +2,13 @@ import { describe, it, expect } from 'vitest';
 import {
   identityTransform,
   canvasToImagePoint,
+  pointDeLImage,
   computeTransform,
   computeLockedTransform,
   nearestNode,
   advanceCalibration,
   type CalibProgress,
-} from './traceCalibration';
+} from './calage';
 
 /** Grille carrée 56px/case (comme la vue plan `top`, CELL=56), origine à (100,100) — pas besoin de
  *  reproduire `geometry/iso.ts`, juste une fonction affine plausible pour éprouver la similitude. */
@@ -19,7 +20,7 @@ describe('computeTransform', () => {
   it('cale exactement les 2 points fournis sur les centres de case attendus', () => {
     const p1 = { img: { x: 10, y: 20 }, tile: { x: 2, y: 3 } };
     const p2 = { img: { x: 210, y: 20 }, tile: { x: 5, y: 3 } }; // même y image → alignement horizontal
-    const t = computeTransform(p1, p2, tileCenterOf);
+    const t = computeTransform(p1, p2, tileCenterOf)!;
     const q1 = tileCenterOf(p1.tile.x, p1.tile.y);
     const q2 = tileCenterOf(p2.tile.x, p2.tile.y);
 
@@ -41,14 +42,13 @@ describe('computeTransform', () => {
   it('déduit une rotation non nulle quand les deux vecteurs (image, grille) ne sont pas alignés', () => {
     const p1 = { img: { x: 0, y: 0 }, tile: { x: 0, y: 0 } };
     const p2 = { img: { x: 100, y: 0 }, tile: { x: 0, y: 2 } }; // vecteur image horizontal, grille verticale → 90°
-    const t = computeTransform(p1, p2, tileCenterOf);
+    const t = computeTransform(p1, p2, tileCenterOf)!;
     expect(Math.abs(t.rotateDeg)).toBeCloseTo(90, 3);
   });
 
-  it('2 points image confondus retombe sur l’identité (garde de robustesse, pas de crash/NaN)', () => {
-    const p1 = { img: { x: 5, y: 5 }, tile: { x: 0, y: 0 } };
-    const p2 = { img: { x: 5, y: 5 }, tile: { x: 3, y: 3 } };
-    expect(computeTransform(p1, p2, tileCenterOf)).toEqual(identityTransform());
+  it('deux points image, ou deux nœuds, confondus : aucune transformation', () => {
+    expect(computeTransform({ img: { x: 5, y: 5 }, tile: { x: 0, y: 0 } }, { img: { x: 5, y: 5 }, tile: { x: 3, y: 3 } }, tileCenterOf)).toBeNull();
+    expect(computeTransform({ img: { x: 5, y: 5 }, tile: { x: 1, y: 1 } }, { img: { x: 50, y: 5 }, tile: { x: 1, y: 1 } }, tileCenterOf)).toBeNull();
   });
 });
 
@@ -56,10 +56,7 @@ describe('canvasToImagePoint', () => {
   it('est l’inverse exact de la transformation appliquée (aller-retour)', () => {
     const t = { tx: 40, ty: -15, scale: 1.7, rotateDeg: 33 };
     const img = { x: 12, y: -8 };
-    const rad = (t.rotateDeg * Math.PI) / 180;
-    const rx = img.x * Math.cos(rad) - img.y * Math.sin(rad);
-    const ry = img.x * Math.sin(rad) + img.y * Math.cos(rad);
-    const canvasPt = { x: t.tx + t.scale * rx, y: t.ty + t.scale * ry };
+    const canvasPt = pointDeLImage(t, img.x, img.y);
     const back = canvasToImagePoint(canvasPt, t);
     expect(back.x).toBeCloseTo(img.x, 6);
     expect(back.y).toBeCloseTo(img.y, 6);
@@ -106,7 +103,7 @@ describe('advanceCalibration — machine à états du calage 2 points', () => {
       { img: { x: 10, y: 20 }, tile: { x: 2, y: 3 } },
       { img: { x: 210, y: 20 }, tile: { x: 5, y: 3 } },
       tileCenterOf,
-    ).scale, 6);
+    )!.scale, 6);
   });
 
   it('idle ne fait rien (aucun clic parasite hors calibration)', () => {
@@ -123,21 +120,21 @@ describe('computeLockedTransform — rotation VERROUILLÉE par défaut (retour u
     // horizontalement — une similitude complète en déduirait une légère rotation parasite.
     const p1 = { img: { x: 10, y: 20 }, tile: { x: 2, y: 3 } };
     const p2 = { img: { x: 210, y: 23 }, tile: { x: 5, y: 3 } };
-    const t = computeLockedTransform(p1, p2, tileCenterOf);
+    const t = computeLockedTransform(p1, p2, tileCenterOf)!;
     expect(t.rotateDeg).toBe(0);
   });
 
   it('cale l’échelle sur la DISTANCE entre les 2 points (seule grandeur invariante par rotation)', () => {
     const p1 = { img: { x: 0, y: 0 }, tile: { x: 0, y: 0 } };
     const p2 = { img: { x: 100, y: 0 }, tile: { x: 2, y: 0 } }; // 2 cases = 2*CELL px écran, 100px image
-    const t = computeLockedTransform(p1, p2, tileCenterOf);
+    const t = computeLockedTransform(p1, p2, tileCenterOf)!;
     expect(t.scale).toBeCloseTo((2 * CELL) / 100, 6);
   });
 
   it('répartit l’erreur : cale le MILIEU image sur le milieu écran (jamais un ancrage exact du 1er point)', () => {
     const p1 = { img: { x: 0, y: 0 }, tile: { x: 0, y: 0 } };
     const p2 = { img: { x: 100, y: 0 }, tile: { x: 2, y: 0 } };
-    const t = computeLockedTransform(p1, p2, tileCenterOf);
+    const t = computeLockedTransform(p1, p2, tileCenterOf)!;
     const midImg = { x: 50, y: 0 };
     const midScreen = { x: (tileCenterOf(0, 0).cx + tileCenterOf(2, 0).cx) / 2, y: (tileCenterOf(0, 0).cy + tileCenterOf(2, 0).cy) / 2 };
     // Application de t au milieu image doit retomber EXACTEMENT sur le milieu écran (angle 0 → identité).
@@ -145,10 +142,9 @@ describe('computeLockedTransform — rotation VERROUILLÉE par défaut (retour u
     expect(t.ty + t.scale * midImg.y).toBeCloseTo(midScreen.y, 6);
   });
 
-  it('2 points image confondus retombe sur l’identité (même garde que le mode libre)', () => {
-    const p1 = { img: { x: 5, y: 5 }, tile: { x: 0, y: 0 } };
-    const p2 = { img: { x: 5, y: 5 }, tile: { x: 3, y: 3 } };
-    expect(computeLockedTransform(p1, p2, tileCenterOf)).toEqual(identityTransform());
+  it('deux points image, ou deux nœuds, confondus : aucune transformation', () => {
+    expect(computeLockedTransform({ img: { x: 5, y: 5 }, tile: { x: 0, y: 0 } }, { img: { x: 5, y: 5 }, tile: { x: 3, y: 3 } }, tileCenterOf)).toBeNull();
+    expect(computeLockedTransform({ img: { x: 5, y: 5 }, tile: { x: 1, y: 1 } }, { img: { x: 50, y: 5 }, tile: { x: 1, y: 1 } }, tileCenterOf)).toBeNull();
   });
 });
 
