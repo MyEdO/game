@@ -158,16 +158,17 @@ func _lisible(n: Control) -> bool:
 
 
 ## Chaque texte que l'élément `e` et ses éléments imbriqués disent (`DITS`, le nom d'une entité, la valeur d'une
-## puce). Une valeur de saisie ou de liste se dit par son libellé seul : son refus la désactive.
+## puce, le nom d'un point du plan). Une valeur de saisie ou de liste se dit par son libellé seul : son refus la
+## désactive. Les traits d'un plan se dessinent sans rien dire.
 func _dits(e: Variant, valeur: bool = false) -> Array:
 	var dits := []
 	if e is Array:
 		for x in e:
 			dits.append_array(_dits(x, valeur))
-	elif e is Dictionary:
+	elif e is Dictionary and e.has("type"):
 		for champ in e:
 			var v: Variant = e[champ]
-			if v is String and (champ == "libelle" or not valeur and (DITS.has(champ) or champ == "nom" and e.type == "entite" or champ == "valeur" and e.type == "puce")):
+			if v is String and (champ == "libelle" or not valeur and (DITS.has(champ) or champ == "nom" and (e.type == "entite" or e.type == "point") or champ == "valeur" and e.type == "puce")):
 				dits.append(v)
 			elif v is Array:
 				dits.append_array(_dits(v, e.type == "liste" or e.type == "saisieChoix" or e.type == "saisieCoches"))
@@ -182,7 +183,7 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 			_attendre(vue, e.id, func() -> void: (noeud.get_node("Presser") as BaseButton).pressed.emit(), e.jeu)
 		"choix":
 			for v in e.valeurs:
-				var bouton: Node = noeud.find_children("*", "", true, false).filter(func(b: Node) -> bool: return b.get_meta(Zone.META, "") == "bouton/%s" % v.id).front()
+				var bouton := _composant_de(noeud, v)
 				_attendre(vue, v.id, func() -> void: (bouton.get_node("Presser") as BaseButton).pressed.emit(), v.jeu)
 		"liste":
 			var liste: OptionButton = noeud.find_children("*", "OptionButton", true, false).front()
@@ -196,10 +197,17 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 		"formulaire":
 			var jouer: Node = noeud.get_node("Jouer")
 			_attendre(vue, e.id, func() -> void: (jouer as BaseButton).pressed.emit(), vue.attendus.get(e.id))
-		"entite":
+		"plan":
+			for p in e.points:
+				_presser(vue, _composant_de(noeud, p), p)
+		"entite", "point":
 			for x in e.elements:
-				var composant: Node = noeud.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.get_meta(Zone.META, "") == "%s/%s" % [x.type, x.id]).front()
-				_presser(vue, composant, x)
+				_presser(vue, _composant_de(noeud, x), x)
+
+
+## Le composant de l'élément `e` sous `noeud`.
+func _composant_de(noeud: Node, e: Dictionary) -> Node:
+	return noeud.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.get_meta(Zone.META, "") == Zone.cle(e)).front()
 
 
 func _attendre(vue: Dictionary, id: String, presser: Callable, attendu: Variant) -> void:
