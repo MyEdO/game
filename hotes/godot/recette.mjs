@@ -56,10 +56,12 @@
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
-// - `editeur` (#3508) : « Éditeur » ouvre la Diligence sur sa couche 0 ; l'outil Hauteur, « Haute (4 m) » et le pinceau
-//   3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre l'emprise du
-//   pinceau sur chaque case et le monde reste tel quel ; relâché, la surface des cases peintes monte à l'écran.
-//   « Annuler » la rend à sa place ; « Couche 1 » édite l'étage.
+// - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
+//   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
+//   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
+//   l'emprise du pinceau sur chaque case et le monde reste tel quel ; relâché, la surface des cases peintes monte à
+//   l'écran. « Enregistrer » l'écrit à la copie du dépôt, puis rien à enregistrer ; « Annuler » rend la surface à sa
+//   place ; « Couche 1 » édite l'étage.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -95,12 +97,14 @@
 //     --base <production> --piece <production skinnée>
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { basename, join, resolve } from 'node:path'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { servir } from './servir.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, realKeyDown, realKeyUp, shot, sleep, survoler, waitFor } from '../../scripts/recette/lib.mjs'
 
 import { chargerAssets } from './asset/charger.mjs'
@@ -117,7 +121,15 @@ if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && ex
 
 /** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
 const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
-const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }) })
+/** Les projets manuscrits du dépôt, chacun par son chemin relatif au corpus (`listerProjetsLivres`). */
+const MANUSCRITS = listerProjetsLivres().filter((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel)))
+/** Le dépôt que sert le parcours `editeur` : une copie neuve de ses projets manuscrits, que l'enregistrement écrit. */
+const depot = o.parcours === 'editeur' ? mkdtempSync(join(tmpdir(), 'recette-editeur-')) : null
+for (const rel of depot ? MANUSCRITS : []) {
+  mkdirSync(dirname(join(dossierDesProjetsLivres(depot), rel)), { recursive: true })
+  cpSync(join(dossierDesProjetsLivres(), rel), join(dossierDesProjetsLivres(depot), rel))
+}
+const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(depot && { depot }) })
 const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
 const garde = consoleGuard(session)
 const noter = (t) => console.log('·', t)
@@ -896,6 +908,7 @@ async function parcoursEditeur() {
   await waitFor(session, '!!globalThis.wfrpEcran?.editeur && !!wfrpEcran.cases', { timeoutMs: 120000 })
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
+  assert.equal(boutonDeLEditeur(e, 'enregistrer')?.refus, 'Rien à enregistrer', 'la carte s’ouvre telle que le dépôt la sert')
   noter(`éditeur ouvert : ${e.zones['editeur.titre'][0].texte}, couches ${e.zones['editeur.couches'][0].valeurs.map((b) => b.libelle).join(', ')}`)
   await capturer('3508-l1-1-ouverte')
   for (const id of ['outil/height', 'hauteur/haute', 'pinceau/3']) {
@@ -928,6 +941,14 @@ async function parcoursEditeur() {
   e = await editeur()
   noter(`glissé de (${x0}, ${y0}) à (${x0 + 2}, ${y0}) : ${tenu.surcouche.cases.length} cases en surcouche, puis la surface montée de ${Math.round(avant[1] - (await ecran()).cases[`${x0 + 2},${y0}`][1])} px ; ${e.zones['editeur.pointee'][0]?.texte}`)
   await capturer('3508-l1-2-peinte')
+  const fichiers = MANUSCRITS.map((rel) => join(dossierDesProjetsLivres(depot), rel))
+  const lus = () => fichiers.map((f) => readFileSync(f, 'utf8'))
+  const avantLEnregistrement = lus()
+  await cliquerBouton({ element: 'bouton/enregistrer' })
+  await waitFor(session, `Object.values(globalThis.wfrpEcran?.editeur?.zones ?? {}).flat().some((el) => el.id === 'enregistrer' && el.refus === 'Rien à enregistrer')`)
+  const ecrits = lus().filter((texte, i) => texte !== avantLEnregistrement[i])
+  assert.equal(ecrits.length, 1, '« Enregistrer » écrit la carte au dépôt')
+  noter(`« Enregistrer » : ${MANUSCRITS[lus().findIndex((texte, i) => texte !== avantLEnregistrement[i])]} écrit (${ecrits[0].length} caractères), puis rien à enregistrer`)
   await cliquerBouton({ element: 'bouton/annuler' })
   await waitFor(session, `Math.abs(globalThis.wfrpEcran?.cases['${x0 + 2},${y0}'][1] - ${avant[1]}) < 0.5`)
   noter('« Annuler » : la surface revient à sa place')
@@ -1587,5 +1608,6 @@ try {
   for (const e of [...erreurs, ...garde.warnings()]) console.log(' ', e.level, e.text)
   await session.close()
   srv.fermer()
+  if (depot) rmSync(depot, { recursive: true, force: true })
 }
 process.exitCode = echec || garde.errors().length ? 1 : 0

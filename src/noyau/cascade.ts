@@ -30,7 +30,7 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
-import type { RecapLine } from './recapLine';
+import { toRecapLines, type RecapLine } from './recapLine';
 import { actorIn } from './monde/combatants';
 import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, estJete, refusSansJet, type TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
@@ -86,6 +86,11 @@ export type CascadeApplier = (
   hero: Combatant | undefined,
   ctx: { steps: CascadeStep[]; index: number },
 ) => { consequences?: Consequence[]; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true } | void;
+
+/** Ce qu'une étape d'AFFICHAGE dira en se validant, quand son monteur ne pouvait pas le poser d'avance : lu
+ *  à l'arrivée du curseur sur l'état que les étapes d'avant ont laissé, posé en `outcome`. Son applier
+ *  relit le MÊME calcul, si bien que la fenêtre annonce ce que « Continuer » applique. */
+export type AnnonceDEtape = (get: Get, step: CascadeStep) => readonly string[];
 
 /** La conséquence d'un `kind`, lue aux tables posées (`TablesDuJeu.appliers`). L'affichage de
  *  l'issue de modale a pour source UNIQUE `resultLine`/`Consequence[]` (#295 Lot 2 : `cons` vide ⇒
@@ -1534,6 +1539,16 @@ function franchirLesHotesOrphelins(get: Get, p: PendingCascade): PendingCascade 
   return cursor === p.cursor ? p : { ...p, cursor };
 }
 
+/** L'étape d'affichage où le curseur ARRIVE dit ce qu'elle va appliquer (`AnnonceDEtape`, table `annonces`),
+ *  quand son monteur n'a rien pu en poser d'avance : son contenu dépend des dés tombés avant elle. */
+function annoncerALArrivee(get: Get, p: PendingCascade): PendingCascade {
+  const st = p.participants[p.cursor];
+  const annonce = st && !st.outcome?.length && stepInteraction(st) === 'affichage' ? tablesPosees().annonces[st.kind] : undefined;
+  const lignes = annonce?.(get, st) ?? [];
+  if (!lignes.length) return p;
+  return { ...p, participants: p.participants.map((x, k) => (k === p.cursor ? { ...x, outcome: toRecapLines([...lignes]) } : x)) };
+}
+
 /**
  * LE CURSEUR SE POSE SUR UNE ÉTAPE — seam UNIQUE du pilote INTERACTIF (#1426), joué PARTOUT où le
  * curseur atteint une étape : ouverture (`startCascade`), APPEND (`pushStep`), avancée
@@ -1555,7 +1570,7 @@ function franchirLesHotesOrphelins(get: Get, p: PendingCascade): PendingCascade 
  * au RANG de l'étape, jamais au build, et l'étape porte son résultat — le bilan le montre.
  */
 function poserLeCurseur(get: Get, p: PendingCascade, arrivee = true): PendingCascade {
-  const pose = arrivee ? franchirLesHotesOrphelins(get, p) : p;
+  const pose = arrivee ? annoncerALArrivee(get, franchirLesHotesOrphelins(get, p)) : p;
   const st = pose.participants[pose.cursor];
   if (!tirageSansSiege(get, st)) return pose;
   let resolue: CascadeStep;
@@ -1666,8 +1681,9 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
   set({ pendingCascade: suite });
   // Tirage résolu D'OFFICE par le seam — aucun siège humain ne le tient (`tirageSansSiege` : cadence
   // déférée, héros conduit par l'IA, ennemi sans siège MJ, porteur introuvable), donc aucune fenêtre ne
-  // le joue : la séquence le FRANCHIT au même geste, comme le « Suivant » du joueur l'aurait fait.
-  if (suite.participants[next] !== steps[next]) return ENCORE;
+  // le joue : la séquence le FRANCHIT au même geste, comme le « Suivant » du joueur l'aurait fait. Une
+  // étape d'affichage que le seam annonce (`annoncerALArrivee`) change sans être résolue : elle attend.
+  if (suite.participants[next] !== steps[next] && stepInteraction(steps[next]) !== 'affichage') return ENCORE;
   return null;
 }
 

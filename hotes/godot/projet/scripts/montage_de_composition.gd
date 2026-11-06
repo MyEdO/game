@@ -11,13 +11,6 @@ extends Node3D
 ## L'id d'un élément ou d'un emblème absent : aucun.
 const VIDE := "vide"
 const ORIGINE := [0.0, 0.0, 0.0]
-## Le plus long silence du réseau qu'un téléchargement tolère, compté par un `Timer` en temps de l'arbre : le délai
-## repart à chaque bloc reçu, car la durée d'un téléchargement suit la fréquence d'image (#3470).
-const SILENCE_S := 10.0
-## Le plus grand bloc que HTTPRequest lit par image. Sur le Web, une image lit au plus un bloc du flux de la page
-## (`platform/web/js/libs/library_godot_fetch.js`, `godot_js_fetch_read_chunk`, Godot 4.7-stable), jusqu'à 2 Mio
-## mesurés : un GLB de base de 42 Mo s'y reçoit en une vingtaine d'images (#3470), pas en plus de 600 par 64 Kio.
-const BLOC_DE_TELECHARGEMENT := 16777216
 ## La largeur en pixels à laquelle le SVG d'un emblème se rastérise (#3111).
 const LARGEUR_D_EMBLEME := 512.0
 
@@ -71,10 +64,10 @@ static func retenir_les_modeles(reponse: Dictionary) -> void:
 	_textures = {}
 
 
-## Le listage du serveur (`GET modeles/`, `hotes/godot/pont/CONTRAT.md`, « Atelier 3D »), par une requête que porte
-## `hote` ; ses erreurs à `recueil`, vide s'il ne se lit pas.
+## Le listage du serveur (`GET modeles/`, `hotes/godot/pont/CONTRAT.md`, « Atelier 3D »), par le pont que `hote`
+## rejoint (`PontDuNoyau.requeter`) ; ses erreurs à `recueil`, vide s'il ne se lit pas.
 static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
-	var octets := await _telecharger(hote, "modeles/", recueil)
+	var octets := await (hote.get_node("/root/Pont") as PontDuNoyau).requeter("modeles/", recueil)
 	var listage: Variant = JSON.parse_string(octets.get_string_from_utf8()) if not octets.is_empty() else null
 	if not listage is Dictionary:
 		recueil.append("listage-illisible : modeles/")
@@ -136,44 +129,6 @@ static func porte_un_blason(element: String) -> bool:
 	return modeles.surfaces[element].any(func(surface: Dictionary) -> bool: return surface.get("blason", false))
 
 
-## Les octets de `relative`, adresse relative à la page, par une requête que porte `hote` ; vides (et une erreur à
-## `recueil`) si la requête échoue ou si `SILENCE_S` passe sans qu'un octet arrive : le minuteur `silence` repart à
-## chaque image où HTTPRequest a lu un bloc.
-static func _telecharger(hote: Node, relative: String, recueil: Array[String]) -> PackedByteArray:
-	var requete := HTTPRequest.new()
-	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
-	hote.add_child(requete)
-	var pont: PontDuNoyau = hote.get_node("/root/Pont")
-	var code := requete.request(pont.adresse(relative))
-	if code != OK:
-		requete.queue_free()
-		recueil.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
-		return PackedByteArray()
-	var resultat := []
-	requete.request_completed.connect(func(issue: int, statut: int, entetes: PackedStringArray, corps: PackedByteArray) -> void:
-		resultat.append_array([issue, statut, entetes, corps]), CONNECT_ONE_SHOT)
-	var silence := Timer.new()
-	silence.one_shot = true
-	requete.add_child(silence)
-	silence.start(SILENCE_S)
-	var recus := 0
-	while resultat.is_empty() and not silence.is_stopped():
-		await hote.get_tree().process_frame
-		if requete.get_downloaded_bytes() != recus:
-			recus = requete.get_downloaded_bytes()
-			silence.start(SILENCE_S)
-	if resultat.is_empty():
-		requete.cancel_request()
-		requete.queue_free()
-		recueil.append("requete-silencieuse : %s (aucun octet en %s s, %s reçus)" % [relative, SILENCE_S, recus])
-		return PackedByteArray()
-	requete.queue_free()
-	if resultat[0] != HTTPRequest.RESULT_SUCCESS or resultat[1] != 200:
-		recueil.append("requete-echouee : %s (resultat %s, HTTP %s)" % [relative, resultat[0], resultat[1]])
-		return PackedByteArray()
-	return resultat[3]
-
-
 ## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en scène neuve : téléchargé une fois
 ## par chargement des modèles, chaque demande d'un même fichier attendant la première, puis lu à chaque demande, car un
 ## `GLTFState` ne génère qu'une scène dont le squelette trouve ses os par leur nom (`generate_scene` rappelé : `find_bone`
@@ -207,7 +162,7 @@ func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
 
 
 func _lire(fichier: String, lecture: Lecture) -> void:
-	lecture.octets = await _telecharger(self, "modeles/%s" % fichier, lecture.erreurs)
+	lecture.octets = await (get_node("/root/Pont") as PontDuNoyau).requeter("modeles/%s" % fichier, lecture.erreurs)
 	if lecture.octets.is_empty() and _lectures.get(fichier) == lecture:
 		_lectures.erase(fichier)
 	lecture.en_vol = false

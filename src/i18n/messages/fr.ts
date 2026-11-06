@@ -478,7 +478,8 @@ export const fr = {
   'ecran.creation.precedent': 'Précédent',
   'ecran.creation.suivant': 'Suivant',
   'ecran.creation.engager': 'Engager',
-  // L'éditeur de carte (`src/hote/editeur.ts`, #3508) : ses outils, leurs options, les couches, l'historique, l'état.
+  // L'éditeur de carte (`src/hote/editeur.ts`, #3508) : ses outils, leurs options, les couches, l'historique,
+  // l'enregistrement, l'état.
   'ecran.editeur.outils': 'Outil',
   'ecran.editeur.outil.select': 'Sélection',
   'ecran.editeur.outil.tile': 'Terrain',
@@ -502,6 +503,10 @@ export const fr = {
   'ecran.editeur.retablir': 'Rétablir',
   'ecran.editeur.rien.annuler': 'Rien à annuler',
   'ecran.editeur.rien.retablir': 'Rien à rétablir',
+  'ecran.editeur.enregistrer': 'Enregistrer',
+  'ecran.editeur.enregistrer.horsDuDepot': 'Ouverte du jeu, hors du dépôt : elle ne s’enregistre pas',
+  'ecran.editeur.enregistrer.enCours': 'Enregistrement en cours',
+  'ecran.editeur.rien.enregistrer': 'Rien à enregistrer',
   'ecran.editeur.pointee': 'Case {x}, {y} · couche {z} · {terrain} · {hauteur} m',
   // Qui tient la main d'une fenêtre (`ProprietaireDeLaFenetre`, `src/hote/projection.ts`), dit par l'hôte texte
   // (`src/hoteTexte/vue.ts`) : sans propriétaire, à tous les sièges, à un porteur que l'état ne nomme pas.
@@ -1198,7 +1203,7 @@ export const fr = {
   // n'a pas toujours d'actorId pour l'attribution).
   'out.activityDone': '{name} — {activity} (effectué).',
   // Rencontre d'Étape (EDOC 8) : catégorie + libellé + texte VERBATIM, sans id d'icône dans la prose.
-  'out.travelEncounter': '{category} — {label} : {text}',
+  'out.travelEncounter': '{label} : {text}',
   // Météo d'Étape (EDOC 8 l.50) : libellé seul — le d100 est un tirage de MONDE, jamais montré au joueur.
   'out.stageWeather': 'Météo : {weather}.',
   // Passthrough narratif générique (#295 Lot 1) : `text` est COMPOSÉ par l'applier (jamais un gabarit avec
@@ -1732,6 +1737,7 @@ export const fr = {
   'if.bankLost': '{name} — {roll} ≤ {threshold} : {what} — {money} perdus !',
   'if.bankFailBank': 'la banque a fait faillite',
   'if.bankFailStash': 'la planque a été découverte',
+  'if.bankCrashDue': 'Vérification de faillite (émeutes) : chaque placement en banque la passe.',
   'if.bankCrashOk': 'Vérification de faillite (émeutes) — {roll} > {rate} : la banque tient bon.',
   'if.bankWithdraw': '{name} récupère {money} ({roll}{extra}).',
   'if.bankInterest': ' > {rate}, intérêts {rate} %',
@@ -3174,6 +3180,8 @@ export const fr = {
   'tp.campCare': 'Camp bien monté : {name} récupère (−{n} Exténué).',
   'tp.mapDone': "La carte de l'itinéraire est ACHEVÉE ({dr}/{dr} DR).",
   'tp.mapProgress': 'Cartographie : {total}/{target} DR.',
+  'tp.rencontreDue': '{category} en vue.',
+  'tp.bilanSansSuite': 'Ni ration trouvée, ni soin du camp, ni Rencontre.',
   'tp.calmTravel': 'Voyage tranquille : le groupe récupère toutes ses Blessures et tous ses États Exténué.',
   'tp.exposureLine': "{name} — Exposition de fin d'Étape ({weather}) : transi par le froid.",
   'tp.coldSeasonChill': '{name} grelotte et tousse — un rhume couve (saison froide).',

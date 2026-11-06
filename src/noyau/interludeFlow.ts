@@ -250,30 +250,42 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
   return lines;
 }
 
-/** DÉNOUEMENT de GROUPE, une fois TOUS les dés tombés : pertes d'argent, Activités ôtées par les
- *  Événements de groupe, vérification de faillite des dépôts déjà placés, puis les Activités ouvrent
- *  (`phase`, verdict `refusDuTirage`). Commun aux deux chemins (dernier maillon : après tous les
- *  dénouements par héros). LDB 22 l.36, l.111, l.115, l.123 */
+/** Le DÉNOUEMENT de GROUPE du tirage, lu sur l'état une fois TOUS les dés tombés : les pertes d'argent,
+ *  les Activités qu'ôtent les Événements de groupe, et si les placements en banque vérifient leur
+ *  faillite. Lu par l'annonce de l'étape et par son application. LDB 22 l.36, l.111, l.115, l.123 */
+function denouementDuTirage(s: Jeu) {
+  const heros = Object.keys(s.interlude?.perHero ?? {});
+  return {
+    pertes: pertesDArgentDuTirage(s),
+    perdues: heros.map((heroId) => ({ heroId, effets: activitesPerduesAuGroupe(s, heroId) })).filter((p) => p.effets.length),
+    faillite: heros.some((heroId) => verificationDeFaillite(s, heroId)) && (s.bank ?? []).some((d) => d.kind === 'invest'),
+  };
+}
+
+/** Les lignes des pertes du dénouement `d` : l'argent, puis les Activités. */
+function lignesDesPertes(s: Jeu, d: ReturnType<typeof denouementDuTirage>): string[] {
+  const nom = (heroId: string) => libelleOuAbsence(s.party.find((h) => h.id === heroId), 'heros', heroId);
+  return [
+    ...d.pertes.map(({ heroId, pct, brass }) => msg('if.purseLoss', { name: nom(heroId), pct, money: formatMoney(fromBrass(brass)) })),
+    ...d.perdues.flatMap(({ heroId, effets }) => effets.map(({ label }) => msg('if.groupActivityLost', { name: nom(heroId), event: label }))),
+  ];
+}
+
+/** Le dénouement appliqué, puis les Activités ouvrent (`phase`, verdict `refusDuTirage`). Commun aux deux
+ *  chemins (dernier maillon : après tous les dénouements par héros). */
 function finishInterludeDraw(get: Get, set: Set): string[] {
   const itl = get().interlude;
   if (!itl) return [];
-  const lines: string[] = [];
-  const nom = (heroId: string) => libelleOuAbsence(get().party.find((h) => h.id === heroId), 'heros', heroId);
-  for (const { heroId, pct, brass } of pertesDArgentDuTirage(get())) {
-    debitBourse(get, set, heroId, fromBrass(brass));
-    lines.push(msg('if.purseLoss', { name: nom(heroId), pct, money: formatMoney(fromBrass(brass)) }));
-  }
+  const d = denouementDuTirage(get());
+  const lines = lignesDesPertes(get(), d);
+  for (const { heroId, brass } of d.pertes) debitBourse(get, set, heroId, fromBrass(brass));
   const perHero = { ...itl.perHero };
-  for (const heroId of Object.keys(perHero)) {
-    const perdues = activitesPerduesAuGroupe(get(), heroId);
-    if (!perdues.length) continue;
-    const left = Math.max(0, perHero[heroId].left - perdues.length);
+  for (const { heroId, effets } of d.perdues) {
+    const left = Math.max(0, perHero[heroId].left - effets.length);
     perHero[heroId] = { ...perHero[heroId], left, granted: left };
-    for (const { label } of perdues) lines.push(msg('if.groupActivityLost', { name: nom(heroId), event: label }));
   }
-  const faillite = Object.keys(perHero).some((heroId) => verificationDeFaillite(get(), heroId));
   set({ interlude: { ...get().interlude!, perHero } });
-  if (faillite) {
+  if (d.faillite) {
     for (let i = (get().bank ?? []).length - 1; i >= 0; i--) {
       if (get().bank[i].kind === 'invest') lines.push(...bankWithdrawInner(get, set, i, true));
     }
@@ -1218,6 +1230,14 @@ export const TABLES = {
       return { consequences: freeCons(lines.length ? lines : [msg('if.noPurseEvent')]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  annonces: {
+    /** Ce que les bourses vont perdre, et la vérification de faillite que les placements vont passer. */
+    interludePurse: (get) => {
+      const d = denouementDuTirage(get());
+      const lines = [...lignesDesPertes(get(), d), ...(d.faillite ? [msg('if.bankCrashDue')] : [])];
+      return lines.length ? lines : [msg('if.noPurseEvent')];
+    },
+  } satisfies PartDeTable<'annonces', readonly ['interludePurse']>,
   tablesTirables: {
     [INTERLUDE_EVENT_TABLE]: {
       label: msg('if.eventTableLabel'),

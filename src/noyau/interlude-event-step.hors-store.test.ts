@@ -283,6 +283,24 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     expect(toBrass(partyMoneyTotal(banc.getState)), 'le Kleptomane de B n’entame que sa bourse').toBe(avant - 1000);
   });
 
+  it('les bourses du groupe annoncent leurs pertes avant « Continuer », qui les applique telles quelles', () => {
+    groupe();
+    banc.getState().startInterlude(2);
+    banc.getState().jetSetForcedRoll('cascadeTirage', PREVOT, steps()[0].id);
+    banc.getState().jetConfirm('cascade');
+    banc.getState().jetSetForcedRoll('cascadeTirage', AVERTI, steps()[1].id);
+    banc.getState().jetConfirm('cascade');
+    const bourses = banc.getState().pendingCascade!.participants[2];
+    expect(bourses.kind).toBe('interludePurse');
+    const annonce = (bourses.outcome ?? []).map((l) => l.text);
+    expect(annonce, 'le Prévôt frappe chaque bourse, dit avant d’appliquer').toEqual([expect.stringContaining('La bourse de A perd 30 %'), expect.stringContaining('La bourse de B perd 30 %')]);
+    const avant = toBrass(partyMoneyTotal(banc.getState));
+    banc.setState({ journal: [] });
+    banc.getState().jetConfirm('cascade');
+    expect(banc.getState().journal, 'ce que « Continuer » applique est ce que la fenêtre annonçait').toEqual(annonce);
+    expect(toBrass(partyMoneyTotal(banc.getState)), 'et les bourses le paient').toBeLessThan(avant);
+  });
+
   it('#973 : la ligne du DÉNOUEMENT de groupe ne porte pas « (dé fixé) » — aucun dé n’y est jeté', () => {
     groupe();
     setDesFixes(true);
