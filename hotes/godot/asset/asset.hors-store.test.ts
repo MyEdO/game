@@ -15,10 +15,11 @@ import { depotDe, INDEX, listerImage } from '../../../scripts/guards/lib/gitPort
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION } from './modeles.testkit.ts';
 import {
-  DOSSIER_DES_MODELES, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
+  DOSSIER_DES_MODELES, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
+import { recupererTextures, texturesAPublier } from './textures.ts';
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
 function glb(noeuds: readonly string[], animations: readonly string[], options: { skinned?: readonly string[]; joints?: readonly string[] } = {}): Uint8Array {
@@ -625,6 +626,54 @@ describe('modelesEpingles', () => {
   });
 });
 
+describe('recupererTextures', () => {
+  const COULEUR = new Uint8Array(Buffer.from('couleur de l’herbe'));
+  const NORMALE = new Uint8Array(Buffer.from('relief de l’herbe'));
+  const urlDe = (octets: Uint8Array) => urlDAsset(nomDAsset(sha256(octets), 'jpg'));
+  /** Un dossier de textures dont la provenance épingle l'herbe, ses deux faces. */
+  const dossierDeTextures = (normale: unknown = { sha256: sha256(NORMALE) }) => {
+    const d = temporaire();
+    writeFileSync(join(d, 'provenance.json'), JSON.stringify({ 'terrain--herbe': { licence: 'CC0-1.0', couleur: { sha256: sha256(COULEUR) }, normale } }));
+    return d;
+  };
+  it('tire de la Release chaque face absente, la dépose sous le nom de sa matière ; le cache sert l’appel suivant', async () => {
+    const dossier = dossierDeTextures();
+    const cache = temporaire();
+    const { demandes, telecharger } = serveur({ [urlDe(COULEUR)]: COULEUR, [urlDe(NORMALE)]: NORMALE });
+    await recupererTextures({ dossier, cache, telecharger, journal: muet });
+    expect(readFileSync(join(dossier, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
+    expect(readFileSync(join(dossier, 'terrain--herbe.normale.jpg'))).toEqual(Buffer.from(NORMALE));
+    rmSync(join(dossier, 'terrain--herbe.jpg'));
+    await recupererTextures({ dossier, cache, telecharger, journal: muet });
+    expect(demandes).toEqual([urlDe(COULEUR), urlDe(NORMALE)]);
+  });
+  it('garde hors ligne une face du projet à la somme épinglée', async () => {
+    const dossier = dossierDeTextures();
+    writeFileSync(join(dossier, 'terrain--herbe.jpg'), COULEUR);
+    writeFileSync(join(dossier, 'terrain--herbe.normale.jpg'), NORMALE);
+    const { demandes, telecharger } = serveur({});
+    await recupererTextures({ dossier, cache: temporaire(), telecharger, journal: muet });
+    expect(demandes).toEqual([]);
+  });
+  it('remplace une face périmée du projet, et lève sur une face absente de la Release', async () => {
+    const dossier = dossierDeTextures();
+    writeFileSync(join(dossier, 'terrain--herbe.jpg'), 'ancienne herbe');
+    await recupererTextures({ dossier, cache: temporaire(), telecharger: serveur({ [urlDe(COULEUR)]: COULEUR, [urlDe(NORMALE)]: NORMALE }).telecharger, journal: muet });
+    expect(readFileSync(join(dossier, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
+    await expect(recupererTextures({ dossier: dossierDeTextures(), cache: temporaire(), telecharger: serveur({ [urlDe(COULEUR)]: COULEUR }).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
+  });
+  it('refuse une provenance dont une face n’épingle pas de SHA-256', () => {
+    expect(() => texturesAPublier(dossierDeTextures({}))).toThrow('provenance.json : terrain--herbe.normale.sha256 « undefined » n\'est pas un SHA-256');
+  });
+  it('nomme chaque face à verser par son empreinte', () => {
+    const dossier = dossierDeTextures();
+    expect(texturesAPublier(dossier)).toEqual([
+      { chemin: join(dossier, 'terrain--herbe.jpg'), nom: nomDAsset(sha256(COULEUR), 'jpg') },
+      { chemin: join(dossier, 'terrain--herbe.normale.jpg'), nom: nomDAsset(sha256(NORMALE), 'jpg') },
+    ]);
+  });
+});
+
 describe('recupererModeles', () => {
   const url = urlDAsset(nomDAsset(EMPREINTE, 'glb'));
   it('tire de la Release le GLB_DE_BASE absent du cache, le vérifie et le dépose ; le cache sert l’appel suivant', async () => {
@@ -651,8 +700,8 @@ describe('recupererModeles', () => {
     await recupererModeles({ dossier, cache: temporaire(), telecharger, journal: muet });
     expect(demandes).toEqual([]);
   });
-  it('lève ModeleIntrouvable quand la Release répond 404 sur l’empreinte', async () => {
-    await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(ModeleIntrouvable);
+  it('lève AssetIntrouvable quand la Release répond 404 sur l’empreinte', async () => {
+    await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
   });
   const sansCorps = async () => new ArrayBuffer(0);
   it.each<[string, Parameters<typeof recupererModeles>[0]['telecharger']]>([

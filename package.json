@@ -26,6 +26,7 @@
     "pont:godot": "node hotes/godot/construire.mjs --pont-seul",
     "godot:sonde": "node hotes/godot/construire.mjs --sonde",
     "godot:importer": "node hotes/godot/importer.mjs",
+    "godot:textures": "node hotes/godot/textures.mjs",
     "godot:evaluer": "node hotes/godot/asset/evaluer.mjs",
     "godot:valider": "node hotes/godot/asset/valider.mjs",
     "bench": "node scripts/lancer-local.mjs vitest -- vitest bench --run",
