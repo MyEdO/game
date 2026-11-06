@@ -14,6 +14,11 @@
 // Second volet (#903) — un doc MANUSCRIT qui porte le marqueur `GÉNÉRÉ par` ment : il n'a ni
 // script `npm`, ni `--check`, ni place en CI, et dérive sans rien dire. Le marqueur n'est porté
 // que par une cible de `GENERATORS`.
+//
+// Filet des citations des docs PURS (#2203) : chaque `fichier:ligne` qu'un générateur de `GENERATORS`
+// rend porte, à ±2 lignes du site SUR LE DISQUE, l'un des identifiants backtiqués de sa ligne. Il vit
+// dans ce fichier parce que le rendu des générateurs (`renduDe`) se calcule une fois par PROCESSUS :
+// deux fichiers de test le paieraient deux fois (#3412).
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
@@ -22,7 +27,9 @@ import { fileURLToPath } from 'node:url'
 import { listerDossier } from '../../guards/lib/lister.mjs'
 import { MANUAL_DOCS_STOCK } from '../../guards/lib/manualDocsStock.mjs'
 import { ecartsDeStock } from '../../guards/lib/stock.mjs'
-import { GENERATORS, generateurDe, rendreCible } from '../../docs/build-all.mjs'
+import { GENERATORS, generateurDe, rendreCible, renduDe } from '../../docs/build-all.mjs'
+import { estUnDocMarkdown } from '../../docs/lib/ecriture-derives.mjs'
+import { fautesDeCitations } from '../../test/lib/bancGenerateurs.mjs'
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 
@@ -226,4 +233,22 @@ test('aucun doc à plat non atteignable depuis la table de routage d’AGENTS.md
     ),
     [],
   )
+})
+
+const lireDuDisque = (chemin) => {
+  try { return readFileSync(join(ROOT, chemin), 'utf8') } catch { return null }
+}
+
+test('chaque doc RENDU par `GENERATORS` cite des sites qui portent leur symbole (±2 lignes)', async () => {
+  const fautes = []
+  let docs = 0
+  for (const g of GENERATORS.filter((x) => x.targets.some(estUnDocMarkdown))) {
+    for (const [cible, texte] of await renduDe(g)) {
+      if (!estUnDocMarkdown(cible)) continue
+      docs++
+      fautes.push(...fautesDeCitations(cible, texte, lireDuDisque))
+    }
+  }
+  assert.ok(docs > 20, `${docs} doc(s) rendu(s) : le balayage est aveugle`)
+  assert.deepEqual(fautes, [])
 })

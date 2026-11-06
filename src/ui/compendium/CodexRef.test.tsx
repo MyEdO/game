@@ -38,6 +38,21 @@ describe('CodexRef — repli sans entrée catalogue (#956) : la surface garde sa
   });
 });
 
+describe('CodexRef — la fiche se résout par id stable, jamais par libellé (#1632)', () => {
+  // `mouvement` : entrée réelle dont le libellé « Mouvement » est celui de sa fiche.
+  it('un libellé de fiche RÉEL sans id ne lie rien : repli muet', () => {
+    const h = renderToStaticMarkup(<CodexRef category="characteristics" label="Mouvement">Mouvement</CodexRef>);
+    expect(h).toContain('codex-static');
+    expect(h).not.toContain('role="button"');
+  });
+
+  it('un id stable dont le libellé passé diffère de la fiche lie sa fiche', () => {
+    const h = renderToStaticMarkup(<CodexRef category="characteristics" id="mouvement" label="M">M</CodexRef>);
+    expect(h).toContain('role="button"');
+    expect(h).not.toContain('codex-static');
+  });
+});
+
 /**
  * NOM ACCESSIBLE d'un déclencheur-ICÔNE (#1117 L0b) — `Icon` rend un `<svg aria-hidden>` : sans nom
  * dérivé, tous les ⓘ du dépôt (stock ÉNUMÉRÉ par `codex-info-affordance-ratchet.test.ts` :

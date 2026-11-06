@@ -1,6 +1,6 @@
 /**
  * Surincantation jugée par le NOYAU (#3059) : ce qu'un hôte sans écran (hôte texte, invité) envoie à
- * `castAllocOvercast` passe par la même règle que ce que la modale propose (`overcastAxesFor`,
+ * les réglages de Surincantation (`cast.surincantation*`) passent par la même règle que ce que la modale propose (`overcastAxesFor`,
  * `castOvercastBudget`). Le jet se pose par ses coutures : `jetRoll('cast')`, puis `jetSetForcedRoll('cast')`.
  * Axes : `LDB 47 l.15`, `l.17`, `l.27`, `l.28` ; `LDB 41 l.21-27` ; `LDB 42 l.11` ; `VDM 02 l.199`.
  * Budget : `LDB 47 l.17`, `l.21` ; `LDB 46 l.31`, `l.156`. Décision #3059 (issuecomment-6452965421).
@@ -14,6 +14,7 @@ import { findSpellById } from '../data/index';
 import { overcastAxesFor, type OvercastAxis } from '../engine/overcast';
 import { castAfterCrit, castOvercastBudget } from '../engine/magic';
 import { castOvercastAxes, aiOvercastPlan } from './combatFlow';
+import { REGLAGE_DE_L_AXE } from './reglagesDuJet';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -72,9 +73,9 @@ function lancer(spell: SpellData, corps: (partie: Partie) => void, extra: { grim
   }
 }
 
-/** Pas alloués à `axis` après `n` demandes d'un pas. */
+/** Pas alloués à `axis` après `n` demandes d'un pas de plus (le bouton « + » de la modale). */
 function allouer(partie: Partie, axis: OvercastAxis, n = 1): number {
-  for (let i = 0; i < n; i++) partie.envoyer({ type: 'castAllocOvercast', args: [axis, 1] });
+  for (let i = 0; i < n; i++) partie.envoyer({ type: 'jetRegler', args: ['cast', REGLAGE_DE_L_AXE[axis], (partie.etat().pendingCast?.overcast?.[axis] ?? 0) + 1] });
   return partie.etat().pendingCast?.overcast?.[axis] ?? 0;
 }
 
@@ -140,7 +141,7 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
     lancer(FIXTURES.puissance, (p) => {
       const res = p.etat().pendingCast!.result!;
       expect(res, 'le double 11 est une Incantation Critique qui ne lance pas le Sort').toMatchObject({ cast: false, isCritical: true });
-      p.envoyer({ type: 'castSetCritChoice', args: ['puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
       expect(castAfterCrit(res, 'puissance')).toBe(true);
       expect(allouer(p, 'duration', 20)).toBe(0);
     }, {}, 11);
@@ -150,7 +151,7 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
       const res = p.etat().pendingCast!.result!;
       expect(res, 'le double 88 réussit sous le NI 5').toMatchObject({ cast: false, isCritical: true });
       expect(res.sl + 8, 'les dizaines du lancer dépassent le NI').toBeGreaterThanOrEqual(5 + 2);
-      p.envoyer({ type: 'castSetCritChoice', args: ['puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
       expect(allouer(p, 'duration', 20)).toBe(0);
     }, {}, 88, { 'magic-vdm-incantation': true });
   });
@@ -177,11 +178,11 @@ describe('Surincantation — un budget changé remet l’allocation à zéro', (
   it('effet d’Incantation Critique changé après 2 pas : l’allocation retombe (décision #3059)', () => {
     lancer(FIXTURES.critique, (p) => {
       expect(p.etat().pendingCast!.result, 'le double 11 lance le Sort de NI 0').toMatchObject({ cast: true, isCritical: true });
-      p.envoyer({ type: 'castSetCritChoice', args: ['puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
       expect(allouer(p, 'duration', 2)).toBe(2);
-      p.envoyer({ type: 'castSetCritChoice', args: ['puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
       expect(p.etat().pendingCast!.overcast?.duration, 'le même effet ne change rien').toBe(2);
-      p.envoyer({ type: 'castSetCritChoice', args: ['ineluctable'] });
+      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'ineluctable'] });
       expect(p.etat().pendingCast!.overcast).toBeUndefined();
     }, {}, 11);
   });  it('« +1 DR » de Chance après 2 pas : l’allocation retombe (décision #3059)', () => {

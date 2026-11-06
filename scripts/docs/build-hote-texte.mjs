@@ -77,7 +77,7 @@ const PROVENANCE = [
   ['combat.voisins, carte : engagé', 'Combatant.engagedWith'],
   ['fenetre', 'fenetreDuJeu (et stepInteraction pour l’étape de cascade)'],
   ['fenetre.fermes', 'fermeturesDeLaFenetre : chaque verbe de la fenêtre que son flux de jet ferme maintenant, avec sa raison (libelleDeLaFermeture)'],
-  ['fenetre.gestes, fenetre.pid', 'fenetreDuJeu : le drive de la politique (JET_AUTO, MODAL_DEFS), les verbes de jet du flux (FLOW_VERBS), chacun avec son flux et ses réglages (FENETRE_DU_JET.reglages), ceux du flux réactif ouvert (FENETRE_DU_JET.reactives), ceux de l’interaction d’étape, les clôtures de la cascade ; pid = l’id de l’étape courante'],
+  ['fenetre.gestes, fenetre.pid', 'fenetreDuJeu : le drive de la politique (JET_AUTO, MODAL_DEFS), les verbes de jet du flux (FLOW_VERBS), chacun avec son flux, ses réglages (jetRegler, REGLAGES_DU_JET), ceux du flux réactif ouvert (FENETRE_DU_JET.reactives), ceux de l’interaction d’étape, les clôtures de la cascade ; pid = l’id de l’étape courante'],
   ['jets', 'jetsEnVue : les lignes de jet de la fenêtre (Test, table, dé), jetées ou à jeter, la gagnante et le DR net d’un Test opposé (netSL, le badge « DR net » du web)'],
   ['combat.apercu', 'battle.preview (l’aperçu du premier clic)'],
   ['cases', 'porteesDuTour (displayedReach, computeRunReach, intentReach : la surbrillance du champ)'],

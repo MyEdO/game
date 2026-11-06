@@ -10,7 +10,7 @@
 import { estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
 import { slBonus } from '../../engine/formule';
 import type { CodexRow } from './registry';
-import { humanizeOp, humanizeFormula, humanizePerSL, causePersistante, replieCausesPersistantes, plural, dureePropre, plancher, traitOctroyeLisible } from '../../noyau/codex/humanize';
+import { humanizeOp, humanizeFormula, humanizePerSL, causePersistante, replieCausesPersistantes, plural, dureePropre, plancher, traitOctroyeLisible } from './humanize';
 import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
 import { traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
@@ -56,19 +56,19 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
     // s'affiche COMME une Caractéristique (même entrée codex `characteristics/mouvement`, arbitrage
     // user 2026-07-17) — la sémantique moteur ne change pas, seul l'affichage converge.
     case 'moveMod':
-      return { t: 'ref', category: 'characteristics', id: 'mouvement', label: 'Mouvement', show: 'Mouvement', badge: `${o.mod >= 0 ? '+' : ''}${o.mod}` };
+      return { t: 'ref', category: 'characteristics', id: 'mouvement', label: t('codex.ligne.mouvement'), show: t('codex.ligne.mouvement'), badge: `${o.mod >= 0 ? '+' : ''}${o.mod}` };
     case 'moveScale':
-      return { t: 'ref', category: 'characteristics', id: 'mouvement', label: 'Mouvement', show: 'Mouvement', badge: o.num === 1 && o.den === 2 ? '½' : `×${o.num}/${o.den}` };
+      return { t: 'ref', category: 'characteristics', id: 'mouvement', label: t('codex.ligne.mouvement'), show: t('codex.ligne.mouvement'), badge: o.num === 1 && o.den === 2 ? '½' : `×${o.num}/${o.den}` };
     case 'wounds': {
       const badge = [
-        o.ignoreAP === false ? undefined : 'ignore les PA',
-        o.bypassArmour === 'metal' ? 'perce armure métallique' : o.bypassArmour === 'nonMagic' ? 'perce armure non magique' : undefined,
-      ].filter((s): s is string => !!s).join(' · ') || undefined;
-      return { t: 'ref', category: 'characteristics', id: 'blessure', label: 'Blessure', show: `${humanizeFormula(o.amount)} ${plural(o.amount, 'Blessure', 'Blessures')}`, badge };
+        o.ignoreAP === false ? undefined : t('codex.ligne.ignoreLesPa'),
+        o.bypassArmour === 'metal' ? t('codex.ligne.perceArmureMetallique') : o.bypassArmour === 'nonMagic' ? t('codex.ligne.perceArmureNonMagique') : undefined,
+      ].filter((s) => !!s).join(' · ') || undefined;
+      return { t: 'ref', category: 'characteristics', id: 'blessure', label: t('codex.ligne.blessure'), show: `${humanizeFormula(o.amount)} ${plural(o.amount, t('codex.ligne.blessure'), t('codex.ligne.blessures'))}`, badge };
     }
     // PA (Points d'Armure) : aucune entrée Codex glossaire dédiée — repli texte SEC (jamais de lien inventé).
     case 'ap':
-      return { t: 'text', text: `+${humanizeFormula(o.amount)} PA${o.loc ? ` (${HIT_LOCATION_LABELS[o.loc]})` : ' (toutes Localisations)'}` };
+      return { t: 'text', text: `+${humanizeFormula(o.amount)} PA${o.loc ? ` (${HIT_LOCATION_LABELS[o.loc]})` : t('codex.ligne.toutesLocalisations')}` };
     case 'grantTalent':
     case 'grantCareerTalent': {
       const l = refLabel('talents', o.talent);
@@ -116,8 +116,8 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       const mod = o.active === false ? findPsychologyById(o.type.id)?.containedSocialMod : undefined;
       const badge = [
         (o.cible ? libelleDeCible(cibleDeRef(o.cible)) : undefined) ?? (o.indice != null ? humanizeFormula(o.indice) : undefined),
-        mod != null ? `${mod < 0 ? '−' : '+'}${Math.abs(mod)} Sociabilité` : undefined,
-      ].filter((s): s is string => !!s).join(' · ') || undefined;
+        mod != null ? t('codex.ligne.sociabilite', { v: mod < 0 ? '−' : '+', v2: Math.abs(mod) }) : undefined,
+      ].filter((s) => !!s).join(' · ') || undefined;
       return { t: 'ref', category: 'psychologies', id: o.type.id, label, show: label, badge };
     }
     case 'condition': {
@@ -134,9 +134,9 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       const duree = dureePropre(o);
       const badge = [
         persistante ? causePersistante() : undefined,
-        duree ?? (!persistante && o.perRound ? 'par Round' : undefined),
+        duree ?? (!persistante && o.perRound ? t('codex.ligne.parRound') : undefined),
         n == null && o.valuePerSL ? humanizePerSL(o.valuePerSL) : undefined,
-      ].filter((s): s is string => !!s).join(' · ') || undefined;
+      ].filter((s) => !!s).join(' · ') || undefined;
       return { t: 'ref', category: 'etats', id: o.id, label, show, badge };
     }
     case 'removeCondition': {

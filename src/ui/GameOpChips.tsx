@@ -12,7 +12,7 @@
  */
 import { Fragment } from 'react';
 import type { GameOp } from '../engine/ops';
-import { opRows } from './compendium/opRows';
+import { opRows } from '../noyau/codex/opRows';
 import { EntityRef } from './EntityChip';
 
 export function GameOpChips({ ops, sl }: { ops: GameOp[]; sl?: number }) {

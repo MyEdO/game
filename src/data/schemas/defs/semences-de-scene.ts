@@ -7,6 +7,7 @@
  * `ambientLight`, `reliefDefaults`, `roofDefaults`) : la semence se déverse telle quelle. Seul
  * `terrain` n'a pas d'homonyme sur la scène — c'est le sol dont `layers[0]` est rempli. `facade` non
  * plus : c'est la structure d'un pan de façade posé à l'éditeur (`addFacadeSection`, `noyau/sceneEdit.ts`).
+ * `lieu` non plus : c'est le libellé d'un lieu posé sur la carte du monde (`ajouterLieu`, `noyau/worldMapEdit.ts`).
  *
  * Les schémas des champs sont ceux de la SCÈNE, jamais des copies (`defs-scenes/scene.ts` :
  * `ambianceSchema`, `reliefDefaultsSchema`, `sceneRoofDefaultsSchema` — ce dernier borne déjà
@@ -42,6 +43,7 @@ const doc = document(
     reliefDefaults: reliefDefaultsSchema,
     roofDefaults: sceneRoofDefaultsSchema,
     facade: idDe('structure'),
+    lieu: z.string().min(1),
   },
   {
     ambiance: { label: 'Ambiance', hint: 'Dedans ou dehors — c’est elle qui fait suivre l’horloge à l’éclairage' },
@@ -51,6 +53,7 @@ const doc = document(
     reliefDefaults: { label: 'Matières de relief', hint: 'Falaise, rampe, dalle de tablier, pilier' },
     roofDefaults: { label: 'Toiture par défaut', hint: 'Couverture, pente de référence (degrés) et borne de comble' },
     facade: { label: 'Façade par défaut', hint: 'Structure d’un pan de façade posé à l’outil façade' },
+    lieu: { label: 'Lieu par défaut', hint: 'Libellé d’un lieu posé sur la carte du monde', texte: { regime: 'designation' } },
   },
   { codex: { keys: ['semencesDeScene'] }, edit: { object: 'single' } },
   { exiges: ['maison'] },

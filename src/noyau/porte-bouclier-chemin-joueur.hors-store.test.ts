@@ -49,9 +49,9 @@ function ouvreParadeAuBouclier(seed: number): void {
     suspendedCascades: [], pendingLogQueue: [], journal: [], net: { ...G().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
   } as never);
   expect(maybeOpenDefense(G, S, cur('a1'), cur('d1'), SWORD, { enchainement: { mode: 'aucun' } } as never)).toBe(true);
-  G().defenseSetMode('parade');
-  G().defenseSetParryWeapon('sh1');
-  G().defenseSetShieldReaction('damage');
+  G().jetRegler('defense', 'reaction', 'parade');
+  G().jetRegler('defense', 'armeDeParade', 'sh1');
+  G().jetRegler('defense', 'porteBouclier', 'damage');
 }
 
 /** `jetConfirm('defense')` puis cascade vidée ; rend les bornes des tirages `rng.int` faits pendant la frappe. */

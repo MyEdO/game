@@ -26,7 +26,7 @@
       "quoi": "La Mer des Griffes, ch.6 (espèces) — aucune fiche de l'Atlas ne cite ce chapitre."
     },
     "MSRC 10": {
-      "sites": ["src/data/naval-traits.json", "src/ui/ship-stations-panel.test.tsx", "src/ui/compendium/registry-enveloppe.test.ts"],
+      "sites": ["src/data/naval-traits.json", "src/ui/ship-stations-panel.test.tsx", "src/noyau/codex/registry-enveloppe.test.ts"],
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
       "date": "2026-09-08",
       "quoi": "Mort sur le Reik — Compagnon, ch.10 (postes de navire) — aucune fiche de l'Atlas ne cite ce chapitre."

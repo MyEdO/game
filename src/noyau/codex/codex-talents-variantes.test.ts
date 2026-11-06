@@ -18,7 +18,7 @@ function codexTalent(id: string) {
 }
 const metaOf = (id: string, label: string) => codexTalent(id).meta?.find((f) => f.label === label)?.value;
 
-describe('provenance 2 — affichage CODEX (le registre RÉEL ui/compendium/registry.ts, via effectiveEntry)', () => {
+describe('provenance 2 — affichage CODEX (le registre RÉEL noyau/codex/registry.ts, via effectiveEntry)', () => {
   it('la desc de chaque talent à variante bascule base ↔ variante avec SA règle, et la fiche Codex suit', () => {
     for (const id of ALL_VARIANT_CARRIERS) {
       const t = findTalentById(id)!;

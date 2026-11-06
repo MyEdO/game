@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { CODEX, type CodexRow } from './registry';
-import { causePersistante } from '../../noyau/codex/humanize';
+import { causePersistante } from './humanize';
 
 function rangee() {
   const cat = CODEX.find((c) => c.key === 'miscastWrath')!;

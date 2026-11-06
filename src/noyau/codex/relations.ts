@@ -6,8 +6,8 @@
  * trait.grantsManeuvers ; mutation.traits ; skill.characteristic).
  *
  * **100 % id-based → langue-agnostique** : on inverse des `id` STABLES, jamais des libellés. Le
- * `label` porté par un `Referrer` n'est QUE l'affichage (= `CodexItem.label`, résolu par
- * `codexLookup`). Aucune regex, aucune logique branchée sur du texte.
+ * `label` porté par un `Referrer` n'est QUE l'affichage (= `CodexItem.label`). Aucune regex, aucune
+ * logique branchée sur du texte.
  *
  * **Fraîcheur** : comme les projections du registre (`makeCategory`), les index (graphe inverse,
  * catalogue par livre, index de libellés, regex d'auto-liage) sont RE-CALCULÉS après une écriture au
@@ -15,7 +15,7 @@
  * datasets étant mutés EN PLACE (`overrides.ts::setDataset`), re-construire relit la donnée FRAÎCHE —
  * les sections inverses, le contenu des fiches Livre et l'auto-liage suivent une édition sans reload.
  *
- * Le registre (`src/ui/compendium/registry.ts`) en tire les SECTIONS inverses ; les refs AVANT restent projetées par
+ * Le registre (`src/noyau/codex/registry.ts`) en tire les SECTIONS inverses ; les refs AVANT restent projetées par
  * le registre (rendu riche : choix « A ou B », Indices d'instance) — ici, c'est la couche d'INVERSION
  * et d'INDEX, pas une seconde copie des refs avant.
  */
@@ -55,7 +55,7 @@ export interface ReverseGroup {
 }
 
 /** Accès à une projection RE-CALCULÉE après une écriture au seam des datasets : `memoParVersion` sur
- *  toutes les clés, miroir de `makeCategory` (`src/ui/compendium/registry.ts`). */
+ *  toutes les clés, miroir de `makeCategory` (`src/noyau/codex/registry.ts`). */
 const versionCached = <T,>(build: () => T): (() => T) => memoParVersion(CLES_DE_DATASET, build);
 
 // ── Construction du graphe inverse ─────────────────────────────────────────────

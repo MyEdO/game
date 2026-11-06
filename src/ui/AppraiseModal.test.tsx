@@ -5,7 +5,12 @@ import { useGame } from '../state/store';
 import type { PendingAppraise } from '../noyau/pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
 import { addCondition, COND } from '../engine/conditions';
-import { testValue, skillBaseValue } from '../engine/skills';
+import { testValue, skillBaseValue, type SupportDetail } from '../engine/skills';
+import { rollLine } from '../noyau/rollSeam';
+
+/** La ligne figée que l'ouverture pose (`openAppraise`) : le monteur `rollLine` sur la valeur du meneur. */
+const ligneDEvaluation = (valeur: number, actor?: Combatant, soutien?: SupportDetail) =>
+  rollLine({ actor, test: { skill: 'evaluation', char: 'intelligence' }, difficulty: 'intermediaire', valeur, ...(soutien ? { soutien } : {}) });
 
 const base: PendingAppraise = {
   actorId: 'h',
@@ -14,8 +19,7 @@ const base: PendingAppraise = {
   itemName: 'Épée mystérieuse',
   truePriceBrass: 240,
   availability: 'Rare',
-  skillValue: 45,
-  difficulty: 'intermediaire',
+  ligne: ligneDEvaluation(45),
   target: 45,
   roll: null,
   success: false,
@@ -43,7 +47,7 @@ describe('AppraiseModal (#2e)', () => {
   });
 
   it('#1064 — Soutien (LDB 12) : chip NOMMÉE et base rebasée, avant comme après le jet', () => {
-    const pa: PendingAppraise = { ...base, skillValue: 65, target: 65, support: { count: 2, bonus: 20, ids: ['h2', 'h3'] } };
+    const pa: PendingAppraise = { ...base, ligne: ligneDEvaluation(65, undefined, { count: 2, bonus: 20, ids: ['h2', 'h3'] }), target: 65 };
     const pre = renderToStaticMarkup(
       <AppraiseModalView pa={pa} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
@@ -61,7 +65,7 @@ describe('AppraiseModal (#2e)', () => {
     addCondition(evaluateur, COND.empoisonne);
     // La valeur JETÉE est celle que le flux roule (`partyAssisted` → `testValue`), jamais un nombre forgé.
     const skillValue = testValue(evaluateur, 'evaluation', 'intelligence');
-    const pa: PendingAppraise = { ...base, skillValue, target: skillValue };
+    const pa: PendingAppraise = { ...base, ligne: ligneDEvaluation(skillValue, evaluateur), target: skillValue };
     const html = renderToStaticMarkup(
       <AppraiseModalView pa={pa} actor={evaluateur} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
@@ -77,7 +81,7 @@ describe('AppraiseModal (#2e)', () => {
     const sain = hero();
     const skillValue = testValue(sain, 'evaluation', 'intelligence');
     const html = renderToStaticMarkup(
-      <AppraiseModalView pa={{ ...base, skillValue, target: skillValue }} actor={sain} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+      <AppraiseModalView pa={{ ...base, ligne: ligneDEvaluation(skillValue, sain), target: skillValue }} actor={sain} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
     expect(html).not.toContain('rm-mod'); // la ligne de jet ne porte AUCUNE chip de modificateur
   });

@@ -123,12 +123,10 @@ export function rollSeamExcluded(rel) {
  */
 export const PENDING_JET_FABRICATION_STOCK = new Map([
   ['src/noyau/combatEffects.ts', { n: 1, kind: 'canonique', why: 'canonique : le corps d\'`openSkillTest` (combatEffects.ts:321) — LA fabrique du `pendingTest` de la famille Flow authorée, le pending y est monté UNE fois pour tous ses appelants.' }],
-  ['src/noyau/combatFlow.ts', { n: 2, kind: 'mixte', why: '1 gate de main (`pendingHandGate`, `poserLeTestDeMain`, mint unique d\'`openAttackCascade` et de la 2ᵉ main) monté à la main -> #1064 ; 1 `PendingReload` d\'ennemi construit APRÈS un `rollSansPilote` déjà scellé — canonique : objet de RENDU (journal/popin), aucun jet à ouvrir.' }],
-  ['src/noyau/combatSlice.ts', { n: 4, kind: 'dette', why: '2 `pendingReload` (pièce servie / poste de navire), 1 `pendingStateRecovery`, 1 `pendingHeal` -> #1064 (le lot d\'affichage les re-route ; 6 -> 5 : le `pendingTest` de `battleGainAdvantage` passe par `openSkillTest` ; 5 -> 4 (#2779) : le `pendingHandGate` de la 2ᵉ main passe par `poserLeTestDeMain`).' }],
+  ['src/noyau/combatSlice.ts', { n: 4, kind: 'dette', why: '2 `pendingReload` (pièce servie / poste de navire), 1 `pendingStateRecovery` et 1 `pendingHeal`, montés à la main -> #1064.' }],
   ['src/noyau/interludeFlow.ts', { n: 1, kind: 'dette', why: '`pendingActivity` du catalogue d\'Activités (`openCatalogActivity`) — fabrique UNIQUE de toutes les Activités à jet d\'interlude -> #1064.' }],
   ['src/noyau/massBattleFlow.ts', { n: 1, kind: 'dette', why: '`openBattleActivity` — fabrique PARTAGÉE, atteinte par 6 call-sites (prep ×3/round ×2/resistance) -> #1067 (surfaçage massBattle).' }],
-  ['src/noyau/medicFlow.ts', { n: 2, kind: 'dette', why: '`pendingHeal` et `pendingSurgery` du soigneur PNJ hors combat -> #1064.' }],
-  ['src/noyau/merchantFlow.ts', { n: 1, kind: 'dette', why: '`pendingAppraise` (Évaluation / Intuition de détection) -> #1064.' }],
+  ['src/noyau/medicFlow.ts', { n: 1, kind: 'dette', why: '`pendingHeal` du soigneur PNJ hors combat -> #1064.' }],
   ['src/noyau/seaVoyageFlow.ts', { n: 1, kind: 'dette', why: '`pendingSteamSave` (`openSteamSave`, Test d\'Initiative de l\'ingénieur) : le flux a bien sa spec canonique (`rollFlowSpecs.ts` `steamSave`, `makeRollFlow`), c\'est la FABRIQUE du pending qui reste montée à la main -> #1474.' }],
   ['src/noyau/testsDeScene.ts', { n: 1, kind: 'canonique', why: 'canonique : re-ciblage d\'un `pendingTest` EXISTANT (`{ ...pt, … }`) sur un autre candidat — `target` recopié du candidat DÉJÀ calculé par la fabrique, aucun jet neuf décrit.' }],
 ]);

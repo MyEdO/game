@@ -18,7 +18,7 @@ import type { Exposition } from './grammaire/document';
  * ne donne gratuitement se prouve ici :
  *  (a) ancre FILESYSTEM — un `.json` déposé sous `src/data` SANS def rougit (demande utilisateur
  *      2026-07-14, verbatim : « On a une guard sur les jsons qui ne sont pas dans le codex ? ») ;
- *  (b) et (c), qui lisent le registre Codex VIVANT : `src/ui/compendium/codex-exposition-contrats.test.ts` ;
+ *  (b) et (c), qui lisent le registre Codex VIVANT : `src/noyau/codex/codex-exposition-contrats.test.ts` ;
  *  (d) cliquet des exemptions de DETTE — liste nominative, ticketée, DÉCROISSANTE ;
  *  (e) routes ⊆ bindings (`ARRAYS`/`OBJECTS` d'`overrides.ts`) — ce qui tient le cast de `CodexEdit`.
  */

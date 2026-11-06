@@ -85,7 +85,7 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
       const t = !s.battle.acted && s.battle.combatants.find((x) => x.kind !== actif.kind && vivant(x) && adj(actif, x));
       if (t) {
         openAttackCascade(g, banc.setState, { attackerId: actif.id, targetId: t.id, location: null, result: null }, 'Attaque', 'action/attack');
-        if (actif.id === 'h1' || actif.id === 'e3') g().attackSetDualMode(true);
+        if (actif.id === 'h1' || actif.id === 'e3') g().jetRegler('attack', 'deuxArmes', true);
         continue;
       }
       g().battleEndTurn(); banc.avancer(100); continue;

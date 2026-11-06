@@ -19,7 +19,8 @@ import { HEAL_SKILL, IDS_DU_TEST_DE_SOIN, type TestDeSoin } from '../engine/heal
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { FLOW_VERBS, fluxAccepte, rangeeFacultative, viseUneRangee, type FlowKey, type FluxDuVerbe, type RollVerb } from './flowVerbs';
 import { refuserGeste } from './refusVisible';
-import { deDuJet, FERMETURES_DITES, makeRollFlow, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
+import { deDuJet, FERMETURES_DITES, makeRollFlow, type FermetureDuJet, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
+import { declarationDuReglage, fermetureDeLaPhase, type CorpsDesReglages, type FluxRegle, type VerbeDeReglage } from './reglagesDuJet';
 import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
@@ -42,7 +43,8 @@ import { REDERIVATIONS, attackTestOf, rederivePassiveAttack, resolveBackstabAtta
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, cibleBrute, cibleDuTest, cibleMesuree, jetPose, type JetPose, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import type { Difficulty } from '../engine/types';
 import { d100 } from '../engine/dice';
-import { resolveRun, resolveDeliberateFall, runFromTest, fallFromTest } from '../engine/movement';
+import type { TestNomme } from '../engine/reglesChiffrees';
+import { runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
 import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from './cascade';
 import { rollLine, type RollLineParts } from './rollSeam';
@@ -54,7 +56,7 @@ import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
 import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castInfoIsPrayer, counterspellValue, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { rule } from '../engine/policy';
-import { resolveFrenzyEntry, spendResolveForPsychImmunity } from '../engine/psychology';
+import { spendResolveForPsychImmunity } from '../engine/psychology';
 import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
 import { influencesLocally } from './netOwnership';
@@ -102,7 +104,7 @@ export function rederiveAttack(attacker: Combatant, target: Combatant, p: Pendin
   return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, p.withhold, compo, dmgProxy);
 }
 
-/** Arme avec laquelle cette Défense pare : la DÉCLARÉE (`defenseSetParryWeapon`), sinon `defaultParryWeapon`. Lue par le jet et par sa fenêtre. */
+/** Arme avec laquelle cette Défense pare : la DÉCLARÉE (réglage `defense.armeDeParade`), sinon `defaultParryWeapon`. Lue par le jet et par sa fenêtre. */
 export function parryWeaponOf(defender: Combatant, p: PendingDefense): Weapon | undefined {
   return (p.parryWeaponUid ? defender.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined) ?? defaultParryWeapon(defender);
 }
@@ -202,10 +204,10 @@ function drDeReussiteDuTest(s: Jeu, actor: Combatant, test: { skill?: string; ch
 /** Le Test d'un `pendingTest`, tel que `drDeReussiteDuTest` le lit. */
 const testDeScene = (p: PendingTest) => ({ skill: p.skillId, char: p.char, spec: p.spec });
 
-/** Jet d'un Test de Guérison ou de Dextérité de soin (`FLOWS.heal`, `FLOWS.surgery`) : le dé contre la valeur figée du
- *  pending, +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) ; un PNJ soigneur n'en a pas. */
-function jetDeSoin(s: Jeu, p: { skillValue: number; difficulty: Difficulty }, actor: Combatant | undefined, test: TestDeSoin): JetPose {
-  const res = rollTest(p.skillValue, p.difficulty, battleRng());
+/** Jet d'un Test de Guérison ou de Dextérité de soin (`FLOWS.heal`, `FLOWS.surgery`) : le dé contre la cible figée du
+ *  pending (avant bornage), +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) ; un PNJ soigneur n'en a pas. */
+function jetDeSoin(s: Jeu, cible: number, actor: Combatant | undefined, test: TestDeSoin): JetPose {
+  const res = evaluateTest(d100(battleRng()), cible);
   return jetPose({ ...res, ...issueDuSoin(s, actor, test, res) });
 }
 
@@ -679,6 +681,20 @@ const JET_DE_PROTECTION = { test: { char: 'force-mentale' }, difficulty: 'access
 export function ligneDeProtection(actor: Combatant): RollLineParts {
   return rollLine({ actor, ...JET_DE_PROTECTION });
 }
+
+/** Ligne du Test `test` que nomme une fiche (`testDeRegle`), sur l'acteur vivant : lue par le résolveur et par la
+ *  fenêtre de la Course, de l'Approche, de la Chute, de la Fuite et de la Corruption. */
+export function ligneDuTestNomme(actor: Combatant, test: TestNomme): RollLineParts {
+  return rollLine({ actor, test: idsDuTest(test), difficulty: test.difficulty });
+}
+
+/** Ligne du Test de Force Mentale d'entrée en Frénésie, lue par le résolveur `frenzy` et par `FrenzyModal`. LDB 21 l.31 */
+export function ligneDeFrenesie(actor: Combatant): RollLineParts {
+  return rollLine({ actor, test: { char: 'force-mentale' }, difficulty: 'intermediaire' });
+}
+
+/** Le d100 du battle RNG contre la cible d'une ligne (`rollLine`) : la cible que la fenêtre annonce est celle du jet. */
+const jetDeLaLigne = (ligne: RollLineParts): TestResult => evaluateTest(d100(battleRng()), cibleBrute(ligne));
 
 export const FLOWS = paresseux({
   /**
@@ -1503,9 +1519,9 @@ export const FLOWS = paresseux({
       if (slot.kind === 'touche') {
         // RAW LDB 17 l.68 : avant le jet (jet==null → dé par défaut) OU après un échec. Le choix du dé
         // vaut AUSSI ici (Test binaire : le dé fixe le DR affiché, l'issue forcée reste une réussite).
-        if (forced) { const f = forcedBinarySuccess(slot.jet, cibleDuTest(valeurDuTest(actor, slot.test), slot.test.difficulty)); return f ? { jet: f } : null; }
-        const jet = simpleRoll(slot, actor, (x, a) => valeurDuTest(a, x.test), slot.test.difficulty);
-        return jet ? { jet } : null;
+        const ligne = ligneDuTestNomme(actor, slot.test);
+        if (forced) { const f = forcedBinarySuccess(slot.jet, cibleBrute(ligne)); return f ? { jet: f } : null; }
+        return { jet: jetPose(jetDeLaLigne(ligne)) };
       }
       const target = actorIn(s, p.moverId); // le fuyard reçoit le coup
       if (!target) return null;
@@ -1642,11 +1658,11 @@ export const FLOWS = paresseux({
         const base = p.result;
         // RAW LDB 17 l.68 : avant le jet (result==null → on choisit 01) OU après un échec ; avant le jet,
         // la cible est celle que le dé aurait affrontée (`cibleDuTest`, la même que `rollTest`).
-        const tr = forcedTR(base?.roll ?? 1, base ? cibleBrute(base) : cibleDuTest(valeurDuTest(actor, p.test), p.test.difficulty), Math.max(0, base?.dr ?? 0));
+        const tr = forcedTR(base?.roll ?? 1, base ? cibleBrute(base) : cibleBrute(ligneDuTestNomme(actor, p.test)), Math.max(0, base?.dr ?? 0));
         return { result: runFromTest(tr, mouvementDeCourse(s.battle, actor)) };
       }
       // Sprinter : LDB 11 l.41-47 (`mouvementDeCourse`).
-      return { result: resolveRun(valeurDuTest(actor, p.test), p.test.difficulty, mouvementDeCourse(s.battle, actor), battleRng()) };
+      return { result: runFromTest(jetDeLaLigne(ligneDuTestNomme(actor, p.test)), mouvementDeCourse(s.battle, actor)) };
     },
     outcome: (p) => sealOutcome(!!p.result?.success, p.result?.dr ?? 0, p.result?.roll ?? 0, p.result?.target ?? 0),
     // Chance « +1 DR » (LDB 17 l.24) s'applique à TOUT Test : sur une Course, +1 DR ALLONGE la distance.
@@ -1690,10 +1706,10 @@ export const FLOWS = paresseux({
       if (forced) {
         if (part.result?.success) return null; // rien à forcer si déjà réussi
         const base = part.result;
-        const tr = forcedTR(base?.roll ?? 1, base ? cibleBrute(base) : cibleDuTest(valeurDuTest(actor, p.test), p.test.difficulty), Math.max(0, base?.dr ?? 0));
+        const tr = forcedTR(base?.roll ?? 1, base ? cibleBrute(base) : cibleBrute(ligneDuTestNomme(actor, p.test)), Math.max(0, base?.dr ?? 0));
         return { result: fallFromTest(tr, metres) };
       }
-      return { result: resolveDeliberateFall(valeurDuTest(actor, p.test), p.test.difficulty, metres, battleRng()) };
+      return { result: fallFromTest(jetDeLaLigne(ligneDuTestNomme(actor, p.test)), metres) };
     },
     outcome: (part) => sealOutcome(!!part.result?.success, part.result?.dr ?? 0, part.result?.roll ?? 0, part.result?.target ?? 0),
     // Chance « +1 DR » (LDB 17 l.24) réduit la chute d'1 m de plus (LDB 15 l.82 : « pour chaque DR, 1 m
@@ -1917,8 +1933,8 @@ export const FLOWS = paresseux({
     caps: { forced: true },
     resolve: (s, p, actor, _get, forced) => {
       if (!s.battle || !actor) return null;
-      if (forced) return forcedBinaryResult(p.result, cibleDuTest(testValue(actor, undefined, 'force-mentale'))); // Résilience (LDB 17 l.68)
-      return { result: resolveFrenzyEntry(testValue(actor, undefined, 'force-mentale'), battleRng()) };
+      if (forced) return forcedBinaryResult(p.result, cibleBrute(ligneDeFrenesie(actor))); // Résilience (LDB 17 l.68)
+      return { result: jetPose(jetDeLaLigne(ligneDeFrenesie(actor))) };
     },
     outcome: (p) => testOutcome(p.result),
     // ISSUE au goulot (`apply`) — canal COMBAT (`jetConfirm('frenzy')` la tisse dans son `set({ battle })`).
@@ -1935,10 +1951,10 @@ export const FLOWS = paresseux({
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.combatantId),
     caps: { forced: true },
-    resolve: (s, p, actor, _get, forced) => {
+    resolve: (_s, p, actor, _get, forced) => {
       if (!actor) return null;
-      if (forced) return forcedBinaryResult(p.result, cibleDuTest(valeurDuTest(actor, p.test), p.test.difficulty)); // Résilience (LDB 17 l.68)
-      return simpleTestResultResolve((q: PendingApproach, a) => valeurDuTest(a, q.test), (q: PendingApproach) => q.test.difficulty)(s, p, actor);
+      if (forced) return forcedBinaryResult(p.result, cibleBrute(ligneDuTestNomme(actor, p.test))); // Résilience (LDB 17 l.68)
+      return { result: jetPose(jetDeLaLigne(ligneDuTestNomme(actor, p.test))) };
     },
     outcome: (p) => testOutcome(p.result),
     // Inversion (LDB 12 l.42) : le Test d'approche résiste à la Peur (LDB 21 l.27) — contexte `psych`
@@ -2116,7 +2132,7 @@ export const FLOWS = paresseux({
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.attackerId),
     caps: { forced: true },
-    resolve: simpleTestResolve((p) => p.skillValue, (p) => p.difficulty, { actorless: true }), // valeur Dextérité BAKÉE → actorless
+    resolve: (_s, p) => jetPose(jetDeLaLigne(p.ligne)) as Partial<PendingHandGate>, // ligne FIGÉE à l'ouverture
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     lens: flatRollLens((p) => p.success ? null : cibleBrute(p)),
   }),
@@ -2269,7 +2285,7 @@ export const FLOWS = paresseux({
     // mutation) → menace 'Mutation'. Résilience (LDB 17 l.68, `caps.forced`) : ce Test en est un comme
     // un autre. Test SIMPLE → aucun plancher opposé ; l'accesseur de dé vient de la lentille.
     caps: { forced: true, resist: true },
-    resolve: simpleTestResolve((p, actor) => valeurDuTest(actor, p.test), (p) => p.test.difficulty),
+    resolve: (_s, p, actor) => (actor ? jetPose(jetDeLaLigne(ligneDuTestNomme(actor, p.test))) as Partial<PendingCorruption> : null),
     outcome: (p) => rollOutcome(p.roll, p.target ?? 0, p.sl),
     // Chance « +1 DR » (`bumpSL`, success intact), Résilience (LDB 17 l.68 — dé par défaut ET dé choisi,
     // l'accesseur étant dérivé d'`actorTR`/`applyRoll`) et Résistance (Menace) GLOBALES via la lentille :
@@ -2277,7 +2293,7 @@ export const FLOWS = paresseux({
     lens: {
       actorTR: (p) => p.roll != null ? hydrateTR({ roll: p.roll, ...cibleMesuree({ target: p.target ?? 0, clamped: p.clamped }), success: !!p.success, sl: p.sl ?? 0 }) : null,
       applyRoll: (_s, _slot, _actor, _get, tr) => jetPose(tr),
-      dieTarget: (p, actor) => cibleDuTest(valeurDuTest(actor, p.test), p.test.difficulty),
+      dieTarget: (p, actor) => cibleBrute(ligneDuTestNomme(actor, p.test)),
     },
   }),
 
@@ -2290,7 +2306,7 @@ export const FLOWS = paresseux({
     // Vrai Test joueur → Résilience GLOBALE (LDB 17 l.68) via la lentille (`caps.forced` + verbe
     // `forceSuccess`) ; Chance « +1 DR » par `bumpSL` (success intact).
     caps: { forced: true },
-    resolve: simpleTestResolve((p) => p.skillValue, (p) => p.difficulty, { actorless: true }), // valeur bakée → actorless
+    resolve: (_s, p) => jetPose(jetDeLaLigne(p.ligne)) as Partial<PendingAppraise>, // ligne FIGÉE à l'ouverture
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     lens: flatRollLens((p) => cibleBrute(p)),
   }),
@@ -2363,7 +2379,7 @@ export const FLOWS = paresseux({
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
     caps: { forced: true },
-    resolve: (s, p, actor) => jetDeSoin(s, p, actor, p.test), // le soigneur peut être un PNJ hors actorIn : le jet se fait sans acteur live
+    resolve: (s, p, actor) => jetDeSoin(s, cibleDuTest(p.skillValue, p.difficulty), actor, p.test), // le soigneur peut être un PNJ hors actorIn : le jet se fait sans acteur live
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi OU mode chirurgie :
     // rien à forcer) vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `bonusSL`).
@@ -2390,7 +2406,7 @@ export const FLOWS = paresseux({
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
     caps: { forced: true },
-    resolve: (s, p, actor) => jetDeSoin(s, p, actor, 'guerison'), // le chirurgien peut être un PNJ hors actorIn : le jet se fait sans acteur live
+    resolve: (s, p, actor) => jetDeSoin(s, cibleBrute(p.ligne), actor, 'guerison'), // le chirurgien peut être un PNJ hors actorIn : le jet se fait sans acteur live
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi → rien à forcer)
     // vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `bonusSL`).
@@ -2418,10 +2434,37 @@ export const FLOW_HANDLERS = paresseux({
 export const oppositionsEnAttente = (p: PendingCastOpposition): OppositionParticipant[] =>
   p.participants.filter((part) => part.interactive && !part.result);
 
-/** Un réglage du jet que le store écrit à la main (`<flux>Set*`) : `geste` ne joue que tant que le flux ouvre le jet
- *  (`RollFlowHandlers.fermetures`, la fenêtre que lit `verbesOuverts`). */
-export function siOuvert(flux: keyof typeof FLOW_HANDLERS, get: Get, geste: () => void): void {
-  if (!FLOW_HANDLERS[flux].fermetures(get).roll) geste();
+/** Ce qui refuse le réglage venu d'une frontière (JSON d'un hôte, intention d'un siège) : un réglage que son flux ne
+ *  déclare pas (`REGLAGES_DU_JET`), une rangée absente d'un réglage de rangée, ou posée sur un réglage de fenêtre ;
+ *  `null` : il se joue. */
+function refusDuReglage(flux: unknown, reglage: unknown, pid: unknown): string | null {
+  const declaration = declarationDuReglage(flux, reglage);
+  if (!declaration) return t('jet.refus.reglageAbsent');
+  return (typeof pid === 'string') === (declaration.portee === 'rangee') ? null : t('jet.refus.rangee');
+}
+
+/** Ce qui ferme maintenant le réglage `reglage` du flux `flux`, sur la rangée `pid` d'un réglage de rangée : sa phase
+ *  (`fermetureDeLaPhase`) jugée sur le lancer de son jet (`RollFlowHandlers.fermetures`, la fenêtre que lit
+ *  `verbesOuverts`), puis son offre (`DeclarationDuReglage.offre`) ; `null` : il se joue. */
+export function fermetureDuReglage(get: Get, flux: FluxRegle, reglage: string, pid?: string): FermetureDuJet | null {
+  const declaration = garanti(declarationDuReglage(flux, reglage), `${flux}.${reglage}`, 'réglage déclaré');
+  return fermetureDeLaPhase(declaration.phase, FLOW_HANDLERS[flux].fermetures(get, pid).roll) ?? declaration.offre?.(get()) ?? null;
+}
+
+/** Le verbe qui règle un jet sur `get`/`set` : il refuse, et le dit, le réglage que son flux ne déclare pas
+ *  (`refusDuReglage`) ou que sa phase ferme (`fermetureDuReglage`, `libelleDeLaFermeture`), sinon joue son corps
+ *  (`corps`). */
+export function creerReglageDuJet(get: Get, set: Set, corps: CorpsDesReglages): VerbeDeReglage {
+  return {
+    jetRegler: (...[flux, reglage, valeur, pid]) => {
+      const refus = refusDuReglage(flux, reglage, pid);
+      if (refus) { refuserGeste(get, set, refus); return; }
+      const fermeture = fermetureDuReglage(get, flux, reglage, pid);
+      if (fermeture) { refuserGeste(get, set, libelleDeLaFermeture(fermeture)); return; }
+      const corpsDuFlux = corps[flux] as unknown as Readonly<Record<string, (v: unknown, rangee?: string) => void>>;
+      corpsDuFlux[reglage](valeur, pid);
+    },
+  };
 }
 
 /** Les rangées INTERACTIVES de Contre-sort qui lancent (`counterspellRolls`) sans avoir lancé, tant qu'aucune n'a

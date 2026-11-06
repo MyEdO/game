@@ -189,7 +189,7 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
   function openHandGate() {
     useGame.setState({
       battle: { combatants: [C({ id: 'H', label: 'Héros', resilience: 3 })], log: [] } as never,
-      pendingHandGate: { attackerId: 'H', skillValue: 60, difficulty: 'facile', target: 60, roll: 88, sl: -3, success: false } as never,
+      pendingHandGate: { attackerId: 'H', ligne: { base: 60, mods: [], target: 60, difficulty: 'facile' }, target: 60, roll: 88, sl: -3, success: false } as never,
     });
   }
 

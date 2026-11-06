@@ -4,7 +4,7 @@
  * La part FACTUELLE est DÉRIVÉE : arêtes inverses lues aux appels `addReverse(...)` de
  * `src/noyau/codex/relations.ts`, API publique du module (AST + JSDoc, via
  * `scripts/docs/lib/engineExports.mjs`), catégories/groupes/sous-groupes lus au littéral
- * `CODEX_SPECS` de `src/ui/compendium/registry.ts`, et exposition DÉCLARÉE aux defs, dumpée par
+ * `CODEX_SPECS` de `src/noyau/codex/registry.ts`, et exposition DÉCLARÉE aux defs, dumpée par
  * `scripts/docs/lib/dump-exposition.mts` (`npx tsx` — un générateur Node nu ne peut pas importer
  * `src/data/schemas/_registry.generated.ts`). La part ÉDITORIALE (les deux principes, comment
  * étendre) vit ICI, en dur.
@@ -28,10 +28,10 @@ import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 function rendu() {
   const OUTIL = 'build-codex-relations'
   const RELATIONS = 'src/noyau/codex/relations.ts'
-  const REGISTRY = 'src/ui/compendium/registry.ts'
-  const DESCRIBE = 'src/ui/compendium/describe.ts'
+  const REGISTRY = 'src/noyau/codex/registry.ts'
+  const DESCRIBE = 'src/noyau/codex/describe.ts'
   const HUMANIZE = 'src/noyau/codex/humanize.ts'
-  const CONTRATS = ['src/data/schemas/exposition-contrats.test.ts', 'src/ui/compendium/codex-exposition-contrats.test.ts']
+  const CONTRATS = ['src/data/schemas/exposition-contrats.test.ts', 'src/noyau/codex/codex-exposition-contrats.test.ts']
   const CONTRATS_CITES = CONTRATS.map((c) => `\`${c}\``).join(' et ')
 
   function abandon(msg) {
@@ -314,8 +314,8 @@ vient d'une **couche relationnelle** : \`${RELATIONS}\`.
 1. **Data-driven** — la sémantique vit dans le JSON ; \`relations.ts\` ne fait qu'**inverser** des
    références DÉJÀ structurées. Aucune regex, aucune table en dur.
 2. **Multilingue (possibilité)** — toute relation est **id-based** (clé STABLE), jamais un libellé.
-   Les \`label\` portés par les \`Referrer\` ne servent qu'à l'affichage (= \`CodexItem.label\`, résolu
-   par \`codexLookup\`). Seule brique langue-dépendante : l'**auto-liage** de prose, *locale-scoped*
+   Les \`label\` portés par les \`Referrer\` ne servent qu'à l'affichage (= \`CodexItem.label\`) ; une
+   fiche se résout par id (\`codexLookupById\`). Seule brique langue-dépendante : l'**auto-liage** de prose, *locale-scoped*
    (matcher dérivé des libellés de la locale active), jamais une chaîne FR en dur.
 
 ## D'où viennent les entrées — l'exposition est DÉCLARÉE au def

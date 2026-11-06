@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { combatantSections, codexLookup, type CodexRow } from './registry';
+import { combatantSections, categoryByKey, type CodexRow } from './registry';
 import { pregen, PREGEN } from '../../data/pregens';
 import { itemFromTrappingById, weaponFromItem, buildWeapon, unarmedWeapon } from '../../engine/items';
 import type { Weapon } from '../../engine/types';
@@ -15,7 +15,7 @@ describe('combatantSections — une arme se lie au Codex par son id de catalogue
   it.each(['gaffe-2', 'couteau-2', 'baliste-ade2'])('%s : lien par `trappingId`, jamais par son libellé homonyme', (id) => {
     const w = arme(id);
     expect(w.trappingId).toBe(id);
-    expect(codexLookup('trappings', w.label)?.id).not.toBe(id);
+    expect(categoryByKey('trappings')!.items.find((i) => i.label === w.label)?.id, 'le libellé désigne un homonyme').not.toBe(id);
     const [row] = rangeesArmes([w]);
     expect(row).toMatchObject({ t: 'ref', category: 'trappings', id, show: w.label });
   });

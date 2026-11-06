@@ -10,7 +10,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Test de SCÈNE (dialogue/exploration) : au lieu de désigner AUTOMATIQUEMENT le meilleur du groupe,
- *  on porte la liste des candidats et le JOUEUR choisit qui lance (`testSetActor`) avant le jet. */
+ *  on porte la liste des candidats et le JOUEUR choisit qui lance (réglage `test.testeur`) avant le jet. */
 describe('Test de scène — choix du lanceur dans le groupe', () => {
   beforeEach(() => { banc.setState({ battle: null, pendingTest: null }); });
 
@@ -21,7 +21,7 @@ describe('Test de scène — choix du lanceur dans le groupe', () => {
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
   }) as unknown as Combatant);
 
-  it('candidats = tout le groupe ; défaut = le meilleur ; testSetActor re-cible le Test', () => {
+  it('candidats = tout le groupe ; défaut = le meilleur ; réglage test.testeur re-cible le Test', () => {
     banc.setState({ party: [mk('h1', 'Alric', 55), mk('h2', 'Bri', 35)] });
     runFlow(banc.getState, banc.setState, testFlow({ characteristic: 'dexterite', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     const pt = banc.getState().pendingTest!;
@@ -30,7 +30,7 @@ describe('Test de scène — choix du lanceur dans le groupe', () => {
     // SOUTIEN (LDB 12) : l'AUTRE membre assiste (+10, plafond Bonus de Carac 5) → 55 + 10.
     expect(pt.skillValue).toBe(65);
     // Le joueur DÉSIGNE Bri (Dex 35) → valeur + cible re-ciblées (Soutien d'Alric : +10) sans recalcul.
-    banc.getState().testSetActor('h2');
+    banc.getState().jetRegler('test', 'testeur', 'h2');
     const pt2 = banc.getState().pendingTest!;
     expect(pt2.actorId).toBe('h2');
     expect(pt2.skillValue).toBe(45); // 35 + 10 (Soutien)
@@ -44,11 +44,11 @@ describe('Test de scène — choix du lanceur dans le groupe', () => {
     expect(banc.getState().pendingTest!.actorId).toBe('h1');
   });
 
-  it('testSetActor refusé APRÈS le jet (le lanceur est figé)', () => {
+  it('réglage test.testeur refusé APRÈS le jet (le lanceur est figé)', () => {
     banc.setState({ party: [mk('h1', 'Alric', 55), mk('h2', 'Bri', 35)] });
     runFlow(banc.getState, banc.setState, testFlow({ characteristic: 'dexterite', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     banc.getState().jetRoll('test');
-    banc.getState().testSetActor('h2'); // après le jet → no-op
+    banc.getState().jetRegler('test', 'testeur', 'h2'); // après le jet → no-op
     expect(banc.getState().pendingTest!.actorId).toBe('h1');
   });
 });

@@ -6,13 +6,14 @@ import { z } from 'zod';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { detenteur } from '../lib/detenteur.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import {
   classerValeur,
   clesPortees,
+  DOSSIERS_DE_DEFS,
   entreesPartiellesEmbarquees,
   listerDocuments,
   mesurerEnveloppe,
@@ -61,7 +62,8 @@ const GARDE = {
     'L1d #1463 source · L2 refs de Compétence · L3 Talent/Trait/Objet · L4 Valeurs), et sort avec sa migration.',
   primitive:
     '`scannerDonnees` / `scannerRedeclarations` (`scripts/docs/lib/structures-scan.mts`). Ce scan lit la DONNÉE JSON ' +
-    'des deux racines (`src/data`, `src/scenes`) et l’AST des `src/data/schemas/defs/*.ts` — il ne passe donc PAS par ' +
+    'des deux racines (`src/data`, `src/scenes`) et l’AST des modules de schéma de leurs registres (`DOSSIERS_DE_DEFS`, ' +
+    'les dossiers des registres de `SchemaDef`) — il ne passe donc PAS par ' +
     '`readCorpus` (`scripts/guards/lib/sourceCorpus.mjs`), qui ne lit que du CODE.',
   perimetre:
     'Les documents authorés des deux racines `src/data` et `src/scenes`, leurs schémas zod du registre, et les littéraux ' +
@@ -176,7 +178,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     });
     expect(
       lignes([...ecarts.neuves, ...ecarts.perimees]),
-      'écart entre les redéclarations OBSERVÉES (AST des `src/data/schemas/defs/*.ts`) et `STRUCTURES_REDECLARATIONS` — une forme partagée se déclare UNE fois dans la grammaire (`src/data/schemas/grammaire/`). Le CHAMP entre dans la clé : sans lui, des littéraux de champs différents s’agrègent en une ligne.',
+      'écart entre les redéclarations OBSERVÉES (AST des modules de `DOSSIERS_DE_DEFS`) et `STRUCTURES_REDECLARATIONS` — une forme partagée se déclare UNE fois dans la grammaire (`src/data/schemas/grammaire/`). Le CHAMP entre dans la clé : sans lui, des littéraux de champs différents s’agrègent en une ligne.',
     ).toEqual([]);
     sansEcartDeCompte(ecarts, 'STRUCTURES_REDECLARATIONS');
   });
@@ -213,6 +215,47 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     } finally {
       rmSync(dossier, { recursive: true, force: true });
     }
+  });
+
+  /**
+   * La borne lit `defs-scenes/` (#3012 S4b), et une ÉTIQUETTE nomme une variante : un littéral n'entre dans un
+   * concept POSÉ que si chacune de ses étiquettes est admise par un nœud posé du concept ; un concept SANS pose
+   * n'est redéclaré que s'il est déclaré plus d'une fois. Contre-épreuves du design, dans `defs-scenes/`.
+   */
+  it('redéclarations dans `defs-scenes/` : une étiquette nomme une variante, un concept sans pose déclaré une fois est sa définition', () => {
+    const NARRATIF = 'z.strictObject({ affaires: x, documents: x, etats: x, indices: x, objets: x, presetsPnj: x })';
+    const mesurer = (lignesDuModule: readonly string[]) => {
+      const dossier = mkdtempSync(join(tmpdir(), 'structures-scenes-'));
+      try {
+        cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+        mkdirSync(join(dossier, 'src/data/schemas/defs-scenes'), { recursive: true });
+        writeFileSync(join(dossier, 'src/data/schemas/defs-scenes/fixture.ts'), lignesDuModule.join('\n'));
+        return scannerRedeclarations(dossier).redeclarations.map((r) => `${r.def}:${r.ligne} | ${r.concept} | ${r.signature} | ${r.commun}`);
+      } finally {
+        rmSync(dossier, { recursive: true, force: true });
+      }
+    };
+    expect(
+      mesurer([
+        'const point = z.strictObject({ x: z.number(), y: z.number() });',
+        "const typee = z.strictObject({ id: idDe('skill'), type: z.literal('skill') });",
+        "const revele = z.strictObject({ type: z.literal('revealClue'), indiceId: z.string() });",
+        "const discredite = z.strictObject({ type: z.literal('discreditClue'), indiceId: z.string() });",
+        "const son = z.strictObject({ type: z.literal('playSfx'), id: z.string() });",
+        "const sort = z.strictObject({ id: idDe('spell'), type: z.literal('spell') });",
+        `const narratifUn = ${NARRATIF};`,
+        `const narratifDeux = ${NARRATIF};`,
+      ]),
+      'un littéral de `defs-scenes/` est vu, `skill` et `revealClue` sont admis par un nœud posé, `spell` par la fabrique `refTypee`, `discreditClue` et `playSfx` ne le sont pas, et deux `formeNarratif` se redéclarent l’un l’autre.',
+    ).toEqual([
+      'fixture.ts:1 |  | x,y | cell2Schema',
+      'fixture.ts:2 | reference | id,type | ',
+      'fixture.ts:3 | effet-narratif | indiceId,type | ',
+      'fixture.ts:6 | reference | id,type | ',
+      'fixture.ts:7 | narratif | affaires,documents,etats,indices,objets,presetsPnj | ',
+      'fixture.ts:8 | narratif | affaires,documents,etats,indices,objets,presetsPnj | ',
+    ]);
+    expect(mesurer([`const narratif = ${NARRATIF};`]), 'le littéral UNIQUE d’un concept sans pose est sa définition, pas une redéclaration.').toEqual([]);
   });
 
   /**
@@ -1419,11 +1462,11 @@ const SONDE_DEF = [
 const SAISONS = (valeur: string) =>
   `z.strictObject({ printemps: ${valeur}, ete: ${valeur}, automne: ${valeur}, hiver: ${valeur} })`;
 
-/** Une contrefaçon RE-TAPÉE dans les deux defs de commerce d'une racine (`defs` = son dossier) : le
+/** Une contrefaçon RE-TAPÉE dans les deux defs de commerce d'une racine (`schemas` = son dossier de schémas) : le
  *  champ `cle` de la rangée marchande (`cargaisonMarchandeSchema`) re-déclaré au site. */
-const reTape = (cle: string, valeur: string) => (defs: string) => {
+const reTape = (cle: string, valeur: string) => (schemas: string) => {
   for (const def of ['sea-cargo.ts', 'land-cargo.ts']) {
-    const chemin = join(defs, def);
+    const chemin = join(schemas, 'defs', def);
     writeFileSync(chemin, `${readFileSync(chemin, 'utf8')}\nexport const contrefacon = z.strictObject({ ${cle}: ${valeur} });\n`, 'utf8');
   }
 };
@@ -1433,16 +1476,22 @@ const FREE_TEST_COMPOSE = 'z.strictObject({ test: flowTestSchema, totalDR: z.num
 
 /** Une contrefaçon RE-TAPÉE dans `sea-perils.ts` d'une racine : le littéral de `freeTest` à plat, `cles` à la
  *  place du Test composé. */
-const reTapeFreeTest = (cles: string) => (defs: string) => {
-  const chemin = join(defs, 'sea-perils.ts');
+const reTapeFreeTest = (cles: string) => (schemas: string) => {
+  const chemin = join(schemas, 'defs', 'sea-perils.ts');
   const texte = readFileSync(chemin, 'utf8');
   if (texte.split(FREE_TEST_COMPOSE).length !== 2) throw new Error(`sea-perils.ts : \`${FREE_TEST_COMPOSE}\` introuvable ou ambigu, la contrefaçon ne se pose pas.`);
   writeFileSync(chemin, texte.replace(FREE_TEST_COMPOSE, `z.strictObject({ ${cles}, totalDR: z.number() })`), 'utf8');
 };
 
-/** Les mutations, chacune posée sur SA racine `apres`. La clé nomme le verdict. */
-const MUTATIONS: Record<string, (defs: string) => void> = {
-  sonde: (defs) => writeFileSync(join(defs, 'sonde-mutation.ts'), SONDE_DEF, 'utf8'),
+/** La sonde injectée dans CHAQUE dossier de la borne (`DOSSIERS_DE_DEFS`), une racine par dossier : la clé
+ *  nomme le dossier. */
+const sondeDans = (dossier: string) => `sonde ${dossier}`;
+const SONDES = Object.fromEntries(DOSSIERS_DE_DEFS.map((dossier) => [sondeDans(dossier), (schemas: string) =>
+  writeFileSync(join(schemas, relative('src/data/schemas', dossier), 'sonde-mutation.ts'), SONDE_DEF, 'utf8')]));
+
+/** Les mutations, chacune posée sur le dossier de schémas de SA racine `apres`. La clé nomme le verdict. */
+const MUTATIONS: Record<string, (schemas: string) => void> = {
+  ...SONDES,
   cfAvail: reTape('avail', SAISONS('plageSchema')),
   cfPrix: reTape('price', `z.union([${SAISONS('z.number()')}, z.strictObject({ dice: diceSpecSchema })])`),
   cfTestNomme: reTapeFreeTest('skill: z.string(), difficulty: difficultySchema'),
@@ -1458,11 +1507,11 @@ const verdictsRedecl = detenteur((): Record<string, VerdictRedecl> => {
   const dossier = mkdtempSync(join(tmpdir(), 'structures-redecl-'));
   try {
     for (const racine of ['avant', ...Object.keys(MUTATIONS)]) {
-      for (const sous of ['defs', 'grammaire']) {
-        cpSync(join(ROOT, 'src/data/schemas', sous), join(dossier, racine, 'src/data/schemas', sous), { recursive: true });
+      for (const sous of [...DOSSIERS_DE_DEFS, 'src/data/schemas/grammaire']) {
+        cpSync(join(ROOT, sous), join(dossier, racine, sous), { recursive: true });
       }
     }
-    for (const [cle, muter] of Object.entries(MUTATIONS)) muter(join(dossier, cle, 'src/data/schemas/defs'));
+    for (const [cle, muter] of Object.entries(MUTATIONS)) muter(join(dossier, cle, 'src/data/schemas'));
     const avant = scannerRedeclarations(join(dossier, 'avant'));
     const clesAvant = avant.redeclarations.map(cleRedecl);
     return tableTotale(Object.keys(MUTATIONS), (cle) => {
@@ -1494,8 +1543,8 @@ const verdictRedecl = (nom: string): VerdictRedecl => verdictsRedecl()[nom]!;
  * ligne NOMINATIVE.
  */
 describe('scannerRedeclarations — contrôle POSITIF du détecteur (#1654)', () => {
-  it('une redéclaration INJECTÉE dans une copie des defs est VUE — N → N+1, ligne nominative', { timeout: 120_000 }, () => {
-    const diff = verdictRedecl('sonde');
+  it.each(DOSSIERS_DE_DEFS)('une redéclaration INJECTÉE dans `%s` d’une copie est VUE — N → N+1, ligne nominative', { timeout: 120_000 }, (dossier) => {
+    const diff = verdictRedecl(sondeDans(dossier));
     // La copie mesure le MÊME arbre que le scan du fichier : sans cet ancrage, le +1 ne prouverait rien.
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
     expect(diff.litterauxApres - diff.litterauxAvant, 'le littéral injecté n’a pas été LU par le scan.').toBe(1);

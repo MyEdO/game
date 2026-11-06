@@ -45,7 +45,7 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     E.psychState = [{ type: 'peur', sourceId: H.id, indice: 2, calmeDR: 0 } as never]; // l'attaquant a peur de H
     seedBattleRng(1);
     setDefense(H, E);
-    banc.getState().defenseSetMode('social');
+    banc.getState().jetRegler('defense', 'reaction', 'social');
     banc.getState().jetRoll('defense');
     const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('social');
@@ -59,7 +59,7 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     E.psychState = [{ type: 'peur', sourceId: H.id, indice: 2, calmeDR: 0 } as never];
     seedBattleRng(1);
     setDefense(H, E);
-    banc.getState().defenseSetMode('parade');
+    banc.getState().jetRegler('defense', 'reaction', 'parade');
     banc.getState().jetRoll('defense');
     const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('parade');

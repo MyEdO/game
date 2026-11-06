@@ -12,9 +12,9 @@ import { fateSaveOptions } from '../engine/fortune';
 import { preemptShooterIds } from './targeting';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, sortieDeLaFenetre, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
-import { FLOW_HANDLERS, rangeesADeclarerIci } from './rollFlowSpecs';
-import { fermeturesDeLIncantation } from './reglagesDIncantation';
+import { FLOW_HANDLERS, fermetureDuReglage, rangeesADeclarerIci } from './rollFlowSpecs';
 import type { FermetureDuJet, FermeturesDuJet } from './rollFlowFactory';
+import { declarationDuReglage, estFluxRegle, type ReglageDuJet } from './reglagesDuJet';
 
 /** Ce qui ferme chaque verbe du cycle du flux `flux` sur le slot `pid` (`null` : ouvert) ; sans `pid`, un flux à
  *  plusieurs jets se juge en fenêtre. */
@@ -41,15 +41,14 @@ function fermeturesDeLaNavigation(s: Jeu, pc: PendingCascade): Record<'cascadeNe
   return { cascadeNext: due, cascadeResolveAll: choix ? due : null };
 }
 
-/** Ce qui ferme maintenant les verbes qu'une fenêtre joue sans flux de jet, par sa clé : la navigation de la cascade, les
- *  réglages de l'incantation (`fermeturesDeLIncantation`), la déclaration du Contre-sort quand ce siège n'a plus de rangée
+/** Ce qui ferme maintenant les verbes qu'une fenêtre joue sans flux de jet, par sa clé : la navigation de la cascade, la
+ *  déclaration du Contre-sort quand ce siège n'a plus de rangée
  *  à déclarer (`rangeesADeclarerIci`), l'annulation du coup que le Sauvetage par le Destin n'offre pas
  *  (`fateSaveOptions`) ; au début du Round, le geste du mode de jeu que la table ne joue pas (lancer seul, se dire prêt
  *  en réseau) et la visée du Tir rapide sans tireur (`preemptShooterIds`). */
 const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
   cascade: (s) => s.pendingCascade && {
     ...fermeturesDeLaNavigation(s, s.pendingCascade),
-    ...fermeturesDeLIncantation(s),
     counterspellDeclareAll: rangeesADeclarerIci(s, s.pendingCounterspell).length ? null : 'rienADeclarer',
   },
   fateSave: (s) => s.pendingFateSave && { fateNegate: fateSaveOptions(s.pendingFateSave.source).includes('negate') ? null : 'nonOffert' },
@@ -60,17 +59,20 @@ const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<s
 };
 
 /** Les arguments que la fenêtre pose d'office pour son geste `g` : la fenêtre d'une sortie, le flux d'un geste de jet,
- *  et l'id qu'elle désigne (`pid`) — pour un geste de jet, seulement quand il vise une rangée (`viseUneRangee`). */
-export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { fenetre?: FenetreQuiSeFerme; flux?: FlowKey; pid?: string } {
+ *  le flux et le réglage d'un réglage, et l'id qu'elle désigne (`pid`) — pour un geste de jet, seulement quand il vise
+ *  une rangée (`viseUneRangee`) ; pour un réglage, seulement un réglage de rangée. */
+export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { fenetre?: FenetreQuiSeFerme; flux?: FlowKey; reglage?: ReglageDuJet; pid?: string } {
   if (g.fenetre) return { fenetre: g.fenetre };
-  const deJet = verbeDeJetDe(g.verbe);
   const pid = fenetre.pid ? { pid: fenetre.pid } : {};
+  if (g.flux && g.reglage) return { flux: g.flux, reglage: g.reglage, ...(declarationDuReglage(g.flux, g.reglage)?.portee === 'rangee' ? pid : {}) };
+  const deJet = verbeDeJetDe(g.verbe);
   if (!deJet || !g.flux) return pid;
   return { flux: g.flux, ...(viseUneRangee(g.flux, deJet) ? pid : {}) };
 }
 
-/** Ce qui ferme maintenant chaque geste de la fenêtre qui tient la main que l'un de ses flux joue, et sa sortie
- *  (`sortieFermee`) (`null` : ouvert), par son identité (`cleDuGeste`) ; un autre geste n'y figure pas. Un geste de
+/** Ce qui ferme maintenant chaque geste de la fenêtre qui tient la main que l'un de ses flux joue, chacun de ses
+ *  réglages (sa phase, `fermetureDeLaPhase`), et sa sortie (`sortieFermee`) (`null` : ouvert), par son identité
+ *  (`cleDuGeste`) ; un autre geste n'y figure pas. Un geste de
  *  rangée se juge sur la rangée que la fenêtre désigne (`pid`) ; un geste de fenêtre, sur l'étape que désigne une
  *  fenêtre dont les rangées n'ont pas d'acteur propre (`pidIsActor` faux), sinon sur la fenêtre entière. */
 export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fenetreDuJeu(s)): ReadonlyMap<string, FermetureDuJet | null> {
@@ -91,6 +93,10 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
     if (sortie) { out.set(cleDuGeste(g), sortie.fermee(s)); continue; }
     if (g.verbe in propres) {
       out.set(cleDuGeste(g), propres[g.verbe] ?? null);
+      continue;
+    }
+    if (g.reglage && estFluxRegle(g.flux)) {
+      out.set(cleDuGeste(g), fermetureDuReglage(() => s, g.flux, g.reglage, declarationDuReglage(g.flux, g.reglage)?.portee === 'rangee' ? fenetre.pid : undefined));
       continue;
     }
     for (const flux of fenetre.flux) {
