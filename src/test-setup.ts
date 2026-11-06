@@ -15,14 +15,9 @@
  *      (`afterAll`) : le corps de module du fichier suivant (`const NET0 = useGame.getState().net`) s'évalue HORS de tout
  *      `beforeEach` : sans ce filet, il lit l'état du DERNIER test du fichier précédent du worker
  *      (un `gmSeat` posé y surface les ennemis, #1765).
- *    - le REGISTRE DES RÈGLES OPTIONNELLES (`engine/policy`) : `loadRuleOverrides({})` purge toute
- *      surcharge runtime → toutes les règles reviennent à leur défaut RAW (sinon une règle maison
- *      posée par un test — `cleave`, `combat-optional-rules`… — fuit dans un test pur ultérieur).
- *    - le RNG DE COMBAT (`noyau/battleRng`) : semé par `seedBattleRng`/`store.seedRng`, il garde sinon
- *      la POSITION de flux laissée par le fichier précédent (cf. le bloc `seedBattleRng` ci-dessous).
- *    - la PRÉFÉRENCE « Dés fixés » (`engine/fixedDie`, `resetDesFixes`) et le DRAPEAU de ré-entrance
- *      `onOwnTestFailed` (`noyau/triggeredEffects`, `resetOwnTestFailedGuard`) — cf. les commentaires
- *      du `beforeEach` ci-dessous.
+ *    - les SINGLETONS DE MODULE du moteur et du noyau (règles optionnelles, « Dés fixés », RNG de combat semé à 1,
+ *      drapeau `onOwnTestFailed`) : `remettreLesSingletons` (`singletons.testkit.ts`), partagé avec le setup du
+ *      noyau, avant chaque test ET en fin de FICHIER, pour la même raison que le store.
  *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `noyau/monde/registreDesScenes`) : peuplé par `registerScene`/`loadProject`
  *      — donc aussi par des TESTS. Vidé en `afterEach` (`resetSceneRegistry`) : la pollution INTER-fichiers meurt. PORTÉE RÉELLE, mesurée et gardée par
  *      `test-setup-registre-des-scenes.test.ts` : un enregistrement de TÊTE DE FICHIER (module,
@@ -86,11 +81,8 @@ import { useGame, type GameState } from './state/store';
 import { resetSceneRegistry, scenesDuRegistre } from './noyau/monde/registreDesScenes';
 import { messagePartage, partagesDeLEtat } from './scenes/partage.testkit';
 import './data/overrides'; // gel des entrées du catalogue au chargement (#2097)
-import { loadRuleOverrides } from './engine/policy';
 import { clearTrackedTimers } from './web/minuteries';
-import { resetOwnTestFailedGuard } from './noyau/triggeredEffects';
-import { resetDesFixes } from './engine/fixedDie';
-import { seedBattleRng } from './noyau/battleRng';
+import { remettreLesSingletons } from './singletons.testkit';
 import { reinitWebglRefusé } from './gameIso/stage/webglSupport';
 import { resetDismissLayers } from './ui/useDismissLayer';
 import { stockageWeb } from './web/stockageWeb';
@@ -258,27 +250,12 @@ beforeEach(async () => {
 
 afterAll(() => {
   useGame.setState(etatViergeDuStore());
+  remettreLesSingletons();
 });
 
 beforeEach(() => {
   useGame.setState(etatViergeDuStore());
-  loadRuleOverrides({});
-  // PRÉFÉRENCE « Dés fixés » (`engine/fixedDie`) : singleton de module, donc PARTAGÉ entre fichiers de
-  // test sous `isolate:false` — un fichier qui l'allume sans le rendre contamine les suivants (une
-  // fenêtre de pose de dé s'y ouvre, l'attaque suspend, les Blessures n'arrivent jamais). Remis à zéro
-  // au même titre que le registre des règles optionnelles : l'ordre d'exécution ne décide de rien.
-  resetDesFixes();
-  // RNG DE COMBAT (`noyau/battleRng`) : singleton de module lui aussi, SEMÉ par tout fichier qui appelle
-  // `seedBattleRng`/`store.seedRng`. Sans remise à zéro, un fichier qui a semé une graine fixe lègue au
-  // suivant un flux à position ARBITRAIRE : les tests qui ne sèment pas (et lisent un dé « au hasard »)
-  // deviennent dépendants de l'ordre des fichiers du worker — flake d'ordonnancement, comme les timers
-  // (#405) et « Dés fixés » ci-dessus.
-  // GRAINE FIXE (#1788) : un harnais à l'horloge rend TOUS les tests à la fois irreproductibles — un
-  // rouge ne se rejoue pas, et un vert ne prouve que le tirage du jour. Un test qui dépend de la
-  // graine le dit en la posant lui-même (patron `noyau/dual-wield.hors-store.test.ts:37`) ; les autres n'ont
-  // besoin que d'un point de départ IDENTIQUE d'un test à l'autre, et c'est ce que cette ligne pose.
-  seedBattleRng(1);
-  resetOwnTestFailedGuard(); // drapeau de re-entrance onOwnTestFailed (auto-reset par try/finally ; filet doctrinal)
+  remettreLesSingletons();
   // VERDICT « pas de contexte volumique » (`gameIso/stage/webglSupport`) : singleton de module, et
   // LATCHÉ par construction (le jeu ne revient jamais d'un contexte refusé). jsdom n'a aucun contexte
   // WebGL : tout montage d'écran de monde SANS renderer de banc le pose — les fichiers suivants du
