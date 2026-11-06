@@ -473,6 +473,10 @@ describe('édition de scène — emplacement de siège (postes authorés à l’
 });
 
 describe('édition de scène — points d’entrée (manque du POC comblé)', () => {
+  it('placeEntry plafonne la pose sur une case de la carte, comme editEntry', () => {
+    const { scene, id } = placeEntry(emptyScene('scene-test', 4, 4), { x: 7.5, y: -2 });
+    expect(scene.entryPoints?.[id]).toEqual({ x: 3, y: 0 });
+  });
   it('placeEntry pose entree-0 puis un nom libre suivant', () => {
     const a = placeEntry(emptyScene('scene-test', 10, 10), { x: 1, y: 1 });
     expect(a.id).toBe('entree-0');

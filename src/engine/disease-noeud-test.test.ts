@@ -91,7 +91,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
       expect(sch.safeParse(base).success, `${nom} : la donnée réelle doit passer`).toBe(true);
       const refus = sch.safeParse(mute(base));
       expect(refus.success, `${nom} : nœud sans Difficulté accepté`).toBe(false);
-      expect(refus.error!.issues.map((i) => i.message).join(' '), nom).toContain('n’est pas une épreuve');
+      expect(refus.error!.issues.map((i) => i.message).join(' '), nom).toContain('`difficulty` exigée');
       expect(refus.error!.issues.some((i) => i.path.join('.').endsWith('test.difficulty')), `${nom} : le refus ne NOMME pas la clé`).toBe(true);
     }
   });

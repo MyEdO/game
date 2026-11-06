@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { flowStakeRef, type FlowStakeId } from '../data';
 import type { TombantParticipant } from '../noyau/pendings';
 import { metresRetenus, phaseDeChute } from '../noyau/fallMove';
-import { valeurDecomposee } from '../engine/skills';
+import { ligneDuTestNomme } from '../noyau/rollFlowSpecs';
 import { cibleMesuree } from '../engine/tests';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
@@ -68,7 +68,7 @@ export function FallModal() {
     const m = metresRetenus(p, part);
     const owned = owns(part.id) && !!part.interactive;
     const r = part.result;
-    const { base, mods } = valeurDecomposee(c, p.test);
+    const l = ligneDuTestNomme(c, p.test); // la ligne que le résolveur `fall` jette
     // La rangée DIT sa situation : attente d'un autre siège, sa déclaration, ou l'issue du Test.
     const situation = part.attempt === null
       ? (owned ? null : t('declaration.attente', { name: c.label }))
@@ -100,8 +100,8 @@ export function FallModal() {
         combatant: c,
         // Une rangée déclarée SANS Test (LDB 15 l.82) n'a aucune ligne de jet.
         ...(r
-          ? { d: testBreakdown(competence, base, { roll: r.roll, ...cibleMesuree(r), sl: r.dr, success: r.success }, p.test.difficulty, mods) }
-          : part.attempt === false ? {} : { pending: testPending(competence, base, undefined, p.test.difficulty, mods) }),
+          ? { d: testBreakdown(competence, l.base, { roll: r.roll, ...cibleMesuree(r), sl: r.dr, success: r.success }, l.difficulty, l.mods) }
+          : part.attempt === false ? {} : { pending: testPending(competence, l.base, cibleMesuree(l), l.difficulty, l.mods) }),
         note,
       },
       onRoll: () => roll(part.id),

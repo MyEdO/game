@@ -21,7 +21,7 @@ import { declarationDeFeuilleDId, estFeuilleDId, idsDeLaSousListe } from '../../
 import { ouverts } from '../../data/schemas/grammaire/descente';
 import { libelleDeDataset } from './refField/RefField';
 import { serializeDataset } from '../../data/serialize';
-import { capacitesDe, PORTEURS_DE_CAPACITES } from './porteursDeCapacites.testkit';
+import { capacitesDe, PORTEURS_DE_CAPACITES } from '../../noyau/codex/porteursDeCapacites.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

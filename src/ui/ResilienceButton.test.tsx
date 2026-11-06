@@ -10,7 +10,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
 import { characteristics, regles } from '../data';
-import { codexLookupById, optionBody } from './compendium/registry';
+import { codexLookupById, optionBody } from '../noyau/codex/registry';
 import { ResilienceButton } from './ResilienceButton';
 
 const noop = () => {};

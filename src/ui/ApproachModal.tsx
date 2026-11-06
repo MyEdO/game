@@ -1,5 +1,5 @@
 import { useGame } from '../state/store';
-import { valeurDecomposee } from '../engine/skills';
+import { cibleMesuree } from '../engine/tests';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { Icon } from './Icon';
@@ -8,7 +8,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeApproach } from '../noyau/flowOutcomes';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
-import { FLOWS } from '../noyau/rollFlowSpecs';
+import { FLOWS, ligneDuTestNomme } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
 
@@ -33,14 +33,14 @@ export function ApproachModal() {
   const r = pa.result;
   const rolled = !!r;
   const label = libelleDuTestNomme(pa.test);
-  const { base, mods } = valeurDecomposee(c, pa.test);
+  const l = ligneDuTestNomme(c, pa.test); // la ligne que le résolveur `approach` jette
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: c,
     row: {
       combatant: c,
-      d: r ? testBreakdown(label, base, r, pa.test.difficulty, mods) : undefined,
-      pending: testPending(label, base, undefined, pa.test.difficulty, mods),
+      d: r ? testBreakdown(label, l.base, r, l.difficulty, l.mods) : undefined,
+      pending: testPending(label, l.base, cibleMesuree(l), l.difficulty, l.mods),
     },
     rerolled: !!pa.rerolled,
     onRoll: roll,

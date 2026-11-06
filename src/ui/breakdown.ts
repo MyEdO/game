@@ -7,7 +7,7 @@ import type { PendingRoll } from './RollLine';
 /** Soutien (LDB 12) : la ligne de mod et le rebasage de la valeur soutenue vivent avec la règle
  *  (`engine/skills`), pour que les surfaces composées CÔTÉ ÉTAT (récap de voyage) et les modales
  *  lisent la MÊME source. Ré-exportés ici : les modales composent leur breakdown depuis ce module. */
-export { soutienMod, testValueSplit } from '../engine/skills';
+export { soutienMod } from '../engine/skills';
 
 /**
  * Ligne de jet (RollLine) d'un Test simple : base + modificateurs = cible · d100 · DR — la même

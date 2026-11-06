@@ -136,56 +136,60 @@ describe('coutures donnée → état (#2097)', () => {
     expect(partagesDe(cible)).toEqual([]);
   });
 
-  it('A, D — chaque effet et chaque op des scènes du corpus, appliqués après `memoByRef` : rien de la scène ni du narratif', () => {
-    const lots: { nom: string; scenes: Scene[]; narratif: NarratifBlock | null }[] = [
-      ...testScenarios.map((s) => {
-        const b = s.construire();
-        return { nom: `scénario ${s.id}`, scenes: [b.scene, ...(b.extraScenes ?? [])], narratif: b.narratif ?? null };
-      }),
-      ...allBuiltinCampaigns.map((c) => {
-        const p = paquetDuJeu(c);
-        return { nom: `campagne ${c.id}`, scenes: p.scenes, narratif: p.narratif ?? null };
-      }),
-    ];
-    const heros = pregen(PREGEN.soldat);
+  // Un test par lot : le corpus entier dépasse le délai d'un test (`DELAI_DE_TEST_MS`) sous la charge d'un worker
+  // partagé (#3412). Les comptes s'accumulent sur les lots, et le dernier test les juge.
+  const lots: { nom: string; scenes: Scene[]; narratif: NarratifBlock | null }[] = [
+    ...testScenarios.map((s) => {
+      const b = s.construire();
+      return { nom: `scénario ${s.id}`, scenes: [b.scene, ...(b.extraScenes ?? [])], narratif: b.narratif ?? null };
+    }),
+    ...allBuiltinCampaigns.map((c) => {
+      const p = paquetDuJeu(c);
+      return { nom: `campagne ${c.id}`, scenes: p.scenes, narratif: p.narratif ?? null };
+    }),
+  ];
+  const heros = pregen(PREGEN.soldat);
+  let effets = 0;
+  let ops = 0;
+
+  it.each(lots.map((l) => [l.nom, l] as const))('A, D — %s : chaque effet et chaque op de ses scènes, appliqués après `memoByRef` : rien de la scène ni du narratif', (_nom, lot) => {
     const fautes: string[] = [];
-    let effets = 0;
-    let ops = 0;
-    for (const lot of lots) {
-      for (const original of lot.scenes) {
-        const scene = structuredClone(original);
-        geler(scene);
-        const sources = [scene, lot.narratif];
-        for (const [o, chemin] of atteignables(scene, scene.id)) {
-          if (Array.isArray(o)) continue;
-          const x = o as { type?: unknown; op?: unknown };
-          if (typeof x.type === 'string' && x.type in EFFECT_HANDLERS) {
-            banc.setState({ ...JSON.parse(VIERGE), party: [structuredClone(heros)], scene, campaignNarratif: lot.narratif });
-            try {
-              applyEffects(banc.getState, banc.setState, [o as never]);
-            } catch (e) {
-              if (ecritDansLaDonnee(e)) fautes.push(`${lot.nom} / ${chemin} (${x.type}) : ${(e as Error).message}`);
-              continue;
-            }
-            effets++;
-            fautes.push(...partagesDeLEtat(banc.getState(), sources).map((p) => `${lot.nom} / ${chemin} (${x.type}) : ${p}`));
-          } else if (typeof x.op === 'string') {
-            const c = enJeu(structuredClone(heros));
-            try {
-              applyOps(c, [o as GameOp], { rng: makeRNG(7), source: SOURCE, defaultDurationRounds: 3 });
-            } catch (e) {
-              if (ecritDansLaDonnee(e)) fautes.push(`${lot.nom} / ${chemin} (${x.op}) : ${(e as Error).message}`);
-              continue;
-            }
-            ops++;
-            fautes.push(...partagesDe(c, sources).map((p) => `${lot.nom} / ${chemin} (${x.op}) : ${p}`));
+    for (const original of lot.scenes) {
+      const scene = structuredClone(original);
+      geler(scene);
+      const sources = [scene, lot.narratif];
+      for (const [o, chemin] of atteignables(scene, scene.id)) {
+        if (Array.isArray(o)) continue;
+        const x = o as { type?: unknown; op?: unknown };
+        if (typeof x.type === 'string' && x.type in EFFECT_HANDLERS) {
+          banc.setState({ ...JSON.parse(VIERGE), party: [structuredClone(heros)], scene, campaignNarratif: lot.narratif });
+          try {
+            applyEffects(banc.getState, banc.setState, [o as never]);
+          } catch (e) {
+            if (ecritDansLaDonnee(e)) fautes.push(`${lot.nom} / ${chemin} (${x.type}) : ${(e as Error).message}`);
+            continue;
           }
+          effets++;
+          fautes.push(...partagesDeLEtat(banc.getState(), sources).map((p) => `${lot.nom} / ${chemin} (${x.type}) : ${p}`));
+        } else if (typeof x.op === 'string') {
+          const c = enJeu(structuredClone(heros));
+          try {
+            applyOps(c, [o as GameOp], { rng: makeRNG(7), source: SOURCE, defaultDurationRounds: 3 });
+          } catch (e) {
+            if (ecritDansLaDonnee(e)) fautes.push(`${lot.nom} / ${chemin} (${x.op}) : ${(e as Error).message}`);
+            continue;
+          }
+          ops++;
+          fautes.push(...partagesDe(c, sources).map((p) => `${lot.nom} / ${chemin} (${x.op}) : ${p}`));
         }
       }
     }
+    expect(fautes.slice(0, 10)).toEqual([]);
+  });
+
+  it('A, D — le corpus a appliqué au moins un effet et une op : la couture ne se juge pas sur le vide', () => {
     expect(effets).toBeGreaterThan(0);
     expect(ops).toBeGreaterThan(0);
-    expect(fautes.slice(0, 10)).toEqual([]);
   });
 
   it.each(allBuiltinCampaigns.map((c) => [c.id, c] as const))('campagne %s lancée par `lancerCampagne` : rien de partagé, ouverture comprise', (_id, c) => {

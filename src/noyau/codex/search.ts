@@ -44,3 +44,10 @@ export function facetValues(items: CodexItem[], facet: CodexFacet): { value: str
 
 export const filterItems = (items: CodexItem[], term: string, facets: CodexFacet[] = [], sel: FacetSelection = {}): CodexItem[] =>
   items.filter((it) => codexMatch(it, term) && facetMatch(it, facets, sel));
+
+/** Facettes UTILES d'une liste, avec COMPTEUR LIVE : chaque compte se calcule sous la recherche et les
+ *  AUTRES facettes (faceting standard), et une facette à valeur unique, qui n'apporte rien, est omise. */
+export const facetRows = (items: CodexItem[], term: string, facets: CodexFacet[], sel: FacetSelection): { facet: CodexFacet; values: { value: string; count: number }[] }[] =>
+  facets
+    .map((facet) => ({ facet, values: facetValues(filterItems(items, term, facets, { ...sel, [facet.key]: [] }), facet) }))
+    .filter((r) => r.values.length > 1);

@@ -144,7 +144,6 @@ export function StateChips({
       })}
       {more.length > 0 && (
         <CodexRef
-          category="etats"
           label={`${more.length} effet${more.length > 1 ? 's' : ''} de plus`}
           fallback={{ body: more.map((m) => m.label).join(' · ') }}
           className="pt-state ptile-more"

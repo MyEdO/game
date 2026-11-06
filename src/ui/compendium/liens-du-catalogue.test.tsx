@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Prose } from '../Prose';
-import { CODEX, combatantSections, type CodexRow, type CodexSection } from './registry';
+import { CODEX, combatantSections, type CodexRow, type CodexSection } from '../../noyau/codex/registry';
 import { CHEMINS_ADRESSES } from '../liage';
 import { adressesDesEntreesEmbarquees } from '../../data/schemas/grammaire/document';
 import { projetSchema } from '../../data/schemas/defs-scenes/projet';

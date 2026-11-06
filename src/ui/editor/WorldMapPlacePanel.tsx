@@ -15,6 +15,7 @@ import { VB_W, VB_H } from '../worldMapViewport';
 import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon } from '../../noyau/worldMap';
+import type { PatchDeLieu } from '../../noyau/worldMapEdit';
 import { LAND_CARGO_ENTRIES, LAND_RICHESSE_ROWS, type LandMarketProfile } from '../../engine/landCargo';
 import { cargoes, CARGO_ENTRIES, isEchangeable, type CargoEntry, type PortProfile } from '../../engine/seaVoyage';
 import { navalPorts, findNavalPortById, lieuxServices } from '../../data';
@@ -40,7 +41,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
   scenes: Scene[];
   /** Narratif du projet — les états de campagne qu'un `when` de lieu peut lire. */
   narratif: NarratifBlock;
-  updPlace: (id: string, patch: Partial<MapPlace>) => void;
+  updPlace: (id: string, patch: PatchDeLieu) => void;
 }) {
   const [placeTab, setPlaceTab] = useState<'lieu' | 'commerce' | 'plan'>('lieu');
   const [poiSel, setPoiSel] = useState<string | null>(null);

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * Exposition à compétence indéterminée (LDB 19 l.29) : chaque option de la modale est un Test de la fiche
- * `influences-corruptrices` (#2779) — sa compétence pour libellé, sa valeur pour l'acteur, le libellé de
- * l'entrée pour titre ; la ligne du jet porte la compétence et la Difficulté du Test retenu. Fiche :
+ * `influences-corruptrices` (#2779) — sa compétence pour libellé, la cible de son Test pour l'acteur (`fenetreDeCorruption`,
+ * #3059), le libellé de l'entrée pour titre ; la ligne du jet porte la compétence et la Difficulté du Test retenu. Fiche :
  * `ficheDeTest.testkit.ts`.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
@@ -11,7 +11,7 @@ import { createRoot } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { CorruptionModal } from './CorruptionModal';
 import { expositionPending } from '../noyau/corruptionFlow';
-import { testValue } from '../engine/skills';
+import { ligneDuTestNomme } from '../noyau/rollFlowSpecs';
 import { refLabel } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { difficultyText } from '../noyau/difficultyText';
@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 describe('CorruptionModal — options de la fiche `influences-corruptrices`', () => {
-  it('options : compétence, valeur et titre de chaque entrée ; ligne : compétence et Difficulté du Test retenu', () => {
+  it('options : compétence, cible et titre de chaque entrée ; ligne : compétence et Difficulté du Test retenu', () => {
     poserFicheDeTest();
     const h = combattantDeModale('A');
     useGame.setState({ battle: null, party: [h], pendingCorruption: expositionPending(h.id, 'mineure', undefined) } as never);
@@ -44,7 +44,8 @@ describe('CorruptionModal — options de la fiche `influences-corruptrices`', ()
     host.remove();
     expect(options).toEqual((['physique', 'spirituelle'] as const).map((cle) => {
       const { skill } = testDeFiche('influences-corruptrices', cle);
-      return { texte: `${refLabel('skills', skill)} ${testValue(h, skill.id)}`, titre: testDeRegle('influences-corruptrices', cle).label };
+      const test = testDeRegle('influences-corruptrices', cle);
+      return { texte: `${refLabel('skills', skill)} ${ligneDuTestNomme(h, test).target}`, titre: test.label };
     }));
     const retenu = testDeFiche('influences-corruptrices', 'physique');
     expect(ligne).toEqual({ label: refLabel('skills', retenu.skill), diff: difficultyText(retenu.difficulty) });

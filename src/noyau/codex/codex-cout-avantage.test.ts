@@ -10,7 +10,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { qualities, findQualityById } from '../../data';
-import { humanizeFlowSentence } from '../../noyau/codex/humanize';
+import { humanizeFlowSentence } from './humanize';
 import { effectsSection } from './describe';
 import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
 
