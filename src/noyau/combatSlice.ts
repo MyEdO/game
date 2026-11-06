@@ -113,7 +113,7 @@ import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
-import type { CorpsDesReglages } from './reglagesDuJet';
+import { declarationDuReglage, type CorpsDesReglages } from './reglagesDuJet';
 import type { ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
 import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuPasDeSurincantation } from './fenetreDIncantation';
 import { findSpellById } from '../data/index';
@@ -123,10 +123,10 @@ import { combatDistance } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, maladresseCourante, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
+import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
-import { FLOWS, rangeesADeclarerIci, type CloturesDuJet } from './rollFlowSpecs';
+import { FLOWS, rangeesAReglerIci, type CloturesDuJet } from './rollFlowSpecs';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import { actionsAuthorees } from './monde/usable';
@@ -600,104 +600,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!active || !controlsCombatant(get(), active) || !isEngaged(active)) return;
       startDisengage(get, set, active);
     },
-    // « Sacrifier l'Avantage » (l.87) → ramener l'Avantage à 0, partir libre. L'Action N'EST PAS consommée.
-    disengageConfirmA: () => {
-      const { battle, scene, pendingDisengage: pd } = get();
-      if (!battle || !scene || !pd || !pd.canSacrifice) return;
-      const mover = inBattleId(battle, pd.moverId);
-      if (!mover) return set({ pendingDisengage: null, pendingCascade: null });
-      const foes = (mover.engagedWith ?? [])
-        .map((id) => inBattleId(battle, id))
-        .filter((c): c is Combatant => !!c);
-      // « Ramener votre Avantage à 0 » (LDB 15 l.47) ; en mode « Avantage de groupe » c'est la
-      // Retraite stratégique (AA 11 l.37) : dépense FIXE de 2 Avantages de la réserve du camp (1 avec
-      // Impitoyable AA 13 l.74), débitée par `campSpend`. Mode LDB : Impitoyable (LDB 10 l.591) GARDE
-      // niveau Avantages au lieu de tomber à 0.
-      if (groupAdvantage()) campSpend(get, mover, retreatAdvantageCost(mover));
-      else mover.advantage = Math.min(mover.advantage, keptAdvantageOnDisengage(mover));
-      for (const f of foes) disengageFrom(mover, f); // se place hors de portée de TOUS (l.87)
-      set({
-        pendingDisengage: null,
-        pendingCascade: null, // ferme la cascade-hôte du Désengagement
-        battle: {
-          ...battle,
-          action: null, // mouvement libre rouvert (clic-sol), sans pénalité (l.87) ; Action préservée
-          reachable: moveReachFor(mover, scene, mover.pos!, effectiveMovement(mover), moveEnv(battle, mover)),
-          log: [...battle.log, ev('flee', t('cs.disengageSacrifice', { name: mover.label }), mover.id)],
-        },
-      });
-      bus.emit(EVT.SCENE_DIRTY);
-    },
     // Cycle Chance/Pacte UNIFIÉ (spec `disengage`) : foe (atk) figé, seule l'Esquive du mover se (re)joue.
-
-    // ── « Fuir » (LDB 15 l.59-68) : OUVRE le flux MULTI `flee` — un slot par acteur (coup dans le dos
-    //    du FRAPPEUR, Test de la fiche `fuite` du FUYARD). Aucun jet ni aucune conséquence ici : `jetConfirm('flee')`
-    //    applique tout. La modale s'ouvre dès qu'UN des deux acteurs est JOUÉ (symétrie). ──
-    disengageFlee: () => {
-      const { battle, pendingDisengage: pd } = get();
-      if (!battle || !pd || pd.canFuir === false) return; // option fermée au menu (`peutFuir`)
-      const mover = inBattleId(battle, pd.moverId);
-      const foe = inBattleId(battle, pd.foeId);
-      if (!mover || !foe) return set({ pendingDisengage: null, pendingCascade: null });
-      campGain(get, foe); // l'adversaire gagne immédiatement +1 Avantage (l.63)
-      foe.gainedAdvThisRound = true;
-      // `interactive` = le slot est-il JOUÉ (héros du groupe, quel que soit le SIÈGE qui le possède) —
-      // jamais `pilotedByHuman` (évalué chez l'hôte, il dégraderait le héros d'un autre siège en témoin).
-      // Même prédicat que les autres multis (`openCrewTestPending` : `partyIds.has`).
-      const partyIds = new Set(get().party.map((h) => h.id));
-      const played = (c: Combatant) => partyIds.has(c.id);
-      const cascade = get().pendingCascade;
-      const cur = cascade?.participants[cascade.cursor];
-      // Deux acteurs JOUÉS (potentiellement de deux SIÈGES) sur la même fenêtre → étape de GROUPE :
-      // l'arbitre coop met l'owner à '*' et chacun influence SON slot (calque `forceDoor`). La bascule
-      // REMINTE l'étape hôte au lieu de la muter — `hostStep` est le seul mint qui expose `groupOwner`
-      // (#1262 B6), et il revérifie au passage que `pendingDisengage`, la donnée que la fenêtre rend,
-      // est toujours posé. Une étape hôte ne porte que sa déclaration : la situation vit dans le pending.
-      const partagee = cascade && cur?.jet === 'disengage' && played(foe) && played(mover)
-        ? hostStep(get, {
-          id: cur.id, kind: cur.kind, jet: 'disengage', actorId: cur.actorId ?? mover.id, groupOwner: true,
-          ...(cur.label ? { label: cur.label } : {}),
-          ...(cur.icon ? { icon: cur.icon } : {}),
-          ...(cur.stake ? { stake: cur.stake } : {}),
-          ...(cur.meta ? { meta: cur.meta } : {}),
-        })
-        : undefined;
-      set({
-        battle: { ...battle },
-        pendingDisengage: {
-          ...pd,
-          phase: 'fuir',
-          fuir: {
-            participants: [
-              { id: foe.id, kind: 'backstab', interactive: played(foe), result: null },
-              { id: mover.id, kind: 'touche', interactive: played(mover), test: testDeRegle('fuite', 'touche-en-fuyant'), jet: null },
-            ],
-          },
-        },
-        ...(cascade && partagee
-          ? { pendingCascade: { ...cascade, participants: cascade.participants.map((s, i) => (i === cascade.cursor ? partagee : s)) } }
-          : {}),
-      });
-      bus.emit(EVT.SCENE_DIRTY);
-      // Rangée TÉMOIN auto-roulée à l'ouverture (précédent `battleCrewTest`) : le coup dans le dos d'un
-      // frappeur non joué est résolu tout de suite ; celui d'un héros l'attend (il porte son cycle).
-      if (!played(foe)) get().jetRoll('flee', foe.id);
-      // Aucune modale affichable (aucun des deux acteurs JOUÉ, combat fini, Destin en attente) →
-      // résolution HEADLESS par LE MÊME flux (jamais un chemin de calcul parallèle). MÊME prédicat que
-      // les rangées ci-dessus (`played`) — une fenêtre se joue exactement quand une rangée est
-      // `interactive` ; jamais `pilotedByHuman`, pour la raison dite plus haut.
-      const st = get();
-      if (played(mover) || played(foe)) {
-        if (!st.battle?.over && !st.pendingFateSave) return;
-      }
-      const pdOpen = get().pendingDisengage;
-      if (!pdOpen?.fuir) return;
-      if (!fleeBackstab(pdOpen)?.result) get().jetRoll('flee', foe.id);
-      const pdRolled = get().pendingDisengage;
-      if (pdRolled && fleeToucheDu(pdRolled) && !fleeTouche(pdRolled)?.jet) get().jetRoll('flee', mover.id);
-      tracerLaFuite(get, set, mover, foe, { dos: true, touche: true });
-      get().jetConfirm('flee');
-    },
 
     // ── « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle `combat-weapon-reach`) :
     //    Test opposé de Corps à corps mover vs foe pour entrer dans la longueur d'arme ; le VAINQUEUR
@@ -712,16 +615,6 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!foe || !auContactEligible(active, foe)) return;
       startAuContact(get, set, active, foe);
     },
-    // Le vainqueur HÉROS tranche : « au contact » pose l'état, « combat normal » le retire.
-    auContactChoose: (mode: 'normal' | 'contact') => {
-      const { battle, pendingAuContact: pd } = get();
-      if (!battle || !pd || pd.phase !== 'choice' || pd.result !== 'success') return;
-      const mover = inBattleId(battle, pd.moverId);
-      const foe = inBattleId(battle, pd.foeId);
-      if (!mover || !foe) return set({ pendingAuContact: null });
-      applyAuContact(get, set, mover, foe, mode);
-    },
-
     // ── Empoignade (LDB 14 l.161) : action à son tour entre deux Empoignés. Test opposé de FORCE OU
     //    « Briser » (Avantage supérieur, gratuit) ; le VAINQUEUR choisit Dégâts / Empêtrer / Se libérer. ──
     battleGrapple: (targetId: string) => {
@@ -734,31 +627,6 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!foe || !areGrappling(active, foe) || isOutOfAction(foe)) return;
       startGrapple(get, set, active, foe);
     },
-    // « Briser l'Empoignade » (l.161) : gratuit (via le Mouvement), réservé à un Avantage SUPÉRIEUR, AVANT
-    // tout jet. Libère les deux + retire l'*Empêtré* lié de l'acteur. NE consomme PAS l'Action.
-    grappleBreak: () => {
-      const { battle, pendingGrapple: pd } = get();
-      if (!battle || !pd || pd.phase !== 'roll' || pd.def || !pd.canBreak) return;
-      const actor = inBattleId(battle, pd.actorId);
-      const foe = inBattleId(battle, pd.foeId);
-      if (!actor || !foe) return set({ pendingGrapple: null });
-      clearGrapple(actor, foe);
-      removeCondition(actor, COND.empetre, stacks(actor, COND.empetre)); // l'acteur se libère de l'*Empêtré* de l'Empoignade
-      const log = [...battle.log, ev('dodge', t('cs.grappleBreak', { name: actor.label, foe: foe.label }), actor.id, foe.id)];
-      set({ pendingGrapple: null, battle: { ...battle, log } }); // gratuit : pas d'`acted`
-      bus.emit(EVT.SCENE_DIRTY);
-    },
-    // Le vainqueur tranche : Dégâts (BF+DR, PA ignorés) / Empêtrer l'adversaire / Se libérer (LDB 14 l.161).
-    grappleChoose: (mode: 'damage' | 'entangle' | 'free') => {
-      const { battle, pendingGrapple: pd } = get();
-      if (!battle || !pd || pd.phase !== 'options' || pd.result !== 'success') return;
-      const actor = inBattleId(battle, pd.actorId);
-      const foe = inBattleId(battle, pd.foeId);
-      if (!actor || !foe || !pd.def || !pd.atk) return set({ pendingGrapple: null });
-      const dr = Math.max(0, resolveOpposed(pd.def, pd.atk).netSL); // DR net du Test gagné
-      applyGrapple(get, set, actor, foe, mode, dr, pd.def.roll);
-    },
-
     battleClickTile: (pt: Pt, opts?: TileClickOpts) => {
       const { battle, scene } = get();
       if (!battle || !scene || battle.over || champAttendSaFenetre(get())) return;
@@ -2004,53 +1872,11 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
 
-    // Contre-sort (flux multi) : chaque verbe cible un participant via `pid` (fabrique unique).
-    /**
-     * DÉCLARATION d'une rangée de la fenêtre — PHASE 1 : contrer SEUL, s'UNIR au Test Soutenu
-     * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `jetConfirm('counterspell')` ci-dessous) ou
-     * PASSER. Le MENEUR n'est pas un choix : il se DÉRIVE des rangées unies (`counterspellSoutenu`)
-     * et se re-dérive à chaque déclaration. Chaque rangée choisit pour elle (mix libre : unis et
-     * lanceurs seuls coexistent dans la MÊME fenêtre) — arbitrages utilisateur 2026-08-04
-     * [entériné 2026-08-04], verbatims aux tickets #1042/#1059.
-     * GARDES : rangée jouable au siège qui agit (`influencesLocally`, la table de possession de
-     * l'affordance), éligibilité de Domaine pour `soutenu` (`counterspellJoinable`), et PHASE encore
-     * ouverte (`counterspellDeclarePhase`) — la dernière déclaration FIGE la composition.
-     */
-    counterspellDeclare: (pid: string, choice: CounterDeclaration) => {
-      const s = get();
-      const pcs = s.pendingCounterspell;
-      if (!pcs || !counterspellDeclarePhase(pcs)) return;
-      const part = pcs.participants.find((p) => p.id === pid);
-      if (!part || !part.interactive || !influencesLocally(s, pid)) return;
-      if (choice === 'soutenu' && !counterspellJoinable(s, pcs, pid)) return;
-      set({ pendingCounterspell: { ...pcs, participants: pcs.participants.map((p) => (p.id === pid ? { ...p, declared: choice } : p)) } });
-      // PORTE UNIQUE : la phase close SANS aucun lanceur (tout le monde passe) n'a plus rien à jouer —
-      // la fenêtre se referme par le résolveur CANONIQUE (`jetConfirm('counterspell')`, qui agrège et retombe
-      // sur le repli IA), jamais par un troisième chemin de fermeture.
-      const fresh = get().pendingCounterspell;
-      if (fresh && !counterspellDeclarePhase(fresh) && !fresh.participants.some((p) => counterspellRolls(get(), fresh, p))) {
-        get().jetConfirm('counterspell');
-      }
-    },
-    /** Déclare « contrer seul » toutes les rangées encore vierges de CE siège (verbe NULLAIRE du drive
-     *  d'auto-cadence, `STEP_WINDOW_AUTO` — la cadence auto joue le geste que le joueur aurait fait en
-     *  lançant). MÊME table de possession que le jet (`influencesLocally`) ; les rangées TÉMOIN sont
-     *  déjà déclarées à l'ouverture (`autoDeclareWitnessRows`). */
-    counterspellDeclareAll: () => {
-      const s = get();
-      for (const p of rangeesADeclarerIci(s, s.pendingCounterspell)) get().counterspellDeclare(p.id, 'solo');
-    },
     // Test Étendu SÉQUENTIEL (LDB 12) : chaque Round est un slot du flux multi (fabrique UNIQUE).
     // « Une situation = une modale » : le Test étendu EST une cascade à une étape `jet:'extended'`,
     // rendue par `CascadeModal` (via `useExtendedTestJetProps`). `pendingExtendedTest` coexiste comme
     // porteur de données (les Rounds y vivent) ; `jetConfirm('extendedTest')` ferme les deux à la réussite.
 
-    cascadeChoose: (pid: string, key: string) => setCascadeChoice(get, set, pid, key),
-    cascadeAmount: (pid: string, n: number) => setCascadeAmount(get, set, pid, n),
-    // → BILAN (la modale reste ouverte) : rend `null`, rien à router. Rend une cascade FINALISÉE dans le
-    // seul cas où la dernière étape a suspendu la séquence en plein vol (le BILAN n'est pas montrable) —
-    // son dénouement passe alors par le MÊME routage que la validation d'étape et la sortie du bilan.
-    cascadeResolveAll: () => { const done = resolveRemainingCascade(get, set); if (done) dispatchCascadeDone(get, set, done); },
     // Incantation OPPOSÉE (multijet `FLOWS.castOpposition`) : chaque cible oppose son Test ; cible IA
     // = rangée témoin (jet auto-roulé à l'ouverture, cf. openCastOpposition). Mêmes 6 verbes que les autres flux.
     // Préfixe store `opposition` ≠ clé de flux `castOpposition` (handler passé explicitement).
@@ -2166,7 +1992,7 @@ export function createCombatSlice(get: Get, set: Set) {
       } });
     },
     // Psychologie de COMBAT (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
-    // applier 'combatPsych', résolue par les handlers `cascade*`. La Détermination (LDB 17 l.59) est offerte
+    // applier 'combatPsych', résolue par les verbes de jet de la cascade. La Détermination (LDB 17 l.59) est offerte
     // sur la RANGÉE par `jetDetermine('cascadeBatch')`.
     // Psychologie À LA RENCONTRE (couture C, LDB 21) : cascade équivalente, applier 'encounterPsych',
     // ouverte par `openEncounterPsych` à l'entrée de scène.
@@ -2278,7 +2104,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
 }
 
 /** Les réglages des jets du combat (`CorpsDesReglages`) : `jetRegler` les joue, dans leur phase (`REGLAGES_DU_JET`). */
-export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'attack' | 'defense' | 'cast' | 'cascade' | 'heal' | 'battement' | 'distraire' | 'maneuver' | 'shipManeuver' | 'shanty'> {
+export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'attack' | 'defense' | 'cast' | 'cascade' | 'counterspell' | 'disengage' | 'auContact' | 'grapple' | 'heal' | 'battement' | 'distraire' | 'maneuver' | 'shipManeuver' | 'shanty'> {
   /** Un champ de `pendingAttack` posé tel quel. */
   const attaque = <K extends 'location' | 'harpoonRopeCut' | 'withhold' | 'grapple'>(champ: K) => (v: PendingAttack[K]) => {
     const pa = get().pendingAttack;
@@ -2308,6 +2134,33 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
       ? Math.min(pc.chosenTableRolls, next.duration)
       : pc.chosenTableRolls;
     set({ pendingCast: { ...pc, overcast: next, ...(zone ? { zone } : {}), ...(extraTargetIds !== pc.extraTargetIds ? { extraTargetIds } : {}), ...(chosenTableRolls !== pc.chosenTableRolls ? { chosenTableRolls } : {}) } });
+  };
+  /**
+   * DÉCLARATION d'une rangée de la fenêtre — PHASE 1 : contrer SEUL, s'UNIR au Test Soutenu
+   * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `jetConfirm('counterspell')` ci-dessous) ou
+   * PASSER. Le MENEUR n'est pas un choix : il se DÉRIVE des rangées unies (`counterspellSoutenu`)
+   * et se re-dérive à chaque déclaration. Chaque rangée choisit pour elle (mix libre : unis et
+   * lanceurs seuls coexistent dans la MÊME fenêtre) — arbitrages utilisateur 2026-08-04
+   * [entériné 2026-08-04], verbatims aux tickets #1042/#1059.
+   * GARDES : rangée jouable au siège qui agit (`influencesLocally`, la table de possession de
+   * l'affordance), éligibilité de Domaine pour `soutenu` (`counterspellJoinable`), et PHASE encore
+   * ouverte (`counterspellDeclarePhase`) — la dernière déclaration FIGE la composition.
+   */
+  const declarerLaRangee = (pid: string, choice: CounterDeclaration): void => {
+    const s = get();
+    const pcs = s.pendingCounterspell;
+    if (!pcs || !counterspellDeclarePhase(pcs)) return;
+    const part = pcs.participants.find((p) => p.id === pid);
+    if (!part || !part.interactive || !influencesLocally(s, pid)) return;
+    if (choice === 'soutenu' && !counterspellJoinable(s, pcs, pid)) return;
+    set({ pendingCounterspell: { ...pcs, participants: pcs.participants.map((p) => (p.id === pid ? { ...p, declared: choice } : p)) } });
+    // PORTE UNIQUE : la phase close SANS aucun lanceur (tout le monde passe) n'a plus rien à jouer —
+    // la fenêtre se referme par le résolveur CANONIQUE (`jetConfirm('counterspell')`, qui agrège et retombe
+    // sur le repli IA), jamais par un troisième chemin de fermeture.
+    const fresh = get().pendingCounterspell;
+    if (fresh && !counterspellDeclarePhase(fresh) && !fresh.participants.some((p) => counterspellRolls(get(), fresh, p))) {
+      get().jetConfirm('counterspell');
+    }
   };
   return {
     attack: {
@@ -2471,6 +2324,152 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
           if (pas === 'terminer') terminerLaCascade(get, set);
           else validerLEtape(get, set);
         }
+      },
+      choix: (cle, pid) => setCascadeChoice(get, set, garanti(pid, 'cascade', 'étape du choix'), cle),
+      quantite: (n, pid) => setCascadeAmount(get, set, garanti(pid, 'cascade', 'étape de la quantité'), n),
+    },
+    /** Sans rangée, « contrer seul » ou la valeur dite pour chaque rangée encore vierge de CE siège (le drive
+     *  d'auto-cadence, `FENETRE_DU_JET`) ; les rangées TÉMOIN sont déjà déclarées à l'ouverture
+     *  (`autoDeclareWitnessRows`). */
+    counterspell: {
+      declaration: (choice, pid) => {
+        if (pid !== undefined) { declarerLaRangee(pid, choice); return; }
+        for (const id of rangeesAReglerIci(get(), declarationDuReglage('counterspell', 'declaration'))) declarerLaRangee(id, choice);
+      },
+    },
+    disengage: {
+      // « Sacrifier l'Avantage » (l.87) → ramener l'Avantage à 0, partir libre. L'Action N'EST PAS consommée.
+      sacrifier: () => {
+        const { battle, scene, pendingDisengage: pd } = get();
+        if (!battle || !scene || !pd) return;
+        const mover = inBattleId(battle, pd.moverId);
+        if (!mover) return set({ pendingDisengage: null, pendingCascade: null });
+        const foes = (mover.engagedWith ?? [])
+          .map((id) => inBattleId(battle, id))
+          .filter((c): c is Combatant => !!c);
+        // « Ramener votre Avantage à 0 » (LDB 15 l.47) ; en mode « Avantage de groupe » c'est la
+        // Retraite stratégique (AA 11 l.37) : dépense FIXE de 2 Avantages de la réserve du camp (1 avec
+        // Impitoyable AA 13 l.74), débitée par `campSpend`. Mode LDB : Impitoyable (LDB 10 l.591) GARDE
+        // niveau Avantages au lieu de tomber à 0.
+        if (groupAdvantage()) campSpend(get, mover, retreatAdvantageCost(mover));
+        else mover.advantage = Math.min(mover.advantage, keptAdvantageOnDisengage(mover));
+        for (const f of foes) disengageFrom(mover, f); // se place hors de portée de TOUS (l.87)
+        set({
+          pendingDisengage: null,
+          pendingCascade: null, // ferme la cascade-hôte du Désengagement
+          battle: {
+            ...battle,
+            action: null, // mouvement libre rouvert (clic-sol), sans pénalité (l.87) ; Action préservée
+            reachable: moveReachFor(mover, scene, mover.pos!, effectiveMovement(mover), moveEnv(battle, mover)),
+            log: [...battle.log, ev('flee', t('cs.disengageSacrifice', { name: mover.label }), mover.id)],
+          },
+        });
+        bus.emit(EVT.SCENE_DIRTY);
+      },
+      // ── « Fuir » (LDB 15 l.59-68) : OUVRE le flux MULTI `flee` — un slot par acteur (coup dans le dos
+      //    du FRAPPEUR, Test de la fiche `fuite` du FUYARD). Aucun jet ni aucune conséquence ici : `jetConfirm('flee')`
+      //    applique tout. La modale s'ouvre dès qu'UN des deux acteurs est JOUÉ (symétrie). ──
+      fuir: () => {
+        const { battle, pendingDisengage: pd } = get();
+        if (!battle || !pd) return;
+        const mover = inBattleId(battle, pd.moverId);
+        const foe = inBattleId(battle, pd.foeId);
+        if (!mover || !foe) return set({ pendingDisengage: null, pendingCascade: null });
+        campGain(get, foe); // l'adversaire gagne immédiatement +1 Avantage (l.63)
+        foe.gainedAdvThisRound = true;
+        // `interactive` = le slot est-il JOUÉ (héros du groupe, quel que soit le SIÈGE qui le possède) —
+        // jamais `pilotedByHuman` (évalué chez l'hôte, il dégraderait le héros d'un autre siège en témoin).
+        // Même prédicat que les autres multis (`openCrewTestPending` : `partyIds.has`).
+        const partyIds = new Set(get().party.map((h) => h.id));
+        const played = (c: Combatant) => partyIds.has(c.id);
+        const cascade = get().pendingCascade;
+        const cur = cascade?.participants[cascade.cursor];
+        // Deux acteurs JOUÉS (potentiellement de deux SIÈGES) sur la même fenêtre → étape de GROUPE :
+        // l'arbitre coop met l'owner à '*' et chacun influence SON slot (calque `forceDoor`). La bascule
+        // REMINTE l'étape hôte au lieu de la muter — `hostStep` est le seul mint qui expose `groupOwner`
+        // (#1262 B6), et il revérifie au passage que `pendingDisengage`, la donnée que la fenêtre rend,
+        // est toujours posé. Une étape hôte ne porte que sa déclaration : la situation vit dans le pending.
+        const partagee = cascade && cur?.jet === 'disengage' && played(foe) && played(mover)
+          ? hostStep(get, {
+            id: cur.id, kind: cur.kind, jet: 'disengage', actorId: cur.actorId ?? mover.id, groupOwner: true,
+            ...(cur.label ? { label: cur.label } : {}),
+            ...(cur.icon ? { icon: cur.icon } : {}),
+            ...(cur.stake ? { stake: cur.stake } : {}),
+            ...(cur.meta ? { meta: cur.meta } : {}),
+          })
+          : undefined;
+        set({
+          battle: { ...battle },
+          pendingDisengage: {
+            ...pd,
+            phase: 'fuir',
+            fuir: {
+              participants: [
+                { id: foe.id, kind: 'backstab', interactive: played(foe), result: null },
+                { id: mover.id, kind: 'touche', interactive: played(mover), test: testDeRegle('fuite', 'touche-en-fuyant'), jet: null },
+              ],
+            },
+          },
+          ...(cascade && partagee
+            ? { pendingCascade: { ...cascade, participants: cascade.participants.map((s, i) => (i === cascade.cursor ? partagee : s)) } }
+            : {}),
+        });
+        bus.emit(EVT.SCENE_DIRTY);
+        // Rangée TÉMOIN auto-roulée à l'ouverture (précédent `battleCrewTest`) : le coup dans le dos d'un
+        // frappeur non joué est résolu tout de suite ; celui d'un héros l'attend (il porte son cycle).
+        if (!played(foe)) get().jetRoll('flee', foe.id);
+        // Aucune modale affichable (aucun des deux acteurs JOUÉ, combat fini, Destin en attente) →
+        // résolution HEADLESS par LE MÊME flux (jamais un chemin de calcul parallèle). MÊME prédicat que
+        // les rangées ci-dessus (`played`) — une fenêtre se joue exactement quand une rangée est
+        // `interactive` ; jamais `pilotedByHuman`, pour la raison dite plus haut.
+        const st = get();
+        if (played(mover) || played(foe)) {
+          if (!st.battle?.over && !st.pendingFateSave) return;
+        }
+        const pdOpen = get().pendingDisengage;
+        if (!pdOpen?.fuir) return;
+        if (!fleeBackstab(pdOpen)?.result) get().jetRoll('flee', foe.id);
+        const pdRolled = get().pendingDisengage;
+        if (pdRolled && fleeToucheDu(pdRolled) && !fleeTouche(pdRolled)?.jet) get().jetRoll('flee', mover.id);
+        tracerLaFuite(get, set, mover, foe, { dos: true, touche: true });
+        get().jetConfirm('flee');
+      },
+    },
+    auContact: {
+      // Le vainqueur HÉROS tranche : « au contact » pose l'état, « combat normal » le retire.
+      issue: (mode) => {
+        const { battle, pendingAuContact: pd } = get();
+        if (!battle || !pd) return;
+        const mover = inBattleId(battle, pd.moverId);
+        const foe = inBattleId(battle, pd.foeId);
+        if (!mover || !foe) return set({ pendingAuContact: null });
+        applyAuContact(get, set, mover, foe, mode);
+      },
+    },
+    grapple: {
+      // « Briser l'Empoignade » (l.161) : gratuit (via le Mouvement), réservé à un Avantage SUPÉRIEUR, AVANT
+      // tout jet. Libère les deux + retire l'*Empêtré* lié de l'acteur. NE consomme PAS l'Action.
+      briser: () => {
+        const { battle, pendingGrapple: pd } = get();
+        if (!battle || !pd) return;
+        const actor = inBattleId(battle, pd.actorId);
+        const foe = inBattleId(battle, pd.foeId);
+        if (!actor || !foe) return set({ pendingGrapple: null });
+        clearGrapple(actor, foe);
+        removeCondition(actor, COND.empetre, stacks(actor, COND.empetre)); // l'acteur se libère de l'*Empêtré* de l'Empoignade
+        const log = [...battle.log, ev('dodge', t('cs.grappleBreak', { name: actor.label, foe: foe.label }), actor.id, foe.id)];
+        set({ pendingGrapple: null, battle: { ...battle, log } }); // gratuit : pas d'`acted`
+        bus.emit(EVT.SCENE_DIRTY);
+      },
+      // Le vainqueur tranche : Dégâts (BF+DR, PA ignorés) / Empêtrer l'adversaire / Se libérer (LDB 14 l.161).
+      issue: (mode) => {
+        const { battle, pendingGrapple: pd } = get();
+        if (!battle || !pd) return;
+        const actor = inBattleId(battle, pd.actorId);
+        const foe = inBattleId(battle, pd.foeId);
+        if (!actor || !foe || !pd.def || !pd.atk) return set({ pendingGrapple: null });
+        const dr = Math.max(0, resolveOpposed(pd.def, pd.atk).netSL); // DR net du Test gagné
+        applyGrapple(get, set, actor, foe, mode, dr, pd.def.roll);
       },
     },
     battement: {

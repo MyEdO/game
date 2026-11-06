@@ -736,7 +736,7 @@ const ATTENTE_DE_L_ETAPE: Record<InteractionDEtape, MsgKey> = {
 };
 
 /**
- * GARDE D'ÉTAPE des verbes d'étape (`cascadeChoose`, `cascadeAmount`, `jetRoll('cascadeTirage')` et
+ * GARDE D'ÉTAPE des verbes d'étape (`jetRegler('cascade', 'choix' | 'quantite')`, `jetRoll('cascadeTirage')` et
  * `jetSetForcedRoll('cascadeTirage')`) : un verbe joue l'étape COURANTE (`stepId`) dans l'interaction qu'il sert (`sert`, ordre de
  * `stepInteraction`), ou, pour une re-pose de dé (`repose`), une étape dont ce dé est déjà tombé. Rend le refus qui
  * nomme l'étape attendue et ce qu'elle attend, `null` si l'étape est servie.
@@ -774,7 +774,7 @@ function poserLaCourante(get: Get, set: Set, etape: CascadeStep): void {
 }
 
 /** Pose le choix du joueur sur l'étape « choix » COURANTE (`etapeServie`, `key ∈ options`). Analogue de
- *  `jetRoll('cascade')` côté jet : prépare l'étape ; la VALIDATION (conséquence) reste à `advanceCascade`. */
+ *  `jetRoll('cascade', id)` côté jet : prépare l'étape ; la VALIDATION (conséquence) reste à `advanceCascade`. */
 export function setCascadeChoice(get: Get, set: Set, stepId: string, key: string): void {
   const cur = etapeServie(get, set, stepId, 'choix');
   if (!cur) return;
@@ -1144,7 +1144,7 @@ function assertDejaDitesPorteSesLignes(step: CascadeStep, lines: readonly RecapL
 
 /**
  * INVARIANT D'IDENTITÉ D'ÉTAPE (#1298, #1852) : dans UNE séquence, deux étapes ne portent jamais le
- * même `id`. L'id est l'ADRESSE de l'étape — `cascadeChoose`, les grappes de dés
+ * même `id`. L'id est l'ADRESSE de l'étape — `jetRegler('cascade', 'choix')`, les grappes de dés
  * (`combatEffects.groupeDe`), les insertions de conséquence et la recette la visent par lui. Deux
  * étapes homonymes rendent la première in-adressable : c'est ainsi qu'une seconde DÉFENSE (attaque
  * gratuite) se glissait derrière la première sans que rien ne les distingue (#1852).
@@ -1748,6 +1748,13 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
   }
   set({ pendingCascade: { ...fondu, participants: steps, seq, cursor: steps.length, log } });
   return null;
+}
+
+/** « Tout résoudre », la rangée omise de `jetRoll('cascade')` (`RollFlowSpec.multi.sansRangee`) : les étapes restantes
+ *  (`resolveRemainingCascade`), puis le dénouement de la séquence qu'elles finalisent (`clotureDeCascade`). */
+export function toutResoudre(get: Get, set: Set): void {
+  const done = resolveRemainingCascade(get, set);
+  if (done) clotureDeCascade(done);
 }
 
 /** « Terminer » du BILAN (curseur en fin) : ferme la cascade et RENVOIE la cascade finalisée (suite

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * Axe HAUTEUR de la chute volontaire (EDO 01 l.231) dans la rangée de `FallModal` : offert seulement
- * quand l'étape porte `suspendu`, déclaré avec le Test par `fallChoose`, éteint quand le Mouvement ne le
+ * quand l'étape porte `suspendu`, déclaré avant le Test par `jetRegler('fall', 'suspendre')`, éteint quand le Mouvement ne le
  * couvre pas (`refusDeLaSuspension`, `noyau/gesteDArete.ts`). Afficher = agir.
  */
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';

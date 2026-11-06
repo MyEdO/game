@@ -134,7 +134,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     } as unknown as Partial<Combatant>);
     enCombat(banc, heros('h', { engagedWith: ['x'], movement: 4 } as Partial<Combatant>), brute);
     startDisengage(banc.getState, banc.setState, acteur(banc.getState(), 'h'));
-    banc.getState().disengageFlee();
+    banc.getState().jetRegler('disengage', 'fuir', true);
     const test = fleeTouche(banc.getState().pendingDisengage!)!.test;
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), test));

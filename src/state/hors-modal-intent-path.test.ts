@@ -64,15 +64,10 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   massBattleActivity: { parUI: true },
   // Tir rapide (#1050) : le badge de la frise ARME la visée ; le tir lui-même part du clic-token.
   armPreempt: { parUI: true },
-  // PHASE 1 du Contre-sort (#1042/#1059) : le choix de déclaration vit SUR la rangée, dans la modale
-  // d'incantation ; « tout déclarer » est un verbe NULLAIRE du drive d'auto-cadence (aucun bouton).
-  counterspellDeclare: { parUI: true },
-  // Déclaration d'une rangée de chute volontaire (#700) : option de la rangée dans `FallModal`.
-  fallChoose: { parUI: true },
   // Réglages des jets (#3368) : l'arme d'enfoncement d'une rangée de `ForceDoorModal` (EDO 11 l.93), les Bandages du
-  // soin (LDB 74 l.41), chacun une option de sa fenêtre.
+  // soin (LDB 74 l.41), la déclaration d'une rangée de Contre-sort (#1042/#1059) ou de chute (#700), chacun une option
+  // de sa fenêtre.
   jetRegler: { parUI: true },
-  counterspellDeclareAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/noyau/combatAuto.ts' },
 };
 
 /** Sources d'ÉCRAN (hors fichiers de test) : `src/ui` + `src/gameIso`. */

@@ -84,7 +84,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     banc.setState({ pendingAuContact: { ...pd, result: 'success' } });
     banc.getState().jetConfirm('auContact');
     expect(banc.getState().pendingAuContact?.phase).toBe('choice');
-    banc.getState().auContactChoose('contact');
+    banc.getState().jetRegler('auContact', 'issue', 'contact');
 
     const st = banc.getState();
     expect(st.pendingAuContact).toBeNull();
@@ -123,7 +123,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     const pd = banc.getState().pendingAuContact!;
     banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'success' } });
     banc.getState().jetConfirm('auContact');
-    banc.getState().auContactChoose('normal');
+    banc.getState().jetRegler('auContact', 'issue', 'normal');
 
     expect(areInContact(live(H.id), live(E.id))).toBe(false);
     expect(banc.getState().battle!.acted).toBe(true);

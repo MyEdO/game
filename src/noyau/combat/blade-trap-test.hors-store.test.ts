@@ -52,7 +52,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
       options: [{ key: 'trap', label: fixtureText('Piéger la lame') }, { key: 'crit', label: fixtureText('Coup Critique') }],
       defaultChoice: 'crit', bladeTrap: pbt,
     });
-    banc.getState().cascadeChoose('cons-bladetrap', 'trap');
+    banc.getState().jetRegler('cascade', 'choix', 'trap', 'cons-bladetrap');
     banc.getState().jetConfirm('cascade'); // commit du choix → l'applier append l'étape `triggeredTest`
   }
 

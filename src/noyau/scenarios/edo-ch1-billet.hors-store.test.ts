@@ -69,7 +69,7 @@ function arriver(lieu: string): void {
 function fouillerLeCorps(): void {
   poserLeGroupe(get, banc.setState, { x: 36, y: 3 });
   get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
-  get().designerHerosChoisir(get().party[0].id);
+  get().fenetreChoisir('designationHeros', 'heros', get().party[0].id);
   while (get().document) get().fenetreFermer('document');
 }
 

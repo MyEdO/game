@@ -115,7 +115,7 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
     banc.getState().seedRng(3);
     const h = hero();
     startCascade(banc.getState, banc.setState, { title: 'Nuit', purpose: 'test', steps: [step('s1', h.id)] });
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     expect(banc.getState().journal.filter((l) => /Résistance : \d+\/55/.test(l))).toEqual([]);
   });
 

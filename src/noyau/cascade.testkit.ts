@@ -131,7 +131,7 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
     }
     jetteLeDe(get, cur, poser);
     const apres = get().pendingCascade?.participants[get().pendingCascade!.cursor];
-    if (apres?.options && apres.chosen == null) get().cascadeChoose(apres.id, choisir?.(apres) ?? apres.defaultChoice ?? apres.options[0].key);
+    if (apres?.options && apres.chosen == null) get().jetRegler('cascade', 'choix', choisir?.(apres) ?? apres.defaultChoice ?? apres.options[0].key, apres.id);
   }
   if (cur) get().jetConfirm('cascade');
   else get().fenetreFermer('cascade');

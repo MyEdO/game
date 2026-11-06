@@ -82,8 +82,8 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     const [h1, h2] = heroes;
     enemyCast(E, h1);
     openCounter([h1.id, h2.id]);
-    banc.getState().counterspellDeclare(h1.id, 'solo');
-    banc.getState().counterspellDeclare(h2.id, 'pass');
+    banc.getState().jetRegler('counterspell', 'declaration', 'solo', h1.id);
+    banc.getState().jetRegler('counterspell', 'declaration', 'pass', h2.id);
     banc.getState().jetRoll('counterspell', h1.id);
     banc.getState().jetRoll('counterspell', h2.id); // une rangée qui passe ne lance jamais
     const parts = banc.getState().pendingCounterspell!.participants;
@@ -199,7 +199,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     openCounter([h1.id]);
     // PHASE 1 (#1042/#1059) : la porte de sortie s'ouvre une fois la composition arrêtée — ici le seul
     // candidat déclare qu'il contrera, puis renonce sans jeter.
-    banc.getState().counterspellDeclare(h1.id, 'solo');
+    banc.getState().jetRegler('counterspell', 'declaration', 'solo', h1.id);
     banc.getState().jetCancel('counterspell'); // personne ne contre
     expect(banc.getState().pendingCounterspell).toBeNull();
     expect(banc.getState().pendingCast).toBeNull();

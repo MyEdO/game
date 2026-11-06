@@ -128,7 +128,7 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
     expect(incantationVue(chezLInvite()).revele, 'l’invité n’a pas répondu : le sort lui est masqué').toBe(false);
     expect(ligneEnVue(banc.getState(), 'cast', E.id)?.jet, 'jets en vue de l’hôte : l’incantation tombée').toEqual({ d100: 30, dr: 3, reussi: true });
     expect(ligneEnVue(chezLInvite(), 'cast', E.id), 'jets en vue de l’invité : l’incantation à lancer, sans d100 ni DR ni verdict').toMatchObject({ cible: null, jet: null });
-    guest.sendIntent('counterspellDeclare', ['L', 'solo']);
+    guest.sendIntent('jetRegler', ['counterspell', 'declaration', 'solo', 'L']);
     guest.sendIntent('jetRoll', ['counterspell', 'L']);
     expect(banc.getState().pendingCounterspell?.participants[0]?.result, 'la réponse de l’invité est posée chez l’hôte').toBeTruthy();
     expect(incantationVue(chezLInvite())).toEqual({ ...incantationVue(banc.getState()), revele: true });

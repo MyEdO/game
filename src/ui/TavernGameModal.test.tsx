@@ -46,7 +46,7 @@ afterEach(demonterRacines);
 afterAll(() => { resetRule('tavern-games'); });
 
 /** Le joueur choisit « Relever le défi. » dans le dialogue du PNJ — le geste réel. */
-const releverLeDefi = () => act(() => { g().chooseDialogue('relever-defi'); });
+const releverLeDefi = () => act(() => { g().fenetreChoisir('dialogue', 'reponse', 'relever-defi'); });
 
 describe('Taverne — la table s’ouvre sur l’offre du PNJ qui la propose', () => {
   it('le choix du dialogue ouvre la table AU NOM du proposeur', () => {

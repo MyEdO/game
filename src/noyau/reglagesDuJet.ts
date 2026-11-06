@@ -15,6 +15,7 @@ import type { DefenseMode } from '../engine/combat';
 import type { OvercastAxis } from '../engine/overcast';
 import type { FermetureDuJet } from './rollFlowFactory';
 import type { Jeu } from './etat';
+import type { CounterDeclaration } from './pendings';
 import type { IdDAdversaireADistraire, IdDAdversaireDuBattement, IdDeChanson, IdDeCombattant, IdDeFormeConjuree, IdDeHeros, IdDObjet } from './designations';
 import { offreDeLIncantation, type ReglageOffertDeLIncantation } from './reglagesDIncantation';
 import { sequenceAbandonOf } from './sequenceCore';
@@ -74,6 +75,36 @@ export interface ReglagesDuJet {
   cascade: {
     /** L'abandon de la séquence en cours (`SequenceDef.abandon`). */
     abandon: true;
+    /** La clé de l'option retenue à l'étape « choix » courante (`CascadeStep.options`). */
+    choix: string;
+    /** Le nombre saisi à l'étape « quantité » courante, ramené à sa plage (`clampStepAmount`). */
+    quantite: number;
+  };
+  counterspell: {
+    /** LDB 46 l.162 ; #1042, #1059 */
+    declaration: CounterDeclaration;
+  };
+  disengage: {
+    /** LDB 15 l.47 */
+    sacrifier: true;
+    /** LDB 15 l.59-61 */
+    fuir: true;
+  };
+  auContact: {
+    /** LDB 62 l.176 */
+    issue: 'normal' | 'contact';
+  };
+  grapple: {
+    /** LDB 14 l.161 */
+    briser: true;
+    /** LDB 14 l.161-165 */
+    issue: 'damage' | 'entangle' | 'free';
+  };
+  fall: {
+    /** LDB 15 l.82 ; `false` : la chute pleine, sans Test. */
+    tenter: boolean;
+    /** EDO 01 l.231 */
+    suspendre: boolean;
   };
   heal: {
     mode: HealMode;
@@ -137,11 +168,14 @@ export type EffetDuChoix = 'reprenable' | 'fige' | 'clot';
 
 /** La déclaration d'un réglage : sa phase, sa portée, son effet, le siège qui le joue quand ce n'est pas le porteur du
  *  jet (`qui` : l'hôte seul ; `porteurDeLaValeur` : le combattant lu sur la valeur, `netOwnership`), et ce qui le ferme
- *  dans sa phase là où il ne change rien au jet (`offre`, `null` : il s'offre). */
+ *  dans sa phase là où il ne change rien au jet (`offre`, `null` : il s'offre). Un réglage de rangée qui déclare
+ *  `toutes` (les rangées encore à régler, de tout siège) se joue aussi sans rangée, sur chacune de celles du siège qui
+ *  agit (« Tout déclarer »). */
 export interface DeclarationDuReglage {
   phase: PhaseDuReglage;
   portee: PorteeDuReglage;
   effet: EffetDuChoix;
+  toutes?: (s: Pick<Jeu, 'pendingCounterspell'>) => readonly string[];
   qui?: 'hote';
   porteurDeLaValeur?: (s: Pick<Jeu, 'pendingHeal'>, valeur: unknown) => string | undefined;
   offre?: (s: Jeu) => FermetureDuJet | null;
@@ -165,7 +199,27 @@ export const REGLAGES_DU_JET = {
     ciblesSupplementaires: apres,
     carte: horsDuJet,
   },
-  cascade: { abandon: { ...horsDuJet, effet: 'clot', qui: 'hote', offre: (s) => (sequenceAbandonOf(() => s) ? null : 'nonOffert') } },
+  cascade: {
+    abandon: { ...horsDuJet, effet: 'clot', qui: 'hote', offre: (s) => (sequenceAbandonOf(() => s) ? null : 'nonOffert') },
+    choix: { ...horsDuJet, portee: 'rangee' },
+    quantite: { ...horsDuJet, portee: 'rangee' },
+  },
+  counterspell: {
+    declaration: { ...horsDuJet, portee: 'rangee', effet: 'fige', toutes: (s) => (s.pendingCounterspell?.participants ?? []).filter((x) => !x.declared && x.interactive).map((x) => x.id) },
+  },
+  disengage: {
+    sacrifier: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choice' && s.pendingDisengage.canSacrifice ? null : 'nonOffert') },
+    fuir: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choice' && s.pendingDisengage.canFuir !== false ? null : 'nonOffert') },
+  },
+  auContact: { issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingAuContact?.phase === 'choice' && s.pendingAuContact.result === 'success' ? null : 'nonOffert') } },
+  grapple: {
+    briser: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'roll' && !s.pendingGrapple.def && s.pendingGrapple.canBreak ? null : 'nonOffert') },
+    issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'options' && s.pendingGrapple.result === 'success' ? null : 'nonOffert') },
+  },
+  fall: {
+    tenter: { ...horsDuJet, portee: 'rangee', effet: 'fige' },
+    suspendre: { ...horsDuJet, portee: 'rangee', effet: 'fige', offre: (s) => (s.pendingFall?.suspendu !== undefined ? null : 'nonOffert') },
+  },
   heal: {
     mode: avant, test: avant,
     // LDB 74 l.41 ; `user-arbitrage-coop-inventaire-par-proprietaire-bg3`

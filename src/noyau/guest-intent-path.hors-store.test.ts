@@ -217,7 +217,7 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
    *  +1 Avantage) : le siège du héros demande à renoncer, l'action le REFUSE et le dit, rien ne bouge. */
   it.each([
     ['esquive', 'jetRoll', ['disengage']],
-    ['fuir', 'disengageFlee', []],
+    ['fuir', 'jetRegler', ['disengage', 'fuir', true]],
   ] as const)('Désengagement en phase %s : renoncer est refusé, visiblement, et ne change rien', (phase, geste, args) => {
     const { enemy } = setup();
     expect(applyIntent(1, 'battleDisengage', [])).toBe('appliquee');
@@ -236,7 +236,7 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
   it('Désengagement en phase fuir, fenêtre PARTAGÉE (`groupOwner`) : un siège tiers est refusé par la possession', () => {
     setup();
     expect(applyIntent(1, 'battleDisengage', [])).toBe('appliquee');
-    expect(applyIntent(1, 'disengageFlee', [])).toBe('appliquee');
+    expect(applyIntent(1, 'jetRegler', ['disengage', 'fuir', true])).toBe('appliquee');
     const c = banc.getState().pendingCascade!;
     banc.setState({ pendingCascade: { ...c, participants: c.participants.map((p, i) => (i === c.cursor ? { ...p, groupOwner: true } : p)) } });
     expect(modalOwnerOf(banc.getState()), 'la fenêtre est à tous').toBe('*');

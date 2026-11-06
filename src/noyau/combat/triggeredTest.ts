@@ -622,7 +622,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
   if (decider && surfaceOf(ctx.get, decider.id)) {
     // Décideur surfacé : étape de CHOIX influençable (rendue par le chemin CHOIX générique de CascadeModal),
     // routée au siège qui tient le décideur — l'hôte ne tranche ni ne dépense l'Avantage d'autrui.
-    // Le coût (en libellé) est joint au « Oui » ; l'option est tranchée par `cascadeChoose`.
+    // Le coût (en libellé) est joint au « Oui » ; l'option est tranchée par `jetRegler('cascade', 'choix')`.
     const yesLabel = node.advantageCost != null ? `${node.prompt} (${node.advantageCost} Av)` : node.prompt;
     // Coût hors de portée : l'option reste PRÉSENTE et porte SA cause (rendue au survol/focus/tap par
     // `OptionChooser`, jamais inline) — l'applier refuse déjà la dépense, l'écran cesse de le taire.

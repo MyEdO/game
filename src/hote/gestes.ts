@@ -10,8 +10,8 @@
  * union d'objets), un texte JSON. Aucune règle ne se calcule ici : chaque valeur vient d'un lecteur du noyau ou du type.
  */
 import {
-  DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
-  libelleDuGeste, libelleDuParametre, libelleDuReglage, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DE_L_OPERATION, REGLAGES_DU_BUTIN,
+  DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
+  libelleDuGeste, libelleDuParametre, libelleDuReglage, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
@@ -25,16 +25,16 @@ import { VERBES } from './verbes.generated';
 const PARAMETRE_DESIGNE = 'pid';
 
 /** Les paramètres d'un geste (`VERBES`, ceux de son axe pour un réglage de jet ou un choix de fenêtre :
- *  `parametresDeLAxe`), hors la rangée (`pid`) d'un geste de jet qui n'en vise aucune (`viseUneRangee`) ou d'un réglage
- *  de la fenêtre entière. */
+ *  `parametresDeLAxe`), hors la rangée (`pid`) d'un geste de jet qui n'en vise aucune (`viseUneRangee`) ou joue sa
+ *  rangée omise (`toutes`), ou d'un réglage de la fenêtre entière ou joué sur sa rangée omise. */
 export function parametresDuGeste(g: GesteDuJeu): readonly ParametreDeVerbe[] {
   if (g.axe) return parametresDeLAxe(VERBE_DE_CHOIX, g.fenetre, g.axe) ?? [];
   if (g.reglage) {
-    const deLaFenetre = declarationDuReglage(g.flux, g.reglage)?.portee !== 'rangee';
+    const deLaFenetre = !!g.toutes || declarationDuReglage(g.flux, g.reglage)?.portee !== 'rangee';
     return (parametresDeLAxe(VERBE_DE_REGLAGE, g.flux, g.reglage) ?? []).filter((p) => !(deLaFenetre && p.nom === PARAMETRE_DESIGNE));
   }
   const deJet = verbeDeJetDe(g.verbe);
-  const sansRangee = !!deJet && !!g.flux && !viseUneRangee(g.flux, deJet);
+  const sansRangee = !!deJet && !!g.flux && (!!g.toutes || !viseUneRangee(g.flux, deJet));
   return (VERBES[g.verbe] ?? []).filter((p) => !(sansRangee && p.nom === PARAMETRE_DESIGNE));
 }
 
@@ -114,7 +114,6 @@ const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle?: (g: GesteDuJ
   { lire: fenetreDIncantation, regle: duFlux('cast', ['discret', 'formeConjuree', 'effetCritique', 'ciblesSupplementaires', 'carte', ...Object.values(REGLAGE_DE_L_AXE)]) },
   { lire: fenetreDuSoin },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
-  { lire: fenetreDeLOperation, regle: parmi(REGLAGES_DE_L_OPERATION) },
 ];
 
 /** Les réglages de la fenêtre `fenetre` : ceux que nomment les fenêtres lues ouvertes, l'étape de séquence courante et

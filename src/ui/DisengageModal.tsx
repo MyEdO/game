@@ -42,14 +42,13 @@ const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice
 export function DisengageModal() {
   const pd = useGame((s) => s.pendingDisengage);
   const battle = useGame((s) => s.battle);
-  const sacrifice = useGame((s) => s.disengageConfirmA);
+  const regler = useGame((s) => s.jetRegler);
   const esquiver = useGesteDeJet('jetRoll', 'disengage');
   const reroll = useGesteDeJet('jetReroll', 'disengage');
   const bonusSL = useGesteDeJet('jetBonusSL', 'disengage');
   const darkPact = useGesteDeJet('jetDarkPact', 'disengage');
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'disengage');
   const confirm = useGesteDeJet('jetConfirm', 'disengage');
-  const flee = useGame((s) => s.disengageFlee);
   const fleeRoll = useGesteDeJet('jetRoll', 'flee');
   const fleeReroll = useGesteDeJet('jetReroll', 'flee');
   const fleeBonusSL = useGesteDeJet('jetBonusSL', 'flee');
@@ -80,11 +79,11 @@ export function DisengageModal() {
     }[voie] : undefined;
     const offertes = [
       { stake: groupMode ? flowStakeRef('disengage-retraite', { values: { cout: retreatCost } }) : flowStakeRef('disengage-sacrifice'),
-        option: { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: sacrifice, title: sacrificeTitle } },
+        option: { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: () => regler('disengage', 'sacrifier', true), title: sacrificeTitle } },
       { stake: flowStakeRef('disengage-esquive'),
         option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: ligneDEsquiveDeDesengagement(useGame.getState(), mover).target, hidden: !!pd.refusEsquive, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
       { stake: flowStakeRef('disengage-fuir'),
-        option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canFuir === false, onSelect: flee, title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours si tu en es encore capable' } },
+        option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canFuir === false, onSelect: () => regler('disengage', 'fuir', true), title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours si tu en es encore capable' } },
     ].filter((o) => !o.option.hidden);
     return (
       /* Décision DE COMBAT, champ lisible : les adversaires au contact se lisent sous la fenêtre. */

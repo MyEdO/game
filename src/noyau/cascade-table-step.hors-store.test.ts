@@ -24,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * ÉTAPE À TABLE (#942 L2) — le TIRAGE SUR TABLEAU est une interaction d'étape de cascade, résolue en UN
  * site (`rollTableStep` : dé, `mod` appliqué avant le lookup, `findTableEntry`, id de ligne STABLE),
- * exercée par les VRAIES coutures du noyau (`jetRoll('cascadeTirage')`/`jetConfirm('cascade')`/`cascadeResolveAll`) et par
+ * exercée par les VRAIES coutures du noyau (`jetRoll('cascadeTirage')`/`jetConfirm('cascade')`/`jetRoll('cascade')`) et par
  * le pilote immédiat. La table est résolue par le registre (`tableStepDef`), peuplé par les modules de
  * domaine (le cœur générique ne nomme aucune table).
  */
@@ -102,7 +102,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
   it('les pilotes AUTOMATIQUES tirent la table par le même résolveur (« Tout lancer » et résolution immédiate)', () => {
     banc.getState().seedRng(11);
     startCascade(banc.getState, banc.setState, { title: 'Tirage', purpose: 'test', steps: [tableStep('t1'), tableStep('t2')] });
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     expect(applied).toHaveLength(2);
     for (const a of applied) expect(a.id).toBe(a.die <= 50 ? 'basse' : 'haute');
     banc.getState().fenetreFermer('cascade');
@@ -314,7 +314,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
 
   it('BILAN (« Tout lancer ») : plus aucune fenêtre de pose — les deux étapes sont figées', () => {
     openTwo();
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     const p = banc.getState().pendingCascade!;
     expect(p.cursor).toBe(p.participants.length); // curseur EN FIN = bilan
     expect(applied).toHaveLength(2); // les conséquences des deux étapes sont déjà appliquées
@@ -384,7 +384,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
 
   it('pilotes AUTOMATIQUES (« Tout lancer » et résolution immédiate) descendent aussi', () => {
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [structureStep('s1', 85)] });
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     const st = banc.getState().pendingCascade!.participants[0];
     expect(ruleOf(st)).toEqual({ category: 'structureCriticals', id: findTableEntry(tableDesCritiquesDeStructure(), 85).id });
     banc.getState().fenetreFermer('cascade');

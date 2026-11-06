@@ -106,7 +106,7 @@ describe('#1262 V2 — la journée en MER se possède (classe #1268)', () => {
     expect(seatOwns(get(), 1, modalOwnerOf(get()) as string), 'la fenêtre est au siège qui tient ce barreur').toBe(true);
     expect(seatOwns(get(), 0, modalOwnerOf(get()) as string), 'et plus à l’hôte').toBe(false);
 
-    get().cascadeChoose(choix.id, 'crew');
+    get().jetRegler('cascade', 'choix', 'crew', choix.id);
     get().jetConfirm('cascade');
     const bande = parKind('progression')!;
     expect(bande, 'la voie ÉQUIPAGE insère sa bande').toBeTruthy();

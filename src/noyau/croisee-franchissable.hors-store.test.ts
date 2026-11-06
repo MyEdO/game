@@ -131,7 +131,7 @@ describe('sauter par la croisée d’étage — exploration', () => {
 
   it('« Sauter » : l’atterrissage passe par `moveParty` — le déclencheur de la rue joue', () => {
     banc.getState().fallAcross({ ...dedans, z: 1 }, dehors);
-    banc.getState().fallChoose(banc.getState().party[0].id, false);
+    banc.getState().jetRegler('fall', 'tenter', false, banc.getState().party[0].id);
     draineCascade(banc.getState);
     expect(banc.getState().partyPos).toEqual({ x: 2, y: 1, z: 0 });
     expect(banc.getState().flags.__trigger_rue).toBe(true);
@@ -140,7 +140,7 @@ describe('sauter par la croisée d’étage — exploration', () => {
   it('chute amortie à 0 m : l’atterrissage passe aussi par `moveParty`', () => {
     banc.getState().fallAcross({ ...dedans, z: 1 }, dehors);
     const id = banc.getState().party[0].id;
-    banc.getState().fallChoose(id, true);
+    banc.getState().jetRegler('fall', 'tenter', true, id);
     const p = banc.getState().pendingFall!;
     banc.setState({ pendingFall: { ...p, participants: p.participants.map((x) => (x.id === id ? { ...x, result: { success: true, roll: 5, target: 90, dr: 6, effectiveMetres: 0 } } : x)) } });
     banc.getState().jetConfirm('fall');
@@ -269,7 +269,7 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
     const hero = banc.getState().party[0];
     const avant = hero.wounds.current;
     banc.getState().fallAcross({ ...dedans, z: 1 }, dehors);
-    banc.getState().fallChoose(hero.id, false);
+    banc.getState().jetRegler('fall', 'tenter', false, hero.id);
     draineCascade(banc.getState);
     const s = banc.getState();
     expect(s.battle).not.toBeNull();
@@ -291,8 +291,8 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
     banc.setState({ party: [...banc.getState().party, second] });
     const [a, b] = banc.getState().party;
     banc.getState().fallAcross({ ...dedans, z: 1 }, dehors);
-    banc.getState().fallChoose(a.id, false);
-    banc.getState().fallChoose(b.id, false);
+    banc.getState().jetRegler('fall', 'tenter', false, a.id);
+    banc.getState().jetRegler('fall', 'tenter', false, b.id);
     draineCascade(banc.getState);
     const s = banc.getState();
     expect(s.battle).not.toBeNull();

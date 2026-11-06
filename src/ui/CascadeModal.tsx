@@ -131,7 +131,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const batchResist = useGesteDeJet('jetResist', 'cascadeBatch'); // Résistance (Menace) PAR RANGÉE (LDB 10)
   const batchDetermine = useGesteDeJet('jetDetermine', 'cascadeBatch'); // Détermination PAR RANGÉE (LDB 17 l.59)
   const batchReverse = useGesteDeJet('jetReverse', 'cascadeBatch'); // Inversion PAR RANGÉE (LDB 12 l.42)
-  const roll = useGesteDeJet('jetRoll', 'cascade');
+  const roll = useGesteDeJet('jetRoll', 'cascade'); // sans rangée : « Tout lancer » → bilan
   const reroll = useGesteDeJet('jetReroll', 'cascade');
   const bonusSL = useGesteDeJet('jetBonusSL', 'cascade');
   const darkPact = useGesteDeJet('jetDarkPact', 'cascade');
@@ -139,11 +139,9 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const resistAct = useGesteDeJet('jetResist', 'cascade'); // Résistance (Menace) : auto-succès du talent (LDB 10)
   const reverseAct = useGesteDeJet('jetReverse', 'cascade'); // Inversion (LDB 12 l.42)
   const next = useGesteDeJet('jetConfirm', 'cascade'); // valider l'étape courante
-  const choose = useGame((s) => s.cascadeChoose); // étape « choix » : pose l'option retenue
-  const setAmount = useGame((s) => s.cascadeAmount); // étape « quantité » : pose le nombre saisi
+  const regler = useGame((s) => s.jetRegler); // étape « choix » : l'option retenue ; « quantité » : le nombre saisi
   const tirerLeDe = useGesteDeJet('jetRoll', 'cascadeTirage'); // étape « table » ou « de » (#1508) : tire le dé
   const poserLeDe = useGesteDeJet('jetSetForcedRoll', 'cascadeTirage'); // POSE le dé (champ, ou ligne de table)
-  const resolveAll = useGame((s) => s.cascadeResolveAll); // « Tout lancer » → bilan
   const fermer = useGame((s) => s.fenetreFermer);
   const finish = () => fermer('cascade'); // « Terminer » du bilan
   const attackProps = useAttackJetProps(); // étape-jet d'attaque : rendue dans CETTE coquille (une fenêtre)
@@ -525,7 +523,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     const aff = affordancesDuDe(cur);
     const tableActions: RollAction[] = [
       { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => tirerLeDe(cur.id) },
-      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
+      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
     ];
     return (
       <CoqueDEtape
@@ -553,7 +551,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // l'étape dès sa déclaration (`rollSeam.dieStep`).
     const dieActions: RollAction[] = [
       { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => tirerLeDe(cur.id) },
-      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
+      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
     ];
     return (
       <CoqueDEtape
@@ -658,7 +656,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
               value={n}
               {...(q.step != null ? { step: q.step } : {})}
               {...(q.unit ? { unit: q.unit } : {})}
-              onChange={(v) => setAmount(cur.id, v)}
+              onChange={(v) => regler('cascade', 'quantite', v, cur.id)}
             />
           </>
         }
@@ -712,7 +710,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
                 key: o.key, label: mdToText(nommer(o.label, identites)), title: o.detail ? mdToText(o.detail) : undefined,
                 ...(o.refus ? { refus: o.refus } : {}),
                 selected: cur.chosen === o.key,
-                onSelect: () => choose(cur.id, o.key),
+                onSelect: () => regler('cascade', 'choix', o.key, cur.id),
               }))}
             />
           </>
@@ -812,11 +810,11 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     const ready = curReady;
     // Deux « Tout lancer » (#328) : PAR RANGÉES (lance d'un coup les contributeurs restants de CETTE
     // étape, ≥2 non lancés — mutualisé) et CASCADE (résout d'office tout le reste de la cascade, sans
-    // influence — `cascadeResolveAll`, comme la branche jet).
+    // influence — le jet sans rangée, comme la branche jet).
     const rollAllRows = rollAllUnrolledRows(cur.participants!, batchRoll, (x) => x.interactive !== false && owns(x.id));
     const batchActions: RollAction[] = [
       ...(rollAllRows ? [{ key: 'rollRows', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAllRows, title: 'Lancer toutes MES rangées non encore lancées (les rangées d’un autre siège lui restent)' } as RollAction] : []),
-      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> {t('verbe.cascadeResolveAll')}</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants de la cascade (sans influence)" } as RollAction] : []),
+      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> {t('verbe.cascade.rollAll')}</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants de la cascade (sans influence)" } as RollAction] : []),
       ...(ready ? [continueAction] : []),
     ];
     return (
@@ -888,7 +886,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // « Tout lancer » : tant qu'il reste >1 jet, résout d'un coup le reste (RNG, sans influence) PUIS
     // montre le bilan — bouton PRÉSENT avant ET après le jet (parité `cancelAfterRoll`). Pas d'Échap :
     // la cascade est SUBIE, on ne ferme pas — le bouton est une action explicite, pas une sortie.
-    ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
+    ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
     { key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascade.confirm'), onClick: () => next(), verbe: 'confirm', flux: 'cascade' },
   ];
 

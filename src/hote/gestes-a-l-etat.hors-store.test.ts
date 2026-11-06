@@ -3,7 +3,7 @@
  * argument désigné (`DESIGNATIONS`) en `choix` des seuls éléments que la garde de son op accepte, chacun nommé. Fichier
  * à part de `gestes.hors-store.test.ts`, dont la table (`fenetres.testkit.ts`) tient le jeu branché. Un argument qui
  * désigne une ligne de l'état sans id (ligne de butin, Blessure Critique) se choisit parmi les valeurs que le lecteur de
- * sa fenêtre nomme (`fenetreDuButin`, `fenetreDeLOperation`). Qui tient la main se dit par son genre
+ * sa fenêtre nomme (`fenetreDuButin`, `OUVERTS_DU_CHOIX`). Qui tient la main se dit par son genre
  * (`proprietaireDeLaFenetre`), en mots à l'hôte texte. Un verbe de jet que son flux ferme se dessine fermé, avec ce qui
  * le ferme (`fermeturesDeLaFenetre`, #2936).
  */
@@ -30,9 +30,9 @@ function auDebutDuRound<T>(faire: (etat: Jeu) => T): T {
   }
 }
 
-/** L'argument `nom` du geste `verbe` de la fenêtre que `etat` dessine. */
+/** L'argument `nom` du geste `verbe` de la fenêtre que `etat` dessine, ou du geste de clé `verbe` (`cleDuGeste`). */
 function argumentDe(etat: Jeu, verbe: string, nom: string): ArgumentDuGeste {
-  const geste = fenetreADessiner(etat)?.gestes.find((g) => g.verbe === verbe);
+  const geste = fenetreADessiner(etat)?.gestes.find((g) => g.cle === verbe) ?? fenetreADessiner(etat)?.gestes.find((g) => g.verbe === verbe);
   const a = geste?.arguments.find((x) => x.nom === nom);
   if (!a) throw new Error(`${verbe}.${nom} absent de la fenêtre ${fenetreADessiner(etat)?.titre ?? 'fermée'}`);
   return a;
@@ -124,11 +124,12 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
       const patient = { ...etat.party[0], traumas: plaies };
       const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', targetDR: 5, cumDR: 0, stake: {} } as never;
       const infirmerie: Jeu = { ...etat, pendingRoundStart: null, battle: null, party: [patient, ...etat.party.slice(1)], medic: { patientId: patient.id, surgery: operation } };
-      const plaie = argumentDe(infirmerie, 'medicSetWound', 'uid');
+      const plaie = argumentDe(infirmerie, 'fenetreChoisir@medic#plaie', 'valeur');
       expect(lignes(plaie)).toEqual(['choix', [['bras', t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], ['crane', t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);
       expect(plaie.valeur, 'la plaie visée est la valeur courante').toBe('crane');
       const choix = (cle: string) => fenetreADessiner(infirmerie)!.gestes.find((g) => g.cle === cle);
       expect(choix('fenetreChoisir@medic#patient')?.reglage, 'le patient se reprend (`reprenable`) : une option de la fenêtre').toBe(true);
+      expect(choix('fenetreChoisir@medic#plaie')?.reglage, 'la plaie se reprend (`reprenable`)').toBe(true);
       expect(choix('fenetreChoisir@medic#abandon')?.reglage, 'l’abandon clôt l’opération (`clot`) : un pas de la fenêtre').toBe(false);
     });
   });

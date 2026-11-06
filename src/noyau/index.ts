@@ -61,7 +61,6 @@ export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
 export { carteEnVue } from './carteEnVue';
 export { recitEnVue } from './recitEnVue';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
-export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';
 export { libelleDuGeste, libelleDuReglage, libelleDuChoix, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
 export { argumentsPosesDuGeste, fermeturesDeLaFenetre } from './verbesOuverts';
 export { cleDuGeste, type GesteDuJeu } from './modalArbiter';

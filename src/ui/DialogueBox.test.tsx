@@ -205,7 +205,7 @@ describe('DialogueBox — la fenêtre suit l’état sans que la conversation bo
 });
 
 describe('DialogueBox — la réponse fermée porte le TEXTE du refus du noyau', () => {
-  it('bourse trop courte : la raison de la réponse est celle que `chooseDialogue` dit', () => {
+  it('bourse trop courte : la raison de la réponse est celle que le choix `dialogue.reponse` dit', () => {
     const payant: Dialogue = { id: 'dlg-pay', start: 'n1', nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ id: 'payer', label: 'Payer', cost: { gold: 50 }, next: 'n1' }] }] };
     useGame.setState({ scene, flags: {}, gameTime: campaignStart(), party: [], screen: 'campaign', dialogue: { dialogue: payant, nodeId: 'n1', speakerId: 'e1', session: 1 } });
     const container = document.createElement('div');

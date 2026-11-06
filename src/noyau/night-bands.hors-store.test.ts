@@ -461,7 +461,7 @@ describe('SONDE D — Exposition (chaleur) de bout en bout : drop → cancelsRow
     expect(cur().kind).toBe('exposure-heat-drop');
     expect(cur().actorId).toBe('h1');
     expect(cur().meta?.cancelsRowId).toBe(`${wave0.id}:h1`);
-    get().cascadeChoose(cur().id, 'jeter');
+    get().jetRegler('cascade', 'choix', 'jeter', cur().id);
     get().jetConfirm('cascade');
 
     const wave1 = cur();

@@ -42,7 +42,7 @@ function charger(mode: 'local' | 'guest' = 'local') {
   get().loadProject({ scenes: [s], entryId: 'sc', narratif, projet: null });
   useGame.setState({ party: [heros('h1', 'humains-reiklander', 'M'), heros('h2', 'nains', 'F')] });
   runFlow(get, useGame.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });
-  get().designerHerosChoisir('h2');
+  get().fenetreChoisir('designationHeros', 'heros', 'h2');
   useGame.setState({ net: { ...get().net, mode } });
 }
 function monter(el: React.ReactElement) {
