@@ -275,8 +275,8 @@ export function combatValue(c: Combatant, kind: 'melee' | 'ranged', weapon?: Wea
  * SOURCE UNIQUE des deux (jamais un binaire `kind` recalculé séparément). La Spé nommée est celle que
  * `combatSkillPick` retient pour le jet, sinon le Groupe que l'arme demande (LDB 85 l.387 ; LDB 62 l.184).
  */
-export function attackTestOf(c: Combatant, weapon: Weapon | undefined, kind: 'melee' | 'ranged'): { skill: string; spec?: string } | { char: CharKey } {
-  if (weapon?.resolveChar) return { char: weapon.resolveChar };
+export function attackTestOf(c: Combatant, weapon: Weapon | undefined, kind: 'melee' | 'ranged'): { skill: string; spec?: string } | { characteristic: CharKey } {
+  if (weapon?.resolveChar) return { characteristic: weapon.resolveChar };
   const spec = combatSkillPick(c, kind, weapon).spec ?? (weapon ? acceptableSpecs(c, weapon, kind)[0]?.spec : undefined);
   return { skill: weaponSkillId(kind), ...(spec ? { spec } : {}) };
 }
@@ -383,7 +383,7 @@ export function defenseValue(c: Combatant, mode: DefenseMode, weapon?: Weapon, s
 }
 /** Ids du Test de défense, MÊME sélection que `defenseBaseValue` : Parade = `attackTestOf` de mêlée à l'arme
  *  parante, Esquive, ou la Compétence substituée `socialSkillId` (LDB 13 l.161-167). */
-export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialSkillId?: string): { skill?: string; spec?: string; char?: CharKey } {
+export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialSkillId?: string): { skill?: string; spec?: string; characteristic?: CharKey } {
   if (mode === 'parade') return attackTestOf(c, weapon ?? defaultParryWeapon(c), 'melee');
   if (mode === 'esquive') return { skill: 'esquive' };
   return { skill: socialSkillId };

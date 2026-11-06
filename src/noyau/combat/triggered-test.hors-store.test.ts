@@ -17,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Mâchoires d'acier (LDB 10) en effet DÉCLENCHÉ `onGainCondition` data-driven, résolu cadence-aware
  * par la brique `combat/triggeredTest` : « chaque fois que vous gagnez un État Sonné… Test de
  * Résistance Intermédiaire → ignore 1 + DR ». On vérifie : (a) héros MANUEL gagnant Sonné en combat →
- * étape de cascade `triggeredTest` NON lancée (influençable) puis `jetRoll('cascade')`+`jetConfirm('cascade')` retire
+ * étape de cascade `triggeredTest` NON lancée (influençable) puis `jetRoll('cascade', id)`+`jetConfirm('cascade')` retire
  * 1 + DR ; (b) ENNEMI avec Mâchoires → résolu INLINE (jamais d'étape de cascade) ; (c) le filtre
  * `condition` : gagner un AUTRE État (Empoisonné) ne déclenche PAS Mâchoires.
  */

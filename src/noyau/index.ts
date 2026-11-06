@@ -64,7 +64,6 @@ export { interludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
 export { reposEnVue, REGLAGES_DU_REPOS } from './reposEnVue';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
-export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';
 export { libelleDuGeste, libelleDuReglage, libelleDuChoix, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
 export { argumentsPosesDuGeste, fermeturesDeLaFenetre } from './verbesOuverts';
 export { cleDuGeste, type GesteDuJeu } from './modalArbiter';

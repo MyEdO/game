@@ -602,9 +602,9 @@ export type GameOp =
   | { op: 'statusMod'; amount: Formula }
   /** Jeton d'INVERSION de Test CONSOMMABLE « pour la prochaine aventure » (LDB 23 l.209/218) — durée
    *  `{scale:'adventure'}`, consommé par `consumeReverseToken` (rollFlowSpecs). `skill` absent = tout
-   *  Test (« concernant votre cible », l.218) ; `char` : tout Test de cette Caractéristique ; `contexte` :
-   *  le jeton ne vaut que sur un Test de ce contexte (ADE II 09 l.33) ; `illimite` : jamais consommé
-   *  (ACE 12 l.60). */
+   *  Test (« concernant votre cible », l.218) ; `characteristic` : tout Test de cette Caractéristique ;
+   *  `contexte` : le jeton ne vaut que sur un Test de ce contexte (ADE II 09 l.33) ; `illimite` : jamais
+   *  consommé (ACE 12 l.60). */
   | { op: 'grantReverseToken'; skill?: RefDesignee; characteristic?: CharKey; contexte?: ContexteDeTest; illimite?: true }
   /** Trait de créature TEMPORISÉ (Jalon 2.6 — « vous gagnez le Trait X tant que le Sort est
    *  actif ») : posé dans `c.traits` (vu par TOUS les consommateurs — dispatch, psy, IA,
@@ -2275,7 +2275,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantReverseToken': {
         target.activeEffects = target.activeEffects ?? [];
-        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill?.id, spec: o.skill?.spec, ...(o.characteristic ? { char: o.characteristic } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
+        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill?.id, spec: o.skill?.spec, ...(o.characteristic ? { characteristic: o.characteristic } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
         lines.push(t('op.grantReverseToken', {
           name: target.label,
           skill: o.skill ? refLabel('skills', o.skill) : o.characteristic ? t('op.reverseCharTest', { char: deElide(CHAR_LABELS[o.characteristic]) }) : t('op.reverseAnyTest'),

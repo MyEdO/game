@@ -62,7 +62,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     banc.getState().jetConfirm('cast');
     const pco = banc.getState().pendingCastOpposition;
     expect(pco).toBeTruthy();
-    expect(pco!.test).toEqual({ char: 'force-mentale' });
+    expect(pco!.test).toEqual({ characteristic: 'force-mentale' });
     expect(banc.getState().pendingCast).toBeTruthy(); // l'incantation reste figée le temps de l'opposition
     const part = pco!.participants.find((p) => p.id === E.id)!;
     expect(part.interactive).toBe(false); // cible IA = rangée témoin
@@ -119,7 +119,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     frozenCast(H, E, 'parole-de-tzeentch', 4);
     banc.getState().jetConfirm('cast');
     const pco = banc.getState().pendingCastOpposition!;
-    expect(pco.test).toEqual({ char: 'intelligence' });
+    expect(pco.test).toEqual({ characteristic: 'intelligence' });
   });
 
   it('IDEMPOTENCE : un second « Appliquer » ne RECONSTRUIT pas la fenêtre — les Tests déjà opposés tiennent', () => {

@@ -86,7 +86,7 @@ function poseLancer(roll: number, sl: number): void {
 function trancher(kind: string, cle: string): void {
   const cur = courant();
   expect(cur?.kind, `le choix « ${kind} » est ouvert`).toBe(kind);
-  get().cascadeChoose(cur!.id, cle);
+  get().jetRegler('cascade', 'choix', cle, cur!.id);
   get().jetConfirm('cascade');
 }
 
@@ -94,7 +94,7 @@ function trancher(kind: string, cle: string): void {
 function saisir(kind: string, n: number): void {
   const cur = courant();
   expect(cur?.kind, `la saisie « ${kind} » est ouverte`).toBe(kind);
-  get().cascadeAmount(cur!.id, n);
+  get().jetRegler('cascade', 'quantite', n, cur!.id);
   get().jetConfirm('cascade');
 }
 

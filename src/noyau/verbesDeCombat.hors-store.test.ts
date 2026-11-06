@@ -265,7 +265,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
       expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
       envoyer(partie, 'battleDisengage');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: false, refusEsquive: t('agate.actionSpent'), canFuir: true });
-      envoyer(partie, 'disengageFlee');
+      envoyer(partie, 'jetRegler', 'disengage', 'fuir', true);
       expect(partie.etat().pendingDisengage?.phase, 'la Fuite ne s’ouvre pas').toBe('fuir');
     } finally {
       partie.fermer();

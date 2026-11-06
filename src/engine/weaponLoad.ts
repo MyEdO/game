@@ -57,6 +57,11 @@ export function aRecharger(c: Combatant, weapon: Weapon): boolean {
   return weapon.type === 'ranged' && (weapon.reload ?? 0) > 0 && !weaponLoaded(c, weapon);
 }
 
+/** La chambre de CETTE arme est-elle pleine : une arme à Indice de Recharge que `weaponLoaded` dit prête. LDB 62 l.335. */
+export function chambrePleine(c: Combatant, weapon: Weapon): boolean {
+  return (weapon.reload ?? 0) > 0 && weaponLoaded(c, weapon);
+}
+
 /** DR déjà cumulés au Test étendu de rechargement de CETTE arme (LDB 62 l.335). */
 export function reloadProgressOf(c: Combatant, weapon: Weapon): number {
   return loadRegister(c, weapon).reloadProgress ?? 0;

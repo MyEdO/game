@@ -137,7 +137,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     const nue = skillBaseValue(affame, 'resistance', undefined, 'endurance');
     const jetee = testValue(affame, 'resistance', 'endurance');
     expect(jetee, 'l’État sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
-    expect(faim!.test, 'le producteur NOMME son Test (LDB 18 l.342)').toEqual({ skill: 'resistance', char: 'endurance' });
+    expect(faim!.test, 'le producteur NOMME son Test (LDB 18 l.342)').toEqual({ skill: 'resistance', characteristic: 'endurance' });
     expect(faim!.base, 'Niveau de Compétence NU (LDB 09 l.17), plus la valeur fondue').toBe(nue);
 
     const mods = faim!.mods ?? [];

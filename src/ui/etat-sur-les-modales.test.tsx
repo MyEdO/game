@@ -62,7 +62,7 @@ function nommeLEtat(quand: string, attendue: number, label?: string, chip = '−
 }
 const sonne = <T extends Combatant>(c: T): T => { c.conditions = [{ id: 'sonne', value: 3 }]; return c; };
 const cible = (c: Combatant, test: TestDesigne, d: Difficulty) => clampTarget(cibleDuTest(valeurDuTest(c, test), d)).target;
-const FM: TestDesigne = { char: 'force-mentale' };
+const FM: TestDesigne = { characteristic: 'force-mentale' };
 
 describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16 l.125)', () => {
   it('Bénédiction de Protection', () => {
@@ -91,7 +91,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
   it('Main ensanglantée', () => {
     const { H, E } = heroFaceAUnEnnemi(); sonne(H); H.handGates = ['main'];
     openAttackCascade(g, useGame.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Attaque', 'action/attack');
-    const att = cible(H, { char: 'dexterite' }, 'accessible');
+    const att = cible(H, { characteristic: 'dexterite' }, 'accessible');
     act(() => root.render(createElement(HandGateModal)));
     nommeLEtat('avant', att);
     act(() => { g().jetRoll('handGate'); });
@@ -141,7 +141,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const s = emptyScene('scene-test', 4, 4); s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null } as never);
     g().fallAcross({ x: 2, y: 0 }, { x: 2, y: 1 });
-    g().fallChoose(hero.id, true);
+    g().jetRegler('fall', 'tenter', true, hero.id);
     const p = g().pendingFall!;
     const att = cible(hero, p.test, p.test.difficulty);
     const lab = refLabel('skills', p.test.skill);

@@ -29,7 +29,7 @@ import {
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, massBattleBegin, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
 import {
-  craftTarget, craftSpecOf, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, bankPayout, apprenticeshipTutorCost,
+  craftTarget, craftSpecOf, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
   entrainementTutorCost,
   ACTIVITIES, activitiesFor, activityById, matchOutcomes, activityAvailableAt,
   RESOLVER_OWNER,
@@ -1108,7 +1108,7 @@ function bankWithdrawInner(get: Get, set: Set, index: number, crashCheckOnly: bo
   const rest = (get().bank ?? []).filter((_, i) => i !== index);
   if (outcome === 'lost') {
     set({ bank: rest });
-    const threshold = dep.kind === 'invest' ? dep.rate : (dep.rate > 0 ? dep.rate : 10);
+    const threshold = seuilDePerteBancaire(dep.kind, dep.rate);
     return [msg('if.bankLost', {
       name: libelleOuAbsence(h, 'heros', dep.heroId), roll, threshold,
       what: msg(dep.kind === 'invest' ? 'if.bankFailBank' : 'if.bankFailStash'),

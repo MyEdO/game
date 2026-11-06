@@ -225,7 +225,7 @@ describe('#1004 instance adjacente — sort DISSIPÉ : la ligne de Dégâts ne s
     const { hero } = duel();
     useGame.setState({
       pendingCast: { casterId: 'Rôdeur', targetId: hero.id, spellId: 'drain', missile: true, focused: false, result: { ...MISSILE } } as never,
-      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie',
         participants: [{ id: hero.id, interactive: true, ligne: LIGNE_OPPOSITION, result: { resisted: true, margin: 2, oppose: { roll: 12, target: 40, sl: 2, success: true } } }] } as never,
     });
     act(() => { root.render(<CastModal />); });
@@ -237,7 +237,7 @@ describe('#1004 instance adjacente — sort DISSIPÉ : la ligne de Dégâts ne s
     const { hero } = duel();
     useGame.setState({
       pendingCast: { casterId: 'Rôdeur', targetId: hero.id, spellId: 'drain', missile: true, focused: false, result: { ...MISSILE } } as never,
-      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie',
         participants: [{ id: hero.id, interactive: true, ligne: LIGNE_OPPOSITION, result: { resisted: false, margin: -3, oppose: { roll: 72, target: 40, sl: -3, success: false } } }] } as never,
     });
     act(() => { root.render(<CastModal />); });
@@ -256,7 +256,7 @@ describe('#1004 instance adjacente — sort DISSIPÉ : la ligne de Dégâts ne s
     useGame.setState({
       battle: { ...battle, combatants: [...battle.combatants, autre], order: [...battle.order, autre.id] } as never,
       pendingCast: { casterId: 'Rôdeur', targetId: hero.id, spellId: 'drain', missile: true, focused: false, result: { ...MISSILE } } as never,
-      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie', participants: [
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie', participants: [
         { id: hero.id, interactive: true, ligne: LIGNE_OPPOSITION, result: { resisted: grunniResists, margin: grunniResists ? 3 : -3, oppose: { roll: grunniResists ? 12 : 72, target: 40, sl: grunniResists ? 3 : -3, success: grunniResists } } },
         { id: autre.id, interactive: true, ligne: LIGNE_OPPOSITION, result: { resisted: true, margin: 4, oppose: { roll: 8, target: 40, sl: 4, success: true } } },
       ] } as never,

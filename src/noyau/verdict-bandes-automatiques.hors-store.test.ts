@@ -101,7 +101,7 @@ describe('Taverne : le lancer de volée relit le verdict du d100 (NADJ 16 l.70)'
     get().playTavernGame({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     let pc = get().pendingCascade!;
     const vise = pc.participants[pc.cursor];
-    get().cascadeChoose(vise.id, '0'); // le nez : Très facile (+60)
+    get().jetRegler('cascade', 'choix', '0', vise.id); // le nez : Très facile (+60)
     get().jetConfirm('cascade');
     pc = get().pendingCascade!;
     const idx = pc.participants.findIndex((s) => s.kind === 'tavern-throw');

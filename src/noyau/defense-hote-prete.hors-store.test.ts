@@ -88,7 +88,7 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
     for (let seed = 1; seed <= 6; seed++) {
       if (!jusquALaChaineDestabilisee(seed)) continue;
       mesures++;
-      g().cascadeResolveAll();
+      g().jetRoll('cascade');
       expect(etapeCourante()?.jet, `graine ${seed} : le curseur s’arrête sur la défense`).toBe('defense');
       expect(etapeCourante()?.committed, `graine ${seed}`).toBeFalsy();
       expect(g().pendingDefense?.result, `graine ${seed} : la défense reste à jouer`).toBeNull();

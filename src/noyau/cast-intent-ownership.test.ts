@@ -122,7 +122,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
   /**
    * #700 — la CHUTE est un flux MULTI (`MultiPending<TombantParticipant>`) : ses gestes sortent de la
    * route par porteur mono et passent par le TOMBANT de la rangée (`pid` = son id) ; sa déclaration
-   * `fallChoose` suit la même possession (`seatInfluences`). Liste littérale.
+   * `jetRegler('fall', 'tenter', …)` suit la même possession (`seatInfluences`). Liste littérale.
    */
   it('#700 — la chute (multi) : ses intents suivent le TOMBANT de la rangée, jamais le porteur mono', () => {
     const verbes: RollVerb[] = ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'];
@@ -138,8 +138,8 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
       expect(intentAllowedFor(s, 1, ...geste('fall', v, H_GUEST)), `${v} : le siège du tombant`).toBe(true);
       expect(intentAllowedFor(s, 0, ...geste('fall', v, H_GUEST)), `${v} : l’initiateur ne joue pas la rangée d’un autre siège`).toBe(false);
     }
-    expect(intentAllowedFor(s, 1, 'fallChoose', [H_GUEST, true]), 'le siège du tombant déclare sa rangée').toBe(true);
-    expect(intentAllowedFor(s, 0, 'fallChoose', [H_GUEST, true]), 'l’hôte ne déclare pas pour le héros d’un autre siège').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['fall', 'tenter', true, H_GUEST]), 'le siège du tombant déclare sa rangée').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['fall', 'tenter', true, H_GUEST]), 'l’hôte ne déclare pas pour le héros d’un autre siège').toBe(false);
   });
 
   it('(e) SURFACE RÉSEAU : chaque geste d’un flux mono est atteignable par un INVITÉ (#1017)', () => {
@@ -198,7 +198,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
   it('(c) NON-RÉGRESSION : dans la MÊME fenêtre, opposition et Contre-sort restent possédés PAR PARTICIPANT', () => {
     const s = state(CAST_JET, ENEMY, {
       pendingCounterspell: { participants: [{ id: H_GUEST, interactive: true, result: null }] },
-      pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: H_GUEST, interactive: true, result: null }] },
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: H_GUEST, interactive: true, result: null }] },
     } as unknown as Partial<Jeu>);
     // Le contre-lanceur / la cible du siège 1 jouent LEUR rangée…
     expect(intentAllowedFor(s, 1, ...geste('counterspell', 'roll', H_GUEST))).toBe(true);

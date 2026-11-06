@@ -44,7 +44,7 @@ const INVERSE = { roll: 46, sl: 1, success: true };
 
 describe('Test étendu : le Round s’inverse sur la Compétence du Test', () => {
   const etendu = (skill?: PendingExtendedTest['skill']): PendingExtendedTest => ({
-    actorId: 'H', label: 'Recherche', skillLabel: 'Recherche', ...(skill ? { skill } : { char: 'force' }), target: 55, targetDR: 5, total: 0,
+    actorId: 'H', label: 'Recherche', skillLabel: 'Recherche', ...(skill ? { skill } : { characteristic: 'force' }), target: 55, targetDR: 5, total: 0,
     rounds: [{ id: 'round-1', interactive: true, result: { ...RATE } }],
   });
 
@@ -174,7 +174,7 @@ describe('Mécénat (ACE 12 l.60-62) : jeton de Sociabilité face à l’amateur
     const banc = ouvrirLeBanc();
     const h = heros('H');
     applyOps(h, bande(6).ops!, { rng: makeRNG(1), label: 'Mécénat' });
-    expect(jetons(h).map((e) => e.reverseToken)).toEqual([{ char: 'sociabilite', contexte: 'amateurDeTheatre', illimite: true }]);
+    expect(jetons(h).map((e) => e.reverseToken)).toEqual([{ characteristic: 'sociabilite', contexte: 'amateurDeTheatre', illimite: true }]);
     banc.setState({ battle: null, party: [h], pendingTest: testSocial('charme', 'amateurDeTheatre') });
     expect(FLOWS.test.reversePreview(banc.getState)).toEqual(INVERSE);
     banc.getState().jetReverse('test');

@@ -333,9 +333,9 @@ function describeThreats(threats: string[]): string | null {
 /** Ouverture d'un Test de bataille (préparation ou Scène) : le meneur, sa valeur et ce qui pèse sur la cible. */
 interface OuvertureDeBataille {
   actor: Combatant; battle: 'prep' | 'round'; def: ActivityDef;
-  skillValue: number; skillId?: string; spec?: string; char?: CharKey; difficulty: Difficulty;
+  skillValue: number; skillId?: string; spec?: string; characteristic?: CharKey; difficulty: Difficulty;
   label?: string; mod?: number; modLabel?: string;
-  combined?: { skillId?: string; spec?: string; char?: CharKey; value: number };
+  combined?: { skillId?: string; spec?: string; characteristic?: CharKey; value: number };
   opposition?: ActivityOppositionOn;
   heroIds?: string[]; support?: SupportDetail;
 }
@@ -347,21 +347,21 @@ export interface TestDeBataille { pending: PendingActivity; ligne2?: RollLinePar
 
 /** Monte le Test de bataille de `o`. PUR. */
 function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
-  const skillLabel = testSkillLabel({ skill: o.skillId, spec: o.spec, char: o.char }) ?? t('mbf.testFallback');
+  const skillLabel = testSkillLabel({ skill: o.skillId, spec: o.spec, characteristic: o.characteristic }) ?? t('mbf.testFallback');
   // Cibles montées par le monteur canonique (`rollLine`, #1153) : le modificateur de SITUATION (Menace
   // ADE II 8 l.219 / Planification l.75) pèse SUR LA CIBLE (il n'est pas dans la valeur) et se nomme.
   const surLaCible = activityModLines(o.mod, o.modLabel);
   const ligne = rollLine({
     actor: o.actor,
-    ...(o.skillId || o.char ? { test: { skill: o.skillId, char: o.char, spec: o.spec } } : {}),
+    ...(o.skillId || o.characteristic ? { test: { skill: o.skillId, characteristic: o.characteristic, spec: o.spec } } : {}),
     valeur: o.skillValue, soutien: o.support, difficulty: o.difficulty, surLaCible,
   });
   const ligne2 = o.combined
-    ? rollLine({ actor: o.actor, test: { skill: o.combined.skillId, char: o.combined.char, spec: o.combined.spec }, valeur: o.combined.value, difficulty: o.difficulty, surLaCible })
+    ? rollLine({ actor: o.actor, test: { skill: o.combined.skillId, characteristic: o.combined.characteristic, spec: o.combined.spec }, valeur: o.combined.value, difficulty: o.difficulty, surLaCible })
     : undefined;
   const target = ligne.target;
   const combined = o.combined && ligne2
-    ? { skill2: testSkillLabel({ skill: o.combined.skillId, spec: o.combined.spec, char: o.combined.char }), skillValue2: o.combined.value, target2: ligne2.target }
+    ? { skill2: testSkillLabel({ skill: o.combined.skillId, spec: o.combined.spec, characteristic: o.combined.characteristic }), skillValue2: o.combined.value, target2: ligne2.target }
     : {};
   const pa: PendingActivityFields = {
     heroId: o.actor.id, kind: 'catalog', activityId: o.def.id, battle: o.battle,
@@ -410,9 +410,9 @@ export function battleActivityDifficulty(def: ActivityDef, mb: MassBattleState, 
 }
 
 /** Les champs d'ouverture que nomme un Test désigné. PUR. */
-function champsDuTest(test: TestDesigne): { skillId?: string; spec?: string; char?: CharKey } {
+function champsDuTest(test: TestDesigne): { skillId?: string; spec?: string; characteristic?: CharKey } {
   const ids = idsDuTest(test);
-  return { ...(ids.skill ? { skillId: ids.skill } : {}), ...(ids.spec ? { spec: ids.spec } : {}), ...(ids.char ? { char: ids.char } : {}) };
+  return { ...(ids.skill ? { skillId: ids.skill } : {}), ...(ids.spec ? { spec: ids.spec } : {}), ...(ids.characteristic ? { characteristic: ids.characteristic } : {}) };
 }
 
 /** Valeur COURANTE d'un réservoir de modificateur de Test d'armée, lu par l'Activité qui le DÉCLARE
@@ -632,7 +632,7 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   // Les quatre voyagent ensemble jusqu'au verdict — aucun site en aval ne re-dérive une nue.
   // Niveau de Compétence NU du PJ retenu (`LDB 09 l.17`) — Compétence si le Test retenu en nomme une,
   // Caractéristique effective sinon.
-  const skillBase = 'skill' in picked.test ? skillBaseValue(picked.actor, picked.test.skill.id, picked.test.skill.spec) : effectiveChar(picked.actor, picked.test.char);
+  const skillBase = 'skill' in picked.test ? skillBaseValue(picked.actor, picked.test.skill.id, picked.test.skill.spec) : effectiveChar(picked.actor, picked.test.characteristic);
   const opposition: ActivityOppositionOn = {
     // Seuil de l'opposition (aucune Difficulté : Puissance + tenue) — écrêté par la primitive PARTAGÉE.
     enemyValue: clampTarget(armyMight(mb.enemy) + enemyBonus).target,

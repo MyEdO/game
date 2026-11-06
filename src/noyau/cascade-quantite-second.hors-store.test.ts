@@ -80,12 +80,12 @@ describe('Étape « quantité » — la 6ᵉ interaction de la coquille', () => 
     const h = hero();
     const st = quantityStep({ id: 'q', kind: cleDeFixture('mesure-quantite'), label: fixtureText('Combien ?'), actorId: h.id, min: 1, max: 100, value: 1 })!;
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
-    get().cascadeAmount('q', 77);
+    get().jetRegler('cascade', 'quantite', 77, 'q');
     expect(get().pendingCascade!.participants[0].amount).toBe(77);
     // Hors plage : borné, jamais cru sur parole ; étape étrangère : no-op.
-    get().cascadeAmount('q', 100000);
+    get().jetRegler('cascade', 'quantite', 100000, 'q');
     expect(get().pendingCascade!.participants[0].amount).toBe(100);
-    get().cascadeAmount('autre-etape', 3);
+    get().jetRegler('cascade', 'quantite', 3, 'autre-etape');
     expect(get().pendingCascade!.participants[0].amount).toBe(100);
     get().jetConfirm('cascade');
     expect(retenus).toEqual([100]);

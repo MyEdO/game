@@ -33,7 +33,7 @@ import { rollDice, type RNG } from './dice';
 import { compteDeLaDotation } from './possessionGrants';
 import { garanti } from '../lib/garanti';
 import { itemCapability } from './capabilities';
-import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
+import { loadRegister, objetSourceDeLArme, aRecharger, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
 import { sequence } from './sequences';
 
@@ -731,6 +731,17 @@ export function loadoutLabel(lo: WeaponLoadout, c: Combatant): string {
 export function activeLoadout(c: Combatant): WeaponLoadout | null {
   if (!c.loadouts?.length) return null;
   return c.loadouts.find((l) => l.id === c.activeLoadoutId) ?? c.loadouts[0];
+}
+
+/** Un SET porte-t-il une arme à distance à recharger (`aRecharger`) ? Chaque objet du set est projeté par
+ *  `weaponFromItem`, dont l'`uid` retombe sur le registre de charge de l'objet possédé : un set NON ACTIF, dont
+ *  les armes ne sont pas dans `c.weapons`, dit aussi son état. PUR. */
+export function setNonCharge(c: Combatant, lo: WeaponLoadout): boolean {
+  const items = c.items ?? [];
+  return [lo.main, lo.off].some((uid) => {
+    const it = uid ? items.find((i) => i.uid === uid) : undefined;
+    return !!it && it.kind === 'ranged' && aRecharger(c, weaponFromItem(it));
+  });
 }
 
 /** Une arme (par `uid` d'ItemInstance) est-elle ACTIVE dans le loadout courant ? Source de vérité = les

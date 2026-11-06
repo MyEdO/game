@@ -583,7 +583,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue('sauter');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'sauter');
     expect(banc.getState().pendingCascade, 'le saut a ouvert son dé de chute').not.toBeNull();
     expect(banc.getState().dialogue?.nodeId, 'le nœud suivant n’est pas encore là').toBe('n1');
     poseLeDe(8);
@@ -607,7 +607,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scheduledEffects: [{ executeAt: 1003, flow: DIT('événement programmé') }],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue('sauter');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'sauter');
     expect(banc.getState().gameTime, 'l’horloge attend le dé').toBe(1000);
     expect(banc.getState().scheduledEffects, 'rien n’est encore dû').toHaveLength(1);
     poseLeDe(8);
@@ -649,7 +649,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue('sauter-deux-fois');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'sauter-deux-fois');
     poseLeDe(8);
     expect(banc.getState().pendingCascade, 'la 2ᵉ chute a ouvert son dé').not.toBeNull();
     expect(banc.getState().dialogue?.nodeId, 'la clôture est repartie avec LUI').toBe('n1');
@@ -737,7 +737,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue('sauter-deux-fois');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'sauter-deux-fois');
     poseLeDe(8);
     const clefs = ['pendingCascade', 'dialogue', 'party', 'scene', 'journal', 'gameTime', 'flags', 'scheduledEffects', 'suspendedCascades'] as const;
     const etat = banc.getState() as unknown as Record<string, unknown>;
@@ -804,7 +804,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       { label: 'Éboulement', chancePct: 100, effects: [{ type: 'fall', target: 'party', metres: 4 }] },
       { label: 'Trouvaille', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-2' }] },
     ], cleDeFixture('terre'));
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     const p = banc.getState().pendingCascade!;
     expect(p.participants.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
     const j = banc.getState().journal;
@@ -858,7 +858,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     const interactif = etatFinal();
 
     monte(deuxChutes, cleDeFixture('terre'));
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     const toutResoudre = etatFinal();
 
     seedBattleRng(3);
@@ -890,7 +890,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       ] },
       { label: 'Jamais joué', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-APRES-ARRET' }] },
     ], SEA_PERIL_INTERRUPT);
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     const apresTroncature = banc.getState().pendingCascade!;
     const seqApres = apresTroncature.seq!;
     expect(apresTroncature.participants.length, 'le tableau a bien RACCOURCI').toBeLessThan(seqApres);

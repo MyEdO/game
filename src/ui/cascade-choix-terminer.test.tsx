@@ -3,7 +3,7 @@
  * ÉTAPE CHOIX non tranchée (#1765, recettes 6133978543 / 6136064136) — la coquille de cascade MONTÉE
  * (`CascadeBody`) : « Terminer » est REFUSÉ et porte sa raison (`RollAction.refus` → `GatedAction`)
  * tant que `stepReady` est faux, puis s'offre une fois l'option prise. Le choix est posé par la
- * couture du jeu (`cascadeChoose`), jamais par une fixture.
+ * couture du jeu (`jetRegler('cascade', 'choix')`), jamais par une fixture.
  */
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
@@ -60,7 +60,7 @@ describe('Étape CHOIX : « Terminer » refusé avec sa raison tant que le choix
     expect(raisonId, 'le refus pointe sur un texte').toBeTruthy();
     expect(document.getElementById(raisonId!)?.textContent).toContain('Choisis une option');
 
-    act(() => { useGame.getState().cascadeChoose('ch', 'subir'); });
+    act(() => { useGame.getState().jetRegler('cascade', 'choix', 'subir', 'ch'); });
     const apres = terminer();
     expect(apres!.getAttribute('aria-disabled')).toBeNull();
     expect(apres!.disabled).toBe(false);

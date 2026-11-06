@@ -119,7 +119,7 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
       pendingDisengage: { moverId: H[0].id, foeId: E[0].id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     } as never);
 
-    g().disengageFlee();
+    g().jetRegler('disengage', 'fuir', true);
 
     const pd = g().pendingDisengage;
     expect(pd, 'la fenêtre de fuite a été résolue sans le fuyard').toBeTruthy();

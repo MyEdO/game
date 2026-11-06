@@ -1,5 +1,5 @@
 /**
- * LE VERBE VALIDE — `chooseDialogue` refuse tout ce que les surfaces refusent (#1869 correctif 1).
+ * LE VERBE VALIDE — le choix `dialogue.reponse` refuse tout ce que les surfaces refusent (#1869 correctif 1).
  *
  * Les gardes d'une réponse ne vivent PAS dans la fenêtre ni dans la touche : elles vivent dans le
  * VERBE, seul chemin commun du clic, du raccourci et de l'intent coop appliqué par l'hôte. Un intent
@@ -47,15 +47,15 @@ function monter(over: Partial<Jeu> = {}) {
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); monter(); });
 
-describe('chooseDialogue — la fenêtre de jet SUSPEND la conversation', () => {
+describe('dialogue.reponse — la fenêtre de jet SUSPEND la conversation', () => {
   it('une seconde réponse sous la modale de jet n’archive rien et n’écrase pas le pending', () => {
-    banc.getState().chooseDialogue('tenter');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'tenter');
     const avant = banc.getState();
     expect(avant.pendingTest, 'le Test a bien ouvert la fenêtre de jet ORDINAIRE').toBeTruthy();
     expect(avant.dialogueHistory).toHaveLength(1);
     const pendingAvant = avant.pendingTest;
 
-    banc.getState().chooseDialogue('tenter'); // le joueur re-clique / la touche est restée vive
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'tenter'); // le joueur re-clique / la touche est restée vive
 
     const apres = banc.getState();
     expect(apres.dialogueHistory, 'un second tour archivé serait une réponse jouée deux fois').toHaveLength(1);
@@ -64,16 +64,16 @@ describe('chooseDialogue — la fenêtre de jet SUSPEND la conversation', () => 
 
 });
 
-describe('chooseDialogue — un id que le joueur ne peut PAS choisir est refusé', () => {
+describe('dialogue.reponse — un id que le joueur ne peut PAS choisir est refusé', () => {
   it('réponse MASQUÉE par son `when` (intent forgé) : rien n’avance', () => {
-    banc.getState().chooseDialogue('secret');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'secret');
     expect(banc.getState().dialogue?.nodeId).toBe('n1');
     expect(banc.getState().dialogueHistory).toHaveLength(0);
   });
 
   it('réponse trop CHÈRE : refus SANS débit (la bourse est intacte)', () => {
     const avant = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().chooseDialogue('acheter');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'acheter');
     expect(banc.getState().dialogue?.nodeId).toBe('n1');
     expect(toBrass(partyMoneyTotal(banc.getState)), 'le coût ne se paie pas sur un refus').toBe(avant);
     expect(banc.getState().dialogueHistory).toHaveLength(0);
@@ -83,22 +83,22 @@ describe('chooseDialogue — un id que le joueur ne peut PAS choisir est refusé
     // Contrat POSITIF opposé : la garde refuse ce qui doit l'être, et LAISSE passer le reste.
     monter({ party: [hero(2400)] });
     const avant = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().chooseDialogue('acheter');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'acheter');
     expect(banc.getState().dialogue?.nodeId).toBe('n2');
     expect(avant - toBrass(partyMoneyTotal(banc.getState))).toBe(toBrass({ gold: 5, silver: 0, brass: 0 }));
   });
 
   it('id HORS de la donnée : rien n’avance', () => {
-    banc.getState().chooseDialogue('inconnu');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'inconnu');
     expect(banc.getState().dialogue?.nodeId).toBe('n1');
     expect(banc.getState().dialogueHistory).toHaveLength(0);
   });
 });
 
-describe('chooseDialogue — le siège qui ne DÉCIDE pas n’avance rien', () => {
+describe('dialogue.reponse — le siège qui ne DÉCIDE pas n’avance rien', () => {
   it('invité coop hors décision : le verbe refuse (le snapshot n’a rien à écraser)', () => {
     monter({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1, gmSeat: 0 } as Jeu['net'] });
-    banc.getState().chooseDialogue('tenter');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'tenter');
     expect(banc.getState().dialogue?.nodeId).toBe('n1');
     expect(banc.getState().pendingTest).toBeNull();
     expect(banc.getState().dialogueHistory).toHaveLength(0);

@@ -86,7 +86,7 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
   });
 
   it('Opposition d’incantation (Résistance à la Magie) : la nue de la cible survit au dé posé', () => {
-    banc.setState({ pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie', participants: [
+    banc.setState({ pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie', participants: [
       { id: 'A', interactive: true, result: { oppose: { ...RATE }, resisted: false, margin: 7 } },
     ] } } as never);
     st().jetSetForcedRoll('opposition', POSE, 'A');

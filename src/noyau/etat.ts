@@ -339,7 +339,7 @@ export interface EtatDeJeu {
    *  de la valeur posée (forme `enum`). Posés par les Effets `designerHeros`/`poserEtat`, lus par la
    *  Condition `etat` et le sélecteur `{etat}`. Traversent les scènes ; vidés en nouvelle partie. */
   etats: Record<string, string>;
-  /** Espèce (`refChar`) et sexe du héros désigné par un état `heros`, FIGÉS au choix (`designerHerosChoisir`,
+  /** Espèce (`refChar`) et sexe du héros désigné par un état `heros`, FIGÉS au choix (`designationHeros.heros`,
    *  EDO 02 l.114) : la ligne d'identité qu'on lit (`identitesResolues`). Traversent les scènes ; vidés en nouvelle partie. */
   identitesFigees: Record<string, { espece: RaceKey; sexe: Sexe }>;
   /** PILE d'objectifs courants (« je fais quoi maintenant ? »), keyés par id STABLE — posés/mis à jour/

@@ -16,7 +16,7 @@ import { buildAdvancementView } from '../noyau/monde/advancement';
 import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '../engine/magic';
 import { effectiveSpellOf } from '../noyau/combatFlow';
 import { GatedAction, raisonSi } from './GatedAction';
-import { refusAchatDeComposant, coutDuComposant } from '../noyau/partyFlow';
+import { refusAchatDeComposant, coutDuComposant, composantsOfferts } from '../noyau/partyFlow';
 import type { GestesDeLObjet } from '../noyau/gestesDeLObjet';
 import { libelleAvecSpec } from '../noyau/depenseDePx';
 import { refusDeSoins } from '../noyau/medicFlow';
@@ -419,7 +419,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         // Composants d'incantation (LDB 46 l.107-113) : achetés PAR Sort d'Arcane/Domaine connu,
         // coût = NI pistoles d'argent ; absorbent le contrecoup (Imparfaite Majeure→Mineure,
         // Mineure→annulée) puis sont consumés à l'incantation. Visible seulement règle ON.
-        const arcane = spells.filter((sp) => isArcaneSpell(sp) && sp.cn != null);
+        const arcane = composantsOfferts(hero);
         if (!arcane.length) return null;
         const owned = hero.componentSpells ?? [];
         const countOf = (id: string) => owned.filter((x) => x === id).length;

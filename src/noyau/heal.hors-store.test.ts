@@ -405,7 +405,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     expect(p.diseases ?? []).toHaveLength(0); // rien contracté en silence AVANT la validation de l'étape
   });
 
-  it('Chirurgie : le joueur choisit QUELLE Blessure Critique opérer (medicSetWound, avant la 1re passe)', () => {
+  it('Chirurgie : le joueur choisit QUELLE Blessure Critique opérer (choix `medic.plaie`, avant la 1re passe)', () => {
     const surgeon = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
     const patient = hero({
       id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40),
@@ -415,7 +415,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().openMedic({ patientId: 'p' });
     banc.getState().medicAct('surgery');
     const brasD = patient.traumas!.find((t) => t.location === 'brasD')!;
-    banc.getState().medicSetWound(brasD.uid); // opérer la blessure du brasD
+    banc.getState().fenetreChoisir('medic', 'plaie', brasD.uid); // opérer la blessure du brasD
     expect(banc.getState().medic!.surgery!.traumaUid).toBe(brasD.uid);
   });
 

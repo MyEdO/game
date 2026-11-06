@@ -693,7 +693,7 @@ export function ligneDeCorpsACorpsBrut(c: Combatant): RollLineParts {
  *  — LDB 14 l.161. */
 export function ligneDeForceDEmpoignade(c: Combatant): RollLineParts {
   return rollLine({
-    actor: c, test: { char: 'force' }, valeur: effectiveChar(c, 'force'), valeurEtrangere: true, difficulty: 'intermediaire',
+    actor: c, test: { characteristic: 'force' }, valeur: effectiveChar(c, 'force'), valeurEtrangere: true, difficulty: 'intermediaire',
     surLaCible: baseTestModLines(c, 'force', GRAPPLE_TEST_CTX),
   });
 }
