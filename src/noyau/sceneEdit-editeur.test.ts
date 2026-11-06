@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isDescriptiveZone, Scene } from './monde/scene';
 import { propFootTiles } from './monde/footprint';
-import { entityAt, etageSuivant, hitAt, EFFECT_ZONE_SEEDS, effectZoneRect, flowEffectCount, selRect, sameSel, pickArchitectureEdge, type Sel } from './sceneEditLecture';
-import { eraseAt, moveSel, pasteEntity, resizeSel, deleteSel, changePropRef, paintTiles, fillTerrainRect, addLayer, removeLayer, paintHeight, placeEntity, placeEntry, renameEntry, addTrigger, addRestZone, addEffectZone, addMember, addEnemyMember, removeMember, placeEmplacement, setPosteCrew, setPosteSide, setPosteEngine, addArchitectureBody, addArchitectureStorey, paintCrenellated, patchWall, addArchitecturePart, addFacadeSection, addBuildingMass, paintEffectZone, clearEffectZoneCarve } from './sceneEdit';
+import { entityAt, etageSuivant, hitAt, EFFECT_ZONE_SEEDS, effectZoneRect, flowEffectCount, poigneeDeLaSelection, selRect, sameSel, pickArchitectureEdge, type Sel } from './sceneEditLecture';
+import { eraseAt, moveSel, pasteEntity, resizeSel, deleteSel, changePropRef, paintTiles, fillTerrainRect, addLayer, removeLayer, paintHeight, placeEntity, placeEntry, renameEntry, addTrigger, addRestZone, addEffectZone, addMember, addEnemyMember, removeMember, placeEmplacement, setPosteCrew, setPosteSide, setPosteEngine, addArchitectureBody, addArchitectureStorey, paintCrenellated, patchWall, addArchitecturePart, addFacadeSection, addBuildingMass, paintEffectZone, clearEffectZoneCarve, patchZone } from './sceneEdit';
 import { TOUS_CALQUES } from './sceneEdit.testkit';
 import { validateScene } from './validateScene';
 import { findCreatureById, creatureLabel, siegeEngines } from '../data';
@@ -234,6 +234,36 @@ describe('édition de scène — moveSel (clampé)', () => {
   it('déplace un point d’entrée et un ennemi (entité)', () => {
     expect(moveSel(s, { type: 'entry', id: 'entree' }, { x: 3, y: 3 }).entryPoints!.entree).toEqual({ x: 3, y: 3 });
     expect(moveSel(s, { type: 'entity', id: 'enemy-0' }, { x: 4, y: 4 }).entities.find((e) => e.id === 'enemy-0')!.pos).toEqual({ x: 4, y: 4 });
+  });
+});
+
+describe('édition de scène — patchZone et la poignée de la sélection', () => {
+  const s = sceneWith();
+  it('la poignée est au coin SE du rectangle, sur la couche de la zone seulement', () => {
+    expect(poigneeDeLaSelection(s, { type: 'trigger', id: 'trig-0' }, 0)).toEqual({ x: 5, y: 5 });
+    expect(poigneeDeLaSelection(s, { type: 'trigger', id: 'trig-0' }, 1)).toBeNull();
+    expect(poigneeDeLaSelection(s, { type: 'entity', id: 'perso-0' }, 0)).toBeNull();
+  });
+  it('un déclencheur rejoue, une zone de repos change de lieux et de qualité, chacune monte d’une couche', () => {
+    const trig = patchZone(s, { type: 'trigger', id: 'trig-0' }, { once: false, z: 1 }).triggers[0];
+    expect(trig).not.toHaveProperty('once');
+    expect(trig.rect).toEqual({ x: 4, y: 4, w: 2, h: 2, z: 1 });
+    const repos = patchZone(s, { type: 'restZone', idx: 0 }, { lieux: { auberge: true }, pietre: true }).restZones![0];
+    expect(repos).toMatchObject({ places: { ...s.restZones![0].places, auberge: true }, quality: 'pietre' });
+    expect(patchZone(s, { type: 'restZone', idx: 0 }, { pietre: false, z: 0 }).restZones![0]).not.toHaveProperty('quality');
+  });
+  it('une zone d’effet découpée emporte son emprise à sa nouvelle couche ; sa nature, sa forme, son aire entière', () => {
+    const { scene, idx } = addEffectZone(emptyScene('z', 8, 8), { x: 1, y: 1, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);
+    const decoupee = paintEffectZone(scene, scene.effectZones![idx].id, { x: 1, y: 1 }, 'remove');
+    const sel = { type: 'effectZone' as const, idx };
+    const montee = patchZone(decoupee, sel, { z: 1 }).effectZones![idx];
+    expect(montee.z).toBe(1);
+    expect(montee.tiles).toEqual([{ x: 2, y: 1, z: 1 }, { x: 1, y: 2, z: 1 }, { x: 2, y: 2, z: 1 }]);
+    expect(patchZone(decoupee, sel, { presentation: null }).effectZones![idx]).not.toHaveProperty('presentation');
+    expect(patchZone(decoupee, sel, { presentation: 'exterior' }).effectZones![idx].presentation).toBe('exterior');
+    expect(patchZone(decoupee, sel, { forme: 'disc' }).effectZones![idx].area.kind).toBe('disc');
+    expect(patchZone(decoupee, sel, { pleine: true }).effectZones![idx]).not.toHaveProperty('tiles');
+    expect(patchZone(decoupee, { type: 'entity', id: 'x' }, { z: 1 })).toBe(decoupee);
   });
 });
 

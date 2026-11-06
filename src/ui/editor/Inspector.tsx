@@ -53,7 +53,7 @@ import { FACADE_APPEARANCE_IDS } from '../../noyau/monde/facades';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../audio/music';
 import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, siegeEngines, MERCHANT_ARCHETYPES } from '../../data';
-import { renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setNorthDeg, setSceneFlags, removeSceneFlag, setSceneScalaires, setSceneLabel, renameScene, editEntry, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, patchStartMessage, setReliefDefault, patchSceneRoofDefaults, setSceneRest, patchTrigger, patchRestZone, replaceEffectZone, patchArchitectureBody, poseToitureDuCorps, addRoofExclusion, patchRoofExclusion, removeRoofExclusion, patchArchitectureStorey, patchArchitecturePart, patchFacadeSection, setFacadeSectionZ, patchBuildingMass, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE } from '../../noyau/sceneEdit';
+import { renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setNorthDeg, setSceneFlags, removeSceneFlag, setSceneScalaires, setSceneLabel, renameScene, editEntry, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, patchStartMessage, setReliefDefault, patchSceneRoofDefaults, setSceneRest, patchTrigger, patchRestZone, patchZone, replaceEffectZone, patchArchitectureBody, poseToitureDuCorps, addRoofExclusion, patchRoofExclusion, removeRoofExclusion, patchArchitectureStorey, patchArchitecturePart, patchFacadeSection, setFacadeSectionZ, patchBuildingMass, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE } from '../../noyau/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
@@ -869,7 +869,7 @@ export function Inspector({
                     </label>
                   ))}
                 </div>
-                <LayerField z={selT.rect.z} layers={sceneLayerZs(scene)} onChange={(z) => updateSelT({ rect: { ...selT.rect, z: z || undefined } })} />
+                <LayerField z={selT.rect.z} layers={sceneLayerZs(scene)} onChange={(z) => setScene(patchZone(scene, sel, { z }))} />
               </Fold>
               <div className="insp-actions">
                 <button className="btn small btn-primary" onClick={() => openLogic('triggers', selT.id)}>
@@ -899,7 +899,7 @@ export function Inspector({
                     </label>
                   ))}
                 </div>
-                <LayerField z={zone.rect.z} layers={sceneLayerZs(scene)} onChange={(z) => updateZone({ rect: { ...zone.rect, z: z || undefined } })} />
+                <LayerField z={zone.rect.z} layers={sceneLayerZs(scene)} onChange={(z) => setScene(patchZone(scene, sel, { z }))} />
                 <div className="ed-rest-places">
                   {([['auberge', <><Icon id="rest/bed" size="sm" /> Auberge</>], ['maison', <><Icon id="rest/home" size="sm" /> Chez soi</>], ['camp', <><Icon id="rest/camp" size="sm" /> Camper</>]] as const).map(([k, label]) => (
                     <label key={k} className="ed-check">
@@ -990,7 +990,7 @@ export function Inspector({
                       ))}
                     </div>
                   )}
-                  <LayerField z={efz.z} layers={sceneLayerZs(scene)} onChange={(z) => setEfz({ ...efz, z: z || undefined })} />
+                  <LayerField z={efz.z} layers={sceneLayerZs(scene)} onChange={(z) => setScene(patchZone(scene, sel, { z }))} />
                   <ZoneTilesBrush zone={efz} tool={tool} onArm={armZoneTiles} onChange={setEfz} focusKey={zoneFocusKey} port={panelRef} />
                   <CouvreField value={efz.couvre} sujet="de la zone" onChange={(couvre) => setEfz({ ...efz, couvre })} />
                 </Fold>
