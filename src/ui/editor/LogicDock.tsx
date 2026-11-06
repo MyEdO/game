@@ -15,8 +15,9 @@ import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { Warning } from '../../noyau/validateScene';
-import { nextEntityId } from '../../lib/entityId';
-import { removeMember, patchMember, flowEffectCount } from './editorState';
+import { removeMember, patchMember, addTrigger, patchTrigger, deleteSel, addDialogue, replaceDialogue, removeDialogue, addEncounter, patchEncounter, removeEncounter, renameTrigger, renameEncounter } from '../../noyau/sceneEdit';
+import { EntryRename } from './EntryRename';
+import { flowEffectCount } from '../../noyau/sceneEditLecture';
 import { LayerChip, sceneLayerZs } from './LayerField';
 import { effectCtxOf, Ctx } from './EffectList';
 import { FlowEditor } from './FlowEditor';
@@ -150,7 +151,9 @@ function TriggersTab({
   currentLayer: number;
 }) {
   const t = scene.triggers.find((x) => x.id === sel) ?? null;
-  const upd = (patch: Partial<Trigger>) => setScene({ ...scene, triggers: scene.triggers.map((x) => (t && x.id === t.id ? { ...x, ...patch } : x)) });
+  const upd = (patch: Partial<Trigger>) => {
+    if (t) setScene(patchTrigger(scene, t.id, patch));
+  };
   // Le détail est keyed sur l'identité STABLE du trigger : un renommage le garde, une autre sélection le remonte.
   const cles = useClesDeRangees(scene.triggers);
   return (
@@ -170,9 +173,9 @@ function TriggersTab({
         <button
           className="btn small"
           onClick={() => {
-            const id = nextEntityId('trig', scene.triggers.map((x) => x.id));
-            setScene({ ...scene, triggers: [...scene.triggers, { id, rect: { x: 0, y: 0, w: 2, h: 2, ...(currentLayer ? { z: currentLayer } : {}) }, once: true, flow: EMPTY_FLOW }] });
-            setSel(id);
+            const out = addTrigger(scene, { x: 0, y: 0, w: 2, h: 2 }, currentLayer);
+            setScene(out.scene);
+            setSel(out.id);
           }}
         >
           + Nouveau trigger
@@ -182,23 +185,24 @@ function TriggersTab({
       {t ? (
         <div className="logic-detail" key={cles[scene.triggers.indexOf(t)]}>
           <Row>
-            <label className="ed-field">
-              Id
-              <input
-                value={t.id}
-                onChange={(e) => {
-                  upd({ id: e.target.value });
-                  setSel(e.target.value);
-                }}
-              />
-            </label>
+            <EntryRename
+              label={t.id}
+              caption="Id"
+              onRename={(next) => {
+                const out = renameTrigger(scene, t.id, next);
+                if (out !== scene) {
+                  setScene(out);
+                  setSel(next.trim());
+                }
+              }}
+            />
             <label className="ed-check">
               <input type="checkbox" checked={!!t.once} onChange={(e) => upd({ once: e.target.checked })} /> une fois
             </label>
             <button
               className="btn small danger"
               onClick={() => {
-                setScene({ ...scene, triggers: scene.triggers.filter((x) => x.id !== t.id) });
+                setScene(deleteSel(scene, { type: 'trigger', id: t.id }));
                 setSel(null);
               }}
             >
@@ -244,9 +248,9 @@ function DialoguesTab({
         <button
           className="btn small"
           onClick={() => {
-            const id = nextEntityId('dlg', scene.dialogues.map((x) => x.id));
-            setScene({ ...scene, dialogues: [...scene.dialogues, { id, start: 'n1', nodes: [{ id: 'n1', choices: [] }] }] });
-            setSel(id);
+            const out = addDialogue(scene);
+            setScene(out.scene);
+            setSel(out.id);
           }}
         >
           + Nouveau dialogue
@@ -258,7 +262,7 @@ function DialoguesTab({
             <button
               className="btn small danger"
               onClick={() => {
-                setScene({ ...scene, dialogues: scene.dialogues.filter((x) => x.id !== d.id) });
+                setScene(removeDialogue(scene, d.id));
                 setSel(null);
               }}
             >
@@ -270,7 +274,7 @@ function DialoguesTab({
             dialogue={d}
             ctx={ctx}
             onChange={(nd: Dialogue) => {
-              setScene({ ...scene, dialogues: scene.dialogues.map((x) => (x.id === d.id ? nd : x)) });
+              setScene(replaceDialogue(scene, d.id, nd));
               if (nd.id !== d.id) setSel(nd.id);
             }}
           />
@@ -298,8 +302,9 @@ function EncountersTab({
   onSelectEntity: (id: string) => void;
 }) {
   const enc = scene.encounters.find((x) => x.id === sel) ?? null;
-  const upd = (patch: Partial<EncounterDef>) =>
-    setScene({ ...scene, encounters: scene.encounters.map((x) => (enc && x.id === enc.id ? { ...x, ...patch } : x)) });
+  const upd = (patch: Partial<EncounterDef>) => {
+    if (enc) setScene(patchEncounter(scene, enc.id, patch));
+  };
   const byId = new Map(scene.entities.map((e) => [e.id, e]));
   const members = enc?.members ?? [];
   return (
@@ -318,9 +323,9 @@ function EncountersTab({
         <button
           className="btn small"
           onClick={() => {
-            const id = nextEntityId('enc', scene.encounters.map((x) => x.id));
-            setScene({ ...scene, encounters: [...scene.encounters, { id, members: [] }] });
-            setSel(id);
+            const out = addEncounter(scene);
+            setScene(out.scene);
+            setSel(out.id);
           }}
         >
           + Nouvelle rencontre
@@ -330,20 +335,21 @@ function EncountersTab({
       {enc ? (
         <div className="logic-detail">
           <Row>
-            <label className="ed-field">
-              Id (référencé par « Démarrer un combat »)
-              <input
-                value={enc.id}
-                onChange={(e) => {
-                  upd({ id: e.target.value });
-                  setSel(e.target.value);
-                }}
-              />
-            </label>
+            <EntryRename
+              label={enc.id}
+              caption="Id (référencé par « Démarrer un combat »)"
+              onRename={(next) => {
+                const out = renameEncounter(scene, enc.id, next);
+                if (out !== scene) {
+                  setScene(out);
+                  setSel(next.trim());
+                }
+              }}
+            />
             <button
               className="btn small danger"
               onClick={() => {
-                setScene({ ...scene, encounters: scene.encounters.filter((x) => x.id !== enc.id) });
+                setScene(removeEncounter(scene, enc.id));
                 setSel(null);
               }}
             >

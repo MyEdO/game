@@ -51,7 +51,7 @@ describe('barre de DR des fenêtres de Test étendu', () => {
     const w = heros();
     w.dispel = { spellId: 'armure-aethyrique', spellCasterId: w.id, total: 1 };
     useGame.setState({ party: [w], battle: null,
-      pendingDispel: { casterId: w.id, spellId: 'armure-aethyrique', spellCasterId: w.id, label: 'Armure aethyrique', ni: 5, value: 40, result: { roll: 40, target: 40, sl: 0, success: true } } as never });
+      pendingDispel: { casterId: w.id, spellId: 'armure-aethyrique', spellCasterId: w.id, label: 'Armure aethyrique', ni: 5, value: 40, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, result: { roll: 40, target: 40, sl: 0, success: true } } as never });
     act(() => { root.render(<DispelModal />); });
     expect(barres()).toEqual(['2 / 5 DR']);
   });

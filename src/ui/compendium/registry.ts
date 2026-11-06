@@ -94,15 +94,20 @@ import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
-import { humanizeCastBonus, CAUSE_PERSISTANTE, replieCausesPersistantes } from './humanize';
+import { humanizeCastBonus, causePersistante, replieCausesPersistantes } from '../../noyau/codex/humanize';
 import { reverseGroups, bookContents } from '../../noyau/codex/relations';
-import { formatManeuverMeasure } from './maneuverMeasure';
+import { formatManeuverMeasure } from '../../noyau/codex/maneuverMeasure';
 import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/schemas/validate';
-import { libelleDuChamp } from './editFields';
+import { libelleDuChamp } from '../../noyau/codex/editFields';
 // Ordre des arrêts d'une rampe de terrain : SOURCE UNIQUE partagée avec les émetteurs SVG — la fiche
 // Codex lit la rampe dans l'ordre où le rendu la peint, jamais dans l'ordre des clés du Record.
-import { terrainStopsOrdonnes } from '../../gameIso/catalog/terrain';
+import { terrainStopsOrdonnes } from '../../noyau/monde/terrain';
 import { slugId } from '../../data/slug';
+import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
+
+/** Les états de campagne du Codex : aucun. Le Codex ne projette que `src/data`, jamais une couche de
+ *  campagne (#767) — ses conditions `etat` se disent par leur id. */
+const ETATS_DU_CODEX: readonly EtatDeclare[] = [];
 
 export type CodexGroup = 'Personnage' | 'Compétences' | 'Équipement' | 'Effets' | 'Magie' | 'Monde' | 'Tables';
 
@@ -355,13 +360,13 @@ const kvRows = (pairs: [string, unknown][]): CodexRow[] =>
 const chips = (title: string, rows: CodexRow[]): CodexSection | null =>
   rows.length ? { title, layout: 'chips', rows } : null;
 /** Ligne cross-réf d'une `TrappingRef` STRUCTURÉE (#904) : la FORME de la référence désigne SON
- *  foyer — `id`→Possessions, `creatureId`→Créatures, `vehicleId`→Véhicules — jamais une re-résolution
+ *  foyer — `id`→Possessions, `{id, type}`→Créatures ou Véhicules selon `type` — jamais une re-résolution
  *  par libellé. `{text}` reste du texte narratif (aucune entité désignée) ;
  *  `choice`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
 const trappingRefRow = (ref: TrappingRef): CodexRow => {
   const show = trappingRefLabel(ref);
-  if ('creatureId' in ref) return idRefRow('creatures', ref.creatureId, undefined, show);
-  if ('vehicleId' in ref) return { t: 'ref', category: 'vehicles', id: ref.vehicleId, label: findVehicleById(ref.vehicleId)?.label ?? ref.vehicleId, show };
+  if ('type' in ref && ref.type === 'creature') return idRefRow('creatures', ref.id, undefined, show);
+  if ('type' in ref) return { t: 'ref', category: 'vehicles', id: ref.id, label: findVehicleById(ref.id)?.label ?? ref.id, show };
   if ('id' in ref) return idRefRow('trappings', ref.id, undefined, show);
   // PASTILLE NUE, jamais de la prose : `{text}` est un NOM D'OBJET (« Grand hôtel particulier avec
   // jardins » y ferait lier « Grand »), et `choice`/`wildcard` sont des libellés composites. Aucune
@@ -583,7 +588,7 @@ const traitItem = (t0: (typeof traits)[number]): CodexItem => {
     ),
     sections: sections(
       chips('Manœuvres conférées', (t.grantsManeuvers ?? []).map((r) => idRefRow('maneuvers', r.id, r.spec))),
-      passiveSection(t.passive), effectsSection(t.effects),
+      passiveSection(t.passive), effectsSection(t.effects, ETATS_DU_CODEX),
       ...reverseSections('traits', t.id), // Créatures ayant ce trait · Mutations le conférant
     ),
   });
@@ -906,7 +911,7 @@ function miscastAmountLabel(a: unknown): string {
 }
 
 /** Une op du DIALECTE miscast (`JsonOp`) → sa ligne Codex — sous-ensemble des `op` réellement présents
- *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`, cf.
+ *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`, cf.
  *  `engine/miscast.ts::expandOp`). Chip cross-réf pour l'État ; texte structuré pour le reste. */
 function miscastOpRow(o: Record<string, unknown>): CodexRow {
   switch (o.op) {
@@ -917,7 +922,7 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
       const dur = o.durationRounds != null ? `${miscastAmountLabel(o.durationRounds)} Round(s)` : undefined;
       // CAUSE PERSISTANTE (`LDB 16 l.117`) : la rangée pose UN État et le MAINTIENT — la persistance se
       // dit au BADGE de SA chip, du mot du journal et de la même forme que l'autre lecteur (`opRows`).
-      const badge = [estCausePersistante(o) ? CAUSE_PERSISTANTE : undefined, dur].filter((s): s is string => !!s).join(' · ') || undefined;
+      const badge = [estCausePersistante(o) ? causePersistante() : undefined, dur].filter((s): s is string => !!s).join(' · ') || undefined;
       const show = value && value !== '1' ? `${value} × ${label}` : label;
       return { t: 'ref', category: 'etats', id, label, show, badge };
     }
@@ -943,6 +948,17 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
         ? { t: 'ref', category: 'skills', id: skillId, label: refLabel('skills', skill!), show: `${eff}${dur ? ` (${dur})` : ''}` }
         : { t: 'kv', k: 'Magie', v: `${eff}${dur ? ` (${dur})` : ''}` };
     }
+    case 'suppressTalents':
+      return { t: 'kv', k: 'Talents suspendus', v: `${(o.talents as { id: string }[]).map((x) => refLabel('talents', x)).join(', ')} (${miscastAmountLabel(o.durationDays)} jour(s))` };
+    case 'deitySkillMod': {
+      const dur = o.durationHours != null ? `${miscastAmountLabel(o.durationHours)} heure(s)` : `${miscastAmountLabel(o.durationDays)} jour(s)`;
+      const qui = o.pick === 'all' ? 'toutes' : 'une, tirée au hasard';
+      return { t: 'kv', k: 'Compétences associées au dieu', v: `${o.mod as number} (${qui} ; ${dur})` };
+    }
+    case 'deityBan':
+      return { t: 'kv', k: 'Bénédictions et Miracles du dieu', v: `échouent (${miscastAmountLabel(o.durationDays)} jour(s))` };
+    case 'prayerForAction':
+      return { t: 'kv', k: 'Action', v: `Test de Prière imposé (${miscastAmountLabel(o.durationRounds)} Round(s))` };
     default:
       return { t: 'text', text: String(o.op) };
   }
@@ -969,6 +985,7 @@ function miscastRowItem(e: MiscastRowEntry): CodexItem {
     meta: facts(e.reroll ? fact('Relance', e.reroll === 'majeure' ? 'Cascade → Tableau Majeur' : 'Multiplication (2 tirages Mineurs)') : null),
     sections: sections(
       e.ops?.length ? { title: 'Effet immédiat', layout: 'list', rows: replieCausesPersistantes(e.ops).map(miscastOpRow) } : null,
+      e.targetOps?.length ? { title: 'Effet sur les cibles', layout: 'list', rows: replieCausesPersistantes(e.targetOps).map(miscastOpRow) } : null,
       e.test ? miscastTestSection(e.test) : null,
     ),
   });
@@ -1377,7 +1394,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sections: sections(
         careerGrantSection(e.passive), // Compétence/Talent ajouté à toute carrière (Maître artisan, Flagellant…)
         passiveSection(e.passive),
-        effectsSection(e.effects, 'Effets déclenchés'),
+        effectsSection(e.effects, ETATS_DU_CODEX, 'Effets déclenchés'),
         ...reverseSections('talents', e.id), // Races · Carrières (rang) · Créatures · Talents le conférant
       ),
       });
@@ -1446,7 +1463,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'qualities', label: 'Qualités', group: 'Équipement',
     build: () => qualities.map((q) => depuisEnveloppe(q, {
       sub: join(qualityTypeLabel(q.polarite), qualitySubtypeLabel(q.subType)),
-      sections: sections(passiveSection(q.passive), effectsSection(q.effects, 'Effets déclenchés'), ...reverseSections('qualities', q.id)),
+      sections: sections(passiveSection(q.passive), effectsSection(q.effects, ETATS_DU_CODEX, 'Effets déclenchés'), ...reverseSections('qualities', q.id)),
     })),
   },
   {
@@ -1563,7 +1580,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         fact('Bonus d’incantation', d.castBonus ? humanizeCastBonus(d.castBonus) : null),
         fact('Post-incantation', d.casterOps?.length ? `${d.casterOps.length} op(s) au lanceur` : null),
       ),
-      sections: sections(effectsSection(d.effects, 'Riders à la touche'), ...reverseSections('domains', d.id)),
+      sections: sections(effectsSection(d.effects, ETATS_DU_CODEX, 'Riders à la touche'), ...reverseSections('domains', d.id)),
     })),
   },
   {
@@ -1585,7 +1602,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
       sections: sections(
         ritualSection(s.ritual), // Anatomie d'un Rituel (`VDM 02 l.377-393`)
-        spellFlowSection(s.effects), // Effet mécanique (Flow) — #5 data-driven
+        spellFlowSection(s.effects, ETATS_DU_CODEX), // Effet mécanique (Flow) — #5 data-driven
         ...reverseSections('spells', s.id), // Cultes (Bénédictions/Miracles) · Créatures · Domaine
       ),
     })),
@@ -1598,6 +1615,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         chips('Bénédictions', c.blessings.map((id) => idRefRow('spells', id))),
         chips('Miracles', c.miracles.map((id) => idRefRow('spells', id))),
         chips('Sorts du Chaos', (c.chaosSpells ?? []).map((id) => idRefRow('spells', id))),
+        chips('Compétences associées', (c.associatedSkills ?? []).map((id) => idRefRow('skills', id))),
       ),
     })),
   },
@@ -2017,7 +2035,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'psychologies', label: 'États psychologiques', group: 'Effets',
     build: () => psychologies.map((p) => depuisEnveloppe(p, {
-      sections: sections(passiveSection(p.passive), effectsSection(p.effects), ...reverseSections('psychologies', p.id)),
+      sections: sections(passiveSection(p.passive), effectsSection(p.effects, ETATS_DU_CODEX), ...reverseSections('psychologies', p.id)),
     })),
   },
   {

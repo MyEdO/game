@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, structureAt, type WallSeg } from '../../noyau/monde/scene';
-import { wallBetween } from '../../noyau/monde/scene';
-import { canonEdge, edgeWallState, toggleEdgeWall, toggleDiagonalWall, paintHeight, nearestEdge, pickWallEdge, patchWall, deleteSel } from './editorState';
+import { emptyScene, structureAt, type WallSeg } from './monde/scene';
+import { wallBetween } from './monde/scene';
+import { canonEdge, edgeWallState, nearestEdge, pickWallEdge } from './sceneEditLecture';
+import { toggleEdgeWall, toggleDiagonalWall, paintHeight, patchWall, deleteSel } from './sceneEdit';
 
 /**
  * Outils éditeur MURS (arêtes + portes + diagonales) et HAUTEUR métrique (surface surélevée / fosse).
@@ -9,7 +10,7 @@ import { canonEdge, edgeWallState, toggleEdgeWall, toggleDiagonalWall, paintHeig
  * case = le N de la suivante) pour ne stocker chaque cloison qu'une fois. La HAUTEUR s'écrit en MÈTRES
  * dans `Layer.height` (porteuse : marchabilité/combat/chute) — plus d'escalier ni d'« élévation » 0-1.
  */
-describe('editorState — outil MURS (arêtes)', () => {
+describe('édition de scène — outil MURS (arêtes)', () => {
   it('canonEdge : S→N de la case du dessous, O→E de la case de gauche, N/E inchangés', () => {
     expect(canonEdge(2, 3, 'N')).toEqual({ x: 2, y: 3, side: 'N' });
     expect(canonEdge(2, 3, 'E')).toEqual({ x: 2, y: 3, side: 'E' });
@@ -52,7 +53,7 @@ describe('editorState — outil MURS (arêtes)', () => {
   });
 });
 
-describe('editorState — outil MURS (diagonales)', () => {
+describe('édition de scène — outil MURS (diagonales)', () => {
   it('pose une diagonale \\ dans la case, re-toggle l’enlève', () => {
     const s = toggleDiagonalWall(emptyScene('scene-test', 5, 5), 3, 3, '\\', 0);
     expect(s.walls![0]).toMatchObject({ x: 3, y: 3, side: '\\' });
@@ -66,7 +67,7 @@ describe('editorState — outil MURS (diagonales)', () => {
   });
 });
 
-describe('editorState — sélection + structure d’une arête-mur', () => {
+describe('édition de scène — sélection + structure d’une arête-mur', () => {
   /** Scène 5×5 avec une cloison pleine sur l’arête E de (2,2). */
   const withWall = () => toggleEdgeWall(emptyScene('scene-test', 5, 5), 2, 2, 'E', 0, 'wall');
 
@@ -119,7 +120,7 @@ describe('editorState — sélection + structure d’une arête-mur', () => {
   });
 });
 
-describe('editorState — outil HAUTEUR (paintHeight, métrique)', () => {
+describe('édition de scène — outil HAUTEUR (paintHeight, métrique)', () => {
   it('peint la hauteur métrique de la case (crée le tableau height au besoin)', () => {
     const s = paintHeight(emptyScene('scene-test', 4, 4), { x: 1, y: 1 }, 1, 1, 0); // +1 m (estrade)
     expect(s.layers[0].height).toBeDefined();
@@ -137,7 +138,7 @@ describe('editorState — outil HAUTEUR (paintHeight, métrique)', () => {
   });
 });
 
-describe('editorState — nearestEdge (offset → arête)', () => {
+describe('édition de scène — nearestEdge (offset → arête)', () => {
   it('choisit l’arête la plus proche du centre', () => {
     expect(nearestEdge(0.45, 0)).toBe('E'); // vers la droite
     expect(nearestEdge(-0.45, 0)).toBe('O');

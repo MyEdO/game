@@ -113,7 +113,7 @@ export function schemaForFile(file: string): z.ZodType | undefined {
 }
 
 /** Méta d'ÉDITION d'un document par nom de fichier — le canal registre est le SEUL chemin
- *  schéma→atelier (`src/ui/compendium/editFields.ts`). `undefined` pour un def qui ne passe pas par
+ *  schéma→atelier (`src/noyau/codex/editFields.ts`). `undefined` pour un def qui ne passe pas par
  *  `document()` ; adoption par def : lot L1b #1467. */
 export function metaPourFichier(file: string): Readonly<Record<string, MetaChamp>> | undefined {
   return DEFS_DE_DOCUMENT.find((d) => d.file === file)?.meta;
@@ -246,7 +246,7 @@ export function chargeDiscriminee(file: string, entree: Record<string, unknown>)
  *    il ne se SAISIT pas. Il se lit sur les entrées du document, qui l'ont toutes parsé contre ce
  *    littéral, et SEULEMENT pour un document à méta (donc bâti par `document()`) — sur un document
  *    sans handle, `type` est un discriminant de CHARGE utile, pas le type du document (même frontière
- *    que `libelleDuChamp`, `src/ui/compendium/editFields.ts`).
+ *    que `libelleDuChamp`, `src/noyau/codex/editFields.ts`).
  *  - la PREMIÈRE valeur du champ DISCRIMINANT, celle que le `select` de l'atelier affiche en tête
  *    (ordre de l'enum NOMMÉ du nœud, dont les options SONT les clés de ses libellés) : un `select` qui
  *    affiche « Décor » sur un brouillon sans domaine ment à l'écran, refuse au save, et fait présenter

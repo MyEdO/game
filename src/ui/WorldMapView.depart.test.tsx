@@ -80,7 +80,7 @@ describe('WorldMapView — le départ lit `refusDeDepart`', () => {
     setRule('travel-allures', true);
     try {
       const h = marcheur();
-      const palefroi: Possession = { uid: 'm1', ownerId: h.id, nature: 'bete', ref: { creatureId: 'cheval-de-monte' }, location: { kind: 'avec-le-groupe' }, items: [] };
+      const palefroi: Possession = { uid: 'm1', ownerId: h.id, nature: 'bete', ref: { id: 'cheval-de-monte' }, location: { kind: 'avec-le-groupe' }, items: [] };
       await choisirBourgB({ km: 200 }, [h], () => useGame.setState({ possessions: [palefroi] }));
       const enSelle = [...container.querySelectorAll<HTMLElement>('[role="radio"], button')].find((b) => b.textContent?.includes('En selle'))!;
       await act(async () => { enSelle.click(); });

@@ -35,28 +35,33 @@ const fichiersDesHotes = (): string[] =>
   DOSSIERS.flatMap((d) => listerArbre(fileURLToPath(new URL(d, RACINE)), { filtre: (f) => /\.(ts|gd)$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f) && !/\.generated\.ts$/.test(f) }).map((f) => `${d}/${f}`));
 const estGdscript = (f: string): boolean => f.endsWith('.gd');
 
-/** Les mots des chaînes d'un texte de code (littéraux entre apostrophes, guillemets ou accents graves), commentaires ôtés,
- *  chacun avec sa ligne. */
+/** Un mot : une lettre, accentuée ou non, puis des lettres, des chiffres, `_` ou `-` (« portée » est un mot, pas « port »). */
+const MOT = /\p{L}[\p{L}\p{N}_-]*/gu;
+
+/** Les mots des chaînes d'un texte de code (littéraux entre apostrophes, guillemets ou accents graves, sans le code
+ *  qu'un gabarit interpole), commentaires ôtés, chacun avec sa ligne. */
 function motsDesChaines(code: string): { mot: string; ligne: number }[] {
   const sansCommentaires = code.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' ')).replace(/(^|[^:'"`\\])\/\/[^\n]*/g, (c, avant: string) => avant + ' '.repeat(c.length - avant.length));
   const mots: { mot: string; ligne: number }[] = [];
   for (const m of sansCommentaires.matchAll(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g)) {
     const debut = sansCommentaires.slice(0, m.index).split('\n').length;
-    for (const w of m[0].matchAll(/[A-Za-z][A-Za-z0-9_-]*/g)) mots.push({ mot: w[0], ligne: debut + m[0].slice(0, w.index).split('\n').length - 1 });
+    const texte = m[0].startsWith('`') ? m[0].replace(/\$\{[^}]*\}/g, (x) => x.replace(/[^\n]/g, ' ')) : m[0];
+    for (const w of texte.matchAll(MOT)) mots.push({ mot: w[0], ligne: debut + texte.slice(0, w.index).split('\n').length - 1 });
   }
   return mots;
 }
 
 /** Les mots des chaînes d'un script GDScript (`lexemesGdscript`), chacun avec sa ligne. */
 const motsDesChainesGdscript = (code: string): { mot: string; ligne: number }[] =>
-  lexemesGdscript(code).chaines.flatMap(({ texte, ligne }) => [...texte.matchAll(/[A-Za-z][A-Za-z0-9_-]*/g)].map((w) => ({ mot: w[0], ligne: ligne + texte.slice(0, w.index).split('\n').length - 1 })));
+  lexemesGdscript(code).chaines.flatMap(({ texte, ligne }) => [...texte.matchAll(MOT)].map((w) => ({ mot: w[0], ligne: ligne + texte.slice(0, w.index).split('\n').length - 1 })));
 
 describe('l’hôte ne nomme aucun verbe ni aucune fenêtre en dur', () => {
-  it('témoin : la garde voit le verbe d’une chaîne et la fenêtre d’un gabarit, pas ceux d’un commentaire', () => {
+  it('témoin : la garde voit le verbe d’une chaîne et la fenêtre d’un gabarit, pas ceux d’un commentaire, d’une interpolation ni d’un mot plus long', () => {
     const [verbe, autre] = Object.keys(VERBES).filter((v) => !EXCEPTIONS[v]);
-    const mots = motsDesChaines(`// '${autre}'\nconst x = '${verbe}';\nconst y = \`fenêtre ${CLES_DE_FENETRE[0]}\`;`);
+    const mots = motsDesChaines(`// '${autre}'\nconst x = '${verbe}';\nconst y = \`fenêtre ${CLES_DE_FENETRE[0]} \${${autre}}\`;\nconst z = '${verbe}ée';`);
     expect(mots).toEqual(expect.arrayContaining([{ mot: verbe, ligne: 2 }, { mot: CLES_DE_FENETRE[0], ligne: 3 }]));
-    expect(mots.map((m) => m.mot)).not.toContain(autre);
+    expect(mots.map((m) => m.mot), 'ni le commentaire, ni le code interpolé, ni le début d’un mot accentué').not.toContain(autre);
+    expect(mots.filter((m) => m.mot === verbe)).toHaveLength(1);
     expect(motsDesChainesGdscript(`# "${autre}"\nvar x := "${verbe}"`)).toEqual([{ mot: verbe, ligne: 2 }]);
   });
 

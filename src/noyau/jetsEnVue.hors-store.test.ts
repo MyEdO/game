@@ -74,7 +74,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   crewTest: { patch: { pendingCrewTest: { shipId: 'nef', testTypeId: 'x', moraleScore: 0, participants: [{ id: H.id, roleId: 'capitaine', essential: false, navigation: { id: 'navigation' }, result: jet(40, 45) }] } }, flux: ['crewTest'] },
   shanty: { patch: { pendingShanty: { shipId: 'nef', singerId: H.id, shantyId: 'x', result: jet(40, 45) } }, flux: ['shanty'] },
   focus: { patch: { pendingFocus: { casterId: H.id, spellId: 'x', result: { dr: 2, success: true, isCritical: false, isFumble: false, roll: 21, target: 45, sl: 2, log: '' } } }, flux: ['focus'] },
-  dispel: { patch: { pendingDispel: { casterId: H.id, spellId: 'x', spellCasterId: E.id, label: 'Sort', ni: 4, value: 45, result: jet(21, 45) } }, flux: ['dispel'] },
+  dispel: { patch: { pendingDispel: { casterId: H.id, spellId: 'x', spellCasterId: E.id, label: 'Sort', ni: 4, value: 45, ligne: { base: 45, mods: [], target: 45, difficulty: 'intermediaire' }, result: jet(21, 45) } }, flux: ['dispel'] },
   medic: {
     patch: {
       medic: {} as NonNullable<Jeu['medic']>,

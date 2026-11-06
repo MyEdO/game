@@ -205,6 +205,16 @@
     }
   },
   {
+    "id": "ceinture",
+    "type": "garde-robe",
+    "label": "Ceinture",
+    "kind": "piece",
+    "categorie": "accessoire",
+    "emplacement": {
+      "id": "ceinture_avant"
+    }
+  },
+  {
     "id": "plumet",
     "type": "garde-robe",
     "label": "Plumet",

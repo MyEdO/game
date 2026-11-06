@@ -151,10 +151,10 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
   });
 
   it('la `spec` d’une dotation s’AFFICHE — sur la donnée réelle, jamais une réf forgée', () => {
-    const site = dotations().find(({ ref }) => 'id' in ref && ref.id === 'outils-professionnels' && ref.spec === 'Maréchal-ferrant');
+    const site = dotations().find(({ ref }) => 'spec' in ref && ref.id === 'outils-professionnels' && ref.spec === 'Maréchal-ferrant');
     expect(site, 'aucune dotation `outils-professionnels (Maréchal-ferrant)` en donnée — le témoin a disparu').toBeTruthy();
     expect(trappingRefLabel(site!.ref)).toBe('Outils professionnels (Maréchal-ferrant)');
-    const choix = dotations().find(({ ref }) => 'choice' in ref && ref.choice.some((b) => 'id' in b && b.id === 'atelier' && b.spec != null));
+    const choix = dotations().find(({ ref }) => 'choice' in ref && ref.choice.some((b) => 'spec' in b && b.id === 'atelier' && b.spec != null));
     expect(choix, 'aucun choix de dotation `atelier` spécialisé en donnée — le témoin a disparu').toBeTruthy();
     expect(trappingRefLabel(choix!.ref)).toBe('Atelier (Ingénierie) ou Atelier (Magie)');
     const compte = dotations().find(({ ref }) => 'id' in ref && ref.id === 'carreau' && ref.count != null);

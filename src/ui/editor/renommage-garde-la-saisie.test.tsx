@@ -14,7 +14,7 @@ import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Inspector } from './Inspector';
 import { LogicDock, type LogicTab } from './LogicDock';
-import type { Sel } from './editorState';
+import type { Sel } from '../../noyau/sceneEditLecture';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
@@ -188,7 +188,7 @@ describe('panneau Logique — un porteur renommé garde la saisie de ses champs 
   it('trigger : renommer l’id garde le JSON en saisie ; un autre trigger ne le reçoit pas', () => {
     monter(<Dock initiale={{ ...emptyScene('scene-test', 8, 8), triggers: [trigger('t1', 1), trigger('t2', 2)] }} onglet="triggers" trig0="t1" />);
     saisir(jsons()[0], BROUILLON);
-    saisir(champSousLibelle('Id'), 't1-renomme');
+    renommerAuBlur(champSousLibelle('Id'), 't1-renomme');
     expect(sceneVue.triggers[0].id).toBe('t1-renomme');
     expect(jsons()[0].value, 'le renommage a effacé le JSON en saisie').toBe(BROUILLON);
 

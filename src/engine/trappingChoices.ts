@@ -16,7 +16,7 @@ export type ChoixDeDotation = Record<AdresseDeCreation, number | string>;
 export type EmplacementDeDotation = { adresse: AdresseDeCreation; chemin: readonly number[] } & (
   | { sorte: 'branches'; ref: Extract<TrappingRef, { choice: TrappingRef[] }> }
   | { sorte: 'joker'; ref: Extract<TrappingRef, { wildcard: string }> }
-  | { sorte: 'atout'; ref: Extract<TrappingRef, { id: string }> }
+  | { sorte: 'atout'; ref: Extract<TrappingRef, { id: string; type?: never }> }
 );
 type EmplacementABranches = Extract<EmplacementDeDotation, { sorte: 'branches' }>;
 
@@ -31,7 +31,7 @@ function emplacement(ref: TrappingRef, chemin: readonly number[]): EmplacementDe
   const adresse = adresseDeCreation.dotation(chemin);
   if ('choice' in ref) return { adresse, chemin, sorte: 'branches', ref };
   if ('wildcard' in ref) return { adresse, chemin, sorte: 'joker', ref };
-  if ('id' in ref && ref.qualityChoice) return { adresse, chemin, sorte: 'atout', ref };
+  if ('qualityChoice' in ref && ref.qualityChoice) return { adresse, chemin, sorte: 'atout', ref };
   return undefined;
 }
 

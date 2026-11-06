@@ -24,7 +24,7 @@ const lot = (cargoId: string, enc: number): CargoLot => ({ cargoId, enc, basePri
 
 /** Possession bête (SOCLE POSSESSIONS #617/#618) — `mule` = `poney-ane-ou-mule` → encPortee 14. */
 const beastPossession = (uid: string, ownerId: string, creatureId: string, cargo: CargoLot[] = []): Possession =>
-  ({ uid, ownerId, nature: 'bete', ref: { creatureId }, location: { kind: 'avec-le-groupe' }, items: [], cargo });
+  ({ uid, ownerId, nature: 'bete', ref: { id: creatureId }, location: { kind: 'avec-le-groupe' }, items: [], cargo });
 
 /** Possession véhicule terrestre — `charrette` → chargement 25. */
 const vehiclePossession = (uid: string, ownerId: string, vehicleId: string, cargo: CargoLot[] = []): Possession =>

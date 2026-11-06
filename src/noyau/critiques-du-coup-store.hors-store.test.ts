@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng, seedBattleRng } from './battleRng';
-import { applyAttackResult, applyCast, applyOpposedCritical, resolveAttack, type CastCritChoice } from './combatFlow';
+import { applyAttackResult, applyCast, applyCoupCritiqueSec, resolveAttack } from './combatFlow';
+import type { CritChoice } from '../engine/magic';
 import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { rederivePassiveAttack, issueAuJet, coupAApplique, causeDuCoupCritique, type AttackResult } from '../engine/combat';
@@ -163,7 +164,7 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
   it("Mort subite : le Critique d'un Test opposé ne frappe pas le figurant (LDB 14 l.3 ; LDB 18 l.44)", () => {
     const { H, cible } = coupQuiDepasse(false, { pa: 1, endurance: 10 });
     const log: string[] = [];
-    applyOpposedCritical(banc.getState, banc.setState, cible, 44, { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log);
+    applyCoupCritiqueSec(banc.getState, banc.setState, cible, 44, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log);
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
     expect(banc.getState().pendingCascade ?? null).toBeNull();
@@ -430,7 +431,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
     setRule('combat-critical-deflect', false);
     const { H, cible } = coup({ roll: 45, double: false, current: 20, pieces: [bacle, impenetrable()] });
     const log: string[] = [];
-    applyOpposedCritical(banc.getState, banc.setState, cible, roll, { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log);
+    applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log);
     return { cible, log };
   }
 
@@ -514,8 +515,8 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
 describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LDB 46 l.30 ; AA 07 l.36, l.67 ; #1595 c.6219992594)", () => {
   beforeEach(() => { setRule('combat-aa-blessures', 'aa'); });
 
-  /** Le Projectile en Incantation critique sur la cible debout à 20 PB, PA 0, `choix` = l'effet choisi (absent : celui par défaut). */
-  function projectileDebout(chanceux: boolean, choix: 'critique' | undefined) {
+  /** Le Projectile en Incantation critique sur la cible debout à 20 PB, PA 0, `choix` = l'effet choisi. */
+  function projectileDebout(chanceux: boolean, choix: 'critique') {
     const { mage, cible } = carreauEnCombat();
     cible.important = true;
     cible.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
@@ -527,15 +528,13 @@ describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LD
     return banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
   }
 
-  for (const choix of ['critique', undefined] as const) {
-    it(`cible Chanceux, effet ${choix ?? 'par défaut'} : une Blessure critique, sur la table AA`, () => {
-      const apres = projectileDebout(true, choix);
-      expect(apres.wounds.current, 'la cible reste debout').toBeGreaterThan(0);
-      expect(apres.criticalWounds).toBe(1);
-      expect(apres.critEntriesSuffered).toHaveLength(1);
-      expect(apres.critEntriesSuffered![0]).toMatch(/^aa-/);
-    });
-  }
+  it('cible Chanceux, Blessure Critique choisie : une Blessure critique, sur la table AA', () => {
+    const apres = projectileDebout(true, 'critique');
+    expect(apres.wounds.current, 'la cible reste debout').toBeGreaterThan(0);
+    expect(apres.criticalWounds).toBe(1);
+    expect(apres.critEntriesSuffered).toHaveLength(1);
+    expect(apres.critEntriesSuffered![0]).toMatch(/^aa-/);
+  });
 
   it('cible sans Chanceux : la Mort subite refuse la Blessure critique, au Projectile comme au double de mêlée', () => {
     expect(projectileDebout(false, 'critique').criticalWounds ?? 0).toBe(0);
@@ -767,7 +766,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
 
   /** Le Carreau en Incantation critique, effet `effet`, sur la cible tenue par le siège MJ, debout à 20 PB sous 2 PA ;
    *  ses lignes de touche après `applyCast`, puis après la cascade drainée au dé 50 et au choix `choix`. */
-  function carreau(effet: CastCritChoice, o: { choix?: 'devier' | 'subir'; demoniaque?: number } = {}) {
+  function carreau(effet: CritChoice, o: { choix?: 'devier' | 'subir'; demoniaque?: number } = {}) {
     banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
     const { mage, cible } = carreauEnCombat();
     cible.important = true;

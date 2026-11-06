@@ -7,7 +7,10 @@
  * `kind: 'personnage'`. Résolution : le faisceau du spawn (`refEntiteResolue`, `data/index.ts`) pour une réf
  * de fiche ; ce faisceau plus les STRUCTURES pour le `creatureId` d'un combattant (`engine/inanimate.ts:53`
  * `creatureId: s.refId`, posé par `engine/structures.ts:164` `refId: struct.id` et par le spawn des coques et
- * engins) ; le bestiaire SEUL pour un `ref: { creatureId }` (`livingRefSchema`, `defs-scenes/effets.ts`).
+ * engins) ; le bestiaire SEUL pour la référence d'un vivant (`livingRefSchema`, `defs-scenes/effets.ts`) :
+ * `ref: { id, type: 'creature' }` (`givePossession`), le `ref: { id }` d'une possession, qui n'ouvre
+ * jamais son objet (un `{ ref: … }` est un tirage ou une offre de Compétence), et celui d'un adversaire
+ * de poursuite (`foes:`).
  * Exemptés au SITE (`fichier|ligne du site`) : les tests dont la réf MORTE est le SUJET (refus prouvé).
  */
 import { describe, it, expect } from 'vitest';
@@ -17,10 +20,10 @@ import { findCreatureById, refEntiteResolue, structures } from './data';
 
 /** Les réfs MORTES que leur test PROUVE (refus, repli signalé) — `fichier|ligne du site` (texte, espaces réduits). */
 const MORTES_PROUVEES = new Set<string>([
-  "src/noyau/give-possession-effect.hors-store.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { creatureId: '' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « (aucune) »' }]);",
-  "src/noyau/give-possession-effect.hors-store.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { creatureId: 'licorne-mauve' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « licorne-mauve »' }]);",
+  "src/noyau/give-possession-effect.hors-store.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { id: '', type: 'creature' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « (aucune) »' }]);",
+  "src/noyau/give-possession-effect.hors-store.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { id: 'licorne-mauve', type: 'creature' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « licorne-mauve »' }]);",
   "src/noyau/validateScene-contenu.test.ts|expect(() => spawnEnemy({ ref: 'ref-qui-nexiste-nulle-part' }, 'e-1', { x: 2, y: 2 })).toThrow(RefIrresoluble);",
-  "src/ui/editor/editorState.test.ts|expect(() => placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))",
+  "src/noyau/sceneEdit-editeur.test.ts|expect(() => placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))",
 ]);
 
 /** Le `creatureId` d'un combattant : une réf de fiche, ou l'id d'une STRUCTURE (objet inanimé). */
@@ -29,8 +32,10 @@ const refDeCombattant = (id: string) => refEntiteResolue(id) || structures.some(
 /** Chaque site et la famille qu'il admet : une réf de fiche, un combattant, ou une CRÉATURE seule. */
 const MOTIFS: { re: RegExp; resout: (id: string) => boolean }[] = [
   { re: /spawnEnemy\(\s*\{\s*ref:\s*'([^']*)'/g, resout: refEntiteResolue },
-  { re: /ref:\s*\{\s*creatureId:\s*'([^']*)'/g, resout: (id) => !!findCreatureById(id) },
-  { re: /(?<!ref:\s*\{\s*)creatureId:\s*'([^']*)'/g, resout: refDeCombattant },
+  { re: /\bref:\s*\{\s*id:\s*'([^']*)',\s*type:\s*'creature'/g, resout: (id) => !!findCreatureById(id) },
+  { re: /(?<!\{\s*)\bref:\s*\{\s*id:\s*'([^']*)'\s*\}/g, resout: (id) => !!findCreatureById(id) },
+  { re: /(?<=foes:[^\n]*)\bref:\s*\{\s*id:\s*'([^']*)'\s*\}/g, resout: (id) => !!findCreatureById(id) },
+  { re: /creatureId:\s*'([^']*)'/g, resout: refDeCombattant },
   { re: /\{[^{}]*kind:\s*'personnage'[^{}]*?\bref:\s*'([^']*)'/g, resout: refEntiteResolue },
 ];
 

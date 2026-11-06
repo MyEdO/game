@@ -17,7 +17,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  * — quel que soit le récepteur : chaîne optionnelle, index, appel — et l'opérande DROIT un littéral de
  * chaîne, un gabarit, ou un appel `t('…')`/`tr('…')` (le littéral déplacé dans la table i18n). Hors tests. Exemption au SITE (`fichier|texte du site`), avec sa raison.
  * Même FORME pour un nom de siège de coop (`<x>.seatNames[…] ?? '<littéral>'`) : il se lit par
- * `nomDuSiege` (`noyau/netOwnership.ts`), jamais « L'hôte » recopié pour un invité.
+ * `nomDuSiege` (`noyau/sieges.ts`), jamais « L'hôte » recopié pour un invité.
  */
 
 const AUTHORE = 'libellé AUTHORÉ optionnel : un défaut d’affichage de donnée, aucune identité de porteur absente';
@@ -54,9 +54,9 @@ const EXEMPTES = new Map<string, string>([
   ['src/ui/editor/codex/CodexEdit.tsx|indice?.label ?? \'\'', AUTHORE],
   ['src/ui/compendium/CompendiumScreen.tsx|cat?.label ?? \'\'', PLACEHOLDER],
   ['src/ui/compendium/registry.ts|e.label ?? \'\'', AUTHORE],
-  ['src/ui/editor/codex/StructFields.tsx|findVehicleById(t.vehicleId)?.label ?? \'\'', PLACEHOLDER],
+  ['src/ui/editor/codex/StructFields.tsx|findVehicleById(t.id)?.label ?? \'\'', PLACEHOLDER],
   ['src/ui/editor/codex/StructFields.tsx|t.label ?? \'\'', AUTHORE],
-  ['src/ui/editor/codex/StructFields.tsx|findCreatureById(t.creatureId)?.label ?? \'\'', PLACEHOLDER],
+  ['src/ui/editor/codex/StructFields.tsx|findCreatureById(t.id)?.label ?? \'\'', PLACEHOLDER],
   ['src/ui/creator/CharacterCreator.tsx|lvl1?.label ?? \'—\'', CHOIX_OUVERT],
   ['src/ui/creator/CreatorSummary.tsx|sp?.label ?? \'Race à choisir\'', CHOIX_OUVERT],
   ['src/noyau/creation/brouillon.ts|hero.label ?? \'\'', CHOIX_OUVERT],

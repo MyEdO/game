@@ -60,7 +60,7 @@ const putDispel = (over: Partial<{ ni: number; sl: number }> = {}) => {
   useGame.setState({
     pendingDispel: {
       casterId: 'mage', spellId: 'malefice', spellCasterId: 'ennemi', label: 'Maléfice',
-      ni, value: 60, result: { roll: 10, target: 60, sl, success: true },
+      ni, value: 60, ligne: { base: 60, mods: [], target: 60, difficulty: 'intermediaire' }, result: { roll: 10, target: 60, sl, success: true },
     },
   } as never);
 };

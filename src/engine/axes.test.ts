@@ -81,6 +81,14 @@ describe('#409 — engine/axes : axisScore/axesProfile/partyCoverage/dominantAxe
     expect(coverage[0].value).toBe(0);
   });
 
+  it('partyCoverage : le PORTEUR est le premier meilleur à égalité ; sous le seuil, aucun porteur', () => {
+    const soldat = pregen(PREGEN.soldat);
+    const jumeau = { ...pregen(PREGEN.soldat), id: 'jumeau' };
+    const [melee] = partyCoverage([pregen(PREGEN.sorcier), soldat, jumeau], [MELEE]);
+    expect(melee.porteurId).toBe(soldat.id);
+    expect(partyCoverage(pregenParty(PREGEN.sorcier), [MELEE])[0].porteurId).toBeUndefined();
+  });
+
   it('dominantAxes : les N axes les mieux notés, triés décroissant, jamais un axe sous le seuil de qualification', () => {
     const soldat = pregen(PREGEN.soldat);
     const dom = dominantAxes(soldat, allAxes, 3);

@@ -1,13 +1,14 @@
 /**
  * LES FENÊTRES QUE `fenetreDuJeu` PEUT RENDRE (#2898, #2928), relevées pour les tests de totalité : chaque modale
- * (`MODAL_DEFS`), chaque situation `HORS_MODAL` qui tient la main et, pour la cascade (politique `partial`, ses verbes
+ * (`MODAL_DEFS`), chaque situation `HORS_MODAL` qui tient la main, chaque surface partagée qui se ferme
+ * (`SURFACES_A_SORTIE`) et, pour la cascade (politique `partial`, ses verbes
  * sont ceux de l'étape courante), chaque étape-jet de combat (`JET_AUTO`), chaque fenêtre réactive qu'elle ouvre en
  * son sein (`FENETRE_DU_JET`) et chaque interaction (`VERBES_D_INTERACTION`), avec sa clé, ses gestes et de quoi rendre le `pid` qu'ils prennent. Lu par
  * `fenetres-nomment-leurs-verbes.hors-store.test.ts` et `hote/gestes.hors-store.test.ts`.
  */
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie } from './index';
 import { MODAL_DEFS, HORS_MODAL, type GesteDuJeu, type HorsModalDef, type ModalDef, type VerbesDeFenetre } from './modalArbiter';
-import { FENETRE_DU_JET, JET_AUTO, VERBES_D_INTERACTION, gestesDeLaFenetre, gestesDuJet } from './combatAuto';
+import { FENETRE_DU_JET, JET_AUTO, SURFACES_A_SORTIE, VERBES_D_INTERACTION, gestesDeLaFenetre, gestesDuJet, sortieDe } from './combatAuto';
 import type { CascadeStep } from './pendings';
 import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { cleDeFixture } from './noyau.testkit';
@@ -30,6 +31,7 @@ const CASCADE = (MODAL_DEFS as readonly ModalDef[]).find((d) => d.auto.mode === 
 export const fenetresDuJeu = (temoin: CascadeStep): readonly Fenetre[] => [
   ...MODALES.map((d) => ({ nom: `modale ${d.key}`, cle: d.key, gestes: gestesDeLaFenetre(d), declaree: d.verbes, pid: !multi(d) || !!d.rangees })),
   ...(HORS_MODAL as readonly HorsModalDef[]).filter((d) => d.tientLaMain).map((d) => ({ nom: `hors modale ${d.key}`, cle: d.key, gestes: gestesDeLaFenetre(d), declaree: d.verbes, pid: !multi(d) })),
+  ...SURFACES_A_SORTIE.map((d) => ({ nom: `surface ${d.key}`, cle: d.key, gestes: sortieDe(d), pid: true })),
   ...(Object.keys(JET_AUTO) as (keyof typeof JET_AUTO)[]).flatMap((jet) => {
     const { flux, rangees, reactives = [] } = FENETRE_DU_JET[jet];
     return [

@@ -24,7 +24,11 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   /** Le rôle MJ au siège `seat` (`null` : IA), par la pose du noyau. */
-  const poserLeMJ = (seat: number | null) => banc.setState({ net: poserLeSiegeMJ(banc.getState().net, seat) });
+  /** Pose le rôle MJ à `seat`, assis à la table (`siegesDeLaTable`) ; `null` : l'IA. */
+  const poserLeMJ = (seat: number | null) => {
+    const net = banc.getState().net;
+    banc.setState({ net: poserLeSiegeMJ(seat === null ? net : { ...net, seatNames: { ...net.seatNames, [seat]: `Siège ${seat}` } }, seat) });
+  };
   const applied: { kind: string; success: boolean; sl: number }[] = [];
 
   beforeEach(() => {

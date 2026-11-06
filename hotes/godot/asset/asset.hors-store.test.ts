@@ -122,7 +122,7 @@ describe('lireGlb', () => {
     ['des nœuds hors d’un tableau', ecrireGlb({ asset: { version: '2.0' }, nodes: {} }, null), 'nodes : tableau attendu'],
     ['un nœud qui n’est pas un objet', arbre([null]), 'nœud 0 : objet attendu'],
     ['un nœud à mesh au nom vide', arbre([{ name: '', mesh: 0 }]), 'nœud 0 à mesh sans nom'],
-    ['une scène du document hors des scènes', arbre([{ name: 'r' }], { scenes: [{ nodes: [0] }], scene: 4 }), 'scène du document 4 hors des 1 scènes'],
+    ['la scène par défaut hors des scènes', arbre([{ name: 'r' }], { scenes: [{ nodes: [0] }], scene: 4 }), 'scène par défaut 4 hors des 1 scènes'],
   ])('refuse %s, le défaut dit', (_, octets, raison) => {
     expect(() => lireGlb(octets)).toThrow(new GlbIllisible(raison));
   });
@@ -954,10 +954,13 @@ describe('publierAssets', () => {
 });
 
 describe('les modèles commités', () => {
+  // Le cache des modèles de la machine (`CACHE_DES_MODELES`, restauré par la CI avant cette suite) : un cache neuf
+  // tirerait de la Release les GLB épinglés, ~45 Mo, à chaque passage. Le délai couvre ce tirage quand l'empreinte
+  // épinglée change et que le cache ne l'a pas encore.
   it('valident chacun leur manifeste contre le GLB épinglé', async () => {
-    const modeles = await recupererModeles({ dossier: DOSSIER_DES_MODELES, cache: temporaire(), journal: muet });
+    const modeles = await recupererModeles({ dossier: DOSSIER_DES_MODELES, journal: muet });
     expect(modeles.length).toBeGreaterThan(0);
-  });
+  }, 180_000);
   it('sont épinglés chacun par sa provenance', () => {
     const { modeles, erreurs } = modelesEpingles(DOSSIER_DES_MODELES);
     expect(erreurs).toEqual([]);

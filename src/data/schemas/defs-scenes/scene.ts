@@ -21,12 +21,12 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
+import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
-import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
+import { idDe, porteLeMarqueur, ref, refs } from '../grammaire/ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
@@ -111,10 +111,13 @@ export const actionAuthoreeSchema = nommerChamps(z.strictObject({
   minutes: z.number().min(0).optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, flow: { label: "enchaînement", transparent: true }, consume: { label: "consommer" }, unique: { label: "unique" }, minutes: { label: "minutes" } });
 
+/** JOUEUR de taverne (`NADJ 04 l.72`, `SceneEntity.tavernGame`) : `id` du jeu de `tavernGames.json`, mise de DÉPART en sous. */
+export const offreDeTaverneSchema = ref('tavernGame', { stakeBrass: nommerNoeud(z.number().optional(), { nom: 'mise en cuivre' }) });
+
 /** Champs PARTAGÉS par les trois `kind` d'une entité de scène — le `ref`, lui, est propre à chaque branche. */
 const baseDEntiteSchema = nommerChamps(z.strictObject({
   id: z.string(),
-  pos: nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } }),
+  pos: cell2Schema,
   /** Couche d'empilement (cf. `layers`) : 0/absent = couche de base. */
   z: z.number().optional(),
   facing: dir8Schema.optional(),
@@ -148,8 +151,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
       tenirComptes: z.boolean().optional(),
     }), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "localité"  }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } })
     .optional(),
-  /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
-  tavernGame: nommerChamps(z.strictObject({ gameId: idDe('tavernGame'), stakeBrass: z.number().optional() }), { gameId: { label: "jeu" , texte: { regime: "technique"} }, stakeBrass: { label: "mise en cuivre" } }).optional(),
+  tavernGame: offreDeTaverneSchema.optional(),
   /** DÉCOR UTILISABLE — deux faits NOMMÉS que l'auteur pose sur CETTE instance : `assise` ouvre les
    *  places que le TYPE porte (`seatSlots` → `placesJouables`, `noyau/monde/seating.ts` — la seule capacité
    *  qui vive sur le TYPE, donc la seule qu'un opt-in d'instance ait à ouvrir), `actions` porte les

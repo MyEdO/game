@@ -10,7 +10,7 @@
 import { estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
 import { slBonus } from '../../engine/formule';
 import type { CodexRow } from './registry';
-import { humanizeOp, humanizeFormula, humanizePerSL, CAUSE_PERSISTANTE, replieCausesPersistantes, plural, dureePropre, plancher, traitOctroyeLisible } from './humanize';
+import { humanizeOp, humanizeFormula, humanizePerSL, causePersistante, replieCausesPersistantes, plural, dureePropre, plancher, traitOctroyeLisible } from '../../noyau/codex/humanize';
 import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
 import { traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
@@ -133,7 +133,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       const persistante = estCausePersistante(o);
       const duree = dureePropre(o);
       const badge = [
-        persistante ? CAUSE_PERSISTANTE : undefined,
+        persistante ? causePersistante() : undefined,
         duree ?? (!persistante && o.perRound ? 'par Round' : undefined),
         n == null && o.valuePerSL ? humanizePerSL(o.valuePerSL) : undefined,
       ].filter((s): s is string => !!s).join(' · ') || undefined;

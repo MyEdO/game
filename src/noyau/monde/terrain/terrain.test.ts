@@ -10,7 +10,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import {
   tousLesTerrains, terrainIds, terrainEntree, terrainLabel, terrainWalkable, terrainPriority,
   terrainOpaque, terrainBuilt, terrainSolidHeightM, terrainOverlayProp, terrainDetail,
-  terrainAbsent, estAbsent, terrainHorsGrille, glypheDe, terrainsAvecGlyphe,
+  terrainAbsent, estAbsent, terrainHorsGrille, glypheDe, terrainsAvecGlyphe, terrainStopsOrdonnes,
 } from './index';
 import { GLYPHES_RESERVES } from '../../../data/schemas/grammaire/carte-ascii';
 import { setDataset } from '../../../data/overrides';
@@ -141,5 +141,15 @@ describe('terrains — la façade et le catalogue de rendu lisent VIVANT', () =>
     setDataset('terrains', [...AVANT, neuf] as never);
     expect(terrainEntree('terrain-neuf')).toBeDefined();
     expect(terrainWalkable('terrain-neuf')).toBe(true);
+  });
+});
+
+describe('rampe d’un terrain — l’ordre des arrêts', () => {
+  it('les arrêts se trient par offset croissant, quel que soit l’ordre des clés du Record', () => {
+    expect(terrainStopsOrdonnes({ '100%': '#ffffff', '0%': '#000000', '45%': '#808080' })).toEqual([
+      ['0%', '#000000'],
+      ['45%', '#808080'],
+      ['100%', '#ffffff'],
+    ]);
   });
 });

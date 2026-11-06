@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Script" path="res://scripts/disposition.gd" id="2_disposition"]
+[ext_resource type="Theme" path="res://art/titre_de_fenetre.tres" id="3_titre"]
 
 [sub_resource type="Theme" id="Avis"]
 Label/font_sizes/font_size = 18
@@ -132,6 +133,178 @@ mouse_filter = 2
 script = ExtResource("1_zone")
 source = "combat.apercu"
 masque = NodePath("../..")
+
+[node name="Groupe" type="VBoxContainer" parent="Interface"]
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 8.0
+grow_vertical = 2
+theme_override_constants/separation = 18
+
+[node name="Heros" type="VBoxContainer" parent="Interface/Groupe"]
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Groupe/Heros"]
+script = ExtResource("1_zone")
+source = "groupe.heros"
+
+[node name="Gestes" type="VBoxContainer" parent="Interface/Groupe"]
+
+[node name="Zone" type="Node" parent="Interface/Groupe/Gestes"]
+script = ExtResource("1_zone")
+source = "groupe.gestes"
+
+[node name="Dialogue" type="PanelContainer" parent="Interface"]
+visible = false
+custom_minimum_size = Vector2(660, 0)
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -330.0
+offset_top = -16.0
+offset_right = 330.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Panneau"
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Dialogue"]
+theme_override_constants/separation = 10
+
+[node name="Orateur" type="VBoxContainer" parent="Interface/Dialogue/Pile"]
+theme = ExtResource("3_titre")
+
+[node name="Zone" type="Node" parent="Interface/Dialogue/Pile/Orateur" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "dialogue.orateur"
+masque = NodePath("../../..")
+
+[node name="Replique" type="VBoxContainer" parent="Interface/Dialogue/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Dialogue/Pile/Replique" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "dialogue.replique"
+masque = NodePath("../../..")
+
+[node name="Reponses" type="VBoxContainer" parent="Interface/Dialogue/Pile"]
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Dialogue/Pile/Reponses" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "dialogue.reponses"
+masque = NodePath("../../..")
+
+[node name="Fiche" type="PanelContainer" parent="Interface"]
+visible = false
+custom_minimum_size = Vector2(640, 440)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -240.0
+offset_right = 320.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Panneau"
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Fiche"]
+theme_override_constants/separation = 10
+
+[node name="Tete" type="HBoxContainer" parent="Interface/Fiche/Pile"]
+
+[node name="Heros" type="VBoxContainer" parent="Interface/Fiche/Pile/Tete"]
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Tete/Heros" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fiche.heros"
+masque = NodePath("../../../..")
+
+[node name="Fermer" type="VBoxContainer" parent="Interface/Fiche/Pile/Tete"]
+
+[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Tete/Fermer"]
+script = ExtResource("1_zone")
+source = "fiche.gestes"
+ids = PackedStringArray("fermer")
+
+[node name="Onglets" type="HBoxContainer" parent="Interface/Fiche/Pile"]
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Onglets"]
+script = ExtResource("1_zone")
+source = "fiche.gestes"
+
+[node name="Defilement" type="ScrollContainer" parent="Interface/Fiche/Pile"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Corps" type="HFlowContainer" parent="Interface/Fiche/Pile/Defilement"]
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Defilement/Corps"]
+script = ExtResource("1_zone")
+source = "fiche.corps"
+
+[node name="Objet" type="VBoxContainer" parent="Interface/Fiche/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Objet" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fiche.objet"
+masque = NodePath("..")
+
+[node name="Creation" type="PanelContainer" parent="Interface"]
+visible = false
+custom_minimum_size = Vector2(640, 520)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -280.0
+offset_right = 320.0
+offset_bottom = 240.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Panneau"
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Creation"]
+theme_override_constants/separation = 10
+
+[node name="Titre" type="VBoxContainer" parent="Interface/Creation/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Creation/Pile/Titre" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "creation.titre"
+masque = NodePath("../../..")
+
+[node name="Defilement" type="ScrollContainer" parent="Interface/Creation/Pile"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Corps" type="VBoxContainer" parent="Interface/Creation/Pile/Defilement"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Creation/Pile/Defilement/Corps"]
+script = ExtResource("1_zone")
+source = "creation.corps"
+
+[node name="Gestes" type="HBoxContainer" parent="Interface/Creation/Pile"]
+alignment = 2
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Creation/Pile/Gestes"]
+script = ExtResource("1_zone")
+source = "creation.gestes"
 
 [node name="Avis" type="VBoxContainer" parent="Interface"]
 anchors_preset = 5

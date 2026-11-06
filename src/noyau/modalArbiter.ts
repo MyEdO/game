@@ -21,6 +21,7 @@ import { WORLD_STEP_OWNER } from './pendings';
 import type { PendingKey } from './stateFields';
 import { PORTEURS_D_ETAPE, sansCorps } from './slotsDeJet';
 import { rangeesDuesDeChute } from './fallMove';
+import type { FermetureDuJet } from './rollFlowFactory';
 
 /** État partiel accepté par l'arbitre (les tests passent des objets minces). */
 export type ArbiterState = Partial<Jeu>;
@@ -32,11 +33,19 @@ export type VerbesDeFenetre = readonly (keyof ActionsDuNoyau)[];
  *  une liste vide anonyme ne la vaut pas (`fenetres-nomment-leurs-verbes.hors-store.test.ts`). */
 export const AUCUN_VERBE_DE_JOUEUR: readonly never[] = Object.freeze([]);
 
-/** Un geste d'une fenêtre : un verbe de la partie ; un verbe de jet (`NomDeVerbeDeJet`) nomme le flux qu'il vise. */
-export interface GesteDuJeu { verbe: keyof ActionsDuNoyau; flux?: FlowKey }
+/** Un geste d'une fenêtre : un verbe de la partie ; un verbe de jet (`NomDeVerbeDeJet`) nomme le flux qu'il vise, la
+ *  sortie d'une fenêtre (`fenetreFermer`) la fenêtre qu'elle ferme. */
+export interface GesteDuJeu { verbe: keyof ActionsDuNoyau; flux?: FlowKey; fenetre?: FenetreQuiSeFerme }
 
-/** L'identité d'un geste dans sa fenêtre : son verbe, et le flux d'un verbe de jet (`jetRoll@attack`). */
-export const cleDuGeste = (g: GesteDuJeu): string => (g.flux ? `${g.verbe}@${g.flux}` : g.verbe);
+/** L'identité d'un geste dans sa fenêtre : son verbe, et le flux d'un verbe de jet (`jetRoll@attack`) ou la fenêtre
+ *  d'une sortie (`fenetreFermer@council`). */
+export const cleDuGeste = (g: GesteDuJeu): string => {
+  const cible = g.flux ?? g.fenetre;
+  return cible ? `${g.verbe}@${cible}` : g.verbe;
+};
+
+/** Qui ferme une fenêtre (`fenetreFermer`) : le siège de son propriétaire (`owner`), ou l'hôte seul. */
+export type QuiFermeLaFenetre = 'hote' | 'proprietaire';
 
 /** Une rangée d'une fenêtre à plusieurs jets : l'id que ses verbes désignent (`pid`). */
 export interface RangeeDeFenetre { id: string; interactive?: boolean; result?: unknown }
@@ -84,6 +93,10 @@ export interface ModalDef {
   /** Les rangées que ses verbes désignent par leur id (`pid`) — REQUISES quand un de ses `flux` est multi : la fenêtre
    *  rend l'id de la rangée due (`fenetreDuJeu`). */
   rangees?: (s: ArbiterState) => readonly RangeeDeFenetre[] | undefined;
+  /** La fenêtre se ferme (`fenetreFermer`), par le siège que ce champ nomme. */
+  sortie?: QuiFermeLaFenetre;
+  /** Ce qui ferme sa sortie maintenant ; absent : ouverte tant que la fenêtre l'est (`when`). */
+  sortieFermee?: (s: ArbiterState) => FermetureDuJet | null;
 }
 
 export const MODAL_DEFS = [
@@ -123,7 +136,7 @@ export const MODAL_DEFS = [
   // Empoignade (LDB 14 l.161) : Test opposé de Force OU « Briser » PUIS choix du vainqueur → vrai CHOIX
   // (mode 'choice', comme `auContact`). Initiée par le joueur (jamais par l'IA) → pas d'auto-drive.
   { key: 'grapple', when: (s) => !!s.pendingGrapple, owner: (s) => s.pendingGrapple?.actorId, auto: { mode: 'choice' }, covers: ['pendingGrapple'], flux: ['grapple'], verbes: ['grappleBreak', 'grappleChoose'] },
-  { key: 'mountTarget', when: (s) => !!s.pendingMountTarget, owner: (s) => (s.battle ? s.battle.order[s.battle.turn] : undefined), auto: { mode: 'choice' }, covers: ['pendingMountTarget'], verbes: ['mountTargetSelect', 'mountTargetCancel'] }, // l'attaquant actif qui a cliqué le couple
+  { key: 'mountTarget', when: (s) => !!s.pendingMountTarget, owner: (s) => (s.battle ? s.battle.order[s.battle.turn] : undefined), auto: { mode: 'choice' }, covers: ['pendingMountTarget'], verbes: ['mountTargetSelect'], sortie: 'proprietaire' }, // l'attaquant actif qui a cliqué le couple
   { key: 'frenzy', when: (s) => !!s.pendingFrenzy, owner: (s) => s.pendingFrenzy?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'frenzy' }, { verbe: 'jetConfirm', flux: 'frenzy' }] }, covers: ['pendingFrenzy'], flux: ['frenzy'] },
   { key: 'approach', when: (s) => !!s.pendingApproach, owner: (s) => s.pendingApproach?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'approach' }, { verbe: 'jetConfirm', flux: 'approach' }] }, covers: ['pendingApproach'], flux: ['approach'] },
   { key: 'ward', when: (s) => !!s.pendingWard, owner: (s) => s.pendingWard?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'ward' }, { verbe: 'jetConfirm', flux: 'ward' }] }, covers: ['pendingWard'], flux: ['ward'] },
@@ -144,14 +157,14 @@ export const MODAL_DEFS = [
   // L'infirmerie CÈDE le devant à une CASCADE en cours (`!s.pendingCascade`) — le Test d'infection
   // post-opératoire (LDB 10 l.184) est un jet INFLUENÇABLE qui doit passer AU-DESSUS du panneau ; à sa
   // clôture l'infirmerie RÉAPPARAÎT (même patron que `heal` cédant à `medic`).
-  { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: (s) => s.pendingHeal?.healerId ?? s.pendingSurgery?.healerId ?? '*', auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], verbes: ['medicSelectPatient', 'medicSetWound', 'medicAct', 'healSetMode', 'healSetTest', 'healSetBandages', 'openSurgeryPass', 'medicAbandonSurgery', 'closeMedic'] }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
+  { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: (s) => s.pendingHeal?.healerId ?? s.pendingSurgery?.healerId ?? '*', auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], verbes: ['medicSelectPatient', 'medicSetWound', 'medicAct', 'healSetMode', 'healSetTest', 'healSetBandages', 'openSurgeryPass', 'medicAbandonSurgery'], sortie: 'proprietaire', sortieFermee: (s) => (s.pendingHeal || s.medic?.surgery ? 'soinEnCours' : null) }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
   // Repos (nuit) : chacun règle SES héros, ready-check, l'hôte dort — modale chez tous.
-  { key: 'rest', when: (s) => !!s.pendingRest, owner: () => '*', auto: { mode: 'hostOnly' }, covers: ['pendingRest'], verbes: ['restSet', 'restSleep', 'restReady', 'restCancel'] },
+  { key: 'rest', when: (s) => !!s.pendingRest, owner: () => '*', auto: { mode: 'hostOnly' }, covers: ['pendingRest'], verbes: ['restSet', 'restSleep', 'restReady'], sortie: 'hote', sortieFermee: (s) => (s.pendingRest?.travelHalt ? 'halteDeVoyage' : null) },
   // Conseil de bord (paie hebdomadaire + Moral, #229) : décision de bourse PARTAGÉE → l'hôte seul (comme
   // les autres actions à l'argent du groupe) ; hors-combat, jamais auto (la cadence auto ne l'ouvre pas).
   // Limitation coop posée sans routage d'intent (aucune décision partagée invité) — traçabilité #254,
   // doc `docs/architecture.md` §Coop ; lever = router `pendingCouncil` en intent coop (travail futur).
-  { key: 'council', when: (s) => !!s.pendingCouncil, owner: () => undefined, auto: { mode: 'hostOnly' }, covers: ['pendingCouncil'], verbes: ['councilPay', 'councilClose'] },
+  { key: 'council', when: (s) => !!s.pendingCouncil, owner: () => undefined, auto: { mode: 'hostOnly' }, covers: ['pendingCouncil'], verbes: ['councilPay'], sortie: 'hote', sortieFermee: (s) => (s.pendingCouncil?.phase === 'bilan' ? null : 'paieDue') },
   { key: 'heal', when: (s) => !!s.pendingHeal && !s.medic, owner: (s) => s.pendingHeal?.healerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'heal' }, { verbe: 'jetConfirm', flux: 'heal' }] }, covers: ['pendingHeal'], flux: ['heal'], verbes: ['healSetMode', 'healSetTest', 'healSetBandages'] },
   // (Le Contre-sort (Dissipation) est une RÉACTION au Sort figé dans `pendingCast`, rendue DANS la
   //  modale `cast` ci-dessous : une rangée `RollRow` par contre-lanceur (`pendingCounterspell
@@ -184,6 +197,8 @@ export const MODAL_DEFS = [
     if (!cur?.actorId && cur?.worldOwner) return WORLD_STEP_OWNER;
     return cur?.actorId;
   }, auto: { mode: 'partial' },
+  // La sortie de la séquence est son bilan : le curseur passé la dernière étape.
+  sortie: 'proprietaire', sortieFermee: (s) => (s.pendingCascade && s.pendingCascade.cursor < s.pendingCascade.participants.length ? 'etapesDues' : null),
   covers: [
     'pendingCascade',
     // Porteurs de données des étapes-jet (cf. `CascadeStep.jet`), rendues par CETTE entrée :
@@ -292,14 +307,16 @@ export interface HorsModalDef {
    *  #2898). Leur routage reste celui de `netOwnership`. Une fenêtre qui ne tient pas la main n'en a pas :
    *  `fenetreDuJeu` ne la rend jamais. */
   verbes?: VerbesDeFenetre;
+  /** La fenêtre se ferme (`fenetreFermer`), par le siège que ce champ nomme, comme `ModalDef.sortie`. */
+  sortie?: QuiFermeLaFenetre;
 }
 
 export const HORS_MODAL = [
   { key: 'bargain', pendingKey: 'pendingBargain', tientLaMain: true, owner: (s) => s.pendingBargain?.playerId, flux: ['bargain'] }, // Marchandage (écran Marché, billet de la carte du monde)
   { key: 'appraise', pendingKey: 'pendingAppraise', tientLaMain: true, owner: (s) => s.pendingAppraise?.actorId, flux: ['appraise'] }, // Évaluation/Détection (écran Marché/Compendium)
-  { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*', verbes: ['assignLootGear', 'appraiseGear', 'dismissLoot'] }, // Butin hors victoire : chacun voit qui l'emporte
-  { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['assignVictoryGear', 'harvestCreature', 'appraiseGear', 'victoryReady', 'dismissVictory'] }, // Écran de victoire : `readyBySeat`, unanimité
-  { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId, verbes: ['siegeAimCommit', 'siegeAimCancel'] }, // Placeur de case (ciblage carte, pas de modale)
+  { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*', verbes: ['assignLootGear', 'appraiseGear'], sortie: 'hote' }, // Butin hors victoire : chacun voit qui l'emporte
+  { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['assignVictoryGear', 'harvestCreature', 'appraiseGear', 'victoryReady'], sortie: 'hote' }, // Écran de victoire : `readyBySeat`, unanimité ; l'invité marque son siège (`victoryReady`)
+  { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId, verbes: ['siegeAimCommit'], sortie: 'proprietaire' }, // Placeur de case (ciblage carte, pas de modale)
   { key: 'interact', pendingKey: 'pendingInteract', tientLaMain: false, owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
   { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['confirmRoundStart', 'roundStartReady', 'roundStartPromote', 'armPreempt'] }, // Pause de début de Round (fenêtre Chance) : ready-check par siège
   { key: 'seaActivities', pendingKey: 'pendingSeaActivities', tientLaMain: true, owner: () => '*', verbes: ['seaActivitiesConfirm'] }, // Activités hebdomadaires en mer : décision de groupe
@@ -316,8 +333,8 @@ export const HORS_MODAL = [
   // (`ScreenShell`), pas des modales de combat, et des gestes d'HÔTE (l'ouverture est un rideau, la
   // clôture de séance vit déjà chez l'hôte) : aucun ready-check, aucun intent invité.
   { key: 'ouverture', pendingKey: 'pendingOuverture', tientLaMain: true, owner: () => undefined, verbes: ['acquitterOuverture'] },
-  { key: 'chapterRecap', pendingKey: 'pendingChapterRecap', tientLaMain: true, owner: () => undefined, verbes: ['cloreChapitre', 'ajournerChapterRecap'] },
-  { key: 'departure', pendingKey: 'pendingDeparture', tientLaMain: true, owner: () => undefined, verbes: ['departWaitDawn', 'departCancel'] }, // Porte de départ de nuit (carte du monde) : l'hôte décide (#340)
+  { key: 'chapterRecap', pendingKey: 'pendingChapterRecap', tientLaMain: true, owner: () => undefined, verbes: ['cloreChapitre'], sortie: 'hote' },
+  { key: 'departure', pendingKey: 'pendingDeparture', tientLaMain: true, owner: () => undefined, verbes: ['departWaitDawn'], sortie: 'hote' }, // Porte de départ de nuit (carte du monde) : l'hôte décide (#340)
 ] as const satisfies readonly HorsModalDef[];
 
 /**
@@ -352,22 +369,63 @@ export function horsModalByPending(): Record<string, HorsModalDef> {
 export interface SurfaceHorsPendingDef {
   key: string;
   tientLaMain: (s: ArbiterState) => boolean;
+  /** La surface se ferme (`fenetreFermer`), par l'hôte : aucun siège ne la possède. */
+  sortie?: 'hote';
 }
 
+/** Un combat perdu tient l'écran. */
+const defaiteDuCombat = (s: ArbiterState): boolean => s.mode === 'battle' && s.battle?.over === 'defeat';
+
 export const SURFACES_HORS_PENDING = [
-  { key: 'marche', tientLaMain: (s) => !!s.merchant },
-  { key: 'jeuxDeTaverne', tientLaMain: (s) => !!s.tavernGames },
-  { key: 'document', tientLaMain: (s) => !!s.document },
+  { key: 'marchand', tientLaMain: (s) => !!s.merchant, sortie: 'hote' },
+  { key: 'jeuxDeTaverne', tientLaMain: (s) => !!s.tavernGames, sortie: 'hote' },
+  { key: 'document', tientLaMain: (s) => !!s.document, sortie: 'hote' },
   // Montées en EXPLORATION seulement (`ui/CampaignView`) : hors de ce mode, le slot n'a pas d'écran.
-  { key: 'carteDuMonde', tientLaMain: (s) => !!s.worldMapOpen && s.mode === 'exploration' },
-  { key: 'port', tientLaMain: (s) => !!s.port && s.mode === 'exploration' },
-  { key: 'marcheDeTerre', tientLaMain: (s) => !!s.landMarket && s.mode === 'exploration' },
+  { key: 'carteDuMonde', tientLaMain: (s) => !!s.worldMapOpen && s.mode === 'exploration', sortie: 'hote' },
+  { key: 'port', tientLaMain: (s) => !!s.port && s.mode === 'exploration', sortie: 'hote' },
+  { key: 'marcheDeTerre', tientLaMain: (s) => !!s.landMarket && s.mode === 'exploration', sortie: 'hote' },
+  // Le récit de voyage attend la conversation et la carte (`ui/CampaignView`) ; la fin de séance, la conversation.
+  { key: 'recitDeVoyage', tientLaMain: (s) => !!s.travelRecap && s.mode === 'exploration' && !s.dialogue && !s.worldMapOpen, sortie: 'hote' },
+  { key: 'finDeSeance', tientLaMain: (s) => !!s.sessionEndOpen && !s.dialogue, sortie: 'hote' },
+  // L'anéantissement du groupe hors combat (`partyWiped`) ; la défaite d'un combat, repli dans le combat d'une
+  // bataille de masse (ADE II 08), sinon défaite.
+  { key: 'aneantissement', tientLaMain: (s) => !!s.partyWiped, sortie: 'hote' },
+  { key: 'repli', tientLaMain: (s) => defaiteDuCombat(s) && !!s.massBattle?.combatScene, sortie: 'hote' },
+  { key: 'defaite', tientLaMain: (s) => defaiteDuCombat(s) && !s.massBattle?.combatScene, sortie: 'hote' },
+  { key: 'batailleDeMasse', tientLaMain: (s) => !!s.massBattle && s.screen === 'massBattle', sortie: 'hote' },
   // Un ÉCRAN plein autre que celui du jeu (groupe, interlude, `compendium`…) : la scène n'est pas à l'écran.
   { key: 'ecranPlein', tientLaMain: (s) => s.screen !== 'campaign' },
 ] as const satisfies readonly SurfaceHorsPendingDef[];
 
 /** Un pending est OUVERT s'il porte quelque chose : une collection vide est un slot au repos. */
 export const pendingOuvert = (v: unknown): boolean => (Array.isArray(v) ? v.length > 0 : !!v);
+
+/** La clé d'une entrée de registre qui déclare sa `sortie`. */
+type CleASortie<D> = D extends { key: infer K; sortie: QuiFermeLaFenetre } ? K : never;
+/** Les fenêtres qui se ferment (`fenetreFermer`) : les entrées des trois registres qui déclarent leur `sortie`. */
+export type FenetreQuiSeFerme =
+  | CleASortie<(typeof MODAL_DEFS)[number]>
+  | CleASortie<(typeof HORS_MODAL)[number]>
+  | CleASortie<(typeof SURFACES_HORS_PENDING)[number]>;
+
+/** Une fenêtre qui se ferme, lue dans son registre : qui la ferme, si elle est ouverte, son propriétaire, et ce qui
+ *  ferme sa sortie maintenant (`null` : ouverte). */
+export interface SortieDeLaFenetre {
+  sortie: QuiFermeLaFenetre;
+  ouverte: (s: ArbiterState) => boolean;
+  proprietaire: (s: ArbiterState) => string | undefined | '*';
+  fermee: (s: ArbiterState) => FermetureDuJet | null;
+}
+
+const ouverteSansVerdict = (): null => null;
+const SORTIES_DECLAREES: ReadonlyMap<string, SortieDeLaFenetre> = new Map([
+  ...(MODAL_DEFS as readonly ModalDef[]).flatMap((d) => (d.sortie ? [[d.key, { sortie: d.sortie, ouverte: d.when, proprietaire: d.owner, fermee: d.sortieFermee ?? ouverteSansVerdict }] as const] : [])),
+  ...(HORS_MODAL as readonly HorsModalDef[]).flatMap((d) => (d.sortie ? [[d.key, { sortie: d.sortie, ouverte: (s: ArbiterState) => pendingOuvert((s as Record<string, unknown>)[d.pendingKey]), proprietaire: d.owner, fermee: ouverteSansVerdict }] as const] : [])),
+  ...(SURFACES_HORS_PENDING as readonly SurfaceHorsPendingDef[]).flatMap((d) => (d.sortie ? [[d.key, { sortie: d.sortie, ouverte: d.tientLaMain, proprietaire: () => undefined, fermee: ouverteSansVerdict }] as const] : [])),
+]);
+
+/** La sortie de la fenêtre `cle`, telle que son registre la déclare ; `undefined` : aucune fenêtre de ce nom ne se ferme. */
+export const sortieDeLaFenetre = (cle: unknown): SortieDeLaFenetre | undefined => (typeof cle === 'string' ? SORTIES_DECLAREES.get(cle) : undefined);
 
 /**
  * UNE SURFACE PARTAGÉE TIENT-ELLE LA MAIN ? Verdict UNIQUE de « ce que TOUS les sièges ont sous les

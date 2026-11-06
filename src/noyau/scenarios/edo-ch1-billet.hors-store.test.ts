@@ -59,7 +59,7 @@ function aBord(): void {
  *  récapitulatif acquitté — et vérifie l'arrivée à `lieu`. */
 function arriver(lieu: string): void {
   draineCascade(get);
-  if (get().travelRecap) get().dismissTravelRecap();
+  if (get().travelRecap) get().fenetreFermer('recitDeVoyage');
   expect(get().travelPlan).toBeNull();
   expect(map.places.find((p) => p.scene === get().scene?.id)?.id, `arrivée à ${lieu}`).toBe(lieu);
 }
@@ -70,7 +70,7 @@ function fouillerLeCorps(): void {
   poserLeGroupe(get, banc.setState, { x: 36, y: 3 });
   get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
   get().designerHerosChoisir(get().party[0].id);
-  while (get().document) get().closeDocument();
+  while (get().document) get().fenetreFermer('document');
 }
 
 /** Le tarif d'auteur du billet, tel que l'offre de départ le lit. */

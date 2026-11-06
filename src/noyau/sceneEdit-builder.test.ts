@@ -1,23 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, isDescriptiveZone, layerTiles, type Scene } from '../../noyau/monde/scene';
-import { isRoomZone } from '../../noyau/monde/rooms';
-import {
-  setMetresPerTile,
-  setAmbientLight,
-  setEnvironment,
-  setSceneFlags,
-  addEffectZone,
-  EFFECT_ZONE_SEEDS,
-  renameEffectZone,
-} from './editorState';
+import { emptyScene, isDescriptiveZone, layerTiles, type Scene } from './monde/scene';
+import { isRoomZone } from './monde/rooms';
+import { EFFECT_ZONE_SEEDS } from './sceneEditLecture';
 // `putLayer` : appelant unique `noyau/mapSpec.ts` (`buildScene`), sans porte en `src/ui/**` (#855).
-import { editEntity, editEntityCombat, putLayer, renameActionAuthoree } from '../../noyau/sceneEdit';
-import { sceneEntitySchema, type Terrain } from '../../data/schemas/defs-scenes/scene';
-import type { ActionAuthoree, SceneEntity } from '../../noyau/monde/scene';
+import { editEntity, editEntityCombat, putLayer, renameActionAuthoree, setSceneScalaires, setSceneLabel, renameScene, editEntry, setSceneFlags, addArchitectureBody, patchArchitectureBody, patchArchitecturePart, patchBuildingMass, patchRoofExclusion, addRoofExclusion, setFacadeSectionZ, addFacadeSection, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE, addBuildingMass, rederiveRoofMasses, addEffectZone, renameEffectZone } from './sceneEdit';
+import { sceneEntitySchema, PENTE_TOIT_DEG, type Terrain } from '../data/schemas/defs-scenes/scene';
+import { buildingRoofMaterial } from './monde/buildings';
+import { encloseRect } from './sceneEdit.testkit';
+import type { ActionAuthoree, SceneEntity } from './monde/scene';
 
 /** Primitives pures consommées par le headless-editor `buildScene`. */
 
-describe('editorState — scalaires de scène', () => {
+describe('édition de scène — scalaires de scène', () => {
   it('emptyScene pose des défauts EXPLICITES pour metresPerTile/ambientLight (#841 FU-A)', () => {
     const s = emptyScene('scene-test', 4, 4);
     expect(s.metresPerTile).toBe(2);
@@ -25,27 +19,37 @@ describe('editorState — scalaires de scène', () => {
     expect(s.environment).toBeUndefined(); // « non spécifié » est une valeur légitime, pas un défaut caché
   });
 
-  it('setMetresPerTile pose puis retire l’échelle métrique', () => {
+  it('setSceneScalaires pose puis retire chaque scalaire, sans muter la scène — survit à un aller-retour JSON (#841 FU-A)', () => {
     const s = emptyScene('scene-test', 4, 4);
-    expect(setMetresPerTile(s, 10).metresPerTile).toBe(10);
-    expect(setMetresPerTile(setMetresPerTile(s, 10), undefined).metresPerTile).toBeUndefined();
+    const pose = setSceneScalaires(s, { metresPerTile: 10, ambientLight: 'jour', environment: 'sauvage', weather: 'brouillard' });
+    expect(JSON.parse(JSON.stringify(pose))).toMatchObject({ metresPerTile: 10, ambientLight: 'jour', environment: 'sauvage', weather: 'brouillard' });
+    const retire = setSceneScalaires(pose, { metresPerTile: undefined, ambientLight: undefined, environment: undefined, weather: undefined });
+    for (const k of ['metresPerTile', 'ambientLight', 'environment', 'weather'] as const) expect(k in retire, `${k} retiré du document`).toBe(false);
     expect(s.metresPerTile).toBe(2); // immuable — défaut d'origine inchangé
+    expect(s.ambientLight).toBe('auto');
   });
 
-  it('setAmbientLight pose puis retire la lumière ambiante', () => {
+  it('renameScene refuse un id vide ou porté par une autre scène du projet', () => {
     const s = emptyScene('scene-test', 4, 4);
-    expect(setAmbientLight(s, 'jour').ambientLight).toBe('jour');
-    expect(setAmbientLight(setAmbientLight(s, 'jour'), undefined).ambientLight).toBeUndefined();
-    expect(s.ambientLight).toBe('auto'); // immuable
+    const autres = [emptyScene('cave', 4, 4)];
+    expect(renameScene(s, autres, 'cave')).toBe(s);
+    expect(renameScene(s, autres, '  ')).toBe(s);
+    expect(renameScene(s, autres, ' grenier ').id).toBe('grenier');
   });
 
-  it('setEnvironment pose puis retire la classification écologique — survit à un aller-retour JSON (#841 FU-A)', () => {
+  it('editEntry plafonne la case à la carte et la ramène à une case entière, comme `moveSel`', () => {
+    const s: Scene = { ...emptyScene('scene-test', 4, 4), entryPoints: { porte: { x: 1, y: 1 } } };
+    expect(editEntry(s, 'porte', { x: 9, y: -2 }).entryPoints?.porte).toEqual({ x: 3, y: 0 });
+    expect(editEntry(s, 'porte', { y: 2.6, z: 1 }).entryPoints?.porte).toEqual({ x: 1, y: 2, z: 1 });
+    expect(editEntry(editEntry(s, 'porte', { z: 1 }), 'porte', { z: 0 }).entryPoints?.porte).toEqual({ x: 1, y: 1 });
+    expect(editEntry(s, 'absente', { x: 2 })).toBe(s);
+  });
+
+  it('setSceneScalaires refuse au TYPE d’effacer `label`, seul champ requis du sous-ensemble ; `setSceneLabel` le pose', () => {
     const s = emptyScene('scene-test', 4, 4);
-    const withEnv = setEnvironment(s, 'sauvage');
-    expect(withEnv.environment).toBe('sauvage');
-    expect(JSON.parse(JSON.stringify(withEnv)).environment).toBe('sauvage');
-    expect(setEnvironment(withEnv, undefined).environment).toBeUndefined();
-    expect(s.environment).toBeUndefined(); // immuable
+    // @ts-expect-error `label` est requis par le schéma : il n'est pas un scalaire effaçable.
+    setSceneScalaires(s, { label: undefined });
+    expect(setSceneLabel(s, 'Cour').label).toBe('Cour');
   });
 
   it('setSceneFlags fusionne dans flags sans muter la scène', () => {
@@ -56,7 +60,7 @@ describe('editorState — scalaires de scène', () => {
   });
 });
 
-describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)', () => {
+describe('édition de scène — zone d’effet : presentation/id (#841 FU-B, le nœud)', () => {
   it('la variante « Pièce » de l’outil zone crée un intérieur NU : aucun effet, satisfait le filtre « Pièces révélées » (Inspector.tsx)', () => {
     const { scene, idx } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);
     const zone = scene.effectZones![idx];
@@ -109,7 +113,7 @@ describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)
   });
 });
 
-describe('editorState — patch d’entité', () => {
+describe('édition de scène — patch d’entité', () => {
   const base = (): Scene => {
     const s = emptyScene('scene-test', 6, 6);
     s.entities = [{ id: 'e0', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, combat: { hiddenUntilCombat: true } }];
@@ -138,7 +142,7 @@ describe('editorState — patch d’entité', () => {
   });
 });
 
-describe('editorState — putLayer', () => {
+describe('édition de scène — putLayer', () => {
   it('ajoute une couche z avec tuiles + hauteurs, triée', () => {
     const s = emptyScene('scene-test', 2, 2);
     const tiles: Terrain[] = ['pierre', 'pierre', 'pierre', 'pierre'];
@@ -196,5 +200,65 @@ describe('renameActionAuthoree — l’unicité d’un id d’action se garde au
     expect(renameActionAuthoree(avant, 'fouiller', 'fouiller'), 'inchangé').toBe(avant);
     expect(renameActionAuthoree(avant, 'inconnue', 'forcer'), 'aucune action à renommer').toBe(avant);
     expect(renameActionAuthoree(avant, 'fouiller', '  forcer  ').map((a) => a.id), 'l’id est TRIMÉ comme partout').toEqual(['forcer', 'crocheter']);
+  });
+});
+
+describe('édition de scène — corps d’architecture : écrivains bornés du noyau', () => {
+  const corps = () => {
+    const out = addArchitectureBody(emptyScene('scene-test', 6, 6), 'maison', { x: 1, y: 1, w: 2, h: 2 });
+    return { scene: rederiveRoofMasses(out.scene), id: out.id, storeyId: out.storeyId };
+  };
+  const body = (s: Scene, id: string) => s.architecture!.find((b) => b.id === id)!;
+
+  it('changer le type de bâtiment re-dérive la couverture des masses dans le geste', () => {
+    // Corps sans intention de toiture propre : sa couverture est celle de son TYPE (`toitureEffective`).
+    const plan = encloseRect({ ...emptyScene('scene-test', 12, 12), architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }] }, { x: 1, y: 1, w: 4, h: 2 });
+    const scene = rederiveRoofMasses(plan);
+    const couvertures = (s: Scene) => body(s, 'corps').masses.map((m) => m.material);
+    expect(couvertures(scene), 'la dérivation ne coiffe pas la pièce').toEqual([buildingRoofMaterial('maison')]);
+    expect(buildingRoofMaterial('echoppe'), 'fixture : deux types aux couvertures distinctes').not.toBe(buildingRoofMaterial('maison'));
+    expect(couvertures(patchArchitectureBody(scene, 'corps', { style: 'echoppe' }))).toEqual([buildingRoofMaterial('echoppe')]);
+    expect('label' in body(patchArchitectureBody(patchArchitectureBody(scene, 'corps', { label: 'Logis' }), 'corps', { label: undefined }), 'corps')).toBe(false);
+  });
+
+  it('l’emprise d’un volume et d’une exclusion est plafonnée à la carte, comme à la création', () => {
+    const { scene, id, storeyId } = corps();
+    const partId = body(scene, id).storeys[0].parts[0].id;
+    const out = patchArchitecturePart(scene, id, storeyId, partId, { foot: { x: 9, y: -1, w: 3, h: 9 } });
+    expect(body(out, id).storeys[0].parts[0].foot).toEqual({ x: 3, y: 0, w: 3, h: 6 });
+    const ex = patchRoofExclusion(addRoofExclusion(scene, id, 0), id, 0, { rect: { x: 7, y: 0, w: 2, h: 2 } });
+    expect(body(ex, id).roofExclusions?.[0].rect).toEqual({ x: 4, y: 0, w: 2, h: 2 });
+  });
+
+  it('une masse de toiture garde un niveau entier ≥ 1 et une pente dans `PENTE_TOIT_DEG`', () => {
+    const { scene: base, id } = corps();
+    const { scene, id: massId } = addBuildingMass(base, id, { x: 1, y: 1, w: 2, h: 2 }, 0)!;
+    const out = patchBuildingMass(scene, id, massId, { levels: 0, pitchDeg: 90, footprint: [{ x: 5, y: 5, w: 4, h: 1 }] });
+    expect(body(out, id).masses.find((m) => m.id === massId)).toMatchObject({ levels: 1, pitchDeg: PENTE_TOIT_DEG.max, footprint: [{ x: 2, y: 5, w: 4, h: 1 }] });
+  });
+
+  it('une ouverture de façade se pose, se borne dans `BORNES_D_OUVERTURE` et se retire au noyau', () => {
+    const { scene, id } = corps();
+    const pan = addFacadeSection(scene, id, { x: 1, y: 1, side: 'N' })!;
+    const pose = addFacadeFeature(pan.scene, id, pan.id)!;
+    const ouverture = (s: Scene) => body(s, id).facades.find((f) => f.id === pan.id)!.features?.find((f) => f.id === pose.id);
+    expect(ouverture(pose.scene)).toMatchObject({ kind: 'gable', edge: { x: 1, y: 1, side: 'N' } });
+    const hors = patchFacadeFeature(pose.scene, id, pan.id, pose.id, { offset: 3, width: 0 });
+    expect(ouverture(hors)).toMatchObject({ offset: BORNES_D_OUVERTURE.offset.max, width: BORNES_D_OUVERTURE.width.min });
+    const vide = patchFacadeFeature(hors, id, pan.id, pose.id, { offset: undefined, appearance: undefined });
+    expect('offset' in ouverture(vide)!, 'vide = défaut de rendu : le champ quitte l’ouverture').toBe(false);
+    const retire = removeFacadeFeature(vide, id, pan.id, pose.id);
+    expect('features' in body(retire, id).facades.find((f) => f.id === pan.id)!).toBe(false);
+  });
+
+  it('porter une façade à un étage y porte ses arêtes et celles de ses ouvertures', () => {
+    const { scene, id } = corps();
+    const pose = addFacadeSection(scene, id, { x: 1, y: 1, side: 'N' })!;
+    const out = setFacadeSectionZ(pose.scene, id, pose.id, 1);
+    const facade = body(out, id).facades.find((f) => f.id === pose.id)!;
+    expect(facade.z).toBe(1);
+    expect(facade.edges.every((e) => e.z === 1)).toBe(true);
+    const retour = body(setFacadeSectionZ(out, id, pose.id, 0), id).facades.find((f) => f.id === pose.id)!;
+    expect(retour.edges.every((e) => !('z' in e))).toBe(true);
   });
 });

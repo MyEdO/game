@@ -70,7 +70,8 @@ import { estNouveauPour } from '../noyau/monde/clues';
 import { presetPnjById } from '../state/campaignData';
 import { RetraitsDeChargement } from './RetraitsDeChargement';
 
-/** Défaite : dans une bataille de masse ou une scène, `dismissDefeat` ; sans scène, l'Arène se
+/** Défaite : dans une bataille de masse, sa sortie (`fenetreFermer('repli')`), dans une scène la sienne
+ *  (`fenetreFermer('defaite')`) ; sans scène, l'Arène se
  *  lance par le geste de « Lancer » (`lancerCampagne`, sans choix). Le refus de la porte vit le temps
  *  de la modale, et chaque nouvel essai le remplace. */
 function ModaleDeDefaite() {
@@ -81,7 +82,7 @@ function ModaleDeDefaite() {
     const g = useGame.getState();
     if (g.massBattle?.combatScene || g.scene) {
       setRefus(null);
-      g.dismissDefeat();
+      g.fenetreFermer(g.massBattle?.combatScene ? 'repli' : 'defaite');
       return;
     }
     setRefus(lancerCampagne(useGame.getState, null));
@@ -118,7 +119,7 @@ export function CampaignView() {
   const battle = useGame((s) => s.battle);
   const merchant = useGame((s) => s.merchant);
   const sessionEndOpen = useGame((s) => s.sessionEndOpen); // Effet `sessionEnd` (#83) : ouvre la même modale
-  const closeSessionEnd = useGame((s) => s.closeSessionEnd);
+  const fermer = useGame((s) => s.fenetreFermer);
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
   const roundStartPromote = useGame((s) => s.roundStartPromote);
   const gameTime = useGame((s) => s.gameTime);
@@ -325,7 +326,7 @@ export function CampaignView() {
             modale système au-dessus resterait invisible/inatteignable sous elle sans cette garde. */}
         {saveOpen && !dialogue && <SaveLoadModal mode="save" onClose={() => setSaveOpen(false)} />}
         {!dialogue && <RetraitsDeChargement />}
-        {(sessionOpen || sessionEndOpen) && !dialogue && <SessionEndModal onClose={() => { setSessionOpen(false); closeSessionEnd(); }} />}
+        {(sessionOpen || sessionEndOpen) && !dialogue && <SessionEndModal onClose={() => { setSessionOpen(false); if (sessionEndOpen) fermer('finDeSeance'); }} />}
         <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} onInspect={setInspectId} />
         {/* LA RANGÉE DU MONDE (#1848, `.stage-flot` — hud.css) : tout ce qui s'ancre AU BAS DU CHAMP
             vit ICI, dans la rangée du plateau qui s'arrête au bord haut du pont. Aucune de ces
@@ -427,7 +428,7 @@ export function CampaignView() {
         {/* Console de combat + portrait du héros actif EN BAS (cf. CombatConsole). */}
         {mode === 'battle' && battle && <CombatConsole />}
         {/* Défaite : overlay centré (la victoire a son écran plein, VictoryScreen). Dans une Scène de
-            combat de bataille de masse (ADE II 08), `dismissDefeat` fait CONTINUER la bataille (repli
+            combat de bataille de masse (ADE II 08), la sortie de la défaite fait CONTINUER la bataille (repli
             tactique, pas game-over) ; hors bataille de masse, il rend la main à la scène. */}
         {mode === 'battle' && battle?.over === 'defeat' && <ModaleDeDefaite />}
         {/* Anéantissement HORS COMBAT (`checkPartyWiped`) : MÊME écran de défaite que le combat, hors
@@ -435,8 +436,8 @@ export function CampaignView() {
         {partyWiped && (
           <Modal
             title="Le groupe a péri…"
-            onClose={() => useGame.getState().dismissDefeat()}
-            footer={<button className="btn btn-primary" onClick={() => useGame.getState().dismissDefeat()}>Retour au menu</button>}
+            onClose={() => fermer('aneantissement')}
+            footer={<button className="btn btn-primary" onClick={() => fermer('aneantissement')}>Retour au menu</button>}
           />
         )}
       </main>

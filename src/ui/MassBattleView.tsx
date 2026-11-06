@@ -246,7 +246,8 @@ function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Sta
 }
 
 function OverPanel({ mb }: { mb: MassBattleState }) {
-  const end = useGame((s) => s.endMassBattle);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const end = () => fermer('batailleDeMasse');
   const outcomeText = mb.outcome === 'ally'
     ? `${mb.ally.label} l'emporte !`
     : mb.outcome === 'enemy'

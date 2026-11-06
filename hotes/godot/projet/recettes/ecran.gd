@@ -161,7 +161,8 @@ func _dits(e: Variant, valeur: bool = false) -> Array:
 	return dits
 
 
-## Chaque geste de l'élément `e` pressé sous `noeud` : l'intention qu'il joue est celle qu'il porte.
+## Chaque geste de l'élément `e` pressé sous `noeud`, celui d'une entité sous son propre composant : l'intention qu'il
+## joue est celle qu'il porte ; une liste montre choisie sa valeur pressée, aucune sans elle.
 func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 	match e.type:
 		"bouton":
@@ -172,6 +173,11 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 				_attendre(vue, v.id, func() -> void: (bouton.get_node("Presser") as BaseButton).pressed.emit(), v.jeu)
 		"liste":
 			var liste: OptionButton = noeud.find_children("*", "OptionButton", true, false).front()
+			var pressee := -1
+			for i in e.valeurs.size():
+				if e.valeurs[i].presse:
+					pressee = i
+			_verifier(liste.selected == pressee, "%s, %s : liste choisie à %d, valeur pressée %d" % [vue.nom, e.id, liste.selected, pressee])
 			for i in e.valeurs.size():
 				_attendre(vue, e.valeurs[i].id, func() -> void: liste.item_selected.emit(i), e.valeurs[i].jeu)
 		"formulaire":
@@ -179,7 +185,8 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 			_attendre(vue, e.id, func() -> void: (jouer as BaseButton).pressed.emit(), vue.attendus.get(e.id))
 		"entite":
 			for x in e.elements:
-				_presser(vue, noeud, x)
+				var composant: Node = noeud.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.get_meta(Zone.META, "") == "%s/%s" % [x.type, x.id]).front()
+				_presser(vue, composant, x)
 
 
 func _attendre(vue: Dictionary, id: String, presser: Callable, attendu: Variant) -> void:

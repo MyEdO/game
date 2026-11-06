@@ -9,7 +9,7 @@ import { lightTones } from '../../data';
 import { catalogueSpecs, entreeOuverte, idsDe } from '../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
-import type { Sel } from './editorState';
+import type { Sel } from '../../noyau/sceneEditLecture';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { diligenceCampaign } from '../../scenes/campaign';
@@ -959,5 +959,87 @@ describe('Inspector — un Effet `document` s’insère au clic dans la fouille 
     const remis = racinesDeFlow(latest).flatMap((r) => flowEffects(r.flow as Flow)).filter((e) => e.type === 'document' && e.documentId === 'edo-document-4-affidavit');
     expect(remis.length).toBe(avecQuatre);
     expect(() => parseProject({ ...brut, scenes })).not.toThrow();
+  });
+});
+
+/** Monte l'`Inspector` sur `scene` et `sel`, aux côtés des scènes `otherScenes` du projet ; `sceneOf` rend
+ *  la DERNIÈRE Scène écrite. */
+function mountSur(scene: Scene, sel: Sel, otherScenes: Scene[] = []) {
+  let latest = scene;
+  const montage = monterRacine(null);
+  const render = (next: Scene) => montage.rendre(
+    <Inspector
+      scene={next}
+      otherScenes={otherScenes}
+      worldMap={null}
+      setScene={(updated) => {
+        latest = updated;
+        render(updated);
+      }}
+      sel={sel}
+      setSel={() => undefined}
+      enemyCreatures={[]}
+      openLogic={() => undefined}
+      resizeScene={() => undefined}
+      narratif={emptyNarratif()}
+      tool={{ mode: 'select' }}
+      armZoneTiles={() => undefined}
+      zoneFocusKey={null}
+    />,
+  );
+  return { container: montage.container, mount: () => act(() => render(scene)), sceneOf: () => latest };
+}
+
+/** Saisit `value` dans `el` puis quitte le champ : un champ live la pose à la frappe, un brouillon au blur. */
+async function saisirPuisQuitter(el: HTMLInputElement, value: string) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(el, value);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await act(async () => { el.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+}
+
+const champDuLibelle = (racine: HTMLElement, debut: string): HTMLInputElement =>
+  [...racine.querySelectorAll('label')].find((l) => l.textContent?.trim().startsWith(debut))!.querySelector('input')!;
+
+describe('Inspector — point d’entrée (même convention de pose que `moveSel`)', () => {
+  it('une coordonnée hors carte est plafonnée au bord, et ramenée à une case entière', async () => {
+    const h = mountSur({ ...emptyScene('scene-test', 4, 4), entryPoints: { porte: { x: 1, y: 1 } } }, { type: 'entry', id: 'porte' });
+    await h.mount();
+    await saisirPuisQuitter(champDuLibelle(h.container, 'X'), '9');
+    expect(h.sceneOf().entryPoints?.porte, 'X hors carte (4 cases) : posé au bord').toEqual({ x: 3, y: 1 });
+    await saisirPuisQuitter(champDuLibelle(h.container, 'Y'), '2.6');
+    expect(h.sceneOf().entryPoints?.porte, 'Y fractionnaire : une case entière').toEqual({ x: 3, y: 2 });
+  });
+});
+
+describe('Inspector — identifiant de scène (unique au projet, comme `renameEntry`)', () => {
+  it('l’id d’une autre scène du projet est refusé ; un id libre est posé', async () => {
+    const h = mountSur(emptyScene('scene-test', 4, 4), null, [emptyScene('cave', 4, 4)]);
+    await h.mount();
+    await saisirPuisQuitter(champDuLibelle(h.container, 'Identifiant'), 'cave');
+    expect(h.sceneOf().id, 'deux scènes du projet sous le même id').toBe('scene-test');
+    await saisirPuisQuitter(champDuLibelle(h.container, 'Identifiant'), 'grenier');
+    expect(h.sceneOf().id).toBe('grenier');
+  });
+});
+
+describe('Inspector — ouverture de façade (bornes tenues par le noyau)', () => {
+  it('une position hors de l’arête est ramenée à son bout ; une largeur nulle à la largeur minimale', async () => {
+    const scene: Scene = {
+      ...emptyScene('scene-test', 6, 6),
+      architecture: [{
+        id: 'corps', storeys: [{ id: 'z0', z: 0, parts: [{ id: 'p', foot: { x: 1, y: 1, w: 2, h: 2 } }], roomZoneIds: [] }],
+        facades: [{ id: 'pan', z: 0, edges: [{ x: 1, y: 1, side: 'N' }], appearance: 'mur-a-ossature-en-bois', features: [{ id: 'f1', kind: 'gable', edge: { x: 1, y: 1, side: 'N' } }] }],
+        masses: [],
+      }],
+    };
+    const h = mountSur(scene, { type: 'facadeSection', bodyId: 'corps', id: 'pan' });
+    await h.mount();
+    const ouverture = () => h.sceneOf().architecture![0].facades[0].features![0];
+    await saisirPuisQuitter(champDuLibelle(h.container, 'Position'), '3');
+    expect(ouverture().offset).toBe(1);
+    await saisirPuisQuitter(champDuLibelle(h.container, 'Largeur'), '0');
+    expect(ouverture().width).toBe(0.05);
   });
 });

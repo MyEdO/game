@@ -19,7 +19,7 @@ function bete(overrides: Partial<Possession & { nature: 'bete' }> = {}): Possess
     location: { kind: 'avec-le-groupe' },
     items: [],
     nature: 'bete',
-    ref: { creatureId: 'mule' },
+    ref: { id: 'mule' },
     ...overrides,
   } as Possession;
 }
@@ -35,7 +35,7 @@ describe('possessionCapacity — source par nature (§4.2/§5)', () => {
   });
 
   it('serviteur : porte son sac comme un héros, pas de bât dédié (undefined)', () => {
-    const p: Possession = { ...bete(), nature: 'serviteur', ref: { creatureId: 'mule' } } as Possession;
+    const p: Possession = { ...bete(), nature: 'serviteur', ref: { id: 'mule' } } as Possession;
     expect(possessionCapacity(p)).toBeUndefined();
   });
 
@@ -115,7 +115,7 @@ describe('possessionTotalEnc — scénario-étalon TERRESTRE (§5, T1-c2, #616)'
   const muleChargee: Possession = {
     uid: 'pos-mule', ownerId: 'h1', location: { kind: 'avec-le-groupe' },
     items: [{ uid: 'it-2', trappingId: 'sac-de-couchage', enc: 1 }] as Possession['items'],
-    nature: 'bete', ref: { creatureId: 'mule' },
+    nature: 'bete', ref: { id: 'mule' },
     cargo: [{ cargoId: 'vin', enc: 4, basePriceGold: 8 }],
   };
   const registry = [charrette, muleChargee];
@@ -171,7 +171,7 @@ describe('possessionLoadEnc — charge PORTÉE, EXCLUT le poids propre (#620 Lot
   const muleChargee: Possession = {
     uid: 'pos-mule', ownerId: 'h1', location: { kind: 'avec-le-groupe' },
     items: [{ uid: 'it-2', trappingId: 'sac-de-couchage', enc: 1 }] as Possession['items'],
-    nature: 'bete', ref: { creatureId: 'mule' },
+    nature: 'bete', ref: { id: 'mule' },
     cargo: [{ cargoId: 'vin', enc: 4, basePriceGold: 8 }],
   };
   const registry = [charrette, muleChargee];

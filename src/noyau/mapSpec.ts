@@ -69,34 +69,8 @@ import { buildEncounter, type AuthoredEnemy } from './monde/encounterAuthoring';
 import { chebyshev } from '../engine/grid';
 import { seatAssignmentDefects, type SeatAssignments } from './monde/seating';
 import { massFootprintCells } from './monde/buildings';
-import {
-  type Pt,
-  canonEdge,
-  setEdgeWall,
-  edgeWallState,
-  patchWall,
-  toggleDiagonalWall,
-  paintHeight,
-  paintCrenellated,
-  paintTiles,
-  fillTerrainRect,
-  addLayer,
-  putLayer,
-  placeEmplacement,
-  setPosteCrew,
-  setPosteSide,
-  pasteEntity,
-  addRestZone,
-  setMetresPerTile,
-  setAmbientLight,
-  setSceneFlags,
-  realFloorAt,
-  roofExclusionsByZ,
-  deriveArchitectureMasses,
-  bodyFootCellsByZ,
-  bodyFootCells,
-  adoptableOpeningsAt,
-} from './sceneEdit';
+import { type Pt, setEdgeWall, patchWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintTiles, fillTerrainRect, addLayer, putLayer, placeEmplacement, setPosteCrew, setPosteSide, pasteEntity, addRestZone, setSceneScalaires, setSceneFlags, realFloorAt, roofExclusionsByZ, deriveArchitectureMasses, bodyFootCellsByZ, bodyFootCells, adoptableOpeningsAt } from './sceneEdit';
+import { canonEdge, edgeWallState } from './sceneEditLecture';
 
 /** Hauteur (m) par défaut d'une ENCEINTE `cells` sans `height` explicite — chemin de ronde à ~4 m (un
  *  « niveau » de relief, cf. `METRES_PER_LEVEL`). */
@@ -634,8 +608,8 @@ export function buildScene(spec: MapSpec): Scene {
   if (spec.music !== undefined) s.music = spec.music;
   if (spec.rest !== undefined) s.rest = spec.rest;
   if (spec.startMessage !== undefined) s.startMessage = spec.startMessage;
-  if (spec.metresPerTile !== undefined) s = setMetresPerTile(s, spec.metresPerTile);
-  if (spec.ambientLight !== undefined) s = setAmbientLight(s, spec.ambientLight);
+  if (spec.metresPerTile !== undefined) s = setSceneScalaires(s, { metresPerTile: spec.metresPerTile });
+  if (spec.ambientLight !== undefined) s = setSceneScalaires(s, { ambientLight: spec.ambientLight });
   s = setSceneFlags(s, spec.flags ?? {});
 
   // 2. terrain + scan des marqueurs

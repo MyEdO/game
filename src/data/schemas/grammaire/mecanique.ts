@@ -49,6 +49,12 @@ export type ArmourBypass = z.infer<typeof armourBypassSchema>;
 /** Ce que l'op `loseTurn` retire ; absent = les deux. */
 export const loseTurnWhatSchema = enumNomme({ action: 'son Action', movement: 'son Mouvement' });
 
+/** Compétences du dieu que frappe l'op `deitySkillMod`. LDB 40 l.61, l.70 */
+export const deitySkillPickSchema = enumNomme({ all: 'toutes', random: 'une au hasard' });
+
+/** Refus d'une op `deitySkillMod` sans durée, ou à deux durées. */
+export const MESSAGE_DUREE_DE_DIVINITE = 'durée EXCLUSIVE : « durationHours » (heures) OU « durationDays » (jours) — exactement une des deux.';
+
 /** Forme d'une `zone`. */
 export const zoneShapeSchema = enumNomme({ disc: 'disque', wall: 'mur' });
 
@@ -306,6 +312,11 @@ const DECLARATIONS_D_OPS = {
     suffocates: z.boolean().optional(),
   }), { op: { label: "opération"  }, terrain: { label: "terrain" , texte: { regime: "technique"} }, mSet: { label: "Mouvement imposé" }, testDR: { label: "DR de Test" }, suffocates: { label: "asphyxie" } }),
   skillMod: nommerChamps(z.strictObject({ op: z.literal('skillMod'), skill: refOuSpec('skill'), mod: z.number(), sense: senseSchema.optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, sense: { label: "sens"  } }),
+  /** Durée EXCLUSIVE, en heures OU en jours (`engine/ops.ts`, union `deitySkillMod`). */
+  deitySkillMod: z.union([
+    nommerChamps(z.strictObject({ op: z.literal('deitySkillMod'), pick: deitySkillPickSchema, mod: z.number(), durationHours: formulaSchema }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationHours: { label: 'durée en heures', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
+    nommerChamps(z.strictObject({ op: z.literal('deitySkillMod'), pick: deitySkillPickSchema, mod: z.number(), durationDays: formulaSchema }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
+  ], { error: () => MESSAGE_DUREE_DE_DIVINITE }),
   /** Cible EXCLUSIVE, `skill` OU `testType` (`engine/ops.ts`, union `skillDRBonus`). `testType` : id de
    *  `crew-test-types.json`, document `config` dont les ids vivent sous `types[]` — hors de l'INDEX
    *  DES IDS (`IDS_PAR_ESPACE`, `scripts/gen-espaces.mts`) ; clé étrangère tenue par
@@ -338,6 +349,8 @@ const DECLARATIONS_D_OPS = {
   grantCareerTalent: declarerPayload({ op: z.literal('grantCareerTalent'), talent: aChoix('talent') }, { op: { label: "opération" }, talent: { label: 'Talent' } }),
   grantTalent: declarerPayload({ op: z.literal('grantTalent'), talent: aChoix('talent') }, { op: { label: "opération" }, talent: { label: 'Talent' } }),
   suppressTalents: nommerChamps(z.strictObject({ op: z.literal('suppressTalents'), talents: z.array(ref('talent')).min(1), durationDays: formulaSchema }), { op: { label: "opération" }, talents: { label: "Talents suspendus", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
+  deityBan: nommerChamps(z.strictObject({ op: z.literal('deityBan'), durationDays: formulaSchema }), { op: { label: "opération" }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
+  prayerForAction: nommerChamps(z.strictObject({ op: z.literal('prayerForAction'), durationRounds: formulaSchema }), { op: { label: "opération" }, durationRounds: { label: 'durée en Rounds', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   grantReverseToken: nommerChamps(z.strictObject({ op: z.literal('grantReverseToken'), skill: refOuSpec('skill').optional(), char: charKeySchema.optional(), contexte: contexteDeTestSchema.optional(), illimite: z.literal(true).optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" }, char: { label: "Caractéristique du Test" }, contexte: { label: "contexte du Test" }, illimite: { label: "jamais consommé" } }),
   exposeDisease: nommerChamps(z.strictObject({
     op: z.literal('exposeDisease'),
@@ -997,11 +1010,11 @@ function kindDEmbranchement(flow: unknown): string | null {
 }
 
 /**
- * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts:492`) — jet ALÉATOIRE interactif dont l'issue
+ * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts:559`) — jet ALÉATOIRE interactif dont l'issue
  * choisit la branche `success` ou `fail`. Le nœud ne dépend PAS du type de la feuille `do` de ses
- * branches : seul le schéma de BRANCHE change (`flowSchema` mécanique / `sceneFlowSchema`,
- * `defs-scenes/effets.ts`). La fabrique le déclare donc une seule fois, paramétré par sa branche —
- * `test` est toujours `flowTestSchema`, la forme UNIQUE du jet en donnée.
+ * branches : seul le schéma de BRANCHE change (`arbreDeFlow`, composé par `flowSchema` mécanique et
+ * `sceneFlowSchema`, `defs-scenes/effets.ts`). La fabrique le déclare donc une seule fois, paramétré
+ * par sa branche — `test` est toujours `flowTestSchema`, la forme UNIQUE du jet en donnée.
  */
 export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeudTest = {}) {
   const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test: flowTestSchema, success: branche, fail: branche }), { kind: { label: "type"  }, test: { label: "Test" }, success: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, fail: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
@@ -1045,7 +1058,7 @@ export const effectOnSchema = enumNomme({
   grappled: 'la victime empoignée (absorbée)',
 });
 
-/** `EffectTargeting` (`engine/flowCore.ts:469`). */
+/** `EffectTargeting` (`engine/flowCore.ts:632`). */
 export const effectTargetingSchema = z.union([
   effectOnSchema,
   nommerChamps(z.strictObject({ near: z.enum(['victim', 'self']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
@@ -1144,6 +1157,27 @@ function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown
  *  non typées (`OPS_NON_TYPEES`), quelle que soit la famille qui l'atteint. */
 const OP_EN_DONNEE = z.looseObject({ op: z.string() });
 
+/** `Flow<E>` (`engine/flowCore.ts:559`) — arbre récursif ACYCLIQUE (seq/do/if/test/choice), paramétré
+ *  par sa feuille `do`, sa `Condition` et le coût d'Avantage de son `choice`. */
+export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
+  const flow: z.ZodType<Flow<E>> = z.lazy(() =>
+    z.discriminatedUnion('kind', [
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'arbreDeFlow', 'flow.seq'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: feuille }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'arbreDeFlow', 'flow.do'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: condition, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'arbreDeFlow', 'flow.if'),
+      noeudTest(flow),
+      proseNommee(nommerChamps(z.strictObject({
+        kind: z.literal('choice'),
+        advantageCost: coutDAvantage.optional(),
+        icon: z.string().optional(),
+        yes: flow,
+        no: flow.optional(),
+      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt'),
+    ]),
+  );
+  return flow;
+}
+
 function construire(regimes: Regimes) {
   const opDefs = payloadsDe(regimes);
   const condition = conditionDe(CONDITIONS_RESERVEES.filter((k) => regimes[`condition.${k}`] === 'admis'));
@@ -1175,7 +1209,7 @@ function construire(regimes: Regimes) {
 
   /** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
    *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `do` par
-   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:45`), et l'un des membres de l'union `Effect` de
+   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:559`), et l'un des membres de l'union `Effect` de
    *  scène (`defs-scenes/effets.ts`). `on` = les 4 valeurs de
    *  l'interface TS : `'party'`/`'hero'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
    *  ciblage `'self'`/`'victim'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
@@ -1195,26 +1229,11 @@ function construire(regimes: Regimes) {
     label: z.string().optional(),
   }), { type: { label: "type"  }, ops: { label: "opérations" }, on: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, untilTime: { label: "échéance" }, label: { label: "libellé" , texte: { regime: "designation"} } }), 'construire', 'effectOp');
 
-  /** `Flow<EffectOp>` (`engine/flowCore.ts:492`) — arbre récursif ACYCLIQUE (seq/do/if/test/choice). */
-  const flow: z.ZodType<Flow<EffectOp>> = z.lazy(() =>
-    z.discriminatedUnion('kind', [
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'construire', 'flow.seq'),
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectOp }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'construire', 'flow.do'),
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: condition, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'construire', 'flow.if'),
-      noeudTest(flow),
-      proseNommee(nommerChamps(z.strictObject({
-        kind: z.literal('choice'),
-        // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
-        // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
-        advantageCost: ouReserve(z.number(), INDICE_TEMPLATE).optional(),
-        icon: z.string().optional(),
-        yes: flow,
-        no: flow.optional(),
-      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt'),
-    ]),
-  );
+  // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
+  // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
+  const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE));
 
-  /** `TriggeredEffect<EffectOp>` (`engine/flowCore.ts:472`). `optional` (Contrôle de la Frénésie…)
+  /** `TriggeredEffect<EffectOp>` (`engine/flowCore.ts:635`). `optional` (Contrôle de la Frénésie…)
    *  seule 1/9 des JSON le peuple (`talents.json`) — laissé optionnel, sans risque pour les autres. */
   const triggeredEffect = marquerProduit(nommerChamps(z.strictObject({
     trigger: effectTriggerSchema,

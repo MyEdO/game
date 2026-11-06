@@ -14,6 +14,7 @@ import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_LA_RACINE, type CleDeDataset } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
+import type { DotationDePossession } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
 import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
@@ -1589,6 +1590,8 @@ export interface SemencesDeSceneData {
   terrain: Terrain;
   reliefDefaults: ReliefDefaults;
   roofDefaults: SceneRoofDefaults;
+  /** Structure d'un pan de façade posé à l'éditeur (`addFacadeSection`). */
+  facade: string;
 }
 /**
  * DÉFAUTS DE COMPILATION (#1716/#1789) — ce que le compilateur de scène (`noyau/mapSpec.ts`) pose
@@ -2916,6 +2919,12 @@ export interface GodData {
   chaosSpells?: string[];
   desc?: string;
   source?: SourceRef;
+  /** Compétences associées au culte (ids de `skills.json`), liste MAISON : LDB 40 l.61, l.70 laisse le choix
+   *  au MJ. Lue par `deitySkills` (engine/magic). */
+  associatedSkills?: string[];
+  /** Arbitrage NON-verbatim documentant l'entrée (même patron que `TraitData.maison`) : la raison de
+   *  `associatedSkills`. Jamais lu par le moteur. */
+  maison?: string;
   /** VERROU de Péché du culte (MDG 11 l.148, Stromfels : « retire à un suivant la capacité d'utiliser le
    *  Talent *Invocation* s'il possède au moins deux Points de Péché et celle d'utiliser le Talent *Béni*
    *  s'il possède au moins cinq Points de Péché ») — seuil de Points de Péché à partir duquel le dieu
@@ -3394,10 +3403,9 @@ export interface QualityRef extends RefDesignee {
 /** Quantité d'une possession conférée : nombre fixe (« (3) ») ou jet de dés structuré (« (1d10) »). */
 export type CountSpec = { fixed: number } | { roll: DiceSpec };
 /** Référence à une Possession : par `id` du catalogue (+ quantité éventuelle), texte NARRATIF hors
- *  catalogue (statblocs de créature : « collection d'alcool sans pareille »), dotation VÉHICULE
- *  (`vehicles.json`) — grant de POSSESSION (matérialisé en T1, jamais un objet de sac en T0), résolue
- *  DIRECTEMENT par `findVehicleById`, jamais par le foyer trappings — OU dotation BÊTE (`creatures.json`,
- *  SOCLE POSSESSIONS #615/#617 §9), résolue DIRECTEMENT par `findCreatureById` — OU choix « A ou B »
+ *  catalogue (statblocs de créature : « collection d'alcool sans pareille »), dotation de POSSESSION
+ *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
+ *  résolue DIRECTEMENT par son `type`, jamais par le foyer trappings — OU choix « A ou B »
  *  (`choice`, RÉCURSIF, EN MIROIR d'`AdvancementRef`) — OU joker « n'importe quel <catégorie> »
  *  (`wildcard`, ex. `{wildcard:'arme'}`). `choice`/`wildcard` sont des EMPLACEMENTS, résolus par
  *  `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation ; non tranchés, ils
@@ -3406,13 +3414,15 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atout au choix »
  *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
  *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). */
+export type { DotationDePossession };
 export type TrappingRef =
   | (RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true })
   | { text: string; count?: CountSpec }
-  | { vehicleId: string; count?: CountSpec; label?: string }
-  | { creatureId: string; count?: CountSpec; label?: string }
+  | DotationDePossession
   | { choice: TrappingRef[] }
   | { wildcard: string };
+/** La dotation désigne-t-elle un OBJET du catalogue — ni possession, ni texte, ni emplacement ? */
+export const estDotationDObjet = (ref: TrappingRef): ref is Extract<TrappingRef, { id: string; type?: never }> => 'id' in ref && !('type' in ref);
 /** EMPLACEMENT d'avancement (espèce/carrière) : un espace de CHOIX, pas une instance résolue — la
  *  composition de la grammaire (`schemas/grammaire/avancement.ts`). Référence à spécialisation
  *  FACULTATIVE (`{id}`, `{id, spec}`, `{id, choix: true}` « Au choix », `{id, choix: [ids]}` choix
@@ -3638,13 +3648,13 @@ export function trappingRefLabel(ref: TrappingRef): PlayerText {
   if ('wildcard' in ref) return ref.wildcard === 'arme' ? t('ref.armeAuChoix') : t('ref.jokerAuChoix', { base: ref.wildcard });
   const base = 'text' in ref
     ? ref.text
-    : 'vehicleId' in ref
-      ? dataLabel(findVehicleById(ref.vehicleId)?.label, ref.vehicleId)
-      : 'creatureId' in ref
-        ? dataLabel(findCreatureById(ref.creatureId)?.label, ref.creatureId)
-        : refLabel('trappings', ref);
+    : !('type' in ref)
+      ? refLabel('trappings', ref)
+      : ref.type === 'vehicle'
+        ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
+        : dataLabel(findCreatureById(ref.id)?.label, ref.id);
   const count = ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
-  if ('id' in ref && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
-  const quality = 'id' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
+  if ('qualityChoice' in ref && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
+  const quality = 'qualities' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
   return dataLabel(base + count + quality);
 }

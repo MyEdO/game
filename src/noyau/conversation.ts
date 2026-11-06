@@ -2,15 +2,12 @@
 import type { DialogueTransition } from './pendings';
 import { TIME_COST } from '../engine/timeCost';
 import { runFlow, jouerFlowEntier, cloturer } from './combatEffects';
-import { conversationRepond, reponsesDuNoeud } from './dialogue';
+import { conversationRepond, nomDeLInterlocuteur, reponsesDuNoeud } from './dialogue';
 import { t } from '../i18n';
 import { surfaceTientLaMain } from './modalArbiter';
 import { refuserGesteDuSiege } from './refusVisible';
 import { toMoney } from '../engine/money';
 import { payFromGroup } from './bourseFlow';
-import { speakerEntity } from './monde/scene';
-import { nomDEntite } from './monde/sceneNpc';
-import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { type DialogueTurn, recordTurn } from './monde/dialogueHistory';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
@@ -55,10 +52,9 @@ export function creerActionsDeConversation(get: Get, set: Set) {
       const transition: DialogueTransition = choice.next
         ? { ...st.dialogue, nodeId: choice.next } // même conversation : `session` et interlocuteur voyagent avec
         : 'close';
-      // Nom AFFICHÉ du locuteur (override par nœud puis speaker de session) — source unique partagée
-      // par l'archive du tour et le titre de la fenêtre de butin d'un choix payant.
-      const locuteur = speakerEntity(st.scene?.entities ?? [], node, st.dialogue);
-      const speaker = locuteur && nomDEntite(locuteur, presetDuNarratif(get().campaignNarratif));
+      // Nom AFFICHÉ du locuteur (`nomDeLInterlocuteur`), partagé par l'archive du tour et le titre de la fenêtre de
+      // butin d'un choix payant.
+      const speaker = nomDeLInterlocuteur(st);
       // Archive verbatim du tour (#718) — au moment où le choix est FAIT, pas à la reprise d'un
       // Test différé (`choice.flow` peut suspendre plus bas : le tour est déjà enregistré ici).
       const turn: DialogueTurn = {
@@ -85,10 +81,6 @@ export function creerActionsDeConversation(get: Get, set: Set) {
         return;
       }
       applyDialogueTransition(get, set, transition);
-    },
-    closeDialogue: () => {
-      if (get().dialogue) get().advanceTime(TIME_COST.dialogue); // clôture d'une conversation ≈ dialogue min
-      set({ dialogue: null });
     },
   } satisfies Partial<ActionsDuNoyau>;
 }

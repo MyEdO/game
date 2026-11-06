@@ -123,7 +123,7 @@ const RAW_KNOWN: Record<string, number> = {
   // affaire), jamais l'identité d'une entrée de registre — famille du `''` d'`OP_VOCABULARY`.
   'src/ui/CarnetScreen.tsx': 2,
   'src/ui/PartyScreen.tsx': 2,
-  'src/ui/creator/CharacterCreator.tsx': 6,
+  'src/ui/creator/CharacterCreator.tsx': 5,
   'src/ui/editor/StatblockEditor.tsx': 1,
   'src/ui/gallery/registry.tsx': 4,
 };

@@ -79,9 +79,8 @@ const UI_PATH = [/^src[\\/]ui[\\/]/];
  *  livre » (`src/data/refFormatLivre.ts`) n'ont aucun écran. Une écriture
  *  qui y vit ne crédite QUE si sa fonction porteuse est ATTEINTE par une chaîne d'appels partant de
  *  `src/ui/**`. Une définition, fût-elle exportée, testée et ré-exportée par l'éditeur, ne crédite
- *  rien : `Scene.flags` ← `setSceneFlags` (`src/noyau/sceneEdit.ts:481`), ré-exporté par
- *  `src/ui/editor/editorState.ts:52` et appelé par AUCUN composant, est précisément le défaut de
- *  #841 — le travail s'arrête à la porte de l'interface. */
+ *  rien : `Scene.flags` ← `setSceneFlags`, exportée, testée et appelée par AUCUN composant,
+ *  est précisément le défaut de #841 — le travail s'arrête à la porte de l'interface. */
 const BRIDGE_PATH = [/^src[\\/]noyau[\\/]sceneEdit\.ts$/, /^src[\\/]data[\\/]refFormatLivre\.ts$/];
 
 /** Chemin d'écriture ATTEIGNABLE PAR L'AUTEUR = interface + primitives réellement appelées par elle. */

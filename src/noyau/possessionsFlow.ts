@@ -17,7 +17,7 @@ import { makeRNG, hashSeed } from '../engine/dice';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 
-/** Sème les Possessions de dotation (`{creatureId}`/`{vehicleId}` des dotations de Classe/Carrière,
+/** Sème les Possessions de dotation (`{id, type}` des dotations de Classe/Carrière,
  *  #617/#618 SOCLE POSSESSIONS Lot 1) pour CHAQUE héros du groupe courant — SEAM = `noyau/entreeEnScene.ts`
  *  `startScene` (démarrage d'une partie neuve, seule couture qui repart d'un registre `possessions`
  *  vidé ; `loadGame`/`transitionTo` ne repassent JAMAIS ici, cf. §3 du brief Lot 1 — le registre

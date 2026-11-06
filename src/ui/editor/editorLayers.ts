@@ -4,7 +4,11 @@
  * revenu à sa valeur de défaut efface le choix, et la préférence d'une carte n'en suit pas une autre.
  */
 import { persistedAtom } from '../persistedAtom';
-import { DEFAULT_LAYERS, type Layers } from './editorState';
+import type { Layers } from '../../noyau/sceneEditLecture';
+
+// Tout ce que la scène porte est VISIBLE et cliquable à l'ouverture : un calque éteint cache
+// l'élément ET bloque son clic, et rien à l'écran ne dit qu'une case à cocher le retient.
+export const DEFAULT_LAYERS: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 
 const LAYER_KEYS = Object.keys(DEFAULT_LAYERS) as (keyof Layers)[];
 
