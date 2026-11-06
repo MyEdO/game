@@ -349,10 +349,14 @@ describe('la table rôle → clip d’une base (#3253)', () => {
   ])('refuse %s, en le nommant', (_, clips, refus) => {
     expect(validerModele({ ...baseDeTest(), clips }, GLB_DE_BASE)).toEqual({ ok: false, refus: [refus] });
   });
-  it('accepte la table des rôles tenus à deux mains, et la juge comme `clips` (#3319)', () => {
-    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { idle: 'walk' } }, GLB_DE_BASE)).toMatchObject({ ok: true, manifeste: { clipsDeuxMains: { idle: 'walk' } } });
-    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { danse: 'walk', idle: 'Repos_DeuxMains' } }, GLB_DE_BASE))
-      .toEqual({ ok: false, refus: ['[role-inconnu] clipsDeuxMains.danse : danse', '[clip-absent] clipsDeuxMains.idle : Repos_DeuxMains'] });
+  it('accepte une table des rôles tenus à deux mains par maniement, et juge chacune comme `clips` (#3319)', () => {
+    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { hampe: { idle: 'walk' } } }, GLB_DE_BASE)).toMatchObject({ ok: true, manifeste: { clipsDeuxMains: { hampe: { idle: 'walk' } } } });
+    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { lourde2m: { danse: 'walk' }, hampe: { idle: 'Repos_Hampe' } } }, GLB_DE_BASE))
+      .toEqual({ ok: false, refus: ['[role-inconnu] clipsDeuxMains.lourde2m.danse : danse', '[clip-absent] clipsDeuxMains.hampe.idle : Repos_Hampe'] });
+  });
+  it('refuse une table de rôles tenus à deux mains sous un maniement inconnu, en le nommant', () => {
+    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { valse: { idle: 'walk' } } }, GLB_DE_BASE))
+      .toEqual({ ok: false, refus: ['[maniement-inconnu] clipsDeuxMains.valse : valse'] });
   });
   it('refuse l’élément d’une base dont la table est refusée', () => {
     const base = { brut: { ...baseDeTest(), clips: { walk: 'Walk_Loop' } }, octets: GLB_DE_BASE };

@@ -10,7 +10,7 @@
     "secondePrise": {
       "position": [
         0,
-        -0.4,
+        0.5,
         0
       ],
       "rotation": [
@@ -35,7 +35,7 @@
     }
   ],
   "glb": {
-    "sha256": "a1ae1e789c95b21e81a82dae74fb89fa71f7a78c89047a0aaae05660088b571b",
-    "octets": 51688
+    "sha256": "e38c570a245146c962f046bd08baf6bda5ef563371587024c6db6c17f62b4426",
+    "octets": 51684
   }
 }

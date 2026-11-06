@@ -17,7 +17,7 @@ import type { ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
-import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, libelleDeCleDElement, pieceRacine, type EmblemeDef } from '../../../src/noyau/index';
+import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, libelleDeCleDElement, maniementDeLaForme, pieceRacine, type EmblemeDef, type Maniement } from '../../../src/noyau/index';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
  *  montent. */
@@ -51,8 +51,8 @@ export interface BaseDeLAtelier {
   lignes: LigneDePiece[];
   /** Le clip de chaque rôle que la base joue (`ManifesteDeBase.clips`). */
   clips: ManifesteDeBase['clips'];
-  /** Le clip de chaque rôle que la base joue en tenant un objet des deux mains (`ManifesteDeBase.clipsDeuxMains`), vide
-   *  sans table. */
+  /** Par maniement, le clip de chaque rôle que la base joue en tenant des deux mains un objet de ce maniement
+   *  (`ManifesteDeBase.clipsDeuxMains`), vide sans table. */
   clipsDeuxMains: NonNullable<ManifesteDeBase['clipsDeuxMains']>;
   /** La vitesse au sol en m/s du clip du rôle `walk` (`ManifesteDeBase.appuis.vitesseAuSol`). */
   vitesseAuSol: number;
@@ -70,10 +70,18 @@ export interface ModelesDeLAtelier {
   surfaces: Record<string, readonly Surface[]>;
   /** Par élément servi, le libellé de la chose que sa clé désigne (`libelleDeCleDElement`), à défaut son id. */
   libelles: Record<string, string>;
-  /** Par élément servi qui en déclare une, la prise de la main libre, dans le repère de sa prise (`liaison.secondePrise`, #3319). */
-  secondesPrises: Record<string, Repere>;
+  /** Par élément servi qui en déclare une, la prise de la main libre (`SecondePriseDeLAtelier`, #3319). */
+  secondesPrises: Record<string, SecondePriseDeLAtelier>;
   /** Les emblèmes de la garde-robe (`kind: 'embleme'`). */
   emblemes: EmblemeDeLAtelier[];
+}
+
+/** La seconde prise d'un élément : son repère dans celui de sa prise (`liaison.secondePrise`), et le maniement de sa
+ *  forme (`cle.apparence`, `maniementDeLaForme`), qui choisit ses clips à deux mains, `null` sans forme ou sans
+ *  déclaration. */
+export interface SecondePriseDeLAtelier {
+  repere: Repere;
+  maniement: Maniement | null;
 }
 
 /** Un emblème offert au montage : son id, son libellé et son dessin. */
@@ -99,7 +107,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const glb: Record<string, string> = {};
   const surfaces: Record<string, readonly Surface[]> = {};
   const libelles: Record<string, string> = {};
-  const secondesPrises: Record<string, Repere> = {};
+  const secondesPrises: Record<string, SecondePriseDeLAtelier> = {};
   const catalogues = cataloguesDeComposition();
   const libelleDuPoint = (id: string, genre: PointDAccroche['genre']): string =>
     (genre === 'prise' ? catalogues.prises : gardeRobe.filter((g) => g.kind === 'emplacement')).find((c) => c.id === id)?.label ?? id;
@@ -110,7 +118,8 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
       surfaces[id] = (brut as ManifesteDElement).surfaces;
       libelles[id] = libelleDeCleDElement(cleDe(brut)) ?? id;
       const { liaison } = brut as ManifesteDElement;
-      if ('secondePrise' in liaison && liaison.secondePrise) secondesPrises[id] = liaison.secondePrise;
+      const forme = cleDe(brut).apparence;
+      if ('secondePrise' in liaison && liaison.secondePrise) secondesPrises[id] = { repere: liaison.secondePrise, maniement: (forme && maniementDeLaForme(forme)) || null };
       return id;
     });
   const bases = [...index.bases.values()].map(({ id, brut }): BaseDeLAtelier => {

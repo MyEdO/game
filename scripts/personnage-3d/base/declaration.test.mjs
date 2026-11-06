@@ -56,7 +56,7 @@ describe('champsDeclares', () => {
   })
 
   it('y ajoute la table des rôles tenus à deux mains, déclarée', () => {
-    const clipsDeuxMains = { idle: 'Repos_DeuxMains' }
+    const clipsDeuxMains = { hampe: { idle: 'Hampe_Repos_Loop' } }
     assert.deepEqual(champsDeclares({ base: 'corps', porteur, clips, clipsDeuxMains }), { base: 'corps', porteur, clips, clipsDeuxMains })
   })
 

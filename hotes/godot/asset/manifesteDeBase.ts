@@ -12,7 +12,7 @@ import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 import { estSilhouette } from './silhouettes.ts';
 import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
 import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
-import type { TableDeClips } from './clips.ts';
+import type { TableDeClips, TablesDeuxMains } from './clips.ts';
 
 export const VERSION_DU_SCHEMA_DE_BASE = 4;
 
@@ -71,9 +71,9 @@ export interface ManifesteDeBase {
   readonly porteur: PorteurDeReference;
   /** Le clip de chaque rôle que la base joue ; `walk` exigé. */
   readonly clips: TableDeClips & { readonly walk: string };
-  /** Le clip de chaque rôle que la base joue en tenant un objet des deux mains (#3319) ; un rôle absent joue celui de
-   *  `clips`. */
-  readonly clipsDeuxMains?: TableDeClips;
+  /** Par maniement, le clip de chaque rôle que la base joue en tenant des deux mains un objet de ce maniement (#3319) ;
+   *  un maniement ou un rôle absent joue celui de `clips`. */
+  readonly clipsDeuxMains?: TablesDeuxMains;
   readonly appuis: Appuis;
   /** Les os, hors racine, dont un clip anime la position (`gardePistesDEchelle`). */
   readonly osAPositionAnimee: readonly string[];
@@ -94,6 +94,7 @@ export type CodeDEcartDeBase =
   | 'silhouette-inconnue'
   | 'role-inconnu'
   | 'clip-absent'
+  | 'maniement-inconnu'
   | CodeDEcartDeSurface
   | 'glb-different';
 
@@ -199,7 +200,10 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   const clips = Object.fromEntries(Object.entries(objet(brut.clips, 'clips')).map(([role, nom]) => [role, chaine(nom, `clips.${role}`)]));
   if (estObjet(brut.clips) && clips.walk === undefined) forme('clips.walk', 'le clip du rôle `walk` est exigé');
   const clipsDeuxMains = brut.clipsDeuxMains === undefined ? undefined
-    : Object.fromEntries(Object.entries(objet(brut.clipsDeuxMains, 'clipsDeuxMains')).map(([role, nom]) => [role, chaine(nom, `clipsDeuxMains.${role}`)]));
+    : Object.fromEntries(Object.entries(objet(brut.clipsDeuxMains, 'clipsDeuxMains')).map(([maniement, table]) => {
+      const ou = `clipsDeuxMains.${maniement}`;
+      return [maniement, Object.fromEntries(Object.entries(objet(table, ou)).map(([role, nom]) => [role, chaine(nom, `${ou}.${role}`)]))];
+    }));
   const a = objet(brut.appuis, 'appuis');
   for (const cle of Object.keys(a)) if (!['pieds', 'plusBas', 'vitesseAuSol'].includes(cle)) forme(`appuis.${cle}`, 'champ inconnu');
   const triplet = (v: unknown, ou: string): readonly [number, number, number] => {

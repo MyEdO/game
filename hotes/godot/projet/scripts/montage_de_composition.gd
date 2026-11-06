@@ -320,22 +320,31 @@ func poser_la_seconde_prise() -> void:
 	var libre := _point("off")
 	if squelette == null or seconde == null or montes.has("off") or tenante.is_empty() or libre.is_empty():
 		return
-	seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde)
+	seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde.repere)
 
 
 
-## Le clip du rôle `role` de la base posée : celui de `clipsDeuxMains` tant que la main libre tient la seconde prise
-## (`seconde_prise`), celui de `clips` sinon ou faute de clip à deux mains pour ce rôle ; `""` sans clip.
+## Le clip du rôle `role` de la base posée : tant que la main libre tient la seconde prise (`seconde_prise`), celui de
+## `clipsDeuxMains` sous le maniement de l'élément tenu (`secondesPrises` de `modeles`) ; celui de `clips` sinon, ou faute
+## de clip à deux mains pour ce maniement et ce rôle ; `""` sans clip.
 func clip(role: String) -> String:
 	var clips: Dictionary = base.get("clips", {})
 	if seconde_prise.is_empty():
 		return clips.get(role, "")
-	return base.get("clipsDeuxMains", {}).get(role, clips.get(role, ""))
+	var maniement: Variant = modeles.secondesPrises[montes.main].maniement
+	return base.get("clipsDeuxMains", {}).get(maniement, {}).get(role, clips.get(role, ""))
 
 
-## Le rôle du clip `nom` dans `clips` ou `clipsDeuxMains` de la base posée, `""` s'il n'en joue aucun.
+## Les tables rôle → clip de la base posée : `clips`, puis celle de chaque maniement de `clipsDeuxMains`.
+func tables_de_clips() -> Array[Dictionary]:
+	var tables: Array[Dictionary] = [base.get("clips", {})]
+	tables.append_array(base.get("clipsDeuxMains", {}).values())
+	return tables
+
+
+## Le rôle du clip `nom` dans une table de la base posée (`tables_de_clips`), `""` s'il n'en joue aucun.
 func role_du_clip(nom: String) -> String:
-	for table: Dictionary in [base.get("clips", {}), base.get("clipsDeuxMains", {})]:
+	for table: Dictionary in tables_de_clips():
 		var role: Variant = table.find_key(nom)
 		if role != null:
 			return role

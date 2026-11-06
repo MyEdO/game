@@ -247,7 +247,7 @@ def construire(args):
     bornes = bornes_de_st()
     table = {**gabarit(squelette), 'st': bornes, 'bornes': bornes_du_gabarit()}
     declaration = json.loads(DECLARATION.read_text(encoding='utf-8'))
-    marches = [declaration['clips']['walk'], declaration['clipsDeuxMains']['walk']]
+    marches = [declaration['clips']['walk'], *(table['walk'] for table in declaration['clipsDeuxMains'].values())]
     noms = [b.name for b in squelette.data.bones]
 
     rabot = None

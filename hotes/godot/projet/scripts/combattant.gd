@@ -1,8 +1,8 @@
 ## Un combattant du plateau : son corps, la base composée que la vue lui donne (`vue.corps.combattants[id]`,
 ## `hotes/godot/pont/CONTRAT.md`), posée par son montage (`MontageDeComposition`, le nœud `Modele`) à l'échelle métrique
 ## du plateau (`vue.plateau.metresParCase`) et animée par les clips de sa base selon leur rôle (`clips` de la réponse de
-## `modeles`, ou `clipsDeuxMains` tant qu'il tient un objet des deux mains, `MontageDeComposition.clip`) ; son nom et ses
-## Points de Blessures (`pb`) en étiquette au-dessus de sa tête, l'anneau de l'actif. Il glisse vers sa nouvelle case,
+## `modeles`, ou `clipsDeuxMains` sous son maniement tant qu'il tient un objet des deux mains, `MontageDeComposition.clip`) ;
+## son nom et ses Points de Blessures (`pb`) en étiquette au-dessus de sa tête, l'anneau de l'actif. Il glisse vers sa nouvelle case,
 ## frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
 ## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`).
 class_name Combattant
@@ -111,7 +111,7 @@ func _vetir(corps: Variant) -> void:
 	_montage.vider()
 	_montage.poser_le_modele(_base(corps.base), scene)
 	if _montage.lecteur != null:
-		for table: Dictionary in [_montage.base.get("clips", {}), _montage.base.get("clipsDeuxMains", {})]:
+		for table: Dictionary in _montage.tables_de_clips():
 			for role in [REPOS, MARCHE]:
 				if _montage.lecteur.has_animation(table.get(role, "")):
 					_montage.lecteur.get_animation(table[role]).loop_mode = Animation.LOOP_LINEAR
