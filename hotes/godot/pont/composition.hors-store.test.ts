@@ -66,7 +66,7 @@ describe('composerSurLaBase', () => {
     const ample = { ...chausses, cle: { piece: 'haut-de-chausses-ample' } };
     const manifestes = { humanoide, chausses, ample };
     const modeles = modelesDeLAtelier(manifestes, tableTotale(Object.keys(manifestes), (id) => (id === 'humanoide' ? [] : ['root'])));
-    expect(modeles.bases[0].lignes).toContainEqual(expect.objectContaining({ sorte: 'piece', id: 'haut-de-chausses', elements: ['chausses', 'ample'] }));
+    expect(modeles.bases[0].lignes).toContainEqual(expect.objectContaining({ sorte: 'piece', variantes: true, id: 'haut-de-chausses', elements: ['chausses', 'ample'] }));
     expect(modeles.libelles.ample).toBe('Haut-de-chausses ample');
     expect(composer(manifestes, soldat).montes).toContainEqual({ ligne: 'ligne/piece/haut-de-chausses', element: 'chausses' });
     const varie = composer(manifestes, { ...soldat, variantesPieces: { 'haut-de-chausses': { id: 'haut-de-chausses-ample' } } });

@@ -37,9 +37,13 @@ export interface ChoixDeLigne {
   elements: string[];
 }
 
-/** Une ligne de pièce (#3086, D3) : le sélecteur d'un axe (`tete`, `coiffure`), la bascule d'une pièce de vêtement ou
- *  d'armure (`piece`), ou la liste des accessoires d'un emplacement (`emplacement`) ; `elements` vide : « manquant ». */
-export type LigneDePiece = { sorte: 'tete' | 'coiffure'; label: string; choix: ChoixDeLigne[] } | ({ sorte: 'piece' | 'emplacement' } & ChoixDeLigne);
+/** Une ligne de pièce (#3086, D3) : le sélecteur d'un axe (`tete`, `coiffure`), une pièce de vêtement ou d'armure
+ *  (`piece`), bascule ou, si la garde-robe lui déclare des variantes (#3446), liste, ou la liste des accessoires d'un
+ *  emplacement (`emplacement`) ; `elements` vide : « manquant ». */
+export type LigneDePiece =
+  | { sorte: 'tete' | 'coiffure'; label: string; choix: ChoixDeLigne[] }
+  | ({ sorte: 'piece'; variantes: boolean } & ChoixDeLigne)
+  | ({ sorte: 'emplacement' } & ChoixDeLigne);
 
 export interface BaseDeLAtelier {
   id: string;
@@ -139,7 +143,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     const lignes: LigneDePiece[] = [
       { sorte: 'tete', label: libelleDeLAxe('tete'), choix: gardeRobe.flatMap((g) => (g.kind === 'tete' ? [choix(g.id, g.label, (e) => cleDe(e.brut).tete === g.id)] : [])) },
       { sorte: 'coiffure', label: libelleDeLAxe('coiffure'), choix: gardeRobe.flatMap((g) => (g.kind === 'coiffure' ? [choix(g.id, g.label, (e) => cleDe(e.brut).coiffure === g.id)] : [])) },
-      ...gardeRobe.flatMap((g): LigneDePiece[] => (g.kind === 'piece' && g.categorie !== 'accessoire' ? [{ sorte: 'piece', ...choix(g.id, g.label, (e) => racineDe(e) === g.id) }] : [])),
+      ...gardeRobe.flatMap((g): LigneDePiece[] => (g.kind === 'piece' && g.categorie !== 'accessoire' ? [{ sorte: 'piece', variantes: gardeRobe.some((v) => v.kind === 'variante' && v.piece.id === g.id), ...choix(g.id, g.label, (e) => racineDe(e) === g.id) }] : [])),
       ...gardeRobe.flatMap((g): LigneDePiece[] =>
         g.kind === 'emplacement' && gardeRobe.some((p) => p.kind === 'piece' && emplacementDePiece(p.id) === g.id)
           ? [{ sorte: 'emplacement', ...choix(g.id, g.label, (e) => emplacementDe(e) === g.id) }]

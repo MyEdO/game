@@ -398,11 +398,11 @@ func _selecteur(ligne: Dictionary) -> void:
 
 
 ## La ligne d'une pièce, de clé `ligne/piece/<id>` : la case de son `label`, qui monte son seul élément ou le démonte s'il
-## l'est ; avec ses variantes (#3446), la liste de ses éléments (`_liste`).
+## l'est ; si la vue lui déclare des `variantes` (#3446), la liste de ses éléments (`_liste`).
 func _case_de_piece(ligne: Dictionary) -> void:
 	var cle := "piece/%s" % ligne.id
 	var emplacement := _emplacement("ligne/%s" % cle, cle, "lignes", "piece", ligne.elements)
-	if ligne.elements.size() > 1:
+	if ligne.variantes:
 		_liste(emplacement, ligne.label, _choix_des_elements(ligne.elements))
 		return
 	var element: String = ligne.elements[0]
