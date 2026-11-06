@@ -50,7 +50,7 @@ func _ready() -> void:
 func suivre(racine: Node3D, lecteur: AnimationPlayer, clip: String, vitesse: float) -> void:
 	_racine = racine
 	_lecteur = lecteur
-	_squelette = MontageDEquipement.squelette_de(racine) if racine != null else null
+	_squelette = MontageDeComposition.squelette_de(racine) if racine != null else null
 	_clip = clip
 	_vitesse = vitesse
 	_en_marche = false

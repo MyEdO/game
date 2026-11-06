@@ -1,5 +1,5 @@
 """verifier_export.verify et animation.verify sur des GLB fabriqués dans bpy : attache rigide, contrôles du conteneur
-glTF, clips déclarés ; puis le modèle commité Knight.glb."""
+glTF, clips déclarés."""
 import argparse
 import json
 import struct
@@ -8,13 +8,10 @@ import unittest
 from pathlib import Path
 
 import bpy
-import numpy as np
 
 import animation
 from glb import ecrire_glb, lire_glb
 from verifier_export import controles_glb, verify
-
-MODELES = Path(__file__).resolve().parents[2] / 'hotes' / 'godot' / 'projet' / 'modeles'
 
 
 def construire(chemin, prop=None, uv=True, blend=False, clip_fixe=False):
@@ -234,15 +231,6 @@ class Tetes(unittest.TestCase):
     def test_libelle_de_combinaison(self):
         self.assertEqual(animation.combinaison(None, 'manteau'), 'sans-tete-manteau')
         self.assertEqual(animation.combinaison('a', 'manteau'), 'a-manteau')
-
-
-class ModeleCommite(unittest.TestCase):
-    def test_knight_passe(self):
-        manifest = json.loads((MODELES / 'Knight.manifeste.json').read_text(encoding='utf-8'))
-        report = verify(MODELES / manifest['model'], 'rig', clips=manifest['clips'].values())
-        self.assertEqual(report['errors'], [])
-        self.assertEqual(sorted(action['name'] for action in report['actions']), sorted(manifest['clips'].values()))
-        self.assertTrue(np.all([action['has_real_deformation'] for action in report['actions']]))
 
 
 if __name__ == '__main__':

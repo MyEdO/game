@@ -1,29 +1,23 @@
 ## L'atelier 3D (#3086) : les modèles que le serveur de l'export liste (`GET modeles/`), indexés par le pont
 ## (`modeles`, `hotes/godot/pont/atelier.ts`), et chaque GLB chargé à l'exécution (`GET modeles/<id>.glb`). Le joueur y
 ## choisit un corps, compose un personnage depuis un preset ou ses axes (`composer`, `catalogues`, `presetDeComposition`,
-## `hotes/godot/pont/composition.ts`), le colore au nuancier, monte un élément par point d'accroche ou par ligne de pièce (`hotes/godot/asset/evaluateur/evaluer.ts`
-## `monter`, `MontageDEquipement.attacher`, #3086 D3 et D4), joue les clips de la base
-## image par image, fait marcher la base au clavier (`MarcheDeLAtelier`), montre les aides (os, emplacements, prises) et
-## recharge les GLB réexportés sans relancer l'atelier.
+## `hotes/godot/pont/composition.ts`), le colore au nuancier, monte un élément par point d'accroche ou par ligne de pièce,
+## joue les clips de la base image par image, fait marcher la base au clavier (`MarcheDeLAtelier`), montre les aides
+## (os, emplacements, prises) et recharge les GLB réexportés sans relancer l'atelier. La base et ce qui s'y monte sont
+## ceux de son montage (`MontageDeComposition`, le nœud `Modele`), que l'atelier offre au joueur.
 ## Chaque geste mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
 extends Node3D
 
-const VIDE := "vide"
+const VIDE := MontageDeComposition.VIDE
 ## Le texte du choix « vide » d'une liste : aucun élément, aucun emblème, aucune valeur d'axe.
 const AUCUN := "Aucun"
 const AIDE_DU_GENRE := {emplacement = "emplacements", prise = "prises"}
 const COULEUR_DES_AIDES := {os = Color(0.95, 0.85, 0.2), emplacements = Color(0.3, 0.8, 1.0), prises = Color(1.0, 0.4, 0.35)}
-const ORIGINE := [0.0, 0.0, 0.0]
 const RAYON_DU_REPERE_D_OS := 0.02
 ## Plus grand que celui d'un os : le repère d'un point déborde de celui de son os, quel que soit l'ordre de rendu.
 const RAYON_DU_REPERE_DE_POINT := 0.035
 const TAILLE_DE_L_ETIQUETTE := 0.0015
 const DEBUT_D_EMPREINTE := 12
-const DELAI_DE_REQUETE_S := 10.0
-## Le plus grand bloc que HTTPRequest lit par image : un GLB de base se reçoit en quelques images, pas en une par 64 Kio.
-const BLOC_DE_TELECHARGEMENT := 16777216
-## La largeur en pixels à laquelle le SVG d'un emblème se rastérise (#3111).
-const LARGEUR_D_EMBLEME := 512.0
 ## Le bouton d'un axe `plage` qui retire son champ de la composition, sa valeur au `neutre` de l'axe.
 const NEUTRE := "neutre"
 ## Le pas de la glissière d'un axe `plage`.
@@ -44,7 +38,7 @@ const PAR_DEFAUT := "Par défaut"
 const COTE_DE_LA_PASTILLE := 16
 
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
-@onready var _support_du_modele: Node3D = $Modele
+@onready var _montage: MontageDeComposition = $Modele
 @onready var _interface: CanvasLayer = $Interface
 @onready var _marche: MarcheDeLAtelier = $Marche
 @onready var _etat: Label = %Etat
@@ -56,16 +50,11 @@ const COTE_DE_LA_PASTILLE := 16
 @onready var _onglets := {personnage = %DefilementPersonnage, equipement = %DefilementEquipement, couleurs = %DefilementCouleurs, animation = %DefilementAnimation, outils = %DefilementOutils}
 @onready var _boutons_des_onglets := {personnage = %OngletPersonnage, equipement = %OngletEquipement, couleurs = %OngletCouleurs, animation = %OngletAnimation, outils = %OngletOutils}
 
-var _modeles: Dictionary = {}
-var _base: Dictionary = {}
 ## L'id de la base demandée en dernier, posée ou en chargement.
 var _base_demandee: Variant = null
 ## Le chargement retenu : un chargement qu'un autre remplace jette son résultat.
 var _chargement: RefCounted = null
-var _modele: Node3D = null
-var _squelette: Skeleton3D = null
 var _pose_des_os: Dictionary = {}
-var _lecteur: AnimationPlayer = null
 var _pas := 0.0
 var _vitesse := 1.0
 ## Le clip que « Recharger » rejoue, à son instant, en lecture ou en pause.
@@ -74,32 +63,16 @@ var _reprise: Dictionary = {}
 ## publiée, `montes` ou `lignes` qui la publie, son bloc au panneau, les éléments qu'il offre et son contrôle : la liste de
 ## ses choix, ou la case d'une pièce.
 var _emplacements: Dictionary = {}
-## Par id d'emplacement, l'élément monté.
-var _montes: Dictionary = {}
-## Par id d'emplacement monté dont l'élément porte une surface `blason`, l'emblème posé (#3111).
-var _emblemes: Dictionary = {}
-## Par id d'emplacement monté dont l'élément porte une surface `blason`, l'emblème demandé, posé ou non : une composition
-## ne redemande pas celui qu'il porte déjà.
-var _emblemes_demandes: Dictionary = {}
 ## Par id d'emplacement, la référence d'emblème choisie, ou null pour une surface sans emblème.
 var _surcharges_des_emblemes: Dictionary = {}
-## Par id d'emplacement monté, ses meshes montés, et les nœuds qui les portent dans la scène.
-var _pieces: Dictionary = {}
-var _noeuds: Dictionary = {}
 ## Par id d'emplacement, la rangée de ses emblèmes, s'il en offre.
 var _lignes_des_emblemes: Dictionary = {}
 ## Par id de section de l'onglet Équipement, la colonne de ses rangées.
 var _sections: Dictionary = {}
-## Par id d'emplacement, la demande de montage retenue : le montage en vol d'une autre demande est jeté.
-var _demandes: Dictionary = {}
 var _boutons_des_bases: Dictionary = {}
 var _boutons_des_emblemes: Dictionary = {}
 ## Par emplacement de palette (`couleurs` de `catalogues`), sa liste au panneau Couleurs.
 var _listes_des_couleurs: Dictionary = {}
-## Par emblème, sa texture rastérisée (`_texture_de_l_embleme`), d'un chargement des modèles au suivant.
-var _textures_des_emblemes: Dictionary = {}
-## Les meshes de la base posée, relevés avant tout montage.
-var _pieces_de_la_base: Array[MeshInstance3D] = []
 var _aides := {os = false, emplacements = false, prises = false}
 var _reperes := {os = [], emplacements = [], prises = []}
 ## Les erreurs du chargement, du montage et de la page.
@@ -117,21 +90,18 @@ var _catalogues: Dictionary = {}
 var _composition: Dictionary = {}
 ## L'id du dernier preset appliqué, `null` avant tout preset : l'enveloppe de « Copier ».
 var _preset: Variant = null
-## La réponse de `composer` sur la base posée, vide avant toute composition, après un refus et après un changement de base.
-var _composee: Dictionary = {}
 ## Le texte affiché du refus de la composition courante par `composer` (erreur `validation`), vide sans refus.
 var _refus_de_composition := ""
 ## Les axes de `catalogues`, dans leur ordre.
 var _axes: Array = []
 ## Par champ d'axe, son sélecteur : la liste d'un axe `ref` ou `valeur`, la glissière d'un axe `plage`.
 var _selecteurs_d_axe: Dictionary = {}
-## Le modificateur du squelette de la base qui pose le gabarit de la composition composée.
-var _gabarit: GabaritDuSquelette = null
 var _onglet := "personnage"
 
 
 func _ready() -> void:
 	_recueil = _erreurs
+	_montage.erreurs = _erreurs
 	%Recharger.pressed.connect(_recharger)
 	%Lecture.pressed.connect(_lire)
 	%Pause.pressed.connect(_mettre_en_pause)
@@ -158,28 +128,28 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	_instant.text = "%.3f s" % _lecteur.current_animation_position if _a_un_clip() else ""
-	if _a_un_clip() and _lecteur.is_playing():
+	_instant.text = "%.3f s" % _montage.lecteur.current_animation_position if _a_un_clip() else ""
+	if _a_un_clip() and _montage.lecteur.is_playing():
 		_publier()
 
 
-## Le listage du serveur, puis l'index du pont, puis la base retenue (la demandée si elle reste listée, la première sinon),
-## qui remonte les éléments `montes` que ses emplacements offrent encore, sous leurs `emblemes`.
+## Le listage du serveur, puis l'index du pont (`MontageDeComposition.lister`, `indexer`), retenu par le montage, puis la
+## base retenue (la demandée si elle reste listée, la première sinon), qui remonte les éléments `montes` que ses emplacements
+## offrent encore, sous leurs `emblemes`.
 func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 	var chargement := RefCounted.new()
 	_chargement = chargement
 	_erreurs.clear()
-	var listage := await _lire_json("modeles/")
+	var recueil: Array[String] = []
+	var listage := await MontageDeComposition.lister(self, recueil)
 	if chargement != _chargement:
 		return
-	for erreur in listage.get("erreurs", []):
-		_erreurs.append(str(erreur))
-	var reponse := _pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
+	_erreurs.append_array(recueil)
+	var reponse := MontageDeComposition.indexer(_pont, listage)
 	if reponse.get("ok") != true:
 		_montrer_l_etat()
 		return
-	_modeles = reponse
-	_textures_des_emblemes.clear()
+	MontageDeComposition.retenir_les_modeles(reponse)
 	for refus in reponse.refus:
 		_erreurs.append(str(refus))
 	%Rapport.text = "\n".join(PackedStringArray(reponse.rapport))
@@ -198,16 +168,16 @@ func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 
 ## La base `id` demandée : le dernier clic gagne, contre la base posée comme contre celle en chargement.
 func _choisir_la_base(id: String) -> void:
-	_marquer(_boutons_des_bases, _base.get("id"))
+	_marquer(_boutons_des_bases, _montage.base.get("id"))
 	if id == _base_demandee:
 		_publier()
 		return
-	for base in _modeles.bases:
+	for base in MontageDeComposition.modeles.bases:
 		if base.id == id:
 			_base_demandee = id
 			_surcharges_des_emblemes.clear()
 			_reprise = {}
-			_composee = {}
+			_montage.composee = {}
 			_refus_de_composition = ""
 			_erreurs_de_composition = []
 			_montrer_la_composition()
@@ -219,36 +189,35 @@ func _choisir_la_base(id: String) -> void:
 func _recharger() -> void:
 	_reprise = {}
 	if _a_un_clip():
-		_reprise = {clip = _lecteur.assigned_animation, instant = _lecteur.current_animation_position, lecture = _lecteur.is_playing()}
-	await _charger(_montes.duplicate(), _emblemes.duplicate())
+		_reprise = {clip = _montage.lecteur.assigned_animation, instant = _montage.lecteur.current_animation_position, lecture = _montage.lecteur.is_playing()}
+	await _charger(_montage.montes.duplicate(), _montage.emblemes.duplicate())
 
 
-## La base `base` (aucune si `null`) posée dans la scène depuis son GLB, si `chargement` reste le chargement retenu : ses
-## points, ses lignes de pièce, ses aides, ses clips, et les éléments `montes` que ses emplacements offrent encore, sous
-## leurs `emblemes`.
+## La base `base` (aucune si `null`) posée dans la scène depuis son GLB par le montage, si `chargement` reste le
+## chargement retenu : ses points, ses lignes de pièce, ses aides, ses clips, et les éléments `montes` que ses
+## emplacements offrent encore, sous leurs `emblemes`.
 func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement: RefCounted) -> void:
 	var scene: Node3D = null
 	if base != null:
-		scene = await _scene_du_glb(base.id, _erreurs)
+		scene = await _montage.scene_du_glb(base.id, _erreurs)
 	if chargement != _chargement:
 		if scene != null:
 			scene.free()
 		return
 	_remettre_a_zero()
-	_base = {} if base == null else base
-	_marquer(_boutons_des_bases, _base.get("id"))
-	if scene != null:
-		_poser_le_modele(scene)
-		_habiller_la_base()
-	if _squelette != null:
-		for os in _squelette.get_bone_count():
-			var declaration := {os = _squelette.get_bone_name(os), position = ORIGINE, rotation = ORIGINE}
-			var support := MontageDEquipement.attacher(_squelette, declaration, "Os_%d" % os)
+	_montage.poser_le_modele({} if base == null else base, scene)
+	_marquer(_boutons_des_bases, _montage.base.get("id"))
+	if _montage.squelette != null:
+		_montage.squelette.skeleton_updated.connect(_memoriser_la_pose)
+		_montage.gabarit.mesure.connect(_cadrer)
+		for os in _montage.squelette.get_bone_count():
+			var declaration := {os = _montage.squelette.get_bone_name(os), position = MontageDeComposition.ORIGINE, rotation = MontageDeComposition.ORIGINE}
+			var support := MontageDeComposition.attacher(_montage.squelette, declaration, "Os_%d" % os)
 			support.add_child(_repere(COULEUR_DES_AIDES.os, RAYON_DU_REPERE_D_OS))
 			_reperes.os.append(support)
-	for ligne in _base.get("lignes", []):
+	for ligne in _montage.base.get("lignes", []):
 		_emplacement_de_la_ligne(ligne)
-	for point in _base.get("points", []):
+	for point in _montage.base.get("points", []):
 		_emplacement_du_point(point)
 		_poser_l_aide_du_point(point)
 	_montrer_ce_qu_il_reste_a_produire()
@@ -257,57 +226,26 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 			_choisir(_emplacements[id], montes[id], emblemes.get(id, VIDE))
 	_poser_les_clips()
 	_poser_le_gabarit()
-	_poser_les_morphes()
-	_marche.suivre(_modele, _lecteur, _base.get("clips", {}).get("walk", ""), _base.get("vitesseAuSol", 0.0))
+	_montage.poser_les_morphes()
+	_marche.suivre(_montage.modele, _montage.lecteur, _montage.base.get("clips", {}).get("walk", ""), _montage.base.get("vitesseAuSol", 0.0))
 	for aide in _aides:
 		_montrer_l_aide(_aides[aide], aide)
 	_montrer_l_etat()
 
 
-## L'écran ramené à aucun modèle : ni squelette ni lecteur, ni emplacement, ni clip, ni repère, ni élément monté, ni
-## demande de montage en vol.
+## L'écran ramené à aucun modèle : le montage vidé (`MontageDeComposition.vider`), ni pose d'os, ni emplacement, ni
+## clip, ni repère, ni rangée d'emblèmes.
 func _remettre_a_zero() -> void:
-	if _modele != null:
-		_support_du_modele.remove_child(_modele)
-		_modele.queue_free()
-	_modele = null
-	_pieces_de_la_base.clear()
-	_squelette = null
+	_montage.vider()
 	_pose_des_os = {}
-	_lecteur = null
-	_gabarit = null
 	_pas = 0.0
 	Controles.vider(_panneau_des_emplacements)
 	_clips.clear()
 	_sections.clear()
 	_reperes = {os = [], emplacements = [], prises = []}
 	_emplacements.clear()
-	_pieces.clear()
-	_noeuds.clear()
-	_montes.clear()
-	_emblemes.clear()
-	_emblemes_demandes.clear()
-	_demandes.clear()
 	_lignes_des_emblemes.clear()
 	_boutons_des_emblemes = {}
-
-
-func _poser_le_modele(scene: Node3D) -> void:
-	_modele = scene
-	_support_du_modele.add_child(scene)
-	_pieces_de_la_base.assign(scene.find_children("*", "MeshInstance3D", true, false))
-	_squelette = MontageDEquipement.squelette_de(scene)
-	if _squelette != null:
-		_squelette.skeleton_updated.connect(_memoriser_la_pose)
-	for candidat in scene.find_children("*", "AnimationPlayer", true, false):
-		_lecteur = candidat as AnimationPlayer
-		break
-	if _squelette == null:
-		_erreurs.append("squelette-absent : %s" % _base.id)
-		return
-	_gabarit = GabaritDuSquelette.new()
-	_gabarit.mesure.connect(_cadrer)
-	_squelette.add_child(_gabarit)
 
 
 ## L'emplacement de montage `id`, de clé publiée `cle` dans `publie` (`montes` ou `lignes`), qui offre `elements` : son
@@ -368,7 +306,7 @@ func _emplacement_de_la_ligne(ligne: Dictionary) -> void:
 func _choix_des_elements(elements: Array) -> Array:
 	var choix := []
 	for element in elements:
-		choix.append({id = element, texte = _modeles.libelles[element]})
+		choix.append({id = element, texte = MontageDeComposition.modeles.libelles[element]})
 	return choix
 
 
@@ -406,7 +344,7 @@ func _case_de_piece(ligne: Dictionary) -> void:
 	var case := CheckButton.new()
 	case.text = ligne.label
 	case.set_meta("cle", emplacement.id)
-	case.pressed.connect(func() -> void: _choisir_manuellement(emplacement, VIDE if _montes.get(emplacement.id) == element else element))
+	case.pressed.connect(func() -> void: _choisir_manuellement(emplacement, VIDE if _montage.montes.get(emplacement.id) == element else element))
 	emplacement.bloc.add_child(case)
 	emplacement.controle = case
 
@@ -415,7 +353,7 @@ func _case_de_piece(ligne: Dictionary) -> void:
 ## sélecteur, une pièce, un emplacement d'accessoire), sous le bouton qui la replie.
 func _montrer_ce_qu_il_reste_a_produire() -> void:
 	var manquants: Array[String] = []
-	for ligne in _base.get("lignes", []):
+	for ligne in _montage.base.get("lignes", []):
 		if ligne.has("choix"):
 			for offert in ligne.choix:
 				if offert.elements.is_empty():
@@ -495,25 +433,17 @@ func _bascule(texte: String, groupe: ButtonGroup, parent: Node, geste: Callable)
 
 ## Le choix manuel d'un élément à l'emplacement, son défaut d'emblème résolu après retrait de sa surcharge.
 func _choisir_manuellement(emplacement: Dictionary, element: String) -> void:
-	if element == VIDE or _montes.get(emplacement.id, VIDE) != element:
+	if element == VIDE or _montage.montes.get(emplacement.id, VIDE) != element:
 		_surcharges_des_emblemes.erase(emplacement.id)
 	_choisir(emplacement, element, _embleme_de_l_emplacement(emplacement.id))
 
 
-## L'élément monté à `emplacement` démonté avec son emblème, puis `element` monté sous l'emblème `embleme` s'il n'est pas
-## « vide », ses erreurs au recueil du geste qui le demande.
+## L'élément monté à `emplacement` démonté avec son emblème et sa rangée d'emblèmes, puis `element` monté par le montage
+## (`MontageDeComposition.monter`) s'il n'est pas « vide », ses erreurs au recueil du geste qui le demande : monté, il
+## offre ses emblèmes s'il porte une surface `blason`, et s'habille de l'emblème `embleme` (`_choisir_l_embleme`).
 func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) -> void:
 	var id: String = emplacement.id
 	var recueil := _recueil
-	var demande := RefCounted.new()
-	_demandes[id] = demande
-	for noeud in _noeuds.get(id, []):
-		noeud.free()
-	_noeuds.erase(id)
-	_pieces.erase(id)
-	_montes.erase(id)
-	_emblemes.erase(id)
-	_emblemes_demandes.erase(id)
 	if _lignes_des_emblemes.has(id):
 		var rangee: Node = _lignes_des_emblemes[id]
 		rangee.get_parent().remove_child(rangee)
@@ -521,167 +451,31 @@ func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) 
 		_lignes_des_emblemes.erase(id)
 		_boutons_des_emblemes.erase(id)
 	_montrer_le_monte(emplacement, VIDE)
-	if element != VIDE:
-		await _monter(emplacement, element, embleme, demande, recueil)
+	if element == VIDE:
+		_montage.demonter(id)
+	elif await _montage.monter(id, element, recueil):
+		_montrer_le_monte(emplacement, element)
+		_ligne_des_emblemes(emplacement, element)
+		_choisir_l_embleme(id, embleme)
+	else:
+		_montrer_l_etat()
 	_publier()
-
-
-## `element` monté à `emplacement` une fois son GLB chargé, si `demande` reste la demande retenue de cet emplacement
-## (#3086, D4) : chaque mesh rigide pendu à un os du GLB, à sa transformation locale, sous l'os de même nom de la base
-## (`hotes/godot/asset/evaluateur/evaluer.ts` `monter`) ; chaque mesh skinné sous le squelette de la base, son skin lié
-## par nom d'os (`_scene_du_glb`). Rien de monté s'il n'a aucun mesh à monter, ou si un os que ses meshes nomment manque
-## à la base : chacun va à `recueil`. Monté, il offre ses emblèmes s'il porte une surface `blason`, et s'habille de la
-## palette de la composition et de l'emblème `embleme` (`_choisir_l_embleme`).
-func _monter(emplacement: Dictionary, element: String, embleme: String, demande: RefCounted, recueil: Array[String]) -> void:
-	var id: String = emplacement.id
-	var squelette := _squelette
-	if squelette == null:
-		return
-	var scene := await _scene_du_glb(element, recueil)
-	if demande != _demandes.get(id):
-		if scene != null:
-			scene.free()
-		return
-	if scene == null:
-		_montrer_l_etat()
-		return
-	var pieces: Array[MeshInstance3D] = []
-	var os_des_pieces: Array[Array] = []
-	var absents: Array[String] = []
-	for noeud in scene.find_children("*", "MeshInstance3D", true, false):
-		var piece := noeud as MeshInstance3D
-		var noms := _os_de_la_piece(piece)
-		if noms.is_empty():
-			continue
-		pieces.append(piece)
-		os_des_pieces.append(noms)
-		for nom in noms:
-			if squelette.find_bone(nom) == -1 and not nom in absents:
-				absents.append(nom)
-	for nom in absents:
-		recueil.append("os-absent : %s" % nom)
-	if pieces.is_empty():
-		recueil.append("element-sans-piece : %s" % element)
-	if pieces.is_empty() or not absents.is_empty():
-		scene.free()
-		_montrer_l_etat()
-		return
-	var noeuds: Array[Node] = []
-	for rang in pieces.size():
-		noeuds.append(_poser_la_piece(pieces[rang], os_des_pieces[rang], squelette, id))
-	scene.free()
-	_pieces[id] = pieces
-	_noeuds[id] = noeuds
-	_montes[id] = element
-	_montrer_le_monte(emplacement, element)
-	_poser_les_morphes()
-	_ligne_des_emblemes(emplacement, element)
-	_choisir_l_embleme(id, embleme)
-
-
-## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache
-## de son os) ; pour un mesh skinné, le nom de chaque liaison de son skin (`Skin.get_bind_name`, posé à l'import par
-## `_scene_du_glb`) ; aucun pour un mesh à la racine.
-func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
-	var noms: Array[String] = []
-	if piece.skin != null:
-		for liaison in piece.skin.get_bind_count():
-			noms.append(String(piece.skin.get_bind_name(liaison)))
-	elif piece.get_parent() is BoneAttachment3D:
-		noms.append((piece.get_parent() as BoneAttachment3D).bone_name)
-	return noms
-
-
-## `piece`, qui pend aux os `noms`, posée sur `squelette`, celui de la base, pour l'emplacement `id` : rigide, sous un os
-## de même nom que le sien ; tenue (son os est celui d'une prise), reposée du repère de sa prise d'origine dans celui de
-## la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_repere_de_rangement`) (#3319, `CONTRAT.md`) ; skinnée,
-## sous le squelette, son skin lié par nom dès l'import (`_scene_du_glb`). Le nœud qui la porte dans la scène.
-func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], squelette: Skeleton3D, id: String) -> Node:
-	piece.owner = null
-	if piece.skin == null:
-		var nom := ("Monte_%s_%s" % [id, piece.name]).validate_node_name()
-		var cible := _point(id)
-		var origine := _prise_de_l_os(noms[0])
-		if cible.is_empty() or origine.is_empty() or (cible.genre == "emplacement" and cible.attache.os == noms[0]):
-			var support := MontageDEquipement.attacher(squelette, {os = noms[0], position = ORIGINE, rotation = ORIGINE}, nom)
-			piece.reparent(support, false)
-			return support.get_parent()
-		var relais := Node3D.new()
-		relais.name = "DepuisLaPrise_%s" % origine.id
-		relais.transform = MontageDEquipement.repere(origine.attache).affine_inverse()
-		if cible.genre == "prise":
-			var portage := MontageDEquipement.attacher(squelette, cible.attache, nom)
-			portage.add_child(relais)
-			piece.reparent(relais, false)
-			return portage.get_parent()
-		var rangement := Node3D.new()
-		rangement.name = "Range_%s" % cible.id
-		MontageDEquipement.attacher(squelette, {os = cible.attache.os, position = ORIGINE, rotation = ORIGINE}, nom).add_child(rangement)
-		rangement.add_child(relais)
-		piece.reparent(relais, false)
-		rangement.transform = _repere_de_rangement(cible.attache, _arriere(piece, rangement))
-		return rangement.get_parent().get_parent()
-	piece.reparent(squelette, false)
-	piece.skeleton = piece.get_path_to(squelette)
-	return piece
-
-
-## Le point d'accroche `id` de la base posée, emplacement ou prise, `{}` si aucun.
-func _point(id: String) -> Dictionary:
-	for point in _base.get("points", []):
-		if point.id == id:
-			return point
-	return {}
-
-
-## Le repère, dans l'os de l'emplacement `attache`, où se pose le repère de prise d'un objet rangé dont la face arrière
-## de la boîte, dans ce repère de prise, est à `arriere` : ses axes et son origine (`MiseEnPage.axe_de_rangement`,
-## `MiseEnPage.origine_de_rangement`).
-static func _repere_de_rangement(attache: Dictionary, arriere: float) -> Transform3D:
-	var emplacement := MontageDEquipement.repere(attache)
-	var point := emplacement.origin
-	var axes := emplacement.basis
-	return Transform3D(Basis(MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_X), MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Y),
-		MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Z)), MiseEnPage.origine_de_rangement(axes, point, arriere))
-
-
-## La cote en z de la face arrière de la boîte de `piece` dans le repère du nœud `repere`, son ancêtre : la boîte de ses
-## huit coins (`AABB.expand`).
-static func _arriere(piece: MeshInstance3D, repere: Node3D) -> float:
-	var boite := piece.get_aabb()
-	var dans_le_repere := AABB(repere.to_local(piece.to_global(boite.get_endpoint(0))), Vector3.ZERO)
-	for coin in range(1, 8):
-		dans_le_repere = dans_le_repere.expand(repere.to_local(piece.to_global(boite.get_endpoint(coin))))
-	return dans_le_repere.position.z
-
-
-## La prise de la base posée dont l'os est `os`, `{}` si aucune.
-func _prise_de_l_os(os: String) -> Dictionary:
-	for point in _base.get("points", []):
-		if point.genre == "prise" and point.attache.os == os:
-			return point
-	return {}
 
 
 ## Sous la rangée d'`emplacement`, si `element` qui y est monté porte une surface `blason` (`surfaces` de la réponse de
 ## `modeles`) : la rangée « Emblème », la liste de clé `<emplacement>/embleme` (« Aucun », puis chaque emblème).
 func _ligne_des_emblemes(emplacement: Dictionary, element: String) -> void:
-	if not _porte_un_blason(element):
+	if not MontageDeComposition.porte_un_blason(element):
 		return
 	var id: String = emplacement.id
 	var choix: Array = [{id = VIDE, texte = AUCUN}]
-	for offert in _modeles.emblemes:
+	for offert in MontageDeComposition.modeles.emblemes:
 		choix.append({id = offert.id, texte = offert.label})
 	var rangee := _rangee("Emblème", emplacement.bloc)
 	var liste := _liste_deroulante("%s/embleme" % id, choix, func(choisi: String) -> void: _surcharger_l_embleme(id, choisi))
 	rangee.add_child(liste)
 	_lignes_des_emblemes[id] = rangee
 	_boutons_des_emblemes[id] = liste
-
-
-## `element` porte-t-il une surface `blason` ?
-func _porte_un_blason(element: String) -> bool:
-	return _modeles.surfaces[element].any(func(surface: Dictionary) -> bool: return surface.get("blason", false))
 
 
 ## L'emblème de l'emplacement : sa surcharge explicite, sinon le défaut de la composition.
@@ -696,105 +490,20 @@ func _surcharger_l_embleme(id: String, embleme: String) -> void:
 	_choisir_l_embleme(id, embleme)
 
 
-## L'emblème `embleme` demandé à l'emplacement `id`, qu'un élément monte : « vide » sur un élément sans surface `blason`
-## ou pour un emblème que `modeles` n'offre pas ; puis l'élément habillé (`_habiller`). Aucune surface posée, l'emblème ne
-## l'est pas.
+## L'emblème `embleme` demandé à l'emplacement `id`, qu'un élément monte, posé par le montage
+## (`MontageDeComposition.choisir_l_embleme`) : sa liste montre l'emblème posé.
 func _choisir_l_embleme(id: String, embleme: String) -> void:
-	var element: String = _montes[id]
-	var offert: bool = _modeles.emblemes.any(func(offre: Dictionary) -> bool: return offre.id == embleme)
-	_emblemes_demandes[id] = embleme if offert and _porte_un_blason(element) else VIDE
-	var pose: String = _emblemes_demandes[id] if _habiller(id) else VIDE
-	if pose == VIDE:
-		_emblemes.erase(id)
-	else:
-		_emblemes[id] = pose
+	var pose := _montage.choisir_l_embleme(id, embleme)
 	if _boutons_des_emblemes.has(id):
 		_selectionner(_boutons_des_emblemes[id], pose)
 	_montrer_l_etat()
 
 
-## L'élément monté à l'emplacement `id` habillé de la palette de la composition et de l'emblème demandé (`_peindre`) ;
-## rend si l'emblème est posé sur une surface au moins, et un emblème demandé qu'aucune ne reçoit donne
-## `blason-sans-surface`.
-func _habiller(id: String) -> bool:
-	var element: String = _montes[id]
-	var embleme: String = _emblemes_demandes.get(id, VIDE)
-	var texture: ImageTexture = null if embleme == VIDE else _texture_de_l_embleme(embleme)
-	var posee := _peindre(_pieces[id], _modeles.surfaces[element], texture)
-	if texture != null and not posee:
-		_erreurs.append("blason-sans-surface : %s" % element)
-	return posee
-
-
-## Les meshes de la base posée habillés de la palette de la composition (`_peindre`, `surfaces` de la base).
-func _habiller_la_base() -> void:
-	if not _base.is_empty():
-		_peindre(_pieces_de_la_base, _modeles.surfaces[_base.id], null)
-
-
-## Chaque surface de `pieces` dont le matériau du GLB porte le `nom` d'une de `surfaces` reçoit un matériau propre
-## (`MontageDEquipement.materiau_local`) si la `palette` de la composition composée colore son emplacement de palette,
-## ou si elle est `blason` et `texture` n'est pas nulle : la couleur y remplace l'albédo du GLB, texture comprise, pour
-## que la tête et le corps d'une même peau aient la même couleur, et `texture` devient la couche de détail, en UV1 et en
-## mélange. Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
-func _peindre(pieces: Array, surfaces: Array, texture: ImageTexture) -> bool:
-	var palette: Dictionary = _composee.get("palette", {})
-	var par_nom := {}
-	for surface in surfaces:
-		par_nom[surface.nom] = surface
-	var posee := false
-	for piece: MeshInstance3D in pieces:
-		for rang in piece.mesh.get_surface_count():
-			piece.set_surface_override_material(rang, null)
-			var materiau := piece.get_active_material(rang)
-			var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
-			if surface.is_empty():
-				continue
-			var couleur: Variant = palette.get(surface.palette)
-			var blason: bool = texture != null and surface.get("blason", false)
-			if couleur == null and not blason:
-				continue
-			var local := MontageDEquipement.materiau_local(piece, rang)
-			if local == null:
-				continue
-			if couleur != null:
-				local.albedo_texture = null
-				local.albedo_color = Color(couleur)
-			if blason:
-				local.detail_enabled = true
-				local.detail_albedo = texture
-				local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
-				local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
-				posee = true
-	return posee
-
-
-## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de
-## large, ses mipmaps générées, une fois par chargement des modèles ; `null` (et une erreur) s'il ne se lit pas.
-func _texture_de_l_embleme(id: String) -> ImageTexture:
-	if not _textures_des_emblemes.has(id):
-		_textures_des_emblemes[id] = _rasteriser_l_embleme(id)
-	return _textures_des_emblemes[id]
-
-
-func _rasteriser_l_embleme(id: String) -> ImageTexture:
-	var svg: String = _modeles.emblemes.filter(func(offert: Dictionary) -> bool: return offert.id == id)[0].svg
-	var image := Image.new()
-	var code := image.load_svg_from_string(svg)
-	if code == OK:
-		code = image.load_svg_from_string(svg, MiseEnPage.echelle_d_image(LARGEUR_D_EMBLEME, image.get_width()))
-	if code != OK or image.is_empty():
-		_erreurs.append("embleme-illisible : %s (%s)" % [id, error_string(code)])
-		return null
-	image.generate_mipmaps()
-	return ImageTexture.create_from_image(image)
-
-
 func _poser_l_aide_du_point(point: Dictionary) -> void:
-	if _squelette == null:
+	if _montage.squelette == null:
 		return
 	var aide: String = AIDE_DU_GENRE[point.genre]
-	var support := MontageDEquipement.attacher(_squelette, point.attache, "Aide_%s" % point.id)
+	var support := MontageDeComposition.attacher(_montage.squelette, point.attache, "Aide_%s" % point.id)
 	if support == null:
 		return
 	support.add_child(_repere(COULEUR_DES_AIDES[aide], RAYON_DU_REPERE_DE_POINT))
@@ -833,26 +542,26 @@ func _montrer_l_aide(montre: bool, aide: String) -> void:
 ## Un bouton par clip de la base, chacun mis en boucle ; le clip de la reprise rejoué à son instant, en lecture ou en
 ## pause.
 func _poser_les_clips() -> void:
-	if _lecteur == null:
+	if _montage.lecteur == null:
 		return
-	for nom in _lecteur.get_animation_list():
-		_lecteur.get_animation(nom).loop_mode = Animation.LOOP_LINEAR
+	for nom in _montage.lecteur.get_animation_list():
+		_montage.lecteur.get_animation(nom).loop_mode = Animation.LOOP_LINEAR
 		var rang := _clips.item_count
 		_clips.add_item(nom)
 		_clips.set_item_metadata(rang, nom)
-	_lecteur.speed_scale = _vitesse
+	_montage.lecteur.speed_scale = _vitesse
 	_clips.select(-1)
-	if not _lecteur.has_animation(_reprise.get("clip", "")):
+	if not _montage.lecteur.has_animation(_reprise.get("clip", "")):
 		return
 	_jouer_le_clip(_reprise.clip)
-	_lecteur.seek(_reprise.instant, true)
+	_montage.lecteur.seek(_reprise.instant, true)
 	if not _reprise.lecture:
-		_lecteur.pause()
+		_montage.lecteur.pause()
 
 
 func _jouer_le_clip(nom: String) -> void:
-	_lecteur.play(nom)
-	var animation := _lecteur.get_animation(nom)
+	_montage.lecteur.play(nom)
+	var animation := _montage.lecteur.get_animation(nom)
 	_pas = 0.0
 	for piste in animation.get_track_count():
 		_pas = MiseEnPage.pas_d_image(_pas, animation.length, animation.track_get_key_count(piste))
@@ -862,82 +571,33 @@ func _jouer_le_clip(nom: String) -> void:
 
 ## Si un clip est engagé au lecteur, joué ou en pause.
 func _a_un_clip() -> bool:
-	return _lecteur != null and _lecteur.assigned_animation != ""
+	return _montage.lecteur != null and _montage.lecteur.assigned_animation != ""
 
 
 func _lire() -> void:
 	if _a_un_clip():
-		_lecteur.play()
+		_montage.lecteur.play()
 	_publier()
 
 
 func _mettre_en_pause() -> void:
 	if _a_un_clip():
-		_lecteur.pause()
+		_montage.lecteur.pause()
 	_publier()
 
 
 func _aller_a_l_image(sens: float) -> void:
 	if _a_un_clip():
-		_lecteur.pause()
-		_lecteur.seek(MiseEnPage.image_voisine(_lecteur.current_animation_position, _pas, sens, _lecteur.current_animation_length), true)
+		_montage.lecteur.pause()
+		_montage.lecteur.seek(MiseEnPage.image_voisine(_montage.lecteur.current_animation_position, _pas, sens, _montage.lecteur.current_animation_length), true)
 	_publier()
 
 
 func _regler_la_vitesse(vitesse: float) -> void:
 	_vitesse = vitesse
-	if _lecteur != null:
-		_lecteur.speed_scale = vitesse
+	if _montage.lecteur != null:
+		_montage.lecteur.speed_scale = vitesse
 	_publier()
-
-
-## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, chargé à l'exécution en scène ;
-## `null` (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas. Chaque liaison d'un skin y porte le
-## nom de son os (#3086, D4 ; `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`, `modules/gltf/gltf_document.cpp`
-## `_create_skins`, `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`, Godot 4.7-stable).
-func _scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
-	if not _modeles.glb.has(id):
-		recueil.append("glb-absent : %s" % id)
-		return null
-	var octets := await _telecharger("modeles/%s" % _modeles.glb[id], recueil)
-	if octets.is_empty():
-		return null
-	var document := GLTFDocument.new()
-	var etat := GLTFState.new()
-	etat.handle_binary_image_mode = GLTFState.HANDLE_BINARY_IMAGE_MODE_EMBED_AS_UNCOMPRESSED
-	var code := document.append_from_buffer(octets, "", etat, GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS)
-	var scene := document.generate_scene(etat) as Node3D if code == OK else null
-	if scene == null:
-		recueil.append("glb-illisible : %s (%s)" % [id, error_string(code)])
-	return scene
-
-
-func _lire_json(relative: String) -> Dictionary:
-	var octets := await _telecharger(relative, _erreurs)
-	var valeur: Variant = JSON.parse_string(octets.get_string_from_utf8()) if not octets.is_empty() else null
-	if not valeur is Dictionary:
-		_erreurs.append("listage-illisible : %s" % relative)
-		return {}
-	return valeur
-
-
-## Les octets de `relative`, adresse relative à la page ; vides (et une erreur à `recueil`) si la requête échoue ou expire.
-func _telecharger(relative: String, recueil: Array[String]) -> PackedByteArray:
-	var requete := HTTPRequest.new()
-	requete.timeout = DELAI_DE_REQUETE_S
-	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
-	add_child(requete)
-	var code := requete.request(_pont.adresse(relative))
-	if code != OK:
-		requete.queue_free()
-		recueil.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
-		return PackedByteArray()
-	var resultat: Array = await requete.request_completed
-	requete.queue_free()
-	if resultat[0] != HTTPRequest.RESULT_SUCCESS or resultat[1] != 200:
-		recueil.append("requete-echouee : %s (resultat %s, HTTP %s)" % [relative, resultat[0], resultat[1]])
-		return PackedByteArray()
-	return resultat[3]
 
 
 func _signaler(message: String) -> void:
@@ -956,8 +616,8 @@ func _toutes_les_erreurs() -> Array[String]:
 ## Le pied du panneau : la base posée et son empreinte, puis chaque erreur, le pied en rouge s'il y en a.
 func _montrer_l_etat() -> void:
 	var lignes: Array[String] = []
-	if not _base.is_empty():
-		lignes.append("%s · %s" % [_base.id, str(_base.empreinte).left(DEBUT_D_EMPREINTE)])
+	if not _montage.base.is_empty():
+		lignes.append("%s · %s" % [_montage.base.id, str(_montage.base.empreinte).left(DEBUT_D_EMPREINTE)])
 	var erreurs := _toutes_les_erreurs()
 	lignes.append_array(erreurs)
 	_etat.text = "\n".join(PackedStringArray(lignes))
@@ -1104,88 +764,58 @@ func _composer() -> void:
 ## les morphes de la précédente remis à 0. Refusée (erreur `validation`), rien n'est composé : chaque emplacement est
 ## démonté, ni gabarit ni morphe, et le texte du refus est gardé. Le texte de « Copier » est effacé.
 func _composer_la_courante() -> void:
-	var anciens: Dictionary = _composee.get("morphes", {})
-	_composee = {}
+	var anciens: Dictionary = _montage.composee.get("morphes", {})
+	_montage.composee = {}
 	_refus_de_composition = ""
 	%Verdict.text = ""
 	%Entree.text = ""
-	if _base.is_empty():
+	if _montage.base.is_empty():
 		_montrer_la_composition()
 		return
-	var reponse := _pont.appeler("composer", {base = _base.id, composition = _composition, emblemes = _surcharges_des_emblemes})
+	var reponse := _pont.appeler("composer", {base = _montage.base.id, composition = _composition, emblemes = _surcharges_des_emblemes})
 	if reponse.get("ok") == true:
-		_composee = reponse
+		_montage.composee = reponse
 	elif reponse.get("ok") == false:
 		_refus_de_composition = _texte_du_refus(reponse)
-	var cibles := {}
-	for monte in _composee.get("montes", []):
-		if monte.element != null and not cibles.has(monte.ligne):
-			cibles[monte.ligne] = monte
+	var cibles := _montage.cibles()
 	for id in _emplacements:
 		var monte: Dictionary = cibles.get(id, {})
 		var cible: String = monte.get("element", VIDE)
 		var embleme: String = monte.get("embleme", {}).get("id", VIDE)
-		if _montes.get(id, VIDE) != cible:
+		if _montage.montes.get(id, VIDE) != cible:
 			_surcharges_des_emblemes.erase(id)
 			_choisir(_emplacements[id], cible, _embleme_de_l_emplacement(id))
-		elif _montes.has(id):
+		elif _montage.montes.has(id):
 			_choisir_l_embleme(id, embleme)
-	_habiller_la_base()
+	_montage.habiller_la_base()
 	_poser_le_gabarit()
-	_poser_des_morphes(anciens.keys(), 0.0)
-	_poser_les_morphes()
+	_montage.poser_des_morphes(anciens.keys(), 0.0)
+	_montage.poser_les_morphes()
 	_montrer_la_composition()
 
 
-## Le gabarit de la composition composée (`gabarit` de `composer`, aucun sans composition) remis au modificateur du
-## squelette (`GabaritDuSquelette`, `CONTRAT.md`, « Gabarit d'une base »), qui le pose sur la pose de chaque image, au
-## repos comme pendant un clip ; chaque os qu'il nomme et que la base n'a pas donne `os-absent : <os>` aux erreurs du
-## gabarit, qui remplacent celles de la pose précédente. Le squelette est remis à sa pose de repos, puis le clip engagé
-## est reposé à son instant ; l'orbite cadre le corps neutre jusqu'à la mesure du gabarit au repos. La marche prend
-## l'échelle de vitesse du gabarit (`echelleDeVitesse`), neutre sans gabarit.
+## Le gabarit de la composition composée posé par le montage (`MontageDeComposition.poser_le_gabarit`) : chaque os
+## qu'il nomme et que la base n'a pas donne `os-absent : <os>` aux erreurs du gabarit, qui remplacent celles de la pose
+## précédente ; l'orbite cadre le corps neutre jusqu'à la mesure du gabarit au repos. La marche prend l'échelle de vitesse
+## du gabarit (`echelleDeVitesse`), neutre sans gabarit.
 func _poser_le_gabarit() -> void:
 	_erreurs_du_gabarit = []
-	var gabarit: Dictionary = _composee.get("gabarit", {})
+	var gabarit: Dictionary = _montage.composee.get("gabarit", {})
 	_marche.poser_l_echelle_de_vitesse(float(gabarit.get("echelleDeVitesse", MarcheDeLAtelier.VITESSE_NEUTRE)))
-	if _gabarit == null:
+	if _montage.gabarit == null:
 		_marche.cadrer(MarcheDeLAtelier.CADRE_NEUTRE)
 		return
-	for os in _gabarit.poser(gabarit):
+	for os in _montage.poser_le_gabarit():
 		_erreurs_du_gabarit.append("os-absent : %s" % os)
-	_squelette.reset_bone_poses()
-	if _a_un_clip():
-		_lecteur.seek(_lecteur.current_animation_position, true)
 	_cadrer()
 
 
 ## L'orbite cadre le corps au gabarit mesuré au repos (`MiseEnPage.echelle_de_cadrage`, le sommet de ses os rapporté à
 ## celui du corps neutre), le corps neutre sans mesure.
 func _cadrer() -> void:
-	var mesures := _gabarit.mesures()
+	var mesures := _montage.gabarit.mesures()
 	_marche.cadrer(MarcheDeLAtelier.CADRE_NEUTRE if mesures.is_empty() else MiseEnPage.echelle_de_cadrage(mesures.repos.sommet, mesures.neutre.sommet))
 	_publier()
-
-
-## Les poids `morphes` de la composition composée posés par nom de shape key sur chaque mesh de la base et de chaque
-## élément monté qui porte la clé (#3086, D4) ; un mesh sans la clé n'en reçoit rien.
-func _poser_les_morphes() -> void:
-	if _modele == null:
-		return
-	var morphes: Dictionary = _composee.get("morphes", {})
-	for nom in morphes:
-		_poser_des_morphes([nom], float(morphes[nom]))
-
-
-## Le poids `poids` posé à chaque shape key nommée dans `noms`, sur chaque mesh du modèle qui la porte.
-func _poser_des_morphes(noms: Array, poids: float) -> void:
-	if _modele == null:
-		return
-	for noeud in _modele.find_children("*", "MeshInstance3D", true, false):
-		var mesh := noeud as MeshInstance3D
-		for nom in noms:
-			var rang := mesh.find_blend_shape_by_name(nom)
-			if rang != -1:
-				mesh.set_blend_shape_value(rang, poids)
 
 
 ## Les sélecteurs d'axe et les listes de couleurs sur la composition courante (la glissière d'un axe `plage` sans valeur à
@@ -1204,13 +834,13 @@ func _montrer_la_composition() -> void:
 	var lignes: Array[String] = []
 	if not _refus_de_composition.is_empty():
 		lignes.append(_refus_de_composition)
-	if not _composee.is_empty():
-		lignes.append("Rien ne manque à ce personnage." if _composee.manquants.is_empty() else "À produire pour ce personnage :")
-		for manquant in _composee.manquants:
+	if not _montage.composee.is_empty():
+		lignes.append("Rien ne manque à ce personnage." if _montage.composee.manquants.is_empty() else "À produire pour ce personnage :")
+		for manquant in _montage.composee.manquants:
 			var apport: Variant = manquant.get("par")
 			lignes.append("· %s" % manquant.label if apport == null else "· %s (%s)" % [manquant.label, apport.label])
 	%Manquants.text = "\n".join(PackedStringArray(lignes))
-	var rapport: Array = _composee.get("rapport", [])
+	var rapport: Array = _montage.composee.get("rapport", [])
 	%RapportDeComposition.text = "\n".join(PackedStringArray(rapport))
 	%RapportDeComposition.visible = not rapport.is_empty()
 	_publier()
@@ -1256,10 +886,10 @@ func _publier() -> void:
 ## (`cadre`), la position des os de la base (`_positions_des_os`) et la boîte des meshes skinnés montés (`_peaux`).
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
-	var clip: Variant = _lecteur.assigned_animation if _a_un_clip() else null
+	var clip: Variant = _montage.lecteur.assigned_animation if _a_un_clip() else null
 	var publies := {montes = {}, lignes = {}}
-	for id in _montes:
-		publies[_emplacements[id].publie][_emplacements[id].cle] = _montes[id]
+	for id in _montage.montes:
+		publies[_emplacements[id].publie][_emplacements[id].cle] = _montage.montes[id]
 	var plages := {}
 	for champ in _selecteurs_d_axe:
 		var glissiere := _selecteurs_d_axe[champ] as HSlider
@@ -1271,16 +901,16 @@ func _publier_l_ecran() -> void:
 	_pont.publier_l_ecran({
 		boutons = PontDuNoyau.boutons_a_l_ecran([_interface]),
 		atelier = {
-			base = _base.get("id"),
-			empreinte = _base.get("empreinte"),
+			base = _montage.base.get("id"),
+			empreinte = _montage.base.get("empreinte"),
 			clip = clip,
-			instant = _lecteur.current_animation_position if clip != null else null,
-			duree = _lecteur.current_animation_length if clip != null else null,
-			lecture = _lecteur.is_playing() if clip != null else false,
+			instant = _montage.lecteur.current_animation_position if clip != null else null,
+			duree = _montage.lecteur.current_animation_length if clip != null else null,
+			lecture = _montage.lecteur.is_playing() if clip != null else false,
 			vitesse = _vitesse,
 			montes = publies.montes,
 			lignes = publies.lignes,
-			emblemes = _emblemes,
+			emblemes = _montage.emblemes,
 			aides = _aides,
 			erreurs = _toutes_les_erreurs(),
 			onglet = _onglet,
@@ -1289,14 +919,14 @@ func _publier_l_ecran() -> void:
 			composition = {
 				courante = _composition,
 				preset = _preset,
-				montes = _composee.get("montes", []),
-				manquants = _composee.get("manquants", []),
-				morphes = _composee.get("morphes", {}),
-				palette = _composee.get("palette", {}),
+				montes = _montage.composee.get("montes", []),
+				manquants = _montage.composee.get("manquants", []),
+				morphes = _montage.composee.get("morphes", {}),
+				palette = _montage.composee.get("palette", {}),
 				refus = null if _refus_de_composition.is_empty() else _refus_de_composition,
 				copie = %Entree.text,
 			},
-			gabarit = {} if _gabarit == null else _gabarit.mesures(),
+			gabarit = {} if _montage.gabarit == null else _montage.gabarit.mesures(),
 			cadre = _marche.echelle(),
 			os = _positions_des_os(),
 			peaux = _peaux(),
@@ -1310,9 +940,9 @@ func _publier_l_ecran() -> void:
 ## du matériau du GLB.
 func _couleurs_posees() -> Dictionary:
 	var couleurs := {}
-	for id in _pieces:
+	for id in _montage.pieces:
 		var posees := {}
-		for piece: MeshInstance3D in _pieces[id]:
+		for piece: MeshInstance3D in _montage.pieces[id]:
 			for rang in piece.mesh.get_surface_count():
 				var local := piece.get_surface_override_material(rang) as BaseMaterial3D
 				if local != null:
@@ -1325,18 +955,18 @@ func _couleurs_posees() -> Dictionary:
 ## Godot 4.7, Skeleton3D::_notification, NOTIFICATION_UPDATE_SKELETON, skeleton_updated.
 func _memoriser_la_pose() -> void:
 	var pose := {}
-	for os in _squelette.get_bone_count():
-		pose[_squelette.get_bone_name(os)] = _squelette.get_bone_global_pose(os).origin
+	for os in _montage.squelette.get_bone_count():
+		pose[_montage.squelette.get_bone_name(os)] = _montage.squelette.get_bone_global_pose(os).origin
 	_pose_des_os = pose
 
 
 ## CONTRAT.md, « Écran publié ».
 func _positions_des_os() -> Dictionary:
 	var positions := {}
-	if _squelette == null:
+	if _montage.squelette == null:
 		return positions
 	for os in _pose_des_os:
-		positions[os] = _en_liste(_squelette.to_global(_pose_des_os[os]))
+		positions[os] = _en_liste(_montage.squelette.to_global(_pose_des_os[os]))
 	return positions
 
 
@@ -1345,10 +975,10 @@ func _positions_des_os() -> Dictionary:
 ## repère du squelette (`taille`).
 func _peaux() -> Dictionary:
 	var peaux := {}
-	for id in _pieces:
+	for id in _montage.pieces:
 		var boite: Variant = null
 		var porteuse: MeshInstance3D = null
-		for piece: MeshInstance3D in _pieces[id]:
+		for piece: MeshInstance3D in _montage.pieces[id]:
 			if not is_instance_valid(piece) or piece.skin == null:
 				continue
 			var posee: AABB = piece.bake_mesh_from_current_skeleton_pose().get_aabb()
@@ -1362,21 +992,21 @@ func _peaux() -> Dictionary:
 ## CONTRAT.md, « Écran publié ».
 func _morphes_des_meshes() -> Dictionary:
 	var morphes := {corps = {}, montes = {}}
-	if _modele == null:
+	if _montage.modele == null:
 		return morphes
 	var emplacements: Dictionary = {}
-	for id in _pieces:
+	for id in _montage.pieces:
 		morphes.montes[id] = {}
-		for piece: MeshInstance3D in _pieces[id]:
+		for piece: MeshInstance3D in _montage.pieces[id]:
 			emplacements[piece] = id
-	for noeud in _modele.find_children("*", "MeshInstance3D", true, false):
+	for noeud in _montage.modele.find_children("*", "MeshInstance3D", true, false):
 		var mesh := noeud as MeshInstance3D
 		if mesh.mesh == null or mesh.mesh.get_blend_shape_count() == 0:
 			continue
 		var poids := {}
 		for rang in mesh.mesh.get_blend_shape_count():
 			poids[String(mesh.mesh.get_blend_shape_name(rang))] = mesh.get_blend_shape_value(rang)
-		var chemin := String(_modele.get_path_to(mesh))
+		var chemin := String(_montage.modele.get_path_to(mesh))
 		if emplacements.has(mesh):
 			morphes.montes[emplacements[mesh]][chemin] = poids
 		else:

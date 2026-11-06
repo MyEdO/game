@@ -1,0 +1,514 @@
+## Une base composée (#3253) : le nœud qui porte le modèle d'une base, tiré de `modeles/` (`hotes/godot/pont/CONTRAT.md`,
+## « Atelier 3D »), et la composition que `composer` y monte (« Composition d'un personnage ») : chaque élément à sa ligne
+## ou à son point, rigide, tenu, rangé ou skinné (#3086 D4, #3319), habillé de la palette de la composition et de son
+## emblème (#3111), le gabarit (`GabaritDuSquelette`) et les morphes posés. L'atelier (`atelier.gd`) et chaque combattant
+## du plateau (`combattant.gd`) en sont deux porteurs : l'un l'offre au joueur, l'autre le monte d'après la vue.
+## La réponse de `modeles` retenue (`retenir_les_modeles`) est commune à tous les montages : chaque GLB s'y lit une fois,
+## et chaque emblème s'y rastérise une fois, d'un chargement des modèles au suivant.
+class_name MontageDeComposition
+extends Node3D
+
+## L'id d'un élément ou d'un emblème absent : aucun.
+const VIDE := "vide"
+const ORIGINE := [0.0, 0.0, 0.0]
+const DELAI_DE_REQUETE_S := 10.0
+## Le plus grand bloc que HTTPRequest lit par image : un GLB de base se reçoit en quelques images, pas en une par 64 Kio.
+const BLOC_DE_TELECHARGEMENT := 16777216
+## La largeur en pixels à laquelle le SVG d'un emblème se rastérise (#3111).
+const LARGEUR_D_EMBLEME := 512.0
+
+
+## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis lu (`etat`) ou en échec (`erreurs`).
+class Lecture extends RefCounted:
+	signal lue
+	var en_vol := true
+	var etat: GLTFState = null
+	var erreurs: Array[String] = []
+
+
+## La réponse de `modeles` retenue.
+static var modeles: Dictionary = {}
+## Par fichier de `modeles/`, sa `Lecture`, d'un chargement des modèles au suivant.
+static var _lectures: Dictionary = {}
+## Par emblème, sa texture rastérisée (`_texture_de_l_embleme`), d'un chargement des modèles au suivant.
+static var _textures: Dictionary = {}
+
+## La base posée, `{}` sans base.
+var base: Dictionary = {}
+var modele: Node3D = null
+var squelette: Skeleton3D = null
+var lecteur: AnimationPlayer = null
+## Le modificateur du squelette de la base qui pose le gabarit de la composition.
+var gabarit: GabaritDuSquelette = null
+## La réponse de `composer` retenue, `{}` sans composition : sa `palette`, son `gabarit`, ses `morphes`.
+var composee: Dictionary = {}
+## Où vont les erreurs de la pose, de l'habillage et des emblèmes.
+var erreurs: Array[String] = []
+## Par id d'emplacement de montage (l'id d'un point, `ligne/<ligne>` d'une ligne), l'élément monté.
+var montes: Dictionary = {}
+## Par id d'emplacement monté dont l'élément porte une surface `blason`, l'emblème posé (#3111).
+var emblemes: Dictionary = {}
+## Par id d'emplacement monté, ses meshes montés.
+var pieces: Dictionary = {}
+## Par id d'emplacement monté dont l'élément porte une surface `blason`, l'emblème demandé, posé ou non.
+var _emblemes_demandes: Dictionary = {}
+## Par id d'emplacement monté, les nœuds qui portent ses meshes dans la scène.
+var _noeuds: Dictionary = {}
+## Par id d'emplacement, la demande de montage retenue : le montage en vol d'une autre demande est jeté.
+var _demandes: Dictionary = {}
+## Les meshes de la base posée, relevés avant tout montage.
+var _pieces_de_la_base: Array[MeshInstance3D] = []
+
+
+## La réponse `reponse` de `modeles` retenue : les GLB lus et les emblèmes rastérisés sous la précédente sont oubliés.
+static func retenir_les_modeles(reponse: Dictionary) -> void:
+	modeles = reponse
+	_lectures = {}
+	_textures = {}
+
+
+## Le listage du serveur (`GET modeles/`, `hotes/godot/pont/CONTRAT.md`, « Atelier 3D »), par une requête que porte
+## `hote` ; ses erreurs à `recueil`, vide s'il ne se lit pas.
+static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
+	var octets := await _telecharger(hote, "modeles/", recueil)
+	var listage: Variant = JSON.parse_string(octets.get_string_from_utf8()) if not octets.is_empty() else null
+	if not listage is Dictionary:
+		recueil.append("listage-illisible : modeles/")
+		return {}
+	for erreur in listage.get("erreurs", []):
+		recueil.append(str(erreur))
+	return listage
+
+
+## La réponse de `pont` à `modeles` sur le listage `listage` (`lister`), `ok` vrai ou faux, `{}` en panne.
+static func indexer(pont: PontDuNoyau, listage: Dictionary) -> Dictionary:
+	return pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
+
+
+## Le premier `Skeleton3D` sous `noeud`, `null` s'il n'en porte aucun.
+static func squelette_de(noeud: Node) -> Skeleton3D:
+	for candidat in noeud.find_children("*", "Skeleton3D", true, false):
+		return candidat as Skeleton3D
+	return null
+
+
+## Le `Portage` d'un point d'attache `{os, position, rotation}` (`hotes/godot/asset/attache.ts`), posé sous `sous`
+## par le `BoneAttachment3D` nommé `nom` ; `null` si l'os est absent.
+static func attacher(sous: Skeleton3D, declaration: Dictionary, nom: String) -> Node3D:
+	if sous.find_bone(declaration.os) == -1:
+		return null
+	var attache := BoneAttachment3D.new()
+	attache.name = nom
+	sous.add_child(attache)
+	attache.bone_name = declaration.os
+	var support := Node3D.new()
+	support.name = "Portage"
+	support.transform = repere(declaration)
+	attache.add_child(support)
+	return support
+
+
+## Le repère d'une attache `{position, rotation}` dans son os : rotation en radians, ordre XYZ de three, R = Rx·Ry·Rz
+## (`hotes/godot/asset/attache.ts`, `scripts/personnage-3d/base/anatomie.py`).
+static func repere(declaration: Dictionary) -> Transform3D:
+	var rotation := Vector3(declaration.rotation[0], declaration.rotation[1], declaration.rotation[2])
+	return Transform3D(Basis.from_euler(rotation, EULER_ORDER_XYZ),
+		Vector3(declaration.position[0], declaration.position[1], declaration.position[2]))
+
+
+## Le duplicata du matériau actif de la surface `surface` de `piece`, posé en matériau de surface propre à `piece` ;
+## `null` si ce matériau n'est pas un `BaseMaterial3D`.
+static func materiau_local(piece: MeshInstance3D, surface: int) -> BaseMaterial3D:
+	var original := piece.get_active_material(surface) as BaseMaterial3D
+	if original == null:
+		return null
+	var local := original.duplicate() as BaseMaterial3D
+	piece.set_surface_override_material(surface, local)
+	return local
+
+
+## `element` porte-t-il une surface `blason` ?
+static func porte_un_blason(element: String) -> bool:
+	return modeles.surfaces[element].any(func(surface: Dictionary) -> bool: return surface.get("blason", false))
+
+
+## Les octets de `relative`, adresse relative à la page, par une requête que porte `hote` ; vides (et une erreur à
+## `recueil`) si la requête échoue ou expire.
+static func _telecharger(hote: Node, relative: String, recueil: Array[String]) -> PackedByteArray:
+	var requete := HTTPRequest.new()
+	requete.timeout = DELAI_DE_REQUETE_S
+	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
+	hote.add_child(requete)
+	var pont: PontDuNoyau = hote.get_node("/root/Pont")
+	var code := requete.request(pont.adresse(relative))
+	if code != OK:
+		requete.queue_free()
+		recueil.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
+		return PackedByteArray()
+	var resultat: Array = await requete.request_completed
+	requete.queue_free()
+	if resultat[0] != HTTPRequest.RESULT_SUCCESS or resultat[1] != 200:
+		recueil.append("requete-echouee : %s (resultat %s, HTTP %s)" % [relative, resultat[0], resultat[1]])
+		return PackedByteArray()
+	return resultat[3]
+
+
+## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en scène : lu à l'exécution une fois
+## par chargement des modèles, chaque demande d'un même fichier attendant la première ; `null` (et une erreur à
+## `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et un fichier qui ne s'est pas lu se redemande. Chaque
+## liaison d'un skin y porte le nom de son os (#3086, D4 ; `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`,
+## `modules/gltf/gltf_document.cpp` `_create_skins`, `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`,
+## Godot 4.7-stable).
+func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
+	if not modeles.glb.has(id):
+		recueil.append("glb-absent : %s" % id)
+		return null
+	var fichier: String = modeles.glb[id]
+	var lecture: Lecture = _lectures.get(fichier)
+	if lecture == null:
+		lecture = Lecture.new()
+		_lectures[fichier] = lecture
+		await _lire(id, fichier, lecture)
+	elif lecture.en_vol:
+		await lecture.lue
+	recueil.append_array(lecture.erreurs)
+	if lecture.etat == null:
+		return null
+	return GLTFDocument.new().generate_scene(lecture.etat) as Node3D
+
+
+func _lire(id: String, fichier: String, lecture: Lecture) -> void:
+	var octets := await _telecharger(self, "modeles/%s" % fichier, lecture.erreurs)
+	if not octets.is_empty():
+		var etat := GLTFState.new()
+		etat.handle_binary_image_mode = GLTFState.HANDLE_BINARY_IMAGE_MODE_EMBED_AS_UNCOMPRESSED
+		var code := GLTFDocument.new().append_from_buffer(octets, "", etat, GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS)
+		if code == OK:
+			lecture.etat = etat
+		else:
+			lecture.erreurs.append("glb-illisible : %s (%s)" % [id, error_string(code)])
+	if lecture.etat == null and _lectures.get(fichier) == lecture:
+		_lectures.erase(fichier)
+	lecture.en_vol = false
+	lecture.lue.emit()
+
+
+## Le montage ramené à aucun modèle : ni squelette ni lecteur, ni élément monté, ni demande de montage en vol.
+func vider() -> void:
+	if modele != null:
+		remove_child(modele)
+		modele.queue_free()
+	modele = null
+	_pieces_de_la_base.clear()
+	squelette = null
+	lecteur = null
+	gabarit = null
+	pieces.clear()
+	_noeuds.clear()
+	montes.clear()
+	emblemes.clear()
+	_emblemes_demandes.clear()
+	_demandes.clear()
+
+
+## La base `posee` retenue et, si `scene` (son GLB en scène) n'est pas nulle, posée sous ce nœud : ses meshes relevés et
+## habillés de la palette de la composition, son squelette (`squelette-absent` aux erreurs sans lui), qui reçoit le
+## modificateur du gabarit, et son lecteur de clips.
+func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
+	base = posee
+	if scene == null:
+		return
+	modele = scene
+	add_child(scene)
+	_pieces_de_la_base.assign(scene.find_children("*", "MeshInstance3D", true, false))
+	squelette = squelette_de(scene)
+	for candidat in scene.find_children("*", "AnimationPlayer", true, false):
+		lecteur = candidat as AnimationPlayer
+		break
+	habiller_la_base()
+	if squelette == null:
+		erreurs.append("squelette-absent : %s" % base.id)
+		return
+	gabarit = GabaritDuSquelette.new()
+	squelette.add_child(gabarit)
+
+
+## Par ligne de `montes` de la composition retenue, sa première entrée qui monte un élément.
+func cibles() -> Dictionary:
+	var retenues := {}
+	for monte in composee.get("montes", []):
+		if monte.element != null and not retenues.has(monte.ligne):
+			retenues[monte.ligne] = monte
+	return retenues
+
+
+## L'emplacement `id` démonté avec son emblème ; le montage en vol qu'il attendait est jeté.
+func demonter(id: String) -> void:
+	_demandes[id] = RefCounted.new()
+	for noeud in _noeuds.get(id, []):
+		noeud.free()
+	_noeuds.erase(id)
+	pieces.erase(id)
+	montes.erase(id)
+	emblemes.erase(id)
+	_emblemes_demandes.erase(id)
+
+
+## L'emplacement `id` démonté, puis `element` monté une fois son GLB chargé, si aucune autre demande ne l'a remplacé à
+## cet emplacement (#3086, D4) : chaque mesh rigide pendu à un os du GLB, à sa transformation locale, sous l'os de même
+## nom de la base (`hotes/godot/asset/evaluateur/evaluer.ts` `monter`) ; chaque mesh skinné sous le squelette de la
+## base, son skin lié par nom d'os (`scene_du_glb`). Rien de monté s'il n'a aucun mesh à monter, ou si un os que ses
+## meshes nomment manque à la base : chacun va à `recueil`. Monté, il reçoit les morphes de la composition ; rend s'il
+## l'est.
+func monter(id: String, element: String, recueil: Array[String]) -> bool:
+	demonter(id)
+	var demande: RefCounted = _demandes[id]
+	var sous := squelette
+	if sous == null:
+		return false
+	var scene := await scene_du_glb(element, recueil)
+	if demande != _demandes.get(id):
+		if scene != null:
+			scene.free()
+		return false
+	if scene == null:
+		return false
+	var trouvees: Array[MeshInstance3D] = []
+	var os_des_pieces: Array[Array] = []
+	var absents: Array[String] = []
+	for noeud in scene.find_children("*", "MeshInstance3D", true, false):
+		var piece := noeud as MeshInstance3D
+		var noms := _os_de_la_piece(piece)
+		if noms.is_empty():
+			continue
+		trouvees.append(piece)
+		os_des_pieces.append(noms)
+		for nom in noms:
+			if sous.find_bone(nom) == -1 and not nom in absents:
+				absents.append(nom)
+	for nom in absents:
+		recueil.append("os-absent : %s" % nom)
+	if trouvees.is_empty():
+		recueil.append("element-sans-piece : %s" % element)
+	if trouvees.is_empty() or not absents.is_empty():
+		scene.free()
+		return false
+	var noeuds: Array[Node] = []
+	for rang in trouvees.size():
+		noeuds.append(_poser_la_piece(trouvees[rang], os_des_pieces[rang], sous, id))
+	scene.free()
+	pieces[id] = trouvees
+	_noeuds[id] = noeuds
+	montes[id] = element
+	poser_les_morphes()
+	return true
+
+
+## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache
+## de son os) ; pour un mesh skinné, le nom de chaque liaison de son skin (`Skin.get_bind_name`, posé à l'import par
+## `scene_du_glb`) ; aucun pour un mesh à la racine.
+func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
+	var noms: Array[String] = []
+	if piece.skin != null:
+		for liaison in piece.skin.get_bind_count():
+			noms.append(String(piece.skin.get_bind_name(liaison)))
+	elif piece.get_parent() is BoneAttachment3D:
+		noms.append((piece.get_parent() as BoneAttachment3D).bone_name)
+	return noms
+
+
+## `piece`, qui pend aux os `noms`, posée sur `sous`, le squelette de la base, pour l'emplacement `id` : rigide, sous un
+## os de même nom que le sien ; tenue (son os est celui d'une prise), reposée du repère de sa prise d'origine dans celui
+## de la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_repere_de_rangement`) (#3319, `CONTRAT.md`) ;
+## skinnée, sous le squelette, son skin lié par nom dès l'import (`scene_du_glb`). Le nœud qui la porte dans la scène.
+func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3D, id: String) -> Node:
+	piece.owner = null
+	if piece.skin == null:
+		var nom := ("Monte_%s_%s" % [id, piece.name]).validate_node_name()
+		var cible := _point(id)
+		var origine := _prise_de_l_os(noms[0])
+		if cible.is_empty() or origine.is_empty() or (cible.genre == "emplacement" and cible.attache.os == noms[0]):
+			var support := attacher(sous, {os = noms[0], position = ORIGINE, rotation = ORIGINE}, nom)
+			piece.reparent(support, false)
+			return support.get_parent()
+		var relais := Node3D.new()
+		relais.name = "DepuisLaPrise_%s" % origine.id
+		relais.transform = repere(origine.attache).affine_inverse()
+		if cible.genre == "prise":
+			var portage := attacher(sous, cible.attache, nom)
+			portage.add_child(relais)
+			piece.reparent(relais, false)
+			return portage.get_parent()
+		var rangement := Node3D.new()
+		rangement.name = "Range_%s" % cible.id
+		attacher(sous, {os = cible.attache.os, position = ORIGINE, rotation = ORIGINE}, nom).add_child(rangement)
+		rangement.add_child(relais)
+		piece.reparent(relais, false)
+		rangement.transform = _repere_de_rangement(cible.attache, _arriere(piece, rangement))
+		return rangement.get_parent().get_parent()
+	piece.reparent(sous, false)
+	piece.skeleton = piece.get_path_to(sous)
+	return piece
+
+
+## Le point d'accroche `id` de la base posée, emplacement ou prise, `{}` si aucun.
+func _point(id: String) -> Dictionary:
+	for point in base.get("points", []):
+		if point.id == id:
+			return point
+	return {}
+
+
+## Le repère, dans l'os de l'emplacement `attache`, où se pose le repère de prise d'un objet rangé dont la face arrière
+## de la boîte, dans ce repère de prise, est à `arriere` : ses axes et son origine (`MiseEnPage.axe_de_rangement`,
+## `MiseEnPage.origine_de_rangement`).
+static func _repere_de_rangement(attache: Dictionary, arriere: float) -> Transform3D:
+	var emplacement := repere(attache)
+	var point := emplacement.origin
+	var axes := emplacement.basis
+	return Transform3D(Basis(MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_X), MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Y),
+		MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Z)), MiseEnPage.origine_de_rangement(axes, point, arriere))
+
+
+## La cote en z de la face arrière de la boîte de `piece` dans le repère du nœud `dans`, son ancêtre : la boîte de ses
+## huit coins (`AABB.expand`).
+static func _arriere(piece: MeshInstance3D, dans: Node3D) -> float:
+	var boite := piece.get_aabb()
+	var dans_le_repere := AABB(dans.to_local(piece.to_global(boite.get_endpoint(0))), Vector3.ZERO)
+	for coin in range(1, 8):
+		dans_le_repere = dans_le_repere.expand(dans.to_local(piece.to_global(boite.get_endpoint(coin))))
+	return dans_le_repere.position.z
+
+
+## La prise de la base posée dont l'os est `os`, `{}` si aucune.
+func _prise_de_l_os(os: String) -> Dictionary:
+	for point in base.get("points", []):
+		if point.genre == "prise" and point.attache.os == os:
+			return point
+	return {}
+
+
+## L'emblème `embleme` demandé à l'emplacement `id`, qu'un élément monte : « vide » sur un élément sans surface `blason`
+## ou pour un emblème que `modeles` n'offre pas ; puis l'élément habillé (`_habiller`). Rend l'emblème posé, « vide » si
+## aucune surface ne l'a reçu.
+func choisir_l_embleme(id: String, embleme: String) -> String:
+	var element: String = montes[id]
+	var offert: bool = modeles.emblemes.any(func(offre: Dictionary) -> bool: return offre.id == embleme)
+	_emblemes_demandes[id] = embleme if offert and porte_un_blason(element) else VIDE
+	var pose: String = _emblemes_demandes[id] if _habiller(id) else VIDE
+	if pose == VIDE:
+		emblemes.erase(id)
+	else:
+		emblemes[id] = pose
+	return pose
+
+
+## L'élément monté à l'emplacement `id` habillé de la palette de la composition et de l'emblème demandé (`_peindre`) ;
+## rend si l'emblème est posé sur une surface au moins, et un emblème demandé qu'aucune ne reçoit donne
+## `blason-sans-surface`.
+func _habiller(id: String) -> bool:
+	var element: String = montes[id]
+	var embleme: String = _emblemes_demandes.get(id, VIDE)
+	var texture: ImageTexture = null if embleme == VIDE else _texture_de_l_embleme(embleme)
+	var posee := _peindre(pieces[id], modeles.surfaces[element], texture)
+	if texture != null and not posee:
+		erreurs.append("blason-sans-surface : %s" % element)
+	return posee
+
+
+## Les meshes de la base posée habillés de la palette de la composition (`_peindre`, `surfaces` de la base).
+func habiller_la_base() -> void:
+	if not base.is_empty():
+		_peindre(_pieces_de_la_base, modeles.surfaces[base.id], null)
+
+
+## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` reçoit un matériau propre
+## (`materiau_local`) si la `palette` de la composition colore son emplacement de palette, ou si elle est `blason` et
+## `texture` n'est pas nulle : la couleur y remplace l'albédo du GLB, texture comprise, pour que la tête et le corps
+## d'une même peau aient la même couleur, et `texture` devient la couche de détail, en UV1 et en mélange. Toute autre
+## surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
+func _peindre(meshes: Array, surfaces: Array, texture: ImageTexture) -> bool:
+	var palette: Dictionary = composee.get("palette", {})
+	var par_nom := {}
+	for surface in surfaces:
+		par_nom[surface.nom] = surface
+	var posee := false
+	for piece: MeshInstance3D in meshes:
+		for rang in piece.mesh.get_surface_count():
+			piece.set_surface_override_material(rang, null)
+			var materiau := piece.get_active_material(rang)
+			var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
+			if surface.is_empty():
+				continue
+			var couleur: Variant = palette.get(surface.palette)
+			var blason: bool = texture != null and surface.get("blason", false)
+			if couleur == null and not blason:
+				continue
+			var local := materiau_local(piece, rang)
+			if local == null:
+				continue
+			if couleur != null:
+				local.albedo_texture = null
+				local.albedo_color = Color(couleur)
+			if blason:
+				local.detail_enabled = true
+				local.detail_albedo = texture
+				local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
+				local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+				posee = true
+	return posee
+
+
+## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de
+## large, ses mipmaps générées, une fois par chargement des modèles ; `null` (et une erreur) s'il ne se lit pas.
+func _texture_de_l_embleme(id: String) -> ImageTexture:
+	if not _textures.has(id):
+		_textures[id] = _rasteriser_l_embleme(id)
+	return _textures[id]
+
+
+func _rasteriser_l_embleme(id: String) -> ImageTexture:
+	var svg: String = modeles.emblemes.filter(func(offert: Dictionary) -> bool: return offert.id == id)[0].svg
+	var image := Image.new()
+	var code := image.load_svg_from_string(svg)
+	if code == OK:
+		code = image.load_svg_from_string(svg, MiseEnPage.echelle_d_image(LARGEUR_D_EMBLEME, image.get_width()))
+	if code != OK or image.is_empty():
+		erreurs.append("embleme-illisible : %s (%s)" % [id, error_string(code)])
+		return null
+	image.generate_mipmaps()
+	return ImageTexture.create_from_image(image)
+
+
+## Le gabarit de la composition (`gabarit` de `composer`, aucun sans composition) remis au modificateur du squelette
+## (`GabaritDuSquelette`, `CONTRAT.md`, « Gabarit d'une base »), qui le pose sur la pose de chaque image, au repos comme
+## pendant un clip ; le squelette remis à sa pose de repos, puis le clip engagé reposé à son instant. Rend chaque os qu'il
+## nomme et que la base n'a pas ; aucun sans modificateur.
+func poser_le_gabarit() -> Array[String]:
+	if gabarit == null:
+		return []
+	var absents := gabarit.poser(composee.get("gabarit", {}))
+	squelette.reset_bone_poses()
+	if lecteur != null and lecteur.assigned_animation != "":
+		lecteur.seek(lecteur.current_animation_position, true)
+	return absents
+
+
+## Les poids `morphes` de la composition posés par nom de shape key sur chaque mesh de la base et de chaque élément monté
+## qui porte la clé (#3086, D4) ; un mesh sans la clé n'en reçoit rien.
+func poser_les_morphes() -> void:
+	var morphes: Dictionary = composee.get("morphes", {})
+	for nom in morphes:
+		poser_des_morphes([nom], float(morphes[nom]))
+
+
+## Le poids `poids` posé à chaque shape key nommée dans `noms`, sur chaque mesh du modèle qui la porte.
+func poser_des_morphes(noms: Array, poids: float) -> void:
+	if modele == null:
+		return
+	for noeud in modele.find_children("*", "MeshInstance3D", true, false):
+		var mesh := noeud as MeshInstance3D
+		for nom in noms:
+			var rang := mesh.find_blend_shape_by_name(nom)
+			if rang != -1:
+				mesh.set_blend_shape_value(rang, poids)

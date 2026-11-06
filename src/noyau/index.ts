@@ -1,7 +1,7 @@
 /**
  * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie, les types de l'état et de
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
- * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, l'équipement dessiné d'un porteur, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
+ * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
  * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
@@ -18,7 +18,7 @@ export type { Cadence } from '../engine/cadence';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
 export { actionGate, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
-export { findApparenceById, findCouleurById, findTeinteById, gardeRobe } from '../data/index';
+export { findApparenceById, findCouleurById, gardeRobe } from '../data/index';
 export type { EmblemeDef } from '../data/schemas/defs/garde-robe';
 export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
 export { emplacementDePiece, estEmplacement, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
@@ -64,8 +64,6 @@ export { verbeDeJetDe, viseUneRangee } from './flowVerbs';
 export { FERMETURES_DITES } from './rollFlowFactory';
 export { reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, REGLAGES_DE_L_INCANTATION, type Reglage, type ValeurDuReglage } from './reglages';
 export { avecSigne } from '../engine/types';
-export { objetDuNarratif } from './monde/resolveursDuNarratif';
-export { equipementDessine, equipementDEntite } from './equipementDessine';
 export { ROLES_D_ANIMATION, type RoleDAnimation } from './animation';
 export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } from './persistance/roster';
 export { engagement, intentionDEngagement, refusDEngagement, refusDUnNouveauHeros } from './creation/engagement';

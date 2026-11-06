@@ -3229,14 +3229,6 @@ export function matiereDuGroupe(id: string | null | undefined): MatiereDArmure |
   const groupe = findWeaponGroupById(id);
   return groupe?.kind === 'armour' ? groupe.material : undefined;
 }
-/** Groupes d'armure du registre (`kind:'armour'`). */
-export const groupesDArmure = (): GroupeDArmure[] => weaponGroups.filter((g): g is GroupeDArmure => g.kind === 'armour');
-/** Groupe d'armure d'un id typé ; un id absent du registre vivant (Groupe retiré à l'atelier) lève. */
-export function groupeDArmure(id: GroupeDArmureId): GroupeDArmure {
-  const groupe = findWeaponGroupById(id);
-  if (groupe?.kind !== 'armour') throw new Error(`groupeDArmure : « ${id} » n’est aucun Groupe d’armure de weaponGroups.json.`);
-  return groupe;
-}
 /** Libellé d'affichage d'un Groupe d'objet par son id (repli sur l'id). SOURCE UNIQUE du nom de Groupe. */
 export function weaponGroupLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? groupeObjetParId(id)?.label : '', id ?? '');

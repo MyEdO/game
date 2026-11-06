@@ -466,8 +466,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   teinte?: string;
   /** #2967 */
   apparence?: string;
-  /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue, la clé `natural`
-   *  d'`equipementDessine` le dit au dessinateur. Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
+  /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue : ce que porte
+   *  un combattant l'écarte (`porteeDuCombattant`). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
   natural?: boolean;
   /** Taille PRÉVUE pour l'arme (ADE II 2 l.706-710) — propagée depuis `ItemInstance.sizeFor`. Différente
    *  de la Taille du porteur → −20 à tous les Tests avec cette arme (`attackModifiers`). */
@@ -1885,7 +1885,7 @@ export interface Combatant {
    *  un PJ rendu depuis son propre inventaire). Référence de TYPE seulement → élidée à la compilation. */
   appearance?: import('./authoringAppearance').Appearance;
   /** Override d'apparence d'AUTHORING BRUT (cosmétique) porté depuis la scène au spawn (#187), lu par
-   *  `equipementDessine` et `deciderApparencesDesArmes` (`noyau/monde/spawn.ts`). */
+   *  `porteeDuCombattant` et `deciderApparencesDesArmes` (`noyau/monde/spawn.ts`). */
   appearanceOverride?: import('./authoringAppearance').EntityAppearance;
 }
 

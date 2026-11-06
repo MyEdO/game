@@ -1,6 +1,6 @@
 /**
  * LE VOCABULAIRE D'ANIMATION (#2972) : les rôles qu'un corps joue et le maniement d'une arme. L'hôte Godot
- * (`hotes/godot/asset/manifeste.ts`) lit ce seul type.
+ * (`hotes/godot/asset/clips.ts`) lit ce seul type.
  *
  * Le MANIEMENT est l'axe d'animation (prise physique : une main, deux mains, lame, hampe, arc…), distinct du GROUPE
  * de règles (`src/engine/weaponGroup.ts`) : son vocabulaire est `maniementSchema` (`src/data/schemas/grammaire/valeurs.ts`) ;

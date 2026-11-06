@@ -374,7 +374,7 @@ export interface Scene {
 
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
 
-/** Échelle métrique d'une case (m/case) — défaut 2 (person-scale, LDB). Source UNIQUE pour la couche Mer. PUR. */
+/** Échelle métrique d'une case (m/case), LDB 15 l.12 : source UNIQUE, que lisent la couche Mer et le plateau d'un hôte. PUR. */
 export function sceneMetresPerTile(scene: { metresPerTile?: number } | null | undefined): number {
   return scene?.metresPerTile ?? 2;
 }
@@ -495,8 +495,9 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
 
 /** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les cases de sa couche de base que nul ne
  *  franchit à pied (`isWalkable`), ligne par ligne, et les arêtes de cette couche, chacune son milieu et son sens en
- *  coins de grille (`wallEnds`), si elle est une porte en jeu (`porteEnJeu`) et si elle laisse passer (`wallIsOpen`). */
-export function plateauDeLaScene(scene: Scene): { w: number; h: number; infranchissables: Pt[]; aretes: { milieu: Pt; sens: Pt; porte: boolean; ouverte: boolean }[] } {
+ *  coins de grille (`wallEnds`), si elle est une porte en jeu (`porteEnJeu`) et si elle laisse passer (`wallIsOpen`), et
+ *  son échelle métrique (`sceneMetresPerTile`). */
+export function plateauDeLaScene(scene: Scene): { w: number; h: number; metresParCase: number; infranchissables: Pt[]; aretes: { milieu: Pt; sens: Pt; porte: boolean; ouverte: boolean }[] } {
   const { w, h } = scene.dimensions;
   const infranchissables: Pt[] = [];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!isWalkable(scene, x, y)) infranchissables.push({ x, y });
@@ -504,7 +505,7 @@ export function plateauDeLaScene(scene: Scene): { w: number; h: number; infranch
     const [a, b] = wallEnds(seg);
     return { milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, sens: { x: b.x - a.x, y: b.y - a.y }, porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) };
   });
-  return { w, h, infranchissables, aretes };
+  return { w, h, metresParCase: sceneMetresPerTile(scene), infranchissables, aretes };
 }
 
 /** Lien vertical entre deux cases ADJACENTES (Chebyshev : cardinale OU diagonale, grille 8-connexe cf.

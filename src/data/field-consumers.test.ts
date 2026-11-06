@@ -359,7 +359,7 @@ describe('DÉTERMINISME cross-OS — le rapport ne dépend pas du système de fi
  */
 const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['DetailRecipe', 'tintVar', 'src/gameIso/authoring/detailSvg.ts @detailPatternDefs'],
-  ['EntityAppearance', 'armurePortee', 'src/noyau/equipementDessine.ts @armurePorteeDe, src/ui/editor/codex/CodexEdit.tsx @AppearanceField'],
+  ['EntityAppearance', 'armurePortee', 'src/ui/editor/codex/CodexEdit.tsx @AppearanceField'],
   ['CritEscalation', 'onRepeat', 'src/engine/critical.ts @repeat'],
   ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/ui/compendium/registry.ts @meta'],
   ['FlowTest', 'opposed', 'src/noyau/combat/triggeredTest.ts @opp'],
@@ -393,7 +393,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   LocationData: ['prefix', 'suffix'],
   ManeuverDef: ['stakeForm'],
   MiscastTableDef: ['die'],
-  PresetDePersonnage: ['build', 'couleurs', 'sex'],
   PsychologyData: ['stakeForm'],
   QualityData: ['aspect'],
   RaceAppearanceData: ['scale'],

@@ -1,7 +1,7 @@
 /**
  * LA TABLE RÔLE D'ANIMATION → CLIP D'UN MANIFESTE (#2972, #3253) : pour chaque rôle que le corps joue
  * (`ROLES_D_ANIMATION`, `src/noyau/animation.ts`), le nom de son clip dans le GLB. Son contrôle lit le vocabulaire du
- * noyau : il vit dans le graphe de l'hôte (`manifeste.ts`, `modeles.ts`), hors de celui de l'évaluateur (`charger.mjs`).
+ * noyau : il vit dans le graphe de l'hôte (`modeles.ts`), hors de celui de l'évaluateur (`charger.mjs`).
  */
 import { ROLES_D_ANIMATION, type RoleDAnimation } from '../../../src/noyau/index.ts';
 

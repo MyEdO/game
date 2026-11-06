@@ -5,7 +5,7 @@
  * squelette ou en surface et ses accessoires rigides, le fichier GLB de chaque base et de chaque élément servi, et pour ces seuls éléments les noms de
  * leurs surfaces `blason`, et la marche de chaque base (l'unique clip de ses appuis et sa vitesse au sol, au gabarit
  * neutre) ; les emblèmes sont la sous-liste `embleme` de la garde-robe ; un rigide sans os n'est servi nulle part, les
- * refus de l'index sont rendus, une base à marche ambiguë est refusée seule, un manifeste schéma 2 est ignoré.
+ * refus de l'index sont rendus, une base à marche ambiguë est refusée seule.
  */
 import { describe, expect, it } from 'vitest';
 import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
@@ -32,11 +32,10 @@ const bouclier = {
 };
 const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' }, surfaces: [{ nom: 'verre', palette: 'accent', blason: true }], glb: empreinte(glbDElement(null, ['verre'])) };
 const orpheline = { ...elementSchema3('nain'), cle: { apparence: 'hache' } };
-const schema2 = { schema_version: 2, model: 'Lame.glb' };
 
 describe('modelesDeLAtelier', () => {
   const modeles = modelesDeLAtelier(
-    { humanoide, epee, bouclier, lanterne, chemise, teteNaine, broche, orpheline, schema2 },
+    { humanoide, epee, bouclier, lanterne, chemise, teteNaine, broche, orpheline },
     { humanoide: [], epee: ['root'], bouclier: ['spine', 'handslot.l'], lanterne: [], chemise: ['root'], teteNaine: ['root'], broche: ['root'] },
   );
   const lignes = modeles.bases[0].lignes;
@@ -129,9 +128,5 @@ describe('modelesDeLAtelier', () => {
     expect(avecCimier.bases[0].lignes.filter((l) => 'id' in l && l.elements.includes('plumet')).map((l) => ('id' in l ? `${l.sorte}:${l.id}` : l.sorte))).toEqual(['emplacement:cimier']);
     expect(avecCimier.bases[0].points.flatMap(({ elements }) => elements)).toEqual([]);
     expect(servis(avecCimier)).toEqual(['casque', 'plumet']);
-  });
-
-  it('un manifeste schéma 2 est ignoré', () => {
-    expect(modelesDeLAtelier({ schema2 }, {})).toEqual({ bases: [], glb: {}, refus: [], rapport: [], surfaces: {}, libelles: {}, emblemes: modeles.emblemes });
   });
 });

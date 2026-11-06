@@ -3,8 +3,9 @@
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
-## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, et la pose
-## d'une arête (mur ou porte) sur le côté de sa case. Seul script où l'arithmétique et la mesure sont permises
+## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
+## d'une arête (mur ou porte) sur le côté de sa case, l'échelle métrique d'un modèle sur le plateau et la hauteur d'un
+## point du corps à son gabarit. Seul script où l'arithmétique et la mesure sont permises
 ## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
 ## plus un vecteur, sans état.
 class_name MiseEnPage
@@ -30,6 +31,8 @@ const ECART_DE_BULLE := 12.0
 const LARGEUR_DE_BULLE := 420.0
 ## La hauteur, au-dessus du sol, du nom d'une entité de la scène.
 const HAUTEUR_DU_NOM := 1.2
+## Les mètres d'une case du plateau, l'unité du monde : `sceneMetresPerTile` (`src/noyau/monde/scene.ts`), LDB 15 l.12.
+const METRES_PAR_CASE := 2.0
 
 
 ## La largeur du texte d'une bulle qui, sur une ligne, en prendrait `largeur` : la sienne, au pixel supérieur, au plus
@@ -61,6 +64,17 @@ static func lacet_d_arete(sens: Vector2) -> float:
 ## La longueur, en cases, d'une arête qui court selon `sens`.
 static func longueur_d_arete(sens: Vector2) -> float:
 	return sens.length()
+
+
+## L'échelle qui porte un modèle mesuré en mètres sur un plateau de `metres_par_case` mètres par case.
+static func echelle_metrique(metres_par_case: float) -> float:
+	return 1.0 / metres_par_case
+
+
+## La hauteur `hauteur` d'un point du corps neutre portée au gabarit dont le sommet des os est à `sommet`, celui du corps
+## neutre à `sommet_neutre`.
+static func hauteur_au_gabarit(hauteur: float, sommet: float, sommet_neutre: float) -> float:
+	return hauteur * echelle_de_cadrage(sommet, sommet_neutre)
 
 
 ## Le centre de la case `case` sur le sol (y = 0).

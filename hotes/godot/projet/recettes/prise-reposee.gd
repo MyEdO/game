@@ -1,11 +1,11 @@
 extends SceneTree
 
-## Un objet tenu se monte à chaque prise et se range à son emplacement (#3319, `hotes/godot/pont/CONTRAT.md`, section
-## « Atelier 3D ») : l'atelier (`scripts/atelier.gd`, `_poser_la_piece`) repose un mesh rigide pendu à l'os de sa prise
-## d'origine. Sur un squelette à deux mains d'orientations différentes, le mesh garde, dans le repère de la prise retenue,
-## la place qu'il avait dans celui de sa prise d'origine ; à sa propre prise, il garde sa place sous son os. Rangé à un
-## emplacement du bassin, sa prise a la tête vers le bas du personnage et les jointures sur la normale sortante, sa
-## poignée sur l'emplacement, et sa boîte à 5 cm de la peau.
+## Un objet tenu se monte à chaque prise et se range à son emplacement (#3319, `hotes/godot/pont/CONTRAT.md`,
+## section « Atelier 3D ») : le montage d'une composition (`scripts/montage_de_composition.gd`, `_poser_la_piece`)
+## repose un mesh rigide pendu à l'os de sa prise d'origine. Sur un squelette à deux mains d'orientations différentes,
+## le mesh garde, dans le repère de la prise retenue, la place qu'il avait dans celui de sa prise d'origine ; à sa
+## propre prise, il garde sa place sous son os. Rangé à un emplacement du bassin, sa prise a la tête vers le bas du
+## personnage et les jointures sur la normale sortante, sa poignée sur l'emplacement, et sa boîte à 5 cm de la peau.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
@@ -68,9 +68,9 @@ func _verifier(cible: String) -> void:
 	piece.transform = Transform3D(Basis.from_euler(Vector3(0.2, 0.4, -0.7)), Vector3(0.01, 0.12, -0.03))
 	import.add_child(piece)
 	var local := piece.transform
-	var atelier: Node3D = load("res://scripts/atelier.gd").new()
-	atelier.set("_base", {points = [CEINTURE, MAIN, OFF]})
-	atelier.call("_poser_la_piece", piece, ["main_d"] as Array[String], squelette, cible)
+	var montage := MontageDeComposition.new()
+	montage.base = {points = [CEINTURE, MAIN, OFF]}
+	montage.call("_poser_la_piece", piece, ["main_d"] as Array[String], squelette, cible)
 	await process_frame
 	await process_frame
 	var juste: bool
@@ -102,6 +102,6 @@ func _verifier(cible: String) -> void:
 		if not juste:
 			_fautes.append("%s : lame à %s, attendue à %s" % [cible, obtenu, attendu])
 	print("[prise-reposee] %s : %s" % [cible, "OK" if juste else "KO"])
-	atelier.free()
+	montage.free()
 	squelette.queue_free()
 	await process_frame

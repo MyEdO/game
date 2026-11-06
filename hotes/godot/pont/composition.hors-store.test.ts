@@ -15,7 +15,7 @@ import { modelesDeLAtelier } from './atelier';
 import { composerSurLaBase } from './composition';
 import { creerPont } from './pont';
 
-const humanoide = { ...baseDeTest('humanoide'), emplacements: { epaule_d: { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] } }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25 } } };
+const humanoide = { ...baseDeTest('humanoide'), emplacements: { epaule_d: { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] } } };
 const plastron = {
   schema: 3, base: 'humanoide', categorie: 'armure', cle: { piece: 'plastron' }, liaison: { mode: 'squelette' }, couche: 'armure', couvre: ['torse'],
   surfaces: [{ nom: 'acier', palette: 'metal' }], glb: empreinte(glbDElement('root', ['acier'])),

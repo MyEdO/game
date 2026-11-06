@@ -2002,17 +2002,17 @@
     "label": "emblemeDuPorteur",
     "fichier": "src/noyau/apparence/gardeRobe.ts",
     "concept": "référence d’emblème projetée par id stable depuis la garde-robe ; une référence absente ou périmée ne projette aucun emblème",
-    "perimetre": "composition et équipement dessiné des porteurs",
+    "perimetre": "composition des porteurs (`porteeDuCombattant`)",
     "verrou": "src/noyau/emblemes.hors-store.test.ts"
   },
   {
-    "id": "equipementDeDessin",
+    "id": "armesDessinees",
     "type": "primitives.manifest",
-    "label": "equipementDessine/equipementDEntite/armesDEntite/armesDuCombattant/EquipCtx/equipDe/armeDeDessin/pieceDeDessin",
+    "label": "armesDuCombattant/armesDEntite/equipementDAuteurDe/armeDeDessin/FormeDArme/emblemeDe",
     "fichier": "src/noyau/equipementDessine.ts",
-    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; les mains s'attribuent en UN lieu (`mainsDesArmes`), que lisent le dessin (`equipDe`) et les armes d'un combattant (`armesDuCombattant`, lues par `porteeDuCombattant`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule",
-    "perimetre": "tout producteur d'équipement dessiné (`equipementDessine`, `equipementDEntite`), tout lecteur d'un hôte 3D (forme, maniement, clips, pièces)",
-    "verrou": "src/noyau/equipementDessine.test.ts, src/noyau/armure-portee-guard.test.ts"
+    "concept": "armes DESSINÉES d'un porteur, sans art, keyées par ids stables : les mains s'attribuent en UN lieu (`mainsDesArmes`) ; un combattant a ses armes tenues, chacune à sa main, puis rangées — objets des sets non tenus (`objetDeSlot`, `isWeaponActive`), puis le surplus des mains (`armesDuCombattant`, lues par `porteeDuCombattant`) ; une entité de scène déclare les siennes (`armesDEntite` sur `equipementDAuteurDe`), dont les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent par `deciderApparencesDesArmes` sous un TrappingResolver injecté ; une arme seule donne à lire sa forme (`armeDeDessin` : clés `CLES_ARME`, `candidats` par `apparencesCandidates` avec la racine en dernière entrée, `bouclier`, `hands` par `weaponHands`, sa main) ; l'emblème d'un porteur est celui de son apparence d'auteur, sinon de sa créature (`emblemeDe`)",
+    "perimetre": "tout lecteur des armes d'un porteur : composition d'un combattant, éditeur d'apparences d'objets, rôles d'animation",
+    "verrou": "src/noyau/equipementDessine.test.ts, src/noyau/emblemes.hors-store.test.ts"
   },
   {
     "id": "porteeDeComposition",
