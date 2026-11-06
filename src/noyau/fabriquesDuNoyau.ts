@@ -37,7 +37,6 @@ import { creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeComb
 import { choixDuMedecin, cloturesDuMedecin, creerActionsDuMedecin, sortiesDuMedecin } from './medicFlow';
 import { creerActionsDuRepos, sortiesDuRepos, validationsDuRepos } from './restFlow';
 import { choixDeLEquipage, creerActionsDeLEquipage, sortiesDeLEquipage } from './shipCrew';
-import { creerActionsDesConsommables } from './consumableFlow';
 import { cloturesDesTestsDeScene, creerActionsDesTestsDeScene, reglagesDesTestsDeScene } from './testsDeScene';
 import { cloturesDuLotDEtal } from './etalLotFlow';
 import { choixDeCorruption, cloturesDeCorruption, reglagesDeCorruption } from './corruptionFlow';
@@ -75,36 +74,27 @@ type NomDeVerbe = ActionDuLexique | `${ActionDuLexique}${Majuscule}${string}`
 
 /** Les verbes vivants hors lexique, chacun renommé par un lot de #3371 (§4). */
 type NomEnAttente =
-  'abandonPossession' | 'addToCart' | 'addToSellCart' | 'appraiseGear' | 'appraiseItem' | 'armEndTurn' | 'armPreempt'
-  | 'assignDistribution' | 'assignLootGear' | 'assignVictoryGear' | 'barterExchange' | 'battleAidTeam' | 'battleAim'
-  | 'battleArmIntent' | 'battleBattement' | 'battleClearPreview' | 'battleClickEntity' | 'battleClickTile'
-  | 'battleCrewTest' | 'battleDefendTotal' | 'battleDisengage' | 'battleDismount' | 'battleDispelSpell'
-  | 'battleDistraire' | 'battleEndTurn' | 'battleFocusSpell' | 'battleFrenzy' | 'battleGainAdvantage'
-  | 'battleLeavePoste' | 'battleManPoste' | 'battleManeuverArea' | 'battleMount' | 'battlePickup' | 'battlePushEngine'
-  | 'battleRecoverState' | 'battleReload' | 'battleResolveIgnoreCrit' | 'battleResolvePsychImmune'
-  | 'battleSelectAction' | 'battleSelectAmmo' | 'battleSelectAttack' | 'battleSelectSpell' | 'battleSelfManeuver'
-  | 'battleShipManeuver' | 'battleShipReload' | 'battleSingShanty' | 'battleSpendResolve' | 'battleStandUp'
-  | 'battleSwitchLoadout' | 'battleTogglePushback' | 'battleToggleStance' | 'battleUseItem' | 'battleWater'
-  | 'buyCharAdvance' | 'buySkillAdvance' | 'buySpell' | 'buySpellComponent' | 'buyTalent' | 'cancelMove'
-  | 'changeCareer' | 'choisirApparence' | 'clearCart' | 'clearSellCart' | 'climbAcross' | 'confirmSell'
-  | 'createLoadout' | 'decFromCart' | 'deleteLoadout' | 'designateCareerSlot' | 'disembark' | 'dispelSelectCarrier'
-  | 'embark' | 'fallAcross' | 'favorBreak' | 'favorSettle' | 'gatherInnInfo' | 'harvestCreature' | 'interludeActivity'
-  | 'interludeBank' | 'interludeCraftStart' | 'interludeEntrainement' | 'interludeOrder' | 'interludeWithdraw'
-  | 'jetBonusSL' | 'jetCancel' | 'jetConfirm' | 'jetDarkPact' | 'jetDetermine' | 'jetForceSuccess' | 'jetReroll'
-  | 'jetResist' | 'jetReverse' | 'jetRoll' | 'jetSetForcedRoll' | 'landBuyCargo' | 'landDumpCargo' | 'landEvalWine'
-  | 'landSellCargo' | 'lowerHand' | 'markCluesSeen' | 'massBattleActivity' | 'massBattleAdvance' | 'massBattleClash'
-  | 'massBattleHazard' | 'massBattleRally' | 'massBattleScene' | 'medicAct' | 'moveCargo' | 'oocCastSpell'
-  | 'oocDispelSpell' | 'oocFocusSpell' | 'openLandMarket' | 'openMedic' | 'openPlaceMerchant' | 'openPort'
+  'abandonPossession' | 'addToCart' | 'addToSellCart' | 'appraiseGear' | 'appraiseItem' | 'armPreempt'
+  | 'assignDistribution' | 'assignLootGear' | 'assignVictoryGear' | 'barterExchange' | 'battleArmIntent'
+  | 'battleClearPreview' | 'battleClickEntity' | 'battleClickTile' | 'buyCharAdvance' | 'buySkillAdvance' | 'buySpell'
+  | 'buySpellComponent' | 'buyTalent' | 'changeCareer' | 'choisirApparence' | 'clearCart' | 'clearSellCart'
+  | 'climbAcross' | 'confirmSell' | 'createLoadout' | 'decFromCart' | 'deleteLoadout' | 'designateCareerSlot'
+  | 'disembark' | 'dispelSelectCarrier' | 'embark' | 'fallAcross' | 'favorBreak' | 'favorSettle' | 'gatherInnInfo'
+  | 'harvestCreature' | 'interludeActivity' | 'interludeBank' | 'interludeCraftStart' | 'interludeEntrainement'
+  | 'interludeOrder' | 'interludeWithdraw' | 'jetBonusSL' | 'jetCancel' | 'jetConfirm' | 'jetDarkPact'
+  | 'jetDetermine' | 'jetForceSuccess' | 'jetReroll' | 'jetResist' | 'jetReverse' | 'jetRoll' | 'jetSetForcedRoll'
+  | 'landBuyCargo' | 'landDumpCargo' | 'landEvalWine' | 'landSellCargo' | 'lowerHand' | 'markCluesSeen'
+  | 'massBattleActivity' | 'massBattleAdvance' | 'massBattleClash' | 'massBattleHazard' | 'massBattleRally'
+  | 'massBattleScene' | 'medicAct' | 'moveCargo' | 'openLandMarket' | 'openMedic' | 'openPlaceMerchant' | 'openPort'
   | 'openRest' | 'openSurgeryPass' | 'openTavernGames' | 'openWorldMap' | 'partyAddHero' | 'partyRemoveHero'
   | 'partyReplaceHero' | 'payCart' | 'pivotParty' | 'playTavernGame' | 'portBuyCargo' | 'portCareen'
   | 'portDismissCrew' | 'portDumpCargo' | 'portHireCrew' | 'portInstallUpgrade' | 'portRepair' | 'portSellCargo'
   | 'raiseHand' | 'refuseBargain' | 'removeFromCart' | 'removeFromSellCart' | 'removeSpellComponent'
   | 'renamePossession' | 'repairItem' | 'restSet' | 'restoreFortuneNow' | 'resumeTravel' | 'retrievePossession'
-  | 'roundStartPromote' | 'searchAvailability' | 'setActiveLoadout' | 'setHeroBackground' | 'setLoadoutSlot'
-  | 'setMassBattleHero' | 'setPosteAmmo' | 'setSellHalving' | 'setShipRole' | 'setShipStation' | 'setTravelRole'
-  | 'setVoyageCadence' | 'spendResolveCondition' | 'stablePossession' | 'startBargain' | 'startBilletBargain'
-  | 'startTravel' | 'stepPartyRelative' | 'stowItem' | 'toggleCluePin' | 'toggleEquip' | 'trainProsthesis'
-  | 'transferItem' | 'transitionTo' | 'usePartyItem' | 'windowAcross';
+  | 'roundStartPromote' | 'searchAvailability' | 'setHeroBackground' | 'setLoadoutSlot' | 'setMassBattleHero'
+  | 'setPosteAmmo' | 'setSellHalving' | 'setShipRole' | 'setShipStation' | 'setTravelRole' | 'setVoyageCadence'
+  | 'stablePossession' | 'startBargain' | 'startBilletBargain' | 'startTravel' | 'stepPartyRelative' | 'stowItem'
+  | 'toggleCluePin' | 'toggleEquip' | 'trainProsthesis' | 'transferItem' | 'transitionTo' | 'windowAcross';
 
 /** Un nom de `Noms` ni du lexique ni en attente. */
 type HorsLexique<Noms extends string> = Exclude<Noms, NomDeVerbe | NomEnAttente>;
@@ -210,7 +200,7 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     // La validation d'une fenêtre, la fenêtre en argument : son SEUL écrivain.
     ...creerValidationDeFenetre(get, set, validationsDeFenetre(get, set)),
     ...createCombatSlice(get, set),
-    ...creerActionsDuRegistre(get),
+    ...creerActionsDuRegistre(get, set),
     ...creerActionsDOrientation(get, set),
     ...creerActionsDeManoeuvre(get, set),
     ...creerActionsDeCampagne(get, set),
@@ -230,7 +220,6 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerActionsDuMedecin(get, set),
     ...creerActionsDuRepos(get, set),
     ...creerActionsDeLEquipage(get, set),
-    ...creerActionsDesConsommables(get, set),
     ...creerActionsDesTestsDeScene(get, set),
     ...creerActionsDuJournal(get, set),
     ...creerActionsDAvanceeDHorloge(get, set),

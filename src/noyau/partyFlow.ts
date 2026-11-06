@@ -4,7 +4,7 @@
  * (caractéristiques/compétences/talents/carrière, prothèses), consommables de fiche, butin.
  */
 import { Combatant, CharKey, CHAR_LABELS, ItemInstance } from '../engine/types';
-import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
+import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
 import { resolveCarrier, porteurLocalise } from './monde/carrier';
@@ -230,9 +230,6 @@ export function deleteLoadout(get: Get, set: Set, heroId: string, id: string): v
   const refus = hero ? refusDeSupprimerSet(get(), hero, id) : t('pf.loadoutNotFound');
   if (refus) return void refuserGeste(get, set, refus);
   mutLoadout(set, heroId, (c) => loadoutDelete(c, id));
-}
-export function setActiveLoadout(get: Get, set: Set, heroId: string, id: string): void {
-  gesteDeSet(get, set, heroId, (c) => loadoutSetActive(c, id));
 }
 /** Refus de tenir `uid` (ou de vider l'emplacement, `null`) dans la main `slot` du set `loadoutId` : la
  *  raison affichée, ou `null`. Verdict UNIQUE du geste `setLoadoutSlot` et des deux écrans d'armes
@@ -897,7 +894,6 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     stowItem: (heroId, uid, containerUid) => stowItem(get, set, heroId, uid, containerUid),
     createLoadout: (heroId) => createLoadout(get, set, heroId),
     deleteLoadout: (heroId, id) => deleteLoadout(get, set, heroId, id),
-    setActiveLoadout: (heroId, id) => setActiveLoadout(get, set, heroId, id),
     setLoadoutSlot: (heroId, id, slot, uid) => setLoadoutSlot(get, set, heroId, id, slot, uid),
     transferItem: (uid, fromHeroId, toHeroId) => transferItem(get, set, uid, fromHeroId, toHeroId),
     choisirApparence: (heroId, uid, apparence) => choisirApparence(get, set, heroId, uid, apparence),

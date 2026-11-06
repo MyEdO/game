@@ -3,7 +3,7 @@ import { useGame } from '../state/store';
 import { actFirstIds, freeActFirst } from '../noyau/turnEconomy';
 import { preemptShooterIds } from '../noyau/targeting';
 import { findActionById } from '../data/index';
-import { actionGate, runAction } from '../noyau/actionRegistry';
+import { actionGate } from '../noyau/actionRegistry';
 import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { sceneNpc } from '../noyau/monde/sceneNpc';
 import { refusDeSauvegarde } from '../noyau/persistance/save';
@@ -211,7 +211,7 @@ export function CampaignView() {
   const canPreemptIds = preemptShooterIds(useGame.getState); // source UNIQUE (partagée avec le ciblage clavier)
   // PAUSE AU PROCHAIN ROUND (`raise-hand`) : l'interrupteur du pied de frise. Verdict d'offre et
   // dispatcher viennent du REGISTRE — la vue ne connaît qu'un id d'action, et la bascule repasse par
-  // la MÊME porte que la pose (`toggleOff`), ce qui rend l'annulation gratuite et symétrique.
+  // la MÊME offre que la pose (le relais lit la main levée), ce qui rend l'annulation gratuite et symétrique.
   // La commande n'est DESSINÉE qu'en coop (pertinence de SITE : elle s'adresse aux autres joueurs,
   // comme la rangée de ready-check) ; le gate `coop` du registre reste la politique de l'entrée —
   // aucune surface, dessinée ou non, ne franchit la porte hors coop.
@@ -362,7 +362,7 @@ export function CampaignView() {
                 reason: handVerdict.ok ? undefined : handVerdict.reason,
                 label: <><Icon id={handDef.icon as IconIdInput} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
                 ariaLabel: `${handRaised ? `${handDef.label} : retirer ma demande` : handDef.label}${autresMains > 0 ? ` — déjà demandée par ${autresMains} autre${autresMains > 1 ? 's' : ''} joueur${autresMains > 1 ? 's' : ''}` : ''}`,
-                onToggle: () => runAction(handDef.id, useGame.getState, { toggleOff: handRaised }),
+                onToggle: () => useGame.getState().jouerLOffre(handDef.id),
               }}
             />
           )}

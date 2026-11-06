@@ -60,7 +60,7 @@ function empetreCharge() {
     conditions: [{ id: 'empetre', value: 1, sourceId: 'liane' }, { id: 'extenue', value: 3 }] as never,
   });
   setBattle([actor, src], 'h');
-  banc.getState().battleRecoverState('empetre');
+  banc.getState().seRemettreDeLEtat('empetre');
   return banc.getState().pendingStateRecovery!;
 }
 

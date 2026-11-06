@@ -52,7 +52,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const setWithhold = (v: ReglagesDuJet['attack']['retenirSesCoups']) => regler('attack', 'retenirSesCoups', v);
   const setGrapple = (v: ReglagesDuJet['attack']['empoigner']) => regler('attack', 'empoigner', v);
   const setCritLocation = (v: ReglagesDuJet['attack']['localisationDuCritique']) => regler('attack', 'localisationDuCritique', v);
-  const spendResolve = useGame((s) => s.spendResolveCondition);
+  const spendResolve = useGame((s) => s.depenserLaDetermination);
   const vue = pa && battle ? fenetreDAttaque(useGame.getState()) : null;
   if (!vue || !battle) return null;
   const attacker = inBattleId(battle, vue.attaquantId);
@@ -173,7 +173,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
         {vue.bloque && (
           <div className="rm-note" data-ton="bloque"><Icon id="ui/warning" size="sm" /> {vue.bloque}</div>
         )}
-        <DeterminationButton combatant={attacker} onSpend={(name) => spendResolve(attacker.id, name)} />
+        <DeterminationButton combatant={attacker} onSpend={(name) => spendResolve(attacker.id, 'retirerUnEtat', name)} />
       </>
     ),
     rows,

@@ -43,7 +43,7 @@ function pauseTirRapide() {
   H.talents = [{ talentId: 'tir-rapide', times: 1 }];
   H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
   rangedOf(H).loaded = true;
-  get().battleEndTurn();
+  get().terminerLeTour();
   expect(get().pendingRoundStart, 'témoin : la pause de Round est ouverte').not.toBeNull();
   seedBattleRng(1);
   get().armPreempt(H.id);
@@ -69,7 +69,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     duel(1);
     get().moveCursor('right');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
-    get().battleEndTurn();
+    get().terminerLeTour();
     expect(get().combatCursor).toBeNull();
   });
 
@@ -78,7 +78,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     useGame.setState({ battle: { ...get().battle!, order: [H.id, E.id] } });
     get().moveCursor('right');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
-    get().battleEndTurn();
+    get().terminerLeTour();
     expect(get().battle!.round, 'témoin : le Round ne change pas').toBe(1);
     expect(get().battle!.turn, 'témoin : la main passe au suivant').toBe(1);
     expect(get().combatCursor).toBeNull();
@@ -102,7 +102,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     get().moveCursor('right');
     const pose = get().combatCursor;
     expect(pose, 'témoin : le curseur est posé').not.toBeNull();
-    get().battleMount();
+    get().monterEnSelle();
     const b = get().battle!;
     expect(hero.mountId, 'témoin : le héros est monté').toBe('horse');
     expect(b.turn, 'témoin : l’index du tour s’est décalé').not.toBe(2);

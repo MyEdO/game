@@ -306,7 +306,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
 
   it('le contrôle des postures vit dans la console (bascule de posture du store)', () => {
     const store = useGame.getState() as unknown as Record<string, unknown>;
-    expect(typeof store.battleToggleStance, 'le contrôle vit dans la bascule de posture').toBe('function');
+    expect(typeof store.basculerLaPosture, 'le contrôle vit dans la bascule de posture').toBe('function');
   });
 });
 

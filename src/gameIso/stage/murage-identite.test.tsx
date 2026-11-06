@@ -429,7 +429,7 @@ const BATTERIE: readonly Geste[] = [
     nom: 'un tour de combat',
     monter: monterCombat,
     témoin: () => String(useGame.getState().battle?.turn ?? '—'),
-    agir: async () => { await act(async () => { useGame.getState().battleEndTurn(); }); },
+    agir: async () => { await act(async () => { useGame.getState().terminerLeTour(); }); },
   },
 ];
 

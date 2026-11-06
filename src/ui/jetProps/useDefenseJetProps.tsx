@@ -52,7 +52,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'defense');
   const reverseVerb = useGesteDeJet('jetReverse', 'defense');
   const confirm = useGesteDeJet('jetConfirm', 'defense');
-  const spendResolve = useGame((s) => s.spendResolveCondition);
+  const spendResolve = useGame((s) => s.depenserLaDetermination);
   const vue = pd && battle ? fenetreDeDefense(useGame.getState()) : null;
   if (!pd || !battle || !vue) return null;
   const attacker = battle.combatants.find((c) => c.id === vue.attaquantId);
@@ -169,7 +169,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
           {porteBouclier}
           {riposteChoix}
         </div>
-        <DeterminationButton combatant={defender} onSpend={(name) => spendResolve(defender.id, name)} />
+        <DeterminationButton combatant={defender} onSpend={(name) => spendResolve(defender.id, 'retirerUnEtat', name)} />
       </>
     ),
     rows: [attackerRow, defenderRow],

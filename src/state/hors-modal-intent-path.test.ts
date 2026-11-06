@@ -22,7 +22,7 @@ import { KEYBINDINGS } from './clavier/keybindings';
  *   1. TEXTUEL — le nom du verbe apparaît dans une source d'écran (`src/ui`/`src/gameIso`) ;
  *   2. RELAI DU REGISTRE — une entrée d'`actions.json` déclare `run: <verbe>` ET porte une surface
  *      vivante (case de console, bandeau d'interlude, touche du registre) : l'écran l'émet par
- *      `runAction(<id>)`, sans jamais nommer le verbe ;
+ *      `jouerLOffre(<id>)`, sans jamais nommer le verbe ;
  *   3. REGISTRE CLAVIER — `keybindings.ts` appelle le verbe directement (une touche EST une surface,
  *      même définition que la garde d'atteignabilité des actions).
  * DEUX LIMITES DÉCLARÉES : (a) le scan reste TEXTUEL — il prouve l'existence d'un site d'émission,
@@ -34,9 +34,15 @@ import { KEYBINDINGS } from './clavier/keybindings';
 const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string } | { sansSurface: string }> = {
   battleClickEntity: { parUI: true },
   battleClickTile: { parUI: true },
+  // L'offre du registre (#3371) : chaque case, touche ou bandeau qui la joue (`jouerLOffre(<id>)`).
+  jouerLOffre: { parUI: true },
+  // Les sorts de la fiche, hors combat comme en combat (`CharacterSheet`).
+  incanterLeSort: { parUI: true },
+  focaliserLeSort: { parUI: true },
+  dissiperLeSort: { parUI: true },
   roundStartPromote: { parUI: true },
   // La sortie d'une fenêtre (`modalArbiter.sortieDeLaFenetre`) : le bouton qui ferme son écran, et les sorties
-  // d'interlude du balayage et de la 2ᵉ frappe (`actionRegistry.ACTION_RUN`).
+  // d'interlude du balayage et de la 2ᵉ frappe (`actionRegistry.OFFRES_PAR_RUN`).
   fenetreFermer: { parUI: true },
   // La validation d'une fenêtre (`modalArbiter.validationDeLaFenetre`) : le bouton qui la valide ; pour la pause de
   // Round, l'entrée `round-start` du registre, que le bandeau et la touche partagent (#1411 P2-A).
@@ -46,7 +52,7 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // Demande de pause au prochain Round : l'interrupteur du pied de FRISE (`raise-hand`, relais du
   // registre). Les deux sens passent par le même dispatcher, d'où le retrait `interne`.
   raiseHand: { parUI: true },
-  lowerHand: { interne: 'actionRegistry.ACTION_RUN.raiseHand — le retrait est le `toggleOff` de la même entrée', dans: 'src/noyau/actionRegistry.ts' },
+  lowerHand: { interne: 'actionRegistry.OFFRES_PAR_RUN.raiseHand — le relais baisse la main levée de son siège', dans: 'src/noyau/actionRegistry.ts' },
   assignVictoryGear: { parUI: true },
   // Carnet d'enquête (#670) : l'épingle et la nouveauté vue, émises par `CarnetScreen`.
   toggleCluePin: { parUI: true },
@@ -82,7 +88,7 @@ function actionsAvecSurface(): Set<string> {
   const cles = [
     ...[...src.matchAll(/cellFor\(\s*'([^']+)'/g)].map((m) => m[1]),
     ...[...src.matchAll(/data-action="([^"]+)"/g)].map((m) => m[1]),
-    ...[...src.matchAll(/runAction\(\s*'([^']+)'/g)].map((m) => m[1]),
+    ...[...src.matchAll(/jouerLOffre\(\s*'([^']+)'/g)].map((m) => m[1]),
     ...[...frise.matchAll(/data-action="([^"]+)"/g)].map((m) => m[1]),
     ...KEYBINDINGS.map((b) => b.id),
   ];

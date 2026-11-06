@@ -826,14 +826,14 @@ LECTURE par `useTestJetProps` (`src/ui/jetProps/useTestJetProps.tsx`) — dont `
 l'UNIQUE point de montage qui l'appelle. Poser `pendingTest` à la main (`store.setState`) sans que
 `CascadeModal` soit monté ne produit donc aucune modale visible (piège du dernier recours de la
 doctrine ci-dessus). Raccourci de démo LÉGITIME pour l'armer EN COMBAT (passe par une vraie action du
-store, pas un `setState` forgé) : `__wfrp.store.getState().battleGainAdvantage(skillId)`
+store, pas un `setState` forgé) : `__wfrp.store.getState().gagnerLAvantage(skillId)`
 (`src/noyau/combatSlice.ts`) — ouvre le `pendingTest` « Avantage — <compétence> » (LDB 09 l.305-308),
 à condition que `skillId` soit une Compétence que le combattant actif POSSÈDE (`hero.skills`) et dont
 la donnée porte `combatAdvantage` (`SkillData`, ex. `intuition`) ; sinon l'action ne fait rien
 (silencieux, cf. gate `skillAdvantageCap`).
 
 **Lancer un sort à cible « Vous »** : une fois focalisé (ou prêt à incanter directement), le
-LANCEMENT ne passe PAS par le bouton « Focaliser (X/CN) » — celui-ci (`battleFocusSpell`) ne fait
+LANCEMENT ne passe PAS par le bouton « Focaliser (X/CN) » — celui-ci (`focaliserLeSort`) ne fait
 QUE (re)poser/empiler de la Focalisation, il ne lance jamais le sort. Le lancement effectif passe
 par un clic sur le **TOKEN DU LANCEUR lui-même** sur la carte (`castClickCommit`,
 `src/noyau/targetingModes.ts` — le clic-combattant en mode `cast` vise l'allié/ennemi/SOI selon le

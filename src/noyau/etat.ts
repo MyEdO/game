@@ -83,7 +83,7 @@ export interface BattleState {
   /** Mode d'action À BOUTON en cours (panneau ouvert). Le déplacement et l'attaque n'ont PAS de mode :
    *  ils sont implicites au clic (sol/ennemi) quand `action === null` — cf. battleClickTile/Entity.
    *  La Focalisation / l'usage d'objet / le ramassage NE sont PAS des modes : ils passent par
-   *  `battleFocusSpell`→`pendingFocus`, `battleUseItem`, `battlePickup`.
+   *  `focaliserLeSort`→`pendingFocus`, `utiliserLObjet`, `ramasserLObjet`.
    *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +
    *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleport` = résolution d'un sort) —
    *  parité gardée par `src/noyau/action-atteignabilite.hors-store.test.ts`. */
@@ -153,7 +153,7 @@ export interface BattleState {
    *  journal pré-formée, annoncée APRÈS la décision de Destin. Purgé une fois tous finalisés. */
   bleedDoomed?: { id: string; deathLine: string }[];
   /** Instantané positionnel pris au PREMIER segment de Mouvement du Tour (R6) : permet
-   *  d'ANNULER tout le déplacement tant qu'aucune Action n'a été prise (`cancelMove`). Restaure
+   *  d'ANNULER tout le déplacement tant qu'aucune Action n'a été prise (`annulerLeDeplacement`). Restaure
    *  positions de TOUS les combattants (un grand a pu en déplacer d'autres), orientation et
    *  `movedPreAction`. Effacé à l'annulation ou écrasé au 1ᵉʳ segment du Tour suivant. */
   moveSnapshot?: MoveSnapshot | null;

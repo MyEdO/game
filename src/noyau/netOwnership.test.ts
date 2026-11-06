@@ -141,8 +141,8 @@ describe('spectatorSeatOfModal — le siège attendu sur la modale prioritaire',
 describe('possession réseau (netOwnership)', () => {
   it('sans modale : seul le propriétaire du combattant ACTIF agit', () => {
     const s = base({}); // actif = h1 (non attribué → hôte)
-    expect(intentAllowedFor(s, 0, 'battleEndTurn')).toBe(true);
-    expect(intentAllowedFor(s, 1, 'battleEndTurn')).toBe(false);
+    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['end-turn'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'jouerLOffre', ['end-turn'])).toBe(false);
     const s2 = base({ battle: { ...base({}).battle!, turn: 1 } }); // actif = h2 (siège 1)
     expect(intentAllowedFor(s2, 1, 'battleClickEntity')).toBe(true);
     expect(intentAllowedFor(s2, 0, 'battleClickEntity')).toBe(false);
@@ -235,6 +235,23 @@ describe('possession réseau (netOwnership)', () => {
     const enCombat = base({}); // actif = h1 (hôte) : le repli refuserait le siège 1
     expect(intentAllowedFor(enCombat, 1, 'toggleCluePin', ['ind'])).toBe(true);
     expect(intentAllowedFor(enCombat, 1, 'markCluesSeen', [vu])).toBe(true);
+  });
+});
+
+describe('jouerLOffre (#3371) : la route se déduit du lieu de l’offre', () => {
+  it('un corps d’hôte suit le combattant actif ; un relais, une intention pure ou une offre inconnue ne voyagent pas', () => {
+    const s = base({}); // actif = h1 (non attribué → hôte)
+    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['end-turn']), 'corps : le siège de l’actif').toBe(true);
+    expect(intentAllowedFor(s, 1, 'jouerLOffre', ['end-turn']), 'corps : un autre siège').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['round-start']), 'relais : élu chez l’émetteur').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['course']), 'intention pure : armée chez l’émetteur').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['inconnue']), 'offre inconnue').toBe(false);
+  });
+
+  it('le relais de la levée de main émet `raiseHand`, admis hors de son tour', () => {
+    const s = base({}); // actif = h1, au siège 0
+    expect(intentAllowedFor(s, 1, 'raiseHand')).toBe(true);
+    expect(intentAllowedFor(s, 1, 'lowerHand')).toBe(true);
   });
 });
 

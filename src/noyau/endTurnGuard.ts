@@ -14,7 +14,7 @@ import { canTakeAction } from '../engine/conditions';
  * Support de l'armement du garde-fou de fin de tour (ci-dessous) : tout geste qui touche à l'économie
  * (un pas, l'Action, l'annulation d'un déplacement, le passage au combattant suivant) change
  * l'empreinte — l'armement devient caduc PAR CONSTRUCTION, sans remise à zéro dispersée à chaque site.
- * Seule exception nécessaire : `cancelMove`, INVERSE unique de l'économie, RESTAURE une empreinte
+ * Seule exception nécessaire : `annulerLeDeplacement`, INVERSE unique de l'économie, RESTAURE une empreinte
  * déjà vue et désarme donc explicitement (`combatSlice.ts`, `endTurnArmed: undefined`).
  */
 export function turnEconomyStamp(b: BattleState): string {

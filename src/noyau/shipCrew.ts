@@ -218,7 +218,7 @@ export const quartIndex = (gameTime: number): number => Math.floor(gameTime / QU
 export const quartChante = (ship: Combatant, gameTime: number): boolean => ship.lastShantyQuart === quartIndex(gameTime);
 
 /** Le CHANTEUR du navire (`exposedCrew`, `knownShanties`, `singingShanty`), lu par le gate `chanteur-disponible`
- *  et `battleSingShanty`. MDG 09 l.32-38. */
+ *  et `chanterLaChanson`. MDG 09 l.32-38. */
 export function chanteurDuNavire(ship: Combatant, battle: BattleState): Combatant | undefined {
   const crew = exposedCrew((ship.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c));
   return crew.filter((c) => knownShanties(c).length > 0 && !c.singingShanty)

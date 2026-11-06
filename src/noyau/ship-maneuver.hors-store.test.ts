@@ -369,10 +369,10 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
   const ship = (): Combatant =>
     combattantDeTest({ id: 'ship', label: 'Barge', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] });
 
-  it('battleShipManeuver ouvre le Test d’équipage (participants) ; setTurn ; roll PJ ; confirm → Action consommée', () => {
+  it('manoeuvrerLeNavire ouvre le Test d’équipage (participants) ; setTurn ; roll PJ ; confirm → Action consommée', () => {
     seedBattleRng(7);
     banc.setState({ battle: { combatants: [ship(), helm()], order: ['helm'], turn: 0, acted: false } as never, party: [helm()], facing: { ship: 'N' }, pendingShipManeuver: null, scene: null as never });
-    banc.getState().battleShipManeuver('helm');
+    banc.getState().manoeuvrerLeNavire('helm');
     const p = banc.getState().pendingShipManeuver!;
     expect(p.shipId).toBe('ship');
     expect(p.participants.some((x) => x.id === 'helm')).toBe(true); // le Timonier (helm) est contributeur
@@ -394,7 +394,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     seedBattleRng(7);
     const shipC = { ...ship(), crewIds: ['helm', 'muet'] } as unknown as Combatant;
     banc.setState({ battle: { combatants: [shipC, helm(), sansVoile()], order: ['helm'], turn: 0, acted: false } as never, party: [helm(), sansVoile()], facing: { ship: 'N' }, pendingShipManeuver: null, scene: null as never });
-    banc.getState().battleShipManeuver('helm');
+    banc.getState().manoeuvrerLeNavire('helm');
   };
 
   it('rôle que son titulaire ne peut pas tenter : N+1 rangées, dont UNE échec sans jet à refus nommé (LDB 09 l.30 ; #2588 Q1)', () => {
@@ -430,15 +430,15 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     expect(battleRng().int(1, 1_000_000)).toBe(makeRNG(7).int(1, 1_000_000)); // le flux n'a rien tiré depuis la graine
   });
 
-  it('héros qui ne sert aucun navire → battleShipManeuver n’ouvre rien', () => {
+  it('héros qui ne sert aucun navire → manoeuvrerLeNavire n’ouvre rien', () => {
     banc.setState({ battle: { combatants: [helm()], order: ['helm'], turn: 0, acted: false } as never, party: [], facing: {}, pendingShipManeuver: null, scene: null as never });
-    banc.getState().battleShipManeuver('helm');
+    banc.getState().manoeuvrerLeNavire('helm');
     expect(banc.getState().pendingShipManeuver).toBeNull();
   });
 
-  it('Action déjà dépensée → battleShipManeuver n’ouvre rien', () => {
+  it('Action déjà dépensée → manoeuvrerLeNavire n’ouvre rien', () => {
     banc.setState({ battle: { combatants: [ship(), helm()], order: ['helm'], turn: 0, acted: true } as never, party: [], facing: { ship: 'N' }, pendingShipManeuver: null, scene: null as never });
-    banc.getState().battleShipManeuver('helm');
+    banc.getState().manoeuvrerLeNavire('helm');
     expect(banc.getState().pendingShipManeuver).toBeNull();
   });
 
@@ -464,7 +464,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     try {
       seedBattleRng(7);
       banc.setState({ battle: { combatants: [ship(), helm()], order: ['helm'], turn: 0, acted: false } as never, party: [helm()], facing: { ship: 'N' }, pendingShipManeuver: null, scene: null as never });
-      banc.getState().battleShipManeuver('helm');
+      banc.getState().manoeuvrerLeNavire('helm');
       const p = banc.getState().pendingShipManeuver!;
       expect(p.extraDR).toBe(3); // openCrewTestPending : SEUL site d'addition du mod
       banc.getState().jetRoll('shipManeuver', 'helm');
@@ -508,7 +508,7 @@ describe('Test d’équipage : un rôle devenu non tentable au jet pose le refus
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } });
     const ship = combattantDeTest({ id: 'ship', label: 'Barge', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] });
     banc.setState({ battle: { combatants: [ship, helm], order: ['helm'], turn: 0, acted: false } as never, party: [helm], facing: { ship: 'N' }, pendingShipManeuver: null, scene: null as never });
-    banc.getState().battleShipManeuver('helm');
+    banc.getState().manoeuvrerLeNavire('helm');
     const part = banc.getState().pendingShipManeuver!.participants.find((x) => x.id === 'helm')!;
     expect(part.result).toBeNull();
     const b = banc.getState().battle!;

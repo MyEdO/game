@@ -3593,7 +3593,7 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
 
 /** Le TIR IMMOBILE est-il armable ? Renvoie la RAISON du refus, `null` si armable.
  * PRÉDICAT UNIQUE de la posture (`LDB 14 l.70`) — TROIS lecteurs, aucun recodage : le gate du registre
- * d'actions (case de console), le store (`battleToggleStance`) et la fenêtre de jet
+ * d'actions (case de console), le store (`basculerLaPosture`) et la fenêtre de jet
  * (`noyau/fenetreDAttaque`). Il dit exactement ce que `attackEnv` mesure : seul un HÉROS a le choix (l'IA
  * encaisse le −10 dès qu'elle a bougé, elle n'arbitre rien), et une fois le Mouvement du Tour entamé —
  * ou sans Mouvement à céder — la posture n'annule plus rien.
@@ -7879,7 +7879,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
 /** Enregistre le déplacement COMPLET de `c` (`from` → sa position d'arrivée) comme événement d'approche
  *  EN ATTENTE. Le déclencheur (LDB 21 l.27) ne s'évalue qu'à l'IRRÉVOCABILITÉ du déplacement : Action
  *  prise (`markActed`) ou fin de tour (`advanceTurn`) — le premier des deux. Un déplacement encore
- *  révocable (`cancelMove`, charge annulée avant le jet) est purgé par `clearApproachMoves`. Un
+ *  révocable (`annulerLeDeplacement`, charge annulée avant le jet) est purgé par `clearApproachMoves`. Un
  *  déplacement = UN événement : deux déplacements dans le tour en laissent deux. */
 export function noteApproachMove(c: Combatant, from: Pt): void {
   if (!c.pos) return;
@@ -7904,7 +7904,7 @@ export function sealApproachMoves(get: Get, set: SetFn, c: Combatant | null | un
 
 /** Pose `acted` (Action du Tour consommée, ou tour d'une coque IA joué : MDG 14 l.37 ; #1852 ; #1595)
  *  et scelle du même geste les
- *  déplacements en attente de l'acteur — une Action prise interdit `cancelMove`, donc le
+ *  déplacements en attente de l'acteur — une Action prise interdit `annulerLeDeplacement`, donc le
  *  déplacement est irrévocable et son approche est due (LDB 21 l.27). Rend le `BattleState` à poser. */
 export function markActed(get: Get, set: SetFn): BattleState {
   // L'acteur se lit dans l'état VIVANT : un effet joué avant (`ecrireActeur`, #2312) a pu remplacer son objet.
@@ -8264,7 +8264,7 @@ function describeAiAction(a: EnemyAction): string {
 /** Sélection de LOADOUT par l'IA (héros auto + ennemis à plusieurs sets d'armes). Un combattant qui porte un
  *  set À DISTANCE et un set de MÊLÉE dégaine le bon selon la situation : son arme à distance quand AUCUN
  *  adversaire ne l'engage (il tire/kite), son arme de mêlée au contact (ou en Frénésie, qui force la charge).
- *  Maneuver GRATUITE 1/tour (`cs.draw`, comme `battleSwitchLoadout`). Sans ça, un Chasseur dont la fronde est
+ *  Maneuver GRATUITE 1/tour (`cs.draw`, comme `prendreLaPanoplie`). Sans ça, un Chasseur dont la fronde est
  *  dans le set 2 (épée active en set 1) ne tirait JAMAIS (retour playtest 2026-06-27 : « le chasseur charge à
  *  l'arme simple alors qu'il a une fronde »). Les ennemis à statbloc (armes posées en dur, sans `loadouts`)
  *  ne passent pas ici. PUR-déterministe (aucun dé) → coop-safe ; seul l'état du combattant (set actif) change. */
@@ -8436,7 +8436,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   if (justMounted) input.movement = 0;
   let action = chooseEnemyAction(input);
   // Dépense PROACTIVE de Détermination (LDB 17 l.57-61) : si l'IA décide de se DÉVERROUILLER (action
-  // `spendResource`, ex. Brisé), on dépense la Détermination via l'action store `spendResolveCondition`
+  // `spendResource`, ex. Brisé), on dépense la Détermination via l'action store `depenserLaDetermination`
   // (coop-safe, hôte-autoritaire, ne consomme PAS l'Action — retire 1 pion/dépense) PUIS on RE-CHOISIT
   // l'action, le tout AVANT le dispatch, pour que l'acteur DÉVERROUILLÉ joue sa vraie action (melee/cast/
   // move) le MÊME tour — sans ré-armer les hooks de début de tour. Borne anti-boucle STRICTE : 1 pion par
@@ -8447,7 +8447,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   for (let safety = 8; safety > 0; safety--) {
     if (action.kind === 'spendResource') {
       const before = stacks(enemy, action.id);
-      get().spendResolveCondition(enemy.id, action.id);
+      get().depenserLaDetermination(enemy.id, 'retirerUnEtat', action.id);
       if (stacks(enemy, action.id) >= before) break; // dépense inopérante → on n'insiste pas (anti-boucle dure)
     } else if (action.kind === 'grapple' && action.resolution === 'break') {
       const targetId = action.targetId; // capture AVANT la closure (narrowing perdu sur un `let` réassigné)
@@ -8541,7 +8541,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // Focalisation (LDB 46) : on ouvre la modale comme le joueur ; en Auto le driver résout
       // jetRoll('focus')→jetConfirm('focus') (qui reprend le tour via aiDriven, cf. jetConfirm('focus')). Calqué sur reload.
       if (!canAct) return advanceTurn(get, set);
-      get().battleFocusSpell(action.spell);
+      get().focaliserLeSort(enemy.id, action.spell);
       if (!get().pendingFocus) advanceTurn(get, set);
       return;
     }
