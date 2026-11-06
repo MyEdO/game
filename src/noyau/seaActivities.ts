@@ -2,7 +2,7 @@
  * ACTIVITÉS EN MER (MDG 15 l.266-306) — « Pour chaque semaine (8 jours) de voyage en mer, chaque
  * Personnage a l'occasion d'effectuer une Activité » (l.268). Le déclencheur hebdomadaire vit dans
  * `finishSeaDay` (8ᵉ journée révolue → `pendingSeaActivities`, la halte de nuit suit à la
- * confirmation) ; ici la RÉSOLUTION des choix — catalogue data-driven UNIQUE (`activities.json`,
+ * validation) ; ici la RÉSOLUTION des choix — catalogue data-driven UNIQUE (`activities.json`,
  * contexte 'mer', `activitiesFor`), AUCUN second système d'Activités.
  *
  * RAW modélisé :
@@ -39,8 +39,7 @@ import { idsDuTest, peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { PlayerText } from '../i18n/playerText';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
-import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, totalDesBourses, refusDeGesteSurLeGroupe } from './bourseFlow';
-import { refuseSi } from './verrousDeFiche';
+import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, totalDesBourses } from './bourseFlow';
 import { encLibreNominale } from './portFlow';
 import { bourseOf } from '../engine/bourse';
 import { OPPORTUNITE, opportunityTradePct } from '../engine/seaVoyage';
@@ -56,7 +55,8 @@ import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, fr
 import { noteSeaLine, patchSea, openSeaHalt } from './seaVoyageFlow';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
-import type { FabriqueDuNoyau } from './machinerieDuNoyau';
+import type { CorpsDesChoix } from './choixDesFenetres';
+import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
@@ -68,7 +68,7 @@ export interface SeaActivityPick {
   stashGold?: number;
 }
 
-/** Modale hebdomadaire (8 jours en mer, l.268) — la halte de nuit attend la confirmation. */
+/** Modale hebdomadaire (8 jours en mer, l.268) — la halte de nuit attend sa validation. */
 export interface PendingSeaActivities {
   picks: Record<string, SeaActivityPick | null>;
   /** Recap du jour à livrer à la halte (les lignes d'Activités s'y ajoutent). */
@@ -78,25 +78,32 @@ export interface PendingSeaActivities {
   opportunityQueue?: string[];
 }
 
-/** Plafond de mise du Commerce d'opportunité, en CO (MDG 15 l.276) : l'Enc libre non surchargé du navire
- *  (`encLibreNominale`), borné par la bourse du groupe. Lu par le geste et par l'écran des Activités. PUR. */
-export function plafondDeMiseDOpportunite(s: Pick<Jeu, 'vessel' | 'party'>): number {
-  return Math.min(encLibreNominale(s.vessel), Math.floor(toBrass(totalDesBourses(s.party)) / PA_PER_CO));
+/** Les bourses du groupe, en CO, moins ce qu'y engagent déjà les choix de la semaine des héros autres que `pid` : leurs
+ *  mises (MDG 15 l.276) et leurs planques (l.292). PUR. */
+function boursesLibres(s: Pick<Jeu, 'party' | 'pendingSeaActivities'>, pid: string): number {
+  const engage = Object.entries(s.pendingSeaActivities?.picks ?? {}).reduce((n, [id, p]) => (id === pid || !p ? n : n + (p.investGold ?? 0) + (p.stashGold ?? 0)), 0);
+  return Math.floor(toBrass(totalDesBourses(s.party)) / PA_PER_CO) - engage;
 }
 
-/** Plafond de la planque de Cartographie d'un héros, en CO (MDG 15 l.292) : sa bourse. Lu par le geste et
- *  par l'écran des Activités. PUR. */
-export function plafondDePlanque(hero: Combatant): number {
-  return Math.floor(toBrass(bourseOf(hero)) / PA_PER_CO);
+/** Plafond de mise du Commerce d'opportunité du héros `pid`, en CO (MDG 15 l.276) : l'Enc libre non surchargé du navire
+ *  (`encLibreNominale`), borné par les bourses du groupe que les autres choix de la semaine laissent libres. PUR. */
+export function plafondDeMiseDOpportunite(s: Pick<Jeu, 'vessel' | 'party' | 'pendingSeaActivities'>, pid: string): number {
+  return Math.max(0, Math.min(encLibreNominale(s.vessel), boursesLibres(s, pid)));
 }
 
-/** Raison de BLOCAGE d'une Activité en mer pour un héros (affordance expliquée, jamais muette). */
-export function seaActivityBlocked(get: Get, def: ActivityDef): string | null {
+/** Plafond de la planque de Cartographie du héros `hero`, en CO (MDG 15 l.292) : sa bourse, bornée par les bourses du
+ *  groupe que les autres choix de la semaine laissent libres. PUR. */
+export function plafondDePlanque(s: Pick<Jeu, 'party' | 'pendingSeaActivities'>, hero: Combatant): number {
+  return Math.max(0, Math.min(Math.floor(toBrass(bourseOf(hero)) / PA_PER_CO), boursesLibres(s, hero.id)));
+}
+
+/** Raison de BLOCAGE d'une Activité en mer pour un héros (affordance expliquée, jamais muette). PUR. */
+export function seaActivityBlocked(s: Pick<Jeu, 'vessel'>, def: ActivityDef): string | null {
   if (def.resolver === 'crewTraining') {
     // MDG 14
     return t('sact.crewIsPlayers');
   }
-  if (def.resolver === 'opportunityTrade' && encLibreNominale(get().vessel) <= 0) {
+  if (def.resolver === 'opportunityTrade' && encLibreNominale(s.vessel) <= 0) {
     return t('sact.noFreeEnc');
   }
   return null;
@@ -119,15 +126,14 @@ export function seaActivityRefus(hero: Combatant, def: ActivityDef): PlayerText 
   return peutTenter(hero, test.skill, test.spec) ? undefined : refusNePeutTenter(hero, { skill: test.skill, ...(test.spec ? { spec: test.spec } : {}) });
 }
 
-/** Une Activité de héros ÉLIGIBLE (`!dead`, pick valide, contexte 'mer', non bloquée). PUR. */
+/** L'Activité choisie de chaque héros de la semaine (`!dead`) : un choix que l'état ouvre encore, la validation de la
+ *  semaine fermée sinon (`semaineAReprendre`). PUR. */
 function eligibleSeaActivityPicks(get: Get, picks: Record<string, SeaActivityPick | null>): { hero: Combatant; pick: SeaActivityPick; def: ActivityDef }[] {
   const out: { hero: Combatant; pick: SeaActivityPick; def: ActivityDef }[] = [];
   for (const hero of get().party) {
     if (hero.dead || hero.outOfRencontre) continue;
     const pick = picks[hero.id];
-    const def = pick ? activityById(pick.activityId) : undefined;
-    if (!pick || !def || !def.contexts.includes('mer') || seaActivityBlocked(get, def)) continue;
-    out.push({ hero, pick, def });
+    if (pick) out.push({ hero, pick, def: garanti(activityById(pick.activityId), pick.activityId, 'Activité en mer') });
   }
   return out;
 }
@@ -142,7 +148,7 @@ function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityP
     label: composeRollLabel(hero, dataLabel(def.label), test), difficulty, rollLabel: refLabel('skills', { id: chart.skill, ...(chart.spec ? { spec: chart.spec } : {}) }),
     // L'enjeu d'une Activité EST l'Activité choisie : il vit sur SA fiche (`ActivityDef.stake`).
     stake: activityStakeRef(def.id),
-    ligne: { test, refus: seaActivityRefus(hero, def) },
+    ligne: { test },
     meta: { stashGold: pick.stashGold ?? 0 },
   });
 }
@@ -172,7 +178,7 @@ export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: Ac
     label: composeRollLabel(hero, def.label, test), difficulty, rollLabel: def.label,
     // Idem : l'enjeu descend à l'Activité jouée, quelle qu'elle soit (fail-closed si elle n'en a pas).
     stake: activityStakeRef(def.id),
-    ligne: { test, surLaCible: spec.mods, refus: spec.refus },
+    ligne: { test, surLaCible: spec.mods },
     meta: { activityId: def.id },
   });
 }
@@ -191,16 +197,14 @@ function buildSeaActivitiesCascade(get: Get, set: Set, picks: Record<string, Sea
   return { steps, oppHeroIds };
 }
 
-/** Résout les Activités de la semaine (une par héros, l.268) puis rend la main à la halte de nuit —
- *  seam de jet (#273 Étape 2) : les jets deviennent des étapes de cascade influençables ; le
- *  Commerce d'opportunité (Test étendu) est SÉQUENCÉ ensuite,
- *  `continueSeaActivitiesAfterCascade` enchaîne. */
-export function seaActivitiesConfirm(get: Get, set: Set, picks: Record<string, SeaActivityPick | null>): void {
-  const pending = get().pendingSeaActivities;
-  if (!pending) return;
-  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
-  const { steps, oppHeroIds } = buildSeaActivitiesCascade(get, set, picks);
-  set({ pendingSeaActivities: { ...pending, picks, opportunityQueue: oppHeroIds } });
+/** Valide la semaine (`fenetreValider('seaActivities')`, l'hôte) : résout les Activités choisies (une par héros, l.268)
+ *  puis rend la main à la halte de nuit — seam de jet (#273 Étape 2) : les jets deviennent des étapes de cascade
+ *  influençables ; le Commerce d'opportunité (Test étendu) est SÉQUENCÉ ensuite, `continueSeaActivitiesAfterCascade`
+ *  enchaîne. */
+function validerLaSemaine(get: Get, set: Set): void {
+  const pending = garanti(get().pendingSeaActivities, 'seaActivities', 'semaine en mer ouverte');
+  const { steps, oppHeroIds } = buildSeaActivitiesCascade(get, set, pending.picks);
+  set({ pendingSeaActivities: { ...pending, opportunityQueue: oppHeroIds } });
   if (!steps.length) { continueSeaActivitiesAfterCascade(get, set); return; }
   // La semaine d'Activités est UNE séquence, pas deux lots : la surface se dérive de ses porteurs
   // (`openSequence` → `surfaceDesEtapes`, #1479). Un seul héros tenu par un humain suffit à ouvrir la
@@ -211,7 +215,7 @@ export function seaActivitiesConfirm(get: Get, set: Set, picks: Record<string, S
 }
 
 /** Ouvre le Commerce d'opportunité (Test étendu, #273 Étape 1) du PROCHAIN héros de la file — mise
- *  plafonnée (Enc libre en CO, bourse) débitée d'office (comme l'ancien bulk synchrone) ; l'ISSUE
+ *  du choix, plafonnée par lui (`plafondDeMiseDOpportunite`), débitée d'office (comme l'ancien bulk synchrone) ; l'ISSUE
  *  (% récupéré) est résolue par l'applier `sea-activity-opportunity` (`meta` sérialisable, coop). */
 function openNextOpportunityTrade(get: Get, set: Set): void {
   const pending = get().pendingSeaActivities;
@@ -223,15 +227,7 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
   const pick = pending.picks[heroId];
   const def = pick ? activityById(pick.activityId) : undefined;
   if (!hero || !pick || !def) { continueSeaActivitiesAfterCascade(get, set); return; }
-  // Choix non tentable (LDB 09 l.30 ; #2588) : aucune mise, aucun Test, le refus nommé au journal.
-  const refus = seaActivityRefus(hero, def);
-  if (refus) {
-    noteSeaLine(get, set, [refus]);
-    continueSeaActivitiesAfterCascade(get, set);
-    return;
-  }
-  const capGold = plafondDeMiseDOpportunite(get());
-  const invest = Math.max(0, Math.min(Math.floor(pick.investGold ?? 0), capGold));
+  const invest = pick.investGold ?? 0;
   if (invest <= 0) {
     noteSeaLine(get, set, [t('sact.tradeNoStake', { name: hero.label })]);
     continueSeaActivitiesAfterCascade(get, set);
@@ -244,6 +240,7 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
     target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), targetDR: OPPORTUNITE.targetDR,
     maxAttempts: OPPORTUNITE.maxAttempts,
     outcome: { kind: 'sea-activity-opportunity', meta: { heroId: hero.id, investBrass: invest * PA_PER_CO } },
+    stake: activityStakeRef(def.id),
   });
 }
 
@@ -271,10 +268,27 @@ export function seaActivitiesCatalog(): ActivityDef[] {
 
 // ── Seam de jet (#273 Étape 2) — appliers des étapes migrées vers la cascade ──────────────────────
 
-export function creerActionsDesActivitesEnMer(get: Get, set: Set) {
+/** Les choix de la semaine (`CorpsDesChoix`, MDG 15 l.268), chacun pour le héros `pid`, parmi les valeurs que l'état
+ *  ouvre (`OUVERTS_DU_CHOIX`) : l'Activité, qui efface la mise et la planque de la précédente, la mise du Commerce
+ *  d'opportunité (l.276), la planque de la Cartographie (l.292). */
+export function choixDeLaSemaineEnMer(get: Get, set: Set) {
+  const choisir = (pid: string, pick: SeaActivityPick | null) => {
+    const pending = garanti(get().pendingSeaActivities, 'seaActivities', 'semaine en mer ouverte');
+    set({ pendingSeaActivities: { ...pending, picks: { ...pending.picks, [pid]: pick } } });
+  };
+  const choisie = (pid: string): SeaActivityPick => garanti(get().pendingSeaActivities?.picks[pid], pid, 'Activité choisie');
   return {
-    seaActivitiesConfirm: (picks) => seaActivitiesConfirm(get, set, picks),
-  } satisfies FabriqueDuNoyau;
+    seaActivities: {
+      activite: (activite, pid) => choisir(pid, activite === null ? null : { activityId: activite }),
+      investir: (investGold, pid) => choisir(pid, { ...choisie(pid), investGold }),
+      cacher: (stashGold, pid) => choisir(pid, { ...choisie(pid), stashGold }),
+    },
+  } satisfies Partial<CorpsDesChoix>;
+}
+
+/** La validation de la semaine (`ValidationsDeFenetre`). */
+export function validationsDeLaSemaineEnMer(get: Get, set: Set) {
+  return { seaActivities: () => validerLaSemaine(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
@@ -301,9 +315,8 @@ export const TABLES = {
         }
         // MDG 15
         j.push(t('sact.chartOk', { name: hero.label, gold: Math.max(0, step.result.sl) }));
-        const stashCO = Math.max(0, Math.min(stashGold, plafondDePlanque(hero)));
-        if (stashCO > 0) {
-          const stashBrass = stashCO * PA_PER_CO;
+        if (stashGold > 0) {
+          const stashBrass = stashGold * PA_PER_CO;
           payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
           set({ bank: [...get().bank, { heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
           // MDG 15 l.292

@@ -241,7 +241,7 @@ describe('#3059 — escale : embauche et débarquement jugés au noyau', () => {
 });
 
 describe('#3059 — Activités en mer : valider la semaine est une décision d’hôte (MDG 15 l.266-306)', () => {
-  it('siège invité : `seaActivitiesConfirm` refusé en tête, aucune cascade ouverte, bourses intactes', () => {
+  it('siège invité : `fenetreValider(\'seaActivities\')` refusé en tête, aucune cascade ouverte, bourses intactes', () => {
     const heros = makePregens().slice(0, 2).map((h) => withBourseMoney(h, { gold: 100, silver: 0, brass: 0 }));
     const partie = creerPartie({
       ...etatInitialDuJeu(),
@@ -250,23 +250,24 @@ describe('#3059 — Activités en mer : valider la semaine est une décision d�
       gameTime: 8 * 60,
       vessel: navire(),
       net: { ...etatInitialDuJeu().net, mode: 'guest' },
-      pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 0, hours: 0, lines: [] } } as never,
+      pendingSeaActivities: { picks: { [heros[0].id]: { activityId: 'commerce-opportunite', investGold: 10 }, [heros[1].id]: { activityId: 'cartographie', stashGold: 5 } }, day: { kmFrom: 0, kmTo: 0, hours: 0, lines: [] } } as never,
     }, { graine: 5, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} });
     try {
       const fenetres = () => Object.entries(partie.etat()).filter(([k, v]) => k.startsWith('pending') && v).map(([k]) => k);
       const avant = fenetres();
-      partie.envoyer({ type: 'seaActivitiesConfirm', args: [{ [heros[0].id]: { activityId: 'commerce-opportunite', investGold: 10 }, [heros[1].id]: { activityId: 'cartographie', stashGold: 5 } }] });
+      partie.envoyer({ type: 'fenetreValider', args: ['seaActivities'] });
       const s = partie.etat();
       expect(fenetres()).toEqual(avant);
-      expect(Object.keys(s.pendingSeaActivities?.picks ?? {})).toEqual([]);
+      expect(s.pendingSeaActivities?.opportunityQueue, 'aucune Activité résolue').toBeUndefined();
       expect(s.party.map((h) => toBrass(bourseOf(h)))).toEqual([24000, 24000]); // 100 CO × 240 sous
-      expect(s.journal.some((l) => l.includes(t('groupe.hoteSeul')))).toBe(true);
+      expect(s.journal.some((l) => l.includes(t('validation.refus.hoteSeul')))).toBe(true);
     } finally {
       partie.fermer();
     }
   });
 
   it('plafond de planque : la bourse du héros (7 CO)', () => {
-    expect(plafondDePlanque(withBourseMoney(makePregens()[0], { gold: 7, silver: 0, brass: 0 }))).toBe(7);
+    const hero = withBourseMoney(makePregens()[0], { gold: 7, silver: 0, brass: 0 });
+    expect(plafondDePlanque({ party: [hero], pendingSeaActivities: null }, hero)).toBe(7);
   });
 });

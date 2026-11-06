@@ -21,6 +21,7 @@ import { adversairesADistraire, adversairesDuBattement } from './combatManeuvers
 import { idsDuCoupleMonte } from './targetingModes';
 import { reponsesDuNoeud } from './dialogue';
 import { plaiesDeLOperation } from './medicFlow';
+import { seaActivitiesCatalog } from './seaActivities';
 
 /** Un combattant : la file de combat et le groupe (`porteurParId`, `monde/combatants.ts`). */
 export type IdDeCombattant = string;
@@ -55,6 +56,8 @@ export type IdDAdversaireDuBattement = string;
 export type IdDAdversaireADistraire = string;
 /** Le cavalier ou la monture que le choix `mountTarget.cible` accepte (`idsDuCoupleMonte`, `targetingModes.ts`). */
 export type IdDuCoupleMonte = string;
+/** Une Activité en mer du catalogue (`seaActivitiesCatalog`, MDG 15 l.268). */
+export type IdDActiviteEnMer = string;
 /** Une réponse VISIBLE du nœud de dialogue courant, par son `id` (`reponsesDuNoeud`, `dialogue.ts`). */
 export type IdDeReponseDeDialogue = string;
 /** Une Blessure Critique que l'opération armée peut viser, par son `uid` (`plaiesDeLOperation`, `medicFlow.ts`). */
@@ -119,6 +122,7 @@ export const DESIGNATIONS = {
   IdDAdversaireDuBattement: { mot: 'id d’adversaire du Battement', lire: (s) => ids(adversairesDuBattement(s)), nom: nomDeCombattant },
   IdDAdversaireADistraire: { mot: 'id d’adversaire à distraire', lire: (s) => ids(adversairesADistraire(s)), nom: nomDeCombattant },
   IdDuCoupleMonte: { mot: 'id du couple monté', lire: idsDuCoupleMonte, nom: nomDeCombattant },
+  IdDActiviteEnMer: { mot: 'id d’Activité en mer', lire: () => ids(seaActivitiesCatalog()), nom: (_s, id) => labelParmi(seaActivitiesCatalog(), id) },
   IdDeReponseDeDialogue: { mot: 'id de réponse de dialogue', lire: (s) => ids(reponsesDuNoeud(s)), nom: (s, id) => labelParmi(reponsesDuNoeud(s), id) },
   IdDePlaieDeLOperation: {
     mot: 'id de plaie de l’opération',

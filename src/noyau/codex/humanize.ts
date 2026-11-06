@@ -35,6 +35,7 @@ import {
   diseaseLabel, refLabel, qualityRefLabel, testSkillLabel,
 } from '../../data';
 import { findFallTable } from '../../data/shipCriticals';
+import { effectTableDie, findEffectTableById } from '../../data/effectTables';
 import { deElide, t, type MsgKey } from '../../i18n';
 import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { libelleDEtat } from './libellesNarratifs';
@@ -509,8 +510,8 @@ export function humanizeOp(o: GameOp): string {
     case 'perRound': return t('codex.op.perRound', { ops: o.ops.map(humanizeOp).join(' ; ') });
     case 'rollThreshold': return t('codex.op.rollThreshold', { faces: o.sides });
     case 'rollTable': return t('codex.op.rollTable', {
-      table: 'tableId' in o ? t('codex.op.rollTable.table', { table: o.tableId }) : t('codex.op.rollTable.uneTable'),
-      de: 'tableId' in o ? 'd10/d100' : o.die,
+      table: 'tableId' in o ? t('codex.op.rollTable.table', { table: findEffectTableById(o.tableId).label }) : t('codex.op.rollTable.uneTable'),
+      de: 'tableId' in o ? formatDice(effectTableDie(o.tableId)) : o.die,
       negatifs: o.addNegativeSL ? t('codex.op.rollTable.negatifs') : '',
       extra: o.extraRollsPerStep ? t('codex.op.rollTable.extra', { n: o.extraRollsPerStep }) : '',
     });

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { jouerLaSemaine } from './semaineEnMer.testkit';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -7,6 +8,7 @@ import { buildSeaPlan } from './seaVoyageFlow';
 import { encLibreNominale, vesselMaxLoadEnc } from './portFlow';
 import { seaActivityBlocked } from './seaActivities';
 import { activityById } from '../engine/activities';
+import { activityStakeRef } from '../data';
 import { toBrass, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, creditBourse, debitBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
@@ -177,7 +179,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     expect(get().pendingSeaActivities).toBeTruthy();
   });
 
-  it('seaActivitiesConfirm — Cartographie réussie → une Carte marine (+2 DR d’Orientation) sur le héros', async () => {
+  it('la semaine validée — Cartographie réussie → une Carte marine (+2 DR d’Orientation) sur le héros', async () => {
     seedBattleRng(3);
     const heroes = get().party;
     // Un cartographe hors pair : Métier (Cartographe) à 90.
@@ -185,8 +187,8 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     (heroes[0] as Combatant).characteristics = { ...heroes[0].characteristics, dexterite: 40 };
     set({ party: [...heroes], pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } });
     // Seam de jet (#273 Étape 2) : Cartographie est désormais une étape de CASCADE influençable —
-    // `seaActivitiesConfirm` ouvre `pendingCascade`, à dérouler (`runSeaActivities`).
-    get().seaActivitiesConfirm({ [heroes[0].id]: { activityId: 'cartographie' } });
+    // La validation de la semaine ouvre `pendingCascade`, à dérouler (`runSeaActivities`).
+    jouerLaSemaine(get, { [heroes[0].id]: { activityId: 'cartographie' } });
     await runSeaActivities();
     const owner = get().party[0];
     const chart = (owner.items ?? []).find((it) => it.trappingId === 'carte-marine');
@@ -199,7 +201,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
 
   it('Entraînement d’équipage est BLOQUÉ (équipage PNJ abstrait, MDG 14 l.39)', () => {
     const def = activityById('entrainement-equipage')!;
-    expect(seaActivityBlocked(get, def)).toMatch(/équipage/i);
+    expect(seaActivityBlocked(get(), def)).toMatch(/équipage/i);
   });
 
   it('Cartographie réussie + stashGold → Planque gratuite (MDG 15 l.292, découverte ≤ 50)', async () => {
@@ -211,7 +213,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     set({ party: [...heroes], pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } });
     // Planque = DÉBIT solo du cartographe (soloPayer, seaActivities.ts) → SA bourse (freshState : 5000 CO).
     const before = toBrass(bourseOf(get().party[0]));
-    get().seaActivitiesConfirm({ [heroes[0].id]: { activityId: 'cartographie', stashGold: 50 } });
+    jouerLaSemaine(get, { [heroes[0].id]: { activityId: 'cartographie', stashGold: 50 } });
     await runSeaActivities();
     const dep = get().bank.find((b) => b.heroId === heroes[0].id && b.kind === 'stash');
     expect(dep).toBeTruthy();
@@ -227,7 +229,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     (heroes[0] as Combatant).skills = [{ id: 'metier', spec: 'cartographe', advances: 80 } as never];
     (heroes[0] as Combatant).characteristics = { ...heroes[0].characteristics, dexterite: 60 };
     set({ party: [...heroes], pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } });
-    get().seaActivitiesConfirm({ [heroes[0].id]: { activityId: 'cartographie' } });
+    jouerLaSemaine(get, { [heroes[0].id]: { activityId: 'cartographie' } });
     await runSeaActivities();
     expect(get().bank.find((b) => b.heroId === heroes[0].id && b.kind === 'stash')).toBeUndefined();
   });
@@ -242,11 +244,13 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     });
     fund(heroes[0].id, { gold: 100, silver: 0, brass: 0 }); // investissement de GROUPE (payFromGroup)
     const before = toBrass(partyMoneyTotal(get));
-    get().seaActivitiesConfirm({ [heroes[0].id]: { activityId: 'commerce-opportunite', investGold: 10 } });
+    jouerLaSemaine(get, { [heroes[0].id]: { activityId: 'commerce-opportunite', investGold: 10 } });
     // La mise est débitée D'OFFICE (avant tout jet) — comme l'ancien bulk synchrone.
     expect(toBrass(partyMoneyTotal(get))).toBe(before - 10 * PA_PER_CO);
     expect(get().pendingExtendedTest).toBeTruthy(); // Test étendu ouvert (primitive #273 Étape 1)
     expect(get().pendingExtendedTest!.maxAttempts).toBe(3);
+    // L'enjeu est celui de l'Activité, sur l'étape que la fenêtre lit (#1117).
+    expect(get().pendingCascade?.participants.find((e) => e.jet === 'extended')?.stake).toEqual(activityStakeRef('commerce-opportunite'));
     await runSeaActivities();
     // La halte suit la clôture du Test étendu (file `opportunityQueue` vidée).
     expect(get().pendingExtendedTest).toBeNull();

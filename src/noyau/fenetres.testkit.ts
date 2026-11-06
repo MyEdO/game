@@ -8,7 +8,7 @@
  */
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie } from './index';
 import { MODAL_DEFS, HORS_MODAL, type GesteDuJeu, type HorsModalDef, type ModalDef, type VerbesDeFenetre } from './modalArbiter';
-import { FENETRE_DU_JET, JET_AUTO, SURFACES_A_ISSUE, VERBES_D_INTERACTION, gestesDeLaFenetre, gestesDuJet, issuesDe } from './combatAuto';
+import { FENETRE_DU_JET, JET_AUTO, SURFACES_A_ISSUE, VERBES_D_INTERACTION, gestesDeLaFenetre, gestesDeLaSurface, gestesDuJet } from './combatAuto';
 import type { CascadeStep } from './pendings';
 import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { cleDeFixture } from './noyau.testkit';
@@ -31,7 +31,7 @@ const CASCADE = (MODAL_DEFS as readonly ModalDef[]).find((d) => d.auto.mode === 
 export const fenetresDuJeu = (temoin: CascadeStep): readonly Fenetre[] => [
   ...MODALES.map((d) => ({ nom: `modale ${d.key}`, cle: d.key, gestes: gestesDeLaFenetre(d), declaree: d.verbes, pid: !multi(d) || !!d.rangees })),
   ...(HORS_MODAL as readonly HorsModalDef[]).filter((d) => d.tientLaMain).map((d) => ({ nom: `hors modale ${d.key}`, cle: d.key, gestes: gestesDeLaFenetre(d), declaree: d.verbes, pid: !multi(d) })),
-  ...SURFACES_A_ISSUE.map((d) => ({ nom: `surface ${d.key}`, cle: d.key, gestes: issuesDe(d), pid: true })),
+  ...SURFACES_A_ISSUE.map((d) => ({ nom: `surface ${d.key}`, cle: d.key, gestes: gestesDeLaSurface(d), pid: true })),
   ...(Object.keys(JET_AUTO) as (keyof typeof JET_AUTO)[]).flatMap((jet) => {
     const { flux, rangees, reactives = [] } = FENETRE_DU_JET[jet];
     return [

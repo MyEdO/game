@@ -120,12 +120,6 @@ function pointerEvent(x: number, y: number) {
   } as unknown as React.PointerEvent;
 }
 
-// Ce banc remplace l'ACTION `moveParty` du store par une sonde. Le store est partagé par toute la
-// suite (`isolate: false`) : une action laissée stubbée fait tourner à vide le pas d'un fichier
-// voisin, qui mesure alors un monde qui ne bouge plus.
-const MOVE_PARTY_VRAI = useGame.getState().moveParty;
-afterEach(() => useGame.setState({ moveParty: MOVE_PARTY_VRAI }));
-
 describe('useStagePointer — picking exploration', () => {
   let root: Root | null = null;
   const unsubs: (() => void)[] = [];

@@ -16,6 +16,7 @@ import { condCtx } from './bourseFlow';
 import { visiblePlaces } from './worldMap';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
+import { ouvrirLaFinDeSeance, terminerLaSeance } from './partyFlow';
 
 /** Borne d'ouverture du chapitre courant (#717) — instantané pris quand le joueur prend la route :
  *  le récap DÉRIVE de la différence, il n'écrit aucun événement au fil du jeu. */
@@ -86,6 +87,7 @@ export function armChapterRecapIfDue(get: Get, set: SetFn): void {
   if (s.clotureConsommee) return;
   if (!evalCondition(cloture.when, condCtx(get))) return;
   const lieux = s.worldMap ? visiblePlaces(s.worldMap, condCtx(get)).map((p) => p.label) : [];
+  ouvrirLaFinDeSeance(set);
   set({
     pendingChapterRecap: deriveChapterRecap({
       cloture,
@@ -98,17 +100,20 @@ export function armChapterRecapIfDue(get: Get, set: SetFn): void {
 }
 
 /** Les validations du cadre de campagne, gestes de l'HÔTE (`validation: 'hote'`, #717) : « Prendre la route » ferme
- *  l'ouverture et BORNE le chapitre (instantané PX/vivants/date) ; « Terminer la séance » ferme le récap, consomme la
- *  clôture et re-borne le chapitre suivant. */
-export function validationsDuChapitre(_get: Get, set: SetFn) {
+ *  l'ouverture et BORNE le chapitre (instantané PX/vivants/date) ; « Terminer la séance » termine la séance que le récap
+ *  a ouverte (`terminerLaSeance`), ferme le récap, consomme la clôture et re-borne le chapitre suivant. */
+export function validationsDuChapitre(get: Get, set: SetFn) {
   return {
     ouverture: () => set((s) => ({ pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),
-    chapterRecap: () => set((s) => ({ pendingChapterRecap: null, objectifsSoldes: [], chapitreDepuis: snapshotChapitre(s.party, s.gameTime), clotureConsommee: true })),
+    chapterRecap: () => {
+      terminerLaSeance(get, set);
+      set((s) => ({ pendingChapterRecap: null, objectifsSoldes: [], chapitreDepuis: snapshotChapitre(s.party, s.gameTime), clotureConsommee: true }));
+    },
   } satisfies Partial<ValidationsDeFenetre>;
 }
 
-/** AJOURNE le récap (Échap / « Plus tard ») : le chapitre reste clos en donnée, donc le récap se re-pose au prochain lot
- *  d'effets — rien n'est perdu, rien n'est forcé. Sortie de l'hôte (`HORS_MODAL.chapterRecap`). */
+/** AJOURNE le récap (Échap / « Plus tard ») et sa fin de séance : le chapitre reste clos en donnée, donc le récap se
+ *  re-pose au prochain lot d'effets — rien n'est appliqué, rien n'est forcé. Sortie de l'hôte (`HORS_MODAL.chapterRecap`). */
 export function sortiesDuChapitre(_get: Get, set: SetFn) {
-  return { chapterRecap: () => set({ pendingChapterRecap: null }) } satisfies Partial<SortiesDeFenetre>;
+  return { chapterRecap: () => set({ pendingChapterRecap: null, finDeSeance: null }) } satisfies Partial<SortiesDeFenetre>;
 }

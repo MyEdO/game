@@ -299,7 +299,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.advanceSeaDay() → symétrique VOYAGE de `fastForward` : pilote la journée en mer EN COURS
  *                           (cascade du jour, halte de nuit, Activités hebdo…) jusqu'au jour SUIVANT,
  *                           l'arrivée ou un combat — MÊME machinerie que le joueur (`jetRoll('cascade')`/
- *                           Finish, fenetreValider('rest'), seaActivitiesConfirm…), juste sans les clics ;
+ *                           Finish, fenetreValider('rest'), fenetreValider('seaActivities')…), juste sans les clics ;
  *                           advanceSeaDay({stopOnEveryEvent:true}) → s'arrête AUSSI au recap d'un événement
  *                           RACONTÉ (carte-parchemin de `travelDay.events`) — et SEULEMENT là : jamais
  *                           sur une étape STRUCTURELLE du jour (Progression, Orientation, Exposition…),
@@ -482,10 +482,10 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
         if (s.pendingSeaActivities) {
           const evts = s.pendingSeaActivities.day.events ?? [];
           if (stopOnEvent && evts.length) {
-            resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible (Activités hebdo ouvertes) ; seaActivitiesConfirm({}) ou advanceSeaDay() reprend`);
+            resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible (Activités hebdo ouvertes) ; fenetreValider('seaActivities') ou advanceSeaDay() reprend`);
             return;
           }
-          s.seaActivitiesConfirm({}); real(tick, 0); return;
+          s.fenetreValider('seaActivities'); real(tick, 0); return;
         }
         const sr = s as unknown as Record<string, unknown>;
         const open = Object.keys(sr).filter((k) => /^pending/.test(k) && (Array.isArray(sr[k]) ? (sr[k] as unknown[]).length > 0 : sr[k] != null));

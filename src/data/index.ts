@@ -1293,8 +1293,9 @@ export interface GroupeDArmure extends GroupeDObjet {
   /** Rang de couche, unique parmi les Groupes d'armure : la pièce que revêtent deux armures portées est celle du rang
    *  le plus haut (#3456). */
   couche: number;
-  /** PA à partir desquels une armure de statbloc portée est de cette matière, unique ; `null` : aucune (#2948). */
-  palierPA: number | null;
+  /** PALIER (`palierSchema`) de PA d'une armure de statbloc portée, unique : à partir de `seuil` PA, elle est de cette
+   *  matière ; absent : aucune (#2948). */
+  seuil?: number;
   /** Teinte d'objet (`materials.json`, domaine `objet`) d'une pièce du Groupe, à défaut de la sienne (#3456). */
   teinte?: { id: string };
 }

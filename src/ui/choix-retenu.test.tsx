@@ -10,7 +10,8 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import type { PendingSeaActivities, SeaActivityPick } from '../noyau/seaActivities';
+import type { PendingSeaActivities } from '../noyau/seaActivities';
+import type { FenetreAValider } from '../noyau/modalArbiter';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { resetDismissLayers } from './useDismissLayer';
@@ -44,18 +45,18 @@ const actif = () => (document.activeElement?.textContent ?? '').trim();
 describe('Activités en mer — le choix posé est RETENU, le focus va au geste qui valide', () => {
   it('à l’ouverture : « Repos » est retenue (`aria-pressed`), le focus est sur « Valider la semaine », Entrée valide', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
-    const valides: Record<string, SeaActivityPick | null>[] = [];
+    const valides: FenetreAValider[] = [];
     useGame.setState({
       party: [hero],
       vessel: null,
-      pendingSeaActivities: { day: { events: [] } } as unknown as PendingSeaActivities,
-      seaActivitiesConfirm: (picks) => { valides.push(picks); },
+      pendingSeaActivities: { picks: {}, day: { events: [] } } as unknown as PendingSeaActivities,
+      fenetreValider: (fenetre) => { valides.push(fenetre); },
     });
     act(() => root.render(<SeaActivitiesModal />));
     const repos = [...host.querySelectorAll<HTMLButtonElement>('.rm-loc-grid button')].find((b) => b.textContent === 'Repos');
     expect(repos?.getAttribute('aria-pressed')).toBe('true');
     expect(actif()).toBe('Valider la semaine');
     act(() => { (document.activeElement as HTMLElement).click(); });
-    expect(valides).toHaveLength(1);
+    expect(valides).toEqual(['seaActivities']);
   });
 });

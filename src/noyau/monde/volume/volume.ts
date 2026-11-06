@@ -35,11 +35,11 @@ const arrondi = (v: number): number => Math.round(v * 1000) / 1000;
 /** La largeur d'un pilier de surplomb, seule face du sol à porter une épaisseur (`largeurDUnMontant`). */
 const profondeurDuSol = (face: Face): number | undefined => largeurDUnMontant(face, WALL_MATTER_M);
 
-/** Le volume du monde de `scene` : le sol de toutes ses couches (terrain, relief, raccords, piliers). PUR. */
-export function volumeDuMonde(scene: Scene): VolumeDuMonde {
+/** Le volume du monde de `scene` : le sol de la couche `activeZ` et de celles du dessous (terrain, relief, raccords,
+ *  piliers), sans les surplombs fantômes des couches au-dessus ; sans `activeZ`, de toutes ses couches. PUR. */
+export function volumeDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.map((l) => l.z))): VolumeDuMonde {
   const mpt = sceneMetresPerTile(scene);
-  const coucheHaute = Math.max(...scene.layers.map((l) => l.z));
-  const listees = buildFloors(scene, undefined, { activeZ: coucheHaute }).flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell })));
+  const listees = buildFloors(scene, undefined, { activeZ }).filter((el) => !el.states.ghost).flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell })));
   const geoms = facesGeometry(listees.map((f) => f.face), mpt, profondeurDuSol);
   const centre = centreDeLaCarte(scene.dimensions, mpt);
   const positions: number[] = [];

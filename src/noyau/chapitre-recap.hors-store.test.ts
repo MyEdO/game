@@ -159,8 +159,10 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
     expect(get().pendingChapterRecap?.chronique).toEqual([
       { text: 'Atteindre Altdorf', icon: 'map-tool/start-flag', tone: 'ok', paquet: true },
     ]);
+    expect(get().finDeSeance, 'le récap ouvre sa fin de séance, aucune case cochée').toEqual({ heros: {}, groupe: {} });
 
     banc.getState().fenetreValider('chapterRecap');
+    expect(get().finDeSeance).toBeNull();
     expect(get().clotureConsommee).toBe(true);
 
     // La Condition de clôture est TOUJOURS vraie (un drapeau ne se retire pas) : c'est le fait de

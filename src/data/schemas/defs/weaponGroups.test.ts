@@ -1,7 +1,7 @@
 /**
  * #3076 — la présentation d'un Groupe vit sur son entrée de `weaponGroups.json` : la charge de chaque `kind`
- * est exigée ou refusée au parse (`refusDeCharge`), `couche` et `palierPA` sont uniques parmi les Groupes
- * d'armure, un palier 0 est exigé, et la teinte d'un Groupe d'armure est une teinte d'objet (#3456).
+ * est exigée ou refusée au parse (`refusDeCharge`), `couche` et `seuil` (palier de PA) sont uniques parmi les Groupes
+ * d'armure, un seuil 0 est exigé, et la teinte d'un Groupe d'armure est une teinte d'objet (#3456).
  */
 import { describe, expect, it } from 'vitest';
 import { schema } from './weaponGroups';
@@ -15,7 +15,7 @@ const refus = (doc: unknown): string => {
   return r.success ? '' : r.error.issues.map((i) => i.message).join(' ');
 };
 const SOURCE = { book: 'livre-de-base', page: 300 };
-const ARMURE: Entree = { id: 'armure-de-fixture', type: 'weaponGroups', label: 'Armure de fixture', kind: 'armour', material: 'leather', couche: 90, palierPA: null, source: SOURCE };
+const ARMURE: Entree = { id: 'armure-de-fixture', type: 'weaponGroups', label: 'Armure de fixture', kind: 'armour', material: 'leather', couche: 90, source: SOURCE };
 const ARME: Entree = { id: 'armes-de-fixture', type: 'weaponGroups', label: 'Armes de fixture', kind: 'weapon', combat: 'melee', maniement: 'lame1m', source: SOURCE };
 
 describe('weaponGroups.json — présentation portée par la donnée (#3076)', () => {
@@ -26,7 +26,7 @@ describe('weaponGroups.json — présentation portée par la donnée (#3076)', (
   it('un Groupe AJOUTÉ avec sa charge parse', () => {
     expect(schema.safeParse(avec(ARMURE, ARME)).success).toBe(true);
     expect(schema.safeParse(avec({ ...ARME, id: 'mains-nues-de-fixture', maniement: 'poings', poudre: true })).success).toBe(true);
-    expect(schema.safeParse(avec({ ...ARMURE, palierPA: 90 })).success).toBe(true);
+    expect(schema.safeParse(avec({ ...ARMURE, seuil: 90 })).success).toBe(true);
     expect(schema.safeParse(avec({ ...ARMURE, teinte: { id: 'aethyrique' } })).success).toBe(true);
   });
 
@@ -38,7 +38,6 @@ describe('weaponGroups.json — présentation portée par la donnée (#3076)', (
   it.each([
     ['material', ARMURE, /« armure-de-fixture » \(kind « armour »\) exige « material »/],
     ['couche', ARMURE, /« armure-de-fixture » \(kind « armour »\) exige « couche »/],
-    ['palierPA', ARMURE, /« armure-de-fixture » \(kind « armour »\) exige « palierPA »/],
     ['maniement', ARME, /« armes-de-fixture » \(kind « weapon »\) exige « maniement »/],
   ])('un Groupe sans `%s` est refusé, nommément', (cle, entree, motif) => {
     const { [cle]: _retire, ...sans } = entree;
@@ -47,7 +46,7 @@ describe('weaponGroups.json — présentation portée par la donnée (#3076)', (
 
   it.each([
     ['couche', { ...ARME, couche: 90 }, 'armour'],
-    ['palierPA', { ...ARME, palierPA: 90 }, 'armour'],
+    ['seuil', { ...ARME, seuil: 90 }, 'armour'],
     ['material', { ...ARME, material: 'metal' }, 'armour'],
     ['teinte', { ...ARME, teinte: { id: 'aethyrique' } }, 'armour'],
     ['maniement', { ...ARMURE, maniement: 'lame1m' }, 'weapon'],
@@ -57,14 +56,18 @@ describe('weaponGroups.json — présentation portée par la donnée (#3076)', (
     expect(refus(avec(entree))).toContain(`« ${cle} » n’appartient qu’au(x) cas kind « ${porteurs} »`);
   });
 
-  it('une `couche` ou un `palierPA` déjà porté par un autre Groupe d’armure est refusé', () => {
+  it('une `couche` ou un `seuil` déjà porté par un autre Groupe d’armure est refusé', () => {
     expect(refus(avec({ ...ARMURE, couche: 2 }))).toMatch(/« armure-de-fixture » et « mailles » portent le même couche 2/);
-    expect(refus(avec({ ...ARMURE, palierPA: 2 }))).toMatch(/« armure-de-fixture » et « mailles » portent le même palierPA 2/);
+    expect(refus(avec({ ...ARMURE, seuil: 2 }))).toMatch(/« armure-de-fixture » et « mailles » portent le même seuil 2/);
   });
 
-  it('sans Groupe d’armure au palier 0, le document est refusé', () => {
-    const doc = (structuredClone(weaponGroupsJson) as Entree[]).map((g) => (g.palierPA === 0 ? { ...g, palierPA: 1 } : g));
-    expect(refus(doc)).toMatch(/aucun Groupe d’armure au palierPA 0/);
+  it('un palier de PA négatif est refusé', () => {
+    expect(refus(avec({ ...ARMURE, seuil: -1 }))).toContain('le palier de PA d’un Groupe d’armure est ≥ 0');
+  });
+
+  it('sans Groupe d’armure au seuil 0, le document est refusé', () => {
+    const doc = (structuredClone(weaponGroupsJson) as Entree[]).map((g) => (g.seuil === 0 ? { ...g, seuil: 1 } : g));
+    expect(refus(doc)).toMatch(/aucun Groupe d’armure au seuil 0/);
   });
 
 });
