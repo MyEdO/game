@@ -11,8 +11,8 @@ extends Node3D
 ## L'id d'un élément ou d'un emblème absent : aucun.
 const VIDE := "vide"
 const ORIGINE := [0.0, 0.0, 0.0]
-## Le plus long silence du réseau qu'un téléchargement tolère : le délai repart à chaque bloc reçu, car la durée d'un
-## téléchargement suit la fréquence d'image (#3470).
+## Le plus long silence du réseau qu'un téléchargement tolère, compté par un `Timer` en temps de l'arbre : le délai
+## repart à chaque bloc reçu, car la durée d'un téléchargement suit la fréquence d'image (#3470).
 const SILENCE_S := 10.0
 ## Le plus grand bloc que HTTPRequest lit par image. Sur le Web, une image lit au plus un bloc du flux de la page
 ## (`platform/web/js/libs/library_godot_fetch.js`, `godot_js_fetch_read_chunk`, Godot 4.7-stable), jusqu'à 2 Mio
@@ -137,8 +137,8 @@ static func porte_un_blason(element: String) -> bool:
 
 
 ## Les octets de `relative`, adresse relative à la page, par une requête que porte `hote` ; vides (et une erreur à
-## `recueil`) si la requête échoue ou si `SILENCE_S` passe sans qu'un octet arrive. Le silence se relève à chaque image,
-## celle où HTTPRequest lit son bloc.
+## `recueil`) si la requête échoue ou si `SILENCE_S` passe sans qu'un octet arrive : le minuteur `silence` repart à
+## chaque image où HTTPRequest a lu un bloc.
 static func _telecharger(hote: Node, relative: String, recueil: Array[String]) -> PackedByteArray:
 	var requete := HTTPRequest.new()
 	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
@@ -152,18 +152,21 @@ static func _telecharger(hote: Node, relative: String, recueil: Array[String]) -
 	var resultat := []
 	requete.request_completed.connect(func(issue: int, statut: int, entetes: PackedStringArray, corps: PackedByteArray) -> void:
 		resultat.append_array([issue, statut, entetes, corps]), CONNECT_ONE_SHOT)
+	var silence := Timer.new()
+	silence.one_shot = true
+	requete.add_child(silence)
+	silence.start(SILENCE_S)
 	var recus := 0
-	var dernier_bloc := Time.get_ticks_msec()
-	while resultat.is_empty():
+	while resultat.is_empty() and not silence.is_stopped():
 		await hote.get_tree().process_frame
 		if requete.get_downloaded_bytes() != recus:
 			recus = requete.get_downloaded_bytes()
-			dernier_bloc = Time.get_ticks_msec()
-		elif resultat.is_empty() and Time.get_ticks_msec() - dernier_bloc > SILENCE_S * 1000:
-			requete.cancel_request()
-			requete.queue_free()
-			recueil.append("requete-silencieuse : %s (aucun octet en %s s, %s reçus)" % [relative, SILENCE_S, recus])
-			return PackedByteArray()
+			silence.start(SILENCE_S)
+	if resultat.is_empty():
+		requete.cancel_request()
+		requete.queue_free()
+		recueil.append("requete-silencieuse : %s (aucun octet en %s s, %s reçus)" % [relative, SILENCE_S, recus])
+		return PackedByteArray()
 	requete.queue_free()
 	if resultat[0] != HTTPRequest.RESULT_SUCCESS or resultat[1] != 200:
 		recueil.append("requete-echouee : %s (resultat %s, HTTP %s)" % [relative, resultat[0], resultat[1]])
