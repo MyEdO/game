@@ -1109,6 +1109,14 @@ export const plageOuverteSchema = nommerChamps(z.strictObject({ min: z.number().
 export const palierSchema = nommerChamps(z.strictObject({ seuil: z.number().int() }), { seuil: { label: 'Seuil', hint: 'Valeur à partir de laquelle le palier s’applique' } });
 
 /**
+ * CIBLE d'un Test ÉTENDU (`LDB 12 l.174`) : le nom UNIQUE de sa cible de DR en donnée. Elle s'ajoute à son
+ * porteur par la SHAPE, à côté du `test` (`flowTestSchema`) quand la donnée nomme le sujet, à côté de la
+ * seule Difficulté quand le code le fixe.
+ */
+export const cibleEtendueSchema = nommerChamps(z.strictObject({ targetDR: z.number() }), { targetDR: { label: 'DR à atteindre' } });
+export type CibleEtendue = z.infer<typeof cibleEtendueSchema>;
+
+/**
  * BORNES DE DOMAINE d'un RÉGLAGE chiffré — concept `bornes` du lexique
  * (`scripts/docs/lib/structures-lexique.mts`), DISTINCT de `plage` : aucune rangée n'est tirée ici,
  * rien ne traverse `findTableEntry` ; ce sont les bornes de SAISIE d'un paramètre éditable, qui

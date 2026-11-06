@@ -241,7 +241,7 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
   const test: RollRequest['test'] = seaActivityTest(def)!;
   get().startExtendedTest({
     actorId: hero.id, label: dataLabel(def.label), skillLabel: refLabel('skills', OPPORTUNITE.test.skill), skill: OPPORTUNITE.test.skill,
-    target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), targetDR: OPPORTUNITE.totalDR,
+    target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), targetDR: OPPORTUNITE.targetDR,
     maxAttempts: OPPORTUNITE.maxAttempts,
     outcome: { kind: 'sea-activity-opportunity', meta: { heroId: hero.id, investBrass: invest * PA_PER_CO } },
   });

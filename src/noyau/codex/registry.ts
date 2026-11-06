@@ -2338,7 +2338,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
           },
           {
             title: tr('codex.fiche.tourbillons'), layout: 'list',
-            rows: p.tourbillons.map((w) => ({ t: 'kv', k: w.label, v: tr('codex.fiche.mRayonMSpiraleMMan', { m: w.m, zoneRadiusM: w.zoneRadiusM, zoneSpiralM: w.zoneSpiralM, manDR: w.manDR, ic: w.ic, v: DIFFICULTY_LABELS[w.evasion.difficulty], totalDR: w.evasion.totalDR }) } as CodexRow)),
+            rows: p.tourbillons.map((w) => ({ t: 'kv', k: w.label, v: tr('codex.fiche.mRayonMSpiraleMMan', { m: w.m, zoneRadiusM: w.zoneRadiusM, zoneSpiralM: w.zoneSpiralM, manDR: w.manDR, ic: w.ic, v: DIFFICULTY_LABELS[w.evasion.difficulty], targetDR: w.evasion.targetDR }) } as CodexRow)),
           },
           {
             title: tr('codex.fiche.gestionDesPerilsReperageEvitementPar'), layout: 'list',

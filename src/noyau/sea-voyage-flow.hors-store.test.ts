@@ -1887,7 +1887,7 @@ describe('Périls en mer — collision routée par la DONNÉE (#444, MDG 13 l.47
       const entangled = get().travelPlan!.sea!.entangled;
       expect(entangled).toBeTruthy();
       expect(entangled!.hazardId).toBe('debris-marins');
-      expect(entangled!.need).toBe(debris.freeTest!.totalDR); // cogue = Taille moyenne → bande moyenne/grande
+      expect(entangled!.need).toBe(debris.freeTest!.targetDR); // cogue = Taille moyenne → bande moyenne/grande
       expect(entangled!.manDR).toBe(-1);
       expect(entangled!.mMod).toBe(0);
     } finally {
@@ -1913,7 +1913,7 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
 
   it('Débris marins : l’étape de dégagement met en jeu SON enjeu (MDG 13 l.487-491), pas la progression bloquée de l’Échouage', () => {
     const plan = planWithSea();
-    const need = findSeaHazard('debris-marins')!.freeTest!.totalDR;
+    const need = findSeaHazard('debris-marins')!.freeTest!.targetDR;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, entangled: { hazardId: 'debris-marins', label: 'Débris marins', need, progress: 0, manDR: -1, mMod: 0, difficulty: 'accessible' } } } });
     const st = apply('progression', 2, true)?.insert?.find((s) => s.kind === 'sea-degagement-debris');
     expect(st).toBeTruthy();

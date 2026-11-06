@@ -561,7 +561,7 @@ export function stampCriticalEscalation(
       location,
       ops: g.disable.map((o) => ({ ...o })),
       awaitingMedicalAid: true,
-      restoreDR: g.restoreDR,
+      restoreDR: g.targetDR,
       recoveryPenalty: g.recoveryPenalty.map((o) => ({ ...o })),
     });
   }

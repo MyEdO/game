@@ -188,7 +188,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[] → SkillSpecListField/TalentSpecListField
   if (categoryKey === 'traumas') add('prosthesis'); // {id,cancels}[] → éditeur dédié (ProsthesisField)
   if (CRITICAL_CATEGORIES.includes(categoryKey)) add('traumas', 'test'); // string[] d'ids → TraumaListField (#173) ; `test` → FlowEditor (#1682)
-  if (categoryKey === 'steamBreakdowns') add('restart'); // {test,extendedDR?}[] → éditeur dédié
+  if (categoryKey === 'steamBreakdowns') add('restart'); // {test,targetDR?}[] → éditeur dédié
   add(...opsFieldsOf(categoryKey)); // ops/occupantOps/crewOps/captainOps → GameOpEditor (#157)
   if (categoryKey === 'symptoms') add('passive', 'passiveBySeverity', 'onTick', 'visiblePassive', 'visibleLocations'); // GameOp[] + test de cycle + gate visibilité → éditeurs dédiés (capabilities = sous-form générique)
   if (categoryKey === 'stars') add('sub');
@@ -356,7 +356,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // Critique localisé (LDB 6/AA, #173) : `traumas` = string[] d'ids de fiche (`traumas.json`) →
   // éditeur dédié (TraumaListField, sélecteurs id→label) au lieu du datalist générique par-label.
   const hasTraumaList = CRITICAL_CATEGORIES.includes(categoryKey);
-  // Panne de Vapeur (`steamBreakdowns`, #157) : `restart` (Test de redémarrage) = {test,extendedDR?}[].
+  // Panne de Vapeur (`steamBreakdowns`, #157) : `restart` (Test de redémarrage) = {test,targetDR?}[].
   const hasRestartTest = categoryKey === 'steamBreakdowns';
   // Champs `GameOp[]` autres que `passive` (ops/occupantOps/crewOps/captainOps, #157) — même GameOpEditor.
   const opsFields = opsFieldsOf(categoryKey);
@@ -1162,7 +1162,7 @@ function ChampsDuTest({ test, index, onChange, difficulteFacultative = false }: 
 }
 
 /** Test de REDÉMARRAGE d'un moteur à vapeur (`steamBreakdowns.restart`, MDG 12, #157) :
- *  `{test:{skill?,characteristic?,difficulty},extendedDR?}[]` — Compétence OU Caractéristique + Difficulté
+ *  `{test:{skill?,characteristic?,difficulty},targetDR?}[]` — Compétence OU Caractéristique + Difficulté
  *  (+ DR cumulés si Test étendu). */
 function RestartTestField({ value, onChange }: { value: RestartTest[] | undefined; onChange: (v: RestartTest[]) => void }) {
   const list = value ?? [];
@@ -1173,7 +1173,7 @@ function RestartTestField({ value, onChange }: { value: RestartTest[] | undefine
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
           <ChampsDuTest test={r.test} index={i} onChange={(patch) => set(list.map((x, j) => (j === i ? { ...x, test: { ...x.test, ...patch, difficulty: patch.difficulty ?? x.test.difficulty } } : x)))} />
-          <NumberField variant="nu" label="DR cumulés (étendu)" min={1} placeholder="DR cumulés (étendu)" width={64} vide value={r.extendedDR} onChange={(n) => set(list.map((x, j) => (j === i ? { ...x, extendedDR: n ?? undefined } : x)))} />
+          <NumberField variant="nu" label="DR cumulés (étendu)" min={1} placeholder="DR cumulés (étendu)" width={64} vide value={r.targetDR} onChange={(n) => set(list.map((x, j) => (j === i ? { ...x, targetDR: n ?? undefined } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}

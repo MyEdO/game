@@ -1,7 +1,7 @@
-import { nommerChamps } from '../grammaire/meta';
+import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 /** MDG 12 l.313-352 */
 import { z } from 'zod';
-import { plageSchema, tirageSchema } from '../grammaire/valeurs';
+import { cibleEtendueSchema, plageSchema, tirageSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
 
@@ -25,10 +25,10 @@ const doc = document(
       .array(
         nommerChamps(z.strictObject({
           test: flowTestSchema,
-          extendedDR: z.number().optional(),
+          ...cibleEtendueSchema.partial().shape,
         }).superRefine(exigerDuTest('difficulty')), {
           test: { label: 'Test' },
-          extendedDR: { label: 'DR du Test étendu' },
+          ...metaDesChamps(cibleEtendueSchema, { exigees: true }),
         }),
       )
       .optional(),

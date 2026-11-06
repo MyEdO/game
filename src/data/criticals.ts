@@ -1,7 +1,7 @@
 import type { HitLocation, Difficulty } from '../engine/types';
 import type { FlowTestNode } from '../engine/flowCore';
 import type { Formula, GameOp, OpPassive } from '../engine/ops';
-import type { SourceRef } from './schemas/grammaire/valeurs';
+import type { CibleEtendue, SourceRef } from './schemas/grammaire/valeurs';
 import type { DocumentARangees } from './schemas/grammaire/document';
 import criticalsJson from './criticals.json';
 
@@ -106,11 +106,11 @@ export interface CritEscalation {
   /** « Épaule luxée » (AA 07 l.125 / LDB 18 l.120) / « Genou démis » (AA 07 l.179 / LDB 18 l.179) : le membre est
    *  DÉSACTIVÉ (séquelle portant `disable` en `ops` passives : bras `maxWeaponHands:1` / jambe `moveScale`),
    *  en attente d'Aide Médicale (`awaitingMedicalAid`). Après l'Aide Médicale, un Test ÉTENDU de Guérison
-   *  Accessible (+20) de `restoreDR` DR rend l'usage du membre : la séquelle est retirée et `recoveryPenalty`
+   *  Accessible (+20) de `targetDR` DR rend l'usage du membre : la séquelle est retirée et `recoveryPenalty`
    *  (charMod −10 / `moveScale` jambe, durée 1d10 jours) est posé à la cible. Instancié par
    *  `stampCriticalEscalation` (nouvelle séquelle, pas une plaie chirurgicale) ; joué à l'Infirmerie (acte
    *  « Guérison », `medicFlow`). */
-  medicalAidGate?: { label: string; disable: OpPassive[]; restoreDR: number; recoveryPenalty: GameOp[] };
+  medicalAidGate?: { label: string; disable: OpPassive[]; recoveryPenalty: GameOp[] } & CibleEtendue;
   /** « Réouverture » (LDB 18 l.101/118/143/145/148/175 ; AA 07 l.119/147/149/152/175) : tant que la plaie n'a
    *  pas été recousue par Chirurgie, chaque nouveau Dégât à la MÊME Localisation octroie `amount` État
    *  Hémorragique. `stampCriticalEscalation` pose une séquelle chirurgicale (`Trauma.bleedOnReinjury`,
