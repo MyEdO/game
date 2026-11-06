@@ -56,7 +56,7 @@ import { opPsy } from '../engine/psych/opsPsy';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from '../noyau/monde/terrain';
-import { categoryByKey } from '../noyau/codex/registry';
+import { categoryByKey, codexGroupLabel } from '../noyau/codex/registry';
 import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from '../noyau/cascade';
@@ -653,7 +653,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     codexLocate: (categoryId: string): CodexLocation => {
       const cat = categoryByKey(categoryId);
       if (!cat) throw new Error(`__wfrp.codexLocate : catégorie « ${categoryId} » inconnue`);
-      return { tab: cat.label, group: cat.group, cluster: cat.cluster ?? null };
+      return { tab: cat.label, group: codexGroupLabel(cat.group), cluster: cat.cluster ?? null };
     },
     camera: () => {
       const s = g();

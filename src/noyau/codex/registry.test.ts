@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookupById, creatureStatblock, raceTalentSection, type CodexItem } from './registry';
+import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexGroupLabel, codexLookupById, creatureStatblock, raceTalentSection, type CodexItem } from './registry';
 import { woundsForSize } from '../../engine/size';
 import { replier } from '../../lib/ordre.mjs';
 import { isEditableCategory } from '../../data/atelierDuCodex';
@@ -27,6 +27,17 @@ describe('Codex registry', () => {
 
   it('chaque catégorie appartient à un groupe connu', () => {
     for (const c of CODEX) expect(CODEX_GROUPS).toContain(c.group);
+  });
+
+  it('chaque groupe a un id STABLE ASCII et son propre libellé au catalogue', () => {
+    const libelles = CODEX_GROUPS.map(codexGroupLabel);
+    for (const [i, g] of CODEX_GROUPS.entries()) {
+      expect(g, 'id stable ASCII').toMatch(/^[a-z]+$/);
+      // `t()` rend la clé nue quand le catalogue ne la porte pas : un libellé résolu n'en est pas une.
+      expect(libelles[i], `libellé de « ${g} »`).not.toMatch(/^codex\./);
+      expect(libelles[i], `libellé de « ${g} »`).not.toBe(g);
+    }
+    expect(new Set(libelles).size, `libellés : ${libelles.join(', ')}`).toBe(CODEX_GROUPS.length);
   });
 
   it('categoriesIn / categoryByKey cohérents', () => {
@@ -126,7 +137,7 @@ describe('Codex registry — références INVERSES (relations.ts → fiches)', (
 
   it('catégorie « Psychologie » = filtre data-driven des traits à capacité psy, groupée par type', () => {
     const psy = categoryByKey('psychologie');
-    expect(psy?.group).toBe('Effets');
+    expect(psy?.group).toBe('effets');
     expect(psy!.items.length).toBeGreaterThan(0);
     // Peur DOIT en faire partie, groupée « Peur ».
     const peur = psy!.items.find((i) => i.label.toLowerCase() === 'peur');
@@ -535,7 +546,7 @@ describe('Codex registry — sous-groupes repliables (clusters, #378 volet B)', 
   });
 
   it('les familles touffues Effets/Tables sont dégonflées (anti-avalanche)', () => {
-    for (const g of ['Effets', 'Tables'] as const) {
+    for (const g of ['effets', 'tables'] as const) {
       const { flat, clusters } = clustersIn(g);
       // Éléments visibles dans la barre (pastilles à plat + en-têtes de dépliables) ≪ nombre brut de catégories.
       expect(flat.length + clusters.length, g).toBeLessThan(categoriesIn(g).length);
