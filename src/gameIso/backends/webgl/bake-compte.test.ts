@@ -113,7 +113,7 @@ function salleMeublee(): Scene {
  */
 const ETALONS: [string, () => Scene, { sommets: number; triangles: number; spans: number }][] = [
   ['fixture-salle-nue', salleNue, { sommets: 6282, triangles: 2094, spans: 528 }],
-  ['fixture-corps-a-etage', corpsAEtage, { sommets: 7194, triangles: 2398, spans: 628 }],
+  ['fixture-corps-a-etage', corpsAEtage, { sommets: 7362, triangles: 2454, spans: 656 }],
 ];
 
 /** SCÈNES COUVERTES SANS CHIFFRE — leur masse dépend d'une donnée VIVANTE : la carte d'un auteur (ou

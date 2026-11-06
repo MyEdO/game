@@ -35,6 +35,7 @@ export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION } from './combatAut
 export { conversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
+export type { RecapTone } from './recapLine';
 export type { Combatant } from '../engine/types';
 export type { ModLine, RollBreakdown } from '../engine/combat';
 export { validTargets } from './targeting';
