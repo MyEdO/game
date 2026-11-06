@@ -3,8 +3,9 @@
  * zoom/pan bornés, et cadrage initial « fit-to-content » (ref #234 : aucune route authorée ne doit
  * naître masquée sous la bordure décorative, quelle que soit la worldMap).
  */
+import { CADRE } from '../noyau/worldMap';
 
-export const VB_W = 100, VB_H = 64;
+export const VB_W = CADRE.w, VB_H = CADRE.h;
 export const Z_MIN = 1, Z_MAX = 4;
 
 /** Vue caméra de la carte : zoom `z` + translation `panX/panY` (unités viewBox). Le CONTENU est

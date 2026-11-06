@@ -236,7 +236,7 @@ describe('G9 — « se libérer » d’Empêtré (`escapeStrength` FIGÉE) : nu 
       seedBattleRng(seed);
       const pris = combatant({ id: 'pris', conditions: [{ id: 'empetre', value: 1, escapeStrength: 55 }] as never });
       setBattle([pris], 'pris');
-      banc.getState().battleRecoverState('empetre');
+      banc.getState().seRemettreDeLEtat('empetre');
       banc.getState().jetRoll('recover');
     }
     expect(REPLIS_DEUX_CIBLES.count).toBe(avant);

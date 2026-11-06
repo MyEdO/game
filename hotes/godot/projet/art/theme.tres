@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=12 format=3]
+[gd_resource type="Theme" load_steps=13 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
@@ -24,6 +24,9 @@ content_margin_left = 12.0
 content_margin_top = 12.0
 content_margin_right = 12.0
 content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Fond_du_monde"]
+bg_color = Color(0.086, 0.075, 0.059, 1)
 
 [sub_resource type="StyleBoxFlat" id="Fond_de_puce"]
 bg_color = Color(0.2, 0.18, 0.15, 1)
@@ -134,6 +137,8 @@ corner_radius_bottom_left = 4
 HSlider/styles/slider = SubResource("Piste_de_glissiere")
 Panneau/base_type = &"PanelContainer"
 Panneau/styles/panel = ExtResource("1_fond")
+Monde/base_type = &"PanelContainer"
+Monde/styles/panel = SubResource("Fond_du_monde")
 Fenetre/base_type = &"PanelContainer"
 Fenetre/styles/panel = SubResource("Cadre_de_fenetre")
 Puce/base_type = &"PanelContainer"

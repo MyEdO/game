@@ -48,7 +48,7 @@ describe('Brisé — restriction d\'action (LDB 16 l.52)', () => {
   it('Brisé : la Détermination le RETIRE (LDB 17 l.61), malgré la restriction d’Action', () => {
     const { hero } = setup(true);
     hero.resolve = 1;
-    banc.getState().battleSpendResolve('brise');
+    banc.getState().depenserLaDetermination(hero.id, 'retirerUnEtat', 'brise');
     expect(hasCondition(banc.getState().battle!.combatants[0], 'brise')).toBe(false);
     expect(banc.getState().battle!.combatants[0].resolve).toBe(0);
   });

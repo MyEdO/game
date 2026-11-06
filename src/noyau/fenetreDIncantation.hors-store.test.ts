@@ -61,7 +61,7 @@ function horsCombat(spellId: string, de: number | null = 11): { banc: Banc; V: C
   banc.setState({ battle: null, party: [L, V] });
   // Une Prière se pose ouverte : le lanceur d'épreuve n'a pas de culte.
   if (castInfoIsPrayer(findSpellById(spellId)!)) banc.setState({ pendingCast: { casterId: L.id, targetId: V.id, spellId, missile: false, focused: false, result: null } });
-  else banc.getState().oocCastSpell(L.id, spellId, V.id);
+  else banc.getState().incanterLeSort(L.id, spellId, V.id);
   expect(banc.getState().pendingCast, `chemin : ${spellId} s’ouvre`).toMatchObject({ casterId: L.id, spellId });
   if (de != null) {
     banc.getState().jetRoll('cast');
@@ -277,7 +277,7 @@ describe('le NI d’un Sort se lit à un seul site, `castingNumberOf` (B3)', () 
     L.talents = [...L.talents.filter((t) => t.talentId !== 'magie-des-arcanes'), { talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }];
     L.spells = [FIXTURES.rituel.id];
     banc.setState({ battle: null, party: [L] });
-    banc.getState().oocCastSpell(L.id, FIXTURES.rituel.id, L.id);
+    banc.getState().incanterLeSort(L.id, FIXTURES.rituel.id, L.id);
     banc.getState().jetRoll('cast');
     banc.getState().jetSetForcedRoll('cast', 3);
     expect(banc.getState().pendingCast!.result, 'chemin : le Rituel part au NI réduit').toMatchObject({ cast: true, niRequired: 4 });

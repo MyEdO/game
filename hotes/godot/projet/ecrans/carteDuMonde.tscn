@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://cadres/monde.tscn" id="1_monde"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="Monde" instance=ExtResource("1_monde")]
+
+[node name="Plan" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
+size_flags_vertical = 3
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Plan"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("carte/plan")
+
+[node name="Reprise" type="HBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Reprise"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"

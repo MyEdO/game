@@ -138,7 +138,7 @@ describe('Scénario « La fenêtre sur les écuries » — l’homme de main se 
       while (g().pendingCascade) avanceEtapeCascade(g);
       const b = g().battle!;
       const actif = b.combatants.find((c) => c.id === b.order[b.turn]);
-      if (actif?.kind === 'hero') g().battleEndTurn();
+      if (actif?.kind === 'hero') g().terminerLeTour();
       banc.avancer(1000);
       expect(homme().pos!.z, `tour ${i} : l’homme de main a quitté l’étage`).toBe(1);
     }

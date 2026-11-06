@@ -37,10 +37,10 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     return { H, E };
   }
 
-  /** Active une manœuvre SPÉCIALE ciblée comme la hotbar : arme l'attaque (`battleSelectAttack`) puis clique
+  /** Active une manœuvre SPÉCIALE ciblée comme la hotbar : arme l'attaque (`armerLAttaque`) puis clique
    *  l'entité (point d'impact / victime) → la zone ouvre `pendingManeuver{targetId}` (1er clic, sans aperçu). */
   function activate(kind: string, targetId: string) {
-    banc.getState().battleSelectAttack(kind);
+    banc.getState().armerLAttaque(kind);
     banc.getState().battleClickEntity(targetId);
   }
 
@@ -76,7 +76,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     H.characteristics.initiative = 40;
     H.advantage = 4;
     const before = E.wounds.current;
-    banc.getState().battleManeuverArea('hurlement');
+    banc.getState().lancerLAttaqueDeZone('hurlement');
     const st = banc.getState();
     expect(st.pendingManeuver).toBeNull(); // pas de modale (pas de jet d’attaquant)
     expect(st.battle!.combatants.find((c) => c.id === E.id)!.wounds.current).toBeLessThan(before);

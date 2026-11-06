@@ -169,7 +169,7 @@ function SlotCell({ id, nom, item, pa, fallback, options, value, onSelect, refus
 export function EquipmentPanel({ hero }: { hero: Combatant }) {
   const toggleEquip = useGame((s) => s.toggleEquip);
   const setLoadoutSlot = useGame((s) => s.setLoadoutSlot);
-  const setActiveLoadout = useGame((s) => s.setActiveLoadout);
+  const prendreLaPanoplie = useGame((s) => s.prendreLaPanoplie);
   const createLoadout = useGame((s) => s.createLoadout);
   const deleteLoadout = useGame((s) => s.deleteLoadout);
   const battle = useGame((s) => s.battle);
@@ -311,7 +311,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       label="Activer"
                       enabled={!refusSets}
                       {...raisonSi(refusSets)}
-                      onClick={() => setActiveLoadout(hero.id, lo.id)}
+                      onClick={() => prendreLaPanoplie(hero.id, lo.id)}
                       primary={false}
                       btnClassName="small"
                     />

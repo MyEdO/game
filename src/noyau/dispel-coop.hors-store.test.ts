@@ -13,7 +13,7 @@
  * La couture est celle, déjà écrite, du verdict d'armement (`localIntent.argsAvecVerdictLocal`) : ce
  * qui est un mode d'écran se calcule et se JOUE chez l'émetteur. Ici le mode de ciblage DÉCLARE que
  * son clic n'est qu'une élection (`TargetingMode.electionLocale`), et `emettreIntentInvite` la joue
- * en local au lieu d'émettre. Seul le COMMIT (`battleDispelSpell`, allowlisté) voyage.
+ * en local au lieu d'émettre. Seul le COMMIT (`dissiperLeSort`, allowlisté) voyage.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -46,6 +46,6 @@ describe('Dissipation en coop — l’élection du porteur ne voyage JAMAIS', ()
     table('guest', { e1: 2 });
     banc.setState({ battle: { ...get().battle!, action: null } });
     expect(intentEluLocalement(banc.getState, 'battleClickEntity', ['e1'])).toBe(false);
-    expect(intentEluLocalement(banc.getState, 'battleEndTurn', []), 'un intent hors table voyage inchangé').toBe(false);
+    expect(intentEluLocalement(banc.getState, 'terminerLeTour', []), 'un intent hors table voyage inchangé').toBe(false);
   });
 });

@@ -23,7 +23,7 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
       // @ts-expect-error — `actionNeuve` n'a pas de classe
       t;
     const classee = (t: TableDesClasses): TableDesClasses<EtatAvecActionNeuve> => ({ ...t, actionNeuve: 'hôte' });
-    const table = { battleEndTurn: 'invité' } as TableDesClasses;
+    const table = { jouerLOffre: 'invité' } as TableDesClasses;
     expect(sansClasse(table)).toBe(table);
     expect(classee(table).actionNeuve).toBe('hôte');
   });
@@ -49,13 +49,13 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
       castSetBar: c,
     });
     const exposee = (t: TableDesClasses): TableDesClasses<EtatAvecActionDeFlux> => ({ ...t, attackSetFoo: 'invité', castSetBar: 'invité' });
-    const table = { battleEndTurn: 'invité' } as TableDesClasses;
+    const table = { jouerLOffre: 'invité' } as TableDesClasses;
     expect(avec(table, 'hôte').attackSetFoo).toBe('hôte');
     expect(exposee(table).castSetBar).toBe('invité');
   });
 
   it('un ouvreur `parHote` reste `hôte`, une élection locale reste `local`', () => {
-    const t = { battleEndTurn: 'invité' } as TableDesClasses;
+    const t = { jouerLOffre: 'invité' } as TableDesClasses;
     // @ts-expect-error — `appraiseItem` ouvre le flux `appraise` depuis un écran d'hôte
     const ouvreur: TableDesClasses = { ...t, appraiseItem: 'invité' };
     // @ts-expect-error — `dispelSelectCarrier` n'écrit qu'un champ hors snapshot

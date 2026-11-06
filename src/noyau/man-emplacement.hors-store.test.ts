@@ -26,8 +26,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * (factorisée en `serveChef`). « Quitter la pièce » (`leaveChef`) libère le poste pour un autre.
  *
  * « Tout le monde peut servir une arme de siège » (user) → la disponibilité (`servablePostes`) et la mutation
- * (`serveAtPoste`/`leaveChef`) ne regardent JAMAIS le `kind` ; l'affordance JOUEUR (`battleManPoste`/
- * `battleLeavePoste`) et l'énumération IA (`buildAiInput.servablePostes` → `chooseEnemyAction` candidat
+ * (`serveAtPoste`/`leaveChef`) ne regardent JAMAIS le `kind` ; l'affordance JOUEUR (`servirLePoste`/
+ * `quitterLePoste`) et l'énumération IA (`buildAiInput.servablePostes` → `chooseEnemyAction` candidat
  * `manPoste`) consomment la MÊME source.
  */
 
@@ -156,9 +156,9 @@ describe('(C) Release — « Quitter la pièce » libère le poste pour un autre
 });
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
-// (D) AFFORDANCE JOUEUR — `battleManPoste` / `battleLeavePoste` (actions du noyau) sur le héros actif.
+// (D) AFFORDANCE JOUEUR — `servirLePoste` / `quitterLePoste` (actions du noyau) sur le héros actif.
 // ───────────────────────────────────────────────────────────────────────────────────────────────
-describe('(D) Affordance joueur — store `battleManPoste` / `battleLeavePoste`', () => {
+describe('(D) Affordance joueur — store `servirLePoste` / `quitterLePoste`', () => {
   const setup = (mannedByActive = false) => {
     const poste = mkPoste('baliste', mannedByActive ? [] : ['s1']);
     const hero = mkActor('hero', 'hero', { x: 5, y: 6 }, 80);
@@ -175,7 +175,7 @@ describe('(D) Affordance joueur — store `battleManPoste` / `battleLeavePoste`'
 
   it('le héros ACTIF prend la pièce adjacente : mannedPoste, crewIds[0], baliste, SANS coûter l’Action', () => {
     const { poste } = setup();
-    banc.getState().battleManPoste();
+    banc.getState().servirLePoste();
     const st = banc.getState();
     const hero = st.battle!.combatants.find((c) => c.id === 'hero')!;
     expect(hero.mannedPoste!.item.uid).toBe(poste.item.uid);
@@ -187,13 +187,13 @@ describe('(D) Affordance joueur — store `battleManPoste` / `battleLeavePoste`'
   it('Sonné, le héros prend quand même la pièce : son verrou est l’Action (LDB 16 l.125, LDB 13 l.106)', () => {
     const { poste, hero } = setup();
     addCondition(hero, 'sonne');
-    banc.getState().battleManPoste();
+    banc.getState().servirLePoste();
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'hero')!.mannedPoste?.item.uid).toBe(poste.item.uid);
   });
 
   it('Quitter libère la pièce : mannedPoste retiré, arme retirée, SANS coûter l’Action', () => {
     const { poste } = setup(true);
-    banc.getState().battleLeavePoste();
+    banc.getState().quitterLePoste();
     const st = banc.getState();
     const hero = st.battle!.combatants.find((c) => c.id === 'hero')!;
     expect(hero.mannedPoste).toBeUndefined();
@@ -340,7 +340,7 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
     expect(serveTargetPoste(hero, hull, all)).toBeUndefined(); // sert déjà une pièce
   });
 
-  it('battleManPoste({hullId,posteUid}) sert la pièce CIBLÉE précise (clic), pas juste la première', () => {
+  it('servirLePoste({hullId,posteUid}) sert la pièce CIBLÉE précise (clic), pas juste la première', () => {
     const posteA = mkPoste('baliste');
     const posteB = mkPoste('baliste');
     const hullA = mkEmplacement(posteA, { x: 5, y: 5 });
@@ -353,7 +353,7 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
       party: [hero], facing: {}, scene: groundScene() as never,
       pendingCleave: null, pendingDualStrike: null, pendingCast: null,
     });
-    banc.getState().battleManPoste({ hullId: 'hullB', posteUid: posteB.item.uid });
+    banc.getState().servirLePoste({ hullId: 'hullB', posteUid: posteB.item.uid });
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'hero')!;
     expect(h.mannedPoste!.item.uid).toBe(posteB.item.uid); // c'est bien la pièce B (ciblée) qui est servie
     expect(posteB.crewIds![0]).toBe('hero');

@@ -68,7 +68,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
-  useGame.setState({ worldMap: null, flags: {} });
+  useGame.setState({ worldMap: null, lieu: null, flags: {} });
 });
 
 const scenePlate = (id: string): Scene => {
@@ -78,7 +78,7 @@ const scenePlate = (id: string): Scene => {
   return s;
 };
 
-async function monter(props: { hereSceneId?: string; initialRouteId?: string } = {}) {
+async function monter(props: { hereId?: string; initialRouteId?: string } = {}) {
   await act(async () => {
     root.render(<WorldMapView {...props} />);
   });
@@ -92,8 +92,8 @@ function cadrage(): string {
 
 describe('axe NŒUD — le lieu non révélé est ABSENT du rendu ET du cadrage', () => {
   it('flag absent : ni médaillon, ni cartouche, ni route vers Bögenhafen', async () => {
-    useGame.setState({ worldMap: carte, flags: {} });
-    await monter({ hereSceneId: 's-auberge' });
+    useGame.setState({ worldMap: carte, lieu: 'auberge', flags: {} });
+    await monter({ hereId: 'auberge' });
     expect(container.textContent).toContain('La Diligence');
     expect(container.textContent).toContain('Altdorf');
     expect(container.textContent).not.toContain('Bögenhafen');
@@ -108,22 +108,22 @@ describe('axe NŒUD — le lieu non révélé est ABSENT du rendu ET du cadrage'
   });
 
   it('flag posé : le lieu apparaît — le rendu n’a pas changé de nature, seule la donnée a bougé', async () => {
-    useGame.setState({ worldMap: carte, flags: { 'lieu-revele': true } });
-    await monter({ hereSceneId: 's-auberge' });
+    useGame.setState({ worldMap: carte, lieu: 'auberge', flags: { 'lieu-revele': true } });
+    await monter({ hereId: 'auberge' });
     expect(container.textContent).toContain('Bögenhafen');
     expect(container.querySelectorAll('path[pointer-events="stroke"]')).toHaveLength(3);
   });
 
   it('CADRAGE : le lieu caché ne tire pas le viewport — révélé, il le tire (mesure du fit)', async () => {
-    useGame.setState({ worldMap: carte, flags: {} });
-    await monter({ hereSceneId: 's-auberge' });
+    useGame.setState({ worldMap: carte, lieu: 'auberge', flags: {} });
+    await monter({ hereId: 'auberge' });
     const sansLuiI = cadrage();
     expect(sansLuiI, 'le groupe de cadrage existe').not.toBe('');
 
     await act(async () => root.unmount());
     root = createRoot(container);
-    useGame.setState({ worldMap: carte, flags: { 'lieu-revele': true } });
-    await monter({ hereSceneId: 's-auberge' });
+    useGame.setState({ worldMap: carte, lieu: 'auberge', flags: { 'lieu-revele': true } });
+    await monter({ hereId: 'auberge' });
     const avecLui = cadrage();
 
     // Un lieu à (96, 62) est hors du cadrage serré des deux lieux de gauche : s'il y entrait, le
@@ -134,8 +134,8 @@ describe('axe NŒUD — le lieu non révélé est ABSENT du rendu ET du cadrage'
 
 describe('axe ARÊTE — le trajet fermé reste VISIBLE, son départ est REFUSÉ avec sa raison', () => {
   it('chapitre clos : la route est rendue et sélectionnable, le départ porte `refus` (aria-disabled)', async () => {
-    useGame.setState({ worldMap: carte, flags: { 'chapitre-clos': true } });
-    await monter({ hereSceneId: 's-auberge', initialRouteId: 'auberge-ferme' });
+    useGame.setState({ worldMap: carte, lieu: 'auberge', flags: { 'chapitre-clos': true } });
+    await monter({ hereId: 'auberge', initialRouteId: 'auberge-ferme' });
 
     const bouton = container.querySelector('#wm-route-fermee-auberge-ferme-reason')
       ? container.querySelector('button[aria-describedby="wm-route-fermee-auberge-ferme-reason"]')
@@ -152,8 +152,8 @@ describe('axe ARÊTE — le trajet fermé reste VISIBLE, son départ est REFUSÉ
   });
 
   it('chapitre ouvert : la même route est un départ NORMAL (aucune affordance refusée)', async () => {
-    useGame.setState({ worldMap: carte, flags: {} });
-    await monter({ hereSceneId: 's-auberge', initialRouteId: 'auberge-ferme' });
+    useGame.setState({ worldMap: carte, lieu: 'auberge', flags: {} });
+    await monter({ hereId: 'auberge', initialRouteId: 'auberge-ferme' });
     expect(container.querySelector('#wm-route-fermee-auberge-ferme-reason')).toBeNull();
     expect(container.textContent).toContain('Partir');
     expect(container.textContent).toContain('Marche forcée');
@@ -162,8 +162,8 @@ describe('axe ARÊTE — le trajet fermé reste VISIBLE, son départ est REFUSÉ
 
 describe('recette — `__wfrp.routes()` décrit EXACTEMENT les tracés cliquables du DOM, dans le MÊME ordre', () => {
   it('un lieu caché ne décale plus l’index : `routes()[i]` est bien la route du iᵉ tracé', async () => {
-    useGame.setState({ worldMap: carte, flags: { 'chapitre-clos': true }, scene: scenePlate('s-auberge') });
-    await monter({ hereSceneId: 's-auberge' });
+    useGame.setState({ worldMap: carte, lieu: 'auberge', flags: { 'chapitre-clos': true }, scene: scenePlate('s-auberge') });
+    await monter({ hereId: 'auberge' });
 
     const annonce = buildApi().routes() as { id: string; etat: string }[];
     expect(annonce.map((r) => r.id)).toEqual(['auberge-altdorf', 'auberge-ferme']);
@@ -199,8 +199,8 @@ describe('recette — `__wfrp.clickRoute(id)` vise le tracé PAR SON ID, et refu
   });
 
   it('route FERMÉE consultable : le point est rendu avec son état, sur le tracé qui porte son id', async () => {
-    useGame.setState({ worldMap: carte, flags: { 'chapitre-clos': true }, scene: scenePlate('s-auberge') });
-    await monter({ hereSceneId: 's-auberge' });
+    useGame.setState({ worldMap: carte, lieu: 'auberge', flags: { 'chapitre-clos': true }, scene: scenePlate('s-auberge') });
+    await monter({ hereId: 'auberge' });
     const trace = container.querySelector<SVGPathElement>('path[data-path-id="auberge-ferme"]')!;
     auPoint = () => trace;
     const r = buildApi().clickRoute('auberge-ferme') as { x: number; y: number; etat: string };
@@ -208,8 +208,8 @@ describe('recette — `__wfrp.clickRoute(id)` vise le tracé PAR SON ID, et refu
   });
 
   it('aucun point du tracé atteignable : REFUS qui nomme ce qui recouvre, jamais un point muet', async () => {
-    useGame.setState({ worldMap: carte, flags: { 'chapitre-clos': true }, scene: scenePlate('s-auberge') });
-    await monter({ hereSceneId: 's-auberge' });
+    useGame.setState({ worldMap: carte, lieu: 'auberge', flags: { 'chapitre-clos': true }, scene: scenePlate('s-auberge') });
+    await monter({ hereId: 'auberge' });
     const voile = document.createElement('div');
     voile.className = 'decor-voile';
     auPoint = () => voile;
@@ -254,7 +254,7 @@ function marqueurEcran(label: string): { x: number; y: number } {
 describe('AIDE de la colonne — elle se dit sur les routes DESSINÉES, jamais sur les routes brutes', () => {
   it('destination non révélée : aucun tracé cliquable, et le message DIT l’absence', async () => {
     useGame.setState({ worldMap: carteMuette, flags: {} });
-    await monter({ hereSceneId: 's-auberge' });
+    await monter({ hereId: 'auberge' });
     expect(container.querySelectorAll('path[pointer-events="stroke"]')).toHaveLength(0);
     expect(container.textContent).toContain('Aucune route ne part de ce lieu.');
     expect(container.textContent).not.toContain('Cliquez une destination CERCLÉE');
@@ -262,7 +262,7 @@ describe('AIDE de la colonne — elle se dit sur les routes DESSINÉES, jamais s
 
   it('destination révélée : le médaillon existe, et le message redevient l’invitation au clic', async () => {
     useGame.setState({ worldMap: carteMuette, flags: { 'destination-revelee': true } });
-    await monter({ hereSceneId: 's-auberge' });
+    await monter({ hereId: 'auberge' });
     expect(container.querySelectorAll('path[pointer-events="stroke"]')).toHaveLength(1);
     expect(container.textContent).toContain('Cliquez une destination CERCLÉE');
     expect(container.textContent).not.toContain('Aucune route ne part de ce lieu.');
@@ -272,7 +272,7 @@ describe('AIDE de la colonne — elle se dit sur les routes DESSINÉES, jamais s
 describe('RÉVÉLATION en cours de partie — la vue se re-cadre pour que le lieu neuf naisse DANS le cadre', () => {
   it('le médaillon révélé est à l’ÉCRAN sans toucher « Recentrer » (recette #684)', async () => {
     useGame.setState({ worldMap: carteMuette, flags: {} });
-    await monter({ hereSceneId: 's-auberge' });
+    await monter({ hereId: 'auberge' });
     const avant = vue();
 
     await act(async () => {
@@ -290,7 +290,7 @@ describe('RÉVÉLATION en cours de partie — la vue se re-cadre pour que le lie
 
   it('sans révélation, la caméra ne bouge pas d’elle-même (aucun recadrage à chaque rendu)', async () => {
     useGame.setState({ worldMap: carteMuette, flags: {} });
-    await monter({ hereSceneId: 's-auberge' });
+    await monter({ hereId: 'auberge' });
     const avant = vue();
     await act(async () => {
       useGame.setState({ flags: { 'un-flag-sans-effet-sur-la-carte': true } });
@@ -305,7 +305,7 @@ describe('non-régression — un paquet RÉEL sans `when` rend à l’identique 
     const premier = map.places[0];
 
     useGame.setState({ worldMap: map, flags: {} });
-    await monter({ hereSceneId: premier.scene });
+    await monter({ hereId: premier.id });
     const nu = container.innerHTML;
 
     await act(async () => useGame.setState({ flags: { 'un-flag-quelconque': true } }));

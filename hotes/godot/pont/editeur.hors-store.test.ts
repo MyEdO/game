@@ -2,13 +2,14 @@
  * L'ÉDITEUR DE CARTE PAR LE PONT (#3508) : `editer` ouvre la première scène d'une campagne du jeu, joue les gestes que
  * ses zones offrent et les gestes du pointeur, rend la surcouche du geste en cours, et le monde à l'ouverture, au
  * changement de couche et à chaque écriture finie, jamais pendant le geste. Ouverte du texte que sert le dépôt, la carte
- * s'y enregistre : `editer` rend le texte à écrire, et la tient pour enregistrée à l'issue réussie de l'écriture.
+ * s'y enregistre : `editer` rend le texte à écrire, et la tient pour enregistrée à l'issue réussie de l'écriture. Les
+ * entités et les entrées de la couche éditée se repèrent en surcouche ; le formulaire de l'inspecteur les nomme.
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
 import type { AreteDessinee, VolumeDuMonde } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
-import type { Bouton, Choix, Ligne } from '../../../src/hote/elements';
+import type { Bouton, Choix, Formulaire, Ligne } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -35,7 +36,7 @@ function editionDe(r: Reponse): Edition {
 
 /** Le bouton d'id `id` des zones de l'éditeur, posé seul ou parmi les valeurs d'un choix. */
 function boutonDe(e: Edition, id: string): Bouton {
-  const b = Object.values(e.vue.zones).flat().flatMap((el: Ligne | Choix | Bouton) => (el.type === 'bouton' ? [el] : el.type === 'ligne' ? [] : el.valeurs)).find((v) => v.id === id);
+  const b = Object.values(e.vue.zones).flat().flatMap((el: Ligne | Choix | Bouton | Formulaire) => (el.type === 'bouton' ? [el] : el.type === 'choix' || el.type === 'liste' ? el.valeurs : [])).find((v) => v.id === id);
   if (!b) throw new Error(`aucun bouton ${id}`);
   return b;
 }
@@ -134,7 +135,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const materiau = valeursDe(portes, 'structures')[1];
     presser(materiau);
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
-    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, porte: true, ouverte: true }]);
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4 }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     presser(boutonDe(posee, 'outil/select'));
@@ -144,6 +145,106 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     expect(auNord(presser(boutonDe(choisie, 'annuler')).aretes!)).toEqual([]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, les entités', () => {
+  it('l’outil décor pose le décor choisi, repéré et inspecté ; le formulaire le nomme ; il s’oriente, se copie, se colle sur la case pointée, se supprime', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const decors = presser(boutonDe(ouverte, 'outil/prop'));
+    const decor = valeursDe(decors, 'decors')[1];
+    presser(decor);
+    const pose = jouer({ geste: 'appui', point: point(1, 1) });
+    jouer({ geste: 'relache', point: point(1, 1) });
+    const repere = pose.surcouche.reperes.find((r) => r.choisi)!;
+    expect(repere).toMatchObject({ sorte: 'prop', x: 1, y: 1, z: 0, nom: decor.libelle });
+    expect(pose.vue.zones['editeur.pointee'].map((l) => l.texte)).toContain(`Décor « ${decor.libelle} » · case 1, 1 · couche 0`);
+    expect(pose.vue.zones['editeur.inspecteur'].find((e) => e.type === 'formulaire')).toMatchObject({ verbe: 'nommer', champs: [{ type: 'saisieTexte', nom: 'nom', valeur: decor.libelle }] });
+
+    const nomme = editionDe(appel('editer', { type: 'nommer', args: ['Comptoir'] }));
+    expect(nomme.surcouche.reperes.find((r) => r.choisi)?.nom).toBe('Comptoir');
+    expect(erreurDe(appel('editer', { type: 'nommer', args: [3] })).categorie).toBe('validation');
+    expect(erreurDe(appel('editer', { type: 'renommer', args: ['x'] })).categorie).toBe('validation');
+    const tourne = presser(boutonDe(nomme, 'entite/cap/E'));
+    expect(boutonDe(tourne, 'entite/cap/E').presse).toBe(true);
+
+    const copie = presser(boutonDe(tourne, 'copier'));
+    expect(boutonDe(copie, 'coller').refus, 'la case pointée est celle du décor : le coller s’y pose').toBeNull();
+    presser(boutonDe(copie, 'outil/select'));
+    jouer({ geste: 'appui', point: point(3, 2) });
+    const collee = presser(boutonDe(jouer({ geste: 'relache', point: point(3, 2) }), 'coller'));
+    expect(collee.surcouche.reperes.filter((r) => r.nom === 'Comptoir').map((r) => [r.x, r.y, r.choisi])).toEqual([[1, 1, false], [3, 2, true]]);
+    const supprimee = presser(boutonDe(collee, 'entite/supprimer'));
+    expect(supprimee.surcouche.reperes.filter((r) => r.nom === 'Comptoir')).toHaveLength(1);
+    expect(supprimee.monde, 'le monde suit l’écriture').toBeDefined();
+  });
+
+  it('l’outil entrée pose une entrée nommée, que le formulaire renomme et que la case pointée décrit', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/entry'));
+    const posee = jouer({ geste: 'appui', point: point(1, 1) });
+    const nom = posee.surcouche.reperes.find((r) => r.choisi && r.sorte === 'entree')!.nom;
+    const renommee = editionDe(appel('editer', { type: 'nommer', args: ['cour-des-coches'] }));
+    expect(renommee.surcouche.reperes.find((r) => r.choisi)).toMatchObject({ sorte: 'entree', nom: 'cour-des-coches', x: 1, y: 1 });
+    expect(renommee.vue.zones['editeur.pointee'].map((l) => l.texte)).toContain('Entrée « cour-des-coches » · case 1, 1 · couche 0');
+    expect(nom).not.toBe('cour-des-coches');
+  });
+});
+
+describe('l’éditeur de carte par le pont, le combat et l’ameublement', () => {
+  it('un emplacement de siège posé à l’outil : son engin, son arc, ses servants et leur chef ; un personnage enrôlé dans une rencontre neuve, allié piloté', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    presser(boutonDe(ouverte, 'outil/personnage'));
+    const pnj = jouer({ geste: 'appui', point: point(1, 1) });
+    jouer({ geste: 'relache', point: point(1, 1) });
+    const pnjId = pnj.surcouche.reperes.find((r) => r.choisi)!.id;
+    const enrole = presser(boutonDe(pnj, 'rencontre/neuve'));
+    const choixDeRencontre = enrole.vue.zones['editeur.inspecteur'].find((el) => el.type === 'choix' && el.id.startsWith('rencontre/') && el.valeurs.some((v) => v.id.endsWith('/enrole') && v.presse)) as Choix;
+    const enc = choixDeRencontre.id;
+    const allie = presser(boutonDe(enrole, `${enc}/allie`));
+    expect(boutonDe(presser(boutonDe(allie, `${enc}/ia`)), `${enc}/ia`).presse).toBe(true);
+
+    const engins = presser(boutonDe(allie, 'outil/emplacement'));
+    const engin = valeursDe(engins, 'engins')[1];
+    presser(engin);
+    const pose = jouer({ geste: 'appui', point: point(3, 3) });
+    jouer({ geste: 'relache', point: point(3, 3) });
+    expect(boutonDe(pose, `poste/engin/${engin.id.slice('engin/'.length)}`).presse).toBe(true);
+    const tribord = presser(boutonDe(pose, 'poste/arc/tribord'));
+    expect([boutonDe(tribord, 'poste/arc/tribord').presse, boutonDe(tribord, 'poste/arc/omni').presse]).toEqual([true, false]);
+    const servi = presser(boutonDe(tribord, `poste/servants/${pnjId}`));
+    expect(boutonDe(servi, `poste/chef/${pnjId}`).presse).toBe(true);
+    expect(boutonDe(servi, `equipage/${pnjId}`).presse, 'l’équipage exposé est une autre liste').toBe(false);
+  });
+
+  it('un décor : sa lumière allumée, son rayon au pas, son ton ; son assise ouverte, une place tenue par un emplacement du groupe', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const decors = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/prop'));
+    presser(valeursDe(decors, 'decors').find((b) => b.id === 'prop/table-ronde-4-tabourets')!);
+    const pose = jouer({ geste: 'appui', point: point(5, 5) });
+    jouer({ geste: 'relache', point: point(5, 5) });
+    const texte = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id && el.type === 'ligne') as Ligne | undefined;
+    expect(texte(pose, 'lumiere/rayon'), 'éteinte, pas de rayon').toBeUndefined();
+    const allumee = presser(boutonDe(pose, 'lumiere'));
+    expect(texte(allumee, 'lumiere/rayon')?.texte).toBe('Rayon d’éclairage : 6 m');
+    const plus = presser(boutonDe(allumee, 'lumiere/plus'));
+    expect(texte(plus, 'lumiere/rayon')?.texte).toBe('Rayon d’éclairage : 7 m');
+    expect(boutonDe(presser(boutonDe(plus, 'lumiere/ton/lanterne')), 'lumiere/ton/lanterne').presse).toBe(true);
+    expect(boutonDe(presser(boutonDe(plus, 'assise')), 'assise').presse).toBe(true);
+    const place = pose.vue.zones['editeur.inspecteur'].find((el) => el.type === 'liste' && el.id.startsWith('place/')) as Choix;
+    expect(boutonDe(pose, `${place.id}/personne`).presse).toBe(true);
+    const tenue = presser(boutonDe(pose, `${place.id}/heros-1`));
+    expect([boutonDe(tenue, `${place.id}/heros-1`).presse, boutonDe(tenue, `${place.id}/personne`).presse]).toEqual([true, false]);
   });
 });
 

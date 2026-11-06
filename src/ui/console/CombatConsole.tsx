@@ -12,7 +12,7 @@ import { availableAttacks } from '../../noyau/combatManeuvers';
 import type { ManeuverDef } from '../../data/index';
 import { findSpellById, byId, findActionById, ACTIONS, cibleCodex, type ActionDef } from '../../data/index';
 import { type CodexTarget } from '../../engine/ruleRefs';
-import { actionGate, offreArmee, runAction, currentInterludeAction, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ActionRunCtx } from '../../noyau/actionRegistry';
+import { actionGate, offreArmee, currentInterludeAction, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ContexteDOffre } from '../../noyau/actionRegistry';
 import { targetingModeLabel, targetingModeConsigne, dispellableOnCarrier } from '../../noyau/targetingModes';
 import { CodexRef } from '../compendium/CodexRef';
 import { isConsumable } from '../../engine/consumables';
@@ -63,7 +63,7 @@ type CellFamily = 'arme' | 'geste' | 'mouvement' | 'defense' | 'avantage' | 'att
 type Cell = {
   key: string;
   /** ID D'ACTION du registre — l'IDENTITÉ de la case : rendue en `data-action`, publiée au pont
-   *  clavier, exécutée par `runAction`. Jamais une closure anonyme (spec HUD « Zone 12 »). */
+   *  clavier, jouée par `jouerLOffre`. Jamais une closure anonyme (spec HUD « Zone 12 »). */
   id: string;
   icon: ReactNode;
   label: string;
@@ -470,7 +470,7 @@ export function CombatConsole() {
   // ciblage courant. La console ne nomme aucun état de flux — elle ne connaît que des ids d'action ;
   // et le sélecteur rend une CHAÎNE, donc il ne re-rend que quand l'interlude change.
   const interludeId = useGame((s) => currentInterludeAction(() => s)?.id);
-  // AUCUN dispatcher n'est capté ici : toute exécution passe par `runAction` (registre des actions).
+  // AUCUN dispatcher n'est capté ici : toute exécution passe par `jouerLOffre` (registre des actions).
   // SIÈGE nommé par l'arbitre de modales (`spectatorSeatOfModal`) : lu par un SÉLECTEUR ABONNÉ — une
   // modale distante qui s'ouvre APRÈS le montage doit faire taire la bande d'attente, sinon deux puces
   // coexistent à l'écran. Le sélecteur rend un nombre ou `null` : référentiellement stable.
@@ -520,7 +520,7 @@ export function CombatConsole() {
           icon: <Icon id={roundStartDef.icon as IconIdInput} size="sm" />,
           primary: true,
           disabled: enReseau && dejaPret,
-          run: () => runAction(roundStartDef.id, useGame.getState),
+          run: () => useGame.getState().jouerLOffre(roundStartDef.id),
         }],
       }
     : interlude
@@ -532,7 +532,7 @@ export function CombatConsole() {
             label: interlude.label,
             icon: <Icon id={interlude.icon as IconIdInput} size="sm" />,
             primary: !bandeauDiscret(interlude),
-            run: () => runAction(interlude.id, useGame.getState),
+            run: () => useGame.getState().jouerLOffre(interlude.id),
           }],
         }
       : null;
@@ -593,7 +593,7 @@ export function CombatConsole() {
   /** CANDIDATS portés par une alvéole : les valeurs d'identité de ses ARGS (`spellId`, `weaponUid`,
    *  `stateId`…). Aucun nom d'argument n'est cité ici — la case dit CE qu'elle paramètre, le registre
    *  dit qui le couvre. */
-  const candidatsDe = (args?: ActionRunCtx): string[] =>
+  const candidatsDe = (args?: ContexteDOffre): string[] =>
     Object.values(args ?? {}).filter((v): v is string => typeof v === 'string');
   /** LES OFFRES DE L'ACTIF — l'énumération UNIQUE du registre (`offresDeLActif`, #2911), lue aussi par les pastilles
    *  du champ et l'hôte texte. Une case n'existe que si l'énumérateur l'offre (`offreDesignee`) : la PERTINENCE
@@ -611,7 +611,7 @@ export function CombatConsole() {
    *  déjà : `hote` d'un geste secondaire, schéma `actions.ts`).
    *  `progres` = la progression du Test étendu EN COURS sur ce candidat, portée par le libellé du
    *  geste qui l'alimente (même patron que l'alvéole Dissiper, qui porte la sienne). */
-  const gestes2e = (def: ActionDef, family: CellFamily, args?: ActionRunCtx, progres?: string): Cell[] => {
+  const gestes2e = (def: ActionDef, family: CellFamily, args?: ContexteDOffre, progres?: string): Cell[] => {
     if (def.surface === 'geste-secondaire') return [];
     const candidats = candidatsDe(args);
     if (!candidats.length) return [];
@@ -624,7 +624,7 @@ export function CombatConsole() {
   };
 
   /** UNE CASE = UNE ENTRÉE de `src/data/actions.json` : libellé, icône, foyer de règle Codex, verdict
-   *  d'offre (`actionGate` → raison VISIBLE) et dispatcher (`runAction`) viennent tous de l'action.
+   *  d'offre (`actionGate` → raison VISIBLE) et dispatcher (`jouerLOffre`) viennent tous de l'action.
    *  L'existence de la case est l'offre du registre (`offreDesignee`) ; la console ne décide QUE de sa MATIÈRE
    *  (famille) et de l'habillage porté par le contenu réel (art de l'objet, compteurs). Une action
    *  sans dispatcher (`blocked`) rend une case DESSINÉE mais inerte : le registre le dit, elle ne feint pas.
@@ -632,7 +632,7 @@ export function CombatConsole() {
   const cellFor = (
     actionId: string,
     family: CellFamily,
-    over: { key?: string; label?: string; icon?: ReactNode; rule?: CodexTarget; on?: boolean; adv?: number; mouv?: boolean; args?: ActionRunCtx;
+    over: { key?: string; label?: string; icon?: ReactNode; rule?: CodexTarget; on?: boolean; adv?: number; mouv?: boolean; args?: ContexteDOffre;
       /** PROGRESSION du Test étendu en cours sur le candidat de la case, portée par le libellé du
        *  geste secondaire qui l'alimente. */
       progres?: string;
@@ -663,7 +663,7 @@ export function CombatConsole() {
       mouv: over.mouv,
       disabled: !live || !verdict.ok,
       run: live && (def.run || def.intent)
-        ? over.ouvre ?? (() => runAction(def.id, useGame.getState, { ...(over.args ?? {}), ...(arme ? { toggleOff: true } : null) }))
+        ? over.ouvre ?? (() => (arme ? useGame.getState().desarmerLeMode() : useGame.getState().jouerLOffre(def.id, over.args)))
         : undefined,
     };
   };
@@ -673,7 +673,7 @@ export function CombatConsole() {
   // ARMES À DISTANCE du porteur — le SÉLECTEUR DU REGISTRE (`armes-a-distance`, déclaré par l'entrée
   // `reload`), jamais un filtre recopié : deux pistolets sont DEUX armes, chacune avec son cycle de
   // charge (`weaponLoad.ts`, registre par `uid`) et sa munition — ce que les dispatchers mesurent déjà
-  // (`combatSlice.ts:1939` `battleReload`, `:2151` `battleSelectAmmo`, tous deux paramétrés par l'arme).
+  // (`combatSlice.ts:1939` `rechargerLArme`, `:2151` `approvisionnerLArme`, tous deux paramétrés par l'arme).
   const rangedWs = ACTION_CANDIDATES['armes-a-distance'](gateCtx) as Weapon[];
   const heldSet = activeLoadout(active);
   /** Un AUTRE set se prend-il : la porte du registre (`switch-loadout`), jamais `loadoutSwapped` relu ici. */
@@ -797,7 +797,7 @@ export function CombatConsole() {
     cellFor('dismount', 'geste'),
     cellFor('leave-poste', 'geste'),
     // La barre : le BARREUR la tient, et la COQUE elle-même quand c'est SON tour (gate `a-la-barre`) — même
-    // case, mêmes arguments (`battleShipManeuver` accepte l'un ou l'autre, `combatSlice.ts:1363`).
+    // case, mêmes arguments (`manoeuvrerLeNavire` accepte l'un ou l'autre, `combatSlice.ts:1363`).
     cellFor('maneuver-ship', 'geste', { args: { crewId: active.id } }),
     // NAVIRE (échelle Mer) : au tour de la coque, ses Tests d'équipage sont les gestes de la travée —
     // les MÊMES cases du registre, pas une 2ᵉ barre. Bordée et Rude épreuve dépensent l'Action du navire
@@ -892,7 +892,7 @@ export function CombatConsole() {
     cellFor('frenzy', 'geste'),
     cellFor('aid-team', 'geste'),
     // DÉTERMINATION — deux des trois dépenses (LDB 17 l.59-60) sont des alvéoles, comme toute action :
-    // leurs dispatchers sont DIRECTS (`battleResolvePsychImmune`/`battleResolveIgnoreCrit` dépensent le
+    // leurs dispatchers sont DIRECTS (`depenserLaDetermination` dépense le
     // point au clic), il n'y a donc plus rien à ARMER. La 3ᵉ (« Retirez un État », l.61) vit sur la
     // PASTILLE de l'État qu'elle retire (plus bas, `retraitDEtat`). Le chiffre entre parenthèses est la
     // RÉSERVE restante — l'ancienne case d'armement la portait seule.
@@ -978,11 +978,11 @@ export function CombatConsole() {
   const advCap = advantageCapFor(active);
   const meaningfulLeft = hasMeaningfulOption(gateCtx);
   // Garde-fou « tour gâché » (spec §1c-bis COIN) : finir avec l'Action NON DÉPENSÉE demande deux gestes.
-  // La POLITIQUE est celle de l'entrée de registre `end-turn` (`battleEndTurn` arme puis finit) : la
-  // plaque ne décide rien, elle passe par `runAction` comme la touche et LIT l'armement du combat.
+  // La POLITIQUE est celle de l'entrée de registre `end-turn` (`terminerLeTour` arme puis finit) : la
+  // plaque ne décide rien, elle passe par `jouerLOffre` comme la touche et LIT l'armement du combat.
   const wastingAction = wastesAction(active, battle, pendingCleave);
   const arme = endTurnArmed(battle);
-  const onEndTurn = () => runAction('end-turn', useGame.getState);
+  const onEndTurn = () => useGame.getState().jouerLOffre('end-turn');
   // 3ᵉ ligne de la plaque de sortie : elle dit l'état VRAI du tour — l'armement du 2ᵉ geste, sinon
   // l'avertissement « Action non dépensée », sinon « Tour fini », sinon SA touche (Espace,
   // `keybindings.ts` `end-turn`). Un héros Sonné n'a rien à dépenser : il lit la touche, pas un reproche.
@@ -1044,7 +1044,7 @@ export function CombatConsole() {
   // ── PANNEAU-PARAMÈTRE de l'ARME À RECHARGER (spec §1a + zone 10) ───────────────────────────────
   // Le geste est décidé (recharger), il ne manque QUE l'arme : liste BORNÉE aux armes à Recharge du
   // porteur. Chaque candidat EST l'entrée de registre `reload` avec SON `weaponUid` — même verdict
-  // d'offre, même dispatcher (`battleReload`) que l'alvéole à une seule arme.
+  // d'offre, même dispatcher (`rechargerLArme`) que l'alvéole à une seule arme.
   // Une arme DÉJÀ CHARGÉE est un candidat INERTE, avec son état dit : le verdict de sa case (gate
   // `arme-a-recharger`, `aRecharger` de `src/engine/weaponLoad.ts`).
   const rechargeOptions: ParamOption[] = rechargeChoisissable
@@ -1176,7 +1176,7 @@ export function CombatConsole() {
                         className={`chip cc-set${held ? ' on' : ''}`}
                         disabled={!live || (!held && !setsCommutables)}
                         aria-label={unloaded ? `${loadoutLabel(lo, active)}, VIDE` : loadoutLabel(lo, active)}
-                        onClick={() => runAction('switch-loadout', useGame.getState, { loadoutId: lo.id })}
+                        onClick={() => useGame.getState().jouerLOffre('switch-loadout', { loadoutId: lo.id })}
                       >
                         <i className="cc-set-n">{i + 1}</i>
                         {mainItem ? <ItemIcon item={mainItem} /> : <Icon id="item/weapon" size="sm" />}
@@ -1213,7 +1213,7 @@ export function CombatConsole() {
         </div>
 
         {/* Le geste d'ANNULATION est adossé à SA ressource (spec §1c) : il ne paraît que quand le
-            gate du registre (`deplacement-annulable`, MIROIR de la garde de `cancelMove`) passe. */}
+            gate du registre (`deplacement-annulable`, MIROIR de la garde de `annulerLeDeplacement`) passe. */}
         <ConsoleArch
           active={active}
           move={{ value: moveLeft, max: moveMax, spend: previewDelta.move, geste: cellFor('undo-move', 'mouvement') }}

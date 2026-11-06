@@ -78,9 +78,9 @@ describe('le pont et sa partie', () => {
 
   it('la vue porte le plateau de la scène, chaque verbe de sa fenêtre en geste, et les clics du champ', () => {
     const v = vue();
-    const scene = scenario.construire().scene;
-    expect(v.plateau, 'le plateau de la scène du scénario').toEqual(plateauDeLaScene(scene));
-    expect(plateauDeLaScene({ ...scene, metresPerTile: 1.5 }).metresParCase, 'l’échelle que la scène déclare').toBe(1.5);
+    const depart = scenario.construire();
+    expect(v.plateau, 'le plateau de la scène du scénario, sans toit à lever').toEqual(plateauDeLaScene(depart.scene, []));
+    expect(plateauDeLaScene({ ...depart.scene, metresPerTile: 1.5 }, []).metresParCase, 'l’échelle que la scène déclare').toBe(1.5);
     expect(fautesDeLaFenetre(v), 'chaque verbe de la fenêtre ouverte, dessinable').toEqual([]);
     expect(v.champ, 'l’ouverture du round tient la main : le champ ne se clique pas').toBeNull();
     for (const verbe of Object.values(CLICS_DU_CHAMP)) expect(VERBES[verbe], verbe).toBeDefined();
@@ -110,8 +110,8 @@ describe('le pont et sa partie', () => {
 
   it('chaque catégorie d’un geste refusé : `validation`, `permission`, `regle`', { timeout: 120_000 }, () => {
     drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['roundStart'] }));
-    expect(erreurDe(appel('jouer', { type: 'jouerLOffre', args: ['end-turn'], siege: 0 })).categorie).toBe('validation');
-    expect(erreurDe(appel('jouer', { type: 'battleEndTurn', args: [], siege: 1 })).categorie).toBe('permission');
+    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 0 })).categorie).toBe('validation');
+    expect(erreurDe(appel('jouer', { type: 'jouerLOffre', args: ['end-turn'], siege: 1 })).categorie).toBe('permission');
     expect(erreurDe(appel('jouer', { offre: 'disengage' })).categorie).toBe('regle');
   });
 

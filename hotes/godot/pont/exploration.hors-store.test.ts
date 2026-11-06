@@ -25,7 +25,7 @@ describe('l’exploration par le pont', () => {
     const exploration = suite.vue.projection.exploration!;
     expect(exploration, 'hors combat, la vue est celle de l’exploration').not.toBeNull();
     expect(suite.vue.champ, 'rien ne tient la main : un clic de case fait marcher le groupe').toEqual(CLICS_DE_L_EXPLORATION);
-    expect(exploration.heros.map((h) => h.pos), 'chaque héros se tient à la case du groupe').toEqual(exploration.heros.map(() => exploration.groupe));
+    expect(exploration.heros.map((h) => h.pos), 'chaque héros se tient à la case du groupe').toEqual(exploration.heros.map(() => [...exploration.groupe, exploration.etage ?? 0]));
     expect(Object.keys(suite.vue.corps.combattants).sort(), 'chaque héros a son corps dans la vue').toEqual(exploration.heros.map((h) => h.id).sort());
 
     const plateau = suite.vue.plateau!;
@@ -39,12 +39,12 @@ describe('l’exploration par le pont', () => {
     expect(boutons.map((b) => b.libelle), 'chaque geste d’exploration est un bouton qui le nomme').toEqual(exploration.gestes.liste.map((g) => g.libelle));
     const porte = boutons.find((b) => 'suite' in b.jeu && b.jeu.suite.some((a) => a.type === 'actionnerLaPorte'));
     expect(porte, 'la porte fermée s’ouvre par un bouton').toBeDefined();
-    const porteDuPlateau = (aretes: ReturnType<typeof plateauDeLaScene>['aretes']) => aretes.find((a) => a.porte);
-    expect(porteDuPlateau(suite.vue.plateau!.aretes), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
-      .toEqual({ case: { x: 2, y: 1 }, milieu: { x: 2.5, y: 1 }, sens: { x: 0, y: 1 }, porte: true, ouverte: false });
-    expect(suite.vue.plateau!.aretes.filter((a) => !a.porte).map((a) => [a.milieu, a.ouverte]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, false], [{ x: 2.5, y: 2 }, false]]);
+    const auMilieu = (aretes: ReturnType<typeof plateauDeLaScene>['aretes']) => aretes.find((a) => a.milieu.x === 2.5 && a.milieu.y === 1);
+    expect(auMilieu(suite.vue.plateau!.aretes), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
+      .toEqual({ case: { x: 2, y: 1 }, milieu: { x: 2.5, y: 1 }, sens: { x: 0, y: 1 }, piece: 'porte-fermee', famille: 'colombage', hauteurM: 4 });
+    expect(suite.vue.plateau!.aretes.filter((a) => a !== auMilieu(suite.vue.plateau!.aretes)).map((a) => [a.milieu, a.piece]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, 'mur'], [{ x: 2.5, y: 2 }, 'mur']]);
     ({ suite } = drainer(appel, appel('jouer', porte!.jeu)));
-    expect(porteDuPlateau(suite.vue.plateau!.aretes)?.ouverte, 'la porte ouverte, le plateau la dessine ouverte').toBe(true);
+    expect(auMilieu(suite.vue.plateau!.aretes)?.piece, 'la porte ouverte, le plateau la dessine ouverte').toBe('porte-ouverte');
 
     const reduit = { x: 4, y: 1 };
     ({ suite } = drainer(appel, appel('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [reduit] })));

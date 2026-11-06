@@ -1,7 +1,7 @@
 /**
  * Effet d'auteur `castSpell` (#98) : lancer scripté depuis un dialogue/trigger. EN COMBAT, route par
  * le flux d'incantation STANDARD (`castSpell`, combatFlow) — même chemin que l'IA. HORS COMBAT, un
- * héros du groupe route par `oocCastSpell` (couture D, jet réel) ; un PNJ hors combat (pas de
+ * héros du groupe route par `incanterLeSort` (couture D, jet réel) ; un PNJ hors combat (pas de
  * Combatant) est refusé — pas de pseudo-combat inventé. `mode:'forceSuccess'` (arbitrage d'auteur)
  * joue le Flow du sort à DR = NI, sans jet, en combat comme hors combat.
  */
@@ -76,7 +76,7 @@ describe('Effet castSpell (#98)', () => {
   });
 
   describe('HORS COMBAT (couture D)', () => {
-    it('un héros du groupe route par `oocCastSpell` (jet réel, `pendingCast` ouvert)', () => {
+    it('un héros du groupe route par `incanterLeSort` (jet réel, `pendingCast` ouvert)', () => {
       const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
       banc.setState({ party: [wiz], battle: null, pendingCast: null });
       applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: wiz.id, spellId: 'chute' }]);

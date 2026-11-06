@@ -7,7 +7,7 @@
  * démarre/finit modale ouverte). Un seul point de vérité → moins de divergence entre actions.
  *
  * Patron d'une nouvelle action combat-ou-hors-combat :
- *   - ouverture : garder `if (battle) …` seulement si l'action est hors-combat-only (ex. `oocCastSpell`) ;
+ *   - ouverture : garder `if (battle) …` seulement si l'action est hors-combat-only ;
  *   - acteurs (lanceur/cible) : `actorIn(get(), id)` ;
  *   - re-rendu après mutation EN PLACE (Chance/Résilience) : `…touchActors(get())` dans le `set` ;
  *   - sortie : en combat → `battle.log` (+ conso de l'Action, `checkBattleOver`) ; hors combat → `journal`.

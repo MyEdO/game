@@ -4,7 +4,7 @@
  * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
  * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
  */
-import type { ActionRunCtx, CreatorDraft, GesteDEdition, GesteDuBrouillon, PageDeCreation, ValeurDuReglage } from '../noyau/index';
+import type { ContexteDOffre, CreatorDraft, GesteDEdition, GesteDuBrouillon, PageDeCreation, ValeurDuReglage } from '../noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
@@ -65,7 +65,7 @@ export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engage
  *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), la fiche que l'hôte
  *  montre (`null` : aucune), qui ne touche pas la partie, un geste de la création d'un héros (`null` : la
  *  ferme), ou un geste de l'éditeur de carte (`editeur.ts`). */
-export type Jeu = Appel | { offre: string; ctx?: ActionRunCtx } | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition };
+export type Jeu = Appel | { offre: string; ctx?: ContexteDOffre } | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */
@@ -93,8 +93,18 @@ export type Saisie =
  *  pas. */
 export interface Formulaire { type: 'formulaire'; id: string; libelle: string; verbe: string; focus: boolean; refus: string | null; champs: Saisie[] }
 
+/** Un point du plan : son nom, sa position dans le cadre du plan (0..1 sur chaque axe), son ton, et les éléments
+ *  qui se posent sous lui. */
+export interface PointDuPlan { type: 'point'; id: string; nom: string; x: number; y: number; ton: Ton; elements: Element[] }
+
+/** Un trait du plan, d'un point à l'autre (leurs ids), à son ton. */
+export interface TraitDuPlan { id: string; de: string; vers: string; ton: Ton }
+
+/** Un plan : des points nommés posés dans un cadre, et les traits qui les relient. */
+export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits: TraitDuPlan[] }
+
 /** Un élément de la vue. */
-export type Element = Ligne | Puce | Jauge | Jet | Entite | Bouton | Choix | Formulaire | Saisie;
+export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Bouton | Choix | Formulaire | Saisie;
 
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */

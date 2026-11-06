@@ -10,8 +10,8 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
-  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown,
+  ACTIONS, avecSigne, batailleEnVue, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -196,6 +196,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     })] : []),
     ...patientDuSoin(etat),
     ...trajetsDeLaCarte(etat),
+    ...ecranDuLieu(etat),
     ...recitDuVoyage(etat),
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
@@ -210,24 +211,41 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
   ];
 }
 
-/** La carte du monde ouverte (`carteEnVue`) : d'où part le groupe, la reprise d'un voyage interrompu, puis chaque trajet
- *  en entité, sa destination et sa longueur, et ses modes de voyage en choix, chacun avec ses jours de route et fermé
- *  avec sa raison. */
+/** Les modes de voyage d'un trajet en choix, titré de sa longueur : chacun avec ses jours de route, fermé avec sa
+ *  raison. Le même élément part du lieu (`ecranDuLieu`) et de la carte (`trajetsDeLaCarte`). */
+const departDuTrajet = (tr: TrajetEnVue): Choix => ({
+  type: 'choix', id: tr.route, ton: 'neutre', libelle: tr.distance, focus: false, refus: null,
+  valeurs: tr.modes.map((m) => boutonDeGeste(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)),
+});
+
+/** La carte du monde ouverte (`carteEnVue`) : son plan, chaque lieu à sa place, celui du groupe en `alerte`, avec
+ *  le départ de chaque trajet qui y mène (`departDuTrajet`), chaque route qui part d'ici en `reussite` ; puis la reprise
+ *  d'un voyage interrompu. */
 function trajetsDeLaCarte(etat: Jeu): Element[] {
   const c = carteEnVue(etat);
   if (!c) return [];
-  const bouton = (id: string, libelle: string, g: { verbe: string; args: unknown[] }, refus: string | null): Bouton => ({ type: 'bouton', id, libelle, jeu: { type: g.verbe, args: g.args }, presse: false, focus: false, refus });
   return [
-    ligne('carte/ici', t('ecran.carte.ici', { lieu: c.ici })),
-    ...(c.reprendre ? [bouton('carte/reprendre', t('ecran.carte.reprendre'), c.reprendre, null)] : []),
-    ...c.trajets.map((tr): Entite => ({
-      type: 'entite', id: `carte/${tr.route}`, ton: 'neutre', nom: tr.vers,
-      elements: [
-        puce('distance', tr.distance, null),
-        { type: 'choix', id: 'modes', ton: 'neutre', libelle: t('ecran.carte.modes'), focus: false, refus: null,
-          valeurs: tr.modes.map((m) => bouton(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)) },
-      ],
+    {
+      type: 'plan', id: 'carte/plan',
+      points: c.plan.lieux.map((l) => ({ type: 'point', id: l.id, nom: l.nom, x: l.x, y: l.y, ton: l.ici ? 'alerte' : 'neutre', elements: l.trajets.map(departDuTrajet) })),
+      traits: c.plan.routes.map((r) => ({ id: r.route, de: r.de, vers: r.vers, ton: r.depuisIci ? 'reussite' : 'neutre' })),
+    },
+    ...(c.reprendre ? [boutonDeGeste('carte/reprendre', t('ecran.carte.reprendre'), c.reprendre, null)] : []),
+  ];
+}
+
+/** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : chacun de ses services en entité, ce qu'on y
+ *  fait en boutons fermés avec leur raison, puis chaque trajet qui en part, sa destination et son départ
+ *  (`departDuTrajet`). */
+function ecranDuLieu(etat: Jeu): Element[] {
+  const l = lieuEnVue(etat);
+  if (!l) return [];
+  return [
+    ...l.services.map((svc): Entite => ({
+      type: 'entite', id: `service/${svc.id}`, ton: 'neutre', nom: svc.nom,
+      elements: svc.gestes.map((g) => boutonDeGeste(g.id, g.libelle, g.geste, g.refus)),
     })),
+    ...l.trajets.map((tr): Entite => ({ type: 'entite', id: `trajet/${tr.route}`, ton: 'neutre', nom: tr.vers, elements: [departDuTrajet(tr)] })),
   ];
 }
 
@@ -564,15 +582,15 @@ function corpsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): (Puce | Bouto
   }
 }
 
-/** Un geste sur un objet (`GesteDuNoyau`), pressé quand il dit l'état courant, refusé avec sa raison. */
-const boutonDObjet = (id: string, libelle: string, g: GesteDuNoyau, refus: string | null, presse = false): Bouton => ({
+/** Un geste du noyau (`GesteDuNoyau`) en bouton, pressé quand il dit l'état courant, refusé avec sa raison. */
+const boutonDeGeste = (id: string, libelle: string, g: GesteDuNoyau, refus: string | null, presse = false): Bouton => ({
   type: 'bouton', id, libelle, jeu: { type: g.verbe, args: g.args }, presse, focus: false, refus,
 });
 
 /** Un geste à choix sur un objet : une liste dont chaque choix joue son geste, refusé avec elle. */
 const listeDObjet = (id: string, libelle: string, g: GesteAChoix<unknown>): Choix => ({
   type: 'liste', id, ton: 'neutre', libelle, focus: false, refus: g.refus,
-  valeurs: g.choix.map((c, i) => boutonDObjet(`${id}/${i}`, c.libelle, c.geste, g.refus)),
+  valeurs: g.choix.map((c, i) => boutonDeGeste(`${id}/${i}`, c.libelle, c.geste, g.refus)),
 });
 
 /** La possession choisie de la fiche `f` (`FicheOuverte.objet`) en entité : son nom, au ton `reussite` quand elle est
@@ -585,14 +603,14 @@ function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): En
   if (!p || !g) return [];
   const simple = (id: 'porter' | 'utiliser' | 'sortir' | 'evaluer' | 'detecter', presse = false): Bouton | null => {
     const x = g[id];
-    return x && boutonDObjet(id, t(`ecran.objet.${id}`), x.geste, x.refus, presse);
+    return x && boutonDeGeste(id, t(`ecran.objet.${id}`), x.geste, x.refus, presse);
   };
   const elements: (Element | null)[] = [
     p.nombre > 1 ? puce('nombre', t('ecran.fiche.nombre', { nombre: p.nombre }), null) : null,
     p.argent === null ? null : puce('argent', p.argent, null),
     p.contenant === null ? null : puce('contenant', t('ecran.objet.contenant', { contenant: p.contenant }), null),
     simple('porter', g.porter?.porte),
-    ...(g.mains ? (['main', 'off'] as const).map((m) => boutonDObjet(m, t(`ecran.objet.${m}`), g.mains![m].geste, g.mains![m].refus, g.mains![m].tenue)) : []),
+    ...(g.mains ? (['main', 'off'] as const).map((m) => boutonDeGeste(m, t(`ecran.objet.${m}`), g.mains![m].geste, g.mains![m].refus, g.mains![m].tenue)) : []),
     simple('utiliser'),
     g.ranger && listeDObjet('ranger', t('ecran.objet.ranger'), g.ranger),
     simple('sortir'),

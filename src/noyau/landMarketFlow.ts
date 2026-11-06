@@ -15,7 +15,7 @@
  * `cargo.ts`. Le Marchandage (Test opposé, ±`bargainPct`) réutilise le MÊME patron que `portFlow`.
  */
 import { battleRng } from './battleRng';
-import { placeOfScene } from './worldMap';
+import { lieuDuGroupe } from './worldMap';
 import { partyAssisted, partyBest, testValue, skillBaseValue } from '../engine/skills';
 import { opposedTest, shiftDifficulty, type OpposedResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
@@ -86,8 +86,7 @@ const log = (get: Get, _set: Set, lines: string[]) => {
 
 /** Lieu de commerce terrestre courant (place de la carte dont la scène EST la scène courante + `market`). */
 export function currentMarket(get: Get): { placeId: string; label: string; market: LandMarketProfile } | null {
-  const map = get().worldMap;
-  const place = map ? placeOfScene(map, get().scene?.id) : undefined;
+  const place = lieuDuGroupe(get());
   if (!place?.market) return null;
   return { placeId: place.id, label: place.label, market: place.market };
 }
