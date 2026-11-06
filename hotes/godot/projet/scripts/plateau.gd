@@ -9,7 +9,7 @@
 class_name Plateau
 extends Node3D
 
-signal case_cliquee(case: Vector2i)
+signal case_cliquee(case: Vector3i)
 ## Le corps d'un combattant dessiné a changé (`Combattant.habille`).
 signal habille
 
@@ -95,9 +95,14 @@ func point_de_l_apercu() -> Variant:
 	return _monde.a_l_ecran(_lieu(case))
 
 
-## Le point de l'écran de chaque case du plateau, par sa clé `x,y` (`Monde.points`).
+## Le point de l'écran du sol de chaque case de chaque couche du plateau, par sa clé `x,y,z` (`Monde.points`).
 func points() -> Dictionary:
-	return _monde.points()
+	var points := {}
+	for z: int in _monde.couches():
+		var couche := _monde.points(z)
+		for cle: String in couche:
+			points["%s,%d" % [cle, z]] = couche[cle]
+	return points
 
 
 ## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume (`Monde.poser`), ses
@@ -136,7 +141,7 @@ func _peindre() -> void:
 			if e.nom != null:
 				surligner.call(e.pos, Monde.ITEM_CIBLE)
 	if _survol != null:
-		surligner.call([_survol.x, _survol.y, 0], Monde.ITEM_SURVOL)
+		surligner.call([_survol.x, _survol.y, _survol.z], Monde.ITEM_SURVOL)
 	_monde.peindre(plaques)
 
 

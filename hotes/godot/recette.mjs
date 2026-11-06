@@ -26,6 +26,9 @@
 // - `relief` (`--scenario grimpant`, #3476) : la fenêtre du round à l'Entrée, le chasseur sur son plateau de 4 m ; un
 //   clic sur une case du plateau à une case de lui, au bord de la falaise, en montre l'aperçu : la case cliquée est
 //   celle de la surface sous le pointeur, à sa hauteur.
+// - `etage` (`--scenario fenetre-ecuries`, #3476) : l'entrée de la scène poursuivie à l'Entrée, le groupe à l'étage du
+//   relais ; un clic sur une case du couloir de l'étage y mène le groupe : la case cliquée est celle du plancher sous le
+//   pointeur, à sa couche, pas celle de la salle basse dessous.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
 //   réponse cliquée : l'interlocuteur suivant prend la parole.
@@ -105,6 +108,7 @@
 //   node hotes/godot/recette.mjs --scenario teinte-au-combat --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours exploration --scenario porte-close --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours relief --scenario grimpant --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours etage --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -130,7 +134,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|fiche|inventaire|creation|editeur|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|fiche|inventaire|creation|editeur|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -196,8 +200,8 @@ async function cliquerBouton(quoi) {
   if (!b) throw new Error(`bouton ${JSON.stringify(quoi)} absent ; boutons : ${boutons.map((x) => x.element ?? x.cle ?? x.texte).join(' | ')}`)
   await cliquerPoint(b.x, b.y)
 }
-async function cliquerCase({ x, y }) {
-  const [px, py] = (await ecran()).cases[`${x},${y}`]
+async function cliquerCase({ x, y, z = 0 }) {
+  const [px, py] = (await ecran()).cases[`${x},${y},${z}`]
   await cliquerPoint(px, py)
 }
 async function capturer(nom) {
@@ -306,7 +310,7 @@ async function parcoursCombat() {
   const proche = v.projection.combat.voisins.liste.filter((c) => v.projection.combat.cibles.liste.includes(c.id)).sort((a, b) => a.distance - b.distance)[0]
   assert.ok(proche, `la charge offre une cible ; cibles : ${JSON.stringify(v.projection.combat.cibles.liste)}`)
   noter(`offre ${charge.libelle} : intention charge, ${v.cases.length} cases peintes`)
-  await cliquerCase({ x: proche.pos[0], y: proche.pos[1] })
+  await cliquerCase({ x: proche.pos[0], y: proche.pos[1], z: proche.pos[2] })
   await attendreLaVue("v.projection.fenetre?.etape?.genre === 'attackJet'")
   v = await vue()
   assert.equal(element(v, 'fenetre.corps', 'jet')?.qui, heros.nom, 'la charge ouvre l’attaque du héros')
@@ -413,7 +417,7 @@ async function jouerEnJoueurPresse(fini, quoi) {
       await nouvelEcran()
     } else if (c.intention && c.cibles.liste.length) {
       const cible = c.voisins.liste.find((x) => x.id === c.cibles.liste[0])
-      await cliquerCase({ x: cible.pos[0], y: cible.pos[1] })
+      await cliquerCase({ x: cible.pos[0], y: cible.pos[1], z: cible.pos[2] })
     } else if (c.barre.forme === 'ouverte') await cliquerBouton(bouton(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')))
     else {
       await marquer()
@@ -497,6 +501,25 @@ async function parcoursRelief() {
   assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y, vers.z ?? 0]], 'la case cliquée est celle du plateau sous le pointeur')
   noter(`clic sur (${vers.x}, ${vers.y}), au bord du plateau de 4 m : son aperçu`)
   await capturer('3476-r2-plateau')
+}
+
+async function parcoursEtage() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  assert.equal(v.projection.exploration?.etage, 1, 'le groupe se tient à l’étage du relais')
+  await capturer('3476-c4-1-etage')
+  const couloir = { x: 5, y: 4, z: 1 }
+  await cliquerCase(couloir)
+  await attendreLaVue(`v.projection.exploration?.groupe.join() === '${couloir.x},${couloir.y}' && v.projection.exploration.etage === ${couloir.z}`)
+  noter(`clic sur la case ${couloir.x},${couloir.y} du couloir de l’étage : le groupe y marche, à l’étage`)
+  await capturer('3476-c4-2-couloir')
 }
 
 async function parcoursDialogue() {
@@ -600,7 +623,7 @@ async function parcoursIncantation() {
   v = await vue()
   noter(`Fléchette choisie : ${v.projection.combat.cibles.liste.length} cibles`)
   const cible = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
-  await cliquerCase({ x: cible.pos[0], y: cible.pos[1] })
+  await cliquerCase({ x: cible.pos[0], y: cible.pos[1], z: cible.pos[2] })
   await attendreLaVue('!!v.projection.fenetre')
   v = await vue()
   noter(`clic sur ${cible.nom} : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte} »`)
@@ -659,7 +682,7 @@ async function parcoursSoin() {
   v = await vue()
   const patient = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
   noter(`« Soigner » : intention ${JSON.stringify(v.projection.combat.intention)}, patients ${v.projection.combat.cibles.liste.join(', ')} ; ${patient.nom} en ${patient.pos}`)
-  await cliquerCase({ x: patient.pos[0], y: patient.pos[1] })
+  await cliquerCase({ x: patient.pos[0], y: patient.pos[1], z: patient.pos[2] })
   noter(`clic : fenêtre ${JSON.stringify((await vue()).projection.fenetre?.cle ?? null)}`)
   await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.id === 'soin')")
   v = await vue()
@@ -1780,7 +1803,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

@@ -128,12 +128,12 @@ func _publier_l_ecran() -> void:
 
 
 ## Un clic sur `case` : le clic du champ qui désigne son occupant s'il en a un, celui qui désigne la case sinon.
-func _cliquer(case: Vector2i) -> void:
+func _cliquer(case: Vector3i) -> void:
 	var champ: Variant = _vue.get("champ")
 	if champ == null:
 		return
-	var occupant: Variant = _vue.occupants.get("%d,%d" % [case.x, case.y])
+	var occupant: Variant = _vue.occupants.get("%d,%d,%d" % [case.x, case.y, case.z])
 	if occupant != null:
 		_jouer({type = champ.combattant, args = [occupant]})
 	else:
-		_jouer({type = champ.case, args = [{x = case.x, y = case.y}]})
+		_jouer({type = champ.case, args = [{x = case.x, y = case.y} if case.z == 0 else {x = case.x, y = case.y, z = case.z}]})
