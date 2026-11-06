@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
-import type { VolumeDuMonde } from '../../../src/noyau/index';
+import type { AreteDessinee, VolumeDuMonde } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Ligne } from '../../../src/hote/elements';
 import type { SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
@@ -20,6 +20,7 @@ interface Edition {
   vue: { zones: ZonesDeLEditeur; couche: number };
   surcouche: SurcoucheDeLEdition;
   monde?: VolumeDuMonde;
+  aretes?: AreteDessinee[];
   depot?: { id: string; texte: string };
 }
 
@@ -106,6 +107,33 @@ describe('l’éditeur de carte par le pont', () => {
     const retiree = presser(boutonDe(presser(boutonDe(auRez, `couche/${z}`)), 'couche/retirer'));
     expect([boutonDe(retiree, 'couche/0').presse, retiree.vue.couche]).toEqual([true, 0]);
     expect(() => boutonDe(retiree, `couche/${z}`)).toThrow();
+  });
+});
+
+describe('l’éditeur de carte par le pont, les murs', () => {
+  it('l’outil murs pose une porte du matériau choisi sur l’arête la plus proche ; la sélection la décrit ; annuler la retire', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const auNord = (aretes: AreteDessinee[]) => aretes.filter((a) => a.milieu.x === 1 && a.milieu.y === 0.5);
+    expect(auNord(ouverte.aretes!), 'l’arête nord de la case 1, 1, libre à l’ouverture').toEqual([]);
+    const murs = presser(boutonDe(ouverte, 'outil/wall'));
+    expect(boutonDe(murs, 'arete/wall').presse).toBe(true);
+    const portes = presser(boutonDe(murs, 'arete/door'));
+    const materiau = portes.vue.zones['editeur.options'].find((c) => c.id === 'structures')!.valeurs[1];
+    presser(materiau);
+    const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, porte: true, ouverte: true }]);
+    jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
+
+    presser(boutonDe(posee, 'outil/select'));
+    const choisie = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
+    expect(choisie.vue.zones['editeur.pointee'].map((l) => l.texte)).toContain(`Arête 1, 1 N · couche 0 · porte · ${materiau.libelle}`);
+    expect(choisie.surcouche.arete).toEqual(auNord(posee.aretes!)[0]);
+    jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
+
+    expect(auNord(presser(boutonDe(choisie, 'annuler')).aretes!)).toEqual([]);
   });
 });
 

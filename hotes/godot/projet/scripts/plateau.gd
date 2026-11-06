@@ -1,4 +1,4 @@
-## Le plateau du jeu : sur le monde de la scène (`Monde`), les murs et les portes fermées du plateau (`vue.plateau`),
+## Le plateau du jeu : sur le monde de la scène (`Monde`), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
 ## chaque combattant à sa case (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
 ## corps (`vue.corps`, aucun sous son `refus`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
@@ -12,16 +12,12 @@ signal case_cliquee(case: Vector2i)
 signal habille
 
 @export var scene_combattant: PackedScene
-@export var mesh_mur: BoxMesh
-@export var mesh_porte: BoxMesh
 
 @onready var _monde: Monde = $Monde
 @onready var _combattants: Node3D = $Combattants
-@onready var _aretes: Node3D = $Aretes
 
 var _modeles: Dictionary = {}
 var _entites: Dictionary = {}
-var _aretes_posees: Array = []
 var _vue: Dictionary = {}
 var _survol: Variant = null
 
@@ -35,7 +31,7 @@ func _ready() -> void:
 func montrer(vue: Dictionary, journal: Array) -> void:
 	_vue = vue
 	if vue.plateau != null:
-		_poser_les_aretes(vue.plateau.aretes)
+		_monde.poser_les_aretes(vue.plateau.aretes)
 	var combat: Variant = vue.projection.combat
 	var exploration: Variant = vue.projection.exploration
 	var actif: Variant = null if combat == null or combat.actif == null else combat.actif.id
@@ -62,25 +58,6 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 			_modeles[e.actorId].agir_vers(_modeles[e.targetId].position)
 			_modeles[e.targetId].subir()
 	_peindre()
-
-
-## Chaque mur et chaque porte fermée sur le côté de sa case ; une porte ouverte laisse le passage vide.
-func _poser_les_aretes(aretes: Array) -> void:
-	if aretes == _aretes_posees:
-		return
-	_aretes_posees = aretes
-	for n in _aretes.get_children():
-		n.queue_free()
-	for a in aretes:
-		if a.ouverte:
-			continue
-		var arete := MeshInstance3D.new()
-		arete.mesh = mesh_porte if a.porte else mesh_mur
-		var sens := Vector2(a.sens.x, a.sens.y)
-		arete.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), arete.mesh.size.y)
-		arete.rotation.y = MiseEnPage.lacet_d_arete(sens)
-		arete.scale.x = MiseEnPage.longueur_d_arete(sens)
-		_aretes.add_child(arete)
 
 
 ## Chaque entité de la scène nommée au-dessus de sa case.

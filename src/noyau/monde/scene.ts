@@ -493,16 +493,26 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
   }
 }
 
-/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les arêtes de sa couche de base, chacune son
- *  milieu et son sens en coins de grille (`wallEnds`), si elle est une porte en jeu (`porteEnJeu`) et si elle laisse
- *  passer (`wallIsOpen`), et son échelle métrique (`sceneMetresPerTile`). */
-export function plateauDeLaScene(scene: Scene): { w: number; h: number; metresParCase: number; aretes: { milieu: Pt; sens: Pt; porte: boolean; ouverte: boolean }[] } {
+/** Une arête telle qu'un hôte la dessine : la case du segment, son milieu et son sens en coins de grille (`wallEnds`),
+ *  si elle est une porte en jeu (`porteEnJeu`) et si elle laisse passer (`wallIsOpen`). */
+export interface AreteDessinee { case: Pt; milieu: Pt; sens: Pt; porte: boolean; ouverte: boolean }
+
+/** L'arête dessinée du segment `seg` de `scene`. */
+export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
+  const [a, b] = wallEnds(seg);
+  return { case: { x: seg.x, y: seg.y }, milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, sens: { x: b.x - a.x, y: b.y - a.y }, porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) };
+}
+
+/** Les arêtes dessinées de la couche `z` de `scene`. */
+export function aretesDeLaCouche(scene: Scene, z: number): AreteDessinee[] {
+  return (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === z).map((seg) => areteDessinee(scene, seg));
+}
+
+/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les arêtes de sa couche de base
+ *  (`aretesDeLaCouche`) et son échelle métrique (`sceneMetresPerTile`). */
+export function plateauDeLaScene(scene: Scene): { w: number; h: number; metresParCase: number; aretes: AreteDessinee[] } {
   const { w, h } = scene.dimensions;
-  const aretes = (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === 0).map((seg) => {
-    const [a, b] = wallEnds(seg);
-    return { milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, sens: { x: b.x - a.x, y: b.y - a.y }, porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) };
-  });
-  return { w, h, metresParCase: sceneMetresPerTile(scene), aretes };
+  return { w, h, metresParCase: sceneMetresPerTile(scene), aretes: aretesDeLaCouche(scene, 0) };
 }
 
 /** Lien vertical entre deux cases ADJACENTES (Chebyshev : cardinale OU diagonale, grille 8-connexe cf.

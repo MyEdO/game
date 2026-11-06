@@ -29,7 +29,7 @@ export const HAUTEURS = [
 const TOUS_LES_CALQUES: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 
 /** Les outils que l'éditeur offre. */
-export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' }>;
+export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' }>;
 
 export interface SessionDEdition {
   /** Le projet ouvert : son document, la scène éditée tenue par `historique`. */

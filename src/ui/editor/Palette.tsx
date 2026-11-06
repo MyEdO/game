@@ -22,12 +22,12 @@ import { terrainDef } from '../../noyau/monde/volume/matieres';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
 import { premierOffert, profilsStandard, refEstVolumique, structures } from '../../data';
 import { structureAppearance } from '../../gameIso/catalog/structures';
-import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
+import { isWallEdgeStructure } from '../../engine/structures';
 import { GatedAction } from '../GatedAction';
 import type { Pt } from '../../noyau/sceneEdit';
 import { HAUTEURS, PINCEAUX } from '../../noyau/edition/session';
 import { t } from '../../i18n';
-import type { Tool, WallPaint, ZoneVariant } from '../../noyau/sceneEditLecture';
+import { structuresDeLArete, type Tool, type WallPaint, type ZoneVariant } from '../../noyau/sceneEditLecture';
 import { planStairFlight } from '../../noyau/stairFlight';
 import { siegeEngines } from '../../data';
 import { LayerField, layerLabel } from './LayerField';
@@ -153,8 +153,6 @@ export function Palette({
   const [lastFiche, setLastFiche] = useState<string | undefined>(undefined);
   // Matériau MÉMORISÉ par sous-mode (Cloison/Porte) — l'outil porte son matériau comme un pinceau porte
   // sa couleur : la palette ne montre que ce qui est POSABLE sur une arête pour ce sous-mode (#830).
-  const wallEdgeStructures = structures.filter(isWallEdgeStructure);
-  const doorEdgeStructures = structures.filter(isDoorEdgeStructure);
   const [lastWallStructure, setLastWallStructure] = useState<string | undefined>(undefined);
   // Structures posables au Crénelage : celles qui portent un PARAPET (`structureAppearance`) — une
   // structure sans parapet n'a rien à dessiner sur le pourtour (#841 FU-H).
@@ -342,7 +340,7 @@ export function Palette({
                 <div className="mini-title">Matériau du mur</div>
                 {searchBox('matériau…')}
                 <div className="pal-list">
-                  {filterByLabel(tool.paint === 'door' ? doorEdgeStructures : wallEdgeStructures, (s) => s.label, search).map((s) => (
+                  {filterByLabel(structuresDeLArete(tool.paint), (s) => s.label, search).map((s) => (
                     <button
                       key={s.id}
                       className={`pal-item${tool.structure === s.id ? ' active' : ''}`}
