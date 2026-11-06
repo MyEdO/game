@@ -16,8 +16,9 @@ import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon } from '../../noyau/worldMap';
 import { marcheNeuf, portNeuf, type PatchDeLieu } from '../../noyau/worldMapEdit';
-import { LAND_CARGO_ENTRIES, LAND_RICHESSE_ROWS, type LandMarketProfile } from '../../engine/landCargo';
-import { cargoes, CARGO_ENTRIES, isEchangeable, type CargoEntry, type PortProfile } from '../../engine/seaVoyage';
+import { LAND_RICHESSE_ROWS, VOIE_TERRESTRE, type LandMarketProfile } from '../../engine/landCargo';
+import { VOIE_MARITIME, type PortProfile } from '../../engine/seaVoyage';
+import { CARGO_ENTRIES, isEchangeable, marchandisesDe, type Voie } from '../../engine/cargo';
 import { navalPorts, findNavalPortById, lieuxServices } from '../../data';
 import { IconField, BackdropField, RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
@@ -27,11 +28,11 @@ import { idDEntropie } from '../../web/entropie';
 
 /** Libellés des Tailles de communauté (MSRC 13 l.44-50, indices 1-4). */
 const TAILLE_LABELS = ['Hameau', 'Village', 'Ville', 'Grande ville'];
-/** Options de la colonne Produits/Production : TOUT le vocabulaire du catalogue (marchandises ET
- *  marqueurs). Un marqueur porte son qualificatif `hint` EN DONNÉE (« plaque tournante » / « rien à
+/** Options de la colonne Produits/Production : TOUT le vocabulaire de la voie au catalogue (marchandises
+ *  ET marqueurs). Un marqueur porte son qualificatif `hint` EN DONNÉE (« plaque tournante » / « rien à
  *  échanger ») — l'écran le rend entre parenthèses, il ne l'écrit pas. */
-const produitOptions = (entries: readonly CargoEntry[]): { id: string; label: string }[] =>
-  entries.map((c) => ({ id: c.id, label: !isEchangeable(c) && c.hint ? `${c.label} (${c.hint})` : c.label }));
+const produitOptions = (voie: Voie): { id: string; label: string }[] =>
+  CARGO_ENTRIES.filter((c) => c.voie === voie).map((c) => ({ id: c.id, label: !isEchangeable(c) && c.hint ? `${c.label} (${c.hint})` : c.label }));
 
 export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
   place: MapPlace;
@@ -132,7 +133,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   </select>
                 </label>
                 <div className="mini-title">Produits (colonne Produits, l.24-28)</div>
-                {produitOptions(LAND_CARGO_ENTRIES).map((p) => (
+                {produitOptions(VOIE_TERRESTRE).map((p) => (
                   <label key={p.id} className="ed-check">
                     <input
                       type="checkbox"
@@ -223,7 +224,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   <Icon id="travel/lighthouse" size="sm" /> Phare à l'approche (Test de Perception de vigie à l'atterrage, MDG 13 l.333-351)
                 </label>
                 <div className="mini-title">Production (colonne Produits de l'Index)</div>
-                {produitOptions(CARGO_ENTRIES).map((p) => (
+                {produitOptions(VOIE_MARITIME).map((p) => (
                   <label key={p.id} className="ed-check">
                     <input
                       type="checkbox"
@@ -234,7 +235,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   </label>
                 ))}
                 <div className="mini-title">Surplus (le port en regorge → vente locale facilitée)</div>
-                {cargoes().map((c) => (
+                {marchandisesDe(VOIE_MARITIME).map((c) => (
                   <label key={c.id} className="ed-check">
                     <input type="checkbox" checked={c.id in (pt.surplus ?? {})} onChange={() => toggleTable('surplus', c.id)} />
                     {c.label}
@@ -248,7 +249,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   </label>
                 ))}
                 <div className="mini-title">Demande (le port en manque → meilleur prix d'offre)</div>
-                {cargoes().map((c) => (
+                {marchandisesDe(VOIE_MARITIME).map((c) => (
                   <label key={c.id} className="ed-check">
                     <input type="checkbox" checked={c.id in (pt.demande ?? {})} onChange={() => toggleTable('demande', c.id)} />
                     {c.label}

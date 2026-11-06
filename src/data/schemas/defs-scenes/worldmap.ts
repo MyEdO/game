@@ -39,11 +39,11 @@ export const portProfileSchema = nommerChamps(z
      *  Le domaine est FERMÉ aux deux bouts — c'est lui qui entre dans le tableau du Prix d'offre
      *  (`MDG 15 l.378-383`), dont la première bande commence à 1. */
     richesse: z.number().int().min(1).max(5).optional(),
-    /** Colonne Production : ids de cargaison, `'commerce'`/`'minimum-vital'` compris. */
-    production: refs('seaCargo').optional(),
+    /** Colonne Production : ids de cargaison, `'commerce-mer'`/`'minimum-vital'` compris. */
+    production: refs('cargo', { sousListe: 'mer' }).optional(),
     /** Colonne Surplus : id de cargaison → indice. */
-    surplus: recordDIds('seaCargo', z.number()).optional(),
-    demande: recordDIds('seaCargo', z.number()).optional(),
+    surplus: recordDIds('cargo', z.number(), 'mer').optional(),
+    demande: recordDIds('cargo', z.number(), 'mer').optional(),
     /** Grand port cosmopolite (`MDG 15 l.343-349`). */
     cosmopolite: z.boolean().optional(),
     lighthouse: z.boolean().optional(),
@@ -69,9 +69,9 @@ export const landMarketProfileSchema = nommerChamps(z.strictObject({
    *  « - », donc aucun indice, et n'est pas authorable. Domaine FERMÉ : c'est la colonne d'entrée du
    *  tableau de la Mise à prix (`MSRC 13 l.150-156`), qui donne une ligne par indice de 1 à 5. */
   richesse: z.number().int().min(1).max(5),
-  /** Colonne Produits : ids d'entrées de `land-cargo.json` (marchandises ET marqueurs). */
-  produits: refs('landCargo'),
-  demande: refs('landCargo').optional(),
+  /** Colonne Produits : ids d'entrées de la voie `terre` de `cargoes.json` (marchandises ET marqueurs). */
+  produits: refs('cargo', { sousListe: 'terre' }),
+  demande: refs('cargo', { sousListe: 'terre' }).optional(),
   /** Le Lieu tire sa Richesse du COMMERCE (`MSRC 13 l.40-42`) — d100 de quantité inversé. */
   commerceRichesse: z.boolean().optional(),
   /** Régions à Vin/Eau-de-vie supérieurs (`MSRC 13 l.95`). */

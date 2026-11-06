@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { parseProject, parseSceneDeProjet, declutterPositions, resolvePortRef, portVersDepot, placeServices, produitsDuProfil, type RenderPoint, type MapPlace } from './worldMap';
-import { findCargoEntryById } from '../engine/seaVoyage';
+import { findCargoEntryById } from '../engine/cargo';
 import { lieuxServices, navalPorts } from '../data';
 import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from './monde/scene';

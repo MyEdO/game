@@ -1,0 +1,687 @@
+[
+  {
+    "id": "cereales",
+    "type": "cargoes",
+    "label": "Céréales",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 1,
+        "max": 5
+      },
+      "ete": {
+        "min": 1,
+        "max": 9
+      },
+      "automne": {
+        "min": 1,
+        "max": 18
+      },
+      "hiver": {
+        "min": 1,
+        "max": 9
+      }
+    },
+    "price": {
+      "printemps": 2,
+      "ete": 1,
+      "automne": 0.5,
+      "hiver": 1
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "armes",
+    "type": "cargoes",
+    "label": "Armes",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 6,
+        "max": 8
+      },
+      "ete": {
+        "min": 10,
+        "max": 12
+      },
+      "automne": {
+        "min": 19,
+        "max": 21
+      },
+      "hiver": {
+        "min": 10,
+        "max": 12
+      }
+    },
+    "price": {
+      "printemps": 6,
+      "ete": 5,
+      "automne": 4,
+      "hiver": 5
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "produits-de-luxe-mer",
+    "type": "cargoes",
+    "label": "Produits de luxe",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 9,
+        "max": 13
+      },
+      "ete": {
+        "min": 13,
+        "max": 16
+      },
+      "automne": {
+        "min": 22,
+        "max": 25
+      },
+      "hiver": {
+        "min": 13,
+        "max": 16
+      }
+    },
+    "price": {
+      "printemps": 25,
+      "ete": 25,
+      "automne": 25,
+      "hiver": 25
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "metaux",
+    "type": "cargoes",
+    "label": "Métaux",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 14,
+        "max": 19
+      },
+      "ete": {
+        "min": 17,
+        "max": 22
+      },
+      "automne": {
+        "min": 26,
+        "max": 30
+      },
+      "hiver": {
+        "min": 17,
+        "max": 25
+      }
+    },
+    "price": {
+      "printemps": 4,
+      "ete": 4,
+      "automne": 4,
+      "hiver": 4
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "bois-mer",
+    "type": "cargoes",
+    "label": "Bois",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 20,
+        "max": 28
+      },
+      "ete": {
+        "min": 23,
+        "max": 44
+      },
+      "automne": {
+        "min": 31,
+        "max": 46
+      },
+      "hiver": {
+        "min": 26,
+        "max": 36
+      }
+    },
+    "price": {
+      "printemps": 1.5,
+      "ete": 0.75,
+      "automne": 1,
+      "hiver": 1.5
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "vin",
+    "type": "cargoes",
+    "label": "Vin",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 29,
+        "max": 33
+      },
+      "ete": {
+        "min": 45,
+        "max": 56
+      },
+      "automne": {
+        "min": 47,
+        "max": 60
+      },
+      "hiver": {
+        "min": 37,
+        "max": 56
+      }
+    },
+    "price": {
+      "dice": {
+        "n": 3,
+        "sides": 10
+      }
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "laine-mer",
+    "type": "cargoes",
+    "label": "Laine",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 34,
+        "max": 50
+      },
+      "ete": {
+        "min": 57,
+        "max": 62
+      },
+      "automne": {
+        "min": 61,
+        "max": 65
+      },
+      "hiver": {
+        "min": 57,
+        "max": 60
+      }
+    },
+    "price": {
+      "printemps": 0.5,
+      "ete": 0.75,
+      "automne": 1,
+      "hiver": 1.5
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "sel",
+    "type": "cargoes",
+    "label": "Sel",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 51,
+        "max": 60
+      },
+      "ete": {
+        "min": 63,
+        "max": 75
+      },
+      "automne": {
+        "min": 66,
+        "max": 72
+      },
+      "hiver": {
+        "min": 61,
+        "max": 64
+      }
+    },
+    "price": {
+      "printemps": 2,
+      "ete": 3,
+      "automne": 4,
+      "hiver": 3
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "huile",
+    "type": "cargoes",
+    "label": "Huile",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 61,
+        "max": 70
+      },
+      "ete": {
+        "min": 76,
+        "max": 82
+      },
+      "automne": {
+        "min": 73,
+        "max": 83
+      },
+      "hiver": {
+        "min": 65,
+        "max": 81
+      }
+    },
+    "price": {
+      "printemps": 3,
+      "ete": 2,
+      "automne": 4,
+      "hiver": 6
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "poisson-sale",
+    "type": "cargoes",
+    "label": "Poisson salé",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 71,
+        "max": 90
+      },
+      "ete": {
+        "min": 83,
+        "max": 90
+      },
+      "automne": {
+        "min": 84,
+        "max": 90
+      },
+      "hiver": {
+        "min": 82,
+        "max": 90
+      }
+    },
+    "price": {
+      "printemps": 3,
+      "ete": 2,
+      "automne": 1,
+      "hiver": 2
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "pieces-detachees-de-navire",
+    "type": "cargoes",
+    "label": "Pièces détachées de navire",
+    "voie": "mer",
+    "avail": {
+      "printemps": {
+        "min": 91,
+        "max": 100
+      },
+      "ete": {
+        "min": 91,
+        "max": 100
+      },
+      "automne": {
+        "min": 91,
+        "max": 100
+      },
+      "hiver": {
+        "min": 91,
+        "max": 100
+      }
+    },
+    "price": {
+      "printemps": 8,
+      "ete": 7,
+      "automne": 6,
+      "hiver": 7
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, tables disponibilité + prix de base (l.406-434)."
+    }
+  },
+  {
+    "id": "commerce-mer",
+    "type": "cargoes",
+    "label": "Commerce",
+    "voie": "mer",
+    "echangeable": false,
+    "hint": "plaque tournante",
+    "tradeHub": true,
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 135,
+      "note": "ch.15 « Longs voyages » — colonne Production de l'Index : « Si l'Index indique que le lieu concerné produit du \"commerce\", générez une cargaison au hasard à l'aide du tableau des cargaisons » (l.321)."
+    }
+  },
+  {
+    "id": "minimum-vital",
+    "type": "cargoes",
+    "label": "Minimum vital",
+    "voie": "mer",
+    "echangeable": false,
+    "hint": "rien à échanger",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 135,
+      "note": "ch.15 « Longs voyages » — colonne Production de l'Index : « Les ports pour lesquels la colonne Production indique \"minimum vital\" ne produisant pas de cargaison à vendre » (l.321)."
+    }
+  },
+  {
+    "id": "vivres",
+    "type": "cargoes",
+    "label": "Vivres",
+    "voie": "terre",
+    "avail": {
+      "printemps": {
+        "min": 1,
+        "max": 9
+      },
+      "ete": {
+        "min": 1,
+        "max": 19
+      },
+      "automne": {
+        "min": 1,
+        "max": 35
+      },
+      "hiver": {
+        "min": 1,
+        "max": 19
+      }
+    },
+    "price": {
+      "printemps": 1,
+      "ete": 0.5,
+      "automne": 0.25,
+      "hiver": 0.5
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES + TABLEAU DES PRIX DE BASE (l.71-89)."
+    }
+  },
+  {
+    "id": "armement",
+    "type": "cargoes",
+    "label": "Armement",
+    "voie": "terre",
+    "avail": {
+      "printemps": {
+        "min": 10,
+        "max": 15
+      },
+      "ete": {
+        "min": 20,
+        "max": 23
+      },
+      "automne": {
+        "min": 36,
+        "max": 40
+      },
+      "hiver": {
+        "min": 20,
+        "max": 23
+      }
+    },
+    "price": {
+      "printemps": 12,
+      "ete": 10,
+      "automne": 8,
+      "hiver": 10
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES + TABLEAU DES PRIX DE BASE (l.71-89)."
+    }
+  },
+  {
+    "id": "produits-de-luxe-terre",
+    "type": "cargoes",
+    "label": "Produits de luxe",
+    "voie": "terre",
+    "avail": {
+      "printemps": {
+        "min": 16,
+        "max": 20
+      },
+      "ete": {
+        "min": 24,
+        "max": 29
+      },
+      "automne": {
+        "min": 41,
+        "max": 44
+      },
+      "hiver": {
+        "min": 24,
+        "max": 29
+      }
+    },
+    "price": {
+      "printemps": 50,
+      "ete": 50,
+      "automne": 50,
+      "hiver": 50
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES + TABLEAU DES PRIX DE BASE (l.71-89)."
+    }
+  },
+  {
+    "id": "metal",
+    "type": "cargoes",
+    "label": "Métal",
+    "voie": "terre",
+    "avail": {
+      "printemps": {
+        "min": 21,
+        "max": 30
+      },
+      "ete": {
+        "min": 30,
+        "max": 39
+      },
+      "automne": {
+        "min": 45,
+        "max": 60
+      },
+      "hiver": {
+        "min": 30,
+        "max": 44
+      }
+    },
+    "price": {
+      "printemps": 8,
+      "ete": 8,
+      "automne": 8,
+      "hiver": 8
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES + TABLEAU DES PRIX DE BASE (l.71-89)."
+    }
+  },
+  {
+    "id": "bois-terre",
+    "type": "cargoes",
+    "label": "Bois",
+    "voie": "terre",
+    "avail": {
+      "printemps": {
+        "min": 31,
+        "max": 55
+      },
+      "ete": {
+        "min": 40,
+        "max": 74
+      },
+      "automne": {
+        "min": 61,
+        "max": 80
+      },
+      "hiver": {
+        "min": 45,
+        "max": 60
+      }
+    },
+    "price": {
+      "printemps": 3,
+      "ete": 1.5,
+      "automne": 2,
+      "hiver": 3.5
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES + TABLEAU DES PRIX DE BASE (l.71-89)."
+    }
+  },
+  {
+    "id": "vin-eau-de-vie",
+    "type": "cargoes",
+    "label": "Vin/Eau-de-vie",
+    "voie": "terre",
+    "wine": true,
+    "avail": {
+      "printemps": {
+        "min": 56,
+        "max": 75
+      },
+      "ete": {
+        "min": 75,
+        "max": 85
+      },
+      "automne": {
+        "min": 81,
+        "max": 95
+      },
+      "hiver": {
+        "min": 61,
+        "max": 95
+      }
+    },
+    "price": {
+      "printemps": 3,
+      "ete": 3,
+      "automne": 3,
+      "hiver": 3
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES + TABLEAU DES PRIX DE BASE (l.71-89)."
+    }
+  },
+  {
+    "id": "laine-terre",
+    "type": "cargoes",
+    "label": "Laine",
+    "voie": "terre",
+    "avail": {
+      "printemps": {
+        "min": 76,
+        "max": 100
+      },
+      "ete": {
+        "min": 86,
+        "max": 100
+      },
+      "automne": {
+        "min": 96,
+        "max": 100
+      },
+      "hiver": {
+        "min": 96,
+        "max": 100
+      }
+    },
+    "price": {
+      "printemps": 1,
+      "ete": 1.5,
+      "automne": 2,
+      "hiver": 3
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES CARGAISONS ALÉATOIRES + TABLEAU DES PRIX DE BASE (l.71-89)."
+    }
+  },
+  {
+    "id": "commerce-terre",
+    "type": "cargoes",
+    "label": "Commerce",
+    "voie": "terre",
+    "echangeable": false,
+    "hint": "plaque tournante",
+    "tradeHub": true,
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 71,
+      "note": "ch.11 « Règles du commerce » — colonne Produits de l'Index : « La mention Commerce signifie qu'il peut y avoir une variété de biens disponibles » ; « il s'agit d'une plaque tournante du commerce local » (l.24-28)."
+    }
+  },
+  {
+    "id": "subsistance",
+    "type": "cargoes",
+    "label": "Subsistance",
+    "voie": "terre",
+    "echangeable": false,
+    "hint": "rien à échanger",
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 73,
+      "note": "ch.11 « Règles du commerce » — types de cargaison : « **Subsistance :** certains petits emplacements ne produisent presque rien de valeur à échanger » (l.119)."
+    }
+  }
+]

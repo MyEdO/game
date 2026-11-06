@@ -718,7 +718,8 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //   #3086 : `presets-de-personnage` naît SCELLÉ (84 → 85) — les presets de personnage entier deviennent un dataset.
     //   #1665 : `montures` passe de la famille `config` à `entite` (85 → 86) — ses 8 profils de voyage deviennent la liste du fichier.
     //   #1681 : les quatre defs d'enjeux fusionnent en UN def `stakes` (86 → 83).
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 83, mesures: 0 });
+    //   #1684 : le catalogue des cargaisons naît en def `entite` `cargoes`, `source` exigée (83 → 84).
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 84, mesures: 0 });
   });
 
 });
@@ -904,6 +905,9 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     'buildings.json · maison',
     // #1681 — les quatre datasets d'enjeux fusionnent en `stakes` : chaque entrée cite son passage.
     'stakes.json · source',
+    // #1684 — les deux catalogues de cargaisons fusionnent en `cargoes` : chaque entrée cite sa table
+    // (MDG 15, MSRC 13).
+    'cargoes.json · source',
   ];
 
   it('la 1ʳᵉ entrée réelle de chaque def adopté est ACCEPTÉE — témoin positif de chaque paire', () => {

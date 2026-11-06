@@ -1010,7 +1010,7 @@ export const ROLES_ENVELOPPE: Record<string, RoleEnveloppe> = {
   //   `crew-morale.json › factors[].effect` et `sea-events.json › manann.factors[].effect` = effet de
   //     dés signé `{sign, dice}` (`effetSigneSchema`, `src/data/schemas/grammaire/valeurs.ts`) ;
   //   `hint` = qualificatif d'affichage d'un marqueur de cargaison
-  //     (`cargoMarqueur` de `src/data/schemas/defs/land-cargo.ts`) et aide de saisie d'une règle
+  //     (`CLES_DE_MARQUEUR` de `src/data/schemas/defs/cargoes.ts`) et aide de saisie d'une règle
   //     optionnelle (`src/data/schemas/defs/reglesOptionnelles.ts`).
   // Les `effect` qui ÉTAIENT des issues ou une clé de registre ont, eux, été migrés (`outcome`,
   // `potEffectId`, `ops`) plutôt que retirés de la mesure.
