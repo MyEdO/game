@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stampCriticalEscalation, settleHealedCriticals, removeSurgicalTrauma, passiveSkillSum, surgeryTraumas } from './trauma';
+import { stampCriticalEscalation, settleHealedCriticals, removeSurgicalTrauma, passiveSkillSum, surgeryTraumas, avecSequelles } from './trauma';
 import { resolveCritique } from './critical';
 import { addCondition, removeCondition } from './conditions';
 import { applyOps, skillDRBonus } from './ops';
@@ -93,7 +93,7 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
     const res = resolveCritique('ldb', c, 'tete', seq([5])); // d100=5 → Blessure spectaculaire
     expect(res.label).toBe('Blessure spectaculaire');
     c.criticalWounds = 1;
-    c.traumas = res.traumas;
+    c.traumas = avecSequelles(c.traumas, res.traumas);
     applyOps(c, res.ops, { rng: desDuTest }); // applique l'Hémorragique immédiat
     expect(c.conditions.some((x) => x.id === 'hemorragique')).toBe(true);
     expect(c.traumas.some((t) => t.onHealGrant)).toBe(true);

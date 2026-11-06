@@ -6,7 +6,7 @@ import reference from './crit-rng-invariance.fixture.json';
 import type { Combatant, HitLocation } from './types';
 import type { JeuDeCritique } from '../data/criticals';
 import { LOCALISATIONS_DE_COUP } from './types';
-import { blessuresSurLeProfil, blessuresDeBase, sequellesSansUid } from './combattantDeTest.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * INVARIANCE du flux de RNG des Blessures critiques (#1657, #1682).
@@ -70,8 +70,7 @@ describe('invariance du RNG des Blessures critiques — référence figée AVANT
         for (const jeu of ['ldb', 'aa'] as JeuDeCritique[]) {
           const overkill = seed % 2 === 0 ? DEPASSEMENT[jeu] : 0;
           const cle = `${jeu}|${seed}|${loc}|${overkill}`;
-          const { naturel, ...brut } = resolveCritique(jeu, cible(), loc, makeRNG(seed), { overkill });
-          const resolu = { ...brut, traumas: sequellesSansUid(brut.traumas) };
+          const { naturel, ...resolu } = resolveCritique(jeu, cible(), loc, makeRNG(seed), { overkill });
           if (overkill === 0 && naturel !== resolu.roll) divergences.push(`${cle} : naturel ${naturel} ≠ roll ${resolu.roll} sans modificateur`);
           const obtenu = jsonCanonique(resolu);
           const attendu = jsonCanonique(REFERENCE[cle]);

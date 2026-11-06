@@ -12,13 +12,13 @@ import { d100, d10, RNG } from './dice';
 import { findTableEntry, tableOuverte } from './tables';
 import { bonus, effectiveChar } from './characteristics';
 import { hitLocationByShape, locationLabel } from './combat';
-import { BodyShape, Combatant, HitLocation, Trauma } from './types';
+import { BodyShape, Combatant, HitLocation } from './types';
 import {
   CRITIQUE_DOCS, critTableKeyFor, critiqueDoc, critiqueTable,
   type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
 } from '../data/criticals';
 import { memoParVersion } from '../data/versionDataset';
-import { nouvelUidDeTrauma, traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers } from './trauma';
+import { traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers, type SequelleNeuve } from './trauma';
 import { rule } from './policy';
 import { EMPTY_FLOW, poserEnjeu, type Flow, type FlowTestNode } from './flowCore';
 import { combatStakeRef, type StakeRef } from '../data';
@@ -131,8 +131,8 @@ export interface CriticalResolved {
    *  roule jamais — patron `MiscastResult.testFlow` (`miscast.ts`). */
   testFlow?: Flow;
   lethal: boolean;
-  /** Traumatismes posés (LDB 18), à la localisation du critique. */
-  traumas: Trauma[];
+  /** Traumatismes posés (LDB 18), à la localisation du critique ; leur `uid` leur vient du porteur (`avecSequelles`). */
+  traumas: SequelleNeuve[];
   /** Texte canon (LONG TERME), DISPLAY-ONLY — jamais parsé pour de la mécanique. */
   desc: string;
   /** Jet d100 effectif (après modificateur de sévérité). */
@@ -489,7 +489,7 @@ export function resolveCritique(
   // est ARMÉ sur le marqueur `pendingAmputation`, ouvert par la porte au foyer de fin de combat.
   if (!entry.lethal && entry.amputation) {
     const noeud = noeudAmputation(entry, jeu, location)!;
-    if (entry.amputation.timing === 'postEncounter') traumas.push({ uid: nouvelUidDeTrauma(), label: entry.label, location, pendingAmputation: noeud });
+    if (entry.amputation.timing === 'postEncounter') traumas.push({ label: entry.label, location, pendingAmputation: noeud });
     else tests.push(noeud);
   }
   // Escalade GATÉE par les soins (« Main ouverte » : doigt/Round ; « Pied écrasé » : perte du pied sans

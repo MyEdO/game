@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { applyOps, opSansObjet } from './ops';
 import { cureDiseases } from './rest';
-import { traumaById, dechirureFractureFicheId } from './trauma';
+import { traumaById, dechirureFractureFicheId, avecSequelles } from './trauma';
 import type { HitLocation } from './types';
 const tk = (k: 'dechirure' | 'fracture', sv: 'mineur' | 'majeur', loc: HitLocation, opts?: { be?: number; d10?: number }) => traumaById(dechirureFractureFicheId(k, sv, loc), opts, loc);
 import { contractDisease } from './disease';
@@ -91,11 +91,11 @@ describe('preventInfection — Cautériser (LDB 47) & cureCriticalWound — Larm
   it('cureCriticalWound guérit déchirures/fractures mais JAMAIS une amputation', () => {
     const c = dummy({
       criticalWounds: 3,
-      traumas: [
+      traumas: avecSequelles([], [
         tk('dechirure', 'mineur', 'jambeD', { be: 25 }),
         tk('fracture', 'majeur', 'brasG', { be: 25, d10: 5 }),
-        { uid: 't1', label: 'Main/bras amputé (brasD)', location: 'brasD', ops: [{ op: 'maxWeaponHands', hands: 1 }] },
-      ],
+        { label: 'Main/bras amputé (brasD)', location: 'brasD', ops: [{ op: 'maxWeaponHands', hands: 1 }] },
+      ]),
     });
     applyOps(c, [{ op: 'cureCriticalWound', count: 1, countPerSL: { every: 2, amount: 1 } }], { rng: desDuTest, sl: 4 }); // 1 + 2 = 3 tentées
     expect(c.traumas).toHaveLength(1); // l'amputation reste

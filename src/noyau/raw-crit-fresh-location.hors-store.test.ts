@@ -9,7 +9,7 @@ import { reverseRoll } from '../engine/tests';
 import type { Combatant } from '../engine/types';
 import type { SpellData } from '../data';
 import { emptyScene } from './monde/scene';
-import { blessuresSurLeProfil, blessuresDeBase, sequellesSansUid } from '../engine/combattantDeTest.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -72,7 +72,7 @@ describe('#80 Critique de défense opposée — Localisation = 1d100 frais, déc
     const log2: string[] = [];
     applyCoupCritiqueSec(get, set, v2, 99, 'double', {}, log2);
     expect(v1.criticalWounds).toBe(1); // un Critique a bien été appliqué
-    expect(sequellesSansUid(v1.traumas)).toEqual(sequellesSansUid(v2.traumas)); // jet 11 ≠ 99 → Critique IDENTIQUE : la loc ne dérive plus de l’inversion
+    expect(v1.traumas).toEqual(v2.traumas); // jet 11 ≠ 99 → Critique IDENTIQUE : la loc ne dérive plus de l’inversion
     expect(log1).toEqual(log2);
   });
 });

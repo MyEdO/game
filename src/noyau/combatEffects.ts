@@ -46,7 +46,7 @@ import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { openRest, placesOfKind, sceneLieu } from './restFlow';
-import { traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
+import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
 import { feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
@@ -1712,7 +1712,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         ? permanentAmputations([ampSequel], e.location)
         : [traumaById(dechirureFractureFicheId(e.kind, e.severity ?? 'mineur', e.location), { be, d10: d10(battleRng()) }, e.location)];
       const labels = traumas.map((tr) => tr.label);
-      const who = env.mutateHero(whoId, (h) => ({ ...h, traumas: [...(h.traumas ?? []), ...structuredClone(traumas)], criticalWounds: (h.criticalWounds ?? 0) + 1 }));
+      const who = env.mutateHero(whoId, (h) => ({ ...h, traumas: avecSequelles(h.traumas, structuredClone(traumas)), criticalWounds: (h.criticalWounds ?? 0) + 1 }));
       if (who) {
         const line = t('eff.criticalSuffered', { name: who.label, kind: e.kind, location: e.location });
         env.log(line);
