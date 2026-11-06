@@ -11,7 +11,7 @@
  */
 import {
   DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
-  libelleDuGeste, libelleDuParametre, libelleDuReglage, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DE_L_OPERATION, REGLAGES_DU_BUTIN,
+  libelleDuGeste, libelleDuParametre, libelleDuReglage, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DE_L_OPERATION, REGLAGES_DU_BUTIN, REGLAGES_DU_REPOS, reposEnVue,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
@@ -114,6 +114,8 @@ const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle?: (g: GesteDuJ
   { lire: fenetreDIncantation, regle: duFlux('cast', ['discret', 'formeConjuree', 'effetCritique', 'ciblesSupplementaires', 'carte', ...Object.values(REGLAGE_DE_L_AXE)]) },
   { lire: fenetreDuSoin },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
+  // Le repos règle ses dormeurs dans son corps (`reposEnVue`) : il ne nomme aucun réglage, la fenêtre ne les redit pas.
+  { lire: reposEnVue, regle: parmi(REGLAGES_DU_REPOS) },
   { lire: fenetreDeLOperation, regle: parmi(REGLAGES_DE_L_OPERATION) },
 ];
 
