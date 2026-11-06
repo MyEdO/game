@@ -112,7 +112,7 @@ describe('(B) teamCommandTargets / canAidTeam — disponibilité', () => {
 });
 
 // ── (C) ACTION « Aider l'équipe » → Test de Commandement → marqueur ───────────────────────────────
-describe('(C) battleAidTeam — Test de Commandement réussi pose teamCommanderId sur le chef', () => {
+describe('(C) aiderLEquipe — Test de Commandement réussi pose teamCommanderId sur le chef', () => {
   it('succès (seed) → chief.teamCommanderId = id du commandant ; Action consommée', () => {
     seedBattleRng(1);
     const poste = mkPoste('baliste', ['chief', 's1']);
@@ -125,7 +125,7 @@ describe('(C) battleAidTeam — Test de Commandement réussi pose teamCommanderI
       party: [commander, chief], facing: {}, scene: null as never, pendingTest: null, pendingCascade: null,
     });
     // active = order[turn=1] = commander
-    banc.getState().battleAidTeam();
+    banc.getState().aiderLEquipe();
     const pt = banc.getState().pendingTest!;
     expect(pt).toBeTruthy();
     expect(pt.label, 'titre Z0 : la clé de catalogue, rendue').toBe('Commandant d’équipe');

@@ -59,10 +59,10 @@ describe('Conséquences d’attaque en révélation (store)', () => {
       ),
     });
     // La GARDE UNIQUE de reprise (`combatAdvanceBlocked`) est l'unité mesurée : c'est ELLE que la
-    // séquence ouverte doit fermer (un `battleEndTurn` seul ne le prouverait pas — `combatBusy` le
+    // séquence ouverte doit fermer (un `terminerLeTour` seul ne le prouverait pas — `combatBusy` le
     // bloquerait déjà de son côté, et le test resterait vert avec la garde débranchée).
     expect(combatAdvanceBlocked(banc.getState())).toBe(true);
-    banc.getState().battleEndTurn(); // → advanceTurn, gelé par la séquence ouverte
+    banc.getState().terminerLeTour(); // → advanceTurn, gelé par la séquence ouverte
     expect(banc.getState().battle!.turn).toBe(turn); // pas avancé
     banc.getState().jetConfirm('cascade'); // acquittement de l'étape → séquence close, l'IA reprend
     expect(banc.getState().pendingCascade).toBeNull();

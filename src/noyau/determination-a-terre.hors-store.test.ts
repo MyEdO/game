@@ -44,9 +44,9 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
     expect(findConditionById('a-terre')!.resolveHeals, 'sans ce champ, la règle l.61 n’a plus de porteur').toBe(1);
   });
 
-  it('0 PB + 1 Détermination → `battleSpendResolve` : État retiré, 1 PB regagné, point débité, journal « se relève »', () => {
+  it('0 PB + 1 Détermination → `depenserLaDetermination` : État retiré, 1 PB regagné, point débité, journal « se relève »', () => {
     const { H } = setup(0, 1);
-    banc.getState().battleSpendResolve('a-terre');
+    banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'a-terre');
     const apres = vivant(H.id);
     expect(hasCondition(apres, 'a-terre'), 'l’État n’a pas été retiré (LDB 17 l.61)').toBe(false);
     expect(apres.wounds.current, 'la Blessure de la mise debout n’a pas été rendue').toBe(1);
@@ -54,9 +54,9 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
     expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toContain(t('cs.fragGettingUp'));
   });
 
-  it('0 PB + 1 Détermination → `spendResolveCondition` (par id) : même verdict', () => {
+  it('0 PB + 1 Détermination → `depenserLaDetermination` (par id) : même verdict', () => {
     const { H } = setup(0, 1);
-    banc.getState().spendResolveCondition(H.id, 'a-terre');
+    banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'a-terre');
     const apres = vivant(H.id);
     expect(hasCondition(apres, 'a-terre')).toBe(false);
     expect(apres.wounds.current).toBe(1);
@@ -65,7 +65,7 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
 
   it('SANS Détermination : rien ne bouge — ni l’État, ni les Blessures', () => {
     const { H } = setup(0, 0);
-    banc.getState().battleSpendResolve('a-terre');
+    banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'a-terre');
     const apres = vivant(H.id);
     expect(hasCondition(apres, 'a-terre')).toBe(true);
     expect(apres.wounds.current, 'un soin a été rendu sans dépense').toBe(0);
@@ -84,7 +84,7 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
     const { H } = setup(0, 1, { unlockBy: 'medicalAid' });
     expect(raisonRefusDetermination(vivant(H.id), 'a-terre'))
       .toBe(t('cond.lockedByAct', { acte: ACTE_DE_DEVERROUILLAGE.medicalAid }));
-    banc.getState().battleSpendResolve('a-terre');
+    banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'a-terre');
     const apres = vivant(H.id);
     expect(hasCondition(apres, 'a-terre')).toBe(true);
     expect(apres.resolve, 'le point a été débité sur une dépense refusée').toBe(1);
@@ -98,7 +98,7 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
     // assez de munitions logées pour que le plafond de soin rende 0 — le verrou tient donc.
     h.conditions = [...h.conditions, { id: 'munition-logee', value: h.wounds.max } as ConditionInstance];
     expect(raisonRefusDetermination(h, 'a-terre'), 'le soin est nul : le verrou doit refuser').toBe(findConditionById('a-terre')!.lockedReason);
-    banc.getState().battleSpendResolve('a-terre');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'a-terre');
     const apres = vivant(H.id);
     expect(hasCondition(apres, 'a-terre')).toBe(true);
     expect(apres.resolve).toBe(1);

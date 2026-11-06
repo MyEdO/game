@@ -8,7 +8,7 @@ import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type EtatDeJeu, 
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { refusEmplacementDeMain, refusAchatDeComposant, refusDeSupprimerSet } from './partyFlow';
-import { refusDInventaire, refusDuLanceurDeFiche, refusDuBackground, refusDeRompreUneFaveur } from './verrousDeFiche';
+import { refusDInventaire, refusDuBackground, refusDeRompreUneFaveur } from './verrousDeFiche';
 import { buildAdvancementView } from './monde/advancement';
 import { refusGestePossession, ciblesDEmbarquement } from './possessionsFlow';
 import { refusDeSoins } from './medicFlow';
@@ -83,14 +83,13 @@ describe('setLoadoutSlot — le verdict de main (`refusEmplacementDeMain`) est c
 });
 
 describe('gestes de set — le verrou (`refusDInventaire`) est celui des gestes', () => {
-  it('en combat, l’hôte texte ne crée, ne supprime ni n’active de set : rien ne bouge, le refus se dit', () => {
+  it('en combat, l’hôte texte ne crée ni ne supprime de set : rien ne bouge, le refus se dit', () => {
     enCombat((partie, H) => {
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const avant = structuredClone({ loadouts: lu().loadouts, actif: lu().activeLoadoutId });
       expect(avant.loadouts!.length, 'témoin : le héros du duel a deux sets').toBeGreaterThan(1);
       const autre = avant.loadouts!.find((l) => l.id !== avant.actif)!;
       const appels: [string, () => void][] = [
-        ['setActiveLoadout', () => partie.envoyer({ type: 'setActiveLoadout', args: [H.id, autre.id] })],
         ['createLoadout', () => partie.envoyer({ type: 'createLoadout', args: [H.id] })],
         ['deleteLoadout', () => partie.envoyer({ type: 'deleteLoadout', args: [H.id, autre.id] })],
       ];
@@ -162,17 +161,15 @@ describe('transferItem et stowItem — le verdict (`refusDInventaire`, co-locali
 });
 
 describe('gestes d’objet et de fiche en combat — un verdict par famille, celui des gestes', () => {
-  it('usePartyItem, appraiseItem : refusés en combat (`refusDInventaire`), rien ne change', () => {
+  it('appraiseItem : refusé en combat (`refusDInventaire`), rien ne change', () => {
     const H0 = heroDuDuel();
-    const biere = { ...itemFromTrappingById('biere-pinte')!, uid: 'biere-1' };
     const inconnu = { ...itemFromTrappingById('arme-simple')!, uid: 'inconnu-1', identified: false };
-    H0.items = [...(H0.items ?? []), biere, inconnu];
+    H0.items = [...(H0.items ?? []), inconnu];
     H0.skills = [...H0.skills, { id: 'evaluation', characteristic: 'intelligence', advances: 10 }, { id: 'intuition', characteristic: 'initiative', advances: 10 }];
     enCombat((partie, H) => {
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const avant = structuredClone(lu().items);
       const gestes: [string, () => void][] = [
-        ['usePartyItem', () => partie.envoyer({ type: 'usePartyItem', args: [H.id, biere.uid] })],
         ['appraiseItem', () => partie.envoyer({ type: 'appraiseItem', args: [inconnu.uid, H.id] })],
         ['appraiseItem (detect)', () => partie.envoyer({ type: 'appraiseItem', args: [inconnu.uid, H.id, 'detect'] })],
       ];
@@ -195,13 +192,10 @@ describe('gestes d’objet et de fiche en combat — un verdict par famille, cel
     });
   });
 
-  it('les lanceurs hors combat (`refusDuLanceurDeFiche`), le background (`refusDuBackground`) et la Faveur (`refusDeRompreUneFaveur`) refusent en combat', () => {
+  it('le background (`refusDuBackground`) et la Faveur (`refusDeRompreUneFaveur`) refusent en combat', () => {
     enCombat((partie, H) => {
       const lu = () => partie.etat().party.find((c) => c.id === H.id)!;
       const motivation = lu().motivation;
-      expect(refusNeuf(partie, () => partie.envoyer({ type: 'oocCastSpell', args: [H.id, 'x', H.id] }))).toBe(refusDuLanceurDeFiche(partie.etat()));
-      expect(refusNeuf(partie, () => partie.envoyer({ type: 'oocFocusSpell', args: [H.id, 'x'] }))).toBe(t('cs.oocInCombat'));
-      expect(refusNeuf(partie, () => partie.envoyer({ type: 'oocDispelSpell', args: [H.id, 'x', H.id] }))).toBe(t('cs.oocInCombat'));
       expect(refusNeuf(partie, () => partie.envoyer({ type: 'setHeroBackground', args: [H.id, { motivation: 'Venger mon frère' }] }))).toBe(refusDuBackground(partie.etat()));
       expect(lu().motivation, 'le background a changé en combat').toBe(motivation);
       expect(refusNeuf(partie, () => partie.envoyer({ type: 'favorBreak', args: [H.id, 'faveur-1'] }))).toBe(refusDeRompreUneFaveur(partie.etat()));

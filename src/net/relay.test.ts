@@ -251,10 +251,10 @@ describe('RoomGuest (Transport + reprise)', () => {
       expect(session.guest.joined).toBe(true);
       expect(session.received).toEqual(['snapshot après paquet']);
       expect(session.onHostAway).toHaveBeenLastCalledWith(false);
-      session.guest.sendIntent('battleEndTurn', []);
+      session.guest.sendIntent('terminerLeTour', []);
       await session.idle();
       expect(session.applyIntent).toHaveBeenCalledTimes(1);
-      expect(session.applyIntent).toHaveBeenCalledWith('battleEndTurn', [], 1);
+      expect(session.applyIntent).toHaveBeenCalledWith('terminerLeTour', [], 1);
     } finally {
       await session.close();
     }

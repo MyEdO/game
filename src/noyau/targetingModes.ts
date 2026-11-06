@@ -47,6 +47,7 @@ import { posteHullOf } from './siegePush';
 import { spellOps } from '../engine/flowCore';
 import { mountOf, mountMovement, attackGeomOf, combatGeomOf, pickAttackWeapon } from './mount';
 import { pilotedByHuman } from './netOwnership';
+import { lieuDeLOffre } from './actionRegistry';
 import { inBattleId } from './monde/combatants';
 import { detenteurDuCiblage } from './targetingHolder';
 import { approachMs } from './combatDirector';
@@ -535,10 +536,10 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   const target = inBattleId(battle, id);
   if (!target) return;
   // Pièce de siège : un clic REJOINT l'équipe (chef/renfort) au lieu d'attaquer l'engin inerte — MÊME chemin que le
-  // bouton hotbar (`battleManPoste`) et l'IA (`serveAtPoste`). `serveTargetPoste` = source unique de la cible.
+  // bouton hotbar (`servirLePoste`) et l'IA (`serveAtPoste`). `serveTargetPoste` = source unique de la cible.
   if (target.postes?.length) {
     const p = serveTargetPoste(active, target, battle.combatants);
-    if (p) { get().battleManPoste({ hullId: target.id, posteUid: p.item.uid }); return; }
+    if (p) { get().servirLePoste({ hullId: target.id, posteUid: p.item.uid }); return; }
   }
   // ATTAQUE unifiée : l'`AttackOption` armée (`selectedAttack`, défaut 'arme' ; les modes
   // maneuver/tentacle mappent sur leur option).
@@ -726,10 +727,10 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
 }
 
 /** POUSSÉE d'un engin de siège CREWÉ (ADE II 8 l.258, Lot 2 #156) : le CHEF choisit sa case
- *  d'arrivée parmi les cases en surbrillance (`battle.reachable`, posé par `battlePushEngine` — plafonné
+ *  d'arrivée parmi les cases en surbrillance (`battle.reachable`, posé par `pousserLEngin` — plafonné
  *  à `rule('siege-engine-push-speed')`) — mouvement SIMPLE, aucun jet. Le delta (case cliquée − position
  *  du chef) est appliqué à l'ENGIN et à TOUS les servants du poste (`ShipPoste.crewIds`, chef inclus) :
- *  formation RIGIDE (`translaterFormation`). Consomme l'Action du chef (comme `battleManPoste`) ; l'engin reste SANS tour (`inert`,
+ *  formation RIGIDE (`translaterFormation`). Consomme l'Action du chef (comme `servirLePoste`) ; l'engin reste SANS tour (`inert`,
  *  jamais ajouté à `battle.order`) — seul le rendu de la pièce suit (`posteAnchor` lit `hull.pos`).
  *  La case du CHEF passe `battle.reachable` ; la formation entière se refuse (`refuserGeste`) quand
  *  `translaterFormation` juge une case d'arrivée invalide. */
@@ -744,7 +745,7 @@ function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
   if (!poste || !hull?.pos) return;
   // Annulation (#199) : au PREMIER segment du Tour (`movementUsed === 0`), capture l'état AVANT de
   // pousser — MÊME snapshot que battleClickTile/moveAttack (positions + facing + movedPreAction +
-  // loseNextMovement des servants), pour que `cancelMove` défasse aussi une poussée.
+  // loseNextMovement des servants), pour que `annulerLeDeplacement` défasse aussi une poussée.
   const snapshot = (battle.movementUsed ?? 0) === 0 ? captureMoveSnapshot(battle, get().facing) : battle.moveSnapshot ?? null;
   const delta = { x: pt.x - active.pos.x, y: pt.y - active.pos.y };
   const deplaces = translaterFormation(battle.combatants, scene, hull, poste.crewIds ?? [], delta);
@@ -819,18 +820,18 @@ const dispelParametreADemander = (get: Get, id: string): boolean => dispellableO
  * de la console naît de l'alvéole, sur `dispelCarrierId`.
  *
  * COOP : cette élection est un choix d'ÉCRAN, elle se joue chez l'ÉMETTEUR (`electionLocale`) — le
- * porteur élu vit hors instantané (`coop.instantaneDeLaCoop`), et seul le COMMIT `battleDispelSpell`
+ * porteur élu vit hors instantané (`coop.instantaneDeLaCoop`), et seul le COMMIT `dissiperLeSort`
  * voyage. Sans cette déclaration, l'intent d'un invité faisait naître le panneau chez L'HÔTE.
  */
 const DISPEL_MODE: TargetingMode = {
   id: 'dispel', affordance: dispelAffordance,
   candidates: (get) => (get().battle?.combatants ?? []).filter((c) => dispellableOnCarrier(get, c.id).length > 0),
   electionLocale: dispelParametreADemander,
-  commitCombatant: (get, set, _active, id) => {
+  commitCombatant: (get, set, active, id) => {
     const porte = dispellableOnCarrier(get, id);
     if (porte.length === 0) return void refuserGeste(get, set, t('cs.refusSansSortDissipable'));
     if (dispelParametreADemander(get, id)) { get().dispelSelectCarrier(id); return; }
-    get().battleDispelSpell(porte[0].spellId, porte[0].casterId);
+    get().dissiperLeSort(active.id, porte[0].spellId, porte[0].casterId);
   },
 };
 const OVERCAST_MODE: TargetingMode = {
@@ -876,7 +877,7 @@ const TELEPORT_MODE: TileTargetingMode = {
   tilePreview: (_get, active, pt) => (active.pos ? { target: pt, path: [active.pos, pt], label: 'Téléporter' } : null),
 };
 /** POUSSÉE d'un engin de siège (ADE II 8 l.258, Lot 2 #156) : case-cible parmi `battle.reachable`
- *  (posé par `battlePushEngine`), MÊME gabarit que TELEPORT_MODE. */
+ *  (posé par `pousserLEngin`), MÊME gabarit que TELEPORT_MODE. */
 const PUSH_MODE: TileTargetingMode = {
   id: 'push',
   tileValidAt: (get, _active, pt) => !!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z)),
@@ -990,6 +991,8 @@ export function ciblageEntiteArme(get: Get): boolean {
 type ElectionLocale = (get: Get, args: readonly unknown[]) => boolean;
 export const INTENT_ELECTION_LOCALE: Readonly<Record<string, ElectionLocale>> = {
   battleClickEntity: (get, [id]) => typeof id === 'string' && (currentTargetingMode(get).electionLocale?.(get, id) ?? false),
+  // Un RELAIS ou une pure intention se joue chez l'émetteur (`lieuDeLOffre`) : son verbe voyage, l'offre ne voyage pas.
+  jouerLOffre: (_get, [id]) => lieuDeLOffre(id) === 'emetteur',
 } satisfies { readonly [A in ActionDeClasse<'invité'>]?: ElectionLocale };
 
 /** Ce geste se joue-t-il ENTIER chez l'émetteur (aucun intent à envoyer) ? */

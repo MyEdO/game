@@ -70,7 +70,7 @@ describe('entretien de fin de Round — partition héros/ennemis (spec coop §4b
       battle: { ...st.battle!, order: [H.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingRoundStart: null,
     });
-    banc.getState().battleEndTurn(); // seul dans l'ordre → franchit le Round
+    banc.getState().terminerLeTour(); // seul dans l'ordre → franchit le Round
     banc.avancer(3000);
   };
 

@@ -57,13 +57,13 @@ describe('Partie.lancer — le lancement d’un scénario est un appel de la par
 });
 
 describe('jouerLOffre — la porte des offres, en intention', () => {
-  it('une Charge jouée arme l’intention locale ; au nom d’un siège, elle est hors allowlist', () => {
+  it('une Charge jouée arme l’intention locale ; au nom d’un siège, elle ne voyage pas', () => {
     const partie = auTourDUnHeros();
     try {
       expect(actionGate('charge', contexte(partie)), 'témoin : la Charge est fermée').toEqual({ ok: true });
       expect(partie.etat().localIntent).toBeNull();
-      expect(partie.envoyer({ type: 'jouerLOffre', args: ['charge'], siege: 0 }).issue).toBe('hors-allowlist');
-      expect(partie.etat().localIntent, 'une intention hors allowlist a couru').toBeNull();
+      expect(partie.envoyer({ type: 'jouerLOffre', args: ['charge'], siege: 0 }).issue).toBe('refusee');
+      expect(partie.etat().localIntent, 'une intention envoyée au nom d’un siège a couru').toBeNull();
       expect(partie.envoyer({ type: 'jouerLOffre', args: ['charge'] }).issue).toBe('appliquee');
       expect(partie.etat().localIntent).toEqual({ actionId: 'charge' });
     } finally {

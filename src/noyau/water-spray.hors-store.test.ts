@@ -40,14 +40,14 @@ function setBattle(combatants: Combatant[], activeId: string) {
   });
 }
 
-const battleWater = (targetId?: string): void => banc.getState().battleWater(targetId);
+const aspergerDEau = (targetId?: string): void => banc.getState().aspergerDEau(targetId);
 
-describe('battleWater — « Asperger d’eau » (MDG 16 l.19, #497)', () => {
+describe('aspergerDEau — « Asperger d’eau » (MDG 16 l.19, #497)', () => {
   it('gate : sans contenant d’eau, aucun effet (Action non consommée)', () => {
     const aspergeur = hero({ id: 'a', pos: { x: 1, y: 1 } });
     const cible = marine({ id: 'm', pos: { x: 2, y: 1 } });
     setBattle([aspergeur, cible], 'a');
-    battleWater();
+    aspergerDEau();
     expect(banc.getState().battle!.acted).toBe(false);
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'm')!.wateredThisRound).toBeUndefined();
   });
@@ -56,7 +56,7 @@ describe('battleWater — « Asperger d’eau » (MDG 16 l.19, #497)', () => {
     const aspergeur = hero({ id: 'a', pos: { x: 1, y: 1 }, items: [outreAEau()] });
     const cible = marine({ id: 'm', pos: { x: 2, y: 1 }, offTerrain: false }); // déjà dans l'eau
     setBattle([aspergeur, cible], 'a');
-    battleWater();
+    aspergerDEau();
     expect(banc.getState().battle!.acted).toBe(false);
   });
 
@@ -64,7 +64,7 @@ describe('battleWater — « Asperger d’eau » (MDG 16 l.19, #497)', () => {
     const aspergeur = hero({ id: 'a', pos: { x: 1, y: 1 }, items: [outreAEau()] });
     const cible = marine({ id: 'm', pos: { x: 2, y: 1 } });
     setBattle([aspergeur, cible], 'a');
-    battleWater('m');
+    aspergerDEau('m');
     const battle = banc.getState().battle!;
     expect(battle.combatants.find((c) => c.id === 'm')!.wateredThisRound).toBe(true);
     expect(battle.acted).toBe(true);
@@ -75,7 +75,7 @@ describe('battleWater — « Asperger d’eau » (MDG 16 l.19, #497)', () => {
     const aspergeur = hero({ id: 'a', pos: { x: 1, y: 1 }, items: [outreAEau()] });
     const cible = marine({ id: 'm', pos: { x: 2, y: 1 } });
     setBattle([aspergeur, cible], 'a');
-    battleWater('m');
+    aspergerDEau('m');
     const m = banc.getState().battle!.combatants.find((c) => c.id === 'm')!;
     const before = m.wounds.current;
     suffocationTick(m);
@@ -90,7 +90,7 @@ describe('battleWater — « Asperger d’eau » (MDG 16 l.19, #497)', () => {
     const cible = marine({ id: 'm', pos: { x: 2, y: 1 } });
     setBattle([aspergeur, cible], 'a');
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } });
-    battleWater('m');
+    aspergerDEau('m');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'm')!.wateredThisRound).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
 /**
  * L'élection du porteur se JOUE chez l'émetteur (#1411) : le mode de ciblage déclare que son clic n'est
  * qu'une élection (`TargetingMode.electionLocale`), et `emettreIntentInvite` la joue en local au lieu
- * d'émettre ; seul le COMMIT (`battleDispelSpell`, allowlisté) voyage. LDB 46 l.158-162
+ * d'émettre ; seul le COMMIT (`dissiperLeSort`, allowlisté) voyage. LDB 46 l.158-162
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';

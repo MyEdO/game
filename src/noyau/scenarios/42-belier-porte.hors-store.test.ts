@@ -138,11 +138,11 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(pushSlot(soldat, combatants)).toEqual({ show: true, undercrew: true });
   });
 
-  it("battlePushEngine peuple `battle.reachable` de cases VALIDES (aperçu de portée non vide) — pas seulement le commit", () => {
+  it("pousserLEngin peuple `battle.reachable` de cases VALIDES (aperçu de portée non vide) — pas seulement le commit", () => {
     const { soldat } = startBelier();
     setActive(soldat.id);
     const start = { ...soldat.pos! };
-    banc.getState().battlePushEngine();
+    banc.getState().pousserLEngin();
     const reach = banc.getState().battle!.reachable;
     // Non vide ET porte des DESTINATIONS réelles (pas seulement la case de départ) : le joueur voit où pousser.
     expect(reach.size).toBeGreaterThan(1);
@@ -157,7 +157,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     // La case juste au nord (vers la porte) EST une destination proposée.
     expect(reach.has(`${start.x},${start.y - 1}`)).toBe(true);
     // Toggle (parité cast/heal) : re-cliquer « Pousser » ferme le mode sans consommer l'Action.
-    banc.getState().battlePushEngine();
+    banc.getState().pousserLEngin();
     expect(banc.getState().battle!.action).toBeNull();
     expect(banc.getState().battle!.reachable.size).toBe(0);
     expect(banc.getState().battle!.acted).toBe(false);
@@ -168,7 +168,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     setActive(soldat.id);
     const movers = [ram, ...crew];
     const before = new Map(movers.map((c) => [c.id, { ...c.pos! }]));
-    banc.getState().battlePushEngine();
+    banc.getState().pousserLEngin();
     expect(banc.getState().battle!.action).toBe('push');
     const dest = { x: soldat.pos!.x, y: soldat.pos!.y - 2 };
     banc.getState().battleClickTile(dest);
@@ -193,7 +193,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const cap = Number(rule('siege-engine-push-speed'));
     expect(cap).toBe(2);
     const start = { ...soldat.pos! };
-    banc.getState().battlePushEngine();
+    banc.getState().pousserLEngin();
     // Hors de portée (cap+1) : la case n'est même pas dans `battle.reachable` → le clic est ignoré, personne ne bouge.
     const tooFar = { x: start.x, y: start.y - (cap + 1) };
     expect(banc.getState().battle!.reachable.has(`${tooFar.x},${tooFar.y}`)).toBe(false);
@@ -211,14 +211,14 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const { soldat: soldatA, crew: crewA } = startBelier();
     setActive(soldatA.id);
     for (const c of crewA.filter((x) => x.id !== soldatA.id).slice(0, 3)) c.wounds = { ...c.wounds, current: 0 }; // 3/6 restants
-    banc.getState().battlePushEngine();
+    banc.getState().pousserLEngin();
     expect(banc.getState().battle!.action).toBe('push'); // effectif suffisant → poussée ouverte
 
     banc.setState({ battle: null });
     const { soldat: soldatB, crew: crewB } = startBelier();
     setActive(soldatB.id);
     for (const c of crewB.filter((x) => x.id !== soldatB.id).slice(0, 4)) c.wounds = { ...c.wounds, current: 0 }; // 2/6 restants
-    banc.getState().battlePushEngine();
+    banc.getState().pousserLEngin();
     expect(banc.getState().battle!.action).toBeNull(); // sous la moitié → poussée IMPOSSIBLE (comme un tir sous-effectif)
   });
 
@@ -226,7 +226,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const { soldat, ram, porte } = startBelier();
     const pushBy = (dy: number) => {
       setActive(soldat.id);
-      banc.getState().battlePushEngine();
+      banc.getState().pousserLEngin();
       banc.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     // Départ (3 cases d'écart) : hors d'Allonge, la porte étant inanimée (jamais de Charge/approche implicite).
@@ -247,7 +247,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const lu = () => banc.getState().battle!.combatants.find((c) => c.id === avant.id)!;
     const pushBy = (dy: number) => {
       setActive(avant.id);
-      banc.getState().battlePushEngine();
+      banc.getState().pousserLEngin();
       banc.getState().battleClickTile({ x: lu().pos!.x, y: lu().pos!.y - dy });
     };
     pushBy(2); // (3,8) → (3,6)
@@ -270,7 +270,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const { soldat, porte } = startBelier();
     const pushBy = (dy: number) => {
       setActive(soldat.id);
-      banc.getState().battlePushEngine();
+      banc.getState().pousserLEngin();
       banc.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     pushBy(2);
@@ -296,7 +296,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const { soldat, porte } = startBelier();
     const pushBy = (dy: number) => {
       setActive(soldat.id);
-      banc.getState().battlePushEngine();
+      banc.getState().pousserLEngin();
       banc.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     pushBy(2);

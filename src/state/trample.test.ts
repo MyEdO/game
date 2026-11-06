@@ -46,7 +46,7 @@ describe('Piétinement en combat (store)', () => {
 
   /** Le CHEMIN DU JOUEUR au clavier : l'option armée, Tab aimante la cible, Entrée commet. */
   const pietinerAuClavier = (): void => {
-    useGame.getState().battleSelectAttack('pietinement');
+    useGame.getState().armerLAttaque('pietinement');
     useGame.getState().snapCursorToTarget(1);
     useGame.getState().commitCursor();
     vi.runAllTimers();

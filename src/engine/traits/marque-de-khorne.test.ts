@@ -58,7 +58,7 @@ describe('Marque de Khorne — câblage (#516)', () => {
     expect(castBlockedBy(bearer(), 'priere')).toBeNull(); // scope RAW : Langue/Focalisation seules
   });
 
-  // Exemption dissipation (MDG 07 l.250) : STRUCTURELLE — `battleDispelSpell`/`oocDispelSpell` ne
+  // Exemption dissipation (MDG 07 l.250) : STRUCTURELLE — `dissiperLeSort` ne
   // consultent jamais `castBlockedBy` (magic.ts l.100-102) ; rien à poser en donnée, rien à tester ici.
 
   it('Groupe « khorne » : `capabilities.grantGroups` expose le porteur au ciblage (#516, réfutation 2a)', () => {

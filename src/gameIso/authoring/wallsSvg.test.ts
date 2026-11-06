@@ -3,8 +3,8 @@ import { buildWalls } from '../builders/walls';
 import type { WallEl } from '../builders/types';
 import { wallDepth, wallSvg, wallAccentsSvg } from './wallsSvg';
 import { depth, tileEdge, type Dims } from '../../geometry/iso';
-import { structureAppearance } from '../catalog/structures';
-import { shade, SIDE_N } from '../shade';
+import { structureAppearance } from '../../noyau/monde/volume/structures';
+import { shade, SIDE_N } from '../../lib/ombrage';
 import { emptyScene, setStructureDown, type Scene, type WallSeg } from '../../noyau/monde/scene';
 
 /**

@@ -37,18 +37,18 @@ import {
 } from './sceneMeshes';
 import { SUN_ELEVATION_DEG } from '../../../noyau/monde/soleil';
 import { facesGeometry, polyBounds, type Vec3 } from '../../../noyau/monde/volume/worldTris';
-import { faceDepthOf } from './faceRelief';
+import { faceDepthM } from '../../../noyau/monde/volume/profondeur';
 import { anchorAndSize, BILLBOARD_H_M, BILLBOARD_BOX_ASPECT } from './billboardMath';
 import { tintOf } from './visibilityTint';
 import { faceSurface } from './faceColors';
 import { tintVarFactor } from '../../../noyau/monde/volume/matieres';
 import { faceBakeData, FACE_PX_PER_M } from './faceBake';
 import { coursesPeriodM, groundPeriodM, roofCourseStepM, variantOf, N_VARIANTS } from '../../detail/courses';
-import { facadeStructureAppearance } from '../../catalog/structures';
-import { FASCIA_THICK_M, roofMaterial } from '../../catalog/roofs';
-import { wallPartRelief } from '../../catalog/structures';
+import { facadeStructureAppearance } from '../../../noyau/monde/volume/structures';
+import { FASCIA_THICK_M, roofMaterial } from '../../../noyau/monde/volume/matieres';
+import { wallPartRelief } from '../../../noyau/monde/volume/structures';
 import { WALL_PARTS } from '../../../data/structureAppearance.types';
-import { ROOF_SLOPE_M } from '../../builders/roofs';
+import { ROOF_SLOPE_M } from '../../../noyau/monde/volume/toits';
 import { buildWalls } from '../../builders/walls';
 import { tousLesTerrains } from '../../../noyau/monde/terrain';
 import { estPropVolumique, type SceneEl } from '../../builders/types';
@@ -67,7 +67,7 @@ import { AMBIANCE, ambianceLuminance } from '../../catalog/ambiance';
 import { schema as ambianceSchema } from '../../../data/schemas/defs/ambiance';
 import { fogAt, fogCurveOf } from '../../pov/camera';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
-import { srgbToLinear, toHex } from '../../shade';
+import { srgbToLinear, toHex } from '../../../lib/ombrage';
 const diligenceConstruit = diligence.construire();
 const pontVitrineConstruit = pontVitrine.construire();
 const areneConstruit = arene.construire();
@@ -171,7 +171,7 @@ describe('ORIENTATION — les triangles regardent DEHORS (la carte d’ombre en 
     const m = sceneMetresPerTile(scn);
     const listées = worldFaces(scn, 'jeu');
     const pos = monde(scn, m).getAttribute('position').array as Float32Array;
-    const geoms = facesGeometry(listées.map((f) => f.face), m, faceDepthOf());
+    const geoms = facesGeometry(listées.map((f) => f.face), m, faceDepthM);
     // La fusion émet les faces GROUPÉES par surface (un groupe = un dessin) : le bilan les parcourt
     // dans CET ordre, sinon il compare le triangle d'une face à la normale d'une autre.
     const ordre = surfaceGrouping(listées, m).faceIndices.flat();
@@ -266,7 +266,7 @@ describe('CONTENU — ce qu’un cadrage doit tenir', () => {
       // Toute face NON-TERRAIN (relief, structure, toiture) tient dans la boîte de contenu. Les rangs
       // coplanaires se mesurent sur la liste ENTIÈRE (contrat de `coplanarRanks`) : on filtre APRÈS.
       const toutes = worldFaces(scn, 'jeu').map((f) => f.face);
-      const geoms = facesGeometry(toutes, m, faceDepthOf());
+      const geoms = facesGeometry(toutes, m, faceDepthM);
       let bati = 0;
       let dehors = 0;
       for (let i = 0; i < toutes.length; i++) {

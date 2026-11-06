@@ -1,7 +1,7 @@
 import type { CharKey } from '../engine/types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import type { ActionRunCtx, BattleActionMode } from './actionRegistry';
-import type { AttackKind } from '../engine/creatureAttacks';
+import type { ContexteDOffre } from './actionRegistry';
+import type { OptionDeDetermination } from './combatSlice';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { IndiceAffiché } from './monde/clues';
 import type { HerosEngage } from './creation/engagement';
@@ -16,10 +16,9 @@ import type { RestLodging, RestFood } from './restFlow';
 import type { Pt } from './monde/path';
 import type {
   IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
-  IdDEntiteDeScene, IdDeTireurRapide, IdDePorte, IdDIndice,
+  IdDEntiteDeScene, IdDeTireurRapide, IdDePorte, IdDIndice, IdDOffre,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
-import type { ShootingStanceKey } from './etat';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
 
 /** Les actions de JEU (#2817 D5) : tout hôte les porte ; aucune action d'interface. */
@@ -28,9 +27,26 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   dispelSelectCarrier: (carrierId: string | null) => void;
   /** Arme (id d'action) ou dissout (`null`) l'intention locale. Re-armer la MÊME la dissout. */
   battleArmIntent: (actionId: string | null) => void;
-  /** Joue l'offre `actionId` du registre par sa porte unique (`runAction`), pour un hôte qui parle en
-   *  intentions (#2898). */
-  jouerLOffre: (actionId: string, ctx?: ActionRunCtx) => void;
+  /** Joue l'offre `actionId` du registre (#2898) sur son contexte : refusée, et dite, quand `offresDeLActif` ne la rend
+   *  pas ouverte (`refusDeLOffre`) ; elle arme son intention chez l'émetteur, puis joue son entrée d'`OFFRES_PAR_RUN`. */
+  jouerLOffre: (actionId: IdDOffre, ctx?: ContexteDOffre) => void;
+  /** Désarme le mode du combat (`battle.action`) et l'intention armée de l'émetteur : Échap, le re-clic d'une case armée,
+   *  la sortie de la bordée. L'annulation est gratuite, rien n'étant engagé avant le clic-cible. */
+  desarmerLeMode: () => void;
+  /** Incante le sort `spellId` de `lanceurId` (LDB 46) : en combat, il arme le mode d'incantation, la cible se
+   *  désignant au clic ; hors combat, sur `cibleId` (le lanceur par défaut), un sort non offensif. */
+  incanterLeSort: (lanceurId: IdDeCombattant, spellId: string, cibleId?: IdDeCombattant, fromGrimoire?: boolean) => void;
+  /** Focalise le sort d'Arcane ou de Domaine `spellId` de `lanceurId` : ouvre la modale du Test étendu (LDB 46). */
+  focaliserLeSort: (lanceurId: IdDeCombattant, spellId: string) => void;
+  /** Dissipe le Sort permanent `spellId` que porte `porteurId`, pour l'Action de `lanceurId` (LDB 46 l.158-162). */
+  dissiperLeSort: (lanceurId: IdDeCombattant, spellId: string, porteurId: IdDeCombattant) => void;
+  /** Le porteur `porteurId` utilise le consommable `uid` de son inventaire, Action gratuite (LDB 13 l.106). */
+  utiliserLObjet: (porteurId: IdDePorteur, uid: IdDObjet) => void;
+  /** Prend le set d'armes `loadoutId` de `heroId`, Action gratuite (LDB 13 l.106), 1×/tour en combat. */
+  prendreLaPanoplie: (heroId: IdDeHeros, loadoutId: string) => void;
+  /** Dépense un Point de Détermination de `combattantId` pour l'une de ses trois options, l'État `etat` pour le
+   *  retrait (LDB 17 l.59-61). */
+  depenserLaDetermination: (combattantId: IdDeCombattant, option: OptionDeDetermination, etat?: string) => void;
   /** Ferme la fenêtre `fenetre`, que son registre déclare se fermer (`sortie`, `modalArbiter.ts`) ; refusé, et dit,
    *  hors de ce que sa déclaration ouvre (`refusDeLaSortie`). */
   fenetreFermer: (fenetre: FenetreQuiSeFerme) => void;
@@ -106,7 +122,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   stowItem: (heroId: IdDePorteur, uid: IdDObjet, containerUid: IdDObjet | null) => void;
   createLoadout: (heroId: IdDeHeros) => void;
   deleteLoadout: (heroId: IdDeHeros, id: string) => void;
-  setActiveLoadout: (heroId: IdDeHeros, id: string) => void;
   setLoadoutSlot: (heroId: IdDeHeros, id: string, slot: 'main' | 'off', uid: IdDObjet | null) => void;
   /** Donne un objet d'un héros à un autre (transfert d'inventaire). Arrive NON équipé chez le
    *  destinataire ; recalcule les deux loadouts. Permet de confier une arme/armure au bon porteur. */
@@ -209,10 +224,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  `mode:'detect'` = Détection d'artefact (LDB 10) : Intuition au toucher, une tentative par objet. */
   appraiseItem: (uid: IdDObjet, heroId: IdDeHeros, mode?: 'evaluate' | 'detect') => void;
 
-  battleSelectAction: (a: BattleActionMode | null) => void;
-  /** « Asperger d'eau » (MDG 16 l.19, #497) — Action DIRECTE (aucune modale) : cible explicite ou
-   *  1ᵉʳ candidat éligible adjacent (patron `battleManPoste`). */
-  battleWater: (targetId?: IdDeCombattant) => void;
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients, actes
    *  (Guérison/Hémorragie/Déchirure/Chirurgie), PNJ payant via l'effet `medicalAid`. */
   openMedic: (opts?: { patientId?: IdDeHeros; npc?: MedicNpc }) => void;
@@ -224,85 +235,16 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
   openRest: (opts: restFlow.OpenRestOpts) => void;
   restSet: (heroId: IdDeHeros, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => void;
-  /** Recharger l'arme à distance (LDB 62 l.335) : OUVRE la modale de Test étendu de Projectiles. */
-  battleReload: (weaponUid?: IdDObjet) => void;
-  /** Se libérer (Empêtré, Test opposé de Force) / se rouler au sol (En flammes, Athlétisme) : OUVRE la modale (LDB 16 l.66/84). */
-  battleRecoverState: (state: string) => void;
-  /** Sélectionne la munition à tirer (uid d'un item `kind 'ammo'`). */
-  battleSelectAmmo: (uid: IdDObjet, weaponUid?: IdDObjet) => void;
-  /** Détermination (Resolve, LDB 17 l.61) : retire un État de l'actif (+1 PB si À Terre).
-   *  Ne consomme PAS l'Action. */
-  battleSpendResolve: (conditionName: string) => void;
-  /** Détermination depuis une MODALE de jet (LDB 17 l.61) : même règle, pour n'importe quel héros
-   *  (le défenseur n'est pas l'actif) et sans toucher au mode d'action. */
-  spendResolveCondition: (combatantId: IdDeCombattant, conditionName: string) => void;
-  /** Détermination (LDB 17 l.59) : immunité à la Psychologie jusqu'à la fin du prochain Round. */
-  battleResolvePsychImmune: () => void;
-  /** Détermination (LDB 17 l.60) : ignore les modificateurs de Blessure critique ce Round. */
-  battleResolveIgnoreCrit: () => void;
-  /** Ramasser UN objet au sol pendant un Round (LDB 13 l.115-116) : applique au combattant
-   *  actif un item ramassable d'un `prop` interactif adjacent. Consomme l'Action, pas d'auto-équipe.
-   *  `key` = `eff:<index dans interact.effects>` (cf. entityPickables). */
-  battlePickup: (entityId: string, key: string) => void;
-  battleSelectSpell: (spellId: string) => void;
-  /** Le combattant actif boit/utilise un consommable de son inventaire (coûte l'Action). */
-  battleUseItem: (uid: IdDObjet) => void;
-  /** HORS COMBAT : un héros utilise un consommable (bandages, potion) depuis sa fiche. */
-  usePartyItem: (heroId: IdDeHeros, uid: IdDObjet) => void;
-  /** Incantation HORS COMBAT (couture D) : un héros lanceur cible self/allié ; sorts non-offensifs. */
-  oocCastSpell: (casterId: IdDeCombattant, spellId: string, targetId: IdDeCombattant, fromGrimoire?: boolean) => void;
-  battleFocusSpell: (spellId: string) => void;
   // Les OPTIONS de ces deux clics vivent avec leur consommateur (`targetingModes`) : les recopier ici
   // en littéral les faisait diverger en silence — le champ `approche` (verdict d'armement de la
   // Charge, spec § 2026-08-19) manquait déjà de cette copie, et TypeScript ne pouvait pas le dire.
   battleClickTile: (pt: Pt, opts?: TileClickOpts) => void;
   battleClickEntity: (id: IdDeCombattant, opts?: BattleClickOpts) => void;
-  /** Annule TOUT le déplacement décomposé du Tour (R6) tant qu'aucune Action n'a été prise :
-   *  restaure positions/orientation depuis `battle.moveSnapshot`. No-op après l'Action. */
-  cancelMove: () => void;
-  battleEndTurn: () => void;
-  armEndTurn: () => void;
   /** Retire l'aperçu armé par un premier clic (`battle.preview`). */
   battleClearPreview: () => void;
   /** Chance, 3e usage (LDB 17 l.25) : en début de Round, place un héros en tête de l'ordre
    *  contre 1 point de Chance (pré-emption d'initiative). */
   roundStartPromote: (heroId: IdDeCombattantPromouvable) => void;
-  /** « Sur la défensive » : utilise l'Action pour +20 en défense jusqu'au prochain tour. */
-  battleDefendTotal: () => void;
-  /** Bascule le set d'armes actif du combattant actif (Action gratuite, LDB 13 l.106 ; plafond MAISON 1×/tour, même Engagé). */
-  battleSwitchLoadout: (loadoutId: string) => void;
-  /** Action « Viser » (sans jet) : +20 (Accessible) au prochain tir tant que c'est la dernière action. */
-  battleAim: () => void;
-  /** Perturbante (LDB 62 l.272-274) : bascule le mode « Repousser » (1 m/DR au lieu des Dégâts). */
-  battleTogglePushback: () => void;
-  /** Bascule une POSTURE DE TIR pré-armée du combattant actif (`battle.stances`, spec HUD §1a G5) :
-   *  le choix se pose hors modale, le prochain `PendingAttack` le reçoit déjà armé. */
-  battleToggleStance: (stance: ShootingStanceKey) => void;
-  /** Arme une ATTAQUE (id d'`AttackOption` : 'arme'/'morsure'/'tentacule'/'pietinement'…) pour le clic-ennemi
-   *  — source UNIQUE de l'attaque armée. Toggle → 'arme'.
-   *  Le clic-ennemi résout l'attaque armée via l'approche-puis-frappe (battleClickEntity). */
-  battleSelectAttack: (id: string) => void;
-  /** Manœuvre de ZONE / soi immédiate (Souffle/Vomi/Langue/Hurlement/Regard/Étreinte) : résolution
-   *  directe par le résolveur moteur partagé. L'Étreinte glaciale coûte l'Action (LDB 85 l.112). */
-  battleManeuverArea: (kind: AttackKind) => void;
-  /** Capacité SUR SOI octroyée par un trait (Métamorphose humain↔hybride de l'Enfant d'Ulric) : résout la
-   *  manœuvre `targeting:'self'` sur l'acteur et consomme l'Action (la 2ᵉ vient du `loseTurn` de ses effets). */
-  battleSelfManeuver: (maneuverId: string) => void;
-  /** Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant de
-   *  l'Avantage adverse. `foeId` absent = 1er éligible (picker via réglage `battement.adversaire`). */
-  battleBattement: (foeId?: IdDeCombattant) => void;
-  /** Distraire (LDB 10 l.364 / AA 13 l.51) : MOUVEMENT, Test opposé Athlétisme vs Calme. Sur victoire,
-   *  le foe est distrait (ne gagne plus d'Avantage). `foeId` absent = 1er éligible en Ligne de vue
-   *  (picker via réglage `distraire.adversaire`). */
-  battleDistraire: (foeId?: IdDeCombattant) => void;
-  /** Manœuvre navale (MDG 13) : ouvre la modale du Test de Navigation pour le navire que sert `crewId`. */
-  battleShipManeuver: (crewId: IdDeCombattant) => void;
-  /** Recharge d'un poste (MDG 12 l.462) : ouvre la modale du Test étendu de Projectiles du chef de pièce + Soutien. */
-  battleShipReload: (shipId: IdDeCombattant, posteUid: string) => void;
-  /** Test d'équipage GÉNÉRIQUE (MDG 14) : ouvre la modale multi-jets du type `testTypeId` (Rude épreuve…). */
-  battleCrewTest: (shipId: IdDeCombattant, testTypeId: string) => void;
-  /** Chanson de marin (Talent, MDG 09 l.32-40) : ouvre la modale du chanteur (choix de chanson + Test de Chant). */
-  battleSingShanty: (shipId: IdDeCombattant) => void;
   /** Chute volontaire (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
    *  basse, croisée franchissable comprise), ouvre le choix pré-jet (Sauter / Tenter le Test
    *  `chute`). Porteur = le mobile de `gesteDArete` ; tout refus est NOMMÉ (`refuserGeste`). */
@@ -312,41 +254,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  `gesteDArete`, Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. Tout refus
    *  est NOMMÉ (`refuserGeste`). */
   windowAcross: (from: Pt, to: Pt) => void;
-  /** Se relever d'À Terre (LDB 16 l.37) : consomme le Mouvement (pas l'Action) ; impossible à 0 PB (LDB 18 l.15). */
-  battleStandUp: () => void;
-  /** « Servir cette pièce » (MDG 12) : le héros actif devient chef d'un poste de siège NON servi adjacent (arme octroyée) — coûte l'Action. KIND-AGNOSTIQUE. */
-  battleManPoste: (target?: { hullId: IdDeCombattant; posteUid: string }) => void;
-  /** « Quitter la pièce » (release) : libère le poste servi pour un autre — coûte l'Action. */
-  battleLeavePoste: () => void;
-  /** « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, #156) : ouvre le mode de
-   *  ciblage-CASE 'push' (le clic-sol suivant commet la translation de formation, `targetingModes.ts`).
-   *  Chef d'un poste d'engin MOBILE, Action dispo, Équipe ≥ moitié requise (sinon no-op, comme un tir
-   *  sous-effectif refusé). Mouvement SIMPLE, aucun jet ; plafonné à `rule('siege-engine-push-speed')`. */
-  battlePushEngine: () => void;
-  /** « Diriger l'équipe » (Commandant d'équipe, AA) : Test de Commandement (+0) pour aider une équipe d'Arme
-   *  d'équipe à portée de voix — sur réussite, elle tire au score de Projectiles du commandant. Coûte l'Action. */
-  battleAidTeam: () => void;
-  battleDispelSpell: (spellId: string, spellCasterId: IdDeCombattant) => void;
-  /** Focalisation HORS COMBAT (couture D) : ouvre la modale de Focalisation pour un héros lanceur du groupe. */
-  oocFocusSpell: (casterId: IdDeCombattant, spellId: string) => void;
-  /** Dissipation de sort permanent HORS COMBAT (couture D, LDB 46 l.160-162, #461). */
-  oocDispelSpell: (casterId: IdDeCombattant, spellId: string, spellCasterId: IdDeCombattant) => void;
   // (Psychologie de combat (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
   //  résolues par les verbes de jet de la cascade, applier 'combatPsych'.)
-  /** Entrée en Frénésie d'un héros (LDB 21 l.31) : ouvrir la modale, lancer le Test de FM, Chance/Résilience, appliquer. */
-  battleFrenzy: () => void;
-  /** Action « cumuler l'Avantage » (LDB 09 l.305-308) : Test de la Compétence `skillId` (Intuition/
-   *  Savoir/Survie/Prière) via la modale de Test standard ; sur réussite +1 Avantage plafonné. Coûte l'Action. */
-  battleGainAdvantage: (skillId: string) => void;
-  /** Combat monté (cadre : LDB 14 l.175-187) : enfourcher une monture libre adjacente / en descendre.
-   *  Coût = MOUVEMENT sans jet ni Action — MAISON [entériné 2026-07-17] (« Met les en Maison pour le
-   *  moment », #526 ; aucune clause de coût citable, LDB 14/15/09 + AA 9 fouillés en entier) ;
-   *  Chevaucher sans Test : LDB 09 l.112. */
-  /** `mountId` = la monture DÉSIGNÉE (sa pastille sur le champ) ; absent = la plus proche. */
-  battleMount: (mountId?: IdDeCombattant) => void;
-  battleDismount: () => void;
-  /** Désengagement (LDB 15 l.43-68) : menu Sacrifier l'Avantage / Esquiver / Fuir / Renoncer. */
-  battleDisengage: () => void;
   openWorldMap: () => void;
   /** Rouvre l'écran du lieu où se tient le groupe (`lieuFlow`). */
   ouvrirLeLieu: () => void;

@@ -105,9 +105,8 @@ describe('Actions Détermination — immunité psy & ignore-crit (store)', () =>
     return hero;
   }
 
-  it('battleResolvePsychImmune : immunisé jusqu\'au Round courant+1, −1 Détermination, ne consomme pas l\'Action', () => {
-    withHero();
-    banc.getState().battleResolvePsychImmune();
+  it('immuniserALaPsychologie : immunisé jusqu\'au Round courant+1, −1 Détermination, ne consomme pas l\'Action', () => {
+    banc.getState().depenserLaDetermination(withHero().id, 'immuniserALaPsychologie');
     const h = banc.getState().battle!.combatants[0];
     const psy = h.activeEffects?.find((e) => e.psychImmune); // ce Round + le prochain
     expect(psy?.duration).toEqual({ scale: 'rounds', left: 2 });
@@ -115,9 +114,8 @@ describe('Actions Détermination — immunité psy & ignore-crit (store)', () =>
     expect(banc.getState().battle!.acted).toBe(false); // gratuit
   });
 
-  it('battleResolveIgnoreCrit : pose ignoreCritMods, −1 Détermination', () => {
-    withHero();
-    banc.getState().battleResolveIgnoreCrit();
+  it('ignorerLesCritiques : pose ignoreCritMods, −1 Détermination', () => {
+    banc.getState().depenserLaDetermination(withHero().id, 'ignorerLesCritiques');
     const h = banc.getState().battle!.combatants[0];
     expect(h.activeEffects?.some((e) => e.ignoreCritMods)).toBe(true);
     expect(h.resolve).toBe(1);
@@ -126,7 +124,7 @@ describe('Actions Détermination — immunité psy & ignore-crit (store)', () =>
   it('sans Détermination (0) : no-op', () => {
     const hero = C({ id: 'h', kind: 'hero', label: 'H', resolve: 0, conditions: [], wounds: blessuresDeBase(10) });
     banc.setState({ battle: { combatants: [hero], order: ['h'], turn: 0, round: 1, over: false, log: [], acted: false } as never });
-    banc.getState().battleResolvePsychImmune();
+    banc.getState().depenserLaDetermination(hero.id, 'immuniserALaPsychologie');
     expect(banc.getState().battle!.combatants[0].activeEffects?.some((e) => e.psychImmune)).toBeFalsy();
   });
 });

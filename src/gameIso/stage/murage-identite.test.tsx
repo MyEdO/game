@@ -44,7 +44,7 @@ import type { Combatant } from '../../engine/types';
 import type { Scene } from '../../noyau/monde/scene';
 import { CampaignView } from '../../ui/CampaignView';
 import { nudgeStageYaw, resetStageYaw, viewRot } from '../../state/stageYaw';
-import { clearedSpace } from '../builders/roofs';
+import { clearedSpace } from '../../noyau/monde/volume/toits';
 import { massFootprintCells } from '../../noyau/monde/buildings';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { setStageRendererFactory } from './GameStage3D';
@@ -429,7 +429,7 @@ const BATTERIE: readonly Geste[] = [
     nom: 'un tour de combat',
     monter: monterCombat,
     témoin: () => String(useGame.getState().battle?.turn ?? '—'),
-    agir: async () => { await act(async () => { useGame.getState().battleEndTurn(); }); },
+    agir: async () => { await act(async () => { useGame.getState().terminerLeTour(); }); },
   },
 ];
 

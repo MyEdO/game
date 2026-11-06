@@ -7,7 +7,7 @@
  * Quatre familles, une par cause :
  *  - opposition de cible (`jetResist('opposition')`/`jetConfirm('opposition')`) : la cible d'un Sort opposé pouvait
  *    jeter mais pas appliquer ;
- *  - hotbar (`battleSelectAttack`) : rendue dès `controlsCombatant`, clic invité = no-op silencieux ;
+ *  - hotbar (`jouerLOffre('attaque')`) : rendue dès `controlsCombatant`, clic invité = no-op silencieux ;
  *  - Tir rapide (`armPreempt`/`preemptRangedShot`, Talent « Tir rapide ») : pendant la pause de début
  *    de Round il n'y a AUCUN combattant actif, donc le repli universel rendait l'hôte ;
  *  - Résistance (Menace) d'une étape de cascade (`jetResist('cascade')`).
@@ -59,7 +59,7 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
     movementUsed: 0, movedPreAction: false, acted: false, loadoutSwapped: false, log: [], over: null,
   } as unknown as BattleState;
   banc.setState({
-    ...initialFields(), battle, mode: 'battle', scene: SCENE(), party: [h2, h3], gameTime: 0,
+    ...initialFields(), battle, mode: 'battle', screen: 'campaign', scene: SCENE(), party: [h2, h3], gameTime: 0,
     net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 },
            slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité A', 2: 'Invité B' }, ...net },
   });
@@ -146,18 +146,18 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
 });
 
 describe('#1050 — hotbar : le geste de l’invité sur SON héros actif atteint l’hôte', () => {
-  it('battleSelectAttack : le siège du combattant ACTIF arme son attaque ; un tiers est refusé', () => {
+  it('l’offre `attaque` : le siège du combattant ACTIF arme son attaque ; un tiers est refusé', () => {
     setup(); // tour de `h2` (siège 1)
-    expect(applyIntent(2, 'battleSelectAttack', ['arme-2']), 'un tiers pilotait le tour d’autrui').toBe('refusee');
-    expect(applyIntent(0, 'battleSelectAttack', ['arme-2']), 'l’hôte ne possède pas le combattant actif').toBe('refusee');
+    expect(applyIntent(2, 'jouerLOffre', ['attaque', { attackId: 'arme-2' }]), 'un tiers pilotait le tour d’autrui').toBe('refusee');
+    expect(applyIntent(0, 'jouerLOffre', ['attaque', { attackId: 'arme-2' }]), 'l’hôte ne possède pas le combattant actif').toBe('refusee');
     expect(banc.getState().battle!.selectedAttack).toBeNull();
-    expect(applyIntent(1, 'battleSelectAttack', ['arme-2'])).toBe('appliquee');
+    expect(applyIntent(1, 'jouerLOffre', ['attaque', { attackId: 'arme-2' }])).toBe('appliquee');
     expect(banc.getState().battle!.selectedAttack, 'le geste s’exécutait chez l’invité puis mourait au snapshot').toBe('arme-2');
   });
 
   it('NON-RÉGRESSION SOLO : le joueur arme son attaque hors coop', () => {
     setup({ mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
-    banc.getState().battleSelectAttack('arme-2');
+    banc.getState().armerLAttaque('arme-2');
     expect(banc.getState().battle!.selectedAttack).toBe('arme-2');
   });
 });

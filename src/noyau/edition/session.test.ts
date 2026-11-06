@@ -13,6 +13,7 @@ import { emptyScene, heightAt, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
 import { editer, ouvrirLEdition, planDeLaVolee, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
 import { entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
+import { seatSlotsOf } from '../monde/seating';
 import { props, refEstVolumique } from '../../data';
 
 const ouverteSur = (scene: Scene, duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
@@ -136,5 +137,66 @@ describe('session d’édition', () => {
     expect(jouer(renommee, { geste: 'nommer' })).toBe(renommee);
     const etage = jouer(renommee, { geste: 'ajouterCouche' }, { geste: 'couche', z: 0 }, { geste: 'outil', outil: { mode: 'select' } }, { geste: 'appui', point: point(2, 2) }, { geste: 'entree', z: 1 });
     expect(sceneEditee(etage).entryPoints?.cour).toEqual({ x: 2, y: 2, z: 1 });
+  });
+
+  it('un décor : sa lumière allumée, réglée, éteinte ; son assise ouverte ; ses places tenues, libérées, un corps à la fois', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const ent = (s: SessionDEdition, id?: string) => (id ? sceneEditee(s).entities.find((e) => e.id === id) : entiteDeLaSelection(sceneEditee(s), s.sel));
+    const pnj = jouer(ouverteSur(emptyScene('session', 8, 8)), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(6, 6) });
+    const pnjId = pnj.sel?.type === 'entity' ? pnj.sel.id : '';
+    const table = jouer(pnj, { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: 'table-ronde-4-tabourets' } }, { geste: 'appui', point: point(3, 3) });
+    const tableId = table.sel?.type === 'entity' ? table.sel.id : '';
+    const allumee = jouer(table, { geste: 'entite', patch: { light: { radiusM: 6, tone: 'lanterne' } } });
+    expect(ent(allumee)?.light).toEqual({ radiusM: 6, tone: 'lanterne' });
+    expect(ent(jouer(allumee, { geste: 'entite', patch: { light: null } }))?.light).toBeUndefined();
+    const ouverte = jouer(table, { geste: 'entite', patch: { assise: true } });
+    expect(ent(ouverte)?.usable).toEqual({ ...ent(table)?.usable, assise: true });
+    expect(ent(jouer(ouverte, { geste: 'entite', patch: { assise: false } }))?.usable, 'les actions restent').toEqual(ent(table)?.usable);
+    const [p1, p2] = seatSlotsOf(sceneEditee(table), tableId).map((p) => p.slotId);
+    const assis = jouer(table, { geste: 'place', place: p1, occupant: { kind: 'entity', entityId: pnjId } });
+    expect(sceneEditee(assis).seatAssignments?.[tableId]).toEqual({ [p1]: { kind: 'entity', entityId: pnjId } });
+    expect(ent(assis, pnjId)?.pos, 'le corps se tient sur l’abord de sa place').not.toEqual({ x: 6, y: 6 });
+    const deplace = jouer(assis, { geste: 'place', place: p2, occupant: { kind: 'entity', entityId: pnjId } });
+    expect(sceneEditee(deplace).seatAssignments?.[tableId], 'un corps, une place').toEqual({ [p2]: { kind: 'entity', entityId: pnjId } });
+    const heros = jouer(deplace, { geste: 'place', place: p2, occupant: { kind: 'party', rang: 1 } });
+    expect(sceneEditee(heros).seatAssignments?.[tableId], 'le tenant cède sa place').toEqual({ [p2]: { kind: 'party', rang: 1 } });
+    expect(sceneEditee(jouer(heros, { geste: 'place', place: p2, occupant: null })).seatAssignments?.[tableId] ?? {}).toEqual({});
+    expect(jouer(table, { geste: 'place', place: p1, occupant: null }), 'une place vide qu’on vide : aucun cran').toBe(table);
+  });
+
+  it('un emplacement de siège : posé, son engin, son arc, ses servants et leur chef ; son équipage exposé', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel);
+    const pnjs = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(0, 0) }, { geste: 'appui', point: point(0, 1) });
+    const [a, b] = sceneEditee(pnjs).entities.map((e) => e.id);
+    const pose = jouer(pnjs, { geste: 'outil', outil: { mode: 'emplacement', trappingId: 'baliste' } }, { geste: 'appui', point: point(2, 2) });
+    expect(ent(pose)?.postes?.[0]).toMatchObject({ trappingId: 'baliste' });
+    const reglee = jouer(pose,
+      { geste: 'poste', patch: { engin: 'catapulte-petite' } },
+      { geste: 'poste', patch: { arc: 'tribord' } },
+      { geste: 'poste', patch: { servants: [a, b] } },
+      { geste: 'poste', patch: { servants: [b, a] } });
+    expect(ent(reglee)).toMatchObject({ ref: 'catapulte-petite', postes: [{ trappingId: 'catapulte-petite', side: 'tribord', crewIds: [b, a] }] });
+    expect(ent(jouer(reglee, { geste: 'poste', patch: { arc: null } }))?.postes?.[0].side, 'omni').toBeUndefined();
+    const equipage = jouer(pose, { geste: 'entite', patch: { crewIds: [a] } });
+    expect(ent(equipage)?.crewIds).toEqual([a]);
+    expect(ent(jouer(equipage, { geste: 'entite', patch: { crewIds: [] } }))?.crewIds).toBeUndefined();
+    expect(jouer(pnjs, { geste: 'poste', patch: { arc: 'proue' } }), 'un personnage sans poste').toBe(pnjs);
+  });
+
+  it('un personnage : embusqué ; enrôlé dans une rencontre neuve, allié piloté par l’IA, ennemi, retiré', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(1, 1) });
+    const id = pose.sel?.type === 'entity' ? pose.sel.id : '';
+    const membre = (s: SessionDEdition) => sceneEditee(s).encounters[0]?.members?.find((m) => m.entityId === id);
+    expect(entiteDeLaSelection(sceneEditee(jouer(pose, { geste: 'entite', patch: { embusque: true } })), pose.sel)?.combat).toEqual({ hiddenUntilCombat: true });
+    const enrole = jouer(pose, { geste: 'membre', patch: { rencontre: null, enrole: true } });
+    const enc = sceneEditee(enrole).encounters[0].id;
+    expect(membre(enrole)).toEqual({ entityId: id });
+    const allie = jouer(enrole, { geste: 'membre', patch: { rencontre: enc, camp: 'ally' } }, { geste: 'membre', patch: { rencontre: enc, ia: true } });
+    expect(membre(allie)).toMatchObject({ side: 'ally', ai: true });
+    expect(membre(jouer(allie, { geste: 'membre', patch: { rencontre: enc, camp: 'enemy' } })), 'un ennemi n’est pas piloté').toMatchObject({ side: undefined, ai: undefined });
+    expect(membre(jouer(allie, { geste: 'membre', patch: { rencontre: enc, enrole: false } }))).toBeUndefined();
+    expect(jouer(enrole, { geste: 'membre', patch: { rencontre: enc, enrole: true } }), 'déjà membre : aucun cran').toBe(enrole);
   });
 });

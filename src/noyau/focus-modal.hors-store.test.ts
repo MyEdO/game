@@ -8,7 +8,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 // Focalisation par modale (LDB — Test étendu).
 describe('Focalisation en modale (store)', () => {
-  it('battleFocusSpell ouvre pendingFocus sans tirer ; jetRoll@focus tire ; jetConfirm@focus cumule le DR + consomme l’Action', () => {
+  it('focaliserLeSort ouvre pendingFocus sans tirer ; jetRoll@focus tire ; jetConfirm@focus cumule le DR + consomme l’Action', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.characteristics['force-mentale'] = 80;
     hero.spells = ['arme-aethyrique'];
@@ -24,7 +24,7 @@ describe('Focalisation en modale (store)', () => {
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, selectedSpellId: 'arme-aethyrique', acted: false } });
 
-    banc.getState().battleFocusSpell('arme-aethyrique');
+    banc.getState().focaliserLeSort(heroC.id, 'arme-aethyrique');
     expect(banc.getState().pendingFocus).toBeTruthy();
     expect(banc.getState().pendingFocus!.result).toBeNull(); // pas encore lancé
 
@@ -58,7 +58,7 @@ describe('Focalisation en modale (store)', () => {
     const turn = st.battle!.order.indexOf(enemy.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, acted: false, combatants: [...st.battle!.combatants] } });
 
-    banc.getState().battleFocusSpell('carreau'); // garde héros-only relâchée → autorisé pour l'IA active
+    banc.getState().focaliserLeSort(enemy.id, 'carreau'); // garde héros-only relâchée → autorisé pour l'IA active
     expect(banc.getState().pendingFocus).toBeTruthy();
 
     banc.getState().jetRoll('focus');
@@ -86,7 +86,7 @@ describe('Focalisation en modale (store)', () => {
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, acted: false } });
-    banc.getState().battleFocusSpell('flechette'); // Magie mineure → non focalisable
+    banc.getState().focaliserLeSort(heroC.id, 'flechette'); // Magie mineure → non focalisable
     expect(banc.getState().pendingFocus).toBeNull();
   });
 });

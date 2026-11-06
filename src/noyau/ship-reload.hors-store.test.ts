@@ -31,10 +31,10 @@ const ship = (poste = firedPoste()): Combatant =>
 const setup = (poste = firedPoste()) =>
   banc.setState({ battle: { combatants: [ship(poste), gunner()], order: ['ship'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never, party: [gunner()], facing: { ship: 'N' }, pendingReload: null, scene: null as never });
 
-describe('battleShipReload — Test étendu de recharge d’un poste (MDG 12 / LDB 62)', () => {
+describe('rechargerLaPiece — Test étendu de recharge d’un poste (MDG 12 / LDB 62)', () => {
   it('ouvre la modale de recharge sur le CHEF de pièce, cible = Recharge N', () => {
     setup();
-    banc.getState().battleShipReload('ship', 'canon');
+    banc.getState().rechargerLaPiece('ship', 'canon');
     const pr = banc.getState().pendingReload!;
     expect(pr).toBeTruthy();
     expect(pr.actorId).toBe('gunner'); // le chef de pièce lance
@@ -47,7 +47,7 @@ describe('battleShipReload — Test étendu de recharge d’un poste (MDG 12 / L
   it('réussite suffisante → la PIÈCE est rechargée (poste.loaded), PAS le champ du marin ; équipage OCCUPÉ, tour NON consommé', () => {
     seedBattleRng(1); // jet bas → réussite, DR ≥ 1 → 5 + DR ≥ 6 → rechargée
     setup();
-    banc.getState().battleShipReload('ship', 'canon');
+    banc.getState().rechargerLaPiece('ship', 'canon');
     banc.getState().jetRoll('reload');
     banc.getState().jetConfirm('reload');
     const st = banc.getState();
@@ -61,14 +61,14 @@ describe('battleShipReload — Test étendu de recharge d’un poste (MDG 12 / L
 
   it('une pièce DÉJÀ chargée → no-op (rien à recharger)', () => {
     setup(firedPoste({ loaded: true }));
-    banc.getState().battleShipReload('ship', 'canon');
+    banc.getState().rechargerLaPiece('ship', 'canon');
     expect(banc.getState().pendingReload).toBeNull();
   });
 
   it('chef DÉJÀ engagé ce Round (crewActed) → no-op : un seul Test de recharge par pièce et par Round', () => {
     setup();
     banc.setState({ battle: { ...banc.getState().battle!, crewActed: { ship: ['gunner'] } } as never });
-    banc.getState().battleShipReload('ship', 'canon');
+    banc.getState().rechargerLaPiece('ship', 'canon');
     expect(banc.getState().pendingReload).toBeNull();
   });
 });
@@ -108,7 +108,7 @@ describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
     expect(banc.getState().pendingShipBattery).toBeNull();
     // Round 2 (crewActed réinitialisé) : recharge de la pièce.
     banc.setState({ battle: { ...banc.getState().battle!, round: 2, crewActed: {} } as never });
-    banc.getState().battleShipReload('ship', 'canon');
+    banc.getState().rechargerLaPiece('ship', 'canon');
     expect(banc.getState().pendingReload).toBeTruthy();
     banc.getState().jetRoll('reload');
     banc.getState().jetConfirm('reload');

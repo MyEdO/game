@@ -348,7 +348,7 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
 src/geometry/                Géométrie/simulation PURE, feuille de `COUCHES` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
-                            isométrique (Dims, tileCenter, rotTile…) — `gameIso/iso.ts` la ré-importe pour
+                            isométrique (Dims, tileCenter, rotTile…) — `noyau/monde/iso.ts` la ré-importe pour
                             ses dérivés qui ont besoin du MONDE (WALL_H_M/isoPxToM, via noyau/monde/relief).
                             `walk.ts` : interpolation temporelle le long d'un chemin (walkMs/walkXY,
                             STEP_MS) — cadence l'attente de fin de marche AVANT résolution de combat.

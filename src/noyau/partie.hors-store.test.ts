@@ -167,7 +167,7 @@ describe('creerPartie — le `set` du propriétaire', () => {
     const partie = creerPartie(etatInitialDuJeu(), ENTREES);
     expect(() => creerPartie(etatInitialDuJeu(), ENTREES)).toThrow(/déjà branché/);
     partie.fermer();
-    expect(() => partie.envoyer({ type: 'battleEndTurn', args: [] })).toThrow(/partie fermée/);
+    expect(() => partie.envoyer({ type: 'jouerLOffre', args: ['end-turn'] })).toThrow(/partie fermée/);
   });
 });
 

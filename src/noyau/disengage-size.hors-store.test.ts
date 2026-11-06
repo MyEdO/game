@@ -42,7 +42,7 @@ describe('Désengagement & Taille (store)', () => {
     enemies.slice(1).forEach((e) => (e.dead = true));
     engageAndActivate(H, [E]);
 
-    banc.getState().battleDisengage();
+    banc.getState().rompreLEngagement();
 
     const st = banc.getState();
     expect(st.pendingDisengage).toBeNull(); // court-circuité : aucun menu de Désengagement
@@ -62,7 +62,7 @@ describe('Désengagement & Taille (store)', () => {
     enemies.slice(1).forEach((e) => (e.dead = true));
     engageAndActivate(H, [E]);
 
-    banc.getState().battleDisengage();
+    banc.getState().rompreLEngagement();
 
     expect(banc.getState().pendingDisengage?.phase).toBe('choice'); // pas de court-circuit
   });
@@ -76,7 +76,7 @@ describe('Désengagement & Taille (store)', () => {
     enemies.slice(2).forEach((e) => (e.dead = true));
     engageAndActivate(H, [E1, E2]);
 
-    banc.getState().battleDisengage();
+    banc.getState().rompreLEngagement();
 
     expect(banc.getState().pendingDisengage?.phase).toBe('choice');
     // les liens ne sont PAS levés tant que le Désengagement n'a pas réussi

@@ -66,8 +66,8 @@ describe('session coop (hote/coop/session)', () => {
   it('intent → applyIntent(action, args, seat), avec le siège du TRANSPORT', () => {
     const { host, applyIntent } = mkHost();
     const { guest, seat } = wire(host, 'Invité', 2);
-    guest.sendIntent('battleEndTurn', []);
-    expect(applyIntent).toHaveBeenCalledWith('battleEndTurn', [], seat);
+    guest.sendIntent('terminerLeTour', []);
+    expect(applyIntent).toHaveBeenCalledWith('terminerLeTour', [], seat);
   });
 
   it('broadcastSnapshot atteint TOUS les invités', () => {

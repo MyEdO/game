@@ -47,7 +47,7 @@ describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l
   function auCamp() {
     const [w, s, p] = pregenParty(PREGEN.sorcier, PREGEN.soldat, PREGEN.pretre);
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s, p] } });
-    banc.getState().oocCastSpell(w.id, 'colerique', s.id);
+    banc.getState().incanterLeSort(w.id, 'colerique', s.id);
     const heros = (id: string) => banc.getState().party.find((c) => c.id === id)!;
     return { banc, w, s, p, heros, maintenant: banc.getState().gameTime };
   }

@@ -1,15 +1,17 @@
 /**
- * LES MATIÈRES DU VOLUME (#3476) : la résolution d'une matière de terrain, de relief ou de décor en sa def, sa couleur
- * de base et sa recette de détail, depuis la donnée (`src/data/terrains.json`, domaines `relief` et `prop` de
- * `src/data/materials.json`), avec le repli VISIBLE d'un id absent (`./missing`). Une seule résolution, que lisent le
- * rendu web et tout hôte du noyau.
+ * LES MATIÈRES DU VOLUME (#3476) : la résolution d'une matière de terrain, de relief, de décor, de couverture ou de mur
+ * en sa def, sa couleur de base et sa recette de détail, depuis la donnée (`src/data/terrains.json`, domaines `relief`,
+ * `prop` et `roof` de `src/data/materials.json`, `src/data/structureAppearance.json` par `./structures`), avec le repli
+ * VISIBLE d'un id absent (`./missing`). Une seule résolution, que lisent le rendu web et tout hôte du noyau.
  */
 import { terrainEntree } from '../terrain';
 import { matieresDe } from '../../../data';
 import { hash32 } from '../../../data/hash';
 import type { TerrainDef } from '../../../data/terrains.types';
-import type { DetailRecipe, MaterialRef, PropMaterialData, ReliefMaterialDef } from '../../../data/materials.types';
+import type { DetailRecipe, MaterialRef, PropMaterialData, ReliefMaterialDef, RoofMaterialDef } from '../../../data/materials.types';
 import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from './missing';
+import { facadeStructureAppearance, wallPartColor } from './structures';
+import type { WallPart } from '../../../data/structureAppearance.types';
 
 /** Entrée de REPLI VISIBLE (#877) : un terrain au ton d'alarme, jamais l'apparence d'un autre terrain.
  *  `stops` VIDE : le dégradé peint du repli est `MISSING_GRADIENT`, émis par `defsGlobaux()` (`gameIso/sprites`) — une
@@ -70,23 +72,77 @@ export function propMaterial(id: string): PropMaterialData {
   return catalogEntry((cle) => matieresDe('prop').find((m) => m.id === cle), id, 'matière de décor', DECOR_MANQUANT);
 }
 
-/** Une matière du VOLUME : celles que ses builders posent sur leurs faces, le sol (`./floors`) et le décor
- *  (`./propVolumes`). */
-export type MatiereDuVolume = MaterialRef & { domain: 'terrain' | 'relief' | 'prop' };
+/** Entrée de REPLI VISIBLE (#877) : une couverture au ton d'alarme sur tous ses pans et sur son plan vu
+ *  du dessus, jamais l'apparence d'un autre matériau. */
+const COUVERTURE_MANQUANTE: RoofMaterialDef = {
+  id: MISSING_ID,
+  type: 'materials',
+  label: MISSING_LABEL,
+  domain: 'roof',
+  N: MISSING_TONE,
+  E: MISSING_TONE,
+  S: MISSING_TONE,
+  O: MISSING_TONE,
+  line: MISSING_TONE_DARK,
+  planBody: MISSING_TONE,
+  planEdge: MISSING_TONE_DARK,
+  planInner: MISSING_TONE_DARK,
+  planText: MISSING_TONE,
+};
 
-/** Couleur de base d'une matière du volume : le `swatch` d'un terrain ; la face d'un relief, le dessus de pente d'une
- *  rampe qui en porte un ; la couleur d'un matériau de décor. */
-export function couleurDeMatiere({ domain, id, part }: MatiereDuVolume): string {
-  if (domain === 'terrain') return terrainDef(id).swatch;
-  if (domain === 'prop') return propMaterial(id).color;
-  const m = reliefMaterial(id);
-  return (part === 'ramp' ? m.slopeTop : undefined) ?? m.face;
+/** Matériau de toit par id ; id absent du registre → repli VISIBLE + avertissement DEV. Résolution
+ *  VIVANTE (`matieresDe`) : le document se mute en place à l'édition, un index cuit à l'import servirait
+ *  encore l'ancienne couverture. */
+export function roofMaterial(id: string): RoofMaterialDef {
+  return catalogEntry((cle) => matieresDe('roof').find((m) => m.id === cle), id, 'toiture', COUVERTURE_MANQUANTE);
 }
 
-/** Recette de détail d'une matière du volume, prise à sa def ; un matériau de décor n'en porte aucune. */
-export function recetteDeMatiere({ domain, id }: MatiereDuVolume): DetailRecipe | undefined {
-  if (domain === 'terrain') return terrainDef(id).detail;
-  return domain === 'relief' ? reliefMaterial(id).detail : undefined;
+/** ÉPAISSEUR (m) par défaut d'une planche de rive, quand la def n'en porte pas — MÊME calibrage que les
+ *  saillies de mur (`wallPartRelief`, table des biais mesurés par scène) : au-dessus du décalage de la
+ *  carte d'ombre le plus large des scènes-témoins (0,2118 m à l'opéra), marge comprise. */
+export const FASCIA_THICK_M = 0.26;
+
+/** ÉPAISSEUR MONDE (m) de la planche de rive d'une couverture — SOURCE UNIQUE du backend volumique. */
+export function roofFasciaThickM(mat: RoofMaterialDef): number {
+  return mat.fasciaThickM ?? FASCIA_THICK_M;
+}
+
+/** Couleur d'une face de TOITURE. Les PANS partagent tous la teinte de référence `N` du matériau, quel que soit leur
+ *  cardinal : c'est la lumière qui creuse les versants. `soffite` et `fascia` gardent la leur — ce sont des PARTIES
+ *  distinctes (dessous débordant, planche de rive), pas deux orientations d'une même couverture. Un matériau sans
+ *  aucune teinte de pente (les teintes de pente sont optionnelles, `RoofMaterialDef`) peint au ton d'alarme (#877). */
+function couleurDeCouverture(id: string, part: string | undefined): string {
+  const sh = roofMaterial(id);
+  if (part === 'soffite') return sh.soffite ?? sh.N ?? MISSING_TONE;
+  if (part === 'fascia') return sh.fascia ?? sh.line ?? sh.N ?? MISSING_TONE;
+  return sh.N ?? MISSING_TONE;
+}
+
+/** Couleur de base d'une matière : le `swatch` d'un terrain ; la face d'un relief, le dessus de pente d'une rampe qui en
+ *  porte un ; la couleur d'un matériau de décor ; la couleur de la partie d'une apparence de mur (`wallPartColor`) ; la
+ *  teinte d'une couverture (`couleurDeCouverture`). */
+export function couleurDeMatiere({ domain, id, part }: MaterialRef): string {
+  switch (domain) {
+    case 'terrain': return terrainDef(id).swatch;
+    case 'prop': return propMaterial(id).color;
+    case 'structure': return wallPartColor(facadeStructureAppearance(id), part as WallPart);
+    case 'roof': return couleurDeCouverture(id, part);
+    case 'relief': {
+      const m = reliefMaterial(id);
+      return (part === 'ramp' ? m.slopeTop : undefined) ?? m.face;
+    }
+  }
+}
+
+/** Recette de détail d'une matière, prise à sa def ; un matériau de décor n'en porte aucune. */
+export function recetteDeMatiere({ domain, id }: MaterialRef): DetailRecipe | undefined {
+  switch (domain) {
+    case 'terrain': return terrainDef(id).detail;
+    case 'relief': return reliefMaterial(id).detail;
+    case 'structure': return facadeStructureAppearance(id).detail;
+    case 'roof': return roofMaterial(id).detail;
+    case 'prop': return undefined;
+  }
 }
 
 /** Variantes de variance de TEINTE par case (facteurs d'étalement du `tintVar` d'une recette) — dosage

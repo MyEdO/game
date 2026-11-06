@@ -27,7 +27,7 @@ export interface RoomTile {
 }
 
 /** Clé d'ESPACE `x,y,z` (z toujours écrit) des ensembles de cases rendus par `roomTilesById`
- *  et `RoomFocus.tiles` — la forme que compare la loi de dégagement (`gameIso/stage/architectureVisibility`). */
+ *  et `RoomFocus.tiles` — la forme que compare la loi de dégagement (`noyau/monde/volume/architectureVisibility`). */
 const spaceKey = (x: number, y: number, z: number) => `${x},${y},${z}`;
 
 /** Prédicat UNIQUE « zone intérieure » : zone descriptive (`isDescriptiveZone`) déclarée `interior`. */

@@ -138,7 +138,7 @@ describe('Boucle de jeu (store)', () => {
     const order = [...enemyIds, heroId];
     banc.setState({ battle: { ...b, combatants, order, turn: order.length - 2 } });
 
-    banc.getState().battleEndTurn(); // → advanceTurn → prochain acteur = héros → checkBattleOver → cascade de fin de combat
+    banc.getState().terminerLeTour(); // → advanceTurn → prochain acteur = héros → checkBattleOver → cascade de fin de combat
     drainCombatEndCascade(); // mutants Corrompus → Test `influences-corruptrices` influençable AVANT victoire → on le résout
 
     const st = banc.getState();
@@ -455,7 +455,7 @@ describe('Boucle de jeu (store)', () => {
     const enemyIds = b.combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
     const order = [...enemyIds, h.id]; // héros en dernier
     banc.setState({ battle: { ...b, order, turn: order.length - 2 } }); // tour juste avant le héros
-    banc.getState().battleEndTurn(); // → advanceTurn → héros : Action perdue consommée
+    banc.getState().terminerLeTour(); // → advanceTurn → héros : Action perdue consommée
     const st = banc.getState();
     const after = st.battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.loseNextAction).toBeFalsy();
@@ -555,7 +555,7 @@ describe('Boucle de jeu (store)', () => {
     h.actLastNextRound = true;
     const base = [...(b.baseOrder ?? b.order)];
     banc.setState({ battle: { ...b, turn: b.order.length - 1 } }); // au dernier tour → prochain endTurn franchit le Round
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     let st = banc.getState();
     expect(st.battle!.order[st.battle!.order.length - 1]).toBe(h.id); // héros repoussé en dernier ce Round
     expect(st.battle!.combatants.find((c) => c.id === h.id)!.actLastNextRound).toBeFalsy(); // flag purgé
@@ -564,7 +564,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('roundStart');
     const b2 = banc.getState().battle!;
     banc.setState({ battle: { ...b2, turn: b2.order.length - 1 } });
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     st = banc.getState();
     expect(st.battle!.order).toEqual(base);
   });
@@ -591,7 +591,7 @@ describe('Boucle de jeu (store)', () => {
     const combatants = b.combatants.map((c) => (c.kind === 'hero' ? c : { ...c, dead: true }));
     const order = [...combatants.filter((c) => c.kind === 'enemy').map((c) => c.id), h.id];
     banc.setState({ battle: { ...b, combatants, order, turn: order.length - 2 } });
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     drainCombatEndCascade(); // mutants Corrompus → cascade de fin de combat AVANT victoire
     expect(banc.getState().battle?.over).toBe('victory');
     expect(banc.getState().party[0].items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
@@ -803,7 +803,7 @@ describe('Boucle de jeu (store)', () => {
       pendingDefense: null,
       pendingRoundStart: null, // on pilote le combat → la pause d'ouverture est levée (sinon l'IA est gelée)
     });
-    banc.getState().battleEndTurn(); // H finit son tour → advanceTurn → E actif → IA
+    banc.getState().terminerLeTour(); // H finit son tour → advanceTurn → E actif → IA
     banc.avancer(2000); // laisse tourner les setTimeout de l'IA (450 + 350)
     st = banc.getState();
     expect(st.pendingDefense).not.toBeNull();
@@ -838,7 +838,7 @@ describe('Boucle de jeu (store)', () => {
       pendingDefense: null,
       pendingRoundStart: null,
     });
-    banc.getState().battleEndTurn(); // H finit → E (cavalier) actif → IA attaque
+    banc.getState().terminerLeTour(); // H finit → E (cavalier) actif → IA attaque
     banc.avancer(2000);
     st = banc.getState();
     expect(st.pendingDefense).not.toBeNull();
@@ -884,7 +884,7 @@ describe('Boucle de jeu (store)', () => {
       battle: { ...st.battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingDefense: null,
     });
-    banc.getState().battleEndTurn(); // H finit → E actif → IA : Sonné → renonce
+    banc.getState().terminerLeTour(); // H finit → E actif → IA : Sonné → renonce
     banc.avancer(2000);
     st = banc.getState();
     expect(st.pendingDefense).toBeNull(); // aucune attaque → aucune modale de défense
@@ -1032,7 +1032,7 @@ describe('Boucle de jeu (store)', () => {
     E.advantage = 0;
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
-    banc.getState().battleDisengage(); // ouvre le menu de choix
+    banc.getState().rompreLEngagement(); // ouvre le menu de choix
     expect(banc.getState().pendingDisengage!.phase).toBe('choice');
     expect(banc.getState().pendingDisengage!.canSacrifice).toBe(true); // Avantage supérieur → option dispo
     banc.getState().jetRegler('disengage', 'sacrifier', true); // « Sacrifier l'Avantage »
@@ -2029,7 +2029,7 @@ describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 
       items: [potion('p1', 'potion-de-guerison')],
     });
     banc.setState({ mode: 'battle', battle: mkBattle(h) });
-    banc.getState().battleUseItem('p1');
+    banc.getState().utiliserLObjet(h.id, 'p1');
     const b = banc.getState().battle!;
     expect(b.combatants[0].wounds.current).toBe(8); // 5 + BE(35) = 8
     expect(b.combatants[0].items!.find((i) => i.uid === 'p1')).toBeUndefined();
@@ -2042,7 +2042,7 @@ describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 
       items: [potion('p2', 'potion-de-vitalite')],
     });
     banc.setState({ mode: 'battle', battle: mkBattle(h) });
-    banc.getState().battleUseItem('p2');
+    banc.getState().utiliserLObjet(h.id, 'p2');
     const b = banc.getState().battle!;
     expect(b.combatants[0].conditions.find((c) => c.id === 'extenue')).toBeUndefined();
     expect(b.acted).toBe(false);
@@ -2053,7 +2053,7 @@ describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 
       items: [potion('p4', 'potion-de-vitalite')],
     });
     banc.setState({ mode: 'battle', battle: mkBattle(h), refus: null });
-    banc.getState().battleUseItem('p4');
+    banc.getState().utiliserLObjet(h.id, 'p4');
     const b = banc.getState().battle!;
     expect(banc.getState().refus?.texte).toBe(`${h.label} n’a aucun pion Exténué qui puisse être retiré. Potion de vitalité ne lui apporterait rien : l’objet est gardé.`);
     expect(b.combatants[0].items!.find((i) => i.uid === 'p4'), 'pas consommée').toBeTruthy();
@@ -2066,7 +2066,7 @@ describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 
       items: [potion('p3', 'potion-de-guerison')],
     });
     banc.setState({ mode: 'battle', battle: mkBattle(h, { acted: true }) });
-    banc.getState().battleUseItem('p3');
+    banc.getState().utiliserLObjet(h.id, 'p3');
     const b = banc.getState().battle!;
     expect(b.combatants[0].wounds.current).toBe(8);
     expect(b.combatants[0].items!.find((i) => i.uid === 'p3')).toBeUndefined();
@@ -2155,7 +2155,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
     h.resolve = 2;
     h.conditions = [{ id: 'aveugle', value: 1 }];
     banc.setState({ mode: 'battle', battle: mkBattle(h) });
-    banc.getState().battleSpendResolve('aveugle');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'aveugle');
     const b = banc.getState().battle!;
     expect(b.combatants[0].conditions.find((c) => c.id === 'aveugle')).toBeUndefined();
     expect(b.combatants[0].resolve).toBe(1);
@@ -2168,7 +2168,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
     h.conditions = [{ id: 'a-terre', value: 1 }];
     h.wounds = blessuresDeBase(12, 5, h);
     banc.setState({ mode: 'battle', battle: mkBattle(h) });
-    banc.getState().battleSpendResolve('a-terre');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'a-terre');
     const c0 = banc.getState().battle!.combatants[0];
     expect(c0.conditions.find((c) => c.id === 'a-terre')).toBeUndefined();
     expect(c0.wounds.current).toBe(6); // +1 PB
@@ -2180,7 +2180,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
     h.conditions = [{ id: 'a-terre', value: 1 }, { id: 'munition-logee', value: 1 }];
     h.wounds = blessuresDeBase(12, 11, h);
     banc.setState({ mode: 'battle', battle: mkBattle(h) });
-    banc.getState().battleSpendResolve('a-terre');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'a-terre');
     const c0 = banc.getState().battle!.combatants[0];
     expect(c0.wounds.current).toBe(11); // plafonné à max−1 (munition logée) : aucun PB regagné
   });
@@ -2190,29 +2190,29 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
     h.resolve = 0;
     h.conditions = [{ id: 'aveugle', value: 1 }];
     banc.setState({ mode: 'battle', battle: mkBattle(h) });
-    banc.getState().battleSpendResolve('aveugle');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'aveugle');
     expect(banc.getState().battle!.combatants[0].conditions.find((c) => c.id === 'aveugle')).toBeTruthy();
   });
 
-  it('spendResolveCondition (par id, hors mode actif) : retirer À Terre fait regagner 1 PB (l.66)', () => {
+  it('depenserLaDetermination (par id, hors mode actif) : retirer À Terre fait regagner 1 PB (l.66)', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     h.resolve = 1;
     h.conditions = [{ id: 'a-terre', value: 1 }];
     h.wounds = blessuresDeBase(12, 5, h);
     banc.setState({ mode: 'battle', battle: mkBattle(h) });
-    banc.getState().spendResolveCondition(h.id, 'a-terre');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'a-terre');
     const c0 = banc.getState().battle!.combatants[0];
     expect(c0.conditions.find((c) => c.id === 'a-terre')).toBeUndefined();
     expect(c0.wounds.current).toBe(6); // +1 PB
   });
 
-  it('spendResolveCondition : munition logée plafonne le regagne de PB (LDB 62 l.250)', () => {
+  it('depenserLaDetermination : munition logée plafonne le regagne de PB (LDB 62 l.250)', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     h.resolve = 1;
     h.conditions = [{ id: 'a-terre', value: 1 }, { id: 'munition-logee', value: 1 }];
     h.wounds = blessuresDeBase(12, 11, h);
     banc.setState({ mode: 'battle', battle: mkBattle(h) });
-    banc.getState().spendResolveCondition(h.id, 'a-terre');
+    banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'a-terre');
     const c0 = banc.getState().battle!.combatants[0];
     expect(c0.wounds.current).toBe(11); // plafonné à max−1 (munition logée) : aucun PB regagné
   });
@@ -2253,7 +2253,7 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
 
   it('ramasse UN objet : il arrive dans l’inventaire (battle + party), consomme l’Action, retire du pool', () => {
     const bh = setup();
-    banc.getState().battlePickup('corps', 'fouiller:eff:2'); // index 2 = Tromblon
+    banc.getState().ramasserLObjet('corps', 'fouiller:eff:2'); // index 2 = Tromblon
     const st = banc.getState();
     const bH = st.battle!.combatants.find((c) => c.id === bh.id)!;
     expect((bH.items ?? []).some((i) => i.label === 'Tromblon')).toBe(true); // utilisable ce combat
@@ -2272,7 +2272,7 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
   it('refusé si l’Action est déjà consommée', () => {
     const bh = setup();
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } });
-    banc.getState().battlePickup('corps', 'fouiller:eff:2');
+    banc.getState().ramasserLObjet('corps', 'fouiller:eff:2');
     const bH = banc.getState().battle!.combatants.find((c) => c.id === bh.id)!;
     expect((bH.items ?? []).some((i) => i.label === 'Tromblon')).toBe(false);
   });
@@ -2282,7 +2282,7 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
     const scene = banc.getState().scene!;
     // corps à l'étage 1
     banc.setState({ scene: { ...scene, entities: scene.entities.map((e) => (e.id === 'corps' ? { ...e, z: 1 } : e)) }, battle: { ...banc.getState().battle!, combatants: [{ ...bh, pos: { x: 0, y: 0, z: 0 } }] } }); // actif au rez
-    banc.getState().battlePickup('corps', 'fouiller:eff:2');
+    banc.getState().ramasserLObjet('corps', 'fouiller:eff:2');
     expect((banc.getState().battle!.combatants[0].items ?? []).some((i) => i.label === 'Tromblon')).toBe(false); // pas de ramassage à travers l'étage
   });
 });
@@ -2316,7 +2316,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
 
   it('fin du dernier tour du Round : on suspend (fenêtre d’initiative, pendingRoundStart)', () => {
     endOfRoundBattle(1);
-    banc.getState().battleEndTurn(); // H (dernier de l'ordre) finit → bascule au Round 2
+    banc.getState().terminerLeTour(); // H (dernier de l'ordre) finit → bascule au Round 2
     const st = banc.getState();
     expect(st.pendingRoundStart).not.toBeNull();
     expect(st.pendingRoundStart!.round).toBe(2);
@@ -2325,7 +2325,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
 
   it('même sans Chance : on suspend quand même en début de Round (la fenêtre d’initiative est systématique)', () => {
     endOfRoundBattle(0);
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     const st = banc.getState();
     expect(st.pendingRoundStart).not.toBeNull();
     expect(st.pendingRoundStart!.round).toBe(2);
@@ -2333,7 +2333,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
 
   it('la pause de début de Round GÈLE l’IA ennemie jusqu’à « Commencer le round »', () => {
     endOfRoundBattle(0); // ordre [E, H] : l'ennemi est en tête du Round 2
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     banc.reprendreLesEnAttente(); // aucun timer d'IA ne doit être en attente pendant la pause
     expect(banc.getState().pendingRoundStart).not.toBeNull(); // l'ennemi n'a pas joué : on attend la confirmation
     banc.getState().fenetreValider('roundStart');
@@ -2342,7 +2342,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
 
   it('roundStartPromote place le héros en tête et dépense 1 Chance', () => {
     const { H } = endOfRoundBattle(2);
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     banc.getState().roundStartPromote(H.id);
     const st = banc.getState();
     expect(st.battle!.order[0]).toBe(H.id);
@@ -2351,7 +2351,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
 
   it('la validation de la pause (`fenetreValider(\'roundStart\')`) ferme la modale et active le héros promu en premier', () => {
     const { H } = endOfRoundBattle(1);
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     banc.getState().roundStartPromote(H.id);
     banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
@@ -2365,7 +2365,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
     rangedOf(H).loaded = true; H.movement = 4; H.pos = { x: 0, y: 0 };
     E.pos = { x: 2, y: 0 }; // à portée, ligne de vue dégagée (scène vide)
-    banc.getState().battleEndTurn(); // → Round 2, pendingRoundStart
+    banc.getState().terminerLeTour(); // → Round 2, pendingRoundStart
     const orderBefore = [...banc.getState().battle!.order];
     seedBattleRng(1);
     banc.getState().preemptRangedShot(H.id, E.id);
@@ -2395,7 +2395,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     E.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
     rangedOf(E).loaded = true; E.pos = { x: 2, y: 0 };
     H.pos = { x: 0, y: 0 };
-    banc.getState().battleEndTurn(); // → Round 2, pendingRoundStart
+    banc.getState().terminerLeTour(); // → Round 2, pendingRoundStart
     // H en tête de l'ordre : le tour NORMAL de l'ennemi n'ouvre pas immédiatement → sa dette de tour
     // (posée par le Tir rapide) PERSISTE et reste observable (sinon `lancerLeRound` la consommerait aussitôt).
     banc.setState({ battle: { ...banc.getState().battle!, order: [H.id, E.id] } });
@@ -2411,7 +2411,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
   });
 });
 
-describe('cancelMove — annuler un déplacement décomposé tant qu’aucune Action (R6/LOT 6)', () => {
+describe('annulerLeDeplacement — annuler un déplacement décomposé tant qu’aucune Action (R6/LOT 6)', () => {
   beforeEach(() => { banc.abandonner(); reset(); });
   afterEach(() => { banc.abandonner(); });
 
@@ -2444,7 +2444,7 @@ describe('cancelMove — annuler un déplacement décomposé tant qu’aucune Ac
     let st = banc.getState();
     expect(st.battle!.movementUsed).toBeGreaterThan(0);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(target);
-    banc.getState().cancelMove();
+    banc.getState().annulerLeDeplacement();
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(from);
     expect(st.battle!.movementUsed).toBe(0);
@@ -2457,7 +2457,7 @@ describe('cancelMove — annuler un déplacement décomposé tant qu’aucune Ac
     const target = firstMoveTarget(from.x, from.y);
     banc.getState().battleClickTile(target, { confirm: true });
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } }); // une Action a été prise
-    banc.getState().cancelMove();
+    banc.getState().annulerLeDeplacement();
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(target);
   });
 });
@@ -2497,9 +2497,9 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
 
   it('héros SANS Destin Inconscient + 0 PB + critiques > BE → meurt en fin de Round (LDB 18 l.48-49)', () => {
     const { H, E } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 0 }); // BE=3, pas de Destin → mort directe
-    banc.setState({ battle: { ...banc.getState().battle!, order: [E.id, H.id], turn: 1 } }); // H dernier → battleEndTurn franchit le Round
+    banc.setState({ battle: { ...banc.getState().battle!, order: [E.id, H.id], turn: 1 } }); // H dernier → terminerLeTour franchit le Round
     banc.getState().seedRng(1);
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.dead).toBe(true);
     expect(isOutOfAction(h)).toBe(true);
@@ -2526,7 +2526,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
   it('mort lente d’un héros à Destin → suspend (pendingFateSave source=slow), pas mort', () => {
     combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 }); // fate=1, BE=3
     banc.getState().seedRng(1);
-    banc.getState().battleEndTurn(); // H dernier → franchit le Round
+    banc.getState().terminerLeTour(); // H dernier → franchit le Round
     const st = banc.getState();
     expect(st.pendingFateSave).not.toBeNull();
     expect(st.pendingFateSave!.source).toBe('slow');
@@ -2536,7 +2536,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
   it('« Meurs un autre jour » : éjecté vivant, Destin −1, le Round reprend', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 2 });
     banc.getState().seedRng(1);
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.dead ?? false).toBe(false);
@@ -2548,7 +2548,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
   it('« Accepter le sort » : mort', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 });
     banc.getState().seedRng(1);
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     banc.getState().fenetreChoisir('fateSave', 'issue', 'accept');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.dead).toBe(true);
   });
@@ -2556,7 +2556,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
   it('héros SANS Destin : mort lente directe, pas de pause', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 0 });
     banc.getState().seedRng(1);
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     expect(banc.getState().pendingFateSave).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.dead).toBe(true);
   });
@@ -2629,11 +2629,11 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
-  it('battleReload OUVRE la modale (Test de Projectiles, Action pas encore consommée)', () => {
+  it('rechargerLArme OUVRE la modale (Test de Projectiles, Action pas encore consommée)', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
-    banc.getState().battleReload();
+    banc.getState().rechargerLArme();
     const pr = banc.getState().pendingReload;
     expect(pr).not.toBeNull();
     expect(pr!.reload).toBe(1); // Indice DR
@@ -2646,7 +2646,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
     banc.getState().seedRng(2);
-    banc.getState().battleReload();
+    banc.getState().rechargerLArme();
     banc.getState().jetRoll('reload');
     const pr = banc.getState().pendingReload!;
     expect(pr.roll).not.toBeNull();
@@ -2675,7 +2675,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
     banc.getState().seedRng(2);
-    banc.getState().battleReload();
+    banc.getState().rechargerLArme();
     banc.getState().jetRoll('reload');
     const pr = { ...banc.getState().pendingReload! };
     const journalAvant = banc.getState().journal.length;
@@ -2695,7 +2695,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
     banc.getState().seedRng(2);
-    banc.getState().battleReload();
+    banc.getState().rechargerLArme();
     banc.getState().jetRoll('reload');
     const pr = banc.getState().pendingReload!;
     const expected = Math.max(0, 0 + pr.sl);
@@ -2705,11 +2705,11 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(rangedOf(h).reloadProgress).toBe(expected >= 2 ? 0 : expected);
   });
 
-  it('battleReload refusé si l’Action est déjà consommée', () => {
+  it('rechargerLArme refusé si l’Action est déjà consommée', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } });
-    banc.getState().battleReload();
+    banc.getState().rechargerLArme();
     expect(banc.getState().pendingReload).toBeNull();
   });
 
@@ -2739,7 +2739,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     H.activeLoadoutId = 'arb';
     const swap = (id: string) => {
       banc.setState({ battle: { ...banc.getState().battle!, loadoutSwapped: false } }); // le plafond 1×/tour n'est pas l'objet du test
-      banc.getState().battleSwitchLoadout(id);
+      banc.getState().prendreLaPanoplie(H.id, id);
       return banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     };
 
@@ -2767,7 +2767,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   });
 
   // CAS NOMMÉ « deux pistolets » : deux armes à distance TENUES en même temps (main + main gauche). Le
-  // chemin JOUEUR les distingue — `battleReload(uid)` recharge celle qu'on désigne, `battleSelectAmmo(uid,
+  // chemin JOUEUR les distingue — `rechargerLArme(uid)` recharge celle qu'on désigne, `approvisionnerLArme(uid,
   // armeUid)` choisit la munition de celle-là, et l'autre ne bouge pas.
   it('deux armes à distance tenues : recharger/choisir vise l’arme DÉSIGNÉE, l’autre garde son état', () => {
     const { H } = archer();
@@ -2786,39 +2786,39 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     loadWeapon(H, H.weapons.find((w) => w.uid === 'p2')!);
 
     // (1) La munition se choisit ARME PAR ARME : le gauche passe aux balles fines, le droit n'y touche pas.
-    banc.getState().battleSelectAmmo('balles-fines', 'p2');
+    banc.getState().approvisionnerLArme('balles-fines', 'p2');
     expect(loadRegister(hero(), of('p2')).ammoUid).toBe('balles-fines');
     expect(loadRegister(hero(), of('p1')).ammoUid).not.toBe('balles-fines');
     expect(weaponLoaded(hero(), of('p2'))).toBe(false); // il était chargé : la bascule l'a déchargé
     expect(weaponLoaded(hero(), of('p1'))).toBe(true);  // le droit reste prêt
 
     // (2) Le rechargement vise l'arme DÉSIGNÉE : la modale s'ouvre sur le gauche, pas sur le droit.
-    banc.getState().battleReload('p2');
+    banc.getState().rechargerLArme('p2');
     expect(banc.getState().pendingReload?.weaponUid).toBe('p2');
     banc.getState().jetCancel('reload');
     // (3) Sans uid : la 1re arme DÉCHARGÉE (ici le gauche) — jamais une arme déjà prête.
-    banc.getState().battleReload();
+    banc.getState().rechargerLArme();
     expect(banc.getState().pendingReload?.weaponUid).toBe('p2');
   });
 
-  it('battleSelectAmmo sur arme NON chargée : libre, et le Test étendu en cours garde son progrès', () => {
+  it('approvisionnerLArme sur arme NON chargée : libre, et le Test étendu en cours garde son progrès', () => {
     const { H } = archer();
     H.items!.push(am2());
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 1;
-    banc.getState().battleSelectAmmo('am2');
+    banc.getState().approvisionnerLArme('am2');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).ammoUid).toBe('am2');
     expect(rangedOf(h).loaded).toBe(false);
     expect(rangedOf(h).reloadProgress).toBe(1);
   });
 
-  it('battleSelectAmmo sur arme CHARGÉE : décharge (rechargement complet exigé), aucune munition détruite', () => {
+  it('approvisionnerLArme sur arme CHARGÉE : décharge (rechargement complet exigé), aucune munition détruite', () => {
     const { H } = archer();
     H.items!.push(am2());
     rangedOf(H).loaded = true;
     rangedOf(H).loadedAmmoUid = 'am1';
-    banc.getState().battleSelectAmmo('am2');
+    banc.getState().approvisionnerLArme('am2');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).ammoUid).toBe('am2');
     expect(rangedOf(h).loaded).toBe(false);
@@ -2828,12 +2828,12 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(h.items!.find((i) => i.uid === 'am2')!.qty).toBe(3);
   });
 
-  it('battleSelectAmmo sur la munition DÉJÀ chargée : sans effet (aucun rechargement imposé)', () => {
+  it('approvisionnerLArme sur la munition DÉJÀ chargée : sans effet (aucun rechargement imposé)', () => {
     const { H } = archer();
     rangedOf(H).loaded = true;
     rangedOf(H).ammoUid = 'am1';
     rangedOf(H).loadedAmmoUid = 'am1';
-    banc.getState().battleSelectAmmo('am1');
+    banc.getState().approvisionnerLArme('am1');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).loaded).toBe(true);
     expect(rangedOf(h).loadedAmmoUid).toBe('am1');
@@ -2908,7 +2908,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
       { uid: 'fl2', label: 'Flèche barbelée', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arc', qty: 5 } as ItemInstance,
     ];
     rangedOf(H).loaded = true;
-    banc.getState().battleSelectAmmo('fl2');
+    banc.getState().approvisionnerLArme('fl2');
     expect(rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).loaded).toBe(true);
     banc.getState().seedRng(2);
     banc.getState().battleClickEntity(E.id, { confirm: true });
@@ -2950,7 +2950,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
 
   it('action Viser : pose aiming SANS jet, +20 au tir, puis consommée', () => {
     const { H, E } = archer();
-    banc.getState().battleAim();
+    banc.getState().prendreLaVisee();
     const h1 = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h1.aiming).toBe(true);
     expect(banc.getState().battle!.acted).toBe(true);
@@ -2977,7 +2977,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   it('Viser refusé sans arme à distance', () => {
     const { H } = archer();
     H.weapons = [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }];
-    banc.getState().battleAim();
+    banc.getState().prendreLaVisee();
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.aiming).toBeFalsy();
   });
 
@@ -3124,7 +3124,7 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
     const b = banc.getState().battle!;
     b.combatants.forEach((c) => { c.fortune = 0; }); // neutralise la pré-emption Chance
     banc.setState({ battle: { ...b, turn: b.order.length - 1 }, gameTime: campaignStart() });
-    banc.getState().battleEndTurn(); // dernier tour → advanceTurn franchit le Round
+    banc.getState().terminerLeTour(); // dernier tour → advanceTurn franchit le Round
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.combatRound);
   });
 

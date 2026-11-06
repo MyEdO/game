@@ -25,7 +25,7 @@ describe('l’exploration par le pont', () => {
     const exploration = suite.vue.projection.exploration!;
     expect(exploration, 'hors combat, la vue est celle de l’exploration').not.toBeNull();
     expect(suite.vue.champ, 'rien ne tient la main : un clic de case fait marcher le groupe').toEqual(CLICS_DE_L_EXPLORATION);
-    expect(exploration.heros.map((h) => h.pos), 'chaque héros se tient à la case du groupe').toEqual(exploration.heros.map(() => exploration.groupe));
+    expect(exploration.heros.map((h) => h.pos), 'chaque héros se tient à la case du groupe').toEqual(exploration.heros.map(() => [...exploration.groupe, exploration.etage ?? 0]));
     expect(Object.keys(suite.vue.corps.combattants).sort(), 'chaque héros a son corps dans la vue').toEqual(exploration.heros.map((h) => h.id).sort());
 
     const plateau = suite.vue.plateau!;

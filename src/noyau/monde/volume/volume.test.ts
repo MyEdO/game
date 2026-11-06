@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { volumeDuMonde, type VolumeDuMonde } from './volume';
+import { couronnesDeLaCouche, toitsDuMonde, toitsLeves, volumeDuMonde, type VolumeDuMonde } from './volume';
+import { nappeKey } from './toits';
+import { perimeterWallSegs } from '../../sceneEdit.testkit';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../scene';
+import { edgeKey } from '../facades';
+import { METRES_PER_LEVEL } from '../relief';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { parseHex } from '../../../lib/couleurHex';
 
@@ -98,3 +102,64 @@ describe('volumeDuMonde (#3476)', () => {
     expect(volumeDuMonde(etage, 0).surfaces.some((m) => m.matiere.startsWith('prop--'))).toBe(false);
   });
 });
+
+describe('toitsDuMonde, toitsLeves (#3476)', () => {
+  const MAISON = { x: 2, y: 2, w: 4, h: 3 };
+  const scene = (): Scene => ({
+    ...emptyScene('toits', 10, 8),
+    walls: perimeterWallSegs([MAISON]),
+    architecture: [{ id: 'bourg', storeys: [], facades: [], masses: [{ id: 'maison', z: 0, footprint: [MAISON], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: 'tuile' }] }],
+  });
+
+  it('une nappe par masse, ses pans de couverture et ses pignons de la matière du mur qu’ils prolongent', () => {
+    const [nappe, ...autres] = toitsDuMonde(scene());
+    expect(autres).toEqual([]);
+    expect(nappe.cle).toBe(nappeKey('bourg', 'maison'));
+    expect(nappe.surfaces.map((s) => s.matiere).sort()).toEqual(['roof--tuile', 'structure--plain']);
+    expect(nappe.positions.length % 9).toBe(0);
+    expect(nappe.cases).toHaveLength(nappe.positions.length / 9);
+    const hauteurs = nappe.positions.filter((_, i) => i % 3 === 1);
+    expect(Math.max(...hauteurs), 'le faîte au-dessus de l’égout').toBeGreaterThan(Math.min(...hauteurs));
+  });
+
+  it('le groupe sous la nappe la lève ; dehors, aucune', () => {
+    expect(toitsLeves(scene(), [{ x: 3, y: 3 }])).toEqual([nappeKey('bourg', 'maison')]);
+    expect(toitsLeves(scene(), [{ x: 8, y: 7 }])).toEqual([]);
+  });
+
+  it('une scène sans masse n’a aucune nappe', () => {
+    expect(toitsDuMonde(emptyScene('nue', 4, 4))).toEqual([]);
+  });
+});
+
+describe('la crénelure du volume (#3476)', () => {
+  const hauteurs = (positions: number[]) => positions.filter((_, i) => i % 3 === 1);
+
+  it('une zone crénelée : sa crête ceinture le chemin de ronde, de la matière de son apparence, au-dessus de sa surface', () => {
+    const rempart = (crenellated?: (string | null)[]): Scene => {
+      const s = emptyScene('chemin-de-ronde', 3, 1);
+      s.layers[0] = { ...s.layers[0], tiles: ['plancher', 'plancher', 'plancher'], height: [0, 4, 0], ...(crenellated ? { crenellated } : {}) };
+      return s;
+    };
+    const nu = volumeDuMonde(rempart());
+    const v = volumeDuMonde(rempart([null, 'mur-en-pierre', null]));
+    expect(nu.surfaces.map((x) => x.matiere)).not.toContain('structure--mur-en-pierre');
+    const crete = v.surfaces.find((x) => x.matiere === 'structure--mur-en-pierre')!;
+    const ys = hauteurs(v.positions.slice(crete.debut * 3, crete.fin * 3));
+    expect(Math.min(...ys), 'assise à la surface').toBeGreaterThanOrEqual(4);
+    expect(Math.max(...ys), 'dressée au-dessus').toBeGreaterThan(4);
+  });
+
+  it('une couronne par rempart, nommée par son arête, posée au sommet de sa face pleine ; aucune sur un mur sans parapet', () => {
+    const rempart = { x: 1, y: 1, side: 'N' as const, structure: 'mur-en-pierre' };
+    const s: Scene = { ...emptyScene('rempart', 3, 3), walls: [rempart, { x: 1, y: 1, side: 'E' }] };
+    const [couronne, ...autres] = couronnesDeLaCouche(s, 0);
+    expect(autres).toEqual([]);
+    expect(couronne.cle).toBe(edgeKey(rempart));
+    expect(couronne.surfaces.map((x) => x.matiere)).toEqual(['structure--mur-en-pierre']);
+    expect(couronne.cases).toHaveLength(couronne.positions.length / 9);
+    expect(Math.min(...hauteurs(couronne.positions))).toBeCloseTo(METRES_PER_LEVEL, 3);
+    expect(couronnesDeLaCouche(s, 1)).toEqual([]);
+  });
+});
+

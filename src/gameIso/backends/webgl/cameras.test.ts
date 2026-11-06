@@ -19,7 +19,7 @@ import { sceneMetresPerTile } from '../../../noyau/monde/scene';
 import { DIR8_ORDER } from '../../../geometry/dir8';
 import { VH, VW, makeCamera, project } from '../../pov/camera';
 import { pxPerM } from '../../../noyau/monde/volume/worldTris';
-import { ISO_PX_PER_M } from '../../iso';
+import { ISO_PX_PER_M } from '../../../noyau/monde/iso';
 import { buildWorldGeometry, collectBillboards, contentBox, wholeSceneBillboardEls } from './sceneMeshes';
 import { anchorAndSize, BILLBOARD_H_M, BILLBOARD_BOX_ASPECT } from './billboardMath';
 
