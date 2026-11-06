@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { boundarySegs, buildRoofs, clearedSpace, depthToEave, edgeAppearance, fieldHeightAt, gableEnds, roofPans, massRoomZoneIds, massSpaceCells, nappeKey, resolveMass, resolveNappes, riseAt, ROOF_SLOPE_M, type FacadeEdge, type RoofShapeSpec } from './roofs';
+import { boundarySegs, buildRoofs, clearedSpace, depthToEave, edgeAppearance, fieldHeightAt, gableEnds, roofPans, massRoomZoneIds, massSpaceCells, nappeKey, resolveMass, resolveNappes, riseAt, ROOF_SLOPE_M, type RoofShapeSpec } from './roofs';
+import type { FacadeEdge } from '../../noyau/monde/facades';
 import { massFootprintCells } from '../../noyau/monde/buildings';
-import { facadeStructureAppearance } from '../catalog/facades';
-import { wallApp } from '../catalog/structures';
+import { facadeStructureAppearance, wallApp } from '../catalog/structures';
 import { buildWalls } from './walls';
 import type { RoofLine } from './types';
 import type { Face, GP } from '../../noyau/monde/volume/types';

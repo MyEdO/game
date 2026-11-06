@@ -2,8 +2,9 @@
 ## (`monde`, `CONTRAT.md`, section « Monde ») à l'échelle d'une unité par case, rendu et touché des deux côtés, sa lumière,
 ## et la caméra pivotante (Q/E, par quart de tour) et zoomable (molette) centrée sur lui. Il rend la case du triangle que
 ## le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
-## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène (murs, portes, seuils des portes
-## ouvertes), l'arête choisie et le calque de référence de l'éditeur ; tout autre chose posée sur le monde appartient à qui l'instancie.
+## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes
+## (`KIT`) que l'arête nomme, l'arête choisie et le calque de référence de l'éditeur ; tout autre chose posée sur le monde
+## appartient à qui l'instancie.
 class_name Monde
 extends Node3D
 
@@ -17,10 +18,13 @@ const DISTANCE_MAX := 40.0
 const ITEM_ATTEIGNABLE := 0
 const ITEM_CIBLE := 1
 const ITEM_SURVOL := 2
+## Le kit des arêtes (`CONTRAT.md`, section « Plateau ») : une pièce par nœud racine, `<famille>--<pièce>`.
+const KIT := "res://kit/kit.glb"
 
 ## Les plaques des surbrillances, par item (`ITEM_*`), chacune posée sans ombre.
 @export var surbrillances: MeshLibrary
-## Ce qui se pose sur une arête : un mur, une porte fermée, le seuil d'une porte ouverte, et la gaine de l'arête choisie.
+## Ce qui se pose sur une arête dont le kit n'a pas la pièce, ou sans kit au projet : un mur, une porte fermée, le seuil
+## d'une porte ouverte ou d'une brèche ; et la gaine de l'arête choisie.
 @export var mesh_mur: BoxMesh
 @export var mesh_porte: BoxMesh
 @export var mesh_seuil: BoxMesh
@@ -53,6 +57,8 @@ var _aretes_posees: Array = []
 var _couche_des_aretes := 0
 ## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
 var _matieres := {}
+## Le kit des arêtes, caché sous le monde, `null` sans kit au projet.
+var _kit: Node3D
 ## Les noms posés (`etiqueter`), par case `x,y,z`.
 var _noms := {}
 ## Les mètres d'une case du dernier monde posé.
@@ -62,6 +68,10 @@ var _pivotement: Tween
 
 func _ready() -> void:
 	_lacet = _pivot.rotation.y
+	if ResourceLoader.exists(KIT):
+		_kit = (load(KIT) as PackedScene).instantiate()
+		_kit.visible = false
+		add_child(_kit)
 
 
 ## Le volume du monde de la scène (`monde`) à l'échelle d'une unité par case, sa case (0, 0) sur la case (0, 0) du
@@ -191,7 +201,7 @@ func noms() -> Dictionary:
 
 
 ## Les arêtes `aretes` (`CONTRAT.md`, section « Plateau ») de la couche `z`, chacune sur le côté de sa case, posée sur
-## le sol de sa case : un mur, une porte fermée, ou le seuil d'une porte ouverte ; à la place des précédentes.
+## le sol de sa case (`_piece`) ; à la place des précédentes.
 func poser_les_aretes(aretes: Array, z := 0) -> void:
 	if aretes == _aretes_posees and z == _couche_des_aretes:
 		return
@@ -201,9 +211,35 @@ func poser_les_aretes(aretes: Array, z := 0) -> void:
 		_aretes.remove_child(arete)
 		arete.free()
 	for a in aretes:
-		var arete := MeshInstance3D.new()
-		_poser_sur_l_arete(arete, mesh_seuil if a.ouverte else mesh_porte if a.porte else mesh_mur, a, z)
-		_aretes.add_child(arete)
+		_aretes.add_child(_piece(a, z))
+
+
+## La pièce de l'arête `a` de la couche `z` : celle du kit, `<famille>--<pièce>`, étirée à la longueur de l'arête et à
+## la hauteur de son mur (`MiseEnPage.echelle_de_piece`) ; sinon sa boîte (`_boite`).
+func _piece(a: Dictionary, z: int) -> Node3D:
+	var nom := "%s--%s" % [a.famille, a.piece]
+	if _kit == null or a.famille == null or not _kit.has_node(nom):
+		var boite := MeshInstance3D.new()
+		_poser_sur_l_arete(boite, _boite(a.piece), a, z)
+		return boite
+	var sens := Vector2(a.sens.x, a.sens.y)
+	var piece := Node3D.new()
+	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), sol(Vector2i(int(a.case.x), int(a.case.y)), z), 0.0)
+	piece.rotation.y = MiseEnPage.lacet_d_arete(sens)
+	piece.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, _metres_par_case)
+	piece.add_child(_kit.get_node(nom).duplicate())
+	return piece
+
+
+## La boîte de la pièce `piece` d'une arête : le seuil d'une porte ouverte ou d'une brèche, une porte fermée, sinon un
+## mur.
+func _boite(piece: String) -> BoxMesh:
+	match piece:
+		"porte-ouverte", "breche":
+			return mesh_seuil
+		"porte-fermee":
+			return mesh_porte
+	return mesh_mur
 
 
 ## Le nombre d'arêtes posées sur le monde.

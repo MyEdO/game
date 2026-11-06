@@ -25,17 +25,18 @@
  * une croupe (`hip`) n'en a aucune, ses rampants rejoignent déjà chaque bord. Ce sont des
  * pièces de la NAPPE — même `rule` de dégagement que ses pans, donc jamais un pignon qui reste quand
  * son toit part — dont la MATIÈRE est celle du MUR qu'elles prolongent (`closureAppearance`, face
- * `domain:'structure'`). C'est pourquoi ce module tient aussi l'indexation des murs et des façades
- * authorées (`edgeKey`/`facadeEdges`/`edgeAppearance`/`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
+ * `domain:'structure'`). C'est pourquoi ce module tient aussi l'apparence d'arête (`edgeAppearance`) et le
+ * voisinage d'arête (`WALL_NB`), SOURCE UNIQUE relue par `walls.ts` ; l'index des façades authorées est au noyau
+ * (`noyau/monde/facades`).
  */
-import { heightAt, sceneMetresPerTile, type ArchitectureBody, type BuildingMass, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
+import { heightAt, sceneMetresPerTile, type ArchitectureBody, type BuildingMass, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
 import { memoByRef } from '../../noyau/monde/sceneMemo';
 import { aretesA } from '../../noyau/monde/wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../noyau/sceneEdit';
 import { roofMaterial } from '../catalog/roofs';
 import { buildingsMeta, massFootprintCells } from '../../noyau/monde/buildings';
-import { facadeStructureAppearance, facadeWallFeatureAppearance } from '../catalog/facades';
-import { wallApp } from '../catalog/structures';
+import { edgeKey, facadeEdges, facadeRegit, facadeWallFeatureAppearance, type FacadeEdge } from '../../noyau/monde/facades';
+import { facadeStructureAppearance, wallApp } from '../catalog/structures';
 import type { StructureAppearanceDef } from '../../data/structureAppearance.types';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { roomTilesById, isRoomZone, occupiedRoomIds, roomTiles } from '../../noyau/monde/rooms';
@@ -770,47 +771,12 @@ export function gableEnds(
  *  partagée avec `walls.ts` — deux tables qui divergent, c'est un mur qui change de camp. */
 export const WALL_NB: Record<WallSide, [number, number]> = { N: [0, -1], E: [1, 0], '\\': [0, 0], '/': [0, 0] };
 
-/** Clé d'ARÊTE (`x,y,side,z`) — SOURCE UNIQUE de l'indexation des murs et des façades authorées. */
-export const edgeKey = (edge: Pick<WallSeg, 'x' | 'y' | 'side'> & { z?: number }): string =>
-  `${edge.x},${edge.y},${edge.side},${edge.z ?? 0}`;
-
-export interface FacadeEdge {
-  bodyId: string;
-  sectionId: string;
-  appearance: string;
-  roomZoneIds?: string[];
-  features: FacadeFeature[];
-}
-
-/** Panneaux de FAÇADE authorés, indexés par arête. Mémoïsé PAR SCÈNE : `wallGeometry`, les joints de
- *  nappes et les fermetures de comble le lisent tous, une seule dérivation. */
-export const facadeEdges = memoByRef((scene: Scene): ReadonlyMap<string, FacadeEdge> => {
-  const indexed = new Map<string, FacadeEdge>();
-  for (const body of scene.architecture ?? [])
-    for (const section of body.facades)
-      for (const edge of section.edges) {
-        const key = edgeKey({ ...edge, z: edge.z ?? section.z });
-        if (indexed.has(key)) continue;
-        indexed.set(key, {
-          bodyId: body.id,
-          sectionId: section.id,
-          appearance: section.appearance,
-          ...(section.roomZoneIds ? { roomZoneIds: [...section.roomZoneIds] } : {}),
-          features: (section.features ?? []).filter((feature) =>
-            edgeKey({ ...feature.edge, z: feature.edge.z ?? section.z }) === key),
-        });
-      }
-  return indexed;
-});
-
 /** Apparence d'une ARÊTE de mur — SOURCE UNIQUE des deux rendus (`wallGeometry` de `walls.ts` et les
  *  fermetures d'architecture d'ici) : la façade authorée sur l'arête l'emporte tant que le segment ne
  *  pose ni structure ni override, sinon `wallApp` — une DONNÉE de la carte, jamais une cote (#1180).
  *  Un seul site : les deux rendus ne peuvent pas diverger. */
 export function edgeAppearance(facade: FacadeEdge | undefined, seg: WallSeg): StructureAppearanceDef {
-  return facade && !seg.structure && !seg.appearance
-    ? facadeStructureAppearance(facade.appearance)
-    : wallApp(seg);
+  return facadeRegit(facade, seg) ? facadeStructureAppearance(facade.appearance) : wallApp(seg);
 }
 
 /** Murs de scène indexés par CASE BORDÉE (`x,y,z`) — mémoïsé par scène. L'index par ARÊTE, lui, est le
