@@ -50,7 +50,6 @@ export { tileFromKey, type Pt } from './monde/path';
 export { plateauDeLaScene, type Scene } from './monde/scene';
 export { registerScene } from './monde/registreDesScenes';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
-export { pontDOuverture, etatsDeSituation, type EtatsDeSituation } from './pontDeCombat';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
 export { fenetreDIncantation, type FenetreDIncantation } from './fenetreDIncantation';
 export { fenetreDuSoin } from './soin';
