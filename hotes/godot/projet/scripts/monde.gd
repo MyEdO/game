@@ -50,7 +50,7 @@ const KIT := "res://kit/kit.glb"
 @onready var _arete_choisie: MeshInstance3D = $AreteChoisie
 @onready var _calque: MeshInstance3D = $Calque
 
-## La case `[x, y]` de chaque triangle du maillage du monde, dans son ordre.
+## La case `[x, y, z]` de chaque triangle du maillage du monde, sa couche comprise, dans son ordre.
 var _cases_des_triangles: Array = []
 ## Par couche `z`, le sol de chaque case, `[y][x]`.
 var _sols: Dictionary = {}
@@ -176,6 +176,11 @@ func _matiere(nom: String) -> Material:
 		else:
 			_matieres[nom] = couleur_des_sommets
 	return _matieres[nom]
+
+
+## Les couches du dernier monde posé.
+func couches() -> Array:
+	return _sols.keys()
 
 
 ## La taille de la carte, en cases.
@@ -336,18 +341,19 @@ func a_l_ecran(lieu: Vector3) -> Vector2:
 	return _camera.unproject_position(lieu)
 
 
-## Ce que le rayon de la caméra par `point` touche le premier : `{ case, f }`, la case de son triangle et le point de la
-## carte touché (`MiseEnPage.point_de_carte_du_lieu`), `null` hors du monde.
+## Ce que le rayon de la caméra par `point` touche le premier : `{ case, f }`, la case de son triangle et sa couche
+## (`Vector3i(x, y, z)`), et le point de la carte touché (`MiseEnPage.point_de_carte_du_lieu`), `null` hors du monde.
 func touche_sous(point: Vector2) -> Variant:
 	var rayon := PhysicsRayQueryParameters3D.create(_camera.project_ray_origin(point), _camera.project_position(point, _camera.far))
 	var touche := get_world_3d().direct_space_state.intersect_ray(rayon)
 	if touche.is_empty():
 		return null
 	var case: Array = _cases_des_triangles[touche.face_index]
-	return {case = Vector2i(int(case[0]), int(case[1])), f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position))}
+	return {case = Vector3i(int(case[0]), int(case[1]), int(case[2])), f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position))}
 
 
-## La case du triangle du monde que le rayon de la caméra par `point` touche le premier, `null` hors du monde.
+## La case du triangle du monde et sa couche (`Vector3i(x, y, z)`) que le rayon de la caméra par `point` touche le premier,
+## `null` hors du monde.
 func case_sous(point: Vector2) -> Variant:
 	var touche: Variant = touche_sous(point)
 	return null if touche == null else touche.case

@@ -129,7 +129,7 @@ describe('un tour complet par le pont', () => {
     expect(suite.vue.zones['combat.apercu'].map((l) => l.id), 'l’aperçu dit ce qu’il coûte').toEqual(['apercu']);
     ({ suite } = jouer({ type: CLICS_DU_CHAMP.case, args: [vers] }));
     expect(actifDe(suite).pos, 'le second clic déplace le héros').toEqual([vers.x, vers.y, vers.z ?? 0]);
-    expect(suite.vue.occupants[`${vers.x},${vers.y}`], 'la case porte son occupant').toBe(second.id);
+    expect(suite.vue.occupants[`${vers.x},${vers.y},${vers.z ?? 0}`], 'la case porte son occupant').toBe(second.id);
 
     let journal: ReturnType<typeof jouer>['journal'];
     ({ suite, journal } = finirLeTour());
