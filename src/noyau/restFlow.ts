@@ -183,7 +183,7 @@ export function sleepParty(
   const journal: string[] = [];
 
   // Soins prolongés (LDB 09) : présence d'un soignant valide (Guérison) → −1 jour/jour par maladie.
-  const caredFor = get().party.some((h) => peutTenter(h, HEAL_SKILL));
+  const caredFor = get().party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } }));
   // La nuit passe — chaque journée de repos se termine à l'AUBE, UNE NUIT À LA FOIS : n nuits dormies
   // sont n RÉVEILS (`lastNightDay` posé à chaque aube atteinte, avant l'entretien de cette journée-là),
   // donc n émissions d'`onWake`. Un séjour de 7 nuits qui n'aurait sauté qu'à l'aube finale ne
@@ -309,7 +309,7 @@ function buildExposureBand(party: Combatant[], camperIds: string[], count: numbe
     const st = monoStep({ id: `expo-${id}`, kind: 'exposure', actor: h, label: t('step.exposition'), icon: 'rest/cold',
       rollLabel: SKILL_RESISTANCE(), difficulty: 'intermediaire',
       stake: nightStakeRef('exposure'),
-      ligne: { test: { skill: 'resistance' }, surLaCible: coat } });
+      ligne: { test: { skill: { id: 'resistance' } }, surLaCible: coat } });
     pousseSi(steps, st);
   }
   return exposureWaveBand(steps, 'froid', count);
@@ -411,7 +411,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // Entretien quotidien (#T3) — la partie SANS jet est eager (rations consommées, jours décomptés) ;
   // TOUT Test de Résistance (Faim LDB 18 l.342, maladie l.110/135/162, convalescence LDB 18 l.202) est DIFFÉRÉ en
   // étape influençable (sinon il serait pré-résolu dans le journal AVANT que le joueur n'agisse).
-  const caredFor = party.some((h) => peutTenter(h, HEAL_SKILL));
+  const caredFor = party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } }));
   const deferred: DeferredUpkeepTest[] = [];
   // `runDailyUpkeep` journalise DÉJÀ ses propres lignes (upkeep.ts, source unique anti-double-comptage,
   // #216) : on les garde dans `log` (retourné pour le bilan/la modale de cascade) SANS les re-journaliser
@@ -433,7 +433,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
     const st = monoStep({ id: `march-${id}`, kind: 'forcedMarch', actor: h, label: t('step.marcheForcee'), icon: 'travel/foot',
       rollLabel: SKILL_RESISTANCE(), difficulty: 'intermediaire',
       stake: nightStakeRef('forcedMarch'),
-      ligne: { test: { skill: 'resistance', characteristic: 'endurance' } } });
+      ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } });
     pousseSi(steps, st);
   }
   // Tests d'entretien DIFFÉRÉS (faim, soif, maladie, convalescence, dessoûlage) → étapes influençables.
@@ -447,7 +447,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
       stake: nightStakeRef('contagion'),
       // Contraction = « Test de Résistance » (`LDB 20 l.25`) : valeur de la porte, et les bonus d'effet
       // SCOPÉS à cette maladie (Fleur de lune, Tonique digestif) en lignes NOMMÉES sur la cible.
-      ligne: { test: { skill: 'resistance' }, surLaCible: diseaseTestModLines(h, c.diseaseName) },
+      ligne: { test: { skill: { id: 'resistance' } }, surLaCible: diseaseTestModLines(h, c.diseaseName) },
       meta: { diseaseName: c.diseaseName },
       menace: 'maladie' }); // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
     pousseSi(steps, st);
@@ -462,14 +462,14 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
       const count = exposureTestCount(severity, true); // tente : extrême → rythme difficile, difficile → 0
       if (count > 0) steps.push(...buildExposureBand(party, camperIds, count));
     } else {
-      const best = partyAssisted(party, 'survie-en-exterieur'); // Soutien (LDB 12)
+      const best = partyAssisted(party, { skill: { id: 'survie-en-exterieur' } }); // Soutien (LDB 12)
       if (best) {
         const st = monoStep({ id: 'abri', kind: 'shelter', actor: best.actor, label: t('step.abriDeFortune'), icon: 'rest/camp',
           rollLabel: refLabel('skills', { id: 'survie-en-exterieur' }), difficulty: 'intermediaire',
           stake: nightStakeRef('shelter'),
           // `best.value` porte le Soutien FONDU : le monteur le ressort en ligne NOMMÉE (LDB 12 l.187-200),
           // et décompose le reste en Niveau de Compétence nu + composantes.
-          ligne: { test: { skill: 'survie-en-exterieur' }, valeur: best.value, soutien: best.support },
+          ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
           meta: { severity, campers: camperIds.join(',') } });
         pousseSi(steps, st);
       } else {
@@ -488,7 +488,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
       const st = monoStep({ id: `recov-${h.id}`, kind: 'recovery', actor: h, label: t('step.recuperation'), icon: 'rest/bed',
         rollLabel: SKILL_RESISTANCE(), difficulty: 'accessible',
         stake: nightStakeRef('recovery'),
-        ligne: { test: { skill: 'resistance' } } });
+        ligne: { test: { skill: { id: 'resistance' } } } });
       pousseSi(steps, st);
     } else {
       const before = h.wounds.current;
@@ -501,7 +501,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
         rollLabel: SKILL_CALME(), difficulty: 'facile',
         stake: nightStakeRef('nightmare'),
         // Cauchemars = « Test de Calme Facile (+40) » (`LDB 21 l.95`) : valeur de la porte, États compris.
-        ligne: { test: { skill: 'calme' } } });
+        ligne: { test: { skill: { id: 'calme' } } } });
       pousseSi(steps, st);
     }
   }
@@ -826,7 +826,7 @@ export const TABLES = {
       // (patron `insert`, re-bandée par la fabrique) : plus AUCUN jet silencieux (#253), et la gueule de bois
       // est due par TOUTE rangée du dessoûlage, pas seulement par les perdantes.
       const d = soberUpDissipate(hero, row.result!.sl);
-      const alcool = { skill: 'resistance-a-l-alcool', characteristic: 'endurance' } as const;
+      const alcool = { skill: { id: 'resistance-a-l-alcool' }, characteristic: 'endurance' } as const;
       const hangover = monoStep({
         id: `dessoulageHangover-${hero.id}`, kind: 'dessoulageHangover', actor: hero, icon: 'time/night',
         rollLabel: testSkillLabel(alcool) ?? SKILL_RESISTANCE(), label: t('step.gueuleDeBois'), difficulty: 'intermediaire',

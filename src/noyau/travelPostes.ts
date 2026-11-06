@@ -43,7 +43,7 @@ import { hasCoat, partyHasTent, applyExposureFailure, isWeatherWarded, exposureF
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';
 import { contexteDeNaissanceDObjet, itemFromGive, autoStowNewItem } from '../engine/items';
-import { effectiveSkillCharKey, idsDuTest } from '../engine/skills';
+import { effectiveSkillCharKey } from '../engine/skills';
 import type { Difficulty, Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 import { weatherRef } from '../engine/travelStages';
@@ -176,20 +176,19 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
       // héros (`effectiveSkillCharKey`) — le −10 s'ajoute au mod météo (recalcul de la cible, dont les
       // bornes viennent de `getTestPolicy` via `clampTarget`, jamais d'un plafond écrit ici).
       const wMod = weatherModOf(def, weather);
-      const ids = idsDuTest(spec.test);
-      const char = effectiveSkillCharKey(hero, ids.skill, { explicit: ids.characteristic, spec: ids.spec });
+      const char = effectiveSkillCharKey(hero, spec.test);
       const pMod = weatherTestMods(weather, char).reduce((s, l) => s + l.value, 0); // CANAL UNIQUE (#341)
       const mods = [...spec.mods, ...(stageActivityMods(weather, wMod, pMod) ?? [])];
       const difficulty = spec.difficulty;
       batchParts.push({
         id: hero.id,
-        label: testSkillLabel(ids),
+        label: testSkillLabel(spec.test),
         interactive: true,
         difficulty,
         result: null,
         // Les mods de MÉTÉO (`wMod`/`pMod`) s'ajoutent à la CIBLE, ils ne sont pas dans la valeur. Poste
         // qu'il ne peut pas tenter (`spec.refus`) : la ligne naît `ECHEC_SANS_JET` (LDB 09 l.30 ; #2588 Q1).
-        ...rollStep({ actor: hero, test: ids, valeur: spec.value, difficulty, surLaCible: mods, refus: spec.refus }),
+        ...rollStep({ actor: hero, test: spec.test, valeur: spec.value, difficulty, surLaCible: mods, refus: spec.refus }),
         ...(spec.drTarget != null ? { extendedDrDone: Math.min(plan.extendedProgress ?? 0, spec.drTarget), extendedDrTarget: spec.drTarget, extendedDrPartage: true } : {}),
       });
     }
@@ -235,7 +234,7 @@ export function buildWeatherResistanceSteps(get: Get, weather: Weather): BuiltCa
     parts.push({
       id: hero.id, label: refLabel('skills', { id: 'resistance' }), interactive: true,
       difficulty: rt.difficulty,
-      ...rollStep({ actor: hero, test: { skill: 'resistance', characteristic: 'endurance' }, difficulty: rt.difficulty }),
+      ...rollStep({ actor: hero, test: { skill: { id: 'resistance' }, characteristic: 'endurance' }, difficulty: rt.difficulty }),
       result: null,
     });
   }
@@ -263,7 +262,7 @@ function buildExposureSteps(state: { party: Combatant[] }, stage: StageContext):
       rollLabel: refLabel('skills', { id: 'resistance' }), difficulty: diff as Difficulty,
       // MÊME Test d'Exposition que la nuit de repos : EDOC 08 l.90 renvoie à LDB p181, donc MÊME entrée.
       stake: voyageStakeRef('exposure', { chars: exposureFirstFailChars('froid') }),
-      ligne: { test: { skill: 'resistance', characteristic: 'endurance' } },
+      ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } },
       meta: { weatherLabel: dataLabel(weatherCondition(stage.weather).label), warded: isWeatherWarded(h), coldSeason: isColdSeason(stage.season) },
     });
     pousseSi(out, st);

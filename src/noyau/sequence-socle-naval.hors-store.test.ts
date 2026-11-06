@@ -117,7 +117,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [NAV
     traceNavale.push({ round: seq.round, metres: seq.payload.metres, cum: { ...seq.cum } });
     const step = monoStep({
       id: `crise-${seq.round}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText(`Manœuvre — manche ${seq.round}`),
-      actor: barreur, difficulty: 'intermediaire', ligne: { test: { skill: 'navigation' } },
+      actor: barreur, difficulty: 'intermediaire', ligne: { test: { skill: { id: 'navigation' } } },
       stake: combatStakeRef('pursuitMove', { values: { distance: seq.payload.metres, evasion: 500 } }),
     });
     if (!step) return undefined;

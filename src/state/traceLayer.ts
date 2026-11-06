@@ -1,4 +1,4 @@
-import type { TraceTransform } from '../ui/editor/traceCalibration';
+import type { TraceTransform } from '../noyau/edition/calage';
 import { accesBase } from '../web/indexedDb';
 import { FORMAT_CALQUE } from '../noyau/persistance/formats.generated';
 

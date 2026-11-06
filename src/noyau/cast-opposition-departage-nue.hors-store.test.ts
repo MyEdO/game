@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { castingBaseValue, castingValue, castTestOf, evaluateCasting } from '../engine/magic';
+import { castingBaseValue, castingValue, castTestOf, evaluateCasting, incantationArcane } from '../engine/magic';
 import { evaluateTest, resolveOpposed, REPLIS_DEUX_CIBLES } from '../engine/tests';
 import { testValue, skillBaseValue } from '../engine/skills';
 import { findSpellById } from '../data';
@@ -51,7 +51,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
    *  pose la nue du lanceur. Dé 5 sur cible 74 → DR 7 = NI du Sort. */
   function frozenCast(H: Combatant, E: Combatant) {
     const spell = findSpellById('parole-de-tzeentch')!;
-    const res = evaluateCasting(H, spell, evaluateTest(5, castingValue(H, 'langue', 'magick')));
+    const res = evaluateCasting(H, spell, evaluateTest(5, castingValue(H, incantationArcane())));
     banc.setState({
       pendingCast: {
         casterId: H.id, targetId: E.id, spellId: 'parole-de-tzeentch', missile: false, focused: false, result: res,
@@ -63,10 +63,10 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
   it('à DR ÉGAL, la CIBLE l’emporte par sa nue (90 contre 44) alors que les valeurs testées disent l’inverse', () => {
     banc.getState().seedRng(11);
     const { H, E } = setup();
-    const nueH = castingBaseValue(H, 'langue', 'magick');
-    const nueE = skillBaseValue(E, undefined, undefined, 'intelligence');
+    const nueH = castingBaseValue(H, incantationArcane());
+    const nueE = skillBaseValue(E, { characteristic: 'intelligence' });
     const testeeE = testValue(E, { characteristic: 'intelligence' });
-    const testeeH = castingValue(H, 'langue', 'magick');
+    const testeeH = castingValue(H, incantationArcane());
     expect([nueH, testeeH], 'lanceur : Niveau de Compétence 44, valeur testée 74 (3 Avantage)').toEqual([44, 74]);
     expect([nueE, testeeE], 'cible : Intelligence nue 90, valeur testée 70 (2 Exténué)').toEqual([90, 70]);
     expect(testeeH, 'les valeurs TESTÉES sont inversées par rapport aux nues').toBeGreaterThan(testeeE);

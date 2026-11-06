@@ -1,4 +1,5 @@
 import type { CharKey } from '../engine/types';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ActionRunCtx, BattleActionMode } from './actionRegistry';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
@@ -116,7 +117,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   buyCharAdvance: (heroId: IdDeHeros, char: CharKey) => void;
   /** Achète une Augmentation de Compétence (identité skillId+spec) ; acquiert la Compétence de
    *  carrière non connue à 0 ; l'achat via un slot « (Au choix) » libre le désigne. */
-  buySkillAdvance: (heroId: IdDeHeros, skillId: string, spec?: string) => void;
+  buySkillAdvance: (heroId: IdDeHeros, skill: RefDesignee) => void;
   /** Achète/augmente un Talent (identité talentId+spec ; refusé hors carrière l.97 / Maxi atteint). */
   buyTalent: (heroId: IdDeHeros, talentId: string, spec?: string) => void;
   /** Désigne GRATUITEMENT un emplacement « (Au choix) » de la carrière courante (LDB 09 l.38). */
@@ -129,6 +130,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   removeSpellComponent: (heroId: IdDeHeros, spellId: string) => void;
   /** Édite la bio mutable d'un héros hors combat (Motivation + Ambitions court/long, LDB 05) — persisté en save + roster. */
   setHeroBackground: (heroId: IdDeHeros, patch: { motivation?: string; ambitionShort?: string; ambitionLong?: string }) => void;
+  /** Ouvre la fin de séance depuis le menu de jeu : refusée et dite hors exploration et chez l'invité (`refusDeFinDeSeance`). */
+  ouvrirLaFinDeSeance: () => void;
   /** Entraîne une prothèse portée par dépense de PX (Fausse jambe → réapprendre l'Esquive, 200 PX, LDB 73). */
   trainProsthesis: (heroId: IdDeHeros, uid: IdDObjet) => void;
   /** Change de Carrière/Niveau (validation LDB 07 l.137 / LDB 08 : complétion, +100 hors Classe). */

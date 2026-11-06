@@ -10,7 +10,7 @@ import {
 } from './traceLayer';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees, type BasesSimulees } from '../web/indexedDb.testkit';
-import { identityTransform } from '../ui/editor/traceCalibration';
+import { identityTransform } from '../noyau/edition/calage';
 import { FORMAT_CALQUE } from '../noyau/persistance/formats.generated';
 
 const NOM = 'wfrp4-trace-layers';

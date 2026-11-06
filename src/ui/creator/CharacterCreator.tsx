@@ -2167,7 +2167,7 @@ function Rubrique({ title, children }: { title: ReactNode; children: ReactNode }
 function topSkillTests(hero: Combatant, max = 3): { skillId: string; spec?: string; label: string; value: number }[] {
   return [...hero.skills]
     .filter((s) => s.advances > 0)
-    .map((s) => ({ skillId: s.id, spec: s.spec, label: skillInstanceLabel(s), value: skillBaseValue(hero, s.id, s.spec) }))
+    .map((s) => ({ skillId: s.id, spec: s.spec, label: skillInstanceLabel(s), value: skillBaseValue(hero, { skill: s }) }))
     .sort((a, b) => b.value - a.value)
     .slice(0, max);
 }

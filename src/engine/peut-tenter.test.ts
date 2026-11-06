@@ -32,7 +32,7 @@ describe('peutTenter — l\'élection du meneur et le Soutien', () => {
     const ko = hero('ko', 60, { ragot: 10, inconscient: true });
     const second = hero('second', 45, { ragot: 5 });
     const tiers = hero('tiers', 30, { ragot: 5 });
-    const r = partyAssisted([ko, second, tiers], 'ragot');
+    const r = partyAssisted([ko, second, tiers], { skill: { id: 'ragot' } });
     expect(r?.actor.id).toBe('second');
     expect(r?.support.ids).toEqual(['tiers']);
   });
@@ -40,8 +40,8 @@ describe('peutTenter — l\'élection du meneur et le Soutien', () => {
   it('Compétence Avancée sans Augmentation : personne ne la tente (LDB 09 l.30)', () => {
     const fort = hero('fort', 70, { evaluation: 0 });
     const forme = hero('forme', 30, { evaluation: 5 });
-    expect(partyBest([fort], 'evaluation')).toBeNull();
-    expect(partyBest([fort, forme], 'evaluation')?.actor.id).toBe('forme');
+    expect(partyBest([fort], { skill: { id: 'evaluation' } })).toBeNull();
+    expect(partyBest([fort, forme], { skill: { id: 'evaluation' } })?.actor.id).toBe('forme');
   });
 });
 
@@ -69,19 +69,19 @@ describe('peutTenter — Compétence groupée aux Spécialisations sœurs de Bas
 
   it('Voile (Caravelle) augmentée : Voile (Cogue) se tente, de Base — Caractéristique seule, sans les Augmentations de la sœur', () => {
     const marin = avec(hero('marin', 30), 'voile', 'caravelle', 15);
-    expect(peutTenter(marin, 'voile', 'cogue')).toBe(true);
-    expect(partyBest([marin], 'voile', undefined, undefined, 'cogue')).toEqual({ actor: marin, value: 30 });
-    expect(partyBest([marin], 'voile', undefined, undefined, 'caravelle')?.value).toBe(45);
+    expect(peutTenter(marin, { skill: { id: 'voile', spec: 'cogue' } })).toBe(true);
+    expect(partyBest([marin], { skill: { id: 'voile', spec: 'cogue' } })).toEqual({ actor: marin, value: 30 });
+    expect(partyBest([marin], { skill: { id: 'voile', spec: 'caravelle' } })?.value).toBe(45);
   });
 
   it('sans aucune Spécialisation de Voile augmentée, aucune ne se tente', () => {
-    expect(peutTenter(hero('terrien', 30), 'voile', 'cogue')).toBe(false);
-    expect(peutTenter(avec(hero('novice', 30), 'voile', 'caravelle', 0), 'voile', 'cogue')).toBe(false);
+    expect(peutTenter(hero('terrien', 30), { skill: { id: 'voile', spec: 'cogue' } })).toBe(false);
+    expect(peutTenter(avec(hero('novice', 30), 'voile', 'caravelle', 0), { skill: { id: 'voile', spec: 'cogue' } })).toBe(false);
   });
 
   it('une Groupée Avancée SANS la clause garde ses Spécialisations étanches : Langue (Bretonnien) ne rend pas Langue (Bataille) tentable', () => {
     const polyglotte = avec(hero('polyglotte', 30), 'langue', 'bretonnien', 10);
-    expect(peutTenter(polyglotte, 'langue', 'bretonnien')).toBe(true);
-    expect(peutTenter(polyglotte, 'langue', 'bataille')).toBe(false);
+    expect(peutTenter(polyglotte, { skill: { id: 'langue', spec: 'bretonnien' } })).toBe(true);
+    expect(peutTenter(polyglotte, { skill: { id: 'langue', spec: 'bataille' } })).toBe(false);
   });
 });

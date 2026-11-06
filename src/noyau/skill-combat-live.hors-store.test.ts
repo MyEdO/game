@@ -50,7 +50,7 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('social');
     expect(dd.label).toBe('Intimidation');
-    expect(dd.base).toBe(skillBaseValue(H, 'intimidation'));
+    expect(dd.base).toBe(skillBaseValue(H, { skill: { id: 'intimidation' } }));
   });
 
   it('la substitution NE casse PAS la Parade (Corps à corps intact)', () => {

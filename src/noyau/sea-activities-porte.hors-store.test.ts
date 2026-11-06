@@ -66,7 +66,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
 
     // LITTÉRAL D'AVANT MIGRATION, recopié tel quel (seaActivities.ts:120-125 à `b29cbe51`).
     const hero = get().party.find((h) => h.id === cartographe.id)!;
-    const test: RollRequest['test'] = { skill: 'metier', spec: 'cartographe' };
+    const test: RollRequest['test'] = { skill: { id: 'metier', spec: 'cartographe' } };
     const def = activityById('cartographie')!;
     const difficulty = def.difficulty ?? 'complexe';
     const ancien = {

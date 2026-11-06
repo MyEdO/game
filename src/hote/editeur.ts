@@ -2,13 +2,15 @@
  * L'ÉDITEUR DE CARTE À L'ÉCRAN D'UN HÔTE (#3508) : ses zones et leurs éléments (`elements.ts`), lus de la session
  * d'édition du noyau (`SessionDEdition`). Les outils, les options de l'outil actif (pinceau, terrains, hauteurs, sorte
  * et structure d'une arête, étage rejoint et plan d'une volée), les couches de la scène, l'historique, l'enregistrement au dépôt, la case pointée et
- * l'arête sélectionnée, et l'inspecteur de cette arête ; chaque geste porte le geste d'édition qu'il joue (`{ edition }`), prêt à envoyer. Ce que le
+ * l'arête sélectionnée, l'inspecteur de cette arête et le calque de référence de la couche ; chaque geste porte le geste d'édition qu'il joue (`{ edition }`), prêt à envoyer. Ce que le
  * pointeur trace sur la carte en cours de geste, le tracé de la volée et l'arête sélectionnée, vont à la surcouche (`surcoucheDeLEdition`),
- * que l'hôte pose sur le monde.
+ * que l'hôte pose sur le monde, et le calque de la couche, à l'affichage du calque (`calqueAffiche`), avec la planche
+ * qu'il garde (`cheminDeLaPlanche`) et ce qu'il garde des calques (`memoireDesCalques`).
  */
 import {
+  calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
   DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, secretAuteur,
-  segmentDeLaSelection, structureAppearances, structuresDeLArete, terrainIds, terrainLabel, tileAt,
+  segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type SessionDEdition, type WallPaint,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -26,6 +28,7 @@ export interface ZonesDeLEditeur {
   'editeur.fichier': Bouton[];
   'editeur.pointee': Ligne[];
   'editeur.inspecteur': (Choix | Ligne | Bouton)[];
+  'editeur.calque': (Choix | Ligne | Bouton)[];
 }
 
 /** Les cases que le geste en cours trace sur la carte, chacune sur sa couche : le rectangle tiré, ou les cases que le
@@ -34,6 +37,17 @@ export interface ZonesDeLEditeur {
 export interface SurcoucheDeLEdition {
   cases: { x: number; y: number; z: number }[];
   arete: AreteDessinee | null;
+}
+
+/** Le calque de la couche éditée tel que l'hôte le pose sur le monde : la planche qu'il garde (`cheminDeLaPlanche`),
+ *  ses quatre coins sur la carte (`coinsDuCalque`), son plan en mètres (`planDuCalque`), son opacité, et s'il passe
+ *  au-dessus de la scène construite. */
+export interface CalqueAffiche {
+  image: string;
+  coins: { x: number; y: number }[];
+  plan: number;
+  opacite: number;
+  dessus: boolean;
 }
 
 /** Les sortes d'arête que pose l'outil murs. */
@@ -64,11 +78,12 @@ function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bou
   ];
 }
 
-/** Les options de l'outil actif : la taille du pinceau (et le rectangle du terrain), puis les terrains ou les hauteurs ;
- *  la sorte et le matériau d'une arête ; la volée. */
+/** Les options de l'outil actif : la taille du pinceau (et le rectangle du terrain), puis les terrains, les hauteurs ou
+ *  la structure du parapet, ou la gomme de sa marque ; la sorte et le matériau d'une arête ; la volée. La gomme n'en a
+ *  aucune : elle efface la chose de la case. */
 function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const outil = s.outil;
-  if (outil.mode === 'select') return [];
+  if (outil.mode === 'select' || outil.mode === 'erase') return [];
   if (outil.mode === 'stair') return optionsDeLaVolee(s, outil.toZ);
   const pinceaux = PINCEAUX.map((n) => bouton(`pinceau/${n}`, t('ecran.editeur.pinceau.taille', { n }), { geste: 'pinceau', taille: n }, s.pinceau === n && !s.rectangle));
   if (outil.mode === 'tile') {
@@ -85,6 +100,13 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
       ...posables.map((st) => bouton(`structure/${st.id}`, st.label, { geste: 'outil', outil: { mode: 'wall', paint: outil.paint, structure: st.id } }, outil.structure === st.id)),
     ];
     return [choix('aretes', t('ecran.editeur.aretes'), peintures), choix('structures', t('ecran.editeur.structures'), structuresDeLOutil, 'liste')];
+  }
+  if (outil.mode === 'crenellated') {
+    const parapets = [
+      ...structuresCrenelables().map((st) => bouton(`crenelage/${st.id}`, st.label, { geste: 'outil', outil: { mode: 'crenellated', structure: st.id } }, outil.structure === st.id)),
+      bouton('crenelage/gomme', t('ecran.editeur.crenelage.gomme'), { geste: 'outil', outil: { mode: 'crenellated', structure: null } }, outil.structure === null),
+    ];
+    return [choix('pinceau', t('ecran.editeur.pinceau'), pinceaux), choix('parapets', t('ecran.editeur.crenelage'), parapets, 'liste')];
   }
   const hauteurs = HAUTEURS.map((h) => bouton(`hauteur/${h.cle}`, `${t(`ecran.editeur.hauteur.${h.cle}`)} (${h.metres} m)`, { geste: 'outil', outil: { mode: 'height', metres: h.metres } }, outil.metres === h.metres));
   return [choix('pinceau', t('ecran.editeur.pinceau'), pinceaux), choix('hauteurs', t('ecran.editeur.hauteurs'), hauteurs)];
@@ -205,6 +227,71 @@ function inspecteur(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   return elements;
 }
 
+/** La ligne du parapet crénelé de la case pointée de la session `s`, sa structure ; aucune sans parapet. */
+function ligneDuParapet(s: SessionDEdition): Ligne[] {
+  const p = s.pointee;
+  const parapet = p ? crenellatedAt(sceneEditee(s), p.x, p.y, p.z) : null;
+  return parapet === null ? [] : [ligne('crenelage', t('ecran.editeur.pointee.crenelage', { structure: libelleDeStructure(parapet) ?? parapet }))];
+}
+
+/** Le pas de la réglette d'opacité du calque. */
+const PAS_D_OPACITE = 0.1;
+
+/** Le calque de référence de la couche éditée de la session `s` : sa couche ; la planche qui se charge, ou, sans
+ *  calque, de quoi en charger une ; pendant le calage, l'étape à cliquer et l'abandon ; sinon, visible, au-dessus ou en
+ *  dessous, l'opacité à la réglette, l'échelle de son calage, la rotation que le calage déduit, le calage (refusé au
+ *  calque caché), remplacer la planche, retirer le calque. Des calques d'un autre format retirés à l'ouverture se
+ *  disent en alerte. */
+function zoneDuCalque(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
+  const tete = [ligne('calque', t('ecran.editeur.calque', { z: s.z })), ...(s.ecartes ? [ligne('calque/ecartes', t('ecran.editeur.calque.ecartes'), 'alerte')] : [])];
+  if (s.chargement) return [...tete, ligne('calque/chargement', t('ecran.editeur.calque.chargement'))];
+  const calque = calqueDeLaCouche(s);
+  const charger = bouton('calque/charger', t(calque ? 'ecran.editeur.calque.remplacer' : 'ecran.editeur.calque.charger'), { geste: 'planche' });
+  if (!calque) return [...tete, ligne('calque/aucun', t('ecran.editeur.calque.aucun')), charger];
+  if (s.calage.step !== 'idle') {
+    return [...tete, ligne('calque/calage', t(`ecran.editeur.calque.calage.${s.calage.step}`)), bouton('calque/calage/annuler', t('ecran.editeur.calque.calage.annuler'), { geste: 'caler', actif: false })];
+  }
+  const regler = (reglage: { opacite?: number; visible?: boolean; dessus?: boolean; rotation?: boolean }): GesteDEdition => ({ geste: 'calque', reglage });
+  const pas = Math.round(PAS_D_OPACITE * 100);
+  return [
+    ...tete,
+    bouton('calque/visible', t('ecran.editeur.calque.visible'), regler({ visible: !calque.visible }), calque.visible),
+    choix('calque/position', t('ecran.editeur.calque.position'), [
+      bouton('calque/dessus', t('ecran.editeur.calque.dessus'), regler({ dessus: true }), calque.dessus),
+      bouton('calque/dessous', t('ecran.editeur.calque.dessous'), regler({ dessus: false }), !calque.dessus),
+    ]),
+    ligne('calque/opacite', t('ecran.editeur.calque.opacite', { pourcent: Math.round(calque.opacite * 100) })),
+    bouton('calque/opacite/moins', t('ecran.editeur.calque.moins', { pas }), regler({ opacite: arrondi(Math.max(0, calque.opacite - PAS_D_OPACITE)) }), false, calque.opacite > 0 ? null : t('ecran.editeur.inspecteur.auPlancher')),
+    bouton('calque/opacite/plus', t('ecran.editeur.calque.plus', { pas }), regler({ opacite: arrondi(Math.min(1, calque.opacite + PAS_D_OPACITE)) }), false, calque.opacite < 1 ? null : t('ecran.editeur.calque.auMaximum')),
+    ligne('calque/echelle', t('ecran.editeur.calque.echelle', { px: arrondi(1 / calque.calage.scale) })),
+    bouton('calque/rotation', t('ecran.editeur.calque.rotation'), regler({ rotation: !calque.rotation }), calque.rotation),
+    bouton('calque/caler', t('ecran.editeur.calque.caler'), { geste: 'caler', actif: true }, false, calque.visible ? null : t('ecran.editeur.calque.caler.cache')),
+    charger,
+    bouton('calque/retirer', t('ecran.editeur.calque.retirer'), { geste: 'retirerCalque' }),
+  ];
+}
+
+/** La planche que l'hôte garde pour le calque de la couche `z` de la scène `sceneId` du projet `projetId`. */
+export const cheminDeLaPlanche = (projetId: string, sceneId: string, z: number): string => `calques/${projetId}/${sceneId}/${z}`;
+
+/** Le calque de la couche éditée de la session `s` à poser sur le monde, `null` sans lui ou caché. */
+export function calqueAffiche(s: SessionDEdition): CalqueAffiche | null {
+  const c = calqueDeLaCouche(s);
+  return c?.visible
+    ? { image: cheminDeLaPlanche(s.projet.id, s.sceneId, s.z), coins: coinsDuCalque(c), plan: planDuCalque(sceneEditee(s), s.z), opacite: c.opacite, dessus: c.dessus }
+    : null;
+}
+
+/** Ce que l'hôte garde des calques après le geste qui mène de `avant` (`null` : l'ouverture) à `apres` : `null` s'ils
+ *  n'ont pas changé ; sinon leur forme stockée, et les planches des calques retirés, à oublier. À l'ouverture, ils ne
+ *  changent que retirés d'un autre format. */
+export function memoireDesCalques(avant: SessionDEdition | null, apres: SessionDEdition): { calques: CalquesStockes; oublier: string[] } | null {
+  if (avant ? apres.calques === avant.calques : !apres.ecartes) return null;
+  const oublier = Object.entries(avant?.calques ?? {}).flatMap(([sceneId, couches]) =>
+    Object.keys(couches).filter((z) => !apres.calques[sceneId]?.[z]).map((z) => cheminDeLaPlanche(apres.projet.id, sceneId, Number(z))));
+  return { calques: calquesAStocker(apres.calques), oublier };
+}
+
 /** Pourquoi la session `s` ne s'enregistre pas : son projet vient du jeu, un enregistrement est en cours, ou la
  *  scène éditée est celle que le dépôt porte. */
 function refusDEnregistrer(s: SessionDEdition): string | null {
@@ -224,6 +311,8 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     bouton('outil/height', t('ecran.editeur.outil.height'), { geste: 'outil', outil: { mode: 'height', metres: HAUTEURS[0].metres } }, s.outil.mode === 'height'),
     bouton('outil/wall', t('ecran.editeur.outil.wall'), { geste: 'outil', outil: { mode: 'wall', paint: 'wall' } }, s.outil.mode === 'wall'),
     bouton('outil/stair', t('ecran.editeur.outil.stair'), { geste: 'outil', outil: { mode: 'stair', toZ: etages.find((z) => z > s.z) ?? s.z } }, s.outil.mode === 'stair'),
+    bouton('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenellated', structure: structuresCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenellated'),
+    bouton('outil/erase', t('ecran.editeur.outil.erase'), { geste: 'outil', outil: { mode: 'erase' } }, s.outil.mode === 'erase'),
   ];
   const couches = etages.map((z) => bouton(`couche/${z}`, t('ecran.editeur.couche', { z }), { geste: 'couche', z }, s.z === z));
   const p = s.pointee;
@@ -243,9 +332,11 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     'editeur.fichier': [bouton('enregistrer', t('ecran.editeur.enregistrer'), { geste: 'enregistrer' }, false, refusDEnregistrer(s))],
     'editeur.pointee': [
       ...(p ? [ligne('pointee', t('ecran.editeur.pointee', { x: p.x, y: p.y, z: p.z, terrain: terrainLabel(tileAt(scene, p.x, p.y, p.z)), hauteur: heightAt(scene, p.x, p.y, p.z) }))] : []),
+      ...ligneDuParapet(s),
       ...ligneDeLArete(s),
     ],
     'editeur.inspecteur': inspecteur(s),
+    'editeur.calque': zoneDuCalque(s),
   };
 }
 
@@ -274,6 +365,14 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
 /** Si `g` est l'issue de l'écriture d'un enregistrement au dépôt : `{ geste: 'enregistrement', reussi }`, rien de plus. */
 export function estLIssueDUnEnregistrement(g: unknown): g is Extract<GesteDEdition, { geste: 'enregistrement' }> {
   return estObjet(g) && g.geste === 'enregistrement' && typeof g.reussi === 'boolean' && Object.keys(g).length === 2;
+}
+
+/** Si `g` est l'issue du chargement d'une planche : `{ geste: 'chargement', image }`, `image` nulle ou
+ *  `{ largeur, hauteur }` en pixels entiers positifs, rien de plus. */
+export function estLIssueDUnChargement(g: unknown): g is Extract<GesteDEdition, { geste: 'chargement' }> {
+  if (!estObjet(g) || g.geste !== 'chargement' || Object.keys(g).length !== 2 || !('image' in g)) return false;
+  const { image } = g;
+  return image === null || (estObjet(image) && Object.keys(image).length === 2 && [image.largeur, image.hauteur].every((n) => estEntier(n) && n > 0));
 }
 
 /** Si `g` est un geste du pointeur : `{ geste: 'appui' | 'glisse' | 'relache', point: { case: { x, y }, f: { x, y } } }`,

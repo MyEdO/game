@@ -61,8 +61,8 @@ const TALENT_BONUS_WEIGHT = 0.3;
 export const AXIS_QUALIFY_MIN = 0.45;
 
 function skillContribution(hero: Combatant, ref: RefDesignee): number {
-  if (!possesses(hero, ref.id, ref.spec)) return 0;
-  const value = skillBaseValue(hero, ref.id, ref.spec);
+  if (!possesses(hero, ref)) return 0;
+  const value = skillBaseValue(hero, { skill: ref });
   return Math.max(0, Math.min(1, (value - SKILL_VALUE_MIN) / SKILL_VALUE_SPAN));
 }
 

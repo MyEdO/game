@@ -191,7 +191,7 @@ describe('playTavernGame', () => {
     // Le défiant est le PLUS FAIBLE des deux — mais sa Compétence NUE dépasse la valeur de Test
     // EMPOISONNÉE de son vis-à-vis. C'est le piège du mixte, et il ne tient que si les deux nues
     // diffèrent : l'assertion le VERROUILLE au lieu de le supposer.
-    const nue = (h: Combatant): number => skillBaseValue(h, game.skill!.id, game.skill!.spec);
+    const nue = (h: Combatant): number => skillBaseValue(h, { skill: game.skill! });
     const [faible, fort] = nue(a) <= nue(b) ? [a, b] : [b, a];
     expect(nue(faible), 'les deux nues diffèrent, sinon rien ne trancherait').toBeLessThan(nue(fort));
     expect(tavernGameValue(faible, game), 'l’État n’entre pas dans la NUE').toBe(nue(faible) - 10);

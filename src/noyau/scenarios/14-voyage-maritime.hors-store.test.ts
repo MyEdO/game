@@ -103,8 +103,8 @@ describe('Scénario Voyage maritime — beat de Magie des mers (lancer en mer)',
   const navi = scen.construire().party.find((h) => h.id === 'mar-navi')!;
 
   it('le Navigateur est un Astromancien : il maîtrise l’incantation et connaît Bienfait de Bel Shanaar', () => {
-    expect(knowsCastingSkill(navi, 'langue', 'magick')).toBe(true); // incantation des Arcanes
-    expect(knowsCastingSkill(navi, 'focalisation')).toBe(true); // Test étendu de Focalisation
+    expect(knowsCastingSkill(navi, { id: 'langue', spec: 'magick' })).toBe(true); // incantation des Arcanes
+    expect(knowsCastingSkill(navi, { id: 'focalisation' })).toBe(true); // Test étendu de Focalisation
     expect(navi.spells).toContain('bienfait-de-bel-shanaar'); // runtime = id de sort
     const sp = findSpellById('bienfait-de-bel-shanaar')!;
     expect(sp.domainId).toBe('cieux');

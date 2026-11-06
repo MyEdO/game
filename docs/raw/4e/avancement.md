@@ -320,7 +320,7 @@ Module principal : `src/engine/advancement.ts`
 | `ADVANCE_COST_TABLE` | Table des coûts verbatim | `LDB 07 l.51-70` |
 | `advanceCost(n, kind, inCareer, discount)` | Coût de la N+1ᵉ Augmentation ; ×2 hors carrière | `LDB 07 l.45/80/95` |
 | `buyCharAdvance(hero, char, inCareer)` | Achat d'une Augmentation de Caractéristique | `LDB 07 l.45-72` |
-| `buySkillAdvance(hero, skillName, spec, inCareer, discount)` | Achat d'une Augmentation de Compétence (par spec distincte) | `LDB 07 l.78-84`, `LDB 09 l.44` |
+| `buySkillAdvance(hero, ref, inCareer, discount)` | Achat d'une Augmentation de Compétence (par spec distincte) | `LDB 07 l.78-84`, `LDB 09 l.44` |
 | `talentCost(timesAlready)` | Coût d'une Augmentation de Talent | `LDB 07 l.105` |
 | `buyTalent(hero, talentName)` | Achat d'une Augmentation de Talent | `LDB 07 l.100-109` |
 | `careerCompletionAdvances(level)` | Augmentations requises pour compléter (5 × niveau) | `LDB 07 l.126-131` |
