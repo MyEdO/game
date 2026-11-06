@@ -1992,7 +1992,7 @@ export interface SymptomData {
    *  du nœud inchangée. Lu par `symptomOnTick`. `afterDays`/`once` cadencent le cycle sur la phase
    *  ACTIVE (Vers de carie : Test quotidien À PARTIR de J+7, MSRC 16 l.90 ; Vers du Reik : 7ᵉ jour). */
   onTick?: {
-    test?: import('../engine/flowCore').FlowTestNode;
+    test?: import('../engine/flowCore').NoeudDecideAuPorteur;
     ops?: import('../engine/ops').GameOp[];
     difficultyBySeverity?: Partial<Record<'moderee' | 'grave', import('../engine/types').Difficulty>>;
     /** Ne se déclenche qu'à partir du Nᵉ jour de PHASE ACTIVE (1 = premier jour actif). Absent = dès le 1ᵉʳ. */
@@ -2328,7 +2328,7 @@ export interface TestDeRegleData {
   id: string;
   label: string;
   source: SourceRef;
-  test: import('../engine/flowCore').TestExige<'skill' | 'difficulty'>;
+  test: import('../engine/flowCore').JetFixe<'skill' | 'difficulty'>;
 }
 export interface RangeeDeRegleData {
   id: string;

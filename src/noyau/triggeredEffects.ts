@@ -9,13 +9,14 @@
  * place et renvoie le journal. Le référent des formules « (X) » est le PORTEUR (`caster` = la créature
  * qui frappe) — donc « Force de la source » = sa Force.
  */
-import { type Combatant, type Weapon, type HitLocation, type Difficulty, type EffectSource } from '../engine/types';
+import { type Combatant, type Weapon, type HitLocation, type EffectSource } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { TriggeredEffect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { OpsCtx, GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, flowHasFreeAttack, spellEffectOps, EMPTY_FLOW, reecrireFlow, reecrireLesOps, resolveTestDifficulty } from '../engine/flowCore';
+import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, flowHasFreeAttack, spellEffectOps, EMPTY_FLOW, reecrireFlow, reecrireLesOps } from '../engine/flowCore';
+import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { weaponIdentity } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
 import { featureLevel } from '../engine/combatFeatures/dispatch';
@@ -36,7 +37,7 @@ import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { activeSymptoms } from '../engine/disease';
 import { difficulteDeLArg, rollTest } from '../engine/tests';
 import { rawCombatTestBase } from '../engine/skills';
-import { combatConditionCtx, flowTestGated, runPureFlowLines } from './combat/flowEval';
+import { combatConditionCtx, runPureFlowLines } from './combat/flowEval';
 import { cibleEnVue, isAfflictionActive, type CibleEnVue, type PsychAffliction } from '../engine/psychology';
 import { estCibleType } from '../engine/psych/ciblage';
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
@@ -329,12 +330,12 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   // SOURCE UNIQUE partagée avec la voie cascade (`resolveFlowTest`). Le `ConditionCtx` est construit de la
   // géométrie d'arène déjà injectée dans `ctx` par le dispatcher (Brisé : caché/Engagé/proximité). Gate
   // fermée ⇒ no-op (ni jet ni branche, comme `onlyGroups` — un Test top-level n'a pas d'`after`).
-  const cc = combatConditionCtx(c, ctx);
-  if (flowTestGated(ft, c, cc)) return [];
+  const decision = resoudreFlowTest(ft, { cc: combatConditionCtx(c, ctx), sujet: c });
+  if (!decision.joue) return [];
   // `base` BRUT (sans pénalité d'État) + `combatTestPenalty` une SEULE fois (RAW : −10 d'Empoisonné/Sonné/
   // Brisé compté une fois, LDB 16) — MÊME convention que `simpleTriggeredTestStep` (héros) → récupération identique.
   const base = rawCombatTestBase(c, ft);
-  const difficulty: Difficulty = resolveTestDifficulty(ft, cc);
+  const { difficulty } = decision;
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   const rng = ctx.rng;
   const res = rollTest(base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));

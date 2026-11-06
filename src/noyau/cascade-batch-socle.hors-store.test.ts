@@ -165,7 +165,7 @@ describe('bande d’un Test tagué MENACE — la construction n’est plus refus
       opposed: { attacker: 'endurance', attackerSkill: 'resistance' },
     };
     const step = frozenOpposedBatchStep(
-      [d1, d2], ft, { onSuccess: EMPTY_FLOW, onFail: EMPTY_FLOW }, EMPTY_FLOW, 'intermediaire', attaquant,
+      [d1, d2], ft, { onSuccess: EMPTY_FLOW, onFail: EMPTY_FLOW }, EMPTY_FLOW, attaquant,
       { roll: 40, target: 50, sl: 1, success: true, isDouble: false },
     );
     expect(step).toBeTruthy();

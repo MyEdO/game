@@ -705,6 +705,7 @@ function opsHorsJet(f: Flow | undefined): GameOp[] {
 
 /** Libellé d'un nœud `test` : « Compétence Difficulté », la Compétence résolue PAR ID. */
 function libelleDeJet(n: FlowTestNode): string {
+  // lecture déclarée : la fiche décrit le Test tel que la donnée l'authore
   return `${refLabel('skills', n.test.skill ?? { id: 'resistance' })} ${DIFFICULTY_LABELS[n.test.difficulty!]}`;
 }
 
@@ -789,6 +790,7 @@ function shipCritEntryItem(e: ShipCritEntry, jeu: ShipCritSet): CodexItem {
             title: tr('codex.fiche.coupALEquipage'),
             layout: 'list',
             rows: [
+              // lecture déclarée : la fiche décrit le Test tel que la donnée l'authore
               { t: 'kv', k: tr('codex.fiche.jet'), v: jet ? `${sujet}${jet.difficulty ? ` ${DIFFICULTY_LABELS[jet.difficulty]}` : ''}` : tr('codex.fiche.automatiqueAucunTest') } as CodexRow,
               { t: 'kv', k: tr('codex.fiche.cible'), v: crewTargetLabel(ch.crewTarget) } as CodexRow,
             ],

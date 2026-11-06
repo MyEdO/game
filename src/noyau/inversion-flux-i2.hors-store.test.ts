@@ -12,6 +12,7 @@ import { initialNet } from './etat';
 import { emptyScene } from './monde/scene';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { openSkillTest } from './combatEffects';
+import { condCtx } from './bourseFlow';
 import { applyOps, type GameOp } from '../engine/ops';
 import { activityById } from '../engine/activities';
 import { unarmedWeapon } from '../engine/items';
@@ -217,7 +218,7 @@ describe('Mécénat (ACE 12 l.60-62) : jeton de Sociabilité face à l’amateur
       scene: { ...emptyScene('s'), entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, amateur: 'amateurDeTheatre' }] } as never,
       dialogue: { dialogue: { id: 'd', start: 'n', nodes: [] } as never, nodeId: 'n', speakerId: 'pnj', session: 1 },
     });
-    openSkillTest(banc.getState, banc.setState, { skill: { id: 'charme' } } as never, EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId: 'H' });
+    openSkillTest(banc.getState, banc.setState, { skill: { id: 'charme' } } as never, condCtx(banc.getState), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId: 'H' });
     expect(banc.getState().pendingTest?.contexte).toBe('amateurDeTheatre');
   });
 });

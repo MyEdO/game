@@ -5,10 +5,13 @@ import { isWalkable, layerTiles } from '../../noyau/monde/scene';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { pathTo } from '../../noyau/monde/path';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
-import { applyEffects } from '../../noyau/combatEffects';
+import { applyEffects, runFlow } from '../../noyau/combatEffects';
+import { testAnnonce } from '../../noyau/dialogue';
+import { condCtx } from '../../noyau/bourseFlow';
 import { createHero } from '../../engine/character';
 import { scenario } from '../../scenes/test-scenarios/opera';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
+import type { Difficulty } from '../../engine/types';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -142,6 +145,21 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
   it('la plante piégée est posée dans la loge royale (z1) et se détecte mieux avec la Poudre noire', () => {
     expect(plante.z).toBe(1);
     expect(detect.test.easierIf?.hasSkill).toEqual({ id: 'projectiles', spec: 'poudre-noire' });
+  });
+
+  /** #1874 C5 : la Difficulté que la réponse ANNONCE est celle que l'ouvreur POSE, sur la donnée réelle. */
+  const voies: [string, boolean, Difficulty][] = [
+    ['un héros tient Projectiles (Poudre noire) : allégée', true, 'intermediaire'],
+    ['personne ne la tient : déclarée', false, 'complexe'],
+  ];
+  it.each(voies)('annonce == applier sur l’examen de la plante — %s', (_cas, artificier, attendue) => {
+    const h = lonePartyAt(12);
+    if (artificier) h.skills = [...h.skills, { id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 5 }];
+    banc.setState({ party: [h], pendingTest: null });
+    const annonce = testAnnonce(detect, { cc: condCtx(banc.getState), groupe: banc.getState().party });
+    runFlow(banc.getState, banc.setState, detect);
+    expect(annonce?.difficulty).toBe(attendue);
+    expect(banc.getState().pendingTest?.difficulty).toBe(annonce?.difficulty);
   });
 
   it('entrer dans l’auditorium baisse les lumières et programme la soirée (pétards + mèche)', () => {

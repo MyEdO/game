@@ -34,7 +34,7 @@ import { memoParVersion } from '../data/versionDataset';
 import { roll as rollDice, type RNG, type Tirage } from './dice';
 import { rollTest } from './tests';
 import type { Difficulty } from './types';
-import type { TestExige } from './flowCore';
+import type { JetFixe } from './flowCore';
 import type { CibleEtendue } from '../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
@@ -325,7 +325,7 @@ export interface SteamBreakdownEntry {
   engineDestroyed?: boolean;
   hullCritical?: boolean;
   compartmentDamage?: number;
-  restart?: ({ test: TestExige<'difficulty'> } & Partial<CibleEtendue>)[];
+  restart?: ({ test: JetFixe<'difficulty'> } & Partial<CibleEtendue>)[];
 }
 
 export const STEAM_BREAKDOWNS = steamBreakdownJson as SteamBreakdownEntry[];

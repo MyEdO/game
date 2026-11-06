@@ -15,7 +15,8 @@
 import type { CharKey, Difficulty } from '../engine/types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { canAfford, toMoney } from '../engine/money';
-import { evalCondition, flowTestGateOpen, resolveTestDifficulty, type ConditionCtx } from '../engine/flowCore';
+import { evalCondition } from '../engine/flowCore';
+import { resoudreFlowTest, type ContexteDuTest } from '../engine/decisionDuTest';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { speakerEntity, type Dialogue } from './monde/scene';
 import { nomDEntite } from './monde/sceneNpc';
@@ -120,7 +121,7 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
     if (c.when && !evalCondition(c.when, cc)) return;
     const cost = c.cost ? toMoney(c.cost) : undefined;
     const solvable = !cost || canAfford(money, cost);
-    const test = testAnnonce(c.flow, cc);
+    const test = testAnnonce(c.flow, { cc, groupe: s.party });
     out.push({
       id: c.id,
       rang: out.length + 1,
@@ -141,23 +142,19 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
  * `seq` dans l'ordre, un `if` par la branche que sa Condition prend, et il s'arrête au PREMIER jet
  * rencontré — c'est le seul que le joueur déclenche en choisissant la réponse (les branches
  * `success`/`fail` d'un `test` sont APRÈS le jet ; ce qu'elles contiennent n'est pas annoncé).
- * Un nœud `test` s'annonce selon `flowTestGateOpen` et `resolveTestDifficulty` (`engine/flowCore`).
- * Un `choice` est une DÉCISION, pas un jet.
+ * Un nœud `test` s'annonce par la décision de son ouvreur (`resoudreFlowTest`, `engine/decisionDuTest`),
+ * sur le contexte que l'ouvreur reçoit. Un `choice` est une DÉCISION, pas un jet.
  */
-export function testAnnonce(flow: Flow | undefined, cc: ConditionCtx): TestAnnonce | undefined {
+export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAnnonce | undefined {
   if (!flow) return undefined;
   switch (flow.kind) {
     case 'seq':
-      return flow.steps.reduce<TestAnnonce | undefined>((trouve, step) => trouve ?? testAnnonce(step, cc), undefined);
+      return flow.steps.reduce<TestAnnonce | undefined>((trouve, step) => trouve ?? testAnnonce(step, ctx), undefined);
     case 'if':
-      return testAnnonce(evalCondition(flow.cond, cc) ? flow.then : flow.else, cc);
+      return testAnnonce(evalCondition(flow.cond, ctx.cc) ? flow.then : flow.else, ctx);
     case 'test': {
-      if (!flowTestGateOpen(flow.test, cc)) return undefined;
-      return {
-        ...(flow.test.skill ? { skill: flow.test.skill } : {}),
-        ...(flow.test.characteristic ? { characteristic: flow.test.characteristic } : {}),
-        difficulty: resolveTestDifficulty(flow.test, cc),
-      };
+      const decision = resoudreFlowTest(flow.test, ctx);
+      return decision.joue ? { ...decision.sujet, difficulty: decision.difficulty } : undefined;
     }
     case 'do': {
       const e = flow.effect;

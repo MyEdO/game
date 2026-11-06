@@ -123,9 +123,11 @@ export function NoeudTestField({ value, onChange, desc, racine, retirable = true
  */
 export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: FlowTest) => void }) {
   const identite = useId();
+  // lecture déclarée : l'éditeur montre et réécrit les valeurs authorées
+  const { difficulty, easierIf } = test;
   const upd = (patch: Partial<FlowTest>) => onChange({ ...test, ...patch });
   const setEase = (patch: Partial<NonNullable<FlowTest['easierIf']>>) => {
-    const m = { ...(test.easierIf ?? {}), ...patch };
+    const m = { ...(easierIf ?? {}), ...patch };
     upd({ easierIf: m.hasSkill || m.hasTalent ? m : undefined });
   };
   return (
@@ -147,7 +149,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
             <option key={k} value={k}>{CHAR_LABELS[k]}</option>
           ))}
         </select>
-        <select value={test.difficulty ?? 'intermediaire'} onChange={(e) => upd({ difficulty: e.target.value as Difficulty })}>
+        <select value={difficulty ?? 'intermediaire'} onChange={(e) => upd({ difficulty: e.target.value as Difficulty })}>
           {(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map((d) => (
             <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>
           ))}
@@ -184,9 +186,9 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
       )}
       <div className="tf-row">
         <span className="dr">Plus facile si</span>
-        <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="compétence" value={test.easierIf?.hasSkill} onChange={(v) => setEase({ hasSkill: (v as { id: string; spec?: string } | null) ?? undefined })} nullable />
-        <RefField cfg={{ ds: 'talents', single: true }} fieldKey="ou talent" value={test.easierIf?.hasTalent} onChange={(v) => setEase({ hasTalent: (v as string | null) || undefined })} nullable />
-        <label className="dr">−<NumberField variant="nu" label="Crans de facilité" min={1} value={test.easierIf?.steps ?? 1} onChange={(steps) => setEase({ steps })} /> cran(s)</label>
+        <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="compétence" value={easierIf?.hasSkill} onChange={(v) => setEase({ hasSkill: (v as { id: string; spec?: string } | null) ?? undefined })} nullable />
+        <RefField cfg={{ ds: 'talents', single: true }} fieldKey="ou talent" value={easierIf?.hasTalent} onChange={(v) => setEase({ hasTalent: (v as string | null) || undefined })} nullable />
+        <label className="dr">−<NumberField variant="nu" label="Crans de facilité" min={1} value={easierIf?.steps ?? 1} onChange={(steps) => setEase({ steps })} /> cran(s)</label>
         {/* Menace du talent « Résistance (Menace) » (LDB 10) : tag qui offre son auto-succès sur CE Test.
             Les options sont les SPECS AUTHORÉES du talent (`menaceIds`, lues au catalogue) — l'auteur
             choisit un id, jamais du texte ; une spec ajoutée au Compendium apparaît ici sans code. */}

@@ -3,7 +3,7 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
 import { cibleEtendueSchema, difficultySchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
-import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
+import { fixerLeTest, flowTestSchema } from '../grammaire/mecanique';
 
 export const file = 'sea-perils.json';
 export const famille = 'config';
@@ -31,7 +31,7 @@ const seaHazardDef = nommerChamps(z.strictObject({
       }),
     )
     .optional(),
-  freeTest: nommerChamps(z.strictObject({ test: flowTestSchema, ...cibleEtendueSchema.shape }).superRefine(exigerDuTest('difficulty')), {
+  freeTest: nommerChamps(z.strictObject({ test: flowTestSchema, ...cibleEtendueSchema.shape }).superRefine(fixerLeTest('difficulty')), {
     test: { label: 'Test' },
     ...metaDesChamps(cibleEtendueSchema, { exigees: true }),
   }).optional(),
@@ -98,7 +98,7 @@ const champs = {
   hazards: z.array(seaHazardDef),
   detroits: z.array(straitDef),
   tourbillons: z.array(whirlpoolDef),
-  tourbillonSwim: nommerChamps(z.strictObject({ test: flowTestSchema, source: sourceRefSchema }).superRefine(exigerDuTest('skill', 'difficulty')), { test: { label: 'Test' }, source: { label: 'Source' } }),
+  tourbillonSwim: nommerChamps(z.strictObject({ test: flowTestSchema, source: sourceRefSchema }).superRefine(fixerLeTest('skill', 'difficulty')), { test: { label: 'Test' }, source: { label: 'Source' } }),
   gestionDesPerils: z.array(
     nommerChamps(z.strictObject({ distanceM: z.number(), spot: difficultySchema, avoid: difficultySchema, source: sourceRefSchema }), {
       distanceM: { label: 'Distance (m)' },

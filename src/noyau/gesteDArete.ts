@@ -24,6 +24,7 @@ import { findActionById } from '../data';
 import type { PendingFall, TombantParticipant } from './pendings';
 import type { CorpsDesReglages } from './reglagesDuJet';
 import { jouerFlowEntier, applyEffects, ouvrirChute, effectTargets, runFlow, openSkillTest } from './combatEffects';
+import { combatConditionCtx } from './combat/flowEval';
 import { placeCombatant } from './monde/spawn';
 import { t } from '../i18n';
 import { tileKey } from './monde/path';
@@ -277,7 +278,7 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       set({ battle: { ...battle, log, acted, action: null, movementUsed: (battle.movementUsed ?? 0) + cost, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
       bus.emit(EVT.SCENE_DIRTY);
       // Lanceur = le mobile (`actorId`), LDB 15 l.57.
-      if (plan.kind === 'test') openSkillTest(get, set, plan.flow.test, plan.flow.success, plan.flow.fail, EMPTY_FLOW, { actorId: mover.id });
+      if (plan.kind === 'test') openSkillTest(get, set, plan.flow.test, combatConditionCtx(mover, {}), plan.flow.success, plan.flow.fail, EMPTY_FLOW, { actorId: mover.id });
     },
     /** Chute VOLONTAIRE (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
      *  basse, `planFranchissement`) — geste JOUEUR seulement (IA hors périmètre : elle ne saute jamais). Ouvre le

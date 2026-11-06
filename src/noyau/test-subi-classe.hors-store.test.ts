@@ -15,7 +15,8 @@ import { describe, it, expect } from 'vitest';
 import { surUnBancHorsTest, type Banc } from './banc.testkit';
 import { battleRng, seedBattleRng } from './battleRng';
 import { routeTriggeredTest, bandeTriggeredTest, runCombatFlow } from './combat/triggeredTest';
-import { flowTestGated, combatConditionCtx } from './combat/flowEval';
+import { combatConditionCtx } from './combat/flowEval';
+import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { pushCombatStep } from './combatEffects';
 import { draineCascade } from './cascade.testkit';
 import { itemFromTrappingById } from '../engine/items';
@@ -194,7 +195,7 @@ function jouerParSaPorte(n: Noeud, sujet: Combatant, issue: boolean, branchesVid
       return { jouee: true, poses };
     }
     default: {
-      if (flowTestGated(n.node.test, sujet, combatConditionCtx(sujet, opsCtx))) return { jouee: false, poses };
+      if (!resoudreFlowTest(n.node.test, { cc: combatConditionCtx(sujet, opsCtx), sujet }).joue) return { jouee: false, poses };
       routeTriggeredTest(get, set, sujet, sujet, n.node, opsCtx);
       return { jouee: true, poses };
     }
