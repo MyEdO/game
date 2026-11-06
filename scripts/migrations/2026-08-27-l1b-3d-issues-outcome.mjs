@@ -33,12 +33,13 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * de rangées ; le PREMIER qui résout est retenu. Deux graphies pour la charge des deux tables LDB :
  * `table` était son nom à l'écriture de cette migration, `entries` est celui que
  * `2026-08-28-l1b-8b-table-vers-entries.mjs` pose — une migration ANTÉRIEURE dans l'ordre lexical
- * doit reconnaître la forme qu'une POSTÉRIEURE produit, sinon le rejeu la trouve introuvable.
+ * doit reconnaître la forme qu'une POSTÉRIEURE produit, sinon le rejeu la trouve introuvable. De même
+ * pour `orientation.changementDeCap.entries`, que `2026-11-06-1667-tables-tirees-nichees.mjs` pose.
  */
 const CIBLES = [
   { rel: 'src/data/driving-mishap.json', chemins: [['entries'], ['table']] },
   { rel: 'src/data/drunkenness.json', chemins: [['entries'], ['table']] },
-  { rel: 'src/data/sea-navigation.json', chemins: [['orientation', 'changementDeCap']] },
+  { rel: 'src/data/sea-navigation.json', chemins: [['orientation', 'changementDeCap', 'entries'], ['orientation', 'changementDeCap']] },
 ];
 
 const echecs = [];

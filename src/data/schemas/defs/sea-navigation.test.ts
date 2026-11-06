@@ -7,7 +7,7 @@ import seaNavigationJson from '../../sea-navigation.json';
 type Bande = { min: number | null; max: number | null };
 type Doc = {
   vitesseMax: { table: Bande[] };
-  orientation: { reperes: Bande[]; changementDeCap: Bande[] };
+  orientation: { reperes: Bande[]; changementDeCap: { die: string; entries: Bande[] } };
   poursuite: { drDeltas: Bande[] };
   phares: { voirLaLumiere: Bande[] };
 };
@@ -21,13 +21,13 @@ describe('sea-navigation.json — chaque table couvre son domaine d’un seul te
   it.each([
     ['vitesseMax.table', (d: Doc) => d.vitesseMax.table],
     ['orientation.reperes', (d: Doc) => d.orientation.reperes],
-    ['orientation.changementDeCap', (d: Doc) => d.orientation.changementDeCap],
+    ['orientation.changementDeCap.entries', (d: Doc) => d.orientation.changementDeCap.entries],
     ['poursuite.drDeltas', (d: Doc) => d.poursuite.drDeltas],
     ['phares.voirLaLumiere', (d: Doc) => d.phares.voirLaLumiere],
   ])('REFUSE une rangée du milieu de %s sans plafond', (chemin, table) => {
     const trouee = clone();
     table(trouee)[1].max = null;
-    expect(validateDataset('sea-navigation.json', trouee)).toMatch(new RegExp(`${chemin.replace('.', '\\.')} : .*la rangée n° 2 n'a pas de borne haute`));
+    expect(validateDataset('sea-navigation.json', trouee)).toMatch(new RegExp(`${chemin.replace(/\./g, '\\.')} : .*la rangée n° 2 n'a pas de borne haute`));
   });
 
   it('REFUSE une table Ça va lâcher qui ne commence pas au-delà de M+4 (MDG 13 l.125)', () => {
@@ -51,10 +51,16 @@ describe('sea-navigation.json — chaque table couvre son domaine d’un seul te
     expect(validateDataset('sea-navigation.json', courte)).toMatch(/phares\.voirLaLumiere : .*s'arrête à 14 au lieu de 15/);
   });
 
-  it('REFUSE un Changement de cap qui ne couvre pas le d10 + 2 (MDG 13 l.320, l.326)', () => {
+  it('REFUSE un Changement de cap qui ne couvre pas son dé + 2 (MDG 13 l.320, l.326)', () => {
     const courte = clone();
-    const cap = courte.orientation.changementDeCap;
+    const cap = courte.orientation.changementDeCap.entries;
     cap[cap.length - 1].max = 11;
-    expect(validateDataset('sea-navigation.json', courte)).toMatch(/orientation\.changementDeCap : .*s'arrête à 11 au lieu de 12/);
+    expect(validateDataset('sea-navigation.json', courte)).toMatch(/orientation\.changementDeCap\.entries : .*s'arrête à 11 au lieu de 12/);
+  });
+
+  it('la couverture du Changement de cap suit le dé de sa table (MDG 13 l.326)', () => {
+    const autre = clone();
+    autre.orientation.changementDeCap.die = 'd8';
+    expect(validateDataset('sea-navigation.json', autre)).toMatch(/orientation\.changementDeCap\.entries : .*au lieu de 10/);
   });
 });

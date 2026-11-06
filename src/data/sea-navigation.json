@@ -249,65 +249,68 @@
     "driftSide": {
       "tribordMax": 5
     },
-    "changementDeCap": [
-      {
-        "min": 1,
-        "max": 3,
-        "outcome": "aucun",
-        "desc": "Le Navigateur n'arrive plus à trouver la position du bateau sur une carte. Sans conséquences.",
-        "source": {
-          "book": "mer-des-griffes",
-          "page": 108,
-          "note": "ch.13 « Navigation maritime » — table CHANGEMENT DE CAP (l.324-331)."
+    "changementDeCap": {
+      "die": "d10",
+      "entries": [
+        {
+          "min": 1,
+          "max": 3,
+          "outcome": "aucun",
+          "desc": "Le Navigateur n'arrive plus à trouver la position du bateau sur une carte. Sans conséquences.",
+          "source": {
+            "book": "mer-des-griffes",
+            "page": 108,
+            "note": "ch.13 « Navigation maritime » — table CHANGEMENT DE CAP (l.324-331)."
+          }
+        },
+        {
+          "min": 4,
+          "max": 6,
+          "outcome": "retard",
+          "delayPct": 10,
+          "desc": "Le Navigateur est un peu perdu. Ajoutez 10 % au temps que prendra le bateau pour atteindre sa prochaine destination voulue.",
+          "source": {
+            "book": "mer-des-griffes",
+            "page": 108,
+            "note": "ch.13 « Navigation maritime » — table CHANGEMENT DE CAP (l.324-331)."
+          }
+        },
+        {
+          "min": 7,
+          "max": 9,
+          "outcome": "retard",
+          "delayPct": 25,
+          "desc": "Le Navigateur a vraiment du mal à garder le cap. Ajoutez 25 % au temps que prendra le navire pour atteindre sa prochaine destination voulue.",
+          "source": {
+            "book": "mer-des-griffes",
+            "page": 108,
+            "note": "ch.13 « Navigation maritime » — table CHANGEMENT DE CAP (l.324-331)."
+          }
+        },
+        {
+          "min": 10,
+          "max": 11,
+          "outcome": "quart-de-tour",
+          "desc": "À cause des bourdes du Navigateur, le vaisseau a dévié de 90 degrés (donc s'il voyageait vers le nord, il voyage maintenant vers l'est ou l'ouest).",
+          "source": {
+            "book": "mer-des-griffes",
+            "page": 108,
+            "note": "ch.13 « Navigation maritime » — table CHANGEMENT DE CAP (l.324-331)."
+          }
+        },
+        {
+          "min": 12,
+          "max": 12,
+          "outcome": "demi-tour",
+          "desc": "Le bateau a accidentellement fait demi-tour et se dirige vers l'endroit d'où il vient.",
+          "source": {
+            "book": "mer-des-griffes",
+            "page": 108,
+            "note": "ch.13 « Navigation maritime » — table CHANGEMENT DE CAP (l.324-331)."
+          }
         }
-      },
-      {
-        "min": 4,
-        "max": 6,
-        "outcome": "retard",
-        "delayPct": 10,
-        "desc": "Le Navigateur est un peu perdu. Ajoutez 10 % au temps que prendra le bateau pour atteindre sa prochaine destination voulue.",
-        "source": {
-          "book": "mer-des-griffes",
-          "page": 108,
-          "note": "ch.13 « Navigation maritime » — table CHANGEMENT DE CAP (l.324-331)."
-        }
-      },
-      {
-        "min": 7,
-        "max": 9,
-        "outcome": "retard",
-        "delayPct": 25,
-        "desc": "Le Navigateur a vraiment du mal à garder le cap. Ajoutez 25 % au temps que prendra le navire pour atteindre sa prochaine destination voulue.",
-        "source": {
-          "book": "mer-des-griffes",
-          "page": 108,
-          "note": "ch.13 « Navigation maritime » — table CHANGEMENT DE CAP (l.324-331)."
-        }
-      },
-      {
-        "min": 10,
-        "max": 11,
-        "outcome": "quart-de-tour",
-        "desc": "À cause des bourdes du Navigateur, le vaisseau a dévié de 90 degrés (donc s'il voyageait vers le nord, il voyage maintenant vers l'est ou l'ouest).",
-        "source": {
-          "book": "mer-des-griffes",
-          "page": 108,
-          "note": "ch.13 « Navigation maritime » — table CHANGEMENT DE CAP (l.324-331)."
-        }
-      },
-      {
-        "min": 12,
-        "max": 12,
-        "outcome": "demi-tour",
-        "desc": "Le bateau a accidentellement fait demi-tour et se dirige vers l'endroit d'où il vient.",
-        "source": {
-          "book": "mer-des-griffes",
-          "page": 108,
-          "note": "ch.13 « Navigation maritime » — table CHANGEMENT DE CAP (l.324-331)."
-        }
-      }
-    ],
+      ]
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 108,
