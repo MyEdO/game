@@ -34,17 +34,13 @@ import { KEYBINDINGS } from './clavier/keybindings';
 const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string } | { sansSurface: string }> = {
   battleClickEntity: { parUI: true },
   battleClickTile: { parUI: true },
-  cleaveEnd: { parUI: true },
-  dualStrikeSkip: { parUI: true },
   roundStartPromote: { parUI: true },
-  // Pause de Round : le bandeau de la console et la touche passent tous deux par l'entrée
-  // `round-start` du registre (#1411 P2-A) — c'est SON dispatcher qui arbitre solo (ouvrir) et coop
-  // (marquer le siège prêt). Aucun écran ne nomme plus ces deux verbes : la porte est unique.
-  confirmRoundStart: { interne: 'actionRegistry.ACTION_RUN.roundStart — porte unique du geste « commencer » (solo)', dans: 'src/noyau/actionRegistry.ts' },
-  roundStartReady: { interne: 'actionRegistry.ACTION_RUN.roundStart — porte unique du geste « prêt » (coop)', dans: 'src/noyau/actionRegistry.ts' },
-  victoryReady: { parUI: true },
-  // La sortie d'une fenêtre (`modalArbiter.sortieDeLaFenetre`) : le bouton qui ferme son écran.
+  // La sortie d'une fenêtre (`modalArbiter.sortieDeLaFenetre`) : le bouton qui ferme son écran, et les sorties
+  // d'interlude du balayage et de la 2ᵉ frappe (`actionRegistry.ACTION_RUN`).
   fenetreFermer: { parUI: true },
+  // La validation d'une fenêtre (`modalArbiter.validationDeLaFenetre`) : le bouton qui la valide ; pour la pause de
+  // Round, l'entrée `round-start` du registre, que le bandeau et la touche partagent (#1411 P2-A).
+  fenetreValider: { parUI: true },
   // Demande de pause au prochain Round : l'interrupteur du pied de FRISE (`raise-hand`, relais du
   // registre). Les deux sens passent par le même dispatcher, d'où le retrait `interne`.
   raiseHand: { parUI: true },

@@ -254,14 +254,14 @@ describe('Mode table — les deux affordances d’une étape à table', () => {
     render();
     typeSlowly('9');
     const fige = useGame.getState().pendingCascade!.participants[0].table!.result;
-    act(() => { useGame.getState().cascadeNext(); }); // conséquence de s1 appliquée, curseur sur s2
+    act(() => { useGame.getState().jetConfirm('cascade'); }); // conséquence de s1 appliquée, curseur sur s2
     // Le champ à l'écran est celui de s2 : y saisir n'écrit PAS sur l'étape figée.
     typeSlowly('72');
     const parts = () => useGame.getState().pendingCascade!.participants;
     expect(parts()[0].table!.result, 'le dé d’une étape déjà subie ne se réécrit pas depuis l’étape suivante').toEqual(fige);
     expect(parts()[1].table!.result).toMatchObject({ roll: 72, id: 'haute' });
     // BILAN (« Tout lancer » → curseur en fin) : plus AUCUNE affordance de pose à l'écran.
-    act(() => { useGame.getState().cascadeNext(); });
+    act(() => { useGame.getState().jetConfirm('cascade'); });
     expect(useGame.getState().pendingCascade, 'la cascade se referme après la dernière étape').toBeNull();
   });
 
@@ -508,7 +508,7 @@ describe('Après la pose — l’étape reste lisible à l’état résolu (verd
     // La prose de s1 n'existe qu'À LA VALIDATION (l'applier la produit) : elle ne pouvait apparaître
     // que dans la PILE des étapes validées — c'est exactement ce que la purge retire.
     const proseS1 = 'Sigmund — Événement';
-    act(() => { useGame.getState().cascadeNext(); }); // s1 validée → le corps passe à s2
+    act(() => { useGame.getState().jetConfirm('cascade'); }); // s1 validée → le corps passe à s2
     render();
     expect(useGame.getState().pendingCascade!.cursor).toBe(1);
     expect(host.textContent, 'la prose de s1 traîne encore sous le titre de s2').not.toContain(proseS1);
@@ -581,7 +581,7 @@ describe('bandes successives — le corps ne rend QUE la bande courante', () => 
     expect(host.textContent).toContain('Animosité-A1');
     expect(host.textContent).toContain('Animosité-A2');
     act(() => { rollBand(); });
-    act(() => { useGame.getState().cascadeNext(); });
+    act(() => { useGame.getState().jetConfirm('cascade'); });
     render();
     expect(useGame.getState().pendingCascade!.cursor).toBe(1);
     expect(host.textContent, 'le titre de la bande courante est bien celui de la 2ᵉ').toContain('Haine');

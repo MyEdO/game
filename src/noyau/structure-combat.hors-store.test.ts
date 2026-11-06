@@ -60,7 +60,7 @@ function start(structId: string, opts?: { down?: boolean; seed?: number }) {
   banc.setState({ party: [hero] });
   banc.getState().startScene(sceneWithStructure(structId, opts?.down));
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
   const S = b.combatants.find((c) => c.bodyShape === 'structure');

@@ -27,7 +27,7 @@ const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manu
 function leDuel() {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
   ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-  ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+  ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
   const garde = ouverture.etat();
   ouverture.fermer();
   const contact = auContact(garde);
@@ -77,7 +77,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   medic: {
     patch: {
       medic: {} as NonNullable<Jeu['medic']>,
-      pendingSurgery: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, intBonus: 3, target: 40, roll: 33, success: true, sl: 0, traumaIdx: 0, targetDR: 3, cumDR: 0 },
+      pendingSurgery: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, intBonus: 3, target: 40, roll: 33, success: true, sl: 0, targetDR: 3, cumDR: 0 },
     },
     flux: ['surgery'],
   },

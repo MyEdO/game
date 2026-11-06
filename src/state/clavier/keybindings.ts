@@ -330,7 +330,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // focalisé, son activation native suffit (pas de double appel). La touche est un CONSOMMATEUR du
   // registre d'actions (`round-start`) : l'arbitrage solo/coop vit dans SON dispatcher, une seule fois.
   {
-    id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.confirmRoundStart', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
+    id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.roundStart.valider', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
     when: (s) => inBattle(s) && !!s.pendingRoundStart && !s.preemptAiming, // visée Tir rapide armée → Entrée TIRE (curseur), pas « commencer »
     run: (g) => runAction('round-start', g),
   },
@@ -436,7 +436,7 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: conversationRepond,
     run: (g) => {
       const r = reponsesDuNoeud(g()).find((x) => x.rang === i + 1);
-      if (r?.enabled) g().chooseDialogue(r.index); // `index` = position dans la DONNÉE, jamais le rang
+      if (r?.enabled) g().chooseDialogue(r.id); // l'`id` de la DONNÉE, jamais le rang
     },
   })),
   // Cases de la GRILLE de capacités : 1-8 = case au RANG n de la grille (adresse, pas rang d'action

@@ -20,7 +20,7 @@ describe('révélation → étape d’affichage de cascade', () => {
     expect(step.kind).toBe('mutation');
     expect(step.reveal).toEqual({ kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: ['a', 'b'], subjectId: 'h1', severity: 'grave' });
     expect(step.autoCloseMs).toBe(9000); // la cadence DÉCLARÉE est de la DONNÉE : elle survit au JSON
-    useGame.getState().cascadeNext(); // …et la séquence restaurée se dénoue normalement
+    useGame.getState().jetConfirm('cascade'); // …et la séquence restaurée se dénoue normalement
     expect(useGame.getState().pendingCascade).toBeNull();
   });
 });

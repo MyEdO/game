@@ -115,7 +115,7 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
     // ORDRE de `stepInteraction` (chaîne de PRIORITÉ), jamais un `else if` : une étape porte une table
     // ET un choix (la sévérité d'un Critique se tire DANS la fenêtre de Déviation) — le dé se lance
     // d'abord, le choix se tranche ensuite, sur la MÊME étape. En exclusif, le choix resterait non
-    // tranché et `cascadeNext` drainerait à vide.
+    // tranché et la validation drainerait à vide.
     if (cur.target != null && !cur.result) {
       get().jetRoll('cascade', cur.id);
       const n = poser?.(cur);
@@ -133,7 +133,8 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
     const apres = get().pendingCascade?.participants[get().pendingCascade!.cursor];
     if (apres?.options && apres.chosen == null) get().cascadeChoose(apres.id, choisir?.(apres) ?? apres.defaultChoice ?? apres.options[0].key);
   }
-  get().cascadeNext();
+  if (cur) get().jetConfirm('cascade');
+  else get().fenetreFermer('cascade');
   return cur?.kind;
 }
 

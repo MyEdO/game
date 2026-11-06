@@ -100,8 +100,8 @@ describe('#2219 · #2539 — chaque site lecteur est lu, chaque site producteur 
       ] } }],
       encounters: [{ id: 'r', onVictory: si({ kind: 'partyDead', who: { etat: 'sosie' } }) }],
       dialogues: [{ id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [
-        { label: 'a', when: flag('choix') },
-        { label: 'b', flow: si(flag('si')) },
+        { id: 'a', label: 'a', when: flag('choix') },
+        { id: 'b', label: 'b', flow: si(flag('si')) },
       ] }] }],
     }],
     worldMap: { places: [{ id: 'l', when: flag('lieu,!produit,!par-action') }], routes: [{ id: 'r', when: flag(' route ') }] },

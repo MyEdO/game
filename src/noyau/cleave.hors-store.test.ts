@@ -62,7 +62,7 @@ describe('Balayage en combat (store)', () => {
     banc.setState({ party });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner(); // on pilote l'ordre nous-mêmes
     return banc.getState().battle!;
   }
@@ -206,7 +206,7 @@ describe('Balayage en combat (store)', () => {
     expect(pc!.hitIds).toEqual([E1.id]);
   });
 
-  it('borne BCC : cleaveAttack refusé une fois le quota d’enchaînements atteint ; cleaveEnd ferme', () => {
+  it('borne BCC : cleaveAttack refusé une fois le quota d’enchaînements atteint ; sa sortie ferme', () => {
     const b = setupBattle(1);
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E1 = b.combatants.find((c) => c.kind === 'enemy')!;
@@ -224,7 +224,7 @@ describe('Balayage en combat (store)', () => {
     banc.getState().cleaveAttack(E1.id);
     expect(banc.getState().pendingAttack).toBeNull(); // refusé : count >= BCC
 
-    banc.getState().cleaveEnd();
+    banc.getState().fenetreFermer('cleave');
     expect(banc.getState().pendingCleave).toBeNull();
   });
 

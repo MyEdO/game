@@ -8,8 +8,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { RestBody } from './RestModal';
-import { restCost } from '../noyau/restFlow';
-import { formatMoney } from '../engine/money';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
@@ -81,11 +79,10 @@ describe('RestBody — la note d’auberge que la bourse ne couvre pas (LDB 66)'
       party: [hero], travelPlan: null, net: { ...useGame.getState().net, mode: 'local' },
       pendingRest: { places: { auberge: true }, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'privee', food: 'rien' } }, phase: 'setup' } as never,
     });
-    const cout = formatMoney(restCost(useGame.getState().pendingRest!, [hero]));
     const el = document.createElement('div');
     root = createRoot(el);
     act(() => root!.render(<RestBody />));
     expect(el.querySelector('.rest-cost.over')).not.toBeNull();
-    expect(el.querySelector('#rest-sleep-reason')?.textContent).toBe(`Pas assez d'argent (${cout}).`);
+    expect(el.querySelector('#rest-sleep-reason')?.textContent).toBe(t('jet.ferme.noteNonCouverte'));
   });
 });

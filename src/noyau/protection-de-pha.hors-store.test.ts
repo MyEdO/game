@@ -86,7 +86,7 @@ describe('Protection de Phâ — incantation pose la Zone (intégration applyCas
     banc.setState({ party: [W] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     banc.getState().seedRng(5);
     const b = banc.getState().battle!;

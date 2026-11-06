@@ -74,7 +74,7 @@ function poser(valeur: number): string {
   expect(st, 'aucune étape à jouer').toBeDefined();
   if (st!.de) banc.getState().jetSetForcedRoll('cascadeTirage', valeur, st!.id);
   if (st!.table) banc.getState().jetSetForcedRoll('cascadeTirage', valeur, st!.id);
-  banc.getState().cascadeNext();
+  banc.getState().jetConfirm('cascade');
   return st!.id;
 }
 
@@ -365,7 +365,7 @@ describe('aucune scission par PORTEUR — un ennemi conduit par l’IA suit le M
     expect(st.actorId).toBe(brute.id);
     expect(st.de?.result, 'aucun siège ne tient ce dé : le socle l’a roulé d’office').toBeTruthy();
     const total = st.de!.result!.total;
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(brisee(arme), `dé ${total} : l’arme casse si et seulement si le dé rate le 9+`).toBe(total < 9);
     expect(brute.nextActionPenalty, 'la Maladresse s’applique à la reprise').toBe(-10); // LDB 14 l.26
   });
@@ -450,7 +450,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
     banc.getState().jetConfirm('fumble');
     expect(banc.getState().battle!.acted, 'la reprise rend l’Action gratuite').toBe(false);
     const avant = (banc.getState().battle?.log ?? []).map((l) => l.text);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect((banc.getState().battle?.log ?? []).map((l) => l.text), 'une reprise de plus ne rejoue rien').toEqual(avant);
   });
 
@@ -552,7 +552,7 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     expect(suitesJouees, 'la suite du coup s’exécute une seule fois').toBe(1);
 
     const avant = (banc.getState().battle?.log ?? []).map((l) => l.text);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect((banc.getState().battle?.log ?? []).map((l) => l.text), 'une reprise de plus ne rejoue rien').toEqual(avant);
     expect(maladresses(rival.label)).toBe(1);
     expect(suitesJouees, 'aucune seconde exécution de la suite').toBe(1);

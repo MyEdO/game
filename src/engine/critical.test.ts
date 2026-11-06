@@ -6,7 +6,7 @@ import {
   critLocationRoll, critWoundLocation, prendreAmputationsDifferees,
   critEntryCodexCategory, findCritEntrySuffered, critTableRows,
 } from './critical';
-import { removeSurgicalTrauma, permanentAmputations } from './trauma';
+import { removeSurgicalTrauma, permanentAmputations, avecSequelles } from './trauma';
 import { applyOps, type GameOp } from './ops';
 import { spellOps, type Flow, type FlowTestNode } from './flowCore';
 import { setRule, resetRule } from './policy';
@@ -297,7 +297,7 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
     const n = noeudDeTest(r.testFlow);
     const fail = n.fail as Extract<Flow, { kind: 'seq' }>;
     const c = cible(30);
-    c.traumas = r.traumas;
+    c.traumas = avecSequelles(c.traumas, r.traumas);
     applyOps(c, opsDe(fail.steps[fail.steps.length - 1]), { rng: desDuTest, sl: -2 });
     const orteil = c.traumas!.find((t) => t.traumaId === 'orteil-ampute')!;
     expect(orteil.count).toBe(3); // 1 + 2 DR
@@ -509,7 +509,7 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
   it('« Main ouverte » : sur le chemin RÉEL, l’op `amputer` NE DOUBLE PAS la plaie qui porte l’escalade', () => {
     const r = resolveCritique('ldb', cible(), 'brasD', seq(88));
     const c = cible();
-    c.traumas = r.traumas;                                   // ce qu'`applyCriticalToTarget` pose avant la porte
+    c.traumas = avecSequelles(c.traumas, r.traumas);                                   // ce qu'`applyCriticalToTarget` pose avant la porte
     const [, perte] = flowEtapes(r.testFlow);
     applyOps(c, opsDe(perte), { rng: desDuTest });                           // ce que la porte applique en jouant le nœud
     const plaies = c.traumas!.filter((t) => t.needsSurgery && t.label === 'Amputation');
@@ -565,7 +565,7 @@ describe.each([
 
   it('`prendreAmputationsDifferees` CONSOMME le marqueur et rend le Flow à ouvrir par la porte', () => {
     const c = cible(30);
-    c.traumas = marqueur().traumas;
+    c.traumas = avecSequelles(c.traumas, marqueur().traumas);
     const dus = prendreAmputationsDifferees(c);
     expect(dus.map((d) => d.label)).toEqual(["Coupure à l'orteil"]);
     expect(dus[0].flow.kind).toBe('test');

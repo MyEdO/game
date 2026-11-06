@@ -375,7 +375,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
    * autres, et seul un dépôt bancaire y échappe. C'est ce que le `stake` de l'Activité annonce au
    * joueur AVANT qu'il n'engage son Activité.
    *
-   * MUTATION : neutraliser la purge de bourse d'`interludeEnd` (`noyau/interludeFlow.ts`) — la bourse
+   * MUTATION : neutraliser la purge de bourse de `cloreLInterlude` (`noyau/interludeFlow.ts`) — la bourse
    * garde ses 48 sous et le premier `expect` tombe ; retirer le dépôt du filet de survie fait tomber le
    * second.
    */
@@ -383,7 +383,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
     joue(3, true);
     expect(bourse(), '(BSoc 4 × 3 DR) × 4 heures').toBe(48);
     banc.setState({ bank: [{ heroId: heroId(), kind: 'stash', brass: 60, rate: 5 }] });
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
     draineCascade(banc.getState);
     expect(bourse(), 'LDB 23 l.166 : les pièces restantes sont perdues').toBe(0);
     expect(banc.getState().bank).toEqual([{ heroId: banc.getState().party[0].id, kind: 'stash', brass: 60, rate: 5 }]);

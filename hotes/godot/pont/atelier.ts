@@ -8,16 +8,15 @@
  * d'origine dans celui de la prise retenue, ou range à l'emplacement (#3319) ; ses lignes de pièce (#3086, D3), tirées de la
  * garde-robe, où vont ses éléments liés au `squelette` ou en `surface` et ses accessoires, rigides compris ; le fichier GLB de chaque élément servi
  * (`fichiersDuModele`) et le libellé de la chose qu'il porte ; les surfaces de chaque base et de chaque élément servi
- * (`asset/surfaces.ts`), où se posent au montage la palette de la composition et les emblèmes de la garde-robe (#3111) ; et la marche de chaque base, son clip et sa vitesse au sol (`asset/gabarit.ts`
- * `marcheDeLaBase`) ; une base sans marche unique est refusée, seule ; le rapport de l'index, dont l'élément n'est servi
- * nulle part.
+ * (`asset/surfaces.ts`), où se posent au montage la palette de la composition et les emblèmes de la garde-robe (#3111) ;
+ * la table rôle → clip de chaque base et la vitesse au sol de son rôle `walk` ; le rapport de l'index, dont l'élément
+ * n'est servi nulle part.
  */
 import type { Attache } from '../asset/attache';
 import type { ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
-import { marcheDeLaBase } from '../asset/gabarit';
 import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, libelleDeCleDElement, pieceRacine, type EmblemeDef } from '../../../src/noyau/index';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
@@ -50,8 +49,10 @@ export interface BaseDeLAtelier {
   empreinte: string;
   points: PointDAccroche[];
   lignes: LigneDePiece[];
-  /** Le clip de marche de la base et sa vitesse au sol en m/s (`marcheDeLaBase`). */
-  marche: { clip: string; vitesse: number };
+  /** Le clip de chaque rôle que la base joue (`ManifesteDeBase.clips`). */
+  clips: ManifesteDeBase['clips'];
+  /** La vitesse au sol en m/s du clip du rôle `walk` (`ManifesteDeBase.appuis.vitesseAuSol`). */
+  vitesseAuSol: number;
 }
 
 export interface ModelesDeLAtelier {
@@ -80,10 +81,9 @@ const modeDe = (e: EntreeDeModele) => (e.brut as ManifesteDElement).liaison.mode
 export const blasonsDe = (manifeste: unknown): string[] => (manifeste as ManifesteDElement).surfaces.filter((s) => s.blason === true).map((s) => s.nom);
 
 /** Les modèles de `manifestes` (id de modèle → manifeste du listage servi, validé) : les bases, leurs points d'accroche et
- *  leurs lignes de pièce, les surfaces de chaque modèle servi, les emblèmes de la garde-robe, les refus de
- *  l'index et ceux des bases dont la marche est ambiguë (`marcheDeLaBase`), qui ne sont pas servies, et le rapport de
- *  l'index. Un objet lié en `rigide` se monte aux emplacements de sa base dont l'os est l'un de ses `osDesRigides` (id de
- *  modèle → os qui portent ses meshes rigides, du listage servi), et à chacune de ses prises si l'un d'eux est l'os d'une
+ *  leurs lignes de pièce, les surfaces de chaque modèle servi, les emblèmes de la garde-robe, les refus de l'index et
+ *  son rapport. Un objet lié en `rigide` se monte aux emplacements de sa base dont l'os est l'un de ses `osDesRigides` (id
+ *  de modèle → os qui portent ses meshes rigides, du listage servi), et à chacune de ses prises si l'un d'eux est l'os d'une
  *  prise (#3319) ; toute pièce, accessoire rigide compris, à la ligne dont
  *  l'id vaut sa clé : `tete`, `coiffure`, `piece` d'un vêtement ou d'une armure, ou de la pièce de sa variante (`pieceRacine`,
  *  #3446), ou l'emplacement de sa pièce
@@ -105,14 +105,8 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
       libelles[id] = libelleDeCleDElement(cleDe(brut)) ?? id;
       return id;
     });
-  const refus = [...index.refus];
-  const bases = [...index.bases.values()].flatMap(({ id, brut }): BaseDeLAtelier[] => {
+  const bases = [...index.bases.values()].map(({ id, brut }): BaseDeLAtelier => {
     const m = brut as ManifesteDeBase;
-    const marche = marcheDeLaBase(m);
-    if (!marche.ok) {
-      refus.push(`[${marche.code}] ${id} : ${marche.detail}`);
-      return [];
-    }
     const deLaBase = elements.filter((e) => (e.brut as ManifesteDElement).base === m.base);
     const estUnePiece = (e: EntreeDeModele) => modeDe(e) !== 'rigide' || (e.brut as ManifesteDElement).categorie === 'accessoire';
     const objets = deLaBase.filter((e) => !estUnePiece(e));
@@ -149,8 +143,8 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
           ? [{ sorte: 'emplacement', ...choix(g.id, g.label, (e) => emplacementDe(e) === g.id) }]
           : []),
     ];
-    return [{ id, empreinte: m.glb.sha256, points, lignes, marche: { clip: marche.clip, vitesse: marche.vitesse } }];
+    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, vitesseAuSol: m.appuis.vitesseAuSol };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
-  return { bases, glb, refus, rapport: index.rapport, surfaces, libelles, emblemes };
+  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, emblemes };
 }

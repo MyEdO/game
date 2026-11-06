@@ -1,26 +1,27 @@
 /**
  * LA COMPOSITION D'UN PERSONNAGE SUR UNE BASE (#3086, D2 ; `CONTRAT.md`, section « Composition d'un personnage ») : le
  * Soldat de `catalogues` sur une base sans élément est tout entier manquant, chaque chose nommée par sa clé et par ce qui
- * l'apporte ; un plastron skinné et un accessoire de la base le montent sous la clé de leur ligne au panneau ; le sexe pose `feminin`, un gabarit non neutre change l'échelle de la racine, ses pieds sont ceux des appuis ;
+ * l'apporte ; un plastron skinné et un accessoire de la base le montent sous la clé de leur ligne au panneau ; une
+ * apparence variante monte son élément, à défaut celui de sa racine ; le sexe pose `feminin`, un gabarit non neutre change l'échelle de la racine, ses pieds sont ceux des appuis ;
  * le pont sert `composer` après `modeles`, `catalogues` et ses axes, et `presetDeComposition`, l'enveloppe du preset nommé
  * reprise, et refuse en `validation` une composition absente ou fautive, au chemin de la faute, et un preset inconnu.
  */
 import { describe, expect, it } from 'vitest';
 import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
 import { empreinte } from '../asset/empreinte.ts';
-import { cataloguesDeComposition, findCouleurById, lireComposition, SLOTS } from '../../../src/noyau/index';
+import { cataloguesDeComposition, findCouleurById, lireComposition, porteeDeComposition, SLOTS } from '../../../src/noyau/index';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import presets from '../../../src/data/presets-de-personnage.json';
 import { modelesDeLAtelier } from './atelier';
 import { composerSurLaBase } from './composition';
 import { creerPont } from './pont';
 
-const humanoide = { ...baseDeTest('humanoide'), emplacements: { epaule_d: { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] } }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25 } } };
+const humanoide = { ...baseDeTest('humanoide'), emplacements: { epaule_d: { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] } } };
 const plastron = {
   schema: 3, base: 'humanoide', categorie: 'armure', cle: { piece: 'plastron' }, liaison: { mode: 'squelette' }, couche: 'armure', couvre: ['torse'],
   surfaces: [{ nom: 'acier', palette: 'metal' }], glb: empreinte(glbDElement('root', ['acier'])),
 };
-const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couvre: [] };
+const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'baudrier-sur-armure' }, liaison: { mode: 'surface' }, couvre: [] };
 const soldat = cataloguesDeComposition().presets.find((p) => p.id === 'soldat')!.composition;
 
 /** `brut` sur la première base de `manifestes`, lu par la seule porte d'une composition (`lireComposition`), comme `composer`. */
@@ -29,7 +30,7 @@ const composer = (manifestes: Record<string, unknown>, brut: unknown) => {
   if (!lu.ok) throw new Error(JSON.stringify(lu.fautes));
   const modeles = modelesDeLAtelier(manifestes, tableTotale(Object.keys(manifestes), (id) => (id === 'humanoide' ? [] : ['root'])));
   expect(modeles.refus).toEqual([]);
-  return composerSurLaBase(modeles.bases[0], manifestes, lu.valeur);
+  return composerSurLaBase(modeles.bases[0], manifestes, porteeDeComposition(lu.valeur));
 };
 
 describe('composerSurLaBase', () => {
@@ -41,7 +42,7 @@ describe('composerSurLaBase', () => {
       ...['chemise', 'pourpoint', 'haut-de-chausses', 'bas', 'bottes', 'gants'].map((id) => ({ ligne: `ligne/piece/${id}`, champ: 'piece', id, par: tenue })),
       { ligne: 'ligne/emplacement/genou_g', champ: 'piece', id: 'ruban', par: undefined },
       { ligne: 'ligne/emplacement/poitrine', champ: 'piece', id: 'insigne', par: undefined },
-      { ligne: 'ligne/emplacement/epaule_d', champ: 'piece', id: 'baudrier', par: undefined },
+      { ligne: 'ligne/emplacement/epaule_d', champ: 'piece', id: 'baudrier-sur-armure', par: undefined },
       { ligne: 'ligne/emplacement/cimier', champ: 'piece', id: 'plumet', par: undefined },
       { ligne: 'main', champ: 'apparence', id: 'hallebarde', par: { type: 'trapping', id: 'hallebarde' } },
       { ligne: 'ligne/piece/casque', champ: 'piece', id: 'casque', par: { type: 'trapping', id: 'heaume' } },
@@ -58,7 +59,7 @@ describe('composerSurLaBase', () => {
     expect(montes).toContainEqual({ ligne: 'ligne/piece/plastron', element: 'plastron' });
     expect(montes).toContainEqual({ ligne: 'ligne/emplacement/epaule_d', element: 'broche' });
     expect(manquants.map((m) => m.id)).not.toContain('plastron');
-    expect(manquants.map((m) => m.id)).not.toContain('baudrier');
+    expect(manquants.map((m) => m.id)).not.toContain('baudrier-sur-armure');
   });
 
   it('une variante monte à la ligne de sa pièce (#3446) : l’atelier l’y sert, liste avec la pièce, et la composition l’y choisit', () => {
@@ -80,6 +81,15 @@ describe('composerSurLaBase', () => {
     expect(neutre.gabarit.racine).toEqual({ os: 'root', echelle: 1 });
     expect(neutre.gabarit.pieds).toEqual(humanoide.appuis.pieds);
     expect(composer({ humanoide }, { ...soldat, gabarit: { id: 'brute' } }).gabarit.racine.echelle).toBe(1.35);
+  });
+
+  it('une apparence variante monte l’élément qui la désigne, à défaut celui de sa racine ; sans l’un ni l’autre, le manquant garde son id', () => {
+    const epee = { ...elementSchema3('humanoide'), cle: { apparence: 'epee' } };
+    const epeeDeSoldat = { ...elementSchema3('humanoide'), cle: { apparence: 'epee_soldat' } };
+    const tenue = { ...soldat, prises: { main: { id: 'arme-simple' } }, apparencesObjets: { 'arme-simple': { id: 'epee_soldat' } } };
+    expect(composer({ humanoide, epee }, tenue).montes).toContainEqual({ ligne: 'main', element: 'epee' });
+    expect(composer({ humanoide, epee, epeeDeSoldat }, tenue).montes).toContainEqual({ ligne: 'main', element: 'epeeDeSoldat' });
+    expect(composer({ humanoide }, tenue).manquants).toContainEqual(expect.objectContaining({ ligne: 'main', champ: 'apparence', id: 'epee_soldat' }));
   });
 
   it('un objet porté sans ensemble ni rangement va au rapport, sans point', () => {

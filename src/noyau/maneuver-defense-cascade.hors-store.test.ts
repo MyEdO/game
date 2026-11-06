@@ -32,7 +32,7 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     banc.setState({ party: [H1, H2] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.getState().seedRng(2);
     const b = banc.getState().battle!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -109,7 +109,7 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     const cur = p.participants[0];
     // « Je ne faillirai pas ! » (Résilience) AVANT le jet → réussite forcée → le héros l'emporte → RÉSISTE.
     banc.getState().jetForceSuccess('cascade', cur.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const live = banc.getState().battle!.combatants.find((c) => c.id === h1.id)!;
     expect(live.wounds.current).toBe(before); // résisté : aucun Dégât
     expect(live.conditions.some((c) => c.id === 'en-flammes')).toBe(false);

@@ -24,8 +24,8 @@ function makeDialogue(): Dialogue {
   return {
     id: 'd-archive', start: 'n1',
     nodes: [
-      { id: 'n1', speakerId: 'pnj-2', desc: 'Bonjour, voyageur.', choices: [{ label: 'Salut.', next: 'n2' }] },
-      { id: 'n2', desc: 'Autre chose ?', choices: [{ label: 'Non merci.' }] },
+      { id: 'n1', speakerId: 'pnj-2', desc: 'Bonjour, voyageur.', choices: [{ id: 'salut', label: 'Salut.', next: 'n2' }] },
+      { id: 'n2', desc: 'Autre chose ?', choices: [{ id: 'non-merci', label: 'Non merci.' }] },
     ],
   };
 }
@@ -94,7 +94,7 @@ describe('chooseDialogue — archivage (#718)', () => {
       scene: { ...testScene(), entities: [...testScene().entities, ...entities] },
       dialogue: { dialogue: makeDialogue(), nodeId: 'n1', session: 7 },
     });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('salut');
     const h = banc.getState().dialogueHistory;
     expect(h.length).toBe(1);
     expect(h[0]).toMatchObject({
@@ -117,7 +117,7 @@ describe('chooseDialogue — archivage (#718)', () => {
       scene: pose.scene,
       dialogue: { dialogue: { ...makeDialogue(), nodes: makeDialogue().nodes.map(({ speakerId: _s, ...n }) => n) }, nodeId: 'n1', speakerId: pose.id, session: 3 },
     });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('salut');
     expect(banc.getState().dialogueHistory[0].speaker).toBe(creatureLabel('humain'));
   });
 
@@ -127,8 +127,8 @@ describe('chooseDialogue — archivage (#718)', () => {
       scene: { ...testScene(), entities: [...testScene().entities, ...entities] },
       dialogue: { dialogue: makeDialogue(), nodeId: 'n1', session: 7 },
     });
-    banc.getState().chooseDialogue(0);
-    banc.getState().chooseDialogue(0); // le nœud courant est n2
+    banc.getState().chooseDialogue('salut');
+    banc.getState().chooseDialogue('non-merci'); // le nœud courant est n2
     const h = banc.getState().dialogueHistory;
     expect(h.length).toBe(2);
     expect(h[1].nodeText).toBe('Autre chose ?');

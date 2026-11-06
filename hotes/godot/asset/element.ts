@@ -16,7 +16,7 @@ import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
 import type { ManifesteDeBase } from './manifesteDeBase.ts';
 
-export const VERSION_DU_SCHEMA_D_ELEMENT = 3;
+const VERSION_DU_SCHEMA_D_ELEMENT = 3;
 
 /** Les couches, de la plus intérieure à la plus extérieure. */
 export const COUCHES = ['peau', 'dessous', 'tenue', 'armure', 'manteau'] as const;

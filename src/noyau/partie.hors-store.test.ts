@@ -18,7 +18,7 @@ const emis = ({ evenements }: ResultatDeLAppel) => evenements.flatMap((e) => (e.
 function duel(garder: (etat: EtatDeJeu, duel: ReturnType<typeof auContact>) => EtatDeJeu = (e) => e) {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
   expect(emis(ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' }))).toContain('arrivee_en_scene');
-  ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+  ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
   const garde = ouverture.etat();
   ouverture.fermer();
   const contact = auContact(garde);
@@ -28,7 +28,7 @@ function duel(garder: (etat: EtatDeJeu, duel: ReturnType<typeof auContact>) => E
 const combattant = (partie: Partie, id: string) => partie.etat().battle!.combatants.find((c) => c.id === id)!;
 
 describe('creerPartie — une attaque jouée par la seule surface du noyau', () => {
-  it('déclaration, jet, défense, critique, mise hors de combat, puis `cascadeNext` jusqu’à la clôture', () => {
+  it('déclaration, jet, défense, critique, mise hors de combat, puis `jetConfirm@cascade` jusqu’à la clôture', () => {
     const { H, E, partie } = duel((etat, { E }) => {
       E.wounds.current = 1;
       return etat;
@@ -56,7 +56,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       for (let pas = 0; partie.etat().pendingCascade && pas < 10; pas++) {
         const cascade = partie.etat().pendingCascade!;
         const rangee = cascade.participants[cascade.cursor]?.participants?.find((r) => !r.result);
-        fin.push(...emis(partie.envoyer(rangee ? { type: 'jetRoll', args: ['cascadeBatch', rangee.id] } : { type: 'cascadeNext', args: [] })));
+        fin.push(...emis(partie.envoyer(rangee ? { type: 'jetRoll', args: ['cascadeBatch', rangee.id] } : { type: 'jetConfirm', args: ['cascade'] })));
       }
       expect(partie.etat().pendingCascade, 'la cascade de fin de combat ne s’est pas close').toBeNull();
       expect(partie.etat().battle!.over).toBe('victory');
@@ -135,7 +135,7 @@ describe('creerPartie — le tick auto et `reprendre`', () => {
       const file: Jeton[] = [];
       const suivre = (r: ResultatDeLAppel) => file.push(...r.evenements.flatMap((e) => (e.type === 'programme' ? [e.jeton] : [])));
       suivre(partie.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' }));
-      suivre(partie.envoyer({ type: 'confirmRoundStart', args: [] }));
+      suivre(partie.envoyer({ type: 'fenetreValider', args: ['roundStart'] }));
       expect(file.length, 'le début du combat n’a programmé aucun tick').toBeGreaterThan(0);
       const premier = file[0];
       for (let pas = 0; file.length && pas < 5000 && !partie.etat().battle?.over; pas++) {

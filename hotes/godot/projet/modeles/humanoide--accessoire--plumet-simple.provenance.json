@@ -1,6 +1,6 @@
 {
-  "model": "humanoide--vetement--bottes.glb",
-  "model_sha256": "eed3553bebdec5e7597e81ba52127de45fec2ed4c241a2e01d715d35d3dde9ff",
+  "model": "humanoide--accessoire--plumet-simple.glb",
+  "model_sha256": "81eb4a0afd25e312044bbeec84da49f26e784f4f9b8da008998212aa904d5009",
   "importe_le": "2026-11-05",
   "licences": {},
   "licences_de_pack": [

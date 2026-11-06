@@ -16,7 +16,7 @@ describe('Entretien de Round en révélation (store)', () => {
     banc.getState().startCombat('enc-mutants');
     const st = banc.getState();
     expect(st.pendingRoundStart?.round).toBe(1); // ouverture = pause du Round 1 : champ visible, IA gelée
-    expect(st.battle!.turn).toBe(-1); // PERSONNE n'est actif pendant la pause (confirmRoundStart posera le tour)
+    expect(st.battle!.turn).toBe(-1); // PERSONNE n'est actif pendant la pause (`lancerLeRound` posera le tour)
     expect(st.pendingCascade).toBeNull(); // aucune fenêtre à l'ouverture : le champ de bataille est visible
     expect(st.battle!.order.length).toBeGreaterThan(1); // l'ordre est posé (frise d'initiative (InitiativeStrip))
   });
@@ -27,7 +27,7 @@ describe('Entretien de Round en révélation (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;

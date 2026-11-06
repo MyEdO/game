@@ -31,7 +31,7 @@ async function drain(): Promise<void> {
     if (p) {
       const cur = p.participants[p.cursor];
       if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
-      get().cascadeNext();
+      get().jetConfirm('cascade');
     }
     await tick();
   }

@@ -45,7 +45,7 @@ function refusNeuf(partie: Partie, envoyer: () => unknown): string | undefined {
 function enCombat(jouer: (partie: Partie, H: Combatant) => void, patch: Partial<EtatDeJeu> | ((H: Combatant) => Partial<EtatDeJeu>) = {}): void {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
   ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-  ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+  ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
   const garde = ouverture.etat();
   ouverture.fermer();
   const contact = auContact(garde);

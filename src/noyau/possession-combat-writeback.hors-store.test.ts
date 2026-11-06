@@ -24,7 +24,7 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
     banc.setState({ party: [W] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     return banc.getState().battle!;
   }

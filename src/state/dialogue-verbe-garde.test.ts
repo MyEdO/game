@@ -21,9 +21,9 @@ const dlg: Dialogue = {
   id: 'd-garde', start: 'n1',
   nodes: [
     { id: 'n1', desc: '…', choices: [
-      { label: 'Tenter', next: 'n2', flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
-      { label: 'Secret', next: 'n2', when: { kind: 'flag', expr: 'jamais' } },
-      { label: 'Acheter', next: 'n2', cost: { gold: 5 } },
+      { id: 'tenter', label: 'Tenter', next: 'n2', flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
+      { id: 'secret', label: 'Secret', next: 'n2', when: { kind: 'flag', expr: 'jamais' } },
+      { id: 'acheter', label: 'Acheter', next: 'n2', cost: { gold: 5 } },
     ] },
     { id: 'n2', desc: 'Suite', choices: [] },
   ],
@@ -45,7 +45,7 @@ beforeEach(() => monter());
 describe('chooseDialogue — la fenêtre de jet SUSPEND la conversation', () => {
   it('la TOUCHE dit la même chose que le verbe : fermée sous la modale, ouverte sans elle', () => {
     expect(touche(1).when(useGame.getState())).toBe(true);
-    useGame.getState().chooseDialogue(0);
+    useGame.getState().chooseDialogue('tenter');
     expect(touche(1).when(useGame.getState()), 'la fenêtre de jet tient la main : la touche se tait').toBe(false);
     expect(conversationRepond(useGame.getState())).toBe(false);
   });

@@ -158,14 +158,14 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
   });
 
   it.each([
-    ['roundStartReady', 'pendingRoundStart', { round: 2 }],
-    ['victoryReady', 'pendingVictory', { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] }],
-    ['restReady', 'pendingRest', { phase: 'setup', perHero: {}, readyBySeat: {} }],
-  ] as const)('marquage : `%s` émis par le siège 1 ne marque que le siège 1, quels que soient ses args (#2439)', (verbe, cle, pending) => {
+    ['fenetreValider', 'roundStart', 'pendingRoundStart', { round: 2 }],
+    ['fenetreFermer', 'victory', 'pendingVictory', { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] }],
+    ['fenetreValider', 'rest', 'pendingRest', { phase: 'setup', perHero: {}, days: 1, readyBySeat: {} }],
+  ] as const)('marquage : `%s(%s)` émis par le siège 1 ne marque que le siège 1, quels que soient ses args (#2439)', (verbe, fenetre, cle, pending) => {
     setup();
     banc.setState({ [cle]: pending } as never);
-    expect(applyIntent(1, verbe, [0])).toBe('appliquee');
-    expect((banc.getState()[cle] as { readyBySeat?: Record<number, boolean> } | null)?.readyBySeat, `${verbe} a marqué un autre siège que l’émetteur`).toEqual({ 1: true });
+    expect(applyIntent(1, verbe, [fenetre, 0])).toBe('appliquee');
+    expect((banc.getState()[cle] as { readyBySeat?: Record<number, boolean> } | null)?.readyBySeat, `${verbe}(${fenetre}) a marqué un autre siège que l’émetteur`).toEqual({ 1: true });
   });
 });
 

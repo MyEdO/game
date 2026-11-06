@@ -1,5 +1,5 @@
-// LA DÉCLARATION DU CORPS D'UNE BASE (#2972, #3106), `<declaration.json>` : `base`, `porteur`, les clips de marche et les
-// surfaces du corps (`surfaces`, jugées avec le manifeste, `hotes/godot/asset/surfaces.ts`), validée contre la donnée,
+// LA DÉCLARATION DU CORPS D'UNE BASE (#2972, #3106), `<declaration.json>` : `base`, `porteur`, la table rôle → clip
+// (`clips`, dont `walk`, la marche plantée et mesurée) et les surfaces du corps (`surfaces`, jugées avec le manifeste, `hotes/godot/asset/surfaces.ts`), validée contre la donnée,
 // lue par le module runner de Vite (`chargerAssets`, `charger.mjs`).
 import { readFileSync } from 'node:fs'
 import { chargerAssets } from '../../../hotes/godot/asset/charger.mjs'
@@ -9,16 +9,19 @@ let donnee
 const chargerDonnee = () =>
   (donnee ??= chargerAssets(["export { raceAppearance, gabarits, taillesDeLaRace } from '/src/data/index.ts';"]))
 
+/** La part déclarée du manifeste de base (`manifeste.mjs`) : `base`, `porteur`, `clips` et, déclarées, `surfaces`. */
+export const champsDeclares = ({ base, porteur, clips, surfaces }) => ({ base, porteur, clips, ...(surfaces === undefined ? {} : { surfaces }) })
+
 /** La déclaration du corps à `chemin`, jugée par `jugerDeclaration`. */
 export const lireDeclaration = (chemin, lireDonnee) => jugerDeclaration(JSON.parse(readFileSync(chemin, 'utf8')), chemin, lireDonnee)
 
-/** `declaration`, lue à `chemin`, refusée si la race ou le gabarit du porteur n'existe pas dans la donnée, ou si sa
+/** `declaration`, lue à `chemin`, refusée sans clip du rôle `walk` (`clips.walk`), si la race ou le gabarit du porteur n'existe pas dans la donnée, ou si sa
  *  Taille ou son échelle d'art diffère de celle que la donnée donne à sa race (`scale` de son entrée de
  *  `raceAppearance`, 1 sans `scale`). `lireDonnee` rend les lectures de la donnée (`raceAppearance`, `gabarits`,
  *  `taillesDeLaRace`). */
 export async function jugerDeclaration(declaration, chemin, lireDonnee = chargerDonnee) {
-  const { porteur, clipsDeMarche } = declaration
-  if (!Array.isArray(clipsDeMarche) || !clipsDeMarche.length) throw new Error(`${chemin} : clipsDeMarche, liste non vide attendue`)
+  const { porteur, clips } = declaration
+  if (typeof clips?.walk !== 'string') throw new Error(`${chemin} : clips.walk, nom de clip attendu`)
   const { raceAppearance, gabarits, taillesDeLaRace } = await lireDonnee()
   const race = raceAppearance.find((r) => r.id === porteur?.race)
   if (!race) throw new Error(`${chemin} : porteur.race ${porteur?.race} absente de raceAppearance.json`)

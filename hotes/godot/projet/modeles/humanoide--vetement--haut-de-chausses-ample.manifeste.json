@@ -3,17 +3,18 @@
   "base": "humanoide",
   "categorie": "vetement",
   "cle": {
-    "piece": "bottes"
+    "piece": "haut-de-chausses-ample"
   },
   "liaison": {
     "mode": "squelette"
   },
   "couche": "tenue",
   "couvre": [
-    "mollet_g",
-    "mollet_d",
-    "pied_g",
-    "pied_d"
+    "hanches",
+    "cuisse_g",
+    "cuisse_d",
+    "genou_g",
+    "genou_d"
   ],
   "silhouettes": [
     "feminin",
@@ -23,12 +24,12 @@
   ],
   "surfaces": [
     {
-      "nom": "botte",
-      "palette": "cuir"
+      "nom": "haut_de_chausses",
+      "palette": "vet2"
     }
   ],
   "glb": {
-    "sha256": "eed3553bebdec5e7597e81ba52127de45fec2ed4c241a2e01d715d35d3dde9ff",
-    "octets": 460940
+    "sha256": "2fef0f8b6f8f0687358fc01e76dbd644cd2853446c96b72e28510f3f14ea6dcd",
+    "octets": 482940
   }
 }

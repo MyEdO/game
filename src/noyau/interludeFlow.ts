@@ -24,7 +24,7 @@ import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
   ciblesDActivite, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
-  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, devisDeCloture, refusDeClore, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
+  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, massBattleBegin, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
@@ -69,6 +69,7 @@ import { stepDetail } from './rollSeam';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
+import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 export interface InterludeHeroState {
@@ -93,7 +94,7 @@ export interface InterludeHeroState {
   /** « +10 pour chaque tentative ratée » d'Apprentissage particulier (LDB 23 l.72), par talent. */
   learnFails?: Record<string, number>;
   /** Issues d'Activité DIFFÉRÉES à la clôture (États « le premier jour de votre prochaine aventure »,
-   *  ACE 12 l.15 ; Standing de Réputation, LDB 23 l.234) — appliquées par `interludeEnd` APRÈS le repos de
+   *  ACE 12 l.15 ; Standing de Réputation, LDB 23 l.234) — appliquées par `cloreLInterlude` APRÈS le repos de
    *  clôture (un État posé avant serait dissipé par la récupération des nuits écoulées). */
   closeOps?: LotDeCloture[];
   /** Semer la dissension (LDB 23 l.236-248) : le Test de Ragot (1ʳᵉ des DEUX Activités requises) a
@@ -788,7 +789,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
     }
     case 'reputation': {
       // Réputation : le `statusMod` vaut « pour la prochaine aventure », il se pose à la clôture
-      // (`closeOps`, appliqués par `interludeEnd`). LDB 23 l.228-234
+      // (`closeOps`, appliqués par `cloreLInterlude`). LDB 23 l.228-234
       const lines: string[] = [msg('if.reputationSpend', { name: h.label, money: formatMoney(fromBrass(pa.costBrass ?? 0)) })];
       const delta = isAstoundingSuccess(pa.success, pa.sl) ? 2 : pa.success ? 1 : isAstoundingFailure(pa.success, pa.sl) ? -1 : 0;
       payWithAllocation(get, set, { debits: soloPayer(h.id, fromBrass(pa.costBrass ?? 0)), recipient: h.id, purpose: 'reputation' });
@@ -1125,9 +1126,9 @@ function bankWithdrawInner(get: Get, set: Set, index: number, crashCheckOnly: bo
 }
 
 /** Clôture : applique le devis (`devisDeCloture`) que le récap affiche, puis le temps passe (repos
- *  standard). Touche toutes les bourses : geste du groupe. LDB 23 l.15, l.33, l.191 */
-export function interludeEnd(get: Get, set: Set): void {
-  if (refuseSi(get, set, refusDeClore)) return;
+ *  standard). Touche toutes les bourses : geste du groupe, la validation de l'interlude (`fenetreValider('interlude')`).
+ *  LDB 23 l.15, l.33, l.191 */
+function cloreLInterlude(get: Get, set: Set): void {
   const devis = devisDeCloture(get());
   if (!devis) return;
   const lines: string[] = [];
@@ -1180,7 +1181,6 @@ function ligneNommee(ligne: { label?: string }, table: string): string {
 export function creerActionsDInterlude(get: Get, set: Set) {
   return {
     startInterlude: (weeks) => startInterlude(get, set, weeks),
-    interludeEnd: () => interludeEnd(get, set),
     interludeCraftStart: (heroId, trapping, atouts, defauts) => craftStart(get, set, heroId, trapping, atouts, defauts),
     interludeBank: (heroId, kind, amountBrass, rate) => bankDeposit(get, set, heroId, kind, amountBrass, rate),
     interludeWithdraw: (index) => bankWithdraw(get, set, index),
@@ -1188,6 +1188,10 @@ export function creerActionsDInterlude(get: Get, set: Set) {
     interludeEntrainement: (heroId, kind, id, spec) => entrainementStart(get, set, heroId, kind, id, spec),
     interludeActivity: (heroId, activityId, opts) => openCatalogActivity(get, set, heroId, activityId, opts),
   } satisfies FabriqueDuNoyau;
+}
+
+export function validationsDInterlude(get: Get, set: Set) {
+  return { interlude: () => cloreLInterlude(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 export function cloturesDInterlude(get: Get, set: Set) {

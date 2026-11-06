@@ -1,6 +1,6 @@
 /**
  * LE GABARIT D'UNE BASE (#2972, #3086) : la pose du gabarit (`poseDuGabarit`), les poids des shape keys de silhouette
- * (`poidsDeSilhouettes`) et la marche de la base (`marcheDeLaBase`), calculés une fois ici pour l'évaluateur
+ * (`poidsDeSilhouettes`), calculés une fois ici pour l'évaluateur
  * (`evaluateur/gabarit.ts`, qui les pose sur une scène three) et pour l'hôte (`hotes/godot/pont/CONTRAT.md`, « Gabarit
  * d'une base »). PUR : ni three ni le noyau à l'exécution (`chargerEvaluateur`, `charger.mjs`).
  */
@@ -124,19 +124,4 @@ export function coinsDeSilhouettesAtteignables(table: TableDeGabarit, silhouette
       (nom) => origine[nom] + u * colonnes[0][nom] + v * colonnes[1][nom]))));
   return coins.filter((coin, i) => !coins.slice(0, i).some((avant) =>
     silhouettes.every((nom) => avant[nom] === coin[nom])));
-}
-
-/** La marche d'une base, ou son refus : `marche-ambigue` quand `appuis.vitessesAuSol` n'a pas exactement un clip. */
-export type MarcheDeLaBase =
-  | { readonly ok: true; readonly clip: string; readonly vitesse: number }
-  | { readonly ok: false; readonly code: 'marche-ambigue'; readonly detail: string };
-
-/** Le clip de marche de la base, l'unique clé de `appuis.vitessesAuSol`, et sa vitesse au sol, `vitessesAuSol[clip]` (#3104). */
-export function marcheDeLaBase(manifeste: Pick<ManifesteDeBase, 'appuis'>): MarcheDeLaBase {
-  const clips = Object.keys(manifeste.appuis.vitessesAuSol);
-  if (clips.length !== 1) {
-    return { ok: false, code: 'marche-ambigue', detail: `${clips.length} clip(s) dans appuis.vitessesAuSol (${clips.join(', ') || 'aucun'}), un seul attendu` };
-  }
-  const [clip] = clips;
-  return { ok: true, clip, vitesse: manifeste.appuis.vitessesAuSol[clip] };
 }

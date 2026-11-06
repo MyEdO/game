@@ -71,7 +71,7 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     const h = hero({ characteristics: { 'force-mentale': 1 } as never }); // FM 1 : le Test de la fiche du jeu ~imbattable à rater
     run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
     banc.getState().jetRoll('cascadeBatch', h.id);
-    banc.getState().cascadeNext(); // valide l’échec → branche fail → op condition `brise`
+    banc.getState().jetConfirm('cascade'); // valide l’échec → branche fail → op condition `brise`
     const got = banc.getState().battle!.combatants.find((x) => x.id === h.id)!;
     expect(stacks(got, COND.brise)).toBe(1);
   });
@@ -81,7 +81,7 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     const h = hero({ characteristics: { 'force-mentale': 100 } as never });
     run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
     banc.getState().jetRoll('cascadeBatch', h.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const got = banc.getState().battle!.combatants.find((x) => x.id === h.id)!;
     expect(stacks(got, COND.brise)).toBe(0);
   });
@@ -100,10 +100,10 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     expect(step.meta?.opposed).toBeUndefined();
     // La bande n'est PRÊTE qu'une fois ses deux rangées jouées.
     banc.getState().jetRoll('cascadeBatch', 'h1');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade!.cursor).toBe(0);
     banc.getState().jetRoll('cascadeBatch', 'h2');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -202,7 +202,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     banc.setState({ party: [h] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const foes = b.combatants.filter((c) => c.kind === 'enemy');

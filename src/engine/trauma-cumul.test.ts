@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { traumaById, consolidateAmputations, setTraumaCount, traumaCumulOps, traumaCharPenalties, traumaFicheById, permanentAmputations } from './trauma';
-import type { Combatant, Trauma, HitLocation } from './types';
+import { traumaById, consolidateAmputations, setTraumaCount, traumaCumulOps, traumaCharPenalties, traumaFicheById, permanentAmputations, avecSequelles, type SequelleNeuve } from './trauma';
+import type { Combatant, HitLocation } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
@@ -11,14 +11,14 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  * tables), l.251 (doigts, « 4 doigts ou plus → règle de la main tranchée »), l.273/277 (2 yeux/oreilles),
  * l.281 (« pour chaque orteil perdu, −1 Agilité et −1 Capacité de Combat »).
  */
-const C = (traumas: Trauma[]): Combatant =>
+const C = (traumas: SequelleNeuve[]): Combatant =>
   (blessuresSurLeProfil({
     id: 'c', label: 'C', kind: 'hero', conditions: [], skills: [], items: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: blessuresDeBase(10), traumas,
+    wounds: blessuresDeBase(10), traumas: avecSequelles([], traumas),
   }) as unknown as Combatant);
 
-const pose = (id: string, loc: HitLocation, n?: number): Trauma => {
+const pose = (id: string, loc: HitLocation, n?: number): SequelleNeuve => {
   const t = traumaById(id, undefined, loc);
   return n == null ? t : setTraumaCount(t, traumaFicheById(id), n);
 };

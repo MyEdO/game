@@ -15,7 +15,7 @@ import {
 } from './index';
 import { parseTraitInstance } from './refFormatLivre';
 import { travelVehicles, travelModeLabels } from '../engine/travel';
-import { consolidateAmputations, traumaById, type TraumaFiche } from '../engine/trauma';
+import { consolidateAmputations, traumaById, type TraumaFiche, avecSequelles } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
 import { mutationTableIds, mutationTablePlayerLabel, mutationTableRows, type MutationTable } from './mutations';
 import { rollMiscast, miscastRowAt, type MiscastTableRow } from '../engine/miscast';
@@ -207,7 +207,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     expect(doigt.cumul!.escalade!.atLeast).toBe(4);
     const porteur = (): Combatant => ({
       ...({ id: 'h1', label: 'Grim' } as Combatant),
-      traumas: [traumaById('doigt-ampute', undefined, 'brasG'), traumaById('doigt-ampute', undefined, 'brasG')],
+      traumas: avecSequelles([], [traumaById('doigt-ampute', undefined, 'brasG'), traumaById('doigt-ampute', undefined, 'brasG')]),
     });
 
     const avant = porteur();

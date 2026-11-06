@@ -41,7 +41,7 @@ const envoyer = (partie: Partie, type: string, ...args: unknown[]): void => joue
 function duel(): { partie: Partie; H: Combatant; E: Combatant } {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
   ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-  ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+  ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
   const garde = ouverture.etat();
   ouverture.fermer();
   const contact = auContact(garde);
@@ -147,7 +147,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
       if (!partie.etat().battle) envoyer(partie, 'startCombat', 'enc-entrainement');
       for (let pas = 0; pas < 40 && !(activeCombatant(partie.etat().battle!)?.kind === 'hero'); pas++) {
         const e = partie.etat();
-        const verbes: [string, ...unknown[]][] = e.pendingDefense ? [['jetRoll', 'defense'], ['jetConfirm', 'defense']] : activeCombatant(e.battle!) ? [['battleEndTurn']] : [['confirmRoundStart']];
+        const verbes: [string, ...unknown[]][] = e.pendingDefense ? [['jetRoll', 'defense'], ['jetConfirm', 'defense']] : activeCombatant(e.battle!) ? [['battleEndTurn']] : [['fenetreValider', 'roundStart']];
         for (const [v, ...args] of verbes) envoyer(partie, v, ...args);
       }
       const b = partie.etat().battle!;

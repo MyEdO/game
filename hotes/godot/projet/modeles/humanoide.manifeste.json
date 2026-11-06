@@ -379,6 +379,13 @@
     "taille": "moyenne",
     "echelleDArt": 1
   },
+  "clips": {
+    "idle": "Idle_Loop",
+    "walk": "Walk_Loop",
+    "melee": "Sword_Attack",
+    "hit": "Hit_Chest",
+    "death": "Death01"
+  },
   "appuis": {
     "pieds": [
       "foot_l",
@@ -15991,9 +15998,7 @@
         }
       }
     ],
-    "vitessesAuSol": {
-      "Walk_Loop": 1.043167103808406
-    }
+    "vitesseAuSol": 1.043167103808406
   },
   "osAPositionAnimee": [
     "pelvis"

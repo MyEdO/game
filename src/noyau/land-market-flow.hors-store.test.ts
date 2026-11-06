@@ -26,14 +26,14 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 /** Draine une cascade influençable (héros piloté-humain → modale, #274) — même patron que les autres
- *  suites (`jetRoll('cascade')`+`cascadeNext`, ex. `river-voyage-flow.hors-store.test.ts`). */
+ *  suites (`jetRoll('cascade')`+`jetConfirm('cascade')`, ex. `river-voyage-flow.hors-store.test.ts`). */
 function drainCascade(): void {
   let g = 0;
   while (get().pendingCascade && g++ < 50) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
     if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
-    else get().cascadeNext();
+    else get().jetConfirm('cascade');
   }
 }
 
@@ -108,7 +108,7 @@ function sellAtB(board: TradeRumour[]): number {
   while (get().pendingCascade && g++ < 5) {
     const p = get().pendingCascade!;
     get().jetRoll('cascade', p.participants[p.cursor].id);
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     banc.reprendreLesEnAttente();
   }
   return toBrass(partyMoneyTotal(get));

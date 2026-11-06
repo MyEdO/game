@@ -19,7 +19,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     return { b, hero: b.combatants.find((c) => c.kind === 'hero')!, enemy: b.combatants.find((c) => c.kind === 'enemy')! };
@@ -64,7 +64,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     expect(combatAdvanceBlocked(banc.getState())).toBe(true);
     banc.getState().battleEndTurn(); // → advanceTurn, gelé par la séquence ouverte
     expect(banc.getState().battle!.turn).toBe(turn); // pas avancé
-    banc.getState().cascadeNext(); // acquittement de l'étape → séquence close, l'IA reprend
+    banc.getState().jetConfirm('cascade'); // acquittement de l'étape → séquence close, l'IA reprend
     expect(banc.getState().pendingCascade).toBeNull();
     expect(combatAdvanceBlocked(banc.getState())).toBe(false); // la garde s'ouvre à l'acquittement
     // …et la REPRISE est mesurée pour de vrai : la clôture arme le beat de l'IA (`resumeSuspendedAI` →
@@ -87,7 +87,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
       ),
     });
     expect(combatAdvanceBlocked(banc.getState())).toBe(true);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
     // …et sa clôture doit rendre la main : le `purpose` de la séquence n'a jamais décrit l'état du combat.
     banc.avancer(5000);
@@ -118,7 +118,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     // (2) « Subir » applique CE Critique.
     const cwBefore = heroNow().criticalWounds ?? 0;
     banc.getState().cascadeChoose(devId, 'subir');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(heroNow().criticalWounds ?? 0).toBeGreaterThan(cwBefore);
 
     // (3) « Dévier » ignore le Critique → aucune Blessure critique.
@@ -130,7 +130,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     const devId2 = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!.id;
     banc.getState().jetRoll('cascadeTirage', devId2);
     banc.getState().cascadeChoose(devId2, 'devier');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(heroNow().criticalWounds ?? 0).toBe(0); // pas de Blessure critique appliquée
   });
 });

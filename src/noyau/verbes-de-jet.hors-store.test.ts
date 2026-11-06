@@ -81,7 +81,7 @@ describe('la clôture `jetConfirm(flux)` (#3324) : jugée sur la fenêtre, comme
 
   it.each([
     ['un flux inconnu', 'zz-inconnu'],
-    ['la cascade, qui se clôt par sa navigation', 'cascade'],
+    ['une bande, que valide sa cascade', 'cascadeBatch'],
   ] as const)('refuse et dit %s', (_cas, flux) => {
     heroFaceAUnEnnemi(banc, testScene());
     (g().jetConfirm as (flux: string) => void)(flux);

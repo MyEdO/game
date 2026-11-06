@@ -32,7 +32,7 @@ const dlg: Dialogue = {
   id: 'dlg-test',
   start: 'n1',
   nodes: [
-    { id: 'n1', desc: 'Réplique de session.', choices: [{ label: 'Suite', next: 'n2' }] },
+    { id: 'n1', desc: 'Réplique de session.', choices: [{ id: 'suite', label: 'Suite', next: 'n2' }] },
     { id: 'n2', speakerId: 'e2', desc: 'Réplique de Bob.', choices: [] },
   ],
 };
@@ -93,8 +93,8 @@ describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
 const dlgTeste: Dialogue = {
   id: 'dlg-tag', start: 'n1',
   nodes: [{ id: 'n1', desc: 'La cage est là.', choices: [
-    { label: 'Crocheter la cage.', flow: { kind: 'test', test: { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
-    { label: 'Renoncer.' },
+    { id: 'crocheter-cage', label: 'Crocheter la cage.', flow: { kind: 'test', test: { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
+    { id: 'renoncer', label: 'Renoncer.' },
   ] }],
 } as Dialogue;
 
@@ -150,9 +150,9 @@ describe('DialogueBox — numéro et Test annoncé (#1869)', () => {
 const dlgVivant: Dialogue = {
   id: 'dlg-vivant', start: 'n1',
   nodes: [{ id: 'n1', desc: 'Le passeur attend.', choices: [
-    { label: 'Montrer le laissez-passer.', when: { kind: 'flag', expr: 'laissez_passer' } },
-    { label: 'Attendre.' },
-    { label: 'Payer le passage.', cost: { gold: 1 } },
+    { id: 'montrer-laissez-passer', label: 'Montrer le laissez-passer.', when: { kind: 'flag', expr: 'laissez_passer' } },
+    { id: 'attendre', label: 'Attendre.' },
+    { id: 'payer-passage', label: 'Payer le passage.', cost: { gold: 1 } },
   ] }],
 } as Dialogue;
 
@@ -206,13 +206,13 @@ describe('DialogueBox — la fenêtre suit l’état sans que la conversation bo
 
 describe('DialogueBox — la réponse fermée porte le TEXTE du refus du noyau', () => {
   it('bourse trop courte : la raison de la réponse est celle que `chooseDialogue` dit', () => {
-    const payant: Dialogue = { id: 'dlg-pay', start: 'n1', nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ label: 'Payer', cost: { gold: 50 }, next: 'n1' }] }] };
+    const payant: Dialogue = { id: 'dlg-pay', start: 'n1', nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ id: 'payer', label: 'Payer', cost: { gold: 50 }, next: 'n1' }] }] };
     useGame.setState({ scene, flags: {}, gameTime: campaignStart(), party: [], screen: 'campaign', dialogue: { dialogue: payant, nodeId: 'n1', speakerId: 'e1', session: 1 } });
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
     act(() => { root.render(<DialogueBox />); });
-    expect(container.querySelector('#dlg-choice-0-reason')?.textContent).toBe('Pas assez d’argent pour cette option.');
+    expect(container.querySelector('#dlg-choice-payer-reason')?.textContent).toBe('Pas assez d’argent pour cette option.');
     act(() => { root.unmount(); });
     container.remove();
     useGame.setState({ dialogue: null });

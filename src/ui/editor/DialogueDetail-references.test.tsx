@@ -73,8 +73,8 @@ const fautesDeDialogue = (s: Scene) => validateScene([s]).filter((w) => w.level 
 const dialogue = (): Dialogue => ({
   id: 'd1', start: 'n1',
   nodes: [
-    { id: 'n1', desc: 'un', choices: [{ label: 'vers deux', next: 'n2' }] },
-    { id: 'n2', desc: 'deux', choices: [{ label: 'encore', next: 'n2' }, { label: 'retour', next: 'n1' }] },
+    { id: 'n1', desc: 'un', choices: [{ id: 'choix-1', label: 'vers deux', next: 'n2' }] },
+    { id: 'n2', desc: 'deux', choices: [{ id: 'choix-1', label: 'encore', next: 'n2' }, { id: 'choix-2', label: 'retour', next: 'n1' }] },
     { id: 'n3', desc: 'trois', choices: [] },
   ],
 });
@@ -114,7 +114,7 @@ describe('atelier de dialogue — aucune référence pendante (#3059)', () => {
     choisirNoeud('n2');
     supprimerLeNoeud();
     expect(sceneVue.dialogues[0].nodes.map((n) => n.id)).toEqual(['n1', 'n3']);
-    expect(sceneVue.dialogues[0].nodes[0].choices).toEqual([{ label: 'vers deux' }]);
+    expect(sceneVue.dialogues[0].nodes[0].choices).toEqual([{ id: 'choix-1', label: 'vers deux' }]);
     expect(fautesDeDialogue(sceneVue)).toEqual([]);
 
     choisirNoeud('n1');

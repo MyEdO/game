@@ -47,7 +47,7 @@ export function heroFaceAUnEnnemi(p: ProprietaireDuDuel, scene: Scene): { H: Com
   p.setState({ party: [heroDuDuel()] });
   p.getState().startScene(scene);
   p.getState().startCombat('enc-mutants');
-  p.getState().confirmRoundStart();
+  p.getState().fenetreValider('roundStart');
   p.abandonner();
   const { H, E, patch } = auContact(p.getState());
   p.setState(patch);

@@ -56,6 +56,7 @@ function construireScene(): Scene {
             "se tourne lentement vers vous.",
           choices: [
             {
+              id: 'fondre-sur-charognards',
               label: 'Fondre sur les charognards avant qu’ils ne se ruent.',
               flow: flowFromEffects([
                 { type: 'journal', desc: "Vous chargez — l'acier contre la chair corrompue." },
@@ -63,7 +64,7 @@ function construireScene(): Scene {
                 { type: 'startCombat', encounter: 'enc-mutants' },
               ]),
             },
-            { label: 'Reculer sans bruit vers le couvert…', next: 'a2' },
+            { id: 'reculer-sans-bruit', label: 'Reculer sans bruit vers le couvert…', next: 'a2' },
           ],
         },
         {
@@ -74,6 +75,7 @@ function construireScene(): Scene {
             'vers vous en hurlant, gueules béantes.',
           choices: [
             {
+              id: 'combat',
               label: 'Au combat !',
               flow: flowFromEffects([
                 { type: 'endDialogue' },

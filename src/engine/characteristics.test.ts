@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { effectiveChar, volatileCharLines } from './characteristics';
 import { testValue } from './skills';
-import { passiveCharSum, traumaById, dechirureFractureFicheId } from './trauma';
+import { passiveCharSum, traumaById, dechirureFractureFicheId, avecSequelles } from './trauma';
 import { RULE_REF } from './ruleRefs';
 import type { Combatant, CharKey, EffectSource } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
@@ -79,11 +79,11 @@ describe('volatileCharLines — décomposition étiquetée des contributions ret
    */
   it('séquelle → ligne au NOM de la séquelle, sommée avec la pénalité d’un Sort (hors pool)', () => {
     const trauma = traumaById(dechirureFractureFicheId('fracture', 'majeur', 'corps'), undefined, 'corps');
-    const c = mk([], 40, { traumas: [trauma] });
+    const c = mk([], 40, { traumas: avecSequelles([], [trauma]) });
     const lines = volatileCharLines(c, 'force');
     expect(lines).toEqual([{ label: trauma.label, value: -30, famille: 'jet', ref: undefined }]);
     expect(effectiveChar(c, 'force')).toBe(40 - 30);
-    const maudit = mk([{ char: 'force', bonus: -10, label: 'Sort', source: SORT('a') }], 40, { traumas: [trauma] });
+    const maudit = mk([{ char: 'force', bonus: -10, label: 'Sort', source: SORT('a') }], 40, { traumas: avecSequelles([], [trauma]) });
     expect(effectiveChar(maudit, 'force')).toBe(40 - 30 - 10);
   });
 });
