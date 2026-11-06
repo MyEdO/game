@@ -17,7 +17,7 @@ export interface Couche {
   readonly paquetsDOutillage?: Readonly<Record<string, readonly string[]>>;
 }
 
-/** La surface du noyau : porte de `noyau`, seul module de `src/state/` et `src/noyau/` qui réexporte. */
+/** La surface du noyau : porte de `noyau`, seul module de `src/state/`, `src/noyau/` et `src/scenes/` qui réexporte. */
 export const SURFACE_DU_NOYAU: "src/noyau/index.ts";
 
 /** Les zones dont la production ne réexporte rien hors de la surface du noyau. */

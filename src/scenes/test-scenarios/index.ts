@@ -6,5 +6,3 @@ import { SCENARIOS } from './_registry.generated';
 // (auto en dev via le plugin Vite). On passe par un index EXPLICITE généré plutôt que
 // `import.meta.glob` (Vite-only, cassé sous tsx/Vitest) — même mécanique que les créatures.
 export const testScenarios: TestScenario[] = [...SCENARIOS].sort((a, b) => a.order - b.order);
-
-export type { TestScenario, ScenarioCategory } from './_shared';

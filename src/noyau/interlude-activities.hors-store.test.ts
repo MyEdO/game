@@ -456,7 +456,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.getState().jetConfirm('activity');
     const pt = banc.getState().pendingTest;
     expect(pt).toBeTruthy(); // le FM s'ouvre en MODALE (openSkillTest), pas résolu inline
-    expect(pt!.skillId ?? pt!.char).toBe('force-mentale');
+    expect(pt!.skillId ?? pt!.characteristic).toBe('force-mentale');
     expect(pt!.noOwnTestFailed).toBe(true); // garde de ré-entrance portée par la modale
     const h2 = banc.getState().party.find((c) => c.id === h.id)!;
     expect(h2.conditions.some((c) => c.id === 'sonne')).toBe(true); // palier 1 (Sonné) inline

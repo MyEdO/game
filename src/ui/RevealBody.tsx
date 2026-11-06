@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import { useGame } from '../state/store';
 import { type RevealEntry } from '../noyau/pendings';
 import { ParchmentCard } from './ParchmentCard';
@@ -97,14 +96,4 @@ export function RevealBody({ entry, actor, subject }: { entry: RevealEntry; acto
       ))}
     </>
   );
-}
-
-/**
- * BARRE DE TEMPS de l'auto-fermeture, réservée aux révélations GRAVES (arbitrage 2026-06-11) : le
- * compte à rebours d'un Critique / d'une mutation se VOIT, l'informatif mineur disparaît sans
- * cérémonie. Pied de la révélation, rendu à côté de `RevealBody` dans la coquille de jet.
- * La durée passe en VARIABLE CSS consommée par `reveal-body.css` (arbitrage A2 du 2026-09-18).
- */
-export function RevealTimer({ ms }: { ms: number }) {
-  return <div className="reveal-timer"><i style={{ '--reveal-timer-duree': `${ms}ms` } as CSSProperties} /></div>;
 }

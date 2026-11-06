@@ -78,7 +78,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     banc.setState({ battle: { ...b, turn: 0, round: 2 } });
     startCascade(banc.getState, banc.setState, {
       title: 'Hors combat', purpose: 'test',
-      steps: [revealToStep({ kind: 'round', title: 'Fixture', lines: ['ligne'], severity: 'minor' }, 0)],
+      steps: [revealToStep({ kind: 'round', title: 'Fixture', lines: ['ligne'] }, 0)],
     });
     resolveRoundBoundary(banc.getState, banc.setState);
     expect(banc.getState().pendingRoundStart).toBeNull();

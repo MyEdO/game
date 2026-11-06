@@ -2110,7 +2110,7 @@ export const fr = {
   'step.landPerilSurvie': 'Survie en extérieur',
   'step.landPerilPerception': 'Perception',
   'step.conduiteForcee': "Conduite d'attelage (allure forcée)",
-  'step.reprendreControle': 'reprendre le contrôle',
+  'step.reprendreControle': 'Reprendre le contrôle',
   'step.stagePostes': 'Postes de l’Étape',
   'step.stageAgg': 'Bilan de l’Étape',
   'step.traversee': 'Traversée',
@@ -2151,7 +2151,7 @@ export const fr = {
   // Taverne
   'step.tavernMiTemps': 'tour {n} de la {phase}ᵉ mi-temps',
   'step.tavernTorchon': '{lanceur} balance le torchon',
-  'step.tavernCommentJouer': 'comment jouer ce tour ?',
+  'step.tavernCommentJouer': 'Comment jouer ce tour ?',
   'step.tavernManche': 'manche {n}',
 
   // ── #1318 V8a₁ — LIBELLÉS DES VOIES d'une étape de choix (`ChoiceSpec.options[].label`, `opt.*`).

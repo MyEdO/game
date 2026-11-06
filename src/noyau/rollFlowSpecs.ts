@@ -202,7 +202,7 @@ function drDeReussiteDuTest(s: Jeu, actor: Combatant, test: { skill?: string; ch
 }
 
 /** Le Test d'un `pendingTest`, tel que `drDeReussiteDuTest` le lit. */
-const testDeScene = (p: PendingTest) => ({ skill: p.skillId, characteristic: p.char, spec: p.spec });
+const testDeScene = (p: PendingTest) => ({ skill: p.skillId, characteristic: p.characteristic, spec: p.spec });
 
 /** Jet d'un Test de Guérison ou de Dextérité de soin (`FLOWS.heal`, `FLOWS.surgery`) : le dé contre la cible figée du
  *  pending (avant bornage), +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) ; un PNJ soigneur n'en a pas. */
@@ -2261,7 +2261,7 @@ export const FLOWS = paresseux({
     // jeton d'Activité (consommé) ; le dé renversé s'évalue comme le jet naturel de `resolve` (+DR de
     // réussite, Capricieux, DR exigé).
     reverse: {
-      skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec, characteristic: p.char, ...(p.contexte ? { contexte: p.contexte } : {}) }),
+      skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec, characteristic: p.characteristic, ...(p.contexte ? { contexte: p.contexte } : {}) }),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
         const sl = tr.sl + (tr.success ? drDeReussiteDuTest(s, actor, testDeScene(p)) : 0) + (p.capriciousDR ?? 0);

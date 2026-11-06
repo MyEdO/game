@@ -97,6 +97,19 @@ const VERROU_CONSOLE = [{
   message: `Propriété \`title\` de littéral dans la console : elle finit en attribut \`title\` au rendu ; une case nomme son geste et pointe sa règle (\`rule\`, \`gate\`) ; ${REMEDE_CONSOLE}.`,
 }];
 
+const CLE_CHAR = 'Property:matches([key.name="char"], [key.value="char"])';
+const CLE_DU_SUJET = 'Property:matches([key.name=/^(skill|skillId|difficulty|spec)$/], [key.value=/^(skill|skillId|difficulty|spec)$/])';
+const SPREAD_CONDITIONNEL = 'SpreadElement > :matches(ConditionalExpression, LogicalExpression) > ObjectExpression';
+const CHAMP_CHAR = 'TSPropertySignature:matches([key.name="char"], [key.value="char"])';
+const CHAMP_DU_SUJET = 'TSPropertySignature:matches([key.name=/^(skill|skillId|difficulty|spec)$/], [key.value=/^(skill|skillId|difficulty|spec)$/])';
+const MSG_SUJET_CHAR = 'Sujet d’un Test (#3012, LDB 12 l.7) : il se nomme `characteristic`, comme `sujetDuJetSchema`. Une clé `char` à côté de `skill`/`skillId`/`difficulty`/`spec`, dans un littéral ou un type, en est l’ancienne graphie, que tsc laisse passer sur un objet non frais, un spread conditionnel ou un cast. `char` reste la Caractéristique seule (`charMod`, `actGate`, `CharRef`…).';
+const VERROU_SUJET_CHAR = [
+  `ObjectExpression:has(> ${CLE_CHAR}):has(> ${CLE_DU_SUJET})`,
+  `ObjectExpression:has(> ${CLE_DU_SUJET}) > ${SPREAD_CONDITIONNEL} > ${CLE_CHAR}`,
+  `ObjectExpression:has(> ${CLE_CHAR}) > ${SPREAD_CONDITIONNEL} > ${CLE_DU_SUJET}`,
+  `:matches(TSTypeLiteral, TSInterfaceBody):has(> ${CHAMP_CHAR}):has(> ${CHAMP_DU_SUJET})`,
+].map((selector) => ({ selector, message: MSG_SUJET_CHAR }));
+
 const PROPRIETAIRE_DATALIST = 'src/ui/compendium/refField/**';
 const MSG_DATALIST = 'Datalist (#286, #2724) : le motif `<input list>`/`<datalist>` appartient à `RefField` (`src/ui/compendium/refField/`) — composer `RefField` (modes `freeText`, `vocab`) ou sa saisie libre à suggestions `SaisieSuggeree`.';
 const VERROU_DATALIST = [
@@ -561,6 +574,11 @@ export const BLOCS_LINT = [
     rules: {
       'murs/console-sans-title': ['error', ...VERROU_CONSOLE],
     },
+  },
+  {
+    // #3012
+    files: ['src/**'],
+    rules: { 'murs/sujet-char': ['error', ...VERROU_SUJET_CHAR] },
   },
   {
     // #286, #2724

@@ -899,7 +899,7 @@ export interface ActiveEffect {
   /** +DR temporisés (ops `skillDRBonus`/`charDRBonus` exécutées — chansons de marin, MDG 09) : par
    *  Compétence (`skill`+`spec`) OU par Caractéristique (`char`), `bonus` déjà résolu numérique.
    *  Lus par `skillDRBonus`/`charDRBonusOf` (engine/ops) sur un Test RÉUSSI. */
-  drBonus?: { skill?: string; spec?: string; char?: CharKey; bonus: number }[];
+  drBonus?: ({ skill?: string; spec?: string; bonus: number } | { char: CharKey; bonus: number })[];
   /** Modificateur aux Tests INDIVIDUELS d'un Test d'équipage (op `crewTestMod` — « Naviguons tous
    *  ensemble », MDG 09 l.224 : +10). Lu par `crewRoleValue` (engine/crewMorale). */
   crewTestMod?: number;
