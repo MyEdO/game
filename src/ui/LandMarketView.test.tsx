@@ -84,21 +84,21 @@ describe('LandMarketView — « Acheter » lit le refus du noyau (#3059, MSRC 13
   });
 
   it('lot sous le minimum, porteur libre et bourse pleine : le geste est fermé sur le lot minimal (MSRC 13 l.131)', () => {
-    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc)!;
-    expect(acheter(offre.cargoId, offre.label, minCargoEnc - 1)).toEqual({ ferme: 'true', raison: t('lm.lotMinimal', { min: minCargoEnc }) });
+    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc())!;
+    expect(acheter(offre.cargoId, offre.label, minCargoEnc() - 1)).toEqual({ ferme: 'true', raison: t('lm.lotMinimal', { min: minCargoEnc() }) });
   });
 
   it('le refus affiché est celui du devis du noyau', () => {
-    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc)!;
-    const refus = devisDAchatDeCargaison(get(), offre.cargoId, minCargoEnc - 1).refus;
-    expect(refus).toEqual({ motif: 'lot-minimal', min: minCargoEnc });
-    expect(raisonDuRefusDAchatDeCargaison(refus!)).toBe(t('lm.lotMinimal', { min: minCargoEnc }));
+    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc())!;
+    const refus = devisDAchatDeCargaison(get(), offre.cargoId, minCargoEnc() - 1).refus;
+    expect(refus).toEqual({ motif: 'lot-minimal', min: minCargoEnc() });
+    expect(raisonDuRefusDAchatDeCargaison(refus!)).toBe(t('lm.lotMinimal', { min: minCargoEnc() }));
   });
 
   it('siège invité : le geste est fermé par le refus de dépense du groupe, composé par le devis', () => {
     useGame.setState({ net: { ...get().net, mode: 'guest' } });
-    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc)!;
-    expect(devisDAchatDeCargaison(get(), offre.cargoId, minCargoEnc).refus).toEqual({ motif: 'invite' });
-    expect(acheter(offre.cargoId, offre.label, minCargoEnc)).toEqual({ ferme: 'true', raison: t('groupe.hoteSeul') });
+    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc())!;
+    expect(devisDAchatDeCargaison(get(), offre.cargoId, minCargoEnc()).refus).toEqual({ motif: 'invite' });
+    expect(acheter(offre.cargoId, offre.label, minCargoEnc())).toEqual({ ferme: 'true', raison: t('groupe.hoteSeul') });
   });
 });

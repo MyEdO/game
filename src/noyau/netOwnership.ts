@@ -5,7 +5,7 @@
  */
 import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
-import { modalOwnerOf, horsModalByPending, sortieDeLaFenetre, validationDeLaFenetre, type GesteDeFenetreDeclare, type HorsModalDef, type QuiValideLaFenetre } from './modalArbiter';
+import { fenetreDuRegistre, modalOwnerOf, horsModalByPending, sortieDeLaFenetre, validationDeLaFenetre, type GesteDeFenetreDeclare, type HorsModalDef, type QuiValideLaFenetre } from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { seatOwns, jetSurfaced, siegeDuHeros } from './sieges';
 import { targetingHolder } from './targetingHolder';
@@ -14,6 +14,7 @@ import { desFixes } from '../engine/fixedDie';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type RollVerb } from './flowVerbs';
 import type { PendingKey } from './stateFields';
 import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
+import { declarationDuChoix } from './choixDesFenetres';
 import { WORLD_STEP_OWNER } from './pendings';
 import type { CascadeStep, PendingAuContact, PendingBargain, PendingCast, PendingDefense, PendingDisengage, PendingDistraire, PendingGrapple } from './pendings';
 
@@ -530,6 +531,7 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
 /**
  * Possession du réglage d'un jet (`jetRegler(flux, reglage, valeur, pid?)`), d'après sa déclaration (`REGLAGES_DU_JET`)
  * — un réglage que son flux ne déclare pas : personne.
+ *  - le réglage de l'hôte seul (`qui`, l'abandon de la séquence) : l'hôte ;
  *  - le réglage que le siège d'un autre combattant joue (`porteurDeLaValeur` : les Bandages, LDB 74 l.41) : ce
  *    combattant ;
  *  - un réglage de rangée (l'arme d'enfoncement, EDO 11 l.93) : le combattant de la rangée (`pid`) ;
@@ -543,6 +545,7 @@ const ROUTE_DU_REGLAGE: Route = {
     const [flux, reglage, valeur, pid] = args;
     const declaration = declarationDuReglage(flux, reglage);
     if (!declaration || !estFluxRegle(flux)) return false;
+    if (declaration.qui === 'hote') return seatOwns(s, seat, undefined); // `undefined` → l'hôte (contrat de `seatOwns`)
     if (declaration.porteurDeLaValeur) return seatInfluences(s, seat, declaration.porteurDeLaValeur(s, valeur));
     if (declaration.portee === 'rangee') return seatInfluences(s, seat, idArg(pid));
     const w: FlowVerbs = FLOW_VERBS[flux];
@@ -551,13 +554,14 @@ const ROUTE_DU_REGLAGE: Route = {
 };
 
 /**
- * La validation ou la sortie d'une fenêtre (`fenetreValider`, `fenetreFermer`) : la fenêtre est le 1ᵉʳ argument, et son
- * registre dit qui joue le geste — l'hôte seul, le siège de son propriétaire ('*' : tout siège), ou, à quorum, tout
- * siège, qui ne marque prêt que le sien (lu au transport, `decidingSeat`). Une fenêtre inconnue ou fermée : personne.
+ * La validation, la sortie ou un choix d'une fenêtre (`fenetreValider`, `fenetreFermer`, `fenetreChoisir`) : la fenêtre
+ * est le 1ᵉʳ argument, et sa déclaration dit qui joue le geste — l'hôte seul, le siège du propriétaire de la fenêtre
+ * nommée ('*' : tout siège), ou, à quorum, tout siège, qui ne marque prêt que le sien (lu au transport,
+ * `decidingSeat`). Une fenêtre ou un choix inconnu, une fenêtre fermée : personne.
  */
-const routeDuGesteDeFenetre = (declaration: (cle: unknown) => GesteDeFenetreDeclare<QuiValideLaFenetre> | undefined): Route => ({
+const routeDuGesteDeFenetre = (declaration: (args: unknown[]) => GesteDeFenetreDeclare<QuiValideLaFenetre> | undefined): Route => ({
   rule: (s, seat, args) => {
-    const geste = declaration(args[0]);
+    const geste = declaration(args);
     if (!geste?.ouverte(s)) return false;
     if (geste.qui === 'quorum' || geste.qui === 'hoteAuQuorum') return true;
     const owner = geste.qui === 'hote' ? undefined : geste.proprietaire(s);
@@ -632,8 +636,15 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // Le réglage d'un jet en attente (`routeDuReglage`).
     ['jetRegler', ROUTE_DU_REGLAGE],
     // La sortie et la validation d'une fenêtre, par ce que son registre déclare (`routeDuGesteDeFenetre`).
-    ['fenetreFermer', routeDuGesteDeFenetre(sortieDeLaFenetre)],
-    ['fenetreValider', routeDuGesteDeFenetre(validationDeLaFenetre)],
+    ['fenetreFermer', routeDuGesteDeFenetre((args) => sortieDeLaFenetre(args[0]))],
+    ['fenetreValider', routeDuGesteDeFenetre((args) => validationDeLaFenetre(args[0]))],
+    // Le choix d'une fenêtre (`fenetreChoisir`), par ce que sa déclaration nomme (`CHOIX_DES_FENETRES`) : le siège du
+    // propriétaire de la fenêtre nommée, pas celui de la modale prioritaire (`modalOwnerOf`).
+    ['fenetreChoisir', routeDuGesteDeFenetre(([fenetre, axe]) => {
+      const qui = declarationDuChoix(fenetre, axe)?.qui;
+      const registre = fenetreDuRegistre(fenetre);
+      return qui && registre ? { ...registre, qui } : undefined;
+    })],
     ['counterspellDeclareAll', {
       rule: (s, seat) => (s.pendingCounterspell?.participants ?? []).some((p) => !p.declared && p.interactive && seatInfluences(s, seat, p.id)),
     }],

@@ -19,7 +19,7 @@ import { describe, expect, it } from 'vitest';
 import { AMBIANCE } from '../catalog/ambiance';
 import { applyVisibilityTint, bakeWorldGeometry, shadeSousSoleil, worldBakeDeps, type BakedWorld } from '../backends/webgl/sceneMeshes';
 import { memoByRefDeps } from '../../noyau/monde/sceneMemo';
-import { SHADE_CYCLE, shadeFamily, type ShadeFamily } from '../backends/webgl/worldTris';
+import { SHADE_CYCLE, shadeFamily, type ShadeFamily } from '../../noyau/monde/volume/worldTris';
 import { shadeFactorOf } from '../backends/webgl/faceColors';
 import { extinctionDe, pointLightWrites } from './stagePointLights';
 import { stageLightScalars } from './stageLights';

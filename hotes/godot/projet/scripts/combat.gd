@@ -1,9 +1,9 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
-## l'adresse de la page (`?scenario=<id>&graine=<n>`) et applique chaque suite. La vue va au plateau ; la fenêtre prend
-## la disposition que la vue nomme (`vue.disposition`, `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène
-## `Ecran` sans script) reçoit les éléments de sa source qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce
-## que la suite ajoute, `zones` : les lignes du journal) ; le journal va au plateau ; chaque jeton programmé est armé
-## en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
+## l'adresse de la page (`?scenario=<id>&graine=<n>`), pose au plateau le volume du monde de sa scène (`monde`) et
+## applique chaque suite. La vue va au plateau ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
+## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
+## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
+## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
 ## (`Zone.geste` ; la fiche d'un héros, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la méthode
 ## `creation`), ou un clic du champ (`vue.champ` : le verbe qui désigne un combattant, celui qui désigne une case ;
 ## `null`, le champ ne se clique pas), le combattant d'une case lu dans `vue.occupants`. Un refus se dit ; l'écran
@@ -36,7 +36,12 @@ func _ready() -> void:
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
-	_suivre(_pont.appeler("demarrer", entree))
+	var lancement := _pont.appeler("demarrer", entree)
+	if lancement.get("ok") == true:
+		var monde := _pont.appeler("monde")
+		if monde.get("ok") == true and monde.monde != null:
+			_plateau.poser_le_monde(monde.monde)
+	_suivre(lancement)
 
 
 ## Le listage du serveur et l'index du pont (`MontageDeComposition.lister`, `indexer`), retenu pour les corps du

@@ -283,7 +283,7 @@ export interface Scene {
    *  engine/combat.ts, #249) et l'avance des navires ; la géométrie des recettes de décor et l'ancre des
    *  places assises, divisées par elle (`builders/propVolumes.ts`, `noyau/monde/seating.ts`, #1507) ; le rayon
    *  des sources de lumière (`rayonEnCases`, `noyau/monde/vision.ts`) ; et, du côté du RENDU, la cadence de la
-   *  cuisson (`gpToWorld`, `backends/webgl/worldTris.ts`), la pente des toits (`resolveMass`,
+   *  cuisson (`gpToWorld`, `noyau/monde/volume/worldTris.ts`), la pente des toits (`resolveMass`,
    *  `builders/roofs.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `noyau/sceneEdit.ts`). */
   metresPerTile?: number;
   /** Décor : 'interieur' (éclairé en permanence, l'horloge ne l'assombrit pas) vs 'exterieur'
@@ -324,7 +324,7 @@ export interface Scene {
    *  `null` = SILENCE forcé. Éditable dans l'éditeur (onglet Scène). */
   music?: { ambient?: string | null; combat?: string | null };
   /** MATIÈRE de chaque PARTIE de relief que le builder de sols émet (#1691) : falaise, rampe, dalle de
-   *  tablier, pilier. REQUISE — `gameIso/builders/floors.ts` la LIT, il ne choisit plus rien ; le schema
+   *  tablier, pilier. REQUISE — `noyau/monde/volume/floors.ts` la LIT, il ne choisit plus rien ; le schema
    *  refuse au parse une scène qui n'en porte pas, et `emptyScene` la pose à la création. La face d'un
    *  terrain à BLOC PLEIN (mur) tient sa matière de son TERRAIN (`terrains.json › matiere`), pas d'ici. */
   reliefDefaults: ReliefDefaults;
@@ -493,19 +493,16 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
   }
 }
 
-/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les cases de sa couche de base que nul ne
- *  franchit à pied (`isWalkable`), ligne par ligne, et les arêtes de cette couche, chacune son milieu et son sens en
- *  coins de grille (`wallEnds`), si elle est une porte en jeu (`porteEnJeu`) et si elle laisse passer (`wallIsOpen`), et
- *  son échelle métrique (`sceneMetresPerTile`). */
-export function plateauDeLaScene(scene: Scene): { w: number; h: number; metresParCase: number; infranchissables: Pt[]; aretes: { milieu: Pt; sens: Pt; porte: boolean; ouverte: boolean }[] } {
+/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les arêtes de sa couche de base, chacune son
+ *  milieu et son sens en coins de grille (`wallEnds`), si elle est une porte en jeu (`porteEnJeu`) et si elle laisse
+ *  passer (`wallIsOpen`), et son échelle métrique (`sceneMetresPerTile`). */
+export function plateauDeLaScene(scene: Scene): { w: number; h: number; metresParCase: number; aretes: { milieu: Pt; sens: Pt; porte: boolean; ouverte: boolean }[] } {
   const { w, h } = scene.dimensions;
-  const infranchissables: Pt[] = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!isWalkable(scene, x, y)) infranchissables.push({ x, y });
   const aretes = (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === 0).map((seg) => {
     const [a, b] = wallEnds(seg);
     return { milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, sens: { x: b.x - a.x, y: b.y - a.y }, porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) };
   });
-  return { w, h, metresParCase: sceneMetresPerTile(scene), infranchissables, aretes };
+  return { w, h, metresParCase: sceneMetresPerTile(scene), aretes };
 }
 
 /** Lien vertical entre deux cases ADJACENTES (Chebyshev : cardinale OU diagonale, grille 8-connexe cf.

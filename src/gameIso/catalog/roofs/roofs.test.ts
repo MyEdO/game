@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { roofMaterial } from './index';
 import { matieresDe } from '../../../data';
-import { MISSING_ID, MISSING_TONE } from '../missing';
+import { MISSING_ID, MISSING_TONE } from '../../../noyau/monde/volume/missing';
 
 // Le couplage donnée → rendu (teintes par pan, liseré, rangs) est testé côté backend
 // (`authoring/roofsSvg.test.ts`) ; ici, la DONNÉE seule.

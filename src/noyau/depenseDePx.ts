@@ -8,11 +8,9 @@ import { talentMaxReached, arcaneDomainGate } from '../engine/careerSlots';
 import { findTalentById, refLabel, findCareerById, levelsForCareer } from '../data/index';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
-import { refusEnCombat, type VerdictDeGeste } from './verrousDeFiche';
+import { refusDepensePx } from './verrousDeFiche';
 import type { Combatant } from '../engine/types';
 
-/** Refus d'une dépense de PX : la raison affichée, ou `null`. LDB 05 l.907 */
-export const refusDepensePx: VerdictDeGeste = refusEnCombat('pf.xpInCombat');
 
 /** Une Augmentation hors carrière exige-t-elle un mentor absent (règle `advancement-mentor`, flag de
  *  partie `mentor`) ? Verdict UNIQUE de l'achat et de la vue d'avancement. LDB 07 l.89 */

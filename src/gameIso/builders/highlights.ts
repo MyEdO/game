@@ -66,7 +66,7 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
   const { w: sw, h: sh } = scene.dimensions;
   const inScene = (x: number, y: number) => x >= 0 && y >= 0 && x < sw && y < sh;
   // Hauteur MÉTRIQUE de la surface d'une case, relief de la couche 0 compris : la même que celle où
-  // le sol est bâti (`builders/floors.ts`), sans quoi le quad se pose sous la dalle.
+  // le sol est bâti (`noyau/monde/volume/floors.ts`), sans quoi le quad se pose sous la dalle.
   const hAt = (x: number, y: number, z: number) => hauteurDe(scene, { x, y, z });
   const parse = (k: string): [number, number, number] => {
     const [x, y, z = 0] = k.split(',').map(Number); // clé z-aware : « x,y » (sol) ou « x,y,z » (étage)

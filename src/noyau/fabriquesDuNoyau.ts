@@ -9,9 +9,11 @@ import type { Get, SetDesClesReservees } from './flowTypes';
 import { creerReglageDuJet, creerVerbesDeJet, type CloturesDuJet } from './rollFlowSpecs';
 import type { CorpsDesReglages } from './reglagesDuJet';
 import type { FlowKey, NomDeVerbeDeJet, RollVerb } from './flowVerbs';
-import { cloturesDuCombat, createCombatSlice, reglagesDuCombat, sortiesDuCombat, validationsDuCombat } from './combatSlice';
+import { choixDuCombat, cloturesDuCombat, createCombatSlice, reglagesDuCombat, sortiesDuCombat, validationsDuCombat } from './combatSlice';
 import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
 import { creerValidationDeFenetre, type ValidationsDeFenetre } from './validationDeFenetre';
+import { creerChoixDeFenetre } from './choixDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import { creerActionsDuRegistre } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
 import { creerActionsDeManoeuvre } from './shipManeuver';
@@ -31,20 +33,20 @@ import { cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validati
 import { creerActionsDeTaverne, sortiesDeLaTaverne } from './tavernFlow';
 import { creerActionsDesDes } from './battleRng';
 import { creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeCombat';
-import { cloturesDuMedecin, creerActionsDuMedecin, sortiesDuMedecin } from './medicFlow';
+import { choixDuMedecin, cloturesDuMedecin, creerActionsDuMedecin, sortiesDuMedecin } from './medicFlow';
 import { creerActionsDuRepos, sortiesDuRepos, validationsDuRepos } from './restFlow';
-import { creerActionsDeLEquipage, sortiesDeLEquipage } from './shipCrew';
+import { choixDeLEquipage, creerActionsDeLEquipage, sortiesDeLEquipage } from './shipCrew';
 import { creerActionsDesConsommables } from './consumableFlow';
 import { cloturesDesTestsDeScene, creerActionsDesTestsDeScene, reglagesDesTestsDeScene } from './testsDeScene';
 import { cloturesDuLotDEtal } from './etalLotFlow';
-import { cloturesDeCorruption, reglagesDeCorruption } from './corruptionFlow';
+import { choixDeCorruption, cloturesDeCorruption, reglagesDeCorruption } from './corruptionFlow';
 import { creerActionsDuJournal } from './journal';
 import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from './horloge';
 import { creerActionsDuVoyage, sortiesDuVoyage, validationsDuVoyage } from './travelFlow';
 import { creerActionsDesPostesDeVoyage } from './travelPostes';
 import { creerActionsDuBillet } from './billetFlow';
 import { creerActionsDuPort, sortiesDuPort } from './portFlow';
-import { creerActionsDuVoyageEnMer } from './seaVoyageFlow';
+import { choixDuVoyageEnMer, creerActionsDuVoyageEnMer } from './seaVoyageFlow';
 import { creerActionsDuMarcheTerrestre, sortiesDuMarcheTerrestre } from './landMarketFlow';
 import { creerActionsDeLAuberge } from './innFlow';
 import { creerActionsDesActivitesEnMer } from './seaActivities';
@@ -53,16 +55,19 @@ import { creerActionsDesActivitesEnMer } from './seaActivities';
  *  (clé de `FLOW_VERBS`, verbe de `RollVerb`) — un geste de jet est le verbe générique de son verbe, le flux en
  *  argument ; le verbe d'un flux s'ajoute à sa ligne de `FLOW_VERBS` et à sa spec, jamais à côté. Aucune ne porte non
  *  plus un nom de réglage d'un flux (`<flux>Set…`, `<flux>Toggle…`, `<flux>Alloc…`) : un jet se règle par `jetRegler`,
- *  le réglage déclaré dans `ReglagesDuJet` et son corps dans `reglagesDuJet`. Ni un nom de sortie de fenêtre
- *  (`close…`, `dismiss…`, `…Cancel`, `…Skip`) : une fenêtre se ferme par `fenetreFermer`, la fenêtre déclarée dans son
- *  registre (`sortie`) et son corps dans `sortiesDeFenetre` ; ni un nom de validation (`…Ready`) : une fenêtre se valide
- *  par `fenetreValider`, la fenêtre déclarée dans son registre (`validation`) et son corps dans `validationsDeFenetre`.
+ *  le réglage déclaré dans `ReglagesDuJet` et son corps dans `reglagesDuJet`. Ni un nom de choix (`…Select`,
+ *  `…Abandon…`) : une fenêtre fait choisir par `fenetreChoisir`, le choix déclaré dans `ChoixDesFenetres` et son corps
+ *  dans `choixDesFenetres`. Ni un nom de sortie de fenêtre (`close…`, `dismiss…`, `…Cancel`, `…Skip`) : une fenêtre se
+ *  ferme par `fenetreFermer`, la fenêtre déclarée dans son registre (`sortie`) et son corps dans `sortiesDeFenetre` ; ni
+ *  un nom de validation (`…Ready`) : une fenêtre se valide par `fenetreValider`, la fenêtre déclarée dans son registre
+ *  (`validation`) et son corps dans `validationsDeFenetre`.
  *  Une telle clé ne compile pas.
  *  Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. */
 type NomDeDelegue = `${FlowKey}${Capitalize<RollVerb>}` | NomDeVerbeDeJet
   | `${FlowKey}${'Set' | 'Toggle' | 'Alloc'}${string}`
+  | `${string}Select` | `${string}Abandon${string}`
   | `close${string}` | `dismiss${string}` | `${string}Cancel` | `${string}Skip` | `${string}Ready`;
-function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, NomDeDelegue>]: 'geste de jet, réglage de jet, sortie ou validation de fenêtre : verbe générique' }): T {
+function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, NomDeDelegue>]: 'geste de jet, réglage de jet, choix, sortie ou validation de fenêtre : verbe générique' }): T {
   return actions;
 }
 
@@ -88,6 +93,18 @@ function reglagesDuJet(get: Get, set: SetDesClesReservees): CorpsDesReglages {
     ...reglagesDeCorruption(get, set),
     ...reglagesDesTestsDeScene(get, set),
   } satisfies CorpsDesReglages;
+}
+
+/** Le corps de chaque choix d'une fenêtre, que seul `fenetreChoisir(fenetre, axe, …)` appelle : un choix déclaré
+ *  (`ChoixDesFenetres`) sans corps ne compile pas. */
+function choixDesFenetres(get: Get, set: SetDesClesReservees): CorpsDesChoix {
+  return {
+    ...choixDuCombat(get, set),
+    ...choixDeCorruption(get, set),
+    ...choixDuMedecin(get, set),
+    ...choixDeLEquipage(get, set),
+    ...choixDuVoyageEnMer(get, set),
+  } satisfies CorpsDesChoix;
 }
 
 /** Le corps de la sortie de chaque fenêtre qui se ferme, que seul `fenetreFermer` appelle : une fenêtre qui déclare sa
@@ -132,6 +149,8 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerVerbesDeJet(get, set, cloturesDuJet(get, set)),
     // Le réglage d'un jet, le flux et le réglage en arguments : son SEUL écrivain.
     ...creerReglageDuJet(get, set, reglagesDuJet(get, set)),
+    // Le choix d'une fenêtre, la fenêtre et l'axe en arguments : son SEUL écrivain.
+    ...creerChoixDeFenetre(get, set, choixDesFenetres(get, set)),
     // La sortie d'une fenêtre, la fenêtre en argument : son SEUL écrivain.
     ...creerSortieDeFenetre(get, set, sortiesDeFenetre(get, set)),
     // La validation d'une fenêtre, la fenêtre en argument : son SEUL écrivain.

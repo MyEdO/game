@@ -18,6 +18,7 @@ import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FlowKey } from './flowVerbs';
 import type { ReglageDuJet } from './reglagesDuJet';
+import type { AxeDuChoix, FenetreAChoix } from './choixDesFenetres';
 import { WORLD_STEP_OWNER } from './pendings';
 import type { PendingKey } from './stateFields';
 import { PORTEURS_D_ETAPE, sansCorps } from './slotsDeJet';
@@ -35,16 +36,18 @@ export type VerbesDeFenetre = readonly (keyof ActionsDuNoyau)[];
 export const AUCUN_VERBE_DE_JOUEUR: readonly never[] = Object.freeze([]);
 
 /** Un geste d'une fenêtre : un verbe de la partie ; un verbe de jet (`NomDeVerbeDeJet`) nomme le flux qu'il vise, le
- *  réglage d'un jet (`jetRegler`) son flux et son réglage, la validation (`fenetreValider`) ou la sortie
- *  (`fenetreFermer`) d'une fenêtre la fenêtre qu'elle valide ou ferme. */
-export interface GesteDuJeu { verbe: keyof ActionsDuNoyau; flux?: FlowKey; reglage?: ReglageDuJet; fenetre?: FenetreQuiSeFerme | FenetreAValider }
+ *  réglage d'un jet (`jetRegler`) son flux et son réglage, le choix d'une fenêtre (`fenetreChoisir`) sa fenêtre et son
+ *  axe, la validation (`fenetreValider`) ou la sortie (`fenetreFermer`) d'une fenêtre la fenêtre qu'elle valide ou
+ *  ferme. */
+export interface GesteDuJeu { verbe: keyof ActionsDuNoyau; flux?: FlowKey; reglage?: ReglageDuJet; fenetre?: FenetreQuiSeFerme | FenetreAValider | FenetreAChoix; axe?: AxeDuChoix }
 
 /** L'identité d'un geste dans sa fenêtre : son verbe, et le flux d'un verbe de jet (`jetRoll@attack`), le flux et le
- *  réglage d'un réglage (`jetRegler@attack#arme`) ou la fenêtre d'une validation ou d'une sortie
- *  (`fenetreFermer@council`). */
+ *  réglage d'un réglage (`jetRegler@attack#arme`), la fenêtre et l'axe d'un choix (`fenetreChoisir@fateSave#issue`) ou
+ *  la fenêtre d'une validation ou d'une sortie (`fenetreFermer@council`). */
 export const cleDuGeste = (g: GesteDuJeu): string => {
   const cible = g.flux ?? g.fenetre;
-  return `${g.verbe}${cible ? `@${cible}` : ''}${g.reglage ? `#${g.reglage}` : ''}`;
+  const axe = g.reglage ?? g.axe;
+  return `${g.verbe}${cible ? `@${cible}` : ''}${axe ? `#${axe}` : ''}`;
 };
 
 /** Qui ferme une fenêtre (`fenetreFermer`) : le siège de son propriétaire (`owner`), l'hôte seul, ou le quorum
@@ -96,8 +99,8 @@ export interface ModalDef {
   covers: readonly PendingKey[];
   /** Les flux de jet (`FLOW_VERBS`) que la fenêtre rend : leurs verbes et leurs clôtures sont les siens. */
   flux?: readonly FlowKey[];
-  /** Les verbes du joueur que ni `auto` ni `flux` ne nomment. La fenêtre nomme ce qu'on y joue
-   *  (`fenetreDuJeu`, `gestesDeLaFenetre`). */
+  /** Les verbes du joueur que ni `auto`, ni `flux`, ni ses choix (`ChoixDesFenetres`) ne nomment. La fenêtre nomme ce
+   *  qu'on y joue (`fenetreDuJeu`, `gestesDeLaFenetre`). */
   verbes?: VerbesDeFenetre;
   /** Les rangées que ses verbes désignent par leur id (`pid`) — REQUISES quand un de ses `flux` est multi : la fenêtre
    *  rend l'id de la rangée due (`fenetreDuJeu`). */
@@ -112,7 +115,7 @@ export interface ModalDef {
 }
 
 export const MODAL_DEFS = [
-  { key: 'fateSave', when: (s) => !!s.pendingFateSave, owner: (s) => s.pendingFateSave?.heroId, auto: { mode: 'choice' }, covers: ['pendingFateSave'], verbes: ['fateNegate', 'fateSurvive', 'fateAccept'] },
+  { key: 'fateSave', when: (s) => !!s.pendingFateSave, owner: (s) => s.pendingFateSave?.heroId, auto: { mode: 'choice' }, covers: ['pendingFateSave'] },
   // (La Maladresse est une étape `jet:'fumble'` de la cascade `combat`, rendue par `cascade` ci-dessous
   //  (CascadeModal → useFumbleJetProps). La donnée (arme/résultat) vit SUR l'étape (`step.fumble`), source
   //  unique lue par `jetRoll('fumble')` ; `jetConfirm('fumble')` applique les Oups ! et enchaîne le curseur.)
@@ -124,7 +127,7 @@ export const MODAL_DEFS = [
   // DÉSIGNATION d'un héros pour un état de campagne (EDO 02 l.91) : décision de GROUPE, au siège du
   // MONDE (`WORLD_STEP_OWNER` — celui de `ownsGroupDecision`, comme le dialogue) ; jamais auto-résolue.
   { key: 'designationHeros', when: (s) => !!s.pendingDesignationHeros, owner: () => WORLD_STEP_OWNER, auto: { mode: 'hostOnly' }, covers: ['pendingDesignationHeros'], verbes: ['designerHerosChoisir'] },
-  { key: 'renounce', when: (s) => !!s.pendingRenounce, owner: (s) => s.pendingRenounce?.heroId, auto: { mode: 'choice' }, covers: ['pendingRenounce'], verbes: ['renounceResolve'] },
+  { key: 'renounce', when: (s) => !!s.pendingRenounce, owner: (s) => s.pendingRenounce?.heroId, auto: { mode: 'choice' }, covers: ['pendingRenounce'] },
   // Battement (LDB 10 l.103) : jet PROPRE de CC (non opposé) → 'self' (Lancer puis Appliquer).
   { key: 'battement', when: (s) => !!s.pendingBattement, owner: (s) => s.pendingBattement?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'battement' }, { verbe: 'jetConfirm', flux: 'battement' }] }, covers: ['pendingBattement'], flux: ['battement'] },
   // Distraire (LDB 10 l.364) : jet PROPRE d'Athlétisme opposé au Calme figé du foe → 'self' (le mover pilote son jet).
@@ -148,7 +151,7 @@ export const MODAL_DEFS = [
   // Empoignade (LDB 14 l.161) : Test opposé de Force OU « Briser » PUIS choix du vainqueur → vrai CHOIX
   // (mode 'choice', comme `auContact`). Initiée par le joueur (jamais par l'IA) → pas d'auto-drive.
   { key: 'grapple', when: (s) => !!s.pendingGrapple, owner: (s) => s.pendingGrapple?.actorId, auto: { mode: 'choice' }, covers: ['pendingGrapple'], flux: ['grapple'], verbes: ['grappleBreak', 'grappleChoose'] },
-  { key: 'mountTarget', when: (s) => !!s.pendingMountTarget, owner: (s) => (s.battle ? s.battle.order[s.battle.turn] : undefined), auto: { mode: 'choice' }, covers: ['pendingMountTarget'], verbes: ['mountTargetSelect'], sortie: 'proprietaire' }, // l'attaquant actif qui a cliqué le couple
+  { key: 'mountTarget', when: (s) => !!s.pendingMountTarget, owner: (s) => (s.battle ? s.battle.order[s.battle.turn] : undefined), auto: { mode: 'choice' }, covers: ['pendingMountTarget'], sortie: 'proprietaire' }, // l'attaquant actif qui a cliqué le couple
   { key: 'frenzy', when: (s) => !!s.pendingFrenzy, owner: (s) => s.pendingFrenzy?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'frenzy' }, { verbe: 'jetConfirm', flux: 'frenzy' }] }, covers: ['pendingFrenzy'], flux: ['frenzy'] },
   { key: 'approach', when: (s) => !!s.pendingApproach, owner: (s) => s.pendingApproach?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'approach' }, { verbe: 'jetConfirm', flux: 'approach' }] }, covers: ['pendingApproach'], flux: ['approach'] },
   { key: 'ward', when: (s) => !!s.pendingWard, owner: (s) => s.pendingWard?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'ward' }, { verbe: 'jetConfirm', flux: 'ward' }] }, covers: ['pendingWard'], flux: ['ward'] },
@@ -169,14 +172,13 @@ export const MODAL_DEFS = [
   // L'infirmerie CÈDE le devant à une CASCADE en cours (`!s.pendingCascade`) — le Test d'infection
   // post-opératoire (LDB 10 l.184) est un jet INFLUENÇABLE qui doit passer AU-DESSUS du panneau ; à sa
   // clôture l'infirmerie RÉAPPARAÎT (même patron que `heal` cédant à `medic`).
-  { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: (s) => s.pendingHeal?.healerId ?? s.pendingSurgery?.healerId ?? '*', auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], verbes: ['medicSelectPatient', 'medicSetWound', 'medicAct', 'openSurgeryPass', 'medicAbandonSurgery'], sortie: 'proprietaire', sortieFermee: (s) => (s.pendingHeal || s.medic?.surgery ? 'soinEnCours' : null) }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
+  { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: (s) => s.pendingHeal?.healerId ?? s.pendingSurgery?.healerId ?? '*', auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], verbes: ['medicSetWound', 'medicAct', 'openSurgeryPass'], sortie: 'proprietaire', sortieFermee: (s) => (s.pendingHeal || s.pendingSurgery || s.medic?.surgery ? 'soinEnCours' : null) }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
   // Repos (nuit) : chacun règle SES héros et se dit prêt, l'hôte dort au quorum — modale chez tous.
   { key: 'rest', when: (s) => !!s.pendingRest, owner: () => '*', auto: { mode: 'hostOnly' }, covers: ['pendingRest'], verbes: ['restSet'], validation: 'hoteAuQuorum', sortie: 'hote', sortieFermee: (s) => (s.pendingRest?.travelHalt ? 'halteDeVoyage' : null) },
   // Conseil de bord (paie hebdomadaire + Moral, #229) : décision de bourse PARTAGÉE → l'hôte seul (comme
-  // les autres actions à l'argent du groupe) ; hors-combat, jamais auto (la cadence auto ne l'ouvre pas).
-  // Limitation coop posée sans routage d'intent (aucune décision partagée invité) — traçabilité #254,
-  // doc `docs/architecture.md` §Coop ; lever = router `pendingCouncil` en intent coop (travail futur).
-  { key: 'council', when: (s) => !!s.pendingCouncil, owner: () => undefined, auto: { mode: 'hostOnly' }, covers: ['pendingCouncil'], verbes: ['councilPay'], sortie: 'hote', sortieFermee: (s) => (s.pendingCouncil?.phase === 'bilan' ? null : 'paieDue') },
+  // les autres actions à l'argent du groupe, `CHOIX_DES_FENETRES.council`) ; hors-combat, jamais auto (la cadence
+  // auto ne l'ouvre pas).
+  { key: 'council', when: (s) => !!s.pendingCouncil, owner: () => undefined, auto: { mode: 'hostOnly' }, covers: ['pendingCouncil'], sortie: 'hote', sortieFermee: (s) => (s.pendingCouncil?.phase === 'bilan' ? null : 'paieDue') },
   { key: 'heal', when: (s) => !!s.pendingHeal && !s.medic, owner: (s) => s.pendingHeal?.healerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'heal' }, { verbe: 'jetConfirm', flux: 'heal' }] }, covers: ['pendingHeal'], flux: ['heal'] },
   // (Le Contre-sort (Dissipation) est une RÉACTION au Sort figé dans `pendingCast`, rendue DANS la
   //  modale `cast` ci-dessous : une rangée `RollRow` par contre-lanceur (`pendingCounterspell
@@ -310,7 +312,7 @@ export interface HorsModalDef {
   tientLaMain: boolean;
   /** Les flux de jet (`FLOW_VERBS`) que la fenêtre rend, comme `ModalDef.flux`. */
   flux?: readonly FlowKey[];
-  /** Verbes du joueur que `flux` ne nomme pas — ce qu'un hôte nomme au joueur (`fenetreDuJeu`,
+  /** Verbes du joueur que ni `flux` ni ses choix (`ChoixDesFenetres`) ne nomment — ce qu'un hôte nomme au joueur (`fenetreDuJeu`,
    *  #2898). Leur routage reste celui de `netOwnership`. Une fenêtre qui ne tient pas la main n'en a pas :
    *  `fenetreDuJeu` ne la rend jamais. */
   verbes?: VerbesDeFenetre;
@@ -329,8 +331,8 @@ export const HORS_MODAL = [
   { key: 'interact', pendingKey: 'pendingInteract', tientLaMain: false, owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
   { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['roundStartPromote', 'armPreempt', 'battleClickEntity'], validation: 'quorum' }, // Pause de début de Round (fenêtre Chance) : chaque siège se dit prêt, le quorum lance le Round ; le clic du combattant tire la visée armée (Tir rapide)
   { key: 'seaActivities', pendingKey: 'pendingSeaActivities', tientLaMain: true, owner: () => '*', verbes: ['seaActivitiesConfirm'] }, // Activités hebdomadaires en mer : décision de groupe
-  { key: 'manannPriest', pendingKey: 'pendingManannPriest', tientLaMain: true, owner: () => '*', verbes: ['resolveManannPriest'] }, // Événement de port (MDG 15) : décision de groupe
-  { key: 'shoreLeave', pendingKey: 'pendingShoreLeave', tientLaMain: true, owner: () => '*', verbes: ['resolveShoreLeave'] }, // Relâche à terre (MDG 15) : décision de groupe
+  { key: 'manannPriest', pendingKey: 'pendingManannPriest', tientLaMain: true, owner: () => '*' }, // Événement de port (MDG 15) : décision de groupe
+  { key: 'shoreLeave', pendingKey: 'pendingShoreLeave', tientLaMain: true, owner: () => '*' }, // Relâche à terre (MDG 15) : décision de groupe
   { key: 'campaign', pendingKey: 'pendingCampaign', tientLaMain: false, owner: () => undefined }, // Campagne choisie au menu : un écran de l'hôte avant tout siège, que « Lancer » charge
   { key: 'orders', pendingKey: 'pendingOrders', tientLaMain: false, owner: () => undefined }, // Commandes d'interlude : dépense de bourse de groupe, hôte
   // Balayage / 2ᵉ frappe : ciblage carte (TargetPrompt), pas de modale — leurs gestes (enchaîner par le clic du
@@ -417,13 +419,20 @@ export type FenetreAValider =
   | CleAValidation<(typeof HORS_MODAL)[number]>
   | CleAValidation<(typeof SURFACES_HORS_PENDING)[number]>;
 
-/** Un geste de fenêtre (sa validation ou sa sortie), lu dans son registre : qui le joue, si la fenêtre est ouverte, son
- *  propriétaire, et le pending dont le `readyBySeat` porte les sièges prêts (une fenêtre à quorum). */
-export interface GesteDeFenetreDeclare<Q extends QuiValideLaFenetre> {
-  qui: Q;
+/** Les clés des trois registres de fenêtres : les modales, les situations hors modale, les surfaces partagées. */
+export type CleDeRegistre = ModalKey | (typeof HORS_MODAL)[number]['key'] | (typeof SURFACES_HORS_PENDING)[number]['key'];
+
+/** Une fenêtre lue dans son registre : si elle est ouverte, son propriétaire, et le pending dont le `readyBySeat` porte
+ *  les sièges prêts (une fenêtre à quorum). */
+export interface FenetreDuRegistre {
   ouverte: (s: ArbiterState) => boolean;
   proprietaire: (s: ArbiterState) => string | undefined | '*';
   marques?: PendingKey;
+}
+
+/** Un geste de fenêtre (sa validation, sa sortie ou un choix), lu dans son registre : qui le joue, et sa fenêtre. */
+export interface GesteDeFenetreDeclare<Q extends QuiValideLaFenetre> extends FenetreDuRegistre {
+  qui: Q;
 }
 /** Une sortie, et ce qui la ferme maintenant (`sortieFermee` ; `null` : ouverte). */
 export interface SortieDeLaFenetre extends GesteDeFenetreDeclare<QuiFermeLaFenetre> {
@@ -431,20 +440,23 @@ export interface SortieDeLaFenetre extends GesteDeFenetreDeclare<QuiFermeLaFenet
 }
 export type ValidationDeLaFenetre = GesteDeFenetreDeclare<QuiValideLaFenetre>;
 
+/** Chaque entrée des trois registres, et sa fenêtre. */
+const ENTREES_DES_REGISTRES: readonly (readonly [{ key: string; sortie?: QuiFermeLaFenetre; validation?: QuiValideLaFenetre }, FenetreDuRegistre])[] = [
+  ...(MODAL_DEFS as readonly ModalDef[]).map((d) => [d, { ouverte: d.when, proprietaire: d.owner, marques: d.covers[0] }] as const),
+  ...(HORS_MODAL as readonly HorsModalDef[]).map((d) => [d, { ouverte: (s: ArbiterState) => pendingOuvert((s as Record<string, unknown>)[d.pendingKey]), proprietaire: d.owner, marques: d.pendingKey }] as const),
+  ...(SURFACES_HORS_PENDING as readonly SurfaceHorsPendingDef[]).map((d) => [d, { ouverte: d.tientLaMain, proprietaire: () => undefined }] as const),
+];
+const FENETRES_DU_REGISTRE: ReadonlyMap<string, FenetreDuRegistre> = new Map(ENTREES_DES_REGISTRES.map(([d, f]) => [d.key, f]));
+
+/** La fenêtre `cle` telle que son registre la déclare ; `undefined` : aucun registre ne la porte. */
+export const fenetreDuRegistre = (cle: unknown): FenetreDuRegistre | undefined => (typeof cle === 'string' ? FENETRES_DU_REGISTRE.get(cle) : undefined);
+
 /** Les gestes `champ` (la validation ou la sortie) que déclarent les trois registres, par clé de fenêtre. */
 function gestesDeclares<Q extends QuiValideLaFenetre>(champ: (d: { sortie?: QuiFermeLaFenetre; validation?: QuiValideLaFenetre }) => Q | undefined): ReadonlyMap<string, GesteDeFenetreDeclare<Q>> {
   const out = new Map<string, GesteDeFenetreDeclare<Q>>();
-  for (const d of MODAL_DEFS as readonly ModalDef[]) {
+  for (const [d, fenetre] of ENTREES_DES_REGISTRES) {
     const qui = champ(d);
-    if (qui) out.set(d.key, { qui, ouverte: d.when, proprietaire: d.owner, marques: d.covers[0] });
-  }
-  for (const d of HORS_MODAL as readonly HorsModalDef[]) {
-    const qui = champ(d);
-    if (qui) out.set(d.key, { qui, ouverte: (s) => pendingOuvert((s as Record<string, unknown>)[d.pendingKey]), proprietaire: d.owner, marques: d.pendingKey });
-  }
-  for (const d of SURFACES_HORS_PENDING as readonly SurfaceHorsPendingDef[]) {
-    const qui = champ(d);
-    if (qui) out.set(d.key, { qui, ouverte: d.tientLaMain, proprietaire: () => undefined });
+    if (qui) out.set(d.key, { ...fenetre, qui });
   }
   return out;
 }

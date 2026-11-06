@@ -5,7 +5,7 @@
  *
  * Il se mesure contre la CUISSON RÉELLE, pas contre la donnée : le référent est le barycentre des
  * faces que le builder produit pour cette primitive (`builders/props.ts` → `buildPropVolumes`), passé
- * en monde par la MÊME conversion que le renderer (`backends/webgl/worldTris:gpToWorld`). Une lampe
+ * en monde par la MÊME conversion que le renderer (`noyau/monde/volume/worldTris:gpToWorld`). Une lampe
  * calée sur la donnée mais fausse à la cuisson (repère, cap, échelle de case, altitude de sol) sortirait
  * verte d'un test écrit sur la donnée seule ; ici elle sort rouge.
  *
@@ -19,7 +19,7 @@ import { mapLights } from '../../noyau/monde/vision';
 import { props, findPropById, type PropVolumeRecipe } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { buildProps } from '../builders/props';
-import { gpToWorld } from '../backends/webgl/worldTris';
+import { gpToWorld } from '../../noyau/monde/volume/worldTris';
 import { pointLightWrites, FLAME_LIFT_M } from './stagePointLights';
 import type { Dir4 } from '../../geometry/dir8';
 

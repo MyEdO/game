@@ -18,7 +18,7 @@ import { ISO_PX_PER_M } from '../../iso';
 import { TUFT_FAN } from '../../detail/expand';
 import { projGP } from '../../authoring/project';
 import { worldFaces, type KeepEl, type TintAt } from './sceneMeshes';
-import { facePoly, coplanarRanks, COPLANAR_BIAS_M } from './worldTris';
+import { facePoly, coplanarRanks, COPLANAR_BIAS_M } from '../../../noyau/monde/volume/worldTris';
 import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { testScenarios } from '../../../scenes/test-scenarios';

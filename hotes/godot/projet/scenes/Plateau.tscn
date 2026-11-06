@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/plateau.gd" id="1_plateau"]
 [ext_resource type="MeshLibrary" path="res://art/cases.tres" id="2_cases"]
@@ -13,6 +13,12 @@ roughness = 0.9
 albedo_color = Color(0.42, 0.26, 0.14, 1)
 roughness = 0.8
 
+[sub_resource type="StandardMaterial3D" id="Materiau_monde"]
+cull_mode = 2
+vertex_color_use_as_albedo = true
+vertex_color_is_srgb = true
+roughness = 0.95
+
 [sub_resource type="BoxMesh" id="Mesh_mur"]
 material = SubResource("Materiau_mur")
 size = Vector3(1, 1.2, 0.12)
@@ -26,17 +32,19 @@ script = ExtResource("1_plateau")
 scene_combattant = ExtResource("3_combattant")
 mesh_mur = SubResource("Mesh_mur")
 mesh_porte = SubResource("Mesh_porte")
+surbrillances = ExtResource("2_cases")
 
 [node name="Lumiere" parent="." instance=ExtResource("4_lumiere")]
-[node name="Sol" type="GridMap" parent="."]
-mesh_library = ExtResource("2_cases")
-cell_size = Vector3(1, 1, 1)
-cell_center_y = false
+[node name="Monde" type="Node3D" parent="."]
 
-[node name="Surbrillance" type="GridMap" parent="."]
-mesh_library = ExtResource("2_cases")
-cell_size = Vector3(1, 1, 1)
-cell_center_y = false
+[node name="Maillage" type="MeshInstance3D" parent="Monde"]
+material_override = SubResource("Materiau_monde")
+
+[node name="Corps" type="StaticBody3D" parent="Monde"]
+
+[node name="Forme" type="CollisionShape3D" parent="Monde/Corps"]
+
+[node name="Surbrillance" type="Node3D" parent="."]
 
 [node name="Aretes" type="Node3D" parent="."]
 

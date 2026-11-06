@@ -420,13 +420,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/gameIso/catalog/structures/index.ts",
-    motif: "désormais",
-    ancre: "5 px de trait à 2 m/tuile), désormais authorées en mètres. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/gameIso/stage/MondeDeCampagne.tsx",
     motif: "désormais",
     ancre: "recevaient ; la masse est désormais CUITE en bloc (`bakeWorldGeometry` prend la scène entière),",
