@@ -24,7 +24,7 @@ import { PanneauParametre, type ParamOption } from '../PanneauParametre';
 import { useLongPress } from '../useLongPress';
 import { ReadyRow } from '../ReadyRow';
 import { SpectatorChip } from '../SpectatorChip';
-import { spectatorSeatOfModal } from '../ownership';
+import { spectatorSeatOfModal } from '../../noyau/combatAuto';
 import { isOutOfAction, raisonRefusDetermination } from '../../engine/conditions';
 import { isFrenzied } from '../../engine/psychology';
 import { posteARecharger } from '../../noyau/monde/shipPostes';
