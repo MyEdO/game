@@ -5,7 +5,7 @@
  */
 import type { Jeu } from './etat';
 import { toRecapLines } from './recapLine';
-import { Combatant, ItemInstance, type CharKey } from '../engine/types';
+import { Combatant, ItemInstance, type TestIds } from '../engine/types';
 import { recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor, bargainPct, type BargainOutcome } from '../engine/bargain';
@@ -185,7 +185,7 @@ function contexteDAchat(s: Jeu, m: MerchantState): ContexteDAchat {
  *  Succès Stupéfiant et Négociateur compris (LDB 59 l.43 ; LDB 10 l.818 ; `bargainPct`). 0 sans
  *  négociateur. Plancher des devis de cargaison avant le jet (MSRC 13 l.127 ; MDG 15 l.335). */
 export function remiseMaximaleDeMarchandage(party: Combatant[]): number {
-  const best = partyAssisted(party, 'marchandage');
+  const best = partyAssisted(party, { skill: { id: 'marchandage' } });
   return best ? bargainPct(true, SL_ASTOUNDING, hasBargainBonus(best.actor)) : 0;
 }
 
@@ -430,14 +430,14 @@ export function searchAvailability(get: Get, set: Set): void {
   if (!arch) return;
   const restockPeriod = (ent?.merchant?.restockDays ?? arch.restockDays ?? 1) * MINUTES_PER_DAY;
   // Test de Ragot du groupe (Soutien LDB 12) — Intermédiaire (+0), le RAW ne chiffre pas la difficulté.
-  const best = partyAssisted(get().party, 'ragot', 'sociabilite');
+  const best = partyAssisted(get().party, { skill: { id: 'ragot' }, characteristic: 'sociabilite' });
   if (!best) {
     get().log(t('mf.noGossip'));
     finalizeSearchAvailability(get, set, m.entityId, restockPeriod, false);
     return;
   }
   openPartyTest(get, set, {
-    skill: 'ragot', characteristic: 'sociabilite', // Soutien LDB 12 — même valeur que `partyAssisted`
+    skill: { id: 'ragot' }, characteristic: 'sociabilite', // Soutien LDB 12 — même valeur que `partyAssisted`
     actionLabel: t('mf.rechercheActive'),
     difficulty: 'intermediaire',
     stake: combatStakeRef(MERCHANT_RAGOT_KIND),
@@ -841,7 +841,7 @@ export function repairItem(get: Get, set: Set, uid: string, heroId: string): voi
 /** Ouvre le Marchandage du meilleur négociateur du groupe (Soutien, LDB 12) contre `opposant`, pour
  *  `contrepartie` — porte UNIQUE des deux contreparties (marchand, billet). */
 export function ouvrirMarchandage(get: Get, set: Set, contrepartie: ContrepartieDeMarchandage, opposant: OpposantDeMarchandage): void {
-  const best = partyAssisted(get().party, 'marchandage', 'sociabilite'); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
+  const best = partyAssisted(get().party, { skill: { id: 'marchandage' }, characteristic: 'sociabilite' }); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
   set({ pendingBargain: {
     playerId: best.actor.id, playerName: best.actor.label,
     contrepartie, opposant,
@@ -849,7 +849,7 @@ export function ouvrirMarchandage(get: Get, set: Set, contrepartie: Contrepartie
     // Grandeur du départage à DR égal (`LDB 12 l.160`) : le Niveau de Compétence NU, à l'accesseur
     // canon — `best.value` est la valeur de TEST, qui porte en plus le Soutien et TOUT modificateur du
     // Marchandage (États, mutation Visage inversé, objet Laid… — cf. `skills.testValueParts`).
-    playerBase: skillBaseValue(best.actor, 'marchandage', undefined, 'sociabilite'),
+    playerBase: skillBaseValue(best.actor, { skill: { id: 'marchandage' }, characteristic: 'sociabilite' }),
     negotiator: hasBargainBonus(best.actor), // Négociateur → registre de talents (jamais un name-match)
     roll: null, merchantRoll: null, result: null,
   } });
@@ -901,21 +901,21 @@ const DETECT_TALENT = 'detection-d-artefact';
  *  libellé (`libelleDEvaluation`). Détection : Talent « Détection d'artefact »
  *  (`LDB 10 l.336`). Les Caractéristiques associées sont celles de `skills.json`. */
 export const APPRAISE_SKILL = {
-  evaluate: { skill: 'evaluation', characteristic: 'intelligence' },
-  detect: { skill: 'intuition', characteristic: 'initiative' },
-} as const satisfies Record<'evaluate' | 'detect', { skill: string; characteristic: CharKey }>;
+  evaluate: { skill: { id: 'evaluation' }, characteristic: 'intelligence' },
+  detect: { skill: { id: 'intuition' }, characteristic: 'initiative' },
+} as const satisfies Record<'evaluate' | 'detect', TestIds>;
 
 /** Meilleur détecteur du groupe : meilleure Intuition PARMI les porteurs du Talent (c'est LUI qui
  *  touche l'objet — pas un partyBest global comme l'Évaluation). null si personne ne l'a. */
 function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
   const holders = party.filter((h) => hasTalent(h, DETECT_TALENT));
-  const best = partyAssisted(holders, APPRAISE_SKILL.detect.skill, APPRAISE_SKILL.detect.characteristic); // Soutien (LDB 12)
+  const best = partyAssisted(holders, APPRAISE_SKILL.detect); // Soutien (LDB 12)
   return best ? { actor: best.actor, value: best.value, support: best.support } : null;
 }
 
 /** Meneur de l'Évaluation (Soutien LDB 12) ou de la Détection (`bestDetector`) ; `null` = personne qui puisse tenter. */
 function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect'): { actor: Combatant; value: number; support: SupportDetail } | null {
-  return mode === 'detect' ? bestDetector(party) : partyAssisted(party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic);
+  return mode === 'detect' ? bestDetector(party) : partyAssisted(party, APPRAISE_SKILL.evaluate);
 }
 
 /** Détection : le refus nomme le Talent, pas la Compétence — LDB 10 l.336. */
@@ -939,11 +939,11 @@ function openAppraise(
   const best = appraiseLeader(get().party, mode);
   if (!best) { get().log(appraiseNobody(mode)); return; }
   const t = trappingId ? findTrappingById(trappingId) : undefined;
-  const ligne = rollLine({ actor: best.actor, test: { skill: APPRAISE_SKILL[mode].skill, characteristic: APPRAISE_SKILL[mode].characteristic }, difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
+  const ligne = rollLine({ actor: best.actor, test: APPRAISE_SKILL[mode], difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
   set({ pendingAppraise: {
     actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.
-    mode, skillLabel: refLabel('skills', { id: APPRAISE_SKILL[mode].skill }),
+    mode, skillLabel: refLabel('skills', APPRAISE_SKILL[mode].skill),
     truePriceBrass: t ? toBrass(priceToMoney(t.price)) : 0,
     availability: (t?.availability as string | undefined) ?? null,
     ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0,

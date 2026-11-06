@@ -58,7 +58,7 @@ export function resolveRecoverTest(
   if (!etat?.recover) return null;
   const rec = etat.recover;
   const skillValue = testValue(actor, rec);
-  const skillBase = skillBaseValue(actor, rec.skill?.id, rec.skill?.spec, rec.characteristic);
+  const skillBase = skillBaseValue(actor, rec);
   const skillLabel = testSkillLabel(rec) ?? 'Test';
   let opposition: RecoverOpposition | undefined, requireSl: number | undefined;
   let entangleOnFail: boolean | undefined, struggleDamage: number | undefined;
@@ -68,7 +68,7 @@ export function resolveRecoverTest(
     const src = source && !isOutOfAction(source) ? source : undefined;
     if (cond?.escapeThreshold != null) { requireSl = cond.escapeThreshold; }
     else if (cond?.escapeStrength != null) opposition = { value: cond.escapeStrength, base: cond.escapeStrength, label: source?.label ?? etat.label, difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
-    else if (src) opposition = { value: testValue(src, { characteristic: 'force' }), base: skillBaseValue(src, undefined, undefined, 'force'), label: src.label, difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
+    else if (src) opposition = { value: testValue(src, { characteristic: 'force' }), base: skillBaseValue(src, { characteristic: 'force' }), label: src.label, difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
     entangleOnFail = cond?.entangleOnFail;
     struggleDamage = cond?.struggleDamage;
   }

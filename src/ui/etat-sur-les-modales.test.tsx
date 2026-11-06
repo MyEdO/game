@@ -23,7 +23,8 @@ import { HandGateModal } from './HandGateModal';
 import { ANONYMES } from './RollLine';
 import { testBreakdown } from './breakdown';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import { testValue, type TestDesigne } from '../engine/skills';
+import { testValue } from '../engine/skills';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import { effectiveChar } from '../engine/characteristics';
 import { cibleDuTest, clampTarget } from '../engine/tests';
 import { refLabel } from '../data';
@@ -61,8 +62,8 @@ function nommeLEtat(quand: string, attendue: number, label?: string, chip = '−
   expect(ANONYMES.count, `${quand} : ${l.chips.join(' | ')}`).toBe(0);
 }
 const sonne = <T extends Combatant>(c: T): T => { c.conditions = [{ id: 'sonne', value: 3 }]; return c; };
-const cible = (c: Combatant, test: TestDesigne, d: Difficulty) => clampTarget(cibleDuTest(testValue(c, test), d)).target;
-const FM: TestDesigne = { characteristic: 'force-mentale' };
+const cible = (c: Combatant, test: SujetDuJet, d: Difficulty) => clampTarget(cibleDuTest(testValue(c, test), d)).target;
+const FM: SujetDuJet = { characteristic: 'force-mentale' };
 
 describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16 l.125)', () => {
   it('Bénédiction de Protection', () => {

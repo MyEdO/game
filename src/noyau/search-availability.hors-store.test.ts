@@ -66,7 +66,7 @@ describe('#57 — recherche active de Disponibilité (LDB 59 l.50)', () => {
     const d100 = des.mock.calls.flatMap((args, i) => (args[0] === 1 && args[1] === 100 ? [des.mock.results[i].value as number] : []));
     des.mockRestore();
     expect(d100, 'un seul d100 : le Ragot').toHaveLength(1);
-    const jet = evaluateTest(d100[0], cibleDuTest(partyAssisted([h], 'ragot', 'sociabilite')!.value));
+    const jet = evaluateTest(d100[0], cibleDuTest(partyAssisted([h], { skill: { id: 'ragot' }, characteristic: 'sociabilite' })!.value));
     const journal = banc.getState().journal.map(String);
     const de = journal.indexOf(traceLineOf({ who: h.label, label: refLabel('skills', { id: 'ragot' }), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }));
     expect(de, journal.join(' | ')).toBeGreaterThanOrEqual(0);

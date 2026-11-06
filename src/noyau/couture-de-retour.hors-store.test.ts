@@ -224,7 +224,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
   /** Une dépense valide pour `c` (lu là où le jeu lit), hors du refus. */
   const DEPENSES: Record<string, (c: Combatant) => void> = {
     buyCharAdvance: (c) => banc.getState().buyCharAdvance(c.id, 'capacite-de-combat'),
-    buySkillAdvance: (c) => { const sk = buildAdvancementView(banc.getState(), c).skills.find((x) => x.known)!; banc.getState().buySkillAdvance(c.id, sk.skillId, sk.spec); },
+    buySkillAdvance: (c) => { const sk = buildAdvancementView(banc.getState(), c).skills.find((x) => x.known)!; banc.getState().buySkillAdvance(c.id, sk.skill); },
     buyTalent: (c) => { const ta = buildAdvancementView(banc.getState(), c).talents.find((x) => x.talentId && !x.maxReached)!; banc.getState().buyTalent(c.id, ta.talentId!, ta.spec); },
     buySpell: (c) => banc.getState().buySpell(c.id, learnableSpells(c).find((x) => x.cost > 0)!.spell.id),
     trainProsthesis: (c) => banc.getState().trainProsthesis(c.id, c.items!.find((i) => i.trappingId === 'fausse-jambe')!.uid),

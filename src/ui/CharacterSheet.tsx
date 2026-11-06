@@ -386,7 +386,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         // Action » — n'est pas bornée au combat. Visible seulement si le héros a Langue (Magick)
         // ET qu'au moins un sort permanent est actif dans le groupe (calque le patron de la console
         // EN combat : `canDispel && dispellable.length > 0`).
-        if (!actorHasSkill(hero, 'langue', 'magick')) return null;
+        if (!actorHasSkill(hero, { id: 'langue', spec: 'magick' })) return null;
         const dispellable = dispellableSpellsOn(party);
         if (!dispellable.length) return null;
         return (
@@ -718,16 +718,16 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
       <AdvSection title="Compétences" count={v.skills.length + v.skillSlotsOpen.length}>
       <div className="adv-grid">
         {v.skills.map((s) => (
-          <div className={`adv-row ${s.known ? '' : 'acquire'}`} key={`${s.skillId}|${s.spec ?? ''}`}>
+          <div className={`adv-row ${s.known ? '' : 'acquire'}`} key={`${s.skill.id}|${s.skill.spec ?? ''}`}>
             <span className="adv-name">
-              {libelleAvecSpec(s.label, s.spec)} <em>{skillBaseValue(hero, s.skillId, s.spec)}</em> {pill(s.inCareer)}
+              {libelleAvecSpec(s.label, s.skill.spec)} <em>{skillBaseValue(hero, { skill: s.skill })}</em> {pill(s.inCareer)}
               {s.known ? '' : <span className="acquire-tag">à apprendre</span>}
             </span>
             <span className="adv-meta">+{s.advances}</span>
             <GatedAction
-              id={`adv-comp-${s.skillId}-${s.spec ?? ''}`} primary={false} btnClassName="small"
+              id={`adv-comp-${s.skill.id}-${s.skill.spec ?? ''}`} primary={false} btnClassName="small"
               enabled={!s.refus} {...raisonSi(s.refus)}
-              onClick={() => buySkillAdvance(hero.id, s.skillId, s.spec)}
+              onClick={() => buySkillAdvance(hero.id, s.skill)}
               label={`${s.known ? '+1' : 'Apprendre'} · ${s.nextCost} PX`}
             />
           </div>
@@ -747,10 +747,10 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               refus: o.refus,
             }))}
             onPick={(key, owned) => {
-              const { id, spec } = parseRefKey(key);
-              if (owned) designateCareerSlot(hero.id, slot.slotKey, id, spec);
+              const ref = parseRefKey(key);
+              if (owned) designateCareerSlot(hero.id, slot.slotKey, ref.id, ref.spec);
               // Acheter la 1re Augmentation désigne l'emplacement (LDB 09 l.38).
-              else buySkillAdvance(hero.id, id, spec);
+              else buySkillAdvance(hero.id, ref);
             }}
           />
         ))}

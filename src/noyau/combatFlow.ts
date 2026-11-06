@@ -59,6 +59,7 @@ import {
   durationClockMinutes,
   castInfo,
   castingValue,
+  incantationArcane,
   castingBaseValue,
   castPenaltyMod,
   knowsCastingSkill,
@@ -112,7 +113,7 @@ import {
 } from '../engine/miscast';
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleBrute, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
-import { idsDuTest, testValue, type SupportDetail, type TestDesigne } from '../engine/skills';
+import { testValue, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
@@ -501,7 +502,7 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
   // L'embusqueur de référence = la Discrétion la plus FAIBLE du groupe (l.77). Furtif (LDB 85
   // p.339) : « Ajoutez son bonus d'Agilité au DR de tous ses Tests de Discrétion » → attackerBonusSL.
   const sneak = ambushers.reduce((a, b) => (testValue(b, { skill: { id: 'discretion' } }) < testValue(a, { skill: { id: 'discretion' } }) ? b : a));
-  const sneakDR = skillDRBonus(sneak, 'discretion'); // Furtif : +Bonus d'Agilité au DR (donnée : passive skillDRBonus)
+  const sneakDR = skillDRBonus(sneak, { id: 'discretion' }); // Furtif : +Bonus d'Agilité au DR (donnée : passive skillDRBonus)
   // Conséquence d'une défaite du guetteur : l'État Surpris. Vigilance (talent `vigilance`) interpose AVANT un
   // Test de Perception (+0) cadence-aware — réussite = pas de Surprise, échec = Surpris.
   // `sense` NON posé sur les deux Tests ci-dessous (Surprise ET Vigilance) — DÉCISION, pas un oubli : LDB 13
@@ -1035,9 +1036,9 @@ export function previewCast(
   },
 ): { label: string; base: number; target: number; mods: ModLine[] } {
   const ci = castInfo(spell);
-  const target = castingValue(caster, ci.skill, ci.spec);
+  const target = castingValue(caster, ci);
   const advLine = advantageModLine(caster); // Tests d'Incantation
-  const penMod = castPenaltyMod(caster, ci.skill); // contrecoups actifs (Imparfaite/Colère)
+  const penMod = castPenaltyMod(caster, ci.skill.id); // contrecoups actifs (Imparfaite/Colère)
   const windsLine = opts?.ctx ? ventsAnnonces(opts.ctx.s.battle, !!opts.jete) : null;
   const windsMod = windsLine?.value ?? 0;
   const isPrayer = !ci.requireNI; // la branche de résolution, pas un proxy sur `cn`
@@ -1051,7 +1052,7 @@ export function previewCast(
   ];
   return {
     label: isPrayer ? tr('cf.prayerLabel') : tr('cf.castLabel', { ni }), // le test reste Langue (Magick) — « Projectile magique » ne change QUE Localisation/Dégâts après réussite (LDB 46 l.101)
-    base: castingBaseValue(caster, ci.skill, ci.spec),
+    base: castingBaseValue(caster, ci),
     target: target + windsMod + (ctx?.total ?? 0),
     mods,
   };
@@ -4980,7 +4981,7 @@ export function isDispellableCast(pc: PendingCast, spell: SpellLike): boolean {
 /** Meilleur contre-lanceur d'un lot de candidats : le plus haut Langue (Magick). SOURCE UNIQUE de la
  *  sélection — chant inline (aucun surfacé) et repli IA quand les surfacés déclinent. */
 export function bestCounterspeller(candidates: readonly Combatant[]): Combatant | undefined {
-  return [...candidates].sort((a, b) => castingValue(b, 'langue', 'magick') - castingValue(a, 'langue', 'magick'))[0];
+  return [...candidates].sort((a, b) => castingValue(b, incantationArcane()) - castingValue(a, incantationArcane()))[0];
 }
 
 /** Combattants d'une fenêtre de Contre-sort (rangées → acteurs vivants de l'état). PUR. */
@@ -5178,7 +5179,7 @@ export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, target
   const test = testDOppositionDeSort(spell.id, opposed);
   const participants = targets
     .filter((t) => !isOutOfAction(t))
-    .map((t) => ({ id: t.id, interactive: jetSurfaced(get(), t), ligne: rollLine({ actor: t, test: idsDuTest(test), difficulty: 'intermediaire' }), result: null }));
+    .map((t) => ({ id: t.id, interactive: jetSurfaced(get(), t), ligne: rollLine({ actor: t, test, difficulty: 'intermediaire' }), result: null }));
   if (!participants.length) return false;
   // `menace: 'magie'` : le Test opposé « résiste au Sort » → Résistance (Menace : Magie) offerte (LDB 10).
   set({ pendingCastOpposition: { participants, test, menace: 'magie' } });
@@ -5698,7 +5699,7 @@ export function counterspellCandidates(
   if (!battle || battle.over) return [];
   return battle.combatants.filter((c) => {
     if (!effectivelyHostile(c, caster) || c.id === caster.id || isOutOfAction(c) || c.dispelledThisRound) return false;
-    if (!knowsCastingSkill(c, 'langue', 'magick')) return false;
+    if (!knowsCastingSkill(c, { id: 'langue', spec: 'magick' })) return false;
     if (c.id === target.id) return true;
     if (!c.pos || !target.pos) return false;
     if (combatDistance(c, target) > Math.max(1, Math.floor(effectiveChar(c, 'force-mentale') / 2))) return false;
@@ -6773,7 +6774,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
       const step = monoStep({
         id: `combatEndCorruption-${c.id}`, kind: 'combatEndCorruption', actor: c, icon: 'nav/mutation',
         difficulty: test.difficulty,
-        ligne: { test: { skill: test.skill.id, spec: test.skill.spec }, combat: { kind: 'test' } },
+        ligne: { test: { skill: test.skill }, combat: { kind: 'test' } },
         label: stepPrecision(tr('step.expoCorruption'), dataLabel(corr.label)), meta: { level: corr.level, exposureLabel: corr.label },
         // L'enjeu DIT le coût de l'échec, lu à l'applier : `corruptionGain(niveau, false, …)` est constant
         // par niveau (1/2/3) — la valeur interpolée vient donc du MÊME calcul que la conséquence.
@@ -8047,11 +8048,11 @@ function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): Combat
       // Le Test allégé se lit SUR LA RANGÉE qui en profite (sa Difficulté, son libellé de ligne) : deux
       // héros face à la MÊME source ne partagent pas forcément le Talent.
       label: sansPeur ? stepSansPeur(skillLabel) : skillLabel,
-      skillId: skill.id, difficulty,
+      skill: structuredClone(skill), difficulty, // #2097
       // Ligne montée par le monteur CANONIQUE (#1153), canal `combat` NON-attaque : base NUE, pénalité
       // d'États NOMMÉE (LDB 16 : « -10 à tous vos Tests » par palier) et comptée UNE fois dans la cible.
       // La calculer à la main ici l'oubliait : un héros Brisé ×2 testait sa Peur à pleine valeur.
-      ...rollStep({ actor: c, test: { skill: skill.id, spec: skill.spec }, combat: { kind: 'test' }, difficulty }),
+      ...rollStep({ actor: c, test: { skill }, combat: { kind: 'test' }, difficulty }),
       ...(extended ? { extendedDrTarget: t.indice, extendedDrDone: t.prevDR } : {}),
       ...(sansPeur ? { meta: { sansPeur: true } } : {}),
     },
@@ -8116,7 +8117,7 @@ function passeDePsy(get: Get, set: SetFn, collect: (get: Get, c: Combatant, roun
 function resoudreEnLigne(get: Get, set: SetFn, c: Combatant, decl: CombatPsychDecl, row: BatchParticipant): void {
   const jet = garanti(row.result, c.id, 'rangée de Psychologie jetée');
   const inv = estJete(jet)
-    ? inversionDeTalent(c, { skill: row.skillId, spec: row.spec, contexte: 'psych' }, jet.roll, jet.target,
+    ? inversionDeTalent(c, { skill: row.skill, contexte: 'psych' }, jet.roll, jet.target,
       (tr) => evaluerRangeeBatch(row, hydrateTR({ ...tr, target: row.target, base: row.base })))
     : null;
   const r = inv ? { ...jet, ...inv } : jet;

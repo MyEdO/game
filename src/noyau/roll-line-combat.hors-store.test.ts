@@ -7,7 +7,8 @@ import { resolveActGates } from './combat/turnHooks';
 import { forceCrewRole } from './shipManeuver';
 import { combatBaseValue, combatValue, combatValueMods, combineMods, type ModLine } from '../engine/combat';
 import { combatTestPenalty, testStatePenalty, testStatePenaltyParts } from '../engine/conditions';
-import { testValue, testValueParts, skillBaseValue, rawCombatTestBase, sujetDesIds } from '../engine/skills';
+import { testValue, testValueParts, skillBaseValue, rawCombatTestBase } from '../engine/skills';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import { effectiveChar } from '../engine/characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
@@ -134,7 +135,7 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
     setBattle([doc, blesse], 'doc');
 
     const v = testValue(doc, { skill: { id: 'guerison' } });
-    const nue = skillBaseValue(doc, 'guerison');
+    const nue = skillBaseValue(doc, { skill: { id: 'guerison' } });
     expect(v, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
 
     banc.setState({ battle: { ...get().battle!, action: 'heal' } }); // le Soin se commet depuis son mode armé (`HEAL_MODE`)
@@ -146,7 +147,7 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
     const ph2 = get().pendingHeal!;
     expect(ph2.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph2.difficulty]).target);
 
-    const ligne = rollLine({ actor: doc, test: { skill: 'guerison' }, difficulty: ph2.difficulty, valeur: ph2.skillValue });
+    const ligne = rollLine({ actor: doc, test: { skill: { id: 'guerison' } }, difficulty: ph2.difficulty, valeur: ph2.skillValue });
     expect(ligne.base).toBe(nue);
     expect(inexplique({ ...ligne, difficulty: ph2.difficulty })).toBe(0);
   });
@@ -193,7 +194,7 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     }
     const corruption = steps.find((s) => s.kind === 'combatEndCorruption')?.participants?.find((r) => r.id === 'sv');
     if (corruption) {
-      expect(corruption.base, 'base = Niveau de Compétence NU (l’État sort en chip)').toBe(skillBaseValue(survivant, 'resistance'));
+      expect(corruption.base, 'base = Niveau de Compétence NU (l’État sort en chip)').toBe(skillBaseValue(survivant, { skill: { id: 'resistance' } }));
       expect(corruption.target, 'pénalité de combat comptée UNE fois').toBe(clampTarget(rawCombatTestBase(survivant, { skill: { id: 'resistance' } }) + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
       expect(inexplique(corruption)).toBe(0);
     }
@@ -281,14 +282,14 @@ describe('ORACLE du canal combat — balayage EXHAUSTIF (#1153 L1b, sonde promue
   });
 
   it('224 combinaisons (canal × État × effet × profil) : ZÉRO reconstruction en échec', () => {
-    const CANAUX: { combat: RollLineCombat; test?: { skill?: string; characteristic?: never | 'force-mentale' | 'dexterite' } }[] = [
+    const CANAUX: { combat: RollLineCombat; test?: SujetDuJet }[] = [
       { combat: { kind: 'melee' } },
       { combat: { kind: 'melee', weapon: epee } },
       { combat: { kind: 'ranged' } },
       { combat: { kind: 'ranged', weapon: arbalete } },
       { combat: { kind: 'test' }, test: { characteristic: 'force-mentale' } },
       { combat: { kind: 'test' }, test: { characteristic: 'dexterite' } },
-      { combat: { kind: 'test' }, test: { skill: 'resistance' } },
+      { combat: { kind: 'test' }, test: { skill: { id: 'resistance' } } },
     ];
     const ETATS = [[], [{ id: 'empoisonne', value: 1 }], [{ id: 'empoisonne', value: 2 }], [{ id: 'sonne', value: 1 }]];
     const EFFETS = [
@@ -326,11 +327,11 @@ describe('ORACLE du canal combat — balayage EXHAUSTIF (#1153 L1b, sonde promue
               if (fournie.target !== derive.target) ko.push(`${nom} : cible fournie ${fournie.target} ≠ dérivée ${derive.target}`);
               // ORACLE : la ligne se réduit EXACTEMENT à la formule moteur du canal.
               const attendu = c.combat.kind === 'test'
-                ? rawCombatTestBase(a, sujetDesIds({ skill: c.test?.skill, characteristic: c.test?.characteristic })) + combatTestPenalty(a)
+                ? rawCombatTestBase(a, c.test ?? {}) + combatTestPenalty(a)
                 : combatValue(a, c.combat.kind, c.combat.weapon);
               if (valeur !== attendu) ko.push(`${nom} : ${valeur} ≠ formule moteur ${attendu}`);
               const nue = c.combat.kind === 'test'
-                ? skillBaseValue(a, c.test?.skill, undefined, c.test?.characteristic)
+                ? skillBaseValue(a, c.test ?? {})
                 : combatBaseValue(a, c.combat.kind, c.combat.weapon);
               if (derive.base !== nue) ko.push(`${nom} : base ${derive.base} ≠ valeur NUE ${nue}`);
               if (inexplique({ ...derive, difficulty: 'intermediaire' }) !== 0) ko.push(`${nom} : écart muet`);
@@ -353,8 +354,8 @@ describe('ORACLE du canal combat — balayage EXHAUSTIF (#1153 L1b, sonde promue
       id: 'so', label: 'Sourd', conditions: ETAT,
       skills: [{ id: 'perception', advances: 20, characteristic: 'initiative' }] as never,
     });
-    const ligne = rollLine({ actor: sourd, test: { skill: 'perception', sense: 'ouie' }, difficulty: 'intermediaire', combat: { kind: 'test' } });
-    expect(ligne.base).toBe(skillBaseValue(sourd, 'perception'));
+    const ligne = rollLine({ actor: sourd, test: { skill: { id: 'perception' }, sense: 'ouie' }, difficulty: 'intermediaire', combat: { kind: 'test' } });
+    expect(ligne.base).toBe(skillBaseValue(sourd, { skill: { id: 'perception' } }));
     expect(inexplique({ ...ligne, difficulty: 'intermediaire' })).toBe(0);
   });
 });

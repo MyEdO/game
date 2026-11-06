@@ -141,7 +141,7 @@ import { testDuCavalier } from '../engine/movement';
  *  performClick d'IsoStage — pour rester neutre vis-à-vis des harnais de test sans UI.) */
 /** La ligne du jet de Dissipation, figée à son ouverture sur sa valeur, Soutien « même Domaine » compris. LDB 46 l.158-162 */
 const ligneDeDissipation = (lanceur: Combatant, value: number, soutien: SupportDetail): RollLineParts =>
-  rollLine({ actor: lanceur, test: { skill: 'langue', spec: 'magick' }, difficulty: 'intermediaire', valeur: value, ...(soutien.bonus > 0 ? { soutien } : {}) });
+  rollLine({ actor: lanceur, test: { skill: { id: 'langue', spec: 'magick' } }, difficulty: 'intermediaire', valeur: value, ...(soutien.bonus > 0 ? { soutien } : {}) });
 
 const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
   !!(pickActiveModalKey(s as never) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
@@ -1356,8 +1356,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // requis pour armer la pièce) : ceci reste le Soutien générique LDB 12, adjacence (l.196) gatée pareil
       // qu'ailleurs en combat (`combatDistance`) — s'annule d'elle-même si `chef` n'a pas de `pos` propre
       // (équipage navire PASSAGER hors case, shipPostes.ts l.244-245).
-      const sout = soutienDetail(servants, chef, 'projectiles', undefined, 'Poudre noire',
-        chef.pos ? (c) => !!c.pos && combatDistance(chef, c) <= 1 : undefined);
+      const sout = soutienDetail(servants, chef, { skill: { id: 'projectiles', spec: 'Poudre noire' } }, chef.pos ? (c) => !!c.pos && combatDistance(chef, c) <= 1 : undefined);
       const skillValue = combatValue(chef, 'ranged', w) + sout.bonus;
       const ligne = rollLine({
         actor: chef, difficulty: 'intermediaire', valeur: skillValue,
@@ -1924,7 +1923,7 @@ export function createCombatSlice(get: Get, set: Set) {
         if (combatBusy(s) || battle.over || activeCombatant(battle)?.id !== lanceur.id || !controlsCombatant(s, lanceur)) return;
         if (refuseParSonEntree(get, set, 'dispel', lanceur, battle)) return;
       }
-      if (!actorHasSkill(lanceur, 'langue', 'magick')) { get().log(t('cs.cannotDispel')); return; }
+      if (!actorHasSkill(lanceur, { id: 'langue', spec: 'magick' })) { get().log(t('cs.cannotDispel')); return; }
       const population = battle ? battle.combatants : s.party;
       const target = dispellableSpellsOn(population).find((d) => d.spellId === spellId && d.casterId === porteurId);
       if (!target) return;
@@ -1934,7 +1933,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // `Combatant.spells` = ids STABLES au runtime → résolution par id SEULE (pas de repli libellé : interdit).
       const domainsOf = (h: Combatant) => new Set((h.spells ?? []).map((id) => findSpellById(id)?.subType).filter(Boolean) as string[]);
       const mine = domainsOf(lanceur);
-      const sup = soutienDetail(population, lanceur, 'langue', 'intelligence', 'magick',
+      const sup = soutienDetail(population, lanceur, { skill: { id: 'langue', spec: 'magick' }, characteristic: 'intelligence' },
         (c) => c.kind === lanceur.kind && [...domainsOf(c)].some((d) => mine.has(d))
           && (!battle || !lanceur.pos || (!!c.pos && combatDistance(lanceur, c) <= 1)));
       const value = testValue(lanceur, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
@@ -1948,7 +1947,7 @@ export function createCombatSlice(get: Get, set: Set) {
         dispelCarrierId: null,
       });
     },
-    // Psychologie de COMBAT (LDB 21 l.9, l.25)    // Psychologie de COMBAT (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
+    // Psychologie de COMBAT (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
     // applier 'combatPsych', résolue par les verbes de jet de la cascade. La Détermination (LDB 17 l.59) est offerte
     // sur la RANGÉE par `jetDetermine('cascadeBatch')`.
     // Psychologie À LA RENCONTRE (couture C, LDB 21) : cascade équivalente, applier 'encounterPsych',

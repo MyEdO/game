@@ -402,7 +402,7 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
     hasWaterContainer(active) ? waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind)) : [],
   /** Dissiper est un Test de Langue (Magick) (`LDB 46 l.158-162`) : sans elle, rien n'est dissipable par ce porteur. */
   'sorts-dissipables': ({ active, battle }) =>
-    actorHasSkill(active, 'langue', 'magick') ? dispellableSpellsOn(battle.combatants) : [],
+    actorHasSkill(active, { id: 'langue', spec: 'magick' }) ? dispellableSpellsOn(battle.combatants) : [],
   /** Méthodes d'Avantage POSSÉDÉES (dédupliquées par Compétence : un Savoir groupé = une case). Le
    *  PLAFOND ne filtre plus ici : il est le verdict d'offre `avantage-sous-plafond`, qui laisse la case
    *  dessinée fermée avec sa raison — une seule source, jamais un filtre muet doublé d'un gate. */

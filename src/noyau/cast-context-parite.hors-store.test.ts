@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
-import { castingValue } from '../engine/magic';
+import { castingValue, incantationArcane } from '../engine/magic';
 import { castContextMods } from './combatFlow';
 import { domainEnvironmentBonus } from '../engine/domainAttributes';
 import { findSpellById } from '../data';
@@ -48,7 +48,7 @@ describe('Incantation — le contexte est le MÊME au premier jet et à la relan
     expect(domainEnvironmentBonus(spell, 'rural')).toBe(10); // la donnée porte bien le bonus
     banc.getState().jetRoll('cast');
     const first = banc.getState().pendingCast!.result!;
-    expect(first.target).toBe(castingValue(M as Combatant, 'langue', 'magick') + 10);
+    expect(first.target).toBe(castingValue(M as Combatant, incantationArcane()) + 10);
   });
 
   it('la RELANCE rend la même cible que le premier jet (aucun mod n’apparaît/disparaît)', () => {

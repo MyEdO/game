@@ -499,10 +499,10 @@ describe('Péripétie terrestre — base NUE + Soutien NOMMÉ, cible invariante 
     setup(map({ perilDie: 8 }), [lead, aide, aide2]);
     set({ travelPlan: { routeId: 'r1', fromPlaceId: 'pa', toPlaceId: 'pb', mode: 'pied', hoursPerDay: 6, km: 12, kmDone: 0, interrupted: false } as never });
 
-    const nue = skillBaseValue(lead, 'survie-en-exterieur');
+    const nue = skillBaseValue(lead, { skill: { id: 'survie-en-exterieur' } });
     const jetee = testValue(lead, { skill: { id: 'survie-en-exterieur' } });
     expect(jetee, 'l’État mord le jet, pas le Niveau de Compétence').toBeLessThan(nue);
-    const soutien = soutienDetail(get().party, lead, 'survie-en-exterieur');
+    const soutien = soutienDetail(get().party, lead, { skill: { id: 'survie-en-exterieur' } });
     expect(soutien.bonus, 'le camarade éligible soutient (l.195)').toBeGreaterThan(0);
 
     const st = perilInsert('ereintant', 'landPerilSurvie')!;
@@ -549,8 +549,8 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
   it('1ᵉʳ km : base NUE, Soutien NOMMÉ, aucune chip anonyme', () => {
     ouvreJournee();
     const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
-    const picked = partyAssisted(get().party, 'conduite-d-attelage')!;
-    expect(st.base).toBe(skillBaseValue(picked.actor, 'conduite-d-attelage'));
+    const picked = partyAssisted(get().party, { skill: { id: 'conduite-d-attelage' } })!;
+    expect(st.base).toBe(skillBaseValue(picked.actor, { skill: { id: 'conduite-d-attelage' } }));
     expect(soutienDe(st)).toBe(picked.support.bonus);
     expect(st.target).toBe(picked.value + DIFFICULTY_MODIFIERS.intermediaire);
     expect(inexplique(st)).toBe(0);
@@ -559,13 +559,13 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
   it('2ᵉ km : le −10/km est NOMMÉ une seule fois et la cible ne le compte pas deux fois (B1)', () => {
     ouvreJournee();
     const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
-    const picked = partyAssisted(get().party, 'conduite-d-attelage')!;
+    const picked = partyAssisted(get().party, { skill: { id: 'conduite-d-attelage' } })!;
     // Le km courant RÉUSSIT → l'applier insère le km suivant (`galloped = 1`, pénalité −10).
     const reussi = { ...st, result: { roll: 5, target: st.target!, sl: 3, success: true } } as typeof st;
     const out = applierDe('landForcedPace')!(get, set, reussi, get().party[0], { steps: [reussi], index: 0 });
     const km2 = (out?.insert ?? []).find((s) => s.kind === 'landForcedPace')!;
     expect(km2, 'le kilomètre suivant s’insère').toBeTruthy();
-    expect(km2.base, 'base NUE : ni le Soutien ni la pénalité ne s’y cachent').toBe(skillBaseValue(picked.actor, 'conduite-d-attelage'));
+    expect(km2.base, 'base NUE : ni le Soutien ni la pénalité ne s’y cachent').toBe(skillBaseValue(picked.actor, { skill: { id: 'conduite-d-attelage' } }));
     expect(lignesDe(km2.mods, refDeRegle('allure-forcee-attelage'))).toEqual([ligneAllureForcee(1)]);
     expect(soutienDe(km2)).toBe(picked.support.bonus);
     expect(km2.target).toBe(picked.value + ligneAllureForcee(1)!.value + DIFFICULTY_MODIFIERS.intermediaire);
@@ -640,7 +640,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
   it('reprise de contrôle : MÊME conducteur soutenu que le km, sur les DEUX surfaces (B4)', () => {
     ouvreJournee();
     const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
-    const picked = partyAssisted(get().party, 'conduite-d-attelage')!;
+    const picked = partyAssisted(get().party, { skill: { id: 'conduite-d-attelage' } })!;
     // Échec STUPÉFIANT (−6 DR) : l'applier tire le Tableau des problèmes ; sur « Incontrôlable » il
     // insère la reprise de contrôle. Les autres tirages n'en insèrent pas — on cherche la graine qui
     // produit le cas, sans stub (le d100 vit dans `battleRng`).
@@ -653,7 +653,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     }
     expect(control, 'le cas « Incontrôlable » est atteignable').toBeTruthy();
     expect(control!.actorId).toBe(picked.actor.id);
-    expect(control!.base).toBe(skillBaseValue(picked.actor, 'conduite-d-attelage'));
+    expect(control!.base).toBe(skillBaseValue(picked.actor, { skill: { id: 'conduite-d-attelage' } }));
     expect(soutienDe(control!), 'le Soutien s’applique aussi à la reprise (LDB 12 l.189)').toBe(picked.support.bonus);
     expect(control!.target, 'la cible NE dépend PAS de la surface : même valeur soutenue').toBe(picked.value + DIFFICULTY_MODIFIERS.intermediaire);
     expect(inexplique(control!)).toBe(0);

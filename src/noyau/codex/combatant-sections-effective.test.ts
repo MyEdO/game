@@ -30,7 +30,7 @@ describe('combatantSections — affichage carac/compétence = moteur (#498)', ()
     const skillSec = sections.find((s) => s.title === 'Compétences')!;
     const ccSkill = sigmund.skills.find((s) => s.characteristic === 'capacite-de-combat');
     expect(ccSkill).toBeDefined();
-    const expected = skillBaseValue(sigmund, ccSkill!.id, ccSkill!.spec);
+    const expected = skillBaseValue(sigmund, { skill: ccSkill! });
     const row = skillSec.rows.find((r) => 'show' in r && r.show?.endsWith(` ${expected}`)) as { show?: string } | undefined;
     expect(row).toBeDefined();
   });

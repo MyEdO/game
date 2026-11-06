@@ -8,7 +8,7 @@
  * spells.json + engine/magic).
  */
 import { findSpell } from '../../data';
-import { castInfo, isMagicMissile } from '../../engine/magic';
+import { castInfoIsPrayer, isMagicMissile } from '../../engine/magic';
 import type { StyleDeSort } from '../../noyau/animation';
 
 /** Style de geste depuis la relation lanceur↔cible (offensif vs soutien). */
@@ -30,7 +30,7 @@ export function classifySpellByLabel(label: string): { school: SpellSchool; miss
   const spell = findSpell(label);
   if (!spell) return { school: 'arcane', missile: false };
   return {
-    school: castInfo(spell).skill === 'priere' ? 'divine' : 'arcane',
+    school: castInfoIsPrayer(spell) ? 'divine' : 'arcane',
     missile: isMagicMissile(spell),
   };
 }
