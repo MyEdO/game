@@ -5,9 +5,11 @@
  * doublée d'un `console.warn` en DEV qui nomme l'id fautif. Le rendu ne déguise plus l'échec, et rien
  * ne lève : une donnée fautive se voit, elle n'emporte pas la scène.
  */
-import { MISSING_TONE, MISSING_TONE_DARK } from '../teamColors';
-
-export { MISSING_TONE, MISSING_TONE_DARK };
+/** Ton d'ALARME du repli visible (#223, #877) — SOURCE UNIQUE, partagée par l'art de repli
+ *  (`gameIso/catalog/viewArt.ts` `MISSING_ART`) et les entrées de repli des catalogues. */
+export const MISSING_TONE = '#ff2fb0';
+/** Fond sourd de la caisse d'alarme (contraste du ton criard). */
+export const MISSING_TONE_DARK = '#2a0820';
 
 /** Id porté par toute entrée de repli visible. Hors de TOUT registre : aucune donnée ne le référence,
  *  et une garde de couverture (`structureAppearance-coverage.test.ts`) le distingue d'une entrée réelle. */

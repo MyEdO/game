@@ -195,7 +195,7 @@ function enCombat(banc: Banc) {
 }
 
 describe('pose de la Zone d’Effet : refusée sur un Sort qui ne part pas, la partie continue (LDB 47 l.15, l.28)', () => {
-  it('Explosion ratée : `castPlaceZone(true)` refusé, la fenêtre reste ouverte et s’applique', () => {
+  it('Explosion ratée : la pose de la zone (`cast.carte`) refusée, la fenêtre reste ouverte et s’applique', () => {
     const banc = ouvrirLeBanc({ desFixes: true });
     const { H } = enCombat(banc);
     banc.setState({ battle: { ...banc.getState().battle!, action: 'cast', selectedSpellId: 'explosion' } });
@@ -206,7 +206,7 @@ describe('pose de la Zone d’Effet : refusée sur un Sort qui ne part pas, la p
     expect(banc.getState().pendingCast!.result!.cast).toBe(false);
     expect(fenetreDIncantation(banc.getState())!.pose!.refus).toBe(refusDeLaPose(banc.getState(), true));
     expect(refusDeLaPose(banc.getState(), true)).toBeTruthy();
-    banc.getState().castPlaceZone(true);
+    banc.getState().jetRegler('cast', 'carte', 'zone');
     expect(banc.getState().pendingCast!.zone!.placing, 'la fenêtre ne s’efface pas').toBeFalsy();
     banc.getState().jetConfirm('cast');
     expect(banc.getState().pendingCast, 'l’incantation ratée se clôt : rien ne bloque').toBeNull();

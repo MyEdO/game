@@ -1,6 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
-import { refusDeChoixDePaie } from '../noyau/shipCrew';
+import { refusDuChoix } from '../noyau/choixDeFenetre';
 import { Modal } from './Modal';
 import { OptionChooser } from './OptionChooser';
 import { MultiRollList } from './MultiRollList';
@@ -23,10 +23,10 @@ import { moraleTone } from './shipStatus';
 export function CouncilModal() {
   const p = useGame((s) => s.pendingCouncil);
   const purseBrass = useGame((s) => toBrass(partyMoneyTotal(() => s)));
-  const councilPay = useGame((s) => s.councilPay);
+  const choisir = useGame((s) => s.fenetreChoisir);
   const fermer = useGame((s) => s.fenetreFermer);
   const lever = () => fermer('council');
-  const refusDe = useGame(useShallow((s) => Object.fromEntries(payChoices().map(({ factorId }) => [factorId, refusDeChoixDePaie(s, factorId)]))));
+  const refusDe = useGame(useShallow((s) => Object.fromEntries(payChoices().map(({ factorId }) => [factorId, refusDuChoix(s, 'council', 'paie', factorId)]))));
   if (!p) return null;
 
   const title = <><Icon id="scenario/naval" size="sm" /> Conseil de bord</>;
@@ -68,7 +68,7 @@ export function CouncilModal() {
           <span className="council-opt-effect">{f && formatEffetSigne(f.effect)} Moral</span>
         </>
       ),
-      onSelect: () => councilPay(factorId),
+      onSelect: () => choisir('council', 'paie', factorId),
     };
   });
 

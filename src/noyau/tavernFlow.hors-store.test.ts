@@ -451,7 +451,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     gagne(a, b);
     expect(adv(a.id)).toBe(1);
     expect(sequenceAbandonOf(get)?.title, 'sans mise : la partie, rien d’autre').toBe('Renoncer à la partie : elle est perdue.');
-    get().sequenceAbandon();
+    get().jetRegler('cascade', 'abandon', true);
     expect(get().sequence).toBeNull();
     expect(get().pendingCascade).toBeNull();
     const res = get().tavernGames!.result!;
@@ -468,7 +468,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     poseManche({ [a.id]: -10, [b.id]: -9 });
     const cum = get().sequence!.cum as Record<string, number>;
     expect(cum.player, 'le total ne descend jamais sous 0').toBeGreaterThanOrEqual(0);
-    get().sequenceAbandon();
+    get().jetRegler('cascade', 'abandon', true);
     const res = get().tavernGames!.result!;
     expect([res.playerSL, res.opponentSL]).toEqual([cum.player, cum.opponent]);
     expect(res.detail).toBe(`${a.label} abandonne. ${cum.player} DR cumulés contre ${cum.opponent} en 2 manches`);
@@ -478,7 +478,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     const [a, b] = endurants();
     banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
-    get().sequenceAbandon();
+    get().jetRegler('cascade', 'abandon', true);
     expect(get().tavernGames!.result!.detail).toBe(`${a.label} abandonne.`);
     expect(get().journal[get().journal.length - 1]).toBe(`Le bras de fer — ${a.label} contre ${b.label}, perdu : ${a.label} abandonne.`);
   });

@@ -25,7 +25,7 @@ import {
 import { HALO_RING_CHORDS, HALO_SLOTS, HALO_SLOT_CAPACITY, HALO_SLOT_OPACITY, buildHaloMesh, type HaloSlot } from '../backends/webgl/interactHaloMeshes';
 import { HALO_HOVER_SCALE, HALO_RX_PX, SPARK_DX_PX, SPARK_DY_PX, haloRadiusK, type InteractHalo } from '../builders/interactHalos';
 import { ISO_PX_PER_M } from '../iso';
-import { pxPerM } from '../backends/webgl/worldTris';
+import { pxPerM } from '../../noyau/monde/volume/worldTris';
 import { ringDashes } from './dynamicMarkPose';
 
 /**

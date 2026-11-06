@@ -1,5 +1,5 @@
 /**
- * ASSEMBLEUR DU MONDE VOLUMIQUE : les builders du pivot (`builders/floors|walls|roofs|props`)
+ * ASSEMBLEUR DU MONDE VOLUMIQUE : les builders du pivot (`noyau/monde/volume/floors`, `builders/walls|roofs|props`)
  * deviennent (a) UNE géométrie de monde fusionnée (positions + couleurs de sommet), (b) une liste de
  * SUJETS de billboard (le décor), chacun capable de rendre SA chaîne SVG pour une vue.
  *
@@ -17,11 +17,12 @@
  * — mesuré C6, l'import échoue à `Cannot read properties of undefined (reading 'DEV')`.
  */
 import * as THREE from 'three';
-import { buildFloors } from '../../builders/floors';
+import { buildFloors } from '../../../noyau/monde/volume/floors';
 import { buildWalls } from '../../builders/walls';
 import { buildRoofs, ROOF_SLOPE_M } from '../../builders/roofs';
 import { buildProps } from '../../builders/props';
-import { estPropVolumique, type CellSide, type Face, type PropEl, type RoofEl, type SceneEl, type TokenEl, type WallEl } from '../../builders/types';
+import { estPropVolumique, type CellSide, type PropEl, type RoofEl, type SceneEl, type TokenEl, type WallEl } from '../../builders/types';
+import { type Face } from '../../../noyau/monde/volume/types';
 import { findPropById, findPropMaterialById, matieresDe, refEstVolumique } from '../../../data';
 import { roofMaterial } from '../../catalog/roofs';
 import { toitureEffective } from '../../../noyau/sceneEdit';
@@ -30,8 +31,9 @@ import { roofCourseStepM, variantOf } from '../../detail/courses';
 import type { DetailRecipe } from '../../../data/materials.types';
 import type { PeriodKind } from './periodTexture';
 import { faceBakeKey, needsFaceBake } from './faceBake';
-import { facePoly, faceUvFrame, facesGeometry, orienterPoly, shadeFamily } from './worldTris';
-import { faceSurface, shadeFactorOf, tintVarFactor } from './faceColors';
+import { centreDeLaCarte, facePoly, faceUvFrame, facesGeometry, shadeFamily, trianglesOrientes } from '../../../noyau/monde/volume/worldTris';
+import { faceSurface, shadeFactorOf } from './faceColors';
+import { tintVarFactor } from '../../../noyau/monde/volume/matieres';
 import { faceDepthOf } from './faceRelief';
 import { BB_W, BB_H } from '../../pov/billboardCore';
 import { povDepth } from '../../pov/camera';
@@ -468,7 +470,7 @@ export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDAr
   // triangles de mur, arène 2756/5512, soit ~50 %) et 1887/4020 triangles de décor (#1624).
   // Le CENTRE de la carte est ce que ce site fournit à la loi : elle en tire le dehors d'une surface
   // ouverte verticale.
-  const centreCarte = { x: ((scene.dimensions.w - 1) / 2) * mpt, z: ((scene.dimensions.h - 1) / 2) * mpt };
+  const centreCarte = centreDeLaCarte(scene.dimensions, mpt);
   // PLAGES DE PICKING : les sommets ORIGINAUX d'un décor volumique, relevés AVANT toute indexation —
   // un cutaway réécrit l'index de dessin, jamais les sommets. Un lot par (entité × groupe de surface) :
   // la cuisson groupe par matériau, donc un même décor à deux matériaux occupe deux plages disjointes.
@@ -477,8 +479,7 @@ export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDAr
   const pousser = (i: number, groupe: number) => {
     const g = geoms[i];
     const début = positions.length / 3;
-    g.tris.forEach((tri, t) => {
-      const { versLExterieur, normale } = orienterPoly(tri, g.oriented, centreCarte);
+    trianglesOrientes(g, centreCarte).forEach(({ sommets, ordre, normale }, t) => {
       // MODELÉ DE FORME (#1300) : la famille se lit sur la normale TELLE QUE LA LOI LA PRÉSENTE — la
       // normale géométrique d'origine ne porte de sens QUE sous le régime `oriented`. Mesuré sur trois
       // cartes (arène, opéra, siège) : 100 % des triangles de sol sortent du pivot avec une normale
@@ -486,14 +487,13 @@ export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDAr
       // avant elle aurait peint tous les sols de toutes les scènes en famille de soffite.
       const s = shadeFactorOf(shadeFamily(normale));
       // Le retournement d'un triangle PERMUTE ses UV comme ses sommets (elles sont par SOMMET).
-      const ordre = versLExterieur ? [0, 1, 2] : [0, 2, 1];
-      for (const k of ordre) {
-        const p = tri[k];
+      sommets.forEach((p, i) => {
+        const k = ordre[i];
         positions.push(p.x, p.y, p.z);
         uvs.push(g.uv[t][k].u, g.uv[t][k].v);
         uv1s.push(g.uv1[t][k].u, g.uv1[t][k].v);
         shades.push(s);
-      }
+      });
     });
     // La couleur de sommet porte l'albédo du matériau × la variance de teinte de la surface (un aplat
     // répété tuile après tuile se lit sinon comme une nappe de peinture) × la visibilité ÉCHANTILLONNÉE

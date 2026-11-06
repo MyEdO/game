@@ -219,7 +219,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 5, sl: -9, success: false } });
     banc.getState().jetConfirm('corruption');
     expect(banc.getState().pendingRenounce).toBeTruthy();
-    banc.getState().renounceResolve(false); // subir la mutation
+    banc.getState().fenetreChoisir('renounce', 'renier', false); // subir la mutation
     draineCascade(banc.getState);
     const after = banc.getState().party.find((h) => h.id === a.id)!;
     expect(after.mutations?.length).toBe(1);
@@ -361,7 +361,7 @@ describe('corruptionTarget — #152 : reconditionné sur followsCharacterRules (
       battle: { combatants: [npc], log: [] } as never,
       pendingRenounce: { heroId: npc.id, testRoll: 99, testTarget: 30 },
     });
-    banc.getState().renounceResolve(true);
+    banc.getState().fenetreChoisir('renounce', 'renier', true);
     expect(banc.getState().pendingRenounce).toBeNull();
     expect(npc.resilience).toBe(0); // trouvé via followsCharacterRules → « Je te renie ! » a pu s'appliquer
   });

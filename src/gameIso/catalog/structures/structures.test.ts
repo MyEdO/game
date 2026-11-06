@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { structureAppearance, wallApp, wallPartColor } from './index';
 import { structureAppearances } from '../../../data';
-import { MISSING_ID, MISSING_TONE } from '../missing';
+import { MISSING_ID, MISSING_TONE } from '../../../noyau/monde/volume/missing';
 import { buildWalls } from '../../builders/walls';
 import { wallSvg } from '../../authoring/wallsSvg';
 import { emptyScene, type Scene, type WallSeg } from '../../../noyau/monde/scene';

@@ -6,14 +6,15 @@
  * - `tete` : la tête d'une race de rendu, dont l'`id` est celui de cette race (`raceAppearance.json`, #3113) ;
  *   aucune autre ligne ne porte un id de race.
  * - `coiffure` : une coiffure, non sexuée (#3113).
- * - `tenue` : une tenue portée sur le corps, que revêt l'ensemble qui l'habille (#3116).
+ * - `tenue` : une tenue portée sur le corps, que revêt l'ensemble qui l'habille (#3116), et les `carrieres` dont elle est
+ *   la tenue (#3456), une carrière dans une tenue au plus.
  * - `emplacement` : un point d'accroche d'accessoire.
  * - `piece` : une pièce d'habit (`categorie`) ; une pièce d'`accessoire` nomme son `emplacement`,
- *   toute autre n'en porte aucun.
+ *   toute autre n'en porte aucun ; une pièce d'`armure` peut nommer les `localisations` qu'elle couvre (LDB 13
+ *   l.140-145), qu'une armure portée qui les couvre revêt (#3456).
  * - `variante` (#3446) : une autre apparence de la `piece` qu'elle nomme, sans en recopier la catégorie ni
  *   l'emplacement ; un élément 3D de variante porte la clé `{ piece: <id de variante> }`.
- * - `ensemble` : ce qu'`habille` (référence typée `{ id, type }` : un objet, une apparence ou une tenue de
- *   cette garde-robe) revêt, la liste ordonnée de ses `pieces` ; un même `habille` ne figure qu'une fois.
+ * - `ensemble` : ce qu'`habille` (référence typée `{ id, type }` : un objet ou une tenue de cette garde-robe) revêt, la liste ordonnée de ses `pieces` ; un même `habille` ne figure qu'une fois.
  * - `embleme` (#3111) : un dessin posé au montage sur les surfaces `blason` d'un élément (`hotes/godot/pont/CONTRAT.md`,
  *   « Atelier 3D ») ; `svg` est un document SVG complet, couleurs comprises, à `viewBox` carré.
  *
@@ -24,7 +25,8 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { idsDe, ref, refMorte, refs, refTypee, type RefTypee } from '../grammaire/ref';
-import { enumNomme } from '../grammaire/valeurs';
+import { enumNomme, hitLocationSchema } from '../grammaire/valeurs';
+import type { HitLocation } from '../../../engine/localisations';
 import type { IdsParEspace } from '../_ids.generated';
 
 export const file = 'garde-robe.json';
@@ -60,9 +62,9 @@ export type CategorieDePiece = keyof typeof LIBELLES_DE_CATEGORIE;
 const CHARGE_PAR_KIND = {
   tete: { cles: [], requises: [] },
   coiffure: { cles: [], requises: [] },
-  tenue: { cles: [], requises: [] },
+  tenue: { cles: ['carrieres'], requises: [] },
   emplacement: { cles: [], requises: [] },
-  piece: { cles: ['categorie', 'emplacement'], requises: ['categorie'] },
+  piece: { cles: ['categorie', 'emplacement', 'localisations'], requises: ['categorie'] },
   variante: { cles: ['piece'], requises: ['piece'] },
   ensemble: { cles: ['habille', 'pieces'], requises: ['habille', 'pieces'] },
   embleme: { cles: ['svg'], requises: ['svg'] },
@@ -113,8 +115,8 @@ function refusDeSvg(svg: string): string | null {
   return null;
 }
 
-/** Ce qu'un ensemble habille : un objet, une apparence, ou une tenue de la sous-liste `tenue` de cette garde-robe (#3116). */
-const habilleSchema = refTypee(enumNomme({ trapping: 'Objet', apparence: 'Apparence', tenue: 'Tenue' }), { tenue: { type: 'gardeRobe', sousListe: 'tenue' } });
+/** Ce qu'un ensemble habille : un objet, ou une tenue de la sous-liste `tenue` de cette garde-robe (#3116, #3456). */
+const habilleSchema = refTypee(enumNomme({ trapping: 'Objet', tenue: 'Tenue' }), { tenue: { type: 'gardeRobe', sousListe: 'tenue' } });
 
 /** Clé d'unicité d'un `habille` : le couple `{ type, id }` (garde de doublon, index `findEnsembleParHabille` de `src/data/index.ts`). */
 export function cleDHabille(h: HabilleDEnsemble): string {
@@ -129,6 +131,8 @@ const doc = document(
     categorie: enumNomme(LIBELLES_DE_CATEGORIE).optional(),
     emplacement: ref('gardeRobe', undefined, 'emplacement').optional(),
     piece: ref('gardeRobe', undefined, 'piece').optional(),
+    localisations: z.array(hitLocationSchema).min(1).optional(),
+    carrieres: refs('career', { min: 1 }).optional(),
     habille: habilleSchema.optional(),
     pieces: refs('gardeRobe', { min: 1, sousListe: 'piece' }).optional(),
     svg: z.string().optional(),
@@ -138,7 +142,9 @@ const doc = document(
     categorie: { label: 'Catégorie', hint: 'Vêtement, armure ou accessoire' },
     emplacement: { label: 'Emplacement', hint: 'Point d’accroche d’une pièce d’accessoire' },
     piece: { label: 'Pièce', hint: 'La pièce dont la variante est une autre apparence' },
-    habille: { label: 'Habille', hint: 'L’objet, l’apparence ou la tenue que l’ensemble revêt' },
+    localisations: { label: 'Localisations', hint: 'Localisations que couvre une pièce d’armure, revêtue par l’armure portée qui les couvre' },
+    carrieres: { label: 'Carrières', hint: 'Carrières dont c’est la tenue' },
+    habille: { label: 'Habille', hint: 'L’objet ou la tenue que l’ensemble revêt' },
     pieces: { label: 'Pièces', hint: 'Pièces de l’ensemble, dans l’ordre' },
     svg: { label: 'Dessin', hint: 'Document SVG de l’emblème, à viewBox carré, fond transparent' },
   },
@@ -158,6 +164,11 @@ const doc = document(
       entree.superRefine((v, ctx) => {
         const e = v as Record<string, unknown> & { id: string; kind: keyof typeof CHARGE_PAR_KIND };
         if (e.kind === 'piece') {
+          const localisations = (e.localisations ?? []) as readonly string[];
+          if (localisations.length && e.categorie !== 'armure')
+            ctx.addIssue({ code: 'custom', path: ['localisations'], message: `garde-robe : la pièce « ${e.id} » n’est pas une armure — elle ne couvre aucune localisation.` });
+          const repetees = localisations.filter((l, i) => localisations.indexOf(l) !== i);
+          if (repetees.length) ctx.addIssue({ code: 'custom', path: ['localisations'], message: `garde-robe : la pièce « ${e.id} » répète ${repetees.join(', ')}.` });
           if ((e.categorie === 'accessoire') !== (e.emplacement !== undefined))
             ctx.addIssue({
               code: 'custom',
@@ -191,6 +202,14 @@ const doc = document(
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         const vus = new Map<string, string>();
+        const tenues = new Map<string, string>();
+        (v as readonly { id: string; kind: string; carrieres?: readonly string[] }[]).forEach((e, i) =>
+          (e.carrieres ?? []).forEach((carriere, j) => {
+            const premiere = tenues.get(carriere);
+            if (premiere === undefined) tenues.set(carriere, e.id);
+            else ctx.addIssue({ code: 'custom', path: [i, 'carrieres', j], message: `garde-robe : la carrière « ${carriere} » est la tenue de « ${premiere} » et de « ${e.id} ».` });
+          }),
+        );
         (v as readonly { id: string; kind: string; habille?: HabilleDEnsemble }[]).forEach((e, i) => {
           if (e.kind !== 'ensemble' || e.habille === undefined) return;
           const cle = cleDHabille(e.habille);
@@ -237,6 +256,7 @@ interface LigneDeNature<K extends string, Id extends string> {
 export interface PieceDef extends LigneDeNature<'piece', PieceId> {
   categorie: CategorieDePiece;
   emplacement?: { id: EmplacementId };
+  localisations?: HitLocation[];
 }
 
 /** VUE TS d'une ligne `variante`. */
@@ -251,10 +271,12 @@ export type TeteDef = LigneDeNature<'tete', TeteId>;
 export type CoiffureDef = LigneDeNature<'coiffure', CoiffureId>;
 
 /** VUE TS d'une ligne `tenue`. */
-export type TenueDeGardeRobe = LigneDeNature<'tenue', TenueId>;
+export interface TenueDeGardeRobe extends LigneDeNature<'tenue', TenueId> {
+  carrieres?: string[];
+}
 
-/** Ce qu'un ensemble habille : un objet, une apparence ou une tenue. */
-export type HabilleDEnsemble = RefTypee<'trapping' | 'apparence'> | { readonly id: TenueId; readonly type: 'tenue' };
+/** Ce qu'un ensemble habille : un objet ou une tenue. */
+export type HabilleDEnsemble = RefTypee<'trapping'> | { readonly id: TenueId; readonly type: 'tenue' };
 
 /** VUE TS d'une ligne `ensemble`. */
 export interface EnsembleDef extends LigneDeNature<'ensemble', string> {

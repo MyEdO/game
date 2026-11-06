@@ -23,6 +23,9 @@
 //   la main, sa sortie en focus ; sa sortie à l'Entrée rend la main à la scène.
 // - `exploration` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à sa case, la porte
 //   ouverte par le bouton de son geste d'exploration, puis un clic sur une case du réduit qui y mène le groupe.
+// - `relief` (`--scenario grimpant`, #3476) : la fenêtre du round à l'Entrée, le chasseur sur son plateau de 4 m ; un
+//   clic sur une case du plateau à une case de lui, au bord de la falaise, en montre l'aperçu : la case cliquée est
+//   celle de la surface sous le pointeur, à sa hauteur.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
 //   réponse cliquée : l'interlocuteur suivant prend la parole.
@@ -71,7 +74,9 @@
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
 //   node hotes/godot/recette.mjs --scenario embleme-au-combat --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --element <production d'un élément à surface blason>
+//   node hotes/godot/recette.mjs --scenario teinte-au-combat --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours exploration --scenario porte-close --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours relief --scenario grimpant --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -94,7 +99,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|fiche|inventaire|creation|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|fiche|inventaire|creation|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -215,12 +220,30 @@ async function prouverLEmbleme(elementId) {
   await capturer('3253-embleme-au-combat')
 }
 
+/** Chaque teinte de la vue posée à l'écran (#3456) : pour chaque entrée de `montes` d'un corps qui porte une `palette`,
+ *  chaque surface de son élément (manifeste du dossier servi) dont cette palette colore l'emplacement porte sa couleur
+ *  (`wfrpEcran.corps[id].couleurs`) ; une vue qui en porte se capture. */
+async function prouverLesTeintes() {
+  const dossier = o.modeles ?? fileURLToPath(new URL('./projet/modeles', import.meta.url))
+  const v = await vue()
+  const attendues = Object.entries(v.corps.combattants).flatMap(([id, c]) =>
+    (c?.montes ?? []).filter((m) => m.element !== null && m.palette).flatMap((m) =>
+      (JSON.parse(readFileSync(join(dossier, `${m.element}.manifeste.json`), 'utf8')).surfaces ?? [])
+        .filter((s) => m.palette[s.palette] !== undefined)
+        .map((s) => ({ id, ligne: m.ligne, nom: s.nom, couleur: m.palette[s.palette] }))))
+  if (!attendues.length) return noter('aucune surface teinte dans la vue')
+  await waitFor(session, `(() => { const c = globalThis.wfrpEcran?.corps; return !!c && ${JSON.stringify(attendues)}.every((a) => c[a.id]?.couleurs?.[a.ligne]?.[a.nom] === a.couleur) })()`, { timeoutMs: 120000 })
+  noter(`teintes posées : ${attendues.map((a) => `${a.id} ${a.ligne} ${a.nom} ${a.couleur}`).join(' ; ')}`)
+  await capturer('3456-teinte-au-combat')
+}
+
 async function parcoursCombat() {
   const elementId = o.element ? await preparerLesModeles() : null
   await cliquerBouton('Combat')
   noter('menu : bouton « Combat » cliqué')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   if (elementId) await prouverLEmbleme(elementId)
+  await prouverLesTeintes()
   let v = await vue()
   assert.ok(v.projection.fenetre, 'la fenêtre du round tient la main')
   assert.equal(v.projection.combat.round, 1)
@@ -412,6 +435,29 @@ async function parcoursExploration() {
   await attendreLaVue(`v.projection.exploration?.groupe.join() === '${reduit.x},${reduit.y}'`)
   noter(`clic sur la case ${reduit.x},${reduit.y} : le groupe y marche`)
   await capturer('3328-e1-3-reduit')
+}
+
+async function parcoursRelief() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  await capturer('3476-r1-round')
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const heros = actif(v)
+  assert.equal(heros?.camp, 'hero', 'un héros est actif')
+  const plateau = v.cases.filter((c) => c.zone === 'marche' && c.cout === 1 && c.case.y === 2)
+  assert.ok(plateau.length > 0, `une case du bord du plateau à une case de ${heros.nom} en ${heros.pos}`)
+  const vers = plateau[0].case
+  await cliquerCase(vers)
+  v = await vue()
+  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y]], 'la case cliquée est celle du plateau sous le pointeur')
+  noter(`clic sur (${vers.x}, ${vers.y}), au bord du plateau de 4 m : son aperçu`)
+  await capturer('3476-r2-plateau')
 }
 
 async function parcoursDialogue() {
@@ -1355,7 +1401,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repit: parcoursRepit, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repit: parcoursRepit, exploration: parcoursExploration, relief: parcoursRelief, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

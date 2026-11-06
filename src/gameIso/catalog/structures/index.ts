@@ -2,7 +2,7 @@ import type { StructureAppearanceDef, WallPart } from '../../../data/structureAp
 import type { WallSeg } from '../../../noyau/monde/scene';
 import { structureAppearances } from '../../../data';
 import { shade } from '../../shade';
-import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from '../missing';
+import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from '../../../noyau/monde/volume/missing';
 
 const MAP: Record<string, StructureAppearanceDef> = Object.fromEntries(structureAppearances.map((s) => [s.id, s]));
 
@@ -35,7 +35,7 @@ export function wallApp(seg: WallSeg): StructureAppearanceDef {
 
 /** Croisée de repli (def SANS bloc `window`) = celle de `plain` (DONNÉE JSON : verre froid + ambre allumé) —
  *  jamais un littéral de couleur (garde-fou renderer). C'est un repli de PART absente sur une def
- *  RÉELLE, pas le repli d'un id inconnu : celui-là est le ton d'alarme de `catalog/missing.ts` (#877). */
+ *  RÉELLE, pas le repli d'un id inconnu : celui-là est le ton d'alarme de `noyau/monde/volume/missing.ts` (#877). */
 const defaultWindow = () => structureAppearance('plain').window;
 /** Couleur ÉMISSIVE d'une fenêtre allumée (nuit) — la def sinon le repli `plain`. Source unique iso + POV. */
 export function windowLit(app: StructureAppearanceDef): string {
@@ -115,36 +115,6 @@ export function wallPartRelief(part: WallPart): WallPartRelief {
   // d'une donnée : elle LÈVE en se nommant, là où un id de donnée absent d'un catalogue prend le repli
   // VISIBLE (`catalogEntry`, #877).
   throw new Error(`partie de mur inconnue : ${part}`);
-}
-
-/** ÉPAISSEUR MONDE (m) de la MATIÈRE PLEINE d'un mur — AUTHORÉE EN MÈTRES, comme toute autre épaisseur
- *  du catalogue, et surchargeable par apparence (`StructureAppearanceDef.relief.wallM`). Elle valait
- *  jusqu'à C6 une largeur de TRAIT du peintre SVG d'authoring (3,8 px) ramenée au monde par l'échelle
- *  d'écran — un mur y était donc d'autant plus épais que la carte comptait de mètres par tuile. La
- *  valeur ci-dessous est l'équivalent de ce trait à 2 m/tuile, l'échelle de toutes les scènes de jeu :
- *  le geste déplace la SOURCE, pas le goût. */
-export const WALL_MATTER_M = 0.168;
-
-/** Épaisseur de la matière pleine pour une apparence donnée. */
-export function wallMatterM(app?: StructureAppearanceDef): number {
-  return app?.relief?.wallM ?? WALL_MATTER_M;
-}
-
-/** LARGEURS MONDE (m) des MONTANTS — poteau et jambage d'un mur (`builders/walls`), pilier de surplomb
- *  d'un tablier (`builders/floors`). Mêmes provenance et conversion que `WALL_MATTER_M` (3,8 / 3,6 /
- *  5 px de trait à 2 m/tuile), désormais authorées en mètres. */
-export const UPRIGHT_WIDTH_M: Record<string, number> = { poteau: 0.168, jambage: 0.159, pilier: 0.221 };
-
-/** SAILLIE (m) d'un montant hors des joues du mur qu'il encadre. Sans elle, la croix d'un montant a
- *  EXACTEMENT l'épaisseur de la boîte de mur et s'y inscrit à ras — mesuré sur `arene` : 340 montants
- *  sur 364 entièrement dans la matière, part noyée moyenne 99,2 %. */
-export const UPRIGHT_OVERHANG_M = 0.044;
-
-/** LARGEUR MONDE de la croix d'un montant : sa largeur propre, jamais moins que l'épaisseur du mur
- *  qu'il encadre, plus une saillie de chaque côté. */
-export function uprightCrossM(part: string | undefined, wallM: number): number {
-  const w = (part ? UPRIGHT_WIDTH_M[part] : undefined) ?? UPRIGHT_WIDTH_M.poteau;
-  return Math.max(w, wallM) + 2 * UPRIGHT_OVERHANG_M;
 }
 
 /** ÉPAISSEUR MONDE (m) du volume d'une partie de mur — SOURCE UNIQUE du backend volumique, résolue par

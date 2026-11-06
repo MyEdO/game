@@ -35,6 +35,8 @@ import {
   capsizeRightDifficulty, capsizeRightCumulative, type RiverWindForceId,
 } from '../engine/riverNavigation';
 import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
+import { overloadMaxEnc, offerPricePct } from '../engine/seaVoyage';
+import { minCargoEnc, partialSurchargePct, rollMerchantSkill } from '../engine/landCargo';
 import { rollAvailability, barterRatio } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
 import { SEA_BOARD_EVENT_TABLE } from '../noyau/seaVoyageFlow';
@@ -59,8 +61,8 @@ const LISTES_LIVREES = tableTotale(
   (k) => structuredClone(datasetArray(k)),
 ) as { [K in 'cargoes' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
 const OBJETS_LIVRES = tableTotale(
-  ['riverNavigation', 'seaWeather', 'disponibilite'] as const, (k) => structuredClone(datasetObject(k)),
-) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite']: ReturnType<typeof datasetObject<K>> };
+  ['riverNavigation', 'seaWeather', 'disponibilite', 'seaCargo', 'landCargo'] as const, (k) => structuredClone(datasetObject(k)),
+) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite' | 'seaCargo' | 'landCargo']: ReturnType<typeof datasetObject<K>> };
 /** Un dé qui rend toujours `n` : le cran de vent se force (seuil 1, puis « forcir »). */
 
 afterEach(() => {
@@ -349,5 +351,29 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max);
     setDataset('seaBoardEvents', evts.map((e, i) => (i === 0 ? { ...e, max: premier.max! - 1 } : e)));
     expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max! - 1);
+  });
+
+  it('les règles de négoce maritime ÉDITÉES (#3433) : plafond de surcharge et bandes du Prix d’offre servis NEUFS', () => {
+    const fiche = structuredClone(datasetObject('seaCargo'));
+    const port = { taille: 1, richesse: 1, production: [] };
+    expect(overloadMaxEnc(100)).toBe(fiche.overload.hardCapPct);
+    expect(offerPricePct(port, 'x')).toBe(100 + fiche.sell.offerPrice.find((b) => b.min === 2)!.pct);
+    setObjectDataset('seaCargo', {
+      ...fiche,
+      overload: { ...fiche.overload, hardCapPct: 175 },
+      sell: { ...fiche.sell, offerPrice: fiche.sell.offerPrice.map((b) => (b.min === 2 ? { ...b, pct: -33 } : b)) },
+    });
+    expect(overloadMaxEnc(100)).toBe(175);
+    expect(offerPricePct(port, 'x')).toBe(67);
+  });
+
+  it('les règles de négoce terrestre ÉDITÉES (#3433) : lot minimal, surcoût partiel et dés du marchand servis NEUFS', () => {
+    const fiche = structuredClone(datasetObject('landCargo'));
+    const { d10, plus } = fiche.buy.merchantSkill;
+    expect(rollMerchantSkill(deFixe(1))).toBe(d10 + plus);
+    setObjectDataset('landCargo', { ...fiche, buy: { ...fiche.buy, minEnc: 20, partialSurchargePct: 15, merchantSkill: { d10: d10 + 1, plus } } });
+    expect(minCargoEnc()).toBe(20);
+    expect(partialSurchargePct()).toBe(15);
+    expect(rollMerchantSkill(deFixe(1))).toBe(d10 + 1 + plus);
   });
 });

@@ -8,9 +8,10 @@ import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, empriseL
 import { decorFootGeometry } from '../../noyau/monde/footprint';
 import { buildProps } from '../builders/props';
 import { buildPropVolumes } from '../builders/propVolumes';
-import { estPropVolumique, type Face } from '../builders/types';
+import { estPropVolumique } from '../builders/types';
+import { type Face } from '../../noyau/monde/volume/types';
 import { bakeWorldGeometry, collectBillboards, wholeSceneBillboardEls } from '../backends/webgl/sceneMeshes';
-import { facePoly, fanTriangles, polyNormal, type Vec3 } from '../backends/webgl/worldTris';
+import { facePoly, fanTriangles, polyNormal, type Vec3 } from '../../noyau/monde/volume/worldTris';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { validateScene } from '../../noyau/validateScene';
@@ -509,7 +510,7 @@ describe('décor volumique — chaque face regarde le DEHORS, de la recette au m
   });
 
   /**
-   * ARÊTE DE COUTEAU du modelé de forme : `shadeFamily` (`backends/webgl/worldTris.ts:127-130`)
+   * ARÊTE DE COUTEAU du modelé de forme : `shadeFamily` (`noyau/monde/volume/worldTris.ts:155-158`)
    * départage une normale par sa plus grande composante, et une égalité des DEUX plus grandes est
    * indécidable — un fût y prend des tons de familles voisines sur des faces symétriques. C'est ce qui
    * exclut `sides: 12` du type (`PropCylinderSides`). Une face LATÉRALE est une face dont la normale

@@ -311,7 +311,7 @@ export function pointLightWrites(
     const ton = resolveTone(s.tone);
     // FOYER : le décor volumique qui déclare sa primitive émettrice pose sa lampe à SON centre — même
     // repère et même échelle que la géométrie cuite (`x`/`y` en cases × `mpt`, `h` en mètres au-dessus
-    // du sol de la case, cf. `backends/webgl/worldTris:gpToWorld` et `builders/propVolumes`). Sans
+    // du sol de la case, cf. `noyau/monde/volume/worldTris:gpToWorld` et `builders/propVolumes`). Sans
     // foyer, la hauteur par défaut à l'aplomb de la case.
     const w: PointLightWrite = {
       srcId: s.srcId,

@@ -5,6 +5,7 @@
  * Réutilise les primitives PARTAGÉES `engine/pursuit` et la CASCADE (noyau/cascade), pas un flux parallèle.
  */
 import { fixtureText } from '../i18n/fixtureText';
+import { t } from '../i18n';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -224,10 +225,21 @@ describe('Poursuite terrestre (#95)', () => {
     expect(pursuitOf(banc.getState())?.manche).toBe(2);
   });
 
+  it('l’abandon de la séquence reste à l’hôte : refusé au siège d’un invité, et dans l’état d’un invité', () => {
+    const [, b] = heroes();
+    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }] });
+    banc.setState({ net: { ...banc.getState().net, mode: 'host', ownership: { [b.id]: 1 } } });
+    expect([0, 1].filter((siege) => intentAllowedFor(banc.getState(), siege, 'jetRegler', ['cascade', 'abandon', true])), 'l’hôte seul').toEqual([0]);
+    banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
+    banc.getState().jetRegler('cascade', 'abandon', true);
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.refus.hoteSeul'));
+    expect(pursuitOf(banc.getState()), 'la poursuite continue').not.toBeNull();
+  });
+
   it('abandon : le groupe renonce et la poursuite se ferme', () => {
     heroes();
     startGroundPursuit(banc.getState, banc.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }] });
-    banc.getState().sequenceAbandon();
+    banc.getState().jetRegler('cascade', 'abandon', true);
     expect(pursuitOf(banc.getState())).toBeNull();
     expect(banc.getState().journal.some((l) => l.includes('abandonne'))).toBe(true);
   });
@@ -239,7 +251,7 @@ describe('Poursuite terrestre (#95)', () => {
     startCascade(banc.getState, banc.setState, { title: 'Journée', purpose: 'test', steps: [displayStep({ id: 'hote-1', kind: cleDeFixture('reveal'), label: fixtureText('Une ombre'), worldOwner: true })] });
     startGroundPursuit(banc.getState, banc.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }] });
     expect(banc.getState().suspendedCascades.map((c) => c.purpose), 'la cascade hôte est parquée sous la poursuite').toEqual(['test']);
-    banc.getState().sequenceAbandon();
+    banc.getState().jetRegler('cascade', 'abandon', true);
     expect(pursuitOf(banc.getState())).toBeNull();
     expect(banc.getState().pendingCascade?.purpose, 'la cascade hôte reprend').toBe('test');
     expect(banc.getState().suspendedCascades, 'plus rien de parqué').toEqual([]);
@@ -265,7 +277,7 @@ describe('Poursuite terrestre (#95)', () => {
     const bande = banc.getState().pendingCascade!.participants[0].participants!;
     expect(bande.every((r) => r.interactive === false && r.result), 'toutes les rangées tirées à l’ouverture').toBe(true);
     expect(sequenceAbandonOf(banc.getState), 'manche résolue : abandon offert').not.toBeNull();
-    banc.getState().sequenceAbandon();
+    banc.getState().jetRegler('cascade', 'abandon', true);
     const journal = banc.getState().journal;
     const manche = journal.findIndex((l) => l.startsWith('Manche 1 :'));
     const renonce = journal.indexOf('Le groupe cesse de fuir et fait face.');
@@ -281,7 +293,7 @@ describe('Poursuite terrestre (#95)', () => {
     startGroundPursuit(banc.getState, banc.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }] });
     expect(sequenceAbandonOf(banc.getState), 'manche résolue : abandon offert').not.toBeNull();
     banc.setState({ partyWiped: false, party: [{ ...a, dead: true }, { ...b, dead: true }] });
-    banc.getState().sequenceAbandon();
+    banc.getState().jetRegler('cascade', 'abandon', true);
     expect(banc.getState().partyWiped, 'checkPartyWiped constate la défaite').toBe(true);
     expect(pursuitOf(banc.getState())).toBeNull();
     expect(banc.getState().journal.includes('Le groupe cesse de fuir et fait face.'), 'aucun abandon raconté').toBe(false);
@@ -295,7 +307,7 @@ describe('Poursuite terrestre (#95)', () => {
     expect(jouables.length, 'deux héros, deux rangées à jouer').toBe(2);
     banc.getState().jetRoll('cascadeBatch', jouables[0].id);
     expect(sequenceAbandonOf(banc.getState)).toBeNull();
-    banc.getState().sequenceAbandon();
+    banc.getState().jetRegler('cascade', 'abandon', true);
     expect(pursuitOf(banc.getState()), 'la poursuite continue').not.toBeNull();
     expect(bande().find((r) => r.id === jouables[0].id)!.result, 'le jet posé reste à résoudre').toBeTruthy();
   });

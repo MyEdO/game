@@ -5,7 +5,7 @@ import { massFootprintCells } from '../../noyau/monde/buildings';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../noyau/monde/scene';
 import { buildWalls } from '../builders/walls';
-import { buildFloors } from '../builders/floors';
+import { buildFloors } from '../../noyau/monde/volume/floors';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { isRoomZone } from '../../noyau/monde/rooms';
