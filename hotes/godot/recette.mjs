@@ -21,6 +21,12 @@
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
 //   réponse cliquée : l'interlocuteur suivant prend la parole.
+// - `document` (`--scenario documents-edo`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à côté de la
+//   liasse, son offre cliquée, « Chapitre 1 » puis « Lire » : le document se lit au centre ; « Refermer » rend la
+//   conversation à la liasse.
+// - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement, la liste des sorts de la Haute
+//   Sorcière ouverte, Fléchette choisie au clavier, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
+//   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
 //   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
@@ -404,6 +410,67 @@ async function parcoursDocument() {
   await attendreLaVue("v.zones['dialogue.reponses'].length > 0 && !v.projection.fenetre")
   noter(`« ${refermer.libelle} » : la conversation revient à la liasse`)
   await capturer('3328-i1-2-referme')
+}
+
+async function parcoursIncantation() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  const viderLesFenetres = async () => {
+    for (let v = await vue(); v.projection.fenetre; v = await vue()) {
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  await viderLesFenetres()
+  await cliquerCase({ x: 16, y: 11 })
+  await attendreLaVue('!!v.projection.combat')
+  await viderLesFenetres()
+  let v = await vue()
+  assert.equal(zone(v, 'combat.actif')[0]?.nom, 'Aelindra, Haute Sorcière', 'la Haute Sorcière ouvre le combat')
+  const sorts = zone(v, 'combat.offres').find((c) => c.id === 'offre/cast-spell')
+  assert.ok(sorts, `les sorts de l’actif sont un choix : ${zone(v, 'combat.offres').map((c) => c.id).join(' | ')}`)
+  noter(`« ${sorts.libelle} » : ${sorts.valeurs.length} sorts en ${sorts.type}`)
+  await capturer('3328-j1-1-sorts')
+  const cle = `liste/${sorts.id}`
+  const liste = trouver((await ecran()).boutons, { element: cle })
+  assert.ok(liste, `la liste des sorts se dessine : ${(await ecran()).boutons.map((b) => b.element ?? b.texte).join(' | ')}`)
+  const rang = liste.choix.indexOf('Fléchette')
+  assert.ok(rang >= 0, `Fléchette est offerte : ${liste.choix.join(', ')}`)
+  await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: 'liste des sorts' }, clic())
+  await sleep(400)
+  await capturer('3328-j1-2-liste-ouverte')
+  for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  v = await vue()
+  noter(`Fléchette choisie : ${v.projection.combat.cibles.liste.length} cibles`)
+  const cible = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
+  await cliquerCase({ x: cible.pos[0], y: cible.pos[1] })
+  await attendreLaVue('!!v.projection.fenetre')
+  v = await vue()
+  noter(`clic sur ${cible.nom} : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte} »`)
+  await capturer('3328-j1-3-incantation')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  v = await vue()
+  const portee = zone(v, 'fenetre.reglages').find((c) => c.libelle === 'Surincantation : Portée')
+  assert.ok(portee, `le jet tombé ouvre la Surincantation : ${corps(v)} ; réglages ${zone(v, 'fenetre.reglages').map((c) => c.libelle).join(' | ')}`)
+  noter(`jet à l'Entrée : ${corps(v)}`)
+  await capturer('3328-j1-4-jet')
+  await cliquerBouton(bouton(portee.valeurs[1]))
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'surincantation')?.valeur === '0 pas sur 1'")
+  noter('un pas alloué à la Portée : 0 pas sur 1')
+  await capturer('3328-j1-5-surincantation')
+  assert.equal(enFocus(await vue()).libelle, 'Appliquer', 'l’Entrée applique l’incantation')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  await attendreLaVue("v.zones['fenetre.titre'][0]?.texte !== 'Incantation'")
+  noter('« Appliquer » : la fenêtre d’incantation se referme')
+  await capturer('3328-j1-6-appliquee')
 }
 
 async function parcoursFiche() {
@@ -1104,7 +1171,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

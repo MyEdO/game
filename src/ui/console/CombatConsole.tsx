@@ -12,7 +12,7 @@ import { availableAttacks } from '../../noyau/combatManeuvers';
 import type { ManeuverDef } from '../../data/index';
 import { findSpellById, byId, findActionById, ACTIONS, cibleCodex, type ActionDef } from '../../data/index';
 import { type CodexTarget } from '../../engine/ruleRefs';
-import { actionGate, runAction, currentInterludeAction, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ActionRunCtx } from '../../noyau/actionRegistry';
+import { actionGate, offreArmee, runAction, currentInterludeAction, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ActionRunCtx } from '../../noyau/actionRegistry';
 import { targetingModeLabel, targetingModeConsigne, dispellableOnCarrier } from '../../noyau/targetingModes';
 import { CodexRef } from '../compendium/CodexRef';
 import { isConsumable } from '../../engine/consumables';
@@ -631,15 +631,6 @@ export function CombatConsole() {
   // ── LA CONSOLE CONSOMME LE REGISTRE DES ACTIONS ────────────────────────────────────────────────
   // Contexte d'offre commun à toutes les cases (prédicats `ACTION_GATES`, spec HUD « Zone 12 »).
   const gateCtx: ActionCtx = { active, battle, netMode: net.mode, gameTime };
-  /** CE MODE-LÀ est-il armé ? Le mode qu'une case arme est une donnée de SON entrée (`armed`,
-   *  `actions.json`) : la console compare `battle.action` à ce que le REGISTRE déclare, elle ne recopie
-   *  aucune valeur d'état. Une entrée sans `armed` n'arme rien — elle ne s'allume donc jamais par ici. */
-  /*  Une entrée rendue N FOIS (une par candidat — un sort par alvéole) n'allume que l'alvéole du
-   *  candidat ÉLU : le mode seul ne distingue pas deux sorts, la SÉLECTION du combat le fait
-   *  (`selectedSpellId`, écrite par le dispatcher qui arme le mode). Une case sans candidat en args
-   *  s'allume sur le mode, comme avant. */
-  const modeArme = (def?: ActionDef, args?: ActionRunCtx) =>
-    !!def?.armed && battle.action === def.armed && (!args?.spellId || battle.selectedSpellId === args.spellId);
   /** CANDIDATS portés par une alvéole : les valeurs d'identité de ses ARGS (`spellId`, `weaponUid`,
    *  `stateId`…). Aucun nom d'argument n'est cité ici — la case dit CE qu'elle paramètre, le registre
    *  dit qui le couvre. */
@@ -697,11 +688,8 @@ export function CombatConsole() {
     // une par Compétence d'Avantage — s'ouvre ou se ferme par candidat, sur la même mesure que le
     // dispatcher. Les gates de règle pure les ignorent.
     const verdict = actionGate(def.id, { ...gateCtx, args: over.args });
-    // Une action à INTENTION (spec zone 4) : sa case s'allume quand SON mode est armé, et le re-clic
-    // le dissout — même patron, MÊME CODE, que les modes armés de `battle.action` (Soigner, Dissiper,
-    // Bordée) : les deux armements se lisent à la déclaration de l'entrée (`intent` / `armed`).
-    const armedIntent = !!def.intent && localIntent?.actionId === def.id;
-    const arme = armedIntent || modeArme(def, over.args);
+    // Sa case s'allume quand l'offre est armée (`offreArmee`), et le re-clic la dissout.
+    const arme = offreArmee({ battle, localIntent }, def, over.args);
     return {
       key: over.key ?? def.keys?.[0] ?? def.id,
       id: def.id,
@@ -1074,7 +1062,8 @@ export function CombatConsole() {
   // porte, jamais le catalogue des sorts. Chaque candidat EST une entrée du registre (`dispel-spell`) :
   // même verdict d'offre, même dispatcher, même foyer de règle que n'importe quelle alvéole — le
   // panneau n'est qu'un lieu d'accueil.
-  const dispelCarrier = modeArme(findActionById(ACTION_DISSIPER)) && dispelCarrierId ? inBattleId(battle, dispelCarrierId) : undefined;
+  const dissiper = findActionById(ACTION_DISSIPER);
+  const dispelCarrier = dissiper && offreArmee({ battle, localIntent }, dissiper) && dispelCarrierId ? inBattleId(battle, dispelCarrierId) : undefined;
   const dispelOptions: ParamOption[] = dispelCarrier
     ? dispellableOnCarrier(useGame.getState, dispelCarrier.id).map((d) => {
         const cell = cellFor('dispel-spell', 'magie', {

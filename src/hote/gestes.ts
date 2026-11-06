@@ -10,7 +10,7 @@
  * union d'objets), un texte JSON. Aucune règle ne se calcule ici : chaque valeur vient d'un lecteur du noyau ou du type.
  */
 import {
-  DESIGNATIONS, FERMETURES_DITES, VERBE_DE_REGLAGE, argumentsPosesDuGeste, cleDuGeste, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
+  DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_REGLAGE, argumentsPosesDuGeste, cleDuGeste, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
   libelleDuGeste, libelleDuParametre, libelleDuReglage, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DE_L_OPERATION, REGLAGES_DU_BUTIN,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
@@ -37,7 +37,7 @@ export function parametresDuGeste(g: GesteDuJeu): readonly ParametreDeVerbe[] {
 }
 
 /** Au-delà de ce nombre de valeurs, un choix se rend en liste plutôt qu'en rangée de boutons. */
-const CHOIX_EN_BOUTONS = 7;
+export const CHOIX_EN_BOUTONS = 7;
 
 /** Un argument d'un geste : `fixe`, posé par la fenêtre (`valeur`) ; `choix` parmi `valeurs` ; `nombre`, entre ses
  *  `bornes` quand le réglage en pose ; `texte`, une chaîne ; `objet`, ses `champs` saisis chacun ; `json`, une valeur
@@ -99,9 +99,9 @@ const parmi = (verbes: readonly string[]) => (g: GesteDuJeu): boolean => verbes.
 const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle: (g: GesteDuJeu) => boolean }[] = [
   { lire: fenetreDAttaque, regle: duFlux('attack') },
   { lire: fenetreDeDefense, regle: duFlux('defense') },
-  // La fenêtre d'incantation nomme ses choix ; la Surincantation et les jets sur le Tableau sont des pas qu'elle ne
-  // nomme pas.
-  { lire: fenetreDIncantation, regle: duFlux('cast', ['discret', 'formeConjuree', 'effetCritique']) },
+  // La fenêtre d'incantation nomme ses choix et les pas de Surincantation de chaque axe ; les cibles supplémentaires se
+  // désignent sur la carte ; les jets sur le Tableau sont un réglage qu'elle ne nomme pas.
+  { lire: fenetreDIncantation, regle: duFlux('cast', ['discret', 'formeConjuree', 'effetCritique', 'ciblesSupplementaires', ...Object.values(REGLAGE_DE_L_AXE)]) },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
   { lire: fenetreDeLOperation, regle: parmi(REGLAGES_DE_L_OPERATION) },
 ];

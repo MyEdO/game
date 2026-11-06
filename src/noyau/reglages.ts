@@ -48,9 +48,9 @@ export const gesteDuReglage = (flux: FluxRegle, reglage: ReglageDuJet): GesteDuJ
 const estNomme = (e: unknown): e is ChoixNomme<string | number | boolean> | BasculeNommee => typeof e === 'object' && e !== null && 'geste' in e;
 
 /** Les réglages des éléments nommés d'une fenêtre lue (`fenetreDAttaque`, `fenetreDeDefense`) : chaque champ qui
- *  nomme son geste. */
+ *  nomme son geste, ou chaque élément nommé d'un champ qui en liste (`FenetreDIncantation.crans`). */
 export function reglagesDesElements(fenetre: object | null): Reglage[] {
-  return Object.values(fenetre ?? {}).filter(estNomme).map((e) => ('options' in e
+  return Object.values(fenetre ?? {}).flatMap((v: unknown) => (Array.isArray(v) ? v : [v])).filter(estNomme).map((e) => ('options' in e
     ? { geste: e.geste, ...(e.parametre ? { parametre: e.parametre } : {}), libelle: e.libelle, courant: e.choisie, valeurs: e.options.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: o.refus ?? null })), bornes: null, note: null }
     : { geste: e.geste, libelle: e.libelle, courant: e.active, valeurs: null, bornes: null, note: e.note }));
 }

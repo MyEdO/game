@@ -114,10 +114,11 @@ describe('un tour complet par le pont', () => {
     suite = confirmee.suite;
     expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('attackJet');
     expect(confirmee.lignes.map((l) => l.texte), 'l’issue confirmée entre au journal de l’écran').toContain((issue as Ligne).texte);
-    const offres = suite.vue.zones['combat.offres'].flatMap((o) => o.valeurs);
+    const barre = suite.vue.zones['combat.offres'];
+    const offres = [...barre.flatMap((o) => o.valeurs), ...barre.filter((c) => c.id.startsWith('offre/')).map((c) => ({ ...c, id: c.id.slice('offre/'.length) }))];
     const fermees = suite.vue.projection.combat!.offres!.liste.filter((o) => o.refus !== null);
     expect(fermees.length, 'l’Action jouée, des offres se ferment').toBeGreaterThan(0);
-    expect(fermees.map((o) => offres.find((b) => b.id === o.id)?.refus), 'chaque offre fermée reste à la barre, refusée avec sa raison').toEqual(fermees.map((o) => o.refus));
+    expect(fermees.map((o) => offres.find((b) => b.id === o.id)?.refus), 'chaque offre fermée reste à la barre, son bouton ou le choix de ses candidats refusé avec sa raison').toEqual(fermees.map((o) => o.refus));
     ({ suite } = finirLeTour());
 
     const second = actifDe(suite);
