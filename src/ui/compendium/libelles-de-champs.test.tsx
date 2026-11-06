@@ -22,7 +22,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { z } from 'zod';
 import { libelleDuChamp, inferFields } from '../../noyau/codex/editFields';
 import { RefField, refFieldCfg } from './refField/RefField';
-import { editableEntries, isEditableCategory } from '../editor/codex/CodexEdit';
+import { editableEntries, isEditableCategory } from '../../data/atelierDuCodex';
 import { CODEX } from '../../noyau/codex/registry';
 import { CLES_ENVELOPPE, LIBELLES_ENVELOPPE, document } from '../../data/schemas/grammaire/document';
 import { metaPourFichier, DEFS_DE_DOCUMENT, noeudObjet, schemaForFile } from '../../data/schemas/validate';

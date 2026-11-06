@@ -20,7 +20,7 @@ import { tavernParams } from './tavernFlow';
 import { testValue } from '../engine/skills';
 import { schema } from '../data/schemas/defs/tavernGames';
 import type { Combatant } from '../engine/types';
-import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -35,7 +35,7 @@ const TORCHON = findTavernGameById('torchon')!;
  * PREMIER : ses lignes sont les premières chassées de l'anneau, alors même que le socle les a
  * produites. Le puits est la surface où le socle écrit — c'est là que se mesure « le coup est raconté ».
  */
-let PUITS: Jeu['log'];
+let PUITS: JeuDuNoyau['log'];
 const recit: string[] = [];
 function capterLeRecit(): void {
   recit.length = 0;

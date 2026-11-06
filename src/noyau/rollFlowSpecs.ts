@@ -2446,7 +2446,7 @@ function refusDuReglage(flux: unknown, reglage: unknown, pid: unknown): string |
 /** Ce qui ferme maintenant le réglage `reglage` du flux `flux`, sur la rangée `pid` d'un réglage de rangée : sa phase
  *  (`fermetureDeLaPhase`) jugée sur le lancer de son jet (`RollFlowHandlers.fermetures`, la fenêtre que lit
  *  `verbesOuverts`), puis son offre (`DeclarationDuReglage.offre`) ; `null` : il se joue. */
-export function fermetureDuReglage(get: Get, flux: FluxRegle, reglage: string, pid?: string): FermetureDuJet | null {
+export function fermetureDuReglage(get: Get<Jeu>, flux: FluxRegle, reglage: string, pid?: string): FermetureDuJet | null {
   const declaration = garanti(declarationDuReglage(flux, reglage), `${flux}.${reglage}`, 'réglage déclaré');
   return fermetureDeLaPhase(declaration.phase, FLOW_HANDLERS[flux].fermetures(get, pid).roll) ?? declaration.offre?.(get()) ?? null;
 }

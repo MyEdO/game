@@ -11,12 +11,14 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 34
     },
-    "skills": [
+    "tests": [
       {
-        "id": "survie-en-exterieur"
+        "skill": {
+          "id": "survie-en-exterieur"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "failExtenue": true,
     "weatherMod": {
       "beau": 0,
@@ -43,12 +45,14 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 34
     },
-    "skills": [
+    "tests": [
       {
-        "id": "survie-en-exterieur"
+        "skill": {
+          "id": "survie-en-exterieur"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "failExtenue": true,
     "weatherMod": {
       "sec": -10
@@ -71,12 +75,14 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 34
     },
-    "skills": [
+    "tests": [
       {
-        "id": "ragot"
+        "skill": {
+          "id": "ragot"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "failExtenue": true,
     "stageOutcome": "gatherInfo",
     "desc": "Bien que l'Empire dispose d'un corps de messagers, la plupart des informations circulent de bouche à oreille. Un Personnage peut choisir de passer son temps à papoter et à poser des questions dans les auberges, si la route est assez fréquentée pour le permettre. Effectuez un Test de **Ragot Intermédiaire (+0)**, et posez au MJ autant de questions que de DR obtenus, le MJ doit répondre avec autant de sincérité que les habitants de cette région le feraient. Alternativement, le Personnage peut souhaiter entendre les ragots qui circulent actuellement, voir **L'Ennemi dans l'Ombre** pour une sélection de rumeurs circulant dans l'Empire.",
@@ -95,12 +101,14 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 34
     },
-    "skills": [
+    "tests": [
       {
-        "id": "perception"
+        "skill": {
+          "id": "perception"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "failExtenue": true,
     "stageOutcome": "noSurprise",
     "desc": "Alors que tout voyageur de l'Empire digne de ce nom est conscient de ce qui l'entoure, certains renoncent à d'autres occupations, dorment moins, ne bavardent pas inutilement, font du repérage, etc, pour rester vigilant à tout moment. En réussissant un Test de **Perception Intermédiaire (+0)**, les Personnages ne peuvent pas être surpris pendant cette étape de leur voyage.",
@@ -119,17 +127,22 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 34
     },
-    "skills": [
+    "tests": [
       {
-        "id": "metier",
-        "spec": "cartographe"
+        "skill": {
+          "id": "metier",
+          "spec": "cartographe"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "art",
-        "spec": "dessin"
+        "skill": {
+          "id": "art",
+          "spec": "dessin"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "extended": {
       "drPerStage": 2
     },
@@ -332,15 +345,20 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 35
     },
-    "skills": [
+    "tests": [
       {
-        "id": "survie-en-exterieur"
+        "skill": {
+          "id": "survie-en-exterieur"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "guerison"
+        "skill": {
+          "id": "guerison"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "failExtenue": true,
     "stageOutcome": "campCare",
     "desc": "Souvent, les voyageurs se concentrent trop sur la destination et pas assez sur le voyage lui-même ; à l'arrivée, ils sont hagards, épuisés et mal préparés à ce qu'ils vont affronter. N'importe qui peut planter une tente ou déployer une couverture. Les voyageurs chevronnés, eux, prennent le temps de s'installer confortablement pour la nuit en choisissant un bon emplacement, en ramassant du bois de chauffage, en préparant de l'eau, etc. Effectuez un Test de **Survie en extérieur** ou de **Guérison Intermédiaire (+0)**. Chaque DR de l'un ou l'autre de ces Tests peut être dépensé pour retirer les État *Exténué* d'un Personnage ou pour le guérir (voir page 123 du **Livre de Règles**).",
@@ -428,13 +446,15 @@
       "book": "archives-de-l-empire-2",
       "page": 53
     },
-    "skills": [
+    "tests": [
       {
-        "id": "savoir",
-        "spec": "magie"
+        "skill": {
+          "id": "savoir",
+          "spec": "magie"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "resolver": "identify",
     "desc": "La plupart des Personnages ne savent rien des capacités d'un artefact avant de procéder à des recherches ou des expérimentations. Pour les Personnages dotés du Talent Détection d'artefact, c'est plutôt simple : en touchant l'objet, ils peuvent effectuer un Test d'**Intuition** et étudier l'artefact. Pour d'autres sorciers, la tâche est plus ardue et nécessite généralement une semaine par tentative, souvent dans un laboratoire, une bibliothèque bien fournie ou un autre espace approprié. C'est un processus décourageant, car les objets magiques sont dangereux lorsqu'ils sont manipulés dans l'ignorance. Pour identifier un artefact magique, un Personnage doit effectuer un Test de **Savoir (Magie) Intermédiaire (+0)** et consulter le tableau suivant.",
     "stake": "+6 DR : l'objet et TOUTES ses Particularités. +4/+5 : l'objet, et tu sais s'il en a. +2/+3 : l'objet et ses Particularités visibles. 0/+1 : l'objet et une Particularité cachée. 0/−1 : rien, mais tu le sais. −2/−3 : tu le confonds avec un objet du même genre. −4/−5 : une fausse Particularité tenue pour vraie. −6 ou pire : au moins deux.",
@@ -452,12 +472,14 @@
       "book": "archives-de-l-empire-2",
       "page": 92
     },
-    "skills": [
+    "tests": [
       {
-        "id": "calme"
+        "skill": {
+          "id": "calme"
+        },
+        "difficulty": "tresDifficile"
       }
     ],
-    "difficulty": "tresDifficile",
     "outcomes": [
       {
         "on": "success",
@@ -496,12 +518,14 @@
       "book": "altdorf-couronne-de-l-empire",
       "page": 219
     },
-    "skills": [
+    "tests": [
       {
-        "id": "priere"
+        "skill": {
+          "id": "priere"
+        },
+        "difficulty": "accessible"
       }
     ],
-    "difficulty": "accessible",
     "desc": "Située au cœur de l'Empire, Altdorf est le centre du culte de Sigmar, son divin patron. Les adorateurs de Sigmar ont donc tendance à trouver une grande paix spirituelle dans la ville, malgré ses nombreuses distractions séculières.\n\nIl est commun pour les fidèles tombés en disgrâce d'entreprendre un pèlerinage à Altdorf en pénitence, afin de raviver la foi dans leur cœur. Si vous le désirez, vous pouvez entreprendre un tel voyage spirituel pour vous débarrasser des points de Péché que vous auriez accumulés. Si vous êtes déjà à Altdorf, la ville contient des chemins saints, dont on dit qu'ils retracent les pas de Sigmar lui-même, ou bien de l'un de ses fidèles suivants : emprunter ces chemins peut vous faire regagner ses faveurs.\n\nAprès un pèlerinage adéquat, faites un Test de **Prière Accessible (+20)**. Si vous réussissez, enlevez 1 point de Péché, ou 2 sur un Succès Impressionnant (+4 DR) ou mieux. Si vous échouez ce Test, vous subissez 1 État *Exténué* le premier jour de votre prochaine aventure : vous souffrez d'une fatigue physique et spirituelle. Si vous faites une Maladresse sur le jet, réalisez un Test sur le Tableau de la Colère des Dieux (**WFJDR**, p. 218) à la place.",
     "outcomes": [
       {
@@ -560,15 +584,20 @@
       "book": "altdorf-couronne-de-l-empire",
       "page": 219
     },
-    "skills": [
+    "tests": [
       {
-        "id": "corps-a-corps"
+        "skill": {
+          "id": "corps-a-corps"
+        },
+        "difficulty": "complexe"
       },
       {
-        "id": "projectiles"
+        "skill": {
+          "id": "projectiles"
+        },
+        "difficulty": "complexe"
       }
     ],
-    "difficulty": "complexe",
     "resolver": "masterWeapon",
     "desc": "Certaines armes sont si inhabituelles que pour les maîtriser, leur nouveau propriétaire doit passer un temps considérable à s'entraîner. Par exemple, peu de Personnages sont capables d'utiliser efficacement le couteau de lancer de Harald L'Infâme, forgé par Magnin. Les tuteurs ne peuvent pas faire de miracles : pour véritablement maîtriser une telle arme, il faut avoir la patience d'échouer et de recommencer indéfiniment.\n\nAprès ce difficile entraînement, faites un Test de **Corps à corps** ou de **Projectiles Complexe (−10)** selon la spécialisation de l'arme que vous tentez de maîtriser. Si le Test réussit, vous avez maîtrisé l'arme. Si vous échouez, le Personnage devra attendre le prochain moment de pause après une aventure pour recommencer.",
     "outcomes": [
@@ -600,12 +629,14 @@
       "book": "altdorf-couronne-de-l-empire",
       "page": 219
     },
-    "skills": [
+    "tests": [
       {
-        "id": "recherche"
+        "skill": {
+          "id": "recherche"
+        },
+        "difficulty": "complexe"
       }
     ],
-    "difficulty": "complexe",
     "resolver": "identifyByResearch",
     "desc": "Au cours de leurs aventures, les Personnages peuvent tomber sur des objets magiques. Ils peuvent avoir des effets évidents et simples à comprendre, ou des effets passifs qui s'activent qu'on les ait compris ou pas.\n\nCependant, certains artéfacts magiques ne peuvent être activés que par un code secret, un geste spécifique, ou en résolvant une énigme. Bien qu'il existe des personnes spécialisées dans la compréhension de ces artéfacts, leurs services peuvent être chers et leurs résultats peu fiables. Les Personnages qui ont la Compétence Recherche peuvent passer du temps à essayer de comprendre leurs qualités et particularités, mais cela peut s'avérer risqué.\n\nCe qu'ils apprennent dépend du résultat d'un Test de **Recherche Complexe (−10)**.",
     "outcomes": [
@@ -656,12 +687,14 @@
       "book": "altdorf-couronne-de-l-empire",
       "page": 220
     },
-    "skills": [
+    "tests": [
       {
-        "id": "evaluation"
+        "skill": {
+          "id": "evaluation"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "resolver": "mecenat",
     "desc": "Altdorf accueille de nombreux comédiens, saltimbanques, et charlatans, qui se battent tous pour attirer l'attention d'un mécène fortuné.\n\nSi vous le souhaitez, lorsque vous pratiquez une Opération Bancaire (**WFJDR**, p. 196) à Altdorf, vous pouvez choisir d'investir votre argent durement gagné en sponsorisant un dramaturge prometteur. C'est une bonne façon de gagner une réputation de mécène des arts, et parfois, d'avoir un retour sur son investissement. Comme pour n'importe quel investissement, vous devez réaliser deux Opérations : une première quand vous donnez votre argent (au moins 5 CO) et une seconde quand vous essayez de le récupérer. Quand vous tentez de récupérer votre investissement, faites un Test d'**Évaluation Intermédiaire (+0)** pour voir si vous avez été capable de trouver un auteur de talent, et consultez le tableau ci-contre pour déterminer le résultat.",
     "outcomes": [
@@ -748,12 +781,14 @@
       "book": "altdorf-couronne-de-l-empire",
       "page": 220
     },
-    "skills": [
+    "tests": [
       {
-        "id": "recherche"
+        "skill": {
+          "id": "recherche"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "resolver": "memorizeDiscount",
     "desc": "Les collèges de Magie sont les principales réserves de connaissances magiques humaines de l'Empire. Les sorciers officiels peuvent s'y rendre pour consulter les ouvrages de leur bibliothèque et utiliser leurs laboratoires arcaniques pour leurs recherches. Cette activité vous permet de mémoriser des sorts plus facilement.\n\nUne fois au Collège, réalisez un Test de **Recherche Intermédiaire (+0)**. Chaque +DR vous permet de mémoriser un sort pour 100PX de moins que son prix normal (pour un minimum de 100PX). Pour bénéficier de cette réduction, vous devez acheter le sort immédiatement. Cette activité est inutile pour les nouveaux sorciers qui n'ont pas encore appris un nombre de sorts égal à leur Bonus d'Intelligence, mais les sorciers plus expérimentés bénéficient grandement de ces visites, qui leur permettent de rafraîchir leurs connaissances.",
     "outcomes": [
@@ -781,12 +816,14 @@
       "book": "mer-des-griffes",
       "page": 130
     },
-    "skills": [
+    "tests": [
       {
-        "id": "marchandage"
+        "skill": {
+          "id": "marchandage"
+        },
+        "difficulty": "complexe"
       }
     ],
-    "difficulty": "complexe",
     "resolver": "opportunityTrade",
     "desc": "Si votre voyage vous fait passer par des ports appropriés, vous pouvez tenter de faire du commerce d'opportunité. Un achat ou une vente rapide peut faire une grosse différence. Vous pouvez investir jusqu'à l'équivalent de la valeur totale d'Encombrement disponible et non surchargé de votre bateau en couronnes d'or. Effectuez un Test étendu de **Marchandage Complexe (–10)** nécessitant 10 DR et autorisant jusqu'à trois tentatives. Reportez-vous au tableau ci-dessous pour connaitre le résultat de votre investissement.",
     "stake": "Test étendu : 10 DR en 3 tentatives au plus — le total atteint fixe le pourcentage de la mise récupéré. La mise est engagée avant le premier jet.",
@@ -804,13 +841,15 @@
       "book": "mer-des-griffes",
       "page": 130
     },
-    "skills": [
+    "tests": [
       {
-        "id": "metier",
-        "spec": "cartographe"
+        "skill": {
+          "id": "metier",
+          "spec": "cartographe"
+        },
+        "difficulty": "complexe"
       }
     ],
-    "difficulty": "complexe",
     "resolver": "seaChart",
     "desc": "Vous dessinez une carte qui peut être reproduite et vendue pour faire un bénéfice, mais aussi servir d'outil pour s'orienter. Effectuez un Test de **Métier (Cartographe) Complexe (–10)** et désignez deux ports. En cas de succès, vous produisez une carte ayant une valeur en CO égale au nombre de DR obtenus sur le Test. Quand vous voyagez entre les deux ports désignés, la carte fournit +2 DR sur les Tests d'Orientation.\n\nLors de la confection de la carte, vous pouvez aussi tenter gratuitement l'Activité *Opérations bancaires : Planque* (voir page 199 de **WFJDR**) quand vous fabriquez la carte pour cacher votre butin dans un endroit indiqué sur cette carte. Votre trésor est en sécurité tant que vous gardez la carte, mais si quelqu'un met la main dessus, il est découvert sur un 50 ou moins plutôt que le 10 ou moins habituel sur le lancer d'1d100.",
     "stake": "Réussite : une Carte marine valant autant de CO que de DR, qui donne +2 DR aux Tests d'Orientation ; la Planque cachée dessus est découverte sur un jet de 50 ou moins. Échec : les relevés sont inutilisables.",
@@ -828,12 +867,14 @@
       "book": "mer-des-griffes",
       "page": 130
     },
-    "skills": [
+    "tests": [
       {
-        "id": "commandement"
+        "skill": {
+          "id": "commandement"
+        },
+        "difficulty": "difficile"
       }
     ],
-    "difficulty": "difficile",
     "resolver": "crewTraining",
     "desc": "Votre équipage pourrait devenir plus compétent. Choisissez l'une de vos Compétences utiles à la gestion d'un bateau. Vous passez votre temps à former l'équipage à cette Compétence. Effectuez un Test de **Commandement Difficile (–20)** suivi d'un Test **Difficile (–20)** dans la Compétence à entraîner. En cas de succès, augmentez le score de l'équipage dans la Compétence que vous lui avez apprise d'un nombre égal au nombre de DR obtenus sur le Test de Commandement et dépensez 2 pistoles d'argent en frais et en grog de félicitations par membre de l'équipage entraîné. Vous ne pouvez pas augmenter un score de Compétence au-delà de vos propres Augmentations dans cette Compétence. Seuls les PNJ peuvent gagner des Augmentations grâce à cette Activité.",
     "stake": "Réussite : le score d'équipage dans la Compétence enseignée monte d'autant de points que les DR du Test de Commandement, sans dépasser tes propres Augmentations, contre 2 pistoles d'argent par membre entraîné.",
@@ -851,12 +892,14 @@
       "book": "archives-de-l-empire-2",
       "page": 84
     },
-    "skills": [
+    "tests": [
       {
-        "id": "commandement"
+        "skill": {
+          "id": "commandement"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "difficultyFrom": {
       "gap": "armyMight",
       "roundTo": 10
@@ -889,13 +932,15 @@
       "book": "archives-de-l-empire-2",
       "page": 84
     },
-    "skills": [
+    "tests": [
       {
-        "id": "savoir",
-        "spec": "guerre"
+        "skill": {
+          "id": "savoir",
+          "spec": "guerre"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "assisted": true,
     "grantsFlag": "planned",
     "testModFrom": "planningBonus",
@@ -939,15 +984,20 @@
       "book": "archives-de-l-empire-2",
       "page": 84
     },
-    "skills": [
+    "tests": [
       {
-        "id": "discretion"
+        "skill": {
+          "id": "discretion"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "perception"
+        "skill": {
+          "id": "perception"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "combined": true,
     "requires": [
       "planned"
@@ -980,18 +1030,26 @@
       "book": "archives-de-l-empire-2",
       "page": 85
     },
-    "skills": [
+    "tests": [
       {
-        "id": "commandement"
+        "skill": {
+          "id": "commandement"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "charme"
+        "skill": {
+          "id": "charme"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "intimidation"
+        "skill": {
+          "id": "intimidation"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "Un Personnage peut tenter de renforcer son armée avec des troupes supplémentaires avant la bataille. Il existe de nombreuses façons de rassembler des troupes. Des mercenaires, tels que les terrifiantes troupes de choc des ogres, peuvent être engagés ; les paysans du coin peuvent être mobilisés ; et les nobles peuvent être charmés, soudoyés ou intimidés. Certaines de ces actions nécessitent des Tests de Compétences avec une Difficulté déterminée au cas par cas. En cas de Succès, le rassemblement augmente la Puissance de l'armée de +5. En cas de Succès Stupéfiant (+6), la Puissance augmente de +10. En cas d'Échec Stupéfiant (–6), elle est réduite de –10, peut-être à cause d'une mutinerie, ou d'une perte de moral entraînant une désertion.",
     "outcomes": [
       {
@@ -1046,15 +1104,20 @@
       "book": "archives-de-l-empire-2",
       "page": 85
     },
-    "skills": [
+    "tests": [
       {
-        "id": "chevaucher"
+        "skill": {
+          "id": "chevaucher"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "perception"
+        "skill": {
+          "id": "perception"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "combined": true,
     "grantsFlag": "scouted",
     "desc": "Un Personnage peut effectuer un Test combiné de Chevaucher et de Perception Intermédiaire (+0) pour obtenir des informations sur l'armée adverse : ses effectifs, la distance qui les sépare et les troupes dont elle dispose. Toutes ces informations sont précieuses pour un général. Un Test réussi permet de toutes les obtenir, y compris la Puissance de l'armée adverse, en plus d'un bonus de +10 à l'Activité Planification. En cas d'échec, le Personnage récupère de fausses informations ou met trop de temps à revenir, et n'obtient aucun bonus. En cas d'Échec Stupéfiant (–6), il risque même de devoir semer les éclaireurs ennemis ou de se faire capturer.",
@@ -1085,15 +1148,20 @@
       "book": "archives-de-l-empire-2",
       "page": 85
     },
-    "skills": [
+    "tests": [
       {
-        "id": "discretion"
+        "skill": {
+          "id": "discretion"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "divertissement"
+        "skill": {
+          "id": "divertissement"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "requires": [
       "scouted"
     ],
@@ -1140,18 +1208,26 @@
       "page": 149
     },
     "sceneKind": "test",
-    "skills": [
+    "tests": [
       {
-        "id": "commandement"
+        "skill": {
+          "id": "commandement"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "intimidation"
+        "skill": {
+          "id": "intimidation"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "charme"
+        "skill": {
+          "id": "charme"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "Parfois, la source du problème n'est pas l'ennemi, mais sa propre armée : troupes blessées, moral au plus bas, désertion, etc. Un Personnage peut résoudre ces soucis en utilisant un Test de Compétence au cours d'une Scène de Motivation. En cas de Succès, la Puissance de l'armée augmente de +DR. Il peut s'agir d'une Scène courte et ne durer qu'une tentative, ou d'un Test étendu sur plusieurs Rounds de bataille. Une Scène de Motivation peut également être composée de différents Tests de Compétence accordant un bonus important.",
     "outcomes": [
       {
@@ -1247,15 +1323,20 @@
     },
     "sceneKind": "hold",
     "rounds": 5,
-    "skills": [
+    "tests": [
       {
-        "id": "corps-a-corps"
+        "skill": {
+          "id": "corps-a-corps"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "athletisme"
+        "skill": {
+          "id": "athletisme"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "hold": {
       "breakpoint": 10,
       "maxRounds": 5,
@@ -1292,15 +1373,20 @@
     },
     "sceneKind": "test",
     "rounds": 3,
-    "skills": [
+    "tests": [
       {
-        "id": "corps-a-corps"
+        "skill": {
+          "id": "corps-a-corps"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "athletisme"
+        "skill": {
+          "id": "athletisme"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "Les Personnages ont 3 Rounds pour empêcher l'ennemi de porter un coup dévastateur à leur armée et réduire sa Puissance de –10. Échouer à une Scène de Compte à rebours entraîne une Scène de Motivation, permettant aux Personnages d'aider à guérir ou motiver les troupes blessées.",
     "outcomes": [
       {
@@ -1376,15 +1462,20 @@
       "page": 206
     },
     "sceneKind": "test",
-    "skills": [
+    "tests": [
       {
-        "id": "corps-a-corps"
+        "skill": {
+          "id": "corps-a-corps"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "projectiles"
+        "skill": {
+          "id": "projectiles"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "Au milieu du chaos de la bataille, un Personnage aperçoit soudain un capitaine ennemi isolé non loin de lui. Il peut le charger ou l'attaquer à une distance de 12 mètres. En cas de Succès, l'ennemi perd –5 de Puissance. Si c'est le général qui est tué ou neutralisé, la Puissance diminue encore de –5. Après cette attaque, les troupes ennemies encerclent le Personnage, qui doit battre en retraite. S'il veut attaquer de nouveau, il est libre de le faire au risque de sa vie, car il est submergé par ses adversaires. S'il choisit d'attaquer, le Personnage est obligé de participer à une Scène de Charge lors du prochain Round de bataille, où seul l'ennemi peut charger et est en supériorité numérique (WFJDR p.162) de 3 contre 1.",
     "outcomes": [
       {
@@ -1457,12 +1548,14 @@
       "page": 215
     },
     "sceneKind": "test",
-    "skills": [
+    "tests": [
       {
-        "id": "chevaucher"
+        "skill": {
+          "id": "chevaucher"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "Une monture volante accorde aux Personnages une unique tentative pour surprendre le général ennemi à l'arrière des lignes. Réussir un Test de Chevaucher Intermédiaire (+0) permet aux Personnages d'effectuer une attaque à distance, ou toute autre Action réalisable à une distance de 15 moins DR mètres. En cas de succès Stupéfiant (+6), ils peuvent se rapprocher suffisamment pour des attaques au Corps à corps, à Bout portant ou des Actions similaires. Si l'attaque réussit, l'ennemi perd –5 de Puissance. Si le général ennemi est neutralisé ou tué, la Puissance diminue encore de –15. En cas d'Échec Stupéfiant (–6), les Personnages font une chute de 5 mètres et s'écrasent au milieu de la bataille. Au cours du prochain Round de bataille, ils doivent prendre part à une Scène de Charge où seul l'ennemi charge.",
     "outcomes": [
       {
@@ -1624,12 +1717,14 @@
       "page": 85
     },
     "sceneKind": "rally",
-    "skills": [
+    "tests": [
       {
-        "id": "resistance"
+        "skill": {
+          "id": "resistance"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "**Le rassemblement :** alors qu'ils s'arrêtent pour récupérer, tous les Personnages peuvent effectuer un Test de **Résistance Intermédiaire (+0)** pour guérir un nombre de Blessures égal au DR + le Bonus d'Endurance. Un Personnage avec la Compétence Guérison peut effectuer un Test de **Guérison Intermédiaire (+0)** pour aider les autres Personnages à soigner des Blessures supplémentaires. Il est également possible d'utiliser des potions de guérison et d'autres possessions.",
     "stake": "Réussite : tu regagnes autant de Blessures que ton DR plus ton Bonus d'Endurance.",
     "stakeForm": "descripteur"
@@ -1646,12 +1741,14 @@
       "book": "livre-de-base",
       "page": 197
     },
-    "skills": [
+    "tests": [
       {
-        "id": "dressage"
+        "skill": {
+          "id": "dressage"
+        },
+        "difficulty": "accessible"
       }
     ],
-    "difficulty": "accessible",
     "desc": "Vous passez du temps à entraîner l'un de vos animaux. Effectuez un Test de **Dressage Accessible (+20)**. En cas de réussite, ajoutez une Compétence à votre animal, choisie parmi les Traits de créature Dressé (voir page 339).",
     "outcomes": [
       {
@@ -1674,12 +1771,14 @@
       "book": "livre-de-base",
       "page": 200
     },
-    "skills": [
+    "tests": [
       {
-        "id": "ragot"
+        "skill": {
+          "id": "ragot"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "classGate": {
       "classes": [
         "itinerants",
@@ -1714,15 +1813,20 @@
       "book": "livre-de-base",
       "page": 200
     },
-    "skills": [
+    "tests": [
       {
-        "id": "corps-a-corps"
+        "skill": {
+          "id": "corps-a-corps"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "projectiles"
+        "skill": {
+          "id": "projectiles"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "classGate": {
       "classes": [
         "guerriers",
@@ -1747,12 +1851,14 @@
       "book": "livre-de-base",
       "page": 200
     },
-    "skills": [
+    "tests": [
       {
-        "id": "perception"
+        "skill": {
+          "id": "perception"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "classGate": {
       "classes": [
         "roublards"
@@ -1786,12 +1892,14 @@
       "book": "livre-de-base",
       "page": 201
     },
-    "skills": [
+    "tests": [
       {
-        "id": "savoir"
+        "skill": {
+          "id": "savoir"
+        },
+        "difficulty": "accessible"
       }
     ],
-    "difficulty": "accessible",
     "classGate": {
       "classes": [
         "lettres"
@@ -1826,7 +1934,6 @@
       "book": "livre-de-base",
       "page": 201
     },
-    "skills": [],
     "difficulty": "intermediaire",
     "classGate": {
       "classes": [
@@ -1853,12 +1960,14 @@
       "book": "livre-de-base",
       "page": 201
     },
-    "skills": [
+    "tests": [
       {
-        "id": "ragot"
+        "skill": {
+          "id": "ragot"
+        },
+        "difficulty": "accessible"
       }
     ],
-    "difficulty": "accessible",
     "classGate": {
       "classes": [
         "citadins",
@@ -1883,12 +1992,14 @@
       "book": "livre-de-base",
       "page": 201
     },
-    "skills": [
+    "tests": [
       {
-        "id": "charme"
+        "skill": {
+          "id": "charme"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "classGate": {
       "classes": [
         "citadins",
@@ -1914,13 +2025,15 @@
       "book": "aux-armes",
       "page": 138
     },
-    "skills": [
+    "tests": [
       {
-        "id": "projectiles",
-        "spec": "arc"
+        "skill": {
+          "id": "projectiles",
+          "spec": "arc"
+        },
+        "difficulty": "complexe"
       }
     ],
-    "difficulty": "complexe",
     "classGate": {
       "classes": [
         "guerriers"
@@ -1950,12 +2063,14 @@
       "book": "aux-armes",
       "page": 137
     },
-    "skills": [
+    "tests": [
       {
-        "id": "corps-a-corps"
+        "skill": {
+          "id": "corps-a-corps"
+        },
+        "difficulty": "complexe"
       }
     ],
-    "difficulty": "complexe",
     "classGate": {
       "classes": [
         "guerriers"
@@ -1985,12 +2100,14 @@
       "book": "aux-armes",
       "page": 138
     },
-    "skills": [
+    "tests": [
       {
-        "id": "commandement"
+        "skill": {
+          "id": "commandement"
+        },
+        "difficulty": "complexe"
       }
     ],
-    "difficulty": "complexe",
     "classGate": {
       "classes": [
         "guerriers"
@@ -2020,14 +2137,18 @@
       "book": "aux-armes",
       "page": 138
     },
-    "skills": [
+    "tests": [
       {
-        "id": "charme",
+        "skill": {
+          "id": "charme"
+        },
         "difficulty": "complexe"
       },
       {
-        "id": "divertissement",
-        "spec": "narration",
+        "skill": {
+          "id": "divertissement",
+          "spec": "narration"
+        },
         "difficulty": "intermediaire"
       }
     ],
@@ -2055,12 +2176,14 @@
       "book": "aux-armes",
       "page": 138
     },
-    "skills": [
+    "tests": [
       {
-        "id": "ragot"
+        "skill": {
+          "id": "ragot"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "classGate": {
       "classes": [
         "guerriers"
@@ -2105,12 +2228,14 @@
       "book": "vents-de-la-magie",
       "page": 34
     },
-    "skills": [
+    "tests": [
       {
-        "id": "recherche"
+        "skill": {
+          "id": "recherche"
+        },
+        "difficulty": "difficile"
       }
     ],
-    "difficulty": "difficile",
     "desc": "Les familiers sont assez limités dans leurs capacités à s'améliorer, étant en partie mus par le pouvoir de leur sorcier créateur. Ils ne peuvent pas utiliser les règles d'Activités, sauf si leur créateur passe du temps à les éduquer.\n\nPour améliorer son familier, le sorcier qui l'a créé doit choisir cette Activité et effectuer un Test de **Recherche Difficile (−20)**. Le familier peut lui apporter son soutien. S'il réussit ce Test, le sorcier peut imprégner son familier du pouvoir nécessaire pour qu'il entreprenne une Activité de son propre chef. Toutefois, même si le sorcier est parvenu à donner une Activité à son familier, celui-ci doit encore la réaliser pour en avoir les bénéfices.\n\nLe familier peut immédiatement entreprendre l'une des Activités suivantes chaque fois que son créateur accomplit l'Activité *Améliorer un familier* :\n\n- 0 Entraînement (voir **WFJDR**, page 197)\n- 0 Apprentissage particulier (voir **WFJDR**, page 196 ; un familier ne peut pas apprendre les Talents Béni, Invocation ou Âme pure)\n- 0 Entraînement avec une arme inhabituelle (voir **Altdorf**, page 219 ; uniquement pour les familiers de combat)\n- 0 Tester des objets magiques (voir **Altdorf**, page 219 ; uniquement pour les familiers de sorts et de pouvoir)",
     "outcomes": [
       {
@@ -2135,15 +2260,20 @@
       "book": "vents-de-la-magie",
       "page": 34
     },
-    "skills": [
+    "tests": [
       {
-        "id": "metier"
+        "skill": {
+          "id": "metier"
+        },
+        "difficulty": "intermediaire"
       },
       {
-        "id": "focalisation"
+        "skill": {
+          "id": "focalisation"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "outcomes": [
       {
         "on": "fumble",
@@ -2176,13 +2306,15 @@
       "book": "vents-de-la-magie",
       "page": 34
     },
-    "skills": [
+    "tests": [
       {
-        "id": "savoir",
-        "spec": "herbes"
+        "skill": {
+          "id": "savoir",
+          "spec": "herbes"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "Réunir des ingrédients pour des potions suppose qu'un Personnage passe une semaine dans un lieu adéquat comme expliqué à la page 155. Si le MJ pense qu'un tel endroit est suffisamment proche, le Personnage peut dépenser une Activité à réunir des ingrédients. S'il échoue au premier essai, il peut réessayer en réalisant une deuxième Activité.",
     "maison": "La récolte est un Test de Savoir (Herbes) « modifié par la Difficulté des ingrédients », propre à chaque potion (VDM 12 folio 160) : sans catalogue de potions en donnée, Intermédiaire (+0) par défaut.",
     "blocked": {
@@ -2202,13 +2334,15 @@
       "book": "vents-de-la-magie",
       "page": 49
     },
-    "skills": [
+    "tests": [
       {
-        "id": "metier",
-        "spec": "alchimiste"
+        "skill": {
+          "id": "metier",
+          "spec": "alchimiste"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "Quiconque possède la Compétence Métier (Alchimiste) peut s'essayer à l'alchimie ordinaire ou « Basse Alchimie ». Pour l'essentiel, elle consiste à isoler des éléments chimiques, les combiner pour créer des composés, ou encore se servir de la connaissance scientifique lors de la création de petits artefacts simples.\n\nPour pouvoir utiliser la Compétence Métier (Alchimiste), un Personnage a besoin d'un laboratoire ou de posséder le Talent Concocter (**WFJDR**, page 135).\n\nLes procédés alchimiques ne sont pas sans risque. Si un Personnage obtient une Maladresse à un Test de Métier (Alchimiste) pour créer un artefact alchimique, quelque chose s'est terriblement mal passé. Lancez 1d10, ajoutez les degrés d'échec et consultez le **Tableau des Catastrophes de brassage** à la page 161.",
     "outcomes": [
       {
@@ -2241,13 +2375,15 @@
       "book": "vents-de-la-magie",
       "page": 52
     },
-    "skills": [
+    "tests": [
       {
-        "id": "metier",
-        "spec": "alchimiste"
+        "skill": {
+          "id": "metier",
+          "spec": "alchimiste"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "La Haute Alchimie prend une pincée des principes appris dans l'alchimie ordinaire et ajoute au mélange une touche de *Chamon*. Un alchimiste peut créer des artefacts d'une grande puissance en choisissant des composants riches en énergie magique. Seuls les Personnages dotés du Talent *Seconde vue* peuvent s'y essayer.\n\nLes sorciers Dorés et les alchimistes ordinaires chevronnés fabriquent des matériaux avec la Haute Alchimie. Pour ce faire, l'alchimiste doit d'abord créer une substance ordinaire associée au matériau. Il n'y a que lui qui puisse le faire, afin de s'assurer de la bonne utilisation des énergies magiques latentes contenues dans les matériaux bruts. Il effectue ensuite un Test étendu de **Métier (Alchimiste)** pour imprégner la substance de la qualité magique.\n\nLorsqu'ils tournent mal, les travaux de Haute Alchimie peuvent être désastreux. Si un Personnage effectue un Test de Métier (Alchimiste) et obtient une Maladresse, lancez 1d10 + 3. Ajoutez les degrés d'échec et consultez le **Tableau des Catastrophes de brassage** à la page 161.\n\nCréer un objet à l'aide de la Haute Alchimie est source de fierté pour un sorcier Doré ou un alchimiste. Les créateurs de ces concoctions grandioses gagnent le respect profond de leurs pairs et, s'ils vendaient ces objets précieux, ils pourraient en majorer le prix de 100 fois celui du matériau brut.",
     "outcomes": [
       {
@@ -2282,12 +2418,14 @@
       "page": 44,
       "note": "VDM 03 « AUGURE (INT) »"
     },
-    "skills": [
+    "tests": [
       {
-        "id": "augure"
+        "skill": {
+          "id": "augure"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "L'Augure est une Compétence Avancée et la capacité à glaner des informations sur le futur. Il existe de nombreuses méthodes pour utiliser cette Compétence, mais les plus\n\n- L'interprétation des rêves ou les visions prophétiques reçues par les Prêtres de Morr ou les Sœurs de Sigmar.\n- La lecture du futur dans les étoiles par les sorciers Célestes.\n- Les outils divinatoires, comme des cartes ou des dés, dont se servent les Mystiques.\n- La consultation du Thaumodivinator à Altdorf.\n- Les pactes passés avec des démons tels que Kairos le Tisseur de Destins ou un Gardien des Secrets.\n\nUn Personnage ne peut effectuer qu'un seul Test d'Augure par jour. Il peut également faire des Tests d'Augure au nom d'autres Personnages, mais transmettre des visions prophétiques de façon pertinente s'avère compliqué. Ces Tests sont alors des Tests d'**Augure Complexes (−10)**.\n\nLe MJ devra décider quelle information apporter à un Test d'Augure réussi. Dans ce cas, l'augure pourra percevoir des développements d'intrigues plausibles ou les motivations d'un PNJ clef. Les échecs donnent souvent lieu à des informations trompeuses et dangereuses. Si le MJ ne veut pas les révéler, il existe un autre système pour se servir de cette Compétence de manière plus figurative.\n\nConsultez le **Tableau d'Augure** pour connaître l'effet de la prédiction, puis appliquez l'Effet indiqué en vous référant au Tableau des Symboles. Si vous obtenez le même symbole plus d'une fois, les jets suivants sont perdus : l'Augure est à ce point versatile. Vous ne pouvez pas choisir de symboles inversés.",
     "maison": "Tableau d'Augure (VDM 03 l.487-497, regles.json id `tableau-augure`) : les DR « Succès Stupéfiant »/« Succès » laissent au joueur le CHOIX d'un ou deux symboles — aucune primitive de pick manuel en table, modélisé par un jet supplémentaire (comme les DR à lancer). Le bonus/malus DR différé « au premier Test dans la Compétence listée » n'est pas appliqué mécaniquement (le symbole tiré reste narratif) — #914.",
     "outcomes": [
@@ -2413,13 +2551,15 @@
       "book": "vents-de-la-magie",
       "page": 153
     },
-    "skills": [
+    "tests": [
       {
-        "id": "savoir",
-        "spec": "magie"
+        "skill": {
+          "id": "savoir",
+          "spec": "magie"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "desc": "Il est possible de créer des parchemins en entreprenant l'Activité *Artisanat* comme cela est expliqué dans **Archives de l'Empire Vol. II**. Un lanceur de sorts peut également créer un parchemin en cours de partie selon le procédé suivant :\n\n- 0 Il doit avoir accès au Sort qu'il souhaite lier, grâce à sa mémoire ou à l'aide d'un grimoire.\n- 0 Il doit posséder un nécessaire d'écriture et un parchemin ou du papier vélin.\n- 0 Il doit avoir le Talent *Lire/Écrire*.\n- 0 Il doit effectuer un Test étendu de **Savoir (Magie) Intermédiaire (+0)**, totalisant 20 DR (chaque Test dure 1 minute).\n- 0 Il doit lancer le Sort sans Incantation Imparfaite et peut se servir de la Focalisation. S'il réussit, le Sort n'est pas lancé, mais est correctement inscrit sur le parchemin. S'il échoue, le parchemin est détruit.",
     "maison": "Le Test est ÉTENDU et totalise 20 DR (chaque Test dure 1 minute) : ActivityDef.extended n'exprime qu'un DR PAR Étape de voyage, pas une cible cumulée — la cible de 20 DR reste non exprimable sans résolveur (patron craftExtended).",
     "blocked": {
@@ -2440,12 +2580,14 @@
       "page": 119,
       "note": "LDB 09 l.97"
     },
-    "skills": [
+    "tests": [
       {
-        "id": "charme"
+        "skill": {
+          "id": "charme"
+        },
+        "difficulty": "intermediaire"
       }
     ],
-    "difficulty": "intermediaire",
     "testMods": [
       {
         "mod": {

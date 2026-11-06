@@ -32,7 +32,7 @@ export function refusDeBourse(hero: Combatant, cout: Money, cle: MsgKey, params?
 
 /** Somme des bourses des héros — SEULE source d'un affichage d'argent agrégé (il n'y a pas de bourse
  *  de groupe : l'argent vit sur les héros). */
-export function partyMoneyTotal(get: Get): Money {
+export function partyMoneyTotal(get: Get<Jeu>): Money {
   return totalDesBourses(get().party);
 }
 
@@ -45,7 +45,7 @@ export function totalDesBourses(party: Combatant[]): Money {
  *  disparu) : injecte le total des bourses du groupe (`partyMoneyTotal`) dans la Condition `money`,
  *  au lieu du `s.money` inexistant que `conditionCtx` attend en toute généralité. Tout appelant lisant
  *  l'état de scène (triggers, `if`, choix de dialogue) route DESSUS. */
-export function condCtx(get: Get): ConditionCtx {
+export function condCtx(get: Get<Jeu>): ConditionCtx {
   return conditionCtx({ flags: get().flags, gameTime: get().gameTime, party: get().party, money: partyMoneyTotal(get), etats: get().etats });
 }
 

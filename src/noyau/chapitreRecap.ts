@@ -14,7 +14,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { Objective } from './etat';
 import { condCtx } from './bourseFlow';
 import { visiblePlaces } from './worldMap';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Borne d'ouverture du chapitre courant (#717) — instantané pris quand le joueur prend la route :
@@ -105,7 +105,7 @@ export function creerActionsDuChapitre(_get: Get, set: SetFn) {
     // L'écran, lui, reste visible : il porte son refus par `GatedAction` (`src/ui/GatedAction.tsx`).
     acquitterOuverture: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),
     cloreChapitre: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingChapterRecap: null, objectifsSoldes: [], chapitreDepuis: snapshotChapitre(s.party, s.gameTime), clotureConsommee: true })),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** AJOURNE le récap (Échap / « Plus tard ») : le chapitre reste clos en donnée, donc le récap se re-pose au prochain lot

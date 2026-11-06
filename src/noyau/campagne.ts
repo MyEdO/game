@@ -6,7 +6,7 @@ import { reprendreLaSuite } from './combatEffects';
 import { fenetreDuJeu } from './combatAuto';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import { garanti } from '../lib/garanti';
 
@@ -44,7 +44,7 @@ export function creerActionsDeCampagne(get: Get, set: Set) {
       reprendreLaSuite(get, set, p.suite);
     },
     remettreDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Le document se ferme et rejoue sa `suite` ; sa sortie est à l'hôte (`SURFACES_HORS_PENDING`). */

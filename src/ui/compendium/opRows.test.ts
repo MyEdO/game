@@ -3,7 +3,7 @@ import type { GameOp } from '../../engine/ops';
 // `newOp`/`OP_LABEL` (générateur d'échantillon + énumération EXHAUSTIVE des kinds `GameOp['op']`,
 // `Record` complet forcé par TS) viennent des portes de l'ATELIER (#495, #2724).
 import { newOp } from '../editor/GameOpEditor';
-import { OP_LABEL, OP_REF_FIELDS, opRefValue, opWithRefValue } from '../editor/refsDOp';
+import { OP_LABEL, OP_REF_FIELDS, opRefValue, opWithRefValue } from '../../data/refsDOp';
 import { datasetArray } from '../../data/overrides';
 import { opRow, opRows, tableRows } from '../../noyau/codex/opRows';
 import { humanizeFormula, humanizeOp } from '../../noyau/codex/humanize';

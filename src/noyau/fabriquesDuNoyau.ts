@@ -4,6 +4,7 @@
  * (`partie.ts`). Une fabrique ajoutée ici sert les deux.
  */
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { JeuDuNoyau, MachinerieDuNoyau } from './machinerieDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import { creerReglageDuJet, creerVerbesDeJet, type CloturesDuJet } from './rollFlowSpecs';
 import type { CorpsDesReglages } from './reglagesDuJet';
@@ -109,7 +110,7 @@ function sortiesDeFenetre(get: Get, set: SetDesClesReservees): SortiesDeFenetre 
 
 /** Les actions du noyau sur le propriétaire `get`/`set` (le `set` brut, qui écrit aussi les clés
  *  réservées de leurs seuls écrivains), une fabrique par concept. */
-export function creerActionsDuNoyau(get: Get, set: SetDesClesReservees): ActionsDuNoyau {
+export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReservees): ActionsDuNoyau & MachinerieDuNoyau {
   return {
     // Les verbes de jet, le flux en argument : leur SEUL écrivain.
     ...creerVerbesDeJet(get, set, cloturesDuJet(get, set)),

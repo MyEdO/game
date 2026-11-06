@@ -75,9 +75,6 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // soin (LDB 74 l.41), chacun une option de sa fenêtre.
   jetRegler: { parUI: true },
   counterspellDeclareAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/noyau/combatAuto.ts' },
-  preemptRangedShot: { interne: 'combatSlice.battleClickEntity — le clic voyage par battleClickEntity (visée armée)', dans: 'src/noyau/combatSlice.ts' },
-  cleaveAttack: { interne: 'targetingModes.CLEAVE_MODE.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/noyau/targetingModes.ts' },
-  dualStrikeAttack: { interne: 'targetingModes.DUAL_MODE.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/noyau/targetingModes.ts' },
 };
 
 /** Sources d'ÉCRAN (hors fichiers de test) : `src/ui` + `src/gameIso`. */

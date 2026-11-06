@@ -24,7 +24,7 @@ import type { Combatant, CharKey, Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './monde/combatants';
 import { d10, d100, type RNG } from '../engine/dice';
-import { testValue, skillBaseValue, bestForSkills, bestForCombined, bestAssistedOption, peutTenter, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
+import { testValue, skillBaseValue, bestForTests, bestForCombined, bestAssistedOption, idsDuTest, peutTenter, refusPersonneNePeutTenter, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
@@ -33,7 +33,7 @@ import { dataLabel, testSkillLabel } from '../data';
 import { clampTarget } from '../engine/tests';
 import { rollLine, type RollLineParts } from './rollSeam';
 import {
-  activityById, activitiesFor, activityModLines, matchBattleOutcomes, battleOutcomeAmount,
+  activityById, activitiesFor, activityModLines, testsDeLActivite, matchBattleOutcomes, battleOutcomeAmount,
   type ActivityDef, type BattleResolution, type BattleOutcome as BattleOutcomeDelta,
   type BattleMeasure, type BattleTestModPool,
 } from '../engine/activities';
@@ -47,7 +47,7 @@ import { t } from '../i18n';
 import { rule } from '../engine/policy';
 import { refusDActivite, type EtatDInterlude } from './verdictsDInterlude';
 import { refuseSi } from './verrousDeFiche';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
@@ -335,7 +335,7 @@ interface OuvertureDeBataille {
   actor: Combatant; battle: 'prep' | 'round'; def: ActivityDef;
   skillValue: number; skillId?: string; spec?: string; char?: CharKey; difficulty: Difficulty;
   label?: string; mod?: number; modLabel?: string;
-  combined?: { skillId?: string; spec?: string; value: number };
+  combined?: { skillId?: string; spec?: string; char?: CharKey; value: number };
   opposition?: ActivityOppositionOn;
   heroIds?: string[]; support?: SupportDetail;
 }
@@ -357,11 +357,11 @@ function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
     valeur: o.skillValue, soutien: o.support, difficulty: o.difficulty, surLaCible,
   });
   const ligne2 = o.combined
-    ? rollLine({ actor: o.actor, test: { skill: o.combined.skillId, char: o.char, spec: o.combined.spec }, valeur: o.combined.value, difficulty: o.difficulty, surLaCible })
+    ? rollLine({ actor: o.actor, test: { skill: o.combined.skillId, char: o.combined.char, spec: o.combined.spec }, valeur: o.combined.value, difficulty: o.difficulty, surLaCible })
     : undefined;
   const target = ligne.target;
   const combined = o.combined && ligne2
-    ? { skill2: testSkillLabel({ skill: o.combined.skillId, spec: o.combined.spec, char: o.char ?? 'intelligence' }), skillValue2: o.combined.value, target2: ligne2.target }
+    ? { skill2: testSkillLabel({ skill: o.combined.skillId, spec: o.combined.spec, char: o.combined.char }), skillValue2: o.combined.value, target2: ligne2.target }
     : {};
   const pa: PendingActivityFields = {
     heroId: o.actor.id, kind: 'catalog', activityId: o.def.id, battle: o.battle,
@@ -396,11 +396,23 @@ function battleMeasureGap(mb: MassBattleState, measure: BattleMeasure): number {
   }
 }
 
-/** Difficulté du Test d'une Activité/Scène de bataille : DÉRIVÉE de l'écart d'armées quand l'entrée le
- *  DÉCLARE (`difficultyFrom` — Discours inspirant, ADE II 8 l.71), sinon sa Difficulté fixe. PUR. */
-export function battleActivityDifficulty(def: ActivityDef, mb: MassBattleState): Difficulty {
+/** Difficulté fixe du Test retenu `test`, élément de `tests` (`testsDeLActivite(def)`) : celle de son option. PUR. */
+function difficulteDeLOption(def: ActivityDef, tests: readonly TestDesigne[], test: TestDesigne): Difficulty {
+  return def.tests?.[tests.indexOf(test)]?.difficulty ?? 'intermediaire';
+}
+
+/** Difficulté du Test retenu `test` (élément de `tests`) d'une Activité/Scène de bataille : DÉRIVÉE de
+ *  l'écart d'armées quand l'entrée le DÉCLARE (`difficultyFrom` — Discours inspirant, ADE II 8 l.71),
+ *  sinon celle de son option. PUR. */
+export function battleActivityDifficulty(def: ActivityDef, mb: MassBattleState, tests: readonly TestDesigne[], test: TestDesigne): Difficulty {
   const d = def.difficultyFrom;
-  return d ? gapDifficulty(battleMeasureGap(mb, d.gap), d.roundTo ?? 1) : def.difficulty ?? 'intermediaire';
+  return d ? gapDifficulty(battleMeasureGap(mb, d.gap), d.roundTo ?? 1) : difficulteDeLOption(def, tests, test);
+}
+
+/** Les champs d'ouverture que nomme un Test désigné. PUR. */
+function champsDuTest(test: TestDesigne): { skillId?: string; spec?: string; char?: CharKey } {
+  const ids = idsDuTest(test);
+  return { ...(ids.skill ? { skillId: ids.skill } : {}), ...(ids.spec ? { spec: ids.spec } : {}), ...(ids.char ? { char: ids.char } : {}) };
 }
 
 /** Valeur COURANTE d'un réservoir de modificateur de Test d'armée, lu par l'Activité qui le DÉCLARE
@@ -485,9 +497,10 @@ export function setMassBattleHero(get: Get, set: Set, actionId: string, heroIds:
 /** Le Personnage peut-il TENTER le Test de cette action de bataille ? Les deux compétences d'un Test combiné,
  *  l'une des compétences au choix sinon. LDB 09 l.30, LDB 12 l.202-206, ADE II 8 l.75. */
 export function peutTenterAction(c: Combatant, def: ActivityDef): boolean {
-  const sk = def.skills ?? [];
-  if (def.combined && sk.length >= 2) return peutTenter(c, sk[0].id, sk[0].spec) && peutTenter(c, sk[1].id, sk[1].spec);
-  return sk.length ? sk.some((s) => peutTenter(c, s.id, s.spec)) : peutTenter(c);
+  const tentable = (test: TestDesigne): boolean => { const ids = idsDuTest(test); return peutTenter(c, ids.skill, ids.spec); };
+  const tests = testsDeLActivite(def);
+  if (def.combined && tests.length >= 2) return tentable(tests[0]) && tentable(tests[1]);
+  return tests.length ? tests.some(tentable) : peutTenter(c);
 }
 
 /** Refus NOMMÉ d'une action de bataille que personne ne peut tenter (`peutTenterAction`) : les postés, à défaut le
@@ -509,13 +522,14 @@ export function battleActionRefus(mb: MassBattleState, party: Combatant[], def: 
  *  Source UNIQUE du motif crew→solo→team→picked des Scènes (multi-PJ l.116-118, tenue l.161). */
 function resolveAssistedTeam(
   get: Get, mb: MassBattleState, party: Combatant[], def: ActivityDef,
-): { team: Combatant[]; picked: NonNullable<ReturnType<typeof bestAssistedOption>> } | null {
+): { team: Combatant[]; picked: NonNullable<ReturnType<typeof bestAssistedOption>>; difficulty: Difficulty } | null {
   const crew = assignedHeroesFor(mb, party, def.id);
-  const solo = bestForSkills(party, def.skills, def.char)?.actor;
+  const tests = testsDeLActivite(def);
+  const solo = bestForTests(party, tests)?.actor;
   const team = crew.length ? crew : (solo ? [solo] : []);
-  const picked = bestAssistedOption(team, def.skills, def.char);
+  const picked = bestAssistedOption(team, tests);
   if (!picked) { get().log(refusTenterAction(crew, def)); return null; }
-  return { team, picked };
+  return { team, picked, difficulty: difficulteDeLOption(def, tests, picked.test) };
 }
 
 /** PRÉ-JET d'une Activité de bataille pré-combat (Planification/Infiltration/… l.79-106) MENÉE par `hero` : le
@@ -528,24 +542,25 @@ export function preJetDePreparation(s: EtatDInterlude, mb: MassBattleState, hero
   // Infiltration, `testModFrom: planningBonus`, l.75/100), et sa Difficulté peut être DÉRIVÉE de
   // l'écart d'armées (Discours inspirant, `difficultyFrom`, l.71).
   const mod = def.testModFrom ? battleTestModPool(mb, def.testModFrom) : 0;
-  const commun = { battle: 'prep' as const, def, char: def.char, difficulty: battleActivityDifficulty(def, mb), mod, modLabel: mod ? t('mbf.modPrep') : undefined };
-  if (def.combined && def.skills && def.skills.length >= 2) {
-    const [sk1, sk2] = def.skills;
-    const picked = bestForCombined([hero], sk1, sk2, def.char);
+  const tests = testsDeLActivite(def);
+  const commun = (test: TestDesigne) => ({ battle: 'prep' as const, def, ...champsDuTest(test), difficulty: battleActivityDifficulty(def, mb, tests, test), mod, modLabel: mod ? t('mbf.modPrep') : undefined });
+  if (def.combined && tests.length >= 2) {
+    const [t1, t2] = tests;
+    const picked = bestForCombined([hero], t1, t2);
     return picked
-      ? pendingDeBataille({ ...commun, actor: picked.actor, skillValue: picked.value1, skillId: sk1.id, spec: sk1.spec, combined: { skillId: sk2.id, spec: sk2.spec, value: picked.value2 } })
+      ? pendingDeBataille({ ...commun(t1), actor: picked.actor, skillValue: picked.value1, combined: { ...champsDuTest(t2), value: picked.value2 } })
       : null;
   }
   if (def.assisted) {
     const team = [hero, ...assignedHeroesFor(mb, budgetedParty(s), def.id).filter((h) => h.id !== hero.id)];
-    const picked = bestAssistedOption(team, def.skills, def.char, hero);
+    const picked = bestAssistedOption(team, tests, hero);
     return picked
-      ? pendingDeBataille({ ...commun, actor: picked.actor, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, heroIds: team.map((h) => h.id), support: picked.support })
+      ? pendingDeBataille({ ...commun(picked.test), actor: picked.actor, skillValue: picked.value, heroIds: team.map((h) => h.id), support: picked.support })
       : null;
   }
   // Activité SOLO (RAW l.75/102/106 « un Personnage », sans aide).
-  const picked = bestForSkills([hero], def.skills, def.char);
-  return picked ? pendingDeBataille({ ...commun, actor: picked.actor, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec }) : null;
+  const picked = bestForTests([hero], tests);
+  return picked ? pendingDeBataille({ ...commun(picked.test), actor: picked.actor, skillValue: picked.value }) : null;
 }
 
 /** Ouvre le Test d'une Activité de bataille pré-combat MENÉE par `heroId` (`preJetDePreparation`). Le meneur sans
@@ -576,11 +591,11 @@ export function openMassBattleScene(get: Get, set: Set, sceneId: string): void {
   if (!party.length) { get().log(t('mbf.allActed')); return; }
   const at = resolveAssistedTeam(get, mb, party, scene);
   if (!at) return;
-  const { team, picked } = at;
+  const { team, picked, difficulty } = at;
   const mod = massBattleThreatPenalty(mb); // Intrus l.219 : −20 aux Tests des autres Scènes.
   openBattlePending(set, {
-    actor: picked.actor, battle: 'round', def: scene, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, char: scene.char,
-    difficulty: scene.difficulty ?? 'intermediaire', mod, modLabel: mod ? t('mbf.modThreat') : undefined,
+    actor: picked.actor, battle: 'round', def: scene, skillValue: picked.value, ...champsDuTest(picked.test),
+    difficulty, mod, modLabel: mod ? t('mbf.modThreat') : undefined,
     heroIds: team.map((h) => h.id), support: picked.support,
   });
 }
@@ -596,27 +611,25 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   if (!party.length) { get().log(t('mbf.allActed')); return; }
   const at = resolveAssistedTeam(get, mb, party, scene);
   if (!at) return;
-  const { team, picked } = at;
+  const { team, picked, difficulty } = at;
   const enemyBonus = holdEnemyBonus(scene.hold, state.held); // +10 cumulatif par Round déjà tenu (l.163).
   const mod = massBattleThreatPenalty(mb);
   // `enemyValue`/`skillValue` = les CIBLES jetées (bonus de tenue ADE II 8 l.163, Soutien, États,
   // Menace) ; `enemyBase`/`skillBase` = les valeurs NUES que `resolveOpposed` compare (LDB 12 l.160).
   // Les quatre voyagent ensemble jusqu'au verdict — aucun site en aval ne re-dérive une nue.
-  // Niveau de Compétence NU du PJ retenu (`LDB 09 l.17`) — Compétence si la Scène en teste une,
-  // Caractéristique effective sinon ; une Scène qui ne déclare ni l'une ni l'autre n'en pose aucune.
-  const skillBase = picked.skillId
-    ? skillBaseValue(picked.actor, picked.skillId, picked.spec)
-    : scene.char ? effectiveChar(picked.actor, scene.char) : undefined;
+  // Niveau de Compétence NU du PJ retenu (`LDB 09 l.17`) — Compétence si le Test retenu en nomme une,
+  // Caractéristique effective sinon.
+  const skillBase = 'skill' in picked.test ? skillBaseValue(picked.actor, picked.test.skill.id, picked.test.skill.spec) : effectiveChar(picked.actor, picked.test.char);
   const opposition: ActivityOppositionOn = {
     // Seuil de l'opposition (aucune Difficulté : Puissance + tenue) — écrêté par la primitive PARTAGÉE.
     enemyValue: clampTarget(armyMight(mb.enemy) + enemyBonus).target,
     enemyRoll: d100(battleRng()),
     enemyBase: armyMight(mb.enemy),
-    ...(skillBase != null ? { skillBase } : {}),
+    skillBase,
   };
   openBattlePending(set, {
-    actor: picked.actor, battle: 'round', def: scene, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, char: scene.char,
-    difficulty: scene.difficulty ?? 'intermediaire', mod, modLabel: mod ? t('mbf.modThreat') : undefined,
+    actor: picked.actor, battle: 'round', def: scene, skillValue: picked.value, ...champsDuTest(picked.test),
+    difficulty, mod, modLabel: mod ? t('mbf.modThreat') : undefined,
     opposition, heroIds: team.map((h) => h.id), support: picked.support,
   });
 }
@@ -1003,7 +1016,7 @@ export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
     massBattleHazard: (roll) => massBattleSetHazard(get, set, roll),
     massBattleClash: () => massBattleClash(get, set),
     massBattleAdvance: () => massBattleAdvance(get, set),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 export function sortiesDeBatailleDeMasse(get: Get, set: Set) {

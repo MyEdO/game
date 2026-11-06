@@ -16,7 +16,7 @@ import { skillBaseValue } from '../engine/skills';
 import { pnjAuPreset } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { ouvrirMarchandage } from './merchantFlow';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 /** Le billet payé que le groupe tient en main : ses routes restantes, dans l'ordre du trajet. */
 export interface BilletEnMain {
@@ -127,5 +127,5 @@ export function startBilletBargain(get: Get, set: Set, routeId: string, vehicule
 export function creerActionsDuBillet(get: Get, set: Set) {
   return {
     startBilletBargain: (routeId, vehicule) => startBilletBargain(get, set, routeId, vehicule),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
