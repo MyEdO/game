@@ -207,11 +207,11 @@ describe('panneau Logique — un porteur renommé garde la saisie de ses champs 
   it('dialogue : renommer l’id du dialogue, puis du nœud, garde le JSON en saisie', () => {
     monter(<Dock initiale={{ ...emptyScene('scene-test', 8, 8), dialogues: [dialogue('d1', 1), dialogue('d2', 2)] }} onglet="dialogues" dlg0="d1" />);
     saisir(jsons()[0], BROUILLON);
-    saisir(champSousLibelle('Id du dialogue'), 'd1-renomme');
+    renommerAuBlur(champSousLibelle('Id du dialogue'), 'd1-renomme');
     expect(sceneVue.dialogues[0].id).toBe('d1-renomme');
     expect(jsons()[0].value, 'renommer le dialogue a effacé le JSON en saisie').toBe(BROUILLON);
 
-    saisir(container.querySelector<HTMLInputElement>('input.node-id')!, 'n1-renomme');
+    renommerAuBlur(champSousLibelle('Id du nœud'), 'n1-renomme');
     expect(sceneVue.dialogues[0].nodes[0].id).toBe('n1-renomme');
     expect(jsons()[0].value, 'renommer le nœud a effacé le JSON en saisie').toBe(BROUILLON);
 
