@@ -827,8 +827,8 @@ export function collectIdParamFunctions(contenu) {
  *  `collectIdParamFunctions`, paramètre `id` ou pas) — sert à détecter le SHADOWING local d'un nom
  *  global court (`toggle`, `set`…) : un fichier qui déclare SA PROPRE fonction homonyme sans paramètre
  *  `id` masque, pour SES appels, l'entrée globale sans rapport d'un autre fichier (#142 LOT 5, faux
- *  positif constaté : `SessionEndModal.tsx` déclare `toggle(id, key)`, `CharacterCreator.tsx` sa
- *  PROPRE `toggle(label)` — son appel `toggle(s.label)` vise la locale, pas l'homonyme).
+ *  positif constaté : `CharacterCreator.tsx` déclare sa PROPRE `toggle(label)` — son appel
+ *  `toggle(s.label)` vise la locale, pas un homonyme à paramètre `id` d'un autre fichier).
  * @param {string} contenu @returns {Set<string>} */
 export function collectDeclaredNames(contenu) {
   const body = codeSeul(contenu);
@@ -844,8 +844,8 @@ export function collectDeclaredNames(contenu) {
  *  = Map ×2) ; aucun autre nom (`has`/`get`/`delete`/`add`/`push`/`toggle`…) n'en produit UN SEUL. Élargir
  *  au-delà de `set` AVEUGLE en retour de vraies déclarations à paramètre `id` (mesuré, LOT 6bis) :
  *  `crewedWeapon.ts has(#0)`, `devtools.ts find(#0)`, `validateScene.ts add(#2)`,
- *  `quadSkeleton.ts set(#0)`, `SeaActivitiesModal.tsx set(#0)`, `SessionEndModal.tsx toggle(#0)`.
- *  `set` reste blacklisté malgré ce coût (2 sites ci-dessus aveuglés) car SANS information de TYPE, rien
+ *  `quadSkeleton.ts set(#0)`.
+ *  `set` reste blacklisté malgré ce coût (`quadSkeleton.ts` aveuglé) car SANS information de TYPE, rien
  *  ne distingue structurellement `teamOf.set(x.label, …)` (Map, hors sujet) de `quadSkeleton.ts`
  *  `set(id)` (déclaration réelle) — même receveur inconnu. */
 const COLLECTION_METHOD_NAMES = new Set(['set']);

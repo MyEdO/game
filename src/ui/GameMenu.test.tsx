@@ -26,7 +26,7 @@ describe('GameMenu — menu système plein écran (pause)', () => {
         time={campaignStart()}
         onQuit={() => {}}
         onSaveLoad={() => {}}
-        onEndSession={() => {}}
+        onFinDeSeance={() => {}}
         initialOpen
       />,
     );
@@ -57,7 +57,7 @@ describe('GameMenu — menu système plein écran (pause)', () => {
       <GameMenu
         sceneName="La taverne" time={campaignStart()} onQuit={() => {}} initialOpen
         onSaveLoad={() => {}} refusDeSauvegarde="invite"
-        onEndSession={() => {}} refusDeFinDeSeance={t('gameMenu.endSession.invite')}
+        onFinDeSeance={() => {}} refusDeFinDeSeance={t('gameMenu.finDeSeance.invite')}
       />,
     );
     // Les six entrées restent affichées (menu STABLE) ; chaque entrée refusée est désactivée et dit SA raison.
@@ -66,7 +66,7 @@ describe('GameMenu — menu système plein écran (pause)', () => {
     expect(entree('Sauvegarder / Charger')).toMatch(/disabled/);
     expect(html).toContain(t('store.saveInvite'));
     expect(entree('Fin de séance')).toMatch(/disabled/);
-    expect(html).toContain(t('gameMenu.endSession.invite'));
+    expect(html).toContain(t('gameMenu.finDeSeance.invite'));
     expect(entree('Options')).not.toMatch(/disabled/);
   });
 

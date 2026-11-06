@@ -120,13 +120,6 @@ function pointerEvent(x: number, y: number) {
   } as unknown as React.PointerEvent;
 }
 
-const CLICK_ENTITY_VRAI = useGame.getState().battleClickEntity;
-const CLICK_TILE_VRAI = useGame.getState().battleClickTile;
-const BATTLE_VRAI = useGame.getState().battle;
-const MODE_VRAI = useGame.getState().mode;
-const SCENE_VRAIE = useGame.getState().scene;
-const SET_INSPECT_VRAI = useGame.getState().setInspectId;
-
 describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en donne que la prise', () => {
   let root: Root | null = null;
   let pointer: StagePointer | undefined;
@@ -156,10 +149,6 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     }
     pointer = undefined;
     document.body.replaceChildren();
-    useGame.setState({
-      battle: BATTLE_VRAI, mode: MODE_VRAI, scene: SCENE_VRAIE,
-      battleClickEntity: CLICK_ENTITY_VRAI, battleClickTile: CLICK_TILE_VRAI, setInspectId: SET_INSPECT_VRAI,
-    });
   });
 
   it('la structure ENRÔLÉE est offerte en capacité `structure`, avec le `cid` du Combattant, sa largeur de prise et la case du MUR', () => {

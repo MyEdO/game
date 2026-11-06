@@ -33,10 +33,6 @@ beforeEach(() => {
   vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as unknown as MediaQueryList);
 });
 
-const CLICK_ENTITY_VRAI = useGame.getState().battleClickEntity;
-const CLICK_TILE_VRAI = useGame.getState().battleClickTile;
-const SET_INSPECT_VRAI = useGame.getState().setInspectId;
-
 /** Élément de stage MESURÉ au viewBox (un pixel client EST un point de viewBox), aux captures ESPIONNÉES. */
 function stageEl() {
   return {
@@ -72,7 +68,7 @@ afterEach(() => {
   pointer = undefined;
   vi.useRealTimers();
   setSpritePicker(null);
-  useGame.setState({ battle: null, mode: 'exploration', dialogue: null, inspectId: null, battleClickEntity: CLICK_ENTITY_VRAI, battleClickTile: CLICK_TILE_VRAI, setInspectId: SET_INSPECT_VRAI });
+  useGame.setState({ battle: null, mode: 'exploration', dialogue: null, inspectId: null });
 });
 
 describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaque', () => {

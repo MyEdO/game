@@ -140,7 +140,7 @@ const gestesDuDrive = (pol: AutoPolicy): readonly GesteDuJeu[] => (pol.mode === 
 
 /** Les gestes d'issue d'une fenêtre qui les déclare : sa validation (`validation` : `fenetreValider`), puis sa sortie
  *  (`sortie` : `fenetreFermer`), la fenêtre en argument. */
-export const issuesDe = (def: ModalDef | HorsModalDef | SurfaceHorsPendingDef): GesteDuJeu[] => [
+const issuesDe = (def: ModalDef | HorsModalDef | SurfaceHorsPendingDef): GesteDuJeu[] => [
   ...(def.validation ? [{ verbe: 'fenetreValider' as const, fenetre: def.key as FenetreAValider }] : []),
   ...(def.sortie ? [{ verbe: 'fenetreFermer' as const, fenetre: def.key as FenetreQuiSeFerme }] : []),
 ];
@@ -163,6 +163,9 @@ export function gestesDuJet(jet: NonNullable<CascadeStep['jet']>, reactive?: Fen
 }
 
 /** Les surfaces partagées hors `pending*` qui se valident ou se ferment (`issuesDe`) : celles que `fenetreDuJeu` rend. */
+/** Les gestes d'une surface partagée : ses choix (`choixDe`), puis ses issues (`issuesDe`). */
+export const gestesDeLaSurface = (def: SurfaceHorsPendingDef): GesteDuJeu[] => [...choixDe(def.key), ...issuesDe(def)];
+
 export const SURFACES_A_ISSUE: readonly SurfaceHorsPendingDef[] = (SURFACES_HORS_PENDING as readonly SurfaceHorsPendingDef[]).filter((d) => d.validation || d.sortie);
 
 /** Les clés que `fenetreDuJeu` peut rendre : chaque modale (`MODAL_DEFS`), chaque situation hors modale (`HORS_MODAL`),
@@ -191,7 +194,7 @@ export interface FenetreDuJeu {
  *  cascade (`NAVIGATION_DE_CASCADE`), le flux de son interaction puis `cascade`, dont la clôture valide l'étape, et pour
  *  une interaction jouée par un flux de jet le drive « le jet, puis valider l'étape » ; sinon la première situation
  *  `HORS_MODAL` ouverte (`pendingOuvert`) qui tient la main, avec ses gestes déclarés ; sinon la première surface
- *  partagée qui se valide ou se ferme et tient la main (`SURFACES_A_ISSUE`), ses issues pour gestes. L'étape de cascade
+ *  partagée qui se valide ou se ferme et tient la main (`SURFACES_A_ISSUE`), avec ses gestes (`gestesDeLaSurface`). L'étape de cascade
  *  courante est rendue avec la cascade.
  *  `null` : rien ne tient la main. */
 export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
@@ -215,7 +218,7 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
   const hors = (HORS_MODAL as readonly HorsModalDef[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
   if (hors) return { cle: hors.key, proprietaire: hors.owner(s), gestes: gestesDeLaFenetre(hors), flux: hors.flux ?? [] };
   const surface = SURFACES_A_ISSUE.find((d) => d.tientLaMain(s));
-  return surface ? { cle: surface.key, proprietaire: undefined, gestes: issuesDe(surface), flux: [] } : null;
+  return surface ? { cle: surface.key, proprietaire: undefined, gestes: gestesDeLaSurface(surface), flux: [] } : null;
 }
 
 /**
