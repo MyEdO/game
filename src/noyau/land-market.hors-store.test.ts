@@ -64,6 +64,7 @@ function freshState(withCarrier = true) {
     scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: landMap,
+    lieu: 'A',
     travelPlan: null,
     travelRecap: null,
     landMarket: null,
