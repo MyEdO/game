@@ -890,12 +890,17 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
   return [...chars, ...skillOptions.sort((a, b) => parLibelle(a.label, b.label))];
 }
 
-/** Retrait bancaire (LDB 23 l.168-170) : `roll` = le 1d100 du retrait. Planque : seuil de découverte
- *  fixe à 10 (LDB 23 l.170), sauf `rate` positionné (MDG 15 l.292 : 50 pour la Planque liée à une
- *  Carte marine). */
+/** Seuil de perte d'un dépôt au retrait : l'Indice borné à 1-10 pour un investissement (LDB 23 l.168),
+ *  10 pour une planque (LDB 23 l.170), sauf `rate` positionné (MDG 15 l.292 : 50 pour la Planque liée à
+ *  une Carte marine). */
+export function seuilDePerteBancaire(kind: 'invest' | 'stash', rate: number): number {
+  if (kind === 'invest') return Math.max(1, Math.min(10, rate));
+  return rate > 0 ? rate : 10;
+}
+
+/** Retrait bancaire (LDB 23 l.168-170) : `roll` = le 1d100 du retrait, perdu à `seuilDePerteBancaire` ou moins. */
 export function bankWithdrawOutcome(kind: 'invest' | 'stash', rate: number, roll: number): 'ok' | 'lost' {
-  if (kind === 'invest') return roll <= Math.max(1, Math.min(10, rate)) ? 'lost' : 'ok';
-  return roll <= (rate > 0 ? rate : 10) ? 'lost' : 'ok';
+  return roll <= seuilDePerteBancaire(kind, rate) ? 'lost' : 'ok';
 }
 
 /** Somme d'un dépôt récupéré avec intérêts (« les fonds de départ, plus les intérêts générés »,

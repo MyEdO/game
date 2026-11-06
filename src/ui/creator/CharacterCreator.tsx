@@ -54,7 +54,7 @@ import {
 } from '../../data';
 import { SIZE_LABEL } from '../../engine/size';
 import { refKey, splitLabel } from '../../engine/careerSlots';
-import { CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
+import { BASE_HUMAINE, CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, baseDEspece, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
 import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
@@ -81,7 +81,7 @@ import { SpecSelect } from '../compendium/refField/RefField';
 import { Prose, mdToText } from '../Prose';
 import { CodexSections } from '../compendium/CodexEntry';
 import { EntityRef, EntityChoice, cleDAvancement, SkillChip, TalentChip } from '../EntityChip';
-import { raceSkillSection, raceTalentSection, type CodexSection } from '../../noyau/codex/registry';
+import { caracteristiqueDEspece, raceSkillSection, raceTalentSection, type CodexSection } from '../../noyau/codex/registry';
 import { CharStatsGrid } from '../CharStatsGrid';
 import { GameOpChips } from '../GameOpChips';
 import { previewHero } from './CreatorSummary';
@@ -591,8 +591,8 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
         </>
       }
       // Caractéristiques : `CharStatsGrid` (source unique de la plaque .char-stats, #418) avec
-      // `sp.baseChar` — plus de rows codex-kv ; le delta vs base humaine (20) passe en `note` (tooltip
-      // discret), jamais dans la valeur affichée. Compétences/Talents : mêmes sections que le Codex
+      // `caracteristiqueDEspece` — plus de rows codex-kv ; l'écart à la colonne Humain passe en `note`
+      // (tooltip discret), jamais dans la valeur affichée. Compétences/Talents : mêmes sections que le Codex
       // (source unique `raceSkillSection`/`raceTalentSection`), « ou » en chips SÉPARÉES codex-liées.
       sections={
         <>
@@ -600,11 +600,10 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
             <div className="mini-title">Caractéristiques de base</div>
             <CharStatsGrid
               size="md"
-              value={(k) => sp.baseChar?.[k] ?? 20}
+              value={(k) => caracteristiqueDEspece(sp, k).base}
               note={(k) => {
-                const base = sp.baseChar?.[k] ?? 20;
-                const diff = base - 20;
-                return diff !== 0 ? `Base humaine 20 (${diff > 0 ? '+' : ''}${diff})` : undefined;
+                const { ecart } = caracteristiqueDEspece(sp, k);
+                return ecart ? `Base humaine ${BASE_HUMAINE} (${ecart})` : undefined;
               }}
             />
           </div>
@@ -995,7 +994,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                     // SOUS le nom (`.ck-cell .id > .rf`, « base 20 »), jamais à sa droite. En méta
                     // (`white-space:nowrap`) elle disputait la largeur au nom — d'où « Initiative »
                     // qui chevauchait « base 20 » dans une colonne de grille à deux.
-                    sub={`base ${sp.baseChar[k] ?? 20}`}
+                    sub={`base ${baseDEspece(sp, k)}`}
                     meta={
                       <>
                         {d.charMode !== 'pointBuy' && rowRolling && (

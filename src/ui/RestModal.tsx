@@ -6,7 +6,7 @@ import { CharFrame } from './CharFrame';
 import { StateChips } from './StateChips';
 import { Coins } from './Coins';
 import { OptionChooser } from './OptionChooser';
-import { lodgingOptions, foodOptions, nourrituresDeTroupe, restCost, noteDAubergeCouverte, type PendingRest, type RestLodging, type RestFood } from '../noyau/restFlow';
+import { lodgingOptions, foodOptions, nourrituresDeTroupe, restCost, partsDuRepos, noteDAubergeCouverte, type RestLodging, type RestFood } from '../noyau/restFlow';
 import { refusDeLaValidation } from '../noyau/validationDeFenetre';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { exposureTestCount, exposureShelterFromTent } from '../engine/exposure';
@@ -98,8 +98,8 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   // Menu de troupe : Couchage = l'offre du lieu (identique pour tous) ; Nourriture = `nourrituresDeTroupe`.
   const masterFood = nourrituresDeTroupe(p.places);
   const applyTroupe = (patch: Partial<{ lodging: RestLodging; food: RestFood }>) => { for (const h of followers) restSet(h.id, patch); };
-  // Coût INDIVIDUEL d'un héros (réutilise le calcul canonique `restCost` sur un pending mono-héros).
-  const heroCost = (h: Combatant) => restCost({ ...p, perHero: { [h.id]: cfgOf(h) } } as PendingRest, [h]);
+  // Part de chaque héros dans la note (`partsDuRepos`, dont `restCost` est la somme).
+  const parts = partsDuRepos(p, party);
 
   const reglagesBody = (
     <>
@@ -135,7 +135,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
           const mine = ownsLocal(state, h.id);
           const isOpen = expanded.has(h.id);
           const warns = heroWarnings(h, cfg.lodging, cfg.food, exposureTests);
-          const share = heroCost(h);
+          const share = parts[h.id];
           return (
             <div key={h.id} className="rest-hero">
               <div className="rest-hero-line">

@@ -561,18 +561,29 @@ export function nourrituresDeTroupe(places: RestPlaces): RestFood[] {
   return [...pitancesDuLieu(places), 'rien'];
 }
 
-/** Coût total du repos (chambres regroupées par 2, repas par convive), par nuit × days. */
-export function restCost(p: PendingRest, party: Combatant[]): Money {
+/** Part de chaque héros vivant réglé dans la note du repos, par nuit × days : une chambre privée loge 2
+ *  invités (LDB 66 l.28), sa part est sa moitié (valeur d'ingénierie, la source ne partage pas la
+ *  chambre) ; chambre commune et repas par convive. La somme des parts EST `restCost`. */
+export function partsDuRepos(p: PendingRest, party: Combatant[]): Record<string, Money> {
   const half = p.quality === 'pietre' ? 0.5 : 1;
-  let brass = 0;
   const heroes = party.filter((h) => !h.dead && p.perHero[h.id]);
-  const nPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee').length;
-  const nCommune = heroes.filter((h) => p.perHero[h.id].lodging === 'commune').length;
-  const nRepas = heroes.filter((h) => p.perHero[h.id].food === 'repas').length;
-  brass += Math.ceil(nPrivee / 2) * PRICE_BRASS.privee; // chambre pour 2 (grande pour 4 = ×2, équivalent)
-  brass += nCommune * PRICE_BRASS.commune;
-  brass += nRepas * PRICE_BRASS.repas;
-  return fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
+  const enPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee');
+  const parts: Record<string, Money> = {};
+  for (const h of heroes) {
+    const { lodging, food } = p.perHero[h.id];
+    const i = enPrivee.indexOf(h);
+    const seul = i === enPrivee.length - 1 && i % 2 === 0;
+    const chambre = lodging === 'privee' ? (seul ? PRICE_BRASS.privee : i % 2 === 0 ? Math.ceil(PRICE_BRASS.privee / 2) : Math.floor(PRICE_BRASS.privee / 2))
+      : lodging === 'commune' ? PRICE_BRASS.commune : 0;
+    const brass = chambre + (food === 'repas' ? PRICE_BRASS.repas : 0);
+    parts[h.id] = fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
+  }
+  return parts;
+}
+
+/** Coût total du repos : la somme des `partsDuRepos`. */
+export function restCost(p: PendingRest, party: Combatant[]): Money {
+  return fromBrass(Object.values(partsDuRepos(p, party)).reduce((n, m) => n + toBrass(m), 0));
 }
 
 /** Offre de repos À LA POSITION DU GROUPE : zone de repos (rect d'auteur) prioritaire, sinon
