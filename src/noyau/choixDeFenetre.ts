@@ -127,10 +127,10 @@ export const OUVERTS_DU_CHOIX = {
       if (!s.pendingSeaActivities || (pid !== undefined && !hero)) return [];
       return [ouverte(null, t('valeur.activite.repos')), ...seaActivitiesCatalog().map((def) => ouverte(def.id, def.label, seaActivityBlocked(s, def) ?? (hero && seaActivityRefus(hero, def)) ?? null))];
     }, (s, pid) => choixDuHeros(s, pid)?.activityId ?? null),
-    investir: quantite('seaActivities', 'investir', (s, pid) => (herosDeLaSemaine(s, pid) && activiteChoisie(s, pid)?.resolver === 'opportunityTrade' ? plafondDeMiseDOpportunite(s) : null), (s, pid) => choixDuHeros(s, pid)?.investGold ?? 0),
+    investir: quantite('seaActivities', 'investir', (s, pid) => (herosDeLaSemaine(s, pid) && activiteChoisie(s, pid)?.resolver === 'opportunityTrade' ? plafondDeMiseDOpportunite(s, pid) : null), (s, pid) => choixDuHeros(s, pid)?.investGold ?? 0),
     cacher: quantite('seaActivities', 'cacher', (s, pid) => {
       const hero = herosDeLaSemaine(s, pid);
-      return hero && activiteChoisie(s, pid)?.resolver === 'seaChart' ? plafondDePlanque(hero) : null;
+      return hero && activiteChoisie(s, pid)?.resolver === 'seaChart' ? plafondDePlanque(s, hero) : null;
     }, (s, pid) => choixDuHeros(s, pid)?.stashGold ?? 0),
   },
   // LDB 05 l.793-841, LDB 17 l.81 : chaque case se coche ou se décoche jusqu'à la fin de la séance, par l'hôte.
@@ -176,6 +176,19 @@ export const reglagesDesChoix = (s: Jeu, gestes: readonly GesteDuJeu[]): Reglage
 /** La valeur `valeur` est-elle dans les bornes `bornes` d'un réglage ? */
 const dansLesBornes = (valeur: unknown, bornes: NonNullable<Reglage['bornes']>): boolean =>
   typeof valeur === 'number' && Number.isInteger(valeur) && valeur >= bornes.min && valeur <= bornes.max;
+
+/** Un choix de la semaine en mer d'un héros de la semaine que l'état n'ouvre plus (MDG 15 l.268) : son Activité fermée
+ *  ou hors du catalogue, sa mise ou sa planque hors de ses bornes — l'état a changé depuis le choix (héros remplacé,
+ *  bourse, cale). La validation de la semaine reste fermée jusqu'à ce qu'il se reprenne. */
+export function semaineAReprendre(s: Jeu): boolean {
+  return Object.keys(s.pendingSeaActivities?.picks ?? {}).some((pid) => herosDeLaSemaine(s, pid) && (['activite', 'investir', 'cacher'] as const).some((axe) => {
+    const lu = reglageDuChoixDeFenetre(s, 'seaActivities', axe, pid);
+    if (lu.bornes) return !dansLesBornes(lu.courant, lu.bornes);
+    if (axe !== 'activite') return false;
+    const lue = lu.valeurs?.find((v) => v.valeur === lu.courant);
+    return !lue || lue.refus !== null;
+  }));
+}
 
 /** Ce qui refuse le choix venu d'une frontière (JSON d'un hôte, intention d'un siège) : un choix que la fenêtre ne
  *  déclare pas, une fenêtre fermée, une rangée absente d'un choix de rangée, ou posée sur un choix de la fenêtre, le choix

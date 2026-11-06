@@ -78,16 +78,23 @@ export interface PendingSeaActivities {
   opportunityQueue?: string[];
 }
 
-/** Plafond de mise du Commerce d'opportunité, en CO (MDG 15 l.276) : l'Enc libre non surchargé du navire
- *  (`encLibreNominale`), borné par la bourse du groupe. Lu par le geste et par l'écran des Activités. PUR. */
-export function plafondDeMiseDOpportunite(s: Pick<Jeu, 'vessel' | 'party'>): number {
-  return Math.min(encLibreNominale(s.vessel), Math.floor(toBrass(totalDesBourses(s.party)) / PA_PER_CO));
+/** Les bourses du groupe, en CO, moins ce qu'y engagent déjà les choix de la semaine des héros autres que `pid` : leurs
+ *  mises (MDG 15 l.276) et leurs planques (l.292). PUR. */
+function boursesLibres(s: Pick<Jeu, 'party' | 'pendingSeaActivities'>, pid: string): number {
+  const engage = Object.entries(s.pendingSeaActivities?.picks ?? {}).reduce((n, [id, p]) => (id === pid || !p ? n : n + (p.investGold ?? 0) + (p.stashGold ?? 0)), 0);
+  return Math.floor(toBrass(totalDesBourses(s.party)) / PA_PER_CO) - engage;
 }
 
-/** Plafond de la planque de Cartographie d'un héros, en CO (MDG 15 l.292) : sa bourse. Lu par le geste et
- *  par l'écran des Activités. PUR. */
-export function plafondDePlanque(hero: Combatant): number {
-  return Math.floor(toBrass(bourseOf(hero)) / PA_PER_CO);
+/** Plafond de mise du Commerce d'opportunité du héros `pid`, en CO (MDG 15 l.276) : l'Enc libre non surchargé du navire
+ *  (`encLibreNominale`), borné par les bourses du groupe que les autres choix de la semaine laissent libres. PUR. */
+export function plafondDeMiseDOpportunite(s: Pick<Jeu, 'vessel' | 'party' | 'pendingSeaActivities'>, pid: string): number {
+  return Math.max(0, Math.min(encLibreNominale(s.vessel), boursesLibres(s, pid)));
+}
+
+/** Plafond de la planque de Cartographie du héros `hero`, en CO (MDG 15 l.292) : sa bourse, bornée par les bourses du
+ *  groupe que les autres choix de la semaine laissent libres. PUR. */
+export function plafondDePlanque(s: Pick<Jeu, 'party' | 'pendingSeaActivities'>, hero: Combatant): number {
+  return Math.max(0, Math.min(Math.floor(toBrass(bourseOf(hero)) / PA_PER_CO), boursesLibres(s, hero.id)));
 }
 
 /** Raison de BLOCAGE d'une Activité en mer pour un héros (affordance expliquée, jamais muette). PUR. */
@@ -119,15 +126,14 @@ export function seaActivityRefus(hero: Combatant, def: ActivityDef): PlayerText 
   return peutTenter(hero, test.skill, test.spec) ? undefined : refusNePeutTenter(hero, { skill: test.skill, ...(test.spec ? { spec: test.spec } : {}) });
 }
 
-/** Une Activité de héros ÉLIGIBLE (`!dead`, pick valide, contexte 'mer', non bloquée). PUR. */
+/** L'Activité choisie de chaque héros de la semaine (`!dead`) : un choix que l'état ouvre encore, la validation de la
+ *  semaine fermée sinon (`semaineAReprendre`). PUR. */
 function eligibleSeaActivityPicks(get: Get, picks: Record<string, SeaActivityPick | null>): { hero: Combatant; pick: SeaActivityPick; def: ActivityDef }[] {
   const out: { hero: Combatant; pick: SeaActivityPick; def: ActivityDef }[] = [];
   for (const hero of get().party) {
     if (hero.dead || hero.outOfRencontre) continue;
     const pick = picks[hero.id];
-    const def = pick ? activityById(pick.activityId) : undefined;
-    if (!pick || !def || !def.contexts.includes('mer') || seaActivityBlocked(get(), def)) continue;
-    out.push({ hero, pick, def });
+    if (pick) out.push({ hero, pick, def: garanti(activityById(pick.activityId), pick.activityId, 'Activité en mer') });
   }
   return out;
 }
@@ -142,7 +148,7 @@ function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityP
     label: composeRollLabel(hero, dataLabel(def.label), test), difficulty, rollLabel: refLabel('skills', { id: chart.skill, ...(chart.spec ? { spec: chart.spec } : {}) }),
     // L'enjeu d'une Activité EST l'Activité choisie : il vit sur SA fiche (`ActivityDef.stake`).
     stake: activityStakeRef(def.id),
-    ligne: { test, refus: seaActivityRefus(hero, def) },
+    ligne: { test },
     meta: { stashGold: pick.stashGold ?? 0 },
   });
 }
@@ -172,7 +178,7 @@ export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: Ac
     label: composeRollLabel(hero, def.label, test), difficulty, rollLabel: def.label,
     // Idem : l'enjeu descend à l'Activité jouée, quelle qu'elle soit (fail-closed si elle n'en a pas).
     stake: activityStakeRef(def.id),
-    ligne: { test, surLaCible: spec.mods, refus: spec.refus },
+    ligne: { test, surLaCible: spec.mods },
     meta: { activityId: def.id },
   });
 }
@@ -209,7 +215,7 @@ function validerLaSemaine(get: Get, set: Set): void {
 }
 
 /** Ouvre le Commerce d'opportunité (Test étendu, #273 Étape 1) du PROCHAIN héros de la file — mise
- *  plafonnée (Enc libre en CO, bourse) débitée d'office (comme l'ancien bulk synchrone) ; l'ISSUE
+ *  du choix, plafonnée par lui (`plafondDeMiseDOpportunite`), débitée d'office (comme l'ancien bulk synchrone) ; l'ISSUE
  *  (% récupéré) est résolue par l'applier `sea-activity-opportunity` (`meta` sérialisable, coop). */
 function openNextOpportunityTrade(get: Get, set: Set): void {
   const pending = get().pendingSeaActivities;
@@ -221,15 +227,7 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
   const pick = pending.picks[heroId];
   const def = pick ? activityById(pick.activityId) : undefined;
   if (!hero || !pick || !def) { continueSeaActivitiesAfterCascade(get, set); return; }
-  // Choix non tentable (LDB 09 l.30 ; #2588) : aucune mise, aucun Test, le refus nommé au journal.
-  const refus = seaActivityRefus(hero, def);
-  if (refus) {
-    noteSeaLine(get, set, [refus]);
-    continueSeaActivitiesAfterCascade(get, set);
-    return;
-  }
-  const capGold = plafondDeMiseDOpportunite(get());
-  const invest = Math.max(0, Math.min(Math.floor(pick.investGold ?? 0), capGold));
+  const invest = pick.investGold ?? 0;
   if (invest <= 0) {
     noteSeaLine(get, set, [t('sact.tradeNoStake', { name: hero.label })]);
     continueSeaActivitiesAfterCascade(get, set);
@@ -316,9 +314,8 @@ export const TABLES = {
         }
         // MDG 15
         j.push(t('sact.chartOk', { name: hero.label, gold: Math.max(0, step.result.sl) }));
-        const stashCO = Math.max(0, Math.min(stashGold, plafondDePlanque(hero)));
-        if (stashCO > 0) {
-          const stashBrass = stashCO * PA_PER_CO;
+        if (stashGold > 0) {
+          const stashBrass = stashGold * PA_PER_CO;
           payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
           set({ bank: [...get().bank, { heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
           // MDG 15 l.292

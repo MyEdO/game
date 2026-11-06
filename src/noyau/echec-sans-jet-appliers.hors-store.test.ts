@@ -6,10 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { buildStageSteps } from './travelPostes';
-import { buildSeaGenericStep, seaActivityRefus, type SeaActivityPick } from './seaActivities';
-import { creditBourse } from './bourseFlow';
-import { bourseOf } from '../engine/bourse';
-import { toBrass } from '../engine/money';
+import { seaActivityRefus } from './seaActivities';
 import { applierDe, startCascade } from './cascade';
 import { spyApplier } from './cascade.testkit';
 import { ECHEC_SANS_JET } from '../engine/tests';
@@ -119,45 +116,12 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
 describe('Activités en mer non tentables', () => {
   beforeEach(() => banc.setState({ party: [heros()], journal: [] }));
 
-  // Le choix ferme l'Activité que le héros ne peut pas tenter (`OUVERTS_DU_CHOIX`) : la semaine pose le choix déjà fait,
-  // la résolution le juge à nouveau sur l'état de la validation.
-  const semaine = (picks: Record<string, SeaActivityPick> = {}) => banc.setState({
-    pendingSeaActivities: { picks, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } },
-    pendingCascade: null, pendingExtendedTest: null, pendingRest: null,
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [], lastVoyageMilles: 0 },
-    travelPlan: { routeId: 'r', km: 40, sea: { lines: [] } },
-  } as never);
-
   it('seaActivityRefus : Métier (Cartographe), compétence avancée, ferme la Cartographie au seul héros qui ne l’a pas (MDG 15 l.290)', () => {
     const sans = heros();
     const avec = heros({ id: 'c', skills: [{ id: 'metier', spec: 'cartographe', advances: 10 }] as Combatant['skills'] });
     const carto = activityById('cartographie')!;
     expect(seaActivityRefus(sans, carto)).toBe(refusNePeutTenter(sans, { skill: 'metier', spec: 'cartographe' }));
     expect(seaActivityRefus(avec, carto)).toBeUndefined();
-  });
-
-  it('sea-activity-chart : buildSeaChartStep monte la ligne du héros sans Métier (Cartographe) sans jet, refus nommé ; appliquée, aucune Carte marine', () => {
-    semaine({ h: { activityId: 'cartographie' } });
-    const hero = banc.getState().party[0];
-    banc.getState().fenetreValider('seaActivities');
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sea-activity-chart')!;
-    expect(step.result).toBe(ECHEC_SANS_JET);
-    expect(step.refus).toBe(refusNePeutTenter(hero, { skill: 'metier', spec: 'cartographe' }));
-    const out = appliquer(step, hero);
-    expect(ligneDe(out)).toBe(t('sact.chartKo', { name: 'Hilda' }));
-    expect(hero.items).toEqual([]);
-  });
-
-  it('Commerce d’opportunité d’un héros Inconscient : ni mise ni Test étendu, son refus nommé au bilan (MDG 15 l.274-286)', () => {
-    banc.setState({ party: [heros(INCONSCIENT)] });
-    semaine({ h: { activityId: 'commerce-opportunite', investGold: 10 } });
-    creditBourse(banc.getState, banc.setState, 'h', { gold: 100, silver: 0, brass: 0 });
-    const hero = banc.getState().party[0];
-    const avant = toBrass(bourseOf(hero));
-    banc.getState().fenetreValider('seaActivities');
-    expect(banc.getState().pendingExtendedTest).toBeNull();
-    expect(toBrass(bourseOf(banc.getState().party[0]))).toBe(avant);
-    expect(banc.getState().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text)).toContain(refusNePeutTenter(hero, { skill: 'marchandage' }));
   });
 
   // Porte de `CodexEdit.save` : la racine sérialisée du dataset, validée contre le schéma de son fichier.
@@ -174,23 +138,6 @@ describe('Activités en mer non tentables', () => {
     expect(avecActivite(activiteMer(), enregistrement)).toBeNull();
     expect(avecActivite(activiteMer({ failExtenue: true }), enregistrement))
       .toMatch(/veille-en-mer : une Activité de contexte mer ne déclare pas « Échec inflige Exténué »/);
-  });
-
-  describe('sea-activity-generic : une Activité de contexte mer sans résolveur', () => {
-    beforeEach(() => banc.setState({ party: [heros(INCONSCIENT)] }));
-
-    it('héros Inconscient : la ligne naît sans jet, refus nommé ; appliquée, aucun Exténué, aucune conséquence', () => {
-      const hero = banc.getState().party[0];
-      const mer = activiteMer();
-      avecActivite(mer, () => {
-        const step = buildSeaGenericStep(banc.getState, banc.setState, hero, mer)!;
-        expect(step.kind).toBe('sea-activity-generic');
-        expect(step.result).toBe(ECHEC_SANS_JET);
-        expect(step.refus).toBe(refusNePeutTenter(hero, { skill: mer.tests![0].skill!.id, spec: mer.tests![0].skill!.spec }));
-        expect(appliquer(step, hero)).toEqual({ consequences: [] });
-      });
-      expect(hasCondition(hero, 'extenue')).toBe(false);
-    });
   });
 });
 

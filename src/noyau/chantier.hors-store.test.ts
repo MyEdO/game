@@ -267,6 +267,7 @@ describe('#3059 — Activités en mer : valider la semaine est une décision d�
   });
 
   it('plafond de planque : la bourse du héros (7 CO)', () => {
-    expect(plafondDePlanque(withBourseMoney(makePregens()[0], { gold: 7, silver: 0, brass: 0 }))).toBe(7);
+    const hero = withBourseMoney(makePregens()[0], { gold: 7, silver: 0, brass: 0 });
+    expect(plafondDePlanque({ party: [hero], pendingSeaActivities: null }, hero)).toBe(7);
   });
 });

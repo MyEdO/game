@@ -109,6 +109,7 @@ export const fr = {
   'jet.ferme.evenementsATirer': 'L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.',
   'jet.ferme.rienARepartir': 'Aucun achat à répartir.',
   'jet.ferme.seanceDuChapitre': 'La séance se termine avec le récap du chapitre.',
+  'jet.ferme.choixAReprendre': 'Un choix posé n’est plus ouvert : reprenez-le.',
   // Ce qui refuse la sortie d'une fenêtre (`refusDeLaSortie`, `noyau/sortieDeFenetre.ts`).
   'sortie.refus.inconnue': 'Cette fenêtre ne se ferme pas.',
   'sortie.refus.fermee': 'Cette fenêtre n’est pas ouverte.',

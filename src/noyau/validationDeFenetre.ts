@@ -15,6 +15,7 @@ import { refuserGesteDuSiege } from './refusVisible';
 import type { FermetureDuJet } from './rollFlowFactory';
 import { fermetureDuQuorum, jouerOuMarquer } from './sortieDeFenetre';
 import { noteDAubergeCouverte } from './restFlow';
+import { semaineAReprendre } from './choixDeFenetre';
 import { interludeDrawPending } from './verdictsDInterlude';
 
 /** Le corps de la validation de chaque fenêtre qui se valide, que seul `fenetreValider` appelle : une fenêtre qui
@@ -23,12 +24,14 @@ export type ValidationsDeFenetre = { readonly [F in FenetreAValider]: () => void
 
 /** Ce qui ferme maintenant la validation d'une fenêtre ouverte, au-delà de son quorum : la note de la halte que les
  *  bourses du groupe ne couvrent pas (LDB 66), les Événements de la période encore à tirer (LDB 22 l.5), une échoppe sans
- *  achat à répartir, la fin de séance que le récap de chapitre termine. */
+ *  achat à répartir, la fin de séance que le récap de chapitre termine, la semaine en mer dont un choix n'est plus ouvert
+ *  (`semaineAReprendre`). */
 export const FERMETURES_DE_LA_VALIDATION: { readonly [F in FenetreAValider]?: (s: Jeu) => FermetureDuJet | null } = {
   rest: (s) => (noteDAubergeCouverte(s) ? null : 'noteNonCouverte'),
   interlude: (s) => (interludeDrawPending(s) ? 'evenementsATirer' : null),
   marchand: (s) => (s.merchant?.pendingDistribution?.length ? null : 'rienARepartir'),
   finDeSeance: seanceDuChapitre,
+  seaActivities: (s) => (semaineAReprendre(s) ? 'choixAReprendre' : null),
 };
 
 /** Ce qui ferme la validation de `fenetre` maintenant : son verdict (`FERMETURES_DE_LA_VALIDATION`), puis son quorum
