@@ -1,1 +1,7 @@
-{}
+{
+  "kit.glb": {
+    "sha256": "3ff9ce6b96f8e56a8f1949eca6140e1eda8b7ee6d570023b950ffaff890cb020",
+    "source": "https://quaternius.itch.io/medieval-village-megakit (Medieval Village MegaKit[Standard])",
+    "licence": "CC0-1.0"
+  }
+}
