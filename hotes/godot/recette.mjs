@@ -64,7 +64,8 @@
 //   place. L'outil Murs, un clic sur le côté commun de deux de ces cases pose une cloison sur le monde ; l'outil
 //   Sélection, un clic au même point la choisit, gainée, et la dit ; à l'inspecteur, « Porte » en fait une porte, puis
 //   « Fermée au départ » la ferme, que le monde dessine ; « Annuler » trois fois la retire. L'outil Volée, un clic trace
-//   une case, en surcouche, et « Poser la volée » se refuse d'une case seule, sa raison en clair au panneau ; « Effacer le tracé » la retire.
+//   une case, en surcouche, et « Poser la volée » se refuse d'une case seule, sa raison en clair au panneau ;
+//   L'outil Crénelage, un clic marque la case d'un parapet, que la case pointée dit ; « Annuler » l'efface ; « Effacer le tracé » la retire.
 //   « Couche 1 » édite l'étage.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
@@ -998,6 +999,14 @@ async function parcoursEditeur() {
   await cliquerBouton({ element: 'bouton/volee/effacer' })
   await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0')
   noter('« Effacer le tracé » : la surcouche vide')
+  await cliquerBouton({ element: 'bouton/outil/crenellated' })
+  await cliquerPoint(ax, ay)
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.pointee'] ?? []).some((l) => l.id === 'crenelage')`)
+  e = await editeur()
+  noter(`outil Crénelage, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'crenelage').texte}`)
+  await cliquerBouton({ element: 'bouton/annuler' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.pointee'] ?? []).length > 0 && !globalThis.wfrpEcran.editeur.zones['editeur.pointee'].some((l) => l.id === 'crenelage')`)
+  noter('« Annuler » : la marque effacée')
   await cliquerBouton({ element: 'bouton/couche/1' })
   e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, 'la couche 1 s’édite')

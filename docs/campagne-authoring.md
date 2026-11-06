@@ -234,7 +234,7 @@ chaîne de nom dupliquée dans la donnée.
   « on se reconnaît »). Voir `src/scenes/test-scenarios/dialogue-multi.ts` (patron complet, alternance +
   reprise).
 - **Coop** — un dialogue est une décision de GROUPE (jeton d'exploration unique) : le choix `dialogue.reponse` et
-  `interactEntity` sont réservés au siège hôte/MJ (`netOwnership.intentAllowedFor`), les
+  `cliquerLaCase` sont réservés au siège hôte/MJ (`netOwnership.intentAllowedFor`), les
   autres sièges LISENT. Un Test social DÉCLENCHÉ depuis un choix reste arbitré normalement par le
   propriétaire du héros testeur (`openSkillTest`→`pendingTest`→`modalArbiter`).
 - **Ce que la réponse ANNONCE est DÉRIVÉ, jamais écrit** (#1869) — la fenêtre rend

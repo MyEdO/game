@@ -52,8 +52,8 @@ export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, type AreteDessinee, 
 export { volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
 export { editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, sceneEditee, texteAEnregistrer, HAUTEURS, PINCEAUX, type BrouillonDArete, type GesteDEdition, type PatchDArete, type SessionDEdition } from './edition/session';
 export { terrainIds, terrainLabel } from './monde/terrain';
-export { tileAt, heightAt, porteAuteur, secretAuteur } from './monde/scene';
-export { FACES_D_ARETE, libelleDeStructure, segmentDeLaSelection, structuresDeLArete, type WallPaint } from './sceneEditLecture';
+export { crenellatedAt, tileAt, heightAt, porteAuteur, secretAuteur } from './monde/scene';
+export { FACES_D_ARETE, libelleDeStructure, segmentDeLaSelection, structuresCrenelables, structuresDeLArete, type WallPaint } from './sceneEditLecture';
 export { lumiereDeLaScene, type LumiereDeLaScene } from './lumiereDeLaScene';
 export { registerScene } from './monde/registreDesScenes';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';

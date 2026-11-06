@@ -36,12 +36,13 @@ describe('pointeur de l’éditeur', () => {
     expect(a.geste?.sorte === 'trait' && a.geste.trace).toHaveLength(9);
   });
 
-  it('la gomme ouvre un cran par entité retirée', () => {
+  it('la gomme ouvre un cran par entité retirée, et ne trace que sa case', () => {
     const c = ctx({ mode: 'entity', kind: 'prop', ref: 'tonneau' });
     const pose1 = appuyer(vide(), c, au(1, 1)).scene!;
     const pose2 = appuyer(pose1, c, au(3, 1)).scene!;
-    const gomme = ctx({ mode: 'erase' });
+    const gomme = ctx({ mode: 'erase' }, { brush: 3 });
     const a = appuyer(pose2, gomme, au(1, 1));
+    expect(a.geste, 'la gomme trace sa seule case, quel que soit le pinceau').toEqual({ sorte: 'trait', cran: true, trace: [{ x: 1, y: 1 }] });
     const g = glisser(a.scene!, gomme, a.geste, au(3, 1));
     expect([a.cran, g.cran]).toEqual([true, true]);
     expect(g.scene!.entities).toEqual([]);

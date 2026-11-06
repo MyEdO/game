@@ -12,6 +12,7 @@ import { verbeDeJetDe } from './flowVerbs';
 import type { GesteDuJeu } from './modalArbiter';
 import type { HostJet } from './slotsDeJet';
 import type { FermetureDuJet } from './rollFlowFactory';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Le texte de la clé `cle`, `null` si le catalogue ne la porte pas. */
 const texte = (cle: string): string | null => (estUneCle(cle) ? t(cle) : null);
@@ -30,7 +31,7 @@ export function libelleDuReglage(flux: string, reglage: string): string {
 export const libelleDuChoix = (fenetre: string, axe: string): string => garanti(texte(`verbe.${fenetre}.${axe}`), `${fenetre}.${axe}`, 'libellé du choix');
 
 /** Le suffixe du libellé d'un geste de fenêtre, par son verbe : `verbe.<fenetre>.valider`, `verbe.<fenetre>.fermer`. */
-const GESTE_DE_FENETRE: Readonly<Record<string, string>> = { fenetreValider: 'valider', fenetreFermer: 'fermer' };
+const GESTE_DE_FENETRE: Readonly<Record<string, string>> = { fenetreValider: 'valider', fenetreFermer: 'fermer' } satisfies { readonly [V in keyof ActionsDuNoyau]?: string };
 
 /** Le libellé d'un geste : pour le choix d'une fenêtre, la clé de son axe (`verbe.<fenetre>.<axe>`) ; pour la validation
  *  ou la sortie d'une fenêtre, la clé propre à sa fenêtre (`verbe.<fenetre>.valider`, `verbe.<fenetre>.fermer`) ; pour

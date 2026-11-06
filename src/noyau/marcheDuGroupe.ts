@@ -203,8 +203,9 @@ export function creerActionsDeMarche(get: Get, set: Set) {
     },
     actionnerLaPorte: (porte) => {
       const { scene, mode, dialogue } = get();
+      if (dialogue || !scene) return false;
       const portail = portesDuMobile(get()).find((p) => p.id === porte);
-      if (dialogue || !scene || !portail) return false;
+      if (!portail) { refuserGeste(get, set, t('porte.refus.inconnue', { id: porte })); return false; }
       if (!porteActionnable(mode, portail)) {
         if (mode === 'exploration') refuserGeste(get, set, t('porte.refus.ouverte'));
         return false;
