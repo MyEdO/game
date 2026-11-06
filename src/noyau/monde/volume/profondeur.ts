@@ -1,20 +1,18 @@
 /**
  * PROFONDEUR d'une `Face` du pivot — UNE résolution matériau → épaisseur MONDE (m), depuis les MÊMES
- * catalogues que la couleur (`faceColors.ts`) : structures (`wallPartDepthM`, par apparence × partie,
+ * catalogues que la couleur (`couleurDeMatiere`, `./matieres`) : structures (`wallPartDepthM`, par apparence × partie,
  * sur la matière pleine `wallMatterM` ; `uprightCrossM` pour un montant), toiture
- * (`roofFasciaThickM`). Pendant GÉOMÉTRIQUE de `faceSurface` : aucune épaisseur n'est écrite ici, elles
+ * (`roofFasciaThickM`). Pendant GÉOMÉTRIQUE de la couleur : aucune épaisseur n'est écrite ici, elles
  * vivent toutes en DONNÉE d'apparence, authorées en MÈTRES.
  *
- * `worldTris.ts` reste PUR et sans catalogue : il reçoit cette profondeur en paramètre et ne décide que
+ * `./worldTris` reste PUR et sans catalogue : il reçoit cette profondeur en paramètre (`FaceDepth`) et ne décide que
  * de la FORME du volume (boîte centrée sur le plan médian, croix d'un montant).
  */
-import { facadeStructureAppearance } from '../../../noyau/monde/volume/structures';
-import { wallPartDepthM } from '../../../noyau/monde/volume/structures';
-import { largeurDUnMontant, wallMatterM } from '../../../noyau/monde/volume/montants';
+import { facadeStructureAppearance, wallPartDepthM } from './structures';
+import { largeurDUnMontant, wallMatterM } from './montants';
 import type { WallPart } from '../../../data/structureAppearance.types';
-import { roofFasciaThickM, roofMaterial } from '../../../noyau/monde/volume/matieres';
-import type { FaceDepth } from '../../../noyau/monde/volume/worldTris';
-import type { Face } from '../../../noyau/monde/volume/types';
+import { roofFasciaThickM, roofMaterial } from './matieres';
+import type { Face } from './types';
 
 /** Épaisseur MONDE (m) du volume d'une face, ou `undefined` quand la face reste un PLAN.
  *
@@ -40,10 +38,4 @@ export function faceDepthM(face: Face): number | undefined {
   if (domain === 'structure') return wallPartDepthM(app!, part as WallPart, wallMatterM(app));
   if (domain === 'roof' && part === 'fascia') return roofFasciaThickM(roofMaterial(id));
   return undefined;
-}
-
-/** Le résolveur de profondeur — la forme qu'attend `facesGeometry`. Il ne dépend PLUS de l'échelle de
- *  la scène : une épaisseur est une donnée du monde, pas une largeur d'écran ramenée au mètre. */
-export function faceDepthOf(): FaceDepth {
-  return faceDepthM;
 }

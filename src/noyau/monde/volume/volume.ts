@@ -4,7 +4,7 @@
  * la surface de chaque case de chaque couche. Repère des builders : X = est, Y = haut, Z = sud, en mètres, la case
  * (x, y) centrée sur (x·m, y·m) où m = `metresParCase`.
  */
-import { heightAt, sceneMetresPerTile, type Scene } from '../scene';
+import { heightAt, sceneMetresPerTile, wallEnds, type Scene } from '../scene';
 import { parseHex } from '../../../lib/couleurHex';
 import { MISSING_TONE } from './missing';
 import { buildFloors } from './floors';
@@ -13,7 +13,11 @@ import { decorAncre } from '../footprint';
 import { findPropById } from '../../../data';
 import { empreinteDuProp } from '../../../data/props.types';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
-import { largeurDUnMontant, WALL_MATTER_M } from './montants';
+import { faceDepthM } from './profondeur';
+import { crownFaces, cretesDePerimetre } from './creneaux';
+import { edgeAppearance } from './structures';
+import { edgeKey, facadeEdges } from '../facades';
+import { WALL_H_M } from '../iso';
 import { centreDeLaCarte, facesGeometry, trianglesOrientes } from './worldTris';
 import { buildRoofs, nappeKey } from './toits';
 import type { Face } from './types';
@@ -61,9 +65,6 @@ const nomDeMatiere = ({ domain, id }: MaterialRef): string => `${domain}--${id}`
 /** Trois décimales : le millimètre, et le millième d'un canal de couleur. */
 const arrondi = (v: number): number => Math.round(v * 1000) / 1000;
 
-/** La largeur d'un pilier de surplomb, seule face du sol à porter une épaisseur (`largeurDUnMontant`). */
-const profondeurDuSol = (face: Face): number | undefined => largeurDUnMontant(face, WALL_MATTER_M);
-
 /** Les faces des décors volumiques posés sur la scène (entités `prop` dont le type porte une recette,
  *  `facesDuDecor`), chacune avec sa case, jusqu'à la couche `activeZ` : ancrés au centre de leur empreinte à leur cap
  *  (`decorAncre`), sur le sol de leur case. */
@@ -81,7 +82,7 @@ function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): { face: F
  *  à la variance de teinte de sa case, les triangles d'une même matière à la suite. */
 function emballer(scene: Scene, listees: readonly { face: Face; cell: { x: number; y: number; z: number } }[]): GeometrieDuMonde {
   const mpt = sceneMetresPerTile(scene);
-  const geoms = facesGeometry(listees.map((f) => f.face), mpt, profondeurDuSol);
+  const geoms = facesGeometry(listees.map((f) => f.face), mpt, faceDepthM);
   const centre = centreDeLaCarte(scene.dimensions, mpt);
   const parMatiere = new Map<string, number[]>();
   geoms.forEach((_, i) => {
@@ -119,12 +120,13 @@ function emballer(scene: Scene, listees: readonly { face: Face; cell: { x: numbe
 }
 
 /** Le volume du monde de `scene` : le sol de la couche `activeZ` et de celles du dessous (terrain, relief, raccords,
- *  piliers) et les décors volumiques qui s'y posent, sans les surplombs fantômes des couches au-dessus ; sans
- *  `activeZ`, de toutes ses couches. PUR. */
+ *  piliers), les crêtes de ses zones crénelées (`cretesDePerimetre`) et les décors volumiques qui s'y posent, sans les
+ *  surplombs fantômes des couches au-dessus ; sans `activeZ`, de toutes ses couches. PUR. */
 export function volumeDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.map((l) => l.z))): VolumeDuMonde {
   const mpt = sceneMetresPerTile(scene);
   const sol = buildFloors(scene, undefined, { activeZ }).filter((el) => !el.states.ghost).flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell })));
-  const listees = [...sol, ...decorsVolumiques(scene, activeZ, mpt)];
+  const cretes = cretesDePerimetre(scene).filter((c) => c.case.z <= activeZ).flatMap((c) => c.faces.map((face) => ({ face, cell: c.arete })));
+  const listees = [...sol, ...cretes, ...decorsVolumiques(scene, activeZ, mpt)];
   const geometrie = emballer(scene, listees);
   const { w, h } = scene.dimensions;
   const hauteurs = scene.layers.map((l) => ({ z: l.z, rangees: Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => heightAt(scene, x, y, l.z))) }));
@@ -146,4 +148,18 @@ export function toitsDuMonde(scene: Scene): NappeDuMonde[] {
  *  couvrent l'espace où il se tient. PUR. */
 export function toitsLeves(scene: Scene, allies: readonly { x: number; y: number; z?: number }[]): string[] {
   return [...new Set(buildRoofs(scene, { allies: [...allies] }).filter((el) => el.states.roofOccupied).map((el) => nappeKey(el.bodyId!, el.sectionId!)))];
+}
+
+/** Les couronnes crénelées des murs fortifiés de la couche `z` de `scene` (`crownFaces`, apparence à `parapet`), une
+ *  par arête, nommée par sa clé (`edgeKey`), posée au sommet de la face pleine du mur (`wallHeightM`, sinon un étage) :
+ *  l'hôte cache celles qui tombent avec leur mur (`couronnesAbattues`). PUR. */
+export function couronnesDeLaCouche(scene: Scene, z: number): NappeDuMonde[] {
+  const facades = facadeEdges(scene);
+  return (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === z).flatMap((seg) => {
+    const app = edgeAppearance(facades.get(edgeKey(seg)), seg);
+    if (!app.parapet) return [];
+    const [a, b] = wallEnds(seg);
+    const faces = crownFaces(app, a, b, heightAt(scene, seg.x, seg.y, z) + (app.wallHeightM ?? WALL_H_M));
+    return [{ cle: edgeKey(seg), ...emballer(scene, faces.map((face) => ({ face, cell: { x: seg.x, y: seg.y, z } }))) }];
+  });
 }

@@ -8,7 +8,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, porteeDeComposition, presetDeComposition, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, porteeDeComposition, presetDeComposition, couronnesDeLaCouche, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -209,7 +209,7 @@ export function creerPont() {
     monde(json) {
       entreeDe('monde', json, []);
       const scene = demarree().partie.etat().scene;
-      return { monde: scene ? volumeDuMonde(scene) : null, toits: scene ? toitsDuMonde(scene) : [] };
+      return { monde: scene ? volumeDuMonde(scene) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDeLaCouche(scene, 0) : [] };
     },
     jouer(json) {
       const o = demarree();

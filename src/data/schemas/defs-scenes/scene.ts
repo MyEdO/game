@@ -636,7 +636,7 @@ export const layerSchema = nommerChamps(z.strictObject({
   tiles: z.array(idDe('terrain')),
   height: z.array(z.number()).optional(),
   /** CRÉNELURE (RENDU PUR) : parallèle à `tiles` (`y·w+x`). `null` = pas de crénelure ; une chaîne = id de
-   *  structure crénelée (`structureAppearance.json`) → le crest builder (`crestGeometry`) en dérive des MERLONS
+   *  structure crénelée (`structureAppearance.json`) → la crénelure (`cretesDePerimetre`) en dérive des MERLONS
    *  sur le PÉRIMÈTRE (arête dont le voisin même-z n'est pas crénelé) — jamais à l'intérieur. Marqueur de
    *  DÉCORATION seulement (comme un toit auto-dessiné) : n'affecte NI la passabilité NI la LdV plongeante. */
   crenellated: z.array(z.string().nullable()).optional(),

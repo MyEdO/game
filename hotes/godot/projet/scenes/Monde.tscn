@@ -67,6 +67,8 @@ matiere_texturee = SubResource("Materiau_texture")
 
 [node name="Toits" type="Node3D" parent="Volume"]
 
+[node name="Couronnes" type="Node3D" parent="Volume"]
+
 [node name="Surbrillance" type="Node3D" parent="."]
 
 [node name="Aretes" type="Node3D" parent="."]

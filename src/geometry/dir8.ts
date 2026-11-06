@@ -11,7 +11,7 @@ export const DIR8_ORDER: Dir8[] = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
 
 /** CAP CARDINAL — le sous-ensemble de `Dir8` sans diagonale, et le SEUL terme du projet pour une
  *  DIRECTION cardinale : cap d'un décor VOLUMIQUE, côté SORTANT d'un mur (`outwardSide`), pas vers une
- *  case voisine (`CARD_NB`). L'ARÊTE d'une case — QUEL de ses quatre bords porte un mur, une porte, une
+ *  case voisine (`DIR8_DELTA`). L'ARÊTE d'une case — QUEL de ses quatre bords porte un mur, une porte, une
  *  paroi de relief — est l'autre concept, et il a lui aussi UN terme : `CellSide` (`noyau/monde/scene.ts`).
  *  Même cardinal, frontière nette : on ne tourne pas vers une arête, on ne pose pas un mur sur un cap.
  *  Un décor volumique ne prend pas d'autre cap : `data/props.types.ts` `capVolumique`. */

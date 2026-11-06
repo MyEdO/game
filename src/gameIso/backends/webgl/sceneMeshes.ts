@@ -35,7 +35,7 @@ import { faceBakeKey, needsFaceBake } from './faceBake';
 import { centreDeLaCarte, facePoly, faceUvFrame, facesGeometry, shadeFamily, trianglesOrientes } from '../../../noyau/monde/volume/worldTris';
 import { faceSurface, shadeFactorOf } from './faceColors';
 import { tintVarFactor } from '../../../noyau/monde/volume/matieres';
-import { faceDepthOf } from './faceRelief';
+import { faceDepthM } from '../../../noyau/monde/volume/profondeur';
 import { BB_W, BB_H } from '../../pov/billboardCore';
 import { povDepth } from '../../pov/camera';
 import { defsGlobaux } from '../../sprites';
@@ -459,7 +459,7 @@ export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDAr
   const listées = worldFaces(scene, lecture);
   const faces = listées.map((f) => f.face);
   // Le RANG coplanaire se calcule sur la liste ENTIÈRE de la scène (contrat de `coplanarRanks`).
-  const geoms = facesGeometry(faces, mpt, faceDepthOf());
+  const geoms = facesGeometry(faces, mpt, faceDepthM);
   const positions: number[] = [];
   const uvs: number[] = [];
   const uv1s: number[] = [];
@@ -1220,7 +1220,7 @@ function builtFacesBox(scene: Scene, mpt: number, lecture: LectureDArete): THREE
 
 function computeBuiltFacesBox(scene: Scene, mpt: number, lecture: LectureDArete): THREE.Box3 | null {
   const faces = worldFaces(scene, lecture).map((f) => f.face);
-  const geoms = facesGeometry(faces, mpt, faceDepthOf());
+  const geoms = facesGeometry(faces, mpt, faceDepthM);
   const box = new THREE.Box3();
   const p = new THREE.Vector3();
   for (let i = 0; i < faces.length; i++) {

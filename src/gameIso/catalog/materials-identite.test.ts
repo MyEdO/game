@@ -80,8 +80,8 @@ describe('identité des matières du monde — (domaine, id), id unique sur tout
  * CLIQUET DÉCROISSANT des collisions HORS du dataset des matières — dérivé des CINQ domaines de
  * `MaterialRef.domain`, pas des trois que `materials.json` porte. Ces homonymes vivent : aucun
  * lecteur ne s'y trompe aujourd'hui, parce que chacun résout dans le domaine de la FACE qu'il peint
- * (`src/gameIso/backends/webgl/faceColors.ts:47` et `src/gameIso/authoring/floorsSvg.ts:61,72` pour
- * une face de relief, `src/gameIso/backends/webgl/faceRelief.ts:35` pour une face de structure).
+ * (`src/noyau/monde/volume/matieres.ts:130` et `src/gameIso/authoring/floorsSvg.ts:62,73` pour
+ * une face de relief, `src/noyau/monde/volume/profondeur.ts:35` pour une face de structure).
  * Le jour où ces deux catalogues rejoignent le document unique, ils cessent d'être séparables : le
  * stock ci-dessous ne peut donc que DÉCROÎTRE, et une collision de plus est rouge sous son nom.
  */

@@ -41,7 +41,7 @@ func _ready() -> void:
 	if lancement.get("ok") == true:
 		var monde := _pont.appeler("monde")
 		if monde.get("ok") == true and monde.monde != null:
-			_plateau.poser_le_monde(monde.monde, monde.toits)
+			_plateau.poser_le_monde(monde)
 	_suivre(lancement)
 
 

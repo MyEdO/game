@@ -23,11 +23,11 @@ import { buildingFeatures } from '../../noyau/monde/buildings';
 import { edgeKey, facadeFeatureViz } from '../../noyau/monde/facades';
 import { WALL_H_M } from '../../noyau/monde/iso';
 import { capVolumique, empreinteDuProp } from '../../data/props.types';
-import type { Dir4, Dir8 } from '../../geometry/dir8';
+import { DIR8_DELTA, type Dir4, type Dir8 } from '../../geometry/dir8';
 import { fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from '../../noyau/monde/volume/toits';
 import type { FloorView } from '../../noyau/monde/volume/floors';
 import type { PropEl, OrigineDecor } from './types';
-import { CARD_NB, outwardSide } from './walls';
+import { outwardSide } from './walls';
 
 /** La scène porte-t-elle AU MOINS un décor volumique désignable ? Ce que le pointeur demande pour
  *  savoir si une face du monde peut nommer une entité sous le pixel — seul un décor d'ENTITÉ porte un
@@ -295,7 +295,7 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
         // large — son billboard, dessiné à plat sur la case, mordrait sinon cette profondeur de mur — et
         // pend en haut de la façade ; l'ÉTAL reste plaqué au sol devant la porte. Les deux tournés vers
         // l'EXTÉRIEUR (face à qui approche).
-        const [ox, oy] = CARD_NB[door.facing];
+        const { gx: ox, gy: oy } = DIR8_DELTA[door.facing];
         const facade = feat.anchor === 'facade';
         out.push(elDeDecor({
           ...base,

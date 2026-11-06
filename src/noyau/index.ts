@@ -50,7 +50,7 @@ export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
 export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, type AreteDessinee } from './monde/aretes';
 export type { Scene } from './monde/scene';
-export { toitsDuMonde, volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
+export { couronnesDeLaCouche, toitsDuMonde, volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
 export { editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, sceneEditee, texteAEnregistrer, HAUTEURS, PINCEAUX, type BrouillonDArete, type GesteDEdition, type PatchDArete, type SessionDEdition } from './edition/session';
 export { terrainIds, terrainLabel } from './monde/terrain';
 export { tileAt, heightAt, porteAuteur, secretAuteur } from './monde/scene';

@@ -38,6 +38,7 @@ const KIT := "res://kit/kit.glb"
 @onready var _maillage: MeshInstance3D = $Volume/Maillage
 @onready var _forme: CollisionShape3D = $Volume/Corps/Forme
 @onready var _toits: Node3D = $Volume/Toits
+@onready var _couronnes: Node3D = $Volume/Couronnes
 @onready var _pivot: Node3D = $Pivot
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
 @onready var _surbrillance: Node3D = $Surbrillance
@@ -93,22 +94,35 @@ func poser(monde: Dictionary) -> void:
 	_pivot.position = MiseEnPage.centre_du_plateau(taille())
 
 
-## Les nappes de toit de la scène (`toits`, `CONTRAT.md`, section « Monde »), chacune son maillage sous le volume, à la
-## place des précédentes ; le rayon du pointeur les traverse.
-func poser_les_toits(toits: Array) -> void:
-	for nappe in _toits.get_children():
-		_toits.remove_child(nappe)
+## Les nappes de toit (`toits`) et les couronnes crénelées des murs (`couronnes`) de la scène (`CONTRAT.md`, section
+## « Monde »), chacune son maillage sous le volume, à la place des précédentes ; le rayon du pointeur les traverse.
+func poser_les_nappes(toits: Array, couronnes: Array) -> void:
+	_poser_sous(_toits, toits)
+	_poser_sous(_couronnes, couronnes)
+
+
+## Chaque nappe de toit cachée si `toits_leves` la nomme (`plateau.toitsLeves`), chaque couronne si `couronnes_abattues`
+## la nomme (`plateau.couronnesAbattues`), montrées sinon.
+func cacher_les_nappes(toits_leves: Array, couronnes_abattues: Array) -> void:
+	_cacher_sous(_toits, toits_leves)
+	_cacher_sous(_couronnes, couronnes_abattues)
+
+
+## Les nappes `nappes` sous `parent`, chacune son maillage nommé par sa `cle`, à la place des précédentes.
+func _poser_sous(parent: Node3D, nappes: Array) -> void:
+	for nappe in parent.get_children():
+		parent.remove_child(nappe)
 		nappe.free()
-	for nappe in toits:
+	for nappe in nappes:
 		var instance := MeshInstance3D.new()
 		instance.mesh = _maillage_de(nappe)
 		instance.set_meta("cle", nappe.cle)
-		_toits.add_child(instance)
+		parent.add_child(instance)
 
 
-## Chaque nappe de toit posée cachée si `cles` la nomme (`plateau.toitsLeves`), montrée sinon.
-func lever_les_toits(cles: Array) -> void:
-	for nappe in _toits.get_children():
+## Chaque nappe sous `parent` cachée si `cles` la nomme, montrée sinon.
+func _cacher_sous(parent: Node3D, cles: Array) -> void:
+	for nappe in parent.get_children():
 		nappe.visible = not cles.has(nappe.get_meta("cle"))
 
 

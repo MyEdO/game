@@ -37,7 +37,7 @@ import {
 } from './sceneMeshes';
 import { SUN_ELEVATION_DEG } from '../../../noyau/monde/soleil';
 import { facesGeometry, polyBounds, type Vec3 } from '../../../noyau/monde/volume/worldTris';
-import { faceDepthOf } from './faceRelief';
+import { faceDepthM } from '../../../noyau/monde/volume/profondeur';
 import { anchorAndSize, BILLBOARD_H_M, BILLBOARD_BOX_ASPECT } from './billboardMath';
 import { tintOf } from './visibilityTint';
 import { faceSurface } from './faceColors';
@@ -171,7 +171,7 @@ describe('ORIENTATION — les triangles regardent DEHORS (la carte d’ombre en 
     const m = sceneMetresPerTile(scn);
     const listées = worldFaces(scn, 'jeu');
     const pos = monde(scn, m).getAttribute('position').array as Float32Array;
-    const geoms = facesGeometry(listées.map((f) => f.face), m, faceDepthOf());
+    const geoms = facesGeometry(listées.map((f) => f.face), m, faceDepthM);
     // La fusion émet les faces GROUPÉES par surface (un groupe = un dessin) : le bilan les parcourt
     // dans CET ordre, sinon il compare le triangle d'une face à la normale d'une autre.
     const ordre = surfaceGrouping(listées, m).faceIndices.flat();
@@ -266,7 +266,7 @@ describe('CONTENU — ce qu’un cadrage doit tenir', () => {
       // Toute face NON-TERRAIN (relief, structure, toiture) tient dans la boîte de contenu. Les rangs
       // coplanaires se mesurent sur la liste ENTIÈRE (contrat de `coplanarRanks`) : on filtre APRÈS.
       const toutes = worldFaces(scn, 'jeu').map((f) => f.face);
-      const geoms = facesGeometry(toutes, m, faceDepthOf());
+      const geoms = facesGeometry(toutes, m, faceDepthM);
       let bati = 0;
       let dehors = 0;
       for (let i = 0; i < toutes.length; i++) {

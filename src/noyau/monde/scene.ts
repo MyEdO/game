@@ -449,7 +449,7 @@ export function liftDe(scene: Scene, p: Pt): number {
 }
 
 /** Id de structure crénelée d'une case de chemin de ronde (couche `z`), ou `null`. Marqueur de RENDU PUR
- *  (le crest builder `crestGeometry` en dérive les merlons de PÉRIMÈTRE) — n'affecte NI passabilité NI LdV. PUR. */
+ *  (la crénelure `cretesDePerimetre` en dérive les merlons de PÉRIMÈTRE) — n'affecte NI passabilité NI LdV. PUR. */
 export function crenellatedAt(scene: Scene, x: number, y: number, z = 0): string | null {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return null;
   const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];

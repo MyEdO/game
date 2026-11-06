@@ -25,7 +25,7 @@ import {
   type Vec3,
   type WorldPoly,
 } from '../../../noyau/monde/volume/worldTris';
-import { faceDepthM, faceDepthOf } from './faceRelief';
+import { faceDepthM } from '../../../noyau/monde/volume/profondeur';
 import { wallPartRelief } from '../../../noyau/monde/volume/structures';
 import { uprightCrossM, UPRIGHT_OVERHANG_M, UPRIGHT_WIDTH_M, WALL_MATTER_M, wallMatterM } from '../../../noyau/monde/volume/montants';
 import type { StructureAppearanceDef, WallPart } from '../../../data/structureAppearance.types';
@@ -58,15 +58,15 @@ function batirTemoins() {
   /** Toutes les faces MONDE d'une scène, dans l'ordre de peinture des builders. */
   const facesOf = memoByRef((scene: Scene): Face[] =>
     [...buildFloors(scene), ...buildWalls(scene, 'jeu'), ...buildRoofs(scene)].flatMap((el) => el.faces));
-  /** Quads MONDE d'une scène à la profondeur que les catalogues d'apparence résolvent (`faceRelief`) —
+  /** Quads MONDE d'une scène à la profondeur que les catalogues d'apparence résolvent (`faceDepthM`) —
    *  la liste EXACTE que `bakeWorldGeometry` fusionne, jamais une géométrie de laboratoire. */
   const quadsOf = memoByRef((scene: Scene): WorldPoly[] => {
     const mpt = sceneMetresPerTile(scene);
-    const depthOf = faceDepthOf();
+    const depthOf = faceDepthM;
     return facesOf(scene).flatMap((f) => faceQuads(f, mpt, depthOf(f)));
   });
   /** La géométrie triangulée de TOUTES les faces d'une scène — ce que `bakeWorldGeometry` appelle. */
-  const geomsOf = memoByRef((scene: Scene) => facesGeometry(facesOf(scene), sceneMetresPerTile(scene), faceDepthOf()));
+  const geomsOf = memoByRef((scene: Scene) => facesGeometry(facesOf(scene), sceneMetresPerTile(scene), faceDepthM));
   return {
     siege: buildScene(siegeSpec()),
     arene: arene.construire().scene,
@@ -192,7 +192,7 @@ describe('MONTANTS à 2 points — deux quads verticaux croisés, largeur AUTHOR
   it('arène : AUCUN montant n’est entièrement noyé dans la matière des murs', () => {
     const mpt = sceneMetresPerTile(areneHub());
     const faces = facesOf(areneHub());
-    const depthOf = faceDepthOf();
+    const depthOf = faceDepthM;
     // Matière = les boîtes des faces qui SONT la matière pleine du mur (`wallPartRelief`) — depuis le
     // relief mince (#1176 P1-E), une partie en SAILLIE produit une boîte elle aussi, mais plus épaisse
     // que le montant : la mesure porterait à faux si on la comptait comme de la matière.
@@ -230,7 +230,7 @@ describe('MONTANTS à 2 points — deux quads verticaux croisés, largeur AUTHOR
       material: { domain: 'structure', id: 'mur-en-bois', part: 'poteau' },
       oriented: false,
     };
-    const [geom] = facesGeometry([face], 2, faceDepthOf());
+    const [geom] = facesGeometry([face], 2, faceDepthM);
     expect(geom.tris).toHaveLength(4);
     expect(geom.normal).toBeNull();
   });
@@ -291,7 +291,7 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
   it('arène : les quads de MONTANT entrent dans le rang (poteaux/jambages/piliers)', () => {
     const mpt = sceneMetresPerTile(areneHub());
     const faces = facesOf(areneHub());
-    const depthOf = faceDepthOf();
+    const depthOf = faceDepthM;
     const quads: WorldPoly[] = [];
     const montant: boolean[] = [];
     for (const f of faces)
@@ -311,7 +311,7 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
   it('facesGeometry biaise AUSSI les quads d’un montant (même liste de rangs que faceQuads)', () => {
     const mpt = sceneMetresPerTile(areneHub());
     const faces = facesOf(areneHub());
-    const geoms = facesGeometry(faces, mpt, faceDepthOf());
+    const geoms = facesGeometry(faces, mpt, faceDepthM);
     const iMontant = faces.findIndex((f, i) => f.poly.length === 2 && geoms[i].rank > 0);
     expect(iMontant).toBeGreaterThanOrEqual(0);
     // les sommets rendus ne sont plus ceux des quads NUS : le biais les a déplacés.
@@ -531,7 +531,7 @@ describe('ÉPAISSEUR de mur — un plan d’épaisseur nulle n’a AUCUNE surfac
       const scene = faire();
       const mpt = sceneMetresPerTile(scene);
       const faces = buildWalls(scene, 'jeu').flatMap((el) => el.faces);
-      const tris = facesGeometry(faces, mpt, faceDepthOf()).flatMap((g) => g.tris);
+      const tris = facesGeometry(faces, mpt, faceDepthM).flatMap((g) => g.tris);
       const vueDuDessus = tris.reduce((s, t) => s + aireVueDuDessus(t), 0);
       const coiffes = tris.filter((t) => Math.abs(polyNormal(t)?.y ?? 0) > 0.99).length;
       expect(coiffes).toBeGreaterThan(0);
@@ -548,7 +548,7 @@ describe('CONVERSION des murs — la géométrie rendue est celle que `buildWall
     const mpt = sceneMetresPerTile(scene);
     const faces = buildWalls(scene, 'jeu').flatMap((el) => el.faces);
     expect(faces.length).toBeGreaterThan(1000);
-    const geoms = facesGeometry(faces, mpt, faceDepthOf());
+    const geoms = facesGeometry(faces, mpt, faceDepthM);
     expect(geoms.filter((g) => g.tris.length === 0)).toEqual([]);
     // Emprise MÉTRIQUE de la grille authorée (case 0 → case n−1), à 1 cm près : une tolérance d'une CASE
     // laissait 2 m de jeu, de quoi loger un mur entier hors de la carte sans que la garde bronche.
@@ -685,7 +685,7 @@ describe('UV1 — la FACE d’origine en [0,1]² (attribut `uv1`)', () => {
 
   it('les DEUX joues d’une boîte de mur partagent leurs uv1 : le même ornement des deux côtés', () => {
     const mpt = sceneMetresPerTile(siege());
-    const depthOf = faceDepthOf();
+    const depthOf = faceDepthM;
     // Toute face verticale de mur devient une boîte : ses deux premiers quads sont ses JOUES.
     const face = facesOf(siege()).find((f) => faceQuadsOriented(f, mpt, depthOf(f)).oriented);
     expect(face).toBeDefined();
