@@ -5,7 +5,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { cataloguesDeComposition, compositionDuPreset, lireComposition, porteeDeComposition, presetDeComposition, type Axe, type Composition } from './composition';
-import { findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTrappingById, findVarianteById, gardeRobe, trappingsInstanciables } from '../../data';
+import { findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTrappingById, findVarianteById, gardeRobe, piecesDeLObjet, trappingsInstanciables } from '../../data';
 import { resetData, setDataset } from '../../data/overrides';
 import { CLES_ENVELOPPE } from '../../data/schemas/grammaire/document';
 import { file as FICHIER_DES_PRESETS, meta as metaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
@@ -16,6 +16,7 @@ import { piecesDEnsemble } from './gardeRobe';
 
 const soldat = findPresetDePersonnageById('soldat')!;
 const composition = compositionDuPreset(soldat);
+const { tenue: _tenue, ...sansTenue } = composition;
 /** `brut` passé par la seule porte d'une composition (`lireComposition`), qui frappe ses ids. */
 const lue = (brut: unknown): Composition => {
   const lu = lireComposition(brut);
@@ -25,10 +26,17 @@ const lue = (brut: unknown): Composition => {
 
 describe('porteeDeComposition', () => {
   it('un objet habillé par un ensemble apporte ses pièces, sans apparence ni point', () => {
-    const { portees } = porteeDeComposition(lue({ ...composition, objets: ['heaume'] }));
-    expect(portees.filter((p) => p.par?.id === 'heaume')).toEqual(
-      piecesDEnsemble({ id: 'heaume', type: 'trapping' }).map((id) => expect.objectContaining({ cle: { champ: 'piece', id }, par: expect.objectContaining({ type: 'trapping', id: 'heaume' }) })),
+    const { portees } = porteeDeComposition(lue({ ...sansTenue, objets: ['gants'] }));
+    expect(portees.filter((p) => p.par?.id === 'gants')).toEqual(
+      piecesDEnsemble({ id: 'gants', type: 'trapping' }).map((id) => ({ cle: { champ: 'piece', id }, label: findPieceById(id)!.label, par: expect.objectContaining({ type: 'trapping', id: 'gants' }) })),
     );
+  });
+
+  it('une armure sans ensemble apporte les pièces qui couvrent les localisations de son trapping (#3456), comme au combat', () => {
+    const { portees } = porteeDeComposition(lue({ ...composition, objets: ['veste-de-cuir'] }));
+    const attendues = piecesDeLObjet('veste-de-cuir');
+    expect(attendues.length).toBeGreaterThan(0);
+    expect(portees.filter((p) => p.par?.id === 'veste-de-cuir').map((p) => p.cle)).toEqual(attendues.map((id) => ({ champ: 'piece', id })));
   });
 
   it('un objet tenu porte son apparence à sa prise', () => {

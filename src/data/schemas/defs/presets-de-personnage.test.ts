@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { schema } from './presets-de-personnage';
 import presetsJson from '../../presets-de-personnage.json';
-import { findEnsembleParHabille, findPresetDePersonnageById, trappings, trappingsInstanciables } from '../../index';
+import { findEnsembleParHabille, findPresetDePersonnageById, piecesDeLObjet, trappings, trappingsInstanciables } from '../../index';
 
 type Entree = { id: string; [k: string]: unknown };
 const avec = (champs: Record<string, unknown>): Entree[] => {
@@ -54,7 +54,7 @@ describe('presets-de-personnage.json — preset de personnage entier (#3086)', (
 
   it('une chose portée deux fois est refusée à l’élément qui la porte la seconde fois', () => {
     const [chemise] = findEnsembleParHabille({ id: 'uniforme-de-soldat', type: 'tenue' })!.pieces;
-    const [casque] = findEnsembleParHabille({ id: 'heaume', type: 'trapping' })!.pieces;
+    const [casque] = piecesDeLObjet('heaume');
     const cas: [string, Record<string, unknown>, { path: string; message: string }][] = [
       ['pièce de l’ensemble de la tenue', { pieces: ['baudrier', chemise] }, { path: '0.pieces.1', message: `« ${chemise} » est porté deux fois : déjà par l’ensemble de la tenue « uniforme-de-soldat ».` }],
       ['pièce en double', { pieces: ['baudrier', 'baudrier'] }, { path: '0.pieces.1', message: '« baudrier » est porté deux fois : déjà par pieces[0].' }],

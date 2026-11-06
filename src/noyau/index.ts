@@ -18,7 +18,7 @@ export type { Cadence } from '../engine/cadence';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
-export { findCouleurById, gardeRobe } from '../data/index';
+export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { EmblemeDef } from '../data/schemas/defs/garde-robe';
 export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
 export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';

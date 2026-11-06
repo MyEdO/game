@@ -112,14 +112,20 @@
     "type": "garde-robe",
     "label": "Casque",
     "kind": "piece",
-    "categorie": "armure"
+    "categorie": "armure",
+    "localisations": [
+      "tete"
+    ]
   },
   {
     "id": "plastron",
     "type": "garde-robe",
     "label": "Plastron",
     "kind": "piece",
-    "categorie": "armure"
+    "categorie": "armure",
+    "localisations": [
+      "corps"
+    ]
   },
   {
     "id": "epaulieres",
@@ -133,14 +139,22 @@
     "type": "garde-robe",
     "label": "Brassards",
     "kind": "piece",
-    "categorie": "armure"
+    "categorie": "armure",
+    "localisations": [
+      "brasG",
+      "brasD"
+    ]
   },
   {
     "id": "tassettes",
     "type": "garde-robe",
     "label": "Tassettes",
     "kind": "piece",
-    "categorie": "armure"
+    "categorie": "armure",
+    "localisations": [
+      "jambeG",
+      "jambeD"
+    ]
   },
   {
     "id": "chemise",
@@ -280,32 +294,6 @@
     }
   },
   {
-    "id": "trapping-plastron",
-    "type": "garde-robe",
-    "label": "Plastron",
-    "kind": "ensemble",
-    "habille": {
-      "id": "plastron",
-      "type": "trapping"
-    },
-    "pieces": [
-      "plastron"
-    ]
-  },
-  {
-    "id": "trapping-brassards",
-    "type": "garde-robe",
-    "label": "Brassards",
-    "kind": "ensemble",
-    "habille": {
-      "id": "brassards",
-      "type": "trapping"
-    },
-    "pieces": [
-      "brassards"
-    ]
-  },
-  {
     "id": "trapping-bottes",
     "type": "garde-robe",
     "label": "Bottes",
@@ -329,19 +317,6 @@
     },
     "pieces": [
       "gants"
-    ]
-  },
-  {
-    "id": "trapping-heaume",
-    "type": "garde-robe",
-    "label": "Heaume",
-    "kind": "ensemble",
-    "habille": {
-      "id": "heaume",
-      "type": "trapping"
-    },
-    "pieces": [
-      "casque"
     ]
   },
   {
@@ -506,6 +481,9 @@
     "id": "uniforme-de-soldat",
     "type": "garde-robe",
     "label": "Uniforme de soldat",
-    "kind": "tenue"
+    "kind": "tenue",
+    "carrieres": [
+      "soldat"
+    ]
   }
 ]

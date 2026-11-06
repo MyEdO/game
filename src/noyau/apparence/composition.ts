@@ -6,7 +6,8 @@
  * `optionsDuNoeud`), et ses axes (`AXES`) ; `lireComposition` la valide, seule validation d'une composition, et
  * `presetDeComposition` rend son entrée JSON, l'enveloppe d'un preset reprise, et les fautes de son schéma.
  */
-import { choixDeLaFeuilleDId, matieresDe, findApparenceById, findCoiffureById, findEnsembleParHabille, findPresetDePersonnageById, findTeteById, findTrappingById, presetsDePersonnage, raceAppearance, trappingsInstanciables, type GabaritId } from '../../data';
+import { choixDeLaFeuilleDId, matieresDe, findApparenceById, findCoiffureById, findEnsembleParHabille, findGroupeDArmureById, findPresetDePersonnageById, findTeteById, findTrappingById, piecesDeLObjet, presetsDePersonnage, raceAppearance, trappingsInstanciables, type GabaritId } from '../../data';
+import type { HitLocation } from '../../engine/types';
 import { serializeDataset } from '../../data/serialize';
 import { candidatsDApparenceDObjet } from '../../data/apparencesObjets';
 import { racineDesCandidats } from '../../engine/items';
@@ -71,13 +72,15 @@ export const lireSurchargesDEmblemes = (brut: unknown): LectureAuSchema<Surcharg
 type CleDePortee = { champ: Exclude<ChampDeCleResolu, 'apparence'>; id: string } | { champ: 'apparence'; id: string; racine?: string };
 
 /** Une chose portée : la clé de l'élément qui la monte, son libellé, son point d'accroche (la prise ou le rangement
- *  d'un objet, l'emplacement d'une pièce d'accessoire) et ce qui l'apporte (la tenue ou l'objet que son ensemble
- *  habille, l'objet dont elle est l'apparence). */
+ *  d'un objet, l'emplacement d'une pièce d'accessoire), ce qui l'apporte (la tenue ou l'objet que son ensemble
+ *  habille, l'objet dont elle est la pièce ou l'apparence) et la teinte de l'objet qui l'apporte (`teinteDeLObjet`,
+ *  #3456), un id du domaine `objet` de `materials.json`. */
 export interface Portee {
   cle: CleDePortee;
   label: string;
   point?: string;
   par?: { type: 'tenue' | 'trapping'; id: string; label: string };
+  teinte?: string;
 }
 
 /** Ce que porte un corps, et ce corps : son sexe, sa corpulence (absente, le corps neutre) et sa palette. */
@@ -104,37 +107,47 @@ const par = (habille: { type: 'tenue'; id: TenueId } | { type: 'trapping'; id: s
 type VariantesDePieces = Readonly<Partial<Record<string, { id: string }>>> | undefined;
 
 /** Les pièces de `pieces`, chacune sous sa variante de `variantes` (#3446), à défaut elle-même, à l'emplacement de sa pièce
- *  d'accessoire (`emplacementDePiece`). */
-const portees = (pieces: readonly string[], variantes: VariantesDePieces, apport?: Portee['par']): Portee[] =>
+ *  d'accessoire (`emplacementDePiece`), à la `teinte` de l'objet qui les apporte. */
+const portees = (pieces: readonly string[], variantes: VariantesDePieces, apport?: Portee['par'], teinte?: string): Portee[] =>
   pieces.map((piece) => {
     const id = variantes?.[piece]?.id ?? piece;
     const point = emplacementDePiece(piece);
-    return { cle: { champ: 'piece', id }, label: pieceOuVariante(id)?.label ?? id, ...(point ? { point } : {}), ...(apport ? { par: apport } : {}) };
+    return { cle: { champ: 'piece', id }, label: pieceOuVariante(id)?.label ?? id, ...(point ? { point } : {}), ...(apport ? { par: apport } : {}), ...(teinte ? { teinte } : {}) };
   });
 
+/** Les pièces de l'ensemble qui habille la tenue `tenue`, chacune sous sa variante de `variantes`, apportées par elle. */
+export const porteesDeLaTenue = (tenue: TenueId, variantes?: VariantesDePieces): Portee[] =>
+  portees(piecesDEnsemble({ id: tenue, type: 'tenue' }), variantes, par({ type: 'tenue', id: tenue }));
+
+/** La teinte d'un objet : la sienne, à défaut celle du Groupe d'armure de son type `subType` (#3456). */
+export const teinteDeLObjet = (o: { teinte?: string; subType?: string | null }): string | undefined => o.teinte ?? findGroupeDArmureById(o.subType)?.teinte?.id;
+
 /** Un objet porté : ce qui le nomme au rapport, son trapping, ses apparences candidates (`apparencesCandidates`, `candidatsDApparenceDObjet` :
- *  la racine en dernière entrée ; vide, aucune), sa prise s'il est tenu, et le rangement que sa composition choisit
- *  (`rangementsObjets`). */
+ *  la racine en dernière entrée ; vide, aucune), sa prise s'il est tenu, le rangement que sa composition choisit
+ *  (`rangementsObjets`), les localisations qu'il couvre, à défaut celles de son trapping, et sa teinte
+ *  (`teinteDeLObjet`). */
 export interface ObjetPorte {
   nom: string;
   trappingId?: string;
   candidats: readonly string[];
   prise?: string;
   rangement?: string;
+  locs?: readonly HitLocation[];
+  teinte?: string;
 }
 
-/** Ce que porte `objet` : les pièces de l'ensemble qui habille son trapping, chacune sous sa variante de `variantes`,
- *  sinon son premier candidat, avec sa racine s'il en est une variante, à sa prise s'il est tenu, sinon à son
- *  `rangement`, à défaut celui de son trapping (D1) ; sans candidat ou sans point, sa ligne de rapport. */
-function porteesDeLObjet({ nom, trappingId, candidats, prise, rangement }: ObjetPorte, variantes: VariantesDePieces): { portees: Portee[] } | { rapport: string } {
+/** Ce que porte `objet`, à sa teinte : ses pièces (`piecesDeLObjet`), chacune sous sa variante de `variantes`, sinon
+ *  son premier candidat, avec sa racine s'il en est une variante, à sa prise s'il est tenu, sinon à son `rangement`, à
+ *  défaut celui de son trapping (D1) ; sans candidat ou sans point, sa ligne de rapport. */
+function porteesDeLObjet({ nom, trappingId, candidats, prise, rangement, locs, teinte }: ObjetPorte, variantes: VariantesDePieces): { portees: Portee[] } | { rapport: string } {
   const habille = trappingId === undefined ? undefined : { type: 'trapping' as const, id: trappingId };
-  const habits = habille ? piecesDEnsemble(habille) : [];
-  if (habille && habits.length) return { portees: portees(habits, variantes, par(habille)) };
+  const habits = piecesDeLObjet(trappingId, locs);
+  if (habits.length) return { portees: portees(habits, variantes, habille && par(habille), teinte) };
   const point = prise ?? rangement ?? findTrappingById(trappingId)?.rangement?.id;
   const [apparence] = candidats;
   if (apparence === undefined || point === undefined) return { rapport: t(apparence === undefined ? 'compo.objetSansApparence' : 'compo.objetSansPoint', { objet: nom }) };
   const racine = racineDesCandidats(candidats)!;
-  return { portees: [{ cle: { champ: 'apparence', id: apparence, ...(racine === apparence ? {} : { racine }) }, label: findApparenceById(apparence)?.label ?? apparence, point, ...(habille ? { par: par(habille) } : {}) }] };
+  return { portees: [{ cle: { champ: 'apparence', id: apparence, ...(racine === apparence ? {} : { racine }) }, label: findApparenceById(apparence)?.label ?? apparence, point, ...(habille ? { par: par(habille) } : {}), ...(teinte ? { teinte } : {}) }] };
 }
 
 /** Ce que portent `objets`, chacun par `porteesDeLObjet` sous les `variantes` de pièces, dans leur ordre. */
@@ -153,11 +166,12 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
   const liste: Portee[] = [{ cle: { champ: 'tete', id: composition.tete.id }, label: findTeteById(composition.tete.id)?.label ?? composition.tete.id }];
   if (composition.coiffure) liste.push({ cle: { champ: 'coiffure', id: composition.coiffure.id }, label: findCoiffureById(composition.coiffure.id)?.label ?? composition.coiffure.id });
   const { variantesPieces } = composition;
-  if (composition.tenue) liste.push(...portees(piecesDEnsemble({ id: composition.tenue.id, type: 'tenue' }), variantesPieces, par({ type: 'tenue', id: composition.tenue.id })));
+  if (composition.tenue) liste.push(...porteesDeLaTenue(composition.tenue.id, variantesPieces));
   liste.push(...portees(composition.pieces ?? [], variantesPieces));
   const objet = (id: Id<'trapping'>, prise?: string): ObjetPorte => {
     const rangement = composition.rangementsObjets?.[id]?.id;
-    return { nom: id, trappingId: id, candidats: candidatsDeLObjet(composition, id), ...(prise ? { prise } : {}), ...(rangement ? { rangement } : {}) };
+    const teinte = teinteDeLObjet({ subType: findTrappingById(id)?.subType });
+    return { nom: id, trappingId: id, candidats: candidatsDeLObjet(composition, id), ...(prise ? { prise } : {}), ...(rangement ? { rangement } : {}), ...(teinte ? { teinte } : {}) };
   };
   const objets = porteesDesObjets(
     [...Object.entries(composition.prises ?? {}).map(([main, tenu]) => objet(tenu.id, main)), ...(composition.objets ?? []).map((id) => objet(id))],
