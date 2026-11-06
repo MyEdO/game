@@ -11,7 +11,9 @@ import { seatOwns, jetSurfaced, siegeDuHeros } from './sieges';
 import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
-import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type RollVerb } from './flowVerbs';
+import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type NomDeVerbeDeJet, type RollVerb } from './flowVerbs';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { ActionDeClasse } from './intentionsDeSiege';
 import type { PendingKey } from './stateFields';
 import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
 import { declarationDuChoix } from './choixDesFenetres';
@@ -403,6 +405,11 @@ export interface Route {
   horsAllowlist?: string;
 }
 
+/** L'entrée d'une route, par nom de verbe (#3371 §3.5) : un verbe que l'invité joue, ou tout verbe du noyau dont la route
+ *  se garde hors allowlist. */
+type EntreeDeRoute = readonly [ActionDeClasse<'invité'> | NomDeVerbeDeJet, Route]
+  | readonly [keyof ActionsDuNoyau, Route & Required<Pick<Route, 'horsAllowlist'>>];
+
 /**
  * Assemble la table des routes en FAIL-FAST : une clé fournie deux fois lève un litige NOMINATIF au
  * chargement du module, jamais un écrasement silencieux. Les routes manuscrites et la famille dérivée des verbes de jet
@@ -410,7 +417,7 @@ export interface Route {
  * l'invariant — sans lui, un verbe qui migrerait d'une famille à l'autre changerait de route sans
  * qu'aucun test ne le voie.
  */
-export function buildRoutes(...groupes: readonly (readonly (readonly [string, Route])[])[]): ReadonlyMap<string, Route> {
+export function buildRoutes(...groupes: readonly (readonly EntreeDeRoute[])[]): ReadonlyMap<string, Route> {
   const out = new Map<string, Route>();
   for (const groupe of groupes) {
     for (const [action, route] of groupe) {

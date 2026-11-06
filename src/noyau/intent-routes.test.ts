@@ -31,13 +31,22 @@ describe('#1051 — construction de la table : fail-fast sur clé dupliquée', (
   });
 
   it('la même clé DEUX FOIS dans un seul groupe lève aussi (pas de dédoublonnage silencieux)', () => {
-    expect(() => buildRoutes([['x', R], ['x', R]])).toThrow(/« x »/);
+    expect(() => buildRoutes([['raiseHand', R], ['raiseHand', R]])).toThrow(/« raiseHand »/);
   });
 
   it('des groupes disjoints s’assemblent, et la dernière route posée est CONSULTABLE', () => {
-    const t = buildRoutes([['a', R]], [['b', { rule: () => false }]]);
-    expect([...t.keys()]).toEqual(['a', 'b']);
-    expect(t.get('b')!.rule({} as never, 0, [])).toBe(false);
+    const t = buildRoutes([['raiseHand', R]], [['lowerHand', { rule: () => false }]]);
+    expect([...t.keys()]).toEqual(['raiseHand', 'lowerHand']);
+    expect(t.get('lowerHand')!.rule({} as never, 0, [])).toBe(false);
+  });
+
+  it('une clé se nomme par un verbe invité, de jet, ou, gardée hors allowlist, du noyau (#3371 §3.5)', () => {
+    // @ts-expect-error aucun verbe ne porte ce nom
+    const inconnue = buildRoutes([['intentQuiNExistePas', R]]);
+    // @ts-expect-error verbe de l’hôte sans raison hors allowlist
+    const deLHote = buildRoutes([['openRest', R]]);
+    const gardee = buildRoutes([['openRest', { ...R, horsAllowlist: 'raison' }]]);
+    expect([inconnue, deLHote, gardee].map((t) => t.size)).toEqual([1, 1, 1]);
   });
 });
 
