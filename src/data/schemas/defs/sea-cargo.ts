@@ -1,11 +1,12 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.309-436 */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
+import { document, type EnveloppeDocument } from '../grammaire/document';
 import {
   cibleEtendueSchema,
   difficultySchema,
   ecartsDeCouverture,
+  enumNomme,
   plageOuverteSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
@@ -35,10 +36,10 @@ const offerPriceSchema = z
     }
   });
 
-const doc = document(
-  'sea-cargo',
-  famille,
-  {
+/** MDG 15 l.274-286 */
+export const issueDuTestSchema = enumNomme({ success: 'Succès', failure: 'Échec' });
+
+const champs = {
   buy: nommerChamps(z.strictObject({
     availabilityMultiplier: z.number(),
     merchantSkill: nommerChamps(z.strictObject({ d10: z.number(), plus: z.number() }), { d10: { label: 'Dés à dix faces' }, plus: { label: 'Ajout' } }),
@@ -106,12 +107,12 @@ const doc = document(
     maxAttempts: z.number(),
     outcomes: z.array(
       nommerChamps(z.strictObject({
-        on: z.enum(['success', 'failure']),
+        on: issueDuTestSchema,
         minMissing: z.number().optional(),
         minExtraDR: z.number().optional(),
         pct: z.number(),
       }), {
-        on: { label: 'Cible' },
+        on: { label: 'Issue du Test' },
         minMissing: { label: 'Manque minimal' },
         minExtraDR: { label: 'DR supplémentaires minimaux' },
         pct: { label: 'Pourcentage' },
@@ -126,7 +127,12 @@ const doc = document(
     outcomes: { label: 'Issues' },
     source: { label: 'Source' },
   }),
-  },
+};
+
+const doc = document(
+  'sea-cargo',
+  famille,
+  champs,
   {
     buy: { label: "Règles d'achat", hint: 'Barème de Marchandage et bonus de disponibilité à l’achat' },
     sell: { label: 'Règles de vente', hint: 'Barème de prix, Ragot préalable, DR de camp du Marchandage de vente' },
@@ -136,19 +142,11 @@ const doc = document(
       hint: 'Test, nombre de tentatives et issues (%) du placement spéculatif de cargaison',
     },
   },
-  {
-    codex: {
-      exempt: {
-        kind: 'dette',
-        raison: 'règles de négoce (achat, vente, surcharge, commerce d’opportunité) lues par le moteur, sans fiche de règle au Codex',
-        ticket: '#3433',
-      },
-    },
-    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },
-  },
+  { codex: { keys: ['seaCargo'] }, edit: { object: 'single' } },
 );
 
 export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
+export type SeaCargoData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;
