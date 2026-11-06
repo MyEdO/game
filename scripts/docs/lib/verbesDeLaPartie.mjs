@@ -34,7 +34,7 @@ const CHAMPS_CONTROLES = 12
 /** Longueur au-delà de laquelle un type anonyme ne s'écrit plus déplié, mais par son genre. */
 const LONGUEUR_D_UN_NOM = 40
 
-/** Le NOM d'un type : son alias (`Flow`), son interface ou sa classe (`RoomPortal`), sinon son écriture courte ; un type
+/** Le NOM d'un type : son alias (`Flow`), son interface ou sa classe (`Scene`), sinon son écriture courte ; un type
  *  anonyme long s'écrit par son genre (`objet`, `fonction`), jamais déplié. */
 function nomDuType(checker, type) {
   const nomme = type.getAliasSymbol()?.name ?? type.getSymbol()?.name
@@ -68,14 +68,14 @@ function nomsDesignes(session, racine) {
 }
 
 /** La forme `f` annotée du nom de désignation que son nœud déclaré écrit : une référence à une clé de la table sur
- *  une chaîne ou un objet, à travers parenthèses, `readonly`, tableaux et unions. */
+ *  une chaîne, à travers parenthèses, `readonly`, tableaux et unions. */
 function designee(f, noeud, designes) {
   if (!noeud) return f
   if (ts.isParenthesizedTypeNode(noeud) || ts.isTypeOperatorNode(noeud)) return designee(f, noeud.type, designes)
   if (ts.isArrayTypeNode(noeud)) return f.genre === 'tableau' ? { ...f, element: designee(f.element, noeud.elementType, designes) } : f
   if (ts.isTypeReferenceNode(noeud)) {
     const nom = ts.isIdentifier(noeud.typeName) ? noeud.typeName.text : null
-    return nom && designes.has(nom) && (f.genre === 'chaine' || f.genre === 'objet') ? { ...f, designe: { cle: nom, mot: designes.get(nom) } } : f
+    return nom && designes.has(nom) && f.genre === 'chaine' ? { ...f, designe: { cle: nom, mot: designes.get(nom) } } : f
   }
   if (ts.isUnionTypeNode(noeud)) {
     const designants = noeud.types.filter((t) => designee({ genre: 'chaine' }, t, designes).designe)

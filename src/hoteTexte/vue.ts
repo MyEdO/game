@@ -11,7 +11,7 @@ import {
 } from '../noyau/index';
 import type { LigneNumerotee } from './partieTexte';
 import { t } from '../i18n';
-import { ecritALaForme, signature, type ParametreDeVerbe } from '../hote/formes';
+import { signature, type ParametreDeVerbe } from '../hote/formes';
 import { VERBES } from '../hote/verbes.generated';
 import { parametresDuGeste } from '../hote/gestes';
 import { apercuDe, combattantsTries, projeter as projeterAuxBornes, type Apercu, type BornesDeLaProjection, type CaseAtteignable, type CombattantProjete, type OffreEnVue, type Projection, type ProprietaireDeLaFenetre } from '../hote/projection';
@@ -171,12 +171,8 @@ const ligneDeJets = (j: JetEnVue): string[] => replier(`jet ${j.flux} : ${j.lign
 const ligneDApercu = (a: Apercu): string =>
   `aperçu : ${a.genre} → ${versEcrit(a)}${a.cout === null ? '' : ` · coût ${a.cout}`} (le même clic confirme)`;
 
-/** Les gestes d'un geste d'exploration tels que la vue les écrit : chaque argument à la forme de son paramètre. */
-export const gestesEcrits = (g: GesteDExploration): { verbe: string; args: unknown[] }[] =>
-  g.gestes.map(({ verbe, args }) => ({ verbe, args: args.map((a, i) => { const p = VERBES[verbe]?.[i]; return p ? ecritALaForme(a, p.forme) : a; }) }));
-
 /** Un geste d'exploration : son libellé et l'appel qui le joue. */
-export const ligneDeGeste = (g: GesteDExploration): string[] => replier(`${g.libelle} : ${appelEcrit('jouer', { gestes: gestesEcrits(g) })}`);
+export const ligneDeGeste = (g: GesteDExploration): string[] => replier(`${g.libelle} : ${appelEcrit('jouer', { gestes: g.gestes })}`);
 
 const libelleDOffre = (o: OffreEnVue): string => `${o.id}${o.n > 1 ? `×${o.n}` : ''}→${o.cout ?? '—'}${o.refus === null ? '' : ` (fermée : ${o.refus})`}`;
 
