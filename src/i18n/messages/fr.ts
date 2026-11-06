@@ -590,6 +590,7 @@ export const fr = {
   'gameMenu.quit': 'Quitter la partie',
   // Écran d'équipe (PartyScreen) — Phase D.
   'party.title': "Votre groupe d'aventuriers",
+  'party.pretireInconnu': 'Aucun pré-tiré ne porte l’id « {id} ».',
   'party.back.menu': '← Menu',
   'party.back.quit': '← Quitter',
   'party.campaign.change': 'Changer',

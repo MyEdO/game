@@ -53,6 +53,14 @@ describe('composition du groupe — `refusDAjoutAuGroupe`', () => {
     expect(dernier()).toBe('Le groupe est complet (4 héros).');
   });
 
+  it('pré-tiré inconnu : le geste le refuse et le dit', () => {
+    const [a] = heros(1);
+    banc.setState({ party: [a] });
+    get().partyAddHero({ pretire: 'inconnu' });
+    expect(get().party.map((h) => h.id)).toEqual([a.id]);
+    expect(dernier()).toBe('Aucun pré-tiré ne porte l’id « inconnu ».');
+  });
+
   it('héros déjà présent : le geste le nomme', () => {
     const [a] = heros(1);
     banc.setState({ party: [a] });
