@@ -307,7 +307,7 @@ function viseur(scene: Scene, activeZ: number, partyPos: Pt, cadre?: Dims): (sx:
     const svgRef = useRef(stageEl());
     const camRef = useRef(CAM);
     pointer = useStagePointer({
-      svgRef, dims, zoom: ZOOM, camRef, hoverTracking: false, partyLeader: undefined, activeZ, aretes: [],
+      svgRef, dims, zoom: ZOOM, camRef, hoverTracking: false, activeZ, aretes: [],
     });
     return null;
   };

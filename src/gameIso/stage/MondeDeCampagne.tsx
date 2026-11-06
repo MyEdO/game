@@ -572,7 +572,7 @@ function CorpsDuMonde() {
   // aux sondes une offre que l'écran ne montre pas.
   useLayoutEffect(() => { aretesEcranRef.current = aretesEcran; }, [aretesEcran]);
 
-  const pointeur = useStagePointer({ svgRef, dims: dimsVue, zoom, camRef, hoverTracking, partyLeader, activeZ, aretes: aretesEcran });
+  const pointeur = useStagePointer({ svgRef, dims: dimsVue, zoom, camRef, hoverTracking, activeZ, aretes: aretesEcran });
   const hover = pointeur.hover;
   const visée = useHoverTargeting(scene, hover, myTurn, pointeur.areteSurvolee?.portail ?? null, pointeur.ficheSurvolee);
 

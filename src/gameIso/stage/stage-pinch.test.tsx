@@ -49,7 +49,7 @@ function monter(): { pointer: StagePointer; setZoom: ReturnType<typeof vi.fn> } 
   const Probe = () => {
     const svgRef = useRef(stageEl());
     const camRef = useRef({ x: 0, y: 0 });
-    pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: undefined, activeZ: 0, aretes: [] });
+    pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, activeZ: 0, aretes: [] });
     return null;
   };
   renderToStaticMarkup(<Probe />);

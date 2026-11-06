@@ -165,8 +165,8 @@ function controlerLeContexte(offre: string, ctx: ActionRunCtx | undefined, offre
 
 /** L'intention d'un geste, contrôlée. Une offre que l'énumérateur ne rend pas, ou qu'aucun candidat ne désigne
  *  (`offreDesignee`), est une erreur de règle avec la raison du registre ; une offre fermée aussi (`actionGate`, sur les
- *  arguments du geste) ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`) et un verbe inconnu sont
- *  des erreurs de validation. Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
+ *  arguments du geste) ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`) est une erreur de
+ *  validation. Le verbe d'un geste a été contrôlé contre `VERBES` (`gesteDuVerbe`). Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
  *  (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. */
 export function intentionDuGeste(etat: Jeu, geste: Geste, pistes: PistesDeLecture): Intention {
   if ('offre' in geste) {
@@ -184,7 +184,6 @@ export function intentionDuGeste(etat: Jeu, geste: Geste, pistes: PistesDeLectur
     if (!gate.ok) throw new ErreurDeGeste('regle', `${geste.offre} fermée : ${gate.reason ?? 'sans raison'}`);
     return { type: 'jouerLOffre', args: geste.ctx ? [geste.offre, geste.ctx] : [geste.offre] };
   }
-  valider(typeof (etat as unknown as Record<string, unknown>)[geste.type] === 'function', `verbe inconnu : ${geste.type}`);
   if (geste.siege === undefined) return { type: geste.type, args: geste.args } as Intention;
   return { type: geste.type, args: argsAvecVerdictLocal(() => etat, geste.type, geste.args), siege: geste.siege } as Intention;
 }

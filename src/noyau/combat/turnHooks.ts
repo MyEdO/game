@@ -28,6 +28,7 @@ import { combatStakeRef } from '../../data';
 import { hasRage } from '../../engine/traits/dispatch';
 import { fireTriggers, hasFoeInLoS } from '../triggeredEffects';
 import { aiDriven } from '../netOwnership';
+import { aiJetteraitUnSort } from '../combatFlow';
 import { t } from '../../i18n';
 import type { Combatant } from '../../engine/types';
 import type { Get, Set as SetFn } from '../flowTypes';
@@ -129,7 +130,7 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   // action est de PRÉPARER un sort (buff/invocation/dégâts). L'Unicité les retire un à un ; quand il ne reste
   // que charger, la Frénésie passe au tour suivant. Peek déterministe, sans RNG (avant le test FM) → aucune
   // perturbation du flux `battleRng` quand on diffère, golden RNG préservé sinon.
-  if (get().aiWouldCast(enemy.id)) return;
+  if (aiJetteraitUnSort(get, enemy.id)) return;
   if (resolveFrenzyEntry(testValue(enemy, undefined, 'force-mentale'), battleRng()).success) {
     (enemy.psychState ??= []).push({ type: 'frenesie' });
     set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenzy', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });

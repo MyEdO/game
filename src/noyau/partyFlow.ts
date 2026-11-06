@@ -59,7 +59,7 @@ import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
 import { nePeutPasDifferer, applyEffects } from './combatEffects';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Contexte carrière d'un héros : niveaux + slots cumulés/courants + désignations (LDB 07). */
@@ -864,5 +864,5 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     // Corps de BLOC, retour CONSOMMÉ (#1508) : une flèche à corps expression typée `() => void` avale le
     // signal en silence. `restoreFortune` est une donnée LITTÉRALE sans canal de dés — d'où le fail-fast.
     restoreFortuneNow: () => { nePeutPasDifferer(applyEffects(get, set, [{ type: 'restoreFortune' }]), 'partyFlow.restoreFortuneNow'); },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

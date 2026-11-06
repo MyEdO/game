@@ -144,7 +144,7 @@ describe('#2206 — l’identité du projet et la provenance du document remis s
 
   it('snapshot coop : l’invité adopte `campaignDoc.projet`, `document.documentId` et `pendingCampaign.projet`', () => {
     charger();
-    banc.getState().setPendingCampaign(campagneDuJeu(diligenceCampaign));
+    banc.setState({ pendingCampaign: campagneDuJeu(diligenceCampaign) });
     const data = JSON.parse(JSON.stringify(instantaneDeLaCoop(banc.getState()))) as Record<string, unknown>;
     banc.setState(etatInitialDuJeu());
     banc.setState(appliquerLInstantane(data, banc.getState()).etat);

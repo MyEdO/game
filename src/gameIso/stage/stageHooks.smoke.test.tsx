@@ -34,7 +34,7 @@ describe('hooks du stage — smoke (premier rendu, état initial)', () => {
     const html = probe(() => {
       const svgRef = useRef<SVGSVGElement>(null);
       const camRef = useRef({ x: 0, y: 0 });
-      const p = useStagePointer({ svgRef, dims: DIMS, zoom: 1, camRef, hoverTracking: false, partyLeader: undefined, aretes: [] });
+      const p = useStagePointer({ svgRef, dims: DIMS, zoom: 1, camRef, hoverTracking: false, aretes: [] });
       const h = p.handlers;
       return `${p.hover}|${[h.onPointerDown, h.onPointerMove, h.onPointerUp, h.onPointerCancel, h.onPointerLeave, h.onContextMenu].every((f) => typeof f === 'function')}`;
     });

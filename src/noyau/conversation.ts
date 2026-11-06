@@ -10,7 +10,7 @@ import { toMoney } from '../engine/money';
 import { payFromGroup } from './bourseFlow';
 import { type DialogueTurn, recordTurn } from './monde/dialogueHistory';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
 
 /** Applique une avancée de dialogue (transition vers un nœud, ou clôture) — point UNIQUE partagé par
@@ -82,7 +82,7 @@ export function creerActionsDeConversation(get: Get, set: Set) {
       }
       applyDialogueTransition(get, set, transition);
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */

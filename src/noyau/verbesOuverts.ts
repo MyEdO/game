@@ -45,7 +45,8 @@ function fermeturesDeLaNavigation(s: Jeu, pc: PendingCascade): Record<'cascadeNe
  *  déclaration du Contre-sort quand ce siège n'a plus de rangée
  *  à déclarer (`rangeesADeclarerIci`), l'annulation du coup que le Sauvetage par le Destin n'offre pas
  *  (`fateSaveOptions`) ; au début du Round, le geste du mode de jeu que la table ne joue pas (lancer seul, se dire prêt
- *  en réseau) et la visée du Tir rapide sans tireur (`preemptShooterIds`). */
+ *  en réseau), la visée du Tir rapide sans tireur (`preemptShooterIds`) et le clic du combattant sans visée armée
+ *  (`preemptAiming`). */
 const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
   cascade: (s) => s.pendingCascade && {
     ...fermeturesDeLaNavigation(s, s.pendingCascade),
@@ -55,6 +56,7 @@ const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<s
   roundStart: (s) => ({
     [s.net.mode === 'local' ? 'roundStartReady' : 'confirmRoundStart']: 'nonOffert',
     armPreempt: preemptShooterIds(() => s).length ? null : 'nonOffert',
+    battleClickEntity: s.preemptAiming ? null : 'nonOffert',
   }),
 };
 

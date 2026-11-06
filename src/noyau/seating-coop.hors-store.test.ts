@@ -1,5 +1,6 @@
 /**
- * ASSISE EN COOP — le geste passe par la route EXISTANTE `interactEntity` (décision de groupe, hôte/MJ) :
+ * ASSISE EN COOP — le geste est le clic de la case (`cliquerLaCase`, décision de groupe, hôte/MJ) ; `interactEntity`
+ * est sa machinerie (`MachinerieDuNoyau`, #3370) :
  * aucun intent `sit`/`seat` n'est créé. Ce que ces tests tiennent : les DEUX barrières de la défense en
  * profondeur (allowlist d'intents puis route de possession), l'unicité de l'occupant sur la dernière
  * place, et la parité hôte → invité par le snapshot.
@@ -49,23 +50,25 @@ function derniereePlaceLibre(): void {
 }
 
 describe('route coop de l’assise — aucun intent dédié, deux barrières indépendantes', () => {
-  it('aucune route ni intent « sit »/« seat » n’existe : le geste reste `interactEntity`', () => {
+  it('aucune route ni intent « sit »/« seat » n’existe : le geste reste `cliquerLaCase`', () => {
     for (const nom of ['sit', 'seat', 'sitAt', 'seatAt', 'standPartyFromSeat']) {
       expect(ROUTES.has(nom), `route « ${nom} »`).toBe(false);
       expect(GUEST_INTENTS.has(nom), `intent invité « ${nom} »`).toBe(false);
     }
-    expect(ROUTES.has('interactEntity')).toBe(true);
+    expect(ROUTES.has('cliquerLaCase')).toBe(true);
+    expect(ROUTES.has('interactEntity'), 'la machinerie n’a pas de route').toBe(false);
   });
 
-  it('barrière 1 — `interactEntity` n’est pas dans l’allowlist d’invité : l’intent ne part jamais', () => {
+  it('barrière 1 — `cliquerLaCase` n’est pas dans l’allowlist d’invité : l’intent ne part jamais', () => {
+    expect(GUEST_INTENTS.has('cliquerLaCase')).toBe(false);
     expect(GUEST_INTENTS.has('interactEntity')).toBe(false);
   });
 
   it('barrière 2 — la route refuse par elle-même tout siège autre que le MJ/hôte', () => {
     derniereePlaceLibre();
     const s = banc.getState();
-    expect(intentAllowedFor(s, MJ, 'interactEntity', [PROP])).toBe(true);
-    expect(intentAllowedFor(s, INVITE, 'interactEntity', [PROP])).toBe(false);
+    expect(intentAllowedFor(s, MJ, 'cliquerLaCase', [{ x: 5, y: 5 }, PROP])).toBe(true);
+    expect(intentAllowedFor(s, INVITE, 'cliquerLaCase', [{ x: 5, y: 5 }, PROP])).toBe(false);
   });
 });
 

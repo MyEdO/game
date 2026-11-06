@@ -17,11 +17,10 @@ import { captureMutation, applyMutation as applySceneMutation } from './monde/sc
 import { resetFields } from './stateFields';
 import { TIME_COST } from '../engine/timeCost';
 import type { Get, SetDesClesReservees } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
   return {
-    setPendingCampaign: (pc) => set({ pendingCampaign: pc }),
     startScene: (scene, narratif) => {
       registerScene(scene);
       const start = scene.entities.find((e) => e.kind === 'heroStart');
@@ -151,5 +150,5 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // `startScene` : la carte passe devant, les Tests de rencontre sont parqués puis repris.
       if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte], sceneId: target.id }, { own: true });
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

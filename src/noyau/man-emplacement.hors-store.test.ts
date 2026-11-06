@@ -7,7 +7,7 @@ import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { crewedPenalty } from '../engine/crewedWeapon';
 import { seedBattleRng } from './battleRng';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import { emptyScene } from './monde/scene';
 import type { Combatant, ShipPoste, FireArc } from '../engine/types';
 import type { Scene } from './monde/scene';
@@ -61,8 +61,8 @@ const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', metresPerTile: 2,
     layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
-const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string> = {}): (() => Jeu) =>
-  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => Jeu;
+const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string> = {}): (() => JeuDuNoyau) =>
+  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => JeuDuNoyau;
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 // (A) DISPONIBILITÉ kind-agnostique — `servablePostes` voit un poste NON servi pour un combattant adjacent.

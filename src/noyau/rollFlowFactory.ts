@@ -303,13 +303,13 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
   reverse?: {
     /** Test de CE jet (Compétence `{skill, spec}` et contexte), matché STRUCTURÉ contre Talent/jeton.
      *  `null` → non concerné. */
-    skillOf: (s: Jeu, slot: Slot, actor: Combatant, get: Get, p: P) => ReverseQuery | null;
+    skillOf: (s: Jeu, slot: Slot, actor: Combatant, get: Get<Jeu>, p: P) => ReverseQuery | null;
     /** Dé/cible ACTEUR courants (post-jet, avant inversion). `null` → rien à inverser. */
     current: (slot: Slot, p: P) => { roll: number; target: number } | null;
     /** ÉVALUATION de la rangée pour le Test naturel `tr` (dé contre la cible de `current`) : le patch du
      *  slot et l'issue qu'il porte. SOURCE UNIQUE de l'offre du Talent (« si cela entraîne un succès »),
      *  de l'aperçu et de l'application — `success` REFLÈTE le jet réel, jamais forcé. */
-    evaluate: (s: Jeu, slot: Slot, actor: Combatant, get: Get, tr: IssueDuDe, p: P) => { patch: Partial<Slot>; issue: IssueDuDe } | null;
+    evaluate: (s: Jeu, slot: Slot, actor: Combatant, get: Get<Jeu>, tr: IssueDuDe, p: P) => { patch: Partial<Slot>; issue: IssueDuDe } | null;
   };
   /** Lentille de dérivation des verbes d'influence (cf. `RollFlowLens`). PRÉSENTE ⇒ la fabrique compose
    *  bonusSL/forceSuccess/setForcedRoll/resist depuis elle (le `bonus` et la branche `if(forced)` de
@@ -482,16 +482,16 @@ export interface RollFlowHandlers {
   reverse: (get: Get, set: Set, pid?: string) => void;
   /** Le verbe `reverse` est-il OFFERT (Talent ET/OU jeton applicable) ? Pure (aucune consommation) —
    *  pilote l'affichage du bouton « Inverser » dans la rangée d'influence. `false` sans `spec.reverse`. */
-  reverseAvailable: (get: Get, pid?: string) => boolean;
+  reverseAvailable: (get: Get<Jeu>, pid?: string) => boolean;
   /** Prévisualisation PURE de l'issue de l'inversion (dé renversé, DR, succès) — rend le choix LISIBLE
    *  avant le clic. `null` sans `spec.reverse`, jet non lancé, ou aucune voie applicable (miroir de
    *  `reverseAvailable`, jamais appelé sans elle en pratique). */
-  reversePreview: (get: Get, pid?: string) => IssueDuDe | null;
+  reversePreview: (get: Get<Jeu>, pid?: string) => IssueDuDe | null;
   /** Ce qui FERME chaque verbe du cycle sur le slot `pid` maintenant (`null` : ouvert), d'après les gardes des ops
    *  (`opRoll`, `opReroll`, `opBonusSL`, `opDarkPact`, `opForceSuccess`, `opSetForcedRoll`, `opResist`, inversion,
    *  annulation) et la clôture `confirm`. Sans `pid`, un flux MULTI se juge en fenêtre : son jet posé (`jetPose`), son
    *  annulation tant qu'aucun slot n'est lancé. PUR, lu par `verbesOuverts.ts`. */
-  fermetures: (get: Get, pid?: string) => FermeturesDuJet;
+  fermetures: (get: Get<Jeu>, pid?: string) => FermeturesDuJet;
 }
 
 /**
@@ -629,7 +629,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   const pendingOf = (s: Jeu) => s[spec.key] as P | null | undefined;
   const touch = spec.touch ?? touchActors;
   /** Le SLOT ciblé, en LECTURE : un slot que le flux séquentiel refuse n'est pas lu, et rien ne s'écrit. */
-  const slotLu = (get: Get, p: P, pid?: string): Slot | null => {
+  const slotLu = (get: Get<Jeu>, p: P, pid?: string): Slot | null => {
     if (!spec.multi) return p as unknown as Slot;
     if (pid != null && spec.multi.refusDuSlot?.(get(), pid)) return null;
     return slotDe(p, pid);
@@ -676,7 +676,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   // (LDB 10 l.1016-1020) se jouent APRÈS un échec, et les trois verbes de renversement EXIGENT un jet
   // posé (`spec.rolled`, ci-dessous). Un `passive = rolled` fermerait le cas nominal et tuerait le
   // renversement entier. C'est la POSSESSION qui tranche, pas la seule présence du dé.
-  const passive = (slot: Slot, s: Jeu, get: Get, p: P) =>
+  const passive = (slot: Slot, s: Jeu, get: Get<Jeu>, p: P) =>
     !!spec.multi && spec.rolled(slot) && !surfaceOf(get, spec.actor(s, slot, p)?.id);
   const reresolveOf = (s: Jeu, slot: Slot, actor: Combatant, get: Get, p: P) =>
     spec.reresolve ? spec.reresolve(s, slot, actor, get, p) : spec.resolve(s, slot, actor, get, undefined, p);
@@ -732,7 +732,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   };
   /** La voie d'INVERSION du slot (LDB 23 l.209/218 ; LDB 10) : l'acteur, le dé courant, le Test visé et l'ÉVALUATION
    *  de la rangée, ou ce qui la ferme. La MÊME pour le verbe, sa disponibilité, son aperçu et `fermetures`. */
-  const voieDInversion = (s: Jeu, get: Get, p: P, slot: Slot):
+  const voieDInversion = (s: Jeu, get: Get<Jeu>, p: P, slot: Slot):
     { actor: Combatant; cur: { roll: number; target: number }; q: ReverseQuery; evaluer: EvaluationDeRangee } | FermetureDuJet => {
     const rev = spec.reverse;
     if (!rev) return 'nonOffert';
@@ -758,7 +758,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   };
   /** Résilience (LDB 17 l.68) : fenêtre UNIQUE de `forceSuccess`, lue par l'op et par `fermetures`. Avant le jet, le
    *  geste force sans dé quand le flux le sait, sinon il lance puis force. */
-  const fermetureDuForcage = (s: Jeu, get: Get, p: P, slot: Slot, actor: Combatant | undefined): FermetureDuJet | null => {
+  const fermetureDuForcage = (s: Jeu, get: Get<Jeu>, p: P, slot: Slot, actor: Combatant | undefined): FermetureDuJet | null => {
     if (!spec.caps?.forced) return 'nonOffert';
     if (passive(slot, s, get, p)) return 'rangeeTemoin';
     if (!actor) return 'sansActeur';

@@ -151,7 +151,7 @@ describe('#1262 L1 — `ownsLocalNet` : Interlude / écran de Groupe (état rés
 /**
  * LA 4ᵉ PORTE — DÉCISION DE GROUPE (#1262) — `ownsGroupDecision` lit le jeton unique d'exploration par
  * le sentinel MONDE (`ownsLocal(s, WORLD_STEP_OWNER)`), tandis que l'EXÉCUTION passe par la route des
- * intents du jeton (`intentAllowedFor`, `chooseDialogue`/`interactEntity`). Les
+ * intents du jeton (`intentAllowedFor`, `chooseDialogue`/`cliquerLaCase`). Les
  * deux chemins coïncident aujourd'hui — c'est une coïncidence de FORMULE, pas une dépendance déclarée.
  * Ce test la VERROUILLE : toute divergence de la route ferait diverger l'affordance de son geste (une
  * réponse armée qui ne passe pas, ou grisée alors qu'elle passerait), et rougit ici.
@@ -160,7 +160,7 @@ describe('#1262 L1 — `ownsLocalNet` : Interlude / écran de Groupe (état rés
  * route ne connaît que des sièges. La comparaison n'a de sens qu'au siège qui EXISTE — `mySeat`.
  */
 describe('#1262 — décision de groupe : la porte rend le MÊME verdict qu’`intentAllowedFor`', () => {
-  const JETON = ['chooseDialogue', 'interactEntity'] as const;
+  const JETON = ['chooseDialogue', 'cliquerLaCase'] as const;
   /** Configs de MJ mesurées : aucun rôle posé (repli hôte), MJ à l'hôte, MJ à un siège invité. */
   const GM = [undefined, 0, 2] as const;
 

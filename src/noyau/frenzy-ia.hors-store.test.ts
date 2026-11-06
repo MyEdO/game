@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { chooseEnemyAction, EnemyTurnInput, type CastableSpell } from './monde/ai';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { aiAvailableFreeAttack } from './combatFlow';
+import { aiAvailableFreeAttack, aiJetteraitUnSort } from './combatFlow';
 import { aiMaybeFrenzy } from './combat/turnHooks';
 import { isFrenzied } from '../engine/psychology';
 import { createHero } from '../engine/character';
@@ -61,7 +61,7 @@ describe('Frénésie IA — cible la plus proche (chooseEnemyAction, pur, LDB 21
 });
 
 describe('Frénésie IA — ORDRE (report tant qu’un sort prime, Couche 3)', () => {
-  // PRÉDICAT du report (aiWouldPrepareSpell = action ∈ {cast,castArea,focus}) au niveau PUR : pas encore
+  // PRÉDICAT du report (aiJetteraitUnSort = action ∈ {cast,castArea,focus}) au niveau PUR : pas encore
   // frénétique (le peek tourne AVANT l'entrée), une invocation jouable + héros loin → l'IA PRÉPARE le sort
   // (cast), donc la Frénésie est différée. Sans sort → mêlée/approche (pas de report).
   it('un sort jouable (invocation, héros loin) → la meilleure action est `cast` (→ report de Frénésie)', () => {
@@ -124,10 +124,10 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
     expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(false);
   });
 
-  // ORDRE (Couche 3) : le report passe par le noyau (`aiWouldCast`). Un ennemi frénésie-CAPABLE dont la
+  // ORDRE (Couche 3) : le report passe par le noyau (`aiJetteraitUnSort`). Un ennemi frénésie-CAPABLE dont la
   // meilleure action est un SORT (ici un Projectile sur le héros, seule action d'un lanceur DÉSARMÉ) ne
   // frénésie PAS — il lance son sort d'abord (l'Unicité retirera les sorts un à un avant de charger).
-  it('aiMaybeFrenzy : un sort jouable prime (aiWouldCast vrai) → REPORTE la Frénésie', () => {
+  it('aiMaybeFrenzy : un sort jouable prime (aiJetteraitUnSort vrai) → REPORTE la Frénésie', () => {
     banc.getState().seedRng(5);
     const { H, E } = setupBattle();
     E.traits = [{ id: 'frenesie' }];
@@ -137,19 +137,19 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
     E.weapons = []; // DÉSARMÉ → aucune mêlée concurrente ; le sort est la seule action
     E.pos = { x: 10, y: 7 }; H.pos = { x: 10, y: 10 }; // héros en LdV, à 3 cases (en portée du sort, hors mêlée)
     banc.setState({ battle: { ...banc.getState().battle! } });
-    expect(banc.getState().aiWouldCast(E.id)).toBe(true); // sa meilleure action est un sort
+    expect(aiJetteraitUnSort(banc.getState, E.id)).toBe(true); // sa meilleure action est un sort
     aiMaybeFrenzy(banc.getState, banc.setState, actorIn(banc.getState(), E.id)!); // FM 99 : maximum des Blessures déplacé, l'acteur se relit
     expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(false); // reporté
   });
 
-  it('aiMaybeFrenzy : AUCUN sort jouable (aiWouldCast faux) → entre bien en Frénésie', () => {
+  it('aiMaybeFrenzy : AUCUN sort jouable (aiJetteraitUnSort faux) → entre bien en Frénésie', () => {
     banc.getState().seedRng(5);
     const { E } = setupBattle();
     E.traits = [{ id: 'frenesie' }];
     E.characteristics['force-mentale'] = 99;
     E.spells = []; // rien à préparer
     banc.setState({ battle: { ...banc.getState().battle! } });
-    expect(banc.getState().aiWouldCast(E.id)).toBe(false);
+    expect(aiJetteraitUnSort(banc.getState, E.id)).toBe(false);
     aiMaybeFrenzy(banc.getState, banc.setState, actorIn(banc.getState(), E.id)!); // FM 99 : maximum des Blessures déplacé, l'acteur se relit
     expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(true);
   });

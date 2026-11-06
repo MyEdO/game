@@ -18,7 +18,6 @@ import { preemptShooterIds } from './targeting';
 import { chansonsDuChanteur, choixDePaieOuverts } from './shipCrew';
 import { creaturesADepecer } from './combatEffects';
 import { actorIn } from './monde/combatants';
-import { ciblesDeLaDoubleFrappe, ciblesDuBalayage } from './combatFlow';
 import { adversairesADistraire, adversairesDuBattement } from './combatManeuvers';
 import { idsDuCoupleMonte } from './targetingModes';
 
@@ -51,10 +50,6 @@ export type IdDeFormeConjuree = string;
 export type IdDeChoixDePaie = string;
 /** Une créature que `harvestCreature` accepte (`creaturesADepecer`, `combatEffects.ts`). */
 export type IdDeCreatureADepecer = string;
-/** Une cible que `cleaveAttack` accepte (`ciblesDuBalayage`, `combatFlow.ts`). */
-export type IdDeCibleDuBalayage = string;
-/** Une cible que `dualStrikeAttack` accepte (`ciblesDeLaDoubleFrappe`, `combatFlow.ts`). */
-export type IdDeCibleDeLaDoubleFrappe = string;
 /** Un adversaire que le réglage `battement.adversaire` accepte (`adversairesDuBattement`, `combatManeuvers.ts`). */
 export type IdDAdversaireDuBattement = string;
 /** Un adversaire que le réglage `distraire.adversaire` accepte (`adversairesADistraire`, `combatManeuvers.ts`). */
@@ -113,8 +108,6 @@ export const DESIGNATIONS = {
   IdDeFormeConjuree: { mot: 'id de forme conjurée', lire: formesConjurables, nom: (_s, id) => findTrappingById(id)?.label ?? null },
   IdDeChoixDePaie: { mot: 'id de choix de paie', lire: choixDePaieOuverts, nom: (_s, id) => findMoraleFactor(id)?.label ?? null },
   IdDeCreatureADepecer: { mot: 'id de créature à dépecer', lire: creaturesADepecer, nom: (_s, id) => findCreatureById(id)?.label ?? null },
-  IdDeCibleDuBalayage: { mot: 'id de cible du balayage', lire: (s) => ids(ciblesDuBalayage(s)), nom: nomDeCombattant },
-  IdDeCibleDeLaDoubleFrappe: { mot: 'id de cible de la double frappe', lire: (s) => ids(ciblesDeLaDoubleFrappe(s)), nom: nomDeCombattant },
   IdDAdversaireDuBattement: { mot: 'id d’adversaire du Battement', lire: (s) => ids(adversairesDuBattement(s)), nom: nomDeCombattant },
   IdDAdversaireADistraire: { mot: 'id d’adversaire à distraire', lire: (s) => ids(adversairesADistraire(s)), nom: nomDeCombattant },
   IdDuCoupleMonte: { mot: 'id du couple monté', lire: idsDuCoupleMonte, nom: nomDeCombattant },

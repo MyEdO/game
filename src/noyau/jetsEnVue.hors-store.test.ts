@@ -25,9 +25,8 @@ const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manu
 
 /** Le duel ouvert, au tour du héros. */
 function leDuel() {
-  const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
-  ouverture.envoyer({ type: 'startScene', args: [testScene()] });
-  ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
+  const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
   ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
   const garde = ouverture.etat();
   ouverture.fermer();

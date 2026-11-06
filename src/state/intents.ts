@@ -22,12 +22,11 @@ export const CLASSE_DES_ACTIONS_DE_L_ADAPTATEUR = {
   saveGame: 'hôte', loadGame: 'hôte', importGame: 'hôte',
   netHostStart: 'local', netJoin: 'local', netLeave: 'local',
   netAssign: 'hôte', netAssignSlot: 'hôte', setGmSeat: 'hôte',
-  // ═══ interne : aucun écran ne l'émet ═══
+  // La campagne choisie au menu (`pendingCampaign`), avant tout siège.
+  setPendingCampaign: 'hôte',
   // ── Vue et curseur clavier (registre `state/clavier/keybindings.ts`) ─────────────────────────────────
-  rotateCam: 'interne', toggleViewMode: 'interne', togglePov: 'interne', setReveler: 'interne', moveCursor: 'interne',
-  snapCursorToTarget: 'interne', commitCursor: 'interne', stepPartyDir: 'interne',
-  // ── Persistance silencieuse ───────────────────────────────────────────────────────────────────
-  autoSave: 'interne',
+  rotateCam: 'local', toggleViewMode: 'local', togglePov: 'local', setReveler: 'local', moveCursor: 'local',
+  snapCursorToTarget: 'local', commitCursor: 'local', stepPartyDir: 'local',
 } as const satisfies TableDeLAdaptateur;
 
 /** Args JSON-sûrs pour un intent : les handlers React passent parfois l'ÉVÉNEMENT en argument
