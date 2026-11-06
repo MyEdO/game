@@ -37,7 +37,7 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   { fichier: 'noyau/monde/scene.ts', texte: 'return scene?.metresPerTile ?? 2;', role: 'sceneMetresPerTile — LE défaut du monde (LDB 15 l.12), lu par tous les autres' },
 
   // ── LES COUTURES du décor volumique (#1507) : une par CONCEPT, jamais deux pour le même
-  { fichier: 'gameIso/builders/propVolumes.ts', texte: 'const [rx, ry] = rotatePropLocal(p.xM / mpt, p.yM / mpt, facing);', role: 'GÉOMÉTRIE d’une recette de décor → cases du monde' },
+  { fichier: 'noyau/monde/volume/propVolumes.ts', texte: 'const [rx, ry] = rotatePropLocal(p.xM / mpt, p.yM / mpt, facing);', role: 'GÉOMÉTRIE d’une recette de décor → cases du monde' },
   { fichier: 'data/props.types.ts', texte: 'const [ax, ay] = rotatePropLocal(slot.anchor.xM / mpt, slot.anchor.yM / mpt, cap);', role: 'ANCRE d’une place assise → case du corps assis' },
   { fichier: 'noyau/monde/vision.ts', texte: 'const [x, y] = rotatePropLocal(emettrice.center.xM / mpt, emettrice.center.yM / mpt, facing ?? CAP_IDENTITE_PROP);', role: 'FOYER d’une lampe (centre de la primitive émettrice) → offset en cases' },
   { fichier: 'noyau/monde/vision.ts', texte: 'export const rayonEnCases = (radiusM: number, mpt: number): number => radiusM / mpt;', role: 'RAYON d’une source de lumière → cases (RÉEL : le dégradé le lit comme une longueur)' },

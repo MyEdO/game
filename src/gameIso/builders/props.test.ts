@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity, type WallSeg } from '../../noyau/monde/scene';
 import { buildProps, capDuFaite } from './props';
 import { buildWalls } from './walls';
-import { buildPropVolumes } from './propVolumes';
+import { buildPropVolumes } from '../../noyau/monde/volume/propVolumes';
 import { findPropById, props } from '../../data';
 import { capVolumique } from '../../data/props.types';
 import { missingPropSvg, propSvg } from '../catalog/decor';

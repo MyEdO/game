@@ -2,74 +2,77 @@
   "id": "land-cargo",
   "type": "land-cargo",
   "label": "Cargaison terrestre",
-  "wineQuality": [
-    {
-      "min": 1,
-      "max": 1,
-      "label": "Médiocre",
-      "price": 0.5,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 72,
-        "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
+  "wineQuality": {
+    "die": "d10",
+    "entries": [
+      {
+        "min": 1,
+        "max": 1,
+        "label": "Médiocre",
+        "price": 0.5,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 72,
+          "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
+        }
+      },
+      {
+        "min": 2,
+        "max": 3,
+        "label": "Passable",
+        "price": 1,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 72,
+          "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
+        }
+      },
+      {
+        "min": 4,
+        "max": 5,
+        "label": "Moyen",
+        "price": 1.5,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 72,
+          "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
+        }
+      },
+      {
+        "min": 6,
+        "max": 7,
+        "label": "Bon",
+        "price": 3,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 72,
+          "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
+        }
+      },
+      {
+        "min": 8,
+        "max": 9,
+        "label": "Excellent",
+        "price": 6,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 72,
+          "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
+        }
+      },
+      {
+        "min": 10,
+        "max": 10,
+        "label": "Supérieur",
+        "price": 12,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 72,
+          "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
+        }
       }
-    },
-    {
-      "min": 2,
-      "max": 3,
-      "label": "Passable",
-      "price": 1,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 72,
-        "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
-      }
-    },
-    {
-      "min": 4,
-      "max": 5,
-      "label": "Moyen",
-      "price": 1.5,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 72,
-        "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
-      }
-    },
-    {
-      "min": 6,
-      "max": 7,
-      "label": "Bon",
-      "price": 3,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 72,
-        "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
-      }
-    },
-    {
-      "min": 8,
-      "max": 9,
-      "label": "Excellent",
-      "price": 6,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 72,
-        "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
-      }
-    },
-    {
-      "min": 10,
-      "max": 10,
-      "label": "Supérieur",
-      "price": 12,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 72,
-        "note": "ch.11 « Règles du commerce » — encadré VIN ET EAU-DE-VIE, table Qualité/Prix (l.97-104)."
-      }
-    }
-  ],
+    ]
+  },
   "buy": {
     "availabilityMultiplier": 10,
     "merchantSkill": {
@@ -138,292 +141,295 @@
       "note": "ch.11 « Règles du commerce » — Test de Ragot Complexe (–10) pour une rumeur commerciale (l.180)."
     }
   },
-  "rumours": [
-    {
-      "min": 1,
-      "max": 5,
-      "biens": [
-        "produits-de-luxe-terre",
-        "vin-eau-de-vie",
-        "vivres"
-      ],
-      "desc": "C'est un sacré mariage qu'ils ont prévu, n'est-ce pas ? Les plus snobinards du Reikland sont conviés, mais on dit que les heureux élus ne se sont jamais rencontrés ! Ils sont bizarres les nobles, n'est-ce pas ?",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+  "rumours": {
+    "die": "d100",
+    "entries": [
+      {
+        "min": 1,
+        "max": 5,
+        "biens": [
+          "produits-de-luxe-terre",
+          "vin-eau-de-vie",
+          "vivres"
+        ],
+        "desc": "C'est un sacré mariage qu'ils ont prévu, n'est-ce pas ? Les plus snobinards du Reikland sont conviés, mais on dit que les heureux élus ne se sont jamais rencontrés ! Ils sont bizarres les nobles, n'est-ce pas ?",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 6,
+        "max": 10,
+        "biens": [
+          "armement"
+        ],
+        "desc": "On raconte qu'un noble a eu de terribles ennuis avec un rival : l'homme s'est présenté un jour avec une déclaration sous serment de naissance royale et une douzaine de témoins. Il n'en tirera rien, c'est sûr, mais j'ai entendu dire que certaines troupes s'entraînent malgré tout",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 11,
+        "max": 15,
+        "biens": [
+          "vivres",
+          "metal",
+          "bois-terre"
+        ],
+        "desc": "Apparemment, il y a eu un incendie dans un entrepôt de céréales. Des boisseaux et des boisseaux réduits en cendres. Cette saison, on va avoir faim",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 16,
+        "max": 20,
+        "biens": [
+          "bois-terre",
+          "produits-de-luxe-terre"
+        ],
+        "desc": "Vous êtes au courant ? Un nouveau temple de Sigmar vient d'être mis en chantier. Cela a coûté beaucoup d'argent à l'Empereur, et malgré tout il paraît que les locaux ne sont pas tous ravis",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 21,
+        "max": 25,
+        "biens": [
+          "vivres",
+          "laine-terre"
+        ],
+        "desc": "La Vérole bleue a emporté des troupeaux entiers de bétail la saison dernière. Les bouviers s'en remettent à peine à l'heure qu'il est.",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 26,
+        "max": 30,
+        "biens": [
+          "vivres"
+        ],
+        "desc": "Vous êtes au courant ? Un concours de mangeurs de tartes va être organisé par un halfling du coin. On dirait que ça va être une partie de plaisir, surtout pour les boulangers !",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 31,
+        "max": 35,
+        "biens": [
+          "armement",
+          "metal"
+        ],
+        "desc": "Apparemment, un fanatique encourage les habitants à donner tout le métal qu'ils possèdent à la Guilde des Ingénieurs. Il prétend que Morrslieb va tomber et que l'Empire aura besoin d'un bon vieux canon pour la renvoyer d'où elle vient ! C'est cocasse, les locaux n'ont même plus de casseroles pour cuisiner",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 36,
+        "max": 40,
+        "biens": [
+          "metal",
+          "bois-terre",
+          "produits-de-luxe-terre"
+        ],
+        "desc": "Vous êtes au courant ? Un sorcier est parti s'installer en amont du fleuve ! D'un Collège d'Altdorf, qu'ils disent. Ils sont bizarres, mais ils ont de l'or. Il paye la moitié de la ville pour construire une grande tour. C'est logique, non ? Les sorciers ont forcément une tour.",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 41,
+        "max": 45,
+        "biens": [
+          "armement",
+          "vivres"
+        ],
+        "desc": "On dit que des bandits sont dans le coin, qu'ils volent tous les animaux qui ne sont pas attachés. Les autorités s'en fichent royalement. Les habitants prennent les armes, ou du moins ils le feraient, s'ils en avaient",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 46,
+        "max": 50,
+        "biens": [
+          "vivres",
+          "bois-terre"
+        ],
+        "desc": "Vous savez, on raconte que les bois sont hantés par là ne riez pas ! Plus aucun bûcheron ne veut y travailler, et même les braconniers ne vont pas chercher les cerfs dans ces forêts.",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 51,
+        "max": 55,
+        "biens": [
+          "produits-de-luxe-terre",
+          "vin-eau-de-vie"
+        ],
+        "desc": "Une drôle de communauté s'est installée dans le coin. Ils ont des noms et des mœurs étranges. On raconte qu'ils dansent nus sous Morrsleib ! Mais ils ont quand même beaucoup de couronnes à dépenser pour que les gens regardent ailleurs. Un bon répurgateur leur ferait le plus grand bien",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 56,
+        "max": 60,
+        "biens": [
+          "bois-terre",
+          "metal"
+        ],
+        "desc": "Vous avez entendu parler de l'elfe qui se trouve un peu plus loin ? À ce qu'on raconte, il est venu d'Ulthuan pour trouver de vieux os elfiques, ou des ruines, et il paye bien quiconque a le dos assez solide pour les déterrer. Ça m'étonnerait qu'il trouve quoi que ce soit. C'est l'Empire, ici, pas une forêt elfique !",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 61,
+        "max": 65,
+        "biens": [
+          "bois-terre",
+          "metal"
+        ],
+        "desc": "Vous êtes au courant ? Il y a un répurgateur dans les parages. Ils ont brûlé la moitié de la ville en essayant d'allumer un bûcher pour brûler une chèvre dont on racontait qu'elle prédisait l'avenir ; sauf qu'il s'est avéré qu'elle avait tout faux, alors ils ont laissé tomber.",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 66,
+        "max": 70,
+        "biens": [
+          "armement",
+          "vivres",
+          "laine-terre"
+        ],
+        "desc": "On raconte qu'une famine se prépare. De mauvaises récoltes Et des sortes de gros rats se sont introduits dans les magasins. Ils ont dû appeler une bande de ratiers de trois villes différentes pour s'en occuper. Ça devait être de gros rats, hein ?",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 71,
+        "max": 75,
+        "biens": [
+          "produits-de-luxe-terre",
+          "vin-eau-de-vie"
+        ],
+        "desc": "Un « artiste » s'est retiré en amont du fleuve. Il va organiser une grande exposition de ses œuvres et a invité la moitié de la province ! Pourtant, on raconte que cet art a un effet étrange sur les personnes qui le regardent. Heureusement que je suis borgne !",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 76,
+        "max": 80,
+        "biens": [
+          "metal",
+          "bois-terre",
+          "vin-eau-de-vie"
+        ],
+        "desc": "Un groupe de nains fraîchement débarqués des montagnes s'est installé en aval du fleuve. Ils disent qu'ils se sont battus dans une auberge lors de leur première nuit et qu'ils ont maintenant une dette à vie envers le propriétaire ! Quoi qu'il en soit, ils refont toute l'auberge pour lui en guise d'excuses, mais on verra bien une fois que ce sera fini.",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 81,
+        "max": 85,
+        "biens": [
+          "armement",
+          "vivres"
+        ],
+        "desc": "Les problèmes ne sauraient tarder par là-bas ! J'ai entendu dire que des hommes-bêtes ont été repérés mais que la milice a été dissoute à cause d'une mauvaise récolte l'année dernière ! Mauvaise nouvelle, si vous voulez mon avis.",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 86,
+        "max": 90,
+        "biens": [
+          "armement",
+          "vivres"
+        ],
+        "desc": "Vous êtes au courant que la milice a engagé un ogre là-bas ? Oui, je sais. On peut à peine nourrir cette chose, et un honnête criminel ne peut pas gagner sa vie de peur d'être dévoré",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 91,
+        "max": 95,
+        "biens": [
+          "metal"
+        ],
+        "desc": "Une naine forgeron a emménagé : pourquoi a-t-elle choisi ce coin ? Elle forge comme une folle depuis et vend tout ce qu'elle fait pour presque rien. Certains disent que ses pots sont maudits, mais j'en ai un et il ne fuit qu'un tout petit peu !",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
+      },
+      {
+        "min": 96,
+        "max": 100,
+        "biens": [
+          "armement",
+          "vivres",
+          "produits-de-luxe-terre",
+          "bois-terre",
+          "vin-eau-de-vie",
+          "laine-terre"
+        ],
+        "desc": "Vous êtes au courant ? Une bande de puînés et de gaspilleurs déshérités se préparent pour un voyage vers les Principautés frontalières. On dit qu'ils remplissent à ras-bord leurs chariots de marchandises.",
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 78,
+          "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
+        }
       }
-    },
-    {
-      "min": 6,
-      "max": 10,
-      "biens": [
-        "armement"
-      ],
-      "desc": "On raconte qu'un noble a eu de terribles ennuis avec un rival : l'homme s'est présenté un jour avec une déclaration sous serment de naissance royale et une douzaine de témoins. Il n'en tirera rien, c'est sûr, mais j'ai entendu dire que certaines troupes s'entraînent malgré tout",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 11,
-      "max": 15,
-      "biens": [
-        "vivres",
-        "metal",
-        "bois-terre"
-      ],
-      "desc": "Apparemment, il y a eu un incendie dans un entrepôt de céréales. Des boisseaux et des boisseaux réduits en cendres. Cette saison, on va avoir faim",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 16,
-      "max": 20,
-      "biens": [
-        "bois-terre",
-        "produits-de-luxe-terre"
-      ],
-      "desc": "Vous êtes au courant ? Un nouveau temple de Sigmar vient d'être mis en chantier. Cela a coûté beaucoup d'argent à l'Empereur, et malgré tout il paraît que les locaux ne sont pas tous ravis",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 21,
-      "max": 25,
-      "biens": [
-        "vivres",
-        "laine-terre"
-      ],
-      "desc": "La Vérole bleue a emporté des troupeaux entiers de bétail la saison dernière. Les bouviers s'en remettent à peine à l'heure qu'il est.",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 26,
-      "max": 30,
-      "biens": [
-        "vivres"
-      ],
-      "desc": "Vous êtes au courant ? Un concours de mangeurs de tartes va être organisé par un halfling du coin. On dirait que ça va être une partie de plaisir, surtout pour les boulangers !",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 31,
-      "max": 35,
-      "biens": [
-        "armement",
-        "metal"
-      ],
-      "desc": "Apparemment, un fanatique encourage les habitants à donner tout le métal qu'ils possèdent à la Guilde des Ingénieurs. Il prétend que Morrslieb va tomber et que l'Empire aura besoin d'un bon vieux canon pour la renvoyer d'où elle vient ! C'est cocasse, les locaux n'ont même plus de casseroles pour cuisiner",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 36,
-      "max": 40,
-      "biens": [
-        "metal",
-        "bois-terre",
-        "produits-de-luxe-terre"
-      ],
-      "desc": "Vous êtes au courant ? Un sorcier est parti s'installer en amont du fleuve ! D'un Collège d'Altdorf, qu'ils disent. Ils sont bizarres, mais ils ont de l'or. Il paye la moitié de la ville pour construire une grande tour. C'est logique, non ? Les sorciers ont forcément une tour.",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 41,
-      "max": 45,
-      "biens": [
-        "armement",
-        "vivres"
-      ],
-      "desc": "On dit que des bandits sont dans le coin, qu'ils volent tous les animaux qui ne sont pas attachés. Les autorités s'en fichent royalement. Les habitants prennent les armes, ou du moins ils le feraient, s'ils en avaient",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 46,
-      "max": 50,
-      "biens": [
-        "vivres",
-        "bois-terre"
-      ],
-      "desc": "Vous savez, on raconte que les bois sont hantés par là ne riez pas ! Plus aucun bûcheron ne veut y travailler, et même les braconniers ne vont pas chercher les cerfs dans ces forêts.",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 51,
-      "max": 55,
-      "biens": [
-        "produits-de-luxe-terre",
-        "vin-eau-de-vie"
-      ],
-      "desc": "Une drôle de communauté s'est installée dans le coin. Ils ont des noms et des mœurs étranges. On raconte qu'ils dansent nus sous Morrsleib ! Mais ils ont quand même beaucoup de couronnes à dépenser pour que les gens regardent ailleurs. Un bon répurgateur leur ferait le plus grand bien",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 56,
-      "max": 60,
-      "biens": [
-        "bois-terre",
-        "metal"
-      ],
-      "desc": "Vous avez entendu parler de l'elfe qui se trouve un peu plus loin ? À ce qu'on raconte, il est venu d'Ulthuan pour trouver de vieux os elfiques, ou des ruines, et il paye bien quiconque a le dos assez solide pour les déterrer. Ça m'étonnerait qu'il trouve quoi que ce soit. C'est l'Empire, ici, pas une forêt elfique !",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 61,
-      "max": 65,
-      "biens": [
-        "bois-terre",
-        "metal"
-      ],
-      "desc": "Vous êtes au courant ? Il y a un répurgateur dans les parages. Ils ont brûlé la moitié de la ville en essayant d'allumer un bûcher pour brûler une chèvre dont on racontait qu'elle prédisait l'avenir ; sauf qu'il s'est avéré qu'elle avait tout faux, alors ils ont laissé tomber.",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 66,
-      "max": 70,
-      "biens": [
-        "armement",
-        "vivres",
-        "laine-terre"
-      ],
-      "desc": "On raconte qu'une famine se prépare. De mauvaises récoltes Et des sortes de gros rats se sont introduits dans les magasins. Ils ont dû appeler une bande de ratiers de trois villes différentes pour s'en occuper. Ça devait être de gros rats, hein ?",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 71,
-      "max": 75,
-      "biens": [
-        "produits-de-luxe-terre",
-        "vin-eau-de-vie"
-      ],
-      "desc": "Un « artiste » s'est retiré en amont du fleuve. Il va organiser une grande exposition de ses œuvres et a invité la moitié de la province ! Pourtant, on raconte que cet art a un effet étrange sur les personnes qui le regardent. Heureusement que je suis borgne !",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 76,
-      "max": 80,
-      "biens": [
-        "metal",
-        "bois-terre",
-        "vin-eau-de-vie"
-      ],
-      "desc": "Un groupe de nains fraîchement débarqués des montagnes s'est installé en aval du fleuve. Ils disent qu'ils se sont battus dans une auberge lors de leur première nuit et qu'ils ont maintenant une dette à vie envers le propriétaire ! Quoi qu'il en soit, ils refont toute l'auberge pour lui en guise d'excuses, mais on verra bien une fois que ce sera fini.",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 81,
-      "max": 85,
-      "biens": [
-        "armement",
-        "vivres"
-      ],
-      "desc": "Les problèmes ne sauraient tarder par là-bas ! J'ai entendu dire que des hommes-bêtes ont été repérés mais que la milice a été dissoute à cause d'une mauvaise récolte l'année dernière ! Mauvaise nouvelle, si vous voulez mon avis.",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 86,
-      "max": 90,
-      "biens": [
-        "armement",
-        "vivres"
-      ],
-      "desc": "Vous êtes au courant que la milice a engagé un ogre là-bas ? Oui, je sais. On peut à peine nourrir cette chose, et un honnête criminel ne peut pas gagner sa vie de peur d'être dévoré",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 91,
-      "max": 95,
-      "biens": [
-        "metal"
-      ],
-      "desc": "Une naine forgeron a emménagé : pourquoi a-t-elle choisi ce coin ? Elle forge comme une folle depuis et vend tout ce qu'elle fait pour presque rien. Certains disent que ses pots sont maudits, mais j'en ai un et il ne fuit qu'un tout petit peu !",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    },
-    {
-      "min": 96,
-      "max": 100,
-      "biens": [
-        "armement",
-        "vivres",
-        "produits-de-luxe-terre",
-        "bois-terre",
-        "vin-eau-de-vie",
-        "laine-terre"
-      ],
-      "desc": "Vous êtes au courant ? Une bande de puînés et de gaspilleurs déshérités se préparent pour un voyage vers les Principautés frontalières. On dit qu'ils remplissent à ras-bord leurs chariots de marchandises.",
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 78,
-        "note": "ch.11 « Règles du commerce » — TABLEAU DES RUMEURS COMMERCIALES (l.281-303)."
-      }
-    }
-  ]
+    ]
+  }
 }

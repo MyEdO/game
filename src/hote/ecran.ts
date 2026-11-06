@@ -245,8 +245,8 @@ function formulaireDuNoyau(id: string, libelle: string, f: { geste: { verbe: str
 const saisieDeValeurs = (nom: string, libelle: string, valeurs: readonly { libelle: string; valeur: string; refus: string | null }[], type: 'saisieCoches' | 'saisieChoix' = 'saisieCoches'): Saisie =>
   ({ type, id: nom, ton: 'neutre', nom, optionnel: false, libelle, valeurs: valeurs.map((v) => ({ ...v, presse: false })) });
 
-/** L'interlude ouvert (`interludeEnVue`) : chaque héros en entité, ses Activités restantes et l'Événement de sa période
- *  en puces, puis chacune de ses Activités, un bouton sans cible, un choix de ses cibles sinon (en liste au-delà de
+/** L'interlude ouvert (`interludeEnVue`) : chaque héros en entité, ses Activités restantes, ses PX, sa bourse et
+ *  l'Événement de sa période en puces, puis chacune de ses Activités, un bouton sans cible, un choix de ses cibles sinon (en liste au-delà de
  *  `CHOIX_EN_BOUTONS`), fermée avec sa raison ; puis les dépôts en banque, chacun le bouton de son retrait. */
 function herosDeLInterlude(etat: Jeu): Element[] {
   const itl = interludeEnVue(etat);
@@ -257,6 +257,8 @@ function herosDeLInterlude(etat: Jeu): Element[] {
       type: 'entite', id: `repit/${h.id}`, ton: h.restantes ? 'neutre' : 'alerte', nom: h.nom,
       elements: [
         puce('restantes', t('ecran.repit.restantes', { restantes: h.restantes, recues: h.recues }), null),
+        puce('px', t('ecran.repit.px'), String(h.px)),
+        puce('bourse', t('ecran.repit.bourse'), h.bourse),
         ...(h.evenement ? [puce('evenement', h.evenement, null)] : []),
         ...h.activites.map((a): Bouton | Choix => (a.cible
           ? { type: a.gestes.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDuNoyau(`${a.id}/${i}`, g)) }

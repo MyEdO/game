@@ -205,7 +205,7 @@ export interface WaterExposureModifier {
   auto?: WaterExposureAuto;
 }
 /** Tables d'exposition hydrique (MSRC 16 l.13-63) : Test de Résistance Intermédiaire modifié ; raté →
- *  d100 « +10 pour chaque DR négatif » → maladie CONTRACTÉE (le Test d'exposition EST le test — pas de
+ *  dé de `diseases` « +10 pour chaque DR négatif » → maladie CONTRACTÉE (le Test d'exposition EST le test — pas de
  *  second Test de Contraction). `rerollUnlessWounded` : « Relancez si le Personnage n'est pas blessé ». */
 export interface WaterExposureData {
   id: string;
@@ -214,7 +214,7 @@ export interface WaterExposureData {
   test: { skill: RefDesignee; difficulty: import('../engine/types').Difficulty };
   rollModPerNegativeSL: number;
   modifiers: WaterExposureModifier[];
-  diseases: { min: number; max: number; disease: string; rerollUnlessWounded?: boolean }[];
+  diseases: { die: string; entries: { min: number; max: number; disease: string; rerollUnlessWounded?: boolean }[] };
   source: SourceRef;
 }
 export const WATER_EXPOSURE = waterExposureJson as WaterExposureData;

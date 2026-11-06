@@ -7,7 +7,8 @@ import {
 } from './landCargo';
 import { cargoTotalEnc, findCargoById, removeCargo } from './cargo';
 import type { RNG } from './dice';
-import { desEnSuite } from './dice.testkit';
+import { deMax, desEnSuite } from './dice.testkit';
+import { datasetObject, setObjectDataset } from '../data/overrides';
 
 const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
@@ -94,6 +95,19 @@ describe('Commerce terrestre MSRC 13 — VENTE (l.133-160)', () => {
   it('bradage : moitié du prix de base à un Lieu « Commerce » (l.160), sinon impossible', () => {
     expect(landDumpingPct(grunburg)).toBe(50);
     expect(landDumpingPct(hameau)).toBeNull();
+  });
+});
+
+describe('Commerce terrestre MSRC 13 — dé des tables (l.97, l.283 ; #1667)', () => {
+  it('la qualité du vin et la rumeur se tirent au `die` VIVANT de leur table', () => {
+    const imprime = structuredClone(datasetObject('landCargo'));
+    try {
+      setObjectDataset('landCargo', { ...imprime, wineQuality: { ...imprime.wineQuality, die: 'd1' }, rumours: { ...imprime.rumours, die: 'd5' } });
+      expect(rollWineQuality(deMax), 'd1 → Médiocre').toMatchObject({ roll: 1, label: 'Médiocre' });
+      expect(rollTradeRumour(deMax), 'd5 au max → 01-05').toMatchObject({ min: 1, max: 5 });
+    } finally {
+      setObjectDataset('landCargo', imprime);
+    }
   });
 });
 

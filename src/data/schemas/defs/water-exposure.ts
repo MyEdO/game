@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MSRC 16 l.11-63 */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
+import { document, tableTiree } from '../grammaire/document';
 import { enumNomme, plageSchema } from '../grammaire/valeurs';
 import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
 
@@ -47,7 +47,8 @@ const doc = document(
       auto: { label: 'Automatique' },
     }),
   ),
-  diseases: z.array(
+  /** MSRC 16 l.53 */
+  diseases: tableTiree(
     nommerChamps(z.strictObject({
       ...plageSchema.shape,
       disease: z.string(),
@@ -63,13 +64,13 @@ const doc = document(
     test: { label: "Test d'exposition", hint: "Compétence et difficulté du Test déclenché par l'exposition à l'eau" },
     rollModPerNegativeSL: {
       label: 'Malus par DR négatif (jet de maladie)',
-      hint: "Modificateur ajouté au tirage de la maladie (d100), +10 par DR négatif du Test d'exposition",
+      hint: "Modificateur ajouté au tirage de la maladie, +10 par DR négatif du Test d'exposition",
     },
     modifiers: {
       label: 'Modificateurs',
       hint: "Modificateurs de Test par source d'eau/état, appliqués à l'ingestion et/ou l'immersion",
     },
-    diseases: { label: 'Maladies contractées', hint: "Table de tirage d100 de la maladie contractée en cas d'échec" },
+    diseases: { label: 'Maladies contractées', hint: "Table de tirage de la maladie contractée en cas d'échec" },
   },
   { codex: { keys: ['waterExposure'] }, edit: { object: 'single' } },
   { affinerEntree: (entree) => entree.superRefine(exigerDuTest('skill', 'difficulty')) },

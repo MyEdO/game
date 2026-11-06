@@ -57,9 +57,9 @@ func _ready() -> void:
 
 
 ## Le volume du monde de la scène (`monde`) à l'échelle d'une unité par case, sa case (0, 0) sur la case (0, 0) du
-## monde : son maillage, une surface par matière du sol, texturée ou colorée par sommet (`_matiere`), rendu des deux
-## côtés, le même en forme que le rayon du pointeur touche des deux côtés, le sol de chaque case de chaque couche, et la
-## caméra centrée sur lui. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque
+## monde : son maillage, une surface par matière (sol, relief, décor), texturée ou colorée par sommet (`_matiere`),
+## rendu des deux côtés, le même en forme que le rayon du pointeur touche des deux côtés, le sol de chaque case de
+## chaque couche, et la caméra centrée sur lui. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque
 ## tableau retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui, que suivent leurs cases.
 func poser(monde: Dictionary) -> void:
 	var echelle := MiseEnPage.echelle_metrique(monde.metresParCase)
