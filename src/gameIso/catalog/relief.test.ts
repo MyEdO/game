@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { reliefMaterial } from '../../noyau/monde/volume/matieres';
 import { matieresDe } from '../../data';
-import { shade } from '../shade';
+import { shade } from '../../lib/ombrage';
 import { MISSING_ID, MISSING_TONE } from '../../noyau/monde/volume/missing';
 
 /** Distance max par canal entre deux hex `#rrggbb`. */

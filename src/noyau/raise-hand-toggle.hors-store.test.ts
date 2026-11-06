@@ -7,7 +7,7 @@
  * sérialiseur réel.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { runAction, actionGate } from './actionRegistry';
+import { actionGate } from './actionRegistry';
 import { ROUTES, intentAllowedFor, withActingSeat } from './netOwnership';
 import { GUEST_INTENTS } from './intentionsDeSiege';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -23,7 +23,7 @@ function combat(mode: 'local' | 'host' | 'guest' = 'host') {
   h.id = 'h1';
   h.pos = { x: 2, y: 2 };
   banc.setState({
-    party: [h], scene: emptyScene('scene-test'),
+    party: [h], scene: emptyScene('scene-test'), screen: 'campaign',
     net: { ...banc.getState().net, mode, mySeat: mode === 'guest' ? 1 : 0, ownership: { h1: 0 }, seatNames: { 0: 'L’hôte' } },
     battle: {
       combatants: [h], order: ['h1'], baseOrder: ['h1'], turn: 0, round: 3,
@@ -44,19 +44,19 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('raise-hand — interrupteur, jamais un latch', () => {
   it('l’aller POSE la demande, le retour la RETIRE — par la MÊME entrée de registre', () => {
     combat();
-    runAction('raise-hand', banc.getState);
+    banc.getState().jouerLOffre('raise-hand');
     expect(mains(), 'la demande n’a pas été posée').toEqual([0]);
-    runAction('raise-hand', banc.getState, { toggleOff: true });
+    banc.getState().jouerLOffre('raise-hand');
     expect(mains(), 'le retrait n’a rien retiré : la demande reste un latch').toEqual([]);
     // … et l'aller-retour est REJOUABLE (aucun verrou de tour).
-    runAction('raise-hand', banc.getState);
+    banc.getState().jouerLOffre('raise-hand');
     expect(mains()).toEqual([0]);
   });
 
   it('le retrait est GRATUIT : il ne dépense ni Action ni Mouvement, et se dit au journal', () => {
     combat();
-    runAction('raise-hand', banc.getState);
-    runAction('raise-hand', banc.getState, { toggleOff: true });
+    banc.getState().jouerLOffre('raise-hand');
+    banc.getState().jouerLOffre('raise-hand');
     expect(battle().acted, 'le retrait a dépensé l’Action').toBe(false);
     expect(battle().movementUsed, 'le retrait a dépensé du Mouvement').toBe(0);
     expect(battle().log.length, 'la pose et son retrait se disent tous deux au journal').toBe(2);
@@ -65,7 +65,7 @@ describe('raise-hand — interrupteur, jamais un latch', () => {
 
   it('un retrait SANS demande en cours est inerte (aucune ligne de journal fantôme)', () => {
     combat();
-    runAction('raise-hand', banc.getState, { toggleOff: true });
+    banc.getState().lowerHand();
     expect(mains()).toEqual([]);
     expect(battle().log.length).toBe(0);
   });
@@ -75,6 +75,9 @@ describe('raise-hand — interrupteur, jamais un latch', () => {
     const v = actionGate('raise-hand', ctx());
     expect(v.ok).toBe(false);
     expect(v.reason, 'un refus muet ne peut pas s’afficher au point du geste').toBeTruthy();
+    banc.getState().jouerLOffre('raise-hand');
+    expect(mains(), 'l’offre refusée a levé la main').toEqual([]);
+    expect(banc.getState().refus?.texte, 'l’offre refusée ne dit pas la raison de son gate').toBe(v.reason);
   });
 
   it('EN COOP : le geste est offert (témoin du refus ci-dessus)', () => {

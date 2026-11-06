@@ -227,7 +227,7 @@ Dangereuse = Incident).
 servantsPrésents)` (exposés non-incapacités) AVANT le calcul de Dégâts → un Canon moyen (Arme d'équipe 3) à 1 servant
 tire en Recharge ×2 + Imprécise (−1 DR via `attackDRAdjust`). ✅ **Recharge = Test étendu de Projectiles + Soutien**
 (LDB 62 l.333 / MDG 12 l.462) : `progresDeRecharge` (cumul de DR vers la Recharge N bakée au pending, ×2 en sous-effectif) + `soutienBonus` GÉNÉRIQUE (un servant
-prête +10) → action « Recharger » du navire (`battleShipReload`), état `loaded`/`reloadProgress` sur le POSTE, reset
+prête +10) → action « Recharger » du navire (`rechargerLaPiece`), état `loaded`/`reloadProgress` sur le POSTE, reset
 si interrompu. ⬜ Incident de tir (Dangereuse) noté hors périmètre.
 
 ---
@@ -265,7 +265,7 @@ peut aussi considérer un résultat de 0 comme un succès en fonction des circon
 chaque pièce préparée comme le tir individuel (effectif via `crewedFireWeapon`, munition via `weaponWithAmmo`) → Dégâts
 (`woundsFromHit` plancher 0) + localisation 1d100 + Critique (double OU B=0), le tout **gaté par le succès** du Test
 d'équipage (`crewTestSuccess`, l.13 — raté : la bordée manque) ; après tir la pièce est **DÉCHARGÉE**
-(`loaded=false`), rechargée par le **Test étendu** `battleShipReload` (≠ auto-rechargement) + équipage-ressource
+(`loaded=false`), rechargée par le **Test étendu** `rechargerLaPiece` (≠ auto-rechargement) + équipage-ressource
 (`crewActed`, cumul +2 crans, tâches PARALLÈLES). ✅ **Explosion / Tir de zone** (cf. topic suivant) ; ⬜ RESTE : Dangereuse/Incident.
 
 ---

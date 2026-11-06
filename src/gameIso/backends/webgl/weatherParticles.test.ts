@@ -11,7 +11,7 @@ import {
   writePrecipMatrices,
   type PrecipArea,
 } from './weatherParticles';
-import { isSheltered, shelterField } from '../../builders/roofs';
+import { isSheltered, shelterField } from '../../../noyau/monde/volume/toits';
 import { AMBIANCE, scenePrecip } from '../../catalog/ambiance';
 import type { WeatherPrecipDef } from '../../../data/ambiance.types';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../noyau/monde/scene';

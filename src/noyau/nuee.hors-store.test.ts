@@ -96,7 +96,7 @@ function startNuee(scene: Scene) {
 /** Franchit le Round par le geste de fin de tour, depuis le dernier index de l'ordre. */
 function franchirLeRound(battle: ReturnType<typeof startNuee>['battle']) {
   banc.setState({ battle: { ...battle, turn: battle.order.length - 1, action: null, acted: false, movementUsed: 0 } });
-  banc.getState().battleEndTurn();
+  banc.getState().terminerLeTour();
   return banc.getState().battle!;
 }
 
@@ -152,7 +152,7 @@ describe('Nuée AUTHORÉE en scène — spawn et Round joués par le store (LDB 
   });
 
   it('la Nuée quitte un Engagement SANS Test, liens levés et déplacement rouvert', () => {
-    // Volet joué par la porte JOUEUR (`battleDisengage`) : la Nuée ENNEMIE se pilote sous un siège MJ
+    // Volet joué par la porte JOUEUR (`rompreLEngagement`) : la Nuée ENNEMIE se pilote sous un siège MJ
     // (`net.gmSeat`, `sieges.ts:65-68`, `netOwnership.ts:213-218`). L'IA, elle, ne joue PAS ce volet : `src/noyau/monde/ai.ts`
     // n'appelle jamais `startDisengage` — ticket ouvert par l'orchestratrice (#1718).
     const { scene, nueeId } = nueeScene();
@@ -164,7 +164,7 @@ describe('Nuée AUTHORÉE en scène — spawn et Round joués par le store (LDB 
     engage(nuee, hero);
     banc.setState({ battle: { ...battle, turn: battle.order.indexOf(nueeId), action: null, acted: false, movementUsed: 0 } });
 
-    banc.getState().battleDisengage();
+    banc.getState().rompreLEngagement();
 
     const st = banc.getState();
     expect(st.pendingDisengage).toBeNull(); // aucun Test opposé d'Esquive, aucun menu

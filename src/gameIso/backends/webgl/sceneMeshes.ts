@@ -19,12 +19,13 @@
 import * as THREE from 'three';
 import { buildFloors } from '../../../noyau/monde/volume/floors';
 import { buildWalls } from '../../builders/walls';
-import { buildRoofs, ROOF_SLOPE_M } from '../../builders/roofs';
+import { buildRoofs, ROOF_SLOPE_M } from '../../../noyau/monde/volume/toits';
 import { buildProps } from '../../builders/props';
-import { estPropVolumique, type CellSide, type PropEl, type RoofEl, type SceneEl, type TokenEl, type WallEl } from '../../builders/types';
+import { estPropVolumique, type CellSide, type PropEl, type SceneEl, type TokenEl, type WallEl } from '../../builders/types';
+import type { RoofEl } from '../../../noyau/monde/volume/types';
 import { type Face } from '../../../noyau/monde/volume/types';
 import { findPropById, findPropMaterialById, matieresDe, refEstVolumique } from '../../../data';
-import { roofMaterial } from '../../catalog/roofs';
+import { roofMaterial } from '../../../noyau/monde/volume/matieres';
 import { toitureEffective } from '../../../noyau/sceneEdit';
 import type { PropVertexRange } from './spriteRaycast';
 import { roofCourseStepM, variantOf } from '../../detail/courses';
@@ -34,7 +35,7 @@ import { faceBakeKey, needsFaceBake } from './faceBake';
 import { centreDeLaCarte, facePoly, faceUvFrame, facesGeometry, shadeFamily, trianglesOrientes } from '../../../noyau/monde/volume/worldTris';
 import { faceSurface, shadeFactorOf } from './faceColors';
 import { tintVarFactor } from '../../../noyau/monde/volume/matieres';
-import { faceDepthOf } from './faceRelief';
+import { faceDepthM } from '../../../noyau/monde/volume/profondeur';
 import { BB_W, BB_H } from '../../pov/billboardCore';
 import { povDepth } from '../../pov/camera';
 import { defsGlobaux } from '../../sprites';
@@ -375,7 +376,7 @@ function propRecipeDeps(scene: Scene): readonly unknown[] {
  *  - TOITURES : celles que la scène NOMME (`BuildingMass.material`, et la couverture EFFECTIVE dont les
  *    masses DÉRIVÉES héritent — `toitureEffective`, `noyau/sceneEdit.ts` : corps, puis type de bâtiment,
  *    puis scène).
- *    Résolues par le MÊME accès que la cuisson (`roofMaterial`, `builders/roofs.ts`). Une couverture
+ *    Résolues par le MÊME accès que la cuisson (`roofMaterial`, `noyau/monde/volume/toits.ts`). Une couverture
  *    qu'aucun corps ne pose ne recuit donc rien.
  *  - RELIEF : le domaine ENTIER. Les ids que le sol émet viennent de la SCÈNE (`reliefDefaults`, dep
  *    propre de `worldBakeDeps`) et des TERRAINS à bloc plein (`terrainDeps`) — filtrer le domaine sur
@@ -458,7 +459,7 @@ export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDAr
   const listées = worldFaces(scene, lecture);
   const faces = listées.map((f) => f.face);
   // Le RANG coplanaire se calcule sur la liste ENTIÈRE de la scène (contrat de `coplanarRanks`).
-  const geoms = facesGeometry(faces, mpt, faceDepthOf());
+  const geoms = facesGeometry(faces, mpt, faceDepthM);
   const positions: number[] = [];
   const uvs: number[] = [];
   const uv1s: number[] = [];
@@ -1219,7 +1220,7 @@ function builtFacesBox(scene: Scene, mpt: number, lecture: LectureDArete): THREE
 
 function computeBuiltFacesBox(scene: Scene, mpt: number, lecture: LectureDArete): THREE.Box3 | null {
   const faces = worldFaces(scene, lecture).map((f) => f.face);
-  const geoms = facesGeometry(faces, mpt, faceDepthOf());
+  const geoms = facesGeometry(faces, mpt, faceDepthM);
   const box = new THREE.Box3();
   const p = new THREE.Vector3();
   for (let i = 0; i < faces.length; i++) {

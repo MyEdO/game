@@ -1465,7 +1465,7 @@ export function poseToitureDeCorps(
 /** Pente (°) d'une nappe DÉRIVÉE de portée `spanTiles` : la pente de RÉFÉRENCE, rabattue jusqu'à ce
  *  que le comble tienne dans `riseMaxStoreys` hauteurs d'étage. C'est la PENTE qui s'adapte à la
  *  portée — jamais la couverture qui se redécoupe (#947) : un corps profond porte un toit plus PLAT,
- *  comme le bâti réel. `montée = portée / 2 × tan(pente)` (`riseAt`, `gameIso/builders/roofs.ts`) ⇒
+ *  comme le bâti réel. `montée = portée / 2 × tan(pente)` (`riseAt`, `noyau/monde/volume/toits.ts`) ⇒
  *  `pente ≤ atan(2 × montéeMax / portée)`. Arrondie au dixième de degré vers le BAS : la borne reste
  *  tenue et la pente écrite dans la masse reste lisible à l'inspecteur. AUCUN plancher de pente — une
  *  portée qui en exigerait une hors plage sensée sort en masse SIGNALÉE (`validateScene`), jamais
@@ -1645,7 +1645,7 @@ function largestRectIn(cells: ReadonlySet<string>): ArchitectureRect | null {
  *  (`hi` = dernière cellule + 1). Emprise réelle, jamais boîte englobante : une jupe étroite accolée à
  *  une aile large garde SA portée. SOURCE UNIQUE de la lecture de portée, partagée par la dérivation
  *  des masses (choix du faîtage et du profil) et par la formule de montée du builder de toitures
- *  (`riseAt`, `gameIso/builders/roofs.ts`). */
+ *  (`riseAt`, `noyau/monde/volume/toits.ts`). */
 export function localCrossSpans(cells: ReadonlySet<string>, axis: 'x' | 'y'): Map<number, { lo: number; hi: number }> {
   const rows = new Map<number, { lo: number; hi: number }>();
   for (const key of cells) {

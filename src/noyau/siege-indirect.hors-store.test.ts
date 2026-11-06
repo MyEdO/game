@@ -176,7 +176,7 @@ describe('(d) Routage data-driven — seul un engin indirect expose le ciblage d
 // (e) ROUTAGE LIVE — armer « Servir le mortier » OUVRE le placeur de case ; viser une CASE ouvre la modale de
 //     tir (pendingAttack siège, centre = case), dont la résolution DÉTONE sur le rayon (réutilise resolveWeaponArea).
 describe('(e) Routage live — placeur de case + pilonnage via la modale de tir existante', () => {
-  it('battleSelectAttack(poste) ouvre le placeur ; siegeAimCommit pilonne la case → rayon blessé', () => {
+  it('armerLAttaque(poste) ouvre le placeur ; siegeAimCommit pilonne la case → rayon blessé', () => {
     seedBattleRng(7);
     const poste = mkPoste('mortier', ['gunner']);
     const gunner = mkGunner('gunner', { x: 0, y: 0 }, 90);
@@ -193,7 +193,7 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
     });
 
     // 1) ARMER « Servir le mortier » → placeur de CASE ouvert (rayon de l'Explosion).
-    banc.getState().battleSelectAttack('poste');
+    banc.getState().armerLAttaque('poste');
     const sa = banc.getState().pendingSiegeAim;
     expect(sa).toBeTruthy();
     expect(sa!.radius).toBeGreaterThan(0);

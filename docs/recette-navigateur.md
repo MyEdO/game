@@ -775,7 +775,7 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | `goto('id'\|{x,y,z?})` | place le groupe sur une case (déclenche portes/triggers au pas) | — |
 | `screen('menu'\|'party'\|…)` | navigue vers un écran | id validé contre `SCREENS` (`noyau/etat.ts`) — `throw` immédiat + liste des ids valides si invalide (#211 ; avant : routage silencieux, écran blanc, zéro erreur console). ⚠ `screen('interlude')` n'ARME PAS l'interlude : `InterludeScreen` rend `null` sans `state.interlude` (peuplé par `startInterlude`) → écran vide. Utiliser `interlude()` (ci-dessous), pas `screen('interlude')` |
 | `levels()` | décompose le rendu multi-niveaux (tuiles/murs/hauteurs par étage) | lecture seule |
-| `viewLevel(z?\|null)` | force l'étage ACTIF (`etageActif`) ; sans argument : lit l'override | n'affecte que le RENDU, jamais la logique (LdV/portée restent réelles). ⚠ **portée mesurée** : n'ISOLE l'étage rendu qu'en **vue du DESSUS** — `stage/MondeDeCampagne.tsx` ne filtre `el.cell.z !== activeZ` que sous `planVue` (= `viewPolicy.etageIsole`, vrai pour le seul regard du dessus). En vue **ISO**, les deux couches restent peintes et `viewLevel` ne change RIEN au monde : c'est la loi de dégagement (`clearedSpace`, `builders/roofs.ts`) qui découvre ce qui abrite le groupe. Partout, il reste l'étage que le picking résout par défaut |
+| `viewLevel(z?\|null)` | force l'étage ACTIF (`etageActif`) ; sans argument : lit l'override | n'affecte que le RENDU, jamais la logique (LdV/portée restent réelles). ⚠ **portée mesurée** : n'ISOLE l'étage rendu qu'en **vue du DESSUS** — `stage/MondeDeCampagne.tsx` ne filtre `el.cell.z !== activeZ` que sous `planVue` (= `viewPolicy.etageIsole`, vrai pour le seul regard du dessus). En vue **ISO**, les deux couches restent peintes et `viewLevel` ne change RIEN au monde : c'est la loi de dégagement (`clearedSpace`, `noyau/monde/volume/toits.ts`) qui découvre ce qui abrite le groupe. Partout, il reste l'étage que le picking résout par défaut |
 | `ascii(z?)` | plan ASCII de la couche (à comparer œil-pour-œil avec l'écran) | `console.log(__wfrp.ascii())` pour l'alignement monospace |
 | `fog(on=false)` | brouillard ON/OFF (diagnostic RENDU sans vision) | bascule GLOBALE — remettre `fog(true)` avant de valider un flux de vision réel |
 | `ready(timeoutMs=15000)` | **à `await` après `scenario()`, `goto()` ou `campaign()`**, AVANT toute capture : résout quand la scène du store est montée ET son voile d'entrée tombé (`✓ monde prêt — scène « id », voile tombé après N ms`) | REJETTE en NOMMANT le cas (aucun monde monté / scène attendue ≠ scène montée / voile encore levé). La borne par défaut est très au-dessus du plafond d'entrée en scène (`AMBIANCE.entreeEnScene.plafondMs` = 2000) : un dépassement signale un monde qui n'a JAMAIS monté, pas une lenteur. Ne s'applique qu'au monde volumique (aucun voile → aucun signal). ⚠ FAUX POSITIF sur un MÊME id de scène rejoué (`scenario('x')` deux fois) : l'armement du voile est keyé sur `scene.id` (`src/gameIso/stage/GameStage3D.tsx`), le voile ne se relève pas et `ready()` résout pendant la re-cuisson — changer de scénario, ou recharger la page. ⚠ `ready()` n'attend QUE le voile : la fenêtre d'INTRO d'une scène (`pendingCascade`, texte d'ambiance) peut rester ouverte, et `marcheAutorisee` (`src/state/stageWalk.ts`) refuse alors la marche clavier comme le clic-case SANS log ni erreur — `resoudreModales` (`scripts/recette/lib.mjs`, avec son étape) après `ready()`, avant le premier geste joueur (friction mesurée en recette #1362, 2026-09-21) |
@@ -826,14 +826,14 @@ LECTURE par `useTestJetProps` (`src/ui/jetProps/useTestJetProps.tsx`) — dont `
 l'UNIQUE point de montage qui l'appelle. Poser `pendingTest` à la main (`store.setState`) sans que
 `CascadeModal` soit monté ne produit donc aucune modale visible (piège du dernier recours de la
 doctrine ci-dessus). Raccourci de démo LÉGITIME pour l'armer EN COMBAT (passe par une vraie action du
-store, pas un `setState` forgé) : `__wfrp.store.getState().battleGainAdvantage(skillId)`
+store, pas un `setState` forgé) : `__wfrp.store.getState().gagnerLAvantage(skillId)`
 (`src/noyau/combatSlice.ts`) — ouvre le `pendingTest` « Avantage — <compétence> » (LDB 09 l.305-308),
 à condition que `skillId` soit une Compétence que le combattant actif POSSÈDE (`hero.skills`) et dont
 la donnée porte `combatAdvantage` (`SkillData`, ex. `intuition`) ; sinon l'action ne fait rien
 (silencieux, cf. gate `skillAdvantageCap`).
 
 **Lancer un sort à cible « Vous »** : une fois focalisé (ou prêt à incanter directement), le
-LANCEMENT ne passe PAS par le bouton « Focaliser (X/CN) » — celui-ci (`battleFocusSpell`) ne fait
+LANCEMENT ne passe PAS par le bouton « Focaliser (X/CN) » — celui-ci (`focaliserLeSort`) ne fait
 QUE (re)poser/empiler de la Focalisation, il ne lance jamais le sort. Le lancement effectif passe
 par un clic sur le **TOKEN DU LANCEUR lui-même** sur la carte (`castClickCommit`,
 `src/noyau/targetingModes.ts` — le clic-combattant en mode `cast` vise l'allié/ennemi/SOI selon le

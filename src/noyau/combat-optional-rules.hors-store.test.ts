@@ -51,10 +51,10 @@ function setBattle(combatants: Combatant[]): BattleState {
 
 // ── Règle 1 : « Sur la Défensive » (combat-defensive-stance, LDB 13 l.118) ──
 describe('combat-defensive-stance — Action « Sur la Défensive » (LDB 13 l.118)', () => {
-  it('défaut (true) : battleDefendTotal pose defensiveStance et consomme l’Action', () => {
+  it('défaut (true) : prendreLaDefensive pose defensiveStance et consomme l’Action', () => {
     const h = hero({});
     setBattle([h, enemy({})]);
-    banc.getState().battleDefendTotal();
+    banc.getState().prendreLaDefensive();
     const st = banc.getState().battle!;
     expect(st.combatants.find((c) => c.id === 'h1')!.defensiveStance).toBe(true);
     expect(st.acted).toBe(true);
@@ -64,7 +64,7 @@ describe('combat-defensive-stance — Action « Sur la Défensive » (LDB 13 l.1
     setRule('combat-defensive-stance', false);
     const h = hero({});
     setBattle([h, enemy({})]);
-    banc.getState().battleDefendTotal();
+    banc.getState().prendreLaDefensive();
     const st = banc.getState().battle!;
     expect(st.combatants.find((c) => c.id === 'h1')!.defensiveStance).toBeFalsy();
     expect(st.acted).toBe(false); // Action non consommée

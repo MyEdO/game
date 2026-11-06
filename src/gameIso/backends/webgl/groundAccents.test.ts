@@ -15,7 +15,7 @@ import {
 } from './groundAccents';
 import { groundAccentsSvg, TUFT_LEAN_AMPLITUDE } from '../../authoring/detailSvg';
 import { terrainDetail } from '../../../noyau/monde/terrain';
-import { ISO_PX_PER_M } from '../../iso';
+import { ISO_PX_PER_M } from '../../../noyau/monde/iso';
 import { TUFT_FAN } from '../../detail/expand';
 import { projGP } from '../../authoring/project';
 import { worldFaces, type KeepEl, type TintAt } from './sceneMeshes';

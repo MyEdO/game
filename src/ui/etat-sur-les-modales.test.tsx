@@ -80,7 +80,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
 
   it('Frénésie', () => {
     const { H } = heroFaceAUnEnnemi(); sonne(H); H.traits = [{ id: 'frenesie' }];
-    g().battleFrenzy();
+    g().entrerEnFrenesie();
     const att = cible(H, FM, 'intermediaire');
     act(() => root.render(createElement(FrenzyModal)));
     nommeLEtat('avant', att);

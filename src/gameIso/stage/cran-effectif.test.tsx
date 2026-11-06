@@ -22,8 +22,8 @@ import type { Dims, Rot } from '../../geometry/iso';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { artRot, setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
-import * as archVis from './architectureVisibility';
-import { frontFacadeCutaway, type ClearedSpace } from './architectureVisibility';
+import * as archVis from '../../noyau/monde/volume/architectureVisibility';
+import { frontFacadeCutaway, type ClearedSpace } from '../../noyau/monde/volume/architectureVisibility';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

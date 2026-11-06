@@ -27,7 +27,7 @@ function sorcier(): Combatant {
 
 const openCast = (w: Combatant) => {
   banc.setState({ party: [w] });
-  banc.getState().oocCastSpell(w.id, SPELL, w.id);
+  banc.getState().incanterLeSort(w.id, SPELL, w.id);
 };
 
 beforeEach(() => {

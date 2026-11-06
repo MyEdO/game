@@ -44,7 +44,7 @@
  * INTEMPÉRIES (#1247) : la météo authorée de la scène a TROIS expressions dans le volume, toutes
  * dérivées de la MÊME donnée (`iso.weather`, `src/data/ambiance.json`) :
  *  - ce qui TOMBE (`precip`) : un semis de quads instanciés qui descend à la cadence de la frame, borné
- *    par le MÊME couvert bâti que le dégagement (`shelterField`, `builders/roofs.ts`) — rien ne tombe
+ *    par le MÊME couvert bâti que le dégagement (`shelterField`, `noyau/monde/volume/toits.ts`) — rien ne tombe
  *    sous un toit, y compris sous une nappe que le cutaway a levée, et rien ne se REND au-dessus d'une
  *    nappe que la vue ne peint plus (`nappeVue`) ;
  *  - ce qui STAGNE (`brume`) : des nappes horizontales aux cotes de la donnée, sur les seules colonnes à
@@ -144,7 +144,7 @@ import { viewPolicy } from './viewPolicy';
 import { applyFlicker, applyPointLights, createPointLightPool, hasFlicker, pointLightWrites, POINT_LIGHT_BUDGET, type PointLightSlots } from './stagePointLights';
 import type { LightSource } from '../../noyau/monde/vision';
 import { AMBIANCE, sceneBrume, scenePrecip } from '../catalog/ambiance';
-import { isSheltered, shelterField, shelterSectionAt } from '../builders/roofs';
+import { isSheltered, shelterField, shelterSectionAt } from '../../noyau/monde/volume/toits';
 import { buildBrumeSheets, retainBrumeSheets, type BrumeSlot } from '../backends/webgl/weatherSheets';
 import {
   buildPrecipMesh,
@@ -789,7 +789,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   const semisRetenu = useRef<PrecipSlot | null>(null);
   semisRetenu.current = precip ? retainWeatherField(semisRetenu.current, scene, precip, 'meteo') : null;
   const champ = semisRetenu.current?.champ ?? null;
-  // SOUS COUVERT : le MÊME champ que le dégagement d'architecture interroge (`builders/roofs.ts`) —
+  // SOUS COUVERT : le MÊME champ que le dégagement d'architecture interroge (`noyau/monde/volume/toits.ts`) —
   // une seule vérité de « suis-je sous un toit ? ». Il ignore la vue : une nappe levée par le cutaway
   // abrite toujours ; le couvert suit le PLAN, et se recalcule avec la scène qui le porte.
   // Retenu sur le read-set de la CUISSON (`worldBakeDeps`) : le couvert se déduit des masses bâties,

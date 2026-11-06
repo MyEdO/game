@@ -84,13 +84,13 @@ function openShanty() {
     battle: { combatants: [ship(), singer(), marin()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
     party: [singer(), marin()], facing: { ship: 'N' }, pendingShanty: null, scene: null as never, gameTime: 0,
   });
-  banc.getState().battleSingShanty('ship');
+  banc.getState().chanterLaChanson('ship');
 }
 
 describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
   beforeEach(() => banc.setState({ pendingShanty: null }));
 
-  it('battleSingShanty ouvre la modale (chanteur = le marin au Talent) ; UNE chanson connue → présélectionnée', () => {
+  it('chanterLaChanson ouvre la modale (chanteur = le marin au Talent) ; UNE chanson connue → présélectionnée', () => {
     openShanty();
     const p = banc.getState().pendingShanty!;
     expect(p.singerId).toBe('barde');
@@ -110,7 +110,7 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
     const bard = st.battle!.combatants.find((c) => c.id === 'barde')!;
     expect(bard.singingShanty?.shantyId).toBe('jacques-bret-a-rencontre-notre-acier');
     // « Une seule chanson de marin peut être chantée lors de chaque quart » → 2e tentative refusée.
-    banc.getState().battleSingShanty('ship');
+    banc.getState().chanterLaChanson('ship');
     expect(banc.getState().pendingShanty).toBeNull();
   });
 
@@ -153,7 +153,7 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
     banc.setState({ gameTime: QUART_MINUTES }); // quart suivant
     const bard = banc.getState().battle!.combatants.find((c) => c.id === 'barde')!;
     delete bard.singingShanty; // le chant précédent est fini
-    banc.getState().battleSingShanty('ship');
+    banc.getState().chanterLaChanson('ship');
     expect(banc.getState().pendingShanty).not.toBeNull();
   });
 });

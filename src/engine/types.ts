@@ -1471,7 +1471,7 @@ export interface Combatant {
    *  Absent = cale vide (aucune surcharge). #243. */
   cargoEnc?: number;
   /** Coque : QUART du dernier chant de marin (index `gameTime ÷ 4 h`) — « Une seule chanson de marin peut
-   *  être chantée lors de chaque quart » (MDG 09 l.40). Posé par `battleSingShanty`. */
+   *  être chantée lors de chaque quart » (MDG 09 l.40). Posé par `chanterLaChanson`. */
   lastShantyQuart?: number;
   /** Le combattant CHANTE une chanson de marin (MDG 09 l.38) — identité de l'effet posé sur l'équipage
    *  (retrait ciblé) : « Si le Personnage subit des Dégâts …, sa Chanson de marin prend fin. » */
@@ -1775,7 +1775,7 @@ export interface Combatant {
   /** Contre-mesure MAISON à la suffocation « hors terrain » (Créature marine, MDG 16 l.19 : « elles
    *  doivent être régulièrement aspergées d'eau, sinon elles se mettent à suffoquer » — le RAW nomme le
    *  geste sans en chiffrer la mécanique). Posé par l'Action de combat « Asperger d'eau » (#497,
-   *  `battleWater`) sur une cible adjacente, immunise le Round courant, puis consommé par
+   *  `aspergerDEau`) sur une cible adjacente, immunise le Round courant, puis consommé par
    *  `suffocationTick` (`engine/suffocation.ts`) : à reposer chaque Round pour rester immunisé. */
   wateredThisRound?: boolean;
   /** A déjà bénéficié d'un soin de Blessures (Guérison) cette rencontre (LDB 09 l.260).

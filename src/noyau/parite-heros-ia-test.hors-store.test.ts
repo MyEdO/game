@@ -49,7 +49,7 @@ describe('même Test, héros et IA Sonnés ×3 : même cible (LDB 16 l.125)', ()
   it('entrée en Frénésie (Test de Force Mentale, LDB 21 l.31)', () => {
     const { H, E } = jumeauxSonnes();
     H.traits = [{ id: 'frenesie' }]; E.traits = [{ id: 'frenesie' }];
-    g().battleFrenzy();
+    g().entrerEnFrenesie();
     g().jetRoll('frenzy');
     const cible = g().pendingFrenzy!.result!.target!;
     memeCible(cible, 30, (de) => {

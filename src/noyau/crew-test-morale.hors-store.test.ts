@@ -41,7 +41,7 @@ function openRudeEpreuve(shipOver: Partial<Combatant> = {}) {
     party: [cook()], facing: { ship: 'N' }, pendingCrewTest: null, scene: null as never,
     vessel: { vehicleId: 'coracle', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   });
-  banc.getState().battleCrewTest('ship', 'rude-epreuve');
+  banc.getState().eprouverLEquipage('ship', 'rude-epreuve');
 }
 
 /** Force le résultat d'un participant (déterminisme du confirm — le FLUX de jet est déjà testé ailleurs). */
@@ -58,7 +58,7 @@ function forceResult(pid: string, sl: number) {
 describe('Rude épreuve en combat (MDG 14 l.106-114) — delta de Moral persisté', () => {
   beforeEach(() => banc.setState({ pendingCrewTest: null, vessel: null }));
 
-  it('battleCrewTest ouvre le Test (Cuisinier ★ inféré) ; total NÉGATIF → Moral réduit d’autant sur le vessel (l.110)', () => {
+  it('eprouverLEquipage ouvre le Test (Cuisinier ★ inféré) ; total NÉGATIF → Moral réduit d’autant sur le vessel (l.110)', () => {
     openRudeEpreuve();
     const p = banc.getState().pendingCrewTest!;
     expect(p.testTypeId).toBe('rude-epreuve');

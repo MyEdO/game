@@ -13,6 +13,7 @@ import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type NomDeVerbeDeJet, type RollVerb } from './flowVerbs';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import { lieuDeLOffre } from './actionRegistry';
 import type { ActionDeClasse } from './intentionsDeSiege';
 import type { PendingKey } from './stateFields';
 import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
@@ -100,7 +101,7 @@ export function quorumAtteint(s: Pick<Jeu, 'party' | 'net'>, readyBySeat: Record
  * devant l'écran) ; mais l'HÔTE exécute aussi les gestes des AUTRES sièges quand il applique un
  * intent reçu (`appliquerLIntentionDUnSiege`), et il les exécute DANS SON PROPRE store. Sans ce contexte,
  * toute garde d'action bâtie sur « le siège local possède-t-il ce combattant ? » (les ~30
- * `controlsCombatant` de `combatSlice`, dont `battleBattement`/`battleDisengage`) répondait NON
+ * `controlsCombatant` de `combatSlice`, dont `faireUnBattement`/`rompreLEngagement`) répondait NON
  * chez l'hôte pour le héros d'un invité : l'intent était accepté par `intentAllowedFor` puis
  * l'action refusait EN SILENCE, sans journal ni erreur (mesuré : `pendingBattement` jamais posé).
  * Le contexte est posé UNIQUEMENT autour de l'appel synchrone de l'action, jamais pendant un rendu.
@@ -622,6 +623,15 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
         return dep ? seatOwns(s, seat, dep.heroId) : false; // dépôt inconnu → personne
       },
     }],
+    // L'offre du registre (#3371), par son lieu (`lieuDeLOffre`) : un CORPS se joue chez l'hôte au droit de tout geste du
+    // combat (le repli universel) ; un RELAIS ou une pure intention se joue chez l'émetteur, dont le verbe voyage avec sa
+    // propre route : sous ce nom, il ne voyage pas, et l'hôte ne joue pas un relais qu'il lirait dans SON état. Une offre
+    // inconnue : personne.
+    ['jouerLOffre', { rule: (_s, _seat, [id]) => (lieuDeLOffre(id) === 'hote' ? null : false) }],
+    // Les gestes d'un LANCEUR, en combat comme hors combat : le siège du lanceur (1ᵉʳ argument).
+    ['incanterLeSort', PAR_ARG0],
+    ['focaliserLeSort', PAR_ARG0],
+    ['dissiperLeSort', PAR_ARG0],
     ['battleClickEntity', CLIC_ENTITE],
     ['battleClickTile', CLIC_CARTE],
     // Pause de début de Round (`pendingRoundStart`) : la FENÊTRE est à tous ('*' — ready-check par

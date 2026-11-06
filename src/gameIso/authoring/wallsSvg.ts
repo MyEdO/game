@@ -3,17 +3,17 @@
  * edge-on · vue du dessus : dessine un élément `wall`
  * du pivot en SVG, en projetant ses faces GRILLE+MÈTRES via le pont partagé (`projGP`). La ROTATION
  * caméra vit ici ; l'OMBRAGE d'orientation (arête N dans l'ombre) et les traits/liserés (dérivés de la
- * couleur de face via `shade.ts`) aussi. Les couleurs de base viennent de la def JSON par `wallPartColor`
+ * couleur de face via `lib/ombrage.ts`) aussi. Les couleurs de base viennent de la def JSON par `wallPartColor`
  * (source unique avec le POV). La vue du DESSUS ('top') est la représentation SYMBOLIQUE historique
  * (traits épais / glyphe de porte), routée par `isSquareView` — elle se trace sur `el.ends`, pas les faces.
  */
 import { CELL, depth, diamondPath, isSquareView, tileCenter, type Dims } from '../../geometry/iso';
-import { WALL_H_M, isoPxToM } from '../iso';
+import { WALL_H_M, isoPxToM } from '../../noyau/monde/iso';
 import { metricToLift } from '../../noyau/monde/relief';
-import { wallPartColor, windowLit } from '../catalog/structures';
+import { wallPartColor, windowLit } from '../../noyau/monde/volume/structures';
 import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
-import { facadeStructureAppearance } from '../catalog/structures';
-import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
+import { facadeStructureAppearance } from '../../noyau/monde/volume/structures';
+import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../../lib/ombrage';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
 import { hash32 } from '../../data/hash';
 import type { WallEl } from '../builders/types';
@@ -194,7 +194,7 @@ export function wallSvg(el: WallEl, dims: Dims, opts?: DetailOpts): string {
 }
 
 /** UNE face de matière de MUR posée HORS d'un `WallEl` : la FERMETURE de comble d'une nappe (pignon,
- *  `builders/roofs.ts`). Elle PROLONGE un mur sans être un segment de scène, elle en porte donc la MÊME
+ *  `noyau/monde/volume/toits.ts`). Elle PROLONGE un mur sans être un segment de scène, elle en porte donc la MÊME
  *  matière — appareillage ET colombage compris, sans quoi un pignon reste un aplat posé sur une façade
  *  à pans de bois.
  *

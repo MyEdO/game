@@ -4,7 +4,7 @@ import { setDataset, resetData } from '../../data/overrides';
 import type { MaterialEntry } from '../../data/materials.types';
 import { editees } from '../../data/materials.testkit';
 import { propMaterial } from '../../noyau/monde/volume/matieres';
-import { roofMaterial } from './roofs';
+import { roofMaterial } from '../../noyau/monde/volume/matieres';
 import { reliefMaterial } from '../../noyau/monde/volume/matieres';
 
 /**

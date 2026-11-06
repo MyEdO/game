@@ -186,7 +186,7 @@ export interface RoofMaterialDef extends MatiereBase {
 
 /** Apparence de RENDU du relief d'environnement (falaise/rampe/tablier/pilier, iso et POV) :
  *  le renderer ne porte aucun littéral de couleur — l'identité du matériau vient d'ici, la
- *  lumière/l'ombrage vient de `shade.ts`. */
+ *  lumière/l'ombrage vient de `lib/ombrage.ts`. */
 export interface ReliefMaterialDef extends MatiereBase {
   domain: 'relief';
   /** Masse BÂTIE (maçonnerie, ouvrage) par opposition au relief NATUREL (talus, terre remuée) — même axe

@@ -13,9 +13,9 @@ import {
 import { teinteRatio } from './periodTexture';
 import { timberOverlaySvg } from '../../authoring/detailSvg';
 import { TIMBER_V0, TIMBER_V1, expandRecipe } from '../../detail/expand';
-import { ISO_PX_PER_M } from '../../iso';
+import { ISO_PX_PER_M } from '../../../noyau/monde/iso';
 import { structureAppearances } from '../../../data';
-import { srgbToLinear } from '../../shade';
+import { srgbToLinear } from '../../../lib/ombrage';
 import { parseHex } from '../../../lib/couleurHex';
 import type { DetailRecipe } from '../../../data/materials.types';
 

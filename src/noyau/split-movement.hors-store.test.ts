@@ -118,7 +118,7 @@ describe('Mouvement décomposable', () => {
       // Économie de tour ENTAMÉE (Mouvement consommé, Mvt pré-Action, Action jouée) : sans elle, le
       // reset du tour suivant serait indistinguable de l'état de départ.
       banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 3, movedPreAction: true, acted: true } });
-      banc.getState().battleEndTurn(); // passe au combattant suivant (reset de son économie de tour)
+      banc.getState().terminerLeTour(); // passe au combattant suivant (reset de son économie de tour)
       const st = banc.getState();
       expect(st.battle!.movementUsed).toBe(0);
       expect(st.battle!.movedPreAction).toBe(false);
