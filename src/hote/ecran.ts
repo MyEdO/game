@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
+  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
@@ -175,7 +175,14 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...revelationDeLEtape(etat),
     ...destinEnJeu(etat),
     ...victoire(etat),
+    ...texteDuDocument(etat),
   ];
+}
+
+/** Le texte du document remis (`documentEnVue`) ; son titre est celui de la fenêtre. */
+function texteDuDocument(etat: Jeu): Element[] {
+  const doc = documentEnVue(etat);
+  return doc ? [ligne('lecture', doc.texte)] : [];
 }
 
 /** La victoire en attente : l'Expérience gagnée et l'argent pris en puces, puis chaque adversaire vaincu et chaque
