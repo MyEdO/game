@@ -1255,6 +1255,17 @@ export function seatOccupant(
   return res.ok ? { ...res, scene: normaliseAssises(res.scene, partySize) } : res;
 }
 
+/** Le geste d'AUTHORING d'une place : `occupant` assis à la place `slotId` du meuble `propId`, son tenant et l'ancienne
+ *  place de `occupant` libérés dans la même écriture ; `null` libère la place. Une place vide qu'on vide rend la scène
+ *  telle quelle. */
+export function assoirALaPlace(scene: Scene, propId: string, slotId: string, occupant: SeatOccupant | null): { ok: true; scene: Scene } | Extract<SeatAssignmentResult, { ok: false }> {
+  const tenant = scene.seatAssignments?.[propId]?.[slotId];
+  const liberee = tenant ? releaseSeat(scene, tenant) : scene;
+  if (!occupant) return { ok: true, scene: tenant ? normaliseAssises(liberee, GROUPE_A_L_AUTHORING) : scene };
+  const res = seatOccupant(releaseSeat(liberee, occupant), propId, slotId, occupant, GROUPE_A_L_AUTHORING);
+  return res.ok ? { ok: true, scene: res.scene } : res;
+}
+
 /** Un patch d'authoring qui RETIRERAIT le type nommé d'une entité (`typeNonNomme`, #877, #1882). */
 export class TypeNonNomme extends Error {
   constructor(absence: string) {

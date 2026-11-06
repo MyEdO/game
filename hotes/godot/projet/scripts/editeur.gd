@@ -46,6 +46,9 @@ func _ready() -> void:
 		zone.geste.connect(_jouer)
 	for defilement in _interface.find_children("*", "ScrollContainer", true, false):
 		(defilement as ScrollContainer).get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier_l_ecran())
+	get_tree().node_added.connect(func(noeud: Node) -> void:
+		if noeud is LineEdit and _interface.is_ancestor_of(noeud):
+			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: _publier_l_ecran()))
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	var campagne := _pont.parametre("campagne")
@@ -184,7 +187,8 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), ses champs de
 ## texte (`PontDuNoyau.saisies_a_l_ecran`), le point de
 ## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
-## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue.
+## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue. Republié quand un défilement
+## du panneau bouge ou qu'un champ de texte change.
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
 	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.nombre_d_aretes(), noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}})

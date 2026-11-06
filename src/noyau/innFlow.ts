@@ -18,7 +18,6 @@ import { activityById } from '../engine/activities';
 import { applyOps, type GameOp } from '../engine/ops';
 import { openPartyTest, freeCons } from './rollSeam';
 import { generateTradeRumour } from './landMarketFlow';
-import { placeOfScene } from './worldMap';
 import { rule } from '../engine/policy';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
@@ -61,7 +60,7 @@ export const TABLES = {
     [INN_GOSSIP_KIND]: (get, set, step, hero) => {
       get().advanceTime(innGatherInfoMinutes()); // « tout est horodaté » : quelle que soit l'issue
       if (step.result?.success) {
-        const placeId = placeOfScene(get().worldMap, get().scene?.id)?.id ?? '';
+        const placeId = get().lieu ?? '';
         generateTradeRumour(get, set, placeId, battleRng());
         return {};
       }

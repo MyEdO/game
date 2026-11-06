@@ -53,7 +53,7 @@ afterEach(async () => {
 
 /** Monte la carte au Village A et clique le médaillon de Bourg B. */
 async function choisirBourgB(route: Partial<MapRouteTrace>, party: Combatant[], avant?: () => void): Promise<void> {
-  useGame.setState({ worldMap: carte(route), scene: { ...emptyScene('s-a', 5, 5), label: 'Village A' }, party, pendingDeparture: null });
+  useGame.setState({ worldMap: carte(route), lieu: 'pa', scene: { ...emptyScene('s-a', 5, 5), label: 'Village A' }, party, pendingDeparture: null });
   avant?.();
   await act(async () => { root.render(<WorldMapView />); });
   const medaillon = container.querySelector('g[aria-label="Bourg B"]')!;
