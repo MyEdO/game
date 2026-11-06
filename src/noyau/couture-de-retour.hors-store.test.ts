@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { createHero } from '../engine/character';
+import { engage } from './creation/engagement.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene } from './monde/scene';
 import { flowFromEffects } from './monde/flow';
@@ -358,10 +359,9 @@ describe('la composition du groupe ne change pas en combat (#2312)', () => {
   it('ajout, retrait et remplacement — les actions que l’hôte joue pour une intention d’invité — sont refusés', () => {
     const id = combat();
     const avant = structuredClone(banc.getState().party);
-    const autre = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Autre', seed: 2 });
     const s = banc.getState();
     // En combat, le refus se dit à l'écran du geste (`refuserGeste`) : chaque geste le pose à neuf.
-    for (const geste of [() => s.partyAddHero(autre), () => s.partyRemoveHero(id), () => s.partyReplaceHero(id, { ...autre, id })]) {
+    for (const geste of [() => s.partyAddHero(engage('autre')), () => s.partyRemoveHero(id), () => s.partyReplaceHero(id, engage(id))]) {
       banc.setState({ refus: null });
       geste();
       expect(banc.getState().refus?.texte).toBe('La composition du groupe ne change pas en combat.');

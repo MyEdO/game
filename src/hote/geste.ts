@@ -85,8 +85,7 @@ function parametresDeLAppel(verbe: string, args: readonly unknown[], parametres:
 }
 
 /** Les arguments d'un verbe, lus à leurs paramètres (`lireALaForme`) : un id que l'état ne désigne pas lève une erreur
- *  de validation qui nomme les ids valides, un objet désigné par son id est complété, `null` omet un paramètre
- *  optionnel, un argument de forme fausse, en trop ou manquant lève une erreur de validation. */
+ *  de validation qui nomme les ids valides, `null` omet un paramètre optionnel, un argument de forme fausse, en trop ou manquant lève une erreur de validation. */
 export function argumentsDuVerbe(etat: Jeu, verbe: string, args: readonly unknown[], parametres: readonly ParametreDeVerbe[]): unknown[] {
   valider(args.length <= parametres.length, `${verbe} : ${parametres.length} argument(s) au plus (${signature(verbe, parametres)})`);
   for (const p of parametres.slice(args.length)) valider(p.optionnel, `${verbe} : l’argument ${p.nom} manque (${signature(verbe, parametres)})`);

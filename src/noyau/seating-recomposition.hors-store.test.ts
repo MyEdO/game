@@ -21,6 +21,7 @@ import { assignSeat, seatPoseOf } from './monde/seating';
 import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
 import type { Combatant } from '../engine/types';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { engage } from './creation/engagement.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -73,7 +74,7 @@ describe('recomposition du groupe — l’emplacement dont le corps change se l�
 
   it('REMPLACER un héros EN PLACE ne lève que SON emplacement — les rangs suivants tiennent', () => {
     attable([2, 3], [hero('h1'), hero('h2'), hero('h3')]);
-    banc.getState().partyReplaceHero('h2', hero('neuf'));
+    banc.getState().partyReplaceHero('h2', engage('neuf'));
     expect(banc.getState().party.map((h) => h.id)).toEqual(['h1', 'neuf', 'h3']);
     expect(poseDe(2)).toBeNull();
     expect(poseDe(3)).toMatchObject({ slotId: 'place-3' }); // son corps n'a pas bougé : il garde sa chaise
@@ -82,7 +83,7 @@ describe('recomposition du groupe — l’emplacement dont le corps change se l�
   it('un remplacement À MÊME ID (édition en place) ne lève personne, et n’écrit pas la scène', () => {
     attable([1], [hero('h1')]);
     const avant = banc.getState().scene!;
-    banc.getState().partyReplaceHero('h1', { ...hero('h1'), label: 'Retouché' } as Combatant);
+    banc.getState().partyReplaceHero('h1', engage('h1', 'Retouché'));
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
     expect(banc.getState().scene).toBe(avant); // aucune écriture inutile
   });
@@ -122,7 +123,7 @@ describe('recomposition du groupe — l’emplacement dont le corps change se l�
 
   it('RECRUTER un héros au rang suivant ne touche à rien de ce qui est assis', () => {
     attable([1], [hero('h1')]);
-    banc.getState().partyAddHero(hero('h2'));
+    banc.getState().partyAddHero(engage('h2'));
     expect(banc.getState().party.map((h) => h.id)).toEqual(['h1', 'h2']);
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
   });
