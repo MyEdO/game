@@ -281,7 +281,7 @@ export interface Scene {
    *  tombent en nombres de cases jouables. Lue via `sceneMetresPerTile`.
    *  Elle décide de TOUT ce qui traduit entre mètres et cases : les bandes de portée (`rangeBandAt`,
    *  engine/combat.ts, #249) et l'avance des navires ; la géométrie des recettes de décor et l'ancre des
-   *  places assises, divisées par elle (`builders/propVolumes.ts`, `noyau/monde/seating.ts`, #1507) ; le rayon
+   *  places assises, divisées par elle (`noyau/monde/volume/propVolumes.ts`, `noyau/monde/seating.ts`, #1507) ; le rayon
    *  des sources de lumière (`rayonEnCases`, `noyau/monde/vision.ts`) ; et, du côté du RENDU, la cadence de la
    *  cuisson (`gpToWorld`, `noyau/monde/volume/worldTris.ts`), la pente des toits (`resolveMass`,
    *  `builders/roofs.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `noyau/sceneEdit.ts`). */

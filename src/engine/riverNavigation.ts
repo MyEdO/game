@@ -32,7 +32,7 @@ import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
 import { findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, d100, tirer, type RNG, type Tirage } from './dice';
+import { d10, d100, parseDiceRequired, rollDice, tirer, type RNG, type Tirage } from './dice';
 import { bonus } from './characteristics';
 import type { Combatant, Difficulty } from './types';
 import { RULE_REF } from './ruleRefs';
@@ -64,7 +64,7 @@ interface CritDef { driftUntilRepair?: boolean; hole?: boolean }
 
 const DATA = riverNavJson as unknown as RiverNavigationData;
 
-export const riverForces = memoParVersion('riverNavigation', (): RiverWindForceId[] => DATA.windForces.map((f) => f.id as RiverWindForceId));
+export const riverForces = memoParVersion('riverNavigation', (): RiverWindForceId[] => DATA.windForces.entries.map((f) => f.id as RiverWindForceId));
 export const navBaseDifficulty = (): Difficulty => DATA.navBaseDifficulty;
 export const tackDifficulty = (): Difficulty => DATA.tackDifficulty;
 export const CAPSIZE = DATA.capsize;
@@ -73,16 +73,17 @@ export const TEMPORARY_REPAIR = DATA.temporaryRepair;
 export const driftPctOfSpeed = (): number => DATA.driftPctOfSpeed;
 export const driftNavPenalty = (): number => DATA.driftNavPenalty;
 
-export const riverForceLabel = (id: RiverWindForceId): string => DATA.windForces.find((f) => f.id === id)?.label ?? id;
-export const riverDirLabel = (id: RiverWindDirId): string => DATA.windDirections.find((d) => d.id === id)?.label ?? id;
+export const riverForceLabel = (id: RiverWindForceId): string => DATA.windForces.entries.find((f) => f.id === id)?.label ?? id;
+export const riverDirLabel = (id: RiverWindDirId): string => DATA.windDirections.entries.find((d) => d.id === id)?.label ?? id;
 
 // ── Vent (l.21-41) ───────────────────────────────────────────────────────────────────────────────
 
-/** Tire la force et la direction du vent en début de voyage (l.21 : « Lancez 2d10 … force et direction »). PUR. */
+/** Tire la force et la direction du vent en début de voyage (l.21), chacune au dé de sa table (l.25, l.27). PUR. */
 export function rollRiverWind(rng: RNG): { force: RiverWindForceId; dir: RiverWindDirId } {
+  const { windForces, windDirections } = DATA;
   return {
-    force: findTableEntry(DATA.windForces, d10(rng)).id as RiverWindForceId,
-    dir: findTableEntry(DATA.windDirections, d10(rng)).id as RiverWindDirId,
+    force: findTableEntry(windForces.entries, rollDice(parseDiceRequired(windForces.die, 'river-navigation › windForces.die'), rng)).id as RiverWindForceId,
+    dir: findTableEntry(windDirections.entries, rollDice(parseDiceRequired(windDirections.die, 'river-navigation › windDirections.die'), rng)).id as RiverWindDirId,
   };
 }
 

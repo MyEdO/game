@@ -18,15 +18,8 @@ const LECTEURS_DE_DE = new Set(['bandeAuDe', 'facesDuDe']);
 
 const SANS_DE = 'aucun `die` en donnée (#1667, trains (a)–(e))';
 const RAS = new Map<string, { document: string; why: string }>([
-  ["src/noyau/codex/registry.ts :: critEntryItem.sub :: sub: bandeAuDe('d100', e.min, e.max),", { document: 'src/data/criticals.json', why: SANS_DE }],
-  ["src/noyau/codex/registry.ts :: CODEX_SPECS.riverNavigation.build.sections.rows.k :: rows: n.windForces.map((f) => ({ t: 'kv', k: fourchette(f.min, f.max, facesDuDe('d10')), v: f.label } as CodexRow)),", { document: 'src/data/river-navigation.json', why: SANS_DE }],
-  ["src/noyau/codex/registry.ts :: CODEX_SPECS.riverNavigation.build.sections.rows.k :: rows: n.windDirections.map((d) => ({ t: 'kv', k: fourchette(d.min, d.max, facesDuDe('d10')), v: d.label } as CodexRow)),", { document: 'src/data/river-navigation.json', why: SANS_DE }],
   ["src/noyau/codex/registry.ts :: CODEX_SPECS.oups.build.range :: const range = 'min' in o ? bandeAuDe('d100', o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');", { document: 'src/data/oups.json', why: SANS_DE }],
   ["src/noyau/codex/registry.ts :: CODEX_SPECS.interludeEvents.build.sub :: build: () => interludeEvents.map((e) => depuisEnveloppe(e, { sub: bandeAuDe('d100', e.min, e.max) })),", { document: 'src/data/interludeEvents.json', why: SANS_DE }],
-  ["src/noyau/codex/registry.ts :: CODEX_SPECS.waterExposure.build.sections.rows.badge :: return { t: 'ref', category: 'maladies', id: d.disease, label, show: label, badge: `${fourchette(d.min, d.max, facesDuDe('d100'))}${d.rerollUnlessWounded ? tr('codex.fiche.relanceSiIndemne') : ''}` } as CodexRow;", { document: 'src/data/water-exposure.json', why: SANS_DE }],
-  ["src/noyau/codex/registry.ts :: CODEX_SPECS.seaNavigation.build.sections.rows.k :: rows: n.orientation.changementDeCap.map((r) => ({ t: 'kv', k: fourchette(r.min, r.max, facesDuDe('d10')), v: r.desc } as CodexRow)),", { document: 'src/data/sea-navigation.json', why: SANS_DE }],
-  ["src/noyau/codex/registry.ts :: CODEX_SPECS.landCargo.build.sections.rows.k :: rows: c.wineQuality.map((q) => ({ t: 'kv', k: fourchette(q.min, q.max, facesDuDe('d10')), v: tr('codex.fiche.qualitePrixCo', { label: q.label, price: q.price }) } as CodexRow)),", { document: 'src/data/land-cargo.json', why: SANS_DE }],
-  ["src/noyau/codex/registry.ts :: CODEX_SPECS.landCargo.build.sections.rows.label :: { t: 'sub', label: fourchette(r.min, r.max, facesDuDe('d100')) } as CodexRow,", { document: 'src/data/land-cargo.json', why: SANS_DE }],
   ["src/noyau/codex/registry.ts :: CODEX_SPECS.steamBreakdowns.build.sub :: sub: bandeAuDe('d100', e.min, e.max),", { document: 'src/data/steam-breakdown.json', why: SANS_DE }],
   ["src/ui/creator/CharacterCreator.tsx :: StarScreen.choice.hub.note :: note: bandeAuDe('d100', selPos.from, selPos.rand),", { document: 'src/data/stars.json', why: SANS_DE }],
   ["src/ui/creator/CharacterCreator.tsx :: StarScreen.choice.meta :: meta={m.sub && <span className=\"hint\">{bandeAuDe('d10', m.sub.min, m.sub.max)}</span>}", { document: 'src/data/stars.json', why: SANS_DE }],

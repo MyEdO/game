@@ -157,45 +157,48 @@
       }
     }
   ],
-  "diseases": [
-    {
-      "min": 1,
-      "max": 40,
-      "disease": "courante-galopante"
-    },
-    {
-      "min": 41,
-      "max": 60,
-      "disease": "colique"
-    },
-    {
-      "min": 61,
-      "max": 70,
-      "disease": "infection-mineure",
-      "rerollUnlessWounded": true
-    },
-    {
-      "min": 71,
-      "max": 75,
-      "disease": "blessure-purulente",
-      "rerollUnlessWounded": true
-    },
-    {
-      "min": 76,
-      "max": 80,
-      "disease": "vers-de-carie"
-    },
-    {
-      "min": 81,
-      "max": 90,
-      "disease": "vers-du-reik"
-    },
-    {
-      "min": 91,
-      "max": 100,
-      "disease": "flux-sanglant"
-    }
-  ],
+  "diseases": {
+    "die": "d100",
+    "entries": [
+      {
+        "min": 1,
+        "max": 40,
+        "disease": "courante-galopante"
+      },
+      {
+        "min": 41,
+        "max": 60,
+        "disease": "colique"
+      },
+      {
+        "min": 61,
+        "max": 70,
+        "disease": "infection-mineure",
+        "rerollUnlessWounded": true
+      },
+      {
+        "min": 71,
+        "max": 75,
+        "disease": "blessure-purulente",
+        "rerollUnlessWounded": true
+      },
+      {
+        "min": 76,
+        "max": 80,
+        "disease": "vers-de-carie"
+      },
+      {
+        "min": 81,
+        "max": 90,
+        "disease": "vers-du-reik"
+      },
+      {
+        "min": 91,
+        "max": 100,
+        "disease": "flux-sanglant"
+      }
+    ]
+  },
   "source": {
     "book": "mort-sur-le-reik-compagnon",
     "page": 91

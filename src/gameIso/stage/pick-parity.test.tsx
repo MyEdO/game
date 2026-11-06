@@ -21,7 +21,7 @@ import { setSpritePicker, setStageFrame, type CadreRendu } from './spritePicker'
 import { pickTileAt } from './pickProbe';
 import { caseAuSol, type Verdict } from './pickResolve';
 import type { PickProbe } from '../../state/devtools';
-import { buildPropVolumes, type AncrageVolume } from '../builders/propVolumes';
+import { buildPropVolumes, type AncrageVolume } from '../../noyau/monde/volume/propVolumes';
 import { findPropById, props, refEstVolumique } from '../../data';
 import { capVolumique, polygonesDePrimitive, type PropData } from '../../data/props.types';
 import type { SceneEntity } from '../../noyau/monde/scene';

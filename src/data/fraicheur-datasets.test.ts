@@ -260,11 +260,11 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
 
   it('la fiche de Navigation fluviale ÉDITÉE : forces de vent et scalaires servis NEUFS', () => {
     const fiche = structuredClone(datasetObject('riverNavigation'));
-    const [calme, second] = fiche.windForces;
+    const [calme, second] = fiche.windForces.entries;
     expect(tickRiverWind(calme.id as RiverWindForceId, deFixe(1))).toBe(second.id);
     setObjectDataset('riverNavigation', {
       ...fiche,
-      windForces: fiche.windForces.map((f, i) => (i === 1 ? { ...f, id: 'brise-qc' } : f)),
+      windForces: { ...fiche.windForces, entries: fiche.windForces.entries.map((f, i) => (i === 1 ? { ...f, id: 'brise-qc' } : f)) },
       navBaseDifficulty: 'difficile', tackDifficulty: 'difficile', driftPctOfSpeed: 40, driftNavPenalty: -30,
       capsize: { ...fiche.capsize, rightDifficulty: 'difficile', rightCumulativePenalty: -15 },
     });

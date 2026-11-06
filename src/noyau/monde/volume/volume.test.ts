@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { volumeDuMonde, type VolumeDuMonde } from './volume';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../scene';
-import { couleurDuSol, recetteDuSol, tintVarFactor } from './matieres';
+import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { parseHex } from '../../../lib/couleurHex';
 
 /** Les triangles du volume, sommets, normale et couleur du premier sommet. */
@@ -50,8 +50,8 @@ describe('volumeDuMonde (#3476)', () => {
     s.layers[0].tiles = ['herbe'];
     const v = volumeDuMonde(s);
     const m = { domain: 'terrain' as const, id: 'herbe' };
-    const k = tintVarFactor(recetteDuSol(m), { x: 0, y: 0, z: 0 }) / 255;
-    const attendue = [...parseHex(couleurDuSol(m))!.map((c) => Math.round(Math.min(1, c * k) * 1000) / 1000), 1];
+    const k = tintVarFactor(recetteDeMatiere(m), { x: 0, y: 0, z: 0 }) / 255;
+    const attendue = [...parseHex(couleurDeMatiere(m))!.map((c) => Math.round(Math.min(1, c * k) * 1000) / 1000), 1];
     const dessus = triangles(v).filter((t) => t.normale[1] > 0.99);
     expect(dessus.length).toBeGreaterThan(0);
     expect(dessus.every((t) => t.xs.every((x) => Math.abs(x) <= v.metresParCase / 2 + 1e-3))).toBe(true);
@@ -80,5 +80,21 @@ describe('volumeDuMonde (#3476)', () => {
     const matiere = (t: number) => v.surfaces.find((m) => m.debut <= t * 3 && t * 3 < m.fin)!.matiere;
     expect(tris.flatMap((t, i) => (t.ys.every((y) => y === 3) ? [matiere(i)] : []))).toEqual(expect.arrayContaining(['terrain--plancher']));
     expect(tris.flatMap((t, i) => (Math.abs(t.normale[1]) < 1e-3 ? [matiere(i)] : []))).toContain('relief--pierre');
+  });
+
+  it('un décor volumique posé sur sa case : ses faces à sa matière de décor, au-dessus du sol, dans sa case ; aucun au-dessus de la couche active', () => {
+    const s = emptyScene('scene-test', 3, 3);
+    s.layers[0].tiles = Array(9).fill('plancher');
+    s.layers[0].height = [0, 0, 0, 0, 0.5, 0, 0, 0, 0];
+    s.entities.push({ id: 'tonneau-1', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 1 } });
+    const v = volumeDuMonde(s);
+    const decor = v.surfaces.filter((m) => m.matiere.startsWith('prop--'));
+    expect(decor.length).toBeGreaterThan(0);
+    const tris = triangles(v).filter((_, t) => decor.some((m) => m.debut <= t * 3 && t * 3 < m.fin));
+    expect(tris.every((t) => t.case[0] === 1 && t.case[1] === 1)).toBe(true);
+    expect(Math.min(...tris.flatMap((t) => t.ys))).toBeCloseTo(0.5, 2);
+    expect(Math.max(...tris.flatMap((t) => t.ys))).toBeGreaterThan(0.5);
+    const etage: Scene = { ...s, entities: [{ ...s.entities[0], z: 1 }], layers: [...s.layers, { z: 1, tiles: Array(9).fill('vide'), height: Array(9).fill(3) }] };
+    expect(volumeDuMonde(etage, 0).surfaces.some((m) => m.matiere.startsWith('prop--'))).toBe(false);
   });
 });

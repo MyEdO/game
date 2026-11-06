@@ -7,7 +7,7 @@
  * traduction mètres→cases se fait par DIVISION par `metresPerTile` de la scène, et cases→mètres par
  * UNE multiplication (`gpToWorld`, `noyau/monde/volume/worldTris.ts`).
  * Un CONCEPT du décor = UNE couture, nommée — quatre en tout, et pas deux pour le même concept :
- *  - la GÉOMÉTRIE de la recette → `buildPropVolumes` (`gameIso/builders/propVolumes.ts`) ;
+ *  - la GÉOMÉTRIE de la recette → `buildPropVolumes` (`noyau/monde/volume/propVolumes.ts`) ;
  *  - l'ANCRE d'une place assise → `placesPartielles` (`noyau/monde/seating.ts`) ;
  *  - le FOYER d'une lampe (le centre de la primitive `emet`) → `foyerDe` (`noyau/monde/vision.ts`) ;
  *  - le RAYON d'une source de lumière → `rayonEnCases` (`noyau/monde/vision.ts`).
@@ -40,7 +40,7 @@
  * le DÉFAUT DU MONDE (`capVolumique`) : ce que l'auteur écrit est ce que la scène montre.
  * Chaque recette le DÉCLARE (`PropVolumeRecipe.capIdentite`, requis du compilateur comme du schéma) —
  * le repère est dans la donnée, pas dans la tête de l'auteur. Matérialisé par
- * `builders/propVolumes.test.ts`.
+ * `noyau/monde/volume/propVolumes.test.ts`.
  */
 import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../geometry/dir8';
 import type { PropMaterialData } from './materials.types';
@@ -157,7 +157,7 @@ export interface PropVolumeRecipe { capIdentite: typeof CAP_IDENTITE_PROP; primi
 // GÉOMÉTRIE LOCALE d'une primitive — UNE définition, deux consommateurs
 // ————————————————————————————————————————————————————————————————
 // Vit ici, à l'étage NEUTRE, pour la même raison que `rotatePropLocal` : le builder volumique
-// (`gameIso/builders/propVolumes.ts`, qui la tourne et la pose dans le monde) et le validateur de
+// (`noyau/monde/volume/propVolumes.ts`, qui la tourne et la pose dans le monde) et le validateur de
 // catalogue (`validatePropCatalog`, plus bas, qui vérifie la fermeture de la coquille) lisent les
 // MÊMES polygones. Deux copies divergeraient, et le contrat de fermeture ne prouverait plus rien
 // sur ce qui est réellement cuit.

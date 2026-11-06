@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
 import { refs } from '../grammaire/ref';
 import {
   difficultySchema,
@@ -32,7 +32,8 @@ const offerByRichesseSchema = z
 
 
 const champs = {
-  wineQuality: z.array(
+  /** MSRC 13 l.97 */
+  wineQuality: tableTiree(
     nommerChamps(z.strictObject({ ...plageSchema.shape, label: z.string(), price: z.number(), source: sourceRefSchema }), {
       ...metaDesChamps(plageSchema, { exigees: true }),
       label: { label: 'Libellé' },
@@ -77,7 +78,8 @@ const champs = {
     mod: { label: 'Modificateur' },
     source: { label: 'Source' },
   }),
-  rumours: z.array(
+  /** MSRC 13 l.283 */
+  rumours: tableTiree(
     nommerChamps(z.strictObject({
       ...plageSchema.shape,
       biens: refs('cargo', { sousListe: 'terre' }),
@@ -108,7 +110,7 @@ const doc = document(
     buy: { label: "Règles d'achat", hint: 'Barème de Marchandage, disponibilité, seuils de dégustation du vin' },
     sell: { label: 'Règles de vente', hint: 'Cible de production, bonus de Commerce, bradage, offre par richesse du lieu' },
     gossip: { label: 'Ragot', hint: 'Difficulté et modificateur du Test de Ragot préalable à la vente' },
-    rumours: { label: 'Rumeurs', hint: 'Table de tirage d100 de rumeurs commerciales' },
+    rumours: { label: 'Rumeurs', hint: 'Table de tirage de rumeurs commerciales' },
   },
   { codex: { keys: ['landCargo'] }, edit: { object: 'single' } },
 );
