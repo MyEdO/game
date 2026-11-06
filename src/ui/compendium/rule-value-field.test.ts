@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { inferFields } from '../../noyau/codex/editFields';
-import { dedicatedFieldKeys, validateEntry, editableEntries } from '../editor/codex/CodexEdit';
+import { dedicatedFieldKeys } from '../editor/codex/CodexEdit';
+import { validateEntry, editableEntries } from '../../data/atelierDuCodex';
 import { datasetArray } from '../../data/overrides';
 
 /**
