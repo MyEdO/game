@@ -377,7 +377,7 @@ describe('la composition du groupe ne change pas en combat (#2312)', () => {
   });
 });
 
-describe('markActed relit l’état vivant (battlePickup, #2312)', () => {
+describe('markActed relit l’état vivant (ramasserLObjet, #2312)', () => {
   for (const eff of [{ type: 'giveTrapping', trappingId: 'tromblon' }, { type: 'giveMoney', montant: { gold: 1 } }]) {
     it(`${eff.type} : l’approche en attente est scellée sur l’objet vivant`, () => {
       const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
@@ -393,7 +393,7 @@ describe('markActed relit l’état vivant (battlePickup, #2312)', () => {
       const battle = { combatants: [bh], order: [bh.id], turn: 0, round: 1, action: null, selectedSpellId: null,
         reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState;
       banc.setState({ party: [hero], scene, mode: 'battle', battle, flags: {} });
-      banc.getState().battlePickup('corps', 'fouiller:eff:0');
+      banc.getState().ramasserLObjet('corps', 'fouiller:eff:0');
       const vivant = cbt(bh.id);
       expect(vivant).not.toBe(bh);
       expect(banc.getState().battle!.acted).toBe(true);

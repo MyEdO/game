@@ -60,7 +60,7 @@ function souffler(H: Combatant, E: Combatant, type: string) {
   H.traits = [{ id: 'souffle', value: 10, arg: type }];
   H.characteristics['capacite-de-tir'] = 90;
   H.advantage = 3;
-  banc.getState().battleSelectAttack('souffle');
+  banc.getState().armerLAttaque('souffle');
   banc.getState().battleClickEntity(E.id);
   banc.getState().jetRoll('maneuver');
   banc.getState().jetConfirm('maneuver');

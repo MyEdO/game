@@ -56,7 +56,7 @@ function nomsDeLAttaque(kind: string): { option: string; reticule: string; modal
   const { H, E } = engage('heros');
   const option = availableAttacks(H, g().battle!).find((o) => o.freeKind === kind && !o.weaponUid);
   if (!option) throw new Error(`aucune option de gratuite « ${kind} »`);
-  g().battleSelectAttack(option.id);
+  g().armerLAttaque(option.id);
   const ht = hoverTargeting(g, H, E);
   if (ht.kind !== 'ok') throw new Error(`réticule ${ht.kind}`);
   g().battleClickEntity(E.id, { confirm: true });

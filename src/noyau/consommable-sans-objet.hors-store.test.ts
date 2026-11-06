@@ -32,21 +32,21 @@ function journalDe(banc: Banc, geste: () => void): string[] {
 describe('Consommable — refusé sans objet, avant de le boire', () => {
   it('Potion de vitalité sans Exténué : refusée et dite, l’objet est gardé', () => {
     const { banc, heroId } = avecLeProduit('potion-de-vitalite');
-    expect(journalDe(banc, () => banc.actions.usePartyItem(heroId, 'produit')))
+    expect(journalDe(banc, () => banc.actions.utiliserLObjet(heroId, 'produit')))
       .toEqual(['Vétéran n’a aucun pion Exténué qui puisse être retiré. Potion de vitalité ne lui apporterait rien : l’objet est gardé.']);
     expect(produit(banc), 'l’objet est gardé').toBeTruthy();
   });
 
   it('Potion de vitalité, Exténué : bue, l’État part', () => {
     const { banc, heroId } = avecLeProduit('potion-de-vitalite', (h) => addCondition(h, 'extenue', 2));
-    banc.actions.usePartyItem(heroId, 'produit');
+    banc.actions.utiliserLObjet(heroId, 'produit');
     expect(produit(banc), 'consommée').toBeUndefined();
     expect(banc.getState().party[0].conditions.some((c) => c.id === 'extenue')).toBe(false);
   });
 
   it('Gesundheit sans Blessure purulente : refusé et dit avant le Test au boire, l’objet est gardé', () => {
     const { banc, heroId } = avecLeProduit('gesundheit');
-    expect(journalDe(banc, () => banc.actions.usePartyItem(heroId, 'produit')))
+    expect(journalDe(banc, () => banc.actions.utiliserLObjet(heroId, 'produit')))
       .toEqual(['Vétéran : aucune maladie active à soulager (ciblée). Gesundheit ne lui apporterait rien : l’objet est gardé.']);
     expect(produit(banc), 'l’objet est gardé').toBeTruthy();
   });
@@ -55,7 +55,7 @@ describe('Consommable — refusé sans objet, avant de le boire', () => {
     const { banc, heroId } = avecLeProduit('gesundheit', (h) => {
       h.diseases = [{ id: 'blessure-purulente', symptoms: [], phase: 'active', minutesLeft: 5 * MINUTES_PER_DAY, durationMinutes: 10 * MINUTES_PER_DAY }];
     });
-    banc.actions.usePartyItem(heroId, 'produit');
+    banc.actions.utiliserLObjet(heroId, 'produit');
     expect(produit(banc), 'consommé').toBeUndefined();
   });
 });

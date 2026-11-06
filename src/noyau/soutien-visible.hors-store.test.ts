@@ -105,11 +105,11 @@ describe('#1064 — le pending PORTE le détail du Soutien (couture)', () => {
 });
 
 describe('#1064 — Cumuler l’Avantage passe par la COUTURE (LDB 09 l.305-308)', () => {
-  it('`battleGainAdvantage` ouvre le Test par `openSkillTest` : acteur IMPOSÉ, octroi porté, Test PERSONNEL', () => {
+  it('`gagnerLAvantage` ouvre le Test par `openSkillTest` : acteur IMPOSÉ, octroi porté, Test PERSONNEL', () => {
     const observer = skilled('h1', { x: 5, y: 5 }, 'intuition', 5, { intelligence: 40 });
     const help = skilled('h2', { x: 6, y: 5 }, 'intuition', 2, { intelligence: 40 }); // adjacent + Augmentation
     banc.setState({ battle: battleOf([observer, help]), party: [observer, help] });
-    banc.getState().battleGainAdvantage('intuition');
+    banc.getState().gagnerLAvantage('intuition');
     const pt = banc.getState().pendingTest!;
     expect(pt.actorId).toBe('h1'); // l'observateur reste l'acteur imposé
     expect(pt.candidates).toBeUndefined(); // …aucun autre candidat n'est offert

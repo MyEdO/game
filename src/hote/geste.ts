@@ -6,9 +6,9 @@
  * refus nomme ce que l'état offre ; l'hôte y joint ses pistes de lecture (`PistesDeLecture`), là où son auteur lit la suite.
  */
 import {
-  ACTIONS, DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, actionGate, cleDuGeste, argsAvecVerdictLocal, etatDeLaBarre, fenetreDuJeu, offreDesignee, porteurParId,
-  quiTientLaMain, runAction, siegeDe,
-  type ActionRunCtx, type Intention, type Jeu, type Offre, type Partie, type ResultatDeLAppel,
+  ACTIONS, DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, champsLusParLOffre, cleDuGeste, argsAvecVerdictLocal, etatDeLaBarre, fenetreDuJeu,
+  porteurParId, quiTientLaMain, refusDeLOffre, siegeDe,
+  type ContexteDOffre, type Intention, type Jeu, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
 import { estObjet, lireALaForme, signature, type Designes, type Forme, type ParametreDeVerbe } from './formes';
 import { ErreurDeGeste, valider } from './partie';
@@ -18,7 +18,7 @@ import { CHOIX, REGLAGES, VERBES } from './verbes.generated';
 /** Un geste écrit : une offre du registre (`jouerLOffre`), ou un verbe brut de la partie, joué au nom d'un siège s'il
  *  est posé. */
 export type Geste =
-  | { offre: string; ctx?: ActionRunCtx }
+  | { offre: string; ctx?: ContexteDOffre }
   | { type: string; args: unknown[]; siege?: number };
 
 /** Les pistes de lecture d'un hôte, jointes au refus d'un geste : où lire la vue, toutes les offres, les offres d'un id, la
@@ -40,7 +40,7 @@ export function lireGeste(v: unknown): Geste {
   if ('offre' in g) {
     valider(typeof g.offre === 'string', 'offre : un id d’action');
     valider(g.ctx === undefined || estObjet(g.ctx), 'offre : le contexte est un objet JSON');
-    return g.ctx === undefined ? { offre: g.offre as string } : { offre: g.offre as string, ctx: g.ctx as ActionRunCtx };
+    return g.ctx === undefined ? { offre: g.offre as string } : { offre: g.offre as string, ctx: g.ctx as ContexteDOffre };
   }
   valider(typeof g.type === 'string', 'jouer : un nom d’action du noyau');
   valider(Array.isArray(g.args), 'jouer : les arguments sont un tableau JSON');
@@ -132,36 +132,9 @@ export function offresDeLaBarre(etat: Jeu, pistes: PistesDeLecture): Offre[] {
   return offresDeLaBarreOuverte(etat, barre);
 }
 
-/** La sonde : elle répond à toute lecture et à tout appel par elle-même, et se convertit en `0`. */
-const SONDE: unknown = new Proxy(function sonde() {}, {
-  get: (_cible, cle) => (cle === Symbol.toPrimitive ? () => 0 : SONDE),
-  apply: () => SONDE,
-});
-
-/** Les champs du contexte qu'une offre lit : ceux que sa porte (`runAction`) lit en se jouant sur la sonde, une fois
- *  chaque champ présent, une fois chaque champ absent ; la sonde ne joue rien. Une porte que la sonde fait lever ne
- *  dit pas ce qu'elle lit : `null`, et son contexte ne se contrôle pas. */
-function champsLusParLOffre(actionId: string): Set<string> | null {
-  const lus = new Set<string>();
-  try {
-    for (const valeur of [SONDE, undefined]) {
-      const ctx = new Proxy({}, {
-        get: (_cible, cle) => {
-          if (typeof cle === 'string') lus.add(cle);
-          return valeur;
-        },
-      });
-      runAction(actionId, () => SONDE as Jeu, ctx as ActionRunCtx);
-    }
-  } catch {
-    return null;
-  }
-  return lus;
-}
-
 /** Un champ du contexte d'une offre que ni elle ni ses candidats ne lisent lève une erreur de validation, qui nomme les
  *  champs acceptés ; pour une offre qui arme une intention, la cible se choisit après elle. */
-function controlerLeContexte(offre: string, ctx: ActionRunCtx | undefined, offres: readonly Offre[], pistes: PistesDeLecture): void {
+function controlerLeContexte(offre: string, ctx: ContexteDOffre | undefined, offres: readonly Offre[], pistes: PistesDeLecture): void {
   const lus = champsLusParLOffre(offre);
   if (!lus) return;
   const acceptes = new Set([...lus, ...offres.flatMap((o) => (o.actionId === offre ? Object.keys(o.args) : []))]);
@@ -171,25 +144,17 @@ function controlerLeContexte(offre: string, ctx: ActionRunCtx | undefined, offre
   throw new ErreurDeGeste('validation', `${offre} ne lit pas ${ignores.join(', ')} du contexte (champs acceptés : ${[...acceptes].join(', ') || 'aucun'})${cible}${pistes.offre(offre)}`);
 }
 
-/** L'intention d'un geste, contrôlée. Une offre que l'énumérateur ne rend pas, ou qu'aucun candidat ne désigne
- *  (`offreDesignee`), est une erreur de règle avec la raison du registre ; une offre fermée aussi (`actionGate`, sur les
- *  arguments du geste) ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`) est une erreur de
- *  validation. Le verbe d'un geste a été contrôlé contre `VERBES` (`gesteDuVerbe`). Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
+/** L'intention d'un geste, contrôlée. Une offre que le noyau refuse (`refusDeLOffre`, le verdict même de `jouerLOffre`)
+ *  est une erreur de règle avec sa raison ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`) est une
+ *  erreur de validation. Le verbe d'un geste a été contrôlé contre `VERBES` (`gesteDuVerbe`). Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
  *  (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. */
 export function intentionDuGeste(etat: Jeu, geste: Geste, pistes: PistesDeLecture): Intention {
   if ('offre' in geste) {
     valider(ACTIONS.some((a) => a.id === geste.offre), `offre inconnue : ${geste.offre}${pistes.offres}`);
-    const offres = offresDeLaBarre(etat, pistes);
-    controlerLeContexte(geste.offre, geste.ctx, offres, pistes);
     const barre = etatDeLaBarre(etat);
-    const ctx = barre.forme === 'ouverte' ? { active: barre.active, battle: barre.battle, netMode: etat.net.mode, gameTime: etat.gameTime, args: geste.ctx } : undefined;
-    if (!offreDesignee(offres, geste.offre, geste.ctx)) {
-      const pertinence = ctx ? actionGate(geste.offre, ctx) : undefined;
-      const raison = pertinence && !pertinence.ok ? pertinence.reason : offres.some((o) => o.actionId === geste.offre) ? 'aucun candidat ne correspond au contexte' : 'aucun candidat';
-      throw new ErreurDeGeste('regle', `${geste.offre} n’est pas offerte : ${raison}${pistes.offre(geste.offre)}`);
-    }
-    const gate = actionGate(geste.offre, ctx!);
-    if (!gate.ok) throw new ErreurDeGeste('regle', `${geste.offre} fermée : ${gate.reason ?? 'sans raison'}`);
+    controlerLeContexte(geste.offre, geste.ctx, barre.forme === 'ouverte' ? offresDeLaBarreOuverte(etat, barre) : [], pistes);
+    const refus = refusDeLOffre(etat, geste.offre, geste.ctx);
+    if (refus) throw new ErreurDeGeste('regle', `${geste.offre} n’est pas offerte : ${refus}${pistes.offre(geste.offre)}`);
     return { type: 'jouerLOffre', args: geste.ctx ? [geste.offre, geste.ctx] : [geste.offre] };
   }
   if (geste.siege === undefined) return { type: geste.type, args: geste.args } as Intention;

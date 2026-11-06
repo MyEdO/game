@@ -2,7 +2,7 @@
  * LES GESTES D'UN OBJET (#3328) — ce qu'un porteur peut faire d'un de ses objets depuis sa fiche, chaque geste écrit en
  * verbe du noyau, et ce qui le ferme maintenant : le porter (`toggleEquip`), le tenir dans une main du set actif
  * (`setLoadoutSlot`), le ranger dans un contenant ou l'en sortir (`stowItem`), le donner à un porteur à ses côtés
- * (`transferItem`), l'utiliser (`usePartyItem`), l'évaluer ou le détecter (`appraiseItem`). Chaque refus est le verdict
+ * (`transferItem`), l'utiliser (`utiliserLObjet`), l'évaluer ou le détecter (`appraiseItem`). Chaque refus est le verdict
  * que le verbe applique. Lecteur PUR, lu par la fiche web (`ui/CarrierInventory`, `ui/CharacterSheet`) et par les
  * hôtes du noyau (`hote/ecran.ts`).
  */
@@ -86,7 +86,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
       const [id, libelle] = porteurDit(c);
       return { cible: c, libelle, geste: { verbe: 'transferItem', args: [uid, porteurId, id] } };
     }) } : null,
-    utiliser: hero && consommable ? sur('usePartyItem', [porteurId, uid], refusDeConsommer(hero, it)) : null,
+    utiliser: hero && consommable ? sur('utiliserLObjet', [porteurId, uid], refusDeConsommer(hero, it)) : null,
     evaluer: inconnu && it.appraiseTriedDay !== gameDay(s) ? sur('appraiseItem', [uid, porteurId], appraiseRefus(s.party)) : null,
     detecter: inconnu && !it.detectTried ? sur('appraiseItem', [uid, porteurId, 'detect'], appraiseRefus(s.party, 'detect')) : null,
   };

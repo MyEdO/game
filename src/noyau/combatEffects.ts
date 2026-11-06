@@ -2063,10 +2063,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         tablesPosees().lancerLeSort(get, set, caster, target, spell.id); // `castSpell`, `noyau/combatFlow` (#98)
         return;
       }
-      // HORS COMBAT (couture D) : seul un héros du GROUPE a un flux d'incantation jouable (`oocCastSpell`,
+      // HORS COMBAT (couture D) : seul un héros du GROUPE a un flux d'incantation jouable (`incanterLeSort`,
       // jet réel par modale) — un PNJ hors combat n'a pas de Combatant à faire incanter (`actorIn` ne
       // l'a alors résolu que depuis `party`), pas de pseudo-combat inventé pour ce cas.
-      get().oocCastSpell(caster.id, spell.id, target.id);
+      get().incanterLeSort(caster.id, spell.id, target.id);
     },
     // `spellId` : prouvé au schéma (`castSpellSchema`, `idDe('spell')`) ; `casterId` y est une chaîne libre.
     refs: (e) => (e.casterId ? [] : [{ level: 'error', message: 'Effet Incanter : lanceur manquant' }]),

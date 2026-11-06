@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { ACTIONS } from '../data/index';
-import { ACTION_GATES, ACTION_CANDIDATES, ACTION_RUN, REMEDES, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from './actionRegistry';
+import { ACTION_GATES, ACTION_CANDIDATES, REMEDES, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate } from './actionRegistry';
 import { TARGETING_MODES, targetingModeLabel, CAST_MODE } from './targetingModes';
 import type { BattleState } from './etat';
 import { emptyScene } from './monde/scene';
@@ -34,10 +34,6 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
   it('chaque `candidates` déclaré existe dans ACTION_CANDIDATES', () => {
     const bad = ACTIONS.filter((a) => a.candidates && !(a.candidates in ACTION_CANDIDATES)).map((a) => `${a.id} → ${a.candidates}`);
     expect(bad, `sélecteur(s) inconnu(s) :\n  ${bad.join('\n  ')}`).toEqual([]);
-  });
-  it('chaque `run` déclaré existe dans ACTION_RUN', () => {
-    const bad = ACTIONS.filter((a) => a.run && !(a.run in ACTION_RUN)).map((a) => `${a.id} → ${a.run}`);
-    expect(bad, `dispatcher(s) inconnu(s) :\n  ${bad.join('\n  ')}`).toEqual([]);
   });
   it('chaque `mode` déclaré est un TargetingMode existant (`targetingModes.ts`)', () => {
     const bad = ACTIONS.filter((a) => a.mode && !TARGETING_SRC.includes(`id: '${a.mode}'`)).map((a) => `${a.id} → ${a.mode}`);
@@ -114,7 +110,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * POURQUOI CHAQUE INTERLUDE PORTE SON PROPRE DISPATCHER (#1411 P0-B) — les sorties ne sont pas
- * interchangeables : `battleSelectAction` (sortie de la bordée) est AVALÉ sous un flux différé
+ * interchangeables : `armerLeMode` (sortie de la bordée) est AVALÉ sous un flux différé
  * (`combatBusy`, `combatSlice.ts:2876`), là où `fenetreFermer('cleave')`/`fenetreFermer('dualStrike')` sont justement les verbes
  * DE ces flux. Un dispatcher mutualisé rendrait la sortie muette dès qu'un flux se superpose. Le
  * témoin POSITIF (sans flux, la sortie mord) borne la mesure.
@@ -138,20 +134,20 @@ describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (t
 
   it('TÉMOIN — sans flux différé, la sortie de bordée désarme bien le mode', () => {
     combatArme();
-    runAction('battery-cancel', banc.getState);
+    banc.getState().jouerLOffre('battery-cancel');
     expect(banc.getState().battle!.action).toBeNull();
   });
 
   it('MESURE — sous un flux différé, la MÊME sortie est avalée (donc jamais partagée avec cleave/dual)', () => {
     const h = combatArme();
     banc.setState({ pendingCleave: { attackerId: h.id, hitIds: [], count: 0 } as never });
-    runAction('battery-cancel', banc.getState);
+    banc.getState().jouerLOffre('battery-cancel');
     expect(
       banc.getState().battle!.action,
       'la sortie de bordée est avalée sous `combatBusy` — c’est pourquoi cleave/dual portent leurs propres verbes',
     ).toBe('battery');
     // … et le verbe DE ce flux, lui, passe : chaque interlude sort par SON dispatcher.
-    runAction('cleave-end', banc.getState);
+    banc.getState().jouerLOffre('cleave-end');
     expect(banc.getState().pendingCleave).toBeNull();
   });
 });

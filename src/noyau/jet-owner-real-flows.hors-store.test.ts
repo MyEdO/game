@@ -125,12 +125,12 @@ describe('#1015 — sonde 3 : `run` en cadence NON manuelle', () => {
 describe('#1015 — sonde 4 : `disengage`, Test OPPOSÉ — le porteur est le MOVER', () => {
   it('le siège du fuyard dépense ; le siège de son ADVERSAIRE (MJ) est refusé', () => {
     seedBattleRng(3);
-    // Le mover est le héros de l'HÔTE (`battleDisengage` exige le contrôle LOCAL de l'actif) ; son foe
+    // Le mover est le héros de l'HÔTE (`rompreLEngagement` exige le contrôle LOCAL de l'actif) ; son foe
     // est l'ennemi conduit par le siège MJ — deux sièges DIFFÉRENTS, ce qui rend la sonde discriminante.
     const a = mk('a', 'hero', { x: 0, y: 0 }, { engagedWith: ['e'] });
     const e = mk('e', 'enemy', { x: 1, y: 0 }, { engagedWith: ['a'], advantage: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
-    g().battleDisengage();
+    g().rompreLEngagement();
     const pd = g().pendingDisengage!;
     expect([pd.moverId, pd.foeId], 'précondition : mover et foe sont deux sièges DIFFÉRENTS').toEqual(['a', 'e']);
     for (const i of DISENGAGE_VERBS) {

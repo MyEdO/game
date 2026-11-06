@@ -369,7 +369,7 @@ export function crewPosteOf(id: string, combatants: Combatant[]): { hull: Combat
 }
 
 /** La pièce `poste` de la coque `ship` se recharge-t-elle ce Round (`loaded`, chef `crewIds[0]`, `crewActed`) ?
- *  Lu par le gate `piece-dechargee` et `battleShipReload`. LDB 62 l.333-335. */
+ *  Lu par le gate `piece-dechargee` et `rechargerLaPiece`. LDB 62 l.333-335. */
 export function posteARecharger(ship: Combatant, poste: ShipPoste, battle: { combatants: Combatant[]; crewActed?: Record<string, string[]> }): boolean {
   const chefId = poste.crewIds?.[0];
   if (poste.loaded !== false || !chefId || !battle.combatants.some((c) => c.id === chefId)) return false;

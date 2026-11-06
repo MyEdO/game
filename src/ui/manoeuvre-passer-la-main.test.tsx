@@ -43,7 +43,7 @@ function souffleLance(gmSeat: number | undefined): Combatant {
   H.characteristics['capacite-de-tir'] = 90;
   H.advantage = 3;
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, acted: false } });
-  useGame.getState().battleSelectAttack('souffle');
+  useGame.getState().armerLAttaque('souffle');
   useGame.getState().battleClickEntity(E.id);
   useGame.getState().jetRoll('maneuver');
   return E;

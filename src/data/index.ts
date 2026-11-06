@@ -1453,7 +1453,7 @@ export interface EtatData extends StatusData {
   resolveHeals?: number;
   /** Cet État VERROUILLE l'Action : le Mouvement + l'Action doivent servir à fuir/se cacher (Brisé, LDB 16
    *  l.52). Drapeau DÉCLARATIF lu en DONNÉES par `isActionLocked`/`restrictingConditions` (engine/conditions),
-   *  partagé par le gate de hotbar (`battleSelectAction`) ET l'IA (dépense PROACTIVE de Détermination pour se
+   *  partagé par le gate de hotbar (`armerLeMode`) ET l'IA (dépense PROACTIVE de Détermination pour se
    *  ressaisir) — plus de nom d'État en dur. */
   restrictsAction?: boolean;
   /** Cet État ne porte JAMAIS plus d'un pion, quelle que soit la cause — LDB 16 l.115 (Inconscient :
@@ -2674,7 +2674,7 @@ export function findLieuServiceById(id: string): LieuServiceData | undefined {
 /** Chanson de marins (MDG 09 l.218-248, payload du Talent Chanson de marin) — catalogue app-owned.
  *  `crewOps` = effet exprimé dans la langue UNIQUE `GameOp[]`, appliqué à CHAQUE membre d'équipage pendant
  *  l'effet (3 min + DR du Test de Divertissement (Chant) en minutes, 1 chanson par quart — activation
- *  `battleSingShanty`, noyau/combatSlice). `captainOps` = ops appliquées au seul CAPITAINE (titulaire du
+ *  `chanterLaChanson`, noyau/combatSlice). `captainOps` = ops appliquées au seul CAPITAINE (titulaire du
  *  rôle — « Suivez le capitaine », l.246-248). `note` = clause RAW laissée à l'arbitrage MJ (intention/
  *  conséquence de Test non suivies par le moteur) — affichée, jamais un effet inventé. */
 export interface SeaShantyData {

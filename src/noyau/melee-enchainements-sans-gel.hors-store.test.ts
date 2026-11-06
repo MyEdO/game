@@ -88,7 +88,7 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
         if (actif.id === 'h1' || actif.id === 'e3') g().jetRegler('attack', 'deuxArmes', true);
         continue;
       }
-      g().battleEndTurn(); banc.avancer(100); continue;
+      g().terminerLeTour(); banc.avancer(100); continue;
     }
     banc.avancer(3000);
     const now = JSON.stringify([s.battle.round, s.battle.turn, ouverts(), c?.cursor, s.battle.log.length]);

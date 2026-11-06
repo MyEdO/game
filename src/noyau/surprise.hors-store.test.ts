@@ -53,9 +53,9 @@ describe('Surprise — établissement & comportement (LDB 13 l.52-81 / 16 l.130-
     const hero = C({ id: 'h', kind: 'hero', conditions: [{ id: 'surpris', value: 1 }], pos: { x: 5, y: 5 }, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }] as never, resolve: 1 });
     banc.setState({ battle: { combatants: [hero], order: ['h'], turn: 0, action: null, movementUsed: 0, acted: false, reachable: new Map(), over: false, round: 1, log: [] } as never, scene: scene() });
     expect(computeMoveReach(banc.getState).size).toBe(0); // Mouvement bloqué (effectiveMovement = 0)
-    banc.getState().battleSelectAction('cast');
+    banc.getState().armerLeMode('cast');
     expect(banc.getState().battle!.action).toBeNull(); // Action bloquée
-    banc.getState().battleSpendResolve('surpris'); // dépense DIRECTE, jamais un mode armé
+    banc.getState().depenserLaDetermination(hero.id, 'retirerUnEtat', 'surpris'); // dépense DIRECTE, jamais un mode armé
     expect(hasCondition(banc.getState().battle!.combatants[0], 'surpris')).toBe(false);
     expect(banc.getState().battle!.combatants[0].resolve).toBe(0);
   });

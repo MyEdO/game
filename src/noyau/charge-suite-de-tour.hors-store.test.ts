@@ -259,7 +259,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     passerEnManuel();
     setRule('combat-defensive-stance', true);
     try {
-      g().battleDefendTotal(); // une Action hors attaque : aucune frappe pilotée ne devance la suite (LDB 13 l.118)
+      g().prendreLaDefensive(); // une Action hors attaque : aucune frappe pilotée ne devance la suite (LDB 13 l.118)
     } finally { resetRule('combat-defensive-stance'); }
     remettreLAutoCombat();
     ouvrirUneFenetreNeutre('h');
@@ -473,7 +473,7 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
     banc.reprendreTout();
     expect([suite(), parquee(), n()], 'chemin : le sort échu sur la fenêtre est parqué, rien incanté').toEqual(['sort', true, 0]);
     fermerLaFenetreNeutre();
-    g().battleSelectSpell('flechette');
+    g().incanterLeSort(h.id, 'flechette');
     g().battleClickEntity('e', { confirm: true });
     for (let i = 0; i < 6 && g().pendingCast; i++) { if (g().pendingCast!.result == null) g().jetRoll('cast'); else g().jetConfirm('cast'); }
     jouerLaSequence();
@@ -689,7 +689,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     setRule('combat-defensive-stance', true);
     try {
       cliquerLaCharge();
-      g().battleDefendTotal();
+      g().prendreLaDefensive();
       banc.reprendreTout();
     } finally { resetRule('combat-defensive-stance'); }
     expect([frappeOuverte(), attaques('h'), b().acted, b().turn], 'aucune frappe, l’Action est prise, le tour tient').toEqual([null, 0, true, 0]);

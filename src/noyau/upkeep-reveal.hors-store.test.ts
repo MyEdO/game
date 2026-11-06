@@ -33,12 +33,12 @@ describe('Entretien de Round en révélation (store)', () => {
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     H.wounds = blessuresDeBase(20, 20, H); // survit à l'hémorragie
     const enemyIds = b.combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
-    const order = [...enemyIds, H.id]; // H dernier → battleEndTurn franchit le Round
+    const order = [...enemyIds, H.id]; // H dernier → terminerLeTour franchit le Round
     // Ennemis neutralisés : le franchissement de Round se joue sans qu'un tour d'IA ne suspende la séquence.
     b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
     banc.setState({ battle: { ...b, order, turn: order.length - 1 } });
 
-    banc.getState().battleEndTurn(); // franchit le Round → entretien
+    banc.getState().terminerLeTour(); // franchit le Round → entretien
 
     const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'round');
     const round = step?.reveal;

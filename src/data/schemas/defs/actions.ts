@@ -67,7 +67,8 @@ const doc = document(
     gate: z.union([z.string(), z.array(z.string()).min(2)]),
     /** Id de SÉLECTEUR impur enregistré dans `ACTION_CANDIDATES` (liste des cibles/objets offerts). */
     candidates: z.string().optional(),
-    /** Id de DISPATCHER enregistré dans `ACTION_RUN` (méthode `battle*` du store). Absent = `blocked`. */
+    /** Id de DISPATCHER d'`OFFRES_PAR_RUN` (`src/noyau/actionRegistry.ts`, un corps ou un relais), résolu au chargement
+     *  du registre. Absent = une pure intention, ou `blocked`. */
     run: z.string().optional(),
     /** Id de `TargetingMode` EXISTANT (`src/noyau/targetingModes.ts`) armé par cette action. */
     mode: z.string().optional(),
@@ -78,7 +79,7 @@ const doc = document(
     /** Valeur écrite dans `battle.action` quand l'action est ARMÉE (mode à bouton). */
     armed: z.string().optional(),
     /** POSTURE de tir pré-armée basculée par cette action (`BattleState.stances`, champ du
-     *  `PendingAttack` qu'elle pré-remplit) — exigée par le dispatcher `battleToggleStance`. */
+     *  `PendingAttack` qu'elle pré-remplit) — exigée par le dispatcher `basculerLaPosture`. */
     stance: z.enum(['heldGround', 'intoCrowd']).optional(),
     coutAction: coutActionSchema,
     /** FOYER de la règle : l'entrée Codex qui la porte (jamais une phrase recomposée). */
@@ -153,8 +154,8 @@ const doc = document(
     if (!a.run && !a.intent && !a.blocked) {
       ctx.addIssue({ code: 'custom', message: `${a.id} : ni dispatcher (run), ni intention (intent), ni dette déclarée (blocked)` });
     }
-    if ((a.run === 'battleToggleStance') !== !!a.stance) {
-      ctx.addIssue({ code: 'custom', message: `${a.id} : la bascule de posture et le champ stance vont ensemble (run battleToggleStance ⇔ stance)` });
+    if ((a.run === 'basculerLaPosture') !== !!a.stance) {
+      ctx.addIssue({ code: 'custom', message: `${a.id} : la bascule de posture et le champ stance vont ensemble (run basculerLaPosture ⇔ stance)` });
     }
     if ((a.run || a.intent) && a.blocked) {
       ctx.addIssue({ code: 'custom', message: `${a.id} : dette déclarée alors que l’action s’exécute (run) ou s’arme (intent)` });

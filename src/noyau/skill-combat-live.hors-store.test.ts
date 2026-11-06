@@ -74,7 +74,7 @@ describe('Cumuler l’Avantage par une Compétence LIVE (LDB 09 l.305-308)', () 
     const { H } = combat();
     const cap = skillAdvantageCap(H, 'intuition'); // = Bonus d'Intelligence, > 0 (Intuition possédée)
     expect(cap).toBeGreaterThan(0);
-    banc.getState().battleGainAdvantage('intuition');
+    banc.getState().gagnerLAvantage('intuition');
     const pt = banc.getState().pendingTest!;
     expect(pt.combatAdvantage).toEqual({ combatantId: H.id, cap });
     banc.setState({ pendingTest: { ...pt, roll: 5, success: true, sl: 2 } });
@@ -86,7 +86,7 @@ describe('Cumuler l’Avantage par une Compétence LIVE (LDB 09 l.305-308)', () 
 
   it('Intuition ratée → aucun gain, mais l’Action est tout de même consommée', () => {
     const { H } = combat();
-    banc.getState().battleGainAdvantage('intuition');
+    banc.getState().gagnerLAvantage('intuition');
     const pt = banc.getState().pendingTest!;
     banc.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -3 } });
     banc.getState().jetConfirm('test');
@@ -98,13 +98,13 @@ describe('Cumuler l’Avantage par une Compétence LIVE (LDB 09 l.305-308)', () 
   it('déjà au plafond de la méthode → l’action ne s’ouvre pas', () => {
     const { H } = combat();
     H.advantage = skillAdvantageCap(H, 'intuition'); // = Bonus d'Int (plafond de la méthode)
-    banc.getState().battleGainAdvantage('intuition');
+    banc.getState().gagnerLAvantage('intuition');
     expect(banc.getState().pendingTest).toBeNull();
   });
 
   it('Compétence sans application « Avantage » (Corps à corps) → aucune action ouverte', () => {
     combat();
-    banc.getState().battleGainAdvantage('corps-a-corps');
+    banc.getState().gagnerLAvantage('corps-a-corps');
     expect(banc.getState().pendingTest).toBeNull();
   });
 });
