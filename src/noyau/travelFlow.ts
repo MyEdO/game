@@ -81,7 +81,7 @@ import type { Get, Set } from './flowTypes';
 import { traceLineOf } from '../engine/traceLine';
 import { refLabel } from '../data';
 import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
@@ -1302,7 +1302,7 @@ export function creerActionsDuVoyage(get: Get, set: Set) {
     startTravel: (routeId, mode, opts) => startTravel(get, set, routeId, mode, opts),
     resumeTravel: () => resumeTravel(get, set),
     setVoyageCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** La validation de la porte de départ : attendre l'aube (`attendreLAube`). */

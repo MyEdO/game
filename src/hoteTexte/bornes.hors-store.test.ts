@@ -46,15 +46,15 @@ describe('les bornes des sorties de l’exploration, des verbes et du journal', 
     const t = table();
     tientSesBornes('verbes', 'verbes', t.lire('verbes'));
     tientSesBornes('verbes depuis 80', 'verbes', t.lire('verbes', { depuis: 80 }));
-    tientSesBornes('verbes addPossession', 'verbes', t.lire('verbes', { id: 'addPossession' }));
+    tientSesBornes('verbes fenetreChoisir', 'verbes', t.lire('verbes', { id: 'fenetreChoisir' }));
     tientSesBornes('nouvelle', 'nouvelle', t.nouvelle('fenetre-ecuries'));
     tientSesBornes('carte', 'carte', t.lire('carte'));
     tientSesBornes('vue', 'vue', t.lire('vue'));
   });
-  it('une erreur tient ses bornes, sur les verbes aux types les plus larges (`startCombat`, `setParty`)', { timeout: 120_000 }, () => {
+  it('une erreur tient ses bornes, sur les verbes aux formes les plus larges (`fenetreChoisir`, `startTravel`, `playTavernGame`)', { timeout: 120_000 }, () => {
     const t = table();
     expect(t.nouvelle('dome').erreur).toBeNull();
-    for (const nom of ['startCombat', 'setParty', 'partyAddHero']) {
+    for (const nom of ['fenetreChoisir', 'startTravel', 'playTavernGame']) {
       const r = t.jouer(verbe(nom, 1));
       tientSesBornes(nom, 'jouer', r, true);
       expect(r.texte, `${nom} : l’erreur se replie, elle n’est pas coupée`).not.toMatch(/…$/m);
