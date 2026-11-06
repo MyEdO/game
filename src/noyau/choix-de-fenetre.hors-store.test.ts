@@ -14,6 +14,8 @@ import type { ArgumentsDuChoix } from './choixDesFenetres';
 import { pregenParty, PREGEN } from '../data/pregens';
 import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
+import { withBourseMoney } from '../engine/bourse';
+import type { Combatant } from '../engine/types';
 
 /** Coop : l'hôte (siège 0) et un invité (siège 1), un héros chacun. */
 function hoteEtUnInvite(banc: Banc): { a: string; b: string } {
@@ -107,5 +109,60 @@ describe('fenetreChoisir', () => {
     banc.getState().fenetreFermer('designationHeros');
     expect(banc.getState().journal.slice(-1)[0]).toBe(libelleDeLaFermeture('herosADesigner'));
     expect(banc.getState().pendingDesignationHeros, 'la désignation reste ouverte').not.toBeNull();
+  });
+
+  describe('la semaine en mer (MDG 15 l.268) : un choix par héros, à son siège', () => {
+    /** La semaine ouverte, sur un navire à la cale libre ; `a` sait cartographier, chacun a `bourse` CO. */
+    function semaine(banc: Banc, bourse = 5): { a: string; b: string } {
+      const { a, b } = hoteEtUnInvite(banc);
+      banc.setState({
+        party: banc.getState().party.map((h) => withBourseMoney(h.id === a ? { ...h, skills: [...h.skills, { id: 'metier', spec: 'cartographe', advances: 10 }] } as Combatant : h, { gold: bourse, silver: 0, brass: 0 })),
+        vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] },
+        pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } },
+      } as never);
+      return { a, b };
+    }
+
+    it('chaque héros choisit à SON siège : la route suit le héros de la rangée, le choix du héros d’un autre siège se refuse et se dit', () => {
+      const banc = ouvrirLeBanc();
+      const { a, b } = semaine(banc);
+      const s = banc.getState();
+      expect([0, 1].filter((x) => intentAllowedFor(s, x, 'fenetreChoisir', ['seaActivities', 'activite', 'cartographie', a])), 'le héros de l’hôte').toEqual([0]);
+      expect([0, 1].filter((x) => intentAllowedFor(s, x, 'fenetreChoisir', ['seaActivities', 'activite', null, b])), 'le héros de l’invité').toEqual([1]);
+      banc.getState().fenetreChoisir('seaActivities', 'activite', null, b);
+      expect(banc.getState().journal.slice(-1)[0], 'l’hôte ne choisit pas pour le héros de l’invité').toBe(t('choix.refus.autreSiege'));
+      banc.getState().fenetreChoisir('seaActivities', 'activite', 'cartographie');
+      expect(banc.getState().journal.slice(-1)[0], 'un choix de rangée sans héros').toBe(t('choix.refus.rangee'));
+      banc.getState().fenetreChoisir('seaActivities', 'activite', 'cartographie', a);
+      expect(banc.getState().pendingSeaActivities?.picks[a]).toEqual({ activityId: 'cartographie' });
+    });
+
+    it('la mise et la planque ne s’ouvrent qu’à leur Activité, bornées par la bourse (MDG 15 l.276, l.292)', () => {
+      const banc = ouvrirLeBanc();
+      const { a } = semaine(banc);
+      banc.getState().fenetreChoisir('seaActivities', 'cacher', 1, a);
+      expect(banc.getState().journal.slice(-1)[0], 'aucune planque sans Cartographie').toBe(t('choix.refus.valeur'));
+      banc.getState().fenetreChoisir('seaActivities', 'activite', 'cartographie', a);
+      banc.getState().fenetreChoisir('seaActivities', 'cacher', 6, a);
+      expect(banc.getState().journal.slice(-1)[0], 'la planque passe la bourse du cartographe (5 CO)').toBe(t('choix.refus.bornes'));
+      banc.getState().fenetreChoisir('seaActivities', 'cacher', 5, a);
+      expect(banc.getState().pendingSeaActivities?.picks[a]).toEqual({ activityId: 'cartographie', stashGold: 5 });
+      banc.getState().fenetreChoisir('seaActivities', 'activite', 'commerce-opportunite', a);
+      expect(banc.getState().pendingSeaActivities?.picks[a], 'une autre Activité efface la planque').toEqual({ activityId: 'commerce-opportunite' });
+      banc.getState().fenetreChoisir('seaActivities', 'investir', 11, a);
+      expect(banc.getState().journal.slice(-1)[0], 'la mise passe la bourse du groupe (2 × 5 CO)').toBe(t('choix.refus.bornes'));
+      banc.getState().fenetreChoisir('seaActivities', 'investir', 10, a);
+      expect(banc.getState().pendingSeaActivities?.picks[a]).toEqual({ activityId: 'commerce-opportunite', investGold: 10 });
+    });
+
+    it('l’hôte seul valide la semaine : refusée dans l’état d’un invité et au siège d’un invité, la semaine reste ouverte', () => {
+      const banc = ouvrirLeBanc();
+      semaine(banc);
+      expect([0, 1].filter((x) => intentAllowedFor(banc.getState(), x, 'fenetreValider', ['seaActivities']))).toEqual([0]);
+      banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
+      banc.getState().fenetreValider('seaActivities');
+      expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.hoteSeul'));
+      expect(banc.getState().pendingSeaActivities, 'la semaine reste ouverte').not.toBeNull();
+    });
   });
 });

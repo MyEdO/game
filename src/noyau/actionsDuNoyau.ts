@@ -417,8 +417,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  étendue au contexte `auberge`) : succès → rumeur commerciale (`generateTradeRumour`), échec →
    *  Exténué (EDOC 8 l.133). Avance l'horloge (`inn-gather-info-minutes`) quelle que soit l'issue. */
   gatherInnInfo: () => void;
-  /** Résout les Activités choisies puis rend la main à la halte de nuit. */
-  seaActivitiesConfirm: (picks: Record<string, import('./seaActivities').SeaActivityPick | null>) => void;
 }
 
 /** Un geste écrit en verbe du noyau et ses arguments, tel qu'un hôte le joue. */

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { buildStageSteps } from './travelPostes';
-import { buildSeaGenericStep, seaActivityRefus } from './seaActivities';
+import { buildSeaGenericStep, seaActivityRefus, type SeaActivityPick } from './seaActivities';
 import { creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { toBrass } from '../engine/money';
@@ -119,8 +119,10 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
 describe('Activités en mer non tentables', () => {
   beforeEach(() => banc.setState({ party: [heros()], journal: [] }));
 
-  const semaine = () => banc.setState({
-    pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } },
+  // Le choix ferme l'Activité que le héros ne peut pas tenter (`OUVERTS_DU_CHOIX`) : la semaine pose le choix déjà fait,
+  // la résolution le juge à nouveau sur l'état de la validation.
+  const semaine = (picks: Record<string, SeaActivityPick> = {}) => banc.setState({
+    pendingSeaActivities: { picks, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } },
     pendingCascade: null, pendingExtendedTest: null, pendingRest: null,
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [], lastVoyageMilles: 0 },
     travelPlan: { routeId: 'r', km: 40, sea: { lines: [] } },
@@ -135,9 +137,9 @@ describe('Activités en mer non tentables', () => {
   });
 
   it('sea-activity-chart : buildSeaChartStep monte la ligne du héros sans Métier (Cartographe) sans jet, refus nommé ; appliquée, aucune Carte marine', () => {
-    semaine();
+    semaine({ h: { activityId: 'cartographie' } });
     const hero = banc.getState().party[0];
-    banc.getState().seaActivitiesConfirm({ h: { activityId: 'cartographie' } });
+    banc.getState().fenetreValider('seaActivities');
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sea-activity-chart')!;
     expect(step.result).toBe(ECHEC_SANS_JET);
     expect(step.refus).toBe(refusNePeutTenter(hero, { skill: 'metier', spec: 'cartographe' }));
@@ -148,11 +150,11 @@ describe('Activités en mer non tentables', () => {
 
   it('Commerce d’opportunité d’un héros Inconscient : ni mise ni Test étendu, son refus nommé au bilan (MDG 15 l.274-286)', () => {
     banc.setState({ party: [heros(INCONSCIENT)] });
-    semaine();
+    semaine({ h: { activityId: 'commerce-opportunite', investGold: 10 } });
     creditBourse(banc.getState, banc.setState, 'h', { gold: 100, silver: 0, brass: 0 });
     const hero = banc.getState().party[0];
     const avant = toBrass(bourseOf(hero));
-    banc.getState().seaActivitiesConfirm({ h: { activityId: 'commerce-opportunite', investGold: 10 } });
+    banc.getState().fenetreValider('seaActivities');
     expect(banc.getState().pendingExtendedTest).toBeNull();
     expect(toBrass(bourseOf(banc.getState().party[0]))).toBe(avant);
     expect(banc.getState().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text)).toContain(refusNePeutTenter(hero, { skill: 'marchandage' }));

@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { jouerLaSemaine } from './semaineEnMer.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
+import { withBourseMoney } from '../engine/bourse';
 import { activityById, travelActivitySpec } from '../engine/activities';
 import { activiteMer, avecActivite } from '../engine/activiteMer.testkit';
 import { setRule } from '../engine/policy';
@@ -51,9 +53,10 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     const [cartographe, autre] = get().party;
     (cartographe as Combatant).skills = [{ id: 'metier', spec: 'cartographe', advances: 20 } as never];
     (cartographe as Combatant).characteristics = { ...cartographe.characteristics, dexterite: 40 };
-    set({ party: [...get().party], pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } } as never);
+    // La planque est bornée par la bourse du cartographe (MDG 15 l.292).
+    set({ party: get().party.map((h) => (h.id === cartographe.id ? withBourseMoney(h, { gold: 7, silver: 0, brass: 0 }) : h)), pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } } as never);
 
-    get().seaActivitiesConfirm({ [cartographe.id]: { activityId: 'cartographie', stashGold: 7 } });
+    jouerLaSemaine(get, { [cartographe.id]: { activityId: 'cartographie', stashGold: 7 } });
 
     const casc = get().pendingCascade;
     expect(casc, 'la séquence des Activités doit être ouverte (surface M)').toBeTruthy();
@@ -114,7 +117,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
       pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } },
     } as never);
 
-    get().seaActivitiesConfirm({
+    jouerLaSemaine(get, {
       [tenu.id]: { activityId: 'cartographie' },
       [ia.id]: { activityId: 'cartographie' },
     });
@@ -136,7 +139,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
       pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } },
     } as never);
 
-    get().seaActivitiesConfirm({
+    jouerLaSemaine(get, {
       [a.id]: { activityId: 'cartographie' },
       [b.id]: { activityId: 'cartographie' },
     });
