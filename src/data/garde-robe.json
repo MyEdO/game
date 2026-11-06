@@ -235,6 +235,42 @@
     }
   },
   {
+    "id": "casque-a-cornes",
+    "type": "garde-robe",
+    "label": "Casque à cornes",
+    "kind": "variante",
+    "piece": {
+      "id": "casque"
+    }
+  },
+  {
+    "id": "haut-de-chausses-ample",
+    "type": "garde-robe",
+    "label": "Haut-de-chausses ample",
+    "kind": "variante",
+    "piece": {
+      "id": "haut-de-chausses"
+    }
+  },
+  {
+    "id": "bottes-a-revers",
+    "type": "garde-robe",
+    "label": "Bottes à revers",
+    "kind": "variante",
+    "piece": {
+      "id": "bottes"
+    }
+  },
+  {
+    "id": "plumet-simple",
+    "type": "garde-robe",
+    "label": "Plumet simple",
+    "kind": "variante",
+    "piece": {
+      "id": "plumet"
+    }
+  },
+  {
     "id": "trapping-plastron",
     "type": "garde-robe",
     "label": "Plastron",

@@ -3,7 +3,7 @@ import { facingToward, type Dir8 } from '../geometry/dir8';
 import { Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 export function creerActionsDOrientation(get: Get, set: Set) {
   return {
@@ -35,5 +35,5 @@ export function creerActionsDOrientation(get: Get, set: Set) {
       }
       set({ facing: next });
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

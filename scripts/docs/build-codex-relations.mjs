@@ -3,10 +3,10 @@
  * auto-liage) et l'origine DÉCLARÉE de ses entrées.
  * La part FACTUELLE est DÉRIVÉE : arêtes inverses lues aux appels `addReverse(...)` de
  * `src/noyau/codex/relations.ts`, API publique du module (AST + JSDoc, via
- * `scripts/docs/lib/engineExports.mjs`), catégories/groupes/sous-groupes lus au littéral
- * `CODEX_SPECS` de `src/noyau/codex/registry.ts`, et exposition DÉCLARÉE aux defs, dumpée par
- * `scripts/docs/lib/dump-exposition.mts` (`npx tsx` — un générateur Node nu ne peut pas importer
- * `src/data/schemas/_registry.generated.ts`). La part ÉDITORIALE (les deux principes, comment
+ * `scripts/docs/lib/engineExports.mjs`), catégories/familles/sous-groupes du registre VIVANT
+ * (`CODEX`, `src/noyau/codex/registry.ts`) dumpés par `scripts/docs/lib/dump-codex.mts`, et exposition
+ * DÉCLARÉE aux defs, dumpée par `scripts/docs/lib/dump-exposition.mts` (`npx tsx` — un générateur Node
+ * nu ne peut pas importer `src/data/schemas/_registry.generated.ts`). La part ÉDITORIALE (les deux principes, comment
  * étendre) vit ICI, en dur.
  *
  * Patron retenu : « éditorial EN DUR dans le générateur » (scripts/docs/build-sources-vf.mjs),
@@ -82,42 +82,22 @@ function rendu() {
   const NB_DEFS = Object.keys(EXPOSITION).length
   const NB_EXEMPTS = [...EXEMPTIONS.values()].reduce((n, l) => n + l.length, 0)
 
-  // ── Catégories, groupes et sous-groupes : le littéral CODEX_SPECS ────────────────────────────────
+  // ── Catégories, familles et sous-groupes : le registre VIVANT (`CODEX`) ─────────────────────────
 
   const REGISTRY_SRC = lire(REGISTRY)
-  const DEBUT_SPECS = REGISTRY_SRC.indexOf('const CODEX_SPECS')
-  const FIN_SPECS = REGISTRY_SRC.indexOf('export const CODEX:')
-  if (DEBUT_SPECS === -1 || FIN_SPECS === -1 || FIN_SPECS < DEBUT_SPECS) {
-    abandon(`le littéral \`CODEX_SPECS\` et sa projection \`CODEX\` sont introuvables dans ${REGISTRY}`)
-  }
-  const SPECS_SRC = REGISTRY_SRC.slice(DEBUT_SPECS, FIN_SPECS)
+  const { familles: FAMILLES, categories: SPECS } = JSON.parse(
+    sortieOutilLocal(process.cwd(), 'tsx', 'tsx', ['scripts/docs/lib/dump-codex.mts']),
+  )
+  if (!SPECS.length) abandon(`aucune catégorie au registre \`CODEX\` (${REGISTRY})`)
 
-  const SPECS = [...SPECS_SRC.matchAll(/\bkey: '([A-Za-z0-9_]+)'/g)].map((m, i, tous) => {
-    const fin = i + 1 < tous.length ? tous[i + 1].index : SPECS_SRC.length
-    const fenetre = SPECS_SRC.slice(m.index, fin)
-    return {
-      key: m[1],
-      label: (fenetre.match(/label: '([^']*)'/) ?? [])[1] ?? m[1],
-      group: (fenetre.match(/group: '([^']*)'/) ?? [])[1] ?? null,
-      cluster: (fenetre.match(/cluster: '([^']*)'/) ?? [])[1] ?? null,
-    }
-  })
-  if (!SPECS.length) abandon(`aucune catégorie lue dans \`CODEX_SPECS\` (${REGISTRY}) — le motif a dérivé`)
-
-  const GROUPES = (() => {
-    const m = REGISTRY_SRC.match(/export const CODEX_GROUPS: CodexGroup\[\] = \[([^\]]+)\]/)
-    if (!m) abandon(`\`CODEX_GROUPS\` introuvable dans ${REGISTRY}`)
-    return m[1].split(',').map((s) => s.trim().replace(/^'|'$/g, ''))
-  })()
-
-  const CLUSTERS = GROUPES.map((g) => {
-    const dedans = SPECS.filter((s) => s.group === g)
+  const CLUSTERS = FAMILLES.map((g) => {
+    const dedans = SPECS.filter((s) => s.group === g.id)
     const parCluster = new Map()
     for (const s of dedans.filter((x) => x.cluster)) {
       if (!parCluster.has(s.cluster)) parCluster.set(s.cluster, [])
       parCluster.get(s.cluster).push(s)
     }
-    return { groupe: g, total: dedans.length, plat: dedans.filter((x) => !x.cluster).length, parCluster }
+    return { groupe: g.label, total: dedans.length, plat: dedans.filter((x) => !x.cluster).length, parCluster }
   })
 
   // ── Arêtes inverses : les appels `addReverse` du module ──────────────────────────────────────────
@@ -236,7 +216,7 @@ function rendu() {
   // en cours d'écriture dans un arbre partagé ferait diverger le .md sans qu'aucune règle ne bouge.
   const TESTS = [
     'src/noyau/codex/relations.test.ts',
-    'src/ui/compendium/registry.test.ts',
+    'src/noyau/codex/registry.test.ts',
     'src/noyau/codex/humanize.test.ts',
     ...CONTRATS,
     'src/data/serialize.test.ts',
@@ -267,7 +247,7 @@ function rendu() {
     .sort((a, b) => parUnitesDeCode(a[0], b[0]))
     .map(
       ([cle, v]) =>
-        `| \`${cle}\` | ${LABEL_CAT.get(cle) ?? '⚠️ absente de CODEX_SPECS'} | ${v.fichiers
+        `| \`${cle}\` | ${LABEL_CAT.get(cle)} | ${v.fichiers
           .map((f) => `\`src/data/${f}\``)
           .join(', ')} | ${v.route} |`,
     )
@@ -291,9 +271,9 @@ function rendu() {
 
 **Périmètre mesuré / angles morts** — sont LUS aux fichiers réels : les ${ARETES.length} appels
 \`addReverse(...)\` de \`${RELATIONS}\` (catégorie référante, catégorie cible, titre FR de section,
-\`fichier:ligne\`), l'API publique du même module (AST + 1re phrase de JSDoc), le littéral
-\`CODEX_SPECS\` de \`${REGISTRY}\` (${SPECS.length} catégories, leurs groupes et sous-groupes
-\`cluster\`), et l'\`exposition\` DÉCLARÉE par les ${NB_DEFS} defs de \`src/data/schemas/defs/\`
+\`fichier:ligne\`), l'API publique du même module (AST + 1re phrase de JSDoc), le registre
+vivant \`CODEX\` de \`${REGISTRY}\` (${SPECS.length} catégories, leurs familles et sous-groupes
+\`cluster\`, dumpés par \`scripts/docs/lib/dump-codex.mts\`), et l'\`exposition\` DÉCLARÉE par les ${NB_DEFS} defs de \`src/data/schemas/defs/\`
 (dumpée par \`scripts/docs/lib/dump-exposition.mts\`), les cas NOMMÉS par ${CONTRATS_CITES}, les fonctions
 exportées de \`${DESCRIBE}\` et \`${HUMANIZE}\`, et le compte d'épigraphes de Carrière dumpé par
 \`scripts/docs/lib/dump-epigraphes.mts\` (le plugin \`exergues\` de \`<Prose>\` monté sur les \`careers\`
@@ -334,15 +314,18 @@ argument de la fabrique \`document()\` (\`src/data/schemas/grammaire/document.ts
 
 Les ROUTES D'ÉDITION du Codex sont DÉRIVÉES de ces déclarations (#1472) :
 \`src/data/schemas/exposition-derivee.ts\` construit \`CATEGORY_DATASET_DERIVE\` et
-\`OBJECT_CATEGORY_DERIVE\` depuis \`SCHEMA_DEFS\`, et \`src/ui/editor/codex/CodexEdit.tsx\` les consomme
-telles quelles — plus aucune table à la main. La source lue à l'EXÉCUTION pour l'INDEX du Codex
-reste \`CODEX_SPECS\` (\`${REGISTRY}\`, dont \`CODEX\` est la projection). Les deux sont tenus égaux
-par ${CONTRATS_CITES}, dont voici les cas, tels que les gardes les nomment :
+\`OBJECT_CATEGORY_DERIVE\` depuis \`SCHEMA_DEFS\`, et \`src/data/atelierDuCodex.ts\` les consomme
+telles quelles — plus aucune table à la main. Les CLÉS de l'INDEX du Codex en dérivent par
+CONSTRUCTION : \`npm run gen\` (\`scripts/gen-espaces.mts\`) émet leur union, \`CLES_CODEX\`
+(\`src/data/schemas/_cles-de-dataset.generated.ts\`), et \`CODEX_SPECS\` (\`${REGISTRY}\`, dont
+\`CODEX\` est la projection) est un \`satisfies Record<CleCodex, …>\` : une clé déclarée sans
+catégorie, ou une catégorie qu'aucun def ne déclare, ne compile pas. Restent les contrats de
+${CONTRATS_CITES}, dont voici les cas, tels que les gardes les nomment :
 
 ${lignesContrats}
 
-Un document neuf se pose donc en DEUX endroits du MÊME commit : son \`exposition\` au def, sa
-catégorie dans \`CODEX_SPECS\`.
+Une catégorie neuve se pose donc dans le MÊME commit à son def (\`exposition\`), puis, après
+\`npm run gen\`, dans \`CODEX_SPECS\` sous sa clé — le typecheck exige les deux.
 
 Sur ${NB_DEFS} defs, ${NB_EXEMPTS} sont EXEMPTS d'exposition Codex :
 
@@ -353,7 +336,7 @@ ${lignesExemptions}
 ${PAR_CATEGORIE.size} clés de catégorie sont déclarées par les defs. La colonne « Route d'édition »
 est celle du document porteur, telle que \`document()\` la déclare.
 
-| Clé de catégorie | Libellé (\`CODEX_SPECS\`) | Déclarée par | Route d'édition |
+| Clé de catégorie | Libellé (\`CODEX\`) | Déclarée par | Route d'édition |
 |---|---|---|---|
 ${lignesCategories}
 
@@ -392,7 +375,7 @@ automatiquement si la catégorie active y vit. Les pastilles restent des \`<butt
 |---|---|---|---|
 ${lignesClusters}
 
-Regrouper une catégorie = poser \`cluster: '…'\` sur son littéral dans \`CODEX_SPECS\`, rien d'autre.
+Regrouper une catégorie = poser \`cluster\` (clé de catalogue) sur son entrée de \`CODEX_SPECS\`, rien d'autre.
 
 ## Étendre
 

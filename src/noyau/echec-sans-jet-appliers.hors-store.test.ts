@@ -162,7 +162,7 @@ describe('Activités en mer non tentables', () => {
   const enregistrement = () => validateDataset(datasetFile('activities'), datasetSerializeRoot('activities'));
 
   it('Compendium : l’enregistrement refuse une Activité de contexte mer à Compétence libre — `SeaActivityPick` ne porte aucune Compétence choisie (MDG 15 l.266-300)', () => {
-    const { skills: _skills, ...sansCompetence } = activiteMer();
+    const { tests: _tests, difficulty: _difficulty, ...sansCompetence } = activiteMer();
     expect(avecActivite(activiteMer(), enregistrement)).toBeNull();
     expect(avecActivite({ ...sansCompetence, freeSkill: [{ id: 'orientation' }] }, enregistrement))
       .toMatch(/veille-en-mer : une Activité de contexte mer ne déclare pas de Compétence libre/);
@@ -184,7 +184,7 @@ describe('Activités en mer non tentables', () => {
         const step = buildSeaGenericStep(banc.getState, banc.setState, hero, mer)!;
         expect(step.kind).toBe('sea-activity-generic');
         expect(step.result).toBe(ECHEC_SANS_JET);
-        expect(step.refus).toBe(refusNePeutTenter(hero, { skill: mer.skills![0].id, spec: mer.skills![0].spec }));
+        expect(step.refus).toBe(refusNePeutTenter(hero, { skill: mer.tests![0].skill!.id, spec: mer.tests![0].skill!.spec }));
         expect(appliquer(step, hero)).toEqual({ consequences: [] });
       });
       expect(hasCondition(hero, 'extenue')).toBe(false);

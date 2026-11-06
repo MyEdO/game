@@ -9,7 +9,8 @@
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { FormulaField, GameOpEditor, shapeOf, formulaForShape } from './GameOpEditor';
+import { FormulaField, GameOpEditor } from './GameOpEditor';
+import { formulaForShape, shapeOf } from '../../noyau/valeursNeuves';
 import type { Formula, GameOp } from '../../engine/ops';
 import { formulaSchema } from '../../data/schemas/grammaire/valeurs';
 import { gameOpSchema } from '../../data/schemas/grammaire/mecanique';

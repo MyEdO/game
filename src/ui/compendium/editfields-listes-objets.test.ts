@@ -17,7 +17,8 @@ import { describe, it, expect } from 'vitest';
 import { CODEX } from '../../noyau/codex/registry';
 import { inferFields, type FieldKind, type RegimeDeLibelle } from '../../noyau/codex/editFields';
 import { refFieldCfg } from './refField/RefField';
-import { isEditableCategory, editableEntries, dedicatedFieldKeys, editableDataset, editableObjectDataset } from '../editor/codex/CodexEdit';
+import { dedicatedFieldKeys } from '../editor/codex/CodexEdit';
+import { isEditableCategory, editableEntries, editableDataset, editableObjectDataset } from '../../data/atelierDuCodex';
 import { noeudDeLEntree, noeudObjet } from '../../data/schemas/validate';
 
 const SCALAIRES: ReadonlySet<FieldKind> = new Set(['text', 'textarea', 'number', 'checkbox', 'select']);

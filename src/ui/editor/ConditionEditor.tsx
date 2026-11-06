@@ -15,9 +15,9 @@ import { actorFieldSchema, actorRefSchema, CONDITIONS_RESERVEES, conditionSchema
 import type { Camp, Relation } from '../../engine/relations';
 import { ChoixDeSpec, RefField, reposerLId } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';
+import { CONDITION_TOUJOURS, recast } from '../../data/valeursNeuves';
 import { ATTACK_KIND_LABELS, valeurDeHas } from './interne/resumeDeCondition';
 
-const ALWAYS: Condition = { kind: 'always' };
 
 /** Sélecteur de héros d'une Condition de groupe : le quantificateur (`partyWhoSchema`) ou un état déclaré
  *  par le projet dont la forme admet la sélection (`FORMES_D_ETAT`). */
@@ -102,46 +102,6 @@ type ConditionHas = Extract<Condition, { kind: 'has' }>;
 function ValeurDeHas({ cond, onChange }: { cond: ConditionHas; onChange: (value: string) => void }) {
   const { noeud, cfg } = valeurDeHas(cond);
   return <RefField cfg={cfg} noeud={noeud} ariaLabel={libelleDeValeur(hasWhatSchema, cond.what)} value={cond.value} onChange={(v) => onChange(typeof v === 'string' ? v : '')} />;
-}
-
-/** Préserve le travail en CHANGEANT de type : composer (ET/OU/NON) ENVELOPPE la condition courante. */
-export function recast(cond: Condition, kind: Condition['kind']): Condition {
-  switch (kind) {
-    case 'always': return ALWAYS;
-    case 'flag': return { kind: 'flag', expr: cond.kind === 'flag' ? cond.expr : '' };
-    case 'time': return { kind: 'time', window: cond.kind === 'time' ? cond.window : {} };
-    case 'hasItem': return { kind: 'hasItem', trappingId: cond.kind === 'hasItem' ? cond.trappingId : '' };
-    case 'money': return { kind: 'money', atLeast: cond.kind === 'money' ? cond.atLeast : { gold: 1 } };
-    case 'partyDead': return { kind: 'partyDead', who: cond.kind === 'partyDead' ? cond.who : 'any' };
-    case 'etat': return cond.kind === 'etat' ? cond : { kind: 'etat', etat: '' };
-    case 'compare': return cond.kind === 'compare' ? cond : { kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 };
-    case 'slThreshold': return cond.kind === 'slThreshold' ? cond : { kind: 'slThreshold', op: '>=', value: 6 };
-    case 'location': return { kind: 'location', is: cond.kind === 'location' ? cond.is : 'tete' };
-    case 'attackKind': return { kind: 'attackKind', is: cond.kind === 'attackKind' ? cond.is : 'morsure' };
-    case 'startleCause': return { kind: 'startleCause', is: cond.kind === 'startleCause' ? cond.is : 'noise' };
-    case 'woundsDealt': return cond.kind === 'woundsDealt' ? cond : { kind: 'woundsDealt', op: '>', value: 0 };
-    case 'engagedAdvantageGap': return cond.kind === 'engagedAdvantageGap' ? cond : { kind: 'engagedAdvantageGap', op: '>', value: 0 };
-    case 'engagedAdvantageLead': return cond.kind === 'engagedAdvantageLead' ? cond : { kind: 'engagedAdvantageLead', op: '>', value: 0 };
-    case 'foeInLoS': return { kind: 'foeInLoS' };
-    case 'cibleEnVue': return cond.kind === 'cibleEnVue' ? cond : { kind: 'cibleEnVue' };
-    case 'visiblePassive': return cond.kind === 'visiblePassive' ? cond : { kind: 'visiblePassive', who: 'target' };
-    case 'hiddenFromFoes': return { kind: 'hiddenFromFoes' };
-    case 'engaged': return { kind: 'engaged' };
-    case 'crewTest': return { kind: 'crewTest' };
-    case 'roundDeCombat': return { kind: 'roundDeCombat' };
-    case 'nearestFoe': return cond.kind === 'nearestFoe' ? cond : { kind: 'nearestFoe', op: '<=', value: 3 };
-    case 'capability': return cond.kind === 'capability' ? cond : { kind: 'capability', who: 'target', id: 'braveheart', op: '>=', value: 1 };
-    case 'relation': return cond.kind === 'relation' ? cond : { kind: 'relation', who: 'target', is: 'opponent' };
-    case 'has': return cond.kind === 'has' ? cond : { kind: 'has', who: 'target', what: 'group', value: '' };
-    case 'casterChaosDomain': return cond.kind === 'casterChaosDomain' ? cond : { kind: 'casterChaosDomain', is: 'nurgle' };
-    case 'skill': return cond.kind === 'skill' ? cond : { kind: 'skill', id: '', who: 'any' };
-    case 'career': return cond.kind === 'career' ? cond : { kind: 'career', id: '', who: 'any' };
-    case 'species': return cond.kind === 'species' ? cond : { kind: 'species', id: '', who: 'any' };
-    case 'status': return cond.kind === 'status' ? cond : { kind: 'status', atLeast: 'Bronze 1', who: 'any' };
-    case 'all': return { kind: 'all', of: cond.kind === 'all' || cond.kind === 'any' ? cond.of : cond.kind === 'always' ? [] : [cond] };
-    case 'any': return { kind: 'any', of: cond.kind === 'all' || cond.kind === 'any' ? cond.of : cond.kind === 'always' ? [] : [cond] };
-    case 'not': return { kind: 'not', of: cond.kind === 'not' ? cond.of : cond };
-  }
 }
 
 function TimeWindowFields({ window: w, onChange }: { window: TemporalCondition; onChange: (w: TemporalCondition) => void }) {
@@ -436,5 +396,5 @@ export function WhenEditor({ when, onChange, kinds, narratif }: {
   kinds?: ReadonlySet<Condition['kind']>;
   narratif?: NarratifBlock;
 }) {
-  return <ConditionEditor cond={when ?? ALWAYS} kinds={kinds} narratif={narratif} onChange={(c) => onChange(c.kind === 'always' ? undefined : c)} />;
+  return <ConditionEditor cond={when ?? CONDITION_TOUJOURS} kinds={kinds} narratif={narratif} onChange={(c) => onChange(c.kind === 'always' ? undefined : c)} />;
 }

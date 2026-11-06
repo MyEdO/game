@@ -371,7 +371,7 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
       id: 'act', skills: [{ id: 'ragot', advances: 20, characteristic: 'sociabilite' }] as never,
       conditions: [{ id: 'empoisonne', value: 1 }] as never,
     });
-    const pick = travelActivitySpec(h, { id: 'ragot-complexe', label: 'Ragot', contexts: ['interlude'], skills: [{ id: 'ragot' }], difficulty: 'complexe' } as ActivityDef)!;
+    const pick = travelActivitySpec(h, { id: 'ragot-complexe', label: 'Ragot', contexts: ['interlude'], tests: [{ skill: { id: 'ragot' }, difficulty: 'complexe' }] } as ActivityDef)!;
     expect(pick.value).toBe(testValue(h, 'ragot', undefined, undefined));
     expect(pick.target).toBe(clampTarget(pick.value + DIFFICULTY_MODIFIERS.complexe).target);
   });

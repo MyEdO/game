@@ -61,7 +61,6 @@ describe('un argument qui désigne un élément de l’état se choisit parmi se
     ['harvestCreature', 'creatureId', 'IdDeCreatureADepecer'],
     ['roundStartPromote', 'heroId', 'IdDeCombattantPromouvable'],
     ['armPreempt', 'heroId', 'IdDeTireurRapide'],
-    ['preemptRangedShot', 'heroId', 'IdDeTireurRapide'],
   ])('%s.%s désigne %s', (verbe, nom, cle) => {
     const p = VERBES[verbe].find((x) => x.nom === nom)!;
     const membres = p.forme.genre === 'union' ? p.forme.membres : [p.forme];

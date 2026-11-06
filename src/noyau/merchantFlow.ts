@@ -44,7 +44,7 @@ import { refuserGeste } from './refusVisible';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
@@ -1074,7 +1074,7 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
     appraiseGear: (scope, index, mode) => appraiseGear(get, set, scope, index, mode),
     barterExchange: (opts) => barterExchange(get, set, opts),
     setSellHalving: (uid, delta) => setSellHalving(get, set, uid, delta),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 export function sortiesDuMarchand(get: Get, set: Set) {

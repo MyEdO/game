@@ -258,7 +258,7 @@ describe('ProvenanceDuTexte — câblage : la réplique de dialogue', () => {
     function Atelier() {
       const [d, setD] = useState(dialogue);
       dernier = d;
-      return <DialogueDetail dialogue={d} ctx={{ encounters: [], dialogues: [d], personas: [] } as unknown as Ctx} onChange={setD} />;
+      return <DialogueDetail dialogue={d} ctx={{ encounters: [], dialogues: [d], personas: [] } as unknown as Ctx} onChange={setD} onRename={() => undefined} />;
     }
     monter(<Atelier />);
     expect(bouton('Copie', 'de la réplique')).toBeNull();
@@ -283,7 +283,7 @@ describe('ProvenanceDuTexte — câblage : réplique ADRESSÉE, `desc` non saisi
     const dialogue: Dialogue = { id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: TEXTE, descRef: DESC_REF, choices: [] }] };
     function Atelier() {
       const [d, setD] = useState(dialogue);
-      return <DialogueDetail dialogue={d} ctx={{ encounters: [], dialogues: [d], personas: [] } as unknown as Ctx} onChange={setD} />;
+      return <DialogueDetail dialogue={d} ctx={{ encounters: [], dialogues: [d], personas: [] } as unknown as Ctx} onChange={setD} onRename={() => undefined} />;
     }
     monter(<Atelier />);
     const lu = [...container!.querySelectorAll('.ed-field')].find((f) => f.firstElementChild?.textContent === 'Texte de la réplique');
@@ -300,7 +300,7 @@ describe('ProvenanceDuTexte — câblage : réplique ADRESSÉE, `desc` non saisi
     function Atelier() {
       const [d, setD] = useState(dialogue);
       dernier = d;
-      return <DialogueDetail dialogue={d} ctx={{ encounters: [], dialogues: [d], personas: [] } as unknown as Ctx} onChange={setD} />;
+      return <DialogueDetail dialogue={d} ctx={{ encounters: [], dialogues: [d], personas: [] } as unknown as Ctx} onChange={setD} onRename={() => undefined} />;
     }
     monter(<Atelier />);
     expect(container!.querySelector('textarea.prose-field')).toBeNull();

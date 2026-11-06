@@ -21,7 +21,7 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
-import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
+import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, defenseValueModParts, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
@@ -119,6 +119,7 @@ import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../eng
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { STRUCTURE_CRITICALS_DIE, STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
 import { actorIn, inBattleId } from './monde/combatants';
+import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
 import { touchActors, windsMagicModOf, seaMagicContext, ventsAnnonces } from './combatOrParty';
@@ -542,12 +543,12 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
  *  l'orage). `undefined` hors voyage terrestre / règle Étapes éteinte. SOURCE unique de lecture.
  *  Le jour EN COURS vit sur `plan.recap`, interruption comprise (l'embuscade se joue sous sa météo) ;
  *  clos, il est le dernier de `plan.log` — `openRest` à la halte, `resumeTravel` à la reprise (#2533). */
-export function activeDayWeather(get: Get): Weather | undefined {
+export function activeDayWeather(get: Get<Jeu>): Weather | undefined {
   return activeTravelDay(get)?.weather?.id;
 }
 
 /** Le jour de voyage EN COURS (`activeDayWeather`), ou le dernier jour clos à la halte de nuit. */
-function activeTravelDay(get: Get): TravelRecapDay | undefined {
+function activeTravelDay(get: Get<Jeu>): TravelRecapDay | undefined {
   const plan = get().travelPlan;
   if (!plan) return undefined;
   return plan.recap ? plan.recap.days[plan.recap.days.length - 1] : plan.log?.[plan.log.length - 1];
@@ -661,7 +662,7 @@ export function withAttackerAt(battle: BattleState, attacker: Combatant): Battle
  *  « Tirer dans le tas », dodge météo) — l'aperçu n'utilise que `env`/`blocked`. */
 export interface AttackEnv { env: ModLine[]; blocked: boolean; inMelee: boolean; crowd: Combatant[]; cm: ModLine | null; sc: ReturnType<typeof sceneCombatModifiers>; flankRear?: boolean; }
 export function attackEnv(
-  get: Get,
+  get: Get<Jeu>,
   attacker: Combatant,
   target: Combatant,
   weapon: Weapon,
@@ -916,7 +917,7 @@ export interface AttackPreview {
   soak: number;
 }
 export function previewAttack(
-  get: Get,
+  get: Get<Jeu>,
   attacker: Combatant,
   target: Combatant,
   location?: HitLocation,
@@ -1001,8 +1002,8 @@ export function previewDefense(
 }
 
 /** La ligne ENTIÈRE du jet de défense `mode` avant le dé, valeur et cible comprises : ce que le défenseur lit de sa
- *  propre réaction. Montée comme `rollMeleeDefender` la jette (valeur `defenseValue`, modificateurs qui font la cible
- *  `defenseTargetMods`, LDB 13 l.118), par le monteur canonique en mode plafonné. `socialBase` : la valeur de la
+ *  propre réaction. Montée comme `rollMeleeDefender` la jette (valeur `defenseValue`, nommée en base NUE et
+ *  `defenseValueModParts`, modificateurs qui font la cible `defenseTargetMods`, LDB 13 l.118), par le monteur canonique en mode plafonné. `socialBase` : la valeur de la
  *  Compétence substituée (LDB 09 l.207, l.287). */
 export function ligneDeDefense(
   defender: Combatant,
@@ -1010,7 +1011,7 @@ export function ligneDeDefense(
 ): RollLineParts {
   return rollLine({
     difficulty: 'intermediaire', // LDB 13 l.118
-    valeur: defenseValue(defender, ctx.mode, ctx.parryWeapon, ctx.socialBase), valeurEtrangere: true,
+    valeur: defenseValue(defender, ctx.mode, ctx.parryWeapon, ctx.socialBase), dansLaValeur: defenseValueModParts(defender, ctx.mode, ctx.parryWeapon), valeurEtrangere: true,
     surLaCible: defenseTargetMods(defender, ctx.mode, ctx.dodgeMods ?? [], ctx.parryWeapon, ctx.vsWeapon), plafond: 'difficultes',
   });
 }
@@ -1106,7 +1107,7 @@ export function outOfSightTargetIds(get: Get): Set<string> {
  *  capable de voir – par exemple, avoir en Ligne de vue – votre cible ») : BINAIRE — un Sort n'est
  *  pas un tir, aucune règle ne lui applique de malus de couvert → seul `.blocked` compte.
  *  Occupants ignorés (une créature ne bloque pas la vue, elle ne donne que du couvert — hors sorts). */
-export function castSightBlocked(get: Get, from: Pt, to: Pt): boolean {
+export function castSightBlocked(get: Get<Jeu>, from: Pt, to: Pt): boolean {
   const { scene, battle } = get();
   if (!scene) return false;
   return !losClear(scene, from, to, battle ? smokeOf(battle) : []);
@@ -1377,7 +1378,7 @@ export function bestAdjacentReachable(reach: Map<string, number>, target: Pt, ta
  *  (mouvement décomposable), géométrie de la monture, règle M-A-M, filtre Brisé. Vide si Engagé
  *  (le déplacement passe par le Désengagement — LDB 15 l.45). Source unique pour l'affichage ET la
  *  validation des clics de déplacement. */
-export function computeMoveReach(get: Get): Map<string, number> {
+export function computeMoveReach(get: Get<Jeu>): Map<string, number> {
   const { battle, scene } = get();
   if (!battle || !scene) return new Map();
   const tour = mobileDuTour(get(), battle);
@@ -1409,7 +1410,7 @@ function briseFleeFilter(scene: Scene, battle: BattleState, active: Combatant, r
 /** Zone NOMINALE de Course (LDB 15 l.41) : le Mouvement RESTANT + la distance de Course (`distanceDeCourse`,
  *  avant DR) depuis la case courante — affichée dans une autre couleur ; un clic dedans demande le Test de
  *  la fiche `course`, le déplacement réel dépendant du jet. Verdict : `refusDeCourse`. */
-export function computeRunReach(get: Get): Map<string, number> {
+export function computeRunReach(get: Get<Jeu>): Map<string, number> {
   const { battle, scene } = get();
   if (!battle || !scene || battle.over) return new Map();
   // Mode-CASE (#198, résidus) : Pousser/Téléportation/pose de zone posent LEUR PROPRE ensemble dans
@@ -1429,7 +1430,7 @@ export function computeRunReach(get: Get): Map<string, number> {
 /** Zone d'arrivée d'une CHARGE (LDB 15 l.35-37) : les cases atteignables avec le budget `chargeReach`
  *  (`engine/movement`). Verdict : `refusDeCharge`, celui de la case `charge-possible`. Vide quand la Charge
  *  n'est pas offerte. */
-export function computeChargeReach(get: Get): Map<string, number> {
+export function computeChargeReach(get: Get<Jeu>): Map<string, number> {
   const { battle, scene } = get();
   if (!battle || !scene || battle.over) return new Map();
   const active = activeCombatant(battle);
@@ -1442,7 +1443,7 @@ export function computeChargeReach(get: Get): Map<string, number> {
 
 /** Cases cliquables affichées/validées : budget SPÉCIAL stocké (Course, post-Désengagement)
  *  prioritaire, sinon Marche restante dérivée. */
-export function displayedReach(get: Get): Map<string, number> {
+export function displayedReach(get: Get<Jeu>): Map<string, number> {
   const battle = get().battle;
   if (!battle) return new Map();
   return battle.reachable.size > 0 ? battle.reachable : computeMoveReach(get);
@@ -5347,7 +5348,7 @@ export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | '
 
 /** La case `pt` est-elle une POSE valide pour la zone en cours ? Portée depuis l'ancre + Ligne
  *  de Vue vers le point (LDB 46 l.121) — partagé par le gabarit (couleur) et le clic. */
-export function placedZoneValidAt(get: Get, pz: Pick<PlacingZone, 'casterId' | 'rangeTiles'>, pt: Pt): boolean {
+export function placedZoneValidAt(get: Get<Jeu>, pz: Pick<PlacingZone, 'casterId' | 'rangeTiles'>, pt: Pt): boolean {
   const caster = inBattleId(get().battle, pz.casterId);
   if (!caster?.pos) return false;
   if (pz.rangeTiles != null && chebyshev(caster.pos, pt) > pz.rangeTiles) return false;
@@ -5456,7 +5457,7 @@ export type SpellSight = { scene: Scene; smoke?: Pt[] } | null;
 const spellSightBlocked = (sight: SpellSight | undefined, caster: Combatant, t: Combatant): boolean =>
   !!sight && !!caster.pos && !!t.pos && !losClear(sight.scene, caster.pos, t.pos, sight.smoke ?? []);
 /** SpellSight depuis l'état courant (scène + fumée du combat), null hors combat. */
-export const spellSightOf = (get: Get): SpellSight =>
+export const spellSightOf = (get: Get<Jeu>): SpellSight =>
   get().scene && get().battle ? { scene: get().scene!, smoke: smokeOf(get().battle!) } : null;
 
 /** Unicité RAW (arcane LDB 46 l.116-121 / divin 40 l.16-19) : un effet OU une invocation de CE sort est-il
@@ -5555,13 +5556,15 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
   };
 }
 
-/** La meilleure action IA de `enemy` est-elle de PRÉPARER un sort (cast/castArea/focus) plutôt que d'agir
- *  au contact ? Peek DÉTERMINISTE lu par le hook de Frénésie (`aiMaybeFrenzy`) pour DIFFÉRER l'entrée en
+/** La meilleure action IA du combattant `id` est-elle de PRÉPARER un sort (cast/castArea/focus) plutôt que d'agir
+ *  au contact ? Sélecteur DÉTERMINISTE lu par le hook de Frénésie (`aiMaybeFrenzy`) pour DIFFÉRER l'entrée en
  *  Frénésie tant qu'un sort (buff/invocation/dégâts) prime sur charger — RAW : l'entrée en Frénésie est un
  *  CHOIX (psychologie.md l.170). L'Unicité retire ces sorts un à un ; quand il ne reste que charger, la
  *  Frénésie passe au tour suivant. N'utilise AUCUN `battleRng` et ne mute rien (`buildAiInput`/
  *  `chooseEnemyAction` déterministes et purs) → planning de coop sans désync. */
-export function aiWouldPrepareSpell(enemy: Combatant, get: Get): boolean {
+export function aiJetteraitUnSort(get: Get, id: IdDeCombattant): boolean {
+  const enemy = inBattleId(get().battle, id);
+  if (!enemy) return false;
   const a = chooseEnemyAction(buildAiInput(enemy, get));
   return a.kind === 'cast' || a.kind === 'castArea' || a.kind === 'focus';
 }

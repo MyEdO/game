@@ -34,7 +34,7 @@ import { propulsionDuNavire, milieuDuVoyage } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /**
@@ -602,5 +602,5 @@ export function creerActionsDeLEquipage(get: Get, set: SetFn) {
       setAmmoChoice(undefined, undefined, ammoUid ?? undefined, poste); // écrivain UNIQUE de la sélection
       set({ battle: { ...b } });
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

@@ -8,12 +8,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../state/store';
 import { Modal } from '../Modal';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexItemKey, type CodexCategory, type CodexGroup, type CodexItem } from '../../noyau/codex/registry';
+import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexGroupLabel, codexItemKey, type CodexCategory, type CodexGroup, type CodexItem } from '../../noyau/codex/registry';
 import type { CodexFocus } from '../../state/codexFocus';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { filterItems, facetRows, type FacetSelection } from '../../noyau/codex/search';
 import { CodexEntry } from './CodexEntry';
-import { CodexEdit, isEditableCategory } from '../editor/codex/CodexEdit';
+import { CodexEdit } from '../editor/codex/CodexEdit';
+import { isEditableCategory } from '../../data/atelierDuCodex';
 import { useAtelierMode, setAtelierMode } from './atelierMode';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
@@ -148,7 +149,7 @@ export function CompendiumScreen({ focus: focusProp }: {
         <div className="codex-groups">
           <Tabs
             label="Groupes du Codex"
-            tabs={CODEX_GROUPS.map((g) => ({ key: g, label: g }))}
+            tabs={CODEX_GROUPS.map((g) => ({ key: g, label: codexGroupLabel(g) }))}
             active={group}
             onChange={pickGroup}
           />

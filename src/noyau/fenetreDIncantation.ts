@@ -9,7 +9,7 @@
  */
 import type { Jeu } from './etat';
 import type { FermeturesDuJet } from './rollFlowFactory';
-import type { ReglageDu } from './reglagesDuJet';
+import { REGLAGE_DE_L_AXE, type ReglageDu } from './reglagesDuJet';
 import type { IdDeFormeConjuree } from './designations';
 import { actorIn } from './monde/combatants';
 import { aiDriven, influencesLocally } from './netOwnership';
@@ -82,6 +82,9 @@ export interface FenetreDIncantation {
   forme: ChoixNomme | null;
   critique: ChoixNomme<CritChoice> | null;
   surincantation: SurincantationEnVue | null;
+  /** Les pas de Surincantation de chaque axe ouvert, en choix réglés (`REGLAGE_DE_L_AXE`) : de 0 au budget, chaque pas
+   *  avec la raison qui le refuse ; vide quand le jet n'ouvre aucun pas. LDB 47 l.15-17 */
+  crans: ChoixNomme<number>[];
   /** La pose de la zone après le jet (`castPlaceZone(true)`) : la raison qui la refuse ; `null` sans zone à poser. */
   pose: { refus: string | null } | null;
   /** Les fermetures du flux `cast` (`FLOWS.cast.fermetures`). */
@@ -206,13 +209,14 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
   const res = pc.result;
   const priere = castInfoIsPrayer(sort);
   const montre = (reglage: ReglageDu<'cast'>): boolean => seMontre(s, reglage);
-  const choix = <V extends string | boolean>(reglage: ReglageDu<'cast'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> =>
+  const choix = <V extends string | number | boolean>(reglage: ReglageDu<'cast'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> =>
     ({ geste: gesteDuReglage('cast', reglage), libelle: libelleDuReglage('cast', reglage), choisie, options });
   const zoneAPoser = !!pc.zone && !pc.zone.center;
   const apercu = previewCast(lanceur, sort, { missile: pc.missile, focused: pc.focused, jete: !!res, ctx: { s, target: cible, skipWard: zoneAPoser } });
   const formes = conjureFormOptions(lanceur);
   const refusDeForme = refusDuReglage(s, 'formeConjuree');
   const fermetures = fermeturesDuFlux(s, 'cast');
+  const surincantation = surincantationEnVue(s);
   return {
     lanceurId: lanceur.id,
     cibleId: cible.id,
@@ -250,7 +254,10 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
           valeur: c, libelle: t(`valeur.${c}`), refus: refusDuChoixCritique(s, c),
         })))
       : null,
-    surincantation: surincantationEnVue(s),
+    surincantation,
+    crans: (surincantation?.axes ?? []).map(({ axe, pas }) => choix(REGLAGE_DE_L_AXE[axe], pas, Array.from({ length: surincantation!.budget + 1 }, (_, n) => ({
+      valeur: n, libelle: String(n), refus: refusDuPasDeSurincantation(s, axe, n),
+    })))),
     pose: zoneAPoser && res && s.battle ? { refus: refusDeLaPose(s, true) } : null,
     fermetures,
     annulation: fermetures.cancel ? libelleDeLaFermeture(fermetures.cancel) : null,

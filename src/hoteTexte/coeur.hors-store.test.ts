@@ -50,7 +50,20 @@ describe('les erreurs d’un geste : catégorie, drapeau d’erreur, fichier int
     refuse(partie('dome', verbe('confirmRoundStart')), geste, categorie, /./);
   });
   it('un verbe inconnu nomme les gestes de la fenêtre qui tient la main et ses voisins de nom', () => {
-    refuse(partie('dome'), verbe('confirmRound'), 'validation', /verbe inconnu : confirmRound ; gestes de la fenêtre roundStart : confirmRoundStart, roundStartReady, roundStartPromote, armPreempt ; voisins : confirmRoundStart/);
+    refuse(partie('dome'), verbe('confirmRound'), 'validation', /verbe inconnu : confirmRound ; gestes de la fenêtre roundStart : confirmRoundStart, roundStartReady, roundStartPromote, armPreempt, battleClickEntity ; voisins : confirmRoundStart/);
+  });
+});
+
+describe('une écriture du noyau n’est pas un geste (`MachinerieDuNoyau`, #3370)', () => {
+  it('`jouer` refuse `startScene` en `validation`, verbe inconnu', () => {
+    refuse(partie('dome'), verbe('startScene', {}), 'validation', /verbe inconnu : startScene/);
+  });
+  it('le rejeu refuse la ligne du fichier qui nomme `startScene`, avec son rang', () => {
+    const t = partie('dome', verbe('confirmRoundStart'));
+    t.disque.ecrire('p', `${t.fichier()}{"type":"startScene","args":[{}]}\n`);
+    const r = t.lire('vue');
+    expect(r.erreur, r.texte).toBe('validation');
+    expect(r.texte.split('\n  ').join(' ')).toMatch(/ligne 3 du fichier ne se rejoue plus : verbe inconnu : startScene/);
   });
 });
 
@@ -78,7 +91,7 @@ describe('la partie et son fichier', () => {
   it('un geste refusé qui a touché l’état (son refus) ne laisse rien en mémoire : la partie est rejouée depuis le fichier', () => {
     const t = partie('pont-vitrine', verbe('stepPartyRelative', 'back'));
     const avant = t.lire('vue').texte;
-    refuse(t, verbe('sauter', [{ x: 13, y: 12 }, { x: 13, y: 13 }], 1), 'regle', /sauter sans effet : Saut refusé/);
+    refuse(t, verbe('fallAcross', { x: 13, y: 12 }, { x: 13, y: 13 }), 'regle', /fallAcross sans effet : /);
     expect(t.lire('vue').texte, 'la mémoire a divergé du fichier : la vue garde le refus').toBe(avant);
   });
   it('deux rejeux d’un fichier dans un même processus rendent la même empreinte (les séquences d’ids repartent de zéro)', () => {
@@ -148,28 +161,18 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
   });
 });
 
-describe('la garde du saut est celle du noyau (`sauter`)', () => {
-  it('un saut qui ne part pas de la case du groupe est refusé, le groupe ne bouge pas', { timeout: 120_000 }, () => {
+describe('`cliquerLaCase` mène le groupe jusqu’à la case, en une passe (`marcherLeChemin`)', () => {
+  it('une case au-delà du gouffre : le groupe saute (`sauter`) et atterrit sur la case cliquée', { timeout: 120_000 }, () => {
     const t = partie('pont-vitrine');
-    refuse(t, verbe('sauter', [{ x: 13, y: 12 }, { x: 13, y: 13 }], 1), 'regle', /sauter sans effet : Saut refusé : il part de la case du groupe/);
-    expect(t.lire('vue').texte).toMatch(/groupe \(7,1\)/);
+    const r = t.jouer(verbe('cliquerLaCase', { x: 7, y: 5 }));
+    expect(r.erreur, r.texte).toBeNull();
+    expect(t.lire('vue').texte).toMatch(/groupe \(7,5\) étage 0/);
   });
-  it('un saut depuis la case du groupe vers une case qu’aucun saut n’atteint est refusé', { timeout: 120_000 }, () => {
-    refuse(partie('pont-vitrine'), verbe('sauter', [{ x: 7, y: 1 }, { x: 7, y: 5 }], 1), 'regle', /Saut refusé : aucun saut ne mène à cette case/);
-  });
-});
-
-describe('`moveParty` est un PAS : la garde du verbe est celle du noyau (`pasDuGroupe`)', () => {
-  it('un pas vers une case qui n’est pas voisine est refusé, le groupe ne bouge pas', { timeout: 120_000 }, () => {
-    const t = partie('pont-vitrine');
-    refuse(t, verbe('moveParty', { x: 13, y: 13 }), 'regle', /moveParty sans effet : Pas refusé/);
-    expect(t.lire('vue').texte).toMatch(/groupe \(7,1\)/);
-  });
-  it('une porte fermée s’ouvre par son id, puis le pas la franchit (« La porte close »)', { timeout: 120_000 }, () => {
-    const t = partie('porte-close', verbe('moveParty', { x: 2, y: 1 }));
+  it('une porte fermée arrête la marche ; ouverte par son id, le clic la franchit (« La porte close »)', { timeout: 120_000 }, () => {
+    const t = partie('porte-close', verbe('cliquerLaCase', { x: 2, y: 1 }));
     expect(t.lire('vue').texte).toContain('Porte extérieure fermée : `jouer {"gestes":[{"verbe":"actionnerLaPorte","args":["0:2,1:E:exterior:reduit"]}]}`');
-    refuse(t, verbe('moveParty', { x: 3, y: 1 }), 'regle', /Pas refusé/);
-    const r = t.jouer(verbe('actionnerLaPorte', '0:2,1:E:exterior:reduit'), verbe('moveParty', { x: 3, y: 1 }));
+    refuse(t, verbe('cliquerLaCase', { x: 3, y: 1 }), 'regle', /cliquerLaCase sans effet/);
+    const r = t.jouer(verbe('actionnerLaPorte', '0:2,1:E:exterior:reduit'), verbe('cliquerLaCase', { x: 3, y: 1 }));
     expect(r.erreur, r.texte).toBeNull();
     expect(t.lire('vue').texte).toMatch(/groupe \(3,1\)/);
   });
@@ -199,7 +202,7 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
 describe('les verbes et les scènes', () => {
   it('`lire verbes` rend la signature d’un verbe, ou les verbes dont le nom contient un morceau, sans partie', () => {
     const t = table();
-    expect(t.lire('verbes', { id: 'sauter' }).texte).toBe('sauter(chemin: [{"x": nombre, "y": nombre, "z"?: nombre}, …], indice: nombre)');
+    expect(t.lire('verbes', { id: 'cliquerLaCase' }).texte).toBe('cliquerLaCase(pt: {"x": nombre, "y": nombre, "z"?: nombre}, entite?: id d’entité de scène)');
     expect(t.lire('verbes', { id: 'RoundStart' }).texte).toMatch(/confirmRoundStart/);
     const tous = t.lire('verbes');
     expect(tous.erreur).toBeNull();

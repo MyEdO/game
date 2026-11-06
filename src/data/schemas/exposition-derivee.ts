@@ -170,8 +170,3 @@ export const FICHIERS_DECLARES: ReadonlySet<string> = derive.fichiersDeclares;
 
 /** Fichier → exemption d'exposition au Codex déclarée par son def. */
 export const EXEMPTS: Readonly<Record<string, ExemptionCodex>> = derive.exempts;
-
-/** Union des clés de catégorie Codex déclarées par les defs. */
-export const CLES_CODEX_DECLAREES: ReadonlySet<string> = new Set(
-  SCHEMA_DEFS.flatMap((d) => (d.exposition && 'keys' in d.exposition.codex ? [...d.exposition.codex.keys] : [])),
-);

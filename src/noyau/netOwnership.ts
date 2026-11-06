@@ -372,9 +372,8 @@ const PAR_ARG1: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[
 
 /**
  * CLIC DE CARTE pendant un ciblage détenu par une fenêtre HORS registre de modales (#1016) — c'est
- * LE chemin vivant : l'invité ne demande jamais `cleaveAttack`/`dualStrikeAttack` (appelés en
- * INTERNE par `targetingModes`), il clique, et le clic voyage par `battleClickEntity`/
- * `battleClickTile`. Ces deux verbes retombaient sur `modalOwnerOf`, qui ne consulte que
+ * LE chemin : le balayage et la 2ᵉ frappe (`cleaveAttack`/`dualStrikeAttack`) sont la machinerie du clic
+ * (`targetingModes`, `MachinerieDuNoyau`), et le clic voyage par `battleClickEntity`/`battleClickTile`. Ces deux verbes retombaient sur `modalOwnerOf`, qui ne consulte que
  * `MODAL_DEFS` : sous un `fateSave` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
  * REFUSÉ et la victime acceptée — son clic mourait ensuite dans les gardes de `battleClickEntity`,
  * donc PERSONNE ne poursuivait le balayage. Tant qu'un pending hors-modale tient le ciblage
@@ -404,7 +403,7 @@ const CLIC_ENTITE: Route = {
 };
 
 /** Geste de la pause de début de Round visant un héros par son 1ᵉʳ argument (Tir rapide : armer la
- *  visée, tirer). Hors pause, la fenêtre n'existe pas : personne ne le joue. */
+ *  visée). Hors pause, la fenêtre n'existe pas : personne ne le joue. */
 const PAUSE_DE_ROUND_PAR_ARG0: Route = {
   rule: (s, seat, args) => !!s.pendingRoundStart && seatOwns(s, seat, idArg(args[0])),
 };
@@ -493,9 +492,7 @@ const ROUTE_DU_REGLAGE: Route = {
 /**
  * Gestes TERMINAUX d'une fenêtre HORS registre de modales (`HORS_MODAL.intents`) : possession prise
  * au pending qui héberge le geste. `cleaveEnd`/`dualStrikeSkip` sont émis par le bandeau de phase de
- * la console (sortie d'interlude) ; `cleaveAttack`/`dualStrikeAttack` n'ont AUCUN émetteur d'UI
- * aujourd'hui (défense en profondeur pour un futur émetteur direct — table `EMISSION` de
- * `hors-modal-intent-path.test.ts`).
+ * la console (sortie d'interlude).
  */
 const routeHorsModal = (def: HorsModalDef): Route => ({
   rule: (s, seat) => {
@@ -559,12 +556,11 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     //    du héros devenait indépensable en coop.
     //  - `confirmRoundStart` lance le Round pour TOUS : l'invité marque son siège (`roundStartReady`)
     //    et l'hôte clôt à l'unanimité (`combatSlice.roundStartReady`).
-    //  - Tir rapide : `armPreempt`/`preemptRangedShot` visent le TIREUR par leur 1ᵉʳ argument — même
-    //    trou de repli que la promotion (pas d'actif pendant la pause).
+    //  - Tir rapide : `armPreempt` vise le TIREUR par son 1ᵉʳ argument — même trou de repli que la
+    //    promotion (pas d'actif pendant la pause) ; le tir est le clic du combattant (`CLIC_ENTITE`).
     ['roundStartPromote', { rule: (s, seat, args) => !!s.pendingRoundStart && seatInfluences(s, seat, idArg(args[0])) }],
     ['confirmRoundStart', { rule: (s, seat) => seatOwns(s, seat, undefined) }],
     ['armPreempt', PAUSE_DE_ROUND_PAR_ARG0],
-    ['preemptRangedShot', PAUSE_DE_ROUND_PAR_ARG0],
     // DÉCLARATION de rangée (#1042/#1059) : le geste décide de l'engagement de la Dissipation du Round
     // de son porteur (consommée à l'engage) — même prédicat que l'affordance de la rangée
     // (`influencesLocally`), routé par l'id porté en 1ᵉʳ argument. Le verbe NULLAIRE « tout déclarer »
@@ -592,10 +588,10 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // #669 — Dialogue = décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) : l'hôte choisit
     // la réponse, les autres LISENT. Un Test social DANS un dialogue reste arbitré par le propriétaire du héros
     // testeur (`openSkillTest`→`pendingTest`→modalArbiter).
-    ...(['chooseDialogue', 'interactEntity', 'designerHerosChoisir'] as const).map(
+    ...(['chooseDialogue', 'cliquerLaCase', 'designerHerosChoisir'] as const).map(
       (a) => [a, {
         rule: (s: Jeu, seat: number) => seat === (s.net.gmSeat ?? 0),
-        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer, `designerHerosChoisir` DesignationHerosModal)',
+        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `cliquerLaCase` useStagePointer, `designerHerosChoisir` DesignationHerosModal)',
       }] as readonly [string, Route],
     ),
   ],

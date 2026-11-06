@@ -1,0 +1,17 @@
+{
+  "model": "humanoide--rigide--epee.glb",
+  "model_sha256": "392a365ffaa73c1b3b148c7d90fb5db2536fbcb2c4879fba78736aa7bb365a60",
+  "importe_le": "2026-11-05",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

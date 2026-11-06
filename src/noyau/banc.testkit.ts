@@ -12,6 +12,7 @@
  */
 import { onTestFinished } from 'vitest';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { JeuDuNoyau, MachinerieDuNoyau } from './machinerieDuNoyau';
 import { CADENCE_DEFAULT } from '../engine/cadence';
 import { DES_FIXES_DEFAULT } from '../engine/fixedDie';
 import { etatInitialDuJeu, type EtatDeJeu, type Jeu } from './etat';
@@ -25,10 +26,10 @@ import type { Jeton } from './plateforme';
 export type EntreesDuBanc = Partial<EntreesDeLaPartie> & { etat?: Partial<EtatDeJeu> };
 
 export interface Banc {
-  getState: () => Jeu;
+  getState: () => JeuDuNoyau;
   setState: (ecrit: Ecrit) => void;
   subscribe: (fn: (etat: Jeu, prev: Jeu) => void) => () => void;
-  actions: ActionsDuNoyau;
+  actions: ActionsDuNoyau & MachinerieDuNoyau;
   /** Reprend chaque jeton d'échéance au plus `ms` plus tard, ceux que les reprises programment dans la fenêtre compris
    *  (`vi.advanceTimersByTime`) ; rend le nombre de reprises. */
   avancer: (ms: number) => number;
@@ -92,7 +93,7 @@ function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
   });
   const banc: Banc = {
     getState: proprietaire.get,
-    setState: proprietaire.set,
+    setState: proprietaire.set as Banc['setState'],
     subscribe: proprietaire.abonner,
     actions: proprietaire.actions,
     avancer: horloge.avancer,

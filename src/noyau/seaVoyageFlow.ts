@@ -351,7 +351,7 @@ export function syncHullWoundsFromVessel(hull: Combatant, vessel: Pick<CampaignV
 }
 
 /** Le navire de campagne, ses données de type et sa COQUE de trajet (Blessures PERSISTÉES, #30). */
-function voyageShip(get: Get): { vessel: CampaignVessel; hull: Combatant } | null {
+function voyageShip(get: Get<Jeu>): { vessel: CampaignVessel; hull: Combatant } | null {
   const vessel = get().vessel;
   if (!vessel) return null;
   const v = findVehicleById(vessel.vehicleId);
@@ -528,7 +528,7 @@ export function dossierDuNavire(vessel: CampaignVessel, party: Combatant[]): Dos
 
 /** Refus d'un départ en mer (`null` : le navire de campagne appareille) — les cas où `buildSeaPlan` rend
  *  `null`. Lu par `refusDeDepart` (`travelFlow`) et par l'estimation de la carte du monde (#3059). */
-export function refusDuDepartEnMer(get: Get): string | null {
+export function refusDuDepartEnMer(get: Get<Jeu>): string | null {
   const ship = voyageShip(get);
   if (!ship) return t('tf.noVessel');
   const refus = refusDAppareiller(ship.vessel);

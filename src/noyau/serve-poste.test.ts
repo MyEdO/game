@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { availableAttacks } from './combatManeuvers';
 import { firedAttackBlock } from './combatFlow';
 import type { Combatant, ShipPoste } from '../engine/types';
-import type { BattleState, Jeu } from './etat';
+import type { BattleState } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
@@ -35,8 +36,8 @@ const hull = (): Combatant =>
 const battle = (combatants: Combatant[]): BattleState =>
   ({ combatants, order: combatants.map((c) => c.id), turn: 0, movementUsed: 0, action: null, selectedSpellId: null, acted: false, over: null }) as unknown as BattleState;
 
-const mkGet = (combatants: Combatant[], heading: string): (() => Jeu) =>
-  (() => ({ battle: battle(combatants), facing: { hull: heading }, gameTime: 0, log: () => {} })) as unknown as () => Jeu;
+const mkGet = (combatants: Combatant[], heading: string): (() => JeuDuNoyau) =>
+  (() => ({ battle: battle(combatants), facing: { hull: heading }, gameTime: 0, log: () => {} })) as unknown as () => JeuDuNoyau;
 
 describe('Étape 3 — Servir un poste (availableAttacks + arc)', () => {
   it('un chef de pièce voit l’attaque « Servir », portant l’arme du poste (weaponUid épinglé)', () => {

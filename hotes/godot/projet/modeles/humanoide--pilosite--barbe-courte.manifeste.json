@@ -1,0 +1,29 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "pilosite",
+  "cle": {
+    "coiffure": "barbe-courte"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "peau",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "carrure_moins",
+    "carrure_plus",
+    "corpulence"
+  ],
+  "surfaces": [
+    {
+      "nom": "poil",
+      "palette": "cheveux"
+    }
+  ],
+  "glb": {
+    "sha256": "77fa0b80c0e5d2f3cf4d5b2a29f4dd9097aafe7c1c0739bc1de1405a1ab1de63",
+    "octets": 289752
+  }
+}

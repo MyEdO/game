@@ -6,15 +6,17 @@
  * focus ou sa première valeur ouverte, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
  * Critique, la fiche du premier héros ouverte par son bouton puis chacun de ses onglets par le sien, sa première
  * possession choisie (ses gestes refusés en combat), le combat poursuivi de même jusqu'à sa fin (la fenêtre de sa
- * fin, sa sortie en focus), la création d'un héros hors de la partie (`zonesDeLaCreation` sur
+ * fin, sa sortie en focus), puis, chacun sur un pont neuf, le premier document de la liasse de `documents-edo` lu, et
+ * dans `magie` la Fléchette choisie parmi les sorts de l'actif, sa fenêtre d'incantation avant puis après le jet et un pas
+ * de Surincantation alloué, la création d'un héros hors de la partie (`zonesDeLaCreation` sur
  * l'état initial : la race avant puis après son d100, la carrière tirée, les Caractéristiques en 100 points, chacune en
  * liste), et un formulaire
  * de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
- * ses zones, les lignes que le tour a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
+ * ses zones, les lignes que le combat du dôme a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
 import { creerPont, type Suite } from '../pont/pont';
-import { CLICS_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
 import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type GesteDeLaCreation, type Jeu, type Ligne } from '../../../src/hote/elements';
 import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
@@ -51,24 +53,30 @@ const ARGUMENTS_DU_FORMULAIRE = ['designe', 'b', 3, 'mot', { a: 1 }, { x: 2, y: 
 const REFUSE: GesteDeLaFenetre = { cle: 'refuse', verbe: 'verbeDeRecette', libelle: 'Geste refusé', arguments: [], rendu: 'bouton', aChoisir: null, attendu: false, ouvert: true, raison: 'Fermé par le jet', reglage: false };
 
 export function figerVuesDeLEcran(): VueFigee[] {
-  const pont = creerPont();
-  const appeler = (methode: string, entree: unknown): Suite => {
-    const r = JSON.parse(pont.appeler(methode, JSON.stringify(entree))) as { ok: boolean } & Suite;
-    if (!r.ok) throw new Error(`${methode} ${JSON.stringify(entree)} : ${JSON.stringify(r)}`);
-    return r;
-  };
   const lignes: Ligne[] = [];
-  const jouer = (methode: string, entree: unknown): Suite => {
-    let s = appeler(methode, entree);
-    lignes.push(...s.zones['journal.lignes']);
-    horlogeVirtuelle((jeton) => {
-      s = appeler('reprendre', { jeton });
-      lignes.push(...s.zones['journal.lignes']);
-      return s.programmes;
-    }, s.programmes).vider();
-    return s;
-  };
   const vues: VueFigee[] = [];
+  /** Un pont neuf et ses appels ; `jouer` rejoue les jetons de chaque suite sur l'horloge virtuelle et verse les lignes
+   *  de chaque suite à `journal`. L'écran de la recette ne fait qu'ajouter à son journal et les ids d'une ligne
+   *  repartent de zéro à chaque partie : seul le combat du dôme verse au journal des vues. */
+  const unPont = (journal: Ligne[]) => {
+    const pont = creerPont();
+    const appeler = (methode: string, entree: unknown): Suite => {
+      const r = JSON.parse(pont.appeler(methode, JSON.stringify(entree))) as { ok: boolean } & Suite;
+      if (!r.ok) throw new Error(`${methode} ${JSON.stringify(entree)} : ${JSON.stringify(r)}`);
+      return r;
+    };
+    const jouer = (methode: string, entree: unknown): Suite => {
+      let s = appeler(methode, entree);
+      journal.push(...s.zones['journal.lignes']);
+      horlogeVirtuelle((jeton) => {
+        s = appeler('reprendre', { jeton });
+        journal.push(...s.zones['journal.lignes']);
+        return s.programmes;
+      }, s.programmes).vider();
+      return s;
+    };
+    return { appeler, jouer, fermer: pont.fermer };
+  };
   const figer = (nom: string, s: Suite) => vues.push({ nom, disposition: s.vue.disposition, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] }, attendus: {} });
   const enFocus = (s: Suite): Jeu => {
     const b = s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus);
@@ -76,6 +84,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
     return b.jeu;
   };
 
+  const { appeler, jouer, fermer } = unPont(lignes);
   let s = jouer('demarrer', { scenario: 'dome', graine: 7 });
   figer('début du round', s);
   s = jouer('jouer', enFocus(s));
@@ -122,11 +131,46 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = appeler('fiche', s.vue.zones['fiche.corps'].find((e): e is Bouton => e.type === 'bouton')!.jeu);
   figer('fiche du héros, une possession choisie', s);
   s = appeler('fiche', { fiche: null });
-  for (let pas = 0; !s.vue.projection.combat?.fin; pas++) {
+  const fini = (s: Suite) => !!s.vue.projection.combat?.fin && !!s.vue.projection.fenetre && !s.vue.projection.fenetre.etape;
+  for (let pas = 0; !fini(s); pas++) {
     if (pas > 600) throw new Error(`aucune fin du combat après ${pas} gestes`);
     s = jouer('jouer', presse(s));
   }
   figer(`fin du combat, ${s.vue.zones['fenetre.titre'][0]?.texte ?? 'sans fenêtre'}`, s);
+  fermer();
+
+  /** Une fenêtre après l'autre, chacune par son geste pressé, tant qu'une tient la main. */
+  const viderLesFenetres = (j: ReturnType<typeof unPont>['jouer'], s: Suite): Suite => {
+    for (let pas = 0; s.vue.projection.fenetre; pas++) {
+      if (pas > 20) throw new Error(`fenêtres sans fin : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
+      s = j('jouer', presse(s));
+    }
+    return s;
+  };
+
+  const liasse = unPont([]);
+  s = viderLesFenetres(liasse.jouer, liasse.jouer('demarrer', { scenario: 'documents-edo', graine: 7 }));
+  s = liasse.jouer('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [{ x: 2, y: 2 }] });
+  s = liasse.jouer('jouer', s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Liasse de documents : Parcourir la liasse')!.jeu);
+  const reponse = (debut: string) => s.vue.zones['dialogue.reponses'].find((b) => b.libelle.startsWith(debut))!.jeu;
+  s = liasse.jouer('jouer', reponse('Chapitre 1'));
+  s = liasse.jouer('jouer', reponse('Lire'));
+  figer('pièce remise, la première de la liasse', s);
+  liasse.fermer();
+
+  const magie = unPont([]);
+  s = viderLesFenetres(magie.jouer, magie.jouer('demarrer', { scenario: 'magie', graine: 7 }));
+  s = viderLesFenetres(magie.jouer, magie.jouer('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [{ x: 16, y: 11 }] }));
+  const sorts = s.vue.zones['combat.offres'].find((c): c is Choix => c.id === 'offre/cast-spell')!;
+  s = magie.jouer('jouer', sorts.valeurs.find((b) => b.libelle === 'Fléchette')!.jeu);
+  figer('sort choisi parmi ceux de l’actif', s);
+  s = magie.jouer('jouer', { type: CLICS_DU_CHAMP.combattant, args: [s.vue.projection.combat!.cibles.liste[0]] });
+  figer('fenêtre d’incantation', s);
+  s = magie.jouer('jouer', enFocus(s));
+  figer('jet d’incantation tombé', s);
+  s = magie.jouer('jouer', (s.vue.zones['fenetre.reglages'][0] as Choix).valeurs[1].jeu);
+  figer('un pas de Surincantation alloué', s);
+  magie.fermer();
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],

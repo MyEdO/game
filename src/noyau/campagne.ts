@@ -3,8 +3,10 @@ import { togglePin, marquerVus } from './monde/clues';
 import { decidingSeat } from './netOwnership';
 import { coupleDIdentite } from './monde/identites';
 import { reprendreLaSuite } from './combatEffects';
+import { fenetreDuJeu } from './combatAuto';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { Jeu } from './etat';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import { garanti } from '../lib/garanti';
 
@@ -42,7 +44,7 @@ export function creerActionsDeCampagne(get: Get, set: Set) {
       reprendreLaSuite(get, set, p.suite);
     },
     remettreDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Le document se ferme et rejoue sa `suite` ; sa sortie est à l'hôte (`SURFACES_HORS_PENDING`). */
@@ -54,4 +56,9 @@ export function sortiesDeCampagne(get: Get, set: Set) {
       reprendreLaSuite(get, set, doc.suite);
     },
   } satisfies Partial<SortiesDeFenetre>;
+}
+
+/** Le document remis quand sa fenêtre tient la main : son titre et son texte, le Markdown verbatim de la donnée. */
+export function documentEnVue(s: Jeu): { titre: string; texte: string } | null {
+  return s.document && fenetreDuJeu(s)?.cle === 'document' ? { titre: s.document.title, texte: s.document.text } : null;
 }

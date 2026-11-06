@@ -10,7 +10,7 @@ import type { Get, Set } from './flowTypes';
 import { rule } from '../engine/policy';
 import { favorRequiredActivities, type Favor, type FavorLevel } from '../engine/favor';
 import { t } from '../i18n';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import { nextEntityId } from '../lib/entityId';
 import { refusDeRompreUneFaveur, refuseSi } from './verrousDeFiche';
 import { refusDAcquitterUneFaveur } from './verdictsDInterlude';
@@ -97,5 +97,5 @@ export function creerActionsDesFaveurs(get: Get, set: Set) {
     favorGrant: (heroId, level, owedTo, desc) => grantFavor(get, set, heroId, level, owedTo, desc),
     favorSettle: (heroId, favorId) => settleFavorActivity(get, set, heroId, favorId),
     favorBreak: (heroId, favorId) => breakFavor(get, set, heroId, favorId),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

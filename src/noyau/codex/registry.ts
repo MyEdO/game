@@ -4,17 +4,18 @@
  * Chaque catégorie projette un tableau de `src/data` (façade `index.ts`) en `CodexItem` RICHE :
  * faits-clés + **sections structurées** dont les entités citées (compétences, talents, sorts,
  * traits, qualités…) sont des **liens `CodexRef`** vers leur propre fiche (cross-références).
- * **Ajouter une catégorie = UNE entrée dans `CODEX`** ; enrichir = ajouter des sections (data),
+ * **Ajouter une catégorie = sa clé déclarée au def (`exposition.codex.keys`), puis son entrée dans
+ * `CODEX_SPECS`**, que `satisfies Record<CleCodex, …>` exige ; enrichir = ajouter des sections (data),
  * pas un composant.
  */
 import { composeRollLabel } from '../rollSeam';
 import { memoParVersion } from '../../data/versionDataset';
-import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
+import { CLES_DE_DATASET, type CleCodex } from '../../data/schemas/_cles-de-dataset.generated';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
-  skillInstanceLabel, careersForSpecies, findCareerById, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
+  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
@@ -79,7 +80,7 @@ import { talentMaxLabel } from '../../engine/careerSlots';
 import type { AdvancementRef, TrappingRef, WaterExposureModifier, SpellData } from '../../data';
 import { POWER_ESTIMATE, MIGHT_MODIFIERS, WAR_MACHINES, STRUCTURES as MASS_BATTLE_STRUCTURES, BATTLE_HAZARDS } from '../../engine/massBattle';
 import { AVAILABILITIES } from '../../engine/types';
-import { ACTIVITIES } from '../../engine/activities';
+import { ACTIVITIES, testsDeLActivite } from '../../engine/activities';
 import type { OutcomeBand } from '../../engine/activities';
 import { traitArgSkeleton, traitLisible } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
@@ -111,27 +112,25 @@ import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
  *  campagne (#767) — ses conditions `etat` se disent par leur id. */
 const ETATS_DU_CODEX: readonly EtatDeclare[] = [];
 
-export type CodexGroup = 'Personnage' | 'Compétences' | 'Équipement' | 'Effets' | 'Magie' | 'Monde' | 'Tables';
+/** Familles du Codex (onglets du haut) : id STABLE → clé de catalogue de son libellé, dans l'ordre
+ *  d'affichage. Toute logique est keyée par l'id ; le libellé passe par `codexGroupLabel`. */
+const LIBELLE_DE_FAMILLE = {
+  personnage: 'codex.famille.personnage',
+  competences: 'codex.famille.competences',
+  equipement: 'codex.famille.equipement',
+  effets: 'codex.famille.effets',
+  magie: 'codex.famille.magie',
+  monde: 'codex.famille.monde',
+  tables: 'codex.famille.tables',
+} as const satisfies Record<string, MsgKey>;
+
+export type CodexGroup = keyof typeof LIBELLE_DE_FAMILLE;
 
 /** Ordre d'affichage des familles (onglets du haut). */
-export const CODEX_GROUPS: CodexGroup[] = ['Personnage', 'Compétences', 'Équipement', 'Effets', 'Magie', 'Monde', 'Tables'];
+export const CODEX_GROUPS = Object.keys(LIBELLE_DE_FAMILLE) as CodexGroup[];
 
-/**
- * Identité GÉNÉRIQUE d'une entrée de dataset — clé STABLE servant À LA FOIS de `CodexItem.label`
- * (ce que le navigateur passe à l'éditeur) ET de cible du `findIndex` côté `CodexEdit`. Précédence
- * `label → id` : un dataset qui porte un `label` l'expose (maladies, gods, raceAppearance depuis
- * #1467 L1b V-P4…), sinon son `id` fait l'affichage. Mesuré sur les 2 racines (`src/data`, `src/scenes`) : aucune entrée
- * de premier niveau ne porte `key` ni `name` — le dernier porteur de `key` (`calendarPhases`) est
- * passé à `id` en #1467 L1b V-P1.
- * EXCEPTION careerLevels : le libellé de niveau (« Recrue ») revient sur plusieurs carrières et
- * n'identifie rien seul → composite carrière + niveau, identique des deux côtés (l'éditeur réécrit la
- * bonne entrée, plus de collision sur le 1er homonyme).
- */
-export function entryKey(e: Record<string, unknown>): string {
-  if (typeof e.career === 'string' && typeof e.level === 'number')
-    return `${findCareerById(e.career)?.label ?? e.career} · N${e.level} ${e.label ?? ''}`.trim();
-  return String(e.label ?? e.id ?? '');
-}
+/** Libellé d'affichage d'une famille, résolu au catalogue à la lecture. */
+export const codexGroupLabel = (group: CodexGroup): string => tr(LIBELLE_DE_FAMILLE[group]);
 
 /** Vue de projection Codex de `SourceRef` (`src/data/schemas/grammaire/valeurs.ts` — SEULE forme à importer,
  *  #563 dette soldée) : `book` y est déjà résolu en ABRÉVIATION affichable (`bookAbr`, cf. `src()`
@@ -606,7 +605,7 @@ const LOOKUP = memoParVersion(CLES_DE_DATASET, () => new Map<string, Map<string,
 
 
 /** Libellé de la facette hiérarchique (`group`) par catégorie. */
-const GROUP_FACET_LABEL: Record<string, MsgKey> = {
+const GROUP_FACET_LABEL: Partial<Record<CleCodex, MsgKey>> = {
   races: 'codex.fiche.famille', careers: 'codex.fiche.classe', mutations: 'codex.fiche.type', psychologie: 'codex.fiche.type',
   creatures: 'codex.fiche.dossier', locations: 'codex.fiche.lieuParent', books: 'codex.fiche.dossier', careerLevels: 'codex.fiche.carriere',
   arcanePhenomena: 'codex.fiche.rubrique',
@@ -614,16 +613,16 @@ const GROUP_FACET_LABEL: Record<string, MsgKey> = {
 
 /** Facettes d'une catégorie, DÉRIVÉES de ses items projetés : une facette n'existe que si des items
  *  PORTENT le champ (livre source partout ; hiérarchie `group` là où la catégorie en a une). */
-function deriveFacets(key: string, items: CodexItem[]): CodexFacet[] | undefined {
+function deriveFacets(key: CleCodex, items: CodexItem[]): CodexFacet[] | undefined {
   const facets: CodexFacet[] = [];
   if (items.some((i) => i.source?.book)) facets.push({ key: 'book', label: tr('codex.fiche.livre'), valueOf: (i) => i.source?.book });
   if (items.some((i) => i.group)) facets.push({ key: 'group', label: tr(GROUP_FACET_LABEL[key] ?? 'codex.fiche.groupe'), valueOf: (i) => i.group });
   return facets.length ? facets : undefined;
 }
 
-/** Spec d'une catégorie : identité + projection `build` (exécutée paresseusement, re-exécutable). */
+/** Spec d'une catégorie : projection `build` (exécutée paresseusement, re-exécutable) ; son identité
+ *  est sa clé dans `CODEX_SPECS`. */
 interface CodexCategorySpec {
-  key: string;
   /** Clé de catalogue du libellé, résolue à la lecture (`makeCategory`). */
   label: MsgKey;
   group: CodexGroup;
@@ -638,13 +637,13 @@ interface CodexCategorySpec {
 }
 
 /** Catégorie à projections PARESSEUSES (`memoParVersion` sur `CLES_DE_DATASET`). */
-function makeCategory(spec: CodexCategorySpec): CodexCategory {
+function makeCategory(key: CleCodex, spec: CodexCategorySpec): CodexCategory {
   const projection = memoParVersion(CLES_DE_DATASET, () => {
     const items = spec.build();
-    return { items, facets: deriveFacets(spec.key, items) };
+    return { items, facets: deriveFacets(key, items) };
   });
   return {
-    key: spec.key,
+    key,
     get label() { return tr(spec.label); },
     group: spec.group,
     get cluster() { return spec.cluster && tr(spec.cluster); },
@@ -1074,9 +1073,9 @@ export function optionBody(o: { label: string; desc: string }): string {
   return sansPuce.replace(new RegExp(`^\\*\\*${echappe}\\s*:\\*\\*\\s*`), '');
 }
 
-const CODEX_SPECS: CodexCategorySpec[] = [
-  {
-    key: 'arcanePhenomena', label: 'codex.fiche.magieEnvironnementale', group: 'Magie', sourceRef: 'VDM 14',
+const CODEX_SPECS = {
+  arcanePhenomena: {
+    label: 'codex.fiche.magieEnvironnementale', group: 'magie', sourceRef: 'VDM 14',
     build: () => {
       const d = datasetObject('arcanePhenomena') as {
         saturationLevels: SaturationLevel[]; windSaturationEffects: WindSaturationEffects[];
@@ -1129,21 +1128,21 @@ const CODEX_SPECS: CodexCategorySpec[] = [
           ),
         })),
         ...d.tables.map((t) => depuisEnveloppe(t, {
-          group: 'Tables', sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: t.die }),
+          group: tr('codex.fiche.rubriqueTables'), sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: t.die }),
           sections: sections({ title: tr('codex.fiche.tirage', { die: t.die }), layout: 'list', rows: arcaneTableRows(t) }),
         })),
       ];
     },
   },
-  {
-    key: 'advancementCosts', label: 'codex.fiche.coutDesAugmentations', group: 'Tables', cluster: 'codex.fiche.creationDePersonnage', sourceRef: 'LDB 07',
+  advancementCosts: {
+    label: 'codex.fiche.coutDesAugmentations', group: 'tables', cluster: 'codex.fiche.creationDePersonnage', sourceRef: 'LDB 07',
     build: () => datasetArray('advancementCosts').map((b) => depuisEnveloppe(b, {
       sub: tr('codex.fiche.augmentationsDejaAchetees'),
       meta: facts(fact(tr('codex.fiche.coutCaracteristique'), b.coutCarac), fact(tr('codex.fiche.coutCompetence'), b.coutCompetence)),
     })),
   },
-  {
-    key: 'disponibilite', label: 'codex.fiche.disponibiliteTroc', group: 'Tables', sourceRef: 'LDB 59',
+  disponibilite: {
+    label: 'codex.fiche.disponibiliteTroc', group: 'tables', sourceRef: 'LDB 59',
     build: () => {
       const d = datasetObject('disponibilite');
       return [{
@@ -1153,8 +1152,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }];
     },
   },
-  {
-    key: 'sizes', label: 'codex.fiche.taillesBarresParCategorie', group: 'Tables', sourceRef: 'LDB 85',
+  sizes: {
+    label: 'codex.fiche.taillesBarresParCategorie', group: 'tables', sourceRef: 'LDB 85',
     build: () => {
       const s = datasetObject('sizes');
       const cats = (Object.keys(SIZE_ORDER) as SizeCategory[]).sort((a, b) => SIZE_ORDER[a] - SIZE_ORDER[b]);
@@ -1172,23 +1171,23 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }];
     },
   },
-  {
-    key: 'drivingMishap', label: 'codex.fiche.accidentsDeConduiteDAttelage', group: 'Tables', cluster: 'codex.fiche.voyageTerrestre', sourceRef: 'LDB 09',
+  drivingMishap: {
+    label: 'codex.fiche.accidentsDeConduiteDAttelage', group: 'tables', cluster: 'codex.fiche.voyageTerrestre', sourceRef: 'LDB 09',
     build: () => datasetArray('drivingMishap').map((e) => ({
       id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max), desc: e.desc,
       meta: facts(fact(tr('codex.fiche.type'), libelleDeValeur(drivingMishapOutcomeSchema, e.outcome))),
     })),
   },
-  {
-    key: 'drunkenness', label: 'codex.fiche.ivresseTableau', group: 'Tables', sourceRef: 'LDB 09',
+  drunkenness: {
+    label: 'codex.fiche.ivresseTableau', group: 'tables', sourceRef: 'LDB 09',
     build: () => datasetArray('drunkenness').map((e) => ({
       id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max), desc: e.desc,
       meta: facts(fact(tr('codex.fiche.type'), libelleDeValeur(drunkennessOutcomeSchema, e.outcome))),
       sections: sections(passiveSection(e.ops, tr('codex.fiche.effet'))),
     })),
   },
-  {
-    key: 'encumbranceTiers', label: 'codex.fiche.surchargePaliersDEncombrement', group: 'Tables', sourceRef: 'LDB 61',
+  encumbranceTiers: {
+    label: 'codex.fiche.surchargePaliersDEncombrement', group: 'tables', sourceRef: 'LDB 61',
     build: () => datasetArray('encumbranceTiers').map((t) => ({
       id: t.id, label: t.label,
       meta: facts(
@@ -1199,8 +1198,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       source: src(t.source),
     })),
   },
-  {
-    key: 'riverNavigation', label: 'codex.fiche.navigationFluvialeVentChavirageEchouage', group: 'Tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MSRC 7',
+  riverNavigation: {
+    label: 'codex.fiche.navigationFluvialeVentChavirageEchouage', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MSRC 7',
     build: () => {
       const n = datasetObject('riverNavigation');
       const forceLabel = new Map(n.windForces.map((f) => [f.id, f.label]));
@@ -1258,8 +1257,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
 
   // ── LOT 3 #422 (FINAL) : les 3 dernières exemptions AUDIT ──
-  {
-    key: 'grapple', label: 'codex.fiche.empoignadeMecanique', group: 'Tables', sourceRef: 'LDB 14',
+  grapple: {
+    label: 'codex.fiche.empoignadeMecanique', group: 'tables', sourceRef: 'LDB 14',
     build: () => {
       const g = datasetObject('grapple');
       return [{
@@ -1274,29 +1273,29 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }];
     },
   },
-  {
-    key: 'miscastMinor', label: 'codex.fiche.incantationsImparfaitesMineures', group: 'Magie', sourceRef: 'LDB 46',
+  miscastMinor: {
+    label: 'codex.fiche.incantationsImparfaitesMineures', group: 'magie', sourceRef: 'LDB 46',
     build: () => datasetArray('miscastMinor').map(miscastRowItem),
   },
-  {
-    key: 'miscastMajor', label: 'codex.fiche.incantationsImparfaitesMajeures', group: 'Magie', sourceRef: 'LDB 46',
+  miscastMajor: {
+    label: 'codex.fiche.incantationsImparfaitesMajeures', group: 'magie', sourceRef: 'LDB 46',
     build: () => datasetArray('miscastMajor').map(miscastRowItem),
   },
-  {
-    key: 'miscastWrath', label: 'codex.fiche.colereDesDieux', group: 'Magie', sourceRef: 'LDB 40',
+  miscastWrath: {
+    label: 'codex.fiche.colereDesDieux', group: 'magie', sourceRef: 'LDB 40',
     build: () => datasetArray('miscastWrath').map(miscastRowItem),
   },
-  {
+  stakes: {
     // Enjeux des jets de cascade (#1117, collection #1681), groupés par cascade ; `sub` = la clé de
     // consommation (le `kind` de l'étape servie, ou l'id du jet de modale).
-    key: 'stakes', label: 'codex.fiche.enjeuxDeJet', group: 'Tables', sourceRef: 'LDB 09/15/16/18/19/20/21/46/47/62/85 · AA 07 · MSRC 7 · MDG 09/12/13/14',
+    label: 'codex.fiche.enjeuxDeJet', group: 'tables', sourceRef: 'LDB 09/15/16/18/19/20/21/46/47/62/85 · AA 07 · MSRC 7 · MDG 09/12/13/14',
     build: () => datasetArray('stakes').map((e) => depuisEnveloppe(e, {
       group: valeurFR('stakes.json', 'cascade', e.cascade), sub: e.cle, desc: e.template, sections: sections(regleChips(e.rule)),
     })),
   },
 
-  {
-    key: 'races', label: 'codex.fiche.races', group: 'Personnage',
+  races: {
+    label: 'codex.fiche.races', group: 'personnage',
     build: () => species.map((s) => ({
       id: s.id,
       label: s.label,
@@ -1308,10 +1307,10 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       tabs: raceFicheTabs(s),
     })),
   },
-  {
+  careers: {
     // Les desc de Carrière (LDB 2) suivent la convention d'épigraphe WFRP : leurs couples
     // citation+attribution se rendent en carte-parchemin, à LEUR place dans le corps.
-    key: 'careers', label: 'codex.fiche.carrieres', group: 'Personnage', exergues: true,
+    label: 'codex.fiche.carrieres', group: 'personnage', exergues: true,
     build: () => careers.map((c) => {
       const levels = levelsForCareer(c.id);
       const className = libelleDeClasse(c.class);
@@ -1340,8 +1339,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       });
     }),
   },
-  {
-    key: 'characteristics', label: 'codex.fiche.caracteristiques', group: 'Personnage',
+  characteristics: {
+    label: 'codex.fiche.caracteristiques', group: 'personnage',
     build: () => characteristics.map((c) => depuisEnveloppe(c, {
       sub: c.abr,
       // Bonus de Caractéristique = chiffre des dizaines (LDB 03) — rappel sur les caracs à jet (d100).
@@ -1363,30 +1362,30 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'classes', label: 'codex.fiche.classes', group: 'Personnage',
+  classes: {
+    label: 'codex.fiche.classes', group: 'personnage',
     build: () => classes.map((c) => depuisEnveloppe(c, {
       sections: sections(trappingChips(tr('codex.fiche.possessionsDeDepart'), c.trappings), ...reverseSections('classes', c.id)),
     })),
   },
-  {
-    key: 'stars', label: 'codex.fiche.etoiles', group: 'Personnage',
+  stars: {
+    label: 'codex.fiche.etoiles', group: 'personnage',
     build: () => stars.map((s) => depuisEnveloppe(s, {
       sub: s.signe ?? undefined,
       meta: facts(fact(tr('codex.fiche.dates'), s.dates), fact(tr('codex.fiche.dieu'), s.dieux), fact(tr('codex.fiche.ascendant'), s.ascendant)),
       sections: sections(passiveSection(s.ops, tr('codex.fiche.effetDuSigne'))),
     })),
   },
-  {
-    key: 'skills', label: 'codex.fiche.competences', group: 'Compétences',
+  skills: {
+    label: 'codex.fiche.competences', group: 'competences',
     build: () => skills.map((s) => depuisEnveloppe(s, {
       sub: join(CHAR_LABELS[s.characteristic], valeurFR('skills.json', 'acces', s.acces)),
       meta: facts(fact(tr('codex.fiche.caracteristique'), CHAR_LABELS[s.characteristic]), fact(tr('codex.fiche.acces'), valeurFR('skills.json', 'acces', s.acces)), fact(tr('codex.fiche.specialisations'), specsFact('skills', s))),
       sections: sections(...reverseSections('skills', s.id)),
     })),
   },
-  {
-    key: 'talents', label: 'codex.fiche.talents', group: 'Compétences',
+  talents: {
+    label: 'codex.fiche.talents', group: 'competences',
     build: () => talents.map((t) => {
       // Entrée EFFECTIVE sous les règles optionnelles actives (#563/#564) : desc, source, Test, Max,
       // passifs et effets affichés sont ceux de la variante réglée quand elle est active.
@@ -1402,8 +1401,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       });
     }),
   },
-  {
-    key: 'axes', label: 'codex.fiche.axesDeForces', group: 'Compétences',
+  axes: {
+    label: 'codex.fiche.axesDeForces', group: 'competences',
     build: () => allAxes.map((a) => depuisEnveloppe(a, {
       meta: facts(fact(tr('codex.fiche.portee'), a.core ? tr('codex.fiche.socleDeBase') : tr('codex.fiche.axeDeScenario'))),
       sections: sections(
@@ -1412,8 +1411,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'trappings', label: 'codex.fiche.possessions', group: 'Équipement',
+  trappings: {
+    label: 'codex.fiche.possessions', group: 'equipement',
     build: () => trappings.map((t) => {
       // Capacités FONCTIONNELLES (canal `capabilities`, lu PAR ID — ≠ nom FR) + arme dérivée tant qu'équipée.
       const caps = t.capabilities;
@@ -1441,8 +1440,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       });
     }),
   },
-  {
-    key: 'siegeEngines', label: 'codex.fiche.enginsDeSiege', group: 'Équipement',
+  siegeEngines: {
+    label: 'codex.fiche.enginsDeSiege', group: 'equipement',
     // Trappings du sous-type `armes-de-siege`, sélectionnés par `siegeEngines` comme dans la palette.
     build: () => siegeEngines().map((t) => depuisEnveloppe(t, {
       sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType) || undefined),
@@ -1457,25 +1456,25 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'weaponGroups', label: 'codex.fiche.groupesDObjet', group: 'Équipement',
+  weaponGroups: {
+    label: 'codex.fiche.groupesDObjet', group: 'equipement',
     build: () => weaponGroups.map((g) => depuisEnveloppe(g, { sub: valeurFR('weaponGroups.json', 'kind', g.kind), sections: sections(...reverseSections('weaponGroups', g.id)) })),
   },
-  {
-    key: 'qualities', label: 'codex.fiche.qualites', group: 'Équipement',
+  qualities: {
+    label: 'codex.fiche.qualites', group: 'equipement',
     build: () => qualities.map((q) => depuisEnveloppe(q, {
       sub: join(qualityTypeLabel(q.polarite), qualitySubtypeLabel(q.subType)),
       sections: sections(passiveSection(q.passive), effectsSection(q.effects, ETATS_DU_CODEX, tr('codex.fiche.effetsDeclenches')), ...reverseSections('qualities', q.id)),
     })),
   },
-  {
-    key: 'etats', label: 'codex.fiche.etats', group: 'Effets',
+  etats: {
+    label: 'codex.fiche.etats', group: 'effets',
     build: () => etats.map((e) => depuisEnveloppe(e, {
       sections: sections(...reverseSections('etats', e.id)), // Sorts/Traits/Qualités/Talents/Domaines l'infligeant
     })),
   },
-  {
-    key: 'maladies', label: 'codex.fiche.maladies', group: 'Effets',
+  maladies: {
+    label: 'codex.fiche.maladies', group: 'effets',
     build: () => maladies.map((m) => depuisEnveloppe(m, {
       sub: m.symptoms.map((s) => symptomLabel(s.symptomId)).join(', '),
       meta: facts(
@@ -1493,8 +1492,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }),
     })),
   },
-  {
-    key: 'symptoms', label: 'codex.fiche.symptomes', group: 'Effets',
+  symptoms: {
+    label: 'codex.fiche.symptomes', group: 'effets',
     build: () => symptoms.map((s) => depuisEnveloppe(s, {
       sections: sections(
         passiveSection(s.passive),
@@ -1514,8 +1513,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'mutations', label: 'codex.fiche.mutations', group: 'Effets',
+  mutations: {
+    label: 'codex.fiche.mutations', group: 'effets',
     build: () => mutations.map((m) => depuisEnveloppe(m, {
       sub: valeurFR('mutations.json', 'kind', m.kind),
       group: valeurFR('mutations.json', 'kind', m.kind),
@@ -1527,8 +1526,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'mutationTables', label: 'codex.fiche.tablesDeCorruption', group: 'Effets',
+  mutationTables: {
+    label: 'codex.fiche.tablesDeCorruption', group: 'effets',
     build: () => mutationTables.map((t) => depuisEnveloppe(t, {
       sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
       // Tirage au dé de la table → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
@@ -1541,8 +1540,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }),
     })),
   },
-  {
-    key: 'effectTables', label: 'codex.fiche.tablesDEffets', group: 'Effets',
+  effectTables: {
+    label: 'codex.fiche.tablesDEffets', group: 'effets',
     // Tables `[min,max] → GameOp[]` référencées par l'op `rollTable` (Allure démoniaque : Tableau des
     // aspects démoniaques par Domaine du Chaos). Chaque rangée = fourchette + ops (chips codex-liées).
     build: () => effectTables.map((t) => depuisEnveloppe(t, {
@@ -1550,8 +1549,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sections: sections({ title: tr('codex.fiche.tirageEffet', { die: t.die }), layout: 'list', rows: tableRows(t) }),
     })),
   },
-  {
-    key: 'maneuvers', label: 'codex.fiche.manoeuvres', group: 'Effets',
+  maneuvers: {
+    label: 'codex.fiche.manoeuvres', group: 'effets',
     // Une manœuvre est la PROJECTION mécanique d'un Trait de créature (#1226) : la prose affichée est le
     // VERBATIM du trait projetant (`traitProjectingManeuver`), jamais un résumé recopié dans la manœuvre.
     build: () => maneuvers.map((m) => depuisEnveloppe(m, {
@@ -1565,8 +1564,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sections: sections(...reverseSections('maneuvers', m.id)),
     })),
   },
-  {
-    key: 'psychologie', label: 'codex.fiche.psychologie', group: 'Effets',
+  psychologie: {
+    label: 'codex.fiche.psychologie', group: 'effets',
     // Filtre DATA-DRIVEN des Traits à capacité psychologique (LDB 21, migration #1) : réutilise la
     // fiche de Trait (traitItem) — « Créatures ayant ce trait » montre QUI cause/possède la Psychologie.
     // Groupés par type (Peur, Terreur, Animosité…). Édition = catégorie « Traits » (source unique).
@@ -1574,8 +1573,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       .filter((t) => t.capabilities?.psychType || t.capabilities?.psychImmune)
       .map((t) => ({ ...traitItem(t), group: t.capabilities?.psychType ? psychologyLabel(t.capabilities.psychType) : tr('codex.fiche.immunite') })),
   },
-  {
-    key: 'domains', label: 'codex.fiche.domaines', group: 'Magie',
+  domains: {
+    label: 'codex.fiche.domaines', group: 'magie',
     build: () => domains.map((d) => depuisEnveloppe(d, {
       meta: facts(
         fact(tr('codex.fiche.projectile'), d.missile ? tr('codex.fiche.ignoreLesPa', { v: d.missile.bypass === 'metal' ? tr('codex.fiche.metalliques') : tr('codex.fiche.nonMagiques'), v2: d.missile.bonusFromBypass ? tr('codex.fiche.degats2') : '' }) : null),
@@ -1585,8 +1584,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sections: sections(effectsSection(d.effects, ETATS_DU_CODEX, tr('codex.fiche.ridersALaTouche')), ...reverseSections('domains', d.id)),
     })),
   },
-  {
-    key: 'spells', label: 'codex.fiche.sorts', group: 'Magie',
+  spells: {
+    label: 'codex.fiche.sorts', group: 'magie',
     // Entrée EFFECTIVE sous les règles optionnelles actives (#563/#564) : desc, source, NI, Durée et
     // effet mécanique affichés sont ceux de la variante réglée quand elle est active (VDM).
     build: () => spells.map((s0) => effectiveEntry(s0)).map((s) => depuisEnveloppe(s, {
@@ -1609,8 +1608,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'gods', label: 'codex.fiche.dieux', group: 'Magie',
+  gods: {
+    label: 'codex.fiche.dieux', group: 'magie',
     build: () => gods.map((c) => depuisEnveloppe(c, {
       sub: c.title,
       sections: sections(
@@ -1621,8 +1620,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'ventsTourbillonnants', label: 'codex.fiche.ventsTourbillonnants', group: 'Magie',
+  ventsTourbillonnants: {
+    label: 'codex.fiche.ventsTourbillonnants', group: 'magie',
     // Option `vents-tourbillonnants` (LDB 46 l.179-190) : table 1d10 de force des Vents, ajoutée
     // aux Tests d'Incantation/Focalisation (`engine/windsOfMagic.ts`).
     build: () => windsOfMagicTable.map((e) => ({
@@ -1630,8 +1629,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       meta: facts(fact(tr('codex.fiche.modificateur'), e.mod >= 0 ? `+${e.mod}` : `${e.mod}`)),
     })),
   },
-  {
-    key: 'creatures', label: 'codex.fiche.creatures', group: 'Monde',
+  creatures: {
+    label: 'codex.fiche.creatures', group: 'monde',
     build: () => creatures.map((c) => depuisEnveloppe(c, {
       sub: c.title ?? undefined, group: c.folder ?? undefined,
       statblock: creatureStatblock(c),
@@ -1663,12 +1662,12 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'traits', label: 'codex.fiche.traits', group: 'Monde',
+  traits: {
+    label: 'codex.fiche.traits', group: 'monde',
     build: () => traits.map((t) => traitItem(t)),
   },
-  {
-    key: 'locations', label: 'codex.fiche.lieux', group: 'Monde',
+  locations: {
+    label: 'codex.fiche.lieux', group: 'monde',
     // `parent` est un id → résolu en libellé pour l'affichage ; la réf inverse « Sous-lieux » clé par id.
     build: () => locations.map((l) => {
       const parentLabel = findLocationById(l.parent)?.label;
@@ -1678,8 +1677,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       });
     }),
   },
-  {
-    key: 'books', label: 'codex.fiche.livres', group: 'Monde',
+  books: {
+    label: 'codex.fiche.livres', group: 'monde',
     // Fiche Livre : « contenu, par type » (index `bookContents`) projeté DANS le build (paresseux).
     // Les entités référencent leur livre par son ABBR (`source.book`) → match sur abbr + libellé ;
     // `categoryByKey(...)?.label` ne lit que l'identité STATIQUE des catégories (pas leurs items :
@@ -1694,8 +1693,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     })),
   },
   // ── Tables & gabarits éditables (E3a) ─────────────────────────────────────────
-  {
-    key: 'careerLevels', label: 'codex.fiche.niveauxDeCarriere', group: 'Tables',
+  careerLevels: {
+    label: 'codex.fiche.niveauxDeCarriere', group: 'tables',
     // Le `label` reste composé par `entryKey` (même composition côté éditeur `CodexEdit`) : un même
     // libellé de niveau sert plusieurs carrières, il n'identifie rien à lui seul. L'`id`, lui, est
     // celui de la DONNÉE (#1467 L1b V-P1) — le registre ne recompose plus d'identité.
@@ -1710,42 +1709,42 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'eyes', label: 'codex.fiche.couleurDesYeux', group: 'Tables', cluster: 'codex.fiche.creationDePersonnage',
+  eyes: {
+    label: 'codex.fiche.couleurDesYeux', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
     build: () => eyes.map((e) => depuisEnveloppe(e, { sub: `2d10 ≤ ${e.rand}`, sections: sections(colorTableSection(e)) })),
   },
-  {
-    key: 'hairs', label: 'codex.fiche.couleurDesCheveux', group: 'Tables', cluster: 'codex.fiche.creationDePersonnage',
+  hairs: {
+    label: 'codex.fiche.couleurDesCheveux', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
     build: () => hairs.map((h) => depuisEnveloppe(h, { sub: `2d10 ≤ ${h.rand}`, sections: sections(colorTableSection(h)) })),
   },
-  {
-    key: 'calendarMonths', label: 'codex.fiche.calendrierMois', group: 'Tables', cluster: 'codex.fiche.calendrier',
+  calendarMonths: {
+    label: 'codex.fiche.calendrierMois', group: 'tables', cluster: 'codex.fiche.calendrier',
     build: () => calendarMonths.map((m) => depuisEnveloppe(m, { sub: tr('codex.fiche.jours', { days: m.days }) })),
   },
-  {
-    key: 'calendarIntercalary', label: 'codex.fiche.calendrierJoursIntercalaires', group: 'Tables', cluster: 'codex.fiche.calendrier',
+  calendarIntercalary: {
+    label: 'codex.fiche.calendrierJoursIntercalaires', group: 'tables', cluster: 'codex.fiche.calendrier',
     build: () => calendarIntercalary.map((i) => depuisEnveloppe(i, {
       sub: i.afterMonth < 0 ? tr('codex.fiche.avantLe1Mois') : tr('codex.fiche.apres', { v: libelleOuAbsence(calendarMonths[i.afterMonth], 'mois', String(i.afterMonth)) }),
     })),
   },
-  {
-    key: 'calendarWeekdays', label: 'codex.fiche.calendrierJoursDeLaSemaine', group: 'Tables', cluster: 'codex.fiche.calendrier',
+  calendarWeekdays: {
+    label: 'codex.fiche.calendrierJoursDeLaSemaine', group: 'tables', cluster: 'codex.fiche.calendrier',
     build: () => calendarWeekdays.map((w) => depuisEnveloppe(w)),
   },
-  {
-    key: 'calendarPhases', label: 'codex.fiche.calendrierPhasesDuJour', group: 'Tables', cluster: 'codex.fiche.calendrier',
+  calendarPhases: {
+    label: 'codex.fiche.calendrierPhasesDuJour', group: 'tables', cluster: 'codex.fiche.calendrier',
     build: () => calendarPhases.map((p) => ({
       id: p.id, label: p.label, // `p.icon` = id d'icône (time/*, registre src/data/icons), plus un glyphe affichable en préfixe
 
       sub: tr('codex.fiche.des', { v: String(Math.floor(p.seuil / 60)).padStart(2, '0'), v2: String(p.seuil % 60).padStart(2, '0') }),
     })),
   },
-  {
-    key: 'weather', label: 'codex.fiche.meteoDeVoyage', group: 'Tables', cluster: 'codex.fiche.voyageTerrestre',
+  weather: {
+    label: 'codex.fiche.meteoDeVoyage', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
     build: () => weather.map((s) => depuisEnveloppe(s, { sub: tr('codex.fiche.plagesEdoc8', { length: s.entries.length, die: s.die }) })),
   },
-  {
-    key: 'weatherConditions', label: 'codex.fiche.conditionsMeteo', group: 'Tables', cluster: 'codex.fiche.voyageTerrestre',
+  weatherConditions: {
+    label: 'codex.fiche.conditionsMeteo', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
     // Effets par condition (EDOC 8) — cible Codex des chips « Météo : … » des lignes de jet
     // (`engine/weatherTestMod.ts`, `noyau/combatFlow.ts`, `noyau/travelPostes.ts`).
     build: () => weatherConditions.map((c) => ({
@@ -1759,12 +1758,12 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'raceAppearance', label: 'codex.fiche.apparences', group: 'Tables', cluster: 'codex.fiche.creationDePersonnage',
+  raceAppearance: {
+    label: 'codex.fiche.apparences', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
     build: () => raceAppearance.map((r) => ({ id: r.id, label: r.label })),
   },
-  {
-    key: 'pregens', label: 'codex.fiche.preTires', group: 'Tables', cluster: 'codex.fiche.creationDePersonnage',
+  pregens: {
+    label: 'codex.fiche.preTires', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
     build: () => pregens.map((p) => ({
       id: p.id,
       label: p.label, sub: join(findSpeciesById(p.species)?.label ?? p.species, findCareerById(p.career)?.label ?? p.career),
@@ -1772,9 +1771,9 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sections: p.pettySpells?.length ? sections(chips(tr('codex.fiche.sorts'), p.pettySpells.map((id) => idRefRow('spells', id)))) : undefined,
     })),
   },
-  {
-    key: 'oups', label: 'codex.fiche.oups', group: 'Tables',
-    // Le `label` EST le texte du résultat (et la clé d'édition `entryKey`) → on le garde tel quel ;
+  oups: {
+    label: 'codex.fiche.oups', group: 'tables',
+    // Le `label` EST le texte du résultat → on le garde tel quel ;
     // on enrichit par le TYPE d'effet (kind) en méta.
     build: () => oups.map((o) => {
       const range = 'min' in o ? bandeAuDe('d100', o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
@@ -1784,31 +1783,32 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       });
     }),
   },
-  {
-    key: 'interludeEvents', label: 'codex.fiche.entreDeuxAventures', group: 'Tables',
+  interludeEvents: {
+    label: 'codex.fiche.entreDeuxAventures', group: 'tables',
     build: () => interludeEvents.map((e) => depuisEnveloppe(e, { sub: bandeAuDe('d100', e.min, e.max) })),
   },
-  {
-    key: 'peripeties', label: 'codex.fiche.peripetiesDeVoyage', group: 'Tables', cluster: 'codex.fiche.voyageTerrestre',
+  peripeties: {
+    label: 'codex.fiche.peripetiesDeVoyage', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
     build: () => peripeties.map((p) => depuisEnveloppe(p, { sub: `1d10 = ${p.roll} · ${p.kind}` })),
   },
-  {
-    key: 'activities', label: 'codex.fiche.activites', group: 'Tables',
+  activities: {
+    label: 'codex.fiche.activites', group: 'tables',
     // Catalogue UNIQUE des Activités (interlude LDB 23 / voyage EDOC 8 / mer MDG 15 / bataille de
-    // masse ADE II 8). Un Test « posté » (compétence(s) au choix + Difficulté) dont l'issue s'exprime
+    // masse ADE II 8). Un Test « posté » (Tests au choix, chacun avec sa Difficulté) dont l'issue s'exprime
     // en `onSuccess` (GameOp) et/ou en bandes `outcomes` (table DR → résultat, verbatim + effets).
     build: () => ACTIVITIES.map((a) => depuisEnveloppe(a, {
       sub: a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', '),
       meta: facts(
         fact(tr('codex.fiche.contextes'), a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', ')),
-        fact(tr('codex.fiche.competenceS'), a.skills?.length ? a.skills.map((s) => refLabel('skills', { id: s.id, spec: s.spec })).join(' / ') : null),
-        fact(tr('codex.fiche.caracteristique'), a.char ? CHAR_LABELS[a.char] : null),
+        fact(tr('codex.fiche.testsAuChoix'), a.tests?.length
+          ? a.tests.map((o) => [testSkillLabel({ skill: o.skill, char: o.characteristic }), o.difficulty && DIFFICULTY_LABELS[o.difficulty]].filter(Boolean).join(' ')).join(' / ')
+          : null),
         fact(tr('codex.fiche.difficulte'), a.difficulty ? DIFFICULTY_LABELS[a.difficulty] : null),
         fact(tr('codex.fiche.testEtendu'), a.extended ? tr('codex.fiche.drEtape', { drPerStage: a.extended.drPerStage }) : null),
         fact(tr('codex.fiche.resolveur'), a.resolver ?? null),
       ),
       sections: sections(
-        chips(tr('codex.fiche.competencesAuChoix'), (a.skills ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
+        chips(tr('codex.fiche.testsAuChoixListe'), testsDeLActivite(a).flatMap((t) => ('skill' in t ? [idRefRow('skills', t.skill.id, t.skill.spec)] : charRefRows([t.char])))),
         chips(tr('codex.fiche.competenceLibre'), (a.freeSkill ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
         passiveSection(a.onSuccess, tr('codex.fiche.effetDeReussite')),
         outcomeBandsSection(a.outcomes),
@@ -1823,22 +1823,22 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   // toujours tels quels aux libellés canoniques de `qualities`/`traits` (ex. qualité « À Explosion » vs
   // « Explosion » ici, trait « Impénétrable (structure) » vs « Impénétrable » ici) — une décomposition
   // par id resterait à faire côté donnée (hors périmètre #148, ne pas inventer un rapprochement flou). ──
-  {
-    key: 'massBattlePowerEstimate', label: 'codex.fiche.batailleDeMasseEstimationDePuissance', group: 'Tables', cluster: 'codex.fiche.batailleDeMasse',
+  massBattlePowerEstimate: {
+    label: 'codex.fiche.batailleDeMasseEstimationDePuissance', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
     build: () => POWER_ESTIMATE.map((p) => depuisEnveloppe(p, {
       meta: facts(fact(tr('codex.fiche.puissanceAlliee'), p.ally), fact(tr('codex.fiche.puissanceEnnemie'), p.enemy)),
       desc: p.example,
     })),
   },
-  {
-    key: 'massBattleMightModifiers', label: 'codex.fiche.batailleDeMasseModificateursDePuissance', group: 'Tables', cluster: 'codex.fiche.batailleDeMasse',
+  massBattleMightModifiers: {
+    label: 'codex.fiche.batailleDeMasseModificateursDePuissance', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
     build: () => MIGHT_MODIFIERS.map((m) => depuisEnveloppe(m, {
       meta: facts(fact(tr('codex.fiche.modificateur'), m.mod > 0 ? `+${m.mod}` : String(m.mod))),
       desc: m.example,
     })),
   },
-  {
-    key: 'massBattleWarMachines', label: 'codex.fiche.batailleDeMasseMachinesDeGuerre', group: 'Tables', cluster: 'codex.fiche.batailleDeMasse',
+  massBattleWarMachines: {
+    label: 'codex.fiche.batailleDeMasseMachinesDeGuerre', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
     build: () => WAR_MACHINES.map((w) => depuisEnveloppe(w, {
       meta: facts(
         fact(tr('codex.fiche.prix'), formatMoney(w.price)), fact(tr('codex.fiche.equipe'), w.crew), fact(tr('codex.fiche.disponibilite'), w.availability),
@@ -1846,19 +1846,19 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'massBattleStructures', label: 'codex.fiche.batailleDeMasseStructures', group: 'Tables', cluster: 'codex.fiche.batailleDeMasse',
+  massBattleStructures: {
+    label: 'codex.fiche.batailleDeMasseStructures', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
     build: () => MASS_BATTLE_STRUCTURES.map((s) => depuisEnveloppe(s, {
       meta: facts(fact('BE', s.be), fact(tr('codex.fiche.blessures'), s.wounds), fact(tr('codex.fiche.atouts'), s.traits)),
     })),
   },
-  {
-    key: 'massBattleHazards', label: 'codex.fiche.batailleDeMasseAleasDeBataille', group: 'Tables', cluster: 'codex.fiche.batailleDeMasse',
+  massBattleHazards: {
+    label: 'codex.fiche.batailleDeMasseAleasDeBataille', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
     build: () => BATTLE_HAZARDS.map((h) => depuisEnveloppe(h, { sub: `1d10 = ${h.min}` })),
   },
   // ── Datasets-OBJETS uniques (E3b) : config de création (objet) + banque de noms (Record par race) ──
-  {
-    key: 'details', label: 'codex.fiche.detailsDeCreation', group: 'Tables', cluster: 'codex.fiche.creationDePersonnage', sourceRef: 'LDB 05',
+  details: {
+    label: 'codex.fiche.detailsDeCreation', group: 'tables', cluster: 'codex.fiche.creationDePersonnage', sourceRef: 'LDB 05',
     // UNE seule entrée (objet `details.json`) — formules Âge/Taille par espèce + textes d'aide.
     build: () => [{
       id: 'details', label: tr('codex.fiche.detailsDeCreation'),
@@ -1871,8 +1871,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }),
     }],
   },
-  {
-    key: 'semencesDeScene', label: 'codex.fiche.semencesDeScene', group: 'Tables',
+  semencesDeScene: {
+    label: 'codex.fiche.semencesDeScene', group: 'tables',
     // UNE seule entrée (objet `semences-de-scene.json`) — ce qu'une scène NEUVE reçoit à sa création
     // (`emptyScene`, `noyau/monde/scene.ts`). Les valeurs s'ÉDITENT ici (atelier, `edit.object: 'single'`).
     build: () => [{
@@ -1891,8 +1891,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }),
     }],
   },
-  {
-    key: 'defautsDeCompilation', label: 'codex.fiche.defautsDeCompilation', group: 'Tables',
+  defautsDeCompilation: {
+    label: 'codex.fiche.defautsDeCompilation', group: 'tables',
     // UNE seule entrée (objet `defauts-de-compilation.json`) — ce que le compilateur de scène pose
     // quand l'auteur laisse le terrain implicite (`noyau/mapSpec.ts`). Éditable ici (`edit.object: 'single'`).
     build: () => [{
@@ -1907,8 +1907,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }),
     }],
   },
-  {
-    key: 'names', label: 'codex.fiche.banqueDeNoms', group: 'Tables', cluster: 'codex.fiche.creationDePersonnage',
+  names: {
+    label: 'codex.fiche.banqueDeNoms', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
     // LISTE de documents (#1467 L1b V-FLIP-RECORD) : chaque banque porte SON id (le `RaceKey`) et SON
     // libellé — l'affichage se lit sur le document, sans lookup transverse.
     build: () => names.map((pool) => ({
@@ -1925,8 +1925,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     })),
   },
   // ── #157 : catalogues de CONTENU app-owned (façade ou module dédié) exposés au Codex. ──
-  {
-    key: 'structures', label: 'codex.fiche.structuresSiege', group: 'Monde',
+  structures: {
+    label: 'codex.fiche.structuresSiege', group: 'monde',
     build: () => structures.map((s) => depuisEnveloppe(s, {
       sub: s.kind === 'porte' ? tr('codex.fiche.porte') : tr('codex.fiche.mur'),
       meta: facts(
@@ -1935,12 +1935,12 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sections: sections(chips(tr('codex.fiche.atouts'), traitRefRows(s.traits as unknown as TraitList))),
     })),
   },
-  {
+  materials: {
     // Matières du monde (#1686) : UN document à DISCRIMINANT (`domain`) — le groupe, le sous-titre et
     // les champs affichés découlent de la valeur du discriminant, par le canal registre. Aucune table
     // de libellés ni de clés ici : l'enum NOMMÉ du nœud `domain` nomme les domaines, `chargeDiscriminee` dit ce
     // que porte le domaine d'une entrée, `libelleDuChamp` nomme chaque champ.
-    key: 'materials', label: 'codex.fiche.matieres', group: 'Monde',
+    label: 'codex.fiche.matieres', group: 'monde',
     build: () => {
       const meta = metaPourFichier('materials.json');
       return materials.map((m) => {
@@ -1955,13 +1955,13 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       });
     },
   },
-  {
+  terrains: {
     // Sols de la grille (#1690) : UNE forme sans discriminant — chaque entrée porte les mêmes clés de
     // RÈGLE (franchissabilité, précédence de raccord, blocage de la vue, surface bâtie, hauteur du bloc
     // plein) et les mêmes clés de RENDU (teinte, rampe, décor posé). Aucune table de libellés ici : les
     // noms FR viennent de la méta du def (`libelleDuChamp`), l'ordre des arrêts de rampe de la source
     // unique `terrainStopsOrdonnes`, et le nom du décor posé de l'entrée `props.json` qu'il référence.
-    key: 'terrains', label: 'codex.fiche.terrains', group: 'Monde',
+    label: 'codex.fiche.terrains', group: 'monde',
     build: () => {
       const meta = metaPourFichier('terrains.json');
       const nom = (cle: string) => libelleDuChamp(cle, { meta });
@@ -1992,13 +1992,13 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }));
     },
   },
-  {
+  buildings: {
     // Types de bâtiment (#1715) : UNE forme sans discriminant — chaque entrée porte la couverture de
     // référence du type et les ornements d'identité que le rendu émet en billboard. Aucune table de
     // libellés ici : les noms FR viennent de la méta du def
     // (`libelleDuChamp`), le nom d'une couverture de l'entrée `materials.json` visée, celui d'un
     // ornement de l'entrée `props.json` qu'il référence, et l'ancrage de l'enum NOMMÉ du schéma.
-    key: 'buildings', label: 'codex.fiche.batiments', group: 'Monde',
+    label: 'codex.fiche.batiments', group: 'monde',
     build: () => {
       const meta = metaPourFichier('buildings.json');
       const nom = (cle: string) => libelleDuChamp(cle, { meta });
@@ -2015,8 +2015,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }));
     },
   },
-  {
-    key: 'vehicles', label: 'codex.fiche.vehicules', group: 'Monde',
+  vehicles: {
+    label: 'codex.fiche.vehicules', group: 'monde',
     build: () => vehicles.map((v) => depuisEnveloppe(v, {
       meta: facts(
         fact(tr('codex.fiche.prix'), priceLabel(v.purchase?.price)), fact(tr('codex.fiche.disponibilite'), v.purchase?.availability ?? null),
@@ -2025,41 +2025,41 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'celestialHouses', label: 'codex.fiche.demeuresAstrologiques', group: 'Personnage',
+  celestialHouses: {
+    label: 'codex.fiche.demeuresAstrologiques', group: 'personnage',
     build: () => celestialHouses.map((h) => depuisEnveloppe(h, { sub: `2d10 ≤ ${h.rand}` })),
   },
-  {
-    key: 'groups', label: 'codex.fiche.groupesCible', group: 'Monde',
+  groups: {
+    label: 'codex.fiche.groupesCible', group: 'monde',
     build: () => groups.map((g) => depuisEnveloppe(g)),
   },
-  {
-    key: 'psychologies', label: 'codex.fiche.etatsPsychologiques', group: 'Effets',
+  psychologies: {
+    label: 'codex.fiche.etatsPsychologiques', group: 'effets',
     build: () => psychologies.map((p) => depuisEnveloppe(p, {
       sections: sections(passiveSection(p.passive), effectsSection(p.effects, ETATS_DU_CODEX), ...reverseSections('psychologies', p.id)),
     })),
   },
-  {
-    key: 'seaShanties', label: 'codex.fiche.chantsDeMarins', group: 'Monde',
+  seaShanties: {
+    label: 'codex.fiche.chantsDeMarins', group: 'monde',
     build: () => seaShanties.map((s) => depuisEnveloppe(s, {
       meta: facts(fact(tr('codex.fiche.note'), s.note ?? null)),
       sections: sections(passiveSection(s.crewOps, tr('codex.fiche.effetEquipage')), passiveSection(s.captainOps, tr('codex.fiche.effetCapitaine'))),
     })),
   },
-  {
-    key: 'shipStations', label: 'codex.fiche.stationsABord', group: 'Monde',
+  shipStations: {
+    label: 'codex.fiche.stationsABord', group: 'monde',
     build: () => shipStations.map((st) => depuisEnveloppe(st, {
       meta: facts(fact(tr('codex.fiche.traitNavalRequis'), st.requiresTrait ? refLabel('navalTraits', st.requiresTrait) : null)),
     })),
   },
-  {
-    key: 'crewRoles', label: 'codex.fiche.rolesDEquipage', group: 'Monde',
+  crewRoles: {
+    label: 'codex.fiche.rolesDEquipage', group: 'monde',
     build: () => crewRoles.map((r) => depuisEnveloppe(r, {
       sections: sections(chips(tr('codex.fiche.competences'), r.skills.map((sk) => idRefRow('skills', sk.id, sk.spec)))),
     })),
   },
-  {
-    key: 'crewTestTypes', label: 'codex.fiche.testsDEquipageTypes', group: 'Monde',
+  crewTestTypes: {
+    label: 'codex.fiche.testsDEquipageTypes', group: 'monde',
     build: () => crewTestTypes.map((t) => depuisEnveloppe(t, {
       meta: facts(fact(tr('codex.fiche.roleEssentiel'), crewRoles.find((r) => r.id === t.essential)?.label ?? t.essential)),
       sections: sections(
@@ -2068,126 +2068,126 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'navalTraits', label: 'codex.fiche.traitsAmeliorationsNavales', group: 'Équipement',
+  navalTraits: {
+    label: 'codex.fiche.traitsAmeliorationsNavales', group: 'equipement',
     build: () => NAVAL_TRAITS.map((t) => depuisEnveloppe(t, {
       sub: t.kind === 'trait' ? tr('codex.fiche.traitConstruction') : tr('codex.fiche.amelioration'),
       sections: sections(passiveSection(t.passive)),
     })),
   },
-  {
-    key: 'traumas', label: 'codex.fiche.traumatismesSequelles', group: 'Effets',
+  traumas: {
+    label: 'codex.fiche.traumatismesSequelles', group: 'effets',
     build: () => datasetArray('traumas').map((f) => depuisEnveloppe(f, {
       sub: f.kind ? `${f.kind === 'dechirure' ? tr('codex.fiche.dechirure') : tr('codex.fiche.fracture')}${f.severity ? ` (${f.severity})` : ''}` : undefined,
       sections: sections(passiveSection(f.ops, tr('codex.fiche.effetPermanent'))),
     })),
   },
-  {
-    key: 'criticalsTete', label: 'codex.fiche.critiquesTeteTraumatisme', group: 'Effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'LDB 18',
+  criticalsTete: {
+    label: 'codex.fiche.critiquesTeteTraumatisme', group: 'effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'LDB 18',
     build: () => datasetArray('criticalsTete').map((e) => critEntryItem(e, 'ldb', 'tete')),
   },
-  {
-    key: 'criticalsBras', label: 'codex.fiche.critiquesBrasTraumatisme', group: 'Effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'LDB 18',
+  criticalsBras: {
+    label: 'codex.fiche.critiquesBrasTraumatisme', group: 'effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'LDB 18',
     build: () => datasetArray('criticalsBras').map((e) => critEntryItem(e, 'ldb', 'bras')),
   },
-  {
-    key: 'criticalsCorps', label: 'codex.fiche.critiquesCorpsTraumatisme', group: 'Effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'LDB 18',
+  criticalsCorps: {
+    label: 'codex.fiche.critiquesCorpsTraumatisme', group: 'effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'LDB 18',
     build: () => datasetArray('criticalsCorps').map((e) => critEntryItem(e, 'ldb', 'corps')),
   },
-  {
-    key: 'criticalsJambe', label: 'codex.fiche.critiquesJambeTraumatisme', group: 'Effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'LDB 18',
+  criticalsJambe: {
+    label: 'codex.fiche.critiquesJambeTraumatisme', group: 'effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'LDB 18',
     build: () => datasetArray('criticalsJambe').map((e) => critEntryItem(e, 'ldb', 'jambe')),
   },
-  {
-    key: 'aaCriticalsTete', label: 'codex.fiche.critiquesTeteApprocheAlternative', group: 'Effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'AA',
+  aaCriticalsTete: {
+    label: 'codex.fiche.critiquesTeteApprocheAlternative', group: 'effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'AA',
     build: () => datasetArray('aaCriticalsTete').map((e) => critEntryItem(e, 'aa', 'tete')),
   },
-  {
-    key: 'aaCriticalsBras', label: 'codex.fiche.critiquesBrasApprocheAlternative', group: 'Effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'AA',
+  aaCriticalsBras: {
+    label: 'codex.fiche.critiquesBrasApprocheAlternative', group: 'effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'AA',
     build: () => datasetArray('aaCriticalsBras').map((e) => critEntryItem(e, 'aa', 'bras')),
   },
-  {
-    key: 'aaCriticalsCorps', label: 'codex.fiche.critiquesCorpsApprocheAlternative', group: 'Effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'AA',
+  aaCriticalsCorps: {
+    label: 'codex.fiche.critiquesCorpsApprocheAlternative', group: 'effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'AA',
     build: () => datasetArray('aaCriticalsCorps').map((e) => critEntryItem(e, 'aa', 'corps')),
   },
-  {
-    key: 'aaCriticalsJambe', label: 'codex.fiche.critiquesJambeApprocheAlternative', group: 'Effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'AA',
+  aaCriticalsJambe: {
+    label: 'codex.fiche.critiquesJambeApprocheAlternative', group: 'effets', cluster: 'codex.fiche.blessuresCritiques', sourceRef: 'AA',
     build: () => datasetArray('aaCriticalsJambe').map((e) => critEntryItem(e, 'aa', 'jambe')),
   },
-  {
-    key: 'incidentsMonture', label: 'codex.fiche.incidentsDeMonte', group: 'Tables', cluster: 'codex.fiche.voyageTerrestre',
+  incidentsMonture: {
+    label: 'codex.fiche.incidentsDeMonte', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
     build: () => MOUNT_INCIDENTS.map((e) => travelEntryItem(e, tr('codex.fiche.effetSurLeCavalier'))),
   },
-  {
-    key: 'problemesVehicule', label: 'codex.fiche.problemesDeVehicule', group: 'Tables', cluster: 'codex.fiche.voyageTerrestre',
+  problemesVehicule: {
+    label: 'codex.fiche.problemesDeVehicule', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
     build: () => VEHICLE_PROBLEMS.map((e) => travelEntryItem(e, tr('codex.fiche.effetSurLesOccupants'))),
   },
-  {
-    key: 'rencontresPositives', label: 'codex.fiche.rencontresPositives', group: 'Tables', cluster: 'codex.fiche.rencontres',
+  rencontresPositives: {
+    label: 'codex.fiche.rencontresPositives', group: 'tables', cluster: 'codex.fiche.rencontres',
     build: () => datasetArray('rencontresPositives').map((e) => travelEntryItem(e, tr('codex.fiche.effetSurLesOccupants'))),
   },
-  {
-    key: 'rencontresFortuites', label: 'codex.fiche.rencontresFortuites', group: 'Tables', cluster: 'codex.fiche.rencontres',
+  rencontresFortuites: {
+    label: 'codex.fiche.rencontresFortuites', group: 'tables', cluster: 'codex.fiche.rencontres',
     build: () => datasetArray('rencontresFortuites').map((e) => travelEntryItem(e, tr('codex.fiche.effetSurLesOccupants'))),
   },
-  {
-    key: 'rencontresDangereuses', label: 'codex.fiche.rencontresDangereuses', group: 'Tables', cluster: 'codex.fiche.rencontres',
+  rencontresDangereuses: {
+    label: 'codex.fiche.rencontresDangereuses', group: 'tables', cluster: 'codex.fiche.rencontres',
     build: () => datasetArray('rencontresDangereuses').map((e) => travelEntryItem(e, tr('codex.fiche.effetSurLesOccupants'))),
   },
-  {
-    key: 'shipCriticalsCargaison', label: 'codex.fiche.critiquesDeNavireCargaison', group: 'Effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
+  shipCriticalsCargaison: {
+    label: 'codex.fiche.critiquesDeNavireCargaison', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
     build: () => datasetArray('shipCriticalsCargaison').map(shipCritEntryItem),
   },
-  {
-    key: 'shipCriticalsGreement', label: 'codex.fiche.critiquesDeNavireGreement', group: 'Effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
+  shipCriticalsGreement: {
+    label: 'codex.fiche.critiquesDeNavireGreement', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
     build: () => datasetArray('shipCriticalsGreement').map(shipCritEntryItem),
   },
-  {
-    key: 'shipCriticalsCoque', label: 'codex.fiche.critiquesDeNavireCoque', group: 'Effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
+  shipCriticalsCoque: {
+    label: 'codex.fiche.critiquesDeNavireCoque', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
     build: () => datasetArray('shipCriticalsCoque').map(shipCritEntryItem),
   },
-  {
-    key: 'shipCriticalsAvirons', label: 'codex.fiche.critiquesDeNavireAvirons', group: 'Effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
+  shipCriticalsAvirons: {
+    label: 'codex.fiche.critiquesDeNavireAvirons', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
     build: () => datasetArray('shipCriticalsAvirons').map(shipCritEntryItem),
   },
-  {
-    key: 'shipCriticalsEquipements', label: 'codex.fiche.critiquesDeNavireEquipements', group: 'Effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
+  shipCriticalsEquipements: {
+    label: 'codex.fiche.critiquesDeNavireEquipements', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
     build: () => datasetArray('shipCriticalsEquipements').map(shipCritEntryItem),
   },
-  {
-    key: 'riverCriticalsGreement', label: 'codex.fiche.critiquesFluviauxGreement', group: 'Effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
+  riverCriticalsGreement: {
+    label: 'codex.fiche.critiquesFluviauxGreement', group: 'effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
     build: () => datasetArray('riverCriticalsGreement').map(shipCritEntryItem),
   },
-  {
-    key: 'riverCriticalsAvirons', label: 'codex.fiche.critiquesFluviauxRames', group: 'Effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
+  riverCriticalsAvirons: {
+    label: 'codex.fiche.critiquesFluviauxRames', group: 'effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
     build: () => datasetArray('riverCriticalsAvirons').map(shipCritEntryItem),
   },
-  {
-    key: 'riverCriticalsGouvernail', label: 'codex.fiche.critiquesFluviauxGouvernail', group: 'Effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
+  riverCriticalsGouvernail: {
+    label: 'codex.fiche.critiquesFluviauxGouvernail', group: 'effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
     build: () => datasetArray('riverCriticalsGouvernail').map(shipCritEntryItem),
   },
-  {
-    key: 'riverCriticalsCoque', label: 'codex.fiche.critiquesFluviauxCoque', group: 'Effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
+  riverCriticalsCoque: {
+    label: 'codex.fiche.critiquesFluviauxCoque', group: 'effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
     build: () => datasetArray('riverCriticalsCoque').map(shipCritEntryItem),
   },
-  {
-    key: 'riverCriticalsSuperstructure', label: 'codex.fiche.critiquesFluviauxSuperstructure', group: 'Effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
+  riverCriticalsSuperstructure: {
+    label: 'codex.fiche.critiquesFluviauxSuperstructure', group: 'effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
     build: () => datasetArray('riverCriticalsSuperstructure').map(shipCritEntryItem),
   },
-  {
-    key: 'seaManannFactors', label: 'codex.fiche.humeurDeManannFacteurs', group: 'Tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
+  seaManannFactors: {
+    label: 'codex.fiche.humeurDeManannFacteurs', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
     build: () => datasetArray('seaManannFactors').map(manannFactorItem),
   },
-  {
-    key: 'seaBoardEvents', label: 'codex.fiche.evenementsDeBordMer', group: 'Tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
+  seaBoardEvents: {
+    label: 'codex.fiche.evenementsDeBordMer', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
     build: () => datasetArray('seaBoardEvents').map((e) => seaEventItem(e, facesDuDe(DE_DES_EVENEMENTS_DE_BORD))),
   },
-  {
-    key: 'seaPortEvents', label: 'codex.fiche.evenementsDePortMer', group: 'Tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
+  seaPortEvents: {
+    label: 'codex.fiche.evenementsDePortMer', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
     build: () => datasetArray('seaPortEvents').map((e) => seaEventItem(e)),
   },
-  {
-    key: 'waterExposure', label: 'codex.fiche.expositionALEauMaladiesHydriques', group: 'Tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MSRC 16',
+  waterExposure: {
+    label: 'codex.fiche.expositionALEauMaladiesHydriques', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MSRC 16',
     build: () => {
       const w = datasetObject('waterExposure');
       return [{
@@ -2209,8 +2209,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }];
     },
   },
-  {
-    key: 'navalPorts', label: 'codex.fiche.portsIndexDeLaMerDes', group: 'Monde', sourceRef: 'MDG 15',
+  navalPorts: {
+    label: 'codex.fiche.portsIndexDeLaMerDes', group: 'monde', sourceRef: 'MDG 15',
     build: () => navalPorts.map((p) => depuisEnveloppe(p, {
       group: p.region,
       meta: facts(
@@ -2224,15 +2224,15 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'navalProgression', label: 'codex.fiche.progressionDeNavireDrDeNavigation', group: 'Tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 13',
+  navalProgression: {
+    label: 'codex.fiche.progressionDeNavireDrDeNavigation', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 13',
     build: () => datasetArray('navalProgression').map((e) => ({
       id: e.id, label: libelleDeValeur(progressionModeSchema, e.mode),
       sub: `DR ${fourchette(e.min, e.max)}`, desc: e.desc, source: src(e.source),
     })),
   },
-  {
-    key: 'shipHullSizes', label: 'codex.fiche.gabaritsDeCoqueConstructionNavale', group: 'Équipement', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 12',
+  shipHullSizes: {
+    label: 'codex.fiche.gabaritsDeCoqueConstructionNavale', group: 'equipement', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 12',
     build: () => datasetArray('shipHullSizes').map((s) => ({
       id: s.id, label: libelleDeValeur(shipSizeSchema, s.size), source: src(s.source),
       meta: facts(
@@ -2246,8 +2246,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sections: sections(shipConstructionRulesSection()),
     })),
   },
-  {
-    key: 'shipSpeedTraits', label: 'codex.fiche.traitsDeVitesseConstructionNavale', group: 'Équipement', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 12',
+  shipSpeedTraits: {
+    label: 'codex.fiche.traitsDeVitesseConstructionNavale', group: 'equipement', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 12',
     build: () => datasetArray('shipSpeedTraits').map((t) => depuisEnveloppe(t, {
       meta: facts(
         signedFact(tr('codex.fiche.mouvement'), t.mMod), signedFact(tr('codex.fiche.capacite'), t.capacityPct, ' %'),
@@ -2255,8 +2255,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'shipConstructionTraits', label: 'codex.fiche.traitsDeConstructionNavire', group: 'Équipement', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 12',
+  shipConstructionTraits: {
+    label: 'codex.fiche.traitsDeConstructionNavire', group: 'equipement', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 12',
     build: () => datasetArray('shipConstructionTraits').map((t) => ({
       id: t.id, label: refLabel('navalTraits', { id: t.id }), source: src(t.source),
       meta: facts(
@@ -2266,8 +2266,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'seaNavigation', label: 'codex.fiche.navigationMaritimeProgressionSalissuresOrientationPhares', group: 'Tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 13/15',
+  seaNavigation: {
+    label: 'codex.fiche.navigationMaritimeProgressionSalissuresOrientationPhares', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 13/15',
     build: () => {
       const n = datasetObject('seaNavigation');
       const derive = n.orientation.reperes.find((r) => r.outcome === 'drift-major'); // MDG 13 l.320
@@ -2337,8 +2337,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }];
     },
   },
-  {
-    key: 'seaPerils', label: 'codex.fiche.perilsEnMerEchouageIcebergsDetroits', group: 'Tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 13',
+  seaPerils: {
+    label: 'codex.fiche.perilsEnMerEchouageIcebergsDetroits', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 13',
     build: () => {
       const p = datasetObject('seaPerils');
       return [{
@@ -2364,8 +2364,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }];
     },
   },
-  {
-    key: 'seaWeather', label: 'codex.fiche.meteoDeLaMerDesGriffes', group: 'Tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 13',
+  seaWeather: {
+    label: 'codex.fiche.meteoDeLaMerDesGriffes', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 13',
     build: () => {
       const w = datasetObject('seaWeather');
       // Les 4 aspects du tirage (`table[].precipitations`/`.temperature`/`.visibilite`/`.vent`) sont des
@@ -2417,15 +2417,15 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       }];
     },
   },
-  {
-    key: 'montures', label: 'codex.fiche.monturesProfilsDeVoyage', group: 'Monde',
+  montures: {
+    label: 'codex.fiche.monturesProfilsDeVoyage', group: 'monde',
     build: () => MOUNT_PROFILES.map((p) => depuisEnveloppe(p, {
       meta: facts(fact(tr('codex.fiche.mouvement'), p.m), fact(tr('codex.fiche.endurance'), p.e), fact(tr('codex.fiche.trotte'), p.trot ? tr('codex.fiche.oui') : tr('codex.fiche.non'))),
       sections: sections(chips(tr('codex.fiche.betesLiees'), p.creatureIds.map((id) => idRefRow('creatures', id)))),
     })),
   },
-  {
-    key: 'tavernGames', label: 'codex.fiche.jeuxDeTaverne', group: 'Monde',
+  tavernGames: {
+    label: 'codex.fiche.jeuxDeTaverne', group: 'monde',
     build: () => TAVERN_GAMES.map((g) => depuisEnveloppe(g, {
       meta: facts(
         fact(tr('codex.fiche.competence'), g.skill ? refLabel('skills', g.skill) : tr('codex.fiche.pariAucuneCompetence')),
@@ -2445,15 +2445,15 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'obsessions', label: 'codex.fiche.obsessionsTable', group: 'Tables',
+  obsessions: {
+    label: 'codex.fiche.obsessionsTable', group: 'tables',
     build: () => OBSESSIONS.map((o) => ({ id: o.id, label: groupLabel(o.id), sub: `2d10 ${fourchette(o.min, o.max)}` })),
   },
-  {
+  reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —
     // exposé/éditable ici comme tout catalogue. Le panneau in-game reste la porte de la VALEUR jouée
     // (surcharge runtime persistée) ; cette fiche montre le catalogue lui-même.
-    key: 'reglesOptionnelles', label: 'codex.fiche.reglesOptionnelles', group: 'Tables',
+    label: 'codex.fiche.reglesOptionnelles', group: 'tables',
     build: () => datasetArray('reglesOptionnelles').map((r) => depuisEnveloppe(r, {
       sub: r.group, desc: r.hint,
       meta: facts(
@@ -2466,8 +2466,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'surincantation', label: 'codex.fiche.tableauDeSurincantationVdm', group: 'Tables', sourceRef: 'VDM 02',
+  surincantation: {
+    label: 'codex.fiche.tableauDeSurincantationVdm', group: 'tables', sourceRef: 'VDM 02',
     build: () => datasetArray('surincantation').map((r) => ({
       id: r.id, label: r.label, sub: tr('codex.fiche.drDepensesSurUneColonne'),
       meta: facts(
@@ -2480,8 +2480,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       source: src(SURINCANTATION.source),
     })),
   },
-  {
-    key: 'structureCriticals', label: 'codex.fiche.critiquesDeStructure', group: 'Effets',
+  structureCriticals: {
+    label: 'codex.fiche.critiquesDeStructure', group: 'effets',
     build: () => tableDesCritiquesDeStructure().map((c) => ({
       id: c.id, label: c.label, sub: bandeAuDe('d100', c.min, c.max), desc: c.note,
       meta: facts(
@@ -2491,8 +2491,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'artilleryMisfire', label: 'codex.fiche.incidentsDeTirParSalve', group: 'Effets',
+  artilleryMisfire: {
+    label: 'codex.fiche.incidentsDeTirParSalve', group: 'effets',
     build: () => ARTILLERY_MISFIRE.map((e) => ({
       id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max), desc: e.note,
       meta: facts(
@@ -2506,26 +2506,26 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   // Cargaisons : le DATASET éditable est le tableau brut du JSON (marqueurs de l'Index compris, cf.
   // `data/overrides.ts`), la VUE Compendium n'en montre que les marchandises — un marqueur n'a ni
   // prix ni disponibilité, donc aucune fiche à ouvrir. Le filtre est ICI, pas dans la donnée.
-  {
-    key: 'landCargo', label: 'codex.fiche.cargaisonTerrestre', group: 'Monde',
+  landCargo: {
+    label: 'codex.fiche.cargaisonTerrestre', group: 'monde',
     build: () => datasetArray('landCargo').filter(isEchangeable).map((c) => depuisEnveloppe(c, {
       meta: facts(fact(tr('codex.fiche.vin'), (c as LandCargoDef).wine ? tr('codex.fiche.oui') : null)),
     })),
   },
-  {
-    key: 'seaCargo', label: 'codex.fiche.cargaisonMaritime', group: 'Monde',
+  seaCargo: {
+    label: 'codex.fiche.cargaisonMaritime', group: 'monde',
     build: () => datasetArray('seaCargo').filter(isEchangeable).map((c) => depuisEnveloppe(c)),
   },
-  {
-    key: 'riverPerils', label: 'codex.fiche.perilsFluviaux', group: 'Monde',
+  riverPerils: {
+    label: 'codex.fiche.perilsFluviaux', group: 'monde',
     build: () => RIVER_PERILS.map((p) => depuisEnveloppe(p, { sub: p.kind })),
   },
-  {
-    key: 'crewMoraleFactors', label: 'codex.fiche.moralDEquipageFacteurs', group: 'Tables', cluster: 'codex.fiche.equipageNavire',
+  crewMoraleFactors: {
+    label: 'codex.fiche.moralDEquipageFacteurs', group: 'tables', cluster: 'codex.fiche.equipageNavire',
     build: () => MORALE_FACTORS.map((f) => depuisEnveloppe(f, { desc: formatEffetSigne(f.effect) })),
   },
-  {
-    key: 'crewMoraleBands', label: 'codex.fiche.moralDEquipageEffets', group: 'Tables', cluster: 'codex.fiche.equipageNavire',
+  crewMoraleBands: {
+    label: 'codex.fiche.moralDEquipageEffets', group: 'tables', cluster: 'codex.fiche.equipageNavire',
     build: () => MORALE_BANDS.map((b) => depuisEnveloppe(b, {
       sub: tr('codex.fiche.moral', { v: fourchette(b.min, b.max) }),
       meta: facts(
@@ -2534,17 +2534,17 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  {
-    key: 'steamBreakdowns', label: 'codex.fiche.pannesDeNavireAVapeur', group: 'Tables', cluster: 'codex.fiche.equipageNavire',
+  steamBreakdowns: {
+    label: 'codex.fiche.pannesDeNavireAVapeur', group: 'tables', cluster: 'codex.fiche.equipageNavire',
     build: () => STEAM_BREAKDOWNS.map((e) => depuisEnveloppe(e, {
       sub: bandeAuDe('d100', e.min, e.max),
       meta: facts(fact(tr('codex.fiche.moteurDetruit'), e.engineDestroyed ? tr('codex.fiche.oui') : null)),
     })),
   },
-  {
+  regles: {
     // Procédures / options de jeu au texte VERBATIM (Sombre Pacte, Empoignade, modes d'attaque…) —
     // cible des tooltips `CodexRef` qui portaient une paraphrase de règle (#392).
-    key: 'regles', label: 'codex.fiche.reglesDeJeu', group: 'Monde',
+    label: 'codex.fiche.reglesDeJeu', group: 'monde',
     // Une règle chiffrée montre les valeurs et les Tests que le moteur lit (`engine/reglesChiffrees.ts`, #1173).
     build: () => regles.map((r) => {
       const sections: CodexSection[] = [
@@ -2560,10 +2560,11 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       return depuisEnveloppe(r, sections.length ? { sections } : undefined);
     }),
   },
-];
+} satisfies Record<CleCodex, CodexCategorySpec>;
 
-/** Les catégories consultables — chaque `items`/`facets` est un getter re-projetable (fraîcheur). */
-export const CODEX: CodexCategory[] = CODEX_SPECS.map(makeCategory);
+/** Les catégories consultables, dans l'ordre de déclaration de `CODEX_SPECS` — chaque `items`/`facets`
+ *  est un getter re-projetable (fraîcheur). */
+export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex, CodexCategorySpec][]).map(([key, spec]) => makeCategory(key, spec));
 
 /** Section « table 2d10 » d'une couleur (yeux/cheveux) — borne + couleur par colonne d'espèce. */
 function colorTableSection(c: (typeof eyes)[number]): CodexSection {

@@ -2005,7 +2005,7 @@ mécaniques » en `{ exact: true }` rate (piège du suffixe ci-dessus) — soit 
 Un effet **Journal** (texte et provenance, #2001) suit le même chemin, mesuré au code :
 
 Éditeur → onglet **Triggers** (`src/ui/editor/LogicDock.tsx:85`) → **+ Nouveau trigger** (`:174`, qui
-sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/FlowEditor.tsx:226`) →
+sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/FlowEditor.tsx:223`) →
 **Journal** (`src/noyau/combatEffects.ts:1257`).
 
 - « + Bloc » est le `<summary>` d'un `<details>` (`AddMenu`, `src/ui/editor/AddMenu.tsx`) : le cliquer
@@ -2013,7 +2013,7 @@ sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/Flo
   (`AddMenu.tsx`, un `mini-title` par groupe, jamais cliquable) : « Narration » n'est qu'un titre, on
   clique « Journal » directement.
 - La ligne d'effet posée est un `<details class="eff-row flow-node">` REPLIÉ (`open` n'est posé que pour
-  un nœud `if`/`test`, `FlowEditor.tsx:263`) : ouvrir son `<summary>` avant de viser la zone de texte —
+  un nœud `if`/`test`, `FlowEditor.tsx:268`) : ouvrir son `<summary>` avant de viser la zone de texte —
   `deplierVers(session, '<sélecteur du champ>')` le fait au geste (clic réel du `summary`, puis molette).
 - Depuis la CARTE, un trigger sélectionné ouvre le même détail par le bouton **Effets (n)…** de
   l'inspecteur (`src/ui/editor/Inspector.tsx:910`).
@@ -2039,7 +2039,7 @@ Les deux niches météo éditent le MÊME fichier (`src/data/weather.json`) sous
 recette qui vérifie l'édition d'une météo doit dire LAQUELLE des deux elle a ouverte.
 
 En Atelier, les ops d'une mutation ou d'un talent sont des `<details class="eff-row">` REPLIÉS
-(`src/ui/editor/GameOpEditor.tsx:1347`, l'éditeur d'ops que compose `CodexEdit`) : un champ d'op
+(`src/ui/editor/GameOpEditor.tsx:1030`, l'éditeur d'ops que compose `CodexEdit`) : un champ d'op
 s'atteint par `deplierVers` (clic réel du `summary`, puis molette) — `scrollIntoView` ne le ramène pas.
 
 **Prose ADRESSÉE (`descRef`, #1389)** — la première famille dont la prose n'est plus recopiée dans la

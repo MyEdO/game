@@ -6,6 +6,7 @@
  * (`partie.ts`) et le banc de test (`banc.testkit.ts`) le composent ; un seul par contexte JS (`branchement.ts`).
  */
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { JeuDuNoyau, MachinerieDuNoyau } from './machinerieDuNoyau';
 import type { EtatDeJeu, Jeu } from './etat';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import type { EntreesDeLaPartie } from './partie';
@@ -22,13 +23,13 @@ import { setDesFixes } from '../engine/fixedDie';
 import { remettreLesSequencesAZero } from '../engine/sequences';
 
 /** Un écrit de zustand : un objet, ou une fonction de l'état, fusionné au premier niveau. */
-export type Ecrit = Partial<Jeu> | ((s: Jeu) => Partial<Jeu>);
+export type Ecrit = Partial<JeuDuNoyau> | ((s: JeuDuNoyau) => Partial<JeuDuNoyau>);
 
 export interface ProprietaireDuJeu {
   get: Get;
   /** Le `set` brut : il écrit aussi les clés réservées, pour leurs seuls écrivains. */
   set: SetDesClesReservees;
-  actions: ActionsDuNoyau;
+  actions: ActionsDuNoyau & MachinerieDuNoyau;
   /** Abonne `fn`, appelée après chaque écriture (avant sa transition) avec l'état et le précédent ; rend le désabonnement. */
   abonner: (fn: (etat: Jeu, prev: Jeu) => void) => () => void;
   /** Rejoue le jeton en attente `jeton`, une fois ; faux s'il n'est pas en attente. */
@@ -61,7 +62,7 @@ export function ouvrirLeProprietaire(
   };
   const set = ecrire as SetDesClesReservees;
   const actions = creerActionsDuNoyau(get, set);
-  let etat: Jeu = { ...etatInitial, ...actions };
+  let etat: JeuDuNoyau = { ...etatInitial, ...actions };
 
   brancherLeJeu(get, set, tablesDuJeu());
   remettreLesSequencesAZero();

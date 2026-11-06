@@ -23,6 +23,12 @@ window/stretch/aspect="expand"
 
 theme/custom="res://art/theme.tres"
 
+[importer_defaults]
+
+scene={
+"meshes/ensure_tangents": false
+}
+
 [input]
 
 pivoter_gauche={
