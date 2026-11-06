@@ -3,7 +3,7 @@
  * arguments, pour un hôte qui les donne prêts à jouer. Les arêtes qu'il borde (`aretesUtilisables`, offertes comme à
  * l'écran : `aretesOffertes`), les sauts (`atterrissagesDeSaut`), les sorties de scène (déclencheurs à transition,
  * `triggersEnJeu`), les offres des entités à sa portée (`offresDExploration` : parler, commercer, s'asseoir, une action
- * authorée), refusées avec leur raison, puis les dénivelés qu'il borderait ailleurs à son étage (`gesteDeDenivele`), le plus proche de chaque libellé, du
+ * authorée), refusées avec leur raison, la carte du monde quand le groupe est à l'un de ses lieux ou en voyage (`openWorldMap`), puis les dénivelés qu'il borderait ailleurs à son étage (`gesteDeDenivele`), le plus proche de chaque libellé, du
  * plus proche au plus lointain. Ce qui ne se joue pas depuis sa case se rejoint par le chemin du groupe (`exploreMovePlan`), joué par
  * le clic de sa case (`cliquerLaCase`), comme un saut.
  */
@@ -16,6 +16,7 @@ import { exploreMovePlan, optionsDeCheminDuGroupe } from './monde/exploreNav';
 import { memeCase } from './monde/seating';
 import { atterrissagesDeSaut, type Pt } from './monde/path';
 import { computeStateVisible } from './visionState';
+import { placeOfScene } from './worldMap';
 import { flowEffects } from '../engine/flowCore';
 import { t } from '../i18n';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
@@ -71,6 +72,7 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
       });
     }
   }
+  if (s.worldMap && (placeOfScene(s.worldMap, scene.id) || s.travelPlan)) out.push({ libelle: t('exploration.carte'), gestes: [{ verbe: 'openWorldMap', args: [] }] });
   if (!gestesDeplacantsOuverts(s)) return out;
   const z = partyPos.z ?? 0;
   const bordees = new Set(aretesUtilisables({ scene, visible, controleur: partyPos, activeZ: z }).map((a) => a.cle));
