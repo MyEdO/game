@@ -4,7 +4,7 @@
  * la surface de chaque case de chaque couche. Repère des builders : X = est, Y = haut, Z = sud, en mètres, la case
  * (x, y) centrée sur (x·m, y·m) où m = `metresParCase`.
  */
-import { heightAt, sceneMetresPerTile, wallEnds, type Scene } from '../scene';
+import { heightAt, piedDeLArete, sceneMetresPerTile, wallEnds, type Scene } from '../scene';
 import { parseHex } from '../../../lib/couleurHex';
 import { MISSING_TONE } from './missing';
 import { buildFloors } from './floors';
@@ -150,16 +150,17 @@ export function toitsLeves(scene: Scene, allies: readonly { x: number; y: number
   return [...new Set(buildRoofs(scene, { allies: [...allies] }).filter((el) => el.states.roofOccupied).map((el) => nappeKey(el.bodyId!, el.sectionId!)))];
 }
 
-/** Les couronnes crénelées des murs fortifiés de la couche `z` de `scene` (`crownFaces`, apparence à `parapet`), une
- *  par arête, nommée par sa clé (`edgeKey`), posée au sommet de la face pleine du mur (`wallHeightM`, sinon un étage) :
- *  l'hôte cache celles qui tombent avec leur mur (`couronnesAbattues`). PUR. */
-export function couronnesDeLaCouche(scene: Scene, z: number): NappeDuMonde[] {
+/** Les couronnes crénelées des murs fortifiés de `scene`, de toutes ses couches (`crownFaces`, apparence à `parapet`),
+ *  une par arête, nommée par sa clé (`edgeKey`), posée au sommet de la face pleine du mur dressé à son pied
+ *  (`piedDeLArete`, `wallHeightM`, sinon un étage) : l'hôte cache celles qui tombent avec leur mur
+ *  (`couronnesAbattues`). PUR. */
+export function couronnesDuMonde(scene: Scene): NappeDuMonde[] {
   const facades = facadeEdges(scene);
-  return (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === z).flatMap((seg) => {
+  return (scene.walls ?? []).flatMap((seg) => {
     const app = edgeAppearance(facades.get(edgeKey(seg)), seg);
     if (!app.parapet) return [];
     const [a, b] = wallEnds(seg);
-    const faces = crownFaces(app, a, b, heightAt(scene, seg.x, seg.y, z) + (app.wallHeightM ?? WALL_H_M));
-    return [{ cle: edgeKey(seg), ...emballer(scene, faces.map((face) => ({ face, cell: { x: seg.x, y: seg.y, z } }))) }];
+    const faces = crownFaces(app, a, b, piedDeLArete(scene, seg) + (app.wallHeightM ?? WALL_H_M));
+    return [{ cle: edgeKey(seg), ...emballer(scene, faces.map((face) => ({ face, cell: { x: seg.x, y: seg.y, z: seg.z ?? 0 } }))) }];
   });
 }
