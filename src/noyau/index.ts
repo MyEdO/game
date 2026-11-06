@@ -52,7 +52,7 @@ export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
 export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, type AreteDessinee } from './monde/aretes';
 export type { Scene } from './monde/scene';
-export { couronnesDeLaCouche, toitsDuMonde, volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
+export { couronnesDuMonde, toitsDuMonde, volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
 export { calqueDeLaCouche, editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, sceneEditee, texteAEnregistrer, HAUTEURS, PINCEAUX, type BrouillonDArete, type GesteDEdition, type PatchDArete, type SessionDEdition } from './edition/session';
 export { nomDEntite } from './monde/sceneNpc';
 export { presetDuNarratif } from './monde/resolveursDuNarratif';
