@@ -1,163 +1,168 @@
-[
-  {
-    "id": "moteur-broute",
-    "type": "steam-breakdown",
-    "min": 1,
-    "max": 40,
-    "label": "Le moteur broute",
-    "desc": "Le moteur broute : le moteur saute un tour et perd de la vitesse. Pendant les 1d10 prochains Rounds, le M du vaisseau est réduit de 3.",
-    "mMod": -3,
-    "durationRounds": {
-      "dice": {
-        "n": 1,
-        "sides": 10
-      }
-    },
-    "source": {
-      "book": "mer-des-griffes",
-      "page": 99,
-      "note": "Panne de Vapeur, MDG 12 l.324-349"
-    }
+{
+  "id": "panne-de-vapeur",
+  "type": "steam-breakdown",
+  "label": "Panne de vapeur",
+  "die": "d100",
+  "source": {
+    "book": "mer-des-griffes",
+    "page": 99,
+    "note": "Panne de Vapeur, MDG 12 l.324-349"
   },
-  {
-    "id": "fuite-de-vapeur",
-    "type": "steam-breakdown",
-    "min": 41,
-    "max": 60,
-    "label": "Fuite de vapeur",
-    "desc": "Fuite de vapeur : un jet de vapeur jaillit de la chaudière. La personne qui s'occupe du moteur doit réussir un Test d'Initiative sous peine d'être ébouillantée et de subir 1d10–5 Dégâts (1 minimum), qui ignorent l'Armure.",
-    "failDamage": {
-      "dice": {
-        "n": 1,
-        "sides": 10,
-        "plus": -5
-      }
-    },
-    "source": {
-      "book": "mer-des-griffes",
-      "page": 99,
-      "note": "Panne de Vapeur, MDG 12 l.324-349"
-    }
-  },
-  {
-    "id": "perte-de-pression",
-    "type": "steam-breakdown",
-    "min": 61,
-    "max": 70,
-    "label": "Perte de pression",
-    "desc": "Perte de pression : le moteur cesse de fonctionner. Le M du bateau tombe à 0 jusqu'à ce que quelqu'un réussisse un Test de Métier (Ingénieur) Intermédiaire (+0) pour redémarrer l'engin. Il faut ensuite attendre 5–DR Rounds jusqu'à ce que la pression soit suffisante pour propulser le navire.",
-    "mSet": 0,
-    "restart": [
-      {
-        "test": {
-          "skill": {
-            "id": "metier",
-            "spec": "ingenieur"
-          },
-          "difficulty": "intermediaire"
+  "entries": [
+    {
+      "id": "moteur-broute",
+      "min": 1,
+      "max": 40,
+      "label": "Le moteur broute",
+      "desc": "Le moteur broute : le moteur saute un tour et perd de la vitesse. Pendant les 1d10 prochains Rounds, le M du vaisseau est réduit de 3.",
+      "mMod": -3,
+      "durationRounds": {
+        "dice": {
+          "n": 1,
+          "sides": 10
         }
+      },
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 99,
+        "note": "Panne de Vapeur, MDG 12 l.324-349"
       }
-    ],
-    "source": {
-      "book": "mer-des-griffes",
-      "page": 99,
-      "note": "Panne de Vapeur, MDG 12 l.324-349"
-    }
-  },
-  {
-    "id": "feu-eteint",
-    "type": "steam-breakdown",
-    "min": 71,
-    "max": 90,
-    "label": "Feu éteint",
-    "desc": "Feu éteint : l'eau inonde la chambre de combustion, ce qui arrête le moteur. Le M du bateau tombe à 0. Il faut réussir un Test étendu de Force Intermédiaire (+0) avec un total de 10 DR pour retirer les morceaux de charbon humides et les remplacer, puis un Test de Métier (Ingénieur) Intermédiaire (+0) pour redémarrer le moteur. Il faut ensuite attendre 5–DR Rounds jusqu'à ce que la pression soit suffisante pour propulser le navire.",
-    "mSet": 0,
-    "restart": [
-      {
-        "test": {
-          "characteristic": "force",
-          "difficulty": "intermediaire"
+    },
+    {
+      "id": "fuite-de-vapeur",
+      "min": 41,
+      "max": 60,
+      "label": "Fuite de vapeur",
+      "desc": "Fuite de vapeur : un jet de vapeur jaillit de la chaudière. La personne qui s'occupe du moteur doit réussir un Test d'Initiative sous peine d'être ébouillantée et de subir 1d10–5 Dégâts (1 minimum), qui ignorent l'Armure.",
+      "failDamage": {
+        "dice": {
+          "n": 1,
+          "sides": 10,
+          "plus": -5
+        }
+      },
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 99,
+        "note": "Panne de Vapeur, MDG 12 l.324-349"
+      }
+    },
+    {
+      "id": "perte-de-pression",
+      "min": 61,
+      "max": 70,
+      "label": "Perte de pression",
+      "desc": "Perte de pression : le moteur cesse de fonctionner. Le M du bateau tombe à 0 jusqu'à ce que quelqu'un réussisse un Test de Métier (Ingénieur) Intermédiaire (+0) pour redémarrer l'engin. Il faut ensuite attendre 5–DR Rounds jusqu'à ce que la pression soit suffisante pour propulser le navire.",
+      "mSet": 0,
+      "restart": [
+        {
+          "test": {
+            "skill": {
+              "id": "metier",
+              "spec": "ingenieur"
+            },
+            "difficulty": "intermediaire"
+          }
+        }
+      ],
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 99,
+        "note": "Panne de Vapeur, MDG 12 l.324-349"
+      }
+    },
+    {
+      "id": "feu-eteint",
+      "min": 71,
+      "max": 90,
+      "label": "Feu éteint",
+      "desc": "Feu éteint : l'eau inonde la chambre de combustion, ce qui arrête le moteur. Le M du bateau tombe à 0. Il faut réussir un Test étendu de Force Intermédiaire (+0) avec un total de 10 DR pour retirer les morceaux de charbon humides et les remplacer, puis un Test de Métier (Ingénieur) Intermédiaire (+0) pour redémarrer le moteur. Il faut ensuite attendre 5–DR Rounds jusqu'à ce que la pression soit suffisante pour propulser le navire.",
+      "mSet": 0,
+      "restart": [
+        {
+          "test": {
+            "characteristic": "force",
+            "difficulty": "intermediaire"
+          },
+          "targetDR": 10
         },
-        "targetDR": 10
-      },
-      {
-        "test": {
-          "skill": {
-            "id": "metier",
-            "spec": "ingenieur"
-          },
-          "difficulty": "intermediaire"
+        {
+          "test": {
+            "skill": {
+              "id": "metier",
+              "spec": "ingenieur"
+            },
+            "difficulty": "intermediaire"
+          }
         }
-      }
-    ],
-    "source": {
-      "book": "mer-des-griffes",
-      "page": 99,
-      "note": "Panne de Vapeur, MDG 12 l.324-349"
-    }
-  },
-  {
-    "id": "rupture-du-reservoir",
-    "type": "steam-breakdown",
-    "min": 91,
-    "max": 95,
-    "label": "Rupture du réservoir",
-    "desc": "Rupture du réservoir : une plaque se dévisse et laisse passer de la vapeur. Le M du navire est réduit de 3. Le moteur ne peut être réparé qu'une fois refroidi. Pour cela, il est nécessaire de retirer les morceaux de charbon (voir ci-dessus) et d'attendre 20+1d10 minutes. Puis vous devez réussir un Test de Métier (Ingénieur) Complexe (–10) pour réparer le moteur et un autre Test de Métier (Ingénieur) Intermédiaire (+0) pour le redémarrer. Il faut ensuite attendre 5–DR Rounds jusqu'à ce que la pression soit suffisante pour propulser le navire.",
-    "mMod": -3,
-    "coolMinutes": {
-      "dice": {
-        "n": 1,
-        "sides": 10,
-        "plus": 20
+      ],
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 99,
+        "note": "Panne de Vapeur, MDG 12 l.324-349"
       }
     },
-    "restart": [
-      {
-        "test": {
-          "characteristic": "force",
-          "difficulty": "intermediaire"
+    {
+      "id": "rupture-du-reservoir",
+      "min": 91,
+      "max": 95,
+      "label": "Rupture du réservoir",
+      "desc": "Rupture du réservoir : une plaque se dévisse et laisse passer de la vapeur. Le M du navire est réduit de 3. Le moteur ne peut être réparé qu'une fois refroidi. Pour cela, il est nécessaire de retirer les morceaux de charbon (voir ci-dessus) et d'attendre 20+1d10 minutes. Puis vous devez réussir un Test de Métier (Ingénieur) Complexe (–10) pour réparer le moteur et un autre Test de Métier (Ingénieur) Intermédiaire (+0) pour le redémarrer. Il faut ensuite attendre 5–DR Rounds jusqu'à ce que la pression soit suffisante pour propulser le navire.",
+      "mMod": -3,
+      "coolMinutes": {
+        "dice": {
+          "n": 1,
+          "sides": 10,
+          "plus": 20
+        }
+      },
+      "restart": [
+        {
+          "test": {
+            "characteristic": "force",
+            "difficulty": "intermediaire"
+          },
+          "targetDR": 10
         },
-        "targetDR": 10
-      },
-      {
-        "test": {
-          "skill": {
-            "id": "metier",
-            "spec": "ingenieur"
-          },
-          "difficulty": "complexe"
+        {
+          "test": {
+            "skill": {
+              "id": "metier",
+              "spec": "ingenieur"
+            },
+            "difficulty": "complexe"
+          }
+        },
+        {
+          "test": {
+            "skill": {
+              "id": "metier",
+              "spec": "ingenieur"
+            },
+            "difficulty": "intermediaire"
+          }
         }
-      },
-      {
-        "test": {
-          "skill": {
-            "id": "metier",
-            "spec": "ingenieur"
-          },
-          "difficulty": "intermediaire"
-        }
+      ],
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 99,
+        "note": "Panne de Vapeur, MDG 12 l.324-349"
       }
-    ],
-    "source": {
-      "book": "mer-des-griffes",
-      "page": 99,
-      "note": "Panne de Vapeur, MDG 12 l.324-349"
+    },
+    {
+      "id": "explosion",
+      "min": 96,
+      "max": 100,
+      "label": "Explosion",
+      "desc": "Explosion : la chaudière explose, détruisant le moteur et infligeant un Coup Critique à la Coque (voir page 119). Quiconque se trouve dans le même compartiment que le moteur prend un coup lui faisant subir 12 Dégâts avec l'Atout d'arme Perforante.",
+      "engineDestroyed": true,
+      "hullCritical": true,
+      "compartmentDamage": 12,
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 99,
+        "note": "Panne de Vapeur, MDG 12 l.324-349"
+      }
     }
-  },
-  {
-    "id": "explosion",
-    "type": "steam-breakdown",
-    "min": 96,
-    "max": 100,
-    "label": "Explosion",
-    "desc": "Explosion : la chaudière explose, détruisant le moteur et infligeant un Coup Critique à la Coque (voir page 119). Quiconque se trouve dans le même compartiment que le moteur prend un coup lui faisant subir 12 Dégâts avec l'Atout d'arme Perforante.",
-    "engineDestroyed": true,
-    "hullCritical": true,
-    "compartmentDamage": 12,
-    "source": {
-      "book": "mer-des-griffes",
-      "page": 99,
-      "note": "Panne de Vapeur, MDG 12 l.324-349"
-    }
-  }
-]
+  ]
+}

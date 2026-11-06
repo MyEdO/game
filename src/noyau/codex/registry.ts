@@ -46,14 +46,14 @@ import { trappingCategorieSchema } from '../../data/schemas/defs/trappings';
 import { MOUNT_PROFILES } from '../../engine/mountTravel';
 import { windsOfMagicTable } from '../../engine/windsOfMagic';
 import { miscastDie } from '../../engine/miscast';
-import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, MOUNT_INCIDENT_DIE, VEHICLE_PROBLEM_DIE, ENCOUNTER_DIE } from '../../engine/travelTables';
+import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, mountIncidentDie, vehicleProblemDie, encounterDie } from '../../engine/travelTables';
 import type { TravelTableEntry } from '../../engine/travelTables';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { OBSESSIONS } from '../../data/obsessions';
 import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
 import { bandeAuDe, facesDuDe, fourchette } from '../../engine/tables';
-import { ARTILLERY_MISFIRE, ARTILLERY_MISFIRE_DIE } from '../../data/artilleryMisfire';
-import { STRUCTURE_CRITICALS_DIE } from '../../data/structureCriticals';
+import { ARTILLERY_MISFIRE, artilleryMisfireDie } from '../../data/artilleryMisfire';
+import { structureCriticalsDie } from '../../data/structureCriticals';
 import { deDeTirageDe } from '../../data/rangees';
 import drivingMishapJson from '../../data/driving-mishap.json';
 import drunkennessJson from '../../data/drunkenness.json';
@@ -61,12 +61,15 @@ import ventsJson from '../../data/vents-tourbillonnants.json';
 import type * as accidents from '../../data/schemas/defs/driving-mishap';
 import type * as ivresse from '../../data/schemas/defs/drunkenness';
 import type * as vents from '../../data/schemas/defs/vents-tourbillonnants';
-import { DE_DES_EVENEMENTS_DE_BORD } from '../../engine/seaVoyage';
+import { deDesEvenementsDeBord } from '../../engine/seaVoyage';
 import { findCargoEntryById, isEchangeable } from '../../engine/cargo';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
 import { RIVER_PERILS } from '../../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../../engine/crewMorale';
-import { STEAM_BREAKDOWNS } from '../../engine/shipBuild';
+import { STEAM_BREAKDOWNS, steamBreakdownDie } from '../../engine/shipBuild';
+import { oupsDie } from '../../data/oups';
+import { interludeEventDie } from '../../data/interludeEvents';
+import { peripetieDie } from '../../data/peripeties';
 import { traumaLabelOf } from '../../engine/trauma';
 import { spellOps, type Flow, type FlowTestNode } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp } from '../../engine/ops';
@@ -1802,7 +1805,7 @@ const CODEX_SPECS = {
     // Le `label` EST le texte du résultat → on le garde tel quel ;
     // on enrichit par le TYPE d'effet (kind) en méta.
     build: () => oups.map((o) => {
-      const range = 'min' in o ? bandeAuDe('d100', o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
+      const range = 'min' in o ? bandeAuDe(oupsDie(), o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
       return depuisEnveloppe(o, {
         sub: range,
         meta: facts(fact(tr('codex.fiche.type'), valeurFR('oups.json', 'kind', o.kind))),
@@ -1811,11 +1814,11 @@ const CODEX_SPECS = {
   },
   interludeEvents: {
     label: 'codex.fiche.entreDeuxAventures', group: 'tables',
-    build: () => interludeEvents.map((e) => depuisEnveloppe(e, { sub: bandeAuDe('d100', e.min, e.max) })),
+    build: () => interludeEvents.map((e) => depuisEnveloppe(e, { sub: bandeAuDe(interludeEventDie(), e.min, e.max) })),
   },
   peripeties: {
     label: 'codex.fiche.peripetiesDeVoyage', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => peripeties.map((p) => depuisEnveloppe(p, { sub: `1d10 = ${p.roll} · ${p.kind}` })),
+    build: () => peripeties.map((p) => depuisEnveloppe(p, { sub: `${bandeAuDe(peripetieDie(), p.roll, p.roll)} · ${p.kind}` })),
   },
   activities: {
     label: 'codex.fiche.activites', group: 'tables',
@@ -2142,23 +2145,23 @@ const CODEX_SPECS = {
   },
   incidentsMonture: {
     label: 'codex.fiche.incidentsDeMonte', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => MOUNT_INCIDENTS.map((e) => travelEntryItem(e, MOUNT_INCIDENT_DIE, tr('codex.fiche.effetSurLeCavalier'))),
+    build: () => MOUNT_INCIDENTS.map((e) => travelEntryItem(e, mountIncidentDie(), tr('codex.fiche.effetSurLeCavalier'))),
   },
   problemesVehicule: {
     label: 'codex.fiche.problemesDeVehicule', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => VEHICLE_PROBLEMS.map((e) => travelEntryItem(e, VEHICLE_PROBLEM_DIE, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => VEHICLE_PROBLEMS.map((e) => travelEntryItem(e, vehicleProblemDie(), tr('codex.fiche.effetSurLesOccupants'))),
   },
   rencontresPositives: {
     label: 'codex.fiche.rencontresPositives', group: 'tables', cluster: 'codex.fiche.rencontres',
-    build: () => datasetArray('rencontresPositives').map((e) => travelEntryItem(e, ENCOUNTER_DIE, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => datasetArray('rencontresPositives').map((e) => travelEntryItem(e, encounterDie(), tr('codex.fiche.effetSurLesOccupants'))),
   },
   rencontresFortuites: {
     label: 'codex.fiche.rencontresFortuites', group: 'tables', cluster: 'codex.fiche.rencontres',
-    build: () => datasetArray('rencontresFortuites').map((e) => travelEntryItem(e, ENCOUNTER_DIE, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => datasetArray('rencontresFortuites').map((e) => travelEntryItem(e, encounterDie(), tr('codex.fiche.effetSurLesOccupants'))),
   },
   rencontresDangereuses: {
     label: 'codex.fiche.rencontresDangereuses', group: 'tables', cluster: 'codex.fiche.rencontres',
-    build: () => datasetArray('rencontresDangereuses').map((e) => travelEntryItem(e, ENCOUNTER_DIE, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => datasetArray('rencontresDangereuses').map((e) => travelEntryItem(e, encounterDie(), tr('codex.fiche.effetSurLesOccupants'))),
   },
   shipCriticalsCargaison: {
     label: 'codex.fiche.critiquesDeNavireCargaison', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
@@ -2206,7 +2209,7 @@ const CODEX_SPECS = {
   },
   seaBoardEvents: {
     label: 'codex.fiche.evenementsDeBordMer', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
-    build: () => datasetArray('seaBoardEvents').map((e) => seaEventItem(e, facesDuDe(DE_DES_EVENEMENTS_DE_BORD))),
+    build: () => datasetArray('seaBoardEvents').map((e) => seaEventItem(e, facesDuDe(deDesEvenementsDeBord()))),
   },
   seaPortEvents: {
     label: 'codex.fiche.evenementsDePortMer', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
@@ -2617,7 +2620,7 @@ const CODEX_SPECS = {
   structureCriticals: {
     label: 'codex.fiche.critiquesDeStructure', group: 'effets',
     build: () => tableDesCritiquesDeStructure().map((c) => ({
-      id: c.id, label: c.label, sub: bandeAuDe(STRUCTURE_CRITICALS_DIE, c.min, c.max), desc: c.note,
+      id: c.id, label: c.label, sub: bandeAuDe(structureCriticalsDie(), c.min, c.max), desc: c.note,
       meta: facts(
         c.wounds != null ? fact(tr('codex.fiche.blessures'), c.wounds) : null,
         c.trivial ? fact(tr('codex.fiche.type'), tr('codex.fiche.trivialeT')) : null,
@@ -2628,7 +2631,7 @@ const CODEX_SPECS = {
   artilleryMisfire: {
     label: 'codex.fiche.incidentsDeTirParSalve', group: 'effets',
     build: () => ARTILLERY_MISFIRE.map((e) => ({
-      id: e.id, label: e.label, sub: bandeAuDe(ARTILLERY_MISFIRE_DIE, e.min, e.max), desc: e.note,
+      id: e.id, label: e.label, sub: bandeAuDe(artilleryMisfireDie(), e.min, e.max), desc: e.note,
       meta: facts(
         fact(tr('codex.fiche.localisation'), e.location === 'brasPrincipal' ? tr('codex.fiche.brasPrincipal') : tr('codex.fiche.aleatoire')),
         e.perSalveIndex ? fact(tr('codex.fiche.repetition'), tr('codex.fiche.parIndiceDeSalveRestant')) : null,
@@ -2669,7 +2672,7 @@ const CODEX_SPECS = {
   steamBreakdowns: {
     label: 'codex.fiche.pannesDeNavireAVapeur', group: 'tables', cluster: 'codex.fiche.equipageNavire',
     build: () => STEAM_BREAKDOWNS.map((e) => depuisEnveloppe(e, {
-      sub: bandeAuDe('d100', e.min, e.max),
+      sub: bandeAuDe(steamBreakdownDie(), e.min, e.max),
       meta: facts(fact(tr('codex.fiche.moteurDetruit'), e.engineDestroyed ? tr('codex.fiche.oui') : null)),
     })),
   },

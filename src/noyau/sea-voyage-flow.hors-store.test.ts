@@ -5,7 +5,7 @@ import { makePregens } from '../data/pregens';
 import {
   buildSeaPlan, portRepairVessel, portInstallUpgrade, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, damageVesselHull, healVesselHull,
-  buildOverspeedSteps, engineerOf, type SeaVoyageState,
+  buildOverspeedSteps, engineerOf, SEA_BOARD_EVENT_TABLE, type SeaVoyageState,
 } from './seaVoyageFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
@@ -18,19 +18,19 @@ import { itemFromTrappingById } from '../engine/items';
 import { bankWithdraw } from './interludeFlow';
 import { traumaById } from '../engine/trauma';
 import { byId, maladies, species } from '../data';
-import { setDataset, resetData } from '../data/overrides';
+import { setDataset, resetData, deDeLaTable, setDeDeTable } from '../data/overrides';
 import type { Combatant } from '../engine/types';
 import { buildEncounter } from './monde/encounterAuthoring';
 import { emptyScene, type Scene } from './monde/scene';
 import type { WorldMap } from './worldMap';
-import type { RNG } from '../engine/dice';
+import { formatDice, type RNG } from '../engine/dice';
 import type { CascadeStep } from './pendings';
 import { resumeTravel } from './travelFlow';
 import { applyEffects, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
-import { applierDe, runCascadeImmediate } from './cascade';
+import { applierDe, runCascadeImmediate, tableStepDef } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel } from '../data';
@@ -1141,6 +1141,21 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     expect(typeof ev.roll).toBe('number'); // tirage capturé (chemin non forcé)
     const def = BOARD_EVENTS.find((e) => e.label === ev.title && e.desc === ev.text);
     expect(def).toBeTruthy(); // titre + texte VERBATIM d'une entrée RÉELLE de sea-events.json
+  });
+
+  it('l’étape d’événement de bord tire au `die` de la table en donnée, jamais à un dé recopié (MDG 15 l.134 ; #1667)', () => {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
+    const imprime = deDeLaTable('seaBoardEvents')!;
+    setDeDeTable('seaBoardEvents', 'd10');
+    try {
+      set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
+      runSeaDay(get, set);
+      const etape = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!;
+      expect(formatDice(etape.table!.spec!)).toBe('1d10');
+      expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.die, 'la table tirable suit le dé écrit').toBe(10);
+    } finally {
+      setDeDeTable('seaBoardEvents', imprime);
+    }
   });
 
   /** L'Humeur de Manann DÉCALE le d100 de l'événement (MDG 15 l.85) : elle est le `mod` de la table

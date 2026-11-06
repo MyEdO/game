@@ -19,6 +19,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lignesDe } from './lib/monoTable.mjs';
 import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -59,11 +60,14 @@ const CIBLES = [
     ...porteurs(d.tourbillons.map((w) => w.evasion), (i) => `tourbillons[${d.tourbillons[i].id}].evasion`).map(([p, ou]) => [(f) => renommer(p, 'totalDR', ou, f), ou]),
   ] },
   { rel: 'src/data/sea-cargo.json', sites: (d) => [[(f) => renommer(d.opportunite, 'totalDR', 'opportunite', f), 'opportunite']] },
-  { rel: 'src/data/sea-events.json', sites: (d) =>
-    porteurs(d.boardEvents.filter((e) => e.kind === 'infestation').map((e) => e.params), (i) => `boardEvents[${d.boardEvents.filter((e) => e.kind === 'infestation')[i].id}].params`)
-      .map(([p, ou]) => [(f) => renommer(p, 'totalDR', ou, f), ou]) },
+  // `boardEvents.entries` : la forme que pose `2026-11-06-1667-evenements-de-bord-tires.mjs`, reconnue au rejeu.
+  { rel: 'src/data/sea-events.json', sites: (d) => {
+    const infestations = (Array.isArray(d.boardEvents) ? d.boardEvents : d.boardEvents.entries).filter((e) => e.kind === 'infestation');
+    return porteurs(infestations.map((e) => e.params), (i) => `boardEvents[${infestations[i].id}].params`)
+      .map(([p, ou]) => [(f) => renommer(p, 'totalDR', ou, f), ou]);
+  } },
   { rel: 'src/data/steam-breakdown.json', sites: (d) =>
-    d.flatMap((b) => porteurs(b.restart ?? [], (i) => `${b.id} › restart[${i}]`))
+    lignesDe(d).flatMap((b) => porteurs(b.restart ?? [], (i) => `${b.id} › restart[${i}]`))
       .map(([p, ou]) => [(f) => renommer(p, 'extendedDR', ou, f, { exigee: false }), ou]) },
   { rel: 'src/data/criticals.json', sites: (d) =>
     d.flatMap((t) => porteurs((t.entries ?? []).map((e) => e.escalation?.medicalAidGate), (i) => `${t.id} › entries[${t.entries[i].id}].escalation.medicalAidGate`))

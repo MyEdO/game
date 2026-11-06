@@ -3,9 +3,10 @@
 ## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Le monde rendu va au monde (`Monde.poser`), sur la couche éditée, avec les arêtes de la couche
-## (`Monde.poser_les_aretes`) ; la surcouche : chaque repère d'une entité ou d'une entrée de la couche, en plaque sur le
-## sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle (`Monde.etiqueter`), puis le geste en
-## cours, en plaques sur le sol de ses cases (`Monde.peindre`), et l'arête sélectionnée, gainée (`Monde.choisir_l_arete`) ; le calque de référence de la couche sous sa planche
+## (`Monde.poser_les_aretes`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
+## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
+## de la couche, en plaque sur le sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle
+## (`Monde.etiqueter`), puis le geste en cours, en plaques sur le sol de ses cases (`Monde.peindre`), et l'arête sélectionnée, gainée (`Monde.choisir_l_arete`) ; le calque de référence de la couche sous sa planche
 ## (`Monde.poser_le_calque`) ; chaque zone de l'écran (`Zone.racines`) reçoit les éléments de sa source (`vue.zones`). Les
 ## calques de la campagne se gardent dans `user://calques/<id>.json`, relus à l'ouverture et réécrits à chaque `memoire`,
 ## chaque planche dans `user://<image>.png` : une planche demandée (`planche`) se choisit sur le disque de l'auteur
@@ -29,7 +30,7 @@ const CALQUES := "user://calques"
 var _zones: Array[Zone] = []
 ## La dernière réponse montrée : sa vue et sa surcouche.
 var _vue: Dictionary = {}
-var _surcouche: Dictionary = {cases = [], arete = null, reperes = []}
+var _surcouche: Dictionary = {cases = [], arete = null, reperes = [], zones = [], poignee = null}
 ## Le calque de la dernière réponse, `null` sans lui.
 var _calque: Variant = null
 ## Le dernier point de la carte que le pointeur tenu a touché, `null` bouton relâché.
@@ -86,6 +87,14 @@ func _suivre(reponse: Dictionary) -> void:
 	_monde.choisir_l_arete(_surcouche.arete)
 	var plaques := {}
 	var noms := {}
+	for zone in _surcouche.zones:
+		if zone.choisi:
+			for c in zone.cases:
+				plaques[Vector3i(int(c.x), int(c.y), int(c.z))] = Monde.ITEM_CIBLE
+		if not zone.cases.is_empty():
+			noms[Vector3i(int(zone.cases[0].x), int(zone.cases[0].y), int(zone.cases[0].z))] = zone.nom
+	if _surcouche.poignee != null:
+		plaques[Vector3i(int(_surcouche.poignee.x), int(_surcouche.poignee.y), int(_surcouche.poignee.z))] = Monde.ITEM_SURVOL
 	for r in _surcouche.reperes:
 		var case := Vector3i(int(r.x), int(r.y), int(r.z))
 		plaques[case] = Monde.ITEM_SURVOL if r.choisi else Monde.ITEM_CIBLE

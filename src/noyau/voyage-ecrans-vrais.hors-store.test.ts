@@ -20,7 +20,7 @@ import { tableStepDef } from './cascade';
 import { draineCascade } from './cascade.testkit';
 import { creditBourse } from './bourseFlow';
 import { sceneLieu } from './restFlow';
-import { PERIPETIES } from '../data/peripeties';
+import { PERIPETIES, peripetieSeuilDie } from '../data/peripeties';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import type { Ecrit } from './proprietaireDuJeu';
@@ -312,13 +312,14 @@ describe('#2533 (2) — durée RÉELLE du récapitulatif : arrivée moins dépar
   });
 });
 
-describe('#2533 (5) — péripéties : le d10 passe par la porte des jets (LDB 51 l.208)', () => {
+describe('#2533 (5) — péripéties : le dé de seuil passe par la porte des jets (LDB 51 l.208)', () => {
   it('jour sans événement : la rangée montre le dé POSÉ et « aucune péripétie »', () => {
     setDesFixes(true);
     setup(map({ perilDie: 8 }));
     get().startTravel('r1', 'pied');
     const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'landPeril')!;
     expect(seuil.worldOwner).toBe(true);
+    expect(seuil.table!.spec, 'le dé de seuil est celui de la donnée (`peripeties.json › tirageQuotidien`)').toEqual(peripetieSeuilDie());
     expect(seuil.table!.result, 'le socle ne tire pas à la place du siège qui possède le monde').toBeUndefined();
     get().jetSetForcedRoll('cascadeTirage', 3, seuil.id);
     const tire = get().pendingCascade!.participants.find((s) => s.id === seuil.id)!.table!.result!;

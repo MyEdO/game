@@ -16,6 +16,7 @@ import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marque
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
 import { marquerProduit, produitDe } from './interne/produits';
+import { declarationDeFeuilleDId as declarationLue, declarerFeuilleDId, estFeuilleDId as feuilleLue, typeDeFeuilleDId as typeLu } from './interne/feuilles';
 import { enfantsDe } from './descente';
 
 declare const marqueDeType: unique symbol;
@@ -73,7 +74,7 @@ export const TYPES = {
   regle: { espace: 'regles.json', catalogue: 'règles' },
   quality: { espace: 'qualities.json', catalogue: 'qualités' },
   characteristic: { espace: 'characteristics.json', catalogue: 'caractéristiques' },
-  steamBreakdown: { espace: 'steam-breakdown.json', catalogue: 'pannes de navire à vapeur' },
+  steamBreakdown: { espace: 'steam-breakdown.json#entries', catalogue: 'pannes de navire à vapeur' },
   // APPARENCE d'objet (#2948) : `trappings.json › shape`/`formChoices` résolvent AU PARSE contre les
   // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
   apparence: { espace: 'apparences.json', catalogue: 'apparences' },
@@ -334,16 +335,15 @@ export interface FeuilleDId {
   readonly repereDuPorteur?: true;
 }
 
-/** Les feuilles construites par `idDe`, avec leur déclaration — ce que la garde du masquage
- *  (`parse-de-mesure.test.ts`) instrumente et ce que lit un sélecteur (`declarationDeFeuilleDId`). */
-const FEUILLES_D_ID = new WeakMap<object, FeuilleDId>();
-
-/** La déclaration (`FeuilleDId`) d'une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une. */
-export const declarationDeFeuilleDId = (noeud: unknown): FeuilleDId | undefined =>
-  typeof noeud === 'object' && noeud !== null ? FEUILLES_D_ID.get(noeud) : undefined;
+/** La déclaration (`FeuilleDId`) d'une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une :
+ *  la porte du registre des feuilles (`interne/feuilles.ts`), que lit la garde du masquage (`parse-de-mesure.test.ts`). */
+export const declarationDeFeuilleDId = (noeud: unknown): FeuilleDId | undefined => declarationLue(noeud);
 
 /** Le type référencé par une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une. */
-export const typeDeFeuilleDId = (noeud: unknown): TypeEntite | undefined => declarationDeFeuilleDId(noeud)?.type;
+export const typeDeFeuilleDId = (noeud: unknown): TypeEntite | undefined => typeLu(noeud);
+
+/** Le nœud est-il une feuille construite par `idDe` ? */
+export const estFeuilleDId = (noeud: unknown): boolean => feuilleLue(noeud);
 
 /** Les espaces que les feuilles `idDe` et les `porteLeMarqueur` construits désignent : une clé d'espace
  *  (sous-liste marquée comprise), ou `<espace>\0<valeur>` pour une sous-liste discriminée — la cible que
@@ -359,9 +359,6 @@ export function espacesDesignes(): string[] {
     return cleDeSousListe(type, valeur, `idDe('${type}', '${valeur}')`);
   });
 }
-
-/** Le nœud est-il une feuille construite par `idDe` ? */
-export const estFeuilleDId = (noeud: unknown): boolean => typeDeFeuilleDId(noeud) !== undefined;
 
 /**
  * Schéma d'un id NU de `type` : refiné contre le registre, brandé `Id<type>` à la sortie. C'est la
@@ -414,7 +411,7 @@ function feuilleDId<T extends TypeEntite>(type: T, sousListe: SousListe | undefi
     })
     .transform((v) => v as Id<T>);
   const declaration: FeuilleDId = sousListe === undefined ? { type, ouverte } : { type, sousListe, ouverte };
-  FEUILLES_D_ID.set(feuille, avecRepere ? declaration : { ...declaration, repereDuPorteur: true });
+  declarerFeuilleDId(feuille, avecRepere ? declaration : { ...declaration, repereDuPorteur: true });
   if (typeof sousListe === 'string') DESIGNATIONS.add(`${espaceDe(type)}\u0000${sousListe}`);
   else {
     DESIGNATIONS.add(espaceDe(type));
@@ -629,7 +626,7 @@ export interface DeclarationDeRefTypee {
 }
 
 /** Les nœuds construits par `refTypee`, avec leur déclaration — ce que lit un sélecteur
- *  (`declarationDeRefTypee`), patron `FEUILLES_D_ID`. */
+ *  (`declarationDeRefTypee`), patron du registre des feuilles `idDe` (`interne/feuilles.ts`). */
 const REFS_TYPEES = new WeakMap<object, DeclarationDeRefTypee>();
 
 /** La déclaration d'un nœud construit par `refTypee`, `undefined` si le nœud n'en est pas un. */

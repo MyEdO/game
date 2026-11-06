@@ -5,8 +5,6 @@ import type { ShipLocation } from '../engine/combat';
 import type { GameOp, Formula } from '../engine/ops';
 import type { FlowTestNode } from '../engine/flowCore';
 
-const deMaritime = parseDiceRequired(shipCriticalsJson.die, 'ship-criticals.die');
-
 /** QUI encaisse un coup à l'ÉQUIPAGE — les trois désignations imprimées : l'équipage d'une pièce
  *  (`MDG 13 l.763`), la ou les PRÉSENCES à bord (`ship-stations.json` — `MDG 13 l.680/l.714/l.730/
  *  l.751`, `MSRC 07 l.78/l.82/l.94`), ou le RÔLE que le livre nomme (`MSRC 07 l.86`). */
@@ -120,7 +118,7 @@ export interface ShipCritSet {
 /** Jeu MDG (mer, ch.13) — Éclats 9 Dégâts. */
 export const SHIP_CRIT_SET: ShipCritSet = {
   id: shipCriticalsJson.id,
-  die: deMaritime,
+  get die() { return parseDiceRequired(shipCriticalsJson.die, 'ship-criticals.die'); },
   shrapnelHit: SHRAPNEL_HIT,
   replisSansExpose: shipCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string },
   tablesDeChute: shipCriticalsJson.tablesDeChute as FallHeightTable[],

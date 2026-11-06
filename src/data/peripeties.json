@@ -1,132 +1,139 @@
-[
-  {
-    "id": "voyage-reposant",
-    "type": "peripeties",
-    "roll": 1,
-    "label": "Voyage reposant",
-    "kind": "reposant",
-    "desc": "Le voyage se déroule sans heurts, les Personnages se reposent bien, le paysage est particulièrement inspirant et ils rencontrent peut-être un PNJ guérisseur ou un prêtre serviable. Les Personnages peuvent guérir toutes les Blessures et retirer tous les États Exténué.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 263,
-      "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+{
+  "id": "peripeties",
+  "type": "peripeties",
+  "label": "Péripéties",
+  "die": "d10",
+  "tirageQuotidien": {
+    "dice": {
+      "n": 1,
+      "sides": 10
     }
   },
-  {
-    "id": "quelque-chose-d-interessant",
-    "type": "peripeties",
-    "roll": 2,
-    "label": "Quelque chose d’intéressant !",
-    "kind": "narratif",
-    "desc": "Une rencontre fortuite sur la route avec d’autres voyageurs, une auberge de qualité ou un sanctuaire, ou encore de vieilles ruines étranges constituent une merveilleuse histoire à partager.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 263,
-      "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
-    }
+  "source": {
+    "book": "livre-de-base",
+    "page": 263,
+    "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
   },
-  {
-    "id": "a-present-c-est-utile",
-    "type": "peripeties",
-    "roll": 3,
-    "label": "À présent, c’est utile !",
-    "kind": "narratif",
-    "desc": "Les Personnages découvrent quelque chose d’intéressant dans leur aventure — un ragot, un message perdu, un événement dont ils n’étaient pas censés être témoins, ou autre.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 263,
-      "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+  "entries": [
+    {
+      "id": "voyage-reposant",
+      "roll": 1,
+      "label": "Voyage reposant",
+      "kind": "reposant",
+      "desc": "Le voyage se déroule sans heurts, les Personnages se reposent bien, le paysage est particulièrement inspirant et ils rencontrent peut-être un PNJ guérisseur ou un prêtre serviable. Les Personnages peuvent guérir toutes les Blessures et retirer tous les États Exténué.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 263,
+        "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+      }
+    },
+    {
+      "id": "quelque-chose-d-interessant",
+      "roll": 2,
+      "label": "Quelque chose d’intéressant !",
+      "kind": "narratif",
+      "desc": "Une rencontre fortuite sur la route avec d’autres voyageurs, une auberge de qualité ou un sanctuaire, ou encore de vieilles ruines étranges constituent une merveilleuse histoire à partager.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 263,
+        "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+      }
+    },
+    {
+      "id": "a-present-c-est-utile",
+      "roll": 3,
+      "label": "À présent, c’est utile !",
+      "kind": "narratif",
+      "desc": "Les Personnages découvrent quelque chose d’intéressant dans leur aventure — un ragot, un message perdu, un événement dont ils n’étaient pas censés être témoins, ou autre.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 263,
+        "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+      }
+    },
+    {
+      "id": "voyage-ereintant",
+      "roll": 4,
+      "label": "Voyage éreintant !",
+      "kind": "ereintant",
+      "desc": "La route est bloquée. Un pont peut être effondré, une rivière bloquée ou une route inondée, ou quelque autre obstacle insurmontable. Un Personnage effectue un Test de Survie en extérieur Accessible (+20) pour trouver un bon itinéraire de substitution, sinon tout le monde arrive un jour plus tard avec un État Exténué.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 263,
+        "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+      }
+    },
+    {
+      "id": "poursuivis",
+      "roll": 5,
+      "label": "Poursuivis !",
+      "kind": "narratif",
+      "desc": "Un ennemi retrouve la trace des Personnages et il doit être géré ou mis sur une fausse piste avant qu’ils n’atteignent leur destination. La confrontation pourrait être violente à moins qu’ils ne s’en sortent en parlant, et semer leur poursuivant pourrait rajouter quelques jours à leur voyage.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 263,
+        "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+      }
+    },
+    {
+      "id": "voleurs",
+      "roll": 6,
+      "label": "Voleurs !",
+      "kind": "narratif",
+      "desc": "Les Personnages se font dévaliser. Peut-être par quelqu’un voyageant avec eux, partageant leur campement pour la nuit ou juste lors d’une brève conversation sur la route.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 263,
+        "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+      }
+    },
+    {
+      "id": "pas-encore",
+      "roll": 7,
+      "label": "Pas encore !",
+      "kind": "narratif",
+      "desc": "Un rival ou une autre source de contrariété menace les Personnages pendant leur voyage — un fléau mineur récurrent, pas assez pour tomber dans la violence, mais pas loin.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 263,
+        "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+      }
+    },
+    {
+      "id": "mauvaise-influence",
+      "roll": 8,
+      "label": "Mauvaise influence !",
+      "kind": "narratif",
+      "desc": "Les Personnages rencontrent quelqu’un qui semble vouloir les aider, mais ses intentions sont sinistres : un raccourci douteux, une invitation à dîner dans une demeure ancestrale, les « meilleurs » champignons…",
+      "source": {
+        "book": "livre-de-base",
+        "page": 263,
+        "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+      }
+    },
+    {
+      "id": "meme-la-nature-vous-deteste",
+      "roll": 9,
+      "label": "Même la nature vous déteste !",
+      "kind": "narratif",
+      "desc": "Les Personnages sont menacés par la nature : animaux mortels, orages, maladies, insectes… Cela pourrait mener à la violence, à recevoir un État, ou à une petite mais désagréable rencontre.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 263,
+        "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+      }
+    },
+    {
+      "id": "attaques",
+      "roll": 10,
+      "label": "Attaqués !",
+      "kind": "attaque",
+      "desc": "Les Personnages sont attaqués pendant leur voyage — une rencontre malheureuse dans la zone qu’ils traversent, ou quelque chose prévu par leurs adversaires. S’ils ratent un Test de Perception Accessible (+20), ils peuvent même tomber dans une embuscade !",
+      "source": {
+        "book": "livre-de-base",
+        "page": 263,
+        "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
+      }
     }
-  },
-  {
-    "id": "voyage-ereintant",
-    "type": "peripeties",
-    "roll": 4,
-    "label": "Voyage éreintant !",
-    "kind": "ereintant",
-    "desc": "La route est bloquée. Un pont peut être effondré, une rivière bloquée ou une route inondée, ou quelque autre obstacle insurmontable. Un Personnage effectue un Test de Survie en extérieur Accessible (+20) pour trouver un bon itinéraire de substitution, sinon tout le monde arrive un jour plus tard avec un État Exténué.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 263,
-      "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
-    }
-  },
-  {
-    "id": "poursuivis",
-    "type": "peripeties",
-    "roll": 5,
-    "label": "Poursuivis !",
-    "kind": "narratif",
-    "desc": "Un ennemi retrouve la trace des Personnages et il doit être géré ou mis sur une fausse piste avant qu’ils n’atteignent leur destination. La confrontation pourrait être violente à moins qu’ils ne s’en sortent en parlant, et semer leur poursuivant pourrait rajouter quelques jours à leur voyage.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 263,
-      "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
-    }
-  },
-  {
-    "id": "voleurs",
-    "type": "peripeties",
-    "roll": 6,
-    "label": "Voleurs !",
-    "kind": "narratif",
-    "desc": "Les Personnages se font dévaliser. Peut-être par quelqu’un voyageant avec eux, partageant leur campement pour la nuit ou juste lors d’une brève conversation sur la route.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 263,
-      "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
-    }
-  },
-  {
-    "id": "pas-encore",
-    "type": "peripeties",
-    "roll": 7,
-    "label": "Pas encore !",
-    "kind": "narratif",
-    "desc": "Un rival ou une autre source de contrariété menace les Personnages pendant leur voyage — un fléau mineur récurrent, pas assez pour tomber dans la violence, mais pas loin.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 263,
-      "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
-    }
-  },
-  {
-    "id": "mauvaise-influence",
-    "type": "peripeties",
-    "roll": 8,
-    "label": "Mauvaise influence !",
-    "kind": "narratif",
-    "desc": "Les Personnages rencontrent quelqu’un qui semble vouloir les aider, mais ses intentions sont sinistres : un raccourci douteux, une invitation à dîner dans une demeure ancestrale, les « meilleurs » champignons…",
-    "source": {
-      "book": "livre-de-base",
-      "page": 263,
-      "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
-    }
-  },
-  {
-    "id": "meme-la-nature-vous-deteste",
-    "type": "peripeties",
-    "roll": 9,
-    "label": "Même la nature vous déteste !",
-    "kind": "narratif",
-    "desc": "Les Personnages sont menacés par la nature : animaux mortels, orages, maladies, insectes… Cela pourrait mener à la violence, à recevoir un État, ou à une petite mais désagréable rencontre.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 263,
-      "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
-    }
-  },
-  {
-    "id": "attaques",
-    "type": "peripeties",
-    "roll": 10,
-    "label": "Attaqués !",
-    "kind": "attaque",
-    "desc": "Les Personnages sont attaqués pendant leur voyage — une rencontre malheureuse dans la zone qu’ils traversent, ou quelque chose prévu par leurs adversaires. S’ils ratent un Test de Perception Accessible (+20), ils peuvent même tomber dans une embuscade !",
-    "source": {
-      "book": "livre-de-base",
-      "page": 263,
-      "note": "Péripéties (conseils de voyage MJ), LDB 51 l.210-221"
-    }
-  }
-]
+  ]
+}

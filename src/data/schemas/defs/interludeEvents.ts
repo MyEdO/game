@@ -2,11 +2,11 @@ import { nommerChamps } from '../grammaire/meta';
 
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { ouReserve, plageSchema } from '../grammaire/valeurs';
+import { ouReserve, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
 
 export const file = 'interludeEvents.json';
-export const famille = 'entite';
+export const famille = 'config';
 
 /** Classes visées par un effet de revenu : ids de `classes.json`, `'*'` = toutes. */
 const classesDeRevenuSchema = z.array(ouReserve(idDe('classe'), '*'));
@@ -35,27 +35,39 @@ const fxSchema = nommerChamps(z.strictObject({
   bankCrashCheck: { label: 'vérification de faillite bancaire' },
 });
 
+/** Un Événement, à sa fourchette du dé de la table. */
+export const rangee = nommerChamps(z.strictObject({
+  id: z.string(),
+  ...plageSchema.shape,
+  label: z.string(),
+  desc: z.string().min(1),
+  fx: fxSchema.optional(),
+  /** Note d'atelier — JAMAIS affichée au joueur ni journalisée (contrairement à `desc`) : précise
+   *  ce que `fx` ne modélise pas pour cet événement, à l'usage des auteurs de données. */
+  atelierNote: z.string().optional(),
+  source: sourceRefSchema,
+}), {
+  id: { label: 'identifiant' },
+  min: { label: 'Borne basse (plage de tirage)' },
+  max: { label: 'Borne haute (plage de tirage)' },
+  label: { label: 'libellé' },
+  desc: { label: 'texte' },
+  fx: { label: 'Effets sur la trésorerie', hint: 'Impact chiffré argent/revenu/banque/activité' },
+  atelierNote: { label: 'Note d’atelier', hint: 'Note interne aux auteurs de données — jamais affichée ni journalisée' },
+  source: { label: 'source' },
+});
+
 const doc = document(
   'interludeEvents',
   famille,
-  {
-    ...plageSchema.shape,
-    fx: fxSchema.optional(),
-    /** Note d'atelier — JAMAIS affichée au joueur ni journalisée (contrairement à `desc`) : précise
-     *  ce que `fx` ne modélise pas pour cet événement, à l'usage des auteurs de données. */
-    atelierNote: z.string().optional(),
-  },
-  {
-    min: { label: 'Borne basse (plage de tirage)' },
-    max: { label: 'Borne haute (plage de tirage)' },
-    fx: { label: 'Effets sur la trésorerie', hint: 'Impact chiffré argent/revenu/banque/activité' },
-    atelierNote: { label: 'Note d’atelier', hint: 'Note interne aux auteurs de données — jamais affichée ni journalisée' },
-  },
+  {},
+  {},
   {
     codex: { keys: ['interludeEvents'] },
-    edit: { dataset: 'interludeEvents' },
+    edit: { niche: { categories: { interludeEvents: 'entries' } } },
   },
-  { exiges: ['desc'] },
+  // LDB 22 l.5
+  { rangee, deDeTirage: true },
 );
 
 export const schema = doc.schema;

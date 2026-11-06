@@ -10,7 +10,8 @@ export function deDeSalve(de: DiceSpec, authore: string): DiceSpec {
   return de;
 }
 
-export const ARTILLERY_MISFIRE_DIE = deDeSalve(deDeTirageDe<typeof incidentsDeSalve>(artilleryMisfireJson), artilleryMisfireJson.die);
+/** Le dé AUTHORÉ de la Salve (`die`), lu VIVANT à l'appel. AA 10 l.270-277 */
+export const artilleryMisfireDie = (): DiceSpec => deDeSalve(deDeTirageDe<typeof incidentsDeSalve>(artilleryMisfireJson), artilleryMisfireJson.die);
 
 /**
  * Incidents de Tir d'Artillerie par Salve — Aux Armes « Salve » (AA 10 l.270-277), transcrits

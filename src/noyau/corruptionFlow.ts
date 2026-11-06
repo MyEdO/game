@@ -38,7 +38,7 @@ import {
   mutationTableIds, mutationAt, mutationOfRow, mutationSubTableFor, mutationTableDie, mutationTablePlayerLabel, mutationTableRows,
 } from '../data/mutations';
 import { species, mutationBodyMaxForSpecies, combatStakeRef, refLabel } from '../data';
-import { findTableEntry } from '../engine/tables';
+import { facesDuDe, findTableEntry } from '../engine/tables';
 import { pushStep, type TableStepDef } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { touchActors } from './combatOrParty';
@@ -188,7 +188,7 @@ const tablesDeMutation = memoParVersion(['mutationTables', 'mutations'], () => {
     const rows = mutationTableRows(id);
     tables.set(id, {
       label: mutationTablePlayerLabel(id),
-      die: mutationTableDie(id).sides,
+      die: facesDuDe(mutationTableDie(id)),
       rows,
       lines: (die) => [mutationAt(id, die).label],
       entryCategory: 'mutations', // la ligne tirée EST la mutation : sa fiche est le foyer de l'enjeu

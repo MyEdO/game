@@ -120,7 +120,7 @@ import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
-import { STRUCTURE_CRITICALS_DIE, STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
+import { structureCriticalsDie, STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
 import { actorIn, inBattleId } from './monde/combatants';
 import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
@@ -151,9 +151,10 @@ import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolv
 import { carryOverState } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
 import { resolveCritique, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
-import { findTableEntry } from '../engine/tables';
+import { facesDuDe, findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
-import { lireSalveMisfire, TABLE_SALVE_MISFIRE, DE_SALVE_MISFIRE } from '../engine/artilleryMisfire';
+import { lireSalveMisfire, TABLE_SALVE_MISFIRE } from '../engine/artilleryMisfire';
+import { artilleryMisfireDie } from '../data/artilleryMisfire';
 import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
 import { avecSequelles, traumaById, dechirureFractureFicheId, consolidateAmputations, maxFingersLostForWeapon, reinjuryBleed } from '../engine/trauma';
 import { effectiveWeaponDamage, isThrownWeapon, solideSaveThreshold, sauvegardeImperdable, effectiveWeapon, type WeaponContext } from '../engine/weaponDamage';
@@ -1917,7 +1918,7 @@ export function applyStructureCriticalToTarget(
   //    celle affichée par l'étape.
   // AA 10 l.114 ; AA 07 l.36 ; LDB 18 l.17.
   const table: CascadeTableDecl = {
-    tableId: STRUCTURE_CRIT_TABLE, spec: STRUCTURE_CRITICALS_DIE, forcedRoll,
+    tableId: STRUCTURE_CRIT_TABLE, spec: structureCriticalsDie(), forcedRoll,
     mod: REGIMES_DE_CRITIQUE[jeuDeCritique()].severite(target, overkill), clamp: true,
   };
   const rolled = rollTableStep(table, battleRng());
@@ -8943,7 +8944,7 @@ export const TABLES = {
      *  tirée) et une fois par l'application (`lireSalveMisfire`) — aucune transcription. */
     [TABLE_SALVE_MISFIRE]: {
       label: tr('step.salveMisfire'),
-      die: DE_SALVE_MISFIRE.sides,
+      get die() { return facesDuDe(artilleryMisfireDie()); },
       rows: ARTILLERY_MISFIRE,
       lines: (roll) => [findTableEntry(ARTILLERY_MISFIRE, roll).label],
       entryCategory: 'artilleryMisfire',
@@ -8955,7 +8956,7 @@ export const TABLES = {
         const rows = critTableRows('ldb', key);
         return [CRIT_TABLE_IDS[key], {
           label: stepDetail(tr('step.blessuresCritiques'), dataLabel(libelleDeValeur(critTableSchema, key))),
-          die: critiqueDie('ldb', key).sides,
+          die: facesDuDe(critiqueDie('ldb', key)),
           rows,
           lines: (die) => [findTableEntry(rows, die).label],
           entryCategory: CRIT_TABLE_CATEGORIES[key],
@@ -8964,7 +8965,7 @@ export const TABLES = {
     )),
     memoParVersion('structureCriticals', () => new Map<string, TableStepDef>([[STRUCTURE_CRIT_TABLE, {
       label: dataLabel(STRUCTURE_CRITICALS_LABEL),
-      die: STRUCTURE_CRITICALS_DIE.sides,
+      die: facesDuDe(structureCriticalsDie()),
       rows: tableDesCritiquesDeStructure(),
       lines: (die) => { const o = rollStructureCritical(battleRng(), die); return o.note ? [...o.log, o.note] : [...o.log]; },
       entryCategory: 'structureCriticals',
@@ -8977,7 +8978,7 @@ export const TABLES = {
     memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], () => new Map<string, TableStepDef>(
       MISCAST_TABLES.map((table) => [table.id, {
         label: table.label,
-        die: miscastDie(table.id).sides,
+        die: facesDuDe(miscastDie(table.id)),
         rows: miscastTableRows(table.id),
         lines: (die) => [miscastRowAt(table.id, die).label],
         ...(table.codexCategory ? { entryCategory: table.codexCategory } : {}),

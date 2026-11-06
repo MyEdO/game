@@ -51,6 +51,7 @@ import { declarationDEnfants, defDe, descendre, enfantsDe, ouverts, valeursAdmis
 import { CLES_ENVELOPPE } from '../../../src/data/schemas/grammaire/document';
 import { famillesConstruites, OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
+import { estDocumentARangees } from './documentARangees.mts';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { listerEntrees, parUnitesDeCode } from './lister.mjs';
@@ -259,7 +260,7 @@ const cheminDEnveloppe = (famille: SchemaDef['famille']): string => (famille ===
  *  `document()`), `null` pour tout autre schéma : la rangée d'un document mono-table est son ENTRÉE, comme la ligne
  *  d'un tableau racine (#3012). PURE. */
 const cheminDesRangees = (schema: unknown, famille: SchemaDef['famille']): string | null =>
-  famille === 'config' && ouverts([schema]).some((n) => classeDeProduit(n)?.role === 'corps.rangees') ? '.entries[]' : null;
+  estDocumentARangees(schema, famille) ? '.entries[]' : null;
 
 /** La position d'un chemin qui n'est pas un site : racine, entrée d'un document `entite`, rangée d'un document
  *  mono-table (`cheminDesRangees`), objet d'enveloppe. */

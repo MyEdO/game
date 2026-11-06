@@ -22,7 +22,7 @@ import seaCargoJson from '../data/sea-cargo.json';
 import type { SeaCargoData } from '../data/schemas/defs/sea-cargo';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
+import { d10, parseDiceRequired, tirerSigne, type DiceSpec, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { ShipCritKey } from '../data/shipCriticals';
@@ -133,7 +133,7 @@ export interface FastVoyagePalier extends BandeOuverte {
 
 const EVENTS = seaEventsJson as unknown as {
   manann: { base: number; portEventMod: number; factors: ManannFactor[] };
-  boardEvents: EvenementDeBord[];
+  boardEvents: { die: string; entries: EvenementDeBord[] };
   portEvents: EvenementDePort[];
   fastVoyage: { paliers: FastVoyagePalier[] };
 };
@@ -145,14 +145,14 @@ type OverloadPalier = SeaCargoData['overload']['paliers'][number];
 const CARGO = seaCargoJson as SeaCargoData;
 
 export const MANANN_FACTORS = EVENTS.manann.factors;
-export const BOARD_EVENTS = EVENTS.boardEvents;
+export const BOARD_EVENTS = EVENTS.boardEvents.entries;
 export const PORT_EVENTS = EVENTS.portEvents;
 export const FAST_VOYAGE_PALIERS = EVENTS.fastVoyage.paliers;
 /** Les tables d'événements et de paliers telles que `findTableEntry` les lit (`tableOuverte`) : leurs
  *  bandes extrêmes sont ouvertes (MDG 15). Mémoïsées sur leur dataset quand le Codex les édite. */
-export const evenementsDeBord = memoParVersion('seaBoardEvents', () => tableOuverte(EVENTS.boardEvents));
-/** Dé du tableau des événements de bord, MDG 15 l.182. */
-export const DE_DES_EVENEMENTS_DE_BORD = 'd100';
+export const evenementsDeBord = memoParVersion('seaBoardEvents', () => tableOuverte(BOARD_EVENTS));
+/** Le dé du Tableau des événements de bord, lu à l'appel. */
+export const deDesEvenementsDeBord = (): DiceSpec => parseDiceRequired(EVENTS.boardEvents.die, 'sea-events.json › boardEvents.die');
 const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(EVENTS.portEvents));
 const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(EVENTS.fastVoyage.paliers);
 /** `test` exige `skill` et `difficulty` au parse (`exigerDuTest`, `defs/sea-cargo.ts`). */
@@ -245,13 +245,13 @@ export function rollDaysToNextEvent(rng: RNG): number {
 /** Événement de bord NOMMÉ (par `id`, sinon par `kind` — plusieurs événements peuvent partager un kind,
  *  ex. `navire-hostile` = Langskip skaeling / Cogue pirate). Pour forcer un tirage en recette (#332). */
 export const seaBoardEventById = (idOrKind: string): EvenementDeBord | undefined =>
-  EVENTS.boardEvents.find((e) => e.id === idOrKind) ?? EVENTS.boardEvents.find((e) => e.kind === idOrKind);
+  BOARD_EVENTS.find((e) => e.id === idOrKind) ?? BOARD_EVENTS.find((e) => e.kind === idOrKind);
 
 type DuGenre<E extends SeaEventDef, K extends E['kind']> = Extract<E, { kind: K }>;
 
 /** L'événement de bord `id`, de genre `kind` — porté par une étape ou un état qui l'a nommé. */
 export function evenementDeBord<K extends EvenementDeBord['kind']>(id: string, kind: K): DuGenre<EvenementDeBord, K> {
-  const e = EVENTS.boardEvents.find((x) => x.id === id);
+  const e = BOARD_EVENTS.find((x) => x.id === id);
   if (e?.kind !== kind) throw new Error(`sea-events.json › boardEvents : « ${id} » n'est pas un événement de genre « ${kind} »`);
   return e as DuGenre<EvenementDeBord, K>;
 }
@@ -263,7 +263,7 @@ function seulDuGenre<E extends SeaEventDef, K extends E['kind']>(table: E[], nom
   if (trouves.length !== 1) throw new Error(`sea-events.json › ${nom} : ${trouves.length} événement(s) de genre « ${kind} », un seul attendu`);
   return trouves[0] as DuGenre<E, K>;
 }
-export const seulEvenementDeBord = <K extends EvenementDeBord['kind']>(kind: K) => seulDuGenre(EVENTS.boardEvents, 'boardEvents', kind);
+export const seulEvenementDeBord = <K extends EvenementDeBord['kind']>(kind: K) => seulDuGenre(BOARD_EVENTS, 'boardEvents', kind);
 export const seulEvenementDePort = <K extends EvenementDePort['kind']>(kind: K) => seulDuGenre(EVENTS.portEvents, 'portEvents', kind);
 
 /** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) : 2d10, ±1 selon le signe de l'Humeur ;

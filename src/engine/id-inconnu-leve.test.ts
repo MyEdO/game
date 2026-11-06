@@ -4,7 +4,7 @@
  * le défaut ou de poser un pion fantôme. Les ids CONNUS se lisent dans le registre lui-même : aucun id réel
  * n'est épinglé ici.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { OPTIONAL_RULES, rule, setRule, resetRule, loadRuleOverrides, refusDesSurcharges, ruleOverrides } from './policy';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, hasCondition, stacks, derivedStacks, etatNonCumulable, soinDeDetermination, etatsPortesInconnus } from './conditions';
 import { conditionIds } from '../data';
@@ -18,6 +18,7 @@ const porteur = (conditions: { id: string; value: number }[] = []): Combatant =>
 
 describe('policy — un id de règle hors du registre lève', () => {
   const connue = OPTIONAL_RULES[0];
+  afterEach(() => loadRuleOverrides({}));
 
   it.each([
     ['rule', () => rule(INCONNU)],

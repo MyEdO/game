@@ -4,7 +4,7 @@
  * Le tirage du d100 et l'application des effets restent à l'appelant (boucle de voyage).
  */
 import { findTableEntry } from './tables';
-import { parseDiceRequired, type Tirage } from './dice';
+import { parseDiceRequired, type DiceSpec, type Tirage } from './dice';
 import type { StageOutcome } from './activities';
 import type { JetFixe } from './flowCore';
 import incidentsMonteJson from '../data/incidents-monture.json';
@@ -60,10 +60,10 @@ export const MOUNT_INCIDENTS: TravelTableEntry[] = rangeesDe<typeof incidentsDeM
 /** Problèmes de véhicule (EDOC 07 l.259-264). */
 export const VEHICLE_PROBLEMS: TravelTableEntry[] = rangeesDe<typeof problemesDeVehicule>(problemesVehiculeJson);
 
-/** Dé AUTHORÉ des Incidents de monte (`incidents-monture.json`, `die`). */
-export const MOUNT_INCIDENT_DIE = deDeTirageDe<typeof incidentsDeMonte>(incidentsMonteJson);
-/** Dé AUTHORÉ des Problèmes de véhicule (`problemes-vehicule.json`, `die`). */
-export const VEHICLE_PROBLEM_DIE = deDeTirageDe<typeof problemesDeVehicule>(problemesVehiculeJson);
+/** Dé AUTHORÉ des Incidents de monte (`incidents-monture.json`, `die`), lu VIVANT à l'appel. */
+export const mountIncidentDie = (): DiceSpec => deDeTirageDe<typeof incidentsDeMonte>(incidentsMonteJson);
+/** Dé AUTHORÉ des Problèmes de véhicule (`problemes-vehicule.json`, `die`), lu VIVANT à l'appel. */
+export const vehicleProblemDie = (): DiceSpec => deDeTirageDe<typeof problemesDeVehicule>(problemesVehiculeJson);
 
 export function rollMountIncident(roll: number): TravelTableEntry {
   return findTableEntry(MOUNT_INCIDENTS, roll);
@@ -81,7 +81,8 @@ export function rollVehicleProblem(roll: number): TravelTableEntry {
 export type EncounterCategory = 'positives' | 'fortuites' | 'dangereuses';
 
 const ENCOUNTERS = (rencontresJson as { tables: Record<EncounterCategory, TravelTableEntry[]> }).tables;
-export const ENCOUNTER_DIE = parseDiceRequired(rencontresJson.die, 'rencontres-edoc.die');
+/** Dé AUTHORÉ des Rencontres (`rencontres-edoc.json`, `die`), partagé par ses trois tables, lu VIVANT à l'appel. */
+export const encounterDie = (): DiceSpec => parseDiceRequired(rencontresJson.die, 'rencontres-edoc.die');
 
 export function encounterTable(category: EncounterCategory): TravelTableEntry[] {
   return ENCOUNTERS[category];

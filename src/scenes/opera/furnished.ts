@@ -6,7 +6,7 @@ import type { SceneEntity } from '../../noyau/monde/scene';
  * géométrie vit dans `opera/floorplan.ts`, ce module ne porte que le MOBILIER posé pièce par pièce.
  * Consommateurs du jour : le scénario de recette `test-scenarios/opera-plan.ts` (rendu EN JEU de ce
  * meublage), `scripts/qc/opera-furniture-check.mts` (placement contre la géométrie) et les deux gardes
- * de population (`src/gameIso/catalog/props-volumiques.test.ts`, `src/data/prop-foot-migration.test.ts`).
+ * de population (`src/noyau/monde/volume/props-volumiques.test.ts`, `src/data/prop-foot-migration.test.ts`).
  * La LOGIQUE de la soirée vit, elle, dans le scénario jouable « Opéra » (`test-scenarios/opera`), qui a
  * sa propre carte et ses propres entités.
  *

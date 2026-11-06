@@ -4,7 +4,7 @@ import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  * périmètre du liage : on ne peut pas rendre du markdown quelque part sans que ce site figure, avec
  * son origine et son porteur, dans `SITES_PROSE` (`src/ui/liage.ts`).
  *
- * Marche AST (`typescript`, précédent `src/ui/codex-inline-refs-guard.test.ts`) en deux temps :
+ * Marche AST (`typescript`, précédent `src/noyau/codex/codex-inline-refs-guard.test.ts`) en deux temps :
  *
  * 1. POINT FIXE des composants PORTEURS de prose, depuis `Prose{md}`. Un composant devient porteur
  *    quand il transmet une de ses props à la prop de markdown d'un porteur connu — et seulement s'il
