@@ -2,7 +2,7 @@
  * COMPILATION VOLUMIQUE d'un décor — la recette locale d'un `PropData` (`volume.primitives`) devient
  * des `Face[]` du pivot, en espace MONDE. PUR au sens le plus strict du builder : ni scène, ni caméra,
  * ni React, ni store, ni `three` ne sont importés ici — l'appelant apporte le type de décor et son
- * ANCRAGE (point monde, cap, altitude du pied), d'où qu'il vienne.
+ * ANCRAGE (point monde, cap, altitude du pied), d'où qu'il vienne ; `facesDuDecor` le lit au catalogue par sa ref.
  *
  * REPÈRE ET UNITÉS : la recette est authorée dans le repère LOCAL du type, en MÈTRES sur les trois axes
  * (origine à l'ancre, `hM` au-dessus du pied, cf. la RÈGLE D'UNITÉ de `data/props.types.ts`). Le monde,
@@ -22,9 +22,10 @@
  * et le DÉCLARE par `Face.oriented` — la cuisson (`backends/webgl/sceneMeshes`) propage ce sens tel quel
  * pour la carte d'ombre au lieu de le re-dériver du centre de la carte.
  */
-import { polygonesDePrimitive, rotatePropLocal, type PropData } from '../../data/props.types';
-import type { Dir4 } from '../../geometry/dir8';
-import type { Face, GP } from '../../noyau/monde/volume/types';
+import { findPropById, refEstVolumique } from '../../../data';
+import { capVolumique, polygonesDePrimitive, rotatePropLocal, type PropData } from '../../../data/props.types';
+import type { Dir4, Dir8 } from '../../../geometry/dir8';
+import type { Face, GP } from './types';
 
 /** ANCRAGE d'une recette dans le monde : le point (fractionnaire, en cases) où son origine locale se
  *  pose, le cap qui la tourne, l'altitude métrique de son pied, et l'entité qui la porte quand il y en
@@ -63,4 +64,14 @@ export function buildPropVolumes(prop: PropData, ancrage: AncrageVolume, mpt: nu
     }
   }
   return out;
+}
+
+/** Les faces MONDE du décor de type `ref` posé par `ancrage`, au cap demandé (défaut : son cap d'identité,
+ *  `capVolumique`) ; `null` quand il ne se dessine pas en volume : un type sans recette (`refEstVolumique`), ou un cap
+ *  que la recette refuse. La SEULE décision volume ou non d'un décor, que lisent le volume du monde des hôtes et
+ *  l'émetteur de décor du rendu web. */
+export function facesDuDecor(ref: string | undefined, ancrage: Omit<AncrageVolume, 'facing'> & { facing?: Dir8 }, mpt: number): Face[] | null {
+  const prop = refEstVolumique(ref) ? findPropById(ref!) : undefined;
+  const facing = capVolumique(ancrage.facing);
+  return prop?.volume && facing ? buildPropVolumes(prop, { ...ancrage, facing }, mpt) : null;
 }

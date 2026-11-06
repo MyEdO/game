@@ -265,7 +265,7 @@
     "kind": "armour",
     "material": "leather",
     "couche": 0,
-    "palierPA": 0,
+    "seuil": 0,
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -278,7 +278,6 @@
     "kind": "armour",
     "material": "leather",
     "couche": 1,
-    "palierPA": null,
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -291,7 +290,7 @@
     "kind": "armour",
     "material": "metal",
     "couche": 2,
-    "palierPA": 2,
+    "seuil": 2,
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -304,7 +303,7 @@
     "kind": "armour",
     "material": "metal",
     "couche": 3,
-    "palierPA": 4,
+    "seuil": 4,
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -317,7 +316,6 @@
     "kind": "armour",
     "material": "chaos",
     "couche": 4,
-    "palierPA": null,
     "source": {
       "book": "vents-de-la-magie",
       "page": 22,

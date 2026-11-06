@@ -7,6 +7,7 @@
 import type { Combatant, HitLocation, ItemInstance } from '../../engine/types';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
+import { findTierEntry } from '../../engine/tables';
 import { findCreatureById, findGroupeDArmureById, findSpeciesById, findTenueDeCarriere, findTeteById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
 import { armesDuCombattant, emblemeDe } from '../equipementDessine';
 import { facteursDeComposition, porteesDeLaTenue, porteesDesObjets, teinteDeLObjet, type ObjetPorte, type Portee, type PorteeDeComposition } from './composition';
@@ -19,11 +20,10 @@ const raceDeRendu = (species: string | undefined) => {
   return raceAppearance.find((r) => r.id === id);
 };
 
-/** Le Groupe d'armure dont l'armure de statbloc a `pa` PA : celui au plus haut `palierPA` atteint, le schéma de
- *  `weaponGroups.json` en exigeant un à 0 (#2948). */
+/** Le Groupe d'armure dont l'armure de statbloc a `pa` PA : son palier atteint (`findTierEntry`), le schéma de
+ *  `weaponGroups.json` en exigeant un au seuil 0 (#2948). */
 function groupeDuPalier(pa: number): GroupeDArmure {
-  const atteints = weaponGroups.filter((g): g is GroupeDArmure => g.kind === 'armour' && g.palierPA !== null && g.palierPA <= pa);
-  return atteints.reduce((haut, g) => (g.palierPA! > haut.palierPA! ? g : haut));
+  return findTierEntry(weaponGroups.filter((g): g is GroupeDArmure & { seuil: number } => g.kind === 'armour' && g.seuil !== undefined), pa)!;
 }
 
 /** La teinte d'un objet (`teinteDeLObjet`), à étaler dans son `ObjetPorte`. */

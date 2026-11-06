@@ -1,13 +1,14 @@
 /**
- * LES MATIÈRES DU SOL (#3476) : la résolution d'une matière de terrain ou de relief en sa def, sa couleur de base et sa
- * recette de détail, depuis la donnée (`src/data/terrains.json`, domaine `relief` de `src/data/materials.json`), avec
- * le repli VISIBLE d'un id absent (`./missing`). Une seule résolution, que lisent le rendu web et tout hôte du noyau.
+ * LES MATIÈRES DU VOLUME (#3476) : la résolution d'une matière de terrain, de relief ou de décor en sa def, sa couleur
+ * de base et sa recette de détail, depuis la donnée (`src/data/terrains.json`, domaines `relief` et `prop` de
+ * `src/data/materials.json`), avec le repli VISIBLE d'un id absent (`./missing`). Une seule résolution, que lisent le
+ * rendu web et tout hôte du noyau.
  */
 import { terrainEntree } from '../terrain';
 import { matieresDe } from '../../../data';
 import { hash32 } from '../../../data/hash';
 import type { TerrainDef } from '../../../data/terrains.types';
-import type { DetailRecipe, MaterialRef, ReliefMaterialDef } from '../../../data/materials.types';
+import type { DetailRecipe, MaterialRef, PropMaterialData, ReliefMaterialDef } from '../../../data/materials.types';
 import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from './missing';
 
 /** Entrée de REPLI VISIBLE (#877) : un terrain au ton d'alarme, jamais l'apparence d'un autre terrain.
@@ -50,20 +51,42 @@ export function reliefMaterial(id: string): ReliefMaterialDef {
   return catalogEntry((cle) => matieresDe('relief').find((m) => m.id === cle), id, 'relief', RELIEF_MANQUANT);
 }
 
-/** Une matière du SOL : celles que le builder de sols (`./floors`) pose sur ses faces. */
-export type MatiereDuSol = MaterialRef & { domain: 'terrain' | 'relief' };
+/** Entrée de REPLI VISIBLE (#877) : une matière de décor au ton d'alarme, jamais l'apparence d'un autre matériau. Sa
+ *  réponse à la lumière est NEUTRE (diffus pur, aucun métal) : le repli ne peint pas un vernis ni un bronze qu'aucune
+ *  donnée n'a authorés. */
+const DECOR_MANQUANT: PropMaterialData = {
+  id: MISSING_ID,
+  type: 'materials',
+  label: MISSING_LABEL,
+  domain: 'prop',
+  color: MISSING_TONE,
+  roughness: 1,
+  metalness: 0,
+};
 
-/** Couleur de base d'une matière du sol : le `swatch` d'un terrain ; la face d'un relief, le dessus de pente d'une rampe
- *  qui en porte un. */
-export function couleurDuSol({ domain, id, part }: MatiereDuSol): string {
+/** Matériau de décor par id ; id absent du registre → repli VISIBLE + avertissement DEV. Résolution VIVANTE
+ *  (`matieresDe`), comme `reliefMaterial`. */
+export function propMaterial(id: string): PropMaterialData {
+  return catalogEntry((cle) => matieresDe('prop').find((m) => m.id === cle), id, 'matière de décor', DECOR_MANQUANT);
+}
+
+/** Une matière du VOLUME : celles que ses builders posent sur leurs faces, le sol (`./floors`) et le décor
+ *  (`./propVolumes`). */
+export type MatiereDuVolume = MaterialRef & { domain: 'terrain' | 'relief' | 'prop' };
+
+/** Couleur de base d'une matière du volume : le `swatch` d'un terrain ; la face d'un relief, le dessus de pente d'une
+ *  rampe qui en porte un ; la couleur d'un matériau de décor. */
+export function couleurDeMatiere({ domain, id, part }: MatiereDuVolume): string {
   if (domain === 'terrain') return terrainDef(id).swatch;
+  if (domain === 'prop') return propMaterial(id).color;
   const m = reliefMaterial(id);
   return (part === 'ramp' ? m.slopeTop : undefined) ?? m.face;
 }
 
-/** Recette de détail d'une matière du sol, prise à sa def. */
-export function recetteDuSol({ domain, id }: MatiereDuSol): DetailRecipe | undefined {
-  return domain === 'terrain' ? terrainDef(id).detail : reliefMaterial(id).detail;
+/** Recette de détail d'une matière du volume, prise à sa def ; un matériau de décor n'en porte aucune. */
+export function recetteDeMatiere({ domain, id }: MatiereDuVolume): DetailRecipe | undefined {
+  if (domain === 'terrain') return terrainDef(id).detail;
+  return domain === 'relief' ? reliefMaterial(id).detail : undefined;
 }
 
 /** Variantes de variance de TEINTE par case (facteurs d'étalement du `tintVar` d'une recette) — dosage

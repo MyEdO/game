@@ -14,7 +14,7 @@ import { parseDice, totalDuDe } from '../../../engine/dice';
 export const file = 'tables.json';
 export const famille = 'entite';
 
-const rangee = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   label: z.string().optional(),
   ops: executeesDe(),

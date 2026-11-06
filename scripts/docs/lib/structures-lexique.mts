@@ -541,9 +541,9 @@ export const CONCEPTS: readonly Concept[] = [
     noyau: ['fixed'],
   },
   // Porte : `palierSchema` (`src/data/schemas/grammaire/valeurs.ts`), lu par `findTierEntry`
-  // (`src/engine/tables.ts`). #1666. Noyau MESURÉ sur les 2 racines (2026-11-05) : `seuil` ne vit que sous
-  // `surincantation.entries[]`, `calendarPhases[]`, `regles[].rangees[]` et
-  // `billets.*.marchandage.paliers[]` (EDO 01 l.142).
+  // (`src/engine/tables.ts`). #1666. Noyau MESURÉ sur les 2 racines (2026-11-06) : `seuil` ne vit que sous
+  // `surincantation.entries[]`, `calendarPhases[]`, `regles[].rangees[]`, `weaponGroups[]` (palier de PA d'un
+  // Groupe d'armure) et `billets.*.marchandage.paliers[]` (EDO 01 l.142).
   {
     id: 'palier',
     label: 'palier d’une table à seuils (seuil)',

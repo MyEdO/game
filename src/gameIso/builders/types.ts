@@ -112,7 +112,7 @@ export type OrigineDecor =
 /** Un décor d'ENTITÉ de scène : `entId` et `span` présents par construction. */
 export type DecorDEntite = PropEl & { source: 'entity' };
 /** Élément de décor à FACES : un décor dont le TYPE porte une recette volumique (`PropData.volume`) est
- *  compilé en géométrie MONDE (`builders/propVolumes.ts`) et cuit dans la masse commune — il n'a donc
+ *  compilé en géométrie MONDE (`noyau/monde/volume/propVolumes.ts`) et cuit dans la masse commune — il n'a donc
  *  ni vignette ni empreinte de billboard à porter. Son empreinte d'entité (`span`) est celle de son
  *  corps au cap de l'instance, comme pour tout décor (`OrigineDecor`). */
 export type VolumePropEl = VolumePropBase & OrigineDecor;

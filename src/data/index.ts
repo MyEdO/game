@@ -205,7 +205,7 @@ export interface WaterExposureModifier {
   auto?: WaterExposureAuto;
 }
 /** Tables d'exposition hydrique (MSRC 16 l.13-63) : Test de Résistance Intermédiaire modifié ; raté →
- *  d100 « +10 pour chaque DR négatif » → maladie CONTRACTÉE (le Test d'exposition EST le test — pas de
+ *  dé de `diseases` « +10 pour chaque DR négatif » → maladie CONTRACTÉE (le Test d'exposition EST le test — pas de
  *  second Test de Contraction). `rerollUnlessWounded` : « Relancez si le Personnage n'est pas blessé ». */
 export interface WaterExposureData {
   id: string;
@@ -214,7 +214,7 @@ export interface WaterExposureData {
   test: { skill: RefDesignee; difficulty: import('../engine/types').Difficulty };
   rollModPerNegativeSL: number;
   modifiers: WaterExposureModifier[];
-  diseases: { min: number; max: number; disease: string; rerollUnlessWounded?: boolean }[];
+  diseases: { die: string; entries: { min: number; max: number; disease: string; rerollUnlessWounded?: boolean }[] };
   source: SourceRef;
 }
 export const WATER_EXPOSURE = waterExposureJson as WaterExposureData;
@@ -1293,8 +1293,9 @@ export interface GroupeDArmure extends GroupeDObjet {
   /** Rang de couche, unique parmi les Groupes d'armure : la pièce que revêtent deux armures portées est celle du rang
    *  le plus haut (#3456). */
   couche: number;
-  /** PA à partir desquels une armure de statbloc portée est de cette matière, unique ; `null` : aucune (#2948). */
-  palierPA: number | null;
+  /** PALIER (`palierSchema`) de PA d'une armure de statbloc portée, unique : à partir de `seuil` PA, elle est de cette
+   *  matière ; absent : aucune (#2948). */
+  seuil?: number;
   /** Teinte d'objet (`materials.json`, domaine `objet`) d'une pièce du Groupe, à défaut de la sienne (#3456). */
   teinte?: { id: string };
 }

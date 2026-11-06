@@ -568,8 +568,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
   edition/                  L'ÉDITEUR DE CARTE sans hôte (#3508) : `pointeur.ts` (appui, glissé, relâché d'un point de la carte
                             routés vers les écrivains de `sceneEdit.ts` selon l'outil, avec le cran d'annulation et la
-                            sélection que le geste porte), `historique.ts` (annuler, rétablir, crans bornés) ; l'éditeur
-                            web les appelle, l'éditeur Godot les recevra par le pont.
+                            sélection que le geste porte), `historique.ts` (annuler, rétablir, crans bornés), `session.ts`
+                            (la session d'édition et son réducteur `editer` sur l'union des gestes) ; l'éditeur web
+                            appelle le pointeur et l'historique, l'éditeur Godot joue la session par le pont (`editer`).
   creation/                 BROUILLON DE CRÉATION de personnage (LDB 04/05), sans écran : `brouillon.ts` (état pur :
                             tirages figés, bonus PX, validation, `buildHero`), `defauts.ts` (`fillDraftDefaults`)
   persistance/              documents PERSISTÉS, sans stockage : `elagage.ts` (`elaguerLePersiste`, seul élagage
@@ -602,7 +603,9 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `elements.ts` (l'union fermée des éléments de la vue, nommés par forme de
                             donnée, et les gestes de la fenêtre en éléments), `ecran.ts` (`zonesDeLEcran` : chaque zone
                             de l'écran d'un hôte qui dessine la partie et ses éléments, leurs textes tirés du catalogue
-                            et des lecteurs du noyau), `roster.ts` (la procédure du roster
+                            et des lecteurs du noyau), `editeur.ts` (`zonesDeLEditeur` : les zones de l'éditeur de carte,
+                            lues de la session d'édition du noyau, et la surcouche du geste en cours, #3508),
+                            `roster.ts` (la procédure du roster
                             sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
                             service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
                             retrait et d'élagage), `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
@@ -739,12 +742,11 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
                             token, discriminé par kind) + floors/walls/roofs/props/tokens/highlights/
                             dynamicMarks/interactHalos/tokenChrome. Un builder n'importe NI caméra NI
                             Dims — sa sortie survit à toute rotation et sert les deux vues.
-                            propVolumes.ts = compilation PURE de la recette volumique d'un décor
-                            (`buildPropVolumes` : primitives locales × cap × ancre monde, posées sur le
-                            pied de l'ancrage = sol de la case + surélévation déclarée → `Face[]`
-                            monde). Chaque site de `buildProps` (entité, feature de façade, ornement de
-                            bâtiment) DÉCLARE son ancrage et un émetteur unique tranche : recette →
-                            volume, sinon billboard
+                            Chaque site de `buildProps` (entité, feature de façade, ornement de
+                            bâtiment) DÉCLARE son ancrage et un émetteur unique tranche par
+                            `facesDuDecor` (`src/noyau/monde/volume/propVolumes.ts`, compilation PURE
+                            de la recette volumique d'un décor, que le volume du monde des hôtes lit
+                            aussi) : recette → volume, sinon billboard
   backends/webgl/           SEUL backend du monde : cuisson des SceneEl en géométrie three (sceneMeshes,
                             faceBake, periodTexture, atlasBake des billboards) + caméras réelles
                             (cameras.ts, ortho pour les vues de plateau, perspective en POV)

@@ -146,6 +146,31 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
       expect(choixDePaieOuverts(conseil(0)).length, 'témoin : sans gages, chaque choix est ouvert').toBeGreaterThan(choixDePaieOuverts(conseil(1_000_000)).length);
     });
   });
+
+  it('Semaine en mer : chaque choix vise le héros de sa rangée (`pid`), saisi parmi ceux auxquels il ouvre une valeur ; l’hôte valide', { timeout: 120_000 }, () => {
+    auDebutDuRound((etat) => {
+      const [a, ...autres] = etat.party;
+      const semaine: Jeu = { ...etat, battle: null, pendingRoundStart: null, party: [a, ...autres.map((h) => ({ ...h, dead: true }))], vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] } as never, pendingSeaActivities: { picks: { [a.id]: { activityId: 'commerce-opportunite' } }, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } };
+      const fenetre = fenetreADessiner(semaine)!;
+      expect(fenetre.gestes.map((g) => g.cle)).toEqual(['fenetreChoisir@seaActivities#activite', 'fenetreChoisir@seaActivities#investir', 'fenetreChoisir@seaActivities#cacher', 'fenetreValider@seaActivities']);
+      expect(lignes(argumentDe(semaine, 'fenetreChoisir@seaActivities#activite', 'pid')), 'le seul héros vivant').toEqual(['choix', [[a.id, a.label]]]);
+      expect(lignes(argumentDe(semaine, 'fenetreChoisir@seaActivities#investir', 'pid')), 'la mise ne s’ouvre qu’au Commerce d’opportunité').toEqual(['choix', [[a.id, a.label]]]);
+      expect(argumentDe(semaine, 'fenetreChoisir@seaActivities#cacher', 'pid').valeurs, 'aucune Cartographie : aucune planque').toEqual([]);
+      expect(fenetre.gestes.find((g) => g.cle === 'fenetreValider@seaActivities')!.rendu).toBe('bouton');
+    });
+  });
+
+  it('Fin de séance : les cases du groupe, celles de chaque héros (`pid`), sa validation et sa sortie', { timeout: 120_000 }, () => {
+    auDebutDuRound((etat) => {
+      const seance: Jeu = { ...etat, battle: null, pendingRoundStart: null, finDeSeance: { heros: {}, groupe: {} } };
+      const fenetre = fenetreADessiner(seance)!;
+      expect(fenetre.gestes.map((g) => g.cle)).toEqual([
+        'fenetreChoisir@finDeSeance#ambitionCourte', 'fenetreChoisir@finDeSeance#ambitionLongue', 'fenetreChoisir@finDeSeance#ambitionPersonnelleCourte',
+        'fenetreChoisir@finDeSeance#ambitionPersonnelleLongue', 'fenetreChoisir@finDeSeance#motivation', 'fenetreValider@finDeSeance', 'fenetreFermer@finDeSeance',
+      ]);
+      expect(lignes(argumentDe(seance, 'fenetreChoisir@finDeSeance#motivation', 'pid')), 'chaque héros du groupe').toEqual(['choix', seance.party.map((h) => [h.id, h.label])]);
+    });
+  });
 });
 
 describe('qui tient la main se dit par son genre, nommé sans id', () => {

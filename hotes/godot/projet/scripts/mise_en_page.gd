@@ -13,6 +13,8 @@ extends RefCounted
 
 const MS_PAR_SECONDE := 1000.0
 const DEMI_CASE := 0.5
+## Le côté, en mètres, du motif d'une texture du sol posée sur le volume du monde.
+const METRES_PAR_MOTIF := 2.0
 const QUART_DE_TOUR := PI / 2.0
 const PAS_DE_ZOOM := 1.15
 const TOLERANCE_D_IMAGE := 0.001
@@ -109,6 +111,12 @@ static func energie_vacillante(energie: float, amplitude: float, hz: float, seco
 ## Le centre du sol d'un plateau de `taille` cases.
 static func centre_du_plateau(taille: Vector2i) -> Vector3:
 	return Vector3(taille.x / 2.0, 0.0, taille.y / 2.0)
+
+
+## Le point de la carte, en cases continues (une case centrée sur l'entier), sous le lieu `lieu` du plateau : celui que
+## l'éditeur de carte désigne (`PointDeCarte.f`, `src/noyau/edition/pointeur.ts`).
+static func point_de_carte_du_lieu(lieu: Vector3) -> Vector2:
+	return Vector2(lieu.x - DEMI_CASE, lieu.z - DEMI_CASE)
 
 
 ## Le lacet de la caméra tourné d'un quart de tour dans le sens `sens` (1 ou -1).
@@ -246,3 +254,9 @@ static func origine_de_rangement(emplacement: Basis, point: Vector3, arriere: fl
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.
 static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> Vector2:
 	return Vector2(point.x - largeur / 2.0, point.y - hauteur - ECART_DE_BULLE)
+
+
+## L'échelle de projection d'une texture du sol dans le repère du volume, en mètres : un motif tous les
+## `METRES_PAR_MOTIF`.
+static func echelle_de_motif() -> Vector3:
+	return Vector3.ONE / METRES_PAR_MOTIF

@@ -413,13 +413,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/gameIso/builders/propVolumes.test.ts",
-    motif: "désormais",
-    ancre: "// Le cap `N` est désormais le DEMI-TOUR : le pied et le rampant changent de bord.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/gameIso/stage/MondeDeCampagne.tsx",
     motif: "désormais",
     ancre: "recevaient ; la masse est désormais CUITE en bloc (`bakeWorldGeometry` prend la scène entière),",

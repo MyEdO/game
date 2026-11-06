@@ -7,7 +7,7 @@ import { findPropById, props } from '../../data';
 import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, empriseLocaleM, placeAssiseDe, placesLocalesDuProp, PROP_CYLINDER_AXES, REPERE_D_AXE, rotatePropLocal, type PropCylinderSides, type PropData, type PropPrimitive } from '../../data/props.types';
 import { decorFootGeometry } from '../../noyau/monde/footprint';
 import { buildProps } from '../builders/props';
-import { buildPropVolumes } from '../builders/propVolumes';
+import { buildPropVolumes } from '../../noyau/monde/volume/propVolumes';
 import { estPropVolumique } from '../builders/types';
 import { type Face } from '../../noyau/monde/volume/types';
 import { bakeWorldGeometry, collectBillboards, wholeSceneBillboardEls } from '../backends/webgl/sceneMeshes';

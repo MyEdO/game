@@ -32,13 +32,12 @@ const F = {
 };
 
 const ARMURES = {
-  'cuir-souple': { couche: 0 },
-  'cuir-bouilli': { couche: 1 },
-  mailles: { couche: 2 },
-  plate: { couche: 3 },
-  'armure-du-chaos': { couche: 4 },
+  'cuir-souple': { couche: 0, palierPA: 0 },
+  'cuir-bouilli': { couche: 1, palierPA: null },
+  mailles: { couche: 2, palierPA: 2 },
+  plate: { couche: 3, palierPA: 4 },
+  'armure-du-chaos': { couche: 4, palierPA: null },
 };
-const PALIERS_PA = { 'cuir-souple': 0, 'cuir-bouilli': null, mailles: 2, plate: 4, 'armure-du-chaos': null };
 const GROUPES_A_POUDRE = { 'poudre-noire': 'weapon', ingenierie: 'weapon', 'poudre-noire-et-ingenierie': 'ammo' };
 const forme = (id) => ({ id });
 const ARMES = {
@@ -120,7 +119,6 @@ for (const [id, champs] of Object.entries(ARMES)) {
   poser(F.groupes, id, champs, 'weapon', () =>
     champs.forme && !racines.has(champs.forme.id) ? `${F.apparences} : « ${champs.forme.id} » n'est pas une racine` : undefined);
 }
-for (const [id, palierPA] of Object.entries(PALIERS_PA)) poser(F.groupes, id, { palierPA }, 'armour');
 for (const [id, kind] of Object.entries(GROUPES_A_POUDRE)) poser(F.groupes, id, { poudre: true }, kind);
 // 2. apparences.json
 for (const [id, maniement] of Object.entries(MANIEMENT_DES_RACINES)) {

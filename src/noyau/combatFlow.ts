@@ -102,6 +102,7 @@ import { gainCorruption, testDExposition } from './corruptionFlow';
 import { corruptionGain, EXPOSURE_LADDER, type ExposureLevel } from '../engine/corruption';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
+import { critiqueDie } from '../data/criticals';
 import { canCastFromGrimoire } from '../engine/grimoire';
 import { effectiveCastingNumber } from '../engine/castingNumber';
 import type { CastingNumberMod } from '../engine/castingNumber';
@@ -1662,7 +1663,7 @@ export function critSeverityInSeam(twice?: boolean): boolean {
 }
 
 /** DÉCLARATION du tirage de SÉVÉRITÉ d'une Blessure critique (LDB 18) : la table de la Localisation,
- *  d100, et le modificateur du régime (`REGIMES_DE_CRITIQUE`) porté en `mod`.
+ *  à son dé (`critiqueDie`), et le modificateur du régime (`REGIMES_DE_CRITIQUE`) porté en `mod`.
  *  `clamp` : plancher « avec un résultat minimum de 01 » (LDB 18 l.17), la même borne que le
  *  `Math.max(1, …)` du lookup moteur. `keepHighest: 2` sous Bénédiction de Sauvagerie (LDB 41 l.170).
  *  Le dé de la déclaration est le dé NATUREL (le `mod` s'applique au lookup) : c'est exactement ce que
@@ -1674,7 +1675,7 @@ export function critSeverityDecl(target: Combatant, location: HitLocation, overk
     throw new Error(`critSeverityDecl : tables LDB déclarées sous la variante « combat-aa-blessures » — la sévérité y est résolue sur les tables AA (#974).`);
   }
   return {
-    tableId: CRIT_TABLE_IDS[critTableKeyFor(location)], spec: { n: 1, sides: 100 },
+    tableId: CRIT_TABLE_IDS[critTableKeyFor(location)], spec: critiqueDie(jeuDeCritique(twice), critTableKeyFor(location)),
     mod: REGIMES_DE_CRITIQUE[jeuDeCritique(twice)].severite(target, overkill), clamp: true,
     ...(twice ? { keepHighest: 2 } : {}),
   };
@@ -4540,7 +4541,7 @@ export function useSpellComponent(caster: Combatant, spellId: string, lines: str
  *  (LDB 40 l.89) : aucun plafond à borner, et son plancher est 01 (`clamp` inutile, `mod` positif). */
 export function miscastTableDecl(ctx: PendingMiscastStep): CascadeTableDecl {
   return {
-    tableId: miscastTableId(ctx.severity), spec: { n: 1, sides: 100 },
+    tableId: miscastTableId(ctx.severity), spec: miscastDie(miscastTableId(ctx.severity)),
     ...(ctx.severity === 'colere' ? { modPerActor: { counter: 'sinPoints' as const, factor: 10 } } : {}),
   };
 }
@@ -8953,7 +8954,7 @@ export const TABLES = {
         const rows = critTableRows('ldb', key);
         return [CRIT_TABLE_IDS[key], {
           label: stepDetail(tr('step.blessuresCritiques'), dataLabel(libelleDeValeur(critTableSchema, key))),
-          die: 100,
+          die: critiqueDie('ldb', key).sides,
           rows,
           lines: (die) => [findTableEntry(rows, die).label],
           entryCategory: CRIT_TABLE_CATEGORIES[key],

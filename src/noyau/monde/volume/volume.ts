@@ -8,10 +8,22 @@ import { heightAt, sceneMetresPerTile, type Scene } from '../scene';
 import { parseHex } from '../../../lib/couleurHex';
 import { MISSING_TONE } from './missing';
 import { buildFloors } from './floors';
-import { couleurDuSol, recetteDuSol, tintVarFactor, type MatiereDuSol } from './matieres';
+import { facesDuDecor } from './propVolumes';
+import { decorAncre } from '../footprint';
+import { findPropById } from '../../../data';
+import { empreinteDuProp } from '../../../data/props.types';
+import { couleurDeMatiere, recetteDeMatiere, tintVarFactor, type MatiereDuVolume } from './matieres';
 import { largeurDUnMontant, WALL_MATTER_M } from './montants';
 import { centreDeLaCarte, facesGeometry, trianglesOrientes } from './worldTris';
 import type { Face } from './types';
+
+/** Les triangles d'une matière du volume, nommée `<domaine>--<id>` (`nomDeMatiere`) : ses sommets de `debut` inclus à
+ *  `fin` exclu. */
+interface SurfaceDuVolume {
+  matiere: string;
+  debut: number;
+  fin: number;
+}
 
 /** Le volume du monde d'une scène, en tableaux plats que l'hôte charge tels quels. */
 export interface VolumeDuMonde {
@@ -25,9 +37,14 @@ export interface VolumeDuMonde {
   couleurs: number[];
   /** La case `[x, y]` de chaque triangle, dans l'ordre des triangles. */
   cases: [number, number][];
+  /** Les triangles d'une même matière se suivent : une surface par matière, dans l'ordre des triangles. */
+  surfaces: SurfaceDuVolume[];
   /** Hauteur (m) de la surface de chaque case, par couche : `rangees[y][x]` (`heightAt`). */
   hauteurs: { z: number; rangees: number[][] }[];
 }
+
+/** Le nom d'une matière dans le volume : son domaine et son id. */
+const nomDeMatiere = ({ domain, id }: MatiereDuVolume): string => `${domain}--${id}`;
 
 /** Trois décimales : le millimètre, et le millième d'un canal de couleur. */
 const arrondi = (v: number): number => Math.round(v * 1000) / 1000;
@@ -35,34 +52,61 @@ const arrondi = (v: number): number => Math.round(v * 1000) / 1000;
 /** La largeur d'un pilier de surplomb, seule face du sol à porter une épaisseur (`largeurDUnMontant`). */
 const profondeurDuSol = (face: Face): number | undefined => largeurDUnMontant(face, WALL_MATTER_M);
 
-/** Le volume du monde de `scene` : le sol de toutes ses couches (terrain, relief, raccords, piliers). PUR. */
-export function volumeDuMonde(scene: Scene): VolumeDuMonde {
+/** Les faces des décors volumiques posés sur la scène (entités `prop` dont le type porte une recette,
+ *  `facesDuDecor`), chacune avec sa case, jusqu'à la couche `activeZ` : ancrés au centre de leur empreinte à leur cap
+ *  (`decorAncre`), sur le sol de leur case. */
+function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): { face: Face; cell: { x: number; y: number; z: number } }[] {
+  return scene.entities.flatMap((ent) => {
+    const z = ent.z ?? 0;
+    if (ent.kind !== 'prop' || z > activeZ) return [];
+    const ancre = decorAncre(ent.pos, empreinteDuProp(findPropById(ent.ref), ent.facing, mpt));
+    const faces = facesDuDecor(ent.ref, { ancre, ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: heightAt(scene, ent.pos.x, ent.pos.y, z), entId: ent.id }, mpt);
+    return (faces ?? []).map((face) => ({ face, cell: { ...ent.pos, z } }));
+  });
+}
+
+/** Le volume du monde de `scene` : le sol de la couche `activeZ` et de celles du dessous (terrain, relief, raccords,
+ *  piliers) et les décors volumiques qui s'y posent, sans les surplombs fantômes des couches au-dessus ; sans
+ *  `activeZ`, de toutes ses couches. PUR. */
+export function volumeDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.map((l) => l.z))): VolumeDuMonde {
   const mpt = sceneMetresPerTile(scene);
-  const coucheHaute = Math.max(...scene.layers.map((l) => l.z));
-  const listees = buildFloors(scene, undefined, { activeZ: coucheHaute }).flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell })));
+  const sol = buildFloors(scene, undefined, { activeZ }).filter((el) => !el.states.ghost).flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell })));
+  const listees = [...sol, ...decorsVolumiques(scene, activeZ, mpt)];
   const geoms = facesGeometry(listees.map((f) => f.face), mpt, profondeurDuSol);
   const centre = centreDeLaCarte(scene.dimensions, mpt);
+  const parMatiere = new Map<string, number[]>();
+  geoms.forEach((_, i) => {
+    const nom = nomDeMatiere(listees[i].face.material as MatiereDuVolume);
+    const faces = parMatiere.get(nom) ?? [];
+    faces.push(i);
+    parMatiere.set(nom, faces);
+  });
   const positions: number[] = [];
   const normales: number[] = [];
   const couleurs: number[] = [];
   const cases: [number, number][] = [];
-  geoms.forEach((g, i) => {
-    const matiere = listees[i].face.material as MatiereDuSol;
-    const [r, v, b] = parseHex(couleurDuSol(matiere)) ?? parseHex(MISSING_TONE)!;
-    const k = tintVarFactor(recetteDuSol(matiere), listees[i].cell) / 255;
-    const couleur = [...[r, v, b].map((c) => arrondi(Math.min(1, c * k))), 1];
-    const { x, y } = listees[i].cell;
-    for (const { sommets, normale } of trianglesOrientes(g, centre)) {
-      const n = normale ?? { x: 0, y: 1, z: 0 };
-      cases.push([x, y]);
-      for (const p of sommets) {
-        positions.push(arrondi(p.x), arrondi(p.y), arrondi(p.z));
-        normales.push(arrondi(n.x), arrondi(n.y), arrondi(n.z));
-        couleurs.push(...couleur);
+  const surfaces: SurfaceDuVolume[] = [];
+  for (const [matiere, faces] of parMatiere) {
+    const debut = positions.length / 3;
+    for (const i of faces) {
+      const m = listees[i].face.material as MatiereDuVolume;
+      const [r, v, b] = parseHex(couleurDeMatiere(m)) ?? parseHex(MISSING_TONE)!;
+      const k = tintVarFactor(recetteDeMatiere(m), listees[i].cell) / 255;
+      const couleur = [...[r, v, b].map((c) => arrondi(Math.min(1, c * k))), 1];
+      const { x, y } = listees[i].cell;
+      for (const { sommets, normale } of trianglesOrientes(geoms[i], centre)) {
+        const n = normale ?? { x: 0, y: 1, z: 0 };
+        cases.push([x, y]);
+        for (const p of sommets) {
+          positions.push(arrondi(p.x), arrondi(p.y), arrondi(p.z));
+          normales.push(arrondi(n.x), arrondi(n.y), arrondi(n.z));
+          couleurs.push(...couleur);
+        }
       }
     }
-  });
+    surfaces.push({ matiere, debut, fin: positions.length / 3 });
+  }
   const { w, h } = scene.dimensions;
   const hauteurs = scene.layers.map((l) => ({ z: l.z, rangees: Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => heightAt(scene, x, y, l.z))) }));
-  return { metresParCase: mpt, positions, normales, couleurs, cases, hauteurs };
+  return { metresParCase: mpt, positions, normales, couleurs, cases, surfaces, hauteurs };
 }

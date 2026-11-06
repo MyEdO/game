@@ -9,7 +9,7 @@ import type { ReachId, ProprietesIntrinsequesDObjet, ProprietesIntrinsequesDArme
 import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass } from '../data/schemas/grammaire/mecanique';
-import type { ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
+import type { CibleEtendue, ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
 
 declare const MAXIMUM_DES_BLESSURES: unique symbol;
@@ -1078,10 +1078,10 @@ export interface Trauma {
   /** « Épaule luxée » (AA 07 l.125 / LDB 18 l.120) / « Genou démis » (AA 07 l.179 / LDB 18 l.179) : membre DÉSACTIVÉ
    *  (les `ops` passives — bras `maxWeaponHands:1` / jambe `moveScale` — tiennent tant que la séquelle vit).
    *  Après Aide Médicale (`awaitingMedicalAid` levé), un Test ÉTENDU de Guérison Accessible (+20) de
-   *  `restoreDR` DR (acte « Guérison » de l'Infirmerie, `medicFlow`) rend l'usage : la séquelle est retirée et
+   *  `targetDR` DR (acte « Guérison » de l'Infirmerie, `medicFlow`) rend l'usage : la séquelle est retirée et
    *  `recoveryPenalty` posé à la cible (durée d'horloge partagée = 1d10 jours). */
-  restoreDR?: number;
-  /** Ops posées à la cible quand `restoreDR` est atteint (charMod −10 / `moveScale` jambe) — appliquées avec
+  targetDR?: CibleEtendue['targetDR'];
+  /** Ops posées à la cible quand `targetDR` est atteint (charMod −10 / `moveScale` jambe) — appliquées avec
    *  une durée d'horloge partagée (1d10 jours) par l'acte « Guérison » (`medicFlow`). */
   recoveryPenalty?: import('./ops').GameOp[];
   /** « Réouverture » (LDB 18 l.101/118/143/145/148/175 ; AA 07 l.119/147/149/152/175) : plaie non recousue.

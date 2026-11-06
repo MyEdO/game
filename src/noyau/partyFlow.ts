@@ -54,6 +54,7 @@ import { ensureBourse, bourseOf } from '../engine/bourse';
 import { transferPossession } from './possessionsFlow';
 
 import type { Get, Set } from './flowTypes';
+import { herosDeLEngagement, type HerosEngage } from './creation/engagement';
 import type { Jeu } from './etat';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { gainCorruption } from './corruptionFlow';
@@ -61,6 +62,10 @@ import { touchActors } from './combatOrParty';
 import { nePeutPasDifferer, applyEffects } from './combatEffects';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { ValidationsDeFenetre } from './validationDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
+import type { IdDeHeros } from './designations';
+import { garanti } from '../lib/garanti';
 
 /** Contexte carrière d'un héros : niveaux + slots cumulés/courants + désignations (LDB 07). */
 function careerCtx(hero: Combatant) {
@@ -598,25 +603,40 @@ export function setHeroBackground(get: Get, set: Set, heroId: string, patch: { m
   if (hero) persisterLeHeros(hero);
 }
 
-/** Récompenses de fin de séance (écran de fin de séance) : Ambitions accomplies par héros (perso) et de
- *  groupe, + héros ayant agi selon leur Motivation (regain de Détermination). */
-export interface SessionRewards {
-  heroes?: Record<string, { ambitionShort?: boolean; ambitionLong?: boolean; motivation?: boolean }>;
-  group?: { ambitionShort?: boolean; ambitionLong?: boolean };
+/** Les cases du groupe de la fin de séance (`ChoixDesFenetres.finDeSeance`, sans rangée). */
+export type AxeDuGroupe = 'ambitionCourte' | 'ambitionLongue';
+/** Les cases de chaque héros de la fin de séance (`ChoixDesFenetres.finDeSeance`, rangée du héros). */
+export type AxeDuHerosDeLaSeance = 'ambitionPersonnelleCourte' | 'ambitionPersonnelleLongue' | 'motivation';
+
+/** La fin de séance ouverte (LDB 05 Ambitions, LDB 17 Détermination) : les cases cochées de chaque héros et du groupe,
+ *  que choisit `fenetreChoisir('finDeSeance', …)` et qu'applique `fenetreValider('finDeSeance')`. */
+export interface FinDeSeance {
+  heros: Record<IdDeHeros, Partial<Record<AxeDuHerosDeLaSeance, boolean>>>;
+  groupe: Partial<Record<AxeDuGroupe, boolean>>;
+}
+
+/** Les héros dont la fin de séance coche les cases. */
+export const herosDeLaSeance = (s: Pick<Jeu, 'party'>): Combatant[] => s.party.filter((h) => h.kind === 'hero');
+
+/** Ouvre la fin de séance, aucune case cochée : l'Effet `sessionEnd` (#83), le menu de jeu, le récap de chapitre. */
+export function ouvrirLaFinDeSeance(set: Set): void {
+  set({ finDeSeance: { heros: {}, groupe: {} } });
 }
 
 /**
  * Fin de séance de jeu (LDB 05 Ambitions l.793-841 + LDB 17 Détermination l.81) : octroie les PX
  * d'Ambition accomplie (personnelle +50/+500, de groupe +50/+500 à chaque héros), regagne 1 Point de
- * Détermination aux héros ayant agi selon leur Motivation (plafonné au max), puis restaure la Chance du
- * groupe (couture de séance, `restoreFortune`). SOURCE UNIQUE derrière l'écran de fin de séance.
+ * Détermination aux héros ayant agi selon leur Motivation (plafonné au max), ferme la fin de séance, puis restaure la
+ * Chance du groupe (couture de séance, `restoreFortune`). SOURCE UNIQUE de la validation de la fin de séance et du récap
+ * de chapitre.
  */
-export function endSession(get: Get, set: Set, rewards: SessionRewards): void {
-  const group = { short: rewards.group?.ambitionShort, long: rewards.group?.ambitionLong };
+export function terminerLaSeance(get: Get, set: Set): void {
+  const { heros, groupe } = garanti(get().finDeSeance, 'finDeSeance', 'fin de séance ouverte');
+  const group = { short: groupe.ambitionCourte, long: groupe.ambitionLongue };
   const lines = new Map<string, string[]>();
-  set((s) => ecrireActeur(s, s.party.filter((h) => h.kind === 'hero').map((h) => h.id), (h) => {
-    const f = rewards.heroes?.[h.id] ?? {};
-    const xp = heroSessionXp({ short: f.ambitionShort, long: f.ambitionLong }, group);
+  set((s) => ecrireActeur(s, herosDeLaSeance(s).map((h) => h.id), (h) => {
+    const f = heros[h.id] ?? {};
+    const xp = heroSessionXp({ short: f.ambitionPersonnelleCourte, long: f.ambitionPersonnelleLongue }, group);
     if (!xp && !f.motivation) return h;
     const clone: Combatant = structuredClone(h);
     const siennes: string[] = [];
@@ -630,6 +650,7 @@ export function endSession(get: Get, set: Set, rewards: SessionRewards): void {
     return clone;
   }));
   for (const l of [...lines.values()].flat()) get().log(l);
+  set({ finDeSeance: null });
   get().restoreFortuneNow(); // Chance restaurée pour la prochaine séance (LDB 17 l.41)
 }
 
@@ -740,22 +761,23 @@ export function partieEnCours(s: Pick<Jeu, 'scene' | 'pendingCampaign'>): boolea
 
 /** Ajoute un héros au groupe dans un emplacement du siège qui décide (`decidingSeat` : le siège local, ou celui
  *  du transport pour un intent), au rang `rangDAjout` — point d'entrée UNIQUE de la composition d'équipe (PartyScreen, HeroSelector,
- *  créateur), refusé par `refusDAjoutAuGroupe`. La Richesse de carrière
+ *  créateur), le héros bâti par le noyau de `heros` (`herosDeLEngagement`), refusé par `refusDAjoutAuGroupe` ou par
+ *  le brouillon incomplet. La Richesse de carrière
  *  (LDB 05 l.578-583) crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531) — plus de bourse de groupe. */
-export function partyAddHero(get: Get, set: Set, hero: Combatant, wealth?: Money): void {
+export function partyAddHero(get: Get, set: Set, heros: HerosEngage): void {
   const s = get();
   const seat = decidingSeat(s);
-  if (compositionRefusee(get, set, refusDAjoutAuGroupe(s, hero.id, seat))) return;
-  const copy: Combatant = ensureBourse(structuredClone(hero));
+  const bati = herosDeLEngagement(heros);
+  const refus = 'refus' in bati ? refusDAjoutAuGroupe(s, undefined, seat) ?? bati.refus : refusDAjoutAuGroupe(s, bati.hero.id, seat);
+  if (compositionRefusee(get, set, refus) || 'refus' in bati) return;
+  const copy: Combatant = ensureBourse(bati.hero);
   const rangs = { ...rangsDuGroupe(s), [copy.id]: rangDAjout(s, seat)! };
   set({
     party: [...s.party, copy],
     net: { ...s.net, ownership: { ...s.net.ownership, [copy.id]: seat }, rangs },
   });
-  if (wealth) {
-    creditBourse(get, set, copy.id, wealth);
-    get().log(t('pf.startingWealth', { name: copy.label, money: formatMoney(wealth) }));
-  }
+  creditBourse(get, set, copy.id, bati.wealth);
+  get().log(t('pf.startingWealth', { name: copy.label, money: formatMoney(bati.wealth) }));
 }
 
 /**
@@ -804,18 +826,19 @@ export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
   set((s2) => ({ party: s2.party.filter((h) => h.id !== heroId), net: { ...s2.net, ownership, rangs } }));
 }
 
-/** Remplace ATOMIQUEMENT le héros `oldId` par `hero` à SA position dans `party` (substitution en
+/** Remplace ATOMIQUEMENT le héros `oldId` par celui que le noyau bâtit de `heros` (`herosDeLEngagement`) à SA position dans `party` (substitution en
  *  place → préserve l'index/ordre) et à SON rang (`net.rangs`) ; refusé par `refusDeComposerLeHeros`, la possession
  *  passe du siège qui décide (`decidingSeat`, qui possède `oldId`) au remplaçant (l'ancien id est libéré).
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
  *  « Remplacer » du slot. Ne touche PAS la bourse (un remplacement n'est pas un recrutement). */
-export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combatant): void {
-  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())))) return;
+export function partyReplaceHero(get: Get, set: Set, oldId: string, heros: HerosEngage): void {
+  const bati = herosDeLEngagement(heros);
+  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())) ?? ('refus' in bati ? bati.refus : null)) || 'refus' in bati) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === oldId);
   if (idx < 0) return;                                                    // l'ancien n'est plus là
-  if (hero.id !== oldId && s.party.some((h) => h.id === hero.id)) return; // doublon d'id
-  const copy: Combatant = structuredClone(hero);
+  const copy = bati.hero;
+  if (copy.id !== oldId && s.party.some((h) => h.id === copy.id)) return; // doublon d'id
   const ownership = { ...s.net.ownership };
   delete ownership[oldId];
   ownership[copy.id] = decidingSeat(s);
@@ -827,15 +850,41 @@ export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combat
 }
 
 
+/** Les cases de la fin de séance (`CorpsDesChoix`), cochées ou décochées par l'hôte, parmi celles que l'état ouvre
+ *  (`OUVERTS_DU_CHOIX`). */
+export function choixDeLaFinDeSeance(get: Get, set: Set) {
+  const ouverte = () => garanti(get().finDeSeance, 'finDeSeance', 'fin de séance ouverte');
+  const duGroupe = (axe: AxeDuGroupe) => (valeur: boolean) => set({ finDeSeance: { ...ouverte(), groupe: { ...ouverte().groupe, [axe]: valeur } } });
+  const duHeros = (axe: AxeDuHerosDeLaSeance) => (valeur: boolean, pid: IdDeHeros) => {
+    const f = ouverte();
+    set({ finDeSeance: { ...f, heros: { ...f.heros, [pid]: { ...f.heros[pid], [axe]: valeur } } } });
+  };
+  return {
+    finDeSeance: {
+      ambitionCourte: duGroupe('ambitionCourte'),
+      ambitionLongue: duGroupe('ambitionLongue'),
+      ambitionPersonnelleCourte: duHeros('ambitionPersonnelleCourte'),
+      ambitionPersonnelleLongue: duHeros('ambitionPersonnelleLongue'),
+      motivation: duHeros('motivation'),
+    },
+  } satisfies Partial<CorpsDesChoix>;
+}
+
+/** « Terminer la séance » (`ValidationsDeFenetre`, l'hôte) : `terminerLaSeance`. */
+export function validationsDuGroupe(get: Get, set: Set) {
+  return { finDeSeance: () => terminerLaSeance(get, set) } satisfies Partial<ValidationsDeFenetre>;
+}
+
+/** « Annuler » : la fin de séance se ferme sans rien appliquer. */
 export function sortiesDuGroupe(_get: Get, set: Set) {
-  return { finDeSeance: () => set({ sessionEndOpen: false }) } satisfies Partial<SortiesDeFenetre>;
+  return { finDeSeance: () => set({ finDeSeance: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function creerActionsDuGroupe(get: Get, set: Set) {
   return {
-    partyAddHero: (hero, wealth) => partyAddHero(get, set, hero, wealth),
+    partyAddHero: (heros) => partyAddHero(get, set, heros),
     partyRemoveHero: (heroId) => partyRemoveHero(get, set, heroId),
-    partyReplaceHero: (oldId, hero) => partyReplaceHero(get, set, oldId, hero),
+    partyReplaceHero: (oldId, heros) => partyReplaceHero(get, set, oldId, heros),
     toggleEquip: (heroId, uid) => toggleEquip(get, set, heroId, uid),
     stowItem: (heroId, uid, containerUid) => stowItem(get, set, heroId, uid, containerUid),
     createLoadout: (heroId) => createLoadout(get, set, heroId),
@@ -863,8 +912,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     buySpellComponent: (heroId, spellId) => buySpellComponent(get, set, heroId, spellId),
     removeSpellComponent: (heroId, spellId) => removeSpellComponent(get, set, heroId, spellId),
     setHeroBackground: (heroId, patch) => setHeroBackground(get, set, heroId, patch),
-    endSession: (rewards) => endSession(get, set, rewards),
-    openSessionEnd: () => set({ sessionEndOpen: true }),
+    openSessionEnd: () => ouvrirLaFinDeSeance(set),
     trainProsthesis: (heroId, uid) => trainProsthesis(get, set, heroId, uid),
     changeCareer: (heroId, newCareer, newLevel) => changeCareer(get, set, heroId, newCareer, newLevel),
     setParty: (p) => set({ party: p }),

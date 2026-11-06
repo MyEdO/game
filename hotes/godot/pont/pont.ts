@@ -8,7 +8,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, plateauDeLaScene, porteeDeComposition, presetDeComposition, volumeDuMonde, type Composition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, plateauDeLaScene, porteeDeComposition, presetDeComposition, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -20,6 +20,8 @@ import { composerSurLaBase, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
+import { boutonDeLEdition, estLIssueDUnEnregistrement, estUnGesteDuPointeur, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
+import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -109,12 +111,30 @@ function entreeDe(methode: string, json: string | null | undefined, cles: readon
   return e;
 }
 
+/** Le projet de la campagne `id` que porte `texte`, le texte que le dépôt sert (`servir.mjs`, `depot/<id>`) : du JSON,
+ *  que la porte prouve (`projetDuDepot`), de cet `id`. */
+function projetServi(id: string, texte: unknown): ProjectDoc {
+  valider(typeof texte === 'string', 'editer : projet, le texte du projet que sert le dépôt');
+  let lu: unknown;
+  try {
+    lu = JSON.parse(texte as string);
+  } catch {
+    throw new ErreurDeGeste('validation', 'editer : projet, JSON illisible');
+  }
+  const passe = projetDuDepot(lu);
+  if (!passe.ok) throw new ErreurDeGeste('validation', `editer : ${passe.refus}`);
+  valider(passe.valeur.id === id, `editer : projet, le projet ${passe.valeur.id} au lieu de ${id}`);
+  return passe.valeur;
+}
+
 /** Le pont : ses méthodes, chacune appelée par `appeler`. */
 export function creerPont() {
   let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; fiche: FicheOuverte | null; creation: CreationOuverte | null; brouillons: number }) | null = null;
   const erreurs: ErreurGlobale[] = [];
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` et les corps de la vue lisent. */
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
+  /** La session de l'éditeur de carte (`editer`), et la scène et la couche du dernier monde qu'elle a rendu. */
+  let edition: { session: SessionDEdition; monde: { scene: Scene; z: number } } | null = null;
 
   const demarree = () => {
     if (!ouverte) throw new ErreurDeGeste('validation', 'aucune partie : demarrer d’abord');
@@ -272,6 +292,41 @@ export function creerPont() {
       const rendu = presetDeComposition(composition, e.preset as string | undefined);
       if (!rendu.ok) throw new ErreurDeGeste('validation', `presetDeComposition : preset, l’id d’un preset de catalogues (${rendu.presets.join(', ')})`);
       return rendu;
+    },
+    editer(json) {
+      const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet'] : ['edition']));
+      let session: SessionDEdition;
+      let depot: { id: string; texte: string } | null = null;
+      if ('ouvrir' in e) {
+        const campagne = allBuiltinCampaigns.find((c) => c.id === e.ouvrir);
+        valider(campagne !== undefined, `editer : ouvrir, l’id d’une campagne du jeu (${allBuiltinCampaigns.map((c) => c.id).join(', ')})`);
+        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true);
+      } else {
+        valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
+        const s = edition!.session;
+        if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
+        else if (!estUnGesteDuPointeur(e.edition)) {
+          const b = boutonDeLEdition(zonesDeLEditeur(s), e.edition);
+          valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers), l’issue d’un enregistrement ({ geste: enregistrement, reussi }) ou le geste `{ edition }` d’un bouton des zones editeur.*');
+          if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
+        }
+        const geste = e.edition as GesteDEdition;
+        if (geste.geste === 'enregistrer') {
+          const passe = texteAEnregistrer(s);
+          if (!passe.ok) throw new ErreurDeGeste('regle', `editer : ${passe.refus}`);
+          depot = { id: s.projet.id, texte: passe.valeur };
+        }
+        session = editer(s, geste);
+      }
+      const scene = sceneEditee(session);
+      const neuf = !edition || 'ouvrir' in e || (session.geste === null && (scene !== edition.monde.scene || session.z !== edition.monde.z));
+      edition = { session, monde: neuf ? { scene, z: session.z } : edition!.monde };
+      return {
+        vue: { zones: zonesDeLEditeur(session), couche: session.z },
+        surcouche: surcoucheDeLEdition(session),
+        ...(neuf ? { monde: volumeDuMonde(scene, session.z) } : {}),
+        ...(depot ? { depot } : {}),
+      };
     },
     erreursGlobales(json) {
       entreeDe('erreursGlobales', json, []);

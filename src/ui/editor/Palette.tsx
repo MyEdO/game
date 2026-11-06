@@ -25,6 +25,8 @@ import { structureAppearance } from '../../gameIso/catalog/structures';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { GatedAction } from '../GatedAction';
 import type { Pt } from '../../noyau/sceneEdit';
+import { HAUTEURS, PINCEAUX } from '../../noyau/edition/session';
+import { t } from '../../i18n';
 import type { Tool, WallPaint, ZoneVariant } from '../../noyau/sceneEditLecture';
 import { planStairFlight } from '../../noyau/stairFlight';
 import { siegeEngines } from '../../data';
@@ -57,15 +59,6 @@ const WALL_PAINTS: { paint: WallPaint; icon: ReactNode; label: string }[] = [
   { paint: 'door', icon: <Icon id="map-tool/door" />, label: 'Porte' },
   { paint: 'diagBack', icon: '◣', label: 'Diagonale ＼' },
   { paint: 'diagFwd', icon: '◢', label: 'Diagonale ／' },
-];
-
-/** Presets de HAUTEUR en MÈTRES (échelle RAW, cf. `relief.ts`). « Plat » remet la surface à 0. */
-const HEIGHT_PRESETS: { metres: number; label: string }[] = [
-  { metres: 0, label: 'Plat' },
-  { metres: 1, label: 'Estrade' },
-  { metres: 2, label: 'Surface' },
-  { metres: 4, label: 'Haute' },
-  { metres: -2, label: 'Fosse' },
 ];
 
 /** Ce qui reste à faire APRÈS le glissé, par variante de zone — dit où la suite s'édite. */
@@ -293,7 +286,7 @@ export function Palette({
             <OptionChooser
               layout="seg"
               options={[
-                ...[1, 3, 5].map((n) => ({
+                ...PINCEAUX.map((n) => ({
                   key: String(n),
                   label: `${n}×${n}`,
                   selected: brush === n && !terrainRect,
@@ -373,14 +366,14 @@ export function Palette({
             <div className="mini-title">Pinceau</div>
             <OptionChooser
               layout="seg"
-              options={[1, 3, 5].map((n) => ({ key: String(n), label: `${n}×${n}`, selected: brush === n, onSelect: () => setBrush(n) }))}
+              options={PINCEAUX.map((n) => ({ key: String(n), label: `${n}×${n}`, selected: brush === n, onSelect: () => setBrush(n) }))}
             />
             <div className="mini-title">Hauteur (mètres)</div>
             <OptionChooser
               layout="seg"
-              options={HEIGHT_PRESETS.map((p) => ({
-                key: p.label,
-                label: <>{p.label} <span className="chip">{p.metres > 0 ? '+' : ''}{p.metres} m</span></>,
+              options={HAUTEURS.map((p) => ({
+                key: p.cle,
+                label: <>{t(`ecran.editeur.hauteur.${p.cle}`)} <span className="chip">{p.metres > 0 ? '+' : ''}{p.metres} m</span></>,
                 selected: tool.metres === p.metres,
                 onSelect: () => setTool({ mode: 'height', metres: p.metres }),
               }))}
@@ -423,7 +416,7 @@ export function Palette({
             <div className="mini-title">Pinceau</div>
             <OptionChooser
               layout="seg"
-              options={[1, 3, 5].map((n) => ({ key: String(n), label: `${n}×${n}`, selected: brush === n, onSelect: () => setBrush(n) }))}
+              options={PINCEAUX.map((n) => ({ key: String(n), label: `${n}×${n}`, selected: brush === n, onSelect: () => setBrush(n) }))}
             />
             <div className="mini-title">Structure du parapet</div>
             <OptionChooser

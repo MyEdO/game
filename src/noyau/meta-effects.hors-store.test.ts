@@ -1,5 +1,5 @@
 /**
- * Méta-flux comme Effets de scène (#83) : `sessionEnd` ouvre `SessionEndModal` (via le flag `sessionEndOpen`).
+ * Méta-flux comme Effets de scène (#83) : `sessionEnd` ouvre la fin de séance (`finDeSeance`, aucune case cochée).
  * La liaison de `openCharacterCreator` à l'assistant du web vit en `src/state/meta-effects.test.ts`.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -12,14 +12,14 @@ let banc: Banc;
 describe('Méta-effets de scène (#83)', () => {
   beforeEach(() => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    banc = ouvrirLeBanc({ etat: { party: [h], journal: [], sessionEndOpen: false } });
+    banc = ouvrirLeBanc({ etat: { party: [h], journal: [] } });
   });
 
-  it('sessionEnd ouvre l’écran de fin de séance existant', () => {
-    expect(banc.getState().sessionEndOpen).toBe(false);
+  it('sessionEnd ouvre la fin de séance ; sa sortie la ferme sans rien appliquer', () => {
+    expect(banc.getState().finDeSeance).toBeNull();
     applyEffects(banc.getState, banc.setState, [{ type: 'sessionEnd' }]);
-    expect(banc.getState().sessionEndOpen).toBe(true);
+    expect(banc.getState().finDeSeance).toEqual({ heros: {}, groupe: {} });
     banc.getState().fenetreFermer('finDeSeance');
-    expect(banc.getState().sessionEndOpen).toBe(false);
+    expect(banc.getState().finDeSeance).toBeNull();
   });
 });

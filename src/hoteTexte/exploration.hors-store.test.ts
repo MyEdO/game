@@ -10,8 +10,6 @@ import { lireLeFichier, ligneDuFichier, rejouer } from './partieTexte';
 import { nouvelEntete } from '../hote/partie';
 import { fermerLaTable, table, verbe } from './hote.testkit';
 import { gestesDExploration } from '../noyau/index';
-import { gestesEcrits } from './vue';
-import { estObjet } from '../hote/formes';
 import { testScenarios } from '../scenes/test-scenarios';
 
 afterEach(fermerLaTable);
@@ -40,7 +38,7 @@ describe('chaque geste d’exploration que la vue donne se joue tel qu’écrit'
   it.each(PARTIES)('%s', { timeout: 120_000 }, (_, texte) => {
     for (const g of gestesDuTexte(texte)) {
       const t = table(texte);
-      const r = t.jouer(...gestesEcrits(g).map((x) => verbe(x.verbe, ...x.args)));
+      const r = t.jouer(...g.gestes.map((x) => verbe(x.verbe, ...x.args)));
       expect(r.erreur, `${g.libelle} : ${r.texte}`).toBeNull();
     }
   });
@@ -59,9 +57,8 @@ describe('le groupe en exploration', () => {
   it('un accès ouvert ne s’actionne pas : le refus dit qu’il se franchit en marchant, et la vue le donne en marche', () => {
     const texte = fixture('porte-ouverte.jsonl');
     const { entete, gestes } = lireLeFichier(texte);
-    const portail = gestes.flatMap((g) => ('type' in g && g.type === 'actionnerLaPorte' ? g.args : []))[0];
-    if (!estObjet(portail)) throw new Error('la partie n’ouvre aucune porte');
-    const id = String(portail.id);
+    const [id] = gestes.flatMap((g) => ('type' in g && g.type === 'actionnerLaPorte' ? g.args : []));
+    if (typeof id !== 'string') throw new Error('la partie n’ouvre aucune porte');
     expect(gestesDuTexte(texte).map((g) => g.gestes.length)).toContain(1);
     const t = table(texte);
     const avant = t.fichier();
@@ -89,7 +86,7 @@ describe('le groupe en exploration', () => {
   it('la chute de groupe : le jet attend que chaque tombant ait déclaré, le refus les nomme, et le pid de la fenêtre est le prochain à déclarer', () => {
     const [saut] = gestesDuTexte(fixture('croisee-ecuries.jsonl')).filter((g) => g.gestes.length === 1 && g.gestes[0].verbe === 'fallAcross');
     const t = table(fixture('croisee-ecuries.jsonl'));
-    t.jouer(...gestesEcrits(saut).map((x) => verbe(x.verbe, ...x.args)));
+    t.jouer(...saut.gestes.map((x) => verbe(x.verbe, ...x.args)));
     const pid = /pid (\S+)\)/.exec(t.lire('vue').texte)![1];
     const r = t.jouer(verbe('jetRoll', 'fall', pid));
     expect(r.erreur, r.texte).toBe('regle');
@@ -106,7 +103,7 @@ describe('le groupe en exploration', () => {
   it('la fenêtre qui tient la main se lit hors combat, avec ses verbes', () => {
     const [saut] = gestesDuTexte(fixture('croisee-ecuries.jsonl')).filter((g) => g.gestes.length === 1 && g.gestes[0].args.length === 2);
     const t = table(fixture('croisee-ecuries.jsonl'));
-    const r = t.jouer(...gestesEcrits(saut).map((x) => verbe(x.verbe, ...x.args)));
+    const r = t.jouer(...saut.gestes.map((x) => verbe(x.verbe, ...x.args)));
     expect(r.erreur, r.texte).toBeNull();
     expect(r.texte).toMatch(/^fenêtre \S+ \(à /m);
     expect(r.texte).toMatch(/^verbes/m);
