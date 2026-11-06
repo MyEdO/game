@@ -462,7 +462,8 @@ export const fr = {
   'ecran.creation.precedent': 'Précédent',
   'ecran.creation.suivant': 'Suivant',
   'ecran.creation.engager': 'Engager',
-  // L'éditeur de carte (`src/hote/editeur.ts`, #3508) : ses outils, leurs options, les couches, l'historique, l'état.
+  // L'éditeur de carte (`src/hote/editeur.ts`, #3508) : ses outils, leurs options, les couches, l'historique,
+  // l'enregistrement, l'état.
   'ecran.editeur.outils': 'Outil',
   'ecran.editeur.outil.select': 'Sélection',
   'ecran.editeur.outil.tile': 'Terrain',
@@ -486,6 +487,10 @@ export const fr = {
   'ecran.editeur.retablir': 'Rétablir',
   'ecran.editeur.rien.annuler': 'Rien à annuler',
   'ecran.editeur.rien.retablir': 'Rien à rétablir',
+  'ecran.editeur.enregistrer': 'Enregistrer',
+  'ecran.editeur.enregistrer.horsDuDepot': 'Ouverte du jeu, hors du dépôt : elle ne s’enregistre pas',
+  'ecran.editeur.enregistrer.enCours': 'Enregistrement en cours',
+  'ecran.editeur.rien.enregistrer': 'Rien à enregistrer',
   'ecran.editeur.pointee': 'Case {x}, {y} · couche {z} · {terrain} · {hauteur} m',
   // Qui tient la main d'une fenêtre (`ProprietaireDeLaFenetre`, `src/hote/projection.ts`), dit par l'hôte texte
   // (`src/hoteTexte/vue.ts`) : sans propriétaire, à tous les sièges, à un porteur que l'état ne nomme pas.

@@ -1,5 +1,7 @@
 ## L'éditeur de carte (#3508), hôte de la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, section « Éditeur ») :
-## il ouvre la campagne du jeu de l'adresse de la page (`?campagne=<id>`, sinon `CAMPAGNE`), et applique chaque réponse.
+## il ouvre la campagne du jeu de l'adresse de la page (`?campagne=<id>`, sinon `CAMPAGNE`), telle que le dépôt la sert
+## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
+## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Le monde rendu va au monde (`Monde.poser`), sur la couche éditée ; la surcouche du geste en cours, en plaques sur le
 ## sol de ses cases (`Monde.peindre`) ; chaque zone de l'écran (`Zone.racines`) reçoit les éléments de sa source
 ## (`vue.zones`). Chaque geste part au pont : celui de l'élément pressé (`Zone.geste`, `{ edition }`), ou le pointeur sur
@@ -32,7 +34,12 @@ func _ready() -> void:
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	var campagne := _pont.parametre("campagne")
-	_suivre(_pont.appeler("editer", {ouvrir = campagne if campagne != "" else CAMPAGNE}))
+	var ouvrir := {ouvrir = campagne if campagne != "" else CAMPAGNE}
+	var hors_du_depot: Array[String] = []
+	var servi := await _pont.requeter("depot/%s" % ouvrir.ouvrir, hors_du_depot)
+	if not servi.is_empty():
+		ouvrir.projet = servi.get_string_from_utf8()
+	_suivre(_pont.appeler("editer", ouvrir))
 
 
 func _jouer(jeu: Dictionary) -> void:
@@ -44,7 +51,8 @@ func _pointer(geste: String, touche: Dictionary) -> void:
 	_jouer({edition = {geste = geste, point = {case = {x = touche.case.x, y = touche.case.y}, f = {x = touche.f.x, y = touche.f.y}}}})
 
 
-## Une réponse de `editer` : le monde posé s'il y en a un, la surcouche peinte, les zones montrées.
+## Une réponse de `editer` : le monde posé s'il y en a un, la surcouche peinte, les zones montrées, et le texte à
+## enregistrer écrit au dépôt.
 func _suivre(reponse: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		return
@@ -59,6 +67,18 @@ func _suivre(reponse: Dictionary) -> void:
 	_monde.peindre(plaques)
 	Zone.montrer_toutes(_zones, _vue.zones)
 	_publier_l_ecran.call_deferred()
+	if reponse.has("depot"):
+		_deposer(reponse.depot)
+
+
+## Le texte `depot.texte` écrit au dépôt à la place du projet `depot.id`, puis l'issue de l'écriture rendue au pont ; une
+## écriture qui échoue dit pourquoi.
+func _deposer(depot: Dictionary) -> void:
+	var recueil: Array[String] = []
+	await _pont.requeter("depot/%s" % depot.id, recueil, HTTPClient.METHOD_PUT, depot.texte)
+	_jouer({edition = {geste = "enregistrement", reussi = recueil.is_empty()}})
+	if not recueil.is_empty():
+		_refus.text = "\n".join(recueil)
 
 
 func _unhandled_input(event: InputEvent) -> void:

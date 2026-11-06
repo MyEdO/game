@@ -14,6 +14,13 @@ const RACINE_DEPOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 /** Le corpus, en descripteur entier : dossier (relatif à la racine du dépôt), suffixe, récursivité. */
 export const PROJETS_LIVRES = Object.freeze({ dossier: 'src/scenes', suffixe: '-projet.json', recursif: true });
 
+/** Les projets livrés AUTHORÉS à la main, par nom de fichier, chacun avec son motif : aucun générateur
+ *  (`scripts/<dossier>/generate.mjs`) ne les produit, l'éditeur les écrit (`hotes/godot/servir.mjs`, `depot/`). Les
+ *  autres sont les artefacts de leur générateur (`src/scenes/generateurs-byte-stables.test.ts`). */
+export const PROJETS_MANUSCRITS = Object.freeze({
+  'diligence-projet.json': 'authoré sans générateur (édité au studio, aucun script ne le réécrit)',
+});
+
 /** Dossier ABSOLU du corpus sous `racine` (le dépôt par défaut). */
 export function dossierDesProjetsLivres(racine = RACINE_DEPOT) {
   return path.join(racine, PROJETS_LIVRES.dossier);
