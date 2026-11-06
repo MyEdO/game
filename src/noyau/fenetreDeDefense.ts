@@ -8,6 +8,7 @@
 import type { Jeu } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
 import { inBattleId } from './monde/combatants';
+import { spendableAdvantage } from './combat/advantagePool';
 import { defenseSubOf, parryWeaponOf } from './rollFlowSpecs';
 import { ligneDeDefense } from './combatFlow';
 import { defenseDodgeMods } from './mount';
@@ -94,7 +95,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
     if (res) return genre === 'damage' && !gagnee ? t('defense.refus.degatsSansDefenseGagnee') : jetLance;
     if (pd.shieldReaction === genre) return null;
     if (defenseur.usedShieldReactionRound) return t('defense.refus.bouclierUtilise');
-    const avantage = defenseur.advantage ?? 0;
+    const avantage = spendableAdvantage(battle, defenseur);
     return avantage < coutDuBouclier ? t('defense.refus.avantages', { cout: coutDuBouclier, nom: defenseur.label, avantage }) : null;
   };
   // LDB 10 l.1037

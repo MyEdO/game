@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { couronnesDeLaCouche, toitsDuMonde, toitsLeves, volumeDuMonde, type VolumeDuMonde } from './volume';
+import { couronnesDuMonde, toitsDuMonde, toitsLeves, volumeDuMonde, type VolumeDuMonde } from './volume';
 import { nappeKey } from './toits';
 import { perimeterWallSegs } from '../../sceneEdit.testkit';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../scene';
@@ -162,13 +162,21 @@ describe('la crénelure du volume (#3476)', () => {
   it('une couronne par rempart, nommée par son arête, posée au sommet de sa face pleine ; aucune sur un mur sans parapet', () => {
     const rempart = { x: 1, y: 1, side: 'N' as const, structure: 'mur-en-pierre' };
     const s: Scene = { ...emptyScene('rempart', 3, 3), walls: [rempart, { x: 1, y: 1, side: 'E' }] };
-    const [couronne, ...autres] = couronnesDeLaCouche(s, 0);
+    const [couronne, ...autres] = couronnesDuMonde(s);
     expect(autres).toEqual([]);
     expect(couronne.cle).toBe(edgeKey(rempart));
     expect(couronne.surfaces.map((x) => x.matiere)).toEqual(['structure--mur-en-pierre']);
     expect(couronne.cases).toHaveLength(couronne.positions.length / 9);
     expect(Math.min(...hauteurs(couronne.positions))).toBeCloseTo(METRES_PER_LEVEL, 3);
-    expect(couronnesDeLaCouche(s, 1)).toEqual([]);
+  });
+
+  it('la couronne d’un rempart de l’étage, au sommet du mur dressé du plancher de l’étage', () => {
+    const s: Scene = { ...emptyScene('rempart', 3, 3), walls: [{ x: 1, y: 1, side: 'N', z: 1, structure: 'mur-en-pierre' }] };
+    s.layers.push({ z: 1, tiles: new Array(9).fill('plancher'), height: new Array(9).fill(METRES_PER_LEVEL) });
+    const [couronne] = couronnesDuMonde(s);
+    expect(couronne.cle).toBe('1,1,N,1');
+    expect(Math.min(...hauteurs(couronne.positions))).toBeCloseTo(2 * METRES_PER_LEVEL, 3);
+    expect(couronne.cases.every(([, , z]) => z === 1)).toBe(true);
   });
 });
 
