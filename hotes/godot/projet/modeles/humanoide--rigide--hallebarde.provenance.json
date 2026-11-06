@@ -1,0 +1,17 @@
+{
+  "model": "humanoide--rigide--hallebarde.glb",
+  "model_sha256": "0e64a4ae4e1955c2c90663aa237ff4d74636a2e4f444b1ae4aec55b974563479",
+  "importe_le": "2026-11-06",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

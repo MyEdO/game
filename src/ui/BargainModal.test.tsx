@@ -62,8 +62,8 @@ describe('BargainModal (#2c)', () => {
 
   /**
    * #990 (arbitrage user 2026-07-30) : sur un Test opposé à jet figé, la rangée adverse est PRÉSENTE
-   * dès l'ouverture et MASQUÉE jusqu'à ce que le répondant ait joué. Calendrier posé par la primitive
-   * PARTAGÉE `opposedFrozen` — le Marchandage était le seul site à l'ignorer (rangée absente pré-jet).
+   * dès l'ouverture et MASQUÉE jusqu'à ce que le répondant ait joué. Calendrier décidé au noyau
+   * (`netOwnership.jetFigeRevele`) — le Marchandage était le seul site à l'ignorer (rangée absente pré-jet).
    */
   it('PRÉ-JET : DEUX rangées, l’adversaire masqué (« ? ») — patron `frozenOpposedRow`', () => {
     const html = renderToStaticMarkup(

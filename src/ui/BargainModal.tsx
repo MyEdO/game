@@ -1,11 +1,10 @@
 import { useGame } from '../state/store';
 import { type PendingBargain } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
-import { influencesLocally } from '../noyau/netOwnership';
+import { JET_FIGE, influencesLocally, jetFigeRevele } from '../noyau/netOwnership';
 import { RollShell, type RollAction } from './RollShell';
 import { soutienMod, opposedLines } from './breakdown';
 import { testValueParts } from '../engine/skills';
-import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
@@ -86,8 +85,8 @@ export function BargainModalView({
   // pending (`opposant.valeur`) mais reste OPAQUE (`mask:'value'`, on ne lit pas la fiche d'un inconnu) et
   // le calendrier le masque ENTIÈREMENT (`mask:'roll'`, strictement plus fort) tant que le négociateur
   // n'a pas répondu ; à son jet, la rangée retombe sur l'opacité de valeur seule.
-  const merchantRow: BuiltRollRow = frozenOpposedRow(useGame.getState(), {
-    responded: opposedResponded(useGame.getState(), [{ id: pb.playerId, interactive: true, result: pb.roll ?? undefined }]),
+  const merchantRow: BuiltRollRow = frozenOpposedRow({
+    revele: jetFigeRevele(useGame.getState(), JET_FIGE.bargain(pb)),
     row: { combatant: opposant, ...(merchantD ? { d: merchantD } : { pending: merchantLine.pending }) },
   });
   const winnerIndex = opposed ? (pb.result!.attackerWins ? 0 : 1) : null;

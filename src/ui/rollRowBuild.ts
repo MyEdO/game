@@ -3,7 +3,7 @@
  * la FAMILLE de constructeurs qui en dérivent : `participantRow` (l'unité du monteur MULTI),
  * `tableRow` (rangée porte-sélecteur d'un tirage sur table), `drawRow` (tirage VIF sans ligne de
  * jet), `worldRow` (rangée sans acteur), `witnessRow` (témoin d'un jet déjà subi, `rolled` par
- * construction) et `frozenOpposedRow` (témoin à jet figé, calendrier de découverte `opposedFrozen`).
+ * construction) et `frozenOpposedRow` (témoin à jet figé, révélé selon `netOwnership.jetFigeRevele`).
  *
  * Le montage est de l'AFFICHAGE : aucune règle, aucun RNG, et surtout aucune décision de POSSESSION —
  * elle est posée au mint côté `state` (`rollFlowFactory`/`rollSeam.surfaceOf`) et seulement LUE ici.
@@ -13,7 +13,6 @@
  * avec ce requis.
  */
 import type { Combatant } from '../engine/types';
-import type { GameState } from '../state/store';
 import type { RollRowData } from './RollShell';
 import type { PanelRowData } from './RollPanel';
 import { maskOpposedRow } from './opposedFrozen';
@@ -171,14 +170,11 @@ export function worldRow(core: Omit<RollRowCore, 'actor'>, extras?: RollRowExtra
 
 /**
  * Rangée TÉMOIN d'un jet figé d'adversaire (figée, sans cycle d'influence), masquée jusqu'au jet de
- * réponse (calendrier `opposedFrozen`, #990). `rolled: true` par CONSTRUCTION : le jet figé est déjà
- * tombé même quand sa valeur reste opaque et s'affiche en `pending` (Marchandage, `BargainModal:93`).
+ * réponse (`revele` : verdict de `netOwnership.jetFigeRevele`, #990). `rolled: true` par CONSTRUCTION :
+ * le jet figé est déjà tombé même quand sa valeur reste opaque et s'affiche en `pending` (Marchandage, `BargainModal:93`).
  */
-export function frozenOpposedRow(
-  s: GameState,
-  o: { ownerId?: string; responded: boolean; row: PanelRowData },
-): BuiltRollRow {
-  return maskOpposedRow(s, o, witnessRow({ row: o.row }));
+export function frozenOpposedRow(o: { revele: boolean; row: PanelRowData }): BuiltRollRow {
+  return maskOpposedRow(o.revele, witnessRow({ row: o.row }));
 }
 
 /**

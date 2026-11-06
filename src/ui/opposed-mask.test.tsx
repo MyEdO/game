@@ -220,10 +220,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
    *  unique depuis #1078) neutralisés sous masque, intacts au découvert (aucun rendu nécessaire —
    *  c'est le contrat de la fonction, pas d'un écran). */
   it('rangée masquée : les champs DÉRIVÉS du résultat (rangée + sous-ligne) sont neutralisés, le reste traverse INTACT', () => {
-    const A = mk('A', 'hero');
     const E = mk('E', 'enemy');
-    putBattle([A, E], ['E', 'A']);
-    const s = useGame.getState();
     const onRoll = () => {};
     const base = buildRollRow(
       {
@@ -243,7 +240,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
     );
     const DERIVES = ['reverse', 'resist', 'extendedDr', 'winner'] as const;
 
-    const masked = maskOpposedRow(s, { ownerId: 'E', responded: false }, base);
+    const masked = maskOpposedRow(false, base);
     expect(masked.row.pending?.mask).toBe('roll');
     expect(
       DERIVES.filter((k) => masked[k] !== undefined),
@@ -257,9 +254,9 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
     expect(masked.onRoll).toBe(onRoll);
     expect([masked.actor, masked.fortune, masked.resilience]).toEqual([E, 3, 2]);
 
-    // Découvert (jet produit par ce siège) : la rangée traverse SANS copie ni retouche — donc les
+    // Révélé (verdict `jetFigeRevele` vrai) : la rangée traverse SANS copie ni retouche — donc les
     // dérivés y sont TOUS conservés, à l'identique, sous-ligne comprise.
-    const revealed = maskOpposedRow(s, { ownerId: 'A', responded: false }, base);
+    const revealed = maskOpposedRow(true, base);
     expect(revealed).toBe(base);
     expect(DERIVES.map((k) => revealed[k])).toEqual(DERIVES.map((k) => base[k]));
     expect(revealed.row.note).toBe('DR net +2');
