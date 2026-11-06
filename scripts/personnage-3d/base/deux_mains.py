@@ -39,13 +39,13 @@ def cle(u, milieu, direction, flexion=0.0, torsion=0.0, elan=False):
     return u, Vector(milieu) - direction * (ECART / 2), direction, Vector((flexion, torsion)), elan
 
 
-REPOS = ((0.0, -0.22, 1.12), (0.6, 0.1, -0.8))
+REPOS = ((0.0, -0.22, 1.12), (0.78, 0.0, -0.62))
 """Le manche en travers du corps, bas, le fer en haut à droite."""
-GARDE = ((0.04, -0.28, 1.05), (0.49, 0.62, -0.62))
+GARDE = ((0.04, -0.28, 1.05), (0.55, 0.65, -0.5))
 """Les mains devant le ventre, le fer levé vers l'adversaire, le talon le long de la hanche gauche."""
-LEVEE = ((-0.24, -0.18, 1.32), (0.3, -0.25, -0.92))
+LEVEE = ((-0.195, -0.175, 1.33), (0.43, -0.43, -0.79))
 """Les mains montées devant l'épaule droite, le fer dressé au-dessus d'elle."""
-ARME = ((-0.23, 0.12, 1.70), (-0.05, -0.92, -0.2))
+ARME = ((-0.27, 0.04, 1.72), (-0.05, -0.92, -0.2))
 """Les mains au-dessus de l'épaule droite, la hache armée derrière la tête, le tranchant vers le haut."""
 COUP = ((0.14, -0.325, 1.0), (0.31, 0.91, -0.26))
 """Les bras tendus devant, le fer tombé à hauteur de poitrine, le talon tiré vers la hanche gauche."""
@@ -54,7 +54,7 @@ CLIPS = {
     'DeuxMains_Repos_Loop': ('Idle_Loop', 'spine_03', (cle(0.0, *REPOS), cle(1.0, *REPOS))),
     'DeuxMains_Marche_Loop': ('Walk_Loop', 'spine_03', (cle(0.0, *REPOS), cle(1.0, *REPOS))),
     'DeuxMains_Attaque': ('Sword_Idle', 'root', (cle(0.0, *GARDE, 8), cle(0.2, *LEVEE, 0, -5, elan=True),
-                                                 cle(0.35, *ARME, -8, -10), cle(0.52, *COUP, 25, 35, elan=True),
+                                                 cle(0.35, *ARME, -8, -20), cle(0.52, *COUP, 25, 35, elan=True),
                                                  cle(0.62, *COUP, 25, 35), cle(1.0, *GARDE, 8))),
 }
 """Par clip dérivé : son clip source, l'os qui mène le repère de ses clés, et ses clés de geste. L'attaque, une taille
