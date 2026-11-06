@@ -29,6 +29,7 @@ const CHOIX_DE_L_HOTE: readonly (readonly [string, ArgumentsDuChoix, Record<stri
   ['council', ['council', 'paie', 'pas-de-paie'], { pendingCouncil: { today: 7, wageBrass: 240, phase: 'choix' } }],
   ['manannPriest', ['manannPriest', 'payer', false], { pendingManannPriest: { cost: { gold: 3, silver: 0, brass: 0 } } }],
   ['shoreLeave', ['shoreLeave', 'accorder', true], { pendingShoreLeave: { to: { id: 'B', label: 'B' } } }],
+  ['finDeSeance', ['finDeSeance', 'ambitionCourte', true], { finDeSeance: { heros: {}, groupe: {} } }],
 ];
 
 describe('fenetreChoisir', () => {

@@ -1,9 +1,13 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Modal } from './Modal';
 import { useGame } from '../state/store';
 import { Grid } from './Layout';
-
-type HeroKey = 'ambitionShort' | 'ambitionLong' | 'motivation';
+import { GatedAction, raisonSi } from './GatedAction';
+import { herosDeLaSeance, type AxeDuGroupe, type AxeDuHerosDeLaSeance } from '../noyau/partyFlow';
+import { reglageDuChoixDeFenetre, refusDuChoix } from '../noyau/choixDeFenetre';
+import { refusDeLaValidation } from '../noyau/validationDeFenetre';
+import { refusDeLaSortie } from '../noyau/sortieDeFenetre';
+import type { IdDeHeros } from '../noyau/designations';
 
 /**
  * LDB 05 Ambitions ; LDB 17 Détermination.
@@ -13,21 +17,33 @@ type HeroKey = 'ambitionShort' | 'ambitionLong' | 'motivation';
  * (aperçu estompé de l'étape suivante) : hors du flux de lecture (`aria-hidden`) et hors d'atteinte
  * du clavier comme du pointeur (contrôles désactivés), jamais une simple opacité.
  *
- * DEUX issues DISTINCTES, fournies par l'hôte du formulaire : `onDone` reçoit la séance APPLIQUÉE
- * (après `endSession`), `onCancel` le RENONCEMENT. Les confondre rendait « Annuler » destructif dans
- * le récap de chapitre (il cloît le chapitre, archive vidée, sans PX).
+ * Chaque case est un choix de la fin de séance (`fenetreChoisir('finDeSeance', axe, valeur[, héros])`), lu dans le
+ * noyau avec son refus (`refusDuChoix`). Les deux issues sont celles de la fenêtre `fenetre` qui porte le formulaire :
+ * « Terminer la séance », sa validation (`fenetreValider`) ; « Annuler », sa sortie (`fenetreFermer`), qui ne termine
+ * rien — dans le récap de chapitre, elle ajourne.
  *
  * Rend le CORPS et les GESTES à part : le cadre hôte pose `gestes` dans son pied (`Modal` ou
  * `ScreenShell` `footer`).
  */
-export function useSessionEnd({ onDone, onCancel, apercu }: { onDone: () => void; onCancel: () => void; apercu?: boolean }): { corps: ReactNode; gestes: ReactNode } {
-  const party = useGame((s) => s.party).filter((h) => h.kind === 'hero');
-  const endSession = useGame((s) => s.endSession);
-  const [heroes, setHeroes] = useState<Record<string, Partial<Record<HeroKey, boolean>>>>({});
-  const [group, setGroup] = useState<{ ambitionShort?: boolean; ambitionLong?: boolean }>({});
-  const toggle = (id: string, key: HeroKey) =>
-    setHeroes((h) => ({ ...h, [id]: { ...h[id], [key]: !h[id]?.[key] } }));
-  const confirm = () => { endSession({ heroes, group }); onDone(); };
+export function useSessionEnd({ fenetre, apercu }: { fenetre: 'finDeSeance' | 'chapterRecap'; apercu?: boolean }): { corps: ReactNode; gestes: ReactNode } {
+  const party = herosDeLaSeance({ party: useGame((s) => s.party) });
+  const choisir = useGame((s) => s.fenetreChoisir);
+  const valider = useGame((s) => s.fenetreValider);
+  const fermer = useGame((s) => s.fenetreFermer);
+  // Les cases cochées et le siège ouvrent ou ferment chaque case (`refusDuChoix`).
+  useGame((s) => s.finDeSeance);
+  useGame((s) => s.net);
+  const s = useGame.getState();
+  const caseDe = (axe: AxeDuGroupe | AxeDuHerosDeLaSeance, pid?: IdDeHeros) => {
+    const coche = reglageDuChoixDeFenetre(s, 'finDeSeance', axe, pid).courant === true;
+    return {
+      checked: coche,
+      disabled: apercu || refusDuChoix(s, 'finDeSeance', axe, !coche, pid) != null,
+      onChange: () => choisir('finDeSeance', axe, !coche, pid),
+    };
+  };
+  const refusDeTerminer = refusDeLaValidation(s, fenetre);
+  const refusDAnnuler = refusDeLaSortie(s, fenetre);
 
   const corps = (
     <div data-apercu={apercu ? '' : undefined} aria-hidden={apercu || undefined}>
@@ -39,11 +55,11 @@ export function useSessionEnd({ onDone, onCancel, apercu }: { onDone: () => void
       <section className="hr-group">
         <h4 className="mini-title">Ambitions de groupe</h4>
         <label className="se-check">
-          <input type="checkbox" disabled={apercu} checked={!!group.ambitionShort} onChange={() => setGroup((g) => ({ ...g, ambitionShort: !g.ambitionShort }))} />
+          <input type="checkbox" {...caseDe('ambitionCourte')} />
           Court terme accomplie (+50 PX à chaque héros)
         </label>
         <label className="se-check">
-          <input type="checkbox" disabled={apercu} checked={!!group.ambitionLong} onChange={() => setGroup((g) => ({ ...g, ambitionLong: !g.ambitionLong }))} />
+          <input type="checkbox" {...caseDe('ambitionLongue')} />
           Long terme accomplie (+500 PX à chaque héros)
         </label>
       </section>
@@ -52,15 +68,15 @@ export function useSessionEnd({ onDone, onCancel, apercu }: { onDone: () => void
           <section key={h.id} className="se-hero hr-group">
             <h4 className="mini-title">{h.label}</h4>
             <label className="se-check" title={h.details?.ambitionShort ?? 'Aucune Ambition à court terme notée'}>
-              <input type="checkbox" disabled={apercu} checked={!!heroes[h.id]?.ambitionShort} onChange={() => toggle(h.id, 'ambitionShort')} />
+              <input type="checkbox" {...caseDe('ambitionPersonnelleCourte', h.id)} />
               Ambition court terme (+50)
             </label>
             <label className="se-check" title={h.details?.ambitionLong ?? 'Aucune Ambition à long terme notée'}>
-              <input type="checkbox" disabled={apercu} checked={!!heroes[h.id]?.ambitionLong} onChange={() => toggle(h.id, 'ambitionLong')} />
+              <input type="checkbox" {...caseDe('ambitionPersonnelleLongue', h.id)} />
               Ambition long terme (+500)
             </label>
             <label className="se-check" title={h.motivation ?? 'Aucune Motivation notée'}>
-              <input type="checkbox" disabled={apercu} checked={!!heroes[h.id]?.motivation} onChange={() => toggle(h.id, 'motivation')} />
+              <input type="checkbox" {...caseDe('motivation', h.id)} />
               A agi selon sa Motivation (+1 Détermination)
             </label>
           </section>
@@ -70,19 +86,21 @@ export function useSessionEnd({ onDone, onCancel, apercu }: { onDone: () => void
   );
   const gestes = (
     <>
-      <button className="btn" disabled={apercu} onClick={onCancel}>Annuler</button>
-      <button className="btn btn-primary" disabled={apercu} onClick={confirm}>Terminer la séance</button>
+      <GatedAction id="se-annuler" label="Annuler" primary={false} enabled={!apercu && refusDAnnuler == null} {...raisonSi(apercu ? null : refusDAnnuler)} onClick={() => fermer(fenetre)} />
+      <GatedAction id="se-terminer" label="Terminer la séance" enabled={!apercu && refusDeTerminer == null} {...raisonSi(apercu ? null : refusDeTerminer)} onClick={() => valider(fenetre)} />
     </>
   );
   return { corps, gestes };
 }
 
 /** La fin de séance en MODALE (menu système, Effet `sessionEnd`) — le voile et le piège Tab de
- *  `Modal` autour du corps ci-dessus, SOURCE UNIQUE du formulaire. */
-export function SessionEndModal({ onClose }: { onClose: () => void }) {
-  const { corps, gestes } = useSessionEnd({ onDone: onClose, onCancel: onClose });
+ *  `Modal` autour du corps ci-dessus, SOURCE UNIQUE du formulaire. Échap la ferme quand le siège le peut. */
+export function SessionEndModal() {
+  const { corps, gestes } = useSessionEnd({ fenetre: 'finDeSeance' });
+  const fermer = useGame((s) => s.fenetreFermer);
+  const peutFermer = useGame((s) => refusDeLaSortie(s, 'finDeSeance') == null);
   return (
-    <Modal title="Fin de séance" onClose={onClose} backdropClose footer={gestes}>
+    <Modal title="Fin de séance" {...(peutFermer ? { onClose: () => fermer('finDeSeance'), backdropClose: true } : {})} footer={gestes}>
       {corps}
     </Modal>
   );

@@ -23,7 +23,7 @@ import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
 import { creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
-import { creerActionsDuGroupe, sortiesDuGroupe } from './partyFlow';
+import { choixDeLaFinDeSeance, creerActionsDuGroupe, sortiesDuGroupe, validationsDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
 import { creerActionsDeMarche } from './marcheDuGroupe';
 import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
@@ -108,6 +108,7 @@ function choixDesFenetres(get: Get, set: SetDesClesReservees): CorpsDesChoix {
     ...choixDeLEquipage(get, set),
     ...choixDuVoyageEnMer(get, set),
     ...choixDeLaSemaineEnMer(get, set),
+    ...choixDeLaFinDeSeance(get, set),
   } satisfies CorpsDesChoix;
 }
 
@@ -143,6 +144,7 @@ function validationsDeFenetre(get: Get, set: SetDesClesReservees): ValidationsDe
     ...validationsDuRepos(get, set),
     ...validationsDuVoyage(get, set),
     ...validationsDeLaSemaineEnMer(get, set),
+    ...validationsDuGroupe(get, set),
   } satisfies ValidationsDeFenetre;
 }
 

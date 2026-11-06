@@ -10,7 +10,7 @@ import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import { libelleDeLaFermeture } from './libelles';
-import { validationDeLaFenetre, type FenetreAValider } from './modalArbiter';
+import { seanceDuChapitre, validationDeLaFenetre, type FenetreAValider } from './modalArbiter';
 import { refuserGesteDuSiege } from './refusVisible';
 import type { FermetureDuJet } from './rollFlowFactory';
 import { fermetureDuQuorum, jouerOuMarquer } from './sortieDeFenetre';
@@ -23,11 +23,12 @@ export type ValidationsDeFenetre = { readonly [F in FenetreAValider]: () => void
 
 /** Ce qui ferme maintenant la validation d'une fenêtre ouverte, au-delà de son quorum : la note de la halte que les
  *  bourses du groupe ne couvrent pas (LDB 66), les Événements de la période encore à tirer (LDB 22 l.5), une échoppe sans
- *  achat à répartir. */
+ *  achat à répartir, la fin de séance que le récap de chapitre termine. */
 export const FERMETURES_DE_LA_VALIDATION: { readonly [F in FenetreAValider]?: (s: Jeu) => FermetureDuJet | null } = {
   rest: (s) => (noteDAubergeCouverte(s) ? null : 'noteNonCouverte'),
   interlude: (s) => (interludeDrawPending(s) ? 'evenementsATirer' : null),
   marchand: (s) => (s.merchant?.pendingDistribution?.length ? null : 'rienARepartir'),
+  finDeSeance: seanceDuChapitre,
 };
 
 /** Ce qui ferme la validation de `fenetre` maintenant : son verdict (`FERMETURES_DE_LA_VALIDATION`), puis son quorum

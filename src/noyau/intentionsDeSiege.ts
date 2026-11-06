@@ -182,9 +182,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   portInstallUpgrade: 'hôte', portHireCrew: 'hôte', portDismissCrew: 'hôte', gatherInnInfo: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────
   setShipRole: 'hôte', setShipStation: 'hôte', setTravelRole: 'hôte', setPosteAmmo: 'hôte',
-  // ── Décisions de GROUPE (taverne, poursuite, séance) ──────────────────────────────────────────
+  // ── Décisions de GROUPE (taverne, poursuite) ──────────────────────────────────────────────────
   playTavernGame: 'hôte', openTavernGames: 'hôte',
-  endSession: 'hôte',
   // ── Interlude : bataille de masse ─────────────────────────────────────────────────────────────
   setMassBattleHero: 'hôte', massBattleAdvance: 'hôte', massBattleClash: 'hôte',
   massBattleHazard: 'hôte', massBattleRally: 'hôte', massBattleScene: 'hôte',

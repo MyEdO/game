@@ -28,6 +28,7 @@ import { plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaA
 import { decidingSeat } from './netOwnership';
 import { seatOwns } from './sieges';
 import type { IdDeHeros } from './designations';
+import { herosDeLaSeance, type AxeDuGroupe, type AxeDuHerosDeLaSeance } from './partyFlow';
 import {
   VERBE_DE_CHOIX, declarationDuChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
 } from './choixDesFenetres';
@@ -59,9 +60,9 @@ const PARAMETRE_DE_RANGEE = 'pid';
 
 /** Une valeur ouverte, nommée `libelle`, que ferme `refus` (`null` : ouverte). */
 const ouverte = (valeur: ValeurDuReglage['valeur'], libelle: string, refus: string | null = null): ValeurDuReglage => ({ valeur, libelle, refus });
-/** Oui, puis non, tant que `ouvert` ; chacune fermée par la raison de `refus`. */
-const ouiNon = (ouvert: (s: Jeu) => boolean, refus: (s: Jeu, v: boolean) => string | null = () => null) => (s: Jeu): ValeurDuReglage[] =>
-  (ouvert(s) ? [true, false].map((v) => ouverte(v, garanti(libelleDuLitteral(v), String(v), 'libellé du booléen'), refus(s, v))) : []);
+/** Oui, puis non, tant que `ouvert` (sur le héros `pid` d'un choix de rangée) ; chacune fermée par la raison de `refus`. */
+const ouiNon = (ouvert: (s: Jeu, pid: IdDeHeros | undefined) => boolean, refus: (s: Jeu, v: boolean) => string | null = () => null) => (s: Jeu, pid: IdDeHeros | undefined): ValeurDuReglage[] =>
+  (ouvert(s, pid) ? [true, false].map((v) => ouverte(v, garanti(libelleDuLitteral(v), String(v), 'libellé du booléen'), refus(s, v))) : []);
 
 /** Le héros `pid` de la semaine en mer : un héros du groupe qui tient encore une Activité (MDG 15 l.268). */
 const herosDeLaSemaine = (s: Jeu, pid: IdDeHeros) => (s.pendingSeaActivities ? s.party.find((h) => h.id === pid && !h.dead && !h.outOfRencontre) : undefined);
@@ -71,6 +72,13 @@ const activiteChoisie = (s: Jeu, pid: IdDeHeros) => {
   const id = choixDuHeros(s, pid)?.activityId;
   return id === undefined ? undefined : activityById(id);
 };
+
+/** La fin de séance ouverte, sur le héros `pid` d'une case de héros (hors de toute rangée : tout héros). */
+const seanceOuverte = (s: Jeu, pid: IdDeHeros | undefined): boolean => !!s.finDeSeance && (pid === undefined || herosDeLaSeance(s).some((h) => h.id === pid));
+/** La case `axe` du groupe de la fin de séance. */
+const caseDuGroupe = (axe: AxeDuGroupe) => reglage('finDeSeance', axe, ouiNon(seanceOuverte), (s) => s.finDeSeance?.groupe[axe] ?? false);
+/** La case `axe` du héros `pid` de la fin de séance. */
+const caseDuHeros = (axe: AxeDuHerosDeLaSeance) => reglage('finDeSeance', axe, ouiNon(seanceOuverte), (s, pid) => (pid === undefined ? null : s.finDeSeance?.heros[pid]?.[axe] ?? false));
 
 /** L'issue du Sauvetage par le Destin, dans l'ordre de la fenêtre : celles que sa source offre (`fateSaveOptions`), puis
  *  la mort acceptée. LDB 17 l.29-32 */
@@ -124,6 +132,14 @@ export const OUVERTS_DU_CHOIX = {
       const hero = herosDeLaSemaine(s, pid);
       return hero && activiteChoisie(s, pid)?.resolver === 'seaChart' ? plafondDePlanque(hero) : null;
     }, (s, pid) => choixDuHeros(s, pid)?.stashGold ?? 0),
+  },
+  // LDB 05 l.793-841, LDB 17 l.81 : chaque case se coche ou se décoche jusqu'à la fin de la séance, par l'hôte.
+  finDeSeance: {
+    ambitionCourte: caseDuGroupe('ambitionCourte'),
+    ambitionLongue: caseDuGroupe('ambitionLongue'),
+    ambitionPersonnelleCourte: caseDuHeros('ambitionPersonnelleCourte'),
+    ambitionPersonnelleLongue: caseDuHeros('ambitionPersonnelleLongue'),
+    motivation: caseDuHeros('motivation'),
   },
 } as const satisfies OuvertsDuChoix;
 

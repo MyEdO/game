@@ -591,9 +591,9 @@ export interface EtatDeJeu {
   /** Coop en ligne : état réseau sérialisable + actions de session — délégué à netFlow.
    *  Les objets réseau vivants (sessions, sockets du relay) restent des singletons de module. */
   net: NetState;
-  /** Écran de fin de séance (`SessionEndModal`) ouvert par l'Effet `sessionEnd` (#83) — le menu de jeu
-   *  le pilote encore par état local ; ce flag EN PLUS permet à un beat de campagne authoré de l'ouvrir. */
-  sessionEndOpen: boolean;
+  /** La fin de séance ouverte (`ouvrirLaFinDeSeance` : l'Effet `sessionEnd` #83, le menu de jeu, le récap de chapitre)
+   *  et ses cases cochées ; `null` : fermée. */
+  finDeSeance: import('./partyFlow').FinDeSeance | null;
   /** Combat monté (AA 9 l.36) : clic sur un couple cavalier+monture (deux ennemis) → choisir lequel
    *  frapper (le cavalier −10 si l'on est plus petit que la monture ; abattre la monture désarçonne). */
   /** `approche` = VERDICT D'ARMEMENT capturé au clic qui a ouvert ce choix (cf. `PendingApproach`). */

@@ -118,7 +118,8 @@ export function CampaignView() {
   const dialogue = useGame((s) => s.dialogue);
   const battle = useGame((s) => s.battle);
   const merchant = useGame((s) => s.merchant);
-  const sessionEndOpen = useGame((s) => s.sessionEndOpen); // Effet `sessionEnd` (#83) : ouvre la même modale
+  const finDeSeance = useGame((s) => s.finDeSeance);
+  const openSessionEnd = useGame((s) => s.openSessionEnd);
   const fermer = useGame((s) => s.fenetreFermer);
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
   const roundStartPromote = useGame((s) => s.roundStartPromote);
@@ -182,7 +183,6 @@ export function CampaignView() {
   const voyageHub = voyageHubActive({ travelPlan, travelRecap, mode, worldMapOpen, battle });
   const voyageStepUp = voyageStepPending({ pendingCascade, pendingRest, pendingShoreLeave });
   const showVoyage = voyageHub && (!voyageMin || voyageStepUp);
-  const [sessionOpen, setSessionOpen] = useState(false); // écran de fin de séance (Ambitions/Détermination)
   // La fiche INSPECTÉE : le combattant en combat, hors combat le héros du groupe (`actorIn`) ou le PNJ de
   // scène (`sceneNpc`) — le geste secondaire d'un jeton hors combat n'est offert que là où elle se résout.
   const inspected = useMemo(
@@ -278,7 +278,7 @@ export function CampaignView() {
             (`ScreenMeta`), les ouvreurs d'écrans à l'extrémité droite du pont d'exploration hors
             combat, sur le rail d'outils en combat. Sauvegarder : sauf `refusDeSauvegarde`. */}
         <Row className="hud-topbar" align="start">
-        <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={() => setSaveOpen(true)} refusDeSauvegarde={refusSave} onEndSession={() => setSessionOpen(true)} refusDeFinDeSeance={mode !== 'exploration' ? t('gameMenu.endSession.horsExploration') : netMode === 'guest' ? t('gameMenu.endSession.invite') : null} />
+        <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={() => setSaveOpen(true)} refusDeSauvegarde={refusSave} onFinDeSeance={openSessionEnd} refusDeFinDeSeance={mode !== 'exploration' ? t('gameMenu.finDeSeance.horsExploration') : netMode === 'guest' ? t('gameMenu.finDeSeance.invite') : null} />
         {/* Lieu courant : premier étage de la pile — le nom de la scène se lit sur le HUD, sans ouvrir
             le menu. Sans nom authoré, aucune plaque (rien à annoncer). La MATIÈRE du nom est celle du
             chrome de nom (`CodexTitre`), posée sur le halo partagé des textes du monde nu. */}
@@ -326,7 +326,8 @@ export function CampaignView() {
             modale système au-dessus resterait invisible/inatteignable sous elle sans cette garde. */}
         {saveOpen && !dialogue && <SaveLoadModal mode="save" onClose={() => setSaveOpen(false)} />}
         {!dialogue && <RetraitsDeChargement />}
-        {(sessionOpen || sessionEndOpen) && !dialogue && <SessionEndModal onClose={() => { setSessionOpen(false); if (sessionEndOpen) fermer('finDeSeance'); }} />}
+        {/* La fin de séance du récap de chapitre se joue dans son écran (`ChapterRecapScreen`). */}
+        {finDeSeance && !dialogue && !pendingChapterRecap && <SessionEndModal />}
         <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} onInspect={setInspectId} />
         {/* LA RANGÉE DU MONDE (#1848, `.stage-flot` — hud.css) : tout ce qui s'ancre AU BAS DU CHAMP
             vit ICI, dans la rangée du plateau qui s'arrête au bord haut du pont. Aucune de ces

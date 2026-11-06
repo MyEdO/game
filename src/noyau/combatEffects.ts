@@ -1465,7 +1465,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   sessionEnd: {
     group: 'Récompenses', label: libelleEffet('sessionEnd'), icon: 'journal/detail',
     make: () => ({ type: 'sessionEnd' }),
-    apply: (_e, env) => { env.get().openSessionEnd(); }, // ouvre l'écran de fin de séance existant (SessionEndModal → endSession)
+    apply: (_e, env) => { env.get().openSessionEnd(); }, // la fin de séance (`fenetreValider('finDeSeance')`)
   },
   openCharacterCreator: {
     group: 'Récompenses', label: libelleEffet('openCharacterCreator'), icon: 'ui/add',

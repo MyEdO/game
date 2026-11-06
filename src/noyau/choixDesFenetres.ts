@@ -66,6 +66,18 @@ export interface ChoixDesFenetres {
     /** MDG 15 l.292 */
     cacher: number;
   };
+  finDeSeance: {
+    /** LDB 05 l.837 */
+    ambitionCourte: boolean;
+    /** LDB 05 l.841 */
+    ambitionLongue: boolean;
+    /** LDB 05 l.795 */
+    ambitionPersonnelleCourte: boolean;
+    /** LDB 05 l.799 */
+    ambitionPersonnelleLongue: boolean;
+    /** LDB 17 l.81 */
+    motivation: boolean;
+  };
 }
 
 /** Une fenêtre qui a des choix. */
@@ -95,6 +107,8 @@ const clot = { effet: 'clot', portee: 'fenetre', qui: 'proprietaire' } as const;
 const clotParLHote = { effet: 'clot', portee: 'fenetre', qui: 'hote' } as const;
 const reprenable = { effet: 'reprenable', portee: 'fenetre', qui: 'proprietaire' } as const;
 const duHeros = { effet: 'reprenable', portee: 'rangee', qui: 'proprietaire' } as const;
+const coche = { effet: 'reprenable', portee: 'fenetre', qui: 'hote' } as const;
+const cocheDuHeros = { effet: 'reprenable', portee: 'rangee', qui: 'hote' } as const;
 
 /** La déclaration de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
 export const CHOIX_DES_FENETRES = {
@@ -108,6 +122,7 @@ export const CHOIX_DES_FENETRES = {
   dialogue: { reponse: clot },
   designationHeros: { heros: clot },
   seaActivities: { activite: duHeros, investir: duHeros, cacher: duHeros },
+  finDeSeance: { ambitionCourte: coche, ambitionLongue: coche, ambitionPersonnelleCourte: cocheDuHeros, ambitionPersonnelleLongue: cocheDuHeros, motivation: cocheDuHeros },
 } as const satisfies { [F in FenetreAChoix]: { [A in AxeDe<F>]: DeclarationDuChoix } };
 
 /** La fenêtre `fenetre` (une donnée de frontière) a-t-elle des choix ? */

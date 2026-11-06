@@ -159,6 +159,18 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
       expect(fenetre.gestes.find((g) => g.cle === 'fenetreValider@seaActivities')!.rendu).toBe('bouton');
     });
   });
+
+  it('Fin de séance : les cases du groupe, celles de chaque héros (`pid`), sa validation et sa sortie', { timeout: 120_000 }, () => {
+    auDebutDuRound((etat) => {
+      const seance: Jeu = { ...etat, battle: null, pendingRoundStart: null, finDeSeance: { heros: {}, groupe: {} } };
+      const fenetre = fenetreADessiner(seance)!;
+      expect(fenetre.gestes.map((g) => g.cle)).toEqual([
+        'fenetreChoisir@finDeSeance#ambitionCourte', 'fenetreChoisir@finDeSeance#ambitionLongue', 'fenetreChoisir@finDeSeance#ambitionPersonnelleCourte',
+        'fenetreChoisir@finDeSeance#ambitionPersonnelleLongue', 'fenetreChoisir@finDeSeance#motivation', 'fenetreValider@finDeSeance', 'fenetreFermer@finDeSeance',
+      ]);
+      expect(lignes(argumentDe(seance, 'fenetreChoisir@finDeSeance#motivation', 'pid')), 'chaque héros du groupe').toEqual(['choix', seance.party.map((h) => [h.id, h.label])]);
+    });
+  });
 });
 
 describe('qui tient la main se dit par son genre, nommé sans id', () => {
