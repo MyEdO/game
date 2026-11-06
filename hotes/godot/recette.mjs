@@ -371,6 +371,41 @@ async function parcoursDialogue() {
   await capturer('3328-h1-3-interlocuteur-suivant')
 }
 
+async function parcoursDocument() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const pres = { x: 2, y: 2 }
+  await cliquerCase(pres)
+  await attendreLaVue(`v.projection.exploration?.groupe.join() === '${pres.x},${pres.y}'`)
+  v = await vue()
+  const parcourir = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.args?.[1] === 'lire'))
+  assert.ok(parcourir, `à portée de la liasse, son offre est un bouton : ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
+  await cliquerBouton(bouton(parcourir))
+  await attendreLaVue("v.zones['dialogue.reponses'].length > 0")
+  for (const debut of ['Chapitre 1', 'Lire']) {
+    v = await vue()
+    const reponse = zone(v, 'dialogue.reponses').find((b) => b.libelle.startsWith(debut))
+    assert.ok(reponse, `la réponse « ${debut} » est un bouton : ${zone(v, 'dialogue.reponses').map((b) => b.libelle).join(' | ')}`)
+    await cliquerBouton(bouton(reponse))
+  }
+  await attendreLaVue("v.zones['fenetre.corps'][0]?.id === 'lecture'")
+  v = await vue()
+  noter(`document « ${zone(v, 'fenetre.titre')[0]?.texte} » : ${zone(v, 'fenetre.corps')[0]?.texte.length} caractères`)
+  await capturer('3328-i1-1-document')
+  const refermer = zone(v, 'fenetre.gestes').find((b) => b.type === 'bouton')
+  await cliquerBouton(bouton(refermer))
+  await attendreLaVue("v.zones['dialogue.reponses'].length > 0 && !v.projection.fenetre")
+  noter(`« ${refermer.libelle} » : la conversation revient à la liasse`)
+  await capturer('3328-i1-2-referme')
+}
+
 async function parcoursFiche() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
@@ -1069,7 +1104,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

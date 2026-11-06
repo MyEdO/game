@@ -86,7 +86,7 @@ describe('modelesDeLAtelier', () => {
 
   it('un vêtement lié au squelette est servi sur la ligne de sa pièce, et nulle autre', () => {
     expect(lignes.filter((l) => 'id' in l && l.elements.length > 0)).toEqual([
-      { sorte: 'piece', id: 'chemise', label: gardeRobe.find(({ id }) => id === 'chemise')?.label, elements: ['chemise'] },
+      { sorte: 'piece', variantes: false, id: 'chemise', label: gardeRobe.find(({ id }) => id === 'chemise')?.label, elements: ['chemise'] },
       { sorte: 'emplacement', id: 'epaule_d', label: gardeRobe.find(({ id }) => id === 'epaule_d')?.label, elements: ['broche'] },
     ]);
   });

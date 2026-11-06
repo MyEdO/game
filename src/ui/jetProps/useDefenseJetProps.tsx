@@ -4,14 +4,13 @@ import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE } from '
 import { fenetreDeDefense } from '../../noyau/fenetreDeDefense';
 import { libelleDuJet } from '../../noyau/libelles';
 import { t } from '../../i18n';
-import { defenseDodgeMods } from '../../noyau/mount';
-import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, type DefenseMode } from '../../engine/combat';
+import { defenseTestOf, type DefenseMode } from '../../engine/combat';
 import { composeRollLabel } from '../../noyau/rollSeam';
 import { RollShell, type RollAction } from '../RollShell';
 import { opposedResponded } from '../opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from '../rollRowBuild';
 import { OptionChooser } from '../OptionChooser';
-import { optionValue, opposedLines } from '../breakdown';
+import { opposedLines } from '../breakdown';
 import { VsHeader } from '../VsHeader';
 import { DeterminationButton } from '../DeterminationButton';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
@@ -60,27 +59,8 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   if (!attacker || !defender) return null;
   const res = pd.result;
   const rolled = !!res;
-  // Armes pouvant parer et arme de parade du jet : la fenêtre de Défense du noyau (`fenetreDeDefense`).
-  const chosenParry = vue.parade;
-  // Lignes d'Esquive du contexte (neige, monté) : MÊME source que le jet résolu (`defenseDodgeMods`).
-  const dodgeMods = defenseDodgeMods(useGame.getState(), defender);
-  // Substitution sociale de la réaction : la fenêtre de Défense du noyau (`fenetreDeDefense.social`).
-  const sub = vue.social;
-  // Base de la défense sociale (mode 'social') = valeur de Test de la Compétence substituée.
-  const socialBase = pd.mode === 'social' ? sub?.valeur : undefined;
-  // MA ligne pré-remplie : valeur + mods de la défense CHOISIE (recalculés à chaque changement). La météo
-  // « Tests physiques » du jour (#341) arrive par le CANAL UNIQUE : `defenseModifiers` lit `defender.envWeather`
-  // et pousse la ligne « Météo » scopée par la carac du mode (Parade→CC, Esquive→Agilité) — zéro câblage ici.
-  // Base NUE + modificateurs de la VALEUR nommés (`defenseValueModParts`) + modificateurs du jet : la Σ reste
-  // la valeur jetée.
-  const myMods = [...defenseValueModParts(defender, pd.mode, chosenParry), ...defenseModifiers(defender, pd.mode, dodgeMods, pd.mode === 'parade' ? chosenParry : undefined)];
-  const myBase = defenseBaseValue(defender, pd.mode, chosenParry, socialBase);
-  const myLabel = vue.test;
   // Z1 (`docs/charte-ui.md`) : le DÉFENSEUR, et les ids du Test du mode CHOISI (`defenseTestOf`, LDB 13 l.161-167).
-  const defenseTest = defenseTestOf(defender, pd.mode, chosenParry, pd.substituteSkillId ?? sub?.skillId);
-  // Valeurs affichées sur le segmented control (chaque option montre SA valeur effective).
-  const segVal = (mode: DefenseMode) =>
-    optionValue(defenseValue(defender, mode, chosenParry, mode === 'social' ? sub?.valeur : undefined), defenseModifiers(defender, mode, dodgeMods, mode === 'parade' ? chosenParry : undefined));
+  const defenseTest = defenseTestOf(defender, pd.mode, vue.parade, pd.substituteSkillId ?? vue.social?.skillId);
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie
   // (Talent/jeton) est applicable (`reverseAvailable`, pure) ; `reversePreview` rend l'issue LISIBLE
   // avant le clic (le jeton, libre, peut dégrader un succès existant).
@@ -114,16 +94,11 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // gratuite de créature s'annonce par la sienne (Morsure, Attaque caudale… LDB 85), le reste est une
   // Attaque. L'affichage ne devine rien — il lit la suite portée par la fenêtre.
   const kindGratuit = pd.suite.mode === 'machine' ? pd.suite.coup.manoeuvre?.kind : undefined;
-  // Attaque et défense sont les DEUX lignes d'un même Test opposé : la Difficulté est déclarée UNE
-  // fois à la fabrique (LDB 12 l.166 ; jet de Combat, LDB 13 l.118).
-  const [attackLine, defenseLine] = opposedLines([
-    {
-      label: kindGratuit ? pd.weapon.label : 'Attaque',
-      base: pd.atk.target,
-      r: { roll: pd.atk.roll, target: pd.atk.target, sl: pd.atk.sl, success: pd.atk.success },
-    },
-    { label: myLabel, base: myBase, mods: myMods },
-  ]);
+  const [attackLine] = opposedLines([{
+    label: kindGratuit ? pd.weapon.label : 'Attaque',
+    base: pd.atk.target,
+    r: { roll: pd.atk.roll, target: pd.atk.target, sl: pd.atk.sl, success: pd.atk.success },
+  }]);
   // Rangée [0] = TÉMOIN : l'attaque FIGÉE (jet déjà eu lieu, aucun bouton), MASQUÉE tant que ce siège
   // n'a pas répondu (#990, calendrier unique `frozenOpposedRow` — mono = N=1 participant : moi).
   const attackerRow = frozenOpposedRow(useGame.getState(), {
@@ -134,12 +109,13 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
       d: res ? res.attackerDetail : attackLine.d,
     },
   });
-  // Rangée [1] = INTERACTIVE : MA défense (pré-remplie puis résolue), porteuse du cycle d'influence.
+  // Rangée [1] = INTERACTIVE : MA défense, avant le dé la ligne de la fenêtre (`fenetreDeDefense.jet`), après le dé
+  // la ligne jetée (`defenderDetail`).
   const defenderRow = buildRollRow({
     actor: defender,
     row: res
       ? { combatant: defender, d: res.defenderDetail }
-      : { combatant: defender, pending: defenseLine.pending },
+      : { combatant: defender, pending: vue.jet ? { label: vue.test, ...vue.jet } : undefined },
     onRoll: roll,
     rerolled: !!pd.rerolled,
     onReroll: reroll,
@@ -168,15 +144,14 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
     setup: (
       <>
         <div className="rm-options">
-          {/* Réaction : segmented control PARTAGÉ — chaque option affiche SA valeur effective (mods compris). */}
+          {/* Réaction : chaque option affiche la cible de son jet (`fenetreDeDefense.reaction`). */}
           {vue.reaction && (
             <OptionChooser
               layout="seg"
               groupLabel={vue.reaction.libelle}
-              options={vue.reaction.options.map((o) => {
-                const mode = o.valeur as DefenseMode;
-                return { key: mode, label: o.libelle, value: segVal(mode), selected: pd.mode === mode, title: titreDeLaReaction(mode, o.libelle), onSelect: () => setMode(mode) };
-              })}
+              options={vue.reaction.options.flatMap((o) => (o.valeur === null ? [] : [{
+                key: o.valeur, label: o.libelle, value: o.cible, selected: vue.reaction!.choisie === o.valeur, title: titreDeLaReaction(o.valeur, o.libelle), onSelect: () => setMode(o.valeur!),
+              }]))}
             />
           )}
           {vue.armeDeParade && (

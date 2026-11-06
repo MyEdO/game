@@ -137,7 +137,7 @@ import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
 import { CharKey, Weapon, VehicleData, StructureData, Availability, type TestedAvailability, Difficulty, type NightTestKind, type StakeForm } from '../engine/types';
 import type { MutationData, MutationTable } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
-import type { DiseaseDef } from '../engine/disease'; // type-only (le runtime de disease.ts importe `maladies` d'ici)
+import type { DiseaseDef } from './schemas/defs/maladies';
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
 import { type DiceSpec, formatDice } from '../engine/dice';
 import type { Money } from '../engine/money'; // type-only (`Money` = SOURCE UNIQUE de la bourse, engine/money.ts)
@@ -1594,6 +1594,10 @@ export interface SemencesDeSceneData {
   facade: string;
   /** Libellé d'un lieu posé sur la carte du monde (`ajouterLieu`). */
   lieu: string;
+  /** Libellé d'une carte du monde neuve (`emptyWorldMap`). */
+  carte: string;
+  /** Libellé d'un statbloc personnalisé neuf d'une fiche sans nom (`emptyStatblock`). */
+  profil: string;
 }
 /**
  * DÉFAUTS DE COMPILATION (#1716/#1789) — ce que le compilateur de scène (`noyau/mapSpec.ts`) pose
@@ -2341,7 +2345,7 @@ export interface BarterRatioRow { give: Availability; ratios: Record<Availabilit
 export interface DispoData { dispoPct: DispoPctRow[]; barterRatios: BarterRatioRow[] }
 export const disponibilite = disponibiliteJson as DispoData;
 /** Maladies (LDB 20) — app-owned éditable au Codex ; le COMPORTEMENT (cycle/symptômes) vit dans
- *  `engine/disease`. `DiseaseDef` (type) y est défini ; ici on n'expose que la DONNÉE. */
+ *  `engine/disease`, le type `DiseaseDef` dérive du schéma (`schemas/defs/maladies.ts`). */
 export const maladies = maladiesJson as DiseaseDef[];
 const maladieParId = indexParId('maladies', maladies);
 /** Résout une Maladie par son `id` STABLE. */
@@ -2865,7 +2869,7 @@ export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 /** Carrures (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
 export const gabarits = gabaritsJson as GabaritDef[];
 export const findGabaritById = indexParId('gabarits', gabarits);
-/** Garde-robe des éléments 3D (`garde-robe.json`, #3114, #3113, #3111, #3116) : têtes, coiffures, tenues, emplacements, pièces, ensembles, emblèmes. */
+/** Garde-robe des éléments 3D (`garde-robe.json`, #3114, #3113, #3111, #3116) : têtes, coiffures, tenues, emplacements, pièces, ensembles, emblèmes, variantes. */
 export const gardeRobe = gardeRobeJson as GardeRobeEntree[];
 /** Lecteur d'une nature de la garde-robe par id ; une ligne d'une autre nature n'en est pas une. */
 const parNature = <K extends GardeRobeEntree['kind']>(kind: K) => {
@@ -2876,6 +2880,7 @@ export const findPieceById = parNature('piece');
 export const findEmblemeById = parNature('embleme');
 export const findTeteById = parNature('tete');
 export const findCoiffureById = parNature('coiffure');
+export const findVarianteById = parNature('variante');
 const ensembleParHabille = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'ensemble' ? cleDHabille(e.habille) : undefined));
 /** L'ensemble qui habille `habille` (égalité de `{ id, type }`), `undefined` si la garde-robe n'en déclare pas. */
 export const findEnsembleParHabille = (habille: HabilleDEnsemble): EnsembleDef | undefined => ensembleParHabille(cleDHabille(habille)) as EnsembleDef | undefined;

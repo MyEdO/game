@@ -41,6 +41,7 @@ import { parametresDuSoin } from './soin';
 import { corruptionGain } from '../engine/corruption';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
+import { rule } from '../engine/policy';
 
 /** Test de scène (LDB 12) : réussite / échec / réussite garantie par Résilience. Le DR figure déjà
  *  dans le breakdown au-dessus — l'issue reste une phrase courte. */
@@ -51,13 +52,11 @@ export function describeTest(pt: PendingTest): string {
 }
 
 /**
- * Option « Succès / échec stupéfiants » (LDB 12 l.127) : hors combat, un Test résolu sur un DOUBLE
- * est un Succès Stupéfiant (réussite) ou un Échec Stupéfiant (échec). PUREMENT un libellé (aucune
- * mécanique nouvelle). Retourne `null` quand il n'y a rien à afficher : avant le jet, sans double,
- * ou sur une réussite FORCÉE par Résilience (le « double » n'a pas eu lieu sur un vrai dé). La règle
- * elle-même (`rule('test-critiques-doubles')`) est lue par l'appelant — cette fonction reste pure. */
+ * Option « Succès / échec stupéfiants » (LDB 12 l.127), règle `test-critiques-doubles`. PUREMENT un libellé (aucune
+ * mécanique nouvelle). Retourne `null` quand il n'y a rien à afficher : règle coupée, avant le jet, sans double,
+ * ou sur une réussite FORCÉE par Résilience (le « double » n'a pas eu lieu sur un vrai dé). */
 export function amazingTestLabel(pt: PendingTest): { success: boolean; text: string } | null {
-  if (pt.roll == null || !pt.isDouble || pt.forced) return null;
+  if (!rule('test-critiques-doubles') || pt.roll == null || !pt.isDouble || pt.forced) return null;
   return { success: pt.success, text: pt.success ? t('out.amazingSuccess') : t('out.amazingFail') };
 }
 

@@ -61,6 +61,18 @@ describe('composerSurLaBase', () => {
     expect(manquants.map((m) => m.id)).not.toContain('baudrier');
   });
 
+  it('une variante monte à la ligne de sa pièce (#3446) : l’atelier l’y sert, liste avec la pièce, et la composition l’y choisit', () => {
+    const chausses = { ...plastron, categorie: 'vetement', cle: { piece: 'haut-de-chausses' }, couche: 'tenue' };
+    const ample = { ...chausses, cle: { piece: 'haut-de-chausses-ample' } };
+    const manifestes = { humanoide, chausses, ample };
+    const modeles = modelesDeLAtelier(manifestes, tableTotale(Object.keys(manifestes), (id) => (id === 'humanoide' ? [] : ['root'])));
+    expect(modeles.bases[0].lignes).toContainEqual(expect.objectContaining({ sorte: 'piece', variantes: true, id: 'haut-de-chausses', elements: ['chausses', 'ample'] }));
+    expect(modeles.libelles.ample).toBe('Haut-de-chausses ample');
+    expect(composer(manifestes, soldat).montes).toContainEqual({ ligne: 'ligne/piece/haut-de-chausses', element: 'chausses' });
+    const varie = composer(manifestes, { ...soldat, variantesPieces: { 'haut-de-chausses': { id: 'haut-de-chausses-ample' } } });
+    expect(varie.montes).toContainEqual({ ligne: 'ligne/piece/haut-de-chausses', element: 'ample' });
+  });
+
   it('le sexe pose `feminin`, `build` absent vaut le corps neutre, un gabarit non neutre change l’échelle de la racine, les pieds sont ceux des appuis', () => {
     const neutre = composer({ humanoide }, soldat);
     expect(neutre.morphes).toEqual({ carrure_moins: 0, carrure_plus: 0, feminin: 1, corpulence: 0 });
