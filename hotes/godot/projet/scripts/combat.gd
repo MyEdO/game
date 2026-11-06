@@ -1,6 +1,6 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
-## l'adresse de la page (`?scenario=<id>&graine=<n>`), pose au plateau le volume du monde de sa scène (`monde`) et
-## applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
+## l'adresse de la page (`?scenario=<id>&graine=<n>`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
+## fois que la partie change de scène (`vue.projection.scene`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
@@ -24,6 +24,8 @@ extends Node
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
+## L'id de la scène dont le monde est posé au plateau, vide avant le premier.
+var _scene_du_monde := ""
 var _zones: Array[Zone] = []
 
 
@@ -37,12 +39,7 @@ func _ready() -> void:
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
-	var lancement := _pont.appeler("demarrer", entree)
-	if lancement.get("ok") == true:
-		var monde := _pont.appeler("monde")
-		if monde.get("ok") == true and monde.monde != null:
-			_plateau.poser_le_monde(monde)
-	_suivre(lancement)
+	_suivre(_pont.appeler("demarrer", entree))
 
 
 ## Le listage du serveur et l'index du pont (`MontageDeComposition.lister`, `indexer`), retenu pour les corps du
@@ -76,6 +73,7 @@ func _suivre(reponse: Dictionary) -> void:
 		return
 	_vue = reponse.vue
 	_refus.text = ""
+	_poser_le_monde_de(_vue.projection.scene)
 	_plateau.montrer(_vue, reponse.journal)
 	if _vue.lumiere != null:
 		_lumiere.eclairer(_vue.lumiere, _vue.plateau.metresParCase)
@@ -85,6 +83,17 @@ func _suivre(reponse: Dictionary) -> void:
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 	_publier_l_ecran.call_deferred()
+
+
+## Le monde de la scène `scene` (`vue.projection.scene`) au plateau (`Plateau.poser_le_monde`), s'il n'y est pas déjà.
+func _poser_le_monde_de(scene: Variant) -> void:
+	var id := "" if scene == null else str(scene.id)
+	if id == _scene_du_monde:
+		return
+	_scene_du_monde = id
+	var monde := _pont.appeler("monde")
+	if monde.get("ok") == true and monde.monde != null:
+		_plateau.poser_le_monde(monde)
 
 
 ## La bulle de l'aperçu suit sa case à l'écran, la caméra tournée ou zoomée.
