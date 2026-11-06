@@ -1,0 +1,48 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "armure",
+  "cle": {
+    "piece": "casque"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "armure",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "carrure_moins",
+    "carrure_plus",
+    "corpulence"
+  ],
+  "surfaces": [
+    {
+      "nom": "metal",
+      "palette": "metal"
+    },
+    {
+      "nom": "fleuron",
+      "palette": "accent"
+    }
+  ],
+  "emplacements": {
+    "cimier": {
+      "os": "Head",
+      "position": [
+        0,
+        0.215487,
+        -0.006071
+      ],
+      "rotation": [
+        -0.02897,
+        0,
+        0
+      ]
+    }
+  },
+  "glb": {
+    "sha256": "057c4bafe1b4dd22bee1ae329c09f6cf4b8be0fdd2c2bcffadaf28bca985afe5",
+    "octets": 307904
+  }
+}
