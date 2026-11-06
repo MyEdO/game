@@ -151,7 +151,7 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
     launch(false, 45, { modes: ['barque-fluviale' as never, 'pied'] });
     get().startTravel('r-reik', 'barque-fluviale' as never, { cadence: 'jour-par-jour' });
     const pc = get().pendingCascade!;
-    expect(pc.participants.find((s) => s.kind === 'riverNav')?.label).toBe(composeRollLabel(undefined, t('step.navigation'), { skill: 'ramer' }));
+    expect(pc.participants.find((s) => s.kind === 'riverNav')?.label).toBe(composeRollLabel(undefined, t('step.navigation'), { skill: { id: 'ramer' } }));
   });
 
   it('un pilote doté de Savoir (Voies fluviales) le voit crédité au Test de Navigation (+1 DR, l.13)', () => {
@@ -598,8 +598,8 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     // Le redressement est un Test de NAVIGATION : le barreur et son Soutien sont RE-RÉSOLUS au moment
     // de l'insertion (#1153 décision (c)) — la cible suit la composition RÉELLE du bord, pas une valeur
     // figée à la construction du jour.
-    const pilote = partyAssisted(get().party, 'voile', undefined, undefined, 'chaland')!;
-    expect(r1!.base).toBe(skillBaseValue(pilote.actor, 'voile', 'chaland')); // Niveau de Compétence NU
+    const pilote = partyAssisted(get().party, { skill: { id: 'voile', spec: 'chaland' } })!;
+    expect(r1!.base).toBe(skillBaseValue(pilote.actor, { skill: { id: 'voile', spec: 'chaland' } })); // Niveau de Compétence NU
     expect(r1!.target).toBe(pilote.value + DIFFICULTY_MODIFIERS.accessible);
     expect(malus(r1!)).toEqual([]); // aucun MALUS de navigation au 1ᵉʳ Round
     expect(inexplique(r1!)).toBe(0); // …et rien d'anonyme : le Soutien lui-même est nommé
@@ -622,7 +622,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     // MSRC 7 l.40
     expect(lignesDe(round1!.mods, RULE_REF['navigation-chavirage']))
       .toEqual([{ label: t('rv.rightingCumul', { n: 2 }), value: -5, famille: 'circonstance', ref: RULE_REF['navigation-chavirage'] }]);
-    const pilote2 = partyAssisted(get().party, 'voile', undefined, undefined, 'chaland')!;
+    const pilote2 = partyAssisted(get().party, { skill: { id: 'voile', spec: 'chaland' } })!;
     expect(round1!.target).toBe(pilote2.value + DIFFICULTY_MODIFIERS.accessible - 5);
     expect(inexplique(round1!)).toBe(0);
     expect(get().travelPlan!.river!.sunk).toBeFalsy();
@@ -839,21 +839,21 @@ describe('Navigation du jour — base NUE + Soutien NOMMÉ, cible invariante (#1
   it('barreur EMPOISONNÉ soutenu : `base` = Compétence NUE, chip « Soutien », cible = valeur soutenue', () => {
     launch(false, 45);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
-    const { id: skillId, spec } = propulsionDuNavire(plan.vehicle!.creatureId, plan.vehicle!.upgrades, 'fluvial')!.competence;
+    const competence = propulsionDuNavire(plan.vehicle!.creatureId, plan.vehicle!.upgrades, 'fluvial')!.competence;
     // Tout l'équipage sait manœuvrer (chacun est donc ÉLIGIBLE au Soutien, l.195) et tout le monde
     // est EMPOISONNÉ (eau croupie du bord) : quel que soit le barreur retenu, l'État mord SA valeur
     // jetée sans toucher son Niveau de Compétence.
     const party = get().party.map((h) => {
       const c = { ...h, skills: h.skills.map((s) => ({ ...s })), conditions: [{ id: 'empoisonne', value: 1 }] as never };
-      skill(c, skillId, 5, spec);
+      skill(c, competence.id, 5, competence.spec);
       return c;
     });
     set({ party, travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere' } } });
 
-    const picked = partyAssisted(get().party, skillId, undefined, undefined, spec)!;
+    const picked = partyAssisted(get().party, { skill: competence })!;
     const lead = picked.actor;
-    const nue = skillBaseValue(lead, skillId, spec);
-    const jetee = testValue(lead, { skill: { id: skillId, spec } });
+    const nue = skillBaseValue(lead, { skill: competence });
+    const jetee = testValue(lead, { skill: competence });
     expect(jetee, 'l’État mord le jet, pas le Niveau de Compétence').toBeLessThan(nue);
     expect(picked.support.bonus, 'les camarades éligibles soutiennent (l.195)').toBeGreaterThan(0);
 
@@ -912,7 +912,7 @@ describe('#1111 — le libellé de l’étape de Navigation est celui de `compos
     const nav = get().pendingCascade!.participants.find((s) => s.kind === 'riverNav')!;
     const coque = get().travelPlan!.vehicle!;
     const competence = propulsionDuNavire(coque.creatureId, coque.upgrades, 'fluvial')!.competence;
-    expect(nav.label).toBe(composeRollLabel(undefined, t('step.navigation'), { skill: competence.id, spec: competence.spec }));
+    expect(nav.label).toBe(composeRollLabel(undefined, t('step.navigation'), { skill: competence }));
     expect(nav.label).toBe(`Navigation (${refLabel('skills', { id: competence.id, spec: competence.spec })})`);
   });
 });
@@ -951,7 +951,7 @@ describe('#1341 — la spec d’un Test se demande par ID (la donnée en stocke 
   it('le site réel (`bestShipwright` → étape de calfatage) jauge le charpentier AVEC ses avances', () => {
     const h = charpentier();
     // MÊME chemin que `bestShipwright` : `partyAssisted(party, 'metier', undefined, undefined, <spec>)`.
-    const parId = partyAssisted([h], 'metier', undefined, undefined, 'charpentier');
+    const parId = partyAssisted([h], { skill: { id: 'metier', spec: 'charpentier' } });
     expect(parId?.value, 'la porte du seam voit la compétence du charpentier').toBe(60);
   });
 
@@ -975,9 +975,9 @@ describe('#1341 — la spec d’un Test se demande par ID (la donnée en stocke 
     expect(repair, 'gréement brisé → une étape de réparation est montée').toBeTruthy();
     // Gunnar a Métier (Construction de bateaux) 40 avances : c'est LUI le meilleur réparateur, et sa
     // valeur ne se lit que si la spec est demandée par ID.
-    const attendu = partyAssisted(get().party, 'metier', undefined, undefined, 'construction-de-bateaux')!;
+    const attendu = partyAssisted(get().party, { skill: { id: 'metier', spec: 'construction-de-bateaux' } })!;
     expect(attendu.value, 'la fixture a bien un réparateur compétent').toBeGreaterThan(45);
     expect(repair!.base, 'Niveau de Compétence NU du réparateur (jamais la carac nue)')
-      .toBe(skillBaseValue(attendu.actor, 'metier', 'construction-de-bateaux'));
+      .toBe(skillBaseValue(attendu.actor, { skill: { id: 'metier', spec: 'construction-de-bateaux' } }));
   });
 });

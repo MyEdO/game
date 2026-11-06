@@ -45,7 +45,7 @@ import { gainCorruption, poseCorruptionPending, expositionPending } from './corr
 import { fireOwnTestFailed } from './triggeredEffects';
 import { applyMiscast } from './combatFlow';
 import { buySpell as partyBuySpell, depenserPx } from './partyFlow';
-import { idsDuTest, type SupportDetail } from '../engine/skills';
+import type { SupportDetail } from '../engine/skills';
 import { rule } from '../engine/policy';
 import { groupsFor } from '../engine/groups';
 import type { ChaosAlign, ExposureLevel } from '../engine/corruption';
@@ -66,7 +66,7 @@ import type { EffectSource } from '../engine/types';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import { gelerLaConstante } from '../lib/gelerProfond';
-import { memeSpecialisation } from '../data/schemas/grammaire/ref';
+import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
@@ -385,8 +385,7 @@ export interface PendingActivityFields extends PendingBase {
   /** Compétence du Test retenue par le pré-jet (`preJetDActivite`) ou par l'ouverture d'un Test de
    *  bataille : l'Entraînement au Combat (LDB 23 l.205-209) en SCOPE son jeton d'inversion, l'inversion
    *  (LDB 12 l.42) la lit, la modale en décompose la valeur. */
-  chosenSkill?: string;
-  chosenSkillSpec?: string;
+  chosenSkill?: RefDesignee;
 }
 
 const heroState = (s: Jeu, heroId: string) => s.interlude?.perHero[heroId];
@@ -535,15 +534,14 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     extra.label = stepDetail(dataLabel(def.label), dataLabel(formatMoney(fromBrass(cost))));
   }
   const preJet = preJetDActivite(get(), heroId, def, opts) ?? ouverteSansCible(def);
-  const ids = idsDuTest(preJet.test);
   // Modificateurs NOMMÉS du pré-jet, fondus en UNE ligne de mod (`pa.mod`/`modLabel`), comme la Menace.
   const mod = preJet.mods.reduce((n, m) => n + m.value, 0);
   const ligneDeMod = mod ? { mod, modLabel: preJet.mods.map((m) => m.label).join(' + ') } : {};
-  const competence = ids.skill ? { chosenSkill: ids.skill, ...(ids.spec ? { chosenSkillSpec: ids.spec } : {}) } : {};
+  const competence = preJet.test.skill ? { chosenSkill: structuredClone(preJet.test.skill) } : {}; // #2097
   set({
     pendingActivity: {
       heroId, kind: 'catalog', activityId, label: def.label,
-      skillLabel: testSkillLabel(ids), skillValue: preJet.value, ligne: preJet.ligne,
+      skillLabel: testSkillLabel(preJet.test), skillValue: preJet.value, ligne: preJet.ligne,
       roll: null, target: 0, sl: 0, success: false,
       ...ligneDeMod,
       ...competence,
@@ -782,9 +780,9 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // la Compétence associée une fois pendant votre prochaine aventure » — jeton d'inversion SCOPÉ
       // (op existant, MÊME canal que « Observer une cible »).
       if (!pa.chosenSkill) return { lines: [] };
-      const skillLabel = refLabel('skills', { id: pa.chosenSkill, spec: pa.chosenSkillSpec });
+      const skillLabel = refLabel('skills', pa.chosenSkill);
       if (!pa.success) return { lines: [msg('if.combatTrainingKo', { name: h.label, skill: skillLabel })] };
-      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: { id: pa.chosenSkill, ...(pa.chosenSkillSpec ? { spec: pa.chosenSkillSpec } : {}) } }], { rng: battleRng(), label: pa.label, source: activitySource(pa) }) };
+      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { rng: battleRng(), label: pa.label, source: activitySource(pa) }) };
     }
     case 'punchausen': {
       // Fabuleuse Vente du comte de Punchausen (AA 12 l.45-49) : « vous recevez 2d10 pistoles et […]
@@ -794,7 +792,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const pistoles = roll(2, 10, battleRng());
       const gain = fromBrass(pistoles * PA_PER_SC);
       // Jeton posé AVANT le crédit : `creditBourse` clone le groupe et capte la mutation de `h`.
-      const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: { id: pa.chosenSkill, ...(pa.chosenSkillSpec ? { spec: pa.chosenSkillSpec } : {}) } }], { rng: battleRng(), label: pa.label, source: activitySource(pa) });
+      const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { rng: battleRng(), label: pa.label, source: activitySource(pa) });
       creditBourse(get, set, h.id, gain); // revenu PERSO (vente du récit DE ce héros), pas partagé par tête
       return { lines: [msg('if.punchausenOk', { name: h.label, money: formatMoney(gain) }), ...tokenLines] };
     }
@@ -927,7 +925,7 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
       if (!entraine.skills.some((k) => k.id === id && memeSpecialisation(k.spec, spec))) {
         entraine.skills.push({ id: id, spec, characteristic: skillCharacteristicById(id), advances: 0 });
       }
-      r = engineBuySkillAdvance(entraine, id, spec, false);
+      r = engineBuySkillAdvance(entraine, { id, spec }, false);
     }
     if (!r.ok) return lu;
     entraine.fortune = (entraine.fortune ?? 0) + (fortuneMax(entraine) - fortuneBefore); // Sociabilité (Chance/Fortune)

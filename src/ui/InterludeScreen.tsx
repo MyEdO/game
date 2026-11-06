@@ -447,7 +447,7 @@ const withStake = (p: PendingRoll, activityId: string): PendingRoll =>
 
 /** Puce du Test que retient un pré-jet : sa Compétence (Spé comprise), ou sa Caractéristique. */
 function PuceDuTest({ test }: { test: TestDesigne }) {
-  return 'skill' in test
+  return test.skill
     ? <SkillChip skillId={test.skill.id} show={test.skill.spec ? skillInstanceLabel(test.skill) : undefined} />
     : <b>{CHAR_LABELS[test.characteristic]}</b>;
 }

@@ -2,8 +2,8 @@
 ## (`monde`, `CONTRAT.md`, section « Monde ») à l'échelle d'une unité par case, rendu et touché des deux côtés, sa lumière,
 ## et la caméra pivotante (Q/E, par quart de tour) et zoomable (molette) centrée sur lui. Il rend la case du triangle que
 ## le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
-## surbrillance que lui passe qui l'instancie, les arêtes de la scène (murs, portes, seuils des portes ouvertes) et l'arête
-## choisie ; tout autre chose posée sur le monde appartient à qui l'instancie.
+## surbrillance que lui passe qui l'instancie, les arêtes de la scène (murs, portes, seuils des portes ouvertes), l'arête
+## choisie et le calque de référence de l'éditeur ; tout autre chose posée sur le monde appartient à qui l'instancie.
 class_name Monde
 extends Node3D
 
@@ -29,6 +29,8 @@ const ITEM_SURVOL := 2
 @export var couleur_des_sommets: StandardMaterial3D
 ## Le modèle de la matière d'une surface texturée, projetée sur ses trois axes (triplanaire) dans le repère du volume.
 @export var matiere_texturee: StandardMaterial3D
+## La matière du calque de référence, sans ombrage, transparente, vue des deux côtés.
+@export var matiere_du_calque: StandardMaterial3D
 
 @onready var _volume: Node3D = $Volume
 @onready var _maillage: MeshInstance3D = $Volume/Maillage
@@ -38,6 +40,7 @@ const ITEM_SURVOL := 2
 @onready var _surbrillance: Node3D = $Surbrillance
 @onready var _aretes: Node3D = $Aretes
 @onready var _arete_choisie: MeshInstance3D = $AreteChoisie
+@onready var _calque: MeshInstance3D = $Calque
 
 ## La case `[x, y]` de chaque triangle du maillage du monde, dans son ordre.
 var _cases_des_triangles: Array = []
@@ -49,6 +52,8 @@ var _aretes_posees: Array = []
 var _couche_des_aretes := 0
 ## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
 var _matieres := {}
+## Les mètres d'une case du dernier monde posé.
+var _metres_par_case := 1.0
 var _pivotement: Tween
 
 
@@ -62,6 +67,7 @@ func _ready() -> void:
 ## chaque couche, et la caméra centrée sur lui. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque
 ## tableau retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui, que suivent leurs cases.
 func poser(monde: Dictionary) -> void:
+	_metres_par_case = monde.metresParCase
 	var echelle := MiseEnPage.echelle_metrique(monde.metresParCase)
 	_volume.scale = Vector3(echelle, echelle, echelle)
 	_volume.position = MiseEnPage.centre_de_case(Vector2i.ZERO, 0.0)
@@ -194,6 +200,34 @@ func _poser_sur_l_arete(instance: MeshInstance3D, mesh: BoxMesh, a: Dictionary, 
 	instance.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), sol(Vector2i(int(a.case.x), int(a.case.y)), z), mesh.size.y)
 	instance.rotation.y = MiseEnPage.lacet_d_arete(sens)
 	instance.scale.x = MiseEnPage.longueur_d_arete(sens)
+
+
+## Le calque de référence `calque` (`CONTRAT.md`, section « Éditeur ») sous la texture `planche`, ses quatre coins sur
+## son plan : juste au-dessus du sol et par-dessus toute la scène s'il passe dessus, sinon juste dessous, à son opacité ;
+## aucun si `calque` est `null` ou sa planche absente.
+func poser_le_calque(calque: Variant, planche: Texture2D) -> void:
+	_calque.visible = calque != null and planche != null
+	if not _calque.visible:
+		return
+	var hauteur := MiseEnPage.hauteur_du_calque(calque.plan, _metres_par_case, MiseEnPage.DECALAGE_DU_CALQUE if calque.dessus else -MiseEnPage.DECALAGE_DU_CALQUE)
+	var tableaux := []
+	tableaux.resize(Mesh.ARRAY_MAX)
+	tableaux[Mesh.ARRAY_VERTEX] = PackedVector3Array(calque.coins.map(func(c: Dictionary) -> Vector3: return MiseEnPage.point_de_la_carte(c.x, c.y, hauteur)))
+	tableaux[Mesh.ARRAY_TEX_UV] = PackedVector2Array([Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)])
+	tableaux[Mesh.ARRAY_INDEX] = PackedInt32Array([0, 1, 2, 0, 2, 3])
+	var maillage := ArrayMesh.new()
+	maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
+	_calque.mesh = maillage
+	var matiere := matiere_du_calque.duplicate() as StandardMaterial3D
+	matiere.albedo_texture = planche
+	matiere.albedo_color = Color(1, 1, 1, calque.opacite)
+	matiere.no_depth_test = calque.dessus
+	_calque.material_override = matiere
+
+
+## Si le calque de référence est posé sur le monde.
+func calque_pose() -> bool:
+	return _calque.visible
 
 
 ## Le point de l'écran du lieu `lieu` du monde.

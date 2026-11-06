@@ -144,7 +144,7 @@ function apresHalle(get: Get, set: Set): void {
   // carte porteurs d'un `market` (aucun catalogue neuf). #274 sweep : ce Test était un `rollTest` inline
   // silencieux (jamais interrogeable/surfacé au MJ) — migré sur la porte `openRoll`.
   openPartyTest(get, set, {
-    skill: 'ragot', assisted: false,
+    skill: { id: 'ragot' }, assisted: false,
     actionLabel: 'Rumeur commerciale',
     difficulty: shiftDifficulty(gossipRule.difficulty, gossipRule.mod),
     stake: combatStakeRef(LAND_GOSSIP_KIND),
@@ -190,11 +190,11 @@ export function landEvalWine(get: Get, set: Set, cargoId: string): void {
   if (!offer || !offer.wine || offer.wineTier) return; // pas du vin, ou déjà évalué
   const refus = appraiseRefus(get().party);
   if (refus) { log(get, set, [refus]); return; }
-  const best = partyBest(get().party, APPRAISE_SKILL.evaluate.skill)!;
+  const best = partyBest(get().party, { skill: APPRAISE_SKILL.evaluate.skill })!;
   const diff = wineEvalDifficulty(testValue(best.actor, { skill: { id: 'resistance-a-l-alcool' } }));
   // #274 sweep : `rollTest` inline silencieux — migré sur `openRoll`.
   openPartyTest(get, set, {
-    skill: 'evaluation', assisted: false,
+    skill: { id: 'evaluation' }, assisted: false,
     actionLabel: `Évaluer ${offer.label}`,
     difficulty: diff,
     stake: combatStakeRef(LAND_WINE_EVAL_KIND),
@@ -228,7 +228,7 @@ function bargainOpposed(best: NonNullable<ReturnType<typeof partyAssisted>>, mer
   // Les deux nues passent par le CANAL `bases` d'`opposedTest` (jamais reposées après coup) : le meneur
   // oppose son Niveau de Compétence NU (accesseur canon) et le marchand sa valeur, qui EST nue.
   return opposedTest(best.value, merchant, rng, 'intermediaire', 'intermediaire', {
-    attacker: skillBaseValue(best.actor, 'marchandage'), defender: merchant,
+    attacker: skillBaseValue(best.actor, { skill: { id: 'marchandage' } }), defender: merchant,
   });
 }
 
@@ -300,7 +300,7 @@ export function landBuyCargo(get: Get, set: Set, cargoId: string, enc: number): 
   if (devis.refus) { refuserGeste(get, set, raisonDuRefusDAchatDeCargaison(devis.refus)); return; }
   const { offre: offer, porteur: carrier, enc: want, partiel: partial } = devis;
   const rng = battleRng();
-  const best = partyAssisted(get().party, 'marchandage');
+  const best = partyAssisted(get().party, { skill: { id: 'marchandage' } });
   const merchant = rollMerchantSkill(rng); // petit marchand : 2d10 + 30 (l.129)
   let pct = 0; // % appliqué au prix (négatif = remise pour l'acheteur)
   let bargainLine = 'Aucun marchandeur dans le groupe — prix plein.';
@@ -374,7 +374,7 @@ function finishLandSale(get: Get, set: Set, carrierId: string, cargoIndex: numbe
   if (avant.length) log(get, set, avant);
   const rng = battleRng();
   const offerPct = sellOfferPct(st.market);
-  const best = partyAssisted(get().party, 'marchandage');
+  const best = partyAssisted(get().party, { skill: { id: 'marchandage' } });
   const merchant = rollMerchantSkill(rng);
   let bargainPctVal = 0;
   let bargainLine = 'Aucun marchandeur — mise à prix prise telle quelle.';

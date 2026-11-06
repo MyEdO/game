@@ -276,7 +276,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
       const tg = v.targets.find((x) => x.ok) ?? v.targets[0];
       const lignes: [string, string | null, () => ResultatDeLAppel][] = [
         ['Caractéristique', c.refus, () => partie.envoyer({ type: 'buyCharAdvance', args: [heros.id, c.key] })],
-        ['Compétence', sk.refus, () => partie.envoyer({ type: 'buySkillAdvance', args: [heros.id, sk.skillId, sk.spec] })],
+        ['Compétence', sk.refus, () => partie.envoyer({ type: 'buySkillAdvance', args: [heros.id, sk.skill] })],
         ['Talent', ta.refus, () => partie.envoyer({ type: 'buyTalent', args: [heros.id, ta.talentId!, ta.spec] })],
         ['Carrière', tg.refus, () => partie.envoyer({ type: 'changeCareer', args: [heros.id, tg.career, tg.level] })],
       ];

@@ -195,7 +195,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     approachFearTrigger(g, banc.setState, E, { x: 15, y: 10 }, { x: 12, y: 10 });
     const rangee = g().pendingCascade!.participants.find((s) => s.kind === 'triggeredBatchTest')!.participants!.find((p) => p.id === H.id)!;
     const { skill, difficulty } = testDeFiche('calme-d-approche', 'source-se-rapproche');
-    expect({ skillId: rangee.skillId, difficulty: rangee.difficulty }).toEqual({ skillId: skill.id, difficulty });
+    expect({ skill: rangee.skill, difficulty: rangee.difficulty }).toEqual({ skill, difficulty });
   });
 
   it('Focalisation interrompue : l’étape porte le Test de `interruption-de-focalisation`', () => {

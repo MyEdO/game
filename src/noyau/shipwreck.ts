@@ -174,7 +174,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
     return {
       id: `shipwreck-${h.id}`, kind: 'shipwreckSwim', actorId: h.id, icon: 'nautical/swim',
       label: t('step.natation'), rollLabel: refLabel('skills', { id: 'natation' }), difficulty: diff,
-      ...rollStep({ actor: h, test: { skill: 'natation', characteristic: 'force' }, difficulty: diff }),
+      ...rollStep({ actor: h, test: { skill: { id: 'natation' }, characteristic: 'force' }, difficulty: diff }),
       stake: voyageStakeRef('shipwreckSwim'),
       result,
       meta,

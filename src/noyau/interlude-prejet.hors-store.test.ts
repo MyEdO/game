@@ -15,7 +15,7 @@ import { withBourseMoney } from '../engine/bourse';
 import { activitiesFor, activityById, craftCatalog, craftSpecOf, craftTarget, learnableTalents, metierOf } from '../engine/activities';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { learnableSpells } from '../engine/grimoire';
-import { idsDuTest, soutienMod, testValue } from '../engine/skills';
+import { soutienMod, testValue } from '../engine/skills';
 import { findTrappingById, spells, testSkillLabel } from '../data';
 import { ciblesDActivite, preJetDActivite, refusDOuvertureDActivite, type CiblesChoisies } from './verdictsDInterlude';
 import { battleActivityById, battlePrepEntries, preJetDePreparation, refusDePrepaDeBataille } from './massBattleFlow';
@@ -146,7 +146,7 @@ function confronte(o: ReturnType<typeof ouvrir>, id: string, oracle: { test: str
   expect(pa?.activityId, 'témoin : le geste ouvre le jet').toBe(id);
   expect({ test: pa!.skillLabel, valeur: pa!.skillValue, difficulte: pa!.difficulty }, 'jet posé').toEqual(oracle);
   expect(preJet, 'le volet a un pré-jet').toBeDefined();
-  expect({ test: testSkillLabel(idsDuTest(preJet!.test)), valeur: preJet!.value, difficulte: preJet!.difficulty }, 'pré-jet').toEqual(oracle);
+  expect({ test: testSkillLabel(preJet!.test), valeur: preJet!.value, difficulte: preJet!.difficulty }, 'pré-jet').toEqual(oracle);
   expect(preJet!.mods.reduce((n, m) => n + m.value, 0), 'modificateurs').toBe(pa!.mod ?? 0);
 }
 
@@ -179,7 +179,7 @@ describe('Pré-jet d’Activité — la voie retenue est TENTABLE (LDB 09 l.30)'
       b.setState((s) => ({ party: [...s.party] }));
     }, 1607);
     expect(testValue(h, { skill: { id: 'projectiles' } }), 'témoin : la valeur nue de Projectiles dépasse Corps à corps').toBeGreaterThan(testValue(h, { skill: { id: 'corps-a-corps' } }));
-    expect([pa!.chosenSkill, pa!.skillValue]).toEqual(['corps-a-corps', testValue(h, { skill: { id: 'corps-a-corps' } })]);
+    expect([pa!.chosenSkill, pa!.skillValue]).toEqual([{ id: 'corps-a-corps' }, testValue(h, { skill: { id: 'corps-a-corps' } })]);
     expect(preJet!.test).toEqual({ skill: { id: 'corps-a-corps' } });
   });
 });
@@ -323,7 +323,7 @@ function confronteAuVolet(b: Banc, heroId: string, def: ActivityDef, cibles: Cib
   if (refus != null || pj.refus != null) ecarts.push(`${ctx} ${def.id} : jet posé malgré le refus « ${refus ?? pj.refus} »`);
   b.actions.jetRoll('activity');
   const lance = b.getState().pendingActivity!;
-  const affiche = { test: testSkillLabel(idsDuTest(pj.test)), valeur: pj.value, difficulte: pj.ligne.difficulty, mod: pj.mods.reduce((n, m) => n + m.value, 0), cible: pj.ligne.target };
+  const affiche = { test: testSkillLabel(pj.test), valeur: pj.value, difficulte: pj.ligne.difficulty, mod: pj.mods.reduce((n, m) => n + m.value, 0), cible: pj.ligne.target };
   const jet = { test: pa.skillLabel, valeur: pa.skillValue, difficulte: pa.difficulty, mod: pa.mod ?? 0, cible: lance.target };
   if (JSON.stringify(affiche) !== JSON.stringify(jet)) ecarts.push(`${ctx} ${def.id} affiché ${JSON.stringify(affiche)} ≠ posé ${JSON.stringify(jet)}`);
   confrontees.add(def.id);

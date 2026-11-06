@@ -79,9 +79,9 @@ describe('Test étendu : le Round s’inverse sur la Compétence du Test', () =>
 });
 
 describe('Activité : Talents partout, jetons d’aventure sur les seules Scènes de bataille', () => {
-  const activite = (chosenSkill: string, over: Partial<PendingActivity> = {}): PendingActivity => ({
+  const activite = (skillId: string, over: Partial<PendingActivity> = {}): PendingActivity => ({
     heroId: 'H', kind: 'catalog', label: 'A', skillLabel: 'A', skillValue: 55, difficulty: 'intermediaire', ligne: {} as never,
-    roll: 64, target: 55, sl: -1, success: false, chosenSkill, ...over,
+    roll: 64, target: 55, sl: -1, success: false, chosenSkill: { id: skillId }, ...over,
   } as PendingActivity);
 
   it('Studieux sur la Recherche d’une Activité d’interlude : offert 46', () => {
@@ -141,7 +141,7 @@ describe('Battement : le Test de Corps à corps s’inverse', () => {
 });
 
 describe('À sang-froid sur une rangée de Psychologie PILOTÉE (LDB 85 l.13)', () => {
-  const RANGEE: BatchParticipant = { id: 'H', interactive: true, base: 55, target: 55, skillId: 'calme', result: { roll: 64, target: 55, sl: -1, success: false } };
+  const RANGEE: BatchParticipant = { id: 'H', interactive: true, base: 55, target: 55, skill: { id: 'calme' }, result: { roll: 64, target: 55, sl: -1, success: false } };
   const bande = (banc: Banc, h: Combatant) => banc.setState({
     battle: { combatants: [h], log: [] } as never,
     pendingCascade: cascadeDeTest([{ id: 'b1', kind: cleDeFixture('combatPsych'), contexte: 'psych', aggregate: 'none', participants: [{ ...RANGEE }] }]),
@@ -164,7 +164,7 @@ describe('À sang-froid sur une rangée de Psychologie PILOTÉE (LDB 85 l.13)', 
 
 describe('Mécénat (ACE 12 l.60-62) : jeton de Sociabilité face à l’amateur que la fiche déclare', () => {
   const testSocial = (skillId: string, contexte?: PendingTest['contexte']): PendingTest => ({
-    actorId: 'H', actorName: 'H', label: 'T', skillId, skillValue: 55, difficulty: 'intermediaire', requireSL: 0, target: 55,
+    actorId: 'H', actorName: 'H', label: 'T', sujet: { skill: { id: skillId } }, skillValue: 55, difficulty: 'intermediaire', requireSL: 0, target: 55,
     roll: 64, success: false, sl: -1, isDouble: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW, after: EMPTY_FLOW,
     ...(contexte ? { contexte } : {}),
   } as PendingTest);

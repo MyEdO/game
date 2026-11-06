@@ -7,6 +7,7 @@ import { actionGate, runAction } from '../noyau/actionRegistry';
 import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { sceneNpc } from '../noyau/monde/sceneNpc';
 import { refusDeSauvegarde } from '../noyau/persistance/save';
+import { refusDeFinDeSeance } from '../noyau/partyFlow';
 import type { IconIdInput } from '../data/icons';
 import { ciblageEntiteArme } from '../noyau/targetingModes';
 import { MondeDeCampagne } from '../gameIso/stage/MondeDeCampagne';
@@ -120,7 +121,8 @@ export function CampaignView() {
   const battle = useGame((s) => s.battle);
   const merchant = useGame((s) => s.merchant);
   const finDeSeance = useGame((s) => s.finDeSeance);
-  const openSessionEnd = useGame((s) => s.openSessionEnd);
+  const ouvrirLaFinDeSeance = useGame((s) => s.ouvrirLaFinDeSeance);
+  const refusFinDeSeance = useGame(refusDeFinDeSeance);
   const fermer = useGame((s) => s.fenetreFermer);
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
   const roundStartPromote = useGame((s) => s.roundStartPromote);
@@ -283,7 +285,7 @@ export function CampaignView() {
             (`ScreenMeta`), les ouvreurs d'écrans à l'extrémité droite du pont d'exploration hors
             combat, sur le rail d'outils en combat. Sauvegarder : sauf `refusDeSauvegarde`. */}
         <Row className="hud-topbar" align="start">
-        <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={() => setSaveOpen(true)} refusDeSauvegarde={refusSave} onFinDeSeance={openSessionEnd} refusDeFinDeSeance={mode !== 'exploration' ? t('gameMenu.finDeSeance.horsExploration') : netMode === 'guest' ? t('gameMenu.finDeSeance.invite') : null} />
+        <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={() => setSaveOpen(true)} refusDeSauvegarde={refusSave} onFinDeSeance={ouvrirLaFinDeSeance} refusDeFinDeSeance={refusFinDeSeance} />
         {/* Lieu courant : premier étage de la pile — le nom de la scène se lit sur le HUD, sans ouvrir
             le menu. Sans nom authoré, aucune plaque (rien à annoncer). La MATIÈRE du nom est celle du
             chrome de nom (`CodexTitre`), posée sur le halo partagé des textes du monde nu. */}

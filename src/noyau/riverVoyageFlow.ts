@@ -173,7 +173,7 @@ export function hasBatelier(party: Combatant[], competence: RefDesignee): boolea
 
 /** `c` a-t-il augmenté `competence` (LDB 09 l.30, l.571) ? PUR. */
 function aAugmente(c: Combatant, competence: RefDesignee): boolean {
-  return possesses(c, competence.id, competence.spec) && (c.skills ?? []).some((s) => refCouvre({ id: competence.id }, s) && s.advances > 0);
+  return possesses(c, competence) && (c.skills ?? []).some((s) => refCouvre({ id: competence.id }, s) && s.advances > 0);
 }
 
 /** La coque d'une descente JOUABLE : un bateau et un batelier — `null` sinon (→ repli transport payant) ;
@@ -227,7 +227,7 @@ function arriveRiver(get: Get, set: Set, to: MapPlace): void {
 
 /** Meilleur pilote (barreur/rameur) de l'équipage apte avec Soutien (LDB 12) pour la Compétence de Navigation. */
 function riverPilot(get: Get, competence: RefDesignee) {
-  return partyAssisted(equipageApte(get().party), competence.id, undefined, undefined, competence.spec);
+  return partyAssisted(equipageApte(get().party), { skill: competence });
 }
 
 /**
@@ -341,7 +341,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   // testent la MÊME grandeur (même barreur, même Compétence, même Soutien) — seuls la Difficulté et
   // les modificateurs de situation changent.
   const pilotLigne: BandLigne | undefined = pilot
-    ? { test: { skill: competence.id, spec: competence.spec }, valeur: pilot.value, soutien: pilot.support }
+    ? { test: { skill: competence }, valeur: pilot.value, soutien: pilot.support }
     : undefined;
 
   // 1. Réparation du gréement/avirons brisés d'une étape précédente (l.78-82 / note 5) : rend le contrôle.
@@ -358,12 +358,12 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   if (pilot) {
     const savoir = savoirVoiesFluvialesBonus(pilot.actor);
     const navTest = riverNavTest(river, eff);
-    pousseSi(steps, riverStep('river-nav', 'riverNav', pilot.actor, composeRollLabel(undefined, t('step.navigation'), { skill: competence.id, spec: competence.spec }), 'travel/sail-ship',
+    pousseSi(steps, riverStep('river-nav', 'riverNav', pilot.actor, composeRollLabel(undefined, t('step.navigation'), { skill: competence }), 'travel/sail-ship',
       refLabel('skills', competence), { ...pilotLigne!, surLaCible: navTest.mods }, navTest.difficulty, { savoir },
       { stake: voyageStakeRef('riverNav', { driftKm: Math.round(riverDriftKm(baseKm)), driftPct: driftPctOfSpeed() }) }));
   } else {
     // Personne ne peut tenter la Navigation : ÉCHEC sans jet, conséquence de l'échec (LDB 09 l.30 ; #2588 Q1).
-    logs.push(refusPersonneNePeutTenter({ skill: competence.id, spec: competence.spec }), t('rv.noPilot'));
+    logs.push(refusPersonneNePeutTenter({ skill: competence }), t('rv.noPilot'));
     dayCtx.forceDrift = !riverControlKept(ECHEC_SANS_JET.success, ECHEC_SANS_JET.sl, 0);
     set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, day: { ...dayCtx } } } });
   }
@@ -590,7 +590,7 @@ function rightingStep(get: Get, source: CascadeStep, round: number, be: number):
     // (`testValueSplit` : « rien à décomposer » dès qu'aucune compétence ni caractéristique n'est
     // déclarée), porteur nommé ou non. Les deux régimes passent donc par la MÊME entrée `ligne`.
     ligne: pilot
-      ? { test: { skill: competence.id, spec: competence.spec }, valeur: pilot.value, soutien: pilot.support, ...(cumul ? { surLaCible: cumul } : {}) }
+      ? { test: { skill: competence }, valeur: pilot.value, soutien: pilot.support, ...(cumul ? { surLaCible: cumul } : {}) }
       : { valeur: Number(source.meta?.pilotValue ?? source.base ?? 0), valeurEtrangere: true, ...(cumul ? { surLaCible: cumul } : {}) },
   });
 }
@@ -636,14 +636,14 @@ function applyBoatCritical(get: Get, set: Set, plan: TravelPlan, river: RiverVoy
  *  gréement) — rend AUSSI la DÉCLARATION du jet (`ligne`), le malus du réparateur de substitution
  *  compris : c'est ici, et nulle part ailleurs, qu'on sait quelle spécialisation a servi. */
 function bestShipwright(get: Get): { actor: Combatant; value: number; ligne: BandLigne } | null {
-  const build = partyAssisted(get().party, 'metier', undefined, undefined, SPEC.constructionBateaux);
+  const build = partyAssisted(get().party, { skill: { id: 'metier', spec: SPEC.constructionBateaux } });
   if (build) {
     return {
       actor: build.actor, value: build.value,
-      ligne: { test: { skill: 'metier', spec: SPEC.constructionBateaux }, valeur: build.value, soutien: build.support },
+      ligne: { test: { skill: { id: 'metier', spec: SPEC.constructionBateaux } }, valeur: build.value, soutien: build.support },
     };
   }
-  const c = partyAssisted(get().party, 'metier', undefined, undefined, SPEC.charpentier);
+  const c = partyAssisted(get().party, { skill: { id: 'metier', spec: SPEC.charpentier } });
   if (!c) return null;
   // Réparateur de SUBSTITUTION (`MSRC 5 l.113-117`) : le −10 est DÉJÀ fondu dans la valeur jetée,
   // donc il se déclare en `dansLaValeur` — le monteur le sort de la base et le rend en chip NOMMÉE.
@@ -652,7 +652,7 @@ function bestShipwright(get: Get): { actor: Combatant; value: number; ligne: Ban
   return {
     actor: c.actor, value,
     ligne: {
-      test: { skill: 'metier', spec: SPEC.charpentier }, valeur: value, soutien: c.support,
+      test: { skill: { id: 'metier', spec: SPEC.charpentier } }, valeur: value, soutien: c.support,
       dansLaValeur: [{ label: specLabel('skills', 'metier', SPEC.charpentier), value: penalty, famille: 'jet' as const, ref: { category: 'skills', id: 'metier' } }],
     },
   };
@@ -762,7 +762,7 @@ export function applyEchouage(get: Get, set: Set, tell: (l: string[]) => void): 
   const { penalite, encTxt } = echouagePenalty(get);
   // Chemin IA/synchrone (`riverEchouageForce` gate l'acteur JOUEUR ci-dessus) : aucune rangée nulle
   // part pour ce jet — le journal est la SEULE surface, il PORTE le jet (#295 Lot 5, gardé nominativement).
-  const force = partyAssisted(get().party, undefined, 'force');
+  const force = partyAssisted(get().party, { characteristic: 'force' });
   const res = force ? rollTest(force.value, ECHOUAGE_DIFFICULTY, battleRng(), penalite?.value ?? 0) : null;
   tell([t('rv.grounded', { dmg: echouageDamage(), suite: res ? t('rv.fragRefloat', { diff: DIFFICULTY_LABELS[ECHOUAGE_DIFFICULTY], enc: encTxt, roll: res.roll, target: res.target, issue: t(res.success ? 'rv.refloatOk' : 'rv.refloatKo') }) : t('rv.fragDot') })]);
 }
@@ -785,7 +785,7 @@ function echouagePenalty(get: Get): { penalite: ModLine | null; encTxt: string }
  *  devient une étape-jet INFLUENÇABLE (`riverEchouageForce`) quand le jet de l'acteur se surface —
  *  sinon délègue à `applyEchouage` (chemin IA/synchrone inchangé). */
 function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./rollSeam').FreeConsLine[]): BuiltCascadeStep[] {
-  const force = partyAssisted(get().party, undefined, 'force');
+  const force = partyAssisted(get().party, { characteristic: 'force' });
   if (!force || !surfaceOf(get, force.actor.id)) {
     applyEchouage(get, set, (l) => j.push(...l));
     return [];
@@ -979,7 +979,7 @@ export const TABLES = {
           id: `${step.id}-nav`, kind: 'riverPerilNav', actor: pilot.actor, icon: 'nautical/snag', label: stepDetail(dataLabel(peril.label), t('step.evitement')),
           rollLabel: String(step.meta?.navLabel ?? riverPilotSkillLabel(get)), difficulty: navBaseDifficulty(),
           ligne: {
-            test: { skill: competence.id, spec: competence.spec }, valeur: pilot.value, soutien: pilot.support,
+            test: { skill: competence }, valeur: pilot.value, soutien: pilot.support,
             surLaCible: navPenaltyMods({ drift: !!step.meta?.navDrift, outOfControl: !!step.meta?.navOutOfControl }),
           },
           stake: voyageStakeRef('riverPerilNav', { hits: onFail.hullHits, damagePerHit: onFail.damagePerHit }),
@@ -996,7 +996,7 @@ export const TABLES = {
         // (Force soutenue — bélier comme déblaiement), sinon le premier vivant. La porte de choix exige un
         // porteur : sans lui la fenêtre échoit à l'hôte, qui trancherait pour un autre siège.
         const decideur = step.actorId
-          ?? partyAssisted(get().party, undefined, 'force')?.actor.id
+          ?? partyAssisted(get().party, { characteristic: 'force' })?.actor.id
           ?? get().party.find((h) => !h.dead)?.id ?? '';
         const st = choiceStep({
           id: `${step.id}-obstacle`, kind: 'riverObstacleChoice', actorId: decideur, icon: 'ui/warning',

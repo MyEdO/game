@@ -428,7 +428,7 @@ describe('InterludeScreen — Punchausen (AA 12 l.45-49) : le volet et le flux J
 
     useGame.getState().interludeActivity(hero.id, 'punchausen');
     const pa = useGame.getState().pendingActivity!;
-    expect(pa.chosenSkill).toBe('divertissement'); // même voie que le volet
+    expect(pa.chosenSkill?.id).toBe('divertissement'); // même voie que le volet
     expect(pa.difficulty).toBe('intermediaire');
   });
 });

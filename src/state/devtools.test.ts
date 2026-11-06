@@ -106,7 +106,7 @@ describe('__wfrp — setup #1561', () => {
     expect(api.testCompetence(hero.id, { skill: { id: 'calme' }, stake: { authored: 'Setup de recette.' } })).toContain('ouvert');
     const pending = useGame.getState().pendingTest!;
     expect(pending.actorId).toBe(hero.id);
-    expect(pending.skillId).toBe('calme');
+    expect(pending.sujet?.skill?.id).toBe('calme');
     expect(pending.roll).toBeNull();
     expect(() => api.testCompetence(hero.id, { skill: { id: 'calme' }, stake: { authored: 'Setup de recette.' } })).toThrow(/déjà ouvert/);
     useGame.setState({ pendingTest: null });

@@ -105,10 +105,10 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     // est l'ATTAQUANT, pas le jeteur — rien ne se passe se lit donc « la victime RÉSISTE ».
     const { H, wielder } = setup();
     wielder.characteristics.force = 50;
-    const fNue = skillBaseValue(wielder, undefined, undefined, 'force'); // Force NUE de l'attaquant
+    const fNue = skillBaseValue(wielder, { characteristic: 'force' }); // Force NUE de l'attaquant
     // Aligne la Résistance NUE du héros sur elle (compense les avances de compétence : Résistance = E + avances).
-    H.characteristics.endurance += fNue - skillBaseValue(H, 'resistance');
-    expect(skillBaseValue(H, 'resistance')).toBe(fNue);
+    H.characteristics.endurance += fNue - skillBaseValue(H, { skill: { id: 'resistance' } });
+    expect(skillBaseValue(H, { skill: { id: 'resistance' } })).toBe(fNue);
     // Les valeurs TESTÉES suivent ici les nues (aucun État, aucun passif en jeu) — c'est ce qui rend les
     // CIBLES égales, donc les DR comparables sur un dé identique.
     expect(testValue(H, { skill: { id: 'resistance' } })).toBe(testValue(wielder, { characteristic: 'force' }));

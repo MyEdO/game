@@ -37,23 +37,23 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
     const a = mk({ sociabilite: 40 });
     const b = mk({ sociabilite: 60 });
     const c = mk({ sociabilite: 50 });
-    expect(partyBest([a, b, c], undefined, 'sociabilite')).toEqual({ actor: b, value: 60 });
+    expect(partyBest([a, b, c], { characteristic: 'sociabilite' })).toEqual({ actor: b, value: 60 });
   });
   it('partyBest sur groupe vide → null', () => {
-    expect(partyBest([], undefined, 'sociabilite')).toBeNull();
+    expect(partyBest([], { characteristic: 'sociabilite' })).toBeNull();
   });
   it('partyBest transmet la spécialisation à testValue (bonne instance de Métier)', () => {
     const h = mk({}, [
       { id: 'metier', advances: 10, spec: 'forgeron' },
       { id: 'metier', advances: 40, spec: 'serrurier' },
     ]);
-    const forgeron = partyBest([h], 'metier', undefined, undefined, 'forgeron')!;
-    const serrurier = partyBest([h], 'metier', undefined, undefined, 'serrurier')!;
+    const forgeron = partyBest([h], { skill: { id: 'metier', spec: 'forgeron' } })!;
+    const serrurier = partyBest([h], { skill: { id: 'metier', spec: 'serrurier' } })!;
     expect(serrurier.value - forgeron.value).toBe(30); // 40 − 10 d'avances, même caractéristique de base
   });
   it('partyAssisted — carac pure : tous soutiennent ; meneur + n×10 plafonné au Bonus de Carac', () => {
     const a = { ...mk({ sociabilite: 40 }), id: 'a' }, b = { ...mk({ sociabilite: 60 }), id: 'b' }, c = { ...mk({ sociabilite: 50 }), id: 'c' };
-    const r = partyAssisted([a, b, c], undefined, 'sociabilite')!;
+    const r = partyAssisted([a, b, c], { characteristic: 'sociabilite' })!;
     expect(r.actor.id).toBe('b'); // le plus compétent lance
     // Le détail nomme QUI soutient (`ids`, provenance de la chip « +20 Soutien ») — pas seulement combien.
     expect(r.support).toEqual({ count: 2, bonus: 20, ids: ['a', 'c'] }); // 2 soutiens × 10 (plafond BSoc 6)
@@ -74,7 +74,7 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
     const a = { ...mk({ dexterite: 50 }, [{ id: 'escamotage', advances: 20 }]), id: 'a' }; // 70, possède
     const b = { ...mk({ dexterite: 30 }), id: 'b' }; // ne possède pas → ne soutient pas
     const c = { ...mk({ dexterite: 40 }, [{ id: 'escamotage', advances: 5 }]), id: 'c' }; // 45, possède
-    const r = partyAssisted([a, b, c], 'escamotage')!;
+    const r = partyAssisted([a, b, c], { skill: { id: 'escamotage' } })!;
     expect(r.actor.id).toBe('a');
     expect(r.support.count).toBe(1); // seul c soutient
     expect(r.value).toBe(80); // 70 + 10
@@ -82,7 +82,7 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
   it('partyAssisted — plafonne au Bonus de Caractéristique du meneur', () => {
     const lead = { ...mk({ dexterite: 20 }, [{ id: 'escamotage', advances: 30 }]), id: 'L' }; // 50, BDex 2
     const helpers = [1, 2, 3, 4].map((n) => ({ ...mk({ dexterite: 10 }, [{ id: 'escamotage', advances: 1 }]), id: 'h' + n }));
-    const r = partyAssisted([lead, ...helpers], 'escamotage')!;
+    const r = partyAssisted([lead, ...helpers], { skill: { id: 'escamotage' } })!;
     expect(r.support.count).toBe(2); // 4 aptes, plafond BDex 2
     // Le plafond RETIENT les premiers éligibles : la provenance affichée compte autant de noms que de crans.
     expect(r.support.ids).toEqual(['h1', 'h2']);
@@ -91,7 +91,7 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
   it('partyAssisted — un membre à 0 Augmentation ne soutient PAS (LDB 12 l.195)', () => {
     const lead = { ...mk({ dexterite: 50 }, [{ id: 'escamotage', advances: 20 }]), id: 'L' }; // 70
     const novice = { ...mk({ dexterite: 40 }, [{ id: 'escamotage', advances: 0 }]), id: 'n' }; // 0 Augmentation
-    const r = partyAssisted([lead, novice], 'escamotage')!;
+    const r = partyAssisted([lead, novice], { skill: { id: 'escamotage' } })!;
     expect(r.actor.id).toBe('L');
     expect(r.support).toEqual({ count: 0, bonus: 0, ids: [] });
     expect(r.value).toBe(70); // aucun +10
@@ -99,7 +99,7 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
   it('partyAssisted — spec ciblée : l’Augmentation compte DANS cette spécialisation (l.195)', () => {
     const lead = { ...mk({ dexterite: 40 }, [{ id: 'metier', advances: 30, spec: 'serrurier' }]), id: 'L' }; // 70
     const autre = { ...mk({ dexterite: 40 }, [{ id: 'metier', advances: 20, spec: 'forgeron' }, { id: 'metier', advances: 0, spec: 'serrurier' }]), id: 'a' };
-    const r = partyAssisted([lead, autre], 'metier', undefined, undefined, 'serrurier')!;
+    const r = partyAssisted([lead, autre], { skill: { id: 'metier', spec: 'serrurier' } })!;
     expect(r.support).toEqual({ count: 0, bonus: 0, ids: [] });
   });
   it('soutienBonus/partyAssisted — filtre `eligible` (adjacence, LDB 12 l.196) exclut un membre capable écarté', () => {
@@ -107,7 +107,7 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
     const b = { ...mk({ dexterite: 40 }, [{ id: 'escamotage', advances: 10 }]), id: 'b' }; // possède, mais écarté (non adjacent)
     const c = { ...mk({ dexterite: 40 }, [{ id: 'escamotage', advances: 5 }]), id: 'c' }; // possède, éligible
     const eligible = (x: Combatant) => x.id !== 'b';
-    const r = partyAssisted([a, b, c], 'escamotage', undefined, undefined, undefined, eligible)!;
+    const r = partyAssisted([a, b, c], { skill: { id: 'escamotage' } }, undefined, eligible)!;
     expect(r.actor.id).toBe('a');
     expect(r.support.count).toBe(1); // seul c compte (b écarté par `eligible`)
     expect(r.value).toBe(80); // 70 + 10
@@ -115,7 +115,7 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
   it('soutienBonus — `eligible` absent (défaut) : comportement INCHANGÉ, tous les capables comptent', () => {
     const a = { ...mk({ dexterite: 50 }, [{ id: 'escamotage', advances: 20 }]), id: 'a' };
     const b = { ...mk({ dexterite: 40 }, [{ id: 'escamotage', advances: 10 }]), id: 'b' };
-    const r = partyAssisted([a, b], 'escamotage')!;
+    const r = partyAssisted([a, b], { skill: { id: 'escamotage' } })!;
     expect(r.support.count).toBe(1);
   });
   it('skillCharKeyById : compétence inconnue → undefined', () => {
@@ -205,22 +205,22 @@ describe('Spécialisation de Voile du navire (LDB 09 l.30, l.571 ; MDG 13 l.18)'
   const sansAugmentation = marin([{ id: 'voile', spec: 'caravelle', advances: 0 }]);
 
   it('la Spécialisation sœur se teste sur la Caractéristique nue ; la sienne, avec ses Augmentations', () => {
-    expect(skillBaseValue(caravelle, 'voile', 'chaland')).toBe(40);
+    expect(skillBaseValue(caravelle, { skill: { id: 'voile', spec: 'chaland' } })).toBe(40);
     expect(testValue(caravelle, { skill: { id: 'voile', spec: 'chaland' } })).toBe(40);
-    expect(skillBaseValue(caravelle, 'voile', 'caravelle')).toBe(60);
+    expect(skillBaseValue(caravelle, { skill: { id: 'voile', spec: 'caravelle' } })).toBe(60);
   });
 
   it('une Augmentation de Voile, quelle que soit sa Spécialisation, ouvre le Test ; sans elle, il ne se tente pas', () => {
-    expect(possesses(caravelle, 'voile', 'chaland')).toBe(true);
-    expect(possesses(sansVoile, 'voile', 'chaland')).toBe(false);
-    expect(possesses(sansAugmentation, 'voile', 'chaland')).toBe(false);
+    expect(possesses(caravelle, { id: 'voile', spec: 'chaland' })).toBe(true);
+    expect(possesses(sansVoile, { id: 'voile', spec: 'chaland' })).toBe(false);
+    expect(possesses(sansAugmentation, { id: 'voile', spec: 'chaland' })).toBe(false);
   });
 
   it('le barreur se choisit sur la Spécialisation du navire, sans Soutien de la sœur (LDB 12 l.195)', () => {
-    const surChaland = partyAssisted([caravelle, chaland], 'voile', undefined, undefined, 'chaland')!;
+    const surChaland = partyAssisted([caravelle, chaland], { skill: { id: 'voile', spec: 'chaland' } })!;
     expect([surChaland.actor, surChaland.value, surChaland.support.count]).toEqual([chaland, 55, 0]);
-    const surCaravelle = partyAssisted([caravelle, chaland], 'voile', undefined, undefined, 'caravelle')!;
+    const surCaravelle = partyAssisted([caravelle, chaland], { skill: { id: 'voile', spec: 'caravelle' } })!;
     expect([surCaravelle.actor, surCaravelle.value]).toEqual([caravelle, 60]);
-    expect(partyAssisted([sansVoile], 'voile', undefined, undefined, 'chaland')).toBeNull();
+    expect(partyAssisted([sansVoile], { skill: { id: 'voile', spec: 'chaland' } })).toBeNull();
   });
 });

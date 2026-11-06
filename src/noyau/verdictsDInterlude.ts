@@ -7,11 +7,11 @@ import { advancementBaseId, findCareerById, findSpellById, findTalentById, findT
 import { interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { t, type MsgKey } from '../i18n';
 import type { IdDObjet } from './designations';
-import { idsDuTest, possesses, type TestDesigne } from '../engine/skills';
+import { possesses, type TestDesigne } from '../engine/skills';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { buildWeapon } from '../engine/items';
 import { combatValue, weaponSkillId, type ModLine } from '../engine/combat';
-import { castingValue, focusSkillFor } from '../engine/magic';
+import { focusSkillFor, focusValueOf } from '../engine/magic';
 import { RULE_REF } from '../engine/ruleRefs';
 import { effectiveEntry } from '../engine/variants';
 import type { CharKey, Combatant, Difficulty, ItemInstance } from '../engine/types';
@@ -321,7 +321,7 @@ export function opsCiblees(ops: GameOp[], cibles: Pick<CiblesChoisies, 'traitPsy
 
 /** Le Savoir (Magie) qu'exige l'identification d'un artefact, ou `undefined`. ADE II 4 l.41 */
 export const savoirDeLaMagie = (h: Combatant): Combatant['skills'][number] | undefined =>
-  (possesses(h, SAVOIR_MAGIE.id, SAVOIR_MAGIE.spec) ? h.skills.find((k) => refCouvre(SAVOIR_MAGIE, k)) : undefined);
+  (possesses(h, SAVOIR_MAGIE) ? h.skills.find((k) => refCouvre(SAVOIR_MAGIE, k)) : undefined);
 const SAVOIR_MAGIE = { id: 'savoir', spec: 'magie' } as const;
 
 /** Refus d'une cible : liste vide (`vide`), ou cible hors de la liste (`horsListe`). */
@@ -448,7 +448,7 @@ export function refusDeConfirmerLActivite(s: EtatDInterlude, pa: ConfirmationDAc
 export function incomeSkillOf(h: Combatant): string {
   const lvl1 = levelsForCareer(h.career ?? '')[0];
   const ids = (lvl1?.skills ?? []).map(advancementBaseId).filter((x): x is string => !!x); // AdvancementRef → skillId
-  const owned = ids.find((id) => possesses(h, id));
+  const owned = ids.find((id) => possesses(h, { id }));
   return owned ?? ids[0] ?? 'athletisme';
 }
 
@@ -508,7 +508,8 @@ function voiesDuTest(
     case 'ritualFocus': {
       const sp = findSpellById(cibles.spellId ?? h.ritual?.spellId ?? '');
       const sk = sp ? focusSkillFor(h, sp) : undefined;
-      return sk ? { voies: [{ test: { skill: { id: 'focalisation', ...(sk.spec ? { spec: sk.spec } : {}) } }, valeur: castingValue(h, 'focalisation', sk.spec) }] } : undefined;
+      const valeur = sp ? focusValueOf(h, sp) : null;
+      return sk && valeur != null ? { voies: [{ test: { skill: { id: 'focalisation', ...(sk.spec ? { spec: sk.spec } : {}) } }, valeur }] } : undefined;
     }
     default:
       return {};
@@ -529,7 +530,7 @@ export function preJetDActivite(
   // Une valeur POSÉE par la voie (arme visée, Focalisation) ne se décompose pas en Niveau de Compétence.
   const valeurPosee = (derivees?.voies ?? []).some((v) => v.valeur != null);
   const ligne = rollLine({
-    actor: h, test: idsDuTest(spec.test), valeur: spec.value, difficulty: spec.difficulty, surLaCible: spec.mods,
+    actor: h, test: spec.test, valeur: spec.value, difficulty: spec.difficulty, surLaCible: spec.mods,
     ...(valeurPosee ? { valeurEtrangere: true } : {}),
   });
   return { ...spec, ligne };

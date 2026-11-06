@@ -67,7 +67,7 @@ describe('testValue + port d’armure', () => {
   it('partyBest préfère le héros NON armuré pour un Test de Discrétion', () => {
     const armure = hero('arm', 45, [{ uid: 'a', name: 'Cotte de mailles', kind: 'armor', qualities: q_(['-10% en Discrétion']), enc: 3, equipped: true }]); // 35
     const leste = hero('leste', 40, []); // 40
-    expect(partyBest([armure, leste], 'discretion')!.actor.id).toBe('leste');
+    expect(partyBest([armure, leste], { skill: { id: 'discretion' } })!.actor.id).toBe('leste');
   });
 });
 
