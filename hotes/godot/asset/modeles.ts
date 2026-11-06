@@ -2,7 +2,8 @@ import { emplacementsNonOfferts, validerElement, VERSION_DU_SCHEMA_D_ELEMENT, ty
 import { lireGlb } from './glb.ts';
 import { estObjet } from '../../../src/hote/formes';
 import { cheminsAbsolus, ligneDErreur, validerManifeste } from './manifeste.ts';
-import { validerManifesteDeBase, VERSION_DU_SCHEMA_DE_BASE, type ManifesteDeBase } from './manifesteDeBase.ts';
+import { validerManifesteDeBase, VERSION_DU_SCHEMA_DE_BASE, type ManifesteDeBase, type VerdictDeBase } from './manifesteDeBase.ts';
+import { ecartsDeClips } from './clips.ts';
 import type { ManifesteMontable } from './montage';
 
 export type ManifesteDeModele = ManifesteMontable | ManifesteDeBase | ManifesteDElement;
@@ -55,6 +56,15 @@ export function verdictsDesModeles(entrees: readonly EntreeDeModele[], octets: R
   return livrees.sort((a, b) => Number(estBase(b.brut)) - Number(estBase(a.brut))).map(({ id, brut, octets: o }) => ({ id, brut, verdict: validerModele(brut, o, bases) }));
 }
 
+/** La base `brut` jugée contre son GLB `octets` : son schéma (`validerManifesteDeBase`), puis sa table rôle → clip
+ *  (`ecartsDeClips`). */
+function validerBase(brut: unknown, octets: Uint8Array): VerdictDeBase {
+  const v = validerManifesteDeBase(brut, octets);
+  if (!v.ok) return v;
+  const ecarts = ecartsDeClips(v.manifeste.clips, lireGlb(octets).animations);
+  return ecarts.length ? { ok: false, ecarts } : v;
+}
+
 /** Un validateur par contrat : personnage schéma 2, base schéma 4, élément schéma 3 contre sa base validée. */
 export function validerModele(brut: unknown, octets: Uint8Array, bases: ReadonlyMap<string, BaseLivree> = new Map()): VerdictDeModele {
   try {
@@ -65,12 +75,12 @@ export function validerModele(brut: unknown, octets: Uint8Array, bases: Readonly
     const fuites = cheminsAbsolus(brut, 'manifeste');
     if (fuites.length) return { ok: false, refus: fuites.map(ligneDErreur) };
     if (estBase(brut)) {
-      const v = validerManifesteDeBase(brut, octets);
+      const v = validerBase(brut, octets);
       return v.ok ? v : { ok: false, refus: v.ecarts.map(e => `[${e.code}] ${e.ou} : ${e.detail}`) };
     }
     const base = typeof brut.base === 'string' ? bases.get(brut.base) : undefined;
     if (!base) return { ok: false, refus: [`[base-absente] ${String(brut.base)}`] };
-    const vBase = validerManifesteDeBase(base.brut, base.octets);
+    const vBase = validerBase(base.brut, base.octets);
     if (!vBase.ok) return { ok: false, refus: vBase.ecarts.map(e => `[${e.code}] base ${e.ou} : ${e.detail}`) };
     const v = validerElement(brut, vBase.manifeste, octets, lireGlb(octets));
     return v.ok ? v : { ok: false, refus: v.ecarts.map(e => `[${e.code}] ${e.ou} : ${e.detail}`) };

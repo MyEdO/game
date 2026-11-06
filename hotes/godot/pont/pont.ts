@@ -6,7 +6,7 @@
  * l'écran montre et la création d'un héros sont des états du pont, que les méthodes `fiche` et `creation` posent,
  * jamais de la partie ; seul l'engagement du héros créé la touche.
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, equipementDessine, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, porteeDeComposition, porteurParId, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -114,7 +114,7 @@ export function creerPont() {
     const fenetre = fenetreADessiner(etat);
     return {
       projection,
-      ...modelesDesCombattants(combat?.voisins.liste ?? projection.exploration?.heros ?? []),
+      ...modelesDesCombattants((combat?.voisins.liste ?? projection.exploration?.heros ?? []).map(({ id }) => ({ id, equipement: equipementDessine(porteurParId(etat, id)!) }))),
       disposition: fenetre?.disposition ?? null,
       zones: zonesDeLEcran(etat, projection, fenetre, o.fiche, o.creation),
       cases: casesAtteignables(etat),
@@ -225,7 +225,7 @@ export function creerPont() {
       const base = atelier!.modeles.bases.find((b) => b.id === e.base);
       valider(base !== undefined, `composer : base, l’id d’une base servie par modeles (${atelier!.modeles.bases.map((b) => b.id).join(', ') || 'aucune'})`);
       const emblemes = valeurLue('composer', 'emblemes', lireSurchargesDEmblemes(e.emblemes === undefined ? {} : e.emblemes));
-      return composerSurLaBase(base!, atelier!.manifestes, compositionDe('composer', e.composition), emblemes);
+      return composerSurLaBase(base!, atelier!.manifestes, porteeDeComposition(compositionDe('composer', e.composition)), emblemes);
     },
     catalogues(json) {
       entreeDe('catalogues', json, []);

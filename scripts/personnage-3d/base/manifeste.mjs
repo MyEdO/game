@@ -3,10 +3,11 @@
 // - construit par la construction Blender (`humanoide.py`), lu en JSON sur l'entrée standard : `os`, `chaines`,
 //   `zones`, `emplacements`, `prises`, `silhouettes`, `gabarit` (dont `st`, `silhouettes.bornes_de_st`), `appuis.pieds`,
 //   `osAPositionAnimee` ;
-// - déclaré par le corps (`<declaration.json>`) : `base`, `porteur`, les clips de marche et `surfaces` ;
-// - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitessesAuSol`, une par clip de marche ;
+// - déclaré par le corps (`<declaration.json>`, `champsDeclares`) : `base`, `porteur`, `clips` et `surfaces` ;
+// - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitesseAuSol`, celle du clip du rôle `walk` ;
 // - construit avant l'export (`domaineDuGabarit`, pont `gabarit.mjs`) : `gabarit.bornes` ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.
+// Le manifeste complet est jugé contre son GLB comme à l'import (`validerModele`, `modeles.ts`).
 // `--licence-<pack>` nomme le texte de licence de chaque pack, lu dans le pack. `--verifier` juge la déclaration, le
 // dossier de sortie et les textes de licence sans rien lire ni écrire d'autre : la construction le joue avant Blender.
 //   node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --<pack> <source> --licence-<pack> <f>… [--verifier] < <construit.json>
@@ -14,29 +15,28 @@
 import { readFileSync } from 'node:fs'
 import { text } from 'node:stream/consumers'
 import { parseArgs } from 'node:util'
-import { chargerEvaluateur } from '../../../hotes/godot/asset/charger.mjs'
+import { chargerAssets, chargerEvaluateur } from '../../../hotes/godot/asset/charger.mjs'
 import { empreinte } from '../../../hotes/godot/asset/empreinte.ts'
-import { validerManifesteDeBase, VERSION_DU_SCHEMA_DE_BASE } from '../../../hotes/godot/asset/manifesteDeBase.ts'
+import { VERSION_DU_SCHEMA_DE_BASE } from '../../../hotes/godot/asset/manifesteDeBase.ts'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
-import { lireDeclaration } from './declaration.mjs'
+import { champsDeclares, lireDeclaration } from './declaration.mjs'
 import { ecrireProduction, SOURCES, verifierProduction } from './production.ts'
 
-/** Vitesse posée sur chaque clip de marche le temps de la mesure : `mesurerAppuis` (`appuis.ts`) ne la lit que pour
+/** Vitesse posée sur le clip du rôle `walk` le temps de la mesure : `mesurerAppuis` (`appuis.ts`) ne la lit que pour
  *  juger l'écart et le glissement, jamais pour mesurer la vitesse au sol. */
 const VITESSE_DE_SONDE = 1
 
-/** Les vitesses au sol des `clips`, mesurées par l'évaluateur sur `octets` avec le manifeste `manifeste`. */
-async function mesurerVitesses(octets, manifeste, clips) {
+/** La vitesse au sol du clip du rôle `walk` du manifeste `manifeste`, mesurée par l'évaluateur sur `octets`. */
+async function mesurerVitesse(octets, manifeste) {
   const { evaluer } = await chargerEvaluateur()
-  const fiche = await evaluer({ base: octets, manifeste, clips })
+  const clip = manifeste.clips.walk
+  const fiche = await evaluer({ base: octets, manifeste, clips: [clip] })
   const refus = fiche.ecarts.filter((e) => e.garde === 'manifeste')
   if (refus.length) throw new Error(`manifeste refusé par l'évaluateur :\n${refus.map((e) => `  [${e.code}] ${e.valeur} : ${e.detail}`).join('\n')}`)
-  return tableTotale(clips, (clip) => {
-    const vitesse = fiche.mesures.clips.find((c) => c.nom === clip)?.appuis?.vitesseAuSol
-    if (!(typeof vitesse === 'number' && vitesse > 0)) throw new Error(`${clip} : vitesse au sol ${vitesse ?? 'indétectable'}, positive attendue`)
-    console.log(`VITESSE ${clip} ${vitesse} m/s`)
-    return vitesse
-  })
+  const vitesse = fiche.mesures.clips.find((c) => c.nom === clip)?.appuis?.vitesseAuSol
+  if (!(typeof vitesse === 'number' && vitesse > 0)) throw new Error(`${clip} : vitesse au sol ${vitesse ?? 'indétectable'}, positive attendue`)
+  console.log(`VITESSE ${clip} ${vitesse} m/s`)
+  return vitesse
 }
 
 async function main() {
@@ -49,7 +49,7 @@ async function main() {
   }
   const sources = tableTotale(packs, (p) => values[p])
   const licences = tableTotale(packs, (p) => values[`licence-${p}`])
-  const { base, porteur, clipsDeMarche, surfaces } = await lireDeclaration(cheminDeclaration)
+  const declares = champsDeclares(await lireDeclaration(cheminDeclaration))
   const { dossier } = verifierProduction({ glb: cheminGlb, sources, licences })
   if (values.verifier) {
     console.log(`PRODUCTION ${dossier} : déclaration, sortie et textes de licence des packs acceptés`)
@@ -58,16 +58,16 @@ async function main() {
   const construit = JSON.parse(await text(process.stdin))
   const octets = readFileSync(cheminGlb)
   console.log(`APPUIS_FINAL candidats=${construit.appuis.plusBas.length} octets=${Buffer.byteLength(JSON.stringify(construit.appuis.plusBas))}`)
-  const manifeste = (vitessesAuSol) => ({
-    schema: VERSION_DU_SCHEMA_DE_BASE, base, ...construit,
-    porteur,
-    ...(surfaces === undefined ? {} : { surfaces }),
-    appuis: { ...construit.appuis, vitessesAuSol },
+  const manifeste = (vitesseAuSol) => ({
+    schema: VERSION_DU_SCHEMA_DE_BASE, ...construit,
+    ...declares,
+    appuis: { ...construit.appuis, vitesseAuSol },
     glb: empreinte(octets),
   })
-  const complet = manifeste(await mesurerVitesses(octets, manifeste(tableTotale(clipsDeMarche, () => VITESSE_DE_SONDE)), clipsDeMarche))
-  const verdict = validerManifesteDeBase(complet, octets)
-  if (!verdict.ok) throw new Error(`manifeste refusé :\n${verdict.ecarts.map((e) => `  [${e.code}] ${e.ou} : ${e.detail}`).join('\n')}`)
+  const complet = manifeste(await mesurerVitesse(octets, manifeste(VITESSE_DE_SONDE)))
+  const { validerModele } = await chargerAssets(["export { validerModele } from '/hotes/godot/asset/modeles.ts';"])
+  const verdict = validerModele(complet, octets)
+  if (!verdict.ok) throw new Error(`manifeste refusé :\n${verdict.refus.map((r) => `  ${r}`).join('\n')}`)
   const ecrits = ecrireProduction({ glb: cheminGlb, manifeste: complet, sources, licences })
   console.log(`PRODUCTION ${dossier} ${octets.byteLength} octets ${complet.glb.sha256} : ${ecrits.join(', ')}`)
 }

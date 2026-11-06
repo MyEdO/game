@@ -74,7 +74,8 @@ export interface Portee {
   par?: { type: 'tenue' | 'trapping'; id: string; label: string };
 }
 
-export interface PorteeDeComposition {
+/** Ce que porte un corps, et ce corps : son sexe, sa corpulence (absente, le corps neutre) et sa palette. */
+export interface PorteeDeComposition extends Pick<Composition, 'sex' | 'build' | 'couleurs'> {
   portees: Portee[];
   embleme?: EmblemeResolu;
   /** Les objets ni tenus ni rangés : ni ensemble, ni prise, ni `rangement` (D1). */
@@ -95,9 +96,34 @@ const par = (habille: { type: 'tenue'; id: TenueId } | { type: 'trapping'; id: s
 const portees = (pieces: readonly string[], apport?: Portee['par']): Portee[] =>
   pieces.map((id) => ({ cle: { champ: 'piece', id }, label: labelDePiece(id), ...(emplacementDePiece(id) ? { point: emplacementDePiece(id) } : {}), ...(apport ? { par: apport } : {}) }));
 
+/** Un objet porté : ce qui le nomme au rapport, son trapping, son apparence résolue, et sa prise s'il est tenu. */
+export interface ObjetPorte {
+  nom: string;
+  trappingId?: string;
+  apparence?: string;
+  prise?: string;
+}
+
+/** Ce que porte `objet` : les pièces de l'ensemble qui habille son trapping, sinon son apparence à sa prise s'il est
+ *  tenu, sinon au `rangement` de son trapping (D1) ; sans apparence ou sans point, sa ligne de rapport. */
+function porteesDeLObjet({ nom, trappingId, apparence, prise }: ObjetPorte): { portees: Portee[] } | { rapport: string } {
+  const habille = trappingId === undefined ? undefined : { type: 'trapping' as const, id: trappingId };
+  const habits = habille ? piecesDEnsemble(habille) : [];
+  if (habille && habits.length) return { portees: portees(habits, par(habille)) };
+  const point = prise ?? findTrappingById(trappingId)?.rangement?.id;
+  if (apparence === undefined || point === undefined) return { rapport: t(apparence === undefined ? 'compo.objetSansApparence' : 'compo.objetSansPoint', { objet: nom }) };
+  return { portees: [{ cle: { champ: 'apparence', id: apparence }, label: findApparenceById(apparence)?.label ?? apparence, point, ...(habille ? { par: par(habille) } : {}) }] };
+}
+
+/** Ce que portent `objets`, chacun par `porteesDeLObjet`, dans leur ordre. */
+export function porteesDesObjets(objets: readonly ObjetPorte[]): Pick<PorteeDeComposition, 'portees' | 'rapport'> {
+  const lu = objets.map(porteesDeLObjet);
+  return { portees: lu.flatMap((o) => ('portees' in o ? o.portees : [])), rapport: lu.flatMap((o) => ('rapport' in o ? [o.rapport] : [])) };
+}
+
 /** Ce que porte `composition` : sa tête, sa coiffure, les pièces de l'ensemble de sa tenue puis ses `pieces` (D6(b)), puis
- *  chaque objet, tenu puis porté : les pièces de l'ensemble qui l'habille, sinon son apparence (`apparencesObjets`, à
- *  défaut sa forme) à sa prise s'il est tenu, sinon à son `rangement` (D1) ; et les facteurs de son gabarit. */
+ *  chaque objet, tenu puis porté (`porteesDesObjets`), son apparence choisie (`apparencesObjets`), à défaut sa forme ; les
+ *  facteurs de son gabarit, et le corps qu'elle habille. */
 export function porteeDeComposition(composition: Composition): PorteeDeComposition {
   const race = raceAppearance.find((r) => r.id === composition.race.id);
   if (!race) throw new Error(`porteeDeComposition : « ${composition.race.id} » n'est aucune race de \`raceAppearance.json\`.`);
@@ -105,28 +131,21 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
   if (composition.coiffure) liste.push({ cle: { champ: 'coiffure', id: composition.coiffure.id }, label: findCoiffureById(composition.coiffure.id)?.label ?? composition.coiffure.id });
   if (composition.tenue) liste.push(...portees(piecesDEnsemble({ id: composition.tenue.id, type: 'tenue' }), par({ type: 'tenue', id: composition.tenue.id })));
   liste.push(...portees(composition.pieces ?? []));
-  const rapport: string[] = [];
-  const objets: [string, string | undefined][] = [
-    ...Object.entries(composition.prises ?? {}).map(([main, tenu]): [string, string] => [tenu.id, main]),
-    ...(composition.objets ?? []).map((id): [string, undefined] => [id, undefined]),
-  ];
-  for (const [id, prise] of objets) {
-    const habille = { type: 'trapping' as const, id };
-    const habits = piecesDEnsemble(habille);
-    if (habits.length) {
-      liste.push(...portees(habits, par(habille)));
-      continue;
-    }
-    const trapping = findTrappingById(id);
-    const apparence = composition.apparencesObjets?.[id]?.id ?? trapping?.shape?.id;
-    const point = prise ?? trapping?.rangement?.id;
-    if (apparence === undefined || point === undefined) {
-      rapport.push(t(apparence === undefined ? 'compo.objetSansApparence' : 'compo.objetSansPoint', { objet: id }));
-      continue;
-    }
-    liste.push({ cle: { champ: 'apparence', id: apparence }, label: findApparenceById(apparence)?.label ?? apparence, point, par: par(habille) });
-  }
-  return { portees: liste, rapport, embleme: emblemeDuPorteur(composition.embleme), facteurs: facteursDeComposition(composition.gabarit?.id as GabaritId | undefined, race) };
+  const objet = (id: string, prise?: string): ObjetPorte => ({ nom: id, trappingId: id, apparence: composition.apparencesObjets?.[id]?.id ?? findTrappingById(id)?.shape?.id, ...(prise ? { prise } : {}) });
+  const objets = porteesDesObjets([
+    ...Object.entries(composition.prises ?? {}).map(([main, tenu]) => objet(tenu.id, main)),
+    ...(composition.objets ?? []).map((id) => objet(id)),
+  ]);
+  const { sex, build, couleurs } = composition;
+  return {
+    portees: [...liste, ...objets.portees],
+    rapport: objets.rapport,
+    embleme: emblemeDuPorteur(composition.embleme),
+    facteurs: facteursDeComposition(composition.gabarit?.id as GabaritId | undefined, race),
+    sex,
+    ...(build === undefined ? {} : { build }),
+    ...(couleurs ? { couleurs } : {}),
+  };
 }
 
 /** Les emplacements où se range un objet de forme `apparence` : le `rangement` de chaque trapping instanciable de cette

@@ -83,6 +83,28 @@ export function pieceDeDessin(it: ItemInstance): PieceDeDessin {
   return { ...projeter(it, CLES_PIECE), matiere };
 }
 
+type Main = 'main' | 'off';
+
+/** Les armes tenues, chacune à sa main, et le surplus, chacun dans l'ordre relatif de `weapons` : la seule attribution
+ *  des mains. Les mains explicites passent d'abord ; une arme naturelle ne réserve aucune main. */
+function mainsDesArmes(weapons: readonly Weapon[], maniement: ContexteDeManiement): { tenues: { arme: Weapon; hand: Main }[]; surplus: Weapon[] } {
+  const libres = new Set<Main>(['main', 'off']);
+  const tenues: { position: number; arme: Weapon; hand: Main }[] = [];
+  const surplus: { position: number; arme: Weapon }[] = [];
+  const priorites = weapons.map((w, position) => ({ w, position })).sort((a, b) => Number(a.w.hand === undefined) - Number(b.w.hand === undefined));
+  for (const { w, position } of priorites) {
+    const hands = weaponHands(w, maniement);
+    const hand = w.hand ?? (isShieldItem(w) ? 'off' : w.natural || libres.has('main') ? 'main' : 'off');
+    if (w.natural) { tenues.push({ position, arme: w, hand }); continue; }
+    if (!libres.has(hand) || (hands === 2 && libres.size !== 2)) { surplus.push({ position, arme: w }); continue; }
+    tenues.push({ position, arme: w, hand });
+    libres.delete(hand);
+    if (hands === 2) libres.clear();
+  }
+  const parPosition = (a: { position: number }, b: { position: number }) => a.position - b.position;
+  return { tenues: tenues.sort(parPosition).map(({ arme, hand }) => ({ arme, hand })), surplus: surplus.sort(parPosition).map((s) => s.arme) };
+}
+
 /** Équipement dessiné d'armes et de pièces DONNÉES : armes tenues, pièces d'armure, bouclier (tenu parmi les
  *  armes), armes rangées, cape. Ne résout aucune armure portée : un porteur passe par `equipementDessine` ou
  *  `equipementDEntite`. */
@@ -92,27 +114,15 @@ export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { ran
   // héros en cuir + mailles montre les mailles, la plate par-dessus tout.
   const pieces = armour.map(pieceDeDessin).sort((a, b) => coucheDe(b.matiere) - coucheDe(a.matiere));
   const dessiner = (w: Weapon) => objetDArme(w, maniement);
-  const libres = new Set<'main' | 'off'>(['main', 'off']);
-  const dessins: { position: number; arme: ArmeDeDessin }[] = [];
-  const surplus: { position: number; arme: ObjetDArme }[] = [];
-  const priorites = weapons.map((w, position) => ({ w, position })).sort((a, b) => Number(a.w.hand === undefined) - Number(b.w.hand === undefined));
-  for (const { w, position } of priorites) {
-    const dessin = dessiner(w);
-    const hand = w.hand ?? (dessin.bouclier ? 'off' : w.natural || libres.has('main') ? 'main' : 'off');
-    if (w.natural) { dessins.push({ position, arme: { ...dessin, hand } }); continue; }
-    if (!libres.has(hand) || (dessin.hands === 2 && libres.size !== 2)) { surplus.push({ position, arme: dessin }); continue; }
-    dessins.push({ position, arme: { ...dessin, hand } });
-    libres.delete(hand);
-    if (dessin.hands === 2) libres.clear();
-  }
-  const tenues = dessins.sort((a, b) => a.position - b.position).map(d => d.arme);
-  const iBouclier = tenues.findIndex((w) => w.bouclier);
+  const { tenues, surplus } = mainsDesArmes(weapons, maniement);
+  const dessins = tenues.map(({ arme, hand }): ArmeDeDessin => ({ ...dessiner(arme), hand }));
+  const iBouclier = dessins.findIndex((w) => w.bouclier);
   return {
     ...(embleme ? { embleme: { ...embleme } } : {}),
-    weapons: tenues,
+    weapons: dessins,
     armour: pieces,
-    rangees: [...rangees.map(dessiner), ...surplus.sort((a, b) => a.position - b.position).map(d => d.arme)],
-    ...(iBouclier >= 0 ? { shield: { candidats: tenues[iBouclier].candidats } } : {}),
+    rangees: [...rangees, ...surplus].map(dessiner),
+    ...(iBouclier >= 0 ? { shield: { candidats: dessins[iBouclier].candidats } } : {}),
     ...(cape ? { cape: true } : {}),
   };
 }
@@ -142,7 +152,8 @@ function armurePorteeDe(override: { armurePortee?: boolean } | undefined, creatu
   return override?.armurePortee ?? findCreatureById(creatureId)?.appearance?.armurePortee;
 }
 
-function emblemeDe(override: Pick<EntityAppearance, 'embleme'> | undefined, creatureId: string | undefined): EmblemeResolu | undefined {
+/** L'emblème d'un porteur : celui de son apparence d'auteur, sinon celui de sa créature. */
+export function emblemeDe(override: Pick<EntityAppearance, 'embleme'> | undefined, creatureId: string | undefined): EmblemeResolu | undefined {
   return emblemeDuPorteur(override?.embleme ?? findCreatureById(creatureId)?.appearance?.embleme);
 }
 
@@ -158,6 +169,14 @@ function armesRangees(c: Combatant, maniement: ContexteDeManiement): Weapon[] {
     const it = objetDeSlot(c, uid);
     return it ? [weaponFromItem(it, undefined, maniement)] : [];
   });
+}
+
+/** Les armes d'un combattant : tenues, chacune à sa main (`mainsDesArmes`), puis rangées (`armesRangees`, puis le
+ *  surplus des mains) ; celles que publie son dessin (`equipementDessine`). */
+export function armesDuCombattant(c: Combatant): { tenues: { arme: Weapon; hand: Main }[]; rangees: Weapon[] } {
+  const maniement: ContexteDeManiement = { mounted: !!c.mountId };
+  const { tenues, surplus } = mainsDesArmes(c.weapons ?? [], maniement);
+  return { tenues, rangees: [...armesRangees(c, maniement), ...surplus] };
 }
 
 /** Équipement DESSINÉ d'un combattant : ses armes tenues et rangées, ses pièces portées — sinon, armure de

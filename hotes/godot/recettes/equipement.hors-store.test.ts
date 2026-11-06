@@ -40,10 +40,9 @@ describe('vue figée de la recette native (#2948 L3-b)', () => {
     const vue = figerVueDEquipement();
     expect(findTrappingById('arme-de-campagne')).toBeUndefined();
     const porteur = vue.projection.combat!.voisins.liste.find((c) => c.id === 'objet-de-campagne')!;
-    expect(porteur.equipement.weapons[0].candidats).toEqual(['epee_ebrechee', 'epee']);
     const dessin = vue.equipements[porteur.id];
     expect(dessin.tenues).toHaveLength(1);
-    expect(dessin.tenues[0].arme).toEqual(porteur.equipement.weapons[0]);
+    expect(dessin.tenues[0].arme.candidats).toEqual(['epee_ebrechee', 'epee']);
     expect(dessin.tenues[0].modele?.apparence).toBe('epee');
     expect(vue.couverture.absences.filter((a) => a.porteur === porteur.id)).toEqual([]);
   });

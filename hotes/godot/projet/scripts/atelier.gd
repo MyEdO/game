@@ -258,7 +258,7 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 	_poser_les_clips()
 	_poser_le_gabarit()
 	_poser_les_morphes()
-	_marche.suivre(_modele, _lecteur, _base.get("marche", {}))
+	_marche.suivre(_modele, _lecteur, _base.get("clips", {}).get("walk", ""), _base.get("vitesseAuSol", 0.0))
 	for aide in _aides:
 		_montrer_l_aide(_aides[aide], aide)
 	_montrer_l_etat()

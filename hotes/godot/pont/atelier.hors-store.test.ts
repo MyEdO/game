@@ -14,7 +14,7 @@ import { emplacementsDeRangement, gardeRobe } from '../../../src/noyau/index';
 import { modelesDeLAtelier } from './atelier';
 
 const dos = { os: 'spine', position: [0, 0.1, 0], rotation: [0, 0, 0] };
-const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25 } } };
+const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, clips: { walk: 'Walk_Loop', idle: 'Idle_Loop' }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitesseAuSol: 1.25 } };
 const epee = elementSchema3('humanoide');
 const chemise = {
   schema: 3, base: 'humanoide', categorie: 'vetement', cle: { piece: 'chemise' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse'],
@@ -50,8 +50,8 @@ describe('modelesDeLAtelier', () => {
     ]);
   });
 
-  it('une base publie sa marche : l’unique clip de `appuis.vitessesAuSol` et sa vitesse au sol, au gabarit neutre', () => {
-    expect(modeles.bases[0].marche).toEqual({ clip: 'Walk_Loop', vitesse: 1.25 });
+  it('une base publie sa table rôle → clip et la vitesse au sol de son rôle `walk`, au gabarit neutre', () => {
+    expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ walk: 'Walk_Loop', idle: 'Idle_Loop' }, 1.25]);
   });
 
   it('chaque point porte exactement les objets rigides de la base dont un mesh pend à son os, ni le squelette, ni la surface, ni un accessoire', () => {
@@ -113,15 +113,6 @@ describe('modelesDeLAtelier', () => {
 
   it('les refus de l’index sont rendus', () => {
     expect(modeles.refus).toEqual(['[base-absente] orpheline : nain']);
-  });
-
-  it('une base à marche ambiguë est refusée seule, sans son GLB ni ceux de ses éléments ; les autres bases restent servies', () => {
-    const elfe = { ...baseDeTest('elfe'), appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25, Run_Loop: 3 } } };
-    const dague = elementSchema3('elfe');
-    const avecElfe = modelesDeLAtelier({ humanoide, epee, elfe, dague }, { humanoide: [], epee: ['root'], elfe: [], dague: ['root'] });
-    expect(avecElfe.bases.map(({ id }) => id)).toEqual(['humanoide']);
-    expect(avecElfe.refus).toEqual(['[marche-ambigue] elfe : 2 clip(s) dans appuis.vitessesAuSol (Walk_Loop, Run_Loop), un seul attendu']);
-    expect(avecElfe.glb).toEqual({ humanoide: 'humanoide.glb', epee: 'epee.glb' });
   });
 
   it('un accessoire rigide est servi à la ligne de son emplacement, jamais à un point ; si ni la base ni aucune de ses pièces ne l’offre, il est rapporté, sans refus, et servi nulle part', () => {

@@ -8,7 +8,8 @@ import { estObjet } from '../../../src/hote/formes';
 import { estListeDeChaines } from './attache.ts';
 import type { ContenuGlb } from './glb.ts';
 import { lireMontage, ecartsDeMontage, type ManifesteMontable } from './montage';
-import { findApparenceById, ROLES_D_ANIMATION, type RoleDAnimation } from '../../../src/noyau/index.ts';
+import { findApparenceById } from '../../../src/noyau/index.ts';
+import { ecartsDeClips, type TableDeClips } from './clips.ts';
 
 export const VERSION_DU_SCHEMA = 2;
 
@@ -31,7 +32,7 @@ export interface ManifesteDePersonnage {
   readonly incompatibilities: readonly (readonly string[])[];
   readonly defaults: readonly string[];
   readonly presets: Readonly<Record<string, { readonly components: readonly string[] }>>;
-  readonly clips: Readonly<Partial<Record<RoleDAnimation, string>>>;
+  readonly clips: TableDeClips;
 }
 
 /** Les refus du validateur, chacun nommé. */
@@ -165,12 +166,7 @@ function ecarts(m: ManifesteDePersonnage, glb: ContenuGlb): ErreurDeManifeste[] 
   m.incompatibilities.forEach((g, i) => g.filter((c) => !composants.has(c)).forEach((c) => refus('incompatibilite-inconnue', `incompatibilities.${i}`, c)));
   m.defaults.filter((c) => !composants.has(c)).forEach((c) => refus('defaut-inconnu', 'defaults', c));
   for (const [cle, p] of Object.entries(m.presets)) p.components.filter((c) => !composants.has(c)).forEach((c) => refus('preset-inconnu', `presets.${cle}.components`, c));
-  const roles = new Set<string>(ROLES_D_ANIMATION);
-  for (const [role, nom] of Object.entries(m.clips)) {
-    if (!roles.has(role)) refus('role-inconnu', `clips.${role}`, role);
-    if (!glb.animations.has(nom)) refus('clip-absent', `clips.${role}`, nom);
-  }
-  return [...erreurs, ...cheminsAbsolus(m)];
+  return [...erreurs, ...ecartsDeClips(m.clips, glb.animations), ...cheminsAbsolus(m)];
 }
 
 /** Le manifeste `brut` réduit aux clés du schéma et validé contre le GLB `glb`. */

@@ -1,4 +1,4 @@
-import type { CombattantProjete } from '../../../src/hote/projection';
+import type { equipementDessine } from '../../../src/noyau/index';
 import type { ManifesteMontable, Montage } from '../asset/montage';
 import { estModeleModulaire } from '../asset/modeles';
 import { findTeinteById } from '../../../src/noyau/index';
@@ -48,8 +48,10 @@ export function premierModele(candidats: readonly string[], index: IndexDesAppar
   return null;
 }
 
-type ArmeProjetee = CombattantProjete['equipement']['weapons'][number];
-type ArmeRangeeProjetee = CombattantProjete['equipement']['rangees'][number];
+/** Un combattant dessiné : son id et son équipement (`equipementDessine`). */
+type CombattantDessine = { id: string; equipement: ReturnType<typeof equipementDessine> };
+type ArmeProjetee = CombattantDessine['equipement']['weapons'][number];
+type ArmeRangeeProjetee = CombattantDessine['equipement']['rangees'][number];
 export interface ObjetADessiner<A extends ArmeRangeeProjetee> {
   arme: A;
   modele: ChoixDeModele | null;
@@ -73,7 +75,7 @@ export interface CouvertureDesModeles {
   couverture: { demandes: number; absences: AbsenceDeModele[] };
 }
 
-export function modelesDesCombattants(combattants: readonly CombattantProjete[], index: IndexDesApparences = INDEX_DES_APPARENCES): CouvertureDesModeles {
+export function modelesDesCombattants(combattants: readonly CombattantDessine[], index: IndexDesApparences = INDEX_DES_APPARENCES): CouvertureDesModeles {
   const equipements: Record<string, DessinDEquipement> = {};
   const couverture: CouvertureDesModeles['couverture'] = { demandes: 0, absences: [] };
   for (const c of combattants) {

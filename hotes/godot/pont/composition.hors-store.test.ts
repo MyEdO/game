@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
 import { empreinte } from '../asset/empreinte.ts';
-import { cataloguesDeComposition, findCouleurById, lireComposition, SLOTS } from '../../../src/noyau/index';
+import { cataloguesDeComposition, findCouleurById, lireComposition, porteeDeComposition, SLOTS } from '../../../src/noyau/index';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import presets from '../../../src/data/presets-de-personnage.json';
 import { modelesDeLAtelier } from './atelier';
@@ -29,7 +29,7 @@ const composer = (manifestes: Record<string, unknown>, brut: unknown) => {
   if (!lu.ok) throw new Error(JSON.stringify(lu.fautes));
   const modeles = modelesDeLAtelier(manifestes, tableTotale(Object.keys(manifestes), (id) => (id === 'humanoide' ? [] : ['root'])));
   expect(modeles.refus).toEqual([]);
-  return composerSurLaBase(modeles.bases[0], manifestes, lu.valeur);
+  return composerSurLaBase(modeles.bases[0], manifestes, porteeDeComposition(lu.valeur));
 };
 
 describe('composerSurLaBase', () => {

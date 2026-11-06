@@ -19,7 +19,7 @@ import {
   DOSSIER_DES_MODELES, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
 } from './release.ts';
-import { fichiersDuModele } from './modeles';
+import { fichiersDuModele, validerModele } from './modeles';
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
 function glb(noeuds: readonly string[], animations: readonly string[], options: { skinned?: readonly string[]; joints?: readonly string[] } = {}): Uint8Array {
@@ -529,6 +529,22 @@ describe('import et chargement des modèles modulaires', () => {
     const destination = join(temporaire(), 'modeles');
     expect(importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null })).toEqual({ ok: false, refus: [refus] });
     expect(existsSync(destination)).toBe(false);
+  });
+});
+
+describe('la table rôle → clip d’une base (#3253)', () => {
+  it('accepte chaque rôle du vocabulaire dont le clip est au GLB', () => {
+    expect(validerModele({ ...baseDeTest(), clips: { walk: 'walk', idle: 'walk' } }, GLB_DE_BASE)).toMatchObject({ ok: true, manifeste: { clips: { walk: 'walk', idle: 'walk' } } });
+  });
+  it.each([
+    ['un rôle hors du vocabulaire', { walk: 'walk', danse: 'walk' }, '[role-inconnu] clips.danse : danse'],
+    ['un clip absent du GLB', { walk: 'walk', idle: 'Idle_Loop' }, '[clip-absent] clips.idle : Idle_Loop'],
+  ])('refuse %s, en le nommant', (_, clips, refus) => {
+    expect(validerModele({ ...baseDeTest(), clips }, GLB_DE_BASE)).toEqual({ ok: false, refus: [refus] });
+  });
+  it('refuse l’élément d’une base dont la table est refusée', () => {
+    const base = { brut: { ...baseDeTest(), clips: { walk: 'Walk_Loop' } }, octets: GLB_DE_BASE };
+    expect(validerModele(elementSchema3(), GLB_D_ELEMENT, new Map([['humanoide', base]]))).toEqual({ ok: false, refus: ['[clip-absent] base clips.walk : Walk_Loop'] });
   });
 });
 
