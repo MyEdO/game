@@ -333,7 +333,7 @@ module de sa primitive, déclaré au manifeste des primitives (champ `css`) et m
 | `option-chooser.css` | `OptionChooser` | `.rm-loc-grid` (+ `[data-notes]`), `.rm-option`, `.rm-loc-inline` (+ `[data-bascule]`), `.rm-loc-select`, `.rm-range` |
 | `recap-line.css` | `RecapLine` / `RecapLineList` | `.recap-line`, `.recap-lines`, `.recap-phase`, `.recap-phase-label` |
 | `multi-roll-list.css` | `MultiRollList` | `.mrl`, `.mrl-row`, `.mrl-port`, `.mrl-label`, `.mrl-roll`, `.mrl-text` |
-| `reveal-body.css` | `RevealBody` / `RevealTimer` | `.crit-stats`, `.crit-stat`, `.crit-effects`, `.crit-effect`, `.crit-cond` ; minuteur de fermeture : `.reveal-timer`, `@keyframes reveal-timer-drain`, durée en variable `--reveal-timer-duree` |
+| `reveal-body.css` | `RevealBody` | `.crit-stats`, `.crit-stat`, `.crit-effects`, `.crit-effect`, `.crit-cond` |
 | `vs-header.css` | `VsHeader` | `.rm-vs`, `.rm-vs-arrow`, `.rm-weapon` — `.rm-weapon` sert aussi de QUALIFICATIF hors bandeau A→B (l'arme dégainée de `HandGateModal`, déclarée en `poseurs` au manifeste) : c'est la même matière, pas une copie |
 | `team-segments.css` | `TeamSegments` | `.nm-ally`, `.nm-foe` |
 | `combat-banner.css` | `CombatBanner` | `.combat-feed`, `.cb-ev`, `.cb-now`, `.cb-tone-strong`, `.cb-tone-grave` |

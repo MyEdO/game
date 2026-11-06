@@ -278,7 +278,7 @@ function finishMutation(
     lines.push(t('cor.damned', { name: hero.label }));
   }
   if (tenuParUnHumain(get(), hero.id))
-    pushReveal(set, { kind: 'mutation', title: t('cor.revealTitle', { label: m.label }), dice: m.roll, lines: [...lines], subjectId: hero.id, severity: 'grave' });
+    pushReveal(set, { kind: 'mutation', title: t('cor.revealTitle', { label: m.label }), dice: m.roll, lines: [...lines], subjectId: hero.id });
   checkPartyWiped(get, set); // damnation du dernier héros hors combat → défaite (no-op en combat)
   return lines;
 }
@@ -295,7 +295,7 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   if (renounce) {
     hero.resilience = (hero.resilience ?? 0) - 1;
     lines.push(t('cor.renounced', { name: hero.label }));
-    pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id, severity: 'minor' });
+    pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id });
   } else {
     lines.push(...applyMutation(get, set, hero, { roll: pr.testRoll, target: pr.testTarget }, pr.align));
   }

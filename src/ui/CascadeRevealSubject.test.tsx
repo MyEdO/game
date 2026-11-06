@@ -2,10 +2,8 @@
 /**
  * ÉTAPE DE RÉVÉLATION MONTÉE (#942 L8) — la fenêtre de cascade (`CascadeBody`, patron `createRoot`/
  * `act` du repo) sur une étape d'affichage à charge riche :
- *  - le CONCERNÉ (`RevealEntry.subjectId`) porte son portrait dans la fenêtre — contrat de
- *    `RevealEntry.subjectId` (noyau/pendings.ts) : « on sait toujours à qui ça s'applique » ;
- *  - la BARRE DE TEMPS de l'auto-fermeture est réservée au GRAVE (arbitrage 2026-06-11) : le mineur
- *    s'auto-ferme aussi, mais sans cérémonie.
+ *  le CONCERNÉ (`RevealEntry.subjectId`) porte son portrait dans la fenêtre — contrat de
+ *  `RevealEntry.subjectId` (noyau/pendings.ts) : « on sait toujours à qui ça s'applique ».
  */
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
@@ -28,16 +26,15 @@ let root: Root;
 const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
 
 /** Ouvre une séquence d'affichage à UNE étape portant l'entrée bâtie par `make` (forme exacte de
- *  `revealToStep` : `actorId` = le sujet ; `autoCloseMs` n'existe que si le site l'a DÉCLARÉ — la
- *  fermeture d'une révélation est explicite par défaut, #1270). */
-function openReveal(make: (heroId: string) => RevealEntry, autoCloseMs?: number) {
+ *  `revealToStep` : `actorId` = le sujet). */
+function openReveal(make: (heroId: string) => RevealEntry) {
   const hero = HERO();
   const entry = make(hero.id);
   useGame.setState({
     battle: null, party: [hero], suspendedCascades: [], journal: [],
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
     pendingCascade: cascadeDeTest(
-      [{ id: 'cons-0', kind: entry.kind, actorId: entry.subjectId, label: fixtureText(entry.title), reveal: entry, autoCloseMs }],
+      [{ id: 'cons-0', kind: entry.kind, actorId: entry.subjectId, label: fixtureText(entry.title), reveal: entry }],
       { title: entry.title, icon: 'nav/mutation', purpose: 'affichage' },
     ),
   });
@@ -58,9 +55,9 @@ afterEach(() => {
 
 const render = () => act(() => { root.render(<CascadeBody />); });
 
-describe('étape de révélation — le sujet et la barre de temps', () => {
+describe('étape de révélation — le sujet', () => {
   it('l’introduction rend le Markdown complet sans paragraphes imbriqués', () => {
-    openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: ['**Le groupe** entre.\n\n- Une porte'], severity: 'minor' }));
+    openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: ['**Le groupe** entre.\n\n- Une porte'] }));
     render();
     expect(host.querySelector('.modal-log strong')?.textContent).toBe('Le groupe');
     expect(host.querySelector('.modal-log li')?.textContent).toBe('Une porte');
@@ -68,7 +65,7 @@ describe('étape de révélation — le sujet et la barre de temps', () => {
     expect(host.querySelector('p .prose, p p, p ul')).toBeNull();
   });
   it('le choix rend son prompt Markdown dans le corps et ses aperçus en texte', () => {
-    openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: [], severity: 'minor' }));
+    openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: [] }));
     useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'choix', kind: cleDeFixture('choix'), label: fixtureText('**Entrer** par [la porte](https://example.com) ?'),
       options: [{ key: 'yes', label: fixtureText('**Oui**'), detail: '*Entrer*' }, { key: 'no', label: fixtureText('Non') }] }], { title: 'Choix', purpose: 'affichage' }) });
     render();
@@ -80,7 +77,7 @@ describe('étape de révélation — le sujet et la barre de temps', () => {
     expect(host.textContent).not.toContain('**Oui**');
   });
   it('une révélation à `subjectId` MONTRE le concerné (portrait du sujet dans la fenêtre)', () => {
-    openReveal((id) => ({ kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: ['Des écailles poussent.'], subjectId: id, severity: 'grave' }));
+    openReveal((id) => ({ kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: ['Des écailles poussent.'], subjectId: id }));
     render();
     const subject = host.querySelector('.modal-subject');
     expect(subject).not.toBeNull();
@@ -88,19 +85,8 @@ describe('étape de révélation — le sujet et la barre de temps', () => {
   });
 
   it('sans `subjectId` (entretien de Round) : aucun bandeau de sujet (rien à attribuer)', () => {
-    openReveal(() => ({ kind: 'round', title: 'Fin du Round', lines: ['Hémorragique : 1 Blessure.'], severity: 'minor' }));
+    openReveal(() => ({ kind: 'round', title: 'Fin du Round', lines: ['Hémorragique : 1 Blessure.'] }));
     render();
     expect(host.querySelector('.modal-subject')).toBeNull();
-  });
-
-  it('barre de temps : rendue sur le GRAVE, absente sur le MINEUR (qui s’auto-ferme sans cérémonie)', () => {
-    openReveal((id) => ({ kind: 'mutation', title: 'Mutation — Écailles', lines: ['x'], subjectId: id, severity: 'grave' }), 9000);
-    render();
-    expect(host.querySelector('.reveal-timer')).not.toBeNull();
-    act(() => root.unmount());
-    root = createRoot(host);
-    openReveal(() => ({ kind: 'round', title: 'Entretien quotidien', lines: ['x'], severity: 'minor' }), 3500);
-    render();
-    expect(host.querySelector('.reveal-timer')).toBeNull();
   });
 });
