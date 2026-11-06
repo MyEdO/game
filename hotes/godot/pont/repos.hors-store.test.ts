@@ -4,7 +4,7 @@
  * d'un geste, sans formulaire, et « Dormir » ouvre la nuit.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { departDeLaCarte, drainer, table } from './pont.testkit';
 import type { Bouton, Choix, Element, Entite } from '../../../src/hote/elements';
 import type { Suite } from './pont';
 
@@ -19,7 +19,7 @@ describe('le repos par le pont', () => {
     let suite = drainer(appel, appel('demarrer', { scenario: 'voyage', graine: 7 })).suite;
     while (suite.vue.projection.fenetre) suite = jouer(enFocus(suite).jeu);
     suite = jouer(suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
-    const route = parId(corps(suite)['carte/r-grandroute'] as Entite).modes as Choix;
+    const route = departDeLaCarte(suite.vue, 'r-grandroute');
     suite = jouer(route.valeurs.find((b) => b.id === 'pied')!.jeu);
     for (let pas = 0; suite.vue.disposition !== 'rest'; pas++) {
       expect(pas, 'la journée de route mène à la halte').toBeLessThan(20);

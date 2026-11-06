@@ -2,7 +2,7 @@
  * `validerFormeVivante` (#2001, `data/schemas/validate.ts`) — la porte d'une forme VIVANTE valide le
  * schéma sur la forme disque (`versDisque`) et la complétude de la prose (`proseNonMaterialisee`) sur
  * le reçu, à ses trois sites : `parseProject`, `parseSceneDeProjet` et `validateScene`. La modale « Avancé » de
- * l'éditeur (`lireBlocsAvances`) se joue en `src/state/forme-vivante.test.ts`.
+ * l'éditeur (`lireBlocsAvances`) se joue en `src/data/schemas/forme-vivante.test.ts`.
  */
 import { describe, it, expect } from 'vitest';
 import { parseProject, parseSceneDeProjet, projetVersDepot, ProjetRefuse, emptyWorldMap } from './worldMap';

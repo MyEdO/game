@@ -493,6 +493,18 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
   }
 }
 
+/** La hauteur (m) d'où le segment `seg` de `scene` se dresse : la plus basse des deux cases qu'il sépare, sur sa couche,
+ *  celle de sa case pour une diagonale ou un bord de carte. Un mur contre une volée reste debout sur le sol d'en bas. */
+export function piedDeLArete(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z'>): number {
+  const z = seg.z ?? 0;
+  const ici = heightAt(scene, seg.x, seg.y, z);
+  const [dx, dy] = seg.side === 'N' ? [0, -1] : seg.side === 'E' ? [1, 0] : [0, 0];
+  const x = seg.x + dx;
+  const y = seg.y + dy;
+  const dedans = (dx || dy) && x >= 0 && y >= 0 && x < scene.dimensions.w && y < scene.dimensions.h;
+  return dedans ? Math.min(ici, heightAt(scene, x, y, z)) : ici;
+}
+
 /** Lien vertical entre deux cases ADJACENTES (Chebyshev : cardinale OU diagonale, grille 8-connexe cf.
  *  `path.ts` NEIGHBORS ; couches possiblement différentes) : compare leurs hauteurs métriques et classe
  *  le franchissement à pied — `flat`/`ramp` marchable, `cliff` infranchissable horizontalement (on y

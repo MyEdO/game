@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { CHAMPS_A_CHOIX, CHAMPS_RESERVES, conditionSchema, gameOpSchema, mecaniqueDe, OPS_NON_TYPEES } from './mecanique';
 import { noeudDuChamp } from '../validate';
+import { rangee as signeAstrologique } from '../defs/stars';
 
 /** Le tableau d'ops du champ `passive` de `talents.json`, tel que son def le déclare. */
 const passiveDeTalent = (): z.ZodType => {
@@ -64,7 +65,7 @@ describe('champ RÉSERVÉ au porteur — `charMod.min`, plancher de mutation (ED
     expect(gameOpSchema.safeParse(sansPlancher).success).toBe(true);
     expect(noeud('talents.json', 'passive').safeParse([plancher]).success).toBe(false);
     expect(noeud('traits.json', 'passive').safeParse([plancher]).success).toBe(false);
-    expect(noeud('stars.json', 'ops').safeParse([plancher]).success).toBe(false);
+    expect(signeAstrologique.shape.ops.safeParse([plancher]).success).toBe(false);
     expect(noeud('mutations.json', 'effects').safeParse(effetPortant(sansPlancher)).success).toBe(true);
     expect(noeud('mutations.json', 'effects').safeParse(effetPortant(plancher)).success).toBe(false);
   });

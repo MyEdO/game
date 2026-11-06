@@ -5,7 +5,7 @@
 ## au sol, un vecteur rapporté à un repère, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
-## la hauteur d'un point du corps à son gabarit. Seul script où l'arithmétique et la mesure sont permises
+## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui. Seul script où l'arithmétique et la mesure sont permises
 ## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
 ## plus un vecteur, sans état.
 class_name MiseEnPage
@@ -35,6 +35,12 @@ const ECART_DE_BULLE := 12.0
 const LARGEUR_DE_BULLE := 420.0
 ## La hauteur, au-dessus du sol de sa case, du nom d'une entité de la scène.
 const HAUTEUR_DU_NOM := 1.2
+## La marge, en pixels, entre le bord d'un plan et ses points.
+const MARGE_DU_PLAN := 28.0
+## Le rayon, en pixels, d'un point du plan.
+const RAYON_DU_POINT := 7.0
+## L'écart, en pixels, entre un point du plan et ce qui se pose sous lui.
+const ECART_SOUS_LE_POINT := 2.0
 
 
 ## La largeur du texte d'une bulle qui, sur une ligne, en prendrait `largeur` : la sienne, au pixel supérieur, au plus
@@ -275,3 +281,17 @@ static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> V
 ## `METRES_PAR_MOTIF`.
 static func echelle_de_motif() -> Vector3:
 	return Vector3.ONE / METRES_PAR_MOTIF
+
+
+## Le point d'un plan de `taille` pixels où se pose un point placé en (`x`, `y`) de son cadre (0..1 sur chaque axe),
+## la marge du plan autour.
+static func point_du_plan(taille: Vector2, x: float, y: float) -> Vector2:
+	return Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) + Vector2(x, y) * (taille - Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) * 2.0)
+
+
+## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, gardé dans le plan de
+## `largeur_du_plan` sur `hauteur_du_plan`.
+static func sous_le_point(centre: Vector2, largeur: float, hauteur: float, largeur_du_plan: float, hauteur_du_plan: float) -> Vector2:
+	return Vector2(
+		clampf(centre.x - largeur / 2.0, 0.0, maxf(0.0, largeur_du_plan - largeur)),
+		clampf(centre.y + RAYON_DU_POINT + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))

@@ -104,7 +104,8 @@ for (const rel of SPECS) {
 for (const rel of [...RACINES, ...SPECS]) gestes += purgerAlsoIn(lire(rel));
 
 const seaEvents = lire('sea-events.json');
-for (const ev of seaEvents.boardEvents ?? []) {
+// `boardEvents.entries` : la forme que pose `2026-11-06-1667-evenements-de-bord-tires.mjs`, reconnue au rejeu.
+for (const ev of (Array.isArray(seaEvents.boardEvents) ? seaEvents.boardEvents : seaEvents.boardEvents?.entries) ?? []) {
   for (const cle of ['crewRef', 'chefRef']) {
     const ref = ev.params?.[cle];
     if (typeof ref !== 'string' || !(REMPLACEMENTS[ref] || idsRetires.has(ref))) continue;

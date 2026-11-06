@@ -5,7 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { enregistrerEntree } from './atelierDuCodex';
-import { datasetArray, setDataset } from './overrides';
+import { datasetArray, deDeLaTable, resetData, setDataset } from './overrides';
 
 type Entree = Record<string, unknown>;
 const traits = () => datasetArray('traits') as unknown as Entree[];
@@ -51,5 +51,30 @@ describe('enregistrerEntree — transaction d’une entrée éditée', () => {
     const issue = enregistrerEntree('traits', { ...avant[0], passive: [{ op: 'grantTalent', talent: {} }] }, 0);
     expect(issue).toEqual({ ok: false, erreurs: ['Accorder un Talent : Talent à choisir'] });
     expect(traits()[0]).toBe(avant[0]);
+  });
+});
+
+describe('enregistrerEntree — dé de tirage de la table (#1667)', () => {
+  afterEach(() => resetData());
+  const rangees = () => datasetArray('drunkenness') as unknown as Entree[];
+
+  it('le dé posé s’écrit avec l’entrée, et la forme disque le porte', () => {
+    const issue = enregistrerEntree('drunkenness', rangees()[0], 0, '2d10');
+    expect(issue.ok).toBe(true);
+    if (!issue.ok) return;
+    expect(deDeLaTable('drunkenness')).toBe('2d10');
+    expect(issue.texte).toContain('"die": "2d10"');
+  });
+
+  it('un dé illisible est refusé sans rien poser', () => {
+    const issue = enregistrerEntree('drunkenness', rangees()[0], 0, 'beaucoup');
+    expect(issue.ok).toBe(false);
+    expect(deDeLaTable('drunkenness')).toBe('d10');
+  });
+
+  it('une racine refusée par son schéma REPREND aussi le dé', () => {
+    const issue = enregistrerEntree('drunkenness', { ...rangees()[0], label: 42 }, 0, '2d10');
+    expect(issue.ok).toBe(false);
+    expect(deDeLaTable('drunkenness')).toBe('d10');
   });
 });

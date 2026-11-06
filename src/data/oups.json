@@ -1,105 +1,108 @@
-[
-  {
-    "id": "vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa",
-    "type": "oups",
-    "min": 1,
-    "max": 20,
-    "kind": "selfWound",
-    "label": "Vous vous blessez tout seul en attaquant (nous vous suggérons d'interpréter cet incident pour son côté amusant) – perdez une Blessure, sans tenir compte de votre Bonus d'Endurance ou de vos PA.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 160,
-      "note": "Tableau des Oups !, LDB 14 l.21-30"
-    }
+{
+  "id": "tableau-des-oups",
+  "type": "oups",
+  "label": "Tableau des Oups !",
+  "die": "d100",
+  "source": {
+    "book": "livre-de-base",
+    "page": 160,
+    "note": "Tableau des Oups !, LDB 14 l.21-30"
   },
-  {
-    "id": "arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round",
-    "type": "oups",
-    "min": 21,
-    "max": 40,
-    "kind": "weaponDamageActLast",
-    "label": "Votre arme de Corps à corps s'ébrèche salement, ou votre arme à distance ne fonctionne pas, voire est sur le point de se briser – votre arme subit 1 Dégât. Le prochain Round, vous agirez en dernier, sans tenir compte de l'Ordre d'Initiative, ou de vos talents, ou de toute règle spéciale alors que vous la réparez (voir page 156).",
-    "source": {
-      "book": "livre-de-base",
-      "page": 160,
-      "note": "Tableau des Oups !, LDB 14 l.21-30"
+  "entries": [
+    {
+      "id": "vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa",
+      "min": 1,
+      "max": 20,
+      "kind": "selfWound",
+      "label": "Vous vous blessez tout seul en attaquant (nous vous suggérons d'interpréter cet incident pour son côté amusant) – perdez une Blessure, sans tenir compte de votre Bonus d'Endurance ou de vos PA.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 160,
+        "note": "Tableau des Oups !, LDB 14 l.21-30"
+      }
+    },
+    {
+      "id": "arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round",
+      "min": 21,
+      "max": 40,
+      "kind": "weaponDamageActLast",
+      "label": "Votre arme de Corps à corps s'ébrèche salement, ou votre arme à distance ne fonctionne pas, voire est sur le point de se briser – votre arme subit 1 Dégât. Le prochain Round, vous agirez en dernier, sans tenir compte de l'Ordre d'Initiative, ou de vos talents, ou de toute règle spéciale alors que vous la réparez (voir page 156).",
+      "source": {
+        "book": "livre-de-base",
+        "page": 160,
+        "note": "Tableau des Oups !, LDB 14 l.21-30"
+      }
+    },
+    {
+      "id": "10-a-votre-action-au-prochain-round",
+      "min": 41,
+      "max": 60,
+      "kind": "actionPenalty",
+      "mod": -10,
+      "label": "Vous avez mal négocié votre manœuvre, ce qui vous met en mauvaise posture, ou vous perdez la prise de votre arme à distance. Au cours du prochain Round, votre Action subira une pénalité de -10.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 160,
+        "note": "Tableau des Oups !, LDB 14 l.21-30"
+      }
+    },
+    {
+      "id": "vous-trebuchez-vous-perdez-votre-prochain-mouvement",
+      "min": 61,
+      "max": 70,
+      "kind": "loseMovement",
+      "label": "Vous trébuchez franchement et peinez à vous redresser. Vous perdez votre prochain Mouvement.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 160,
+        "note": "Tableau des Oups !, LDB 14 l.21-30"
+      }
+    },
+    {
+      "id": "vous-lachez-ou-ratez-vous-perdez-votre-prochaine-action",
+      "min": 71,
+      "max": 80,
+      "kind": "loseAction",
+      "label": "Vous ne tenez pas votre arme correctement, ou vous laissez tomber vos munitions. Vous perdez votre prochaine Action.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 160,
+        "note": "Tableau des Oups !, LDB 14 l.21-30"
+      }
+    },
+    {
+      "id": "vous-vous-tordez-la-cheville-dechirure-musculaire-mineure-compte-comme-blessure-critique",
+      "min": 81,
+      "max": 90,
+      "kind": "trauma",
+      "label": "Vous effectuez un mouvement trop ample, ou vous trébuchez et vous vous tordez la cheville. Subissez le traumatisme Déchirure musculaire (Mineur) (voir page 179). Ce dernier compte comme une Blessure critique.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 160,
+        "note": "Tableau des Oups !, LDB 14 l.21-30"
+      }
+    },
+    {
+      "id": "vous-touchez-un-allie-au-hasard-ou-vous-meme-sonne",
+      "min": 91,
+      "max": 100,
+      "kind": "hitAlly",
+      "label": "Vous manquez complètement votre attaque et touchez 1 allié au hasard à distance en utilisant le chiffre des unités de votre lancer de dés pour déterminer le DR. Si personne n'est à distance, vous vous frappez tout seul et obtenez l'État Sonné (voir page 167).",
+      "source": {
+        "book": "livre-de-base",
+        "page": 160,
+        "note": "Tableau des Oups !, LDB 14 l.21-30"
+      }
+    },
+    {
+      "id": "incident-de-tir-l-arme-explose-dans-votre-main-degats-au-bras-principal-arme-detruite",
+      "kind": "misfire",
+      "label": "Si vous utilisez une arme à Poudre noire, mécanique ou explosive et que vous effectuez une Maladresse qui est aussi un nombre pair – 00, 88 etc. –, votre arme a un raté d'allumage, explosant dans votre main. Vous subissez tous les Dégâts à la Localisation de votre Bras principal en utilisant le dé des unités comme DR pour toucher, et votre arme est détruite.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 160,
+        "note": "Maladresses — Incident de Tir (arme à Poudre noire + jet pair), LDB 14 l.34"
+      }
     }
-  },
-  {
-    "id": "10-a-votre-action-au-prochain-round",
-    "type": "oups",
-    "min": 41,
-    "max": 60,
-    "kind": "actionPenalty",
-    "mod": -10,
-    "label": "Vous avez mal négocié votre manœuvre, ce qui vous met en mauvaise posture, ou vous perdez la prise de votre arme à distance. Au cours du prochain Round, votre Action subira une pénalité de -10.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 160,
-      "note": "Tableau des Oups !, LDB 14 l.21-30"
-    }
-  },
-  {
-    "id": "vous-trebuchez-vous-perdez-votre-prochain-mouvement",
-    "type": "oups",
-    "min": 61,
-    "max": 70,
-    "kind": "loseMovement",
-    "label": "Vous trébuchez franchement et peinez à vous redresser. Vous perdez votre prochain Mouvement.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 160,
-      "note": "Tableau des Oups !, LDB 14 l.21-30"
-    }
-  },
-  {
-    "id": "vous-lachez-ou-ratez-vous-perdez-votre-prochaine-action",
-    "type": "oups",
-    "min": 71,
-    "max": 80,
-    "kind": "loseAction",
-    "label": "Vous ne tenez pas votre arme correctement, ou vous laissez tomber vos munitions. Vous perdez votre prochaine Action.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 160,
-      "note": "Tableau des Oups !, LDB 14 l.21-30"
-    }
-  },
-  {
-    "id": "vous-vous-tordez-la-cheville-dechirure-musculaire-mineure-compte-comme-blessure-critique",
-    "type": "oups",
-    "min": 81,
-    "max": 90,
-    "kind": "trauma",
-    "label": "Vous effectuez un mouvement trop ample, ou vous trébuchez et vous vous tordez la cheville. Subissez le traumatisme Déchirure musculaire (Mineur) (voir page 179). Ce dernier compte comme une Blessure critique.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 160,
-      "note": "Tableau des Oups !, LDB 14 l.21-30"
-    }
-  },
-  {
-    "id": "vous-touchez-un-allie-au-hasard-ou-vous-meme-sonne",
-    "type": "oups",
-    "min": 91,
-    "max": 100,
-    "kind": "hitAlly",
-    "label": "Vous manquez complètement votre attaque et touchez 1 allié au hasard à distance en utilisant le chiffre des unités de votre lancer de dés pour déterminer le DR. Si personne n'est à distance, vous vous frappez tout seul et obtenez l'État Sonné (voir page 167).",
-    "source": {
-      "book": "livre-de-base",
-      "page": 160,
-      "note": "Tableau des Oups !, LDB 14 l.21-30"
-    }
-  },
-  {
-    "id": "incident-de-tir-l-arme-explose-dans-votre-main-degats-au-bras-principal-arme-detruite",
-    "type": "oups",
-    "kind": "misfire",
-    "label": "Si vous utilisez une arme à Poudre noire, mécanique ou explosive et que vous effectuez une Maladresse qui est aussi un nombre pair – 00, 88 etc. –, votre arme a un raté d'allumage, explosant dans votre main. Vous subissez tous les Dégâts à la Localisation de votre Bras principal en utilisant le dé des unités comme DR pour toucher, et votre arme est détruite.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 160,
-      "note": "Maladresses — Incident de Tir (arme à Poudre noire + jet pair), LDB 14 l.34"
-    }
-  }
-]
+  ]
+}

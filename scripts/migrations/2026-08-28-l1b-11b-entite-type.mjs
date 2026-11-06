@@ -35,6 +35,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estMonoTable } from './lib/monoTable.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -71,6 +72,8 @@ const rapport = [];
   const ecarts = [];
   for (const [fichier, type] of Object.entries(TYPES)) {
     const brut = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/data', fichier), 'utf8'));
+    // Document mono-table (`lib/monoTable.mjs`) : ses rangées ne portent pas `type`, ce geste n'y a plus d'objet.
+    if (estMonoTable(brut)) continue;
     if (!Array.isArray(brut)) {
       ecarts.push(`${fichier} : racine non-TABLEAU`);
       continue;
@@ -104,6 +107,7 @@ for (const [fichier, type] of Object.entries(TYPES)) {
   const cible = path.join(ROOT, 'src/data', fichier);
   const brut = fs.readFileSync(cible, 'utf8');
   const avant = JSON.parse(brut);
+  if (estMonoTable(avant)) continue;
 
   if (JSON.stringify(avant, null, 2) !== brut) {
     echecs.push(`${fichier} : FORME NON CANONIQUE (pas \`JSON.stringify(doc, null, 2)\`)`);

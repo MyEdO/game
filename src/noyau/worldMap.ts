@@ -495,6 +495,19 @@ export function otherEnd(route: MapRoute, placeId: string): string {
 }
 
 // ── Anti-chevauchement des médaillons (rendu seulement — n'affecte JAMAIS `pos`) ─────────────
+/** Le cadre de la carte, en unités du viewBox. */
+export const CADRE = { w: 100, h: 64 } as const;
+
+/** Écart mini visé entre deux médaillons (unités viewBox) : un médaillon et son cartouche s'y lisent sans se coller. */
+const ECART_DES_MEDAILLONS = 8;
+
+/** La position de rendu de chaque lieu de `places` sur la carte `map`, en unités du viewBox (x 0..100, y 0..64) : à
+ *  son `pos` exact sur une vraie carte de fond (`background`), écartée de ses voisins sinon (`declutterPositions`). */
+export function positionsDeRendu(map: WorldMap, places: readonly MapPlace[]): Map<string, { x: number; y: number }> {
+  const pts = places.map((p) => ({ id: p.id, x: p.pos.x, y: p.pos.y * 0.64 }));
+  return map.background ? new Map(pts.map((p) => [p.id, { x: p.x, y: p.y }])) : declutterPositions(pts, ECART_DES_MEDAILLONS, 80);
+}
+
 /** Point de rendu d'un lieu : id + position en unités du viewBox de la carte (x 0..100, y 0..64). */
 export interface RenderPoint { id: string; x: number; y: number }
 
@@ -525,7 +538,7 @@ export function declutterPositions(
   points: RenderPoint[],
   minDist: number,
   iterations = 60,
-  frame: { w: number; h: number } = { w: 100, h: 64 },
+  frame: { w: number; h: number } = CADRE,
 ): Map<string, { x: number; y: number }> {
   // Copie de travail (on ne mute pas l'entrée) ; l'ordre est celui de `points` → déterministe.
   const pts = points.map((p) => ({ id: p.id, x: p.x, y: p.y }));

@@ -1,0 +1,26 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="Point" type="VBoxContainer"]
+theme_override_constants/separation = 4
+
+[node name="Nom" type="Label" parent="."]
+horizontal_alignment = 1
+
+[node name="nom" type="Node" parent="Nom"]
+script = ExtResource("1_liaison")
+champ = "nom"
+
+[node name="ton" type="Node" parent="Nom"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Elements" type="VBoxContainer" parent="."]
+theme_override_constants/separation = 4
+
+[node name="Zone" type="Node" parent="Elements"]
+script = ExtResource("2_zone")
+source = "elements"

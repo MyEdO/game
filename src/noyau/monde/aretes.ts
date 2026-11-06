@@ -1,14 +1,14 @@
 /**
  * LES ARÊTES TELLES QU'UN HÔTE LES DESSINE (#3476, lot C) : pour chaque mur de la scène, où le poser (sa case, son
- * milieu et son sens), quelle pièce du kit 3D y va (`PieceDArete`), de quelle famille (`StructureAppearanceDef.kit`,
- * par l'apparence de l'arête, `apparenceDArete`), et à quelle hauteur.
+ * milieu et son sens), d'où elle se dresse (`piedDeLArete`), quelle pièce du kit 3D y va (`PieceDArete`), de quelle
+ * famille (`StructureAppearanceDef.kit`, par l'apparence de l'arête, `apparenceDArete`), et à quelle hauteur.
  */
 import { structureAppearances } from '../../data';
 import type { FamilleDuKit, StructureAppearanceDef } from '../../data/structureAppearance.types';
 import { apparenceDArete, edgeKey } from './facades';
 import type { Pt } from './path';
 import { METRES_PER_LEVEL } from './relief';
-import { porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
+import { piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
 import { toitsLeves } from './volume/volume';
 
 /** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
@@ -16,9 +16,10 @@ import { toitsLeves } from './volume/volume';
 export type PieceDArete = 'mur' | 'porte-fermee' | 'porte-ouverte' | 'fenetre' | 'fenetre-close' | 'breche';
 
 /** Une arête telle qu'un hôte la dessine : la case du segment, son milieu et son sens en coins de grille (`wallEnds`),
- *  sa pièce, la famille du kit de son apparence (`null` pour une apparence hors du catalogue), et sa hauteur en mètres
+ *  la hauteur (m) d'où elle se dresse (`piedDeLArete`), sa pièce, la famille du kit de son apparence (`null` pour une
+ *  apparence hors du catalogue), et sa hauteur en mètres
  *  (`wallHeightM`, sinon un étage). */
-export interface AreteDessinee { case: Pt; milieu: Pt; sens: Pt; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number }
+export interface AreteDessinee { case: Pt; milieu: Pt; sens: Pt; pied: number; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number }
 
 const APPARENCES: ReadonlyMap<string, StructureAppearanceDef> = new Map(structureAppearances.map((a) => [a.id, a]));
 
@@ -41,6 +42,7 @@ export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
     case: { x: seg.x, y: seg.y },
     milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
     sens: { x: b.x - a.x, y: b.y - a.y },
+    pied: piedDeLArete(scene, seg),
     piece: pieceDArete(scene, seg),
     famille: apparence?.kit ?? null,
     hauteurM: apparence?.wallHeightM ?? METRES_PER_LEVEL,

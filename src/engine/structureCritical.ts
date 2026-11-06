@@ -16,7 +16,7 @@ import { rollDice, type RNG } from './dice';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import type { GameOp } from './ops';
-import { STRUCTURE_CRITICALS, STRUCTURE_CRITICALS_DIE, type StructureCritEntry } from '../data/structureCriticals';
+import { STRUCTURE_CRITICALS, structureCriticalsDie, type StructureCritEntry } from '../data/structureCriticals';
 import { t } from '../i18n';
 
 export interface StructureCriticalResolved {
@@ -41,7 +41,7 @@ export const tableDesCritiquesDeStructure = memoParVersion('structureCriticals',
 
 /** AA 10 l.112-127 */
 export function rollStructureCritical(rng: RNG, forcedRoll?: number): StructureCriticalResolved {
-  const roll = forcedRoll ?? rollDice(STRUCTURE_CRITICALS_DIE, rng);
+  const roll = forcedRoll ?? rollDice(structureCriticalsDie(), rng);
   const entry = findTableEntry(tableDesCritiquesDeStructure(), roll);
   const extra = entry.wounds ?? 0;
   // Blessures supplémentaires → op `wounds` en MODE PAR DÉFAUT (ignore BE+PA) : c'est une perte de PB issue de

@@ -3,14 +3,15 @@
  * combat ÉCHOUÉ dont le d100 est un double (miroir du Critique = double réussi). Déclenche le
  * Tableau des Oups !, ou un Incident de Tir (arme à Poudre noire + jet pair → explosion, l.56-57).
  */
-import { d100, RNG, type DiceSpec } from './dice';
+import { rollDice, RNG, type DiceSpec } from './dice';
 import { findTableEntry } from './tables';
 import { isDoubleRoll } from './tests';
 import { Combatant, Weapon } from './types';
-import { oupsTable, oupsMisfire, OupsKind } from '../data/oups';
+import { oupsTable, oupsMisfire, oupsDie, OupsKind } from '../data/oups';
 import { isFirearmQuality, hasQuality, isUnbreakable } from './qualities/dispatch';
 import { solideSaveThreshold, sauvegardeImperdable } from './weaponDamage';
-import { TABLE_SALVE_MISFIRE, DE_SALVE_MISFIRE } from './artilleryMisfire';
+import { TABLE_SALVE_MISFIRE } from './artilleryMisfire';
+import { artilleryMisfireDie } from '../data/artilleryMisfire';
 import type { DemandeDe } from './ops';
 import { formatWardSave, type SourceDeSauvegarde } from './traits/dispatch';
 import { t } from '../i18n';
@@ -43,7 +44,7 @@ function isFirearm(w: Weapon | undefined): boolean {
 
 /** Tire sur le Tableau des Oups ! ; Incident de Tir prioritaire (arme à poudre + jet PAIR). */
 export function rollOups(weapon: Weapon | undefined, rng: RNG): OupsResolved {
-  const roll = d100(rng);
+  const roll = rollDice(oupsDie(), rng);
   if (isFirearm(weapon) && roll % 2 === 0) {
     return { roll, kind: 'misfire', label: oupsMisfire().label };
   }
@@ -110,7 +111,7 @@ export function desDOups(c: Combatant, weapon: Weapon, r: OupsResolved): Demande
   const out: DemandeDeCasse[] = [];
   const indice = casseSurMaladresse(weapon, r) ? seuilSolide(c, weapon) : null;
   if (indice != null) out.push(deSolide(CLE_SOLIDE, indice, weapon.label));
-  if (r.kind === 'misfire' && hasQuality(weapon, 'salve')) out.push({ cle: 'salve-table', spec: DE_SALVE_MISFIRE, libelle: t('step.salveMisfire', { weapon: weapon.label }), lecture: { kind: 'table', tableId: TABLE_SALVE_MISFIRE } });
+  if (r.kind === 'misfire' && hasQuality(weapon, 'salve')) out.push({ cle: 'salve-table', spec: artilleryMisfireDie(), libelle: t('step.salveMisfire', { weapon: weapon.label }), lecture: { kind: 'table', tableId: TABLE_SALVE_MISFIRE } });
   return out;
 }
 

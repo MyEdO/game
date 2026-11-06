@@ -5,7 +5,7 @@ import { validateDataset } from '../validate';
 import seaEventsJson from '../../sea-events.json';
 
 type Bande = { id: string; min: number | null; max: number | null };
-const clone = () => structuredClone(seaEventsJson) as unknown as { boardEvents: Bande[]; fastVoyage: { paliers: Bande[] }; portEvents: Bande[] };
+const clone = () => structuredClone(seaEventsJson) as unknown as { boardEvents: { die: string; entries: Bande[] }; fastVoyage: { paliers: Bande[] }; portEvents: Bande[] };
 
 describe('sea-events.json — les tables ouvertes couvrent leur jet d’un seul tenant', () => {
   it('le schéma accepte le document RÉEL', () => {
@@ -14,9 +14,9 @@ describe('sea-events.json — les tables ouvertes couvrent leur jet d’un seul 
 
   it('REFUSE un Événement de bord du milieu sans plafond', () => {
     const trouee = clone();
-    const milieu = trouee.boardEvents[10];
+    const milieu = trouee.boardEvents.entries[10];
     milieu.max = null;
-    expect(validateDataset('sea-events.json', trouee)).toMatch(new RegExp(`boardEvents : .*la bande « ${milieu.id} » n'a pas de borne haute`));
+    expect(validateDataset('sea-events.json', trouee)).toMatch(new RegExp(`boardEvents\\.entries : .*la bande « ${milieu.id} » n'a pas de borne haute`));
   });
 
   it('REFUSE un palier du Voyage rapide du milieu sans plancher', () => {

@@ -40,8 +40,8 @@ interface GeometrieDuMonde {
   normales: number[];
   /** Couleur sRGB opaque de chaque sommet, canaux dans [0, 1], 4 nombres par sommet (rouge, vert, bleu, alpha). */
   couleurs: number[];
-  /** La case `[x, y]` de chaque triangle, dans l'ordre des triangles. */
-  cases: [number, number][];
+  /** La case `[x, y, z]` de chaque triangle, sa couche comprise, dans l'ordre des triangles. */
+  cases: [number, number, number][];
   /** Les triangles d'une même matière se suivent : une surface par matière, dans l'ordre des triangles. */
   surfaces: SurfaceDuVolume[];
 }
@@ -94,7 +94,7 @@ function emballer(scene: Scene, listees: readonly { face: Face; cell: { x: numbe
   const positions: number[] = [];
   const normales: number[] = [];
   const couleurs: number[] = [];
-  const cases: [number, number][] = [];
+  const cases: [number, number, number][] = [];
   const surfaces: SurfaceDuVolume[] = [];
   for (const [matiere, faces] of parMatiere) {
     const debut = positions.length / 3;
@@ -103,10 +103,10 @@ function emballer(scene: Scene, listees: readonly { face: Face; cell: { x: numbe
       const [r, v, b] = parseHex(couleurDeMatiere(m)) ?? parseHex(MISSING_TONE)!;
       const k = tintVarFactor(recetteDeMatiere(m), listees[i].cell) / 255;
       const couleur = [...[r, v, b].map((c) => arrondi(Math.min(1, c * k))), 1];
-      const { x, y } = listees[i].cell;
+      const { x, y, z } = listees[i].cell;
       for (const { sommets, normale } of trianglesOrientes(geoms[i], centre)) {
         const n = normale ?? { x: 0, y: 1, z: 0 };
-        cases.push([x, y]);
+        cases.push([x, y, z]);
         for (const p of sommets) {
           positions.push(arrondi(p.x), arrondi(p.y), arrondi(p.z));
           normales.push(arrondi(n.x), arrondi(n.y), arrondi(n.z));

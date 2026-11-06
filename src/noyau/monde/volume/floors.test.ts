@@ -4,7 +4,7 @@ import type { Face, FloorEl } from './types';
 import { emptyScene, heightAt, type Scene } from '../scene';
 import { gradeBetween, STEP_MAX_M } from '../relief';
 import { terrainMatiere } from '../terrain';
-import { CONTREMARCHE_M } from './pente';
+import { CONTREMARCHE_M, dessusDe, hauteurDuDessus } from './pente';
 
 /**
  * Builder de sols du PIVOT : le franchissement vertical S'AUTO-DÉRIVE du delta de hauteur MÉTRIQUE
@@ -83,15 +83,41 @@ describe('buildFloors — parois de relief auto-dérivées du dénivelé métriq
     expect(n.poly[0]).toEqual({ x: 0.5, y: 0.5, h: 4 }); // coin NO de (1,1) en coordonnées de grille
   });
 
-  it('un ressaut de +0.5 m (≤ STEP_MAX) sur sol BÂTI : des marches d’au plus une contremarche, la case à sa hauteur au centre', () => {
+  it('une estrade de +0.5 m (≤ STEP_MAX) sur sol BÂTI, hors de toute volée : plate, une contremarche pleine de son terrain sur ses arêtes', () => {
     const s = withHeight(); // plancher : terrain bâti
     setH(s, 1, 1, 0.5);
     const els = buildFloors(s);
     expect(els.flatMap((e) => reliefParts(e))).toEqual([]); // ni falaise ni talus : on rejoint chaque voisine à pied
-    for (const e of els) for (const f of e.faces.filter(estVerticale))
+    const estrade = elAt(els, 1, 1)!;
+    expect(estrade.faces.filter((f) => isBaseFace(f) && !estVerticale(f)).map((f) => f.poly.map((p) => p.h))).toEqual([[0.5, 0.5, 0.5, 0.5]]);
+    const contremarches = estrade.faces.filter(estVerticale);
+    expect(contremarches.map((f) => f.side).sort()).toEqual(['E', 'N', 'O', 'S']);
+    expect(contremarches.every((f) => etendue(f) === 0.5 && f.material.id === 'plancher')).toBe(true);
+    expect(hauteurAuPoint(elAt(els, 0, 1)!, 0.45, 1)).toBeCloseTo(0); // la voisine reste plate jusqu’à l’arête
+  });
+
+  it('une volée de pavé entre deux sols : des marches droites le long de son axe, le sol à son flanc plat', () => {
+    const s = emptyScene('scene-test', 5, 3);
+    s.layers[0].tiles = new Array(15).fill('pave');
+    s.layers[0].height = [0, 0, 0, 0, 0, 0, 0.5, 1, 1.5, 2, 0, 0, 0, 0, 0]; // la volée (1..3, 1), du sol (0, 1) au palier (4, 1)
+    const els = buildFloors(s);
+    for (const x of [1, 2, 3]) {
+      const d = dessusDe(s, x, 1, 0);
+      for (const u of [-0.45, -0.2, 0.2, 0.45]) expect(hauteurDuDessus(d, u, -0.45), `marche droite en (${x}, 1)`).toBeCloseTo(hauteurDuDessus(d, u, 0.45));
+    }
+    for (const x of [1, 2, 3]) for (const y of [0, 2]) expect(dessusDe(s, x, y, 0).pente, `le flanc (${x}, ${y}) reste plat`).toBe(false);
+    for (const e of els.filter((e) => e.cell.y === 1)) for (const f of e.faces.filter((f) => estVerticale(f) && (f.side === 'E' || f.side === 'O')))
       expect(etendue(f)).toBeLessThanOrEqual(CONTREMARCHE_M + 1e-9);
-    expect(hauteurAuPoint(elAt(els, 1, 1)!, 1, 1)).toBeCloseTo(0.5);
-    expect(hauteurAuPoint(elAt(els, 0, 1)!, 0, 1)).toBeCloseTo(0);
+  });
+
+  it('un mur sur l’arête commune sépare deux cases : le sol ne se raccorde pas sous lui', () => {
+    const s = withHeight();
+    s.layers[0].tiles.fill('herbe');
+    setH(s, 1, 1, 0.5);
+    s.walls = [{ x: 0, y: 1, side: 'E' }];
+    const dehors = dessusDe(s, 0, 1, 0);
+    expect(hauteurDuDessus(dehors, 0.45, 0)).toBe(0); // contre le mur, le sol du dehors reste à sa hauteur
+    expect(hauteurDuDessus(dessusDe(s, 1, 2, 0), 0, -0.45)).toBeGreaterThan(0); // sans mur, la pente naturelle demeure
   });
 
   it('un ressaut de +0.5 m sur sol NATUREL : une pente d’un centre à l’autre, sans aucune face verticale', () => {
