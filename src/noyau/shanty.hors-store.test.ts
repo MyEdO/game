@@ -44,10 +44,10 @@ describe('Vocabulaire des chansons (ops génériques → ActiveEffect)', () => {
 
   it('skillDRBonus appliqué (« Jacques Bret », l.228) → lu par le lecteur skillDRBonus (effets actifs)', () => {
     const c = mk('m2');
-    expect(skillDRBonus(c, 'corps-a-corps')).toBe(0);
+    expect(skillDRBonus(c, { id: 'corps-a-corps' })).toBe(0);
     applyOps(c, [{ op: 'skillDRBonus', skill: { id: 'corps-a-corps' }, bonus: 1 }], { label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
-    expect(skillDRBonus(c, 'corps-a-corps')).toBe(1);
-    expect(skillDRBonus(c, 'calme')).toBe(0); // pas de fuite vers une autre Compétence
+    expect(skillDRBonus(c, { id: 'corps-a-corps' })).toBe(1);
+    expect(skillDRBonus(c, { id: 'calme' })).toBe(0); // pas de fuite vers une autre Compétence
   });
 
   it('charDRBonus Soc (« Camarades d’équipage », l.236) → charDRBonusOf', () => {
@@ -104,7 +104,7 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
     banc.getState().jetConfirm('shanty');
     const st = banc.getState();
     const crew = st.battle!.combatants.filter((c) => c.id === 'barde' || c.id === 'marin');
-    for (const c of crew) expect(skillDRBonus(c, 'corps-a-corps')).toBe(1); // « +1 DR sur tout Test de Corps à corps réussi »
+    for (const c of crew) expect(skillDRBonus(c, { id: 'corps-a-corps' })).toBe(1); // « +1 DR sur tout Test de Corps à corps réussi »
     const hull = st.battle!.combatants.find((c) => c.id === 'ship')!;
     expect(hull.lastShantyQuart).toBe(quartIndex(0));
     const bard = st.battle!.combatants.find((c) => c.id === 'barde')!;
@@ -122,7 +122,7 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
     const bard = st.battle!.combatants.find((c) => c.id === 'barde')!;
     const lines = endShanty(banc.getState, bard);
     expect(lines.length).toBe(1);
-    for (const c of st.battle!.combatants) expect(skillDRBonus(c, 'corps-a-corps')).toBe(0);
+    for (const c of st.battle!.combatants) expect(skillDRBonus(c, { id: 'corps-a-corps' })).toBe(0);
     expect(bard.singingShanty).toBeUndefined();
   });
 

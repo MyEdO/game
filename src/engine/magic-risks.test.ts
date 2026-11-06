@@ -10,6 +10,8 @@ import { makeRNG } from './dice';
 import { setRule, resetRule } from './policy';
 import {
   resolveFocus, castingValue, armourCastDRPenalty, resolveCasting, focusSkillFor,
+  incantationArcane,
+  focalisationValue,
 } from './magic';
 import { deSelonLaPlage } from './dice.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
@@ -119,7 +121,7 @@ describe('« Repousser les Vents » — armure portée (LDB 46 l.150-152)', () =
 describe('Avantage et magie (l.125)', () => {
   it('l\'Avantage s\'applique à l\'Incantation (+10/point), PAS à la Focalisation', () => {
     const c = wiz({ advantage: 2 });
-    expect(castingValue(c, 'langue', 'magick')).toBe(50 + 10 + 20);
-    expect(castingValue(c, 'focalisation', 'feu')).toBe(45 + 10);
+    expect(castingValue(c, incantationArcane())).toBe(50 + 10 + 20);
+    expect(focalisationValue(c, { id: 'focalisation', spec: 'feu' })).toBe(45 + 10);
   });
 });

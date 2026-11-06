@@ -229,7 +229,7 @@ describe('provenance 5 — le Maxi EFFECTIF suit la variante (talentMaxById, AA 
 describe('provenance 6 — la ligne « Tests » republiée est CONSOMMÉE par le +DR de Talent (talentTestSLBonus)', () => {
   /** Sondes de Test dérivées des `matches` d'un mode : une par match auto-applicable. */
   const probes = (matches: { skill?: { id: string; spec?: string }; characteristic?: CharKey; manual?: boolean }[] | undefined) =>
-    (matches ?? []).filter((m) => !m.manual).map((m) => ({ skill: m.skill?.id, spec: m.skill?.spec, characteristic: m.characteristic }));
+    (matches ?? []).filter((m) => !m.manual).map((m) => ({ skill: m.skill, characteristic: m.characteristic }));
 
   const carriers = carriersDeclaring('test');
 

@@ -21,7 +21,7 @@ import type { Combatant } from '../engine/types';
 import type { DifficultyShown } from '../engine/combat';
 import { ciblesBasculees } from './reglagesDuJet';
 import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/combat';
-import { castInfo, isMagicMissile, missileDamage, focalisationAboutie } from '../engine/magic';
+import { castInfo, incantationArcane, isMagicMissile, missileDamage, focalisationAboutie } from '../engine/magic';
 import { bonus, bonusDeForce, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
 import { isOutOfAction, refusVerrouDAction } from '../engine/conditions';
@@ -34,7 +34,7 @@ import { healableTargets, modesDOuverture, soinDOuverture, HEAL_MODES } from '..
 import { libelleDeTest } from './jetsEnVue';
 import { garanti } from '../lib/garanti';
 import { dispellableSpellsOn, type DispellableSpell } from '../engine/dispel';
-import { findSpellById } from '../data';
+import { findSpellById, testSkillLabel } from '../data';
 import { isStructure, structureImmune } from '../engine/structures';
 import { overcastSourceOf } from '../engine/overcast';
 import { tileKey, type Pt } from './monde/path';
@@ -287,7 +287,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
     line: 'dashed',
     title: spell.label,
     targetName: target.label,
-    skill: castInfo(spell).skill === 'priere' ? 'Prière' : 'Langue (Magick)',
+    skill: testSkillLabel(castInfo(spell)),
     base: pv.base,
     mod: pv.target - pv.base,
     // Dégâts d'un Projectile AVANT DR (evaluateMissile : sort + DR + BFM) — parité arme (Force incluse).
@@ -480,7 +480,7 @@ export function dispellableOnCarrier(get: Get<Jeu>, carrierId: string): Dispella
  *  tait, et le clic dit sa raison (`DISPEL_MODE.commitCombatant`). */
 function dispelAffordance(get: Get, _active: Combatant, target: Combatant): HoverTargeting {
   if (dispellableOnCarrier(get, target.id).length === 0) return { kind: 'invalid', reason: 'sans-sort-dissipable' };
-  return { kind: 'ok', line: 'dashed', title: 'Dissiper', targetName: target.label, skill: 'Langue (Magick)', base: 0, mod: 0, dmg: null };
+  return { kind: 'ok', line: 'dashed', title: 'Dissiper', targetName: target.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
 }
 
 /** Mode SURINCANTATION (+Cible, LDB 47 l.28) : cibles supplémentaires éligibles (portée/éveillées/LdV). */
@@ -491,7 +491,7 @@ function overcastAffordance(get: Get, _active: Combatant, target: Combatant): Ho
   const caster = pool.find((c) => c.id === pc.casterId);
   const spell = findSpellById(pc.spellId);
   if (!caster || !spell || !overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).some((c) => c.id === target.id)) return { kind: 'none' };
-  return { kind: 'ok', line: 'dashed', title: spell.label, targetName: target.label, skill: 'Langue (Magick)', base: 0, mod: 0, dmg: null };
+  return { kind: 'ok', line: 'dashed', title: spell.label, targetName: target.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
 }
 
 /** Mode FRAPPE MORTELLE (cleave, LDB 14 l.9) : enchaînements adjacents non encore frappés. */

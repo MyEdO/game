@@ -171,7 +171,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
           </Stack>
         )}
       </div>
-      {isSocialTest(test.skill?.id, test.characteristic) && (
+      {isSocialTest(test) && (
         <div className="tf-row">
           <ListeDIds
             noeud={flowTestSchema.shape.vsGroups}

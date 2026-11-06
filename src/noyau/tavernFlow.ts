@@ -23,7 +23,7 @@
  *
  * Réservé aux tables qui activent l'option `tavern-games`.
  */
-import { DIFFICULTY_LABELS, type CharKey, type Combatant, type Difficulty } from '../engine/types';
+import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import type { FlowTest } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import {
@@ -36,7 +36,8 @@ import { resolveOpposed, isDoubleRoll, evaluateTest, evaluateCombinedTest, estJe
 import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
 import { applyOps, avantageDeCampSansFiche } from '../engine/ops';
-import { idsDuTest, testValue, sujetDesIds } from '../engine/skills';
+import { testValue } from '../engine/skills';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import { advantageCap, advantageCapFor } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { touchActors } from './combatOrParty';
@@ -157,28 +158,27 @@ export function tavernNpcOffers(scene: Scene | null | undefined, presetDe: Resol
     });
 }
 
-/** Déclaration du Test (skill/characteristic/spec) d'un jeu — MÊME repli que `tavernGameValue` (Pari si rien
+/** Déclaration du Test (Compétence ou Caractéristique) d'un jeu — MÊME repli que `tavernGameValue` (Pari si rien
  *  d'indiqué), réutilisée par les mints (`req.test`, qui calculent eux-mêmes la valeur par acteur). */
-/** Déclaration de Test RUNTIME (`skill`/`spec` à plat, forme des monteurs de ligne) → `TavernOption`
- *  (Test de la DONNÉE, référence de Compétence EMBOÎTÉE). PURE. */
-function enOption(t: { skill?: string; spec?: string; characteristic?: CharKey }): TavernOption {
+/** Sujet d'un Test → `TavernOption` (Test de la DONNÉE). PURE. */
+function enOption(t: SujetDuJet): TavernOption {
   return {
     test: {
-      ...(t.skill ? { skill: { id: t.skill, ...(t.spec ? { spec: t.spec } : {}) } } : {}),
+      ...(t.skill ? { skill: t.skill } : {}),
       ...(t.characteristic ? { characteristic: t.characteristic } : {}),
     },
   };
 }
 
-/** Test de la DONNÉE → déclaration RUNTIME des monteurs de ligne (`skill`/`spec` à plat). PURE. */
-function testDeSequence(test: Pick<FlowTest, 'skill' | 'characteristic'>): { skill?: string; spec?: string; characteristic?: CharKey } {
-  return test.skill ? idsDuTest({ skill: test.skill }) : { characteristic: test.characteristic };
+/** Sujet du Test d'une séquence de la DONNÉE : sa Compétence, sinon sa Caractéristique. PURE. */
+function testDeSequence(test: Pick<FlowTest, 'skill' | 'characteristic'>): SujetDuJet {
+  return test.skill ? { skill: structuredClone(test.skill) } : { characteristic: test.characteristic }; // #2097
 }
 
-function tavernTestSpec(game: TavernGame): { skill?: string; characteristic?: CharKey; spec?: string } {
-  if (game.skill) return { skill: game.skill.id, spec: game.skill.spec };
+function tavernTestSpec(game: TavernGame): SujetDuJet {
+  if (game.skill) return { skill: structuredClone(game.skill) }; // #2097
   if (game.characteristic) return { characteristic: game.characteristic };
-  return { skill: 'pari' };
+  return { skill: { id: 'pari' } };
 }
 
 /** La table de taverne est PARTAGÉE (une seule séquence) : seul l'hôte l'ouvre et y fait jouer ; un siège
@@ -473,7 +473,7 @@ function combinedSecondRead(game: TavernGame, acteur: Combatant | undefined, dif
   const test = testDeSequence(regles.second);
   return {
     label: testSkillLabel(test) ?? game.label,
-    base: acteur ? testValue(acteur, sujetDesIds(test)) : nue,
+    base: acteur ? testValue(acteur, test) : nue,
     target: combinedSecondTarget(regles, acteur, difficulty, nue),
     difficulty,
   };
@@ -494,7 +494,7 @@ function tavernRow(get: Get, p: TavernPayload, h: Combatant, game: TavernGame, c
   const row: BatchParticipant = {
     id: h.id,
     label: testSkillLabel(test) ?? game.label,
-    ...(test.skill ? { skillId: test.skill } : {}),
+    ...(test.skill ? { skill: structuredClone(test.skill) } : {}),
     difficulty,
     result: null,
     interactive: true,
@@ -543,7 +543,7 @@ function figurantRow(id: string, label: string, valeur: number, opt: TavernOptio
   const difficulty = opt.test.difficulty ?? TAVERN_TEST_DIFFICULTY;
   const row: BatchParticipant = {
     id, label, difficulty, result: null, interactive: false,
-    ...(opt.test.skill ? { skillId: opt.test.skill.id } : {}),
+    ...(opt.test.skill ? { skill: structuredClone(opt.test.skill) } : {}),
     ...rollStep({ valeur, valeurEtrangere: true, difficulty, ...(surLaCible.length ? { surLaCible } : {}) }),
   };
   return { ...row, result: rollBatchParticipant(row, battleRng()) };
@@ -615,7 +615,7 @@ function equipierRow(get: Get, p: TavernPayload, h: Combatant, game: TavernGame,
   const row: BatchParticipant = {
     id: h.id,
     label: testSkillLabel(test) ?? game.label,
-    ...(test.skill ? { skillId: test.skill } : {}),
+    ...(test.skill ? { skill: structuredClone(test.skill) } : {}),
     difficulty,
     result: null,
     interactive: true,
@@ -714,7 +714,7 @@ function torchonRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Se
   const difficulty = difficulteDuSiege(p, difficulteDeBase(game), lanceur.id);
   const lanceurRow: BatchParticipant = heros
     ? {
-      id: lanceur.id, label: testSkillLabel(test) ?? game.label, ...(test.skill ? { skillId: test.skill } : {}),
+      id: lanceur.id, label: testSkillLabel(test) ?? game.label, ...(test.skill ? { skill: structuredClone(test.skill) } : {}),
       difficulty, result: null, interactive: true,
       ...rollStep({ actor: heros, test, difficulty }),
     }
@@ -813,7 +813,7 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
   // figurant, dont la fiche ne suit pas la séquence (valeur dérivée à l'ouverture). Jamais un jet forgé à la main.
   const pinte: BatchParticipant = heros
     ? {
-      id, label: testSkillLabel(test) ?? lanceur.label, ...(test.skill ? { skillId: test.skill } : {}),
+      id, label: testSkillLabel(test) ?? lanceur.label, ...(test.skill ? { skill: structuredClone(test.skill) } : {}),
       difficulty, result: null, interactive: false,
       ...rollStep({ actor: heros, test, difficulty }),
     }
@@ -2058,7 +2058,7 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   const test = tavernTestSpec(game);
   const rowJet: BatchParticipant = heros
     ? {
-      id: lanceur.id, label: testSkillLabel(test) ?? game.label, ...(test.skill ? { skillId: test.skill } : {}),
+      id: lanceur.id, label: testSkillLabel(test) ?? game.label, ...(test.skill ? { skill: structuredClone(test.skill) } : {}),
       difficulty, result: null, interactive: true,
       ...rollStep({ actor: heros, test, difficulty }),
     }

@@ -152,7 +152,7 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
       combattantDeTest({ id: 'pregen-102', label: 'Valentyn', kind: 'hero', characteristics: { force: 30 }, wounds: blessuresDeBase(10) }),
     ];
     useGame.setState({ party, battle: null });
-    const assisted = partyAssisted(party, undefined, 'force')!;
+    const assisted = partyAssisted(party, { characteristic: 'force' })!;
     const { base, mods } = supportSplit(assisted.value, assisted.support);
     expect(base, 'la base affichée redevient celle du meneur seul').toBe(40);
     expect(mods[0].value, 'le Soutien est une ligne NOMMÉE').toBeGreaterThan(0);

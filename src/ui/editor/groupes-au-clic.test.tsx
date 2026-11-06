@@ -92,7 +92,7 @@ describe('statbloc personnalisé — `groups` (porteur)', () => {
 
 describe('Test de Sociabilité — `vsGroups` (porteur : les Groupes de l’interlocuteur)', () => {
   it('ajouter et choisir un Groupe au clic ; les jokers ne sont pas offerts', async () => {
-    const social = skills.find((s) => isSocialTest(s.id, undefined));
+    const social = skills.find((s) => isSocialTest({ skill: { id: s.id } }));
     expect(social).toBeDefined();
     let dernier: FlowTest = { skill: { id: social!.id } };
     function Banc() {

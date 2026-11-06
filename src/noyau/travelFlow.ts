@@ -621,7 +621,7 @@ function runTravelDays(get: Get, set: Set): void {
     const forcedEligible = plan.allure === 'galop' && plan.mode !== 'monture' && !plan.vehicleLame && !!vehicleTravel(plan.mode)?.draft;
     // Sans conducteur qui puisse tenter la Conduite d'attelage (`peutTenter`, lu par `partyAssisted`),
     // l'attelage ne part pas au pas de course : la journée suit la cadence de base.
-    const forcedDriver = forcedEligible ? partyAssisted(party, 'conduite-d-attelage') : null;
+    const forcedDriver = forcedEligible ? partyAssisted(party, { skill: { id: 'conduite-d-attelage' } }) : null;
     // Conducteur dont le jet se SURFACE (#1262) : chaque Test de Conduite d'attelage au km devient une
     // ÉTAPE de la cascade `travelDay` (Chance/Pacte/Résilience possibles), chaînée par insertions
     // successives jusqu'au premier échec (`buildForcedPaceDaySteps`) — gameTime/kmDone sont alors
@@ -1201,7 +1201,7 @@ function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof
  *  d'attelage n'est pas un Test de résistance (l.197). SOURCE UNIQUE : le km courant, le km SUIVANT et
  *  la reprise de contrôle désignent le conducteur par CETTE fonction, jamais par une valeur figée. */
 function forcedPaceDriver(get: Get) {
-  return partyAssisted(get().party, 'conduite-d-attelage');
+  return partyAssisted(get().party, { skill: { id: 'conduite-d-attelage' } });
 }
 
 /** Construit l'ÉTAPE-JET de Conduite d'attelage au kilomètre COURANT (#270, conducteur JOUEUR) — pénalité
@@ -1216,7 +1216,7 @@ function buildForcedPaceStep(driver: { actor: Combatant; value: number; support?
     difficulty: 'intermediaire',
     stake: voyageStakeRef('landForcedPace'),
     ligne: {
-      test: { skill: 'conduite-d-attelage' }, valeur: driver.value + (penalty?.value ?? 0), soutien: driver.support,
+      test: { skill: { id: 'conduite-d-attelage' } }, valeur: driver.value + (penalty?.value ?? 0), soutien: driver.support,
       ...(penalty ? { dansLaValeur: [penalty] } : {}),
     },
     meta: { kmLeft, galloped, km, hours },
@@ -1405,12 +1405,12 @@ export const TABLES = {
         set({ party: [...party] });
       } else if (entry.kind === 'ereintant') {
         // Survie en extérieur Accessible (+20) INFLUENÇABLE → étape-jet insérée (échec = retard + Exténué).
-        const best = partyAssisted(party, 'survie-en-exterieur'); // Soutien (LDB 12)
+        const best = partyAssisted(party, { skill: { id: 'survie-en-exterieur' } }); // Soutien (LDB 12)
         const st = best && monoStep({
           id: 'peril-survie', kind: 'landPerilSurvie', actor: best.actor, icon: 'travel/compass', label: t('step.landPerilSurvie'),
           rollLabel: refLabel('skills', { id: 'survie-en-exterieur' }), difficulty: 'accessible',
           stake: voyageStakeRef('landPerilSurvie'),
-          ligne: { test: { skill: 'survie-en-exterieur' }, valeur: best.value, soutien: best.support },
+          ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
         });
         if (st) return { consequences: freeCons(j), insert: [st] };
         j.push(...applyEreintant(get, set)); // personne pour tester : retard direct
@@ -1418,12 +1418,12 @@ export const TABLES = {
         // Perception Accessible (+20) INFLUENÇABLE → étape-jet insérée ; son applier pose l'embuscade
         // différée (le `noSurprise` suit le jet). Sans tester (aucun héros vivant) : interruption directe.
         const configured = !!(route.ambush?.scene && route.ambush.encounter);
-        const best = partyAssisted(party, 'perception'); // Soutien (LDB 12)
+        const best = partyAssisted(party, { skill: { id: 'perception' } }); // Soutien (LDB 12)
         const st = best && monoStep({
           id: 'peril-perception', kind: 'landPerilPerception', actor: best.actor, icon: 'ui/eye', label: t('step.landPerilPerception'),
           rollLabel: refLabel('skills', { id: 'perception' }), difficulty: 'accessible',
           stake: voyageStakeRef('landPerilPerception'),
-          ligne: { test: { skill: 'perception' }, valeur: best.value, soutien: best.support },
+          ligne: { test: { skill: { id: 'perception' } }, valeur: best.value, soutien: best.support },
           meta: { destLabel, configured, ambushScene: route.ambush?.scene ?? '', ambushEntry: route.ambush?.entry ?? '', ambushEnc: route.ambush?.encounter ?? '' },
         });
         if (st) return { consequences: freeCons(j), insert: [st] };
@@ -1520,7 +1520,7 @@ export const TABLES = {
             // MÊME jet que le km (Conduite d'attelage soutenue, `LDB 12 l.189`) : ni la pénalité de km
             // (`EDOC 07 l.253` ne la reconduit pas), ni une valeur figée. Les deux surfaces — étape
             // influençable et repli sans pilote ci-dessous — lisent le MÊME conducteur soutenu.
-            ligne: { test: { skill: 'conduite-d-attelage' }, valeur: driver.value, soutien: driver.support },
+            ligne: { test: { skill: { id: 'conduite-d-attelage' } }, valeur: driver.value, soutien: driver.support },
             meta: { finalKm, finalHours },
           });
           if (st) return { consequences: freeCons(j), insert: [st] };

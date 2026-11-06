@@ -141,7 +141,7 @@ import { testDuCavalier } from '../engine/movement';
  *  performClick d'IsoStage — pour rester neutre vis-à-vis des harnais de test sans UI.) */
 /** La ligne du jet de Dissipation, figée à son ouverture sur sa valeur, Soutien « même Domaine » compris. LDB 46 l.158-162 */
 const ligneDeDissipation = (lanceur: Combatant, value: number, soutien: SupportDetail): RollLineParts =>
-  rollLine({ actor: lanceur, test: { skill: 'langue', spec: 'magick' }, difficulty: 'intermediaire', valeur: value, ...(soutien.bonus > 0 ? { soutien } : {}) });
+  rollLine({ actor: lanceur, test: { skill: { id: 'langue', spec: 'magick' } }, difficulty: 'intermediaire', valeur: value, ...(soutien.bonus > 0 ? { soutien } : {}) });
 
 const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
   !!(pickActiveModalKey(s as never) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
@@ -1331,8 +1331,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // requis pour armer la pièce) : ceci reste le Soutien générique LDB 12, adjacence (l.196) gatée pareil
       // qu'ailleurs en combat (`combatDistance`) — s'annule d'elle-même si `chef` n'a pas de `pos` propre
       // (équipage navire PASSAGER hors case, shipPostes.ts l.244-245).
-      const sout = soutienDetail(servants, chef, 'projectiles', undefined, 'Poudre noire',
-        chef.pos ? (c) => !!c.pos && combatDistance(chef, c) <= 1 : undefined);
+      const sout = soutienDetail(servants, chef, { skill: { id: 'projectiles', spec: 'Poudre noire' } }, chef.pos ? (c) => !!c.pos && combatDistance(chef, c) <= 1 : undefined);
       const skillValue = combatValue(chef, 'ranged', w) + sout.bonus;
       const ligne = rollLine({
         actor: chef, difficulty: 'intermediaire', valeur: skillValue,
@@ -1920,7 +1919,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active) || refuseParSonEntree(get, set, 'dispel', active, battle)) return;
-      if (!actorHasSkill(active, 'langue', 'magick')) { get().log(t('cs.cannotDispel')); return; }
+      if (!actorHasSkill(active, { id: 'langue', spec: 'magick' })) { get().log(t('cs.cannotDispel')); return; }
       const target = dispellableSpellsOn(battle.combatants).find((d) => d.spellId === spellId && d.casterId === spellCasterId);
       if (!target) return;
       // SOUTIEN « même Domaine » (LDB 46 l.162) : les AUTRES héros encore en action, possédant Langue (Magick)
@@ -1930,8 +1929,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // `Combatant.spells` = ids STABLES au runtime → résolution par id SEULE (pas de repli libellé : interdit).
       const domainsOf = (h: Combatant) => new Set((h.spells ?? []).map((id) => findSpellById(id)?.subType).filter(Boolean) as string[]);
       const mine = domainsOf(active);
-      const sup = soutienDetail(battle.combatants, active, 'langue', 'intelligence', 'magick',
-        (c) => c.kind === active.kind && [...domainsOf(c)].some((d) => mine.has(d))
+      const sup = soutienDetail(battle.combatants, active, { skill: { id: 'langue', spec: 'magick' }, characteristic: 'intelligence' }, (c) => c.kind === active.kind && [...domainsOf(c)].some((d) => mine.has(d))
           && (!active.pos || (!!c.pos && combatDistance(active, c) <= 1)));
       const value = testValue(active, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({
@@ -1973,13 +1971,12 @@ export function createCombatSlice(get: Get, set: Set) {
       const { party } = get();
       const caster = party.find((c) => c.id === casterId);
       if (!caster) return;
-      if (!actorHasSkill(caster, 'langue', 'magick')) { get().log(t('cs.cannotDispel')); return; }
+      if (!actorHasSkill(caster, { id: 'langue', spec: 'magick' })) { get().log(t('cs.cannotDispel')); return; }
       const target = dispellableSpellsOn(party).find((d) => d.spellId === spellId && d.casterId === spellCasterId);
       if (!target) return;
       const domainsOf = (h: Combatant) => new Set((h.spells ?? []).map((id) => findSpellById(id)?.subType).filter(Boolean) as string[]);
       const mine = domainsOf(caster);
-      const sup = soutienDetail(party, caster, 'langue', 'intelligence', 'magick',
-        (c) => c.kind === caster.kind && [...domainsOf(c)].some((d) => mine.has(d)));
+      const sup = soutienDetail(party, caster, { skill: { id: 'langue', spec: 'magick' }, characteristic: 'intelligence' }, (c) => c.kind === caster.kind && [...domainsOf(c)].some((d) => mine.has(d)));
       const value = testValue(caster, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({ pendingDispel: {
         casterId: caster.id, spellId, spellCasterId, label: target.label, ni: target.ni, value,

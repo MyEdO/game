@@ -18,13 +18,13 @@ const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
 describe('skillDRBonus — Furtif (LDB 85) : +Bonus d’Agilité au DR de Discrétion', () => {
   it('un combattant Furtif a +BAg au DR de Discrétion', () => {
     const c = mk({ traits: [{ id: 'furtif' }] });
-    expect(skillDRBonus(c, 'discretion')).toBe(bonus(effectiveChar(c, 'agilite'))); // Ag 45 → 4
+    expect(skillDRBonus(c, { id: 'discretion' })).toBe(bonus(effectiveChar(c, 'agilite'))); // Ag 45 → 4
   });
   it('sans Furtif : aucun bonus', () => {
-    expect(skillDRBonus(mk(), 'discretion')).toBe(0);
+    expect(skillDRBonus(mk(), { id: 'discretion' })).toBe(0);
   });
   it("n’affecte pas une autre compétence", () => {
-    expect(skillDRBonus(mk({ traits: [{ id: 'furtif' }] }), 'perception')).toBe(0);
+    expect(skillDRBonus(mk({ traits: [{ id: 'furtif' }] }), { id: 'perception' })).toBe(0);
   });
 });
 
@@ -34,19 +34,19 @@ describe('skillDRBonus — Furtif (LDB 85) : +Bonus d’Agilité au DR de Discr�
 describe('skillDRBonus — Pisteur (LDB 85) : +Bonus d’Initiative au DR de Pistage', () => {
   it('un combattant Pisteur a +BI au DR de Pistage (I 40 → 4 ; I 25 → 2)', () => {
     const c = mk({ traits: [{ id: 'pisteur' }] });
-    expect(skillDRBonus(c, 'pistage')).toBe(bonus(effectiveChar(c, 'initiative')));
-    expect(skillDRBonus(c, 'pistage')).toBe(4);
+    expect(skillDRBonus(c, { id: 'pistage' })).toBe(bonus(effectiveChar(c, 'initiative')));
+    expect(skillDRBonus(c, { id: 'pistage' })).toBe(4);
     const lent = mk({ traits: [{ id: 'pisteur' }], characteristics: { ...mk().characteristics, initiative: 25 } });
-    expect(skillDRBonus(lent, 'pistage')).toBe(2); // par-créature, pas une constante
+    expect(skillDRBonus(lent, { id: 'pistage' })).toBe(2); // par-créature, pas une constante
   });
   it('sans Pisteur : aucun bonus', () => {
-    expect(skillDRBonus(mk(), 'pistage')).toBe(0);
+    expect(skillDRBonus(mk(), { id: 'pistage' })).toBe(0);
   });
   it('n’affecte aucune autre compétence (ni celles de Furtif/Amphibie)', () => {
     const c = mk({ traits: [{ id: 'pisteur' }] });
-    expect(skillDRBonus(c, 'perception')).toBe(0);
-    expect(skillDRBonus(c, 'discretion')).toBe(0);
-    expect(skillDRBonus(c, 'natation')).toBe(0);
+    expect(skillDRBonus(c, { id: 'perception' })).toBe(0);
+    expect(skillDRBonus(c, { id: 'discretion' })).toBe(0);
+    expect(skillDRBonus(c, { id: 'natation' })).toBe(0);
   });
 });
 

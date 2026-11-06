@@ -3,7 +3,7 @@ import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, 
 import { weaponFromTrait } from '../../engine/creatureEquip';
 import { blessingsOf, findCreatureById, talentConcrete } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
-import { knowsCastingSkill, castingValue } from '../../engine/magic';
+import { knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
 
 
 /** Traits d'arme FR vérifiés dans L'ennemi dans l'Ombre ch.2 (Knud Cratinx & co). */
@@ -270,8 +270,8 @@ describe('PNJ de campagne — compétences/talents/sorts de la donnée (Eusapia 
 
   it('incante par la voie NORMALE (Langue (Magick) 63, sans le Trait Lanceur de Sorts)', () => {
     const c = creatureToCombatant(eusapia, 'e1', at);
-    expect(knowsCastingSkill(c, 'langue', 'magick')).toBe(true);
-    expect(castingValue(c, 'langue', 'magick')).toBe(63);
+    expect(knowsCastingSkill(c, { id: 'langue', spec: 'magick' })).toBe(true);
+    expect(castingValue(c, incantationArcane())).toBe(63);
   });
 
   it('arme du trait : « Arme (Bâton de combat) +7 » → arme tenue', () => {

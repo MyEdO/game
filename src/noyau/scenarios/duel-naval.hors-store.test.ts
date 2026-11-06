@@ -146,7 +146,7 @@ describe('Duel naval (échelle Mer) — modèle DEUX-ÉCHELLES jouable (MDG 13-1
     const cap = banc.getState().facing['cogue-duel'];
     const avant = { ...ship('cogue-duel').pos! };
     runEnemyAI(banc.getState, banc.setState, 'cogue-duel');
-    expect(banc.getState().journal).toContain(refusPersonneNePeutTenter({ skill: shipManeuverParams(ship('cogue-duel'), 'maritime').competence.id, spec: shipManeuverParams(ship('cogue-duel'), 'maritime').competence.spec }));
+    expect(banc.getState().journal).toContain(refusPersonneNePeutTenter({ skill: shipManeuverParams(ship('cogue-duel'), 'maritime').competence }));
     expect(banc.getState().facing['cogue-duel'], 'échec : le cap tient').toBe(cap);
     const { baseM, manoeuvre } = shipManeuverParams(ship('cogue-duel'), 'maritime');
     expect(manoeuvre).toBeGreaterThan(0);

@@ -29,7 +29,7 @@ export type TestDeSoin = 'guerison' | 'dexterite';
 export const TESTS_DE_SOIN: readonly TestDeSoin[] = ['guerison', 'dexterite'];
 
 /** Les ids testés par chaque Test de soin. */
-export const IDS_DU_TEST_DE_SOIN: Record<TestDeSoin, TestIds> = { guerison: { skill: HEAL_SKILL }, dexterite: { characteristic: 'dexterite' } };
+export const IDS_DU_TEST_DE_SOIN: Record<TestDeSoin, TestIds> = { guerison: { skill: { id: HEAL_SKILL } }, dexterite: { characteristic: 'dexterite' } };
 
 /** Ce que le soigneur déclare avant le jet, lu à l'identique par l'annonce et par le résolveur. */
 export interface ParametresDeSoin { test: TestDeSoin; bandages: boolean }
@@ -55,7 +55,7 @@ export const actePanse = (mode: HealMode): boolean => mode === 'wounds' || mode 
  *  décision de l'orchestrateur (2026-11-03, #3059) : ouverte à tout soigneur, Bandages exigés. VERDICT UNIQUE de
  *  l'ouverture (`soinDOuverture`), du choix du Test (réglage `heal.test`), du choix d'acte (réglage `heal.mode`) et de la fenêtre. */
 export function refusDuTestDeSoin(soigneur: Combatant | null, mode: HealMode, p: ParametresDeSoin): string | null {
-  if (p.test === 'guerison') return soigneur && !possesses(soigneur, HEAL_SKILL) ? t('heal.raisonSansGuerison') : null;
+  if (p.test === 'guerison') return soigneur && !possesses(soigneur, { id: HEAL_SKILL }) ? t('heal.raisonSansGuerison') : null;
   if (!soigneur) return t('heal.raisonDexteriteSansFiche');
   if (mode !== 'bleed') return t('heal.raisonDexteriteHorsHemorragie');
   return p.bandages ? null : t('heal.raisonDexteriteSansBandages');

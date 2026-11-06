@@ -73,7 +73,7 @@ describe('Pratiquer une Compétence : les Compétences offertes', () => {
     const h = heros();
     expect(competencesAPratiquer(h, pratiquer()).slice(0, 2)).toEqual([
       { ref: { id: 'escalade' } },
-      { ref: { id: 'evaluation' }, refus: refusNePeutTenter(h, { skill: 'evaluation' }) },
+      { ref: { id: 'evaluation' }, refus: refusNePeutTenter(h, { skill: { id: 'evaluation' } }) },
     ]);
   });
 
@@ -147,7 +147,7 @@ describe('Pratiquer une Compétence : du rôle épinglé à la rangée de l’É
   it('Compétence choisie que le héros ne peut pas tenter : la rangée naît sans jet, refus nommé', () => {
     const rangee = rangeeAuDepart({ activityId: 'pratiquer-competence', freeSkill: { id: 'evaluation' } })!;
     expect(rangee.result).toBe(ECHEC_SANS_JET);
-    expect(rangee.refus).toBe(refusNePeutTenter(banc.getState().party[0], { skill: 'evaluation' }));
+    expect(rangee.refus).toBe(refusNePeutTenter(banc.getState().party[0], { skill: { id: 'evaluation' } }));
   });
 });
 
