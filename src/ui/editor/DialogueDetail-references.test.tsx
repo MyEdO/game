@@ -80,7 +80,7 @@ const dialogue = (): Dialogue => ({
 });
 const scene = (): Scene => ({
   ...emptyScene('scene-test', 8, 8),
-  entities: [{ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: 'd1' } as SceneEntity],
+  entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: 'd1' } as SceneEntity],
   triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'startDialogue', dialogue: 'd1' } }] } }],
   dialogues: [dialogue()],
 });

@@ -19,7 +19,7 @@ const dialogue = (): Dialogue => ({
 const ouvrir = (id: string) => ({ kind: 'do' as const, effect: { type: 'startDialogue' as const, dialogue: id } });
 const scene = (): Scene => ({
   ...emptyScene('scene-test', 8, 8),
-  entities: [{ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: 'd1' } as SceneEntity],
+  entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: 'd1' } as SceneEntity],
   triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'seq', steps: [ouvrir('d1')] } }],
   dialogues: [dialogue(), { id: 'd2', start: 'n1', nodes: [{ id: 'n1', desc: 'autre', choices: [{ label: 'autre', flow: ouvrir('d1') }] }] }],
 });
