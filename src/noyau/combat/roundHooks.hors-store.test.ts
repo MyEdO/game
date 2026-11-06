@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc } from '../banc.testkit';
 import { runCombatHooks, type CombatHookCtx } from '../combatHooks';
 import { setRule, resetRule } from '../../engine/policy';
 import { seedBattleRng } from '../battleRng';
@@ -25,6 +26,8 @@ const ctx = (combatants: Combatant[]): CombatHookCtx => {
   const net = { mode: 'local', mySeat: 0 }; // `humanControlled` (se-fatiguer) lit `pilotedByHuman` (mode local → contrôlé)
   return { get: (() => ({ battle, scene: undefined, net })) as never, set: (() => {}) as never, battle, sink: () => {} };
 };
+
+beforeEach(() => { ouvrirLeBanc(); });
 
 describe('roundHooks — se-fatiguer (combat-se-fatiguer, LDB 16 l.97)', () => {
   beforeEach(() => resetRule('combat-se-fatiguer'));

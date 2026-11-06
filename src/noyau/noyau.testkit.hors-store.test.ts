@@ -1,14 +1,22 @@
 /**
  * `avecLesTables` pose une fixture pour le test COURANT et rend les tables du jeu à sa fin (#2889, D10) :
- * le test suivant, dans le même processus (`isolate: false`), lit les tables du jeu.
+ * le test suivant, dans le même processus (`isolate: false`), lit les tables du jeu. Le jeu reste branché sur
+ * un même propriétaire tout le fichier, comme le store branche le sien une fois.
  */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { ENTREES_DU_BANC } from './banc.testkit';
 import { applierDe } from './cascade';
+import { etatInitialDuJeu } from './etat';
 import { avecLesTables } from './noyau.testkit';
+import { ouvrirLeProprietaire, type ProprietaireDuJeu } from './proprietaireDuJeu';
 import { tablesDuJeu } from './tablesDuJeu';
 import { tablesPosees } from './tablesPosees';
 
 const SONDE = 'sonde-noyau-testkit';
+
+let proprietaire: ProprietaireDuJeu;
+beforeAll(() => { proprietaire = ouvrirLeProprietaire(etatInitialDuJeu(), ENTREES_DU_BANC, () => {}); });
+afterAll(() => proprietaire.fermer());
 
 describe('avecLesTables — la fixture vit le temps d’un test', () => {
   it('pose : la fixture remplace la table qu’elle nomme, les autres restent celles du jeu', () => {

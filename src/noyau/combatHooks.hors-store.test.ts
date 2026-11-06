@@ -1,10 +1,13 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { ouvrirLeBanc } from './banc.testkit';
 import { runCombatHooks, type CombatHookCtx } from './combatHooks';
 import { avecLesTables } from './noyau.testkit';
 import { setRule, resetRule } from '../engine/policy';
 
 /** Contexte minimal : les hooks de test n'utilisent que `sink`/des effets de bord locaux. */
 const ctx = (): CombatHookCtx => ({ get: (() => {}) as never, set: (() => {}) as never, battle: {} as never, sink: () => {} });
+
+beforeEach(() => { ouvrirLeBanc(); });
 
 describe('combatHooks — hooks de cycle de vie posés (`TablesDuJeu.crochetsDeCombat`)', () => {
   afterEach(() => resetRule('combat-frappe-mortelle'));

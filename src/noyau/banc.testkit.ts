@@ -22,7 +22,7 @@ import type { EntreesDeLaPartie } from './partie';
 import type { Jeton } from './plateforme';
 
 /** Les entrées d'un banc : l'état de départ fusionné à `etatInitialDuJeu()`, et les entrées de D8 (`EntreesDeLaPartie`),
- *  par défaut la graine 1, aucune règle maison, la cadence et les dés fixés par défaut, le héros persisté nulle part. */
+ *  par défaut `ENTREES_DU_BANC`. */
 export type EntreesDuBanc = Partial<EntreesDeLaPartie> & { etat?: Partial<EtatDeJeu> };
 
 export interface Banc {
@@ -70,6 +70,16 @@ export function surUnBancHorsTest<T>(corps: (banc: Banc) => T): T {
 
 interface BancPose { banc: Banc; fermer: () => void }
 
+/** Les entrées de D8 d'un banc sans entrée : la graine 1, aucune règle maison, la cadence et les dés fixés par
+ *  défaut, le héros persisté nulle part. */
+export const ENTREES_DU_BANC: EntreesDeLaPartie = Object.freeze({
+  graine: 1,
+  reglesMaison: {},
+  cadence: CADENCE_DEFAULT,
+  desFixes: DES_FIXES_DEFAULT,
+  persisterLeHeros: () => {},
+});
+
 function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
   let suivant = 0;
   const jetons = new Map<number, Jeton>();
@@ -79,14 +89,7 @@ function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
     proprietaire.reprendre(jeton);
     return [];
   });
-  const proprietaire = ouvrirLeProprietaire({ ...etatInitialDuJeu(), ...etat }, {
-    graine: 1,
-    reglesMaison: {},
-    cadence: CADENCE_DEFAULT,
-    desFixes: DES_FIXES_DEFAULT,
-    persisterLeHeros: () => {},
-    ...entrees,
-  }, (jeton, delai) => {
+  const proprietaire = ouvrirLeProprietaire({ ...etatInitialDuJeu(), ...etat }, { ...ENTREES_DU_BANC, ...entrees }, (jeton, delai) => {
     const id = suivant++;
     jetons.set(id, jeton);
     horloge.armer([{ id, delai }]);

@@ -2,7 +2,8 @@
  * Les tables du jeu se rassemblent une fois, mais une table tirable dérivée d'une donnée éditable se
  * relit à chaque tirage (#1692, #2889 D10) : le conteneur est figé, jamais la donnée qu'il interroge.
  */
-import { describe, it, expect, onTestFinished } from 'vitest';
+import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
+import { ouvrirLeBanc } from './banc.testkit';
 import { peripeties } from '../data';
 import { DATASET_KEYS, OBJECT_DATASET_KEYS, datasetArray, datasetObject, setDataset, setObjectDataset } from '../data/overrides';
 import { makeRNG } from '../engine/dice';
@@ -27,6 +28,8 @@ function datasetsRelusPar(famille: () => ReadonlyMap<string, unknown>): string[]
   }
   return relus;
 }
+
+beforeEach(() => { ouvrirLeBanc(); });
 
 describe('tablesDuJeu — une donnée tirable éditée se relit au tirage suivant', () => {
   it('chaque famille de tables tirables relit au moins un dataset après son édition', () => {

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc } from './banc.testkit';
 import { notifySlain } from './combatFlow';
 import { fireScheduledEffects } from './combatEffects';
 import { seedBattleRng } from './battleRng';
@@ -47,6 +48,8 @@ function slayAndSchedule(gameTime = 0) {
   const se = h.state().scheduledEffects;
   return { h, se, executeAt: se[0]?.executeAt as number };
 }
+
+beforeEach(() => { ouvrirLeBanc(); });
 
 describe('Trait Gardien éternel — reconstitution différée (op scheduleRespawn onSlain → file horloge)', () => {
   beforeEach(() => seedBattleRng(20260627));

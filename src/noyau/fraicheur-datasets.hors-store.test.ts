@@ -8,25 +8,26 @@
  *
  * Restauration `afterEach` par le seam lui-même : aucun test ne touche un dataset autrement.
  */
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { ouvrirLeBanc } from './banc.testkit';
 import {
   traits, trappings, characteristics, etats, weather, vehicles,
   findTraitById, findTrappingById, charAbr,
-} from './index';
-import { parseTraitInstance } from './refFormatLivre';
+} from '../data/index';
+import { parseTraitInstance } from '../data/refFormatLivre';
 import { travelVehicles, travelModeLabels } from '../engine/travel';
 import { consolidateAmputations, traumaById, type TraumaFiche, avecSequelles } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
-import { mutationTableIds, mutationTablePlayerLabel, mutationTableRows, type MutationTable } from './mutations';
+import { mutationTableIds, mutationTablePlayerLabel, mutationTableRows, type MutationTable } from '../data/mutations';
 import { rollMiscast, miscastRowAt, type MiscastTableRow } from '../engine/miscast';
 import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
-import { tableStepDef, tableStepIds } from '../noyau/cascade';
-import { stageWeatherRows } from '../noyau/travelFlow';
+import { tableStepDef, tableStepIds } from './cascade';
+import { stageWeatherRows } from './travelFlow';
 // La FAMILLE des Tableaux de Corruption s'enregistre au chargement de son module : on l'importe par
 // ce qu'on en LIT (l'id de table d'une nature + un alignement), jamais par un import d'effet de bord.
-import { mutationTableIdFor } from '../noyau/corruptionFlow';
-import { setDataset, datasetArray, setObjectDataset, datasetObject, type ObjectDatasetKey } from './overrides';
+import { mutationTableIdFor } from './corruptionFlow';
+import { setDataset, datasetArray, setObjectDataset, datasetObject, type ObjectDatasetKey } from '../data/overrides';
 import { marchandisesDe, findCargoById, type CargoDef } from '../engine/cargo';
 import { advanceCost } from '../engine/advancement';
 import { shipSizeOfLength } from '../engine/shipBuild';
@@ -39,11 +40,11 @@ import { overloadMaxEnc, offerPricePct } from '../engine/seaVoyage';
 import { minCargoEnc, partialSurchargePct, rollMerchantSkill } from '../engine/landCargo';
 import { rollAvailability, barterRatio } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
-import { SEA_BOARD_EVENT_TABLE } from '../noyau/seaVoyageFlow';
-import { STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
+import { SEA_BOARD_EVENT_TABLE } from './seaVoyageFlow';
+import { STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from '../data/index';
 import { traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
-import { versionDuDataset } from './versionDataset';
+import { versionDuDataset } from '../data/versionDataset';
 import { deFixe } from '../engine/dice.testkit';
 
 const TRAITS_LIVRES = [...traits];
@@ -63,7 +64,8 @@ const LISTES_LIVREES = tableTotale(
 const OBJETS_LIVRES = tableTotale(
   ['riverNavigation', 'seaWeather', 'disponibilite', 'seaCargo', 'landCargo'] as const, (k) => structuredClone(datasetObject(k)),
 ) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite' | 'seaCargo' | 'landCargo']: ReturnType<typeof datasetObject<K>> };
-/** Un dé qui rend toujours `n` : le cran de vent se force (seuil 1, puis « forcir »). */
+
+beforeEach(() => { ouvrirLeBanc(); });
 
 afterEach(() => {
   for (const k of Object.keys(LISTES_LIVREES) as (keyof typeof LISTES_LIVREES)[]) setDataset(k, structuredClone(LISTES_LIVREES[k]) as never);

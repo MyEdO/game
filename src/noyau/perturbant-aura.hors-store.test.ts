@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc } from './banc.testkit';
 import { combatHooksOf } from './combatHooks';
 import { combatTestPenalty } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
@@ -22,6 +23,8 @@ const recompute = (combatants: Combatant[]) => {
   const hook = combatHooksOf('onRoundEnd').find((h) => h.id === 'recompute-auras')!;
   hook.run({ get: () => ({ scene: null }), battle: { combatants } } as never);
 };
+
+beforeEach(() => { ouvrirLeBanc(); });
 
 describe('Perturbant — aura de DONNÉE projetée par le hook générique recompute-auras', () => {
   it('un ennemi à BE mètres d’une créature Perturbante subit −20 aux Tests', () => {
