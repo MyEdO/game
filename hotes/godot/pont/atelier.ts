@@ -12,7 +12,7 @@
  * la table rôle → clip de chaque base et la vitesse au sol de son rôle `walk` ; le rapport de l'index, dont l'élément
  * n'est servi nulle part.
  */
-import type { Attache } from '../asset/attache';
+import type { Attache, Repere } from '../asset/attache';
 import type { ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
@@ -67,6 +67,8 @@ export interface ModelesDeLAtelier {
   surfaces: Record<string, readonly Surface[]>;
   /** Par élément servi, le libellé de la chose que sa clé désigne (`libelleDeCleDElement`), à défaut son id. */
   libelles: Record<string, string>;
+  /** Par élément servi qui en déclare une, la prise de la main libre, dans le repère de sa prise (`liaison.secondePrise`, #3319). */
+  secondesPrises: Record<string, Repere>;
   /** Les emblèmes de la garde-robe (`kind: 'embleme'`). */
   emblemes: EmblemeDeLAtelier[];
 }
@@ -94,6 +96,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const glb: Record<string, string> = {};
   const surfaces: Record<string, readonly Surface[]> = {};
   const libelles: Record<string, string> = {};
+  const secondesPrises: Record<string, Repere> = {};
   const catalogues = cataloguesDeComposition();
   const libelleDuPoint = (id: string, genre: PointDAccroche['genre']): string =>
     (genre === 'prise' ? catalogues.prises : gardeRobe.filter((g) => g.kind === 'emplacement')).find((c) => c.id === id)?.label ?? id;
@@ -103,6 +106,8 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
       glb[id] = fichiersDuModele(id).glb;
       surfaces[id] = (brut as ManifesteDElement).surfaces;
       libelles[id] = libelleDeCleDElement(cleDe(brut)) ?? id;
+      const { liaison } = brut as ManifesteDElement;
+      if ('secondePrise' in liaison && liaison.secondePrise) secondesPrises[id] = liaison.secondePrise;
       return id;
     });
   const bases = [...index.bases.values()].map(({ id, brut }): BaseDeLAtelier => {
@@ -146,5 +151,5 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, vitesseAuSol: m.appuis.vitesseAuSol };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
-  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, emblemes };
+  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, emblemes };
 }

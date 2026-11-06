@@ -237,6 +237,10 @@ Placer la poignée dans le passage des **surfaces évaluées** de paume et doigt
 de la base. Parentage et centres articulaires prouvent le déplacement, pas le contact. Contrôler
 garde, pommeau et orientation de lame dans la silhouette entière, avec diamètre crédible.
 Une pose utile absente relève de la base et de sa porte, pas d'un nouveau clip embarqué par l'arme.
+Une arme à deux mains déclare `liaison.secondePrise`, le repère de prise de la main libre dans celui
+de sa prise, le long du manche vers le talon (`hotes/godot/asset/element.ts`) ; tenue à la prise
+`main`, Godot y pose la main `off` (`hotes/godot/projet/scripts/seconde_prise.gd`, #3319). La
+vérifier au rendu Godot sur repos, attaque et marche : poing fermé sur le manche, bras sans torsion.
 
 Peau et gant restent distincts. Enveloppe fine, épaisseur bornée par courbure/arêtes, pas de
 gonflement global ; examiner paume, dos, dessous et creux. Pour une prise plate, regarder les deux

@@ -6,7 +6,19 @@
     "apparence": "grande_hache"
   },
   "liaison": {
-    "mode": "rigide"
+    "mode": "rigide",
+    "secondePrise": {
+      "position": [
+        0,
+        -0.3,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    }
   },
   "surfaces": [
     {

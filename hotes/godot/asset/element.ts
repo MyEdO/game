@@ -11,7 +11,7 @@
 import { estObjet } from '../../../src/hote/formes';
 import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
 import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
-import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
+import { estListeDeChaines, estRepere, type Attache, type Repere } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
 import type { ManifesteDeBase } from './manifesteDeBase.ts';
@@ -39,10 +39,12 @@ interface RegleDeCategorie {
   readonly silhouettes: boolean;
   /** Un mesh rigide de l'élément peut rester à la racine de la scène (non tenu). */
   readonly racine: boolean;
+  /** L'élément tenu peut déclarer, dans le repère de sa prise, celle de la main libre (`liaison.secondePrise`, #3319). */
+  readonly secondePrise: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, racine: false } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, racine: false } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, racine: false, secondePrise: false } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, racine: false, secondePrise: false } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -52,7 +54,7 @@ export const REGLES_DES_CATEGORIES = {
   vetement: { ...SKINNE, cle: ['piece'], emplacements: true },
   armure: { ...SKINNE, cle: ['piece'], couches: ['armure'], emplacements: true },
   accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel' },
-  rigide: { ...RIGIDE, cle: ['apparence'] },
+  rigide: { ...RIGIDE, cle: ['apparence'], secondePrise: true },
   trait: { ...SKINNE, cle: ['trait'] },
   decor: { ...RIGIDE, cle: ['prop'], racine: true },
   vehicule: { ...RIGIDE, cle: ['definition'], racine: true },
@@ -79,14 +81,14 @@ export type ManifesteDElement = {
     readonly base: string;
     readonly categorie: C;
     readonly cle: { readonly [K in Regles[C]['cle'][number]]: string };
-    readonly liaison: { readonly mode: Regles[C]['liaisons'][number] };
+    readonly liaison: { readonly mode: Regles[C]['liaisons'][number] } & (Regles[C]['secondePrise'] extends true ? { readonly secondePrise?: Repere } : Rien);
     readonly surfaces: readonly Surface[];
     readonly glb: { readonly sha256: string; readonly octets: number };
   } & ChampsDe<C>;
 }[CategorieDElement];
 
 /** La surface de base lue par la validation d'un élément. */
-export type BaseDUnElement = Pick<ManifesteDeBase, 'base' | 'os' | 'chaines' | 'zones' | 'silhouettes'>;
+export type BaseDUnElement = Pick<ManifesteDeBase, 'base' | 'os' | 'chaines' | 'zones' | 'silhouettes' | 'prises'>;
 
 export type CodeDEcartDElement =
   | 'forme'
@@ -108,7 +110,8 @@ export type CodeDEcartDElement =
   | 'rigide-sans-mesh'
   | 'rigide-sur-os-absent'
   | 'rigide-a-la-racine'
-  | 'rigide-skinne';
+  | 'rigide-skinne'
+  | 'seconde-prise-sans-prise';
 
 export interface EcartDElement {
   readonly code: CodeDEcartDElement;
@@ -156,8 +159,9 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
   }
 
   if (brut.liaison !== undefined) {
-    const mode = estObjet(brut.liaison) && Object.keys(brut.liaison).length === 1 ? brut.liaison.mode : undefined;
-    if (typeof mode !== 'string') refus('forme', 'liaison', '`{ mode }` seul attendu');
+    const champs = regle.secondePrise ? ['mode', 'secondePrise'] : ['mode'];
+    const mode = estObjet(brut.liaison) && Object.keys(brut.liaison).every((c) => champs.includes(c)) ? brut.liaison.mode : undefined;
+    if (typeof mode !== 'string') refus('forme', 'liaison', regle.secondePrise ? '`{ mode, secondePrise? }` attendu' : '`{ mode }` seul attendu');
     else if (!regle.liaisons.includes(mode as ModeDeLiaison)) refus('liaison-hors-categorie', 'liaison.mode', `${mode} : ${liste(regle.liaisons)} attendue pour un élément \`${categorie}\``);
     else if (mode === 'rigide') {
       if (glb.meshes.every((m) => m.skinne)) refus('rigide-sans-mesh', 'liaison.mode', 'le GLB ne porte aucun mesh rigide');
@@ -166,6 +170,10 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
         else if (articulation === null) { if (!regle.racine) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend directement à aucune articulation d’un skin : un élément \`${categorie}\` ne reste pas à la racine de la scène`); }
         else if (os === null || !base.os.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os ?? `l’articulation sans nom noeud ${articulation}`}, qui n’est pas un os de la base \`${base.base}\``);
       }
+      const seconde = (brut.liaison as Record<string, unknown>).secondePrise;
+      const osDesPrises = [base.prises.main.os, base.prises.off.os];
+      if (seconde !== undefined && !estRepere(seconde)) refus('forme', 'liaison.secondePrise', '`position` et `rotation` triplets de nombres, seuls, attendus');
+      else if (seconde !== undefined && !glb.meshes.some((m) => m.os !== null && osDesPrises.includes(m.os))) refus('seconde-prise-sans-prise', 'liaison.secondePrise', `aucun mesh ne pend à l’os d’une prise de la base \`${base.base}\` (${liste(osDesPrises)}) : la seconde prise n’a pas de première`);
     }
   }
 
@@ -186,7 +194,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
   if (regle.emplacements && brut.emplacements !== undefined) {
     if (!estObjet(brut.emplacements)) refus('forme', 'emplacements', 'objet attendu');
     else for (const [id, e] of Object.entries(brut.emplacements)) {
-      if (!(estObjet(e) && typeof e.os === 'string' && estTriplet(e.position) && estTriplet(e.rotation) && Object.keys(e).length === 3)) refus('forme', `emplacements.${id}`, '`os` chaîne, `position` et `rotation` triplets de nombres attendus');
+      if (!(estObjet(e) && typeof e.os === 'string' && estRepere({ position: e.position, rotation: e.rotation }) && Object.keys(e).length === 3)) refus('forme', `emplacements.${id}`, '`os` chaîne, `position` et `rotation` triplets de nombres attendus');
       else if (!base.os.includes(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, `${e.os} n’est pas un os de la base \`${base.base}\``);
       if (!estEmplacement(id)) refus('emplacement-inconnu', `emplacements.${id}`, `${id} n’est aucun emplacement de \`garde-robe.json\``);
     }

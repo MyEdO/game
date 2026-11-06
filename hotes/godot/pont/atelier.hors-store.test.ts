@@ -102,6 +102,13 @@ describe('modelesDeLAtelier', () => {
     expect(modelesDeLAtelier({ humanoide: peinte }, { humanoide: [] }).surfaces).toEqual({ humanoide: peinte.surfaces });
   });
 
+  it('chaque élément servi qui déclare une seconde prise la donne telle quelle, et lui seul (#3319)', () => {
+    const secondePrise = { position: [0, -0.4, 0], rotation: [0, Math.PI, 0] };
+    const hallebarde = { ...elementSchema3('humanoide'), cle: { apparence: 'hallebarde' }, liaison: { mode: 'rigide', secondePrise } };
+    expect(modeles.secondesPrises).toEqual({});
+    expect(modelesDeLAtelier({ humanoide, epee, hallebarde }, { humanoide: [], epee: ['root'], hallebarde: ['root'] }).secondesPrises).toEqual({ hallebarde: secondePrise });
+  });
+
   it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {
     expect(modeles.emblemes.map(({ id }) => id)).toEqual(['taureau-rouge', 'tete-de-mort-rouge']);
     for (const embleme of modeles.emblemes) {
