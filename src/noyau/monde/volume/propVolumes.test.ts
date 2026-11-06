@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { DIR4_ORDER, type Dir4, type Dir8 } from '../../geometry/dir8';
-import { findPropById } from '../../data';
-import { CAP_IDENTITE_PROP, capVolumique, type PropData } from '../../data/props.types';
-import { polyNormal } from '../../noyau/monde/volume/worldTris';
+import { DIR4_ORDER, type Dir4, type Dir8 } from '../../../geometry/dir8';
+import { findPropById } from '../../../data';
+import { CAP_IDENTITE_PROP, capVolumique, type PropData } from '../../../data/props.types';
+import { polyNormal } from './worldTris';
 import { buildPropVolumes, type AncrageVolume } from './propVolumes';
-import type { Face } from '../../noyau/monde/volume/types';
+import type { Face } from './types';
 
 /**
  * COMPILATION VOLUMIQUE — ce qu'un type de décor à recette produit comme géométrie MONDE, aux HUIT
@@ -123,7 +123,7 @@ describe('buildPropVolumes — la recette locale devient de la géométrie monde
     expect(emprise(undefined, 'bois-chene')).toEqual(emprise('S', 'bois-chene'));
     expect(emprise(undefined, 'fer-noirci')).toEqual(emprise('S', 'fer-noirci'));
     expect(emprise(undefined, 'pierre-atre')).toEqual(emprise('S', 'pierre-atre'));
-    // Le cap `N` est désormais le DEMI-TOUR : le pied et le rampant changent de bord.
+    // Le cap `N` est le DEMI-TOUR : le pied et le rampant changent de bord.
     expect(emprise('N', 'fer-noirci')).toEqual({ x: [-0.26, -0.14], y: [-0.06, 0.06] });
     expect(emprise('N', 'pierre-atre')).toEqual({ x: [0.05, 0.35], y: [-0.2, 0] });
   });

@@ -7,7 +7,7 @@ import { roofMaterial } from '../../catalog/roofs';
 import { structureAppearance } from '../../catalog/structures';
 import { tousLesTerrains } from '../../../noyau/monde/terrain';
 import { terrainGradient, terrainGradientId, MISSING_GRADIENT } from '../../catalog/terrain';
-import { propMaterial } from '../../catalog/propMaterials';
+import { propMaterial } from '../../../noyau/monde/volume/matieres';
 import { MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from '../../../noyau/monde/volume/missing';
 import { matieresDe } from '../../../data';
 import { buildFloors } from '../../../noyau/monde/volume/floors';

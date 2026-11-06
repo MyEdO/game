@@ -3,7 +3,7 @@ import { findPropById, props } from '../../data';
 import { chebyshev } from '../../engine/grid';
 import { caseDe, capVolumique, empreinteDuProp, offsetAncre, placesLocalesDuProp, rotatePropLocal, type PropData } from '../../data/props.types';
 import { buildProps } from './props';
-import { buildPropVolumes } from './propVolumes';
+import { buildPropVolumes } from '../../noyau/monde/volume/propVolumes';
 import { estPropVolumique } from './types';
 import { emptyScene, heightAt, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { seatSlotsOf } from '../../noyau/monde/seating';
