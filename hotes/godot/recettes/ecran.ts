@@ -185,6 +185,24 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('récit de voyage, arrivée', s);
   voyage.fermer();
 
+  const repit = unPont([]);
+  s = repit.jouer('demarrer', { scenario: 'bataille-de-masse', graine: 7 });
+  for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'repit/semaines'); pas++) {
+    if (pas > 12) throw new Error(`aucun répit entre deux aventures après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
+    s = repit.jouer('jouer', enFocus(s));
+  }
+  figer('entre deux aventures, un onglet par héros', s);
+  s = repit.jouer('jouer', enFocus(s));
+  const geste = (s: Suite, id: string): Jeu => {
+    const b = s.vue.zones['fenetre.corps'].find((e): e is Bouton => e.type === 'bouton' && e.id === id);
+    if (!b) throw new Error(`aucun geste ${id} dans ${JSON.stringify(s.vue.zones['fenetre.corps'].map((e) => e.id))}`);
+    return b.jeu;
+  };
+  figer('bataille de masse, les Scènes du Round', s);
+  s = repit.jouer('jouer', geste(s, 'bataille/geste/0'));
+  figer('bataille de masse, entre deux Rounds', s);
+  repit.fermer();
+
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],

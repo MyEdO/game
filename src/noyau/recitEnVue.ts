@@ -7,6 +7,7 @@ import type { Jeu } from './etat';
 import { clockLabel } from '../engine/duration';
 import { routeDistanceLabel, travelModeLabels } from '../engine/travel';
 import { elision, t } from '../i18n';
+import { fenetreDuJeu } from './combatAuto';
 
 /** Une journée de route : sa longueur et sa durée dites, et ce qui s'y est passé. */
 export interface JourneeEnVue { libelle: string; lignes: string[] }
@@ -25,10 +26,10 @@ export interface RecitEnVue {
 const TITRE = { arrivee: 'trm.titreArrivee', interruption: 'trm.titreInterrompu', arret: 'trm.titreArret', embuscade: 'trm.titreEmbuscade' } as const;
 const SUITE = { arrivee: null, interruption: 'trm.piedInterrompu', arret: 'trm.piedSurcharge', embuscade: 'trm.piedEmbuscade' } as const;
 
-/** Le récit du trajet que le groupe vient de faire ; `null` sans récit. PUR. */
-export function recitEnVue(s: Pick<Jeu, 'travelRecap'>): RecitEnVue | null {
+/** Le récit du trajet que le groupe vient de faire, quand il tient la main (`fenetreDuJeu`) ; `null` sinon. PUR. */
+export function recitEnVue(s: Jeu): RecitEnVue | null {
   const r = s.travelRecap;
-  if (!r) return null;
+  if (!r || fenetreDuJeu(s)?.cle !== 'recitDeVoyage') return null;
   const mer = r.mode === 'mer';
   const issue = r.then ? 'embuscade' : r.status === 'arrived' ? 'arrivee' : r.status === 'interrupted' ? 'interruption' : 'arret';
   const reste = Math.max(0, Math.round(r.km - r.kmDone));
