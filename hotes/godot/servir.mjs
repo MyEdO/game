@@ -9,6 +9,7 @@
 import { createServer } from 'node:http'
 import { createReadStream, fstatSync, readFileSync } from 'node:fs'
 import { basename, extname, join, resolve, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { chargerAssets } from './asset/charger.mjs'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
@@ -73,7 +74,7 @@ export function listage(dossier) {
 }
 
 /** La racine du dépôt où ce serveur vit, que `--depot` sert. */
-const RACINE_DU_DEPOT = resolve(import.meta.dirname, '../..')
+const RACINE_DU_DEPOT = fileURLToPath(new URL('../..', import.meta.url))
 /** Le plus gros corps qu'un `PUT depot/<id>` reçoit, en octets. */
 const CORPS_MAX = 32 * 1024 * 1024
 
