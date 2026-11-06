@@ -54,7 +54,7 @@ import { creerActionsDesActivitesEnMer } from './seaActivities';
 /** Les actions MANUSCRITES : aucune ne porte le nom d'un verbe de jet (`NomDeVerbeDeJet`) ni un nom `<flux><Verbe>`
  *  (clé de `FLOW_VERBS`, verbe de `RollVerb`) — un geste de jet est le verbe générique de son verbe, le flux en
  *  argument ; le verbe d'un flux s'ajoute à sa ligne de `FLOW_VERBS` et à sa spec, jamais à côté. Aucune ne porte non
- *  plus un nom de réglage d'un flux (`<flux>Set…`, `<flux>Toggle…`, `<flux>Alloc…`) : un jet se règle par `jetRegler`,
+ *  plus un nom de réglage d'un flux (`<flux>Set…`, `<flux>Toggle…`, `<flux>Alloc…`, `<flux>Pick…`) : un jet se règle par `jetRegler`,
  *  le réglage déclaré dans `ReglagesDuJet` et son corps dans `reglagesDuJet`. Ni un nom de choix (`…Select`,
  *  `…Abandon…`, `…Choose`, `…All`, `…Choisir`) : une fenêtre fait choisir par `fenetreChoisir`, le choix déclaré dans `ChoixDesFenetres` et son corps
  *  dans `choixDesFenetres`. Ni un nom de sortie de fenêtre (`close…`, `dismiss…`, `…Cancel`, `…Skip`) : une fenêtre se
@@ -64,7 +64,7 @@ import { creerActionsDesActivitesEnMer } from './seaActivities';
  *  Une telle clé ne compile pas.
  *  Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. */
 type NomDeDelegue = `${FlowKey}${Capitalize<RollVerb>}` | NomDeVerbeDeJet
-  | `${FlowKey}${'Set' | 'Toggle' | 'Alloc'}${string}`
+  | `${FlowKey}${'Set' | 'Toggle' | 'Alloc' | 'Pick'}${string}`
   | `${string}Select` | `${string}Abandon${string}` | `${string}Choose` | `${string}All` | `${string}Choisir`
   | `close${string}` | `dismiss${string}` | `${string}Cancel` | `${string}Skip` | `${string}Ready`;
 function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, NomDeDelegue>]: 'geste de jet, réglage de jet, choix, sortie ou validation de fenêtre : verbe générique' }): T {
