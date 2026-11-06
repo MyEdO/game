@@ -236,6 +236,7 @@ Ne pas réparer les clips ou déplacer les os de base dans l'élément.
 Placer la poignée dans le passage des **surfaces évaluées** de paume et doigts fermés, via la prise
 de la base. Parentage et centres articulaires prouvent le déplacement, pas le contact. Contrôler
 garde, pommeau et orientation de lame dans la silhouette entière, avec diamètre crédible.
+Le tranchant d'une arme tenue suit le +Z de sa prise, du poignet vers les jointures, comme une lame dans le poing.
 Une pose utile absente relève de la base et de sa porte, pas d'un nouveau clip embarqué par l'arme.
 Une arme à deux mains déclare `liaison.secondePrise`, le repère de prise de la main libre dans celui
 de sa prise, le long du manche vers le talon (`hotes/godot/asset/element.ts`) ; tenue à la prise

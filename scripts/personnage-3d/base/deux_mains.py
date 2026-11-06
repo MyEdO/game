@@ -3,10 +3,13 @@ jambes de son clip source, fléchit le dos, et pose les deux bras par IK à deux
 `ECART` l'une de l'autre, la prise `main` sur la main droite, la seconde sur la main gauche.
 
 Une clé de geste porte, dans le repère de repos du rig mené par l'os `repere` du clip, le milieu des deux prises, la
-direction de la prise `main` vers la seconde prise, et la flexion du dos vers l'avant, en degrés. Entre deux clés, le
-milieu et la flexion s'interpolent en ligne, la direction au plus court sur la sphère, sous un lissage en S. Le repère
-de l'arme garde le roulis de la prise `main` du clip source, tourné au plus court vers la direction de la clé ; son
-+Y va vers le fer, la seconde prise est à −`ECART` sur cet axe (`liaison.secondePrise`, `hotes/godot/asset/element.ts`).
+direction de la prise `main` vers la seconde prise, la flexion du dos vers l'avant et sa torsion vers la gauche, en
+degrés, et si le geste y passe avec élan, sans s'y arrêter. Entre deux clés, le milieu et le dos s'interpolent en ligne,
+la direction au plus court sur la sphère, et l'avancée part et arrive au repos, sauf à une clé d'élan (`avancee`).
+
+Le repère de l'arme porte son +Y vers le fer (la seconde prise est à −`ECART` sur cet axe, `liaison.secondePrise`,
+`hotes/godot/asset/element.ts`) et son +X au plus près du flanc gauche du personnage : le tranchant, sur le +Z de la prise
+(du poignet vers les jointures), mène un coup qui tombe devant lui.
 
 Repère Blender du rig : +X la gauche du personnage, −Y l'avant, +Z le haut.
 """
@@ -24,50 +27,57 @@ se rejoint à l'exécution (`SecondePrise`, `hotes/godot/projet/scripts/seconde_
 BRAS = {cote: (f'upperarm_{cote}', f'lowerarm_{cote}', f'hand_{cote}') for cote in ('r', 'l')}
 """Par côté, le bras posé par IK : épaule, coude, main."""
 DOS = ('spine_01', 'spine_02', 'spine_03')
-"""Les os qui se partagent la flexion du dos."""
+"""Les os qui se partagent la flexion et la torsion du dos."""
 POLES = {'r': Vector((-0.55, 0.35, -0.75)), 'l': Vector((0.55, 0.35, -0.75))}
 """Par côté, la direction vers laquelle plie le coude, au repos : en dehors, en arrière et vers le bas."""
 
 
-def cle(u, milieu, direction, flexion=0.0):
-    """La clé de geste à l'instant `u` (fraction du clip) : prise `main` et direction unitaire vers la seconde prise."""
+def cle(u, milieu, direction, flexion=0.0, torsion=0.0, elan=False):
+    """La clé de geste à l'instant `u` (fraction du clip) : prise `main`, direction unitaire vers la seconde prise,
+    flexion et torsion du dos, et si le geste y passe avec élan."""
     direction = Vector(direction).normalized()
-    return u, Vector(milieu) - direction * (ECART / 2), direction, flexion
+    return u, Vector(milieu) - direction * (ECART / 2), direction, Vector((flexion, torsion)), elan
 
 
 REPOS = ((0.0, -0.22, 1.12), (0.6, 0.1, -0.8))
 """Le manche en travers du corps, bas, le fer en haut à droite."""
-GARDE = ((0.0, -0.28, 1.2), (0.6, 0.1, -0.75))
-"""Le manche en travers du corps, à hauteur de ventre."""
-ARME = ((-0.2, -0.1, 1.72), (0.3, -0.4, -0.85))
-"""Les deux mains au-dessus de l'épaule droite, le fer levé."""
-FRAPPE = ((-0.01, -0.52, 1.10), (0.35, 0.6, 0.6))
-"""Les bras tendus vers l'avant et le bas, le fer abattu devant."""
+GARDE = ((0.04, -0.28, 1.05), (0.49, 0.62, -0.62))
+"""Les mains devant le ventre, le fer levé vers l'adversaire, le talon le long de la hanche gauche."""
+LEVEE = ((-0.24, -0.18, 1.32), (0.3, -0.25, -0.92))
+"""Les mains montées devant l'épaule droite, le fer dressé au-dessus d'elle."""
+ARME = ((-0.23, 0.12, 1.70), (-0.05, -0.92, -0.2))
+"""Les mains au-dessus de l'épaule droite, la hache armée derrière la tête, le tranchant vers le haut."""
+COUP = ((0.14, -0.325, 1.0), (0.31, 0.91, -0.26))
+"""Les bras tendus devant, le fer tombé à hauteur de poitrine, le talon tiré vers la hanche gauche."""
 
 CLIPS = {
     'DeuxMains_Repos_Loop': ('Idle_Loop', 'spine_03', (cle(0.0, *REPOS), cle(1.0, *REPOS))),
     'DeuxMains_Marche_Loop': ('Walk_Loop', 'spine_03', (cle(0.0, *REPOS), cle(1.0, *REPOS))),
-    'DeuxMains_Garde_Loop': ('Sword_Idle', 'spine_03', (cle(0.0, *GARDE), cle(1.0, *GARDE))),
-    'DeuxMains_Attaque': ('TreeChopping_Loop', 'pelvis', (cle(0.0, *ARME, -5), cle(0.18, *FRAPPE, 40),
-                                                          cle(0.32, *FRAPPE, 40), cle(1.0, *ARME, -5))),
+    'DeuxMains_Attaque': ('Sword_Idle', 'root', (cle(0.0, *GARDE, 8), cle(0.2, *LEVEE, 0, -5, elan=True),
+                                                 cle(0.35, *ARME, -8, -10), cle(0.52, *COUP, 25, 35, elan=True),
+                                                 cle(0.62, *COUP, 25, 35), cle(1.0, *GARDE, 8))),
 }
-"""Par clip dérivé : son clip source, l'os qui mène le repère de ses clés, et ses clés de geste."""
+"""Par clip dérivé : son clip source, l'os qui mène le repère de ses clés, et ses clés de geste. L'attaque, une taille
+verticale, part de la garde et y revient, sur les jambes de la garde."""
 
 
-def lisse(u):
-    """Le lissage en S de `u` dans [0, 1]."""
-    return u * u * (3 - 2 * u)
+def avancee(t, depart, arrivee):
+    """La part du chemin faite à la fraction `t` d'un segment de geste, de vitesse nulle à chaque bout sauf à celui qui
+    a de l'élan (`depart`, `arrivee`) : en S, en accélération, en décélération ou en ligne."""
+    formes = {(False, False): t * t * (3 - 2 * t), (False, True): t * t, (True, False): t * (2 - t), (True, True): t}
+    return formes[depart, arrivee]
 
 
 def interpoler(cles, u):
-    """La prise `main`, la direction vers la seconde prise et la flexion du dos à l'instant `u` entre les `cles`."""
-    for (u0, p0, d0, f0), (u1, p1, d1, f1) in zip(cles, cles[1:]):
+    """La prise `main`, la direction vers la seconde prise et le dos (flexion, torsion) à l'instant `u` entre les
+    `cles`."""
+    for (u0, p0, d0, f0, depart), (u1, p1, d1, f1, arrivee) in zip(cles, cles[1:]):
         if u0 <= u <= u1:
-            k = lisse((u - u0) / (u1 - u0)) if u1 > u0 else 0.0
+            k = avancee((u - u0) / (u1 - u0) if u1 > u0 else 0.0, depart, arrivee)
             tour = Quaternion().slerp(d0.rotation_difference(d1), k)
-            return p0.lerp(p1, k), (tour @ d0).normalized(), f0 + (f1 - f0) * k
-    _, p, d, f = cles[-1]
-    return p.copy(), d.copy(), f
+            return p0.lerp(p1, k), (tour @ d0).normalized(), f0.lerp(f1, k)
+    _, p, d, f, _ = cles[-1]
+    return p.copy(), d.copy(), f.copy()
 
 
 def coude(epaule, cible, l1, l2, pole):
@@ -81,11 +91,11 @@ def coude(epaule, cible, l1, l2, pole):
     return epaule + axe * distance, epaule + axe * a + plan * h
 
 
-def repere_de_l_arme(prise_source, prise, direction):
-    """Le repère de la prise `main` à la `prise`, son +Y vers le fer (−`direction`), tourné au plus court depuis
-    `prise_source`."""
-    tour = (prise_source.to_3x3() @ Vector((0, 1, 0))).rotation_difference(-direction)
-    repere = (tour.to_matrix() @ prise_source.to_3x3()).to_4x4()
+def repere_de_l_arme(flanc, prise, direction):
+    """Le repère de la prise `main` à la `prise`, son +Y vers le fer (−`direction`), son +X au plus près de `flanc`."""
+    y = -direction.normalized()
+    x = (flanc - y * flanc.dot(y)).normalized()
+    repere = Matrix((x, y, x.cross(y))).transposed().to_4x4()
     repere.translation = prise
     return repere
 
@@ -131,10 +141,9 @@ def deriver(bpy, rig, reperes):
         rig.animation_data.action = source
         images = instants(source)
         debut, fin = images[0], images[-1]
-        prises_sources, dos_source = {}, {}
+        dos_source = {}
         for image in images:
             aller_a(scene, image)
-            prises_sources[image] = pose[BRAS['r'][2]].matrix @ prise_main
             dos_source[image] = {n: pose[n].rotation_quaternion.copy() for n in DOS}
         action = source.copy()
         action.name = nom
@@ -150,15 +159,16 @@ def deriver(bpy, rig, reperes):
                 pose[n].rotation_quaternion = dos_source[image].get(n, Quaternion())
                 pose[n].location = Vector()
             bpy.context.view_layer.update()
-            prise, direction, flexion = interpoler(cles, (image - debut) / (fin - debut))
-            lateral = (pose[os_du_cadre].matrix @ repos[os_du_cadre].inverted()).to_3x3() @ Vector((1, 0, 0))
+            prise, direction, (flexion, torsion) = interpoler(cles, (image - debut) / (fin - debut))
+            axes = (pose[os_du_cadre].matrix @ repos[os_du_cadre].inverted()).to_3x3()
+            tour = (Matrix.Rotation(math.radians(flexion / len(DOS)), 4, axes @ Vector((1, 0, 0)))
+                    @ Matrix.Rotation(math.radians(torsion / len(DOS)), 4, axes @ Vector((0, 0, 1))))
             for n in DOS:
                 tete = pose[n].matrix.translation.copy()
-                tour = Matrix.Rotation(math.radians(flexion / len(DOS)), 4, lateral)
                 pose[n].matrix = Matrix.Translation(tete) @ tour @ Matrix.Translation(-tete) @ pose[n].matrix
                 bpy.context.view_layer.update()
             cadre = pose[os_du_cadre].matrix @ repos[os_du_cadre].inverted()
-            arme = repere_de_l_arme(prises_sources[image], cadre @ prise, (cadre.to_3x3() @ direction).normalized())
+            arme = repere_de_l_arme(cadre.to_3x3() @ Vector((1, 0, 0)), cadre @ prise, (cadre.to_3x3() @ direction).normalized())
             seconde = arme @ Matrix.Translation((0, -ECART, 0))
             ecart = max(ecart, _poser_le_bras(bpy, rig, 'r', arme @ prise_main.inverted(), cadre, longueurs),
                         _poser_le_bras(bpy, rig, 'l', seconde @ prise_off.inverted(), cadre, longueurs))

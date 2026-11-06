@@ -1,13 +1,13 @@
 """deux_mains : le coude d'un bras à deux os atteint la cible à portée en gardant ses segments et plie du côté du pôle,
-ramène une cible hors de portée sur la sphère de portée ; les clés de geste s'interpolent sous le lissage ; le repère de
-l'arme porte son +Y vers le fer et garde le roulis de la prise source au plus court ; chaque clip dérivé a une clé au
-début et une à la fin, ses prises à `ECART` l'une de l'autre."""
+ramène une cible hors de portée sur la sphère de portée ; les clés de geste s'interpolent en partant et en arrivant au
+repos, sauf à une clé d'élan ; le repère de l'arme porte son +Y vers le fer et son +X au plus près du flanc
+donné ; chaque clip dérivé a une clé au début et une à la fin, ses prises à `ECART` l'une de l'autre."""
 import math
 import sys
 import unittest
 from pathlib import Path
 
-from mathutils import Euler, Vector
+from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
@@ -36,31 +36,40 @@ class Coude(unittest.TestCase):
 
 class Interpolation(unittest.TestCase):
     def test_les_cles_bornent_le_geste_et_le_milieu_suit_le_lissage(self):
-        cles = (cle(0.0, (0, -0.3, 1.2), (1, 0, 0), 0), cle(1.0, (0, -0.3, 1.6), (0, 0, -1), 40))
+        cles = (cle(0.0, (0, -0.3, 1.2), (1, 0, 0), 0, 10), cle(1.0, (0, -0.3, 1.6), (0, 0, -1), 40, -10))
         debut, fin, milieu = interpoler(cles, 0.0), interpoler(cles, 1.0), interpoler(cles, 0.5)
         self.assertAlmostEqual((debut[0] - cles[0][1]).length, 0, places=6)
         self.assertAlmostEqual((fin[1] - cles[1][2]).length, 0, places=6)
-        self.assertAlmostEqual(milieu[2], 20, places=6)
+        self.assertAlmostEqual((milieu[2] - Vector((20, 0))).length, 0, places=6)
         self.assertAlmostEqual(milieu[1].length, 1, places=6)
         self.assertAlmostEqual(milieu[1].angle(cles[0][2]), math.pi / 4, places=6)
 
+    def test_le_geste_garde_sa_vitesse_a_une_cle_d_elan(self):
+        cles = (cle(0.0, (0, -0.3, 1.2), (1, 0, 0)), cle(0.5, (0, -0.3, 1.6), (1, 0, 0), 40, elan=True),
+                cle(1.0, (0, -0.3, 1.2), (1, 0, 0)))
+        self.assertAlmostEqual(interpoler(cles, 0.25)[2].x, 10, places=6)
+        self.assertAlmostEqual(interpoler(cles, 0.75)[2].x, 10, places=6)
+        avant, apres = interpoler(cles, 0.5 - 1e-4)[2].x, interpoler(cles, 0.5 + 1e-4)[2].x
+        self.assertAlmostEqual((40 - avant) / 1e-4, (40 - apres) / 1e-4, places=1)
+
     def test_une_cle_place_ses_deux_prises_a_l_ecart_autour_du_milieu(self):
-        _, prise, direction, _ = cle(0.0, (0, -0.3, 1.2), (3, 0, 4))
+        _, prise, direction, _, _ = cle(0.0, (0, -0.3, 1.2), (3, 0, 4))
         seconde = prise + direction * ECART
         self.assertAlmostEqual(((prise + seconde) / 2 - Vector((0, -0.3, 1.2))).length, 0, places=6)
 
 
 class RepereDeLArme(unittest.TestCase):
-    def test_son_y_va_vers_le_fer_et_son_roulis_tourne_au_plus_court(self):
-        source = Euler((0.3, -0.2, 0.5)).to_matrix().to_4x4()
-        direction = Vector((0.2, 0.5, -0.8)).normalized()
-        repere = repere_de_l_arme(source, Vector((0.1, -0.3, 1.2)), direction)
-        self.assertAlmostEqual((repere.to_3x3() @ Vector((0, 1, 0)) + direction).length, 0, places=6)
+    def test_son_y_va_vers_le_fer_et_son_x_au_plus_pres_du_flanc(self):
+        flanc, direction = Vector((1, 0, 0)), Vector((0.2, 0.5, -0.8)).normalized()
+        repere = repere_de_l_arme(flanc, Vector((0.1, -0.3, 1.2)), direction)
+        axes = repere.to_3x3()
+        self.assertAlmostEqual((axes @ Vector((0, 1, 0)) + direction).length, 0, places=6)
         self.assertAlmostEqual((repere.translation - Vector((0.1, -0.3, 1.2))).length, 0, places=6)
-        avant, apres = source.to_3x3() @ Vector((0, 1, 0)), repere.to_3x3() @ Vector((0, 1, 0))
-        normale = avant.cross(apres).normalized()
-        tour = repere.to_3x3() @ source.to_3x3().inverted()
-        self.assertAlmostEqual((tour @ normale - normale).length, 0, places=6)
+        self.assertAlmostEqual(axes.determinant(), 1, places=6)
+        x = axes @ Vector((1, 0, 0))
+        self.assertAlmostEqual(x.cross(flanc).dot(direction), 0, places=6)
+        self.assertGreater(x.dot(flanc), 0)
+
 
 class Clips(unittest.TestCase):
     def test_chaque_clip_derive_a_une_cle_au_debut_et_a_la_fin(self):
