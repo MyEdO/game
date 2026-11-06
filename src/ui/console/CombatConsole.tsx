@@ -18,7 +18,7 @@ import { CodexRef } from '../compendium/CodexRef';
 import { isConsumable } from '../../engine/consumables';
 import { t } from '../../i18n';
 import { loadedAmmo, compatibleAmmo, loadoutLabel, activeLoadout, setNonCharge } from '../../engine/items';
-import { weaponLoaded, reloadProgressOf, aRecharger } from '../../engine/weaponLoad';
+import { weaponLoaded, reloadProgressOf, aRecharger, chambrePleine } from '../../engine/weaponLoad';
 import type { DispellableSpell } from '../../engine/dispel';
 import { PanneauParametre, type ParamOption } from '../PanneauParametre';
 import { useLongPress } from '../useLongPress';
@@ -710,9 +710,9 @@ export function CombatConsole() {
     if (!ammo) return [];
     const choix = compatibleAmmo(active, w);
     const choisissable = live && choix.length >= 2;
-    // Chambre PLEINE : c'est ce que MESURE le dispatcher pour décider s'il décharge (`combatSlice.ts:2137`,
-    // mêmes prédicats) — donc ce que le panneau doit annoncer au candidat qui n'est pas celui en chambre.
-    const chargee = (w.reload ?? 0) > 0 && weaponLoaded(active, w);
+    // Chambre PLEINE (`chambrePleine`, le verdict du dispatcher de munition) : ce que le panneau annonce au
+    // candidat qui n'est pas celui en chambre.
+    const chargee = chambrePleine(active, w);
     const options: ParamOption[] = choisissable
       ? choix.map((a) => {
           const cell = cellFor('select-ammo', 'arme', {
