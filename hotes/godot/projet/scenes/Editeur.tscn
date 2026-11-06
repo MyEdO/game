@@ -58,6 +58,12 @@ source = "editeur.couches"
 script = ExtResource("3_zone")
 source = "editeur.historique"
 
+[node name="Fichier" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Fichier"]
+script = ExtResource("3_zone")
+source = "editeur.fichier"
+
 [node name="Pointee" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
 
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Pointee"]

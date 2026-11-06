@@ -1,7 +1,7 @@
 /**
  * L'ÉDITEUR DE CARTE À L'ÉCRAN D'UN HÔTE (#3508) : ses zones et leurs éléments (`elements.ts`), lus de la session
  * d'édition du noyau (`SessionDEdition`). Les outils, les options de l'outil actif (pinceau, terrains, hauteurs), les
- * couches de la scène, l'historique et la case pointée ; chaque geste porte le geste d'édition qu'il joue
+ * couches de la scène, l'historique, l'enregistrement au dépôt et la case pointée ; chaque geste porte le geste d'édition qu'il joue
  * (`{ edition }`), prêt à envoyer. Ce que le pointeur trace sur la carte en cours de geste va à la surcouche
  * (`surcoucheDeLEdition`), que l'hôte pose sur le monde.
  */
@@ -18,6 +18,7 @@ export interface ZonesDeLEditeur {
   'editeur.options': Choix[];
   'editeur.couches': (Choix | Bouton)[];
   'editeur.historique': Bouton[];
+  'editeur.fichier': Bouton[];
   'editeur.pointee': Ligne[];
 }
 
@@ -49,6 +50,14 @@ function options(s: SessionDEdition): Choix[] {
   return [choix('pinceau', t('ecran.editeur.pinceau'), pinceaux), choix('hauteurs', t('ecran.editeur.hauteurs'), hauteurs)];
 }
 
+/** Pourquoi la session `s` ne s'enregistre pas : son projet vient du jeu, un enregistrement est en cours, ou la
+ *  scène éditée est celle que le dépôt porte. */
+function refusDEnregistrer(s: SessionDEdition): string | null {
+  if (!s.depot) return t('ecran.editeur.enregistrer.horsDuDepot');
+  if (s.depot.enCours) return t('ecran.editeur.enregistrer.enCours');
+  return sceneEditee(s) === s.depot.enregistree ? t('ecran.editeur.rien.enregistrer') : null;
+}
+
 /** Les zones de l'éditeur de la session `s`. Le terrain s'ouvre sur le premier terrain, ou garde celui de l'outil. */
 export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
   const scene = sceneEditee(s);
@@ -73,6 +82,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
       bouton('annuler', t('ecran.editeur.annuler'), { geste: 'annuler' }, false, s.historique.passe.length ? null : t('ecran.editeur.rien.annuler')),
       bouton('retablir', t('ecran.editeur.retablir'), { geste: 'retablir' }, false, s.historique.futur.length ? null : t('ecran.editeur.rien.retablir')),
     ],
+    'editeur.fichier': [bouton('enregistrer', t('ecran.editeur.enregistrer'), { geste: 'enregistrer' }, false, refusDEnregistrer(s))],
     'editeur.pointee': p ? [ligne('pointee', t('ecran.editeur.pointee', { x: p.x, y: p.y, z: p.z, terrain: terrainLabel(tileAt(scene, p.x, p.y, p.z)), hauteur: heightAt(scene, p.x, p.y, p.z) }))] : [],
   };
 }
@@ -95,6 +105,11 @@ export function boutonDeLEdition(z: ZonesDeLEditeur, edition: unknown): Bouton |
 
 const estEntier = (v: unknown): v is number => Number.isInteger(v);
 const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** Si `g` est l'issue de l'écriture d'un enregistrement au dépôt : `{ geste: 'enregistrement', reussi }`, rien de plus. */
+export function estLIssueDUnEnregistrement(g: unknown): g is Extract<GesteDEdition, { geste: 'enregistrement' }> {
+  return estObjet(g) && g.geste === 'enregistrement' && typeof g.reussi === 'boolean' && Object.keys(g).length === 2;
+}
 
 /** Si `g` est un geste du pointeur : `{ geste: 'appui' | 'glisse' | 'relache', point: { case: { x, y }, f: { x, y } } }`,
  *  la case en entiers, le point fractionnaire en nombres finis, rien de plus. */
