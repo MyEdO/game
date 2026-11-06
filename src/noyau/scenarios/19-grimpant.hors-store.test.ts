@@ -16,7 +16,7 @@ function startGrimpant(): { spider: import('../../engine/types').Combatant } {
   banc.setState({ party: scenario.construire().party });
   banc.getState().startScene(scenarioConstruit.scene);
   banc.getState().startCombat('enc-grimpant');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
   const spider = b.combatants.find((c) => c.kind === 'enemy')!;

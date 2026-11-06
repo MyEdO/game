@@ -394,7 +394,7 @@ describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur
     expect(get().pendingCascade).toBeNull();
     expect(get().pendingRest).toBeTruthy();
     // La nuit franchie, la journée SUIVANTE se ré-arme (nouvelle cascade travelDay) — le voyage repart.
-    get().restSleep();
+    get().fenetreValider('rest');
     expect(get().pendingRest).toBeNull();
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     expect(get().travelPlan?.river).toBeTruthy();
@@ -434,7 +434,7 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
     for (const h of get().party) get().restSet(h.id, { food: 'repas' });
-    get().restSleep();
+    get().fenetreValider('rest');
     draineCascade(get);
     for (const h of get().party) {
       expect(h.hunger?.days ?? 0).toBe(0);
@@ -450,7 +450,7 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
     for (const h of get().party) get().restSet(h.id, { lodging: 'dehors', food: 'rien' });
-    get().restSleep();
+    get().fenetreValider('rest');
     draineCascade(get);
     for (const h of get().party) expect(h.hunger?.days ?? 0).toBe(1);
   });
@@ -465,7 +465,7 @@ describe('descente end-to-end — le Reik jusqu\'à Altdorf (cascades jour + nui
     for (let i = 0; i < 120; i++) {
       if (!get().travelPlan && get().scene?.id === 'quai-b') break;
       if (get().pendingCascade) { draineCascade(get); continue; }
-      if (get().pendingRest) { get().restSleep(); draineCascade(get); continue; }
+      if (get().pendingRest) { get().fenetreValider('rest'); draineCascade(get); continue; }
       if (!get().travelPlan) break;
     }
     expect(get().travelPlan).toBeNull();

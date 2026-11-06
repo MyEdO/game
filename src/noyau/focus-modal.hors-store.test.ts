@@ -17,7 +17,7 @@ describe('Focalisation en modale (store)', () => {
     banc.getState().seedRng(2);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -44,7 +44,7 @@ describe('Focalisation en modale (store)', () => {
     banc.getState().seedRng(7);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
     const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -80,7 +80,7 @@ describe('Focalisation en modale (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;

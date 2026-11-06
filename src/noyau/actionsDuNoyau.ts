@@ -19,7 +19,7 @@ import type {
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { ShootingStanceKey } from './etat';
-import type { FenetreQuiSeFerme } from './modalArbiter';
+import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
 
 /** Les actions de JEU (#2817 D5) : tout hôte les porte ; aucune action d'interface. */
 export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
@@ -33,10 +33,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** Ferme la fenêtre `fenetre`, que son registre déclare se fermer (`sortie`, `modalArbiter.ts`) ; refusé, et dit,
    *  hors de ce que sa déclaration ouvre (`refusDeLaSortie`). */
   fenetreFermer: (fenetre: FenetreQuiSeFerme) => void;
-  /** « Prendre la route » : ferme l'ouverture et BORNE le chapitre (instantané PX/vivants/date). */
-  acquitterOuverture: () => void;
-  /** « Terminer la séance » : ferme le récap et re-borne le chapitre suivant. */
-  cloreChapitre: () => void;
+  /** Valide la fenêtre `fenetre`, que son registre déclare se valider (`validation`, `modalArbiter.ts`) : à quorum,
+   *  marque prêt le siège qui décide (`decidingSeat`) et la valide au quorum ; refusé, et dit, hors de ce que sa
+   *  déclaration ouvre (`refusDeLaValidation`). */
+  fenetreValider: (fenetre: FenetreAValider) => void;
   /** Épingle/désépingle un indice du carnet (suivi joueur, no-op si l'indice est encore caché). */
   toggleCluePin: (indiceId: string) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
@@ -45,8 +45,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   sequenceAbandon: () => void;
   /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */
   armPreempt: (heroId: IdDeTireurRapide | null) => void;
-  /** Coop : marque PRÊT au ready-check d'ouverture (round 1) le siège qui décide (`decidingSeat`) ; l'hôte lance quand tous ✓. */
-  roundStartReady: () => void;
   /** Attribue un objet d'équipement (giveTrapping) du butin de victoire au héros choisi. */
   assignVictoryGear: (index: number, heroId: IdDeHeros) => void;
   /** Récolte « Précieuses Entrailles » (ZI) une créature vaincue, par id (Test de Savoir → pièces valuées). */
@@ -56,8 +54,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10) d'une ligne de butin ENCORE en
    *  fenêtre (loot ou victoire) : révéler un objet AVANT de choisir qui l'emporte. */
   appraiseGear: (scope: 'loot' | 'victory', index: number, mode?: 'evaluate' | 'detect') => void;
-  /** Coop : ✓ du siège qui décide (`decidingSeat`) sur l'écran de victoire — l'hôte ferme quand tous les requis ont validé. */
-  victoryReady: () => void;
   /** Coop : demande la pause du prochain début de Round (fenêtre Chance). */
   raiseHand: () => void;
   lowerHand: () => void;
@@ -65,8 +61,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   favorSettle: (heroId: IdDeHeros, favorId: string) => void;
   /** Rompt une Faveur — Niveau de Carrière −1 (min 0) si la rumeur se répand (LDB 23 l.141). */
   favorBreak: (heroId: IdDeHeros, favorId: string) => void;
-  /** Clôt l'interlude : « Avec le pouvoir », Argent à gaspiller, Revenus, le temps passe. */
-  interludeEnd: () => void;
   /** Regagne MAINTENANT les Points de Chance du groupe (LDB 17 l.47 « Longues Séances de Jeu » —
    *  règle optionnelle `fortune-mid-session` en mode 'manual'). Réutilise l'Effet `restoreFortune`
    *  (logique partagée via `engine/fortune.restoreFortune`) — pas de duplication. */
@@ -200,9 +194,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** Paye le panier : débite le Total (prix listés × Marchandage), retire du stock, et met les objets
    *  achetés EN ATTENTE DE RÉPARTITION (`pendingDistribution`) — « qui récupère quoi ». */
   payCart: () => void;
-  /** Répartition : affecte l'objet acheté n°`index` à un héros, puis `confirmDistribution` les range. */
+  /** Répartition : affecte l'objet acheté n°`index` à un héros, puis la validation de l'échoppe
+   *  (`fenetreValider('marchand')`) les range. */
   assignDistribution: (index: number, heroId: IdDeHeros) => void;
-  confirmDistribution: () => void;
   /** Panier de VENTE (#22b, parité achat) : ajoute / retire / vide / conclut toute la vente d'un coup. */
   addToSellCart: (uid: IdDObjet, heroId: IdDeHeros) => void;
   removeFromSellCart: (uid: IdDObjet) => void;
@@ -237,9 +231,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
   openRest: (opts: restFlow.OpenRestOpts) => void;
   restSet: (heroId: IdDeHeros, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => void;
-  /** Coop : marque PRÊT au repos le siège qui décide (`decidingSeat`). */
-  restReady: () => void;
-  restSleep: () => void;
   /** CONSEIL DE BORD (#229) : arrête la paie de la semaine ; le bilan de Moral se lève par sa sortie. */
   councilPay: (decision: IdDeChoixDePaie) => void;
   /** Recharger l'arme à distance (LDB 62 l.335) : OUVRE la modale de Test étendu de Projectiles. */
@@ -311,8 +302,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** Chance, 3e usage (LDB 17 l.25) : en début de Round, place un héros en tête de l'ordre
    *  contre 1 point de Chance (pré-emption d'initiative). */
   roundStartPromote: (heroId: IdDeCombattantPromouvable) => void;
-  /** Ferme la modale d'ordre de Round et reprend le combat (active le 1er combattant valide). */
-  confirmRoundStart: () => void;
   /** « Comment ça a pu rater ? » (Destin, coup létal) : annule le coup, reste en combat. */
   fateNegate: () => void;
   /** « Meurs un autre jour » (Destin) : survit mais éjecté de la rencontre. */
@@ -330,10 +319,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** Bascule une POSTURE DE TIR pré-armée du combattant actif (`battle.stances`, spec HUD §1a G5) :
    *  le choix se pose hors modale, le prochain `PendingAttack` le reçoit déjà armé. */
   battleToggleStance: (stance: ShootingStanceKey) => void;
-  /** Termine le balayage en cours (le joueur renonce aux enchaînements restants). */
-  cleaveEnd: () => void;
-  /** Renonce à la 2ᵉ frappe (« peut viser » = optionnel) → pas de 2ᵉ attaque, pas d'Avantage. */
-  dualStrikeSkip: () => void;
   /** Arme une ATTAQUE (id d'`AttackOption` : 'arme'/'morsure'/'tentacule'/'pietinement'…) pour le clic-ennemi
    *  — source UNIQUE de l'attaque armée. Toggle → 'arme'.
    *  Le clic-ennemi résout l'attaque armée via l'approche-puis-frappe (battleClickEntity). */
@@ -439,8 +424,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** Sélectionne la munition PERSISTANTE d'un poste d'artillerie (`ShipPoste.ammoUid` — boulet/mitraille,
    *  MDG 12 l.410-424), depuis la fiche du navire. `null` → retour au défaut (1re compatible). */
   setPosteAmmo: (shipId: IdDeCombattant, posteUid: string, ammoUid: string | null) => void;
-  /** « Attendre l'aube » : joue une nuit (repos) puis efface la porte — le groupe repart au matin. */
-  departWaitDawn: () => void;
   /** Renomme l'instance (`label`). */
   renamePossession: (uid: IdDePossession, label: string) => void;
   /** Dépose la possession au lieu courant du groupe. */

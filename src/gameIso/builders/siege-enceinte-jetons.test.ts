@@ -18,7 +18,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     useGame.setState({ party: scenario.construire().party });
     useGame.getState().startScene(scenarioConstruit.scene);
     useGame.getState().startCombat('assaut');
-    useGame.getState().confirmRoundStart();
+    useGame.getState().fenetreValider('roundStart');
     const st = useGame.getState();
     const b = st.battle!;
     const scene = st.scene!;

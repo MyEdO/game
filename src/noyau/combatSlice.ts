@@ -18,7 +18,7 @@ import { rollLine, hostStep, pushDisplay, temoinSiSansJet, type RollLineParts } 
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { activeCombatant, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { activeCombatant, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -109,7 +109,7 @@ import { actorIn, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { progresDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
-import { aiDriven, controlsCombatant, influencesLocally, quorumAtteint, decidingSeat } from './netOwnership';
+import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './netOwnership';
 import { batteryBlock, currentTargetingMode, idsDuCoupleMonte, type BattleClickOpts, type TileClickOpts } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
 import { resolveRenounce } from './corruptionFlow';
@@ -128,6 +128,7 @@ import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequence
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS, rangeesADeclarerIci, type CloturesDuJet } from './rollFlowSpecs';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { ValidationsDeFenetre } from './validationDeFenetre';
 import { actionsAuthorees } from './monde/usable';
 import { fateSaveOptions } from '../engine/fortune';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -478,7 +479,7 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   // ouverte ; acteur actif non piloté par l'IA) : l'élargissement ne peut pas la faire agir à tort.
   // Continuation DÉTERMINISTE de la victoire différée (#345) d'abord : `checkBattleOver` a pu DIFFÉRER
   // la cascade de fin de combat tant que ce slot était occupé — on re-vérifie ICI, slot libre, sans
-  // dépendre d'un clic (confirmRoundStart). Le garde `!pendingCascade` (checkBattleOver) protège la
+  // dépendre d'un clic (`fenetreValider('roundStart')`). Le garde `!pendingCascade` (checkBattleOver) protège la
   // double-ouverture. `handled` (dénouement déjà joué : pause de Round, reprise de manœuvre…) garde
   // la main sur son propre enchaînement.
   if (!handled && get().battle) {
@@ -1308,16 +1309,6 @@ export function createCombatSlice(get: Get, set: Set) {
       if (heroId === null || !preemptShooterIds(get).includes(heroId)) { set({ preemptAiming: null }); return; }
       set({ preemptAiming: get().preemptAiming === heroId ? null : heroId }); // bascule
     },
-    roundStartReady: () => {
-      const prs = get().pendingRoundStart;
-      if (!prs) return;
-      const readyBySeat = { ...(prs.readyBySeat ?? {}), [decidingSeat(get())]: true };
-      set({ pendingRoundStart: { ...prs, readyBySeat } });
-      // L'HÔTE lance quand TOUS les sièges requis ont validé (quorum UNIQUE : `siegesRequis`).
-      const s = get();
-      if (s.net.mode === 'guest') return; // l'invité ne fait que marquer (l'intent porte son siège)
-      if (quorumAtteint(s, readyBySeat)) get().confirmRoundStart();
-    },
     /** DEMANDE DE PAUSE au prochain Round, POSÉE PAR SON SIÈGE : le siège vient de `decidingSeat` (le
      *  siège agissant quand l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un
      *  argument — la demande d'un joueur ne peut pas être signée d'un autre. */
@@ -1338,12 +1329,6 @@ export function createCombatSlice(get: Get, set: Set) {
       const seat = decidingSeat(get());
       if (!(b.handRaisedBy ?? []).includes(seat)) return;
       set({ battle: { ...b, handRaisedBy: (b.handRaisedBy ?? []).filter((s) => s !== seat), log: [...b.log, ev('info', t('store.handLowered'))] } });
-    },
-    confirmRoundStart: () => {
-      set({ pendingRoundStart: null, preemptAiming: null }); // la pause se ferme → toute visée Tir rapide armée retombe
-      // LDB 11 l.97-103 : les tirs d'interruption, puis `ouvrirLeRound` au bout de leur boucle. Rien ne suit
-      // ici : un tir qui tient la main emporte la boucle dans sa suite (`enchainement: 'tirRapide'`).
-      jouerFlowEntier(runPreemptShots(get, set) ? OPS_DIFFEREES : undefined);
     },
 
     /** Reprise après un CHANGEMENT DE CADENCE en plein combat. La cadence vit dans le registre de RÈGLES
@@ -1731,13 +1716,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!pc || !ciblesDuBalayage(get()).some((t) => t.id === targetId)) return;
       poserLaFrappeSuivante(get, set, { attackerId: pc.attackerId, targetId, location: null, result: null, cleave: true });
     },
-    cleaveEnd: () => { // fin du balayage → la restitution que la chaîne portait, puis clore l'étape-jet de la cascade (reprise)
-      const { battle, pendingCleave: pc } = get();
-      set({ pendingCleave: null, ...(battle && pc?.restitution ? { battle: { ...battle, acted: pc.restitution.prevActed } } : {}) });
-      advanceCombatJet(get);
-    },
     dualStrikeAttack: (targetId: string) => frapperDeLaSeconde(get, set, targetId, false),
-    dualStrikeSkip: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); }, // « peut viser » = optionnel : pas de 2ᵉ → pas d'Avantage (LDB 10 l.767-773)
     renounceResolve: (renounce: boolean) => resolveRenounce(get, set, renounce),
 
 
@@ -1893,7 +1872,7 @@ export function createCombatSlice(get: Get, set: Set) {
         baseOrder: order,
         // Pause d'ouverture : PERSONNE n'est actif (turn -1) tant qu'on n'a pas « Commencé » —
         // toutes les affordances (marche/course, anneaux, visée, clics, IA) dérivent de l'actif
-        // et se taisent d'elles-mêmes ; confirmRoundStart pose le vrai tour (LDB 17 l.25).
+        // et se taisent d'elles-mêmes ; `lancerLeRound` pose le vrai tour (LDB 17 l.25).
         turn: -1,
         round: 1,
         action: null,
@@ -2541,7 +2520,20 @@ export function sortiesDuCombat(get: Get, set: Set) {
      *  vient du siège (`placingZoneOf` source `siege`), et point de fermeture unique de `siegeAimCommit`.
      *  Aucun coût : rien n'a été jeté. */
     siegeAim: () => set((s) => ({ pendingSiegeAim: null, ...(s.battle && { battle: { ...s.battle, selectedAttack: undefined, preview: null } }) })),
+    /** Fin du balayage : la restitution que la chaîne portait, puis la clôture de l'étape-jet de la cascade (reprise). */
+    cleave: () => {
+      const { battle, pendingCleave: pc } = get();
+      set({ pendingCleave: null, ...(battle && pc?.restitution ? { battle: { ...battle, acted: pc.restitution.prevActed } } : {}) });
+      advanceCombatJet(get);
+    },
+    /** Renoncer à la 2ᵉ frappe : pas de 2ᵉ attaque, pas d'Avantage. LDB 10 l.767-773 */
+    dualStrike: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); },
   } satisfies Partial<SortiesDeFenetre>;
+}
+
+/** La validation de la pause de début de Round : le Round se lance (`lancerLeRound`). */
+export function validationsDuCombat(get: Get, set: Set) {
+  return { roundStart: () => lancerLeRound(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 /** Les clôtures des flux du combat (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
@@ -2986,7 +2978,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ battle: { ...touchActors(get()).battle!, log: [...b1.log, ...evLines(lines, 'attack', attacker.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       // 2ᵉ frappe « des deux armes » ratée : la 2ᵉ est renoncée (l'Action reste dépensée par la 1ʳᵉ frappe) →
-      // on clôt le sous-flux dual et on reprend la cascade (calque `dualStrikeSkip`).
+      // on clôt le sous-flux dual et on reprend la cascade (calque `fenetreFermer('dualStrike')`).
       if (pg.pa.dualSecond) { set({ pendingDualStrike: null }); advanceCombatJet(get); return; }
       // Héros PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (calque jetConfirm('reload')).
       if (aiDriven(get(), attacker) && get().battle) resumeEnemyTurn(get, set);

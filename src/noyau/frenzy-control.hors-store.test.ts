@@ -30,7 +30,7 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
     banc.getState().startScene(testScene());
     seedBattleRng(7);
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;

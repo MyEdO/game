@@ -29,7 +29,7 @@ function passeLeControle(t: ReturnType<typeof Table>, geste: GesteDeLAgent): voi
 
 describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   it('combattant : `battleClickEntity`', { timeout: 120_000 }, () => {
-    const t = partie('dome', verbe('confirmRoundStart'));
+    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
     const valides = refuseLId(t, verbe('battleClickEntity', 'nobody'), /id : "nobody" n’est pas un id de combattant \(valides : .*enemy-enc-dome-1/);
     passeLeControle(t, verbe('battleClickEntity', valides.find((id) => id.startsWith('enemy'))!));
   });
@@ -81,7 +81,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
 
 describe('un champ du contexte d’une offre que rien ne lit se refuse en `validation`', () => {
   it('`charge` ne lit pas `targetId` : la cible se choisit après l’offre', { timeout: 120_000 }, () => {
-    const t = partie('dome', verbe('confirmRoundStart'));
+    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
     const avant = t.fichier();
     const r = t.jouer({ offre: 'charge', ctx: { targetId: 'enemy-enc-dome-1' } });
     const texte = r.texte.split('\n  ').join(' ');
@@ -90,6 +90,6 @@ describe('un champ du contexte d’une offre que rien ne lit se refuse en `valid
     expect(t.fichier()).toBe(avant);
   });
   it('un champ que la porte de l’offre lit passe le contrôle', { timeout: 120_000 }, () => {
-    passeLeControle(partie('dome', verbe('confirmRoundStart')), { offre: 'attaque', ctx: { attackId: 'arme' } });
+    passeLeControle(partie('dome', verbe('fenetreValider', 'roundStart')), { offre: 'attaque', ctx: { attackId: 'arme' } });
   });
 });

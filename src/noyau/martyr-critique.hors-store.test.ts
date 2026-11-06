@@ -30,7 +30,7 @@ function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, end
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().startScene(structuredClone(testScene()));
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;

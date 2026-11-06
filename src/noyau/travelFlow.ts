@@ -84,6 +84,7 @@ import { stepDetail } from './rollSeam';
 import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Une journée du récapitulatif de voyage (audit M4) : progression + ce qui s'y est passé. */
@@ -298,7 +299,7 @@ function departureGated(get: Get): boolean {
 
 /** « Attendre l'aube » (porte de départ, #340) : joue une nuit de sommeil (repos) — le groupe repart au
  *  matin par la carte. Efface la porte. */
-export function departWaitDawn(get: Get, set: Set): void {
+function attendreLAube(get: Get, set: Set): void {
   const pd = get().pendingDeparture;
   set({ pendingDeparture: null });
   if (!pd) return;
@@ -314,7 +315,7 @@ function openRouteHalt(get: Get, set: Set, route: MapRoute, travelMarch: string[
   });
 }
 
-/** Diffère un départ à l'aube (porte de départ) : la carte propose « Attendre l'aube » (`departWaitDawn`). */
+/** Diffère un départ à l'aube (porte de départ) : la carte propose « Attendre l'aube » (`fenetreValider('departure')`). */
 function differerALAube(get: Get, set: Set, depart: Omit<NonNullable<Jeu['pendingDeparture']>, 'dawnAt'>): void {
   set({ pendingDeparture: { ...depart, dawnAt: get().gameTime + minutesUntilNext(get().gameTime, dawnMinute()) } });
 }
@@ -1301,9 +1302,13 @@ export function creerActionsDuVoyage(get: Get, set: Set) {
     openWorldMap: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
     startTravel: (routeId, mode, opts) => startTravel(get, set, routeId, mode, opts),
     resumeTravel: () => resumeTravel(get, set),
-    departWaitDawn: () => departWaitDawn(get, set),
     setVoyageCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+/** La validation de la porte de départ : attendre l'aube (`attendreLAube`). */
+export function validationsDuVoyage(get: Get, set: Set) {
+  return { departure: () => attendreLAube(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 /** Les sorties des fenêtres du voyage (`fenetreFermer`). */

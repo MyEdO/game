@@ -110,7 +110,7 @@ describe('possession réseau (netOwnership)', () => {
     expect(intentAllowedFor(s, 1, 'castCounterspell')).toBe(true);
   });
 
-  it('révélation SANS sujet (entretien) → hôte seul ; roundStartReady → toujours permis', () => {
+  it('révélation SANS sujet (entretien) → hôte seul ; la validation de la pause, à quorum → toujours permise', () => {
     // #942 L8 : une révélation est une ÉTAPE d'affichage de la cascade — l'owner suit `actorId`
     // (absent pour un entretien de Round) → `seatOwns(…, undefined)` = l'hôte, et le verbe
     // d'acquittement est celui de la cascade (`cascadeNext`).
@@ -119,7 +119,7 @@ describe('possession réseau (netOwnership)', () => {
     });
     expect(intentAllowedFor(s, 0, 'cascadeNext')).toBe(true);
     expect(intentAllowedFor(s, 1, 'cascadeNext')).toBe(false);
-    expect(intentAllowedFor(s, 1, 'roundStartReady')).toBe(true);
+    expect(intentAllowedFor(s, 1, 'fenetreValider', ['roundStart'])).toBe(true);
   });
 
   it('seatOwns : héros non attribué → hôte', () => {

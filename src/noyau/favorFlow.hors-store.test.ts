@@ -66,7 +66,7 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     openInterlude(heroId, 3);
     banc.getState().favorSettle(heroId, favorId);
     expect(banc.getState().favors[0].progress).toBe(1);
-    banc.getState().interludeEnd(); // consacré CET interlude → progression PRÉSERVÉE
+    banc.getState().fenetreValider('interlude'); // consacré CET interlude → progression PRÉSERVÉE
 
     openInterlude(heroId, 3);
     banc.getState().favorSettle(heroId, favorId);
@@ -81,10 +81,10 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     openInterlude(heroId, 3);
     banc.getState().favorSettle(heroId, favorId);
     expect(banc.getState().favors[0].progress).toBe(1);
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
 
     openInterlude(heroId, 3); // 3 emplacements offerts, AUCUN consacré à la Faveur → un choix
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
     expect(banc.getState().favors).toHaveLength(1);
     expect(banc.getState().favors[0].progress).toBe(0); // « consécutives » rompu → reset
   });
@@ -97,10 +97,10 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     openInterlude(heroId, 3);
     banc.getState().favorSettle(heroId, favorId);
     expect(banc.getState().favors[0].progress).toBe(1);
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
 
     openInterlude(heroId, 0, 0); // aucune Activité octroyée (événement, devoir elfique) : aucun choix possible
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
     expect(banc.getState().favors[0].progress, 'la chaîne survit à un interlude sans emplacement').toBe(1);
 
     // Et la chaîne reprend : l'interlude suivant l'achève.
@@ -116,10 +116,10 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
 
     openInterlude(heroId, 3);
     banc.getState().favorSettle(heroId, favorId);
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
 
     openInterlude(heroId, 0, 2); // 2 octroyés, 0 restant : consommés par d'AUTRES Activités
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
     expect(banc.getState().favors[0].progress).toBe(0);
   });
 

@@ -40,7 +40,7 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
   banc.getState().startScene(structuredClone(testScene()));
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -466,7 +466,7 @@ function carreauEnCombat(): { mage: Combatant; cible: Combatant } {
   banc.setState({ party: [w], battle: null, pendingCast: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().startScene(structuredClone(testScene()));
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   banc.getState().seedRng(7);
   const b = banc.getState().battle!;
@@ -827,7 +827,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     banc.getState().startScene(structuredClone(testScene()));
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -856,7 +856,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     banc.getState().startScene(structuredClone(testScene()));
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;

@@ -14,8 +14,11 @@ import { refusDAjoutAuGroupe } from './partyFlow';
 import { refusDeRassemblement } from './massBattleFlow';
 import { refusDeJouer, type ReglageDePartie } from './tavernFlow';
 import { refusDeRecuperation, needsRecoveryRoll, applyRecoveryDay } from '../engine/rest';
-import { refusDeDormir, restCost } from './restFlow';
-import { formatMoney } from '../engine/money';
+import { restCost } from './restFlow';
+import { refusDeLaValidation } from './validationDeFenetre';
+import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
+import { toBrass } from '../engine/money';
+import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
 import { addCondition, hasCondition } from '../engine/conditions';
 import { ouvrirDialogue, reponsesDuNoeud } from './dialogue';
@@ -145,32 +148,47 @@ describe('récupération de nuit — `refusDeRecuperation` (LDB 18 l.338, LDB 16
   });
 });
 
-describe('nuit — `refusDeDormir` (LDB 66)', () => {
+describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () => {
   const ouvrir = (places: Record<string, boolean>) => get().openRest({ lieu: fixtureText('Ici'), places } as never);
 
-  it('solo, nuit gratuite : la nuit s’ouvre', () => {
+  it('solo, nuit gratuite : « Dormir » ouvre la nuit d’un appel', () => {
     banc.setState({ party: heros(1) });
     ouvrir({ camp: true });
-    expect(refusDeDormir(get())).toBeNull();
+    expect(refusDeLaValidation(get(), 'rest')).toBeNull();
+    get().fenetreValider('rest');
+    expect(get().pendingRest, 'la nuit s’est ouverte').toBeNull();
   });
 
-  it('hôte seul non prêt : refusé ; prêt : la nuit s’ouvre', () => {
+  it('coop : l’appel de l’hôte le marque prêt ; l’invité, prêt, ne dort pas ; l’hôte, au quorum, dort', () => {
+    const [a, b] = heros(2);
+    banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
+    ouvrir({ camp: true });
+    get().fenetreValider('rest');
+    expect(get().pendingRest?.readyBySeat, '« Dormir » avant le quorum marque l’hôte prêt').toEqual({ 0: true });
+    expect(refusDeLaValidation(get(), 'rest')).toBe(t('jet.ferme.quorumAttendu'));
+    expect(appliquerLIntentionDUnSiege(get, 1, 'fenetreValider', ['rest'])).toBe('appliquee');
+    expect(get().pendingRest?.readyBySeat, 'le dernier prêt d’un invité ne dort pas pour l’hôte').toEqual({ 0: true, 1: true });
+    get().fenetreValider('rest');
+    expect(get().pendingRest, 'au quorum, l’hôte dort').toBeNull();
+  });
+
+  it('hôte seul non prêt : son appel le marque prêt et, seul siège requis, la nuit s’ouvre', () => {
     const [a] = heros(1);
     banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte' }, ownership: { [a.id]: 0 } } });
     ouvrir({ camp: true });
-    expect(refusDeDormir(get())).toBe('Tous les sièges ne se sont pas déclarés prêts.');
-    get().restReady();
-    expect(refusDeDormir(get())).toBeNull();
+    expect(refusDeLaValidation(get(), 'rest')).toBeNull();
+    get().fenetreValider('rest');
+    expect(get().pendingRest, 'la nuit s’est ouverte').toBeNull();
   });
 
-  it('bourse insuffisante pour la chambre : refusé, le montant dit', () => {
+  it('bourse insuffisante pour la chambre : refusé, la raison dite', () => {
     const [a] = heros(1);
     setBourseBrass(a, 0);
     banc.setState({ party: [a] });
     ouvrir({ auberge: true });
     get().restSet(a.id, { lodging: 'privee' });
-    const cout = formatMoney(restCost(get().pendingRest!, get().party));
-    expect(refusDeDormir(get())).toBe(`Pas assez d'argent (${cout}).`);
+    expect(toBrass(restCost(get().pendingRest!, get().party)), 'témoin : la chambre a un prix').toBeGreaterThan(0);
+    expect(refusDeLaValidation(get(), 'rest')).toBe(t('jet.ferme.noteNonCouverte'));
   });
 });
 

@@ -64,9 +64,9 @@ function finirLeTour(): ReturnType<typeof jouer> {
 describe('un tour complet par le pont', () => {
   it('attaque d’un héros par ses gestes, déplacement, attaque adverse jouée par le noyau, Défense', { timeout: 240_000 }, () => {
     let { suite } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
-    expect(gesteDe(suite.vue, 'confirmRoundStart'), 'l’ouverture du round : un bouton nommé').toMatchObject({ libelle: 'Commencer le round', type: 'bouton' });
+    expect(gesteDe(suite.vue, 'fenetreValider@roundStart'), 'l’ouverture du round : un bouton nommé').toMatchObject({ libelle: 'Commencer le round', type: 'bouton' });
     expect(suite.vue.champ, 'la barre fermée, le champ ne se clique pas').toBeNull();
-    ({ suite } = presser(bouton(suite, 'confirmRoundStart')));
+    ({ suite } = presser(bouton(suite, 'fenetreValider@roundStart')));
 
     const heros = actifDe(suite);
     expect(heros.camp).toBe('hero');

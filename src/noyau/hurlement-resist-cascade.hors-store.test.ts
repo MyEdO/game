@@ -26,7 +26,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     banc.setState({ party: [H1, H2] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     banc.getState().seedRng(2);
     const b = banc.getState().battle!;

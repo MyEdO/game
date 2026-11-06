@@ -80,23 +80,23 @@ describe('les dispatchers de ready-check CONSOMMENT le quorum (aucune recopie)',
   it('pause de Round : l’hôte seul requis (héros distant mort) → le Round part au 1ᵉʳ ✓', () => {
     table({ dead: true });
     banc.setState({ pendingRoundStart: { round: 2 } });
-    banc.getState().roundStartReady();
+    banc.getState().fenetreValider('roundStart');
     expect(banc.getState().pendingRoundStart, 'l’hôte attendait un siège qui n’a plus personne à jouer').toBeNull();
   });
 
   it('pause de Round : les DEUX sièges requis (héros distant vivant) → il faut les deux ✓', () => {
     table();
     banc.setState({ pendingRoundStart: { round: 2 } });
-    banc.getState().roundStartReady();
+    banc.getState().fenetreValider('roundStart');
     expect(banc.getState().pendingRoundStart, 'le Round est parti sans le siège du héros vivant').not.toBeNull();
-    withActingSeat(1, () => banc.getState().roundStartReady());
+    withActingSeat(1, () => banc.getState().fenetreValider('roundStart'));
     expect(banc.getState().pendingRoundStart).toBeNull();
   });
 
   it('victoire : même quorum (le siège sans héros vivant ne retient pas l’écran)', () => {
     table({ dead: true });
     banc.setState({ pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] } as never });
-    banc.getState().victoryReady();
+    banc.getState().fenetreFermer('victory');
     expect(banc.getState().pendingVictory, 'l’écran de victoire attendait un siège non requis').toBeNull();
   });
 

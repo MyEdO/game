@@ -28,7 +28,7 @@ function setup() {
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
-  useGame.getState().confirmRoundStart();
+  useGame.getState().fenetreValider('roundStart');
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   let i = 0;

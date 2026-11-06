@@ -83,7 +83,7 @@ function poseMeteo(id: string): void {
 /** Les `kind` des étapes de la NUIT de halte, couchage dehors et sans repas. */
 function etapesDeLaNuit(): string[] {
   get().restSet('h', { lodging: 'dehors', food: 'rien' });
-  get().restSleep();
+  get().fenetreValider('rest');
   return get().pendingCascade?.participants.map((s) => s.kind) ?? [];
 }
 
@@ -233,7 +233,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     get().startTravel('r1', 'pied');
     interromptPuisVainc();
     get().openRest({ lieu: sceneLieu(get), places: { camp: true } });
-    get().restSleep();
+    get().fenetreValider('rest');
     draineCascade(get);
     get().resumeTravel();
     const log = get().travelPlan!.log!;
@@ -304,7 +304,7 @@ describe('#2533 (2) — durée RÉELLE du récapitulatif : arrivée moins dépar
     setup(map());
     const t0 = get().gameTime;
     get().startTravel('r1', 'pied');
-    get().restSleep();
+    get().fenetreValider('rest');
     draineCascade(get);
     expect(get().travelRecap?.status).toBe('arrived');
     expect(get().travelRecap?.dureeMin).toBe(get().gameTime - t0);

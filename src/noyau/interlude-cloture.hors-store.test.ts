@@ -1,6 +1,6 @@
 /**
  * LA CLÔTURE D'INTERLUDE, sans store (#3059 S7) : ce que `devisDeCloture` annonce est exactement ce que
- * `interludeEnd` applique (bourses, Revenus, dépôts, Niveaux de Carrière, horloge, issues différées), un
+ * La validation de l'interlude (`fenetreValider('interlude')`) applique (bourses, Revenus, dépôts, Niveaux de Carrière, horloge, issues différées), un
  * invité ne clôt pas, et les pertes d'argent des Événements frappent la bourse que l'Événement désigne.
  * LDB 23 l.15, l.33, l.191 ; LDB 22 l.5, l.36, l.115
  */
@@ -14,7 +14,9 @@ import { fromBrass, toBrass, type Money } from '../engine/money';
 import { makeRNG } from '../engine/dice';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { hasCondition } from '../engine/conditions';
-import { devisDeCloture, refusDeClore } from './verdictsDInterlude';
+import { devisDeCloture } from './verdictsDInterlude';
+import { refusDeLaValidation } from './validationDeFenetre';
+import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { WorldMap } from './worldMap';
 
@@ -81,7 +83,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
       jours: 14,
       reprise: 19020, // aube (05:00) du 13ᵉ jour après Hexenstag 2512, 02:00
     });
-    banc.actions.interludeEnd();
+    banc.actions.fenetreValider('interlude');
     const s = banc.getState();
     expect(s.interlude).toBeNull();
     expect(bourses(banc), 'bourses : gaspillées, puis les seuls Revenus').toEqual([120, 0, 0]);
@@ -96,8 +98,8 @@ describe('Clôture — le devis est ce que le geste applique', () => {
     banc.setState((s) => ({ net: { ...s.net, mode: 'guest' } }));
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime]);
     const journal = banc.getState().journal.length;
-    banc.actions.interludeEnd();
-    expect(banc.getState().journal.slice(journal)).toEqual(['L’hôte seul engage la bourse et la cale du groupe.']);
+    banc.actions.fenetreValider('interlude');
+    expect(banc.getState().journal.slice(journal)).toEqual([t('validation.refus.hoteSeul')]);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime])).toBe(avant);
   });
 
@@ -105,16 +107,16 @@ describe('Clôture — le devis est ce que le geste applique', () => {
     const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party: [heros('Vétéran', 1601, 3, { gold: 2, silver: 0, brass: 0 })], scene: SCENE, worldMap: ALTDORF } });
     banc.actions.startInterlude(2);
     expect(banc.getState().interlude?.phase, 'témoin : le tirage est ouvert').toBe('tirage');
-    expect(refusDeClore(banc.getState())).toBe('L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.');
+    expect(refusDeLaValidation(banc.getState(), 'interlude')).toBe('L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.');
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime]);
     const journal = banc.getState().journal.length;
-    banc.actions.interludeEnd();
+    banc.actions.fenetreValider('interlude');
     expect(banc.getState().journal.slice(journal)).toEqual(['L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.']);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime])).toBe(avant);
   });
 
   it('le tirage dénoué : la clôture est offerte à l’hôte', () => {
-    expect(refusDeClore(groupeDeTrois().getState())).toBeNull();
+    expect(refusDeLaValidation(groupeDeTrois().getState(), 'interlude')).toBeNull();
   });
 });
 
@@ -162,7 +164,7 @@ describe('Clôture — devis = geste = oracle, sur 60 groupes tirés', () => {
       conserve: s0.bank.reduce((a, b) => a + b.brass, 0),
       lots: vivants.filter((h) => s0.interlude!.perHero[h.id].closeOps).map((h) => h.id),
     });
-    banc.actions.interludeEnd();
+    banc.actions.fenetreValider('interlude');
     const s1 = banc.getState();
     expect({
       interlude: s1.interlude,

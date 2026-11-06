@@ -27,7 +27,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -123,7 +123,7 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
     banc.setState({ party: [h] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;

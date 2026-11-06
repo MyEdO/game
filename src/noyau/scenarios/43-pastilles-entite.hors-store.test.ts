@@ -22,7 +22,7 @@ function ouvrir() {
   banc.setState({ party: scenario.construire().party });
   banc.getState().startScene(scenarioConstruit.scene);
   banc.getState().startCombat('enc-pastilles');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   // L'ordre du Round est tiré à l'Initiative : on se place au TOUR DU SOLDAT, celui que le joueur
   // exerce en recette (même patron que `42-belier-porte.hors-store.test`, dont la poussée exige l'actif chef).

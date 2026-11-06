@@ -54,7 +54,7 @@ function auCombat(): { H: Combatant; E: Combatant } {
   banc.setState({ party: [heros()], pendingRun: null, pendingApproach: null, pendingDisengage: null, pendingCascade: null });
   g().startScene(testScene());
   g().startCombat('enc-mutants');
-  g().confirmRoundStart();
+  g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -72,7 +72,7 @@ function auCombat(): { H: Combatant; E: Combatant } {
 function enSelle({ dejaEnSelle = true } = {}): { R: Combatant; monture: Combatant } {
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!));
   if (!g().battle) g().startCombat('enc-entrainement');
-  if (g().pendingRoundStart) g().confirmRoundStart();
+  if (g().pendingRoundStart) g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
   const monture = b.combatants.find((c) => c.mountable)!;
