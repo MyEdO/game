@@ -2,7 +2,7 @@
  * L'ÉVALUATEUR D'UNE BASE ET DE SES ÉLÉMENTS (#2972) : charge les GLB (`chargerScene`), monte les éléments sur le
  * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, mesure au repos les shape keys de la
  * base (`gardes/silhouettes.ts`), échantillonne les clips, puis appelle chaque garde de `gardes/` : `poids`,
- * `enroulement`, `budget`, `pistesDEchelle`, `echelleDuRigide`, `silhouettes`, `segments`, `appuis`, `piedsAuSol`, `etirement`, `suiviDuCorps`.
+ * `enroulement`, `budget`, `pistesDEchelle`, `echelleDuRigide`, `tranchantDuRigide`, `silhouettes`, `segments`, `appuis`, `piedsAuSol`, `etirement`, `suiviDuCorps`.
  * Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone est un corps d'un seul
  * tenant : ses meshes skinnés.
  */
@@ -21,6 +21,7 @@ import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
 import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
+import { gardeTranchantDuRigide } from './gardes/tranchantDuRigide.ts';
 import { aretesDe, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement, piresAretes, type MesureDEtirement, type RapportDArete } from './gardes/etirement.ts';
 import { gardePiedsAuSol, plusBas, type NiveauDuCorps } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
@@ -172,6 +173,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     ...gardeBudget(meshes, libelle, entree.plafond ?? PLAFOND_ASSEMBLE),
     ...gardePistesDEchelle(base.scene, clips, manifeste?.gabarit.racine ?? racineDu(base), manifeste?.osAPositionAnimee ?? []),
     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste ? [manifeste.prises.main.os, manifeste.prises.off.os] : [])), libelle),
+    ...(manifeste ? gardeTranchantDuRigide(base.scene, manifeste.prises.main, libelle) : []),
   );
 
   const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: manifeste?.gabarit.st, poidsDesFormes });

@@ -2,7 +2,7 @@
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
-  AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
+  AnimationClip, Bone, BoxGeometry, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
   Matrix4, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
 } from 'three';
 import { ecrireGlb, lireGlb } from '../glb.ts';
@@ -18,6 +18,7 @@ import { mesurerAppuis, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
+import { gardeTranchantDuRigide, TOLERANCE_TRANCHANT_M } from './gardes/tranchantDuRigide.ts';
 import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement } from './gardes/etirement.ts';
 import { libellesDesMeshes } from './ecart.ts';
 import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.ts';
@@ -325,6 +326,24 @@ describe('gardeEchelleDuRigide', () => {
 
   it('ROUGE : le rigide sous la prise hérite d’une échelle ; un rigide hors prise n’est pas mesuré', () => {
     expect(tenu(1.5).map((e) => [e.code, e.mesh])).toEqual([['echelle-du-rigide', '«Epee»']]);
+  });
+});
+
+describe('gardeTranchantDuRigide', () => {
+  const tenue = (rotation: readonly [number, number, number]) => {
+    const { scene, haut, racine } = cylindre();
+    haut.add(Object.assign(new Mesh(new BoxGeometry(0.3, 1, 0.01), new MeshBasicMaterial()), { name: 'Lame' }));
+    haut.add(Object.assign(new Mesh(new CylinderGeometry(0.02, 0.02, 1), new MeshBasicMaterial()), { name: 'Manche' }));
+    racine.add(Object.assign(new Mesh(new BoxGeometry(0.5, 0.5, 0.01), new MeshBasicMaterial()), { name: 'Bouclier' }));
+    return gardeTranchantDuRigide(scene, { os: 'haut', position: [0.1, 0, 0], rotation }, libelle);
+  };
+
+  it('VERT : la lame s’étend sur le Z de la prise, le manche rond passe ; un rigide hors de la prise n’est pas mesuré', () => {
+    expect(tenue([0, Math.PI / 2, 0])).toEqual([]);
+  });
+
+  it('ROUGE : la lame s’étend sur le X de la prise, l’axe de la paume', () => {
+    expect(tenue([0, 0, 0]).map((e) => [e.code, e.mesh, e.seuil])).toEqual([['tranchant-vers-la-paume', '«Lame»', TOLERANCE_TRANCHANT_M]]);
   });
 });
 
