@@ -72,6 +72,15 @@ describe('volumeDuMonde (#3476)', () => {
     expect(volumeDuMonde(s, 1)).toEqual(volumeDuMonde(s));
   });
 
+  it('chaque triangle porte la couche de sa case : le plancher de l’étage à z 1, le sol du rez à z 0', () => {
+    const s = emptyScene('scene-test', 1, 1);
+    s.layers[0].tiles = ['plancher'];
+    s.layers.push({ z: 1, tiles: ['plancher'], height: [3] });
+    const tris = triangles(volumeDuMonde(s));
+    expect(tris.filter((t) => t.ys.every((y) => y === 3)).map((t) => t.case)).toContainEqual([0, 0, 1]);
+    expect(tris.filter((t) => t.ys.every((y) => y === 0)).every((t) => t.case[2] === 0)).toBe(true);
+  });
+
   it('une surface par matière, nommée par son domaine et son id, qui se suivent : le terrain du dessus, le relief de la paroi', () => {
     const s = marche();
     s.reliefDefaults = { ...s.reliefDefaults, cliff: 'pierre' };

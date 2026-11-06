@@ -55,7 +55,7 @@ export interface CorpsDuCombat {
  *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), les clics du
  *  champ par ce qu'ils désignent (`CLICS_DU_CHAMP` la barre de l'actif ouverte, `CLICS_DE_L_EXPLORATION` en exploration
  *  quand rien ne tient la main ; `null` sinon), et l'id du
- *  combattant que chaque case porte, par `"x,y"`. */
+ *  combattant que chaque case porte, par `"x,y,z"`. */
 export interface VueDuPont {
   projection: Projection;
   corps: CorpsDuCombat;
@@ -179,7 +179,7 @@ export function creerPont() {
       plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat)) : null,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }) : null,
       champ: combat ? (combat.barre.forme === 'ouverte' ? CLICS_DU_CHAMP : null) : projection.exploration && !fenetre ? CLICS_DE_L_EXPLORATION : null,
-      occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]}`, c.id]] : []))),
+      occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]},${c.pos[2]}`, c.id]] : []))),
     };
   };
 
