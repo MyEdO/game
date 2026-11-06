@@ -2,12 +2,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
-import { buildSeaPlan, applySteamBreakdown, resolveSteamSave } from './seaVoyageFlow';
+import { buildSeaPlan, applySteamBreakdown, resolveSteamSave, engineerOf } from './seaVoyageFlow';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { seedBattleRng, battleRng } from './battleRng';
 import type { WorldMap } from './worldMap';
 import type { PendingSteamSave } from './pendings';
-import { evaluateTest } from '../engine/tests';
+import { evaluateTest, extendedTestStep, rollTest, type TestResult } from '../engine/tests';
+import { testValue } from '../engine/skills';
+import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { t } from '../i18n';
@@ -105,6 +107,24 @@ describe('Panne de Vapeur — résolution first-class (MDG 12 l.313-352)', () =>
     const lines = get().journal.slice(jBefore).join('\n');
     expect(/Test étendu/i.test(lines)).toBe(true); // Force étendu (10 DR)
     expect(/relancé/i.test(lines)).toBe(true); // Métier (Ingénieur) de redémarrage
+  });
+
+  it('« Feu éteint » : le Test étendu de Force cumule ses DR NÉGATIFS (LDB 12 l.170-185), par `extendedTestStep`', () => {
+    const force = entry('feu-eteint').restart![0];
+    const valeur = testValue(engineerOf(get().party)!, undefined, force.test.characteristic);
+    const issue = (seed: number, pas: (total: number, r: TestResult) => number) => {
+      const rng = makeRNG(seed);
+      let total = 0;
+      for (let i = 0; total < force.targetDR! && i < 20; i++) total = pas(total, rollTest(valeur, force.test.difficulty, rng));
+      return total >= force.targetDR!;
+    };
+    const cumul = (total: number, r: TestResult) => extendedTestStep(total, r, force.targetDR!).total;
+    const seed = Array.from({ length: 500 }, (_, i) => i + 1).find((s) => issue(s, cumul) !== issue(s, (total, r) => total + Math.max(0, r.sl)));
+    expect(seed, 'une graine où plancher chaque DR à 0 change l’issue').toBeDefined();
+    const jBefore = get().journal.length;
+    applySteamBreakdown(get, set, entry('feu-eteint'), makeRNG(seed!));
+    const attendue = t(issue(seed!, cumul) ? 'sv.engineCleared' : 'sv.engineStruggling');
+    expect(get().journal.slice(jBefore).some((l) => l.includes('Test étendu') && l.endsWith(attendue))).toBe(true);
   });
 
   it('« Explosion » (compartmentDamage + engineDestroyed + hullCritical) : la personne au moteur est frappée, la vapeur est perdue, la coque encaisse un Critique', () => {
