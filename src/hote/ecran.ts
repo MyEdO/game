@@ -11,7 +11,7 @@
  */
 import {
   ACTIONS, avecSigne, batailleEnVue, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, toneOf,
-  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
+  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -177,8 +177,8 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
 
 /** Le corps de la fenêtre qui tient la main : sur l'étape d'attaque de la cascade, la fenêtre d'attaque
  *  (`fenetreDAttaque`) ; sur son étape de Défense, qui attaque qui (`fenetreDeDefense`) et le jet de sa réaction avant
- *  le dé ; puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle, le
- *  Sauvetage par le Destin et la victoire en attente. */
+ *  le dé ; puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle ou
+ *  annonce, le Sauvetage par le Destin et la victoire en attente. */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
   const pc = etat.pendingCascade;
   const jetDeLEtape = pc?.participants[pc.cursor]?.jet;
@@ -202,6 +202,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
+    ...issueDeLEtape(etat),
     ...destinEnJeu(etat),
     ...victoire(etat),
     ...texteDuDocument(etat),
@@ -370,6 +371,18 @@ function revelationDeLEtape(etat: Jeu): Element[] {
     ] : r.lines.map((l, i) => ligne(`revelation/${i}`, l))),
     ...(r.details ?? []).map((d, i) => ligne(`${prefixe}/effet/${i}`, d.text, 'neutre', d.note ?? null)),
   ];
+}
+
+/** Le ton d'une ligne d'issue du noyau (`RecapTone`). */
+const TON_DE_LA_LIGNE: Record<RecapTone, Ton> = { ok: 'reussite', bad: 'echec', info: 'neutre' };
+
+/** Ce que l'étape courante de la cascade dit sans le révéler (`outcome` posé par son monteur : un affichage, le contexte
+ *  d'un choix), chaque ligne à son ton ; une révélation le dit déjà (`revelationDeLEtape`). */
+function issueDeLEtape(etat: Jeu): Element[] {
+  const pc = etat.pendingCascade;
+  const etape = pc?.participants[pc.cursor];
+  if (!etape || etape.reveal) return [];
+  return (etape.outcome ?? []).map((l, i) => ligne(`issue/${i}`, l.text, l.tone ? TON_DE_LA_LIGNE[l.tone] : 'neutre'));
 }
 
 /** Une jauge de `courant` sur `max`. */
