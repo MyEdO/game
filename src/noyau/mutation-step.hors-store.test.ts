@@ -5,6 +5,7 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import { stepInteraction, rollTableStep, tableStepDef } from './cascade';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG, d100 } from '../engine/dice';
+import { facesDuDe } from '../engine/tables';
 import {
   mutationKindFor, mutationNatureRows, attachMutation, mutationLimitExceeded, corruptionThresholdExceeded,
 } from '../engine/corruption';
@@ -73,7 +74,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
       const def = tableStepDef(id)!;
       expect(def, `table « ${id} » non enregistrée`).toBeDefined();
       expect(def.rows).toBe(mutationTableRows(id)); // par RÉFÉRENCE : zéro duplication de fourchettes
-      expect(def.die).toBe(mutationTableDie(id).sides); // le dé de la DONNÉE (`die`)
+      expect(def.die).toBe(facesDuDe(mutationTableDie(id))); // le dé de la DONNÉE (`die`)
       // La ligne d'affichage est le libellé de la mutation atteinte par le dé (lookup moteur).
       const row = def.rows[0];
       expect(def.lines(row.min)[0]).toBe(mutationAt(id, row.min).label);

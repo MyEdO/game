@@ -10,7 +10,7 @@ import { META_CHARGE } from './schemas/grammaire/document';
 import { deDeTirageDe } from './rangees';
 import { formatDice, parseDiceRequired } from '../engine/dice';
 import { weatherDie, type Season } from '../engine/travelStages';
-import { ENCOUNTER_DIE } from '../engine/travelTables';
+import { encounterDie } from '../engine/travelTables';
 import { SHIP_CRIT_SET } from './shipCriticals';
 import { weather } from './index';
 import type * as obsessions from './schemas/defs/obsessions';
@@ -147,7 +147,7 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
 
   it('les tables à dé hors fabrique portent le dé imprimé par le livre, tel que leur lecteur le tire', () => {
     expect(formatDice(SHIP_CRIT_SET.die!), 'ship-criticals (MDG 13 l.692)').toBe('1d10');
-    expect(formatDice(ENCOUNTER_DIE), 'rencontres-edoc (EDOC 08 l.190)').toBe('1d100');
+    expect(formatDice(encounterDie()), 'rencontres-edoc (EDOC 08 l.190)').toBe('1d100');
   });
 
   it('le dé se lit VIVANT sur le document, à l’appel', () => {

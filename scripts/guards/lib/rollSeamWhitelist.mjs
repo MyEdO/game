@@ -53,7 +53,7 @@ export const ROLL_SEAM_PHASE2_STOCK = new Map([
   ['src/noyau/riverVoyageFlow.ts', 3],
   ['src/noyau/seaVoyageFlow.ts', 4], // #1501 : 1 jet de l'adversaire d'une Poursuite (:1851) + les 3 Tests de reprise de machine de `runRestart` (:2024/:2027/:2028), roulés en boucle bornée hors modale
   ['src/noyau/shipManeuver.ts', 2],
-  ['src/noyau/travelFlow.ts', 1], // 6→3 au câblage allure forcée (#673 L3) : les 3 rollTest inline (conducteur + 2 Résistance des bêtes) ont MIGRÉ vers les résolveurs purs de vehicle.ts (forcedPaceCheck/forcedPaceBeastCheck), comptés au stock (D) ; 3→1 (#1683) : les 2 `d100` du Problème de véhicule tirent le dé AUTHORÉ de sa table (`rollDice(VEHICLE_PROBLEM_DIE)`), comptés à `DES_HORS_PORTE_STOCK`
+  ['src/noyau/travelFlow.ts', 1], // 6→3 au câblage allure forcée (#673 L3) : les 3 rollTest inline (conducteur + 2 Résistance des bêtes) ont MIGRÉ vers les résolveurs purs de vehicle.ts (forcedPaceCheck/forcedPaceBeastCheck), comptés au stock (D) ; 3→1 (#1683) : les 2 `d100` du Problème de véhicule tirent le dé AUTHORÉ de sa table (`rollDice(vehicleProblemDie())`), comptés à `DES_HORS_PORTE_STOCK`
   ['src/noyau/triggeredEffects.ts', 1],
   // `src/noyau/upkeep.ts` : 2 → 0 (#1657 B3-3) — les 2 `rollTest` du Dessoûlage (LDB 09 l.485) meurent
   // avec le chemin eager de l'entretien : `runDailyUpkeep` EXIGE désormais sa porte (`onDeferTest`
