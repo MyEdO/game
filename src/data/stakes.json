@@ -867,6 +867,10 @@
     "cle": "stageEncounter",
     "template": "La Rencontre de l'Étape : l'entrée tirée sur la table de sa catégorie arrive au groupe.",
     "form": "descripteur",
+    "rule": {
+      "id": "rencontres-de-voyage",
+      "type": "regle"
+    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 35,
