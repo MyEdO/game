@@ -50,14 +50,13 @@ const KIT := "res://kit/kit.glb"
 @onready var _arete_choisie: MeshInstance3D = $AreteChoisie
 @onready var _calque: MeshInstance3D = $Calque
 
-## La case `[x, y]` de chaque triangle du maillage du monde, dans son ordre.
+## La case `[x, y, z]` de chaque triangle du maillage du monde, sa couche comprise, dans son ordre.
 var _cases_des_triangles: Array = []
 ## Par couche `z`, le sol de chaque case, `[y][x]`.
 var _sols: Dictionary = {}
 var _lacet := 0.0
-## Les arêtes posées et leur couche (`poser_les_aretes`).
+## Les arêtes posées (`poser_les_aretes`).
 var _aretes_posees: Array = []
-var _couche_des_aretes := 0
 ## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
 var _matieres := {}
 ## Le kit des arêtes, caché sous le monde, `null` sans kit au projet.
@@ -179,6 +178,11 @@ func _matiere(nom: String) -> Material:
 	return _matieres[nom]
 
 
+## Les couches du dernier monde posé.
+func couches() -> Array:
+	return _sols.keys()
+
+
 ## La taille de la carte, en cases.
 func taille() -> Vector2i:
 	return Vector2i(_sols[0][0].size(), _sols[0].size())
@@ -242,31 +246,30 @@ func noms() -> Dictionary:
 	return _noms
 
 
-## Les arêtes `aretes` (`CONTRAT.md`, section « Plateau ») de la couche `z`, chacune sur le côté de sa case, posée sur
-## le sol de sa case (`_piece`) ; à la place des précédentes.
-func poser_les_aretes(aretes: Array, z := 0) -> void:
-	if aretes == _aretes_posees and z == _couche_des_aretes:
+## Les arêtes `aretes` (`CONTRAT.md`, section « Plateau »), chacune sur le côté de sa case, debout à son pied
+## (`_piece`) ; à la place des précédentes.
+func poser_les_aretes(aretes: Array) -> void:
+	if aretes == _aretes_posees:
 		return
 	_aretes_posees = aretes
-	_couche_des_aretes = z
 	for arete in _aretes.get_children():
 		_aretes.remove_child(arete)
 		arete.free()
 	for a in aretes:
-		_aretes.add_child(_piece(a, z))
+		_aretes.add_child(_piece(a))
 
 
-## La pièce de l'arête `a` de la couche `z` : celle du kit, `<famille>--<pièce>`, étirée à la longueur de l'arête et à
-## la hauteur de son mur (`MiseEnPage.echelle_de_piece`) ; sinon sa boîte (`_boite`).
-func _piece(a: Dictionary, z: int) -> Node3D:
+## La pièce de l'arête `a`, debout à son pied (`a.pied`) : celle du kit, `<famille>--<pièce>`, étirée à la longueur de
+## l'arête et à la hauteur de son mur (`MiseEnPage.echelle_de_piece`) ; sinon sa boîte (`_boite`).
+func _piece(a: Dictionary) -> Node3D:
 	var nom := "%s--%s" % [a.famille, a.piece]
 	if _kit == null or a.famille == null or not _kit.has_node(nom):
 		var boite := MeshInstance3D.new()
-		_poser_sur_l_arete(boite, _boite(a.piece), a, z)
+		_poser_sur_l_arete(boite, _boite(a.piece), a)
 		return boite
 	var sens := Vector2(a.sens.x, a.sens.y)
 	var piece := Node3D.new()
-	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), sol(Vector2i(int(a.case.x), int(a.case.y)), z), 0.0)
+	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, 0.0)
 	piece.rotation.y = MiseEnPage.lacet_d_arete(sens)
 	piece.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, _metres_par_case)
 	piece.add_child(_kit.get_node(nom).duplicate())
@@ -289,18 +292,18 @@ func nombre_d_aretes() -> int:
 	return _aretes.get_child_count()
 
 
-## La gaine de l'arête choisie sur l'arête `arete` de la couche `z`, aucune si `arete` est `null`.
-func choisir_l_arete(arete: Variant, z := 0) -> void:
+## La gaine de l'arête choisie sur l'arête `arete`, aucune si `arete` est `null`.
+func choisir_l_arete(arete: Variant) -> void:
 	_arete_choisie.visible = arete != null
 	if arete != null:
-		_poser_sur_l_arete(_arete_choisie, mesh_arete_choisie, arete, z)
+		_poser_sur_l_arete(_arete_choisie, mesh_arete_choisie, arete)
 
 
-## Le maillage `mesh` posé par `instance` sur l'arête `a` de la couche `z`, debout sur le sol de sa case.
-func _poser_sur_l_arete(instance: MeshInstance3D, mesh: BoxMesh, a: Dictionary, z: int) -> void:
+## Le maillage `mesh` posé par `instance` sur l'arête `a`, debout à son pied (`a.pied`).
+func _poser_sur_l_arete(instance: MeshInstance3D, mesh: BoxMesh, a: Dictionary) -> void:
 	instance.mesh = mesh
 	var sens := Vector2(a.sens.x, a.sens.y)
-	instance.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), sol(Vector2i(int(a.case.x), int(a.case.y)), z), mesh.size.y)
+	instance.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, mesh.size.y)
 	instance.rotation.y = MiseEnPage.lacet_d_arete(sens)
 	instance.scale.x = MiseEnPage.longueur_d_arete(sens)
 
@@ -338,18 +341,19 @@ func a_l_ecran(lieu: Vector3) -> Vector2:
 	return _camera.unproject_position(lieu)
 
 
-## Ce que le rayon de la caméra par `point` touche le premier : `{ case, f }`, la case de son triangle et le point de la
-## carte touché (`MiseEnPage.point_de_carte_du_lieu`), `null` hors du monde.
+## Ce que le rayon de la caméra par `point` touche le premier : `{ case, f }`, la case de son triangle et sa couche
+## (`Vector3i(x, y, z)`), et le point de la carte touché (`MiseEnPage.point_de_carte_du_lieu`), `null` hors du monde.
 func touche_sous(point: Vector2) -> Variant:
 	var rayon := PhysicsRayQueryParameters3D.create(_camera.project_ray_origin(point), _camera.project_position(point, _camera.far))
 	var touche := get_world_3d().direct_space_state.intersect_ray(rayon)
 	if touche.is_empty():
 		return null
 	var case: Array = _cases_des_triangles[touche.face_index]
-	return {case = Vector2i(int(case[0]), int(case[1])), f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position))}
+	return {case = Vector3i(int(case[0]), int(case[1]), int(case[2])), f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position))}
 
 
-## La case du triangle du monde que le rayon de la caméra par `point` touche le premier, `null` hors du monde.
+## La case du triangle du monde et sa couche (`Vector3i(x, y, z)`) que le rayon de la caméra par `point` touche le premier,
+## `null` hors du monde.
 func case_sous(point: Vector2) -> Variant:
 	var touche: Variant = touche_sous(point)
 	return null if touche == null else touche.case

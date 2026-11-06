@@ -33,7 +33,7 @@ export const RACINE_DEPOT = path.resolve(fileURLToPath(new URL('../../..', impor
  * — même partition que `RACINES` du scan de structures (`scripts/docs/lib/structures-scan.mts`).
  * Une racine se donne entière à `mesurerProseInline`, jamais par une CLÉ à résoudre : un identifiant
  * de racine à résoudre serait un branchement par identité dans du code générique (#842,
- * `src/ui/registry-id-branch-guard.test.ts`) et une 2ᵉ vérité sur ce que sont ces racines.
+ * `src/registry-id-branch-guard.test.ts`) et une 2ᵉ vérité sur ce que sont ces racines.
  */
 export const RACINES_PROSE = Object.freeze([
   Object.freeze({ dossier: 'src/data', suffixe: '.json', recursif: false }),

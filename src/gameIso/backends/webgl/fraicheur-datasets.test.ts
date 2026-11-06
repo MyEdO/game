@@ -1,7 +1,7 @@
 /**
  * CONTRAT DE FRAÎCHEUR (#1692), part du RENDU : une écriture au seam (`setDataset`) est vue par le bake
  * du monde (`worldBakeDeps`) et par l'arche solaire (`sunJeuHalfArcMin`), sans rechargement. Les
- * lecteurs de la donnée et des règles : `src/data/fraicheur-datasets.test.ts`.
+ * lecteurs de la donnée et des règles : `src/noyau/fraicheur-datasets.hors-store.test.ts`.
  *
  * Restauration `afterEach` par le seam lui-même : aucun test ne touche un dataset autrement.
  */

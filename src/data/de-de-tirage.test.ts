@@ -10,9 +10,10 @@ import { META_CHARGE } from './schemas/grammaire/document';
 import { deDeTirageDe } from './rangees';
 import { formatDice, parseDiceRequired } from '../engine/dice';
 import { weatherDie, type Season } from '../engine/travelStages';
-import { ENCOUNTER_DIE } from '../engine/travelTables';
+import { encounterDie } from '../engine/travelTables';
 import { SHIP_CRIT_SET } from './shipCriticals';
-import { weather } from './index';
+import { starSubDie, weather } from './index';
+import { peripetieSeuilDie } from './peripeties';
 import type * as obsessions from './schemas/defs/obsessions';
 import type * as miscast from './schemas/defs/miscast';
 
@@ -77,6 +78,11 @@ const LIVRE: Record<string, { die: string; ref: string }> = {
   'criticals-aa-bras': { die: '1d100', ref: 'AA 07 l.32' },
   'criticals-aa-corps': { die: '1d100', ref: 'AA 07 l.32' },
   'criticals-aa-jambe': { die: '1d100', ref: 'AA 07 l.32' },
+  'tableau-des-oups': { die: '1d100', ref: 'LDB 14 l.23-30 (« bandes 01-00 »)' },
+  'tableau-des-evenements': { die: '1d100', ref: 'LDB 22 l.5' },
+  'panne-de-vapeur': { die: '1d100', ref: 'MDG 12 l.323' },
+  'signes-astrologiques': { die: '1d100', ref: 'ADE II 03 l.42' },
+  peripeties: { die: '1d10', ref: 'LDB 51 l.210' },
 };
 
 /** Le dé IMPRIMÉ par le livre pour chaque saison de `weather.json` (table imbriquée, hors fabrique). */
@@ -94,6 +100,7 @@ const TABLES_NICHEES_LIVRE: Record<string, { die: string; ref: string }> = {
   'land-cargo.json › wineQuality': { die: '1d10', ref: 'MSRC 13 l.97' },
   'river-navigation.json › windDirections': { die: '1d10', ref: 'MSRC 7 l.25' },
   'river-navigation.json › windForces': { die: '1d10', ref: 'MSRC 7 l.27' },
+  'sea-events.json › boardEvents': { die: '1d100', ref: 'MDG 15 l.134' },
   'sea-navigation.json › orientation.changementDeCap': { die: '1d10', ref: 'MDG 13 l.326' },
   'water-exposure.json › diseases': { die: '1d100', ref: 'MSRC 16 l.53' },
 };
@@ -146,7 +153,9 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
 
   it('les tables à dé hors fabrique portent le dé imprimé par le livre, tel que leur lecteur le tire', () => {
     expect(formatDice(SHIP_CRIT_SET.die!), 'ship-criticals (MDG 13 l.692)').toBe('1d10');
-    expect(formatDice(ENCOUNTER_DIE), 'rencontres-edoc (EDOC 08 l.190)').toBe('1d100');
+    expect(formatDice(encounterDie()), 'rencontres-edoc (EDOC 08 l.190)').toBe('1d100');
+    expect(formatDice(starSubDie()), 'stars.json › sub (ADE II 03 l.63)').toBe('1d10');
+    expect(formatDice(peripetieSeuilDie()), 'peripeties.json › tirageQuotidien (LDB 51 l.208)').toBe('1d10');
   });
 
   it('le dé se lit VIVANT sur le document, à l’appel', () => {

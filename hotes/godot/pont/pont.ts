@@ -55,7 +55,7 @@ export interface CorpsDuCombat {
  *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), le verbe du clic
  *  du champ (`CLIC_DU_CHAMP`, la barre de l'actif ouverte, ou en exploration quand rien ne tient la main ; `null`
  *  sinon), et l'id du
- *  combattant que chaque case porte, par `"x,y"`. */
+ *  combattant que chaque case porte, par `"x,y,z"`. */
 export interface VueDuPont {
   projection: Projection;
   corps: CorpsDuCombat;
@@ -79,11 +79,11 @@ export interface Suite {
 
 /** Le clic du champ sur le combattant `id`, comme Godot le joue (`combat.gd`) : le verbe de `champ`, la case où
  *  `occupants` le tient, puis l'id ; `null` quand le champ ne se clique pas ou que le combattant n'a pas de case. */
-export function clicDuCombattant(vue: VueDuPont, id: string): { type: typeof CLIC_DU_CHAMP; args: [{ x: number; y: number }, string] } | null {
+export function clicDuCombattant(vue: VueDuPont, id: string): { type: typeof CLIC_DU_CHAMP; args: [{ x: number; y: number; z?: number }, string] } | null {
   const cle = Object.keys(vue.occupants).find((k) => vue.occupants[k] === id);
   if (!vue.champ || !cle) return null;
-  const [x, y] = cle.split(',').map(Number);
-  return { type: vue.champ, args: [{ x, y }, id] };
+  const [x, y, z] = cle.split(',').map(Number);
+  return { type: vue.champ, args: [z ? { x, y, z } : { x, y }, id] };
 }
 
 /** Godot dessine tout : aucune liste de la projection n'est bornée. */
@@ -188,7 +188,7 @@ export function creerPont() {
       plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat)) : null,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }) : null,
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
-      occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]}`, c.id]] : []))),
+      occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]},${c.pos[2]}`, c.id]] : []))),
     };
   };
 

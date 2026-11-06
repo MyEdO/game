@@ -10,7 +10,7 @@ import { garanti } from '../lib/garanti';
 import { battleRng } from './battleRng';
 import { d10, d100, roll, rollDice } from '../engine/dice';
 import { isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
-import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
+import { INTERLUDE_EVENTS, interludeEventDie, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { startCascade } from './cascade';
 import { freeCons, type RollLineParts } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
@@ -55,7 +55,7 @@ import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
 import { findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
-import { findTableEntry } from '../engine/tables';
+import { facesDuDe, findTableEntry } from '../engine/tables';
 import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { PendingBase } from './rollFlowFactory';
@@ -65,7 +65,6 @@ import type { Get, Set } from './flowTypes';
 import type { EffectSource } from '../engine/types';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
-import { gelerLaConstante } from '../lib/gelerProfond';
 import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
@@ -147,9 +146,9 @@ export interface BankDeposit {
  *  rendu au JOUEUR (rangée de tirage + grille du mode table), sans marque de livre. */
 export const INTERLUDE_EVENT_TABLE = 'interlude-events';
 
-/** Aucun modificateur : le dé NATUREL est le dé du lookup — c'est aussi ce que `perHero.eventRoll`
- *  persiste, et donc ce que tout lecteur re-résout. */
-const INTERLUDE_EVENT_DECL: CascadeTableDecl = gelerLaConstante({ tableId: INTERLUDE_EVENT_TABLE, spec: { n: 1, sides: 100 } }); // #2097
+/** Le dé de la table (`interludeEventDie`), sans modificateur : le dé NATUREL est le dé du lookup —
+ *  c'est aussi ce que `perHero.eventRoll` persiste, et donc ce que tout lecteur re-résout. */
+const interludeEventDecl = (): CascadeTableDecl => ({ tableId: INTERLUDE_EVENT_TABLE, spec: interludeEventDie() });
 
 /** La séquence des tirages est SA propre séquence (`purpose:'interlude'`, doctrine du slot #942 L1) :
  *  l'interlude ne s'ouvre jamais en combat, et aucun autre `purpose` hors-combat ne doit y fusionner. */
@@ -161,7 +160,7 @@ function eventStep(hero: Combatant): CascadeStep {
     id: `interlude-event-${hero.id}`,
     kind: 'interludeEvent', actorId: hero.id, icon: 'nav/dice',
     label: t('step.evenement'),
-    table: INTERLUDE_EVENT_DECL,
+    table: interludeEventDecl(),
     stake: combatStakeRef('interludeEvent'),
   };
 }
@@ -1238,7 +1237,7 @@ export const TABLES = {
   tablesTirables: {
     [INTERLUDE_EVENT_TABLE]: {
       label: msg('if.eventTableLabel'),
-      die: 100,
+      get die() { return facesDuDe(interludeEventDie()); },
       rows: INTERLUDE_EVENTS,
       lines: (die) => [interludeEventFor(die).label, interludeEventFor(die).desc],
       entryCategory: 'interludeEvents', // la ligne tirée EST l'Événement : sa fiche porte son texte

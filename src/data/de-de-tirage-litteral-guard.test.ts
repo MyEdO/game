@@ -1,29 +1,17 @@
 /**
- * Le dé d'une bande de table s'écrit en LITTÉRAL (`bandeAuDe('d100', …)`, `facesDuDe('d10')`) seulement
- * pour une table dont le document ne porte AUCUN `die` : un document qui le porte se lit par sa porte
- * (`deDeTirageDe`, `src/data/rangees.ts`, ou l'export du lecteur qui le tire). #1667
+ * Le dé d'une bande de table ne s'écrit jamais en LITTÉRAL (`bandeAuDe('d100', …)`, `facesDuDe('d10')`) :
+ * il se lit par la porte de son document (`deDeTirageDe`, `src/data/rangees.ts`, ou l'export du lecteur
+ * qui le tire). #1667
  *
- * SITES LITTÉRAUX : clé `fichier :: porteurs :: ligne` (porteurs = fonctions, déclarations, propriétés
- * et attributs JSX qui enveloppent l'appel ; ligne aux blancs réduits), valeur = le document de la table
- * et la raison. Le test relit chaque document au disque : qu'il gagne un `die`, et son site rougit.
+ * SITE LITTÉRAL : `fichier :: porteurs :: ligne` (porteurs = fonctions, déclarations, propriétés et
+ * attributs JSX qui enveloppent l'appel ; ligne aux blancs réduits).
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type * as TS from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { analyserCorpus, ast, typescript } from '../../scripts/guards/lib/dialecte.mjs';
 
 const LECTEURS_DE_DE = new Set(['bandeAuDe', 'facesDuDe']);
-
-const SANS_DE = 'aucun `die` en donnée (#1667, trains (a)–(e))';
-const RAS = new Map<string, { document: string; why: string }>([
-  ["src/noyau/codex/registry.ts :: CODEX_SPECS.oups.build.range :: const range = 'min' in o ? bandeAuDe('d100', o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');", { document: 'src/data/oups.json', why: SANS_DE }],
-  ["src/noyau/codex/registry.ts :: CODEX_SPECS.interludeEvents.build.sub :: build: () => interludeEvents.map((e) => depuisEnveloppe(e, { sub: bandeAuDe('d100', e.min, e.max) })),", { document: 'src/data/interludeEvents.json', why: SANS_DE }],
-  ["src/noyau/codex/registry.ts :: CODEX_SPECS.steamBreakdowns.build.sub :: sub: bandeAuDe('d100', e.min, e.max),", { document: 'src/data/steam-breakdown.json', why: SANS_DE }],
-  ["src/ui/creator/CharacterCreator.tsx :: StarScreen.choice.hub.note :: note: bandeAuDe('d100', selPos.from, selPos.rand),", { document: 'src/data/stars.json', why: SANS_DE }],
-  ["src/ui/creator/CharacterCreator.tsx :: StarScreen.choice.meta :: meta={m.sub && <span className=\"hint\">{bandeAuDe('d10', m.sub.min, m.sub.max)}</span>}", { document: 'src/data/stars.json', why: SANS_DE }],
-]);
 
 /** Nom d'un nœud qui PORTE un site, ou `null`. */
 function nomDePorteur(ts: typeof TS, n: TS.Node): string | null {
@@ -55,25 +43,11 @@ function sitesLitteraux(rel: string, sf: TS.SourceFile): string[] {
   return sites;
 }
 
-/** Le JSON porte-t-il une clé `die`, à quelque profondeur que ce soit ? */
-function porteUnDe(v: unknown): boolean {
-  if (Array.isArray(v)) return v.some(porteUnDe);
-  if (v && typeof v === 'object') return Object.entries(v).some(([k, x]) => k === 'die' || porteUnDe(x));
-  return false;
-}
-
 describe('#1667 — un dé de tirage en donnée se lit, il ne se recopie pas', () => {
-  it('tout dé littéral de bande vise une table sans `die` en donnée ; toute entrée RAS vise un site vivant', () => {
+  it('aucun dé littéral de bande', () => {
     const corpus = readCorpus(['src']).filter((f) => f.text.includes('bandeAuDe(') || f.text.includes('facesDuDe('));
     const sites = [...analyserCorpus(corpus)].flatMap(({ fichier, sourceFile }) => (sourceFile ? sitesLitteraux(fichier.rel, sourceFile) : []));
-    expect(sites.filter((s) => !RAS.has(s)), 'dé littéral : lire le `die` du document (`deDeTirageDe`), ou déclarer la table sans dé en RAS').toEqual([]);
-    expect([...RAS.keys()].filter((k) => !sites.includes(k)), 'entrée RAS sans site vivant : la retirer').toEqual([]);
-  });
-
-  it('chaque table RAS est sans `die` en donnée — qu’elle en gagne un, et son littéral doit le lire', () => {
-    const portent = [...new Set([...RAS.values()].map((r) => r.document))]
-      .filter((d) => porteUnDe(JSON.parse(readFileSync(join(process.cwd(), d), 'utf8'))));
-    expect(portent, 'document RAS qui porte un `die`').toEqual([]);
+    expect(sites, 'dé littéral : lire le `die` du document (`deDeTirageDe`)').toEqual([]);
   });
 
   it('preuve : le dé littéral se refuse, le dé lu passe', () => {

@@ -11,6 +11,7 @@ import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated.ts'
 import { LIENS_SCHEMA_TYPES } from './fieldConsumerTargets.mjs'
 import { CLES_ENVELOPPE } from '../../../src/data/schemas/grammaire/document.ts'
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits.ts'
+import { estDocumentARangees } from './documentARangees.mts'
 import { creerProvenanceFs } from './provenanceFs.mjs'
 
 const norm = p => p.replaceAll('\\', '/')
@@ -383,7 +384,7 @@ function natureDuType(root, type) {
 /**
  * Les CIBLES de catalogue du rapport des consommateurs par champ, DÉRIVÉES de la jointure : pour chaque
  * def, le type que ses chargements donnent EXPLICITEMENT à son ENTRÉE (élément du tableau racine, valeur
- * d'un enregistrement racine, sinon la racine), domicilié au module qui le déclare, avec les clés de
+ * d'un enregistrement racine, rangée d'un document à rangées, sinon la racine), domicilié au module qui le déclare, avec les clés de
  * l'entrée au schéma (`champsDeclares`, sceau `document()` descendu). Un type atteint par plusieurs defs
  * est UNE cible, à l'union de leurs clés. Un def dont aucun chargement ne nomme l'entrée SORT avec la
  * raison mesurée. Ordre total : cibles par `(home, position)`, sorties par `file`.
@@ -393,8 +394,9 @@ export function ciblesDeCatalogue(root, session, files, definitions = SCHEMA_DEF
   const { claims } = relierChargements(root, session, { files, definitions, lectures: false })
   const cibles = new Map(), sorties = []
   for (const d of [...definitions].sort((a, b) => parUnites(a.file, b.file))) {
-    const declares = champsDeclares(d.schema)
-    const entree = []
+    // L'ENTRÉE d'un document à rangées est sa rangée (`documentARangees.mts`, #3012).
+    const entree = estDocumentARangees(d.schema, d.famille) ? ['entries', '[]'] : []
+    const declares = champsDeclares(d.schema).filter(p => entree.every((k, i) => p[i] === k))
     while (declares.length && ['[]', '{}'].includes(declares[0][entree.length]) && declares.every(p => p[entree.length] === declares[0][entree.length])) entree.push(declares[0][entree.length])
     const cles = declares.filter(p => p.length === entree.length + 1).map(p => p.at(-1))
     const duDataset = claims.filter(c => c.file === d.file)

@@ -6,7 +6,8 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { enfantsDe } from './schemas/grammaire/descente';
-import { nommerNoeud } from './schemas/grammaire/meta';
+import { document } from './schemas/grammaire/document';
+import { nommerChamps, nommerNoeud } from './schemas/grammaire/meta';
 import { idDe, ref } from './schemas/grammaire/ref';
 import { formulaSinSchema } from './schemas/grammaire/valeurs';
 import type { SchemaDef } from './schemas/types';
@@ -70,6 +71,22 @@ describe('classes d’un nœud de site', () => {
       'G1 src/data#a :: [].seul',
       'L src/data#a :: [].variants[].sous',
       'G src/data#b :: [].commun',
+    ]);
+  });
+
+  it('la rangée d’un document mono-table est son ENTRÉE, comme la ligne d’un tableau racine ; son sous-objet local reste un site (#3012)', () => {
+    const rangee = nommerChamps(z.strictObject({ id: z.string(), label: z.string(), sous: nommerChamps(z.strictObject({ y: z.number() }), { y: { label: 'y' } }) }), {
+      id: { label: 'id' }, label: { label: 'libellé' }, sous: { label: 'sous' },
+    });
+    const monoTable = document('sonde', 'config', {}, {}, { codex: { keys: ['sonde'] }, edit: { niche: { categories: { sonde: 'entries' } } } }, { rangee, deDeTirage: true });
+    const lignes = nommerChamps(z.strictObject({ id: z.string(), sous: nommerChamps(z.strictObject({ y: z.number() }), { y: { label: 'y' } }) }), { id: { label: 'id' }, sous: { label: 'sous' } });
+    const reglage = document('reglage', 'config', { lignes: z.array(lignes) }, { lignes: { label: 'lignes' } }, { codex: { keys: ['reglage'] }, edit: { niche: { categories: { reglage: 'lignes' } } } });
+    const config = (file: string, schema: z.ZodType): SchemaDef => ({ ...def(file, schema), famille: 'config' });
+    const auStock = classes([config('sonde.json', monoTable.schema), config('reglage.json', reglage.schema)]).filter((c) => !c.startsWith('G '));
+    expect(auStock, 'la même ligne sous un champ de réglage reste un site').toEqual([
+      'L src/data#reglage :: .lignes[]',
+      'L src/data#reglage :: .lignes[].sous',
+      'L src/data#sonde :: .entries[].sous',
     ]);
   });
 

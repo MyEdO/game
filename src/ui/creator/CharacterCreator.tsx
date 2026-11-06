@@ -40,6 +40,8 @@ import {
   levelsForCareer,
   charAbr,
   stars as starsTable,
+  starDie,
+  starSubDie,
   celestialHouses,
   indexParId,
   spells as allSpells,
@@ -1232,7 +1234,7 @@ export function StarScreen({ d, setD }: StepProps) {
               // destins de L'Étoile du Sorcier partagent « Signe de la Magie » (elle vaut donc pour
               // la position), là où des destins discordants ne pourraient pas se résumer d'un mot.
               sub: selPos.members.every((m) => m.signe === selPos.members[0].signe) ? selPos.members[0].signe : null,
-              note: bandeAuDe('d100', selPos.from, selPos.rand),
+              note: bandeAuDe(starDie(), selPos.from, selPos.rand),
             }
           }
         />
@@ -1261,7 +1263,7 @@ export function StarScreen({ d, setD }: StepProps) {
                 <PlaqueRow
                   key={m.id}
                   content={splitLabel(m.label).spec ?? m.label}
-                  meta={m.sub && <span className="hint">{bandeAuDe('d10', m.sub.min, m.sub.max)}</span>}
+                  meta={m.sub && <span className="hint">{bandeAuDe(starSubDie(), m.sub.min, m.sub.max)}</span>}
                   selected={m.id === d.star}
                   onClick={() => setD(withStar(d, m.id))}
                 />

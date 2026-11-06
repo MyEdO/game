@@ -65,7 +65,7 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // de tout rattachement. `tsc` a le même angle mort : supprimer le champ n'y produisait aucune
 // erreur. Une colonne vide est donc un INDICE d'orphelin, jamais une preuve de champ mort.
 //
-// Module ESM pur — consommé par `src/ui/editor/scene-field-editability-guard.test.ts`.
+// Module ESM pur — consommé par `src/noyau/scene-field-editability-guard.test.ts`.
 import path from 'node:path';
 import * as ts from 'typescript/unstable/ast';
 import { repoProgram, libererSessions } from './tsProgram.mjs';

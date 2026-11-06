@@ -52,6 +52,10 @@ export const RACINES_DES_ZONES: readonly string[];
 /** Les hôtes du noyau : les zones qui ne lisent le noyau que par sa porte. */
 export const HOTES_DU_NOYAU: readonly string[];
 
+/** La portée d'une garde de corpus : les dossiers des zones `survivent`, qui survivent à la bascule, puis ceux des zones
+ *  `web`, qui n'y survivent pas ; une zone hors de la table, `racine` ou du mauvais bord lève. */
+export function porteeDeGarde(survivent: readonly string[], web?: readonly string[]): readonly string[];
+
 /** La zone d'un chemin relatif à la racine du dépôt, `null` hors des zones ; sous `src/`, un sous-dossier sans ligne
  *  rend son dossier (`src/<segment>`), qui n'est jamais une zone. */
 export function zoneDe(rel: string): string | null;

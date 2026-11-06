@@ -52,7 +52,7 @@ import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
 import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, NAVAL_TRAITS, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
 import { profilNavalDe } from '../engine/coque';
-import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
+import { installCost, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { deMonde, formatEffetSigne, roll as rollDice, tirer, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
@@ -83,7 +83,7 @@ import { addCondition } from '../engine/conditions';
 import { effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
-  evenementsDeBord, DE_DES_EVENEMENTS_DE_BORD, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
+  evenementsDeBord, deDesEvenementsDeBord, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
   evenementDeBord, seulEvenementDeBord, seulEvenementDePort, rollRandomCargo, cargoBasePrice,
   type CargoOverload, type EvenementDeBord, type ManannMood, type PortProfile, type CargoLot,
@@ -1277,7 +1277,7 @@ function buildSeaBoardEventStep(get: Get): BuiltCascadeStep | undefined {
   return tableStep({
     id: SEA_BOARD_EVENT_STEP_ID, kind: SEA_BOARD_EVENT_KIND, worldOwner: true, icon: 'travel/wave',
     label: t('step.seaBoardEvent'),
-    table: { tableId: SEA_BOARD_EVENT_TABLE, spec: { n: 1, sides: facesDuDe(DE_DES_EVENEMENTS_DE_BORD) }, ...(mood.score ? { mod: mood.score } : {}) },
+    table: { tableId: SEA_BOARD_EVENT_TABLE, spec: deDesEvenementsDeBord(), ...(mood.score ? { mod: mood.score } : {}) },
     stake: voyageStakeRef(SEA_BOARD_EVENT_KIND),
   });
 }
@@ -1290,7 +1290,7 @@ export const SEA_BOARD_EVENT_TABLE = 'sea-board-events';
 // plage réécrite à la main ; FAMILLE (`famillesTirables`) mémoïsée sur `seaBoardEvents`.
 const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<string, TableStepDef>([[SEA_BOARD_EVENT_TABLE, {
   label: t('step.seaBoardEvent'),
-  die: 100,
+  die: facesDuDe(deDesEvenementsDeBord()),
   rows: evenementsDeBord().map((e) => ({ id: e.id, min: e.min, max: e.max })),
   lines: (die) => [t('sv.boardEventLine', { label: findTableEntry(evenementsDeBord(), die).label })],
 }]]));
@@ -2781,8 +2781,8 @@ export const TABLES = {
           && steamBreakdownTriggered({ success: evaluateTest(x.result.roll, x.result.target).success, sl: x.result.sl, isDouble: isDoubleRoll(x.result.roll) }));
         if (triggered) {
           // Tirage POST-POSE de la table de panne : l'étape `progression` est déjà posée, ce dé en est la
-          // conséquence — porte du canal (`deMonde`), même position RNG qu'inline (MDG 12 l.313).
-          const b = steamBreakdownFor(deMonde(rng));
+          // conséquence — au dé de sa table, même position RNG qu'inline (MDG 12 l.313).
+          const b = rollSteamBreakdown(rng);
           j.push(t('sv.steamBreakdown', { label: b.label }), b.desc);
           applySteamBreakdown(get, set, b, rng); // « Fuite de vapeur » → `pendingSteamSave` (sauvegarde d'Initiative) suspend AVANT le reste du jour
         }

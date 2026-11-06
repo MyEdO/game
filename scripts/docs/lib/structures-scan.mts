@@ -34,7 +34,7 @@ import { choixDeclares, choixDesPayloadsDOp, introspecterDefs } from './zod-intr
 import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { IDS_PAR_ESPACE } from '../../../src/data/schemas/_ids.generated';
 import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/collection-cle';
-import { carteDuRecord } from '../../../src/data/schemas/grammaire/cle-d-espace';
+import { carteDuRecord, lireCleDEspace } from '../../../src/data/schemas/grammaire/cle-d-espace';
 import { conceptDe } from '../../../src/data/schemas/grammaire/concepts';
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
 import { auPlusProcheAncetre, coDescendre, defDe, descendre, enfantsDe, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
@@ -723,15 +723,16 @@ export function scannerDonnees(
 
   /** L'espace que NOMME le `type` d'une référence TYPÉE (`{ id, type }`, `refTypee` de
    *  `grammaire/ref.ts`) — un type de `TYPES`, ou la sous-liste qu'une référence déclarée nomme
-   *  (`typesNommes`) —, quand l'`id` `v` y est indexé — `undefined` sinon. Un id présent dans
+   *  (`typesNommes`) —, au fichier de son espace, quand l'`id` `v` y est indexé — `undefined` sinon. Un id présent dans
    *  plusieurs espaces n'y est donc jamais ambigu. */
   const espaceNomme = (o: Obj, k: string, v: string): string | undefined => {
     const valeur = o.type;
     if (k !== 'id' || typeof valeur !== 'string') return undefined;
     const type = typesNommes.get(valeur) ?? (Object.prototype.hasOwnProperty.call(TYPES, valeur) ? (valeur as TypeEntite) : undefined);
     if (type === undefined) return undefined;
-    const espace = espaceDe(type);
-    return index.get(v)?.has(espace) ? espace : undefined;
+    // L'index est au FICHIER : l'espace d'une collection nichée (`fichier#chemin`) s'y lit par son fichier.
+    const fichier = lireCleDEspace(espaceDe(type)).fichier;
+    return index.get(v)?.has(fichier) ? fichier : undefined;
   };
   /** Datasets vers lesquels la valeur `v` de la clé `k` de `o` résout : l'espace NOMMÉ d'une référence
    *  typée, sinon tous ceux où l'id est indexé. */
