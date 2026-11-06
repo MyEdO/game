@@ -614,7 +614,7 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
   //    balayage clôt l'étape-jet de la cascade, `battleSelectAction` est avalé sous `combatBusy`).
   fermerLeBalayage: (get) => get().fenetreFermer('cleave'),
   renoncerALaSecondeFrappe: (get) => get().fenetreFermer('dualStrike'),
-  castPickTargetsOff: (get) => get().castPickTargets(false),
+  castPickTargetsOff: (get) => get().jetRegler('cast', 'carte', null),
   /** Sortie du placeur de zone, ROUTÉE PAR LA SOURCE que mesure `placingZoneOf` — symétrique de
    *  `commitPlacedZone` (même aiguilleur pour poser et pour renoncer) : un sort revient à sa modale,
    *  un pilonnage referme son placeur. Une seule entrée d'interlude pour le mode `placing-zone`. */
@@ -622,7 +622,7 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
     const pz = placingZoneOf(get());
     if (!pz) return;
     switch (pz.source) {
-      case 'cast': get().castPlaceZone(false); return;
+      case 'cast': get().jetRegler('cast', 'carte', null); return;
       case 'siege': get().fenetreFermer('siegeAim'); return;
       default: pz.source satisfies never;
     }

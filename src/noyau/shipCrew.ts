@@ -9,7 +9,6 @@ import { refCouvre } from '../data/schemas/grammaire/ref';
 import { crewRoleValue, competencesDuRole, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe } from './bourseFlow';
-import { refuserGeste } from './refusVisible';
 import { cadenceAuto } from '../engine/cadence';
 import { deMonde, type RNG } from '../engine/dice';
 import type { BattleState, CampaignVessel, Jeu } from './etat';
@@ -28,6 +27,7 @@ import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
 import { battleRng } from './battleRng';
 import { t } from '../i18n';
 import type { Get, Set as SetFn } from './flowTypes';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import { equipageApte, ecrireActeur, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { propulsionDuNavire, milieuDuVoyage } from '../engine/shipBuild';
@@ -487,16 +487,15 @@ function factorLedger(rolls: MoraleRoll[]): NightEntry[] {
 
 /**
  * CONSEIL DE BORD — le joueur ARRÊTE la paie de la semaine (#229). Phase `choix` (aucune mutation encore) →
- * `councilPay(decision)` prélève la solde, recalcule le Moral (`resolveVesselWeek`, cœur PUR partagé avec la
- * cadence auto) et bascule en phase `bilan` où le recalcul se JOUE (PV des facteurs + delta + nouvelle bande).
- * Choix invalide / non payable rejeté (l'UI désactive déjà l'option non payable ; le choix GRATUIT reste toujours offert).
+ * `fenetreChoisir('council', 'paie', decision)` prélève la solde, recalcule le Moral (`resolveVesselWeek`, cœur PUR
+ * partagé avec la cadence auto) et bascule en phase `bilan` où le recalcul se JOUE (PV des facteurs + delta + nouvelle
+ * bande). Le verbe n'admet qu'un choix que `refusDeChoixDePaie` ouvre (`OUVERTS_DU_CHOIX`) ; le choix GRATUIT reste
+ * toujours offert.
  */
-export function councilPay(get: Get, set: SetFn, decision: string): void {
-  const p = get().pendingCouncil;
+function arreterLaPaie(get: Get, set: SetFn, decision: string): void {
+  const p = garanti(get().pendingCouncil, decision, 'Conseil de bord');
   const vessel = get().vessel;
-  if (!p || !vessel) return;
-  const refus = refusDeChoixDePaie(get(), decision);
-  if (refus) { refuserGeste(get, set, refus); return; }
+  if (!vessel) return;
   const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, p.today, battleRng());
   if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
   set({
@@ -506,7 +505,7 @@ export function councilPay(get: Get, set: SetFn, decision: string): void {
   get().log(out.lines);
 }
 
-/** Les choix de paie que `councilPay` accepte : ceux du registre (`payChoices`) que la bourse du groupe couvre, le choix
+/** Les choix de paie que `fenetreChoisir('council', 'paie', …)` accepte : ceux du registre (`payChoices`) que la bourse du groupe couvre, le choix
  *  gratuit compris. Vide hors phase `choix` du Conseil. #229 */
 export function choixDePaieOuverts(s: Jeu): string[] {
   const p = s.pendingCouncil;
@@ -516,7 +515,7 @@ export function choixDePaieOuverts(s: Jeu): string[] {
 }
 
 /** Refus d'un choix de paie du Conseil : `refusDeGesteSurLeGroupe`, ou la bourse ne couvre pas ce choix ;
- *  `null` sinon. Tombe dans `councilPay`, lu par l'écran du Conseil. #229 */
+ *  `null` sinon. Lu par le choix de la paie (`OUVERTS_DU_CHOIX`) et l'écran du Conseil. #229 */
 export function refusDeChoixDePaie(s: Jeu, decision: string): string | null {
   return refusDeGesteSurLeGroupe(s) ?? (choixDePaieOuverts(s).includes(decision) ? null : t('crew.paieHorsBourse'));
 }
@@ -570,6 +569,11 @@ export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): stri
   return [t('crew.desertion', { n: deserters }), ...applyVesselCrewLoss(get, set, deserters)];
 }
 
+/** Le choix du Conseil de bord (`CorpsDesChoix`) : la paie de la semaine. #229 */
+export function choixDeLEquipage(get: Get, set: SetFn) {
+  return { council: { paie: (decision) => arreterLaPaie(get, set, decision) } } satisfies Partial<CorpsDesChoix>;
+}
+
 /** Le Conseil de bord se lève au bilan (`MODAL_DEFS.council.sortieFermee`) : le recalcul a déjà été appliqué à la
  *  validation de la paie. #229 */
 export function sortiesDeLEquipage(_get: Get, set: SetFn) {
@@ -578,8 +582,6 @@ export function sortiesDeLEquipage(_get: Get, set: SetFn) {
 
 export function creerActionsDeLEquipage(get: Get, set: SetFn) {
   return {
-    // Conseil de bord : paie hebdomadaire et Moral.
-    councilPay: (decision) => councilPay(get, set, decision),
     setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
     setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
     setPosteAmmo: (shipId, posteUid, ammoUid) => {

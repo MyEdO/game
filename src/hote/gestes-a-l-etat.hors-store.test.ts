@@ -17,7 +17,7 @@ import { t } from '../i18n';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { projeter, rendreLaVue } from '../hoteTexte/vue';
 import { choixDePaieOuverts } from '../noyau/shipCrew';
-import { findMoraleFactor } from '../engine/crewMorale';
+import { findMoraleFactor, payChoices } from '../engine/crewMorale';
 import { locationLabel, type Trauma } from '../engine/types';
 
 /** L'état de la partie `dome` (graine 7) à son lancement, la pause de début de Round ouverte. */
@@ -90,7 +90,7 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
     const { E, etat } = leDuel();
     const monture = etat.battle!.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
     const couple: Jeu = { ...etat, pendingMountTarget: { riderId: E.id, mountId: monture.id } };
-    expect(valeurs(argumentDe(couple, 'mountTargetSelect', 'id'))).toEqual(['choix', [[E.id, E.label], [monture.id, monture.label]]]);
+    expect(valeurs(argumentDe(couple, 'fenetreChoisir', 'valeur'))).toEqual(['choix', [[E.id, E.label], [monture.id, monture.label]]]);
   });
 });
 
@@ -127,6 +127,9 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
       const plaie = argumentDe(infirmerie, 'medicSetWound', 'idx');
       expect(lignes(plaie)).toEqual(['choix', [[0, t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], [1, t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);
       expect(plaie.valeur, 'la plaie visée est la valeur courante').toBe(1);
+      const choix = (cle: string) => fenetreADessiner(infirmerie)!.gestes.find((g) => g.cle === cle);
+      expect(choix('fenetreChoisir@medic#patient')?.reglage, 'le patient se reprend (`reprenable`) : une option de la fenêtre').toBe(true);
+      expect(choix('fenetreChoisir@medic#abandon')?.reglage, 'l’abandon clôt l’opération (`clot`) : un pas de la fenêtre').toBe(false);
     });
   });
 
@@ -134,9 +137,10 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
     auDebutDuRound((etat) => {
       const conseil = (wageBrass: number): Jeu => ({ ...etat, battle: null, pendingRoundStart: null, vessel: { id: 'nef' } as never, pendingCouncil: { phase: 'choix', wageBrass, today: 1 } as never });
       for (const c of [conseil(0), conseil(1_000_000)]) {
-        const paie = argumentDe(c, 'councilPay', 'decision');
+        const paie = argumentDe(c, 'fenetreChoisir', 'valeur');
         expect(paie.saisie).toBe('choix');
-        expect(paie.valeurs!.map((v) => [v.valeur, v.libelle])).toEqual(choixDePaieOuverts(c).map((id) => [id, findMoraleFactor(id)!.label]));
+        expect(paie.valeurs!.map((v) => [v.valeur, v.libelle])).toEqual(payChoices().map(({ factorId }) => [factorId, findMoraleFactor(factorId)!.label]));
+        expect(paie.valeurs!.filter((v) => v.refus === null).map((v) => v.valeur), 'les choix ouverts, les autres disent leur refus').toEqual(choixDePaieOuverts(c));
       }
       expect(choixDePaieOuverts(conseil(0)).length, 'témoin : sans gages, chaque choix est ouvert').toBeGreaterThan(choixDePaieOuverts(conseil(1_000_000)).length);
     });

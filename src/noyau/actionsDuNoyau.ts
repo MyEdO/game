@@ -6,6 +6,7 @@ import type { IndiceAffiché } from './monde/clues';
 import type { HealMode } from '../engine/healing';
 import type { VerbesDeJet } from './rollFlowSpecs';
 import type { VerbeDeReglage } from './reglagesDuJet';
+import type { VerbeDeChoix } from './choixDesFenetres';
 import type * as tavernFlow from './tavernFlow';
 import type { CounterDeclaration } from './pendings';
 import type { MedicNpc } from './medicFlow';
@@ -14,7 +15,7 @@ import type { RestLodging, RestFood } from './restFlow';
 import type { Pt } from './monde/path';
 import type { RoomPortal } from './monde/roomPortals';
 import type {
-  IdDeChoixDePaie, IdDeCombattant, IdDeCreatureADepecer, IdDuCoupleMonte, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
+  IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
   IdDEntiteDeScene, IdDEtapeDeCascade, IdDeTireurRapide,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
@@ -22,7 +23,7 @@ import type { ShootingStanceKey } from './etat';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
 
 /** Les actions de JEU (#2817 D5) : tout hôte les porte ; aucune action d'interface. */
-export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
+export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoix {
   /** Élit (ou oublie, `null`) ce porteur — porte unique du champ ci-dessus. */
   dispelSelectCarrier: (carrierId: string | null) => void;
   /** Arme (id d'action) ou dissout (`null`) l'intention locale. Re-armer la MÊME la dissout. */
@@ -41,8 +42,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   toggleCluePin: (indiceId: string) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
   markCluesSeen: (affichés: readonly IndiceAffiché[]) => void;
-  /** Abandon de la séquence en cours, quand sa définition en déclare un (`SequenceDef.abandon`). */
-  sequenceAbandon: () => void;
   /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */
   armPreempt: (heroId: IdDeTireurRapide | null) => void;
   /** Attribue un objet d'équipement (giveTrapping) du butin de victoire au héros choisi. */
@@ -218,21 +217,16 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients, actes
    *  (Guérison/Hémorragie/Déchirure/Chirurgie), PNJ payant via l'effet `medicalAid`. */
   openMedic: (opts?: { patientId?: IdDeHeros; npc?: MedicNpc }) => void;
-  medicSelectPatient: (id: IdDeHeros) => void;
   /** Lance un acte sur le patient courant (surgery → ARME l'opération). */
   medicAct: (act: HealMode) => void;
   /** Choisit la Blessure Critique à opérer (avant la 1re passe). */
   medicSetWound: (idx: number) => void;
   /** OUVRE le jet INFLUENÇABLE d'une passe de Chirurgie (pendingSurgery) depuis l'opération armée. */
   openSurgeryPass: () => void;
-  /** Annule la Chirurgie (cumul perdu ; jamais commencée → acte remboursé). */
-  medicAbandonSurgery: () => void;
   /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
   openRest: (opts: restFlow.OpenRestOpts) => void;
   restSet: (heroId: IdDeHeros, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => void;
-  /** CONSEIL DE BORD (#229) : arrête la paie de la semaine ; le bilan de Moral se lève par sa sortie. */
-  councilPay: (decision: IdDeChoixDePaie) => void;
   /** Recharger l'arme à distance (LDB 62 l.335) : OUVRE la modale de Test étendu de Projectiles. */
   battleReload: (weaponUid?: IdDObjet) => void;
   /** Se libérer (Empêtré, Test opposé de Force) / se rouler au sol (En flammes, Athlétisme) : OUVRE la modale (LDB 16 l.66/84). */
@@ -258,12 +252,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   battleUseItem: (uid: IdDObjet) => void;
   /** HORS COMBAT : un héros utilise un consommable (bandages, potion) depuis sa fiche. */
   usePartyItem: (heroId: IdDeHeros, uid: IdDObjet) => void;
-  /** Surincantation « +Cible » : bascule le choix SUR LE CHAMP DE BATAILLE (la modale s'efface,
-   *  bandeau TargetPrompt + clic carte → réglage `cast.ciblesSupplementaires`). En combat uniquement. */
-  castPickTargets: (on: boolean) => void;
-  /** Sort de ZONE (flux « jet puis pose », LDB 47 l.15/28) : bascule la POSE sur la carte
-   *  (la modale s'efface, le gabarit final suit le curseur, clic-case = dépose). */
-  castPlaceZone: (on: boolean) => void;
   /** PHASE 1 — déclare la rangée `pid` : contrer seul / s'unir au Test Soutenu (LDB 46 l.162,
    *  transposé à la fenêtre réactive) / passer. Refusé hors éligibilité de Domaine (`soutenu`) et
    *  dès que la composition est FIGÉE (toutes les rangées ont déclaré). */
@@ -299,12 +287,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** Chance, 3e usage (LDB 17 l.25) : en début de Round, place un héros en tête de l'ordre
    *  contre 1 point de Chance (pré-emption d'initiative). */
   roundStartPromote: (heroId: IdDeCombattantPromouvable) => void;
-  /** « Comment ça a pu rater ? » (Destin, coup létal) : annule le coup, reste en combat. */
-  fateNegate: () => void;
-  /** « Meurs un autre jour » (Destin) : survit mais éjecté de la rencontre. */
-  fateSurvive: () => void;
-  /** « Accepter le sort » : le héros meurt. */
-  fateAccept: () => void;
   /** « Sur la défensive » : utilise l'Action pour +20 en défense jusqu'au prochain tour. */
   battleDefendTotal: () => void;
   /** Bascule le set d'armes actif du combattant actif (Action gratuite, LDB 13 l.106 ; plafond MAISON 1×/tour, même Engagé). */
@@ -380,8 +362,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** Action « cumuler l'Avantage » (LDB 09 l.305-308) : Test de la Compétence `skillId` (Intuition/
    *  Savoir/Survie/Prière) via la modale de Test standard ; sur réussite +1 Avantage plafonné. Coûte l'Action. */
   battleGainAdvantage: (skillId: string) => void;
-  /** « Je te renie ! » (LDB 17 l.67) : résout le choix (true = refuser la mutation, 1 Résilience). */
-  renounceResolve: (renounce: boolean) => void;
   /** Combat monté (cadre : LDB 14 l.175-187) : enfourcher une monture libre adjacente / en descendre.
    *  Coût = MOUVEMENT sans jet ni Action — MAISON [entériné 2026-07-17] (« Met les en Maison pour le
    *  moment », #526 ; aucune clause de coût citable, LDB 14/15/09 + AA 9 fouillés en entier) ;
@@ -389,7 +369,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** `mountId` = la monture DÉSIGNÉE (sa pastille sur le champ) ; absent = la plus proche. */
   battleMount: (mountId?: IdDeCombattant) => void;
   battleDismount: () => void;
-  mountTargetSelect: (id: IdDuCoupleMonte) => void;
   /** Désengagement (LDB 15 l.43-68) : menu Sacrifier l'Avantage / Esquiver / Fuir / Renoncer. */
   battleDisengage: () => void;
   disengageConfirmA: () => void; // Sacrifier l'Avantage
@@ -470,10 +449,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   gatherInnInfo: () => void;
   /** Résout les Activités choisies puis rend la main à la halte de nuit. */
   seaActivitiesConfirm: (picks: Record<string, import('./seaActivities').SeaActivityPick | null>) => void;
-  /** Résout le choix : `true` = payer la bénédiction, `false` = réduire l'Humeur de Manann de 4d10. */
-  resolveManannPriest: (pay: boolean) => void;
-  /** Résout le choix : `true` = relâche accordée, `false` = refusée (gate l'Embrigadement/Fête de Manann). */
-  resolveShoreLeave: (allow: boolean) => void;
 }
 
 /** Un geste écrit en verbe du noyau et ses arguments, tel qu'un hôte le joue. */

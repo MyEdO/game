@@ -47,11 +47,10 @@ export function MedicModal() {
   const ps = useGame((s) => s.pendingSurgery);
   const party = useGame((s) => s.party);
   const money = partyMoneyTotal(useGame.getState); // somme des bourses (le groupe est abonné via `party`)
-  const selectPatient = useGame((s) => s.medicSelectPatient);
+  const choisir = useGame((s) => s.fenetreChoisir);
   const act = useGame((s) => s.medicAct);
   const setWound = useGame((s) => s.medicSetWound);
   const openPass = useGame((s) => s.openSurgeryPass);
-  const cancelSurgery = useGame((s) => s.medicAbandonSurgery);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('medic');
   const soin = useHealJetProps({ embedded: true });
@@ -72,7 +71,7 @@ export function MedicModal() {
   // opération armée ; sinon, la sortie.
   const footer = jet ? jet.gestes : sg ? (
     <>
-      <button className={sg.last ? 'btn btn-ghost danger' : 'btn btn-ghost'} onClick={cancelSurgery} title={sg.last ? 'Le cumul de DR est perdu' : 'Renoncer (acte remboursé)'}>
+      <button className={sg.last ? 'btn btn-ghost danger' : 'btn btn-ghost'} onClick={() => choisir('medic', 'abandon', true)} title={sg.last ? 'Le cumul de DR est perdu' : 'Renoncer (acte remboursé)'}>
         {sg.kind === 'recovery' ? 'Arrêter la rééducation' : 'Arrêter l’opération'}
       </button>
       <button className="btn btn-primary" onClick={openPass}><Icon id={HEAL_ACT[sg.kind].icon} size="sm" /> {sg.kind === 'recovery' ? 'Rééduquer (une passe)' : 'Opérer (une passe)'}</button>
@@ -94,7 +93,7 @@ export function MedicModal() {
             variant="full"
             size="md"
             selected={h.id === medic.patientId}
-            onClick={!busy && isHealable(h) ? () => selectPatient(h.id) : undefined}
+            onClick={!busy && isHealable(h) ? () => choisir('medic', 'patient', h.id) : undefined}
             nom={isHealable(h) ? h.label : `${h.label} — rien à soigner`}
           />
         ))}

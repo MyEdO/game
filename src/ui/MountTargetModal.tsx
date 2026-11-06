@@ -14,7 +14,7 @@ import { Icon } from './Icon';
 export function MountTargetModal() {
   const pmt = useGame((s) => s.pendingMountTarget);
   const battle = useGame((s) => s.battle);
-  const select = useGame((s) => s.mountTargetSelect);
+  const choisir = useGame((s) => s.fenetreChoisir);
   const fermer = useGame((s) => s.fenetreFermer);
   const cancel = () => fermer('mountTarget');
   if (!pmt || !battle) return null;
@@ -41,7 +41,7 @@ export function MountTargetModal() {
             { c: mount, caption: <><Icon id="travel/mount" size="sm" /> Monture</>, nom: `${mount.label} — l'abattre désarçonne le cavalier` },
             { c: rider, caption: <><Icon id="action/attack" size="sm" /> Cavalier</>, nom: `${rider.label} — −10 si vous êtes plus petit que la monture` },
           ]}
-          onPick={(id) => select(id)}
+          onPick={(id) => choisir('mountTarget', 'cible', id)}
         />
       </div>
     </Modal>

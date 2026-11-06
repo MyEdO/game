@@ -15,7 +15,8 @@ import { Icon } from './Icon';
  */
 export function ManannBody({ embedded = false }: { embedded?: boolean } = {}) {
   const p = useGame((s) => s.pendingManannPriest);
-  const resolve = useGame((s) => s.resolveManannPriest);
+  const choisir = useGame((s) => s.fenetreChoisir);
+  const resolve = (payer: boolean) => choisir('manannPriest', 'payer', payer);
   const refusPayer = useGame(refusDePayerManann);
   const refusRefuser = useGame(refusDeGesteSurLeGroupe);
   if (!p) return null;

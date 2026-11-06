@@ -95,10 +95,10 @@ export function tableLineLabel(defLabel: string | undefined, stepLabel: string |
  *  servi par TOUTE branche d'étape — l'issue est celle que la définition nomme. Un abandon FERMÉ (demandé,
  *  ou manche entamée sans être résolue) reste affiché avec sa raison (`sequenceAbandonEtatOf`). */
 function CoqueDEtape(props: ComponentProps<typeof RollShell>): JSX.Element {
-  const sequenceAbandon = useGame((s) => s.sequenceAbandon);
+  const regler = useGame((s) => s.jetRegler);
   const abandon = useGame(useShallow((s) => sequenceAbandonEtatOf(() => s)));
   const actions: RollAction[] = abandon
-    ? [{ key: 'break', label: abandon.label, title: abandon.title, onClick: () => sequenceAbandon(), ...(abandon.refus !== undefined ? { refus: abandon.refus } : {}) }, ...props.actions]
+    ? [{ key: 'break', label: abandon.label, title: abandon.title, onClick: () => regler('cascade', 'abandon', true), ...(abandon.refus !== undefined ? { refus: abandon.refus } : {}) }, ...props.actions]
     : props.actions;
   return <RollShell {...props} actions={actions} />;
 }

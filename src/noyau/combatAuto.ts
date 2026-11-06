@@ -31,6 +31,7 @@ import { fateSaveOptions } from '../engine/fortune';
 import { sequence } from '../engine/sequences';
 import { reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
 import { reglagesDuFlux, VERBE_DE_REGLAGE } from './reglagesDuJet';
+import { axesDeLaFenetre, VERBE_DE_CHOIX, type FenetreAChoix } from './choixDesFenetres';
 
 /**
  * Politique d'auto-résolution par TYPE de jet de cascade de COMBAT. `self` = jet propre piloté par son
@@ -109,8 +110,9 @@ const idDEtape = (e: CascadeStep): string => e.id;
  *  sinon l'id de l'étape. */
 const pidDuFlux = (cle: 'cascade' | 'cascadeBatch') => (e: CascadeStep): string | undefined =>
   (FLOW_VERBS[cle].pidIsActor ? idDeLaRangeeDue(e.participants) : e.id);
-/** L'interaction d'étape que joue le flux de cascade `cle` : son flux, ses verbes et leur `pid`. */
-const joueePar = (cle: 'cascade' | 'cascadeBatch') => ({ flux: cle, gestes: gestesDuFlux(cle), pid: pidDuFlux(cle) });
+/** L'interaction d'étape que joue le flux de cascade `cle` : son flux, ses verbes, lus à l'usage (`reglagesDuJet.ts` est
+ *  dans un cycle d'imports avec ce module), et leur `pid`. */
+const joueePar = (cle: 'cascade' | 'cascadeBatch') => ({ flux: cle, get gestes() { return gestesDuFlux(cle); }, pid: pidDuFlux(cle) });
 
 /** L'interaction d'étape que règle le seul verbe `verbe`, qui prend l'id d'étape puis l'argument que `lecture` règle. */
 const regleePar = (verbe: keyof ActionsDuNoyau, lecture: (g: GesteDuJeu) => (e: CascadeStep) => Reglage) =>
@@ -122,8 +124,8 @@ const regleePar = (verbe: keyof ActionsDuNoyau, lecture: (g: GesteDuJeu) => (e: 
 export const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { gestes: readonly GesteDuJeu[]; pid: (e: CascadeStep) => string | undefined; reglage?: (e: CascadeStep) => Reglage; flux?: FlowKey }> = {
   jet: joueePar('cascade'),
   batch: joueePar('cascadeBatch'),
-  table: { flux: 'cascadeTirage', gestes: gestesDuFlux('cascadeTirage'), pid: idDEtape },
-  de: { flux: 'cascadeTirage', gestes: gestesDuFlux('cascadeTirage'), pid: idDEtape },
+  table: { flux: 'cascadeTirage', get gestes() { return gestesDuFlux('cascadeTirage'); }, pid: idDEtape },
+  de: { flux: 'cascadeTirage', get gestes() { return gestesDuFlux('cascadeTirage'); }, pid: idDEtape },
   quantite: regleePar('cascadeAmount', reglageDeLaQuantite),
   choix: regleePar('cascadeChoose', reglageDuChoix),
   affichage: { gestes: AUCUN_VERBE_DE_JOUEUR, pid: () => undefined },
@@ -138,11 +140,14 @@ export const issuesDe = (def: ModalDef | HorsModalDef | SurfaceHorsPendingDef): 
   ...(def.sortie ? [{ verbe: 'fenetreFermer' as const, fenetre: def.key as FenetreQuiSeFerme }] : []),
 ];
 
+/** Les choix d'une fenêtre (`fenetreChoisir`), un par axe que `ChoixDesFenetres` lui déclare. */
+const choixDe = (cle: string): GesteDuJeu[] => axesDeLaFenetre(cle).map((axe) => ({ verbe: VERBE_DE_CHOIX, fenetre: cle as FenetreAChoix, axe }));
+
 /** Les gestes qu'une fenêtre DÉCLARE : le drive (ou l'`autoDrive`) de sa politique, les gestes de ses `flux`, ses
- *  `verbes`, puis ses issues (`issuesDe`). */
+ *  choix (`choixDe`), ses `verbes`, puis ses issues (`issuesDe`). */
 export function gestesDeLaFenetre(def: ModalDef | HorsModalDef): readonly GesteDuJeu[] {
   const premiers = 'auto' in def ? gestesDuDrive(def.auto) : [];
-  return uniques([...premiers, ...(def.flux ?? []).flatMap(gestesDuFlux), ...nommes(def.verbes ?? []), ...issuesDe(def)]);
+  return uniques([...premiers, ...(def.flux ?? []).flatMap(gestesDuFlux), ...choixDe(def.key), ...nommes(def.verbes ?? []), ...issuesDe(def)]);
 }
 
 /** Les gestes d'une étape-jet de COMBAT : son drive (`JET_AUTO`), ou celui de la fenêtre réactive ouverte dans l'étape
@@ -377,7 +382,7 @@ export function tickCombatAuto(get: Get, set: Set): void {
       // modale reste — vrai choix du joueur).
       if (cadenceAutoCombat() && pickActiveModalKey(s) === 'fateSave' && s.pendingFateSave) {
         const negate = fateSaveOptions(s.pendingFateSave.source).includes('negate');
-        programmer(() => (negate ? get().fateNegate() : get().fateSurvive()), beatHold(get, 'autoResolve'));
+        programmer(() => get().fenetreChoisir('fateSave', 'issue', negate ? 'negate' : 'survive'), beatHold(get, 'autoResolve'));
       }
       return;
     case 'partial':

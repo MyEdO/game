@@ -48,7 +48,7 @@ function sailToPort(maxSteps = 400): string[] {
     }
     if (get().pendingSeaActivities) { get().seaActivitiesConfirm({}); continue; }
     if (get().pendingRest) { sleepThroughHalt(); continue; }
-    if (get().pendingShoreLeave) { get().resolveShoreLeave(true); continue; } // accoste : relâche accordée par défaut (MDG 15 l.245)
+    if (get().pendingShoreLeave) { get().fenetreChoisir('shoreLeave', 'accorder', true); continue; } // accoste : relâche accordée par défaut (MDG 15 l.245)
     if (!get().travelPlan) break; // sécurité : plus de plan et pas au port → on s'arrête
   }
   return kinds;

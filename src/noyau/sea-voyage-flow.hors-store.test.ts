@@ -4,7 +4,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
 import {
   buildSeaPlan, portRepairVessel, portInstallUpgrade, runSeaDay, continueSeaDayAfterCascade,
-  resolvePortArrival, resolveManannPriest, resolveShoreLeave, damageVesselHull, healVesselHull,
+  resolvePortArrival, damageVesselHull, healVesselHull,
   buildOverspeedSteps, engineerOf, type SeaVoyageState,
 } from './seaVoyageFlow';
 import { seedBattleRng, battleRng } from './battleRng';
@@ -1261,7 +1261,7 @@ describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MD
     creditBourse(get, set, get().party[0].id, before);
     triggerPriest();
     const cost = get().pendingManannPriest!.cost;
-    resolveManannPriest(get, set, true);
+    get().fenetreChoisir('manannPriest', 'payer', true);
     expect(get().pendingManannPriest).toBeNull();
     expect(partyMoneyTotal(get)).toEqual(subtract(before, cost));
     expect(get().vessel!.manann?.score ?? 0).toBe(0);
@@ -1271,8 +1271,8 @@ describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MD
     const before = { gold: 100, silver: 0, brass: 0 };
     creditBourse(get, set, get().party[0].id, before);
     triggerPriest();
-    seedBattleRng(7); // détermine le 4d10 de resolveManannPriest (battleRng interne)
-    resolveManannPriest(get, set, false);
+    seedBattleRng(7); // détermine le 4d10 du refus de payer (battleRng interne)
+    get().fenetreChoisir('manannPriest', 'payer', false);
     expect(get().pendingManannPriest).toBeNull();
     expect(partyMoneyTotal(get)).toEqual(before); // pas débité
     const score = get().vessel!.manann!.score;
@@ -1283,7 +1283,7 @@ describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MD
   it('choix PAYER avec bourse insuffisante : refusé et dit, le choix reste ouvert, aucune mutation', () => {
     // Bourse du groupe VIDE (aucun héros financé) → `refusDePayerManann` refuse avant tout débit.
     triggerPriest();
-    resolveManannPriest(get, set, true);
+    get().fenetreChoisir('manannPriest', 'payer', true);
     expect(get().pendingManannPriest).not.toBeNull();
     expect(get().journal).toContain(t('sv.benedictionHorsBourse'));
     expect(partyMoneyTotal(get)).toEqual({ gold: 0, silver: 0, brass: 0 });
@@ -1364,7 +1364,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     expect(get().pendingShoreLeave).toBeTruthy();
     expect(get().pendingShoreLeave!.to.id).toBe('B');
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // pas encore tiré
-    resolveShoreLeave(get, set, true);
+    get().fenetreChoisir('shoreLeave', 'accorder', true);
     expect(get().pendingShoreLeave).toBeNull();
     draineCascade(get); // le dé de Désertion se joue dans SA fenêtre (siège du monde), puis la suite s'enchaîne
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(true); // tiré APRÈS le choix
@@ -1380,7 +1380,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     set({ travelPlan: { ...plan, kmDone: plan.km - 5, sea: { ...plan.sea!, milesToday: 5 } } });
     continueSeaDayAfterCascade(get, set);
     draineCascade(get); // Mal de mer du premier jour : sa bande se joue avant l'accostage (#1479)
-    resolveShoreLeave(get, set, true);
+    get().fenetreChoisir('shoreLeave', 'accorder', true);
     expect(get().pendingCascade, 'le siège local possède le monde : son dé se joue, il ne se tire pas en silence').toBeTruthy();
     expect(get().journal.some((l) => l.includes('Événement de port')), 'la suite attend le geste').toBe(false);
     draineCascade(get);
@@ -1394,7 +1394,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     // temps) de surfacer AVANT la Désertion, seule étape que ce test veut ici.
     set({ travelPlan: { ...plan, kmDone: plan.km - 5, sea: { ...plan.sea!, daysAtSea: 5, milesToday: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
     continueSeaDayAfterCascade(get, set);
-    resolveShoreLeave(get, set, true);
+    get().fenetreChoisir('shoreLeave', 'accorder', true);
     expect(get().pendingCascade).toBeTruthy(); // 'V' — surfacé au siège MJ, pas résolu d'office
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // suspendu AVANT la suite
     const owner = modalOwnerOf(get());

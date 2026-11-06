@@ -96,7 +96,6 @@ import type { NightEntry } from './restFlow';
 import { provisioningManifest } from '../engine/provisions';
 import { toMoney, canAfford, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
-import { refuseSi } from './verrousDeFiche';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog } from './combatEffects';
@@ -105,6 +104,7 @@ import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladie
 import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef, type ContexteDeTest } from '../engine/types';
 import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import type { CampaignVessel, Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
 import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
@@ -1722,7 +1722,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   if (plan.km - kmDone < 1e-9 && to) {
     // ARRIVÉE : la distance de la traversée est NOTÉE sur le navire (vente à un port producteur :
     // « plus de 100 milles », l.366). Le CHOIX « relâche à terre » (MDG 15 l.245) se tranche AVANT
-    // le tirage de l'événement de port (`resolveShoreLeave` enchaîne `resolvePortArrival`).
+    // le tirage de l'événement de port (`trancherLaRelache` enchaîne `resolvePortArrival`).
     set({ travelPlan: null, ...(get().vessel ? { vessel: { ...get().vessel!, lastVoyageMilles: plan.km } } : {}) });
     log(get, set, [t('sv.arrive', { to: to.label })]);
     openPortAt(get, set, to);
@@ -2462,13 +2462,13 @@ export function portInstallUpgrade(get: Get, set: Set, traitId: string, units = 
 // ── Événements de PORT (ch.15 l.127-129 + l.239-263) ─────────────────────────────────────────────
 
 /** Prêtre de Manann en attente de CHOIX joueur (MDG 15 l.246) : payer la bénédiction (coût déjà
- *  tiré) OU réduire l'Humeur de Manann de 4d10 — tranché par `resolveManannPriest`. */
+ *  tiré) OU réduire l'Humeur de Manann de 4d10 — tranché par `fenetreChoisir('manannPriest', 'payer', …)`. */
 export interface PendingManannPriest {
   cost: Money;
 }
 
 /** Permission de faire RELÂCHE À TERRE en attente de CHOIX joueur (MDG 15 l.245), posée à l'accostage
- *  AVANT le tirage de l'événement de port — `resolveShoreLeave` tranche puis enchaîne `resolvePortArrival`
+ *  AVANT le tirage de l'événement de port — `trancherLaRelache` tranche puis enchaîne `resolvePortArrival`
  *  et la transition de scène (le lieu d'arrivée `to` porte la scène/l'entrée à rejoindre). */
 export interface PendingShoreLeave {
   to: MapPlace;
@@ -2489,7 +2489,7 @@ export function openPortAt(get: Get, set: Set, to: MapPlace): void {
 }
 
 /** ÉVÉNEMENT DE PORT (2d10 ± Humeur, ch.15 l.127-129 + Tableau l.239-263). `shoreLeave` = permission de
- *  faire relâche à terre accordée par le capitaine (`resolveShoreLeave`, MDG 15 l.245) : gate DEUX entrées
+ *  faire relâche à terre accordée par le capitaine (`fenetreChoisir('shoreLeave', 'accorder', …)`, MDG 15 l.245) : gate DEUX entrées
  *  de la table qui la référencent nommément — Embrigadement (l.245, « cet événement n'a pas lieu » si
  *  refusée) et Fête de Manann (l.260, le bonus d'Humeur suppose « le capitaine autorise… à faire relâche »).
  *  Les 19 autres entrées (Prêtre de Manann, Contrôle à quai, Tempête, Port désert, Gangs des quais, La
@@ -2513,7 +2513,7 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
       if (vessel) set({ vessel: { ...vessel, manann: addManann(mood, rollDice(2, 10, rng)) } });
       break;
     case 'pretre-manann': {
-      // MDG 15 l.246 : choix du joueur entre payer et réduire l'Humeur — `resolveManannPriest`.
+      // MDG 15 l.246 : choix du joueur entre payer et réduire l'Humeur — `fenetreChoisir('manannPriest', 'payer', …)`.
       if (vessel) {
         const lengthM = findVehicleById(vessel.vehicleId)?.ship?.lengthM ?? 0;
         const cost = toMoney({ gold: rollDice(1, 10, rng), silver: lengthM });
@@ -2526,7 +2526,7 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
       break;
     case 'embrigadement': {
       // « Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement
-      // n'a pas lieu » (MDG 15 l.245) — gate sur la décision `resolveShoreLeave`.
+      // n'a pas lieu » (MDG 15 l.245) — gate sur la décision `fenetreChoisir('shoreLeave', 'accorder', …)`.
       if (!shoreLeave) { log(get, set, [t('sv.shoreLeaveRefusedPress')]); break; }
       // « Vous perdez 2d10 membres d'équipage » (MDG 15 l.245) : perte PERSISTÉE puis SÉQUENCE de
       // recouvrement (Ragot Intermédiaire → rançon 2d10 CO OU Discrétion Complexe ; échec → 1d10 de
@@ -2560,20 +2560,17 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
 }
 
 /** Refus de payer la bénédiction du Prêtre de Manann (MDG 15 l.246) : `refusDeGesteSurLeGroupe`, ou la bourse ne
- *  couvre pas son prix ; `null` sinon. Tombe dans `resolveManannPriest`, lu par l'écran. */
+ *  couvre pas son prix ; `null` sinon. Lu par le choix du Prêtre (`OUVERTS_DU_CHOIX`) et par l'écran. */
 export function refusDePayerManann(s: Pick<Jeu, 'net' | 'party' | 'pendingManannPriest'>): string | null {
   const p = s.pendingManannPriest;
   return refusDeGesteSurLeGroupe(s) ?? (p && !canAfford(totalDesBourses(s.party), p.cost) ? t('sv.benedictionHorsBourse') : null);
 }
 
-/** Résout le choix « Prêtre de Manann » (MDG 15 l.246) : `pay` payé → débite le coût déjà tiré ;
- *  refusé → réduit l'Humeur de Manann de 4d10 (`tellManann`, réutilise le facteur libre existant). */
-export function resolveManannPriest(get: Get, set: Set, pay: boolean): void {
-  const p = get().pendingManannPriest;
-  if (!p) return;
-  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
-  const refus = pay ? refusDePayerManann(get()) : null;
-  if (refus) { refuserGeste(get, set, refus); return; }
+/** Résout le choix « Prêtre de Manann » (MDG 15 l.246) : `pay` payé → débite le coût déjà tiré, que le choix n'admet
+ *  que couvert (`refusDePayerManann`) ; refusé → réduit l'Humeur de Manann de 4d10 (`tellManann`, réutilise le facteur
+ *  libre existant). */
+function trancherLePretreDeManann(get: Get, set: Set, pay: boolean): void {
+  const p = garanti(get().pendingManannPriest, String(pay), 'Prêtre de Manann');
   set({ pendingManannPriest: null });
   if (pay) {
     payFromGroup(get, set, p.cost, { purpose: 'bénédiction Manann' });
@@ -2587,9 +2584,8 @@ export function resolveManannPriest(get: Get, set: Set, pay: boolean): void {
  *  l'événement de port : `allow` accordé → Embrigadement/Fête de Manann peuvent se produire
  *  normalement ; refusé → l'Embrigadement « n'a pas lieu » et la Fête de Manann perd son bonus
  *  d'Humeur (gate porté par `resolvePortArrival`). Enchaîne le tirage puis la transition de scène. */
-export function resolveShoreLeave(get: Get, set: Set, allow: boolean): void {
-  const p = get().pendingShoreLeave;
-  if (!p) return;
+function trancherLaRelache(get: Get, set: Set, allow: boolean): void {
+  const p = garanti(get().pendingShoreLeave, String(allow), 'relâche à terre');
   set({ pendingShoreLeave: null });
   log(get, set, [allow
     ? t('sv.shoreLeaveGranted')
@@ -2617,7 +2613,7 @@ export function resolveShoreLeave(get: Get, set: Set, allow: boolean): void {
 
 /** Finalise un ACCOSTAGE (MDG 15 l.245) : événement de port (`resolvePortArrival`, qui peut ouvrir SA
  *  propre cascade) puis transition vers la scène du lieu. SOURCE UNIQUE des deux gestes enchaînés,
- *  partagée par `resolveShoreLeave` (inline) et la clôture de cascade surfacée (`dispatchCascadeDone`). */
+ *  partagée par `trancherLaRelache` (inline) et la clôture de cascade surfacée (`dispatchCascadeDone`). */
 export function finalizePortArrivalTo(get: Get, set: Set, to: MapPlace, allow: boolean): void {
   resolvePortArrival(get, set, to.port, battleRng(), allow);
   get().transitionTo(to.scene, to.entry);
@@ -2630,13 +2626,19 @@ export function finalizePortArrival(get: Get, set: Set, arrival: { toPlaceId: st
   if (to) finalizePortArrivalTo(get, set, to, arrival.allow);
 }
 
+/** Les choix du port (`CorpsDesChoix`, MDG 15 l.245-246) : la bénédiction du Prêtre de Manann, la relâche à terre. */
+export function choixDuVoyageEnMer(get: Get, set: Set) {
+  return {
+    manannPriest: { payer: (payer) => trancherLePretreDeManann(get, set, payer) },
+    shoreLeave: { accorder: (accorder) => trancherLaRelache(get, set, accorder) },
+  } satisfies Partial<CorpsDesChoix>;
+}
+
 export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
   return {
     portRepair: () => portRepairVessel(get, set).forEach((l) => get().log(l)),
     portCareen: () => portCareenVessel(get, set).forEach((l) => get().log(l)),
     portInstallUpgrade: (traitId, units) => portInstallUpgrade(get, set, traitId, units).forEach((l) => get().log(l)),
-    resolveManannPriest: (pay) => resolveManannPriest(get, set, pay),
-    resolveShoreLeave: (allow) => resolveShoreLeave(get, set, allow),
   } satisfies Partial<ActionsDuNoyau>;
 }
 

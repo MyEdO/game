@@ -241,13 +241,13 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     banc.getState().fenetreFermer('medic');
   });
 
-  it('le JOUEUR choisit le patient dans l’infirmerie (medicSelectPatient)', () => {
+  it('le JOUEUR choisit le patient dans l’infirmerie (choix `medic.patient`)', () => {
     const party = makeShowcaseParty();
     party[0].wounds = { ...party[0].wounds, current: party[0].wounds.current - 3 };
     party[2].wounds = { ...party[2].wounds, current: party[2].wounds.current - 8 };
     banc.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }]);
-    banc.getState().medicSelectPatient(party[2].id);
+    banc.getState().fenetreChoisir('medic', 'patient', party[2].id);
     expect(banc.getState().medic!.patientId).toBe(party[2].id);
     banc.getState().fenetreFermer('medic');
   });

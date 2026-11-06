@@ -13,7 +13,8 @@ export function RenounceModal() {
   const pr = useGame((s) => s.pendingRenounce);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const resolve = useGame((s) => s.renounceResolve);
+  const choisir = useGame((s) => s.fenetreChoisir);
+  const resolve = (renier: boolean) => choisir('renounce', 'renier', renier);
   if (!pr) return null;
   const hero = (battle?.combatants ?? party).find((c) => c.id === pr.heroId);
   if (!hero) return null;

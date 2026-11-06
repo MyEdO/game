@@ -23,7 +23,7 @@ import { moraleTone } from './shipStatus';
 export function CouncilModal() {
   const p = useGame((s) => s.pendingCouncil);
   const purseBrass = useGame((s) => toBrass(partyMoneyTotal(() => s)));
-  const councilPay = useGame((s) => s.councilPay);
+  const choisir = useGame((s) => s.fenetreChoisir);
   const fermer = useGame((s) => s.fenetreFermer);
   const lever = () => fermer('council');
   const refusDe = useGame(useShallow((s) => Object.fromEntries(payChoices().map(({ factorId }) => [factorId, refusDeChoixDePaie(s, factorId)]))));
@@ -68,7 +68,7 @@ export function CouncilModal() {
           <span className="council-opt-effect">{f && formatEffetSigne(f.effect)} Moral</span>
         </>
       ),
-      onSelect: () => councilPay(factorId),
+      onSelect: () => choisir('council', 'paie', factorId),
     };
   });
 

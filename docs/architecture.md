@@ -907,10 +907,10 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   `netOwnership.controlsActive`). Garde : `src/noyau/jets-sans-classe.hors-store.test.ts` (coop × commandée),
   `src/noyau/voyage-cadence.hors-store.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
   owner de poste comme le fait déjà le registre de modales pour les interruptions.
-- **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `src/noyau/modalArbiter.ts` l.110-112 :
-  décision de bourse PARTAGÉE (argent du groupe) → seul l'hôte la tranche, comme les autres actions à
-  l'argent du groupe (achat/vente marchand…) ; aucun routage d'intent coop pour cette décision. Lever
-  ⇒ router `pendingCouncil` en intent coop (vote/délégation) comme le reste des décisions partagées.
+- **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `CHOIX_DES_FENETRES.council`
+  (`src/noyau/choixDesFenetres.ts`, `qui: 'hote'`) : décision de bourse PARTAGÉE (argent du groupe) → seul
+  l'hôte la tranche, comme les autres actions à l'argent du groupe (achat/vente marchand…) ; le choix d'un
+  invité se refuse à la frontière (`choix.refus.hoteSeul`). Lever ⇒ un vote ou une délégation de la paie.
 
 ## Systèmes clés (état actuel)
 
