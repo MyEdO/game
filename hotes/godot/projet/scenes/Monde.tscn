@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/monde.gd" id="1_monde"]
 [ext_resource type="PackedScene" path="res://scenes/Lumiere.tscn" id="2_lumiere"]
@@ -10,16 +10,23 @@ vertex_color_use_as_albedo = true
 vertex_color_is_srgb = true
 roughness = 0.95
 
+[sub_resource type="StandardMaterial3D" id="Materiau_texture"]
+cull_mode = 2
+roughness = 1.0
+uv1_triplanar = true
+uv1_triplanar_sharpness = 4.0
+
 [node name="Monde" type="Node3D"]
 script = ExtResource("1_monde")
 surbrillances = ExtResource("3_cases")
+couleur_des_sommets = SubResource("Materiau_monde")
+matiere_texturee = SubResource("Materiau_texture")
 
 [node name="Lumiere" parent="." instance=ExtResource("2_lumiere")]
 
 [node name="Volume" type="Node3D" parent="."]
 
 [node name="Maillage" type="MeshInstance3D" parent="Volume"]
-material_override = SubResource("Materiau_monde")
 
 [node name="Corps" type="StaticBody3D" parent="Volume"]
 
