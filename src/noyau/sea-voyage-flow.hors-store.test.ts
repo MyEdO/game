@@ -1493,7 +1493,7 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
     draineCascade(get);
     const sea = get().travelPlan!.sea!;
     set({ travelPlan: { ...get().travelPlan!, sea: { ...sea, daysToEvent: 99, weather: { ...sea.weather, ...tempsClement } } } });
-    get().restSleep();
+    get().fenetreValider('rest');
     return jusquaLaBande(opts);
   }
 

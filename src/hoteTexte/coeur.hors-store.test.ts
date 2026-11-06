@@ -47,10 +47,10 @@ describe('les erreurs d’un geste : catégorie, drapeau d’erreur, fichier int
     ['permission', { verbe: 'battleEndTurn', args: [], siege: 1 }],
     ['regle', { offre: 'disengage' }],
   ] satisfies [string, GesteDeLAgent][])('%s : %j', (categorie, geste) => {
-    refuse(partie('dome', verbe('confirmRoundStart')), geste, categorie, /./);
+    refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, categorie, /./);
   });
   it('un verbe inconnu nomme les gestes de la fenêtre qui tient la main et ses voisins de nom', () => {
-    refuse(partie('dome'), verbe('confirmRound'), 'validation', /verbe inconnu : confirmRound ; gestes de la fenêtre roundStart : confirmRoundStart, roundStartReady, roundStartPromote, armPreempt, battleClickEntity ; voisins : confirmRoundStart/);
+    refuse(partie('dome'), verbe('fenetreValid'), 'validation', /verbe inconnu : fenetreValid ; gestes de la fenêtre roundStart : roundStartPromote, armPreempt, battleClickEntity, fenetreValider@roundStart ; voisins : fenetreValider/);
   });
 });
 
@@ -59,7 +59,7 @@ describe('une écriture du noyau n’est pas un geste (`MachinerieDuNoyau`, #337
     refuse(partie('dome'), verbe('startScene', {}), 'validation', /verbe inconnu : startScene/);
   });
   it('le rejeu refuse la ligne du fichier qui nomme `startScene`, avec son rang', () => {
-    const t = partie('dome', verbe('confirmRoundStart'));
+    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
     t.disque.ecrire('p', `${t.fichier()}{"type":"startScene","args":[{}]}\n`);
     const r = t.lire('vue');
     expect(r.erreur, r.texte).toBe('validation');
@@ -69,22 +69,22 @@ describe('une écriture du noyau n’est pas un geste (`MachinerieDuNoyau`, #337
 
 describe('la partie et son fichier', () => {
   it('une offre appliquée s’y écrit, telle que jouée', () => {
-    const t = partie('dome', verbe('confirmRoundStart'));
+    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
     const r = t.jouer({ offre: 'charge' });
     expect(r.erreur, r.texte).toBeNull();
     expect(t.fichier().trimEnd().split('\n').pop()).toBe('{"offre":"charge"}');
   });
   it('une suite s’arrête au premier geste refusé : les précédents s’écrivent, lui non, la réponse dit combien sont passés', () => {
     const t = partie('dome');
-    const r = t.jouer(verbe('confirmRoundStart'), { offre: 'charge' }, verbe('jetConfirm', 'cascade'), verbe('battleEndTurn'));
+    const r = t.jouer(verbe('fenetreValider', 'roundStart'), { offre: 'charge' }, verbe('jetConfirm', 'cascade'), verbe('battleEndTurn'));
     expect(r.erreur, r.texte).not.toBeNull();
-    expect(r.lignes[0]).toMatch(/^2\/4 appliqués : confirmRoundStart · offre charge/);
+    expect(r.lignes[0]).toMatch(/^2\/4 appliqués : fenetreValider · offre charge/);
     expect(r.texte).toMatch(/geste 3\/4 refusé, rien de lui ne s’écrit : erreur regle : jetConfirm sans effet/);
     expect(r.texte, 'une seule vue, à la fin').toMatch(/intention armée : charge/);
     expect(t.fichier().trimEnd().split('\n')).toHaveLength(3);
   });
   it('un fichier changé hors de l’hôte se rejoue : la partie est ce qu’il porte', () => {
-    const t = partie('dome', verbe('confirmRoundStart'), { offre: 'charge' });
+    const t = partie('dome', verbe('fenetreValider', 'roundStart'), { offre: 'charge' });
     t.disque.ecrire('p', t.fichier().trimEnd().split('\n').slice(0, 2).join('\n') + '\n');
     expect(t.lire('vue').texte).not.toMatch(/intention armée/);
   });
@@ -123,7 +123,7 @@ describe('la partie et son fichier', () => {
 
 describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
   it('un effet écrit EN PLACE (un combattant muté, sans nouvel objet d’état) compte : l’empreinte se prend avant l’appel', { timeout: 120_000 }, () => {
-    const r = rejouer(nouvelEntete('dome', { graine: 7 }), [{ type: 'confirmRoundStart', args: [] }]);
+    const r = rejouer(nouvelEntete('dome', { graine: 7 }), [{ type: 'fenetreValider', args: ['roundStart'] }]);
     const vraie = r.partie;
     try {
       r.partie = { ...vraie, envoyer: () => { vraie.etat().battle!.combatants[0].advantage += 1; return { issue: 'appliquee', evenements: [], journal: [] }; } };
@@ -134,7 +134,7 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
     }
   });
   it('valider une étape sans cascade ouverte', { timeout: 120_000 }, () => {
-    refuse(partie('dome', verbe('confirmRoundStart')), verbe('jetConfirm', 'cascade'), 'regle', /jetConfirm sans effet/);
+    refuse(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('jetConfirm', 'cascade'), 'regle', /jetConfirm sans effet/);
   });
   it('une Dissipation sans Langue (Magick) ne dit sa raison qu’au journal : sans effet, la ligne du journal est la raison', { timeout: 120_000 }, () => {
     refuse(partie('revisit'), verbe('oocDispelSpell', 'pregen-101', 'nulle-part', 'pregen-101'), 'regle', /oocDispelSpell sans effet : Il faut la compétence Langue \(Magick\)/);
@@ -186,7 +186,7 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
     ['un argument requis manquant', verbe('cascadeChoose', 0), /l’argument key manque/],
     ['un argument en trop', verbe('jetConfirm', 'cascade', 1), /1 argument\(s\) au plus/],
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {
-    refuse(partie('dome', verbe('confirmRoundStart')), geste, 'validation', message);
+    refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, 'validation', message);
   });
   it('une porte se désigne par son id : l’hôte complète le `RoomPortal`, un id inconnu lève `validation`', { timeout: 120_000 }, () => {
     const t = partie('fenetre-ecuries');
@@ -203,7 +203,7 @@ describe('les verbes et les scènes', () => {
   it('`lire verbes` rend la signature d’un verbe, ou les verbes dont le nom contient un morceau, sans partie', () => {
     const t = table();
     expect(t.lire('verbes', { id: 'cliquerLaCase' }).texte).toBe('cliquerLaCase(pt: {"x": nombre, "y": nombre, "z"?: nombre}, entite?: id d’entité de scène)');
-    expect(t.lire('verbes', { id: 'RoundStart' }).texte).toMatch(/confirmRoundStart/);
+    expect(t.lire('verbes', { id: 'RoundStart' }).texte).toMatch(/roundStartPromote/);
     const tous = t.lire('verbes');
     expect(tous.erreur).toBeNull();
     expect(tous.texte).toMatch(/\+\d+ : `lire \{"quoi":"verbes","depuis":80\}`/);
@@ -216,19 +216,19 @@ describe('les verbes et les scènes', () => {
 
 describe('une réponse dit ce qui attendait le geste suivant, et qui tient la main', () => {
   it('l’aperçu du premier clic et la fin de tour armée que la fin du tour lève', () => {
-    const t = partie('dome', verbe('confirmRoundStart'));
+    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
     const r = t.jouer(verbe('battleClickTile', { x: 3, y: 5 }), { offre: 'end-turn' }, { offre: 'end-turn' });
     expect(r.erreur, r.texte).toBeNull();
     expect(r.texte.split('\n  ').join(' ')).toMatch(/levé : aperçu move → \(3,5\), fin de tour armée/);
   });
 
   it('un refus de permission nomme qui tient la main et son siège', () => {
-    const t = partie('dome', verbe('confirmRoundStart'));
+    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
     refuse(t, { verbe: 'battleClickTile', args: [{ x: 3, y: 6 }], siege: 1 }, 'permission', /refusée au siège 1 : la main est à Ilyanwe la Voilée, siège 0/);
   });
 
   it('un clic au nom du siège qui tient la main voit l’intention armée : son aperçu, puis la Charge au même clic', () => {
-    const t = partie('dome', verbe('confirmRoundStart'));
+    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
     const clic = { verbe: 'battleClickEntity', args: ['enemy-enc-dome-1'], siege: 0 };
     const apercu = t.jouer({ offre: 'charge' }, clic);
     expect(apercu.erreur, apercu.texte).toBeNull();

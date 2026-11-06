@@ -60,7 +60,7 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
     const actif = s.battle.combatants.find((x) => x.id === s.battle!.order[s.battle!.turn]);
     const cible = targetingHolder(s);
     if (cible && pickActiveModalKey(s) === 'cascade') doubleMain.push(`${cible} sur ${cur?.id}`);
-    if (s.pendingRoundStart) { g().confirmRoundStart(); continue; }
+    if (s.pendingRoundStart) { g().fenetreValider('roundStart'); continue; }
     if (s.pendingFateSave) { g().fateNegate(); if (g().pendingFateSave) g().fateSurvive(); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetRoll('handGate'); else g().jetConfirm('handGate'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense && !s.pendingDefense.result) { g().jetRoll('defense'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense?.result) { g().jetConfirm('defense'); continue; }
@@ -68,14 +68,14 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
       const a = s.battle.combatants.find((x) => x.id === s.pendingDualStrike!.attackerId)!;
       const t = s.battle.combatants.find((x) => x.kind !== a.kind && vivant(x) && adj(a, x));
       if (t) g().dualStrikeAttack(t.id);
-      if (g().pendingDualStrike && !g().pendingAttack && !g().pendingHandGate) g().dualStrikeSkip();
+      if (g().pendingDualStrike && !g().pendingAttack && !g().pendingHandGate) g().fenetreFermer('dualStrike');
       continue;
     }
     if (cible === 'pendingCleave') {
       const a = s.battle.combatants.find((x) => x.id === s.pendingCleave!.attackerId)!;
       const t = s.battle.combatants.find((x) => x.kind !== a.kind && !s.pendingCleave!.hitIds.includes(x.id) && vivant(x) && adj(a, x));
       if (t) g().cleaveAttack(t.id);
-      if (!g().pendingAttack) g().cleaveEnd();
+      if (!g().pendingAttack) g().fenetreFermer('cleave');
       continue;
     }
     if (cur?.jet === 'attack' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetRoll('attack'); else g().jetConfirm('attack'); continue; }

@@ -110,7 +110,7 @@ describe('possession réseau (netOwnership)', () => {
     expect(intentAllowedFor(s, 1, 'castCounterspell')).toBe(true);
   });
 
-  it('révélation SANS sujet (entretien) → hôte seul ; roundStartReady → toujours permis', () => {
+  it('révélation SANS sujet (entretien) → hôte seul ; sans pause de Round ouverte, sa validation ne se route à aucun siège', () => {
     // #942 L8 : une révélation est une ÉTAPE d'affichage de la cascade — l'owner suit `actorId`
     // (absent pour un entretien de Round) → `seatOwns(…, undefined)` = l'hôte, et le verbe
     // d'acquittement est celui de la cascade (`jetConfirm('cascade')`).
@@ -119,7 +119,7 @@ describe('possession réseau (netOwnership)', () => {
     });
     expect(intentAllowedFor(s, 0, 'jetConfirm', ['cascade'])).toBe(true);
     expect(intentAllowedFor(s, 1, 'jetConfirm', ['cascade'])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'roundStartReady')).toBe(true);
+    expect(intentAllowedFor(s, 1, 'fenetreValider', ['roundStart'])).toBe(false);
   });
 
   it("valider l'étape (`jetConfirm('cascade')`) : le propriétaire de la fenêtre — l'acteur de l'étape, tous sur une étape de groupe", () => {

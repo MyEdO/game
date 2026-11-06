@@ -18,7 +18,7 @@ const emis = ({ evenements }: ResultatDeLAppel) => evenements.flatMap((e) => (e.
 function duel(garder: (etat: EtatDeJeu, duel: ReturnType<typeof auContact>) => EtatDeJeu = (e) => e) {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
   expect(emis(ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' }))).toContain('arrivee_en_scene');
-  ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+  ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
   const garde = ouverture.etat();
   ouverture.fermer();
   const contact = auContact(garde);
@@ -135,7 +135,7 @@ describe('creerPartie — le tick auto et `reprendre`', () => {
       const file: Jeton[] = [];
       const suivre = (r: ResultatDeLAppel) => file.push(...r.evenements.flatMap((e) => (e.type === 'programme' ? [e.jeton] : [])));
       suivre(partie.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' }));
-      suivre(partie.envoyer({ type: 'confirmRoundStart', args: [] }));
+      suivre(partie.envoyer({ type: 'fenetreValider', args: ['roundStart'] }));
       expect(file.length, 'le début du combat n’a programmé aucun tick').toBeGreaterThan(0);
       const premier = file[0];
       for (let pas = 0; file.length && pas < 5000 && !partie.etat().battle?.over; pas++) {

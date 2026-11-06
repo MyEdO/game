@@ -58,7 +58,7 @@ function aBord(): void {
   useGame.setState({ party: groupe.map((e) => e.hero) });
   expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
-  get().acquitterOuverture();
+  get().fenetreValider('ouverture');
   poserLeGroupe(get, useGame.setState, { x: 13, y: 31 });
   get().jouerAction('diligence-remise-charrette', 'monter-a-bord');
   expect(get().worldMapOpen).toBe(true);
@@ -79,7 +79,7 @@ describe('billet de la diligence — chemin du joueur', () => {
     useGame.setState({ party: groupe.map((e) => e.hero) });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
     for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
-    get().acquitterOuverture();
+    get().fenetreValider('ouverture');
     poserLeGroupe(get, useGame.setState, { x: 13, y: 31 });
     get().jouerAction('diligence-remise-charrette', 'monter-a-bord');
     expect(get().worldMapOpen).toBe(true);

@@ -39,7 +39,7 @@ function setup(opts: { peur?: boolean } = {}) {
   banc.setState({ party: [hero] });
   get().startScene(testScene());
   get().startCombat('enc-mutants');
-  get().confirmRoundStart();
+  get().fenetreValider('roundStart');
   banc.abandonner();
   const b = get().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;

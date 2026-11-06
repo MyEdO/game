@@ -352,9 +352,9 @@ export interface EtatDeJeu {
    *  dérive. CAMPAGNE-scopé comme `objectives` ; vidé en nouvelle partie (`startScene`). */
   objectifsSoldes: Objective[];
   /** Borne d'ouverture du chapitre courant (#717) — posée à l'acquittement de l'ouverture
-   *  (`acquitterOuverture`), re-posée à la clôture (`cloreChapitre`) ; null = aucun chapitre borné. */
+   *  (`fenetreValider('ouverture')`), re-posée à la clôture (`fenetreValider('chapterRecap')`) ; null = aucun chapitre borné. */
   chapitreDepuis: ChapitreDepuis | null;
-  /** La clôture authorée du paquet courant a été CONSOMMÉE (#717) — posé par `cloreChapitre`, lu par
+  /** La clôture authorée du paquet courant a été CONSOMMÉE (#717) — posé par `fenetreValider('chapterRecap')`, lu par
    *  `armChapterRecapIfDue`. La clôture est une Condition, et une Condition vraie le RESTE (un drapeau
    *  ne se retire pas) : sans ce fait, le lot d'effets suivant ré-armerait un récap vide, à l'infini.
    *  Un seul booléen suffit : un paquet porte UNE `narratif.cloture`, et le fait meurt avec la partie

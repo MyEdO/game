@@ -271,6 +271,15 @@
     }
   },
   {
+    "id": "baudrier-sur-armure",
+    "type": "garde-robe",
+    "label": "Baudrier sur armure",
+    "kind": "variante",
+    "piece": {
+      "id": "baudrier"
+    }
+  },
+  {
     "id": "trapping-plastron",
     "type": "garde-robe",
     "label": "Plastron",

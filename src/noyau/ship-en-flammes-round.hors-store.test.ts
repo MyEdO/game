@@ -20,7 +20,7 @@ describe('En flammes (navire) — N États, N Blessures par Round, par le chemin
 
   /** Joue chaque Tour du Round par `battleEndTurn`, en vérifiant que la coque ne brûle pas entre deux Tours. */
   function playRound(woundsAtStart: number) {
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const round = banc.getState().battle!.round;
     let turns = 0;

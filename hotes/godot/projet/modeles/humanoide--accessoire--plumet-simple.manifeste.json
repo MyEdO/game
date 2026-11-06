@@ -3,7 +3,7 @@
   "base": "humanoide",
   "categorie": "accessoire",
   "cle": {
-    "piece": "plumet"
+    "piece": "plumet-simple"
   },
   "liaison": {
     "mode": "rigide"

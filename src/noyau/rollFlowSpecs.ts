@@ -826,7 +826,7 @@ export const FLOWS = paresseux({
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
-      if (pa?.cleave) { set({ pendingAttack: null }); return get().cleaveEnd(); } // annuler = terminer le balayage (cleaveEnd clôt la cascade)
+      if (pa?.cleave) { set({ pendingAttack: null }); return get().fenetreFermer('cleave'); } // annuler = terminer le balayage (sa sortie clôt la cascade)
       set({ pendingAttack: null, ...(closeSeq ? { pendingCascade: null } : {}) });
     },
   }),

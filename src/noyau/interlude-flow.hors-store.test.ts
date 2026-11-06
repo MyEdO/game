@@ -63,14 +63,14 @@ describe('Interlude — flux start/end', () => {
     }
   });
 
-  it('interludeEnd : Argent à gaspiller (bourse → Revenus seuls), retour campagne, le temps passe', () => {
+  it('la validation de l’interlude : Argent à gaspiller (bourse → Revenus seuls), retour campagne, le temps passe', () => {
     banc.getState().startInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const itl = banc.getState().interlude!;
     const heroId = Object.keys(itl.perHero)[0];
     itl.perHero[heroId].revenueBrass = 120; // Revenus simulés (l'Activité arrive en P2)
     const t0 = banc.getState().gameTime;
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
     expect(banc.getState().interlude).toBeNull();
     expect(banc.getState().screen).toBe('campaign');
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(120); // tout le reste a été gaspillé, seuls les Revenus perso subsistent
@@ -87,7 +87,7 @@ describe('Interlude — flux start/end', () => {
     const h = banc.getState().party[0];
     h.craft = { trappingId: 'dague', tier: 'bronze', avail: 'Commune', atouts: [], defauts: [], drDone: 3, drTarget: 5, difficulty: 'accessible' };
     h.ritual = { spellId: 'graver-une-pierre-d-ogham', drDone: 7, drTarget: 25 };
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
     expect(banc.getState().interlude).toBeNull(); // clôture EFFECTIVE (`interlude` reconstruit à neuf au prochain `startInterlude`)
     expect(banc.getState().party[0].craft).toEqual({ trappingId: 'dague', tier: 'bronze', avail: 'Commune', atouts: [], defauts: [], drDone: 3, drTarget: 5, difficulty: 'accessible' });
     expect(banc.getState().party[0].ritual).toEqual({ spellId: 'graver-une-pierre-d-ogham', drDone: 7, drTarget: 25 });
@@ -101,7 +101,7 @@ describe('Interlude — flux start/end', () => {
     banc.getState().startInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const before = banc.getState().party.map((h) => h.wounds.current);
-    banc.getState().interludeEnd(); // 21 jours — sans le couvert, la Faim RAW tuerait le groupe
+    banc.getState().fenetreValider('interlude'); // 21 jours — sans le couvert, la Faim RAW tuerait le groupe
     const party = banc.getState().party;
     party.forEach((h, i) => expect(h.wounds.current, h.label).toBeGreaterThanOrEqual(before[i]));
     expect(banc.getState().journal.join('\n')).not.toMatch(/dépérit|Faim :/);
@@ -112,7 +112,7 @@ describe('Interlude — flux start/end', () => {
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const hero = banc.getState().party[0];
     hero.careerLevel = 3;
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
     expect(banc.getState().party[0].careerLevel).toBe(2);
     expect(banc.getState().journal.join('\n')).toMatch(/néglig/);
   });
@@ -125,7 +125,7 @@ describe('Interlude — flux start/end', () => {
 
   it('en combat : refusé', () => {
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.getState().startInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     expect(banc.getState().interlude).toBeNull();

@@ -602,23 +602,18 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
   },
   cancelMove: (get) => get().cancelMove(),
   /** PORTE UNIQUE de la pause d'initiative (LDB 17 l.25) : le bandeau de phase de la console ET la
-   *  touche du registre (`keybindings.round-start`) passent ICI. Solo, le geste OUVRE le Round ; en
-   *  réseau, il ne fait que marquer le siège PRÊT — c'est le quorum (`roundStartReady`, sièges requis)
-   *  qui lance, jamais un client. Deux branchements séparés laissaient le bouton court-circuiter le
-   *  ready-check que la touche, elle, respectait. */
-  roundStart: (get) => {
-    const s = get();
-    if (s.net.mode === 'local') { s.confirmRoundStart(); return; }
-    if (!s.pendingRoundStart?.readyBySeat?.[s.net.mySeat]) s.roundStartReady();
-  },
+   *  touche du registre (`keybindings.round-start`) passent ICI : la validation de la pause, qui marque le siège
+   *  PRÊT — c'est le quorum (sièges requis) qui lance, jamais un client ; en solo, le quorum est ce siège. Deux
+   *  branchements séparés laissaient le bouton court-circuiter le ready-check que la touche, elle, respectait. */
+  roundStart: (get) => get().fenetreValider('roundStart'),
   /** Demande de pause au prochain Round — INTERRUPTEUR : `toggleOff` retire la demande (annulation
    *  gratuite, `lowerHand`), même porte et même routage réseau que la pose. */
   raiseHand: (get, ctx) => (ctx.toggleOff ? get().lowerHand() : get().raiseHand()),
   // ── SORTIES D'INTERLUDE (`surface: 'interlude'`) : une enveloppe NOMMÉE par entrée, jamais un
-  //    dispatcher mutualisé — deux interludes ne partagent ni leur verbe ni ses gardes (`cleaveEnd`
-  //    clôt l'étape-jet de la cascade, `battleSelectAction` est avalé sous `combatBusy`).
-  cleaveEnd: (get) => get().cleaveEnd(),
-  dualStrikeSkip: (get) => get().dualStrikeSkip(),
+  //    dispatcher mutualisé — deux interludes ne partagent ni leur verbe ni ses gardes (la sortie du
+  //    balayage clôt l'étape-jet de la cascade, `battleSelectAction` est avalé sous `combatBusy`).
+  fermerLeBalayage: (get) => get().fenetreFermer('cleave'),
+  renoncerALaSecondeFrappe: (get) => get().fenetreFermer('dualStrike'),
   castPickTargetsOff: (get) => get().castPickTargets(false),
   /** Sortie du placeur de zone, ROUTÉE PAR LA SOURCE que mesure `placingZoneOf` — symétrique de
    *  `commitPlacedZone` (même aiguilleur pour poser et pour renoncer) : un sort revient à sa modale,

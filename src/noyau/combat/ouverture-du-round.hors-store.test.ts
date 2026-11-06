@@ -24,7 +24,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     banc.setState({ party: scenario.construire().party });
     banc.getState().startScene(scenarioConstruit.scene);
     banc.getState().startCombat('enc-dome');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const sorciere = b.combatants.find((c) => c.id === 'sorciere')!;
     addCondition(sorciere, COND.hemorragique, 1); // ligne d'entretien de fin de Round → révélation héros
@@ -51,7 +51,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     expect(banc.getState().pendingRoundStart, 'la fermeture ouvre la pause de début de Round').toEqual({ round: 2 });
 
     const avant = banc.getState().battle!.log.length;
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.reprendreLesEnAttente();
     const b = banc.getState().battle!;
     expect(b.log.slice(avant).some((e) => /déclenche Tir rapide/.test(e.text)), 'les hooks de début de Round jouent').toBe(true);
@@ -93,7 +93,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     advanceTurn(banc.getState, banc.setState);
     banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingRoundStart).toEqual({ round: 2 });
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const cle = () => `2:0:${banc.getState().battle!.order[0]}`;
     for (let i = 0; i < 20 && banc.getState().battle!.tourEnCours?.cle !== cle(); i++) banc.reprendreLesEnAttente();
     expect(banc.getState().battle!.tourEnCours?.cle, 'le tour de l’IA en tête est décidé : elle a joué').toBe(cle());

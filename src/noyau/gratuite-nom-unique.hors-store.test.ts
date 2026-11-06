@@ -32,7 +32,7 @@ function engage(tourDe: 'heros' | 'creature'): { H: Combatant; E: Combatant } {
   g().seedRng(5);
   g().startScene(testScene());
   g().startCombat('enc-mutants');
-  g().confirmRoundStart();
+  g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;

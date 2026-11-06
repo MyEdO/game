@@ -45,7 +45,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     banc.setState({ party });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const heroes = b.combatants.filter((c) => c.kind === 'hero');
@@ -272,7 +272,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     banc.setState({ party });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const [A, B] = b.combatants.filter((c) => c.kind === 'hero');

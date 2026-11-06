@@ -9,10 +9,11 @@ import { actorStatus } from '../engine/social';
 import { interludeCatalog, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
 import {
   blocageDeRevenus, ciblesDActivite, desEnAttente, devisDeCloture, effetBloquantLesRevenus, effetsDeLaPeriode, devisDeDepot, interludeDrawPending, refusDAcquitterUneFaveur, refusDActivite,
-  refusDArtisanat, refusDeClore, refusDeCommande, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, refusDuTirage, preJetDActivite,
+  refusDArtisanat, refusDeCommande, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, refusDuTirage, preJetDActivite,
   type DevisDeDepot, type EtatDeCloture, type EtatDeDepot, type EtatDeFaveur, type EtatDInterlude, type GenreDeDepot, type PreJetDActivite,
 } from '../noyau/verdictsDInterlude';
 import { totalDesBourses } from '../noyau/bourseFlow';
+import { refusDeLaValidation } from '../noyau/validationDeFenetre';
 import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, noteDeSoutien, preJetDePreparation, refusDePrepaDeBataille, type MassBattleState } from '../noyau/massBattleFlow';
@@ -185,7 +186,9 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   // UI UNIQUE (#1262) : le siège se lit par le routage d'état, jamais par une comparaison recopiée.
   const ownsHero = (id: string) => ownsLocalNet(net, id);
   const ownerName = (id: string) => nomDuSiege(net, net.ownership[id] ?? 0);
-  const refusClore = refusDeClore({ net, interlude });
+  // La validation de l'interlude se juge sur l'état de la partie, l'interlude et le siège que le seam lui donne.
+  const etatDuJeu = useGame.getState();
+  const refusClore = refusDeLaValidation({ ...etatDuJeu, interlude, net: { ...etatDuJeu.net, ...net } }, 'interlude');
   const etat: EtatDeDepot & EtatDeFaveur = { interlude, party, bank, scene, worldMap, favors };
   return (
     <div className="interlude-shell tx-ink">
@@ -250,7 +253,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
                 <Icon id="resource/gold-purse" size="sm" /> {t('interlude.close.warning')}
               </p>
               {massBattle?.phase === 'prep'
-                /* Bataille en attente : la clôture ENGAGE la bataille (interludeEnd → massBattleBegin, C2b) —
+                /* Bataille en attente : la clôture ENGAGE la bataille (`fenetreValider('interlude')` → massBattleBegin, C2b) —
                    le bouton de clôture porte alors ce libellé, une SEULE porte de sortie (pas de 2e écran). */
                 ? <GatedAction id="interlude-close" label={<><Icon id="action/attack" size="sm" /> {t('interlude.close.bataille')}</>}
                     descOfferte={t('interlude.close.bataille.desc')} enabled={!refusClore} {...raisonSi(refusClore)} onClick={() => setPhase('closing')} />
@@ -1217,9 +1220,9 @@ function BankList({ etat, canDrive }: {
   );
 }
 
-/** Clôture confirmée : le devis de clôture (`devisDeCloture`), ce que `interludeEnd` appliquera (audit M3). */
+/** Clôture confirmée : le devis de clôture (`devisDeCloture`), ce que sa validation (`fenetreValider('interlude')`) appliquera (audit M3). */
 function CloseRecap({ etat, onCancel }: { etat: EtatDeCloture; onCancel: () => void }) {
-  const end = useGame((s) => s.interludeEnd);
+  const valider = useGame((s) => s.fenetreValider);
   const devis = devisDeCloture(etat);
   if (!devis) return null;
   const nom = (heroId: string) => libelleOuAbsence(etat.party.find((h) => h.id === heroId), 'heros', heroId);
@@ -1229,7 +1232,7 @@ function CloseRecap({ etat, onCancel }: { etat: EtatDeCloture; onCancel: () => v
       footer={
         <>
           <button className="btn" onClick={onCancel}>{t('interlude.recap.cancel')}</button>
-          <button className="btn btn-primary" onClick={end}>{t('interlude.recap.confirm')}</button>
+          <button className="btn btn-primary" onClick={() => valider('interlude')}>{t('interlude.recap.confirm')}</button>
         </>
       }
     >

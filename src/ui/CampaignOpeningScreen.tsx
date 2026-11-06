@@ -15,17 +15,17 @@ import { porteurDeProjet } from './porteurDeProjet';
  * la campagne, le pitch VERBATIM de la source (donnée `narratif.ouverture`, rendu par `<Prose>` :
  * jamais du texte en dur ici) scellé de cire, la compagnie en tuiles d’identité, et un seul geste.
  *
- * L'écran ne DÉCIDE de rien : « Prendre la route » borne le chapitre (`acquitterOuverture`) et rend
+ * L'écran ne DÉCIDE de rien : « Prendre la route » borne le chapitre (`fenetreValider('ouverture')`) et rend
  * la scène. L'ambiance vient de la DONNÉE, « veillée » à défaut.
  *
  * COOP : l'invité VOIT le rideau (la cérémonie se partage à la table) mais ne le lève pas — le geste
- * est un `GatedAction` qui porte sa raison, doublé de l'inertie de l'action du jeu (`noyau/chapitreRecap.ts`,
- * `acquitterOuverture`) : rien ne mute en local pour mourir au snapshot suivant de l'hôte.
+ * est un `GatedAction` qui porte sa raison, doublé du refus de la validation de l'hôte chez l'invité
+ * (`refusDeLaValidation`, `noyau/validationDeFenetre.ts`) : rien ne mute en local pour mourir au snapshot suivant de l'hôte.
  */
 export function CampaignOpeningScreen() {
   const ouv = useGame((s) => s.pendingOuverture);
   const party = useGame((s) => s.party);
-  const acquitterOuverture = useGame((s) => s.acquitterOuverture);
+  const valider = useGame((s) => s.fenetreValider);
   const setScreen = useGame((s) => s.setScreen);
   const invite = useGame((s) => s.net.mode === 'guest');
   const campaignDoc = useGame((s) => s.campaignDoc);
@@ -46,7 +46,7 @@ export function CampaignOpeningScreen() {
             label={t('ouv.prendreLaRoute')}
             enabled={!invite}
             reason={t('ouv.refusHote')}
-            onClick={acquitterOuverture}
+            onClick={() => valider('ouverture')}
           />
         </>
       }

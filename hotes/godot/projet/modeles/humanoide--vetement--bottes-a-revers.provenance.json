@@ -1,6 +1,6 @@
 {
-  "model": "humanoide--vetement--haut-de-chausses.glb",
-  "model_sha256": "2fef0f8b6f8f0687358fc01e76dbd644cd2853446c96b72e28510f3f14ea6dcd",
+  "model": "humanoide--vetement--bottes-a-revers.glb",
+  "model_sha256": "eed3553bebdec5e7597e81ba52127de45fec2ed4c241a2e01d715d35d3dde9ff",
   "importe_le": "2026-11-05",
   "licences": {},
   "licences_de_pack": [

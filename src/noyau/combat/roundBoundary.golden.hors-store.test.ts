@@ -23,7 +23,7 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
     banc.getState().startScene(testScene());
     seedBattleRng(777);
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const enemy = b.combatants.find((c) => c.kind === 'enemy')!;

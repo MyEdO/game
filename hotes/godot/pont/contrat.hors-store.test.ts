@@ -48,7 +48,7 @@ describe('le pont avant sa partie', () => {
   });
 
   it('`vue`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
-    for (const [methode, entree] of [['vue', undefined], ['jouer', { type: 'confirmRoundStart', args: [] }], ['fiche', { fiche: null }], ['reprendre', { jeton: 0 }]] as const) {
+    for (const [methode, entree] of [['vue', undefined], ['jouer', { type: 'fenetreValider', args: ['roundStart'] }], ['fiche', { fiche: null }], ['reprendre', { jeton: 0 }]] as const) {
       expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer d’abord' });
     }
   });
@@ -113,7 +113,7 @@ describe('le pont et sa partie', () => {
   });
 
   it('chaque catégorie d’un geste refusé : `validation`, `permission`, `regle`', { timeout: 120_000 }, () => {
-    drainer(appel, appel('jouer', { type: 'confirmRoundStart', args: [] }));
+    drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['roundStart'] }));
     expect(erreurDe(appel('jouer', { type: 'jouerLOffre', args: ['end-turn'], siege: 0 })).categorie).toBe('validation');
     expect(erreurDe(appel('jouer', { type: 'battleEndTurn', args: [], siege: 1 })).categorie).toBe('permission');
     expect(erreurDe(appel('jouer', { offre: 'disengage' })).categorie).toBe('regle');
