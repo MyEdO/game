@@ -1,0 +1,60 @@
+/**
+ * LES SIÈGES EN COOP (#3059 F10), sur transport en mémoire (`FakeTransport`) : l'hôte et l'invité lisent les MÊMES
+ * emplacements du groupe (`emplacementsDuGroupe`) et le MÊME refus de lancer (`refusDeLancer`), de l'instantané que
+ * l'hôte diffuse et que l'invité applique (`appliquerLInstantane`) ; l'invité compose dans SON emplacement, et
+ * l'attribution d'un emplacement lui est refusée.
+ */
+import { describe, it, expect } from 'vitest';
+import { FakeTransport } from './transport.testkit';
+import { HostSession, GuestSession } from './session';
+import { ouvrirLeBanc } from '../../noyau/banc.testkit';
+import { appliquerLIntentionDUnSiege } from '../../noyau/intentionsDeSiege';
+import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
+import { emplacementsDuGroupe } from '../../noyau/sieges';
+import { refusDeLancer } from '../../noyau/partyFlow';
+import { makePregens } from '../../data/pregens';
+import { etatInitialDuJeu, initialNet, type EtatDeJeu } from '../../noyau/etat';
+import { t } from '../../i18n';
+
+/** L'hôte (banc) d'une table à un invité au siège 1, qui remplit l'emplacement 2, relié par transport à l'invité. */
+function table() {
+  const [h1, g1] = makePregens();
+  const hote = ouvrirLeBanc({ etat: { party: [h1], net: { ...initialNet(), mode: 'host', roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, slots: [0, 0, 1, 0] } } });
+  // L'invité : son état de jeu, posé par chaque instantané reçu (un seul jeu se branche par test).
+  const invite = { etat: { ...etatInitialDuJeu(), net: { ...initialNet(), mode: 'guest' as const, mySeat: 1, roomCode: 'ABCDEF' } } as EtatDeJeu };
+  const host = new HostSession({
+    build: 'test',
+    applyIntent: (action, args, seat) => { appliquerLIntentionDUnSiege(hote.getState, seat, action, args); },
+    getSnapshot: () => JSON.parse(JSON.stringify(instantaneDeLaCoop(hote.getState()))) as Record<string, unknown>,
+  });
+  const guest = new GuestSession({ build: 'test', label: 'Antoine', applySnapshot: (d) => { invite.etat = appliquerLInstantane(d, invite.etat).etat; } });
+  const [a, b] = FakeTransport.pair();
+  host.addGuest(a, 1);
+  guest.connect(b);
+  host.broadcastSnapshot();
+  return { hote, invite, host, guest, g1 };
+}
+
+const lecture = (s: EtatDeJeu) => ({ emplacements: emplacementsDuGroupe(s), refus: refusDeLancer(s) });
+
+describe('Sièges en coop : la même lecture chez l’hôte et chez l’invité', () => {
+  it('avant et après la composition de l’invité : mêmes emplacements, même refus de lancer', () => {
+    const { hote, invite, host, guest, g1 } = table();
+    expect(lecture(invite.etat)).toEqual(lecture(hote.getState()));
+    expect(lecture(hote.getState()).refus).toBe(t('party.action.start.guestPending'));
+
+    guest.sendIntent('partyAddHero', [g1]);
+    host.broadcastSnapshot();
+    expect(lecture(invite.etat)).toEqual(lecture(hote.getState()));
+    expect(lecture(hote.getState()).emplacements[2]).toEqual({ rang: 2, siege: 1, heroId: g1.id, proprietaire: 1 });
+    expect(lecture(hote.getState()).refus).toBeNull();
+  });
+
+  it('un `netAssignSlot` émis par l’invité est refusé : les emplacements ne bougent pas', () => {
+    const { hote, host, guest } = table();
+    const avant = hote.getState().net.slots;
+    guest.sendIntent('netAssignSlot', [3, 1]);
+    host.broadcastSnapshot();
+    expect(hote.getState().net.slots).toEqual(avant);
+  });
+});

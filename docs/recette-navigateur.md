@@ -2026,14 +2026,14 @@ l'élément rogné reste la sienne et ne dit rien du masquage.
 
 Une recette ne doit pas redécouvrir l'arborescence du Compendium à l'aveugle : les niches nichées sous
 un cluster de `Tables` ne sont PAS sous `Monde`, et le chemin ne se devine pas depuis le nom du
-fichier de données. Chemins vérifiés au registre (`src/ui/compendium/registry.ts`) :
+fichier de données. Chemins vérifiés au registre (`src/noyau/codex/registry.ts`) :
 
 | Donnée | Chemin dans le Compendium |
 |---|---|
 | `weather` (table de tirage d100 par saison) | Tables › Voyage terrestre › **Météo de voyage** |
 | `weatherConditions` (effets par météo) | Tables › Voyage terrestre › **Conditions météo** |
-| `mutations` | Effets › **Mutations** (`registry.ts:1576`) — pas sous `Personnage` |
-| `talents` | Compétences › **Talents** (`registry.ts:1441`) — pas sous `Personnage` |
+| `mutations` | Effets › **Mutations** (`registry.ts:1517`) — pas sous `Personnage` |
+| `talents` | Compétences › **Talents** (`registry.ts:1388`) — pas sous `Personnage` |
 
 Les deux niches météo éditent le MÊME fichier (`src/data/weather.json`) sous deux catégories Codex : une
 recette qui vérifie l'édition d'une météo doit dire LAQUELLE des deux elle a ouverte.
@@ -2062,7 +2062,7 @@ l'expression `/^\/source\//` — le motif NU `/source/` attrape aussi, en dev, l
 (`src/data/source/*.ts`, servis par Vite) et rendrait un faux positif ; (3) 0 erreur console
 (`window.__wfrp.errors`). En Atelier, le champ d'édition de l'adresse (`DescRefField`) remplace la
 zone de saisie de prose — et le `textarea` « Description » n'existe PAS sur une entrée adressée (un
-champ DÉRIVÉ ne s'offre pas à l'édition, `estDerive` de `src/ui/compendium/editFields.ts`) :
+champ DÉRIVÉ ne s'offre pas à l'édition, `estDerive` de `src/noyau/codex/editFields.ts`) :
 remettre le livre de l'adresse à vide le fait réapparaître, garni de la prose matérialisée (geste
 « détacher »).
 

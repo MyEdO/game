@@ -45,6 +45,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { isOutOfAction } from '../engine/conditions';
 import { WORLD_STEP_OWNER } from './pendings';
 import { poserLeSiegeMJ, seatOwns } from './sieges';
+import type { NetState } from './etat';
 import { modalOwnerOf } from './modalArbiter';
 import { contractDisease } from '../engine/disease';
 import { makeRNG } from '../engine/dice';
@@ -58,6 +59,9 @@ import { desEnSuite } from '../engine/dice.testkit';
 import { ligneDe } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
 import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+
+/** Le réseau où le siège 1, assis à la table (`siegesDeLaTable`), tient le rôle MJ. */
+const mjAuSiege1 = (net: NetState): NetState => poserLeSiegeMJ({ ...net, seatNames: { ...net.seatNames, 1: 'MJ' } }, 1);
 
 /**
  * VOYAGE MARITIME (7b) — la traversée jour par jour sur le navire de campagne (MDG 13/15), pilotée
@@ -1384,7 +1388,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
   });
 
   it('seam de jet (#275 Ronde 1, delta 1) — Désertion : AVEC siège MJ ≠ hôte, l\'étape SURFACE et est OWNÉE par le MJ', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     // daysAtSea non-nul + mer calme : évite le mal de mer (#460, MDG 14 l.211-222 — 1er jour/mauvais
     // temps) de surfacer AVANT la Désertion, seule étape que ce test veut ici.
@@ -1432,7 +1436,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
   });
 
   it('Scorbut : AVEC siège MJ, l’étape SURFACE (V) — plus d’auto-résolution silencieuse ; la journée reprend après résolution', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 29, milesToday: 50 } } });
     continueSeaDayAfterCascade(get, set);
@@ -1567,7 +1571,7 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
 
   it('avec siège MJ, la bande SURFACE et la journée reprend après résolution', () => {
     equipage(['timonier', 'mousse'], [0, 1]);
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     expect(bandeDuJour(), 'la bande s’ouvre').toBeTruthy();
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
@@ -1603,7 +1607,7 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
   });
 
   it('1er jour de traversée (`daysAtSea === 0`) → UNE bande `sea-mal-de-mer`, une RANGÉE par PJ non-elfe', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 0, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
     continueSeaDayAfterCascade(get, set);
@@ -1617,7 +1621,7 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
   });
 
   it('mauvais temps (Vent violent ou plus, l.218) → une bande `sea-mal-de-mer`, même hors 1er jour', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, weather: { ...plan.sea!.weather, vent: 'vent-violent' } } } });
     continueSeaDayAfterCascade(get, set);
@@ -1627,7 +1631,7 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
   });
 
   it('ni 1er jour ni mauvais temps → aucune étape `sea-mal-de-mer` (jour de routine)', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
     continueSeaDayAfterCascade(get, set);
@@ -1636,7 +1640,7 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
   });
 
   it('Personnage elfe (`hauts-elfes`) IMMUNISÉ (l.215) : aucune étape posée, même au 1er jour + mauvais temps', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const party = get().party.map((h) => ({ ...h, species: 'hauts-elfes' }));
     set({ party });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
@@ -1648,7 +1652,7 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
   });
 
   it('l’immunité suit le groupe `elfe` de l’espèce (`grantGroups`), pas son id : groupe retiré → testé', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     setDataset('species', species.map((s) => (s.id === 'hauts-elfes' ? { ...s, grantGroups: s.grantGroups.filter((g) => g !== 'elfe') } : s)));
     set({ party: get().party.map((h) => ({ ...h, species: 'hauts-elfes' })) });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
@@ -1660,7 +1664,7 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
   });
 
   it('déjà immunisé (`diseaseImmunities`) → aucune étape reposée', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const party = get().party.map((h) => ({ ...h, diseaseImmunities: ['mal-de-mer'] }));
     set({ party });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
@@ -1705,7 +1709,7 @@ describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres`
   });
 
   it('porteur ACTIF de peste noire buvant à `vessel.waterLitres` → une étape `sea-tonneau-contamine`', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const party = [...get().party];
     party[0] = { ...party[0], diseases: [contractDisease('peste-noire', makeRNG(1), { incubation: 0 })!] };
     set({ party, vessel: { ...get().vessel!, waterLitres: 1000 } });
@@ -1726,7 +1730,7 @@ describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres`
   });
 
   it('SANS tonneau d\'eau suivi (`vessel.waterLitres` absent) → aucune étape de tonneau, même avec un porteur actif', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const party = [...get().party];
     party[0] = { ...party[0], diseases: [contractDisease('peste-noire', makeRNG(1), { incubation: 0 })!] };
     set({ party }); // vessel.waterLitres reste undefined (freshState)
@@ -1738,7 +1742,7 @@ describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres`
   });
 
   it('tonneau DÉJÀ contaminé la veille → chaque PJ qui boit AUJOURD\'HUI est EXPOSÉ (`sea-tonneau-expose`)', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     set({ vessel: { ...get().vessel!, waterLitres: 1000 } });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' }, waterContaminated: { diseaseId: 'courante-galopante' } } } });
@@ -1749,7 +1753,7 @@ describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres`
   });
 
   it('un PJ DÉJÀ porteur de la maladie du tonneau n\'est PAS re-testé (`contractionDue`)', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const party = [...get().party];
     party[0] = { ...party[0], diseases: [contractDisease('courante-galopante', makeRNG(1), { incubation: 0 })!] };
     set({ party, vessel: { ...get().vessel!, waterLitres: 1000 } });
@@ -2250,7 +2254,7 @@ describe('Exposition en mer — une étape influençable par Test, une cascade p
   }
 
   it('AVEC siège MJ : UNE cascade `seaExposure`, une BANDE par VAGUE (héros en rangées), chaque ligne DIT sa Difficulté', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     glacialDay();
     continueSeaDayAfterCascade(get, set);
     const casc = get().pendingCascade!;
@@ -2286,7 +2290,7 @@ describe('Exposition en mer — une étape influençable par Test, une cascade p
   });
 
   it('un héros sous protection magique ne reçoit AUCUNE étape (le Test n’a pas lieu)', () => {
-    set({ net: poserLeSiegeMJ(get().net, 1) });
+    set({ net: mjAuSiege1(get().net) });
     const party = get().party.map((h, i) => (i === 0 ? { ...h, activeEffects: [...(h.activeEffects ?? []), { label: 'Abri', weatherImmune: true, duration: { scale: 'permanent' as const } }] } : h));
     set({ party } as never);
     glacialDay();

@@ -11,7 +11,8 @@ import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { Scene } from '../../noyau/monde/scene';
-import { type WorldMap, type MapRoute, type MapRouteTrace, type Praticabilite, type RouteBillet, placeById } from '../../noyau/worldMap';
+import { type WorldMap, type MapRoute, type RouteBillet, placeById } from '../../noyau/worldMap';
+import type { PatchDeRoute } from '../../noyau/worldMapEdit';
 import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import type { VehicleData } from '../../engine/types';
 import { ProvenanceDeValeur } from './ProvenanceDeValeur';
@@ -29,9 +30,9 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
   map: WorldMap;
   /** Toutes les scènes du projet (active + réserve) — pour lier embuscades/péripéties. */
   scenes: Scene[];
-  updRoute: (id: string, patch: Partial<MapRouteTrace> | Praticabilite) => void;
+  updRoute: (id: string, patch: PatchDeRoute) => void;
   effCtx: Ctx;
-  toggleMode: (r: MapRoute, mode: TravelMode) => void;
+  toggleMode: (routeId: string, mode: TravelMode) => void;
 }) {
   const [routeTab, setRouteTab] = useState<'trajet' | 'peripeties'>('trajet');
   const ambushScene = route.ambush?.scene ? scenes.find((s) => s.id === route.ambush!.scene) : undefined;
@@ -85,7 +86,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
           <div className="mini-title">Modes de voyage</div>
           {(['pied', ...travelVehicles().map((v) => v.id)] as TravelMode[]).map((mode) => (
             <label key={mode} className="ed-check">
-              <input type="checkbox" checked={route.modes.includes(mode)} onChange={() => toggleMode(route, mode)} />
+              <input type="checkbox" checked={route.modes.includes(mode)} onChange={() => toggleMode(route.id, mode)} />
               <Icon id={travelModeIcon(mode)} /> {travelModeLabels()[mode] ?? mode}
             </label>
           ))}
@@ -129,7 +130,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
               checked={route.sea ?? false}
               onChange={(e) => updRoute(route.id, e.target.checked
                 ? { sea: true, modes: ['mer'], seaHeading: route.seaHeading ?? 'est' }
-                : { sea: undefined, seaHeading: undefined, modes: route.modes.filter((x) => x !== 'mer').length ? route.modes.filter((x) => x !== 'mer') : ['pied'] })}
+                : { sea: undefined, seaHeading: undefined, modes: route.modes.filter((x) => x !== 'mer') })}
             />
             <Icon id="travel/anchor" size="sm" /> Route maritime (navire de campagne ; distance en milles)
           </label>
@@ -237,7 +238,7 @@ function BilletDuVehicule({ route, map, vehicule, presets, updRoute }: {
   map: WorldMap;
   vehicule: VehicleData;
   presets: readonly PresetPnj[];
-  updRoute: (id: string, patch: Partial<MapRouteTrace>) => void;
+  updRoute: (id: string, patch: PatchDeRoute) => void;
 }) {
   const v = vehicule.id;
   const classes = vehicule.travel!.classes;

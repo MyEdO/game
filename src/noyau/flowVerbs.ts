@@ -82,7 +82,7 @@ export const FLOW_VERBS = {
   heal:         { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'], jetOwner: { pending: 'pendingHeal', field: 'healerId' } },
   surgery:      { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingSurgery', field: 'healerId' } },
   corruption:   { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'confirm'], jetOwner: { pending: 'pendingCorruption', field: 'heroId' } },
-  // Test générique : `actorId` est MUTABLE (`testSetActor` — le Test change de testeur en place) ; la
+  // Test générique : `actorId` est MUTABLE (réglage `test.testeur` — le Test change de testeur en place) ; la
   // possession se résout À LA LECTURE de l'état, donc sur le testeur COURANT.
   // `determine` = Détermination (LDB 17 l.59) : même verbe que `cascadeBatch`, corps dans `FLOWS.test.caps`.
   test:         { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'determine', 'cancel', 'reverse', 'confirm'], jetOwner: { pending: 'pendingTest', field: 'actorId' } },

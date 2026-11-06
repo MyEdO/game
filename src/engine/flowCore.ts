@@ -543,6 +543,9 @@ export interface FlowTest {
     defenderMustWin?: boolean };
 }
 
+/** Un `FlowTest` dont le porteur EXIGE les champs `K` (`exigerDuTest`, `grammaire/mecanique.ts`). */
+export type TestExige<K extends 'skill' | 'difficulty'> = FlowTest & Required<Pick<FlowTest, K>>;
+
 /**
  * Un nœud de Flow, GÉNÉRIQUE sur le type de sa FEUILLE `E` (défaut `EffectOp` — engine pur ; la couche
  * `state` instancie `Flow<Effect>`). Cinq formes, RÉCURSIVES, jamais cycliques :

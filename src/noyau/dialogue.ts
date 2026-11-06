@@ -1,27 +1,32 @@
 /**
  * DIALOGUE — ce qu'une réponse OFFRE et ce qu'elle ANNONCE viennent de sa DONNÉE (#1869).
  *
- * Trois fonctions PURES (elles LISENT l'état, n'en écrivent aucun), source UNIQUE des deux surfaces
- * qui servent une réponse — la fenêtre (`ui/DialogueBox`) et les touches `dialogue-choice-N`
- * (`state/clavier/keybindings`) :
+ * Des fonctions PURES (elles LISENT l'état, n'en écrivent aucun), source UNIQUE des surfaces qui servent
+ * une réponse — la fenêtre (`ui/DialogueBox`), les touches `dialogue-choice-N` (`state/clavier/keybindings`) et
+ * l'écran d'un hôte du noyau (`conversationEnVue`) :
  *  · `ouvrirDialogue` — la SEULE fabrique d'un état de conversation : tout ouvreur y passe, et la
  *    conversation naît avec sa `session`, l'id MONOTONE qui regroupe SES tours à la relecture ;
  *  · `reponsesDuNoeud` — la liste VISIBLE des réponses : filtre `when`, rang d'affichage 1..n,
  *    verdict d'offre (le siège qui décide, la bourse du groupe). Le RANG est celui de la liste
  *    visible, l'INDEX celui de la donnée (c'est lui que reçoit `chooseDialogue`) ;
  *  · `testAnnonce` — le Test que le flux d'une réponse DÉCLENCHE, en ids STABLES (jamais un libellé
- *    recopié dans la donnée : l'affichage résout les libellés au registre).
+ *    recopié dans la donnée), que `libelleDuTestAnnonce` résout en libellés au registre.
  */
 import type { CharKey, Difficulty } from '../engine/types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { canAfford, toMoney } from '../engine/money';
 import { evalCondition, flowTestGateOpen, resolveTestDifficulty, type ConditionCtx } from '../engine/flowCore';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import type { Dialogue } from './monde/scene';
+import { speakerEntity, type Dialogue } from './monde/scene';
+import { nomDEntite } from './monde/sceneNpc';
+import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { testSkillLabel } from '../data';
+import { DIFFICULTY_LABELS } from '../engine/types';
 import type { DialogueTurn } from './monde/dialogueHistory';
 import type { EtatDialogue } from './pendings';
 import { condCtx, partyMoneyTotal } from './bourseFlow';
-import { groupDecisionSeat, nomDuSiege, ownsGroupDecision } from './netOwnership';
+import { groupDecisionSeat, ownsGroupDecision } from './netOwnership';
+import { nomDuSiege } from './sieges';
 import { t } from '../i18n';
 import { surfaceTientLaMain } from './modalArbiter';
 import type { Jeu } from './etat';
@@ -167,4 +172,53 @@ export function testAnnonce(flow: Flow | undefined, cc: ConditionCtx): TestAnnon
     case 'choice':
       return undefined;
   }
+}
+
+/**
+ * Ce que la réponse ANNONCE, en clair : « Compétence — Difficulté », plus le DR CUMULÉ d'un Test ÉTENDU. Les ids
+ * STABLES viennent du FLUX (`testAnnonce`) ; ici, et ici seulement, ils se résolvent en libellés au registre
+ * (`testSkillLabel`, `DIFFICULTY_LABELS`) — un auteur n'écrit JAMAIS la Compétence dans le libellé de sa réponse
+ * (garde `scripts/guards/lib/dialogueLabelTest.mjs`).
+ */
+export function libelleDuTestAnnonce(test: TestAnnonce): string {
+  const quoi = testSkillLabel({ skill: test.skill, char: test.characteristic }) ?? '';
+  const diff = DIFFICULTY_LABELS[test.difficulty];
+  return test.targetDR != null ? t('dlg.testTagCumul', { quoi, diff, dr: test.targetDR }) : t('dlg.testTag', { quoi, diff });
+}
+
+/** Une réponse en vue : ce qu'elle annonce (`libelleDuTestAnnonce`) et le geste qui la choisit. */
+export interface ReponseEnVue extends ReponseDeDialogue {
+  annonce: string | null;
+  geste: { verbe: 'chooseDialogue'; args: [number] };
+}
+
+/** La conversation en vue, pour un hôte qui la dessine. */
+export interface ConversationEnVue {
+  /** Le nom de l'interlocuteur du nœud (`nomDeLInterlocuteur`) ; `null` sans interlocuteur nommé. */
+  orateur: string | null;
+  /** La réplique du nœud, en Markdown verbatim ; `null` sans réplique. */
+  replique: string | null;
+  reponses: ReponseEnVue[];
+}
+
+/** Le nom de l'interlocuteur du nœud courant : l'entité du nœud, à défaut celle de la conversation (`speakerEntity`),
+ *  nommée par `nomDEntite` ; `undefined` hors dialogue ou sans interlocuteur nommé. */
+export function nomDeLInterlocuteur(s: Jeu): string | undefined {
+  const etat = s.dialogue;
+  const node = etat?.dialogue.nodes.find((n) => n.id === etat.nodeId);
+  const locuteur = etat && node && speakerEntity(s.scene?.entities ?? [], node, etat);
+  return locuteur ? nomDEntite(locuteur, presetDuNarratif(s.campaignNarratif)) : undefined;
+}
+
+/** LA CONVERSATION EN VUE : l'interlocuteur et la réplique du nœud courant, et chaque réponse visible
+ *  (`reponsesDuNoeud`) avec ce qu'elle annonce et le geste qui la choisit. `null` hors dialogue. */
+export function conversationEnVue(s: Jeu): ConversationEnVue | null {
+  const etat = s.dialogue;
+  const node = etat?.dialogue.nodes.find((n) => n.id === etat.nodeId);
+  if (!etat || !node) return null;
+  return {
+    orateur: nomDeLInterlocuteur(s) ?? null,
+    replique: node.desc ?? null,
+    reponses: reponsesDuNoeud(s).map((r) => ({ ...r, annonce: r.test ? libelleDuTestAnnonce(r.test) : null, geste: { verbe: 'chooseDialogue', args: [r.index] } })),
+  };
 }

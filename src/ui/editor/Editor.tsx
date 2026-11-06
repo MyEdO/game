@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
-import { resizeGrid, editEntity, TypeNonNomme } from '../../noyau/sceneEdit';
-import { validateScene, type Warning } from '../../noyau/validateScene';
+import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
+import { placeStairFlight } from '../../noyau/stairFlight';
+import { architectureSelectionForWarning, validateScene, type Warning } from '../../noyau/validateScene';
 import { idsDesPistesDeMusique } from '../../audio/music';
-import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../noyau/planDefects';
+import { planDefectKey, planFocusAt, planFocusTiles } from '../../noyau/planDefects';
 import { testScene } from '../../scenes/test-fixture';
 import { creatures, premierOffert } from '../../data';
 import { useSceneHistory } from './useSceneHistory';
@@ -34,11 +35,7 @@ import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { publierEditeur } from '../../state/editeurBridge';
-import {
-  Tool, Sel, Pt, deleteSel, moveSel, selPos, pasteEntity, addLayer, removeLayer,
-  addArchitectureBody, addArchitectureStorey, addArchitecturePart, addBuildingMass,
-  planStairFlight, applyStairFlight,
-} from './editorState';
+import { type Tool, type Sel } from '../../noyau/sceneEditLecture';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { Row } from '../Layout';
@@ -73,28 +70,6 @@ export function ouCaCasse(erreur: unknown): string {
   if (lc) return ` — ligne ${lc[1]}, colonne ${lc[2]}`;
   const pos = /position (\d+)/.exec(brut);
   return pos ? ` — caractère n° ${Number(pos[1]) + 1}` : '';
-}
-
-export function architectureSelectionForWarning(warning: Warning): Warning['architectureRef'] | null {
-  return warning.scope === 'architecture' ? warning.architectureRef ?? null : null;
-}
-
-/** IDENTITÉ d'un défaut de plan : sa famille et l'endroit visé — JAMAIS ses cases, qui décroissent à
- *  mesure qu'on le corrige. C'est par elle qu'on retrouve le MÊME défaut dans des avertissements frais. */
-export function planDefectKey(plan: { family: PlanDefectFamily; at: PlanDefectAt }): string {
-  const at = plan.at;
-  const place =
-    at.kind === 'zone' ? `zone:${at.zoneId}`
-      : at.kind === 'edge' ? `edge:${at.x}:${at.y}:${at.side}`
-        : `cell:${at.x}:${at.y}`;
-  return `${plan.family}|${place}|z${at.z}`;
-}
-
-/** Cases FRAÎCHES du défaut suivi : `null` si plus aucun avertissement ne le porte (il est corrigé). */
-export function planFocusAt(warnings: readonly Warning[], key: string | null): PlanDefectAt | null {
-  if (!key) return null;
-  for (const w of warnings) if (w.plan && planDefectKey(w.plan) === key) return w.plan.at;
-  return null;
 }
 
 /**
@@ -345,9 +320,9 @@ export function Editor({
   /** Pose la volée planifiée : des COTES, rien d'autre — la traversée verticale s'en dérive. */
   function applyStairRun() {
     if (tool.mode !== 'stair') return;
-    const plan = planStairFlight(scene, stairRun, currentLayer, tool.toZ);
-    if (!plan.ok) return;
-    setScene(applyStairFlight(scene, plan.steps, currentLayer));
+    const posee = placeStairFlight(scene, stairRun, currentLayer, tool.toZ);
+    if (!posee) return;
+    setScene(posee);
     setStairRun([]);
   }
 
@@ -395,22 +370,19 @@ export function Editor({
     const out = addArchitectureBody(scene, undefined, { ...hoverRef.current, w: 1, h: 1 });
     setScene(out.scene);
     setArchitectureBodyId(out.id);
-    setArchitectureStoreyId('z0');
+    setArchitectureStoreyId(out.storeyId);
     setArchitectureAction('select');
     setSel({ type: 'architectureBody', id: out.id });
   }
 
-  /** Ajoute un étage au corps actif, à la couche juste au-dessus du plus haut étage existant (#841
-   *  FU-C — `addArchitectureBody` ne posait qu'un seul étage `z0`, sans moyen d'en ajouter un second).
-   *  Crée la couche de scène correspondante si elle manque encore (`addLayer`, no-op si déjà présente). */
+  /** Ajoute un étage au corps actif (`addStoreyAbove`, #841 FU-C) et en fait la couche éditée. */
   function createArchitectureStorey() {
     if (!architectureBody) return;
-    const z = Math.max(...architectureBody.storeys.map((storey) => storey.z)) + 1;
-    const out = addArchitectureStorey(scene, architectureBody.id, z);
+    const out = addStoreyAbove(scene, architectureBody.id);
     if (!out) return;
-    setScene(addLayer(out.scene, z));
+    setScene(out.scene);
     setArchitectureStoreyId(out.id);
-    setCurrentLayer(z);
+    setCurrentLayer(out.z);
     setArchitectureAction('select');
     setSel({ type: 'architectureStorey', bodyId: architectureBody.id, id: out.id });
   }
@@ -458,41 +430,18 @@ export function Editor({
     if (p.worldMap !== worldMap) setWorldMap(p.worldMap);
     if (p.narratif !== narratif) setNarratif(p.narratif);
   }
-  function switchScene(id: string) {
-    if (id === scene.id) return;
-    const i = scenesDuProjet.findIndex((s) => s.id === id);
-    if (i < 0) return;
-    setVoisines({ avant: scenesDuProjet.slice(0, i), apres: scenesDuProjet.slice(i + 1) });
+  /** Édite la scène `next.scene` du projet, à sa place dans l'ordre du document. */
+  function poserScenes(next: ProjectScenes | null) {
+    if (!next) return;
+    setVoisines({ avant: next.avant, apres: next.apres });
     setSel(null);
-    resetScene(scenesDuProjet[i]);
+    resetScene(next.scene);
   }
-  function addScene() {
-    const s = emptyScene(idDEntropie('scene'));
-    s.label = 'Nouvelle scène';
-    setVoisines({ avant: scenesDuProjet, apres: [] });
-    setSel(null);
-    resetScene(s);
-  }
-  function duplicateScene() {
-    const dup = clone(scene);
-    dup.id = idDEntropie('scene');
-    dup.label = `${scene.label || scene.id} (copie)`;
-    setVoisines({ avant: scenesDuProjet, apres: [] });
-    setSel(null);
-    resetScene(dup);
-  }
-  function deleteScene() {
-    const { avant, apres } = voisines;
-    if (apres.length > 0) {
-      setVoisines({ avant, apres: apres.slice(1) });
-      setSel(null);
-      resetScene(apres[0]);
-    } else if (avant.length > 0) {
-      setVoisines({ avant: avant.slice(0, -1), apres: [] });
-      setSel(null);
-      resetScene(avant[avant.length - 1]);
-    }
-  }
+  const projetEdite = (): ProjectScenes => ({ avant: voisines.avant, scene, apres: voisines.apres });
+  const switchScene = (id: string) => poserScenes(switchProjectScene(projetEdite(), id));
+  const addScene = () => poserScenes(addProjectScene(projetEdite(), idDEntropie('scene')));
+  const duplicateScene = () => poserScenes(duplicateProjectScene(projetEdite(), idDEntropie('scene')));
+  const deleteScene = () => poserScenes(deleteProjectScene(projetEdite()));
 
   // Commandes d'édition publiées au PONT (`state/editeurBridge`) : le registre de raccourcis unique
   // porte leurs touches (section `editeur`) et leur remap. Republiées à chaque changement de scène /
@@ -529,8 +478,8 @@ export function Editor({
         },
         deplacer: (dx, dy) => {
           if (!sel) return;
-          const p = selPos(scene, sel);
-          if (p) setScene(moveSel(scene, sel, { x: p.x + dx, y: p.y + dy }));
+          const decalee = nudgeSel(scene, sel, dx, dy);
+          if (decalee !== scene) setScene(decalee);
         },
         deselectionner: () => setSel(null),
         // Recette #1478 : ouvrir par id sans passer par la modale (donc sans dialogue OS).
@@ -592,13 +541,6 @@ export function Editor({
             return `✗ « ${entityId} » introuvable — entités de la scène « ${scene.id} » : `
               + `${scene.entities.map((x) => x.id).join(', ') || '(aucune)'}`;
           }
-          // L'IDENTITÉ d'une entité n'est pas un champ que l'on patche : changer `id` délie la
-          // sélection, les triggers et les dialogues qui la nomment, changer `kind` casse l'union du
-          // schéma. Refus NOMMÉ plutôt qu'un `✓ posé : id` annonçant une scène corrompue.
-          const identite = Object.keys(patch).filter((c) => c === 'id' || c === 'kind');
-          if (identite.length) {
-            return `✗ « ${identite.join(', ')} » : clé d'IDENTITÉ, jamais patchable — supprimez l'entité et reposez-la pour changer son id ou sa nature`;
-          }
           const cles = Object.entries(patch);
           // `undefined` vaut ABSENT : c'est la convention du modèle de scène, celle que l'inspecteur
           // applique déjà (`updateSel({ statblock: undefined })`, `Inspector.tsx`) — le champ ne part
@@ -606,6 +548,9 @@ export function Editor({
           try {
             setScene(editEntity(scene, entityId, patch as Partial<typeof ent>));
           } catch (e) {
+            // L'IDENTITÉ refusée par la porte (`IdentiteNonPatchable`) : jamais un `✓ posé : id`
+            // annonçant une scène corrompue.
+            if (e instanceof IdentiteNonPatchable) return `✗ ${e.message}`;
             if (e instanceof TypeNonNomme) return `✗ « ${entityId} » : ${e.message}`;
             throw e;
           }
@@ -980,12 +925,7 @@ export function Editor({
     }
     const { lu } = porte;
     setAdvError(null);
-    setScene({
-      ...scene,
-      ...(lu.dialogues !== undefined ? { dialogues: lu.dialogues } : {}),
-      ...(lu.triggers !== undefined ? { triggers: lu.triggers } : {}),
-      ...(lu.encounters !== undefined ? { encounters: lu.encounters } : {}),
-    });
+    setScene(poseBlocsAvances(scene, lu));
     setAdvOpen(false);
   }
   function resize(w: number, h: number) {

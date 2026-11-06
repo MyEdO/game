@@ -4,7 +4,7 @@ import { inFireArc, targetArc } from './monde/fireArc';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
-import { ECHEC_SANS_JET } from '../engine/tests';
+import { ECHEC_SANS_JET, evaluateTest } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
 import { emptyScene } from './monde/scene';
 import { maneuverShip, rollShipManeuver, applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew, shipManeuverParams } from './shipManeuver';
@@ -327,8 +327,8 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
       seedBattleRng(seed);
       banc.setState({ battle: { combatants: [{ ...ship2(), creatureId: 'cogue' }, helm2()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
       const r = rollShipManeuver(() => banc.getState(), 'ship', 'helm')!;
-      expect(r.success).toBe(r.roll! <= r.target!); // succès ⇔ d100 ≤ cible, indépendant du Man / du dr
-      if ((r.roll! <= r.target!) !== (r.dr >= 0)) diverged = true; // le signe du DR final et le d100 divergent
+      expect(r.success).toBe(evaluateTest(r.roll!, r.target!).success); // succès ⇔ verdict du d100 (LDB 12 l.25-28), indépendant du Man / du dr
+      if (evaluateTest(r.roll!, r.target!).success !== (r.dr >= 0)) diverged = true; // le signe du DR final et le d100 divergent
     }
     expect(diverged).toBe(true); // garde-fou : ce set de seeds EXERCE bien la divergence (test non vacant)
   });
@@ -376,7 +376,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     const p = banc.getState().pendingShipManeuver!;
     expect(p.shipId).toBe('ship');
     expect(p.participants.some((x) => x.id === 'helm')).toBe(true); // le Timonier (helm) est contributeur
-    banc.getState().shipManeuverSetTurn(2); // tribord 90° (virage ⟂ jet)
+    banc.getState().jetRegler('shipManeuver', 'virage', 2); // tribord 90° (virage ⟂ jet)
     expect(banc.getState().pendingShipManeuver!.turnSteps).toBe(2);
     banc.getState().jetRoll('shipManeuver', 'helm'); // le PJ lance SON rôle (interactif)
     expect(banc.getState().pendingShipManeuver!.participants.every((x) => x.result)).toBe(true);

@@ -18,12 +18,13 @@
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
 import type { DifficultyShown } from '../engine/combat';
+import { ciblesBasculees } from './reglagesDuJet';
 import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/combat';
-import { castInfo, isMagicMissile, missileDamage } from '../engine/magic';
+import { castInfo, isMagicMissile, missileDamage, focalisationAboutie } from '../engine/magic';
 import { bonus, bonusDeForce, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
 import { isOutOfAction, refusVerrouDAction } from '../engine/conditions';
-import { refusActionDepensee, refusHorsDEtatDAgir } from './refusDuTour';
+import { refusActionDepensee, refusHorsDEtatDAgir, refusPriereImposee } from './refusDuTour';
 import { isEngaged, reachTiles } from '../engine/engagement';
 import { avantageApresDepense, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
@@ -180,7 +181,8 @@ export type TileClickOpts = { confirm?: boolean; courseArmee?: boolean };
  *  COMPLÈTE côté offensif : un offensif oublié = sort injouable sur l'ennemi (le bug d'origine). */
 const HARMFUL_TARGET_OPS = new Set<string>([
   'condition', 'wounds', 'corruption', 'lifeSteal', 'suffocate', 'senseLoss', 'loseTurn',
-  'breakBlade', 'damageArmour', 'damageWornGear', 'armourPierce', 'reduceToZero', 'castPenalty',
+  'breakBlade', 'damageArmour', 'damageWornGear', 'armourPierce', 'reduceToZero', 'castPenalty', 'suppressTalents',
+  'deityBan', 'prayerForAction',
 ]);
 /** Ops « cible » BÉNÉFIQUES-SANS-AMBIGUÏTÉ → buff sur allié/soi. Liste tenue EXHAUSTIVE au même titre
  *  que HARMFUL_TARGET_OPS (recensement du catalogue `GameOp`, engine/ops.ts) POUR LES OPS DONT LE SIGNE
@@ -273,7 +275,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   if (horsAtteinte) return { kind: 'invalid', reason: horsAtteinte.reason };
   const pv = previewCast(active, spell, {
     missile,
-    focused: active.focus?.spell === spell.id && active.focus.dr >= (spell.cn ?? 0),
+    focused: focalisationAboutie(active, spell),
     // L'affordance de survol vise une CIBLE désignée : elle annonce la cible réelle (protection de
     // la victime + Domaine/environnement), la même que la modale et que le jet.
     ctx: { s: get(), target },
@@ -348,11 +350,11 @@ export type RefusDAttaque = { reason: Extract<HoverTargeting, { kind: 'invalid' 
  * Verdict UNIQUE de l'attaque du mode ATTAQUE : `attackAffordance` le rend en `invalid`, `attackClickCommit`
  * le lit en tête. `plan` = celui de l'approche-puis-frappe (`attackPlan`), `null` pour une option qui ne
  * frappe pas (zone, Au contact, Empoignade). `approche` = verdict d'armement de la Charge (`BattleClickOpts`).
- * LDB 16 l.52 ; LDB 16 l.125 ; LDB 21 l.33 ; LDB 85 l.237 ; spec HUD § 2026-08-19.
+ * LDB 16 l.52 ; LDB 16 l.125 ; LDB 21 l.33 ; LDB 40 l.74 ; LDB 85 l.237 ; spec HUD § 2026-08-19.
  */
 export function refusDAttaque(get: Get, active: Combatant, target: Combatant, option: AttackOption, plan: AttackPlan | null, { approche }: { approche: boolean }): RefusDAttaque | null {
   const battle = get().battle!;
-  const horsDAgir = refusHorsDEtatDAgir(active) ?? refusVerrouDAction(active);
+  const horsDAgir = refusHorsDEtatDAgir(active) ?? refusVerrouDAction(active) ?? (option.cost.action ? refusPriereImposee(active) : null);
   if (horsDAgir) return { reason: 'hors-d-etat', texte: horsDAgir };
   const ft = isFrenzied(active) ? frenzyTarget(get, active) : null;
   if (ft && ft.id !== target.id) return { reason: 'frenesie-cible', texte: t('cs.frenzyMustAttack', { name: active.label, foe: ft.label }) };
@@ -841,7 +843,7 @@ const OVERCAST_MODE: TargetingMode = {
     if (!pc || !caster || !spell) return [];
     return overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
   },
-  commitCombatant: (get, _set, _active, id) => { get().castToggleExtraTarget(id); },
+  commitCombatant: (get, _set, _active, id) => { get().jetRegler('cast', 'ciblesSupplementaires', ciblesBasculees(get().pendingCast?.extraTargetIds, id)); },
 };
 const CLEAVE_MODE: TargetingMode = {
   id: 'cleave', label: 'Frappe Mortelle', consigne: 'consigne.cleave', affordance: cleaveAffordance, anneauCandidats: 'hostile',

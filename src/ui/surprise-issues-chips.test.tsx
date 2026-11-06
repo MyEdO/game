@@ -23,6 +23,7 @@ import { testFlow } from '../noyau/monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { testValue } from '../engine/skills';
 import { jete } from '../engine/tests.testkit';
+import { evaluateTest } from '../engine/tests';
 import { CascadeBody } from './CascadeModal';
 import { resolveStake, combatStakeRef, regles } from '../data';
 import type { BattleState } from '../noyau/etat';
@@ -260,7 +261,7 @@ describe('#1117 — la Surprise est UNE bande : un jet d’embusqueur, N guetteu
     lancer('h'); lancer('h2'); lancer('h3');
     const jets = bande().participants!.map((p) => jete(p.result));
     expect(jets.every((r) => r), 'les 3 rangées ont leur jet').toBe(true);
-    expect(jets.every((r) => r.roll <= r.target), 'chaque dé est SOUS la cible : le Test simple serait réussi').toBe(true);
+    expect(jets.every((r) => evaluateTest(r.roll, r.target).success), 'chaque dé est SOUS la cible : le Test simple serait réussi').toBe(true);
     expect(jets.every((r) => !r.success), 'et pourtant les 3 PERDENT — l’embusqueur remporte l’opposition').toBe(true);
     act(() => { useGame.getState().jetConfirm('cascade'); });
     const suite = useGame.getState().pendingCascade!;

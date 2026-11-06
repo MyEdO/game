@@ -156,16 +156,12 @@ describe('possession réseau (netOwnership)', () => {
     expect(intentAllowedFor(full, 1, 'partyAddHero', [{ id: 'h4' }])).toBe(true);
   });
 
-  it('partyRemoveHero : seul le propriétaire du héros peut le retirer', () => {
+  it('partyRemoveHero, partyReplaceHero : la route laisse passer, le geste tranche la possession (`refusDeComposerLeHeros`)', () => {
     const s = base({ battle: null } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(s, 1, 'partyRemoveHero', ['h2'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'partyRemoveHero', ['h1'])).toBe(false);
-  });
-
-  it('partyReplaceHero : seul le propriétaire de l’ANCIEN héros (1er arg) peut le remplacer', () => {
-    const s = base({ battle: null } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(s, 1, 'partyReplaceHero', ['h2'])).toBe(true);  // h2 = siège 1
-    expect(intentAllowedFor(s, 1, 'partyReplaceHero', ['h1'])).toBe(false); // h1 = hôte
+    for (const verbe of ['partyRemoveHero', 'partyReplaceHero']) {
+      expect(intentAllowedFor(s, 1, verbe, ['h2'])).toBe(true);
+      expect(intentAllowedFor(s, 1, verbe, ['h1'])).toBe(true);
+    }
   });
 
   it('carnet d’enquête (#2415) : l’invité épingle et marque vu hors combat sans modale, en combat aussi', () => {
@@ -173,7 +169,7 @@ describe('possession réseau (netOwnership)', () => {
     const horsCombat = base({ battle: null } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(horsCombat, 1, 'toggleCluePin', ['ind']), 'épingle refusée à l’invité hors combat').toBe(true);
     expect(intentAllowedFor(horsCombat, 1, 'markCluesSeen', [vu]), 'nouveauté vue refusée à l’invité hors combat').toBe(true);
-    expect(intentAllowedFor(horsCombat, 1, 'partyRemoveHero', ['h1']), 'opposé : un geste de groupe POSSÉDÉ reste refusé').toBe(false);
+    expect(intentAllowedFor(horsCombat, 1, 'interludeEntrainement', ['h1']), 'opposé : un geste POSSÉDÉ reste refusé').toBe(false);
     const enCombat = base({}); // actif = h1 (hôte) : le repli refuserait le siège 1
     expect(intentAllowedFor(enCombat, 1, 'toggleCluePin', ['ind'])).toBe(true);
     expect(intentAllowedFor(enCombat, 1, 'markCluesSeen', [vu])).toBe(true);

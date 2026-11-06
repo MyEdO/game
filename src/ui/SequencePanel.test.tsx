@@ -188,7 +188,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
         },
         skills: [{ id: 'pari', value: 40 }],
       },
-      tavernGame: { gameId: 'bras-de-fer' },
+      tavernGame: { id: 'bras-de-fer' },
     };
     useGame.setState({
       party: [a], journal: [],

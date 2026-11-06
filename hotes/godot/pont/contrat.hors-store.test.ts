@@ -7,30 +7,20 @@
  * erreurs de la page s'y relèvent. Une partie par contexte JS : les tests de ce fichier jouent, dans l'ordre, sur un
  * même pont.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
 import { CLICS_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
 import { baseDeTest, elementSchema3 } from '../asset/modeles.testkit.ts';
+import * as projection from '../../../src/hote/projection';
 
-/** La panne d'un lecteur de la vue, armée par le test de la catégorie `interne`. */
-const panne = vi.hoisted(() => ({ projeter: false }));
-vi.mock('../../../src/hote/projection', async (importOriginal) => {
-  const origine = await importOriginal<typeof import('../../../src/hote/projection')>();
-  return {
-    ...origine,
-    projeter: (...a: Parameters<typeof origine.projeter>) => {
-      if (panne.projeter) throw new Error('lecteur en panne');
-      return origine.projeter(...a);
-    },
-  };
-});
-
-/** La page témoin : son `addEventListener`, posé avant le pont, reçoit les erreurs que le test y émet. */
+/** La page témoin : son `addEventListener`, posé avant le pont, reçoit les erreurs que le test y émet ; rendu à la fin
+ *  du fichier, le graphe étant partagé avec les fichiers suivants du worker. */
 const page = new EventTarget();
-Object.assign(globalThis, { addEventListener: page.addEventListener.bind(page) });
+vi.stubGlobal('addEventListener', page.addEventListener.bind(page));
+afterAll(() => { vi.unstubAllGlobals(); });
 
 const { pont, appel } = table();
 
@@ -41,7 +31,7 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, jouer, reprendre, modeles, composer, catalogues, presetDeComposition, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, jouer, fiche, creation, reprendre, modeles, composer, catalogues, presetDeComposition, erreursGlobales)');
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
@@ -57,8 +47,8 @@ describe('le pont avant sa partie', () => {
     expect(erreurDe(appel('modeles', { manifestes, osDesRigides: { epee: 'root' } }))).toEqual(sansOs);
   });
 
-  it('`vue`, `jouer` et `reprendre` se refusent sans partie', () => {
-    for (const [methode, entree] of [['vue', undefined], ['jouer', { type: 'confirmRoundStart', args: [] }], ['reprendre', { jeton: 0 }]] as const) {
+  it('`vue`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
+    for (const [methode, entree] of [['vue', undefined], ['jouer', { type: 'confirmRoundStart', args: [] }], ['fiche', { fiche: null }], ['reprendre', { jeton: 0 }]] as const) {
       expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer d’abord' });
     }
   });
@@ -106,12 +96,9 @@ describe('le pont et sa partie', () => {
   });
 
   it('une levée qu’aucun contrôle n’attendait se rend en `interne`, dans une chaîne JSON', () => {
-    panne.projeter = true;
-    try {
-      expect(JSON.parse(pont.appeler('vue'))).toEqual({ ok: false, erreur: { categorie: 'interne', message: 'lecteur en panne' } });
-    } finally {
-      panne.projeter = false;
-    }
+    const panne = vi.spyOn(projection, 'projeter').mockImplementation(() => { throw new Error('lecteur en panne'); });
+    expect(JSON.parse(pont.appeler('vue'))).toEqual({ ok: false, erreur: { categorie: 'interne', message: 'lecteur en panne' } });
+    panne.mockRestore();
     expect(appel('vue').ok, 'le lecteur rétabli, la vue se rend').toBe(true);
   });
 

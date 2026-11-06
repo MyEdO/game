@@ -1,12 +1,12 @@
 /** Rendu d'une fiche du Codex (détail) : en-tête + faits + prose + SECTIONS riches (statbloc,
  *  niveaux de carrière, bénédictions…) dont les entités citées sont des liens `CodexRef`. */
-import type { CodexItem, CodexRow, CodexSection } from './registry';
+import type { CodexItem, CodexRow, CodexSection } from '../../noyau/codex/registry';
 import { EntityRef, EntityChoice, PlainChip } from '../EntityChip';
 import { CodexRef } from './CodexRef';
 import { TabbedEntry, type EntryTab } from '../TabbedEntry';
 import { Prose } from '../Prose';
 import { porteurDeRangee } from '../../noyau/codex/porteur';
-import { libelleDuChamp } from './editFields';
+import { libelleDuChamp } from '../../noyau/codex/editFields';
 import { uniqueSlugId } from '../../data/slug';
 import { Row } from '../Layout';
 import { SourceBadge } from '../SourceBadge';

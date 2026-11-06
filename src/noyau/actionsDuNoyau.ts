@@ -1,18 +1,15 @@
-import type { Combatant, CharKey, HitLocation } from '../engine/types';
-import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
+import type { Combatant, CharKey } from '../engine/types';
 import type { SupportDetail } from '../engine/skills';
 import type { StakeRef } from '../data';
 import type { ActionRunCtx, BattleActionMode } from './actionRegistry';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
-import type { ConjureForm } from '../engine/conjuredWeapons';
-import type { OvercastAxis } from '../engine/overcast';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { MassBattleSpec } from '../engine/massBattle';
 import type { IndiceAffiché } from './monde/clues';
-import type { HealMode, TestDeSoin } from '../engine/healing';
-import type { DefenseMode } from '../engine/combat';
+import type { HealMode } from '../engine/healing';
 import type { VerbesDeJet } from './rollFlowSpecs';
+import type { VerbeDeReglage } from './reglagesDuJet';
 import type { PossessionInput } from '../engine/possession';
 import type * as tavernFlow from './tavernFlow';
 import type { PendingDesignationHeros, PendingExtendedTest, CounterDeclaration } from './pendings';
@@ -23,7 +20,7 @@ import type { Scene } from './monde/scene';
 import type { Pt } from './monde/path';
 import type { RoomPortal } from './monde/roomPortals';
 import type {
-  IdDeChanson, IdDeChoixDePaie, IdDeCombattant, IdDeCreatureADepecer, IdDeCibleDuBalayage, IdDeCibleDeLaDoubleFrappe, IdDAdversaireDuBattement, IdDAdversaireADistraire, IdDuCoupleMonte, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
+  IdDeChoixDePaie, IdDeCombattant, IdDeCreatureADepecer, IdDeCibleDuBalayage, IdDeCibleDeLaDoubleFrappe, IdDuCoupleMonte, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
   IdDEntiteDeScene, IdDEtapeDeCascade, IdDeTireurRapide,
 } from './designations';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
@@ -32,7 +29,7 @@ import type { EtatDeJeu, PaquetALancer, PendingInteract, ShootingStanceKey } fro
 import type { FenetreQuiSeFerme } from './modalArbiter';
 
 /** Les actions de JEU (#2817 D5) : tout hôte les porte ; aucune action d'interface. */
-export interface ActionsDuNoyau extends VerbesDeJet {
+export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   faceToward: (id: IdDeCombattant, from?: Pt, to?: Pt) => void;
   faceFromPath: (id: IdDeCombattant, path?: Pt[] | null) => void;
   faceAtCombatStart: () => void;
@@ -266,13 +263,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
    *  `mode:'detect'` = Détection d'artefact (LDB 10) : Intuition au toucher, une tentative par objet. */
   appraiseItem: (uid: IdDObjet, heroId: IdDeHeros, mode?: 'evaluate' | 'detect') => void;
-  /** Choix du LANCEUR d'un Test de scène parmi les candidats du groupe (avant le jet) — au lieu
-   *  d'une désignation automatique du meilleur. Re-cible valeur/cible/malus/outil. */
-  testSetActor: (id: IdDeCombattant) => void;
-  /** Choisit le Test de `influences-corruptrices` AVANT le jet d'exposition (LDB 19 l.29 : « ou … comme déterminé par le
-   *  MJ » — RAW indéterminé pour le trait de créature ; le joueur tranche, comme la Défense). Le SEUIL
-   *  (LDB 19 l.70) reste figé sur le Test de `corrompu` et ignore cet appel. */
-  corruptionSetNature: (nature: NatureDInfluence) => void;
   /** Remet un document : l'estampille d'une remise neuve (`remise`). */
   remettreDocument: (doc: Omit<NonNullable<EtatDeJeu['document']>, 'remise'>) => void;
 
@@ -285,12 +275,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** « Asperger d'eau » (MDG 16 l.19, #497) — Action DIRECTE (aucune modale) : cible explicite ou
    *  1ᵉʳ candidat éligible adjacent (patron `battleManPoste`). */
   battleWater: (targetId?: IdDeCombattant) => void;
-  /** Pré-jet : bascule le mode de soin (Blessures ⇄ Hémorragie) dans la modale ouverte. */
-  healSetMode: (mode: HealMode) => void;
-  /** Pré-jet : le Test du soin (Guérison ⇄ Dextérité). */
-  healSetTest: (test: TestDeSoin) => void;
-  /** Pré-jet : engage les Bandages du héros `porteurId`, ou les retire (`null`). */
-  healSetBandages: (porteurId: IdDeHeros | null) => void;
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients, actes
    *  (Guérison/Hémorragie/Déchirure/Chirurgie), PNJ payant via l'effet `medicalAid`. */
   openMedic: (opts?: { patientId?: IdDeHeros; npc?: MedicNpc }) => void;
@@ -337,23 +321,8 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   battleUseItem: (uid: IdDObjet) => void;
   /** HORS COMBAT : un héros utilise un consommable (bandages, potion) depuis sa fiche. */
   usePartyItem: (heroId: IdDeHeros, uid: IdDObjet) => void;
-  /** Incantation CRITIQUE (LDB 46 l.26-32) : choix de l'effet bonus (modale). */
-  castSetCritChoice: (choice: 'critique' | 'puissance' | 'ineluctable') => void;
-  /** Arme invoquée à forme libre (Arme aethyrique) : le lanceur choisit la forme/Spé de Corps à corps. */
-  castSetConjureForm: (form: ConjureForm) => void;
-  /** « Prêchez, ma sœur ! » (LDB 40 l.42, option `prayer-conviction`) : entonner la Prière discrètement
-   *  (murmurée → Difficulté d'un cran plus dure) plutôt qu'à voix haute. Avant le jet uniquement. */
-  castSetDiscreet: (discreet: boolean) => void;
-  /** Surincantation : alloue (`delta` +1) ou rend (`delta` −1, reset) un pas de +2 DR à un axe
-   *  (Portée / Zone d'Effet / Durée / Cible) ; l'effet d'un pas est source-aware (`engine/overcast.ts`). */
-  castAllocOvercast: (axis: OvercastAxis, delta: number) => void;
-  /** Jets sur le Tableau CHOISIS par le lanceur (EDOC 13 l.276 : « vous pouvez » — déclinable), borné
-   *  [0, pas Durée alloués]. N'apparaît QUE si le sort porte un `rollTable.extraRollsPerStep`. */
-  castSetChosenTableRolls: (n: number) => void;
-  /** Surincantation : choisit/retire une cible SUPPLÉMENTAIRE (dans la limite allouée). */
-  castToggleExtraTarget: (id: IdDeCombattant) => void;
   /** Surincantation « +Cible » : bascule le choix SUR LE CHAMP DE BATAILLE (la modale s'efface,
-   *  bandeau TargetPrompt + clic carte → castToggleExtraTarget). En combat uniquement. */
+   *  bandeau TargetPrompt + clic carte → réglage `cast.ciblesSupplementaires`). En combat uniquement. */
   castPickTargets: (on: boolean) => void;
   /** Sort de ZONE (flux « jet puis pose », LDB 47 l.15/28) : bascule la POSE sur la carte
    *  (la modale s'efface, le gabarit final suit le curseur, clic-case = dépose). */
@@ -368,8 +337,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   startExtendedTest: (opts: { actorId: IdDeCombattant; label: string; skillLabel: string; skill?: PendingExtendedTest['skill']; char?: CharKey; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: IdDeCombattant; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2) : ouvre le flux (objet BE/B) ; chacun frappe. */
   startForceDoor: (opts: { label: string; doorBE: number; doorB: number; heroIds: IdDeHeros[]; flag?: string; suite?: Flow }) => void;
-  /** Avant son jet, le héros frappe avec une arme de `armesDEnfoncement` (`armeUid`) ou à mains nues (absent). EDO 11 l.93. */
-  forceDoorChoisirArme: (heroId: IdDeHeros, armeUid?: string) => void;
   /** Ouvre la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : `false` sans héros vivant — rien
    *  à désigner, la suite se joue sans suspension. */
   designerHerosOuvrir: (p: PendingDesignationHeros) => boolean;
@@ -427,21 +394,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** Bascule une POSTURE DE TIR pré-armée du combattant actif (`battle.stances`, spec HUD §1a G5) :
    *  le choix se pose hors modale, le prochain `PendingAttack` le reçoit déjà armé. */
   battleToggleStance: (stance: ShootingStanceKey) => void;
-  /** Flux d'attaque par modale : viser une localisation, lancer, dépenser une Chance, appliquer. */
-  attackSetLocation: (loc: HitLocation | null) => void;
-  /** Choisit l'arme d'attaque (uid d'ItemInstance du loadout actif ; null = auto) — avant le jet. */
-  attackSetWeapon: (uid: IdDObjet | null) => void;
-  /** Maniement de deux armes (LDB 10 l.767-773) : (dés)active le mode « des deux armes » sur l'attaque-Action. */
-  attackSetDualMode: (on: boolean) => void;
-  /** Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677) : bascule le tir sans corde (Portée 60,
-   *  perte de l'Atout Immobilisante) — proposé seulement si l'arme porte `ItemCapabilities.ropeMode`. */
-  attackSetHarpoonRopeCut: (v: boolean) => void;
-  /** « Retenir ses coups » (Aux Armes 07 l.59-61) : bascule le coup non létal de mêlée (avant le jet). */
-  attackSetWithhold: (v: boolean) => void;
-  /** « Empoignade » (LDB 14 l.159) : bascule l'initiation d'Empoignade à mains nues (avant le jet). */
-  attackSetGrapple: (v: boolean) => void;
-  /** « Je ne faillirai pas ! » (RAW-2, LDB 17 l.68) : choisit la Localisation d'un Coup Critique forcé. */
-  attackSetCritLocation: (loc: HitLocation) => void;
   /** Pilonnage INDIRECT : dépose le point d'impact choisi (clic-case du placeur 'siege') et ouvre la modale
    *  de tir de la pièce indirecte servie (`pendingAttack` siège). Cf. `siegeAimCommit` (combatSlice). */
   siegeAimCommit: (pt: Pt) => void;
@@ -465,22 +417,16 @@ export interface ActionsDuNoyau extends VerbesDeJet {
    *  manœuvre `targeting:'self'` sur l'acteur et consomme l'Action (la 2ᵉ vient du `loseTurn` de ses effets). */
   battleSelfManeuver: (maneuverId: string) => void;
   /** Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant de
-   *  l'Avantage adverse. `foeId` absent = 1er éligible (picker via `battementSetFoe`). */
+   *  l'Avantage adverse. `foeId` absent = 1er éligible (picker via réglage `battement.adversaire`). */
   battleBattement: (foeId?: IdDeCombattant) => void;
-  battementSetFoe: (foeId: IdDAdversaireDuBattement) => void;
   /** Distraire (LDB 10 l.364 / AA 13 l.51) : MOUVEMENT, Test opposé Athlétisme vs Calme. Sur victoire,
    *  le foe est distrait (ne gagne plus d'Avantage). `foeId` absent = 1er éligible en Ligne de vue
-   *  (picker via `distraireSetFoe`). */
+   *  (picker via réglage `distraire.adversaire`). */
   battleDistraire: (foeId?: IdDeCombattant) => void;
-  distraireSetFoe: (foeId: IdDAdversaireADistraire) => void;
-  /** Avantage dépensé par le Regard pétrifiant (variable, LDB 85 l.290) : 1..advantage → +N DR. */
-  maneuverSetAvantage: (n: number) => void;
   /** Course (LDB 15 l.41) : ouvrir la modale, lancer le Test `course`, Chance/Résilience, appliquer (déplacement étendu). */
   battleRun: (dest?: Pt, movement?: { path: Pt[]; cost: number }) => void;
   /** Manœuvre navale (MDG 13) : ouvre la modale du Test de Navigation pour le navire que sert `crewId`. */
   battleShipManeuver: (crewId: IdDeCombattant) => void;
-  /** Choix du virage (pré-jet OptionChooser) : crans d'octant (±1 = 45°, ±2 = 90°, 0 = tout droit). */
-  shipManeuverSetTurn: (steps: number) => void;
   /** Recharge d'un poste (MDG 12 l.462) : ouvre la modale du Test étendu de Projectiles du chef de pièce + Soutien. */
   battleShipReload: (shipId: IdDeCombattant, posteUid: string) => void;
   /** Bordée (« Tir de batterie », MDG 14 l.128) : ouvre la modale du Test d'équipage des Artilleurs sur `targetId`. */
@@ -491,8 +437,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   battleCrewTest: (shipId: IdDeCombattant, testTypeId: string) => void;
   /** Chanson de marin (Talent, MDG 09 l.32-40) : ouvre la modale du chanteur (choix de chanson + Test de Chant). */
   battleSingShanty: (shipId: IdDeCombattant) => void;
-  /** Choix de la chanson (pré-jet, parmi les specs CONNUES du Talent). */
-  shantySetSong: (shantyId: IdDeChanson) => void;
   /** Chute volontaire (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
    *  basse, croisée franchissable comprise), ouvre le choix pré-jet (Sauter / Tenter le Test
    *  `chute`). Porteur = le mobile de `gesteDArete` ; tout refus est NOMMÉ (`refuserGeste`). */
@@ -532,16 +476,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** Action « cumuler l'Avantage » (LDB 09 l.305-308) : Test de la Compétence `skillId` (Intuition/
    *  Savoir/Survie/Prière) via la modale de Test standard ; sur réussite +1 Avantage plafonné. Coûte l'Action. */
   battleGainAdvantage: (skillId: string) => void;
-  /** Flux de défense réactive (héros attaqué par l'IA) : choisir Parade/Esquive, défendre,
-   *  dépenser une Chance, appliquer. PAS de « Subir » : le RAW n'offre aucune non-défense volontaire
-   *  (mêlée = Test opposé, LDB 13 l.123) ; la résolution non opposée est réservée aux cas imposés. */
-  defenseSetMode: (mode: DefenseMode) => void;
-  /** Choisit l'arme de parade (uid d'ItemInstance ; null = main principale) — avant le jet de défense. */
-  defenseSetParryWeapon: (uid: IdDObjet | null) => void;
-  /** Déclare/efface la réaction de Porte-Bouclier (variante AA 13 l.84) pour cette défense au Bouclier. */
-  defenseSetShieldReaction: (kind: 'damage' | 'push' | null) => void;
-  /** Déclare ou refuse la Riposte (LDB 10 l.1037) pour cette défense. */
-  defenseSetRiposte: (riposte: boolean) => void;
   /** « Je te renie ! » (LDB 17 l.67) : résout le choix (true = refuser la mutation, 1 Résilience). */
   renounceResolve: (renounce: boolean) => void;
   /** Peek du planificateur IA (déterministe, sans RNG ni mutation) : la meilleure action du combattant `id`

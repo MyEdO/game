@@ -274,7 +274,8 @@ export interface CampaignVessel {
 }
 
 /** État réseau SÉRIALISABLE (dans l'état du jeu). `ownership` : heroId → siège (0 = hôte).
- *  `slots` : siège attribué à chacun des 4 emplacements de l'écran d'équipe (0 = hôte). */
+ *  `slots` : siège attribué à chacun des 4 emplacements de l'écran d'équipe (0 = hôte).
+ *  `rangs` : heroId → emplacement qu'il occupe, lu par `emplacementsDuGroupe` (`sieges.ts`). */
 export interface NetState {
   mode: 'local' | 'host' | 'guest';
   mySeat: number;
@@ -289,6 +290,7 @@ export interface NetState {
   hostAway: boolean;
   ownership: Record<string, number>;
   slots: number[];
+  rangs: Record<string, number>;
   /** Rôle MJ (bac-à-sable) : le siège qui conduit TOUT le camp ennemi + les jets du monde, sur toutes les
    *  rencontres. `undefined` = IA (défaut, solo ET coop). UNIQUE (zéro ou un siège). Sérialisable (voyage
    *  dans les snapshots coop). Cf. `pilotedByHuman`/`aiDriven`/`controlsCombatant` (netOwnership). */
@@ -296,7 +298,7 @@ export interface NetState {
 }
 export const initialNet = (): NetState => ({
   mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {},
-  connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0],
+  connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0], rangs: {},
 });
 
 /** Les champs de JEU de l'état (#2817 D5) : tout hôte les porte ; aucun champ d'interface. */

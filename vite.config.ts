@@ -89,9 +89,9 @@ export default defineConfig({
     // global (cf. src/test-setup.ts).
     isolate: false,
     // Second effet du graphe PARTAGÉ : un `vi.spyOn` sur un namespace de module (ou sur un prototype
-    // `three`) mute l'instance du worker et fuit vers les fichiers suivants. Fermé PAR CONSTRUCTION
-    // ici plutôt que par une règle textuelle : chaque espion est rendu après SON test, les 144
-    // occurrences de `spyOn` des 48 fichiers du périmètre comprises (mesure 2026-09-02).
+    // `three`) mute l'instance du worker. Entre deux fichiers, Vitest rend lui-même les espions ; entre
+    // deux tests d'un même fichier, `restoreMocks` les rend avant le test suivant, plutôt qu'une règle
+    // textuelle : les 144 occurrences de `spyOn` des 48 fichiers du périmètre comprises (mesure 2026-09-02).
     restoreMocks: true,
     // Troisième effet : un worker garde ce que ses fichiers ont retenu, et V8 taille le tas de CHAQUE
     // processus sur la machine entière — plusieurs workers saturent alors la mémoire (#1801). La borne

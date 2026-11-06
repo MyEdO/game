@@ -25,7 +25,7 @@ import { findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
-import { ALL_MAGIC } from './types';
+import { ALL_MAGIC, type CastPenalty } from './types';
 import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -57,7 +57,9 @@ import { norm } from '../lib/normalize';
 import { ConjureForm, conjureFormOptions, equipConjuredWeapon, specDArmeInvoquee } from './conjuredWeapons';
 import { polymorphOps } from './polymorph';
 import type { SizeCategory } from './size';
-import type { Duration } from './duration';
+import { clockLabel, type Duration } from './duration';
+import { suspendSource } from './suspension';
+import { deitySkills, priestCult } from './magic'; // cycle runtime (magic→ops) : appelé à l'application, jamais à l'init du module
 import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } from './advantage';
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
@@ -640,16 +642,26 @@ export type GameOp =
    *  quand l'appelant ne fournit ni horloge ni compte de Rounds — et les deux régimes ne se rangent PAS
    *  au même endroit :
    *   - durée (Rounds/horloge) → porté par l'`ActiveEffect` (`grantedTalent`), qui s'éteint avec lui.
-   *     Canaux servis : `combatFeatures.featuresOf` (capacités de combat) et, via `effectGrantedTalents`,
-   *     le collecteur de POSSESSION `effectiveTalents` (fiche, chips, `hasTalent`). NON servis : les
-   *     lecteurs qui parcourent `c.talents` en direct — `talentTestSLBonus` (+DR de Talent),
-   *     `talentPassiveMods` (passifs), `baseWithTalents`, `careerSkillAdditions`/
-   *     `careerTalentAdditions`, l'avancement.
+   *     Tout lecteur de POSSESSION le voit, par la porte unique `effectiveTalents` (capacités de
+   *     combat, +DR de Talent, passifs, fiche). Les lecteurs d'ACQUISITION (`baseWithTalents`,
+   *     `careerSkillAdditions`/`careerTalentAdditions`, l'avancement) lisent `c.talents` et l'ignorent.
    *   - sans échéance (Marques Arcaniques, VDM 02 l.238) → acquisition STRUCTURELLE dans `c.talents`
    *     (comme `attachMutation` et l'effet de Signe astral), bornée par le Maxi du registre : tous les
    *     canaux ci-dessus la voient.
    *  Référence de Talent (`refOuSpec('talent')`, champ à choix de `mecanique.ts`). */
   | { op: 'grantTalent'; talent: RefASpecialisation }
+  /** Talents SUSPENDUS, jamais retirés de `c.talents` : chaque Talent est une source suspendue
+   *  (`suspendSource`, `engine/suspension.ts`), que la porte de possession `effectiveTalents` écarte
+   *  tant que l'effet dure, toutes spécialisations confondues. Une seule durée, tirée une fois pour
+   *  toute la liste. LDB 40 l.80, l.82 */
+  | { op: 'suppressTalents'; talents: { id: string }[]; durationDays: Formula }
+  /** La cible ne peut plus être l'objet d'aucune Bénédiction ni d'aucun Miracle de la divinité de qui
+   *  applique l'op (`priestCult` de `ctx.caster`) : `prayerBannedOn` les fait échouer sur elle tant que
+   *  l'effet dure. Sans divinité : sans effet, journalisé. LDB 40 l.64 */
+  | { op: 'deityBan'; durationDays: Formula }
+  /** Le porteur doit effectuer des Tests de Prière pour son Action tant que l'effet dure
+   *  (`prayerForActionBy`) ; le Mouvement reste libre. LDB 40 l.74 */
+  | { op: 'prayerForAction'; durationRounds: Formula }
   /** Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) —
    *  référence EMBOÎTÉE (jamais libellé), MÊME forme que `RefDesignee` sans sa valeur imprimée :
    *  `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe.
@@ -991,6 +1003,12 @@ export type GameOp =
    *  (`testValue`), pas une liste de compétences codée en dur. Absent = inconditionnel (Cécité : compétences
    *  nommément listées CC/CT/Esquive/Chevaucher, `sense` inutile car déjà scopé par `skill`). */
   | { op: 'skillMod'; skill: RefDesignee; mod: number; sense?: PairedSense }
+  /** `mod` aux Compétences associées à la divinité de la cible (`deitySkills`, `engine/magic.ts`) :
+   *  `pick: 'all'` les frappe toutes, `'random'` une seule tirée au `ctx.rng`. Un seul effet, une seule
+   *  durée d'horloge (`OpDuree`) ; cible sans divinité ou dieu sans liste : sans effet, journalisé.
+   *  LDB 40 l.61, l.70 */
+  | { op: 'deitySkillMod'; pick: 'all' | 'random'; mod: number; durationHours: Formula; durationDays?: never }
+  | { op: 'deitySkillMod'; pick: 'all' | 'random'; mod: number; durationDays: Formula; durationHours?: never }
   /** +N DR à un Test de Compétence nommé (Furtif : +Bonus d'Agilité au DR de Discrétion, LDB 85 l.154 ;
    *  chanson « Jacques Bret » : +1 DR sur tout Test de Corps à corps réussi, MDG 09 l.228).
    *  Lu par `skillDRBonus` — PASSIF depuis les `TraitData.passive` du porteur (par id), ET, quand
@@ -1401,8 +1419,26 @@ export function durationFromCtx(ctx: OpsCtx): Duration {
   return { scale: 'permanent' };
 }
 
+/** Libellé EXACT de l'échéance d'horloge d'une durée posée (« 4 j », « 7 h »), vide hors horloge. */
+function libelleDHorloge(duree: Duration, ctx: OpsCtx): string {
+  return duree.scale === 'clock' ? clockLabel(duree.until - (ctx.now ?? 0), { exact: true }) ?? '' : '';
+}
+
 /** Champs de DURÉE qu'une op peut porter — consommés à la pose par `durationFromOp`. */
-interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
+interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula; durationDays?: Formula }
+
+/** L'op porte-t-elle une durée d'HORLOGE intrinsèque (minutes, heures ou jours) ? */
+function aUneHorloge(o: OpDuree): boolean {
+  return o.durationMinutes != null || o.durationHours != null || o.durationDays != null;
+}
+
+/** Minutes d'HORLOGE intrinsèques de l'op, résolues UNE fois dans `ctx` ; `undefined` sans champ
+ *  d'horloge. Résolution UNIQUE des trois unités (LDB 47). */
+function minutesDHorloge(o: OpDuree, ref: Combatant, ctx: OpsCtx): number | undefined {
+  if (!aUneHorloge(o)) return undefined;
+  return formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60
+    + formuleDuCtx(o.durationDays ?? 0, ref, ctx) * MINUTES_PER_DAY;
+}
 
 /** Résout `f` dans le contexte `ctx` de l'op qui la porte : TOUS les termes de contexte (`rolled`, `indiceOf`,
  *  `stacks`, `engagedAdvantageGap`, `woundsDealt`, `sl`) y valent leur valeur courante — un terme qu'un
@@ -1417,9 +1453,8 @@ function formuleDuCtx(f: Formula, ref: Combatant, ctx: OpsCtx): number {
  *  la FORMULE de l'entrée (`{minimum, of}`), jamais au site d'appel. */
 function durationFromOp(o: OpDuree, ctx: OpsCtx, ref: Combatant): Duration {
   if (o.durationRounds != null) return { scale: 'rounds', left: formuleDuCtx(o.durationRounds, ref, ctx) };
-  if (o.durationMinutes != null || o.durationHours != null) {
-    return { scale: 'clock', until: (ctx.now ?? 0) + formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60 };
-  }
+  const minutes = minutesDHorloge(o, ref, ctx);
+  if (minutes != null) return { scale: 'clock', until: (ctx.now ?? 0) + minutes };
   return durationFromCtx(ctx);
 }
 
@@ -1430,13 +1465,14 @@ function sansDuree<T extends OpDuree>(o: T): T {
   delete passif.durationRounds;
   delete passif.durationMinutes;
   delete passif.durationHours;
+  delete passif.durationDays;
   return passif;
 }
 
 /**
  * CAUSE PERSISTANTE (`LDB 16 l.117`) : une op `condition` RÉCURRENTE gatée sur l'État qu'elle pose —
  * le porteur ne subit pas un État de plus par Round, il le REGAGNE tant que la cause dure. UNIQUE
- * définition du prédicat : l'application (journal) et les lecteurs du Codex (`ui/compendium/opRows.ts`,
+ * définition du prédicat : l'application (journal) et les lecteurs du Codex (`noyau/codex/opRows.ts`,
  * `humanize.ts`, `registry.ts`) l'importent d'ici. Accepte aussi la forme PLATE du dialecte miscast
  * (`data/miscast.json`, `engine/miscast.ts`), dont les champs portent les mêmes noms.
  */
@@ -1686,6 +1722,15 @@ export function nomDeSource(ctx: { label?: string } | undefined, nature: NatureD
   return ctx?.label ?? t(`op.nature.${nature}`);
 }
 
+/** Ce que fait une pénalité d'incantation (`CastPenalty`), en clair : le libellé UNIQUE du journal et de
+ *  sa pastille d'état. */
+export function effetDePenaliteDIncantation(cp: Pick<CastPenalty, 'skill' | 'mod' | 'blocked' | 'maxZeroDR'>): string {
+  const skill = cp.skill === ALL_MAGIC ? t('op.frag.allMagic') : refLabel('skills', { id: cp.skill });
+  if (cp.blocked) return t('op.castPenalty.blocked', { skill });
+  if (cp.maxZeroDR) return t('op.castPenalty.maxZeroDR');
+  return cp.mod == null ? '' : t('op.castPenalty.mod', { mod: String(cp.mod), skill });
+}
+
 /** Le CONTEXTE GELÉ d'une feuille différée — la part d'`OpsCtx` qui voyage telle quelle. */
 export type OpsCtxGele = Pick<OpsCtx, (typeof OPS_CTX_GELES)[number]>;
 
@@ -1931,7 +1976,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'condition': {
         if (!groupGate(o.onlyGroups)) break;
         if (o.grapple && !peutEtreEmpoigne(target)) break; // #1595 c.6230022636
-        if (o.perRound && (o.durationMinutes != null || o.durationHours != null)) throw new Error(messageRecurrenceHorloge(o.id));
+        if (o.perRound && aUneHorloge(o)) throw new Error(messageRecurrenceHorloge(o.id));
         // Gates d'État (Sommeil, LDB 47) : l'op ne s'applique que si la cible porte / ne porte pas
         // l'État — évalués à CHAQUE application. Sous `perRound`, l'application est le REJEU de fin
         // de Round : les gates partent AVEC l'op récurrente (ci-dessous) et sont évalués là.
@@ -1967,9 +2012,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const struggleDamage = o.struggleDamage != null ? Math.max(0, formuleDuCtx(o.struggleDamage, ref, ctx)) : undefined;
         // Durée PORTÉE par l'op, résolue UNE fois ici : horloge (minutes/heures depuis `ctx.now`) ou
         // Rounds. Exclusives (cf. JSDoc du champ) — l'horloge prime, aucun dé n'est tiré pour l'autre.
-        const clockMin = o.durationMinutes != null || o.durationHours != null
-          ? formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60
-          : undefined;
+        const clockMin = minutesDHorloge(o, ref, ctx);
         const rounds = clockMin == null && o.durationRounds != null ? formuleDuCtx(o.durationRounds, ref, ctx) : undefined;
         const avantageAvant = target.advantage ?? 0;
         if (o.perRound) {
@@ -2100,8 +2143,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         charRounds = dur.scale === 'rounds' ? dur.left : null;
         // Le fragment de durée en minutes ne se compose que d'une échéance INTRINSÈQUE : une horloge héritée
         // du contexte (`ctx.defaultUntilTime`) est une date, pas un décompte — elle se dit « hors combat ».
-        const horlogeIntrinseque = o.durationMinutes != null || o.durationHours != null;
-        charClockMin = horlogeIntrinseque && dur.scale === 'clock' ? dur.until - (ctx.now ?? 0) : null;
+        charClockMin = aUneHorloge(o) && dur.scale === 'clock' ? dur.until - (ctx.now ?? 0) : null;
         break;
       }
       case 'ap': {
@@ -2198,6 +2240,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const cp: NonNullable<Combatant['castPenalties']>[number] = {
           label: nomDeSource(ctx, 'contrecoup'),
           skill: o.skill?.id ?? ALL_MAGIC,
+          ...(source ? { source } : {}),
           ...(o.mod != null ? { mod: o.mod } : {}),
           ...(o.blocked ? { blocked: true } : {}),
           ...(o.maxZeroDR ? { maxZeroDR: true } : {}),
@@ -2220,13 +2263,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           dureeTxt = t('op.frag.days', { n: d, s: d > 1 ? 's' : '' });
         }
         target.castPenalties = [...(target.castPenalties ?? []), cp];
-        const skillTxt = cp.skill === 'all' ? t('op.frag.allMagic') : refLabel('skills', { id: cp.skill });
-        const what = cp.blocked
-          ? t('op.castPenalty.blocked', { skill: skillTxt })
-          : cp.maxZeroDR
-            ? t('op.castPenalty.maxZeroDR')
-            : t('op.castPenalty.mod', { mod: String(cp.mod), skill: skillTxt });
-        lines.push(t('op.castPenalty', { name: target.label, what, duree: dureeTxt ? t('op.frag.during', { dureeTxt }) : '', label: cp.label }));
+        lines.push(t('op.castPenalty', { name: target.label, what: effetDePenaliteDIncantation(cp), duree: dureeTxt ? t('op.frag.during', { dureeTxt }) : '', label: cp.label }));
         break;
       }
       case 'statusMod': {
@@ -2410,6 +2447,37 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           grantedTalent: { talentId: o.talent.id, ...(o.talent.spec ? { spec: o.talent.spec } : {}) },
         });
         lines.push(t('op.grantTalent', { name: target.label, talent, src: nomDeSource(ctx) }));
+        break;
+      }
+      case 'suppressTalents': {
+        const duree = durationFromOp(o, ctx, ref);
+        for (const talent of o.talents) suspendSource(target, { category: 'talents', id: talent.id }, duree, nomDeSource(ctx));
+        lines.push(t('op.suppressTalents', {
+          name: target.label,
+          talents: o.talents.map((x) => refLabel('talents', x)).join(', '),
+          duree: libelleDHorloge(duree, ctx),
+          src: nomDeSource(ctx),
+        }));
+        break;
+      }
+      case 'deityBan': {
+        const dieu = priestCult(ref);
+        if (!dieu) {
+          lines.push(t('op.deityBan.sansDivinite', { name: target.label, src: nomDeSource(ctx) }));
+          break;
+        }
+        const duree = durationFromOp(o, ctx, ref);
+        target.activeEffects = target.activeEffects ?? [];
+        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: duree, deityBan: dieu });
+        lines.push(t('op.deityBan', { name: target.label, dieu: refLabel('gods', { id: dieu }), duree: libelleDHorloge(duree, ctx), src: nomDeSource(ctx) }));
+        break;
+      }
+      case 'prayerForAction': {
+        const duree = durationFromOp(o, ctx, ref);
+        target.activeEffects = target.activeEffects ?? [];
+        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: duree, prayerForAction: true });
+        const n = duree.scale === 'rounds' ? duree.left : 0;
+        lines.push(t('op.prayerForAction', { name: target.label, duree: t('op.frag.roundsCap', { n, s: n > 1 ? 's' : '' }), src: nomDeSource(ctx) }));
         break;
       }
       case 'reduceToZero': {
@@ -2895,6 +2963,28 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           passive: [o],
         });
         lines.push(t('op.skillMod', { name: target.label, mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`, skill: o.skill.id, src: nomDeSource(ctx) }));
+        break;
+      }
+      case 'deitySkillMod': {
+        const associees = deitySkills(target);
+        if (!associees.length) {
+          lines.push(t('op.deitySkillMod.sansListe', { name: target.label, src: nomDeSource(ctx) }));
+          break;
+        }
+        const frappees = o.pick === 'all' ? associees : [associees[rng.int(0, associees.length - 1)]];
+        const duree = durationFromOp(o, ctx, ref);
+        target.activeEffects = target.activeEffects ?? [];
+        target.activeEffects.push({
+          label: nomDeSource(ctx), bonus: 0, duration: duree,
+          passive: frappees.map((id) => ({ op: 'skillMod', skill: { id }, mod: o.mod })),
+        });
+        lines.push(t('op.deitySkillMod', {
+          name: target.label,
+          mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`,
+          skills: frappees.map((id) => refLabel('skills', { id })).join(', '),
+          duree: libelleDHorloge(duree, ctx),
+          src: nomDeSource(ctx),
+        }));
         break;
       }
       // +DR temporisé à une Compétence / une Caractéristique (chansons de marin, MDG 09 l.228/236) :

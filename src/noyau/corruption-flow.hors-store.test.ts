@@ -50,13 +50,13 @@ describe('Effet corruptionExposure → modale → jetConfirm@corruption', () => 
     expect(banc.getState().journal.join('\n')).toMatch(/Corruption/);
   });
 
-  it('nature IMPOSÉE par la source → figée, corruptionSetNature sans effet', () => {
+  it('nature IMPOSÉE par la source → figée, réglage corruption.nature sans effet', () => {
     const { a, party } = party2();
     banc.setState({ party });
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'spirituelle', heroId: a.id }]);
     expect(banc.getState().pendingCorruption!.nature).toBe('spirituelle');
     expect(banc.getState().pendingCorruption!.natureFixee).toBe(true);
-    banc.getState().corruptionSetNature('physique'); // figée → ignoré
+    banc.getState().jetRegler('corruption', 'nature', 'physique'); // figée → ignoré
     expect(banc.getState().pendingCorruption!.nature).toBe('spirituelle');
   });
 
@@ -66,11 +66,11 @@ describe('Effet corruptionExposure → modale → jetConfirm@corruption', () => 
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', heroId: a.id }]);
     expect(banc.getState().pendingCorruption!.nature).toBe('physique'); // défaut affiché
     expect(banc.getState().pendingCorruption!.natureFixee).toBeFalsy();
-    banc.getState().corruptionSetNature('spirituelle'); // le joueur tranche
+    banc.getState().jetRegler('corruption', 'nature', 'spirituelle'); // le joueur tranche
     expect(banc.getState().pendingCorruption!.nature).toBe('spirituelle');
     // Après le jet, plus de changement possible.
     banc.getState().jetRoll('corruption');
-    banc.getState().corruptionSetNature('physique');
+    banc.getState().jetRegler('corruption', 'nature', 'physique');
     expect(banc.getState().pendingCorruption!.nature).toBe('spirituelle');
   });
 
@@ -84,7 +84,7 @@ describe('Effet corruptionExposure → modale → jetConfirm@corruption', () => 
     expect(pc?.test).toEqual(testDeRegle('corrompu', 'contenir'));
     expect(pc?.nature).toBeUndefined();
     const avant = pc!.test;
-    banc.getState().corruptionSetNature('spirituelle'); // seuil → ignoré
+    banc.getState().jetRegler('corruption', 'nature', 'spirituelle'); // seuil → ignoré
     expect(banc.getState().pendingCorruption!.test).toEqual(avant);
   });
 

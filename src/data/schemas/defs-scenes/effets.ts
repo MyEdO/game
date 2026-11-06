@@ -9,18 +9,19 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
  * montage qui tient est `z.ZodType<T> = z.lazy(…)`, où le type manuscrit est l'ANNOTATION.
  *
  * Le `flowSchema` de la grammaire (`grammaire/mecanique.ts`) reste `Flow<EffectOp>` : sa feuille
- * `do` est la seule op mécanique. `sceneFlowSchema` ci-dessous est le MÊME arbre paramétré sur
- * l'union `Effect` complète (transition/dialogue/combat…) — `conditionSchema` est partagé et le nœud
- * `test` vient de la fabrique `noeudTest` de la grammaire, aucune structure n'est recopiée.
+ * `do` est la seule op mécanique. `sceneFlowSchema` ci-dessous est le MÊME arbre, produit par la
+ * fabrique `arbreDeFlow` de la grammaire, paramétré sur l'union `Effect` complète
+ * (transition/dialogue/combat…) et sur `conditionSchema` : aucune structure n'est recopiée.
  */
 import { z } from 'zod';
 import { validerApparenceDonnee } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
-import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
-import { conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, noeudTest } from '../grammaire/mecanique';
+import { cell2Schema, chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
+import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
-import { idDe, ref, refOuSpec } from '../grammaire/ref';
+import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
+import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
@@ -36,13 +37,11 @@ import type { PlayerText } from '../../../i18n/playerText';
 export const dayPhaseIdSchema = z.enum(['aube', 'matin', 'midi', 'apresmidi', 'crepuscule', 'soir', 'nuit']);
 /** Cible d'un effet de scène : tout le groupe, ou UN héros (`heroId`, défaut le premier). */
 export const effectTargetSchema = z.enum(['party', 'hero']);
-/** `LivingRef` (`engine/possession.ts`) — bestiaire (édition Codex vivante) OU statbloc custom
- *  d'éditeur (le snapshot EST son identité). */
 export const idDeCreature: z.ZodType<string, string> = idDe('creature');
-export const livingRefSchema = z.union([
-  nommerChamps(z.strictObject({ creatureId: idDeCreature }), { creatureId: { label: "créature" , texte: { regime: "technique"} } }),
-  nommerChamps(z.strictObject({ custom: customStatblockSchema }), { custom: { label: "profil personnalisé" } }),
-]);
+/** Statbloc custom d'éditeur d'un vivant : le snapshot EST son identité. */
+const statblocDeVivantSchema = nommerChamps(z.strictObject({ custom: customStatblockSchema }), { custom: { label: "profil personnalisé" } });
+/** Source de `LivingRef` (`engine/possession.ts`) : le bestiaire (édition Codex vivante) OU un statbloc custom. */
+export const livingRefSchema: z.ZodType<{ id: string } | z.infer<typeof statblocDeVivantSchema>> = z.union([ref('creature'), statblocDeVivantSchema]);
 /** `ChaosAlign` (`engine/corruption.ts`) — Puissance du Chaos d'une table de mutation alignée. MÊME
  *  vocabulaire que la charge de l'op `corruption` : la const NOMMÉE de la grammaire est partagée (#1694). */
 export { chaosAlignSchema };
@@ -164,13 +163,12 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que
- *  `giveTrapping.heroId`, §4.3). `ref` réutilise `LivingRef` (bête/serviteur, bestiaire OU statbloc
- *  custom) ou `{vehicleId}` (véhicule, catalogue `vehicles.json`). */
-const idDeVehicule: z.ZodType<string, string> = idDe('vehicle');
+ *  `giveTrapping.heroId`, §4.3). `ref` : une référence typée du bestiaire ou du catalogue
+ *  `vehicles.json`, OU le statbloc custom de `LivingRef`. */
 export const givePossessionSchema = nommerChamps(z.strictObject({
   type: z.literal('givePossession'),
   nature: z.enum(['bete', 'serviteur', 'vehicule']),
-  ref: z.union([livingRefSchema, nommerChamps(z.strictObject({ vehicleId: idDeVehicule }), { vehicleId: { label: "véhicule" , texte: { regime: "technique"} } })]),
+  ref: z.union([refTypee(typeDePossessionSchema), statblocDeVivantSchema]),
   heroId: z.string().optional(),
 }), { type: { label: "type"  }, nature: { label: "nature"  }, ref: { label: "référence" }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
@@ -348,7 +346,7 @@ export const inflictTraumaSchema = nommerChamps(z.strictObject({
  *  Dégâts BRUTS par défaut (`op:'wounds'` ignore BE+PA) ; mitiger = `{ignoreTB:false, ignoreAP:false}`. */
 export const zoneBlastSchema = nommerChamps(z.strictObject({
   type: z.literal('zoneBlast'),
-  center: nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } }),
+  center: cell2Schema,
   radius: z.number(),
   ops: executeesDe(),
 }), { type: { label: "type"  }, center: { label: "centre" }, radius: { label: "rayon" }, ops: { label: "opérations" } });
@@ -497,6 +495,7 @@ export const openTavernGamesSchema = nommerChamps(z.strictObject({ type: z.liter
  *  Sans effet si le projet n'a pas de carte ou en combat. */
 export const openWorldMapSchema = nommerChamps(z.strictObject({ type: z.literal('openWorldMap') }), { type: { label: "type"  } });
 
+const idDeVehicule: z.ZodType<string, string> = idDe('vehicle');
 /** Dote le groupe d'un NAVIRE DE CAMPAGNE (`state.vessel`, `MDG 13-15`) — à poser quand le groupe
  *  reçoit/achète un bateau (don d'un patron, chantier). `vehicleId` = un navire de `vehicles.json`
  *  (facette `ship`) ; Moral et Blessures de coque INITIAUX authorés (coque neuve = pas de `wounds`).
@@ -730,24 +729,9 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
   ]),
 );
 
-/** `Flow<Effect>` (`engine/flowCore.ts`) — le MÊME arbre acyclique seq/do/if/test/choice que le
- *  `flowSchema` de la grammaire, mais dont la feuille `do` est l'union `Effect` de scène (et non le
- *  seul `EffectOp` mécanique). */
-export const sceneFlowSchema: z.ZodType<Flow> = z.lazy(() =>
-  z.discriminatedUnion('kind', [
-    nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(sceneFlowSchema) }), { kind: { label: "type"  }, steps: { label: "étape" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectSchema }), { kind: { label: "type"  }, effect: { label: "effet" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: sceneFlowSchema, else: sceneFlowSchema.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }),
-    noeudTest(sceneFlowSchema),
-    proseNommee(nommerChamps(z.strictObject({
-      kind: z.literal('choice'),
-      advantageCost: z.number().optional(),
-      icon: z.string().optional(),
-      yes: sceneFlowSchema,
-      no: sceneFlowSchema.optional(),
-    }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage" }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt'),
-  ]),
-);
+/** `Flow<Effect>` (`engine/flowCore.ts:559`) — l'arbre `arbreDeFlow` de feuille `do` l'union `Effect`
+ *  de scène, au coût de `choice` littéral (le template `$indice` n'a pas de porteur en scène). */
+export const sceneFlowSchema: z.ZodType<Flow> = arbreDeFlow(effectSchema, conditionSchema, z.number());
 
 function nommerEffet<N extends z.ZodType>(noeud: N, label: string): N {
   return nommerNoeud(noeud, { label, nom: `effet ${label}` });

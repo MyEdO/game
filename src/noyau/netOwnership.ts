@@ -4,16 +4,16 @@
  * source unique partagée avec le gating d'affichage UI) — ajouter une modale n'exige RIEN ici.
  */
 import type { Jeu } from './etat';
-import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import { modalOwnerOf, horsModalOwnedIntents, horsModalByPending, sortieDeLaFenetre, type HorsModalDef } from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
-import { seatOwns, jetSurfaced } from './sieges';
+import { seatOwns, jetSurfaced, siegeDuHeros } from './sieges';
 import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type RollVerb } from './flowVerbs';
 import type { PendingKey } from './stateFields';
+import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
 import { WORLD_STEP_OWNER } from './pendings';
 
 /** Intents adossés à une fenêtre HORS registre de modales (`HORS_MODAL`, #1016) — DÉRIVÉS de ce
@@ -131,7 +131,7 @@ export function unSiegeAgit(): boolean {
  *  Exporté pour les gestes qui MARQUENT leur siège dans l'état partagé (demande de pause de Round) :
  *  le siège vient du TRANSPORT (`withActingSeat`, posé par `appliquerLIntentionDUnSiege`), jamais des arguments
  *  de l'émetteur — un siège ne peut donc marquer ni démarquer que lui-même. */
-export function decidingSeat(s: Jeu): number {
+export function decidingSeat(s: Pick<Jeu, 'net'>): number {
   return actingSeat ?? s.net.mySeat;
 }
 
@@ -178,12 +178,6 @@ export function ownsGroupDecision(s: Jeu): boolean {
  */
 export function groupDecisionSeat(s: Jeu): number {
   return s.net.gmSeat ?? 0;
-}
-
-/** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
- *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */
-export function nomDuSiege(net: Pick<Jeu['net'], 'seatNames'>, seat: number): string {
-  return net.seatNames[seat] ?? (seat === 0 ? t('party.seat.host') : t('party.seat.player', { n: seat + 1 }));
 }
 
 /** Surfaçage de la DÉFENSE (#989) — nom de domaine des sites d'attaque (`maybeOpenDefense`,
@@ -331,7 +325,7 @@ export function controlsActive(state: Jeu): boolean {
  *  (En mode local, slots = [0,0,0,0] → l'hôte garde les 4 emplacements, comme avant la coop.) */
 export function seatSlotsRemaining(s: Pick<Jeu, 'net' | 'party'>, seat: number): number {
   const slots = (s.net.slots ?? [0, 0, 0, 0]).filter((x) => x === seat).length;
-  const owned = s.party.filter((h) => (s.net.ownership[h.id] ?? 0) === seat).length;
+  const owned = s.party.filter((h) => siegeDuHeros(s.net, h.id) === seat).length;
   return slots - owned;
 }
 
@@ -474,6 +468,29 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
 });
 
 /**
+ * Possession du réglage d'un jet (`jetRegler(flux, reglage, valeur, pid?)`), d'après sa déclaration (`REGLAGES_DU_JET`)
+ * — un réglage que son flux ne déclare pas : personne.
+ *  - le réglage que le siège d'un autre combattant joue (`porteurDeLaValeur` : les Bandages, LDB 74 l.41) : ce
+ *    combattant ;
+ *  - un réglage de rangée (l'arme d'enfoncement, EDO 11 l.93) : le combattant de la rangée (`pid`) ;
+ *  - sur un flux MONO : le porteur du jet (`routeJet`), comme ses verbes de jet — sur le Sort d'un ennemi, dont la
+ *    fenêtre est à tous (`'*'`), le siège qui joue l'ennemi, jamais un autre ;
+ *  - un réglage de fenêtre sur un flux MULTI (le virage d'une manœuvre navale) : le repli universel (le owner de sa
+ *    modale).
+ */
+const ROUTE_DU_REGLAGE: Route = {
+  rule: (s, seat, args) => {
+    const [flux, reglage, valeur, pid] = args;
+    const declaration = declarationDuReglage(flux, reglage);
+    if (!declaration || !estFluxRegle(flux)) return false;
+    if (declaration.porteurDeLaValeur) return seatInfluences(s, seat, declaration.porteurDeLaValeur(s, valeur));
+    if (declaration.portee === 'rangee') return seatInfluences(s, seat, idArg(pid));
+    const w: FlowVerbs = FLOW_VERBS[flux];
+    return w.kind === 'mono' ? routeJet(w.jetOwner).rule(s, seat, args) : null;
+  },
+};
+
+/**
  * Gestes TERMINAUX d'une fenêtre HORS registre de modales (`HORS_MODAL.intents`) : possession prise
  * au pending qui héberge le geste. `cleaveEnd`/`dualStrikeSkip` sont émis par le bandeau de phase de
  * la console (sortie d'interlude) ; `cleaveAttack`/`dualStrikeAttack` n'ont AUCUN émetteur d'UI
@@ -509,13 +526,11 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['markCluesSeen', TOUJOURS],
     // Butin de victoire : un siège n'attribue qu'à SES héros (le bénéficiaire est le 2ᵉ argument).
     ['assignVictoryGear', PAR_ARG1],
-    // Composition du groupe : l'ajout est tranché par le geste (`refusDAjoutAuGroupe`) ; un siège ne
-    // retire que SES héros.
+    // Composition du groupe : tranchée par le geste, une fois — l'ajout par `refusDAjoutAuGroupe`, le retrait et le
+    // remplacement par `refusDeComposerLeHeros` (`partyFlow.ts`).
     ['partyAddHero', TOUJOURS],
-    ['partyRemoveHero', PAR_ARG0],
-    // Remplacement EN PLACE : le siège doit posséder l'ANCIEN héros (1er arg). L'effectif ne change
-    // pas (1 héros pour 1) → aucun check de quota d'emplacements.
-    ['partyReplaceHero', PAR_ARG0],
+    ['partyRemoveHero', TOUJOURS],
+    ['partyReplaceHero', TOUJOURS],
     // Activités d'interlude (audit M7) : le 1er argument est le héros visé — son propriétaire agit
     // (`interludeActivity` = chemin UNIQUE des Activités à jet).
     ['interludeActivity', PAR_ARG0],
@@ -558,11 +573,8 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // DÉCLARATION d'un TOMBANT de chute volontaire (#700, EDO 01 l.231) : chaque rangée appartient au
     // siège de SON héros, patron `counterspellDeclare`.
     ['fallChoose', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
-    // Choix de l'arme d'enfoncement (EDO 11 l.93) : la rangée appartient au siège de SON héros.
-    ['forceDoorChoisirArme', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
-    // Bandages d'un soin (LDB 74 l.41) : seul le siège du héros qui les porte les engage ou les retire
-    // (`user-arbitrage-coop-inventaire-par-proprietaire-bg3`).
-    ['healSetBandages', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0]) ?? s.pendingHeal?.bandagesDe ?? undefined) }],
+    // Le réglage d'un jet en attente (`routeDuReglage`).
+    ['jetRegler', ROUTE_DU_REGLAGE],
     // La sortie d'une fenêtre : la fenêtre est le 1ᵉʳ argument, et son registre dit qui la ferme (`sortie`) — l'hôte
     // seul, ou le siège de son propriétaire ('*' : tout siège). Une victoire se ferme par l'hôte : l'invité marque
     // son siège (`victoryReady`), l'hôte ferme à l'unanimité.

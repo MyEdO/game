@@ -1585,7 +1585,7 @@ export function poserCurseurCascade(get: Get, set: Set, casc: PendingCascade, i:
 
 /**
  * LA MÊME PORTE, rendue en VALEUR (#1426) — pour un site qui doit publier `pendingCascade` DANS LE
- * MÊME `set` qu'un autre champ : `store.testSetActor` change le porteur du Test ET celui de l'étape,
+ * MÊME `set` qu'un autre champ : le réglage `test.testeur` change le porteur du Test ET celui de l'étape,
  * et deux `set` successifs publient entre eux un état où les deux porteurs divergent (un abonné rend
  * cet inter-état). Une seule implémentation — `poserCurseurCascade` délègue ici.
  */

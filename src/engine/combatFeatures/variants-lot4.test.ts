@@ -2,7 +2,7 @@
  * Preuve de COMPORTEMENT — variantes réglées de `talents.json` (#563/#564). 4 provenances de lecture de
  * la MÊME variante, sur de VRAIES entités du catalogue (jamais un id synthétique) : (1) la capacité
  * MÉCANIQUE (`dispatch.ts`, `featuresOf` via `effectiveEntry`), (2) l'affichage Codex (le registre RÉEL
- * `ui/compendium/registry.ts`, prouvé par `src/ui/compendium/codex-talents-variantes.test.ts`), (3) le
+ * `noyau/codex/registry.ts`, prouvé par `src/noyau/codex/codex-talents-variantes.test.ts`), (3) le
  * câblage `combatFlow` (Frappe blessante →
  * `hasCritRollTwiceTalent`/`critRollTwiceFor`), (4) la table de NON-RÉGRESSION de la `CombatFeature`
  * effective de CHAQUE talent à variante (liste DÉRIVÉE du catalogue) sous la sémantique REPLACE. Chaque cas couvre les DEUX modes

@@ -364,7 +364,7 @@ describe('beginShipwreck — cascade Possession (#618 SOCLE POSSESSIONS, dernier
     };
     const embarquee1: Possession = {
       uid: 'pos-1', nature: 'bete', ownerId: get().party[0].id, location: { kind: 'embarquee', hostUid: 'pos-navire' },
-      items: [], ref: { creatureId: 'mule' },
+      items: [], ref: { id: 'mule' },
     };
     const embarquee2: Possession = {
       uid: 'pos-2', nature: 'vehicule', ownerId: get().party[0].id, location: { kind: 'embarquee', hostUid: 'pos-navire' },
@@ -372,7 +372,7 @@ describe('beginShipwreck — cascade Possession (#618 SOCLE POSSESSIONS, dernier
     };
     const surLaTerreFerme: Possession = {
       uid: 'pos-3', nature: 'bete', ownerId: get().party[0].id, location: { kind: 'avec-le-groupe' },
-      items: [], ref: { creatureId: 'mule' },
+      items: [], ref: { id: 'mule' },
     };
     set({ possessions: [navire, embarquee1, embarquee2, surLaTerreFerme] });
 

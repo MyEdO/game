@@ -522,8 +522,7 @@ export const DETTES_DE_LIBELLE = {
   // #2070 — scénarios de test résolus par libellé (`findSkill`/`findTalent`).
   'src/scenes/test-scenarios/_casters.ts#label-entity-resolver-call': 2,
   'src/scenes/test-scenarios/magie-hors-combat.ts#label-entity-resolver-call': 1,
-  // #1632 — index du Codex par libellé (`codexLookup`) ; sort classé par libellé (`classifySpellByLabel`).
-  'src/ui/compendium/registry.ts#label-keyed-index': 1,
+  // #1632 — sort classé par libellé (`classifySpellByLabel`).
   'src/gameIso/fx/spellClips.ts#label-entity-resolver-call': 1,
 };
 

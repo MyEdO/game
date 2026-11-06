@@ -22,6 +22,7 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { evaluateTest } from '../engine/tests';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
@@ -75,7 +76,7 @@ function poseLancer(roll: number, sl: number): void {
   const participants = [...pc.participants];
   participants[idx] = {
     ...band,
-    participants: [{ ...row, result: { roll, target: row.target!, sl, success: roll <= row.target! } }],
+    participants: [{ ...row, result: { roll, target: row.target!, sl, success: evaluateTest(roll, row.target!).success } }],
   };
   banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
   get().jetConfirm('cascade');

@@ -9,7 +9,7 @@ import { Combatant, ItemInstance, type CharKey } from '../engine/types';
 import { recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor, bargainPct, type BargainOutcome } from '../engine/bargain';
-import { SL_ASTOUNDING, estJete } from '../engine/tests';
+import { SL_ASTOUNDING, cibleMesuree, estJete } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
 import type { SceneEntity } from './monde/scene';
@@ -30,7 +30,7 @@ import type { MerchantArchetypeDef } from '../data/merchants.types';
 import type { UniteAchetable } from '../data/merchants.types';
 import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
 import { startCascade } from './cascade';
-import { freeCons, openPartyTest } from './rollSeam';
+import { freeCons, openPartyTest, rollLine } from './rollSeam';
 import { actorIn, ecrireActeur } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
@@ -459,7 +459,7 @@ function quitterLeMarchand(get: Get, set: Set): void {
 /** La Possession d'une UNITÉ achetée (#619, #760), au propriétaire `ownerId`, avec le groupe. */
 function possessionDUnite(unit: UniteVendue, ownerId: string): Parameters<typeof addPossession>[2] {
   return unit.kind === 'bete'
-    ? { nature: 'bete', ref: { creatureId: unit.id }, ownerId, location: { kind: 'avec-le-groupe' }, items: [] }
+    ? { nature: 'bete', ref: { id: unit.id }, ownerId, location: { kind: 'avec-le-groupe' }, items: [] }
     : { nature: 'vehicule', vehicleId: unit.id, ownerId, location: { kind: 'avec-le-groupe' }, items: [] };
 }
 
@@ -894,8 +894,8 @@ function acquitterLeMarchandage(get: Get, set: Set): void {
 const DETECT_TALENT = 'detection-d-artefact';
 
 /** Compétence testée par CHAQUE mode de la fenêtre Évaluation/Détection, par id STABLE — SOURCE
- *  UNIQUE lue par l'ouverture du jet (`bestDetector`/`openAppraise`) ET par la modale qui décompose
- *  la valeur affichée (`AppraiseModal`, #1178). Détection : Talent « Détection d'artefact »
+ *  UNIQUE du meneur (`bestDetector`/`appraiseLeader`), de la ligne figée à l'ouverture (`openAppraise`) et du
+ *  libellé (`libelleDEvaluation`). Détection : Talent « Détection d'artefact »
  *  (`LDB 10 l.336`). Les Caractéristiques associées sont celles de `skills.json`. */
 export const APPRAISE_SKILL = {
   evaluate: { skill: 'evaluation', characteristic: 'intelligence' },
@@ -936,19 +936,20 @@ function openAppraise(
   const best = appraiseLeader(get().party, mode);
   if (!best) { get().log(appraiseNobody(mode)); return; }
   const t = trappingId ? findTrappingById(trappingId) : undefined;
+  const ligne = rollLine({ actor: best.actor, test: { skill: APPRAISE_SKILL[mode].skill, char: APPRAISE_SKILL[mode].characteristic }, difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
   set({ pendingAppraise: {
     actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.
     mode, skillLabel: refLabel('skills', { id: APPRAISE_SKILL[mode].skill }),
     truePriceBrass: t ? toBrass(priceToMoney(t.price)) : 0,
     availability: (t?.availability as string | undefined) ?? null,
-    skillValue: best.value, support: best.support, difficulty: 'intermediaire', target: best.value, roll: null, success: false, sl: 0,
+    ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0,
   } });
 }
 
 /** Jour de jeu courant (verrou « pas de re-tentative d'Évaluation le même jour »). */
-export function gameDay(get: Get): number {
-  return Math.floor(get().gameTime / MINUTES_PER_DAY);
+export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
+  return Math.floor(s.gameTime / MINUTES_PER_DAY);
 }
 
 export function appraiseItem(get: Get, set: Set, uid: string, heroId: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
@@ -956,7 +957,7 @@ export function appraiseItem(get: Get, set: Set, uid: string, heroId: string, mo
   const hero = actorIn(get(), heroId);
   const item = hero?.items?.find((i) => i.uid === uid); if (!item) return;
   if (mode === 'detect' && item.detectTried) return; // une seule tentative par artefact (LDB 10 l.336)
-  if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get)) {
+  if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get())) {
     get().log(t('mf.appraiseSameDay', { label: item.label }));
     return;
   }
@@ -969,7 +970,7 @@ export function appraiseGear(get: Get, set: Set, scope: 'loot' | 'victory', inde
   const bucket = scope === 'loot' ? get().pendingLoot : get().pendingVictory;
   const line = bucket?.gear?.[index]; if (!line) return;
   if (mode === 'detect' && line.effect.detectTried) return;
-  if (mode === 'evaluate' && line.effect.appraiseTriedDay === gameDay(get)) return;
+  if (mode === 'evaluate' && line.effect.appraiseTriedDay === gameDay(get())) return;
   openAppraise(get, set, { gear: { scope, index } }, line.label, mode, line.effect.trappingId);
 }
 
@@ -1037,7 +1038,7 @@ function acquitterLEvaluation(get: Get, set: Set): void {
   if (!pa.success) {
     // Échec NET : pas de re-tentative le même jour (LDB 12 l.94 — seul un résultat marginal
     // « permet de faire un nouvel essai » ; ADE II : re-tenter une identification coûte du temps).
-    patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get) });
+    patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get()) });
     get().log(t('mf.appraiseFail', { item: pa.itemName }));
     return;
   }
@@ -1077,7 +1078,7 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
 }
 
 export function sortiesDuMarchand(get: Get, set: Set) {
-  return { marche: () => quitterLeMarchand(get, set) } satisfies Partial<SortiesDeFenetre>;
+  return { marchand: () => quitterLeMarchand(get, set) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function cloturesDuMarchand(get: Get, set: Set) {

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { validateEntry } from '../editor/codex/CodexEdit';
 import { traits, creatures } from '../../data';
 import { datasetArray, DATASET_KEYS } from '../../data/overrides';
-import { entryKey } from './registry';
+import { entryKey } from '../../noyau/codex/registry';
 
 type Entry = Record<string, unknown>;
 
@@ -89,7 +89,7 @@ describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datali
 
   it('sweep GÉNÉRAL — TOUTE la donnée committée (tous les datasets éditables) résout déjà : round-trip = préserve la résolvabilité', () => {
     // Round-trip de TOUTE la donnée éditable : chaque réf résout déjà (aucun orphelin toléré) —
-    // les dotations véhicules (barque/charrette/diligence) sont migrées en `{vehicleId}` (#610).
+    // les dotations véhicules (barque/charrette/diligence) sont des références typées `{id, type: 'vehicle'}` (#610, #3012).
     for (const key of DATASET_KEYS) {
       const arr = datasetArray(key) as unknown as Entry[];
       arr.forEach((entry, i) => {

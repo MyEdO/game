@@ -386,7 +386,7 @@ export const ECRIT_LU = {
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
       'LIT AGENTS.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
       'd’AGENTS.md (`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
-      'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
+      'scripts/gen-registry.mjs et Source/ (#2203) : `manual-docs-ratchet.test.mjs` rend chaque cible ' +
       '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
       'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +
       'par `build-reprise.test.mjs` et `rendre` (sonde du 2026-10-07, #2499 : zéro écriture mesurée). ' +
@@ -1044,7 +1044,7 @@ export async function principal({
       // PRÉREQUIS D'ABORD : jouer une gate dont le prérequis manque rend l'erreur brute de son outil
       // (un TS2688 pour `server:typecheck`), qui ne nomme ni le dossier absent ni la commande qui le
       // pose. Le verdict est le même ROUGE, mais il DIT quoi faire — et rien n'est spawné. Ce refus ne
-      // pèse que sur CE rejeu local : la gate reste jouée, elle, par le run CI de la branche.
+      // pèse que sur CE rejeu local : la gate reste jouée, elle, par la course de file de `ci.yml`.
       const absents = prerequisAbsents(ecritLu[gate.nom], racine)
       if (absents.length) return rougeSansSpawn(gate, refusDePrerequis(gate.nom, absents))
       // La commande est celle de `ci.yml`, TELLE QUELLE : ce qui se rejoue ici est ce que la CI joue.

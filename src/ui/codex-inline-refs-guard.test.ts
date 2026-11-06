@@ -2,7 +2,7 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * GARDE — toute référence Codex écrite EN LITTÉRAL dans l'UI pointe une fiche qui EXISTE.
  *
- * ANGLE MORT COMBLÉ (mesuré 2026-08-17) : `src/ui/compendium/codex-rule-refs.test.ts` ne parcourt que le registre
+ * ANGLE MORT COMBLÉ (mesuré 2026-08-17) : `src/noyau/codex/codex-rule-refs.test.ts` ne parcourt que le registre
  * `RULE_REF` (et les deux producteurs dynamiques énumérés). Les refs écrites à la main au site
  * d'affichage — `rule: { category: 'regles', id: 'mouvement' }` d'une case de console,
  * `<CodexRef category="regles" id="calme-d-approche">` d'une barre d'action — n'étaient couvertes par
@@ -33,7 +33,7 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { codexLookupById } from './compendium/registry';
+import { codexLookupById } from '../noyau/codex/registry';
 import { ACTIONS, ACTIVITY_STAKES, STAKES, cibleCodex, crewTestTypes } from '../data/index';
 import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 
@@ -50,7 +50,7 @@ export interface CodexRefLiteral {
 /**
  * Le vocabulaire d'une ref Codex écrite en littéral — l'identité (`category`/`id`), son affichage
  * (`label`, `instance` = la spécialisation d'une entrée générique) et les clés de la rangée `CodexRow`
- * de forme `{ t: 'ref', … }` (`t`/`show`/`badge`, `src/ui/compendium/registry.ts:119`). Un littéral qui
+ * de forme `{ t: 'ref', … }` (`t`/`show`/`badge`, `src/noyau/codex/registry.ts:157`). Un littéral qui
  * porte une clé HORS de ce jeu est d'une autre ESPÈCE : son `category` ne désigne pas une catégorie de
  * catalogue (service de ville, famille d'icône…). C'est la discrimination par la FORME — jamais une
  * exemption de fichier. Sonde ci-dessous : le jeu est PORTEUR (l'élargir ferait entrer des étrangers,
@@ -122,13 +122,13 @@ export function codexRefLiterals(file: string, src: string, sf = ast({ rel: file
 
 interface Site extends CodexRefLiteral { rel: string }
 
-/** Les sources d'UI (`src/ui/**` hors tests : `.tsx` ET `.ts` — une ref littérale vit aussi bien dans
- *  un projecteur `compendium/opRows.ts` que dans un composant), rendues par la primitive de marche
- *  `readCorpus`. */
+/** Les sources d'UI (`src/ui/**`) et les projecteurs du Codex (`src/noyau/codex/**`), hors tests :
+ *  `.tsx` ET `.ts` — une ref littérale vit aussi bien dans un projecteur (`noyau/codex/opRows.ts`) que
+ *  dans un composant —, rendues par la primitive de marche `readCorpus`. */
 function corpus(): { sites: Site[]; dynamiques: number } {
   const sites: Site[] = [];
   let dynamiques = 0;
-  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(['src/ui']))) {
+  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(['src/ui', 'src/noyau/codex']))) {
     const r = codexRefLiterals(rel, text, sourceFile!);
     for (const s of r.statiques) sites.push({ rel, ...s });
     dynamiques += r.dynamiques;
@@ -185,7 +185,7 @@ describe('refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fi
 
   it('SONDE : le jeu de clés est PORTEUR — la rangée `{ t: "ref", … }` du Codex reste MESURÉE', () => {
     // Rétrécir `CODEX_REF_KEYS` ferait fuir tout un pan du stock en laissant la garde VERTE. Les deux
-    // formes réelles du dépôt sont plantées ici : la rangée de projection (`compendium/opRows.ts`) et
+    // formes réelles du dépôt sont plantées ici : la rangée de projection (`noyau/codex/opRows.ts`) et
     // le fait à clé référencée (`kref`, dont le littéral INTERNE est la ref).
     const row = "const r = { t: 'ref', category: 'characteristics', id: 'mouvement', label: 'Mouvement', show: 'M', badge: '+1' };";
     expect(codexRefLiterals('x.ts', row).statiques.map((s) => `${s.category}/${s.id}`)).toEqual(['characteristics/mouvement']);

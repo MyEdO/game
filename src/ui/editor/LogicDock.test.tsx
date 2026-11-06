@@ -1,5 +1,10 @@
+// @vitest-environment jsdom
 import { flowFromEffects } from '../../noyau/monde/flow';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { act } from 'react';
+import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
+import { addTrigger } from '../../noyau/sceneEdit';
+import type { Scene } from '../../noyau/monde/scene';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { emptyScene } from '../../noyau/monde/scene';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
@@ -72,6 +77,62 @@ describe('LogicDock — onglet Triggers (master-détail, édition LIVE)', () => 
     expect(html).toContain('trig-porte');
     expect(html).toContain('Au déclenchement'); // éditeur de Flow (effets · conditions · tests)
     expect(html).toContain('La porte grince');
+  });
+});
+
+describe('LogicDock — « + Nouveau trigger » est le créateur du noyau', () => {
+  afterEach(demonterRacines);
+  it('le trigger posé à l’étage courant est celui que rend `addTrigger`', async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const scene = emptyScene('scene-test', 10, 10);
+    let pose: Scene | null = null;
+    const montage = monterRacine(null);
+    await act(() => montage.rendre(dock({ scene, tab: 'triggers', currentLayer: 1, setScene: (s: Scene) => { pose = s; } })));
+    const bouton = [...montage.container.querySelectorAll('button')].find((b) => b.textContent?.includes('Nouveau trigger'))!;
+    await act(async () => { bouton.click(); });
+    expect(pose).toEqual(addTrigger(scene, { x: 0, y: 0, w: 2, h: 2 }, 1).scene);
+  });
+});
+
+/** Saisit `value` dans le champ `caption` puis le quitte : un champ live la pose à la frappe, un brouillon au blur. */
+async function renommerDansLeDock(racine: HTMLElement, caption: string, value: string) {
+  const champ = [...racine.querySelectorAll('label')].find((l) => l.textContent?.trim().startsWith(caption))!.querySelector('input')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(champ, value);
+    champ.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await act(async () => { champ.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+}
+
+describe('LogicDock — un id de trigger ou de rencontre est unique à la scène (comme `renameEntry`)', () => {
+  afterEach(demonterRacines);
+  const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
+
+  it('l’id d’une autre rencontre est refusé ; un id libre est posé', async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const scene = emptyScene('scene-test', 10, 10);
+    scene.encounters = [{ id: 'e1', members: [] }, { id: 'e2', members: [] }];
+    let pose: Scene = scene;
+    const montage = monterRacine(null);
+    await act(() => montage.rendre(dock({ scene, tab: 'encounters', encSel: 'e1', setScene: (s: Scene) => { pose = s; } })));
+    await renommerDansLeDock(montage.container, 'Id (référencé', 'e2');
+    expect(ids(pose.encounters), 'deux rencontres sous le même id').toEqual(['e1', 'e2']);
+    await renommerDansLeDock(montage.container, 'Id (référencé', 'embuscade');
+    expect(ids(pose.encounters)).toEqual(['embuscade', 'e2']);
+  });
+
+  it('l’id d’un autre trigger est refusé ; un id libre est posé', async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const scene = emptyScene('scene-test', 10, 10);
+    const trig = (id: string) => ({ id, rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: flowFromEffects([]) });
+    scene.triggers = [trig('t1'), trig('t2')];
+    let pose: Scene = scene;
+    const montage = monterRacine(null);
+    await act(() => montage.rendre(dock({ scene, tab: 'triggers', trigSel: 't1', setScene: (s: Scene) => { pose = s; } })));
+    await renommerDansLeDock(montage.container, 'Id', 't2');
+    expect(ids(pose.triggers), 'deux triggers sous le même id').toEqual(['t1', 't2']);
+    await renommerDansLeDock(montage.container, 'Id', 'porte');
+    expect(ids(pose.triggers)).toEqual(['porte', 't2']);
   });
 });
 

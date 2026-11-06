@@ -74,7 +74,7 @@ beforeEach(() => {
 describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () => {
   it('l’entrée de données porte la règle : 11 par camp, deux options de Test, somme, but à 25, 2×3 tours', () => {
     expect(MIDDENBALL.team?.size, '« deux équipes de 11 joueurs » (l.119)').toBe(11);
-    expect(MIDDENBALL.options?.map((o) => [o.skill, o.difficulty])).toEqual([
+    expect(MIDDENBALL.options?.map((o) => [o.test.skill, o.test.difficulty])).toEqual([
       [{ id: 'corps-a-corps', spec: 'bagarre' }, 'accessible'], // « Corps à corps (Bagarre) Accessible (+20) »
       [{ id: 'athletisme' }, 'intermediaire'], // « ou d'Athlétisme Intermédiaire (+0) »
     ]);

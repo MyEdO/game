@@ -25,13 +25,13 @@ import { TYPES, catalogueSpecs, entreeOuverte, espaceDe, estFeuilleDId, estSpeci
 import { datasetDeRacineDuType, specLabel } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
-import { entreesNarratives, type CleDeReferenceNarrative } from '../libellesNarratifs';
+import { entreesNarratives, type CleDeReferenceNarrative } from '../../../noyau/codex/libellesNarratifs';
 import type { NarratifBlock } from '../../../data/schemas/defs-scenes/narratif';
 import { NumberField } from '../../NumberField';
 import { useVersionDesDatasets } from '../../useVersionDesDatasets';
 import { CATEGORY_DATASET_DERIVE } from '../../../data/schemas/exposition-derivee';
-import { categoryByKey } from '../registry';
-import { videDuNoeud } from '../editFields';
+import { categoryByKey } from '../../../noyau/codex/registry';
+import { videDuNoeud } from '../../../noyau/codex/editFields';
 
 /** `filter` : un prédicat MOTEUR sur l'entrée (`Inspector.tsx`, portes/murs), jamais une sous-liste du
  *  schéma — celle-ci se lit sur le NŒUD du champ (`noeud`, `refusDuNoeud`). */

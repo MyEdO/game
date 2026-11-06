@@ -74,17 +74,17 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   crewTest: { patch: { pendingCrewTest: { shipId: 'nef', testTypeId: 'x', moraleScore: 0, participants: [{ id: H.id, roleId: 'capitaine', essential: false, navigation: { id: 'navigation' }, result: jet(40, 45) }] } }, flux: ['crewTest'] },
   shanty: { patch: { pendingShanty: { shipId: 'nef', singerId: H.id, shantyId: 'x', result: jet(40, 45) } }, flux: ['shanty'] },
   focus: { patch: { pendingFocus: { casterId: H.id, spellId: 'x', result: { dr: 2, success: true, isCritical: false, isFumble: false, roll: 21, target: 45, sl: 2, log: '' } } }, flux: ['focus'] },
-  dispel: { patch: { pendingDispel: { casterId: H.id, spellId: 'x', spellCasterId: E.id, label: 'Sort', ni: 4, value: 45, result: jet(21, 45) } }, flux: ['dispel'] },
+  dispel: { patch: { pendingDispel: { casterId: H.id, spellId: 'x', spellCasterId: E.id, label: 'Sort', ni: 4, value: 45, ligne: { base: 45, mods: [], target: 45, difficulty: 'intermediaire' }, result: jet(21, 45) } }, flux: ['dispel'] },
   medic: {
     patch: {
       medic: {} as NonNullable<Jeu['medic']>,
-      pendingSurgery: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, skillValue: 40, intBonus: 3, difficulty: 'intermediaire', target: 40, roll: 33, success: true, sl: 0, traumaIdx: 0, targetDR: 3, cumDR: 0 },
+      pendingSurgery: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, intBonus: 3, target: 40, roll: 33, success: true, sl: 0, traumaIdx: 0, targetDR: 3, cumDR: 0 },
     },
     flux: ['surgery'],
   },
   heal: { patch: { pendingHeal: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, mode: 'wounds', intBonus: 3, test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 33, success: true, sl: 0 } }, flux: ['heal'] },
   reload: { patch: { pendingReload: { actorId: H.id, actorName: H.label, weaponUid: 'w', reload: 2, progressBefore: 0, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 12, target: 40, sl: 2, success: true } }, flux: ['reload'] },
-  handGate: { patch: { pendingHandGate: { attackerId: H.id, actorName: H.label, hand: 'main', skillValue: 40, difficulty: 'accessible', roll: 70, target: 60, sl: -1, success: false, pa: ATTAQUE, title: 'Main', icon: 'x' } }, flux: ['handGate'] },
+  handGate: { patch: { pendingHandGate: { attackerId: H.id, actorName: H.label, hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: 70, target: 60, sl: -1, success: false, pa: ATTAQUE, title: 'Main', icon: 'x' } }, flux: ['handGate'] },
   stateRecovery: {
     patch: {
       pendingStateRecovery: {
@@ -124,7 +124,7 @@ const HORS_REGISTRE_A_JET: Record<string, Fixture> = {
     flux: ['bargain'],
     oppose: true,
   },
-  appraise: { patch: { pendingAppraise: { actorId: H.id, actorName: H.label, itemName: 'Dague', truePriceBrass: 20, availability: null, skillValue: 40, difficulty: 'intermediaire', target: 40, roll: 35, success: true, sl: 0 } }, flux: ['appraise'] },
+  appraise: { patch: { pendingAppraise: { actorId: H.id, actorName: H.label, itemName: 'Dague', truePriceBrass: 20, availability: null, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 35, success: true, sl: 0 } }, flux: ['appraise'] },
 };
 
 /** Chaque étape-JET hôte de cascade (`HostJet`) et les flux que sa fenêtre héberge. Table TOTALE. */

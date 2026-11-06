@@ -33,7 +33,7 @@ describe('Enfoncer une porte (EDO 11 l.89-95)', () => {
     const h = heros({ skills: [cc('base', 10), cc('escrime', 20)], weapons: [hache(), unarmedWeapon()] });
     banc.setState({ battle: null, party: [h], pendingForceDoor: null, pendingCascade: null, suspendedCascades: [], flags: {} } as never);
     banc.getState().startForceDoor({ label: 'Porte', doorBE: 0, doorB: 10, heroIds: [h.id] });
-    banc.getState().forceDoorChoisirArme(h.id, 'hache');
+    banc.getState().jetRegler('forceDoor', 'arme', 'hache', h.id);
     banc.getState().jetRoll('forceDoor', h.id);
     expect(banc.getState().pendingForceDoor!.participants[0].result!.target).toBe(50);
   });

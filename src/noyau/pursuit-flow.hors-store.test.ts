@@ -76,7 +76,7 @@ describe('Poursuite terrestre (#95)', () => {
     heroes();
     startGroundPursuit(banc.getState, banc.setState, {
       partyRole: 'fleeing', distance: 4, skill: 'athletisme',
-      foes: [{ ref: { creatureId: 'brute' } }, { ref: { creatureId: 'athlete' } }],
+      foes: [{ ref: { id: 'brute' } }, { ref: { id: 'athlete' } }],
     });
     const p = pursuitOf(banc.getState())!;
     // Rien n'est authoré sur l'Effet : chaque coureur EST sa fiche — nom, `char.M` et Athlétisme, et
@@ -95,7 +95,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('la Compétence de la course décide ce qui est LU sur la fiche — à cheval, c’est Chevaucher (LDB 15 l.92)', () => {
     heroes();
     startGroundPursuit(banc.getState, banc.setState, {
-      partyRole: 'pursuing', distance: 4, skill: 'chevaucher', foes: [{ ref: { creatureId: 'moritz-valgeir' } }],
+      partyRole: 'pursuing', distance: 4, skill: 'chevaucher', foes: [{ ref: { id: 'moritz-valgeir' } }],
     });
     const fiche = findCreatureById('moritz-valgeir')!;
     const chevaucher = fiche.skills.find((s) => s.id === 'chevaucher')!.value;
@@ -108,7 +108,7 @@ describe('Poursuite terrestre (#95)', () => {
     const ctx = { sceneIds: new Set<string>(), dialogueIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set<string>(), npcSheet: () => undefined, within: () => true, walkable: () => true };
     const eff = (creatureId: string) => ({
       type: 'startPursuit' as const, partyRole: 'fleeing' as const, distance: 4, skill: { id: 'athletisme' },
-      foes: [{ ref: { creatureId } }],
+      foes: [{ ref: { id: creatureId } }],
     });
     expect(EFFECT_HANDLERS.startPursuit.refs!(eff('humain'), ctx)).toEqual([]);
     const issues = EFFECT_HANDLERS.startPursuit.refs!(eff('fantome-inexistant'), ctx);
@@ -121,7 +121,7 @@ describe('Poursuite terrestre (#95)', () => {
     const [a, b] = heroes();
     applyEffects(banc.getState, banc.setState, [{
       type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' },
-      foes: [{ ref: { creatureId: 'humain' } }],
+      foes: [{ ref: { id: 'humain' } }],
     }]);
     const p = pursuitOf(banc.getState());
     expect(p?.partyRole).toBe('fleeing');
@@ -141,7 +141,7 @@ describe('Poursuite terrestre (#95)', () => {
     // Un État Sonné (LDB 16) : son malus DOIT apparaître en ligne nommée, pas fondu dans `base`.
     banc.setState({ party: [{ ...a, conditions: [{ id: 'sonne', value: 2 }] }] });
     startGroundPursuit(banc.getState, banc.setState, {
-      partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }],
+      partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }],
     });
     const row = banc.getState().pendingCascade!.participants[0].participants![0];
     expect(row.base).toBe(skillBaseValue(a, 'athletisme')); // NIVEAU NU
@@ -155,7 +155,7 @@ describe('Poursuite terrestre (#95)', () => {
     banc.setState({ party: [a, { ...b, aiControlled: true }] });
     banc.getState().seedRng(21);
     startGroundPursuit(banc.getState, banc.setState, {
-      partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }],
+      partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }],
     });
     const rows = banc.getState().pendingCascade!.participants[0].participants!;
     expect(rows.find((r) => r.id === a.id)).toMatchObject({ interactive: true, result: null });
@@ -170,7 +170,7 @@ describe('Poursuite terrestre (#95)', () => {
     banc.setState({ net: { ...net0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [b.id]: 1 } } as Jeu['net'] });
     banc.getState().seedRng(7);
     startGroundPursuit(banc.getState, banc.setState, {
-      partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }],
+      partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }],
     });
     const band = banc.getState().pendingCascade!.participants[0];
     // Le jet du héros de l'invité est SURFACÉ (`jetSurfaced`, seat-agnostique) : l'hôte ne le roule pas
@@ -226,7 +226,7 @@ describe('Poursuite terrestre (#95)', () => {
 
   it('abandon : le groupe renonce et la poursuite se ferme', () => {
     heroes();
-    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }] });
+    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }] });
     banc.getState().sequenceAbandon();
     expect(pursuitOf(banc.getState())).toBeNull();
     expect(banc.getState().journal.some((l) => l.includes('abandonne'))).toBe(true);
@@ -237,7 +237,7 @@ describe('Poursuite terrestre (#95)', () => {
     heroes();
     banc.setState({ suspendedCascades: [] });
     startCascade(banc.getState, banc.setState, { title: 'Journée', purpose: 'test', steps: [displayStep({ id: 'hote-1', kind: cleDeFixture('reveal'), label: fixtureText('Une ombre'), worldOwner: true })] });
-    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }] });
+    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }] });
     expect(banc.getState().suspendedCascades.map((c) => c.purpose), 'la cascade hôte est parquée sous la poursuite').toEqual(['test']);
     banc.getState().sequenceAbandon();
     expect(pursuitOf(banc.getState())).toBeNull();
@@ -249,7 +249,7 @@ describe('Poursuite terrestre (#95)', () => {
     heroes();
     const libelles = (p: { partyRole: 'fleeing' | 'pursuing'; encounter?: string }) => {
       banc.setState({ sequence: null, pendingCascade: null });
-      startGroundPursuit(banc.getState, banc.setState, { distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }], ...p });
+      startGroundPursuit(banc.getState, banc.setState, { distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }], ...p });
       const a = sequenceAbandonOf(banc.getState)!;
       return [a.label, a.title, a.outcome];
     };
@@ -261,7 +261,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('cadence AUTO : la bande naît tirée, l’abandon DEMANDÉ clôt la manche par le chemin du joueur (manche appliquée) puis finit la poursuite (LDB 12 l.176)', () => {
     setCadence('auto');
     heroes();
-    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }] });
+    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }] });
     const bande = banc.getState().pendingCascade!.participants[0].participants!;
     expect(bande.every((r) => r.interactive === false && r.result), 'toutes les rangées tirées à l’ouverture').toBe(true);
     expect(sequenceAbandonOf(banc.getState), 'manche résolue : abandon offert').not.toBeNull();
@@ -278,7 +278,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('cadence AUTO : la clôture menée par l’abandon passe par le dénouement générique — un groupe anéanti est vaincu, il n’abandonne pas', () => {
     setCadence('auto');
     const [a, b] = heroes();
-    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }] });
+    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }] });
     expect(sequenceAbandonOf(banc.getState), 'manche résolue : abandon offert').not.toBeNull();
     banc.setState({ partyWiped: false, party: [{ ...a, dead: true }, { ...b, dead: true }] });
     banc.getState().sequenceAbandon();
@@ -289,7 +289,7 @@ describe('Poursuite terrestre (#95)', () => {
 
   it('manche MANUELLE à jet posé mais incomplète : ni offert, ni accepté', () => {
     heroes();
-    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }] });
+    startGroundPursuit(banc.getState, banc.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }] });
     const bande = () => banc.getState().pendingCascade!.participants[0].participants!;
     const jouables = bande().filter((r) => r.interactive !== false);
     expect(jouables.length, 'deux héros, deux rangées à jouer').toBe(2);
@@ -305,7 +305,7 @@ describe('Poursuite terrestre (#95)', () => {
     heroes();
     startGroundPursuit(banc.getState, banc.setState, {
       partyRole: 'fleeing', distance: 5, escapeAt: 8, skill: 'athletisme',
-      foes: [{ ref: { creatureId: 'humain' } }],
+      foes: [{ ref: { id: 'humain' } }],
     });
     // Pilote la boucle : rouler CHAQUE RANGÉE de la bande puis avancer, manche après manche.
     const manches: number[] = [];

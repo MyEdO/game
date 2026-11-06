@@ -1,5 +1,5 @@
 /**
- * Un libellé de champ de RACINE s'affiche tel quel au Codex (`libelleDuChamp`, `ui/compendium/editFields.ts`) :
+ * Un libellé de champ de RACINE s'affiche tel quel au Codex (`libelleDuChamp`, `noyau/codex/editFields.ts`) :
  * rien ne le capitalise à l'affichage. Il commence donc par une majuscule dans la méta du document,
  * sans exception.
  */

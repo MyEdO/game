@@ -19,6 +19,7 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { evaluateTest } from '../engine/tests';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById, TAVERN_GAMES } from '../engine/tavernGame';
@@ -68,7 +69,7 @@ function tour(actorId: string, mien: { roll: number; target: number; sl: number 
   const step: CascadeStep = {
     id: `${TAVERN_ROUND_KIND}-2`, kind: TAVERN_ROUND_KIND, actorId,
     label: fixtureText('Le Cerevis'), rollLabel: 'Pari', difficulty: 'accessible', base: mien.target, target: mien.target,
-    result: { roll: mien.roll, target: mien.target, sl: mien.sl, success: mien.roll <= mien.target },
+    result: { roll: mien.roll, target: mien.target, sl: mien.sl, success: evaluateTest(mien.roll, mien.target).success },
     meta: {
       gameId: 'cerevis', opponentValue: OPPONENT, opponentName: NOM_HABITUE, stakeBrass: 0, round: 2,
       opposed: {

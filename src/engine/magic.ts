@@ -50,6 +50,7 @@ import { effectiveTalents, talentPassiveMods } from './talentEffects';
 import { effectiveEntry } from './variants';
 import { ritualReduction, type RitualReduced } from './grimoire';
 import { traceLineOf } from './traceLine';
+import { spellOps, type Flow } from './flowCore';
 
 /** Sous-ensemble des champs de sort nécessaires au moteur (cf. src/data/spells.json). */
 export interface SpellLike {
@@ -170,6 +171,20 @@ export function prayerMaxZeroDR(c: Combatant): boolean {
   return allCastPenalties(c).some((p) => penaltyMatches(p, 'priere') && p.maxZeroDR);
 }
 
+/** Libellé de l'effet qui impose au porteur des Tests de Prière pour son Action (op `prayerForAction`),
+ *  ou null. LDB 40 l.74 */
+export function prayerForActionBy(c: Combatant): string | null {
+  return (c.activeEffects ?? []).find((e) => e.prayerForAction)?.label ?? null;
+}
+
+/** La Prière `spell` de `caster` échoue-t-elle sur `target` ? Oui quand la divinité du lanceur
+ *  (`priestCult`) a banni la cible (op `deityBan`). LDB 40 l.64 */
+export function prayerBannedOn(target: Combatant, caster: Combatant, spell: SpellLike): boolean {
+  if (!castInfoIsPrayer(spell)) return false;
+  const dieu = priestCult(caster);
+  return !!dieu && (target.activeEffects ?? []).some((e) => e.deityBan === dieu);
+}
+
 /** CULTE du prêtre : la spécialisation de son Talent de Prière (Béni (Sigmar) / Invocation (Sigmar)),
  *  lue en DONNÉE via `castingKind` (aucun name-match). `undefined` si non spécialisé / pas prêtre. */
 export function priestCult(c: Combatant): string | undefined {
@@ -177,6 +192,13 @@ export function priestCult(c: Combatant): string | undefined {
     if ((def.castingKind === 'beni' || def.castingKind === 'invocation') && ctx.spec) return ctx.spec;
   }
   return undefined;
+}
+
+/** Compétences associées à la divinité du prêtre (`GodData.associatedSkills`, liste maison du culte) ;
+ *  vide sans culte ou sans liste. LDB 40 l.61, l.70 */
+export function deitySkills(c: Combatant): string[] {
+  const cult = priestCult(c);
+  return (cult ? findGodById(cult)?.associatedSkills : undefined) ?? [];
 }
 
 /** VERROU de Péché du culte (MDG 11 l.148 : « Stromfels retire à un suivant la capacité d'utiliser le
@@ -189,6 +211,14 @@ export function prayerSinLock(c: Combatant, spell: SpellLike): { family: 'beni' 
   const cult = priestCult(c);
   const threshold = cult ? findGodById(cult)?.sinLocks?.[fam] : undefined;
   return cult && threshold != null && (c.sinPoints ?? 0) >= threshold ? { family: fam, threshold, cult } : null;
+}
+
+/** Talent de la famille de la Prière tentée que le porteur ne possède pas (`featuresOf`, porte de
+ *  possession : un Talent suspendu y manque), sinon null. LDB 10 l.109, l.625 */
+export function prayerTalentMissing(c: Combatant, spell: SpellLike): 'beni' | 'invocation' | null {
+  const fam = spell.family;
+  if (fam !== 'beni' && fam !== 'invocation') return null;
+  return featuresOf(c).some(({ def }) => def.castingKind === fam) ? null : fam;
 }
 
 /**
@@ -253,7 +283,7 @@ export function armourCastDRPenalty(c: Combatant): number {
   const ignorees = new Set<MatiereDArmure>([
     ...(domId === 'metal' ? ['metal' as const] : []),
     ...(domId === 'bete' ? ['leather' as const] : []),
-    ...(rule('magic-vdm-incantation') === true && (c.talents ?? []).some((t) => castingKindOf(t.talentId) === 'chaos') ? ['chaos' as const] : []),
+    ...(rule('magic-vdm-incantation') === true && effectiveTalents(c).some((t) => castingKindOf(t.talentId) === 'chaos') ? ['chaos' as const] : []),
   ]);
   const exemptee = (m: MatiereDArmure | undefined): boolean => m !== undefined && ignorees.has(m);
   const pieces = wornArmourPoints(c.items ?? [], (i) => exemptee(matiereDuGroupe(i.subType)));
@@ -277,6 +307,17 @@ export function focusSpecOf(spell: SpellLike): string | undefined {
 export function focusWindLabel(spell: SpellLike): string | undefined {
   const spec = focusSpecOf(spell);
   return spec ? (findDomainById(spec)?.wind ?? findDomainById(spec)?.label ?? spec) : undefined;
+}
+
+/** Valeur du Test de Focalisation de `c` pour CE sort, Vents exclus ; `null` sans Compétence. LDB 46 l.130 */
+export function focusValueOf(c: Combatant, spell: SpellLike): number | null {
+  const sk = focusSkillFor(c, spell);
+  return sk ? castingValue(c, 'focalisation', sk.spec) : null;
+}
+
+/** La Focalisation de `c` a-t-elle atteint le NI de `spell` : le Sort se lance au NI 0. LDB 46 l.128, l.132 */
+export function focalisationAboutie(c: Combatant, spell: SpellLike): boolean {
+  return !!c.focus && c.focus.spell === spell.id && c.focus.dr >= castingNumberOf(spell, false, {}, [], c);
 }
 
 /** Compétence Focalisation utilisable pour CE sort (LDB 46 ; `refCouvre`, LDB 09 l.44). Sort sans
@@ -361,7 +402,7 @@ export function talentTestSLBonus(
   whenHolds: (cond: import('./flowCore').Condition) => boolean = () => false,
 ): number {
   let n = 0;
-  for (const inst of c.talents ?? []) {
+  for (const inst of effectiveTalents(c)) {
     const matches = effectiveEntry(findTalentById(inst.talentId))?.test?.matches;
     if (matches?.some((m) => matchApplies(m, inst, q, whenHolds))) n += inst.times;
   }
@@ -860,7 +901,7 @@ export function isDispellableSpell(spell: SpellLike): boolean {
  *  Contre-sort (LDB 46 l.156). Source unique. La valeur NUE (`base`) traverse : c'est elle que le
  *  départage à DR égal compare (LDB 12 l.160). */
 export function castTestOf(res: Pick<CastResult, 'roll' | 'target' | 'sl' | 'base'>): TestResult {
-  return { roll: res.roll, target: res.target, success: res.roll <= res.target, sl: res.sl, isDouble: res.roll === 100 || res.roll % 11 === 0, ...(res.base != null ? { base: res.base } : {}) };
+  return { roll: res.roll, target: res.target, success: evaluateTest(res.roll, res.target).success, sl: res.sl, isDouble: res.roll === 100 || res.roll % 11 === 0, ...(res.base != null ? { base: res.base } : {}) };
 }
 
 /** Issue d'un Contre-sort à partir d'un jet de contre-lanceur DÉJÀ obtenu (`counterT`, DR déjà
@@ -892,9 +933,15 @@ export function counterspellOutcomeFrom(counter: Combatant, counterT: TestResult
  *  LIEU, fourni par l'appelant comme pour `resolveCasting`. `extraMod` s'ajoute à la VALEUR du Test
  *  avant le dé (Soutien du groupe uni, LDB 12 l.189 — cf. `soutenuBonusOf`). */
 export function resolveCounterspell(counter: Combatant, castT: TestResult, rng: RNG, env: MagicEnvironment = {}, extraMod = 0): CounterspellOutcome {
-  const value = castingValue(counter, 'langue', 'magick') + extraMod;
+  const value = counterspellValue(counter) + extraMod;
   const t = rollTest(value, 'intermediaire', rng);
   return counterspellOutcomeFrom(counter, withCastTestDRMods(counter, 'dissipation', t, { env }), castT);
+}
+
+/** Valeur du Test de Contre-sort de `counter`, Soutien exclu : lue par le jet, la Résilience, le meneur d'un groupe uni et
+ *  la fenêtre. LDB 46 l.156 */
+export function counterspellValue(counter: Combatant): number {
+  return castingValue(counter, 'langue', 'magick');
 }
 
 /** Domaine d'incantation d'un contre-lanceur pour l'appariement du Test Soutenu (`LDB 46 l.162` :
@@ -916,7 +963,7 @@ export function soutenuPartners(c: Combatant, candidates: readonly Combatant[]):
 /** MENEUR d'un groupe uni (`LDB 12 l.189` : « le Personnage qui possède la plus forte chance de
  *  réussite lance les dés ») — la plus forte valeur de Langue (Magick). DÉRIVÉ, jamais choisi. */
 export function soutenuLeaderOf(unis: readonly Combatant[]): Combatant | undefined {
-  return [...unis].sort((a, b) => castingValue(b, 'langue', 'magick') - castingValue(a, 'langue', 'magick'))[0];
+  return [...unis].sort((a, b) => counterspellValue(b) - counterspellValue(a))[0];
 }
 
 /**
@@ -988,39 +1035,43 @@ export function applyFullPower(res: CastResult): CastResult {
   return { ...res, cast: true, sl: res.sl + tens, niRequired: undefined };
 }
 
-/** Effet d'Incantation Critique retenu quand le lanceur n'en a choisi aucun (IA, résolution auto) :
- *  repêcher un DR insuffisant, sinon Blessure Critique pour un Projectile, sinon Force inéluctable.
- *  SOURCE UNIQUE du défaut (modale, allocation de Surincantation, `applyCast`). */
-export function defaultCritChoice(res: Pick<CastResult, 'cast'>, missile: boolean): CritChoice {
-  return !res.cast ? 'puissance' : missile ? 'critique' : 'ineluctable';
+/** Le Sort inflige-t-il des Dégâts à sa cible : Projectile magique, ou op de Blessures sur la cible. LDB 46 l.30 ;
+ *  LDB 47 l.453 */
+export function sortInfligeDesDegats<E>(spell: SpellLike & { effects?: Flow<E> }): boolean {
+  return isMagicMissile(spell) || spellOps(spell.effects, 'target').some((o) => o.op === 'wounds');
+}
+
+/** La politique d'Incantation Critique du lanceur que conduit le moteur, seul à ne pas choisir lui-même. LDB 46 l.28-32 */
+export function defaultCritChoice(res: Pick<CastResult, 'cast'>, degats: boolean): CritChoice {
+  return !res.cast ? 'puissance' : degats ? 'critique' : 'ineluctable';
 }
 
 /** « Puissance totale » est-elle l'effet d'Incantation Critique retenu (`LDB 46 l.31`, `VDM 02 l.55`) ? */
-function fullPowerChosen(res: CastResult, critChoice: CritChoice | undefined, missile: boolean): boolean {
-  return res.isCritical && (critChoice ?? defaultCritChoice(res, missile)) === 'puissance';
+function fullPowerChosen(res: CastResult, critChoice: CritChoice | undefined): boolean {
+  return res.isCritical && critChoice === 'puissance';
 }
 
 /** DR disponible pour la Surincantation : le DR du Test, augmenté par « Puissance totale » quand
  *  cet effet d'Incantation Critique est retenu (`applyFullPower`). */
-export function overcastSL(res: CastResult, critChoice: CritChoice | undefined, missile: boolean): number {
-  return fullPowerChosen(res, critChoice, missile) ? applyFullPower(res).sl : res.sl;
+export function overcastSL(res: CastResult, critChoice: CritChoice | undefined): number {
+  return fullPowerChosen(res, critChoice) ? applyFullPower(res).sl : res.sl;
 }
 
-/** BUDGET de Surincantation d'un lancement résolu — SITE UNIQUE (modale, `castAllocOvercast`, plan de
+/** BUDGET de Surincantation d'un lancement résolu — SITE UNIQUE (modale, réglage `cast.surincantation*`, plan de
  *  l'IA) : le DR au-delà du NI effectif figé au jet (`niRequired`), DR augmenté par « Puissance
  *  totale » (`overcastSL`). 0 si le jet n'a pas lancé le Sort ou s'il est dissipé.
  *  `LDB 47 l.17`, `l.21` ; `LDB 46 l.132`, `l.156` ; `LDB 41 l.21` ; `VDM 02 l.55`, `l.196`. */
-export function castOvercastBudget(spell: { family?: string }, res: CastResult, critChoice: CritChoice | undefined, missile: boolean): number {
-  if (!res.cast || !castAfterCrit(res, critChoice, missile)) return 0;
-  return overcastBudget(overcastSourceOf(spell), overcastSL(res, critChoice, missile), res.niRequired ?? 0);
+export function castOvercastBudget(spell: { family?: string }, res: CastResult, critChoice: CritChoice | undefined): number {
+  if (!res.cast || !castAfterCrit(res, critChoice)) return 0;
+  return overcastBudget(overcastSourceOf(spell), overcastSL(res, critChoice), res.niRequired ?? 0);
 }
 
 /** Le Sort est-il lancé une fois l'effet d'Incantation Critique retenu appliqué ? « Puissance
  *  totale » repêche un DR insuffisant (LDB 46 l.31, `VDM 02 l.55`) ; un Sort dissipé ne l'est pas
  *  (`LDB 46 l.156`) — prédicat UNIQUE partagé par la pose du gabarit de zone, la Surincantation et
  *  la confirmation du lancement. */
-export function castAfterCrit(res: CastResult, critChoice: CritChoice | undefined, missile: boolean): boolean {
-  return !res.dispelled && (res.cast || fullPowerChosen(res, critChoice, missile));
+export function castAfterCrit(res: CastResult, critChoice: CritChoice | undefined): boolean {
+  return !res.dispelled && (res.cast || fullPowerChosen(res, critChoice));
 }
 /** Re-dérive les Dégâts d'un Projectile magique depuis un résultat d'incantation déjà obtenu. */
 export function evaluateMissile(
@@ -1087,7 +1138,7 @@ export function rederiveCastSL(
   const t: TestResult = {
     roll: current.roll,
     target: current.target,
-    success: current.roll <= current.target,
+    success: evaluateTest(current.roll, current.target).success,
     sl: current.sl + bonusSL,
     isDouble: isDoubleRoll(current.roll),
   };
@@ -1135,8 +1186,8 @@ export function resolveFocus(
    *  fourni par l'appelant (état). */
   env: MagicEnvironment = {},
 ): FocusResult {
-  const sk = focusSkillFor(caster, spell);
-  if (!sk) {
+  const nue = focusValueOf(caster, spell);
+  if (nue == null) {
     // AFFICHAGE : Focalisation est spécialisée par VENT → montre le Vent du Domaine (id bete → « Ghur »).
     const wind = focusWindLabel(spell);
     return {
@@ -1144,7 +1195,7 @@ export function resolveFocus(
       log: `${caster.label} ne maîtrise pas Focalisation${wind ? ` (${wind})` : ''}.`,
     };
   }
-  const value = castingValue(caster, 'focalisation', sk.spec) + extraMod;
+  const value = nue + extraMod;
   const t = rollTest(value, difficulty, rng);
   // Modificateurs propres du Test — SOURCE UNIQUE, partagée avec l'Incantation (`castTestDRMods`).
   let dr = t.success ? Math.max(0, t.sl + castTestDRMods(caster, 'focalisation', { success: t.success, spell, sea: { atSea }, wind: windCtx, env })) : 0;

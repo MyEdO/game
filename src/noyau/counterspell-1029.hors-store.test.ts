@@ -119,7 +119,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     expect(banc.getState().pendingCast, 'l’incantation attend le choix').toBeTruthy();
     expect(banc.getState().pendingCast!.critChoice).toBeUndefined();
     expect(E.dispelledThisRound, 'aucune Dissipation tant que le choix n’est pas écrit').toBeFalsy();
-    banc.getState().castSetCritChoice('puissance'); // choix tranché → dissipable (l.31)
+    banc.getState().jetRegler('cast', 'effetCritique', 'puissance'); // choix tranché → dissipable (l.31)
     banc.getState().jetConfirm('cast');
     // Contre-lanceur ENNEMI sans siège MJ : pas de fenêtre, c'est le chant INLINE — mais il a bien
     // lieu, et APRÈS le choix : le moment du Contre-sort suit la résolution du Critique.
@@ -222,17 +222,17 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     banc.getState().seedRng(4);
     const { heroes, E } = setup();
     const [H] = heroes;
-    H.characteristics.intelligence = 99; // cible 99 : le dé 99 PASSE et fait un double (Critique)
+    H.characteristics.intelligence = 99; // le dé 33 PASSE et fait un double (Critique) ; 99 serait un échec (LDB 12 l.25-28)
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    preArmer(99);
+    preArmer(33);
     const pc = banc.getState().pendingCast!;
-    expect(pc.result!.roll, 'le jet retenu est la valeur SAISIE, pas le naturel').toBe(99);
+    expect(pc.result!.roll, 'le jet retenu est la valeur SAISIE, pas le naturel').toBe(33);
     expect(pc.result!.isCritical, 'un double saisi EST un Critique').toBe(true);
     expect(banc.getState().pendingCounterspell, 'aucune Dissipation actée sur un résultat périmé').toBeNull();
     expect(E.dispelledThisRound, 'aucun chant inline sur le jet naturel').toBeFalsy();
     expect(pc.counterspellRouted, 'le moment reste DÛ : le choix d’effet décide de la dissipabilité').toBeFalsy();
     // Choix tranché → l'aiguilleur s'exécute sur le résultat FINAL.
-    banc.getState().castSetCritChoice('puissance');
+    banc.getState().jetRegler('cast', 'effetCritique', 'puissance');
     banc.getState().jetConfirm('cast');
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.dispelledThisRound,
       'la Dissipation se joue une fois le Critique tranché').toBe(true);

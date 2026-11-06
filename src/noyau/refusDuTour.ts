@@ -9,6 +9,7 @@ import type { BattleState } from './etat';
 import { canTakeAction, conditionGating } from '../engine/conditions';
 import { isVehicle } from '../engine/coque';
 import { isEngaged } from '../engine/engagement';
+import { prayerForActionBy } from '../engine/magic';
 import { mountMovement } from './mount';
 import { t } from '../i18n';
 
@@ -20,6 +21,13 @@ export function refusActionDepensee(battle: Pick<BattleState, 'acted'>): string 
 /** Le porteur ne peut pas effectuer d'Action (`canTakeAction`, LDB 16 l.125). */
 export function refusHorsDEtatDAgir(c: Combatant): string | null {
   return canTakeAction(c) ? null : t('agate.unableToAct');
+}
+
+/** Le porteur doit effectuer des Tests de Prière pour son Action (`prayerForActionBy`) : un geste qui
+ *  coûte l'Action sans être une Prière est refusé. LDB 40 l.74 */
+export function refusPriereImposee(c: Combatant): string | null {
+  const source = prayerForActionBy(c);
+  return source ? t('agate.prayerForAction', { name: c.label, source }) : null;
 }
 
 /** Une coque n'a pas de corps de fantassin (`engine/vehicle.ts`). */
@@ -50,7 +58,7 @@ export function refusRampe(c: Combatant): string | null {
 /** Ce que la Course exige du PORTEUR (LDB 15 l.41 ; Brisé : LDB 16 l.52), hors de l'économie du Tour : lu tel quel
  *  par le plan d'approche de l'IA (`aiApproachPlan`), qui décide avant d'avoir agi. */
 export function refusDeCourseDuPorteur(c: Combatant): string | null {
-  return refusCoque(c) ?? refusHorsDEtatDAgir(c) ?? refusEngage(c) ?? refusRampe(c);
+  return refusCoque(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusEngage(c) ?? refusRampe(c);
 }
 
 /** Verdict de la Course (LDB 15 l.41), lu par le gate `course-possible`, `battleRun` et `computeRunReach`. */
@@ -60,5 +68,5 @@ export function refusDeCourse(battle: BattleState, c: Combatant): string | null 
 
 /** Verdict de la Charge (LDB 15 l.35-37), lu par le gate `charge-possible`, `computeChargeReach` et `attackPlan`. */
 export function refusDeCharge(battle: BattleState, c: Combatant): string | null {
-  return refusEngage(c) ?? refusRampe(c) ?? refusHorsDEtatDAgir(c) ?? refusSansMouvement(battle, c) ?? refusMouvementEntame(battle);
+  return refusEngage(c) ?? refusRampe(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusSansMouvement(battle, c) ?? refusMouvementEntame(battle);
 }

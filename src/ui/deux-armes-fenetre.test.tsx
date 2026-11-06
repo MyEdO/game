@@ -73,7 +73,7 @@ describe('#998 — Deux armes : la fenêtre survit entre les deux frappes (recet
     it(`${nom} : frappe principale, « Appliquer », 2ᵉ frappe dans SA fenêtre, puis clôture`, () => {
       const { bretteur, gobelin } = duel(gmSeat);
       act(() => { openAttackCascade(g, useGame.setState, { attackerId: bretteur.id, targetId: gobelin.id, location: null, result: null }, 'Attaque', 'action/attack'); });
-      act(() => g().attackSetDualMode(true));
+      act(() => g().jetRegler('attack', 'deuxArmes', true));
       act(() => g().jetRoll('attack'));
       act(() => g().jetConfirm('attack'));
       if (gmSeat != null) surDefense(gobelin.id);

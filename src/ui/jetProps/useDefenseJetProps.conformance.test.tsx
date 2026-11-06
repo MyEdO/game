@@ -118,7 +118,7 @@ describe('Défense — Z1 « Acteur — Action (Compétence) »', () => {
 
   it('Esquive : basculer de mode change la Compétence du sous-titre', () => {
     openDefense();
-    act(() => { useGame.getState().defenseSetMode('esquive'); });
+    act(() => { useGame.getState().jetRegler('defense', 'reaction', 'esquive'); });
     expect(subtitle()).toBe('Gunnar — Défense (Esquive)');
   });
 
@@ -129,7 +129,7 @@ describe('Défense — Z1 « Acteur — Action (Compétence) »', () => {
     const view = openDefense(belier);
     // Parer d'un Bélier (Force 35) vaut moins qu'esquiver (Agilité 40) : le mode par défaut est l'Esquive,
     // le joueur choisit la parade — c'est ce choix que le sous-titre doit suivre.
-    act(() => { useGame.getState().defenseSetMode('parade'); });
+    act(() => { useGame.getState().jetRegler('defense', 'reaction', 'parade'); });
     expect(subtitle()).toBe('Gunnar — Défense (Force)');
     expect(view.textContent).not.toContain('Défense (Corps à corps)');
   });
@@ -171,7 +171,7 @@ describe('Défense : les modificateurs de la VALEUR sont des lignes NOMMÉES', (
   });
   it('Esquive : l’effet actif d’Agilité apparaît sous son nom', () => {
     openDefense();
-    act(() => { useGame.getState().defenseSetMode('esquive'); });
+    act(() => { useGame.getState().jetRegler('defense', 'reaction', 'esquive'); });
     poser('agilite');
     expect(rangeeDefenseur()).toContain('Sonde de valeur');
   });
@@ -239,7 +239,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
     it('« Dégâts » déclaré, Défense perdue : le volet reste après le jet, Dégâts refusé avec sa cause', () => {
       setRule('combat-aa-avantage-groupe', true);
       openDefense(undefined, porteBouclier, 5);
-      act(() => { useGame.getState().defenseSetShieldReaction('damage'); });
+      act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'damage'); });
       act(() => { useGame.getState().jetRoll('defense'); useGame.getState().jetSetForcedRoll('defense', 97); });
       expect(useGame.getState().pendingDefense!.result!.hit).toBe(true);
       const degats = segment('Porte-bouclier', 'Dégâts')!;
@@ -252,7 +252,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
     it('« Dégâts » déclaré, Défense gagnée : Dégâts reste pressé, refusé seulement parce que le jet est lancé', () => {
       setRule('combat-aa-avantage-groupe', true);
       openDefense(undefined, porteBouclier, 90);
-      act(() => { useGame.getState().defenseSetShieldReaction('damage'); });
+      act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'damage'); });
       act(() => { useGame.getState().jetRoll('defense'); useGame.getState().jetSetForcedRoll('defense', 5); });
       expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defender');
       const degats = segment('Porte-bouclier', 'Dégâts')!;
@@ -264,7 +264,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
     it('« Dégâts » déclaré, Test opposé à égalité : l\'attaque ne touche pas, Dégâts refusé comme au moteur', () => {
       setRule('combat-aa-avantage-groupe', true);
       openDefense(undefined, porteBouclier, 30);
-      act(() => { useGame.getState().defenseSetShieldReaction('damage'); });
+      act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'damage'); });
       // LDB 12 l.160 ; LDB 62 l.240
       act(() => { useGame.getState().jetRoll('defense'); useGame.getState().jetSetForcedRoll('defense', 75); });
       const res = useGame.getState().pendingDefense!.result!;
@@ -307,7 +307,7 @@ describe('Défense : une cible écrêtée nomme son plafond ou son plancher, jam
   it('Esquive Sonné 3 sous le plancher, attaque à fort Avantage au-dessus du plafond', () => {
     ANONYMES.count = 0;
     openDefense(undefined, sonneEtAvantage);
-    act(() => { useGame.getState().defenseSetMode('esquive'); });
+    act(() => { useGame.getState().jetRegler('defense', 'reaction', 'esquive'); });
     const [, maLigne] = blocs();
     expect(calcul(maLigne), 'pré-jet : la cible annoncée est celle que le dé affrontera').toBe('10 −9 = 1');
     expect(chips(maLigne)).toEqual(['−30 Sonné', '+21 plancher 1']);
@@ -340,7 +340,7 @@ describe('Défense : un dé choisi sur une cible écrêtée nomme son plafond ou
     hero.advantage = 3;
   };
   const choisir = (resilience: boolean, de: number) => act(() => {
-    useGame.getState().defenseSetMode('esquive');
+    useGame.getState().jetRegler('defense', 'reaction', 'esquive');
     useGame.getState().jetRoll('defense');
     if (resilience) useGame.getState().jetForceSuccess('defense');
     useGame.getState().jetSetForcedRoll('defense', de);

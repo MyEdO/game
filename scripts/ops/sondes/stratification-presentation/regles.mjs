@@ -66,7 +66,7 @@ export const REGLES = Object.freeze([
     preuve: 'src/noyau/mapSpec.ts:1-8 ; src/noyau/monde/sceneToAscii.ts:1-6 ; src/noyau/sceneEdit.ts:1-4 ; src/state/traceLayer.ts:5 (« aide d\'AUTHORING »)',
   },
   {
-    motif: new RegExp(String.raw`^src/ui/editor/(EditorCanvas|Palette|TraceLayerPanel|editorLayers|lowerLayerGabarit|lampMarker|propDefaults|useEditorView|editorState|editor-layers|editor-stair-flight|editor-walls-height|palette-empreinte|traceLayer-export-safety|editeur-monde-volumique|editor-monde-sous-filet)[.-]`),
+    motif: new RegExp(String.raw`^src/ui/editor/(EditorCanvas|Palette|TraceLayerPanel|editorLayers|lowerLayerGabarit|lampMarker|useEditorView|editor-stair-flight|palette-empreinte|traceLayer-export-safety|editeur-monde-volumique|editor-monde-sous-filet)[.-]`),
     categorie: 'moteur-generique',
     raison: 'Authoring de carte isométrique (canvas, palette, calques, vue, calque de décalque) : même classe que src/noyau/mapSpec et src/gameIso/authoring, que l\'éditeur du moteur tiers remplace (exemple « authoring de carte » du ticket).',
     preuve: 'src/ui/editor/EditorCanvas.tsx:3-7 (« Canvas SVG iso de l\'éditeur ») ; imports ../../gameIso/authoring/floorsSvg, ../../noyau/sceneEdit',
@@ -139,13 +139,7 @@ export const REGLES = Object.freeze([
     raison: 'Affordance de règle en jeu (référence Codex cliquable dans les jets, fiches, Prose), et sa feuille.',
     preuve: 'src/ui/ChanceButtons.tsx:2 ; 32 importeurs de CodexRef hors compendium (tests exclus)',
   },
-  {
-    motif: new RegExp(String.raw`^src/ui/compendium/registry[.-]`),
-    categorie: 'douteux',
-    famille: 'codex-en-jeu',
-    raison: 'Compendium=outillage, mais le registre sert aussi en jeu (fiches et jets) : deux catégories tiennent.',
-    preuve: 'src/ui/InspectPanel.tsx:10 et src/ui/RollLine.tsx:9 importent ./compendium/registry',
-  },
+
   {
     motif: new RegExp(String.raw`^src/ui/styles/(base|components|layout|tabs|frames|modal|cadre|ornaments|band|infobulle|boite-ancree|screen-shell|planche|gauges|media-select)\.css$|^src/ui/styles\.css$`),
     categorie: 'douteux',

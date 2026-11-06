@@ -13,12 +13,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
 import { restPlacesHere, lodgingOptions } from './restFlow';
+import { addRestZone } from './sceneEdit';
 import { resolveStake } from '../data';
 import { contractDisease, tickDisease, diseaseDefs } from '../engine/disease';
 import { spellOps } from '../engine/flowCore';
 import { battleRng as battleRngFor } from './battleRng';
 import { seedBattleRng } from './battleRng';
-import { emptyScene } from './monde/scene';
+import { emptyScene, reposDeScene } from './monde/scene';
 import { toBrass, type Money } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { stacks, addCondition } from '../engine/conditions';
@@ -373,6 +374,17 @@ describe('restPlacesHere — offre paramétrable sur la ZONE', () => {
     sc.restZones = [{ rect: { x: 0, y: 0, w: 3, h: 3, z: 1 }, places: { auberge: true } }];
     expect(restPlacesHere({ scene: sc, partyPos: { x: 1, y: 1, z: 1 } } as never)?.places).toEqual({ auberge: true });
     expect(restPlacesHere({ scene: sc, partyPos: { x: 1, y: 1, z: 0 } } as never)?.places).toEqual({ camp: true });
+  });
+});
+
+describe('offre de repos implicite — l’éditeur lit ce que le repos applique', () => {
+  it('scène sans offre, ou à offre posée : `reposDeScene` égale l’offre de `restPlacesHere` ; une zone neuve naît sur l’offre implicite', () => {
+    for (const rest of [undefined, { auberge: true }, { maison: true, camp: false }]) {
+      const sc = { ...emptyScene('scene-test', 10, 10), ...(rest ? { rest } : {}) };
+      expect(restPlacesHere({ scene: sc, partyPos: { x: 5, y: 5 } } as never)?.places ?? null, JSON.stringify(rest)).toEqual(reposDeScene(sc));
+    }
+    const zone = addRestZone(emptyScene('scene-test', 10, 10), { x: 0, y: 0, w: 2, h: 2 }).scene.restZones![0];
+    expect(zone.places).toEqual(reposDeScene(emptyScene('scene-test', 10, 10)));
   });
 });
 

@@ -38,13 +38,13 @@ export function fenetreDuButin(s: Jeu): FenetreDuButin | null {
   const lignes = (s[pending]?.gear ?? []).map((g, i) => ({ valeur: i, libelle: g.label }));
   if (!lignes.length) return { attribuer: null, evaluer: null, portee: null };
   const ligne = (verbe: keyof ActionsDuNoyau): ChoixNomme<number> => ({
-    verbe, parametre: 'index', libelle: garanti(libelleDuParametre(verbe, 'index'), verbe, 'libellé de la ligne de butin'), choisie: null, options: lignes,
+    geste: { verbe }, parametre: 'index', libelle: garanti(libelleDuParametre(verbe, 'index'), verbe, 'libellé de la ligne de butin'), choisie: null, options: lignes,
   });
   return {
     attribuer: ligne(attribuer),
     evaluer: ligne('appraiseGear'),
     portee: {
-      verbe: 'appraiseGear', parametre: 'scope', libelle: garanti(libelleDuParametre('appraiseGear', 'scope'), cle, 'libellé de la portée'), choisie: cle,
+      geste: { verbe: 'appraiseGear' }, parametre: 'scope', libelle: garanti(libelleDuParametre('appraiseGear', 'scope'), cle, 'libellé de la portée'), choisie: cle,
       options: [{ valeur: cle, libelle: garanti(libelleDuLitteral(cle, 'scope'), cle, 'libellé de la portée') }],
     },
   };

@@ -3232,7 +3232,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().addToCart(id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } })); // négocié
-    banc.getState().fenetreFermer('marche'); // quitte SANS payer
+    banc.getState().fenetreFermer('marchand'); // quitte SANS payer
     banc.getState().openMerchant('pnj'); // réouverture (même réassort)
     expect(banc.getState().merchant!.bargainLocked).toBe(true); // l'info est gardée
     banc.getState().startBargain('buy');
@@ -3253,7 +3253,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     // verrou PARTAGÉ : la VENTE est aussi bloquée
     banc.getState().startBargain('sell');
     expect(banc.getState().pendingBargain).toBeNull();
-    banc.getState().fenetreFermer('marche');
+    banc.getState().fenetreFermer('marchand');
     banc.getState().openMerchant('pnj');
     expect(banc.getState().merchant!.bargainLocked).toBe(true); // persiste
   });
@@ -3274,7 +3274,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.setState({ party: [{ ...hero(), items: [{ uid: 'd', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false }] } as any], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainSell: { won: true, drNet: 2, negotiator: false } } }));
-    banc.getState().fenetreFermer('marche'); // quitte sans vendre
+    banc.getState().fenetreFermer('marchand'); // quitte sans vendre
     banc.getState().openMerchant('pnj');
     expect(banc.getState().merchant!.bargainLocked).toBe(true);
   });
@@ -3286,7 +3286,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.getState().addToCart(id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } }));
     banc.getState().payCart(); // scelle le deal (paie)
-    banc.getState().fenetreFermer('marche');
+    banc.getState().fenetreFermer('marchand');
     banc.getState().openMerchant('pnj');
     expect(banc.getState().merchant!.bargainLocked).toBe(false); // pas de pénalité
   });
@@ -3325,7 +3325,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().addToCart(id);
     banc.getState().payCart();
-    banc.getState().fenetreFermer('marche'); // ferme sans confirmer → flush au sac du 1er héros
+    banc.getState().fenetreFermer('marchand'); // ferme sans confirmer → flush au sac du 1er héros
     expect(banc.getState().party[0].items!.some((i) => i.trappingId === id)).toBe(true);
   });
 
@@ -3526,7 +3526,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     const q0 = banc.getState().merchant!.stock.find((l) => l.id === id)!.qty;
     acheterAuPanier(banc.getState, id);
-    banc.getState().fenetreFermer('marche');
+    banc.getState().fenetreFermer('marchand');
     banc.getState().openMerchant('pnj'); // ré-ouverture immédiate → stock déplété conservé
     expect(banc.getState().merchant!.stock.find((l) => l.id === id)!.qty).toBe(q0 - 1);
   });
@@ -3538,7 +3538,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     const rolled0 = banc.getState().merchantStocks['pnj'].rolledAt;
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     acheterAuPanier(banc.getState, id);
-    banc.getState().fenetreFermer('marche');
+    banc.getState().fenetreFermer('marchand');
     banc.setState({ gameTime: t0 + 2 * 24 * 60 }); // +2 jours (≥ restockDays défaut 1)
     banc.getState().openMerchant('pnj');
     const rolled1 = banc.getState().merchantStocks['pnj'].rolledAt;

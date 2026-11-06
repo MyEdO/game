@@ -17,7 +17,7 @@ import { creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import type { Possession } from '../engine/possession';
 import type { Combatant } from '../engine/types';
-import type { Jeu } from './etat';
+import { initialNet, type Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -32,7 +32,7 @@ function makeHarness(party: Combatant[], possessions: Possession[] = []): { get:
     worldMap: { places: [{ id: 'lieu-1', scene: 'sc-1' }] },
     scene: { id: 'sc-1' },
     log: () => {},
-    net: { ownership: {} as Record<string, number> },
+    net: initialNet(),
   } as unknown as Jeu;
   const get: Get = () => state;
   const set: Set = (p) => {
@@ -82,7 +82,7 @@ const mule = (ownerId: string): Omit<BetePossession, 'uid'> => ({
   ownerId,
   location: { kind: 'avec-le-groupe' },
   items: [],
-  ref: { creatureId: 'mule' },
+  ref: { id: 'mule' },
 });
 
 describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {

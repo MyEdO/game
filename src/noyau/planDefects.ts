@@ -88,6 +88,24 @@ export function planFocusTiles(at: PlanDefectAt): { x: number; y: number; z: num
   return at.kind === 'zone' ? at.tiles : [{ x: at.x, y: at.y, z: at.z }];
 }
 
+/** IDENTITÉ d'un défaut de plan : sa famille et l'endroit visé — JAMAIS ses cases, qui décroissent à
+ *  mesure qu'on le corrige. C'est par elle qu'on retrouve le MÊME défaut dans des avertissements frais. */
+export function planDefectKey(plan: { family: PlanDefectFamily; at: PlanDefectAt }): string {
+  const at = plan.at;
+  const place =
+    at.kind === 'zone' ? `zone:${at.zoneId}`
+      : at.kind === 'edge' ? `edge:${at.x}:${at.y}:${at.side}`
+        : `cell:${at.x}:${at.y}`;
+  return `${plan.family}|${place}|z${at.z}`;
+}
+
+/** Cases FRAÎCHES du défaut suivi : `null` si plus aucun avertissement ne le porte (il est corrigé). */
+export function planFocusAt(warnings: readonly { plan?: { family: PlanDefectFamily; at: PlanDefectAt } }[], key: string | null): PlanDefectAt | null {
+  if (!key) return null;
+  for (const w of warnings) if (w.plan && planDefectKey(w.plan) === key) return w.plan.at;
+  return null;
+}
+
 export interface PlanDefect {
   family: PlanDefectFamily;
   at: PlanDefectAt;

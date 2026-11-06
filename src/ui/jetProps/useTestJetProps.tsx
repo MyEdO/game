@@ -1,4 +1,4 @@
-import { cibleMesuree } from '../../engine/tests';
+import { cibleMesuree, evaluateTest } from '../../engine/tests';
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
 import { FLOWS } from '../../noyau/rollFlowSpecs';
@@ -14,6 +14,7 @@ import { CodexRef } from '../compendium/CodexRef';
 import { libelleDuTestDeScene } from '../../noyau/jetsEnVue';
 import { t } from '../../i18n';
 import { useGesteDeJet } from '../useGesteDeJet';
+import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test de compétence de scène
@@ -36,7 +37,8 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const determination = useGesteDeJet('jetDetermine', 'test');
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'test');
   const reverseVerb = useGesteDeJet('jetReverse', 'test');
-  const setActor = useGame((s) => s.testSetActor);
+  const regler = useGame((s) => s.jetRegler);
+  const setActor = (v: ReglagesDuJet['test']['testeur']) => regler('test', 'testeur', v);
   const resolve = useGesteDeJet('jetConfirm', 'test');
   const cancel = useGesteDeJet('jetCancel', 'test');
   if (!pt) return null;
@@ -116,7 +118,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
            se dit par le verdict du flux ; la ligne, elle, dit le Test. C'est aussi l'issue canonique
            du seam (`rollOutcome`), dont dérivent Chance et Résilience. */
         row: rolled
-          ? { combatant: actor, d: testBreakdown(skillLabel, base, { roll: pt.roll!, ...cibleMesuree(pt), sl: pt.sl, success: pt.roll! <= pt.target }, pt.difficulty, extraMods, pt.easedBy) }
+          ? { combatant: actor, d: testBreakdown(skillLabel, base, { roll: pt.roll!, ...cibleMesuree(pt), sl: pt.sl, success: evaluateTest(pt.roll!, pt.target).success }, pt.difficulty, extraMods, pt.easedBy) }
           : (multi ? { pending: pendingLine } : { combatant: actor, pending: pendingLine }),
         onRoll: roll,
         rerolled: !!pt.rerolled,

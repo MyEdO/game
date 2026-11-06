@@ -7,8 +7,8 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { buildApi, setDialogueProbe, setCodexProbe } from './devtools';
-import { categoryByKey } from '../ui/compendium/registry';
+import { buildApi, setDialogueProbe } from './devtools';
+import { categoryByKey } from '../noyau/codex/registry';
 import { dialogueDuDessus, useDismissLayer, resetDismissLayers } from '../ui/useDismissLayer';
 import { useRef } from 'react';
 import { getStagePan, poserPan, resetStagePan } from './stagePan';
@@ -22,8 +22,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees } from '../web/indexedDb.testkit';
 import { tileEdge, screenToTileF, type Dims } from '../geometry/iso';
-import { canonEdge } from '../noyau/sceneEdit';
-import { nearestEdge } from '../ui/editor/editorState';
+import { canonEdge, nearestEdge } from '../noyau/sceneEditLecture';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -39,7 +38,6 @@ afterEach(async () => {
   useGame.setState({ scene: null });
   __setFabriqueIdbForTest(null);
   setDialogueProbe(null);
-  setCodexProbe(null);
   resetStageYaw();
   resetDismissLayers();
   resetStagePan();
@@ -55,13 +53,7 @@ async function monter(el: React.ReactElement): Promise<HTMLDivElement> {
 }
 
 describe('__wfrp — observation du Codex et de la caméra', () => {
-  const brancherCodex = () => setCodexProbe((id) => {
-    const cat = categoryByKey(id);
-    return cat ? { tab: cat.label, group: cat.group, cluster: cat.cluster ?? null } : null;
-  });
-
   it('localise skills et weather par le registre vivant, en copie détachée et sans changer l’état', () => {
-    brancherCodex();
     const api = buildApi();
     const avant = useGame.getState();
     expect(api.codexLocate('skills')).toEqual({ tab: 'Compétences', group: 'Compétences', cluster: null });
@@ -69,16 +61,10 @@ describe('__wfrp — observation du Codex et de la caméra', () => {
     const copie = api.codexLocate('skills');
     copie.tab = 'copie';
     expect(api.codexLocate('skills').tab).toBe(categoryByKey('skills')!.label);
-    const stable = api.codexLocate('skills');
-    setCodexProbe(() => stable);
-    const detachee = api.codexLocate('skills');
-    detachee.tab = 'copie';
-    expect(stable.tab).toBe(categoryByKey('skills')!.label);
     expect(useGame.getState()).toBe(avant);
   });
 
   it('refuse une catégorie inconnue en la nommant sans changer l’état', () => {
-    brancherCodex();
     const avant = useGame.getState();
     expect(() => buildApi().codexLocate('absent-recette')).toThrow(/codexLocate.*absent-recette/);
     expect(useGame.getState()).toBe(avant);

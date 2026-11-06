@@ -5,7 +5,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { cataloguesDeComposition, compositionDuPreset, lireComposition, porteeDeComposition, presetDeComposition, type Axe, type Composition } from './composition';
-import { findEnsembleParHabille, findPresetDePersonnageById, gardeRobe, trappingsInstanciables } from '../../data';
+import { findEnsembleParHabille, findPresetDePersonnageById, findTrappingById, gardeRobe, trappingsInstanciables } from '../../data';
 import { resetData, setDataset } from '../../data/overrides';
 import { CLES_ENVELOPPE } from '../../data/schemas/grammaire/document';
 import { file as FICHIER_DES_PRESETS, meta as metaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
@@ -33,6 +33,12 @@ describe('porteeDeComposition', () => {
 
   it('un objet tenu porte son apparence à sa prise', () => {
     expect(porteeDeComposition(soldat).portees).toContainEqual(expect.objectContaining({ cle: { champ: 'apparence', id: 'hallebarde' }, point: 'main' }));
+  });
+
+  it('un objet porté se range à l’emplacement que la composition lui choisit, à défaut au `rangement` de son trapping', () => {
+    const { portees } = porteeDeComposition(lue({ ...composition, objets: [...(composition.objets ?? []), 'arme-simple', 'dague'], rangementsObjets: { 'arme-simple': { id: 'dos' } } }));
+    expect(portees.find((p) => p.par?.id === 'arme-simple')?.point).toBe('dos');
+    expect(portees.find((p) => p.par?.id === 'dague')?.point).toBe(findTrappingById('dague')?.rangement?.id);
   });
 
   it('ce qui apporte une pièce porte le libellé de son ensemble : la chemise du Soldat, par l’uniforme de soldat', () => {
@@ -93,6 +99,13 @@ describe('lireComposition', () => {
     expect(lireComposition({ ...composition, prises: { main: { id: 'hallebarde' }, off: { id: 'hallebarde' } } })).toEqual({
       ok: false,
       fautes: [{ chemin: ['prises', 'off'], message: expect.stringContaining('porté deux fois') }],
+    });
+  });
+
+  it('ranger un objet qui n’est pas un des `objets` est une faute à sa clé', () => {
+    expect(lireComposition({ ...composition, rangementsObjets: { 'arme-simple': { id: 'dos' } } })).toEqual({
+      ok: false,
+      fautes: [{ chemin: ['rangementsObjets', 'arme-simple'], message: expect.stringContaining('arme-simple') }],
     });
   });
 

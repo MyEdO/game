@@ -418,7 +418,7 @@ Trois points d'enregistrement, dans cet ordre :
    nominatifs se rendent en ordre canonique de clé (#1825). Cet ordre décide en revanche de
    l'affichage : les rapports de l'Atlas suivent `BOOKS` (section par livre de `docs/raw/coverage.md`,
    puces du rapport pur `docs/raw/implemente.generated.md`, référencé par chaque champ `**Implémente :**`), et au Compendium la catégorie « Livres »
-   (`src/ui/compendium/registry.ts`, `books.map` non trié) est REGROUPÉE par `folder`
+   (`src/noyau/codex/registry.ts`, `books.map` non trié) est REGROUPÉE par `folder`
    (`CompendiumScreen.tsx`) : les rayons sortent dans l'ordre de leur PREMIÈRE apparition au fichier,
    et les livres dans l'ordre du fichier à l'intérieur d'un rayon. (Édition de `books.json` :
    round-trip octet-fidèle exigé par `src/data/serialize.test.ts`.)

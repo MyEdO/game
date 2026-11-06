@@ -7,6 +7,10 @@ import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { seedBattleRng, battleRng } from './battleRng';
 import type { WorldMap } from './worldMap';
 import type { PendingSteamSave } from './pendings';
+import { evaluateTest } from '../engine/tests';
+import { tableTotale } from '../lib/tableTotale';
+import { avanceEtapeCascade } from './cascade.testkit';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -113,5 +117,38 @@ describe('Panne de Vapeur — résolution first-class (MDG 12 l.313-352)', () =>
     expect((get().vessel!.upgrades ?? []).some((u) => u.id === 'propulsion-a-vapeur')).toBe(false);
     // Coup Critique à la Coque noté sur le navire.
     expect((get().vessel!.criticals ?? []).length).toBeGreaterThan(0);
+  });
+});
+
+describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.313 ; LDB 12 l.25-28)', () => {
+  it('un 99 sous une cible au-delà de 99 est une Maladresse : la table de panne est tirée', () => {
+    seedBattleRng(1);
+    banc.setState({
+      party: makePregens().slice(0, 3).map((h) => ({ ...h, characteristics: tableTotale(Object.keys(h.characteristics), () => 99) })),
+      scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+      pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0, pendingSteamSave: null, journal: [],
+      vessel: { vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+    } as never);
+    get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
+    for (let i = 0; i < 30 && !get().pendingRest; i++) {
+      const pc = get().pendingCascade;
+      if (!pc || pc.participants[pc.cursor]?.kind === 'progression') break;
+      avanceEtapeCascade(get);
+    }
+    const p = get().pendingCascade!;
+    const step = p.participants[p.cursor];
+    expect(step?.kind).toBe('progression');
+    const rows = step.participants!;
+    expect(rows.length, 'la Progression a ses contributeurs').toBeGreaterThan(0);
+    expect(rows[0].target!, 'la cible du contributeur dépasse la borne haute').toBeGreaterThanOrEqual(99);
+    const jet = evaluateTest(99, rows[0].target!);
+    const poses = p.participants.map((s, i) => (i !== p.cursor ? s : {
+      ...s, participants: s.participants!.map((part, j) => (j ? part : { ...part, result: { roll: 99, target: jet.target, sl: jet.sl, success: jet.success } })),
+    }));
+    set({ pendingCascade: { ...p, participants: poses } });
+    get().jetConfirm('cascade');
+    const panne = t('sv.steamBreakdown', { label: '' }).split(' —')[0];
+    expect(get().journal.some((l) => l.includes(panne)), 'la table de panne de vapeur est tirée').toBe(true);
   });
 });

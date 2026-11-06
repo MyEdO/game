@@ -678,6 +678,8 @@ export const ALL_MAGIC = 'all';
 
 export interface CastPenalty {
   label: string;
+  /** Entité SOURCE de la pénalité (`OpsCtx.source`) : sa fiche Codex (`effectRef`). */
+  source?: EffectSource;
   /** Compétence visée (id stable skills.json), ou `ALL_MAGIC`. */
   skill: string;
   /** Modificateur (négatif) à la valeur de Test (« Langue maladroite −10 »). */
@@ -753,7 +755,7 @@ export interface ModLine {
  *  `test-value-parts.test.ts`). COUTURE UNIQUE effet→fiche pour les `ModLine` : elle vit ICI, à côté
  *  de la table qu'elle indexe, pour être lisible des DEUX collecteurs (`conditions`, `trauma`) sans
  *  cycle d'import entre eux. */
-export function effectRef(e: ActiveEffect): CodexTarget | undefined {
+export function effectRef(e: Pick<ActiveEffect, 'source' | 'sourceSpellId'>): CodexTarget | undefined {
   if (e.source) return { category: CATEGORY_BY_SOURCE_KIND[e.source.kind], id: e.source.id };
   return e.sourceSpellId ? { category: 'spells', id: e.sourceSpellId } : undefined;
 }
@@ -871,9 +873,8 @@ export interface ActiveEffect {
    *  Cornes), retirée à l'expiration. Dégâts SB-relatifs (« +BF+N ») et Atouts portés par l'arme. */
   naturalWeapon?: Weapon;
   /** Talent ACCORDÉ TEMPORAIREMENT par cet effet (op `grantTalent` à durée — Flambeau de Vertu : Sans
-   *  peur…) : réf par `talentId` STABLE (+ `spec` éventuel), lu tant que l'effet dure par
-   *  `combatFeatures/dispatch.featuresOf` (capacités de combat) et par `effectGrantedTalents` →
-   *  `effectiveTalents` (POSSESSION : fiche, chips, `hasTalent`). JAMAIS posé dans `c.talents` :
+   *  peur…) : réf par `talentId` STABLE (+ `spec` éventuel), lu tant que l'effet dure par la porte de
+   *  POSSESSION `effectiveTalents` (via `effectGrantedTalents`). JAMAIS posé dans `c.talents` :
    *  l'acquisition et l'avancement restent hors de portée d'un octroi qui expire. Un octroi SANS
    *  échéance ne passe pas par ici — il est structurel (`engine/ops.ts`, op `grantTalent`). Rendu à
    *  l'affichage par `talentConcrete`. */
@@ -955,8 +956,9 @@ export interface ActiveEffect {
   diseaseTestMod?: { diseases?: string[]; amount: number };
   /** SOURCE passive SUSPENDUE (identité Codex) : tout ce qu'elle émet est ignoré tant que l'effet dure
    *  — mécanisme général `engine/suspension.ts` (`sourceSuspended`/`suspendSource`), lu par le
-   *  collecteur `passiveMods` et par les cycles de maladie (`symptomSuppressed`). Porteurs : op
-   *  `suppressSymptom` (Racine de terre, LDB 72 l.28) et fenêtre de Détermination (LDB 17 l.61). */
+   *  collecteur `passiveMods`, par les cycles de maladie (`symptomSuppressed`) et, pour un Talent, par la
+   *  porte de possession `effectiveTalents`. Porteurs : ops `suppressSymptom` (Racine de terre, LDB 72
+   *  l.28) et `suppressTalents` (LDB 40 l.80, l.82), fenêtre de Détermination (LDB 17 l.61). */
   suppressedSource?: CodexTarget;
   /** RESTREINT la suspension ci-dessus au SEUL État nommé (#1695) : « Retirez un État » (LDB 17 l.61)
    *  n'écarte qu'UN pion, même quand la source en porte plusieurs (Transmutation de Chamon : Aveuglé,
@@ -970,6 +972,12 @@ export interface ActiveEffect {
    *  porteur en combat, un Test de `char` décide s'il garde Action ET Mouvement (réussite) ou UN seul
    *  au choix (échec). Résolu cadence-aware par `resolveActGates` (noyau/combatFlow). */
   actGate?: { char: CharKey };
+  /** Le porteur doit effectuer des Tests de Prière pour son Action (op `prayerForAction`, lu par
+   *  `prayerForActionBy`). LDB 40 l.74 */
+  prayerForAction?: true;
+  /** Divinité (id de `gods.json`) dont les Bénédictions et Miracles échouent sur le porteur (op `deityBan`,
+   *  lu par `prayerBannedOn`). LDB 40 l.64 */
+  deityBan?: string;
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête — Peau de loup d'hiver d'Ulric,
    *  Protection contre la pluie) : `exposureNight` est sauté tant que l'effet dure. */
   weatherImmune?: boolean;
@@ -1039,14 +1047,14 @@ export interface Trauma {
    *  intervention médicale », LDB 18 l.208/239) — traité par le Talent Chirurgie, pas par le simple repos. */
   needsSurgery?: boolean;
   /** Prothèses (LDB 73) qui annulent la séquelle permanente d'une amputation TANT QUE l'objet est porté
-   *  (dans `items`). Réf par `trappingId` STABLE (`crochet`/`fausse-jambe`/`merveille-d-ingenierie`/
+   *  (dans `items`). Réf par `id` STABLE (`crochet`/`fausse-jambe`/`merveille-d-ingenierie`/
    *  `nez-dore`/`cache-oeil`/`oeil-de-verre`/`dents-en-bois`) — matchée contre `ItemInstance.trappingId`.
    *  `cancels: 'all'` annule toute la pénalité (Merveille d'ingénierie : « ignorer complètement la
    *  perte… d'une jambe » ; Nez doré ; Œil de verre…) ; `'movement'` rétablit le déplacement seul
    *  (Fausse jambe : « ignorer 1 Point de Mouvement perdu »). L'Esquive se réapprend SÉPARÉMENT pour 200 PX
    *  (LDB 73) : `ItemInstance.prosthesisTrained` (posé par `trainProsthesis`, noyau/partyFlow.ts) élève l'effet
    *  de CETTE prothèse à `'all'` pour `prosthesisCancels` (trauma.ts), sans changer `cancels` en donnée. */
-  prosthesis?: { trappingId: string; cancels: 'all' | 'movement' }[];
+  prosthesis?: import('zod').z.input<typeof import('../data/schemas/defs/traumas').protheseSchema>[];
   /** Nombre d'éléments perdus pour une séquelle CUMULATIVE par comptage (LDB 18) : doigts (−5/doigt, 4+ →
    *  règle de la main, l.251/263) ou dents (−1 Soc/paire, l.247). Fusionné à chaque nouvelle perte. */
   count?: number;

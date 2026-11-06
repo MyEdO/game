@@ -5,9 +5,9 @@ import type { GameOp } from '../../engine/ops';
 import { newOp } from '../editor/GameOpEditor';
 import { OP_LABEL, OP_REF_FIELDS, opRefValue, opWithRefValue } from '../editor/refsDOp';
 import { datasetArray } from '../../data/overrides';
-import { opRow, opRows, tableRows } from './opRows';
-import { humanizeFormula, humanizeOp } from './humanize';
-import { codexLookupById } from './registry';
+import { opRow, opRows, tableRows } from '../../noyau/codex/opRows';
+import { humanizeFormula, humanizeOp } from '../../noyau/codex/humanize';
+import { codexLookupById } from '../../noyau/codex/registry';
 import { characteristics, talents, skills, traits, psychologies, etats, trappings, maladies, symptoms, creatures, mutations, findSymptomById, effectTables, groupLabel } from '../../data';
 import type { CharKey } from '../../engine/types';
 import { psychBranchOps } from '../../engine/psychology';
@@ -88,7 +88,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
 
   /** Résolvabilité des ancres — DATA-DRIVEN (zéro id en dur) : chaque kind à ancre nominative
    *  d'`opRows.ts` produit un `{t:'ref'}` dont l'id RÉSOUT réellement dans le Codex (même lookup
-   *  que `CodexRef.tsx:90`, `codexLookupById`). L'id de fixture est le PREMIER item du dataset réel
+   *  que `CodexRef.tsx:131`, `codexLookupById`). L'id de fixture est le PREMIER item du dataset réel
    *  de la catégorie visée — une dérive id↔catégorie future (mauvais champ, mauvaise catégorie,
    *  dataset renommé) casse ce test au lieu de fuiter en silence sur une chip Codex morte. */
   const ANCHOR_FIXTURES: { kind: GameOp['op']; category: string; build: () => GameOp }[] = [

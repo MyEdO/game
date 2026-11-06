@@ -6,9 +6,9 @@ import { libelleDeValeur, nommerChamps, nommerNoeud } from './meta';
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { countSpecSchema, difficultySchema, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
+import { countSpecSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
-import { idDe, idsDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refMorte, refs, refusDeSpec } from './ref';
+import { idDe, idsDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refMorte, refs, refTypee, refusDeSpec } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
 import { cibleDeLArg, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
@@ -232,9 +232,8 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
 
 /** `TrappingRef` (`src/data/index.ts`) — par id de catalogue (+ quantité, + Atouts ATTACHÉS `qualities`
  *  ou joker « Atout au choix » `qualityChoice` — « X de qualité » LDB 60 Fabrication, #657 Lot 1),
- *  texte narratif hors catalogue (+ quantité), dotation VÉHICULE (`vehicleId`, foyer `vehicles.json` —
- *  grant de POSSESSION, matérialisé en T1), dotation BÊTE (`creatureId`, foyer `creatures.json` — SOCLE
- *  POSSESSIONS #615/#617 §9), choix « A ou B » (`choice`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`),
+ *  texte narratif hors catalogue (+ quantité), dotation de POSSESSION (`dotationDePossessionSchema`,
+ *  véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9), choix « A ou B » (`choice`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`),
  *  ou joker (`wildcard`). Dupliqué dans `careerLevels`/`classes`/`creatures`. Sa `spec` est la PRÉCISION
  *  d'un objet, nommée comme telle : `trappings.json` ne déclare aucun catalogue de Spécialisations. */
 type CountSpecInfer = z.infer<typeof countSpecSchema>;
@@ -248,18 +247,24 @@ export const dotationDeCatalogueSchema = nommerChamps(z.strictObject({
   qualityChoice: z.literal(true).optional(),
 }), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' } });
 
+/** Ce qu'une dotation POSSÈDE hors du sac : une bête du bestiaire ou un véhicule (SOCLE POSSESSIONS #615). */
+export const typeDePossessionSchema = enumNomme({ creature: 'Créature', vehicle: 'Véhicule' });
+/** Dotation d'une POSSESSION : la référence typée, sa quantité et son libellé imprimé. */
+export const dotationDePossessionSchema = refTypee(typeDePossessionSchema, {}, {
+  count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
+  label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
+});
+export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
 export const trappingRefSchema: z.ZodType<
   | { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true }
   | { text: string; count?: CountSpecInfer }
-  | { vehicleId: string; count?: CountSpecInfer; label?: string }
-  | { creatureId: string; count?: CountSpecInfer; label?: string }
+  | DotationDePossession
   | { choice: unknown[] }
   | { wildcard: 'arme' }
 > = z.union([
   dotationDeCatalogueSchema,
   nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } }),
-  nommerChamps(z.strictObject({ vehicleId: idDe('vehicle'), count: countSpecSchema.optional(), label: z.string().optional() }), { vehicleId: { label: "véhicule" }, count: { label: "nombre" }, label: { label: "libellé" } }),
-  nommerChamps(z.strictObject({ creatureId: idDe('creature'), count: countSpecSchema.optional(), label: z.string().optional() }), { creatureId: { label: "créature" }, count: { label: "nombre" }, label: { label: "libellé" } }),
+  dotationDePossessionSchema,
   nommerChamps(z.strictObject({ choice: z.array(z.lazy(() => trappingRefSchema)) }), { choice: { label: "choix" } }),
   nommerChamps(z.strictObject({ wildcard: z.literal('arme') }), { wildcard: { label: "choix libre" } }),
 ]);

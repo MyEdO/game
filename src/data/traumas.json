@@ -330,11 +330,11 @@
     ],
     "prosthesis": [
       {
-        "trappingId": "merveille-d-ingenierie",
+        "id": "merveille-d-ingenierie",
         "cancels": "all"
       },
       {
-        "trappingId": "fausse-jambe",
+        "id": "fausse-jambe",
         "cancels": "movement"
       }
     ],
@@ -360,7 +360,7 @@
     },
     "prosthesis": [
       {
-        "trappingId": "merveille-d-ingenierie",
+        "id": "merveille-d-ingenierie",
         "cancels": "all"
       }
     ],
@@ -384,7 +384,7 @@
     ],
     "prosthesis": [
       {
-        "trappingId": "merveille-d-ingenierie",
+        "id": "merveille-d-ingenierie",
         "cancels": "all"
       }
     ],
@@ -430,7 +430,7 @@
     ],
     "prosthesis": [
       {
-        "trappingId": "nez-dore",
+        "id": "nez-dore",
         "cancels": "all"
       }
     ],
@@ -472,11 +472,11 @@
     },
     "prosthesis": [
       {
-        "trappingId": "cache-oeil",
+        "id": "cache-oeil",
         "cancels": "all"
       },
       {
-        "trappingId": "oeil-de-verre",
+        "id": "oeil-de-verre",
         "cancels": "all"
       }
     ],
@@ -518,7 +518,7 @@
     },
     "prosthesis": [
       {
-        "trappingId": "merveille-d-ingenierie",
+        "id": "merveille-d-ingenierie",
         "cancels": "all"
       }
     ],
@@ -549,7 +549,7 @@
     },
     "prosthesis": [
       {
-        "trappingId": "dents-en-bois",
+        "id": "dents-en-bois",
         "cancels": "all"
       }
     ],

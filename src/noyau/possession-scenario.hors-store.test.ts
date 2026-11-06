@@ -16,7 +16,7 @@ const vehicule = (vehicleId: string, cargo: VehiculePossession['cargo']): Omit<V
 });
 
 const bete = (creatureId: string, cargo: BetePossession['cargo']): Omit<BetePossession, 'uid'> => ({
-  nature: 'bete', ownerId: 'h1', location: { kind: 'avec-le-groupe' }, items: [], ref: { creatureId }, cargo,
+  nature: 'bete', ownerId: 'h1', location: { kind: 'avec-le-groupe' }, items: [], ref: { id: creatureId }, cargo,
 });
 
 /**

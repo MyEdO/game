@@ -337,7 +337,7 @@ export const MIN_FRAGMENTS = 1;
  * d'une adresse COMPLÈTE côté écran : en cours de composition (`{ book, ch: '', parts: [] }`, ce que
  * `DescRefField` rend dès le choix du livre), l'adresse ne résout rien — la prose appartient encore à
  * l'auteur. Accepte de l'`unknown` : l'appelant édite des objets de donnée non typés (`estDerive`,
- * `src/ui/compendium/editFields.ts`).
+ * `src/noyau/codex/editFields.ts`).
  */
 export function adresseUnPassage(ref: unknown): boolean {
   const parts = (ref as { parts?: unknown } | null | undefined)?.parts;
@@ -787,6 +787,10 @@ export const EXPRESSION_DE_DE = /^\s*[+-]?\s*(\d+\s*\+\s*)?\d*\s*d\s*\d+\s*([+-]
 /** `{x,y}` en CASES de grille — position d'un poste de pont (`vehicles.json`) comme case d'ABORD
  *  d'une place assise (`props.json`). */
 export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(), y: z.number().finite() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
+
+/** `{x,y}` en POUR CENT d'un canevas (0-100), point CONTINU et non case — un lieu sur la carte du monde,
+ *  un point d'intérêt sur le plan de son lieu (`defs-scenes/worldmap.ts`). */
+export const pointDuCanevasSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
 
 /**
  * `raceKey` — id STABLE des 7 espèces jouables (LDB + suppléments), patron `defs/characteristics`

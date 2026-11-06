@@ -11,7 +11,7 @@ import { makePregens } from '../data/pregens';
 import { toBrass } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
-import { resolveOpposed } from '../engine/tests';
+import { evaluateTest, resolveOpposed } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
 import { activeSequence, sequenceAbandonOf } from './sequenceCore';
 import { advantageCapFor } from '../engine/advantage';
@@ -165,7 +165,7 @@ describe('playTavernGame', () => {
     expect(after.sl).toBe(before.result!.sl + 1);
     expect(after.roll).toBe(before.result!.roll); // même dé, la Chance n'en tire pas un autre
     // L'issue exposée (`success`) recalcule l'opposition contre le MÊME `aT` figé (calque `disengage`).
-    const recomposed = resolveOpposed(aT, { roll: after.roll, target: after.target, sl: after.sl, success: after.roll <= after.target, isDouble: false });
+    const recomposed = resolveOpposed(aT, { roll: after.roll, target: after.target, sl: after.sl, success: evaluateTest(after.roll, after.target).success, isDouble: false });
     expect(after.success).toBe(recomposed.winner !== 'attacker');
   });
 

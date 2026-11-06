@@ -1,6 +1,6 @@
 /**
  * Grants de POSSESSION portés par des dotations (Classe/Carrière) — #617/#618 SOCLE POSSESSIONS Lot 1.
- * `buildInventory` (engine/items.ts) ignore les refs `{creatureId}`/`{vehicleId}` d'un `TrappingRef`
+ * `buildInventory` (engine/items.ts) ignore les dotations de possession (`{id, type}`) d'un `TrappingRef`
  * (pas des objets de sac) : ce module les MATÉRIALISE en `PossessionInput[]`, même shape que l'Effet
  * `givePossession` (noyau/combatEffects.ts) — bête/véhicule `avec-le-groupe`, `count` respecté.
  */
@@ -22,17 +22,18 @@ export function possessionGrantsFromRefs(refs: TrappingRef[], ownerId: string, r
   const grants: PossessionInput[] = [];
   for (const ref of refs) {
     const n = compteDeLaDotation(ref, (de) => rollDice(de, rng));
-    if ('vehicleId' in ref) {
+    if (!('type' in ref)) continue;
+    if (ref.type === 'vehicle') {
       // Objet NEUF à CHAQUE itération (jamais la même réf poussée N fois) — `addPossession` ne fait
       // qu'un spread SUPERFICIEL (`{...p, uid}`, possessionsFlow.ts) : un `items`/`location` partagé
       // entre N possessions dupliquées les ferait muter ensemble (embarquer sur l'une affecterait
       // les autres).
       for (let i = 0; i < n; i++) {
-        grants.push({ nature: 'vehicule', vehicleId: ref.vehicleId, ownerId, location: { kind: 'avec-le-groupe' }, items: [], ...(ref.label ? { label: ref.label } : {}) });
+        grants.push({ nature: 'vehicule', vehicleId: ref.id, ownerId, location: { kind: 'avec-le-groupe' }, items: [], ...(ref.label ? { label: ref.label } : {}) });
       }
-    } else if ('creatureId' in ref) {
+    } else {
       for (let i = 0; i < n; i++) {
-        grants.push({ nature: 'bete', ref: { creatureId: ref.creatureId }, ownerId, location: { kind: 'avec-le-groupe' }, items: [], ...(ref.label ? { label: ref.label } : {}) });
+        grants.push({ nature: 'bete', ref: { id: ref.id }, ownerId, location: { kind: 'avec-le-groupe' }, items: [], ...(ref.label ? { label: ref.label } : {}) });
       }
     }
   }

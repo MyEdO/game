@@ -7,8 +7,8 @@
  * (`spells.json`), passe par le point de lecture unique (`findSpellById`, `src/data/index.ts`), et
  * assène le résultat sur les consommateurs RÉELS — `castLandProbability` (`engine/magic.ts`, NI),
  * `spellFlowFor` (`engine/flowCore.ts`, le Flow que `combatFlow` exécute) et `learnableSpells`
- * (`engine/grimoire.ts`, énumération du catalogue) ; le registre Codex (`ui/compendium/registry.ts`) :
- * `src/ui/compendium/codex-vdm-spells-variantes.test.ts`.
+ * (`engine/grimoire.ts`, énumération du catalogue) ; le registre Codex (`noyau/codex/registry.ts`) :
+ * `src/noyau/codex/codex-vdm-spells-variantes.test.ts`.
  * Débrancher `effectiveEntry` de l'un de ces sites rend le volet correspondant.
  */
 import { describe, it, expect, afterEach } from 'vitest';

@@ -56,6 +56,7 @@ import { opPsy } from '../engine/psych/opsPsy';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from '../noyau/monde/terrain';
+import { categoryByKey } from '../noyau/codex/registry';
 import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from '../noyau/cascade';
@@ -72,7 +73,7 @@ import { aiDriven } from '../noyau/netOwnership';
 import { fluxAccepte, NOM_DU_VERBE_DE_JET } from '../noyau/flowVerbs';
 import { combatDistance } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
-import { canonEdge } from '../noyau/sceneEdit';
+import { canonEdge } from '../noyau/sceneEditLecture';
 import type { CellSide } from '../noyau/monde/scene';
 import type { HungerState, ThirstState } from '../engine/provisions';
 import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
@@ -179,12 +180,6 @@ function coordonneesFinies(tile: unknown): tile is { x: number; y: number; z?: n
 }
 
 export type CodexLocation = { tab: string; group: string; cluster: string | null };
-export type CodexProbe = (categoryId: string) => CodexLocation | null;
-let lireCodex: CodexProbe | null = null;
-
-export function setCodexProbe(probe: CodexProbe | null): void {
-  lireCodex = probe;
-}
 
 let lireDialogue: (() => HTMLElement | null) | null = null;
 let dialogueMarque: HTMLElement | null = null;
@@ -656,9 +651,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
   return {
     dialogueDuDessus: observerDialogueDuDessus,
     codexLocate: (categoryId: string): CodexLocation => {
-      const location = lireCodex?.(categoryId);
-      if (!location) throw new Error(`__wfrp.codexLocate : catégorie « ${categoryId} » inconnue`);
-      return { ...location };
+      const cat = categoryByKey(categoryId);
+      if (!cat) throw new Error(`__wfrp.codexLocate : catégorie « ${categoryId} » inconnue`);
+      return { tab: cat.label, group: cat.group, cluster: cat.cluster ?? null };
     },
     camera: () => {
       const s = g();
@@ -1250,7 +1245,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (seed != null) s.seedRng(seed);
       s.setParty(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
       s.setPendingCampaign(lancee);
-      lancerCampagne(g, lancee, sceneId);
+      const refus = lancerCampagne(g, lancee, sceneId);
+      if (refus) return `✗ campagne « ${c.label} » refusée — ${refus}`;
       s.setScreen('campaign');
       const after = useGame.getState();
       return `✓ campagne « ${c.label} » chargée (${after.party.length} héros, scène « ${after.scene?.id} »)`;

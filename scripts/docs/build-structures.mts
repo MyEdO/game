@@ -16,6 +16,7 @@ import {
   scannerRedeclarations,
   listerDocuments,
   empreintesDefs,
+  DOSSIERS_DE_DEFS,
   RACINES,
 } from './lib/structures-scan.mjs';
 import { noeudsDeStructure, type ClasseDeStructure } from '../guards/lib/structuresLocales.mts';
@@ -110,7 +111,7 @@ function rendu() {
   // ---------------------------------------------------------------------------
   out += '## Périmètre mesuré et angles morts (à dire pour ne pas se lire comme exhaustif)\n\n';
   out += 'Périmètre : les documents AUTHORÉS des deux racines (`src/data`, `src/scenes`), leurs schémas zod\n';
-  out += 'du registre, et les littéraux d’objet zod des `src/data/schemas/defs/*.ts`.\n';
+  out += `du registre, et les littéraux d’objet zod de leurs modules (${DOSSIERS_DE_DEFS.map((d) => `\`${d}/*.ts\``).join(', ')}).\n`;
   out += 'Ce que la mesure ci-dessous **ne voit pas** — un compte n’a de sens qu’avec son périmètre.\n\n';
   out += ANGLES_MORTS.map((a) => `- ${a}`).join('\n');
   out += '\n\n';
@@ -500,7 +501,7 @@ function rendu() {
   }
 
   // ---------------------------------------------------------------------------
-  out += '## 4. Redéclarations locales dans `src/data/schemas/defs/*.ts`\n\n';
+  out += `## 4. Redéclarations locales dans ${DOSSIERS_DE_DEFS.map((d) => `\`${d}/*.ts\``).join(', ')}\n\n`;
   out += `Littéraux d’objet zod lus : **${totalLitteraux}** ; **${redeclarations.length}** recoupent le lexique\n`;
   out += 'ou un littéral de `src/data/schemas/grammaire/`. « Schéma commun candidat » = même signature EXACTE\n';
   out += 'qu’un littéral de la grammaire (candidat à examiner, cf. angles morts).\n\n';
@@ -582,7 +583,7 @@ function rendu() {
     );
   }
   {
-    const CLES_REF = ['skillId', 'skill', 'talentId', 'trappingId', 'traitId', 'spellId', 'creatureId', 'vehicleId', 'tableId', 'spec'];
+    const CLES_REF = ['skillId', 'skill', 'talentId', 'trappingId', 'traitId', 'spellId', 'tableId', 'spec'];
     out += 'Une ligne par (op, signature, dataset), mesurée sur la donnée, lot `L1c #1468` : la cible est une union\n';
     out += 'discriminée générée d’`OP_DEFS`, à refs EMBOÎTÉES (`skill: {id, spec}`). La dette d’ops que la porte juge\n';
     out += 'est le volet `DETTE_OPS`, mesuré au schéma seul : `OPS_NON_TYPEES` et les références à plat de `OP_DEFS`.\n\n';

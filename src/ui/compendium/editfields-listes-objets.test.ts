@@ -14,8 +14,8 @@
  * les rangées), y compris sous les clés dédiées. Aucune liste de cas en dur.
  */
 import { describe, it, expect } from 'vitest';
-import { CODEX } from './registry';
-import { inferFields, type FieldKind, type RegimeDeLibelle } from './editFields';
+import { CODEX } from '../../noyau/codex/registry';
+import { inferFields, type FieldKind, type RegimeDeLibelle } from '../../noyau/codex/editFields';
 import { refFieldCfg } from './refField/RefField';
 import { isEditableCategory, editableEntries, dedicatedFieldKeys, editableDataset, editableObjectDataset } from '../editor/codex/CodexEdit';
 import { noeudDeLEntree, noeudObjet } from '../../data/schemas/validate';

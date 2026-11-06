@@ -106,7 +106,7 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
   // Onglets conditionnels (#620) : Soute pour une CALE (navire/véhicule avec capacité) — le bât d'une bête
   // relève de son Inventaire/Enc (Aperçu), pas d'une cale ; Voyage pour une bête au profil d'allures EDOC.
   const selectedCapacity = selected ? possessionCapacity(selected) : undefined;
-  const selectedCreatureId = selected && selected.nature === 'bete' && 'creatureId' in selected.ref ? selected.ref.creatureId : undefined;
+  const selectedCreatureId = selected && selected.nature === 'bete' && 'id' in selected.ref ? selected.ref.id : undefined;
   const mountProfile = selectedCreatureId ? mountProfileForCreature(selectedCreatureId) : undefined;
 
   // Verdicts du noyau (`refusGestePossession`), ceux que les gestes appliquent au clic ; navires qui
@@ -246,14 +246,14 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
                 content={possessionCapacity(selected) != null ? 'Contenance' : 'Poids porté'}
                 value={<EncValue p={selected} all={possessions} />}
               />
-              {(selected.nature === 'bete' || selected.nature === 'serviteur') && 'creatureId' in selected.ref && (
-                <TraitChips traits={findCreatureById(selected.ref.creatureId)?.traits ?? []} />
+              {(selected.nature === 'bete' || selected.nature === 'serviteur') && 'id' in selected.ref && (
+                <TraitChips traits={findCreatureById(selected.ref.id)?.traits ?? []} />
               )}
             </>
           }
         />
       ) : tab === 'inventaire' ? (
-        <CarrierInventory carrierId={selected.uid} items={selected.items} party={party} />
+        <CarrierInventory carrierId={selected.uid} items={selected.items} />
       ) : tab === 'soute' ? (
         <>
           <NotchGauge label="Cale" value={cargoTotalEnc(selected.cargo ?? [])} max={selectedCapacity!} stacked />

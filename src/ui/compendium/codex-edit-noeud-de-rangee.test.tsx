@@ -16,7 +16,7 @@ import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { versDisque } from '../../data/schemas/grammaire/prose';
 import { datasetArray, resetData, setDataset } from '../../data/overrides';
-import { categoryByKey } from './registry';
+import { categoryByKey } from '../../noyau/codex/registry';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

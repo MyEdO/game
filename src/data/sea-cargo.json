@@ -492,10 +492,10 @@
       "skill": {
         "id": "marchandage"
       },
-      "difficulty": "complexe",
-      "totalDR": 10,
-      "maxAttempts": 3
+      "difficulty": "complexe"
     },
+    "totalDR": 10,
+    "maxAttempts": 3,
     "outcomes": [
       {
         "on": "failure",
