@@ -1,0 +1,40 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "armure",
+  "cle": {
+    "piece": "brassards"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "armure",
+  "couvre": [
+    "avant_bras_g",
+    "avant_bras_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    },
+    {
+      "nom": "fourrure",
+      "palette": "fourrure"
+    },
+    {
+      "nom": "clous",
+      "palette": "metal"
+    }
+  ],
+  "glb": {
+    "sha256": "4626ff45452c2778b8441175a7fa21cf552382515b2e3b9f2c4438577c9a3282",
+    "octets": 705020
+  }
+}

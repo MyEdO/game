@@ -7,7 +7,7 @@
  * vit hors du store. Les lectures (outil, sélection, picking, emprise du pinceau) vivent dans
  * `./sceneEditLecture`. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
-import { ActionAuthoree, DEFAULT_TERRAIN, emptyScene, Scene, SceneEntity, SceneEffectZone, type SceneStationAnchor, type Dialogue, type Trigger, type EncounterDef, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, reposDeScene, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, type ArchitectureStorey, type FacadeFeature, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
+import { ActionAuthoree, DEFAULT_TERRAIN, emptyScene, Scene, SceneEntity, SceneEffectZone, type SceneStationAnchor, type Dialogue, type DialogueChoice, type Trigger, type EncounterDef, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, reposDeScene, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, type ArchitectureStorey, type FacadeFeature, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
 import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
@@ -37,6 +37,7 @@ import type { Pt as ScenePt } from './monde/path';
 import { ACTION_FOUILLER } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -578,7 +579,7 @@ function clamp(v: number, max: number): number {
 }
 /** Case `p` plafonnée à la carte et ramenée à une case entière — la convention de pose du noyau : un geste
  *  hors carte se pose au bord. */
-function borneALaCarte(scene: Scene, p: Pt): Pt {
+export function borneALaCarte(scene: Scene, p: Pt): Pt {
   return { x: clamp(Math.floor(p.x), scene.dimensions.w), y: clamp(Math.floor(p.y), scene.dimensions.h) };
 }
 
@@ -785,12 +786,12 @@ export function pasteEntity(scene: Scene, data: SceneEntity, p: Pt, z = 0): { sc
   return { scene: addEntity(scene, ent, z), id };
 }
 
-/** Pose un point d'entrée nommé `entree-N` (premier libre) à p, sur l'étage `z` (défaut 0) — comble le
- *  manque du POC : les transitions et la carte du monde les référencent mais rien ne permettait d'en
- *  créer. Étage éditable ensuite dans l'inspecteur (#835 FU-5). */
+/** Pose un point d'entrée nommé `entree-N` (premier libre) à p, plafonné sur une case de la carte comme
+ *  `editEntry` (`borneALaCarte`), sur l'étage `z` (défaut 0). Les transitions et la carte du monde le
+ *  référencent par son id (#835 FU-5). */
 export function placeEntry(scene: Scene, p: Pt, z = 0): { scene: Scene; id: string } {
   const id = nextEntityId('entree', Object.keys(scene.entryPoints ?? {}));
-  return { scene: { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...p, ...(z ? { z } : {}) } } }, id };
+  return { scene: { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, p), ...(z ? { z } : {}) } } }, id };
 }
 
 /** Renomme un point d'entrée (clé unique, non vide). Renvoie la scène inchangée si conflit. */
@@ -842,6 +843,56 @@ export function replaceDialogue(scene: Scene, id: string, dialogue: Dialogue): S
 /** Retire le dialogue `id`. */
 export function removeDialogue(scene: Scene, id: string): Scene {
   return { ...scene, dialogues: scene.dialogues.filter((d) => d.id !== id) };
+}
+
+/** Renomme le dialogue `from` et le PROPAGE à ses ouvreurs : le `dialogueId` des entités et chaque effet
+ *  « Ouvrir un dialogue » de la scène (`sitesDeLaScene`). Refusé (scène inchangée) pour un id vide ou
+ *  déjà porté par un autre dialogue. `validateScene` (`dialogue inexistant`). */
+export function renameDialogue(scene: Scene, from: string, to: string): Scene {
+  const next = to.trim();
+  if (!next || next === from || scene.dialogues.some((d) => d.id === next) || !scene.dialogues.some((d) => d.id === from)) return scene;
+  const copie = structuredClone(scene);
+  for (const { effet } of sitesDeLaScene(copie).effets) if (effet.type === 'startDialogue' && effet.dialogue === from) effet.dialogue = next;
+  const renomme = { ...copie, dialogues: copie.dialogues.map((d) => (d.id === from ? { ...d, id: next } : d)) };
+  return renomme.entities.filter((e) => e.dialogueId === from).reduce((s, e) => editEntity(s, e.id, { dialogueId: next }), renomme);
+}
+
+/** Ajoute au dialogue un nœud sans réplique ni choix, d'id frais `n<k>` (`k` part du nombre de nœuds + 1). */
+export function addDialogueNode(dialogue: Dialogue): { dialogue: Dialogue; id: string } {
+  let n = dialogue.nodes.length + 1;
+  while (dialogue.nodes.some((x) => x.id === `n${n}`)) n++;
+  const id = `n${n}`;
+  return { dialogue: { ...dialogue, nodes: [...dialogue.nodes, { id, choices: [] }] }, id };
+}
+
+/** Renomme le nœud `from` et le PROPAGE au départ et à chaque `next`, la boucle du nœud sur lui-même
+ *  comprise. Refusé (dialogue inchangé) pour un id vide ou déjà porté par un autre nœud. `validateScene`
+ *  (`départ inexistant`, `choix → inexistant`). */
+export function renameDialogueNode(dialogue: Dialogue, from: string, to: string): Dialogue {
+  const next = to.trim();
+  if (!next || next === from || dialogue.nodes.some((n) => n.id === next) || !dialogue.nodes.some((n) => n.id === from)) return dialogue;
+  return {
+    ...dialogue,
+    start: dialogue.start === from ? next : dialogue.start,
+    nodes: dialogue.nodes.map((n) => ({
+      ...n,
+      id: n.id === from ? next : n.id,
+      choices: n.choices.map((c) => (c.next === from ? { ...c, next } : c)),
+    })),
+  };
+}
+
+/** Supprime le nœud `id` et COUPE chaque `next` qui le visait : le choix mène à la fin
+ *  (`dialogueChoiceSchema.next` facultatif). Refusé (dialogue inchangé) pour le nœud de départ, que
+ *  `dialogueSchema.start` exige (`validateScene` « départ inexistant »). */
+export function removeDialogueNode(dialogue: Dialogue, id: string): Dialogue {
+  if (dialogue.start === id || !dialogue.nodes.some((n) => n.id === id)) return dialogue;
+  const coupe = (c: DialogueChoice): DialogueChoice => {
+    if (c.next !== id) return c;
+    const { next: _coupe, ...reste } = c;
+    return reste;
+  };
+  return { ...dialogue, nodes: dialogue.nodes.filter((n) => n.id !== id).map((n) => ({ ...n, choices: n.choices.map(coupe) })) };
 }
 
 /** Crée une rencontre sans membre (id frais). */

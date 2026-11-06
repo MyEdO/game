@@ -386,7 +386,7 @@ export const ECRIT_LU = {
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
       'LIT AGENTS.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
       'd’AGENTS.md (`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
-      'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
+      'scripts/gen-registry.mjs et Source/ (#2203) : `manual-docs-ratchet.test.mjs` rend chaque cible ' +
       '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
       'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +
       'par `build-reprise.test.mjs` et `rendre` (sonde du 2026-10-07, #2499 : zéro écriture mesurée). ' +

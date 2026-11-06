@@ -4,7 +4,7 @@ import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { fireTriggers } from './triggeredEffects';
 import { itemFromTrappingById, mannedPosteWeapon } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import { seedBattleRng, battleRng } from './battleRng';
 import type { Combatant, Weapon } from '../engine/types';
 import type { BattleState } from './etat';
@@ -34,8 +34,8 @@ const enemyAt = (x: number): Combatant => ({ id: `e${x}`, name: 'cible', kind: '
 
 const battle = (combatants: Combatant[]): BattleState =>
   ({ combatants, order: combatants.map((c) => c.id), turn: 0, movementUsed: 0, action: null, acted: false, over: null }) as unknown as BattleState;
-const mkGet = (combatants: Combatant[]): (() => Jeu) =>
-  (() => ({ battle: battle(combatants), facing: {}, gameTime: 0, log: () => {} })) as unknown as () => Jeu;
+const mkGet = (combatants: Combatant[]): (() => JeuDuNoyau) =>
+  (() => ({ battle: battle(combatants), facing: {}, gameTime: 0, log: () => {} })) as unknown as () => JeuDuNoyau;
 
 describe('firedAttackBlock — PORTÉE MINIMALE (machines de siège ADE II 08 l.251/253)', () => {
   it('minimale « courte » : tir REFUSÉ à Bout Portant (raison « portee-min »), AUTORISÉ à Moyenne', () => {

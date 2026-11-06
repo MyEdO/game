@@ -11,8 +11,8 @@
  * PERSONNE ne poursuivait le balayage.
  *
  * Le geste RÉEL voyage par `battleClickEntity`/`battleClickTile` (dispatchés par
- * `currentTargetingMode`) — `cleaveAttack`/`dualStrikeAttack` ne sont appelés qu'EN INTERNE par
- * `targetingModes`. Les deux surfaces sont éprouvées ici ; la table `EMISSION` de
+ * `currentTargetingMode`) — `cleaveAttack`/`dualStrikeAttack` sont la machinerie que `targetingModes` appelle
+ * (`MachinerieDuNoyau`, #3370), hors allowlist. Le clic et ce refus sont éprouvés ici ; la table `EMISSION` de
  * `src/state/hors-modal-intent-path.test.ts` empêche qu'une route porte de nouveau sur un verbe que personne n'émet.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -190,12 +190,12 @@ describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action /
     expect(banc.getState().pendingDualStrike).toBeNull();
   });
 
-  it('cleaveAttack/dualStrikeAttack (aucun émetteur d’UI) sont routés QUAND MÊME sur le porteur', () => {
+  it('cleaveAttack/dualStrikeAttack sont la machinerie du clic (#3370) : hors allowlist, même pour le porteur', () => {
     setup();
     banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'cleaveAttack', ['e2'])).toBe('refusee');
-    expect(applyIntent(1, 'cleaveAttack', ['e2'])).toBe('appliquee');
-    expect(banc.getState().pendingAttack?.cleave).toBe(true);
+    expect(applyIntent(1, 'cleaveAttack', ['e2'])).toBe('hors-allowlist');
+    expect(applyIntent(1, 'dualStrikeAttack', ['e2'])).toBe('hors-allowlist');
+    expect(banc.getState().pendingAttack).toBeFalsy();
   });
 
   it('fenêtre FERMÉE : le geste terminal est inerte, aucun siège ne le prend', () => {
@@ -256,8 +256,8 @@ describe('#1016 — la route est DÉRIVÉE du registre HORS_MODAL (aucune table 
     }
   });
 
-  it('les 4 gestes terminaux du ticket sont routés par leur pending (pas par la modale active)', () => {
+  it('les 2 gestes terminaux du ticket sont routés par leur pending (pas par la modale active)', () => {
     expect(Object.keys(horsModalOwnedIntents()).sort())
-      .toEqual(['cleaveAttack', 'cleaveEnd', 'dualStrikeAttack', 'dualStrikeSkip']);
+      .toEqual(['cleaveEnd', 'dualStrikeSkip']);
   });
 });

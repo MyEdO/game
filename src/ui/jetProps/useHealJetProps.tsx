@@ -1,7 +1,7 @@
 import { cibleMesuree } from '../../engine/tests';
 import { useGame } from '../../state/store';
 import { flowStakeRef } from '../../data';
-import { enjeuDuSoin, fenetreDuSoin, parametresDuSoin } from '../../noyau/soin';
+import { enjeuDuSoin, fenetreDuSoin } from '../../noyau/soin';
 import type { ComponentProps } from 'react';
 import { RollShell, type RollAction } from '../RollShell';
 import { buildRollRow, type BuiltRollRow } from '../rollRowBuild';
@@ -10,7 +10,7 @@ import { testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { describeHeal } from '../../noyau/flowOutcomes';
-import { combatHealModes, lodgedAmmoCount } from '../../engine/healing';
+import { lodgedAmmoCount } from '../../engine/healing';
 import { stacks } from '../../engine/conditions';
 import { Icon } from '../Icon';
 import { HEAL_ACT } from '../healSubtitle';
@@ -18,6 +18,7 @@ import { VsHeader } from '../VsHeader';
 import { libelleDeTest } from '../../noyau/jetsEnVue';
 import { t } from '../../i18n';
 import { useGesteDeJet } from '../useGesteDeJet';
+import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 
 /**
  * Flux de jet d'un SOIN (Guérison, LDB 09-Compétences) : « Lancer » → Chance (relance / +1 DR) →
@@ -39,9 +40,10 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const force = useGesteDeJet('jetForceSuccess', 'heal');
   const confirm = useGesteDeJet('jetConfirm', 'heal');
   const cancel = useGesteDeJet('jetCancel', 'heal');
-  const setMode = useGame((s) => s.healSetMode);
-  const setTest = useGame((s) => s.healSetTest);
-  const setBandages = useGame((s) => s.healSetBandages);
+  const regler = useGame((s) => s.jetRegler);
+  const setMode = (v: ReglagesDuJet['heal']['mode']) => regler('heal', 'mode', v);
+  const setTest = (v: ReglagesDuJet['heal']['test']) => regler('heal', 'test', v);
+  const setBandages = (v: ReglagesDuJet['heal']['bandages']) => regler('heal', 'bandages', v);
   if (!ph) return null;
   const fenetre = fenetreDuSoin(useGame.getState());
   const pool = battle?.combatants ?? party; // même flux en combat (file) et hors combat (groupe)
@@ -55,11 +57,9 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const trauma = ph.mode === 'trauma';
   const ammo = ph.mode === 'ammo';
   // Surface UNIQUE du soin en combat : on a ciblé l'allié sur la carte (mode par défaut) ; si plusieurs
-  // soins s'appliquent à lui (Blessures ET Hémorragie), on choisit ICI, avant le jet. L'infirmerie
-  // (embedded) garde son propre choix d'acte → pas de seg.
-  const combatModes = !embedded && !rolled && target
-    ? combatHealModes(target, healer ?? null, parametresDuSoin(ph))
-    : [];
+  // soins s'offrent (`fenetreDuSoin.mode`), on choisit ICI, avant le jet. L'infirmerie (embedded) garde
+  // son propre choix d'acte → pas de seg.
+  const combatModes = !embedded && fenetre ? fenetre.mode.options.flatMap((o) => (o.refus || !o.valeur ? [] : [o.valeur])) : [];
   const bleed = target ? stacks(target, 'hemorragique') : 0;
   const lodged = target ? lodgedAmmoCount(target) : 0;
 
@@ -105,10 +105,10 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
     // Fenêtre du soin (`fenetreDuSoin`) : le Test et les Bandages engagés, chaque option fermée avec sa raison.
     setup: rolled ? undefined : (
       <>
-        {combatModes.length > 1 && (
+        {fenetre && combatModes.length > 1 && (
           <OptionChooser
             layout="seg"
-            groupLabel="Soin"
+            groupLabel={fenetre.mode.libelle}
             options={combatModes.map((m) => ({
               key: m,
               label: m === 'wounds'

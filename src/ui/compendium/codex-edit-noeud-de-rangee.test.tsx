@@ -9,14 +9,15 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { CodexEdit, dedicatedFieldKeys, editableDataset, editableEntries, editableObjectDataset } from '../editor/codex/CodexEdit';
+import { CodexEdit, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
+import { editableDataset, editableEntries, editableObjectDataset } from '../../data/atelierDuCodex';
 import { DEFS_DE_DOCUMENT, brouillonNeuf, noeudDeLEntree, noeudObjet, schemaForFile } from '../../data/schemas/validate';
 import { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../data/schemas/exposition-derivee';
 import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { versDisque } from '../../data/schemas/grammaire/prose';
 import { datasetArray, resetData, setDataset } from '../../data/overrides';
-import { categoryByKey } from './registry';
+import { categoryByKey } from '../../noyau/codex/registry';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

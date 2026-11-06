@@ -25,7 +25,7 @@
 //
 // Les LOTS reprennent ceux du dénominateur L0 (`structuresStock.mjs`, `STRUCTURES_REDECLARATIONS`)
 // quand le site y correspond : concept Compétence → `L2 #1463`, Talent/Objet/Créature/Véhicule →
-// `L3 #1463`, valeurs (dé, monnaie, cellule) → `L4 #1463`, source → `L1d #1463`.
+// `L3 #1463`, source → `L1d #1463`.
 
 /** Graphie historique de référence à une COMPÉTENCE (`skill`/`skillId` + `spec`) — meurt quand le
  *  site adopte `specRef('skill')`. */
@@ -33,9 +33,6 @@ const L2 = 'L2 #1463';
 /** Référence à une entité NOMMÉE autrement (Talent, Trait, Objet, Créature, Véhicule) — meurt quand
  *  le site adopte `ref(type)`/`specRef(type)`. */
 const L3 = 'L3 #1463';
-/** Forme de VALEUR re-tapée (dé, monnaie, cellule de grille) — meurt quand le site compose le
- *  schéma de `grammaire/valeurs.ts`. */
-const L4 = 'L4 #1463';
 /** Concept SOURCE (`{book, page}` et ses dérivés) — chantier des réfs de source. */
 const L1d = 'L1d #1463';
 const DATE = '2026-08-25';
@@ -48,7 +45,7 @@ export const GRAMMAIRE_STOCK = {
   // #1467 L1b V-FLIP-ENTITE-b : la ligne REVIT sous le binding `doc` — l'adoption de `document()`
   // l'avait fait sortir du scan (l'argument `champs` n'était pas visité), pas de la déclaration.
   // Le champ `skill` est toujours là, la donnée n'a pas bougé.
-  'src/data/schemas/defs/miscast.ts:jsonOpSchema|alias|skill': e('Op de maléfice portant un test par `skill` (le champ moteur `TestSpec.skill`, non migré).', L2),
+  'src/data/schemas/defs/miscast.ts:jsonOpSchema|alias|skill': e('Op de maléfice portant un test par `skill` (non migré).', L2),
   'src/data/schemas/defs/spells.ts:champs.opposed|alias|skill': e('Jet OPPOSÉ d’un sort désignant les deux Compétences par `skill`.', L2),
   'src/data/schemas/defs/talents.ts:testMatchSchema|alias|skill': e('Filtre de test d’un Talent (à quel jet il s’applique) désignant la Compétence par `skill`.', L2),
   'src/data/schemas/defs/tavernGames.ts:doc.fastSkill|alias|skill': e('Variante RAPIDE d’un jeu de taverne, même graphie `skill`.', L2),
@@ -68,10 +65,6 @@ export const GRAMMAIRE_STOCK = {
   'src/data/schemas/defs-scenes/effets.ts:givePossessionSchema|alias|ref': e('Effet `givePossession` désignant la possession par une enveloppe `ref`.', L3),
   'src/data/schemas/defs-scenes/scene.ts:brancheDEntite|alias|ref': e('Entité de scène désignant son modèle (créature/prop) par une enveloppe `ref`.', L3),
   'src/data/schemas/defs-scenes/worldmap.ts:portProfileSchema|alias|ref': e('Profil de port désignant son entité par une enveloppe `ref`.', L3),
-
-  // ── Formes de VALEUR re-tapées (monnaie, dé, cellule de grille) ───────────────────────────────
-  'src/data/schemas/defs-scenes/worldmap.ts:placePoiSchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’un point d’intérêt : point CONTINU PLAN-LOCAL 0-100 (worldmap.ts:84), forme propre au worldMap — PAS une cell2 (la cellule de grille est un indice DISCRET). À REQUALIFIER au lot L4 valeurs : « composer `cell2Schema` » y serait sémantiquement FAUX, il faut une forme de point normalisé à la grammaire.', L4),
-  'src/data/schemas/defs-scenes/worldmap.ts:mapPlaceSchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’un lieu de la carte du monde : point en % du CANEVAS, forme propre au worldMap — PAS une cell2. MÊME requalification que `placePoiSchema.pos` au lot L4 valeurs.', L4),
 
   // ── Formes POSSÉDÉES par la grammaire, re-tapées ou étendues ─────────────────────────────────
   'src/data/schemas/grammaire/valeurs.ts:secondarySourceRefSchema|extend|sourceRefSchema.extend(…)': e('Réf de source SECONDAIRE construite en ÉTENDANT `sourceRefSchema` — meurt avec la refonte du concept source.', L1d),

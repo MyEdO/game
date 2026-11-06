@@ -111,9 +111,9 @@ describe('intentionDuClicDExploration — figurant, décor, sol', () => {
     expect(clic(SUR, 'pnj-1')).toMatchObject({ kind: 'marcher', plan: { dest: { x: 4, y: 4 } } });
   });
 
-  it('figurant injoignable : annuler', () => {
+  it('figurant injoignable : le refus nomme sa case', () => {
     poser([badaud, ...enceinte()], { x: 0, y: 0 });
-    expect(clic(SUR, 'pnj-1')).toEqual({ kind: 'annuler' });
+    expect(clic(SUR, 'pnj-1')).toEqual({ kind: 'injoignable', message: `Marche refusée : aucun chemin du groupe ne mène à (${SUR.x},${SUR.y}).` });
   });
 
   it('décor bloquant à portée : il le dit', () => {

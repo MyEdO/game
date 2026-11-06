@@ -42,7 +42,7 @@ import { rotateDir8, DIR8_DELTA } from '../geometry/dir8';
 import { bus, EVT } from './bus';
 import { footprintTiles, footprintN } from './monde/footprint';
 import { applyShipCollision } from './monde/shipCollision';
-import type { ActionsDuNoyau } from './actionsDuNoyau'; // défini côté pendings (neutre) — cf. quarantaine #328
+import type { FabriqueDuNoyau } from './machinerieDuNoyau'; // défini côté pendings (neutre) — cf. quarantaine #328
 
 /** Jet d'UN contributeur à son rôle : Test de la compétence du rôle (MDG 14). PUR (RNG injecté). Rend la LIGNE
  *  de la rangée — le jet, ou `ligneSansJet` avec le refus nommé (LDB 09 l.30 ; #2588 Q1). `null` si le
@@ -322,5 +322,5 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
       if (moved > 0 || victim) { set({ battle: { ...battle } }); bus.emit(EVT.SCENE_DIRTY); }
       return moved;
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

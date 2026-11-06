@@ -30,7 +30,7 @@ import type { NarratifBlock } from '../../../data/schemas/defs-scenes/narratif';
 import { NumberField } from '../../NumberField';
 import { useVersionDesDatasets } from '../../useVersionDesDatasets';
 import { CATEGORY_DATASET_DERIVE } from '../../../data/schemas/exposition-derivee';
-import { categoryByKey } from '../registry';
+import { categoryByKey } from '../../../noyau/codex/registry';
 import { videDuNoeud } from '../../../noyau/codex/editFields';
 
 /** `filter` : un prédicat MOTEUR sur l'entrée (`Inspector.tsx`, portes/murs), jamais une sous-liste du

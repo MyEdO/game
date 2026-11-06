@@ -169,8 +169,8 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
     heros[0].fortune = 2;
     autoCleave(banc.getState, banc.setState, enemy, heros[0], toucheQuiBalaie());
     const avant = JSON.stringify(suiteDeLaFenetre());
-    banc.getState().defenseSetMode('esquive');
-    banc.getState().defenseSetParryWeapon('sw');
+    banc.getState().jetRegler('defense', 'reaction', 'esquive');
+    banc.getState().jetRegler('defense', 'armeDeParade', 'sw');
     banc.getState().jetRoll('defense');
     banc.getState().jetReroll('defense');
     expect(JSON.stringify(suiteDeLaFenetre())).toBe(avant);

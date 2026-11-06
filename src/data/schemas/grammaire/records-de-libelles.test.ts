@@ -39,7 +39,7 @@
  *
  * CE QUE CETTE GARDE NE VOIT PAS, mesuré : la même seconde vérité écrite en JSX plutôt qu'en littéral
  * d'objet — des `<option value="vue">Vue</option>` énumérés à la main (cas vivant :
- * `src/ui/editor/GameOpEditor.tsx:860-863`, vocabulaire `senseSchema`). Le détecteur ne lit que des
+ * `src/ui/editor/GameOpEditor.tsx:782-784`, vocabulaire `senseSchema`). Le détecteur ne lit que des
  * paires `clé : 'texte'` ; aucune balise n'entre dans `RX_LITTERAL` ni dans `RX_TABLE`.
  */
 import { describe, it, expect } from 'vitest';

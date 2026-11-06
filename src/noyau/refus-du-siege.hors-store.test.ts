@@ -46,14 +46,15 @@ function poser(netMode: 'host' | 'local'): void {
   } as never);
 }
 
-const gestes: [string, string, unknown[], 'pendingHeal' | 'pendingRun'][] = [
-  ['heal', 'battleHeal', ['al', 'wounds'], 'pendingHeal'],
-  ['course', 'battleRun', [{ x: 9, y: 5 }], 'pendingRun'],
+/** Le geste est le CLIC du combattant ; `battleHeal` est sa machinerie (#3370). La Course, Action dépensée, n'a pas de
+ *  geste : le clic de case ne l'offre pas (`resolveMovement`). */
+const gestes: [string, string, unknown[], 'pendingHeal'][] = [
+  ['heal', 'battleClickEntity', ['al'], 'pendingHeal'],
 ];
 
 describe('Refus d’un geste en coop : dit au siège qui a agi, jamais chez l’hôte', () => {
   for (const [entree, verbe, args, pending] of gestes) {
-    it(`${verbe} d’un invité, Action dépensée : refusé sans bandeau chez l’hôte ; l’invité lit la raison à son gate`, () => {
+    it(`${entree} (${verbe}) d’un invité, Action dépensée : refusé sans bandeau chez l’hôte ; l’invité lit la raison à son gate`, () => {
       poser('host');
       appliquerLIntentionDUnSiege(banc.getState, 1, verbe, args);
       const s = banc.getState();
@@ -63,7 +64,7 @@ describe('Refus d’un geste en coop : dit au siège qui a agi, jamais chez l’
       expect(actionGate(entree, { active: doc, battle: s.battle!, netMode: 'guest', gameTime: s.gameTime })).toEqual({ ok: false, reason: t('agate.actionSpent') });
     });
 
-    it(`${verbe} en partie locale, Action dépensée : refusé, et le bandeau le dit`, () => {
+    it(`${entree} (${verbe}) en partie locale, Action dépensée : refusé, et le bandeau le dit`, () => {
       poser('local');
       (banc.getState() as unknown as Record<string, (...a: unknown[]) => void>)[verbe](...args);
       const s = banc.getState();

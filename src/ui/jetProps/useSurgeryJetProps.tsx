@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
 import { type RollAction, type RollShell } from '../RollShell';
 import { buildRollRow, type BuiltRollRow } from '../rollRowBuild';
-import { testValueSplit, testBreakdown, testPending } from '../breakdown';
+import { testBreakdown, testPending } from '../breakdown';
 import { Icon } from '../Icon';
 import { HEAL_ACT } from '../healSubtitle';
 import { libelleDeTest } from '../../noyau/jetsEnVue';
@@ -33,16 +33,14 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
   const surgeon = party.find((c) => c.id === ps.healerId); // absent (PNJ médecin) → Chance/Résilience à 0
   const fortune = surgeon?.fortune ?? 0;
   const rolled = ps.roll != null;
-  // Soutien des assistants de chirurgie (LDB 12) et composantes de la valeur de Test (États, séquelles,
-  // passifs, effets — #1178) : lignes de mod NOMMÉES, base rebasée sur le Niveau de Compétence nu
-  // (LDB 09 l.17). Chirurgien PNJ tarifé (aucune fiche) : affichage inchangé (garde de reconstruction).
-  const { base, mods: supMods } = testValueSplit(surgeon, ps.skillValue, { support: ps.support, skill: 'guerison' });
+  // La ligne de la passe, figée à son ouverture (`openSurgeryPass`) : celle que le résolveur jette.
+  const l = ps.ligne;
   const actorRow: BuiltRollRow = buildRollRow({
     actor: surgeon,
     row: {
       combatant: surgeon,
-      d: rolled ? testBreakdown(libelleDeTest('guerison'), base, { roll: ps.roll!, ...cibleMesuree(ps), sl: ps.sl, success: ps.success }, ps.difficulty, supMods) : undefined,
-      pending: testPending(libelleDeTest('guerison'), base, cibleMesuree(ps), ps.difficulty, supMods),
+      d: rolled ? testBreakdown(libelleDeTest('guerison'), l.base, { roll: ps.roll!, ...cibleMesuree(ps), sl: ps.sl, success: ps.success }, l.difficulty, l.mods) : undefined,
+      pending: testPending(libelleDeTest('guerison'), l.base, cibleMesuree(l), l.difficulty, l.mods),
     },
     rerolled: !!ps.rerolled,
     onRoll: roll,

@@ -124,7 +124,7 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
 
 /**
  * Champs qu'une variante réglée de `traits.json` peut republier — ceux dont la lecture PASSE par
- * `effectiveEntry` : `desc`/`source` → Codex `src/ui/compendium/registry.ts`. `capabilities`,
+ * `effectiveEntry` : `desc`/`source` → Codex `src/noyau/codex/registry.ts`. `capabilities`,
  * `passive`, `effects` et `aura` en sont ABSENTS : le moteur les lit sur l'entrée BRUTE
  * (`src/engine/traits/dispatch.ts,231,273`, `src/engine/items.ts`).
  */

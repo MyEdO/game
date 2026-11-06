@@ -87,6 +87,7 @@ export interface MedicState {
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Meilleur soigneur du groupe pour un acte (Opérer exige AUSSI le Talent Chirurgie, LDB 10 ; la récupération
@@ -249,7 +250,7 @@ export function fenetreDeLOperation(s: Jeu): { plaie: ChoixNomme<number> | null 
   if (!plaies.length || !m.surgery || !patient) return { plaie: null };
   return {
     plaie: {
-      verbe: 'medicSetWound', parametre: 'idx', libelle: garanti(libelleDuParametre('medicSetWound', 'idx'), 'medicSetWound', 'libellé de la plaie'), choisie: m.surgery.traumaIdx,
+      geste: { verbe: 'medicSetWound' }, parametre: 'idx', libelle: garanti(libelleDuParametre('medicSetWound', 'idx'), 'medicSetWound', 'libellé de la plaie'), choisie: m.surgery.traumaIdx,
       options: plaies.map((p, i) => ({ valeur: i, libelle: t('medic.plaie', { plaie: p.label, localisation: locationLabel(p.location, patient.bodyShape) }) })),
     },
   };
@@ -265,16 +266,14 @@ export function openSurgeryPass(get: Get, set: Set): void {
   if (!m || !sg || get().pendingSurgery) return;
   const patient = get().party.find((h) => h.id === m.patientId);
   if (!patient) { set({ medic: { ...m, surgery: undefined } }); return; }
+  // Difficulté de l'opération (Rééducation = Accessible) : LDB 18 l.120, l.179. `sg.skill` est la valeur FIGÉE à
+  // l'armement : la ligne se monte sans fiche vivante.
+  const ligne = ligneDuSoigneur({ skill: sg.skill, support: sg.support }, sg.difficulty);
   set({
     pendingSurgery: {
       healerId: sg.healerId ?? 'pnj-soigneur', healerName: sg.healerName,
       targetId: patient.id, targetName: patient.label,
-      skillValue: sg.skill, support: sg.support, intBonus: sg.intBonus, difficulty: sg.difficulty,
-      // La cible PORTE la Difficulté de l'opération (Rééducation = Accessible, `LDB 18 l.120/179`) : c'est
-      // celle que `rollTest` jettera (`FLOWS.surgery`, `simpleTestResolve`). `sg.skill` est l'instantané
-      // FIGÉ à l'armement (le chirurgien peut avoir changé d'État depuis) : aucune fiche vivante à en
-      // déduire, la valeur reste celle de l'opération engagée.
-      ...cibleMesuree(ligneDuSoigneur({ skill: sg.skill, support: sg.support }, sg.difficulty)),
+      intBonus: sg.intBonus, ligne, ...cibleMesuree(ligne),
       roll: null, success: false, sl: 0,
       traumaIdx: sg.traumaIdx, targetDR: sg.targetDR, cumDR: sg.cumDR, paidCost: sg.paidCost,
     },
@@ -360,7 +359,7 @@ export function creerActionsDuMedecin(get: Get, set: Set) {
     medicSetWound: (idx) => medicSetWound(get, set, idx),
     openSurgeryPass: () => openSurgeryPass(get, set),
     medicAbandonSurgery: () => medicAbandonSurgery(get, set),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** L'infirmerie se ferme hors soin en cours (`MODAL_DEFS.medic.sortieFermee`). */

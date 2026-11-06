@@ -1,0 +1,32 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "ceinture"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "tenue",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    },
+    {
+      "nom": "metal",
+      "palette": "metal"
+    }
+  ],
+  "glb": {
+    "sha256": "a89cb1582add436f06d27f9b864c617f58597f1c8f2cf36dec3ca9e7e596e9b8",
+    "octets": 327264
+  }
+}

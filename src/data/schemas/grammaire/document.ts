@@ -109,7 +109,7 @@ export type DocumentARangees<L> = EnveloppeDocument & { entries: L[] };
 
 /**
  * Ce que le CODEX expose de ce document : les clés de catégorie sous lesquelles le joueur le trouve
- * (`src/ui/compendium/registry.ts`), ou une EXEMPTION motivée. Déclarée au handle ; la DÉRIVATION des
+ * (`src/noyau/codex/registry.ts`), ou une EXEMPTION motivée. Déclarée au handle ; la DÉRIVATION des
  * tables du Codex à partir de ces déclarations vit dans `src/data/schemas/exposition-derivee.ts` (#1472).
  */
 export type ExpositionCodex =

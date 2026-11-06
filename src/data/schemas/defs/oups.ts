@@ -15,7 +15,7 @@
  * La VUE TS reste l'union manuscrite `OupsRow = OupsEntry | OupsMisfireEntry` (`src/data/oups.ts`) :
  * le handle scelle ses nœuds (`z.infer` vaut `unknown`), aucun type n'est dérivé d'ici. C'est cette
  * union qui donne à `oupsTable` ses `min`/`max` NON optionnels (lus par `findTableEntry`) et au Codex
- * sa discrimination `'min' in o` (`src/ui/compendium/registry.ts`, bloc `key: 'oups'`).
+ * sa discrimination `'min' in o` (`src/noyau/codex/registry.ts`, bloc `key: 'oups'`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

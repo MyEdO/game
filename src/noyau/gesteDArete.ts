@@ -40,6 +40,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { effectiveTalents } from '../engine/talentEffects';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau, GesteDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 /** Les capacités d'arête qui DÉPLACENT le mobile — les trois gestes de ce prédicat —, et le verbe de chacune : il va
  *  de l'ancrage à la case d'en face (`caseOpposee`). */
@@ -351,7 +352,7 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       set({ battle: { ...battle, log, action: null, movementUsed: (battle.movementUsed ?? 0) + cout, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
       bus.emit(EVT.SCENE_DIRTY);
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les clôtures du franchissement (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */

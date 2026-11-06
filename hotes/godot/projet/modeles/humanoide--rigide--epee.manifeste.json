@@ -1,0 +1,25 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "epee"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "metal",
+      "palette": "metal"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "392a365ffaa73c1b3b148c7d90fb5db2536fbcb2c4879fba78736aa7bb365a60",
+    "octets": 29244
+  }
+}

@@ -137,7 +137,7 @@ import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
 import { CharKey, Weapon, VehicleData, StructureData, Availability, type TestedAvailability, Difficulty, type NightTestKind, type StakeForm } from '../engine/types';
 import type { MutationData, MutationTable } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
-import type { DiseaseDef } from '../engine/disease'; // type-only (le runtime de disease.ts importe `maladies` d'ici)
+import type { DiseaseDef } from './schemas/defs/maladies';
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
 import { type DiceSpec, formatDice } from '../engine/dice';
 import type { Money } from '../engine/money'; // type-only (`Money` = SOURCE UNIQUE de la bourse, engine/money.ts)
@@ -155,14 +155,6 @@ import type { SeaPerilsData } from './schemas/defs/sea-perils';
 import type { SeaWeatherData } from './schemas/defs/sea-weather';
 import type { ShipConstructionData } from './schemas/defs/ship-construction';
 import type { RiverNavigationData } from './schemas/defs/river-navigation';
-
-/** Compétence AU CHOIX d'une Activité (`ActivityDef.skills`, `src/engine/skills.ts` `TestSpec`) —
- *  `difficulty?` porte la Difficulté PROPRE à cette voie quand le RAW en attache une différente par
- *  Compétence (Punchausen, AA 12 l.45-49 : Charme Complexe OU Divertissement (Narration)
- *  Intermédiaire) ; absente, la voie retombe sur `ActivityDef.difficulty`. */
-export interface ActivitySkill extends RefDesignee {
-  difficulty?: Difficulty;
-}
 
 /** Règle d'EMPOIGNADE en DONNÉE (LDB 14 l.159-169) : `init` = ops à la touche d'une Empoignade déclarée
  *  (Empêtré + relation via le flag `grapple`) ; `win` = les 3 options du Test opposé GAGNÉ (l.161), appliquées
@@ -1600,6 +1592,12 @@ export interface SemencesDeSceneData {
   roofDefaults: SceneRoofDefaults;
   /** Structure d'un pan de façade posé à l'éditeur (`addFacadeSection`). */
   facade: string;
+  /** Libellé d'un lieu posé sur la carte du monde (`ajouterLieu`). */
+  lieu: string;
+  /** Libellé d'une carte du monde neuve (`emptyWorldMap`). */
+  carte: string;
+  /** Libellé d'un statbloc personnalisé neuf d'une fiche sans nom (`emptyStatblock`). */
+  profil: string;
 }
 /**
  * DÉFAUTS DE COMPILATION (#1716/#1789) — ce que le compilateur de scène (`noyau/mapSpec.ts`) pose
@@ -2125,7 +2123,7 @@ export interface SpellData {
    *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
   isRitual?: boolean;
   /** Rubriques d'ANATOMIE D'UN RITUEL (`VDM 02 l.377-393`) : ce qu'un Rituel imprime EN PLUS d'un
-   *  Sort. Rendues par la fiche Codex des Sorts (`ui/compendium/registry.ts`) ; `cnFrom` y remplace
+   *  Sort. Rendues par la fiche Codex des Sorts (`noyau/codex/registry.ts`) ; `cnFrom` y remplace
    *  le NI quand la rubrique imprime une formule sur la cible plutôt qu'un nombre (`cn: null`). */
   ritual?: {
     type: string;
@@ -2347,7 +2345,7 @@ export interface BarterRatioRow { give: Availability; ratios: Record<Availabilit
 export interface DispoData { dispoPct: DispoPctRow[]; barterRatios: BarterRatioRow[] }
 export const disponibilite = disponibiliteJson as DispoData;
 /** Maladies (LDB 20) — app-owned éditable au Codex ; le COMPORTEMENT (cycle/symptômes) vit dans
- *  `engine/disease`. `DiseaseDef` (type) y est défini ; ici on n'expose que la DONNÉE. */
+ *  `engine/disease`, le type `DiseaseDef` dérive du schéma (`schemas/defs/maladies.ts`). */
 export const maladies = maladiesJson as DiseaseDef[];
 const maladieParId = indexParId('maladies', maladies);
 /** Résout une Maladie par son `id` STABLE. */
@@ -2864,7 +2862,7 @@ export const stars = starsJson as StarData[];
 /** Les 5 demeures célestes (ADE II 3 l.502-512, « Déterminer les demeures célestes ») — ossature
  *  narrative du thème astral (flavor pur, aucun effet mécanique). `rand` = borne haute du 1d10. */
 export const celestialHouses = astrologyJson as CelestialHouseData[];
-/** Apparences d'espèce (app-owned, éditable) — lues par le Codex (`ui/compendium/registry.ts`), la
+/** Apparences d'espèce (app-owned, éditable) — lues par le Codex (`noyau/codex/registry.ts`), la
  *  composition (`noyau/apparence/composition.ts`) et `scripts/personnage-3d/base/`. */
 export const raceAppearance = raceAppearanceJson as RaceAppearanceData[];
 export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
@@ -3118,6 +3116,19 @@ const carriereParId = indexParId('careers', careers);
 /** Résout une Carrière par son `id` STABLE. Le libellé ne sert qu'à l'affichage. */
 export function findCareerById(id: string | undefined): CareerData | undefined {
   return carriereParId(id);
+}
+/**
+ * Libellé GÉNÉRIQUE d'une entrée de dataset : le `CodexItem.label` du registre du Codex, et le nom
+ * courant de l'entrée éditée à l'atelier, qui la refuse vide (`validateEntry`). Précédence
+ * `label → id`. Mesuré sur les 2 racines (`src/data`, `src/scenes`) : aucune entrée de premier niveau
+ * ne porte `key` ni `name` (#1467 L1b V-P1).
+ * EXCEPTION careerLevels : le libellé de niveau (« Recrue ») revient sur plusieurs carrières et
+ * n'identifie rien seul → composite carrière + niveau.
+ */
+export function entryKey(e: Record<string, unknown>): PlayerText {
+  if (typeof e.career === 'string' && typeof e.level === 'number')
+    return dataLabel(`${findCareerById(e.career)?.label ?? e.career} · N${e.level} ${e.label ?? ''}`.trim());
+  return dataLabel(String(e.label ?? e.id ?? ''));
 }
 /** Choix d'AFFICHAGE masculin/féminin (source unique) : `labelF` si sexe F et disponible, sinon
  *  `label`. Le sexe vit dans l'apparence cosmétique (`Combatant.appearance.sex`), jamais dans le moteur. */

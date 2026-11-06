@@ -382,6 +382,12 @@ export function replieCausesPersistantes<T extends { op?: unknown; id?: unknown 
   return ops.filter((o) => estCausePersistante(o) || o.op !== 'condition' || !maintenus.has(o.id));
 }
 
+/** L'effet d'une pénalité d'incantation, phrase du Codex : SOURCE UNIQUE de l'op `castPenalty` et de la
+ *  rangée du dialecte miscast (`registry.ts`). */
+export function effetDeContrecoup(o: { blocked?: boolean; maxZeroDR?: boolean; mod?: number }): string {
+  return o.blocked ? t('codex.op.castPenalty.bloque') : o.maxZeroDR ? t('codex.op.castPenalty.priere') : t('codex.op.castPenalty', { mod: o.mod ?? 0 });
+}
+
 /** FENÊTRE de Détermination (`ResolveWindow`, `engine/ops`) de l'État qu'une op `condition` porte en
  *  PASSIF, telle qu'un JOUEUR la lit (`LDB 17 l.61`). `undefined` = rien à dire de plus que le défaut
  *  (la phrase ne se charge que d'une fenêtre AUTHORÉE). Une durée d'horloge tirée du registre des règles
@@ -427,7 +433,7 @@ export function humanizeOp(o: GameOp): string {
     case 'gainResource': return `${t(o.amount >= 0 ? 'codex.op.gainResource.gagne' : 'codex.op.gainResource.perd', { n: Math.abs(o.amount), res: RESOURCE_LABEL[o.resource] })}${o.temporary ? t('codex.op.gainResource.temporaire') : ''}`;
     case 'gainAdvantage': return t('codex.op.gainAdvantage', { n: humanizeFormula(o.amount) });
     case 'topUpAdvantage': return t('codex.op.topUpAdvantage', { n: humanizeFormula(o.amount) });
-    case 'castPenalty': return o.blocked ? t('codex.op.castPenalty.bloque') : o.maxZeroDR ? t('codex.op.castPenalty.priere') : t('codex.op.castPenalty', { mod: o.mod ?? 0 });
+    case 'castPenalty': return effetDeContrecoup(o);
     case 'money': {
       const debit = estDebit(o.montant.brass);
       const { valeur, note } = humanizeQuantite(debit ? sansSigne(o.montant.brass) : o.montant.brass);

@@ -13,15 +13,20 @@ import { ligneDeDefense } from './combatFlow';
 import { defenseDodgeMods } from './mount';
 import { difficultyText } from './difficultyText';
 import type { RollLineParts } from './rollSeam';
-import { DEFENSE_LABEL, coupAApplique, issueAuJet } from '../engine/combat';
+import { DEFENSE_LABEL, coupAApplique, issueAuJet, type DefenseMode } from '../engine/combat';
 import { combatSubstitute } from '../engine/skillCombatApps';
 import { isUnarmed } from '../engine/items';
 import { refLabel } from '../data';
 import { t } from '../i18n';
-import { libelleDuVerbe } from './libelles';
+import { libelleDuReglage } from './libelles';
 import { defenseGagneeEnMelee } from './combatFlow';
 import { shieldReactionCost, contreSurDefenseGagnee, contresEpuisees } from '../engine/combatFeatures/dispatch';
-import { REGLAGES_DE_LA_DEFENSE, type ChoixNomme } from './reglages';
+import { gesteDuReglage, type ChoixNomme } from './reglages';
+import type { ReglageDu } from './reglagesDuJet';
+
+/** La réaction de la Défense : chaque mode offert porte la cible de son jet (`ligneDeDefense`), réglé comme le réglage
+ *  `defense.reaction` le pose. */
+export type ChoixDeReaction = Omit<ChoixNomme<DefenseMode>, 'options'> & { options: (ChoixNomme<DefenseMode>['options'][number] & { cible: number })[] };
 
 /** La fenêtre de la Défense : ses combattants par id, l'arme de l'attaque, le Test de la réaction, et ses choix (l'arme
  *  de parade : `null` hors d'une parade à plusieurs armes ; Porte-Bouclier : `null` hors d'une parade qui la coûte ;
@@ -32,13 +37,13 @@ export interface FenetreDeDefense {
   arme: string;
   test: string;
   jete: boolean;
-  /** La substitution sociale de la réaction (`combatSubstitute`), offerte en mêlée : sa Compétence et sa valeur. */
-  social: { skillId: string; libelle: string; valeur: number } | null;
+  /** La substitution sociale de la réaction (`combatSubstitute`), offerte en mêlée : sa Compétence. */
+  social: { skillId: string; libelle: string } | null;
   /** Les armes qui parent (hors Mains nues) et celle du jet (`parryWeaponOf`). */
   armesDeParade: Weapon[];
   parade: Weapon | undefined;
   /** La réaction et l'arme de parade se règlent avant le jet ; `null` une fois jeté. */
-  reaction: ChoixNomme | null;
+  reaction: ChoixDeReaction | null;
   armeDeParade: ChoixNomme | null;
   /** AA 13 l.84 : son coût en Avantages dans son libellé. */
   porteBouclier: ChoixNomme<'damage' | 'push'> | null;
@@ -65,15 +70,21 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
   const jete = !!pd.result;
   // LDB 09 l.207, l.287
   const substitut = pd.weapon.type === 'melee' ? combatSubstitute(defenseur, attaquant, 'defense') : null;
-  const social = substitut ? { skillId: substitut.skillId, libelle: refLabel('skills', { id: substitut.skillId }), valeur: substitut.value } : null;
+  const social = substitut ? { skillId: substitut.skillId, libelle: refLabel('skills', { id: substitut.skillId }) } : null;
   const armesDeParade = defenseur.weapons.filter((w) => !isUnarmed(w) && !!w.uid);
   const parade = parryWeaponOf(defenseur, pd);
   const ouvert = (m: 'parade' | 'esquive') => !pd.modes || pd.modes.includes(m);
-  const reactions = [
-    ...(['parade', 'esquive'] as const).filter(ouvert).map((m) => ({ valeur: m, libelle: DEFENSE_LABEL[m] })),
-    ...(social ? [{ valeur: 'social', libelle: social.libelle }] : []),
+  const dodgeMods = defenseDodgeMods(s, defenseur);
+  // Le jet du mode `mode`, sa Compétence sociale posée comme le réglage `defense.reaction` la pose.
+  const ligneDu = (mode: DefenseMode) => ligneDeDefense(defenseur, {
+    mode, parryWeapon: parade, vsWeapon: pd.weapon, dodgeMods,
+    socialBase: defenseSubOf(defenseur, mode === pd.mode ? pd : { ...pd, mode, substituteSkillId: social?.skillId })?.base,
+  });
+  const reactions: ChoixDeReaction['options'] = [
+    ...(['parade', 'esquive'] as const).filter(ouvert).map((m) => ({ valeur: m, libelle: DEFENSE_LABEL[m], cible: ligneDu(m).target })),
+    ...(social ? [{ valeur: 'social' as const, libelle: social.libelle, cible: ligneDu('social').target }] : []),
   ];
-  const choix = <V extends string | boolean>(verbe: (typeof REGLAGES_DE_LA_DEFENSE)[number], choisie: V | null, options: ChoixNomme<V>['options'], libelle = libelleDuVerbe(verbe)!): ChoixNomme<V> => ({ verbe, libelle, choisie, options });
+  const choix = <V extends string | boolean>(reglage: ReglageDu<'defense'>, choisie: V | null, options: ChoixNomme<V>['options'], libelle = libelleDuReglage('defense', reglage)): ChoixNomme<V> => ({ geste: gesteDuReglage('defense', reglage), libelle, choisie, options });
   const res = pd.result;
   const gagnee = !!res && defenseGagneeEnMelee(attaquant, defenseur, pd.weapon, res);
   const jetLance = t('defense.refus.jetLance');
@@ -92,7 +103,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
   const plafond = contre?.plafond;
   const refusDeLaRiposte = portees != null && plafond != null ? t('defense.refus.ripostesPortees', { n: portees, plafond }) : null;
   const coup = res ? issueAuJet(defenseur, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple, defenseur), pd.weapon, attaquant) : null;
-  const ligne = res ? null : ligneDeDefense(defenseur, { mode: pd.mode, parryWeapon: parade, vsWeapon: pd.weapon, dodgeMods: defenseDodgeMods(s, defenseur), socialBase: defenseSubOf(defenseur, pd)?.base });
+  const ligne = res ? null : ligneDu(pd.mode);
   return {
     attaquantId: attaquant.id,
     defenseurId: defenseur.id,
@@ -102,18 +113,18 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
     social,
     armesDeParade,
     parade,
-    reaction: res ? null : choix('defenseSetMode', pd.mode, reactions),
+    reaction: res ? null : { geste: gesteDuReglage('defense', 'reaction'), libelle: libelleDuReglage('defense', 'reaction'), choisie: pd.mode, options: reactions },
     armeDeParade: !res && pd.mode === 'parade' && armesDeParade.length >= 2
-      ? choix('defenseSetParryWeapon', pd.parryWeaponUid ?? parade?.uid ?? null, armesDeParade.map((w) => ({ valeur: w.uid!, libelle: libelleDeParade(w) })))
+      ? choix('armeDeParade', pd.parryWeaponUid ?? parade?.uid ?? null, armesDeParade.map((w) => ({ valeur: w.uid!, libelle: libelleDeParade(w) })))
       : null,
     porteBouclier: coutDuBouclier > 0
-      ? choix('defenseSetShieldReaction', pd.shieldReaction ?? null, [
+      ? choix('porteBouclier', pd.shieldReaction ?? null, [
         { valeur: null, libelle: t('valeur.aucun'), refus: res ? jetLance : null },
         ...(['damage', 'push'] as const).map((genre) => ({ valeur: genre, libelle: t(`valeur.${genre}`), refus: refusDuBouclier(genre) })),
       ], t('defense.porteBouclier', { cout: coutDuBouclier }))
       : null,
     riposte: contre?.choisie
-      ? choix('defenseSetRiposte', refusDeLaRiposte ? null : pd.riposte !== false, [
+      ? choix('riposte', refusDeLaRiposte ? null : pd.riposte !== false, [
         { valeur: true, libelle: t('valeur.oui'), refus: refusDeLaRiposte ?? (res ? (gagnee ? jetLance : t('defense.refus.riposteSansDefenseGagnee')) : null) },
         { valeur: false, libelle: t('valeur.non'), refus: refusDeLaRiposte ?? (res ? jetLance : null) },
       ])

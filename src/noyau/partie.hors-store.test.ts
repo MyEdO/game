@@ -4,9 +4,9 @@
  * (graine, dés fixés). Le duel est celui de `combatDeTest.testkit.ts`, dans la scène de fixture.
  */
 import { describe, it, expect } from 'vitest';
-import { creerPartie, etatInitialDuJeu, previewAttack, type EntreesDeLaPartie, type EtatDeJeu, type Jeton, type Partie, type ResultatDeLAppel } from './index';
+import { creerPartie, etatInitialDuJeu, previewAttack, type EntreesDeLaPartie, type EtatDeJeu, type Intention, type Jeton, type Partie, type ResultatDeLAppel } from './index';
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
-import { BRUNA, ALDO, etatAttable, rangsAssis } from './taverneAttablee.testkit';
+import { BRUNA, etatAttable, rangsAssis } from './taverneAttablee.testkit';
 import { testScene } from '../scenes/test-fixture';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
@@ -16,9 +16,8 @@ const emis = ({ evenements }: ResultatDeLAppel) => evenements.flatMap((e) => (e.
 /** Le duel ouvert par une première partie, puis gardé par l'hôte : `garder` réécrit l'état gardé avant
  *  la partie qui le reprend. La première partie fermée, la seconde s'ouvre dans le même contexte. */
 function duel(garder: (etat: EtatDeJeu, duel: ReturnType<typeof auContact>) => EtatDeJeu = (e) => e) {
-  const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
-  expect(emis(ouverture.envoyer({ type: 'startScene', args: [testScene()] }))).toContain('arrivee_en_scene');
-  ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
+  const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+  expect(emis(ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' }))).toContain('arrivee_en_scene');
   ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
   const garde = ouverture.etat();
   ouverture.fermer();
@@ -95,34 +94,47 @@ describe('creerPartie — le journal de l’appel, capté à ses écrivains', ()
 
   it('une scène où l’on entre deux fois rend deux fois sa ligne d’entrée, une par appel', () => {
     const scene = { ...testScene(), startMessage: { texte: 'Vous entrez dans la salle.' } };
-    const partie = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
+    const partie = creerPartie(etatInitialDuJeu(), ENTREES);
     try {
-      expect(lignesDuJournal(partie.envoyer({ type: 'startScene', args: [scene] }))).toEqual(['Vous entrez dans la salle.']);
-      expect(lignesDuJournal(partie.envoyer({ type: 'startScene', args: [scene] })), 'la seconde entrée n’a rendu aucune ligne').toEqual(['Vous entrez dans la salle.']);
+      expect(lignesDuJournal(partie.lancer({ party: [heroDuDuel()], scene }))).toEqual(['Vous entrez dans la salle.']);
+      expect(lignesDuJournal(partie.lancer({ party: [heroDuDuel()], scene })), 'la seconde entrée n’a rendu aucune ligne').toEqual(['Vous entrez dans la salle.']);
     } finally {
       partie.fermer();
     }
   });
 
-  it('un journal plein de « X » rend la ligne « X » écrite par l’appel', () => {
-    const partie = creerPartie({ ...etatInitialDuJeu(), journal: Array.from({ length: 41 }, () => 'X') }, ENTREES);
+  it('un journal plein d’une ligne rend cette ligne, écrite de nouveau par l’appel', () => {
+    // Hors scène, la fouille se refuse au journal (`refuserGeste`) : une ligne connue, que le journal porte déjà 41 fois.
+    const fouille: Intention = { type: 'fouillerLaPiece', args: [] };
+    const vierge = creerPartie(etatInitialDuJeu(), ENTREES);
+    const [refus] = lignesDuJournal(vierge.envoyer(fouille));
+    vierge.fermer();
+    expect(refus, 'la fouille hors scène ne s’est pas refusée au journal').toBeTruthy();
+    const partie = creerPartie({ ...etatInitialDuJeu(), journal: Array.from({ length: 41 }, () => refus) }, ENTREES);
     try {
-      expect(lignesDuJournal(partie.envoyer({ type: 'log', args: ['X'] }))).toEqual(['X']);
-      expect(lignesDuJournal(partie.envoyer({ type: 'log', args: [['X', 'X']] }))).toEqual(['X', 'X']);
+      expect(lignesDuJournal(partie.envoyer(fouille))).toEqual([refus]);
+      expect(lignesDuJournal(partie.envoyer(fouille))).toEqual([refus]);
     } finally {
       partie.fermer();
     }
   });
 });
 
+describe('creerPartie — la machinerie n’est pas une intention (#3370)', () => {
+  it('`startScene` ne se type pas en `Intention` : une scène se lance par `lancer`', () => {
+    // @ts-expect-error `startScene` est un membre de `MachinerieDuNoyau`, qu'aucune `Intention` ne nomme.
+    const intention: Intention = { type: 'startScene', args: [testScene()] };
+    expect(intention.type).toBe('startScene');
+  });
+});
+
 describe('creerPartie — le tick auto et `reprendre`', () => {
   it('en cadence `auto`, l’hôte qui rejoue les jetons mène le combat à sa fin ; un jeton déjà repris est inconnu', () => {
-    const partie = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, { ...ENTREES, cadence: 'auto', desFixes: false });
+    const partie = creerPartie(etatInitialDuJeu(), { ...ENTREES, cadence: 'auto', desFixes: false });
     try {
       const file: Jeton[] = [];
       const suivre = (r: ResultatDeLAppel) => file.push(...r.evenements.flatMap((e) => (e.type === 'programme' ? [e.jeton] : [])));
-      suivre(partie.envoyer({ type: 'startScene', args: [testScene()] }));
-      suivre(partie.envoyer({ type: 'startCombat', args: ['enc-mutants'] }));
+      suivre(partie.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' }));
       suivre(partie.envoyer({ type: 'confirmRoundStart', args: [] }));
       expect(file.length, 'le début du combat n’a programmé aucun tick').toBeGreaterThan(0);
       const premier = file[0];
@@ -144,8 +156,8 @@ describe('creerPartie — le `set` du propriétaire', () => {
     const partie = creerPartie(etatAttable(), ENTREES);
     try {
       expect(rangsAssis(partie.etat().scene)).toEqual([1, 2]);
-      partie.envoyer({ type: 'setParty', args: [[BRUNA, ALDO]] });
-      expect(rangsAssis(partie.etat().scene), 'la permutation du groupe n’a levé aucune chaise').toEqual([]);
+      partie.envoyer({ type: 'partyRemoveHero', args: [BRUNA.id] });
+      expect(rangsAssis(partie.etat().scene), 'le retrait d’un héros n’a levé aucune chaise').toEqual([1]);
     } finally {
       partie.fermer();
     }

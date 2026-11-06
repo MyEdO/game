@@ -1,9 +1,10 @@
 import { useGame } from '../state/store';
 import { fermeturesDuFlux } from '../noyau/verbesOuverts';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
-import { exposureLevelSchema, NATURES_D_INFLUENCE } from '../data/schemas/grammaire/valeurs';
-import { testDeRegle } from '../engine/reglesChiffrees';
-import { valeurDecomposee, valeurDuTest } from '../engine/skills';
+import { exposureLevelSchema } from '../data/schemas/grammaire/valeurs';
+import { cibleMesuree } from '../engine/tests';
+import { ligneDuTestNomme } from '../noyau/rollFlowSpecs';
+import { fenetreDeCorruption } from '../noyau/fenetreDeCorruption';
 import { flowStakeRef, libelleOuAbsence, type FlowStakeId } from '../data';
 import type { ExposureLevel } from '../engine/corruption';
 import { RollShell, type RollAction } from './RollShell';
@@ -16,6 +17,7 @@ import { ev } from '../noyau/combatLog';
 import { describeCorruption } from '../noyau/flowOutcomes';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { useGesteDeJet } from './useGesteDeJet';
+import type { ReglagesDuJet } from '../noyau/reglagesDuJet';
 
 /** Enjeu servi par chaque niveau d'exposition (le seuil a le sien). */
 const CORRUPTION_STAKE: Record<ExposureLevel, FlowStakeId> = { mineure: 'corruption-mineure', moderee: 'corruption-moderee', majeure: 'corruption-majeure' };
@@ -33,7 +35,8 @@ export function CorruptionModal() {
   const party = useGame((s) => s.party);
   const battle = useGame((s) => s.battle);
   const roll = useGesteDeJet('jetRoll', 'corruption');
-  const setNature = useGame((s) => s.corruptionSetNature);
+  const regler = useGame((s) => s.jetRegler);
+  const setNature = (v: ReglagesDuJet['corruption']['nature']) => regler('corruption', 'nature', v);
   const reroll = useGesteDeJet('jetReroll', 'corruption');
   const bonusSL = useGesteDeJet('jetBonusSL', 'corruption');
   const darkPact = useGesteDeJet('jetDarkPact', 'corruption');
@@ -48,17 +51,17 @@ export function CorruptionModal() {
   // Résistance (Menace) (LDB 10 l.1020) : exposition → 'corruption', seuil → 'mutation' (tag posé
   // à l'ouverture). La fenêtre est le verbe `resist` du flux.
   const resistAvail = pc.menace != null && !fermeturesDuFlux(useGame.getState(), 'corruption').resist;
-  // Pré-jet (audit M6) : `pc.target` n'existe qu'après resolve → base réelle du Test affichée
-  // AVANT le jet (même parité que les autres flux).
-  const { base, mods } = hero ? valeurDecomposee(hero, pc.test) : { base: 0, mods: [] };
+  // La ligne que le résolveur `corruption` jette ; la nature et la cible de chaque option : `fenetreDeCorruption`.
+  const l = hero ? ligneDuTestNomme(hero, pc.test) : null;
+  const nature = fenetreDeCorruption(useGame.getState())?.nature ?? null;
   const skillLabel = libelleDuTestNomme(pc.test);
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: hero,
     row: {
       combatant: hero,
-      d: rolled ? testBreakdown(skillLabel, base, { ...pc, roll: pc.roll! }, pc.test.difficulty, mods) : undefined,
-      pending: testPending(skillLabel, base, undefined, pc.test.difficulty, mods),
+      d: rolled ? testBreakdown(skillLabel, l?.base ?? 0, { ...pc, roll: pc.roll! }, pc.test.difficulty, l?.mods) : undefined,
+      pending: l ? testPending(skillLabel, l.base, cibleMesuree(l), l.difficulty, l.mods) : testPending(skillLabel, 0, undefined, pc.test.difficulty),
     },
     onRoll: roll,
     rerolled: !!pc.rerolled,
@@ -88,15 +91,12 @@ export function CorruptionModal() {
       setup={
         // Nature indéterminée en amont (LDB 19 l.29) → le joueur tranche entre les Tests de la fiche
         // `influences-corruptrices` (cf. Défense). Imposée par la source (`natureFixee`) ou au seuil → pas de choix.
-        !seuil && !pc.natureFixee && hero ? (
+        nature ? (
           <div className="rm-options">
             <OptionChooser
               layout="seg"
               groupLabel="Compétence"
-              options={NATURES_D_INFLUENCE.map((cle) => {
-                const test = testDeRegle('influences-corruptrices', cle);
-                return { key: cle, label: libelleDuTestNomme(test), value: valeurDuTest(hero, test), selected: pc.nature === cle, title: test.label, onSelect: () => setNature(cle) };
-              })}
+              options={nature.options.map((o) => ({ key: o.valeur, label: o.competence, value: o.cible, selected: nature.choisie === o.valeur, title: o.libelle, onSelect: () => setNature(o.valeur) }))}
             />
           </div>
         ) : undefined

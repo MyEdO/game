@@ -56,15 +56,6 @@ describe('chaque geste d’exploration que la vue donne se joue tel qu’écrit'
 });
 
 describe('le groupe en exploration', () => {
-  it('un pas vers la case voisine sans son étage se refuse en nommant l’étage', () => {
-    const t = table(fixture('croisee-ecuries.jsonl'));
-    const avant = t.fichier();
-    const r = t.jouer(verbe('moveParty', { x: 7, y: 3 }));
-    expect(r.erreur).toBe('regle');
-    expect(r.texte.split('\n  ').join(' ')).toMatch(/à l’étage 1/);
-    expect(t.fichier()).toBe(avant);
-  });
-
   it('un accès ouvert ne s’actionne pas : le refus dit qu’il se franchit en marchant, et la vue le donne en marche', () => {
     const texte = fixture('porte-ouverte.jsonl');
     const { entete, gestes } = lireLeFichier(texte);
@@ -81,17 +72,17 @@ describe('le groupe en exploration', () => {
     expect(entete.scenario).toBe('porte-close');
   });
 
-  it('un geste qui part d’ailleurs à l’étage se donne avec la marche du groupe jusqu’à lui (`marcherVers`)', () => {
+  it('un geste qui part d’ailleurs à l’étage se donne avec le clic de la case qui mène le groupe jusqu’à lui (`cliquerLaCase`)', () => {
     const lointains = gestesDuTexte(ligneDuFichier(nouvelEntete('fenetre-ecuries', {}))).filter((g) => g.gestes.length === 2);
-    expect(lointains.map((g) => g.gestes.map((x) => x.verbe))).toContainEqual(['marcherVers', 'fallAcross']);
+    expect(lointains.map((g) => g.gestes.map((x) => x.verbe))).toContainEqual(['cliquerLaCase', 'fallAcross']);
   });
 
-  it('une marche sans chemin à pied jusqu’à sa case se refuse en la nommant, et rien ne s’écrit', () => {
+  it('le clic d’une case qu’aucun chemin n’atteint se refuse en la nommant, et rien ne s’écrit', () => {
     const t = table(fixture('croisee-ecuries.jsonl'));
     const avant = t.fichier();
-    const r = t.jouer(verbe('marcherVers', { x: 99, y: 99 }));
+    const r = t.jouer(verbe('cliquerLaCase', { x: 99, y: 99 }));
     expect(r.erreur, r.texte).toBe('regle');
-    expect(r.texte.split('\n  ').join(' ')).toMatch(/aucun chemin à pied du groupe ne mène à \(99,99\)/);
+    expect(r.texte.split('\n  ').join(' ')).toMatch(/Marche refusée : aucun chemin du groupe ne mène à \(99,99\)/);
     expect(t.fichier()).toBe(avant);
   });
 

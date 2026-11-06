@@ -4,7 +4,7 @@
  * La part FACTUELLE est DÉRIVÉE : arêtes inverses lues aux appels `addReverse(...)` de
  * `src/noyau/codex/relations.ts`, API publique du module (AST + JSDoc, via
  * `scripts/docs/lib/engineExports.mjs`), catégories/groupes/sous-groupes lus au littéral
- * `CODEX_SPECS` de `src/ui/compendium/registry.ts`, et exposition DÉCLARÉE aux defs, dumpée par
+ * `CODEX_SPECS` de `src/noyau/codex/registry.ts`, et exposition DÉCLARÉE aux defs, dumpée par
  * `scripts/docs/lib/dump-exposition.mts` (`npx tsx` — un générateur Node nu ne peut pas importer
  * `src/data/schemas/_registry.generated.ts`). La part ÉDITORIALE (les deux principes, comment
  * étendre) vit ICI, en dur.
@@ -28,10 +28,10 @@ import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 function rendu() {
   const OUTIL = 'build-codex-relations'
   const RELATIONS = 'src/noyau/codex/relations.ts'
-  const REGISTRY = 'src/ui/compendium/registry.ts'
-  const DESCRIBE = 'src/ui/compendium/describe.ts'
+  const REGISTRY = 'src/noyau/codex/registry.ts'
+  const DESCRIBE = 'src/noyau/codex/describe.ts'
   const HUMANIZE = 'src/noyau/codex/humanize.ts'
-  const CONTRATS = ['src/data/schemas/exposition-contrats.test.ts', 'src/ui/compendium/codex-exposition-contrats.test.ts']
+  const CONTRATS = ['src/data/schemas/exposition-contrats.test.ts', 'src/noyau/codex/codex-exposition-contrats.test.ts']
   const CONTRATS_CITES = CONTRATS.map((c) => `\`${c}\``).join(' et ')
 
   function abandon(msg) {
@@ -236,7 +236,7 @@ function rendu() {
   // en cours d'écriture dans un arbre partagé ferait diverger le .md sans qu'aucune règle ne bouge.
   const TESTS = [
     'src/noyau/codex/relations.test.ts',
-    'src/ui/compendium/registry.test.ts',
+    'src/noyau/codex/registry.test.ts',
     'src/noyau/codex/humanize.test.ts',
     ...CONTRATS,
     'src/data/serialize.test.ts',
@@ -314,8 +314,8 @@ vient d'une **couche relationnelle** : \`${RELATIONS}\`.
 1. **Data-driven** — la sémantique vit dans le JSON ; \`relations.ts\` ne fait qu'**inverser** des
    références DÉJÀ structurées. Aucune regex, aucune table en dur.
 2. **Multilingue (possibilité)** — toute relation est **id-based** (clé STABLE), jamais un libellé.
-   Les \`label\` portés par les \`Referrer\` ne servent qu'à l'affichage (= \`CodexItem.label\`, résolu
-   par \`codexLookup\`). Seule brique langue-dépendante : l'**auto-liage** de prose, *locale-scoped*
+   Les \`label\` portés par les \`Referrer\` ne servent qu'à l'affichage (= \`CodexItem.label\`) ; une
+   fiche se résout par id (\`codexLookupById\`). Seule brique langue-dépendante : l'**auto-liage** de prose, *locale-scoped*
    (matcher dérivé des libellés de la locale active), jamais une chaîne FR en dur.
 
 ## D'où viennent les entrées — l'exposition est DÉCLARÉE au def
@@ -334,7 +334,7 @@ argument de la fabrique \`document()\` (\`src/data/schemas/grammaire/document.ts
 
 Les ROUTES D'ÉDITION du Codex sont DÉRIVÉES de ces déclarations (#1472) :
 \`src/data/schemas/exposition-derivee.ts\` construit \`CATEGORY_DATASET_DERIVE\` et
-\`OBJECT_CATEGORY_DERIVE\` depuis \`SCHEMA_DEFS\`, et \`src/ui/editor/codex/CodexEdit.tsx\` les consomme
+\`OBJECT_CATEGORY_DERIVE\` depuis \`SCHEMA_DEFS\`, et \`src/data/atelierDuCodex.ts\` les consomme
 telles quelles — plus aucune table à la main. La source lue à l'EXÉCUTION pour l'INDEX du Codex
 reste \`CODEX_SPECS\` (\`${REGISTRY}\`, dont \`CODEX\` est la projection). Les deux sont tenus égaux
 par ${CONTRATS_CITES}, dont voici les cas, tels que les gardes les nomment :

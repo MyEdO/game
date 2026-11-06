@@ -30,10 +30,9 @@ import { attackModesFor } from '../engine/combatFeatures/dispatch';
 import { testSkillLabel } from '../data';
 import { t } from '../i18n';
 import { difficultyText } from './difficultyText';
-import { libelleDuJet, libelleDuVerbe } from './libelles';
-import { REGLAGES_DE_L_ATTAQUE, type BasculeNommee, type ChoixNomme } from './reglages';
-
-type ReglageDeLAttaque = (typeof REGLAGES_DE_L_ATTAQUE)[number];
+import { libelleDuJet, libelleDuReglage } from './libelles';
+import { gesteDuReglage, type BasculeNommee, type ChoixNomme } from './reglages';
+import type { ReglageDu } from './reglagesDuJet';
 
 const [tete, brasG, brasD, corps, jambeG, jambeD] = LOCALISATIONS_DE_COUP;
 /** Les 6 localisations dans l'ordre des fenêtres de coup : la liste du moteur, permutée. */
@@ -183,8 +182,8 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const inversion = FLOWS.attack.reverseAvailable(get) ? { apercu: FLOWS.attack.reversePreview(get) } : null;
   const bloque = apercu && (apercu.blocked || !apercu.inRange) ? t(apercu.blocked ? 'attaque.sansLigneDeVue' : 'attaque.horsDePortee') : null;
   const defenseAttendue = !!res && surfacedDefensePending(s, attaquant, cible, arme, pa);
-  const bascule = (verbe: ReglageDeLAttaque, active: boolean, note: string | null): BasculeNommee => ({ verbe, libelle: libelleDuVerbe(verbe)!, active, note });
-  const choix = <V extends string>(verbe: ReglageDeLAttaque, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> => ({ verbe, libelle: libelleDuVerbe(verbe)!, choisie, options });
+  const bascule = (reglage: ReglageDu<'attack'>, active: boolean, note: string | null): BasculeNommee => ({ geste: gesteDuReglage('attack', reglage), libelle: libelleDuReglage('attack', reglage), active, note });
+  const choix = <V extends string>(reglage: ReglageDu<'attack'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> => ({ geste: gesteDuReglage('attack', reglage), libelle: libelleDuReglage('attack', reglage), choisie, options });
   const localisations = (l: HitLocation): { valeur: HitLocation; libelle: string } => ({ valeur: l, libelle: t('attaque.lieuVise', { lieu: locationLabel(l, cible.bodyShape) }) });
 
   return {
@@ -195,16 +194,16 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     arme: arme.label,
     degats: apercu ? apercu.dmg : null,
     jete,
-    deuxArmes: deuxArmesPossibles ? bascule('attackSetDualMode', !!pa.dualMode, null) : null,
+    deuxArmes: deuxArmesPossibles ? bascule('deuxArmes', !!pa.dualMode, null) : null,
     choixDArme: !res && auxArmes.length >= 2 && !pa.dualMode
-      ? choix('attackSetWeapon', pa.weaponUid ?? arme.uid ?? null, auxArmes.map((w) => ({
+      ? choix('arme', pa.weaponUid ?? arme.uid ?? null, auxArmes.map((w) => ({
           valeur: w.uid!,
           libelle: w.hand === 'off' && penaliteSecondaire ? t('attaque.armeSecondaire', { arme: w.label, penalite: penaliteSecondaire }) : w.label,
         })))
       : null,
     localisation: res || isInanimate(cible)
       ? null
-      : choix('attackSetLocation', pa.location ?? null, [{ valeur: null, libelle: t('attaque.auHasard') }, ...LOCALISATIONS_A_L_ECRAN.map(localisations)]),
+      : choix('localisation', pa.location ?? null, [{ valeur: null, libelle: t('attaque.auHasard') }, ...LOCALISATIONS_A_L_ECRAN.map(localisations)]),
     tirDansLeTas: !res && tir && (!!pa.intoCrowd || !raisonTas || tasSansObjet)
       ? {
           armee: !!pa.intoCrowd,
@@ -228,12 +227,12 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
         }
       : null,
     sansLaCorde: corde
-      ? bascule('attackSetHarpoonRopeCut', !!pa.harpoonRopeCut, t(pa.harpoonRopeCut ? 'attaque.sansLaCorde.noteCoupee' : 'attaque.sansLaCorde.noteTenue'))
+      ? bascule('sansLaCorde', !!pa.harpoonRopeCut, t(pa.harpoonRopeCut ? 'attaque.sansLaCorde.noteCoupee' : 'attaque.sansLaCorde.noteTenue'))
       : null,
     retenirSesCoups: retenir
-      ? bascule('attackSetWithhold', !!pa.withhold, pa.withhold ? t(rule('combat-aa-blessures') === 'aa' ? 'attaque.retenir.noteAa' : 'attaque.retenir.noteLdb') : null)
+      ? bascule('retenirSesCoups', !!pa.withhold, pa.withhold ? t(rule('combat-aa-blessures') === 'aa' ? 'attaque.retenir.noteAa' : 'attaque.retenir.noteLdb') : null)
       : null,
-    empoigner: empoigne ? bascule('attackSetGrapple', !!pa.grapple, pa.grapple ? t('attaque.empoigner.note') : null) : null,
+    empoigner: empoigne ? bascule('empoigner', !!pa.grapple, pa.grapple ? t('attaque.empoigner.note') : null) : null,
     bloque,
     jet: res
       ? (res.attackerDetail ? { d: res.attackerDetail } : null)
@@ -270,7 +269,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     attente: res && defenseAttendue ? t('defense.awaiting', { cible: cible.label }) : null,
     // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
     critiqueALocaliser: res && pa.forced && coup?.compte.relance
-      ? choix('attackSetCritLocation', res.critLocation ?? null, LOCALISATIONS_A_L_ECRAN.map((l) => ({ valeur: l, libelle: locationLabel(l, cible.bodyShape) })))
+      ? choix('localisationDuCritique', res.critLocation ?? null, LOCALISATIONS_A_L_ECRAN.map((l) => ({ valeur: l, libelle: locationLabel(l, cible.bodyShape) })))
       : null,
     annulation: refusDAnnulerLAttaque(pa),
   };
