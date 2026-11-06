@@ -64,8 +64,8 @@ export interface TestScenario {
   /** Règles optionnelles pré-activées au lancement (mêmes ids que le panneau Règles maison, donc
    *  modifiables en jeu) — ex. `{ 'travel-etapes': true }` pour le Voyage par Étapes EDOC. */
   rules?: Record<string, import('../../engine/policy').RuleValue>;
-  /** Ouvre un interlude (« Entre deux aventures », LDB 23) AVANT la bataille de masse — le budget
-   *  d'Activités (max 3) qu'il alloue est CELUI dans lequel puise la préparation (ADE II 8 l.65).
+  /** Ouvre un interlude (« Entre deux aventures », LDB 23) au lancement, AVANT la bataille de masse quand il y en
+   *  a une — le budget d'Activités (max 3) qu'il alloue est CELUI dans lequel puise la préparation (ADE II 8 l.65).
    *  Sans lui, une `massBattle` démarre au Round 1 sans préparation. Valeur = nombre de semaines. */
   interludeWeeks?: number;
 }

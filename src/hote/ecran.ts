@@ -18,7 +18,7 @@ import { garanti } from '../lib/garanti';
 import type { Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, resume, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Ton } from './elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, resume, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Saisie, type Ton } from './elements';
 
 /** Chaque zone de l'écran et ses éléments, dans l'ordre où elle les montre, la création comprise. Une zone vide n'a
  *  rien à montrer. */
@@ -233,6 +233,16 @@ function trajetsDeLaCarte(etat: Jeu): Element[] {
 const boutonDuNoyau = (id: string, g: { libelle: string; geste: { verbe: string; args: unknown[] }; refus: string | null }): Bouton =>
   ({ type: 'bouton', id, libelle: g.libelle, jeu: { type: g.geste.verbe, args: g.geste.args }, presse: false, focus: false, refus: g.refus });
 
+/** Un formulaire d'un geste du noyau : chaque argument que le geste pose en saisie fixe, puis `saisies`. */
+function formulaireDuNoyau(id: string, libelle: string, f: { geste: { verbe: string; args: unknown[] }; refus: string | null }, saisies: Saisie[]): Formulaire {
+  const fixes = f.geste.args.map((valeur, i): Saisie => ({ type: 'fixe', id: `${id}/${i}`, nom: String(i), optionnel: false, valeur }));
+  return { type: 'formulaire', id, libelle, verbe: f.geste.verbe, focus: false, refus: f.refus, champs: [...fixes, ...saisies.map((x) => ({ ...x, id: `${id}/${x.id}` }))] };
+}
+
+/** Une saisie de valeurs nommées, chacune fermée par sa raison : à cocher, ou à choisir une seule. */
+const saisieDeValeurs = (nom: string, libelle: string, valeurs: readonly { libelle: string; valeur: string; refus: string | null }[], type: 'saisieCoches' | 'saisieChoix' = 'saisieCoches'): Saisie =>
+  ({ type, id: nom, ton: 'neutre', nom, optionnel: false, libelle, valeurs: valeurs.map((v) => ({ ...v, presse: false })) });
+
 /** L'interlude ouvert (`interludeEnVue`) : chaque héros en entité, ses Activités restantes et l'Événement de sa période
  *  en puces, puis chacune de ses Activités, un bouton sans cible, un choix de ses cibles sinon (en liste au-delà de
  *  `CHOIX_EN_BOUTONS`), fermée avec sa raison ; puis les dépôts en banque, chacun le bouton de son retrait. */
@@ -249,6 +259,15 @@ function herosDeLInterlude(etat: Jeu): Element[] {
         ...h.activites.map((a): Bouton | Choix => (a.cible
           ? { type: a.gestes.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDuNoyau(`${a.id}/${i}`, g)) }
           : boutonDuNoyau(a.id, a.gestes[0]))),
+        ...(h.ouvrage ? [formulaireDuNoyau(`ouvrage/${h.id}`, t('ecran.repit.ouvrage'), h.ouvrage, h.ouvrage.refus ? [] : [
+          saisieDeValeurs('trappingId', t('ecran.repit.ouvrages'), h.ouvrage.ouvrages, 'saisieChoix'),
+          saisieDeValeurs('atouts', t('ecran.repit.atouts'), h.ouvrage.atouts),
+          saisieDeValeurs('defauts', t('ecran.repit.defauts'), h.ouvrage.defauts),
+        ])] : []),
+        formulaireDuNoyau(`depot/${h.id}`, t('ecran.repit.depot'), h.depot, h.depot.refus ? [] : [
+          saisieDeValeurs('kind', t('ecran.repit.genre'), h.depot.genres, 'saisieChoix'),
+          { type: 'saisieNombre', id: 'amountBrass', ton: 'neutre', nom: 'amountBrass', optionnel: false, libelle: t('ecran.repit.montant'), valeur: h.depot.pas, min: h.depot.pas, max: h.depot.max, pas: h.depot.pas },
+        ]),
       ],
     })),
     ...(itl.depots.length ? [{ type: 'entite', id: 'repit/depots', ton: 'neutre', nom: t('ecran.repit.depots'), elements: itl.depots.map((d, i) => boutonDuNoyau(String(i), d)) } satisfies Entite] : []),

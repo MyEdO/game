@@ -2,7 +2,6 @@ import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { nomDuSiege } from '../noyau/sieges';
 import { useGame } from '../state/store';
 import { interludeEventFor } from '../data/interludeEvents';
-import { memoParVersion } from '../data/versionDataset';
 import { formatMoney, formuleDeRevenus, libelleDEchelon, fromBrass, toBrass, PA_PER_SC, type Money, type Status } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { actorStatus } from '../engine/social';
@@ -18,7 +17,7 @@ import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, noteDeSoutien, preJetDePreparation, refusDePrepaDeBataille, type MassBattleState } from '../noyau/massBattleFlow';
 import {
-  craftCatalog, craftTarget, learnableTalents, orderCatalog, bankPayout, seuilDePerteBancaire, entrainementOptions, entrainementTutorRange,
+  craftCatalog, craftTarget, qualitesDArtisanat, learnableTalents, orderCatalog, bankPayout, seuilDePerteBancaire, entrainementOptions, entrainementTutorRange,
   activityById, testsDeLActivite,
   type ActivityDef, type ActivityResolver, type CraftOption, type LearnOption, type EntrainementOption,
 } from '../engine/activities';
@@ -26,7 +25,7 @@ import { nomDeSource } from '../engine/ops';
 import { DIFFICULTY_LABELS, CHAR_LABELS } from '../engine/types';
 import { describeQuality } from '../engine/qualities/describe';
 import type { TestDesigne } from '../engine/skills';
-import { findTalentById, skillInstanceLabel, findTrappingById, qualities, refLabel, activityStakeRef, hasActivityStake, libelleDeClasse, libelleOuAbsence } from '../data';
+import { findTalentById, skillInstanceLabel, findTrappingById, refLabel, activityStakeRef, hasActivityStake, libelleDeClasse, libelleOuAbsence } from '../data';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
 import { trappingCategorieSchema } from '../data/schemas/defs/trappings';
@@ -75,10 +74,6 @@ const RAISON_ACTIVITE_FERMEE = 'Cette Activité n’est pas ouverte pour ce hér
 const refusDuVolet = (paneId: string, banniere: ReactNode, raison: string | undefined): PropsDeRaison =>
   (banniere ? { reasonId: idBlocage(paneId) } : { reason: raison ?? RAISON_ACTIVITE_FERMEE });
 
-/** Atouts/Défauts d'artisanat (LDB 60 l.9-62) — dérivés de la DONNÉE éditable (`qualities.json`,
- *  qualités d'Objet) par `id` ; tooltips/libellés via le registre (`describeQuality`). */
-const atoutsDObjet = memoParVersion('qualities', () => qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet').map((q) => q.id));
-const defautsDObjet = memoParVersion('qualities', () => qualities.filter((q) => q.polarite === 'defaut' && q.subType === 'objet').map((q) => q.id));
 /** Libellé + desc d'une qualité d'artisanat par id (registre via `describeQuality`). */
 const craftQual = (id: string) => describeQuality({ id }) ?? { label: id, desc: undefined };
 
@@ -758,12 +753,12 @@ function CraftPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant
     >
       <TrappingSelect options={catalog} value={id} onChange={setId} />
       <div className="interlude-craft-q">
-        {atoutsDObjet().map((q) => (
+        {qualitesDArtisanat().atouts.map((q) => (
           <label key={q} title={mdToText(craftQual(q).desc ?? '')}>
             <input type="checkbox" checked={atouts.includes(q)} onChange={() => toggle(atouts, setAtouts, q)} /> {craftQual(q).label}
           </label>
         ))}
-        {defautsDObjet().map((q) => (
+        {qualitesDArtisanat().defauts.map((q) => (
           <label key={q} title={mdToText(craftQual(q).desc ?? '')}>
             <input type="checkbox" checked={defauts.includes(q)} onChange={() => toggle(defauts, setDefauts, q)} /> {craftQual(q).label} (défaut)
           </label>

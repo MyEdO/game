@@ -91,12 +91,21 @@ func _process(_delta: float) -> void:
 		_apercu.position = MiseEnPage.bulle_au_dessus(point, _apercu.size.x, _apercu.size.y)
 
 
-## Les zones de l'écran, la disposition posée : chacune relie son geste au jeu.
+## Les zones de l'écran, la disposition posée : chacune relie son geste au jeu ; chaque défilement republie l'écran, ses
+## boutons à l'écran changeant avec lui.
 func _relier() -> void:
 	_zones = Zone.racines(_ecran)
 	for zone in _zones:
 		if not zone.geste.is_connected(_jouer):
 			zone.geste.connect(_jouer)
+	for defilement in _ecran.find_children("*", "ScrollContainer", true, false):
+		var barre := (defilement as ScrollContainer).get_v_scroll_bar()
+		if not barre.value_changed.is_connected(_defile):
+			barre.value_changed.connect(_defile)
+
+
+func _defile(_valeur: float) -> void:
+	_publier_l_ecran()
 
 
 ## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de
