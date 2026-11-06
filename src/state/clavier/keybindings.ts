@@ -426,9 +426,9 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    c'est le MÊME `enabled`. Déclarées AVANT `hotbar-N` (mêmes codes physiques) : un dialogue
   //    ouvert EN COMBAT donne les chiffres à la conversation, pas à la grille de capacités.
   //    `coucheDialogue` les rend audibles pendant la conversation, où tout le reste se tait.
-  //    `conversationRepond` (siège + `surfaceTientLaMain`) est le prédicat du VERBE : la touche ne
-  //    s'offre pas quand le choix `dialogue.reponse` refuserait — sous la fenêtre de jet, le marché ou l'écran
-  //    plein qu'une réponse vient d'ouvrir.
+  //    `conversationRepond` (siège + `surfaceTientLaMain`) est le prédicat que lit aussi le refus du choix
+  //    `dialogue.reponse` (`OUVERTS_DU_CHOIX`) : la touche ne s'offre pas quand le choix refuserait — sous la
+  //    fenêtre de jet, le marché ou l'écran plein qu'une réponse vient d'ouvrir.
   ...Array.from({ length: 9 }, (_, i): KeyBinding => ({
     id: `dialogue-choice-${i + 1}`, codes: [`Digit${i + 1}`], labelKey: 'key.dialogueChoice', labelParams: { n: i + 1 }, section: 'dialogue',
     ...(i < TOUCHES_IMPRIMEES ? { sharedBy: [`hotbar-${i + 1}`] } : {}),

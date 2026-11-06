@@ -2,7 +2,8 @@
 import type { DialogueTransition } from './pendings';
 import { TIME_COST } from '../engine/timeCost';
 import { runFlow, jouerFlowEntier, cloturer } from './combatEffects';
-import { conversationRepond, nomDeLInterlocuteur, reponsesDuNoeud } from './dialogue';
+import { nomDeLInterlocuteur } from './dialogue';
+import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 import { toMoney } from '../engine/money';
 import { payFromGroup } from './bourseFlow';
@@ -23,9 +24,8 @@ function applyDialogueTransition(get: Get, set: Set, tr: DialogueTransition): vo
 }
 
 /** La réponse de la conversation (`CorpsDesChoix`) : `fenetreChoisir` n'admet qu'une réponse VISIBLE du nœud
- *  (`reponsesDuNoeud`), et dit le refus d'une réponse non offerte (siège, bourse) hors d'une surface qui tient la main
- *  (`OUVERTS_DU_CHOIX`). Le corps tranche encore « jouable MAINTENANT ? » (`conversationRepond`) : la fenêtre de jet ou
- *  le marché qu'une réponse vient d'ouvrir SUSPEND la conversation. */
+ *  (`reponsesDuNoeud`) quand la conversation répond (`conversationRepond`), et dit le refus des autres
+ *  (`OUVERTS_DU_CHOIX` : siège, bourse, surface qui tient la main). */
 export function choixDeConversation(get: Get, set: Set) {
   return {
     dialogue: { reponse: (choix) => repondre(get, set, choix) },
@@ -35,11 +35,9 @@ export function choixDeConversation(get: Get, set: Set) {
 /** La réponse `choix`, jouée : son coût, l'archive du tour, son Flow, puis l'avancée du dialogue. */
 function repondre(get: Get, set: Set, choix: string): void {
   const st = get();
-  const r = reponsesDuNoeud(st).find((x) => x.id === choix);
-  if (!conversationRepond(st) || !r?.enabled) return;
-  const node = st.dialogue.dialogue.nodes.find((n) => n.id === st.dialogue.nodeId);
-  const choice = node?.choices.find((c) => c.id === choix);
-  if (!node || !choice) return;
+  const etat = garanti(st.dialogue, choix, 'conversation ouverte');
+  const node = garanti(etat.dialogue.nodes.find((n) => n.id === etat.nodeId), etat.nodeId, 'nœud de la conversation');
+  const choice = garanti(node.choices.find((c) => c.id === choix), choix, 'réponse du nœud');
   // Option payante (auberge, péage, pot-de-vin) : dépense de groupe (aucun bénéficiaire héros
   // unique) débitée AVANT les effets ; refus si le total du groupe ne couvre pas.
   if (choice.cost) {
@@ -47,7 +45,7 @@ function repondre(get: Get, set: Set, choix: string): void {
     if (!payFromGroup(get, set, cost, { purpose: 'Dialogue' })) { get().log(t('store.dialogueNoMoney')); return; }
   }
   const transition: DialogueTransition = choice.next
-    ? { ...st.dialogue, nodeId: choice.next } // même conversation : `session` et interlocuteur voyagent avec
+    ? { ...etat, nodeId: choice.next } // même conversation : `session` et interlocuteur voyagent avec
     : 'close';
   // Nom AFFICHÉ du locuteur (`nomDeLInterlocuteur`), partagé par l'archive du tour et le titre de la fenêtre de
   // butin d'un choix payant.
@@ -60,8 +58,8 @@ function repondre(get: Get, set: Set, choix: string): void {
     choiceText: choice.label,
     at: st.gameTime,
     sceneId: st.scene?.id,
-    dialogueId: st.dialogue.dialogue.id,
-    session: st.dialogue.session,
+    dialogueId: etat.dialogue.id,
+    session: etat.session,
   };
   set((s) => ({ dialogueHistory: recordTurn(s.dialogueHistory, turn) }));
   // Logique du choix (effets + branches) → runFlow ; objet/argent reçu = fenêtre d'attribution (titrée du donateur).

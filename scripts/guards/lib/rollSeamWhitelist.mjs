@@ -227,7 +227,7 @@ export const DES_HORS_PORTE_STOCK = new Map([
   ['src/noyau/summonFlow.ts', { n: 1, kind: 'dette', why: 'mesuré : resolveFormula×1. B (`resolveFormula`) -> #1508 T2.' }],
   ['src/noyau/tavernFlow.ts', { n: 8, kind: 'dette', why: 'mesuré : rng.int×4, applyOps×3, rollTavernTest×1. B, F (désignation `rng.int`) -> #1508 T2/T6.' }],
   ['src/noyau/travelFlow.ts', { n: 9, kind: 'dette', why: '11 -> 9 (#2533 : les deux d10 des péripéties, seuil et table LDB 51 l.208-221, sont des étapes à TABLE de monde, posables). mesuré : rollDice×2 (#1683 : le dé authoré du Problème de véhicule, d100 en dur auparavant), applyOps×1, declareDisease×1, forcedMarchTest×1, forcedPaceBeastCheck×1, forcedPaceCheck×1, resolveMountedDay×1, rollTest×1. C (magnitudes de route) -> #1508 T5.' }],
-  ['src/noyau/travelPostes.ts', { n: 3, kind: 'dette', why: 'mesuré : applyOps×1, applyExposureFailure×1, rollDice×1. B, C (Exposition des postes) -> #1508 T2/T5.' }],
+  ['src/noyau/travelPostes.ts', { n: 2, kind: 'dette', why: '3 -> 2 (#3512 : le dé de Rencontre EDOC est une étape à TABLE de monde, posable). mesuré : applyOps×1, applyExposureFailure×1. B, C (Exposition des postes) -> #1508 T2/T5.' }],
   ['src/noyau/triggeredEffects.ts', { n: 1, kind: 'dette', why: 'mesuré : rollTest×1. Test déclenché roulé en direct -> #1508 T3.' }],
   ['src/noyau/upkeep.ts', { n: 3, kind: 'dette', why: 'mesuré : applyOps×1, dailyFoodUpkeep×1, dailyWaterUpkeep×1. B + entretien quotidien -> #1508 T2.' }],
   ['src/noyau/monde/zones.ts', { n: 4, kind: 'dette', why: 'mesuré : applyOps×2, resolveFormula×2. B (magnitudes d\'`applyOps`/`resolveFormula` de zone) -> #1508 T2.' }],

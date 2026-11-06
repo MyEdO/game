@@ -25,6 +25,10 @@ const ITEM_SURVOL := 2
 @export var mesh_porte: BoxMesh
 @export var mesh_seuil: BoxMesh
 @export var mesh_arete_choisie: BoxMesh
+## La matière d'une surface sans texture : la couleur de ses sommets.
+@export var couleur_des_sommets: StandardMaterial3D
+## Le modèle de la matière d'une surface texturée, projetée sur ses trois axes (triplanaire) dans le repère du volume.
+@export var matiere_texturee: StandardMaterial3D
 
 @onready var _volume: Node3D = $Volume
 @onready var _maillage: MeshInstance3D = $Volume/Maillage
@@ -43,6 +47,8 @@ var _lacet := 0.0
 ## Les arêtes posées et leur couche (`poser_les_aretes`).
 var _aretes_posees: Array = []
 var _couche_des_aretes := 0
+## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
+var _matieres := {}
 var _pivotement: Tween
 
 
@@ -51,10 +57,10 @@ func _ready() -> void:
 
 
 ## Le volume du monde de la scène (`monde`) à l'échelle d'une unité par case, sa case (0, 0) sur la case (0, 0) du
-## monde : son maillage coloré par sommet, rendu des deux côtés, le même en forme que le rayon du pointeur touche des
-## deux côtés, le sol de chaque case de chaque couche, et la caméra centrée sur lui. Godot tient pour face avant le sens
-## horaire, le volume le sens trigonométrique : chaque tableau retourné en entier retourne chaque triangle, et l'ordre
-## des triangles avec lui, que suivent leurs cases.
+## monde : son maillage, une surface par matière du sol, texturée ou colorée par sommet (`_matiere`), rendu des deux
+## côtés, le même en forme que le rayon du pointeur touche des deux côtés, le sol de chaque case de chaque couche, et la
+## caméra centrée sur lui. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque
+## tableau retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui, que suivent leurs cases.
 func poser(monde: Dictionary) -> void:
 	var echelle := MiseEnPage.echelle_metrique(monde.metresParCase)
 	_volume.scale = Vector3(echelle, echelle, echelle)
@@ -62,19 +68,20 @@ func poser(monde: Dictionary) -> void:
 	var sommets := PackedFloat32Array(monde.positions).to_byte_array().to_vector3_array()
 	var normales := PackedFloat32Array(monde.normales).to_byte_array().to_vector3_array()
 	var couleurs := PackedFloat32Array(monde.couleurs).to_byte_array().to_color_array()
+	var maillage := ArrayMesh.new()
+	for indice in monde.surfaces.size():
+		var surface: Dictionary = monde.surfaces[indice]
+		var tableaux := []
+		tableaux.resize(Mesh.ARRAY_MAX)
+		tableaux[Mesh.ARRAY_VERTEX] = _retournes(sommets.slice(int(surface.debut), int(surface.fin)))
+		tableaux[Mesh.ARRAY_NORMAL] = _retournes(normales.slice(int(surface.debut), int(surface.fin)))
+		tableaux[Mesh.ARRAY_COLOR] = _retournes(couleurs.slice(int(surface.debut), int(surface.fin)))
+		maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
+		maillage.surface_set_material(indice, _matiere(surface.matiere))
+	_maillage.mesh = maillage
 	sommets.reverse()
-	normales.reverse()
-	couleurs.reverse()
 	_cases_des_triangles = monde.cases.duplicate()
 	_cases_des_triangles.reverse()
-	var tableaux := []
-	tableaux.resize(Mesh.ARRAY_MAX)
-	tableaux[Mesh.ARRAY_VERTEX] = sommets
-	tableaux[Mesh.ARRAY_NORMAL] = normales
-	tableaux[Mesh.ARRAY_COLOR] = couleurs
-	var maillage := ArrayMesh.new()
-	maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
-	_maillage.mesh = maillage
 	var forme := ConcavePolygonShape3D.new()
 	forme.set_faces(sommets)
 	forme.backface_collision = true
@@ -83,6 +90,32 @@ func poser(monde: Dictionary) -> void:
 	for couche in monde.hauteurs:
 		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.metresParCase)))
 	_pivot.position = MiseEnPage.centre_du_plateau(taille())
+
+
+## `tableau` retourné en entier : chaque triangle change de sens (`poser`).
+func _retournes(tableau: Variant) -> Variant:
+	tableau.reverse()
+	return tableau
+
+
+## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde ») : sa
+## texture (`res://textures/<nom>.jpg`) et son relief (`<nom>.normale.jpg`) s'ils sont au projet, sinon la couleur de
+## ses sommets.
+func _matiere(nom: String) -> Material:
+	if not _matieres.has(nom):
+		var couleur := "res://textures/%s.jpg" % nom
+		if ResourceLoader.exists(couleur):
+			var matiere := matiere_texturee.duplicate() as StandardMaterial3D
+			matiere.albedo_texture = load(couleur)
+			matiere.uv1_scale = MiseEnPage.echelle_de_motif()
+			var relief := "res://textures/%s.normale.jpg" % nom
+			if ResourceLoader.exists(relief):
+				matiere.normal_enabled = true
+				matiere.normal_texture = load(relief)
+			_matieres[nom] = matiere
+		else:
+			_matieres[nom] = couleur_des_sommets
+	return _matieres[nom]
 
 
 ## La taille de la carte, en cases.

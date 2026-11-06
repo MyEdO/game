@@ -648,6 +648,7 @@ export const fr = {
   'gameMenu.quit': 'Quitter la partie',
   // Écran d'équipe (PartyScreen) — Phase D.
   'party.title': "Votre groupe d'aventuriers",
+  'party.pretireInconnu': 'Aucun pré-tiré ne porte l’id « {id} ».',
   'party.back.menu': '← Menu',
   'party.back.quit': '← Quitter',
   'party.campaign.change': 'Changer',
@@ -1215,7 +1216,7 @@ export const fr = {
   // n'a pas toujours d'actorId pour l'attribution).
   'out.activityDone': '{name} — {activity} (effectué).',
   // Rencontre d'Étape (EDOC 8) : catégorie + libellé + texte VERBATIM, sans id d'icône dans la prose.
-  'out.travelEncounter': '{category} — {label} : {text}',
+  'out.travelEncounter': '{label} : {text}',
   // Météo d'Étape (EDOC 8 l.50) : libellé seul — le d100 est un tirage de MONDE, jamais montré au joueur.
   'out.stageWeather': 'Météo : {weather}.',
   // Passthrough narratif générique (#295 Lot 1) : `text` est COMPOSÉ par l'applier (jamais un gabarit avec
@@ -1749,6 +1750,7 @@ export const fr = {
   'if.bankLost': '{name} — {roll} ≤ {threshold} : {what} — {money} perdus !',
   'if.bankFailBank': 'la banque a fait faillite',
   'if.bankFailStash': 'la planque a été découverte',
+  'if.bankCrashDue': 'Vérification de faillite (émeutes) : chaque placement en banque la passe.',
   'if.bankCrashOk': 'Vérification de faillite (émeutes) — {roll} > {rate} : la banque tient bon.',
   'if.bankWithdraw': '{name} récupère {money} ({roll}{extra}).',
   'if.bankInterest': ' > {rate}, intérêts {rate} %',
@@ -3191,6 +3193,8 @@ export const fr = {
   'tp.campCare': 'Camp bien monté : {name} récupère (−{n} Exténué).',
   'tp.mapDone': "La carte de l'itinéraire est ACHEVÉE ({dr}/{dr} DR).",
   'tp.mapProgress': 'Cartographie : {total}/{target} DR.',
+  'tp.rencontreDue': '{category} en vue.',
+  'tp.bilanSansSuite': 'Ni ration trouvée, ni soin du camp, ni Rencontre.',
   'tp.calmTravel': 'Voyage tranquille : le groupe récupère toutes ses Blessures et tous ses États Exténué.',
   'tp.exposureLine': "{name} — Exposition de fin d'Étape ({weather}) : transi par le froid.",
   'tp.coldSeasonChill': '{name} grelotte et tousse — un rhume couve (saison froide).',
