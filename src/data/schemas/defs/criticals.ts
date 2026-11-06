@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { suiteAvecPas } from '../grammaire/cle-d-espace';
-import { difficultySchema, enumNomme, hitLocationSchema, maisonSchema, plageOuverteSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
+import { cibleEtendueSchema, difficultySchema, enumNomme, hitLocationSchema, maisonSchema, plageOuverteSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
 import { executeesDe, flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
 import { refs } from '../grammaire/ref';
 
@@ -28,12 +28,12 @@ export const critEscalationSchema = nommerChamps(z.strictObject({
     .strictObject({
       label: z.string(),
       disable: passifsDe(),
-      restoreDR: z.number(),
+      ...cibleEtendueSchema.shape,
       recoveryPenalty: executeesDe(),
     }), {
     label: { label: 'libellé' },
     disable: { label: 'désactivation' },
-    restoreDR: { label: 'DR de récupération' },
+    ...metaDesChamps(cibleEtendueSchema, { exigees: true }),
     recoveryPenalty: { label: 'pénalité de récupération' },
   })
     .optional(),

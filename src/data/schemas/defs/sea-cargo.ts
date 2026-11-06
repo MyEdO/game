@@ -5,6 +5,7 @@ import { document } from '../grammaire/document';
 import {
   cargaisonMarchandeSchema,
   catalogueSaisonnier,
+  cibleEtendueSchema,
   difficultySchema,
   ecartsDeCouverture,
   plageOuverteSchema,
@@ -113,7 +114,7 @@ const doc = document(
   opportunite: nommerChamps(z.strictObject({
     investMaxEnc: z.boolean(),
     test: flowTestSchema,
-    totalDR: z.number(),
+    ...cibleEtendueSchema.shape,
     maxAttempts: z.number(),
     outcomes: z.array(
       nommerChamps(z.strictObject({
@@ -132,7 +133,7 @@ const doc = document(
   }).superRefine(exigerDuTest('skill', 'difficulty')), {
     investMaxEnc: { label: 'Investissement maximal (Enc)' },
     test: { label: 'Test' },
-    totalDR: { label: 'DR cumulés' },
+    ...metaDesChamps(cibleEtendueSchema, { exigees: true }),
     maxAttempts: { label: 'Tentatives maximales' },
     outcomes: { label: 'Issues' },
     source: { label: 'Source' },

@@ -1287,7 +1287,7 @@
                 "hands": 1
               }
             ],
-            "restoreDR": 6,
+            "targetDR": 6,
             "recoveryPenalty": [
               {
                 "op": "testMod",
@@ -2944,7 +2944,7 @@
                 "den": 2
               }
             ],
-            "restoreDR": 6,
+            "targetDR": 6,
             "recoveryPenalty": [
               {
                 "op": "testMod",
@@ -4241,7 +4241,7 @@
                 "hands": 1
               }
             ],
-            "restoreDR": 6,
+            "targetDR": 6,
             "recoveryPenalty": [
               {
                 "op": "testMod",
@@ -5801,7 +5801,7 @@
                 "den": 2
               }
             ],
-            "restoreDR": 6,
+            "targetDR": 6,
             "recoveryPenalty": [
               {
                 "op": "testMod",

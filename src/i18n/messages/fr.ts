@@ -4548,7 +4548,7 @@ export const fr = {
   'codex.fiche.empetrement': ' · Empêtrement {entangleChancePct} %',
   'codex.fiche.detroits': 'Détroits',
   'codex.fiche.tourbillons': 'Tourbillons',
-  'codex.fiche.mRayonMSpiraleMMan': 'M{m} · rayon {zoneRadiusM} m (spirale {zoneSpiralM} m) · Man {manDR} · IC {ic} · évasion {v} ({totalDR} DR)',
+  'codex.fiche.mRayonMSpiraleMMan': 'M{m} · rayon {zoneRadiusM} m (spirale {zoneSpiralM} m) · Man {manDR} · IC {ic} · évasion {v} ({targetDR} DR)',
   'codex.fiche.gestionDesPerilsReperageEvitementPar': 'Gestion des périls (repérage / évitement par distance)',
   'codex.fiche.reperageEvitement': 'repérage {v} · évitement {v2}',
   'codex.fiche.meteoDeLaMerDesGriffes': 'Météo de la Mer des Griffes',
