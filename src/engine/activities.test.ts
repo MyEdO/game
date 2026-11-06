@@ -210,15 +210,15 @@ describe('catalogue d’Activités data-driven (activities.json)', () => {
     );
   });
 
-  it('toute compétence référencée (`skills[].id`) résout dans le catalogue de Compétences', () => {
+  it('toute compétence référencée (`tests[].skill.id`) résout dans le catalogue de Compétences', () => {
     for (const a of ACTIVITIES) {
-      for (const s of a.skills ?? []) expect(byId('skill', s.id), `${a.id} → ${s.id}`).toBeTruthy();
+      for (const o of a.tests ?? []) if (o.skill) expect(byId('skill', o.skill.id), `${a.id} → ${o.skill.id}`).toBeTruthy();
     }
   });
 
-  it('chaque Activité a un mode de Test cohérent (skills, freeSkill, ou sans Test)', () => {
+  it('chaque Activité a un mode de Test cohérent (tests, freeSkill, ou sans Test)', () => {
     for (const a of activitiesFor('voyage')) {
-      const hasTest = (a.skills?.length ?? 0) > 0 || (a.freeSkill?.length ?? 0) > 0;
+      const hasTest = (a.tests?.length ?? 0) > 0 || (a.freeSkill?.length ?? 0) > 0;
       // Une Activité sans Test (Récupérer) ne déclare pas failExtenue (pas de jet à rater).
       if (!hasTest) expect(a.failExtenue, a.id).toBeUndefined();
       else expect(a.failExtenue, a.id).toBe(true);
@@ -228,9 +228,9 @@ describe('catalogue d’Activités data-driven (activities.json)', () => {
   it('Établir des cartes = Test ÉTENDU spec-aware (Cartographe / Dessin)', () => {
     const carto = activityById('etablir-cartes')!;
     expect(carto.extended?.drPerStage).toBe(2);
-    expect(carto.skills).toEqual([
-      { id: 'metier', spec: 'cartographe' },
-      { id: 'art', spec: 'dessin' },
+    expect(carto.tests).toEqual([
+      { skill: { id: 'metier', spec: 'cartographe' }, difficulty: 'intermediaire' },
+      { skill: { id: 'art', spec: 'dessin' }, difficulty: 'intermediaire' },
     ]);
   });
 });
@@ -307,8 +307,7 @@ describe('Convalescence — Activité d’interlude (ADE II Annexe I « Les chos
     const conv = activityById('convalescence');
     expect(conv).toBeTruthy();
     expect(conv!.contexts).toContain('interlude');
-    expect(conv!.skills).toEqual([{ id: 'calme' }]);
-    expect(conv!.difficulty).toBe('tresDifficile'); // ADE II 09 l.33
+    expect(conv!.tests).toEqual([{ skill: { id: 'calme' }, difficulty: 'tresDifficile' }]); // ADE II 09 l.33
     expect(conv!.outcomes).toEqual([ // ADE II 09 l.33
       { on: 'success', ops: [{ op: 'removePsychTrait' }] },
       { on: 'failure', ops: [{ op: 'grantReverseToken', skill: { id: 'calme' }, contexte: 'psych' }] },
