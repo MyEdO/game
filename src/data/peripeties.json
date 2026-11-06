@@ -3,6 +3,12 @@
   "type": "peripeties",
   "label": "Péripéties",
   "die": "d10",
+  "tirageQuotidien": {
+    "dice": {
+      "n": 1,
+      "sides": 10
+    }
+  },
   "source": {
     "book": "livre-de-base",
     "page": 263,

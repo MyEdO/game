@@ -13,6 +13,7 @@ import { weatherDie, type Season } from '../engine/travelStages';
 import { encounterDie } from '../engine/travelTables';
 import { SHIP_CRIT_SET } from './shipCriticals';
 import { starSubDie, weather } from './index';
+import { peripetieSeuilDie } from './peripeties';
 import type * as obsessions from './schemas/defs/obsessions';
 import type * as miscast from './schemas/defs/miscast';
 
@@ -154,6 +155,7 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     expect(formatDice(SHIP_CRIT_SET.die!), 'ship-criticals (MDG 13 l.692)').toBe('1d10');
     expect(formatDice(encounterDie()), 'rencontres-edoc (EDOC 08 l.190)').toBe('1d100');
     expect(formatDice(starSubDie()), 'stars.json › sub (ADE II 03 l.63)').toBe('1d10');
+    expect(formatDice(peripetieSeuilDie()), 'peripeties.json › tirageQuotidien (LDB 51 l.208)').toBe('1d10');
   });
 
   it('le dé se lit VIVANT sur le document, à l’appel', () => {

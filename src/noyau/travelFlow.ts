@@ -7,7 +7,7 @@
  *  - 6 h de voyage par jour sans Test ; au-delà (marche forcée), Test de Résistance ou Exténué,
  *    +1 si Encombré (LDB 51 l.195) — à pied seulement (les passagers d'un transport ne marchent pas) ;
  *  - fatigue d'Encombrement par journée de voyage (LDB 61 l.46-48, `travelFatigue`) — à pied ;
- *  - péripéties (LDB 51 l.208, table l.210-221) : d10 quotidien, événement sur `perilDie` (défaut 8, paramétrable, 0 = off)
+ *  - péripéties (LDB 51 l.208, table l.210-221) : dé quotidien (`tirageQuotidien` de `peripeties.json`), événement sur `perilDie` (défaut 8, paramétrable, 0 = off)
  *    → tirage sur la table VERBATIM (`data/peripeties.ts`) ; en PLUS, péripéties d'AUTEUR par route
  *    (probabilité par jour + Effects d'éditeur).
  *
@@ -52,7 +52,7 @@ import { applyHealWounds } from '../engine/healing';
 import { declareDisease } from '../engine/disease';
 import { findVehicleById, voyageStakeRef, weather, libelleOuAbsence } from '../data';
 import { memoParVersion } from '../data/versionDataset';
-import { PERIPETIES, peripetieDie } from '../data/peripeties';
+import { PERIPETIES, peripetieDie, peripetieSeuilDie } from '../data/peripeties';
 import { rollTest, testDetail } from '../engine/tests';
 import { partyAssisted, supportSplit, type SupportDetail } from '../engine/skills';
 import { addCondition, removeCondition, stacks } from '../engine/conditions';
@@ -799,16 +799,16 @@ function buildTravelDayCascade(
   }
 
   // PÉRIPÉTIES du jour (LDB 51 l.208) : les péripéties d'AUTEUR (une étape de MONDE par péril), puis
-  // le d10 de SEUIL — un dé de MONDE à table, sur le patron de la météo : le siège qui possède
-  // l'environnement le POSE (« Dés fixés ») ou le voit passer. Sa rangée dit « aucune péripétie » ou
-  // insère le d10 de la table des péripéties (`landPerilTable`). Ordre des dés : d100 d'auteur ×N,
-  // d10 de seuil, d10 de table.
+  // le dé de SEUIL (`peripetieSeuilDie`) — un dé de MONDE à table, sur le patron de la météo : le siège
+  // qui possède l'environnement le POSE (« Dés fixés ») ou le voit passer. Sa rangée dit « aucune
+  // péripétie » ou insère le dé de la table des péripéties (`landPerilTable`). Ordre des dés : d100
+  // d'auteur ×N, dé de seuil, dé de table.
   steps.push(...buildAuthorPerilSteps(route, dest.destLabel, LAND_PERIL_INTERRUPT));
   const perilDie = route.perilDie ?? get().worldMap?.params?.perilDie ?? TRAVEL_DEFAULTS.perilDie;
   if (estFaceDeSeuil(perilDie)) {
     pousseSi(steps, tableStep({
       id: 'land-peril', kind: 'landPeril', worldOwner: true, icon: 'ui/warning', label: t('step.landPeril'),
-      table: { tableId: perilThresholdTableId(perilDie), spec: { n: 1, sides: 10 } },
+      table: { tableId: perilThresholdTableId(perilDie), spec: peripetieSeuilDie() },
       stake: voyageStakeRef('landPeril', { seuil: perilDie }),
       meta: { destLabel: dest.destLabel, seuil: perilDie },
     }));
@@ -924,34 +924,33 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
 }
 
 // ── PÉRIPÉTIES du jour terrestre (cascade `travelDay`, LDB 51 l.208-221) : deux dés de MONDE à table.
-//    Le d10 de SEUIL (`landPeril`) insère le d10 de la TABLE (`landPerilTable`), dont l'applier résout
+//    Le dé de SEUIL (`landPeril`) insère le dé de la TABLE (`landPerilTable`), dont l'applier résout
 //    les kinds sans jet joueur et INSÈRE le jet influençable (Survie « éreintant » / Perception
 //    « attaque ») quand la péripétie en demande un.
 
-/** Faces du d10 de seuil : un seuil hors d'elles n'ouvre aucune étape (aucun résultat ne l'atteint). */
-const PERIL_THRESHOLD_FACES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
-type FaceDeSeuil = (typeof PERIL_THRESHOLD_FACES)[number];
-const estFaceDeSeuil = (die: number): die is FaceDeSeuil => (PERIL_THRESHOLD_FACES as readonly number[]).includes(die);
-const perilThresholdTableId = (die: FaceDeSeuil) => `land-peril-seuil-${die}` as const;
-/** Les tables tirables que ce module déclare (table `tablesTirables`) : une par face du d10 de seuil. */
-export const TABLES_TIRABLES = PERIL_THRESHOLD_FACES.map(perilThresholdTableId);
+/** Une face du dé de seuil : un seuil hors d'elles n'ouvre aucune étape (aucun résultat ne l'atteint). */
+const estFaceDeSeuil = (face: number): boolean => Number.isInteger(face) && face >= 1 && face <= facesDuDe(peripetieSeuilDie());
+const perilThresholdTableId = (face: number) => `land-peril-seuil-${face}`;
 
-/** Les rangées du d10 de seuil `die` : la face qui fait survenir l'événement, et les autres. */
-function perilThresholdRows(die: number): TableStepRow[] {
+/** Les rangées du dé de seuil à `faces` faces pour la face `face` : celle qui fait survenir l'événement, et les autres. */
+function perilThresholdRows(face: number, faces: number): TableStepRow[] {
   return [
-    ...(die > 1 ? [{ id: 'aucune-avant', min: 1, max: die - 1, label: t('tf.perilNone') }] : []),
-    { id: 'peripetie', min: die, max: die, label: t('tf.perilEvent') },
-    ...(die < 10 ? [{ id: 'aucune-apres', min: die + 1, max: 10, label: t('tf.perilNone') }] : []),
+    ...(face > 1 ? [{ id: 'aucune-avant', min: 1, max: face - 1, label: t('tf.perilNone') }] : []),
+    { id: 'peripetie', min: face, max: face, label: t('tf.perilEvent') },
+    ...(face < faces ? [{ id: 'aucune-apres', min: face + 1, max: faces, label: t('tf.perilNone') }] : []),
   ];
 }
 
-/** Les tables du d10 de seuil, une par face. */
-const tablesDeSeuil = Object.fromEntries<TableStepDef>(PERIL_THRESHOLD_FACES.map((die) => [perilThresholdTableId(die), {
-  label: t('step.landPeril'),
-  die: 10,
-  rows: perilThresholdRows(die),
-  lines: (roll: number) => [roll === die ? t('tf.perilEvent') : t('tf.perilNone')],
-} satisfies TableStepDef])) as PartDeTable<'tablesTirables', typeof TABLES_TIRABLES>;
+/** Les tables du dé de seuil, une par face — FAMILLE dérivée de `peripeties` (son `tirageQuotidien`). */
+const tablesDeSeuil = memoParVersion('peripeties', () => {
+  const faces = facesDuDe(peripetieSeuilDie());
+  return new Map<string, TableStepDef>(Array.from({ length: faces }, (_, i) => i + 1).map((face) => [perilThresholdTableId(face), {
+    label: t('step.landPeril'),
+    die: faces,
+    rows: perilThresholdRows(face, faces),
+    lines: (roll: number) => [roll === face ? t('tf.perilEvent') : t('tf.perilNone')],
+  }]));
+});
 
 const PERIL_TABLE_ID = 'land-peril-table';
 
@@ -1561,9 +1560,9 @@ export const TABLES = {
       return { consequences: freeCons(j) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
-  tablesTirables: tablesDeSeuil,
   famillesTirables: [
     tablesDeMeteo,
+    tablesDeSeuil,
     tableDesPeripeties,
   ],
   interruptionsDePeril: {
