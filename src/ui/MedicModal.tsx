@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
 import { refusDuChoix } from '../noyau/choixDeFenetre';
+import { fermetureDeLaSortie } from '../noyau/sortieDeFenetre';
 import { flowStakeRef, skillRefLabel } from '../data';
 import { stakeRuleOf } from './StakeNote';
 import { CodexRef } from './compendium/CodexRef';
@@ -50,6 +51,7 @@ export function MedicModal() {
   const party = useGame((s) => s.party);
   const money = partyMoneyTotal(useGame.getState); // somme des bourses (le groupe est abonné via `party`)
   const choisir = useGame((s) => s.fenetreChoisir);
+  const sortieFermee = useGame((s) => fermetureDeLaSortie(s, 'medic'));
   const refusDuPatient = useGame(useShallow((s) => Object.fromEntries(s.party.map((h) => [h.id, refusDuChoix(s, 'medic', 'patient', h.id)]))));
   const act = useGame((s) => s.medicAct);
   const setWound = useGame((s) => s.medicSetWound);
@@ -62,7 +64,6 @@ export function MedicModal() {
   if (!medic) return null;
   const patient = party.find((c) => c.id === medic.patientId) ?? null;
   const sg = medic.surgery;
-  const busy = !!ph || !!sg || !!ps; // jet posé ou opération en cours : patients verrouillés, pas de sortie
   const npc = medic.npc;
   const paid = npc?.acts.some((a) => a.cost);
 
@@ -84,7 +85,7 @@ export function MedicModal() {
   );
 
   return (
-    <Modal title={npc ? <><Icon id="journal/heal" size="sm" /> Soins — {npc.label}</> : <><Icon id="journal/heal" size="sm" /> Soins</>} onClose={jet ? jet.escClose : busy ? undefined : close} footer={footer} etape={`${medic.patientId ?? ''}:${sg?.kind ?? ''}`}>
+    <Modal title={npc ? <><Icon id="journal/heal" size="sm" /> Soins — {npc.label}</> : <><Icon id="journal/heal" size="sm" /> Soins</>} onClose={jet ? jet.escClose : sortieFermee ? undefined : close} footer={footer} etape={`${medic.patientId ?? ''}:${sg?.kind ?? ''}`}>
       {paid && <span className="medic-purse hint">Bourse <Coins money={money} ton="discret" /></span>}
 
       {/* Bandeau PATIENTS : tuile full (jauge + États = le diagnostic), sélection or. */}
@@ -97,7 +98,7 @@ export function MedicModal() {
             size="md"
             selected={h.id === medic.patientId}
             onClick={refusDuPatient[h.id] ? undefined : () => choisir('medic', 'patient', h.id)}
-            nom={refusDuPatient[h.id] ?? h.label}
+            nom={refusDuPatient[h.id] ? `${h.label} — ${refusDuPatient[h.id]}` : h.label}
           />
         ))}
       </div>

@@ -69,7 +69,7 @@ export const OUVERTS_DU_CHOIX = {
   medic: {
     patient: reglage('medic', 'patient', (s) => {
       const verrou = s.pendingHeal || s.pendingSurgery || s.medic?.surgery ? libelleDeLaFermeture('soinEnCours') : null;
-      return s.party.map((h) => ouverte(h.id, h.label, verrou ?? (isHealable(h) ? null : t('medic.rienASoigner', { name: h.label }))));
+      return s.party.map((h) => ouverte(h.id, h.label, verrou ?? (isHealable(h) ? null : t('medic.patientSansSoin'))));
     }, (s) => s.medic?.patientId ?? null),
     abandon: reglage('medic', 'abandon', (s) => (s.medic?.surgery || s.pendingSurgery ? [ouverte(true, libelleDuChoix('medic', 'abandon'))] : [])),
   },

@@ -3021,6 +3021,7 @@ export const fr = {
   'medic.inCombat': 'En combat, les soins passent par la barre d’action (un acte = une Action).',
   'medic.patientIntrouvable': 'Patient introuvable.',
   'medic.rienASoigner': '{name} n’a rien à soigner.',
+  'medic.patientSansSoin': 'Rien à soigner.',
   'medic.aucunSoigneur': 'Aucun membre du groupe ne peut tenter un Test de Guérison.',
   // Raisons d'un acte de l'infirmerie fermé (`refusDActeDeSoin`).
   'medic.fermee': 'L’infirmerie est fermée.',

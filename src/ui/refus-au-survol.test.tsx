@@ -223,6 +223,21 @@ describe('#1689 T2 — écrans migrés', () => {
     expect(html).toContain('Aucun membre du groupe ne peut tenter un Test de Guérison.');
   });
 
+  it('INFIRMERIE : la tuile d’un patient refusé garde le nom du héros, puis le refus du noyau', () => {
+    const [sain, blesse] = pregenParty(PREGEN.soldat, PREGEN.tueur);
+    const patient = { ...blesse, wounds: { ...blesse.wounds, current: blesse.wounds.max - 3 } };
+    Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
+      medic: { patientId: patient.id }, party: [sain, patient], pendingHeal: null, pendingSurgery: null,
+    });
+    const rienASoigner = renderToStaticMarkup(<MedicModal />);
+    expect(rienASoigner, 'un héros indemne : rien à soigner').toContain(`${sain.label} — ${t('medic.patientSansSoin')}`);
+    expect(rienASoigner, 'un blessé se choisit : son nom seul').not.toContain(`${patient.label} — `);
+    const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: sain.label, skill: 40, intBonus: 3, traumaIdx: 0, targetDR: 5, cumDR: 0, stake: {} };
+    Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, { medic: { patientId: patient.id, surgery: operation } });
+    const soinEnCours = renderToStaticMarkup(<MedicModal />);
+    expect(soinEnCours, 'une opération en cours : chaque patient verrouillé').toContain(`${patient.label} — ${t('jet.ferme.soinEnCours')}`);
+  });
+
   // Le refus d'un choix de fenêtre est celui du noyau (`refusDuChoix`, `choixDeFenetre.ts`), que le verbe joue aussi.
   it('ESCALE (relâche) : les deux décisions de l’invité portent le refus du noyau', () => {
     Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
