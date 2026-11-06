@@ -55,7 +55,7 @@ export interface HerosDInterlude {
 /** L'interlude ouvert : sa durée en semaines, ses héros, ses dépôts en banque. */
 export interface InterludeEnVue { semaines: number; heros: HerosDInterlude[]; depots: GesteDInterlude[] }
 
-type Etat = Pick<Jeu, 'interlude' | 'party' | 'bank' | 'scene' | 'worldMap' | 'massBattle' | 'favors'>;
+type Etat = Pick<Jeu, 'interlude' | 'party' | 'bank' | 'lieu' | 'massBattle' | 'favors'>;
 
 /** Ce qu'une cible coûte, dit avec elle : une valeur de liste ne se montre que par son libellé. */
 const auPrix = (label: string, prix: string): string => t('interlude.prix', { label, prix });

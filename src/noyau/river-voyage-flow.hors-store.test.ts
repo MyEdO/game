@@ -144,7 +144,7 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
     expect(j).toMatch(/cap|barre|contrôle/); // conséquence de Navigation de l'étape (l.15), #295 Lot 1
     expect(j).toContain('Progression du jour');
     // ENCHAÎNEMENT : la journée s'achève sur une halte de nuit OU l'arrivée (45 km ≈ une journée de barge).
-    expect(get().pendingRest || get().scene?.id === 'quai-b').toBeTruthy();
+    expect(get().pendingRest || get().lieu === 'B').toBeTruthy();
   });
 
   it('sur une barque, le rameur tient la Navigation (MSRC 7 l.13)', () => {
@@ -463,13 +463,13 @@ describe('descente end-to-end — le Reik jusqu\'à Altdorf (cascades jour + nui
     seedBattleRng(9);
     get().startTravel('r-reik', 'barge');
     for (let i = 0; i < 120; i++) {
-      if (!get().travelPlan && get().scene?.id === 'quai-b') break;
+      if (!get().travelPlan && get().lieu === 'B') break;
       if (get().pendingCascade) { draineCascade(get); continue; }
       if (get().pendingRest) { get().fenetreValider('rest'); draineCascade(get); continue; }
       if (!get().travelPlan) break;
     }
     expect(get().travelPlan).toBeNull();
-    expect(get().scene?.id).toBe('quai-b'); // arrivée à Altdorf
+    expect(get().lieu).toBe('B'); // arrivée à Altdorf
     expect(get().gameTime).toBeGreaterThanOrEqual(24 * 60); // au moins une journée a passé
   });
 });
@@ -542,7 +542,7 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
   it('la donnée `meta.navLabel` est le libellé du CATALOGUE, et l’étape insérée le porte en `rollLabel`', () => {
     launch(false, 45, { riverPerils: [{ perilId: 'debris', chancePct: 100 }] });
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const check = built.steps.find((s) => s.kind === 'riverPerilCheck')!;
     expect(check, 'le pas de vérification du péril existe').toBeTruthy();
     // Barge gréée → compétence Voile (Chaland), `ship.sail.spec` ; le libellé vient du CATALOGUE, jamais d'un littéral.
@@ -559,7 +559,7 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
   it('cascade PERSISTÉE d’avant le lot (aucun `meta.navLabel`) : le libellé est RE-DÉRIVÉ du vaisseau, jamais vide', () => {
     launch(false, 45, { riverPerils: [{ perilId: 'debris', chancePct: 100 }] });
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const check = built.steps.find((s) => s.kind === 'riverPerilCheck')!;
     // Fixture SANS `meta.navLabel` : le champ est optionnel, et `saves.ts` ne le remplit pas au rejeu.
     const legacy = { ...check, meta: { ...check.meta, navLabel: undefined } } as typeof check;
@@ -663,7 +663,7 @@ describe('Navigation du jour — Difficulté déclarée, malus NOMMÉS (#1112)',
     launch(false, 45);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere' } } });
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const nav = built.steps.find((s) => s.kind === 'riverNav')!;
     expect(nav.difficulty).toBe('intermediaire');
     expect(malus(nav)).toEqual([]);
@@ -673,7 +673,7 @@ describe('Navigation du jour — Difficulté déclarée, malus NOMMÉS (#1112)',
     launch(false, 45);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', outOfControl: true } } });
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const nav = built.steps.find((s) => s.kind === 'riverNav')!;
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est PAS une Difficulté
     expect(malus(nav)).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
@@ -693,7 +693,7 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
     launch(false, 45, { riverPerils: [{ perilId: 'debris', chancePct: 100 }] });
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', outOfControl: true } } });
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const check = built.steps.find((s) => s.kind === 'riverPerilCheck')!;
     seedBattleRng(2);
     const out = applierDe('riverPerilCheck')!(get, set, check, undefined, { steps: [check], index: 0 });
@@ -710,7 +710,7 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
     launch(false, 45, { riverPerils: [{ perilId: 'debris', chancePct: 100 }] });
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere' } } });
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const check = built.steps.find((s) => s.kind === 'riverPerilCheck')!;
     seedBattleRng(2);
     const out = applierDe('riverPerilCheck')!(get, set, check, undefined, { steps: [check], index: 0 });
@@ -749,7 +749,7 @@ describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     // Vent fort de côté : louvoyage ET sauvegardes de vent sont au programme du jour.
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'tres-fort', windDir: 'cote', broken: true } } });
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const jets = built.steps.filter((s) => s.target != null);
     expect(jets.length).toBeGreaterThanOrEqual(3);
     for (const s of jets) {
@@ -767,7 +767,7 @@ describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117
     // Vent FORT de côté : la combinaison qui EXIGE le louvoyage (sans elle, l'étape n'existe pas —
     // c'est le trou qu'une mesure sur le seul scénario par défaut laissait passer).
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'fort', windDir: 'cote' } } });
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const tack = built.steps.find((s) => s.kind === 'riverTack');
     expect(tack, 'le louvoyage est bien au programme du jour').toBeTruthy();
     expect(resolveStake(tack!.stake!).text).toMatch(/^Réussi : \+\d+ % de vitesse ; échec : \+0 %\.$/);
@@ -777,7 +777,7 @@ describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117
     launch(false, 45);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere' } } });
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const nav = built.steps.find((s) => s.kind === 'riverNav')!;
     expect(resolveStake(nav.stake!).text).toMatch(/dérive \d+ km en aval \(25 % de la vitesse\)/); // km calculé, % de la donnée
   });
@@ -800,7 +800,7 @@ describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
     launch(false, 45);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'fort', windDir: 'cote' } } });
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const jets = built.steps.filter((s) => s.target != null);
     for (const s of jets) {
       const rule = resolveStake(s.stake!).rule;
@@ -857,7 +857,7 @@ describe('Navigation du jour — base NUE + Soutien NOMMÉ, cible invariante (#1
     expect(jetee, 'l’État mord le jet, pas le Niveau de Compétence').toBeLessThan(nue);
     expect(picked.support.bonus, 'les camarades éligibles soutiennent (l.195)').toBeGreaterThan(0);
 
-    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const nav = built.steps.find((s) => s.kind === 'riverNav')!;
     expect(nav.actorId).toBe(lead.id);
     expect(nav.base, 'Niveau de Compétence NU (LDB 09 l.17)').toBe(nue);
@@ -970,7 +970,7 @@ describe('#1341 — la spec d’un Test se demande par ID (la donnée en stocke 
     get().setParty([...get().party, bran]);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, broken: true } } });
-    const { steps } = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
+    const { steps } = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const repair = steps.find((s) => s.kind === 'riverControlRepair');
     expect(repair, 'gréement brisé → une étape de réparation est montée').toBeTruthy();
     // Gunnar a Métier (Construction de bateaux) 40 avances : c'est LUI le meilleur réparateur, et sa

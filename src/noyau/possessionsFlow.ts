@@ -10,7 +10,6 @@ import { possessionGrantsFromRefs } from '../engine/possessionGrants';
 import { resolveTrappingChoices } from '../engine/trappingChoices';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
-import { currentPlaceId } from './worldMap';
 import { refuserGeste } from './refusVisible';
 import { t } from '../i18n';
 import { makeRNG, hashSeed } from '../engine/dice';
@@ -75,7 +74,7 @@ export type GesteDePossession =
   | { kind: 'embarquer'; hostUid: string };
 
 /** Tranche d'état que lit le verdict : le registre, le groupe (propriétaires) et le lieu courant. */
-export type EtatDesPossessions = Pick<Jeu, 'party' | 'possessions' | 'worldMap' | 'scene'>;
+export type EtatDesPossessions = Pick<Jeu, 'party' | 'possessions' | 'lieu'>;
 
 const texteDEmbarquement = (child: Possession, host: Possession, r: RefusDEmbarquement): string =>
   r.motif === 'nature'
@@ -101,7 +100,7 @@ function hoteDe(p: Possession, s: EtatDesPossessions): Possession | undefined {
 const REGLES: { [K in GesteDePossession['kind']]: RegleDeGeste<Extract<GesteDePossession, { kind: K }>> } = {
   laisser: {
     condition: (p, s) =>
-      p.location.kind !== 'avec-le-groupe' ? t('pos.pasAvecLeGroupe') : currentPlaceId(s) == null ? t('pos.aucunLieu') : null,
+      p.location.kind !== 'avec-le-groupe' ? t('pos.pasAvecLeGroupe') : s.lieu == null ? t('pos.aucunLieu') : null,
   },
   reprendre: {
     condition: (p) => {
@@ -136,7 +135,7 @@ function refusDAcces(s: EtatDesPossessions, chose: Possession | undefined, vus: 
   if (!chose) return t('pos.introuvable');
   if (vus.has(chose.uid)) return t('pos.ailleurs', { chose: possessionLabel(chose) });
   const ici = chose.location.kind === 'avec-le-groupe'
-    || (chose.location.kind === 'au-lieu' && chose.location.placeId === currentPlaceId(s));
+    || (chose.location.kind === 'au-lieu' && chose.location.placeId === s.lieu);
   if (ici) return null;
   if (chose.location.kind === 'embarquee') {
     const hote = hoteDe(chose, s);
@@ -183,7 +182,7 @@ function gesteDePossession(get: Get, set: Set, uid: string, geste: GesteDePosses
 
 /** Dépose la possession au lieu courant du groupe (auberge, écurie…). */
 export function stablePossession(get: Get, set: Set, uid: string): void {
-  gesteDePossession(get, set, uid, { kind: 'laisser' }, () => ({ kind: 'au-lieu', placeId: currentPlaceId(get())! }));
+  gesteDePossession(get, set, uid, { kind: 'laisser' }, () => ({ kind: 'au-lieu', placeId: get().lieu! }));
 }
 
 /** Reprend une possession déposée — elle voyage de nouveau avec le groupe. */

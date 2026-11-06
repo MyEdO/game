@@ -9,27 +9,16 @@
  * EMPLACEMENT, jamais un personnage. Un document ne peut pas nommer un héros que le joueur créera
  * plus tard ; au chargement, un emplacement que le groupe n'atteint pas s'élague simplement.
  *
- * ATOMIQUE : le geste passe par `seatOccupant`/`releaseSeat`, qui posent la `pos` du corps sur l'abord
- * résolu de sa place ; un refus se dit en toutes lettres et n'écrit rien.
+ * ATOMIQUE : le geste passe par `assoirALaPlace`, qui libère le tenant et l'ancienne place du corps et
+ * pose la `pos` du corps sur l'abord résolu de sa place ; un refus se dit en toutes lettres et n'écrit rien.
  */
 import { useState } from 'react';
 import type { Scene } from '../../noyau/monde/scene';
 import { PARTY_MAX } from '../../noyau/monde/combatants';
-import { labelEmplacement, releaseSeat, seatSlotsOf, type SeatAssignmentResult, type SeatOccupant } from '../../noyau/monde/seating';
-import { normaliseAssises, seatOccupant } from '../../noyau/sceneEdit';
+import { labelEmplacement, seatSlotsOf, type SeatOccupant } from '../../noyau/monde/seating';
+import { t } from '../../i18n';
+import { assoirALaPlace } from '../../noyau/sceneEdit';
 import { ChipDeRefus } from '../ChipDeRefus';
-
-/** Motif de refus d'`assignSeat`, dit à l'auteur. Chaque libellé énonce le fait MESURÉ par la raison
- *  qu'il traduit — `occupant-absent` ne peut désigner qu'un corps que la scène ne porte pas (les héros
- *  proposés sont les emplacements FIXES du groupe). */
-const REFUS: Record<Exclude<SeatAssignmentResult, { ok: true }>['reason'], string> = {
-  'prop-absent': 'ce décor n’est plus dans la scène',
-  'slot-absent': 'ce type de décor n’offre pas cette place',
-  'occupant-absent': 'ce corps n’est ni un personnage de la scène ni un emplacement du groupe',
-  'occupant-assis': 'ce corps tient déjà une autre place',
-  'slot-occupe': 'cette place est déjà tenue',
-  'approche-invalide': 'aucun abord praticable ne dessert cette place',
-};
 
 /** Valeur de `<select>` d'un occupant : préfixée par sa NATURE, pour qu'un rang de groupe et un id
  *  d'entité ne se confondent jamais. */
@@ -60,21 +49,11 @@ export function SeatAssignmentsField({
 
   const choisir = (slotId: string, value: string) => {
     setRefus(null);
-    const tenant = parMeuble[slotId];
-    if (!value) {
-      // « — personne — » sur une place DÉJÀ vide ne publie rien : un cran d'undo à vide se paie au
-      // clavier de l'auteur, qui doit défaire deux fois pour revenir sur son geste précédent.
-      if (tenant) onChange(normaliseAssises(releaseSeat(scene, tenant), PARTY_MAX));
-      return;
-    }
-    const occupant = occupantOf(value);
-    // Un corps, une place : libérer le tenant de la place VISÉE et l'ancienne place du corps CHOISI
-    // fait partie du MÊME geste — la scène n'est publiée qu'une fois, et seulement si elle est prise.
-    let base = tenant ? releaseSeat(scene, tenant) : scene;
-    base = releaseSeat(base, occupant);
-    const res = seatOccupant(base, propId, slotId, occupant, PARTY_MAX);
-    if (!res.ok) { setRefus(REFUS[res.reason]); return; }
-    onChange(res.scene);
+    const res = assoirALaPlace(scene, propId, slotId, value ? occupantOf(value) : null);
+    if (!res.ok) { setRefus(t(`ecran.editeur.place.refus.${res.reason}`)); return; }
+    // « — personne — » sur une place DÉJÀ vide ne publie rien : un cran d'undo à vide se paie au
+    // clavier de l'auteur, qui doit défaire deux fois pour revenir sur son geste précédent.
+    if (res.scene !== scene) onChange(res.scene);
   };
 
   return (

@@ -28,7 +28,8 @@ import { buildAuthorPerilSteps } from './authorPerils';
 const LAND_PERIL_INTERRUPT = 'travel-land';
 import { openRest, placesOfKind, sceneLieu, routeLieu } from './restFlow';
 import type { Jeu } from './etat';
-import { placeById, placeOfScene, otherEnd, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import { arriverAuLieu, quitterLeLieu } from './lieuFlow';
+import { lieuDuGroupe, placeById, otherEnd, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { billetApresDepart, offreDePassage, type OffreDePassage } from './billetFlow';
 import {
   TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, transportCost, classeRetenue, forcedMarchTest, applyTravelFatigue,
@@ -211,8 +212,6 @@ export interface TravelPlan {
  *  d'INTERRUPTION d'une péripétie (combat/embuscade différé), et `arrived`. Jamais persisté au-delà d'une
  *  journée. La ligne de récap du jour vit dans `plan.recap.days[dernier]` (le `while` la relit). */
 export interface LandDayContext {
-  toScene: string;
-  toEntry?: string;
   toLabel: string;
   destLabel: string;
   marchHeroes: string[];
@@ -385,8 +384,8 @@ export function devisDeTrajet(s: Jeu, route: MapRoute, fromId: string, mode: Tra
 
 /** Le trajet `routeId` au départ du lieu courant, ou la raison de son absence. */
 function trajetDIci(s: Jeu, routeId: string): { from: MapPlace; route: MapRoute; to: MapPlace } | string {
-  const { worldMap, scene } = s;
-  const from = worldMap && scene ? placeOfScene(worldMap, scene.id) : undefined;
+  const { worldMap } = s;
+  const from = lieuDuGroupe(s);
   if (!worldMap || !from) return t('wm.horsCarte');
   const route = worldMap.routes.find((r) => r.id === routeId);
   const to = route && (route.a === from.id || route.b === from.id) ? placeById(worldMap, otherEnd(route, from.id)) : undefined;
@@ -457,7 +456,7 @@ export function startTravel(get: Get, set: Set, routeId: string, mode: TravelMod
       return;
     }
     const seaPlan = garanti(buildSeaPlan(get, routeId, from.id, to.id, route, seaOpts), routeId, 'plan de traversée (`refusDuDepartEnMer`)');
-    set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null, billetEnMain });
+    set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null, billetEnMain, ...quitterLeLieu });
     log(get, set, [t('tf.seaDepart', { ship: seaPlan.vehicle!.label, to: to.label, km: route.km })]);
     runSeaDay(get, set);
     return;
@@ -468,7 +467,7 @@ export function startTravel(get: Get, set: Set, routeId: string, mode: TravelMod
   // payant. Repli sur le transport payant (« on paie un passeur ») si aucun batelier/embarcation.
   const riverPlan = descenteJouee(get, route, mode) ? buildRiverPlan(get, routeId, from.id, to.id, route, { cadence: opts.cadence }) : null;
   if (riverPlan) {
-    set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });
+    set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode), ...quitterLeLieu });
     log(get, set, [t('tf.riverDepart', { ship: riverPlan.vehicle!.label, to: to.label, km: route.km })]);
     runRiverDays(get, set);
     return;
@@ -508,7 +507,7 @@ export function startTravel(get: Get, set: Set, routeId: string, mode: TravelMod
     postes: rule('travel-etapes') ? stageAssignmentFromRoles(party) : undefined,
     ...(vehicle ? { vehicle } : {}),
   };
-  set({ travelPlan: plan, worldMapOpen: false, travelRecap: null, billetEnMain: billet });
+  set({ travelPlan: plan, worldMapOpen: false, travelRecap: null, billetEnMain: billet, ...quitterLeLieu });
   const allureLabel = allure ? t('tf.fragAllure', { allure: allureName(allure).toLowerCase() }) : '';
   log(get, set, [t('tf.depart', { to: to.label, km: route.km, mode: travelModeLabels()[mode].toLowerCase(), allure: allureLabel })]);
   runTravelDays(get, set);
@@ -596,7 +595,7 @@ function runTravelDays(get: Get, set: Set): void {
       set({ travelPlan: null });
       log(get, set, [t('tf.arrival', { to: to.label }), ...travelArrivalCare(get, set), ...declareArrivalDiseases(get, set, atStart)]);
       finishRecap(get, set, recap, 'arrived', undefined, dureeMin);
-      get().transitionTo(to.scene, to.entry);
+      arriverAuLieu(set, to);
       return;
     }
 
@@ -634,7 +633,7 @@ function runTravelDays(get: Get, set: Set): void {
       const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: plan.kmDone, hours: 0, lines: [], entries: [] };
       recap?.days.push(recapDay);
       if (recap) set({ travelPlan: { ...get().travelPlan!, recap } });
-      const daySteps = buildTravelDayCascade(get, set, route, recapDay, [], { toScene: to.scene, toEntry: to.entry, toLabel: to.label, destLabel: to.label });
+      const daySteps = buildTravelDayCascade(get, set, route, recapDay, [], { toLabel: to.label, destLabel: to.label });
       startCascade(get, set, { title: t('tf.dayTitleForced'), icon: 'travel/cart', purpose: 'travelDay', steps: [premierKm, ...daySteps] });
       return; // la clôture de la cascade (continueTravelDayAfterCascade) finalise le jour
     }
@@ -703,7 +702,7 @@ function runTravelDays(get: Get, set: Set): void {
     // Étapes éteinte ET pas de péripétie testable), la cascade est VIDE → on finalise directement (le
     // chemin jour-par-jour du LdB reste BYTE-IDENTIQUE).
     const daySteps = buildTravelDayCascade(get, set, route, recapDay, marchHeroes, {
-      toScene: to.scene, toEntry: to.entry, toLabel: to.label, destLabel: to.label,
+      toLabel: to.label, destLabel: to.label,
     });
     // Récap du SEGMENT posé sur le plan : la cascade suspend le `while`, donc son `recap`/`recapDay`
     // locaux ne survivent pas — `continueTravelDayAfterCascade` les relit depuis `plan.recap`.
@@ -778,7 +777,7 @@ const tablesDeMeteo = memoParVersion('weather', () => new Map<string, TableStepD
 
 function buildTravelDayCascade(
   get: Get, set: Set, route: MapRoute, recapDay: TravelRecapDay, marchHeroes: string[],
-  dest: { toScene: string; toEntry?: string; toLabel: string; destLabel: string },
+  dest: { toLabel: string; destLabel: string },
 ): CascadeStep[] {
   const steps: BuiltCascadeStep[] = [];
 
@@ -818,8 +817,7 @@ function buildTravelDayCascade(
   // le build sur le chemin synchrone, ou par la chaîne `landForcedPace` sur le chemin différé).
   // L'interruption d'une péripétie s'y posera.
   set({ travelPlan: { ...get().travelPlan!, land: {
-    toScene: dest.toScene, toEntry: dest.toEntry, toLabel: dest.toLabel,
-    destLabel: dest.destLabel, marchHeroes: [...marchHeroes],
+    toLabel: dest.toLabel, destLabel: dest.destLabel, marchHeroes: [...marchHeroes],
   } } });
   void recapDay; // le récap du jour (plan.recap.days[dernier]) reçoit la tranche de journal à la clôture
   return steps;
@@ -841,7 +839,7 @@ function stepRecapLines(step: CascadeStep): RecapLine[] {
  * fini de se JOUER (postes/exposition/péripéties validés) — reste à enchaîner. Roule la marche forcée
  * EAGER si le jour n'aboutit PAS sur une halte de nuit (arrivée/interruption : pas de nuit où la
  * présenter), sinon la DIFFÈRE à la cascade de nuit (`travelMarch`). Puis : interruption (péripétie) →
- * recap `interrupted` + suite différée ; arrivée → transition ; sinon → halte de nuit (`openRest`).
+ * recap `interrupted` + suite différée ; arrivée au lieu (`arriverAuLieu`) ; sinon → halte de nuit (`openRest`).
  * Efface le contexte transitoire du jour. Renvoie `true` (le segment est toujours clos ici).
  * `done` : la cascade `travelDay` FINALISÉE (`dispatchCascadeDone`, `combatSlice.ts`) — ses étapes
  * committées portent les lignes de récap phase-taguées (#349) ; absente quand `buildTravelDayCascade`
@@ -913,7 +911,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
     if (recapDay) recapDay.lines.push(...toRecapLines(care));
     log(get, set, [t('tf.arrival', { to: ctx.toLabel }), ...care]);
     finishRecap(get, set, recap, 'arrived', undefined, dureeMin);
-    get().transitionTo(ctx.toScene, ctx.toEntry);
+    arriverAuLieu(set, garanti(placeById(get().worldMap!, plan.toPlaceId), plan.toPlaceId, 'lieu d’arrivée'));
     return true;
   }
   // Nuit en route : HALTE — modale de Repos (auberge de relais si la route en a, sinon campement). Le

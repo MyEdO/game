@@ -1928,8 +1928,8 @@ Fiche du héros → panneau d'équipement (`src/ui/EquipmentPanel.tsx`) :
 ### Carte du monde
 
 - **Le bouton de la carte du monde n'existe qu'à un LIEU de la carte**, ou en voyage : la console
-  d'exploration le monte si la scène courante est un lieu de la carte du projet (`placeOfScene`) ou si un
-  voyage est en cours (`src/ui/CampaignView.tsx:307`). C'est un bouton à GLYPHE, sans texte, titré
+  d'exploration le monte si le groupe se tient à un lieu de la carte du projet (`lieu`) ou si un
+  voyage est en cours (`src/ui/CampaignView.tsx`). C'est un bouton à GLYPHE, sans texte, titré
   « Carte du monde — voyager » (`src/ui/ExplorationDock.tsx`) :
   `cliquerSelecteur(session, '.worldmap-btn[title^="Carte du monde"]')`. Exemple : Arène,
   `__wfrp.go('arene-hub')`.

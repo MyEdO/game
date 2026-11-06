@@ -1,8 +1,9 @@
 /**
  * L'ÉDITEUR DE CARTE À L'ÉCRAN D'UN HÔTE (#3508) : ses zones et leurs éléments (`elements.ts`), lus de la session
  * d'édition du noyau (`SessionDEdition`). Les outils, les options de l'outil actif (pinceau, terrains, hauteurs, sorte
- * et structure d'une arête, étage rejoint et plan d'une volée), les couches de la scène, l'historique, l'enregistrement au dépôt, la case pointée et
- * l'arête sélectionnée, l'inspecteur de cette arête et le calque de référence de la couche ; chaque geste porte le geste d'édition qu'il joue (`{ edition }`), prêt à envoyer. Ce que le
+ * et structure d'une arête, étage rejoint et plan d'une volée, engin d'un emplacement de siège), les couches de la scène, l'historique, la presse,
+ * l'enregistrement au dépôt, la case pointée et la sélection, l'inspecteur de l'entité, de l'entrée ou de l'arête sélectionnée et le calque de
+ * référence de la couche ; chaque geste porte le geste d'édition qu'il joue (`{ edition }`), prêt à envoyer. Ce que le
  * pointeur trace sur la carte en cours de geste, le tracé de la volée et l'arête sélectionnée, vont à la surcouche (`surcoucheDeLEdition`),
  * que l'hôte pose sur le monde, et le calque de la couche, à l'affichage du calque (`calqueAffiche`), avec la planche
  * qu'il garde (`cheminDeLaPlanche`) et ce qu'il garde des calques (`memoireDesCalques`).
@@ -10,6 +11,7 @@
 import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
   capDeLEntite, capsOfferts, entiteDeLaSelection, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
+  assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type Scene, type SessionDEdition, type WallPaint,
@@ -100,6 +102,10 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const outil = s.outil;
   if (outil.mode === 'select' || outil.mode === 'erase' || outil.mode === 'entry' || (outil.mode === 'entity' && outil.kind === 'heroStart')) return [];
   if (outil.mode === 'stair') return optionsDeLaVolee(s, outil.toZ);
+  if (outil.mode === 'emplacement') {
+    return [choix('engins', t('ecran.editeur.engins'),
+      siegeEngines().map((e) => bouton(`engin/${e.id}`, e.label, { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
+  }
   if (outil.mode === 'entity') {
     const kind = outil.kind;
     const offerts = kind === 'prop' ? props : fichesDePersonnage();
@@ -173,7 +179,8 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
     .map((c) => bouton(`${id}/${c}`, t('ecran.editeur.couche', { z: c }), jeu(c), c === z)));
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
- *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la supprimer. */
+ *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la lumière et les places d'un décor ; le poste d'un
+ *  emplacement de siège et l'équipage exposé d'une coque ; l'embuscade d'un personnage et ses rencontres ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
@@ -184,7 +191,131 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
       types.map((o) => bouton(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, ent.ref === o.id)), 'liste')] : []),
     choix('entite/cap', t('ecran.editeur.entite.cap'), capsOfferts(ent).map((c) => bouton(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
     choixDeLaCouche(s, 'entite/couche', ent.z ?? 0, (z) => ({ geste: 'entite', patch: { z } })),
+    ...(ent.kind === 'prop' ? [...lumiere(ent), ...places(s, ent)] : []),
+    ...(ent.postes?.length ? poste(s, ent, ent.postes[0]) : []),
+    ...(ent.postes?.length || (ent.ref && findVehicleById(ent.ref)?.hull)
+      ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
+      : []),
+    ...(ent.kind === 'personnage' ? rencontres(s, ent) : []),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
+  ];
+}
+
+/** Le pas du rayon d'une lumière, en mètres, et son plancher (`light.radiusM`). */
+const PAS_DE_RAYON = 1;
+
+/** La lumière du décor `ent` : l'allumer ou l'éteindre ; allumée, son rayon et son ton. */
+function lumiere(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
+  const allumer = bouton('lumiere', t('ecran.editeur.lumiere'), { geste: 'entite', patch: { light: ent.light ? null : lumiereAllumee(ent) } }, !!ent.light);
+  const l = ent.light;
+  if (!l) return [allumer];
+  const rayon = (r: number) => ({ geste: 'entite' as const, patch: { light: { ...l, radiusM: r } } });
+  return [
+    allumer,
+    ligne('lumiere/rayon', t('ecran.editeur.lumiere.rayon', { m: l.radiusM })),
+    bouton('lumiere/moins', t('ecran.editeur.lumiere.moins'), rayon(l.radiusM - PAS_DE_RAYON), false, l.radiusM - PAS_DE_RAYON < PAS_DE_RAYON ? t('ecran.editeur.lumiere.plancher') : null),
+    bouton('lumiere/plus', t('ecran.editeur.lumiere.plus'), rayon(l.radiusM + PAS_DE_RAYON)),
+    choix('lumiere/ton', t('ecran.editeur.lumiere.ton'), [
+      bouton('lumiere/ton/herite', t('ecran.editeur.lumiere.ton.herite'), { geste: 'entite', patch: { light: { radiusM: l.radiusM } } }, l.tone === undefined),
+      ...lightTones.map((ton) => bouton(`lumiere/ton/${ton.id}`, ton.label, { geste: 'entite', patch: { light: { ...l, tone: ton.id } } }, l.tone === ton.id)),
+    ], 'liste'),
+  ];
+}
+
+/** Les personnages de la scène éditée de `s` hors de l'entité `ent`. */
+const personnagesHors = (s: SessionDEdition, ent: Scene['entities'][number]) =>
+  sceneEditee(s).entities.filter((e) => e.kind === 'personnage' && e.id !== ent.id);
+
+/** Le libellé de chaque équipe d'une entité, et sa consigne sans personnage à y mettre. */
+const EQUIPES = {
+  equipage: ['ecran.editeur.equipage', 'ecran.editeur.equipage.aucun'],
+  'poste/servants': ['ecran.editeur.poste.servants', 'ecran.editeur.poste.servants.aucun'],
+} as const;
+
+/** L'équipe `ids` de l'entité `ent` de la session `s` sous l'id `id` : chaque personnage de la scène hors d'elle, pressé
+ *  s'il en est, qui l'y ajoute à la fin ou l'en retire (`jeu`) ; sans personnage, la consigne d'en poser. */
+function equipe(s: SessionDEdition, ent: Scene['entities'][number], id: keyof typeof EQUIPES, ids: readonly string[], jeu: (ids: string[]) => GesteDEdition): (Choix | Ligne)[] {
+  const candidats = personnagesHors(s, ent);
+  const [libelle, aucun] = EQUIPES[id];
+  if (!candidats.length) return [ligne(id, t(aucun))];
+  return [choix(id, t(libelle), candidats.map((c) => {
+    const a = ids.includes(c.id);
+    return bouton(`${id}/${c.id}`, nomALEcran(s, c), jeu(a ? ids.filter((i) => i !== c.id) : [...ids, c.id]), a);
+  }))];
+}
+
+/** Les clés d'un occupant de place, sa nature en tête. */
+const cleDeLOccupant = (o: SeatOccupant): string => (o.kind === 'party' ? `heros-${o.rang}` : o.entityId);
+
+/** L'assise du décor `ent` de la session `s` : l'ouvrir au jeu ; chacune des places que son type porte, tenue par
+ *  personne, par un personnage de la scène ou par un emplacement du groupe, chaque occupant refusé avec sa raison. */
+function places(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Bouton)[] {
+  const scene = sceneEditee(s);
+  const slots = seatSlotsOf(scene, ent.id);
+  if (!slots.length) return [];
+  const tenues = scene.seatAssignments?.[ent.id] ?? {};
+  const occupants: { occupant: SeatOccupant; nom: string }[] = [
+    ...scene.entities.filter((e) => e.kind === 'personnage').map((e) => ({ occupant: { kind: 'entity' as const, entityId: e.id }, nom: nomALEcran(s, e) })),
+    ...Array.from({ length: PARTY_MAX }, (_, i) => ({ occupant: { kind: 'party' as const, rang: i + 1 }, nom: labelEmplacement(i + 1) })),
+  ];
+  return [
+    bouton('assise', t('ecran.editeur.assise'), { geste: 'entite', patch: { assise: !ent.usable?.assise } }, !!ent.usable?.assise),
+    ...slots.map(({ slotId }) => {
+      const tenant = tenues[slotId];
+      const id = `place/${slotId}`;
+      return choix(id, t('ecran.editeur.place', { place: slotId }), [
+        bouton(`${id}/personne`, t('ecran.editeur.place.personne'), { geste: 'place', place: slotId, occupant: null }, !tenant),
+        ...occupants.map(({ occupant, nom }) => {
+          const tient = !!tenant && cleDeLOccupant(tenant) === cleDeLOccupant(occupant);
+          const res = tient ? null : assoirALaPlace(scene, ent.id, slotId, occupant);
+          return bouton(`${id}/${cleDeLOccupant(occupant)}`, nom, { geste: 'place', place: slotId, occupant }, tient,
+            res && !res.ok ? t(`ecran.editeur.place.refus.${res.reason}`) : null);
+        }),
+      ], 'liste');
+    }),
+  ];
+}
+
+/** Les arcs d'un créneau directionnel, dans l'ordre horaire depuis la proue. */
+const ARCS = ['proue', 'tribord', 'poupe', 'babord'] as const;
+
+/** Le poste de l'emplacement de siège `ent` de la session `s` : son engin, son arc (omni ou l'un des quatre), ses
+ *  servants, et parmi eux le chef de pièce, en tête. */
+function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullable<Scene['entities'][number]['postes']>[number]): (Choix | Ligne)[] {
+  const servants = p.crewIds ?? [];
+  const parId = new Map(sceneEditee(s).entities.map((e) => [e.id, e]));
+  const nom = (id: string) => { const e = parId.get(id); return e ? nomALEcran(s, e) : id; };
+  return [
+    choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => bouton(`poste/engin/${e.id}`, e.label, { geste: 'poste', patch: { engin: e.id } }, p.trappingId === e.id)), 'liste'),
+    choix('poste/arc', t('ecran.editeur.poste.arc'), [
+      bouton('poste/arc/omni', t('ecran.editeur.poste.arc.omni'), { geste: 'poste', patch: { arc: null } }, !p.side),
+      ...ARCS.map((a) => bouton(`poste/arc/${a}`, t(`ecran.editeur.poste.arc.${a}`), { geste: 'poste', patch: { arc: a } }, p.side === a)),
+    ]),
+    ...equipe(s, ent, 'poste/servants', servants, (ids) => ({ geste: 'poste', patch: { servants: ids } })),
+    ...(servants.length ? [choix('poste/chef', t('ecran.editeur.poste.chef'), servants.map((id) =>
+      bouton(`poste/chef/${id}`, nom(id), { geste: 'poste', patch: { servants: [id, ...servants.filter((i) => i !== id)] } }, servants[0] === id)))] : []),
+  ];
+}
+
+/** L'embuscade du personnage `ent` de la session `s` et ses rencontres : dans chacune, enrôlé ou non, ennemi ou allié,
+ *  piloté par l'IA s'il est allié ; l'enrôler dans une rencontre neuve. */
+function rencontres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Bouton)[] {
+  return [
+    bouton('embusque', t('ecran.editeur.embusque'), { geste: 'entite', patch: { embusque: !ent.combat?.hiddenUntilCombat } }, !!ent.combat?.hiddenUntilCombat),
+    ...sceneEditee(s).encounters.map((enc) => {
+      const m = enc.members?.find((mm) => mm.entityId === ent.id);
+      const membre = (patch: Omit<Extract<GesteDEdition, { geste: 'membre' }>['patch'], 'rencontre'>): GesteDEdition => ({ geste: 'membre', patch: { rencontre: enc.id, ...patch } });
+      const id = `rencontre/${enc.id}`;
+      return choix(id, t('ecran.editeur.rencontre', { id: enc.id }), [
+        bouton(`${id}/enrole`, t('ecran.editeur.rencontre.enrole'), membre({ enrole: !m }), !!m),
+        ...(m ? [
+          bouton(`${id}/ennemi`, t('ecran.editeur.rencontre.ennemi'), membre({ camp: 'enemy' }), m.side !== 'ally'),
+          bouton(`${id}/allie`, t('ecran.editeur.rencontre.allie'), membre({ camp: 'ally' }), m.side === 'ally'),
+        ] : []),
+        ...(m?.side === 'ally' ? [bouton(`${id}/ia`, t('ecran.editeur.rencontre.ia'), membre({ ia: !m.ai }), !!m.ai)] : []),
+      ]);
+    }),
+    bouton('rencontre/neuve', t('ecran.editeur.rencontre.neuve'), { geste: 'membre', patch: { rencontre: null, enrole: true } }),
   ];
 }
 
@@ -411,6 +542,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     bouton('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenellated', structure: structuresCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenellated'),
     bouton('outil/prop', t('ecran.editeur.outil.prop'), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: kindDeLOutil('prop') ?? props[0].id } }, kindDeLOutil('prop') !== undefined),
     bouton('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: kindDeLOutil('personnage') ?? fichesDePersonnage()[0].id } }, kindDeLOutil('personnage') !== undefined),
+    bouton('outil/emplacement', t('ecran.editeur.outil.emplacement'), { geste: 'outil', outil: { mode: 'emplacement', trappingId: outil.mode === 'emplacement' ? outil.trappingId : siegeEngines()[0].id } }, outil.mode === 'emplacement'),
     bouton('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entity', kind: 'heroStart' } }, s.outil.mode === 'entity' && s.outil.kind === 'heroStart'),
     bouton('outil/entry', t('ecran.editeur.outil.entry'), { geste: 'outil', outil: { mode: 'entry' } }, s.outil.mode === 'entry'),
     bouton('outil/erase', t('ecran.editeur.outil.erase'), { geste: 'outil', outil: { mode: 'erase' } }, s.outil.mode === 'erase'),

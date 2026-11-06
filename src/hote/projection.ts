@@ -15,7 +15,8 @@ export interface CombattantProjete {
   camp: Combatant['kind'];
   pb: [courant: number, max: number];
   avantage: number;
-  pos: [x: number, y: number] | null;
+  /** Sa case et sa couche (`Combatant.pos`, `z` absent : 0) ; `null` sans position. */
+  pos: [x: number, y: number, z: number] | null;
   /** Distance de l'actif, en cases (`combatDistance`) ; `null` sans position. */
   distance: number | null;
   /** Engagé avec l'actif (`engagedWith`). */
@@ -27,12 +28,12 @@ export interface CombattantProjete {
   portee: PorteeDeComposition | null;
 }
 
-/** Une entité de la scène en exploration : id, genre, nom, case. */
+/** Une entité de la scène en exploration : id, genre, nom, case et couche (`SceneEntity.z`, absent : 0). */
 export interface EntiteProjetee {
   id: string;
   genre: string;
   nom: string | null;
-  pos: [x: number, y: number];
+  pos: [x: number, y: number, z: number];
 }
 
 /** Une offre de la vue : l'action, ses candidats ouverts comptés, son coût en mots, la part de l'économie du tour
@@ -121,7 +122,7 @@ export interface Projection {
 export interface Apercu {
   genre: string;
   cible: string | null;
-  case: [x: number, y: number] | null;
+  case: [x: number, y: number, z: number] | null;
   cout: number | null;
 }
 
@@ -145,7 +146,7 @@ function combattant(c: Combatant, actif: Combatant | undefined): CombattantProje
     camp: c.kind,
     pb: [c.wounds.current, c.wounds.max],
     avantage: c.advantage,
-    pos: c.pos ? [c.pos.x, c.pos.y] : null,
+    pos: c.pos ? [c.pos.x, c.pos.y, c.pos.z ?? 0] : null,
     distance: Number.isFinite(d) ? d : null,
     engage: !!actif && c.id !== actif.id && !!actif.engagedWith?.includes(c.id),
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
@@ -206,7 +207,7 @@ export function apercuDe(etat: Jeu): Apercu | null {
   if (!a) return null;
   return 'targetId' in a
     ? { genre: a.kind, cible: a.targetId, case: null, cout: 'cost' in a ? a.cost : null }
-    : { genre: a.kind, cible: null, case: [a.tile.x, a.tile.y], cout: 'cost' in a ? a.cost : null };
+    : { genre: a.kind, cible: null, case: [a.tile.x, a.tile.y, a.tile.z ?? 0], cout: 'cost' in a ? a.cost : null };
 }
 
 /** Une case que le champ peint au tour de l'actif : sa zone (`porteesDuTour`), la case, son coût. */
@@ -265,9 +266,9 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           groupe: [etat.partyPos.x, etat.partyPos.y],
           etage: etat.scene.layers.length > 1 ? (etat.partyPos.z ?? 0) : null,
           cap: capDuGroupe(etat),
-          heros: etat.party.map((h) => ({ ...combattant(h, undefined), pos: [etat.partyPos.x, etat.partyPos.y] })),
+          heros: etat.party.map((h) => ({ ...combattant(h, undefined), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
           gestes: tranche(gestesDExploration(etat), bornes.gestes),
-          entites: tranche(etat.scene.entities.map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y] })), bornes.entites),
+          entites: tranche(etat.scene.entities.map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
         },
     refus: etat.refus,
     journal,

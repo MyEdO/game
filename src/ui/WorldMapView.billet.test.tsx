@@ -126,6 +126,7 @@ describe('billet de la diligence — chemin du joueur', () => {
     expect(get().billetEnMain?.routesRestantes).toEqual([T2]);
     draineCascade(get);
     if (get().travelRecap) get().fenetreFermer('recitDeVoyage');
+    get().fenetreFermer('ecranDuLieu');
     poserLeGroupe(get, useGame.setState, { x: 36, y: 3 });
     get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
     get().fenetreChoisir('designationHeros', 'heros', get().party[0].id);

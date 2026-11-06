@@ -68,7 +68,7 @@ beforeEach(() => {
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
-  act(() => root.render(<WorldMapView hereSceneId="quai-a" initialRouteId="r-reik" />));
+  act(() => root.render(<WorldMapView hereId="A" initialRouteId="r-reik" />));
   // Le geste du joueur : choisir l'embarcation dans le sélecteur de MODE du panneau de départ.
   const barge = [...host.querySelectorAll<HTMLButtonElement>('.worldmap-panel button')]
     .find((b) => b.textContent?.trim() === travelModeLabels().barge);

@@ -109,7 +109,7 @@ describe('startTravel — à pied', () => {
     banc.getState().startTravel('r1', 'pied');
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(180); // 12 km ÷ 4 km/h = 3 h (l.222)
     expect(st.journal.some((l) => l.includes('Arrivée à Bourg B'))).toBe(true);
   });
@@ -125,7 +125,7 @@ describe('startTravel — à pied', () => {
     expect(st.pendingRest?.places.auberge).toBeFalsy();
     sleepThroughHalt(); // « Dormir » → cascade (ou reprise directe) → la route repart au matin
     st = banc.getState();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     // Jour 1 : 6 h de marche (24 km) + nuit jusqu'à l'aube ; jour 2 : 1 h 30 (6 km) → > 17 h au total.
     expect(st.gameTime - t0).toBeGreaterThan(17 * 60);
     expect(st.journal.some((l) => /dort jusqu|aube/i.test(l))).toBe(true);
@@ -156,7 +156,7 @@ describe('startTravel — à pied', () => {
     const before = toBrass(partyMoneyTotal(banc.getState));
     sleepThroughHalt();
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before - 120 - 12); // chambre 10 pa + repas 1 pa
-    expect(banc.getState().scene?.id).toBe('lieu-b-scene');
+    expect(banc.getState().lieu).toBe('pb');
   });
 
   it('la vitesse est celle du PLUS LENT (l.222) : M3 dans le groupe → 4 h pour 12 km', () => {
@@ -171,7 +171,7 @@ describe('startTravel — à pied', () => {
     const t0 = banc.getState().gameTime;
     banc.getState().startTravel('r1', 'pied', { hoursPerDay: 10 });
     const st = banc.getState();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(450); // 30 km ÷ 4 km/h = 7 h 30, d'une traite
     // Marche forcée (LDB 51 l.195) : Tests de Résistance journalisés.
     expect(st.journal.some((l) => l.includes('marche forcée'))).toBe(true);
@@ -184,7 +184,7 @@ describe('startTravel — transports payants (LDB 51 l.178-189)', () => {
     const t0 = banc.getState().gameTime;
     banc.getState().startTravel('r1', 'diligence', { classeId: 'exterieur' }); // 1 sou/km × 12 × 1 passager
     const st = banc.getState();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     expect(toBrass(partyMoneyTotal(() => st))).toBe(48); // 60 − 12
     expect(st.gameTime - t0).toBe(120); // 12 km ÷ 6 km/h = 2 h
   });
@@ -242,7 +242,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     sleepThroughHalt();
     st = banc.getState();
     expect(st.travelPlan).toBeNull();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
   });
 
   it('interrompu sur le DERNIER kilomètre (kmDone = km) : la reprise arrive sans rejouer la journée', () => {
@@ -259,7 +259,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     banc.getState().resumeTravel(); // péripétie TOUJOURS à 100 % — ne doit plus se déclencher
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
   });
 
   it('« Attaqués ! » (table d10) configuré : l’acquittement transitionne et lance la rencontre (noSurprise)', () => {
@@ -281,7 +281,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     banc.getState().startTravel('r1', 'pied');
     drainCascade(); // péripétie narrative en cascade travelDay → drainer, puis arrivée
     const st = banc.getState();
-    expect(st.scene?.id).toBe('lieu-b-scene'); // arrivé malgré la péripétie
+    expect(st.lieu).toBe('pb'); // arrivé malgré la péripétie
     expect(st.journal.some((l) => l.includes('colporteur'))).toBe(true);
   });
 });
@@ -295,7 +295,7 @@ describe('nourriture en voyage (LDB 18 l.337-343)', () => {
       sleepThroughHalt();
     }
     const st = banc.getState();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     const h = st.party[0];
     expect(h.hunger?.days).toBeGreaterThanOrEqual(2); // plusieurs jours sans manger
     expect(st.journal.some((l) => l.includes('affamé'))).toBe(true); // récup bloquée journalisée (rest.ts)
@@ -348,7 +348,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     sleepThroughHalt(); // budget du jour épuisé (LDB 51 l.195) : halte, puis la route au matin
     r = banc.getState().travelRecap!;
     expect(r.status).toBe('arrived');
-    expect(banc.getState().scene?.id).toBe('lieu-b-scene');
+    expect(banc.getState().lieu).toBe('pb');
   });
 
   it('surcharge EN ROUTE (le groupe se charge à la halte) : recap « stalled »', () => {
@@ -414,7 +414,7 @@ describe('rations des nuits en route (#3059) — le devis dit ce que les haltes 
     banc.getState().startTravel('r1', 'pied');
     let garde = 0;
     while (banc.getState().pendingRest && garde++ < 10) sleepThroughHalt();
-    expect(banc.getState().scene?.id).toBe('lieu-b-scene');
+    expect(banc.getState().lieu).toBe('pb');
     return { devis: devis.rations.requises, consommees: 10 - rationCount(banc.getState().party[0]) };
   };
 
@@ -439,7 +439,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     banc.getState().startTravel('r1', 'pied');
     const st = banc.getState();
     // Comportement de base : arrive le jour même (12 km à M4 = 3 h), comme le test de référence.
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(180);
     expect(st.journal.some((l) => l.includes('Arrivée à Bourg B'))).toBe(true);
     // Aucune trace du sous-système d'Étapes (la règle est éteinte → chemin court-circuité).
@@ -454,7 +454,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     banc.getState().startTravel('r1', 'pied');
     drainCascade(); // cascade travelDay (postes) → drainer, puis arrivée
     const st = banc.getState();
-    expect(st.scene?.id).toBe('lieu-b-scene'); // arrive toujours (l'enrichissement ne bloque pas la route)
+    expect(st.lieu).toBe('pb'); // arrive toujours (l'enrichissement ne bloque pas la route)
     const weatherLine = st.journal.find((l) => l.includes('Météo'));
     expect(weatherLine).toBeDefined();
     expect(weatherLine).not.toMatch(/\(\d+\)/); // aucun d100 dans la prose (« y'a que le MJ qui voit le jet »)
@@ -522,7 +522,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     }
     expect(sick, 'aucune Exposition ratée en saison froide sur 40 graines').toBeDefined();
     // Le trajet (12 km à pied) tient dans la journée : le groupe est ARRIVÉ à destination…
-    expect(banc.getState().scene?.id, 'le voyage doit avoir abouti à la scène de destination').toBe('lieu-b-scene');
+    expect(banc.getState().lieu, 'le voyage doit avoir abouti au lieu de destination').toBe('pb');
     // …et la Phase d'arrivée a déclaré la maladie contractée en route : phase active, durée authorée
     // en place du reste d'incubation, ligne au journal.
     expect(sick!.phase).toBe('active');
@@ -668,7 +668,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     const t0 = banc.getState().gameTime;
     banc.getState().startTravel('r1', 'monture', { allure: 'trot' });
     const st = banc.getState();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(Math.round((12 / 17.5) * 60)); // 41 min
     expect(st.journal.some((l) => l.includes('en selle') && l.includes('trot'))).toBe(true);
   });
@@ -687,7 +687,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     banc.setState({ pendingDeparture: null, travelDayHours: { day: jour, foot: 6, mount: 0, marched: false } });
     banc.getState().startTravel('r1', 'monture', { allure: 'trot' });
     expect(banc.getState().pendingDeparture).toBeNull();
-    expect(banc.getState().scene?.id).toBe('lieu-b-scene');
+    expect(banc.getState().lieu).toBe('pb');
   });
 
   it('sur-endurance au galop (Chien BE 2, 6 h) : la bête s’épuise — Incident de monte ou effondrement', () => {
@@ -725,7 +725,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     setup(map(), [h], [mountPossession('m1', h.id, 'cheval-de-monte', 'perte-d-un-fer')]);
     banc.getState().startTravel('r1', 'monture'); // au pas (le fer force déjà le pas)
     const st = banc.getState();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     const mount = st.possessions.find((p) => p.uid === 'm1')!;
     expect(mount.nature === 'bete' ? mount.mountInjury : undefined).toBeUndefined();
     expect(st.journal.some((l) => l.includes('remise en état'))).toBe(true);
@@ -740,7 +740,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     ]);
     banc.getState().startTravel('r1', 'pied'); // aucune des deux bêtes n'est montable (`preventsMount`)
     const st = banc.getState();
-    expect(st.scene?.id).toBe('lieu-b-scene'); // le voyage est bien ARRIVÉ (sinon l'assertion suivante serait vide)
+    expect(st.lieu).toBe('pb'); // le voyage est bien ARRIVÉ (sinon l'assertion suivante serait vide)
     const injuryOf = (uid: string) => {
       const p = st.possessions.find((x) => x.uid === uid)!;
       return p.nature === 'bete' ? p.mountInjury : undefined;
