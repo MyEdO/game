@@ -183,6 +183,33 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     sansEcartDeCompte(ecarts, 'STRUCTURES_REDECLARATIONS');
   });
 
+  /**
+   * SPREADS : la grammaire les résout pour signer ses communs (`jetSchema` = `characteristic,difficulty,skill`) ; un
+   * littéral de def ne s'apparie que sur ses clés PROPRES. Grammaire réelle copiée ; seul le module de def est posé.
+   */
+  it('redéclarations : un commun de la grammaire se signe spreads résolus, un littéral de def sur ses seules clés propres', () => {
+    const dossier = mkdtempSync(join(tmpdir(), 'structures-spread-'));
+    try {
+      cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+      mkdirSync(join(dossier, 'src/data/schemas/defs'), { recursive: true });
+      writeFileSync(
+        join(dossier, 'src/data/schemas/defs/fixture.ts'),
+        [
+          'const jet = z.strictObject({ skill: s, characteristic: c, difficulty: d });',
+          'const evasion = z.strictObject({ difficulty: d, ...plageSchema.shape });',
+          'const rangee = z.strictObject({ ...plageSchema.shape, extra: z.number() });',
+          'const recompose = z.strictObject({ ...sujetDuJetSchema.shape, difficulty: d });',
+        ].join('\n'),
+      );
+      expect(
+        scannerRedeclarations(dossier).redeclarations.filter((r) => r.def === 'fixture.ts').map((r) => `${r.def}:${r.ligne} | ${r.signature} | ${r.commun}`),
+        'le jet re-tapé redéclare `jetSchema` ; `{ difficulty, ...X.shape }` et `{ ...plage, extra }` composent ; le re-tapage réparti est l’angle mort déclaré.',
+      ).toEqual(['fixture.ts:1 | characteristic,difficulty,skill | jetSchema']);
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
+  });
+
   it('redéclarations : un littéral réduit à ses étiquettes s’apparie par leurs VALEURS, un littéral à forme par sa signature', () => {
     const dossier = mkdtempSync(join(tmpdir(), 'structures-etiquette-'));
     try {
