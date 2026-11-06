@@ -1,9 +1,9 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/plateau.gd" id="1_plateau"]
 [ext_resource type="MeshLibrary" path="res://art/cases.tres" id="2_cases"]
 [ext_resource type="PackedScene" path="res://scenes/Combattant.tscn" id="3_combattant"]
-[ext_resource type="PackedScene" path="res://scenes/Lumiere.tscn" id="4_lumiere"]
+[ext_resource type="PackedScene" path="res://scenes/Monde.tscn" id="4_monde"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_mur"]
 albedo_color = Color(0.55, 0.53, 0.5, 1)
@@ -12,12 +12,6 @@ roughness = 0.9
 [sub_resource type="StandardMaterial3D" id="Materiau_porte"]
 albedo_color = Color(0.42, 0.26, 0.14, 1)
 roughness = 0.8
-
-[sub_resource type="StandardMaterial3D" id="Materiau_monde"]
-cull_mode = 2
-vertex_color_use_as_albedo = true
-vertex_color_is_srgb = true
-roughness = 0.95
 
 [sub_resource type="BoxMesh" id="Mesh_mur"]
 material = SubResource("Materiau_mur")
@@ -34,29 +28,10 @@ mesh_mur = SubResource("Mesh_mur")
 mesh_porte = SubResource("Mesh_porte")
 surbrillances = ExtResource("2_cases")
 
-[node name="Lumiere" parent="." instance=ExtResource("4_lumiere")]
-[node name="Monde" type="Node3D" parent="."]
-
-[node name="Maillage" type="MeshInstance3D" parent="Monde"]
-material_override = SubResource("Materiau_monde")
-
-[node name="Corps" type="StaticBody3D" parent="Monde"]
-
-[node name="Forme" type="CollisionShape3D" parent="Monde/Corps"]
+[node name="Monde" parent="." instance=ExtResource("4_monde")]
 
 [node name="Surbrillance" type="Node3D" parent="."]
 
 [node name="Aretes" type="Node3D" parent="."]
 
 [node name="Combattants" type="Node3D" parent="."]
-
-[node name="Pivot" type="Node3D" parent="."]
-rotation = Vector3(0, 0.785398, 0)
-
-[node name="Inclinaison" type="Node3D" parent="Pivot"]
-rotation = Vector3(-0.9, 0, 0)
-
-[node name="Camera" type="Camera3D" parent="Pivot/Inclinaison"]
-position = Vector3(0, 0, 24)
-current = true
-fov = 40.0

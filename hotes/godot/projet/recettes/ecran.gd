@@ -170,7 +170,7 @@ func _dits(e: Variant, valeur: bool = false) -> Array:
 			if v is String and (champ == "libelle" or not valeur and (DITS.has(champ) or champ == "nom" and e.type == "entite" or champ == "valeur" and e.type == "puce")):
 				dits.append(v)
 			elif v is Array:
-				dits.append_array(_dits(v, e.type == "liste" or e.type == "saisieChoix"))
+				dits.append_array(_dits(v, e.type == "liste" or e.type == "saisieChoix" or e.type == "saisieCoches"))
 	return dits
 
 

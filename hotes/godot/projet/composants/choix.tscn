@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 
 [node name="Choix" type="HBoxContainer"]
+size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
 [node name="Libelle" type="Label" parent="."]

@@ -5,25 +5,15 @@
  * de terrain, et les VÉRITÉS DE SCÈNE (visible/surplomb/fantôme/surplomb plein). PUR et
  * projection-agnostique : géométrie en unités de GRILLE + MÈTRES (`GP`), aucune notion de caméra.
  */
-import { Scene, tileAt, heightAt, isWalkable, type CellSide } from '../scene';
-import { gradeBetween } from '../relief';
+import { Scene, tileAt, isWalkable, type CellSide } from '../scene';
 import { estAbsent, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../terrain';
-import type { PartRelief } from '../../../data/materials.types';
 import type { Face, FloorEl } from './types';
 import { viewedBuilder, type Viewed } from './viewTruth';
+import { dessusDe, displayHeightAt, facesDuDessus, parois, presenteDansLaGrille, profilDArete, rejointAPied } from './pente';
 
 /** Épaisseur (mètres) de la DALLE ajourée d'un tablier de surplomb : la face de bord donnant sur le
  *  vide descend de cette hauteur seulement (pas une falaise de pleine hauteur) → on voit dessous. */
 const DECK_THICKNESS_M = 0.3;
-
-/** Hauteur d'AFFICHAGE (m) d'une surface = hauteur combat (`heightAt`, vérité INTOUCHÉE) + le BLOC PLEIN
- *  éventuel du terrain (`solidHeightM`, ex. mur). SEULE la dérivation des faces de `buildFloors` la lit :
- *  une tuile `mur` (combat-hauteur 0) s'affiche ainsi comme un bloc de sa `solidHeightM` (4 faces + dessus,
- *  via le relief EXISTANT), sans qu'AUCUN code combat ne voie cette hauteur. Le bloc s'AJOUTE à la hauteur
- *  propre de la tuile (opéra : mur posé sur un étage surélevé). */
-function displayHeightAt(scene: Scene, x: number, y: number, z: number): number {
-  return heightAt(scene, x, y, z) + terrainSolidHeightM(tileAt(scene, x, y, z));
-}
 
 export const SIDES: CellSide[] = ['N', 'E', 'S', 'O'];
 /** Déplacement de la case VOISINE que borde chaque arête cardinale (source UNIQUE, partagée POV). */
@@ -170,58 +160,43 @@ function floorFaces(scene: Scene, x: number, y: number, z: number, overhang: boo
     }
   }
 
-  // PAROIS de relief : une face par arête où la case DOMINE sa voisine 4-adjacente AU MÊME z. Le
-  // franchissement vertical s'AUTO-DÉRIVE du delta métrique (`heightAt`/`gradeBetween`, SOURCE UNIQUE) :
-  // `flat` → rien, `ramp` → pente lisse, `cliff` → paroi verticale. Un bord de surplomb donnant sur le
-  // VIDE se rend en DALLE FINE (`deck`, épaisseur DECK_THICKNESS_M) au lieu d'une falaise pleine → la
-  // route du dessous reste visible ; une falaise de TERRAIN PLEIN garde sa face pleine.
-  // TOIT D'UN BLOC PLEIN (chemin de ronde posé DIRECTEMENT sur la masse `mur`) : le BLOC dessine déjà TOUTES
-  // ses parois (falaises) — celles du sol du dessus seraient REDONDANTES et, à base égale, la couche z1 gagne
-  // le départage de profondeur → ces falaises fantômes RECOUVRENT une rampe (z0, même hauteur) posée DEVANT.
-  // On ne dessine donc PAS les parois d'un tel toit ; le bloc en dessous s'en charge (à la bonne profondeur z0).
+  // PAROIS : sur chaque arête, la face verticale qui comble l'écart entre le bord du dessus de la case et celui de sa
+  // voisine (`profilDArete`), là où la case est la plus haute — falaise vers une voisine qu'on ne rejoint pas à pied,
+  // contremarche ou talus vers une voisine qu'on rejoint (le dessus raccorde les centres, `./pente`). Un bord de
+  // surplomb donnant sur le VIDE se rend en DALLE FINE (`deck`, épaisseur DECK_THICKNESS_M) : la route du dessous reste
+  // visible. TOIT D'UN BLOC PLEIN (chemin de ronde posé DIRECTEMENT sur la masse `mur`) : le bloc dessine déjà toutes
+  // ses parois, celles du sol du dessus seraient redondantes et recouvriraient une rampe z0 posée devant.
+  const dessus = dessusDe(scene, x, y, z);
   const roofOfSolid = capsSolidDirect(scene, x, y, z);
   if (!roofOfSolid) for (const side of SIDES) {
     const [dx, dy] = NEIGHBOURS[side];
-    const nb = displayHeightAt(scene, x + dx, y + dy, z); // voisin en hauteur d'AFFICHAGE (mur voisin = bloc plein)
-    if (self <= nb) continue; // la case HAUTE porte la paroi (plateau surélevé ET rebord de fosse)
-    const grade = gradeBetween(self, nb);
-    if (grade === 'flat') continue; // de niveau → aucune paroi
     const deck = overhang && estAbsent(tileAt(scene, x + dx, y + dy, z));
-    const loH = deck ? self - DECK_THICKNESS_M : nb;
+    const voisine = !deck && presenteDansLaGrille(scene, x + dx, y + dy, z) ? dessusDe(scene, x + dx, y + dy, z) : null;
+    const plancher = displayHeightAt(scene, x + dx, y + dy, z);
+    const lien = voisine != null && rejointAPied(scene, x, y, x + dx, y + dy, z);
+    // La matière vient de la DONNÉE (#1691) : le flanc d'un BLOC PLEIN est celui de SON terrain (`terrains.json ›
+    // matiere`), la contremarche d'un sol bâti est son terrain, toute autre paroi prend la matière que la SCÈNE pose
+    // pour cette partie. Aucun repli : ces sources sont exigées au parse.
+    const material: Face['material'] = solidBlock
+      ? { domain: 'relief', id: terrainMatiere(terrain)!, part: 'cliff' }
+      : lien && dessus.marches
+        ? { domain: 'terrain', id: terrain }
+        : { domain: 'relief', id: scene.reliefDefaults[deck ? 'deck' : lien ? 'ramp' : 'cliff'], part: deck ? 'deck' : lien ? 'ramp' : 'cliff' };
     const [A, B] = edgeCorners(x, y, side);
-    const part: PartRelief = deck ? 'deck' : grade;
-    faces.push({
-      // Quad haut-gauche → haut-droit → bas-droit → bas-gauche (l'ordre attendu par les renderers).
-      poly: [{ ...A, h: self }, { ...B, h: self }, { ...B, h: loH }, { ...A, h: loH }],
-      side,
-      // La matière vient de la DONNÉE (#1691) : le flanc d'un BLOC PLEIN est celui de SON terrain
-      // (`terrains.json › matiere`, exigée dès qu'un terrain porte un bloc), toute autre paroi de
-      // relief prend la matière que la SCÈNE pose pour cette partie. Aucun repli : les deux sources
-      // sont exigées au parse.
-      material: { domain: 'relief', id: solidBlock ? terrainMatiere(terrain)! : scene.reliefDefaults[part], part },
-      oriented: false, // paroi OUVERTE : le relief ne ferme aucun volume
-    });
+    const haut = profilDArete(dessus, A, B);
+    const bas = deck
+      ? haut.map(([a, b]): [number, number] => [a - DECK_THICKNESS_M, b - DECK_THICKNESS_M])
+      : voisine ? profilDArete(voisine, A, B) : haut.map((): [number, number] => [plancher, plancher]);
+    for (const poly of parois(A, B, haut, bas)) faces.push({ poly, side, material, oriented: false }); // paroi OUVERTE
   }
 
-  // LOSANGE de base (matériau = id du terrain), à la hauteur métrique de la surface. Coins en ordre
-  // horaire depuis le NO (= ordre écran top→right→bot→left au cran 0). SAUF le dessus d'un BLOC PLEIN
-  // COIFFÉ par un sol supérieur (chemin de ronde) : ce dessus est redondant (le chemin de ronde EST la
-  // surface) et créerait la « double dalle » clignotante sous le voile → on ne le dessine pas.
-  if (!(solidBlock && cappedAbove(scene, x, y, z)))
-    faces.push({
-      poly: [
-        { x: x - 0.5, y: y - 0.5, h: self },
-        { x: x + 0.5, y: y - 0.5, h: self },
-        { x: x + 0.5, y: y + 0.5, h: self },
-        { x: x - 0.5, y: y + 0.5, h: self },
-      ],
-      material: { domain: 'terrain', id: terrain },
-      oriented: false,
-    });
+  // DESSUS (matériau = id du terrain) : la dalle de la case à sa hauteur, ou ses marches et sa pente (`./pente`). SAUF
+  // le dessus d'un BLOC PLEIN COIFFÉ par un sol supérieur (chemin de ronde) : redondant, il créerait la « double dalle ».
+  if (!(solidBlock && cappedAbove(scene, x, y, z))) faces.push(...facesDuDessus(dessus, terrain));
 
-  // WEDGES de raccord de terrain : trapèze sur l'arête faisant face à chaque voisin de plus haute
-  // précédence, inset de 0.4 vers le centre de la case.
-  for (const { dir, terrain: nt } of edgeBlends(scene, x, y, z)) {
+  // WEDGES de raccord de terrain : trapèze sur l'arête faisant face à chaque voisin de plus haute précédence, inset de
+  // 0.4 vers le centre de la case, sur une dalle plate seulement.
+  if (!dessus.pente) for (const { dir, terrain: nt } of edgeBlends(scene, x, y, z)) {
     const [A, B] = edgeCorners(x, y, dir);
     const in40 = (p: { x: number; y: number }) => ({ x: p.x + (x - p.x) * 0.4, y: p.y + (y - p.y) * 0.4, h: self });
     faces.push({

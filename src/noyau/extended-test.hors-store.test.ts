@@ -3,6 +3,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { setRule } from '../engine/policy';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { flowStakeRef } from '../data';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -82,6 +83,14 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
     banc.getState().jetForceSuccess('extendedTest', 'round-1');
     expect(banc.getState().pendingExtendedTest!.rounds[0].result!.success).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(0); // 1 Point de Résilience dépensé
+  });
+
+  it('l’enjeu vit sur l’étape `extendedJet`, que la fenêtre lit, jamais recopié sur le porteur (#1117)', () => {
+    const h = hero();
+    const stake = flowStakeRef('extended-test-roll');
+    banc.getState().startExtendedTest({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 50, targetDR: 5, stake });
+    expect(banc.getState().pendingCascade?.participants.find((e) => e.jet === 'extended')?.stake).toEqual(stake);
+    expect(banc.getState().pendingExtendedTest).not.toHaveProperty('stake');
   });
 });
 

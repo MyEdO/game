@@ -95,7 +95,7 @@ export type Grade = 'flat' | 'ramp' | 'cliff';
  *
  * Il vit ICI, dans la couche donnée, parce que DEUX couches en dépendent et qu'aucune ne peut
  * importer l'autre : le schéma de scène en fait les CLÉS de `Scene.reliefDefaults` (matière posée par
- * partie), l'émetteur en type ses faces. Une partie de plus se déclare une fois, et la scène doit
+ * partie), le builder de sols les y lit. Une partie de plus se déclare une fois, et la scène doit
  * alors la matérialiser — le builder n'a aucun repli à offrir.
  */
 export const PARTS_RELIEF = ['cliff', 'ramp', 'deck', 'pilier'] as const satisfies readonly (
@@ -103,7 +103,6 @@ export const PARTS_RELIEF = ['cliff', 'ramp', 'deck', 'pilier'] as const satisfi
   | 'deck'
   | 'pilier'
 )[];
-export type PartRelief = (typeof PARTS_RELIEF)[number];
 
 /**
  * Domaines du catalogue des matières : sous-ensemble des domaines de `MaterialRef`, plus `objet` et `couleur`,

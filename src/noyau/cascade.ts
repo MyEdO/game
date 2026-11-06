@@ -30,15 +30,14 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
-import { toRecapLines, type RecapLine } from './recapLine';
+import type { RecapLine } from './recapLine';
 import { actorIn } from './monde/combatants';
 import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, estJete, refusSansJet, type TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
 import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
-import { dataLabel } from '../data';
 import { journaliser } from './combatLog';
-import { tablesPosees, type GenreDeCascade } from './tablesPosees';
+import { tablesPosees } from './tablesPosees';
 import { jouerLesClotures } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
 
@@ -1899,31 +1898,4 @@ function assertBornesPortees(bornes: BornesDuFragment): void {
     + 'arrêter le pilote sur une étape qui écrit le slot).';
   console.error(msg);
   if (import.meta.env?.DEV) throw new Error(msg);
-}
-
-/** Un groupe de conséquences déjà calculées (lignes prêtes à afficher) — brique d'entrée pour
- *  rapatrier les conséquences d'un jet INLINE dans la modale. */
-export interface ConsequenceGroup {
-  kind: GenreDeCascade;
-  label: string;
-  lines: string[];
-  icon?: string;
-  actorId?: string;
-}
-
-/** Construit une SÉQUENCE d'étapes d'AFFICHAGE à partir de groupes de conséquences (imparfaite/colère,
- *  critique, Assommante…) — pour les montrer INLINE dans la séquence. Les groupes
- *  vides sont ignorés (pas de bruit). Les mutations restent appliquées par le moteur ; ces étapes ne
- *  font qu'AFFICHER (applier muet → `commitStep` préserve l'`outcome` pré-posé). */
-export function buildConsequenceSteps(groups: ConsequenceGroup[]): CascadeStep[] {
-  return groups
-    .filter((g) => g.lines.length > 0)
-    .map((g, i): CascadeStep => ({
-      id: `cons-${g.kind}-${i}`,
-      kind: g.kind,
-      actorId: g.actorId,
-      icon: g.icon,
-      label: dataLabel(g.label),
-      outcome: toRecapLines(g.lines),
-    }));
 }
