@@ -90,6 +90,12 @@ static func centre_du_plateau(taille: Vector2i) -> Vector3:
 	return Vector3(taille.x / 2.0, 0.0, taille.y / 2.0)
 
 
+## Le point de la carte, en cases continues (une case centrée sur l'entier), sous le lieu `lieu` du plateau : celui que
+## l'éditeur de carte désigne (`PointDeCarte.f`, `src/noyau/edition/pointeur.ts`).
+static func point_de_carte_du_lieu(lieu: Vector3) -> Vector2:
+	return Vector2(lieu.x - DEMI_CASE, lieu.z - DEMI_CASE)
+
+
 ## Le lacet de la caméra tourné d'un quart de tour dans le sens `sens` (1 ou -1).
 static func lacet_tourne(lacet: float, sens: float) -> float:
 	return lacet + sens * QUART_DE_TOUR

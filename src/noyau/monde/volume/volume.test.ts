@@ -57,4 +57,14 @@ describe('volumeDuMonde (#3476)', () => {
     expect(dessus.every((t) => t.xs.every((x) => Math.abs(x) <= v.metresParCase / 2 + 1e-3))).toBe(true);
     expect(dessus.map((t) => t.couleur)).toContainEqual(attendue);
   });
+
+  it('la couche active borne le volume : un étage au-dessus d’elle n’y est pas, sans elle toutes les couches y sont', () => {
+    const s = emptyScene('scene-test', 1, 1);
+    s.layers[0].tiles = ['plancher'];
+    s.layers.push({ z: 1, tiles: ['plancher'], height: [3] });
+    const haut = (v: VolumeDuMonde) => Math.max(...triangles(v).flatMap((t) => t.ys));
+    expect(haut(volumeDuMonde(s))).toBe(3);
+    expect(haut(volumeDuMonde(s, 0))).toBe(0);
+    expect(volumeDuMonde(s, 1)).toEqual(volumeDuMonde(s));
+  });
 });

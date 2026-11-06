@@ -32,7 +32,7 @@ export interface PointDeCarte {
 }
 
 /** Le geste en cours entre l'appui et le relâché. `trait` : un pinceau, `cran` une fois sa première écriture faite,
- *  `trace` les cases que le pinceau de terrain a peintes ; `volee` : le tracé d'une volée, sa dernière case ;
+ *  `trace` les cases que ses écritures ont couvertes ; `volee` : le tracé d'une volée, sa dernière case ;
  *  `rectangle` : un rectangle tiré depuis `depart` ; `deplacement` et `redimension` : la sélection `sel` qu'il
  *  déplace ou redimensionne, `deplace` une fois la scène écrite. */
 export type GesteEnCours =
@@ -83,7 +83,7 @@ const gesteDOutil = (ctx: ContexteDuPointeur): GesteDOutil => ({ z: ctx.z, brush
 function peindre(scene: Scene, ctx: ContexteDuPointeur, trait: Extract<GesteEnCours, { sorte: 'trait' }>, p: Pt): EffetDuPointeur {
   const out = appliquerOutil(scene, ctx.tool, p, gesteDOutil(ctx));
   if (!out || out.scene === scene) return { geste: trait };
-  const trace = ctx.tool.mode === 'tile' ? [...trait.trace, ...empriseDuPinceau(scene.dimensions, p, ctx.brush).filter((c) => !trait.trace.some((t) => memeCase(t, c)))] : trait.trace;
+  const trace = [...trait.trace, ...empriseDuPinceau(scene.dimensions, p, ctx.brush).filter((c) => !trait.trace.some((t) => memeCase(t, c)))];
   return { geste: { sorte: 'trait', cran: true, trace }, scene: out.scene, cran: ctx.tool.mode === 'erase' || !trait.cran };
 }
 
