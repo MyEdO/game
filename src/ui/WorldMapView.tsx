@@ -4,7 +4,7 @@ import { shipboardSouls } from '../noyau/shipCrew';
 import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
 import { t, deElide } from '../i18n';
-import { placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../noyau/worldMap';
+import { placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, positionsDeRendu, MapRoute, MapPlace } from '../noyau/worldMap';
 import { baseHoursPerDay, maxHoursPerDay, devisDeTrajet, refusDeDepart, MOUNT_MAX_HOURS, type OptionsDeDepart } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
 import { descenteJouee } from '../noyau/riverVoyageFlow';
@@ -62,11 +62,6 @@ function routeCurve(ax: number, ay: number, bx: number, by: number, id: string) 
   const ly = 0.25 * ay + 0.5 * cy + 0.25 * by;
   return { d: `M ${ax} ${ay} Q ${cx} ${cy} ${bx} ${by}`, lx, ly };
 }
-
-// ── Cadre logique de la carte (unités du viewBox) ────────────────────────────────────────────
-/** Écart mini visé entre deux médaillons (unités viewBox) — un médaillon fait r≈2.9 + cartouche,
- *  ~8 les sépare confortablement sans les coller. */
-const DECLUTTER_MIN = 8;
 
 /**
  * Carte du monde (#T2 Voyage) — overlay plein écran en exploration : carte au PARCHEMIN dessinée
@@ -150,13 +145,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
 
   // Anti-chevauchement : positions de RENDU décluttérées (les `pos` d'authoring restent intacts).
   // Le repère de rendu est celui du viewBox (y aplati par 0.64) → l'écartement travaille dessus.
-  const layout = useMemo(() => {
-    // Vraie carte de fond ⇒ les lieux restent à leurs `pos` EXACTS (l'auteur les a posés sur la carte) :
-    // pas de déchevauchement, qui les décalerait de leur vraie position géographique.
-    if (!map || map.background) return new Map<string, { x: number; y: number }>();
-    const pts = places.map((p) => ({ id: p.id, x: p.pos.x, y: p.pos.y * 0.64 }));
-    return declutterPositions(pts, DECLUTTER_MIN, 80, { w: VB_W, h: VB_H });
-  }, [map, places]);
+  const layout = useMemo(() => (map ? positionsDeRendu(map, places) : new Map<string, { x: number; y: number }>()), [map, places]);
   /** Position de rendu décluttérée d'un lieu (repli sur `pos` brut si absent). */
   const posOf = (p: MapPlace) => layout.get(p.id) ?? { x: p.pos.x, y: p.pos.y * 0.64 };
 

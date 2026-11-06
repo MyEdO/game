@@ -211,31 +211,32 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
   ];
 }
 
-/** Un trajet en entité : sa destination, sa longueur, et ses modes de voyage en choix, chacun avec ses jours de route
- *  et fermé avec sa raison. */
-const entiteDuTrajet = (tr: TrajetEnVue): Entite => ({
-  type: 'entite', id: `carte/${tr.route}`, ton: 'neutre', nom: tr.vers,
-  elements: [
-    puce('distance', tr.distance, null),
-    { type: 'choix', id: 'modes', ton: 'neutre', libelle: t('ecran.carte.modes'), focus: false, refus: null,
-      valeurs: tr.modes.map((m) => boutonDeGeste(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)) },
-  ],
+/** Les modes de voyage d'un trajet en choix, titré de sa longueur : chacun avec ses jours de route, fermé avec sa
+ *  raison. Le même élément part du lieu (`ecranDuLieu`) et de la carte (`trajetsDeLaCarte`). */
+const departDuTrajet = (tr: TrajetEnVue): Choix => ({
+  type: 'choix', id: tr.route, ton: 'neutre', libelle: tr.distance, focus: false, refus: null,
+  valeurs: tr.modes.map((m) => boutonDeGeste(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)),
 });
 
-/** La carte du monde ouverte (`carteEnVue`) : d'où part le groupe, la reprise d'un voyage interrompu, puis chaque
- *  trajet. */
+/** La carte du monde ouverte (`carteEnVue`) : son plan, chaque lieu à sa place, celui du groupe en `alerte`, avec
+ *  le départ de chaque trajet qui y mène (`departDuTrajet`), chaque route qui part d'ici en `reussite` ; puis la reprise
+ *  d'un voyage interrompu. */
 function trajetsDeLaCarte(etat: Jeu): Element[] {
   const c = carteEnVue(etat);
   if (!c) return [];
   return [
-    ligne('carte/ici', t('ecran.carte.ici', { lieu: c.ici })),
+    {
+      type: 'plan', id: 'carte/plan',
+      points: c.plan.lieux.map((l) => ({ type: 'point', id: l.id, nom: l.nom, x: l.x, y: l.y, ton: l.ici ? 'alerte' : 'neutre', elements: l.trajets.map(departDuTrajet) })),
+      traits: c.plan.routes.map((r) => ({ id: r.route, de: r.de, vers: r.vers, ton: r.depuisIci ? 'reussite' : 'neutre' })),
+    },
     ...(c.reprendre ? [boutonDeGeste('carte/reprendre', t('ecran.carte.reprendre'), c.reprendre, null)] : []),
-    ...c.trajets.map(entiteDuTrajet),
   ];
 }
 
 /** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : chacun de ses services en entité, ce qu'on y
- *  fait en boutons fermés avec leur raison, puis chaque trajet qui en part. */
+ *  fait en boutons fermés avec leur raison, puis chaque trajet qui en part, sa destination et son départ
+ *  (`departDuTrajet`). */
 function ecranDuLieu(etat: Jeu): Element[] {
   const l = lieuEnVue(etat);
   if (!l) return [];
@@ -244,7 +245,7 @@ function ecranDuLieu(etat: Jeu): Element[] {
       type: 'entite', id: `service/${svc.id}`, ton: 'neutre', nom: svc.nom,
       elements: svc.gestes.map((g) => boutonDeGeste(g.id, g.libelle, g.geste, g.refus)),
     })),
-    ...l.trajets.map(entiteDuTrajet),
+    ...l.trajets.map((tr): Entite => ({ type: 'entite', id: `trajet/${tr.route}`, ton: 'neutre', nom: tr.vers, elements: [departDuTrajet(tr)] })),
   ];
 }
 

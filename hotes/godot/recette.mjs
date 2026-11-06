@@ -39,7 +39,8 @@
 //   « Soigner » cliquée puis son patient : la fenêtre du soin nomme le patient, l'acte et le Test en choix ; le jet à
 //   l'Entrée.
 // - `voyage` (`--scenario voyage`) : l'entrée de la scène poursuivie, « Carte du monde » ouvre la carte, chaque trajet
-//   et ses modes ; « À pied » vers Steinbruck part, les journées et la halte passent jusqu'au récit de l'arrivée.
+//   et ses modes, le plan de ses lieux ; « À pied » vers Steinbruck part, les journées et la halte passent jusqu'au
+//   récit de l'arrivée, puis l'écran du lieu, ses services et ses trajets.
 // - `repit` (`--scenario bataille-de-masse`) : les dés d'Événement tombent, l'entre-deux-aventures montre un onglet par
 //   héros, ses Activités restantes et chaque Activité fermée par sa raison ; « Revenus » cliqué ouvre son jet, lancé à
 //   l'Entrée puis appliqué : l'onglet du héros compte une Activité de moins.
@@ -691,8 +692,8 @@ async function parcoursVoyage() {
   await cliquerBouton('Carte du monde')
   await attendreLaVue("v.projection.fenetre?.cle === 'carteDuMonde'")
   let v = await vue()
-  const trajets = zone(v, 'fenetre.corps').filter((e) => e.type === 'entite')
-  noter(`carte : ${zone(v, 'fenetre.corps')[0].texte} ; ${trajets.map((e) => `${e.nom} (${e.elements.map((x) => x.libelle ?? x.valeurs.map((b) => b.libelle).join(', ')).join(' ; ')})`).join(' | ')}`)
+  const points = zone(v, 'fenetre.corps').find((e) => e.type === 'plan').points
+  noter(`carte : ${points.map((p) => `${p.nom} [${p.ton}] (${p.elements.map((x) => `${x.libelle} : ${x.valeurs.map((b) => b.libelle).join(', ')}`).join(' ; ')})`).join(' | ')}`)
   await capturer('3328-l1-1-carte')
   await cliquerBouton('À pied · 2 j')
   await avancer('recitDeVoyage')
@@ -700,6 +701,11 @@ async function parcoursVoyage() {
   v = await vue()
   noter(`récit : ${corps(v)}`)
   await capturer('3328-l1-2-recit')
+  await avancer('ecranDuLieu')
+  await attendreLaVue("v.projection.fenetre?.cle === 'ecranDuLieu'")
+  v = await vue()
+  noter(`lieu : ${zone(v, 'fenetre.titre')[0].texte} ; ${zone(v, 'fenetre.corps').map((e) => e.nom ?? e.texte).join(' | ')}`)
+  await capturer('3534-l2-lieu')
 }
 
 async function parcoursRepos() {

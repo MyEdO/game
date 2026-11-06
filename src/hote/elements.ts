@@ -93,8 +93,18 @@ export type Saisie =
  *  pas. */
 export interface Formulaire { type: 'formulaire'; id: string; libelle: string; verbe: string; focus: boolean; refus: string | null; champs: Saisie[] }
 
+/** Un point du plan : son nom, sa position dans le cadre du plan (0..1 sur chaque axe), son ton, et les éléments
+ *  qui se posent sous lui. */
+export interface PointDuPlan { type: 'point'; id: string; nom: string; x: number; y: number; ton: Ton; elements: Element[] }
+
+/** Un trait du plan, d'un point à l'autre (leurs ids), à son ton. */
+export interface TraitDuPlan { id: string; de: string; vers: string; ton: Ton }
+
+/** Un plan : des points nommés posés dans un cadre, et les traits qui les relient. */
+export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits: TraitDuPlan[] }
+
 /** Un élément de la vue. */
-export type Element = Ligne | Puce | Jauge | Jet | Entite | Bouton | Choix | Formulaire | Saisie;
+export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Bouton | Choix | Formulaire | Saisie;
 
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */

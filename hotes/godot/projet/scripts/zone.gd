@@ -35,7 +35,7 @@ func montrer(elements: Array) -> void:
 	var gardes := {}
 	var dernier: Node = null
 	for e in elements:
-		var cle := "%s/%s" % [e.type, e.id]
+		var cle := Zone.cle(e)
 		gardes[cle] = true
 		var noeud: Node = dessines.get(cle)
 		if noeud != null and ajout:
@@ -59,6 +59,11 @@ func montrer(elements: Array) -> void:
 				dessines[cle].queue_free()
 	if ajout and dernier != null:
 		_montrer_le_pied(dernier)
+
+
+## La clé de l'élément `e`, que porte son composant (`META`) : son type et son id.
+static func cle(e: Dictionary) -> String:
+	return "%s/%s" % [e.type, e.id]
 
 
 ## Chaque zone de `zones` montre les éléments de sa source dans `sources` qui lui reviennent (`ids`).
