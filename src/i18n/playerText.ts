@@ -5,9 +5,9 @@
  * (les libellés de la donnée, via `dataLabel`) et les fabriques de forme du seam de jet
  * (`noyau/rollSeam.ts` : `composeRollLabel`).
  *
- * Il vit sous `src/i18n/` et non `src/state/` : le texte joueur est la matière de ce seam (déjà PUR,
- * sans React/DOM, déjà importé par `engine`/`data`/`state`/`ui` sans cycle), alors qu'un module de
- * `src/state` serait importé par `data` et `engine` à contresens de leur dépendance.
+ * Il vit sous `src/i18n/` : le texte joueur est la matière de ce seam (déjà PUR, sans React/DOM, déjà
+ * importé par `engine`/`data` sans cycle), alors qu'un module d'une couche au-dessus serait importé par
+ * `data` et `engine` à contresens de leur dépendance.
  *
  * MARQUE PUREMENT TYPOLOGIQUE (`declare const` — cf. le jumeau `noyau/stepBrand.ts`) : aucune valeur
  * à l'exécution, `JSON.stringify` d'un `PlayerText` rend la chaîne inchangée, et il reste assignable

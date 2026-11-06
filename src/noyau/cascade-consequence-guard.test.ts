@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { creerBancLint, selectionnerMessages } from '../../scripts/guards/lib/lint.testkit.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 
 /**
  * Garde du composeur d'affichage (#295, verrou 2) — le canal `journal:` d'un `CascadeApplier` a
@@ -96,7 +97,7 @@ describe('composeur — canal journal: déprécié des CascadeApplier (#295, ver
  * lui-même échappe au motif par construction : c'est le volet « canal » (lint AST) plus bas qui tient
  * la porte d'entrée, pas ce compteur.
  */
-const CONTENT_DIRS = ['src/state', 'src/noyau', 'src/engine'];
+const CONTENT_DIRS = porteeDeGarde(['noyau', 'engine'], ['state']);
 
 /**
  * VOLET CATALOGUE (#1318 V8c₂) — le compteur ci-dessus lit du CODE ; depuis que la narration passe par
@@ -187,8 +188,8 @@ describe('composeur — CONTENU des conséquences : re-print roll/target hors ra
 /**
  * VOLET ISSUE (#1262 V3 Lj) — le canal de l'ISSUE d'un jet. Le murage par export est impossible
  * (`get().log` sert le narratif légitime, `describeX` sert AUSSI l'affichage des fenêtres de
- * `src/ui`) : la police est un LINT D'IMPORT AST (mur `murs/canal-issue`, `oxlint.config.mjs`, patron
- * `ownsLocal`), borné à `src/state` et `src/noyau` hors tests, joué sur l'arbre par la gate `lint`, et
+ * l'hôte) : la police est un LINT D'IMPORT AST (mur `murs/canal-issue`, `oxlint.config.mjs`, patron
+ * `ownsLocal`), borné par ses `files` hors tests, joué sur l'arbre par la gate `lint`, et
  * MESURÉ ici sur la config RÉELLE (lanceur Oxlint, jamais une copie de règle : une regex maison laissait
  * passer les guillemets doubles).
  *
@@ -209,7 +210,7 @@ const ISSUE_GOULOTS = [
 ];
 
 /** Fichier de sonde SOUS le périmètre de la règle (aucun goulot, hors test). */
-const SOUS_LA_REGLE = 'src/state/__sonde-canal-issue.ts';
+const SOUS_LA_REGLE = 'src/noyau/__sonde-canal-issue.ts';
 const eslint = creerBancLint();
 
 /** Occurrences de la règle d'import restreint sur un CODE donné (config réelle). */

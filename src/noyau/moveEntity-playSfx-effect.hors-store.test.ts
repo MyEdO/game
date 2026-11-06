@@ -1,7 +1,6 @@
 /**
  * Effets `moveEntity` et `playSfx` (#701) — mise en scène scriptée : repositionner/retirer une
- * entité de scène posée, jouer un son ponctuel. Handlers du registre `EFFECT_HANDLERS`. Leur résumé d'éditeur se
- * joue en `src/state/moveEntity-playSfx-effect.test.ts`.
+ * entité de scène posée, jouer un son ponctuel. Handlers du registre `EFFECT_HANDLERS`.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyEffects } from './combatEffects';
@@ -65,7 +64,7 @@ describe('Effet moveEntity (#701)', () => {
 });
 
 describe('Effet playSfx (#701)', () => {
-  it('émet `EVT.SFX` avec l\'id du son, que l\'hôte joue (`state/audioWiring`)', () => {
+  it('émet `EVT.SFX` avec l\'id du son, que l\'hôte joue', () => {
     const recus: unknown[] = [];
     const off = bus.on(EVT.SFX, (p) => recus.push(p));
     try {

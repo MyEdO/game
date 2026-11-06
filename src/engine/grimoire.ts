@@ -177,7 +177,7 @@ export function learnableSpells(c: Combatant): { spell: SpellData; cost: number 
   for (const s0 of spells) {
     // Énumération du catalogue : chaque entrée est ramenée à sa forme EFFECTIVE (`effectiveEntry`,
     // `src/engine/variants.ts`) — c'est l'ENTRÉE RENDUE qui en dépend (le NI affiché par
-    // `src/ui/CharacterSheet.tsx:820`), `spellCost` ci-dessus ne lisant que `id`/`family`/`domainId`.
+    // la fiche), `spellCost` ci-dessus ne lisant que `id`/`family`/`domainId`.
     const sp = effectiveEntry(s0);
     const cost = spellCost(c, sp);
     if (cost != null) out.push({ spell: sp, cost });

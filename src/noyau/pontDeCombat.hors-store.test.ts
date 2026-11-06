@@ -1,6 +1,6 @@
 /**
  * LE PONT DE COMBAT AU NOYAU (#3059) : le combattant que porte la console à l'ouverture, les États de situation de
- * l'acteur et l'état de charge d'un set se lisent sans `src/ui`. Le combat se pose au banc ; les sièges par `net`.
+ * l'acteur et l'état de charge d'un set se lisent sans écran. Le combat se pose au banc ; les sièges par `net`.
  */
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type EntreesDuBanc } from './banc.testkit';

@@ -17,8 +17,8 @@ import { IDS, METRES_PAR_CASE, centroide, corpsEtSieges, emprise, propEntity, pr
 
 /**
  * LE DÉCOR VOLUMIQUE — les refs de `props.json` dont le corps MONDE est leur recette : son identité (recette + places),
- * son empreinte dérivée, sa population authorée et sa coquille. La vignette, l'émetteur et la cuisson de l'hôte web se
- * mesurent chez lui (`src/gameIso/catalog/props-volumiques.test.ts`, #3556). La liste (`IDS`) est DÉRIVÉE du
+ * son empreinte dérivée, sa population authorée et sa coquille. La vignette, l'émetteur et la cuisson se
+ * mesurent chez l'hôte. La liste (`IDS`) est DÉRIVÉE du
  * catalogue (`decorVolumique.testkit.ts`).
  */
 /** La seule scène écrite en TS — le second gisement d'instances authorées, invisible au corpus. */
@@ -304,7 +304,7 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
  *      montre (le panneau d'avertissements d'`Editor.tsx` est son seul consommateur) ;
  *   3. ÉDITEUR : le sélecteur d'orientation n'offre pas la diagonale (`Inspector.tsx`), et changer le
  *      type d'un décor fait retomber un cap refusé au cap d'identité (`changePropRef`) — testés chez eux ;
- *   4. ÉMETTEUR, chez l'hôte web (`src/gameIso/catalog/props-volumiques.test.ts`) : `buildProps` est TOTAL — une donnée fautive arrivée quand même (autosave, scène déjà
+ *   4. ÉMETTEUR, chez l'hôte : `buildProps` est TOTAL — une donnée fautive arrivée quand même (autosave, scène déjà
  *      chargée) sort en billboard d'ERREUR (#877), jamais dans l'art de son type, et le monde de
  *      l'éditeur survit pour que l'auteur lise la faute au validateur.
  */

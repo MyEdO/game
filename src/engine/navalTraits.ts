@@ -47,7 +47,7 @@ export function hullNavalTraits(hull: Combatant): NavalTraitRef[] {
 }
 
 /** Réfs navales EFFECTIVES du NAVIRE DE CAMPAGNE persisté (`CampaignVessel` : voyage, port, carte).
- *  Typé STRUCTURELLEMENT — ce module PUR ne connaît pas `src/state`. PUR. */
+ *  Typé STRUCTURELLEMENT — ce module PUR ne connaît pas l'état de l'hôte. PUR. */
 export function vesselNavalTraits(vessel: { vehicleId: string; upgrades?: NavalTraitRef[] } | null | undefined): NavalTraitRef[] {
   return vessel ? navalTraitsDe(vessel.vehicleId, vessel.upgrades) : [];
 }

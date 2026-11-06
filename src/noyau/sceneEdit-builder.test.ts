@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emptyScene, isDescriptiveZone, layerTiles, type Scene } from './monde/scene';
 import { isRoomZone } from './monde/rooms';
 import { EFFECT_ZONE_SEEDS } from './sceneEditLecture';
-// `putLayer` : appelant unique `noyau/mapSpec.ts` (`buildScene`), sans porte en `src/ui/**` (#855).
+// `putLayer` : appelant unique `noyau/mapSpec.ts` (`buildScene`), sans porte d'écran (#855).
 import { editEntity, editEntityCombat, putLayer, renameActionAuthoree, setSceneScalaires, setSceneLabel, renameScene, editEntry, setSceneFlags, addArchitectureBody, patchArchitectureBody, patchArchitecturePart, patchBuildingMass, patchRoofExclusion, addRoofExclusion, setFacadeSectionZ, addFacadeSection, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE, addBuildingMass, rederiveRoofMasses, addEffectZone, renameEffectZone } from './sceneEdit';
 import { sceneEntitySchema, PENTE_TOIT_DEG, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { buildingRoofMaterial } from './monde/buildings';

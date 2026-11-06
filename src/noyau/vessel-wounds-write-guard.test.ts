@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { scanVesselWoundsWrite } from '../../scripts/guards/lib/vesselWoundsWrite.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 
 /**
  * Garde-fou « écriture de la coque hors seam » (#302, #296). SOURCE UNIQUE de `state.vessel.wounds` :
@@ -16,7 +17,7 @@ import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichier
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const SCAN_DIRS = ['src/state', 'src/noyau'];
+const SCAN_DIRS = porteeDeGarde(['noyau'], ['state']);
 const FOYERS = new Set(['src/noyau/monde/shipDamage.ts', 'src/noyau/seaVoyageFlow.ts']);
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel) || FOYERS.has(rel);
 
@@ -42,7 +43,7 @@ describe('garde-fou « coque » — écriture de state.vessel.wounds hors seam (
 
   it('fail-closed : le scanner détecte une écriture SYNTHÉTIQUE du motif', () => {
     const regressed = "set({ vessel: { ...vessel, wounds: { current: 3, max: 10 } } });";
-    expect(scanVesselWoundsWrite('src/state/x.ts', regressed).length).toBe(1);
+    expect(scanVesselWoundsWrite('src/noyau/x.ts', regressed).length).toBe(1);
   });
 
   it('le foyer de persistance (seaVoyageFlow.ts, hors scan) porte bien le motif — sinon le foyer a bougé', () => {

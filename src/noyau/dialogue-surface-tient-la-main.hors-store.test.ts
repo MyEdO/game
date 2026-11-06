@@ -7,8 +7,7 @@
  * `dialogue-choice-N` avec lui.
  *
  * Contrats POSITIFS, un par surface : sous chacune la conversation ne répond pas ; au témoin, elle
- * répond. Les écrans par siège de l'adaptateur (fiche, menu système, codex) et la question du juge jouée par le
- * dispatcher RÉEL des touches se jouent en `src/state/dialogue-surface-tient-la-main.test.ts`.
+ * répond.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';

@@ -5,7 +5,7 @@
  * Le CATALOGUE (libellé, aide, groupe, forme du contrôle, défaut, bornes, action attachée) vit en
  * DONNÉE : `src/data/reglesOptionnelles.json` (schéma `src/data/schemas/defs/reglesOptionnelles.ts`,
  * éditable au Compendium). Ce module ne garde que les TYPES et la lecture : `rule(id)` = surcharge
- * runtime ⊕ défaut de la donnée. Le panneau in-game (hote/reglesMaison + ui/HouseRulesPanel) écrit la
+ * runtime ⊕ défaut de la donnée. Le panneau in-game (`hote/reglesMaison`) écrit la
  * surcharge par `setRule` et la PERSISTE ; il se RÉ-GÉNÈRE depuis le registre (un contrôle par entrée
  * selon `kind`), donc ajouter une règle = ajouter une entrée au JSON, et elle apparaît
  * automatiquement en jeu. Module FEUILLE pur : aucune dépendance store/UI (la persistance vit dans
@@ -71,9 +71,9 @@ export interface RuleAction {
   /**
    * Id du registre d'icônes (`src/data/icons/`) et nom de l'action du store à déclencher. Tous deux
    * restent des `string` ICI : le moteur est une couche FEUILLE, il ne peut pas importer le type
-   * `IconId` (ui) ni les clés du store (state) sans inverser la dépendance. La liaison est donc
-   * vérifiée par la garde `src/ui/rule-action-wiring.test.ts` (chaque `icon` existe au registre,
-   * chaque `run` désigne une fonction du store), doublée d'un throw DEV au site de résolution
+   * `IconId` ni les clés de l'hôte sans inverser la dépendance. La liaison est donc
+   * vérifiée côté hôte (chaque `icon` existe au registre,
+   * chaque `run` désigne une fonction de l'hôte), doublée d'un throw DEV au site de résolution
    * (`HouseRulesModal`) : un renommage du store ne peut pas se solder par un bouton disparu.
    */
   icon: string;

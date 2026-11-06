@@ -20,6 +20,7 @@ import { DIFFICULTY_MODIFIERS, DIFFICULTY_LABELS, type Combatant, type Difficult
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { refDeRegle } from '../engine/reglesChiffrees';
@@ -623,13 +624,13 @@ describe('DIFFICULTÉ COMBINÉE — étanchéité du vocabulaire et du champ dé
   /** Ce qui est interdit hors de la maison et du catalogue, c'est de MANIPULER le mot : un littéral de
    *  chaîne, une clé, un id. Le mot en COMMENTAIRE reste légitime (il explique ce que l'affichage en fera) :
    *  le scan neutralise donc les commentaires avant de chercher. Les couches sans prose (`src/engine`,
-   *  `src/state`, `src/noyau`) refusent toute forme, accents et casse confondus ; ailleurs, le mot se cherche
+   *  `src/noyau`, avec les zones de l'hôte web que `porteeDeGarde` balaie) refusent toute forme, accents et casse confondus ; ailleurs, le mot se cherche
    *  comme libellé (« Combinée », « COMBINÉE ») ou comme clé/id sans accent (`difficulty.combinee`), car
    *  l'adjectif minuscule accentué d'une prose (« tête combinée » d'un descriptif d'arme) n'est pas le mot de
    *  la Difficulté. Les deux exemptions se nomment par chemin. */
   const MAISON = 'src/noyau/difficultyText.ts';
   const CATALOGUE = 'src/i18n/messages/fr.ts';
-  const COUCHES_SANS_PROSE = ['src/engine/', 'src/state/', 'src/noyau/'];
+  const COUCHES_SANS_PROSE = porteeDeGarde(['engine', 'noyau'], ['state']).map((d) => `${d}/`);
   const sansCommentaires = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   // Les LITTÉRAUX de chaîne du code restant (simples, doubles, gabarits) — c'est là que le mot
   // deviendrait une donnée.
@@ -651,10 +652,10 @@ describe('DIFFICULTÉ COMBINÉE — étanchéité du vocabulaire et du champ dé
   it('le scan MORD sur toute forme dans les couches sans prose, et sur le libellé partout ailleurs', () => {
     expect(fuit({ rel: 'src/noyau/sonde.ts', text: "const s = 'difficulté combinée (+10)';" })).toBe(true);
     expect(fuit({ rel: 'src/engine/sonde.ts', text: "const s = 'CombinÉe';" })).toBe(true);
-    expect(fuit({ rel: 'src/state/sonde.ts', text: 'const s = `combinee`;' })).toBe(true);
-    expect(fuit({ rel: 'src/ui/sonde.tsx', text: "const s = 'Combinée (+10)';" })).toBe(true);
-    expect(fuit({ rel: 'src/ui/sonde.tsx', text: "const s = 'difficulty.combinee';" })).toBe(true);
-    expect(fuit({ rel: 'src/gameIso/sonde.ts', text: "const s = 'tête combinée';" })).toBe(false);
+    expect(fuit({ rel: 'src/noyau/sonde.ts', text: 'const s = `combinee`;' })).toBe(true);
+    expect(fuit({ rel: 'src/hote/sonde.ts', text: "const s = 'Combinée (+10)';" })).toBe(true);
+    expect(fuit({ rel: 'src/hote/sonde.ts', text: "const s = 'difficulty.combinee';" })).toBe(true);
+    expect(fuit({ rel: 'src/data/sonde.ts', text: "const s = 'tête combinée';" })).toBe(false);
     expect(fuit({ rel: 'src/noyau/sonde.ts', text: '// la Difficulté combinée' })).toBe(false);
     expect(fuit({ rel: MAISON, text: "const s = 'combinée';" })).toBe(false);
   });
