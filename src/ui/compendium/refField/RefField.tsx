@@ -22,7 +22,7 @@ import { useId, useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
 import { TYPES, catalogueSpecs, entreeOuverte, espaceDe, estFeuilleDId, estSpecialisable, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefASpecialisation, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../../data/schemas/grammaire/ref';
-import { datasetDeRacineDuType, specLabel } from '../../../data';
+import { datasetDeLEspaceDuType, specLabel } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
 import { entreesNarratives, type CleDeReferenceNarrative } from '../../../noyau/codex/libellesNarratifs';
@@ -94,10 +94,10 @@ export function refFieldCfg(categoryKey: string, fieldKey: string): RefFieldCfg 
   return REF_FIELD[`${categoryKey}.${fieldKey}`] ?? REF_FIELD[fieldKey];
 }
 
-/** Config `single` d'une référence de `type` : le dataset de racine de l'espace du type
- *  (`datasetDeRacineDuType`), `undefined` s'il n'en a pas. */
+/** Config `single` d'une référence de `type` : le dataset qui porte l'espace du type
+ *  (`datasetDeLEspaceDuType`), `undefined` s'il n'en a pas. */
 function cfgDuType(type: TypeEntite): (RefDatasetCfg & { single: true }) | undefined {
-  const ds = datasetDeRacineDuType(type);
+  const ds = datasetDeLEspaceDuType(type);
   return ds === undefined ? undefined : { ds: ds as DatasetKey, single: true };
 }
 
@@ -146,7 +146,7 @@ export function ChoixDeSpecs({ type, id, value, onChange, label }: {
   const offertes = [...catalogue, ...courantes.filter((s) => !catalogue.includes(s))];
   if (!offertes.length && !ouverte) return null;
   const cfg = cfgDuType(type);
-  if (!cfg) throw new Error(`ChoixDeSpecs : le type « ${type} » n'a aucun dataset de racine.`);
+  if (!cfg) throw new Error(`ChoixDeSpecs : le type « ${type} » : aucun dataset ne porte son espace.`);
   const poser = (next: string[]) => onChange(next.length ? next : undefined);
   const ajouter = () => {
     const s = saisie.trim();
@@ -190,7 +190,7 @@ export function ChoixDeSpec({ type, id, value, onChange, ariaLabel }: {
     return <input aria-label={ariaLabel} placeholder="spécialisation" style={{ width: 120 }} value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} />;
   }
   const cfg = cfgDuType(type);
-  if (!cfg) throw new Error(`ChoixDeSpec : le type « ${type} » n'a aucun dataset de racine.`);
+  if (!cfg) throw new Error(`ChoixDeSpec : le type « ${type} » : aucun dataset ne porte son espace.`);
   return <SpecSelect category={cfg.ds} id={id} options={[...catalogueSpecs(type, id)]} value={value ?? ''} vide="— (sans spécialisation) —" label={ariaLabel} onChange={(spec) => onChange(spec || undefined)} />;
 }
 
@@ -227,7 +227,7 @@ export function cfgDuNoeudType(noeud: unknown): PolymorpheCfg | undefined {
     polymorphe: decl.types.map((type) => {
       const branche = decl.branches[type];
       const cfg = cfgDuType(branche.type);
-      if (!cfg) throw new Error(`RefField : le type « ${type} » (${espaceDe(branche.type)}) n'a aucun dataset de racine à offrir au sélecteur.`);
+      if (!cfg) throw new Error(`RefField : le type « ${type} » (${espaceDe(branche.type)}) : aucun dataset ne porte son espace à offrir au sélecteur.`);
       return { type, label: decl.libelles[type] ?? type, cfg, feuille: branche.feuille };
     }),
   };

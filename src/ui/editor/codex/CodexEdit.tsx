@@ -12,10 +12,10 @@ import { REF_LIST_DATASET, editableDataset, editableEntries, editableObjectDatas
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
 import { metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
-import { enfantsDe } from '../../../data/schemas/grammaire/descente';
+import { enfantsDe, ouverts } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
-import { libelleDeValeur, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
+import { libelleDeValeur, metaDesChamps, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
 import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
@@ -449,7 +449,10 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
     }
   }, [src.dataset, entry, libelle]);
   const noeudEntree = rangee.noeud;
-  const allFields = useMemo(() => inferFields(src.entries as Record<string, unknown>[], { meta: metaPourFichier(src.file), noeud: noeudEntree }), [src.entries, src.file, noeudEntree]);
+  // Les LIBELLÉS de premier niveau sont ceux du nœud de la rangée (`nommerChamps`) : la méta du fichier
+  // nomme la racine du document, qui n'est l'entrée éditée que pour un dataset de racine.
+  const metaDeLEntree = useMemo(() => ouverts([noeudEntree]).map(metaDesChamps).find((m) => m !== undefined) ?? metaPourFichier(src.file), [noeudEntree, src.file]);
+  const allFields = useMemo(() => inferFields(src.entries as Record<string, unknown>[], { meta: metaDeLEntree, noeud: noeudEntree }), [src.entries, metaDeLEntree, noeudEntree]);
   // Un éditeur DÉDIÉ de tableau d'objets reçoit le NŒUD de SON champ, comme le chemin générique
   // (`Field` → `GenericArrayField`, `field.noeud`) : c'est le nœud qui porte le libellé des VALEURS
   // (`enumNomme`, #1694), donc le `select` nommé à toute profondeur du sous-formulaire.
@@ -651,7 +654,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {categoryKey === 'characteristics' && <GenericArrayField chemin={chemin('options')} noeud={noeudDe('options')} label="options (dépenses de la ressource — verbatim du Source)" value={entry.options as Record<string, unknown>[] | undefined} onChange={(v) => edit('options', v)} />}
         {/* NADJ 16 l.119 ; NADJ 16 l.111 ; NADJ 16 l.25 ; NADJ 16 l.82 */}
         {categoryKey === 'tavernGames' && (['options', 'table', 'sides', 'specials'] as const).map((champ) => (
-          <GenericArrayField key={champ} chemin={chemin(champ)} noeud={noeudDe(champ)} label={metaPourFichier(src.file)?.[champ]?.label ?? champ} value={entry[champ] as Record<string, unknown>[] | undefined} onChange={(v) => edit(champ, v.length ? v : undefined)} />
+          <GenericArrayField key={champ} chemin={chemin(champ)} noeud={noeudDe(champ)} label={metaDeLEntree?.[champ]?.label ?? champ} value={entry[champ] as Record<string, unknown>[] | undefined} onChange={(v) => edit(champ, v.length ? v : undefined)} />
         ))}
         {/* Ornements d'identité d'un bâtiment (#1715) : `{id, anchor}[]` — le nœud porte les libellés des ancrages. */}
         {categoryKey === 'buildings' && <GenericArrayField chemin={chemin('features')} noeud={noeudDe('features')} label="ornements d’identité (décor posé et son ancrage)" value={entry.features as Record<string, unknown>[] | undefined} onChange={(v) => edit('features', v.length ? v : undefined)} />}

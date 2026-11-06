@@ -18,7 +18,7 @@ import { RNG, roll, rollDice } from './dice';
 import { findTableEntry } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money, gainDeStatut, enPieces, type Status } from './money';
-import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById } from '../data';
+import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById, starDie, starSubDie } from '../data';
 import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { RaceKey } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
@@ -151,15 +151,16 @@ function rollDetail(
 }
 
 /** Signe astral (Tableau des Signes astrologiques, ADE II 3 l.40) → `id` STABLE du signe (≠ libellé —
- *  multilangue-safe ; `Combatant.star` stocke l'id). `rand` = borne haute cumulée du 1d100. L'Étoile du
- *  Sorcier (l.62) regroupe plusieurs variantes sur la même borne, départagées par un 1d10 interne
- *  (`sub` = la fourchette de la variante) → table partagée, lue telle quelle par `findTableEntry`. */
+ *  multilangue-safe ; `Combatant.star` stocke l'id). `rand` = borne haute cumulée du dé de la table
+ *  (`starDie`). L'Étoile du Sorcier (l.62) regroupe plusieurs variantes sur la même borne, départagées
+ *  par le dé du sous-tirage (`starSubDie` ; `sub` = la fourchette de la variante) → table partagée, lue
+ *  telle quelle par `findTableEntry`. */
 export function rollStar(rng: RNG): { roll: number; id: string } {
   const sorted = [...starsTable].sort((a, b) => a.rand - b.rand);
-  const r = roll(1, 100, rng);
+  const r = rollDice(starDie(), rng);
   const hit = sorted.find((e) => r <= e.rand) ?? sorted[0];
   const variants = sorted.flatMap((e) => (e.rand === hit.rand && e.sub ? [{ ...e.sub, id: e.id }] : []));
-  if (variants.length > 1) return { roll: r, id: findTableEntry(variants, roll(1, 10, rng)).id };
+  if (variants.length > 1) return { roll: r, id: findTableEntry(variants, rollDice(starSubDie(), rng)).id };
   return { roll: r, id: hit.id };
 }
 

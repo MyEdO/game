@@ -66,7 +66,10 @@ import { findCargoEntryById, isEchangeable } from '../../engine/cargo';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
 import { RIVER_PERILS } from '../../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../../engine/crewMorale';
-import { STEAM_BREAKDOWNS } from '../../engine/shipBuild';
+import { STEAM_BREAKDOWNS, steamBreakdownDie } from '../../engine/shipBuild';
+import { oupsDie } from '../../data/oups';
+import { interludeEventDie } from '../../data/interludeEvents';
+import { peripetieDie } from '../../data/peripeties';
 import { traumaLabelOf } from '../../engine/trauma';
 import { spellOps, type Flow, type FlowTestNode } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp } from '../../engine/ops';
@@ -1800,7 +1803,7 @@ const CODEX_SPECS = {
     // Le `label` EST le texte du résultat → on le garde tel quel ;
     // on enrichit par le TYPE d'effet (kind) en méta.
     build: () => oups.map((o) => {
-      const range = 'min' in o ? bandeAuDe('d100', o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
+      const range = 'min' in o ? bandeAuDe(oupsDie(), o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
       return depuisEnveloppe(o, {
         sub: range,
         meta: facts(fact(tr('codex.fiche.type'), valeurFR('oups.json', 'kind', o.kind))),
@@ -1809,11 +1812,11 @@ const CODEX_SPECS = {
   },
   interludeEvents: {
     label: 'codex.fiche.entreDeuxAventures', group: 'tables',
-    build: () => interludeEvents.map((e) => depuisEnveloppe(e, { sub: bandeAuDe('d100', e.min, e.max) })),
+    build: () => interludeEvents.map((e) => depuisEnveloppe(e, { sub: bandeAuDe(interludeEventDie(), e.min, e.max) })),
   },
   peripeties: {
     label: 'codex.fiche.peripetiesDeVoyage', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => peripeties.map((p) => depuisEnveloppe(p, { sub: `1d10 = ${p.roll} · ${p.kind}` })),
+    build: () => peripeties.map((p) => depuisEnveloppe(p, { sub: `${bandeAuDe(peripetieDie(), p.roll, p.roll)} · ${p.kind}` })),
   },
   activities: {
     label: 'codex.fiche.activites', group: 'tables',
@@ -2667,7 +2670,7 @@ const CODEX_SPECS = {
   steamBreakdowns: {
     label: 'codex.fiche.pannesDeNavireAVapeur', group: 'tables', cluster: 'codex.fiche.equipageNavire',
     build: () => STEAM_BREAKDOWNS.map((e) => depuisEnveloppe(e, {
-      sub: bandeAuDe('d100', e.min, e.max),
+      sub: bandeAuDe(steamBreakdownDie(), e.min, e.max),
       meta: facts(fact(tr('codex.fiche.moteurDetruit'), e.engineDestroyed ? tr('codex.fiche.oui') : null)),
     })),
   },

@@ -19,6 +19,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lignesDe } from './lib/monoTable.mjs';
 import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -66,7 +67,7 @@ const CIBLES = [
       .map(([p, ou]) => [(f) => renommer(p, 'totalDR', ou, f), ou]);
   } },
   { rel: 'src/data/steam-breakdown.json', sites: (d) =>
-    d.flatMap((b) => porteurs(b.restart ?? [], (i) => `${b.id} › restart[${i}]`))
+    lignesDe(d).flatMap((b) => porteurs(b.restart ?? [], (i) => `${b.id} › restart[${i}]`))
       .map(([p, ou]) => [(f) => renommer(p, 'extendedDR', ou, f, { exigee: false }), ou]) },
   { rel: 'src/data/criticals.json', sites: (d) =>
     d.flatMap((t) => porteurs((t.entries ?? []).map((e) => e.escalation?.medicalAidGate), (i) => `${t.id} › entries[${t.entries[i].id}].escalation.medicalAidGate`))

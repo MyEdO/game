@@ -57,16 +57,17 @@ function porteur(o, ou) {
 // ── Racine `src/data` : chemins DÉCLARÉS vers un tableau de porteurs ─────────────────────────────
 /** Un chemin vide = le document EST le tableau de porteurs. Plusieurs chemins = graphies de la MÊME
  *  table, le premier qui résout en tableau est retenu : `rumours` était un tableau à l'écriture de cette
- *  migration, `rumours.entries` est la forme que `2026-11-06-1667-tables-tirees-nichees.mjs` pose — une
- *  migration ANTÉRIEURE dans l'ordre lexical reconnaît la forme qu'une POSTÉRIEURE produit. */
+ *  migration, `rumours.entries` est la forme que `2026-11-06-1667-tables-tirees-nichees.mjs` pose, et
+ *  les `entries` d'`interludeEvents`/`peripeties` celle de `2026-11-06-1667-tableaux-racines-mono-tables.mjs`
+ *  — une migration ANTÉRIEURE dans l'ordre lexical reconnaît la forme qu'une POSTÉRIEURE produit. */
 const DATA_CIBLES = [
   ['src/data/incidents-monture.json', ['entries']],
   ['src/data/problemes-vehicule.json', ['entries']],
   ['src/data/rencontres-edoc.json', ['tables', 'positives']],
   ['src/data/rencontres-edoc.json', ['tables', 'fortuites']],
   ['src/data/rencontres-edoc.json', ['tables', 'dangereuses']],
-  ['src/data/interludeEvents.json', []],
-  ['src/data/peripeties.json', []],
+  ['src/data/interludeEvents.json', ['entries'], []],
+  ['src/data/peripeties.json', ['entries'], []],
   ['src/data/mass-battle.json', ['hazards']],
   ['src/data/land-cargo.json', ['rumours', 'entries'], ['rumours']],
 ];

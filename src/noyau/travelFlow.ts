@@ -51,7 +51,7 @@ import { applyHealWounds } from '../engine/healing';
 import { declareDisease } from '../engine/disease';
 import { findVehicleById, voyageStakeRef, weather, libelleOuAbsence } from '../data';
 import { memoParVersion } from '../data/versionDataset';
-import { PERIPETIES } from '../data/peripeties';
+import { PERIPETIES, peripetieDie } from '../data/peripeties';
 import { rollTest, testDetail } from '../engine/tests';
 import { partyAssisted, supportSplit, type SupportDetail } from '../engine/skills';
 import { addCondition, removeCondition, stacks } from '../engine/conditions';
@@ -961,7 +961,7 @@ const PERIL_TABLE_ID = 'land-peril-table';
  *  entrée, son `roll` pour fourchette, son id pour clé. */
 const tableDesPeripeties = memoParVersion('peripeties', () => new Map<string, TableStepDef>([[PERIL_TABLE_ID, {
   label: t('step.landPerilTable'),
-  die: 10,
+  die: facesDuDe(peripetieDie()),
   rows: PERIPETIES.map((p) => ({ id: p.id, min: p.roll, max: p.roll, label: p.label })),
   lines: (roll) => {
     const p = PERIPETIES.find((x) => x.roll === roll);
@@ -1376,7 +1376,7 @@ export const TABLES = {
       if (tiree.roll !== step.meta?.seuil) return { consequences: freeCons(tiree.lines) };
       const table = tableStep({
         id: 'land-peril-table', kind: 'landPerilTable', worldOwner: true, icon: 'ui/warning', label: t('step.landPerilTable'),
-        table: { tableId: PERIL_TABLE_ID, spec: { n: 1, sides: 10 } },
+        table: { tableId: PERIL_TABLE_ID, spec: peripetieDie() },
         stake: voyageStakeRef('landPerilTable'),
         meta: { destLabel: String(step.meta?.destLabel ?? '') },
       });

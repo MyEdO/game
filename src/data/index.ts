@@ -9,9 +9,9 @@ import type { EntreeDeLivre } from './source/livre-extrait';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement, MatiereDArmure } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
-import { libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
-import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_LA_RACINE, type CleDeDataset } from './schemas/_cles-de-dataset.generated';
+import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { DotationDePossession } from './schemas/grammaire/reference';
@@ -53,8 +53,12 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
-import { rangeesDe } from './rangees';
+import { deDeTirageDe, rangeesDe } from './rangees';
 import type * as imparfaites from './schemas/defs/miscast';
+import type * as signesAstrologiques from './schemas/defs/stars';
+import type * as tableauDesOups from './schemas/defs/oups';
+import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
+import type * as tableDesPeripeties from './schemas/defs/peripeties';
 import { trappings, findTrappingById } from './apparencesObjets';
 export { trappings, apparences, findTrappingById, findApparenceById } from './apparencesObjets';
 import vehiclesJson from './vehicles.json';
@@ -402,7 +406,7 @@ export interface ResolvedStake {
  *  catégorie unique : seuls les types PROJETÉS l'exigent. */
 export function cibleCodex(r: RefTypee): { category: string; id: string } {
   const espace = espaceDe(r.type);
-  const category = CATEGORIE_CODEX_DU_FICHIER[espace];
+  const category = CATEGORIE_CODEX_DU_FICHIER[lireCleDEspace(espace).fichier];
   if (category === undefined) throw new Error(`cibleCodex : « ${espace} » (type « ${r.type} ») ne déclare pas une catégorie Codex unique — la fiche de « ${r.id} » ne s'ouvre nulle part.`);
   return { category, id: r.id };
 }
@@ -2213,7 +2217,6 @@ export interface StarData {
   /** id STABLE (slug du libellé) — `Combatant.star` le stocke, le runtime résout par `findStarById`
    *  (≠ libellé — multilangue-safe). */
   id: string;
-  type: 'stars';
   label: string;
   rand: number;
   signe: string | null;
@@ -2871,7 +2874,12 @@ export const details = detailsJson as DetailsData;
 export const semencesDeScene = semencesDeSceneJson as SemencesDeSceneData;
 /** Défauts du COMPILATEUR de scène (#1716) — lus par `mapSpec.ts`/`buildBoardingScene`, éditables au Codex. */
 export const defautsDeCompilation = defautsDeCompilationJson as DefautsDeCompilationData;
-export const stars = starsJson as StarData[];
+/** Les rangées du Tableau des Signes astrologiques (`stars.json`). */
+export const stars = rangeesDe<typeof signesAstrologiques>(starsJson) as StarData[];
+/** Le dé du Tableau des Signes astrologiques, lu à l'appel. */
+export const starDie = (): DiceSpec => deDeTirageDe<typeof signesAstrologiques>(starsJson);
+/** Le dé qui départage les variantes d'un même seuil (`StarData.sub`), lu à l'appel. */
+export const starSubDie = (): DiceSpec => starsJson.sub.dice;
 /** Les 5 demeures célestes (ADE II 3 l.502-512, « Déterminer les demeures célestes ») — ossature
  *  narrative du thème astral (flavor pur, aucun effet mécanique). `rand` = borne haute du 1d10. */
 export const celestialHouses = astrologyJson as CelestialHouseData[];
@@ -2973,11 +2981,11 @@ export const names = namesJson as NamePool[];
  *  vit dans `pregens.ts`, qui consomme CE tableau (même référence → mutation live de l'éditeur). */
 export const pregens = pregensJson as PregenDef[];
 /** Tableau des Oups ! (LDB Maladresses) — app-owned éditable ; consommé par `oups.ts` (même référence). */
-export const oups = oupsJson as OupsRow[];
+export const oups = rangeesDe<typeof tableauDesOups>(oupsJson) as OupsRow[];
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */
-export const interludeEvents = interludeEventsJson as InterludeEvent[];
+export const interludeEvents = rangeesDe<typeof tableauDesEvenements>(interludeEventsJson) as InterludeEvent[];
 /** Péripéties de voyage (1d10) — app-owned éditable ; consommé par `peripeties.ts` (même référence). */
-export const peripeties = peripetiesJson as Peripetie[];
+export const peripeties = rangeesDe<typeof tableDesPeripeties>(peripetiesJson) as Peripetie[];
 
 /** Réseau routier impérial (EDOC 3 « Les routes et grandes routes » et EDOC 6 « Patrouilleurs
  *  routiers ») — catalogue de CALIBRATION d'une `MapRoute` : classes de route et leurs largeurs,
@@ -3496,25 +3504,36 @@ export function findById(category: string, id: string): { label: string } | unde
     default: return entreeDeCategorie(category, id);
   }
 }
+/** La collection VIVANTE d'un dataset, au bout de son chemin dans la racine de son fichier. */
+const collectionDeRacine = (d: DatasetDeCategorie): readonly { id: string; label: string }[] =>
+  suivreLeChemin(RACINES_VIVANTES[d.fichier], d.chemin) as readonly { id: string; label: string }[];
 /** L'entrée `id` de la collection de RACINE de `fichier`, lue sur sa racine vivante par l'index du dataset
- *  qui la porte (`DATASET_DE_LA_RACINE`). */
+ *  qui la porte (`DATASET_DE_L_ESPACE`). */
 function entreeDeRacine(fichier: string, id: string): Readonly<Record<string, unknown>> | undefined {
-  if (!Object.prototype.hasOwnProperty.call(DATASET_DE_LA_RACINE, fichier)) throw new Error(`entreeDeRacine : « ${fichier} » ne porte aucun dataset de racine.`);
-  const cle = DATASET_DE_LA_RACINE[fichier];
-  return indexParId(cle, RACINES_VIVANTES[fichier] as { id: string }[])(id) as Readonly<Record<string, unknown>> | undefined;
+  if (!Object.prototype.hasOwnProperty.call(DATASET_DE_L_ESPACE, fichier)) throw new Error(`entreeDeRacine : « ${fichier} » ne porte aucun dataset de racine.`);
+  const d = DATASET_DE_L_ESPACE[fichier];
+  return indexParId(d.cle, collectionDeRacine(d))(id) as Readonly<Record<string, unknown>> | undefined;
 }
-/** Le dataset de racine de l'espace de `type` (`DATASET_DE_LA_RACINE`), `undefined` s'il n'en a pas. */
-export function datasetDeRacineDuType(type: TypeEntite): CleDeDataset | undefined {
-  const fichier = espaceDe(type);
-  return Object.prototype.hasOwnProperty.call(DATASET_DE_LA_RACINE, fichier) ? DATASET_DE_LA_RACINE[fichier] : undefined;
+/** Le dataset dont la collection EST l'espace de `type`, son filtre ôté (`DATASET_DE_L_ESPACE`) : une
+ *  racine-collection, ou les rangées d'un document mono-table (`steam-breakdown.json#entries`) ;
+ *  `undefined` sinon. */
+function collectionDuType(type: TypeEntite): DatasetDeCategorie | undefined {
+  const { fichier, niche } = lireCleDEspace(espaceDe(type));
+  const espace = cleNichee(fichier, niche ?? '');
+  return Object.prototype.hasOwnProperty.call(DATASET_DE_L_ESPACE, espace) ? DATASET_DE_L_ESPACE[espace] : undefined;
 }
-/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées de la racine vivante de l'espace de son
- *  type qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de la donnée ; LÈVE si l'espace n'a aucun
- *  dataset de racine (`datasetDeRacineDuType`). */
+/** Le dataset de l'espace de `type` (`collectionDuType`), `undefined` s'il n'en a pas. */
+export function datasetDeLEspaceDuType(type: TypeEntite): CleDeDataset | undefined {
+  return collectionDuType(type)?.cle;
+}
+/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées vivantes de l'espace de son type
+ *  qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de la donnée ; LÈVE si aucun dataset ne porte
+ *  l'espace (`datasetDeLEspaceDuType`). */
 export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
-  if (datasetDeRacineDuType(type) === undefined) throw new Error(`choixDeLaFeuilleDId : l'espace ${espaceDe(type)} n'a aucun dataset de racine.`);
+  const d = collectionDuType(type);
+  if (d === undefined) throw new Error(`choixDeLaFeuilleDId : aucun dataset ne porte l’espace ${espaceDe(type)}.`);
   const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
-  return (RACINES_VIVANTES[espaceDe(type)] as readonly { id: string; label: string }[]).filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
+  return collectionDeRacine(d).filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
  *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers (`entree`) ; sinon l'id. */
