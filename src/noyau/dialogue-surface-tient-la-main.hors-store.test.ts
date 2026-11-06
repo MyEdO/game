@@ -17,6 +17,7 @@ import { conversationRepond } from './dialogue';
 import { withActingSeat } from './netOwnership';
 import { makeShowcaseParty } from '../data/pregens';
 import type { Dialogue } from './monde/scene';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -82,6 +83,13 @@ describe('conversationRepond — une surface qui tient la main suspend la conver
     expect(repond()).toBe(false);
     temoin({ landMarket: {} as Jeu['landMarket'] });
     expect(repond()).toBe(false);
+  });
+
+  it('sous une surface, la réponse choisie est refusée et le refus dit', () => {
+    temoin({ document: { title: 'Lettre', text: '…', remise: 1 } });
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'oui');
+    expect(banc.getState().dialogue?.nodeId).toBe('n1');
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('barre.mainTenue'));
   });
 
   it('file de journal ou commande d’interlude en souffrance : aucune surface, elle répond', () => {
