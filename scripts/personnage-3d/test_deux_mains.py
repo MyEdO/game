@@ -2,17 +2,22 @@
 ramène une cible hors de portée sur la sphère de portée ; les clés de geste s'interpolent en partant et en arrivant au
 repos, sauf à une clé d'élan, la prise `main` à la moitié de l'écart du milieu de chaque clé ; le repère de l'arme porte
 son +Y vers le fer et son +X au plus près du flanc donné ; chaque clip dérivé a une clé au début et une à la fin, et un
-maniement dont la seconde prise est déclarée."""
+maniement dont la seconde prise est déclarée ; le bras ne se tord pas et l'avant-bras porte la torsion dans ses bornes ;
+une peau déplacée d'un bloc garde ses longueurs, un os plié étire l'arête à cheval ; la seconde
+prise de chaque arme tourne comme celle des clips de son maniement."""
+import json
 import math
 import sys
 import unittest
 from pathlib import Path
 
-from mathutils import Vector
+import numpy
+from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from deux_mains import CLIPS, SECONDES, cle, coude, interpoler, repere_de_l_arme  # noqa: E402
+from deux_mains import (CLIPS, POIGNET, PRONATION, SECONDES, PeauDuBras, bras, cle, coude,  # noqa: E402
+                        etirement_du_bras, interpoler, peau_fixe, repere_de_l_arme)
 
 L1, L2 = 0.25, 0.24
 
@@ -33,6 +38,71 @@ class Coude(unittest.TestCase):
         poignet, _ = coude(epaule, cible, L1, L2, Vector((0, 0, -1)))
         self.assertAlmostEqual((poignet - epaule).length, L1 + L2, places=3)
         self.assertGreater((poignet - epaule).normalized().dot((cible - epaule).normalized()), 0.9999)
+
+
+def torsion(parent, enfant):
+    """La torsion, en degrés, de l'os aux axes `enfant` autour de son +Y, relative aux axes `parent`."""
+    return math.degrees((parent.transposed() @ enfant).to_quaternion().to_swing_twist('Y')[1])
+
+
+class Bras(unittest.TestCase):
+    EPAULE = Vector((0.2, 0, 1.45))
+    AXES = Matrix(((0, 1, 0), (0, 0, -1), (-1, 0, 0)))
+    """Le bras gauche au repos en T : son +Y vers la gauche du personnage (+X), son +X vers le bas."""
+
+    def poser(self, tourne, cible=Vector((0.15, -0.38, 1.2))):
+        devant = self.AXES.col[1].rotation_difference(Vector((0, -1, 0))).to_matrix() @ self.AXES
+        main = (devant @ Matrix.Rotation(math.radians(tourne), 3, 'Y')).to_4x4()
+        main.translation = cible
+        un = Matrix.Identity(3)
+        return main, bras(self.EPAULE, self.AXES, main, (L1, L2), Vector((0.55, 0.35, -0.75)), un, un, PRONATION['l'])
+
+    def test_le_bras_ne_se_tord_pas_et_l_avant_bras_porte_la_torsion_dans_ses_bornes(self):
+        for tourne in (-150, -90, -40, 0, 30, 90):
+            with self.subTest(tourne=tourne):
+                main, (_, humerus, avant_bras, articulation, _, _) = self.poser(tourne)
+                self.assertAlmostEqual(torsion(self.AXES, humerus), 0, places=3)
+                self.assertLessEqual(PRONATION['l'][0] - 1e-3, torsion(humerus, avant_bras))
+                self.assertLessEqual(torsion(humerus, avant_bras), PRONATION['l'][1] + 1e-3)
+                self.assertAlmostEqual((articulation - self.EPAULE).length, L1, places=5)
+
+    def test_une_main_tournee_dans_les_bornes_de_l_avant_bras_garde_le_poignet_droit(self):
+        for tourne in (-150, -90, -30):
+            with self.subTest(tourne=tourne):
+                main, (_, _, avant_bras, _, _, _) = self.poser(tourne)
+                self.assertAlmostEqual(torsion(avant_bras, main.to_3x3()), 0, places=2)
+
+    def test_au_dela_de_sa_borne_l_avant_bras_s_y_arrete_et_le_poignet_prend_le_reste(self):
+        for tourne in (0, 30, 60):
+            with self.subTest(tourne=tourne):
+                main, (_, humerus, avant_bras, _, _, _) = self.poser(tourne)
+                self.assertAlmostEqual(torsion(humerus, avant_bras), PRONATION['l'][1], places=2)
+                self.assertGreater(torsion(avant_bras, main.to_3x3()), 0)
+
+
+class Peau(unittest.TestCase):
+    """Deux os, le second tournant autour de l'origine : une arête dans chaque os et une à cheval sur les deux."""
+    X = numpy.array([[0, 0, 0, 1], [0.1, 0, 0, 1], [0.2, 0.01, 0, 1], [0.3, 0.01, 0, 1]], dtype=float)
+    W = numpy.array([[1, 0], [1, 0], [0, 1], [0, 1]], dtype=float)
+    ARETES = numpy.array([[0, 1], [1, 2], [2, 3]])
+
+    def peau(self):
+        longueurs = numpy.linalg.norm(self.X[self.ARETES[:, 0], :3] - self.X[self.ARETES[:, 1], :3], axis=1)
+        return PeauDuBras(self.X, self.W, self.ARETES, longueurs)
+
+    def etirement(self, *matrices):
+        peau = self.peau()
+        fixe = peau_fixe(peau, numpy.repeat(numpy.eye(4)[None], 2, axis=0), [0, 1])
+        return etirement_du_bras(peau, fixe, [(i, numpy.array([numpy.array(m)])) for i, m in enumerate(matrices)])[0]
+
+    def test_une_peau_deplacee_d_un_bloc_garde_ses_longueurs(self):
+        bloc = Matrix.Translation((0.3, -0.2, 1.0)) @ Matrix.Rotation(1.1, 4, Vector((1, 2, 3)).normalized())
+        self.assertAlmostEqual(self.etirement(Matrix.Identity(4), Matrix.Identity(4)), 1.0, places=6)
+        self.assertAlmostEqual(self.etirement(bloc, bloc), 1.0, places=6)
+
+    def test_le_second_os_plie_etire_l_arete_a_cheval(self):
+        pli = Matrix.Rotation(math.radians(150), 4, 'Z')
+        self.assertGreater(self.etirement(Matrix.Identity(4), pli), 2.0)
 
 
 class Interpolation(unittest.TestCase):
@@ -81,6 +151,27 @@ class Clips(unittest.TestCase):
                 self.assertIn(maniement, SECONDES)
                 self.assertEqual((cles[0][0], cles[-1][0]), (0.0, 1.0))
                 self.assertEqual([c[0] for c in cles], sorted(c[0] for c in cles))
+
+
+class SecondesPrises(unittest.TestCase):
+    RACINE = Path(__file__).resolve().parents[2]
+
+    def test_la_seconde_prise_de_chaque_arme_tourne_comme_celle_des_clips_de_son_maniement(self):
+        maniements = {a['id']: a.get('maniement') for a in json.loads((self.RACINE / 'src/data/apparences.json').read_text(encoding='utf-8'))}
+        vues = 0
+        for chemin in sorted((self.RACINE / 'hotes/godot/projet/modeles').glob('*.manifeste.json')):
+            manifeste = json.loads(chemin.read_text(encoding='utf-8'))
+            seconde = manifeste.get('liaison', {}).get('secondePrise')
+            maniement = maniements.get(manifeste.get('cle', {}).get('apparence'))
+            if seconde is None or maniement not in SECONDES:
+                continue
+            vues += 1
+            with self.subTest(chemin.name):
+                attendu = (0, math.radians(SECONDES[maniement][1]), 0)
+                for lu, voulu in zip(seconde['rotation'], attendu):
+                    self.assertAlmostEqual(lu, voulu, places=5)
+                self.assertEqual(math.copysign(1, seconde['position'][1]), math.copysign(1, SECONDES[maniement][0]))
+        self.assertGreater(vues, 0)
 
 
 if __name__ == '__main__':
