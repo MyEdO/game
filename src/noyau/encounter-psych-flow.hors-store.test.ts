@@ -129,7 +129,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.setState({ party: [h] });
     banc.getState().startScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
     banc.getState().jetRoll('cascadeBatch', h.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.cible === ciblePsy.groupe('elfe') && p.active === true)).toBe(true);
     expect(banc.getState().pendingCascade).toBeNull();
@@ -141,7 +141,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.setState({ party: [h] });
     banc.getState().startScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
     banc.getState().jetForceSuccess('cascadeBatch', h.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.active === true)).toBe(false);
     expect(hero.resilience).toBe(0);
@@ -156,7 +156,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(step.encounterPsych?.kind).toBe('animosite');
     banc.getState().jetDetermine('cascadeBatch', h.id);
     expect(banc.getState().pendingCascade!.participants[0].participants![0].immune).toBe(true);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const hero = banc.getState().party[0];
     expect(hero.resolve).toBe(0);
     expect(hero.activeEffects?.find((e) => e.psychImmune)?.duration).toEqual({ scale: 'rounds', left: 2 });
@@ -177,10 +177,10 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(band.participants?.map((p) => p.id)).toEqual([a.id, b.id]);
     // La bande n'est PRÊTE qu'une fois toutes ses rangées jouées — puis la cascade se clôt d'un coup.
     banc.getState().jetRoll('cascadeBatch', a.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade!.cursor).toBe(0); // rangée B pas encore jouée
     banc.getState().jetRoll('cascadeBatch', b.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
     const psy = banc.getState().party.map((h) => (h.psychState ?? []).filter((p) => p.type === 'animosite').length);
     expect(psy).toEqual([1, 1]); // chaque rangée a reçu SA conséquence
@@ -210,7 +210,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(band.participants![1].immune).toBeUndefined();
     expect(band.participants![1].result).toBeNull();
     banc.getState().jetRoll('cascadeBatch', b.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const [ha, hb] = banc.getState().party;
     expect(ha.resolve).toBe(0);
     expect(hb.resolve).toBe(1); // B n'a RIEN dépensé : la Détermination est jouée PAR RANGÉE
@@ -239,7 +239,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
       result: k === 0 ? { roll: 99, target: p.target, sl: -2, success: false } : { roll: 1, target: p.target, sl: 2, success: true },
     }));
     banc.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: rows }] } });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const [ha, hb] = banc.getState().party;
     expect(ha.conditions.some((c) => c.id === 'sonne')).toBe(true);
     expect(hb.conditions.some((c) => c.id === 'sonne')).toBe(false); // rangée RÉUSSIE : muette
@@ -351,7 +351,7 @@ describe('Terreur réussie : la Peur qui en découle est due à PLEIN Indice (LD
       ...part, result: { roll: result.success ? 1 : 99, target: part.target, sl: result.sl, success: result.success },
     }));
     banc.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants }] } });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     return banc.getState().party[0];
   }
   const peurOf = (c: Combatant) => (c.psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === SOURCE_ID);
@@ -379,7 +379,7 @@ describe('Terreur réussie : la Peur qui en découle est due à PLEIN Indice (LD
     banc.setState({ party: [h], pendingCascade: null, battle: null });
     openScriptedPsych(banc.getState, banc.setState, 'terreur', 3, 'Un spectre hurlant', [h]);
     banc.getState().jetDetermine('cascadeBatch', h.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const hero = banc.getState().party[0];
     expect(stacks(hero, 'brise')).toBe(0); // le Test de Terreur n'a pas eu lieu
     expect(peurOf(hero)?.indice).toBe(3); // l'immunité est TEMPORAIRE, jamais une Peur vaincue à jamais
@@ -432,7 +432,7 @@ describe('encounterPsychFlow — l’étiquette de la scène, source sans PNJ (#
     expect([step.encounterPsych?.kind, step.encounterPsych?.cible, step.encounterPsych?.sourceId]).toEqual(['haine', ciblePsy.groupe('richesse'), 'scene']);
     expect(step.participants?.map((p) => p.id)).toEqual([h.id]);
     banc.getState().jetRoll('cascadeBatch', h.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect((banc.getState().party[0].psychState ?? []).filter((p) => p.type === 'haine').map((p) => [p.cible, p.active])).toEqual([[ciblePsy.groupe('richesse'), true]]);
   });
 

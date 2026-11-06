@@ -96,10 +96,11 @@ const DIALOGUES: Dialogue[] = [
         desc: '« Personne ne monte ici. Redescendez par où vous êtes venus — ou par la fenêtre, si vous préférez. »',
         choices: [
           {
+            id: 'tirer-epee',
             label: 'Tirer l’épée.',
             flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: 'enc-homme-de-main' }]),
           },
-          { label: 'Reculer.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
+          { id: 'reculer', label: 'Reculer.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
         ],
       },
     ],

@@ -27,7 +27,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -145,7 +145,7 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -194,7 +194,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const foes = b.combatants.filter((c) => c.kind === 'enemy');

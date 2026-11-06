@@ -2,7 +2,7 @@
 /**
  * #1189 — les CONSÉQUENCES de la Psychologie sont des `GameOp`, donc la bande DIT ses issues en chips
  * codex-liées (contrat d'affichage #1117), avant comme après le jet. Mesuré sur la VRAIE bande
- * (`openScriptedPsych` → `psychBands`, aucun pending forgé) et sur le VRAI applier (`cascadeNext`).
+ * (`openScriptedPsych` → `psychBands`, aucun pending forgé) et sur le VRAI applier (`jetConfirm('cascade')`).
  *
  * RAW mesuré (LDB 21, `psychology.json:terreur`, verbatim) : « Sur un échec, vous gagnez autant
  * d'États *Brisé* que l'*Indice* de *Terreur* de la créature, auquel vous rajoutez les DR inférieurs
@@ -122,7 +122,7 @@ describe('#1189 — la bande de Psychologie DIT ses issues en chips d’ops', ()
     expect(ligne('Échec :')).not.toContain('par DR d’échec');
 
     const rangee = bande().participants![0]; // l'applier écrit SON verdict sur cette rangée (la cascade se ferme après)
-    act(() => { useGame.getState().cascadeNext(); });
+    act(() => { useGame.getState().jetConfirm('cascade'); });
     const h = heroNow();
     // Le nombre de la chip, celui du journal et celui de l'état posé sont UN SEUL nombre.
     expect(h.conditions.find((c) => c.id === 'brise')?.value, 'Brisé = Indice (2) + |DR négatifs| (6)').toBe(8);

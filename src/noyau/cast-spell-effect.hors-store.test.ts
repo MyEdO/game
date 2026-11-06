@@ -22,7 +22,7 @@ describe('Effet castSpell (#98)', () => {
       banc.setState({ party: [wiz, ally] });
       banc.getState().startScene(testScene());
       banc.getState().startCombat('enc-mutants');
-      banc.getState().confirmRoundStart();
+      banc.getState().fenetreValider('roundStart');
       const b = banc.getState().battle!;
       const W = b.combatants.find((c) => c.kind === 'hero' && c.label === 'W')!;
       const A = b.combatants.find((c) => c.kind === 'hero' && c.label === 'A')!;

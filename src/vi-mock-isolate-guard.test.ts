@@ -64,7 +64,7 @@ describe.each(CONFIGS)('garde-fou — $config partage son graphe de modules', ({
 
 it('aucun fichier chargé par les suites (tests, kits, setups) ne mocke de module', () => {
   const offenders = fichiersDeLaSuite(ROOT, { suite: chargeParLesSuites }).flatMap(({ rel, text }) => moduleMockHits(text, rel));
-  expect(offenders, `Mock de module sous \`isolate: false\` — la liaison dépend de l'ordre des fichiers du worker.\nEnregistrer la donnée fabriquée dans le registre lu à l'appel (patron \`poserPaliersDArmure\`, data/paliersDArmure.testkit.ts), ou espionner le namespace qui l'exporte :\n${offenders.join('\n')}`).toEqual([]);
+  expect(offenders, `Mock de module sous \`isolate: false\` — la liaison dépend de l'ordre des fichiers du worker.\nEnregistrer la donnée fabriquée dans le registre lu à l'appel (patron \`poserVariantesDeNaissance\`, engine/apparenceNaissance.testkit.ts), ou espionner le namespace qui l'exporte :\n${offenders.join('\n')}`).toEqual([]);
 });
 
 describe('garde-fou — ce que la garde mesure', () => {

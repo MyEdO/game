@@ -104,7 +104,7 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
     const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [L], net: NET('host', 0, 'L') } });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const [E, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
     autres.forEach((e) => (e.dead = true));

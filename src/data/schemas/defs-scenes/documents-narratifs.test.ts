@@ -112,17 +112,17 @@ describe('références narratives des Effects — résolues au parse du projet',
   });
 
   it('`revealClue.indiceId` inconnu et `stade` inconnu : refusés, nommés', () => {
-    const choix = (effect: Jouet) => ({ label: 'Lire', flow: { kind: 'if', cond: { kind: 'flag', expr: 'x' }, then: { kind: 'do', effect } } });
+    const choix = (id: string, effect: Jouet) => ({ id, label: 'Lire', flow: { kind: 'if', cond: { kind: 'flag', expr: 'x' }, then: { kind: 'do', effect } } });
     const dialogue = { id: 'dlg', start: 'n1', nodes: [{ id: 'n1', desc: 'Un meunier.', choices: [
-      choix({ type: 'revealClue', indiceId: 'ind-fantome' }),
-      choix({ type: 'revealClue', indiceId: 'ind-moulin', stade: 's9' }),
-      choix({ type: 'discreditClue', indiceId: 'ind-perdu' }),
+      choix('lire-fantome', { type: 'revealClue', indiceId: 'ind-fantome' }),
+      choix('lire-moulin', { type: 'revealClue', indiceId: 'ind-moulin', stade: 's9' }),
+      choix('lire-perdu', { type: 'discreditClue', indiceId: 'ind-perdu' }),
     ] }] };
     const f = fautes(projet({ scenes: [scene({ dialogues: [dialogue] })] }));
     expect(f).toHaveLength(3);
-    expect(f[0]).toBe('scène « scene-1 » › dialogue « dlg » › nœud « n1 » › réponse 1 › alors › effet Révéler un indice › indice :: indice inconnu « ind-fantome » (narratif.indices).');
-    expect(f[1]).toBe("scène « scene-1 » › dialogue « dlg » › nœud « n1 » › réponse 2 › alors › effet Révéler un indice › stade :: stade inconnu « s9 » de l'indice « ind-moulin ».");
-    expect(f[2]).toBe('scène « scene-1 » › dialogue « dlg » › nœud « n1 » › réponse 3 › alors › effet Écarter un indice › indice :: indice inconnu « ind-perdu » (narratif.indices).');
+    expect(f[0]).toBe('scène « scene-1 » › dialogue « dlg » › nœud « n1 » › réponse « lire-fantome » › alors › effet Révéler un indice › indice :: indice inconnu « ind-fantome » (narratif.indices).');
+    expect(f[1]).toBe("scène « scene-1 » › dialogue « dlg » › nœud « n1 » › réponse « lire-moulin » › alors › effet Révéler un indice › stade :: stade inconnu « s9 » de l'indice « ind-moulin ».");
+    expect(f[2]).toBe('scène « scene-1 » › dialogue « dlg » › nœud « n1 » › réponse « lire-perdu » › alors › effet Écarter un indice › indice :: indice inconnu « ind-perdu » (narratif.indices).');
   });
 
   it('dans la carte du monde (péril de route) : refusé, nommé', () => {

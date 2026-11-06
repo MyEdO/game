@@ -21,7 +21,7 @@ describe('Bascule de Cadence en plein combat', () => {
     banc.setState({ party: makeShowcaseParty() });
     banc.getState().startScene(embuscadeConstruit.scene);
     banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.kind === 'hero')!;
     // place un héros en tête → tour héros, cadence MANUELLE (l'IA n'agit pas, le combat ATTEND le joueur)

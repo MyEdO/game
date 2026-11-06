@@ -787,7 +787,7 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: Co
 /** Objet qu'un slot `main`/`off` d'un set désigne par `uid`, s'il peut y être : présent dans l'inventaire,
  *  non DÉTRUIT (LDB 14/62), hors contenant (`inside`), arme de mêlée ou à distance, sans Équipe
  *  (`requiresCrewedPoste`, ADE II 8 l.233). Lu par l'amorce des sets (`ensureDefaultLoadout`), leur auto-élagage,
- *  les mains du set actif (`recomputeLoadout`) et les armes RANGÉES du dessin (`equipementDessine`). */
+ *  les mains du set actif (`recomputeLoadout`) et les armes RANGÉES d'un combattant (`armesDuCombattant`). */
 export function objetDeSlot(c: Combatant, uid?: string): ItemInstance | undefined {
   return uid == null ? undefined
     : (c.items ?? []).find((i) => i.uid === uid && !i.destroyed && !i.inside && (i.kind === 'melee' || i.kind === 'ranged') && !requiresCrewedPoste(i));

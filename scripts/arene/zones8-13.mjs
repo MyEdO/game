@@ -192,6 +192,7 @@ export function makeZone10() {
         desc: '« Psst ! Par ici ! Les hommes-rats m’engraissent pour leur table — la serrure est grossière, sortez-moi de là ! »',
         choices: [
           {
+            id: 'crocheter-cage',
             label: 'Crocheter la cage.',
             icon: 'ui/lock',
             when: flagWhen('!prisonnier_libre'),
@@ -207,7 +208,7 @@ export function makeZone10() {
               [{ type: 'journal', desc: 'La serrure est grossière mais voilée — le crochet ripe. Réessayez.' }],
             ),
           },
-          { label: '« On revient te chercher. » (Plus tard.)', flow: flowOf([{ type: 'endDialogue' }]) },
+          { id: 'revenir-te-chercher', label: '« On revient te chercher. » (Plus tard.)', flow: flowOf([{ type: 'endDialogue' }]) },
         ],
       },
     ],

@@ -71,7 +71,7 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
     const step = get().pendingCascade!.participants[0];
     const opp = step.meta!.opposed!;
     act(() => { get().jetRoll('cascade', step.id); });
-    act(() => { get().cascadeNext(); });
+    act(() => { get().jetConfirm('cascade'); });
 
     const journal = get().journal.join('\n');
     expect(journal, 'le challenger est nommé, avec son Test').toContain(`${a.label} — Pari :`);

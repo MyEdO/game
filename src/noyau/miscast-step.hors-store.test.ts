@@ -74,7 +74,7 @@ function mageSolo(seed = 3): Combatant {
 const steps = (): CascadeStep[] => (banc.getState().pendingCascade?.participants ?? []) as CascadeStep[];
 const stepAt = (i: number) => steps()[i];
 const poser = (id: string, roll: number) => banc.getState().jetSetForcedRoll('cascadeTirage', roll, id);
-const suivant = () => banc.getState().cascadeNext();
+const suivant = () => banc.getState().jetConfirm('cascade');
 
 /** RNG scripté (dés imposés dans l'ordre) — même utilitaire que `noyau/mutation-step.hors-store.test.ts`. */
 function scripted(values: number[]) {

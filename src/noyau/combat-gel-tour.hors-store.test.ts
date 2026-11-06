@@ -368,7 +368,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
         { id: 'defense-jet-1', kind: 'defenseJet', jet: 'defense', actorId: 'h' }, // ORPHELINE : aucun pendingDefense
       ], { title: 'Défense', purpose: 'combat' }),
     });
-    expect(() => banc.getState().cascadeNext()).toThrow(/orphelin/);
+    expect(() => banc.getState().jetConfirm('cascade')).toThrow(/orphelin/);
   });
 
   it('l’ARBITRE n’élit pas la cascade quand le corps de l’étape `cast` s’efface (ciblage carte)', () => {
@@ -432,7 +432,7 @@ describe('#1852 — un combattant ne décide qu’UNE fois son tour', () => {
     enemy.traits = [];
     enemy.size = 'enorme'; // écart de Taille → Terreur (LDB 85 l.383)
     banc.setState({ battle: { ...g().battle!, turn: -1 }, pendingRoundStart: { round: 1 } } as never);
-    g().confirmRoundStart();
+    g().fenetreValider('roundStart');
     const joues = () => aiTurnLog().filter((r) => r.id === enemy.id && r.round === 1).length;
     const bande = g().pendingCascade?.participants.find((st) => st.kind === 'combatPsych');
     expect([bande?.combatPsych?.kind, bande?.participants?.map((pa) => pa.id)], 'chemin : la Terreur du héros ouvre sa bande').toEqual(['terreur', [hero.id]]);

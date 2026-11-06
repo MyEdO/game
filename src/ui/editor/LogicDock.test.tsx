@@ -144,7 +144,7 @@ describe('LogicDock — onglet Dialogues (master-détail de nœuds)', () => {
         id: 'dlg-forgeron',
         start: 'n1',
         nodes: [
-          { id: 'n1', desc: 'Bonjour voyageur', choices: [{ label: 'Au revoir', next: 'n2' }] },
+          { id: 'n1', desc: 'Bonjour voyageur', choices: [{ id: 'revoir', label: 'Au revoir', next: 'n2' }] },
           { id: 'n2', desc: 'Bonne route', choices: [] },
         ],
       },

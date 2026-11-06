@@ -82,7 +82,7 @@ describe('Contagieux (Type) — transmission au toucher (EDO App.2 l.228-230)', 
     openCombatEndCascade(banc.getState, banc.setState);
     const bande = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'combatEndDisease')!;
     banc.getState().jetRoll('cascadeBatch', bande.participants![0].id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const dz = a.diseases?.find((d) => d.id === 'fievre-du-rongeur');
     expect(dz).toBeTruthy();
     expect(dz!.phase).toBe('active'); // incubation « Instantanée » (3d10+5 jours d'incubation SAUTÉS)
@@ -96,7 +96,7 @@ describe('Contagieux (Type) — transmission au toucher (EDO App.2 l.228-230)', 
     const bande = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'combatEndDisease')!;
     expect(bande.participants![0].target).toBe(30 + DIFFICULTY_MODIFIERS.accessible); // 50 — difficulté RAW de la maladie
     banc.getState().jetRoll('cascadeBatch', bande.participants![0].id); // 93 → raté
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const dz = a.diseases?.find((d) => d.id === 'fievre-du-rongeur');
     expect(dz).toBeTruthy();
     expect(dz!.phase).toBe('incubation'); // incubation 3d10+5 jours (RAW), pas « Instantanée »

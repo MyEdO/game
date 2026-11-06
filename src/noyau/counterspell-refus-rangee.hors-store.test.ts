@@ -23,7 +23,7 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
     banc.setState({ party: [mk('Anna', 707), mk('Bert', 101)] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const [A, B] = b.combatants.filter((c) => c.kind === 'hero') as Combatant[];
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');

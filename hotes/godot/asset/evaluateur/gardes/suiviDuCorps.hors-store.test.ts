@@ -251,7 +251,7 @@ describe('gardeSuiviDuCorps : état de la scène', () => {
 });
 
 const TABLE: TableDeGabarit = { legs: ['jambe'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } } };
-const APPUIS = { pieds: ['racine'], plusBas: [{ position: [0, 0, 0] as const, os: [{ nom: 'racine', poids: 1 }], deltas: {} }], vitessesAuSol: {} };
+const APPUIS = { pieds: ['racine'], plusBas: [{ position: [0, 0, 0] as const, os: [{ nom: 'racine', poids: 1 }], deltas: {} }], vitesseAuSol: 1 };
 
 describe('gardeSuiviDuCorps : le chemin réel de la peau', () => {
   /** Le plus grand |(v′ − b′) − (v − b)| de l'élément sur `monter`, `poserFormes`, `appliquerGabarit`. */

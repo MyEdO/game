@@ -344,7 +344,7 @@ async function monterCombat(): Promise<void> {
   await attendrePopulation();
   await act(async () => { useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true }); });
   await attendreRepos('l’engagement du combat doit être servi');
-  await act(async () => { useGame.getState().confirmRoundStart(); });
+  await act(async () => { useGame.getState().fenetreValider('roundStart'); });
   await attendreRepos('la levée de la pause de début de round doit être servie');
   await attendrePopulation();
 }

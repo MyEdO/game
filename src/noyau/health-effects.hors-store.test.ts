@@ -58,7 +58,7 @@ function commitRows(results: { roll: number; target: number; sl: number; success
   const st = pc.participants[pc.cursor];
   const participants = st.participants!.map((p, k) => ({ ...p, result: results[k] }));
   banc.setState({ pendingCascade: { ...pc, participants: pc.participants.map((x, i) => (i === pc.cursor ? { ...x, participants } : x)) } });
-  banc.getState().cascadeNext();
+  banc.getState().jetConfirm('cascade');
 }
 
 /** L'étape courante de la cascade ouverte. */
@@ -154,7 +154,7 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     // déclenche la construction de la vague 1 (jamais avant : son escalade compterait l'échec annulé).
     expect(current().kind).toBe('exposure-heat-drop');
     banc.getState().cascadeChoose(current().id, 'jeter');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const wave1 = current();
     expect(wave1.kind).toBe('exposure');
     expect(wave1.meta?.wave).toBe(1);

@@ -29,7 +29,7 @@ function startBelier(): { soldat: Combatant; crew: Combatant[]; ram: Combatant; 
   banc.setState({ party: scenario.construire().party });
   banc.getState().startScene(scenarioConstruit.scene);
   banc.getState().startCombat('siege-belier');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
   const ram = b.combatants.find((c) => c.postes?.length)!;

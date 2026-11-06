@@ -43,7 +43,7 @@ function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Comb
   banc.setState({ party });
   g().startScene(testScene());
   g().startCombat('enc-mutants');
-  g().confirmRoundStart();
+  g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.filter((c) => c.kind === 'hero');
@@ -73,7 +73,7 @@ function jouerBande(success: boolean): void {
       })),
     },
   } as never);
-  g().cascadeNext();
+  g().jetConfirm('cascade');
 }
 
 beforeEach(() => { seedBattleRng(4); });

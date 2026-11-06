@@ -29,7 +29,7 @@ describe('#190 — réouverture par Dégât localisé au point d’application (
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -48,21 +48,21 @@ describe('#190 — réouverture par Dégât localisé au point d’application (
   });
 
   it('nouveau Dégât à la MÊME Localisation → +N États Hémorragique', () => {
-    const { H, E } = setup({ label: 'Dégâts artériels', location: 'corps', bleedOnReinjury: 2, needsSurgery: true });
+    const { H, E } = setup({ uid: 't1', label: 'Dégâts artériels', location: 'corps', bleedOnReinjury: 2, needsSurgery: true });
     applyAttackResult(banc.getState, banc.setState, E, H, E.weapons[0], hit('corps'));
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(stacks(h, 'hemorragique')).toBe(2);
   });
 
   it('Dégât à une AUTRE Localisation → aucun État Hémorragique', () => {
-    const { H, E } = setup({ label: 'Dégâts artériels', location: 'corps', bleedOnReinjury: 2, needsSurgery: true });
+    const { H, E } = setup({ uid: 't2', label: 'Dégâts artériels', location: 'corps', bleedOnReinjury: 2, needsSurgery: true });
     applyAttackResult(banc.getState, banc.setState, E, H, E.weapons[0], hit('brasD'));
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(stacks(h, 'hemorragique')).toBe(0);
   });
 
   it('après Chirurgie (plaie retirée) → un nouveau Dégât à la Localisation ne rouvre plus rien', () => {
-    const { H, E } = setup({ label: 'Cuisse lacérée', location: 'jambeD', bleedOnReinjury: 1, needsSurgery: true });
+    const { H, E } = setup({ uid: 't3', label: 'Cuisse lacérée', location: 'jambeD', bleedOnReinjury: 1, needsSurgery: true });
     H.criticalWounds = 1;
     removeSurgicalTrauma(H);
     applyAttackResult(banc.getState, banc.setState, E, H, E.weapons[0], hit('jambeD'));

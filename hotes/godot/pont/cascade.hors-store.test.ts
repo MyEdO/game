@@ -10,7 +10,7 @@ import { CLICS_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton, Choix, Element } from '../../../src/hote/elements';
 
 const { appel } = table();
-const NAVIGATION = ['cascadeNext', 'cascadeResolveAll', 'fenetreFermer@cascade'];
+const NAVIGATION = ['jetConfirm@cascade', 'cascadeResolveAll', 'fenetreFermer@cascade'];
 
 describe('Entrée dans la cascade', () => {
   it('chaque rangée jetée puis l’étape validée ; le choix d’une étape attendu avant sa navigation ; le Coup Critique seul', () => {
@@ -23,7 +23,7 @@ describe('Entrée dans la cascade', () => {
       if (fenetre) {
         const gestes: Element[] = suite.vue.zones['fenetre.gestes'];
         const focus = gestes.find((g): g is Bouton => g.type === 'bouton' && g.focus);
-        if (fenetre.etape?.interaction === 'batch' && focus?.id === 'cascadeNext') vus.batchValide = true;
+        if (fenetre.etape?.interaction === 'batch' && focus?.id === 'jetConfirm@cascade') vus.batchValide = true;
         if (fenetre.etape?.genre === 'critical') {
           vus.critique = true;
           expect(suite.vue.zones['fenetre.corps'].filter((e) => e.id.startsWith('defense/')), 'le Coup Critique sans la Défense d’une autre attaque').toEqual([]);

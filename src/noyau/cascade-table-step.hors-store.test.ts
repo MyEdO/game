@@ -24,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * ÉTAPE À TABLE (#942 L2) — le TIRAGE SUR TABLEAU est une interaction d'étape de cascade, résolue en UN
  * site (`rollTableStep` : dé, `mod` appliqué avant le lookup, `findTableEntry`, id de ligne STABLE),
- * exercée par les VRAIES coutures du noyau (`jetRoll('cascadeTirage')`/`cascadeNext`/`cascadeResolveAll`) et par
+ * exercée par les VRAIES coutures du noyau (`jetRoll('cascadeTirage')`/`jetConfirm('cascade')`/`cascadeResolveAll`) et par
  * le pilote immédiat. La table est résolue par le registre (`tableStepDef`), peuplé par les modules de
  * domaine (le cœur générique ne nomme aucune table).
  */
@@ -61,7 +61,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
   it('tirage NATUREL par les vraies coutures : le dé tombe dans SA fourchette, la ligne est affichée puis APPLIQUÉE', () => {
     banc.getState().seedRng(4);
     startCascade(banc.getState, banc.setState, { title: 'Tirage', purpose: 'test', steps: [tableStep('t1')] });
-    banc.getState().cascadeNext(); // pas encore tiré → no-op (la modale force d'abord le dé)
+    banc.getState().jetConfirm('cascade'); // pas encore tiré → no-op (la modale force d'abord le dé)
     expect(applied).toHaveLength(0);
     banc.getState().jetRoll('cascadeTirage', 't1');
     const res = banc.getState().pendingCascade!.participants[0].table!.result!;
@@ -70,7 +70,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     expect(res.die).toBe(res.roll); // aucun `mod`
     expect(res.id).toBe(res.die <= 50 ? 'basse' : 'haute'); // la fourchette qui contient le dé
     expect(res.lines[0]).toBe(`ligne ${res.id} (dé ${res.die})`);
-    banc.getState().cascadeNext(); // valide → la conséquence lit l'id de ligne
+    banc.getState().jetConfirm('cascade'); // valide → la conséquence lit l'id de ligne
     expect(applied).toEqual([{ id: res.id, roll: res.roll, die: res.die }]);
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -241,7 +241,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     const nat = naturalRollForTableRow(curStep().table!, tableStepDef(T)!.rows[1])!;
     banc.getState().jetSetForcedRoll('cascadeTirage', nat, 'tm');
     expect(curStep().table!.result).toMatchObject({ roll: 61, die: 51, id: 'haute' });
-    banc.getState().cascadeNext(); // la conséquence lit l'id de ligne, comme un tirage naturel
+    banc.getState().jetConfirm('cascade'); // la conséquence lit l'id de ligne, comme un tirage naturel
     expect(applied).toEqual([{ id: 'haute', roll: 61, die: 51 }]);
   });
 
@@ -287,7 +287,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     expect(curStep().table!.result).toMatchObject({ roll: 7, id: 'basse' });
     banc.getState().jetSetForcedRoll('cascadeTirage', 99, 'tm'); // frappe suivante : 7 → 99
     expect(curStep().table!.result).toMatchObject({ roll: 99, id: 'haute' });
-    banc.getState().cascadeNext(); // l'étape est validée : la fenêtre se referme
+    banc.getState().jetConfirm('cascade'); // l'étape est validée : la fenêtre se referme
     expect(applied).toEqual([{ id: 'haute', roll: 99, die: 99 }]);
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -304,7 +304,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     openTwo();
     banc.getState().jetSetForcedRoll('cascadeTirage', 9, 's1');
     const avant = stepById('s1').table!.result;
-    banc.getState().cascadeNext(); // COMMIT de s1 : l'applier a joué, le curseur est sur s2
+    banc.getState().jetConfirm('cascade'); // COMMIT de s1 : l'applier a joué, le curseur est sur s2
     expect(applied).toEqual([{ id: 'basse', roll: 9, die: 9 }]);
     expect(stepById('s1').committed).toBe(true);
     banc.getState().jetSetForcedRoll('cascadeTirage', 88, 's1'); // tentative de réécriture

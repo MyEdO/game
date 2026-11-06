@@ -23,9 +23,8 @@ export interface EntityAppearance {
   /** Tenue CHOISIE — id STABLE, jamais un libellé (`tenueFermeeSchema`, `data/schemas/grammaire/valeurs.ts`,
    *  #3116) ; `spawnEnemy` la porte sur `Combatant.career`. */
   tenue?: string;
-  /** Armure de statblock (PA par localisation, sans inventaire) VISIBLE/portée — OPT-IN d'authoring
-   *  (#774, #775) : le statblock de PA ne pilote pas l'apparence. Absent = les PA restent mécaniques
-   *  PURS, aucun art d'armure synthétisé (`synthArmour`). */
+  /** Armure de statblock (PA par localisation, sans inventaire) déclarée VISIBLE/portée — OPT-IN d'authoring
+   *  (#774, #775) : le statblock de PA ne pilote pas l'apparence. */
   armurePortee?: boolean;
   /** Apparence des objets sans instance : id de trapping → référence au catalogue des apparences. */
   apparencesObjets?: Record<string, { id: string }>;

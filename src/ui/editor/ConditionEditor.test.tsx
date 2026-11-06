@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ConditionEditor, WhenEditor, recast } from './ConditionEditor';
+import { ConditionEditor, WhenEditor } from './ConditionEditor';
+import { recast } from '../../data/valeursNeuves';
 import { condSummary, valeurDeHas } from './interne/resumeDeCondition';
 import { datasetArray } from '../../data/overrides';
 import { catalogueSpecs, entreeOuverte, estSpecialisable, idsDe } from '../../data/schemas/grammaire/ref';

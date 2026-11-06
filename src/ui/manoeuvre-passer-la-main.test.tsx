@@ -27,7 +27,7 @@ function souffleLance(gmSeat: number | undefined): Combatant {
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
-  useGame.getState().confirmRoundStart();
+  useGame.getState().fenetreValider('roundStart');
   vi.clearAllTimers();
   useGame.setState({ net: { ...useGame.getState().net, gmSeat } });
   const b = useGame.getState().battle!;

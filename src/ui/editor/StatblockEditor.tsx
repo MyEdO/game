@@ -23,10 +23,6 @@ import { customStatblockSchema } from '../../data/schemas/defs-scenes/communs';
 
 const EXTRA: { key: 'M'; label: string; def: number }[] = [{ key: 'M', label: 'Mouvement', def: 4 }];
 
-/** Statbloc minimal par défaut (humain de base). Blessures NON fixées → dérivées par la formule de
- *  Taille au spawn (LDB 85 ; `B` rempli = surcharge). */
-export const emptyStatblock = (label = 'Profil personnalisé'): CustomStatblock => ({ type: 'statblock', label, char: { M: 4 } });
-
 /** Clone une créature du bestiaire en statbloc éditable (base à personnaliser) — par id. */
 function cloneFromCreature(creatureId: string): CustomStatblock | null {
   const c = findCreatureById(creatureId);

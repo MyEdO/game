@@ -181,21 +181,22 @@ function construireScene(): Scene {
             id: 'n0',
             desc: 'La Comtesse Emmanuelle vous toise depuis sa loge. « On ne vous a pas conviés dans ma loge. Qu’est-ce qui peut bien valoir cette intrusion ? »',
             choices: [
-              { label: '« Excellence — un attentat vous visait. Il est déjoué. »', when: { kind: 'flag', expr: 'bombeDesamorcee' }, next: 'merci' },
-              { label: '« Excellence, l’antichambre n’est peut-être pas sûre ce soir. »', when: { kind: 'flag', expr: '!bombeDesamorcee' }, next: 'n1' },
-              { label: 'S’incliner et se retirer.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
+              { id: 'excellence-attentat-vous', label: '« Excellence — un attentat vous visait. Il est déjoué. »', when: { kind: 'flag', expr: 'bombeDesamorcee' }, next: 'merci' },
+              { id: 'excellence-antichambre-n', label: '« Excellence, l’antichambre n’est peut-être pas sûre ce soir. »', when: { kind: 'flag', expr: '!bombeDesamorcee' }, next: 'n1' },
+              { id: 'incliner-retirer', label: 'S’incliner et se retirer.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
             ],
           },
           {
             id: 'n1',
             desc: '« Pas sûre ? » Un sourire glacé. « Mes gardes en jugeront. Mais examinez donc, puisque vous y tenez — discrètement. »',
-            choices: [{ label: 'Remercier et examiner les lieux.', flow: flowFromEffects([{ type: 'endDialogue' }]) }],
+            choices: [{ id: 'remercier-examiner-lieux', label: 'Remercier et examiner les lieux.', flow: flowFromEffects([{ type: 'endDialogue' }]) }],
           },
           {
             id: 'merci',
             desc: 'Le masque de hauteur se fissure une seconde. « …Un attentat ? Dans MA loge ? » Elle se ressaisit, mais son regard s’est radouci. « L’Empire saura que la maison von Liebwitz a une dette envers vous. Prenez ceci — et discrétion. »',
             choices: [
               {
+                id: 'incliner-accepter',
                 label: 'S’incliner et accepter.',
                 flow: flowFromEffects([
                   { type: 'giveMoney', montant: { gold: 5 } },
@@ -215,14 +216,14 @@ function construireScene(): Scene {
             id: 'e0',
             desc: 'Deux jeunes gens nerveux, dissimulés près de la porte, manipulent un petit pot à feu et un chapelet de pétards. L’un d’eux blêmit en vous voyant approcher.',
             choices: [
-              { label: '« Lâchez ça. Vous êtes en état d’arrestation. »', next: 'e1' },
-              { label: 'Les laisser filer.', flow: flowFromEffects([{ type: 'journal', desc: 'Vous détournez le regard ; les étudiants se fondent dans la foule.' }, { type: 'endDialogue' }]) },
+              { id: 'lachez-ca-vous', label: '« Lâchez ça. Vous êtes en état d’arrestation. »', next: 'e1' },
+              { id: 'laisser-filer', label: 'Les laisser filer.', flow: flowFromEffects([{ type: 'journal', desc: 'Vous détournez le regard ; les étudiants se fondent dans la foule.' }, { type: 'endDialogue' }]) },
             ],
           },
           {
             id: 'e1',
             desc: '« On… on ne faisait rien ! » Ils refusent de se rendre et tentent de forcer le passage.',
-            choices: [{ label: 'Les maîtriser.', flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: 'enc-etudiants' }]) }],
+            choices: [{ id: 'maitriser', label: 'Les maîtriser.', flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: 'enc-etudiants' }]) }],
           },
         ],
       },

@@ -46,6 +46,7 @@ import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
 
@@ -452,7 +453,7 @@ function quitterLeMarchand(get: Get, set: Set): void {
     set((s) => ({ merchantStocks: { ...s.merchantStocks, [m.entityId]: { ...s.merchantStocks[m.entityId], bargainLocked: true } } }));
     get().log(t('mf.renege'));
   }
-  get().confirmDistribution(); // ne pas perdre les objets payés non répartis
+  repartirLesAchats(get, set); // ne pas perdre les objets payés non répartis
   set({ merchant: null });
 }
 
@@ -548,7 +549,9 @@ export function assignDistribution(_get: Get, set: Set, index: number, heroId: s
   });
 }
 
-export function confirmDistribution(get: Get, set: Set): void {
+/** Range chaque achat payé chez le héros que lui donne la répartition (`assignDistribution`) : corps de la validation
+ *  de l'échoppe (`fenetreValider('marchand')`), et du départ de l'échoppe, qui ne perd aucun achat payé. */
+function repartirLesAchats(get: Get, set: Set): void {
   const m = get().merchant; const dist = m?.pendingDistribution;
   if (!m || !dist || !dist.length) return;
   const unitEntries = dist.filter((d): d is { unit: UniteVendue; heroId: string } => 'unit' in d);
@@ -1063,7 +1066,6 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
     refuseBargain: (mode) => refuseBargain(get, set, mode),
     payCart: () => payCart(get, set),
     assignDistribution: (index, heroId) => assignDistribution(get, set, index, heroId),
-    confirmDistribution: () => confirmDistribution(get, set),
     addToSellCart: (uid, heroId) => addToSellCart(get, set, uid, heroId),
     removeFromSellCart: (uid) => removeFromSellCart(get, set, uid),
     clearSellCart: () => clearSellCart(get, set),
@@ -1079,6 +1081,10 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
 
 export function sortiesDuMarchand(get: Get, set: Set) {
   return { marchand: () => quitterLeMarchand(get, set) } satisfies Partial<SortiesDeFenetre>;
+}
+
+export function validationsDuMarchand(get: Get, set: Set) {
+  return { marchand: () => repartirLesAchats(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 export function cloturesDuMarchand(get: Get, set: Set) {

@@ -6,7 +6,7 @@ import { frenzyTarget } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 
 describe('projection d’un objet de campagne', () => {
-  it('publie les candidats de naissance sur l’actif et dans la liste des combattants', () => {
+  it('publie l’apparence de naissance, tenue en main, sur l’actif et dans la liste des combattants', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const base = partie.etat();
@@ -25,8 +25,9 @@ describe('projection d’un objet de campagne', () => {
       };
       const vue = projeter(etat, 0, 0, { autres: 100, offres: 100, cibles: 100, gestes: 100, entites: 100 });
       expect(candidats).toEqual(['hache_naine', 'hache']);
-      expect(vue.combat!.actif!.equipement.weapons[0].candidats).toEqual(candidats);
-      expect(vue.combat!.voisins.liste.find((c) => c.id === hero.id)!.equipement.weapons[0].candidats).toEqual(candidats);
+      const tenue = expect.objectContaining({ cle: { champ: 'apparence', id: 'hache_naine', racine: 'hache' }, point: 'main' });
+      expect(vue.combat!.actif!.portee?.portees).toContainEqual(tenue);
+      expect(vue.combat!.voisins.liste.find((c) => c.id === hero.id)!.portee?.portees).toContainEqual(tenue);
     } finally {
       partie.fermer();
     }

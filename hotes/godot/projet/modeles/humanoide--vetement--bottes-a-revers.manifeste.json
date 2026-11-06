@@ -3,18 +3,17 @@
   "base": "humanoide",
   "categorie": "vetement",
   "cle": {
-    "piece": "haut-de-chausses"
+    "piece": "bottes-a-revers"
   },
   "liaison": {
     "mode": "squelette"
   },
   "couche": "tenue",
   "couvre": [
-    "hanches",
-    "cuisse_g",
-    "cuisse_d",
-    "genou_g",
-    "genou_d"
+    "mollet_g",
+    "mollet_d",
+    "pied_g",
+    "pied_d"
   ],
   "silhouettes": [
     "feminin",
@@ -24,12 +23,12 @@
   ],
   "surfaces": [
     {
-      "nom": "haut_de_chausses",
-      "palette": "vet2"
+      "nom": "botte",
+      "palette": "cuir"
     }
   ],
   "glb": {
-    "sha256": "2fef0f8b6f8f0687358fc01e76dbd644cd2853446c96b72e28510f3f14ea6dcd",
-    "octets": 482940
+    "sha256": "eed3553bebdec5e7597e81ba52127de45fec2ed4c241a2e01d715d35d3dde9ff",
+    "octets": 460940
   }
 }

@@ -1,7 +1,8 @@
 /**
  * LE MANIFESTE D'UNE BASE HUMANOÏDE (#2972, schéma 4) : son squelette, ses chaînes d'appendice, ses zones, ses
- * emplacements, ses prises, ses shape keys, la table du gabarit, son porteur de référence, ses appuis et ses os à
- * position animée, et ses surfaces (`surfaces.ts`), validés contre le GLB livré (`lireGlb`, `glb.ts`).
+ * emplacements, ses prises, ses shape keys, la table du gabarit, son porteur de référence, sa table rôle → clip, ses
+ * appuis et ses os à position animée, et ses surfaces (`surfaces.ts`), validés contre le GLB livré (`lireGlb`, `glb.ts`).
+ * Les rôles et les clips de la table se jugent dans le graphe de l'hôte (`ecartsDeClips`, `clips.ts`).
  */
 import { estObjet } from '../../../src/hote/formes.ts';
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
@@ -11,6 +12,7 @@ import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 import { estSilhouette } from './silhouettes.ts';
 import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
 import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
+import type { TableDeClips } from './clips.ts';
 
 export const VERSION_DU_SCHEMA_DE_BASE = 4;
 
@@ -43,11 +45,11 @@ export interface PorteurDeReference {
   readonly echelleDArt: number;
 }
 
-/** Les os des pieds et les clips de marche, chacun avec sa vitesse au sol en m/s à la taille de construction. */
+/** Les os des pieds, et la vitesse au sol en m/s du clip du rôle `walk` à la taille de construction. */
 export interface Appuis {
   readonly pieds: readonly string[];
   readonly plusBas: readonly CandidatDAppui[];
-  readonly vitessesAuSol: Readonly<Record<string, number>>;
+  readonly vitesseAuSol: number;
 }
 
 export interface CandidatDAppui {
@@ -67,6 +69,8 @@ export interface ManifesteDeBase {
   readonly silhouettes: readonly string[];
   readonly gabarit: TableDeGabarit;
   readonly porteur: PorteurDeReference;
+  /** Le clip de chaque rôle que la base joue ; `walk` exigé. */
+  readonly clips: TableDeClips & { readonly walk: string };
   readonly appuis: Appuis;
   /** Les os, hors racine, dont un clip anime la position (`gardePistesDEchelle`). */
   readonly osAPositionAnimee: readonly string[];
@@ -85,6 +89,7 @@ export type CodeDEcartDeBase =
   | 'prise-absente'
   | 'silhouette-absente'
   | 'silhouette-inconnue'
+  | 'role-inconnu'
   | 'clip-absent'
   | CodeDEcartDeSurface
   | 'glb-different';
@@ -188,10 +193,10 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   }
   const p = objet(brut.porteur, 'porteur');
   const porteur: PorteurDeReference = { race: id(p.race, 'porteur.race'), gabarit: id(p.gabarit, 'porteur.gabarit'), taille: id(p.taille, 'porteur.taille'), echelleDArt: positif(p.echelleDArt, 'porteur.echelleDArt') };
+  const clips = Object.fromEntries(Object.entries(objet(brut.clips, 'clips')).map(([role, nom]) => [role, chaine(nom, `clips.${role}`)]));
+  if (estObjet(brut.clips) && clips.walk === undefined) forme('clips.walk', 'le clip du rôle `walk` est exigé');
   const a = objet(brut.appuis, 'appuis');
-  const vitesses = objet(a.vitessesAuSol, 'appuis.vitessesAuSol');
-  if (!Object.keys(vitesses).length) forme('appuis.vitessesAuSol', 'au moins un clip attendu');
-  for (const cle of Object.keys(a)) if (!['pieds', 'plusBas', 'vitessesAuSol'].includes(cle)) forme(`appuis.${cle}`, 'champ inconnu');
+  for (const cle of Object.keys(a)) if (!['pieds', 'plusBas', 'vitesseAuSol'].includes(cle)) forme(`appuis.${cle}`, 'champ inconnu');
   const triplet = (v: unknown, ou: string): readonly [number, number, number] => {
     if (!estTriplet(v) || !v.every(Number.isFinite)) { forme(ou, 'triplet de nombres finis attendu'); return [0, 0, 0]; }
     return v;
@@ -214,7 +219,7 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   const appuis: Appuis = {
     pieds: liste(a.pieds, 'appuis.pieds'),
     plusBas,
-    vitessesAuSol: Object.fromEntries(Object.entries(vitesses).map(([clip, vitesse]) => [clip, positif(vitesse, `appuis.vitessesAuSol.${clip}`)])),
+    vitesseAuSol: positif(a.vitesseAuSol, 'appuis.vitesseAuSol'),
   };
   if (estObjet(brut.appuis) && estListeDeChaines(a.pieds) && !appuis.pieds.length) forme('appuis.pieds', 'au moins un pied attendu');
   const osAPositionAnimee = liste(brut.osAPositionAnimee, 'osAPositionAnimee');
@@ -223,7 +228,7 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   const glb = objet(brut.glb, 'glb');
   const empreinte = { sha256: chaine(glb.sha256, 'glb.sha256'), octets: nombre(glb.octets, 'glb.octets') };
   if (ecarts.length || !prises.main || !prises.off) return { ecarts };
-  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, chaines, zones, emplacements, prises: { main: prises.main, off: prises.off }, silhouettes, gabarit, porteur, appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
+  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, chaines, zones, emplacements, prises: { main: prises.main, off: prises.off }, silhouettes, gabarit, porteur, clips: { ...clips, walk: clips.walk }, appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
 }
 
 /** Le manifeste `brut` réduit au schéma 4 et validé contre le GLB de la base `octets`. */
@@ -233,7 +238,6 @@ export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): Verdi
   const contenu = lireGlb(octets);
   const refus = (code: CodeDEcartDeBase, ou: string, detail: string) => ecarts.push({ code, ou, detail });
   const declares = new Set(m.os);
-  for (const clip of Object.keys(m.appuis.vitessesAuSol)) if (!contenu.animations.has(clip)) refus('clip-absent', `appuis.vitessesAuSol.${clip}`, `${clip} n’est pas un clip du GLB`);
   m.os.forEach((o, i) => { if (!contenu.os.has(o)) refus('os-inconnu', `os.${i}`, `${o} n’est pas un os du GLB`); });
   const osNommes: [string, string][] = [
     ['gabarit.racine', m.gabarit.racine],

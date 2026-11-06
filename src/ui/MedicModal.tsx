@@ -137,7 +137,7 @@ export function MedicModal() {
                 <OptionChooser
                   layout="grid"
                   idPrefix="medic-plaie"
-                  options={plaies.flatMap(({ valeur, libelle }) => (valeur === null ? [] : [{ key: String(valeur), label: libelle, selected: valeur === sg.traumaIdx, onSelect: () => setWound(valeur) }]))}
+                  options={plaies.flatMap(({ valeur, libelle }) => (valeur === null ? [] : [{ key: valeur, label: libelle, selected: valeur === sg.traumaUid, onSelect: () => setWound(valeur) }]))}
                 />
               )}
               {/* EXCEPTION nommée au site unique `RollRow.extendedDr` (arbitrage user 2026-07-11, verrou

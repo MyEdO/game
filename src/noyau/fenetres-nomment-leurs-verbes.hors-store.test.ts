@@ -61,7 +61,7 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     expect(destin).toMatchObject({ cle: 'fateSave', proprietaire: 'h1' });
     expect(destin!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['fateNegate', 'fateSurvive', 'fateAccept']));
     const depart = fenetreDuJeu({ ...ETAT, pendingDeparture: { mode: 'pied', cause: 'nuit', dawnAt: 0 } } as unknown as Jeu);
-    expect(depart).toMatchObject({ cle: 'departure', gestes: [{ verbe: 'departWaitDawn' }, { verbe: 'fenetreFermer', fenetre: 'departure' }] });
+    expect(depart).toMatchObject({ cle: 'departure', gestes: [{ verbe: 'fenetreValider', fenetre: 'departure' }, { verbe: 'fenetreFermer', fenetre: 'departure' }] });
     const defaite = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defeat' } } as unknown as Jeu);
     expect(defaite).toMatchObject({ cle: 'defaite', gestes: [{ verbe: 'fenetreFermer', fenetre: 'defaite' }] });
     const repli = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defeat' }, massBattle: { combatScene: { sceneId: 'duel' } } } as unknown as Jeu);
@@ -76,6 +76,6 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     expect(chute!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@fall', 'fallChoose', 'jetConfirm@fall']));
     const bande = fenetreDuJeu({ ...ETAT, pendingCascade: { title: 'Témoin', purpose: 'test', cursor: 0, log: [], seq: 1, participants: [ETAPE_TEMOIN] } });
     expect(bande).toMatchObject({ cle: 'cascade', pid: 'rangee' });
-    expect(bande!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeBatch', 'cascadeNext']));
+    expect(bande!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeBatch', 'jetConfirm@cascade']));
   });
 });

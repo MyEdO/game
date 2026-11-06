@@ -422,6 +422,7 @@
        "desc": "« Capitaine. Le Grimm est vôtre pour cette traversée — porter à Erengrad une cargaison d'armes, en rapporter de la laine kislevite avant les glaces. Voici votre lettre de mission, et une avance de 40 couronnes. Dame Kramer voyage avec vous : sa cargaison, sa cabine, son contrat. Les trois pièces du Grimm sont servies, soutes garnies de poudre et de boulets pour la traversée ; mais le fond de cale est avitaillé au minimum — le chandelier du quai vous vendra l'eau et les vivres du voyage. »",
        "choices": [
         {
+         "id": "accepter-commission",
          "label": "Accepter la commission (40 CO, le Grimm à quai)",
          "when": {
           "kind": "flag",
@@ -505,10 +506,12 @@
          "next": "k1"
         },
         {
+         "id": "demander-financer-carenage",
          "label": "Lui demander de financer le carénage (60 CO)",
          "next": "k-careene"
         },
         {
+         "id": "prendre-conge",
          "label": "Prendre congé",
          "when": {
           "kind": "flag",
@@ -533,6 +536,7 @@
        "desc": "« L’avance de 40 couronnes est tout ce que la Seconde Flotte peut avancer, capitaine. Le reste sort de votre poche — ou vous partez sale, et vous traînerez la salissure dans chaque manœuvre. »",
        "choices": [
         {
+         "id": "revenir-commission",
          "label": "Revenir à la commission",
          "next": "k1"
         }
@@ -549,6 +553,7 @@
        "desc": "« Un navire qui appareille sans la bénédiction de Manann navigue nu, capitaine. Un petit sacrifice, et je bénis la coque. »",
        "choices": [
         {
+         "id": "demander-benediction-navire",
          "label": "Demander la bénédiction du navire",
          "flow": {
           "kind": "seq",
@@ -572,6 +577,7 @@
          "next": "a-benediction"
         },
         {
+         "id": "faire-petit-sacrifice",
          "label": "Faire un petit sacrifice (une pièce jetée à la mer)",
          "flow": {
           "kind": "seq",
@@ -597,6 +603,7 @@
          "next": "a-petit"
         },
         {
+         "id": "faire-sacrifice-moyen",
          "label": "Faire un sacrifice moyen (une gemme de votre bourse)",
          "flow": {
           "kind": "seq",
@@ -622,6 +629,7 @@
          "next": "a-moyen"
         },
         {
+         "id": "faire-grand-sacrifice",
          "label": "Faire un grand sacrifice (une vache entière, la moitié des provisions)",
          "flow": {
           "kind": "seq",
@@ -647,10 +655,12 @@
          "next": "a-grand"
         },
         {
+         "id": "demander-origine-ordre",
          "label": "Lui demander l’origine de son ordre",
          "next": "a-origine"
         },
         {
+         "id": "saluer",
          "label": "Le saluer",
          "flow": {
           "kind": "seq",
@@ -671,6 +681,7 @@
        "desc": "Frère Aldo asperge la proue d’eau de mer et prie Manann à voix basse. L’équipage se signe. « La coque est bénie, capitaine. Manann veille. »",
        "choices": [
         {
+         "id": "remercier",
          "label": "Le remercier",
          "next": "a1"
         }
@@ -681,6 +692,7 @@
        "desc": "Une pièce tombe dans l’écume. Aldo hoche la tête, satisfait. « Manann prend note, capitaine. »",
        "choices": [
         {
+         "id": "revenir",
          "label": "Revenir",
          "next": "a1"
         }
@@ -691,6 +703,7 @@
        "desc": "La gemme disparaît sous les vagues. « Un sacrifice qui compte, capitaine. Manann s’en souviendra. »",
        "choices": [
         {
+         "id": "revenir",
          "label": "Revenir",
          "next": "a1"
         }
@@ -701,6 +714,7 @@
        "desc": "La vache est jetée par-dessus bord avec la moitié des provisions. L’équipage retient son souffle — puis Aldo sourit. « Manann ne vous oubliera pas. »",
        "choices": [
         {
+         "id": "revenir",
          "label": "Revenir",
          "next": "a1"
         }
@@ -711,6 +725,7 @@
        "desc": "« J’ai prêché sur tous les quais de la Mer des Griffes, capitaine. Je connais le Requin — Stromfels, le dieu des naufrageurs — mieux que je ne le voudrais. On ne le paie pas : on le nourrit. »",
        "choices": [
         {
+         "id": "revenir",
          "label": "Revenir",
          "next": "a1"
         }
@@ -727,10 +742,12 @@
        "desc": "« Ma cargaison est dans la cale, capitaine, et j'entends qu'elle y reste jusqu'à Erengrad. »",
        "choices": [
         {
+         "id": "enquerir-fret",
          "label": "S’enquérir du fret",
          "next": "kr-fret"
         },
         {
+         "id": "observer-discretement",
          "label": "L’observer discrètement",
          "flow": {
           "kind": "test",
@@ -786,6 +803,7 @@
          "next": "kr1"
         },
         {
+         "id": "laisser-affaires",
          "label": "La laisser à ses affaires",
          "flow": {
           "kind": "seq",
@@ -806,6 +824,7 @@
        "desc": "« Des étoffes, des piécettes d’ambre. Rien qui vous regarde, capitaine. »",
        "choices": [
         {
+         "id": "revenir",
          "label": "Revenir",
          "next": "kr1"
         }
@@ -822,6 +841,7 @@
        "desc": "« Une chanson pour la route, capitaine ? »",
        "choices": [
         {
+         "id": "ecouter-chanson",
          "label": "Écouter sa chanson",
          "when": {
           "kind": "flag",
@@ -842,6 +862,7 @@
          "next": "g-chant"
         },
         {
+         "id": "demander-autre-air",
          "label": "Lui demander un autre air",
          "when": {
           "kind": "flag",
@@ -850,6 +871,7 @@
          "next": "g-chant-encore"
         },
         {
+         "id": "saluer",
          "label": "La saluer",
          "flow": {
           "kind": "seq",
@@ -870,6 +892,7 @@
        "desc": "Griet entonne « Jacques Bret a rencontré notre acier ». Le refrain court de bouche en bouche ; les gabiers tapent du pied sur le pont et reprennent en chœur.",
        "choices": [
         {
+         "id": "applaudir",
          "label": "Applaudir",
          "next": "g1"
         }
@@ -880,6 +903,7 @@
        "desc": "« Toujours la même rengaine ? » Elle rit et enchaîne une complainte plus douce, pour ceux qui restent à quai.",
        "choices": [
         {
+         "id": "saluer",
          "label": "La saluer",
          "next": "g1"
         }
@@ -2135,6 +2159,7 @@
        "desc": "« Vous naviguez vers Salzenmund ? Faites gaffe à Olg Blóðsalt — un skaeling qui « boit la saumure » et écume la route avec son langskip. La guilde marchande a mis une prime sur sa tête. »",
        "choices": [
         {
+         "id": "merci-pour-avertissement",
          "label": "Merci pour l’avertissement",
          "flow": {
           "kind": "seq",
@@ -2168,6 +2193,7 @@
        "desc": "Au matin de l'appareillage, le chat du bord est malade et un albatros mort est cloué au beaupré. Kramer était « à terre toute la nuit ».",
        "choices": [
         {
+         "id": "interroger-sur-nuit",
          "label": "L’interroger sur sa nuit",
          "flow": {
           "kind": "test",
@@ -2230,6 +2256,7 @@
          "next": "nc1"
         },
         {
+         "id": "laisser-tranquille",
          "label": "La laisser tranquille",
          "flow": {
           "kind": "seq",
@@ -2256,6 +2283,7 @@
        "desc": "« Calfeutrons la coque avant de reprendre la mer, capitaine — la traversée l'a mise à mal. »",
        "choices": [
         {
+         "id": "superviser-reparation",
          "label": "Superviser la réparation",
          "flow": {
           "kind": "seq",
@@ -2279,6 +2307,7 @@
          "next": "rp1"
         },
         {
+         "id": "plus-tard",
          "label": "Plus tard",
          "flow": {
           "kind": "seq",
@@ -3476,6 +3505,7 @@
        "desc": "« La Seconde Flotte manque de coques, capitaine. La prise du Serpent-de-Sel est à vendre ? »",
        "choices": [
         {
+         "id": "toucher-solde-mission",
          "label": "Toucher la solde de la mission (parts + prime)",
          "when": {
           "kind": "flag",
@@ -3525,6 +3555,7 @@
          "next": "e1"
         },
         {
+         "id": "prendre-conge",
          "label": "Prendre congé",
          "flow": {
           "kind": "seq",

@@ -7,7 +7,7 @@ import { ciblePsy } from '../engine/psych/ciblage';
 import { psychologies } from '../data';
 import { Combatant } from '../engine/types';
 import { EtatPanel, zoneAfflictions, ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './EtatPanel';
-import { traumaById, consolidateAmputations, traumaCharPenalties } from '../engine/trauma';
+import { traumaById, consolidateAmputations, traumaCharPenalties, avecSequelles } from '../engine/trauma';
 import { useGame } from '../state/store';
 import { combattantDeTest, blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -297,7 +297,7 @@ describe('EtatPanel', () => {
    *  alimente `FigZoneBadges`, composé par `CharacterSheet.tsx` : un badge PAR membre touché. */
   it('orteils perdus aux DEUX jambes : les deux zones restent badgées après consolidation (LDB 18 l.281)', () => {
     const hero = mkHero((c) => {
-      c.traumas = [traumaById('orteil-ampute', undefined, 'jambeG'), traumaById('orteil-ampute', undefined, 'jambeD')];
+      c.traumas = avecSequelles([], [traumaById('orteil-ampute', undefined, 'jambeG'), traumaById('orteil-ampute', undefined, 'jambeD')]);
     });
     consolidateAmputations(hero);
     const zones = zoneAfflictions(hero).filter((z) => z.trauma > 0);

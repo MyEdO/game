@@ -818,7 +818,7 @@ sort précis, réordonner `combatants[].spells` au SETUP ou utiliser le scénari
 **Flux HORS gestes `jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`** (`devDriveModal`/`roll()`/`confirm()`/`cancel()` ne
 les couvrent PAS — cliquer les VRAIS boutons) : `pendingCascade` se
 résout par `cascadeResolveAll` (bouton **« Tout lancer »**, résout d'un coup le reste sans influence)
-puis `fenetreFermer('cascade')` (bouton **« Terminer »** du bilan, sa sortie) — `jetRoll('cascade', id)`/`cascadeNext` avancent étape
+puis `fenetreFermer('cascade')` (bouton **« Terminer »** du bilan, sa sortie) — `jetRoll('cascade', id)`/`jetConfirm('cascade')` avancent étape
 par étape (bouton « Continuer »/« Terminer » de la dernière étape), cf. `src/ui/CascadeModal.tsx`.
 
 **`pendingTest` seul ne rend RIEN à l'écran** : c'est un slot d'état pur (`noyau/etat.ts`), consommé en
@@ -861,7 +861,7 @@ pas la cible d'UX.
 | `maneuver('id', side?, helmsmanId?)` | manœuvre RÉELLE (Test de Navigation, peut échouer) | contrairement à `turnShip`, PEUT rater — pas une triche. Un raté rend « ✓ Test joué : <navire> rate la manœuvre (DR n) — cap <cap> inchangé » : le `✓` dit que le Test est JOUÉ, pas réussi — lire le DR et le cap |
 | `killEnemies({withQualityLoot?})` | élimine tous les ennemis + flux de victoire NORMAL | ignore les postes `inert` non `dead` (affûts non visés, LDB — voir `isOutOfAction`) ; `withQualityLoot:true` ajoute à `pendingVictory.gear` un objet CATALOGUÉ à qualités (premier trapping de `trappings.json` avec `qualities` non vide, choisi dynamiquement — MÊME brique `gearFromEffects` que le vrai butin) — NON ajouté si la victoire n'est pas atteinte (cascade de fin de combat ouverte / combat en cours), le message le signale |
 | `dealDamage('id', n=5)` | inflige `n` Dégâts à un combattant par le VRAI pipeline (`applyOps` op `wounds`, BE et PA ignorés, États, puis `checkBattleOver` : reddition/naufrage/victoire) ; `n` est un nombre fini, sinon refus nommé (`✗`) | combat requis ; éprouve l'issue navale (coule une coque, teste un naufrage) sans jouer chaque tir |
-| `combatEnd({heroId?,critical?,corruption?})` | arme les conséquences de fin de combat (Infection/Corruption/Destin) puis LAISSE la cascade ouverte. `corruption` est l'id du Degré du trait `corruption` posé sur un ennemi : `'mineure'`, `'moderee'` (défaut, clé absente) ou `'majeure'` ; `false` n'expose pas. `critical:false` retire l'Infection post-critique ; un `corruption` qui n'est ni l'id d'un Degré ni `false` (`true`, un nombre, un libellé) est refusé, nommé (`✗`) | à conduire à la main (`jetRoll('cascade', id)`/`cascadeNext`) — n'auto-résout rien, contrairement à `killEnemies` |
+| `combatEnd({heroId?,critical?,corruption?})` | arme les conséquences de fin de combat (Infection/Corruption/Destin) puis LAISSE la cascade ouverte. `corruption` est l'id du Degré du trait `corruption` posé sur un ennemi : `'mineure'`, `'moderee'` (défaut, clé absente) ou `'majeure'` ; `false` n'expose pas. `critical:false` retire l'Infection post-critique ; un `corruption` qui n'est ni l'id d'un Degré ni `false` (`true`, un nombre, un libellé) est refusé, nommé (`✗`) | à conduire à la main (`jetRoll('cascade', id)`/`jetConfirm('cascade')`) — n'auto-résout rien, contrairement à `killEnemies` |
 | `healParty()` | groupe à neuf (PB max, états/critiques/maladies purgés, morts relevés) | ne touche QUE `kind:'hero'` en combat |
 | `charge('enemyId', heroId?)` | simule une charge (déclenche `onCharged`, Frappe réactive) | héros cible = le plus proche par défaut. ⚠ **Ni `place()` ni `charge()` n'établissent l'Engagement** (`engagedWith` reste vide) : RAW, seule une VRAIE attaque de corps à corps engage (LDB 13 l.169-175). Une recette qui a besoin d'un Engagement le crée en ATTAQUANT, pas en approchant — ~20 appels perdus à chercher pourquoi l'état n'arrivait pas |
 | `quality('id', label?, advantage?)` | ajoute un Atout/Défaut à l'arme ACTIVE + Avantages | ne touche que `weapons[0]` ; `null` vaut absent (un `undefined` passé par CDP arrive `null`) : qualité par défaut « Déstabilisante », Avantage inchangé |
@@ -889,7 +889,7 @@ pas la cible d'UX.
 | `flags()` / `flag('id', value=true)` | lit/force un drapeau de scénario | id de règle optionnelle refusé avec renvoi à `rules(id, value)` |
 | `setMorale(n)` | pose directement `vessel.morale.score` (setup, MÊME patron que `flag()`) | pas le pipeline hebdomadaire (`recalcMorale`) — sert à rendre la désertion à quai (bande ≤75, `moraleBand(score).desertionRoll`) observable sans dérouler des semaines de facteurs ; `✗` sans `state.vessel` |
 | `gmSeat(bool?)` | flip du siège MJ SOLO (`setGmSeat`, siège 0) — sans argument : BASCULE | ⚠ **`scenario()` ne RÉINITIALISE PAS le siège MJ** (mesuré #1028 : `net.gmSeat` survit à `setParty`/`startScene`/`loadProject` — seuls `setGmSeat` et la fermeture d'un siège `netSeatClosed` y touchent) : appeler `gmSeat(false)` EXPLICITEMENT entre deux scénarios, sinon le 2ᵉ hérite du siège MJ (ennemis conduits à la main, jets surfacés qu'on croyait auto). La VALIDATION du flux MJ reste la checkbox RÉELLE de l'UI (§ Pièges vécus ci-dessous), ce helper économise seulement la mise en place |
-| `time(minutes=60)` / `rest(days=1)` | avance l'horloge / dort N jours par le chemin EAGER | ⚠ **`rest()` n'ouvre AUCUNE modale de nuit** : il route `restParty` → `restFlow.sleepParty`, qui résout la nuit ENTIÈRE d'un coup (triche d'avancement). Le VRAI chemin joueur — la cascade influençable, une étape à la fois — est le bouton « Dormir » de l'auberge/du camp (`restSleep` → `openRestNight` → `pendingRest`) : pour recetter un jet de nuit (Faim, Récupération, Exposition, maladie…), passer par CE bouton, jamais par `rest()`. ⚠ **NE PILOTE PAS non plus une traversée EN MER** : découplé de `travelPlan.sea` (`noyau/seaVoyageFlow.ts`), il avance l'horloge SANS faire progresser le navire sur sa route (désynchronise `gameTime` du voyage). Pour accélérer une traversée COMMANDÉE, voir « Voyage en mer » ci-dessous |
+| `time(minutes=60)` / `rest(days=1)` | avance l'horloge / dort N jours par le chemin EAGER | ⚠ **`rest()` n'ouvre AUCUNE modale de nuit** : il route `restParty` → `restFlow.sleepParty`, qui résout la nuit ENTIÈRE d'un coup (triche d'avancement). Le VRAI chemin joueur — la cascade influençable, une étape à la fois — est le bouton « Dormir » de l'auberge/du camp (`fenetreValider('rest')` → `openRestNight` → `pendingRest`) : pour recetter un jet de nuit (Faim, Récupération, Exposition, maladie…), passer par CE bouton, jamais par `rest()`. ⚠ **NE PILOTE PAS non plus une traversée EN MER** : découplé de `travelPlan.sea` (`noyau/seaVoyageFlow.ts`), il avance l'horloge SANS faire progresser le navire sur sa route (désynchronise `gameTime` du voyage). Pour accélérer une traversée COMMANDÉE, voir « Voyage en mer » ci-dessous |
 | `chantier('reparer'\|'carener'\|upgradeId, units?)` | services du chantier naval au port | hors combat, navire de campagne requis |
 | `massBattle(ally?, enemy?, rounds?)` | lance une bataille de masse de démo | la scène courante doit porter les rencontres attendues |
 | `scenario(id?, seed?)` | lance un scénario de test PRÊT À JOUER ; sans argument : liste les ids | Round 1 déjà acquitté, initiative déterministe SI `seed`. Un id inconnu ou une scène vide JETTENT une `Error` nommée (#1734) : l'id inconnu porte l'id demandé ET la liste des ids ; la scène vide (aucune scène active, ou `scene.entities` à 0) porte son id et son compte d'entités. Un lancement refusé n'écrit RIEN dans la mémoire d'onglet de `resumeLastScenario()` |
@@ -950,7 +950,7 @@ elle reprend à la CONFIRMATION de ces étapes/modales, jamais via `time()`/`res
 
 | Helper | Usage | Limites connues |
 |---|---|---|
-| `advanceSeaDay({stopOnEveryEvent?, stopAt?, maxIters?})` | symétrique VOYAGE de `fastForward` : pilote la journée EN COURS (cascade du jour, halte de nuit, Activités hebdo si le palier de 8 jours tombe) jusqu'au JOUR SUIVANT — MÊME machinerie que le joueur (`cascadeResolveAll`/`Finish`, `restSleep`, `seaActivitiesConfirm`), sans les clics | s'arrête sur la cascade `travelDay` FRAÎCHE du jour suivant (déjà ouverte, `cursor:0`, pas encore consommée — le PROCHAIN `advanceSeaDay()`/`roll()`/`skipToArrival()` la joue), jamais un `pendingCascade` à `null` ; `maxIters` (défaut 400) = garde-fou scrutations, `✗ borne atteinte…` = soft-lock probable (`auto()`) ; retourne une `Promise` (`await`). **PORTÉE EXACTE de `stopOnEveryEvent:true` (#380)** : il ne s'arrête QUE sur un événement RACONTÉ (carte-parchemin, `travelDay.events` non vide, testé sur `pendingRest`/`pendingSeaActivities`) — **jamais** sur une étape STRUCTURELLE du jour (Progression, choix de Progression, Orientation, Exposition, Entretien…), que `cascadeResolveAll` traverse aux défauts. L'attendre pour observer une étape a coûté un point de recette. Pour CELA : `stopAt:'<kind>'` (#1117) → s'arrête **avant** de résoudre la cascade qui porte cette étape et rend la main intacte (ex. `advanceSeaDay({stopAt:'sea-progression-choice'})`, puis `__wfrp.modal()`/`roll()`). Même option sur `advanceRiverDay` |
+| `advanceSeaDay({stopOnEveryEvent?, stopAt?, maxIters?})` | symétrique VOYAGE de `fastForward` : pilote la journée EN COURS (cascade du jour, halte de nuit, Activités hebdo si le palier de 8 jours tombe) jusqu'au JOUR SUIVANT — MÊME machinerie que le joueur (`cascadeResolveAll`/`Finish`, `fenetreValider('rest')`, `seaActivitiesConfirm`), sans les clics | s'arrête sur la cascade `travelDay` FRAÎCHE du jour suivant (déjà ouverte, `cursor:0`, pas encore consommée — le PROCHAIN `advanceSeaDay()`/`roll()`/`skipToArrival()` la joue), jamais un `pendingCascade` à `null` ; `maxIters` (défaut 400) = garde-fou scrutations, `✗ borne atteinte…` = soft-lock probable (`auto()`) ; retourne une `Promise` (`await`). **PORTÉE EXACTE de `stopOnEveryEvent:true` (#380)** : il ne s'arrête QUE sur un événement RACONTÉ (carte-parchemin, `travelDay.events` non vide, testé sur `pendingRest`/`pendingSeaActivities`) — **jamais** sur une étape STRUCTURELLE du jour (Progression, choix de Progression, Orientation, Exposition, Entretien…), que `cascadeResolveAll` traverse aux défauts. L'attendre pour observer une étape a coûté un point de recette. Pour CELA : `stopAt:'<kind>'` (#1117) → s'arrête **avant** de résoudre la cascade qui porte cette étape et rend la main intacte (ex. `advanceSeaDay({stopAt:'sea-progression-choice'})`, puis `__wfrp.modal()`/`roll()`). Même option sur `advanceRiverDay` |
 | `skipToArrival(maxIters=4000)` | comme `advanceSeaDay` mais ROULE jusqu'à l'ACCOSTAGE (`openPortAt`, `travelPlan` vidé) | s'arrête aussi sur un combat (embuscade/abordage), et rend alors « ✓ voyage interrompu par un combat — voir __wfrp.battle() » (même retour pour `advanceSeaDay` et `advanceRiverDay`, `driveSeaVoyage`) — `battle` ouvert, à jouer/`fastForward` séparément ; `Promise` (`await`) |
 | `dealShipDamage(n=5)` | inflige `n` Dégâts de coque HORS COMBAT — VRAI pipeline (`damageCampaignVessel` : la coque de trajet en voyage, la coque bâtie du navire au port) | symétrique de `dealDamage` (combat) — voir le piège des DEUX copies de coque ci-dessous ; **NE déclenche AUCUN naufrage** : une coque à 0 ne coule pas (MDG 13 l.656, l.674), voir `forceShipwreck` |
 | `forceShipwreck(aboardIds?)` | déclenche `beginShipwreck` DIRECTEMENT (setup ASSUMÉ, PAS le pipeline de dégâts) — coque + cargaison purgées IMMÉDIATEMENT, cascade de survie à la nage (Chance/Pacte/Résilience influençable) ouverte pour les héros à bord | `✗` sans `state.vessel` ; hors combat, c'est la seule entrée du naufrage |
@@ -1054,7 +1054,7 @@ __wfrp.scenario('chute-du-greement', 11)   // lancement (combat direct)
 __wfrp.prefs('des-fixes', true)            // pour POSER les dés
 
 __wfrp.shipCrit('greement')                // 1. Critique sur la coque des HÉROS (défaut)
-// 2. valider l'étape « Critique de navire » (cascadeNext), puis LANCER chaque rangée d'Athlétisme :
+// 2. valider l'étape « Critique de navire » (jetConfirm('cascade')), puis LANCER chaque rangée d'Athlétisme :
 //    la bande est une étape à RANGÉES — le geste est jetRoll('cascadeBatch', idDuTesteur), pas jetRoll('cascade', …).
 // 3. les étapes de dé de la chute suivent : jetRoll('cascadeTirage', id) puis jetSetForcedRoll('cascadeTirage', v, id)
 ```
@@ -1690,13 +1690,13 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
   autre siège, ou tant qu'une fenêtre (dialogue, pause de Round, cascade) est ouverte, rien ne répond.
   Fermer la fenêtre, ou rendre la main au bon siège, AVANT de conclure à une régression clavier.
 - **Ready-check de début de Round — le combat n'est PAS bloqué** : dès `net.mode !== 'local'`, l'hôte ne
-  lance le Round que quand `pendingRoundStart.readyBySeat` est complet (`roundStartReady()` marque le siège qui
-  décide, `src/noyau/combatSlice.ts`). Annoncer « Prêt » **sur CHAQUE page** — sans les deux déclarations, rien
+  lance le Round que quand `pendingRoundStart.readyBySeat` est complet (`fenetreValider('roundStart')` marque le
+  siège qui décide, `src/noyau/sortieDeFenetre.ts`). Annoncer « Prêt » **sur CHAQUE page** — sans les deux déclarations, rien
   n'avance, aucun tour ne s'ouvre, aucune modale ne surface : ce n'est pas un gel, c'est le
   ready-check. ⚠ SEULE SURFACE aujourd'hui : le raccourci clavier `round-start`
   (`src/state/clavier/keybindings.ts`) — le bandeau de phase de la console ne rend que le
-  « Commencer le combat » SOLO (`confirmRoundStart`) ; en recette coop, piloter par
-  `store.getState().roundStartReady()` sur la page du siège concerné.
+  « Commencer le combat » (`fenetreValider('roundStart')`, le Round part d'un appel en solo) ; en recette coop,
+  piloter par `store.getState().fenetreValider('roundStart')` sur la page du siège concerné.
 - **Sous-bandes successives INDISCERNABLES au DOM** : une bande peut en appeler une autre (chaque rangée
   vaincue ré-appende SON Test à la cascade — Surprise → Vigilance, `src/noyau/combat/triggeredTest.ts`).
   Deux étapes consécutives présentent alors le MÊME libellé et les MÊMES boutons : la présence de
@@ -2005,7 +2005,7 @@ mécaniques » en `{ exact: true }` rate (piège du suffixe ci-dessus) — soit 
 Un effet **Journal** (texte et provenance, #2001) suit le même chemin, mesuré au code :
 
 Éditeur → onglet **Triggers** (`src/ui/editor/LogicDock.tsx:85`) → **+ Nouveau trigger** (`:174`, qui
-sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/FlowEditor.tsx:226`) →
+sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/FlowEditor.tsx:223`) →
 **Journal** (`src/noyau/combatEffects.ts:1257`).
 
 - « + Bloc » est le `<summary>` d'un `<details>` (`AddMenu`, `src/ui/editor/AddMenu.tsx`) : le cliquer
@@ -2013,7 +2013,7 @@ sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/Flo
   (`AddMenu.tsx`, un `mini-title` par groupe, jamais cliquable) : « Narration » n'est qu'un titre, on
   clique « Journal » directement.
 - La ligne d'effet posée est un `<details class="eff-row flow-node">` REPLIÉ (`open` n'est posé que pour
-  un nœud `if`/`test`, `FlowEditor.tsx:263`) : ouvrir son `<summary>` avant de viser la zone de texte —
+  un nœud `if`/`test`, `FlowEditor.tsx:268`) : ouvrir son `<summary>` avant de viser la zone de texte —
   `deplierVers(session, '<sélecteur du champ>')` le fait au geste (clic réel du `summary`, puis molette).
 - Depuis la CARTE, un trigger sélectionné ouvre le même détail par le bouton **Effets (n)…** de
   l'inspecteur (`src/ui/editor/Inspector.tsx:910`).
@@ -2039,7 +2039,7 @@ Les deux niches météo éditent le MÊME fichier (`src/data/weather.json`) sous
 recette qui vérifie l'édition d'une météo doit dire LAQUELLE des deux elle a ouverte.
 
 En Atelier, les ops d'une mutation ou d'un talent sont des `<details class="eff-row">` REPLIÉS
-(`src/ui/editor/GameOpEditor.tsx:1347`, l'éditeur d'ops que compose `CodexEdit`) : un champ d'op
+(`src/ui/editor/GameOpEditor.tsx:1030`, l'éditeur d'ops que compose `CodexEdit`) : un champ d'op
 s'atteint par `deplierVers` (clic réel du `summary`, puis molette) — `scrollIntoView` ne le ramène pas.
 
 **Prose ADRESSÉE (`descRef`, #1389)** — la première famille dont la prose n'est plus recopiée dans la

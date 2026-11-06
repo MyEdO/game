@@ -225,6 +225,8 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             rendu ; `Grade`, lien vertical lu par le noyau pour le déplacement),
                             `structureAppearance.types.ts` (`StructureAppearanceDef`, `WALL_PARTS`),
                             `ambiance.types.ts` (`AmbianceDef`, `Visibility`)
+                            VALEURS NEUVES de l'atelier qui ne lisent que schémas et donnée
+                            (`valeursNeuves.ts`) : le défaut d'une union fermée est son premier membre, lu au schéma
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
                               `defs-scenes/<nom>.ts`) qui DÉCLARE son document par la fabrique
                               `document()` (`grammaire/document.ts`) : enveloppe commune posée par la
@@ -475,6 +477,11 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   worldMapEdit.ts           ÉCRIVAINS PURS de la carte du monde (WorldMap → WorldMap) que l'éditeur appelle :
                             patchs, ajout de lieu (bornes `BORNES_DE_CARTE`, décalage, libellé de la semence),
                             liaison dédoublonnée par sens, suppressions en cascade (routes, `suite` des billets).
+                            Ses valeurs neuves (péripétie, port, marché) : `peripetieNeuve`, `portNeuf`, `marcheNeuf`.
+  valeursNeuves.ts          VALEURS NEUVES de l'atelier qui lisent le moteur ou le monde : `newOp`,
+                            `formulaForShape`/`shapeOf`, `newEffect`. Celles qui ne lisent que schémas et
+                            donnée vivent dans `data/valeursNeuves.ts` (`recast`, `convertTo`/`memoriser`,
+                            les blocs neufs d'un Flow authoré `noeudTestNeuf`/`blocNeuf`, `emptyStatblock`).
   combatFlow.ts               flux de combat tour par tour (IA, attaques, effets, fin de combat).
                               Les clusters FEUILLES extraits sont des modules séparés, que chaque importeur
                               nomme directement : monde/combatGeometry.ts (géométrie pure),
@@ -628,7 +635,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;
                             les GLB vivent dans la Release `modeles-3d`, nommés par leur SHA-256, que la provenance
                             commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import).
-  projet/                   le projet Godot 4.7 (GDScript, scènes, manifestes et provenances des modèles KayKit, leur licence) : il dessine la
+  projet/                   le projet Godot 4.7 (GDScript, scènes, manifestes et provenances des modèles 3D, leurs licences) : il dessine la
                             vue et rend chaque geste en intention, sans règle, l'arithmétique de la mise en page dans
                             le seul `hotes/godot/projet/scripts/mise_en_page.gd` (gardes `src/hote/derive-du-noyau.hors-store.test.ts`,
                             `scripts/guards/lib/gdscriptSansRegle.mjs`) ;

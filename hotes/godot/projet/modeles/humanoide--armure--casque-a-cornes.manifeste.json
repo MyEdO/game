@@ -3,7 +3,7 @@
   "base": "humanoide",
   "categorie": "armure",
   "cle": {
-    "piece": "casque"
+    "piece": "casque-a-cornes"
   },
   "liaison": {
     "mode": "squelette"

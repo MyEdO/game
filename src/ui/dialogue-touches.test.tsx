@@ -6,7 +6,7 @@
  *
  * Contrats POSITIFS :
  *  · la touche adresse le RANG affiché (une réponse masquée par son `when` ne décale pas les
- *    suivantes) et passe à `chooseDialogue` l'INDEX de la donnée ;
+ *    suivantes) et passe à `chooseDialogue` l'`id` de la donnée ;
  *  · une réponse FERMÉE (bourse trop courte) est inerte à la touche comme au clic, et un rang ABSENT
  *    ne fait rien ;
  *  · le siège qui ne décide pas (coop) ne déclenche rien — ni la réponse, ni le raccourci voisin ;
@@ -38,9 +38,9 @@ const frapper = (code: string) =>
 const dlg: Dialogue = {
   id: 'd-touches', start: 'n1',
   nodes: [{ id: 'n1', desc: 'Que faites-vous ?', choices: [
-    { label: 'Une', next: 'n2' },
-    { label: 'Cachée', when: { kind: 'flag', expr: 'jamais' }, next: 'n2' },
-    { label: 'Deux', next: 'n2' },
+    { id: 'une', label: 'Une', next: 'n2' },
+    { id: 'cachee', label: 'Cachée', when: { kind: 'flag', expr: 'jamais' }, next: 'n2' },
+    { id: 'deux', label: 'Deux', next: 'n2' },
   ] }, { id: 'n2', desc: 'Suite.', choices: [] }],
 } as Dialogue;
 
@@ -48,7 +48,7 @@ const scene = { ...emptyScene('scn', 4, 4), dialogues: [dlg] };
 
 let host: HTMLDivElement;
 let root: Root;
-let choisis: number[];
+let choisis: string[];
 
 function monter(over: Partial<GameState> = {}) {
   choisis = [];
@@ -58,7 +58,7 @@ function monter(over: Partial<GameState> = {}) {
     net: { mode: 'local', mySeat: 0, seatNames: {}, presence: {}, connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0] } as GameState['net'],
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },
     // Espion posé SUR l'action du store : ce qui est mesuré est l'ARGUMENT reçu, pas une closure.
-    chooseDialogue: (i: number) => { choisis.push(i); },
+    chooseDialogue: (id: string) => { choisis.push(id); },
     ...over,
   });
   host = document.createElement('div');
@@ -79,10 +79,10 @@ describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => 
     useGame.setState({ dialogue: null, battle: null, chooseDialogue: vrai.chooseDialogue });
   });
 
-  it('la touche 2 choisit la 2ᵉ réponse VISIBLE, par son INDEX de donnée', () => {
+  it('la touche 2 choisit la 2ᵉ réponse VISIBLE, par son id de donnée', () => {
     monter();
     frapper('Digit2');
-    expect(choisis).toEqual([2]); // rang 2 à l'écran = index 2 dans `choices` (la 2ᵉ est masquée)
+    expect(choisis).toEqual(['deux']); // rang 2 à l'écran = 3ᵉ réponse de `choices` (la 2ᵉ est masquée)
   });
 
   it('un rang ABSENT (9 réponses attendues, 2 offertes) ne fait rien', () => {
@@ -92,7 +92,7 @@ describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => 
   });
 
   it('réponse FERMÉE (bourse trop courte) : la touche est inerte, comme le clic', () => {
-    const payant = { ...dlg, nodes: [{ ...dlg.nodes[0], choices: [{ label: 'Payer', cost: { gold: 5 } }] as DialogueNode['choices'] }, dlg.nodes[1]] } as Dialogue;
+    const payant = { ...dlg, nodes: [{ ...dlg.nodes[0], choices: [{ id: 'payer', label: 'Payer', cost: { gold: 5 } }] as DialogueNode['choices'] }, dlg.nodes[1]] } as Dialogue;
     monter({ dialogue: { dialogue: payant, nodeId: 'n1', session: 1 } });
     frapper('Digit1');
     expect(choisis).toEqual([]);
@@ -112,7 +112,7 @@ describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => 
       battle: { over: null, order: ['h1'], turn: 0, combatants: [combattantDeTest({ id: 'h1', kind: 'hero' })] } as never,
     });
     frapper('Digit1');
-    expect(choisis).toEqual([0]);
+    expect(choisis).toEqual(['une']);
     expect(tire).not.toHaveBeenCalled();
   });
 

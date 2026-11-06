@@ -35,6 +35,7 @@ import { roll as rollDice, type RNG, type Tirage } from './dice';
 import { rollTest } from './tests';
 import type { Difficulty } from './types';
 import type { TestExige } from './flowCore';
+import type { CibleEtendue } from '../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
 import { profilNavalDe } from './coque';
@@ -324,7 +325,7 @@ export interface SteamBreakdownEntry {
   engineDestroyed?: boolean;
   hullCritical?: boolean;
   compartmentDamage?: number;
-  restart?: { test: TestExige<'difficulty'>; extendedDR?: number }[];
+  restart?: ({ test: TestExige<'difficulty'> } & Partial<CibleEtendue>)[];
 }
 
 export const STEAM_BREAKDOWNS = steamBreakdownJson as SteamBreakdownEntry[];

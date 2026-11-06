@@ -27,7 +27,7 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie', () => {
   beforeEach(() => {
     get().setParty([heros('Vivant', 1), naine()]);
     get().loadProject({ scenes: paquet.scenes, entryId: paquet.scenes[0].id, worldMap: paquet.worldMap, narratif: paquet.narratif, projet: { id: paquet.id } });
-    get().acquitterOuverture();
+    get().fenetreValider('ouverture');
     get().transitionTo('route-principale-virage');
     poserLeGroupe(get, useGame.setState, { x: 36, y: 3 });
     get().jouerAction('cadavre-kastor-lieberung', 'fouiller');

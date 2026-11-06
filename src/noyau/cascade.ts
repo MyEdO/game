@@ -1493,7 +1493,7 @@ export function porteursDeLEtape(st: CascadeStep): string[] {
  * (`sieges.worldSeat`) — seule la cadence déférée à un automate l'en dessaisit.
  *
  * TABLE **ET** JET (#1479) : une étape MONO qu'aucun humain ne tient bloquait la séquence net — aucune
- * fenêtre ne la lançait, `stepReady` la refusait, `cascadeNext` restait en no-op définitif. Les BANDES
+ * fenêtre ne la lançait, `stepReady` la refusait, `jetConfirm('cascade')` restait fermé pour toujours. Les BANDES
  * n'en sont pas (leurs rangées naissent déjà témoins-roulées, `rollSeam.surfaceRow`), les CHOIX non plus
  * (une décision ne se tire pas : `runCascadeImmediate` exige un défaut authoré).
  */
@@ -1577,7 +1577,7 @@ function poserLeCurseur(get: Get, p: PendingCascade, arrivee = true): PendingCas
  * PORTE PUBLIQUE du curseur (#1426) — poser le curseur d'une cascade OUVERTE sur l'étape `i`. Tout
  * site qui reprend la main sur une cascade hôte (fold d'incantation, re-ciblage du lanceur d'un Test)
  * passe par ICI : un `set({ pendingCascade: { …casc, cursor: i } })` écrit à la main court-circuite le
- * pilote, et une table qu'aucun siège ne joue reste alors non tirée — `cascadeNext` en no-op définitif.
+ * pilote, et une table qu'aucun siège ne joue reste alors non tirée — `jetConfirm('cascade')` fermé pour toujours.
  */
 export function poserCurseurCascade(get: Get, set: Set, casc: PendingCascade, i: number): void {
   set({ pendingCascade: curseurPose(get, casc, i) });

@@ -37,26 +37,31 @@ const construireScene = (): Scene => buildScene({
           desc: '« Halte-là ! Qu’est-ce qui vous amène ? »',
           choices: [
             {
+              id: 'crochetage-on-sait',
               label: '[Crochetage] « On sait forcer une serrure, au besoin. »',
               when: { kind: 'skill', id: 'crochetage' },
               flow: flowFromEffects([{ type: 'journal', desc: 'Le garde hausse un sourcil, amusé.' }, { type: 'endDialogue' }]),
             },
             {
+              id: 'soldat-on-porte',
               label: '[Soldat] « On a porté l’uniforme, nous aussi. »',
               when: { kind: 'career', id: 'soldat' },
               flow: flowFromEffects([{ type: 'journal', desc: 'Le garde se détend, entre collègues.' }, { type: 'endDialogue' }]),
             },
             {
+              id: 'halfling-petit-gabarit',
               label: '[Halfling] « Un petit gabarit passe partout, hein ? »',
               when: { kind: 'species', id: 'halflings' },
               flow: flowFromEffects([{ type: 'journal', desc: 'Le garde éclate de rire.' }, { type: 'endDialogue' }]),
             },
             {
+              id: 'statut-argent-nous',
               label: '[Statut : Argent+] « Nous sommes des gens de qualité. »',
               when: { kind: 'status', atLeast: 'Argent 1' },
               flow: flowFromEffects([{ type: 'journal', desc: 'Le garde s’incline, un peu raide.' }, { type: 'endDialogue' }]),
             },
             {
+              id: 'passer-chemin-sans',
               label: 'Passer son chemin sans un mot.',
               flow: flowFromEffects([{ type: 'endDialogue' }]),
             },

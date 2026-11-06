@@ -1,12 +1,14 @@
-## Le plateau 3D : le sol du plateau de la scène (`vue.plateau`), ses murs et ses portes fermées, chaque combattant à sa case (`voisins`) ou, en
-## exploration, le meneur du groupe à la case du groupe et chaque entité de la scène nommée à sa case, les
-## surbrillances des cases que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la
-## case sous le pointeur jusqu'au clic ; caméra pivotante (Q/E, par quart de tour) et zoomable (molette). Il ne rend que la case
-## cliquée.
+## Le plateau 3D : le sol du plateau de la scène (`vue.plateau`), ses murs et ses portes fermées, chaque combattant à
+## sa case (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son corps (`vue.corps`,
+## aucun sous son `refus`), et chaque entité de la scène nommée à sa case, les surbrillances des cases que la vue peint
+## (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le pointeur jusqu'au
+## clic ; caméra pivotante (Q/E, par quart de tour) et zoomable (molette). Il ne rend que la case cliquée.
 class_name Plateau
 extends Node3D
 
 signal case_cliquee(case: Vector2i)
+## Le corps d'un combattant dessiné a changé (`Combattant.habille`).
+signal habille
 
 const ITEM_SOL := 0
 const ITEM_BLOQUANT := 1
@@ -65,10 +67,11 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 		var lieu := _monde(Vector2i(int(c.pos[0]), int(c.pos[1])))
 		if not _modeles.has(c.id):
 			var modele: Combattant = scene_combattant.instantiate()
+			modele.position = lieu
 			_combattants.add_child(modele)
-			modele.configurer(c, lieu)
+			modele.habille.connect(habille.emit)
 			_modeles[c.id] = modele
-		_modeles[c.id].montrer(c, lieu, c.id == actif, vue.equipements[c.id])
+		_modeles[c.id].montrer(c, lieu, c.id == actif, null if vue.corps.refus != null else vue.corps.combattants.get(c.id), vue.plateau.metresParCase)
 	for ligne in journal:
 		var e: Variant = ligne.get("evenement")
 		if e != null and _modeles.has(e.get("actorId", "")) and _modeles.has(e.get("targetId", "")) and e.actorId != e.targetId:
@@ -108,6 +111,14 @@ func _nommer_les_entites(entites: Array) -> void:
 		nom.position = MiseEnPage.au_dessus_de_la_case(Vector2i(int(e.pos[0]), int(e.pos[1])))
 		_entites[e.id] = nom
 		add_child(nom)
+
+
+## Par id de combattant dessiné, ce que porte son corps (`Combattant.corps`).
+func corps() -> Dictionary:
+	var portes := {}
+	for id in _modeles:
+		portes[id] = _modeles[id].corps()
+	return portes
 
 
 ## Le point de l'écran de la case de l'aperçu du premier clic (sa case, ou celle du combattant qu'il vise), `null` sans

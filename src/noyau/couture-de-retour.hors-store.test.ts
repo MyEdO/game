@@ -12,7 +12,7 @@ import { touchActors } from './combatOrParty';
 import { seedBattleRng, battleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { contractDisease } from '../engine/disease';
-import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
+import { traumaById, dechirureFractureFicheId, avecSequelles } from '../engine/trauma';
 import { d10 } from '../engine/dice';
 import { effectiveChar } from '../engine/characteristics';
 import { applyExposureFailure } from '../engine/exposure';
@@ -106,7 +106,7 @@ describe('coutures du héros en combat (#2312)', () => {
       const nouvT = [cbt(id).traumas, tirages()];
       id = combat(); seedBattleRng(4242);
       const be = Math.floor(effectiveChar(grp(id), 'endurance') / 10);
-      expect(nouvT).toEqual([[traumaById(dechirureFractureFicheId('fracture', 'mineur', 'brasD'), { be, d10: d10(battleRng()) }, 'brasD')], tirages()]);
+      expect(nouvT).toEqual([avecSequelles([], [traumaById(dechirureFractureFicheId('fracture', 'mineur', 'brasD'), { be, d10: d10(battleRng()) }, 'brasD')]), tirages()]);
 
       for (const graine of [1, 2, 3, 5, 8]) {
         id = combat(); seedBattleRng(graine); jouer({ type: 'ambitionLost', heroId: id });

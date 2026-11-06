@@ -354,7 +354,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
     useGame.setState({ party: [heros], screen: 'campaign', gameMenuOpen: false, dialogue: null });
     useGame.getState().startScene(testScene());
     act(() => { useGame.getState().startCombat('enc-mutants'); });
-    if (useGame.getState().pendingRoundStart) act(() => useGame.getState().confirmRoundStart());
+    if (useGame.getState().pendingRoundStart) act(() => useGame.getState().fenetreValider('roundStart'));
     const b = useGame.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     const cible = b.combatants.find((c) => c.kind !== 'hero')!;
@@ -441,7 +441,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
 
 describe('conversation PNJ — une surface de la pile qui suspend le jeu', () => {
   const Clavier = () => { useGameKeyboard(); return null; };
-  const dlg = { id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [{ label: 'Suite' }, { label: 'Adieu' }] }] };
+  const dlg = { id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [{ id: 'suite', label: 'Suite' }, { id: 'adieu', label: 'Adieu' }] }] };
   const scene = { ...emptyScene('s', 4, 4), entities: [{ id: 'e1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, label: 'Alice' }], dialogues: [dlg] };
   const conversation = () => document.querySelector<HTMLElement>('.dialogue-box')!;
   let pris: () => string[];

@@ -178,7 +178,7 @@ function enCombat(banc: Banc) {
   banc.setState({ party: [h] });
   banc.getState().startScene(testScene());
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const [E, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');

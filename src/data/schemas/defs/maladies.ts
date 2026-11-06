@@ -1,10 +1,10 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 20. */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
+import { document, type EnveloppeDocument } from '../grammaire/document';
 import { flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
 import { idDe } from '../grammaire/ref';
-import { diceSpecSchema, symptomSeveritySchema } from '../grammaire/valeurs';
+import { diceSpecSchema, difficultySchema, symptomSeveritySchema } from '../grammaire/valeurs';
 
 export const file = 'maladies.json';
 export const famille = 'entite';
@@ -17,7 +17,7 @@ const diseaseTimeSchema = nommerChamps(z.strictObject({
 const diseaseSymptomSchema = nommerChamps(z.strictObject({
   symptomId: idDe('symptome'),
   severity: symptomSeveritySchema.optional(),
-  difficulty: z.string().optional(),
+  difficulty: difficultySchema.optional(),
   spec: z.string().optional(),
 }), {
   symptomId: { label: 'symptôme' },
@@ -26,27 +26,29 @@ const diseaseSymptomSchema = nommerChamps(z.strictObject({
   spec: { label: 'spécialisation' },
 });
 
+const champs = {
+  contractDifficulty: difficultySchema,
+  incubation: diseaseTimeSchema,
+  duration: diseaseTimeSchema,
+  symptoms: z.array(diseaseSymptomSchema),
+  /** LDB 20 l.127-129. */
+  immuneAfterCure: z.boolean().optional(),
+  /** MSRC 16 l.138. */
+  infectionPassive: passifsDe().optional(),
+  /** MDG 14 l.209. */
+  contaminatesWaterBarrel: z.boolean().optional(),
+  /** EDOC 08 l.104-108. */
+  dailyTest: nommerChamps(z.strictObject({ test: noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true }), symptomId: idDe('symptome') }), { test: { label: 'Test' }, symptomId: { label: 'symptôme' } }).optional(),
+  /** EDOC 08 l.122. */
+  mutation: nommerChamps(z.strictObject({ afterDays: z.number(), into: idDe('maladie') }), { afterDays: { label: 'délai en jours' }, into: { label: 'maladie résultante' } }).optional(),
+  /** EDOC 08 l.122. */
+  reExposition: nommerChamps(z.strictObject({ prolonge: diseaseTimeSchema }), { prolonge: { label: 'prolongation' } }).optional(),
+};
+
 const doc = document(
   'maladies',
   famille,
-  {
-    contractDifficulty: z.string(),
-    incubation: diseaseTimeSchema,
-    duration: diseaseTimeSchema,
-    symptoms: z.array(diseaseSymptomSchema),
-    /** LDB 20 l.127-129. */
-    immuneAfterCure: z.boolean().optional(),
-    /** MSRC 16 l.138. */
-    infectionPassive: passifsDe().optional(),
-    /** MDG 14 l.209. */
-    contaminatesWaterBarrel: z.boolean().optional(),
-    /** EDOC 08 l.104-108. */
-    dailyTest: nommerChamps(z.strictObject({ test: noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true }), symptomId: idDe('symptome') }), { test: { label: 'Test' }, symptomId: { label: 'symptôme' } }).optional(),
-    /** EDOC 08 l.122. */
-    mutation: nommerChamps(z.strictObject({ afterDays: z.number(), into: idDe('maladie') }), { afterDays: { label: 'délai en jours' }, into: { label: 'maladie résultante' } }).optional(),
-    /** EDOC 08 l.122. */
-    reExposition: nommerChamps(z.strictObject({ prolonge: diseaseTimeSchema }), { prolonge: { label: 'prolongation' } }).optional(),
-  },
+  champs,
   {
     contractDifficulty: { label: 'Difficulté de contraction' },
     incubation: { label: 'Incubation', hint: 'Délai avant apparition des symptômes' },
@@ -70,3 +72,7 @@ export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
+export type DiseaseTime = z.infer<typeof diseaseTimeSchema>;
+/** Instance de symptôme, par `z.input` : l'état d'une maladie portée (`Disease.symptoms`) porte des ids nus. */
+export type DiseaseSymptom = z.input<typeof diseaseSymptomSchema>;
+export type DiseaseDef = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

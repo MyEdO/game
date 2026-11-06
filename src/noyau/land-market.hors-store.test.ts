@@ -44,7 +44,7 @@ function drainCascade(): void {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
     if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
-    else get().cascadeNext();
+    else get().jetConfirm('cascade');
   }
 }
 

@@ -53,7 +53,7 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
       const preempter = argumentDe(etat, 'armPreempt', 'heroId');
       expect(preempter.saisie).toBe('choix');
       expect(preempter.valeurs!.filter((v) => v.valeur !== null).map((v) => camp(v.valeur)), 'armPreempt offre un non-héros').toEqual(preempter.valeurs!.filter((v) => v.valeur !== null).map(() => 'hero'));
-      expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'roundStartReady')!.rendu).toBe('bouton');
+      expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'fenetreValider')!.rendu).toBe('bouton');
     });
   });
 
@@ -78,7 +78,7 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
   function leDuel() {
     const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
     ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-    ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+    ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
     const garde = ouverture.etat();
     ouverture.fermer();
     const { H, E, patch } = auContact(garde);
@@ -120,13 +120,13 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
 
   it('Infirmerie : l’opération armée désigne la Blessure Critique à opérer, nommée avec sa Localisation', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
-      const plaies: Trauma[] = [{ label: 'Bras broyé', location: 'brasG', needsSurgery: true }, { label: 'Crâne fendu', location: 'tete', needsSurgery: true }, { label: 'Doigt perdu', location: 'brasD' }] as Trauma[];
+      const plaies: Trauma[] = [{ uid: 'bras', label: 'Bras broyé', location: 'brasG', needsSurgery: true }, { uid: 'crane', label: 'Crâne fendu', location: 'tete', needsSurgery: true }, { uid: 'doigt', label: 'Doigt perdu', location: 'brasD' }];
       const patient = { ...etat.party[0], traumas: plaies };
-      const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaIdx: 1, targetDR: 5, cumDR: 0, stake: {} } as never;
+      const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', targetDR: 5, cumDR: 0, stake: {} } as never;
       const infirmerie: Jeu = { ...etat, pendingRoundStart: null, battle: null, party: [patient, ...etat.party.slice(1)], medic: { patientId: patient.id, surgery: operation } };
-      const plaie = argumentDe(infirmerie, 'medicSetWound', 'idx');
-      expect(lignes(plaie)).toEqual(['choix', [[0, t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], [1, t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);
-      expect(plaie.valeur, 'la plaie visée est la valeur courante').toBe(1);
+      const plaie = argumentDe(infirmerie, 'medicSetWound', 'uid');
+      expect(lignes(plaie)).toEqual(['choix', [['bras', t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], ['crane', t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);
+      expect(plaie.valeur, 'la plaie visée est la valeur courante').toBe('crane');
     });
   });
 
@@ -178,7 +178,7 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
   it('attaque du duel : avant le jet, ni clôture ni dé fixé ; après, ni jet ni Localisation', { timeout: 120_000 }, () => {
     const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
     ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-    ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+    ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
     const garde = ouverture.etat();
     ouverture.fermer();
     const { E, patch } = auContact(garde);

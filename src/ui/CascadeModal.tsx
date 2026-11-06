@@ -138,7 +138,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const force = useGesteDeJet('jetForceSuccess', 'cascade');
   const resistAct = useGesteDeJet('jetResist', 'cascade'); // Résistance (Menace) : auto-succès du talent (LDB 10)
   const reverseAct = useGesteDeJet('jetReverse', 'cascade'); // Inversion (LDB 12 l.42)
-  const next = useGame((s) => s.cascadeNext);
+  const next = useGesteDeJet('jetConfirm', 'cascade'); // valider l'étape courante
   const choose = useGame((s) => s.cascadeChoose); // étape « choix » : pose l'option retenue
   const setAmount = useGame((s) => s.cascadeAmount); // étape « quantité » : pose le nombre saisi
   const tirerLeDe = useGesteDeJet('jetRoll', 'cascadeTirage'); // étape « table » ou « de » (#1508) : tire le dé
@@ -160,7 +160,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // minuteur est réarmé PAR ÉTAPE (clé = son id) ; il n'a rien à voir avec la Cadence de combat (une
   // cadence MANUELLE auto-ferme aussi : c'était le comportement de la révélation témoin). COOP : seul
   // le siège PROPRIÉTAIRE de l'étape l'arme (`actorId` absent ⇒ l'hôte, cf. `netOwnership.ownsLocal`) — deux
-  // sièges qui tirent `cascadeNext` avanceraient de deux crans.
+  // sièges qui valident l'étape avanceraient de deux crans.
   const autoStep = p ? p.participants[p.cursor] : undefined;
   // Prêt-à-valider de l'étape COURANTE, abonné : une étape hôte dépend de son slot (`stepReady`, #1765).
   const curReady = useGame((s) => {
@@ -172,7 +172,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const autoOwned = autoStep ? owns(autoStep.actorId) : false;
   useEffect(() => {
     if (autoCloseMs == null || !autoOwned) return;
-    const t = window.setTimeout(() => useGame.getState().cascadeNext(), autoCloseMs);
+    const t = window.setTimeout(() => useGame.getState().jetConfirm('cascade'), autoCloseMs);
     return () => window.clearTimeout(t);
   }, [autoStepId, autoCloseMs, autoOwned]);
   // La barre de temps ne s'affiche qu'au GRAVE (arbitrage 2026-06-11) ; le délai, lui, court pour les
@@ -451,7 +451,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // Un CHOIX non tranché ne se valide pas (`stepReady`) : l'action est REFUSÉE et dit pourquoi
   // (`RollAction.refus` → `GatedAction`), jamais un primaire actif qui ne fait rien.
   const continueAction: RollAction = {
-    key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascadeNext'), onClick: () => next(),
+    key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascade.confirm'), onClick: () => next(),
     ...(curReady ? {} : { refus: 'Choisis une option pour continuer.' }),
   };
 
@@ -889,7 +889,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // montre le bilan — bouton PRÉSENT avant ET après le jet (parité `cancelAfterRoll`). Pas d'Échap :
     // la cascade est SUBIE, on ne ferme pas — le bouton est une action explicite, pas une sortie.
     ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
-    { key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascadeNext'), onClick: () => next(), verbe: 'confirm', flux: 'cascade', pid: cur.id },
+    { key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascade.confirm'), onClick: () => next(), verbe: 'confirm', flux: 'cascade' },
   ];
 
   return (

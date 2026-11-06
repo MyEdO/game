@@ -24,8 +24,8 @@ function parlerAGustav() {
   banc.setState({ dialogue: ouvrirDialogue(get(), tablee, 'gustav') });
 }
 
-/** Choisit la réponse visible de rang `rang`, à son index de donnée (`chooseDialogue`). */
-const choisir = (rang: number) => get().chooseDialogue(reponsesDuNoeud(get()).find((r) => r.rang === rang)!.index);
+/** Choisit la réponse visible de rang `rang`, par son id de donnée (`chooseDialogue`). */
+const choisir = (rang: number) => get().chooseDialogue(reponsesDuNoeud(get()).find((r) => r.rang === rang)!.id);
 
 /** Le 1ᵉʳ passage joué jusqu'au bout, au rang 1, puis Gustav de nouveau abordé. */
 function secondPassage() {
@@ -54,9 +54,9 @@ describe('dialogue-multi — la reprise par `when` dans le dialogue de Gustav', 
 
   it('2ᵉ passage : la réponse masquée ne consomme pas de numéro', () => {
     secondPassage();
-    expect(reponsesDuNoeud(get()).map((r) => [r.rang, r.index, r.label])).toEqual([
-      [1, 1, '« Encore ce dragon ? »'],
-      [2, 2, '« Une autre fois. »'],
+    expect(reponsesDuNoeud(get()).map((r) => [r.rang, r.id, r.label])).toEqual([
+      [1, 'encore-dragon', '« Encore ce dragon ? »'],
+      [2, 'autre-fois', '« Une autre fois. »'],
     ]);
   });
 
