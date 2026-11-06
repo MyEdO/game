@@ -183,6 +183,25 @@ describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, le crénelage et la gomme', () => {
+  it('le crénelage marque la case d’un parapet, que la case pointée dit ; sa gomme l’efface ; la gomme n’a pas d’option', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const crenelage = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/crenellated'));
+    const parapet = valeursDe(crenelage, 'parapets')[0];
+    expect(parapet.presse, 'la première structure crénelable, portée par l’outil').toBe(true);
+    const dite = (e: Edition) => e.vue.zones['editeur.pointee'].find((l) => l.id === 'crenelage')?.texte;
+    jouer({ geste: 'appui', point: point(1, 1) });
+    expect(dite(jouer({ geste: 'relache', point: point(1, 1) }))).toBe(`Parapet crénelé : ${parapet.libelle}`);
+    presser(boutonDe(crenelage, 'crenelage/gomme'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    expect(dite(jouer({ geste: 'relache', point: point(1, 1) }))).toBeUndefined();
+
+    expect(presser(boutonDe(crenelage, 'outil/erase')).vue.zones['editeur.options'], 'la gomme, sans option').toEqual([]);
+  });
+});
+
 describe('l’éditeur de carte par le pont, la volée', () => {
   it('l’outil volée trace ses cases en surcouche ; poser une volée que son plan refuse se refuse, sa raison en clair ; effacer vide le tracé', () => {
     const { appel } = table();

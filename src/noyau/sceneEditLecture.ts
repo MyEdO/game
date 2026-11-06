@@ -10,7 +10,7 @@ import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { StructureData } from '../engine/types';
-import { structures } from '../data';
+import { structureAppearances, structures } from '../data';
 import { decorEnCaseEtage } from './monde/decorIndex';
 import { aretesA } from './monde/wallIndex';
 import type { Rect, Pt, EffectZoneSeed } from './sceneEdit';
@@ -71,6 +71,11 @@ export const FACES_D_ARETE = optionsDuNoeud(faceDAreteSchema) as [FaceDArete, st
 
 /** Les structures que l'outil murs pose au sous-mode `paint` : un mur sur une cloison, une fermeture sur une porte,
  *  aucune sur une diagonale (#830). */
+/** Les structures de mur dont l'apparence porte un parapet : celles que l'outil crénelage pose (#841). */
+export function structuresCrenelables(): StructureData[] {
+  return structures.filter((s) => isWallEdgeStructure(s) && !!structureAppearances.find((a) => a.id === s.id)?.parapet);
+}
+
 export function structuresDeLArete(paint: WallPaint): StructureData[] {
   if (paint === 'wall') return structures.filter(isWallEdgeStructure);
   return paint === 'door' ? structures.filter(isDoorEdgeStructure) : [];

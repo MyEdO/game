@@ -40,7 +40,7 @@ export type ActionManuscrite<S = ActionsDuNoyau> = Exclude<
   NomDeVerbeDeJet
 >;
 
-type Majuscule = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q'
+export type Majuscule = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q'
   | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z';
 type Minuscule = Lowercase<Majuscule>;
 /** Site qui pose un flux sans action de store : `<module>.<fonction>`. */
