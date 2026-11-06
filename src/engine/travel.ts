@@ -222,7 +222,7 @@ export interface ForcedMarchResult {
 
 /** Cible du Test de marche forcée (Résistance +0, LDB 51 l.195) — base de l'étape de cascade. */
 export function forcedMarchTarget(c: Combatant): number {
-  return testValue(c, 'resistance', 'endurance');
+  return testValue(c, { skill: { id: 'resistance' }, characteristic: 'endurance' });
 }
 
 /** Applique le RÉSULTAT d'un Test de marche forcée (séparé du jet pour différer/influencer en

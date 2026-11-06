@@ -3,6 +3,7 @@
  * (hors combat) : Caractéristique + Augmentations de la compétence.
  */
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import { Combatant, CharKey } from './types';
 import { byId, psychologies, refLabel, testSkillLabel } from '../data';
 import { t, deElide } from '../i18n';
@@ -68,14 +69,16 @@ export function effectiveSkillCharKey(
  *  l'appelant/la scène, cf. Talent Sens aiguisé `manual:true`) ; restreint les `skillMod` sense-scopés
  *  (Surdité, LDB 18 — `traumaSkillPenalty`). Absent = comportement historique (le RAW n'est pas levé
  *  faute d'info sur le Test précis). */
-export function testValue(c: Combatant, skill?: string, characteristic?: CharKey, spec?: string, sense?: PairedSense): number {
-  if (!skill && !characteristic) return 0;
-  // `skill` = skillId STABLE (multilingue : jamais un libellé). La compétence possédée est trouvée par id ;
-  // `spec` cible une spécialisation précise (Savoir (Magie), Métier (Forgeron)…) quand le héros en possède
+export function testValue(c: Combatant, sujet: SujetDuJet, sense?: PairedSense): number {
+  const { skill: ref, characteristic } = sujet;
+  if (!ref && !characteristic) return 0;
+  // `ref.id` = skillId STABLE (multilingue : jamais un libellé). La compétence possédée est trouvée par id ;
+  // `ref.spec` cible une spécialisation précise (Savoir (Magie), Métier (Forgeron)…) quand le héros en possède
   // plusieurs avec des avances différentes — sinon (spec absent) la première instance de l'id suffit.
-  const sk = skill ? c.skills.find((s) => refCouvre({ id: skill, spec }, s)) : undefined;
+  const skill = ref?.id;
+  const sk = ref ? c.skills.find((s) => refCouvre(ref, s)) : undefined;
   // Caractéristique : POINT UNIQUE partagé avec castingValue (carac d'instance data-driven + carac alternative).
-  const ck = effectiveSkillCharKey(c, skill, { explicit: characteristic, spec });
+  const ck = effectiveSkillCharKey(c, skill, { explicit: characteristic, spec: ref?.spec });
   const base = effectiveChar(c, ck);
   const states = testStatePenalty(c, skill, { sense });
   const enc = ck === 'agilite' ? agilityTestPenalty(c) : 0; // charge : couche d'ÉTAT orthogonale (≠ passif d'élément)
@@ -96,24 +99,16 @@ export function testValue(c: Combatant, skill?: string, characteristic?: CharKey
  *  seule Caractéristique. */
 export type TestDesigne = { readonly skill: RefDesignee } | { readonly characteristic: CharKey };
 
-/** Le `testValue` d'un Test désigné (Compétence et spécialité, ou Caractéristique) : la valeur jetée. */
-export function valeurDuTest(c: Combatant, test: TestDesigne): number {
-  return 'skill' in test ? testValue(c, test.skill.id, undefined, test.skill.spec) : testValue(c, undefined, test.characteristic);
-}
-
 /** Les ids À PLAT d'un Test désigné (`{ skill, spec }` ou `{ characteristic }`) : la forme que nomment une ligne de
  *  jet (`rollLine`), un libellé de Test (`testSkillLabel`) et un pending. */
 export function idsDuTest(test: TestDesigne): { skill: string; spec?: string; characteristic?: never } | { characteristic: CharKey; skill?: never; spec?: never } {
   return 'skill' in test ? { skill: test.skill.id, ...(test.skill.spec ? { spec: test.skill.spec } : {}) } : { characteristic: test.characteristic };
 }
 
-/** `valeurDuTest` DÉCOMPOSÉE pour sa ligne de jet (`testValueSplit`) : base nue et composantes nommées
- *  (États, passifs, encombrement…), que la ligne rend en chips. */
-export function valeurDecomposee(c: Combatant, test: TestDesigne): { base: number; mods: ModLine[] } {
-  const { base, mods } = 'skill' in test
-    ? testValueSplit(c, valeurDuTest(c, test), { skill: test.skill.id, spec: test.skill.spec })
-    : testValueSplit(c, valeurDuTest(c, test), { characteristic: test.characteristic });
-  return { base, mods };
+/** Le sujet EMBOÎTÉ d'ids À PLAT : `idsDuTest` à rebours, couture des porteurs à plat (`RollRequest.test`,
+ *  `RollLineBase.test`, `TestIds`) vers `testValue`. #3012 */
+export function sujetDesIds(ids: { readonly skill?: string; readonly spec?: string; readonly characteristic?: CharKey }): SujetDuJet {
+  return { skill: ids.skill ? { id: ids.skill, spec: ids.spec } : undefined, characteristic: ids.characteristic };
 }
 
 /**
@@ -121,16 +116,18 @@ export function valeurDecomposee(c: Combatant, test: TestDesigne): { base: numbe
  * hors combat, et la garantie que l'écran annonce ce que le moteur calcule. INVARIANT vérifié par la
  * garde `test-value-parts.test.ts` :
  *
- *     testValue(c, skill, characteristic, spec, sense) === skillBaseValue(c, skill, spec, characteristic) + Σ testValueParts(…)
+ *     testValue(c, sujet, sense) === skillBaseValue(c, sujet.skill?.id, sujet.skill?.spec, sujet.characteristic) + Σ testValueParts(…)
  *
  * Un poste AJOUTÉ à `testValue` sans son producteur de parts casse cette garde — c'est ELLE qui
  * interdit la dérive, pas ce commentaire. Chaque part tire son libellé de la DONNÉE (le `src` du
  * collecteur `passiveMods`, via `passivePartLine`/`refLabel`) : aucun branchement par id d'entité.
  * L'ORDRE des postes suit celui de `testValue`, poste pour poste.
  */
-export function testValueParts(c: Combatant, skill?: string, characteristic?: CharKey, spec?: string, sense?: PairedSense): ModLine[] {
-  if (!skill && !characteristic) return []; // ni compétence ni caractéristique : `testValue` rend 0
-  const ck = effectiveSkillCharKey(c, skill, { explicit: characteristic, spec });
+export function testValueParts(c: Combatant, sujet: SujetDuJet, sense?: PairedSense): ModLine[] {
+  const { skill: ref, characteristic } = sujet;
+  if (!ref && !characteristic) return []; // ni compétence ni caractéristique : `testValue` rend 0
+  const skill = ref?.id;
+  const ck = effectiveSkillCharKey(c, skill, { explicit: characteristic, spec: ref?.spec });
   const out: ModLine[] = [];
   out.push(...testStatePenaltyParts(c, skill, { sense })); // États + Sort global + symptôme global (LDB 16 / MSRC 16)
   // Encombrement (LDB 61 « Surchargé ») : ne pèse QUE sur un Test d'Agilité — aucune source d'entité à
@@ -183,8 +180,8 @@ export function skillBaseValue(c: Combatant, skill?: string, spec?: string, expl
  *  (`combatTestPenalty`) UNE SEULE fois, sans double-compte. = Caractéristique effective + avances + passifs
  *  intrinsèques + Encombrement/Traumatisme, SANS la pénalité d'État (réappliquée en version combat par
  *  l'appelant). Utilisée par les Tests de RÉCUPÉRATION d'États (Empoisonné… : −10 d'État compté une fois). */
-export function rawCombatTestBase(c: Combatant, skill?: string, characteristic?: CharKey, spec?: string): number {
-  return testValue(c, skill, characteristic, spec) - testStatePenalty(c, skill);
+export function rawCombatTestBase(c: Combatant, sujet: SujetDuJet): number {
+  return testValue(c, sujet) - testStatePenalty(c, sujet.skill?.id);
 }
 
 /** Le personnage possède-t-il la compétence `skillId` (et, si `spec` fourni, cette spécialisation —
@@ -303,7 +300,8 @@ export function partyBest(
   spec?: string, // spécialisation ciblée (Métier (Serrurier)…) — transmise à `testValue` pour la bonne instance
   sense?: PairedSense,
 ): { actor: Combatant; value: number } | null {
-  const r = maxBy(party.filter((c) => peutTenter(c, skill, spec)), (c) => testValue(c, skill, characteristic, spec, sense) + (extraMod?.(c) ?? 0));
+  const sujet = sujetDesIds({ skill, spec, characteristic });
+  const r = maxBy(party.filter((c) => peutTenter(c, skill, spec)), (c) => testValue(c, sujet, sense) + (extraMod?.(c) ?? 0));
   return r ? { actor: r.item, value: r.value } : null;
 }
 
@@ -340,9 +338,9 @@ export function bestForCombined(
   t2: TestDesigne,
 ): { actor: Combatant; value1: number; value2: number } | null {
   const able = party.filter((c) => peutTenterLeTest(c, t1) && peutTenterLeTest(c, t2));
-  const r = maxBy(able, (c) => Math.min(valeurDuTest(c, t1), valeurDuTest(c, t2)));
+  const r = maxBy(able, (c) => Math.min(testValue(c, t1), testValue(c, t2)));
   if (!r) return null;
-  return { actor: r.item, value1: valeurDuTest(r.item, t1), value2: valeurDuTest(r.item, t2) };
+  return { actor: r.item, value1: testValue(r.item, t1), value2: testValue(r.item, t2) };
 }
 
 /** Meilleure OPTION TENTABLE pour un acteur parmi un catalogue d'options portant des Tests (`testsDe`) :
@@ -422,15 +420,16 @@ export function supportSplit(value: number, support?: SupportDetail): { base: nu
 export function testValueSplit(
   c: Combatant | undefined,
   value: number,
-  opts?: { support?: SupportDetail; skill?: string; characteristic?: CharKey; spec?: string; sense?: PairedSense; fused?: number },
+  opts?: { support?: SupportDetail; sujet?: SujetDuJet; sense?: PairedSense; fused?: number },
 ): { base: number; mods: ModLine[]; exact: boolean } {
   const sup = supportSplit(value, opts?.support);
+  const sujet = opts?.sujet;
   // Rien à décomposer (côté MONDE, Test sans compétence ni caractéristique) : la valeur EST la base,
   // il n'y a aucune reconstruction à rater.
-  if (!c || (!opts?.skill && !opts?.characteristic)) return { ...sup, exact: true };
-  const parts = testValueParts(c, opts.skill, opts.characteristic, opts.spec, opts.sense);
+  if (!c || !sujet || (!sujet.skill && !sujet.characteristic)) return { ...sup, exact: true };
+  const parts = testValueParts(c, sujet, opts.sense);
   const sum = parts.reduce((s, p) => s + p.value, 0);
-  const nu = skillBaseValue(c, opts.skill, opts.spec, opts.characteristic);
+  const nu = skillBaseValue(c, sujet.skill?.id, sujet.skill?.spec, sujet.characteristic);
   if (nu + sum + (opts.fused ?? 0) !== sup.base) return { ...sup, exact: false };
   return { base: sup.base - sum, mods: [...sup.mods, ...parts], exact: true };
 }

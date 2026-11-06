@@ -88,7 +88,7 @@ export const REPARATION = DATA.reparation;
 export function savoirOceansBonus(c: Combatant): number {
   const adv = (c.skills ?? []).find((s) => s.id === 'savoir' && s.spec === 'oceans')?.advances ?? 0;
   if (adv <= 0) return 0;
-  return Math.floor(testValue(c, 'savoir', undefined, 'oceans') / 10);
+  return Math.floor(testValue(c, { skill: { id: 'savoir', spec: 'oceans' } }) / 10);
 }
 
 // ── Forcer le rythme & Épuisement (MDG 13 l.95-111) ─────────────────────────────────────────────────────

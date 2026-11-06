@@ -126,7 +126,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
     const attendue = effectiveTarget(get().party[0], { characteristic: 'initiative' }, 'accessible');
     expect(step.second, 'aucun second Test caché : la rangée le DIT').toEqual({
       label: 'Initiative',
-      base: testValue(get().party[0], undefined, 'initiative'),
+      base: testValue(get().party[0], { characteristic: 'initiative' }),
       target: attendue,
       difficulty: 'accessible',
     });
@@ -144,7 +144,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
       const porteur = get().party.find((h) => h.id === r.id)!;
       expect(r.second, `la rangée de ${porteur.label} dit sa seconde cible`).toEqual({
         label: 'Initiative',
-        base: testValue(porteur, undefined, 'initiative'),
+        base: testValue(porteur, { characteristic: 'initiative' }),
         target: effectiveTarget(porteur, { characteristic: 'initiative' }, 'accessible'),
         difficulty: 'accessible',
       });

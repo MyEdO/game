@@ -184,7 +184,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     const ph = banc.getState().pendingHeal!;
     // La valeur JOUÉE vient de la FICHE référencée par l'entité ; l'effet n'en porte aucune.
     const fiche = sceneNpc(hub, 'medecin', presetPnjById)!;
-    expect(ph.skillValue).toBe(testValue(fiche, 'guerison'));
+    expect(ph.skillValue).toBe(testValue(fiche, { skill: { id: 'guerison' } }));
     expect(m.npc!.intBonus).toBe(bonus(effectiveChar(fiche, 'intelligence')));
     expect(bourseOf(banc.getState().party.find((h) => h.id === ph.targetId)!).silver).toBe(5); // 10 − 5 pistoles débitées à la bourse du patient
     banc.getState().jetRoll('heal');

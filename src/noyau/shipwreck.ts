@@ -145,7 +145,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
     for (const h of swimmers) {
       // Aucune rangée nulle part sur ce chemin (repli sans pilote humain, aucune cascade démarrée) —
       // le journal est la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`) comme toute ligne de dé.
-      const value = testValue(h, 'natation', 'force');
+      const value = testValue(h, { skill: { id: 'natation' }, characteristic: 'force' });
       const tr = rollSansPilote(get, h, value, diff, rng);
       lines.push(traceLineOf({
         who: h.label, label: swimTestLabel(diff), roll: tr.roll, target: tr.target, success: tr.success,
@@ -167,7 +167,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   // n'a rien à router).
   const meta = { shoreId: shore?.id ?? '', journalMark };
   const steps: CascadeStep[] = swimmers.map((h) => {
-    const value = testValue(h, 'natation', 'force');
+    const value = testValue(h, { skill: { id: 'natation' }, characteristic: 'force' });
     const human = humanControlled(get(), h);
     const result = human ? null : (() => { const t = rollSansPilote(get, h, value, diff, rng); return { roll: t.roll, target: t.target, sl: t.sl, success: t.success }; })();
     return {

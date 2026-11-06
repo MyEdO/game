@@ -220,7 +220,7 @@ function resolvePursuitFoe(f: PursuitFoeRef, index: number, skillId: string): Pu
   const id = f.id ?? `foe-${index + 1}`;
   const ref = f.ref;
   const fiche = spawnEnemy('id' in ref ? { ref: ref.id } : { statblock: ref.custom }, id, { x: 0, y: 0 });
-  return { id, label: fiche.label, movement: effectiveMovement(fiche), skill: testValue(fiche, skillId) };
+  return { id, label: fiche.label, movement: effectiveMovement(fiche), skill: testValue(fiche, { skill: { id: skillId } }) };
 }
 
 /** Démarre une poursuite terrestre (Effet `startPursuit`) : instancie le socle puis ouvre la 1ʳᵉ manche. */

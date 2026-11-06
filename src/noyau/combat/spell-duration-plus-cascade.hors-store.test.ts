@@ -88,7 +88,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
 
     const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusTest')!;
     expect(test, 'le Test est bien poussé dans la MÊME cascade').toBeTruthy();
-    expect(test.target, 'CIBLE inchangée : celle du montage manuscrit (`base = target = testValue`)').toBe(testValue(H, undefined, 'force-mentale'));
+    expect(test.target, 'CIBLE inchangée : celle du montage manuscrit (`base = target = testValue`)').toBe(testValue(H, { characteristic: 'force-mentale' }));
     expect(test.base, 'la base n’est plus la valeur fondue : c’est la Caractéristique NUE').toBeGreaterThan(test.target!);
     expect((test.base ?? 0) + (test.mods ?? []).reduce((t, m) => t + m.value, 0), 'base + Σ mods = cible').toBe(test.target);
     expect(test.mods?.some((m) => m.value === -20), 'les 2 Exténué sortent en ligne NOMMÉE').toBe(true);

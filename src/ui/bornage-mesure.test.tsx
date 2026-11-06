@@ -17,7 +17,7 @@ import { openCombatEndCascade } from '../noyau/combatFlow';
 import { RollLine, ANONYMES } from './RollLine';
 import { opposedLines } from './breakdown';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import { valeurDuTest } from '../engine/skills';
+import { testValue } from '../engine/skills';
 import { cibleBrute, cibleDuTest, clampTarget, forcedTR } from '../engine/tests';
 import { combattantDeModale } from './combattantDeModale.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
@@ -74,7 +74,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
     act(() => root.render(createElement(RunModal)));
     act(() => { g().jetRoll('run'); });
     const p = g().pendingRun!;
-    porteLaMesure(p.result, cibleDuTest(valeurDuTest(H, p.test), p.test.difficulty));
+    porteLaMesure(p.result, cibleDuTest(testValue(H, p.test), p.test.difficulty));
     nommeLEcretage('plafond', p.result!.target);
   });
 
@@ -83,7 +83,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
     act(() => root.render(createElement(RunModal)));
     act(() => { g().jetForceSuccess('run'); });
     const p = g().pendingRun!;
-    porteLaMesure(p.result, cibleDuTest(valeurDuTest(H, p.test), p.test.difficulty));
+    porteLaMesure(p.result, cibleDuTest(testValue(H, p.test), p.test.difficulty));
     nommeLEcretage('plafond', p.result!.target);
   });
 
@@ -97,7 +97,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
     } as never);
     act(() => root.render(createElement(ApproachModal)));
     act(() => { g().jetRoll('approach'); });
-    porteLaMesure(g().pendingApproach!.result, cibleDuTest(valeurDuTest(H, test), test.difficulty));
+    porteLaMesure(g().pendingApproach!.result, cibleDuTest(testValue(H, test), test.difficulty));
     nommeLEcretage('plancher', 1);
   });
 
@@ -108,7 +108,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
     useGame.setState({ party: [H], battle: null, pendingCorruption: { heroId: 'H', kind: 'exposition', level: 'mineure', nature: 'physique', natureFixee: true, test } } as never);
     act(() => root.render(createElement(CorruptionModal)));
     act(() => { g().jetRoll('corruption'); });
-    porteLaMesure(g().pendingCorruption, cibleDuTest(valeurDuTest(H, test), test.difficulty));
+    porteLaMesure(g().pendingCorruption, cibleDuTest(testValue(H, test), test.difficulty));
     nommeLEcretage('plancher', 1);
   });
 
@@ -140,7 +140,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
     useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'enemy')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
     act(() => root.render(createElement(WardModal)));
     forceAvantLeJet(() => g().jetForceSuccess('ward'));
-    porteLaMesure(g().pendingWard!.result, cibleDuTest(valeurDuTest(A, { characteristic: 'force-mentale' }), 'accessible'));
+    porteLaMesure(g().pendingWard!.result, cibleDuTest(testValue(A, { characteristic: 'force-mentale' }), 'accessible'));
   });
 
   for (const fiche of ['reelle', 'posee'] as const) it(`Approche (fiche ${fiche === 'posee' ? 'posée au seam' : 'réelle'})`, () => {
@@ -151,7 +151,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
       pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null } } as never);
     act(() => root.render(createElement(ApproachModal)));
     forceAvantLeJet(() => g().jetForceSuccess('approach'));
-    porteLaMesure(g().pendingApproach!.result, cibleDuTest(valeurDuTest(H, test), test.difficulty));
+    porteLaMesure(g().pendingApproach!.result, cibleDuTest(testValue(H, test), test.difficulty));
   });
 });
 
@@ -166,7 +166,7 @@ describe('rangée de bande à cible au-delà du plafond : l’écrêtage mesuré
     } as never);
     openCombatEndCascade(g, useGame.setState);
     const rangee = () => g().pendingCascade!.participants.find((st) => st.kind === 'combatEndCorruption')!.participants!.find((r) => r.id === 'H')!;
-    expect(rangee().target).toBe(clampTarget(cibleDuTest(valeurDuTest(H, { skill: { id: 'resistance' } }))).target);
+    expect(rangee().target).toBe(clampTarget(cibleDuTest(testValue(H, { skill: { id: 'resistance' } }))).target);
     act(() => root.render(createElement(CascadeBody)));
     nommeLEcretage('plafond', 99);
     act(() => { g().jetRoll('cascadeBatch', 'H'); });
@@ -207,7 +207,7 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
     g().jetRegler('fall', 'tenter', true, hero.id);
     g().jetForceSuccess('fall', hero.id);
     const p = g().pendingFall!;
-    porteLaMesure(p.participants.find((x) => x.id === hero.id)!.result, cibleDuTest(valeurDuTest(hero, p.test), p.test.difficulty));
+    porteLaMesure(p.participants.find((x) => x.id === hero.id)!.result, cibleDuTest(testValue(hero, p.test), p.test.difficulty));
   });
 
   it('forcedTR construit d’une VALEUR au-delà du plafond : ligne sans « autres »', () => {

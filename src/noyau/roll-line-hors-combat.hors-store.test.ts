@@ -63,7 +63,7 @@ describe('Naufrage — Natation montée par `rollStep` (#1153 L3)', () => {
     fresh([nageur]);
 
     const nue = skillBaseValue(nageur, 'natation', undefined, 'force');
-    const jetee = testValue(nageur, 'natation', 'force');
+    const jetee = testValue(nageur, { skill: { id: 'natation' }, characteristic: 'force' });
     expect(jetee, 'l’État sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
     const diff = rule('sea-shipwreck-swim') as Difficulty;
     banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] }, } as never);
@@ -99,7 +99,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     // Contraction = « Test de Résistance » (LDB 20 l.25) : la valeur est celle de la PORTE — base NUE
     // (LDB 09 l.17), État NOMMÉ en chip (LDB 16 l.125), plus aucune formule maison (#1685).
     const nueRes = skillBaseValue(dormeur, 'resistance');
-    const jeteeRes = testValue(dormeur, 'resistance');
+    const jeteeRes = testValue(dormeur, { skill: { id: 'resistance' } });
     expect(jeteeRes, 'l’État sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nueRes);
     expect(contagion.base).toBe(nueRes);
     expect(contagion.target).toBe(clampTarget(jeteeRes + DIFFICULTY_MODIFIERS.accessible).target);
@@ -109,7 +109,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     // Cauchemars = « Test de Calme Facile (+40) » (LDB 21 l.95) : la porte compte l'État comme partout
     // ailleurs (LDB 16 l.125) — base NUE, écart NOMMÉ (#1685).
     const nueCalme = skillBaseValue(dormeur, 'calme');
-    const jeteeCalme = testValue(dormeur, 'calme');
+    const jeteeCalme = testValue(dormeur, { skill: { id: 'calme' } });
     expect(jeteeCalme, 'l’État doit séparer la nue de la valeur jetée').toBeLessThan(nueCalme);
     expect(cauchemar.base).toBe(nueCalme);
     expect(cauchemar.target).toBe(clampTarget(jeteeCalme + DIFFICULTY_MODIFIERS.facile).target);
@@ -135,7 +135,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     expect(faim, 'un jour sans ration diffère bien le Test de Faim').toBeTruthy();
 
     const nue = skillBaseValue(affame, 'resistance', undefined, 'endurance');
-    const jetee = testValue(affame, 'resistance', 'endurance');
+    const jetee = testValue(affame, { skill: { id: 'resistance' }, characteristic: 'endurance' });
     expect(jetee, 'l’État sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
     expect(faim!.test, 'le producteur NOMME son Test (LDB 18 l.342)').toEqual({ skill: 'resistance', characteristic: 'endurance' });
     expect(faim!.base, 'Niveau de Compétence NU (LDB 09 l.17), plus la valeur fondue').toBe(nue);
@@ -190,7 +190,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     expect(conv.test).toEqual({ skill: 'resistance' });
     expect(conv.base).toBe(skillBaseValue(eprouve, 'resistance'));
     const etatConv = (conv.mods ?? []).reduce((s, m) => s + m.value, 0);
-    expect(etatConv, 'l’État Empoisonné pesait en silence : il a désormais SA chip').toBe(testValue(eprouve, 'resistance') - skillBaseValue(eprouve, 'resistance'));
+    expect(etatConv, 'l’État Empoisonné pesait en silence : il a désormais SA chip').toBe(testValue(eprouve, { skill: { id: 'resistance' } }) - skillBaseValue(eprouve, 'resistance'));
   });
 
   it('Dessoûlage : le libellé de compétence est celui du RAW (« Résistance à l’alcool », LDB 09 l.485)', () => {
@@ -208,7 +208,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     // RAW verbatim (LDB 09 l.485) : « effectuez un Test de Résistance à l'alcool Intermédiaire (+0) ».
     expect(st.rollLabel, 'plus de « Résistance » générique en position de compétence').toBe("Résistance à l'alcool");
     expect(st.base).toBe(skillBaseValue(ivre, 'resistance-a-l-alcool', undefined, 'endurance'));
-    expect(st.target).toBe(clampTarget(testValue(ivre, 'resistance-a-l-alcool', 'endurance') + DIFFICULTY_MODIFIERS.intermediaire).target);
+    expect(st.target).toBe(clampTarget(testValue(ivre, { skill: { id: 'resistance-a-l-alcool' }, characteristic: 'endurance' }) + DIFFICULTY_MODIFIERS.intermediaire).target);
     expect(inexplique(st)).toBe(0);
   });
 });
@@ -238,7 +238,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     const { steps } = buildNightCascade(get, set, p, { fedDaily: true });
     const st = jetDe(steps.find((s) => s.kind === 'forcedMarch')!);
     const nue = skillBaseValue(marcheur, 'resistance', undefined, 'endurance');
-    const jetee = testValue(marcheur, 'resistance', 'endurance');
+    const jetee = testValue(marcheur, { skill: { id: 'resistance' }, characteristic: 'endurance' });
     expect(jetee, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
     expect(st.base, 'la base n’est plus `forcedMarchTarget` (valeur FONDUE)').toBe(nue);
     expect(st.target).toBe(clampTarget(jetee + DIFFICULTY_MODIFIERS.intermediaire).target);
@@ -254,7 +254,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     const { steps } = buildNightCascade(get, set, restPending([blesse], 'auberge'), { fedDaily: true });
     const st = jetDe(steps.find((s) => s.kind === 'recovery')!);
     const nue = skillBaseValue(blesse, 'resistance');
-    const jetee = testValue(blesse, 'resistance');
+    const jetee = testValue(blesse, { skill: { id: 'resistance' } });
     expect(jetee, 'l’État sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
     expect(st.base).toBe(nue);
     expect((st.mods ?? []).reduce((s, m) => s + m.value, 0)).toBe(jetee - nue);
@@ -302,7 +302,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     // Exposition = « Test de Résistance » (LDB 18 l.328) : base NUE, États en chips, pénalité de manteau
     // SUR LA CIBLE — les trois séparément, plus aucune valeur maison (#1685).
     const nue = skillBaseValue(transi, 'resistance');
-    const jetee = testValue(transi, 'resistance');
+    const jetee = testValue(transi, { skill: { id: 'resistance' } });
     expect(st.base).toBe(nue);
     expect((st.mods ?? []).reduce((s, m) => s + m.value, 0)).toBe(jetee - nue - pen);
     expect(st.target).toBe(clampTarget(jetee + DIFFICULTY_MODIFIERS.intermediaire - pen).target);
@@ -326,7 +326,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     const st = jetDe(bande);
     expect(st.label).toBe("Résistance à l'alcool");
     expect(st.base, 'base NUE — l’État a sa chip').toBe(skillBaseValue(ivre, 'resistance-a-l-alcool', undefined, 'endurance'));
-    expect(st.target).toBe(clampTarget(testValue(ivre, 'resistance-a-l-alcool', 'endurance') + DIFFICULTY_MODIFIERS.intermediaire).target);
+    expect(st.target).toBe(clampTarget(testValue(ivre, { skill: { id: 'resistance-a-l-alcool' }, characteristic: 'endurance' }) + DIFFICULTY_MODIFIERS.intermediaire).target);
     expect(inexplique(st)).toBe(0);
   });
 });
@@ -344,8 +344,8 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     get().medicAct('wounds');
     const ph = get().pendingHeal!;
     // Aucun soutien possible (le patient n'a pas Guérison) → la cible est celle du soigneur seul.
-    expect(ph.target).toBe(clampTarget(testValue(doc, 'guerison') + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
-    expect(ph.skillValue).toBe(testValue(doc, 'guerison'));
+    expect(ph.target).toBe(clampTarget(testValue(doc, { skill: { id: 'guerison' } }) + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
+    expect(ph.skillValue).toBe(testValue(doc, { skill: { id: 'guerison' } }));
   });
 
   it('Passe de Rééducation : la cible AFFICHÉE porte l’Accessible +20 que `rollTest` jettera (LDB 18 l.120/179)', () => {
@@ -372,7 +372,7 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
       conditions: [{ id: 'empoisonne', value: 1 }] as never,
     });
     const pick = travelActivitySpec(h, { id: 'ragot-complexe', label: 'Ragot', contexts: ['interlude'], tests: [{ skill: { id: 'ragot' }, difficulty: 'complexe' }] } as ActivityDef)!;
-    expect(pick.value).toBe(testValue(h, 'ragot', undefined, undefined));
+    expect(pick.value).toBe(testValue(h, { skill: { id: 'ragot' } }));
     expect(pick.target).toBe(clampTarget(pick.value + DIFFICULTY_MODIFIERS.complexe).target);
   });
 });

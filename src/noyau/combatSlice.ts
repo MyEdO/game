@@ -1937,7 +1937,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const sup = soutienDetail(battle.combatants, active, 'langue', 'intelligence', 'magick',
         (c) => c.kind === active.kind && [...domainsOf(c)].some((d) => mine.has(d))
           && (!active.pos || (!!c.pos && combatDistance(active, c) <= 1)));
-      const value = testValue(active, 'langue', undefined, 'magick') + sup.bonus;
+      const value = testValue(active, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({
         pendingDispel: {
           casterId: active.id, spellId, spellCasterId, label: target.label, ni: target.ni, value,
@@ -1984,7 +1984,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const mine = domainsOf(caster);
       const sup = soutienDetail(party, caster, 'langue', 'intelligence', 'magick',
         (c) => c.kind === caster.kind && [...domainsOf(c)].some((d) => mine.has(d)));
-      const value = testValue(caster, 'langue', undefined, 'magick') + sup.bonus;
+      const value = testValue(caster, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({ pendingDispel: {
         casterId: caster.id, spellId, spellCasterId, label: target.label, ni: target.ni, value,
         ligne: ligneDeDissipation(caster, value, sup),

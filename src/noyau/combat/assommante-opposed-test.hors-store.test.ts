@@ -111,7 +111,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(skillBaseValue(H, 'resistance')).toBe(fNue);
     // Les valeurs TESTÉES suivent ici les nues (aucun État, aucun passif en jeu) — c'est ce qui rend les
     // CIBLES égales, donc les DR comparables sur un dé identique.
-    expect(testValue(H, 'resistance')).toBe(testValue(wielder, undefined, 'force'));
+    expect(testValue(H, { skill: { id: 'resistance' } })).toBe(testValue(wielder, { characteristic: 'force' }));
 
     // seed POSÉ ICI (après le spawn qui consomme le RNG d’initiative) : la 1ʳᵉ consommation est le jet de
     // l’ATTAQUANT, la 2ᵉ celui du défenseur (jetRoll('cascade', id)). seed 113 → deux d100 IDENTIQUES → ÉGALITÉ stricte.

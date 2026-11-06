@@ -13,7 +13,7 @@ import { valeurSansTirage } from './formule';
 import { evalCondition, type Condition, type ConditionCtx, type FlowTest } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
-import { bestSkilledOption, idsDuTest, peutTenter, refusNePeutTenter, valeurDuTest, type TestDesigne } from './skills';
+import { bestSkilledOption, idsDuTest, peutTenter, refusNePeutTenter, testValue, type TestDesigne } from './skills';
 import { maxBy } from './pick';
 import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
@@ -613,7 +613,7 @@ export function travelActivitySpec(
   const mods = [...activityModLines(situation.mod, situation.label), ...(opts.mods ?? [])];
   const surLaCible = skillMod + mods.reduce((s, m) => s + m.value, 0);
   const lues = voies.map((voie) => {
-    const value = voie.valeur ?? valeurDuTest(actor, voie.test);
+    const value = voie.valeur ?? testValue(actor, voie.test);
     const difficulty = classGatedDifficulty({ difficulty: voie.difficulty ?? difficulteDeclaree(def, voie.test), classGate: def.classGate }, actor);
     return { voie, value, difficulty, brute: cibleDuTest(value, difficulty, surLaCible) };
   });
