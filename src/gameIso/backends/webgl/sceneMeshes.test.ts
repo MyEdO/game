@@ -33,9 +33,9 @@ import {
   LIGHT_COLOR,
   SHADOW_MAP_SIZE,
   SHADOW_NORMAL_BIAS_TEXELS,
-  SUN_ELEVATION_DEG,
   SUN_INTENSITY,
 } from './sceneMeshes';
+import { SUN_ELEVATION_DEG } from '../../../noyau/monde/soleil';
 import { facesGeometry, polyBounds, type Vec3 } from '../../../noyau/monde/volume/worldTris';
 import { faceDepthOf } from './faceRelief';
 import { anchorAndSize, BILLBOARD_H_M, BILLBOARD_BOX_ASPECT } from './billboardMath';

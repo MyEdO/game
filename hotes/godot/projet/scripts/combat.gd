@@ -1,6 +1,6 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
 ## l'adresse de la page (`?scenario=<id>&graine=<n>`), pose au plateau le volume du monde de sa scène (`monde`) et
-## applique chaque suite. La vue va au plateau ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
+## applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du plateau ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
@@ -15,6 +15,7 @@
 extends Node
 
 @onready var _plateau: Plateau = $Plateau
+@onready var _lumiere: Lumiere = $Plateau/Lumiere
 @onready var _ecran: Node = $Ecran
 @onready var _disposition: Disposition = $Ecran/Fenetre/Disposition
 @onready var _refus: Label = $Ecran/Interface/Avis/Refus
@@ -76,6 +77,8 @@ func _suivre(reponse: Dictionary) -> void:
 	_vue = reponse.vue
 	_refus.text = ""
 	_plateau.montrer(_vue, reponse.journal)
+	if _vue.lumiere != null:
+		_lumiere.eclairer(_vue.lumiere, _vue.plateau.metresParCase)
 	if _disposition.disposer(_vue.disposition):
 		_relier()
 	Zone.montrer_toutes(_zones, _vue.zones.merged(reponse.zones))

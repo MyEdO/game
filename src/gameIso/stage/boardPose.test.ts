@@ -4,7 +4,8 @@ import { billboardDepthOffsetUnits, billboardPose, BILLBOARD_DEPTH_BIAS_M, DEPTH
 import { affineCamera } from '../backends/webgl/cameras';
 import { FOV_X } from '../pov/camera';
 import { TEINTE_PLEINE, billboardMaterial, boardCenter, poseBoards, UP_ECRAN_COUCHE, type Board, type FrameLights } from './boardPose';
-import { billboardExposure, FLAME_INTENSITY, FLAME_LIFT_M, type PointLightSlots } from './stagePointLights';
+import { billboardExposure, FLAME_INTENSITY, type PointLightSlots } from './stagePointLights';
+import { FLAME_LIFT_M } from '../../noyau/lumiereDeLaScene';
 
 /**
  * LA PASSE DE POSE DES BILLBOARDS DU DÉCOR (#1176, P2-4). Elle ne construit rien : elle ré-oriente les

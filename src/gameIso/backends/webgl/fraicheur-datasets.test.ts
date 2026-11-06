@@ -10,7 +10,7 @@ import { props, findPropById } from '../../../data/index';
 import { setDataset, datasetArray } from '../../../data/overrides';
 import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import { worldBakeDeps } from './sceneMeshes';
-import { sunJeuHalfArcMin } from './sunJeu';
+import { sunJeuHalfArcMin } from '../../../noyau/monde/soleil';
 
 const DECORS_LIVRES = [...props];
 const PHASES_LIVREES = structuredClone(datasetArray('calendarPhases'));
