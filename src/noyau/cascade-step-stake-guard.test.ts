@@ -4,6 +4,7 @@ import { join, sep } from 'node:path';
 import { stripLiterals } from './cascade-step-difficulty-guard.test';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { PENDING_BY_JET } from './slotsDeJet';
+import { cibleEtendueSchema } from '../data/schemas/grammaire/valeurs';
 
 /**
  * CLIQUET — une étape de cascade qui LANCE dit son ENJEU (#1117, arbitrage user : « Louvoyage… ça
@@ -93,6 +94,10 @@ function hasTopLevelKey(lit: string, name: string): boolean {
   }
   return false;
 }
+
+/** Ce qui dit COMMENT un descripteur se lance : sa difficulté (fixe ou dynamique), son OPPOSITION, ou la
+ *  cible d'un Test ÉTENDU, qui n'a pas de difficulté en porteur (`cibleEtendueSchema`, LDB 12 l.174). */
+export const COMMENT_IL_SE_LANCE = ['difficulty', 'difficultyBy', 'opposed', ...Object.keys(cibleEtendueSchema.shape)];
 
 /** Le `jet` dont le littéral en `start` porte la DONNÉE : celui-ci est la valeur d'une propriété nommée
  *  par un slot porteur d'étape (`pendingTest: {…}`, table `PENDING_BY_JET` de `slotsDeJet.ts`). */
@@ -266,7 +271,8 @@ export function flowTestsWithoutStake(src: string): number[] {
  * précédents mesurent des PORTES (le littéral d'étape, la `RollRequest` du seam, le 1ᵉʳ argument de
  * `testFlow`) ; or un jet se DÉCRIT dans un littéral, et ce littéral entre par bien d'autres portes :
  * un nœud `{ kind:'test', test:{…} }` monté à la main, un `FlowTest` passé DIRECTEMENT à
- * `openSkillTest`, un `spec` d'`openPartyTest`, un `extendedTest`, l'opération armée de chirurgie
+ * `openSkillTest`, un `spec` d'`openPartyTest`, un `extendedTest`, l'argument de `startExtendedTest`
+ * (qui pose son enjeu sur l'étape `extendedJet`), l'opération armée de chirurgie
  * (`medic.surgery`, dont `useSurgeryJetProps` lit l'enjeu). Toutes produisent un jet, aucune n'était
  * mesurée.
  *
@@ -276,8 +282,8 @@ export function flowTestsWithoutStake(src: string): number[] {
  * de porteur sans elle, ou dont l'étape n'en porte aucun, reste rouge.
  *
  * Le discriminant est donc la FORME du DESCRIPTEUR, pas la fonction qui le reçoit : un littéral qui
- * nomme CE QU'ON TESTE (`skill` / `characteristic`) ET COMMENT (difficulté fixe, dynamique, ou
- * opposition) DÉCRIT un jet, et doit dire ce qu'il met en jeu. Cette couverture est un SUR-ENSEMBLE de
+ * nomme CE QU'ON TESTE (`skill` / `characteristic`) ET COMMENT (`COMMENT_IL_SE_LANCE` : difficulté fixe,
+ * dynamique, opposition, ou cible d'un Test étendu) DÉCRIT un jet, et doit dire ce qu'il met en jeu. Cette couverture est un SUR-ENSEMBLE de
  * celle de `flowTestsWithoutStake` — c'est exactement ce que PROUVE le rejeu de l'ancien périmètre
  * ci-dessous, site par site.
  *
@@ -309,8 +315,8 @@ export function literalTestsWithoutStake(src: string): number[] {
     const lit = s.slice(start, end);
     // Un `FlowTest` réel nomme SA difficulté (fixe ou dynamique) OU son OPPOSITION (un Test opposé n'a
     // pas de difficulté propre — Piège-lame, LDB 62 l.280 : sans cette branche, la mesure perdrait un
-    // site que l'ancien scan voyait, cf. le rejeu ci-dessous).
-    if (!hasTopLevelKey(lit, 'difficulty') && !hasTopLevelKey(lit, 'difficultyBy') && !hasTopLevelKey(lit, 'opposed')) continue;
+    // site que l'ancien scan voyait, cf. le rejeu ci-dessous), OU la cible d'un Test étendu.
+    if (!COMMENT_IL_SE_LANCE.some((k) => hasTopLevelKey(lit, k))) continue;
     if (/\bstake\s*(?:[,:]|$)/.test(lit)) continue;
     const jet = jetDuPorteur(s, start);
     if (jet && hoteAvecEnjeu(src, s, end, jet)) continue;
@@ -442,15 +448,18 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
   it('PORTEUR D’ÉTAPE (4ᵉ forme) : l’enjeu se demande à l’étape hôte de son `jet`, jamais effacé', () => {
     const porteurs = Object.entries(PENDING_BY_JET).flatMap(([jet, slot]) => (slot ? [{ jet, slot }] : []));
     expect(porteurs.length).toBeGreaterThan(0);
-    for (const { jet, slot } of porteurs) {
-      const pose = `set({ ${slot}: { actorId: a.id, characteristic: 'force', difficulty, roll: null } });`;
+    // Un porteur à difficulté, et un porteur SANS : la cible d'un Test étendu, lue au SCHÉMA et non à la
+    // garde, pour que la retirer de `COMMENT_IL_SE_LANCE` rende ce cas rouge.
+    for (const { jet, slot } of porteurs) for (const comment of ['difficulty', ...Object.keys(cibleEtendueSchema.shape)]) {
+      const pose = `set({ ${slot}: { actorId: a.id, characteristic: 'force', ${comment}, roll: null } });`;
       const hote = (j: string, enjeu: string) => `const e = hostStep(get, { id: 'x', kind: 'k', jet: '${j}', actorId: a.id${enjeu} });`;
       const autre = porteurs.find((p) => p.jet !== jet)?.jet ?? 'fumble';
-      expect(literalTestsWithoutStake(`${pose}\n${hote(jet, ', ...(f.stake ? { stake: f.stake } : {})')}`), `${slot} : l’étape porte l’enjeu`).toHaveLength(0);
-      expect(literalTestsWithoutStake(`${pose}\n${hote(jet, '')}`), `${slot} : étape hôte sans enjeu`).toHaveLength(1);
-      expect(literalTestsWithoutStake(pose), `${slot} : aucune étape hôte`).toHaveLength(1);
-      expect(literalTestsWithoutStake(`${hote(jet, ', stake')}\n${pose}`), `${slot} : étape montée AVANT le slot`).toHaveLength(1);
-      expect(literalTestsWithoutStake(`${pose}\n${hote(autre, ', stake')}`), `${slot} : étape d’un autre jet`).toHaveLength(1);
+      const cas = `${slot} (${comment})`;
+      expect(literalTestsWithoutStake(`${pose}\n${hote(jet, ', ...(f.stake ? { stake: f.stake } : {})')}`), `${cas} : l’étape porte l’enjeu`).toHaveLength(0);
+      expect(literalTestsWithoutStake(`${pose}\n${hote(jet, '')}`), `${cas} : étape hôte sans enjeu`).toHaveLength(1);
+      expect(literalTestsWithoutStake(pose), `${cas} : aucune étape hôte`).toHaveLength(1);
+      expect(literalTestsWithoutStake(`${hote(jet, ', stake')}\n${pose}`), `${cas} : étape montée AVANT le slot`).toHaveLength(1);
+      expect(literalTestsWithoutStake(`${pose}\n${hote(autre, ', stake')}`), `${cas} : étape d’un autre jet`).toHaveLength(1);
     }
     const horsPorteur = `set({ medic: { ...m, surgery: { kind: act, skill: h.skill, difficulty: 'intermediaire' } } });\nconst e = hostStep(get, { id: 'x', kind: 'k', jet: 'test', actorId: a.id, stake });`;
     expect(literalTestsWithoutStake(horsPorteur), 'un slot hors `PENDING_BY_JET` est la forme lue par le joueur').toHaveLength(1);
