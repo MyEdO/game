@@ -25,7 +25,7 @@ import { findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
-import { ALL_MAGIC } from './types';
+import { ALL_MAGIC, type CastPenalty } from './types';
 import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -41,7 +41,7 @@ import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grap
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration, maladieABenir, aucuneMaladieABenir } from './rest';
 import { applyAlcoholTest, EFFET_D_IVRESSE } from './drunkenness';
-import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, traumaFicheById, estPlaieAmputation, amputationWoundDesc } from './trauma';
+import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, estPlaieAmputation, plaieDAmputation, avecSequelles, type SequelleNeuve } from './trauma';
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
@@ -78,7 +78,6 @@ import {
   ItemInstance,
   Weapon,
   locationLabel,
-  type Trauma,
   type ReachValue,
   type ConditionEmit,
   type ContexteDeTest,
@@ -1472,7 +1471,7 @@ function sansDuree<T extends OpDuree>(o: T): T {
 /**
  * CAUSE PERSISTANTE (`LDB 16 l.117`) : une op `condition` RÉCURRENTE gatée sur l'État qu'elle pose —
  * le porteur ne subit pas un État de plus par Round, il le REGAGNE tant que la cause dure. UNIQUE
- * définition du prédicat : l'application (journal) et les lecteurs du Codex (`ui/compendium/opRows.ts`,
+ * définition du prédicat : l'application (journal) et les lecteurs du Codex (`noyau/codex/opRows.ts`,
  * `humanize.ts`, `registry.ts`) l'importent d'ici. Accepte aussi la forme PLATE du dialecte miscast
  * (`data/miscast.json`, `engine/miscast.ts`), dont les champs portent les mêmes noms.
  */
@@ -1720,6 +1719,15 @@ export type NatureDEffet = 'effet' | 'metamorphose' | 'mutation' | 'contrecoup' 
  *  `OpsCtx` sans libellé (#1906). Jamais « sort » pour une source qui n'en est pas un. */
 export function nomDeSource(ctx: { label?: string } | undefined, nature: NatureDEffet = 'effet'): string {
   return ctx?.label ?? t(`op.nature.${nature}`);
+}
+
+/** Ce que fait une pénalité d'incantation (`CastPenalty`), en clair : le libellé UNIQUE du journal et de
+ *  sa pastille d'état. */
+export function effetDePenaliteDIncantation(cp: Pick<CastPenalty, 'skill' | 'mod' | 'blocked' | 'maxZeroDR'>): string {
+  const skill = cp.skill === ALL_MAGIC ? t('op.frag.allMagic') : refLabel('skills', { id: cp.skill });
+  if (cp.blocked) return t('op.castPenalty.blocked', { skill });
+  if (cp.maxZeroDR) return t('op.castPenalty.maxZeroDR');
+  return cp.mod == null ? '' : t('op.castPenalty.mod', { mod: String(cp.mod), skill });
 }
 
 /** Le CONTEXTE GELÉ d'une feuille différée — la part d'`OpsCtx` qui voyage telle quelle. */
@@ -2231,6 +2239,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const cp: NonNullable<Combatant['castPenalties']>[number] = {
           label: nomDeSource(ctx, 'contrecoup'),
           skill: o.skill?.id ?? ALL_MAGIC,
+          ...(source ? { source } : {}),
           ...(o.mod != null ? { mod: o.mod } : {}),
           ...(o.blocked ? { blocked: true } : {}),
           ...(o.maxZeroDR ? { maxZeroDR: true } : {}),
@@ -2253,13 +2262,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           dureeTxt = t('op.frag.days', { n: d, s: d > 1 ? 's' : '' });
         }
         target.castPenalties = [...(target.castPenalties ?? []), cp];
-        const skillTxt = cp.skill === 'all' ? t('op.frag.allMagic') : refLabel('skills', { id: cp.skill });
-        const what = cp.blocked
-          ? t('op.castPenalty.blocked', { skill: skillTxt })
-          : cp.maxZeroDR
-            ? t('op.castPenalty.maxZeroDR')
-            : t('op.castPenalty.mod', { mod: String(cp.mod), skill: skillTxt });
-        lines.push(t('op.castPenalty', { name: target.label, what, duree: dureeTxt ? t('op.frag.during', { dureeTxt }) : '', label: cp.label }));
+        lines.push(t('op.castPenalty', { name: target.label, what: effetDePenaliteDIncantation(cp), duree: dureeTxt ? t('op.frag.during', { dureeTxt }) : '', label: cp.label }));
         break;
       }
       case 'statusMod': {
@@ -2417,11 +2420,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Au plus UNE plaie chirurgicale par membre : l'escalade de la ligne (« Pied écrasé », LDB 18 l.180)
         // l'a déjà posée avec son échéance (`stampCriticalEscalation`) — la doubler perdrait cette échéance.
         const dejaPlaie = (target.traumas ?? []).some((t) => estPlaieAmputation(t) && t.location === loc);
-        const poses: Trauma[] = [
-          ...(dejaPlaie ? [] : [{ label: traumaFicheById('amputation-plaie').label, location: loc, needsSurgery: true, desc: amputationWoundDesc() } as Trauma]),
+        const poses: SequelleNeuve[] = [
+          ...(dejaPlaie ? [] : [plaieDAmputation(loc)]),
           ...permanentAmputations(o.sequels, loc, units),
         ];
-        target.traumas = [...(target.traumas ?? []), ...poses];
+        target.traumas = avecSequelles(target.traumas, poses);
         for (const p of poses) lines.push(t('op.amputer', { name: target.label, label: p.label, loc: locationLabel(loc, target.bodyShape) }));
         // Cumuls (LDB 18 l.247/251/273/277/281) : agrégation + escalade au seuil, au MÊME point que la pose.
         lines.push(...consolidateAmputations(target));

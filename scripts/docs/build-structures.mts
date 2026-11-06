@@ -16,6 +16,7 @@ import {
   scannerRedeclarations,
   listerDocuments,
   empreintesDefs,
+  DOSSIERS_DE_DEFS,
   RACINES,
 } from './lib/structures-scan.mjs';
 import { noeudsDeStructure, type ClasseDeStructure } from '../guards/lib/structuresLocales.mts';
@@ -47,7 +48,7 @@ function rendu() {
    *  La composition defs → familles/enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`). */
   const { defs: DEFS, declares, scan } = scanDuCorpus(ROOT);
   const parFichierDeclare = new Map(declares.map((d) => [d.file, d]));
-  const { redeclarations, totalLitteraux } = scannerRedeclarations(ROOT);
+  const { redeclarations, totalLitteraux, angleMortDesSpreads } = scannerRedeclarations(ROOT);
 
   /** Numérotation des sous-sections de §3 — table UNIQUE : titres ET renvois s'y lisent. */
   const SECTION = {
@@ -110,7 +111,7 @@ function rendu() {
   // ---------------------------------------------------------------------------
   out += '## Périmètre mesuré et angles morts (à dire pour ne pas se lire comme exhaustif)\n\n';
   out += 'Périmètre : les documents AUTHORÉS des deux racines (`src/data`, `src/scenes`), leurs schémas zod\n';
-  out += 'du registre, et les littéraux d’objet zod des `src/data/schemas/defs/*.ts`.\n';
+  out += `du registre, et les littéraux d’objet zod de leurs modules (${DOSSIERS_DE_DEFS.map((d) => `\`${d}/*.ts\``).join(', ')}).\n`;
   out += 'Ce que la mesure ci-dessous **ne voit pas** — un compte n’a de sens qu’avec son périmètre.\n\n';
   out += ANGLES_MORTS.map((a) => `- ${a}`).join('\n');
   out += '\n\n';
@@ -500,10 +501,12 @@ function rendu() {
   }
 
   // ---------------------------------------------------------------------------
-  out += '## 4. Redéclarations locales dans `src/data/schemas/defs/*.ts`\n\n';
+  out += `## 4. Redéclarations locales dans ${DOSSIERS_DE_DEFS.map((d) => `\`${d}/*.ts\``).join(', ')}\n\n`;
   out += `Littéraux d’objet zod lus : **${totalLitteraux}** ; **${redeclarations.length}** recoupent le lexique\n`;
   out += 'ou un littéral de `src/data/schemas/grammaire/`. « Schéma commun candidat » = même signature EXACTE\n';
   out += 'qu’un littéral de la grammaire (candidat à examiner, cf. angles morts).\n\n';
+  out += `Spreads (cf. angles morts) : **${angleMortDesSpreads.defsASpread}** littéraux de def à spread, vus sur leurs seules clés propres ;\n`;
+  out += `**${angleMortDesSpreads.grammairePartiels}** littéraux de la grammaire partiels, exclus des schémas communs.\n\n`;
   out += '### 4.1 Empreinte par concept, critère SUPERSET (indépendant du classement ordonné)\n\n';
   out += 'Un littéral qui porte le noyau d’un concept, même s’il a été classé sous un autre concept en §4.2 :\n';
   out += 'ce compte lève l’angle mort du classement ordonné.\n';

@@ -17,6 +17,7 @@
  */
 import { locationLabel, type Combatant, type Difficulty, type Trauma } from '../engine/types';
 import type { ChoixNomme } from './reglages';
+import type { IdDePlaieDeLOperation } from './designations';
 import { fenetreDuJeu } from './combatAuto';
 import { libelleDuParametre } from './libelles';
 import { garanti } from '../lib/garanti';
@@ -70,7 +71,9 @@ export interface MedicState {
     /** SOUTIEN (LDB 12) des assistants, déjà fondu dans `skill` — recopié sur chaque passe (affichage). */
     support?: SupportDetail;
     intBonus: number;
-    traumaIdx: number;
+    /** La Blessure Critique visée, parmi `plaiesDeLOperation` ; absente quand l'opération n'en vise aucune (verrous
+     *  d'État seuls). */
+    traumaUid?: IdDePlaieDeLOperation;
     targetDR: number;
     cumDR: number;
     /** ENJEU d'une passe (#1117) — posé à l'ARMEMENT, où le `kind` et la cible de DR sont connus :
@@ -87,6 +90,7 @@ export interface MedicState {
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Meilleur soigneur du groupe pour un acte (Opérer exige AUSSI le Talent Chirurgie, LDB 10 ; la récupération
@@ -194,14 +198,15 @@ export function medicAct(get: Get, set: Set, act: HealMode): void {
     // Chirurgie : cible MJ 5-10 (LDB 10), Intermédiaire +0. Récupération d'usage : DR 6 fixe (LDB 18 l.120/179),
     // Accessible +20 — cible lue sur la séquelle « membre désactivé » (restoreDR).
     const recovery = act === 'recovery';
-    const targetDR = recovery ? (recoverableTraumas(patient)[0].restoreDR ?? 6) : 7;
+    const plaie = (recovery ? recoverableTraumas(patient) : surgeryTraumas(patient))[0];
+    const targetDR = recovery ? (plaie.restoreDR ?? 6) : 7;
     set({
       medic: {
         ...m,
         surgery: {
           kind: act, difficulty: recovery ? 'accessible' : 'intermediaire',
           healerId: healer.id, healerName: healer.label, skill: healer.skill, support: healer.support, intBonus: healer.intBonus,
-          traumaIdx: 0, targetDR, cumDR: 0, paidCost,
+          ...(plaie ? { traumaUid: plaie.uid } : {}), targetDR, cumDR: 0, paidCost,
           stake: flowStakeRef(HEAL_STAKE[act], { values: { targetDR } }),
         },
       },
@@ -220,14 +225,14 @@ export function medicAct(get: Get, set: Set, act: HealMode): void {
 }
 
 /** Choix de la Blessure Critique à opérer, parmi `plaiesDeLOperation`. */
-export function medicSetWound(get: Get, set: Set, idx: number): void {
+export function medicSetWound(get: Get, set: Set, uid: IdDePlaieDeLOperation): void {
   const m = get().medic;
-  if (!m?.surgery || !plaiesDeLOperation(get())[idx]) return;
-  set({ medic: { ...m, surgery: { ...m.surgery, traumaIdx: idx } } });
+  if (!m?.surgery || !plaiesDeLOperation(get()).some((p) => p.uid === uid)) return;
+  set({ medic: { ...m, surgery: { ...m.surgery, traumaUid: uid } } });
 }
 
-/** Les Blessures Critiques que l'opération armée (`medic.surgery`) peut viser, au rang que `medicSetWound` reçoit et que
- *  `jetConfirm('surgery')` lit : à rééduquer (`recoverableTraumas`) ou à opérer (`surgeryTraumas`) ; vide sans opération armée
+/** Les Blessures Critiques que l'opération armée (`medic.surgery`) peut viser, par l'`uid` que `medicSetWound` reçoit et
+ *  que `jetConfirm('surgery')` lit : à rééduquer (`recoverableTraumas`) ou à opérer (`surgeryTraumas`) ; vide sans opération armée
  *  ou une passe tentée. */
 export function plaiesDeLOperation(s: Jeu): Trauma[] {
   const m = s.medic;
@@ -241,7 +246,7 @@ export const REGLAGES_DE_L_OPERATION = ['medicSetWound'] as const satisfies read
 
 /** La fenêtre de l'infirmerie en données : la Blessure Critique que l'opération armée vise (`plaiesDeLOperation`),
  *  chacune nommée avec sa Localisation, réglée par `medicSetWound` ; `null` hors de l'infirmerie. PUR. */
-export function fenetreDeLOperation(s: Jeu): { plaie: ChoixNomme<number> | null } | null {
+export function fenetreDeLOperation(s: Jeu): { plaie: ChoixNomme<IdDePlaieDeLOperation> | null } | null {
   const m = s.medic;
   if (!m || fenetreDuJeu(s)?.cle !== 'medic') return null;
   const plaies = plaiesDeLOperation(s);
@@ -249,8 +254,8 @@ export function fenetreDeLOperation(s: Jeu): { plaie: ChoixNomme<number> | null 
   if (!plaies.length || !m.surgery || !patient) return { plaie: null };
   return {
     plaie: {
-      verbe: 'medicSetWound', parametre: 'idx', libelle: garanti(libelleDuParametre('medicSetWound', 'idx'), 'medicSetWound', 'libellé de la plaie'), choisie: m.surgery.traumaIdx,
-      options: plaies.map((p, i) => ({ valeur: i, libelle: t('medic.plaie', { plaie: p.label, localisation: locationLabel(p.location, patient.bodyShape) }) })),
+      geste: { verbe: 'medicSetWound' }, parametre: 'uid', libelle: garanti(libelleDuParametre('medicSetWound', 'uid'), 'medicSetWound', 'libellé de la plaie'), choisie: m.surgery.traumaUid ?? null,
+      options: plaies.map((p) => ({ valeur: p.uid, libelle: t('medic.plaie', { plaie: p.label, localisation: locationLabel(p.location, patient.bodyShape) }) })),
     },
   };
 }
@@ -265,18 +270,16 @@ export function openSurgeryPass(get: Get, set: Set): void {
   if (!m || !sg || get().pendingSurgery) return;
   const patient = get().party.find((h) => h.id === m.patientId);
   if (!patient) { set({ medic: { ...m, surgery: undefined } }); return; }
+  // Difficulté de l'opération (Rééducation = Accessible) : LDB 18 l.120, l.179. `sg.skill` est la valeur FIGÉE à
+  // l'armement : la ligne se monte sans fiche vivante.
+  const ligne = ligneDuSoigneur({ skill: sg.skill, support: sg.support }, sg.difficulty);
   set({
     pendingSurgery: {
       healerId: sg.healerId ?? 'pnj-soigneur', healerName: sg.healerName,
       targetId: patient.id, targetName: patient.label,
-      skillValue: sg.skill, support: sg.support, intBonus: sg.intBonus, difficulty: sg.difficulty,
-      // La cible PORTE la Difficulté de l'opération (Rééducation = Accessible, `LDB 18 l.120/179`) : c'est
-      // celle que `rollTest` jettera (`FLOWS.surgery`, `simpleTestResolve`). `sg.skill` est l'instantané
-      // FIGÉ à l'armement (le chirurgien peut avoir changé d'État depuis) : aucune fiche vivante à en
-      // déduire, la valeur reste celle de l'opération engagée.
-      ...cibleMesuree(ligneDuSoigneur({ skill: sg.skill, support: sg.support }, sg.difficulty)),
+      intBonus: sg.intBonus, ligne, ...cibleMesuree(ligne),
       roll: null, success: false, sl: 0,
-      traumaIdx: sg.traumaIdx, targetDR: sg.targetDR, cumDR: sg.cumDR, paidCost: sg.paidCost,
+      targetDR: sg.targetDR, cumDR: sg.cumDR, paidCost: sg.paidCost,
     },
   });
 }
@@ -311,7 +314,7 @@ function appliquerLaPasse(get: Get, set: Set): void {
   }
   if (cum >= sg.targetDR) { // cible atteinte
     if (recovery) {
-      const { penalty, log: recLog } = recoverDisabledLimb(patient, sg.traumaIdx);
+      const { penalty, log: recLog } = recoverDisabledLimb(patient, sg.traumaUid);
       log.push(...recLog);
       // Pénalité 1d10 jours (LDB 18 l.120/179) : durée d'horloge PARTAGÉE (charMod −10 ET Mouvement ÷2 de la jambe
       // expirent ENSEMBLE) — `defaultUntilTime` fournit la même échéance à toutes les ops sans durée propre.
@@ -323,7 +326,7 @@ function appliquerLaPasse(get: Get, set: Set): void {
       finishPlayerAction(get, set, log, 'heal');
       return;
     }
-    if (surgeryTraumas(patient).length) log.push(...removeSurgicalTrauma(patient, sg.traumaIdx)); // Chirurgie : Blessure Critique réparée (s'il y en a une à opérer)
+    if (sg.traumaUid) log.push(...removeSurgicalTrauma(patient, sg.traumaUid)); // Chirurgie : Blessure Critique réparée (s'il y en a une à opérer)
     log.push(...releaseConditionLocks(patient, 'surgery')); // verrous d'État « ne peut être retiré que par Chirurgie » (Hémorragie interne, LDB 18)
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
     finishPlayerAction(get, set, log, 'heal');
@@ -357,10 +360,10 @@ export function creerActionsDuMedecin(get: Get, set: Set) {
     openMedic: (opts) => openMedic(get, set, opts),
     medicSelectPatient: (id) => medicSelectPatient(get, set, id),
     medicAct: (act) => medicAct(get, set, act),
-    medicSetWound: (idx) => medicSetWound(get, set, idx),
+    medicSetWound: (uid) => medicSetWound(get, set, uid),
     openSurgeryPass: () => openSurgeryPass(get, set),
     medicAbandonSurgery: () => medicAbandonSurgery(get, set),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** L'infirmerie se ferme hors soin en cours (`MODAL_DEFS.medic.sortieFermee`). */

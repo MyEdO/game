@@ -12,10 +12,9 @@ const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manu
 
 /** Le duel ouvert, le tour au héros, gardé puis repris par une seconde partie. */
 function duel() {
-  const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
-  ouverture.envoyer({ type: 'startScene', args: [testScene()] });
-  ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
-  ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+  const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+  ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
   const garde = ouverture.etat();
   ouverture.fermer();
   const contact = auContact(garde);
@@ -51,19 +50,19 @@ describe('fenetreDAttaque — la modale d’attaque lue par la seule surface du 
       expect(avant.sousTitre.startsWith(`${H.label} — Attaque`), avant.sousTitre).toBe(true);
       expect(avant.arme, 'l’arme employée est nommée').toBeTruthy();
       expect(avant.degats, 'avant le jet, les Dégâts de l’arme sont dits').toEqual(expect.any(Number));
-      expect(avant.localisation).toMatchObject({ verbe: 'attackSetLocation', choisie: null });
+      expect(avant.localisation).toMatchObject({ geste: { verbe: 'jetRegler', flux: 'attack', reglage: 'localisation' }, choisie: null });
       expect(avant.localisation!.options.map((o) => o.valeur)).toEqual(expect.arrayContaining([null, ...LOCALISATIONS_DE_COUP]));
       expect(avant.localisation!.options).toHaveLength(LOCALISATIONS_DE_COUP.length + 1);
       expect(avant.jet && 'pending' in avant.jet ? avant.jet.pending.labelRef.category : null).toBe('skills');
       expect(avant.defense && 'pending' in avant.defense, 'la défense adverse n’est pas annoncée').toBe(true);
       expect(avant.influences).toMatchObject({ relancee: false, sombrePacte: true, inversion: null });
 
-      partie.envoyer({ type: 'attackSetLocation', args: ['tete'] });
+      partie.envoyer({ type: 'jetRegler', args: ['attack', 'localisation', 'tete'] });
       const visee = vue(partie);
       expect(visee.localisation!.choisie).toBe('tete');
       const cibleDe = (f: FenetreDAttaque) => (f.jet && 'pending' in f.jet ? f.jet.pending.target : null);
       expect(cibleDe(visee), 'viser une Localisation ne change pas la cible annoncée').not.toBe(cibleDe(avant));
-      partie.envoyer({ type: 'attackSetLocation', args: [null] });
+      partie.envoyer({ type: 'jetRegler', args: ['attack', 'localisation', null] });
       expect(vue(partie).localisation!.choisie).toBeNull();
 
       partie.envoyer({ type: 'jetRoll', args: ['attack'] });

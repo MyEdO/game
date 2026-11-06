@@ -10,7 +10,8 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { NarratifEditor, type ProjetEdite } from './editor/NarratifEditor';
+import { NarratifEditor } from './editor/NarratifEditor';
+import type { ProjetEdite } from '../noyau/narratifEdit';
 import { CodexEdit } from './editor/codex/CodexEdit';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';

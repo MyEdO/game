@@ -1,12 +1,12 @@
 /**
- * Jalon 5 — la LIAISON web de la sauvegarde : les actions du store (`saveGame`, `autoSave`, `loadGame`, `importGame`)
+ * Jalon 5 — la LIAISON web de la sauvegarde : les actions du store (`saveGame`, `loadGame`, `importGame`) et `autoSave`
  * sur les emplacements du `localStorage` (`stockageDesSauvegardes`), le refus dit au journal, l'interface remise au
  * chargement et les retraits du chargement exposés à l'écran, observés au stockage des sauvegardes du joueur (`saves.testkit.ts`).
  * La forme persistée : `src/noyau/forme-persistee.hors-store.test.ts` ; les emplacements, leur liste et le témoin
  * des retraits : `src/hote/sauvegardes.hors-store.test.ts` (#2404).
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { useGame } from './store';
+import { autoSave, useGame } from './store';
 import { initialNet } from '../noyau/etat';
 import { t } from '../i18n';
 import { saveDuStockage } from './saves.testkit';
@@ -86,7 +86,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
   it('chez l’invité : sauvegarde refusée, message au journal, aucun emplacement écrit', () => {
     useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 2 } });
     expect(useGame.getState().saveGame(1)).toBe(false);
-    expect(useGame.getState().autoSave()).toBe(false);
+    expect(autoSave()).toBe(false);
     expect(useGame.getState().journal.slice(-1)[0]).toBe(t('store.saveInvite'));
     expect(saveDuStockage(1)).toBeNull();
     expect(saveDuStockage('auto')).toBeNull();
@@ -94,7 +94,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
 
   it('en combat : sauvegarde refusée, le slot reste vide', () => {
     useGame.getState().startCombat('enc-mutants');
-    useGame.getState().confirmRoundStart();
+    useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
     expect(useGame.getState().saveGame(1)).toBe(false);
     expect(saveDuStockage(1)).toBeNull();

@@ -26,7 +26,7 @@ describe('Incantation — le contexte est le MÊME au premier jet et à la relan
     banc.setState({ party: [mage] });
     banc.getState().startScene({ ...testScene(), environment: 'rural' } as never);
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const M = b.combatants.find((c) => c.label === 'M')!;

@@ -25,6 +25,7 @@ import { QtyStepper } from './QtyStepper';
 import { Row, Stack, grow } from './Layout';
 import { libelleDeTest, libelleDOppositionDeSort } from '../noyau/jetsEnVue';
 import { useGesteDeJet } from './useGesteDeJet';
+import { REGLAGE_DE_L_AXE, ciblesBasculees } from '../noyau/reglagesDuJet';
 
 /** Marque du pluriel FR, accordée sur la VALEUR (patron `plural(n)` des modales de navire) : le
  *  raccourci « (s) » du code laissait l'écran écrire « 1 pas … RESTANT(S) ». */
@@ -61,12 +62,7 @@ export function CastModal() {
   const reroll = useGesteDeJet('jetReroll', 'cast');
   const bonusSL = useGesteDeJet('jetBonusSL', 'cast');
   const darkPact = useGesteDeJet('jetDarkPact', 'cast');
-  const setCritChoice = useGame((s) => s.castSetCritChoice);
-  const setConjureForm = useGame((s) => s.castSetConjureForm);
-  const setDiscreet = useGame((s) => s.castSetDiscreet);
-  const allocOvercast = useGame((s) => s.castAllocOvercast);
-  const setChosenTableRolls = useGame((s) => s.castSetChosenTableRolls);
-  const toggleExtraTarget = useGame((s) => s.castToggleExtraTarget);
+  const regler = useGame((s) => s.jetRegler);
   const pickTargets = useGame((s) => s.castPickTargets);
   const placeZone = useGame((s) => s.castPlaceZone);
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'cast');
@@ -208,7 +204,7 @@ export function CastModal() {
               groupLabel={<><Icon id="faith/prayer" size="sm" /> Ton de la Prière</>}
               options={vue.ton.options.map((o) => ({
                 key: o.valeur ? 'discreet' : 'aloud', label: o.libelle, selected: vue.ton!.choisie === o.valeur,
-                onSelect: () => setDiscreet(!!o.valeur), refus: o.refus ?? undefined,
+                onSelect: () => regler('cast', 'discret', !!o.valeur), refus: o.refus ?? undefined,
               }))}
             />
           )}
@@ -220,7 +216,7 @@ export function CastModal() {
                 layout="grid"
                 options={vue.forme.options.map((o) => ({
                   key: String(o.valeur), label: o.libelle, selected: vue.forme!.choisie === o.valeur,
-                  onSelect: () => setConjureForm(String(o.valeur)), refus: o.refus ?? undefined,
+                  onSelect: () => regler('cast', 'formeConjuree', String(o.valeur)), refus: o.refus ?? undefined,
                 }))}
               />
             </div>
@@ -245,8 +241,8 @@ export function CastModal() {
                     </span>
                     <QtyStepper
                       center={<strong>{a.pas}</strong>}
-                      onDec={() => allocOvercast(a.axe, -1)}
-                      onInc={() => allocOvercast(a.axe, 1)}
+                      onDec={() => regler('cast', REGLAGE_DE_L_AXE[a.axe], a.pas - 1)}
+                      onInc={() => regler('cast', REGLAGE_DE_L_AXE[a.axe], a.pas + 1)}
                       decLabel={`Rendre un pas de ${META[a.axe][1]}`}
                       incLabel={`Allouer un pas de ${META[a.axe][1]} (+${sur.coutDuPas} DR)`}
                       refus={{ id: `overcast-${a.axe}`, dec: a.refusDeRendre ?? undefined, inc: a.refusDAllouer ?? undefined }}
@@ -265,7 +261,7 @@ export function CastModal() {
               ) : (
                 <div className="rm-loc-grid">
                   {sur.cibles.candidats.map((id) => pool.find((c) => c.id === id)).filter((m) => !!m).map((m) => (
-                    <CharFrame key={m.id} c={m} variant="vital" size="sm" selected={(pc.extraTargetIds ?? []).includes(m.id)} onClick={() => toggleExtraTarget(m.id)} />
+                    <CharFrame key={m.id} c={m} variant="vital" size="sm" selected={(pc.extraTargetIds ?? []).includes(m.id)} onClick={() => regler('cast', 'ciblesSupplementaires', ciblesBasculees(pc.extraTargetIds, m.id))} />
                   ))}
                 </div>
               ))}
@@ -275,8 +271,8 @@ export function CastModal() {
                   <span {...grow}><Icon id="nav/dice" size="sm" /> Jets sur le Tableau</span>
                   <QtyStepper
                     center={<strong>{sur.jetsSurLeTableau.choisis}</strong>}
-                    onDec={() => setChosenTableRolls(sur.jetsSurLeTableau!.choisis - 1)}
-                    onInc={() => setChosenTableRolls(sur.jetsSurLeTableau!.choisis + 1)}
+                    onDec={() => regler('cast', 'jetsDeTable', sur.jetsSurLeTableau!.choisis - 1)}
+                    onInc={() => regler('cast', 'jetsDeTable', sur.jetsSurLeTableau!.choisis + 1)}
                     decLabel="Décliner un jet sur le Tableau"
                     incLabel="Refaire un jet sur le Tableau"
                     refus={{ id: 'overcast-table', dec: sur.jetsSurLeTableau.refusDeDecliner ?? undefined, inc: sur.jetsSurLeTableau.refusDeRefaire ?? undefined }}
@@ -294,7 +290,7 @@ export function CastModal() {
                 options={vue.critique.options.map((o) => ({
                   key: String(o.valeur), label: <><Icon id={EFFETS[o.valeur as CritChoice][0]} size="sm" /> {o.libelle}</>,
                   title: EFFETS[o.valeur as CritChoice][1], selected: vue.critique!.choisie === o.valeur,
-                  onSelect: () => setCritChoice(o.valeur as CritChoice), refus: o.refus ?? undefined,
+                  onSelect: () => regler('cast', 'effetCritique', o.valeur as CritChoice), refus: o.refus ?? undefined,
                 }))}
               />
             </div>

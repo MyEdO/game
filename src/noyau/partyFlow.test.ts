@@ -7,7 +7,7 @@ import { emptyNarratif } from './monde/campaignNarratif';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { trappings, findTrappingById } from '../data';
 import type { Possession } from '../engine/possession';
-import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Get, Set } from './flowTypes';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -15,7 +15,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  *  les deux ; `choisirApparence` (loadout, héros seul) ne lit/écrit que `party` (via mutLoadout). Le `set`
  *  fonctionnel de Zustand est miroité (merge du partiel renvoyé). */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {
-  let state = { party, possessions, campaignNarratif: emptyNarratif(), log: () => {} } as unknown as Jeu;
+  let state = { party, possessions, campaignNarratif: emptyNarratif(), log: () => {} } as unknown as JeuDuNoyau;
   const get: Get = () => state;
   const set: Set = (p) => { state = { ...state, ...(typeof p === 'function' ? p(state) : p) }; };
   return { get, set };

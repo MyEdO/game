@@ -13,14 +13,15 @@ import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
 import { findCreatureById, findSeaShantyById, findTrappingById } from '../data';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
-import { actorIn } from './monde/combatants';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
 import { chansonsDuChanteur, choixDePaieOuverts } from './shipCrew';
 import { creaturesADepecer } from './combatEffects';
-import { ciblesDeLaDoubleFrappe, ciblesDuBalayage } from './combatFlow';
+import { actorIn } from './monde/combatants';
 import { adversairesADistraire, adversairesDuBattement } from './combatManeuvers';
 import { idsDuCoupleMonte } from './targetingModes';
+import { reponsesDuNoeud } from './dialogue';
+import { plaiesDeLOperation } from './medicFlow';
 
 /** Un combattant : la file de combat et le groupe (`porteurParId`, `monde/combatants.ts`). */
 export type IdDeCombattant = string;
@@ -43,25 +44,24 @@ export type IdDEtapeDeCascade = string;
 export type IdDeCombattantPromouvable = string;
 /** Un tireur que `armPreempt` et `preemptRangedShot` acceptent (`preemptShooterIds`, `targeting.ts`). */
 export type IdDeTireurRapide = string;
-/** Une chanson que `shantySetSong` accepte (`chansonsDuChanteur`, `shipCrew.ts`). */
+/** Une chanson que le réglage `shanty.chanson` accepte (`chansonsDuChanteur`, `shipCrew.ts`). */
 export type IdDeChanson = string;
+/** Une forme d'arme invoquée que le lanceur du Sort en attente peut donner (`conjureFormOptions`), par l'id de son arme. LDB 47 */
+export type IdDeFormeConjuree = string;
 /** Un choix de paie que `councilPay` accepte (`choixDePaieOuverts`, `shipCrew.ts`). */
 export type IdDeChoixDePaie = string;
 /** Une créature que `harvestCreature` accepte (`creaturesADepecer`, `combatEffects.ts`). */
 export type IdDeCreatureADepecer = string;
-/** Une cible que `cleaveAttack` accepte (`ciblesDuBalayage`, `combatFlow.ts`). */
-export type IdDeCibleDuBalayage = string;
-/** Une cible que `dualStrikeAttack` accepte (`ciblesDeLaDoubleFrappe`, `combatFlow.ts`). */
-export type IdDeCibleDeLaDoubleFrappe = string;
-/** Un adversaire que `battementSetFoe` accepte (`adversairesDuBattement`, `combatManeuvers.ts`). */
+/** Un adversaire que le réglage `battement.adversaire` accepte (`adversairesDuBattement`, `combatManeuvers.ts`). */
 export type IdDAdversaireDuBattement = string;
-/** Un adversaire que `distraireSetFoe` accepte (`adversairesADistraire`, `combatManeuvers.ts`). */
+/** Un adversaire que le réglage `distraire.adversaire` accepte (`adversairesADistraire`, `combatManeuvers.ts`). */
 export type IdDAdversaireADistraire = string;
 /** Le cavalier ou la monture que `mountTargetSelect` accepte (`idsDuCoupleMonte`, `targetingModes.ts`). */
 export type IdDuCoupleMonte = string;
-/** Une forme d'arme invoquée que `castSetConjureForm` accepte : l'id d'une arme des formes du lanceur de l'incantation
- *  en attente (`conjureFormOptions`, `engine/conjuredWeapons.ts`). */
-export type IdDeFormeInvoquee = string;
+/** Une réponse VISIBLE du nœud de dialogue courant, par son `id` (`reponsesDuNoeud`, `dialogue.ts`). */
+export type IdDeReponseDeDialogue = string;
+/** Une Blessure Critique que l'opération armée peut viser, par son `uid` (`plaiesDeLOperation`, `medicFlow.ts`). */
+export type IdDePlaieDeLOperation = string;
 
 /** Une désignation : son nom en mots, ce qu'elle lit dans l'état (les ids valides, ou les objets désignés par leur `id`),
  *  et le nom en mots du joueur de l'élément d'un id (`null` : l'élément n'a pas de nom). */
@@ -79,11 +79,12 @@ const combattants = (s: Jeu): string[] => sansDoublon(ids(lesCombattants(s)));
 const labelParmi = (xs: readonly { id: string; label?: string }[], id: string): string | null => xs.find((x) => x.id === id)?.label ?? null;
 const nomDeCombattant = (s: Jeu, id: string): string | null => labelParmi(lesCombattants(s), id);
 const lesObjets = (s: Jeu) => [...lesCombattants(s).flatMap((c) => c.items ?? []), ...s.possessions.flatMap((p) => p.items)];
-const labelDePossession = (s: Jeu, uid: string): string | null => s.possessions.find((p) => p.uid === uid)?.label ?? null;
-const formesInvoquees = (s: Jeu): string[] => {
-  const lanceur = s.pendingCast && actorIn(s, s.pendingCast.casterId);
+/** Les armes dont le lanceur du Sort en attente peut donner la forme (`conjureFormOptions`), LDB 47. */
+const formesConjurables = (s: Jeu): string[] => {
+  const lanceur = s.pendingCast ? actorIn(s, s.pendingCast.casterId) : undefined;
   return lanceur ? conjureFormOptions(lanceur).map((f) => f.weapon) : [];
 };
+const labelDePossession = (s: Jeu, uid: string): string | null => s.possessions.find((p) => p.uid === uid)?.label ?? null;
 
 /** Les désignations, par NOM d'alias (ou d'interface désignée par son `id`). `mot` est un littéral : le générateur des
  *  verbes le lit au source. */
@@ -110,13 +111,17 @@ export const DESIGNATIONS = {
   IdDeCombattantPromouvable: { mot: 'id de combattant promouvable', lire: actFirstIds, nom: nomDeCombattant },
   IdDeTireurRapide: { mot: 'id de tireur rapide', lire: (s) => preemptShooterIds(() => s), nom: nomDeCombattant },
   IdDeChanson: { mot: 'id de chanson', lire: chansonsDuChanteur, nom: (_s, id) => findSeaShantyById(id)?.label ?? null },
+  IdDeFormeConjuree: { mot: 'id de forme conjurée', lire: formesConjurables, nom: (_s, id) => findTrappingById(id)?.label ?? null },
   IdDeChoixDePaie: { mot: 'id de choix de paie', lire: choixDePaieOuverts, nom: (_s, id) => findMoraleFactor(id)?.label ?? null },
   IdDeCreatureADepecer: { mot: 'id de créature à dépecer', lire: creaturesADepecer, nom: (_s, id) => findCreatureById(id)?.label ?? null },
-  IdDeCibleDuBalayage: { mot: 'id de cible du balayage', lire: (s) => ids(ciblesDuBalayage(s)), nom: nomDeCombattant },
-  IdDeCibleDeLaDoubleFrappe: { mot: 'id de cible de la double frappe', lire: (s) => ids(ciblesDeLaDoubleFrappe(s)), nom: nomDeCombattant },
   IdDAdversaireDuBattement: { mot: 'id d’adversaire du Battement', lire: (s) => ids(adversairesDuBattement(s)), nom: nomDeCombattant },
   IdDAdversaireADistraire: { mot: 'id d’adversaire à distraire', lire: (s) => ids(adversairesADistraire(s)), nom: nomDeCombattant },
   IdDuCoupleMonte: { mot: 'id du couple monté', lire: idsDuCoupleMonte, nom: nomDeCombattant },
-  IdDeFormeInvoquee: { mot: 'id de forme invoquée', lire: formesInvoquees, nom: (_s, id) => findTrappingById(id)?.label ?? null },
+  IdDeReponseDeDialogue: { mot: 'id de réponse de dialogue', lire: (s) => ids(reponsesDuNoeud(s)), nom: (s, id) => labelParmi(reponsesDuNoeud(s), id) },
+  IdDePlaieDeLOperation: {
+    mot: 'id de plaie de l’opération',
+    lire: (s) => plaiesDeLOperation(s).map((p) => p.uid),
+    nom: (s, uid) => plaiesDeLOperation(s).find((p) => p.uid === uid)?.label ?? null,
+  },
   RoomPortal: { mot: 'id de porte', lire: (s): readonly RoomPortal[] => (s.scene ? portalsForParty(s.scene, s.partyPos) : []), nom: () => null },
 } satisfies Record<string, Designation>;

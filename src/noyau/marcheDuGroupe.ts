@@ -5,7 +5,7 @@ import { poserCapDuGroupe, meneurDuMonde, capDuGroupe } from './monde/combatants
 import { facingToward, rotateDir8 } from '../geometry/dir8';
 import { bus, EVT } from './bus';
 import { checkTriggers, jouerFlowEntier, runFlow } from './combatEffects';
-import { exploreMovePlan, exploreStepDest, mouvementDuGroupe, optionsDeCheminDuGroupe, povStepDest } from './monde/exploreNav';
+import { exploreStepDest, mouvementDuGroupe, optionsDeCheminDuGroupe, povStepDest } from './monde/exploreNav';
 import { atterrissagesDeSaut, walkNeighbors, type Pt } from './monde/path';
 import { planJump } from './monde/jumpMove';
 import { chebyshev } from '../engine/grid';
@@ -13,7 +13,7 @@ import { refuserGeste } from './refusVisible';
 import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau, JeuDuNoyau } from './machinerieDuNoyau';
 import type { RoomPortal } from './monde/roomPortals';
 
 /** Le pas du groupe vers `pt` est-il une MARCHE : une case voisine à pied de la sienne (`walkNeighbors`, la
@@ -71,7 +71,7 @@ export const marcheOuverte = (s: Pick<Jeu, 'mode' | 'dialogue'>): boolean => s.m
 
 /** Le pas d'une case du groupe vers `dest` : refusé (`MOVE_BLOCKED`) sans case, sinon le meneur glisse d'une case par
  *  l'anim de marche (`ANIM_MOVE`) et le groupe s'y pose (`moveParty`). Rend `false` au refus. */
-function faireLePas(s: Jeu, dest: Pt | null): boolean {
+function faireLePas(s: JeuDuNoyau, dest: Pt | null): boolean {
   if (!dest) { bus.emit(EVT.MOVE_BLOCKED, {}); return false; }
   const leader = meneurDuMonde(s);
   if (leader) bus.emit(EVT.ANIM_MOVE, { id: leader.id, path: [s.partyPos, dest] });
@@ -89,11 +89,31 @@ export function pasAligneDuGroupe(get: Get, alignement: (voisin: Pt) => number):
 
 /** Le pas `i` d'une marche du groupe sur `chemin`, dans la scène `sceneId`, s'il se joue encore (`gesteDuPas`) : le
  *  groupe explore cette scène, hors dialogue (`marcheOuverte`), depuis la case d'avant, et le pas passe sa garde (`pasDuGroupe`) ; un saut
- *  se garde lui-même. `null` : la marche s'arrête. La garde de la marche de l'écran et de `marcherVers`. */
+ *  se garde lui-même. `null` : la marche s'arrête. La garde de `marcherLeChemin`. */
 export function pasDeLaMarche(s: Pick<Jeu, 'mode' | 'dialogue' | 'scene' | 'partyPos'>, sceneId: string, chemin: readonly Pt[], i: number): ReturnType<typeof gesteDuPas> | null {
   if (!marcheOuverte(s) || s.scene?.id !== sceneId || i >= chemin.length || !memeCase(s.partyPos, chemin[i - 1])) return null;
   const pas = gesteDuPas(chemin, i);
   return pas.verbe === 'sauter' || pasDuGroupe(s, chemin[i]) ? pas : null;
+}
+
+/** La marche du groupe sur `chemin`, en une passe, pas à pas, sauts compris (`pasDeLaMarche`) : elle s'arrête au premier
+ *  pas qui ne se joue plus (porte refermée, déclencheur, saut à Test). Le meneur glisse ensuite le long du chemin
+ *  réellement parcouru (`ANIM_MOVE`), tant que le groupe est encore dans la scène où il a marché. */
+export function marcherLeChemin(get: Get, chemin: readonly Pt[]): void {
+  const depart = get();
+  if (!depart.scene) return;
+  const sceneId = depart.scene.id;
+  const meneur = meneurDuMonde(depart);
+  const parcouru: Pt[] = [depart.partyPos];
+  for (let i = 1; ; i++) {
+    const pas = pasDeLaMarche(get(), sceneId, chemin, i);
+    if (!pas) break;
+    const continuer = pas.verbe === 'sauter' ? get().sauter(...pas.args) : (get().moveParty(...pas.args), true);
+    if (get().scene?.id !== sceneId || !memeCase(get().partyPos, chemin[i])) break;
+    parcouru.push(chemin[i]);
+    if (!continuer) break;
+  }
+  if (meneur && parcouru.length > 1 && get().scene?.id === sceneId) bus.emit(EVT.ANIM_MOVE, { id: meneur.id, path: parcouru });
 }
 
 /** L'accès s'actionne-t-il ? En combat tout battant (un passage n'en a pas), en exploration la porte fermée seule :
@@ -130,20 +150,6 @@ export function creerActionsDeMarche(get: Get, set: Set) {
       // pas → on restaure le cap d'origine (l'avance, elle, aligne naturellement regard et déplacement).
       if (rel !== 'forward') set((st) => ({ facing: poserCapDuGroupe(st.facing, cur) }));
     },
-    marcherVers: (pt) => {
-      const s = get();
-      const plan = s.scene && s.mode === 'exploration' ? exploreMovePlan(s.scene, s.partyPos, pt, optionsDeCheminDuGroupe(s.party)) : null;
-      const fin = plan?.path[plan.path.length - 1];
-      const arrive = !!fin && fin.x === pt.x && fin.y === pt.y && (pt.z === undefined || (fin.z ?? 0) === pt.z);
-      if (!s.scene || !plan || plan.path.length < 2 || !arrive || !cheminMarchable(s.scene, plan.path)) return void refuserGeste(get, set, t('marche.aucunChemin', { x: pt.x, y: pt.y }));
-      for (let i = 1; ; i++) {
-        const pas = pasDeLaMarche(get(), s.scene.id, plan.path, i);
-        if (!pas) return;
-        if (pas.verbe === 'sauter') {
-          if (!get().sauter(...pas.args)) return;
-        } else get().moveParty(...pas.args);
-      }
-    },
     sauter: (chemin, indice) => {
       const { scene, mode, partyPos, party } = get();
       const cur = chemin[indice];
@@ -170,8 +176,6 @@ export function creerActionsDeMarche(get: Get, set: Set) {
         refuserGeste(get, set, t('saut.aucuneSurface'));
         return false;
       }
-      const meneur = meneurDuMonde(get());
-      if (meneur) bus.emit(EVT.ANIM_MOVE, { id: meneur.id, path: [partyPos, cur] });
       poserLeGroupe(get, set, cur);
       if (plan.kind !== 'test') return true;
       jouerFlowEntier(runFlow(get, set, plan.flow));
@@ -188,5 +192,5 @@ export function creerActionsDeMarche(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
       return true;
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

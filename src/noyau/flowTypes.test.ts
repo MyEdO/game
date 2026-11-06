@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 
 describe('Set des flux : les clés réservées hors du patch (#319, #2724, #2817 D7)', () => {
@@ -27,7 +28,7 @@ describe('Set des flux : les clés réservées hors du patch (#319, #2724, #2817
 
 describe('Get et Set des flux : le noyau ne touche aucun champ ni aucune action d’adaptateur (#2817 D5)', () => {
   it('refuse la lecture, l’appel et l’écriture, littérale ou non, d’un membre d’interface', () => {
-    const etat = { party: [] } as unknown as Jeu;
+    const etat = { party: [] } as unknown as JeuDuNoyau;
     const get: Get = () => etat;
     const recus: unknown[] = [];
     const set: Set = (partial) => { recus.push(partial); };

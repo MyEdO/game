@@ -1,5 +1,5 @@
 {"scenario":"dome","graine":7,"regles":{},"cadence":"manuel","desFixes":true}
-{"type":"confirmRoundStart","args":[]}
+{"type":"fenetreValider","args":["roundStart"]}
 {"offre":"charge"}
 {"type":"battleClickEntity","args":["enemy-enc-dome-1"]}
 {"type":"jetRoll","args":["attack"]}

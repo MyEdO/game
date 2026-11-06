@@ -161,7 +161,7 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
   function openHandGate() {
     banc.setState({
       battle: { combatants: [C({ id: 'H', label: 'Héros', resilience: 3 })], log: [] } as never,
-      pendingHandGate: { attackerId: 'H', skillValue: 60, difficulty: 'facile', target: 60, roll: 88, sl: -3, success: false } as never,
+      pendingHandGate: { attackerId: 'H', ligne: { base: 60, mods: [], target: 60, difficulty: 'facile' }, target: 60, roll: 88, sl: -3, success: false } as never,
     });
   }
 
@@ -324,14 +324,14 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
     startCascade(banc.getState, banc.setState, { title: 'Séquence', purpose: 'test', steps: [etape('e1'), etape('e2')] });
     banc.getState().jetSetForcedRoll('cascadeTirage', 33, 'e1');
     banc.setState({ journal: [] });
-    banc.getState().cascadeNext(); // conséquence d'E1 : dé SAISI
+    banc.getState().jetConfirm('cascade'); // conséquence d'E1 : dé SAISI
     const apresE1 = banc.getState().journal.join('\n');
     expect(apresE1).toContain('conséquence de e1');
     expect(apresE1, 'la ligne du dé posé a perdu sa mention').toContain('dé fixé');
     banc.setState({ journal: [] });
     banc.getState().jetRoll('cascadeTirage', 'e2'); // dé NATUREL
     expect(banc.getState().pendingCascade!.participants[1].fixed).toBeUndefined();
-    banc.getState().cascadeNext(); // conséquence d'E2
+    banc.getState().jetConfirm('cascade'); // conséquence d'E2
     const apresE2 = banc.getState().journal.join('\n');
     expect(apresE2).toContain('conséquence de e2');
     expect(apresE2, 'la marque d’E1 a contaminé la ligne d’E2').not.toContain('dé fixé');

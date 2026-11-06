@@ -10,6 +10,8 @@
  * - `emplacement` : un point d'accroche d'accessoire.
  * - `piece` : une pièce d'habit (`categorie`) ; une pièce d'`accessoire` nomme son `emplacement`,
  *   toute autre n'en porte aucun.
+ * - `variante` (#3446) : une autre apparence de la `piece` qu'elle nomme, sans en recopier la catégorie ni
+ *   l'emplacement ; un élément 3D de variante porte la clé `{ piece: <id de variante> }`.
  * - `ensemble` : ce qu'`habille` (référence typée `{ id, type }` : un objet, une apparence ou une tenue de
  *   cette garde-robe) revêt, la liste ordonnée de ses `pieces` ; un même `habille` ne figure qu'une fois.
  * - `embleme` (#3111) : un dessin posé au montage sur les surfaces `blason` d'un élément (`hotes/godot/pont/CONTRAT.md`,
@@ -35,6 +37,7 @@ const LIBELLES_DE_KIND = {
   tenue: 'Tenue',
   emplacement: 'Emplacement',
   piece: 'Pièce',
+  variante: 'Variante',
   ensemble: 'Ensemble',
   embleme: 'Emblème',
 } as const;
@@ -60,6 +63,7 @@ const CHARGE_PAR_KIND = {
   tenue: { cles: [], requises: [] },
   emplacement: { cles: [], requises: [] },
   piece: { cles: ['categorie', 'emplacement'], requises: ['categorie'] },
+  variante: { cles: ['piece'], requises: ['piece'] },
   ensemble: { cles: ['habille', 'pieces'], requises: ['habille', 'pieces'] },
   embleme: { cles: ['svg'], requises: ['svg'] },
 } as const satisfies Record<keyof typeof LIBELLES_DE_KIND, { cles: readonly string[]; requises: readonly string[] }>;
@@ -124,14 +128,16 @@ const doc = document(
     kind: enumNomme(LIBELLES_DE_KIND),
     categorie: enumNomme(LIBELLES_DE_CATEGORIE).optional(),
     emplacement: ref('gardeRobe', undefined, 'emplacement').optional(),
+    piece: ref('gardeRobe', undefined, 'piece').optional(),
     habille: habilleSchema.optional(),
     pieces: refs('gardeRobe', { min: 1, sousListe: 'piece' }).optional(),
     svg: z.string().optional(),
   },
   {
-    kind: { label: 'Nature', hint: 'Tête, coiffure, tenue, emplacement d’accessoire, pièce d’habit, ensemble ou emblème — les clés admises en dépendent' },
+    kind: { label: 'Nature', hint: 'Tête, coiffure, tenue, emplacement d’accessoire, pièce d’habit, variante de pièce, ensemble ou emblème — les clés admises en dépendent' },
     categorie: { label: 'Catégorie', hint: 'Vêtement, armure ou accessoire' },
     emplacement: { label: 'Emplacement', hint: 'Point d’accroche d’une pièce d’accessoire' },
+    piece: { label: 'Pièce', hint: 'La pièce dont la variante est une autre apparence' },
     habille: { label: 'Habille', hint: 'L’objet, l’apparence ou la tenue que l’ensemble revêt' },
     pieces: { label: 'Pièces', hint: 'Pièces de l’ensemble, dans l’ordre' },
     svg: { label: 'Dessin', hint: 'Document SVG de l’emblème, à viewBox carré, fond transparent' },
@@ -213,6 +219,9 @@ export type TenueId = IdsParEspace['garde-robe.json?kind=tenue'];
 /** Id d'une pièce : la sous-liste `kind=piece` de l'espace `garde-robe.json` (`npm run gen`). */
 export type PieceId = IdsParEspace['garde-robe.json?kind=piece'];
 
+/** Id d'une variante de pièce : la sous-liste `kind=variante` de l'espace `garde-robe.json` (`npm run gen`). */
+export type VarianteId = IdsParEspace['garde-robe.json?kind=variante'];
+
 /** Id d'un emplacement : la sous-liste `kind=emplacement` de l'espace `garde-robe.json` (`npm run gen`). */
 export type EmplacementId = IdsParEspace['garde-robe.json?kind=emplacement'];
 
@@ -228,6 +237,11 @@ interface LigneDeNature<K extends string, Id extends string> {
 export interface PieceDef extends LigneDeNature<'piece', PieceId> {
   categorie: CategorieDePiece;
   emplacement?: { id: EmplacementId };
+}
+
+/** VUE TS d'une ligne `variante`. */
+export interface VarianteDef extends LigneDeNature<'variante', VarianteId> {
+  piece: { id: PieceId };
 }
 
 /** VUE TS d'une ligne `tete`. */
@@ -261,4 +275,5 @@ export type GardeRobeEntree =
   | LigneDeNature<'emplacement', string>
   | PieceDef
   | EnsembleDef
-  | EmblemeDef;
+  | EmblemeDef
+  | VarianteDef;

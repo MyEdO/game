@@ -8,7 +8,7 @@
  */
 import { horlogeVirtuelle, type Jeu, type LigneDuJournal, type Partie, type ResultatDeLAppel } from '../noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type Entete, type TenueDesJetons } from '../hote/partie';
-import { envoyerLIntention, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../hote/geste';
+import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../hote/geste';
 import { estObjet } from '../hote/formes';
 import { appelEcrit } from './outils';
 import { tableTotale } from '../lib/tableTotale';
@@ -74,10 +74,12 @@ function absorber(r: PartieRejouee, resultat: ResultatDeLAppel, pas: number): vo
   r.reprises[pas] = horlogeVirtuelle((id) => lire(jetons.reprendre(id), true), lire(resultat, false)).vider();
 }
 
-/** Joue un geste sur la partie rejouée : l'intention contrôlée, envoyée, ses jetons repris. L'issue de la partie fait
- *  foi : `hors-allowlist` est une erreur de validation, `refusee` une erreur de permission ; un verbe qui lève est une
- *  erreur de validation. Rend les lignes de journal du geste. */
-export function jouerUnGeste(r: PartieRejouee, geste: Geste): LigneNumerotee[] {
+/** Joue un geste sur la partie rejouée : son verbe et ses arguments contrôlés sur l'état courant (`gesteDuVerbe`), au
+ *  jeu comme au rejeu, l'intention contrôlée, envoyée, ses jetons repris. L'issue de la partie fait foi : `hors-allowlist`
+ *  est une erreur de validation, `refusee` une erreur de permission ; un verbe qui lève est une erreur de validation. Le
+ *  geste écrit est le geste contrôlé. Rend les lignes de journal du geste. */
+export function jouerUnGeste(r: PartieRejouee, lu: Geste): LigneNumerotee[] {
+  const geste = 'offre' in lu ? lu : gesteDuVerbe(r.partie.etat(), lu, PISTES_DU_TEXTE);
   const intention = intentionDuGeste(r.partie.etat(), geste, PISTES_DU_TEXTE);
   // Le moteur mute en place (combattants, scène) : l'empreinte se prend AVANT l'appel, jamais sur l'état d'avant relu après.
   const avant = r.partie.etat();

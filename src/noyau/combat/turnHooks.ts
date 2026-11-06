@@ -28,6 +28,7 @@ import { combatStakeRef } from '../../data';
 import { hasRage } from '../../engine/traits/dispatch';
 import { fireTriggers, hasFoeInLoS } from '../triggeredEffects';
 import { aiDriven } from '../netOwnership';
+import { aiJetteraitUnSort } from '../combatFlow';
 import { t } from '../../i18n';
 import type { Combatant } from '../../engine/types';
 import type { Get, Set as SetFn } from '../flowTypes';
@@ -37,7 +38,7 @@ import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 const HAINE_DE_RAGE = ciblePsy.groupe('adversaires-engages');
 
 /** Effets « début de tour » authorés du combattant qui DEVIENT actif (`onTurnStart`) — point unique
- *  appelé par `advanceTurn` (tour suivant du Round) ET `confirmRoundStart` (1ᵉʳ combattant du Round),
+ *  appelé par `advanceTurn` (tour suivant du Round) ET `lancerLeRound` (1ᵉʳ combattant du Round),
  *  pour ne pas dupliquer le déclenchement. Inerte tant qu'aucune donnée ne porte un effet `onTurnStart`.
  *  Journalisé en `detail` (kind agnostique — l'IA comme le héros). No-op si hors d'action. */
 export function fireTurnStartTriggers(get: Get, set: SetFn, c: Combatant | undefined): void {
@@ -75,7 +76,7 @@ function fireTurnEdgeTriggers(get: Get, set: SetFn, c: Combatant | undefined, tr
 //    de CHOIX `actGateChoice` (garder l'Action ou le Mouvement) dont l'issue est appliquée directement
 //    sur la battle COURANTE (le tour vient de commencer) ;
 //  - IA / cadence auto → jet inline ; échec = l'Action est GARDÉE (défaut rationnel), le Mouvement est
-//    perdu — FOLDÉ par l'appelant (advanceTurn/confirmRoundStart) dans le budget du tour.
+//    perdu — FOLDÉ par l'appelant (advanceTurn/lancerLeRound) dans le budget du tour.
 // ============================================================================================
 
 export interface ActGateOutcome { loseMovement: boolean; lines: string[] }
@@ -129,7 +130,7 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   // action est de PRÉPARER un sort (buff/invocation/dégâts). L'Unicité les retire un à un ; quand il ne reste
   // que charger, la Frénésie passe au tour suivant. Peek déterministe, sans RNG (avant le test FM) → aucune
   // perturbation du flux `battleRng` quand on diffère, golden RNG préservé sinon.
-  if (get().aiWouldCast(enemy.id)) return;
+  if (aiJetteraitUnSort(get, enemy.id)) return;
   if (resolveFrenzyEntry(testValue(enemy, undefined, 'force-mentale'), battleRng()).success) {
     (enemy.psychState ??= []).push({ type: 'frenesie' });
     set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenzy', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });

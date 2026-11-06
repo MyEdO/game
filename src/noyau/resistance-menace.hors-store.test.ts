@@ -163,7 +163,7 @@ describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51
     const rolled = banc.getState().pendingCascade!.participants
       .find((s) => s.id === bande.id)!.participants!.find((r) => r.id === a.id)!;
     expect(rolled.result).toEqual({ roll: 1, target: row.target, sl: bonus(43), success: true });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(a.diseases ?? []).toHaveLength(0); // résisté → pas de Blessure Purulente
     expect(a.resistanceUsed).toContain('maladie');
   });

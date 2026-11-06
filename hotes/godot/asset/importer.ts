@@ -1,9 +1,10 @@
 /**
- * L'IMPORT D'UN PERSONNAGE 3D DE PRODUCTION (#2948) : un dossier dont `manifest.json` nomme le GLB (`model`) et son
- * empreinte (`model_sha256`), avec au plus une source `*.blend`, et dont la licence s'établit par au moins un composant
- * licencié (`components.<id>.asset.license_basis`) ou un texte `LICENSE*.txt`, devient, sous un id de
- * modèle, un GLB et sa source versés dans la Release des modèles sous leur empreinte (`release.ts`), puis le manifeste
- * réduit et validé (`manifeste.ts`), la provenance et les licences, déposés dans le dossier des modèles du projet Godot.
+ * L'IMPORT D'UN MODÈLE 3D DE PRODUCTION (#2948) : un dossier dont `manifest.json` nomme le GLB (`model`) et son
+ * empreinte (`model_sha256`), porte le manifeste d'une base ou d'un élément (`manifeste`), avec au plus une source
+ * `*.blend`, et dont la licence s'établit par au moins un composant licencié (`components.<id>.asset.license_basis`) ou
+ * un texte `LICENSE*.txt`, devient, sous un id de modèle, un GLB et sa source versés dans la Release des modèles sous
+ * leur empreinte (`release.ts`), puis le GLB, le manifeste validé (`validerModele`, `modeles.ts`), la provenance et les
+ * licences, déposés dans le dossier des modèles du projet Godot.
  * Les licences se comparent par leur identifiant SPDX (`licences.json`). Un modèle hors Release (`CLE_HORS_RELEASE`,
  * `dossierDeProduction.ts`) se déclare dans son propre manifeste ; une base ne peut pas être hors Release.
  * Un élément hors Release ne s'importe que sans publication, et sa provenance en reporte la raison. Tout se juge
@@ -17,7 +18,7 @@ import { EMPREINTE, sha256 } from './empreinte.ts';
 import { estObjet } from '../../../src/hote/formes.ts';
 import { cheminsAbsolus, ligneDErreur, type Brut } from './manifeste.ts';
 import {
-  estBase, estModeleModulaire, fichiersDuModele, indexerModeles, validerModele, verdictsDesModeles,
+  estBase, fichiersDuModele, indexerModeles, validerModele, verdictsDesModeles,
   type BaseLivree, type EntreeDeModele, type ManifesteDeModele,
 } from './modeles.ts';
 import {
@@ -118,7 +119,7 @@ function refusDeRemplacement({ destination, id, candidat, octets, entrees }: {
   octets: Uint8Array;
   entrees: readonly EntreeDeModele[];
 }): string[] {
-  const elements = entrees.filter((e) => e.id !== id && estModeleModulaire(e.brut) && !estBase(e.brut) && e.brut.base === candidat.base);
+  const elements = entrees.filter((e) => e.id !== id && estObjet(e.brut) && !estBase(e.brut) && e.brut.base === candidat.base);
   const refus: string[] = [];
   const octetsParId = new Map<string, Uint8Array>([[id, octets]]);
   for (const { id: element } of elements) {
@@ -142,10 +143,10 @@ const enJson = (v: unknown): string => `${JSON.stringify(v, null, 2)}\n`;
 /** Importe le dossier de production `dossier` sous l'id `id` dans `destination`, daté `date` (AAAA-MM-JJ). `publier`
  *  verse le GLB, la source et, pour un élément, le GLB de sa base épinglée dans la Release (`publierAssets`) et rend
  *  les noms versés ; `null` ne publie rien
- *  (`--sans-publier`, tests et sondes). `remplacer` (`--remplacer`) remplace un modèle modulaire déjà importé sous
+ *  (`--sans-publier`, tests et sondes). `remplacer` (`--remplacer`) remplace un modèle déjà importé sous
  *  `id` : une base ne se remplace que si chaque élément qui la référence passe contre elle (`refusDeRemplacement`), et
- *  les textes de licence que l'ancienne provenance était seule à nommer se retirent (`retires`) ; sur une production
- *  schéma 2, il se refuse (`[remplacer-hors-modele-modulaire]`). Un import réussi rend le `rapport` de l'index (`indexerModeles`)
+ *  les textes de licence que l'ancienne provenance était seule à nommer se retirent (`retires`). Un import réussi rend le
+ *  `rapport` de l'index (`indexerModeles`)
  *  des modèles déposés et du candidat, qui ne bloque rien. */
 export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODELES, date, publier, remplacer = false }: {
   dossier: string;
@@ -167,7 +168,8 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   if (!estObjet(brut)) return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : objet JSON attendu`] };
   const horsReleaseDeclare = brut[CLE_HORS_RELEASE];
   const fichiers = fichiersDuModele(id);
-  const candidat = Object.prototype.hasOwnProperty.call(brut, 'manifeste') ? brut.manifeste : { ...brut, model: fichiers.glb };
+  const candidat = brut.manifeste;
+  if (!estObjet(candidat)) return { ok: false, refus: [`[manifeste-absent] ${MANIFESTE_DE_PRODUCTION} : manifeste, le manifeste d’une base ou d’un élément attendu`] };
   if (estBase(candidat) && Object.prototype.hasOwnProperty.call(brut, CLE_HORS_RELEASE)) return { ok: false, refus: [`[base-hors-release] ${MANIFESTE_DE_PRODUCTION} : une base ne peut pas être hors Release`] };
   if (horsReleaseDeclare !== undefined && !(typeof horsReleaseDeclare === 'string' && horsReleaseDeclare.trim())) return { ok: false, refus: [`[hors-release] ${MANIFESTE_DE_PRODUCTION} : ${CLE_HORS_RELEASE}, raison non vide attendue`] };
   const { model, model_sha256: declaree } = brut;
@@ -195,41 +197,32 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     licencesDePack.set(fichier, { fichier, licence });
     deposes.set(source, fichier);
   }
-  if (remplacer && !estModeleModulaire(candidat)) return { ok: false, refus: [`[remplacer-hors-modele-modulaire] ${id} : --remplacer ne remplace qu'un modèle modulaire`] };
   const packs = packsSources(brut, deposes, estBase(candidat));
   if ('refus' in packs) return { ok: false, refus: packs.refus };
 
+  const lus = manifestesDesModeles(destination);
+  const conserves = remplacer ? lus.entrees.filter((e) => e.id !== id) : lus.entrees;
+  const index = indexerModeles([...conserves, { id, brut: candidat }]);
+  const refusDeLIndex = [...lus.erreurs, ...index.refus];
+  if (!remplacer && existsSync(join(destination, fichiers.manifeste))) refusDeLIndex.push(`[id-deja-present] ${id} : --remplacer remplace le modèle importé`);
+  const epingles = existsSync(destination) ? modelesEpingles(destination) : { modeles: [], erreurs: [] };
+  refusDeLIndex.push(...epingles.erreurs);
+  if (refusDeLIndex.length) return { ok: false, refus: refusDeLIndex };
+  const nommees = new Set(epingles.modeles.filter((m) => m.id !== id).flatMap((m) => m.licences));
+  const licencesRemplacees = remplacer ? (epingles.modeles.find((m) => m.id === id)?.licences ?? []).filter((l) => !nommees.has(l)) : [];
+  const remplacement = remplacer && estBase(candidat) ? { destination, id, candidat, octets, entrees: conserves } : null;
   const bases = new Map<string, BaseLivree>();
   const assetsDeBase: AssetAPublier[] = [];
-  let remplacement: Parameters<typeof refusDeRemplacement>[0] | null = null;
-  let licencesRemplacees: readonly string[] = [];
-  let rapport: readonly string[] = [];
-  if (estModeleModulaire(candidat)) {
-    const lus = manifestesDesModeles(destination);
-    const conserves = remplacer ? lus.entrees.filter((e) => e.id !== id) : lus.entrees;
-    const index = indexerModeles([...conserves, { id, brut: candidat }]);
-    rapport = index.rapport;
-    const refus = [...lus.erreurs, ...index.refus];
-    if (!remplacer && existsSync(join(destination, fichiers.manifeste))) refus.push(`[id-deja-present] ${id} : --remplacer remplace le modèle importé`);
-    const epingles = existsSync(destination) ? modelesEpingles(destination) : { modeles: [], erreurs: [] };
-    refus.push(...epingles.erreurs);
-    if (refus.length) return { ok: false, refus };
-    if (remplacer) {
-      const nommees = new Set(epingles.modeles.filter((m) => m.id !== id).flatMap((m) => m.licences));
-      licencesRemplacees = (epingles.modeles.find((m) => m.id === id)?.licences ?? []).filter((l) => !nommees.has(l));
-      if (estBase(candidat)) remplacement = { destination, id, candidat, octets, entrees: conserves };
-    }
-    for (const [base, entree] of index.bases) {
-      if (estBase(candidat) || base !== candidat.base) continue;
-      const chemin = join(destination, fichiersDuModele(entree.id).glb);
-      if (!existsSync(chemin)) return { ok: false, refus: [`[glb-de-base-absent] ${base} : ${chemin}`] };
-      const octetsDeBase = readFileSync(chemin);
-      const epingle = epingles.modeles.find(m => m.id === entree.id);
-      if (!epingle || sha256(octetsDeBase) !== epingle.empreinte) return { ok: false, refus: [`[provenance-de-base-differente] ${base} : ${entree.id}`] };
-      if (epingle.hors_release !== undefined) return { ok: false, refus: [`[base-hors-release] ${entree.id} : une base ne peut pas être hors Release`] };
-      bases.set(base, { brut: entree.brut, octets: octetsDeBase });
-      assetsDeBase.push({ chemin, nom: nomDAsset(epingle.empreinte, 'glb') });
-    }
+  for (const [base, entree] of index.bases) {
+    if (estBase(candidat) || base !== candidat.base) continue;
+    const chemin = join(destination, fichiersDuModele(entree.id).glb);
+    if (!existsSync(chemin)) return { ok: false, refus: [`[glb-de-base-absent] ${base} : ${chemin}`] };
+    const octetsDeBase = readFileSync(chemin);
+    const epingle = epingles.modeles.find(m => m.id === entree.id);
+    if (!epingle || sha256(octetsDeBase) !== epingle.empreinte) return { ok: false, refus: [`[provenance-de-base-differente] ${base} : ${entree.id}`] };
+    if (epingle.hors_release !== undefined) return { ok: false, refus: [`[base-hors-release] ${entree.id} : une base ne peut pas être hors Release`] };
+    bases.set(base, { brut: entree.brut, octets: octetsDeBase });
+    assetsDeBase.push({ chemin, nom: nomDAsset(epingle.empreinte, 'glb') });
   }
   const horsRelease = typeof horsReleaseDeclare === 'string' ? horsReleaseDeclare : undefined;
   if (publier && horsRelease !== undefined) return { ok: false, refus: [`[hors-release] ${horsRelease} : import sans publication seulement (--sans-publier)`] };
@@ -259,16 +252,12 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     ...(sources[0] && provenance.source_sha256 ? [{ chemin: join(dossier, sources[0]), nom: nomDAsset(provenance.source_sha256, 'blend') }] : []),
   ];
   const publies = publier ? publier(assets) : [];
-  const glbEcrits: string[] = [];
-  if (estModeleModulaire(candidat)) {
-    ecrireTexteAtomique(join(destination, fichiers.glb), octets);
-    glbEcrits.push(join(destination, fichiers.glb));
-  }
+  ecrireTexteAtomique(join(destination, fichiers.glb), octets);
   ecrireTexteAtomique(join(destination, fichiers.manifeste), enJson(verdict.manifeste));
   ecrireTexteAtomique(join(destination, fichiers.provenance), enJson(provenance));
   for (const [fichier, octets] of licences) ecrireTexteAtomique(join(destination, fichier), octets);
   const retires = licencesRemplacees.filter((l) => !licences.has(l)).map((l) => join(destination, l));
   for (const chemin of retires) rmSync(chemin, { force: true });
-  const ecrits = [...glbEcrits, ...[fichiers.manifeste, fichiers.provenance, ...licences.keys()].map((f) => join(destination, f))];
-  return { ok: true, ecrits, retires, publies, rapport, manifeste: verdict.manifeste, provenance };
+  const ecrits = [fichiers.glb, fichiers.manifeste, fichiers.provenance, ...licences.keys()].map((f) => join(destination, f));
+  return { ok: true, ecrits, retires, publies, rapport: index.rapport, manifeste: verdict.manifeste, provenance };
 }

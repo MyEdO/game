@@ -63,7 +63,7 @@ function combat(nb: number, seed = 7, invites: number[] = []) {
   banc.setState({ party: heros });
   banc.getState().startScene(structuredClone(testScene()));
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.filter((c) => c.kind === 'hero');

@@ -247,7 +247,7 @@ describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
     }
   });
 
-  it('MULTI-candidats : chaque candidat porte SA ligne, et `testSetActor` la fait suivre', () => {
+  it('MULTI-candidats : chaque candidat porte SA ligne, et réglage `test.testeur` la fait suivre', () => {
     const h1 = hero('h1', {
       characteristics: { ...CHARS, agilite: 55 },
       skills: [{ id: 'athletisme', characteristic: 'agilite', advances: 5 }],
@@ -268,7 +268,7 @@ describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
     expect(c2.mods!.map((m) => m.ref)).toEqual([RULE_REF.soutien]);
     expect(pt.actorId).toBe('h1');
     expect(pt.mods).toEqual(c1.mods);
-    banc.getState().testSetActor('h2');
+    banc.getState().jetRegler('test', 'testeur', 'h2');
     const apres = banc.getState().pendingTest!;
     expect([apres.base, apres.mods]).toEqual([c2.base, c2.mods]);
   });

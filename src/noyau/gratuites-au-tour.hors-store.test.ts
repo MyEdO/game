@@ -22,7 +22,7 @@ function frappeGratuite(tourDe: 'heros' | 'creature', fileEpuisee = false) {
   g().seedRng(5);
   g().startScene(testScene());
   g().startCombat('enc-mutants');
-  g().confirmRoundStart();
+  g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
   const heros = b.combatants.find((c) => c.kind === 'hero')!;

@@ -4,13 +4,13 @@
  * l.120 — ou événement du Tableau — « Allié inculpé », LDB 22 l.10-12 — ou authoring de scène,
  * Effet `grantFavor`), acquittée par Activités (Mineure : 1, l.147 ; Majeure : 2+ consécutives,
  * l.149) ou jamais par Activité (Importante, l.151 — « jouées comme des aventures complètes »),
- * et rompable au prix d'un Niveau de Carrière (l.141, canal existant `interludeEnd`).
+ * et rompable au prix d'un Niveau de Carrière (l.141, canal existant `fenetreValider('interlude')`).
  */
 import type { Get, Set } from './flowTypes';
 import { rule } from '../engine/policy';
 import { favorRequiredActivities, type Favor, type FavorLevel } from '../engine/favor';
 import { t } from '../i18n';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import { nextEntityId } from '../lib/entityId';
 import { refusDeRompreUneFaveur, refuseSi } from './verrousDeFiche';
 import { refusDAcquitterUneFaveur } from './verdictsDInterlude';
@@ -50,7 +50,7 @@ export function settleFavorActivity(get: Get, set: Set, heroId: string, favorId:
 }
 
 /** Remet à 0 la progression des Faveurs qui n'ont PAS reçu d'Activité cet interlude — appelé par
- *  `interludeEnd`, AVANT que l'interlude ne soit refermé. « Activités consécutives » est RAW
+ *  `fenetreValider('interlude')`, AVANT que l'interlude ne soit refermé. « Activités consécutives » est RAW
  *  (LDB 23 l.149) ; la rupture par CHOIX SEUL est maison (#509 ; arbitrage utilisateur 2026-08-03,
  *  verbatim au ticket #1040) [entériné 2026-08-03] : la chaîne ne casse que si le héros AVAIT au
  *  moins un emplacement d'Activité cet interlude (`InterludeHeroState.granted`) et ne l'a pas
@@ -97,5 +97,5 @@ export function creerActionsDesFaveurs(get: Get, set: Set) {
     favorGrant: (heroId, level, owedTo, desc) => grantFavor(get, set, heroId, level, owedTo, desc),
     favorSettle: (heroId, favorId) => settleFavorActivity(get, set, heroId, favorId),
     favorBreak: (heroId, favorId) => breakFavor(get, set, heroId, favorId),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

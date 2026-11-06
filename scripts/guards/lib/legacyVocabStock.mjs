@@ -861,7 +861,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/compendium/registry.ts",
+    fichier: "src/noyau/codex/registry.ts",
     motif: "désormais",
     ancre: "// PA / arme naturelle / traits conférés sont désormais des GameOps du `passive` (ap /",
     lot: "L7 désormais",

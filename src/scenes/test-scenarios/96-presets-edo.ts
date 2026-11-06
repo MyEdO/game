@@ -74,6 +74,7 @@ function construireScene(): Scene {
             "Il vous attend un peu plus loin. Alors ? On croise le fer, ou on file ? »",
           choices: [
             {
+              id: 'fondre-sur-knud',
               label: 'Fondre sur Knud Cratinx avant qu’il ne se poste.',
               flow: flowFromEffects([
                 { type: 'journal', desc: 'Phillipe dégaine son épée et vous emboîte le pas vers le mutant.' },
@@ -82,6 +83,7 @@ function construireScene(): Scene {
               ]),
             },
             {
+              id: 'accepter-partie-cartes',
               // CHEMIN JOUEUR de « il leur propose une partie » (`EDO 01 l.200`) : sans lui, le rôle
               // `tavernGame` de l'entité est une affordance morte — authorée, jamais atteignable au clic.
               label: 'Accepter la partie de cartes qu’il propose.',
@@ -89,6 +91,7 @@ function construireScene(): Scene {
               flow: flowFromEffects([{ type: 'openTavernGames' }]),
             },
             {
+              id: 'remercier-poursuivre-sans',
               label: 'Le remercier et poursuivre sans se presser.',
               flow: flowFromEffects([{ type: 'endDialogue' }]),
             },

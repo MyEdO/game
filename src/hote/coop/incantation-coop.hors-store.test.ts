@@ -43,7 +43,7 @@ describe('Incantation en coop : la même fenêtre des deux côtés, le choix au 
     const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [H, L], net: NET('host', 0, L.id) } });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const lanceurEnCombat = banc.getState().battle!.combatants.find((c) => c.id === L.id)!;
     const recus: Record<string, unknown>[] = [];
     const host = new HostSession({
@@ -69,9 +69,9 @@ describe('Incantation en coop : la même fenêtre des deux côtés, le choix au 
     const puissance = (v: FenetreDIncantation | null) => v?.critique?.options.find((o) => o.valeur === 'puissance')?.refus ?? null;
     expect(puissance(vueHote), 'chez l’hôte, l’effet du lanceur de l’invité est refusé').toBeTruthy();
     expect(puissance(vueInvite), 'chez l’invité, il est offert').toBeNull();
-    banc.getState().castSetCritChoice('puissance');
+    banc.getState().jetRegler('cast', 'effetCritique', 'puissance');
     expect(banc.getState().pendingCast!.critChoice, 'l’hôte ne tranche pas l’effet du lanceur de l’invité').toBeUndefined();
-    guest.sendIntent('castSetCritChoice', ['puissance']);
+    guest.sendIntent('jetRegler', ['cast', 'effetCritique', 'puissance']);
     expect(banc.getState().pendingCast!.critChoice).toBe('puissance');
   });
 });

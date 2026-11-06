@@ -1,0 +1,22 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "plumet-simple"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "couche": "armure",
+  "surfaces": [
+    {
+      "nom": "plume",
+      "palette": "plume"
+    }
+  ],
+  "glb": {
+    "sha256": "81eb4a0afd25e312044bbeec84da49f26e784f4f9b8da008998212aa904d5009",
+    "octets": 24804
+  }
+}

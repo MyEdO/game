@@ -73,7 +73,7 @@ import { t, interpolate, pluriel } from '../i18n';
 import { dataLabel, testSkillLabel } from '../data';
 import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
@@ -2499,7 +2499,7 @@ export function creerActionsDeTaverne(get: Get, set: Set) {
   return {
     openTavernGames: (npcId?: string) => openTavernGames(get, set, npcId),
     playTavernGame: (opts) => playTavernGame(get, set, opts),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 export function sortiesDeLaTaverne(_get: Get, set: Set) {

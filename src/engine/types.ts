@@ -466,8 +466,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   teinte?: string;
   /** #2967 */
   apparence?: string;
-  /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue, la clé `natural`
-   *  d'`equipementDessine` le dit au dessinateur. Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
+  /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue : ce que porte
+   *  un combattant l'écarte (`porteeDuCombattant`). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
   natural?: boolean;
   /** Taille PRÉVUE pour l'arme (ADE II 2 l.706-710) — propagée depuis `ItemInstance.sizeFor`. Différente
    *  de la Taille du porteur → −20 à tous les Tests avec cette arme (`attackModifiers`). */
@@ -678,6 +678,8 @@ export const ALL_MAGIC = 'all';
 
 export interface CastPenalty {
   label: string;
+  /** Entité SOURCE de la pénalité (`OpsCtx.source`) : sa fiche Codex (`effectRef`). */
+  source?: EffectSource;
   /** Compétence visée (id stable skills.json), ou `ALL_MAGIC`. */
   skill: string;
   /** Modificateur (négatif) à la valeur de Test (« Langue maladroite −10 »). */
@@ -753,7 +755,7 @@ export interface ModLine {
  *  `test-value-parts.test.ts`). COUTURE UNIQUE effet→fiche pour les `ModLine` : elle vit ICI, à côté
  *  de la table qu'elle indexe, pour être lisible des DEUX collecteurs (`conditions`, `trauma`) sans
  *  cycle d'import entre eux. */
-export function effectRef(e: ActiveEffect): CodexTarget | undefined {
+export function effectRef(e: Pick<ActiveEffect, 'source' | 'sourceSpellId'>): CodexTarget | undefined {
   if (e.source) return { category: CATEGORY_BY_SOURCE_KIND[e.source.kind], id: e.source.id };
   return e.sourceSpellId ? { category: 'spells', id: e.sourceSpellId } : undefined;
 }
@@ -1012,6 +1014,9 @@ export interface ActiveEffect {
  *  le reste (−10 Tests de Localisation, membre inutilisable, amputation, guérison) est journalisé
  *  dans `note` (→ Jalon 5). Persisté entre combats (cf. engine/persistence.ts). */
 export interface Trauma {
+  /** Identité STABLE de la séquelle portée, posée par son porteur (`avecSequelles`, `engine/trauma.ts`) : c'est elle
+   *  qu'un verbe désigne, jamais son rang dans `Combatant.traumas`. */
+  uid: string;
   label: string;
   /** id STABLE d'une séquelle SYNTHÉTIQUE agrégée que le moteur reconnaît par identité
    *  (Dents perdues → 'dents-perdues', Cécité → 'cecite', Surdité → 'surdite') — ≠ libellé d'affichage.
@@ -1885,7 +1890,7 @@ export interface Combatant {
    *  un PJ rendu depuis son propre inventaire). Référence de TYPE seulement → élidée à la compilation. */
   appearance?: import('./authoringAppearance').Appearance;
   /** Override d'apparence d'AUTHORING BRUT (cosmétique) porté depuis la scène au spawn (#187), lu par
-   *  `equipementDessine` et `deciderApparencesDesArmes` (`noyau/monde/spawn.ts`). */
+   *  `porteeDuCombattant` et `deciderApparencesDesArmes` (`noyau/monde/spawn.ts`). */
   appearanceOverride?: import('./authoringAppearance').EntityAppearance;
 }
 

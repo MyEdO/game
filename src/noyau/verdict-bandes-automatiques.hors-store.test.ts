@@ -102,7 +102,7 @@ describe('Taverne : le lancer de volée relit le verdict du d100 (NADJ 16 l.70)'
     let pc = get().pendingCascade!;
     const vise = pc.participants[pc.cursor];
     get().cascadeChoose(vise.id, '0'); // le nez : Très facile (+60)
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     pc = get().pendingCascade!;
     const idx = pc.participants.findIndex((s) => s.kind === 'tavern-throw');
     const band = pc.participants[idx];
@@ -112,7 +112,7 @@ describe('Taverne : le lancer de volée relit le verdict du d100 (NADJ 16 l.70)'
     const participants = [...pc.participants];
     participants[idx] = { ...band, participants: [{ ...row, result: { roll: 97, target: row.target!, sl: t.sl, success: t.success } }] };
     banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect((get().sequence?.payload as TavernPayload | undefined)?.volley?.gains.player).toEqual([0]);
   });
 });

@@ -11,8 +11,8 @@
  * PERSONNE ne poursuivait le balayage.
  *
  * Le geste RÉEL voyage par `battleClickEntity`/`battleClickTile` (dispatchés par
- * `currentTargetingMode`) — `cleaveAttack`/`dualStrikeAttack` ne sont appelés qu'EN INTERNE par
- * `targetingModes`. Les deux surfaces sont éprouvées ici ; la table `EMISSION` de
+ * `currentTargetingMode`) — `cleaveAttack`/`dualStrikeAttack` sont la machinerie que `targetingModes` appelle
+ * (`MachinerieDuNoyau`, #3370), hors allowlist. Le clic et ce refus sont éprouvés ici ; la table `EMISSION` de
  * `src/state/hors-modal-intent-path.test.ts` empêche qu'une route porte de nouveau sur un verbe que personne n'émet.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -21,8 +21,8 @@ import { initialNet, type BattleState } from './etat';
 import { initialFields } from './stateFields';
 import { intentAllowedFor } from './netOwnership';
 import { seatOwns } from './sieges';
-import { modalOwnerOf, HORS_MODAL, horsModalOwnedIntents } from './modalArbiter';
-import { GUEST_INTENTS, appliquerLIntentionDUnSiege } from './intentionsDeSiege';
+import { modalOwnerOf } from './modalArbiter';
+import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
@@ -172,44 +172,44 @@ describe('#1016 — hors détenteur, la route ne déplace AUCUN verdict (différ
 });
 
 describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action / défense en profondeur)', () => {
-  it('cleaveEnd (bouton « Terminer » de la barre) : seul l’attaquant clôt le balayage', () => {
+  it('la sortie du balayage (bouton « Terminer » de la barre) : seul l’attaquant clôt le balayage', () => {
     setup();
     banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'cleaveEnd', [])).toBe('refusee');
+    expect(applyIntent(2, 'fenetreFermer', ['cleave'])).toBe('refusee');
     expect(banc.getState().pendingCleave).not.toBeNull();
-    expect(applyIntent(1, 'cleaveEnd', [])).toBe('appliquee');
+    expect(applyIntent(1, 'fenetreFermer', ['cleave'])).toBe('appliquee');
     expect(banc.getState().pendingCleave).toBeNull();
   });
 
-  it('dualStrikeSkip (bouton « Renoncer ») : seul l’attaquant renonce à sa 2ᵉ frappe', () => {
+  it('la sortie de la 2ᵉ frappe (bouton « Renoncer ») : seul l’attaquant renonce à sa 2ᵉ frappe', () => {
     setup();
     banc.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'dualStrikeSkip', [])).toBe('refusee');
+    expect(applyIntent(2, 'fenetreFermer', ['dualStrike'])).toBe('refusee');
     expect(banc.getState().pendingDualStrike).not.toBeNull();
-    expect(applyIntent(1, 'dualStrikeSkip', [])).toBe('appliquee');
+    expect(applyIntent(1, 'fenetreFermer', ['dualStrike'])).toBe('appliquee');
     expect(banc.getState().pendingDualStrike).toBeNull();
   });
 
-  it('cleaveAttack/dualStrikeAttack (aucun émetteur d’UI) sont routés QUAND MÊME sur le porteur', () => {
+  it('cleaveAttack/dualStrikeAttack sont la machinerie du clic (#3370) : hors allowlist, même pour le porteur', () => {
     setup();
     banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'cleaveAttack', ['e2'])).toBe('refusee');
-    expect(applyIntent(1, 'cleaveAttack', ['e2'])).toBe('appliquee');
-    expect(banc.getState().pendingAttack?.cleave).toBe(true);
+    expect(applyIntent(1, 'cleaveAttack', ['e2'])).toBe('hors-allowlist');
+    expect(applyIntent(1, 'dualStrikeAttack', ['e2'])).toBe('hors-allowlist');
+    expect(banc.getState().pendingAttack).toBeFalsy();
   });
 
   it('fenêtre FERMÉE : le geste terminal est inerte, aucun siège ne le prend', () => {
     setup();
-    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'cleaveEnd', [])).toBe('refusee');
+    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'fenetreFermer', ['cleave'])).toBe('refusee');
   });
 
   it('NON-RÉGRESSION SOLO : « Terminer »/« Renoncer » marchent hors coop', () => {
     setup({ mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
     banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 } });
-    banc.getState().cleaveEnd();
+    banc.getState().fenetreFermer('cleave');
     expect(banc.getState().pendingCleave).toBeNull();
     banc.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 } });
-    banc.getState().dualStrikeSkip();
+    banc.getState().fenetreFermer('dualStrike');
     expect(banc.getState().pendingDualStrike).toBeNull();
   });
 });
@@ -227,37 +227,14 @@ describe('#1016 — pause de début de Round (`turn: -1`) : la FENÊTRE est à t
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h2')!.fortune).toBe(1);
   });
 
-  it('confirmRoundStart : lancé par l’HÔTE (unanimité du ready-check), refusé aux invités', () => {
+  it('la validation de la pause est à TOUS les sièges : chacun marque le sien, le dernier siège requis lance le Round', () => {
     setup({}, -1);
     banc.setState({ pendingRoundStart: { round: 2 } });
-    expect(applyIntent(1, 'confirmRoundStart', [])).toBe('refusee');
-    expect(applyIntent(2, 'confirmRoundStart', [])).toBe('refusee');
-    expect(banc.getState().pendingRoundStart, 'un invité lançait le Round pour les autres').not.toBeNull();
-    expect(applyIntent(0, 'confirmRoundStart', [])).toBe('appliquee');
-    expect(banc.getState().pendingRoundStart).toBeNull();
-  });
-
-  it('roundStartReady reste ouvert à TOUS les sièges (c’est LA voie de l’invité)', () => {
-    setup({}, -1);
-    banc.setState({ pendingRoundStart: { round: 2 } });
-    for (const seat of [0, 1, 2]) expect(intentAllowedFor(banc.getState(), seat, 'roundStartReady', [])).toBe(true);
-  });
-});
-
-describe('#1016 — la route est DÉRIVÉE du registre HORS_MODAL (aucune table parallèle)', () => {
-  it('chaque intent déclaré par `HORS_MODAL.intents` existe dans le store ET est exposé à l’invité', () => {
-    const store = banc.getState() as unknown as Record<string, unknown>;
-    const routes = horsModalOwnedIntents();
-    expect(Object.keys(routes), 'précondition : le registre route bien des intents').not.toEqual([]);
-    for (const [action, def] of Object.entries(routes)) {
-      expect(typeof store[action], `${action} : route sur une action inexistante`).toBe('function');
-      expect(GUEST_INTENTS.has(action), `${action} : routé mais jamais atteignable par un invité`).toBe(true);
-      expect(HORS_MODAL.some((d) => d.key === def.key), `${action} : owner hors registre`).toBe(true);
-    }
-  });
-
-  it('les 4 gestes terminaux du ticket sont routés par leur pending (pas par la modale active)', () => {
-    expect(Object.keys(horsModalOwnedIntents()).sort())
-      .toEqual(['cleaveAttack', 'cleaveEnd', 'dualStrikeAttack', 'dualStrikeSkip']);
+    for (const seat of [0, 1, 2]) expect(intentAllowedFor(banc.getState(), seat, 'fenetreValider', ['roundStart'])).toBe(true);
+    expect(applyIntent(1, 'fenetreValider', ['roundStart'])).toBe('appliquee');
+    expect(applyIntent(0, 'fenetreValider', ['roundStart'])).toBe('appliquee');
+    expect(banc.getState().pendingRoundStart?.readyBySeat, 'un siège lançait le Round pour les autres').toEqual({ 0: true, 1: true });
+    expect(applyIntent(2, 'fenetreValider', ['roundStart'])).toBe('appliquee');
+    expect(banc.getState().pendingRoundStart, 'quorum atteint : le Round se lance').toBeNull();
   });
 });

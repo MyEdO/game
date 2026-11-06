@@ -29,7 +29,7 @@ import {
 import { outOfTradeReason } from '../engine/disponibilite';
 import { memeSpecialisation, refCouvre } from '../data/schemas/grammaire/ref';
 import type { Jeu } from './etat';
-import { refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
+import { refusDeBourse } from './bourseFlow';
 import { refusDePx } from './depenseDePx';
 import { currentPlaceId } from './worldMap';
 import { bourseOf } from '../engine/bourse';
@@ -58,12 +58,6 @@ const nomDuHeros = (s: EtatDInterlude, heroId: string): string =>
  *  UNIQUE des gestes qui ne consomment pas d'Activité (engager un Artisanat, retirer une planque). LDB 22 l.5 */
 export function refusDuTirage(s: EtatDInterlude, heroId: string): string | null {
   return interludeDrawPending(s) ? t('if.drawPending', { name: nomDuHeros(s, heroId) }) : null;
-}
-
-/** Refus de clore l'interlude : geste du groupe (`refusDeGesteSurLeGroupe`), puis Événements de la période
- *  encore à tirer. Verdict UNIQUE de `interludeEnd` et de l'écran. LDB 22 l.5 */
-export function refusDeClore(s: Parameters<typeof refusDeGesteSurLeGroupe>[0] & Pick<Jeu, 'interlude'>): string | null {
-  return refusDeGesteSurLeGroupe(s) ?? (interludeDrawPending(s) ? t('if.closeDrawPending') : null);
 }
 
 /** Refus d'un geste qui CONSOMME une Activité d'interlude : tirage en attente, puis plus d'Activité
@@ -413,7 +407,7 @@ export function refusDOuvertureDActivite(s: EtatDeDepot, heroId: string, def: Ac
   const ouverture = ouvertureDe(def);
   if (!def.contexts.includes('interlude') || def.blocked) return t('if.activiteFermee', { label: def.label });
   if (ouverture === 'horsCatalogue') return t('if.horsCatalogue', { label: def.label });
-  if (ouverture === 'voie' && !def.skills?.length) return t('if.activiteSansCompetence', { label: def.label });
+  if (ouverture === 'voie' && !def.tests?.length) return t('if.activiteSansCompetence', { label: def.label });
   if (!activityAvailableAt(def, currentPlaceId(s))) return t('if.placeOnly', { label: def.label });
   if (def.resolver === 'dissensionEmeute' && !s.interlude?.perHero[heroId]?.dissensionReady) return t('if.dissensionNotReady', { name: h.label });
   return refusDeCibleDActivite(s, h, def, opts) ?? preJetDActivite(s, heroId, def, opts)?.refus ?? refusDeReussiteSansObjet(h, def, opts);
@@ -550,7 +544,7 @@ type LotDeCloture = NonNullable<NonNullable<Jeu['interlude']>['perHero'][string]
 /** Un montant, en sous de cuivre, attaché à un héros. */
 export interface MontantDeHeros { heroId: string; brass: number }
 
-/** Ce que la clôture de l'interlude FAIT, calculé une fois : `interludeEnd` l'applique, le récap l'affiche. */
+/** Ce que la clôture de l'interlude FAIT, calculé une fois : sa validation (`fenetreValider('interlude')`) l'applique, le récap l'affiche. */
 export interface DevisDeCloture {
   /** Les bourses non vides, chacune dépensée en totalité. LDB 23 l.15 */
   gaspillages: MontantDeHeros[];

@@ -10,13 +10,13 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
-  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
+  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
+  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import type { Projection } from './projection';
-import type { FenetreADessiner } from './gestes';
+import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, resume, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Ton } from './elements';
 
@@ -134,6 +134,28 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
   return elements.filter((e): e is Element => e !== null);
 }
 
+/** Le corps de la fenêtre d'incantation (`fenetreDIncantation`) : le Sort et sa cible, son NI et sa Zone d'Effet, la
+ *  ligne du lanceur (à jeter ou tombée), les pas de Surincantation qui restent, les cibles supplémentaires à désigner
+ *  sur la carte, l'issue. */
+function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
+  const lanceur = garanti(porteurParId(etat, f.lanceurId), f.lanceurId, 'lanceur de l’incantation').label;
+  const cible = f.surSoi ? t('ecran.incantation.surSoi') : garanti(porteurParId(etat, f.cibleId), f.cibleId, 'cible de l’incantation').label;
+  const l = f.ligne;
+  const s = f.surincantation;
+  const elements: (Element | null)[] = [
+    ligne('sort', t('ecran.incantation.sort', { sort: f.sort, cible })),
+    f.zone ? puce('zone', t('ecran.incantation.zone'), t('ecran.incantation.cote', { cote: f.zone.cote }), null, f.zone.aPoser ? 'alerte' : 'neutre') : null,
+    jet('jet', {
+      qui: lanceur, libelle: l.label, cible: t('ecran.jet.cible', { cible: l.jet?.target ?? l.target }), modificateurs: puces('jet', l.mods),
+      ...(l.jet ? { resultat: String(l.jet.roll), dr: t('ecran.jet.dr', { dr: avecSigne(l.jet.sl) }), ...verdictDuTest(l.jet.success) } : {}),
+    }),
+    s ? puce('surincantation', t('ecran.incantation.surincantation'), t('ecran.incantation.pas', { restant: s.restant, budget: s.budget })) : null,
+    s?.cibles?.surLaCarte ? ligne('cibles', t('ecran.incantation.cibles', { designees: s.cibles.designees, capacite: s.cibles.capacite })) : null,
+    f.issue ? ligne('issue', f.issue) : null,
+  ];
+  return elements.filter((e): e is Element => e !== null);
+}
+
 /** Une ligne de jet d'une fenêtre (`jetsEnVue`) : qui jette, le Test, la table ou le dé, et ce qui est tombé : le dé
  *  et son verdict, ou ce que la table ou le dé lit. */
 function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
@@ -162,6 +184,8 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
   const jetDeLEtape = pc?.participants[pc.cursor]?.jet;
   const attaque = jetDeLEtape === 'attack' ? fenetreDAttaque(etat) : null;
   if (attaque) return corpsDeLAttaque(etat, attaque);
+  const incantation = jetDeLEtape === 'cast' ? fenetreDIncantation(etat) : null;
+  if (incantation) return corpsDeLIncantation(etat, incantation);
   const defense = jetDeLEtape === 'defense' ? fenetreDeDefense(etat) : null;
   const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;
   return [
@@ -175,7 +199,14 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...revelationDeLEtape(etat),
     ...destinEnJeu(etat),
     ...victoire(etat),
+    ...texteDuDocument(etat),
   ];
+}
+
+/** Le texte du document remis (`documentEnVue`) ; son titre est celui de la fenêtre. */
+function texteDuDocument(etat: Jeu): Element[] {
+  const doc = documentEnVue(etat);
+  return doc ? [ligne('lecture', doc.texte)] : [];
 }
 
 /** La victoire en attente : l'Expérience gagnée et l'argent pris en puces, puis chaque adversaire vaincu et chaque
@@ -247,17 +278,31 @@ function apercuDe(c: Combat): string | null {
   return cible ? t('ecran.apercu.cible', { cible }) : null;
 }
 
-/** Les offres de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand l'actif la vise, refusée avec sa
+/** Les offres de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand elle est armée, refusée avec sa
  *  raison quand elle est fermée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui
- *  la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. */
+ *  la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. Une offre qui s'offre par candidat
+ *  (le sort, l'arme, l'attaque de trait) est un choix à elle, sous sa part, en liste au-delà de `CHOIX_EN_BOUTONS`
+ *  candidats : chaque candidat un bouton qui le nomme et joue l'offre sur son contexte. */
 function offresDuCombat(c: Combat): Choix[] {
   const offres = c.offres?.liste ?? [];
+  const libelle = (o: (typeof offres)[number]): string => garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre');
   const bouton = (o: (typeof offres)[number]): Bouton => ({
-    type: 'bouton', id: o.id, libelle: garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre'), jeu: { offre: o.id }, presse: c.intention === o.id, focus: false, refus: o.refus,
+    type: 'bouton', id: o.id, libelle: libelle(o), jeu: { offre: o.id }, presse: o.armee, focus: false, refus: o.refus,
   });
-  return [...new Set(offres.map((o) => o.economie))].map((e): Choix => ({
-    type: 'choix', id: `economie/${e}`, ton: 'neutre', libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: offres.filter((o) => o.economie === e).map(bouton),
-  }));
+  const parCandidat = (o: (typeof offres)[number]): Choix => ({
+    type: o.candidats.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: `offre/${o.id}`, ton: 'neutre', libelle: libelle(o), focus: false, refus: o.refus,
+    valeurs: o.candidats.map((k): Bouton => ({
+      type: 'bouton', id: `${o.id}/${Object.values(k.ctx).join('/')}`, libelle: k.nom, jeu: { offre: o.id, ctx: k.ctx }, presse: k.armee, focus: false, refus: k.refus,
+    })),
+  });
+  return [...new Set(offres.map((o) => o.economie))].flatMap((e): Choix[] => {
+    const part = offres.filter((o) => o.economie === e);
+    const uniques = part.filter((o) => !o.candidats.length);
+    return [
+      ...(uniques.length ? [{ type: 'choix' as const, id: `economie/${e}`, ton: 'neutre' as const, libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: uniques.map(bouton) }] : []),
+      ...part.filter((o) => o.candidats.length).map(parCandidat),
+    ];
+  });
 }
 
 /** L'ordre du tour (`battle.order`) : chaque combattant en puce, ses Blessures pour valeur ; celui qui joue en alerte,
@@ -434,7 +479,7 @@ function zonesDuDialogue(etat: Jeu, fenetreOuverte: boolean): Pick<ZonesDeLEcran
     'dialogue.orateur': v?.orateur ? [ligne('orateur', v.orateur)] : [],
     'dialogue.replique': v?.replique ? [ligne('replique', v.replique)] : [],
     'dialogue.reponses': (v?.reponses ?? []).map((r): Bouton => ({
-      type: 'bouton', id: `reponse/${r.index}`, libelle: [r.annonce, r.label, r.cost && formatMoney(r.cost)].filter(Boolean).join(' '),
+      type: 'bouton', id: `reponse/${r.id}`, libelle: [r.annonce, r.label, r.cost && formatMoney(r.cost)].filter(Boolean).join(' '),
       jeu: { type: r.geste.verbe, args: r.geste.args }, presse: false, focus: false, refus: r.refus ?? null,
     })),
   };

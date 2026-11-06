@@ -169,8 +169,8 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
     heros[0].fortune = 2;
     autoCleave(banc.getState, banc.setState, enemy, heros[0], toucheQuiBalaie());
     const avant = JSON.stringify(suiteDeLaFenetre());
-    banc.getState().defenseSetMode('esquive');
-    banc.getState().defenseSetParryWeapon('sw');
+    banc.getState().jetRegler('defense', 'reaction', 'esquive');
+    banc.getState().jetRegler('defense', 'armeDeParade', 'sw');
     banc.getState().jetRoll('defense');
     banc.getState().jetReroll('defense');
     expect(JSON.stringify(suiteDeLaFenetre())).toBe(avant);
@@ -337,12 +337,12 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     expect(st.battle!.acted, 'gratuite : l’Action d’avant, maillon compris').toBe(false);
   });
 
-  it('Frénésie qui balaie puis renonce : `cleaveEnd` rend l’Action', () => {
+  it('Frénésie qui balaie puis renonce : la sortie du balayage rend l’Action', () => {
     setupHeros();
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'e1', location: null, result: toucheDuHeros(true) } as never });
     banc.getState().jetConfirm('attack');
     expect(banc.getState().pendingCleave).not.toBeNull();
-    banc.getState().cleaveEnd();
+    banc.getState().fenetreFermer('cleave');
     expect(banc.getState().battle!.acted, 'gratuite : l’Action d’avant à la fermeture de la chaîne').toBe(false);
   });
 

@@ -2,7 +2,7 @@
  * Câblage RÉEL de « Puissance totale » révisée (`VDM 02 l.55`, option `magic-vdm-incantation`)
  * jusqu'au budget de Surincantation : le DR de l'Incantation Critique augmente du chiffre des
  * DIZAINES du lancer, et cette DR sert à allouer les pas. Passe par la VRAIE action de modale
- * (`castSetCritChoice` + `castAllocOvercast`) — aucun budget recalculé à la main dans le test.
+ * (réglages `cast.effetCritique` et `cast.surincantationDuree`) — aucun budget recalculé à la main dans le test.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -28,7 +28,7 @@ function openCast() {
   banc.setState({ party: [W] });
   banc.getState().startScene(testScene());
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   banc.getState().seedRng(7);
   const b = banc.getState().battle!;
@@ -36,28 +36,30 @@ function openCast() {
   banc.setState({ battle: { ...b, turn: b.order.indexOf(heroC.id), action: 'cast', selectedSpellId: 'allure-demoniaque', acted: false } });
   banc.getState().battleClickEntity(heroC.id);
   banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: critRes } }));
-  banc.getState().castSetCritChoice('puissance');
+  banc.getState().jetRegler('cast', 'effetCritique', 'puissance');
 }
 
 describe('Câblage — « Puissance totale » VDM : +dizaines au DR, donc des pas de Surincantation', () => {
   it('option OFF (LDB 46 l.31) : DR 8 = NI 8 → aucun pas allouable', () => {
     openCast();
-    banc.getState().castAllocOvercast('duration', 1);
+    banc.getState().jetRegler('cast', 'surincantationDuree', 1);
     expect(banc.getState().pendingCast!.overcast ?? { duration: 0 }).toMatchObject({ duration: 0 });
   });
 
   it('option ON : le lancer 44 porte le DR à 12 → 4 DR dépensables sur la Durée (`VDM 02 l.196`)', () => {
     setRule(RULE, true);
     openCast();
-    for (let i = 0; i < 5; i++) banc.getState().castAllocOvercast('duration', 1); // le 5ᵉ est refusé : surplus épuisé
+    banc.getState().jetRegler('cast', 'surincantationDuree', 5); // refusé : surplus épuisé
+    expect(banc.getState().pendingCast!.overcast).toBeUndefined();
+    banc.getState().jetRegler('cast', 'surincantationDuree', 4);
     expect(banc.getState().pendingCast!.overcast).toEqual({ range: 0, zone: 0, duration: 4, targets: 0, damage: 0 });
   });
 
   it('option ON, effet Critique AUTRE que « Puissance totale » : DR 8 = NI 8, aucun pas', () => {
     setRule(RULE, true);
     openCast();
-    banc.getState().castSetCritChoice('ineluctable');
-    banc.getState().castAllocOvercast('duration', 1);
+    banc.getState().jetRegler('cast', 'effetCritique', 'ineluctable');
+    banc.getState().jetRegler('cast', 'surincantationDuree', 1);
     expect(banc.getState().pendingCast!.overcast ?? { duration: 0 }).toMatchObject({ duration: 0 });
   });
 });

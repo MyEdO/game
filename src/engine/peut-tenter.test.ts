@@ -56,10 +56,10 @@ describe('peutTenter — consommateurs sur un groupe d\'UN seul acteur', () => {
     expect(ko.refus).toBe('m ne peut pas tenter le Test de Voile (Cogue).');
   });
 
-  it('bestSkilledOption (skills) : un acteur Inconscient n\'obtient aucune option tentable', () => {
-    const opts = [{ id: 'a', skills: [{ id: 'ragot' }] }];
-    expect(bestSkilledOption(hero('h', 40, { ragot: 5 }), opts)?.value).toBeGreaterThan(0);
-    expect(bestSkilledOption(hero('h', 40, { ragot: 5, inconscient: true }), opts)).toBeNull();
+  it('bestSkilledOption (Tests) : un acteur Inconscient n\'obtient aucune option tentable', () => {
+    const opts = [{ id: 'a', tests: [{ skill: { id: 'ragot' } }] }];
+    expect(bestSkilledOption(hero('h', 40, { ragot: 5 }), opts, (o) => o.tests)?.value).toBeGreaterThan(0);
+    expect(bestSkilledOption(hero('h', 40, { ragot: 5, inconscient: true }), opts, (o) => o.tests)).toBeNull();
   });
 });
 

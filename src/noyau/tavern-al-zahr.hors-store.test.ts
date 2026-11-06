@@ -201,17 +201,17 @@ describe('Al-zahr — la partie au store', () => {
       expect(get().sequence?.abandon, `${quoi} : aucune demande posée`).toBeUndefined();
     };
     get().cascadeChoose(cur().id, '10');
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(cur().table && !cur().table!.result && cur().actorId, 'tour du challenger, dé non posé').toBe(a.id);
     fermeEntreDeuxManches('tour non lancé du challenger');
     get().jetSetForcedRoll('cascadeTirage', 4, cur().id);
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(cur().kind, 'le 4 appende « remettre ou abandonner »').toBe('tavern-pot-fold');
     expect(cur().defaultChoice, 'aucune demande ne fait du pli un défaut').toBe('remise');
     fermeEntreDeuxManches('pli dû');
     // Le PLI est la sortie RAW : le challenger quitte la manche, qui se joue entre les restants.
     get().cascadeChoose(cur().id, 'abandon');
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     const fenetres: string[] = [];
     let fenetreDeB = false;
     for (let i = 0; i < 200 && get().pendingCascade && (get().sequence?.payload as { manche?: number } | undefined)?.manche === 1; i++) {
@@ -248,9 +248,9 @@ describe('Al-zahr — la partie au store', () => {
     get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const cur = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().cascadeChoose(cur().id, '7');
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     get().jetSetForcedRoll('cascadeTirage', 20, cur().id);
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect((get().sequence!.payload as { manche: number }).manche).toBe(2);
     expect(cur().kind, 'ouverture de la manche 2').toBe('tavern-pot-target');
     expect(cur().actorId, 'l’annonce d’un autre se lit à la fenêtre du challenger').toBe(a.id);
@@ -271,7 +271,7 @@ describe('Al-zahr — la partie au store', () => {
     expect(payload().net?.[a.id] ?? 0, 'rien n’est engagé').toBe(0);
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().cascadeChoose(cur.id, '9');
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(payload().pot, '3 joueurs × 100 sc').toBe(300);
     expect(payload().net?.[a.id], 'le héros a engagé sa mise').toBe(-100);
     expect(Object.values(payload().mises ?? {}).reduce((x, y) => x + y, 0), 'Σ mises = pot').toBe(300);
@@ -402,7 +402,7 @@ describe('Al-zahr — la partie au store', () => {
     const cibleStep = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(cibleStep.kind).toBe('tavern-pot-target');
     get().cascadeChoose(cibleStep.id, '7');
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     // 2) son lancer POSÉ à 7 atteint la cible : l'encart le dit AVANT le commit.
     const tour = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(tour.kind).toBe('tavern-pot-turn');
@@ -410,7 +410,7 @@ describe('Al-zahr — la partie au store', () => {
     const pose = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(pose.table!.result!.lines[0], 'la rafle est annoncée à l’écran du jet').toBe('la manche est remportée, le pot est raflé');
     // 3) même vérité que le journal : la ligne de récit dit la même issue.
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(get().journal.concat(get().pendingCascade?.participants.flatMap((s) => s.outcome?.map((o) => o.text) ?? []) ?? [])
       .some((l) => typeof l === 'string' && l.includes('la manche est remportée, le pot est raflé'))).toBe(true);
   });
@@ -420,7 +420,7 @@ describe('Al-zahr — la partie au store', () => {
     get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const cibleStep = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().cascadeChoose(cibleStep.id, '7');
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     const tour = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().jetSetForcedRoll('cascadeTirage', 12, tour.id); // même fourchette 7-15, cible NON atteinte
     const pose = get().pendingCascade!.participants[get().pendingCascade!.cursor];
@@ -432,7 +432,7 @@ describe('Al-zahr — la partie au store', () => {
     get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const cible = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().cascadeChoose(cible.id, '7');
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     const board = sequenceBoardOf(get);
     expect(board?.pot).toBe(`Pot : ${formatMoney(fromBrass(300))}`);
     expect(board?.camps).toHaveLength(3);

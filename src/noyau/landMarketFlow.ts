@@ -45,7 +45,7 @@ import { appraiseRefus, APPRAISE_SKILL, remiseMaximaleDeMarchandage } from './me
 import { seasonOfMonth } from '../engine/travelStages';
 import { toDate, dayIndex } from '../engine/clock';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
@@ -438,7 +438,7 @@ export function creerActionsDuMarcheTerrestre(get: Get, set: Set) {
     landDumpCargo: (carrierId, cargoIndex) => landDumpCargo(get, set, carrierId, cargoIndex),
     moveCargo: (fromId, toId, cargoId, enc) => moveCargo(get, set, fromId, toId, cargoId, enc),
     landEvalWine: (cargoId) => landEvalWine(get, set, cargoId),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

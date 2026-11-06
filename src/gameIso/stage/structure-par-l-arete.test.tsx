@@ -135,7 +135,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     const Probe = () => {
       const svgRef = useRef(stageEl());
       const camRef = useRef({ x: 0, y: 0 });
-      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking, partyLeader: undefined, activeZ: 0, aretes });
+      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking, activeZ: 0, aretes });
       return null;
     };
     root = createRoot(document.createElement('div'));

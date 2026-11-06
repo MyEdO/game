@@ -41,7 +41,7 @@ describe('#1064 — le pending PORTE le détail du Soutien (couture)', () => {
     expect(pt.skillValue).toBe(55); // 35 + 2×10 (Soutien FONDU, inchangé)
     // …et DÉTAILLÉ pour l'affichage, NOMS COMPRIS (`ids` : la provenance de la chip « +20 Soutien »).
     expect(pt.support).toEqual({ count: 2, bonus: 20, ids: ['h2', 'h3'] });
-    // Le détail suit le CANDIDAT (le plafond est celui de SA Caractéristique) : `testSetActor` le recopie.
+    // Le détail suit le CANDIDAT (le plafond est celui de SA Caractéristique) : réglage `test.testeur` le recopie.
     expect(pt.candidates?.find((c) => c.id === 'h1')?.support).toEqual({ count: 2, bonus: 20, ids: ['h2', 'h3'] });
   });
 

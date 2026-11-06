@@ -27,7 +27,7 @@ function auTourDUnHeros(): Partie {
     for (let pas = 0; file.length && pas < 500; pas++) jouer(partie.reprendre(file.shift()!));
   };
   jouer(partie.lancer(lancementDuScenario(PASTILLES)));
-  for (let pas = 0; pas < 20 && activeCombatant(partie.etat().battle!)?.kind !== 'hero'; pas++) jouer(partie.envoyer({ type: 'confirmRoundStart', args: [] }));
+  for (let pas = 0; pas < 20 && activeCombatant(partie.etat().battle!)?.kind !== 'hero'; pas++) jouer(partie.envoyer({ type: 'fenetreValider', args: ['roundStart'] }));
   expect(activeCombatant(partie.etat().battle!)?.kind, 'témoin : aucun héros n’est venu au tour').toBe('hero');
   return partie;
 }
@@ -47,9 +47,9 @@ describe('Partie.lancer — le lancement d’un scénario est un appel de la par
       expect(lancement.journal.length, 'le lancement ne rend pas les lignes qu’il a écrites').toBeGreaterThan(0);
       expect(partie.etat().battle, 'le combat direct du scénario n’a pas démarré').toBeTruthy();
       expect(partie.etat().screen, 'sans bataille de masse, le lancement mène à la campagne').toBe('campaign');
-      const suivant = partie.envoyer({ type: 'log', args: ['TÉMOIN'] });
+      const suivant = partie.envoyer({ type: 'lowerHand', args: [] });
       expect(emis(suivant), 'l’appel suivant rend les événements du lancement').toEqual([]);
-      expect(suivant.journal, 'l’appel suivant rend les lignes du lancement').toEqual([{ de: 'journal', texte: 'TÉMOIN' }]);
+      expect(suivant.journal, 'l’appel suivant rend les lignes du lancement').toEqual([]);
     } finally {
       partie.fermer();
     }

@@ -28,7 +28,7 @@ function setup(seed: number) {
   g().startScene(built.scene);
   g().startCombat('enc-entrainement', undefined, { noSurprise: true });
   for (let i = 0; i < 20 && (g().pendingRoundStart || g().pendingCascade); i++) {
-    if (g().pendingRoundStart) g().confirmRoundStart(); else avanceEtapeCascade(g);
+    if (g().pendingRoundStart) g().fenetreValider('roundStart'); else avanceEtapeCascade(g);
   }
   const b = g().battle!;
   const tireur = b.combatants.find((c) => c.id === 'tr-tireur')!;
@@ -75,7 +75,7 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
       jusquALaDefense();
       expect(etapeCourante()?.jet, `graine ${seed}`).toBe('defense');
       const pd = g().pendingDefense;
-      g().cascadeNext();
+      g().jetConfirm('cascade');
       expect(g().pendingDefense, `graine ${seed} : la défense du maillon vit`).toBe(pd);
       expect(etapeCourante()?.jet, `graine ${seed} : le curseur reste sur la défense`).toBe('defense');
       expect(pickActiveModalKey(g()), `graine ${seed}`).toBe('cascade');

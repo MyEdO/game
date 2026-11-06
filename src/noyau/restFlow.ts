@@ -48,7 +48,7 @@ import { freeCons, monoStep, choiceStep, pousseSi } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import type { CascadeStepMeta } from './pendings';
 import { isRation, feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
-import { toBrass, fromBrass, formatMoney, priceToMoney, type Money } from '../engine/money';
+import { toBrass, fromBrass, priceToMoney, type Money } from '../engine/money';
 import { payFromGroup, totalDesBourses } from './bourseFlow';
 import { findTrappingById, nightStakeRef, refLabel, testSkillLabel, libelleOuAbsence, type StakeRef } from '../data';
 import { diseaseLabel } from '../data';
@@ -152,12 +152,11 @@ import { placeById, type WorldMap } from './worldMap';
 import { garanti } from '../lib/garanti';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { ValidationsDeFenetre } from './validationDeFenetre';
 import { tableTotale } from '../lib/tableTotale';
 import { type FragmentDeTables, type PartDeTable } from './tablesPosees';
-import { decidingSeat, quorumAtteint } from './netOwnership';
-import { refuseSi } from './verrousDeFiche';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */
 const SKILL_RESISTANCE = (): string => refLabel('skills', { id: 'resistance' });
@@ -628,35 +627,19 @@ export function restSet(get: Get, set: Set, heroId: string, patch: Partial<{ lod
   set({ pendingRest: { ...p, perHero: { ...p.perHero, [heroId]: { ...p.perHero[heroId], ...patch } } } });
 }
 
-export function restReady(get: Get, set: Set): void {
-  const p = get().pendingRest;
-  if (!p || p.phase !== 'setup') return;
-  set({ pendingRest: { ...p, readyBySeat: { ...(p.readyBySeat ?? {}), [decidingSeat(get())]: true } } });
-}
-
 /** Les bourses du groupe couvrent-elles la note de la halte réglée (`restCost`) ? Vrai sans halte. LDB 66 */
 export function noteDAubergeCouverte(s: Pick<Jeu, 'pendingRest' | 'party'>): boolean {
   return !s.pendingRest || toBrass(restCost(s.pendingRest, s.party)) <= toBrass(totalDesBourses(s.party));
 }
 
-/** Pourquoi la nuit ne s'ouvre pas : aucune halte réglée (ou combat), note d'auberge que les bourses du
- *  groupe ne couvrent pas (`noteDAubergeCouverte`), sièges pas tous prêts (`quorumAtteint`) ; `null`
- *  sinon. Verdict UNIQUE de `restSleep` et de « Dormir jusqu'à l'aube ». */
-export function refusDeDormir(s: Jeu): string | null {
-  const p = s.pendingRest;
-  if (!p || p.phase !== 'setup' || s.battle) return t('rf.pasDeHalte');
-  if (!noteDAubergeCouverte(s)) return t('rf.notEnoughMoney', { money: formatMoney(restCost(p, s.party)) });
-  return s.net.mode !== 'local' && !quorumAtteint(s, p.readyBySeat) ? t('rf.siegesPasPrets') : null;
-}
-
-/** Dormir : paie (RAW ch.66), nourrit, puis ouvre la CHAÎNE de cascades de nuit (#347, `openRestNight`). */
-export function restSleep(get: Get, set: Set): void {
-  if (refuseSi(get, set, refusDeDormir)) return;
+/** Dormir : paie (RAW ch.66), nourrit, puis ouvre la CHAÎNE de cascades de nuit (#347, `openRestNight`). Corps de la
+ *  validation du repos (`fenetreValider('rest')`), que l'hôte joue au quorum, la note couverte. */
+function dormir(get: Get, set: Set): void {
   const p = get().pendingRest!;
   const rng = battleRng();
 
   // 1. La note d'auberge (LDB 66) — dépense de BANDE (aucun bénéficiaire unique) tirée gloutonnement des
-  //    bourses, couverte par `refusDeDormir`.
+  //    bourses, couverte par la validation (`FERMETURES_DE_LA_VALIDATION.rest`).
   const cost = restCost(p, get().party);
   if (toBrass(cost) > 0) payFromGroup(get, set, cost, { purpose: 'auberge' });
 
@@ -705,7 +688,7 @@ function nightTitle(p: PendingRest, party: Combatant[]): string {
  *  l'ouvre en cascade influençable, en portant `nightsLeft` (nuits ENCORE à enchaîner après celle-ci)
  *  sur la cascade — sa clôture (`continueRestNights`, appelée par `dispatchCascadeDone`) reprend alors
  *  la nuit suivante. `extraContagion` (tambouille piètre) ne s'applique qu'à la nuit d'ARRIVÉE (repas
- *  du soir posé une fois en amont par `restSleep`).
+ *  du soir posé une fois en amont par `dormir`).
  */
 export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: number, extraContagion: ContagionSpec[] = []): void {
   const { steps, log } = buildNightCascade(get, set, p, { extraContagion });
@@ -741,15 +724,17 @@ export function sortiesDuRepos(_get: Get, set: Set) {
   return { rest: () => set({ pendingRest: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
+export function validationsDuRepos(get: Get, set: Set) {
+  return { rest: () => dormir(get, set) } satisfies Partial<ValidationsDeFenetre>;
+}
+
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
     openRest: (opts) => openRest(get, set, opts),
     restSet: (heroId, patch) => restSet(get, set, heroId, patch),
-    restReady: () => restReady(get, set),
-    restSleep: () => restSleep(get, set),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).
     restParty: (days = 1) => { sleepParty(get, set, days); },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

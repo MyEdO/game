@@ -14,8 +14,8 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { Objective } from './etat';
 import { condCtx } from './bourseFlow';
 import { visiblePlaces } from './worldMap';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { ValidationsDeFenetre } from './validationDeFenetre';
 
 /** Borne d'ouverture du chapitre courant (#717) — instantané pris quand le joueur prend la route :
  *  le récap DÉRIVE de la différence, il n'écrit aucun événement au fil du jeu. */
@@ -75,7 +75,7 @@ export function deriveChapterRecap(args: {
  * neutre hors campagne à `cloture`. Une CASCADE active (jour de voyage, psychologie…) tient l'écran :
  * le récap attend le lot d'effets suivant plutôt que de s'ouvrir par-dessus elle.
  *
- * Une clôture CONSOMMÉE (`clotureConsommee`, posé par `cloreChapitre`) n'arme plus rien : la Condition
+ * Une clôture CONSOMMÉE (`clotureConsommee`, posé par la validation du récap, `fenetreValider('chapterRecap')`) n'arme plus rien : la Condition
  * reste vraie après la séance close, si bien que sans ce fait le lot d'effets suivant — et chacun de
  * ceux d'après — rouvrirait un récap VIDE (archive vidée, borne re-posée : 0 PX, chronique vide).
  */
@@ -97,15 +97,14 @@ export function armChapterRecapIfDue(get: Get, set: SetFn): void {
   });
 }
 
-export function creerActionsDuChapitre(_get: Get, set: SetFn) {
+/** Les validations du cadre de campagne, gestes de l'HÔTE (`validation: 'hote'`, #717) : « Prendre la route » ferme
+ *  l'ouverture et BORNE le chapitre (instantané PX/vivants/date) ; « Terminer la séance » ferme le récap, consomme la
+ *  clôture et re-borne le chapitre suivant. */
+export function validationsDuChapitre(_get: Get, set: SetFn) {
   return {
-    // Cadre de campagne et COOP (#717) : ces deux gestes vivent chez l'HÔTE (classe `hôte`,
-    // `noyau/intentionsDeSiege.ts` `CLASSE_DES_ACTIONS_DU_NOYAU`). Chez un invité ils sont INERTES — sans cette
-    // garde le clic muterait l'état LOCAL puis mourrait au snapshot suivant de l'hôte, sans message.
-    // L'écran, lui, reste visible : il porte son refus par `GatedAction` (`src/ui/GatedAction.tsx`).
-    acquitterOuverture: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),
-    cloreChapitre: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingChapterRecap: null, objectifsSoldes: [], chapitreDepuis: snapshotChapitre(s.party, s.gameTime), clotureConsommee: true })),
-  } satisfies Partial<ActionsDuNoyau>;
+    ouverture: () => set((s) => ({ pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),
+    chapterRecap: () => set((s) => ({ pendingChapterRecap: null, objectifsSoldes: [], chapitreDepuis: snapshotChapitre(s.party, s.gameTime), clotureConsommee: true })),
+  } satisfies Partial<ValidationsDeFenetre>;
 }
 
 /** AJOURNE le récap (Échap / « Plus tard ») : le chapitre reste clos en donnée, donc le récap se re-pose au prochain lot

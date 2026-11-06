@@ -136,12 +136,12 @@ describe('Chirurgie (MedicModal → useSurgeryJetProps) — la Difficulté vit s
       battle: null, party: [surgeon, patient],
       medic: {
         patientId: patient.id,
-        surgery: { kind: 'surgery', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, traumaIdx: 0, targetDR: 6, cumDR: 2 },
+        surgery: { kind: 'surgery', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 2 },
       },
       pendingSurgery: {
         healerId: surgeon.id, healerName: surgeon.label, targetId: patient.id, targetName: patient.label,
-        kind: 'surgery', skillValue: 45, intBonus: 4, difficulty: DIFF, target: 65, roll: null, success: false, sl: 0,
-        traumaIdx: 0, targetDR: 6, cumDR: 2,
+        kind: 'surgery', ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, intBonus: 4, target: 65, roll: null, success: false, sl: 0,
+        targetDR: 6, cumDR: 2,
       },
     } as never);
     act(() => root.render(<MedicModal />));
@@ -159,7 +159,7 @@ describe('dossier d’opération — l’A→B n’est rendu que s’il EXISTE',
       battle: null, party, pendingSurgery: null,
       medic: {
         patientId: party[party.length - 1].id,
-        surgery: { kind: 'surgery', difficulty: DIFF, healerId, healerName: 'Docteur', skill: 45, intBonus: 4, traumaIdx: 0, targetDR: 6, cumDR: 2 },
+        surgery: { kind: 'surgery', difficulty: DIFF, healerId, healerName: 'Docteur', skill: 45, intBonus: 4, targetDR: 6, cumDR: 2 },
       },
     } as never);
     act(() => root.render(<MedicModal />));
@@ -215,12 +215,12 @@ describe('infirmerie — les gestes du jet posé sont au PIED de la boîte des s
       battle: null, party: [surgeon, patient],
       medic: {
         patientId: patient.id,
-        surgery: { kind: 'surgery', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, traumaIdx: 0, targetDR: 6, cumDR: 2 },
+        surgery: { kind: 'surgery', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 2 },
       },
       pendingSurgery: {
         healerId: surgeon.id, healerName: surgeon.label, targetId: patient.id, targetName: patient.label,
-        kind: 'surgery', skillValue: 45, intBonus: 4, difficulty: DIFF, target: 65, roll: null, success: false, sl: 0,
-        traumaIdx: 0, targetDR: 6, cumDR: 2,
+        kind: 'surgery', ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, intBonus: 4, target: 65, roll: null, success: false, sl: 0,
+        targetDR: 6, cumDR: 2,
       },
     } as never);
     act(() => root.render(<MedicModal />));
@@ -251,7 +251,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
   it('passe posée sur une opération qui a cumulé : Échap rend l’opération armée, cumul et patient intacts', () => {
     const surgeon = mk('Chirurgien');
     const patient = mk('Opéré', { traumas: [{ label: 'Fracture', location: 'brasG', surgery: true }] } as never);
-    const operation = { kind: 'surgery', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, traumaIdx: 0, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 } };
+    const operation = { kind: 'surgery', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 } };
     useGame.setState({
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [surgeon, patient], pendingHeal: null, pendingSurgery: null,
@@ -303,7 +303,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
   it('après une passe annulée par Échap puis l’opération arrêtée, Échap annule encore le soin', () => {
     const patient = mk('Opéré', { wounds: { current: 4, max: 12 }, traumas: [{ label: 'Fracture', location: 'brasG', surgery: true }] } as never);
     const chir = soigneur();
-    const operation = { kind: 'surgery', difficulty: DIFF, healerId: chir.id, healerName: chir.label, skill: 45, intBonus: 4, traumaIdx: 0, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 } };
+    const operation = { kind: 'surgery', difficulty: DIFF, healerId: chir.id, healerName: chir.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 } };
     useGame.setState({
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [chir, patient], pendingHeal: null, pendingSurgery: null,

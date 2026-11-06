@@ -25,6 +25,7 @@ import type { FamilleMecanique } from '../../data/schemas/grammaire/mecanique';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
 import { FlowEditor } from './FlowEditor';
+import { newEffect } from '../../noyau/valeursNeuves';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { GameOpEditor } from './GameOpEditor';
 import { opSummary } from './interne/resumeDOp';
@@ -317,11 +318,6 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     }
     case 'endDialogue': return `Fermer le dialogue`;
   }
-}
-
-/** Effet par défaut d'un type — délégué à la FABRIQUE du registre (`EFFECT_HANDLERS[t].make`). */
-export function newEffect(type: Effect['type']): Effect {
-  return EFFECT_HANDLERS[type].make();
 }
 
 /** Corps DÉPLIÉ d'un effet (feuille `do` d'un Flow) : menu de type + champs spécifiques. */

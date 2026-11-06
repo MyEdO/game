@@ -1,13 +1,13 @@
 /**
  * LA COMPOSITION D'UN PERSONNAGE SUR UNE BASE (#3086, D2 et son amendement ; `CONTRAT.md`, section « Composition d'un
- * personnage ») : ce que porte une composition (`porteeDeComposition`, surface du noyau), résolu en éléments de la base sur
- * ses lignes et ses points (`modelesDeLAtelier`), avec la pose de son gabarit (`poseDuGabarit`), les poids de ses
+ * personnage ») : ce que porte un corps (`PorteeDeComposition`, d'une composition ou d'un combattant, surface du noyau),
+ * résolu en éléments de la base sur ses lignes et ses points (`modelesDeLAtelier`), avec la pose de son gabarit (`poseDuGabarit`), les poids de ses
  * silhouettes (`poidsDeSilhouettes`) et sa palette résolue au nuancier (`findCouleurById`).
  */
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
-import { findCouleurById, porteeDeComposition, emblemeDuPorteur, type EmblemeResolu, type Composition, type Portee, type SurchargesDEmblemes } from '../../../src/noyau/index';
+import { findCouleurById, pieceRacine, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
 import { blasonsDe, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
 
 /** Un emplacement de montage d'une chose portée (`"<point>"` ou la clé de sa ligne, `cleDuPanneau`) et l'élément de
@@ -31,7 +31,7 @@ export interface Manquant {
 export interface CompositionSurLaBase {
   montes: Monte[];
   manquants: Manquant[];
-  /** Les objets de la composition ni tenus ni rangés (`porteeDeComposition`). */
+  /** Les objets ni tenus ni rangés (`PorteeDeComposition.rapport`). */
   rapport: string[];
   gabarit: PoseDuGabarit;
   morphes: Record<string, number>;
@@ -46,17 +46,18 @@ const cleDeLigne = (l: LigneDePiece): string => ('choix' in l ? cleDuPanneau(l.s
 const elementsDeLigne = (l: LigneDePiece): string[] => ('choix' in l ? l.choix.flatMap((c) => c.elements) : l.elements);
 
 /** L'emplacement de montage d'une chose portée : la ligne de sa tête, de sa coiffure ou de sa pièce de vêtement ou
- *  d'armure ; la ligne de l'emplacement d'une pièce d'accessoire, rigide comprise ; le point d'un objet. */
+ *  d'armure, celle de sa pièce pour une variante (#3446) ; la ligne de l'emplacement d'une pièce d'accessoire, rigide
+ *  comprise ; le point d'un objet. */
 function ouMonter({ cle, point }: Portee): string {
   if (cle.champ === 'tete' || cle.champ === 'coiffure') return cleDuPanneau(cle.champ);
   if (cle.champ === 'apparence') return point!;
-  return point === undefined ? cleDuPanneau('piece', cle.id) : cleDuPanneau('emplacement', point);
+  return point === undefined ? cleDuPanneau('piece', pieceRacine(cle.id)?.id ?? cle.id) : cleDuPanneau('emplacement', point);
 }
 
-/** `composition` sur la base `base` des modèles de l'atelier : `manifestes` (id de modèle → manifeste) lit la base et la
- *  `cle` de ses éléments. Chaque chose portée se monte à l'élément de son emplacement dont la clé la désigne. */
-export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Record<string, unknown>>, composition: Composition, surcharges: SurchargesDEmblemes = {}): CompositionSurLaBase {
-  const portee = porteeDeComposition(composition);
+/** `portee` sur la base `base` des modèles de l'atelier : `manifestes` (id de modèle → manifeste) lit la base et la
+ *  `cle` de ses éléments. Chaque chose portée se monte à l'élément de son emplacement dont la clé la désigne, une
+ *  apparence variante à défaut à celui de sa `racine`. */
+export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Record<string, unknown>>, portee: PorteeDeComposition, surcharges: SurchargesDEmblemes = {}): CompositionSurLaBase {
   const elementsDe = new Map<string, string[]>([
     ...base.points.map((p): [string, string[]] => [p.id, p.elements]),
     ...base.lignes.map((l): [string, string[]] => [cleDeLigne(l), elementsDeLigne(l)]),
@@ -65,7 +66,9 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
   const manquants: Manquant[] = [];
   for (const p of portee.portees) {
     const ligne = ouMonter(p);
-    const element = (elementsDe.get(ligne) ?? []).find((e) => cleDe(manifestes[e])[p.cle.champ] === p.cle.id);
+    const ids = p.cle.champ === 'apparence' && p.cle.racine !== undefined ? [p.cle.id, p.cle.racine] : [p.cle.id];
+    const elements = elementsDe.get(ligne) ?? [];
+    const element = ids.map((id) => elements.find((e) => cleDe(manifestes[e])[p.cle.champ] === id)).find((e) => e !== undefined);
     const embleme = Object.prototype.hasOwnProperty.call(surcharges, ligne) ? emblemeDuPorteur(surcharges[ligne]) : portee.embleme;
     const porteUnBlason = element !== undefined && blasonsDe(manifestes[element]).length > 0;
     montes.push({ ligne, element: element ?? null, ...(porteUnBlason && embleme ? { embleme } : {}) });
@@ -77,7 +80,7 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     manquants,
     rapport: portee.rapport,
     gabarit: poseDuGabarit(manifeste, portee.facteurs),
-    morphes: poidsDeSilhouettes({ sex: composition.sex, build: composition.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, manifeste.gabarit),
-    palette: Object.fromEntries(Object.entries(composition.couleurs ?? {}).map(([slot, { id }]) => [slot, findCouleurById(id)!.color])),
+    morphes: poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, manifeste.gabarit),
+    palette: Object.fromEntries(Object.entries(portee.couleurs ?? {}).map(([slot, { id }]) => [slot, findCouleurById(id)!.color])),
   };
 }

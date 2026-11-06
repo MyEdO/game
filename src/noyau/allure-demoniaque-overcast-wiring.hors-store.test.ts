@@ -2,10 +2,10 @@
  * Câblage RÉEL du pas de Surincantation « Durée » jusqu'à `rollTable.extraRollsPerStep` (EDOC 13
  * l.270-276), pour la feuille `on:'target'` NON-missile (site `runCastFlow` ~combatFlow.ts l.4048) —
  * la 3ᵉ des trois occurrences de `runCastFlow` dans `applyCast`. Passe par le VRAI flux de commit
- * (`castAllocOvercast` + `jetConfirm('cast')`, comme la modale) — AUCUN `extras`/`ctx` forgé à la main : si
+ * (réglage `cast.surincantationDuree` + `jetConfirm('cast')`, comme la modale) — AUCUN `extras`/`ctx` forgé à la main : si
  * le site d'appel omet `overcastDurationSteps`, ce test doit ÉCHOUER.
  *
- * Le jet sur le Tableau est DÉCLINABLE (l.276 « vous POUVEZ ») — `castSetChosenTableRolls` borne le
+ * Le jet sur le Tableau est DÉCLINABLE (l.276 « vous POUVEZ ») — le réglage `cast.jetsDeTable` borne le
  * nombre de jets sans jamais raccourcir la prolongation de durée (couplage ASYMÉTRIQUE).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -18,7 +18,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerStep (feuille on:target, non-missile)', () => {
-  it('2 pas alloués (modale/castAllocOvercast) → 3 octrois sur le Tableau ET durée ×3, « à la fois » (EDOC 13 l.276)', () => {
+  it('2 pas alloués (modale, réglage `cast.surincantationDuree`) → 3 octrois sur le Tableau ET durée ×3, « à la fois » (EDOC 13 l.276)', () => {
     const W = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     W.talents = [...(W.talents ?? []), { talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 }];
     W.spells = ['allure-demoniaque'];
@@ -26,7 +26,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     banc.setState({ party: [W] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     banc.getState().seedRng(7);
     const b = banc.getState().battle!;
@@ -37,10 +37,9 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     expect(banc.getState().pendingCast).not.toBeNull();
     // Résultat de Test FIGÉ (préconditions du scénario, PAS le câblage sous test) : DR 12 → budget
     // de Surincantation = floor((12 − NI 8) / 2) = 2 pas, alloués ci-dessous via la VRAIE action de
-    // modale `castAllocOvercast` (jamais `pendingCast.result`/`extras` composé pour l'occasion).
+    // modale `jetRegler('cast', 'surincantationDuree', …)` (jamais `pendingCast.result`/`extras` composé pour l'occasion).
     banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 12, isCritical: false, isFumble: false, log: 'ok' } as CastResult } }));
-    banc.getState().castAllocOvercast('duration', 1);
-    banc.getState().castAllocOvercast('duration', 1);
+    banc.getState().jetRegler('cast', 'surincantationDuree', 2);
     expect(banc.getState().pendingCast!.overcast).toEqual({ range: 0, zone: 0, duration: 2, targets: 0, damage: 0 });
     banc.getState().jetConfirm('cast'); // « Appliquer » — VRAI applyCast → runCastFlow (site sous test)
     const heroAfter = banc.getState().battle?.combatants.find((c) => c.id === heroC.id) ?? banc.getState().party.find((h) => h.id === heroC.id)!;
@@ -59,7 +58,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     banc.setState({ party: [W] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     banc.getState().seedRng(7);
     const b = banc.getState().battle!;
@@ -68,14 +67,13 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     banc.setState({ battle: { ...b, turn, action: 'cast', selectedSpellId: 'allure-demoniaque', acted: false } });
     banc.getState().battleClickEntity(heroC.id);
     banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 12, isCritical: false, isFumble: false, log: 'ok' } as CastResult } }));
-    banc.getState().castAllocOvercast('duration', 1);
-    banc.getState().castAllocOvercast('duration', 1);
+    banc.getState().jetRegler('cast', 'surincantationDuree', 2);
     return heroC.id;
   };
 
-  it('2 pas alloués, 1 jet CHOISI (castSetChosenTableRolls) → 2 octrois ET durée toujours ×3 (déclinable, EDOC 13 l.276)', () => {
+  it('2 pas alloués, 1 jet CHOISI (réglage `cast.jetsDeTable`) → 2 octrois ET durée toujours ×3 (déclinable, EDOC 13 l.276)', () => {
     const heroId = setup();
-    banc.getState().castSetChosenTableRolls(1);
+    banc.getState().jetRegler('cast', 'jetsDeTable', 1);
     expect(banc.getState().pendingCast!.chosenTableRolls).toBe(1);
     banc.getState().jetConfirm('cast');
     const heroAfter = banc.getState().battle?.combatants.find((c) => c.id === heroId) ?? banc.getState().party.find((h) => h.id === heroId)!;
@@ -86,7 +84,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
 
   it('2 pas alloués, 0 jet CHOISI → 1 octroi ET durée toujours ×3', () => {
     const heroId = setup();
-    banc.getState().castSetChosenTableRolls(0);
+    banc.getState().jetRegler('cast', 'jetsDeTable', 0);
     expect(banc.getState().pendingCast!.chosenTableRolls).toBe(0);
     banc.getState().jetConfirm('cast');
     const heroAfter = banc.getState().battle?.combatants.find((c) => c.id === heroId) ?? banc.getState().party.find((h) => h.id === heroId)!;

@@ -351,7 +351,7 @@ export function syncHullWoundsFromVessel(hull: Combatant, vessel: Pick<CampaignV
 }
 
 /** Le navire de campagne, ses données de type et sa COQUE de trajet (Blessures PERSISTÉES, #30). */
-function voyageShip(get: Get): { vessel: CampaignVessel; hull: Combatant } | null {
+function voyageShip(get: Get<Jeu>): { vessel: CampaignVessel; hull: Combatant } | null {
   const vessel = get().vessel;
   if (!vessel) return null;
   const v = findVehicleById(vessel.vehicleId);
@@ -528,7 +528,7 @@ export function dossierDuNavire(vessel: CampaignVessel, party: Combatant[]): Dos
 
 /** Refus d'un départ en mer (`null` : le navire de campagne appareille) — les cas où `buildSeaPlan` rend
  *  `null`. Lu par `refusDeDepart` (`travelFlow`) et par l'estimation de la carte du monde (#3059). */
-export function refusDuDepartEnMer(get: Get): string | null {
+export function refusDuDepartEnMer(get: Get<Jeu>): string | null {
   const ship = voyageShip(get);
   if (!ship) return t('tf.noVessel');
   const refus = refusDAppareiller(ship.vessel);
@@ -874,7 +874,7 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   // EMPÊTRÉ dans des Débris marins (MDG 13 l.491, #444) : Test étendu de Force pour se dégager —
   // n'arrête PAS la Progression (contrairement à l'Échouage, `sea.stranded`).
   if (sea.entangled) {
-    const st = buildStrandedOrEntangledStep(get, sea.entangled.difficulty, 'sea-degagement-debris', { stakeValues: { totalDR: sea.entangled.need } });
+    const st = buildStrandedOrEntangledStep(get, sea.entangled.difficulty, 'sea-degagement-debris', { stakeValues: { targetDR: sea.entangled.need } });
     pousseSi(out, st);
   }
   // « ÇA VA LÂCHER, CAPITAINE ! » (MDG 13 l.121-142, #443) : la Progression du jour a dépassé M+4
@@ -1825,7 +1825,7 @@ export function engineerOf(party: Combatant[]): Combatant | undefined {
 }
 
 /** Exécute les Tests de REDÉMARRAGE d'une panne (MDG 12 l.329-348) via la personne au moteur — Test
- *  étendu de Force (`extendedDR`) puis Test(s) de Métier (Ingénieur). Retourne le DR du DERNIER Test de
+ *  étendu de Force (`targetDR`) puis Test(s) de Métier (Ingénieur). Retourne le DR du DERNIER Test de
  *  redémarrage (« 5 − DR Rounds » de mise en pression, l.333). Tests d'AMBIANCE de voyage (« jusqu'à ce
  *  que quelqu'un réussisse », l.331 → retry borné) — équipage abstrait, hors modale (≠ la sauvegarde
  *  d'Initiative PERSO, seul jet influençable de la panne, cf. `openSteamSave`). */
@@ -1835,10 +1835,10 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
     const { skill, characteristic, difficulty } = step.test;
     const value = testValue(eng, skill?.id, characteristic, skill?.spec);
     const label = testSkillLabel({ skill, char: characteristic }) ?? '';
-    if (step.extendedDR != null) {
+    if (step.targetDR != null) {
       let total = 0;
-      for (let i = 0; total < step.extendedDR && i < 20; i++) total += Math.max(0, rollTest(value, difficulty, rng).sl);
-      tell(get, set, [t('sv.engineStep', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], need: step.extendedDR, issue: total >= step.extendedDR ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
+      for (let i = 0; total < step.targetDR && i < 20; i++) total += Math.max(0, rollTest(value, difficulty, rng).sl);
+      tell(get, set, [t('sv.engineStep', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], need: step.targetDR, issue: total >= step.targetDR ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
     } else {
       let t = rollTest(value, difficulty, rng);
       for (let i = 0; !t.success && i < 20; i++) t = rollTest(value, difficulty, rng);
@@ -2153,7 +2153,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       break;
     }
     case 'infestation': {
-      const need = num('totalDR', 10);
+      const need = num('targetDR', 10);
       const difficulty = (event.params?.difficulty as Difficulty | undefined) ?? 'intermediaire';
       patchSea(get, set, {
         infestation: {
@@ -2265,7 +2265,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
           patchSea(get, set, {
             entangled: {
               hazardId: hazard.id, label: hazard.label,
-              need: hazard.freeTest?.totalDR ?? 10, progress: 0,
+              need: hazard.freeTest?.targetDR ?? 10, progress: 0,
               manDR: ent.manDR, mMod: ent.mMod,
               difficulty: hazard.freeTest?.test.difficulty ?? 'accessible',
             },
@@ -2283,9 +2283,9 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
     case 'maelstrom':
     case 'vortex': {
       const w = findWhirlpool(event.kind === 'maelstrom' ? 'maelstrom' : 'puissant-vortex')!;
-      patchSea(get, set, { crisis: { kind: 'tourbillon', label: event.label, whirlpoolId: w.id, need: w.evasion.totalDR, progress: 0 } });
+      patchSea(get, set, { crisis: { kind: 'tourbillon', label: event.label, whirlpoolId: w.id, need: w.evasion.targetDR, progress: 0 } });
       // MDG 13 l.528
-      tell(get, set, [t('sv.whirlpoolEvasion', { label: w.label, dr: w.evasion.totalDR })]);
+      tell(get, set, [t('sv.whirlpoolEvasion', { label: w.label, dr: w.evasion.targetDR })]);
       break;
     }
     case 'nemesis':

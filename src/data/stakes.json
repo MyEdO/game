@@ -595,7 +595,7 @@
     "label": "Dégagement des Débris marins",
     "cascade": "voyage",
     "cle": "sea-degagement-debris",
-    "template": "Test étendu : tant que le total de {totalDR} DR n'est pas atteint, le navire reste empêtré.",
+    "template": "Test étendu : tant que le total de {targetDR} DR n'est pas atteint, le navire reste empêtré.",
     "form": "descripteur",
     "rule": {
       "id": "degagement-debris-marins",

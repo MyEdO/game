@@ -28,7 +28,8 @@ import { brancherLeJeu } from '../noyau/branchement';
 import { creerActionsDuNoyau } from '../noyau/fabriquesDuNoyau';
 import { graineDEntropie } from '../web/entropie';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
-import { etatInitialDuJeu, type Ecran, type Jeu } from '../noyau/etat';
+import { etatInitialDuJeu, type EtatDeJeu, type Ecran } from '../noyau/etat';
+import type { JeuDuNoyau } from '../noyau/machinerieDuNoyau';
 import { seedBattleRng } from '../noyau/battleRng';
 import { tableTotale } from '../lib/tableTotale';
 import type { SheetTab } from '../i18n/ongletsDeLaFiche';
@@ -166,9 +167,6 @@ export interface ActionsDeLAdaptateur {
   netLeave: () => void;
   /** Sauvegarde la partie dans un slot localStorage (Jalon 5), sauf `refusDeSauvegarde`. */
   saveGame: (slot: SaveSlot) => boolean;
-  /** Auto-save silencieuse vers l'emplacement AUTO (checkpoint d'entrée de scène), sauf `refusDeSauvegarde`.
-   *  Réutilise le même snapshot que `saveGame`. */
-  autoSave: () => boolean;
   /** Charge un slot (manuel OU auto) : reset zéro-maintenance + données de la save (écran campagne). */
   loadGame: (slot: AnySlot) => boolean;
   /** Importe une save : `null` quand elle est appliquée, sinon la cause de son refus. */
@@ -177,11 +175,13 @@ export interface ActionsDeLAdaptateur {
    *  l'écran, le pas est celui du noyau (`pasAligneDuGroupe`). */
   stepPartyDir: (dir: ScreenDir) => void;
   setGameMenu: (open: boolean) => void;
+  /** Pose (ou retire, `null`) la campagne choisie au menu, que « Lancer » lancera. */
+  setPendingCampaign: (pc: EtatDeJeu['pendingCampaign']) => void;
   /** Le joueur a lu les retraits d'élagage de la sauvegarde chargée. */
   fermerRetraitsDeChargement: () => void;
 }
 
-export type GameState = Jeu & EtatDeLAdaptateur & ActionsDeLAdaptateur;
+export type GameState = JeuDuNoyau & EtatDeLAdaptateur & ActionsDeLAdaptateur;
 /** Le `set` brut du store, réservé au REMPLACEMENT de l'état ENTIER (sauvegarde chargée, snapshot de
  *  l'hôte), qui porte `journal` avec le reste (#2724). */
 export type RemplacerLEtat = (etat: Partial<GameState>) => void;
@@ -312,12 +312,6 @@ export const useGame = create<GameState>((set, get) => ({
     get().log(ok ? t('store.saveOk', { slot }) : t('store.saveKo'));
     return ok;
   },
-  autoSave: () => {
-    const s = get();
-    if (refusDeSauvegarde(s, s.net.mySeat)) return false;
-    const save = snapshotSave(s, new Date().toISOString(), ruleOverrides());
-    return ecrireLaSauvegarde(stockageDesSauvegardes(), AUTO_SLOT, save);
-  },
   loadGame: (slot) => {
     const save = lireLaSauvegarde(stockageDesSauvegardes(), slot);
     if (!save) return false;
@@ -338,6 +332,7 @@ export const useGame = create<GameState>((set, get) => ({
     pasAligneDuGroupe(get, (voisin) => screenStepDot(scene, partyPos, voisin, dir, dims));
   },
   setGameMenu: (open) => set({ gameMenuOpen: open }),
+  setPendingCampaign: (pc) => set({ pendingCampaign: pc }),
   fermerRetraitsDeChargement: () => set({ retraitsDeChargement: null }),
 }));
 
@@ -364,11 +359,20 @@ export function initCombatAuto(): () => void {
   return useGame.subscribe(() => planifierLeTickAuto(useGame.getState, useGame.setState));
 }
 
+/** Auto-save silencieuse vers l'emplacement AUTO (checkpoint d'entrée de scène), sauf `refusDeSauvegarde`. Réutilise
+ *  le même snapshot que `saveGame`. */
+export function autoSave(): boolean {
+  const s = useGame.getState();
+  if (refusDeSauvegarde(s, s.net.mySeat)) return false;
+  const save = snapshotSave(s, new Date().toISOString(), ruleOverrides());
+  return ecrireLaSauvegarde(stockageDesSauvegardes(), AUTO_SLOT, save);
+}
+
 // Entrée en scène (#2817 D5) : l'interface se remet, puis le changement de scène pose le point de reprise
 // (`autoSave`, sauf `refusDeSauvegarde`).
 bus.on(EVT.ARRIVEE_EN_SCENE, ({ neuve }: { sceneId: string; neuve: boolean }) => {
   remettreLAdaptateur(neuve);
-  if (!neuve) useGame.getState().autoSave();
+  if (!neuve) autoSave();
 });
 
 // Nouveau héros demandé par un Effet de scène : l'assistant s'ouvre sur une fiche vierge.

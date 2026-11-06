@@ -184,7 +184,7 @@ const NOMMES = [
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
   'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
   // `defs/garde-robe.ts` (#3114, #3113, #3111) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
-  'tete|coiffure|tenue|emplacement|piece|ensemble|embleme',
+  'tete|coiffure|tenue|emplacement|piece|variante|ensemble|embleme',
   'vetement|armure|accessoire',
   'trapping|apparence|tenue',
   // `mainSchema` (`grammaire/valeurs.ts`) : la main d'un objet tenu (`prises`) ou d'une arme (`weaponHand`).

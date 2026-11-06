@@ -45,7 +45,7 @@ function choisir(option: number): void {
     const cur = get().pendingCascade?.participants[get().pendingCascade!.cursor];
     if (!cur || cur.kind !== 'tavern-option') return;
     get().cascadeChoose(cur.id, String(option));
-    get().cascadeNext();
+    get().jetConfirm('cascade');
   }
 }
 
@@ -63,7 +63,7 @@ function poseTour(drHeros: number, drFigurantMien: number, drFigurantSien: numbe
   const participants = [...pc.participants];
   participants[idx] = { ...band, participants: rows };
   banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
-  get().cascadeNext();
+  get().jetConfirm('cascade');
 }
 
 beforeEach(() => {
@@ -320,7 +320,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
       else if (cur.participants) {
         for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetRoll('cascadeBatch', row.id);
       }
-      get().cascadeNext();
+      get().jetConfirm('cascade');
     }
     expect(get().sequence).toBeNull();
     const res = get().tavernGames!.result!;

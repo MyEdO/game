@@ -96,8 +96,8 @@ const construireScene = (): Scene => buildScene({
           id: 'accueil',
           desc: 'Bonjour, voyageur. Cherchez-vous des remèdes… ou seulement à bavarder ?',
           choices: [
-            { label: 'Montrez-moi vos marchandises.', flow: flowFromEffects([{ type: 'openMerchant', entityId: 'herboriste' }]) },
-            { label: 'Une autre fois. (Partir)' },
+            { id: 'montrez-moi-marchandises', label: 'Montrez-moi vos marchandises.', flow: flowFromEffects([{ type: 'openMerchant', entityId: 'herboriste' }]) },
+            { id: 'autre-fois-partir', label: 'Une autre fois. (Partir)' },
           ],
         },
       ],
@@ -110,8 +110,8 @@ const construireScene = (): Scene => buildScene({
           id: 'accueil',
           desc: 'La salle est chaude et les dés roulent. Une partie, l’ami ?',
           choices: [
-            { label: 'Volontiers — proposez-nous une partie.', flow: flowFromEffects([{ type: 'openTavernGames' }]) },
-            { label: 'Plus tard. (Partir)' },
+            { id: 'volontiers-proposez-nous', label: 'Volontiers — proposez-nous une partie.', flow: flowFromEffects([{ type: 'openTavernGames' }]) },
+            { id: 'plus-tard-partir', label: 'Plus tard. (Partir)' },
           ],
         },
       ],

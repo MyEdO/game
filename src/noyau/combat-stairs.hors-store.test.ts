@@ -40,7 +40,7 @@ describe('combat multi-couche — rampe : portée/aperçu/clic z-aware', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const sc = rampScene();
     const b = banc.getState().battle!;

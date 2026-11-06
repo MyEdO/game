@@ -688,7 +688,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
  * aucun siège n'est à la manœuvre (`cadenceAuto`), le SEAM du pilote (`cascade.poserLeCurseur`, joué
  * par les quatre portes du curseur) la résout au RANG de l'étape — jamais au build — et
  * `advanceCascade` la franchit dans le même geste : une porte qui l'oublierait laisserait la séquence
- * plantée dessus, `cascadeNext` en no-op.
+ * plantée dessus, `jetConfirm('cascade')` en no-op.
  */
 const carteMonde: WorldMap = {
   id: 'cm', label: 'Reikland',
@@ -870,7 +870,7 @@ function sitesCurseurALaMain(): string[] {
  * `cascade.poserLeCurseur` est le seam qui décide ce qui se passe quand le curseur ATTEINT une étape
  * (une table qu'aucun siège ne joue s'y résout d'office). Un site qui écrit `cursor:` à la main dans
  * `pendingCascade` court-circuite ce seam : la table reste non tirée, `stepReady` la refuse et
- * `cascadeNext` devient un no-op DÉFINITIF — la séquence est perdue avec le geste du joueur.
+ * `jetConfirm('cascade')` devient un no-op DÉFINITIF — la séquence est perdue avec le geste du joueur.
  *
  * Deux cas : la PORTE publique (`poserCurseurCascade`) fait le travail, et aucun site de production
  * de `src/**` ne l'écrit à la main (garde STRUCTURELLE ci-dessous — un `cursor:` de plus la rougit).
@@ -925,7 +925,7 @@ describe('#1426 — les portes du curseur', () => {
     const steps = [...Array(PAS_DE_CHARGE)].map((_, i) => etapeTableMonde(`charge-${i}`, cleDeFixture('sonde-charge')));
     startCascade(get, set, { title: 'Charge', purpose: 'test', steps });
     expect(get().pendingCascade!.participants[0].table!.result, 'la 1ʳᵉ est tirée à l’ouverture').toBeTruthy();
-    get().cascadeNext(); // UN geste : le socle franchit toutes les suivantes
+    get().jetConfirm('cascade'); // UN geste : le socle franchit toutes les suivantes
     expect(get().pendingCascade, 'la séquence est allée jusqu’à son dénouement').toBeNull();
     expect(profondeurs, 'chaque étape a été commitée une fois').toHaveLength(PAS_DE_CHARGE);
     const creuse = Math.min(...profondeurs);
@@ -970,11 +970,11 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
     expect(canFixDie(get(), undefined), 'option ON + siège qui possède le monde : la pose est offerte').toBe(true);
     expect(meteo.table!.result, 'la pose ne tire pas non plus : c’est le joueur qui pose').toBeUndefined();
     const avant = get().pendingCascade;
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(get().pendingCascade, 'aucune avancée tant que la table n’est pas tirée').toBe(avant);
     get().jetSetForcedRoll('cascadeTirage', 7, meteo.id);
     expect(etapeCourante()!.table!.result!.roll).toBe(7);
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(get().pendingCascade!.cursor, 'la pose débloque la séquence').toBeGreaterThan(0);
   });
 
@@ -1010,7 +1010,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
       steps: [etapeAffichage('av'), etapeTableMonde('t'), etapeAffichage('ap')],
     });
     expect(get().pendingCascade!.cursor).toBe(0);
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(get().pendingCascade!.cursor, 'la table n’a pas retenu le curseur : franchie au même geste').toBe(2);
     expect(get().pendingCascade!.participants[1].table!.result, 'et elle porte bien son dé').toBeTruthy();
     set({ pendingCascade: null, suspendedCascades: [] });
@@ -1026,11 +1026,11 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
     });
     // L'applier SUSPEND la séquence en plein vol ; la couture de CLÔTURE (`dispatchCascadeDone`,
     // combatSlice) la REPREND aussitôt — slot libre, hors combat : c'est la reprise du jeu réel.
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(get().suspendedCascades, 'la pile est rendue').toHaveLength(0);
     expect(get().pendingCascade!.cursor, 'la reprise se pose SUR la table').toBe(1);
     expect(etapeCourante()!.table!.result, 'que le seam de reprise a résolue').toBeTruthy();
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(get().pendingCascade!.cursor, 'et la séquence continue (jamais un no-op définitif)').toBe(2);
     set({ pendingCascade: null, suspendedCascades: [] });
   });
@@ -1058,7 +1058,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
     startCascade(get, set, { title: 'Contrôle', purpose: 'test', steps: [etape] });
     expect(etapeCourante()!.table!.result, 'une table d’ACTEUR reste à la main de son porteur').toBeUndefined();
     const avant = get().pendingCascade;
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(get().pendingCascade, 'et elle continue de retenir la séquence').toBe(avant);
     set({ pendingCascade: null, suspendedCascades: [] });
   });

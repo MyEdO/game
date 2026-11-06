@@ -61,13 +61,13 @@ function documentsJoues(flow: Flow | undefined): string[] {
   return ids;
 }
 
-/** Les chemins (nœud, index de réponse) qui mènent de la liasse à chaque document. */
-function cheminsVersLesDocuments(dlg: Dialogue): Map<string, { chapitre: number; reponse: number }> {
+/** Les chemins (réponse de chapitre, réponse de lecture, par leurs ids) qui mènent de la liasse à chaque document. */
+function cheminsVersLesDocuments(dlg: Dialogue): Map<string, { chapitre: string; reponse: string }> {
   const racine = dlg.nodes.find((n) => n.id === dlg.start)!;
-  const chemins = new Map<string, { chapitre: number; reponse: number }>();
-  racine.choices.forEach((c, chapitre) => {
+  const chemins = new Map<string, { chapitre: string; reponse: string }>();
+  racine.choices.forEach((c) => {
     const noeud = dlg.nodes.find((n) => n.id === c.next);
-    noeud?.choices.forEach((r, reponse) => documentsJoues(r.flow).forEach((id) => chemins.set(id, { chapitre, reponse })));
+    noeud?.choices.forEach((r) => documentsJoues(r.flow).forEach((id) => chemins.set(id, { chapitre: c.id, reponse: r.id })));
   });
   return chemins;
 }
@@ -128,16 +128,16 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
     ]);
     const ch8 = dlg.nodes.find((n) => n.id === 'ch8')!;
     const racine = dlg.nodes.find((n) => n.id === dlg.start)!;
-    const versCh8 = racine.choices.findIndex((c) => c.next === 'ch8');
+    const versCh8 = racine.choices.find((c) => c.next === 'ch8')!.id;
     for (const stade of indice.stades) {
-      const reponse = ch8.choices.findIndex((c) => {
+      const reponse = ch8.choices.find((c) => {
         let revele = false;
         if (c.flow) walkFlow(c.flow, (n) => { if (n.kind === 'do' && n.effect.type === 'revealClue' && n.effect.stade === stade.id) revele = true; });
         return revele;
       });
-      expect(reponse, `réponse qui révèle ${stade.id}`).toBeGreaterThanOrEqual(0);
+      expect(reponse, `réponse qui révèle ${stade.id}`).toBeDefined();
       if (banc.getState().dialogue?.nodeId !== 'ch8') banc.getState().chooseDialogue(versCh8);
-      banc.getState().chooseDialogue(reponse);
+      banc.getState().chooseDialogue(reponse!.id);
       expect(banc.getState().clues['ind-billets-de-teugen']?.stadeCourant).toBe(stade.id);
     }
   });

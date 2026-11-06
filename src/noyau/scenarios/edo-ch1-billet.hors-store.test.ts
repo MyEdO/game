@@ -49,7 +49,7 @@ function aBord(): void {
   banc.setState({ party: groupe.map((e) => e.hero) });
   expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   for (const e of groupe) creditBourse(get, banc.setState, e.hero.id, e.wealth);
-  get().acquitterOuverture();
+  get().fenetreValider('ouverture');
   poserLeGroupe(get, banc.setState, { x: 13, y: 31 }); // à portée de la charrette (patron `edo-ch1-chaine-carte.hors-store.test.ts`)
   get().jouerAction('diligence-remise-charrette', 'monter-a-bord');
   expect(get().flags['edo-ch1-depart']).toBe(true);

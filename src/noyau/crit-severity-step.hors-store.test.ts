@@ -47,7 +47,7 @@ function startFight(seed = 7) {
   banc.setState({ party: [hero] });
   banc.getState().startScene(structuredClone(testScene()));
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -172,7 +172,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     const posee = banc.getState().pendingCascade!.participants[0];
     expect(posee.table!.result).toMatchObject({ roll: entry.min, die: entry.min, id: entry.id });
     expect(posee.fixed, 'la provenance « dé fixé » vit sur l’étape').toBe(true);
-    banc.getState().cascadeNext(); // COMMIT : le Critique de CETTE ligne est résolu et appliqué
+    banc.getState().jetConfirm('cascade'); // COMMIT : le Critique de CETTE ligne est résolu et appliqué
     const victime = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(lastCrit(victime), 'la ligne posée n’est pas celle appliquée').toBe(entry.id);
     expect(victime.criticalWounds).toBe(1);
@@ -337,7 +337,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     expect(brut(save.data), 'le secret de pose part dans la SAUVEGARDE').not.toMatch(/foldMemo/);
     expect(brut(instantaneDeLaCoop(banc.getState())), 'le secret de pose part dans le SNAPSHOT diffusé').not.toMatch(/foldMemo/);
     // …et l'état lui-même s'en défait au COMMIT (le mémo ne sert que tant que l'étape est courante).
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const committee = banc.getState().pendingCascade!.participants[0];
     expect(committee.committed).toBe(true);
     expect(committee.foldMemo, 'mémo survivant au commit').toBeUndefined();

@@ -109,7 +109,7 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
     it('validée, la rangée applique l’échec : Exténué (EDOC 8 l.133)', () => {
       const batch = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete').find((s) => s.kind === 'stagePosteBatch')!;
       startCascade(banc.getState, banc.setState, { title: 'Étape', purpose: 'test', steps: [batch] });
-      banc.getState().cascadeNext();
+      banc.getState().jetConfirm('cascade');
       const hilda = banc.getState().party.find((h) => h.id === 'h')!;
       expect(hasCondition(hilda, 'extenue')).toBe(true);
     });
@@ -162,7 +162,7 @@ describe('Activités en mer non tentables', () => {
   const enregistrement = () => validateDataset(datasetFile('activities'), datasetSerializeRoot('activities'));
 
   it('Compendium : l’enregistrement refuse une Activité de contexte mer à Compétence libre — `SeaActivityPick` ne porte aucune Compétence choisie (MDG 15 l.266-300)', () => {
-    const { skills: _skills, ...sansCompetence } = activiteMer();
+    const { tests: _tests, difficulty: _difficulty, ...sansCompetence } = activiteMer();
     expect(avecActivite(activiteMer(), enregistrement)).toBeNull();
     expect(avecActivite({ ...sansCompetence, freeSkill: [{ id: 'orientation' }] }, enregistrement))
       .toMatch(/veille-en-mer : une Activité de contexte mer ne déclare pas de Compétence libre/);
@@ -184,7 +184,7 @@ describe('Activités en mer non tentables', () => {
         const step = buildSeaGenericStep(banc.getState, banc.setState, hero, mer)!;
         expect(step.kind).toBe('sea-activity-generic');
         expect(step.result).toBe(ECHEC_SANS_JET);
-        expect(step.refus).toBe(refusNePeutTenter(hero, { skill: mer.skills![0].id, spec: mer.skills![0].spec }));
+        expect(step.refus).toBe(refusNePeutTenter(hero, { skill: mer.tests![0].skill!.id, spec: mer.tests![0].skill!.spec }));
         expect(appliquer(step, hero)).toEqual({ consequences: [] });
       });
       expect(hasCondition(hero, 'extenue')).toBe(false);
@@ -270,7 +270,7 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
       ligne: { test: { skill: 'ragot' }, refus: refusRagot(hero) },
     })!;
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [step] });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(hasCondition(banc.getState().party[0], 'sonne'), 'Test raté à DR 0 : Sonné posé par le symptôme').toBe(true);
     expect(hasCondition(banc.getState().party[0], 'a-terre'), 'aucun DR négatif').toBe(false);
   });
@@ -279,7 +279,7 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
     const hero = banc.getState().party[0];
     const ligne = rollStep({ actor: hero, test: { skill: 'ragot' }, difficulty: 'intermediaire', refus: refusRagot(hero) });
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [bandStep({ id: 'bande-sans-jet', kind: cleDeFixture('bande-sans-jet') }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!] });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(hasCondition(banc.getState().party[0], 'sonne'), 'Test raté à DR 0 : Sonné posé par le symptôme').toBe(true);
     expect(hasCondition(banc.getState().party[0], 'a-terre'), 'aucun DR négatif').toBe(false);
   });

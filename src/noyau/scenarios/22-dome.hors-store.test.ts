@@ -33,7 +33,7 @@ function startDome(): { sorciere: Combatant; protegee: Combatant; archer: Combat
   banc.setState({ battle: null, party: scenario.construire().party });
   banc.getState().startScene(scenarioConstruit.scene);
   banc.getState().startCombat('enc-dome');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
   const sorciere = b.combatants.find((c) => c.id === 'sorciere')!;

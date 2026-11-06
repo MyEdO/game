@@ -56,7 +56,7 @@ import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import { postingTenu } from '../engine/activities';
 import { ecrireActeur } from './monde/combatants';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 const POSTE_ICON: Record<string, string> = {
@@ -282,7 +282,7 @@ function coldExposureChill(hero: Combatant, coldSeason: boolean): string[] {
 export function creerActionsDesPostesDeVoyage(_get: Get, set: Set) {
   return {
     setTravelRole: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

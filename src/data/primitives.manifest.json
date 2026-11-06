@@ -152,7 +152,7 @@
     "label": "fermeturesDuFlux / fermeturesDeLaFenetre",
     "fichier": "src/noyau/verbesOuverts.ts",
     "concept": "ce qui ferme MAINTENANT chaque verbe du cycle d'un flux de jet (`FermetureDuJet`, libellé `libelleDeLaFermeture`), le prédicat même que gardent ses ops (`RollFlowHandlers.fermetures` : Résilience `fermetureDuForcage`, clôtures `cloture`/`jetPose`/`jetImpose`, annulation `annulation`, issue perdue `perdu` du spec), et chaque verbe de la fenêtre qui tient la main qu'un de ses flux joue ; une fermeture qui attend une décision du joueur (`FERMETURES_DITES`) se montre refusée avec sa raison ; aucun site ne date un verbe « avant » ou « après » le jet",
-    "perimetre": "barre d'actions de `RollShell` (`RollAction.verbe`), Résistance et Détermination des rangées, gestes des hôtes du noyau (`fenetreADessiner` : `attendu`, `ouvert`, `raison` ; `projection.fenetre.fermes`), réglages manuscrits du store (`siOuvert`)",
+    "perimetre": "barre d'actions de `RollShell` (`RollAction.verbe`), Résistance et Détermination des rangées, gestes des hôtes du noyau (`fenetreADessiner` : `attendu`, `ouvert`, `raison` ; `projection.fenetre.fermes`), réglages des jets (`jetRegler`, `fermetureDuReglage`)",
     "verrou": "verbesOuverts.hors-store.test.ts, gestes-a-l-etat.hors-store.test.ts"
   },
   {
@@ -945,7 +945,7 @@
     "id": "opRows",
     "type": "primitives.manifest",
     "label": "opRows",
-    "fichier": "src/ui/compendium/opRows.ts",
+    "fichier": "src/noyau/codex/opRows.ts",
     "concept": "structure de rangées d’un GameOp[] pour le Codex",
     "perimetre": "vue joueur des effets et fiches du compendium",
     "verrou": "—"
@@ -1399,7 +1399,7 @@
     "nature": "organisme",
     "concept": "panneau d’INSPECTION en lecture seule : identité + jauge, badges de camp/états, puis onglets « Profil » (statbloc) et « Description » (prose de la fiche, avec son porteur) — sans prose, ni onglet ni barre",
     "perimetre": "clic sur l’ordre de bataille ; l’en-tête est partagé avec l’inspecteur de l’éditeur",
-    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/ui/compendium/registry.ts)"
+    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/noyau/codex/registry.ts)"
   },
   {
     "id": "equipmentPanel",
@@ -1938,7 +1938,7 @@
     "type": "primitives.manifest",
     "label": "reponsesDuNoeud/testAnnonce/ouvrirDialogue",
     "fichier": "src/noyau/dialogue.ts",
-    "concept": "ce qu'une réponse de dialogue OFFRE et ANNONCE, dérivé de sa donnée : liste VISIBLE (filtre when, rang affiché, index de donnée, verdict d'offre) et Test déclaré par son flux, en ids stables",
+    "concept": "ce qu'une réponse de dialogue OFFRE et ANNONCE, dérivé de sa donnée : liste VISIBLE (filtre when, rang affiché, id de donnée, verdict d'offre) et Test déclaré par son flux, en ids stables",
     "perimetre": "la fenêtre de dialogue et les touches dialogue-choice-1..9 — toute surface qui sert une réponse",
     "verrou": "src/scenes/dialogue-label-sans-test.test.ts (le libellé ne recopie jamais le Test de son flux)"
   },
@@ -2002,17 +2002,26 @@
     "label": "emblemeDuPorteur",
     "fichier": "src/noyau/apparence/gardeRobe.ts",
     "concept": "référence d’emblème projetée par id stable depuis la garde-robe ; une référence absente ou périmée ne projette aucun emblème",
-    "perimetre": "composition et équipement dessiné des porteurs",
+    "perimetre": "composition des porteurs (`porteeDuCombattant`)",
     "verrou": "src/noyau/emblemes.hors-store.test.ts"
   },
   {
-    "id": "equipementDeDessin",
+    "id": "armesDessinees",
     "type": "primitives.manifest",
-    "label": "equipementDessine/equipementDEntite/armesDEntite/EquipCtx/equipDe/armeDeDessin/pieceDeDessin",
+    "label": "armesDuCombattant/armesDEntite/equipementDAuteurDe/armeDeDessin/FormeDArme/emblemeDe",
     "fichier": "src/noyau/equipementDessine.ts",
-    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule",
-    "perimetre": "tout producteur d'équipement dessiné (`equipementDessine`, `equipementDEntite`), tout lecteur d'un hôte 3D (forme, maniement, clips, pièces)",
-    "verrou": "src/noyau/equipementDessine.test.ts, src/hote/projection.hors-store.test.ts, src/noyau/armure-portee-guard.test.ts"
+    "concept": "armes DESSINÉES d'un porteur, sans art, keyées par ids stables : les mains s'attribuent en UN lieu (`mainsDesArmes`) ; un combattant a ses armes tenues, chacune à sa main, puis rangées — objets des sets non tenus (`objetDeSlot`, `isWeaponActive`), puis le surplus des mains (`armesDuCombattant`, lues par `porteeDuCombattant`) ; une entité de scène déclare les siennes (`armesDEntite` sur `equipementDAuteurDe`), dont les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent par `deciderApparencesDesArmes` sous un TrappingResolver injecté ; une arme seule donne à lire sa forme (`armeDeDessin` : clés `CLES_ARME`, `candidats` par `apparencesCandidates` avec la racine en dernière entrée, `bouclier`, `hands` par `weaponHands`, sa main) ; l'emblème d'un porteur est celui de son apparence d'auteur, sinon de sa créature (`emblemeDe`)",
+    "perimetre": "tout lecteur des armes d'un porteur : composition d'un combattant, éditeur d'apparences d'objets, rôles d'animation",
+    "verrou": "src/noyau/equipementDessine.test.ts, src/noyau/emblemes.hors-store.test.ts"
+  },
+  {
+    "id": "porteeDeComposition",
+    "type": "primitives.manifest",
+    "label": "PorteeDeComposition/porteeDeComposition/porteeDuCombattant/porteesDesObjets",
+    "fichier": "src/noyau/apparence/composition.ts",
+    "concept": "ce que porte un corps, sans élément 3D : têtes, pièces et objets en `Portee` (clé de garde-robe ou d'apparence, une apparence variante avec sa `racine`, point, ce qui l'apporte), le rapport des objets ni tenus ni rangés, l'emblème, les facteurs du gabarit et le corps habillé (`sex`, `build`, `couleurs`) ; deux producteurs, une composition de preset (`porteeDeComposition`) et un combattant (`porteeDuCombattant`, `src/noyau/apparence/combattant.ts`), et un seul assembleur d'objet (`porteesDesObjets`) ; l'hôte la résout en éléments de sa base",
+    "perimetre": "toute chose portée par un personnage dessiné sur une base modulaire (atelier, combat, projection)",
+    "verrou": "src/noyau/apparence/composition.test.ts, src/noyau/apparence/combattant.test.ts, src/hote/projection.hors-store.test.ts"
   },
   {
     "id": "formeResolue",

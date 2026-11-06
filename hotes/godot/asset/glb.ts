@@ -1,19 +1,17 @@
 /**
  * LA LECTURE D'UN GLB (#2948, #2972) : le conteneur glTF binaire (en-tête `glTF`, version 2, premier chunk `JSON`, chunk
- * `BIN` facultatif), dont le contrat d'asset lit les nœuds, animations, os et pièces rigides, et l'évaluateur les images,
+ * `BIN` facultatif), dont le contrat d'asset lit les animations, les os, les meshes et leurs matériaux, et l'évaluateur les images,
  * les influences de skinning, les zones et les shape keys. Seule lecture et seule écriture du GLB du dépôt, partagées par
- * le validateur du manifeste (`manifeste.ts`), l'import (`importer.ts`) et l'évaluateur (`evaluateur/`).
+ * les validateurs des manifestes (`manifesteDeBase.ts`, `element.ts`, `modeles.ts`), l'import (`importer.ts`) et
+ * l'évaluateur (`evaluateur/`).
  */
 
 /** Ce que le contrat d'asset lit d'un GLB. */
 export interface ContenuGlb {
-  readonly noeuds: ReadonlySet<string>;
   readonly animations: ReadonlySet<string>;
   readonly os: ReadonlySet<string>;
   /** Les nœuds à mesh, un par nœud dans l'ordre des nœuds. */
   readonly meshes: readonly MeshDuGlb[];
-  /** Par nœud à mesh, sous son nom, unique dans le GLB, le matériau de chaque primitive (`null` sans matériau). */
-  readonly materiauxParPiece: ReadonlyMap<string, readonly (string | null)[]>;
   /** Les noms des matériaux des primitives de tout nœud à mesh. */
   readonly materiaux: ReadonlySet<string>;
   /** Les noms des matériaux dont une primitive, sous tout nœud à mesh, n'a pas d'attribut `TEXCOORD_0`. */
@@ -204,7 +202,6 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
   const noeuds = json.nodes ?? [];
   const articulations = new Set((json.skins ?? []).flatMap(s => s.joints));
   const meshes: MeshDuGlb[] = [];
-  const materiauxParPiece = new Map<string, readonly (string | null)[]>();
   const materiaux = new Set<string>();
   const materiauxSansUv = new Set<string>();
   const zones = new Map<string, string[]>();
@@ -212,14 +209,12 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
     if (n.mesh === undefined) return;
     const nom = nomDe(n) as string;
     const primitives = (json.meshes ?? [])[n.mesh].primitives;
-    const materiauxDuNoeud = primitives.map(p => p.material === undefined ? null : nomDe((json.materials ?? [])[p.material]) ?? '');
-    primitives.forEach((p, j) => {
-      const materiau = materiauxDuNoeud[j];
-      if (materiau === null) return;
+    for (const p of primitives) {
+      if (p.material === undefined) continue;
+      const materiau = nomDe((json.materials ?? [])[p.material]) ?? '';
       materiaux.add(materiau);
       if (p.attributes?.TEXCOORD_0 === undefined) materiauxSansUv.add(materiau);
-    });
-    materiauxParPiece.set(nom, materiauxDuNoeud);
+    }
     if (typeof n.extras?.zone === 'string') zones.set(n.extras.zone, [...(zones.get(n.extras.zone) ?? []), nom]);
     const parent = parents.get(i);
     const articulation = parent !== undefined && articulations.has(parent) ? parent : null;
@@ -227,9 +222,9 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
   });
   const formes = new Set((json.meshes ?? []).flatMap(m => (Array.isArray(m.extras?.targetNames) ? m.extras.targetNames : []).filter((t): t is string => typeof t === 'string')));
   return {
-    meshes, materiauxParPiece, materiaux, materiauxSansUv, zones, formes,
+    meshes, materiaux, materiauxSansUv, zones, formes,
     images: json.images?.length ?? 0,
-    noeuds: nomsDe(noeuds), animations: nomsDe(json.animations ?? []),
+    animations: nomsDe(json.animations ?? []),
     os: nomsDe((json.skins ?? []).flatMap(s => s.joints.map(i => noeuds[i]))),
   };
 }

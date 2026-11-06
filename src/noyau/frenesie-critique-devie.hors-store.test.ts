@@ -39,7 +39,7 @@ function monte() {
   setRule('combat-critical-deflect', true);
   g().startCombat('enc-entrainement');
   expect(g().battle).toBeTruthy();
-  if (g().pendingRoundStart) g().confirmRoundStart();
+  if (g().pendingRoundStart) g().fenetreValider('roundStart');
   nePeutPasDifferer(applyEffects(g, banc.setState, [{ type: 'ops', on: 'hero', heroId: H, ops: [opPsy.pose('frenesie')] }]), 'frenesie-critique-devie');
   banc.setState({ battle: { ...g().battle!, ...etatDeTourNeuf(), turn: g().battle!.order.indexOf(H) } });
   const foes = g().battle!.combatants.filter((c) => c.kind !== 'hero');
@@ -92,10 +92,10 @@ describe('Frénésie + Coup Critique dévié + balayage (LDB 21 l.33)', () => {
     expect(g().battle!.acted).toBe(false);
   });
 
-  it('la restitution traverse l’étape critique, puis `cleaveEnd` rend `acted:false`', () => {
+  it('la restitution traverse l’étape critique, puis la sortie du balayage rend `acted:false`', () => {
     monte();
     expect(g().pendingCleave?.restitution).toEqual({ prevActed: false });
-    g().cleaveEnd();
+    g().fenetreFermer('cleave');
     expect(g().battle!.acted).toBe(false);
   });
 });

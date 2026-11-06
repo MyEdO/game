@@ -797,6 +797,10 @@ export const EXPRESSION_DE_DE = /^\s*[+-]?\s*(\d+\s*\+\s*)?\d*\s*d\s*\d+\s*([+-]
  *  d'une place assise (`props.json`). */
 export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(), y: z.number().finite() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
 
+/** `{x,y}` en POUR CENT d'un canevas (0-100), point CONTINU et non case — un lieu sur la carte du monde,
+ *  un point d'intérêt sur le plan de son lieu (`defs-scenes/worldmap.ts`). */
+export const pointDuCanevasSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
+
 /**
  * `raceKey` — id STABLE des 7 espèces jouables (LDB + suppléments), patron `defs/characteristics`
  * (#310). Clé de `species.json.refChar`, `hairs.json`/`eyes.json.color`, `details.json.age`/
@@ -1112,6 +1116,14 @@ export const plageOuverteSchema = nommerChamps(z.strictObject({ min: z.number().
  * appartient à la table qui le compose.
  */
 export const palierSchema = nommerChamps(z.strictObject({ seuil: z.number().int() }), { seuil: { label: 'Seuil', hint: 'Valeur à partir de laquelle le palier s’applique' } });
+
+/**
+ * CIBLE d'un Test ÉTENDU (`LDB 12 l.174`) : le nom UNIQUE de sa cible de DR en donnée. Elle s'ajoute à son
+ * porteur par la SHAPE, à côté du `test` (`flowTestSchema`) quand la donnée nomme le sujet, à côté de la
+ * seule Difficulté quand le code le fixe.
+ */
+export const cibleEtendueSchema = nommerChamps(z.strictObject({ targetDR: z.number() }), { targetDR: { label: 'DR à atteindre' } });
+export type CibleEtendue = z.infer<typeof cibleEtendueSchema>;
 
 /**
  * BORNES DE DOMAINE d'un RÉGLAGE chiffré — concept `bornes` du lexique

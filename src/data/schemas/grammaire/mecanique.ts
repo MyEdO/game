@@ -16,7 +16,7 @@ import { messageRecurrenceHorloge, SELF_REF, type GameOp, type OpPassive } from 
 import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
+import { chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
@@ -956,19 +956,18 @@ export function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
   };
 }
 
-/** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à `targetDR`
- *  (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite). */
+/** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à sa cible
+ *  (`cibleEtendueSchema`) (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite). */
 export const extendedTestSchema = nommerChamps(z.strictObject({
   type: z.literal('extendedTest'),
   ...jetSchema.shape,
   label: z.string(),
-  /** DR CUMULÉ à atteindre (ex. serrure complexe = 5). */
-  targetDR: z.number(),
+  ...cibleEtendueSchema.shape,
   flag: z.string().optional(),
   /** ENJEU du Test (#1117) — référence de donnée, résolue par `resolveStake` et affichée par la
    *  modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
   stake: stakeRefSchema.optional(),
-}), { type: { label: "type"  }, ...metaDesChamps(jetSchema, { exigees: true }), label: { label: "libellé" , texte: { regime: "designation"} }, targetDR: { label: "DR à atteindre" }, flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
+}), { type: { label: "type"  }, ...metaDesChamps(jetSchema, { exigees: true }), label: { label: "libellé" , texte: { regime: "designation"} }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
 
 /** Options de `noeudTest` — ce qu'un document RESSERRE sur le nœud partagé, jamais un spread. */
 export interface OptionsNoeudTest {

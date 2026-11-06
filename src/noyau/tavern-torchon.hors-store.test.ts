@@ -20,7 +20,7 @@ import { tavernParams } from './tavernFlow';
 import { testValue } from '../engine/skills';
 import { schema } from '../data/schemas/defs/tavernGames';
 import type { Combatant } from '../engine/types';
-import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -35,7 +35,7 @@ const TORCHON = findTavernGameById('torchon')!;
  * PREMIER : ses lignes sont les premières chassées de l'anneau, alors même que le socle les a
  * produites. Le puits est la surface où le socle écrit — c'est là que se mesure « le coup est raconté ».
  */
-let PUITS: Jeu['log'];
+let PUITS: JeuDuNoyau['log'];
 const recit: string[] = [];
 function capterLeRecit(): void {
   recit.length = 0;
@@ -69,7 +69,7 @@ function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): vo
   const participants = [...pc.participants];
   participants[idx] = { ...band, participants: rows };
   banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
-  get().cascadeNext();
+  get().jetConfirm('cascade');
   // Étape de pinte APPENDÉE (lancer raté d'un héros surfacé) : elle se joue dans la MÊME fenêtre.
   const pinte = get().pendingCascade?.participants[get().pendingCascade!.cursor];
   if (pinte?.kind === 'tavern-drink') {
@@ -79,7 +79,7 @@ function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): vo
     const ok = (drAlcool ?? 1) >= 0;
     parts[j] = { ...pinte, result: { roll: ok ? 11 : 99, target: pinte.target!, sl: drAlcool ?? 1, success: ok } };
     banc.setState({ pendingCascade: { ...pc2, participants: parts, cursor: j } });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
   }
 }
 
@@ -176,7 +176,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
       result: { roll: 11, target: row.target!, sl: row.id.startsWith('danseur-') ? 5 : 0, success: true },
     })) };
     banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     const pinte = get().pendingCascade!.participants.find((step) => step.kind === 'tavern-drink')!;
     expect(pinte.base).toBe(76);
     expect(pinte.target).toBe(testValue(party[0], 'resistance-a-l-alcool'));
@@ -257,7 +257,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
       if (cur?.participants) {
         for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetRoll('cascadeBatch', row.id);
       } else if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
-      get().cascadeNext();
+      get().jetConfirm('cascade');
     }
     expect(get().sequence, 'la séquence est retirée').toBeNull();
     const res = get().tavernGames!.result!;

@@ -359,9 +359,9 @@ describe('DÉTERMINISME cross-OS — le rapport ne dépend pas du système de fi
  */
 const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['DetailRecipe', 'tintVar', 'src/gameIso/authoring/detailSvg.ts @detailPatternDefs'],
-  ['EntityAppearance', 'armurePortee', 'src/noyau/equipementDessine.ts @armurePorteeDe, src/ui/editor/codex/CodexEdit.tsx @AppearanceField'],
+  ['EntityAppearance', 'armurePortee', 'src/ui/editor/codex/CodexEdit.tsx @AppearanceField'],
   ['CritEscalation', 'onRepeat', 'src/engine/critical.ts @repeat'],
-  ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/ui/compendium/registry.ts @meta'],
+  ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/noyau/codex/registry.ts @meta'],
   ['FlowTest', 'opposed', 'src/noyau/combat/triggeredTest.ts @opp'],
   ['CountSpec', 'fixed', 'src/data/index.ts @count'],
   ['CountSpec', 'roll', 'src/data/index.ts @count'],
@@ -393,7 +393,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   LocationData: ['prefix', 'suffix'],
   ManeuverDef: ['stakeForm'],
   MiscastTableDef: ['die'],
-  PresetDePersonnage: ['build', 'couleurs', 'sex'],
   PsychologyData: ['stakeForm'],
   QualityData: ['aspect'],
   RaceAppearanceData: ['scale'],
@@ -430,10 +429,10 @@ const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
  *  d'enveloppe et nominatif par type comme `ZEROS`. Une vue étroite (`ActivityStakeEntry`) y porte tout ce qu'elle ne déclare pas. */
 const ABSENTS: Readonly<Record<string, readonly string[]>> = {
   ActivityStakeEntry: [
-    'assisted', 'blocked', 'char', 'classGate', 'combined', 'contexts', 'difficulty', 'difficultyFrom',
+    'assisted', 'blocked', 'classGate', 'combined', 'contexts', 'difficulty', 'difficultyFrom',
     'encounter', 'extended', 'failExtenue', 'freeSkill', 'generalDownOn', 'grantsFlag', 'hold', 'minInvest',
-    'onSuccess', 'outcomes', 'requires', 'resolver', 'rounds', 'sceneKind', 'skills', 'stageOutcome',
-    'testModFrom', 'testMods', 'threat', 'unavailableIfExtenue', 'weatherMod', 'where', 'worldRolls',
+    'onSuccess', 'outcomes', 'requires', 'resolver', 'rounds', 'sceneKind', 'stageOutcome',
+    'testModFrom', 'testMods', 'tests', 'threat', 'unavailableIfExtenue', 'weatherMod', 'where', 'worldRolls',
   ],
 };
 

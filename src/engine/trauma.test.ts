@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { traumaById, dechirureFractureFicheId, traumaMovementHalved, traumaDodgePenalty, traumaCharPenalties, traumaSkillPenalty, consolidateAmputations, treatTrauma, passiveTestMod } from './trauma';
+import { traumaById, dechirureFractureFicheId, traumaMovementHalved, traumaDodgePenalty, traumaCharPenalties, traumaSkillPenalty, consolidateAmputations, treatTrauma, passiveTestMod, avecSequelles, applyFractureEnd, type SequelleNeuve } from './trauma';
+import { remettreLesSequencesAZero } from './sequences';
 import { effectiveChar } from './characteristics';
 import { effectiveMovement } from './encumbrance';
 import { defenseValue } from './combat';
@@ -7,12 +8,12 @@ import type { Combatant, ItemInstance, Trauma, HitLocation } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Trauma de déchirure/fracture posé à `location` (raccourci data-driven : id de fiche → instance). */
-function tk(kind: 'dechirure' | 'fracture', severity: 'mineur' | 'majeur', location: HitLocation, opts?: { be?: number; d10?: number }): Trauma {
+function tk(kind: 'dechirure' | 'fracture', severity: 'mineur' | 'majeur', location: HitLocation, opts?: { be?: number; d10?: number }): SequelleNeuve {
   return traumaById(dechirureFractureFicheId(kind, severity, location), opts, location);
 }
 
-function c(traumas: Combatant['traumas']): Combatant {
-  return { traumas } as Combatant;
+function c(traumas: SequelleNeuve[] | undefined): Combatant {
+  return { traumas: traumas && avecSequelles([], traumas) } as Combatant;
 }
 
 function fullCombatant(over: Partial<Combatant> = {}): Combatant {
@@ -59,7 +60,7 @@ describe('traumaFromKind (LDB 18-Traumatisme)', () => {
 
 describe('Prothèses — annulation de la séquelle d’amputation de jambe (LDB 73)', () => {
   const legSequela: Trauma = {
-    label: 'Membre inférieur amputé (jambeD)', location: 'jambeD',
+    uid: 't0', label: 'Membre inférieur amputé (jambeD)', location: 'jambeD',
     ops: [{ op: 'moveScale', num: 1, den: 2 }, { op: 'skillMod', skill: { id: 'esquive' }, mod: -20 }],
     prosthesis: [{ id: 'merveille-d-ingenierie', cancels: 'all' }, { id: 'fausse-jambe', cancels: 'movement' }],
   };
@@ -73,7 +74,7 @@ describe('Prothèses — annulation de la séquelle d’amputation de jambe (LDB
     expect(traumaDodgePenalty(c)).toBe(-20);
   });
   it('jambe amputée + Cécité : les pénalités d’Esquive se SOMMENT (LDB 14 l.95, #1827)', () => {
-    const c = fullCombatant({ traumas: [legSequela, traumaById('cecite', undefined, 'tete')], items: [] });
+    const c = fullCombatant({ traumas: avecSequelles([], [legSequela, traumaById('cecite', undefined, 'tete')]), items: [] });
     expect(traumaDodgePenalty(c)).toBe(-50);
   });
   it('Fausse jambe portée (non entraînée) : le ÷2 SURVIT — le port de base ignore seulement 1 PM (l.23), pas tout le ÷2 ; l’Esquive reste pénalisée (LDB 73)', () => {
@@ -127,15 +128,15 @@ describe('Prothèses — annulation de la séquelle d’amputation de jambe (LDB
   });
 
   it('Nez doré annule le −20 Sociabilité de l’amputation du nez (charPenalty, LDB 73)', () => {
-    const nez: Trauma = { label: 'Nez amputé', traumaId: 'nez-ampute', location: 'tete', ops: [{ op: 'charMod', char: 'sociabilite', mod: -20 }], prosthesis: [{ id: 'nez-dore', cancels: 'all' }] };
+    const nez: Trauma = { uid: 't1', label: 'Nez amputé', traumaId: 'nez-ampute', location: 'tete', ops: [{ op: 'charMod', char: 'sociabilite', mod: -20 }], prosthesis: [{ id: 'nez-dore', cancels: 'all' }] };
     expect(traumaCharPenalties(fullCombatant({ traumas: [nez], items: [] }), 'sociabilite')).toEqual([-20]);
     expect(traumaCharPenalties(fullCombatant({ traumas: [nez], items: [item('nez-dore')] }), 'sociabilite')).toEqual([]);
   });
 });
 
 describe('consolidateAmputations — cumul doigts (l.251) & dents (l.247) ; pénalité de combat CONTEXTUELLE à l’arme (#101)', () => {
-  const finger = (loc: 'brasG' | 'brasD', count = 1): Trauma => ({ label: `Doigts amputés (${loc})`, traumaId: 'doigt-ampute', location: loc, count });
-  const teeth = (count: number): Trauma => ({ label: 'Dents perdues', traumaId: 'dents-perdues', location: 'tete', count });
+  const finger = (loc: 'brasG' | 'brasD', count = 1): Trauma => ({ uid: 't2', label: `Doigts amputés (${loc})`, traumaId: 'doigt-ampute', location: loc, count });
+  const teeth = (count: number): Trauma => ({ uid: 't3', label: 'Dents perdues', traumaId: 'dents-perdues', location: 'tete', count });
 
   it('cas réel : 1 doigt (main droite) + 3 dents → doigt count 1 SANS charMod (−5 = weapon-context) ; −1 Soc dents', () => {
     const c = fullCombatant({ traumas: [finger('brasD', 1), teeth(3)] });
@@ -176,16 +177,16 @@ describe('consolidateAmputations — cumul doigts (l.251) & dents (l.247) ; pén
 });
 
 describe('consolidateAmputations — escalade `ajoute` des organes pairés (LDB 18 l.273/277)', () => {
-  const eye = (): Trauma => traumaById('oeil-perdu', undefined, 'tete');
-  const ear = (): Trauma => traumaById('oreille-perdue', undefined, 'tete');
+  const eye = (): SequelleNeuve => traumaById('oeil-perdu', undefined, 'tete');
+  const ear = (): SequelleNeuve => traumaById('oreille-perdue', undefined, 'tete');
   it('un seul œil : pas de cécité, mais −5 Soc par orbite vide (l.273)', () => {
-    const c = fullCombatant({ traumas: [eye()] });
+    const c = fullCombatant({ traumas: avecSequelles([], [eye()]) });
     expect(consolidateAmputations(c)).toHaveLength(0);
     expect((c.traumas ?? []).some((t) => t.traumaId === 'cecite')).toBe(false);
     expect((c.traumas ?? []).find((t) => t.traumaId === 'oeil-perdu')!.ops).toContainEqual({ op: 'testMod', amount: -5, char: 'sociabilite' });
   });
   it('deux yeux : Cécité EN PLUS de la séquelle comptée (−10 Soc pour 2 orbites) ; idempotent', () => {
-    const c = fullCombatant({ traumas: [eye(), eye()] });
+    const c = fullCombatant({ traumas: avecSequelles([], [eye(), eye()]) });
     consolidateAmputations(c);
     const cec = (c.traumas ?? []).find((t) => t.traumaId === 'cecite')!;
     expect(cec.ops).toContainEqual({ op: 'skillMod', skill: { id: 'esquive' }, mod: -30 });
@@ -198,7 +199,7 @@ describe('consolidateAmputations — escalade `ajoute` des organes pairés (LDB 
     expect((c.traumas ?? []).filter((t) => t.traumaId === 'cecite')).toHaveLength(1);
   });
   it('deux oreilles : Surdité (−20 Perception, restreint aux Tests basés sur l’ouïe)', () => {
-    const c = fullCombatant({ traumas: [ear(), ear()] });
+    const c = fullCombatant({ traumas: avecSequelles([], [ear(), ear()]) });
     consolidateAmputations(c);
     expect((c.traumas ?? []).find((t) => t.traumaId === 'surdite')!.ops).toContainEqual({ op: 'skillMod', skill: { id: 'perception' }, mod: -20, sense: 'ouie' });
   });
@@ -214,33 +215,33 @@ describe('traumaMovementHalved', () => {
 
 describe('traumas — câblage moteur', () => {
   it('Fracture Torse réduit Force et Agilité de 30 (effectiveChar)', () => {
-    const cc = fullCombatant({ traumas: [tk('fracture', 'mineur', 'corps')] });
+    const cc = fullCombatant({ traumas: avecSequelles([], [tk('fracture', 'mineur', 'corps')]) });
     expect(effectiveChar(cc, 'force')).toBe(10);  // 40 − 30
     expect(effectiveChar(cc, 'agilite')).toBe(10);
     expect(effectiveChar(cc, 'capacite-de-combat')).toBe(40); // non touché
   });
   it('Trauma de jambe réduit le Mouvement effectif de moitié', () => {
-    const cc = fullCombatant({ traumas: [tk('fracture', 'mineur', 'jambeG')] });
+    const cc = fullCombatant({ traumas: avecSequelles([], [tk('fracture', 'mineur', 'jambeG')]) });
     expect(effectiveMovement(cc)).toBe(2); // floor(4/2)
   });
   it('Sans trauma de mouvement, Mouvement inchangé', () => {
-    const cc = fullCombatant({ traumas: [tk('fracture', 'mineur', 'brasD')] });
+    const cc = fullCombatant({ traumas: avecSequelles([], [tk('fracture', 'mineur', 'brasD')]) });
     expect(effectiveMovement(cc)).toBe(4);
   });
   it('Fracture de jambe réduit l’Esquive de 20 (règle du Pied, LDB 18 l.285)', () => {
     const sain = fullCombatant();
     expect(defenseValue(sain, 'esquive')).toBe(40); // Ag 40, pas de pénalité
-    const blesse = fullCombatant({ traumas: [tk('fracture', 'mineur', 'jambeG')] });
+    const blesse = fullCombatant({ traumas: avecSequelles([], [tk('fracture', 'mineur', 'jambeG')]) });
     expect(defenseValue(blesse, 'esquive')).toBe(20); // 40 − 20 (mobilité)
   });
   it('Déchirure de jambe Mineure réduit l’Esquive de 10', () => {
-    const c = fullCombatant({ traumas: [tk('dechirure', 'mineur', 'jambeD')] });
+    const c = fullCombatant({ traumas: avecSequelles([], [tk('dechirure', 'mineur', 'jambeD')]) });
     expect(defenseValue(c, 'esquive')).toBe(30); // 40 − 10
   });
 });
 
 describe('traumaSkillPenalty — Surdité restreinte aux Tests auditifs (LDB 18 : "Tests de Perception basés sur l’ouïe")', () => {
-  const deaf = (): Combatant => fullCombatant({ traumas: [traumaById('surdite', undefined, 'tete')] });
+  const deaf = (): Combatant => fullCombatant({ traumas: avecSequelles([], [traumaById('surdite', undefined, 'tete')]) });
 
   it('sens du Test INCONNU (aucun appelant ne le précise encore) : la pénalité s’applique par défaut', () => {
     expect(traumaSkillPenalty(deaf(), 'perception')).toBe(-20);
@@ -252,7 +253,7 @@ describe('traumaSkillPenalty — Surdité restreinte aux Tests auditifs (LDB 18 
     expect(traumaSkillPenalty(deaf(), 'perception', 'vue')).toBe(0);
   });
   it('Cécité : −30 aux Tests d’Arme, d’Esquive, de Chevaucher et de Perception par la vue, sans toucher la Caractéristique (LDB 18 l.273)', () => {
-    const c = fullCombatant({ traumas: [traumaById('cecite', undefined, 'tete')] });
+    const c = fullCombatant({ traumas: avecSequelles([], [traumaById('cecite', undefined, 'tete')]) });
     expect(traumaCharPenalties(c, 'capacite-de-combat')).toEqual([]);
     expect(passiveTestMod(c, 'capacite-de-combat')).toBe(-30);
     expect(passiveTestMod(c, 'capacite-de-tir')).toBe(-30);
@@ -264,11 +265,11 @@ describe('traumaSkillPenalty — Surdité restreinte aux Tests auditifs (LDB 18 
 });
 
 describe('treatTrauma — rôle d’INFORMATION de la Guérison sur la déchirure MAJEURE (LDB 18)', () => {
-  function tornMajor(recoveryDays = 40): Trauma {
+  function tornMajor(recoveryDays = 40): SequelleNeuve {
     return { ...tk('dechirure', 'majeur', 'jambeD'), recoveryDays, recoveryTotal: recoveryDays };
   }
   it('ne raccourcit PAS la convalescence (aucune accélération), mais diagnostique le délai restant', () => {
-    const cc = fullCombatant({ traumas: [tornMajor(40)] });
+    const cc = fullCombatant({ traumas: avecSequelles([], [tornMajor(40)]) });
     const log = treatTrauma(cc, 3, true);
     const t = cc.traumas![0];
     expect(t.recoveryDays).toBe(40); // inchangé : la Guérison n'accélère rien sur une déchirure majeure
@@ -276,9 +277,26 @@ describe('treatTrauma — rôle d’INFORMATION de la Guérison sur la déchirur
     expect(log[0]).toContain('40'); // diagnostic concret : jours restants avant de pouvoir réutiliser le membre
   });
   it('le jet ÉCHOUÉ consomme aussi le jet unique, sans diagnostic', () => {
-    const cc = fullCombatant({ traumas: [tornMajor(40)] });
+    const cc = fullCombatant({ traumas: avecSequelles([], [tornMajor(40)]) });
     treatTrauma(cc, 0, false);
     expect(cc.traumas![0].healAccelerated).toBe(true);
     expect(cc.traumas![0].recoveryDays).toBe(40);
+  });
+});
+
+describe('Trauma.uid — dérivé des séquelles du porteur, jamais d’un compteur de module (#3369)', () => {
+  const portees = (): Trauma[] => [1, 2, 3].map((n) => ({ ...tk('dechirure', 'mineur', 'brasD'), uid: `trauma-${n}` }));
+
+  it('une partie chargée qui porte trauma-1..3 : la séquelle neuve reçoit trauma-4, aucune collision', () => {
+    remettreLesSequencesAZero(); // le chargement passe par `creerPartie`, qui remet les séquences de module à zéro
+    const heros = fullCombatant({ traumas: portees() });
+    applyFractureEnd(heros, false, 'mineur', 'brasG', 'Fracture');
+    expect(heros.traumas!.map((t) => t.uid)).toEqual(['trauma-1', 'trauma-2', 'trauma-3', 'trauma-4']);
+  });
+
+  it('plusieurs séquelles posées d’un coup : uids consécutifs après le plus grand porté, rang indifférent', () => {
+    const [a, b] = portees();
+    expect(avecSequelles([{ ...b, uid: 'trauma-7' }, a], [tk('fracture', 'mineur', 'tete'), tk('fracture', 'majeur', 'corps')]).map((t) => t.uid))
+      .toEqual(['trauma-7', 'trauma-1', 'trauma-8', 'trauma-9']);
   });
 });

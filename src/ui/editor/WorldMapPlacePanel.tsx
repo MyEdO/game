@@ -15,6 +15,7 @@ import { VB_W, VB_H } from '../worldMapViewport';
 import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon } from '../../noyau/worldMap';
+import { marcheNeuf, portNeuf, type PatchDeLieu } from '../../noyau/worldMapEdit';
 import { LAND_RICHESSE_ROWS, VOIE_TERRESTRE, type LandMarketProfile } from '../../engine/landCargo';
 import { VOIE_MARITIME, type PortProfile } from '../../engine/seaVoyage';
 import { CARGO_ENTRIES, isEchangeable, marchandisesDe, type Voie } from '../../engine/cargo';
@@ -32,8 +33,6 @@ const TAILLE_LABELS = ['Hameau', 'Village', 'Ville', 'Grande ville'];
  *  échanger ») — l'écran le rend entre parenthèses, il ne l'écrit pas. */
 const produitOptions = (voie: Voie): { id: string; label: string }[] =>
   CARGO_ENTRIES.filter((c) => c.voie === voie).map((c) => ({ id: c.id, label: !isEchangeable(c) && c.hint ? `${c.label} (${c.hint})` : c.label }));
-/** Port MARITIME par défaut posé quand l'auteur coche « Port » (petit port de production côtière). */
-const DEFAULT_PORT: PortProfile & { lighthouse?: boolean } = { taille: 2, richesse: 2, production: [] };
 
 export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
   place: MapPlace;
@@ -41,7 +40,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
   scenes: Scene[];
   /** Narratif du projet — les états de campagne qu'un `when` de lieu peut lire. */
   narratif: NarratifBlock;
-  updPlace: (id: string, patch: Partial<MapPlace>) => void;
+  updPlace: (id: string, patch: PatchDeLieu) => void;
 }) {
   const [placeTab, setPlaceTab] = useState<'lieu' | 'commerce' | 'plan'>('lieu');
   const [poiSel, setPoiSel] = useState<string | null>(null);
@@ -112,7 +111,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
             <input
               type="checkbox"
               checked={!!place.market}
-              onChange={(e) => updPlace(place.id, { market: e.target.checked ? { taille: 2, richesse: 2, produits: [] } : undefined })}
+              onChange={(e) => updPlace(place.id, { market: e.target.checked ? marcheNeuf() : undefined })}
             />
             <Icon id="merchant/cart" size="sm" /> Lieu de commerce (achat/vente de cargaison)
           </label>
@@ -161,7 +160,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
             <input
               type="checkbox"
               checked={!!place.port}
-              onChange={(e) => updPlace(place.id, { port: e.target.checked ? { ...DEFAULT_PORT } : undefined })}
+              onChange={(e) => updPlace(place.id, { port: e.target.checked ? portNeuf() : undefined })}
             />
             <Icon id="travel/anchor" size="sm" /> Port maritime (accostage, commerce, chantier)
           </label>

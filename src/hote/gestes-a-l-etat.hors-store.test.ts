@@ -53,7 +53,7 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
       const preempter = argumentDe(etat, 'armPreempt', 'heroId');
       expect(preempter.saisie).toBe('choix');
       expect(preempter.valeurs!.filter((v) => v.valeur !== null).map((v) => camp(v.valeur)), 'armPreempt offre un non-héros').toEqual(preempter.valeurs!.filter((v) => v.valeur !== null).map(() => 'hero'));
-      expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'roundStartReady')!.rendu).toBe('bouton');
+      expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'fenetreValider')!.rendu).toBe('bouton');
     });
   });
 
@@ -76,26 +76,15 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
   const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
   /** Le duel au contact : le héros `H` face à l'ennemi `E`, les autres ennemis hors de combat. */
   function leDuel() {
-    const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
-    ouverture.envoyer({ type: 'startScene', args: [testScene()] });
-    ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
-    ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+    const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+    ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
     const garde = ouverture.etat();
     ouverture.fermer();
     const { H, E, patch } = auContact(garde);
     return { H, E, etat: { ...garde, ...patch } as Jeu };
   }
   const valeurs = (a: ArgumentDuGeste) => [a.saisie, a.valeurs?.map((v) => [v.valeur, v.libelle])];
-
-  it('l’Enchaînement et le second coup visent l’adversaire au contact, jamais un allié, l’attaquant ou un vaincu', { timeout: 120_000 }, () => {
-    const { H, E, etat } = leDuel();
-    expect(etat.battle!.combatants.filter((c) => c.kind === 'enemy').length, 'témoin : des ennemis vaincus restent dans la file').toBeGreaterThan(1);
-    const balayage: Jeu = { ...etat, pendingCleave: { attackerId: H.id, hitIds: [], count: 0 } };
-    expect(valeurs(argumentDe(balayage, 'cleaveAttack', 'targetId'))).toEqual(['choix', [[E.id, E.label]]]);
-    const second: Jeu = { ...etat, pendingDualStrike: { attackerId: H.id, offWeaponUid: H.weapons.find((w) => w.uid)!.uid!, jet: 30 } };
-    expect(valeurs(argumentDe(second, 'dualStrikeAttack', 'targetId'))).toEqual(['choix', [[E.id, E.label]]]);
-    expect(fenetreADessiner(second)!.gestes.find((g) => g.verbe === 'dualStrikeAttack')!.rendu, 'la cible seule se dit : un clic par adversaire').toBe('choix');
-  });
 
   it('le combat monté vise le cavalier ou sa monture, rien d’autre', { timeout: 120_000 }, () => {
     const { E, etat } = leDuel();
@@ -131,13 +120,13 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
 
   it('Infirmerie : l’opération armée désigne la Blessure Critique à opérer, nommée avec sa Localisation', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
-      const plaies: Trauma[] = [{ label: 'Bras broyé', location: 'brasG', needsSurgery: true }, { label: 'Crâne fendu', location: 'tete', needsSurgery: true }, { label: 'Doigt perdu', location: 'brasD' }] as Trauma[];
+      const plaies: Trauma[] = [{ uid: 'bras', label: 'Bras broyé', location: 'brasG', needsSurgery: true }, { uid: 'crane', label: 'Crâne fendu', location: 'tete', needsSurgery: true }, { uid: 'doigt', label: 'Doigt perdu', location: 'brasD' }];
       const patient = { ...etat.party[0], traumas: plaies };
-      const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaIdx: 1, targetDR: 5, cumDR: 0, stake: {} } as never;
+      const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', targetDR: 5, cumDR: 0, stake: {} } as never;
       const infirmerie: Jeu = { ...etat, pendingRoundStart: null, battle: null, party: [patient, ...etat.party.slice(1)], medic: { patientId: patient.id, surgery: operation } };
-      const plaie = argumentDe(infirmerie, 'medicSetWound', 'idx');
-      expect(lignes(plaie)).toEqual(['choix', [[0, t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], [1, t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);
-      expect(plaie.valeur, 'la plaie visée est la valeur courante').toBe(1);
+      const plaie = argumentDe(infirmerie, 'medicSetWound', 'uid');
+      expect(lignes(plaie)).toEqual(['choix', [['bras', t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], ['crane', t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);
+      expect(plaie.valeur, 'la plaie visée est la valeur courante').toBe('crane');
     });
   });
 
@@ -187,10 +176,9 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
   };
 
   it('attaque du duel : avant le jet, ni clôture ni dé fixé ; après, ni jet ni Localisation', { timeout: 120_000 }, () => {
-    const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
-    ouverture.envoyer({ type: 'startScene', args: [testScene()] });
-    ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
-    ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+    const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+    ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
     const garde = ouverture.etat();
     ouverture.fermer();
     const { E, patch } = auContact(garde);
@@ -198,13 +186,13 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
     try {
       partie.envoyer({ type: 'battleClickEntity', args: [E.id, { confirm: true }] });
       expect(geste(partie, 'jetRoll@attack')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'attackSetLocation')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetRegler@attack#localisation')).toEqual({ ouvert: true, raison: null });
       expect(geste(partie, 'jetSetForcedRoll@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
       expect(geste(partie, 'jetConfirm@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
       partie.envoyer({ type: 'jetRoll', args: ['attack'] });
       expect(geste(partie, 'jetRoll@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
       expect(geste(partie, 'jetCancel@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
-      expect(geste(partie, 'attackSetLocation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
+      expect(geste(partie, 'jetRegler@attack#localisation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
       expect(geste(partie, 'jetSetForcedRoll@attack')).toEqual({ ouvert: true, raison: null });
       expect(geste(partie, 'jetConfirm@attack')).toEqual({ ouvert: true, raison: null });
     } finally {

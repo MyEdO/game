@@ -1,7 +1,7 @@
 /**
  * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie, les types de l'état et de
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
- * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, l'équipement dessiné d'un porteur, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
+ * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
  * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
@@ -16,14 +16,15 @@ export { formatMoney } from '../engine/money';
 export { conditionLabel } from '../data';
 export type { Cadence } from '../engine/cadence';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
-export { actionGate, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
+export { actionGate, offreArmee, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
-export { findApparenceById, findCouleurById, findTeinteById, gardeRobe } from '../data/index';
+export { findCouleurById, gardeRobe } from '../data/index';
 export type { EmblemeDef } from '../data/schemas/defs/garde-robe';
 export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
-export { emplacementDePiece, estEmplacement, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
+export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
 export type { GabaritResolu } from './apparence/gabarit';
-export { cataloguesDeComposition, emplacementsDeRangement, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type Portee, type SurchargesDEmblemes } from './apparence/composition';
+export { cataloguesDeComposition, emplacementsDeRangement, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from './apparence/composition';
+export { porteeDuCombattant } from './apparence/combattant';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
@@ -32,6 +33,7 @@ export { effectiveArmourAt } from '../engine/characteristics';
 export { effectiveTalents } from '../engine/talentEffects';
 export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION } from './combatAuto';
 export { conversationEnVue } from './dialogue';
+export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
 export type { Combatant } from '../engine/types';
 export type { ModLine, RollBreakdown } from '../engine/combat';
@@ -49,22 +51,21 @@ export { plateauDeLaScene, type Scene } from './monde/scene';
 export { registerScene } from './monde/registreDesScenes';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
-export { fenetreDIncantation } from './fenetreDIncantation';
+export { fenetreDIncantation, type FenetreDIncantation } from './fenetreDIncantation';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { ficheDuPorteur, type FicheDuPorteur } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';
-export { libelleDuGeste, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
+export { libelleDuGeste, libelleDuReglage, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
 export { argumentsPosesDuGeste, fermeturesDeLaFenetre } from './verbesOuverts';
 export { cleDuGeste, type GesteDuJeu } from './modalArbiter';
 export { verbeDeJetDe, viseUneRangee } from './flowVerbs';
 export { FERMETURES_DITES } from './rollFlowFactory';
-export { reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, REGLAGES_DE_L_INCANTATION, type Reglage, type ValeurDuReglage } from './reglages';
+export { reglagesDesElements, type Reglage, type ValeurDuReglage } from './reglages';
+export { declarationDuReglage, REGLAGE_DE_L_AXE, VERBE_DE_REGLAGE } from './reglagesDuJet';
 export { avecSigne } from '../engine/types';
-export { objetDuNarratif } from './monde/resolveursDuNarratif';
-export { equipementDessine, equipementDEntite } from './equipementDessine';
 export { ROLES_D_ANIMATION, type RoleDAnimation } from './animation';
 export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } from './persistance/roster';
 export { engagement, intentionDEngagement, refusDEngagement, refusDUnNouveauHeros } from './creation/engagement';

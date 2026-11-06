@@ -6,15 +6,17 @@
  */
 import type { Jeu } from './etat';
 import { fenetreDuJeu, type FenetreDuJeu } from './combatAuto';
-import { stepInteraction, stepReady } from './cascade';
+import { stepInteraction } from './cascade';
 import type { PendingCascade } from './pendings';
 import { fateSaveOptions } from '../engine/fortune';
 import { preemptShooterIds } from './targeting';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
-import { cleDuGeste, sortieDeLaFenetre, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
-import { FLOW_HANDLERS, rangeesADeclarerIci } from './rollFlowSpecs';
-import { fermeturesDeLIncantation } from './reglagesDIncantation';
+import { cleDuGeste, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
+import { fermetureDeLaSortie } from './sortieDeFenetre';
+import { fermetureDeLaValidation } from './validationDeFenetre';
+import { FLOW_HANDLERS, fermetureDuReglage, rangeesADeclarerIci } from './rollFlowSpecs';
 import type { FermetureDuJet, FermeturesDuJet } from './rollFlowFactory';
+import { declarationDuReglage, estFluxRegle, type ReglageDuJet } from './reglagesDuJet';
 
 /** Ce qui ferme chaque verbe du cycle du flux `flux` sur le slot `pid` (`null` : ouvert) ; sans `pid`, un flux à
  *  plusieurs jets se juge en fenêtre. */
@@ -29,50 +31,47 @@ function verbeDuCycle(flux: FlowKey, g: GesteDuJeu): { verbe: RollVerb; enFenetr
   return deJet && g.flux === flux ? { verbe: deJet, enFenetre: estVerbeDeFenetre(deJet) } : null;
 }
 
-/** Ce qui ferme maintenant la navigation de la cascade `pc` hors de sa sortie (`NAVIGATION_DE_CASCADE` ; « Terminer »
- *  est la sortie `cascade`, jugée par son registre). Sur une étape : la valider tant qu'elle n'est pas prête
- *  (`stepReady`), tout résoudre tant qu'elle attend un choix que rien ne tranche à la place du joueur
- *  (`resolveRemainingCascade`). Au bilan, ni l'une ni l'autre. */
-function fermeturesDeLaNavigation(s: Jeu, pc: PendingCascade): Record<'cascadeNext' | 'cascadeResolveAll', FermetureDuJet | null> {
+/** Ce qui ferme maintenant « tout résoudre » sur la cascade `pc` (`NAVIGATION_DE_CASCADE`) : la validation de l'étape
+ *  (`jetConfirm('cascade')`) quand l'étape attend un choix que rien ne tranche à la place du joueur
+ *  (`resolveRemainingCascade`), ou au bilan. */
+function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | null {
   const etape = pc.participants[pc.cursor];
-  if (!etape) return { cascadeNext: 'etapesJouees', cascadeResolveAll: 'etapesJouees' };
-  const choix = stepInteraction(etape) === 'choix';
-  const due: FermetureDuJet | null = stepReady(etape, s) ? null : choix ? 'choixDu' : 'jetNonLance';
-  return { cascadeNext: due, cascadeResolveAll: choix ? due : null };
+  return !etape || stepInteraction(etape) === 'choix' ? fermeturesDuFlux(s, 'cascade').confirm : null;
 }
 
-/** Ce qui ferme maintenant les verbes qu'une fenêtre joue sans flux de jet, par sa clé : la navigation de la cascade, les
- *  réglages de l'incantation (`fermeturesDeLIncantation`), la déclaration du Contre-sort quand ce siège n'a plus de rangée
- *  à déclarer (`rangeesADeclarerIci`), l'annulation du coup que le Sauvetage par le Destin n'offre pas
- *  (`fateSaveOptions`) ; au début du Round, le geste du mode de jeu que la table ne joue pas (lancer seul, se dire prêt
- *  en réseau) et la visée du Tir rapide sans tireur (`preemptShooterIds`). */
+/** Ce qui ferme maintenant les verbes qu'une fenêtre joue sans flux de jet, par sa clé : « tout résoudre » sur la
+ *  cascade, la déclaration du Contre-sort quand ce siège n'a plus de rangée à déclarer (`rangeesADeclarerIci`),
+ *  l'annulation du coup que le Sauvetage par le Destin n'offre pas (`fateSaveOptions`) ; au début du Round, la visée du
+ *  Tir rapide sans tireur (`preemptShooterIds`) et le clic du combattant sans visée armée (`preemptAiming`). */
 const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
   cascade: (s) => s.pendingCascade && {
-    ...fermeturesDeLaNavigation(s, s.pendingCascade),
-    ...fermeturesDeLIncantation(s),
+    cascadeResolveAll: fermetureDeToutResoudre(s, s.pendingCascade),
     counterspellDeclareAll: rangeesADeclarerIci(s, s.pendingCounterspell).length ? null : 'rienADeclarer',
   },
   fateSave: (s) => s.pendingFateSave && { fateNegate: fateSaveOptions(s.pendingFateSave.source).includes('negate') ? null : 'nonOffert' },
   roundStart: (s) => ({
-    [s.net.mode === 'local' ? 'roundStartReady' : 'confirmRoundStart']: 'nonOffert',
     armPreempt: preemptShooterIds(() => s).length ? null : 'nonOffert',
+    battleClickEntity: s.preemptAiming ? null : 'nonOffert',
   }),
 };
 
-/** Les arguments que la fenêtre pose d'office pour son geste `g` : la fenêtre d'une sortie, le flux d'un geste de jet,
- *  et l'id qu'elle désigne (`pid`) — pour un geste de jet, seulement quand il vise une rangée (`viseUneRangee`). */
-export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { fenetre?: FenetreQuiSeFerme; flux?: FlowKey; pid?: string } {
+/** Les arguments que la fenêtre pose d'office pour son geste `g` : la fenêtre d'une validation ou d'une sortie, le flux d'un geste de jet,
+ *  le flux et le réglage d'un réglage, et l'id qu'elle désigne (`pid`) — pour un geste de jet, seulement quand il vise
+ *  une rangée (`viseUneRangee`) ; pour un réglage, seulement un réglage de rangée. */
+export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { fenetre?: GesteDuJeu['fenetre']; flux?: FlowKey; reglage?: ReglageDuJet; pid?: string } {
   if (g.fenetre) return { fenetre: g.fenetre };
-  const deJet = verbeDeJetDe(g.verbe);
   const pid = fenetre.pid ? { pid: fenetre.pid } : {};
+  if (g.flux && g.reglage) return { flux: g.flux, reglage: g.reglage, ...(declarationDuReglage(g.flux, g.reglage)?.portee === 'rangee' ? pid : {}) };
+  const deJet = verbeDeJetDe(g.verbe);
   if (!deJet || !g.flux) return pid;
   return { flux: g.flux, ...(viseUneRangee(g.flux, deJet) ? pid : {}) };
 }
 
-/** Ce qui ferme maintenant chaque geste de la fenêtre qui tient la main que l'un de ses flux joue, et sa sortie
- *  (`sortieFermee`) (`null` : ouvert), par son identité (`cleDuGeste`) ; un autre geste n'y figure pas. Un geste de
- *  rangée se juge sur la rangée que la fenêtre désigne (`pid`) ; un geste de fenêtre, sur l'étape que désigne une
- *  fenêtre dont les rangées n'ont pas d'acteur propre (`pidIsActor` faux), sinon sur la fenêtre entière. */
+/** Ce qui ferme maintenant chaque geste de la fenêtre qui tient la main que l'un de ses flux joue, chacun de ses
+ *  réglages (sa phase, `fermetureDeLaPhase`), sa validation (`fermetureDeLaValidation`) et sa sortie
+ *  (`fermetureDeLaSortie`) (`null` : ouvert), par son identité (`cleDuGeste`) ; un autre geste n'y figure pas. Un geste
+ *  de rangée se juge sur la rangée que la fenêtre désigne (`pid`) ; un geste de fenêtre (`estVerbeDeFenetre`), sur la
+ *  fenêtre entière, comme son verbe le joue. */
 export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fenetreDuJeu(s)): ReadonlyMap<string, FermetureDuJet | null> {
   const out = new Map<string, FermetureDuJet | null>();
   if (!fenetre) return out;
@@ -87,17 +86,21 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
   };
   const propres: Partial<Record<string, FermetureDuJet | null>> = FERMETURES_DES_VERBES[fenetre.cle]?.(s) ?? {};
   for (const g of fenetre.gestes) {
-    const sortie = sortieDeLaFenetre(g.fenetre);
-    if (sortie) { out.set(cleDuGeste(g), sortie.fermee(s)); continue; }
+    if (g.verbe === 'fenetreValider') { out.set(cleDuGeste(g), fermetureDeLaValidation(s, g.fenetre as FenetreAValider)); continue; }
+    if (g.verbe === 'fenetreFermer') { out.set(cleDuGeste(g), fermetureDeLaSortie(s, g.fenetre as FenetreQuiSeFerme)); continue; }
     if (g.verbe in propres) {
       out.set(cleDuGeste(g), propres[g.verbe] ?? null);
+      continue;
+    }
+    if (g.reglage && estFluxRegle(g.flux)) {
+      out.set(cleDuGeste(g), fermetureDuReglage(() => s, g.flux, g.reglage, declarationDuReglage(g.flux, g.reglage)?.portee === 'rangee' ? fenetre.pid : undefined));
       continue;
     }
     for (const flux of fenetre.flux) {
       const cycle = verbeDuCycle(flux, g);
       if (!cycle) continue;
       const w: FlowVerbs = FLOW_VERBS[flux];
-      const pid = w.kind === 'multi' && (!cycle.enFenetre || !w.pidIsActor) ? fenetre.pid : undefined;
+      const pid = w.kind === 'multi' && !cycle.enFenetre ? fenetre.pid : undefined;
       out.set(cleDuGeste(g), juger(flux, pid)[cycle.verbe]);
       break;
     }

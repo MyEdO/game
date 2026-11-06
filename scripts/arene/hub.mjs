@@ -15,6 +15,7 @@ export const DOC_TITRE_DE_CHAMPION = {
 
 /** Porte d'une zone de l'échelle : visible quand la précédente est nettoyée, pas la suivante. */
 const porte = (n, nom) => ({
+  id: `entrer-zone${n}`,
   label: `Entrer — ${nom}.`,
   icon: 'action/attack',
   when: flagWhen(n === 1 ? '!zone1_clear' : `zone${n - 1}_clear,!zone${n}_clear`),
@@ -24,6 +25,7 @@ const porte = (n, nom) => ({
 /** Contrat d'expédition : proposition (gated progression) puis paiement au retour (flag _fait). */
 const contrat = (key, cond, propose, fait, gold, xp) => [
   {
+    id: `contrat-${key}`,
     label: propose,
     icon: 'file/document',
     when: flagWhen(`${cond},!contrat_${key}`),
@@ -33,6 +35,7 @@ const contrat = (key, cond, propose, fait, gold, xp) => [
     ]),
   },
   {
+    id: `prime-${key}`,
     label: `Toucher la prime — ${propose.replace(/^.*?: /, '')}`,
     icon: 'resource/gold-purse',
     when: flagWhen(`contrat_${key}_fait,!contrat_${key}_paye`),
@@ -53,9 +56,10 @@ const dlgHub = {
       id: 'accueil',
       desc: 'Tu saignes encore ? Parfait, le sable boit tout. L’échelle t’attend — et pour les plus gourmands, j’ai des contrats au-delà de la palissade.',
       choices: [
-        { label: 'L’échelle de l’arène.', icon: 'action/attack', next: 'echelle' },
-        { label: 'Les contrats d’expédition.', icon: 'file/document', next: 'contrats' },
+        { id: 'echelle-arene', label: 'L’échelle de l’arène.', icon: 'action/attack', next: 'echelle' },
+        { id: 'contrats-expedition', label: 'Les contrats d’expédition.', icon: 'file/document', next: 'contrats' },
         {
+          id: 'crocheter-vieux-coffre',
           label: 'Crocheter le vieux coffre du maître.',
           icon: 'ui/lock',
           when: flagWhen('!coffre_pris'),
@@ -70,6 +74,7 @@ const dlgHub = {
           ),
         },
         {
+          id: 'reclamer-titre-champion',
           label: 'Réclamer ton titre de CHAMPION.',
           icon: 'scenario/arena',
           when: flagWhen('zone13_clear,!champion_fete'),
@@ -83,6 +88,7 @@ const dlgHub = {
           ]),
         },
         {
+          id: 'savourer-gloire-champion',
           label: 'Savourer ta gloire de champion.',
           icon: 'scenario/arena',
           when: flagWhen('champion_fete'),
@@ -91,7 +97,7 @@ const dlgHub = {
             { type: 'endDialogue' },
           ]),
         },
-        { label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
+        { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
     {
@@ -111,7 +117,7 @@ const dlgHub = {
         porte(11, 'Le Cercle Maudit'),
         porte(12, 'Le Sépulcre'),
         porte(13, 'L’Antre du Dragon'),
-        { label: '↩ Revenir.', next: 'accueil' },
+        { id: 'revenir', label: '↩ Revenir.', next: 'accueil' },
       ],
     },
     {
@@ -121,7 +127,7 @@ const dlgHub = {
         ...contrat('foret', 'zone4_clear', 'La Vieille Futaie : des hommes-bêtes ont dressé un camp — et la bande de Bella la Noire détrousse les convois.', 'Méfie-toi : la futaie a des yeux.', 3, 160),
         ...contrat('marais', 'zone6_clear', 'La Tourbière Noire : quelque chose de FABRIQUÉ y traîne les voyageurs sous l’eau.', 'Reste sur les pontons.', 4, 200),
         ...contrat('village', 'zone8_clear', 'Felsbach : le village ne répond plus depuis un mois. Brûle ce qui marche encore.', 'Ne bois pas l’eau du puits.', 5, 240),
-        { label: '↩ Revenir.', next: 'accueil' },
+        { id: 'revenir', label: '↩ Revenir.', next: 'accueil' },
       ],
     },
   ],
@@ -135,8 +141,9 @@ const dlgMedecin = {
       id: 'accueil',
       desc: 'Encore vivant ? Bien. J’ai des potions, du faxtoryll pour les saignements, des membres de rechange… et la scie, si vraiment il faut OPÉRER.',
       choices: [
-        { label: 'Voir les remèdes et prothèses.', icon: 'medical/aid', flow: flowOf([{ type: 'openMerchant', entityId: 'medecin' }]) },
+        { id: 'voir-remedes-protheses', label: 'Voir les remèdes et prothèses.', icon: 'medical/aid', flow: flowOf([{ type: 'openMerchant', entityId: 'medecin' }]) },
         {
+          id: 'passer-sur-table',
           label: 'Passer sur la table (actes payants).',
           icon: 'medical/scalpel',
           // « Une simple visite coûte 4-6 pistoles pour une aide médicale » (LDB 75 l.34) — tarif PAR ACTE.
@@ -151,7 +158,7 @@ const dlgMedecin = {
             entityId: 'medecin',
           }]),
         },
-        { label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
+        { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
   ],
@@ -165,8 +172,8 @@ const dlgForgeron = {
       id: 'accueil',
       desc: 'Le sable bouffe le fil des lames plus vite que les monstres. Montre-moi ton acier — je vends, je rachète, je RÉPARE.',
       choices: [
-        { label: 'Armes, armures et réparations.', icon: 'merchant/cart', flow: flowOf([{ type: 'openMerchant', entityId: 'forgeron' }]) },
-        { label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
+        { id: 'armes-armures-reparations', label: 'Armes, armures et réparations.', icon: 'merchant/cart', flow: flowOf([{ type: 'openMerchant', entityId: 'forgeron' }]) },
+        { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
   ],
@@ -180,8 +187,8 @@ const dlgEchoppier = {
       id: 'accueil',
       desc: 'Onguents, herbes, cordages, torches — tout ce qui manque quand la nuit tombe sur la route. Entrez, entrez : ma boutique a tout ce que le sable n’a pas encore mangé.',
       choices: [
-        { label: 'Voir l’étal (herbes, potions, fournitures).', icon: 'merchant/cart', flow: flowOf([{ type: 'openMerchant', entityId: 'echoppiere' }]) },
-        { label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
+        { id: 'voir-etal-herbes', label: 'Voir l’étal (herbes, potions, fournitures).', icon: 'merchant/cart', flow: flowOf([{ type: 'openMerchant', entityId: 'echoppiere' }]) },
+        { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
   ],
@@ -195,8 +202,9 @@ const dlgTaverne = {
       id: 'accueil',
       desc: 'Bienvenue au Trophée ! Table, chambre, et de quoi remplir les sacoches — la route ne nourrit personne, prenez des RATIONS avant de voyager.',
       choices: [
-        { label: 'Voir le garde-manger (rations, vivres, pintes).', icon: 'rest/stew', flow: flowOf([{ type: 'openMerchant', entityId: 'taverniere' }]) },
+        { id: 'voir-garde-manger', label: 'Voir le garde-manger (rations, vivres, pintes).', icon: 'rest/stew', flow: flowOf([{ type: 'openMerchant', entityId: 'taverniere' }]) },
         {
+          id: 'repas-chaud',
           // Repas de MIDI (sans dormir) : prix de groupe d'auteur — la nuit passe par la modale de Repos.
           label: 'Repas chaud pour le groupe.',
           icon: 'rest/stew',
@@ -204,38 +212,39 @@ const dlgTaverne = {
           flow: flowOf([{ type: 'mealParty' }, { type: 'journal', desc: 'Ragoût, pain noir et bière : le groupe est nourri pour la journée.' }]),
         },
         {
+          id: 'prendre-chambres',
           // Nuit au Trophée : la modale de repos porte chambre, repas par héros et prix.
           label: 'Prendre des chambres pour la nuit.',
           icon: 'rest/bed',
           flow: flowOf([{ type: 'rest', lodging: 'auberge' }]),
         },
-        { label: 'Écouter la salle.', icon: 'expedition/rumor', next: 'rumeurs' },
-        { label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
+        { id: 'ecouter-salle', label: 'Écouter la salle.', icon: 'expedition/rumor', next: 'rumeurs' },
+        { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
     {
       id: 'rumeurs',
       desc: 'On entend de tout ici, surtout après la troisième pinte…',
       choices: [
-        { label: '« Et l’arène ? »', next: 'rumeur-arene' },
-        { label: '« Et les routes ? »', next: 'rumeur-routes' },
-        { label: '↩ Revenir.', next: 'accueil' },
+        { id: 'arene', label: '« Et l’arène ? »', next: 'rumeur-arene' },
+        { id: 'routes', label: '« Et les routes ? »', next: 'rumeur-routes' },
+        { id: 'revenir', label: '↩ Revenir.', next: 'accueil' },
       ],
     },
     {
       id: 'rumeur-arene',
       desc: 'Elle essuie une chope, l’œil en coin. « Personne n’a jamais passé la treizième porte. Et entre nous : le Maître fait descendre des carcasses ENTIÈRES là-dessous. On ne nourrit pas un trophée. »',
       choices: [
-        { label: '« Bon à savoir. »', flow: flowOf([{ type: 'journal', desc: 'Rumeur du Trophée : personne n’a passé la 13e porte — le Maître NOURRIT quelque chose là-dessous.' }, { type: 'endDialogue' }]) },
-        { label: '↩ Une autre rumeur.', next: 'rumeurs' },
+        { id: 'bon-savoir', label: '« Bon à savoir. »', flow: flowOf([{ type: 'journal', desc: 'Rumeur du Trophée : personne n’a passé la 13e porte — le Maître NOURRIT quelque chose là-dessous.' }, { type: 'endDialogue' }]) },
+        { id: 'autre-rumeur', label: '↩ Une autre rumeur.', next: 'rumeurs' },
       ],
     },
     {
       id: 'rumeur-routes',
       desc: '« La diligence de Felsbach n’est jamais arrivée le mois dernier. Et les charognards qu’on croise en lisière de la Futaie… portent des cottes de voyageurs. Prenez des rations, et voyagez armés. »',
       choices: [
-        { label: '« Merci du tuyau. »', flow: flowOf([{ type: 'journal', desc: 'Rumeur du Trophée : la diligence de Felsbach a disparu — la Futaie détrousse les convois.' }, { type: 'endDialogue' }]) },
-        { label: '↩ Une autre rumeur.', next: 'rumeurs' },
+        { id: 'merci-tuyau', label: '« Merci du tuyau. »', flow: flowOf([{ type: 'journal', desc: 'Rumeur du Trophée : la diligence de Felsbach a disparu — la Futaie détrousse les convois.' }, { type: 'endDialogue' }]) },
+        { id: 'autre-rumeur', label: '↩ Une autre rumeur.', next: 'rumeurs' },
       ],
     },
   ],
@@ -250,11 +259,13 @@ const dlgFrere = {
       desc: 'Sigmar garde les braves — et recoud les imprudents. Approche : la chapelle soigne, bénit, et accepte les dons.',
       choices: [
         {
+          id: 'recevoir-soins',
           label: 'Recevoir des soins (actes payants).',
           icon: 'medical/aid',
           flow: flowOf([{ type: 'medicalAid', acts: [{ act: 'wounds', cost: { silver: 5 } }, { act: 'bleed', cost: { silver: 5 } }], entityId: 'frere' }]),
         },
         {
+          id: 'recevoir-benediction',
           label: 'Recevoir la bénédiction du départ (retrouver la Chance).',
           icon: 'faith/prayer',
           when: flagWhen('!benediction_recue'),
@@ -265,12 +276,14 @@ const dlgFrere = {
           ]),
         },
         {
+          id: 'faire-don',
           label: 'Faire un don au tronc.',
           icon: 'resource/gold-purse',
           cost: { gold: 1 },
           flow: flowOf([{ type: 'journal', desc: 'La pièce sonne au fond du tronc. Frère Anselm hoche la tête, sincèrement ému.' }]),
         },
         {
+          id: 'piller-tronc-offrandes',
           label: 'Piller le tronc des offrandes.',
           icon: 'action/pick-up',
           when: flagWhen('!tronc_pille'),
@@ -288,7 +301,7 @@ const dlgFrere = {
             ],
           ),
         },
-        { label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
+        { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
   ],
@@ -302,16 +315,16 @@ const dlgGarde = {
       id: 'accueil',
       desc: 'L’arène est au sud, derrière la porte. La route de l’est mène à la Futaie, à la Tourbière et à Felsbach — si tu tiens à tes jambes, voyage de jour et le ventre plein.',
       choices: [
-        { label: '« Rien à signaler ? »', next: 'signalements' },
-        { label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
+        { id: 'rien-signaler', label: '« Rien à signaler ? »', next: 'signalements' },
+        { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
     {
       id: 'signalements',
       desc: 'Il hausse les épaules. « Des hurlements dans la Futaie, la nuit. Et plus une lumière à Felsbach depuis un mois. Si tu veux mon avis : reste du bon côté de la palissade. »',
       choices: [
-        { label: '« Merci du conseil. »', flow: flowOf([{ type: 'journal', desc: 'Le garde : hurlements nocturnes dans la Futaie, Felsbach éteint depuis un mois.' }, { type: 'endDialogue' }]) },
-        { label: '↩ Autre chose.', next: 'accueil' },
+        { id: 'merci-conseil', label: '« Merci du conseil. »', flow: flowOf([{ type: 'journal', desc: 'Le garde : hurlements nocturnes dans la Futaie, Felsbach éteint depuis un mois.' }, { type: 'endDialogue' }]) },
+        { id: 'autre-chose', label: '↩ Autre chose.', next: 'accueil' },
       ],
     },
   ],
@@ -325,16 +338,16 @@ const dlgRumeurs = {
       id: 'accueil',
       desc: 'Vous êtes les nouveaux gladiateurs ? On parie sur vous au lavoir. Enfin… certains.',
       choices: [
-        { label: '« Qu’est-ce qui se raconte ? »', next: 'lavoir' },
-        { label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
+        { id: 'qui-se-raconte', label: '« Qu’est-ce qui se raconte ? »', next: 'lavoir' },
+        { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
     {
       id: 'lavoir',
       desc: 'Elle baisse la voix. « Le Maître garde un vieux coffre dont il a perdu la clef — il dit que c’est sans valeur, mais il dort dessus. Et passez voir Frère Anselm à la chapelle : il bénit ceux qui descendent sur le sable. »',
       choices: [
-        { label: '« Intéressant… »', flow: flowOf([{ type: 'journal', desc: 'Rumeur du lavoir : le coffre « sans valeur » du Maître, et la bénédiction de Frère Anselm avant le combat.' }, { type: 'endDialogue' }]) },
-        { label: '↩ Autre chose.', next: 'accueil' },
+        { id: 'interessant', label: '« Intéressant… »', flow: flowOf([{ type: 'journal', desc: 'Rumeur du lavoir : le coffre « sans valeur » du Maître, et la bénédiction de Frère Anselm avant le combat.' }, { type: 'endDialogue' }]) },
+        { id: 'autre-chose', label: '↩ Autre chose.', next: 'accueil' },
       ],
     },
   ],

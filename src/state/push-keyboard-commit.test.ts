@@ -13,7 +13,7 @@ async function ouvrirLeBelierAuTourDuSoldat() {
   useGame.setState({ party });
   useGame.getState().startScene(scene);
   useGame.getState().startCombat('siege-belier');
-  useGame.getState().confirmRoundStart();
+  useGame.getState().fenetreValider('roundStart');
   const b0 = useGame.getState().battle!;
   const soldat = b0.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
   useGame.setState({ battle: { ...b0, turn: b0.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });

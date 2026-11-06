@@ -1,7 +1,7 @@
 /**
  * Câblage RÉEL de l'axe Dégâts de la Surincantation révisée (`VDM 02 l.198`, option
  * `magic-vdm-incantation`) jusqu'au CHEMIN DE PROD : Carreau (Projectile magique) lancé via le
- * noyau, DR alloués à l'axe Dégâts par la VRAIE action de modale (`castAllocOvercast`), appliqué
+ * noyau, DR alloués à l'axe Dégâts par le VRAI réglage de modale (`cast.surincantationDegats`), appliqué
  * par la VRAIE `jetConfirm('cast')` (→ `applyCast`) — aucun budget/damage recalculé à la main pour
  * l'occasion. Le jet est FIGÉ AVANT l'allocation (`evaluateMissile` à 0 pas, exactement ce que fait
  * `resolveMagicMissile`/`jetRoll('cast')` — l'allocation intervient après le jet) ; seule
@@ -29,7 +29,7 @@ function setup() {
   banc.setState({ party: [w] });
   banc.getState().startScene(testScene());
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   banc.getState().seedRng(7);
   const b = banc.getState().battle!;
@@ -54,7 +54,7 @@ function setup() {
 describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de prod (store)', () => {
   beforeEach(() => { setRule(RULE, true); });
 
-  it('0 DR alloué à l’axe Dégâts (nerf sec) vs 3 DR alloués (palier 3, `castAllocOvercast` + `jetConfirm(\'cast\')` réels) : +3 Blessures', () => {
+  it('0 DR alloué à l’axe Dégâts (nerf sec) vs 3 DR alloués (palier 3, réglage `cast.surincantationDegats` + `jetConfirm(\'cast\')` réels) : +3 Blessures', () => {
     const { enemy } = setup();
     const before = enemy.wounds.current;
     banc.getState().jetConfirm('cast');
@@ -64,9 +64,7 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
 
     const { enemy: enemy2 } = setup();
     const before2 = enemy2.wounds.current;
-    banc.getState().castAllocOvercast('damage', 1);
-    banc.getState().castAllocOvercast('damage', 1);
-    banc.getState().castAllocOvercast('damage', 1);
+    banc.getState().jetRegler('cast', 'surincantationDegats', 3);
     expect(banc.getState().pendingCast!.overcast).toEqual({ range: 0, zone: 0, duration: 0, targets: 0, damage: 3 });
     banc.getState().jetConfirm('cast');
     const after2 = banc.getState().battle!.combatants.find((c) => c.id === enemy2.id)!.wounds.current;
@@ -74,13 +72,13 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
     expect(before2 - after2).toBe(baseline + 3);
   });
 
-  it('sort NON-missile : l’axe Dégâts est refusé par `castAllocOvercast` (aucun axe hors Projectile)', () => {
+  it('sort NON-missile : l’axe Dégâts est refusé par le réglage `cast.surincantationDegats` (aucun axe hors Projectile)', () => {
     const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     w.spells = ['armure-aethyrique'];
     banc.setState({ party: [w] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const heroC = b.combatants.find((c) => c.label === 'W')!;
@@ -89,14 +87,14 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
     banc.setState((s) => ({
       pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 10, isCritical: false, isFumble: false, log: 'jet' } },
     }));
-    banc.getState().castAllocOvercast('damage', 1);
+    banc.getState().jetRegler('cast', 'surincantationDegats', 1);
     expect(banc.getState().pendingCast!.overcast).toBeUndefined();
   });
 
-  it('option OFF : Carreau ne propose pas d’axe Dégâts (`castAllocOvercast` refuse le pas)', () => {
+  it('option OFF : Carreau ne propose pas d’axe Dégâts (le réglage `cast.surincantationDegats` refuse le pas)', () => {
     resetRule(RULE); // option OFF pour ce cas
     const { enemy } = setup();
-    banc.getState().castAllocOvercast('damage', 1);
+    banc.getState().jetRegler('cast', 'surincantationDegats', 1);
     expect(banc.getState().pendingCast!.overcast).toBeUndefined();
     // Nettoyage : le jet reste applicable normalement (parité LDB).
     const before = enemy.wounds.current;

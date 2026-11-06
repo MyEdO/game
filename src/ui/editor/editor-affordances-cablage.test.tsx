@@ -569,7 +569,7 @@ describe('Atelier de dialogue — ICÔNE d’un choix (`DialogueChoice.icon`, #8
   it('l’id choisi à l’atelier est rendu par `DialogueBox` devant le libellé du choix', async () => {
     const dialogue: Dialogue = {
       id: 'd', start: 'n1',
-      nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [{ label: 'Payer la taxe' }] }],
+      nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [{ id: 'payer-taxe', label: 'Payer la taxe' }] }],
     };
     let latest = dialogue;
     const container = document.createElement('div');
@@ -577,7 +577,7 @@ describe('Atelier de dialogue — ICÔNE d’un choix (`DialogueChoice.icon`, #8
     const root = createRoot(container);
     const ctx = { encounters: [], dialogues: [dialogue], personas: [] } as unknown as Ctx;
     const render = (d: Dialogue) =>
-      root.render(<DialogueDetail dialogue={d} ctx={ctx} onChange={(next) => { latest = next; render(next); }} />);
+      root.render(<DialogueDetail dialogue={d} ctx={ctx} onChange={(next) => { latest = next; render(next); }} onRename={() => undefined} />);
     await act(async () => render(dialogue));
 
     const boxes: { el: HTMLElement; root: Root }[] = [];

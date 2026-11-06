@@ -54,7 +54,7 @@ function deroule(main: boolean, pilote = main): Issue {
     if (!s.battle || s.battle.over) return { issue: 'fin', fenetresTirRapide };
     const pd = s.pendingDefense;
     if (pd && !pd.result && pd.suite.mode === 'machine' && pd.suite.coup.enchainement?.mode === 'tirRapide') fenetresTirRapide++;
-    if (s.pendingRoundStart) { g().confirmRoundStart(); continue; }
+    if (s.pendingRoundStart) { g().fenetreValider('roundStart'); continue; }
     if (main) {
       const surDef = !s.pendingCascade || s.pendingCascade.participants[s.pendingCascade.cursor]?.jet === 'defense';
       if (surDef && pd && !pd.result) { g().jetRoll('defense'); continue; }

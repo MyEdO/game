@@ -5,9 +5,8 @@ import { resumeSuspendedCascade } from './cascade';
 import { applyLandCargoRaid } from './carriers';
 import { t } from '../i18n';
 import { flowFromEffects } from './monde/flow';
-import { decidingSeat, quorumAtteint } from './netOwnership';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables } from './tablesPosees';
 
@@ -29,22 +28,13 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
     /** Attribue un objet d'équipement du butin de victoire au héros choisi (qualités/teinte conservées). */
     assignVictoryGear: (index, heroId) => assignGearAt(get, set, 'pendingVictory', index, heroId),
     harvestCreature: (creatureId) => harvestVictoryCreature(get, set, creatureId),
-    victoryReady: () => {
-      const pv = get().pendingVictory;
-      if (!pv) return;
-      const readyBySeat = { ...(pv.readyBySeat ?? {}), [decidingSeat(get())]: true };
-      set({ pendingVictory: { ...pv, readyBySeat } });
-      const s = get();
-      if (s.net.mode === 'guest') return; // l'invité ne fait que marquer
-      if (quorumAtteint(s, readyBySeat)) get().fenetreFermer('victory'); // quorum UNIQUE : `siegesRequis`
-    },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les sorties des fenêtres de fin de combat : la victoire, la défaite, le butin. */
 export function sortiesDIssueDeCombat(get: Get, set: Set) {
   return {
-    /** Ferme l'écran de victoire et revient à l'exploration. */
+    /** Ferme l'écran de victoire, au quorum (`sortie: 'quorum'`), et revient à l'exploration. */
     victory: () => {
       get().resolveCargoRaid('victory'); // combat gagné = le convoi est sauf (0 %), le flag s'éteint (#327)
       const pv = get().pendingVictory;

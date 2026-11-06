@@ -5,7 +5,7 @@
  */
 import { RNG, makeRNG } from '../engine/dice';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 /** Graine du RNG de combat avant que l'hôte ne la pose (`seedBattleRng`, D8). */
 const GRAINE_INITIALE_DE_BATAILLE = 1;
@@ -27,5 +27,5 @@ export function creerActionsDesDes(_get: Get, _set: Set) {
     seedRng: (seed) => {
       seedBattleRng(seed);
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

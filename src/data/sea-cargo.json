@@ -106,7 +106,7 @@
       },
       "difficulty": "complexe"
     },
-    "totalDR": 10,
+    "targetDR": 10,
     "maxAttempts": 3,
     "outcomes": [
       {

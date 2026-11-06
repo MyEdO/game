@@ -15,7 +15,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * une unité crée une POSSESSION (`addPossession`) au lieu d'un objet de sac, la bourse paie le prix
  * `purchase` de `creatures.json` (pas le barème trapping).
  * #760 — l'achat d'une unité entre dans l'écran de RÉPARTITION (comme un objet de sac) : le
- * joueur choisit le héros propriétaire, la possession n'est créée qu'à `confirmDistribution`.
+ * joueur choisit le héros propriétaire, la possession n'est créée qu'à la validation de l'échoppe (`fenetreValider('marchand')`).
  */
 const hero = (id: string, name: string): Combatant =>
   combattantDeTest({ id, label: name, items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
@@ -65,7 +65,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     const idx = banc.getState().merchant!.pendingDistribution!.findIndex((d) => 'unit' in d && d.unit.id === 'mule');
     expect(idx).toBeGreaterThanOrEqual(0);
     banc.getState().assignDistribution(idx, 'h2'); // réassigne au 2e héros (pas le défaut party[0])
-    banc.getState().confirmDistribution();
+    banc.getState().fenetreValider('marchand');
     const st = banc.getState();
     const pos = st.possessions.find((p) => p.nature === 'bete' && 'id' in p.ref && p.ref.id === 'mule');
     expect(pos).toBeDefined();
@@ -85,7 +85,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     const st = banc.getState();
     expect(st.merchant!.pendingDistribution).toBeTruthy(); // panier avec objet de sac → écran de répartition renseigné
     expect(st.merchant!.pendingDistribution!.some((d) => 'item' in d && d.item.trappingId === 'selle-et-harnais')).toBe(true);
-    banc.getState().confirmDistribution();
+    banc.getState().fenetreValider('marchand');
     expect(banc.getState().party[0].items!.some((i) => i.trappingId === 'selle-et-harnais')).toBe(true);
   });
 
@@ -103,7 +103,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     expect(itemIdx).toBeGreaterThanOrEqual(0);
     banc.getState().assignDistribution(unitIdx, 'h2');
     banc.getState().assignDistribution(itemIdx, 'h1');
-    banc.getState().confirmDistribution();
+    banc.getState().fenetreValider('marchand');
     const st = banc.getState();
     const pos = st.possessions.find((p) => p.nature === 'bete' && 'id' in p.ref && p.ref.id === 'mule');
     expect(pos!.ownerId).toBe('h2');

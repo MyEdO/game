@@ -264,7 +264,7 @@ describe('fallAcross — combat', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const sc = cliffScene();
     const b = banc.getState().battle!;

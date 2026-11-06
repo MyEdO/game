@@ -5,7 +5,7 @@
  * squelette ou en surface et ses accessoires rigides, le fichier GLB de chaque base et de chaque élément servi, et pour ces seuls éléments les noms de
  * leurs surfaces `blason`, et la marche de chaque base (l'unique clip de ses appuis et sa vitesse au sol, au gabarit
  * neutre) ; les emblèmes sont la sous-liste `embleme` de la garde-robe ; un rigide sans os n'est servi nulle part, les
- * refus de l'index sont rendus, une base à marche ambiguë est refusée seule, un manifeste schéma 2 est ignoré.
+ * refus de l'index sont rendus, une base à marche ambiguë est refusée seule.
  */
 import { describe, expect, it } from 'vitest';
 import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
@@ -14,7 +14,7 @@ import { emplacementsDeRangement, gardeRobe } from '../../../src/noyau/index';
 import { modelesDeLAtelier } from './atelier';
 
 const dos = { os: 'spine', position: [0, 0.1, 0], rotation: [0, 0, 0] };
-const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25 } } };
+const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, clips: { walk: 'Walk_Loop', idle: 'Idle_Loop' }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitesseAuSol: 1.25 } };
 const epee = elementSchema3('humanoide');
 const chemise = {
   schema: 3, base: 'humanoide', categorie: 'vetement', cle: { piece: 'chemise' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse'],
@@ -32,11 +32,10 @@ const bouclier = {
 };
 const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' }, surfaces: [{ nom: 'verre', palette: 'accent', blason: true }], glb: empreinte(glbDElement(null, ['verre'])) };
 const orpheline = { ...elementSchema3('nain'), cle: { apparence: 'hache' } };
-const schema2 = { schema_version: 2, model: 'Lame.glb' };
 
 describe('modelesDeLAtelier', () => {
   const modeles = modelesDeLAtelier(
-    { humanoide, epee, bouclier, lanterne, chemise, teteNaine, broche, orpheline, schema2 },
+    { humanoide, epee, bouclier, lanterne, chemise, teteNaine, broche, orpheline },
     { humanoide: [], epee: ['root'], bouclier: ['spine', 'handslot.l'], lanterne: [], chemise: ['root'], teteNaine: ['root'], broche: ['root'] },
   );
   const lignes = modeles.bases[0].lignes;
@@ -50,8 +49,8 @@ describe('modelesDeLAtelier', () => {
     ]);
   });
 
-  it('une base publie sa marche : l’unique clip de `appuis.vitessesAuSol` et sa vitesse au sol, au gabarit neutre', () => {
-    expect(modeles.bases[0].marche).toEqual({ clip: 'Walk_Loop', vitesse: 1.25 });
+  it('une base publie sa table rôle → clip et la vitesse au sol de son rôle `walk`, au gabarit neutre', () => {
+    expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ walk: 'Walk_Loop', idle: 'Idle_Loop' }, 1.25]);
   });
 
   it('chaque point porte exactement les objets rigides de la base dont un mesh pend à son os, ni le squelette, ni la surface, ni un accessoire', () => {
@@ -86,7 +85,7 @@ describe('modelesDeLAtelier', () => {
 
   it('un vêtement lié au squelette est servi sur la ligne de sa pièce, et nulle autre', () => {
     expect(lignes.filter((l) => 'id' in l && l.elements.length > 0)).toEqual([
-      { sorte: 'piece', id: 'chemise', label: gardeRobe.find(({ id }) => id === 'chemise')?.label, elements: ['chemise'] },
+      { sorte: 'piece', variantes: false, id: 'chemise', label: gardeRobe.find(({ id }) => id === 'chemise')?.label, elements: ['chemise'] },
       { sorte: 'emplacement', id: 'epaule_d', label: gardeRobe.find(({ id }) => id === 'epaule_d')?.label, elements: ['broche'] },
     ]);
   });
@@ -116,15 +115,6 @@ describe('modelesDeLAtelier', () => {
     expect(modeles.refus).toEqual(['[base-absente] orpheline : nain']);
   });
 
-  it('une base à marche ambiguë est refusée seule, sans son GLB ni ceux de ses éléments ; les autres bases restent servies', () => {
-    const elfe = { ...baseDeTest('elfe'), appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25, Run_Loop: 3 } } };
-    const dague = elementSchema3('elfe');
-    const avecElfe = modelesDeLAtelier({ humanoide, epee, elfe, dague }, { humanoide: [], epee: ['root'], elfe: [], dague: ['root'] });
-    expect(avecElfe.bases.map(({ id }) => id)).toEqual(['humanoide']);
-    expect(avecElfe.refus).toEqual(['[marche-ambigue] elfe : 2 clip(s) dans appuis.vitessesAuSol (Walk_Loop, Run_Loop), un seul attendu']);
-    expect(avecElfe.glb).toEqual({ humanoide: 'humanoide.glb', epee: 'epee.glb' });
-  });
-
   it('un accessoire rigide est servi à la ligne de son emplacement, jamais à un point ; si ni la base ni aucune de ses pièces ne l’offre, il est rapporté, sans refus, et servi nulle part', () => {
     const plumet = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'plumet' }, couche: 'tenue' };
     const casque = { ...chemise, categorie: 'armure', cle: { piece: 'casque' }, couche: 'armure', emplacements: { cimier: dos } };
@@ -139,9 +129,5 @@ describe('modelesDeLAtelier', () => {
     expect(avecCimier.bases[0].lignes.filter((l) => 'id' in l && l.elements.includes('plumet')).map((l) => ('id' in l ? `${l.sorte}:${l.id}` : l.sorte))).toEqual(['emplacement:cimier']);
     expect(avecCimier.bases[0].points.flatMap(({ elements }) => elements)).toEqual([]);
     expect(servis(avecCimier)).toEqual(['casque', 'plumet']);
-  });
-
-  it('un manifeste schéma 2 est ignoré', () => {
-    expect(modelesDeLAtelier({ schema2 }, {})).toEqual({ bases: [], glb: {}, refus: [], rapport: [], surfaces: {}, libelles: {}, emblemes: modeles.emblemes });
   });
 });

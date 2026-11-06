@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// L'IMPORT D'UN PERSONNAGE 3D MODULAIRE (#2948) : la commande de `importerPersonnage` (`asset/importer.ts`). Elle verse
+// L'IMPORT D'UN MODÈLE 3D MODULAIRE (#2948) : la commande de `importerPersonnage` (`asset/importer.ts`). Elle verse
 // le GLB et sa source dans la Release des modèles (`asset/release.ts`, par `gh`), sauf `--sans-publier`, puis dit les
 // fichiers écrits et le rapport de l'index (`indexerModeles`), qui ne bloque rien ; ou chaque refus, et sort alors en 1
 // sans rien publier ni écrire.
@@ -10,11 +10,10 @@ const { importerPersonnage, DOSSIER_DES_MODELES, publierAssets, TAG } = await ch
 
 const USAGE = `Usage : node hotes/godot/importer.mjs <dossier de production> <id de modèle> [--destination <dossier>] [--sans-publier] [--remplacer]
   <dossier de production>  manifest.json : model, model_sha256, manifeste (base schéma 4 ou élément schéma 3) ; au plus un *.blend ; des LICENSE*.txt
-  <id de modèle>           le nom des fichiers déposés : <id>.manifeste.json, <id>.provenance.json, les LICENSE-*.txt ;
-                           modèle modulaire : <id>.glb écrit aussi ; schéma 2 : <id>.glb tiré de la Release à la construction (construire.mjs)
+  <id de modèle>           le nom des fichiers déposés : <id>.glb, <id>.manifeste.json, <id>.provenance.json, les LICENSE-*.txt
   --destination <dossier>  où les déposer (défaut : ${DOSSIER_DES_MODELES})
   --sans-publier           ne verse rien dans la Release ${TAG} (tests, sondes, éléments d’essai déclarés hors_release)
-  --remplacer              remplace le modèle modulaire déjà importé sous <id> ; une base, si chaque élément qui la référence
+  --remplacer              remplace le modèle déjà importé sous <id> ; une base, si chaque élément qui la référence
                            passe contre elle, sinon rien n'est écrit`
 
 /** Les arguments de la ligne de commande, ou l'erreur qui les refuse. */

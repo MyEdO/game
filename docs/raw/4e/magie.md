@@ -1719,7 +1719,7 @@ Table de synthèse des modificateurs (Incantation / Focalisation / Saturation) e
 
 ### Refs-code couvertes
 
-Toutes les refs `LDB 46 l.XXX` présentes dans `src/engine/magic.ts` et `src/engine/miscast.ts` sont couvertes par une entrée de ce document. La Surincantation (LDB 47/41/42) est implémentée dans `src/engine/overcast.ts` (math source-aware pure) + `effectiveSpellRangeTiles`/`spellTargetCount` (`magic.ts`), alloué/résolu par `castAllocOvercast`/`applyCast`/`overcastTargetCandidates`.
+Toutes les refs `LDB 46 l.XXX` présentes dans `src/engine/magic.ts` et `src/engine/miscast.ts` sont couvertes par une entrée de ce document. La Surincantation (LDB 47/41/42) est implémentée dans `src/engine/overcast.ts` (math source-aware pure) + `effectiveSpellRangeTiles`/`spellTargetCount` (`magic.ts`), alloué/résolu par réglage `cast.surincantation*`/`applyCast`/`overcastTargetCandidates`.
 
 ### Écarts / points à vérifier
 

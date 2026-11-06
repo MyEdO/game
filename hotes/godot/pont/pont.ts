@@ -4,18 +4,19 @@
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend. La fiche que
  * l'écran montre et la création d'un héros sont des états du pont, que les méthodes `fiche` et `creation` posent,
- * jamais de la partie ; seul l'engagement du héros créé la touche.
+ * jamais de la partie ; seul l'engagement du héros créé la touche. Les modèles servis (`modeles`) sont un état du pont
+ * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
+ * l'atelier (`composerSurLaBase`).
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/hote/formes';
-import { modelesDesCombattants, type CouvertureDesModeles } from './equipement';
 import { fenetreADessiner } from '../../../src/hote/gestes';
 import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
 import { modelesDeLAtelier, type ModelesDeLAtelier } from './atelier';
-import { composerSurLaBase } from './composition';
+import { composerSurLaBase, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
@@ -35,15 +36,27 @@ interface ErreurGlobale {
   source: string | null;
 }
 
-/** La vue : la projection commune (`projeter`), la disposition de la fenêtre qui tient la main
- *  (`FenetreADessiner.disposition`, `null` sans fenêtre), chaque zone de l'écran et ses éléments (`zonesDeLEcran`, la
+/** Les corps du combat (`VueDuPont.corps`). */
+export interface CorpsDuCombat {
+  /** null : les corps sont composés ; sinon pourquoi aucun ne l'est : aucun `modeles` appelé, ou un nombre de bases
+   *  servies différent de un (`base-ambigue`). */
+  refus: string | null;
+  /** Par id de combattant dessiné (`combat.voisins.liste`, sinon `exploration.heros`) : la base et la composition de sa
+   *  portée sur elle (`composerSurLaBase`), `null` si sa portée est `null` (corps sans base de ce plan) ou sous refus. */
+  combattants: Record<string, (CompositionSurLaBase & { base: string }) | null>;
+}
+
+/** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
+ *  fenêtre qui tient la main (`FenetreADessiner.disposition`, `null` sans fenêtre), chaque zone de l'écran et ses
+ *  éléments (`zonesDeLEcran`, la
  *  fiche posée par `fiche` comprise), les cases
  *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), les clics du
  *  champ par ce qu'ils désignent (`CLICS_DU_CHAMP` la barre de l'actif ouverte, `CLICS_DE_L_EXPLORATION` en exploration
  *  quand rien ne tient la main ; `null` sinon), et l'id du
  *  combattant que chaque case porte, par `"x,y"`. */
-export interface VueDuPont extends CouvertureDesModeles {
+export interface VueDuPont {
   projection: Projection;
+  corps: CorpsDuCombat;
   disposition: string | null;
   zones: ZonesDeLEcran;
   cases: CaseAtteignable[];
@@ -62,7 +75,7 @@ export interface Suite {
 }
 
 /** Godot dessine tout : aucune liste de la projection n'est bornée. */
-const SANS_BORNE: BornesDeLaProjection = { autres: Infinity, offres: Infinity, cibles: Infinity, gestes: Infinity, entites: Infinity };
+export const SANS_BORNE: BornesDeLaProjection = { autres: Infinity, offres: Infinity, cibles: Infinity, gestes: Infinity, entites: Infinity };
 
 /** Les clés de l'entrée d'un geste : celles d'une offre, ou celles d'un verbe (`Geste`). */
 const clesDuGeste = (e: Record<string, unknown>): readonly string[] => ('offre' in e ? ['offre', 'ctx'] : 'suite' in e ? ['suite'] : ['type', 'args', 'siege']);
@@ -99,12 +112,26 @@ function entreeDe(methode: string, json: string | null | undefined, cles: readon
 export function creerPont() {
   let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; fiche: FicheOuverte | null; creation: CreationOuverte | null; brouillons: number }) | null = null;
   const erreurs: ErreurGlobale[] = [];
-  /** Les manifestes et les modèles du dernier `modeles`, que `composer` lit. */
-  let atelier: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
+  /** Les manifestes et les modèles du dernier `modeles`, que `composer` et les corps de la vue lisent. */
+  let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
 
   const demarree = () => {
     if (!ouverte) throw new ErreurDeGeste('validation', 'aucune partie : demarrer d’abord');
     return ouverte;
+  };
+
+  /** Les corps des combattants dessinés de `projection`, chacun sa portée composée sur l'unique base servie. */
+  const corpsDe = (projection: Projection): CorpsDuCombat => {
+    const dessines = projection.combat?.voisins.liste ?? projection.exploration?.heros ?? [];
+    const bases = modeles?.modeles.bases ?? [];
+    const refus = !modeles
+      ? '[sans-modeles] aucun modeles appelé'
+      : bases.length !== 1 ? `[base-ambigue] ${bases.length} base(s) servie(s)${bases.length ? ` (${bases.map((b) => b.id).join(', ')})` : ''}, une attendue` : null;
+    const base = refus === null ? bases[0] : null;
+    return {
+      refus,
+      combattants: Object.fromEntries(dessines.map(({ id, portee }) => [id, base && portee ? { base: base.id, ...composerSurLaBase(base, modeles!.manifestes, portee) } : null])),
+    };
   };
 
   const vueDe = (o: NonNullable<typeof ouverte>): VueDuPont => {
@@ -114,7 +141,7 @@ export function creerPont() {
     const fenetre = fenetreADessiner(etat);
     return {
       projection,
-      ...modelesDesCombattants(combat?.voisins.liste ?? projection.exploration?.heros ?? []),
+      corps: corpsDe(projection),
       disposition: fenetre?.disposition ?? null,
       zones: zonesDeLEcran(etat, projection, fenetre, o.fiche, o.creation),
       cases: casesAtteignables(etat),
@@ -216,16 +243,16 @@ export function creerPont() {
       valider(estObjet(e.manifestes), 'modeles : manifestes, un objet id de modèle → manifeste');
       valider(estObjet(e.osDesRigides) && Object.values(e.osDesRigides).every(estListeDeChaines), 'modeles : osDesRigides, un objet id de modèle → os de ses meshes rigides');
       const manifestes = e.manifestes as Record<string, unknown>;
-      atelier = { manifestes, modeles: modelesDeLAtelier(manifestes, e.osDesRigides as Record<string, string[]>) };
-      return atelier.modeles;
+      modeles = { manifestes, modeles: modelesDeLAtelier(manifestes, e.osDesRigides as Record<string, string[]>) };
+      return modeles.modeles;
     },
     composer(json) {
       const e = entreeDe('composer', json, ['base', 'composition', 'emblemes']);
-      valider(atelier !== null, 'composer : aucun modèle, appeler modeles d’abord');
-      const base = atelier!.modeles.bases.find((b) => b.id === e.base);
-      valider(base !== undefined, `composer : base, l’id d’une base servie par modeles (${atelier!.modeles.bases.map((b) => b.id).join(', ') || 'aucune'})`);
+      valider(modeles !== null, 'composer : aucun modèle, appeler modeles d’abord');
+      const base = modeles!.modeles.bases.find((b) => b.id === e.base);
+      valider(base !== undefined, `composer : base, l’id d’une base servie par modeles (${modeles!.modeles.bases.map((b) => b.id).join(', ') || 'aucune'})`);
       const emblemes = valeurLue('composer', 'emblemes', lireSurchargesDEmblemes(e.emblemes === undefined ? {} : e.emblemes));
-      return composerSurLaBase(base!, atelier!.manifestes, compositionDe('composer', e.composition), emblemes);
+      return composerSurLaBase(base!, modeles!.manifestes, porteeDeComposition(compositionDe('composer', e.composition)), emblemes);
     },
     catalogues(json) {
       entreeDe('catalogues', json, []);
@@ -269,7 +296,14 @@ export function creerPont() {
     }
   }
 
-  return { appeler };
+  /** Ferme la partie ouverte : le noyau n'en tient qu'une par processus, et un hôte sans page à recharger (la sonde qui
+   *  fige un scénario après l'autre) la rend avant d'en démarrer une autre sur un pont neuf. */
+  function fermer(): void {
+    demarree().partie.fermer();
+    ouverte = null;
+  }
+
+  return { appeler, fermer };
 }
 
 /** Le pont que la page expose à Godot. */

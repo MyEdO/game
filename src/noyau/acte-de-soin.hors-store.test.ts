@@ -11,7 +11,7 @@ import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { creditBourse } from './bourseFlow';
 import { currentTargetingMode } from './targetingModes';
-import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
+import { traumaById, dechirureFractureFicheId, avecSequelles } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import type { MedicNpc } from './medicFlow';
@@ -76,7 +76,7 @@ describe('medicAct lit refusDActeDeSoin', () => {
   });
 
   it('Rééducation sans Aide Médicale : refusée, dit « Aide Médicale requise avant de rééduquer le membre. »', () => {
-    poser([hero({ id: 'doc' }), hero({ id: 'p', label: 'Patient', skills: [], traumas: [{ label: 'Épaule luxée', location: 'brasD', restoreDR: 6, awaitingMedicalAid: true, ops: [] }] })]);
+    poser([hero({ id: 'doc' }), hero({ id: 'p', label: 'Patient', skills: [], traumas: [{ uid: 't1', label: 'Épaule luxée', location: 'brasD', restoreDR: 6, awaitingMedicalAid: true, ops: [] }] })]);
     banc.getState().medicAct('recovery');
     expect(banc.getState().medic?.surgery).toBeUndefined();
     expect(dernierRefus()).toBe('Aide Médicale requise avant de rééduquer le membre.');
@@ -126,8 +126,8 @@ describe('medicAct lit refusDActeDeSoin', () => {
     creditBourse(banc.getState, banc.setState, 'p', { gold: 5, silver: 0, brass: 0 });
     banc.getState().medicAct('wounds');
     expect(banc.getState().pendingHeal?.mode).toBe('wounds');
-    banc.getState().healSetMode('bleed');
-    banc.getState().healSetMode('surgery');
+    banc.getState().jetRegler('heal', 'mode', 'bleed');
+    banc.getState().jetRegler('heal', 'mode', 'surgery');
     expect(banc.getState().pendingHeal?.mode).toBe('wounds');
     expect(dernierRefus()).toBe('À l’infirmerie, l’acte se choisit avant le jet.');
   });
@@ -166,9 +166,9 @@ describe('battleHeal lit le filtre de combat', () => {
     expect(banc.getState().refus?.texte).toBe('Ce soin ne se pratique pas en combat.');
   });
 
-  it('Chirurgie demandée en combat par un invité : refusée, sans bandeau chez l’hôte', () => {
+  it('Chirurgie demandée en combat par un invité : `battleHeal` est de la machinerie, hors allowlist, sans effet ni bandeau', () => {
     poserLeCombat('host');
-    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'battleHeal', ['al', 'surgery'])).toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'battleHeal', ['al', 'surgery'])).toBe('hors-allowlist');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus).toBeNull();
   });
@@ -176,7 +176,7 @@ describe('battleHeal lit le filtre de combat', () => {
   it('ciblage : un allié déjà soigné cette rencontre, ou à la seule déchirure, n’est pas candidat ; son clic dit le refus', () => {
     poserLeCombat('local');
     const dejaSoigne = hero({ id: 'a', label: 'Soigné', skills: [], wounds: blessuresDeBase(12, 5), soinRencontreUtilise: true, pos: { x: 5, y: 6 } });
-    const dechire = hero({ id: 'b', label: 'Déchiré', skills: [], traumas: [traumaById(dechirureFractureFicheId('dechirure', 'mineur', 'brasG'), { be: 4, d10: 5 }, 'brasG')], pos: { x: 4, y: 5 } });
+    const dechire = hero({ id: 'b', label: 'Déchiré', skills: [], traumas: avecSequelles([], [traumaById(dechirureFractureFicheId('dechirure', 'mineur', 'brasG'), { be: 4, d10: 5 }, 'brasG')]), pos: { x: 4, y: 5 } });
     const b0 = banc.getState().battle!;
     const order = [...b0.order, 'a', 'b'];
     banc.setState({ battle: { ...b0, combatants: [...b0.combatants, dejaSoigne, dechire], order, baseOrder: order } } as never);

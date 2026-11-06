@@ -47,7 +47,7 @@ function drain(): void {
         for (const r of cur.participants) if (r.interactive !== false && !r.result) get().jetRoll('cascadeBatch', r.id);
       }
     }
-    get().cascadeNext();
+    get().jetConfirm('cascade');
   }
 }
 

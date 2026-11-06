@@ -163,7 +163,7 @@ const ARRAYS = {
   // Catalogue des cargaisons (#1684) : le dataset éditable est le tableau BRUT du JSON (marchandises ET
   // marqueurs de l'Index, des deux voies), pas la vue filtrée `marchandisesDe` — sinon une réécriture
   // du dataset perdrait les marqueurs. Le Compendium, lui, n'affiche que les marchandises (filtre à la
-  // VUE, `ui/compendium/registry.ts`).
+  // VUE, `noyau/codex/registry.ts`).
   cargoes: CARGO_ENTRIES as CargoEntry[], riverPerils: RIVER_PERILS,
   crewMoraleFactors: MORALE_FACTORS, crewMoraleBands: MORALE_BANDS, steamBreakdowns: STEAM_BREAKDOWNS,
   criticalsTete, criticalsBras, criticalsCorps, criticalsJambe,

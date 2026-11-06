@@ -2350,7 +2350,7 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     // Proéminence DÉDUITE du rôle (validation) — jamais un champ de style en donnée.
     expect(b!.className).toContain('btn-primary');
     act(() => { b!.click(); });
-    expect(useGame.getState().pendingCleave, 'le clic doit exécuter `cleaveEnd` (dispatcher du registre)').toBeNull();
+    expect(useGame.getState().pendingCleave, 'le clic doit exécuter `fermerLeBalayage` (dispatcher du registre)').toBeNull();
     sansFlux();
   });
 
@@ -3205,10 +3205,9 @@ describe('CombatConsole — contrat SURFACE ⇄ RENDEUR', () => {
 });
 
 /**
- * PAUSE DE ROUND EN COOP (#1411 P2-A) — le bouton du bandeau passait DIRECTEMENT par
- * `confirmRoundStart`, là où la touche (`keybindings.round-start`) routait vers `roundStartReady` en
- * réseau : deux branchements pour un geste, dont un qui ignorait le ready-check. Le bandeau consomme
- * l'entrée `round-start` du registre — LA porte, pour la souris comme pour la touche.
+ * PAUSE DE ROUND EN COOP (#1411 P2-A) — le bouton du bandeau et la touche (`keybindings.round-start`) sont
+ * un seul geste, la validation de la pause (`fenetreValider('roundStart')`), qui respecte le ready-check : le
+ * bandeau consomme l'entrée `round-start` du registre — LA porte, pour la souris comme pour la touche.
  */
 describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touche', () => {
   const bouton = () => host.querySelector('.cc-phase [data-action="round-start"]') as HTMLButtonElement | null;
@@ -3255,7 +3254,7 @@ describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touc
     pause('host');
     act(() => bouton()!.click());
     expect(useGame.getState().pendingRoundStart!.readyBySeat).toEqual({ 0: true });
-    act(() => { withActingSeat(1, () => useGame.getState().roundStartReady()); });
+    act(() => { withActingSeat(1, () => useGame.getState().fenetreValider('roundStart')); });
     expect(useGame.getState().pendingRoundStart, 'quorum atteint : le Round devait s’ouvrir').toBeNull();
   });
 

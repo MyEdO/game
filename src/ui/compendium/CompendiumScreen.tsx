@@ -8,12 +8,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../state/store';
 import { Modal } from '../Modal';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexItemKey, type CodexCategory, type CodexGroup, type CodexItem } from './registry';
+import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexGroupLabel, codexItemKey, type CodexCategory, type CodexGroup, type CodexItem } from '../../noyau/codex/registry';
 import type { CodexFocus } from '../../state/codexFocus';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
-import { filterItems, facetValues, type FacetSelection } from './search';
+import { filterItems, facetRows, type FacetSelection } from '../../noyau/codex/search';
 import { CodexEntry } from './CodexEntry';
-import { CodexEdit, isEditableCategory } from '../editor/codex/CodexEdit';
+import { CodexEdit } from '../editor/codex/CodexEdit';
+import { isEditableCategory } from '../../data/atelierDuCodex';
 import { useAtelierMode, setAtelierMode } from './atelierMode';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
@@ -79,19 +80,7 @@ export function CompendiumScreen({ focus: focusProp }: {
   // ou selon le dernier toggle utilisateur (mémorisé par nom, tant que l'écran est monté).
   const [manualOpen, setManualOpen] = useState<Record<string, boolean>>({});
   const list = useMemo(() => filterItems(cat?.items ?? [], q, cat?.facets ?? [], facetSel), [cat, q, facetSel, version]);
-  // Facettes de la catégorie : valeurs dérivées des items, avec COMPTEUR LIVE — chaque compte est
-  // calculé sous la recherche + les AUTRES facettes (faceting standard) ; une facette à valeur
-  // unique n'apporte rien → masquée.
-  const facetRows = useMemo(
-    () =>
-      (cat?.facets ?? [])
-        .map((facet) => ({
-          facet,
-          values: facetValues(filterItems(cat!.items, q, cat!.facets ?? [], { ...facetSel, [facet.key]: [] }), facet),
-        }))
-        .filter((r) => r.values.length > 1),
-    [cat, q, facetSel, version],
-  );
+  const facettes = useMemo(() => facetRows(cat?.items ?? [], q, cat?.facets ?? [], facetSel), [cat, q, facetSel, version]);
   const toggleFacet = (key: string, value: string) =>
     setFacetSel((s) => {
       const cur = s[key] ?? [];
@@ -160,7 +149,7 @@ export function CompendiumScreen({ focus: focusProp }: {
         <div className="codex-groups">
           <Tabs
             label="Groupes du Codex"
-            tabs={CODEX_GROUPS.map((g) => ({ key: g, label: g }))}
+            tabs={CODEX_GROUPS.map((g) => ({ key: g, label: codexGroupLabel(g) }))}
             active={group}
             onChange={pickGroup}
           />
@@ -218,7 +207,7 @@ export function CompendiumScreen({ focus: focusProp }: {
                 <SourceBadge source={cat.sourceRef} />
               </div>
             )}
-            {facetRows.map(({ facet, values }) => (
+            {facettes.map(({ facet, values }) => (
               <div className="codex-facets" key={facet.key}>
                 <span className="codex-facet-label section-label">{facet.label}</span>
                 {values.map(({ value, count }) => {

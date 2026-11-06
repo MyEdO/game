@@ -4,7 +4,12 @@
 // `pont/CONTRAT.md`, section « Écran publié ») : le texte et le centre de chaque bouton, le point de chaque case, l'état
 // de l'atelier. Aucun geste ne passe par le pont : chaque intention part d'un clic, d'un cran de molette ou d'une frappe.
 // Chaque parcours s'ouvre depuis le menu d'entrée :
-// - `combat` (défaut) : la fenêtre du round à l'Entrée, une charge sur la plus proche des cibles que la charge offre,
+// - `combat` (défaut) : avec `--modeles` et `--element` (#3253), le dossier neuf servi sous `modeles/` reçoit la base et
+//   les éléments du projet (manifestes, provenances et licences de `projet/modeles`, GLB tirés de la Release par
+//   `recupererModeles`), puis `--element` importé (`importer.mjs --sans-publier`) ; le combat ouvert, chaque combattant
+//   à corps de la vue a la base de l'élément, celle que l'écran publie posée (`wfrpEcran.corps`), et le combattant dont
+//   le corps monte `--element` a monté aussi la tête de sa vue et porte, à la ligne de sa prise `off`, l'emblème de sa
+//   donnée (`portee.embleme`) ; sans ces options, le dossier servi est celui du projet. Puis la fenêtre du round à l'Entrée, une charge sur la plus proche des cibles que la charge offre,
 //   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche
 //   d'une case (aperçu puis déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de
 //   Godot jusqu'à la Défense du héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
@@ -21,6 +26,12 @@
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
 //   réponse cliquée : l'interlocuteur suivant prend la parole.
+// - `document` (`--scenario documents-edo`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à côté de la
+//   liasse, son offre cliquée, « Chapitre 1 » puis « Lire » : le document se lit au centre ; « Refermer » rend la
+//   conversation à la liasse.
+// - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement, la liste des sorts de la Haute
+//   Sorcière ouverte, Fléchette choisie au clavier, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
+//   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
 //   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
@@ -30,8 +41,9 @@
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
-//   « Recharger les modèles » : l'élément offert par la liste des seuls points dont l'os porte sa lame (`osDesRigides`
-//   du listage) ; les aides, l'élément monté puis démonté (« Aucun ») ; si une surface de `--element` porte
+//   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
+//   porte (`osDesRigides` du listage) et de chaque emplacement où se range sa forme (`emplacementsDeRangement`), et de
+//   ceux-là seuls (`CONTRAT.md`, « Atelier 3D ») ; les aides, l'élément monté puis démonté (« Aucun ») ; si une surface de `--element` porte
 //   `blason: true` (#3111), deux emblèmes posés tour à tour à la prise `main`, chacun sans erreur publiée, puis
 //   « Aucun » et le premier reposé, ces quatre choix sans requête du GLB de l'élément (`performance`, page) ni appel
 //   `composer` de Godot (`wfrpPont.appeler` enveloppé, témoins : le GLB requis au montage, `modeles` appelé au premier
@@ -49,6 +61,8 @@
 // console rendent un code non nul.
 //
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
+//   node hotes/godot/recette.mjs --scenario embleme-au-combat --web <export> --captures <dossier> --modeles <dossier neuf>
+//     --element <production d'un élément à surface blason>
 //   node hotes/godot/recette.mjs --parcours exploration --scenario porte-close --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
@@ -58,7 +72,7 @@
 //     --base <production> --piece <production skinnée>
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
@@ -75,7 +89,8 @@ const { values: o } = parseArgs({
 if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|fiche|inventaire|creation|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
-if (['atelier', 'composition'].includes(o.parcours) && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
+if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
+if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
 
 /** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
 const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
@@ -143,10 +158,61 @@ async function finirLeTour() {
   if (v.projection.combat.finDeTourArmee) await cliquerBouton({ element: 'bouton/end-turn' })
 }
 
+/** Le dossier neuf `--modeles` rempli des modèles épinglés du projet (`modelesEpingles`) : le manifeste, la provenance
+ *  et les licences de chacun copiés, ses GLB tirés de la Release (`recupererModeles`) ; puis `--element` importé sous le
+ *  nom de son dossier de production. L'id de l'élément importé. */
+async function preparerLesModeles() {
+  const { DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, recupererModeles } = await chargerAssets([
+    "export { modelesEpingles } from '/hotes/godot/asset/release.ts';",
+    "export { fichiersDuModele } from '/hotes/godot/asset/modeles.ts';",
+  ])
+  const { modeles: epingles, erreurs } = modelesEpingles(DOSSIER_DES_MODELES)
+  assert.deepEqual(erreurs, [], 'les modèles du projet sont épinglés')
+  mkdirSync(o.modeles, { recursive: true })
+  for (const { id, licences } of epingles) {
+    const { manifeste, provenance } = fichiersDuModele(id)
+    for (const f of [manifeste, provenance, ...licences]) cpSync(join(DOSSIER_DES_MODELES, f), join(o.modeles, f))
+  }
+  const modeles = await recupererModeles({ dossier: o.modeles, journal: noter })
+  const id = basename(resolve(o.element))
+  importer(o.element, id)
+  noter(`--modeles : ${modeles.length} modèles du projet, puis « ${id} » importé`)
+  return id
+}
+
+/** Le combat ouvert, chaque corps de la vue posé à l'écran (`wfrpEcran.corps`) sur la base de l'élément `elementId` ;
+ *  le combattant dont le corps le monte a monté aussi la tête de sa vue et porte, à la ligne de sa prise `off`, l'emblème
+ *  de sa donnée. */
+async function prouverLEmbleme(elementId) {
+  const base = production(o.element).manifeste.base
+  const v = await vue()
+  assert.equal(v.corps.refus, null, 'les modèles servis composent les corps')
+  const corps = Object.entries(v.corps.combattants).filter(([, c]) => c !== null)
+  assert.ok(corps.length > 0 && corps.every(([, c]) => c.base === base), `chaque corps de la vue sur « ${base} » : ${JSON.stringify(corps.map(([id, c]) => [id, c.base]))}`)
+  const [id, compose] = corps.find(([, c]) => c.montes.some((m) => m.element === elementId)) ?? []
+  assert.ok(id, `un combattant monte « ${elementId} »`)
+  const combattant = v.projection.combat.voisins.liste.find((c) => c.id === id)
+  const ligne = combattant.portee.portees.find((p) => p.point === 'off')?.point
+  const embleme = combattant.portee.embleme?.id
+  const tete = compose.montes.find((m) => m.ligne === 'ligne/tete')?.element
+  assert.ok(ligne && embleme && tete, `${combattant.nom} tient en main off, sa donnée nomme un emblème et sa tête a un élément : ${JSON.stringify(combattant.portee)}`)
+  assert.equal(compose.montes.find((m) => m.ligne === ligne)?.element, elementId, `« ${elementId} » à la ligne « ${ligne} »`)
+  const pose = `(() => { const c = globalThis.wfrpEcran?.corps; return !!c && ${JSON.stringify(corps.map(([i]) => i))}.every((i) => c[i]?.base === ${JSON.stringify(base)})
+    && c[${JSON.stringify(id)}].elements.includes(${JSON.stringify(elementId)}) && c[${JSON.stringify(id)}].elements.includes(${JSON.stringify(tete)})
+    && c[${JSON.stringify(id)}].emblemes[${JSON.stringify(ligne)}] !== undefined })()`
+  await waitFor(session, pose, { timeoutMs: 120000 })
+  const publie = (await ecran()).corps
+  assert.equal(publie[id].emblemes[ligne], embleme, `l’emblème de la donnée de ${combattant.nom} posé à la ligne « ${ligne} »`)
+  noter(`corps posés sur « ${base} » : ${corps.map(([i]) => i).join(', ')} ; ${combattant.nom} monte ${publie[id].elements.join(', ')}, emblème « ${publie[id].emblemes[ligne]} » à « ${ligne} »`)
+  await capturer('3253-embleme-au-combat')
+}
+
 async function parcoursCombat() {
+  const elementId = o.element ? await preparerLesModeles() : null
   await cliquerBouton('Combat')
   noter('menu : bouton « Combat » cliqué')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  if (elementId) await prouverLEmbleme(elementId)
   let v = await vue()
   assert.ok(v.projection.fenetre, 'la fenêtre du round tient la main')
   assert.equal(v.projection.combat.round, 1)
@@ -177,7 +243,7 @@ async function parcoursCombat() {
   assert.ok(element(v, 'fenetre.corps', 'cible')?.texte.includes(proche.nom), 'sur sa cible')
   assert.equal(element(v, 'fenetre.corps', 'jet').verdict, null, 'le jet est à lancer')
   noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} » ouverte ; ${corps(v)}`)
-  const localiser = element(v, 'fenetre.reglages', 'attackSetLocation')
+  const localiser = element(v, 'fenetre.reglages', 'jetRegler@attack#localisation')
   const lieu = localiser.valeurs.find((x) => x.jeu.args.at(-1) !== null)
   await cliquerBouton(bouton(lieu))
   v = await vue()
@@ -231,7 +297,7 @@ async function parcoursCombat() {
   assert.ok(zone(v, 'fenetre.etape')[0]?.texte.includes(defenseur.nom), 'l’étape nomme le héros qui se défend')
   noter(`Défense ouverte par les minuteurs : ${corps(v)} ; à ${defenseur.nom}`)
   await capturer('2928-6c-5-defense')
-  const [jetDeDefense, reagir] = [enFocus(v).id, 'defenseSetMode']
+  const [jetDeDefense, reagir] = [enFocus(v).id, 'jetRegler@defense#reaction']
   assert.ok(ouverts(v).includes(reagir), 'avant le jet, la réaction se dessine')
   noter(`gestes dessinés avant la Défense : ${ouverts(v).join(', ')}`)
   await cliquerBouton(bouton(enFocus(v)))
@@ -369,6 +435,102 @@ async function parcoursDialogue() {
   v = await vue()
   noter(`réponse cliquée : ${zone(v, 'dialogue.orateur')[0]?.texte} prend la parole`)
   await capturer('3328-h1-3-interlocuteur-suivant')
+}
+
+async function parcoursDocument() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const pres = { x: 2, y: 2 }
+  await cliquerCase(pres)
+  await attendreLaVue(`v.projection.exploration?.groupe.join() === '${pres.x},${pres.y}'`)
+  v = await vue()
+  const parcourir = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.args?.[1] === 'lire'))
+  assert.ok(parcourir, `à portée de la liasse, son offre est un bouton : ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
+  await cliquerBouton(bouton(parcourir))
+  await attendreLaVue("v.zones['dialogue.reponses'].length > 0")
+  for (const debut of ['Chapitre 1', 'Lire']) {
+    v = await vue()
+    const reponse = zone(v, 'dialogue.reponses').find((b) => b.libelle.startsWith(debut))
+    assert.ok(reponse, `la réponse « ${debut} » est un bouton : ${zone(v, 'dialogue.reponses').map((b) => b.libelle).join(' | ')}`)
+    await cliquerBouton(bouton(reponse))
+  }
+  await attendreLaVue("v.zones['fenetre.corps'][0]?.id === 'lecture'")
+  v = await vue()
+  noter(`document « ${zone(v, 'fenetre.titre')[0]?.texte} » : ${zone(v, 'fenetre.corps')[0]?.texte.length} caractères`)
+  await capturer('3328-i1-1-document')
+  const refermer = zone(v, 'fenetre.gestes').find((b) => b.type === 'bouton')
+  await cliquerBouton(bouton(refermer))
+  await attendreLaVue("v.zones['dialogue.reponses'].length > 0 && !v.projection.fenetre")
+  noter(`« ${refermer.libelle} » : la conversation revient à la liasse`)
+  await capturer('3328-i1-2-referme')
+}
+
+async function parcoursIncantation() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  const viderLesFenetres = async () => {
+    for (let v = await vue(); v.projection.fenetre; v = await vue()) {
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  await viderLesFenetres()
+  await cliquerCase({ x: 16, y: 11 })
+  await attendreLaVue('!!v.projection.combat')
+  await viderLesFenetres()
+  let v = await vue()
+  assert.equal(zone(v, 'combat.actif')[0]?.nom, 'Aelindra, Haute Sorcière', 'la Haute Sorcière ouvre le combat')
+  const sorts = zone(v, 'combat.offres').find((c) => c.id === 'offre/cast-spell')
+  assert.ok(sorts, `les sorts de l’actif sont un choix : ${zone(v, 'combat.offres').map((c) => c.id).join(' | ')}`)
+  noter(`« ${sorts.libelle} » : ${sorts.valeurs.length} sorts en ${sorts.type}`)
+  await capturer('3328-j1-1-sorts')
+  const cle = `liste/${sorts.id}`
+  const liste = trouver((await ecran()).boutons, { element: cle })
+  assert.ok(liste, `la liste des sorts se dessine : ${(await ecran()).boutons.map((b) => b.element ?? b.texte).join(' | ')}`)
+  const rang = liste.choix.indexOf('Fléchette')
+  assert.ok(rang >= 0, `Fléchette est offerte : ${liste.choix.join(', ')}`)
+  await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: 'liste des sorts' }, clic())
+  await sleep(400)
+  await capturer('3328-j1-2-liste-ouverte')
+  for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  v = await vue()
+  noter(`Fléchette choisie : ${v.projection.combat.cibles.liste.length} cibles`)
+  const cible = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
+  await cliquerCase({ x: cible.pos[0], y: cible.pos[1] })
+  await attendreLaVue('!!v.projection.fenetre')
+  v = await vue()
+  noter(`clic sur ${cible.nom} : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte} »`)
+  await capturer('3328-j1-3-incantation')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  v = await vue()
+  const portee = zone(v, 'fenetre.reglages').find((c) => c.libelle === 'Surincantation : Portée')
+  assert.ok(portee, `le jet tombé ouvre la Surincantation : ${corps(v)} ; réglages ${zone(v, 'fenetre.reglages').map((c) => c.libelle).join(' | ')}`)
+  noter(`jet à l'Entrée : ${corps(v)}`)
+  await capturer('3328-j1-4-jet')
+  await cliquerBouton(bouton(portee.valeurs[1]))
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'surincantation')?.valeur === '0 pas sur 1'")
+  noter('un pas alloué à la Portée : 0 pas sur 1')
+  await capturer('3328-j1-5-surincantation')
+  assert.equal(enFocus(await vue()).libelle, 'Appliquer', 'l’Entrée applique l’incantation')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  await attendreLaVue("v.zones['fenetre.titre'][0]?.texte !== 'Incantation'")
+  noter('« Appliquer » : la fenêtre d’incantation se referme')
+  await capturer('3328-j1-6-appliquee')
 }
 
 async function parcoursFiche() {
@@ -649,14 +811,18 @@ async function parcoursAtelier() {
   await cliquerBouton('Équipement')
   await attendreLAtelier('b.some((x) => x.cle === "main")')
   const { osDesRigides } = await (await fetch(`${srv.url}modeles/`)).json()
-  const porteurs = Object.entries({ ...p0.manifeste.emplacements, ...p0.manifeste.prises }).filter(([, attache]) => osDesRigides[elementId].includes(attache.os)).map(([point]) => point)
+  const pend = (attache) => osDesRigides[elementId].includes(attache.os)
+  const tenu = Object.values(p0.manifeste.prises).some(pend)
+  const { emplacementsDeRangement } = await chargerAssets(["export { emplacementsDeRangement } from '/src/noyau/index.ts';"])
+  const rangements = tenu ? emplacementsDeRangement(element.manifeste.cle.apparence) : []
+  const porteurs = [...Object.entries(p0.manifeste.emplacements).filter(([point, attache]) => pend(attache) || rangements.includes(point)).map(([point]) => point), ...(tenu ? Object.keys(p0.manifeste.prises) : [])]
   const listages = await appels('modeles')
   assert.ok(listages > 0, 'témoin : l’appel `modeles` de Godot au pont relevé par l’enveloppe')
-  assert.ok(porteurs.includes('main'), `l’os de la prise « main » porte la lame (${osDesRigides[elementId].join(', ')})`)
+  assert.ok(tenu, `l’os d’une prise porte « ${elementId} » (${osDesRigides[elementId].join(', ')}) : il est offert à la prise « main »`)
   const listes = await listesDuPanneau()
   const libelle = listes.main[1]
   const desPoints = Object.fromEntries(Object.entries(listes).filter(([cle]) => !cle.includes('/')))
-  assert.deepEqual(desPoints, tableTotale(porteurs, () => [AUCUN, libelle]), `« ${elementId} » offert aux seuls points de l’os qui porte la lame`)
+  assert.deepEqual(desPoints, tableTotale(porteurs, () => [AUCUN, libelle]), `« ${elementId} » offert à chaque prise, aux emplacements dont l’os le porte et à ceux où se range sa forme`)
   noter(`« ${RECHARGER} » : « ${elementId} » (« ${libelle} ») offert aux points ${porteurs.join(', ')} (os ${osDesRigides[elementId].join(', ')}) ; les autres n’ont pas de rangée`)
   await cliquerBouton('Outils')
   for (const aide of ['Os', 'Prises']) await cliquerAmene(aide, 1)
@@ -810,7 +976,8 @@ async function verifierLeCouplage(images, racine, manifeste, assets, reposLocal,
   assert.ok(images.length > 1, 'plusieurs publications de marche')
   const premier = images[0], dernier = images.at(-1), clip = premier.clip
   proche(premier.vitesse, 2, 1e-6, 'fenêtre de couplage au cran ×2')
-  const vitesse = manifeste.appuis.vitessesAuSol[clip]
+  assert.equal(clip, manifeste.clips.walk, 'le clip joué est celui du rôle walk')
+  const vitesse = manifeste.appuis.vitesseAuSol
   assert.ok(Number.isFinite(vitesse) && vitesse > 0, 'vitesse au sol déclarée pour le clip joué')
   const fiche = await assets.evaluer({ base: readFileSync(join(o.base, production(o.base).model)), manifeste, clips: [clip] })
   const appuis = fiche.mesures.clips[0].appuis
@@ -1069,7 +1236,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

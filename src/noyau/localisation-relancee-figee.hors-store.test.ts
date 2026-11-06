@@ -52,7 +52,7 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -71,7 +71,7 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
     banc.getState().jetSetForcedRoll('attack', 21);
     expect(banc.getState().pendingAttack!.result!.critLocation, 'la touche relance la Localisation').toBeDefined();
     const choisie: HitLocation = banc.getState().pendingAttack!.result!.critLocation === 'jambeG' ? 'brasD' : 'jambeG';
-    banc.getState().attackSetCritLocation(choisie);
+    banc.getState().jetRegler('attack', 'localisationDuCritique', choisie);
     return choisie;
   }
 

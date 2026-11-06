@@ -1,0 +1,17 @@
+{
+  "model": "humanoide--accessoire--plumet-simple.glb",
+  "model_sha256": "81eb4a0afd25e312044bbeec84da49f26e784f4f9b8da008998212aa904d5009",
+  "importe_le": "2026-11-05",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

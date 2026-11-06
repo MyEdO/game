@@ -10,7 +10,7 @@ import { toMoney } from '../engine/money';
 import { payFromGroup } from './bourseFlow';
 import { type DialogueTurn, recordTurn } from './monde/dialogueHistory';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
 
 /** Applique une avancée de dialogue (transition vers un nœud, ou clôture) — point UNIQUE partagé par
@@ -26,7 +26,7 @@ function applyDialogueTransition(get: Get, set: Set, tr: DialogueTransition): vo
 
 export function creerActionsDeConversation(get: Get, set: Set) {
   return {
-    chooseDialogue: (choiceIndex) => {
+    chooseDialogue: (choix) => {
       const st = get();
       // LE VERBE VALIDE, pas la surface : la fenêtre grise, la touche se tait, mais c'est ICI que
       // « cette réponse est-elle jouable MAINTENANT ? » se tranche — un intent coop forgé, une touche
@@ -35,13 +35,13 @@ export function creerActionsDeConversation(get: Get, set: Set) {
       //    main (`surfaceTientLaMain` : la fenêtre de jet ou le marché qu'une réponse vient d'ouvrir
       //    SUSPEND la conversation) ;
       //  · `reponsesDuNoeud` — la réponse est VISIBLE (son `when`) et OFFERTE (bourse), par le MÊME
-      //    sélecteur que les deux surfaces. Un index qui n'y figure pas n'existe pas pour le joueur.
+      //    sélecteur que les deux surfaces. Un id qui n'y figure pas n'existe pas pour le joueur.
       //  Une réponse REFUSÉE (siège, bourse) le dit, sauf sous une surface qui tient la main.
-      const r = reponsesDuNoeud(st).find((x) => x.index === choiceIndex);
+      const r = reponsesDuNoeud(st).find((x) => x.id === choix);
       if (r?.refus && !surfaceTientLaMain(st)) { refuserGesteDuSiege(get, set, r.refus); return; }
       if (!conversationRepond(st) || !r?.enabled) return;
       const node = st.dialogue.dialogue.nodes.find((n) => n.id === st.dialogue.nodeId);
-      const choice = node?.choices[choiceIndex];
+      const choice = node?.choices.find((c) => c.id === choix);
       if (!node || !choice) return;
       // Option payante (auberge, péage, pot-de-vin) : dépense de groupe (aucun bénéficiaire héros
       // unique) débitée AVANT les effets ; refus si le total du groupe ne couvre pas.
@@ -82,7 +82,7 @@ export function creerActionsDeConversation(get: Get, set: Set) {
       }
       applyDialogueTransition(get, set, transition);
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */

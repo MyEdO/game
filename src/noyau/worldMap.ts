@@ -26,7 +26,7 @@ import { type LandMarketProfile } from '../engine/landCargo';
 import { isTradeHubEntry } from '../engine/cargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
-import { findNavalPortById, findLieuServiceById, coreAxisIds } from '../data';
+import { findNavalPortById, findLieuServiceById, coreAxisIds, semencesDeScene } from '../data';
 
 /** Lieu posé sur la carte. Être dans `scene` = être à ce lieu ; y arriver → transition vers elle. */
 export interface MapPlace {
@@ -222,9 +222,9 @@ export interface WorldMap {
   routes: MapRoute[];
 }
 
-/** Carte neuve ; l'`id` vient de l'appelant, que l'hôte forge unique (`idDEntropie`, #2817). */
+/** Carte neuve, au libellé de la semence (`semences-de-scene.json`, `carte`) ; l'`id` vient de l'appelant, que l'hôte forge unique (`idDEntropie`, #2817). */
 export function emptyWorldMap(id: string): WorldMap {
-  return { id, label: 'Carte du monde', places: [], routes: [] };
+  return { id, label: semencesDeScene.carte, places: [], routes: [] };
 }
 
 /**

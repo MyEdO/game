@@ -11,7 +11,7 @@ import { ChoixDeSpec, ChoixDeSpecs, RefField, reposerLId, typeDuDataset, useSugg
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { datasetArray } from '../../../data/overrides';
 import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, type Difficulty, type CharKey } from '../../../engine/types';
-import type { DiseaseSymptom } from '../../../engine/disease';
+import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, DotationDePossession, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
@@ -30,8 +30,10 @@ import { relireTrait } from '../../../data/refFormatLivre';
 import { ProvenanceDeValeur } from '../ProvenanceDeValeur';
 import { AlsoInField } from '../../AlsoInField';
 import { useClesDeRangees } from '../../useClesDeRangees';
-import { GameOpEditor, newOp } from '../GameOpEditor';
-import { NoeudTestField, noeudTestNeuf, type NoeudTest } from '../FlowEditor';
+import { GameOpEditor } from '../GameOpEditor';
+import { newOp } from '../../../noyau/valeursNeuves';
+import { noeudTestNeuf } from '../../../data/valeursNeuves';
+import { NoeudTestField, type NoeudTest } from '../FlowEditor';
 import type { GameOp } from '../../../engine/ops';
 import type { CrewTarget } from '../../../data/shipCriticals';
 import { NumberField } from '../../NumberField';
@@ -877,7 +879,7 @@ export function HarvestField({ value, onChange }: { value: Harvest | undefined; 
  *    lieu de `false` passe le schéma, passe l'écriture disque, et éteint la règle SANS UN MOT
  *    (`rule(id)` rend une chaîne, qu'aucun `=== true` ne reconnaît). D'où un contrôle PAR `kind` :
  *    interrupteur, nombre borné (`NumberField`, primitive partagée), ou choix parmi `options`.
- *    Le refus au save vit dans `validateEntry` (`CodexEdit.tsx`) : ici on empêche de se tromper,
+ *    Le refus au save vit dans `validateEntry` (`data/atelierDuCodex.ts`) : ici on empêche de se tromper,
  *    là-bas on empêche d'enregistrer une donnée déjà fausse (JSON édité à la main).
  * ──────────────────────────────────────────────────────────────────────────── */
 

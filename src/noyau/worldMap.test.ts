@@ -114,7 +114,7 @@ describe('parseProject — validation du format projet', () => {
   });
 
   it('#217 : resolvePortRef({ ref, lighthouse }) SPARSE (picker) — le catalogue l\'emporte, lighthouse local préservé', () => {
-    // Verrou anti-régression : DEFAULT_PORT (taille:2, richesse:2) ne doit JAMAIS écraser le catalogue.
+    // Verrou anti-régression : le port neuf de l'éditeur (`portNeuf`, taille:2, richesse:2) ne doit JAMAIS écraser le catalogue.
     const resolved = resolvePortRef({ ref: 'salzenmund', lighthouse: true });
     expect(resolved!.taille).toBe(4); // Salzenmund, MDG 15 l.452 — pas le défaut d'auteur (2)
     expect(resolved!.richesse).toBe(4);

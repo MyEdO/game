@@ -157,14 +157,14 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     ouvrir();
     const hauteur = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 11, hauteur.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     // La 2ᵉ étape (les Dégâts) n'a PAS été mintée d'avance : elle s'append à la résolution de la 1ʳᵉ.
     const p = banc.getState().pendingCascade!;
     const degats = p.participants[p.cursor];
     expect(degats.de!.spec).toEqual({ n: 1, sides: 10 });
     expect(gabier().wounds.current, 'toujours rien : le second dé n’est pas tombé').toBe(200);
     banc.getState().jetSetForcedRoll('cascadeTirage', 4, degats.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(200 - gabier().wounds.current).toBe(3 * 11 + 4 - BE);
   });
 
@@ -191,7 +191,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.de!.spec).toEqual({ n: 1, sides: 10 });
     banc.getState().jetSetForcedRoll('cascadeTirage', 6, st.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade, 'un seul dé, une seule étape').toBeNull();
     const apres = banc.getState().party.find((c) => c.id === 'vigie')!;
     expect(200 - apres.wounds.current).toBe(3 * 25 + 6 - BE);
@@ -276,7 +276,7 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     ouvrirChute(banc.setState, par('h1'), 4);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(200 - par('h1').wounds.current).toBe(3 * 4 + 8 - BE);
     expect(hasCondition(par('h1'), 'a-terre'), 'perte (17) > BE (3), LDB 15 l.84').toBe(true);
   });
@@ -294,7 +294,7 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     // n'a plus de corps où poser les Blessures : il le NOMME au journal au lieu de rendre en silence.
     banc.setState({ party: banc.getState().party.filter((c) => c.id !== 'h1') } as never);
     banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const lu = [...banc.getState().journal, ...draineCascade(banc.getState)].join(' | ');
     expect(lu, `la conséquence est morte en silence : ${lu}`).toMatch(/n’est plus en jeu/);
     expect(banc.getState().pendingCascade, 'la séquence se referme').toBeNull();
@@ -315,7 +315,7 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     ] } as unknown as Flow);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id); // 3×4 + 8 − BE 3 = 17
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const j = banc.getState().journal;
     const iChute = j.findIndex((l) => l.includes('17 Blessure(s)'));
     const iSoin = j.findIndex((l) => l.includes('27 Blessure(s)'));
@@ -349,7 +349,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.kind).toBe('chuteDe');
     banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id); // 3×4 + 8 − BE 3 = 17
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     // 190 − 17 = 173, puis +50 → plafond 200. Dans l'ORDRE INVERSE : 190 + 50 = 200 (40 perdus au
     // plafond) puis −17 = 183 — c'est ce 183 que l'ordre authoré interdit.
     expect(heros().wounds.current).toBe(200);
@@ -366,7 +366,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     expect(heros().wounds.current, 'la suite de la pile attend le dé').toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 4, st.id); // nid-de-pie : 25 m entiers, dé = Dégâts
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     // 190 − (3×25 + 4 − 3) = 114, puis +50 = 164. Ordre inverse : 190+50 → 200, puis −76 = 124.
     expect(heros().wounds.current).toBe(190 - (3 * 25 + 4 - BE) + 50);
   });
@@ -384,7 +384,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     expect(heros().wounds.current, 'la branche ne s’évalue même pas avant le dé').toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(heros().wounds.current).toBe(200);
   });
 
@@ -400,7 +400,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     expect(heros().wounds.current).toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(heros().wounds.current, 'la chute s’est encaissée la première').toBe(190 - 17);
     expect(banc.getState().pendingTest, 'le nœud `test` a repris sa place en tête de la continuation').not.toBeNull();
   });
@@ -416,7 +416,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     expect(heros().wounds.current, 'la branche attend le dé').toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 4, st.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(heros().wounds.current).toBe(190 - (3 * 25 + 4 - BE) + 50);
   });
 });
@@ -437,7 +437,7 @@ describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte qu
     applyLeafOps(banc.getState, banc.setState, parLaPorte, feuille(ops()), { rng: makeRNG(4), ...CTX() });
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 5, st.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const apres = banc.getState().party.find((c) => c.id === 'porte')!;
     expect(200 - apres.wounds.current, '25 m × 3 + dé 5 − BE 3, PUIS les 7 Blessures d’Absorption').toBe(3 * 25 + 5 - BE + 7);
     expect(200 - apres.wounds.current, 'parité avec le chemin direct').toBe(200 - direct.wounds.current);
@@ -529,7 +529,7 @@ describe('(ix) FIN DE COMBAT : un dé en vol n’est pas piétiné par le teardo
     expect(enVol.participants[0].actorId, 'le teardown n’a pas piétiné le dé en vol').toBe('h1');
     expect(banc.getState().suspendedCascades, 'la parquée est restée parquée').toHaveLength(1);
     banc.getState().jetSetForcedRoll('cascadeTirage', 8, enVol.participants[0].id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(200 - par('h1').wounds.current, 'la chute s’est bien encaissée').toBe(3 * 4 + 8 - BE);
     expect(banc.getState().pendingCascade?.participants[0].actorId, 'la parquée reprend le slot libéré').toBe('h2');
     expect(banc.getState().suspendedCascades).toHaveLength(0);
@@ -558,8 +558,8 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   const dialogueDUnSaut = (): Dialogue => ({
     id: 'd-saut', start: 'n1',
     nodes: [
-      { id: 'n1', desc: '.', choices: [{ label: 'Sauter', next: 'n2', flow: CHUTE }] },
-      { id: 'n2', desc: 'De l’autre côté.', choices: [{ label: 'Continuer' }] },
+      { id: 'n1', desc: '.', choices: [{ id: 'sauter', label: 'Sauter', next: 'n2', flow: CHUTE }] },
+      { id: 'n2', desc: 'De l’autre côté.', choices: [{ id: 'continuer', label: 'Continuer' }] },
     ],
   } as unknown as Dialogue);
 
@@ -567,8 +567,8 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   const dialogueDeDeuxSauts = (): Dialogue => ({
     id: 'd-deux', start: 'n1',
     nodes: [
-      { id: 'n1', desc: '.', choices: [{ label: 'Sauter deux fois', next: 'n2', flow: { kind: 'seq', steps: [CHUTE, CHUTE] } }] },
-      { id: 'n2', desc: 'Enfin.', choices: [{ label: 'Continuer' }] },
+      { id: 'n1', desc: '.', choices: [{ id: 'sauter-deux-fois', label: 'Sauter deux fois', next: 'n2', flow: { kind: 'seq', steps: [CHUTE, CHUTE] } }] },
+      { id: 'n2', desc: 'Enfin.', choices: [{ id: 'continuer', label: 'Continuer' }] },
     ],
   } as unknown as Dialogue);
 
@@ -583,7 +583,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('sauter');
     expect(banc.getState().pendingCascade, 'le saut a ouvert son dé de chute').not.toBeNull();
     expect(banc.getState().dialogue?.nodeId, 'le nœud suivant n’est pas encore là').toBe('n1');
     poseLeDe(8);
@@ -599,7 +599,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     seedBattleRng(3);
     const d = {
       id: 'd-clot', start: 'n1',
-      nodes: [{ id: 'n1', desc: '.', choices: [{ label: 'Sauter', flow: CHUTE }] }],
+      nodes: [{ id: 'n1', desc: '.', choices: [{ id: 'sauter', label: 'Sauter', flow: CHUTE }] }],
     } as unknown as Dialogue;
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
@@ -607,7 +607,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scheduledEffects: [{ executeAt: 1003, flow: DIT('événement programmé') }],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('sauter');
     expect(banc.getState().gameTime, 'l’horloge attend le dé').toBe(1000);
     expect(banc.getState().scheduledEffects, 'rien n’est encore dû').toHaveLength(1);
     poseLeDe(8);
@@ -649,7 +649,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('sauter-deux-fois');
     poseLeDe(8);
     expect(banc.getState().pendingCascade, 'la 2ᵉ chute a ouvert son dé').not.toBeNull();
     expect(banc.getState().dialogue?.nodeId, 'la clôture est repartie avec LUI').toBe('n1');
@@ -737,7 +737,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('sauter-deux-fois');
     poseLeDe(8);
     const clefs = ['pendingCascade', 'dialogue', 'party', 'scene', 'journal', 'gameTime', 'flags', 'scheduledEffects', 'suspendedCascades'] as const;
     const etat = banc.getState() as unknown as Record<string, unknown>;
@@ -990,7 +990,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
       expect(r.result, `la rangée ${r.id} a bien lancé`).not.toBeNull();
       expect(r.result!.success, `prémisse du contrat : ${r.id} RATE son Athlétisme`).toBe(false);
     }
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
   };
 
   const etape = () => {
@@ -999,7 +999,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   };
   const poser = (v: number): void => {
     banc.getState().jetSetForcedRoll('cascadeTirage', v, etape().id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
   };
 
   /** Monte la file de combat. `sieges` = qui le joueur TIENT (le party) : un PNJ enregistré au combat

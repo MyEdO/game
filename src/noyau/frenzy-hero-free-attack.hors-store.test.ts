@@ -24,7 +24,7 @@ describe('Frénésie — attaque gratuite d’un héros (Auto-combat)', () => {
     banc.setState({ party: makeShowcaseParty() });
     banc.getState().startScene(embuscadeConstruit.scene);
     banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.kind === 'hero' && (c.weapons ?? []).some((w) => w.type === 'melee'))!;
     const foe = b.combatants.find((c) => c.kind === 'enemy' && !c.dead)!;

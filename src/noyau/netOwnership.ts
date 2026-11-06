@@ -5,7 +5,7 @@
  */
 import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
-import { modalOwnerOf, horsModalOwnedIntents, horsModalByPending, sortieDeLaFenetre, type HorsModalDef } from './modalArbiter';
+import { modalOwnerOf, horsModalByPending, sortieDeLaFenetre, validationDeLaFenetre, type GesteDeFenetreDeclare, type HorsModalDef, type QuiValideLaFenetre } from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { seatOwns, jetSurfaced, siegeDuHeros } from './sieges';
 import { targetingHolder } from './targetingHolder';
@@ -13,11 +13,8 @@ import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type RollVerb } from './flowVerbs';
 import type { PendingKey } from './stateFields';
+import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
 import { WORLD_STEP_OWNER } from './pendings';
-
-/** Intents adossés à une fenêtre HORS registre de modales (`HORS_MODAL`, #1016) — DÉRIVÉS de ce
- *  registre, jamais énumérés à la main. */
-const HORS_MODAL_OWNED_INTENTS: Readonly<Record<string, HorsModalDef>> = horsModalOwnedIntents();
 
 /** Fenêtres HORS-modale indexées par leur `pending*` (#1016) — la possession du CLIC DE CARTE s'y
  *  prend quand `targetingHolder` désigne l'une d'elles. */
@@ -342,8 +339,8 @@ export interface Route {
 
 /**
  * Assemble la table des routes en FAIL-FAST : une clé fournie deux fois lève un litige NOMINATIF au
- * chargement du module, jamais un écrasement silencieux. Les familles dérivées (jet / participant /
- * hors-modale) sont disjointes aujourd'hui (`intent-routes.test.ts`) ; ce garde-fou verrouille
+ * chargement du module, jamais un écrasement silencieux. Les routes manuscrites et la famille dérivée des verbes de jet
+ * sont disjointes aujourd'hui (`intent-routes.test.ts`) ; ce garde-fou verrouille
  * l'invariant — sans lui, un verbe qui migrerait d'une famille à l'autre changerait de route sans
  * qu'aucun test ne le voie.
  */
@@ -371,9 +368,8 @@ const PAR_ARG1: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[
 
 /**
  * CLIC DE CARTE pendant un ciblage détenu par une fenêtre HORS registre de modales (#1016) — c'est
- * LE chemin vivant : l'invité ne demande jamais `cleaveAttack`/`dualStrikeAttack` (appelés en
- * INTERNE par `targetingModes`), il clique, et le clic voyage par `battleClickEntity`/
- * `battleClickTile`. Ces deux verbes retombaient sur `modalOwnerOf`, qui ne consulte que
+ * LE chemin : le balayage et la 2ᵉ frappe (`cleaveAttack`/`dualStrikeAttack`) sont la machinerie du clic
+ * (`targetingModes`, `MachinerieDuNoyau`), et le clic voyage par `battleClickEntity`/`battleClickTile`. Ces deux verbes retombaient sur `modalOwnerOf`, qui ne consulte que
  * `MODAL_DEFS` : sous un `fateSave` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
  * REFUSÉ et la victime acceptée — son clic mourait ensuite dans les gardes de `battleClickEntity`,
  * donc PERSONNE ne poursuivait le balayage. Tant qu'un pending hors-modale tient le ciblage
@@ -403,7 +399,7 @@ const CLIC_ENTITE: Route = {
 };
 
 /** Geste de la pause de début de Round visant un héros par son 1ᵉʳ argument (Tir rapide : armer la
- *  visée, tirer). Hors pause, la fenêtre n'existe pas : personne ne le joue. */
+ *  visée). Hors pause, la fenêtre n'existe pas : personne ne le joue. */
 const PAUSE_DE_ROUND_PAR_ARG0: Route = {
   rule: (s, seat, args) => !!s.pendingRoundStart && seatOwns(s, seat, idArg(args[0])),
 };
@@ -467,16 +463,39 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
 });
 
 /**
- * Gestes TERMINAUX d'une fenêtre HORS registre de modales (`HORS_MODAL.intents`) : possession prise
- * au pending qui héberge le geste. `cleaveEnd`/`dualStrikeSkip` sont émis par le bandeau de phase de
- * la console (sortie d'interlude) ; `cleaveAttack`/`dualStrikeAttack` n'ont AUCUN émetteur d'UI
- * aujourd'hui (défense en profondeur pour un futur émetteur direct — table `EMISSION` de
- * `hors-modal-intent-path.test.ts`).
+ * Possession du réglage d'un jet (`jetRegler(flux, reglage, valeur, pid?)`), d'après sa déclaration (`REGLAGES_DU_JET`)
+ * — un réglage que son flux ne déclare pas : personne.
+ *  - le réglage que le siège d'un autre combattant joue (`porteurDeLaValeur` : les Bandages, LDB 74 l.41) : ce
+ *    combattant ;
+ *  - un réglage de rangée (l'arme d'enfoncement, EDO 11 l.93) : le combattant de la rangée (`pid`) ;
+ *  - sur un flux MONO : le porteur du jet (`routeJet`), comme ses verbes de jet — sur le Sort d'un ennemi, dont la
+ *    fenêtre est à tous (`'*'`), le siège qui joue l'ennemi, jamais un autre ;
+ *  - un réglage de fenêtre sur un flux MULTI (le virage d'une manœuvre navale) : le repli universel (le owner de sa
+ *    modale).
  */
-const routeHorsModal = (def: HorsModalDef): Route => ({
-  rule: (s, seat) => {
-    if (!s[def.pendingKey]) return false; // fenêtre fermée → personne (le geste y est inerte)
-    const owner = def.owner(s);
+const ROUTE_DU_REGLAGE: Route = {
+  rule: (s, seat, args) => {
+    const [flux, reglage, valeur, pid] = args;
+    const declaration = declarationDuReglage(flux, reglage);
+    if (!declaration || !estFluxRegle(flux)) return false;
+    if (declaration.porteurDeLaValeur) return seatInfluences(s, seat, declaration.porteurDeLaValeur(s, valeur));
+    if (declaration.portee === 'rangee') return seatInfluences(s, seat, idArg(pid));
+    const w: FlowVerbs = FLOW_VERBS[flux];
+    return w.kind === 'mono' ? routeJet(w.jetOwner).rule(s, seat, args) : null;
+  },
+};
+
+/**
+ * La validation ou la sortie d'une fenêtre (`fenetreValider`, `fenetreFermer`) : la fenêtre est le 1ᵉʳ argument, et son
+ * registre dit qui joue le geste — l'hôte seul, le siège de son propriétaire ('*' : tout siège), ou, à quorum, tout
+ * siège, qui ne marque prêt que le sien (lu au transport, `decidingSeat`). Une fenêtre inconnue ou fermée : personne.
+ */
+const routeDuGesteDeFenetre = (declaration: (cle: unknown) => GesteDeFenetreDeclare<QuiValideLaFenetre> | undefined): Route => ({
+  rule: (s, seat, args) => {
+    const geste = declaration(args[0]);
+    if (!geste?.ouverte(s)) return false;
+    if (geste.qui === 'quorum' || geste.qui === 'hoteAuQuorum') return true;
+    const owner = geste.qui === 'hote' ? undefined : geste.proprietaire(s);
     return owner === '*' || seatOwns(s, seat, owner); // `undefined` → l'hôte (contrat de `seatOwns`)
   },
 });
@@ -490,10 +509,8 @@ const routeHorsModal = (def: HorsModalDef): Route => ({
  */
 export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
   [
-    // Ready-checks et levée de main : le siège marque le SIEN. `raiseHand`/`lowerHand` sont NULLAIRES et
-    // lisent leur siège au transport (`decidingSeat`) : il n'y a aucun argument à valider ici.
-    ['roundStartReady', TOUJOURS],
-    ['victoryReady', TOUJOURS],
+    // Levée de main : le siège marque le SIEN. `raiseHand`/`lowerHand` sont NULLAIRES et lisent leur siège au
+    // transport (`decidingSeat`) : il n'y a aucun argument à valider ici.
     ['raiseHand', TOUJOURS],
     ['lowerHand', TOUJOURS],
     // Carnet d'enquête (#670) : `toggleCluePin` annote l'épingle de GROUPE ; `markCluesSeen` marque la
@@ -533,14 +550,12 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     //    le repli tombait sur le combattant ACTIF — inexistant pendant la pause (`turn: -1`, cf.
     //    `combatFlow.enterRoundStartPause`) : la promotion était refusée à TOUT siège invité, et la Chance
     //    du héros devenait indépensable en coop.
-    //  - `confirmRoundStart` lance le Round pour TOUS : l'invité marque son siège (`roundStartReady`)
-    //    et l'hôte clôt à l'unanimité (`combatSlice.roundStartReady`).
-    //  - Tir rapide : `armPreempt`/`preemptRangedShot` visent le TIREUR par leur 1ᵉʳ argument — même
-    //    trou de repli que la promotion (pas d'actif pendant la pause).
+    //  - la validation de la pause (`fenetreValider('roundStart')`) lance le Round pour TOUS, au quorum : chaque siège
+    //    marque le sien (`routeDuGesteDeFenetre`).
+    //  - Tir rapide : `armPreempt` vise le TIREUR par son 1ᵉʳ argument — même trou de repli que la
+    //    promotion (pas d'actif pendant la pause) ; le tir est le clic du combattant (`CLIC_ENTITE`).
     ['roundStartPromote', { rule: (s, seat, args) => !!s.pendingRoundStart && seatInfluences(s, seat, idArg(args[0])) }],
-    ['confirmRoundStart', { rule: (s, seat) => seatOwns(s, seat, undefined) }],
     ['armPreempt', PAUSE_DE_ROUND_PAR_ARG0],
-    ['preemptRangedShot', PAUSE_DE_ROUND_PAR_ARG0],
     // DÉCLARATION de rangée (#1042/#1059) : le geste décide de l'engagement de la Dissipation du Round
     // de son porteur (consommée à l'engage) — même prédicat que l'affordance de la rangée
     // (`influencesLocally`), routé par l'id porté en 1ᵉʳ argument. Le verbe NULLAIRE « tout déclarer »
@@ -549,38 +564,26 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // DÉCLARATION d'un TOMBANT de chute volontaire (#700, EDO 01 l.231) : chaque rangée appartient au
     // siège de SON héros, patron `counterspellDeclare`.
     ['fallChoose', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
-    // Choix de l'arme d'enfoncement (EDO 11 l.93) : la rangée appartient au siège de SON héros.
-    ['forceDoorChoisirArme', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
-    // Bandages d'un soin (LDB 74 l.41) : seul le siège du héros qui les porte les engage ou les retire
-    // (`user-arbitrage-coop-inventaire-par-proprietaire-bg3`).
-    ['healSetBandages', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0]) ?? s.pendingHeal?.bandagesDe ?? undefined) }],
-    // La sortie d'une fenêtre : la fenêtre est le 1ᵉʳ argument, et son registre dit qui la ferme (`sortie`) — l'hôte
-    // seul, ou le siège de son propriétaire ('*' : tout siège). Une victoire se ferme par l'hôte : l'invité marque
-    // son siège (`victoryReady`), l'hôte ferme à l'unanimité.
-    ['fenetreFermer', {
-      rule: (s, seat, args) => {
-        const sortie = sortieDeLaFenetre(args[0]);
-        if (!sortie) return false;
-        const owner = sortie.sortie === 'hote' ? undefined : sortie.proprietaire(s);
-        return owner === '*' || seatOwns(s, seat, owner); // `undefined` → l'hôte (contrat de `seatOwns`)
-      },
-    }],
+    // Le réglage d'un jet en attente (`routeDuReglage`).
+    ['jetRegler', ROUTE_DU_REGLAGE],
+    // La sortie et la validation d'une fenêtre, par ce que son registre déclare (`routeDuGesteDeFenetre`).
+    ['fenetreFermer', routeDuGesteDeFenetre(sortieDeLaFenetre)],
+    ['fenetreValider', routeDuGesteDeFenetre(validationDeLaFenetre)],
     ['counterspellDeclareAll', {
       rule: (s, seat) => (s.pendingCounterspell?.participants ?? []).some((p) => !p.declared && p.interactive && seatInfluences(s, seat, p.id)),
     }],
     // #669 — Dialogue = décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) : l'hôte choisit
     // la réponse, les autres LISENT. Un Test social DANS un dialogue reste arbitré par le propriétaire du héros
     // testeur (`openSkillTest`→`pendingTest`→modalArbiter).
-    ...(['chooseDialogue', 'interactEntity', 'designerHerosChoisir'] as const).map(
+    ...(['chooseDialogue', 'cliquerLaCase', 'designerHerosChoisir'] as const).map(
       (a) => [a, {
         rule: (s: Jeu, seat: number) => seat === (s.net.gmSeat ?? 0),
-        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer, `designerHerosChoisir` DesignationHerosModal)',
+        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `cliquerLaCase` useStagePointer, `designerHerosChoisir` DesignationHerosModal)',
       }] as readonly [string, Route],
     ),
   ],
   // Les gestes de jet, clôture comprise, routés par le flux qu'ils visent (`routeDuVerbeDeJet`).
   VERBES_DE_JET.map((v) => [NOM_DU_VERBE_DE_JET[v], routeDuVerbeDeJet(v)] as const),
-  Object.entries(HORS_MODAL_OWNED_INTENTS).map(([a, def]) => [a, routeHorsModal(def)] as const),
 );
 
 /**

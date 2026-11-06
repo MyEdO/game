@@ -14,7 +14,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * dépenser de Résilience. LDB 17 l.68 : « Si vous infligez un Coup Critique, vous pouvez choisir
  * la Localisation atteinte, plutôt que de la laisser au hasard. » `helplessTest` (combat.ts) force
  * déjà succès+Critique ; il ne restait qu'à débloquer le picker de Localisation EXISTANT
- * (`attackSetCritLocation`, gated par `pendingAttack.forced`) pour l'attaquant qui PILOTE. L'IA
+ * (réglage `attack.localisationDuCritique`, gated par `pendingAttack.forced`) pour l'attaquant qui PILOTE. L'IA
  * (`doAttack`) ne passe jamais par `pendingAttack` : aucun choix, tirage inchangé.
  */
 describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LDB 17 l.68)', () => {
@@ -27,7 +27,7 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -52,9 +52,9 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     banc.getState().jetRoll('attack');
     const pa = banc.getState().pendingAttack!;
     expect(pa.result?.critical).toBe(true); // helplessTest (combat.ts) : Critique déjà forcé (inchangé par #124)
-    // AVANT #124, `attackSetCritLocation` était bloqué par le garde `!pa.forced` (combatSlice.ts) :
+    // AVANT #124, réglage `attack.localisationDuCritique` était bloqué par le garde `!pa.forced` (combatSlice.ts) :
     // la Localisation restait un tirage au hasard malgré le Critique forcé.
-    banc.getState().attackSetCritLocation('jambeG');
+    banc.getState().jetRegler('attack', 'localisationDuCritique', 'jambeG');
     expect(banc.getState().pendingAttack!.result!.critLocation).toBe('jambeG');
     const resRef = banc.getState().pendingAttack!.result!; // même objet, muté en place par applyAttackResult
     banc.getState().jetConfirm('attack');

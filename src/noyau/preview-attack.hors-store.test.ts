@@ -5,7 +5,7 @@ import { attackWeaponOf } from './combatFlow';
 import type { PendingAttack } from './pendings';
 import type { RollBreakdown } from '../engine/combat';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import { previewAttack, previewDefense, resolveAttack, outOfSightTargetIds, attackPlan, resolveDualSecond } from './combatFlow';
 import { attackModifiers, bestRangedDefense, combatBaseValue, combatValue, combineMods, type ModLine } from '../engine/combat';
 import { clampTarget } from '../engine/tests';
@@ -50,8 +50,8 @@ const scene = (): Scene =>
 
 // Mode local : l'actif héros est piloté à la main (`controlsCombatant` → surfaçage des cibles éligibles).
 const NET_LOCAL = { mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] };
-const mkGet = (combatants: Combatant[]): (() => Jeu) =>
-  (() => ({ scene: scene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => Jeu;
+const mkGet = (combatants: Combatant[]): (() => JeuDuNoyau) =>
+  (() => ({ scene: scene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
 
 describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
   it('la valeur de toucher prévue == la cible du jet réellement résolu', () => {
@@ -118,7 +118,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 6, y: 0 } });
     const s = scene();
     (s.layers[0].tiles as string[])[3] = 'mur'; // mur intercalé sur la ligne (x=3,y=0)
-    const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => Jeu;
+    const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => JeuDuNoyau;
     expect(previewAttack(get, a, b).blocked).toBe(true);
   });
 
@@ -130,7 +130,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     const seen = combatant({ id: 'E2', kind: 'enemy', pos: { x: 0, y: 5 } }); // ligne dégagée
     const deadHidden = combatant({ id: 'E3', kind: 'enemy', pos: { x: 6, y: 1 }, dead: true });
     const mk = (cs: Combatant[], order: string[]) =>
-      (() => ({ scene: s, battle: { combatants: cs, order, turn: 0, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => Jeu;
+      (() => ({ scene: s, battle: { combatants: cs, order, turn: 0, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
     const ids = outOfSightTargetIds(mk([archer, hidden, seen, deadHidden], ['A', 'E1', 'E2', 'E3']));
     expect(ids.has('E1')).toBe(true);
     expect(ids.has('E2')).toBe(false);
@@ -330,7 +330,7 @@ describe('attackPlan — gate PRÉ-clic du tir (parité avec le refus de sort)',
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 6, y: 0 } });
     const s = scene();
     (s.layers[0].tiles as string[])[3] = 'mur';
-    const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => Jeu;
+    const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => JeuDuNoyau;
     const plan = attackPlan(get, a, b);
     expect(plan.kind).toBe('blocked');
     expect((plan as { reason: string }).reason).toMatch(/ligne de vue/i);
@@ -362,8 +362,8 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never,
   });
   /** Le tireur a DÉJÀ bougé ce Round (`LDB 14 l.70` : −10) — lu à l'identique par l'aperçu et par la résolution. */
-  const getMobile = (combatants: Combatant[]): (() => Jeu) =>
-    (() => ({ scene: scene(), battle: { combatants, movementUsed: 1 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => Jeu;
+  const getMobile = (combatants: Combatant[]): (() => JeuDuNoyau) =>
+    (() => ({ scene: scene(), battle: { combatants, movementUsed: 1 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
 
   it('tir mobile à courte portée : le résultat annonce la MÊME Difficulté combinée que l’aperçu', () => {
     const a = archer();
@@ -413,7 +413,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
       id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [] as never,
       characteristics: { 'capacite-de-combat': 25, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 70, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     });
-    const neige = (): Jeu => ({ ...mkGet([a, b])(), scene: { ...scene(), weather: 'neige' } }) as unknown as Jeu;
+    const neige = (): JeuDuNoyau => ({ ...mkGet([a, b])(), scene: { ...scene(), weather: 'neige' } }) as unknown as JeuDuNoyau;
     const dodge = defenseDodgeMods(neige(), b);
     expect(dodge.map((m) => m.value), 'la fixture doit VRAIMENT porter la pénalité de neige').toEqual([-30]);
 
@@ -445,7 +445,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
       id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [] as never,
       characteristics: { 'capacite-de-combat': 25, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 70, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     });
-    const neige = (): Jeu => ({ ...mkGet([archer, b])(), scene: { ...scene(), weather: 'neige' } }) as unknown as Jeu;
+    const neige = (): JeuDuNoyau => ({ ...mkGet([archer, b])(), scene: { ...scene(), weather: 'neige' } }) as unknown as JeuDuNoyau;
     const dodge = defenseDodgeMods(neige(), b);
     expect(dodge.map((m) => m.value), 'la fixture doit VRAIMENT porter la pénalité de neige').toEqual([-30]);
 
@@ -554,7 +554,7 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
     return banc.getState().pendingAttack!.result!.attackerDetail!;
   };
 
-  it('arme CHOISIE (`attackSetWeapon`) : 2 clics « +1 DR » ne changent que le DR', () => {
+  it('arme CHOISIE (réglage `attack.arme`) : 2 clics « +1 DR » ne changent que le DR', () => {
     const avant = ouvrir('it-99');
     expect(avant.label, 'la fixture doit VRAIMENT résoudre un TIR').toBe('Projectiles');
     for (let i = 0; i < 2; i++) banc.getState().jetBonusSL('attack');

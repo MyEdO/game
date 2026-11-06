@@ -29,7 +29,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -58,7 +58,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     expect(step.actorId).toBe(H.id);
 
     banc.getState().jetRoll('cascade', step.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(stacks(h, COND.brise)).toBeLessThan(2); // au moins 1 Brisé retiré
   });
@@ -113,7 +113,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     expect(step).toBeTruthy();
 
     banc.getState().jetRoll('cascade', step.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(hasCondition(h, COND.empoisonne)).toBe(false); // poison surmonté (branche success de la donnée : retire 1+DR)
     expect(hasCondition(h, COND.extenue)).toBe(true);      // … vidé → 1 Exténué (LDB 16 l.72, via `if`/`condition`)
@@ -129,7 +129,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     expect(step).toBeTruthy();
     banc.getState().jetRoll('cascade', step.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(hasCondition(h, COND.sonne)).toBe(false);  // 1+DR retiré → vidé
     expect(hasCondition(h, COND.extenue)).toBe(true); // vidé → 1 Exténué
@@ -192,7 +192,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
       expect(!!step).toBe(cad === 'manuel');
       if (step) {
         banc.getState().jetRoll('cascade', step.id);
-        banc.getState().cascadeNext();
+        banc.getState().jetConfirm('cascade');
       }
       const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
       expect(stacks(h, COND.extenue)).toBe(1); // jamais 2 : une seule voie a résolu le Test

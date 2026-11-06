@@ -48,7 +48,7 @@ describe('applyCriticalToTarget — libellé de localisation adapté à la forme
     expect(log.some((l) => l.includes('(Bras droit)'))).toBe(false);
   });
 });
-describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1)", () => {
+describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! » sous (B) (LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1)", () => {
   beforeEach(() => {
     setRule('combat-aa-blessures', 'aa');
     banc.setState({ battle: null, pendingAttack: null });
@@ -60,7 +60,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -89,7 +89,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
   it("'aa', cible déjà à 0 (branche 1) : le choix est accepté et le Critique tombe à la Localisation choisie", () => {
     attaqueRatee(0);
     forcer();
-    banc.getState().attackSetCritLocation('jambeG');
+    banc.getState().jetRegler('attack', 'localisationDuCritique', 'jambeG');
     const res = banc.getState().pendingAttack!.result!;
     expect(res.critLocation).toBe('jambeG');
     banc.getState().jetConfirm('attack');
@@ -104,7 +104,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
       const E = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
       const res = banc.getState().pendingAttack!.result!;
       expect(res.location, 'le jet inversé, 23, est le Bras gauche').toBe('brasG');
-      banc.getState().attackSetCritLocation('jambeG');
+      banc.getState().jetRegler('attack', 'localisationDuCritique', 'jambeG');
       expect(res.critLocation, 'aucun d100 de Localisation à choisir').toBeUndefined();
       banc.getState().jetConfirm('attack');
       const critiques = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((t) => t.startsWith('Blessure critique'));
@@ -122,7 +122,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
 
   it('sans Résilience dépensée : aucun choix', () => {
     attaqueRatee(0);
-    banc.getState().attackSetCritLocation('jambeG');
+    banc.getState().jetRegler('attack', 'localisationDuCritique', 'jambeG');
     expect(banc.getState().pendingAttack!.result!.critLocation).toBeUndefined();
   });
 
@@ -131,7 +131,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     banc.getState().jetForceSuccess('attack');
     banc.getState().jetSetForcedRoll('attack', 11);
     expect(banc.getState().pendingAttack!.result!.critical, 'précondition : le double fait le Coup Critique au jet').toBe(true);
-    banc.getState().attackSetCritLocation('tete');
+    banc.getState().jetRegler('attack', 'localisationDuCritique', 'tete');
     expect(banc.getState().pendingAttack!.result!.critLocation).toBeUndefined();
   });
 });
