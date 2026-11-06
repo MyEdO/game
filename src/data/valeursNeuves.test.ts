@@ -3,11 +3,9 @@ import type { Condition } from '../engine/flowCore';
 import { CONDITIONS_RESERVEES, conditionSchema } from './schemas/grammaire/mecanique';
 import { customStatblockSchema } from './schemas/defs-scenes/communs';
 import { semencesDeScene } from './index';
-import { CONDITION_TOUJOURS, emptyStatblock, recast } from './valeursNeuves';
-
-/** Valeur au chemin d'un refus de zod. */
-const auChemin = (v: unknown, chemin: readonly PropertyKey[]): unknown =>
-  chemin.reduce<unknown>((n, k) => (n && typeof n === 'object' ? (n as Record<PropertyKey, unknown>)[k] : undefined), v);
+import { blocNeuf, CONDITION_TOUJOURS, emptyStatblock, noeudTestNeuf, recast } from './valeursNeuves';
+import { refusHorsSentinelle } from './valeursNeuves.testkit';
+import { sceneFlowSchema } from './schemas/defs-scenes/effets';
 
 /** Les `kind` de Condition, lus au schéma (un `kind` refusé y est nommé dans son message). */
 function kindsDeCondition(): Condition['kind'][] {
@@ -26,9 +24,7 @@ describe('valeurs neuves de l’atelier en donnée (#3059)', () => {
     for (const k of kinds) {
       const c = recast(CONDITION_TOUJOURS, k);
       expect(c.kind, k).toBe(k);
-      const r = conditionSchema.safeParse(c);
-      const refus = r.success ? [] : r.error.issues.filter((i) => auChemin(c, i.path) !== '').map((i) => `${i.path.join('.')} : ${i.message}`);
-      expect(refus, k).toEqual([]);
+      expect(refusHorsSentinelle(conditionSchema, c), k).toEqual([]);
     }
   });
 
@@ -37,5 +33,9 @@ describe('valeurs neuves de l’atelier en donnée (#3059)', () => {
     expect(customStatblockSchema.safeParse(s).success).toBe(true);
     expect(s.label).toBe(semencesDeScene.profil);
     expect(emptyStatblock('Gaspard').label).toBe('Gaspard');
+  });
+  it('noeudTestNeuf et blocNeuf : chaque bloc neuf d’un Flow authoré est conforme à `sceneFlowSchema`', () => {
+    expect(refusHorsSentinelle(sceneFlowSchema, noeudTestNeuf())).toEqual([]);
+    for (const k of ['if', 'test', 'choice'] as const) expect(refusHorsSentinelle(sceneFlowSchema, blocNeuf(k)), k).toEqual([]);
   });
 });

@@ -36,7 +36,8 @@ import {
 } from './EffectList';
 import type { RacineDeCatalogue } from '../../noyau/combatEffects';
 import { AddMenu, pickable } from './AddMenu';
-import { blocNeuf, newEffect, noeudTestNeuf } from '../../noyau/valeursNeuves';
+import { newEffect } from '../../noyau/valeursNeuves';
+import { blocNeuf, noeudTestNeuf } from '../../data/valeursNeuves';
 import { ConditionEditor } from './ConditionEditor';
 import { condSummary } from './interne/resumeDeCondition';
 

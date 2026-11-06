@@ -1,28 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import type { z } from 'zod';
 import { OP_DEFS, gameOpSchema } from '../data/schemas/grammaire/mecanique';
 import { formulaSinSchema } from '../data/schemas/grammaire/valeurs';
-import { effectSchema, sceneFlowSchema } from '../data/schemas/defs-scenes/effets';
+import { effectSchema } from '../data/schemas/defs-scenes/effets';
 import { mapPlaceSchema, routePerilSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { semencesDeScene } from '../data';
+import { refusHorsSentinelle } from '../data/valeursNeuves.testkit';
 import { EFFECT_HANDLERS } from './combatEffects';
-import { blocNeuf, formulaForShape, newEffect, newOp, noeudTestNeuf, paramsDeRegle, shapeOf, type FormulaShape } from './valeursNeuves';
+import { formulaForShape, newEffect, newOp, paramsDeRegle, shapeOf, type FormulaShape } from './valeursNeuves';
 import { marcheNeuf, peripetieNeuve, portNeuf } from './worldMapEdit';
 import { emptyWorldMap } from './worldMap';
-
-/** Valeur au chemin d'un refus de zod. */
-const auChemin = (v: unknown, chemin: readonly PropertyKey[]): unknown =>
-  chemin.reduce<unknown>((n, k) => (n && typeof n === 'object' ? (n as Record<PropertyKey, unknown>)[k] : undefined), v);
-
-/** Champ laissé à la saisie de l'auteur : sentinelle vide ou absent. */
-const aSaisir = (v: unknown): boolean => v === '' || v === undefined;
-
-/** Refus d'une valeur neuve hors des champs laissés à la saisie de l'auteur. */
-function refusHorsSentinelle(schema: z.ZodType<unknown>, valeur: unknown): string[] {
-  const r = schema.safeParse(valeur);
-  if (r.success) return [];
-  return r.error.issues.filter((i) => !aSaisir(auChemin(valeur, i.path))).map((i) => `${i.path.join('.')} : ${i.message}`);
-}
 
 describe('valeurs neuves de l’atelier au noyau (#3059) : toute valeur neuve parse son schéma, hors sentinelle vide', () => {
   it('newOp : chaque op du vocabulaire (`OP_DEFS`) naît conforme à `gameOpSchema`', () => {
@@ -49,11 +35,6 @@ describe('valeurs neuves de l’atelier au noyau (#3059) : toute valeur neuve pa
     for (const t of Object.keys(EFFECT_HANDLERS) as (keyof typeof EFFECT_HANDLERS)[]) {
       expect(refusHorsSentinelle(effectSchema, newEffect(t)), t).toEqual([]);
     }
-  });
-
-  it('noeudTestNeuf et blocNeuf : chaque bloc neuf d’un Flow est conforme à `sceneFlowSchema`', () => {
-    expect(refusHorsSentinelle(sceneFlowSchema, noeudTestNeuf())).toEqual([]);
-    for (const k of ['if', 'test', 'choice'] as const) expect(refusHorsSentinelle(sceneFlowSchema, blocNeuf(k)), k).toEqual([]);
   });
 
   it('carte du monde : carte, péripétie, port et marché neufs sont conformes à leurs schémas ; le libellé de la carte vient de la semence', () => {

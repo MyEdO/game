@@ -1,12 +1,13 @@
 /**
  * VALEURS NEUVES DE L'ATELIER (#3059) qui ne lisent que les schémas et la donnée : la Condition
- * convertie à un type (`recast`), le report de type d'un bloc (`convertTo`, `memoriser`) et le statbloc
- * personnalisé neuf (`emptyStatblock`). Le défaut d'une union fermée est son PREMIER membre, lu au
+ * convertie à un type (`recast`), le report de type d'un bloc (`convertTo`, `memoriser`), les blocs neufs d'un Flow
+ * authoré (`noeudTestNeuf`, `blocNeuf`) et le statbloc personnalisé neuf (`emptyStatblock`). Le défaut d'une union fermée est son PREMIER membre, lu au
  * schéma. Les fabriques qui lisent le moteur ou le monde vivent au noyau (`noyau/valeursNeuves.ts`).
  */
-import type { Condition } from '../engine/flowCore';
+import { EMPTY_FLOW, type Condition, type FlowTestNode } from '../engine/flowCore';
 import type { CustomStatblock } from '../engine/statblock';
 import { semencesDeScene } from './index';
+import type { Effect, Flow } from './schemas/defs-scenes/effets';
 import { actorRefSchema, partyWhoSchema, startleCauseSchema } from './schemas/grammaire/mecanique';
 import { adresseUnPassage, hitLocationSchema } from './schemas/grammaire/valeurs';
 
@@ -96,4 +97,16 @@ export function memoriser(memoire: Record<string, unknown>, value: object): Reco
  *  Taille au spawn (LDB 85 ; `B` rempli = surcharge). */
 export function emptyStatblock(label = semencesDeScene.profil): CustomStatblock {
   return { type: 'statblock', label, char: { M: 4 } };
+}
+
+/** Nœud `test` NEUF : la compétence est la seule saisie laissée à l'auteur (sentinelle vide). */
+export const noeudTestNeuf = (): FlowTestNode<Effect> => ({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: EMPTY_FLOW });
+
+/** Bloc NEUF du menu « + Bloc » d'un Flow : condition, test de compétence ou choix du joueur. */
+export function blocNeuf(kind: 'if' | 'test' | 'choice'): Flow {
+  switch (kind) {
+    case 'if': return { kind: 'if', cond: { kind: 'flag', expr: '' }, then: EMPTY_FLOW };
+    case 'test': return noeudTestNeuf();
+    case 'choice': return { kind: 'choice', prompt: '', yes: EMPTY_FLOW };
+  }
 }

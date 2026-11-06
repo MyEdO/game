@@ -479,9 +479,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             liaison dédoublonnée par sens, suppressions en cascade (routes, `suite` des billets).
                             Ses valeurs neuves (péripétie, port, marché) : `peripetieNeuve`, `portNeuf`, `marcheNeuf`.
   valeursNeuves.ts          VALEURS NEUVES de l'atelier qui lisent le moteur ou le monde : `newOp`,
-                            `formulaForShape`/`shapeOf`, `newEffect`, `noeudTestNeuf`, `blocNeuf`. Celles qui
-                            ne lisent que schémas et donnée vivent dans `data/valeursNeuves.ts` (`recast`,
-                            `convertTo`/`memoriser`, `emptyStatblock`).
+                            `formulaForShape`/`shapeOf`, `newEffect`. Celles qui ne lisent que schémas et
+                            donnée vivent dans `data/valeursNeuves.ts` (`recast`, `convertTo`/`memoriser`,
+                            les blocs neufs d'un Flow authoré `noeudTestNeuf`/`blocNeuf`, `emptyStatblock`).
   combatFlow.ts               flux de combat tour par tour (IA, attaques, effets, fin de combat).
                               Les clusters FEUILLES extraits sont des modules séparés, que chaque importeur
                               nomme directement : monde/combatGeometry.ts (géométrie pure),

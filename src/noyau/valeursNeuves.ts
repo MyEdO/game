@@ -1,16 +1,14 @@
 /**
  * VALEURS NEUVES DE L'ATELIER (#3059) : l'op neuve d'un type (`newOp`), la formule d'une forme
- * (`formulaForShape`, `shapeOf`), l'effet neuf d'un type (`newEffect`), le nœud `test` neuf
- * (`noeudTestNeuf`) et le bloc neuf du menu « + Bloc » d'un Flow (`blocNeuf`). Fonctions pures, au noyau parce qu'elles lisent le moteur et le modèle du monde
+ * (`formulaForShape`, `shapeOf`) et l'effet neuf d'un type (`newEffect`). Fonctions pures, au noyau parce qu'elles lisent le moteur et le modèle du monde
  * (`terrainsElectifs`, `EFFECT_HANDLERS`) : tout hôte crée la même valeur que l'éditeur web.
  */
 import type { Formula, GameOp } from '../engine/ops';
 import type { JsonFormula } from '../engine/miscast';
-import { EMPTY_FLOW, type FlowTestNode } from '../engine/flowCore';
 import { opPsy } from '../engine/psych/opsPsy';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { memoParVersion } from '../data';
-import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { terrainsElectifs } from './monde/terrain';
 import { EFFECT_HANDLERS } from './combatEffects';
 
@@ -208,16 +206,4 @@ export function newOp(op: GameOp['op'] | string): GameOp {
 /** Effet par défaut d'un type — délégué à la FABRIQUE du registre (`EFFECT_HANDLERS[t].make`). */
 export function newEffect(type: Effect['type']): Effect {
   return EFFECT_HANDLERS[type].make();
-}
-
-/** Nœud `test` NEUF : la compétence est la seule saisie laissée à l'auteur (sentinelle vide). */
-export const noeudTestNeuf = (): FlowTestNode<Effect> => ({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: EMPTY_FLOW });
-
-/** Bloc NEUF du menu « + Bloc » d'un Flow : condition, test de compétence ou choix du joueur. */
-export function blocNeuf(kind: 'if' | 'test' | 'choice'): Flow {
-  switch (kind) {
-    case 'if': return { kind: 'if', cond: { kind: 'flag', expr: '' }, then: EMPTY_FLOW };
-    case 'test': return noeudTestNeuf();
-    case 'choice': return { kind: 'choice', prompt: '', yes: EMPTY_FLOW };
-  }
 }
