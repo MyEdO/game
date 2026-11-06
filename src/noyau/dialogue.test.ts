@@ -2,7 +2,7 @@
  * CE QU'UNE RÉPONSE OFFRE ET ANNONCE VIENT DE SA DONNÉE (#1869) — contrats POSITIFS du vocabulaire
  * pur du dialogue (`noyau/dialogue.ts`), la SOURCE UNIQUE que la fenêtre et les touches consomment :
  *  · le RANG est celui de la liste VISIBLE (une réponse masquée par son `when` ne prend pas de
- *    numéro), et l'INDEX reste celui de la DONNÉE — c'est lui que reçoit `chooseDialogue` ;
+ *    numéro), et l'`id` reste celui de la DONNÉE — c'est lui que reçoit `chooseDialogue` ;
  *  · l'OFFRE tombe pour une bourse trop courte et pour un siège qui ne décide pas ;
  *  · le TEST annoncé est celui que le flux DÉCLARE, en ids stables (nœud `test`, `seq`, `if`, effet
  *    `extendedTest` avec son DR cumulé) ; un flux sans jet n'annonce rien ;
@@ -45,26 +45,26 @@ const testDIntuition: Flow = {
 } as Flow;
 
 describe('reponsesDuNoeud — le RANG est celui de la liste VISIBLE', () => {
-  it('une réponse masquée par son `when` ne prend PAS de numéro, et les index de donnée sont conservés', () => {
+  it('une réponse masquée par son `when` ne prend PAS de numéro, et les ids de donnée sont conservés', () => {
     const dlg = noeud([
-      { label: 'Une' },
-      { label: 'Cachée', when: { kind: 'flag', expr: 'jamais' } },
-      { label: 'Trois' },
+      { id: 'une', label: 'Une' },
+      { id: 'cachee', label: 'Cachée', when: { kind: 'flag', expr: 'jamais' } },
+      { id: 'trois', label: 'Trois' },
     ] as DialogueNode['choices']);
     const r = reponsesDuNoeud(etat(dlg));
     expect(r.map((x) => x.label)).toEqual(['Une', 'Trois']);
     expect(r.map((x) => x.rang)).toEqual([1, 2]);
-    expect(r.map((x) => x.index)).toEqual([0, 2]); // la 2ᵉ réponse VISIBLE est la 3ᵉ de la DONNÉE
+    expect(r.map((x) => x.id)).toEqual(['une', 'trois']); // la 2ᵉ réponse VISIBLE est la 3ᵉ de la DONNÉE
   });
 
   it('hors dialogue : aucune réponse — la touche n’a rien à adresser', () => {
-    expect(reponsesDuNoeud(etat(noeud([{ label: 'Une' }] as DialogueNode['choices']), { dialogue: null }))).toEqual([]);
+    expect(reponsesDuNoeud(etat(noeud([{ id: 'une', label: 'Une' }] as DialogueNode['choices']), { dialogue: null }))).toEqual([]);
   });
 });
 
 describe('reponsesDuNoeud — l’OFFRE, verdict partagé par le clic et par la touche', () => {
   it('bourse trop courte : la réponse payante est VISIBLE mais FERMÉE, avec sa raison', () => {
-    const dlg = noeud([{ label: 'Payer', cost: { silver: 5 } }] as DialogueNode['choices']);
+    const dlg = noeud([{ id: 'payer', label: 'Payer', cost: { silver: 5 } }] as DialogueNode['choices']);
     const pauvre = reponsesDuNoeud(etat(dlg))[0];
     expect(pauvre.enabled).toBe(false);
     expect(pauvre.refus).toBe('Pas assez d’argent pour cette option.');
@@ -74,7 +74,7 @@ describe('reponsesDuNoeud — l’OFFRE, verdict partagé par le clic et par la 
   });
 
   it('coop, siège qui ne DÉCIDE pas : toutes les réponses sont fermées, le texte nomme le siège qui répond', () => {
-    const dlg = noeud([{ label: 'Une' }, { label: 'Deux' }] as DialogueNode['choices']);
+    const dlg = noeud([{ id: 'une', label: 'Une' }, { id: 'deux', label: 'Deux' }] as DialogueNode['choices']);
     const r = reponsesDuNoeud(etat(dlg, { net: { mode: 'guest', mySeat: 1, ownership: {}, seatNames: { 0: 'Greta' } } as unknown as Jeu['net'] }));
     expect(r.every((x) => !x.enabled && x.refus === 'Greta répond pour le groupe.')).toBe(true);
   });
@@ -112,13 +112,13 @@ describe('testAnnonce — le jet vient du FLUX, en ids stables', () => {
   });
 
   it('le tag SORT dans la réponse : la fenêtre n’a rien à recalculer', () => {
-    const dlg = noeud([{ label: 'L’observer discrètement', flow: testDIntuition }] as DialogueNode['choices']);
+    const dlg = noeud([{ id: 'observer', label: 'L’observer discrètement', flow: testDIntuition }] as DialogueNode['choices']);
     expect(reponsesDuNoeud(etat(dlg))[0].test).toEqual({ skill: { id: 'intuition' }, difficulty: 'difficile' });
   });
 });
 
 describe('ouvrirDialogue — une conversation naît avec sa SESSION', () => {
-  const dlg = noeud([{ label: 'Une' }] as DialogueNode['choices']);
+  const dlg = noeud([{ id: 'une', label: 'Une' }] as DialogueNode['choices']);
   const archive = (session: number): DialogueTurn => ({ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session });
 
   it('l’id est DÉRIVÉ de l’archive, sans état caché : deux appels sur le MÊME historique concordent', () => {

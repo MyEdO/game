@@ -64,8 +64,8 @@ export function DialogueBox() {
         const tag = r.test ? libelleDuTestAnnonce(r.test) : '';
         return (
           <GatedAction
-            key={r.index}
-            id={`dlg-choice-${r.index}`}
+            key={r.id}
+            id={`dlg-choice-${r.id}`}
             label={<>
               {/* Le RANG est l'ADRESSE de la réponse à l'écran — c'est lui que frappe la touche. */}
               <span className="dlg-choice-num">{num}</span>
@@ -83,7 +83,7 @@ export function DialogueBox() {
             ariaLabel={[num, tag, r.label, r.cost && spellMoney(r.cost)].filter(Boolean).join(' ')}
             enabled={r.enabled}
             {...raisonSi(r.refus)}
-            onClick={() => choose(r.index)}
+            onClick={() => choose(r.id)}
             primary={false}
             btnClassName="dlg-choice"
           />

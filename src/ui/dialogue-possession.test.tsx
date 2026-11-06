@@ -26,7 +26,7 @@ const pnj: SceneEntity = { id: 'e1', kind: 'personnage', ref: 'humain', pos: { x
 const dlg: Dialogue = {
   id: 'dlg-groupe',
   start: 'n1',
-  nodes: [{ id: 'n1', desc: 'Que faites-vous ?', choices: [{ label: 'Attaquer' }, { label: 'Parler' }] }],
+  nodes: [{ id: 'n1', desc: 'Que faites-vous ?', choices: [{ id: 'attaquer', label: 'Attaquer' }, { id: 'parler', label: 'Parler' }] }],
 };
 
 const scene: Scene = { ...emptyScene('scn', 4, 4), entities: [pnj], dialogues: [dlg] };

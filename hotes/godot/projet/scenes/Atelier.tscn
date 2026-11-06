@@ -1,9 +1,10 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/atelier.gd" id="1_atelier"]
 [ext_resource type="PackedScene" path="res://scenes/Lumiere.tscn" id="2_lumiere"]
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="3_fond"]
 [ext_resource type="Script" path="res://scripts/marche.gd" id="4_marche"]
+[ext_resource type="Script" path="res://scripts/montage_de_composition.gd" id="5_montage"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_sol"]
 albedo_color = Color(0.22, 0.2, 0.18, 1)
@@ -25,6 +26,7 @@ script = ExtResource("1_atelier")
 mesh = SubResource("Maillage_sol")
 
 [node name="Modele" type="Node3D" parent="."]
+script = ExtResource("5_montage")
 
 [node name="Orbite" type="Node3D" parent="."]
 

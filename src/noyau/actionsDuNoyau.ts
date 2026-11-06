@@ -16,7 +16,7 @@ import type { Pt } from './monde/path';
 import type { RoomPortal } from './monde/roomPortals';
 import type {
   IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
-  IdDEntiteDeScene, IdDEtapeDeCascade, IdDeTireurRapide,
+  IdDEntiteDeScene, IdDEtapeDeCascade, IdDeTireurRapide, IdDeReponseDeDialogue, IdDePlaieDeLOperation,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { ShootingStanceKey } from './etat';
@@ -166,7 +166,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  coûte la maison `fouille-piece-minutes` une fois par geste (LDB 12 l.200). Refus DIT hors exploration,
    *  en dialogue, sans meneur debout, hors de toute pièce. */
   fouillerLaPiece: () => void;
-  chooseDialogue: (choiceIndex: number) => void;
+  chooseDialogue: (choix: IdDeReponseDeDialogue) => void;
   /** Marchand de LIEU (#369) — service de catalogue sans `SceneEntity` (forgeron du hub de ville…) : même
    *  système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
   openPlaceMerchant: (entityId: string, archetype: string, backdrop?: string) => void;
@@ -220,7 +220,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Lance un acte sur le patient courant (surgery → ARME l'opération). */
   medicAct: (act: HealMode) => void;
   /** Choisit la Blessure Critique à opérer (avant la 1re passe). */
-  medicSetWound: (idx: number) => void;
+  medicSetWound: (uid: IdDePlaieDeLOperation) => void;
   /** OUVRE le jet INFLUENÇABLE d'une passe de Chirurgie (pendingSurgery) depuis l'opération armée. */
   openSurgeryPass: () => void;
   /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,

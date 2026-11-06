@@ -33,7 +33,8 @@ export const baseDeTest = (base = 'humanoide') => ({
   schema: 4, base, os: ['root'], chaines: {}, zones: [], emplacements: {}, prises: { main: attache, off: attache }, silhouettes: [],
   gabarit: { legs: [], arms: [], head: [], racine: 'root', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } } },
   porteur: { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
-  appuis: { pieds: ['root'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'root', poids: 1 }], deltas: {} }], vitessesAuSol: { walk: 1 } }, osAPositionAnimee: [], glb: empreinte(GLB_DE_BASE),
+  clips: { walk: 'walk' },
+  appuis: { pieds: ['root'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'root', poids: 1 }], deltas: {} }], vitesseAuSol: 1 }, osAPositionAnimee: [], glb: empreinte(GLB_DE_BASE),
 });
 export const elementSchema3 = (base = 'humanoide') => ({
   schema: 3, base, categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' },

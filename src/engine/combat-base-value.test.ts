@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { combatBaseValue, combatValueMods, combatValue, defenseBaseValue, defenseValueMods, defenseValueModParts, defenseValue, combineMods } from './combat';
-import { traumaById, dechirureFractureFicheId } from './trauma';
+import { traumaById, dechirureFractureFicheId, avecSequelles } from './trauma';
 import { skillBaseValue } from './skills';
 import { COND } from './conditions';
 import { RULE_REF } from './ruleRefs';
@@ -116,7 +116,7 @@ describe('defenseBaseValue / defenseValueMods — Esquive, Parade, substitution 
 
   it('Esquive : Encombrement + Déchirure musculaire majeure de jambe = deux lignes nommées, sommées (LDB 14 l.95, #1827)', () => {
     const jambe = traumaById(dechirureFractureFicheId('dechirure', 'majeur', 'jambeD'), undefined, 'jambeD');
-    const c = hero({ enc: 14, traumas: [jambe] });
+    const c = hero({ enc: 14, traumas: avecSequelles([], [jambe]) });
     const parts = defenseValueModParts(c, 'esquive');
     expect(parts.map((l) => [l.ref, l.value])).toEqual([[RULE_REF.encombrement, -20], [undefined, -20]]);
     expect(parts[1].label).toBe(jambe.label);

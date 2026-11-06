@@ -143,7 +143,7 @@ import { collectionDuDataset, datasetSerializeRoot, datasetObjectSerializeRoot, 
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../data/schemas/exposition-derivee';
 import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
 import { collectionALaCle } from '../data/schemas/grammaire/collection-cle';
-import { traumaById } from '../engine/trauma';
+import { avecSequelles, traumaById } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';
 import { openSkillTest } from '../noyau/combatEffects';
 import { EMPTY_FLOW, type FlowTest } from '../engine/flowCore';
@@ -670,8 +670,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     trauma: (id: string, traumaId: string, opts?: { be?: number; d10?: number }, location?: HitLocation) => {
       if (!actorIn(g(), id)) throw new Error(`__wfrp.trauma : combattant « ${id} » introuvable`);
       const trauma = traumaById(traumaId, opts, location);
-      useGame.setState((s) => ecrireActeur(s, id, (c) => ({ ...c, traumas: [...(c.traumas ?? []), trauma] })));
-      return structuredClone(trauma);
+      useGame.setState((s) => ecrireActeur(s, id, (c) => ({ ...c, traumas: avecSequelles(c.traumas, [trauma]) })));
+      return structuredClone(actorIn(g(), id)!.traumas!.slice(-1)[0]);
     },
 
     testCompetence: (actorId: string, spec: FlowTest) => {

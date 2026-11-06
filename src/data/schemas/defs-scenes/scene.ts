@@ -459,6 +459,9 @@ export const architectureBodySchema = nommerChamps(z.strictObject({
 
 /** `DialogueChoice` — `when` gate l'AFFICHAGE, `cost` est débité AVANT le flow. */
 export const dialogueChoiceSchema = nommerChamps(z.strictObject({
+  /** Identité STABLE du choix, unique dans son nœud (`listeCle`) : c'est elle que le verbe qui choisit la réponse
+   *  désigne, jamais son rang dans la liste. */
+  id: z.string(),
   /** LIBELLÉ du choix — rôle libellé de l'enveloppe (`label`), pas de la prose : c'est l'étiquette
    *  du bouton que le joueur clique, et l'archive de dialogue la stocke comme telle. */
   label: z.string(),
@@ -475,7 +478,7 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
   flow: sceneFlowSchema.optional(),
   /** Id du nœud suivant. */
   next: z.string().optional(),
-}), { label: { label: "libellé" , texte: { regime: "designation"} }, icon: { label: "icône" , texte: { regime: "technique"} }, when: { label: "condition" }, cost: { label: "coût" }, flow: { label: "enchaînement", transparent: true }, next: { label: "nœud suivant" , texte: { regime: "technique"} } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, icon: { label: "icône" , texte: { regime: "technique"} }, when: { label: "condition" }, cost: { label: "coût" }, flow: { label: "enchaînement", transparent: true }, next: { label: "nœud suivant" , texte: { regime: "technique"} } });
 /** `DialogueNode` — `speakerId` = entité de la scène dont le portrait/nom porte CE nœud. Réplique :
  *  `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
 export const dialogueNodeSchema = proseNommee(nommerChamps(z.strictObject({
@@ -484,7 +487,7 @@ export const dialogueNodeSchema = proseNommee(nommerChamps(z.strictObject({
    *  Permet d'alterner les interlocuteurs dans une même conversation. À défaut, l'interlocuteur de
    *  SESSION (`state.dialogue.speakerId`, posé par `interactEntity` ou `startDialogue.speakerId`). */
   speakerId: z.string().optional(),
-  choices: z.array(dialogueChoiceSchema),
+  choices: listeCle(dialogueChoiceSchema, 'id'),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, speakerId: { label: "locuteur" , texte: { regime: "technique"} }, choices: { label: "réponses" } }), 'dialogues[].nodes[].desc');
 /** `Dialogue` — arbre de nœuds, `start` = id du nœud d'entrée. */
 export const dialogueSchema = nommerChamps(z.strictObject({

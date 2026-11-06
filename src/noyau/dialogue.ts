@@ -8,7 +8,7 @@
  *    conversation naît avec sa `session`, l'id MONOTONE qui regroupe SES tours à la relecture ;
  *  · `reponsesDuNoeud` — la liste VISIBLE des réponses : filtre `when`, rang d'affichage 1..n,
  *    verdict d'offre (le siège qui décide, la bourse du groupe). Le RANG est celui de la liste
- *    visible, l'INDEX celui de la donnée (c'est lui que reçoit `chooseDialogue`) ;
+ *    visible, l'`id` celui de la donnée (c'est lui que reçoit `chooseDialogue`) ;
  *  · `testAnnonce` — le Test que le flux d'une réponse DÉCLENCHE, en ids STABLES (jamais un libellé
  *    recopié dans la donnée), que `libelleDuTestAnnonce` résout en libellés au registre.
  */
@@ -30,6 +30,7 @@ import { nomDuSiege } from './sieges';
 import { t } from '../i18n';
 import { surfaceTientLaMain } from './modalArbiter';
 import type { Jeu } from './etat';
+import type { IdDeReponseDeDialogue } from './designations';
 
 /**
  * OUVRE une conversation : l'état de dialogue AVEC sa `session`. Couture UNIQUE de tous les ouvreurs
@@ -82,8 +83,8 @@ export interface TestAnnonce {
 
 /** Une réponse VISIBLE du nœud courant. */
 export interface ReponseDeDialogue {
-  /** Position dans la DONNÉE (`node.choices`) — l'argument de `chooseDialogue`. */
-  index: number;
+  /** Id STABLE de la réponse dans la DONNÉE (`DialogueChoice.id`) — l'argument de `chooseDialogue`. */
+  id: IdDeReponseDeDialogue;
   /** Rang 1..n dans la liste VISIBLE — le numéro affiché, et la touche qui l'adresse. */
   rang: number;
   label: string;
@@ -115,13 +116,13 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
   const money = partyMoneyTotal(get);
   const decide = ownsGroupDecision(s);
   const out: ReponseDeDialogue[] = [];
-  node.choices.forEach((c, index) => {
+  node.choices.forEach((c) => {
     if (c.when && !evalCondition(c.when, cc)) return;
     const cost = c.cost ? toMoney(c.cost) : undefined;
     const solvable = !cost || canAfford(money, cost);
     const test = testAnnonce(c.flow, cc);
     out.push({
-      index,
+      id: c.id,
       rang: out.length + 1,
       label: c.label,
       ...(c.icon ? { icon: c.icon } : {}),
@@ -189,7 +190,7 @@ export function libelleDuTestAnnonce(test: TestAnnonce): string {
 /** Une réponse en vue : ce qu'elle annonce (`libelleDuTestAnnonce`) et le geste qui la choisit. */
 export interface ReponseEnVue extends ReponseDeDialogue {
   annonce: string | null;
-  geste: { verbe: 'chooseDialogue'; args: [number] };
+  geste: { verbe: 'chooseDialogue'; args: [IdDeReponseDeDialogue] };
 }
 
 /** La conversation en vue, pour un hôte qui la dessine. */
@@ -219,6 +220,6 @@ export function conversationEnVue(s: Jeu): ConversationEnVue | null {
   return {
     orateur: nomDeLInterlocuteur(s) ?? null,
     replique: node.desc ?? null,
-    reponses: reponsesDuNoeud(s).map((r) => ({ ...r, annonce: r.test ? libelleDuTestAnnonce(r.test) : null, geste: { verbe: 'chooseDialogue', args: [r.index] } })),
+    reponses: reponsesDuNoeud(s).map((r) => ({ ...r, annonce: r.test ? libelleDuTestAnnonce(r.test) : null, geste: { verbe: 'chooseDialogue', args: [r.id] } })),
   };
 }

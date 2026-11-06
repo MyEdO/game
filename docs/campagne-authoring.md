@@ -215,7 +215,8 @@ tant qu'une référence le désigne) un état et ses valeurs. Pas de compteur co
 
 Un `Dialogue` (`Scene.dialogues`) est un arbre de `DialogueNode` (`id`, `desc`, `choices`) — la
 réplique du nœud est de la PROSE (`desc`), l'étiquette d'un `DialogueChoice` est un LIBELLÉ (`label`),
-deux rôles distincts, deux clés (#1467 L1b). **Aucun nom
+deux rôles distincts, deux clés (#1467 L1b). Chaque `DialogueChoice` porte son `id` stable, unique dans son nœud
+(refusé en double au chargement) : c'est lui que `chooseDialogue` reçoit, jamais son rang (#3369). **Aucun nom
 en clair** n'est jamais authoré dans un nœud (doctrine id-only, AGENTS.md « on ne MANIPULE que des
 IDs ») : le portrait ET le nom de l'interlocuteur se résolvent TOUJOURS par ID d'entité, jamais par une
 chaîne de nom dupliquée dans la donnée.

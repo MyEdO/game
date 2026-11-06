@@ -18,6 +18,7 @@ import type { Combatant, HitLocation, Trauma } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { desDuTest } from '../engine/dice.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { avecSequelles } from '../engine/trauma';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -169,7 +170,7 @@ describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAP
     // Séquelle DÉJÀ armée par une Commotion antérieure + l'État Exténué qui la garde active.
     const armee = resolveCritique('ldb', mk('h', 'hero'), 'tete', makeRNG(1), { forcedRoll: 78 })
       .traumas.find((t) => t.critTrigger)!;
-    (hero as unknown as { traumas: Trauma[] }).traumas = [armee];
+    (hero as unknown as { traumas: Trauma[] }).traumas = avecSequelles([], [armee]);
     hero.conditions.push({ id: 'extenue', value: 1 } as never);
     combat(hero, mk('e', 'enemy'));
 
@@ -230,7 +231,7 @@ describe('#1657 B3-1b — le Test d’AMPUTATION naît comme une étape, à la v
     const coupure = CRITIQUE_DOCS.flatMap((d) => d.entries).find((e) => e.id === 'coupure-a-l-orteil')!;
     // Marqueur ARMÉ par un critique antérieur (« Coupure à l'orteil » : « Une fois la rencontre terminée… »).
     (hero as unknown as { traumas: Trauma[] }).traumas =
-      resolveCritique('ldb', mk('h', 'hero'), 'jambeD', makeRNG(1), { forcedRoll: coupure.min }).traumas;
+      avecSequelles([], resolveCritique('ldb', mk('h', 'hero'), 'jambeD', makeRNG(1), { forcedRoll: coupure.min }).traumas);
     combat(hero, mk('e', 'enemy'));
 
     openCombatEndCascade(banc.getState, banc.setState);

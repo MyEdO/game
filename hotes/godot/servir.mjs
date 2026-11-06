@@ -40,7 +40,7 @@ function envoyer(res, chemin, entetes = {}) {
 /** Le listage de `dossier` : les manifestes que `verdictsDesModeles` accepte contre leur GLB, de chacun les os qui portent
  *  ses meshes rigides (`os` des `meshes` sans skin de `lireGlb`), et les erreurs (manifeste illisible, GLB illisible, refus,
  *  dossier illisible). */
-function listage(dossier) {
+export function listage(dossier) {
   try {
     const lus = manifestesDesModeles(dossier)
     const erreurs = [...lus.erreurs]

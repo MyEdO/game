@@ -49,8 +49,8 @@ function construireScene(): Scene {
             id: 'defi',
             desc: '« Un bras de fer, étranger ? Le perdant paie la tournée. »',
             choices: [
-              { label: 'Relever le défi.', icon: 'nav/dice', flow: flowFromEffects([{ type: 'openTavernGames' }]) },
-              { label: 'Une autre fois. (Partir)', flow: flowFromEffects([{ type: 'endDialogue' }]) },
+              { id: 'relever-defi', label: 'Relever le défi.', icon: 'nav/dice', flow: flowFromEffects([{ type: 'openTavernGames' }]) },
+              { id: 'partir', label: 'Une autre fois. (Partir)', flow: flowFromEffects([{ type: 'endDialogue' }]) },
             ],
           },
         ],

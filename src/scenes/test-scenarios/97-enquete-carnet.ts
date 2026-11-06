@@ -64,14 +64,16 @@ const construireScene = (): Scene => buildScene({
           desc: '« Le patron n’est pas rentré. Vous voulez jeter un œil au registre ? »',
           choices: [
             {
+              id: 'consulter-registre',
               label: 'Consulter le registre.',
               flow: flowFromEffects([{ type: 'revealClue', indiceId: 'ind-registre' }, { type: 'endDialogue' }]),
             },
             {
+              id: 'y-regarder-plus',
               label: 'Y regarder de plus près, à la page du bas.',
               flow: flowFromEffects([{ type: 'revealClue', indiceId: 'ind-registre', stade: 's2' }, { type: 'endDialogue' }]),
             },
-            { label: 'Laisser tomber.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
+            { id: 'laisser-tomber', label: 'Laisser tomber.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
           ],
         },
       ],

@@ -41,7 +41,7 @@ import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grap
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration, maladieABenir, aucuneMaladieABenir } from './rest';
 import { applyAlcoholTest, EFFET_D_IVRESSE } from './drunkenness';
-import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, traumaFicheById, estPlaieAmputation, amputationWoundDesc } from './trauma';
+import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, estPlaieAmputation, plaieDAmputation, avecSequelles, type SequelleNeuve } from './trauma';
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
@@ -78,7 +78,6 @@ import {
   ItemInstance,
   Weapon,
   locationLabel,
-  type Trauma,
   type ReachValue,
   type ConditionEmit,
   type ContexteDeTest,
@@ -2421,11 +2420,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Au plus UNE plaie chirurgicale par membre : l'escalade de la ligne (« Pied écrasé », LDB 18 l.180)
         // l'a déjà posée avec son échéance (`stampCriticalEscalation`) — la doubler perdrait cette échéance.
         const dejaPlaie = (target.traumas ?? []).some((t) => estPlaieAmputation(t) && t.location === loc);
-        const poses: Trauma[] = [
-          ...(dejaPlaie ? [] : [{ label: traumaFicheById('amputation-plaie').label, location: loc, needsSurgery: true, desc: amputationWoundDesc() } as Trauma]),
+        const poses: SequelleNeuve[] = [
+          ...(dejaPlaie ? [] : [plaieDAmputation(loc)]),
           ...permanentAmputations(o.sequels, loc, units),
         ];
-        target.traumas = [...(target.traumas ?? []), ...poses];
+        target.traumas = avecSequelles(target.traumas, poses);
         for (const p of poses) lines.push(t('op.amputer', { name: target.label, label: p.label, loc: locationLabel(loc, target.bodyShape) }));
         // Cumuls (LDB 18 l.247/251/273/277/281) : agrégation + escalade au seuil, au MÊME point que la pose.
         lines.push(...consolidateAmputations(target));

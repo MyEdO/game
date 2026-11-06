@@ -130,7 +130,8 @@ export const manifesteDe = (octets: Uint8Array, os = ['racine']) => ({
   schema: 4, base: 'fabrique', os, chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...ATTACHE } },
   prises: { main: { ...ATTACHE }, off: { ...ATTACHE } }, silhouettes: [FEMININ], gabarit: { ...TABLE, legs: [] },
   porteur: { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
-  appuis: { pieds: ['racine'], plusBas: [{ position: [0, 0, 0] as const, os: [{ nom: 'racine', poids: 1 }], deltas: {} }], vitessesAuSol: tableTotale([...lireGlb(octets).animations], () => 1.4) },
+  clips: { walk: [...lireGlb(octets).animations][0] },
+  appuis: { pieds: ['racine'], plusBas: [{ position: [0, 0, 0] as const, os: [{ nom: 'racine', poids: 1 }], deltas: {} }], vitesseAuSol: 1.4 },
   osAPositionAnimee: os.filter((o) => o !== 'racine'),
   glb: empreinte(octets),
 });

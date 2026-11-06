@@ -1,8 +1,8 @@
-import { nommerChamps } from '../grammaire/meta';
+import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 /** MDG 13 l.423-564 */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { cibleEtendueSchema, difficultySchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
 
 export const file = 'sea-perils.json';
@@ -31,9 +31,9 @@ const seaHazardDef = nommerChamps(z.strictObject({
       }),
     )
     .optional(),
-  freeTest: nommerChamps(z.strictObject({ test: flowTestSchema, totalDR: z.number() }).superRefine(exigerDuTest('difficulty')), {
+  freeTest: nommerChamps(z.strictObject({ test: flowTestSchema, ...cibleEtendueSchema.shape }).superRefine(exigerDuTest('difficulty')), {
     test: { label: 'Test' },
-    totalDR: { label: 'DR cumulés' },
+    ...metaDesChamps(cibleEtendueSchema, { exigees: true }),
   }).optional(),
   desc: z.string(),
   source: sourceRefSchema,
@@ -77,7 +77,7 @@ const whirlpoolDef = nommerChamps(z.strictObject({
   zoneSpiralM: z.number(),
   manDR: z.number(),
   ic: z.number(),
-  evasion: nommerChamps(z.strictObject({ difficulty: difficultySchema, totalDR: z.number() }), { difficulty: { label: 'Difficulté' }, totalDR: { label: 'DR cumulés' } }),
+  evasion: nommerChamps(z.strictObject({ difficulty: difficultySchema, ...cibleEtendueSchema.shape }), { difficulty: { label: 'Difficulté' }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }) }),
   source: sourceRefSchema,
 }), {
   id: { label: 'Identifiant' },

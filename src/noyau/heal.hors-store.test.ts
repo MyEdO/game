@@ -4,7 +4,7 @@ import { creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
 import { availableHealModes } from '../engine/healing';
-import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
+import { traumaById, dechirureFractureFicheId, avecSequelles } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';
 
 let banc: Banc;
@@ -269,7 +269,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
 
   it('mode trauma : la Guérison accélère la convalescence d’une déchirure (LDB 18 l.222)', () => {
     const doc = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
-    const patient = hero({ id: 'p', label: 'Patient', skills: [], traumas: [tk('dechirure', 'mineur', 'jambeD', { be: 4 })] }); // 26 j
+    const patient = hero({ id: 'p', label: 'Patient', skills: [], traumas: avecSequelles([], [tk('dechirure', 'mineur', 'jambeD', { be: 4 })]) }); // 26 j
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, medic: null });
     banc.getState().openMedic({ patientId: 'p' });
     banc.getState().medicAct('trauma');
@@ -284,7 +284,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
 
   it('mode trauma : un ÉCHEC consomme aussi le jet — la même déchirure ne se re-traite pas (LDB 18 l.222)', () => {
     const doc = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
-    const patient = hero({ id: 'p', label: 'Patient', skills: [], traumas: [tk('dechirure', 'mineur', 'jambeD', { be: 4 })] }); // 26 j
+    const patient = hero({ id: 'p', label: 'Patient', skills: [], traumas: avecSequelles([], [tk('dechirure', 'mineur', 'jambeD', { be: 4 })]) }); // 26 j
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, medic: null });
     banc.getState().openMedic({ patientId: 'p' });
     banc.getState().medicAct('trauma');
@@ -329,7 +329,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
 
   it('Chirurgie ARMÉE : Test ÉTENDU INFLUENÇABLE (LDB 10 l.184 / 12 l.200) — passes (modale) jusqu’à la cible, retire le trauma (1d10 + Hémorragie/passe)', () => {
     const surgeon = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
-    const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })] });
+    const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: avecSequelles([], [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })]) });
     banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().openMedic({ patientId: 'p' });
     banc.getState().medicAct('surgery'); // ARME l'opération (pas de jet) — chirurgien figé
@@ -356,7 +356,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
 
   it('#2961 — Chirurgie : « Annuler la passe » ferme la passe avant son jet sans toucher l’opération ; après le jet, elle est sans effet ; « Arrêter l’opération » ferme les deux', () => {
     const surgeon = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
-    const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })] });
+    const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: avecSequelles([], [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })]) });
     banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().openMedic({ patientId: 'p' });
     banc.getState().medicAct('surgery');
@@ -381,7 +381,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
 
   it('Chirurgie : à la cible atteinte, le Test d’infection du PATIENT est DIFFÉRÉ en étape cascade INFLUENÇABLE (Résistance +20, Menace : Maladie) — plus de jet silencieux, Infection non contractée avant l’influence', () => {
     const surgeon = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
-    const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })] });
+    const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: avecSequelles([], [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })]) });
     banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null, pendingCascade: null });
     banc.getState().openMedic({ patientId: 'p' });
     banc.getState().medicAct('surgery');
@@ -409,13 +409,14 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const surgeon = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
     const patient = hero({
       id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40),
-      traumas: [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 }), tk('fracture', 'majeur', 'brasD', { be: 4, d10: 5 })],
+      traumas: avecSequelles([], [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 }), tk('fracture', 'majeur', 'brasD', { be: 4, d10: 5 })]),
     });
     banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().openMedic({ patientId: 'p' });
     banc.getState().medicAct('surgery');
-    banc.getState().medicSetWound(1); // opérer la 2e blessure (brasD)
-    expect(banc.getState().medic!.surgery!.traumaIdx).toBe(1);
+    const brasD = patient.traumas!.find((t) => t.location === 'brasD')!;
+    banc.getState().medicSetWound(brasD.uid); // opérer la blessure du brasD
+    expect(banc.getState().medic!.surgery!.traumaUid).toBe(brasD.uid);
   });
 
   it('Récupération d’usage (« Épaule luxée », #166) : acte Guérison ARMÉ = Test ÉTENDU DR 6 (Accessible), retire le membre désactivé + pose −10 / 1d10 j, SANS dégât', () => {
@@ -423,7 +424,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const patient = hero({
       id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40),
       // Aide Médicale DÉJÀ reçue (awaitingMedicalAid absent) → la récupération est ouvrable (LDB 18 l.120).
-      traumas: [{ label: 'Épaule luxée (bras perdu)', location: 'brasD', restoreDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }],
+      traumas: [{ uid: 't1', label: 'Épaule luxée (bras perdu)', location: 'brasD', restoreDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }],
     });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().openMedic({ patientId: 'p' });
@@ -451,7 +452,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const doc = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
     const patient = hero({
       id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40),
-      traumas: [{ label: 'Épaule luxée (bras perdu)', location: 'brasD', restoreDR: 6, awaitingMedicalAid: true, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }],
+      traumas: [{ uid: 't2', label: 'Épaule luxée (bras perdu)', location: 'brasD', restoreDR: 6, awaitingMedicalAid: true, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }],
     });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().openMedic({ patientId: 'p' });

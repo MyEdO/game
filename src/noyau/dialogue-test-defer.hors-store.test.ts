@@ -23,6 +23,7 @@ function makeDialogue(withFlow: boolean): Dialogue {
       {
         id: 'n1', desc: '…',
         choices: [{
+          id: 'tenter',
           label: 'Tenter',
           next: 'n2',
           ...(withFlow ? { flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, success: setFlag('gagne'), fail: setFlag('perd') } as Flow } : {}),
@@ -40,7 +41,7 @@ beforeEach(() => {
 describe('chooseDialogue — avancée différée pendant un Test', () => {
   it('choix AVEC Test : le dialogue reste au nœud courant tant que le Test n’est pas résolu', () => {
     banc.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('tenter');
     // Le Test a suspendu ; le nœud N’A PAS avancé (pas de DialogueBox du nœud suivant sous la modale).
     expect(banc.getState().pendingTest).toBeTruthy();
     expect(banc.getState().dialogue?.nodeId).toBe('n1');
@@ -53,7 +54,7 @@ describe('chooseDialogue — avancée différée pendant un Test', () => {
     // pending est celui de tous les Tests (même slot, même verbe de résolution `jetConfirm('test')`), et il
     // porte la SITUATION déclarée par le flux — jamais le libellé de la réponse.
     banc.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('tenter');
     const pt = banc.getState().pendingTest!;
     expect(pt.label).toBe('Force');
     expect(pt.char).toBe('force');
@@ -62,7 +63,7 @@ describe('chooseDialogue — avancée différée pendant un Test', () => {
 
   it('résolution du Test → la branche s’applique PUIS le dialogue avance', () => {
     banc.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('tenter');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 5, success: true } });
     banc.getState().jetConfirm('test');
     expect(banc.getState().flags.gagne).toBe(true); // effet de branche appliqué
@@ -72,7 +73,7 @@ describe('chooseDialogue — avancée différée pendant un Test', () => {
 
   it('échec au Test → branche d’échec appliquée, dialogue avance quand même', () => {
     banc.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('tenter');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false } });
     banc.getState().jetConfirm('test');
     expect(banc.getState().flags.perd).toBe(true);
@@ -81,7 +82,7 @@ describe('chooseDialogue — avancée différée pendant un Test', () => {
 
   it('choix SANS Test : le dialogue avance immédiatement (non-régression)', () => {
     banc.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(false), nodeId: 'n1', session: 1 } });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('tenter');
     expect(banc.getState().pendingTest).toBeNull();
     expect(banc.getState().dialogue?.nodeId).toBe('n2');
   });

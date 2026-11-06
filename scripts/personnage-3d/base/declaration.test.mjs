@@ -1,9 +1,10 @@
-// La déclaration du corps d'une base validée contre la donnée (#3106) : `lireDeclaration`, `jugerDeclaration`.
+// La déclaration du corps d'une base validée contre la donnée (#3106) : `lireDeclaration`, `jugerDeclaration` ; sa part
+// du manifeste de base (#3253) : `champsDeclares`.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { jugerDeclaration, lireDeclaration } from './declaration.mjs'
+import { champsDeclares, jugerDeclaration, lireDeclaration } from './declaration.mjs'
 
 const HUMANOIDE = fileURLToPath(new URL('./humanoide.json', import.meta.url))
 
@@ -16,6 +17,11 @@ function jugerAvec(nom, porteur, lireDonnee) {
 describe('lireDeclaration', () => {
   it('accepte la déclaration de la base humanoïde', async () => {
     assert.equal((await lireDeclaration(HUMANOIDE)).porteur.race, 'humain')
+  })
+
+  it('refuse une déclaration sans clip du rôle `walk`, en nommant le champ', async () => {
+    const declaration = JSON.parse(readFileSync(HUMANOIDE, 'utf8'))
+    await assert.rejects(jugerDeclaration({ ...declaration, clips: { idle: 'Idle_Loop' } }, 'sans-marche.json'), /^Error: sans-marche\.json : clips\.walk, nom de clip attendu$/)
   })
 
   it('refuse une Taille que la donnée ne donne pas à la race, en nommant champ, déclaré et donnée', async () => {
@@ -38,5 +44,19 @@ describe('lireDeclaration', () => {
   it('juge l’échelle d’art contre le `scale` de la race dans raceAppearance', async () => {
     const donnee = { raceAppearance: [{ id: 'humain', scale: 1.2 }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne'] }
     await assert.rejects(jugerAvec('echelle-de-race', { race: 'humain', gabarit: 'moyen' }, async () => donnee), /porteur\.echelleDArt 1, la donnée donne 1\.2 à la race humain/)
+  })
+})
+
+describe('champsDeclares', () => {
+  const porteur = { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 }
+  const clips = { walk: 'Marche', idle: 'Repos', melee: 'Taille' }
+
+  it('écrit au manifeste la base, le porteur et la table rôle → clip de la déclaration, et rien d’autre', () => {
+    assert.deepEqual(champsDeclares({ base: 'corps', porteur, clips, autre: 1 }), { base: 'corps', porteur, clips })
+  })
+
+  it('y ajoute les surfaces déclarées', () => {
+    const surfaces = [{ nom: 'Peau', palette: 'peau' }]
+    assert.deepEqual(champsDeclares({ base: 'corps', porteur, clips, surfaces }), { base: 'corps', porteur, clips, surfaces })
   })
 })

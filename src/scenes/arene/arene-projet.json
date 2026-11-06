@@ -3544,16 +3544,19 @@
        "desc": "Tu saignes encore ? Parfait, le sable boit tout. L’échelle t’attend — et pour les plus gourmands, j’ai des contrats au-delà de la palissade.",
        "choices": [
         {
+         "id": "echelle-arene",
          "label": "L’échelle de l’arène.",
          "icon": "action/attack",
          "next": "echelle"
         },
         {
+         "id": "contrats-expedition",
          "label": "Les contrats d’expédition.",
          "icon": "file/document",
          "next": "contrats"
         },
         {
+         "id": "crocheter-vieux-coffre",
          "label": "Crocheter le vieux coffre du maître.",
          "icon": "ui/lock",
          "when": {
@@ -3615,6 +3618,7 @@
          }
         },
         {
+         "id": "reclamer-titre-champion",
          "label": "Réclamer ton titre de CHAMPION.",
          "icon": "scenario/arena",
          "when": {
@@ -3669,6 +3673,7 @@
          }
         },
         {
+         "id": "savourer-gloire-champion",
          "label": "Savourer ta gloire de champion.",
          "icon": "scenario/arena",
          "when": {
@@ -3695,6 +3700,7 @@
          }
         },
         {
+         "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
           "kind": "seq",
@@ -3715,6 +3721,7 @@
        "desc": "Treize portes, treize bourses. On ouvre la suivante quand la précédente est nettoyée. Équipe-toi avant d’entrer — le sable ne rend rien.",
        "choices": [
         {
+         "id": "entrer-zone1",
          "label": "Entrer — La Cour (échauffement).",
          "icon": "action/attack",
          "when": {
@@ -3735,6 +3742,7 @@
          }
         },
         {
+         "id": "entrer-zone2",
          "label": "Entrer — Les Ruines.",
          "icon": "action/attack",
          "when": {
@@ -3755,6 +3763,7 @@
          }
         },
         {
+         "id": "entrer-zone3",
          "label": "Entrer — Les Égouts.",
          "icon": "action/attack",
          "when": {
@@ -3775,6 +3784,7 @@
          }
         },
         {
+         "id": "entrer-zone4",
          "label": "Entrer — Le Charnier.",
          "icon": "action/attack",
          "when": {
@@ -3795,6 +3805,7 @@
          }
         },
         {
+         "id": "entrer-zone5",
          "label": "Entrer — Les Lices.",
          "icon": "action/attack",
          "when": {
@@ -3815,6 +3826,7 @@
          }
         },
         {
+         "id": "entrer-zone6",
          "label": "Entrer — Le Marais.",
          "icon": "action/attack",
          "when": {
@@ -3835,6 +3847,7 @@
          }
         },
         {
+         "id": "entrer-zone7",
          "label": "Entrer — Le Nid.",
          "icon": "action/attack",
          "when": {
@@ -3855,6 +3868,7 @@
          }
         },
         {
+         "id": "entrer-zone8",
          "label": "Entrer — La Fosse.",
          "icon": "action/attack",
          "when": {
@@ -3875,6 +3889,7 @@
          }
         },
         {
+         "id": "entrer-zone9",
          "label": "Entrer — La Caverne du Troll.",
          "icon": "action/attack",
          "when": {
@@ -3895,6 +3910,7 @@
          }
         },
         {
+         "id": "entrer-zone10",
          "label": "Entrer — Le Nid de Vermine.",
          "icon": "action/attack",
          "when": {
@@ -3915,6 +3931,7 @@
          }
         },
         {
+         "id": "entrer-zone11",
          "label": "Entrer — Le Cercle Maudit.",
          "icon": "action/attack",
          "when": {
@@ -3935,6 +3952,7 @@
          }
         },
         {
+         "id": "entrer-zone12",
          "label": "Entrer — Le Sépulcre.",
          "icon": "action/attack",
          "when": {
@@ -3955,6 +3973,7 @@
          }
         },
         {
+         "id": "entrer-zone13",
          "label": "Entrer — L’Antre du Dragon.",
          "icon": "action/attack",
          "when": {
@@ -3975,6 +3994,7 @@
          }
         },
         {
+         "id": "revenir",
          "label": "↩ Revenir.",
          "next": "accueil"
         }
@@ -3985,6 +4005,7 @@
        "desc": "Le Bourg paie pour ce qui rôde au-delà de la palissade. Accepte, puis prends la route par la carte du monde. Emporte des RATIONS — la Tavernière en vend : la route creuse l’estomac.",
        "choices": [
         {
+         "id": "contrat-foret",
          "label": "La Vieille Futaie : des hommes-bêtes ont dressé un camp — et la bande de Bella la Noire détrousse les convois.",
          "icon": "file/document",
          "when": {
@@ -4012,6 +4033,7 @@
          }
         },
         {
+         "id": "prime-foret",
          "label": "Toucher la prime — des hommes-bêtes ont dressé un camp — et la bande de Bella la Noire détrousse les convois.",
          "icon": "resource/gold-purse",
          "when": {
@@ -4055,6 +4077,7 @@
          }
         },
         {
+         "id": "contrat-marais",
          "label": "La Tourbière Noire : quelque chose de FABRIQUÉ y traîne les voyageurs sous l’eau.",
          "icon": "file/document",
          "when": {
@@ -4082,6 +4105,7 @@
          }
         },
         {
+         "id": "prime-marais",
          "label": "Toucher la prime — quelque chose de FABRIQUÉ y traîne les voyageurs sous l’eau.",
          "icon": "resource/gold-purse",
          "when": {
@@ -4125,6 +4149,7 @@
          }
         },
         {
+         "id": "contrat-village",
          "label": "Felsbach : le village ne répond plus depuis un mois. Brûle ce qui marche encore.",
          "icon": "file/document",
          "when": {
@@ -4152,6 +4177,7 @@
          }
         },
         {
+         "id": "prime-village",
          "label": "Toucher la prime — le village ne répond plus depuis un mois. Brûle ce qui marche encore.",
          "icon": "resource/gold-purse",
          "when": {
@@ -4195,6 +4221,7 @@
          }
         },
         {
+         "id": "revenir",
          "label": "↩ Revenir.",
          "next": "accueil"
         }
@@ -4211,6 +4238,7 @@
        "desc": "Encore vivant ? Bien. J’ai des potions, du faxtoryll pour les saignements, des membres de rechange… et la scie, si vraiment il faut OPÉRER.",
        "choices": [
         {
+         "id": "voir-remedes-protheses",
          "label": "Voir les remèdes et prothèses.",
          "icon": "medical/aid",
          "flow": {
@@ -4227,6 +4255,7 @@
          }
         },
         {
+         "id": "passer-sur-table",
          "label": "Passer sur la table (actes payants).",
          "icon": "medical/scalpel",
          "flow": {
@@ -4269,6 +4298,7 @@
          }
         },
         {
+         "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
           "kind": "seq",
@@ -4295,10 +4325,12 @@
        "desc": "L’arène est au sud, derrière la porte. La route de l’est mène à la Futaie, à la Tourbière et à Felsbach — si tu tiens à tes jambes, voyage de jour et le ventre plein.",
        "choices": [
         {
+         "id": "rien-signaler",
          "label": "« Rien à signaler ? »",
          "next": "signalements"
         },
         {
+         "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
           "kind": "seq",
@@ -4319,6 +4351,7 @@
        "desc": "Il hausse les épaules. « Des hurlements dans la Futaie, la nuit. Et plus une lumière à Felsbach depuis un mois. Si tu veux mon avis : reste du bon côté de la palissade. »",
        "choices": [
         {
+         "id": "merci-conseil",
          "label": "« Merci du conseil. »",
          "flow": {
           "kind": "seq",
@@ -4340,6 +4373,7 @@
          }
         },
         {
+         "id": "autre-chose",
          "label": "↩ Autre chose.",
          "next": "accueil"
         }
@@ -4356,10 +4390,12 @@
        "desc": "Vous êtes les nouveaux gladiateurs ? On parie sur vous au lavoir. Enfin… certains.",
        "choices": [
         {
+         "id": "qui-se-raconte",
          "label": "« Qu’est-ce qui se raconte ? »",
          "next": "lavoir"
         },
         {
+         "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
           "kind": "seq",
@@ -4380,6 +4416,7 @@
        "desc": "Elle baisse la voix. « Le Maître garde un vieux coffre dont il a perdu la clef — il dit que c’est sans valeur, mais il dort dessus. Et passez voir Frère Anselm à la chapelle : il bénit ceux qui descendent sur le sable. »",
        "choices": [
         {
+         "id": "interessant",
          "label": "« Intéressant… »",
          "flow": {
           "kind": "seq",
@@ -4401,6 +4438,7 @@
          }
         },
         {
+         "id": "autre-chose",
          "label": "↩ Autre chose.",
          "next": "accueil"
         }
@@ -4417,6 +4455,7 @@
        "desc": "Bienvenue au Trophée ! Table, chambre, et de quoi remplir les sacoches — la route ne nourrit personne, prenez des RATIONS avant de voyager.",
        "choices": [
         {
+         "id": "voir-garde-manger",
          "label": "Voir le garde-manger (rations, vivres, pintes).",
          "icon": "rest/stew",
          "flow": {
@@ -4433,6 +4472,7 @@
          }
         },
         {
+         "id": "repas-chaud",
          "label": "Repas chaud pour le groupe.",
          "icon": "rest/stew",
          "cost": {
@@ -4458,6 +4498,7 @@
          }
         },
         {
+         "id": "prendre-chambres",
          "label": "Prendre des chambres pour la nuit.",
          "icon": "rest/bed",
          "flow": {
@@ -4474,11 +4515,13 @@
          }
         },
         {
+         "id": "ecouter-salle",
          "label": "Écouter la salle.",
          "icon": "expedition/rumor",
          "next": "rumeurs"
         },
         {
+         "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
           "kind": "seq",
@@ -4499,14 +4542,17 @@
        "desc": "On entend de tout ici, surtout après la troisième pinte…",
        "choices": [
         {
+         "id": "arene",
          "label": "« Et l’arène ? »",
          "next": "rumeur-arene"
         },
         {
+         "id": "routes",
          "label": "« Et les routes ? »",
          "next": "rumeur-routes"
         },
         {
+         "id": "revenir",
          "label": "↩ Revenir.",
          "next": "accueil"
         }
@@ -4517,6 +4563,7 @@
        "desc": "Elle essuie une chope, l’œil en coin. « Personne n’a jamais passé la treizième porte. Et entre nous : le Maître fait descendre des carcasses ENTIÈRES là-dessous. On ne nourrit pas un trophée. »",
        "choices": [
         {
+         "id": "bon-savoir",
          "label": "« Bon à savoir. »",
          "flow": {
           "kind": "seq",
@@ -4538,6 +4585,7 @@
          }
         },
         {
+         "id": "autre-rumeur",
          "label": "↩ Une autre rumeur.",
          "next": "rumeurs"
         }
@@ -4548,6 +4596,7 @@
        "desc": "« La diligence de Felsbach n’est jamais arrivée le mois dernier. Et les charognards qu’on croise en lisière de la Futaie… portent des cottes de voyageurs. Prenez des rations, et voyagez armés. »",
        "choices": [
         {
+         "id": "merci-tuyau",
          "label": "« Merci du tuyau. »",
          "flow": {
           "kind": "seq",
@@ -4569,6 +4618,7 @@
          }
         },
         {
+         "id": "autre-rumeur",
          "label": "↩ Une autre rumeur.",
          "next": "rumeurs"
         }
@@ -4585,6 +4635,7 @@
        "desc": "Sigmar garde les braves — et recoud les imprudents. Approche : la chapelle soigne, bénit, et accepte les dons.",
        "choices": [
         {
+         "id": "recevoir-soins",
          "label": "Recevoir des soins (actes payants).",
          "icon": "medical/aid",
          "flow": {
@@ -4615,6 +4666,7 @@
          }
         },
         {
+         "id": "recevoir-benediction",
          "label": "Recevoir la bénédiction du départ (retrouver la Chance).",
          "icon": "faith/prayer",
          "when": {
@@ -4648,6 +4700,7 @@
          }
         },
         {
+         "id": "faire-don",
          "label": "Faire un don au tronc.",
          "icon": "resource/gold-purse",
          "cost": {
@@ -4667,6 +4720,7 @@
          }
         },
         {
+         "id": "piller-tronc-offrandes",
          "label": "Piller le tronc des offrandes.",
          "icon": "action/pick-up",
          "when": {
@@ -4742,6 +4796,7 @@
          }
         },
         {
+         "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
           "kind": "seq",
@@ -4768,6 +4823,7 @@
        "desc": "Le sable bouffe le fil des lames plus vite que les monstres. Montre-moi ton acier — je vends, je rachète, je RÉPARE.",
        "choices": [
         {
+         "id": "armes-armures-reparations",
          "label": "Armes, armures et réparations.",
          "icon": "merchant/cart",
          "flow": {
@@ -4784,6 +4840,7 @@
          }
         },
         {
+         "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
           "kind": "seq",
@@ -4810,6 +4867,7 @@
        "desc": "Onguents, herbes, cordages, torches — tout ce qui manque quand la nuit tombe sur la route. Entrez, entrez : ma boutique a tout ce que le sable n’a pas encore mangé.",
        "choices": [
         {
+         "id": "voir-etal-herbes",
          "label": "Voir l’étal (herbes, potions, fournitures).",
          "icon": "merchant/cart",
          "flow": {
@@ -4826,6 +4884,7 @@
          }
         },
         {
+         "id": "plus-tard",
          "label": "Plus tard.",
          "flow": {
           "kind": "seq",
@@ -15860,6 +15919,7 @@
        "desc": "« Psst ! Par ici ! Les hommes-rats m’engraissent pour leur table — la serrure est grossière, sortez-moi de là ! »",
        "choices": [
         {
+         "id": "crocheter-cage",
          "label": "Crocheter la cage.",
          "icon": "ui/lock",
          "when": {
@@ -15934,6 +15994,7 @@
          }
         },
         {
+         "id": "revenir-te-chercher",
          "label": "« On revient te chercher. » (Plus tard.)",
          "flow": {
           "kind": "seq",

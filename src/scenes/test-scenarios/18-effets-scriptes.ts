@@ -57,6 +57,7 @@ const construireVillage = (): Scene => buildScene({
           desc: '« Je soigne qui peut payer — pas plus, pas moins. Bander une plaie, ça se facture. »',
           choices: [
             {
+              id: 'ouvrir-infirmaire-soins',
               label: 'Ouvrir son infirmaire (soins payants).',
               flow: flowFromEffects([
                 {
@@ -66,7 +67,7 @@ const construireVillage = (): Scene => buildScene({
                 { type: 'endDialogue' },
               ]),
             },
-            { label: 'Une autre fois.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
+            { id: 'autre-fois', label: 'Une autre fois.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
           ],
         },
       ],
@@ -80,6 +81,7 @@ const construireVillage = (): Scene => buildScene({
           desc: '« L’atelier a brûlé cette nuit — il n’en reste rien. Tout ce pour quoi vous travailliez... c’est fini. »',
           choices: [
             {
+              id: 'encaisser-nouvelle',
               label: 'Encaisser la nouvelle.',
               flow: flowFromEffects([{ type: 'ambitionLost' }, { type: 'endDialogue' }]),
             },
