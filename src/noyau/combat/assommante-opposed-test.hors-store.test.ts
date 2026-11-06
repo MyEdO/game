@@ -75,7 +75,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(step.meta?.opposed?.attackerLabel, 'aucun libellé authoré : « Force » se dérive').toBeUndefined();
   });
 
-  it('(a) HÉROS : jetRoll@cascade+cascadeNext → l’issue (Sonné ou non) SUIT resolveOpposed(jetDéfenseur, Force figée)', () => {
+  it('(a) HÉROS : jetRoll@cascade+jetConfirm@cascade → l’issue (Sonné ou non) SUIT resolveOpposed(jetDéfenseur, Force figée)', () => {
     seedBattleRng(3);
     const { H, wielder } = setup();
     wielder.characteristics.force = 60;
@@ -90,7 +90,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     // (ATTAQUANT figé en 1ʳᵉ position, comme la production) : la victime résiste si l’attaquant ne l’emporte pas.
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     const expectedResist = resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner !== 'attacker';
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
 
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     // Sonné posé SSI l’attaquant l’emporte (la victime ne résiste PAS) — preuve que l’applier branche via resolveOpposed.
@@ -133,7 +133,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false, base: step.base }).winner).toBe('tie');
     // L’étape conclut « résiste » (success) — un test simple plié sur le jet de l’ATTAQUANT aurait conclu autrement.
     expect(rolled.success).toBe(true);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
 
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(hasCondition(h, 'sonne')).toBe(false); // ÉGALITÉ → PAS de Sonné (l’attaquant ne remporte pas)

@@ -94,7 +94,7 @@ function poser(valeur: number): void {
   const st = etapeCourante()!;
   expect(st, 'aucune étape à jouer').toBeDefined();
   banc.getState().jetSetForcedRoll('cascadeTirage', valeur, st.id);
-  banc.getState().cascadeNext();
+  banc.getState().jetConfirm('cascade');
   capter();
 }
 

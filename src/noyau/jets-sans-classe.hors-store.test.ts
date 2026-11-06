@@ -154,14 +154,14 @@ describe('#1479 — le mono qu’AUCUN humain ne tient ne bloque plus la cascade
     stake: voyageStakeRef('sea-epuisement', { condition: 'Exténué' }),
   })!;
 
-  it('héros conduit par l’IA : le socle TIRE son étape et la séquence la FRANCHIT (jamais un `cascadeNext` en no-op)', () => {
+  it('héros conduit par l’IA : le socle TIRE son étape et la séquence la FRANCHIT (jamais une validation fermée pour toujours)', () => {
     const party = get().party.map((h, i) => (i === 0 ? { ...h, aiControlled: true } : h));
     set({ party } as never);
     startCascade(get, set, { title: 'Sonde', purpose: 'test', steps: [jet(party[0], 'ia'), jet(party[1], 'joueur')] });
     const casc = get().pendingCascade!;
     expect(casc.participants[0].result, 'personne ne la tient : le dé tombe à la pose du curseur').toBeTruthy();
     expect(casc.cursor, 'et la fenêtre s’ouvre bien SUR elle — c’est « Suivant » qui la franchit').toBe(0);
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     const apres = get().pendingCascade!;
     expect(apres.cursor, 'le curseur a franchi l’étape non tenue et s’est posé sur celle du joueur').toBe(1);
     expect(apres.participants[1].result, 'que son joueur tient : elle attend SON dé').toBeNull();

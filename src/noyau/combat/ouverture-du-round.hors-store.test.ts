@@ -46,7 +46,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     expect(revelation.participants.some((s) => s.kind === 'round'), 'la ligne d’entretien du héros ouvre sa révélation').toBe(true);
     expect(banc.getState().pendingRoundStart, 'le Round attend la fermeture de la révélation').toBeNull();
 
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
     expect(banc.getState().pendingRoundStart, 'la fermeture ouvre la pause de début de Round').toEqual({ round: 2 });
 
@@ -83,7 +83,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     resolveRoundBoundary(banc.getState, banc.setState);
     expect(banc.getState().pendingRoundStart).toBeNull();
     expect(banc.getState().pendingCascade?.roundBoundary, 'la séquence en vol porte la borne du Round').toBe(true);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
     expect(banc.getState().pendingRoundStart).toEqual({ round: 2 });
   });
@@ -91,7 +91,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
   it('IA en tête : après la pause, elle joue son tour', () => {
     dernierTourSaigne((cs) => cs.find((c) => c.kind === 'enemy' && !c.dead)!.id);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingRoundStart).toEqual({ round: 2 });
     banc.getState().fenetreValider('roundStart');
     const cle = () => `2:0:${banc.getState().battle!.order[0]}`;

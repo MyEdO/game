@@ -46,7 +46,7 @@ import { d100 } from '../engine/dice';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from './cascade';
+import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady } from './cascade';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
@@ -236,6 +236,15 @@ const etapeCouranteSi = (sert: (st: CascadeStep) => boolean) => (p: PendingCasca
   const st = p.participants[p.cursor];
   return st && sert(st) ? [st] : [];
 };
+
+/** Ce qui ferme la validation de l'étape courante de la cascade `p` (`jetConfirm('cascade')`) : au bilan, les étapes
+ *  jouées ; une étape qui n'est pas prête (`stepReady`), le choix qu'elle attend, sinon son jet. */
+function fermetureDeLEtape(p: PendingCascade, s: Jeu): FermetureDuJet | null {
+  const etape = p.participants[p.cursor];
+  if (!etape) return 'etapesJouees';
+  if (stepReady(etape, s)) return null;
+  return stepInteraction(etape) === 'choix' ? 'choixDu' : 'jetNonLance';
+}
 
 /** La cascade `p` où chaque étape de `etapes` remplace celle de même id. */
 const remplacerLEtape = (p: PendingCascade, etapes: CascadeStep[]): PendingCascade =>
@@ -1226,11 +1235,14 @@ export const FLOWS = paresseux({
    * CASCADE séquentielle (jets de NUIT / VOYAGE) — flux multi SÉQUENTIEL générique : une étape à la
    * fois (l'étape courante = `participants[cursor]`), chacune son cycle Chance/+1 DR/Pacte/Résilience.
    * Le JET est kind-agnostique (Test « +0 » sur `step.target`, difficulté déjà appliquée) ; la
-   * CONSÉQUENCE par `kind` + l'avancée du curseur vivent dans `cascadeNext`/`advanceCascade`
-   * (noyau/cascade.ts). Même fabrique que le Test Étendu — seule la sémantique d'étape change.
+   * CONSÉQUENCE par `kind` + l'avancée du curseur vivent dans la clôture (`jetConfirm('cascade')` → `advanceCascade`,
+   * noyau/cascade.ts), ouverte sur toute étape prête (`fermetureDeLEtape`). Même fabrique que le Test Étendu — seule la
+   * sémantique d'étape change.
    */
   cascade: () => makeRollFlow<PendingCascade, CascadeStep>({
     key: 'pendingCascade',
+    clotures: { confirm: 'toujours' },
+    cloture: fermetureDeLEtape,
     multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape },
     rolled: (st) => !!st.result,
     actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
@@ -1357,7 +1369,7 @@ export const FLOWS = paresseux({
   /**
    * DÉ D'ÉTAPE de cascade, sur une table ou nu (#942, #1508) : la seule étape COURANTE qui porte un dé (`deDEtape`). Un
    * tirage, pas un Test : ni influence (le flux n'en déclare aucune), ni issue (scellée neutre sur le dé), ni clôture —
-   * la cascade valide l'étape (`cascadeNext`). Le dé se tire (`tirerLeDeDEtape`) ou se POSE (`poserLeDeDEtape`), et se
+   * la cascade valide l'étape (`jetConfirm('cascade')`). Le dé se tire (`tirerLeDeDEtape`) ou se POSE (`poserLeDeDEtape`), et se
    * re-pose tant que l'étape est courante.
    */
   cascadeTirage: () => makeRollFlow<PendingCascade, CascadeStep>({

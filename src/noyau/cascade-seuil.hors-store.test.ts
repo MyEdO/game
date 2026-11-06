@@ -115,7 +115,7 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
     startCascade(banc.getState, banc.setState, { title: 'Sauvegarde', purpose: 'test', steps: [sauvegardeStep()] });
     if (dePose != null) banc.getState().jetSetForcedRoll('cascadeTirage', dePose, 'sauvegarde-ilyanwe');
     else banc.getState().jetRoll('cascadeTirage', 'sauvegarde-ilyanwe');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
   }
 
   const logDeCombat = () => banc.getState().battle?.log ?? [];

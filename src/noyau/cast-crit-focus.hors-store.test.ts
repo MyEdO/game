@@ -233,7 +233,7 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     checkFocusInterruption(banc.getState, banc.setState, w);
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     banc.getState().jetRoll('cascade', step.id);
-    banc.getState().cascadeNext(); // valide l'échec → applier `triggeredTest` → branche fail → hook
+    banc.getState().jetConfirm('cascade'); // valide l'échec → applier `triggeredTest` → branche fail → hook
     const h = banc.getState().battle!.combatants.find((x) => x.id === w.id)!;
     expect(h.focus).toBeUndefined(); // concentration BRISÉE : DR perdus
     // L'Imparfaite Mineure (conséquence d'échec) est appendue à la MÊME cascade : d'abord son TIRAGE
@@ -252,7 +252,7 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     checkFocusInterruption(banc.getState, banc.setState, w);
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     banc.getState().jetRoll('cascade', step.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === w.id)!;
     expect(h.focus?.dr).toBe(3); // succès : focalisation gardée
     expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'miscast') ?? false).toBe(false);

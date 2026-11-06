@@ -243,7 +243,7 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
     expect(choix.kind, 'le jour s’arrête sur la décision').toBe('riverObstacleChoice');
     expect(pc.participants.slice(pc.cursor + 1).some((s) => s.kind === 'riverPerilCheck'), 'le péril de Débris suit la décision').toBe(true);
     get().cascadeChoose(choix.id, 'forcer');
-    get().cascadeNext(); // « Valider » : le geste du joueur qui tranche
+    get().jetConfirm('cascade'); // « Valider » : le geste du joueur qui tranche
     const apres = get().pendingCascade;
     expect(apres?.purpose ?? null, `la fenêtre du JOUR s’est refermée — journal :\n${get().journal.join('\n')}`).not.toBe('travelDay');
     expect(get().journal.some((l) => /^Progression du jour/.test(l)), 'le jour est allé à son terme').toBe(true);
@@ -500,7 +500,7 @@ describe('#270 / #1657 B3-2 — Critique au gréement : le coup à l’équipage
     surLePont();
     const h = get().party[0];
     set({ pendingCascade: riggingFailStep(h.id) as never });
-    get().cascadeNext(); // valide l'échec → Critique au gréement
+    get().jetConfirm('cascade'); // valide l'échec → Critique au gréement
     const pc = get().pendingCascade;
     expect(pc).toBeTruthy();
     const bande = pc!.participants.find((s) => s.kind === 'triggeredBatchTest');
@@ -518,7 +518,7 @@ describe('#270 / #1657 B3-2 — Critique au gréement : le coup à l’équipage
     set({ party: get().party.map((x) => ({ ...x, aiControlled: true, shipStation: 'pont' })) });
     const h = get().party[0];
     set({ pendingCascade: riggingFailStep(h.id) as never });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(get().pendingCascade).toBeNull(); // 1 seule étape, tout résolu inline → cascade close
     const journal = get().journal.join('\n');
     // La Localisation se LIT (« gréement »), elle ne s'affiche plus par son id de table (#1318 V8c₂) :

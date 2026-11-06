@@ -368,7 +368,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
         { id: 'defense-jet-1', kind: 'defenseJet', jet: 'defense', actorId: 'h' }, // ORPHELINE : aucun pendingDefense
       ], { title: 'Défense', purpose: 'combat' }),
     });
-    expect(() => banc.getState().cascadeNext()).toThrow(/orphelin/);
+    expect(() => banc.getState().jetConfirm('cascade')).toThrow(/orphelin/);
   });
 
   it('l’ARBITRE n’élit pas la cascade quand le corps de l’étape `cast` s’efface (ciblage carte)', () => {

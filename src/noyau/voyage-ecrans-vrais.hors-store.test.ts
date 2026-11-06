@@ -335,7 +335,7 @@ describe('#2533 (5) — péripéties : le d10 passe par la porte des jets (LDB 5
     get().startTravel('r1', 'pied');
     const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'landPeril')!;
     get().jetSetForcedRoll('cascadeTirage', 8, seuil.id);
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     const table = get().pendingCascade!.participants.find((s) => s.kind === 'landPerilTable')!;
     expect(table, 'le seuil atteint insère la table des péripéties').toBeTruthy();
     expect(table.worldOwner, 'aucun acteur ne la porte : le sentinel la route au siège').toBe(true);

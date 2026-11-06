@@ -79,7 +79,7 @@ describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet t
 
     // 3. Conséquence appliquée 1× à la validation (applyFaimTest) — un seul Test compté, pas de double.
     forceFail(faim!.id, 'A'); // re-fige l'échec (la relance a pu réussir) pour vérifier la conséquence
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const aEnd = banc.getState().party.find((h) => h.id === 'A')!;
     expect(aEnd.hunger!.tests).toBe(1); // exactement UN Test résolu
     expect(aEnd.hunger!.failures).toBe(1); // 1er échec → −10 F/E (l.422), pas de double-décompte
@@ -111,7 +111,7 @@ describe('#253 — CONTAGION de promiscuité : étape de cascade influençable',
 
     // Contraction appliquée 1× (pas de double entrée de maladie) sur un échec verrouillé.
     forceFail(cont!.id, 'B');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const bEnd = banc.getState().party.find((h) => h.id === 'B')!;
     expect(bEnd.diseases!.filter((d) => d.id === 'verole-urticante').length).toBe(1);
   });
@@ -144,7 +144,7 @@ describe("#253 — AVANCE D'HORLOGE (advanceTime) : bilan en cascade influençab
 
     // 3. Conséquence appliquée 1× à la validation — un seul Test compté, pas de double-résolution.
     forceFail(faim!.id, 'A');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const aEnd = banc.getState().party.find((h) => h.id === 'A')!;
     expect(banc.getState().pendingCascade).toBeNull(); // cascade close (purpose upkeep : aucune suite)
     expect(aEnd.hunger!.tests).toBe(1);
@@ -169,7 +169,7 @@ describe("#253 — AVANCE D'HORLOGE (advanceTime) : bilan en cascade influençab
     expect(banc.getState().party.find((h) => h.id === 'A')!.fortune).toBe((fortuneBefore ?? 0) - 1);
 
     // Dessoûlage appliqué 1× à la validation (`soberUpDissipate` lève l'état, quelle que soit l'issue du DR).
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().party.find((h) => h.id === 'A')!.drunk).toBeUndefined();
   });
 
@@ -200,7 +200,7 @@ describe('#253 — EXPOSITION de campement : étape de cascade influençable', (
 
     // L'abri de fortune (Survie en extérieur) ouvre la séquence ; son échec INSÈRE les jets d'Exposition.
     const abri = stepOfKind('shelter');
-    if (abri) { forceFail(abri.id, 'A'); banc.getState().cascadeNext(); }
+    if (abri) { forceFail(abri.id, 'A'); banc.getState().jetConfirm('cascade'); }
 
     const expo = stepOfKind('exposure');
     expect(expo).toBeTruthy();

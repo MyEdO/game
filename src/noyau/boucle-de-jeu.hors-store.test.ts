@@ -217,7 +217,7 @@ describe('Boucle de jeu (store)', () => {
     mkDeviationSetup();
     const dev = joueLaSeverite();
     banc.getState().cascadeChoose(dev.id, 'devier');
-    banc.getState().cascadeNext(); // valide le choix → applier 'deviation' → resolveDeviation
+    banc.getState().jetConfirm('cascade'); // valide le choix → applier 'deviation' → resolveDeviation
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(h.armour.corps).toBe(2);          // 1 PA sacrifiée (LDB 63 l.30-32)
     expect(h.criticalWounds ?? 0).toBe(0);   // Coup Critique ignoré
@@ -227,7 +227,7 @@ describe('Boucle de jeu (store)', () => {
     mkDeviationSetup();
     const dev = joueLaSeverite();
     banc.getState().cascadeChoose(dev.id, 'subir');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(h.criticalWounds ?? 0).toBe(1);   // Coup Critique appliqué (table 18-Traumatisme)
     expect(h.armour.corps).toBe(3);          // PA intacte (rien dévié)

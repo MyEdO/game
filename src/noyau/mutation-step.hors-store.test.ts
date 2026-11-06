@@ -190,7 +190,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     const nature = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 12, nature.id);
     expect(banc.getState().pendingCascade!.participants[0].fixed).toBe(true);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const table = banc.getState().pendingCascade!.participants[1];
     expect(table.kind).toBe('mutationTable');
     expect(table.table!.tableId).toBe('physique');
@@ -199,7 +199,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     // LIGNE choisie dans la donnée, posée par son dé.
     const ligne = mutationTableRows('physique')[3];
     banc.getState().jetSetForcedRoll('cascadeTirage', ligne.min, table.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const victime = banc.getState().party[0];
     expect(victime.mutations!.map((m) => m.id), 'la ligne posée n’est pas celle appliquée').toEqual([ligne.id]);
     expect(victime.mutations![0].roll).toBe(ligne.min);
@@ -221,7 +221,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     banc.getState().jetSetForcedRoll('cascadeTirage', 30, nature.id); // naturel 30 (Corps) → effectif 60 (Esprit)
     const posee = banc.getState().pendingCascade!.participants[0];
     expect(posee.table!.result).toMatchObject({ roll: 30, die: 60, id: 'mentale' });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const table = banc.getState().pendingCascade!.participants[1];
     expect(table.table!.tableId, 'la table insérée n’est pas celle de la ligne AFFICHÉE').toBe('mentale');
     expect(table.mutation!.kind).toBe('mentale');
@@ -234,12 +234,12 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     applyMutation(banc.getState, banc.setState, hero, undefined, 'khorne');
     const nature = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 12, nature.id); // Corps
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const table = banc.getState().pendingCascade!.participants[1];
     expect(table.table!.tableId).toBe('edoc-phys-khorne');
     const bestiale = mutationTableRows('edoc-phys-khorne').find((r) => r.id === 'tete-bestiale')!;
     banc.getState().jetSetForcedRoll('cascadeTirage', bestiale.min, table.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     // Sous-table INSÉRÉE (pas appliquée d'office) : le 3e dé reste à poser.
     const sous = banc.getState().pendingCascade!.participants[2];
     expect(sous.kind).toBe('mutationTable');
@@ -248,7 +248,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     expect(banc.getState().party[0].mutations ?? []).toHaveLength(0);
     const animal = mutationTableRows('edoc-tete-bestiale-khorne')[2];
     banc.getState().jetSetForcedRoll('cascadeTirage', animal.min, sous.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const victime = banc.getState().party[0];
     expect(victime.mutations!.map((m) => m.id)).toEqual([animal.id]);
     expect(victime.corruption, 'les Points de Corruption ne sont pas perdus (l.76)').toBeLessThan(6);
@@ -262,10 +262,10 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     applyMutation(banc.getState, banc.setState, hero);
     const nature = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetSetForcedRoll('cascadeTirage', 12, nature.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const table = banc.getState().pendingCascade!.participants[1];
     banc.getState().jetSetForcedRoll('cascadeTirage', mutationTableRows('physique')[0].min, table.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const victime = banc.getState().party[0];
     expect(mutationLimitExceeded(victime)).toBe(true);
     expect(victime.damned).toBe(true);

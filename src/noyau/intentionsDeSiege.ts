@@ -107,8 +107,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // registre déclare (`validation` : l'hôte seul, ou chaque siège à quorum), `netOwnership.ROUTES`.
   fenetreValider: 'invité',
   // Cascade séquentielle (jets de nuit / voyage influençables) : choix / SAISIE d'une quantité
-  // (#1279 Sf, jumeau du choix) / navigation (valider l'étape, tout résoudre).
-  cascadeNext: 'invité', cascadeResolveAll: 'invité',
+  // (#1279 Sf, jumeau du choix) / tout résoudre ; valider l'étape est la clôture de son flux (`jetConfirm('cascade')`).
+  cascadeResolveAll: 'invité',
   cascadeChoose: 'invité', cascadeAmount: 'invité',
   // désengagement : Sacrifier l'Avantage, fuir
   disengageConfirmA: 'invité',

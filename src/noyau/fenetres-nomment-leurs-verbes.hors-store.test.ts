@@ -76,6 +76,6 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     expect(chute!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@fall', 'fallChoose', 'jetConfirm@fall']));
     const bande = fenetreDuJeu({ ...ETAT, pendingCascade: { title: 'Témoin', purpose: 'test', cursor: 0, log: [], seq: 1, participants: [ETAPE_TEMOIN] } });
     expect(bande).toMatchObject({ cle: 'cascade', pid: 'rangee' });
-    expect(bande!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeBatch', 'cascadeNext']));
+    expect(bande!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeBatch', 'jetConfirm@cascade']));
   });
 });

@@ -148,7 +148,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     expect(get().party[0].fortune).toBe(0);
     get().jetForceSuccess('cascade', stepId); // Résilience — ici on force directement le succès pour clore le test
     expect(get().pendingCascade!.participants[0].result!.success).toBe(true);
-    get().cascadeNext();
+    get().jetConfirm('cascade');
 
     expect(get().pendingCascade).toBeNull();
     expect(get().party[0].dead).toBeFalsy(); // la Chance a transformé la noyade en survie
@@ -168,7 +168,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     // Jet POSÉ (aucun dé ambiant : l'issue du Test ne doit rien à la position du flux RNG du worker,
     // #1014) — succès : le rescapé s'échoue, donc la clôture TRANSITIONNE.
     set({ pendingCascade: { ...casc, participants: [swimSuccess(casc.participants[0])] } });
-    get().cascadeNext(); // UN SEUL geste : la dernière étape se valide et clôt la séquence
+    get().jetConfirm('cascade'); // UN SEUL geste : la dernière étape se valide et clôt la séquence
 
     // La DERNIÈRE étape transitionne (`finishShipwreck` → `transitionTo`), ce qui SUSPEND la cascade en
     // pleine exécution de son propre applier : sans étape restante il n'y a rien à préserver.

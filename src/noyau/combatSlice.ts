@@ -303,7 +303,7 @@ function poserLaFrappeSuivante(get: Get, set: Set, pa: PendingAttack): void {
   if (cur?.jet === 'attack' && !cur.committed) { set({ pendingAttack: pa }); return; }
   if (!poserLEtapeDAttaque(get, set, pa, seq?.title ?? 'Attaque', seq?.icon ?? 'action/attack')) return;
   const apres = get().pendingCascade!;
-  if (apres.cursor !== apres.participants.length - 1) get().cascadeNext();
+  if (apres.cursor !== apres.participants.length - 1) validerLEtape(get, set);
 }
 
 /** Lignes de dé (`traceLineOf`) des jets d'une fuite lancés et clos dans le même geste : aucune rangée ne
@@ -405,7 +405,7 @@ export const DETERMINATION_CONSCIENCE_ID = 'determination-conscience';
  *  État » par point) ouvrent DEUX fenêtres — la seconde n'écrase plus la première. */
 export const determinationWindowId = (conditionId: string): string => `${DETERMINATION_CONSCIENCE_ID}:${conditionId}`;
 
-/** CLÔTURE d'une cascade — partagée par `cascadeNext` (avance) et la sortie de son bilan (`terminerLaCascade`),
+/** CLÔTURE d'une cascade — partagée par la validation d'étape (`validerLEtape`) et la sortie de son bilan (`terminerLaCascade`),
  *  posée par `brancherLeJeu` pour la reprise d'une séquence parquée. Le JOUR de voyage
  *  (`purpose:'travelDay'`) se ROUTE par domaine — fluvial (recalcul des km puis halte/arrivée) OU
  *  terrestre (marche forcée eager/nuit + halte/arrivée) : le domaine se lit sur le plan (`river`
@@ -498,6 +498,12 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
  *  d'emblée (`sequenceAbandon`, `sequenceCore.ts`). */
 function terminerLaCascade(get: Get, set: Set): void {
   dispatchCascadeDone(get, set, finalizeCascade(get, set));
+}
+
+/** Valide l'étape courante de la cascade (`advanceCascade`) et joue le dénouement de la dernière : la clôture du flux
+ *  `cascade` (`jetConfirm('cascade')`), et la suite d'un geste de combat qui rend la main au curseur. */
+function validerLEtape(get: Get, set: Set): void {
+  dispatchCascadeDone(get, set, advanceCascade(get, set));
 }
 
 /** Actions de combat inline du store — déplacées VERBATIM. Spreadées EN TÊTE du `create`. */
@@ -2110,10 +2116,9 @@ export function createCombatSlice(get: Get, set: Set) {
 
     cascadeChoose: (pid: string, key: string) => setCascadeChoice(get, set, pid, key),
     cascadeAmount: (pid: string, n: number) => setCascadeAmount(get, set, pid, n),
-    cascadeNext: () => dispatchCascadeDone(get, set, advanceCascade(get, set)),
     // → BILAN (la modale reste ouverte) : rend `null`, rien à router. Rend une cascade FINALISÉE dans le
     // seul cas où la dernière étape a suspendu la séquence en plein vol (le BILAN n'est pas montrable) —
-    // son dénouement passe alors par le MÊME routage que `cascadeNext` et la sortie du bilan.
+    // son dénouement passe alors par le MÊME routage que la validation d'étape et la sortie du bilan.
     cascadeResolveAll: () => { const done = resolveRemainingCascade(get, set); if (done) dispatchCascadeDone(get, set, done); },
     // Le joueur renonce à la séquence en cours (noyau/sequenceCore) : l'abandon est DEMANDÉ, et la manche
     // se clôt par les gestes du joueur (« Suivant », « Terminer ») jusqu'à la clôture, qui le joue — ou
@@ -2122,7 +2127,7 @@ export function createCombatSlice(get: Get, set: Set) {
       abandonSequence(get, set);
       for (let pas = pasVersLAbandon(get); pas; pas = pasVersLAbandon(get)) {
         if (pas === 'terminer') terminerLaCascade(get, set);
-        else get().cascadeNext();
+        else validerLEtape(get, set);
       }
     },
     // Incantation OPPOSÉE (multijet `FLOWS.castOpposition`) : chaque cible oppose son Test ; cible IA
@@ -2535,6 +2540,8 @@ export function validationsDuCombat(get: Get, set: Set) {
 /** Les clôtures des flux du combat (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
 export function cloturesDuCombat(get: Get, set: Set) {
   return {
+    // Valider l'étape courante de la cascade, quelle que soit son interaction.
+    cascade: () => validerLEtape(get, set),
     // Maladresse (LDB 14) : les Oups ! tirés sur l'étape COURANTE (`step.fumble`) s'appliquent.
     fumble: () => {
       const battle = get().battle;
@@ -2559,7 +2566,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // L'après-coup qui tient la main a poussé ses étapes DERRIÈRE celle-ci : la suite est le curseur.
       if (!differee && coup) jouerFlowEntier(jouerLApresCoup(get, set, coup) ? OPS_DIFFEREES : undefined);
       // La Maladresse est l'étape COURANTE de la cascade combat → enchaîner le curseur (sa clôture reprend l'IA).
-      get().cascadeNext();
+      validerLEtape(get, set);
     },
     // « Appliquer » : l'Esquive consomme l'Action dans les DEUX issues (l.89).
     disengage: () => {
@@ -2642,7 +2649,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
           ]),
           fleeMove: { moverId: mover.id, foeId: foe.id, broken } });
         const casc = get().pendingCascade;
-        if (casc?.participants[casc.cursor]?.jet === 'disengage') get().cascadeNext(); // avancer sur l'étape de Déviation
+        if (casc?.participants[casc.cursor]?.jet === 'disengage') validerLEtape(get, set); // avancer sur l'étape de Déviation
         return;
       }
       completeFlee(get, set, mover.id, foe.id, broken);
@@ -2651,7 +2658,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const seq = get().pendingCascade;
       if (!seq) return; // rien à fermer
       if (!seqBefore) return; // cascade FRAÎCHE ouverte par la conséquence (Coup Critique) : elle est déjà sur SON étape
-      if (seq.participants.length > stepsBefore) get().cascadeNext(); // conséquence APPENDUE → avancer dessus
+      if (seq.participants.length > stepsBefore) validerLEtape(get, set); // conséquence APPENDUE → avancer dessus
       else set({ pendingCascade: null }); // rien d'empilé : la cascade-hôte du Désengagement se ferme
     },
     // Cycle Chance/+1 DR/Pacte/Résilience (spec `auContact`) : foe (atk) figé, seul le jet du mover se (re)joue.
@@ -3032,7 +3039,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Curseur : étape 'attack' (résolue) → étape 'defense' que la fenêtre vient d'appendre. Sans
         // cascade d'attaque en cours, la fenêtre a ouvert la sienne (curseur DÉJÀ sur la défense).
         const seq = get().pendingCascade;
-        if (seq?.purpose === 'combat' && seq.participants[seq.cursor]?.jet === 'attack') get().cascadeNext();
+        if (seq?.purpose === 'combat' && seq.participants[seq.cursor]?.jet === 'attack') validerLEtape(get, set);
         return;
       }
       if (attacker && target && victim && weapon && pa.interrupt) {
@@ -3176,7 +3183,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
        */
       const quitterLaDefense = (): boolean => {
         if (!surLEtapeDeDefense(get())) return false;
-        get().cascadeNext();
+        validerLEtape(get, set);
         return true;
       };
       // Défense SURFACÉE d'une attaque PILOTÉE (#989, `openSurfacedDefense`) : l'issue OPPOSÉE rejoint le
@@ -3322,7 +3329,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       }
       // Lanceur ENNEMI (modale témoin) : le tour de l'IA était suspendu → reprise. No-op si une autre
       // interaction bloquante s'est ouverte (Destin, révélations, OU la cascade de conséquences encore
-      // ouverte) — elle reprendra elle-même (cascadeNext → resumeSuspendedAI à la clôture).
+      // ouverte) — elle reprendra elle-même (validation d'étape → resumeSuspendedAI à la clôture).
       if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
     },
     counterspell: () => {

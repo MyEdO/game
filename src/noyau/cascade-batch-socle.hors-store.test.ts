@@ -4,7 +4,7 @@ import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import { startCascade } from './cascade';
 import { spyApplier } from './cascade.testkit';
-import { FLOW_VERBS } from './flowVerbs';
+import { estVerbeDeFenetre, FLOW_VERBS } from './flowVerbs';
 import { frozenOpposedBatchStep } from './combat/triggeredTest';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import type { Combatant } from '../engine/types';
@@ -54,10 +54,11 @@ beforeEach(() => {
 });
 
 describe('parité des VERBES : une bande offre ce qu’offre l’étape mono', () => {
-  it('`cascadeBatch` expose TOUS les verbes de `cascade` (resist compris) PLUS `determine`', () => {
+  it('`cascadeBatch` expose TOUS les verbes de rangée de `cascade` (resist compris) PLUS `determine`', () => {
     const mono = FLOW_VERBS.cascade.verbs as readonly string[];
     const bande = FLOW_VERBS.cascadeBatch.verbs as readonly string[];
-    const manquants = mono.filter((v) => !bande.includes(v));
+    // La validation (`confirm`) est un verbe de FENÊTRE : la cascade valide l'étape, bande comprise.
+    const manquants = mono.filter((v) => !estVerbeDeFenetre(v as never) && !bande.includes(v));
     expect(manquants, 'verbe de l’étape mono absent de la bande — la rangée ne peut pas jouer sa règle').toEqual([]);
     // La Psychologie ne se testant qu'en bandes, `determine` (LDB 17 l.59) n'est plus exposé QUE là :
     // le filet de parité ci-dessus ne le couvre plus, il s'exige donc nommément.
@@ -80,7 +81,7 @@ describe('CHARGE UTILE par rangée (`meta`) — l’applier lit la donnée DE LA
     });
     banc.getState().jetRoll('cascadeBatch', h1.id);
     banc.getState().jetRoll('cascadeBatch', h2.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(vues[0].meta).toEqual([
       { id: 'h1', psychKind: 'peur', prevDR: 2 },
       { id: 'h2', psychKind: 'peur', prevDR: 0 },
@@ -111,7 +112,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     expect(banc.getState().party.find((c) => c.id === h2.id)!.resolve).toBe(2);
 
     banc.getState().jetRoll('cascadeBatch', h2.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     // L'applier de bande lit le flag PAR RANGÉE (h1 immunisé, h2 non).
     expect(vues[0].parts).toEqual([{ id: 'h1', immune: true }, { id: 'h2', immune: undefined }]);
   });
@@ -188,7 +189,7 @@ function commitRows(results: BatchParticipant['result'][]): void {
   const st = pc.participants[pc.cursor];
   const participants = st.participants!.map((p, k) => ({ ...p, result: results[k] }));
   banc.setState({ pendingCascade: { ...pc, participants: pc.participants.map((x, i) => (i === pc.cursor ? { ...x, participants } : x)) } });
-  banc.getState().cascadeNext();
+  banc.getState().jetConfirm('cascade');
 }
 
 const LOSE = (target: number) => ({ roll: 99, target, sl: -2, success: false });

@@ -75,7 +75,7 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
       jusquALaDefense();
       expect(etapeCourante()?.jet, `graine ${seed}`).toBe('defense');
       const pd = g().pendingDefense;
-      g().cascadeNext();
+      g().jetConfirm('cascade');
       expect(g().pendingDefense, `graine ${seed} : la défense du maillon vit`).toBe(pd);
       expect(etapeCourante()?.jet, `graine ${seed} : le curseur reste sur la défense`).toBe('defense');
       expect(pickActiveModalKey(g()), `graine ${seed}`).toBe('cascade');

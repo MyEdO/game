@@ -278,9 +278,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage {
   /** « Quantité » d'une étape de séquence (jumeau de `cascadeChoose`) : pose le nombre saisi, ramené
    *  à la plage déclarée par l'étape. */
   cascadeAmount: (pid: IdDEtapeDeCascade, n: number) => void;
-  /** « Étape suivante » : valide l'étape courante (conséquence + insertions), avance ; à la fin,
-   *  finalise selon `purpose` (reprise de voyage…). */
-  cascadeNext: () => void;
   /** « Tout lancer » : résout d'office les étapes restantes (on ne peut pas dé-dormir), puis place le
    *  curseur EN FIN = BILAN — la modale RESTE ouverte pour voir toutes les conséquences. */
   cascadeResolveAll: () => void;

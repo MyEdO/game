@@ -73,7 +73,7 @@ function jouerBande(success: boolean): void {
       })),
     },
   } as never);
-  g().cascadeNext();
+  g().jetConfirm('cascade');
 }
 
 beforeEach(() => { seedBattleRng(4); });
