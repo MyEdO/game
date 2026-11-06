@@ -334,14 +334,14 @@ async function parcoursCombat() {
   noter(`fin du tour de ${heros.nom} ; actif ${second.nom}`)
   await cliquerCase(vers)
   v = await vue()
-  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y]], 'le premier clic montre l’aperçu')
+  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y, vers.z ?? 0]], 'le premier clic montre l’aperçu')
   const apercu = element(v, 'combat.apercu', 'apercu')
   assert.ok(apercu, 'l’aperçu dit ce qu’il coûte, près de sa case')
   noter(`premier clic sur (${vers.x}, ${vers.y}) : ${apercu.texte}`)
   await capturer('2928-6c-4-deplacement-apercu')
   await cliquerCase(vers)
   v = await vue()
-  assert.deepEqual(actif(v).pos, [vers.x, vers.y], 'le second clic déplace le héros')
+  assert.deepEqual(actif(v).pos, [vers.x, vers.y, vers.z ?? 0], 'le second clic déplace le héros')
   noter(`second clic : ${second.nom} en ${actif(v).pos}`)
   await finirLeTour()
   await attendreLaVue("v.projection.fenetre?.etape?.genre === 'defenseJet'", 60000)
@@ -449,7 +449,7 @@ async function parcoursExploration() {
   }
   const x = v.projection.exploration
   assert.ok(x, 'hors combat, la vue est celle de l’exploration')
-  assert.deepEqual(x.heros.map((h) => h.pos), x.heros.map(() => x.groupe), 'chaque héros se tient à la case du groupe')
+  assert.deepEqual(x.heros.map((h) => h.pos), x.heros.map(() => [...x.groupe, x.etage ?? 0]), 'chaque héros se tient à la case du groupe')
   noter(`Entrée : l’entrée de la scène poursuivie ; groupe en ${x.groupe}, gestes ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
   await capturer('3328-e1-2-exploration')
   const porte = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.type === 'actionnerLaPorte'))
@@ -481,7 +481,7 @@ async function parcoursRelief() {
   const vers = plateau[0].case
   await cliquerCase(vers)
   v = await vue()
-  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y]], 'la case cliquée est celle du plateau sous le pointeur')
+  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y, vers.z ?? 0]], 'la case cliquée est celle du plateau sous le pointeur')
   noter(`clic sur (${vers.x}, ${vers.y}), au bord du plateau de 4 m : son aperçu`)
   await capturer('3476-r2-plateau')
 }
