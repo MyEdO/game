@@ -17,16 +17,9 @@ import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { hasCondition } from '../engine/conditions';
 import { spells } from '../data';
 import { testScene } from '../scenes/test-fixture';
-import type { WorldMap } from './worldMap';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-
-const ALTDORF_MAP: WorldMap = {
-  id: 'w', label: 'Monde de test',
-  places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 50, y: 50 }, scene: testScene().id }],
-  routes: [],
-};
 
 describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', () => {
   beforeEach(() => {
@@ -35,7 +28,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     a.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 }, { id: 'recherche', characteristic: 'intelligence', advances: 5 });
     banc.setState({ party: [a] });
     banc.getState().startScene(testScene());
-    banc.setState({ worldMap: ALTDORF_MAP });
+    banc.setState({ lieu: 'altdorf' });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, fromBrass(5000));
     banc.getState().seedRng(13);
     banc.getState().startInterlude(3);
@@ -54,8 +47,8 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     banc.getState().jetConfirm('activity');
   };
 
-  it('gate `where` : hors d’Altdorf (pas de place liée à la scène), la Pénitence est indisponible', () => {
-    banc.setState({ worldMap: null });
+  it('gate `where` : hors d’Altdorf (le groupe à aucun lieu), la Pénitence est indisponible', () => {
+    banc.setState({ lieu: null });
     banc.getState().interludeActivity(hero().id, 'penitence');
     expect(banc.getState().pendingActivity).toBeNull();
     expect(banc.getState().journal.join('\n')).toMatch(/praticable/);

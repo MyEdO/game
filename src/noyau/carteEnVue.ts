@@ -7,7 +7,7 @@
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau } from './actionsDuNoyau';
-import { otherEnd, placeById, placeOfScene, routesCliquables } from './worldMap';
+import { lieuDuGroupe, otherEnd, placeById, routesCliquables, type MapPlace, type WorldMap } from './worldMap';
 import { devisDeTrajet, refusDeDepart } from './travelFlow';
 import { condCtx } from './bourseFlow';
 import { partyFullyMounted } from '../engine/mountTravel';
@@ -33,14 +33,10 @@ function modesDuTrajet(s: Jeu, modes: readonly TravelMode[]): TravelMode[] {
   return [...modes, ...(enSelle ? ['monture'] : [])];
 }
 
-/** La carte du monde qui tient la main (`fenetreDuJeu`) ; `null` : elle ne tient pas la main, ou le groupe n'est à
- *  aucun de ses lieux. PUR. */
-export function carteEnVue(s: Jeu): CarteEnVue | null {
-  const map = s.worldMap;
-  const ici = fenetreDuJeu(s)?.cle === 'carteDuMonde' ? placeOfScene(map, s.scene?.id) : undefined;
-  if (!map || !ici) return null;
+/** Chaque trajet que la carte trace depuis le lieu `ici` (`routesCliquables`) et ses modes. PUR. */
+export function trajetsDepuis(s: Jeu, map: WorldMap, ici: MapPlace): TrajetEnVue[] {
   const libelles = travelModeLabels();
-  const trajets = routesCliquables(map, ici.id, condCtx(() => s)).map(({ route }): TrajetEnVue => ({
+  return routesCliquables(map, ici.id, condCtx(() => s)).map(({ route }): TrajetEnVue => ({
     route: route.id,
     vers: garanti(placeById(map, otherEnd(route, ici.id)), route.id, 'destination du trajet').label,
     distance: routeDistanceLabel(route.km, route.sea),
@@ -52,5 +48,12 @@ export function carteEnVue(s: Jeu): CarteEnVue | null {
       jours: devisDeTrajet(s, route, ici.id, mode).plan?.days ?? null,
     })),
   }));
-  return { ici: ici.label, trajets, reprendre: s.travelPlan?.interrupted ? { verbe: 'resumeTravel', args: [] } : null };
+}
+
+/** La carte du monde qui tient la main (`fenetreDuJeu`) ; `null` : elle ne tient pas la main, ou le groupe n'est à
+ *  aucun de ses lieux. PUR. */
+export function carteEnVue(s: Jeu): CarteEnVue | null {
+  const ici = fenetreDuJeu(s)?.cle === 'carteDuMonde' ? lieuDuGroupe(s) : undefined;
+  if (!s.worldMap || !ici) return null;
+  return { ici: ici.label, trajets: trajetsDepuis(s, s.worldMap, ici), reprendre: s.travelPlan?.interrupted ? { verbe: 'resumeTravel', args: [] } : null };
 }

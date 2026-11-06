@@ -18,10 +18,8 @@ import { devisDeCloture } from './verdictsDInterlude';
 import { refusDeLaValidation } from './validationDeFenetre';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
-import type { WorldMap } from './worldMap';
 
 const SCENE = { ...emptyScene('altdorf-centre', 2, 2), label: 'Altdorf', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] };
-const ALTDORF: WorldMap = { id: 'w', label: 'Monde', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: SCENE.id }], routes: [] };
 
 /** Dés d'Événement choisis dans la donnée (`interludeEvents.json`). */
 const SANS_EFFET = 1; // « Allié inculpé » : aucun effet chiffré
@@ -33,7 +31,7 @@ const heros = (label: string, seed: number, careerLevel: number, bourse: Money):
 
 /** Un banc à Altdorf, dés d'Événement POSÉS (`des`, un par héros), séquence dénouée. */
 function apresLeTirage(party: Combatant[], des: number[]): Banc {
-  const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party, scene: SCENE, worldMap: ALTDORF } });
+  const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party, scene: SCENE, lieu: 'altdorf' } });
   banc.actions.startInterlude(2);
   for (const de of des) avanceEtapeCascade(banc.getState, () => de);
   avanceEtapeCascade(banc.getState); // dénouement de groupe
@@ -104,7 +102,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
   });
 
   it('les Événements encore à tirer : la clôture est refusée et dite, rien de changé (LDB 22 l.5)', () => {
-    const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party: [heros('Vétéran', 1601, 3, { gold: 2, silver: 0, brass: 0 })], scene: SCENE, worldMap: ALTDORF } });
+    const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party: [heros('Vétéran', 1601, 3, { gold: 2, silver: 0, brass: 0 })], scene: SCENE, lieu: 'altdorf' } });
     banc.actions.startInterlude(2);
     expect(banc.getState().interlude?.phase, 'témoin : le tirage est ouvert').toBe('tirage');
     expect(refusDeLaValidation(banc.getState(), 'interlude')).toBe('L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.');
@@ -130,7 +128,7 @@ describe('Clôture — devis = geste = oracle, sur 60 groupes tirés', () => {
     const n = ri(1, 4);
     const party = Array.from({ length: n }, (_, i) => heros(`H${i}`, graine * 10 + i, ri(1, 4), fromBrass(ri(0, 3) === 0 ? 0 : ri(1, 9000))));
     const weeks = ri(1, 4);
-    const banc = ouvrirLeBanc({ graine, desFixes: true, etat: { party, scene: SCENE, worldMap: ALTDORF } });
+    const banc = ouvrirLeBanc({ graine, desFixes: true, etat: { party, scene: SCENE, lieu: 'altdorf' } });
     banc.actions.startInterlude(weeks);
     for (let i = 0; i < n; i++) avanceEtapeCascade(banc.getState, () => SANS_EFFET);
     avanceEtapeCascade(banc.getState);

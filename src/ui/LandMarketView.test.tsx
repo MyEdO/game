@@ -39,7 +39,7 @@ describe('LandMarketView — « Évaluer » le vin suit qui peut tenter le Test 
     useGame.setState({
       party: makePregens().slice(0, 3), possessions: [],
       scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: landMap, travelPlan: null, landMarket: null, journal: [],
+      battle: null, worldMap: landMap, lieu: 'A', travelPlan: null, landMarket: null, journal: [],
     } as never);
     seedBattleRng(3);
     get().openLandMarket();
@@ -76,7 +76,7 @@ describe('LandMarketView — « Acheter » lit le refus du noyau (#3059, MSRC 13
       party: makePregens().slice(0, 3),
       possessions: [{ uid: 'convoi', ownerId: makePregens()[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }],
       scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: landMap, travelPlan: null, landMarket: null, journal: [], net: { ...get().net, mode: 'local' },
+      battle: null, worldMap: landMap, lieu: 'A', travelPlan: null, landMarket: null, journal: [], net: { ...get().net, mode: 'local' },
     } as never);
     creditBourse(get, useGame.setState.bind(useGame), get().party[0].id, { gold: 5000, silver: 0, brass: 0 });
     seedBattleRng(3);

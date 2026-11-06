@@ -16,6 +16,7 @@ import * as partyFlow from './partyFlow';
 import { captureMutation, applyMutation as applySceneMutation } from './monde/sceneInstance';
 import { resetFields } from './stateFields';
 import { TIME_COST } from '../engine/timeCost';
+import { placeOfScene } from './worldMap';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
@@ -69,8 +70,8 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       for (const s of scenes) registerScene(s);
       get().startScene(entry, narratif);
       // La carte du PROJET remplace la carte vide de l'état de départ (remise par le reset de
-      // startScene) ; un projet sans carte n'offre pas de voyage.
-      if (worldMap !== undefined) set({ worldMap });
+      // startScene) ; un projet sans carte n'offre pas de voyage. Le groupe se tient au lieu de la scène d'entrée.
+      if (worldMap !== undefined) set({ worldMap, lieu: placeOfScene(worldMap, entry.id)?.id ?? null });
       // Ouverture cérémonielle du chapitre (#717) : posée ICI, `startScene` vient de remettre l'état à
       // l'init. Absente du paquet = démarrage direct.
       set({ pendingOuverture: structuredClone(narratif?.ouverture ?? null) }); // #2097

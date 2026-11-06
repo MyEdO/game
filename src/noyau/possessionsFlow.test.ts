@@ -29,9 +29,7 @@ function makeHarness(party: Combatant[], possessions: Possession[] = []): { get:
     possessions,
     flags: {},
     gameTime: 0,
-    // Lieu courant du groupe (`lieuCourant`) : la scène `sc-1` est le Lieu `lieu-1` de la carte.
-    worldMap: { places: [{ id: 'lieu-1', scene: 'sc-1' }] },
-    scene: { id: 'sc-1' },
+    lieu: 'lieu-1',
     log: () => {},
     net: initialNet(),
   } as unknown as JeuDuNoyau;
