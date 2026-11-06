@@ -1984,7 +1984,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   });
 });
 
-describe('Utiliser un consommable en combat (store)', () => {
+describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 l.106', () => {
   beforeEach(() => reset());
 
   const combatHero = (over: Partial<Combatant> = {}): Combatant =>
@@ -2023,7 +2023,7 @@ describe('Utiliser un consommable en combat (store)', () => {
     ...over,
   });
 
-  it('Potion de guérison : soigne du Bonus d’Endurance, consomme l’objet, coûte l’Action', () => {
+  it('Potion de guérison : soigne du Bonus d’Endurance, consomme l’objet, laisse l’Action', () => {
     const h = combatHero({
       wounds: blessuresDeBase(12, 5),
       items: [potion('p1', 'potion-de-guerison')],
@@ -2033,7 +2033,7 @@ describe('Utiliser un consommable en combat (store)', () => {
     const b = banc.getState().battle!;
     expect(b.combatants[0].wounds.current).toBe(8); // 5 + BE(35) = 8
     expect(b.combatants[0].items!.find((i) => i.uid === 'p1')).toBeUndefined();
-    expect(b.acted).toBe(true);
+    expect(b.acted).toBe(false);
   });
 
   it('Potion de vitalité : retire l’État Exténué (toutes les piles)', () => {
@@ -2045,7 +2045,7 @@ describe('Utiliser un consommable en combat (store)', () => {
     banc.getState().battleUseItem('p2');
     const b = banc.getState().battle!;
     expect(b.combatants[0].conditions.find((c) => c.id === 'extenue')).toBeUndefined();
-    expect(b.acted).toBe(true);
+    expect(b.acted).toBe(false);
   });
 
   it('Potion de vitalité sans Exténué : refusée et dite avant de boire, objet et Action gardés', () => {
@@ -2060,7 +2060,7 @@ describe('Utiliser un consommable en combat (store)', () => {
     expect(b.acted, 'l’Action reste').toBe(false);
   });
 
-  it('Action déjà consommée : aucune utilisation (objet conservé)', () => {
+  it('Action déjà dépensée : la potion se boit quand même', () => {
     const h = combatHero({
       wounds: blessuresDeBase(12, 5),
       items: [potion('p3', 'potion-de-guerison')],
@@ -2068,8 +2068,8 @@ describe('Utiliser un consommable en combat (store)', () => {
     banc.setState({ mode: 'battle', battle: mkBattle(h, { acted: true }) });
     banc.getState().battleUseItem('p3');
     const b = banc.getState().battle!;
-    expect(b.combatants[0].wounds.current).toBe(5); // inchangé
-    expect(b.combatants[0].items!.find((i) => i.uid === 'p3')).toBeTruthy(); // pas consommé
+    expect(b.combatants[0].wounds.current).toBe(8);
+    expect(b.combatants[0].items!.find((i) => i.uid === 'p3')).toBeUndefined();
   });
 });
 
