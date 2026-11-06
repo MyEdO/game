@@ -689,7 +689,7 @@ export function CombatConsole() {
   // RECHARGE — le cycle de charge appartient à CHAQUE arme (`weaponLoad.ts`, registre par `uid`). La
   // case s'allume dès qu'UNE arme est à recharger ; la progression du Test étendu ne s'imprime sur
   // l'alvéole que s'il n'y a qu'un cycle à montrer — à deux armes, elle se lit au panneau, par arme.
-  const rechargeables = rangedWs.filter((w) => (w.reload ?? 0) > 0);
+  const rechargeables = ACTION_CANDIDATES['armes-a-recharge'](gateCtx) as Weapon[];
   const armesARecharger = rechargeables.filter((w) => aRecharger(active, w));
   const needsReload = armesARecharger.length > 0;
   const reloadProg = rechargeables.length === 1 ? reloadProgressOf(active, rechargeables[0]) : 0;

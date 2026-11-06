@@ -90,6 +90,7 @@ import type { ResolveurDePreset } from '../monde/resolveursDuNarratif';
 import type { Porteur, PorteurDeRangee } from './porteur';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
+import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
 import { formatDice, formatEffetSigne, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
@@ -469,21 +470,28 @@ function outcomeBandsSection(bands?: OutcomeBand[]): CodexSection | null {
 
 /**
  * SOURCE UNIQUE du contenu structuré d'une fiche de race — onglets Profil / Carrières / Détails.
- * Consommée par le Codex (`registry.races`) ET l'étape Race du créateur (`SpeciesRaceScreen`, ses
- * sections Caractéristiques/Compétences/Talents seulement — Carrières/Détails restent au Codex), pour
- * qu'elles ne puissent plus diverger. Données tirées des MÊMES tables que le créateur
- * (`careersForSpecies`, `details`, `eyes`, `hairs`). Les faits-clés (M/Destin/Résilience) restent en
- * en-tête (méta), pas ici ; le tirage aléatoire (création) est ajouté PAR le créateur.
+ * Consommée par le Codex (`registry.races`) ET l'étape Race du créateur (`SpeciesRaceScreen`) : ses
+ * sections Compétences/Talents, et ses Caractéristiques par `caracteristiqueDEspece` — Carrières/Détails
+ * restent au Codex —, pour qu'elles ne puissent plus diverger. Données tirées des MÊMES tables que le
+ * créateur (`careersForSpecies`, `details`, `eyes`, `hairs`). Les faits-clés (M/Destin/Résilience)
+ * restent en en-tête (méta), pas ici ; le tirage aléatoire (création) est ajouté PAR le créateur.
  */
+/** Base d'espèce d'une Caractéristique et son écart à la colonne Humain, signé (`undefined` sans écart).
+ *  Lue par `raceCharSection` et l'étape Race du créateur. LDB 05 l.351-369 */
+export function caracteristiqueDEspece(s: Pick<(typeof species)[number], 'baseChar'>, k: CharKey): { base: number; ecart: string | undefined } {
+  const base = baseDEspece(s, k);
+  const diff = base - BASE_HUMAINE;
+  return { base, ecart: diff !== 0 ? `${diff > 0 ? '+' : ''}${diff}` : undefined };
+}
+
 /** Section « Caractéristiques de base » d'une race — chaque carac affiche son écart racial (±). */
 export function raceCharSection(s: (typeof species)[number]): CodexSection {
   const rows: CodexRow[] = CHAR_KEYS.map((k) => {
-    const base = s.baseChar?.[k] ?? 20;
-    const diff = base - 20;
+    const { base, ecart } = caracteristiqueDEspece(s, k);
     return {
       t: 'kv',
       k: charAbr(k),
-      v: diff !== 0 ? `${base} (${diff > 0 ? '+' : ''}${diff})` : String(base),
+      v: ecart ? `${base} (${ecart})` : String(base),
       kref: { category: 'characteristics', id: k, label: CHAR_LABELS[k] },
     };
   });

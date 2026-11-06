@@ -565,12 +565,21 @@ export function coutDuComposant(sp: Pick<SpellData, 'cn'>): Money {
   return toMoney({ silver: sp.cn ?? 0 });
 }
 
+/** Un composant s'achète pour ce Sort : d'Arcane ou de Domaine, à NI. LDB 46 l.107-113 */
+const prendUnComposant = (sp: SpellData): boolean => isArcaneSpell(sp) && sp.cn != null;
+
+/** Sorts CONNUS du héros pour lesquels la fiche offre un composant : ceux que `refusAchatDeComposant`
+ *  ne refuse que par la bourse. LDB 46 l.107-113 */
+export function composantsOfferts(hero: Combatant): SpellData[] {
+  return (hero.spells ?? []).map((id) => findSpellById(id)).filter((sp): sp is SpellData => !!sp && prendUnComposant(sp));
+}
+
 /** Refus d'acheter un composant pour `spellId` : la raison affichée, ou `null`. Verdict UNIQUE du geste
  *  `buySpellComponent` et de la fiche. LDB 46 l.107-113 */
 export function refusAchatDeComposant(hero: Combatant | undefined, spellId: string): string | null {
   const sp = findSpellById(spellId);
   if (!hero || !sp) return t('pf.componentSpellNotFound');
-  if (!isArcaneSpell(sp) || sp.cn == null) return t('pf.componentArcaneOnly', { spell: sp.label });
+  if (!prendUnComposant(sp)) return t('pf.componentArcaneOnly', { spell: sp.label });
   if (!(hero.spells ?? []).includes(spellId)) return t('pf.spellUnknown', { name: hero.label, spell: sp.label });
   const cost = coutDuComposant(sp);
   return refusDeBourse(hero, cost, 'pf.componentTooExpensive', { spell: sp.label });
