@@ -44,6 +44,8 @@ var squelette: Skeleton3D = null
 var lecteur: AnimationPlayer = null
 ## Le modificateur du squelette de la base qui pose le gabarit de la composition.
 var gabarit: GabaritDuSquelette = null
+## Les modificateurs du squelette de la base qui posent la main libre sur la seconde prise de l'objet tenu (`SecondePrise`).
+var seconde_prise: Array[Node] = []
 ## La réponse de `composer` retenue, `{}` sans composition : sa `palette`, son `gabarit`, ses `morphes`.
 var composee: Dictionary = {}
 ## Où vont les erreurs de la pose, de l'habillage et des emblèmes.
@@ -224,6 +226,7 @@ func vider() -> void:
 	squelette = null
 	lecteur = null
 	gabarit = null
+	seconde_prise.clear()
 	pieces.clear()
 	_noeuds.clear()
 	montes.clear()
@@ -273,6 +276,7 @@ func demonter(id: String) -> void:
 	montes.erase(id)
 	emblemes.erase(id)
 	_emblemes_demandes.erase(id)
+	poser_la_seconde_prise()
 
 
 ## L'emplacement `id` démonté, puis `element` monté une fois son GLB chargé, si aucune autre demande ne l'a remplacé à
@@ -322,7 +326,41 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	_noeuds[id] = noeuds
 	montes[id] = element
 	poser_les_morphes()
+	poser_la_seconde_prise()
 	return true
+
+
+## La main de la prise `off` posée sur la seconde prise de l'élément monté à la prise `main` (`secondesPrises` de
+## `modeles`, #3319), si la prise `off` ne tient rien ; aucune sinon.
+func poser_la_seconde_prise() -> void:
+	for modificateur in seconde_prise:
+		modificateur.free()
+	seconde_prise.clear()
+	var seconde: Variant = modeles.get("secondesPrises", {}).get(montes.get("main", VIDE))
+	var tenante := _point("main")
+	var libre := _point("off")
+	if squelette == null or seconde == null or montes.has("off") or tenante.is_empty() or libre.is_empty():
+		return
+	seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde)
+
+
+
+## Le clip du rôle `role` de la base posée : celui de `clipsDeuxMains` tant que la main libre tient la seconde prise
+## (`seconde_prise`), celui de `clips` sinon ou faute de clip à deux mains pour ce rôle ; `""` sans clip.
+func clip(role: String) -> String:
+	var clips: Dictionary = base.get("clips", {})
+	if seconde_prise.is_empty():
+		return clips.get(role, "")
+	return base.get("clipsDeuxMains", {}).get(role, clips.get(role, ""))
+
+
+## Le rôle du clip `nom` dans `clips` ou `clipsDeuxMains` de la base posée, `""` s'il n'en joue aucun.
+func role_du_clip(nom: String) -> String:
+	for table: Dictionary in [base.get("clips", {}), base.get("clipsDeuxMains", {})]:
+		var role: Variant = table.find_key(nom)
+		if role != null:
+			return role
+	return ""
 
 
 ## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache

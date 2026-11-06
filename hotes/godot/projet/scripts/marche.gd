@@ -1,8 +1,9 @@
 ## La marche de l'atelier 3D (#3086) : les actions `avant`, `arriere`, `gauche` et `droite` (`project.godot`, `[input]`)
 ## déplacent la racine du modèle sur le sol, tournée vers sa direction de marche, à la vitesse au sol de la base
 ## (`vitesseAuSol` de la réponse de `modeles`, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») à l'échelle de son
-## gabarit posé ; le clip du rôle `walk` (`clips.walk`) se joue par le lecteur de l'atelier pendant le déplacement ; à
-## l'arrêt, le clip reste engagé en pause à son début et le squelette revient à sa pose de repos. La caméra orbite
+## gabarit posé ; le clip du rôle `walk` (`MontageDeComposition.clip`, à deux mains quand la main libre tient la seconde
+## prise) se joue par le lecteur de l'atelier pendant le déplacement ; à l'arrêt, le clip reste engagé en pause à son
+## début et le squelette revient à sa pose de repos. La caméra orbite
 ## autour de la racine au glissé du bouton droit de la souris, s'en rapproche ou s'en éloigne à la molette hors de
 ## l'interface, et la suit ; l'atelier la cadre sur le corps posé.
 class_name MarcheDeLAtelier
@@ -30,7 +31,7 @@ const VITESSE_NEUTRE := 1.0
 var _racine: Node3D = null
 var _lecteur: AnimationPlayer = null
 var _squelette: Skeleton3D = null
-var _clip := ""
+var _clip := func() -> String: return ""
 var _vitesse := 0.0
 ## L'échelle de la vitesse au sol du gabarit posé (`echelleDeVitesse`, `CONTRAT.md`, « Gabarit d'une base »).
 var _echelle_de_vitesse := VITESSE_NEUTRE
@@ -45,9 +46,9 @@ func _ready() -> void:
 	_position_de_la_camera = camera.position
 
 
-## La racine `racine` du modèle posé (aucun si `null`), son lecteur de clips `lecteur`, le clip `clip` du rôle `walk`
-## de sa base et sa vitesse au sol `vitesse` en m/s.
-func suivre(racine: Node3D, lecteur: AnimationPlayer, clip: String, vitesse: float) -> void:
+## La racine `racine` du modèle posé (aucun si `null`), son lecteur de clips `lecteur`, `clip` qui rend le clip du rôle
+## `walk` de sa base au moment de marcher, et sa vitesse au sol `vitesse` en m/s.
+func suivre(racine: Node3D, lecteur: AnimationPlayer, clip: Callable, vitesse: float) -> void:
 	_racine = racine
 	_lecteur = lecteur
 	_squelette = MontageDeComposition.squelette_de(racine) if racine != null else null
@@ -85,13 +86,13 @@ func _process(delta: float) -> void:
 	if _racine == null:
 		return
 	var entree := MiseEnPage.entree_de_marche(_force(&"gauche"), _force(&"droite"), _force(&"avant"), _force(&"arriere"))
-	if entree.is_zero_approx() or _lecteur == null or not _lecteur.has_animation(_clip):
+	if entree.is_zero_approx() or _lecteur == null or not _lecteur.has_animation(_clip.call()):
 		if _en_marche:
 			_arreter()
 	else:
 		if not _en_marche:
 			_en_marche = true
-			marche_commencee.emit(_clip)
+			marche_commencee.emit(_clip.call())
 		var direction := Vector3(entree.x, 0.0, entree.y).normalized().rotated(Vector3.UP, orbite.rotation.y)
 		_racine.quaternion = Quaternion(Basis.looking_at(direction, Vector3.UP, true))
 		_racine.global_translate(MiseEnPage.pas_de_marche(direction, _vitesse, _echelle_de_vitesse, _lecteur.speed_scale, delta))

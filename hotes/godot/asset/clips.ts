@@ -13,11 +13,12 @@ export interface EcartDeClip {
   readonly detail: string;
 }
 
-/** Les rôles de `clips` hors du vocabulaire du noyau, et ses clips absents des `animations` du GLB. */
-export function ecartsDeClips(clips: TableDeClips, animations: ReadonlySet<string>): EcartDeClip[] {
+/** Les rôles de la table `clips`, lue au champ `champ` du manifeste, hors du vocabulaire du noyau, et ses clips absents
+ *  des `animations` du GLB. */
+export function ecartsDeClips(clips: TableDeClips, animations: ReadonlySet<string>, champ = 'clips'): EcartDeClip[] {
   const roles = new Set<string>(ROLES_D_ANIMATION);
   return Object.entries(clips).flatMap(([role, nom]): EcartDeClip[] => [
-    ...(roles.has(role) ? [] : [{ code: 'role-inconnu' as const, ou: `clips.${role}`, detail: role }]),
-    ...(animations.has(nom) ? [] : [{ code: 'clip-absent' as const, ou: `clips.${role}`, detail: nom }]),
+    ...(roles.has(role) ? [] : [{ code: 'role-inconnu' as const, ou: `${champ}.${role}`, detail: role }]),
+    ...(animations.has(nom) ? [] : [{ code: 'clip-absent' as const, ou: `${champ}.${role}`, detail: nom }]),
   ]);
 }

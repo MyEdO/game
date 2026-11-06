@@ -53,6 +53,10 @@ describe('modelesDeLAtelier', () => {
     expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ walk: 'Walk_Loop', idle: 'Idle_Loop' }, 1.25]);
   });
 
+  it('une base sans table des rôles tenus à deux mains la publie vide (#3319)', () => {
+    expect(modeles.bases[0].clipsDeuxMains).toEqual({});
+  });
+
   it('chaque point porte exactement les objets rigides de la base dont un mesh pend à son os, ni le squelette, ni la surface, ni un accessoire', () => {
     expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], main: ['epee'], off: ['epee'] });
   });
@@ -100,6 +104,13 @@ describe('modelesDeLAtelier', () => {
     expect(modeles.surfaces).toEqual({ humanoide: [], bouclier: bouclier.surfaces, epee: epee.surfaces, chemise: chemise.surfaces, teteNaine: teteNaine.surfaces, broche: broche.surfaces });
     const peinte = { ...humanoide, surfaces: [{ nom: 'peau', palette: 'peau' }] };
     expect(modelesDeLAtelier({ humanoide: peinte }, { humanoide: [] }).surfaces).toEqual({ humanoide: peinte.surfaces });
+  });
+
+  it('chaque élément servi qui déclare une seconde prise la donne telle quelle, et lui seul (#3319)', () => {
+    const secondePrise = { position: [0, -0.4, 0], rotation: [0, Math.PI, 0] };
+    const hallebarde = { ...elementSchema3('humanoide'), cle: { apparence: 'hallebarde' }, liaison: { mode: 'rigide', secondePrise } };
+    expect(modeles.secondesPrises).toEqual({});
+    expect(modelesDeLAtelier({ humanoide, epee, hallebarde }, { humanoide: [], epee: ['root'], hallebarde: ['root'] }).secondesPrises).toEqual({ hallebarde: secondePrise });
   });
 
   it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {
