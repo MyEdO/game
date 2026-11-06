@@ -290,7 +290,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
-    expect(get().journal.join('\n')).toContain('Rencontre dangereuse — Territoire hostile');
+    expect(get().journal.join('\n')).toContain('Territoire hostile : ');
   });
 });
 

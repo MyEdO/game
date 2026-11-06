@@ -19,6 +19,9 @@ import type { Possession } from '../engine/possession';
 import { draineCascade } from './cascade.testkit';
 import { devisDeTrajet } from './travelFlow';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { encounterTable } from '../engine/travelTables';
+
+const ENTREES_DE_RENCONTRE = (['fortuites', 'dangereuses'] as const).flatMap((c) => encounterTable(c).map((e) => e.label));
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -614,8 +617,8 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] });
       setup(map({ km: 12, perilDie: 0 }), [h]);
       banc.getState().startTravel('r1', 'pied');
-      drainCascade(); // cascade travelDay (échec de poste → Rencontre à l'agrégation) → drainer
-      if (banc.getState().journal.some((l) => l.includes('Rencontre'))) met = true;
+      drainCascade(); // cascade travelDay (échec de poste → Rencontre tirée après l'agrégation) → drainer
+      if (banc.getState().journal.some((l) => ENTREES_DE_RENCONTRE.some((e) => l.startsWith(`${e} : `)))) met = true;
     }
     expect(met).toBe(true);
   });
