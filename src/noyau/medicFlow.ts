@@ -186,10 +186,11 @@ export function medicAct(get: Get, set: Set, act: HealMode): void {
 
   if (act === 'surgery' || act === 'recovery') {
     // Chirurgie : cible MJ 5-10 (LDB 10), Intermédiaire +0. Récupération d'usage : DR 6 fixe (LDB 18 l.120/179),
-    // Accessible +20 — cible lue sur la séquelle « membre désactivé » (restoreDR).
+    // Accessible +20 — cible lue sur la séquelle « membre désactivé » (targetDR).
     const recovery = act === 'recovery';
-    const plaie = (recovery ? recoverableTraumas(patient) : surgeryTraumas(patient))[0];
-    const targetDR = recovery ? (plaie.restoreDR ?? 6) : 7;
+    const aReeduquer = recovery ? garanti(recoverableTraumas(patient)[0], patient.id, 'membre à rééduquer') : undefined;
+    const plaie = aReeduquer ?? surgeryTraumas(patient)[0];
+    const targetDR = aReeduquer ? aReeduquer.targetDR : 7;
     set({
       medic: {
         ...m,
