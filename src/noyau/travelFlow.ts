@@ -79,8 +79,7 @@ import type { Combatant } from '../engine/types';
 
 import type { Get, Set } from './flowTypes';
 import { traceLineOf } from '../engine/traceLine';
-import { dataLabel, refLabel } from '../data';
-import { stepDetail } from './rollSeam';
+import { refLabel } from '../data';
 import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
@@ -1213,7 +1212,7 @@ function buildForcedPaceStep(driver: { actor: Combatant; value: number; support?
   const penalty = ligneAllureForcee(galloped); // l.229, SOURCE UNIQUE avec le résolveur pur
   return monoStep({
     id: `land-forced-${galloped}`, kind: 'landForcedPace', actor: driver.actor, icon: 'travel/cart',
-    label: stepDetail(dataLabel(driver.actor.label), t('step.conduiteForcee')), rollLabel: 'Conduite d’attelage',
+    label: t('step.conduiteForcee'), rollLabel: 'Conduite d’attelage',
     difficulty: 'intermediaire',
     stake: voyageStakeRef('landForcedPace'),
     ligne: {
@@ -1515,7 +1514,7 @@ export const TABLES = {
         if (step.actorId && hero && driver) {
           const st = monoStep({
             id: `${step.id}-control`, kind: 'landForcedPaceControl', actor: driver.actor, icon: 'travel/cart',
-            label: stepDetail(dataLabel(driver.actor.label), t('step.reprendreControle')), rollLabel: 'Conduite d’attelage',
+            label: t('step.reprendreControle'), rollLabel: 'Conduite d’attelage',
             difficulty: 'intermediaire',
             stake: voyageStakeRef('landForcedPaceControl'),
             // MÊME jet que le km (Conduite d'attelage soutenue, `LDB 12 l.189`) : ni la pénalité de km

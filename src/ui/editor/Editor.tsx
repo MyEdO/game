@@ -28,7 +28,8 @@ import { projectSave, projectsLoad, projetDeLEntree } from '../../state/projectL
 import { type EntreeListee } from '../../noyau/persistance/bibliotheque';
 import { downloadText } from '../../web/fileIo';
 import { sceneToAscii, type SceneAsciiExport } from '../../noyau/monde/sceneToAscii';
-import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
+import { testScenarios } from '../../scenes/test-scenarios';
+import type { TestScenario } from '../../scenes/test-scenarios/_shared';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../noyau/worldMap';
 import { MAISON_PROJET_AUTHORE } from '../../data/schemas/defs-scenes/projet';

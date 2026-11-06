@@ -865,7 +865,7 @@ function tavernTeamRound(get: Get, seq: SequenceState<TavernPayload>): SequenceR
   const steps = aChoisir.map((h) => choiceStep({
     id: `${TAVERN_CHOICE_KIND}-${seq.round}-${h.id}`,
     kind: TAVERN_CHOICE_KIND,
-    label: stepDetail(dataLabel(h.label), t('step.tavernCommentJouer')),
+    label: t('step.tavernCommentJouer'),
     icon: 'nav/dice',
     actorId: h.id,
     options: (game.options ?? []).map((o, i) => ({

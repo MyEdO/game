@@ -115,16 +115,13 @@ export const revealPurpose = (site: PendingCascade['purpose'], own: boolean) => 
 /** Empile une révélation en étape d'AFFICHAGE de cascade (`pushStep` : append à la séquence d'accueil,
  *  sinon elle l'ouvre). `purpose` = la séquence du SITE d'émission quand il en a une naturelle ;
  *  `own` = la révélation ne rejoint AUCUNE séquence en vol, elle ouvre la sienne (celle en vol est
- *  parquée puis reprise). ÉMETTEUR UNIQUE de toute révélation.
- *
- *  `autoClose` : DÉCLARE que cette révélation-là se referme seule, à la cadence de la gravité donnée
- *  (arbitrage #1270 — la fermeture explicite est le défaut ; un timer se justifie site par site). */
+ *  parquée puis reprise). ÉMETTEUR UNIQUE de toute révélation. */
 export function pushReveal(
   set: SetFn,
   entry: RevealEntry,
-  opts?: { table?: CascadeTableDone; purpose?: PendingCascade['purpose']; own?: boolean; autoClose?: NonNullable<RevealEntry['severity']> },
+  opts?: { table?: CascadeTableDone; purpose?: PendingCascade['purpose']; own?: boolean },
 ): void {
-  pushStep(set, (index) => revealToStep(entry, index, { table: opts?.table, ...(opts?.autoClose ? { autoClose: opts.autoClose } : {}) }), revealPurpose(opts?.purpose ?? 'affichage', !!opts?.own));
+  pushStep(set, (index) => revealToStep(entry, index, { table: opts?.table }), revealPurpose(opts?.purpose ?? 'affichage', !!opts?.own));
 }
 
 /** Vide la file de lignes de journal différées (`pendingLogQueue`) → événements de combat. SOURCE
@@ -937,7 +934,7 @@ export function openSkillTest(
   set({
     pendingTest: {
       actorId: def.id, actorName: def.label, label, skill, skillValue: def.value, difficulty,
-      skillId: spec.skill?.id, spec: spec.skill?.spec, char: spec.characteristic, // réf structurée pour talentTestSLBonus (LDB 10)
+      skillId: spec.skill?.id, spec: spec.skill?.spec, characteristic: spec.characteristic, // réf structurée pour talentTestSLBonus (LDB 10)
       requireSL: spec.requireSL ?? 0, target: def.target, clamped: def.clamped, base: def.base, mods: def.mods, psychMod: def.psychMod, psychDetail: def.psychDetail,
       itemUid: def.itemUid, isDouble: false, roll: null, success: false, sl: 0,
       support: def.support, easedBy,
@@ -1607,7 +1604,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         const line = t('eff.diseaseContracted', { name: who.label, disease: e.disease });
         env.log(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
-        env.pushReveal({ kind: 'effet', title: t('eff.diseaseTitle', { disease: e.disease }), lines: [line], subjectId: whoId, severity: 'grave' });
+        env.pushReveal({ kind: 'effet', title: t('eff.diseaseTitle', { disease: e.disease }), lines: [line], subjectId: whoId });
       }
     },
   },
@@ -1717,7 +1714,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         const line = t('eff.criticalSuffered', { name: who.label, kind: e.kind, location: e.location });
         env.log(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
-        env.pushReveal({ kind: 'effet', title: t('eff.criticalTitle', { kind: e.kind }), lines: [line, ...labels], subjectId: whoId, severity: 'grave' });
+        env.pushReveal({ kind: 'effet', title: t('eff.criticalTitle', { kind: e.kind }), lines: [line, ...labels], subjectId: whoId });
       }
     },
   },
@@ -1745,7 +1742,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!who) return;
       const line = t(acquired ? 'eff.ambitionTrauma' : 'eff.ambitionResisted', { name: who.label, roll: res.test.roll, target: res.test.target });
       env.log(line);
-      if (acquired) env.pushReveal({ kind: 'effet', title: t('eff.ambitionTitle'), lines: [line], subjectId: who.id, severity: 'grave' });
+      if (acquired) env.pushReveal({ kind: 'effet', title: t('eff.ambitionTitle'), lines: [line], subjectId: who.id });
     },
   },
   inflictPsychology: {

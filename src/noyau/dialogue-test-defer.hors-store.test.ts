@@ -57,7 +57,7 @@ describe('dialogue.reponse — avancée différée pendant un Test', () => {
     banc.getState().fenetreChoisir('dialogue', 'reponse', 'tenter');
     const pt = banc.getState().pendingTest!;
     expect(pt.label).toBe('Force');
-    expect(pt.char).toBe('force');
+    expect(pt.characteristic).toBe('force');
     expect(pt.actorId).toBeTruthy(); // un héros du groupe jette : la voie est la voie commune
   });
 
