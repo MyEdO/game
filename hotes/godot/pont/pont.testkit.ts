@@ -59,7 +59,7 @@ function fautesDeLaSaisie(ou: string, s: Saisie): string[] {
   if (s.type === 'fixe') return [];
   return [
     ...(!s.libelle || s.libelle === s.nom ? [`${ou} : libellé ${s.libelle}`] : []),
-    ...(s.type === 'saisieChoix' && (!s.valeurs.length || s.valeurs.some((v) => !v.libelle)) ? [`${ou} : un choix sans valeur nommée`] : []),
+    ...((s.type === 'saisieChoix' || s.type === 'saisieCoches') && (!s.valeurs.length || s.valeurs.some((v) => !v.libelle)) ? [`${ou} : un choix sans valeur nommée`] : []),
     ...(s.type === 'saisieObjet' ? s.champs.flatMap((c) => fautesDeLaSaisie(`${ou}.${c.nom}`, c)) : []),
   ];
 }

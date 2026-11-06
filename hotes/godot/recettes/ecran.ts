@@ -10,15 +10,17 @@
  * dans `magie` la Fléchette choisie parmi les sorts de l'actif, sa fenêtre d'incantation avant puis après le jet et un pas
  * de Surincantation alloué, la création d'un héros hors de la partie (`zonesDeLaCreation` sur
  * l'état initial : la race avant puis après son d100, la carrière tirée, les Caractéristiques en 100 points, chacune en
- * liste), et un formulaire
- * de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
+ * liste), la carte du monde et le récit d'une arrivée dans `voyage`, puis dans `bataille-de-masse` l'entre-deux-aventures
+ * (un onglet par héros), les Scènes du premier Round de la bataille et l'entre-deux-Rounds, dans
+ * `entre-deux-aventures` les formulaires d'ouvrage et de dépôt du forgeron, et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`) et d'une rangée
+ * de cases. Chaque vue porte
  * ses zones, les lignes que le combat du dôme a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
 import { creerPont, type Suite } from '../pont/pont';
 import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type Entite, type GesteDeLaCreation, type Jeu, type Ligne } from '../../../src/hote/elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type Formulaire, type GesteDeLaCreation, type Jeu, type Ligne, type Saisie } from '../../../src/hote/elements';
 import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 
@@ -49,8 +51,50 @@ const FORMULAIRE: GesteDeLaFenetre = {
 };
 const ARGUMENTS_DU_FORMULAIRE = ['designe', 'b', 3, 'mot', { a: 1 }, { x: 2, y: 'z' }];
 
+/** Un formulaire d'une rangée de cases, une case cochée, une libre, une refusée : il joue la liste des cochées. */
+const CASES: Formulaire = {
+  type: 'formulaire', id: 'cases', libelle: 'Jouer les cases', verbe: 'verbeDeRecette', focus: false, refus: null,
+  champs: [{
+    type: 'saisieCoches', id: 'cases/c', ton: 'neutre', nom: 'c', optionnel: false, libelle: 'Saisie c',
+    valeurs: [{ libelle: 'Case A', valeur: 'a', presse: true, refus: null }, { libelle: 'Case B', valeur: 'b', presse: false, refus: null }, { libelle: 'Case C', valeur: 'c', presse: false, refus: 'Refusée' }],
+  }],
+};
+
 /** Un geste ouvert que sa fermeture refuse, sa raison dite. */
 const REFUSE: GesteDeLaFenetre = { cle: 'refuse', verbe: 'verbeDeRecette', libelle: 'Geste refusé', arguments: [], rendu: 'bouton', aChoisir: null, attendu: false, ouvert: true, raison: 'Fermé par le jet', reglage: false };
+
+/** Ce que la saisie `c` dit dessinée, comme Godot la lit (`Saisie.lire`, `saisie.gd`) : `[]` rien de saisi, sinon sa
+ *  valeur posée ou pressée, la liste des valeurs pressées d'une rangée de cases, l'objet de ses champs. */
+function lueDessinee(c: Saisie): unknown[] {
+  switch (c.type) {
+    case 'fixe': return [c.valeur];
+    case 'saisieChoix': return c.valeurs.filter((v) => v.presse).map((v) => v.valeur);
+    case 'saisieCoches': return [c.valeurs.filter((v) => v.presse).map((v) => v.valeur)];
+    case 'saisieNombre': return [c.valeur];
+    case 'saisieTexte': return c.valeur ? [c.valeur] : [];
+    case 'saisieJson': return c.valeur ? [JSON.parse(c.valeur)] : [];
+    case 'saisieObjet': return [Object.fromEntries(c.champs.flatMap((x) => {
+      const lue = lueDessinee(x);
+      return !lue.length && x.optionnel ? [] : [[x.nom, lue.length ? lue[0] : null]];
+    }))];
+  }
+}
+
+/** L'intention que le formulaire `f` joue pressé tel qu'il est dessiné (`Saisie.arguments`) : un champ optionnel vide
+ *  clôt les arguments, un champ requis vide part `null`. */
+function telQueDessine(f: Formulaire): Jeu {
+  const args: unknown[] = [];
+  for (const c of f.champs) {
+    const lue = lueDessinee(c);
+    if (!lue.length && c.optionnel) break;
+    args.push(lue.length ? lue[0] : null);
+  }
+  return { type: f.verbe, args };
+}
+
+/** Chaque formulaire de `elements` et des entités qu'ils portent. */
+const formulaires = (elements: readonly Element[]): Formulaire[] =>
+  elements.flatMap((e) => (e.type === 'formulaire' ? [e] : e.type === 'entite' ? formulaires(e.elements) : []));
 
 export function figerVuesDeLEcran(): VueFigee[] {
   const lignes: Ligne[] = [];
@@ -77,7 +121,10 @@ export function figerVuesDeLEcran(): VueFigee[] {
     };
     return { appeler, jouer, fermer: pont.fermer };
   };
-  const figer = (nom: string, s: Suite) => vues.push({ nom, disposition: s.vue.disposition, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] }, attendus: {} });
+  const figer = (nom: string, s: Suite) => vues.push({
+    nom, disposition: s.vue.disposition, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] },
+    attendus: Object.fromEntries(Object.values(s.vue.zones).flatMap((z) => formulaires(z)).map((f) => [f.id, telQueDessine(f)])),
+  });
   const enFocus = (s: Suite): Jeu => {
     const b = s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus);
     if (!b) throw new Error(`aucun bouton que l’Entrée joue dans ${JSON.stringify(s.vue.zones['fenetre.gestes'].map((g) => g.id))}`);
@@ -203,6 +250,15 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('bataille de masse, entre deux Rounds', s);
   repit.fermer();
 
+  const forge = unPont([]);
+  s = forge.jouer('demarrer', { scenario: 'entre-deux-aventures', graine: 7 });
+  for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'repit/semaines'); pas++) {
+    if (pas > 8) throw new Error(`aucun répit entre deux aventures après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
+    s = forge.jouer('jouer', enFocus(s));
+  }
+  figer('entre deux aventures, l’ouvrage et le dépôt du forgeron', s);
+  forge.fermer();
+
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
@@ -230,8 +286,8 @@ export function figerVuesDeLEcran(): VueFigee[] {
   vues.push({
     nom: 'formulaire de chaque saisie',
     disposition: null,
-    zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.gestes': elementsDesGestes([FORMULAIRE, REFUSE]), 'journal.lignes': [...lignes] },
-    attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE } },
+    zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.gestes': [...elementsDesGestes([FORMULAIRE, REFUSE]), CASES], 'journal.lignes': [...lignes] },
+    attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE }, [CASES.id]: { type: CASES.verbe, args: [['a']] } },
   });
   return vues;
 }

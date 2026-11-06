@@ -40,6 +40,9 @@
 // - `repit` (`--scenario bataille-de-masse`) : les dés d'Événement tombent, l'entre-deux-aventures montre un onglet par
 //   héros, ses Activités restantes et chaque Activité fermée par sa raison ; « Revenus » cliqué ouvre son jet, lancé à
 //   l'Entrée puis appliqué : l'onglet du héros compte une Activité de moins.
+// - `ouvrage` (`--scenario entre-deux-aventures`) : les dés d'Événement tombent ; dans l'onglet du forgeron, la molette
+//   amène ses formulaires, l'Atout « Solide » coché, le premier ouvrage ouvert choisi dans la liste au clavier,
+//   « Entreprendre un ouvrage » l'engage : l'Artisanat en cours le remplace.
 // - `bataille` (`--scenario bataille-de-masse`) : l'interlude clos, la bataille montre ses armées et les Scènes du
 //   Round ; « Résoudre » ouvre le jet de la première Scène à postes, lancé à l'Entrée puis appliqué : la Scène se
 //   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
@@ -653,6 +656,45 @@ async function parcoursRepit() {
   v = await vue()
   assert.equal(puces(v)[0], 'Activités : 2 / 3', 'une Activité de moins')
   await capturer('3328-m1-3-repit-apres')
+}
+
+async function parcoursOuvrage() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
+  for (let v = await vue(), pas = 0; v.disposition !== 'interlude'; v = await vue(), pas++) {
+    assert.ok(pas < 8, `les dés d'Événement mènent à l'interlude : ${corps(v)}`)
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+  }
+  await capturer('3328-o1-1-forgeron')
+  /** Le bouton publié qui porte `texte`, amené à l'écran par la molette sur l'onglet du héros. */
+  const amenerTexte = async (texte) => {
+    for (let n = 0; !trouver((await ecran()).boutons, texte); n++) {
+      assert.ok(n < 30, `« ${texte} » amené par la molette`)
+      await molette(session, { surface: 'canvas', x: 600, y: 420 }, 100)
+      await sleep(250)
+    }
+  }
+  await amenerTexte('Entreprendre un ouvrage')
+  await capturer('3328-o1-2-formulaires')
+  /** Un clic sur le bouton publié `b`, qui ne publie aucun écran neuf (une case, une liste ouverte). */
+  const cliquerSurPlace = (b) => geste(session, { surface: 'canvas', x: b.x, y: b.y }, { qui: `clic sur ${b.texte}` }, clic())
+  await cliquerSurPlace(trouver((await ecran()).boutons, 'Solide'))
+  const ouvrage = zone(await vue(), 'fenetre.corps').find((e) => e.id === 'repit/durin').elements.find((x) => x.id === 'ouvrage/durin')
+  const ouverts = ouvrage.champs.find((c) => c.nom === 'trappingId').valeurs.filter((v) => !v.refus)
+  const liste = (await ecran()).boutons.find((b) => b.choix?.includes(ouverts[0].libelle))
+  assert.ok(liste, `la liste des ouvrages est à l'écran`)
+  await cliquerSurPlace(liste)
+  await sleep(400)
+  await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await sleep(300)
+  await cliquerBouton('Entreprendre un ouvrage')
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'repit/durin').elements.some((x) => x.id === 'craft')")
+  const v = await vue()
+  noter(`ouvrage engagé : ${zone(v, 'fenetre.corps').find((e) => e.id === 'repit/durin').elements.find((x) => x.id === 'craft').libelle}`)
+  await capturer('3328-o1-3-ouvrage-engage')
 }
 
 async function parcoursBataille() {
@@ -1392,7 +1434,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repit: parcoursRepit, bataille: parcoursBataille, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null
