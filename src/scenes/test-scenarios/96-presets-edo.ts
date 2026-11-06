@@ -134,7 +134,7 @@ function construireScene(): Scene {
       // Jeu posé : `dominos` ; le jeu du RAW, l'Impératrice écarlate (`NADJ 16 l.133-139`), manque à
       // `tavernGames.json` (#1921).
       { id: 'npc-phillipe', kind: 'personnage', pos: { x: 5, y: 4 }, presetId: 'edo-phillipe-descartes', dialogueId: 'dlg-phillipe', label: 'Phillipe Descartes',
-        tavernGame: { gameId: 'dominos', stakeBrass: 24 } },
+        tavernGame: { id: 'dominos', stakeBrass: 24 } },
       { id: 'npc-josef', kind: 'personnage', pos: { x: 3, y: 2 }, presetId: 'edo-josef-quartjin', label: 'Josef Quartjin' },
     ],
     dialogues,

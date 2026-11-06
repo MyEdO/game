@@ -701,7 +701,7 @@ export function MerchantPanel() {
   const startBargain = useGame((s) => s.startBargain);
   const appraiseItem = useGame((s) => s.appraiseItem);
   const fermer = useGame((s) => s.fenetreFermer);
-  const quitter = () => fermer('marche');
+  const quitter = () => fermer('marchand');
   const setSellHalving = useGame((s) => s.setSellHalving);
   const barterExchange = useGame((s) => s.barterExchange);
   const searchAvailability = useGame((s) => s.searchAvailability);

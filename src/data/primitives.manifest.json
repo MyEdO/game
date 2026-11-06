@@ -455,7 +455,7 @@
     "label": "SaisieEnBrouillon",
     "fichier": "src/ui/compendium/refField/SaisieEnBrouillon.tsx",
     "concept": "saisie EN CHAÎNE d'une valeur structurée tenue en brouillon local : `afficher` rend la valeur en texte, `relire` relit le brouillon UNE fois à la fin de la saisie (blur, Entrée hors `lignes`) contre la valeur courante ; la frappe n'est jamais réécrite ni émise ; le brouillon ne déclare PAS de saisie en cours au porteur du geste d'enregistrement (il se pose toujours, au blur que ce geste provoque) ; une valeur affichée qui change sous le brouillon le fait tomber ; `SaisieSuggeree` sur une ligne, `<textarea>` à `lignes`",
-    "perimetre": "chaîne d'un Trait posé (rangée de TraitListField/OptionalsListField, OptionalTraitsPicker), Traits ajoutés d'une invocation (GameOpEditor `summon.addTraits`), refs au format livre une par ligne du Codex (Compétences, Talents d'une créature), renommage d'un id stable de l'inspecteur (`EntryRename`)",
+    "perimetre": "chaîne d'un Trait posé (rangée de TraitListField/OptionalsListField, OptionalTraitsPicker), Traits ajoutés d'une invocation (GameOpEditor `summon.addTraits`), refs au format livre une par ligne du Codex (Compétences, Talents d'une créature), renommage d'un id stable de l'éditeur (`EntryRename`, `src/ui/editor/EntryRename.tsx` : inspecteur et LogicDock)",
     "verrou": "saisie-suggeree.test.tsx, codex-edit-competences-au-clic.test.tsx, renommage-garde-la-saisie.test.tsx"
   },
   {

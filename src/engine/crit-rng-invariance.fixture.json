@@ -1828,11 +1828,11 @@
         ],
         "prosthesis": [
           {
-            "trappingId": "merveille-d-ingenierie",
+            "id": "merveille-d-ingenierie",
             "cancels": "all"
           },
           {
-            "trappingId": "fausse-jambe",
+            "id": "fausse-jambe",
             "cancels": "movement"
           }
         ]
@@ -1999,11 +1999,11 @@
         ],
         "prosthesis": [
           {
-            "trappingId": "merveille-d-ingenierie",
+            "id": "merveille-d-ingenierie",
             "cancels": "all"
           },
           {
-            "trappingId": "fausse-jambe",
+            "id": "fausse-jambe",
             "cancels": "movement"
           }
         ]
@@ -2379,11 +2379,11 @@
         ],
         "prosthesis": [
           {
-            "trappingId": "merveille-d-ingenierie",
+            "id": "merveille-d-ingenierie",
             "cancels": "all"
           },
           {
-            "trappingId": "fausse-jambe",
+            "id": "fausse-jambe",
             "cancels": "movement"
           }
         ]
@@ -2508,11 +2508,11 @@
         ],
         "prosthesis": [
           {
-            "trappingId": "merveille-d-ingenierie",
+            "id": "merveille-d-ingenierie",
             "cancels": "all"
           },
           {
-            "trappingId": "fausse-jambe",
+            "id": "fausse-jambe",
             "cancels": "movement"
           }
         ]
