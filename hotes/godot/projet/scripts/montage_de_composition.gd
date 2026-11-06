@@ -16,6 +16,8 @@ const DELAI_DE_REQUETE_S := 10.0
 const BLOC_DE_TELECHARGEMENT := 16777216
 ## La largeur en pixels à laquelle le SVG d'un emblème se rastérise (#3111).
 const LARGEUR_D_EMBLEME := 512.0
+## Le rang de la base parmi les couches des éléments (`couches` de `modeles`) : sous la plus intérieure.
+const RANG_DU_CORPS := -1
 
 
 ## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
@@ -255,6 +257,7 @@ func demonter(id: String) -> void:
 	montes.erase(id)
 	emblemes.erase(id)
 	_emblemes_demandes.erase(id)
+	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
 
 
@@ -305,8 +308,29 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	_noeuds[id] = noeuds
 	montes[id] = element
 	poser_les_morphes()
+	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
 	return true
+
+
+## Chaque mesh de zone (`extras.zone`), de la base ou d'un élément monté, caché si un élément monté de couche plus
+## extérieure couvre sa zone (`couches` de `modeles`, #2972), montré sinon ; la base est sous toute couche
+## (`hotes/godot/asset/evaluateur/gardes/traversee.ts`, `sansLesZonesMasquees`).
+func masquer_les_zones_couvertes() -> void:
+	var couches: Dictionary = modeles.get("couches", {})
+	var couvrant := {}
+	for element in montes.values():
+		var couche: Dictionary = couches.get(element, {})
+		for zone in couche.get("couvre", []):
+			couvrant[zone] = maxi(couvrant.get(zone, RANG_DU_CORPS), int(couche.rang))
+	var rangees: Array = [[_pieces_de_la_base, RANG_DU_CORPS]]
+	for id in pieces:
+		rangees.append([pieces[id], int(couches.get(montes[id], {}).get("rang", RANG_DU_CORPS))])
+	for rangee in rangees:
+		for piece: MeshInstance3D in rangee[0]:
+			var zone: Variant = piece.get_meta("extras", {}).get("zone")
+			if zone != null:
+				piece.visible = couvrant.get(zone, RANG_DU_CORPS) <= rangee[1]
 
 
 ## La main de la prise `off` posée sur la seconde prise de l'élément monté à la prise `main` (`secondesPrises` de

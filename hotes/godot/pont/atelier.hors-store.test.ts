@@ -115,6 +115,13 @@ describe('modelesDeLAtelier', () => {
       .toEqual({ hallebarde: { repere: secondePrise, maniement: 'hampe' }, estoc: { repere: secondePrise, maniement: null } });
   });
 
+  it('chaque élément servi qui a une couche donne son rang dans `COUCHES` et les zones qu’il couvre, et lui seul (#2972)', () => {
+    expect(modeles.couches).toEqual({ chemise: { rang: 2, couvre: ['torse'] }, teteNaine: { rang: 0, couvre: ['tete'] } });
+    const { couvre: _, ...sansZones } = { ...broche, couche: 'tenue' };
+    expect(modelesDeLAtelier({ humanoide, chemise, broche: sansZones }, { humanoide: [], chemise: ['root'], broche: ['root'] }).couches)
+      .toEqual({ chemise: { rang: 2, couvre: ['torse'] }, broche: { rang: 2, couvre: [] } });
+  });
+
   it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {
     expect(modeles.emblemes.map(({ id }) => id)).toEqual(['taureau-rouge', 'tete-de-mort-rouge']);
     for (const embleme of modeles.emblemes) {

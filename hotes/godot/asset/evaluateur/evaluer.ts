@@ -2,7 +2,7 @@
  * L'ÉVALUATEUR D'UNE BASE ET DE SES ÉLÉMENTS (#2972) : charge les GLB (`chargerScene`), monte les éléments sur le
  * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, mesure au repos les shape keys de la
  * base (`gardes/silhouettes.ts`), échantillonne les clips, puis appelle chaque garde de `gardes/` : `poids`,
- * `enroulement`, `budget`, `pistesDEchelle`, `echelleDuRigide`, `tranchantDuRigide`, `silhouettes`, `segments`, `appuis`, `piedsAuSol`, `etirement`, `suiviDuCorps`.
+ * `enroulement`, `budget`, `pistesDEchelle`, `echelleDuRigide`, `tranchantDuRigide`, `silhouettes`, `segments`, `appuis`, `piedsAuSol`, `etirement`, `suiviDuCorps`, `traversee`.
  * Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone est un corps d'un seul
  * tenant : ses meshes skinnés.
  */
@@ -29,11 +29,22 @@ import { gardePoids } from './gardes/poids.ts';
 import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from './gardes/silhouettes.ts';
 import { etenduesDesSegments, gardeSegments, type MesuresDesSegments } from './gardes/segments.ts';
 import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
-import { meshesDuCorps } from './corps.ts';
+import { gardeTraversee, lierLesCouches, mesurerTraversee, RANG_DU_CORPS, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
+import { COUCHES, type Couche } from '../element.ts';
+
+/** Ce qu'un élément déclare de sa place sur le corps : sa couche, et les zones du corps qu'il masque. */
+export interface CoucheDeLElement {
+  readonly couche: Couche;
+  readonly couvre: readonly string[];
+}
+import { meshesDuCorps, zoneDe } from './corps.ts';
 
 export interface EntreeDEvaluation {
   readonly base: Uint8Array;
   readonly elements?: readonly Uint8Array[];
+  /** La couche et les zones couvertes de chaque élément de `elements`, dans son ordre (`ManifesteDElement`), `null` pour
+   *  un élément sans couche ; sans elles, la traversée des couches n'est pas mesurée (`gardes/traversee.ts`). */
+  readonly couches?: readonly (CoucheDeLElement | null)[];
   /** Le manifeste de base brut, validé ici (`validerManifesteDeBase`) ; sans lui, ni gabarit ni prise, et seule la
    *  racine a une position animée. */
   readonly manifeste?: unknown;
@@ -142,6 +153,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const base = await chargerScene(entree.base);
   const elements = await Promise.all((entree.elements ?? []).map(chargerScene));
   const corps = meshesDuCorps(base);
+  const zones = new Map([base, ...elements].flatMap((s) => s.meshes.map((m) => [m, zoneDe(m)] as const)));
   for (const e of elements) monter(base, e);
   const meshes = [base, ...elements].flatMap((s) => s.meshes);
   const skinnes = meshes.filter((m): m is SkinnedMesh => (m as SkinnedMesh).isSkinnedMesh === true);
@@ -187,14 +199,22 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const etirements: MesureDEtirement[] = [];
   const surfaces = manifeste ? surfacesDesPieds(corpsSkinne, manifeste.appuis.pieds) : [];
   const posesDesPieds: PoseDuPied[] = [];
+  const declarees = elements.flatMap((e, k) => {
+    const c = entree.couches?.[k];
+    return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre }] : [];
+  });
+  const montre = sansLesZonesMasquees(declarees, (m) => zones.get(m) as string | undefined);
+  const couches = lierLesCouches(montre(corps, RANG_DU_CORPS), declarees.map((d) => ({ rang: d.rang, meshes: montre(d.meshes, d.rang) })), repos);
+  const traversees: TraverseeDUnEchantillon[] = [];
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit)) {
+    traversees.push(...mesurerTraversee(couches, e));
     niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, corps) });
     etirements.push(mesurerEtirement(aretes, sansCles, e));
     if (manifeste && e.clip === manifeste.clips.walk) posesDesPieds.push(...poserPieds(e, surfaces, manifeste.gabarit.racine));
   }
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.walk]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
-  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle));
+  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));
   return {
