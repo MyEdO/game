@@ -16,7 +16,7 @@ import {
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import type { Projection } from './projection';
-import type { FenetreADessiner } from './gestes';
+import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, resume, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Ton } from './elements';
 
@@ -254,17 +254,31 @@ function apercuDe(c: Combat): string | null {
   return cible ? t('ecran.apercu.cible', { cible }) : null;
 }
 
-/** Les offres de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand l'actif la vise, refusée avec sa
+/** Les offres de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand elle est armée, refusée avec sa
  *  raison quand elle est fermée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui
- *  la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. */
+ *  la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. Une offre qui s'offre par candidat
+ *  (le sort, l'arme, l'attaque de trait) est un choix à elle, sous sa part, en liste au-delà de `CHOIX_EN_BOUTONS`
+ *  candidats : chaque candidat un bouton qui le nomme et joue l'offre sur son contexte. */
 function offresDuCombat(c: Combat): Choix[] {
   const offres = c.offres?.liste ?? [];
+  const libelle = (o: (typeof offres)[number]): string => garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre');
   const bouton = (o: (typeof offres)[number]): Bouton => ({
-    type: 'bouton', id: o.id, libelle: garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre'), jeu: { offre: o.id }, presse: c.intention === o.id, focus: false, refus: o.refus,
+    type: 'bouton', id: o.id, libelle: libelle(o), jeu: { offre: o.id }, presse: o.armee, focus: false, refus: o.refus,
   });
-  return [...new Set(offres.map((o) => o.economie))].map((e): Choix => ({
-    type: 'choix', id: `economie/${e}`, ton: 'neutre', libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: offres.filter((o) => o.economie === e).map(bouton),
-  }));
+  const parCandidat = (o: (typeof offres)[number]): Choix => ({
+    type: o.candidats.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: `offre/${o.id}`, ton: 'neutre', libelle: libelle(o), focus: false, refus: o.refus,
+    valeurs: o.candidats.map((k): Bouton => ({
+      type: 'bouton', id: `${o.id}/${Object.values(k.ctx).join('/')}`, libelle: k.nom, jeu: { offre: o.id, ctx: k.ctx }, presse: k.armee, focus: false, refus: k.refus,
+    })),
+  });
+  return [...new Set(offres.map((o) => o.economie))].flatMap((e): Choix[] => {
+    const part = offres.filter((o) => o.economie === e);
+    const uniques = part.filter((o) => !o.candidats.length);
+    return [
+      ...(uniques.length ? [{ type: 'choix' as const, id: `economie/${e}`, ton: 'neutre' as const, libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: uniques.map(bouton) }] : []),
+      ...part.filter((o) => o.candidats.length).map(parCandidat),
+    ];
+  });
 }
 
 /** L'ordre du tour (`battle.order`) : chaque combattant en puce, ses Blessures pour valeur ; celui qui joue en alerte,

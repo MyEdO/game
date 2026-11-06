@@ -16,7 +16,7 @@ export { formatMoney } from '../engine/money';
 export { conditionLabel } from '../data';
 export type { Cadence } from '../engine/cadence';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
-export { actionGate, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
+export { actionGate, offreArmee, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
 export { findApparenceById, findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { EmblemeDef } from '../data/schemas/defs/garde-robe';

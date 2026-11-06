@@ -406,6 +406,48 @@ async function parcoursDocument() {
   await capturer('3328-i1-2-referme')
 }
 
+async function parcoursIncantation() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  const viderLesFenetres = async () => {
+    for (let v = await vue(); v.projection.fenetre; v = await vue()) {
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  await viderLesFenetres()
+  await cliquerCase({ x: 16, y: 11 })
+  await attendreLaVue('!!v.projection.combat')
+  await viderLesFenetres()
+  let v = await vue()
+  assert.equal(zone(v, 'combat.actif')[0]?.nom, 'Aelindra, Haute Sorcière', 'la Haute Sorcière ouvre le combat')
+  const sorts = zone(v, 'combat.offres').find((c) => c.id === 'offre/cast-spell')
+  assert.ok(sorts, `les sorts de l’actif sont un choix : ${zone(v, 'combat.offres').map((c) => c.id).join(' | ')}`)
+  noter(`« ${sorts.libelle} » : ${sorts.valeurs.length} sorts en ${sorts.type}`)
+  await capturer('3328-j1-1-sorts')
+  const cle = `liste/${sorts.id}`
+  const liste = trouver((await ecran()).boutons, { element: cle })
+  assert.ok(liste, `la liste des sorts se dessine : ${(await ecran()).boutons.map((b) => b.element ?? b.texte).join(' | ')}`)
+  const rang = liste.choix.indexOf('Fléchette')
+  assert.ok(rang >= 0, `Fléchette est offerte : ${liste.choix.join(', ')}`)
+  await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: 'liste des sorts' }, clic())
+  await sleep(400)
+  await capturer('3328-j1-2-liste-ouverte')
+  for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  v = await vue()
+  noter(`Fléchette choisie : ${v.projection.combat.cibles.liste.length} cibles`)
+  const cible = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
+  await cliquerCase({ x: cible.pos[0], y: cible.pos[1] })
+  await attendreLaVue('!!v.projection.fenetre')
+  v = await vue()
+  noter(`clic sur ${cible.nom} : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte} »`)
+  await capturer('3328-j1-3-incantation')
+}
+
 async function parcoursFiche() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
@@ -1104,7 +1146,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

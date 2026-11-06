@@ -37,7 +37,7 @@ export function parametresDuGeste(g: GesteDuJeu): readonly ParametreDeVerbe[] {
 }
 
 /** Au-delà de ce nombre de valeurs, un choix se rend en liste plutôt qu'en rangée de boutons. */
-const CHOIX_EN_BOUTONS = 7;
+export const CHOIX_EN_BOUTONS = 7;
 
 /** Un argument d'un geste : `fixe`, posé par la fenêtre (`valeur`) ; `choix` parmi `valeurs` ; `nombre`, entre ses
  *  `bornes` quand le réglage en pose ; `texte`, une chaîne ; `objet`, ses `champs` saisis chacun ; `json`, une valeur

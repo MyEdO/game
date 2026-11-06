@@ -46,6 +46,7 @@ import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ShipPoste } from '../engine/types';
 import { pushSlot } from './siegePush';
 import { ACTIONS, findConditionById, findSpellById, type ActionDef } from '../data/index';
+import { garanti } from '../lib/garanti';
 import { isArcaneSpell, castBlockedBy, castInfoIsPrayer, focusSkillFor, focusWindLabel } from '../engine/magic';
 import { t } from '../i18n';
 import { aPorteeDe } from './monde/exploreNav';
@@ -441,7 +442,8 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
 export interface ActionPorteur {
   porteurId: string;
   args: ActionRunCtx;
-  /** Nom du CANDIDAT (pas de l'action) — porté par le panneau-paramètre quand le porteur en offre N. */
+  /** Nom du CANDIDAT (pas de l'action), quand ce n'est pas une entité du champ : ce qui le distingue des autres
+   *  candidats de la même entrée. */
   label?: string;
 }
 
@@ -472,7 +474,7 @@ export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteu
    *  l'alvéole du sort, et lui que le geste secondaire de Focalisation paramètre. */
   'sorts-du-heros': (c) => {
     const id = c as string;
-    return { porteurId: id, args: { spellId: id } };
+    return { porteurId: id, args: { spellId: id }, label: garanti(findSpellById(id), id, 'sort du héros').label };
   },
   /** Une ARME à distance : son `uid` porte le candidat (l'alvéole de recharge en est paramétrée). */
   'armes-a-distance': porteurDArme,
@@ -492,6 +494,14 @@ export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteu
 function porteurDArme(c: unknown): ActionPorteur {
   const w = c as { uid: string; label?: string };
   return { porteurId: w.uid, args: { weaponUid: w.uid }, label: w.label };
+}
+
+/** L'offre de `def` sur `args` est-elle armée ? Son intention est celle que vise le siège (`localIntent`), ou le mode
+ *  qu'elle arme (`armed`) est celui du combat, sur le sort élu (`selectedSpellId`) quand elle en désigne un. */
+export function offreArmee(etat: Pick<Jeu, 'battle' | 'localIntent'>, def: ActionDef, args: ActionRunCtx = {}): boolean {
+  const b = etat.battle;
+  if (def.intent && etat.localIntent?.actionId === def.id) return true;
+  return !!def.armed && b?.action === def.armed && (!args.spellId || b.selectedSpellId === args.spellId);
 }
 
 /** Ce que l'acte prend dans l'économie du tour, en toutes lettres — la donnée `cost` du registre, dite
