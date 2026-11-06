@@ -6,7 +6,7 @@
  * projection-agnostique : géométrie en unités de GRILLE + MÈTRES (`GP`), aucune notion de caméra.
  */
 import { Scene, tileAt, isWalkable, type CellSide } from '../scene';
-import { estAbsent, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../terrain';
+import { estAbsent, terrainBuilt, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../terrain';
 import type { Face, FloorEl } from './types';
 import { viewedBuilder, type Viewed } from './viewTruth';
 import { dessusDe, displayHeightAt, facesDuDessus, parois, presenteDansLaGrille, profilDArete, rejointAPied } from './pente';
@@ -162,10 +162,11 @@ function floorFaces(scene: Scene, x: number, y: number, z: number, overhang: boo
 
   // PAROIS : sur chaque arête, la face verticale qui comble l'écart entre le bord du dessus de la case et celui de sa
   // voisine (`profilDArete`), là où la case est la plus haute — falaise vers une voisine qu'on ne rejoint pas à pied,
-  // contremarche ou talus vers une voisine qu'on rejoint (le dessus raccorde les centres, `./pente`). Un bord de
-  // surplomb donnant sur le VIDE se rend en DALLE FINE (`deck`, épaisseur DECK_THICKNESS_M) : la route du dessous reste
-  // visible. TOIT D'UN BLOC PLEIN (chemin de ronde posé DIRECTEMENT sur la masse `mur`) : le bloc dessine déjà toutes
-  // ses parois, celles du sol du dessus seraient redondantes et recouvriraient une rampe z0 posée devant.
+  // contremarche ou talus vers une voisine qu'on rejoint (le dessus raccorde les centres, le long d'une volée sur un sol
+  // bâti, `./pente`). Un bord de surplomb donnant sur le VIDE se rend en DALLE FINE (`deck`, épaisseur DECK_THICKNESS_M) :
+  // la route du dessous reste visible. TOIT D'UN BLOC PLEIN (chemin de ronde posé DIRECTEMENT sur la masse `mur`) : le
+  // bloc dessine déjà toutes ses parois, celles du sol du dessus seraient redondantes et recouvriraient une rampe z0
+  // posée devant.
   const dessus = dessusDe(scene, x, y, z);
   const roofOfSolid = capsSolidDirect(scene, x, y, z);
   if (!roofOfSolid) for (const side of SIDES) {
@@ -175,11 +176,11 @@ function floorFaces(scene: Scene, x: number, y: number, z: number, overhang: boo
     const plancher = displayHeightAt(scene, x + dx, y + dy, z);
     const lien = voisine != null && rejointAPied(scene, x, y, x + dx, y + dy, z);
     // La matière vient de la DONNÉE (#1691) : le flanc d'un BLOC PLEIN est celui de SON terrain (`terrains.json ›
-    // matiere`), la contremarche d'un sol bâti est son terrain, toute autre paroi prend la matière que la SCÈNE pose
-    // pour cette partie. Aucun repli : ces sources sont exigées au parse.
+    // matiere`), la contremarche d'un sol bâti vers une voisine qu'on rejoint est son terrain, toute autre paroi prend la
+    // matière que la SCÈNE pose pour cette partie. Aucun repli : ces sources sont exigées au parse.
     const material: Face['material'] = solidBlock
       ? { domain: 'relief', id: terrainMatiere(terrain)!, part: 'cliff' }
-      : lien && dessus.marches
+      : lien && terrainBuilt(terrain)
         ? { domain: 'terrain', id: terrain }
         : { domain: 'relief', id: scene.reliefDefaults[deck ? 'deck' : lien ? 'ramp' : 'cliff'], part: deck ? 'deck' : lien ? 'ramp' : 'cliff' };
     const [A, B] = edgeCorners(x, y, side);

@@ -8,7 +8,7 @@ import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type EtatDeJeu, 
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { refusEmplacementDeMain, refusAchatDeComposant, refusDeSupprimerSet } from './partyFlow';
-import { refusDInventaire, refusDuLanceurDeFiche, refusDuBackground, refusDeRompreUneFaveur } from './verrousDeFiche';
+import { refusDInventaire, refusDuBackground, refusDeRompreUneFaveur } from './verrousDeFiche';
 import { buildAdvancementView } from './monde/advancement';
 import { refusGestePossession, ciblesDEmbarquement } from './possessionsFlow';
 import { refusDeSoins } from './medicFlow';
@@ -83,14 +83,13 @@ describe('setLoadoutSlot — le verdict de main (`refusEmplacementDeMain`) est c
 });
 
 describe('gestes de set — le verrou (`refusDInventaire`) est celui des gestes', () => {
-  it('en combat, l’hôte texte ne crée, ne supprime ni n’active de set : rien ne bouge, le refus se dit', () => {
+  it('en combat, l’hôte texte ne crée ni ne supprime de set : rien ne bouge, le refus se dit', () => {
     enCombat((partie, H) => {
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const avant = structuredClone({ loadouts: lu().loadouts, actif: lu().activeLoadoutId });
       expect(avant.loadouts!.length, 'témoin : le héros du duel a deux sets').toBeGreaterThan(1);
       const autre = avant.loadouts!.find((l) => l.id !== avant.actif)!;
       const appels: [string, () => void][] = [
-        ['setActiveLoadout', () => partie.envoyer({ type: 'setActiveLoadout', args: [H.id, autre.id] })],
         ['createLoadout', () => partie.envoyer({ type: 'createLoadout', args: [H.id] })],
         ['deleteLoadout', () => partie.envoyer({ type: 'deleteLoadout', args: [H.id, autre.id] })],
       ];
@@ -162,17 +161,15 @@ describe('transferItem et stowItem — le verdict (`refusDInventaire`, co-locali
 });
 
 describe('gestes d’objet et de fiche en combat — un verdict par famille, celui des gestes', () => {
-  it('usePartyItem, appraiseItem : refusés en combat (`refusDInventaire`), rien ne change', () => {
+  it('appraiseItem : refusé en combat (`refusDInventaire`), rien ne change', () => {
     const H0 = heroDuDuel();
-    const biere = { ...itemFromTrappingById('biere-pinte')!, uid: 'biere-1' };
     const inconnu = { ...itemFromTrappingById('arme-simple')!, uid: 'inconnu-1', identified: false };
-    H0.items = [...(H0.items ?? []), biere, inconnu];
+    H0.items = [...(H0.items ?? []), inconnu];
     H0.skills = [...H0.skills, { id: 'evaluation', characteristic: 'intelligence', advances: 10 }, { id: 'intuition', characteristic: 'initiative', advances: 10 }];
     enCombat((partie, H) => {
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const avant = structuredClone(lu().items);
       const gestes: [string, () => void][] = [
-        ['usePartyItem', () => partie.envoyer({ type: 'usePartyItem', args: [H.id, biere.uid] })],
         ['appraiseItem', () => partie.envoyer({ type: 'appraiseItem', args: [inconnu.uid, H.id] })],
         ['appraiseItem (detect)', () => partie.envoyer({ type: 'appraiseItem', args: [inconnu.uid, H.id, 'detect'] })],
       ];
@@ -195,13 +192,10 @@ describe('gestes d’objet et de fiche en combat — un verdict par famille, cel
     });
   });
 
-  it('les lanceurs hors combat (`refusDuLanceurDeFiche`), le background (`refusDuBackground`) et la Faveur (`refusDeRompreUneFaveur`) refusent en combat', () => {
+  it('le background (`refusDuBackground`) et la Faveur (`refusDeRompreUneFaveur`) refusent en combat', () => {
     enCombat((partie, H) => {
       const lu = () => partie.etat().party.find((c) => c.id === H.id)!;
       const motivation = lu().motivation;
-      expect(refusNeuf(partie, () => partie.envoyer({ type: 'oocCastSpell', args: [H.id, 'x', H.id] }))).toBe(refusDuLanceurDeFiche(partie.etat()));
-      expect(refusNeuf(partie, () => partie.envoyer({ type: 'oocFocusSpell', args: [H.id, 'x'] }))).toBe(t('cs.oocInCombat'));
-      expect(refusNeuf(partie, () => partie.envoyer({ type: 'oocDispelSpell', args: [H.id, 'x', H.id] }))).toBe(t('cs.oocInCombat'));
       expect(refusNeuf(partie, () => partie.envoyer({ type: 'setHeroBackground', args: [H.id, { motivation: 'Venger mon frère' }] }))).toBe(refusDuBackground(partie.etat()));
       expect(lu().motivation, 'le background a changé en combat').toBe(motivation);
       expect(refusNeuf(partie, () => partie.envoyer({ type: 'favorBreak', args: [H.id, 'faveur-1'] }))).toBe(refusDeRompreUneFaveur(partie.etat()));
@@ -354,14 +348,14 @@ describe('gestes de possession — le verdict (`refusGestePossession`) est celui
 
   it('reprendre une possession laissée à un AUTRE Lieu que celui du groupe : refusé ; au bon Lieu, elle revient', () => {
     const aAltdorf = { ...mule, location: { kind: 'au-lieu', placeId: 'altdorf' } } as Possession;
-    const carte = { places: [{ id: 'altdorf', scene: 'sc-altdorf' }, { id: 'ubersreik', scene: 'sc-ubersreik' }] } as unknown as EtatDeJeu['worldMap'];
-    const etat = (sceneId: string) => ({ ...etatInitialDuJeu(), party: [heros()], possessions: [aAltdorf], worldMap: carte, scene: { ...testScene(), id: sceneId } });
-    avecPartie(etat('sc-ubersreik'), (partie) => {
+    const carte = { places: [{ id: 'altdorf' }, { id: 'ubersreik' }] } as unknown as EtatDeJeu['worldMap'];
+    const etat = (lieu: string) => ({ ...etatInitialDuJeu(), lieu, party: [heros()], possessions: [aAltdorf], worldMap: carte });
+    avecPartie(etat('ubersreik'), (partie) => {
       const appel = partie.envoyer({ type: 'retrievePossession', args: [aAltdorf.uid] });
       expect(partie.etat().possessions[0].location, 'la mule a rejoint le groupe depuis un autre Lieu').toEqual({ kind: 'au-lieu', placeId: 'altdorf' });
       expect(lignesDuJournal(appel)).toEqual([t('pos.ailleurs', { chose: possessionLabel(aAltdorf) })]);
     });
-    avecPartie(etat('sc-altdorf'), (partie) => {
+    avecPartie(etat('altdorf'), (partie) => {
       partie.envoyer({ type: 'retrievePossession', args: [aAltdorf.uid] });
       expect(partie.etat().possessions[0].location).toEqual({ kind: 'avec-le-groupe' });
     });
@@ -370,14 +364,14 @@ describe('gestes de possession — le verdict (`refusGestePossession`) est celui
   it('débarquer d’un navire laissé à un autre Lieu : refusé (la mule ne contourne pas « Reprendre ») ; au Lieu du navire, elle débarque', () => {
     const aQuai = navire({ kind: 'au-lieu', placeId: 'altdorf' });
     const aBord = { ...mule, location: { kind: 'embarquee', hostUid: 'pos-2' } } as Possession;
-    const carte = { places: [{ id: 'altdorf', scene: 'sc-altdorf' }, { id: 'ubersreik', scene: 'sc-ubersreik' }] } as unknown as EtatDeJeu['worldMap'];
-    const etat = (sceneId: string) => ({ ...etatInitialDuJeu(), party: [heros()], possessions: [aBord, aQuai], worldMap: carte, scene: { ...testScene(), id: sceneId } });
-    avecPartie(etat('sc-ubersreik'), (partie) => {
+    const carte = { places: [{ id: 'altdorf' }, { id: 'ubersreik' }] } as unknown as EtatDeJeu['worldMap'];
+    const etat = (lieu: string) => ({ ...etatInitialDuJeu(), lieu, party: [heros()], possessions: [aBord, aQuai], worldMap: carte });
+    avecPartie(etat('ubersreik'), (partie) => {
       const appel = partie.envoyer({ type: 'disembark', args: [aBord.uid] });
       expect(partie.etat().possessions[0].location, 'la mule a quitté un navire resté à Altdorf').toEqual({ kind: 'embarquee', hostUid: 'pos-2' });
       expect(lignesDuJournal(appel)).toEqual([t('pos.ailleurs', { chose: possessionLabel(aQuai) })]);
     });
-    avecPartie(etat('sc-altdorf'), (partie) => {
+    avecPartie(etat('altdorf'), (partie) => {
       partie.envoyer({ type: 'disembark', args: [aBord.uid] });
       expect(partie.etat().possessions[0].location).toEqual({ kind: 'avec-le-groupe' });
     });
@@ -385,8 +379,8 @@ describe('gestes de possession — le verdict (`refusGestePossession`) est celui
 
   it('embarquer sur un navire à quai AU LIEU COURANT : accepté (même règle que pour le quitter)', () => {
     const aQuai = navire({ kind: 'au-lieu', placeId: 'altdorf' });
-    const carte = { places: [{ id: 'altdorf', scene: 'sc-altdorf' }] } as unknown as EtatDeJeu['worldMap'];
-    avecPartie({ ...etatInitialDuJeu(), party: [heros()], possessions: [mule, aQuai], worldMap: carte, scene: { ...testScene(), id: 'sc-altdorf' } }, (partie) => {
+    const carte = { places: [{ id: 'altdorf' }] } as unknown as EtatDeJeu['worldMap'];
+    avecPartie({ ...etatInitialDuJeu(), party: [heros()], possessions: [mule, aQuai], worldMap: carte, lieu: 'altdorf' }, (partie) => {
       expect(ciblesDEmbarquement(partie.etat(), mule.uid).cibles.map((p) => p.uid)).toEqual(['pos-2']);
       partie.envoyer({ type: 'embark', args: [mule.uid, 'pos-2'] });
       expect(partie.etat().possessions[0].location).toEqual({ kind: 'embarquee', hostUid: 'pos-2' });
@@ -395,8 +389,8 @@ describe('gestes de possession — le verdict (`refusGestePossession`) est celui
 
   it('un immeuble ne se reprend pas, même au bon Lieu', () => {
     const maison = { uid: 'pos-1', ownerId: 'h1', nature: 'immeuble', ref: {}, location: { kind: 'au-lieu', placeId: 'altdorf' }, items: [] } as unknown as Possession;
-    const carte = { places: [{ id: 'altdorf', scene: 'sc-altdorf' }] } as unknown as EtatDeJeu['worldMap'];
-    avecPartie({ ...etatInitialDuJeu(), party: [heros()], possessions: [maison], worldMap: carte, scene: { ...testScene(), id: 'sc-altdorf' } }, (partie) => {
+    const carte = { places: [{ id: 'altdorf' }] } as unknown as EtatDeJeu['worldMap'];
+    avecPartie({ ...etatInitialDuJeu(), party: [heros()], possessions: [maison], worldMap: carte, lieu: 'altdorf' }, (partie) => {
       const appel = partie.envoyer({ type: 'retrievePossession', args: [maison.uid] });
       expect(partie.etat().possessions[0].location).toEqual({ kind: 'au-lieu', placeId: 'altdorf' });
       expect(lignesDuJournal(appel)).toEqual([t('pos.immeubleImmobile')]);

@@ -13,7 +13,7 @@ import { t } from '../i18n';
  * Détermination en modale de jet (LDB 17 l.61) : AVANT de lancer, tout combattant porteur d'États
  * (le panneau pré-rempli recalcule alors ses modificateurs). Bouton « Détermination ×n » → mini-picker
  * des États présents. Existence et refus par État : verdict `refusDeDetermination`, celui du gate
- * `determination-en-reserve` et du geste `spendResolveCondition`.
+ * `determination-en-reserve` et du geste `depenserLaDetermination`.
  */
 export function DeterminationButton({ combatant, onSpend }: { combatant?: Combatant | null; onSpend: (condition: string) => void }) {
   const [open, setOpen] = useState(false);

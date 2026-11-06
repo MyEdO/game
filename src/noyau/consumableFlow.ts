@@ -2,9 +2,10 @@
  * RUNNER de CONSOMMABLE (#50) — exécute le **Flow** d'un objet consommé (drogues LDB 71, herbes/potions
  * LDB 72, nécessaires LDB 67) sur son BUVEUR, cadence-aware (« zéro jet silencieux ») :
  *
- *  - EN COMBAT (`battleUseItem`) : délègue à `runCombatFlow` (héros manuel → un nœud `test` devient une
+ * Le geste est `utiliserLObjet` (combatSlice), en combat comme hors combat ; la voie suit le contexte :
+ *  - EN COMBAT : délègue à `runCombatFlow` (héros manuel → un nœud `test` devient une
  *    étape de cascade INFLUENÇABLE ; cadence auto → jet inline) — la même voie que les sorts/triggers.
- *  - HORS COMBAT (`usePartyItem`) : walker de scène — un nœud `test` ouvre la modale de Test
+ *  - HORS COMBAT : walker de scène — un nœud `test` ouvre la modale de Test
  *    (`openSkillTest`) RESTREINTE AU BUVEUR (`actorId` : c'est LUI qui boit, pas le meilleur du groupe),
  *    branches + continuation reprises par `jetConfirm('test')`.
  *
@@ -14,24 +15,20 @@
  * IMPURES `delayed` (Bonnet de fou/Délice de Ranald/Belladone) sont PROGRAMMÉES (`scheduleDelayedOps`).
  */
 import type { Combatant, ItemInstance, EffectSource } from '../engine/types';
-import { isConsumable, consommableDe, consumableUntilTime, bakeConsumableFlow } from '../engine/consumables';
+import { consommableDe, consumableUntilTime, bakeConsumableFlow } from '../engine/consumables';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { evalCondition, type ConditionCtx } from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { condCtx } from './bourseFlow';
 import { buildActorView } from '../engine/actorView';
 import { runCombatFlow, withDerivedStake } from './combat/triggeredTest';
-import { openSkillTest, runFlow, applyLeafOps, drainPendingLog, confierLaSuite, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
+import { openSkillTest, runFlow, applyLeafOps, confierLaSuite, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
 import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
 import { battleRng } from './battleRng';
-import { ev } from './combatLog';
 import type { Get, Set as SetFn } from './flowTypes';
-import { bus, EVT } from './bus';
 import { t } from '../i18n';
 import { reussiteSansObjet, type GameOp } from '../engine/ops';
-import type { FabriqueDuNoyau } from './machinerieDuNoyau';
-import { refusDInventaire, refuseSi } from './verrousDeFiche';
 
 /** ConditionCtx de SCÈNE augmenté du BUVEUR comme acteur (`target` ET `caster`) — les Conditions
  *  d'acteur (`has group elfe` de la Fleur de lune, `compare woundsCurrent` de la Potion de guérison)
@@ -122,8 +119,8 @@ function opsDeReussiteDuFlow(f: Flow): GameOp[] | null {
 }
 
 /** Refus de consommer `item` quand son effet réussi n'aurait rien à changer à `hero` (`reussiteSansObjet`,
- *  jugée avant le Test au boire) : l'objet n'est pas perdu pour rien. Verdict UNIQUE de `usePartyItem` et
- *  de `battleUseItem`, avant toute consommation. */
+ *  jugée avant le Test au boire) : l'objet n'est pas perdu pour rien. Verdict UNIQUE d'`utiliserLObjet`, avant toute
+ *  consommation. */
 export function refusDeConsommer(hero: Combatant, item: ItemInstance): string | null {
   const flow = consommableDe(item);
   const ops = flow ? opsDeReussiteDuFlow(flow) : null;
@@ -153,44 +150,3 @@ export function runConsumable(get: Get, set: SetFn, hero: Combatant, item: ItemI
   }
 }
 
-/** HORS COMBAT : un héros utilise un consommable (potion, drogue, bandage) depuis sa fiche —
- *  consommé, journalisé, Flow exécuté (un Test « au boire » ouvre sa modale). Le combat passe par
- *  `battleUseItem`. */
-export function usePartyItem(get: Get, set: SetFn, heroId: string, uid: string): void {
-  if (refuseSi(get, set, refusDInventaire)) return; // en combat → battleUseItem
-  const party = get().party;
-  const hero = party.find((h) => h.id === heroId);
-  const it = hero?.items?.find((i) => i.uid === uid);
-  if (!hero || !it) return;
-  if (!isConsumable(it)) return;
-  if (refuseSi(get, set, () => refusDeConsommer(hero, it))) return;
-  hero.items = (hero.items ?? []).filter((i) => i.uid !== uid); // consommé AVANT l'effet (dose unique)
-  set({ party: [...party] });
-  get().log(`${hero.label} utilise : ${it.label}.`);
-  runConsumable(get, set, hero, it);
-  bus.emit(EVT.SCENE_DIRTY);
-}
-
-/** EN COMBAT : consommation par le combattant ACTIF, Action gratuite (LDB 13 l.106) — appelée par
- *  `battleUseItem` (combatSlice) après ses gardes. Le Flow passe par la voie de combat cadence-aware ;
- *  le journal différé est déversé dans le log de bataille. */
-export function battleConsumeItem(get: Get, set: SetFn, active: Combatant, it: ItemInstance): void {
-  active.items = (active.items ?? []).filter((i) => i.uid !== it.uid); // consommé
-  active.aiming = false; // une autre action que le tir gâche la visée
-  runConsumable(get, set, active, it);
-  const battle = get().battle;
-  if (!battle) return;
-  const queued = drainPendingLog(get, set); // lignes du Flow (inline) → événements du log de bataille
-  set({
-    battle: {
-      ...battle, action: null,
-      log: [...battle.log, ev('item', t('cs.useConsumable', { name: active.label, item: it.label }), active.id), ...queued],
-    },
-  });
-}
-
-export function creerActionsDesConsommables(get: Get, set: SetFn) {
-  return {
-    usePartyItem: (heroId, uid) => usePartyItem(get, set, heroId, uid),
-  } satisfies FabriqueDuNoyau;
-}

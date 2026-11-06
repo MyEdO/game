@@ -4,7 +4,7 @@ import { shipboardSouls } from '../noyau/shipCrew';
 import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
 import { t, deElide } from '../i18n';
-import { placeOfScene, placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../noyau/worldMap';
+import { placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, positionsDeRendu, MapRoute, MapPlace } from '../noyau/worldMap';
 import { baseHoursPerDay, maxHoursPerDay, devisDeTrajet, refusDeDepart, MOUNT_MAX_HOURS, type OptionsDeDepart } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
 import { descenteJouee } from '../noyau/riverVoyageFlow';
@@ -63,11 +63,6 @@ function routeCurve(ax: number, ay: number, bx: number, by: number, id: string) 
   return { d: `M ${ax} ${ay} Q ${cx} ${cy} ${bx} ${by}`, lx, ly };
 }
 
-// ── Cadre logique de la carte (unités du viewBox) ────────────────────────────────────────────
-/** Écart mini visé entre deux médaillons (unités viewBox) — un médaillon fait r≈2.9 + cartouche,
- *  ~8 les sépare confortablement sans les coller. */
-const DECLUTTER_MIN = 8;
-
 /**
  * Carte du monde (#T2 Voyage) — overlay plein écran en exploration : carte au PARCHEMIN dessinée
  * (texture vieillie, cadre orné, routes en chemins, lieux en médaillons, rose des vents), lieux et
@@ -75,10 +70,9 @@ const DECLUTTER_MIN = 8;
  * voyage depuis le lieu courant (mode, classe, allure — RAW section « Voyage » du LDB) et reprise
  * d'un voyage interrompu par une péripétie. Mobile-first : panneau en bas, carte au-dessus.
  */
-/** `hereSceneId`/`initialRouteId` : seams de test (rendu statique : le store SSR sert l'état initial). */
-export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?: string; hereSceneId?: string } = {}) {
+/** `hereId`/`initialRouteId` : seams de test (rendu statique : le store SSR sert l'état initial). */
+export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: string; hereId?: string } = {}) {
   const map = useGame((s) => s.worldMap);
-  const scene = useGame((s) => s.scene);
   const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
@@ -123,7 +117,9 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   /** Lieu survolé — révèle son nom sur une carte dense (les non-pertinents n'ont pas de cartouche fixe). */
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const here = placeOfScene(map, hereSceneId ?? scene?.id);
+  const lieu = useGame((s) => s.lieu);
+  const ici = hereId ?? lieu;
+  const here = map && ici ? placeById(map, ici) : undefined;
   // Gating narratif (#684) : le `ConditionCtx` se fabrique CHEZ L'APPELANT (patron `condCtx`,
   // `bourseFlow.ts`) — `worldMap.ts` reste un lecteur pur, sans accès au store.
   const flags = useGame((s) => s.flags);
@@ -149,13 +145,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
 
   // Anti-chevauchement : positions de RENDU décluttérées (les `pos` d'authoring restent intacts).
   // Le repère de rendu est celui du viewBox (y aplati par 0.64) → l'écartement travaille dessus.
-  const layout = useMemo(() => {
-    // Vraie carte de fond ⇒ les lieux restent à leurs `pos` EXACTS (l'auteur les a posés sur la carte) :
-    // pas de déchevauchement, qui les décalerait de leur vraie position géographique.
-    if (!map || map.background) return new Map<string, { x: number; y: number }>();
-    const pts = places.map((p) => ({ id: p.id, x: p.pos.x, y: p.pos.y * 0.64 }));
-    return declutterPositions(pts, DECLUTTER_MIN, 80, { w: VB_W, h: VB_H });
-  }, [map, places]);
+  const layout = useMemo(() => (map ? positionsDeRendu(map, places) : new Map<string, { x: number; y: number }>()), [map, places]);
   /** Position de rendu décluttérée d'un lieu (repli sur `pos` brut si absent). */
   const posOf = (p: MapPlace) => layout.get(p.id) ?? { x: p.pos.x, y: p.pos.y * 0.64 };
 

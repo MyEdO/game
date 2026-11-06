@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { buildRoofs, roofPans, roofCoursesPerStep, ROOF_SLOPE_M, type RoofShapeSpec } from '../builders/roofs';
-import type { RoofEl } from '../builders/types';
+import { buildRoofs, roofPans, roofCoursesPerStep, ROOF_SLOPE_M, type RoofShapeSpec } from '../../noyau/monde/volume/toits';
+import type { RoofEl } from '../../noyau/monde/volume/types';
 import { roofDepth, roofSvg } from './roofsSvg';
 import { diamondPath, footprintDepth, tileCenter, WALL_H, type Dims } from '../../geometry/iso';
-import { WALL_H_M } from '../iso';
+import { WALL_H_M } from '../../noyau/monde/iso';
 import { metricToLift, METRES_PER_LEVEL } from '../../noyau/monde/relief';
-import { roofMaterial } from '../catalog/roofs';
-import { shade, mix } from '../shade';
+import { roofMaterial } from '../../noyau/monde/volume/matieres';
+import { shade, mix } from '../../lib/ombrage';
 import { emptyScene } from '../../noyau/monde/scene';
 
 /**

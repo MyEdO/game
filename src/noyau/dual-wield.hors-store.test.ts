@@ -289,11 +289,11 @@ describe('purge du −10 au début du prochain Tour du porteur', () => {
     const { h } = setupBattle();
     h.dualStrikeDefensePenalty = -10;
     banc.setState({ battle: { ...banc.getState().battle!, turn: 0 } });
-    banc.getState().battleEndTurn(); banc.abandonner(); // → f1 : flag de h conservé
+    banc.getState().terminerLeTour(); banc.abandonner(); // → f1 : flag de h conservé
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
-    banc.getState().battleEndTurn(); banc.abandonner(); // → f2 : conservé
+    banc.getState().terminerLeTour(); banc.abandonner(); // → f2 : conservé
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
-    banc.getState().battleEndTurn(); // franchissement de Round → h (order[0]) : purgé
+    banc.getState().terminerLeTour(); // franchissement de Round → h (order[0]) : purgé
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBeUndefined();
   });
 });

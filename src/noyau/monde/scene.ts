@@ -284,7 +284,7 @@ export interface Scene {
    *  places assises, divisées par elle (`noyau/monde/volume/propVolumes.ts`, `noyau/monde/seating.ts`, #1507) ; le rayon
    *  des sources de lumière (`rayonEnCases`, `noyau/monde/vision.ts`) ; et, du côté du RENDU, la cadence de la
    *  cuisson (`gpToWorld`, `noyau/monde/volume/worldTris.ts`), la pente des toits (`resolveMass`,
-   *  `builders/roofs.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `noyau/sceneEdit.ts`). */
+   *  `noyau/monde/volume/toits.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `noyau/sceneEdit.ts`). */
   metresPerTile?: number;
   /** Décor : 'interieur' (éclairé en permanence, l'horloge ne l'assombrit pas) vs 'exterieur'
    *  (jour/nuit = horloge). Absent = extérieur. */
@@ -449,7 +449,7 @@ export function liftDe(scene: Scene, p: Pt): number {
 }
 
 /** Id de structure crénelée d'une case de chemin de ronde (couche `z`), ou `null`. Marqueur de RENDU PUR
- *  (le crest builder `crestGeometry` en dérive les merlons de PÉRIMÈTRE) — n'affecte NI passabilité NI LdV. PUR. */
+ *  (la crénelure `cretesDePerimetre` en dérive les merlons de PÉRIMÈTRE) — n'affecte NI passabilité NI LdV. PUR. */
 export function crenellatedAt(scene: Scene, x: number, y: number, z = 0): string | null {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return null;
   const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];
@@ -493,26 +493,16 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
   }
 }
 
-/** Une arête telle qu'un hôte la dessine : la case du segment, son milieu et son sens en coins de grille (`wallEnds`),
- *  si elle est une porte en jeu (`porteEnJeu`) et si elle laisse passer (`wallIsOpen`). */
-export interface AreteDessinee { case: Pt; milieu: Pt; sens: Pt; porte: boolean; ouverte: boolean }
-
-/** L'arête dessinée du segment `seg` de `scene`. */
-export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
-  const [a, b] = wallEnds(seg);
-  return { case: { x: seg.x, y: seg.y }, milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, sens: { x: b.x - a.x, y: b.y - a.y }, porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) };
-}
-
-/** Les arêtes dessinées de la couche `z` de `scene`. */
-export function aretesDeLaCouche(scene: Scene, z: number): AreteDessinee[] {
-  return (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === z).map((seg) => areteDessinee(scene, seg));
-}
-
-/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les arêtes de sa couche de base
- *  (`aretesDeLaCouche`) et son échelle métrique (`sceneMetresPerTile`). */
-export function plateauDeLaScene(scene: Scene): { w: number; h: number; metresParCase: number; aretes: AreteDessinee[] } {
-  const { w, h } = scene.dimensions;
-  return { w, h, metresParCase: sceneMetresPerTile(scene), aretes: aretesDeLaCouche(scene, 0) };
+/** La hauteur (m) d'où le segment `seg` de `scene` se dresse : la plus basse des deux cases qu'il sépare, sur sa couche,
+ *  celle de sa case pour une diagonale ou un bord de carte. Un mur contre une volée reste debout sur le sol d'en bas. */
+export function piedDeLArete(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z'>): number {
+  const z = seg.z ?? 0;
+  const ici = heightAt(scene, seg.x, seg.y, z);
+  const [dx, dy] = seg.side === 'N' ? [0, -1] : seg.side === 'E' ? [1, 0] : [0, 0];
+  const x = seg.x + dx;
+  const y = seg.y + dy;
+  const dedans = (dx || dy) && x >= 0 && y >= 0 && x < scene.dimensions.w && y < scene.dimensions.h;
+  return dedans ? Math.min(ici, heightAt(scene, x, y, z)) : ici;
 }
 
 /** Lien vertical entre deux cases ADJACENTES (Chebyshev : cardinale OU diagonale, grille 8-connexe cf.

@@ -1,7 +1,7 @@
 /**
  * Garde-fou : AUCUN renderer d'environnement ne porte de littéral de couleur (identité de matériau).
  * Toute couleur vient de la DONNÉE (`src/data/*.json`, `src/data/terrains.json` compris) ou de
- * `shade.ts` (la LUMIÈRE : ombre d'orientation, occlusion, spéculaire). `#hex` / `rgb()` littéraux
+ * `lib/ombrage.ts` (la LUMIÈRE : ombre d'orientation, occlusion, spéculaire). `#hex` / `rgb()` littéraux
  * capturent aussi les tables hex-valuées. Deux niveaux de couverture :
  *   1) balayage RÉCURSIF des arborescences pivot/backend/authoring/pov/catalog/stage — auto-couvre tout NOUVEAU
  *      fichier (aucune liste à tenir à la main) ;
@@ -10,7 +10,7 @@
  * `catalog/decor/defs/` (les 97 defs de props) a son propre bloc plus bas (dessin par def, MAIS couleurs
  * tirées de la palette partagée) → exclu du balayage.
  *
- * HORS périmètre (couleur LÉGITIME, non balayés) : les FX de combat (`fx/**`), `shade.ts` (helpers de
+ * HORS périmètre (couleur LÉGITIME, non balayés) : les FX de combat (`fx/**`), `lib/ombrage.ts` (helpers de
  * voile lumineux sanctionnés `ao`/`spec`/`warm`). L'identité matériau des SOLS (`swatch`, `stops`) vit
  * en donnée (`src/data/terrains.json`), donc hors de toute arborescence balayée. Les TOKENS
  * (`stage/TokenChromeOverlay`) sont couverts À PART (bloc « chrome ») : leur couleur d'identité vient

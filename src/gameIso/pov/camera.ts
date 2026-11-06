@@ -9,8 +9,8 @@
  * unités de GRILLE ; l'axe vertical monde `z` sert d'axe « haut » écran.
  */
 import type { View } from '../facing';
-import { WALL_H_M } from '../iso';
-import { mix } from '../shade';
+import { WALL_H_M } from '../../noyau/monde/iso';
+import { mix } from '../../lib/ombrage';
 import { parseHex } from '../../lib/couleurHex';
 import { heightAt, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { DIR8_DELTA, type Dir8 } from '../../geometry/dir8';

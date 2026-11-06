@@ -99,7 +99,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
       battle: { ...banc.getState().battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingRoundStart: null, 
     });
-    banc.getState().battleEndTurn(); // H finit → E actif → IA : Carreau pré-roulé (aucun « Lancer »)
+    banc.getState().terminerLeTour(); // H finit → E actif → IA : Carreau pré-roulé (aucun « Lancer »)
     banc.avancer(5000);
     let st = banc.getState();
     expect(st.pendingCast?.casterId).toBe(E.id); // incantation ennemie figée → tour suspendu sur le lanceur

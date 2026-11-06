@@ -85,7 +85,7 @@ describe('set de TIR pur : aucune arme de mêlée fabriquée (#1348)', () => {
   it('après commutation vers le set de MÊLÉE (action gratuite), l’attaque PART', () => {
     const h = shooter('arbalete');
     const e = battleWith(h, true);
-    banc.getState().battleSwitchLoadout('lo-melee');
+    banc.getState().prendreLaPanoplie(h.id, 'lo-melee');
     expect(live(h.id).weapons.map((w) => w.label)).toEqual(['Arme simple']);
     banc.getState().battleClickEntity(e.id, { confirm: true });
     expect(banc.getState().pendingAttack).not.toBeNull();

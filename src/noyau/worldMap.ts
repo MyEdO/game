@@ -28,7 +28,7 @@ import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
 import { findNavalPortById, findLieuServiceById, coreAxisIds, semencesDeScene } from '../data';
 
-/** Lieu posé sur la carte. Être dans `scene` = être à ce lieu ; y arriver → transition vers elle. */
+/** Lieu posé sur la carte. On y arrive par un trajet (`arriverAuLieu`) ; « Explorer » entre dans sa `scene`. */
 export interface MapPlace {
   id: string;
   label: string;
@@ -284,34 +284,19 @@ export function portVersDepot(port: MapPlace['port']): MapPlace['port'] {
   return { ref: port.ref, ...surcharges, ...(port.lighthouse !== undefined ? { lighthouse: port.lighthouse } : {}) } as MapPlace['port'];
 }
 
-/** Lieu correspondant à une scène (être dans la scène = être à ce lieu). */
+/** Le lieu dont `sceneId` est la scène. */
 export function placeOfScene(map: WorldMap | null | undefined, sceneId: string | undefined): MapPlace | undefined {
   if (!map || !sceneId) return undefined;
   return map.places.find((p) => p.scene === sceneId);
-}
-
-/** Lieu courant du groupe sur la carte du monde : la place dont la scène EST la scène courante (« Être
- *  dans `scene` = être à ce lieu »). `null` hors carte. SOURCE UNIQUE des gestes qui demandent « où est le
- *  groupe ? » (Activités à gate `where`, possessions laissées). */
-export function currentPlaceId(s: { scene: { id: string } | null; worldMap: WorldMap | null }): string | null {
-  return placeOfScene(s.worldMap, s.scene?.id)?.id ?? null;
 }
 
 export function placeById(map: WorldMap, id: string): MapPlace | undefined {
   return map.places.find((p) => p.id === id);
 }
 
-/** Le groupe est-il À UN LIEU de la carte (hub de ville ouvrable, #343) : en exploration, hors voyage
- *  en cours, sur une scène qui EST un lieu. Retourne ce lieu (sinon `undefined` — route, camp sauvage,
- *  combat…). SOURCE UNIQUE de la porte du hub, partagée par `CampaignView` et son test. */
-export function atLocationPlace(args: {
-  mode: string;
-  travelPlan: unknown;
-  worldMap: WorldMap | null | undefined;
-  sceneId: string | undefined;
-}): MapPlace | undefined {
-  if (args.mode !== 'exploration' || args.travelPlan || !args.worldMap) return undefined;
-  return placeOfScene(args.worldMap, args.sceneId);
+/** Le lieu où se tient le groupe (`lieu`), `undefined` en route ou hors carte. */
+export function lieuDuGroupe(s: { lieu: string | null; worldMap: WorldMap | null }): MapPlace | undefined {
+  return s.lieu && s.worldMap ? placeById(s.worldMap, s.lieu) : undefined;
 }
 
 /** Catégorie d'un service résolu — routage du hub de lieu (#343). `port`/`marche`/`auberge` ont un
@@ -510,6 +495,19 @@ export function otherEnd(route: MapRoute, placeId: string): string {
 }
 
 // ── Anti-chevauchement des médaillons (rendu seulement — n'affecte JAMAIS `pos`) ─────────────
+/** Le cadre de la carte, en unités du viewBox. */
+export const CADRE = { w: 100, h: 64 } as const;
+
+/** Écart mini visé entre deux médaillons (unités viewBox) : un médaillon et son cartouche s'y lisent sans se coller. */
+const ECART_DES_MEDAILLONS = 8;
+
+/** La position de rendu de chaque lieu de `places` sur la carte `map`, en unités du viewBox (x 0..100, y 0..64) : à
+ *  son `pos` exact sur une vraie carte de fond (`background`), écartée de ses voisins sinon (`declutterPositions`). */
+export function positionsDeRendu(map: WorldMap, places: readonly MapPlace[]): Map<string, { x: number; y: number }> {
+  const pts = places.map((p) => ({ id: p.id, x: p.pos.x, y: p.pos.y * 0.64 }));
+  return map.background ? new Map(pts.map((p) => [p.id, { x: p.x, y: p.y }])) : declutterPositions(pts, ECART_DES_MEDAILLONS, 80);
+}
+
 /** Point de rendu d'un lieu : id + position en unités du viewBox de la carte (x 0..100, y 0..64). */
 export interface RenderPoint { id: string; x: number; y: number }
 
@@ -540,7 +538,7 @@ export function declutterPositions(
   points: RenderPoint[],
   minDist: number,
   iterations = 60,
-  frame: { w: number; h: number } = { w: 100, h: 64 },
+  frame: { w: number; h: number } = CADRE,
 ): Map<string, { x: number; y: number }> {
   // Copie de travail (on ne mute pas l'entrée) ; l'ordre est celui de `points` → déterministe.
   const pts = points.map((p) => ({ id: p.id, x: p.x, y: p.y }));

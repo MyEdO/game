@@ -3,15 +3,16 @@
 ## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Le monde rendu va au monde (`Monde.poser`), sur la couche éditée, avec les arêtes de la couche
-## (`Monde.poser_les_aretes`) ; la surcouche du geste en cours, en plaques sur le sol de ses cases (`Monde.peindre`), et
-## l'arête sélectionnée, gainée (`Monde.choisir_l_arete`) ; le calque de référence de la couche sous sa planche
+## (`Monde.poser_les_aretes`) ; la surcouche : chaque repère d'une entité ou d'une entrée de la couche, en plaque sur le
+## sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle (`Monde.etiqueter`), puis le geste en
+## cours, en plaques sur le sol de ses cases (`Monde.peindre`), et l'arête sélectionnée, gainée (`Monde.choisir_l_arete`) ; le calque de référence de la couche sous sa planche
 ## (`Monde.poser_le_calque`) ; chaque zone de l'écran (`Zone.racines`) reçoit les éléments de sa source (`vue.zones`). Les
 ## calques de la campagne se gardent dans `user://calques/<id>.json`, relus à l'ouverture et réécrits à chaque `memoire`,
 ## chaque planche dans `user://<image>.png` : une planche demandée (`planche`) se choisit sur le disque de l'auteur
 ## (`PontDuNoyau.choisir_une_image`), s'écrit là, et sa taille, ou rien, revient au pont. Chaque geste part au pont : celui de l'élément pressé (`Zone.geste`, `{ edition }`), ou le pointeur sur
 ## le monde, appuyé, glissé d'une case à l'autre et relâché, chacun au point de la carte que le monde touche
-## (`Monde.touche_sous`). Un refus se dit. Chaque réponse montrée, il publie à la page ce que l'écran porte
-## (`PontDuNoyau.publier_l_ecran`), que la recette lit.
+## (`Monde.touche_sous`). Un refus se dit. Chaque réponse montrée, et chaque défilement du panneau, qui change ses
+## boutons à l'écran, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la recette lit.
 extends Node
 
 ## La campagne qui s'ouvre sans `campagne` à l'adresse : celle de la Diligence, la carte que l'éditeur bâtit (#3508).
@@ -28,7 +29,7 @@ const CALQUES := "user://calques"
 var _zones: Array[Zone] = []
 ## La dernière réponse montrée : sa vue et sa surcouche.
 var _vue: Dictionary = {}
-var _surcouche: Dictionary = {cases = [], arete = null}
+var _surcouche: Dictionary = {cases = [], arete = null, reperes = []}
 ## Le calque de la dernière réponse, `null` sans lui.
 var _calque: Variant = null
 ## Le dernier point de la carte que le pointeur tenu a touché, `null` bouton relâché.
@@ -43,6 +44,11 @@ func _ready() -> void:
 	_zones = Zone.racines(_interface)
 	for zone in _zones:
 		zone.geste.connect(_jouer)
+	for defilement in _interface.find_children("*", "ScrollContainer", true, false):
+		(defilement as ScrollContainer).get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier_l_ecran())
+	get_tree().node_added.connect(func(noeud: Node) -> void:
+		if noeud is LineEdit and _interface.is_ancestor_of(noeud):
+			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: _publier_l_ecran()))
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	var campagne := _pont.parametre("campagne")
@@ -74,14 +80,20 @@ func _suivre(reponse: Dictionary) -> void:
 	_refus.text = ""
 	if reponse.has("monde"):
 		_monde.poser(reponse.monde)
-		_monde.poser_les_aretes(reponse.aretes, int(reponse.vue.couche))
+		_monde.poser_les_aretes(reponse.aretes)
 	_vue = reponse.vue
 	_surcouche = reponse.surcouche
-	_monde.choisir_l_arete(_surcouche.arete, int(_vue.couche))
+	_monde.choisir_l_arete(_surcouche.arete)
 	var plaques := {}
+	var noms := {}
+	for r in _surcouche.reperes:
+		var case := Vector3i(int(r.x), int(r.y), int(r.z))
+		plaques[case] = Monde.ITEM_SURVOL if r.choisi else Monde.ITEM_CIBLE
+		noms[case] = r.nom
 	for c in _surcouche.cases:
 		plaques[Vector3i(int(c.x), int(c.y), int(c.z))] = Monde.ITEM_SURVOL
 	_monde.peindre(plaques)
+	_monde.etiqueter(noms)
 	_calque = reponse.calque
 	_monde.poser_le_calque(_calque, null if _calque == null else _planche(_calque.image))
 	Zone.montrer_toutes(_zones, _vue.zones)
@@ -172,9 +184,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de
+## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), ses champs de
+## texte (`PontDuNoyau.saisies_a_l_ecran`), le point de
 ## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
-## sur le monde, son calque et s'il est posé, sa planche lue.
+## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue. Republié quand un défilement
+## du panneau bouge ou qu'un champ de texte change.
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.nombre_d_aretes(), calque = _calque, calque_pose = _monde.calque_pose()}})
+	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.nombre_d_aretes(), noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}})

@@ -360,7 +360,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
           add('error', 'architecture', mass.id, `Masse « ${mass.id} » : pente hors plage`, massRef);
         // INVARIANT d'ALTITUDE — les deux encodages de la même hauteur (l'INDEX d'étage `z` et la COTE
         // métrique que `layer.height` porte, lue par `heightAt`) ne peuvent pas diverger sans le dire.
-        // L'égout dérivé (`gameIso/builders/roofs.resolveMass`) et les murs qui le portent
+        // L'égout dérivé (`noyau/monde/volume/toits.resolveMass`) et les murs qui le portent
         // (`buildWalls`) lisent tous deux la COTE : le relief est donc libre — une masse sur une butte,
         // une terrasse, un quai surélevé est une carte légitime. Ce qui reste falsifiable est
         // l'EMPILEMENT : le plancher de l'étage `z` doit dominer celui de l'étage `z-1` d'au moins la

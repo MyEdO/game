@@ -125,11 +125,11 @@ describe('un tour complet par le pont', () => {
     expect(second.id).not.toBe(heros.id);
     const vers = suite.vue.cases.find((c) => c.zone === 'marche' && c.cout === 1)!.case;
     ({ suite } = jouer({ type: CLICS_DU_CHAMP.case, args: [vers] }));
-    expect(suite.vue.projection.combat!.apercu, 'le premier clic montre l’aperçu').toMatchObject({ genre: 'move', cible: null, case: [vers.x, vers.y] });
+    expect(suite.vue.projection.combat!.apercu, 'le premier clic montre l’aperçu').toMatchObject({ genre: 'move', cible: null, case: [vers.x, vers.y, vers.z ?? 0] });
     expect(suite.vue.zones['combat.apercu'].map((l) => l.id), 'l’aperçu dit ce qu’il coûte').toEqual(['apercu']);
     ({ suite } = jouer({ type: CLICS_DU_CHAMP.case, args: [vers] }));
-    expect(actifDe(suite).pos, 'le second clic déplace le héros').toEqual([vers.x, vers.y]);
-    expect(suite.vue.occupants[`${vers.x},${vers.y}`], 'la case porte son occupant').toBe(second.id);
+    expect(actifDe(suite).pos, 'le second clic déplace le héros').toEqual([vers.x, vers.y, vers.z ?? 0]);
+    expect(suite.vue.occupants[`${vers.x},${vers.y},${vers.z ?? 0}`], 'la case porte son occupant').toBe(second.id);
 
     let journal: ReturnType<typeof jouer>['journal'];
     ({ suite, journal } = finirLeTour());

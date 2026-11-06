@@ -265,13 +265,12 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
  *  Les Projectiles magiques (offensifs) sont marqués « en combat » : ils exigent une cible ennemie. */
 function SpellbookSection({ hero }: { hero: Combatant }) {
   const party = useGame((s) => s.party);
-  // Les verbes `ooc*` sont des lanceurs HORS COMBAT : pendant un combat, le lancement passe par la
-  // console. Verdict du noyau (`refusDuLanceurDeFiche`), celui que les trois gestes appliquent.
+  // Pendant un combat, le lancement passe par la console : verdict du noyau (`refusDuLanceurDeFiche`).
   const battle = useGame((s) => s.battle);
   const refusLanceur = refusDuLanceurDeFiche({ battle });
-  const oocCastSpell = useGame((s) => s.oocCastSpell);
-  const oocFocusSpell = useGame((s) => s.oocFocusSpell);
-  const oocDispelSpell = useGame((s) => s.oocDispelSpell);
+  const incanterLeSort = useGame((s) => s.incanterLeSort);
+  const focaliserLeSort = useGame((s) => s.focaliserLeSort);
+  const dissiperLeSort = useGame((s) => s.dissiperLeSort);
   const buySpellComponent = useGame((s) => s.buySpellComponent);
   const removeSpellComponent = useGame((s) => s.removeSpellComponent);
   const [targetId, setTargetId] = useState(hero.id);
@@ -280,7 +279,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
     .filter((s): s is NonNullable<ReturnType<typeof findSpellById>> => !!s);
   // Lecture au grimoire (LDB 47 l.21, `VDM 12 l.646-647`). Le catalogue est ramené à sa forme
   // EFFECTIVE par `findSpellById` (variante réglée) et le NI de lecture vient de `effectiveSpellOf`
-  // — le MÊME couple que la résolution (`oocCastSpell(…, true)`), jamais un facteur recopié ici.
+  // — le MÊME couple que la résolution (`incanterLeSort(…, true)`), jamais un facteur recopié ici.
   const grimoireSpells = carriedGrimoire(hero)
     ? allSpells
         .map((s0) => findSpellById(s0.id))
@@ -339,7 +338,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                         {...raisonSi(refusLanceur ?? castBlockedBy(hero, 'focalisation'))}
                         primary={false}
                         btnClassName="small"
-                        onClick={() => oocFocusSpell(hero.id, sp.id)}
+                        onClick={() => focaliserLeSort(hero.id, sp.id)}
                       />
                       <CodexRef category="regles" id="focalisation-etendue" label="Test de Focalisation (étendu)" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
                     </>
@@ -351,7 +350,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                     {...raisonSi(refusDeLancer)}
                     primary={false}
                     btnClassName="small"
-                    onClick={() => oocCastSpell(hero.id, sp.id, targetId)}
+                    onClick={() => incanterLeSort(hero.id, sp.id, targetId)}
                   />
                 </Row>
               )}
@@ -375,7 +374,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                   {...raisonSi(refusLanceur ?? castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue'))}
                   primary={false}
                   btnClassName="small"
-                  onClick={() => oocCastSpell(hero.id, sp.id, targetId, true)}
+                  onClick={() => incanterLeSort(hero.id, sp.id, targetId, true)}
                 />
               </Row>
             )}
@@ -404,7 +403,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                       {d.label} · NI {d.ni} ({prog}/{d.ni})
                     </span>
                     <Row className="spell-actions">
-                      <button className="btn small" onClick={() => oocDispelSpell(hero.id, d.spellId, d.casterId)}>
+                      <button className="btn small" onClick={() => dissiperLeSort(hero.id, d.spellId, d.casterId)}>
                         <Icon id="action/dispel" size="sm" /> Dissiper
                       </button>
                     </Row>
@@ -529,7 +528,7 @@ function ApparencePicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
 }
 
 function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' }) {
-  const usePartyItem = useGame((s) => s.usePartyItem);
+  const utiliserLObjet = useGame((s) => s.utiliserLObjet);
   const appraiseItem = useGame((s) => s.appraiseItem);
   const items = hero.items ?? [];
 
@@ -585,7 +584,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     label="Utiliser"
                     enabled={!gestes.utiliser.refus}
                     {...raisonSi(gestes.utiliser.refus)}
-                    onClick={() => usePartyItem(hero.id, it.uid)}
+                    onClick={() => utiliserLObjet(hero.id, it.uid)}
                     primary={false}
                     btnClassName="small"
                   />

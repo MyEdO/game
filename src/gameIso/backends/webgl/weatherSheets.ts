@@ -9,7 +9,7 @@
  * selon le cran de vue. Une nappe de brume, elle, est de la MATIÈRE dans le monde : elle a une cote,
  * elle est au même endroit à tous les crans, et le relief y entre ou en sort.
  *
- * SOUS COUVERT, la MÊME vérité qu'ailleurs (`shelterField`/`isSheltered`, `builders/roofs.ts` — «
+ * SOUS COUVERT, la MÊME vérité qu'ailleurs (`shelterField`/`isSheltered`, `noyau/monde/volume/toits.ts` — «
  * deux lecteurs, une vérité ») : une colonne coiffée par une masse ne reçoit AUCUNE nappe. D'où deux
  * conséquences gratuites — l'intérieur révélé par le cutaway est propre PAR CONSTRUCTION (rien n'y a
  * jamais été posé), et la géométrie ne dépend NI de la vue NI du dégagement. Elle est RETENUE sur ce
@@ -24,7 +24,7 @@
 import * as THREE from 'three';
 import type { WeatherBrumeDef } from '../../../data/ambiance.types';
 import type { Scene } from '../../../noyau/monde/scene';
-import { shelterField, shelterSectionAt } from '../../builders/roofs';
+import { shelterField, shelterSectionAt } from '../../../noyau/monde/volume/toits';
 import { sceneGroundSpan } from './weatherParticles';
 import { withRenderRank } from './renderRanks';
 import { materiauPlanTransparent } from './worldMaterials';

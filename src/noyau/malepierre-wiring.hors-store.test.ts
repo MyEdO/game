@@ -1,7 +1,7 @@
 /**
  * Malepierre (`LDB 46 l.173`) — CÂBLAGE PROD : le doublement de DR (RÈGLE INCONDITIONNELLE du Livre de
  * base, `engine/magic.ts` `malepierreDR`) et le décrément de la réserve FINIE (`VDM 02 l.165`,
- * `consumeMalepierre`) sur le VRAI chemin de résolution (`oocCastSpell`→`jetRoll('cast')`→`jetConfirm('cast')`) —
+ * `consumeMalepierre`) sur le VRAI chemin de résolution (`incanterLeSort`→`jetRoll('cast')`→`jetConfirm('cast')`) —
  * pas la fonction pure isolée (`vdm-incantation-deltas.test.ts` couvre déjà `malepierreDR`/
  * `malepierreCharge`/`malepierreReserveOf` en isolation).
  */
@@ -37,12 +37,12 @@ beforeEach(() => {
   banc.getState().seedRng(11);
 });
 
-describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cast`/`jetConfirm(\'cast\')`)', () => {
+describe('Malepierre — câblage PROD (Incantation, `incanterLeSort`/`jetRoll@cast`/`jetConfirm(\'cast\')`)', () => {
   const spellId = 'armure-aethyrique';
 
   function rollWithMalepierre(w: Combatant) {
     banc.setState({ party: [w] });
-    banc.getState().oocCastSpell(w.id, spellId, w.id);
+    banc.getState().incanterLeSort(w.id, spellId, w.id);
     banc.getState().jetRoll('cast');
     return banc.getState().pendingCast!.result!;
   }
@@ -65,7 +65,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cas
     const carried = itemFromTrappingById('malepierre-brute')!;
     w.items = [carried];
     banc.setState({ party: [w] });
-    banc.getState().oocCastSpell(w.id, spellId, w.id);
+    banc.getState().incanterLeSort(w.id, spellId, w.id);
     banc.getState().jetRoll('cast');
     const pc = banc.getState().pendingCast!;
     const consumed = pc.result!.malepierreConsumed;
@@ -85,7 +85,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cas
     const carried = itemFromTrappingById('malepierre-brute')!;
     w.items = [carried];
     banc.setState({ party: [w] });
-    banc.getState().oocCastSpell(w.id, spellId, w.id);
+    banc.getState().incanterLeSort(w.id, spellId, w.id);
     banc.getState().jetRoll('cast');
     const consumedBefore = banc.getState().pendingCast!.result!.malepierreConsumed;
     expect(consumedBefore).toBeGreaterThan(0);
@@ -135,7 +135,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cas
     const w = sorcier();
     w.items = [itemFromTrappingById('malepierre-brute')!];
     banc.setState({ party: [w], journal: [] });
-    banc.getState().oocCastSpell(w.id, spellId, w.id);
+    banc.getState().incanterLeSort(w.id, spellId, w.id);
     banc.getState().jetRoll('cast');
     banc.getState().jetConfirm('cast');
     expect(banc.getState().journal.some((l) => l.includes('Exposition moderee'))).toBe(true); // « être en contact » (LDB 19 l.51) — pas « à proximité » (l.40, mineure)
@@ -148,7 +148,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cas
     const carried = itemFromTrappingById('malepierre-brute')!;
     w.items = [carried];
     banc.setState({ party: [w] });
-    banc.getState().oocCastSpell(w.id, spellId, w.id);
+    banc.getState().incanterLeSort(w.id, spellId, w.id);
     banc.getState().jetForceSuccess('cast'); // au lieu du jet, ouvre `forced` (LDB 17 l.68) — requis avant `jetSetForcedRoll('cast')`
     const before = banc.getState().pendingCast!.result!;
     expect(before.malepierreConsumed).toBeGreaterThan(0);

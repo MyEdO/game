@@ -23,7 +23,6 @@ import { withActingSeat } from './netOwnership';
 import { refuserGeste, eteindreRefus } from './refusVisible';
 import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 import { snapshotSave } from './persistance/save';
-import { runAction } from './actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { chebyshev } from '../engine/grid';
@@ -36,7 +35,7 @@ const get = () => banc.getState();
 /** Combat témoin : un héros au tour ENTIER, un ennemi placé à distance de Charge (hors d'Allonge). */
 function setup(opts: { peur?: boolean } = {}) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-  banc.setState({ party: [hero] });
+  banc.setState({ party: [hero], screen: 'campaign' });
   get().startScene(testScene());
   get().startCombat('enc-mutants');
   get().fenetreValider('roundStart');
@@ -57,7 +56,7 @@ function setup(opts: { peur?: boolean } = {}) {
 describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se commet à la relance', () => {
   it('Charge armée + Test de Calme d’approche RÉUSSI → le héros charge, sans « armez la Charge »', () => {
     const { H, E } = setup({ peur: true });
-    runAction('charge', get); // le joueur ARME la case Charge, puis clique la cible
+    get().jouerLOffre('charge'); // le joueur ARME la case Charge, puis clique la cible
     get().battleClickEntity(E.id, { confirm: true });
     // Le gate de Peur s'ouvre : rien n'est commis, l'intention a été dissoute par ce clic.
     expect(get().pendingApproach, 'le Test de Calme d’approche ne s’est pas ouvert').not.toBeNull();
@@ -103,10 +102,10 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
 describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans les args', () => {
   it('l’intention armée du client entre dans les args de SON intent (clic-ennemi et clic-case)', () => {
     setup();
-    runAction('charge', get);
+    get().jouerLOffre('charge');
     expect(argsAvecVerdictLocal(get, 'battleClickEntity', ['e1', { confirm: true }]))
       .toEqual(['e1', { confirm: true, approche: true }]);
-    runAction('course', get);
+    get().jouerLOffre('course');
     expect(argsAvecVerdictLocal(get, 'battleClickTile', [{ x: 1, y: 1 }, { confirm: true }]))
       .toEqual([{ x: 1, y: 1 }, { confirm: true, courseArmee: true }]);
   });
@@ -119,8 +118,8 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
 
   it('un intent SANS verdict à joindre voyage inchangé', () => {
     setup();
-    runAction('charge', get);
-    expect(argsAvecVerdictLocal(get, 'battleEndTurn', [])).toEqual([]);
+    get().jouerLOffre('charge');
+    expect(argsAvecVerdictLocal(get, 'terminerLeTour', [])).toEqual([]);
   });
 
   it('HÔTE non armé : le geste de l’INVITÉ (verdict dans les args) s’exécute quand même', () => {
@@ -135,7 +134,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
 
   it('HÔTE armé : sa case NE DÉBLOQUE PAS le geste d’un invité qui n’a rien armé', () => {
     const { H, E } = setup();
-    runAction('charge', get); // l'HÔTE arme SA case…
+    get().jouerLOffre('charge'); // l'HÔTE arme SA case…
     expect(get().localIntent).toEqual({ actionId: 'charge' });
     get().battleClickEntity(E.id, { confirm: true, approche: false }); // …mais l'invité a émis « non armé »
     expect(get().refus?.texte ?? '', 'le geste non armé de l’invité est passé').toContain('Charge');
@@ -146,7 +145,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
   it('MÊME loi pour le clic-case : l’hôte armé ne fait pas courir l’invité', () => {
     const { H } = setup();
     const loin = { x: 10 + 6, y: 10 }; // au-delà de la Marche (M4), dans la zone de Course
-    runAction('course', get);
+    get().jouerLOffre('course');
     get().battleClickTile(loin, { confirm: true, courseArmee: false });
     expect(get().pendingRun ?? get().pendingCascade, 'la Course d’autrui est partie sur la case de l’hôte').toBeFalsy();
     expect(get().refus?.texte ?? '').toContain('Course');
@@ -159,7 +158,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
     const net0 = get().net;
     const { H } = setup();
     banc.setState({ pendingRun: null, net: { ...net0, mode: 'host', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } });
-    runAction('course', get);
+    get().jouerLOffre('course');
     expect(get().localIntent, 'témoin : l’hôte a armé SA Course').toEqual({ actionId: 'course' });
     banc.setState({ net: { ...get().net, ownership: { [H.id]: 1 } } });
     return { H, net0 };

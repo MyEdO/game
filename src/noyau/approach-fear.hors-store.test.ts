@@ -186,7 +186,7 @@ describe('approachFearTrigger — l’unité est le DÉPLACEMENT COMPLET, pas le
 /**
  * SYMÉTRIE DES CAMPS (#1117 L2bis) : le déclencheur ne connaît que « la source de votre Peur se
  * rapproche de vous » (LDB 21 l.27) — un HÉROS source de Peur d'un ennemi doit donc l'appeler aussi.
- * Le déplacement d'un combattant PILOTÉ étant révocable (`cancelMove`, charge annulée avant le jet),
+ * Le déplacement d'un combattant PILOTÉ étant révocable (`annulerLeDeplacement`, charge annulée avant le jet),
  * l'événement est mis EN ATTENTE (`noteApproachMove`) et ne s'évalue qu'à son IRRÉVOCABILITÉ, à la
  * PREMIÈRE des deux portes : une Action prise (`markActed`) ou la fin du tour (`advanceTurn`).
  * Un déplacement annulé n'effraie donc JAMAIS, et l'attaque qui suit le déplacement n'est pas un
@@ -231,15 +231,15 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     banc.getState().battleClickTile({ x: 8, y: 10 }, { confirm: true });
     expect(H.approachMoves).toHaveLength(1); // en attente : rien n'est encore dû
     expect(brise(E.id)).toBe(0);
-    banc.getState().battleDefendTotal(); // une Action : le déplacement devient irrévocable
+    banc.getState().prendreLaDefensive(); // une Action : le déplacement devient irrévocable
     expect(H.approachMoves).toBeUndefined();
     expect(brise(E.id)).toBe(1);
   });
 
-  it('se rapprocher puis ANNULER le déplacement (cancelMove) → aucun Test, même en fin de tour', () => {
+  it('se rapprocher puis ANNULER le déplacement (annulerLeDeplacement) → aucun Test, même en fin de tour', () => {
     const { H, E } = field();
     banc.getState().battleClickTile({ x: 8, y: 10 }, { confirm: true });
-    banc.getState().cancelMove();
+    banc.getState().annulerLeDeplacement();
     expect(H.pos).toEqual({ x: 6, y: 10 });
     expect(H.approachMoves).toBeUndefined();
     advanceTurn(banc.getState, banc.setState);
@@ -273,7 +273,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     banc.getState().battleClickTile({ x: 7, y: 10 }, { confirm: true });
     banc.getState().battleClickTile({ x: 8, y: 10 }, { confirm: true });
     expect(H.approachMoves).toHaveLength(2);
-    banc.getState().battleDefendTotal();
+    banc.getState().prendreLaDefensive();
     expect(H.approachMoves).toBeUndefined();
     expect(bandes()).toHaveLength(2); // un événement = un Test, même source et même Indice
     expect(bandes().map((s) => s.participants!.map((p) => p.id))).toEqual([[E.id], [E.id]]);
@@ -282,7 +282,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
   it('RECUL net → événement en attente, mais aucun Test au scellement', () => {
     const { E } = field();
     banc.getState().battleClickTile({ x: 4, y: 10 }, { confirm: true });
-    banc.getState().battleDefendTotal();
+    banc.getState().prendreLaDefensive();
     expect(brise(E.id)).toBe(0);
   });
 
@@ -290,7 +290,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     const { E } = field();
     E.psychState = [];
     banc.getState().battleClickTile({ x: 8, y: 10 }, { confirm: true });
-    banc.getState().battleDefendTotal();
+    banc.getState().prendreLaDefensive();
     expect(brise(E.id)).toBe(0);
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -299,7 +299,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     const { E } = field();
     banc.setState({ net: { ...banc.getState().net, gmSeat: 0 } }); // « contrôle des ennemis » en solo
     banc.getState().battleClickTile({ x: 8, y: 10 }, { confirm: true });
-    banc.getState().battleDefendTotal();
+    banc.getState().prendreLaDefensive();
     expect(bandes()).toHaveLength(1);
     expect(bandes()[0].participants!.map((p) => p.id)).toEqual([E.id]);
     expect(bandes()[0].participants![0].result).toBeNull(); // non lancé → influençable
@@ -324,7 +324,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
   it('« cumuler l’Avantage » (LDB 09 l.305-308) scelle comme toute Action', () => {
     const { H, E } = field();
     banc.getState().battleClickTile({ x: 8, y: 10 }, { confirm: true });
-    banc.getState().battleGainAdvantage('intuition');
+    banc.getState().gagnerLAvantage('intuition');
     const pt = banc.getState().pendingTest!;
     banc.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -3 } });
     banc.getState().jetConfirm('test');
@@ -335,7 +335,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
   it('déjà scellé par une Action → la fin du tour ne RE-tire pas le même déplacement', () => {
     const { E } = field();
     banc.getState().battleClickTile({ x: 8, y: 10 }, { confirm: true });
-    banc.getState().battleDefendTotal();
+    banc.getState().prendreLaDefensive();
     expect(brise(E.id)).toBe(1);
     advanceTurn(banc.getState, banc.setState);
     expect(brise(E.id)).toBe(1);

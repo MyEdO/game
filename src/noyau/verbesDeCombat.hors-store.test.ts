@@ -67,7 +67,7 @@ function duel(): { partie: Partie; H: Combatant; E: Combatant } {
   return { partie, H: activeCombatant(b)!, E: b.combatants.find((c) => c.id === idDeE)! };
 }
 
-/** Le duel sur le banc : la Course refusée se lit au corps qui la commet (`battleRun`), machinerie qu'aucun hôte n'appelle. */
+/** Le duel sur le banc : le banc lit aussi la machinerie (`battleHeal`, le corps qui commet le clic du Soin), qu’aucun hôte n’appelle. */
 function duelSurLeBanc(): { banc: Banc; H: Combatant } {
   const banc = ouvrirLeBanc({ ...ENTREES, etat: etatDuDuel().etat });
   return { banc, H: activeCombatant(banc.getState().battle!)! };
@@ -115,16 +115,19 @@ describe('Course (LDB 15 l.41) : « la distance couverte vient en plus de celle 
     }
   });
 
-  it('courir Action dépensée est refusé, et le refus est dit', () => {
-    const { banc } = duelSurLeBanc();
-    const zone = computeRunReach(lire(banc));
-    expect(zone.size, 'témoin : la Course est offerte avant l’Action').toBeGreaterThan(0);
-    banc.getState().battleDefendTotal();
-    expect(banc.getState().battle!.acted, 'témoin : l’Action est dépensée').toBe(true);
-    expect(actionGate('course', contexte(banc))).toEqual({ ok: false, reason: t('agate.actionSpent') });
-    banc.getState().battleRun(laPlusLointaine(zone));
-    expect(banc.getState().pendingRun).toBeNull();
-    expect(banc.getState().refus?.texte).toBe(t('agate.actionSpent'));
+  it('courir Action dépensée : l’offre est refusée par son verdict, et le refus est dit', () => {
+    const { partie } = duel();
+    try {
+      expect(computeRunReach(lire(partie)).size, 'témoin : la Course est offerte avant l’Action').toBeGreaterThan(0);
+      envoyer(partie, 'jouerLOffre', 'defend');
+      expect(partie.etat().battle!.acted, 'témoin : l’Action est dépensée').toBe(true);
+      expect(actionGate('course', contexte(partie))).toEqual({ ok: false, reason: t('agate.actionSpent') });
+      envoyer(partie, 'jouerLOffre', 'course');
+      expect(partie.etat().localIntent?.actionId, 'la Course refusée a armé sa portée').not.toBe('course');
+      expect(refusDit(partie)).toBe(t('agate.actionSpent'));
+    } finally {
+      partie.fermer();
+    }
   });
 
   it('Brisé court pour fuir (LDB 16 l.52)', () => {
@@ -149,8 +152,8 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
     expect(mountMovement(banc.getState().battle!, H), 'témoin : Mouvement nul').toBe(0);
     expect(actionGate('course', contexte(banc))).toEqual({ ok: false, reason: t('agate.cannotMove') });
     expect(computeRunReach(lire(banc)).size).toBe(0);
-    banc.getState().battleRun({ x: H.pos!.x + 3, y: H.pos!.y });
-    expect(banc.getState().pendingRun).toBeNull();
+    banc.getState().jouerLOffre('course');
+    expect(banc.getState().localIntent?.actionId, 'la Course refusée a armé sa portée').not.toBe('course');
     expect(banc.getState().refus?.texte).toBe(t('agate.cannotMove'));
   });
 
@@ -162,7 +165,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
         const e = partie.etat();
         const intentions: Intention[] = e.pendingDefense
           ? [{ type: 'jetRoll', args: ['defense'] }, { type: 'jetConfirm', args: ['defense'] }]
-          : activeCombatant(e.battle!) ? [{ type: 'battleEndTurn', args: [] }] : [{ type: 'fenetreValider', args: ['roundStart'] }];
+          : activeCombatant(e.battle!) ? [{ type: 'jouerLOffre', args: ['end-turn'] }] : [{ type: 'fenetreValider', args: ['roundStart'] }];
         for (const intention of intentions) jouer(partie, partie.envoyer(intention));
       }
       const b = partie.etat().battle!;
@@ -188,8 +191,8 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
     addCondition(H, 'a-terre');
     expect(actionGate('course', contexte(banc))).toEqual({ ok: false, reason: t('agate.prone') });
     expect(computeRunReach(lire(banc)).size).toBe(0);
-    banc.getState().battleRun(laPlusLointaine(zone));
-    expect(banc.getState().pendingRun).toBeNull();
+    banc.getState().jouerLOffre('course');
+    expect(banc.getState().localIntent?.actionId, 'la Course refusée a armé sa portée').not.toBe('course');
     expect(banc.getState().refus?.texte).toBe(t('agate.prone'));
   });
 
@@ -247,7 +250,7 @@ describe('Brisé en donnée (LDB 16 l.52, `restrictsAction`) : la Marche du verr
 /** Marche jusqu'au bout, puis l'Action : plus de Mouvement après l'Action (`canMove`). */
 function actionEtMouvementDepenses(partie: Partie): void {
   envoyer(partie, 'battleClickTile', laPlusLointaine(computeMoveReach(lire(partie))), { confirm: true });
-  envoyer(partie, 'battleDefendTotal');
+  envoyer(partie, 'jouerLOffre', 'defend');
   expect(partie.etat().battle, 'témoin : Marche puis Action').toMatchObject({ acted: true, movedPreAction: true });
 }
 
@@ -258,7 +261,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
       engage(H, E);
       addCondition(H, 'sonne');
       expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
-      envoyer(partie, 'battleDisengage');
+      envoyer(partie, 'jouerLOffre', 'disengage');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: false, refusEsquive: t('agate.unableToAct'), canFuir: true });
       envoyer(partie, 'jetRoll', 'disengage');
       expect(partie.etat().pendingDisengage, 'l’Esquive fermée s’est jouée').toMatchObject({ phase: 'choice', def: null });
@@ -271,10 +274,10 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
     const { partie, H, E } = duel();
     try {
       engage(H, E);
-      envoyer(partie, 'battleDefendTotal');
+      envoyer(partie, 'jouerLOffre', 'defend');
       expect(partie.etat().battle!.acted, 'témoin : l’Action est dépensée').toBe(true);
       expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
-      envoyer(partie, 'battleDisengage');
+      envoyer(partie, 'jouerLOffre', 'disengage');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: false, refusEsquive: t('agate.actionSpent'), canFuir: true });
       envoyer(partie, 'jetRegler', 'disengage', 'fuir', true);
       expect(partie.etat().pendingDisengage?.phase, 'la Fuite ne s’ouvre pas').toBe('fuir');
@@ -289,7 +292,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
       actionEtMouvementDepenses(partie);
       engage(H, E);
       expect(actionGate('disengage', contexte(partie))).toEqual({ ok: false, reason: t('agate.actionSpent') });
-      envoyer(partie, 'battleDisengage');
+      envoyer(partie, 'jouerLOffre', 'disengage');
       expect(partie.etat().pendingDisengage).toBeNull();
       expect(refusDit(partie)).toBe(t('agate.actionSpent'));
     } finally {
@@ -304,7 +307,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
       engage(H, E);
       H.advantage = 2;
       expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
-      envoyer(partie, 'battleDisengage');
+      envoyer(partie, 'jouerLOffre', 'disengage');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: true, refusEsquive: t('agate.actionSpent'), canFuir: false });
     } finally {
       partie.fermer();
@@ -323,7 +326,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
         engage(H, E);
         poser(H, E);
         expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
-        envoyer(partie, 'battleDisengage');
+        envoyer(partie, 'jouerLOffre', 'disengage');
         expect(partie.etat().battle!.combatants.find((c) => c.id === H.id)!.engagedWith ?? []).toEqual([]);
       } finally {
         partie.fermer();
@@ -334,16 +337,16 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
 
 describe('Commits publics sous un État qui verrouille l’Action (LDB 16 l.52) : envoyés bruts, refusés et dits', () => {
   const sort = spells.find((s) => isArcaneSpell(s))!;
-  const commits: ((E: Combatant) => Intention)[] = [
-    () => ({ type: 'battleFocusSpell', args: [sort.id] }),
-    (E) => ({ type: 'battleDispelSpell', args: [sort.id, E.id] }),
+  const commits: ((H: Combatant, E: Combatant) => Intention)[] = [
+    (H) => ({ type: 'focaliserLeSort', args: [H.id, sort.id] }),
+    (H, E) => ({ type: 'dissiperLeSort', args: [H.id, sort.id, E.id] }),
   ];
   for (const commit of commits) {
-    it(`${commit({ id: 'E' } as Combatant).type} : le Brisé est refusé par le verdict de son entrée`, () => {
+    it(`${commit({ id: 'H' } as Combatant, { id: 'E' } as Combatant).type} : le Brisé est refusé par le verdict de son entrée`, () => {
       const { partie, H, E } = duel();
       try {
         addCondition(H, 'brise');
-        jouer(partie, partie.envoyer(commit(E)));
+        jouer(partie, partie.envoyer(commit(H, E)));
         expect(partie.etat().pendingFocus).toBeNull();
         expect(refusDit(partie)).toBe(refusVerrouDAction(H));
       } finally {

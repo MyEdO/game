@@ -8,7 +8,7 @@
  *    entrer `couverture: false`, deuxième façon d'écrire « ne couvre pas » que rien ne distinguerait
  *    de l'absence à la lecture (`roofMaterial(id).couverture` est falsy dans les deux cas).
  * Le pendant POSITIF (le `plan` vu du dessus ne porte pas le champ, les trois couvertures le portent)
- * est tenu par `src/gameIso/catalog/roofs/roofs.test.ts`.
+ * est tenu par `src/noyau/monde/volume/couvertures.test.ts`.
  */
 import { describe, expect, it } from 'vitest';
 import { schema } from './materials';

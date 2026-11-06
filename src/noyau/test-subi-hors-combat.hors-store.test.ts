@@ -315,7 +315,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
   });
 
   it('T9 — non-régression : un pending SANS `subi` garde le vocabulaire de SCÈNE (`on:hero`+`heroId`)', () => {
-    // Forme EXACTE de la branche de `battleAidTeam` (combatSlice.ts) : elle vise un AUTRE héros par
+    // Forme EXACTE de la branche de `aiderLEquipe` (combatSlice.ts) : elle vise un AUTRE héros par
     // son `heroId` — vocabulaire que `runCombatFlow` n'honore pas. Sans marqueur, elle reste sur `runFlow`.
     decor();
     const onSuccess = {

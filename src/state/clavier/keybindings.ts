@@ -27,7 +27,7 @@ import { modalBlocksMapHover } from '../mapHover';
 import { hotbar } from '../hotbarBridge';
 import { editeur } from '../editeurBridge';
 import { TOUCHES_IMPRIMEES } from '../dispositionConsole';
-import { runAction, currentInterludeAction, actionGate } from '../../noyau/actionRegistry';
+import { currentInterludeAction, actionGate } from '../../noyau/actionRegistry';
 import { validTargets, preemptShooterIds } from '../../noyau/targeting';
 import type { ScreenDir } from '../combatCursor';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
@@ -313,7 +313,7 @@ export const KEYBINDINGS: KeyBinding[] = [
       return !!active && actionGate('switch-loadout', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
     // La touche CHOISIT le set suivant (geste de clavier) ; l'EXÉCUTION passe par le registre
-    // d'actions (`runAction('switch-loadout')`) — le clavier est un CONSOMMATEUR du registre, pas
+    // d'actions (`jouerLOffre('switch-loadout')`) — le clavier est un CONSOMMATEUR du registre, pas
     // un 5ᵉ espace d'ids qui appellerait le store en direct.
     run: (g) => {
       const s = g();
@@ -321,7 +321,7 @@ export const KEYBINDINGS: KeyBinding[] = [
       const sets = active?.loadouts ?? [];
       if (!active || !sets.length) return;
       const i = sets.findIndex((l) => l.id === active.activeLoadoutId);
-      runAction('switch-loadout', g, { loadoutId: sets[(i + 1) % sets.length].id });
+      g().jouerLOffre('switch-loadout', { loadoutId: sets[(i + 1) % sets.length].id });
     },
   },
   // Pause d'initiative de début de Round (LDB 17 l.25) : Espace/Entrée = « Commencer le round » (le SEUL
@@ -332,7 +332,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   {
     id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.roundStart.valider', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
     when: (s) => inBattle(s) && !!s.pendingRoundStart && !s.preemptAiming, // visée Tir rapide armée → Entrée TIRE (curseur), pas « commencer »
-    run: (g) => runAction('round-start', g),
+    run: (g) => g().jouerLOffre('round-start'),
   },
   // Tir rapide (talent, LDB 11 l.97-103) au CLAVIER : pendant la pause, `T` arme la visée d'interruption du 1ᵉʳ tireur
   // éligible (puis cycle les suivants, puis désarme) et pose le curseur sur la cible la plus proche → flèches/Tab
@@ -398,9 +398,9 @@ export const KEYBINDINGS: KeyBinding[] = [
   },
   {
     id: 'end-turn', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.endTurn', section: 'combat', notWhenControlFocused: true, sharedBy: ['round-start', 'cursor-commit', 'editeur-pan'],
-    // Fin du tour : action NOMMÉE du registre (`actions.json`), exécutée par `runAction` — la touche
+    // Fin du tour : action NOMMÉE du registre (`actions.json`), jouée par `jouerLOffre` — la touche
     // ne connaît plus la méthode du store.
-    when: (s) => cur(s), run: (g) => runAction('end-turn', g),
+    when: (s) => cur(s), run: (g) => g().jouerLOffre('end-turn'),
   },
   {
     id: 'clear-preview', codes: [CODE_ECHAP], labelKey: 'key.clearPreview', section: 'combat', sharedBy: ['cursor-cancel', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
@@ -417,7 +417,7 @@ export const KEYBINDINGS: KeyBinding[] = [
       const active = activeCombatant(s.battle!);
       return !!active && actionGate('undo-move', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
-    run: (g) => runAction('undo-move', g),
+    run: (g) => g().jouerLOffre('undo-move'),
   },
   // ── RÉPONSES d'un DIALOGUE (1-9) : la touche du RANG choisit la réponse NUMÉROTÉE à l'écran.
   //    Le rang est celui de la liste VISIBLE (`reponsesDuNoeud`, source unique partagée avec la
@@ -473,17 +473,16 @@ export const KEYBINDINGS: KeyBinding[] = [
     id: 'interlude-exit', codes: [CODE_ECHAP], labelKey: 'key.interludeExit', section: 'combat',
     sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'toggle-menu', 'action-disarm', 'editeur-echap'],
     when: (s) => inBattle(s) && controlsActive(s) && !!currentInterludeAction(() => s)?.exitSafe,
-    run: (g) => { const def = currentInterludeAction(g); if (def) runAction(def.id, g); },
+    run: (g) => { const def = currentInterludeAction(g); if (def) g().jouerLOffre(def.id); },
   },
-  // MODE ARMÉ SANS INTERLUDE (Dissiper, Soigner, Incanter, Munition, Poussée) : le seul désarmement
-  // était le re-clic sur la case (`toggleOff`), et Échap ouvrait le menu système par-dessus le mode
-  // resté armé. La touche prend ici le désarmement CANONIQUE du store (`battleSelectAction(null)`,
-  // celui-là même qu'exécute `battery-cancel` par le registre) — jamais un `set` recopié.
+  // MODE ARMÉ SANS INTERLUDE (Dissiper, Soigner, Incanter, Munition, Poussée) : la touche prend le
+  // désarmement CANONIQUE du noyau (`desarmerLeMode`, celui du re-clic sur la case et de
+  // `battery-cancel`), sans quoi Échap ouvrirait le menu système par-dessus le mode resté armé.
   {
     id: 'action-disarm', codes: [CODE_ECHAP], labelKey: 'key.actionDisarm', section: 'combat',
     sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'interlude-exit', 'toggle-menu', 'editeur-echap'],
     when: (s) => cur(s) && armeSansInterlude(s),
-    run: (g) => g().battleSelectAction(null),
+    run: (g) => g().desarmerLeMode(),
   },
   {
     id: 'toggle-menu', codes: [CODE_ECHAP], labelKey: 'key.toggleMenu', section: 'systeme', sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],

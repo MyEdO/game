@@ -123,7 +123,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
 
   it('Course d’un cavalier qui vient de monter : « Monter » a pris le Mouvement du Tour, la Course vient en plus (LDB 15 l.41) et s’ouvre sur Chevaucher', () => {
     const { R, monture } = enSelle({ dejaEnSelle: false });
-    g().battleMount(monture.id);
+    g().monterEnSelle(monture.id);
     expect(g().battle!.combatants.find((c) => c.id === R.id)!.mountId).toBe(monture.id);
     expect(displayedReach(g).size, 'témoin : la Marche est épuisée').toBe(0);
     const [cle] = [...computeRunReach(g)].sort((a, b) => b[1] - a[1])[0];
@@ -225,7 +225,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ party: [hero], interlude: null, bank: [], pendingOrders: [], pendingActivity: null });
     g().startScene(testScene());
     banc.abandonner();
-    banc.setState({ worldMap: { id: 'w', label: 'Monde', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 50, y: 50 }, scene: testScene().id }], routes: [] } });
+    banc.setState({ worldMap: { id: 'w', label: 'Monde', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 50, y: 50 }, scene: testScene().id }], routes: [] }, lieu: 'altdorf' });
     g().startInterlude(3);
     draineCascade(g);
     const itl = g().interlude!;

@@ -184,7 +184,7 @@ describe('raccourcis — la caméra se pilote au clavier : bascule de vue, inspe
 /**
  * RETOUR ARRIÈRE ANNULE LE DÉPLACEMENT (#1411 P1 lot C) : la touche du geste adossé à la gouttière de
  * Mouvement. Sa garde est le GATE DU REGISTRE (`deplacement-annulable`), donc elle se tait exactement
- * là où `cancelMove` ne mordrait pas — Mouvement dépensé SANS instantané (relevé) compris.
+ * là où `annulerLeDeplacement` ne mordrait pas — Mouvement dépensé SANS instantané (relevé) compris.
  */
 describe('raccourcis — Retour arrière annule le déplacement', () => {
   /** Combat dont l'acteur actif a l'état de Mouvement donné. */
@@ -202,14 +202,14 @@ describe('raccourcis — Retour arrière annule le déplacement', () => {
     expect(b.codes).toEqual(['Backspace']);
     const s = avecMouvement({ movementUsed: 2, moveSnapshot: { pos: { h1: { x: 5, y: 5 } }, facing: {}, movedPreAction: false } });
     expect(b.when(s)).toBe(true);
-    const cancelMove = vi.fn();
-    b.run(() => ({ ...s, cancelMove }) as never);
-    expect(cancelMove).toHaveBeenCalledOnce();
+    const jouerLOffre = vi.fn();
+    b.run(() => ({ ...s, jouerLOffre }) as never);
+    expect(jouerLOffre).toHaveBeenCalledWith('undo-move');
   });
 
   it('Mouvement dépensé SANS instantané (relevé) ou Action prise : la touche est MUETTE', () => {
     const b = binding('undo-move');
-    expect(b.when(avecMouvement({ movementUsed: 2 })), 'aucun instantané : `cancelMove` no-operait').toBe(false);
+    expect(b.when(avecMouvement({ movementUsed: 2 })), 'aucun instantané : `annulerLeDeplacement` no-operait').toBe(false);
     expect(b.when(avecMouvement({}))).toBe(false);
     expect(
       b.when(avecMouvement({ movementUsed: 2, acted: true, moveSnapshot: { pos: { h1: { x: 5, y: 5 } }, facing: {}, movedPreAction: false } })),
@@ -221,7 +221,7 @@ describe('raccourcis — Retour arrière annule le déplacement', () => {
 /**
  * X FAIT TOURNER LES SETS (planche USER 2026-08-17, travée gauche de la console) : la colonne de sets
  * a absorbé le commutateur, et sa touche passe au set SUIVANT dans l'ordre où ils y sont dessinés.
- * Sa garde est le gate du registre (`set-commutable`) ; le plafond 1×/tour est posé par `battleSwitchLoadout`.
+ * Sa garde est le gate du registre (`set-commutable`) ; le plafond 1×/tour est posé par `prendreLaPanoplie`.
  */
 describe('raccourcis — X commute le set d’armes', () => {
   /** Combat dont l'acteur ACTIF porte `sets` sets, celui d'`actif` au poing. */
@@ -245,13 +245,13 @@ describe('raccourcis — X commute le set d’armes', () => {
     // Set SUIVANT dans l'ordre de la colonne…
     const s1 = avecSets(['lo-a', 'lo-b', 'lo-c'], 'lo-a');
     const switch1 = vi.fn();
-    b.run(() => ({ ...s1, battleSwitchLoadout: switch1 }) as never);
-    expect(switch1).toHaveBeenCalledWith('lo-b');
+    b.run(() => ({ ...s1, jouerLOffre: switch1 }) as never);
+    expect(switch1).toHaveBeenCalledWith('switch-loadout', { loadoutId: 'lo-b' });
     // … et retour au PREMIER depuis le dernier (rotation, pas une file).
     const s2 = avecSets(['lo-a', 'lo-b', 'lo-c'], 'lo-c');
     const switch2 = vi.fn();
-    b.run(() => ({ ...s2, battleSwitchLoadout: switch2 }) as never);
-    expect(switch2).toHaveBeenCalledWith('lo-a');
+    b.run(() => ({ ...s2, jouerLOffre: switch2 }) as never);
+    expect(switch2).toHaveBeenCalledWith('switch-loadout', { loadoutId: 'lo-a' });
   });
 
   it('après un changement de set ce tour, la touche n’est plus offerte (gate `set-commutable`)', () => {
@@ -306,11 +306,11 @@ describe('raccourcis — Échap pendant un INTERLUDE de ciblage par la carte', (
     expect(escapes(combat({}))).toEqual(['toggle-menu']);
   });
 
-  it('la sortie EXÉCUTÉE est celle du registre : la bordée désarme le mode, sans dispatcher recopié', () => {
-    const battleSelectAction = vi.fn();
+  it('la sortie EXÉCUTÉE est celle du registre : la bordée joue son offre de sortie, sans dispatcher recopié', () => {
+    const jouerLOffre = vi.fn();
     const s = avecAction('battery');
-    binding('interlude-exit').run(() => ({ ...s, battleSelectAction }) as never);
-    expect(battleSelectAction).toHaveBeenCalledWith(null);
+    binding('interlude-exit').run(() => ({ ...s, jouerLOffre }) as never);
+    expect(jouerLOffre).toHaveBeenCalledWith('battery-cancel');
   });
 });
 

@@ -30,10 +30,10 @@ const setBattle = (over: Partial<{ loadoutSwapped: boolean }> = {}) =>
 
 const active = () => banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
 
-describe('battleSwitchLoadout', () => {
+describe('prendreLaPanoplie', () => {
   it('bascule le set actif du combattant ACTIF et re-dérive ses armes', () => {
     setBattle();
-    banc.getState().battleSwitchLoadout('lo-hache');
+    banc.getState().prendreLaPanoplie('h', 'lo-hache');
     expect(active().activeLoadoutId).toBe('lo-hache');
     expect(active().weapons.some((x) => x.label === 'Hache')).toBe(true);
     expect(banc.getState().battle!.loadoutSwapped).toBe(true);
@@ -41,18 +41,18 @@ describe('battleSwitchLoadout', () => {
 
   it('1 switch gratuit par tour : le 2ᵉ est refusé', () => {
     setBattle();
-    banc.getState().battleSwitchLoadout('lo-hache');
-    banc.getState().battleSwitchLoadout('lo-epee'); // refusé (déjà switché)
+    banc.getState().prendreLaPanoplie('h', 'lo-hache');
+    banc.getState().prendreLaPanoplie('h', 'lo-epee'); // refusé (déjà switché)
     expect(active().activeLoadoutId).toBe('lo-hache');
   });
 
   it('au tour suivant (loadoutSwapped reset) le switch est de nouveau possible', () => {
     setBattle({ loadoutSwapped: false });
-    banc.getState().battleSwitchLoadout('lo-hache');
+    banc.getState().prendreLaPanoplie('h', 'lo-hache');
     expect(active().activeLoadoutId).toBe('lo-hache');
     // simule un nouveau tour
     banc.setState({ battle: { ...banc.getState().battle!, loadoutSwapped: false } });
-    banc.getState().battleSwitchLoadout('lo-epee');
+    banc.getState().prendreLaPanoplie('h', 'lo-epee');
     expect(active().activeLoadoutId).toBe('lo-epee');
   });
 });

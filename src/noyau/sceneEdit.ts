@@ -786,6 +786,11 @@ export function pasteEntity(scene: Scene, data: SceneEntity, p: Pt, z = 0): { sc
   return { scene: addEntity(scene, ent, z), id };
 }
 
+/** Colle une copie de l'entité `ent` sur la case voisine au sud-est de la sienne (`pasteEntity`), sur sa couche. */
+export function dupliquerLEntite(scene: Scene, ent: SceneEntity): { scene: Scene; id: string } {
+  return pasteEntity(scene, ent, { x: ent.pos.x + 1, y: ent.pos.y + 1 }, ent.z ?? 0);
+}
+
 /** Pose un point d'entrée nommé `entree-N` (premier libre) à p, plafonné sur une case de la carte comme
  *  `editEntry` (`borneALaCarte`), sur l'étage `z` (défaut 0). Les transitions et la carte du monde le
  *  référencent par son id (#835 FU-5). */
@@ -1250,6 +1255,17 @@ export function seatOccupant(
   return res.ok ? { ...res, scene: normaliseAssises(res.scene, partySize) } : res;
 }
 
+/** Le geste d'AUTHORING d'une place : `occupant` assis à la place `slotId` du meuble `propId`, son tenant et l'ancienne
+ *  place de `occupant` libérés dans la même écriture ; `null` libère la place. Une place vide qu'on vide rend la scène
+ *  telle quelle. */
+export function assoirALaPlace(scene: Scene, propId: string, slotId: string, occupant: SeatOccupant | null): { ok: true; scene: Scene } | Extract<SeatAssignmentResult, { ok: false }> {
+  const tenant = scene.seatAssignments?.[propId]?.[slotId];
+  const liberee = tenant ? releaseSeat(scene, tenant) : scene;
+  if (!occupant) return { ok: true, scene: tenant ? normaliseAssises(liberee, GROUPE_A_L_AUTHORING) : scene };
+  const res = seatOccupant(releaseSeat(liberee, occupant), propId, slotId, occupant, GROUPE_A_L_AUTHORING);
+  return res.ok ? { ok: true, scene: res.scene } : res;
+}
+
 /** Un patch d'authoring qui RETIRERAIT le type nommé d'une entité (`typeNonNomme`, #877, #1882). */
 export class TypeNonNomme extends Error {
   constructor(absence: string) {
@@ -1449,7 +1465,7 @@ export function poseToitureDeCorps(
 /** Pente (°) d'une nappe DÉRIVÉE de portée `spanTiles` : la pente de RÉFÉRENCE, rabattue jusqu'à ce
  *  que le comble tienne dans `riseMaxStoreys` hauteurs d'étage. C'est la PENTE qui s'adapte à la
  *  portée — jamais la couverture qui se redécoupe (#947) : un corps profond porte un toit plus PLAT,
- *  comme le bâti réel. `montée = portée / 2 × tan(pente)` (`riseAt`, `gameIso/builders/roofs.ts`) ⇒
+ *  comme le bâti réel. `montée = portée / 2 × tan(pente)` (`riseAt`, `noyau/monde/volume/toits.ts`) ⇒
  *  `pente ≤ atan(2 × montéeMax / portée)`. Arrondie au dixième de degré vers le BAS : la borne reste
  *  tenue et la pente écrite dans la masse reste lisible à l'inspecteur. AUCUN plancher de pente — une
  *  portée qui en exigerait une hors plage sensée sort en masse SIGNALÉE (`validateScene`), jamais
@@ -1629,7 +1645,7 @@ function largestRectIn(cells: ReadonlySet<string>): ArchitectureRect | null {
  *  (`hi` = dernière cellule + 1). Emprise réelle, jamais boîte englobante : une jupe étroite accolée à
  *  une aile large garde SA portée. SOURCE UNIQUE de la lecture de portée, partagée par la dérivation
  *  des masses (choix du faîtage et du profil) et par la formule de montée du builder de toitures
- *  (`riseAt`, `gameIso/builders/roofs.ts`). */
+ *  (`riseAt`, `noyau/monde/volume/toits.ts`). */
 export function localCrossSpans(cells: ReadonlySet<string>, axis: 'x' | 'y'): Map<number, { lo: number; hi: number }> {
   const rows = new Map<number, { lo: number; hi: number }>();
   for (const key of cells) {

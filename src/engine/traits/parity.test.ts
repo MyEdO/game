@@ -136,7 +136,7 @@ const DISPATCH = new Set<string>([
   // Métamorphose (Enfant d'Ulric, Middenheim p.116) : le trait `grantsManeuvers` DEUX manœuvres `targeting:'self'`
   // (forme hybride / forme humaine) portant les ops `transform`/`endTransform` — bascule de profil DELTA (tableau RAW
   // VERBATIM), Traits hybrides et apparence, PERSISTANTE et réversible, au prix de DEUX Actions (loseTurn). Activée
-  // par le JOUEUR via `battleSelfManeuver` (hotbar). Dispatché (grantsManeuvers). Auto-transformation de l'IA à câbler.
+  // par le JOUEUR via `manoeuvrerSurSoi` (hotbar). Dispatché (grantsManeuvers). Auto-transformation de l'IA à câbler.
   'Métamorphose',
   // Redoutable (ZI) : Avantage min = Indice au début du tour — effet `onTurnStart` en donnée (op
   // topUpAdvantage, indice baké via withArg, gardé Empêtré/Surpris). Dispatché comme tout `effects`.

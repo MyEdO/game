@@ -14,7 +14,7 @@
  * CHEMIN RÉEL de bout en bout : le Sort du catalogue est lancé par `applyCast` (`noyau/combatFlow`,
  * l'appel même que la confirmation d'incantation fait, `combatFlow.ts:4980-4988`), la Surincantation de
  * Durée passe par ses pas (`overcast.duration` → `overcastDurationParts`), la Détermination par le
- * noyau (`spendResolveCondition`) et la fin de Round par ses hooks (`runCombatHooks('onRoundEnd')`,
+ * noyau (`depenserLaDetermination`) et la fin de Round par ses hooks (`runCombatHooks('onRoundEnd')`,
  * `noyau/combat/roundHooks`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -214,7 +214,7 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
 describe('Détermination sur un État PORTÉ — « Retirez un État » (LDB 17 l.61)', () => {
   it('la dépense du noyau n’écarte QUE l’État visé — les deux autres tiennent, et il revient en fin de Round', () => {
     lancerChamon(mage, cible);
-    banc.getState().spendResolveCondition(cible.id, 'sonne');
+    banc.getState().depenserLaDetermination(cible.id, 'retirerUnEtat', 'sonne');
     const pendant = vue(cible.id);
     expect(pendant.resolve, 'le point de Détermination n’a pas été débité').toBe(2);
     expect(stacks(pendant, 'sonne'), 'la Détermination n’a pas écarté le Sonné').toBe(0);
@@ -227,8 +227,8 @@ describe('Détermination sur un État PORTÉ — « Retirez un État » (LDB 17 
 
   it('DEUX dépenses ouvrent DEUX fenêtres : Sonné ET Aveuglé partent, Assourdi tient, les deux reviennent', () => {
     lancerChamon(mage, cible);
-    banc.getState().spendResolveCondition(cible.id, 'sonne');
-    banc.getState().spendResolveCondition(cible.id, 'aveugle');
+    banc.getState().depenserLaDetermination(cible.id, 'retirerUnEtat', 'sonne');
+    banc.getState().depenserLaDetermination(cible.id, 'retirerUnEtat', 'aveugle');
     const pendant = vue(cible.id);
     expect(pendant.resolve, 'les deux points n’ont pas été débités').toBe(1);
     expect(stacks(pendant, 'sonne')).toBe(0);

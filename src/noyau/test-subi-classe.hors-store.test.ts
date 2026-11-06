@@ -111,7 +111,7 @@ function opsDesBranches(f: Flow | undefined, out: GameOp[] = []): GameOp[] {
  *  - ses ops exigent une COQUE (une chute dont la hauteur se lit sur la taille du navire) → la porte
  *    des bandes d'équipage (`bandeTriggeredTest`) ;
  *  - il EST le Flow bu d'une possession (chemin `.consumable…`, hors greffe d'arme `onHitEffects`) →
- *    la porte du consommable (`usePartyItem`) ;
+ *    la porte du consommable (`utiliserLObjet`) ;
  *  - sinon la porte générale des effets déclenchés (`routeTriggeredTest`).
  */
 type Porte = 'maladie' | 'bande' | 'consommable' | 'generale';
@@ -191,7 +191,7 @@ function jouerParSaPorte(n: Noeud, sujet: Combatant, issue: boolean, branchesVid
       if (!it) return { jouee: false, poses };
       it.uid = 'sonde-1';
       set({ party: get().party.map((c) => (c.id === 'h3' ? { ...c, items: [...(c.items ?? []), it] } : c)) as never });
-      get().usePartyItem('h3', 'sonde-1');
+      get().utiliserLObjet('h3', 'sonde-1');
       return { jouee: true, poses };
     }
     default: {

@@ -1,5 +1,7 @@
 ## Le plateau du jeu : sur le monde de la scène (`Monde`), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
-## chaque combattant à sa case (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
+## ses nappes de toit, levées sur le groupe (`toitsLeves`), et ses couronnes crénelées, tombées avec leur mur
+## (`couronnesAbattues`, `Monde.cacher_les_nappes`),
+## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
 ## corps (`vue.corps`, aucun sous son `refus`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case. Il ne rend que la case cliquée : celle que le monde désigne sous
@@ -7,7 +9,7 @@
 class_name Plateau
 extends Node3D
 
-signal case_cliquee(case: Vector2i)
+signal case_cliquee(case: Vector3i)
 ## Le corps d'un combattant dessiné a changé (`Combattant.habille`).
 signal habille
 
@@ -17,7 +19,6 @@ signal habille
 @onready var _combattants: Node3D = $Combattants
 
 var _modeles: Dictionary = {}
-var _entites: Dictionary = {}
 var _vue: Dictionary = {}
 var _survol: Variant = null
 
@@ -32,6 +33,7 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	_vue = vue
 	if vue.plateau != null:
 		_monde.poser_les_aretes(vue.plateau.aretes)
+		_monde.cacher_les_nappes(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues)
 	var combat: Variant = vue.projection.combat
 	var exploration: Variant = vue.projection.exploration
 	var actif: Variant = null if combat == null or combat.actif == null else combat.actif.id
@@ -44,7 +46,7 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	for c in dessines:
 		if c.pos == null:
 			continue
-		var lieu := _lieu(Vector2i(int(c.pos[0]), int(c.pos[1])))
+		var lieu := _lieu(c.pos)
 		if not _modeles.has(c.id):
 			var modele: Combattant = scene_combattant.instantiate()
 			modele.position = lieu
@@ -60,19 +62,13 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	_peindre()
 
 
-## Chaque entité de la scène nommée au-dessus de sa case.
+## Chaque entité de la scène nommée au-dessus de sa case (`Monde.etiqueter`).
 func _nommer_les_entites(entites: Array) -> void:
+	var noms := {}
 	for e in entites:
-		if _entites.has(e.id) or e.nom == null:
-			continue
-		var nom := Label3D.new()
-		nom.text = e.nom
-		nom.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		nom.no_depth_test = true
-		var case := Vector2i(int(e.pos[0]), int(e.pos[1]))
-		nom.position = MiseEnPage.au_dessus_de_la_case(case, _monde.sol(case))
-		_entites[e.id] = nom
-		add_child(nom)
+		if e.nom != null:
+			noms[Vector3i(int(e.pos[0]), int(e.pos[1]), int(e.pos[2]))] = e.nom
+	_monde.etiqueter(noms)
 
 
 ## Par id de combattant dessiné, ce que porte son corps (`Combattant.corps`).
@@ -96,30 +92,38 @@ func point_de_l_apercu() -> Variant:
 			case = c.pos
 	if case == null:
 		return null
-	return _monde.a_l_ecran(_lieu(Vector2i(int(case[0]), int(case[1]))))
+	return _monde.a_l_ecran(_lieu(case))
 
 
-## Le point de l'écran de chaque case du plateau, par sa clé `x,y` (`Monde.points`).
+## Le point de l'écran du sol de chaque case de chaque couche du plateau, par sa clé `x,y,z` (`Monde.points`).
 func points() -> Dictionary:
-	return _monde.points()
+	var points := {}
+	for z: int in _monde.couches():
+		var couche := _monde.points(z)
+		for cle: String in couche:
+			points["%s,%d" % [cle, z]] = couche[cle]
+	return points
 
 
-## Le volume du monde de la scène (`monde`) sous le plateau (`Monde.poser`).
+## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume (`Monde.poser`), ses
+## nappes de toit et ses couronnes crénelées (`Monde.poser_les_nappes`).
 func poser_le_monde(monde: Dictionary) -> void:
-	_monde.poser(monde)
+	_monde.poser(monde.monde)
+	_monde.poser_les_nappes(monde.toits, monde.couronnes)
 
 
-func _lieu(case: Vector2i) -> Vector3:
-	return _monde.lieu(case)
+## Le centre du sol de la case `pos` (`[x, y, z]`, la case et sa couche).
+func _lieu(pos: Array) -> Vector3:
+	return _monde.lieu(Vector2i(int(pos[0]), int(pos[1])), int(pos[2]))
 
 
 ## Les cases peintes (`Monde.peindre`) : celles de la vue, les cibles, l'aperçu, les entités nommées de l'exploration, puis
 ## la case sous le pointeur, chacune à la place de celle qu'elle portait.
 func _peindre() -> void:
 	var plaques := {}
-	var surligner := func(case: Vector2i, item: int) -> void: plaques[Vector3i(case.x, case.y, 0)] = item
+	var surligner := func(pos: Array, item: int) -> void: plaques[Vector3i(int(pos[0]), int(pos[1]), int(pos[2]))] = item
 	for c in _vue.get("cases", []):
-		surligner.call(Vector2i(int(c.case.x), int(c.case.y)), Monde.ITEM_ATTEIGNABLE)
+		surligner.call([c.case.x, c.case.y, c.case.get("z", 0)], Monde.ITEM_ATTEIGNABLE)
 	var combat: Variant = _vue.get("projection", {}).get("combat")
 	if combat != null:
 		var vises: Array = combat.cibles.liste.duplicate()
@@ -128,16 +132,16 @@ func _peindre() -> void:
 			vises.append(apercu.cible)
 		for c in combat.voisins.liste:
 			if c.pos != null and vises.has(c.id):
-				surligner.call(Vector2i(int(c.pos[0]), int(c.pos[1])), Monde.ITEM_SURVOL if apercu != null and apercu.cible == c.id else Monde.ITEM_CIBLE)
+				surligner.call(c.pos, Monde.ITEM_SURVOL if apercu != null and apercu.cible == c.id else Monde.ITEM_CIBLE)
 		if apercu != null and apercu.case != null:
-			surligner.call(Vector2i(int(apercu.case[0]), int(apercu.case[1])), Monde.ITEM_SURVOL)
+			surligner.call(apercu.case, Monde.ITEM_SURVOL)
 	var exploration: Variant = _vue.get("projection", {}).get("exploration")
 	if exploration != null:
 		for e in exploration.entites.liste:
 			if e.nom != null:
-				surligner.call(Vector2i(int(e.pos[0]), int(e.pos[1])), Monde.ITEM_CIBLE)
+				surligner.call(e.pos, Monde.ITEM_CIBLE)
 	if _survol != null:
-		surligner.call(_survol, Monde.ITEM_SURVOL)
+		surligner.call([_survol.x, _survol.y, _survol.z], Monde.ITEM_SURVOL)
 	_monde.peindre(plaques)
 
 

@@ -196,7 +196,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     poste.ammoUid = 'mitraille'; // l'équipage charge de la mitraille
     mkBattle(hull, [chef, aide], ['ship']);
 
-    banc.getState().battleShipReload('ship', 'canon');
+    banc.getState().rechargerLaPiece('ship', 'canon');
     // Jet FORCÉ à la réussite franche (le dé n'est pas l'objet du test, la CAPTURE l'est) : le Test étendu aboutit.
     const pr = banc.getState().pendingReload!;
     banc.setState({ pendingReload: { ...pr, roll: 5, sl: 20, success: true } });
@@ -219,9 +219,9 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     const hull = mkHull(poste);
     serveChef(chef, poste);
     expect(poste.loadedAmmoUid).toBe('boulet');
-    mkBattle(hull, [chef, aide], ['chef']); // le CHEF est l'actif : sa hotbar pilote `battleSelectAmmo`
+    mkBattle(hull, [chef, aide], ['chef']); // le CHEF est l'actif : sa hotbar pilote `approvisionnerLArme`
 
-    banc.getState().battleSelectAmmo('mitraille');
+    banc.getState().approvisionnerLArme('mitraille');
 
     expect(poste.loaded).toBe(false); // la pièce est muette tant qu'elle n'est pas rechargée
     expect(poste.loadedAmmoUid).toBeUndefined();

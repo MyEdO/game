@@ -44,7 +44,7 @@ export type GesteCarteAttendu =
 import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageCampaignVessel } from '../noyau/seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from '../noyau/shipwreck';
-import { placeOfScene, placeById, routesCliquables, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from '../noyau/worldMap';
+import { lieuDuGroupe, placeById, routesCliquables, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from '../noyau/worldMap';
 import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from '../noyau/riverVoyageFlow';
 import { findVehicleById, refLabel } from '../data';
@@ -213,9 +213,8 @@ bus.on(EVT.TEST_RESOLVED, (payload) => { lastRollTrace = payload as typeof lastR
 
 /** Routes qui portent un tracé de HIT au DOM de la carte du monde (`routesCliquables` depuis le lieu
  *  courant) : SOURCE UNIQUE du mapping DOM ↔ id, partagée par `routes()` et `clickRoute()` (#684). */
-function routesRendues(map: WorldMap, sceneId: string | undefined): { route: MapRoute; ouverte: boolean }[] {
-  const here = placeOfScene(map, sceneId);
-  return here ? routesCliquables(map, here.id, condCtx(useGame.getState)) : [];
+function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; ouverte: boolean }[] {
+  return lieu ? routesCliquables(map, lieu, condCtx(useGame.getState)) : [];
 }
 
 /**
@@ -383,15 +382,14 @@ function riverDayCascade(): string {
   if (!plan?.river) return '✗ aucune descente fluviale en cours (travelPlan.river)';
   const map = s.worldMap as import('../noyau/worldMap').WorldMap | undefined;
   const route = map?.routes.find((r) => r.id === plan.routeId);
-  const to = map ? placeById(map, plan.toPlaceId) : undefined;
-  if (!route || !to) return '✗ route ou destination introuvable sur la carte du monde';
+  if (!route) return '✗ route introuvable sur la carte du monde';
   // Le slot est REMPLACÉ, jamais complété : `startCascade` APPEND quand le `purpose` est déjà ouvert
   // (doctrine du slot, `cascade.ts` — voulue, et dont le combat dépend). Le chemin JOUEUR ne peut pas
   // rouvrir un `travelDay` déjà ouvert (`runRiverDays` refuse si `pendingCascade`) ; ce helper, lui,
   // court-circuite ce garde — sans cette purge il concaténait 2 journées (ids dupliqués, étapes
   // injouables, recette 5).
   useGame.setState({ pendingCascade: null });
-  const built = buildRiverDayCascade(useGame.getState, useGame.setState, route, { scene: to.scene ?? '', label: to.label });
+  const built = buildRiverDayCascade(useGame.getState, useGame.setState, route);
   startCascade(useGame.getState, useGame.setState, { title: 'Journée de descente', icon: 'travel/wave', purpose: 'travelDay', steps: built.steps });
   const kinds = built.steps.map((x: { kind: string }) => x.kind).join(', ');
   return `cascade du jour posée : ${built.steps.length} étape(s) [${kinds}]`;
@@ -779,7 +777,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const s = g();
       const map = s.worldMap;
       if (!map || !s.scene) return '✗ aucune carte du monde ouverte (voir __wfrp.screen(\'worldmap\'))';
-      return routesRendues(map, s.scene.id).map(({ route: r, ouverte }) => ({
+      return routesRendues(map, s.lieu).map(({ route: r, ouverte }) => ({
         id: r.id,
         from: placeById(map, r.a)?.label ?? r.a,
         to: placeById(map, r.b)?.label ?? r.b,
@@ -905,7 +903,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  — `stage/MondeDeCampagne.tsx` ne filtre `el.cell.z !== activeZ` que sous `planVue`
      *  (= `viewPolicy.etageIsole`, vrai pour le seul regard du dessus, `stage/viewPolicy.ts`). En vue
      *  ISO, les deux couches se peignent et c'est la loi de dégagement (`clearedSpace`,
-     *  `builders/roofs.ts`) qui découvre ce qui abrite le groupe : `viewLevel` n'y change RIEN au monde
+     *  `noyau/monde/volume/toits.ts`) qui découvre ce qui abrite le groupe : `viewLevel` n'y change RIEN au monde
      *  peint. Il reste partout l'étage que le PICKING résout par défaut (`etageActif`). */
     viewLevel: (z?: number | null) => {
       if (z === undefined) return { override: getViewZ(), note: 'null = auto (suit le groupe)' };
@@ -2373,10 +2371,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!map || !s.scene) return '✗ aucune carte du monde ouverte (voir __wfrp.screen(\'worldmap\'))';
       const route = map.routes.find((r) => r.id === routeId);
       if (!route) return `✗ route « ${routeId} » introuvable — ids : ${map.routes.map((r) => r.id).join(', ')}`;
-      const here = placeOfScene(map, s.scene.id);
+      const here = lieuDuGroupe(s);
       // Seules les routes RENDUES portent un tracé de hit-test (`WorldMapView.tsx`) : extrémités
       // révélées + offerte depuis ici, ouverte OU fermée-consultable (`routesRendues`).
-      const rendue = routesRendues(map, s.scene.id).find((e) => e.route.id === routeId);
+      const rendue = routesRendues(map, s.lieu).find((e) => e.route.id === routeId);
       if (!rendue) return `✗ route « ${routeId} » non cliquable depuis ici (${here?.label ?? '?'})`;
       const etat = rendue.ouverte ? 'ouverte' : 'fermee-consultable';
       // La bande CLIQUABLE d'une route est le `path` de HIT de `MapCanvas`, qui porte l'id de son tracé

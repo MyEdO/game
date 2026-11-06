@@ -75,7 +75,7 @@ describe('Colère des dieux — perte temporaire de Béni et Invocation (LDB 40 
     subirLaColere(p, 76, [1]); // 1d10 = 1 → 1 + 3 = 4 jours
     banc.setState({ party: [p] });
 
-    banc.getState().oocCastSpell(p.id, 'benediction-de-bataille', p.id);
+    banc.getState().incanterLeSort(p.id, 'benediction-de-bataille', p.id);
     expect(banc.getState().pendingCast).toBeNull();
     expect(banc.getState().journal.join('\n')).toMatch(/ne possède pas le Talent Béni/);
 
@@ -89,7 +89,7 @@ describe('Colère des dieux — perte temporaire de Béni et Invocation (LDB 40 
     expect(rendu.talents).toEqual(acquis);
     expect(rendu.xp).toEqual(px);
 
-    banc.getState().oocCastSpell(rendu.id, 'benediction-de-bataille', rendu.id);
+    banc.getState().incanterLeSort(rendu.id, 'benediction-de-bataille', rendu.id);
     expect(banc.getState().pendingCast).not.toBeNull();
   });
 });

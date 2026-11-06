@@ -327,7 +327,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
 
   it('retiré (Détermination) alors que la cause court : REGAGNÉ à la fin du Round, 1 pion, cause NOMMÉE (LDB 16 l.117)', () => {
     const { c } = palier(3);
-    removeCondition(c, 'inconscient'); // chemin `battleSpendResolve` : le retrait A LIEU
+    removeCondition(c, 'inconscient'); // chemin `depenserLaDetermination` : le retrait A LIEU
     expect(hasCondition(c, 'inconscient')).toBe(false);
     const log = endOfRound(c, makeRNG(7));
     expect(c.conditions.find((x) => x.id === 'inconscient')?.value, 'un seul pion — l’État ne se cumule pas (LDB 16 l.115)').toBe(1);

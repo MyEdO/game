@@ -78,7 +78,7 @@ describe('Attaque gratuite de Tentacule (store)', () => {
     H.characteristics.force = 45;
     const before = E.wounds.current;
     // Chemin d'attaque UNIFIÉ : on arme l'attaque Tentacule puis on clique l'ennemi (adjacent → frappe directe).
-    banc.getState().battleSelectAttack('tentacule');
+    banc.getState().armerLAttaque('tentacule');
     banc.getState().battleClickEntity(E.id, { confirm: true });
     const pa = banc.getState().pendingAttack;
     expect(pa?.freeKind).toBe('tentacules');
@@ -106,7 +106,7 @@ describe('Attaque gratuite de Tentacule (store)', () => {
   it('cible distante : la mutation Tentacule CHARGE puis frappe (approche-puis-frappe)', () => {
     const { E } = setup();
     E.pos = { x: 14, y: 10 }; // hors d'Allonge → l'attaque de mêlée s'approche (charge) au lieu de refuser
-    banc.getState().battleSelectAttack('tentacule');
+    banc.getState().armerLAttaque('tentacule');
     banc.getState().battleClickEntity(E.id, { confirm: true });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     const pa = banc.getState().pendingAttack;

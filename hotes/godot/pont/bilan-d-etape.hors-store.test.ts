@@ -4,8 +4,8 @@
  * tire ensuite à sa table, son entrée dite dans la fenêtre. EDOC 8 l.161, l.182-233
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
-import type { Bouton, Element, Entite, Jet } from '../../../src/hote/elements';
+import { departDeLaCarte, drainer, table } from './pont.testkit';
+import type { Bouton, Element, Jet } from '../../../src/hote/elements';
 import type { Suite } from './pont';
 
 const { appel } = table();
@@ -19,8 +19,7 @@ describe('le bilan de l’Étape par le pont', () => {
     let suite = drainer(appel, appel('demarrer', { scenario: 'voyage', graine: 7 })).suite;
     while (suite.vue.projection.fenetre) suite = jouer(enFocus(suite).jeu);
     suite = jouer(suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
-    const route = suite.vue.zones['fenetre.corps'].find((e) => e.id === 'carte/r-grandroute') as Entite;
-    suite = jouer((route.elements.find((x) => x.id === 'modes') as { valeurs: Bouton[] }).valeurs.find((b) => b.id === 'pied')!.jeu);
+    suite = jouer(departDeLaCarte(suite.vue, 'r-grandroute').valeurs.find((b) => b.id === 'pied')!.jeu);
     for (let pas = 0; etape(suite) !== 'Bilan de l’Étape'; pas++) {
       expect(pas, 'la journée de route mène à son bilan').toBeLessThan(20);
       suite = jouer(enFocus(suite).jeu);

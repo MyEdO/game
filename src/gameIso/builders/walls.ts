@@ -8,7 +8,7 @@
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, tileAt, wallEnds, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
+import { heightAt, piedDeLArete, tileAt, wallEnds, doorIsOpen, structureIsDown, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
 import { findStructureById } from '../../data';
 import { isWallEdgeStructure } from '../../engine/structures';
 import { interiorCells } from '../../noyau/planDefects';
@@ -16,19 +16,19 @@ import { memoByRef } from '../../noyau/monde/sceneMemo';
 import { estAbsent } from '../../noyau/monde/terrain';
 import { viewedBuilder, type Viewed } from '../../noyau/monde/volume/viewTruth';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
-import { structureAppearance } from '../catalog/structures';
+import { edgeAppearance } from '../../noyau/monde/volume/structures';
+import { crownFaces, cretesDePerimetre } from '../../noyau/monde/volume/creneaux';
 import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
-import { facadeWallFeatureAppearance } from '../catalog/facades';
-import { WALL_H_M, isoPxToM } from '../iso';
-import { METRES_PER_LEVEL, gradeBetween } from '../../noyau/monde/relief';
-import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
+import { edgeKey, facadeEdges, facadeWallFeatureAppearance, type FacadeEdge } from '../../noyau/monde/facades';
+import { WALL_H_M, isoPxToM } from '../../noyau/monde/iso';
+import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
+import type { Dir4 } from '../../geometry/dir8';
 import type { WallEl } from './types';
 import type { Face, GP } from '../../noyau/monde/volume/types';
 import type { FloorView } from '../../noyau/monde/volume/floors';
 import {
-  closureAppearance, edgeAppearance, edgeKey, facadeEdges, fieldHeightAt, massSpaceCells, nappeKey, resolveNappes,
-  WALL_NB, type FacadeEdge, type RoofField,
-} from './roofs';
+  closureAppearance, fieldHeightAt, massSpaceCells, nappeKey, resolveNappes, WALL_NB, type RoofField,
+} from '../../noyau/monde/volume/toits';
 import { massFootprintCells } from '../../noyau/monde/buildings';
 
 // ── Constantes de FORME (fractions de WALL_H / de l'arête, épaisseurs px-iso converties en mètres) ──
@@ -63,32 +63,6 @@ const BREACH_H = 0.32, BREACH_M1 = 0.34, BREACH_M2 = 0.62, BREACH_POST_A = 0.7, 
 const EPS = 1e-9;
 
 type GXY = { x: number; y: number };
-
-/** COURONNE crénelée (parapet dressé + ferrure + arase + merlons) posée à partir de la hauteur `baseH`,
- *  le long de l'arête A→B. SOURCE UNIQUE : (a) le sommet d'une fortification `wallFaces` (baseH = haut de
- *  la face pleine) ET (b) la crête de PÉRIMÈTRE d'une zone rempart (baseH = surface de la zone). Merlons =
- *  1 tronçon / `merlonStep` (fraction 0..1 de CETTE arête → motif périodique par case). */
-export function crownFaces(app: StructureAppearanceDef, A: GXY, B: GXY, baseH: number): Face[] {
-  const par = app.parapet;
-  if (!par) return [];
-  const at = (t: number): GXY => ({ x: A.x + (B.x - A.x) * t, y: A.y + (B.y - A.y) * t });
-  const mat = (part: WallPart) => ({ domain: 'structure' as const, id: app.id, part });
-  const span = (part: WallPart, t0: number, t1: number, hLo: number, hHi: number): Face => {
-    const P0 = at(t0), P1 = at(t1);
-    return { poly: [{ ...P0, h: hHi }, { ...P1, h: hHi }, { ...P1, h: hLo }, { ...P0, h: hLo }], material: mat(part), oriented: false };
-  };
-  const slab = (part: WallPart, hLo: number, hHi: number): Face => span(part, 0, 1, hLo, hHi);
-  const P = par.heightLevelFrac * METRES_PER_LEVEL; // hauteur dressée du parapet (LEVEL_H·frac px ⇔ m)
-  const bandLo = baseH + P * par.parapetBandFrac;
-  const crest: Face[] = [
-    slab('parapet', baseH, baseH + P),
-    slab('bande', bandLo, bandLo + isoPxToM(par.bandThickPx)),
-    slab('arase', baseH + P - isoPxToM(par.arasePx), baseH + P),
-  ];
-  for (let i = 0; i < par.merlonCount; i += par.merlonStep)
-    crest.push(span('merlon', i / par.merlonCount, (i + 1) / par.merlonCount, baseH + P, baseH + P + isoPxToM(par.merlonHeightPx)));
-  return crest;
-}
 
 /** Faces d'un segment, dans l'ORDRE DE PEINTURE (montant A, fond → détail, montant B). Hauteurs en
  *  MÈTRES depuis `b` (surface porteuse). `wallHeightM` = hauteur de la face PLEINE (défaut `WALL_H_M` =
@@ -220,7 +194,7 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
   ];
 }
 
-/** Case VOISINE de l'autre côté de l'arête — SOURCE UNIQUE `WALL_NB` (`builders/roofs.ts`), partagée
+/** Case VOISINE de l'autre côté de l'arête — SOURCE UNIQUE `WALL_NB` (`noyau/monde/volume/toits.ts`), partagée
  *  avec l'indexation des murs que lisent les fermetures de comble. */
 const NB = WALL_NB;
 
@@ -402,57 +376,20 @@ function tagExistingFacadeFaces(faces: Face[], seg: WallSeg, facade: FacadeEdge,
       : face);
 }
 
-// ── CRÉNELURE (décoration de RENDU) — dérivation du PÉRIMÈTRE (générale, toute forme, opt-in donnée) ──
-/** Delta (dx,dy) d'un cap cardinal — SOURCE UNIQUE, partagée avec le décor de façade (`builders/props`,
- *  saillie d'un ornement vers l'extérieur) : la crénelure et lui lisent la même table. */
-export const CARD_NB: Record<Dir4, [number, number]> = { N: [0, -1], E: [1, 0], S: [0, 1], O: [-1, 0] };
-
-/** Éléments `wall` SYNTHÉTIQUES de CRÉNELURE (RENDU PUR, comme un toit auto-dessiné) : pour chaque arête de
- *  PÉRIMÈTRE d'une tuile crénelée (voisin même-z NON crénelé), la seule CRÊTE crénelée (`crownFaces` :
- *  parapet + merlons, assise à la surface). Merlons CEINTURANT la zone, jamais à l'intérieur. Générique
- *  (toute forme). N'est PAS un `WallSeg` de scène → ne coupe NI le passage NI la LdV plongeante (les
- *  défenseurs tirent par-dessus). La MAÇONNERIE du mur, elle, vient du bloc plein (`floorFaces`). */
+/** Éléments `wall` SYNTHÉTIQUES des crêtes crénelées (`cretesDePerimetre`, RENDU PUR comme un toit auto-dessiné),
+ *  chacun en vue avec sa case crénelée ; `viewZ` isole un étage (debug). */
 function crestGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
   const viewZ = view?.viewZ ?? null;
-  const { w, h } = scene.dimensions;
-  const out: Viewed<WallEl>[] = [];
-  for (const l of scene.layers) {
-    if (viewZ != null && l.z !== viewZ) continue; // isolement debug d'un étage
-    const z = l.z;
-    if (!l.crenellated) continue;
-    for (let y = 0; y < h; y++)
-      for (let x = 0; x < w; x++) {
-        const appId = crenellatedAt(scene, x, y, z);
-        if (!appId) continue;
-        const surfaceH = heightAt(scene, x, y, z);
-        const cApp = structureAppearance(appId);
-        for (const side of DIR4_ORDER) {
-          const [dx, dy] = CARD_NB[side];
-          const nx = x + dx, ny = y + dy;
-          if (isCrenellated(scene, nx, ny, z)) continue; // arête INTERNE → pas de crête
-          // ACCÈS (rampe/escalier atteint le chemin de ronde à ~même hauteur) → entrée OUVERTE, pas de
-          // merlons en travers du passage.
-          if (scene.layers.some((l) => isWalkable(scene, nx, ny, l.z) && gradeBetween(surfaceH, heightAt(scene, nx, ny, l.z)) !== 'cliff')) continue;
-          const e = edgeOf(x, y, nx, ny);
-          if (!e) continue;
-          // STRUCTURE (porte/herse) sous l'arête → elle rend DÉJÀ sa propre crête (corps de garde) : pas de
-          // double crénelure au-dessus de la porte.
-          if (scene.layers.some((l) => l.z < z && structureAt(scene, e.x, e.y, e.side, l.z))) continue;
-          const [A, B] = wallEnds({ x: e.x, y: e.y, side: e.side });
-          out.push({
-            off: {
-              kind: 'wall', key: `crest:${e.x},${e.y},${e.side},${z}`, cell: { x: e.x, y: e.y, z }, side: e.side,
-              door: false, appearance: cApp.id,
-              ends: [{ ...A, h: surfaceH }, { ...B, h: surfaceH }],
-              faces: crownFaces(cApp, A, B, surfaceH),
-              states: { visible: false, down: false, open: false },
-            },
-            rule: { kind: 'enVue', keys: [`${x},${y},${z}`] },
-          });
-        }
-      }
-  }
-  return out;
+  return cretesDePerimetre(scene)
+    .filter((c) => viewZ == null || c.case.z === viewZ)
+    .map(({ case: c, arete: e, apparence, ends, faces }) => ({
+      off: {
+        kind: 'wall', key: `crest:${e.x},${e.y},${e.side},${e.z}`, cell: { x: e.x, y: e.y, z: e.z }, side: e.side,
+        door: false, appearance: apparence.id, ends, faces,
+        states: { visible: false, down: false, open: false },
+      },
+      rule: { kind: 'enVue', keys: [`${c.x},${c.y},${c.z}`] },
+    }));
 }
 
 /** Une NAPPE de toit indexée par cellule — pour `roofSeamGeometry` : son emprise et le CHAMP de son
@@ -574,7 +511,7 @@ function murNu(w: WallSeg): WallSeg {
  *  lecture × étage rendu, jamais au pas (#808). `lecture` EXPLICITE : `auteur` (éditeur) dessine le
  *  document authoré, `jeu` (partie, POV, plans de jeu) l'état runtime. `view` ABSENT ⇒ toutes les couches ; sinon
  *  `viewZ` isole un étage (debug), sinon z ≤ activeZ (le jeu ne dresse pas les cloisons AU-DESSUS de
- *  la zone active). La hauteur de BASE est MÉTRIQUE (`heightAt`, la vérité POV — un niveau vaut 4·z).
+ *  la zone active). La hauteur de BASE est MÉTRIQUE (`piedDeLArete`, la vérité POV — un niveau vaut 4·z).
  *  Les CRÊTES crénelées (décoration de rendu pur, `crestGeometry`) sont AJOUTÉES en fin — elles ne
  *  coupent ni passage ni LdV. */
 function wallGeometry(scene: Scene, lecture: LectureDArete, view?: FloorView): Viewed<WallEl>[] {
@@ -587,7 +524,7 @@ function wallGeometry(scene: Scene, lecture: LectureDArete, view?: FloorView): V
     const w = lecture === 'jeu' && porteMasquee(scene, authored) ? murNu(authored) : authored;
     const z = w.z ?? 0;
     if (view && (viewZ != null ? z !== viewZ : z > activeZ)) continue;
-    const baseH = heightAt(scene, w.x, w.y, z);
+    const baseH = piedDeLArete(scene, w);
     const facade = authoredEdges.get(edgeKey(w));
     const app = edgeAppearance(facade, w);
     const wallHeightM = app.wallHeightM ?? WALL_H_M;

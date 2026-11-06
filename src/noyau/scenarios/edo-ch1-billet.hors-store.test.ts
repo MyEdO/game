@@ -56,12 +56,14 @@ function aBord(): void {
 }
 
 /** Laisse le trajet en cours s'achever — étapes de la journée de voyage jouées (`draineCascade`),
- *  récapitulatif acquitté — et vérifie l'arrivée à `lieu`. */
+ *  récapitulatif acquitté —, vérifie l'arrivée à `lieu`, puis entre dans sa scène (« Explorer »). */
 function arriver(lieu: string): void {
   draineCascade(get);
   if (get().travelRecap) get().fenetreFermer('recitDeVoyage');
   expect(get().travelPlan).toBeNull();
-  expect(map.places.find((p) => p.scene === get().scene?.id)?.id, `arrivée à ${lieu}`).toBe(lieu);
+  expect(get().lieu, `arrivée à ${lieu}`).toBe(lieu);
+  get().fenetreFermer('ecranDuLieu');
+  draineCascade(get);
 }
 
 /** Au virage : le corps de Kastor se fouille, le sosie se désigne (EDO 02 l.91), les Documents 3 et 4
