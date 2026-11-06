@@ -292,7 +292,7 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   const hero = corruptionTarget(get(), pr.heroId);
   if (!hero) { releaseCorruptionSlot(get, set); return; }
   const lines: string[] = [];
-  if (renounce && (hero.resilience ?? 0) > 0) {
+  if (renounce) {
     hero.resilience = (hero.resilience ?? 0) - 1;
     lines.push(t('cor.renounced', { name: hero.label }));
     pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id, severity: 'minor' });

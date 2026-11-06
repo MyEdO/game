@@ -2559,11 +2559,11 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
   void port;
 }
 
-/** Refus de payer la bénédiction du Prêtre de Manann (MDG 15 l.246) : `refusDeGesteSurLeGroupe`, ou la bourse ne
- *  couvre pas son prix ; `null` sinon. Lu par le choix du Prêtre (`OUVERTS_DU_CHOIX`) et par l'écran. */
-export function refusDePayerManann(s: Pick<Jeu, 'net' | 'party' | 'pendingManannPriest'>): string | null {
+/** Refus de payer la bénédiction du Prêtre de Manann (MDG 15 l.246) : la bourse ne couvre pas son prix ; `null` sinon.
+ *  Lu par le choix du Prêtre (`OUVERTS_DU_CHOIX`), que `refusDuChoix` refuse d'abord à un invité. */
+export function refusDePayerManann(s: Pick<Jeu, 'party' | 'pendingManannPriest'>): string | null {
   const p = s.pendingManannPriest;
-  return refusDeGesteSurLeGroupe(s) ?? (p && !canAfford(totalDesBourses(s.party), p.cost) ? t('sv.benedictionHorsBourse') : null);
+  return p && !canAfford(totalDesBourses(s.party), p.cost) ? t('sv.benedictionHorsBourse') : null;
 }
 
 /** Résout le choix « Prêtre de Manann » (MDG 15 l.246) : `pay` payé → débite le coût déjà tiré, que le choix n'admet

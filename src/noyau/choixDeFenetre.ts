@@ -7,6 +7,7 @@
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { fateSaveOptions } from '../engine/fortune';
+import { isHealable } from '../engine/healing';
 import { findMoraleFactor, payChoices } from '../engine/crewMorale';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Jeu } from './etat';
@@ -18,6 +19,7 @@ import { refuserGesteDuSiege } from './refusVisible';
 import type { Reglage, ValeurDuReglage } from './reglages';
 import { refusDeChoixDePaie } from './shipCrew';
 import { refusDePayerManann } from './seaVoyageFlow';
+import { corruptionTarget } from './corruptionFlow';
 import {
   VERBE_DE_CHOIX, declarationDuChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
 } from './choixDesFenetres';
@@ -52,7 +54,8 @@ export const OUVERTS_DU_CHOIX = {
       return p ? ISSUES_DU_DESTIN.filter((v) => v === 'accept' || offertes.includes(v)).map((v) => ouverte(v, t(`valeur.issue.${v}`))) : [];
     }),
   },
-  renounce: { renier: reglage('renounce', 'renier', ouiNon((s) => !!s.pendingRenounce)) },
+  // LDB 17 l.67
+  renounce: { renier: reglage('renounce', 'renier', ouiNon((s) => !!s.pendingRenounce, (s, renier) => (renier && (corruptionTarget(s, s.pendingRenounce?.heroId)?.resilience ?? 0) <= 0 ? libelleDeLaFermeture('sansResilience') : null))) },
   mountTarget: {
     cible: reglage('mountTarget', 'cible', (s) => DESIGNATIONS.IdDuCoupleMonte.lire(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDuCoupleMonte.nom(s, id), id, 'couple monté')))),
   },
@@ -65,8 +68,8 @@ export const OUVERTS_DU_CHOIX = {
   shoreLeave: { accorder: reglage('shoreLeave', 'accorder', ouiNon((s) => !!s.pendingShoreLeave)) },
   medic: {
     patient: reglage('medic', 'patient', (s) => {
-      const verrou = s.pendingHeal || s.medic?.surgery ? libelleDeLaFermeture('soinEnCours') : null;
-      return s.party.map((h) => ouverte(h.id, h.label, verrou));
+      const verrou = s.pendingHeal || s.pendingSurgery || s.medic?.surgery ? libelleDeLaFermeture('soinEnCours') : null;
+      return s.party.map((h) => ouverte(h.id, h.label, verrou ?? (isHealable(h) ? null : t('medic.rienASoigner', { name: h.label }))));
     }, (s) => s.medic?.patientId ?? null),
     abandon: reglage('medic', 'abandon', (s) => (s.medic?.surgery || s.pendingSurgery ? [ouverte(true, libelleDuChoix('medic', 'abandon'))] : [])),
   },

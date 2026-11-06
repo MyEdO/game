@@ -3,8 +3,7 @@ import { Modal } from './Modal';
 import { EmbeddedShell } from './RollShell';
 import { ChoiceButtons } from './OptionChooser';
 import { Coins } from './Coins';
-import { refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
-import { refusDePayerManann } from '../noyau/seaVoyageFlow';
+import { refusDuChoix } from '../noyau/choixDeFenetre';
 import { Icon } from './Icon';
 
 /**
@@ -17,8 +16,8 @@ export function ManannBody({ embedded = false }: { embedded?: boolean } = {}) {
   const p = useGame((s) => s.pendingManannPriest);
   const choisir = useGame((s) => s.fenetreChoisir);
   const resolve = (payer: boolean) => choisir('manannPriest', 'payer', payer);
-  const refusPayer = useGame(refusDePayerManann);
-  const refusRefuser = useGame(refusDeGesteSurLeGroupe);
+  const refusPayer = useGame((s) => refusDuChoix(s, 'manannPriest', 'payer', true));
+  const refusRefuser = useGame((s) => refusDuChoix(s, 'manannPriest', 'payer', false));
   if (!p) return null;
   const title = <><Icon id="faith/church" size="sm" /> Un Prêtre de Manann s'avance…</>;
   const body = (

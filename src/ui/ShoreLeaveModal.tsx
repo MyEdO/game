@@ -3,6 +3,7 @@ import { Modal } from './Modal';
 import { EmbeddedShell } from './RollShell';
 import { ChoiceButtons } from './OptionChooser';
 import { Icon } from './Icon';
+import { refusDuChoix } from '../noyau/choixDeFenetre';
 
 /**
  * Permission de RELÂCHE À TERRE (MDG 15 l.245, événement de port) : posée à l'accostage AVANT le
@@ -18,7 +19,8 @@ export function ShoreLeaveBody({ embedded = false }: { embedded?: boolean } = {}
   const p = useGame((s) => s.pendingShoreLeave);
   const choisir = useGame((s) => s.fenetreChoisir);
   const resolve = (accorder: boolean) => choisir('shoreLeave', 'accorder', accorder);
-  const isGuest = useGame((s) => s.net.mode) === 'guest';
+  const refusAccorder = useGame((s) => refusDuChoix(s, 'shoreLeave', 'accorder', true));
+  const refusRefuser = useGame((s) => refusDuChoix(s, 'shoreLeave', 'accorder', false));
   if (!p) return null;
   const title = <><Icon id="travel/anchor" size="sm" /> Accostage à {p.to.label}</>;
   const body = (
@@ -34,8 +36,8 @@ export function ShoreLeaveBody({ embedded = false }: { embedded?: boolean } = {}
       <ChoiceButtons
         idPrefix="shore"
         options={[
-          { key: 'accorder', label: <><Icon id="travel/anchor" size="sm" /> Accorder la relâche</>, primary: true, refus: isGuest ? 'L\'hôte décide de la relâche.' : undefined, onSelect: () => resolve(true), title: isGuest ? undefined : 'Autoriser l\'équipage à faire relâche à terre' },
-          { key: 'refuser', label: <><Icon id="travel/anchor" size="sm" /> Refuser la relâche</>, refus: isGuest ? 'L\'hôte décide de la relâche.' : undefined, onSelect: () => resolve(false), title: isGuest ? undefined : 'Garder l\'équipage à bord — l\'Embrigadement n\'aura pas lieu' },
+          { key: 'accorder', label: <><Icon id="travel/anchor" size="sm" /> Accorder la relâche</>, primary: true, refus: refusAccorder ?? undefined, onSelect: () => resolve(true), title: refusAccorder ? undefined : 'Autoriser l\'équipage à faire relâche à terre' },
+          { key: 'refuser', label: <><Icon id="travel/anchor" size="sm" /> Refuser la relâche</>, refus: refusRefuser ?? undefined, onSelect: () => resolve(false), title: refusRefuser ? undefined : 'Garder l\'équipage à bord — l\'Embrigadement n\'aura pas lieu' },
         ]}
       />
   );

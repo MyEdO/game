@@ -8,7 +8,7 @@ import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
 import { crewRoleValue, competencesDuRole, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe } from './bourseFlow';
+import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
 import { deMonde, type RNG } from '../engine/dice';
 import type { BattleState, CampaignVessel, Jeu } from './etat';
@@ -514,10 +514,10 @@ export function choixDePaieOuverts(s: Jeu): string[] {
   return payChoices().map((c) => c.factorId).filter((id) => isFreePayChoice(id) || canAfford(bourse, fromBrass(payChoiceCostBrass(p.wageBrass, id))));
 }
 
-/** Refus d'un choix de paie du Conseil : `refusDeGesteSurLeGroupe`, ou la bourse ne couvre pas ce choix ;
- *  `null` sinon. Lu par le choix de la paie (`OUVERTS_DU_CHOIX`) et l'écran du Conseil. #229 */
+/** Refus d'un choix de paie du Conseil : la bourse ne couvre pas ce choix ; `null` sinon. Lu par le choix de la paie
+ *  (`OUVERTS_DU_CHOIX`), que `refusDuChoix` refuse d'abord à un invité. #229 */
 export function refusDeChoixDePaie(s: Jeu, decision: string): string | null {
-  return refusDeGesteSurLeGroupe(s) ?? (choixDePaieOuverts(s).includes(decision) ? null : t('crew.paieHorsBourse'));
+  return choixDePaieOuverts(s).includes(decision) ? null : t('crew.paieHorsBourse');
 }
 
 /** Les chansons que réglage `shanty.chanson` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que

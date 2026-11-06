@@ -1,5 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
+import { refusDuChoix } from '../noyau/choixDeFenetre';
 import { flowStakeRef, skillRefLabel } from '../data';
 import { stakeRuleOf } from './StakeNote';
 import { CodexRef } from './compendium/CodexRef';
@@ -10,7 +12,7 @@ import { Coins } from './Coins';
 import { DrBar } from './DrBar';
 import { useHealJetProps } from './jetProps/useHealJetProps';
 import { EmbeddedShell, useRollShell } from './RollShell';
-import { isHealable, lodgedAmmoCount, HEAL_MODES, type HealMode } from '../engine/healing';
+import { lodgedAmmoCount, HEAL_MODES, type HealMode } from '../engine/healing';
 import { stacks } from '../engine/conditions';
 import { bestHealerFor, fenetreDeLOperation, refusDActeDeSoin, HEAL_STAKE } from '../noyau/medicFlow';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
@@ -48,6 +50,7 @@ export function MedicModal() {
   const party = useGame((s) => s.party);
   const money = partyMoneyTotal(useGame.getState); // somme des bourses (le groupe est abonné via `party`)
   const choisir = useGame((s) => s.fenetreChoisir);
+  const refusDuPatient = useGame(useShallow((s) => Object.fromEntries(s.party.map((h) => [h.id, refusDuChoix(s, 'medic', 'patient', h.id)]))));
   const act = useGame((s) => s.medicAct);
   const setWound = useGame((s) => s.medicSetWound);
   const openPass = useGame((s) => s.openSurgeryPass);
@@ -93,8 +96,8 @@ export function MedicModal() {
             variant="full"
             size="md"
             selected={h.id === medic.patientId}
-            onClick={!busy && isHealable(h) ? () => choisir('medic', 'patient', h.id) : undefined}
-            nom={isHealable(h) ? h.label : `${h.label} — rien à soigner`}
+            onClick={refusDuPatient[h.id] ? undefined : () => choisir('medic', 'patient', h.id)}
+            nom={refusDuPatient[h.id] ?? h.label}
           />
         ))}
       </div>
