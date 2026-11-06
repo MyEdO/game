@@ -510,7 +510,7 @@
   flex-direction: column;
   gap: 6px;
 }
-.node-id {
+.node-id input {
   width: 90px;
 }
 .node-speaker {
