@@ -192,7 +192,7 @@ export function resolveMountIncident(entry: TravelTableEntry, mount: PartyMount,
     // Test du cavalier, sous peine de chute (l.166 / l.171). Une séquelle DÉJÀ portée grève ce Test (l.174).
     const carried = mountIncidentEffects(mount.possession.mountInjury)?.ridingPenalty ?? 0;
     const { skill, characteristic, difficulty = DIFFICULTE_PAR_DEFAUT } = eff.riderTest.test;
-    const base = Math.max(0, testValue(mount.hero, skill?.id, characteristic, skill?.spec) + carried);
+    const base = Math.max(0, testValue(mount.hero, { skill, characteristic }) + carried);
     const tst = rollTest(base, difficulty, rng);
     out.riderTest = testDetail(testSkillLabel({ skill, characteristic }) ?? 'Test', base, tst);
     if (!tst.success) {

@@ -290,7 +290,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
-    expect(get().journal.join('\n')).toContain('Rencontre dangereuse — Territoire hostile');
+    expect(get().journal.join('\n')).toContain('Territoire hostile : ');
   });
 });
 
@@ -500,7 +500,7 @@ describe('Péripétie terrestre — base NUE + Soutien NOMMÉ, cible invariante 
     set({ travelPlan: { routeId: 'r1', fromPlaceId: 'pa', toPlaceId: 'pb', mode: 'pied', hoursPerDay: 6, km: 12, kmDone: 0, interrupted: false } as never });
 
     const nue = skillBaseValue(lead, 'survie-en-exterieur');
-    const jetee = testValue(lead, 'survie-en-exterieur');
+    const jetee = testValue(lead, { skill: { id: 'survie-en-exterieur' } });
     expect(jetee, 'l’État mord le jet, pas le Niveau de Compétence').toBeLessThan(nue);
     const soutien = soutienDetail(get().party, lead, 'survie-en-exterieur');
     expect(soutien.bonus, 'le camarade éligible soutient (l.195)').toBeGreaterThan(0);

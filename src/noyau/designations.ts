@@ -1,17 +1,16 @@
 /**
  * LES IDS QU'UN VERBE DÉSIGNE (#2898) : un alias de type par genre d'id que le jeu sait énumérer, et LA table
- * (`DESIGNATIONS`) qui, pour chaque nom d'alias, donne son nom en mots et lit dans l'état les ids valides, ou les objets désignés par leur
- * `id`. Les paramètres d'`ActionsDuNoyau` (`actionsDuNoyau.ts`, `rollFlowSpecs.ts`) portent ces alias ; le générateur
+ * (`DESIGNATIONS`) qui, pour chaque nom d'alias, donne son nom en mots et lit dans l'état les ids valides. Les paramètres d'`ActionsDuNoyau` (`actionsDuNoyau.ts`, `rollFlowSpecs.ts`) portent ces alias ; le générateur
  * des verbes (`scripts/docs/lib/verbesDeLaPartie.mjs`) lit le NOM de l'alias écrit dans la déclaration du paramètre,
  * pour les seules clés de cette table, et un hôte (`argumentsDuVerbe`, `src/hote/geste.ts`) refuse un id que la table ne
  * rend pas. Un genre neuf : un alias et une entrée ici, rien dans l'hôte.
  */
 import type { Jeu } from './etat';
-import { portalsForParty, type RoomPortal } from './monde/roomPortals';
+import { portesDuMobile } from './marcheDuGroupe';
 import { scenesDuRegistre } from './monde/registreDesScenes';
 import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
-import { findCreatureById, findSeaShantyById, findTrappingById } from '../data';
+import { findCreatureById, findSeaShantyById, findTrappingById, pregens } from '../data';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
@@ -22,6 +21,7 @@ import { adversairesADistraire, adversairesDuBattement } from './combatManeuvers
 import { idsDuCoupleMonte } from './targetingModes';
 import { reponsesDuNoeud } from './dialogue';
 import { plaiesDeLOperation } from './medicFlow';
+import { seaActivitiesCatalog } from './seaActivities';
 
 /** Un combattant : la file de combat et le groupe (`porteurParId`, `monde/combatants.ts`). */
 export type IdDeCombattant = string;
@@ -56,16 +56,24 @@ export type IdDAdversaireDuBattement = string;
 export type IdDAdversaireADistraire = string;
 /** Le cavalier ou la monture que le choix `mountTarget.cible` accepte (`idsDuCoupleMonte`, `targetingModes.ts`). */
 export type IdDuCoupleMonte = string;
+/** Une Activité en mer du catalogue (`seaActivitiesCatalog`, MDG 15 l.268). */
+export type IdDActiviteEnMer = string;
 /** Une réponse VISIBLE du nœud de dialogue courant, par son `id` (`reponsesDuNoeud`, `dialogue.ts`). */
 export type IdDeReponseDeDialogue = string;
 /** Une Blessure Critique que l'opération armée peut viser, par son `uid` (`plaiesDeLOperation`, `medicFlow.ts`). */
 export type IdDePlaieDeLOperation = string;
+/** Un accès de pièce que le mobile du monde emprunte, par son `id` (`portesDuMobile`, `marcheDuGroupe.ts`). */
+export type IdDePorte = string;
+/** Un indice présent au carnet (`clues`). */
+export type IdDIndice = string;
+/** Un pré-tiré de la donnée (`pregens.json`), par son `id`. */
+export type IdDePretire = string;
 
-/** Une désignation : son nom en mots, ce qu'elle lit dans l'état (les ids valides, ou les objets désignés par leur `id`),
- *  et le nom en mots du joueur de l'élément d'un id (`null` : l'élément n'a pas de nom). */
+/** Une désignation : son nom en mots, les ids valides qu'elle lit dans l'état, et le nom en mots du joueur de
+ *  l'élément d'un id (`null` : l'élément n'a pas de nom). */
 interface Designation {
   mot: string;
-  lire: (s: Jeu) => readonly string[] | readonly { id: string }[];
+  lire: (s: Jeu) => readonly string[];
   nom: (s: Jeu, id: string) => string | null;
 }
 
@@ -84,7 +92,7 @@ const formesConjurables = (s: Jeu): string[] => {
 };
 const labelDePossession = (s: Jeu, uid: string): string | null => s.possessions.find((p) => p.uid === uid)?.label ?? null;
 
-/** Les désignations, par NOM d'alias (ou d'interface désignée par son `id`). `mot` est un littéral : le générateur des
+/** Les désignations, par NOM d'alias. `mot` est un littéral : le générateur des
  *  verbes le lit au source. */
 export const DESIGNATIONS = {
   IdDeCombattant: { mot: 'id de combattant', lire: combattants, nom: nomDeCombattant },
@@ -114,11 +122,14 @@ export const DESIGNATIONS = {
   IdDAdversaireDuBattement: { mot: 'id d’adversaire du Battement', lire: (s) => ids(adversairesDuBattement(s)), nom: nomDeCombattant },
   IdDAdversaireADistraire: { mot: 'id d’adversaire à distraire', lire: (s) => ids(adversairesADistraire(s)), nom: nomDeCombattant },
   IdDuCoupleMonte: { mot: 'id du couple monté', lire: idsDuCoupleMonte, nom: nomDeCombattant },
+  IdDActiviteEnMer: { mot: 'id d’Activité en mer', lire: () => ids(seaActivitiesCatalog()), nom: (_s, id) => labelParmi(seaActivitiesCatalog(), id) },
   IdDeReponseDeDialogue: { mot: 'id de réponse de dialogue', lire: (s) => ids(reponsesDuNoeud(s)), nom: (s, id) => labelParmi(reponsesDuNoeud(s), id) },
   IdDePlaieDeLOperation: {
     mot: 'id de plaie de l’opération',
     lire: (s) => plaiesDeLOperation(s).map((p) => p.uid),
     nom: (s, uid) => plaiesDeLOperation(s).find((p) => p.uid === uid)?.label ?? null,
   },
-  RoomPortal: { mot: 'id de porte', lire: (s): readonly RoomPortal[] => (s.scene ? portalsForParty(s.scene, s.partyPos) : []), nom: () => null },
+  IdDePorte: { mot: 'id de porte', lire: (s) => ids(portesDuMobile(s)), nom: () => null },
+  IdDePretire: { mot: 'id de pré-tiré', lire: () => ids(pregens), nom: (_s, id) => labelParmi(pregens, id) },
+  IdDIndice: { mot: 'id d’indice', lire: (s) => Object.keys(s.clues), nom: (s, id) => s.campaignNarratif?.indices.find((i) => i.id === id)?.titre ?? null },
 } satisfies Record<string, Designation>;

@@ -7,7 +7,7 @@
  * d'identité devient le défaut du monde : une recette s'authore telle qu'elle se voit à l'instance
  * SANS cap. La géométrie MONDE ne bouge pas — la recette tourne de 180° dans son repère local, et
  * `rotatePropLocal` retranche les 4 crans que `S` valait : les deux se compensent EXACTEMENT, à tous
- * les caps (contrat `src/gameIso/builders/propVolumes.test.ts`, « l’instance SANS cap rend la
+ * les caps (contrat `src/noyau/monde/volume/propVolumes.test.ts`, « l’instance SANS cap rend la
  * géométrie AUTHORÉE »). Ce script est la moitié DONNÉE de ce changement de repère.
  *
  * NEUTRALITÉ DE RENDU, à sa juste portée : l'ENSEMBLE des faces monde est inchangé à tous les caps
@@ -15,7 +15,7 @@
  * sommets, lui, CHANGE — la rotation renumérote les pans d'un cylindre et échange les joues d'un
  * prisme (88/88 cellules mesurées). Aucun consommateur ne dépend de cet ordre (la cuisson trie par
  * matériau et profondeur), mais les GOLDENS qui le figent se recalent : c'est le cas des quatre
- * snapshots de `src/gameIso/builders/propVolumes.test.ts`.
+ * snapshots de `src/noyau/monde/volume/propVolumes.test.ts`.
  *
  * CE QUI TOURNE, dans le repère local de chaque recette (180° autour de l'origine locale) :
  *  - `primitives[].center` : `x → −x`, `y → −y` (`h`, `size`, `radius`, `heightM` sont invariants) ;

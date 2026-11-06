@@ -10,13 +10,13 @@ import { t } from '../../i18n';
 import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 
-/** Un personnage du roster, tel que sorti du créateur : le héros, sa Richesse initiale (absente du Combatant,
- *  rejouée quand il rejoint un groupe), et `draft`, le brouillon EXACT du créateur qui le rouvre sans perte
- *  (absent : édition reconstruite). */
+/** Un personnage du roster, tel que sorti du créateur : le héros, sa Richesse initiale (absente du Combatant), et
+ *  `draft`, le brouillon EXACT du créateur qui le rouvre sans perte et que le geste engage au groupe, où le noyau
+ *  rebâtit le héros (`HerosEngage`). */
 export interface RosterEntry {
   hero: Combatant;
   wealth: Money;
-  draft?: CreatorDraft;
+  draft: CreatorDraft;
 }
 
 /** Le roster tel que stocké : `version` vaut `FORMAT_ROSTER` (#2404). */
@@ -57,9 +57,7 @@ export function rosterAvecLeHeros(heros: readonly RosterEntry[], hero: Combatant
   const i = heros.findIndex((e) => e.hero.id === hero.id);
   if (i < 0) return null;
   const prev = heros[i];
-  const draft: CreatorDraft | undefined = prev.draft
-    ? { ...prev.draft, motivation: hero.motivation ?? '', ambitionShort: hero.details?.ambitionShort ?? '', ambitionLong: hero.details?.ambitionLong ?? '' }
-    : prev.draft;
+  const draft: CreatorDraft = { ...prev.draft, motivation: hero.motivation ?? '', ambitionShort: hero.details?.ambitionShort ?? '', ambitionLong: hero.details?.ambitionLong ?? '' };
   return heros.map((e, j) => (j === i ? { ...prev, hero, draft } : e));
 }
 
@@ -71,11 +69,12 @@ export interface ExportDeHeros {
   version: string;
   hero: Combatant;
   wealth: Money;
+  draft: CreatorDraft;
 }
 
-/** Sérialise un héros (avec sa Richesse) en chaîne portable, sous son `kind` et `FORMAT_EXPORT_HEROS`. */
+/** Sérialise un héros (avec sa Richesse et son brouillon) en chaîne portable, sous son `kind` et `FORMAT_EXPORT_HEROS`. */
 export function rosterExport(entry: RosterEntry): string {
-  const doc: ExportDeHeros = { kind: EXPORT_KIND, version: FORMAT_EXPORT_HEROS, hero: entry.hero, wealth: entry.wealth };
+  const doc: ExportDeHeros = { kind: EXPORT_KIND, version: FORMAT_EXPORT_HEROS, hero: entry.hero, wealth: entry.wealth, draft: entry.draft };
   return JSON.stringify(doc, null, 2);
 }
 
@@ -96,7 +95,7 @@ export function rosterImport(str: string): RosterImportResult {
   const doc = parsed as Partial<ExportDeHeros> | null;
   if (!doc || typeof doc !== 'object' || doc.kind !== EXPORT_KIND) return { error: t('picker.import.error') };
   if (doc.version !== FORMAT_EXPORT_HEROS) return { error: t('picker.import.error.autreFormat') };
-  if (!doc.hero || typeof doc.hero.id !== 'string' || !doc.wealth) return { error: t('picker.import.error') };
+  if (!doc.hero || typeof doc.hero.id !== 'string' || !doc.wealth || !doc.draft) return { error: t('picker.import.error') };
   const { porteurs: [hero], retraits } = elaguerLePersiste({ porteurs: [doc.hero] });
-  return { entry: { hero, wealth: doc.wealth }, ...(rienDElague(retraits) ? {} : { retraits }) };
+  return { entry: { hero, wealth: doc.wealth, draft: doc.draft }, ...(rienDElague(retraits) ? {} : { retraits }) };
 }

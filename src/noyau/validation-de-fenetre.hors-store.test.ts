@@ -15,11 +15,14 @@ import { pregenParty, PREGEN } from '../data/pregens';
 import { t } from '../i18n';
 
 const RECAP = { titre: 'C', px: 0, chronique: [], tombes: [], lieux: [] };
+/** La fin de séance qu'ouvre le récap de chapitre avec lui (`armChapterRecap`). */
+const SEANCE = { heros: {}, groupe: {} };
 
 /** Chaque fenêtre que l'hôte seul valide, et l'état qui l'ouvre. */
 const FENETRES_DE_L_HOTE: readonly (readonly [FenetreAValider, Record<string, unknown>])[] = [
   ['ouverture', { pendingOuverture: { titre: 'O' } }],
-  ['chapterRecap', { pendingChapterRecap: RECAP }],
+  ['chapterRecap', { pendingChapterRecap: RECAP, finDeSeance: SEANCE }],
+  ['finDeSeance', { finDeSeance: SEANCE }],
   ['departure', { pendingDeparture: { mode: 'pied', cause: 'nuit', dawnAt: 0 } }],
   ['interlude', { interlude: { heroes: [] } }],
   ['marchand', { merchant: { pendingDistribution: [{ itemId: 'x' }] } }],
@@ -58,9 +61,10 @@ describe('fenetreValider', () => {
 
   it('l’hôte valide le récapitulatif du chapitre : la fenêtre se ferme', () => {
     const banc = ouvrirLeBanc();
-    banc.setState({ pendingChapterRecap: RECAP });
+    banc.setState({ pendingChapterRecap: RECAP, finDeSeance: SEANCE });
     banc.getState().fenetreValider('chapterRecap');
     expect(banc.getState().pendingChapterRecap).toBeNull();
+    expect(banc.getState().finDeSeance, 'la séance du récap est terminée').toBeNull();
   });
 });
 

@@ -32,8 +32,8 @@ describe('caractéristique d’incantation — DATA-DRIVEN (point unique, zéro 
 
   it('testValue et castingValue partagent LE MÊME point (carac d’instance respectée des deux côtés)', () => {
     const c = mk({ skills: [langue('endurance')] });
-    expect(testValue(c, 'langue', undefined, 'magick')).toBe(castingValue(c, 'langue', 'magick'));
-    expect(testValue(c, 'langue', undefined, 'magick')).toBe(40);
+    expect(testValue(c, { skill: { id: 'langue', spec: 'magick' } })).toBe(castingValue(c, 'langue', 'magick'));
+    expect(testValue(c, { skill: { id: 'langue', spec: 'magick' } })).toBe(40);
   });
 
   it('Domaine « Gueule » (Magie Ogre, ADE II 2 l.728) : Langue (Magick) sur Endurance — attribut DATA du domaine', () => {

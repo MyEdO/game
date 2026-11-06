@@ -158,7 +158,7 @@ const tintFactor = z.number().min(0).max(1);
  *  disparaît. Le rapport max/min des verticales est plafonné : au-delà, la famille la plus sombre
  *  passe sous le plancher de luminance de la scène (palier `tenebres` × `fogTint.explored`).
  *
- *  `bas` a un producteur : le DESSOUS d'un décor volumique (`gameIso/builders/propVolumes.ts`), dont
+ *  `bas` a un producteur : le DESSOUS d'un décor volumique (`noyau/monde/volume/propVolumes.ts`), dont
  *  chaque face porte son propre dehors jusqu'à la cuisson. Les murs, eux, n'en produisent aucun —
  *  `wallBoxPolys` (`noyau/monde/volume/worldTris.ts`) omet le dessous d'un mur, et un sol présente
  *  toujours sa normale vers le haut (`gameIso/stage/modele-forme.test.ts`). */

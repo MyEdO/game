@@ -2552,7 +2552,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
     seaDay({ forcePace: 1, milesToday: 50, effMToday: 12 });
     set({ party: get().party.map((h) => ({ ...h, conditions: [{ id: 'empoisonne', value: 1 }] })) } as never);
     const porteur = get().party[0]!;
-    expect(testValue(porteur, 'resistance', 'endurance'), 'l’État mord les jets du PJ').toBeLessThan(skillBaseValue(porteur, 'resistance', undefined, 'endurance'));
+    expect(testValue(porteur, { skill: { id: 'resistance' }, characteristic: 'endurance' }), 'l’État mord les jets du PJ').toBeLessThan(skillBaseValue(porteur, 'resistance', undefined, 'endurance'));
 
     const st = buildOverspeedSteps(get)[0];
     const hullE = effectiveChar(get().travelPlan!.vehicle!, 'endurance');
@@ -2714,12 +2714,13 @@ describe('#1341 (site maritime) — `engineerOf` demande la spec Métier par ID,
 
   it('testValue trouve la spécialisation par son ID — le LIBELLÉ perd les avances (contre-preuve)', () => {
     const h = ingenieur();
-    const parId = testValue(h, 'metier', undefined, 'ingenieur');
-    const parLabel = testValue(h, 'metier', undefined, 'Ingénieur');
+    const parId = testValue(h, { skill: { id: 'metier', spec: 'ingenieur' } });
+    const libelle = byId('skill', 'metier')?.specs?.find((s) => s.id === 'ingenieur')?.label;
+    const parLabel = testValue(h, { skill: { id: 'metier', spec: libelle } });
     expect(parId, 'par id : les avances comptent').toBeGreaterThan(parLabel);
     // …et le libellé rend EXACTEMENT ce que rend une demande SANS compétence : la compétence est
     // réputée absente, les 25 avances tombent en silence (33 sur cette fixture, passifs compris).
-    expect(parLabel, 'par libellé : la compétence est réputée absente').toBe(testValue(h, 'metier', undefined, 'inconnue-xyz'));
+    expect(parLabel, 'par libellé : la compétence est réputée absente').toBe(testValue(h, { skill: { id: 'metier', spec: 'inconnue-xyz' } }));
   });
 
   it('LE SITE — `engineerOf` élit bien l’INGÉNIEUR, là où la demande par libellé n’élit personne', () => {

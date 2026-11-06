@@ -119,7 +119,7 @@ describe('effets de mutation lus à la volée', () => {
     attachMutation(c, { id: 'visage-inverse', label: 'Visage inversé', desc: '', kind: 'physique', roll: 53, passive: [{ op: 'testMod', amount: -20, char: 'sociabilite' }] }, desDuTest);
     expect(passiveSkillSum(c, 'pistage')).toBe(10); // compétence nommée → collecteur passif (Σ, intrinsèque)
     expect(passiveTestMod(c, 'sociabilite')).toBe(-20); // Tests char-qualifiés (Visage inversé) → collecteur passif
-    expect(testValue(c, 'charme')).toBe(30 - 20); // Soc 30, Tests de Sociabilité −20 (bout en bout)
+    expect(testValue(c, { skill: { id: 'charme' } })).toBe(30 - 20); // Soc 30, Tests de Sociabilité −20 (bout en bout)
   });
   it('attachMutation pousse les Traits dérivés (créature + psychologie)', () => {
     const c = hero();

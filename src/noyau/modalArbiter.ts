@@ -332,7 +332,7 @@ export const HORS_MODAL = [
   { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId, verbes: ['battleClickTile'], sortie: 'proprietaire' }, // Placeur de case (ciblage carte, pas de modale) : le clic de case dépose l'impact
   { key: 'interact', pendingKey: 'pendingInteract', tientLaMain: false, owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
   { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['roundStartPromote', 'armPreempt', 'battleClickEntity'], validation: 'quorum' }, // Pause de début de Round (fenêtre Chance) : chaque siège se dit prêt, le quorum lance le Round ; le clic du combattant tire la visée armée (Tir rapide)
-  { key: 'seaActivities', pendingKey: 'pendingSeaActivities', tientLaMain: true, owner: () => '*', verbes: ['seaActivitiesConfirm'] }, // Activités hebdomadaires en mer : décision de groupe
+  { key: 'seaActivities', pendingKey: 'pendingSeaActivities', tientLaMain: true, owner: () => '*', validation: 'hote' }, // Activités hebdomadaires en mer : chaque siège choisit pour ses héros, l'hôte valide la semaine
   { key: 'manannPriest', pendingKey: 'pendingManannPriest', tientLaMain: true, owner: () => '*' }, // Événement de port (MDG 15) : décision de groupe
   { key: 'shoreLeave', pendingKey: 'pendingShoreLeave', tientLaMain: true, owner: () => '*' }, // Relâche à terre (MDG 15) : décision de groupe
   { key: 'campaign', pendingKey: 'pendingCampaign', tientLaMain: false, owner: () => undefined }, // Campagne choisie au menu : un écran de l'hôte avant tout siège, que « Lancer » charge
@@ -375,9 +375,14 @@ export interface SurfaceHorsPendingDef {
   owner?: (s: ArbiterState) => string | undefined;
   /** La surface se ferme (`fenetreFermer`), par l'hôte : aucun siège ne la possède. */
   sortie?: 'hote';
+  /** Ce qui ferme sa sortie maintenant, comme `ModalDef.sortieFermee`. */
+  sortieFermee?: (s: ArbiterState) => FermetureDuJet | null;
   /** La surface se valide (`fenetreValider`), par l'hôte. */
   validation?: 'hote';
 }
+
+/** La fin de séance du récap de chapitre se joue par lui (`fenetreValider('chapterRecap')`, `fenetreFermer('chapterRecap')`). */
+export const seanceDuChapitre = (s: ArbiterState): FermetureDuJet | null => (s.pendingChapterRecap ? 'seanceDuChapitre' : null);
 
 /** Un combat perdu tient l'écran. */
 const defaiteDuCombat = (s: ArbiterState): boolean => s.mode === 'battle' && s.battle?.over === 'defeat';
@@ -391,9 +396,10 @@ export const SURFACES_HORS_PENDING = [
   { key: 'carteDuMonde', tientLaMain: (s) => !!s.worldMapOpen && s.mode === 'exploration', sortie: 'hote' },
   { key: 'port', tientLaMain: (s) => !!s.port && s.mode === 'exploration', sortie: 'hote' },
   { key: 'marcheDeTerre', tientLaMain: (s) => !!s.landMarket && s.mode === 'exploration', sortie: 'hote' },
-  // Le récit de voyage attend la conversation et la carte (`ui/CampaignView`) ; la fin de séance, la conversation.
+  // Le récit de voyage attend la conversation et la carte (`ui/CampaignView`) ; la fin de séance, la conversation, et
+  // celle du récap de chapitre se termine avec lui (`seanceDuChapitre`).
   { key: 'recitDeVoyage', tientLaMain: (s) => !!s.travelRecap && s.mode === 'exploration' && !s.dialogue && !s.worldMapOpen, sortie: 'hote' },
-  { key: 'finDeSeance', tientLaMain: (s) => !!s.sessionEndOpen && !s.dialogue, sortie: 'hote' },
+  { key: 'finDeSeance', tientLaMain: (s) => !!s.finDeSeance && !s.dialogue, validation: 'hote', sortie: 'hote', sortieFermee: seanceDuChapitre },
   // La conversation (#1262) : la scène la porte, elle ne tient pas la main ; sa réponse est une décision de groupe, au
   // siège du MONDE (`ownsGroupDecision`).
   { key: 'dialogue', tientLaMain: () => false, ouverte: (s) => !!s.dialogue, owner: () => WORLD_STEP_OWNER },
@@ -470,7 +476,7 @@ function gestesDeclares<Q extends QuiValideLaFenetre>(champ: (d: { sortie?: QuiF
   return out;
 }
 const ouverteSansVerdict = (): null => null;
-const FERMETURES_DES_SORTIES: ReadonlyMap<string, SortieDeLaFenetre['fermee']> = new Map((MODAL_DEFS as readonly ModalDef[]).flatMap((d) => (d.sortieFermee ? [[d.key, d.sortieFermee] as const] : [])));
+const FERMETURES_DES_SORTIES: ReadonlyMap<string, SortieDeLaFenetre['fermee']> = new Map([...(MODAL_DEFS as readonly ModalDef[]), ...(SURFACES_HORS_PENDING as readonly SurfaceHorsPendingDef[])].flatMap((d) => (d.sortieFermee ? [[d.key, d.sortieFermee] as const] : [])));
 const SORTIES_DECLAREES: ReadonlyMap<string, SortieDeLaFenetre> = new Map([...gestesDeclares((d) => d.sortie)].map(([cle, g]) => [cle, { ...g, fermee: FERMETURES_DES_SORTIES.get(cle) ?? ouverteSansVerdict }]));
 const VALIDATIONS_DECLAREES = gestesDeclares((d) => d.validation);
 

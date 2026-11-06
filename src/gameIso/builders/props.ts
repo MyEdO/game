@@ -17,7 +17,7 @@ import { roofHidden, massFootBBox } from '../../noyau/monde/buildings';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { decorAncre, decorFootGeometry } from '../../noyau/monde/footprint';
 import { findPropById, refEstVolumique } from '../../data';
-import { buildPropVolumes } from './propVolumes';
+import { facesDuDecor } from '../../noyau/monde/volume/propVolumes';
 import { terrainOverlayProp } from '../../noyau/monde/terrain';
 import { buildingFeatures } from '../../noyau/monde/buildings';
 import { facadeFeatureViz } from '../catalog/facades';
@@ -68,7 +68,7 @@ interface AncrageDecorBase {
  *  d'un décor. La règle elle-même vit dans le CATALOGUE (`refEstVolumique`, `src/data/index.ts`) — cet
  *  émetteur la LIT, comme la lisent le validateur de scène (`noyau/validateScene.ts`) et le sélecteur
  *  d'orientation de l'éditeur (`ui/editor/Inspector.tsx`) ; aucun d'eux ne la redevine. Volume = la
- *  recette compilée sur l'ancre (`buildPropVolumes`) ; billboard = le dessin ancré aux pieds, décalé de
+ *  recette compilée sur l'ancre (`facesDuDecor`) ; billboard = le dessin ancré aux pieds, décalé de
  *  `ancre − cell`. Les deux portent la MÊME identité, la même empreinte et les mêmes vérités de scène. */
 function elDeDecor(a: AncrageDecor, mpt: number): PropEl {
   const origine: OrigineDecor = a.source === 'entity'
@@ -82,27 +82,26 @@ function elDeDecor(a: AncrageDecor, mpt: number): PropEl {
     states: a.states,
     ...origine,
   };
-  const prop = !a.sansVolume && refEstVolumique(a.ref) ? findPropById(a.ref) : undefined;
-  const facing = prop?.volume ? capVolumique(a.facing) : undefined;
-  if (a.ref !== undefined && prop?.volume && facing) {
+  const faces = a.sansVolume ? null : facesDuDecor(a.ref, {
+    ancre: a.ancre,
+    ...(a.facing ? { facing: a.facing } : {}),
+    baseHeightM: a.solM + (a.liftM ?? 0),
+    ...(a.entId ? { entId: a.entId } : {}),
+  }, mpt);
+  if (faces) {
     return {
       ...commun,
-      ref: a.ref,
-      facing,
+      ref: a.ref!,
+      facing: capVolumique(a.facing)!,
       ...(a.nappe ? { nappe: a.nappe } : {}),
       ...(a.roomZoneIds?.length ? { roomZoneIds: a.roomZoneIds } : {}),
-      faces: buildPropVolumes(prop, {
-        ancre: a.ancre,
-        facing,
-        baseHeightM: a.solM + (a.liftM ?? 0),
-        ...(a.entId ? { entId: a.entId } : {}),
-      }, mpt),
+      faces,
     };
   }
   return {
     ...commun,
     // Cap refusé d'un décor volumique (`capVolumique`) : billboard d'ERREUR (#877), jamais son art.
-    ...(prop?.volume ? { ref: undefined } : {}),
+    ...(!a.sansVolume && refEstVolumique(a.ref) ? { ref: undefined } : {}),
     ...(a.facing ? { facing: a.facing } : {}),
     ...(a.architectureFeatureId ? { architectureFeatureId: a.architectureFeatureId } : {}),
     foot: { offX: a.ancre.x - a.cell.x, offY: a.ancre.y - a.cell.y, scale: a.echelle ?? 1 },

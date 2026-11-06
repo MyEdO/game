@@ -53,7 +53,7 @@ import { volatileCharLines } from '../engine/characteristics';
 import { precipitationTestMods, type SeaPrecipitationId } from '../engine/seaWeather';
 import { startCascade, runCascadeImmediate, rollBatchParticipant, pushStep, tableStepPosee, clampStepAmount, porteursDeLEtape, compteurDeSequence } from './cascade';
 import { tablesPosees, type GenreDEtape, type GenreDeCascade } from './tablesPosees';
-import { testValue, partyBest, partyAssisted, testValueSplit, testValueParts, skillBaseValue, supportSplit, type SupportDetail } from '../engine/skills';
+import { testValue, partyBest, partyAssisted, testValueSplit, testValueParts, skillBaseValue, supportSplit, type SupportDetail, sujetDesIds } from '../engine/skills';
 import { testStatePenaltyParts, testStatePenalty } from '../engine/conditions';
 import { tenuParUnHumain, seatOwns, conduitParLeSiegeDuMonde } from './sieges';
 import { porteurParId } from './monde/combatants';
@@ -117,7 +117,7 @@ type Surface = 'M' | 'V' | 'I';
  *  de table d'un adversaire abstrait, `tavernFlow.combinedSecondTarget`) : un acteur désigné calcule
  *  TOUJOURS `testValue` ICI. */
 export function effectiveTargetClamped(actor: Combatant | undefined, test: RollRequest['test'], difficulty: Difficulty, baseOverride?: number): { target: number; clamped?: number } {
-  const value = baseOverride ?? (actor ? testValue(actor, test.skill, test.characteristic, test.spec, test.sense) : 0);
+  const value = baseOverride ?? (actor ? testValue(actor, sujetDesIds(test), test.sense) : 0);
   return clampTarget(cibleDuTest(value, difficulty));
 }
 
@@ -752,7 +752,7 @@ export interface RollLineParts {
  *  Le découpage positionnel est VÉRIFIÉ par l'oracle du canal (`rawCombatTestBase`), jamais supposé. */
 function partsHorsEtats(actor: Combatant, t: RollLineBase['test'] = {}): ModLine[] {
   const etats = testStatePenaltyParts(actor, t.skill, { sense: t.sense }).filter((p) => p.value !== 0).length;
-  return testValueParts(actor, t.skill, t.characteristic, t.spec, t.sense).slice(etats);
+  return testValueParts(actor, sujetDesIds(t), t.sense).slice(etats);
 }
 
 /** DÉFAIT une valeur de COMBAT en base NUE + composantes NOMMÉES — jumeau de `testValueSplit` pour le
@@ -789,7 +789,7 @@ function combatChannelValue(actor: Combatant | undefined, canal: RollLineCombat,
   // de la pénalité d'États hors combat). Sans cela, un Test de combat sense-scopé (Surdité, LDB 18)
   // verrait sa valeur et ses composantes diverger, et l'oracle THROW sur un site pourtant correct.
   return canal.kind === 'test'
-    ? testValue(actor, t?.skill, t?.characteristic, t?.spec, t?.sense) - testStatePenalty(actor, t?.skill, { sense: t?.sense })
+    ? testValue(actor, sujetDesIds(t ?? {}), t?.sense) - testStatePenalty(actor, t?.skill, { sense: t?.sense })
       + conditionModLines(actor, { skill: t?.skill, sense: t?.sense }).reduce((s, m) => s + m.value, 0)
     : combatBaseValue(actor, canal.kind, canal.weapon) + combatValueModParts(actor, canal.kind, canal.weapon).reduce((s, m) => s + m.value, 0);
 }
@@ -862,11 +862,11 @@ export function rollLine(spec: RollLineSpec): RollLineParts {
   }
   const value = spec.valeur ?? (spec.combat
     ? combatChannelValue(spec.actor, spec.combat, t)
-    : (spec.actor ? testValue(spec.actor, t.skill, t.characteristic, t.spec, t.sense) : 0));
+    : (spec.actor ? testValue(spec.actor, sujetDesIds(t), t.sense) : 0));
   const split = spec.combat
     ? combatValueSplit(spec.actor, spec.combat, t, value, spec.soutien, fusedSum)
     : testValueSplit(spec.actor, value, {
-      support: spec.soutien, skill: t.skill, characteristic: t.characteristic, spec: t.spec, sense: t.sense, fused: fusedSum,
+      support: spec.soutien, sujet: sujetDesIds(t), sense: t.sense, fused: fusedSum,
     });
   if (!split.exact && !spec.valeurEtrangere) {
     const formule = spec.combat ? (spec.combat.kind === 'test' ? 'la valeur de Test de combat brute' : 'la valeur de combat NUE') : 'le Niveau de Compétence';

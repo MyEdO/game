@@ -46,14 +46,14 @@ describe('le geste d’un accès : une source pour le noyau et l’écran', () =
     const { fermee, ouverte } = enExploration();
     expect(fermee.kind).toBe('door-closed');
     expect(ouverte.kind).toBe('door-open');
-    expect(gesteDuPortail(g(), fermee)).toEqual({ verbe: 'actionnerLaPorte', args: [fermee] });
+    expect(gesteDuPortail(g(), fermee)).toEqual({ verbe: 'actionnerLaPorte', args: [fermee.id] });
     expect(gesteDuPortail(g(), ouverte)).toEqual({ verbe: 'cliquerLaCase', args: [ouverte.to] });
   });
 
   it('les gestes d’exploration offrent exactement ces deux gestes pour les deux portes', () => {
     const { fermee, ouverte } = enExploration();
     const gestes = gestesDExploration(g()).flatMap((x) => x.gestes);
-    expect(gestes).toContainEqual({ verbe: 'actionnerLaPorte', args: [fermee] });
+    expect(gestes).toContainEqual({ verbe: 'actionnerLaPorte', args: [fermee.id] });
     expect(gestes).toContainEqual({ verbe: 'cliquerLaCase', args: [ouverte.to] });
   });
 

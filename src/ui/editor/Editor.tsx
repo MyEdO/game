@@ -31,7 +31,7 @@ import { sceneToAscii, type SceneAsciiExport } from '../../noyau/monde/sceneToAs
 import { testScenarios } from '../../scenes/test-scenarios';
 import type { TestScenario } from '../../scenes/test-scenarios/_shared';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
-import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../noyau/worldMap';
+import { WorldMap, parseProject, texteDuDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../noyau/worldMap';
 import { MAISON_PROJET_AUTHORE } from '../../data/schemas/defs-scenes/projet';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
@@ -683,7 +683,7 @@ export function Editor({
     downloadText(`${project.id}-projet.json`, JSON.stringify(project, null, 2));
   }
   /** Export en FORME DÉPÔT (DEV) d'une campagne livrée : le fichier que l'on commite sous `src/scenes/`
-   *  (`projetVersDepot`), sous SON nom et au format du dépôt. Libellé : celui de la campagne tant que le
+   *  (`texteDuDepot`), sous SON nom et au format du dépôt. Libellé : celui de la campagne tant que le
    *  nom posé à l'ouverture n'a pas bougé, sinon le nom que l'auteur a donné. Équivalent projet de
    *  `datasetSerializeRoot` (`data/overrides.ts`) ; la même porte que l'export passe AVANT. */
   function exportDepot(origine: NonNullable<typeof origineLivree>) {
@@ -695,7 +695,7 @@ export function Editor({
       return;
     }
     setRefusDuGeste(null);
-    downloadText(origine.fichier, `${JSON.stringify(projetVersDepot(project), null, 1)}\n`);
+    downloadText(origine.fichier, texteDuDepot(project));
   }
   /**
    * Un fichier peut être refusé pour DEUX causes, et l'auteur ne corrige pas la même chose : le

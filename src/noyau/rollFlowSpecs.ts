@@ -51,7 +51,7 @@ import { rollLine, type RollLineParts } from './rollSeam';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
 import { activityModLines } from '../engine/activities';
-import { testValue, valeurDuTest, idsDuTest, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
+import { testValue, idsDuTest, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
 import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
 import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castInfoIsPrayer, counterspellValue, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
@@ -1126,7 +1126,7 @@ export const FLOWS = paresseux({
       const pco = s.pendingCastOpposition;
       if (!actor || !pcCast || !pco) return null;
       const castT = castTestOf(pcCast); // l'incantation figée = l'« attaquant » de l'opposition
-      const oppVal = valeurDuTest(actor, pco.test);
+      const oppVal = testValue(actor, pco.test);
       // LDB 09 l.17 ; LDB 12 l.160.
       const { skill, spec, characteristic } = idsDuTest(pco.test);
       const oppBase = skillBaseValue(actor, skill, spec, characteristic);
@@ -1991,7 +1991,7 @@ export const FLOWS = paresseux({
       if (!actor) return null;
       // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) : avant le jet (choisit 01) OU après un échec.
       if (forced) return forcedBinaryResult(p.result, cibleBrute(ligneDeProtection(actor)));
-      return simpleTestResultResolve((_p, a) => testValue(a, undefined, JET_DE_PROTECTION.test.characteristic), JET_DE_PROTECTION.difficulty)(s, p, actor);
+      return simpleTestResultResolve((_p, a) => testValue(a, { characteristic: JET_DE_PROTECTION.test.characteristic }), JET_DE_PROTECTION.difficulty)(s, p, actor);
     },
     outcome: (p) => testOutcome(p.result),
   }),

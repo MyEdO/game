@@ -1,19 +1,27 @@
 /**
  * L'ÉDITEUR DE CARTE PAR LE PONT (#3508) : `editer` ouvre la première scène d'une campagne du jeu, joue les gestes que
  * ses zones offrent et les gestes du pointeur, rend la surcouche du geste en cours, et le monde à l'ouverture, au
- * changement de couche et à chaque écriture finie, jamais pendant le geste.
+ * changement de couche et à chaque écriture finie, jamais pendant le geste. Ouverte du texte que sert le dépôt, la carte
+ * s'y enregistre : `editer` rend le texte à écrire, et la tient pour enregistrée à l'issue réussie de l'écriture.
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
-import type { VolumeDuMonde } from '../../../src/noyau/index';
+import type { AreteDessinee, VolumeDuMonde } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Ligne } from '../../../src/hote/elements';
 import type { SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
+import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 
 interface Edition {
   vue: { zones: ZonesDeLEditeur; couche: number };
   surcouche: SurcoucheDeLEdition;
   monde?: VolumeDuMonde;
+  aretes?: AreteDessinee[];
+  depot?: { id: string; texte: string };
 }
 
 /** L'édition d'une réponse réussie, ou l'échec qui dit la réponse. */
@@ -27,6 +35,13 @@ function boutonDe(e: Edition, id: string): Bouton {
   const b = Object.values(e.vue.zones).flat().flatMap((el: Ligne | Choix | Bouton) => (el.type === 'bouton' ? [el] : el.type === 'ligne' ? [] : el.valeurs)).find((v) => v.id === id);
   if (!b) throw new Error(`aucun bouton ${id}`);
   return b;
+}
+
+/** Les valeurs du choix d'id `id` des options de l'outil. */
+function valeursDe(e: Edition, id: string): Bouton[] {
+  const c = e.vue.zones['editeur.options'].find((el) => el.id === id);
+  if (c?.type !== 'choix' && c?.type !== 'liste') throw new Error(`aucun choix ${id}`);
+  return c.valeurs;
 }
 
 /** La première campagne du jeu : chaque scène a au moins deux cases de côté. */
@@ -58,7 +73,7 @@ describe('l’éditeur de carte par le pont', () => {
     jouer({ geste: 'relache', point: point(1, 1) });
 
     const terrain = presser(boutonDe(visee, 'outil/tile'));
-    const autre = (terrain.vue.zones['editeur.options'].find((c) => c.id === 'terrains')!.valeurs).find((b) => !avant.includes(` · ${b.libelle} · `))!;
+    const autre = valeursDe(terrain, 'terrains').find((b) => !avant.includes(` · ${b.libelle} · `))!;
     presser(autre);
     const trait = jouer({ geste: 'appui', point: point(1, 1) });
     expect(trait.surcouche.cases, 'la case peinte, à la surcouche').toEqual([{ x: 1, y: 1, z: 0 }]);
@@ -99,5 +114,143 @@ describe('l’éditeur de carte par le pont', () => {
     const retiree = presser(boutonDe(presser(boutonDe(auRez, `couche/${z}`)), 'couche/retirer'));
     expect([boutonDe(retiree, 'couche/0').presse, retiree.vue.couche]).toEqual([true, 0]);
     expect(() => boutonDe(retiree, `couche/${z}`)).toThrow();
+  });
+});
+
+describe('l’éditeur de carte par le pont, les murs', () => {
+  it('l’outil murs pose une porte du matériau choisi sur l’arête la plus proche ; la sélection la décrit ; annuler la retire', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const auNord = (aretes: AreteDessinee[]) => aretes.filter((a) => a.milieu.x === 1 && a.milieu.y === 0.5);
+    expect(auNord(ouverte.aretes!), 'l’arête nord de la case 1, 1, libre à l’ouverture').toEqual([]);
+    const murs = presser(boutonDe(ouverte, 'outil/wall'));
+    expect(boutonDe(murs, 'arete/wall').presse).toBe(true);
+    const portes = presser(boutonDe(murs, 'arete/door'));
+    const materiau = valeursDe(portes, 'structures')[1];
+    presser(materiau);
+    const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, porte: true, ouverte: true }]);
+    jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
+
+    presser(boutonDe(posee, 'outil/select'));
+    const choisie = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
+    expect(choisie.vue.zones['editeur.pointee'].map((l) => l.texte)).toContain(`Arête 1, 1 N · couche 0 · porte · ${materiau.libelle}`);
+    expect(choisie.surcouche.arete).toEqual(auNord(posee.aretes!)[0]);
+    jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
+
+    expect(auNord(presser(boutonDe(choisie, 'annuler')).aretes!)).toEqual([]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {
+  it('porte secrète : le brouillon attend difficulté et face, puis l’écrit fermée ; fenêtre franchissable : l’allège à la réglette', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const auNord = { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } };
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/wall'));
+    jouer({ geste: 'appui', point: auNord });
+    presser(boutonDe(jouer({ geste: 'relache', point: auNord }), 'outil/select'));
+    let e = jouer({ geste: 'appui', point: auNord });
+    jouer({ geste: 'relache', point: auNord });
+    const inspecte = (id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id);
+    expect(boutonDe(e, 'arete/cloison').presse).toBe(true);
+
+    e = presser(boutonDe(e, 'arete/porte'));
+    e = presser(boutonDe(e, 'arete/secrete'));
+    expect(inspecte('arete/secreteIncomplete'), 'la porte secrète attend').toMatchObject({ ton: 'alerte' });
+    expect(boutonDe(e, 'arete/fermee').presse, 'rien d’écrit au brouillon').toBe(false);
+    e = presser(boutonDe(e, 'arete/perception/difficile'));
+    e = presser(boutonDe(e, 'arete/face/porteuse'));
+    expect([inspecte('arete/secreteIncomplete'), boutonDe(e, 'arete/fermee').presse, boutonDe(e, 'arete/fermee').refus])
+      .toEqual([undefined, true, 'Une porte secrète est fermée au départ : décochez d’abord « Porte secrète »']);
+
+    e = presser(boutonDe(e, 'arete/cloison'));
+    e = presser(boutonDe(e, 'arete/fenetre'));
+    e = presser(boutonDe(e, 'arete/franchissable'));
+    expect(inspecte('arete/allege')).toMatchObject({ ton: 'alerte' });
+    expect(boutonDe(e, 'arete/allege/moins').refus).toBe('Déjà au minimum');
+    e = presser(boutonDe(e, 'arete/allege/plus'));
+    e = presser(boutonDe(e, 'arete/allege/plus'));
+    expect(inspecte('arete/allege')).toMatchObject({ texte: 'Hauteur d’allège : 0.2 m', ton: 'neutre' });
+    e = presser(boutonDe(e, 'arete/suspendu/plus'));
+    expect(inspecte('arete/suspendu')).toMatchObject({ texte: 'Chute si l’on se suspend d’abord : 0.5 m' });
+
+    e = presser(boutonDe(e, 'arete/supprimer'));
+    expect(e.vue.zones['editeur.inspecteur'], 'l’arête supprimée, plus d’inspecteur').toEqual([]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, la volée', () => {
+  it('l’outil volée trace ses cases en surcouche ; poser une volée que son plan refuse se refuse, sa raison en clair ; effacer vide le tracé', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const volee = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/stair'));
+    expect(boutonDe(volee, 'volee/effacer').refus).toBe('Aucune case tracée');
+    const tracee = jouer({ geste: 'appui', point: point(1, 1) });
+    jouer({ geste: 'relache', point: point(1, 1) });
+    expect(tracee.surcouche.cases).toEqual([{ x: 1, y: 1, z: 0 }]);
+    const ligneDes = (id: string) => tracee.vue.zones['editeur.options'].find((e) => e.id === id);
+    expect(ligneDes('trace')).toMatchObject({ texte: 'Tracé : 1 case' });
+    const poser = boutonDe(tracee, 'volee/poser');
+    expect(poser.refus).toBeTruthy();
+    expect(ligneDes('plan'), 'la raison du plan, en clair').toMatchObject({ texte: poser.refus });
+    expect(erreurDe(appel('editer', poser.jeu))).toEqual({ categorie: 'regle', message: `editer : ${poser.refus}` });
+    expect(presser(boutonDe(tracee, 'volee/effacer')).surcouche.cases).toEqual([]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, au dépôt', () => {
+  const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
+  const servi = lireProjetLivre(manuscrit) as { id: string };
+  const ouvrir = (doc: unknown = servi) => ({ ouvrir: servi.id, projet: JSON.stringify(doc) });
+
+  it('ouverte du jeu, elle ne s’enregistre pas ; ouverte du dépôt, rien à enregistrer tant qu’elle n’a pas changé', () => {
+    const { appel } = table();
+    expect(boutonDe(editionDe(appel('editer', { ouvrir: servi.id })), 'enregistrer').refus).toBe('Ouverte du jeu, hors du dépôt : elle ne s’enregistre pas');
+    expect(boutonDe(editionDe(appel('editer', ouvrir())), 'enregistrer').refus).toBe('Rien à enregistrer');
+  });
+
+  it('un projet servi illisible, d’un autre id ou refusé par la porte se refuse', () => {
+    const { appel } = table();
+    expect(erreurDe(appel('editer', { ouvrir: servi.id, projet: '{' })).message).toBe('editer : projet, JSON illisible');
+    expect(erreurDe(appel('editer', ouvrir({ ...servi, id: CAMPAGNE }))).categorie).toBe('validation');
+    expect(erreurDe(appel('editer', ouvrir({ ...servi, scenes: [] }))).message).toMatch(/^editer : Ouverture refusée/);
+  });
+
+  it('enregistrer rend le texte du dépôt, la case peinte comprise ; l’issue réussie le tient pour enregistré, l’échouée non', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', ouvrir()));
+    expect(erreurDe(appel('editer', { edition: { geste: 'enregistrement', reussi: true } })).message).toBe('editer : aucun enregistrement en cours');
+    const terrain = presser(boutonDe(ouverte, 'outil/tile'));
+    const avant = jouer({ geste: 'appui', point: point(1, 1) });
+    const autre = valeursDe(terrain, 'terrains').find((b) => !b.presse)!;
+    jouer({ geste: 'relache', point: point(1, 1) });
+    presser(autre);
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const peinte = jouer({ geste: 'relache', point: point(1, 1) });
+    expect(avant.vue.zones['editeur.pointee'][0].texte).not.toContain(` · ${autre.libelle} · `);
+
+    const enCours = presser(boutonDe(peinte, 'enregistrer'));
+    expect(enCours.depot!.id).toBe(servi.id);
+    expect(boutonDe(enCours, 'enregistrer').refus).toBe('Enregistrement en cours');
+    expect(boutonDe(jouer({ geste: 'enregistrement', reussi: false }), 'enregistrer').refus, 'l’écriture échouée laisse la carte à enregistrer').toBeNull();
+    presser(boutonDe(peinte, 'enregistrer'));
+    expect(boutonDe(jouer({ geste: 'enregistrement', reussi: true }), 'enregistrer').refus).toBe('Rien à enregistrer');
+
+    const depot = mkdtempSync(join(tmpdir(), 'editeur-3508-'));
+    const fichier = join(dossierDesProjetsLivres(depot), manuscrit);
+    mkdirSync(dirname(fichier), { recursive: true });
+    writeFileSync(fichier, enCours.depot!.texte);
+    const { appel: rouvrir } = table();
+    rouvrir('editer', ouvrir(lireProjetLivre(manuscrit, depot)));
+    rmSync(depot, { recursive: true, force: true });
+    const relue = editionDe(rouvrir('editer', { edition: { geste: 'appui', point: point(1, 1) } }));
+    expect(relue.vue.zones['editeur.pointee'][0].texte, 'rouverte, la case porte le terrain peint').toContain(` · ${autre.libelle} · `);
   });
 });

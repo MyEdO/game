@@ -22,6 +22,7 @@ import { useGame } from '../../state/store';
 import { props } from '../../data';
 import { bus, EVT } from '../../noyau/bus';
 import type { Combatant } from '../../engine/types';
+import type { BattleState } from '../../noyau/etat';
 import { aretesUtilisables, type AreteUtilisable } from '../../noyau/aretes';
 import { projeterAretes } from './aretesProjetees';
 import { VH, VW } from './useStageCamera';
@@ -118,12 +119,6 @@ function pointerEvent(x: number, y: number) {
     currentTarget: { style: {} },
   } as unknown as React.PointerEvent;
 }
-
-// Ce banc remplace l'ACTION `moveParty` du store par une sonde. Le store est partagé par toute la
-// suite (`isolate: false`) : une action laissée stubbée fait tourner à vide le pas d'un fichier
-// voisin, qui mesure alors un monde qui ne bouge plus.
-const MOVE_PARTY_VRAI = useGame.getState().moveParty;
-afterEach(() => useGame.setState({ moveParty: MOVE_PARTY_VRAI }));
 
 describe('useStagePointer — picking exploration', () => {
   let root: Root | null = null;
@@ -700,11 +695,13 @@ describe('useStagePointer — le saut et la porte passent par les actions du jeu
     expect(useGame.getState().partyPos).toEqual({ x: 0, y: 1 });
   });
 
-  it('en combat, un clic sur une porte ouverte la referme', () => {
+  it('en combat, un clic sur une porte ouverte de l’actif la referme', () => {
     const scene = emptyScene('scene-test', 4, 3);
     scene.effectZones = [piece('room-a', 1, 1)];
     scene.walls = [{ x: 0, y: 1, side: 'E', door: true, closed: false }];
-    useGame.setState({ scene, mode: 'battle', partyPos: { x: 0, y: 1 }, party: [], dialogue: null });
+    const actif = { ...heroSauteur(), pos: { x: 0, y: 1 } };
+    const battle = { combatants: [actif], order: [actif.id], turn: 0 } as unknown as BattleState;
+    useGame.setState({ scene, mode: 'battle', battle, partyPos: { x: 3, y: 2 }, party: [], dialogue: null });
     const pointer = monterPointeur();
 
     const ouverte = areteDe(scene, { x: 0, y: 1 }, '0,1,E,0');
@@ -712,7 +709,7 @@ describe('useStagePointer — le saut et la porte passent par les actions du jeu
     pointer.activerArete(ouverte);
 
     expect(areteDe(useGame.getState().scene!, { x: 0, y: 1 }, '0,1,E,0').portail?.kind).toBe('door-closed');
-    useGame.setState({ mode: 'exploration' });
+    useGame.setState({ mode: 'exploration', battle: null });
   });
 });
 

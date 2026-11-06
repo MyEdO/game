@@ -659,10 +659,10 @@ export function resolveDistraire(attacker: Combatant, foe: Combatant, atk: TestR
 /** Valeurs du Test opposé d'Athlétisme/Calme du Distraire (LDB 10 l.364) — SOURCE des jets de
  *  `resolveDistraire`. Pur. */
 export function distraireAttackValue(c: Combatant): number {
-  return testValue(c, 'athletisme');
+  return testValue(c, { skill: { id: 'athletisme' } });
 }
 export function distraireDefenseValue(c: Combatant): number {
-  return testValue(c, 'calme');
+  return testValue(c, { skill: { id: 'calme' } });
 }
 /** Niveaux de Compétence NUS du départage du Distraire — LDB 12 l.160, LDB 09 l.17. Pur. */
 export function distraireAttackBase(c: Combatant): number {

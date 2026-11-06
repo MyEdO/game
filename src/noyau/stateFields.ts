@@ -72,7 +72,8 @@ const STATE_FIELDS = {
   // `openCombatEndCascade`. Réinitialisés à chaque nouveau combat/scène (per-combat, jamais reportés).
   deferredUpkeepQueue: { init: [], resetOn: ['scene', 'combatStart'] },
   sequence: { init: null, resetOn: ['scene', 'combatStart'] },
-  sessionEndOpen: { init: false, resetOn: ['scene'] },
+  // La fin de séance survit au changement de scène, comme le récap de chapitre qui l'ouvre avec lui.
+  finDeSeance: { init: null, resetOn: [] },
   pendingCastOpposition: { init: null, resetOn: ['combatStart'] }, // MÊME portée que l'incantation qu'elle oppose (pendingCast/pendingCounterspell) : la fenêtre ne survit pas à son Sort
   pendingHeal: { init: null, resetOn: ['combatStart'] },
   pendingSurgery: { init: null, resetOn: [] }, // hors-combat, vit DANS l'infirmerie (medic, resetOn []) — purgé avec elle

@@ -85,10 +85,11 @@ function assembler() {
   const generateursDEtal = disjointes('generateursDEtal', portFlow.generateursDEtal, landMarketFlow.generateursDEtal) satisfies TablesDuJeu['generateursDEtal'];
   return {
     appliers,
+    annonces: disjointes('annonces', travelPostes.annonces, interludeFlow.annonces),
     plis: disjointes('plis', combatFlow.plis),
     reglesDeSucces: disjointes('reglesDeSucces', seaVoyageFlow.reglesDeSucces),
     issuesDeTestEtendu: disjointes('issuesDeTestEtendu', seaActivities.issuesDeTestEtendu),
-    tablesTirables: disjointes('tablesTirables', travelFlow.tablesTirables, combatFlow.tablesTirables, interludeFlow.tablesTirables),
+    tablesTirables: disjointes('tablesTirables', travelFlow.tablesTirables, travelPostes.tablesTirables, combatFlow.tablesTirables, interludeFlow.tablesTirables),
     famillesTirables: [...travelFlow.famillesTirables, ...seaVoyageFlow.famillesTirables, ...tavernFlow.famillesTirables,
       ...corruptionFlow.famillesTirables, ...combatFlow.famillesTirables],
     crochetsDeCombat: uniques('crochetsDeCombat', [...roundHooks.crochetsDeCombat, ...turnHooks.crochetsDeCombat]),

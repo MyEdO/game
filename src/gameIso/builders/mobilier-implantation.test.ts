@@ -4,7 +4,7 @@ import { seatSlotsOf, seatIsOccupiable, type ResolvedSeatSlot } from '../../noya
 import { decorAncre } from '../../noyau/monde/footprint';
 import { findPropById } from '../../data';
 import { capVolumique, empreinteDuProp, empriseLocaleM, placeAssiseDe, rotatePropLocal } from '../../data/props.types';
-import { buildPropVolumes } from './propVolumes';
+import { buildPropVolumes } from '../../noyau/monde/volume/propVolumes';
 import { chebyshev } from '../../engine/grid';
 
 /**

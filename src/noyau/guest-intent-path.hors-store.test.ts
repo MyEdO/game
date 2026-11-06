@@ -28,6 +28,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { intentAllowedFor } from './netOwnership';
 import { refusDAjoutAuGroupe } from './partyFlow';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { engage } from './creation/engagement.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -127,7 +128,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
 
   it('composition : `partyAddHero` prend le siège du transport, jamais celui des args', () => {
     hoteEtUnInvite();
-    expect(applyIntent(1, 'partyAddHero', [pregen('g1'), undefined, 0])).toBe('appliquee');
+    expect(applyIntent(1, 'partyAddHero', [engage('g1'), 0])).toBe('appliquee');
     expect(banc.getState().net.ownership.g1, 'l’invité a posé son héros au siège qu’il a choisi').toBe(1);
   });
 
@@ -137,23 +138,23 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
       party: quatre, journal: [],
       net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [0, 0, 0, 1], ownership: { h1: 0, h2: 0, h3: 0, h4: 0 } },
     });
-    expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliquee');
+    expect(applyIntent(1, 'partyAddHero', [engage('g1')])).toBe('appliquee');
     expect(banc.getState().party.map((h) => h.id)).toEqual(['h1', 'h2', 'h3', 'h4']);
     expect(refusDAjoutAuGroupe(banc.getState(), undefined, 1)).toBe('Le groupe est complet (4 héros).');
   });
 
   it('composition : l’intent d’un invité au quota épuisé atteint le geste, qui le refuse ; le verdict de SON siège le dit', () => {
     hoteEtUnInvite();
-    expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliquee');
-    expect(applyIntent(1, 'partyAddHero', [pregen('g2')])).toBe('appliquee');
+    expect(applyIntent(1, 'partyAddHero', [engage('g1')])).toBe('appliquee');
+    expect(applyIntent(1, 'partyAddHero', [engage('g2')])).toBe('appliquee');
     expect(banc.getState().party.map((h) => h.id)).toEqual(['g1']);
     expect(refusDAjoutAuGroupe(banc.getState(), undefined, 1)).toBe('Tous vos emplacements du groupe sont remplis.');
   });
 
   it('composition : `partyReplaceHero` aussi', () => {
     hoteEtUnInvite();
-    expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliquee');
-    expect(applyIntent(1, 'partyReplaceHero', ['g1', pregen('g2'), 0])).toBe('appliquee');
+    expect(applyIntent(1, 'partyAddHero', [engage('g1')])).toBe('appliquee');
+    expect(applyIntent(1, 'partyReplaceHero', ['g1', engage('g2'), 0])).toBe('appliquee');
     expect(banc.getState().net.ownership.g2, 'l’invité a posé son héros au siège qu’il a choisi').toBe(1);
   });
 

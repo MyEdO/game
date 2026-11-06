@@ -792,3 +792,8 @@ export function projetVersDepot<T extends { worldMap?: WorldMap }>(doc: T): T {
   if (!carte) return disque;
   return { ...disque, worldMap: { ...carte, places: carte.places.map((p) => (p.port ? { ...p, port: portVersDepot(p.port) } : p)) } };
 }
+
+/** Le TEXTE du fichier commité d'un document de projet : sa forme dépôt (`projetVersDepot`), au format du dépôt. */
+export function texteDuDepot<T extends { worldMap?: WorldMap }>(doc: T): string {
+  return `${JSON.stringify(projetVersDepot(doc), null, 1)}\n`;
+}

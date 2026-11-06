@@ -860,6 +860,24 @@
     }
   },
   {
+    "id": "stage-encounter",
+    "type": "stakes",
+    "label": "Rencontre de l'Étape",
+    "cascade": "voyage",
+    "cle": "stageEncounter",
+    "template": "La Rencontre de l'Étape : l'entrée tirée sur la table de sa catégorie arrive au groupe.",
+    "form": "descripteur",
+    "rule": {
+      "id": "rencontres-de-voyage",
+      "type": "regle"
+    },
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 35,
+      "note": "EDOC 8 l.182-233"
+    }
+  },
+  {
     "id": "land-peril-survie",
     "type": "stakes",
     "label": "Voyage éreintant — itinéraire de substitution",

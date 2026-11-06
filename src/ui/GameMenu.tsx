@@ -19,7 +19,7 @@ import { t } from '../i18n';
  */
 type MenuView = 'root' | 'coop' | 'options';
 
-export function GameMenu({ sceneName, time, onQuit, onSaveLoad, refusDeSauvegarde = null, onEndSession, refusDeFinDeSeance = null, initialView = 'root', initialOpen = false }: {
+export function GameMenu({ sceneName, time, onQuit, onSaveLoad, refusDeSauvegarde = null, onFinDeSeance, refusDeFinDeSeance = null, initialView = 'root', initialOpen = false }: {
   sceneName?: string;
   /** Horloge de campagne (minutes depuis l'époque) — méta d'en-tête discrète (lieu + date, jamais la bourse). */
   time: number;
@@ -29,7 +29,7 @@ export function GameMenu({ sceneName, time, onQuit, onSaveLoad, refusDeSauvegard
   /** La raison de refuser la sauvegarde (`refusDeSauvegarde`), `null` si elle s'écrit : l'entrée se ferme et la dit. */
   refusDeSauvegarde?: RefusDeSauvegarde | null;
   /** Ouvre l'écran de fin de séance (Ambitions + Détermination + Chance restaurée) — exploration seule. */
-  onEndSession?: () => void;
+  onFinDeSeance?: () => void;
   /** La raison qui ferme « Fin de séance », traduite ; `null` : ouverte. */
   refusDeFinDeSeance?: string | null;
   /** Sous-écran affiché à l'ouverture — aide de test (défaut `root`). */
@@ -81,7 +81,7 @@ export function GameMenu({ sceneName, time, onQuit, onSaveLoad, refusDeSauvegard
                 <MenuButton icon="file/save" onClick={act(onSaveLoad)} refus={refusDeSauvegarde ? t(MESSAGE_DU_REFUS[refusDeSauvegarde]) : undefined}>{t('gameMenu.saveLoad')}</MenuButton>
                 <MenuButton icon="nav/online" onClick={() => setView('coop')}>{t('gameMenu.section.coop')}</MenuButton>
                 <MenuButton icon="ui/settings" onClick={() => setView('options')}>{t('gameMenu.options')}</MenuButton>
-                <MenuButton icon="resource/xp" onClick={act(onEndSession)} refus={refusDeFinDeSeance ?? undefined}>{t('gameMenu.endSession')}</MenuButton>
+                <MenuButton icon="resource/xp" onClick={act(onFinDeSeance)} refus={refusDeFinDeSeance ?? undefined}>{t('gameMenu.finDeSeance')}</MenuButton>
                 <MenuButton icon="map-tool/door" onClick={onQuit}>{t('gameMenu.quit')}</MenuButton>
               </MenuSection>
             </MenuCard>

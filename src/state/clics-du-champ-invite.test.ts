@@ -17,7 +17,6 @@ const arena = () => {
   const w = 22, h = 16;
   return { id: 's', dimensions: { w, h }, layers: [{ z: 0, tiles: new Array(w * h).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as never;
 };
-const reels = { battleClickEntity: get().battleClickEntity, battleClickTile: get().battleClickTile };
 
 /** Invité du siège 0, qui tient le tour de h1. Les verbes locaux sont des espions, que le substitut d'invité
  *  enrobe ; un espion EXTÉRIEUR enregistre ce que le site appelle dans l'état. */
@@ -44,7 +43,7 @@ function invite() {
 beforeEach(() => { useGame.setState({ battle: null, party: [], combatCursor: null, net: initialNet() }); });
 afterEach(() => {
   restoreGuestActions();
-  useGame.setState({ ...reels, battle: null, party: [], combatCursor: null, net: initialNet() });
+  useGame.setState({ battle: null, party: [], combatCursor: null, net: initialNet() });
 });
 
 describe('clics du champ chez l’invité — le geste part en intention, à chaque site', () => {

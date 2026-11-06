@@ -56,10 +56,16 @@
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
-// - `editeur` (#3508) : « Éditeur » ouvre la Diligence sur sa couche 0 ; l'outil Hauteur, « Haute (4 m) » et le pinceau
-//   3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre l'emprise du
-//   pinceau sur chaque case et le monde reste tel quel ; relâché, la surface des cases peintes monte à l'écran.
-//   « Annuler » la rend à sa place ; « Couche 1 » édite l'étage.
+// - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
+//   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
+//   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
+//   l'emprise du pinceau sur chaque case et le monde reste tel quel ; relâché, la surface des cases peintes monte à
+//   l'écran. « Enregistrer » l'écrit à la copie du dépôt, puis rien à enregistrer ; « Annuler » rend la surface à sa
+//   place. L'outil Murs, un clic sur le côté commun de deux de ces cases pose une cloison sur le monde ; l'outil
+//   Sélection, un clic au même point la choisit, gainée, et la dit ; à l'inspecteur, « Porte » en fait une porte, puis
+//   « Fermée au départ » la ferme, que le monde dessine ; « Annuler » trois fois la retire. L'outil Volée, un clic trace
+//   une case, en surcouche, et « Poser la volée » se refuse d'une case seule, sa raison en clair au panneau ; « Effacer le tracé » la retire.
+//   « Couche 1 » édite l'étage.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -95,12 +101,14 @@
 //     --base <production> --piece <production skinnée>
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { basename, join, resolve } from 'node:path'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { servir } from './servir.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, realKeyDown, realKeyUp, shot, sleep, survoler, waitFor } from '../../scripts/recette/lib.mjs'
 
 import { chargerAssets } from './asset/charger.mjs'
@@ -117,7 +125,15 @@ if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && ex
 
 /** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
 const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
-const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }) })
+/** Les projets manuscrits du dépôt, chacun par son chemin relatif au corpus (`listerProjetsLivres`). */
+const MANUSCRITS = listerProjetsLivres().filter((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel)))
+/** Le dépôt que sert le parcours `editeur` : une copie neuve de ses projets manuscrits, que l'enregistrement écrit. */
+const depot = o.parcours === 'editeur' ? mkdtempSync(join(tmpdir(), 'recette-editeur-')) : null
+for (const rel of depot ? MANUSCRITS : []) {
+  mkdirSync(dirname(join(dossierDesProjetsLivres(depot), rel)), { recursive: true })
+  cpSync(join(dossierDesProjetsLivres(), rel), join(dossierDesProjetsLivres(depot), rel))
+}
+const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(depot && { depot }) })
 const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
 const garde = consoleGuard(session)
 const noter = (t) => console.log('·', t)
@@ -896,6 +912,7 @@ async function parcoursEditeur() {
   await waitFor(session, '!!globalThis.wfrpEcran?.editeur && !!wfrpEcran.cases', { timeoutMs: 120000 })
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
+  assert.equal(boutonDeLEditeur(e, 'enregistrer')?.refus, 'Rien à enregistrer', 'la carte s’ouvre telle que le dépôt la sert')
   noter(`éditeur ouvert : ${e.zones['editeur.titre'][0].texte}, couches ${e.zones['editeur.couches'][0].valeurs.map((b) => b.libelle).join(', ')}`)
   await capturer('3508-l1-1-ouverte')
   for (const id of ['outil/height', 'hauteur/haute', 'pinceau/3']) {
@@ -928,9 +945,59 @@ async function parcoursEditeur() {
   e = await editeur()
   noter(`glissé de (${x0}, ${y0}) à (${x0 + 2}, ${y0}) : ${tenu.surcouche.cases.length} cases en surcouche, puis la surface montée de ${Math.round(avant[1] - (await ecran()).cases[`${x0 + 2},${y0}`][1])} px ; ${e.zones['editeur.pointee'][0]?.texte}`)
   await capturer('3508-l1-2-peinte')
+  const fichiers = MANUSCRITS.map((rel) => join(dossierDesProjetsLivres(depot), rel))
+  const lus = () => fichiers.map((f) => readFileSync(f, 'utf8'))
+  const avantLEnregistrement = lus()
+  await cliquerBouton({ element: 'bouton/enregistrer' })
+  await waitFor(session, `Object.values(globalThis.wfrpEcran?.editeur?.zones ?? {}).flat().some((el) => el.id === 'enregistrer' && el.refus === 'Rien à enregistrer')`)
+  const ecrits = lus().filter((texte, i) => texte !== avantLEnregistrement[i])
+  assert.equal(ecrits.length, 1, '« Enregistrer » écrit la carte au dépôt')
+  noter(`« Enregistrer » : ${MANUSCRITS[lus().findIndex((texte, i) => texte !== avantLEnregistrement[i])]} écrit (${ecrits[0].length} caractères), puis rien à enregistrer`)
   await cliquerBouton({ element: 'bouton/annuler' })
   await waitFor(session, `Math.abs(globalThis.wfrpEcran?.cases['${x0 + 2},${y0}'][1] - ${avant[1]}) < 0.5`)
   noter('« Annuler » : la surface revient à sa place')
+  const aretes = (await editeur()).aretes
+  const [ax, ay] = cases[`${x0},${y0}`]
+  const [bx, by] = cases[`${x0 + 1},${y0}`]
+  const cote = [(ax + bx) / 2, (ay + by) / 2]
+  await cliquerBouton({ element: 'bouton/outil/wall' })
+  assert.equal(boutonDeLEditeur(await editeur(), 'arete/wall')?.presse, true, 'l’outil Murs pose une cloison')
+  await cliquerPoint(...cote)
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes + 1}`)
+  noter(`outil Murs, clic entre (${x0}, ${y0}) et (${x0 + 1}, ${y0}) : ${aretes} puis ${aretes + 1} arêtes sur le monde`)
+  await cliquerBouton({ element: 'bouton/outil/select' })
+  await cliquerPoint(...cote)
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.arete != null')
+  e = await editeur()
+  const choisie = e.zones['editeur.pointee'].find((l) => l.id === 'arete')
+  assert.match(choisie?.texte ?? '', /^Arête .* · couche 0 · mur · /, 'la sélection dit l’arête choisie')
+  noter(`outil Sélection, même point : ${choisie.texte}, gainée`)
+  await capturer('3508-l2-1-cloison-choisie')
+  await cliquerBouton({ element: 'bouton/arete/porte' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.arete?.porte === true`)
+  await cliquerBouton({ element: 'bouton/arete/fermee' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.arete?.ouverte === false`)
+  e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'arete/fermee')?.presse, true, 'la porte fermée au départ, à l’inspecteur')
+  noter(`inspecteur : « Porte » puis « Fermée au départ » : ${e.zones['editeur.pointee'].find((l) => l.id === 'arete')?.texte}, ${e.aretes} arêtes`)
+  await capturer('3508-l2-3-porte-fermee')
+  await cliquerBouton({ element: 'bouton/annuler' })
+  await cliquerBouton({ element: 'bouton/annuler' })
+  await cliquerBouton({ element: 'bouton/annuler' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes} && globalThis.wfrpEcran.editeur.surcouche.arete === null`)
+  noter('« Annuler » trois fois : la cloison retirée')
+  await cliquerBouton({ element: 'bouton/outil/stair' })
+  await cliquerPoint(ax, ay)
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 1')
+  e = await editeur()
+  const poser = boutonDeLEditeur(e, 'volee/poser')
+  assert.ok(poser?.refus, '« Poser la volée » se refuse d’une case seule')
+  assert.equal(e.zones['editeur.options'].find((l) => l.id === 'plan')?.texte, poser.refus, 'la raison du refus, en clair au panneau')
+  noter(`outil Volée, un clic : ${e.zones['editeur.options'].find((l) => l.id === 'trace')?.texte}, en surcouche ; « Poser la volée » refusé : ${poser.refus}`)
+  await capturer('3508-l2-2-volee-tracee')
+  await cliquerBouton({ element: 'bouton/volee/effacer' })
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0')
+  noter('« Effacer le tracé » : la surcouche vide')
   await cliquerBouton({ element: 'bouton/couche/1' })
   e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, 'la couche 1 s’édite')
@@ -1587,5 +1654,6 @@ try {
   for (const e of [...erreurs, ...garde.warnings()]) console.log(' ', e.level, e.text)
   await session.close()
   srv.fermer()
+  if (depot) rmSync(depot, { recursive: true, force: true })
 }
 process.exitCode = echec || garde.errors().length ? 1 : 0

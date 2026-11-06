@@ -13,9 +13,10 @@ import { materialiser } from './resoudre.mjs'
  * Document d'un projet livré, prose adressée matérialisée — l'entrée de `parseProject`.
  * @param {string} rel chemin relatif au dossier du corpus (`diligence/diligence-projet.json`), tel
  *   que `listerProjetsLivres` le rend.
+ * @param {string} [racine] racine du dépôt (le dépôt par défaut).
  * @returns {unknown}
  */
-export function lireProjetLivre(rel) {
-  const fichier = path.join(dossierDesProjetsLivres(), rel)
+export function lireProjetLivre(rel, racine) {
+  const fichier = path.join(dossierDesProjetsLivres(racine), rel)
   return materialiser(JSON.parse(readFileSync(fichier, 'utf8'))).racine
 }

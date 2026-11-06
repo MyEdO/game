@@ -525,8 +525,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
                             (`spawn.ts`), navires (`ship*.ts`), marchands (`merchants/`), narratif de
                             campagne, pièces, vision, authoring ASCII (`asciiMap.ts`, et son export inverse `sceneToAscii.ts`).
-  monde/scene.ts            SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 34 types exportés,
-                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 10
+  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 35 types exportés,
+                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 11
                             MANUSCRITS : `Scene`, `SceneEntity`,
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
@@ -535,6 +535,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             brande l'id qu'il rend, et l'authoring TS n'est pas parsé), `WallOverlay` (ce
                             qu'un char de légende d'arête ÉCRIT sur une arête : `structure`/`appearance`),
                             `LectureDArete` (lecture `auteur`/`jeu` d'une arête, `porteSelon`),
+                            `AreteDessinee` (l'arête que l'hôte dessine, `areteDessinee`),
                             `Atterrissage` (où l'on atterrit en quittant une surface,
                             `surfaceDAtterrissage`), `CellSide` (alias primitif). Comptes
                             et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
@@ -742,12 +743,11 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
                             token, discriminé par kind) + floors/walls/roofs/props/tokens/highlights/
                             dynamicMarks/interactHalos/tokenChrome. Un builder n'importe NI caméra NI
                             Dims — sa sortie survit à toute rotation et sert les deux vues.
-                            propVolumes.ts = compilation PURE de la recette volumique d'un décor
-                            (`buildPropVolumes` : primitives locales × cap × ancre monde, posées sur le
-                            pied de l'ancrage = sol de la case + surélévation déclarée → `Face[]`
-                            monde). Chaque site de `buildProps` (entité, feature de façade, ornement de
-                            bâtiment) DÉCLARE son ancrage et un émetteur unique tranche : recette →
-                            volume, sinon billboard
+                            Chaque site de `buildProps` (entité, feature de façade, ornement de
+                            bâtiment) DÉCLARE son ancrage et un émetteur unique tranche par
+                            `facesDuDecor` (`src/noyau/monde/volume/propVolumes.ts`, compilation PURE
+                            de la recette volumique d'un décor, que le volume du monde des hôtes lit
+                            aussi) : recette → volume, sinon billboard
   backends/webgl/           SEUL backend du monde : cuisson des SceneEl en géométrie three (sceneMeshes,
                             faceBake, periodTexture, atlasBake des billboards) + caméras réelles
                             (cameras.ts, ortho pour les vues de plateau, perspective en POV)

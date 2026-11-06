@@ -3,7 +3,7 @@ import { materials, matieresDe } from '../../data/index';
 import { setDataset, resetData } from '../../data/overrides';
 import type { MaterialEntry } from '../../data/materials.types';
 import { editees } from '../../data/materials.testkit';
-import { propMaterial } from './propMaterials';
+import { propMaterial } from '../../noyau/monde/volume/matieres';
 import { roofMaterial } from './roofs';
 import { reliefMaterial } from '../../noyau/monde/volume/matieres';
 

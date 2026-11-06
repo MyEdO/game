@@ -496,7 +496,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   // comptée UNE seule fois (RAW : −10 d'Empoisonné/Sonné/… au Test, LDB 16, pas deux) :
   //  · Test SIMPLE → `base` BRUT (`rawCombatTestBase`, sans pénalité d'État) + `combatTestPenalty` (ci-dessous).
   //  · Test OPPOSÉ → `base` = `testValue` (porte déjà la pénalité d'État) + aucune pénalité ajoutée (penalty 0).
-  const base = opp ? testValue(c, ft.skill?.id, ft.characteristic, ft.skill?.spec) : rawCombatTestBase(c, ft.skill?.id, ft.characteristic, ft.skill?.spec);
+  const base = opp ? testValue(c, ft) : rawCombatTestBase(c, ft);
   const difficulty: Difficulty = resolveTestDifficulty(ft, cc); // dynamique (Brisé : caché/proche/loin), sinon ft.difficulty
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   const label = dataLabel(ft.label, skillLabel);
