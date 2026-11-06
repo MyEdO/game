@@ -23,7 +23,7 @@ import type { Combatant } from '../engine/types';
 import { buildEncounter } from './monde/encounterAuthoring';
 import { emptyScene, type Scene } from './monde/scene';
 import type { WorldMap } from './worldMap';
-import { formatDice, type RNG } from '../engine/dice';
+import { formatDice, parseDiceRequired, type RNG } from '../engine/dice';
 import seaEventsJson from '../data/sea-events.json';
 import type { CascadeStep } from './pendings';
 import { resumeTravel } from './travelFlow';
@@ -1144,16 +1144,10 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
 
   it('l’étape d’événement de bord tire au `die` de la table en donnée, jamais à un dé recopié (MDG 15 l.134 ; #1667)', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
-    const imprime = seaEventsJson.boardEvents.die;
-    try {
-      seaEventsJson.boardEvents.die = 'd10';
-      set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
-      runSeaDay(get, set);
-      const etape = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!;
-      expect(formatDice(etape.table!.spec!)).toBe('1d10');
-    } finally {
-      seaEventsJson.boardEvents.die = imprime;
-    }
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
+    runSeaDay(get, set);
+    const etape = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!;
+    expect(formatDice(etape.table!.spec!)).toBe(formatDice(parseDiceRequired(seaEventsJson.boardEvents.die, 'sea-events.json › boardEvents.die')));
   });
 
   /** L'Humeur de Manann DÉCALE le d100 de l'événement (MDG 15 l.85) : elle est le `mod` de la table
