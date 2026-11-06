@@ -174,7 +174,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
       // bornes viennent de `getTestPolicy` via `clampTarget`, jamais d'un plafond écrit ici).
       const wMod = weatherModOf(def, weather);
       const ids = idsDuTest(spec.test);
-      const char = effectiveSkillCharKey(hero, ids.skill, { explicit: ids.char, spec: ids.spec });
+      const char = effectiveSkillCharKey(hero, ids.skill, { explicit: ids.characteristic, spec: ids.spec });
       const pMod = weatherTestMods(weather, char).reduce((s, l) => s + l.value, 0); // CANAL UNIQUE (#341)
       const mods = [...spec.mods, ...(stageActivityMods(weather, wMod, pMod) ?? [])];
       const difficulty = spec.difficulty;
@@ -232,7 +232,7 @@ export function buildWeatherResistanceSteps(get: Get, weather: Weather): BuiltCa
     parts.push({
       id: hero.id, label: refLabel('skills', { id: 'resistance' }), interactive: true,
       difficulty: rt.difficulty,
-      ...rollStep({ actor: hero, test: { skill: 'resistance', char: 'endurance' }, difficulty: rt.difficulty }),
+      ...rollStep({ actor: hero, test: { skill: 'resistance', characteristic: 'endurance' }, difficulty: rt.difficulty }),
       result: null,
     });
   }
@@ -260,7 +260,7 @@ function buildExposureSteps(state: { party: Combatant[] }, stage: StageContext):
       rollLabel: refLabel('skills', { id: 'resistance' }), difficulty: diff as Difficulty,
       // MÊME Test d'Exposition que la nuit de repos : EDOC 08 l.90 renvoie à LDB p181, donc MÊME entrée.
       stake: voyageStakeRef('exposure', { chars: exposureFirstFailChars('froid') }),
-      ligne: { test: { skill: 'resistance', char: 'endurance' } },
+      ligne: { test: { skill: 'resistance', characteristic: 'endurance' } },
       meta: { weatherLabel: dataLabel(weatherCondition(stage.weather).label), warded: isWeatherWarded(h), coldSeason: isColdSeason(stage.season) },
     });
     pousseSi(out, st);

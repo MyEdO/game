@@ -193,16 +193,16 @@ const DEFENSE_LABEL_FALLBACK = 'Intimidation';
  *  Condition `roundDeCombat`), PLUS les +DR d'effet actif/trait par Compétence (`skillDRBonus`, MDG 09
  *  l.232) et par Caractéristique (`charDRBonusOf`, MDG 09 l.236), et le −DR hors de son terrain (MDG 16
  *  l.17). Lu par le jet naturel et par l'inversion, du Test de scène comme du soin. */
-function drDeReussiteDuTest(s: Jeu, actor: Combatant, test: { skill?: string; char?: CharKey; spec?: string }): number {
+function drDeReussiteDuTest(s: Jeu, actor: Combatant, test: { skill?: string; characteristic?: CharKey; spec?: string }): number {
   const whenHolds = (cond: Condition) => evalCondition(cond, { flags: s.flags, gameTime: s.gameTime, roundDeCombat: !!s.battle });
   return talentTestSLBonus(actor, test, whenHolds)
     + (test.skill ? skillDRBonus(actor, test.skill, test.spec) : 0)
-    + charDRBonusOf(actor, test.char ?? (test.skill ? effectiveSkillCharKey(actor, test.skill, { spec: test.spec }) : undefined))
+    + charDRBonusOf(actor, test.characteristic ?? (test.skill ? effectiveSkillCharKey(actor, test.skill, { spec: test.spec }) : undefined))
     + offTerrainTestDR(actor);
 }
 
 /** Le Test d'un `pendingTest`, tel que `drDeReussiteDuTest` le lit. */
-const testDeScene = (p: PendingTest) => ({ skill: p.skillId, char: p.char, spec: p.spec });
+const testDeScene = (p: PendingTest) => ({ skill: p.skillId, characteristic: p.char, spec: p.spec });
 
 /** Jet d'un Test de Guérison ou de Dextérité de soin (`FLOWS.heal`, `FLOWS.surgery`) : le dé contre la cible figée du
  *  pending (avant bornage), +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) ; un PNJ soigneur n'en a pas. */
@@ -684,7 +684,7 @@ export function refusDAnnulerLAttaque(pa: PendingAttack): string | null {
 }
 
 /** Test de Force Mentale contre une Bénédiction de Protection — LDB 41 l.142. */
-const JET_DE_PROTECTION = { test: { char: 'force-mentale' }, difficulty: 'accessible' } as const;
+const JET_DE_PROTECTION = { test: { characteristic: 'force-mentale' }, difficulty: 'accessible' } as const;
 
 /** Ligne du Test de Protection (`rollLine`), lue par le résolveur `ward` et par `WardModal`. LDB 41 l.142. */
 export function ligneDeProtection(actor: Combatant): RollLineParts {
@@ -699,7 +699,7 @@ export function ligneDuTestNomme(actor: Combatant, test: TestNomme): RollLinePar
 
 /** Ligne du Test de Force Mentale d'entrée en Frénésie, lue par le résolveur `frenzy` et par `FrenzyModal`. LDB 21 l.31 */
 export function ligneDeFrenesie(actor: Combatant): RollLineParts {
-  return rollLine({ actor, test: { char: 'force-mentale' }, difficulty: 'intermediaire' });
+  return rollLine({ actor, test: { characteristic: 'force-mentale' }, difficulty: 'intermediaire' });
 }
 
 /** Le d100 du battle RNG contre la cible d'une ligne (`rollLine`) : la cible que la fenêtre annonce est celle du jet. */
@@ -1128,8 +1128,8 @@ export const FLOWS = paresseux({
       const castT = castTestOf(pcCast); // l'incantation figée = l'« attaquant » de l'opposition
       const oppVal = valeurDuTest(actor, pco.test);
       // LDB 09 l.17 ; LDB 12 l.160.
-      const { skill, spec, char } = idsDuTest(pco.test);
-      const oppBase = skillBaseValue(actor, skill, spec, char);
+      const { skill, spec, characteristic } = idsDuTest(pco.test);
+      const oppBase = skillBaseValue(actor, skill, spec, characteristic);
       if (forced?.sl != null) {
         // Résistance (Magie), LDB 10 l.1016-1020 : le Test pour résister au Sort réussit d'office —
         // la cible RÉSISTE (interprétation : « réussir le Test pour résister » = l'opposition est
@@ -1225,7 +1225,7 @@ export const FLOWS = paresseux({
     // Inversion (LDB 12 l.42) du Round : le Test du Test étendu (Studieux LDB 11 l.55, Lecture rapide
     // LDB 10 l.634 sur Recherche ; jetons).
     reverse: {
-      skillOf: (_s, _r, _a, _g, p) => ({ skill: p.skill?.id, spec: p.skill?.spec, char: p.char }),
+      skillOf: (_s, _r, _a, _g, p) => ({ skill: p.skill?.id, spec: p.skill?.spec, characteristic: p.characteristic }),
       current: (r, p) => (r.result ? { roll: r.result.roll, target: p.target } : null),
       evaluate: (_s, _r, _a, _g, tr) => ({ patch: { result: { roll: tr.roll, sl: tr.sl, success: tr.success } }, issue: tr }),
     },
@@ -1991,7 +1991,7 @@ export const FLOWS = paresseux({
       if (!actor) return null;
       // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) : avant le jet (choisit 01) OU après un échec.
       if (forced) return forcedBinaryResult(p.result, cibleBrute(ligneDeProtection(actor)));
-      return simpleTestResultResolve((_p, a) => testValue(a, undefined, JET_DE_PROTECTION.test.char), JET_DE_PROTECTION.difficulty)(s, p, actor);
+      return simpleTestResultResolve((_p, a) => testValue(a, undefined, JET_DE_PROTECTION.test.characteristic), JET_DE_PROTECTION.difficulty)(s, p, actor);
     },
     outcome: (p) => testOutcome(p.result),
   }),
@@ -2261,7 +2261,7 @@ export const FLOWS = paresseux({
     // jeton d'Activité (consommé) ; le dé renversé s'évalue comme le jet naturel de `resolve` (+DR de
     // réussite, Capricieux, DR exigé).
     reverse: {
-      skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec, char: p.char, ...(p.contexte ? { contexte: p.contexte } : {}) }),
+      skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec, characteristic: p.char, ...(p.contexte ? { contexte: p.contexte } : {}) }),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
         const sl = tr.sl + (tr.success ? drDeReussiteDuTest(s, actor, testDeScene(p)) : 0) + (p.capriciousDR ?? 0);
@@ -2400,7 +2400,7 @@ export const FLOWS = paresseux({
     // Inversion (LDB 23 l.209/218 ; LDB 10 l.899) : le Test déclaré, sous le contexte `bandages` quand une Guérison
     // engage des Bandages ; le dé renversé s'évalue comme `resolve`.
     reverse: {
-      skillOf: (_s, p) => (p.test === 'dexterite' ? { char: 'dexterite' } : { skill: HEAL_SKILL, ...(p.bandagesDe ? { contexte: 'bandages' as const } : {}) }),
+      skillOf: (_s, p) => (p.test === 'dexterite' ? { characteristic: 'dexterite' } : { skill: HEAL_SKILL, ...(p.bandagesDe ? { contexte: 'bandages' as const } : {}) }),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
         const issue = issueDuSoin(s, actor, p.test, tr);

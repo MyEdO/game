@@ -59,7 +59,7 @@ export function resolveRecoverTest(
   const rec = etat.recover;
   const skillValue = testValue(actor, rec.skill?.id, rec.characteristic, rec.skill?.spec);
   const skillBase = skillBaseValue(actor, rec.skill?.id, rec.skill?.spec, rec.characteristic);
-  const skillLabel = testSkillLabel({ skill: rec.skill, char: rec.characteristic }) ?? 'Test';
+  const skillLabel = testSkillLabel(rec) ?? 'Test';
   let opposition: RecoverOpposition | undefined, requireSl: number | undefined;
   let entangleOnFail: boolean | undefined, struggleDamage: number | undefined;
   if (rec.opposedBy === 'source') {

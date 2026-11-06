@@ -75,7 +75,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
 
   it('héros tenu par son joueur, cadence MANUELLE → M (modale influençable)', () => {
     banc.setState({ party: [hero()] });
-    const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Résistance', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
+    const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Résistance', test: { skill: 'resistance', characteristic: 'endurance' }, difficulty: 'intermediaire' };
     openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-hero'));
     expect(banc.getState().pendingCascade).toBeTruthy(); // surfacé, pas résolu d'office
     expect(applied).toHaveLength(0);
@@ -83,7 +83,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
 
   it('porteur ENNEMI — personne ne le tient → I (inline-PV, résolu d’office ; surfacé dès qu’un MJ siège)', () => {
     banc.setState({ party: [enemy()] });
-    const req: RollRequest = { side: { actorId: 'E' }, actionLabel: 'Perception', test: { skill: 'perception', char: 'initiative' }, difficulty: 'intermediaire' };
+    const req: RollRequest = { side: { actorId: 'E' }, actionLabel: 'Perception', test: { skill: 'perception', characteristic: 'initiative' }, difficulty: 'intermediaire' };
     openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-enemy'));
     expect(banc.getState().pendingCascade).toBeNull();
     expect(applied).toHaveLength(1);
@@ -106,7 +106,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
    */
   it('un Test SUBI par un héros que son joueur TIENT → M : il apparaît, comme tout autre jet', () => {
     banc.setState({ party: [hero()] });
-    const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Scorbut', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
+    const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Scorbut', test: { skill: 'resistance', characteristic: 'endurance' }, difficulty: 'intermediaire' };
     openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-subi'));
     expect(banc.getState().pendingCascade, 'un jet que je dois faire APPARAÎT').toBeTruthy();
     expect(applied, 'et rien ne s’applique tant qu’il n’est pas joué').toHaveLength(0);
@@ -114,7 +114,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
 
   it('le MÊME Test subi, porteur conduit par l’IA (personne ne le tient) → I, résolu d’office', () => {
     banc.setState({ party: [hero({ aiControlled: true } as Partial<Combatant>)] });
-    const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Scorbut', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
+    const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Scorbut', test: { skill: 'resistance', characteristic: 'endurance' }, difficulty: 'intermediaire' };
     openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-subi'));
     expect(banc.getState().pendingCascade).toBeNull();
     expect(applied).toHaveLength(1);
@@ -171,7 +171,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
 
   it('rollTitle : le NOM DE L\'ACTION seul — jamais recomposé avec acteur/compétence/difficulté (#352)', () => {
     banc.setState({ party: [hero()] });
-    const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Résistance', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
+    const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Résistance', test: { skill: 'resistance', characteristic: 'endurance' }, difficulty: 'intermediaire' };
     expect(rollTitle(banc.getState, req)).toBe('Résistance');
   });
 
@@ -205,7 +205,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   });
 
   it('type : `RollRequest.test` ne porte plus aucun champ texte — impossible d\'y injecter un libellé de compétence (#352 extension)', () => {
-    // @ts-expect-error — `test` n'a QUE des ids (skill/char/spec/sense/menace) : `label` n'existe plus sur ce type.
+    // @ts-expect-error — `test` n'a QUE des ids (skill/characteristic/spec/sense/menace) : `label` n'existe plus sur ce type.
     const bad: RollRequest = { side: { actorId: 'H' }, actionLabel: 'x', test: { skill: 'ragot', label: 'Ragot custom' }, difficulty: 'intermediaire' };
     void bad;
   });

@@ -437,7 +437,7 @@ export function searchAvailability(get: Get, set: Set): void {
     return;
   }
   openPartyTest(get, set, {
-    skill: 'ragot', char: 'sociabilite', // Soutien LDB 12 — même valeur que `partyAssisted`
+    skill: 'ragot', characteristic: 'sociabilite', // Soutien LDB 12 — même valeur que `partyAssisted`
     actionLabel: t('mf.rechercheActive'),
     difficulty: 'intermediaire',
     stake: combatStakeRef(MERCHANT_RAGOT_KIND),
@@ -939,7 +939,7 @@ function openAppraise(
   const best = appraiseLeader(get().party, mode);
   if (!best) { get().log(appraiseNobody(mode)); return; }
   const t = trappingId ? findTrappingById(trappingId) : undefined;
-  const ligne = rollLine({ actor: best.actor, test: { skill: APPRAISE_SKILL[mode].skill, char: APPRAISE_SKILL[mode].characteristic }, difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
+  const ligne = rollLine({ actor: best.actor, test: { skill: APPRAISE_SKILL[mode].skill, characteristic: APPRAISE_SKILL[mode].characteristic }, difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
   set({ pendingAppraise: {
     actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.

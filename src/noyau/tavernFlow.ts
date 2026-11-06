@@ -158,27 +158,27 @@ export function tavernNpcOffers(scene: Scene | null | undefined, presetDe: Resol
     });
 }
 
-/** Déclaration du Test (skill/char/spec) d'un jeu — MÊME repli que `tavernGameValue` (Pari si rien
+/** Déclaration du Test (skill/characteristic/spec) d'un jeu — MÊME repli que `tavernGameValue` (Pari si rien
  *  d'indiqué), réutilisée par les mints (`req.test`, qui calculent eux-mêmes la valeur par acteur). */
 /** Déclaration de Test RUNTIME (`skill`/`spec` à plat, forme des monteurs de ligne) → `TavernOption`
  *  (Test de la DONNÉE, référence de Compétence EMBOÎTÉE). PURE. */
-function enOption(t: { skill?: string; spec?: string; char?: CharKey }): TavernOption {
+function enOption(t: { skill?: string; spec?: string; characteristic?: CharKey }): TavernOption {
   return {
     test: {
       ...(t.skill ? { skill: { id: t.skill, ...(t.spec ? { spec: t.spec } : {}) } } : {}),
-      ...(t.char ? { characteristic: t.char } : {}),
+      ...(t.characteristic ? { characteristic: t.characteristic } : {}),
     },
   };
 }
 
 /** Test de la DONNÉE → déclaration RUNTIME des monteurs de ligne (`skill`/`spec` à plat). PURE. */
-function testDeSequence(test: Pick<FlowTest, 'skill' | 'characteristic'>): { skill?: string; spec?: string; char?: CharKey } {
-  return test.skill ? idsDuTest({ skill: test.skill }) : { char: test.characteristic };
+function testDeSequence(test: Pick<FlowTest, 'skill' | 'characteristic'>): { skill?: string; spec?: string; characteristic?: CharKey } {
+  return test.skill ? idsDuTest({ skill: test.skill }) : { characteristic: test.characteristic };
 }
 
-function tavernTestSpec(game: TavernGame): { skill?: string; char?: CharKey; spec?: string } {
+function tavernTestSpec(game: TavernGame): { skill?: string; characteristic?: CharKey; spec?: string } {
   if (game.skill) return { skill: game.skill.id, spec: game.skill.spec };
-  if (game.characteristic) return { char: game.characteristic };
+  if (game.characteristic) return { characteristic: game.characteristic };
   return { skill: 'pari' };
 }
 
@@ -474,7 +474,7 @@ function combinedSecondRead(game: TavernGame, acteur: Combatant | undefined, dif
   const test = testDeSequence(regles.second);
   return {
     label: testSkillLabel(test) ?? game.label,
-    base: acteur ? testValue(acteur, test.skill, test.char, test.spec) : nue,
+    base: acteur ? testValue(acteur, test.skill, test.characteristic, test.spec) : nue,
     target: combinedSecondTarget(regles, acteur, difficulty, nue),
     difficulty,
   };

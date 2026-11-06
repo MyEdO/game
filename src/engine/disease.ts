@@ -311,8 +311,8 @@ const TEST_RESISTANCE: TestIds = Object.freeze({ skill: 'resistance' }); // #209
  *  l.145/l.212 : Blessé et Toxine testent la Compétence Résistance. */
 function idsDuNoeud(node: FlowTestNode): TestIds {
   const { skill, characteristic } = node.test;
-  if (skill) return { skill: skill.id, ...(characteristic ? { char: characteristic } : {}), ...(skill.spec ? { spec: skill.spec } : {}) };
-  if (characteristic) return { char: characteristic };
+  if (skill) return { skill: skill.id, ...(characteristic ? { characteristic } : {}), ...(skill.spec ? { spec: skill.spec } : {}) };
+  if (characteristic) return { characteristic };
   // Inatteignable en donnée : le schéma REFUSE un nœud sans ids (`flowTestSchema`, refine #1657 B3-3).
   // Le dire ici plutôt que rendre `{}` : un nœud forgé en mémoire ne se joue pas sur une valeur de 0.
   throw new Error(`nœud \`test\` sans compétence ni caractéristique : ${JSON.stringify(node.test)}`);

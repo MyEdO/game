@@ -40,7 +40,7 @@ import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 
 /** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de
  *  l'étape héros (`spellPlusTest`) et du libellé de son choix (`opt.tenterProlonger`). */
-const TEST_PROLONGATION = { char: 'force-mentale' } as const satisfies RollRequest['test'];
+const TEST_PROLONGATION = { characteristic: 'force-mentale' } as const satisfies RollRequest['test'];
 
 // ============================================================================================
 // Séquence RAW de franchissement de Round, migrée ISO-COMPORTEMENT depuis advanceTurn (corps copiés
@@ -259,7 +259,7 @@ export const TABLES = {
           // Résilience), collectée par `collectHeroRoundEndUpkeep` — MIROIR strict de son prédicat.
           if (!surfaceOf(get, c.id)) {
             for (const e of pendingPlusExtensions(c)) {
-              const res = rollSansPilote(get, c, testValue(c, undefined, TEST_PROLONGATION.char), 'intermediaire', battleRng());
+              const res = rollSansPilote(get, c, testValue(c, undefined, TEST_PROLONGATION.characteristic), 'intermediaire', battleRng());
               resolvePlusExtension(c, e, res.success).forEach((l) => sink(l, c));
             }
           }

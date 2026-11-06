@@ -47,7 +47,7 @@ const SOUS_ORDRES = [...KINDS_SOUS_ORDRES];
 /** Les `kind` de l'entretien-survie maritime, tels que les émettent les trois phases du jour. */
 const KINDS_DE_MER = ['sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement'] as const;
 
-const ligne = { test: { skill: 'resistance', char: 'endurance' } } as const;
+const ligne = { test: { skill: 'resistance', characteristic: 'endurance' } } as const;
 
 function bandeDe(kind: GenreDeCascade, porteurs: Combatant[]): BuiltCascadeStep {
   return buildBand(get, { id: kind, kind, label: fixtureText(kind), difficulty: 'intermediaire', porteurs: porteurs.map((actor) => ({ actor, ligne })) })!;

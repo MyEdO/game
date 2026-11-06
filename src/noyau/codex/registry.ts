@@ -765,7 +765,7 @@ function crewTargetLabel(cible: CrewTarget): string {
 function shipCritEntryItem(e: ShipCritEntry): CodexItem {
   const ch = e.crewHit;
   const jet = ch?.test?.test;
-  const sujet = jet && (testSkillLabel({ skill: jet.skill, char: jet.characteristic }) ?? '');
+  const sujet = jet && (testSkillLabel(jet) ?? '');
   return depuisEnveloppe(e, {
     sub: bandeAuDe('d10', e.min, e.max),
     desc: e.note,
@@ -983,7 +983,7 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
 /** Section « Test imbriqué » d'une entrée miscast (« Résistance Accessible ou Sonné »), palier
  *  `onFailHard` inclus (« si vous échouez avec DR ≤ N → EN PLUS »). */
 function miscastTestSection(t: NonNullable<MiscastRowEntry['test']>): CodexSection {
-  const who = testSkillLabel({ skill: t.test.skill, char: t.test.characteristic }) ?? tr('codex.fiche.test');
+  const who = testSkillLabel(t.test) ?? tr('codex.fiche.test');
   const rows: CodexRow[] = [
     { t: 'kv', k: tr('codex.fiche.test'), v: `${who} ${DIFFICULTY_LABELS[t.test.difficulty!]}` },
     { t: 'sub', label: tr('codex.fiche.echec') },
@@ -1816,14 +1816,14 @@ const CODEX_SPECS = {
       meta: facts(
         fact(tr('codex.fiche.contextes'), a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', ')),
         fact(tr('codex.fiche.testsAuChoix'), a.tests?.length
-          ? a.tests.map((o) => [testSkillLabel({ skill: o.skill, char: o.characteristic }), o.difficulty && DIFFICULTY_LABELS[o.difficulty]].filter(Boolean).join(' ')).join(' / ')
+          ? a.tests.map((o) => [testSkillLabel(o), o.difficulty && DIFFICULTY_LABELS[o.difficulty]].filter(Boolean).join(' ')).join(' / ')
           : null),
         fact(tr('codex.fiche.difficulte'), a.difficulty ? DIFFICULTY_LABELS[a.difficulty] : null),
         fact(tr('codex.fiche.testEtendu'), a.extended ? tr('codex.fiche.drEtape', { drPerStage: a.extended.drPerStage }) : null),
         fact(tr('codex.fiche.resolveur'), a.resolver ?? null),
       ),
       sections: sections(
-        chips(tr('codex.fiche.testsAuChoixListe'), testsDeLActivite(a).flatMap((t) => ('skill' in t ? [idRefRow('skills', t.skill.id, t.skill.spec)] : charRefRows([t.char])))),
+        chips(tr('codex.fiche.testsAuChoixListe'), testsDeLActivite(a).flatMap((t) => ('skill' in t ? [idRefRow('skills', t.skill.id, t.skill.spec)] : charRefRows([t.characteristic])))),
         chips(tr('codex.fiche.competenceLibre'), (a.freeSkill ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
         passiveSection(a.onSuccess, tr('codex.fiche.effetDeReussite')),
         outcomeBandsSection(a.outcomes),

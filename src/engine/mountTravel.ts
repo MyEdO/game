@@ -194,7 +194,7 @@ export function resolveMountIncident(entry: TravelTableEntry, mount: PartyMount,
     const { skill, characteristic, difficulty = DIFFICULTE_PAR_DEFAUT } = eff.riderTest.test;
     const base = Math.max(0, testValue(mount.hero, skill?.id, characteristic, skill?.spec) + carried);
     const tst = rollTest(base, difficulty, rng);
-    out.riderTest = testDetail(testSkillLabel({ skill, char: characteristic }) ?? 'Test', base, tst);
+    out.riderTest = testDetail(testSkillLabel({ skill, characteristic }) ?? 'Test', base, tst);
     if (!tst.success) {
       out.riderFallM = eff.riderTest.fallM;
       out.lines.push(t('mt.riderFalls', { name: mount.hero.label, metres: `${eff.riderTest.fallM}` }));

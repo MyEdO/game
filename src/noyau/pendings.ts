@@ -1562,9 +1562,9 @@ export interface PendingExtendedTest extends PendingBase {
   label: string; // « Enfoncer la porte »
   skillLabel: string; // « Force » / « Athlétisme » (affichage)
   /** Test lancé en STRUCTURE (Compétence + Spécialisation), lu par l'inversion (Talent, jeton) ; absent :
-   *  Test de la Caractéristique `char`. LDB 12 l.42 */
+   *  Test de la Caractéristique `characteristic`. LDB 12 l.42 */
   skill?: RefDesignee;
-  char?: CharKey;
+  characteristic?: CharKey;
   target: number; // cible effective d'UN Round (difficulté déjà appliquée)
   targetDR: number; // DR CUMULÉ à atteindre (LDB 12 : « une valeur cible »)
   total: number; // DR cumulé courant (dépend des Rounds précédents → c'est ce qui rend le flux SÉQUENTIEL)
@@ -1611,7 +1611,7 @@ export interface OpposedFreeze {
   /** CE QUE TESTE l'attaquant, en STRUCTURE (ids de Compétence/Caractéristique) : le libellé de sa
    *  ligne en est DÉRIVÉ par le rendu (`testSkillLabel`), jamais composé par le flux qui fige le jet —
    *  un flux déclare, le renderer écrit. */
-  test?: { skill?: string; spec?: string; char?: CharKey };
+  test?: { skill?: string; spec?: string; characteristic?: CharKey };
   /** Libellé AUTHORÉ du côté attaquant, quand aucune structure ne peut le porter : une alternative
    *  écrite en donnée (`FlowTest.opposed.attackerLabel`, « Force/Athlétisme ») ou le nom de la
    *  manœuvre affrontée. Lu en second, quand `test` ne rend rien. */

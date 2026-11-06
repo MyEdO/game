@@ -69,7 +69,7 @@ const etapes = (): CascadeStep[] => banc.getState().pendingCascade?.participants
 
 describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
   it('pose la POSSESSION et la SURFACE, et monte sa ligne par le monteur canonique', () => {
-    const step = monoStep({ id: 'calme', kind: cleDeFixture('psych'), label: fixtureText('Garder son calme'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } })!;
+    const step = monoStep({ id: 'calme', kind: cleDeFixture('psych'), label: fixtureText('Garder son calme'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { characteristic: 'force-mentale' } } })!;
     expect(step.actorId, 'le mint NOMME le porteur — c’est ce qui donne à l’arbitre un owner à router (sans lui : fenêtre hôte seul)').toBe('H1');
     expect(step.result, 'le dé n’est pas tombé : c’est la fenêtre qui le jette').toBeNull();
     expect(step.target, 'FM 40, Difficulté intermédiaire +0').toBe(40);
@@ -88,7 +88,7 @@ describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
   it('les slots HYBRIDES (révélation, lignes de conséquence) voyagent tels quels', () => {
     const step = monoStep({
       id: 'h', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU,
-      ligne: { test: { char: 'force-mentale' } },
+      ligne: { test: { characteristic: 'force-mentale' } },
       reveal: { kind: 'effet', title: 'Ce qui vient d’arriver', lines: ['a'] },
     })!;
     expect(step.reveal!.title).toBe('Ce qui vient d’arriver');
@@ -108,7 +108,7 @@ describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
   it('enjeu MUET → l’étape s’ouvre QUAND MÊME, et le refus est journalisé (PROD simulée)', () => {
     vi.stubEnv('DEV', false);
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const step = monoStep({ id: 'muet', kind: cleDeFixture('k'), label: fixtureText('Jet dû'), actor: hero('H1'), difficulty: 'intermediaire', stake: undefined, ligne: { test: { char: 'force-mentale' } } });
+    const step = monoStep({ id: 'muet', kind: cleDeFixture('k'), label: fixtureText('Jet dû'), actor: hero('H1'), difficulty: 'intermediaire', stake: undefined, ligne: { test: { characteristic: 'force-mentale' } } });
     expect(step, 'le jet DÛ ne disparaît pas : l’étape existe').toBeTruthy();
     expect(step!.target, 'et elle lance pour de vrai (cible calculée)').toBe(40);
     expect(stepInteraction(step!)).toBe('jet');
@@ -118,7 +118,7 @@ describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
 
   it('enjeu MUET en DEV → THROW : la dégradation se voit au premier passage', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => monoStep({ id: 'muet', kind: cleDeFixture('k'), label: fixtureText('Jet dû'), actor: hero('H1'), difficulty: 'intermediaire', stake: undefined, ligne: { test: { char: 'force-mentale' } } }))
+    expect(() => monoStep({ id: 'muet', kind: cleDeFixture('k'), label: fixtureText('Jet dû'), actor: hero('H1'), difficulty: 'intermediaire', stake: undefined, ligne: { test: { characteristic: 'force-mentale' } } }))
       .toThrow(/enjeu MUET/);
   });
 });
@@ -256,7 +256,7 @@ describe('#1262 — la MARQUE mure la porte', () => {
   });
 
   it('`openSequence` ouvre la séquence d’une étape MINTÉE', () => {
-    const step = monoStep({ id: 'm', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } })!;
+    const step = monoStep({ id: 'm', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { characteristic: 'force-mentale' } } })!;
     openSequence(banc.getState, banc.setState, { title: 'Titre', purpose: 'test', steps: [step] });
     expect(banc.getState().pendingCascade!.title).toBe('Titre');
     expect(etapes()).toHaveLength(1);
@@ -283,7 +283,7 @@ describe('#1262 — la MARQUE mure la porte', () => {
   });
 
   it('`pushCombatStep` accepte l’étape MINTÉE (la voie qui reste ouverte)', () => {
-    const step = monoStep({ id: 'm', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } })!;
+    const step = monoStep({ id: 'm', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { characteristic: 'force-mentale' } } })!;
     pushCombatStep(banc.setState, step);
     expect(etapes().map((s) => s.id)).toEqual(['m']);
     expect(banc.getState().pendingCascade!.purpose).toBe('combat');
@@ -292,20 +292,20 @@ describe('#1262 — la MARQUE mure la porte', () => {
 
 describe('#1262 — les portes d’APPEND', () => {
   it('l’appelant ne fournit NI titre NI purpose : l’étape rejoint la séquence de combat', () => {
-    pushMono(banc.setState, { id: 'a', kind: cleDeFixture('k'), label: fixtureText('Étape A'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } });
+    pushMono(banc.setState, { id: 'a', kind: cleDeFixture('k'), label: fixtureText('Étape A'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { characteristic: 'force-mentale' } } });
     expect(banc.getState().pendingCascade!.purpose).toBe('combat');
     expect(etapes()[0].id).toBe('a');
   });
 
   it('FABRIQUE-INDEX : deux étapes de MÊME clé prennent des ids DISTINCTS dans la séquence', () => {
-    const decl = (index: number) => ({ id: `miscast-${index}`, kind: cleDeFixture('k'), label: fixtureText('Imparfaite'), actor: hero('H1'), difficulty: 'intermediaire' as const, stake: ENJEU, ligne: { test: { char: 'force-mentale' as const } } });
+    const decl = (index: number) => ({ id: `miscast-${index}`, kind: cleDeFixture('k'), label: fixtureText('Imparfaite'), actor: hero('H1'), difficulty: 'intermediaire' as const, stake: ENJEU, ligne: { test: { characteristic: 'force-mentale' as const } } });
     pushMono(banc.setState, decl);
     pushMono(banc.setState, decl);
     expect(etapes().map((s) => s.id)).toEqual(['miscast-0', 'miscast-1']);
   });
 
   it('une déclaration REFUSÉE par son mint n’appende RIEN', () => {
-    pushMono(banc.setState, { id: 'ok', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } });
+    pushMono(banc.setState, { id: 'ok', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { characteristic: 'force-mentale' } } });
     expect(() => pushTable(banc.setState, {
       id: 'ko', kind: cleDeFixture('k'), label: fixtureText('L'), actorId: 'H1',
       table: { tableId: TABLE, result: { roll: 60, die: 60, id: 'haute', lines: [] } },
@@ -366,7 +366,7 @@ describe('#1262 — pushBand : la bande APPENDUE porte sa possession (assertion 
   it('DEUX porteurs de sièges distincts → bande de GROUPE, et la rangée de l’INVITÉ reste à JOUER', () => {
     pushBand(banc.getState, banc.setState, {
       id: 'peur', kind: 'combatPsych', label: fixtureText('Peur'), difficulty: 'intermediaire',
-      porteurs: [{ actor: h1, ligne: { test: { char: 'force-mentale' } } }, { actor: h2, ligne: { test: { char: 'force-mentale' } } }],
+      porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }, { actor: h2, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
     const [st] = etapes();
     expect(st.groupOwner, 'deux porteurs ⇒ chaque siège voit la fenêtre où se tient SA rangée').toBe(true);
@@ -380,7 +380,7 @@ describe('#1262 — pushBand : la bande APPENDUE porte sa possession (assertion 
   it('porteur UNIQUE de l’invité → l’étape le NOMME, et la fenêtre va à SON siège (jamais à l’hôte)', () => {
     pushBand(banc.getState, banc.setState, {
       id: 'terreur', kind: 'combatPsych', label: fixtureText('Terreur'), difficulty: 'intermediaire',
-      porteurs: [{ actor: h1, ligne: { test: { char: 'force-mentale' } } }],
+      porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
     const [st] = etapes();
     expect(st.groupOwner).toBeUndefined();
@@ -450,7 +450,7 @@ describe('#1262 V2 — la FILE d’entretien et la FABRIQUE de nuit n’accepten
   it('`montee` fige la ligne du MOMENT DU MONTAGE — `ligne`, elle, suit le héros', () => {
     const h = hero('H1');
     h.characteristics.endurance = 34;
-    const dejaMontee = rollStep({ actor: h, test: { char: 'endurance' }, difficulty: 'intermediaire' });
+    const dejaMontee = rollStep({ actor: h, test: { characteristic: 'endurance' }, difficulty: 'intermediaire' });
     expect(dejaMontee.target, 'prémisse : la ligne est montée pendant que l’Endurance vaut 34').toBe(34);
 
     h.characteristics.endurance = 19; // l'entretien a frappé entre le montage et l'assemblage
@@ -459,13 +459,13 @@ describe('#1262 V2 — la FILE d’entretien et la FABRIQUE de nuit n’accepten
     expect(figee.base, 'la ligne DUE est celle du moment où le Test était dû').toBe(34);
     expect(figee.target).toBe(34);
 
-    const remontee = monoStep({ id: 'faim-H1', kind: 'faim', actor: h, label: fixtureText('Faim'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'endurance' } } })!;
+    const remontee = monoStep({ id: 'faim-H1', kind: 'faim', actor: h, label: fixtureText('Faim'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { characteristic: 'endurance' } } })!;
     expect(remontee.target, 'remontée à l’assemblage : un AUTRE jet — c’est ce que `montee` évite').toBe(19);
   });
 
   it('les deux régimes de ligne sont EXCLUSIFS (déclarer ET fournir ne compile pas)', () => {
     // @ts-expect-error — `ligne` et `montee` ne peuvent pas coexister : une seule source de ligne.
-    const st = monoStep({ id: 'x', kind: 'faim', actor: hero('H1'), label: 'Faim', difficulty: 'complexe', stake: ENJEU, montee: { base: 1, target: 1 }, ligne: { test: { char: 'force-mentale' } } });
+    const st = monoStep({ id: 'x', kind: 'faim', actor: hero('H1'), label: 'Faim', difficulty: 'complexe', stake: ENJEU, montee: { base: 1, target: 1 }, ligne: { test: { characteristic: 'force-mentale' } } });
     expect(st).toBeDefined();
   });
 

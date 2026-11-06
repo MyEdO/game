@@ -99,7 +99,7 @@ describe('la clôture `jetConfirm(flux)` (#3324) : jugée sur la fenêtre, comme
 
   it('une opposition au Sort qu’une cible n’a pas jetée : la clôture se dit refusée, comme la fenêtre la montre', () => {
     const { H } = heroFaceAUnEnnemi(banc, testScene());
-    banc.setState({ pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: H.id, interactive: true, base: 40, target: 40, result: null }] } } as unknown as Partial<Jeu>);
+    banc.setState({ pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: H.id, interactive: true, base: 40, target: 40, result: null }] } } as unknown as Partial<Jeu>);
     const avant = g().pendingCastOpposition;
     expect(fermeturesDuFlux(g(), 'opposition').confirm).toBe('oppositionsDues');
     g().jetConfirm('opposition');

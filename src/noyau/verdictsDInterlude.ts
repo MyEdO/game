@@ -482,7 +482,7 @@ function voiesDuTest(
       const char: CharKey = tMax && typeof tMax !== 'number' ? tMax.bonusOf : 'intelligence';
       const tentatives = fails[talent.id] ?? 0;
       return {
-        voies: [{ test: { char } }],
+        voies: [{ test: { characteristic: char } }],
         mods: tentatives ? [{ label: t('if.acharnement'), value: 10 * tentatives, famille: 'jet', ref: RULE_REF['apprentissage-particulier'] }] : [],
       };
     }
@@ -503,7 +503,7 @@ function voiesDuTest(
       return {
         voies: savoirs.length
           ? savoirs.map((k) => ({ test: { skill: { id: k.id, ...(k.spec ? { spec: k.spec } : {}) } } }))
-          : [{ test: { char: 'intelligence' }, difficulty: 'complexe' }],
+          : [{ test: { characteristic: 'intelligence' }, difficulty: 'complexe' }],
       };
     }
     case 'ritualFocus': {

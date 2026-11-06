@@ -3678,7 +3678,7 @@ export function openAttackCascade(get: Get, set: SetFn, pa0: PendingAttack, titl
  *  valeur de Test (`testValue`, LDB 16 l.125) ; cible montée par le MONTEUR, bornée et mesurée comme au jet
  *  (`FLOWS.handGate`). Mint UNIQUE de `pendingHandGate` : `openAttackCascade` et la 2ᵉ frappe « des deux armes ». */
 export function poserLeTestDeMain(set: SetFn, attacker: Combatant, hand: 'main' | 'off', pa: PendingAttack, title: string, icon: string): void {
-  const ligne = rollLine({ actor: attacker, test: { char: 'dexterite' }, difficulty: 'accessible' });
+  const ligne = rollLine({ actor: attacker, test: { characteristic: 'dexterite' }, difficulty: 'accessible' });
   set({ pendingHandGate: {
     attackerId: attacker.id, actorName: attacker.label, hand, ligne, ...cibleMesuree(ligne),
     roll: null, sl: 0, success: false, pa, title, icon,
@@ -5194,7 +5194,7 @@ export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, target
  *  Compétence déclarée, sinon la Caractéristique. */
 function testDOppositionDeSort(spellId: string, opposed: NonNullable<SpellData['opposed']>): TestDesigne {
   if (opposed.kind === 'contact') return { skill: { id: 'corps-a-corps', spec: 'bagarre' } };
-  return opposed.skill ? { skill: opposed.skill } : { char: garanti(opposed.characteristic, spellId, 'opposition de sort') };
+  return opposed.skill ? { skill: opposed.skill } : { characteristic: garanti(opposed.characteristic, spellId, 'opposition de sort') };
 }
 
 /** Cibles SUPPLÉMENTAIRES d'une incantation figée (Surincantation, LDB 47 l.28-31) ; ZdE : toutes les
