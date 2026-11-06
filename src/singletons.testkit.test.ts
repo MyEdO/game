@@ -27,7 +27,8 @@ describe('remise à zéro des singletons de module', () => {
   ] as const)('%s l’appelle dans %j', (setup, crochets) => {
     const texte = readFileSync(setup, 'utf8');
     for (const crochet of crochets) {
-      const corps = texte.split(`${crochet}(`).slice(1).map((suite) => suite.slice(0, suite.indexOf('\n});')));
+      // Commentaires retirés : un appel commenté ne remet rien.
+      const corps = texte.split(`${crochet}(`).slice(1).map((suite) => suite.slice(0, suite.indexOf('\n});')).replace(/\/\/.*$/gm, ''));
       expect(corps.some((c) => c.includes('remettreLesSingletons()')), `${setup} › ${crochet}`).toBe(true);
     }
   });
