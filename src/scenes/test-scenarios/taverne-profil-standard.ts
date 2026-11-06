@@ -37,7 +37,7 @@ function construireScene(): Scene {
         facing: 'O',
         appearance: { species: ESPECE },
         dialogueId: 'dlg-bras-de-fer',
-        tavernGame: { gameId: 'bras-de-fer' },
+        tavernGame: { id: 'bras-de-fer' },
       },
     ],
     dialogues: [

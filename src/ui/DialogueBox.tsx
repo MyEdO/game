@@ -1,8 +1,6 @@
 import { useId, useMemo, useRef } from 'react';
 import { useGame } from '../state/store';
-import { COUCHE_CONVERSATION, reponsesDuNoeud, type ReponseDeDialogue, type TestAnnonce } from '../noyau/dialogue';
-import { testSkillLabel } from '../data';
-import { DIFFICULTY_LABELS } from '../engine/types';
+import { COUCHE_CONVERSATION, libelleDuTestAnnonce, reponsesDuNoeud, type ReponseDeDialogue } from '../noyau/dialogue';
 import { spellMoney } from '../engine/money';
 import { t } from '../i18n';
 import { Coins } from './Coins';
@@ -19,23 +17,6 @@ import { GatedAction, raisonSi } from './GatedAction';
 import { speakerEntity } from '../noyau/monde/scene';
 import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
-
-/**
- * Ce que la réponse ANNONCE, en clair : « Compétence — Difficulté », plus le DR CUMULÉ d'un Test
- * ÉTENDU. Les ids STABLES viennent du FLUX (`testAnnonce`) ; ici, et ici seulement, ils se résolvent
- * en libellés au registre (`testSkillLabel`, `DIFFICULTY_LABELS`) — un
- * auteur n'écrit JAMAIS la Compétence dans le libellé de sa réponse (garde
- * `scripts/guards/lib/dialogueLabelTest.mjs`).
- */
-function libelleDuTest(test: TestAnnonce): string {
-  const quoi = testSkillLabel({ skill: test.skill, char: test.characteristic }) ?? '';
-  const diff = DIFFICULTY_LABELS[test.difficulty];
-  // Le FORMAT est un texte joueur : il vit à l'i18n comme les autres formats de ligne de jet
-  // (`casc.traceTestLabel`), jamais en gabarit codé ici.
-  return test.targetDR != null
-    ? t('dlg.testTagCumul', { quoi, diff, dr: test.targetDR })
-    : t('dlg.testTag', { quoi, diff });
-}
 
 export function DialogueBox() {
   const dialogue = useGame((s) => s.dialogue);
@@ -80,7 +61,7 @@ export function DialogueBox() {
       choices={<>
       {reponses.map((r) => {
         const num = t('dlg.choiceNum', { n: r.rang });
-        const tag = r.test ? libelleDuTest(r.test) : '';
+        const tag = r.test ? libelleDuTestAnnonce(r.test) : '';
         return (
           <GatedAction
             key={r.index}

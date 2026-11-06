@@ -1,11 +1,11 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
-import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene } from '../../noyau/sceneEdit';
+import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
 import { placeStairFlight } from '../../noyau/stairFlight';
-import { validateScene, type Warning } from '../../noyau/validateScene';
+import { architectureSelectionForWarning, validateScene, type Warning } from '../../noyau/validateScene';
 import { idsDesPistesDeMusique } from '../../audio/music';
-import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../noyau/planDefects';
+import { planDefectKey, planFocusAt, planFocusTiles } from '../../noyau/planDefects';
 import { testScene } from '../../scenes/test-fixture';
 import { creatures, premierOffert } from '../../data';
 import { useSceneHistory } from './useSceneHistory';
@@ -70,28 +70,6 @@ export function ouCaCasse(erreur: unknown): string {
   if (lc) return ` — ligne ${lc[1]}, colonne ${lc[2]}`;
   const pos = /position (\d+)/.exec(brut);
   return pos ? ` — caractère n° ${Number(pos[1]) + 1}` : '';
-}
-
-export function architectureSelectionForWarning(warning: Warning): Warning['architectureRef'] | null {
-  return warning.scope === 'architecture' ? warning.architectureRef ?? null : null;
-}
-
-/** IDENTITÉ d'un défaut de plan : sa famille et l'endroit visé — JAMAIS ses cases, qui décroissent à
- *  mesure qu'on le corrige. C'est par elle qu'on retrouve le MÊME défaut dans des avertissements frais. */
-export function planDefectKey(plan: { family: PlanDefectFamily; at: PlanDefectAt }): string {
-  const at = plan.at;
-  const place =
-    at.kind === 'zone' ? `zone:${at.zoneId}`
-      : at.kind === 'edge' ? `edge:${at.x}:${at.y}:${at.side}`
-        : `cell:${at.x}:${at.y}`;
-  return `${plan.family}|${place}|z${at.z}`;
-}
-
-/** Cases FRAÎCHES du défaut suivi : `null` si plus aucun avertissement ne le porte (il est corrigé). */
-export function planFocusAt(warnings: readonly Warning[], key: string | null): PlanDefectAt | null {
-  if (!key) return null;
-  for (const w of warnings) if (w.plan && planDefectKey(w.plan) === key) return w.plan.at;
-  return null;
 }
 
 /**
@@ -947,12 +925,7 @@ export function Editor({
     }
     const { lu } = porte;
     setAdvError(null);
-    setScene({
-      ...scene,
-      ...(lu.dialogues !== undefined ? { dialogues: lu.dialogues } : {}),
-      ...(lu.triggers !== undefined ? { triggers: lu.triggers } : {}),
-      ...(lu.encounters !== undefined ? { encounters: lu.encounters } : {}),
-    });
+    setScene(poseBlocsAvances(scene, lu));
     setAdvOpen(false);
   }
   function resize(w: number, h: number) {

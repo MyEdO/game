@@ -66,7 +66,7 @@ export const TYPES = {
   axe: { espace: 'axes.json', catalogue: 'axes' },
   weaponGroup: { espace: 'weaponGroups.json', catalogue: 'groupes d’armes' },
   maneuver: { espace: 'maneuvers.json', catalogue: 'manœuvres' },
-  // JEU DE TAVERNE (#1921) : `SceneEntity.tavernGame.gameId` résout AU PARSE.
+  // JEU DE TAVERNE (#1921) : `SceneEntity.tavernGame.id` résout AU PARSE.
   tavernGame: { espace: 'tavernGames.json', catalogue: 'jeux de taverne' },
   // PSYCHOLOGIE (#1595) : `traits.json › capabilities.psychType` résout AU PARSE.
   psychology: { espace: 'psychology.json', catalogue: 'psychologies' },

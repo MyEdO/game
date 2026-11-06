@@ -20,7 +20,7 @@ export const RACINES_DE_LA_SUITE = Object.freeze([
   racine('scripts/personnage-3d', ['.ts']),
 ])
 
-/** Les tests HORS STORE (#2817) : joués par la seule suite du noyau (`vitest.noyau.config.ts`, `isolate: true`), sans
+/** Les tests HORS STORE (#2817) : joués par la seule suite du noyau (`vitest.noyau.config.ts`, son propre graphe par worker), sans
  *  le store ni le socle de test de la suite principale — ceux du noyau et ceux de ses hôtes (`HOTES_DU_NOYAU`, #2898,
  *  #2928). Un `*.hors-store.test.ts` posé hors de leurs dossiers n'est pas exclu : la suite principale le joue. */
 export const MOTIF_HORS_STORE = `{${['noyau', ...HOTES_DU_NOYAU].map(dossierDe).join(',')}}/**/*.hors-store.test.ts`

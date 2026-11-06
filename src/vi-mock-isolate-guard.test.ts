@@ -3,22 +3,22 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fichiersDeLaSuite } from '../scripts/guards/lib/suiteVitest.mjs';
-import { RACINES_DE_LA_SUITE } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
+import { estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { RACINES_DE_LA_SUITE, SUITES_VITEST_DE_CI, estDeLaSuiteDuNoyau, estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 
 /**
- * Garde-fou `isolate: false` × mock de MODULE — la suite tourne avec `test.isolate: false`
- * (`vite.config.ts`) : le graphe de modules est PARTAGÉ par worker. Un mock de module posé par un
- * fichier de test n'atteint donc pas un module déjà évalué par un fichier précédent du même worker :
- * la liaison dépend de l'ordre des fichiers, lui-même fonction du nombre de cœurs — vert en local,
- * rouge en CI (repro 2026-07-28, 5 seeds `--sequence.shuffle` sur 5).
- * Un besoin de donnée fabriquée s'enregistre dans le REGISTRE lu à l'appel, jamais par mock de module.
- * Corpus : la seule suite à `isolate: false` (`fichiersDeLaSuite`) ; la suite du noyau
- * (`vitest.noyau.config.ts`, `isolate: true`) n'en est pas, son graphe n'étant partagé par aucun fichier.
+ * Garde-fou `isolate: false` × mock de MODULE — les DEUX suites Vitest tournent avec `test.isolate: false` : la suite
+ * principale (`vite.config.ts`) et celle du noyau (`vitest.noyau.config.ts`, #3412). Le graphe de modules est PARTAGÉ
+ * par worker. Un mock de module posé par un fichier de test n'atteint donc pas un module déjà évalué par un fichier
+ * précédent du même worker : la liaison dépend de l'ordre des fichiers, lui-même fonction du nombre de cœurs — vert en
+ * local, rouge en CI (repro 2026-07-28, 5 seeds `--sequence.shuffle` sur 5).
+ * Un besoin de donnée fabriquée s'enregistre dans le REGISTRE lu à l'appel, ou s'espionne sur le namespace qui
+ * l'exporte (`vi.spyOn(ns, 'X', 'get')`, lu à l'appel par l'import transformé), jamais par mock de module.
  *
  * PÉRIMÈTRE : le mock de MODULE, et lui seul. L'autre famille du graphe partagé — l'espion posé sur
- * un namespace de module ou sur un prototype `three` — est fermée PAR CONSTRUCTION par
- * `test.restoreMocks: true` (vite.config.ts) : chaque espion est rendu après SON test, aucun ne fuit
- * vers les fichiers suivants du worker. La garde ne mesure donc que ce qu'elle couvre.
+ * un namespace de module ou sur un prototype `three` — est fermée PAR CONSTRUCTION : entre deux fichiers,
+ * Vitest rend lui-même les espions ; entre deux tests d'un même fichier, `test.restoreMocks: true` (dans
+ * chaque config) les rend avant le test suivant. La garde ne mesure donc que ce qu'elle couvre.
  * Les motifs traqués sont composés à l'exécution (jamais écrits en clair) : la garde est soumise à
  * la règle qu'elle fait respecter (#828) et ne se détecte pas elle-même.
  */
@@ -40,22 +40,35 @@ export function moduleMockHits(source: string, label: string): string[] {
   return out;
 }
 
-const VITE_CONFIG = readFileSync(join(ROOT, 'vite.config.ts'), 'utf8');
-const ISOLATE_FALSE = /isolate\s*:\s*false/.test(VITE_CONFIG);
+/** Les configs à graphe partagé : la suite principale et chaque suite Vitest de la CI (`SUITES_VITEST_DE_CI`), LUES. */
+const CONFIGS = ['vite.config.ts', ...Object.values(SUITES_VITEST_DE_CI).map((s) => s.config as string)]
+  .map((config) => ({ config, texte: readFileSync(join(ROOT, config), 'utf8') }));
 
-describe('garde-fou — mock de module interdit tant que la suite partage son graphe (`isolate: false`)', () => {
-  it('la garde s\'arme sur l\'état RÉEL de vite.config.ts (`isolate: false` lu, jamais supposé)', () => {
-    expect(ISOLATE_FALSE).toBe(true);
+/** Ce que ces suites chargent dans le graphe partagé : leurs fichiers de test, leurs kits (`estKitDeTest`) et leurs
+ *  setups — un mock posé par un kit lie au même ordre que celui d'un fichier de test qui l'importe. */
+const chargeParLesSuites = (rel: string): boolean =>
+  estDeLaSuiteVitest(rel) || estDeLaSuiteDuNoyau(rel) || estKitDeTest(rel) || /^src\/test-setup[^/]*\.ts$/.test(rel);
+
+describe.each(CONFIGS)('garde-fou — $config partage son graphe de modules', ({ config, texte }) => {
+  it('la garde s\'arme sur l\'état RÉEL de la config (`isolate: false` lu, jamais supposé)', () => {
+    expect(/isolate\s*:\s*false/.test(texte), `${config} : \`isolate: false\` absent`).toBe(true);
   });
 
   it('l’autre famille du graphe partagé est fermée par construction (`restoreMocks` LU dans la config)', () => {
     expect(
-      /restoreMocks\s*:\s*true/.test(VITE_CONFIG),
-      "l'en-tête de ce fichier affirme que `spyOn` est fermé par construction : `test.restoreMocks: true` doit exister dans vite.config.ts",
+      /restoreMocks\s*:\s*true/.test(texte),
+      `l'en-tête de ce fichier affirme que \`spyOn\` est fermé par construction : \`test.restoreMocks: true\` doit exister dans ${config}`,
     ).toBe(true);
   });
+});
 
-  it('chaque racine de la suite porte au moins une suite — la garde ne mesure pas le vide', () => {
+it('aucun fichier chargé par les suites (tests, kits, setups) ne mocke de module', () => {
+  const offenders = fichiersDeLaSuite(ROOT, { suite: chargeParLesSuites }).flatMap(({ rel, text }) => moduleMockHits(text, rel));
+  expect(offenders, `Mock de module sous \`isolate: false\` — la liaison dépend de l'ordre des fichiers du worker.\nEnregistrer la donnée fabriquée dans le registre lu à l'appel (patron \`poserPaliersDArmure\`, data/paliersDArmure.testkit.ts), ou espionner le namespace qui l'exporte :\n${offenders.join('\n')}`).toEqual([]);
+});
+
+describe('garde-fou — ce que la garde mesure', () => {
+  it('chaque racine de la suite principale porte au moins une suite — la garde ne mesure pas le vide', () => {
     const suites = fichiersDeLaSuite();
     for (const { dir } of RACINES_DE_LA_SUITE)
       expect(suites.some(({ rel }) => rel.startsWith(`${dir}/`)), `${dir} : aucune suite scannée`).toBe(true);
@@ -71,13 +84,6 @@ describe('garde-fou — mock de module interdit tant que la suite partage son gr
   it('faux positif écarté : un espion ou une assertion typée ne sont pas des mocks de module', () => {
     expect(moduleMockHits(`${VI}.spyOn(console, 'warn');`, 'p.test.ts')).toEqual([]);
     expect(moduleMockHits(`${VI}.mocked(window.matchMedia);`, 'p.test.ts')).toEqual([]);
-  });
-
-  it('aucun fichier de test du périmètre ne mocke de module', () => {
-    if (!ISOLATE_FALSE) return; // suite isolée par fichier : la liaison redevient déterministe
-    const offenders: string[] = [];
-    for (const { rel, text } of fichiersDeLaSuite()) offenders.push(...moduleMockHits(text, rel));
-    expect(offenders, `Mock de module sous \`isolate: false\` — la liaison dépend de l'ordre des fichiers du worker.\nEnregistrer la donnée fabriquée dans le registre lu à l'appel (patron \`poserPaliersDArmure\`, data/paliersDArmure.testkit.ts) :\n${offenders.join('\n')}`).toEqual([]);
   });
 });
 

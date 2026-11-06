@@ -86,6 +86,16 @@ export const STRUCTURES_CIBLES = [
   // que la porte valide. Reconnu par sa pose `test`, il n'a rien à migrer.
   { concept: "test", signature: "skill", date: "2026-11-05" },
   { concept: "test", signature: "characteristic", date: "2026-11-05" },
+  // #3012 L4 B (2026-11-05) — le Test POSÉ (`flowTestSchema`, pose `test`) dont le `+…` ne replie que des clés
+  // de `flowTestSchema` même, qui est strict : il est à la forme que la porte valide. CIBLE sur la seule pose,
+  // au patron de `reference-chiffree` : un objet classé par son noyau, et non par sa pose, reste divergent.
+  { concept: "test", signature: "skill+…", pose: "test", date: "2026-11-05" },
+  { concept: "test", signature: "characteristic+…", pose: "test", date: "2026-11-05" },
+  { concept: "test", signature: "characteristic,skill+…", pose: "test", date: "2026-11-05" },
+  { concept: "test", signature: "difficulty,skill+…", pose: "test", date: "2026-11-05" },
+  { concept: "test", signature: "characteristic,difficulty+…", pose: "test", date: "2026-11-05" },
+  { concept: "test", signature: "characteristic,difficulty,skill+…", pose: "test", date: "2026-11-05" },
+  { concept: "test", signature: "characteristic,difficulty,skill", pose: "test", date: "2026-11-05" },
   // #2662 (2026-10-17) — la forme d'un état passe à ses clés RÉELLES, au seul site des projets.
   { concept: "forme-d-etat", signature: "kind", date: "2026-10-17" },
   { concept: "forme-d-etat", signature: "kind,valeurs", date: "2026-10-17" },
@@ -189,18 +199,7 @@ export const STRUCTURES_CIBLES = [
  *  adoption de forme. */
 export const STRUCTURES_REDECLARATIONS = [
   { def: "activities.ts", champ: "", concept: "test", signature: "char,difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "arcane-phenomena.ts", champ: "controlFlux", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "criticals.ts", champ: "", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "criticals.ts", champ: "loss", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "land-cargo.ts", champ: "gossip", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "oups.ts", champ: "", concept: "plage", signature: "max,min+…", statut: "cible", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "river-navigation.ts", champ: "temporaryRepair", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "sea-cargo.ts", champ: "producesGossip", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "sea-cargo.ts", champ: "surplusGossip", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "sea-navigation.ts", champ: "epuisement", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "sea-perils.ts", champ: "evasion", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "sea-weather.ts", champ: "affaler", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "tavernGames.ts", champ: "rows", concept: "plage", signature: "max,min+…", statut: "cible", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-09-01" },
   { def: "water-exposure.ts", champ: "", concept: "", signature: "kind,op,value", statut: "hors lexique", commun: "conditionSchema", occurrences: 2, lot: "L1a #1466", date: "2026-08-23" },
-  { def: "weather.ts", champ: "resistanceTest", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
 ];

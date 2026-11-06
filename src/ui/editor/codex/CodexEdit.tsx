@@ -61,7 +61,7 @@ import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
 import type { TraitPose } from '../../../data/schemas/grammaire/reference';
 import type { DomainData } from '../../../data';
-import type { CharKey, Difficulty } from '../../../engine/types';
+import type { CharKey, Difficulty, Trauma } from '../../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../engine/disease';
 import type { CombatFeature } from '../../../engine/combatFeatures/types';
@@ -179,7 +179,7 @@ function refIdsIn(v: unknown): string[] {
 const NESTED_REF_FIELDS: { key: string; ds: DatasetKey; get: (entry: Entry) => (string | undefined)[] }[] = [
   { key: 'entries[].mutation', ds: 'mutations', get: (e) => ((e.entries as { mutation?: string }[] | undefined) ?? []).map((r) => r.mutation) },
   { key: 'castBonus.perCondition', ds: 'etats', get: (e) => [(e.castBonus as { perCondition?: string } | undefined)?.perCondition] },
-  { key: 'prosthesis[].trappingId', ds: 'trappings', get: (e) => ((e.prosthesis as { trappingId?: string }[] | undefined) ?? []).map((p) => p.trappingId) },
+  { key: 'prosthesis[].id', ds: 'trappings', get: (e) => ((e.prosthesis as { id?: string }[] | undefined) ?? []).map((p) => p.id) },
 ];
 
 /** Valide une entrée AVANT persist (bouton Enregistrer bloqué tant que non vide) : identité
@@ -320,7 +320,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'races') add('traits'); // Traits posés → réutilise TraitListField (comme creatures) — Trait racial d'espèce (encombrance/consommation), #572
   if (categoryKey === 'crewRoles') add('skills'); // {id,spec?}[] → éditeur dédié (SkillSpecListField)
   if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[] → SkillSpecListField/TalentSpecListField
-  if (categoryKey === 'traumas') add('prosthesis'); // {trappingId,cancels}[] → éditeur dédié (ProsthesisField)
+  if (categoryKey === 'traumas') add('prosthesis'); // {id,cancels}[] → éditeur dédié (ProsthesisField)
   if (CRITICAL_CATEGORIES.includes(categoryKey)) add('traumas', 'test'); // string[] d'ids → TraumaListField (#173) ; `test` → FlowEditor (#1682)
   if (categoryKey === 'steamBreakdowns') add('restart'); // {test,extendedDR?}[] → éditeur dédié
   add(...opsFieldsOf(categoryKey)); // ops/occupantOps/crewOps/captainOps → GameOpEditor (#157)
@@ -500,7 +500,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // Axe de forces (`axes`, #409) : `skills`/`talents` = {id,spec?}[] → éditeurs dédiés
   // (SkillSpecListField, réutilisé tel quel côté Compétences ; TalentSpecListField, même patron côté Talents).
   const hasAxes = categoryKey === 'axes';
-  // Traumatisme (`traumas`, #157) : `prosthesis` (prothèses annulatrices, LDB 73) = {trappingId,cancels}[].
+  // Traumatisme (`traumas`, #157) : `prosthesis` (prothèses annulatrices, LDB 73) = {id,cancels}[].
   const hasProsthesis = categoryKey === 'traumas';
   // Critique localisé (LDB 6/AA, #173) : `traumas` = string[] d'ids de fiche (`traumas.json`) →
   // éditeur dédié (TraumaListField, sélecteurs id→label) au lieu du datalist générique par-label.
@@ -841,7 +841,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {hasAxes && <SkillSpecListField hint="compétences contribuant à l'axe (facultatif)" value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
         {hasAxes && <TalentSpecListField value={entry.talents as RefDesignee[] | undefined} onChange={(v) => edit('talents', v)} />}
         {hasConsumable && <GenericArrayField chemin={chemin('prosthesisTraining')} noeud={noeudDe('prosthesisTraining')} label="prosthesisTraining (paliers d’entraînement — PX, libellé joueur, tranche rachetée, aspect levé)" value={entry.prosthesisTraining as Record<string, unknown>[] | undefined} onChange={(v) => edit('prosthesisTraining', v.length ? v : undefined)} />}
-        {hasProsthesis && <ProsthesisField value={entry.prosthesis as { trappingId: string; cancels: 'all' | 'movement' }[] | undefined} onChange={(v) => edit('prosthesis', v.length ? v : undefined)} />}
+        {hasProsthesis && <ProsthesisField value={entry.prosthesis as Trauma['prosthesis']} onChange={(v) => edit('prosthesis', v.length ? v : undefined)} />}
         {hasTraumaList && <TraumaListField value={entry.traumas as string[] | undefined} onChange={(v) => edit('traumas', v.length ? v : undefined)} />}
         {hasRestartTest && <RestartTestField value={entry.restart as RestartTest[] | undefined} onChange={(v) => edit('restart', v.length ? v : undefined)} />}
         {isShipCrit && <ShipCrewHitField value={entry.crewHit as ShipCrewHitValue | undefined} onChange={(v) => edit('crewHit', v)} />}
@@ -1179,9 +1179,9 @@ function TalentSpecListField({ value, onChange }: { value: RefDesignee[] | undef
   );
 }
 
-/** Prothèses ANNULATRICES d'un Traumatisme (`traumas.prosthesis`, LDB 73, #157) : `{trappingId,cancels}[]`
+/** Prothèses ANNULATRICES d'un Traumatisme (`traumas.prosthesis`, LDB 73, #157) : `{id,cancels}[]`
  *  — un objet porté (jambe de bois, crochet…) qui annule tout ou partie de la séquelle. */
-function ProsthesisField({ value, onChange }: { value: { trappingId: string; cancels: 'all' | 'movement' }[] | undefined; onChange: (v: { trappingId: string; cancels: 'all' | 'movement' }[]) => void }) {
+function ProsthesisField({ value, onChange }: { value: Trauma['prosthesis']; onChange: (v: NonNullable<Trauma['prosthesis']>) => void }) {
   const list = value ?? [];
   const trappingOpts = datasetArray('trappings') as { id: string; label: string }[];
   const set = (next: typeof list) => onChange(next);
@@ -1190,7 +1190,7 @@ function ProsthesisField({ value, onChange }: { value: { trappingId: string; can
       <span>prothèses annulatrices (LDB 73) — objet porté qui annule cette séquelle</span>
       {list.map((p, i) => (
         <div className="tf-row" key={i}>
-          <select value={p.trappingId} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, trappingId: e.target.value } : x)))}>
+          <select value={p.id} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}>
             <option value="">— (choisir une possession) —</option>
             {trappingOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
@@ -1201,7 +1201,7 @@ function ProsthesisField({ value, onChange }: { value: { trappingId: string; can
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { trappingId: '', cancels: 'all' }])}>+ Prothèse</button>
+      <button className="btn small" onClick={() => set([...list, { id: '', cancels: 'all' }])}>+ Prothèse</button>
     </div>
   );
 }
