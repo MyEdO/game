@@ -67,6 +67,11 @@ function estListeDeDocumentsPorteurs(data) {
   return porteurs.some((d) => /** @type {unknown[]} */ (d.entries).some(isCitedItem));
 }
 
+/** Nœud `{ die, entries }` d'une sous-table tirée (`tableTiree`, `src/data/schemas/grammaire/document.ts`). */
+function estTableTiree(v) {
+  return isPlainObject(v) && Object.keys(v).length === 2 && typeof v.die === 'string' && Array.isArray(v.entries);
+}
+
 /**
  * Détecte la FORME d'un dataset et compte ses entrées RÉELLES + leur citation.
  * - `array` : le fichier racine EST le tableau d'entrées (`skills.json`, `talents.json`…).
@@ -78,7 +83,8 @@ function estListeDeDocumentsPorteurs(data) {
  *   signe que ce dataset suit la convention PAR ENTRÉE (`sea-weather.json.table`,
  *   `mass-battle.json.powerEstimate`…) : chaque tableau est une CATÉGORIE de la même famille de
  *   table, les entrées sont les items de CES tableaux, jamais recursées plus profond (`ops`/
- *   `ranges` imbriqués ne comptent pas).
+ *   `ranges` imbriqués ne comptent pas). Une propriété DIRECTE nœud `{ die, entries }` compte ses
+ *   `entries` comme une telle catégorie (`land-cargo.json.rumours`).
  * - `single` : objet de config unique — cité si sa RACINE porte `source` (convention
  *   documentée `src/data/schemas/grammaire/valeurs.ts:49-54` : "à la racine quand le dataset est un objet de config unique
  *   plutôt qu'une liste" — couvre alors TOUT le fichier, y compris les tableaux/sous-tables
@@ -120,9 +126,9 @@ export function auditDataset(data) {
     // fichier, y compris les tableaux/sous-tables imbriqués (`river-criticals.json.tables`…) — même quand une valeur scalaire annexe (`crew-morale.json.base`) est la seule
     // réellement visée par cette réf précise, le fichier est considéré couvert.
     if (isCitedItem(data)) return { total: 1, cited: 1, missing: [], shape: 'single' };
-    const categoryProps = Object.entries(data).filter(
-      ([, v]) => Array.isArray(v) && v.length > 0 && v.every(isPlainObject),
-    );
+    const categoryProps = Object.entries(data)
+      .map(([k, v]) => (estTableTiree(v) ? [`${k}.entries`, v.entries] : [k, v]))
+      .filter(([, v]) => Array.isArray(v) && v.length > 0 && v.every(isPlainObject));
     if (categoryProps.length > 0) {
       const missing = [];
       let total = 0;

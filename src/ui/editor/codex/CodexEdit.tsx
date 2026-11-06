@@ -33,7 +33,8 @@ import { ProseField } from '../../ProseField';
 import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../../SourceRefField';
 import { useClesDeRangees } from '../../useClesDeRangees';
 import { PlageField, type PlageDomaine, type PlageValue } from '../../PlageField';
-import { formatDice, parseDice, totalDuDe } from '../../../engine/dice';
+import { formatDice, parseDice, parseDiceRequired, totalDuDe } from '../../../engine/dice';
+import { facesDuDe } from '../../../engine/tables';
 import { GatedAction } from '../../GatedAction';
 import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
 import { ApparencesObjetsField, ReglagesApparence, apparenceSuivante } from '../ReglagesApparence';
@@ -65,7 +66,7 @@ import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import type { CombatFeature } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../../data';
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../../data';
-import { specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
+import { deDeTirageSchema, specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
 import { parseSkillRef, parseTalentRef } from '../../../data/refFormatLivre';
 import type { SecondaryRef, SourceRef, Variant } from '../../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/policy';
@@ -234,13 +235,6 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single', patron `waterExposure`) —
   // `dispoPct`/`barterRatios` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
   if (categoryKey === 'disponibilite') add('dispoPct', 'barterRatios');
-  // #422 : Navigation fluviale (`riverNavigation`, mode 'single', patron `waterExposure`) —
-  // `windForces`/`windDirections` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
-  // `windEffect`/`capsize`/`outOfControl`/`echouage`/`temporaryRepair` sont des objets
-  // (hétérogènes ou Record de Record) déjà couverts par le sous-formulaire récursif (`ObjectField`).
-  if (categoryKey === 'riverNavigation') add('windForces', 'windDirections');
-  // MSRC 13 l.97-104 ; MSRC 13 l.281-303
-  if (categoryKey === 'landCargo') add('wineQuality', 'rumours');
   // Fourchettes à DEUX bornes (#1659) — toutes servies par la MÊME primitive (`PlageField`) : la
   // longueur de coque (bande finale ouverte, MDG 12 l.129), le sous-tirage astral (1d10, ADE II 03
   // l.63) ci-dessus, et les quatre colonnes de disponibilité saisonnière (d100). Sans cette ligne,
@@ -425,9 +419,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single') — `dispoPct`/`barterRatios`
   // (tableaux top-level) au MÊME éditeur générique commun que les fiches navales ci-dessus.
   const isDisponibilite = categoryKey === 'disponibilite';
-  // #422 : Navigation fluviale (`riverNavigation`, mode 'single') — `windForces`/`windDirections`
-  // (tableaux top-level) au MÊME éditeur générique commun que les fiches ci-dessus.
-  const isRiverNavigation = categoryKey === 'riverNavigation';
   const hasHullLength = categoryKey === 'shipHullSizes'; // `lengthM` : [minM,maxM]
   // #168 : Activité (`activities`) — Test « posté » (contexts/tests « au choix »/difficulty) +
   // table d'issues `outcomes` (OutcomeBand[]) ; `onSuccess` reste sur le lot GameOpEditor commun.
@@ -652,9 +643,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {categoryKey === 'tavernGames' && (['options', 'table', 'sides', 'specials'] as const).map((champ) => (
           <GenericArrayField key={champ} chemin={chemin(champ)} noeud={noeudDe(champ)} label={metaPourFichier(src.file)?.[champ]?.label ?? champ} value={entry[champ] as Record<string, unknown>[] | undefined} onChange={(v) => edit(champ, v.length ? v : undefined)} />
         ))}
-        {categoryKey === 'landCargo' && (['wineQuality', 'rumours'] as const).map((champ) => (
-          <GenericArrayField key={champ} chemin={chemin(champ)} noeud={noeudDe(champ)} label={metaPourFichier(src.file)?.[champ]?.label ?? champ} value={entry[champ] as Record<string, unknown>[] | undefined} onChange={(v) => edit(champ, v)} />
-        ))}
         {/* Ornements d'identité d'un bâtiment (#1715) : `{id, anchor}[]` — le nœud porte les libellés des ancrages. */}
         {categoryKey === 'buildings' && <GenericArrayField chemin={chemin('features')} noeud={noeudDe('features')} label="ornements d’identité (décor posé et son ancrage)" value={entry.features as Record<string, unknown>[] | undefined} onChange={(v) => edit('features', v.length ? v : undefined)} />}
         {isCreature && (
@@ -689,7 +677,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {isShipCrit && <ShipCrewHitField value={entry.crewHit as ShipCrewHitValue | undefined} onChange={(v) => edit('crewHit', v)} />}
         {isWaterExposure && <WaterTestField value={entry.test as WaterTest | undefined} onChange={(v) => edit('test', v)} />}
         {isWaterExposure && <WaterModifiersField value={entry.modifiers as WaterExposureModifier[] | undefined} onChange={(v) => edit('modifiers', v)} />}
-        {isWaterExposure && <WaterDiseasesField value={entry.diseases as WaterExposureData['diseases'] | undefined} onChange={(v) => edit('diseases', v)} />}
+        {isWaterExposure && <WaterDiseasesField value={entry.diseases as WaterExposureData['diseases']} onChange={(v) => edit('diseases', v)} />}
         {isSeaNavigation && <GenericArrayField chemin={chemin('forcerLeRythme')} noeud={noeudDe('forcerLeRythme')} label="forcerLeRythme (bonus M → difficulté Voile/Rames)" value={entry.forcerLeRythme as Record<string, unknown>[] | undefined} onChange={(v) => edit('forcerLeRythme', v)} />}
         {isSeaPerils && <GenericArrayField chemin={chemin('hazards')} noeud={noeudDe('hazards')} label="hazards (dangers flottants)" value={entry.hazards as Record<string, unknown>[] | undefined} onChange={(v) => edit('hazards', v)} />}
         {isSeaPerils && <GenericArrayField chemin={chemin('detroits')} noeud={noeudDe('detroits')} label="detroits" value={entry.detroits as Record<string, unknown>[] | undefined} onChange={(v) => edit('detroits', v)} />}
@@ -707,8 +695,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {isArcanePhenomena && <GenericArrayField chemin={chemin('windSaturationEffects')} noeud={noeudDe('windSaturationEffects')} label="windSaturationEffects (Effets de Saturation par Vent)" value={entry.windSaturationEffects as Record<string, unknown>[] | undefined} onChange={(v) => edit('windSaturationEffects', v)} />}
         {isArcanePhenomena && <GenericArrayField chemin={chemin('phenomena')} noeud={noeudDe('phenomena')} label="phenomena (Phénomènes arcaniques)" value={entry.phenomena as Record<string, unknown>[] | undefined} onChange={(v) => edit('phenomena', v)} />}
         {isArcanePhenomena && <GenericArrayField chemin={chemin('tables')} noeud={noeudDe('tables')} label="tables (Tables du chapitre)" value={entry.tables as Record<string, unknown>[] | undefined} onChange={(v) => edit('tables', v)} />}
-        {isRiverNavigation && <GenericArrayField chemin={chemin('windForces')} noeud={noeudDe('windForces')} label="windForces (Force du vent, 1d10)" value={entry.windForces as Record<string, unknown>[] | undefined} onChange={(v) => edit('windForces', v)} />}
-        {isRiverNavigation && <GenericArrayField chemin={chemin('windDirections')} noeud={noeudDe('windDirections')} label="windDirections (Direction du vent, 1d10)" value={entry.windDirections as Record<string, unknown>[] | undefined} onChange={(v) => edit('windDirections', v)} />}
         {hasHullLength && (
           <PlageField
             label="Longueur"
@@ -1245,28 +1231,38 @@ function WaterModifiersField({ value, onChange }: { value: WaterExposureModifier
   );
 }
 
-/** Maladies contractées sur Exposition hydrique (`waterExposure.diseases`, MSRC 16 l.49-61) : plage d100
- *  (jet APRÈS échec du Test) → maladie référencée par ID (sélecteur, comme `SkillSpecListField`/
- *  `ProsthesisField`/`MutationTableField` — la donnée est un id, jamais un label). */
-function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['diseases'] | undefined; onChange: (v: WaterExposureData['diseases']) => void }) {
-  const list = value ?? [];
+/** Maladies contractées sur Exposition hydrique (`waterExposure.diseases`, MSRC 16 l.49-61) : le dé de la
+ *  table (`die`, jet APRÈS échec du Test) et ses plages → maladie référencée par ID (sélecteur, comme
+ *  `SkillSpecListField`/`ProsthesisField`/`MutationTableField` — la donnée est un id, jamais un label). */
+function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['diseases']; onChange: (v: WaterExposureData['diseases']) => void }) {
+  const { die, entries: list } = value;
+  const de = parseDiceRequired(die, 'water-exposure › diseases.die');
+  const [bas, haut] = [totalDuDe(de, de.n), facesDuDe(de)];
+  const libelleDe = formatDice(de);
   const maladieOpts = datasetArray('maladies') as { id: string; label: string }[];
-  const set = (i: number, patch: Partial<WaterExposureData['diseases'][number]>) => onChange(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const poser = (entries: WaterExposureData['diseases']['entries']) => onChange({ die, entries });
+  const set = (i: number, patch: Partial<WaterExposureData['diseases']['entries'][number]>) => poser(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
     <div className="ed-field">
-      <span>maladies contractées — jet d100 après échec du Test de Résistance (MSRC 16 l.49-61)</span>
+      <span>maladies contractées — jet {libelleDe} après échec du Test de Résistance (MSRC 16 l.49-61)</span>
+      <label className="dr">Dé
+        <SaisieEnBrouillon
+          ariaLabel="Dé de tirage" placeholder="ex. d10, 2d10" value={die} afficher={(d) => d}
+          relire={(texte, avant) => (deDeTirageSchema.safeParse(texte.trim()).success ? texte.trim() : avant)}
+          onChange={(d) => onChange({ die: d, entries: list })} />
+      </label>
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
-          <label className="dr">d100&nbsp;<NumberField variant="nu" label="Plage d100 — borne basse" min={1} max={100} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label="Plage d100 — borne haute" min={1} max={100} value={r.max} onChange={(max) => set(i, { max })} /></label>
+          <label className="dr">{libelleDe}&nbsp;<NumberField variant="nu" label={`Plage ${libelleDe} — borne basse`} min={bas} max={haut} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label={`Plage ${libelleDe} — borne haute`} min={bas} max={haut} value={r.max} onChange={(max) => set(i, { max })} /></label>
           <select value={r.disease} onChange={(e) => set(i, { disease: e.target.value })}>
             <option value="">— (choisir une maladie) —</option>
             {maladieOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           <label className="dr"><input type="checkbox" checked={!!r.rerollUnlessWounded} onChange={(e) => set(i, { rerollUnlessWounded: e.target.checked || undefined })} /> relance si indemne</label>
-          <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
+          <button className="btn small danger" title="Retirer" onClick={() => poser(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { min: 1, max: 1, disease: '' }])}>+ Maladie</button>
+      <button className="btn small" onClick={() => poser([...list, { min: bas, max: bas, disease: '' }])}>+ Maladie</button>
     </div>
   );
 }

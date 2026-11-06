@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { DEFS_DE_DOCUMENT } from './schemas/validate';
 import { META_CHARGE } from './schemas/grammaire/document';
 import { deDeTirageDe } from './rangees';
-import { formatDice } from '../engine/dice';
+import { formatDice, parseDiceRequired } from '../engine/dice';
 import { weatherDie, type Season } from '../engine/travelStages';
 import { ENCOUNTER_DIE } from '../engine/travelTables';
 import { SHIP_CRIT_SET } from './shipCriticals';
@@ -87,6 +87,31 @@ const SAISONS_LIVRE: Record<string, { die: string; ref: string }> = {
   hiver: { die: '1d100', ref: 'EDOC 8 l.52-59' },
 };
 
+/** Le dé IMPRIMÉ par le livre pour chaque table tirée NICHÉE (`tableTiree`, `grammaire/document.ts`),
+ *  par `fichier › chemin`. */
+const TABLES_NICHEES_LIVRE: Record<string, { die: string; ref: string }> = {
+  'land-cargo.json › rumours': { die: '1d100', ref: 'MSRC 13 l.283' },
+  'land-cargo.json › wineQuality': { die: '1d10', ref: 'MSRC 13 l.97' },
+  'river-navigation.json › windDirections': { die: '1d10', ref: 'MSRC 7 l.25' },
+  'river-navigation.json › windForces': { die: '1d10', ref: 'MSRC 7 l.27' },
+  'sea-navigation.json › orientation.changementDeCap': { die: '1d10', ref: 'MDG 13 l.326' },
+  'water-exposure.json › diseases': { die: '1d100', ref: 'MSRC 16 l.53' },
+};
+
+/** Toute table tirée NICHÉE d'un document, lue au disque : un objet aux seules clés `die` et `entries`. */
+function tablesNichees(): { ou: string; die: string }[] {
+  const vues: { ou: string; die: string }[] = [];
+  const visite = (v: unknown, fichier: string, chemin: string[]) => {
+    if (Array.isArray(v)) return v.forEach((x, i) => visite(x, fichier, [...chemin, String(i)]));
+    if (!v || typeof v !== 'object') return;
+    const o = v as Record<string, unknown>;
+    if (chemin.length && Object.keys(o).sort().join() === 'die,entries' && typeof o.die === 'string') vues.push({ ou: `${fichier} › ${chemin.join('.')}`, die: o.die });
+    for (const [k, x] of Object.entries(o)) visite(x, fichier, [...chemin, k]);
+  };
+  for (const d of DEFS_DE_DOCUMENT) visite(JSON.parse(readFileSync(join(process.cwd(), d.root, d.file), 'utf8')), d.file, []);
+  return vues;
+}
+
 /** Tout document dont la FABRIQUE pose `die` (elle en publie la méta, `META_CHARGE`), lu au disque. */
 function documentsADe(): { id: string; die: string }[] {
   return DEFS_DE_DOCUMENT.filter((d) => d.meta?.die === META_CHARGE.die).flatMap((d) => {
@@ -108,6 +133,14 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     expect(weather.map((s) => s.id).sort(), 'saisons à dé de tirage').toEqual(Object.keys(SAISONS_LIVRE).sort());
     for (const s of weather) {
       expect(formatDice(weatherDie(s.id as Season)), `${s.id} (${SAISONS_LIVRE[s.id].ref})`).toBe(SAISONS_LIVRE[s.id].die);
+    }
+  });
+
+  it('chaque table tirée nichée porte le dé imprimé par le livre, et la table couvre EXACTEMENT ces nœuds', () => {
+    const vues = tablesNichees();
+    expect(vues.map((t) => t.ou).sort(), 'tables tirées nichées').toEqual(Object.keys(TABLES_NICHEES_LIVRE).sort());
+    for (const t of vues) {
+      expect(formatDice(parseDiceRequired(t.die, t.ou)), `${t.ou} (${TABLES_NICHEES_LIVRE[t.ou].ref})`).toBe(TABLES_NICHEES_LIVRE[t.ou].die);
     }
   });
 
