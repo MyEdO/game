@@ -21,7 +21,7 @@ export { ACTIONS } from '../data/index';
 export { findApparenceById, findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { EmblemeDef } from '../data/schemas/defs/garde-robe';
 export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
-export { emplacementDePiece, estEmplacement, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
+export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
 export type { GabaritResolu } from './apparence/gabarit';
 export { cataloguesDeComposition, emplacementsDeRangement, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type Portee, type SurchargesDEmblemes } from './apparence/composition';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
