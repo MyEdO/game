@@ -1379,14 +1379,14 @@ describe('Avancement par PX (store) — câblage moteur', () => {
 
   it('buySkillAdvance : Compétence connue in-carrière (Charme) +1, coût 10', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buySkillAdvance('h', 'charme');
+    banc.getState().buySkillAdvance('h', { id: 'charme' });
     expect(h0().skills.find((s) => s.id === 'charme')!.advances).toBe(1);
     expect(h0().xp).toBe(990);
   });
 
   it('buySkillAdvance : acquiert une Compétence de carrière non connue (Ragot) à advances 1', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buySkillAdvance('h', 'ragot');
+    banc.getState().buySkillAdvance('h', { id: 'ragot' });
     const ragot = h0().skills.find((s) => s.id === 'ragot');
     expect(ragot).toBeTruthy();
     expect(ragot!.advances).toBe(1);
@@ -1395,7 +1395,7 @@ describe('Avancement par PX (store) — câblage moteur', () => {
 
   it('buySkillAdvance : refuse une Compétence hors-carrière non connue', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buySkillAdvance('h', 'natation'); // ni connue, ni in-carrière
+    banc.getState().buySkillAdvance('h', { id: 'natation' }); // ni connue, ni in-carrière
     expect(h0().skills.find((s) => s.id === 'natation')).toBeUndefined();
     expect(h0().xp).toBe(1000);
   });

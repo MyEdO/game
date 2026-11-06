@@ -13,7 +13,7 @@ import { valeurSansTirage } from './formule';
 import { evalCondition, type Condition, type ConditionCtx, type FlowTest } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
-import { bestSkilledOption, idsDuTest, peutTenter, refusNePeutTenter, testValue, type TestDesigne } from './skills';
+import { bestSkilledOption, peutTenter, refusNePeutTenter, testValue, type TestDesigne } from './skills';
 import { maxBy } from './pick';
 import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
@@ -321,7 +321,7 @@ export function designeDe(test: TestDOption): TestDesigne {
  *  option sans Spécialisation couvre toutes les siennes), sinon celle de l'Activité. Sert la voie qu'un
  *  résolveur DÉRIVE du héros (Savoir de la recherche, arme de l'entraînement). PUR. */
 function difficulteDeclaree(def: Pick<ActivityDef, 'tests' | 'difficulty'>, test: TestDesigne): Difficulty | undefined {
-  const option = def.tests?.find((o) => ('skill' in test ? !!o.skill && refCouvre(o.skill, test.skill) : o.characteristic === test.characteristic));
+  const option = def.tests?.find((o) => (test.skill ? !!o.skill && refCouvre(o.skill, test.skill) : o.characteristic === test.characteristic));
   return option ? option.difficulty : def.difficulty;
 }
 
@@ -619,14 +619,14 @@ export function travelActivitySpec(
   });
   // Meilleure voie TENTABLE par cible (first-max, `maxBy`) ; aucune → la première et son refus nommé,
   // patron `crewRoleValue` (LDB 09 l.30 ; LDB 16 l.113).
-  const tentable = ({ test }: VoieDActivite): boolean => { const ids = idsDuTest(test); return peutTenter(actor, ids.skill, ids.spec); };
+  const tentable = ({ test }: VoieDActivite): boolean => peutTenter(actor, test);
   const best = maxBy(lues.filter((l) => tentable(l.voie)), (l) => l.brute)?.item;
   const retenue = best ?? lues[0];
   const { test } = retenue.voie;
   return {
     activityId: def.id, actorId: actor.id, test, value: retenue.value, difficulty: retenue.difficulty, mods,
     target: clampTarget(retenue.brute).target, skillMod, drTarget,
-    ...(best ? {} : { refus: refusNePeutTenter(actor, idsDuTest(test)) }),
+    ...(best ? {} : { refus: refusNePeutTenter(actor, test) }),
   };
 }
 
@@ -650,7 +650,7 @@ export function competencesAPratiquer(actor: Combatant, def: Pick<ActivityDef, '
       return specs.filter((spec) => !surFiche(sd.id, spec)).map((spec) => ({ id: sd.id, spec }));
     }),
   ];
-  return refs.filter((ref) => competenceOfferte(def, ref)).map((ref) => (peutTenter(actor, ref.id, ref.spec) ? { ref } : { ref, refus: refusNePeutTenter(actor, { skill: ref.id, ...(ref.spec ? { spec: ref.spec } : {}) }) }));
+  return refs.filter((ref) => competenceOfferte(def, ref)).map((ref) => (peutTenter(actor, { skill: ref }) ? { ref } : { ref, refus: refusNePeutTenter(actor, { skill: ref }) }));
 }
 
 /** Refus d'un candidat à une Activité de voyage, au PREMIER niveau du choix : la meilleure compétence du

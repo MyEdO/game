@@ -604,7 +604,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, op
       id: a.crew.id,
       label: role?.label ?? a.roleId, // PROVENANCE affichée (rôle tenu) — jamais le libellé de LIGNE
       roleId: a.roleId,
-      ...(rv?.used ? { skillId: rv.used.id, ...(rv.used.spec ? { spec: rv.used.spec } : {}) } : {}),
+      ...(rv?.used ? { skill: structuredClone(rv.used) } : {}), // #2097
       interactive: true,
       essential: a.roleId === essentialRoleId,
       difficulty: 'intermediaire' as const,
@@ -617,10 +617,10 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, op
       // résolue (`rollStep`, LDB 09 l.30 ; #2588 Q1). Sans rôle résolu, la valeur vient d'une autre
       // formule : elle se DÉCLARE comme telle.
       ...rollStep(rv?.refus != null
-        ? { actor: a.crew, test: { skill: rv.used?.id, spec: rv.used?.spec, sense: opts.sense }, difficulty: 'intermediaire', refus: rv.refus }
+        ? { actor: a.crew, test: { skill: rv.used, sense: opts.sense }, difficulty: 'intermediaire', refus: rv.refus }
         : rv?.used
           ? {
-            actor: a.crew, test: { skill: rv.used.id, spec: rv.used.spec, sense: opts.sense },
+            actor: a.crew, test: { skill: rv.used, sense: opts.sense },
             valeur: rv.value, difficulty: 'intermediaire',
             ...(crewTestModParts(a.crew).length ? { dansLaValeur: crewTestModParts(a.crew) } : {}),
             pont,
@@ -665,7 +665,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, op
 /** Refus NOMMÉ de Forcer le rythme quand personne ne peut tenter son Test (MDG 13 l.97, LDB 09 l.30) ; `null`
  *  sinon. Le geste de départ (`WorldMapView`) et l'étape du jour en dérivent. */
 export function forcePaceRefus(party: Combatant[], competence: RefDesignee): string | null {
-  return partyBest(party, competence.id, undefined, undefined, competence.spec) ? null : refusPersonneNePeutTenter({ skill: competence.id, spec: competence.spec });
+  return partyBest(party, { skill: competence }) ? null : refusPersonneNePeutTenter({ skill: competence });
 }
 
 /** Étape MONO « Forcer le rythme » (MDG 13 l.95-107, `sea-force-pace`, applier ci-dessous) : le meilleur
@@ -683,9 +683,9 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
   if (!diff) return undefined;
   const refus = forcePaceRefus(get().party, propulsion.competence);
   if (refus) { tell(get, set, [t('sv.paceRefus', { refus })]); return undefined; }
-  const { id: skillId, spec } = propulsion.competence;
-  const best = partyAssisted(get().party, skillId, undefined, undefined, spec)!;
-  const test = { skill: skillId, spec, label: t('sv.forcePace') };
+  const skill = propulsion.competence;
+  const best = partyAssisted(get().party, { skill })!;
+  const test = { skill, label: t('sv.forcePace') };
   return monoStep({
     id: 'sea-force-pace', kind: 'sea-force-pace', actor: best.actor, icon: 'travel/sail-ship',
     label: composeRollLabel(best.actor, t('sv.forcePace'), test),
@@ -693,7 +693,7 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
     // Le Soutien est un bonus AU TEST (LDB 12, fiche `soutien`) : la valeur SOUTENUE (`best.value`,
     // Soutien fondu par `partyAssisted`) donne la CIBLE — sans elle, la cible se recalculerait depuis
     // la carac NUE et les soutiens ne changeraient rien au jet (recette #1117).
-    ligne: { test: { skill: skillId, spec }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
+    ligne: { test: { skill }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
     stake: voyageStakeRef('sea-force-pace', { paceM: sea.forcePace ?? 0 }),
     meta: { forcePace: sea.forcePace, manieurs: manieursDe(best) },
   });
@@ -708,15 +708,15 @@ function helmSkill(get: Get): RefDesignee {
  *  `applySeaProgress`. `undefined` = aucun PJ éligible. */
 function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
   const skill = helmSkill(get);
-  const best = partyAssisted(get().party, skill.id, undefined, undefined, skill.spec);
+  const best = partyAssisted(get().party, { skill });
   if (!best) return undefined;
-  const test = { skill: skill.id, spec: skill.spec, label: t('sv.navigation') };
+  const test = { skill, label: t('sv.navigation') };
   const diff: Difficulty = 'intermediaire';
   return monoStep({
     id: 'sea-progression-nav', kind: 'sea-progression-nav', actor: best.actor, icon: 'travel/anchor',
     label: composeRollLabel(best.actor, t('sv.progression'), test),
     difficulty: diff,
-    ligne: { test: { skill: skill.id, spec: skill.spec }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
+    ligne: { test: { skill }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
     stake: voyageStakeRef('sea-progression-nav'),
     ...(estCompetenceDePropulsion(skill.id) ? { meta: { manieurs: manieursDe(best) } } : {}),
   });
@@ -731,7 +731,7 @@ function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
 function buildProgressionChoiceStep(get: Get): BuiltCascadeStep | undefined {
   if (!buildVoyageCrewStep(get, 'progression', 'progression')) return undefined;
   const helm = helmSkill(get);
-  const navRefus = buildNavProgressionStep(get) ? undefined : refusPersonneNePeutTenter({ skill: helm.id, spec: helm.spec });
+  const navRefus = buildNavProgressionStep(get) ? undefined : refusPersonneNePeutTenter({ skill: helm });
   return choiceStep({
     id: 'sea-progression-choice', kind: 'sea-progression-choice', icon: 'travel/anchor',
     actorId: seaDecider(get),
@@ -759,7 +759,7 @@ function seaStrandingPenalty(get: Get): ModLine[] {
  *  ch.13 l.471-473) et l'empêtrement dans des Débris marins (`sea-degagement-debris`, l.491, Test
  *  étendu). `penalite` = les malus sur la cible (l.473). `undefined` = aucun PJ éligible à la Force. */
 function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: GenreDEtape, { penalite = [], stakeValues }: { penalite?: ModLine[]; stakeValues?: Record<string, number> } = {}): BuiltCascadeStep | undefined {
-  const force = partyAssisted(get().party, undefined, 'force');
+  const force = partyAssisted(get().party, { characteristic: 'force' });
   if (!force) return undefined;
   const test = { characteristic: 'force' as const };
   return monoStep({
@@ -1033,7 +1033,7 @@ function dayEntriesFromStep(get: Get, step: CascadeStep): NightEntry[] {
       // la provenance, porté par le libellé d'entrée. La Difficulté posée à la construction voyage
       // avec la ligne (#1112) au lieu d'être jetée. Une ligne non tentable n'a pas de dé : son refus.
       ...(estJete(res) ? { d: {
-        label: part.skillId ? refLabel('skills', { id: part.skillId, spec: part.spec }) : (part.label ?? actor.label),
+        label: part.skill ? refLabel('skills', part.skill) : (part.label ?? actor.label),
         base: part.base, modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl,
         ...(part.difficulty ? { difficulty: part.difficulty } : {}),
       } } : { text: part.refus }),
@@ -1388,7 +1388,7 @@ function applySeaProgress(get: Get, set: Set, progressionDR: number): string[] {
 function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel | null): BuiltCascadeStep[] {
   if (vessel?.waterLitres == null) return [];
   const out: BuiltCascadeStep[] = [];
-  const test: RollRequest['test'] = { skill: 'resistance', characteristic: 'endurance' };
+  const test: RollRequest['test'] = { skill: { id: 'resistance' }, characteristic: 'endurance' };
   if (sea.waterContaminated) {
     const diseaseId = sea.waterContaminated.diseaseId;
     const diff: Difficulty = diseaseDefs()[diseaseId]?.contractDifficulty ?? 'intermediaire';
@@ -1397,7 +1397,7 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
         id: `sea-tonneau-expose-${h.id}`, kind: 'sea-tonneau-expose', actor: h,
         label: composeRollLabel(h, t('sv.waterBarrelTainted'), test), difficulty: diff,
         rollLabel: refLabel('skills', { id: 'resistance' }),
-        ligne: { test: { skill: 'resistance', characteristic: 'endurance' } },
+        ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } },
         stake: voyageStakeRef('sea-tonneau-expose', { disease: diseaseLabel(diseaseId) }), meta: { diseaseId },
       }));
     }
@@ -1410,7 +1410,7 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
         id: `sea-tonneau-contamine-${h.id}`, kind: 'sea-tonneau-contamine', actor: h,
         label: composeRollLabel(h, t('sv.waterBarrel'), test), difficulty: 'intermediaire',
         rollLabel: refLabel('skills', { id: 'resistance' }),
-        ligne: { test: { skill: 'resistance', characteristic: 'endurance' } },
+        ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } },
         stake: voyageStakeRef('sea-tonneau-contamine', { disease: diseaseLabel(dz.id) }), meta: { diseaseId: dz.id },
       }));
     }
@@ -1439,7 +1439,7 @@ function buildSeasicknessSteps(get: Get, sea: SeaVoyageState): BuiltCascadeStep[
     id, kind: 'sea-mal-de-mer', label,
     stake: voyageStakeRef('sea-mal-de-mer', { disease: diseaseLabel('mal-de-mer') }),
     difficulty,
-    porteurs: appeles.map((h) => ({ actor: h, ligne: { test: { skill: 'resistance', characteristic: 'endurance' } } })),
+    porteurs: appeles.map((h) => ({ actor: h, ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } })),
   });
   const out: BuiltCascadeStep[] = [];
   if (firstDay) pousseSi(out, bande('sea-mal-de-mer-premier', t('sv.seasickFirst'), 'complexe'));
@@ -1465,7 +1465,7 @@ function buildScurvySteps(get: Get, daysAtSea: number): BuiltCascadeStep[] {
     porteurs: appeles.map((h) => {
       const soup = (h.items ?? []).some((it) => itemCapability(it, 'scurvyGuard'));
       return {
-        actor: h, ligne: { test: { skill: 'resistance', characteristic: 'endurance' } },
+        actor: h, ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } },
         ...(soup ? { difficulty: 'facile' as Difficulty } : {}),
         meta: { soup },
       };
@@ -1604,7 +1604,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
         difficulty: expDiff,
         montee: rollStep(valeur === brut
           ? {
-            actor: h, test: { skill: 'resistance', characteristic: 'endurance' }, valeur,
+            actor: h, test: { skill: { id: 'resistance' }, characteristic: 'endurance' }, valeur,
             ...(coat.length ? { dansLaValeur: coat } : {}),
             difficulty: expDiff, pont,
           }
@@ -1654,7 +1654,7 @@ export function continueSeaDayAfterExposure(get: Get, set: Set, doneSteps?: Casc
     id: 'sea-epuisement', kind: 'sea-epuisement', label: t('sv.exhaustion'),
     stake: voyageStakeRef('sea-epuisement', { condition: conditionLabel('extenue') }),
     difficulty: exhaustionDifficulty(sea.paceToday != null),
-    porteurs: patients.map((h) => ({ actor: h, ligne: { test: { skill: 'resistance', characteristic: 'endurance' }, pont: activeSeaPrecipitation(get) } })), // MDG 13 l.111, l.185, l.200
+    porteurs: patients.map((h) => ({ actor: h, ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' }, pont: activeSeaPrecipitation(get) } })), // MDG 13 l.111, l.185, l.200
   });
   if (bande) {
     const resolues = openSequence(get, set, { title: t('sv.exhaustionTitle'), icon: 'medical/infection', purpose: 'seaExhaustion', steps: [bande] });
@@ -1821,7 +1821,7 @@ function resolveSeaCrisisRound(get: Get, set: Set, total: number): string[] {
  *  sinon le premier PJ en état. */
 export function engineerOf(party: Combatant[]): Combatant | undefined {
   const apt = equipageApte(party);
-  return partyBest(apt, STEAM_SKILL.id, undefined, undefined, STEAM_SKILL.spec)?.actor ?? apt[0];
+  return partyBest(apt, { skill: STEAM_SKILL })?.actor ?? apt[0];
 }
 
 /** Exécute les Tests de REDÉMARRAGE d'une panne (MDG 12 l.329-348) via la personne au moteur — Test
@@ -2047,7 +2047,7 @@ function seaBoardingFromEvent(event: SeaEventDef): SeaBoarding | undefined {
 function seaDecider(get: Get): string {
   const party = get().party;
   const helm = helmSkill(get);
-  return partyAssisted(party, helm.id, undefined, undefined, helm.spec)?.actor.id ?? party.find((h) => !h.dead)?.id ?? '';
+  return partyAssisted(party, { skill: helm })?.actor.id ?? party.find((h) => !h.dead)?.id ?? '';
 }
 
 /** `meta` de l'étape `sea-pirate-hail` : l'événement de mer qui nomme le pirate. */
@@ -2184,13 +2184,13 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       // Garde IDENTIQUE à l'ancienne (« un prêtre existe-t-il ? ») — la porte résoudra ELLE-MÊME
       // l'acteur/la valeur soutenue via `partyBest` ; ce simple test d'existence ne duplique pas ce
       // calcul (mandat coordinateur : le call-site ne calcule plus la VALEUR, juste la CONDITION RAW).
-      if (pd && partyAssisted(get().party, 'priere')) {
+      if (pd && partyAssisted(get().party, { skill: { id: 'priere' } })) {
         // seam de jet (#275 Ronde 1) : le prêtre agit. La logique de présage
         // (bon/mauvais présage, `tellManann`/`applyShipMoraleDelta`) migre dans l'applier `sea-priere`
         // via `meta` SÉRIALISABLE (coop) — TOUJOURS `return` : surfacé → suspend ; inline → l'applier a
         // déjà tout appliqué (rien à refaire ici).
         openPartyTest(get, set, {
-          skill: 'priere',
+          skill: { id: 'priere' },
           actionLabel: t('sv.prayer'),
           difficulty: pd,
           // Le SIGNE des dés dit de quel présage il s'agit : favorable, il ne s'obtient qu'en
@@ -2309,7 +2309,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
     }
     case 'chance-navigateur': {
       // MDG 15 l.233
-      const captain = partyAssisted(get().party, 'commandement');
+      const captain = partyAssisted(get().party, { skill: { id: 'commandement' } });
       if (captain) {
         const until = get().gameTime + num('days', d10(rng)) * 24 * 60;
         for (const l of applyOps(captain.actor, [{ op: 'grantTalent', talent: { id: 'chanceux' } }], { label: event.label, rng, defaultUntilTime: until })) tell(get, set, [l]);
@@ -2872,7 +2872,7 @@ export const TABLES = {
     phare: (get, set, step) => {
       if (!step.result) return;
       const success = step.result.success;
-      const best = partyAssisted(get().party, 'orientation');
+      const best = partyAssisted(get().party, { skill: { id: 'orientation' } });
       const dr = success && best ? Math.max(1, lighthouseOrientationDR(best.actor, false), savoirOceansBonus(best.actor)) : 0;
       patchSea(get, set, { lighthouseDR: dr });
       // MDG 13 l.335

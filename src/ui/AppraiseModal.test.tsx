@@ -10,7 +10,7 @@ import { rollLine } from '../noyau/rollSeam';
 
 /** La ligne figée que l'ouverture pose (`openAppraise`) : le monteur `rollLine` sur la valeur du meneur. */
 const ligneDEvaluation = (valeur: number, actor?: Combatant, soutien?: SupportDetail) =>
-  rollLine({ actor, test: { skill: 'evaluation', characteristic: 'intelligence' }, difficulty: 'intermediaire', valeur, ...(soutien ? { soutien } : {}) });
+  rollLine({ actor, test: { skill: { id: 'evaluation' }, characteristic: 'intelligence' }, difficulty: 'intermediaire', valeur, ...(soutien ? { soutien } : {}) });
 
 const base: PendingAppraise = {
   actorId: 'h',
@@ -69,11 +69,11 @@ describe('AppraiseModal (#2e)', () => {
     const html = renderToStaticMarkup(
       <AppraiseModalView pa={pa} actor={evaluateur} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
-    expect(skillValue).toBeLessThan(skillBaseValue(evaluateur, 'evaluation', undefined, 'intelligence')); // l'État pèse VRAIMENT
+    expect(skillValue).toBeLessThan(skillBaseValue(evaluateur, { skill: { id: 'evaluation' }, characteristic: 'intelligence' })); // l'État pèse VRAIMENT
     expect(html).toContain('−10 Empoisonné'); // l'octroyeur est NOMMÉ
     expect(html).not.toContain('autres'); // aucune chip anonyme de reliquat (`RollLine`)
     const lu = html.replace(/<!--.*?-->/g, '').replace(/<[^>]+>/g, ' '); // ce que l'œil lit, sans le markup
-    expect(lu).toMatch(new RegExp(`\\b${skillBaseValue(evaluateur, 'evaluation', undefined, 'intelligence')}\\b`)); // base = Niveau nu
+    expect(lu).toMatch(new RegExp(`\\b${skillBaseValue(evaluateur, { skill: { id: 'evaluation' }, characteristic: 'intelligence' })}\\b`)); // base = Niveau nu
     expect(lu).toMatch(new RegExp(`\\b${skillValue}\\b`)); // la CIBLE ne bouge pas
   });
 

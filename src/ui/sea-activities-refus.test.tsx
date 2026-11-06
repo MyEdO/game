@@ -72,7 +72,7 @@ describe('Activités en mer — une Activité non tentable est FERMÉE par candi
     expect(fermee.getAttribute('aria-disabled')).toBe('true');
     expect(fermee.hasAttribute('disabled'), 'atteignable, jamais disabled').toBe(false);
     const raison = document.getElementById(fermee.getAttribute('aria-describedby')!);
-    expect(raison?.textContent).toContain(refusNePeutTenter(HILDA, { skill: 'metier', spec: 'cartographe' }));
+    expect(raison?.textContent).toContain(refusNePeutTenter(HILDA, { skill: { id: 'metier', spec: 'cartographe' } }));
     expect(option('Karl', 'Cartographie').getAttribute('aria-disabled')).toBeNull();
   });
 

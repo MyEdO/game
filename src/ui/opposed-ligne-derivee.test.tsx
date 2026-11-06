@@ -50,7 +50,7 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
 
     const opp = get().pendingCascade!.participants[0].meta!.opposed!;
-    expect(opp.test, 'le flux fige la STRUCTURE du Test adverse').toEqual({ skill: 'pari' });
+    expect(opp.test, 'le flux fige la STRUCTURE du Test adverse').toEqual({ skill: { id: 'pari' } });
     expect(opp.attackerLabel, 'et ne compose AUCUN libellé : l’affichage ne lui appartient pas').toBeUndefined();
 
     act(() => { root.render(<CascadeBody />); });

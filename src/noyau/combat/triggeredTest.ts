@@ -25,7 +25,8 @@ import { combatTestPenalty } from '../../engine/conditions';
 import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skills';
 import { type OpsCtx, nomDeSource } from '../../engine/ops';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
-import type { CharKey, Combatant, Difficulty, EffectSource } from '../../engine/types';
+import type { Combatant, Difficulty, EffectSource } from '../../engine/types';
+import type { SujetDuJet } from '../../data/schemas/grammaire/mecanique';
 import { dataLabel, derivedStake, testSkillLabel } from '../../data';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { type EffectOp, type FlowTest, type ConditionCtx, evalCondition, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, resolveTestDifficulty, EMPTY_FLOW } from '../../engine/flowCore';
@@ -150,11 +151,10 @@ function triggeredTestStepId(c: Combatant, label: string | undefined, skillLabel
   return `triggeredTest-${c.id}-${label && label !== skillLabel ? `${label}-${skillLabel}` : skillLabel}`;
 }
 
-/** Ids du Test au format du MONTEUR CANONIQUE (`RollLineSpec.test`) — un `FlowTest` emboîte sa
- *  Compétence (`{ id, spec }`), le monteur la porte à plat : la traduction se fait ICI, une fois, pour
- *  les quatre producteurs d'étapes de ce module. */
-function testIds(ft: FlowTest): { skill?: string; characteristic?: CharKey; spec?: string } {
-  return { skill: ft.skill?.id, characteristic: ft.characteristic, spec: ft.skill?.spec };
+/** Le sujet du Test (`RollLineSpec.test`) pour les quatre producteurs d'étapes de ce module : la
+ *  Compétence et la Caractéristique du `FlowTest`, sans son sens. */
+function sujetDuFlowTest(ft: FlowTest): SujetDuJet {
+  return { skill: ft.skill && structuredClone(ft.skill), characteristic: ft.characteristic }; // #2097
 }
 
 /**
@@ -185,7 +185,7 @@ export function simpleTriggeredTestStep(
   return monoStep({
     id: triggeredTestStepId(c, ft.label, skillLabel),
     kind: 'triggeredTest', icon: 'nav/dice', rollLabel: skillLabel,
-    actor: c, ligne: { test: testIds(ft), combat: { kind: 'test' } },
+    actor: c, ligne: { test: sujetDuFlowTest(ft), combat: { kind: 'test' } },
     difficulty, label: dataLabel(ft.label, skillLabel),
     // ENJEU du Flow (#1117/#1262 V2 L6d) : déjà résolu par `withDerivedStake` chez l'appelant (déclaré,
     // sinon dérivé du porteur) — cette fabrique le TRANSMET, elle ne devine rien.
@@ -209,7 +209,7 @@ export function simpleTriggeredTestStep(
  *  produites (États de l'attaquant, passifs) ne franchissent pas ce retour — une rangée d'affichage
  *  reconstruite depuis ce seul jet en réconcilierait l'écart en chip « autres » (#1153, ticket ouvert). */
 export function rollFrozenOpposedAttacker(attacker: Combatant, opp: NonNullable<FlowTest['opposed']>, difficulty: Difficulty): TestResult {
-  const line = rollLine({ actor: attacker, test: { skill: opp.attackerSkill, characteristic: opp.attacker }, difficulty });
+  const line = rollLine({ actor: attacker, test: { skill: opp.attackerSkill ? { id: opp.attackerSkill } : undefined, characteristic: opp.attacker }, difficulty });
   const r = rollTest(line.target, 'intermediaire', battleRng());
   return { ...r, base: line.base, sl: r.sl + (opp.attackerBonusSL ?? 0), ...(line.clamped ? { clamped: line.clamped } : {}) };
 }
@@ -223,7 +223,7 @@ export function rollFrozenOpposedAttacker(attacker: Combatant, opp: NonNullable<
  */
 function opposedAttackerFreeze(opp: NonNullable<FlowTest['opposed']>): Pick<OpposedFreeze, 'test' | 'attackerLabel'> {
   return {
-    test: { characteristic: opp.attacker, ...(opp.attackerSkill ? { skill: opp.attackerSkill } : {}) },
+    test: { characteristic: opp.attacker, ...(opp.attackerSkill ? { skill: { id: opp.attackerSkill } } : {}) },
     ...(opp.attackerLabel ? { attackerLabel: opp.attackerLabel } : {}),
   };
 }
@@ -262,9 +262,9 @@ export function frozenOpposedBatchStep(
     if (flowTestGated(ft, c, combatConditionCtx(c, { caster: attacker }))) continue;
     participants.push({
       id: c.id, interactive: true, result: null, difficulty,
-      ...rollStep({ actor: c, test: testIds(ft), difficulty }),
+      ...rollStep({ actor: c, test: sujetDuFlowTest(ft), difficulty }),
       ...(ft.menace ? { menace: ft.menace } : {}),
-      ...(ft.skill ? { skillId: ft.skill.id } : {}), ...(ft.skill?.spec ? { spec: ft.skill.spec } : {}),
+      ...(ft.skill ? { skill: structuredClone(ft.skill) } : {}), // #2097
     });
   }
   return bandStep({
@@ -304,9 +304,9 @@ export function simpleBatchTestStep(
     if (flowTestGated(ft, c, combatConditionCtx(c, { caster: c }))) continue;
     participants.push({
       id: c.id, interactive: true, result: null, difficulty, label: skillLabel,
-      ...rollStep({ actor: c, test: testIds(ft), difficulty, combat: { kind: 'test' } }),
+      ...rollStep({ actor: c, test: sujetDuFlowTest(ft), difficulty, combat: { kind: 'test' } }),
       ...(ft.menace ? { menace: ft.menace } : {}),
-      ...(ft.skill ? { skillId: ft.skill.id } : {}), ...(ft.skill?.spec ? { spec: ft.skill.spec } : {}),
+      ...(ft.skill ? { skill: structuredClone(ft.skill) } : {}), // #2097
     });
   }
   return bandStep({
@@ -532,7 +532,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     const step = aT && attacker
       ? monoStep({
         id: triggeredTestStepId(c, ft.label, skillLabel), kind: 'triggeredTest', icon: 'nav/dice', rollLabel: skillLabel,
-        actor: c, ligne: { test: testIds(ft) }, label, difficulty,
+        actor: c, ligne: { test: sujetDuFlowTest(ft) }, label, difficulty,
         stake: ft.stake,
         meta: { onSuccess: node.success, onFail: node.fail, after, opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp!), difficulty, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta },
         ...(ft.menace ? { menace: ft.menace } : {}),
@@ -559,7 +559,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     const bonusSL = opp.bonusSL ?? 0;
     // Départage à DR égal (LDB 12 l.160) : les DEUX camps portent leur valeur NUE — l'attaquant depuis
     // son pré-jet (`rollFrozenOpposedAttacker`), le défenseur posée ICI (le `t` de `rollTest` n'en a pas).
-    const o = resolveOpposed(aT, { ...t, sl: t.sl + bonusSL, base: skillBaseValue(c, ft.skill?.id, ft.skill?.spec, ft.characteristic) });
+    const o = resolveOpposed(aT, { ...t, sl: t.sl + bonusSL, base: skillBaseValue(c, ft) });
     const branchSuccess = opposedBranchSuccess(o, opp.defenderMustWin);
     // Chemin INLINE (défenseur non piloté par un humain — l.358) : ni l'attaquant ni le défenseur
     // n'ont de rangée `CascadeModal`/RollLine — le journal de combat est la SEULE surface des DEUX

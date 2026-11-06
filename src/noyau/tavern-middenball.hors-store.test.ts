@@ -22,6 +22,8 @@ import type { BatchParticipant, CascadeStep } from './pendings';
 import type { Combatant } from '../engine/types';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
+import { libelleDeRangee } from './jetsEnVue';
+import { testSkillLabel } from '../data';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -124,7 +126,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(1); // Athlétisme Intermédiaire (+0)
     const athle = bande()!.participants!.find((r) => r.id === party[0].id)!;
-    expect(athle.skillId).toBe('athletisme');
+    expect(athle.skill).toEqual({ id: 'athletisme' });
     expect(athle.difficulty).toBe('intermediaire');
     expect(athle.target).toBe(athle.base);
 
@@ -133,7 +135,10 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     get().playTavernGame({ gameId: 'middenball', challengerId: party2[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0); // Corps à corps (Bagarre) Accessible (+20)
     const bagarre = bande()!.participants!.find((r) => r.id === party2[0].id)!;
-    expect(bagarre.skillId).toBe('corps-a-corps');
+    // La Spécialisation de la DONNÉE voyage sur la rangée : sa ligne et sa requête d'inversion
+    // (`requeteDEtape`, LDB 12 l.42) lisent Corps à corps (Bagarre), jamais le Corps à corps nu.
+    expect(bagarre.skill).toEqual({ id: 'corps-a-corps', spec: 'bagarre' });
+    expect(libelleDeRangee(bagarre)).toBe(testSkillLabel({ skill: { id: 'corps-a-corps', spec: 'bagarre' } }));
     expect(bagarre.difficulty).toBe('accessible');
     expect(bagarre.target, 'la Difficulté (+20) entre dans la cible').toBe(bagarre.base! + 20);
   });

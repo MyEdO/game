@@ -51,13 +51,13 @@ describe('socialPsychMod — pénalités de Sociabilité psy (LDB 21, P3)', () =
 
 describe('isSocialTest — un Test est-il de Sociabilité ? (LDB 21)', () => {
   it('Caractéristique Soc → vrai', () => {
-    expect(isSocialTest(undefined, 'sociabilite')).toBe(true);
-    expect(isSocialTest(undefined, 'force')).toBe(false);
+    expect(isSocialTest({ characteristic: 'sociabilite' })).toBe(true);
+    expect(isSocialTest({ characteristic: 'force' })).toBe(false);
   });
   it('Compétence basée sur Soc (Charme, Marchandage) → vrai ; autre → faux', () => {
-    expect(isSocialTest('charme')).toBe(true);
-    expect(isSocialTest('marchandage')).toBe(true);
-    expect(isSocialTest('escalade')).toBe(false);
+    expect(isSocialTest({ skill: { id: 'charme' } })).toBe(true);
+    expect(isSocialTest({ skill: { id: 'marchandage' } })).toBe(true);
+    expect(isSocialTest({ skill: { id: 'escalade' } })).toBe(false);
   });
 });
 
@@ -66,7 +66,7 @@ describe('partyBest — modificateur par acteur (sélection avec malus psy inté
     const a = mk({ id: 'a', label: 'A', characteristics: { sociabilite: 50 } as never, psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }] }); // 50 − 20 = 30
     const b = mk({ id: 'b', label: 'B', characteristics: { sociabilite: 40 } as never }); // 40, pas de malus
     const mod = (c: Combatant) => socialPsychMod(c, ['elfe']);
-    const best = partyBest([a, b], undefined, 'sociabilite', mod);
+    const best = partyBest([a, b], { characteristic: 'sociabilite' }, mod);
     expect(best?.actor.id).toBe('b'); // B (40) > A (30 après malus) malgré la Soc brute plus basse
     expect(best?.value).toBe(40);
   });

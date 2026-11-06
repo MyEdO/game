@@ -666,18 +666,18 @@ export function distraireDefenseValue(c: Combatant): number {
 }
 /** Niveaux de Compétence NUS du départage du Distraire — LDB 12 l.160, LDB 09 l.17. Pur. */
 export function distraireAttackBase(c: Combatant): number {
-  return skillBaseValue(c, 'athletisme');
+  return skillBaseValue(c, { skill: { id: 'athletisme' } });
 }
 export function distraireDefenseBase(c: Combatant): number {
-  return skillBaseValue(c, 'calme');
+  return skillBaseValue(c, { skill: { id: 'calme' } });
 }
 
 /** Lignes du Test opposé de Distraire (`rollLine`, mêmes valeurs que le jet) — LDB 10 l.364. */
 export function ligneDeDistraire(mover: Combatant): RollLineParts {
-  return rollLine({ actor: mover, test: { skill: 'athletisme' }, valeur: distraireAttackValue(mover), difficulty: 'intermediaire' });
+  return rollLine({ actor: mover, test: { skill: { id: 'athletisme' } }, valeur: distraireAttackValue(mover), difficulty: 'intermediaire' });
 }
 export function ligneDuCalmeDistrait(foe: Combatant): RollLineParts {
-  return rollLine({ actor: foe, test: { skill: 'calme' }, valeur: distraireDefenseValue(foe), difficulty: 'intermediaire' });
+  return rollLine({ actor: foe, test: { skill: { id: 'calme' } }, valeur: distraireDefenseValue(foe), difficulty: 'intermediaire' });
 }
 
 /** Ligne du Corps à corps « brut » (`rollLine`, mêmes valeur et modificateurs que `rollDisengageAttack`)

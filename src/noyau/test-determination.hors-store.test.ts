@@ -32,7 +32,7 @@ const mk = (id: string, resolve: number): Combatant =>
  *  (cf. `PendingTest.psychMod`), et conservé à part pour l'affichage. */
 const pending = (): PendingTest =>
   ({
-    actorId: 'h1', label: 'Convaincre', skill: 'Charme', skillId: 'charme',
+    actorId: 'h1', label: 'Convaincre', skill: 'Charme', sujet: { skill: { id: 'charme' } },
     skillValue: 25, target: 25, difficulty: 'intermediaire', requireSL: 0,
     psychMod: -20, psychDetail: 'Animosité −20 envers Elfe',
     roll: null, success: false, sl: 0,

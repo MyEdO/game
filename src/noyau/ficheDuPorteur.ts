@@ -77,7 +77,7 @@ export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
     caracteristiques: CHAR_KEYS.map((cle) => ({ cle, abrege: charAbr(cle), libelle: CHAR_LABELS[cle], valeur: effectiveChar(c, cle) })),
     competences: c.skills.map((sk) => ({
       libelle: skillInstanceLabel(sk), valeur: testValue(c, { skill: sk }),
-      caracteristique: effectiveSkillCharKey(c, sk.id, { spec: sk.spec }), avances: sk.advances,
+      caracteristique: effectiveSkillCharKey(c, { skill: sk }), avances: sk.advances,
     })),
     talents: effectiveTalents(c).map((tt) => ({ libelle: talentConcrete(tt), fois: tt.times, desc: effectiveEntry(findTalentById(tt.talentId))?.desc ?? null })),
     possessions,

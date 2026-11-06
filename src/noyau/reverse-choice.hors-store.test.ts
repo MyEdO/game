@@ -23,11 +23,11 @@ beforeEach(() => {
 describe('flux `test` (LDB 23 l.218 « Observer une cible » — jeton sans `skill` = tout Test)', () => {
   function setup(over: Partial<any> = {}, withToken = true) {
     const actor = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', fortune: 0, resilience: 0 });
-    if (withToken) applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' }}], { rng: desDuTest, label: 'Observer une cible' });
+    if (withToken) applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' } }], { rng: desDuTest, label: 'Observer une cible' });
     banc.setState({
       party: [actor],
       pendingTest: {
-        actorId: 'h1', label: 'Ragot', skillId: 'ragot', skillValue: 40, difficulty: 'intermediaire',
+        actorId: 'h1', label: 'Ragot', sujet: { skill: { id: 'ragot' } }, skillValue: 40, difficulty: 'intermediaire',
         requireSL: 0, target: 40, roll: 82, success: false, sl: -4,
         ...over,
       } as any,
@@ -69,7 +69,7 @@ describe('flux `test` (LDB 23 l.218 « Observer une cible » — jeton sans `ski
   });
 
   it('sans jeton/Talent applicable pour cette Compétence : non disponible, `jetReverse@test` no-op', () => {
-    setup({ skillId: 'commerage' }, false); // pas de jeton du tout
+    setup({ sujet: { skill: { id: 'commerage' } } }, false); // pas de jeton du tout
     expect(FLOWS.test.reverseAvailable(banc.getState)).toBe(false);
     banc.getState().jetReverse('test');
     expect(banc.getState().pendingTest!.roll).toBe(82); // inchangé
@@ -205,7 +205,7 @@ describe('Talent + jeton simultanément applicables (LDB 10 Sociable + LDB 23 l.
     banc.setState({
       party: [actor],
       pendingTest: {
-        actorId: 'h1', label: 'Ragot', skillId: 'ragot', skillValue: 40, difficulty: 'intermediaire',
+        actorId: 'h1', label: 'Ragot', sujet: { skill: { id: 'ragot' } }, skillValue: 40, difficulty: 'intermediaire',
         requireSL: 0, target: 40, roll: 82, success: false, sl: -4,
       } as any,
     });
@@ -230,14 +230,14 @@ describe('Talent + jeton simultanément applicables (LDB 10 Sociable + LDB 23 l.
 describe('Jeton sur un Test DÉJÀ réussi (LDB 23 l.209/218 — libre) : améliore le DR, reste réussi', () => {
   it('`reverseAvailable` OFFRE le verbe sur un succès (jeton seul, aucun Talent)', () => {
     const actor = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', fortune: 0, resilience: 0 });
-    applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' }}], { rng: desDuTest, label: 'Observer une cible' });
+    applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' } }], { rng: desDuTest, label: 'Observer une cible' });
     const roll = 32; const target = 40;
     const before = evaluateTest(roll, target);
     expect(before.success).toBe(true); // jet DÉJÀ réussi — le Talent ne l'offrirait JAMAIS
     banc.setState({
       party: [actor],
       pendingTest: {
-        actorId: 'h1', label: 'Ragot', skillId: 'ragot', skillValue: 40, difficulty: 'intermediaire',
+        actorId: 'h1', label: 'Ragot', sujet: { skill: { id: 'ragot' } }, skillValue: 40, difficulty: 'intermediaire',
         requireSL: 0, target, roll, success: true, sl: before.sl,
       } as any,
     });
@@ -246,7 +246,7 @@ describe('Jeton sur un Test DÉJÀ réussi (LDB 23 l.209/218 — libre) : améli
 
   it('accepter (`jetReverse@test`) : permute le dé, améliore le DR, le Test reste réussi', () => {
     const actor = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', fortune: 0, resilience: 0 });
-    applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' }}], { rng: desDuTest, label: 'Observer une cible' });
+    applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' } }], { rng: desDuTest, label: 'Observer une cible' });
     const roll = 32; const target = 40;
     const before = evaluateTest(roll, target);
     const expected = evaluateTest(reverseRoll(roll), target);
@@ -254,7 +254,7 @@ describe('Jeton sur un Test DÉJÀ réussi (LDB 23 l.209/218 — libre) : améli
     banc.setState({
       party: [actor],
       pendingTest: {
-        actorId: 'h1', label: 'Ragot', skillId: 'ragot', skillValue: 40, difficulty: 'intermediaire',
+        actorId: 'h1', label: 'Ragot', sujet: { skill: { id: 'ragot' } }, skillValue: 40, difficulty: 'intermediaire',
         requireSL: 0, target, roll, success: true, sl: before.sl,
       } as any,
     });

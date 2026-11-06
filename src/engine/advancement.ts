@@ -11,7 +11,7 @@ import advancementCostsJson from '../data/advancementCosts.json';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { t } from '../i18n';
-import { memeSpecialisation } from '../data/schemas/grammaire/ref';
+import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 
 /**
  * Détection « in-carrière » (LDB 07 l.91) : une Augmentation est au coût standard si la
@@ -75,10 +75,10 @@ export function buyCharAdvance(hero: Combatant, char: CharKey, inCareer = true):
   return { ok: true, cost };
 }
 
-/** Achète UNE Augmentation pour une Compétence DÉJÀ connue — identité (name, spec) : chaque
- *  Spécialisation est une Compétence distincte (LDB 09 l.42). */
-export function buySkillAdvance(hero: Combatant, skillId: string, spec: string | undefined, inCareer = true, discount = 0): AdvanceResult {
-  const skill = hero.skills.find((s) => s.id === skillId && memeSpecialisation(s.spec, spec));
+/** Achète UNE Augmentation pour une Compétence DÉJÀ connue — identité : la référence, chaque
+ *  Spécialisation étant une Compétence distincte (LDB 09 l.44). */
+export function buySkillAdvance(hero: Combatant, ref: RefDesignee, inCareer = true, discount = 0): AdvanceResult {
+  const skill = hero.skills.find((s) => s.id === ref.id && memeSpecialisation(s.spec, ref.spec));
   if (!skill) return { ok: false, cost: 0, reason: t('adv.unknownSkill') };
   const cost = advanceCost(skill.advances, 'skill', inCareer, discount);
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };

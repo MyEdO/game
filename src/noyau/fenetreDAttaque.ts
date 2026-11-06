@@ -121,9 +121,9 @@ export interface FenetreDAttaque {
 function refDuNomDuJet(attaquant: Combatant, arme: Weapon | undefined, kind: 'melee' | 'ranged'): RollLabelRef {
   const test = attackTestOf(attaquant, arme, kind);
   const label = testSkillLabel(test);
-  return 'characteristic' in test
-    ? { category: 'characteristics', id: test.characteristic, label }
-    : { category: 'skills', id: test.skill, label };
+  return test.skill
+    ? { category: 'skills', id: test.skill.id, label }
+    : { category: 'characteristics', id: test.characteristic, label };
 }
 
 /** La fenêtre d'attaque ouverte (`pendingAttack`), `null` sans attaque en attente. PUR. */

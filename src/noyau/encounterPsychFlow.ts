@@ -76,8 +76,8 @@ function psychRow(hero: Combatant, kind: PsychType, sansPeur: boolean): BatchPar
   const label = refLabel('skills', skill);
   return {
     id: hero.id, interactive: true, result: null,
-    label: sansPeur ? stepSansPeur(label) : label, skillId: skill.id, difficulty,
-    ...rollStep({ actor: hero, test: { skill: skill.id, spec: skill.spec }, difficulty }),
+    label: sansPeur ? stepSansPeur(label) : label, skill: structuredClone(skill), difficulty, // #2097
+    ...rollStep({ actor: hero, test: { skill }, difficulty }),
     ...(sansPeur ? { meta: { sansPeur: true } } : {}),
   };
 }
