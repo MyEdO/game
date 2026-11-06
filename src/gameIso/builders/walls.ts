@@ -8,7 +8,7 @@
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, tileAt, wallEnds, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
+import { heightAt, piedDeLArete, tileAt, wallEnds, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
 import { findStructureById } from '../../data';
 import { isWallEdgeStructure } from '../../engine/structures';
 import { interiorCells } from '../../noyau/planDefects';
@@ -574,7 +574,7 @@ function murNu(w: WallSeg): WallSeg {
  *  lecture × étage rendu, jamais au pas (#808). `lecture` EXPLICITE : `auteur` (éditeur) dessine le
  *  document authoré, `jeu` (partie, POV, plans de jeu) l'état runtime. `view` ABSENT ⇒ toutes les couches ; sinon
  *  `viewZ` isole un étage (debug), sinon z ≤ activeZ (le jeu ne dresse pas les cloisons AU-DESSUS de
- *  la zone active). La hauteur de BASE est MÉTRIQUE (`heightAt`, la vérité POV — un niveau vaut 4·z).
+ *  la zone active). La hauteur de BASE est MÉTRIQUE (`piedDeLArete`, la vérité POV — un niveau vaut 4·z).
  *  Les CRÊTES crénelées (décoration de rendu pur, `crestGeometry`) sont AJOUTÉES en fin — elles ne
  *  coupent ni passage ni LdV. */
 function wallGeometry(scene: Scene, lecture: LectureDArete, view?: FloorView): Viewed<WallEl>[] {
@@ -587,7 +587,7 @@ function wallGeometry(scene: Scene, lecture: LectureDArete, view?: FloorView): V
     const w = lecture === 'jeu' && porteMasquee(scene, authored) ? murNu(authored) : authored;
     const z = w.z ?? 0;
     if (view && (viewZ != null ? z !== viewZ : z > activeZ)) continue;
-    const baseH = heightAt(scene, w.x, w.y, z);
+    const baseH = piedDeLArete(scene, w);
     const facade = authoredEdges.get(edgeKey(w));
     const app = edgeAppearance(facade, w);
     const wallHeightM = app.wallHeightM ?? WALL_H_M;

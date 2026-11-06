@@ -41,7 +41,7 @@ describe('l’exploration par le pont', () => {
     expect(porte, 'la porte fermée s’ouvre par un bouton').toBeDefined();
     const porteDuPlateau = (aretes: ReturnType<typeof plateauDeLaScene>['aretes']) => aretes.find((a) => a.porte);
     expect(porteDuPlateau(suite.vue.plateau!.aretes), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
-      .toEqual({ case: { x: 2, y: 1 }, milieu: { x: 2.5, y: 1 }, sens: { x: 0, y: 1 }, porte: true, ouverte: false });
+      .toEqual({ case: { x: 2, y: 1 }, milieu: { x: 2.5, y: 1 }, sens: { x: 0, y: 1 }, pied: 0, porte: true, ouverte: false });
     expect(suite.vue.plateau!.aretes.filter((a) => !a.porte).map((a) => [a.milieu, a.ouverte]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, false], [{ x: 2.5, y: 2 }, false]]);
     ({ suite } = drainer(appel, appel('jouer', porte!.jeu)));
     expect(porteDuPlateau(suite.vue.plateau!.aretes)?.ouverte, 'la porte ouverte, le plateau la dessine ouverte').toBe(true);

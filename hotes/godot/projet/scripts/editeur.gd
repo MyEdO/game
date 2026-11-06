@@ -77,10 +77,10 @@ func _suivre(reponse: Dictionary) -> void:
 	_refus.text = ""
 	if reponse.has("monde"):
 		_monde.poser(reponse.monde)
-		_monde.poser_les_aretes(reponse.aretes, int(reponse.vue.couche))
+		_monde.poser_les_aretes(reponse.aretes)
 	_vue = reponse.vue
 	_surcouche = reponse.surcouche
-	_monde.choisir_l_arete(_surcouche.arete, int(_vue.couche))
+	_monde.choisir_l_arete(_surcouche.arete)
 	var plaques := {}
 	var noms := {}
 	for r in _surcouche.reperes:

@@ -119,17 +119,24 @@ describe('buildWalls — hauteur visuelle portée par l’apparence', () => {
   });
 });
 
-describe('buildWalls — hauteur de base MÉTRIQUE (heightAt, vérité partagée iso/POV)', () => {
-  /** Une case à 4 m porte la GÉOMÉTRIE du mur (il part de 4 m) et RIEN de son apparence (#1180) :
+describe('buildWalls — hauteur de base MÉTRIQUE (piedDeLArete, vérité partagée iso/POV)', () => {
+  /** Deux cases à 4 m portent la GÉOMÉTRIE du mur qui les sépare (il part de 4 m) et RIEN de son apparence (#1180) :
    *  nu il reste `plain`, fortifié il le DIT en donnée. */
   const scene4m = (seg: WallSeg): Scene => {
     const s = sceneWith([seg]);
     s.layers[0].height = new Array(36).fill(0);
     s.layers[0].height[2 * 6 + 2] = 4;
+    s.layers[0].height[2 * 6 + 3] = 4;
     return s;
   };
 
-  it('un mur sur une case à 4 m part de 4 m ; sans structure il RESTE un mur nu', () => {
+  it('un mur contre une marche part du sol d’en bas', () => {
+    const s = scene4m({ x: 2, y: 2, side: 'E' });
+    s.layers[0].height![2 * 6 + 3] = 0;
+    expect(one(s).ends[0].h).toBe(0);
+  });
+
+  it('un mur entre deux cases à 4 m part de 4 m ; sans structure il RESTE un mur nu', () => {
     const el = one(scene4m({ x: 2, y: 2, side: 'E' }));
     expect(el.appearance).toBe('plain');
     expect(el.ends[0].h).toBe(4);

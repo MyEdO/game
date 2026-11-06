@@ -493,14 +493,27 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
   }
 }
 
+/** La hauteur (m) d'où le segment `seg` de `scene` se dresse : la plus basse des deux cases qu'il sépare, sur sa couche,
+ *  celle de sa case pour une diagonale ou un bord de carte. Un mur contre une volée reste debout sur le sol d'en bas. */
+export function piedDeLArete(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z'>): number {
+  const z = seg.z ?? 0;
+  const ici = heightAt(scene, seg.x, seg.y, z);
+  const [dx, dy] = seg.side === 'N' ? [0, -1] : seg.side === 'E' ? [1, 0] : [0, 0];
+  const x = seg.x + dx;
+  const y = seg.y + dy;
+  const dedans = (dx || dy) && x >= 0 && y >= 0 && x < scene.dimensions.w && y < scene.dimensions.h;
+  return dedans ? Math.min(ici, heightAt(scene, x, y, z)) : ici;
+}
+
 /** Une arête telle qu'un hôte la dessine : la case du segment, son milieu et son sens en coins de grille (`wallEnds`),
- *  si elle est une porte en jeu (`porteEnJeu`) et si elle laisse passer (`wallIsOpen`). */
-export interface AreteDessinee { case: Pt; milieu: Pt; sens: Pt; porte: boolean; ouverte: boolean }
+ *  la hauteur d'où elle se dresse (`piedDeLArete`), si elle est une porte en jeu (`porteEnJeu`) et si elle laisse passer
+ *  (`wallIsOpen`). */
+export interface AreteDessinee { case: Pt; milieu: Pt; sens: Pt; pied: number; porte: boolean; ouverte: boolean }
 
 /** L'arête dessinée du segment `seg` de `scene`. */
 export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
   const [a, b] = wallEnds(seg);
-  return { case: { x: seg.x, y: seg.y }, milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, sens: { x: b.x - a.x, y: b.y - a.y }, porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) };
+  return { case: { x: seg.x, y: seg.y }, milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, sens: { x: b.x - a.x, y: b.y - a.y }, pied: piedDeLArete(scene, seg), porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) };
 }
 
 /** Les arêtes dessinées de la couche `z` de `scene`. */
