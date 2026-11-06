@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc } from './banc.testkit';
 import { emitCombatEvent } from './combatEvents';
 import { avecLesTables } from './noyau.testkit';
 import type { Combatant } from '../engine/types';
@@ -11,6 +12,8 @@ const bare = (): Combatant => (blessuresSurLeProfil({
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
   wounds: blessuresDeBase(10), advantage: 0,
 })) as unknown as Combatant;
+
+beforeEach(() => { ouvrirLeBanc(); });
 
 describe('emitCombatEvent — bus unique (machinerie PUIS données)', () => {
   it('joue les hooks MACHINERIE de l’événement via le bus', () => {

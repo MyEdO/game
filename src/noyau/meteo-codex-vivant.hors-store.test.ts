@@ -10,7 +10,8 @@
  * Deux cas POSITIFS : le refus RESTAURE, et une édition cohérente est vue par la table de cascade
  * SANS rechargement (famille `tablesDeMeteo`, posée par le module de voyage).
  */
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { ouvrirLeBanc } from './banc.testkit';
 import { weather } from '../data/index';
 import { setDataset, datasetArray, datasetFile, datasetSerializeRoot } from '../data/overrides';
 import { validateDataset } from '../data/schemas/validate';
@@ -47,6 +48,8 @@ const editee = (patch: Record<string, Partial<Range>>): Saison[] =>
     ...s,
     entries: s.entries.map((r) => (patch[r.weather] ? { ...r, ...patch[r.weather] } : r)),
   }));
+
+beforeEach(() => { ouvrirLeBanc(); });
 
 describe('météo éditée au Codex — refus transactionnel et table VIVANTE', () => {
   it('une borne éditée SEULE est refusée (trou d100) et l’état d’avant est REPRIS', () => {

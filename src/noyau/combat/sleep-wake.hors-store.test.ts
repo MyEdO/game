@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc } from '../banc.testkit';
 import { hitModifiers } from './hitModifiers';
 import { isMagicallyAsleep, wakeSleeper } from '../../engine/conditions';
 import type { Combatant } from '../../engine/types';
@@ -18,14 +19,16 @@ const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   ...over,
 }) as unknown as Combatant);
 
-const wakeMod = hitModifiers().find((m) => m.id === 'wake-sleeper')!;
+const wakeMod = () => hitModifiers().find((m) => m.id === 'wake-sleeper')!;
 const run = (attacker: Combatant, target: Combatant, autoKill = true): AttackResult =>
-  wakeMod.apply({
+  wakeMod().apply({
     attacker, target, weapon: { type: 'melee', name: 'Épée' } as never, attaque: 'melee',
     res: { hit: true, autoKill } as unknown as AttackResult,
     get: (() => ({ battle: { combatants: [] } })) as never, set: (() => {}) as never, sink: () => {},
     ouvrirSauvegarde: () => {}, // aucune sauvegarde ici : ce dormeur n'a aucun Trait à Indice
   });
+
+beforeEach(() => { ouvrirLeBanc(); });
 
 describe('isMagicallyAsleep — dormeur ≠ KO', () => {
   it('Inconscient À DURÉE + PB > 0 = endormi magiquement', () => {
