@@ -40,8 +40,8 @@ var squelette: Skeleton3D = null
 var lecteur: AnimationPlayer = null
 ## Le modificateur du squelette de la base qui pose le gabarit de la composition.
 var gabarit: GabaritDuSquelette = null
-## Le modificateur du squelette de la base qui pose la main libre sur la seconde prise de l'objet tenu, `null` sans lui.
-var seconde_prise: SecondePrise = null
+## Les modificateurs du squelette de la base qui posent la main libre sur la seconde prise de l'objet tenu (`SecondePrise`).
+var seconde_prise: Array[Node] = []
 ## La réponse de `composer` retenue, `{}` sans composition : sa `palette`, son `gabarit`, ses `morphes`.
 var composee: Dictionary = {}
 ## Où vont les erreurs de la pose, de l'habillage et des emblèmes.
@@ -205,7 +205,7 @@ func vider() -> void:
 	squelette = null
 	lecteur = null
 	gabarit = null
-	seconde_prise = null
+	seconde_prise.clear()
 	pieces.clear()
 	_noeuds.clear()
 	montes.clear()
@@ -312,20 +312,15 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 ## La main de la prise `off` posée sur la seconde prise de l'élément monté à la prise `main` (`secondesPrises` de
 ## `modeles`, #3319), si la prise `off` ne tient rien ; aucune sinon.
 func poser_la_seconde_prise() -> void:
-	if seconde_prise != null:
-		seconde_prise.free()
-		seconde_prise = null
+	for modificateur in seconde_prise:
+		modificateur.free()
+	seconde_prise.clear()
 	var seconde: Variant = modeles.get("secondesPrises", {}).get(montes.get("main", VIDE))
 	var tenante := _point("main")
 	var libre := _point("off")
 	if squelette == null or seconde == null or montes.has("off") or tenante.is_empty() or libre.is_empty():
 		return
-	seconde_prise = SecondePrise.new()
-	seconde_prise.name = "SecondePrise"
-	squelette.add_child(seconde_prise)
-	if not seconde_prise.poser(tenante.attache, libre.attache, seconde):
-		seconde_prise.free()
-		seconde_prise = null
+	seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde)
 
 
 ## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache

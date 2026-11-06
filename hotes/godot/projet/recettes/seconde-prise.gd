@@ -33,14 +33,15 @@ func _recetter() -> void:
 	quit(0 if _fautes.is_empty() else 1)
 
 
-## Le squelette d'un bras gauche à trois os, coude fléchi, et d'une main droite devant le torse, posé dans l'arbre.
+## Le squelette d'un bras gauche à trois os, coude fléchi, et d'une main droite devant le torse, chaque main à un doigt
+## de même repos, celui de la main droite fléchi, posé dans l'arbre.
 func _squelette() -> Skeleton3D:
 	var squelette := Skeleton3D.new()
 	root.add_child(squelette)
 	for os in [{nom = "epaule_g", parent = "", repos = Transform3D(Basis.from_euler(Vector3(0.0, 0.0, -1.2)), Vector3(0.2, 1.4, 0.0))},
 			{nom = "coude_g", parent = "epaule_g", repos = Transform3D(Basis.from_euler(Vector3(0.0, 0.4, 0.3)), Vector3(0.0, 0.3, 0.0))},
 			{nom = "main_g", parent = "coude_g", repos = Transform3D(Basis.from_euler(Vector3(0.2, 0.0, 0.1)), Vector3(0.0, 0.25, 0.0))},
-			{nom = "doigt_g", parent = "main_g", repos = Transform3D(Basis.IDENTITY, Vector3(0.0, 0.08, 0.0))},
+			{nom = "doigt_g", parent = "main_g", repos = Transform3D(Basis.from_euler(Vector3(1.1, 0.0, 0.2)), Vector3(0.0, 0.08, 0.0))},
 			{nom = "main_d", parent = "", repos = Transform3D(Basis.from_euler(Vector3(0.3, -0.8, 0.1)), Vector3(0.05, 1.15, 0.3))},
 			{nom = "doigt_d", parent = "main_d", repos = Transform3D(Basis.from_euler(Vector3(1.1, 0.0, 0.2)), Vector3(0.0, 0.08, 0.0))}]:
 		var indice := squelette.add_bone(os.nom)
@@ -48,6 +49,7 @@ func _squelette() -> Skeleton3D:
 			squelette.set_bone_parent(indice, squelette.find_bone(os.parent))
 		squelette.set_bone_rest(indice, os.repos)
 		squelette.set_bone_pose(indice, os.repos)
+	squelette.set_bone_pose_rotation(squelette.find_bone("doigt_d"), Quaternion.from_euler(Vector3(1.5, 0.1, 0.2)))
 	return squelette
 
 
@@ -73,7 +75,7 @@ func _verifier(cas: String, seconde: Dictionary, montes: Dictionary, ploie: bool
 	var visee := tenue * MontageDeComposition.repere(seconde)
 	var prise := main * MontageDeComposition.repere(OFF.attache)
 	if not ploie:
-		juste = montage.seconde_prise == null and main.origin.distance_to(repos.origin) < EPSILON
+		juste = montage.seconde_prise.is_empty() and main.origin.distance_to(repos.origin) < EPSILON
 	elif seconde == HORS_DE_PORTEE:
 		var epaule: Vector3 = releve.epaule_g.origin
 		var tendu := (main.origin - epaule).length()
