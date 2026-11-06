@@ -30,7 +30,7 @@ export interface PosteEnVue { nom: string; poste: boolean; geste: GesteDuNoyau }
 /** Une Scène de la situation : son nom, son effet chiffré et sa description, sa position quand elle se tient
  *  (`null` sinon), les PJ libres qui s'y postent (`null` : un combat engage tout le groupe, ou la Scène ne se joue plus
  *  ce Round), et son engagement. */
-export interface SceneEnVue { id: string; libelle: string; effet: string; description: string | null; resolue: boolean; position: string | null; postes: PosteEnVue[] | null; engager: GesteDeBataille }
+export interface SceneEnVue { id: string; libelle: string; effet: string; desc: string | null; resolue: boolean; position: string | null; postes: PosteEnVue[] | null; engager: GesteDeBataille }
 
 /** La bataille ouverte : son Round (`null` une fois terminée), ses armées, son terrain, la pénalité de Menace
  *  (`0` : aucune), ses Scènes, son aléa (`null` : pas encore tiré) et les gestes qui le tirent, les gestes du Round,
@@ -63,7 +63,7 @@ function scenesDuRound(s: Jeu, mb: MassBattleState): SceneEnVue[] {
     const postes = mb.assignment[id] ?? [];
     const resolue = mb.resolvedScenes.includes(id);
     return {
-      id, libelle: sc.label, effet: battleSceneEffectLabel(sc), description: sc.desc ?? null, resolue,
+      id, libelle: sc.label, effet: battleSceneEffectLabel(sc), desc: sc.desc ?? null, resolue,
       position: sc.sceneKind === 'hold' && sc.hold ? positionDe(mb, id, sc.hold.breakpoint) : null,
       postes: combat || resolue || mb.awaitingNext ? null : libres.map((h) => {
         const poste = postes.includes(h.id);
