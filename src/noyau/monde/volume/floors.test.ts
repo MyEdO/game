@@ -4,6 +4,7 @@ import type { Face, FloorEl } from './types';
 import { emptyScene, heightAt, type Scene } from '../scene';
 import { gradeBetween, STEP_MAX_M } from '../relief';
 import { terrainMatiere } from '../terrain';
+import { CONTREMARCHE_M } from './pente';
 
 /**
  * Builder de sols du PIVOT : le franchissement vertical S'AUTO-DÉRIVE du delta de hauteur MÉTRIQUE
@@ -27,6 +28,16 @@ const reliefParts = (el: FloorEl | undefined) => (el?.faces ?? []).filter((f) =>
 /** Face de BASE (losange de sol) : domaine terrain, sans `part` (≠ wedge). L'orientation « sol » n'est
  *  plus un champ (`plane` retiré) → les backends la dérivent de `domain`+`part`, les tests aussi. */
 const isBaseFace = (f: Face) => f.material.domain === 'terrain' && !f.material.part;
+const estVerticale = (f: Face) => f.poly.every((p) => p.x === f.poly[0].x) || f.poly.every((p) => p.y === f.poly[0].y);
+const etendue = (f: Face) => Math.max(...f.poly.map((p) => p.h)) - Math.min(...f.poly.map((p) => p.h));
+/** Hauteur de la face horizontale de l'élément qui couvre le point (x,y). */
+function hauteurAuPoint(el: FloorEl, x: number, y: number): number | undefined {
+  const dessus = el.faces.filter((f) => !estVerticale(f) && f.poly.every((p) => p.h === f.poly[0].h));
+  return dessus.find((f) => {
+    const xs = f.poly.map((p) => p.x), ys = f.poly.map((p) => p.y);
+    return x >= Math.min(...xs) && x <= Math.max(...xs) && y >= Math.min(...ys) && y <= Math.max(...ys);
+  })?.poly[0].h;
+}
 
 describe('edgeBlends (raccord d’arêtes de terrain)', () => {
   it('un voisin de priorité plus haute déborde ; même priorité ne déborde pas', () => {
@@ -72,12 +83,38 @@ describe('buildFloors — parois de relief auto-dérivées du dénivelé métriq
     expect(n.poly[0]).toEqual({ x: 0.5, y: 0.5, h: 4 }); // coin NO de (1,1) en coordonnées de grille
   });
 
-  it('un ressaut de +0.5 m (≤ STEP_MAX) porte des RAMPES (plan incliné), pas des falaises', () => {
-    const s = withHeight();
+  it('un ressaut de +0.5 m (≤ STEP_MAX) sur sol BÂTI : des marches d’au plus une contremarche, la case à sa hauteur au centre', () => {
+    const s = withHeight(); // plancher : terrain bâti
     setH(s, 1, 1, 0.5);
-    const faces = reliefParts(elAt(buildFloors(s), 1, 1));
-    expect(faces.length).toBeGreaterThan(0);
-    expect(faces.every((f) => f.material.part === 'ramp')).toBe(true);
+    const els = buildFloors(s);
+    expect(els.flatMap((e) => reliefParts(e))).toEqual([]); // ni falaise ni talus : on rejoint chaque voisine à pied
+    for (const e of els) for (const f of e.faces.filter(estVerticale))
+      expect(etendue(f)).toBeLessThanOrEqual(CONTREMARCHE_M + 1e-9);
+    expect(hauteurAuPoint(elAt(els, 1, 1)!, 1, 1)).toBeCloseTo(0.5);
+    expect(hauteurAuPoint(elAt(els, 0, 1)!, 0, 1)).toBeCloseTo(0);
+  });
+
+  it('un ressaut de +0.5 m sur sol NATUREL : une pente d’un centre à l’autre, sans aucune face verticale', () => {
+    const s = withHeight();
+    s.layers[0].tiles.fill('herbe');
+    setH(s, 1, 1, 0.5);
+    const els = buildFloors(s);
+    expect(els.flatMap((e) => e.faces.filter(estVerticale))).toEqual([]);
+    const sommets = elAt(els, 1, 1)!.faces.flatMap((f) => f.poly);
+    expect(sommets.find((p) => p.x === 1 && p.y === 1)?.h).toBeCloseTo(0.5); // centre : la hauteur de jeu
+    expect(sommets.find((p) => p.x === 1.5 && p.y === 1)?.h).toBeCloseTo(0.25); // milieu d'arête : à mi-pente
+  });
+
+  it('une volée d’escalier de 2 m sur quatre cases de pavé : des marches d’au plus une contremarche, chaque case à sa hauteur', () => {
+    const s = emptyScene('scene-test', 5, 1);
+    s.layers[0].tiles = new Array(5).fill('pave');
+    s.layers[0].height = [0, 0.5, 1, 1.5, 2];
+    const els = buildFloors(s);
+    for (const e of els) {
+      expect(reliefParts(e).filter((f) => f.side === 'E' || f.side === 'O')).toEqual([]);
+      for (const f of e.faces.filter(estVerticale)) expect(etendue(f)).toBeLessThanOrEqual(CONTREMARCHE_M + 1e-9);
+      expect(hauteurAuPoint(e, e.cell.x, 0)).toBeCloseTo(s.layers[0].height![e.cell.x]);
+    }
   });
 
   it('de niveau avec tous ses voisins → seule la face de BASE (matériau = id du terrain)', () => {
@@ -170,14 +207,13 @@ describe('buildFloors — la matière de relief est LUE dans la donnée (#1691)'
     expect(faces.every((f) => f.material.id === s.reliefDefaults.cliff)).toBe(true);
   });
 
-  it('rampe : la matière est celle que la SCÈNE pose pour `ramp`', () => {
-    const s = withHeight();
+  it('talus : là où deux pentes naturelles ne se rejoignent pas, la paroi prend la matière que la SCÈNE pose pour `ramp`', () => {
+    const s = emptyScene('scene-test', 2, 2); // herbe : sol naturel
+    s.layers[0].height = [0, 1, -1, 1.5]; // (1,0) rejoint (0,0) et (1,1) ; (0,1) rejoint (0,0) mais pas (1,1)
     s.reliefDefaults = { ...s.reliefDefaults, ramp: 'pierre' };
-    setH(s, 1, 1, 0.5);
-    const faces = reliefParts(elAt(buildFloors(s), 1, 1));
-    expect(faces.length).toBeGreaterThan(0);
-    expect(faces.every((f) => f.material.part === 'ramp')).toBe(true);
-    expect(faces.every((f) => f.material.id === s.reliefDefaults.ramp)).toBe(true);
+    const talus = buildFloors(s).flatMap((e) => reliefParts(e)).filter((f) => f.material.part === 'ramp');
+    expect(talus.length).toBeGreaterThan(0);
+    expect(talus.every((f) => f.material.id === s.reliefDefaults.ramp)).toBe(true);
   });
 
   it('dalle de tablier et pilier : les matières que la SCÈNE pose pour `deck` et `pilier`', () => {
