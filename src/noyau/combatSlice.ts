@@ -71,7 +71,7 @@ import { battleConsumeItem, refusDeConsommer, runConsumable } from './consumable
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
 import { raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN, type HealMode } from '../engine/healing';
-import { jetDuSoigneur, parametresDuSoin, refusDesBandages, refusDuTestDuSoin } from './soin';
+import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
 import { suspendSource } from '../engine/suspension';
@@ -2407,13 +2407,9 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
       mode: (mode) => {
         const ph = get().pendingHeal;
         if (!ph) return;
-        const target = actorIn(get(), ph.targetId);
-        if (!target) return;
+        if (!actorIn(get(), ph.targetId)) return;
         const soigneur = actorIn(get(), ph.healerId);
-        // Hors combat, l'acte se choisit à l'infirmerie (`medicAct`, verdict `refusDActeDeSoin`).
-        const raison = get().battle
-          ? raisonDeModeDeSoinEnCombat(target, mode) ?? refusDuTestDeSoin(soigneur ?? null, mode, parametresDuSoin(ph))
-          : t('heal.modeFixeALInfirmerie');
+        const raison = refusDuModeDuSoin(get(), mode);
         if (raison) return void refuserGesteDuSiege(get, set, raison);
         const bandagesDe = actePanse(mode) ? ph.bandagesDe : null;
         const difficulty = difficulteDuSoin(ph.test, mode);
