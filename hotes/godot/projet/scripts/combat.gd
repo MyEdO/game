@@ -7,8 +7,11 @@
 ## (`Zone.geste` ; la fiche d'un héros, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la méthode
 ## `creation`), ou un clic du champ (`vue.champ` : le verbe qui désigne un combattant, celui qui désigne une case ;
 ## `null`, le champ ne se clique pas), le combattant d'une case lu dans `vue.occupants`. Un refus se dit ; l'écran
-## reste tel quel, saisies comprises. Chaque vue montrée, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`),
-## que la recette lit. La bulle de l'aperçu (`combat.apercu`) se tient au-dessus de sa case.
+## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
+## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
+## et la partie se joue sans corps. Chaque vue montrée, et chaque corps changé, il publie à la page ce que l'écran porte
+## (`PontDuNoyau.publier_l_ecran`), que la recette lit. La bulle de l'aperçu (`combat.apercu`) se tient au-dessus de sa
+## case.
 extends Node
 
 @onready var _plateau: Plateau = $Plateau
@@ -25,13 +28,30 @@ var _zones: Array[Zone] = []
 
 func _ready() -> void:
 	_plateau.case_cliquee.connect(_cliquer)
+	_plateau.habille.connect(_publier_l_ecran)
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
+	await _indexer_les_modeles()
 	var entree := {scenario = _pont.parametre("scenario")}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
 	_suivre(_pont.appeler("demarrer", entree))
+
+
+## Le listage du serveur et l'index du pont (`MontageDeComposition.lister`, `indexer`), retenu pour les corps du
+## plateau ; ses erreurs, les refus de l'index et celui du pont vont à l'avis de panne.
+func _indexer_les_modeles() -> void:
+	var recueil: Array[String] = []
+	var reponse := MontageDeComposition.indexer(_pont, await MontageDeComposition.lister(self, recueil))
+	if reponse.get("ok") == true:
+		MontageDeComposition.retenir_les_modeles(reponse)
+		for refus in reponse.refus:
+			recueil.append(str(refus))
+	elif reponse.get("ok") == false:
+		recueil.append(str(reponse.erreur.message))
+	if not recueil.is_empty():
+		_panne.text = "\n".join(PackedStringArray(recueil))
 
 
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
@@ -74,11 +94,11 @@ func _relier() -> void:
 			zone.geste.connect(_jouer)
 
 
-## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`) et le point de
-## chaque case du plateau.
+## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de
+## chaque case du plateau, et ce que porte le corps de chaque combattant dessiné (`Plateau.corps`).
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_ecran]), cases = _plateau.points()})
+	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_ecran]), cases = _plateau.points(), corps = _plateau.corps()})
 
 
 ## Un clic sur `case` : le clic du champ qui désigne son occupant s'il en a un, celui qui désigne la case sinon.

@@ -6,7 +6,7 @@
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
 import { garanti } from '../lib/garanti';
-import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, equipementDessine, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type Offre, type Pt } from '../noyau/index';
+import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt } from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
@@ -23,7 +23,8 @@ export interface CombattantProjete {
   /** Ses États (`conditions`), chacun avec sa valeur. */
   etats: { id: string; valeur: number }[];
   horsCombat: boolean;
-  equipement: ReturnType<typeof equipementDessine>;
+  /** Ce qu'il porte (`porteeDuCombattant`) ; `null` : son espèce n'a aucune race de rendu. */
+  portee: PorteeDeComposition | null;
 }
 
 /** Une entité de la scène en exploration : id, genre, nom, case. */
@@ -149,7 +150,7 @@ function combattant(c: Combatant, actif: Combatant | undefined): CombattantProje
     engage: !!actif && c.id !== actif.id && !!actif.engagedWith?.includes(c.id),
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     horsCombat: !!c.dead || !!c.outOfRencontre,
-    equipement: equipementDessine(c),
+    portee: porteeDuCombattant(c),
   };
 }
 

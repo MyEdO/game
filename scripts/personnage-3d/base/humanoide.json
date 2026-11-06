@@ -1,7 +1,7 @@
 {
   "base": "humanoide",
   "porteur": { "race": "humain", "gabarit": "moyen", "taille": "moyenne", "echelleDArt": 1 },
-  "clipsDeMarche": ["Walk_Loop"],
+  "clips": { "idle": "Idle_Loop", "walk": "Walk_Loop", "melee": "Sword_Attack", "hit": "Hit_Chest", "death": "Death01" },
   "surfaces": [
     { "nom": "MI_Superhero_Male", "palette": "peau" },
     { "nom": "MI_Hair_1", "palette": "cheveux" },

@@ -635,7 +635,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;
                             les GLB vivent dans la Release `modeles-3d`, nommés par leur SHA-256, que la provenance
                             commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import).
-  projet/                   le projet Godot 4.7 (GDScript, scènes, manifestes et provenances des modèles KayKit, leur licence) : il dessine la
+  projet/                   le projet Godot 4.7 (GDScript, scènes, manifestes et provenances des modèles 3D, leurs licences) : il dessine la
                             vue et rend chaque geste en intention, sans règle, l'arithmétique de la mise en page dans
                             le seul `hotes/godot/projet/scripts/mise_en_page.gd` (gardes `src/hote/derive-du-noyau.hors-store.test.ts`,
                             `scripts/guards/lib/gdscriptSansRegle.mjs`) ;
