@@ -4,7 +4,7 @@
  * et règle l'acte et le Test en choix nommés (`fenetreDuSoin`), chaque option fermée avec sa raison.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table, type Reponse } from './pont.testkit';
+import { drainer, gestesDessines, table, type Reponse } from './pont.testkit';
 import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton, Choix } from '../../../src/hote/elements';
 import type { Suite } from './pont';
@@ -12,11 +12,11 @@ import type { Suite } from './pont';
 const { appel } = table();
 
 /** Joue le geste que l'Entrée jouerait, ou la première valeur ouverte d'un choix de la fenêtre, tant qu'une fenêtre tient
- *  la main. */
+ *  la main, réglages compris (le choix d'une étape de cascade). */
 function viderLesFenetres(suite: Suite): Suite {
   for (let pas = 0; suite.vue.projection.fenetre; pas++) {
     expect(pas, 'les fenêtres se vident').toBeLessThan(20);
-    const g = suite.vue.zones['fenetre.gestes'];
+    const g = gestesDessines(suite.vue);
     const b = g.find((x): x is Bouton => x.type === 'bouton' && x.focus) ?? g.flatMap((x) => (x.type === 'choix' ? x.valeurs : [])).find((v) => !v.refus)!;
     ({ suite } = drainer(appel, appel('jouer', b.jeu)));
   }

@@ -53,7 +53,7 @@ const poser = (combatants: Combatant[]): void => {
 /** Résout la fenêtre de Blessure critique empilée par le coup (dé de sévérité, Mort subite). */
 const vider = (): void => {
   if (!banc.getState().pendingCascade) return;
-  banc.getState().cascadeResolveAll();
+  banc.getState().jetRoll('cascade');
   banc.getState().fenetreFermer('cascade');
 };
 const enJeu = (id: string): Combatant | undefined => banc.getState().battle?.combatants.find((c) => c.id === id);

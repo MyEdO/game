@@ -20,7 +20,7 @@ import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { FLOW_VERBS, fluxAccepte, rangeeFacultative, viseUneRangee, type FlowKey, type FluxDuVerbe, type RollVerb } from './flowVerbs';
 import { refuserGeste } from './refusVisible';
 import { deDuJet, FERMETURES_DITES, makeRollFlow, type FermetureDuJet, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
-import { declarationDuReglage, fermetureDeLaPhase, type CorpsDesReglages, type FluxRegle, type VerbeDeReglage } from './reglagesDuJet';
+import { declarationDuReglage, fermetureDeLaPhase, type CorpsDesReglages, type DeclarationDuReglage, type FluxRegle, type VerbeDeReglage } from './reglagesDuJet';
 import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
@@ -46,7 +46,7 @@ import { d100 } from '../engine/dice';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady } from './cascade';
+import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, toutResoudre, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady } from './cascade';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
@@ -322,7 +322,7 @@ export function creerVerbesDeJet(get: Get, set: Set, clotures: CloturesDuJet): V
   return {
     jetRoll: (flux, pid) => jouer('roll', flux, pid, (h, f, rangee) => {
       if (rangee !== undefined || !rangeeFacultative(f, 'roll')) h.roll(get, set, rangee);
-      else for (const id of h.rangeesALancer(get, FLOW_VERBS[f].kind === 'multi' && FLOW_VERBS[f].pidIsActor)) h.roll(get, set, id);
+      else h.lancerSansRangee(get, set, FLOW_VERBS[f].kind === 'multi' && FLOW_VERBS[f].pidIsActor);
     }),
     jetReroll: simple('reroll'),
     jetBonusSL: simple('bonusSL'),
@@ -1243,7 +1243,7 @@ export const FLOWS = paresseux({
     key: 'pendingCascade',
     clotures: { confirm: 'toujours' },
     cloture: fermetureDeLEtape,
-    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape },
+    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape, sansRangee: toutResoudre },
     rolled: (st) => !!st.result,
     actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
     // ACCESSEUR DE DÉ de l'étape (une étape sans jet — `target` nul — n'en a pas). En Test OPPOSÉ,
@@ -1695,7 +1695,7 @@ export const FLOWS = paresseux({
 
   /** Chute VOLONTAIRE (LDB 15 l.82) : le Test de `p.test` — DR-driven comme `run` (Chance « +1 DR »
    *  = 1 m de chute en moins, pas binaire). Flux MULTI (EDO 01 l.231) : une rangée par TOMBANT, sa hauteur
-   *  lue par `metresRetenus`. `part.attempt` (déclaration pré-jet, `fallChoose`) gate le jet : `false` =
+   *  lue par `metresRetenus`. `part.attempt` (déclaration pré-jet, `jetRegler('fall', 'tenter', …)`) gate le jet : `false` =
    *  chute pleine SANS Test (jamais de `roll`) ; aucune rangée ne roule tant qu'une autre n'a pas déclaré
    *  (`phaseDeChute`). */
   fall: () => makeRollFlow<PendingFall, TombantParticipant>({
@@ -2452,16 +2452,18 @@ export const oppositionsEnAttente = (p: PendingCastOpposition): OppositionPartic
 function refusDuReglage(s: Jeu, flux: unknown, reglage: unknown, pid: unknown): string | null {
   const declaration = declarationDuReglage(flux, reglage);
   if (!declaration) return t('jet.refus.reglageAbsent');
-  if ((typeof pid === 'string') !== (declaration.portee === 'rangee')) return t('jet.refus.rangee');
+  if (typeof pid === 'string' ? declaration.portee !== 'rangee' : declaration.portee === 'rangee' && !declaration.toutes) return t('jet.refus.rangee');
   return declaration.qui === 'hote' && s.net.mode === 'guest' ? t('jet.refus.hoteSeul') : null;
 }
 
 /** Ce qui ferme maintenant le réglage `reglage` du flux `flux`, sur la rangée `pid` d'un réglage de rangée : sa phase
  *  (`fermetureDeLaPhase`) jugée sur le lancer de son jet (`RollFlowHandlers.fermetures`, la fenêtre que lit
- *  `verbesOuverts`), puis son offre (`DeclarationDuReglage.offre`) ; `null` : il se joue. */
+ *  `verbesOuverts`) — sur la fenêtre entière pour un réglage `horsDuJet`, que la rangée ait un jet ou non —, puis son
+ *  offre (`DeclarationDuReglage.offre`) ; `null` : il se joue. */
 export function fermetureDuReglage(get: Get<Jeu>, flux: FluxRegle, reglage: string, pid?: string): FermetureDuJet | null {
   const declaration = garanti(declarationDuReglage(flux, reglage), `${flux}.${reglage}`, 'réglage déclaré');
-  return fermetureDeLaPhase(declaration.phase, FLOW_HANDLERS[flux].fermetures(get, pid).roll) ?? declaration.offre?.(get()) ?? null;
+  const jugee = declaration.phase === 'horsDuJet' ? undefined : pid;
+  return fermetureDeLaPhase(declaration.phase, FLOW_HANDLERS[flux].fermetures(get, jugee).roll) ?? declaration.offre?.(get()) ?? null;
 }
 
 /** Le verbe qui règle un jet sur `get`/`set` : il refuse, et le dit, le réglage que son flux ne déclare pas
@@ -2485,9 +2487,9 @@ export function creerReglageDuJet(get: Get, set: Set, corps: CorpsDesReglages): 
 const contreSortsDus = (s: Jeu, p: PendingCounterspell): CounterParticipant[] =>
   p.participants.some((x) => x.result?.dispelled) ? [] : p.participants.filter((x) => x.interactive && !x.result && counterspellRolls(s, p, x));
 
-/** Les rangées de Contre-sort que CE siège a encore à déclarer : vierges, surfacées et jouables ici (`influencesLocally`). */
-export const rangeesADeclarerIci = (s: Jeu, p: PendingCounterspell | null | undefined): CounterParticipant[] =>
-  (p?.participants ?? []).filter((x) => !x.declared && x.interactive && influencesLocally(s, x.id));
+/** Les rangées que le réglage `toutes` de `declaration` a encore à régler sur CE siège (`influencesLocally`). */
+export const rangeesAReglerIci = (s: Jeu, declaration: DeclarationDuReglage | null): readonly string[] =>
+  (declaration?.toutes?.(s) ?? []).filter((id) => influencesLocally(s, id));
 
 /** Le refus de la rangée de Contre-sort `pid` (`null` si elle lance maintenant) : phase de déclaration ouverte
  *  (`counterspellDeclarePhase`, #1042/#1059), Sort déjà dissipé par une AUTRE rangée (LDB 46 l.156 ; la rangée

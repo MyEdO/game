@@ -208,7 +208,7 @@ describe('Poursuite terrestre (#95)', () => {
     const choix = banc.getState().pendingCascade!.participants[0];
     expect(choix.options?.map((o) => o.key)).toEqual(['sacrifier', 'affronter']);
     // Voie « s'arrêter et les affronter » → rattrapage, poursuite close.
-    banc.getState().cascadeChoose(choix.id, 'affronter');
+    banc.getState().jetRegler('cascade', 'choix', 'affronter', choix.id);
     banc.getState().jetConfirm('cascade');
     expect(pursuitOf(banc.getState())).toBeNull();
     expect(banc.getState().journal.some((l) => l.includes('Rattrapés'))).toBe(true);

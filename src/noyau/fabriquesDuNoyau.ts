@@ -18,7 +18,7 @@ import { creerActionsDuRegistre } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
 import { creerActionsDeManoeuvre } from './shipManeuver';
 import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
-import { creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
+import { choixDeCampagne, creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
 import { creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
@@ -26,9 +26,9 @@ import { creerActionsDesFaveurs } from './favorFlow';
 import { creerActionsDuGroupe, sortiesDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
 import { creerActionsDeMarche } from './marcheDuGroupe';
-import { cloturesDeFranchissement, creerActionsDeFranchissement } from './gesteDArete';
+import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
 import { creerActionsDInteraction } from './interactionsDExploration';
-import { creerActionsDeConversation } from './conversation';
+import { choixDeConversation } from './conversation';
 import { cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand } from './merchantFlow';
 import { creerActionsDeTaverne, sortiesDeLaTaverne } from './tavernFlow';
 import { creerActionsDesDes } from './battleRng';
@@ -56,7 +56,7 @@ import { creerActionsDesActivitesEnMer } from './seaActivities';
  *  argument ; le verbe d'un flux s'ajoute à sa ligne de `FLOW_VERBS` et à sa spec, jamais à côté. Aucune ne porte non
  *  plus un nom de réglage d'un flux (`<flux>Set…`, `<flux>Toggle…`, `<flux>Alloc…`) : un jet se règle par `jetRegler`,
  *  le réglage déclaré dans `ReglagesDuJet` et son corps dans `reglagesDuJet`. Ni un nom de choix (`…Select`,
- *  `…Abandon…`) : une fenêtre fait choisir par `fenetreChoisir`, le choix déclaré dans `ChoixDesFenetres` et son corps
+ *  `…Abandon…`, `…Choose`, `…All`, `…Choisir`) : une fenêtre fait choisir par `fenetreChoisir`, le choix déclaré dans `ChoixDesFenetres` et son corps
  *  dans `choixDesFenetres`. Ni un nom de sortie de fenêtre (`close…`, `dismiss…`, `…Cancel`, `…Skip`) : une fenêtre se
  *  ferme par `fenetreFermer`, la fenêtre déclarée dans son registre (`sortie`) et son corps dans `sortiesDeFenetre` ; ni
  *  un nom de validation (`…Ready`) : une fenêtre se valide par `fenetreValider`, la fenêtre déclarée dans son registre
@@ -65,7 +65,7 @@ import { creerActionsDesActivitesEnMer } from './seaActivities';
  *  Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. */
 type NomDeDelegue = `${FlowKey}${Capitalize<RollVerb>}` | NomDeVerbeDeJet
   | `${FlowKey}${'Set' | 'Toggle' | 'Alloc'}${string}`
-  | `${string}Select` | `${string}Abandon${string}`
+  | `${string}Select` | `${string}Abandon${string}` | `${string}Choose` | `${string}All` | `${string}Choisir`
   | `close${string}` | `dismiss${string}` | `${string}Cancel` | `${string}Skip` | `${string}Ready`;
 function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, NomDeDelegue>]: 'geste de jet, réglage de jet, choix, sortie ou validation de fenêtre : verbe générique' }): T {
   return actions;
@@ -90,6 +90,7 @@ function cloturesDuJet(get: Get, set: SetDesClesReservees): CloturesDuJet {
 function reglagesDuJet(get: Get, set: SetDesClesReservees): CorpsDesReglages {
   return {
     ...reglagesDuCombat(get, set),
+    ...reglagesDeFranchissement(get, set),
     ...reglagesDeCorruption(get, set),
     ...reglagesDesTestsDeScene(get, set),
   } satisfies CorpsDesReglages;
@@ -102,6 +103,8 @@ function choixDesFenetres(get: Get, set: SetDesClesReservees): CorpsDesChoix {
     ...choixDuCombat(get, set),
     ...choixDeCorruption(get, set),
     ...choixDuMedecin(get, set),
+    ...choixDeConversation(get, set),
+    ...choixDeCampagne(get, set),
     ...choixDeLEquipage(get, set),
     ...choixDuVoyageEnMer(get, set),
   } satisfies CorpsDesChoix;
@@ -170,7 +173,6 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
       ...creerActionsDeMarche(get, set),
       ...creerActionsDeFranchissement(get, set),
       ...creerActionsDInteraction(get, set),
-      ...creerActionsDeConversation(get, set),
       ...creerActionsDuMarchand(get, set),
       ...creerActionsDeTaverne(get, set),
       ...creerActionsDesDes(get, set),

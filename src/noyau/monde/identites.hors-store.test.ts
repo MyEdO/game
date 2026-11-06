@@ -1,6 +1,6 @@
 /**
  * IDENTITÉ d'un état `heros` à l'affichage (EDO 02 l.112-127, #686) : le couple espèce × sexe du héros
- * se FIGE à sa désignation (EDO 02 l.114, `designerHerosChoisir`) ; `identitesResolues` y lit la ligne,
+ * se FIGE à sa désignation (EDO 02 l.114, choix `designationHeros.heros`) ; `identitesResolues` y lit la ligne,
  * `nommer` substitue ses repères dans une prose de paquet. Chemin réel : Effet `designerHeros`, puis le
  * choix du héros au noyau.
  */
@@ -51,7 +51,7 @@ function designer(party: ReturnType<typeof heros>[], heroId?: string) {
   banc.setState({ party });
   if (heroId === undefined) return;
   runFlow(get, banc.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });
-  get().designerHerosChoisir(heroId);
+  get().fenetreChoisir('designationHeros', 'heros', heroId);
 }
 
 const LETTRE = '*Cher Herr Lieberung,*\n\nKastor Lieberung, dernier des Lieberung. Mon cher Herr Kuftsos.';

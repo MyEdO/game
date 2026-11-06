@@ -10,14 +10,13 @@
  *  - `MODAL_DEFS.auto` (modalArbiter) pour les modales STANDALONE (frénésie, course, focalisation, Destin…) ;
  *  - `JET_AUTO` (ici) pour les étapes-JET de la `cascade` de COMBAT (attaque/défense/… bespoke) — leur
  *    résolution passe par leur propre flux (`jetRoll(flux)`→`jetConfirm(flux)`, qui fait avancer la cascade), PAS par le
- *    résolveur générique `cascadeResolveAll` (réservé aux jets de NUIT/VOYAGE, qui ont un `target`).
+ *    résolveur générique « tout résoudre » (`jetRoll('cascade')`, réservé aux jets de NUIT/VOYAGE, qui ont un `target`).
  *
  * Module FEUILLE : n'importe RIEN de `combatFlow` ; tout passe par `get().xxx`. INERT tant que la chaîne
  * de reprise (C3/C4) ne l'appelle pas — `cadenceAuto()` est faux par défaut (mode « manuel »).
  */
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { CascadeStep } from './pendings';
 import { pickActiveModalKey, modalOwnerOf, voyageHubActive, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, SURFACES_HORS_PENDING, AUCUN_VERBE_DE_JOUEUR, cleDuGeste, type AutoPolicy, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type SurfaceHorsPendingDef, type VerbesDeFenetre } from './modalArbiter';
 import { maladresseCourante, stepInteraction } from './cascade';
@@ -70,7 +69,7 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
     reactives: [
       // Contre-sort : la fenêtre a une PHASE 1 de déclaration (#1042/#1059) — la cadence déclare les
       // rangées de CE siège (« contrer seul » = le geste que le joueur posait en lançant) avant de rouler.
-      { flux: 'counterspell', rangees: (s) => s.pendingCounterspell?.participants, drive: [{ verbe: 'counterspellDeclareAll' }, { verbe: 'jetRoll', flux: 'counterspell' }, { verbe: 'jetConfirm', flux: 'counterspell' }] },
+      { flux: 'counterspell', rangees: (s) => s.pendingCounterspell?.participants, drive: [{ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration', toutes: true, valeur: 'solo' }, { verbe: 'jetRoll', flux: 'counterspell' }, { verbe: 'jetConfirm', flux: 'counterspell' }] },
       { flux: 'opposition', rangees: (s) => s.pendingCastOpposition?.participants, drive: [{ verbe: 'jetRoll', flux: 'opposition' }, { verbe: 'jetConfirm', flux: 'opposition' }] },
     ],
   },
@@ -98,8 +97,11 @@ const gestesDuFlux = (cle: FlowKey): GesteDuJeu[] => {
   return [...flux.verbs.map((v) => ({ verbe: NOM_DU_VERBE_DE_JET[v], flux: cle })), ...reglagesDuFlux(cle).map((reglage) => ({ verbe: VERBE_DE_REGLAGE, flux: cle, reglage }))];
 };
 
+/** « Tout résoudre » : le jet sans rangée de la cascade, qui résout les étapes restantes et s'arrête sur un choix. */
+export const TOUT_RESOUDRE: GesteDuJeu = { verbe: NOM_DU_VERBE_DE_JET.roll, flux: 'cascade', toutes: true };
+
 /** La navigation de la cascade : valider l'étape (la clôture de son flux), tout résoudre, terminer le bilan (sa sortie). */
-export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: NOM_DU_VERBE_DE_JET.confirm, flux: 'cascade' }, { verbe: 'cascadeResolveAll' }, { verbe: 'fenetreFermer', fenetre: 'cascade' }];
+export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: NOM_DU_VERBE_DE_JET.confirm, flux: 'cascade' }, TOUT_RESOUDRE, { verbe: 'fenetreFermer', fenetre: 'cascade' }];
 
 /** Les gestes `gestes`, chacun une fois (`cleDuGeste`), dans leur premier ordre. */
 const uniques = (gestes: readonly GesteDuJeu[]): GesteDuJeu[] => [...new Map(gestes.map((g) => [cleDuGeste(g), g])).values()];
@@ -114,9 +116,12 @@ const pidDuFlux = (cle: 'cascade' | 'cascadeBatch') => (e: CascadeStep): string 
  *  dans un cycle d'imports avec ce module), et leur `pid`. */
 const joueePar = (cle: 'cascade' | 'cascadeBatch') => ({ flux: cle, get gestes() { return gestesDuFlux(cle); }, pid: pidDuFlux(cle) });
 
-/** L'interaction d'étape que règle le seul verbe `verbe`, qui prend l'id d'étape puis l'argument que `lecture` règle. */
-const regleePar = (verbe: keyof ActionsDuNoyau, lecture: (g: GesteDuJeu) => (e: CascadeStep) => Reglage) =>
-  ({ gestes: nommes([verbe]), pid: idDEtape, reglage: (e: CascadeStep) => lecture({ verbe })(e) });
+/** L'interaction d'étape que règle le seul réglage `reglage` du flux `cascade`, sur l'étape (`pid`), d'après la lecture
+ *  `lecture` ; lue à l'usage, comme `joueePar`. */
+const regleePar = (reglage: 'choix' | 'quantite', lecture: (g: GesteDuJeu) => (e: CascadeStep) => Reglage) => {
+  const geste = (): GesteDuJeu => ({ verbe: VERBE_DE_REGLAGE, flux: 'cascade', reglage });
+  return { get gestes() { return [geste()]; }, pid: idDEtape, get reglage() { return lecture(geste()); } };
+};
 
 /** Les gestes d'une étape de cascade sans jet de COMBAT, par son interaction (`stepInteraction`), l'id qu'ils désignent
  *  (`pid`), le réglage de l'argument qui suit (`reglage` : les clés d'un choix, les bornes d'une quantité) et le flux de
@@ -126,8 +131,8 @@ export const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { 
   batch: joueePar('cascadeBatch'),
   table: { flux: 'cascadeTirage', get gestes() { return gestesDuFlux('cascadeTirage'); }, pid: idDEtape },
   de: { flux: 'cascadeTirage', get gestes() { return gestesDuFlux('cascadeTirage'); }, pid: idDEtape },
-  quantite: regleePar('cascadeAmount', reglageDeLaQuantite),
-  choix: regleePar('cascadeChoose', reglageDuChoix),
+  quantite: regleePar('quantite', reglageDeLaQuantite),
+  choix: regleePar('choix', reglageDuChoix),
   affichage: { gestes: AUCUN_VERBE_DE_JOUEUR, pid: () => undefined },
 };
 
@@ -276,8 +281,8 @@ function driveSelf(get: Get, set: Set, drive: readonly GesteDuJeu[]): void {
     if (!ownerLocal(get())) return;
     if (i >= drive.length) { tickCombatAuto(get, set); return; } // séquence finie → continuer (étape/modale suivante)
     const g = drive[i++];
-    const fn = get()[g.verbe] as undefined | ((flux?: FlowKey) => void);
-    if (typeof fn === 'function') fn(g.flux);  // roll() idempotent, puis confirm() (ferme/avance)
+    const fn = get()[g.verbe] as undefined | ((flux?: FlowKey, reglage?: string, valeur?: string) => void);
+    if (typeof fn === 'function') fn(g.flux, g.reglage, g.valeur);  // roll() idempotent, puis confirm() (ferme/avance)
     programmer(step, beatHold(get, 'autoResolve'));
   };
   step();
@@ -315,13 +320,13 @@ function autoResolveCascade(get: Get, set: Set): void {
     if (!cadenceAutoCombat()) return;
     if (cur.chosen == null) {
       if (cur.defaultChoice == null) return; // pas de défaut → décision au joueur (la modale reste visible)
-      get().cascadeChoose(cur.id, cur.defaultChoice);
+      get().jetRegler('cascade', 'choix', cur.defaultChoice, cur.id);
     }
     // Combat : avancer d'UNE étape (comme le joueur) → les étapes-jet en aval (Maladresse…) gardent leur
-    // driver bespoke au tick suivant, au lieu d'être écrasées par un `cascadeResolveAll` global.
+    // driver bespoke au tick suivant, au lieu d'être écrasées par un « tout résoudre » global.
     if (pc.purpose === 'combat') { get().jetConfirm('cascade'); programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); return; }
   }
-  get().cascadeResolveAll();
+  get().jetRoll('cascade');
   programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); // gérer le bilan / l'étape suivante
 }
 
@@ -336,7 +341,7 @@ function stepAutoResolved(s: Jeu, step: CascadeStep): boolean {
     return !!(w ?? pol.autoDrive); // incantation en Auto
   }
   if (stepInteraction(step) === 'choix') return cadenceAutoCombat() && step.defaultChoice != null; // choix : auto SEULEMENT si un défaut est authoré (sinon décision au joueur, pas de hang)
-  return true; // jet/affichage générique (nuit/voyage) → cascadeResolveAll
+  return true; // jet/affichage générique (nuit/voyage) → tout résoudre (`jetRoll('cascade')`)
 }
 
 /**

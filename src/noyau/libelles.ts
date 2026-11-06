@@ -8,28 +8,16 @@
 import { estUneCle, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { HIT_LOCATION_LABELS } from '../engine/types';
-import { FLOW_VERBS, verbeDeJetDe } from './flowVerbs';
+import { verbeDeJetDe } from './flowVerbs';
 import type { GesteDuJeu } from './modalArbiter';
 import type { HostJet } from './slotsDeJet';
 import type { FermetureDuJet } from './rollFlowFactory';
 
-/** Les préfixes des flux de jet, du plus long au plus court : `cascadeBatch` avant `cascade`. */
-const PREFIXES = Object.keys(FLOW_VERBS).sort((a, b) => b.length - a.length);
-
-/** Le suffixe d'un verbe manuscrit `<flux><Suffixe>` (`grappleBreak`), son initiale en minuscule ; `null` hors d'un flux. */
-function suffixeDuFlux(verbe: string): string | null {
-  const prefixe = PREFIXES.find((p) => verbe.startsWith(p) && /^[A-Z]/.test(verbe.slice(p.length)));
-  return prefixe ? `${verbe.charAt(prefixe.length).toLowerCase()}${verbe.slice(prefixe.length + 1)}` : null;
-}
-
 /** Le texte de la clé `cle`, `null` si le catalogue ne la porte pas. */
 const texte = (cle: string): string | null => (estUneCle(cle) ? t(cle) : null);
 
-/** Le libellé d'un verbe : sa clé `verbe.<id>`, sinon celle du suffixe de son flux (`verbe.<suffixe>`). */
-export function libelleDuVerbe(verbe: string): string | null {
-  const suffixe = suffixeDuFlux(verbe);
-  return texte(`verbe.${verbe}`) ?? (suffixe ? texte(`verbe.${suffixe}`) : null);
-}
+/** Le libellé d'un verbe : sa clé `verbe.<id>`. */
+export const libelleDuVerbe = (verbe: string): string | null => texte(`verbe.${verbe}`);
 
 /** Le libellé du réglage `reglage` du jet du flux `flux` : sa clé `reglage.<flux>.<reglage>`, sinon celle du réglage
  *  (`reglage.<reglage>`) ; le catalogue nomme chaque réglage déclaré (`fenetres-nomment-leurs-verbes.hors-store.test.ts`). */
@@ -46,14 +34,16 @@ const GESTE_DE_FENETRE: Readonly<Record<string, string>> = { fenetreValider: 'va
 
 /** Le libellé d'un geste : pour le choix d'une fenêtre, la clé de son axe (`verbe.<fenetre>.<axe>`) ; pour la validation
  *  ou la sortie d'une fenêtre, la clé propre à sa fenêtre (`verbe.<fenetre>.valider`, `verbe.<fenetre>.fermer`) ; pour
- *  le réglage d'un jet, celui du réglage (`libelleDuReglage`) ; pour un verbe de jet, la clé propre à son flux
- *  (`verbe.<flux>.<verbe>`), sinon celle du verbe (`verbe.<verbe>`) ; tout autre geste, celui de son verbe
- *  (`libelleDuVerbe`). */
+ *  le réglage d'un jet, celui du réglage (`libelleDuReglage`), `reglage.<flux>.<reglage>All` pour sa rangée omise ; pour un verbe de jet, la clé propre à son flux
+ *  (`verbe.<flux>.<verbe>`, `verbe.<flux>.<verbe>All` pour sa rangée omise), sinon celle du verbe (`verbe.<verbe>`) ;
+ *  tout autre geste, celui de son verbe (`libelleDuVerbe`). */
 export function libelleDuGeste(g: GesteDuJeu): string | null {
   if (g.fenetre) return texte(`verbe.${g.fenetre}.${g.axe ?? GESTE_DE_FENETRE[g.verbe]}`);
-  if (g.flux && g.reglage) return libelleDuReglage(g.flux, g.reglage);
+  if (g.flux && g.reglage) return g.toutes ? texte(`reglage.${g.flux}.${g.reglage}All`) : libelleDuReglage(g.flux, g.reglage);
   const deJet = verbeDeJetDe(g.verbe);
-  return deJet && g.flux ? texte(`verbe.${g.flux}.${deJet}`) ?? texte(`verbe.${deJet}`) : libelleDuVerbe(g.verbe);
+  if (!deJet || !g.flux) return libelleDuVerbe(g.verbe);
+  const verbe = g.toutes ? `${deJet}All` : deJet;
+  return texte(`verbe.${g.flux}.${verbe}`) ?? texte(`verbe.${verbe}`);
 }
 
 const estLocalisation = (v: string): v is keyof typeof HIT_LOCATION_LABELS => Object.prototype.hasOwnProperty.call(HIT_LOCATION_LABELS, v);

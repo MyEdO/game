@@ -117,7 +117,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
 
     // (2) « Subir » applique CE Critique.
     const cwBefore = heroNow().criticalWounds ?? 0;
-    banc.getState().cascadeChoose(devId, 'subir');
+    banc.getState().jetRegler('cascade', 'choix', 'subir', devId);
     banc.getState().jetConfirm('cascade');
     expect(heroNow().criticalWounds ?? 0).toBeGreaterThan(cwBefore);
 
@@ -129,7 +129,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     applyAttackResult(banc.getState, banc.setState, enemy, hero, enemy.weapons[0], res);
     const devId2 = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!.id;
     banc.getState().jetRoll('cascadeTirage', devId2);
-    banc.getState().cascadeChoose(devId2, 'devier');
+    banc.getState().jetRegler('cascade', 'choix', 'devier', devId2);
     banc.getState().jetConfirm('cascade');
     expect(heroNow().criticalWounds ?? 0).toBe(0); // pas de Blessure critique appliquée
   });

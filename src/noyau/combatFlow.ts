@@ -4989,7 +4989,7 @@ export function counterspellActors(s: Jeu, pcs: PendingCounterspell | null | und
 
 /** Cette rangée peut-elle S'UNIR au Test Soutenu ? — au moins un AUTRE candidat de la fenêtre partage
  *  son Domaine sans lui être hostile (`soutenuPartners`, `LDB 46 l.162`). Prédicat UNIQUE, lu par
- *  l'affordance de la modale ET par la garde du geste (`counterspellDeclare`). */
+ *  l'affordance de la modale ET par la garde du geste (`jetRegler('counterspell', 'declaration')`). */
 export function counterspellJoinable(s: Jeu, pcs: PendingCounterspell | null | undefined, id: string): boolean {
   const actors = counterspellActors(s, pcs);
   const me = actors.find((c) => c.id === id);

@@ -85,7 +85,6 @@ export function CastModal() {
   const cspBonusSL = useGesteDeJet('jetBonusSL', 'counterspell');
   const cspDarkPact = useGesteDeJet('jetDarkPact', 'counterspell');
   const cspForce = useGesteDeJet('jetForceSuccess', 'counterspell');
-  const cspDeclare = useGame((s) => s.counterspellDeclare);
   const cspConfirm = useGesteDeJet('jetConfirm', 'counterspell');
   const cspCancel = useGesteDeJet('jetCancel', 'counterspell');
   if (!pc) return null;
@@ -418,12 +417,12 @@ export function CastModal() {
                     declare={owned && phase1
                       ? {
                         value: part.declared,
-                        onChoose: (k) => cspDeclare(part.id, k as CounterDeclaration),
+                        onChoose: (k) => regler('counterspell', 'declaration', k as CounterDeclaration, part.id),
                         options: [
-                          { key: 'solo', label: 'Contrer seul' },
+                          { key: 'solo', label: t('valeur.declaration.solo') },
                           // La raison du refus se lit au survol/focus/tap, jamais par un segment muet.
-                          { key: 'soutenu', label: 'S’unir', refus: counterspellJoinable(st, csp, part.id) ? undefined : 'Exige un autre dissipateur du même Domaine' },
-                          { key: 'pass', label: 'Passer' },
+                          { key: 'soutenu', label: t('valeur.declaration.soutenu'), refus: counterspellJoinable(st, csp, part.id) ? undefined : 'Exige un autre dissipateur du même Domaine' },
+                          { key: 'pass', label: t('valeur.declaration.pass') },
                         ],
                         hint: situation,
                       }

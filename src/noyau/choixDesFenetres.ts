@@ -9,7 +9,7 @@
  * `jetRegler` (`ReglagesDuJet`) : aucune clé n'a les deux.
  */
 import type { FateSaveOption } from '../engine/fortune';
-import type { IdDeChoixDePaie, IdDeHeros, IdDuCoupleMonte } from './designations';
+import type { IdDeChoixDePaie, IdDeHeros, IdDePlaieDeLOperation, IdDeReponseDeDialogue, IdDuCoupleMonte } from './designations';
 import type { FlowKey } from './flowVerbs';
 import type { CleDeRegistre } from './modalArbiter';
 import type { EffetDuChoix } from './reglagesDuJet';
@@ -47,6 +47,16 @@ export interface ChoixDesFenetres {
   medic: {
     patient: IdDeHeros;
     abandon: true;
+    /** La Blessure Critique que l'opération armée vise (`plaiesDeLOperation`). */
+    plaie: IdDePlaieDeLOperation;
+  };
+  dialogue: {
+    /** Une réponse visible du nœud courant (`reponsesDuNoeud`) ; décision de groupe, #1262. */
+    reponse: IdDeReponseDeDialogue;
+  };
+  designationHeros: {
+    /** EDO 02 l.91 */
+    heros: IdDeHeros;
   };
 }
 
@@ -82,7 +92,9 @@ export const CHOIX_DES_FENETRES = {
   council: { paie: clotParLHote },
   manannPriest: { payer: clotParLHote },
   shoreLeave: { accorder: clotParLHote },
-  medic: { patient: { effet: 'reprenable', qui: 'proprietaire' }, abandon: clot },
+  medic: { patient: { effet: 'reprenable', qui: 'proprietaire' }, abandon: clot, plaie: { effet: 'reprenable', qui: 'proprietaire' } },
+  dialogue: { reponse: clot },
+  designationHeros: { heros: clot },
 } as const satisfies { [F in FenetreAChoix]: { [A in AxeDe<F>]: DeclarationDuChoix } };
 
 /** La fenêtre `fenetre` (une donnée de frontière) a-t-elle des choix ? */

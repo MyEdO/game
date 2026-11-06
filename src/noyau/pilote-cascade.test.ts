@@ -1,8 +1,8 @@
 /**
  * PILOTE DE CASCADE RECOPIÉ — garde de cliquet (#1765).
  *
- * Une itération de test qui lit `pendingCascade` et joue un verbe `cascade*` PILOTE la cascade à la main,
- * à côté du kit (`cascade.testkit.ts`) : elle dérive quand un flux est refondu. La MESURE vit dans
+ * Une itération de test qui lit `pendingCascade` et joue un verbe de jet sur un flux de cascade PILOTE la cascade à la
+ * main, à côté du kit (`cascade.testkit.ts`) : elle dérive quand un flux est refondu. La MESURE vit dans
  * `scripts/guards/lib/piloteCascadeAudit.ts`, partagée avec la régénération (`regenerations`) ; le stock
  * `scripts/guards/lib/piloteCascadeStock.mjs` porte les copies restantes et ne fait que décroître.
  */
@@ -67,7 +67,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
   const cle = (ref: string) => cleDeSite({ fichier: cible().rel, ref, occurrence: 1 });
   const KIT = "import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';";
   const PAR_HELPER = `${KIT}\nconst avanceMorsure = () => avanceEtapeCascade(g);`;
-  const CHOIX_A_LA_MAIN = 'const p = g().pendingCascade; if (!p) break; const cur = p.participants[p.cursor]; if (cur?.options && !cur.chosen) { g().cascadeChoose(cur.id, cur.options[0].key); g().jetConfirm(\'cascade\'); continue; }';
+  const CHOIX_A_LA_MAIN = 'const p = g().pendingCascade; if (!p) break; const cur = p.participants[p.cursor]; if (cur?.options && !cur.chosen) { g().jetRegler(\'cascade\', \'choix\', cur.options[0].key, cur.id); g().jetConfirm(\'cascade\'); continue; }';
   /** Une lecture et un verbe en ligne droite : piloter, dès qu'une itération les exécute. */
   const PILOTE = 'const p = g().pendingCascade; g().jetConfirm(\'cascade\');';
 

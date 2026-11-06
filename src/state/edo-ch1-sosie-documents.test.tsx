@@ -31,7 +31,7 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie', () => {
     get().transitionTo('route-principale-virage');
     poserLeGroupe(get, useGame.setState, { x: 36, y: 3 });
     get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
-    get().designerHerosChoisir('h-9');
+    get().fenetreChoisir('designationHeros', 'heros', 'h-9');
     container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
     act(() => root!.render(createElement(DocumentModal)));
   });

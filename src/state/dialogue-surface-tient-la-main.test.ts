@@ -43,7 +43,7 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
   // verbe. Une surface PARTAGÉE (le document que tous lisent) met la réponse en attente.
   const repondreCommeInvite = (over: Partial<GameState>) => {
     temoin({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } as GameState['net'], ...over });
-    withActingSeat(1, () => useGame.getState().chooseDialogue('oui'));
+    withActingSeat(1, () => useGame.getState().fenetreChoisir('dialogue', 'reponse', 'oui'));
     return useGame.getState().dialogue?.nodeId;
   };
 

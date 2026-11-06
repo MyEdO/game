@@ -14,7 +14,9 @@ import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import { DESIGNATIONS } from './designations';
 import { libelleDeLaFermeture, libelleDuChoix, libelleDuLitteral } from './libelles';
-import { fenetreDuRegistre, type GesteDuJeu } from './modalArbiter';
+import { fenetreDuRegistre, surfaceTientLaMain, type GesteDuJeu } from './modalArbiter';
+import { plaiesNommees } from './medicFlow';
+import { reponsesDuNoeud } from './dialogue';
 import { refuserGesteDuSiege } from './refusVisible';
 import type { Reglage, ValeurDuReglage } from './reglages';
 import { refusDeChoixDePaie } from './shipCrew';
@@ -72,6 +74,13 @@ export const OUVERTS_DU_CHOIX = {
       return s.party.map((h) => ouverte(h.id, h.label, verrou ?? (isHealable(h) ? null : t('medic.patientSansSoin'))));
     }, (s) => s.medic?.patientId ?? null),
     abandon: reglage('medic', 'abandon', (s) => (s.medic?.surgery || s.pendingSurgery ? [ouverte(true, libelleDuChoix('medic', 'abandon'))] : [])),
+    plaie: reglage('medic', 'plaie', (s) => plaiesNommees(s).map((p) => ouverte(p.uid, p.libelle)), (s) => s.medic?.surgery?.traumaUid ?? null),
+  },
+  // Sous une surface qui tient la main, la conversation est suspendue : la réponse n'y dit pas son refus.
+  dialogue: { reponse: reglage('dialogue', 'reponse', (s) => reponsesDuNoeud(s).map((r) => ouverte(r.id, r.label, surfaceTientLaMain(s) ? null : r.refus ?? null))) },
+  // EDO 02 l.91 : seuls les héros vivants se désignent.
+  designationHeros: {
+    heros: reglage('designationHeros', 'heros', (s) => (s.pendingDesignationHeros ? s.party.filter((h) => !h.dead).map((h) => ouverte(h.id, h.label)) : [])),
   },
 } as const satisfies OuvertsDuChoix;
 

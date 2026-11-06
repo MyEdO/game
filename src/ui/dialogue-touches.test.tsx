@@ -6,7 +6,7 @@
  *
  * Contrats POSITIFS :
  *  · la touche adresse le RANG affiché (une réponse masquée par son `when` ne décale pas les
- *    suivantes) et passe à `chooseDialogue` l'`id` de la donnée ;
+ *    suivantes) et passe au choix `dialogue.reponse` l'`id` de la donnée ;
  *  · une réponse FERMÉE (bourse trop courte) est inerte à la touche comme au clic, et un rang ABSENT
  *    ne fait rien ;
  *  · le siège qui ne décide pas (coop) ne déclenche rien — ni la réponse, ni le raccourci voisin ;
@@ -58,7 +58,7 @@ function monter(over: Partial<GameState> = {}) {
     net: { mode: 'local', mySeat: 0, seatNames: {}, presence: {}, connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0] } as GameState['net'],
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },
     // Espion posé SUR l'action du store : ce qui est mesuré est l'ARGUMENT reçu, pas une closure.
-    chooseDialogue: (id: string) => { choisis.push(id); },
+    fenetreChoisir: ((_fenetre: string, _axe: string, id: string) => { choisis.push(id); }) as GameState['fenetreChoisir'],
     ...over,
   });
   host = document.createElement('div');
@@ -76,7 +76,7 @@ describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => 
   afterEach(() => {
     act(() => { root.unmount(); });
     host.remove();
-    useGame.setState({ dialogue: null, battle: null, chooseDialogue: vrai.chooseDialogue });
+    useGame.setState({ dialogue: null, battle: null, fenetreChoisir: vrai.fenetreChoisir });
   });
 
   it('la touche 2 choisit la 2ᵉ réponse VISIBLE, par son id de donnée', () => {

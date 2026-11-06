@@ -142,7 +142,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingCascade: null });
     g().fallAcross({ x: 2, y: 0 }, { x: 2, y: 1 });
     expect(g().pendingFall!.test).toMatchObject(testDeFiche('chute', 'tenter'));
-    g().fallChoose(hero.id, true);
+    g().jetRegler('fall', 'tenter', true, hero.id);
     g().jetRoll('fall', hero.id);
     expect(g().pendingFall!.participants[0].result!.target).toBe(cible(hero, 'chute', 'tenter'));
   });
@@ -156,7 +156,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     }
   });
 
-  it('Fuite : `disengageFlee` pose le Test de `fuite` sur le slot du fuyard, `jetRoll@flee` le jette', () => {
+  it('Fuite : `jetRegler(\'disengage\', \'fuir\')` pose le Test de `fuite` sur le slot du fuyard, `jetRoll@flee` le jette', () => {
     const { H, E } = auCombat();
     E.characteristics['capacite-de-combat'] = 90;
     H.engagedWith = [E.id];
@@ -165,7 +165,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
       battle: { ...g().battle! },
       pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     });
-    g().disengageFlee();
+    g().jetRegler('disengage', 'fuir', true);
     expect(fleeTouche(g().pendingDisengage!)!.test).toMatchObject(testDeFiche('fuite', 'touche-en-fuyant'));
     g().jetRoll('flee', H.id);
     expect(fleeTouche(g().pendingDisengage!)!.jet!.target).toBe(cible(H, 'fuite', 'touche-en-fuyant'));

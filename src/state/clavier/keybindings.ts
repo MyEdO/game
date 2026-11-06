@@ -427,7 +427,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    ouvert EN COMBAT donne les chiffres à la conversation, pas à la grille de capacités.
   //    `coucheDialogue` les rend audibles pendant la conversation, où tout le reste se tait.
   //    `conversationRepond` (siège + `surfaceTientLaMain`) est le prédicat du VERBE : la touche ne
-  //    s'offre pas quand `chooseDialogue` refuserait — sous la fenêtre de jet, le marché ou l'écran
+  //    s'offre pas quand le choix `dialogue.reponse` refuserait — sous la fenêtre de jet, le marché ou l'écran
   //    plein qu'une réponse vient d'ouvrir.
   ...Array.from({ length: 9 }, (_, i): KeyBinding => ({
     id: `dialogue-choice-${i + 1}`, codes: [`Digit${i + 1}`], labelKey: 'key.dialogueChoice', labelParams: { n: i + 1 }, section: 'dialogue',
@@ -436,7 +436,7 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: conversationRepond,
     run: (g) => {
       const r = reponsesDuNoeud(g()).find((x) => x.rang === i + 1);
-      if (r?.enabled) g().chooseDialogue(r.id); // l'`id` de la DONNÉE, jamais le rang
+      if (r?.enabled) g().fenetreChoisir('dialogue', 'reponse', r.id); // l'`id` de la DONNÉE, jamais le rang
     },
   })),
   // Cases de la GRILLE de capacités : 1-8 = case au RANG n de la grille (adresse, pas rang d'action

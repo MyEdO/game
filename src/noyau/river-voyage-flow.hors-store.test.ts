@@ -242,7 +242,7 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
     const choix = pc.participants[pc.cursor];
     expect(choix.kind, 'le jour s’arrête sur la décision').toBe('riverObstacleChoice');
     expect(pc.participants.slice(pc.cursor + 1).some((s) => s.kind === 'riverPerilCheck'), 'le péril de Débris suit la décision').toBe(true);
-    get().cascadeChoose(choix.id, 'forcer');
+    get().jetRegler('cascade', 'choix', 'forcer', choix.id);
     get().jetConfirm('cascade'); // « Valider » : le geste du joueur qui tranche
     const apres = get().pendingCascade;
     expect(apres?.purpose ?? null, `la fenêtre du JOUR s’est refermée — journal :\n${get().journal.join('\n')}`).not.toBe('travelDay');

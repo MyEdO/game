@@ -15,7 +15,7 @@ import { useHealJetProps } from './jetProps/useHealJetProps';
 import { EmbeddedShell, useRollShell } from './RollShell';
 import { lodgedAmmoCount, HEAL_MODES, type HealMode } from '../engine/healing';
 import { stacks } from '../engine/conditions';
-import { bestHealerFor, fenetreDeLOperation, refusDActeDeSoin, HEAL_STAKE } from '../noyau/medicFlow';
+import { bestHealerFor, plaiesNommees, refusDActeDeSoin, HEAL_STAKE } from '../noyau/medicFlow';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { toMoney } from '../engine/money';
 import { Icon } from './Icon';
@@ -54,7 +54,6 @@ export function MedicModal() {
   const sortieFermee = useGame((s) => fermetureDeLaSortie(s, 'medic'));
   const refusDuPatient = useGame(useShallow((s) => Object.fromEntries(s.party.map((h) => [h.id, refusDuChoix(s, 'medic', 'patient', h.id)]))));
   const act = useGame((s) => s.medicAct);
-  const setWound = useGame((s) => s.medicSetWound);
   const openPass = useGame((s) => s.openSurgeryPass);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('medic');
@@ -113,7 +112,7 @@ export function MedicModal() {
         <div className="medic-dossier" hidden={!!ph} inert={!!ph}>
           {sg && (() => {
             const recovery = sg.kind === 'recovery';
-            const plaies = fenetreDeLOperation(useGame.getState())?.plaie?.options ?? [];
+            const plaies = plaiesNommees(useGame.getState());
             const acte = HEAL_ACT[sg.kind];
             // Le chirurgien n'est un `Combatant` que s'il est du GROUPE : un PNJ tarifé (`healerId`
             // sentinelle, `medicFlow.medicAct`) n'a ni portrait ni fiche — son nom EST le titre de la
@@ -140,7 +139,7 @@ export function MedicModal() {
                 <OptionChooser
                   layout="grid"
                   idPrefix="medic-plaie"
-                  options={plaies.flatMap(({ valeur, libelle }) => (valeur === null ? [] : [{ key: valeur, label: libelle, selected: valeur === sg.traumaUid, onSelect: () => setWound(valeur) }]))}
+                  options={plaies.map(({ uid, libelle }) => ({ key: uid, label: libelle, selected: uid === sg.traumaUid, onSelect: () => choisir('medic', 'plaie', uid) }))}
                 />
               )}
               {/* EXCEPTION nommée au site unique `RollRow.extendedDr` (arbitrage user 2026-07-11, verrou

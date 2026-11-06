@@ -364,7 +364,7 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     expect(avant.groupOwner, 'à l’ouverture, la fenêtre est celle du seul fuyard').toBeUndefined();
     expect(modalOwnerOf(banc.getState())).toBe(fuyard.id);
 
-    banc.getState().disengageFlee();
+    banc.getState().jetRegler('disengage', 'fuir', true);
 
     const apres = steps()[banc.getState().pendingCascade!.cursor] as unknown as Record<string, unknown>;
     expect(apres.groupOwner, 'deux acteurs JOUÉS → moment partagé, posé par le mint').toBe(true);

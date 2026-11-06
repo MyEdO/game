@@ -218,7 +218,7 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
     const etape = get().pendingCascade!.participants[0];
     expect(etape.kind, 'le joueur décide s’il boit pour effacer').toBe('tavern-erase');
     expect(etape.options!.map((o) => o.key)).toEqual(['efface', 'garde']);
-    get().cascadeChoose(etape.id, 'efface');
+    get().jetRegler('cascade', 'choix', 'efface', etape.id);
     get().jetConfirm('cascade');
     expect(marques().player, 'une chouette de moins').toBe(1);
     expect(compte().erased.player).toBe(1);
