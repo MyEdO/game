@@ -61,7 +61,8 @@
 //   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
 //   l'emprise du pinceau sur chaque case et le monde reste tel quel ; relâché, la surface des cases peintes monte à
 //   l'écran. « Enregistrer » l'écrit à la copie du dépôt, puis rien à enregistrer ; « Annuler » rend la surface à sa
-//   place ; « Couche 1 » édite l'étage.
+//   place. L'outil Murs, un clic sur le côté commun de deux de ces cases pose une cloison sur le monde ; l'outil
+//   Sélection, un clic au même point la choisit, gainée, et la dit ; « Annuler » la retire. « Couche 1 » édite l'étage.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -952,6 +953,26 @@ async function parcoursEditeur() {
   await cliquerBouton({ element: 'bouton/annuler' })
   await waitFor(session, `Math.abs(globalThis.wfrpEcran?.cases['${x0 + 2},${y0}'][1] - ${avant[1]}) < 0.5`)
   noter('« Annuler » : la surface revient à sa place')
+  const aretes = (await editeur()).aretes
+  const [ax, ay] = cases[`${x0},${y0}`]
+  const [bx, by] = cases[`${x0 + 1},${y0}`]
+  const cote = [(ax + bx) / 2, (ay + by) / 2]
+  await cliquerBouton({ element: 'bouton/outil/wall' })
+  assert.equal(boutonDeLEditeur(await editeur(), 'arete/wall')?.presse, true, 'l’outil Murs pose une cloison')
+  await cliquerPoint(...cote)
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes + 1}`)
+  noter(`outil Murs, clic entre (${x0}, ${y0}) et (${x0 + 1}, ${y0}) : ${aretes} puis ${aretes + 1} arêtes sur le monde`)
+  await cliquerBouton({ element: 'bouton/outil/select' })
+  await cliquerPoint(...cote)
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.arete != null')
+  e = await editeur()
+  const choisie = e.zones['editeur.pointee'].find((l) => l.id === 'arete')
+  assert.match(choisie?.texte ?? '', /^Arête .* · couche 0 · mur · /, 'la sélection dit l’arête choisie')
+  noter(`outil Sélection, même point : ${choisie.texte}, gainée`)
+  await capturer('3508-l2-1-cloison-choisie')
+  await cliquerBouton({ element: 'bouton/annuler' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes} && globalThis.wfrpEcran.editeur.surcouche.arete === null`)
+  noter('« Annuler » : la cloison retirée')
   await cliquerBouton({ element: 'bouton/couche/1' })
   e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, 'la couche 1 s’édite')

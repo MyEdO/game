@@ -1,11 +1,12 @@
 /**
  * L'ÉDITEUR DE CARTE À L'ÉCRAN D'UN HÔTE (#3508) : ses zones et leurs éléments (`elements.ts`), lus de la session
- * d'édition du noyau (`SessionDEdition`). Les outils, les options de l'outil actif (pinceau, terrains, hauteurs), les
- * couches de la scène, l'historique, l'enregistrement au dépôt et la case pointée ; chaque geste porte le geste d'édition qu'il joue
- * (`{ edition }`), prêt à envoyer. Ce que le pointeur trace sur la carte en cours de geste va à la surcouche
- * (`surcoucheDeLEdition`), que l'hôte pose sur le monde.
+ * d'édition du noyau (`SessionDEdition`). Les outils, les options de l'outil actif (pinceau, terrains, hauteurs, sorte
+ * et structure d'une arête), les couches de la scène, l'historique, l'enregistrement au dépôt, la case pointée et
+ * l'arête sélectionnée ; chaque geste porte le geste d'édition qu'il joue (`{ edition }`), prêt à envoyer. Ce que le
+ * pointeur trace sur la carte en cours de geste, et l'arête sélectionnée, vont à la surcouche (`surcoucheDeLEdition`),
+ * que l'hôte pose sur le monde.
  */
-import { HAUTEURS, PINCEAUX, heightAt, sceneEditee, terrainIds, terrainLabel, tileAt, type GesteDEdition, type SessionDEdition } from '../noyau/index';
+import { HAUTEURS, PINCEAUX, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, segmentDeLaSelection, structuresDeLArete, terrainIds, terrainLabel, tileAt, type AreteDessinee, type GesteDEdition, type SessionDEdition, type WallPaint } from '../noyau/index';
 import { t } from '../i18n';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from './formes';
@@ -23,10 +24,14 @@ export interface ZonesDeLEditeur {
 }
 
 /** Les cases que le geste en cours trace sur la carte, chacune sur sa couche : le rectangle tiré, ou les cases que le
- *  pinceau a couvertes, que le monde ne montre qu'au relâché. */
+ *  pinceau a couvertes, que le monde ne montre qu'au relâché ; et l'arête sélectionnée, sur la couche éditée. */
 export interface SurcoucheDeLEdition {
   cases: { x: number; y: number; z: number }[];
+  arete: AreteDessinee | null;
 }
+
+/** Les sortes d'arête que pose l'outil murs. */
+const PEINTURES: readonly WallPaint[] = ['wall', 'door', 'diagBack', 'diagFwd'];
 
 const bouton = (id: string, libelle: string, edition: GesteDEdition, presse = false, refus: string | null = null): Bouton => ({
   type: 'bouton', id, libelle, jeu: { edition }, presse, focus: false, refus,
@@ -46,8 +51,27 @@ function options(s: SessionDEdition): Choix[] {
     const terrains = terrainIds().map((id) => bouton(`terrain/${id}`, terrainLabel(id), { geste: 'outil', outil: { mode: 'tile', terrain: id } }, outil.terrain === id));
     return [choix('pinceau', t('ecran.editeur.pinceau'), [...pinceaux, rectangle]), choix('terrains', t('ecran.editeur.terrains'), terrains, 'liste')];
   }
+  if (outil.mode === 'wall') {
+    const peintures = PEINTURES.map((paint) => bouton(`arete/${paint}`, t(`ecran.editeur.arete.${paint}`), { geste: 'outil', outil: { mode: 'wall', paint } }, outil.paint === paint));
+    const posables = structuresDeLArete(outil.paint);
+    if (!posables.length) return [choix('aretes', t('ecran.editeur.aretes'), peintures)];
+    const structuresDeLOutil = [
+      bouton('structure/defaut', t('ecran.editeur.structure.defaut'), { geste: 'outil', outil: { mode: 'wall', paint: outil.paint } }, outil.structure === undefined),
+      ...posables.map((st) => bouton(`structure/${st.id}`, st.label, { geste: 'outil', outil: { mode: 'wall', paint: outil.paint, structure: st.id } }, outil.structure === st.id)),
+    ];
+    return [choix('aretes', t('ecran.editeur.aretes'), peintures), choix('structures', t('ecran.editeur.structures'), structuresDeLOutil, 'liste')];
+  }
   const hauteurs = HAUTEURS.map((h) => bouton(`hauteur/${h.cle}`, `${t(`ecran.editeur.hauteur.${h.cle}`)} (${h.metres} m)`, { geste: 'outil', outil: { mode: 'height', metres: h.metres } }, outil.metres === h.metres));
   return [choix('pinceau', t('ecran.editeur.pinceau'), pinceaux), choix('hauteurs', t('ecran.editeur.hauteurs'), hauteurs)];
+}
+
+/** La ligne de l'arête sélectionnée de la session `s` : sa case, son côté, sa couche, sa sorte et sa structure. */
+function ligneDeLArete(s: SessionDEdition): Ligne[] {
+  const seg = segmentDeLaSelection(sceneEditee(s), s.sel);
+  if (!seg) return [];
+  const sorte = porteAuteur(seg) ? 'porte' : seg.window ? 'fenetre' : 'mur';
+  const structure = libelleDeStructure(seg.structure) ?? t('ecran.editeur.structure.defaut');
+  return [ligne('arete', t('ecran.editeur.areteChoisie', { x: seg.x, y: seg.y, cote: seg.side, z: seg.z ?? 0, sorte: t(`ecran.editeur.sorte.${sorte}`), structure }))];
 }
 
 /** Pourquoi la session `s` ne s'enregistre pas : son projet vient du jeu, un enregistrement est en cours, ou la
@@ -66,6 +90,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     bouton('outil/select', t('ecran.editeur.outil.select'), { geste: 'outil', outil: { mode: 'select' } }, s.outil.mode === 'select'),
     bouton('outil/tile', t('ecran.editeur.outil.tile'), { geste: 'outil', outil: { mode: 'tile', terrain } }, s.outil.mode === 'tile'),
     bouton('outil/height', t('ecran.editeur.outil.height'), { geste: 'outil', outil: { mode: 'height', metres: HAUTEURS[0].metres } }, s.outil.mode === 'height'),
+    bouton('outil/wall', t('ecran.editeur.outil.wall'), { geste: 'outil', outil: { mode: 'wall', paint: 'wall' } }, s.outil.mode === 'wall'),
   ];
   const couches = scene.layers.map((l) => l.z).sort((a, b) => a - b).map((z) => bouton(`couche/${z}`, t('ecran.editeur.couche', { z }), { geste: 'couche', z }, s.z === z));
   const p = s.pointee;
@@ -83,7 +108,10 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
       bouton('retablir', t('ecran.editeur.retablir'), { geste: 'retablir' }, false, s.historique.futur.length ? null : t('ecran.editeur.rien.retablir')),
     ],
     'editeur.fichier': [bouton('enregistrer', t('ecran.editeur.enregistrer'), { geste: 'enregistrer' }, false, refusDEnregistrer(s))],
-    'editeur.pointee': p ? [ligne('pointee', t('ecran.editeur.pointee', { x: p.x, y: p.y, z: p.z, terrain: terrainLabel(tileAt(scene, p.x, p.y, p.z)), hauteur: heightAt(scene, p.x, p.y, p.z) }))] : [],
+    'editeur.pointee': [
+      ...(p ? [ligne('pointee', t('ecran.editeur.pointee', { x: p.x, y: p.y, z: p.z, terrain: terrainLabel(tileAt(scene, p.x, p.y, p.z)), hauteur: heightAt(scene, p.x, p.y, p.z) }))] : []),
+      ...ligneDeLArete(s),
+    ],
   };
 }
 
@@ -93,7 +121,8 @@ export function surcoucheDeLEdition(s: SessionDEdition): SurcoucheDeLEdition {
   const cases = g?.sorte === 'trait' ? g.trace
     : g?.sorte === 'rectangle' ? Array.from({ length: g.rect.w * g.rect.h }, (_, i) => ({ x: g.rect.x + (i % g.rect.w), y: g.rect.y + Math.floor(i / g.rect.w) }))
     : [];
-  return { cases: cases.map((c) => ({ x: c.x, y: c.y, z: s.z })) };
+  const seg = segmentDeLaSelection(sceneEditee(s), s.sel);
+  return { cases: cases.map((c) => ({ x: c.x, y: c.y, z: s.z })), arete: seg ? areteDessinee(sceneEditee(s), seg) : null };
 }
 
 /** Le bouton des zones `z` qui joue le geste d'édition `edition`, `undefined` si aucun ne le joue. */
