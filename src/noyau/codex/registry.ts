@@ -40,6 +40,7 @@ import { drivingMishapOutcomeSchema } from '../../data/schemas/defs/driving-mish
 import { drunkennessOutcomeSchema } from '../../data/schemas/defs/drunkenness';
 import { progressionModeSchema } from '../../data/schemas/defs/naval-progression';
 import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
+import { issueDuTestSchema } from '../../data/schemas/defs/sea-cargo';
 import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
 import { trappingCategorieSchema } from '../../data/schemas/defs/trappings';
 import { MOUNT_PROFILES } from '../../engine/mountTravel';
@@ -830,9 +831,15 @@ function portCargoRow(id: string, qty?: number): CodexRow {
   return entry && isEchangeable(entry) ? { t: 'ref', category: 'cargoes', id: entry.id, label, show } : { t: 'chip', label: show };
 }
 
+/** Valeur signée (« +10 », « −2 », « 0 »). */
+const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
+
+/** Compétence d'un marchand tiré au hasard (« 3d10 + 40 »), MDG 15 l.337 et MSRC 13 l.129. */
+const competenceDuMarchand = (c: { d10: number; plus: number }): string => `${c.d10}d10 + ${c.plus}`;
+
 /** Fait signé (« +10 % », « −20 », « 0 ») — évite de dupliquer le ternaire de signe à chaque site. */
 const signedFact = (label: string, v: number | undefined, suffix = ''): CodexFact | null =>
-  v == null ? null : fact(label, `${v > 0 ? '+' : ''}${v}${suffix}`);
+  v == null ? null : fact(label, `${signe(v)}${suffix}`);
 
 /** Section « Propulsion & Manœuvrabilité » (MDG 12 l.131-144, `ship-construction.json::propulsion`/
  *  `::manoeuvrability`) — règle GLOBALE de construction (pas une entité par gabarit) : répétée telle
@@ -2411,6 +2418,115 @@ const CODEX_SPECS = {
             title: tr('codex.fiche.vents'), layout: 'chips',
             // Libellés d'état de vent : des ÉTIQUETTES → pastille nue, comme leurs voisines.
             rows: w.vents.map((v) => ({ t: 'chip', label: v.label } as CodexRow)),
+          },
+        ),
+      }];
+    },
+  },
+  seaCargo: {
+    label: 'codex.fiche.commerceMaritimeAchatVenteSurcharge', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
+    build: () => {
+      const c = datasetObject('seaCargo');
+      const { buy, sell, overload, opportunite } = c;
+      return [{
+        id: 'seaCargo', label: c.label, source: src(c.source),
+        sections: sections(
+          {
+            title: tr('codex.fiche.achat'), layout: 'list',
+            rows: [
+              { t: 'kv', k: tr('codex.fiche.multiplicateurDeDisponibilite'), v: `×${buy.availabilityMultiplier}` },
+              { t: 'kv', k: tr('codex.fiche.competenceDuMarchand'), v: competenceDuMarchand(buy.merchantSkill) },
+              { t: 'kv', k: tr('codex.fiche.competenceDansUnGrandPort'), v: competenceDuMarchand(buy.bigPortSkill) },
+              { t: 'kv', k: tr('codex.fiche.drDuVendeurPourAchatPartiel'), v: signe(buy.partialPurchaseSellerDR) },
+              { t: 'kv', k: tr('codex.fiche.drDuVendeurPourSurplus'), v: signe(buy.surplusSellerDR) },
+            ],
+          },
+          {
+            title: tr('codex.fiche.prixDOffreRichesseTailleDemande'), layout: 'list',
+            rows: sell.offerPrice.map((b) => ({ t: 'kv', k: fourchette(b.min, b.max), v: `${signe(b.pct)} %` } as CodexRow)),
+          },
+          {
+            title: tr('codex.fiche.vente'), layout: 'list',
+            rows: [
+              { t: 'kv', k: tr('codex.fiche.cibleSansProductionParTaille'), v: String(sell.noProduceTargetPerSize) },
+              { t: 'kv', k: tr('codex.fiche.bonusDeCommerce'), v: signe(sell.commerceBonus) },
+              { t: 'kv', k: tr('codex.fiche.ragotSurLaProduction'), v: tr('codex.fiche.ragotCibleParTailleMilles', { v: DIFFICULTY_LABELS[sell.producesGossip.difficulty], targetPerSize: sell.producesGossip.targetPerSize, minMilles: sell.producesGossip.minMilles }) },
+              { t: 'kv', k: tr('codex.fiche.ragotSurLeSurplus'), v: tr('codex.fiche.ragotCibleParTaille', { v: DIFFICULTY_LABELS[sell.surplusGossip.difficulty], targetPerSize: sell.surplusGossip.targetPerSize }) },
+              { t: 'kv', k: tr('codex.fiche.drDuVendeur'), v: tr('codex.fiche.drDuVendeurParRelation', { noProduce: signe(sell.sellerDR.noProduce), demand: signe(sell.sellerDR.demand), produces: signe(sell.sellerDR.produces), surplus: signe(sell.sellerDR.surplus) }) },
+              { t: 'kv', k: tr('codex.fiche.prixDeLiquidation'), v: tr('codex.fiche.pctDuPrixDeBase', { pct: sell.dumpingPctOfBase }) },
+            ],
+          },
+          {
+            title: tr('codex.fiche.surchargeDeLaCale'), layout: 'list',
+            rows: [
+              ...overload.paliers.map((p) => ({ t: 'kv', k: `> ${p.fromPct} %`, v: tr('codex.fiche.palierDeSurcharge', { label: p.label, mMod: signe(p.mMod), manoeuvreDR: signe(p.manoeuvreDR) }) } as CodexRow)),
+              { t: 'kv', k: tr('codex.fiche.limiteAbsolue'), v: `${overload.hardCapPct} %` },
+            ],
+          },
+          {
+            title: tr('codex.fiche.commerceDOpportunite'), layout: 'list',
+            rows: [
+              { t: 'kv', k: tr('codex.fiche.test'), v: `${refLabel('skills', opportunite.test.skill!)} ${DIFFICULTY_LABELS[opportunite.test.difficulty!]}` },
+              { t: 'kv', k: tr('codex.fiche.drAAtteindre'), v: String(opportunite.targetDR) },
+              { t: 'kv', k: tr('codex.fiche.tentativesMaximales'), v: String(opportunite.maxAttempts) },
+              ...(opportunite.investMaxEnc ? [{ t: 'kv', k: tr('codex.fiche.investissementMaximalEnc'), v: tr('codex.fiche.oui') } as CodexRow] : []),
+              ...opportunite.outcomes.map((o) => ({
+                t: 'kv',
+                k: [
+                  libelleDeValeur(issueDuTestSchema, o.on),
+                  o.minMissing != null ? tr('codex.fiche.manqueAuMoinsDr', { n: o.minMissing }) : null,
+                  o.minExtraDR != null ? tr('codex.fiche.drEnPlusOuDavantage', { n: o.minExtraDR }) : null,
+                ].filter(Boolean).join(' · '),
+                v: `${signe(o.pct)} %`,
+              } as CodexRow)),
+            ],
+          },
+        ),
+      }];
+    },
+  },
+  landCargo: {
+    label: 'codex.fiche.commerceTerrestreEtFluvialVinAchat', group: 'tables', cluster: 'codex.fiche.voyageTerrestre', sourceRef: 'MSRC 13',
+    build: () => {
+      const c = datasetObject('landCargo');
+      const { buy, sell, gossip } = c;
+      return [{
+        id: 'landCargo', label: c.label, source: src(buy.source),
+        meta: facts(fact(tr('codex.fiche.ragot'), tr('codex.fiche.difficulteEtModificateur', { v: DIFFICULTY_LABELS[gossip.difficulty], mod: signe(gossip.mod) }))),
+        sections: sections(
+          {
+            title: tr('codex.fiche.qualiteDuVin1d10'), layout: 'list',
+            rows: c.wineQuality.map((q) => ({ t: 'kv', k: fourchette(q.min, q.max, facesDuDe('d10')), v: tr('codex.fiche.qualitePrixCo', { label: q.label, price: q.price }) } as CodexRow)),
+          },
+          {
+            title: tr('codex.fiche.achat'), layout: 'list',
+            rows: [
+              { t: 'kv', k: tr('codex.fiche.multiplicateurDeDisponibilite'), v: `×${buy.availabilityMultiplier}` },
+              { t: 'kv', k: tr('codex.fiche.competenceDuMarchand'), v: competenceDuMarchand(buy.merchantSkill) },
+              { t: 'kv', k: tr('codex.fiche.surcoutDAchatPartiel'), v: `${signe(buy.partialSurchargePct)} %` },
+              { t: 'kv', k: tr('codex.fiche.encombrementMinimal'), v: String(buy.minEnc) },
+              { t: 'kv', k: tr('codex.fiche.evaluationDuVin'), v: tr('codex.fiche.evaluationDuVinSeuil', { v: DIFFICULTY_LABELS[buy.wineEvalDifficulty], v2: DIFFICULTY_LABELS[buy.wineEvalEasyDifficulty], seuil: buy.wineAlcoholResistThreshold }) },
+            ],
+          },
+          {
+            title: tr('codex.fiche.miseAPrixSelonLaRichesse'), layout: 'list',
+            rows: sell.offerByRichesse.map((b) => ({ t: 'kv', k: `${fourchette(b.min, b.max)} · ${b.label}`, v: `${signe(b.pct)} %` } as CodexRow)),
+          },
+          {
+            title: tr('codex.fiche.vente'), layout: 'list',
+            rows: [
+              { t: 'kv', k: tr('codex.fiche.cibleParTaille'), v: String(sell.targetPerSize) },
+              { t: 'kv', k: tr('codex.fiche.bonusDeCommerce'), v: signe(sell.commerceBonus) },
+              { t: 'kv', k: tr('codex.fiche.prixDeBradage'), v: tr('codex.fiche.pctDuPrixDeBase', { pct: sell.dumpingPctOfBase }) },
+            ],
+          },
+          {
+            title: tr('codex.fiche.rumeursCommerciales1d100'), layout: 'list',
+            rows: c.rumours.flatMap((r) => [
+              { t: 'sub', label: fourchette(r.min, r.max, facesDuDe('d100')) } as CodexRow,
+              { t: 'text', text: r.desc } as CodexRow,
+              ...r.biens.map((id) => portCargoRow(id)),
+            ]),
           },
         ),
       }];
