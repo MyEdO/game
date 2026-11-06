@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { brumeSheetGeometry, buildBrumeSheets, openSkyRuns, retainBrumeSheets } from './weatherSheets';
 import { sceneGroundSpan } from './weatherParticles';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../noyau/monde/scene';
-import { isSheltered, shelterField } from '../../builders/roofs';
+import { isSheltered, shelterField } from '../../../noyau/monde/volume/toits';
 import type { WeatherBrumeDef } from '../../../data/ambiance.types';
 
 const BRUME: WeatherBrumeDef = {

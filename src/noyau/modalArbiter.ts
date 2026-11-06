@@ -400,6 +400,9 @@ export const SURFACES_HORS_PENDING = [
   // celle du récap de chapitre se termine avec lui (`seanceDuChapitre`).
   { key: 'recitDeVoyage', tientLaMain: (s) => !!s.travelRecap && s.mode === 'exploration' && !s.dialogue && !s.worldMapOpen, sortie: 'hote' },
   { key: 'finDeSeance', tientLaMain: (s) => !!s.finDeSeance && !s.dialogue, validation: 'hote', sortie: 'hote', sortieFermee: seanceDuChapitre },
+  // L'écran du lieu où se tient le groupe, sous les écrans de ses services, la carte et le récit de l'arrivée ; sa
+  // sortie, « Explorer », entre dans la scène du lieu.
+  { key: 'ecranDuLieu', tientLaMain: (s) => !!s.lieuOuvert && s.mode === 'exploration' && !s.travelPlan && !s.dialogue, sortie: 'hote' },
   // La conversation (#1262) : la scène la porte, elle ne tient pas la main ; sa réponse est une décision de groupe, au
   // siège du MONDE (`ownsGroupDecision`).
   { key: 'dialogue', tientLaMain: () => false, ouverte: (s) => !!s.dialogue, owner: () => WORLD_STEP_OWNER },

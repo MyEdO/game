@@ -11,10 +11,10 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { activeCombatant, combatDistance, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
 import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
-import { nouvelEntete } from '../hote/partie';
+import { nouvelEntete, ouvrirLaPartie } from '../hote/partie';
 import type { Geste } from '../hote/geste';
-import { casesAtteignables } from '../hote/projection';
-import { BORNES, borner, pageDeLaCarte, projeter, rendreLaCarte, rendreLaVue, rendreLeJournal, rendreLesCases } from './vue';
+import { casesAtteignables, projeter as projeterLaPartie } from '../hote/projection';
+import { BORNES, borner, ligneDeCombattant, pageDeLaCarte, projeter, rendreLaCarte, rendreLaVue, rendreLeJournal, rendreLesCases } from './vue';
 
 /** La partie du scénario, sa pause de Round confirmée, puis `gestes` ; fermée après `faire`. */
 function auPremierTour(scenario: string, faire: (r: PartieRejouee) => void, ...gestes: Geste[]) {
@@ -172,5 +172,25 @@ describe('le journal', () => {
   });
   it('un saut de ligne interne se coupe comme une ligne', () => {
     expect(borner(['un\ndeux', 'trois'], 'journal')).toEqual(['un', 'deux', 'trois']);
+  });
+});
+
+describe('projection des positions', () => {
+  it('un combattant porte sa case et sa couche, que l’hôte texte écrit hors du sol', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const base = partie.etat();
+      const [sol, etage] = base.battle!.combatants;
+      const combatants = base.battle!.combatants.map((c) => (c.id === sol.id ? { ...c, pos: { x: 2, y: 3 } } : c.id === etage.id ? { ...c, pos: { x: 4, y: 5, z: 1 } } : c));
+      const vue = projeterLaPartie({ ...base, battle: { ...base.battle!, combatants } }, 0, 0, { autres: 100, offres: 100, cibles: 100, gestes: 100, entites: 100 });
+      const projete = (id: string) => vue.combat!.voisins.liste.find((c) => c.id === id)!;
+      expect(projete(sol.id).pos).toEqual([2, 3, 0]);
+      expect(projete(etage.id).pos).toEqual([4, 5, 1]);
+      expect(ligneDeCombattant(projete(sol.id))).toContain('(2,3)');
+      expect(ligneDeCombattant(projete(sol.id))).not.toContain('étage');
+      expect(ligneDeCombattant(projete(etage.id))).toContain('(4,5) étage 1');
+    } finally {
+      partie.fermer();
+    }
   });
 });

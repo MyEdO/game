@@ -16,6 +16,7 @@ script = ExtResource("1_editeur")
 
 [node name="Outils" type="PanelContainer" parent="Interface"]
 custom_minimum_size = Vector2(320, 0)
+mouse_force_pass_scroll_events = false
 anchors_preset = 9
 anchor_bottom = 1.0
 grow_vertical = 2
@@ -57,6 +58,12 @@ source = "editeur.couches"
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Historique"]
 script = ExtResource("3_zone")
 source = "editeur.historique"
+
+[node name="Presse" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Presse"]
+script = ExtResource("3_zone")
+source = "editeur.presse"
 
 [node name="Fichier" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
 

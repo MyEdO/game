@@ -35,7 +35,7 @@ let root: Root;
 function explorationNue() {
   useGame.setState({
     scene: testScene(), mode: 'exploration', battle: null, povActive: false,
-    worldMap: null, travelPlan: null, vessel: null, campaignNarratif: null,
+    worldMap: null, lieu: null, travelPlan: null, vessel: null, campaignNarratif: null,
     port: null, landMarket: null, travelRecap: null, clues: {},
   });
 }
@@ -147,7 +147,7 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
     act(() => { useGame.setState({ net }); });
   });
 
-  it('CONDITIONNEL — carte du monde : offerte seulement quand la scène EST un lieu connu', () => {
+  it('CONDITIONNEL — carte du monde : offerte seulement quand le groupe se tient à un lieu', () => {
     monter();
     expect(ouvreurs()).not.toContain('Carte du monde — voyager');
     act(() => {
@@ -156,11 +156,12 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
           id: 'carte', label: 'Carte', routes: [],
           places: [{ id: 'lieu', label: 'Terrain de test', pos: { x: 50, y: 50 }, scene: testScene().id }],
         } satisfies WorldMap,
+        lieu: 'lieu',
       });
     });
-    // Une scène qui EST un lieu ouvre DEUX entrées d'un coup (la carte, et le hub du lieu où l'on se
-    // tient — `placeServices` offre au moins l'hébergement) : les deux conditions sont satisfaites
-    // par la même donnée, l'attendu le dit tel quel.
+    // Le lieu où se tient le groupe ouvre DEUX entrées d'un coup (la carte, et l'écran du lieu —
+    // `placeServices` offre au moins l'hébergement) : les deux conditions sont satisfaites par la même
+    // donnée, l'attendu le dit tel quel.
     expect(ouvreurs()).toEqual(['Possessions du groupe', 'Carte du monde — voyager', 'Terrain de test — services du lieu']);
   });
 });

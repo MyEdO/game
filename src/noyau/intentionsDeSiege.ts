@@ -129,7 +129,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // COMMIT, lui (`dissiperLeSort`), est exposé. Voyager le ferait naître chez l'HÔTE.
   dispelSelectCarrier: 'local',
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
-  openWorldMap: 'hôte', startTravel: 'hôte',
+  openWorldMap: 'hôte', ouvrirLeLieu: 'hôte', startTravel: 'hôte',
   startBilletBargain: 'hôte', resumeTravel: 'hôte',
   setVoyageCadence: 'hôte', transitionTo: 'hôte', fouillerLaPiece: 'hôte',
   // Le groupe en exploration : offre d'une entité (pastille), porte, pas et pivot du regard.

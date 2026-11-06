@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { ALBEDO_REF, AMBIANCE, METEO_SANS_EFFET, weatherLightScalars } from './ambiance';
 import type { WeatherFxId } from '../../data/ambiance.types';
-import { luminanceHex } from '../shade';
+import { luminanceHex } from '../../lib/ombrage';
 
 const TYPES = ['pluie', 'brouillard', 'neige', 'tempete'] as const;
 /** Une scène d'EXTÉRIEUR sous cette météo — la porte des deux voies (`sceneWeatherFx`). */

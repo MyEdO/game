@@ -5,7 +5,7 @@ import { nommerNoeud } from '../grammaire/meta';
  * les bâtiments portent les mêmes clés et se distinguent par leurs VALEURS.
  *
  * Un bâtiment n'est PAS un volume : le monde le bâtit en murs d'arête (`WallSeg`) sur un sol de
- * terrain, et sa nappe de toit vient du pivot (`gameIso/builders/roofs.ts`). L'entrée porte la
+ * terrain, et sa nappe de toit vient du pivot (`noyau/monde/volume/toits.ts`). L'entrée porte la
  * couverture de référence du type et les ornements d'identité que le rendu pose en billboard
  * (`gameIso/builders/props.ts`).
  *

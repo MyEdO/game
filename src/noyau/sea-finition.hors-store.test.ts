@@ -51,6 +51,7 @@ function freshState() {
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,
+    lieu: 'A',
     travelPlan: null,
     travelRecap: null,
     pendingCrewTest: null,
@@ -293,7 +294,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     expect((vessel.cargo ?? []).length).toBe(1);
     expect(partyMoneyTotal(get).gold).toBeLessThanOrEqual(before);
     // Vente dans un autre port : on pose le navire à Marienburg (« commerce ») et on solde le lot.
-    set({ vessel: { ...get().vessel!, lastVoyageMilles: 550 }, port: null, scene: { ...emptyScene('port-b', 2, 2), label: 'P', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] } });
+    set({ vessel: { ...get().vessel!, lastVoyageMilles: 550 }, port: null, lieu: 'B' });
     get().openPort();
     const cargoLen = (get().vessel!.cargo ?? []).length;
     get().portSellCargo(0);
@@ -330,8 +331,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
 
   it('portDumpCargo brade à ¼ du prix de base dans un port « commerce »', () => {
     seedBattleRng(2);
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }] } });
-    set({ scene: { ...emptyScene('port-b', 2, 2), label: 'P', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] } });
+    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }] }, lieu: 'B' });
     get().openPort();
     const before = partyMoneyTotal(get).gold;
     get().portDumpCargo(0);

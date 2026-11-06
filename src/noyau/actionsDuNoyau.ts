@@ -255,6 +255,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   // (Psychologie de combat (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
   //  résolues par les verbes de jet de la cascade, applier 'combatPsych'.)
   openWorldMap: () => void;
+  /** Rouvre l'écran du lieu où se tient le groupe (`lieuFlow`). */
+  ouvrirLeLieu: () => void;
   /** « Marchander » le billet de `routeId` en `vehicule` depuis le lieu courant (`billetFlow`). */
   startBilletBargain: (routeId: string, vehicule: string) => void;
   /** Démarre un voyage depuis le lieu courant le long d'une route (mode + classe + allure). */

@@ -150,7 +150,7 @@ describe('plan de l’Opéra — géométrie (relief unifié)', () => {
 /**
  * Le théâtre est un CORPS architectural (`MapSpec.architecture`) : sans lui, `buildScene` ne dérive
  * AUCUNE masse (`deriveArchitectureMasses` n'itère que `scene.architecture`) et la loi de dégagement
- * (`clearedSpace`, `gameIso/builders/roofs.ts`) ne trouve, autour d'un allié posé au rez, ni pièce ni
+ * (`clearedSpace`, `noyau/monde/volume/toits.ts`) ne trouve, autour d'un allié posé au rez, ni pièce ni
  * emprise : elle le déclare à ciel ouvert et ne lève rien — le groupe reste en silhouette sous une
  * couche d'étage qui le coiffe (#1771).
  */

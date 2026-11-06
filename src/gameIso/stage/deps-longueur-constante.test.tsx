@@ -21,7 +21,7 @@ import { MondeDeCampagne } from './MondeDeCampagne';
 import { useGame } from '../../state/store';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { worldBakeDeps } from '../backends/webgl/sceneMeshes';
-import * as roofs from '../builders/roofs';
+import * as roofs from '../../noyau/monde/volume/toits';
 import { findPropById } from '../../data';
 import type { Combatant } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';

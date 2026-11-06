@@ -3,6 +3,7 @@
     "id": "plain",
     "type": "structureAppearance",
     "label": "Mur",
+    "kit": "colombage",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -34,6 +35,7 @@
     "id": "mur-en-bois",
     "type": "structureAppearance",
     "label": "Mur en bois",
+    "kit": "colombage",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -71,6 +73,7 @@
     "id": "mur-a-ossature-en-bois",
     "type": "structureAppearance",
     "label": "Mur à ossature en bois",
+    "kit": "colombage",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -108,6 +111,7 @@
     "id": "cloison-basse-a-ossature-en-bois",
     "type": "structureAppearance",
     "label": "Cloison basse à ossature en bois",
+    "kit": "cloture",
     "wallHeightM": 1.25,
     "detail": {
       "seedScope": "edge",
@@ -146,6 +150,7 @@
     "id": "porte",
     "type": "structureAppearance",
     "label": "Porte",
+    "kit": "colombage",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -180,6 +185,7 @@
     "id": "porte-blindee",
     "type": "structureAppearance",
     "label": "Porte blindée",
+    "kit": "colombage",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -214,6 +220,7 @@
     "id": "mur-en-pierre",
     "type": "structureAppearance",
     "label": "Mur en pierre",
+    "kit": "pierre",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -272,6 +279,7 @@
     "id": "porte-de-ville",
     "type": "structureAppearance",
     "label": "Porte de ville",
+    "kit": "pierre",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -326,6 +334,7 @@
     "id": "cloture-en-clayonnage",
     "type": "structureAppearance",
     "label": "Clôture en clayonnage",
+    "kit": "cloture",
     "wallHeightM": 1.25,
     "detail": {
       "seedScope": "edge",
@@ -357,6 +366,7 @@
     "id": "herse",
     "type": "structureAppearance",
     "label": "Herse",
+    "kit": "pierre",
     "face": "#4a4d54",
     "post": "#2b2d30",
     "door": {
@@ -373,6 +383,7 @@
     "id": "mantelet-de-bois",
     "type": "structureAppearance",
     "label": "Mantelet de bois",
+    "kit": "cloture",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -398,6 +409,7 @@
     "id": "mur-de-chateau",
     "type": "structureAppearance",
     "label": "Mur de château",
+    "kit": "pierre",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -450,6 +462,7 @@
     "id": "mur-de-forteresse-naine",
     "type": "structureAppearance",
     "label": "Mur de forteresse naine",
+    "kit": "pierre",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -490,6 +503,7 @@
     "id": "mur-de-pierre-aa",
     "type": "structureAppearance",
     "label": "Mur de pierre (relais fortifié)",
+    "kit": "pierre",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -516,6 +530,7 @@
     "id": "mur-en-pierres-seches",
     "type": "structureAppearance",
     "label": "Mur en pierres sèches",
+    "kit": "pierre",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -540,6 +555,7 @@
     "id": "palissade-de-pieux",
     "type": "structureAppearance",
     "label": "Palissade de pieux",
+    "kit": "cloture",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -570,6 +586,7 @@
     "id": "terrassement",
     "type": "structureAppearance",
     "label": "Terrassement",
+    "kit": "pierre",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -601,6 +618,7 @@
     "id": "solide-porte-en-bois",
     "type": "structureAppearance",
     "label": "Solide porte en bois",
+    "kit": "colombage",
     "detail": {
       "seedScope": "edge",
       "courses": {

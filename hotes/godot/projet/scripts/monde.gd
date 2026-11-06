@@ -2,8 +2,10 @@
 ## (`monde`, `CONTRAT.md`, section « Monde ») à l'échelle d'une unité par case, rendu et touché des deux côtés, sa lumière,
 ## et la caméra pivotante (Q/E, par quart de tour) et zoomable (molette) centrée sur lui. Il rend la case du triangle que
 ## le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
-## surbrillance que lui passe qui l'instancie, les arêtes de la scène (murs, portes, seuils des portes ouvertes), l'arête
-## choisie et le calque de référence de l'éditeur ; tout autre chose posée sur le monde appartient à qui l'instancie.
+## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes
+## (`KIT`) que l'arête nomme, l'arête choisie, les nappes de toit, chacune levée quand le groupe est dessous, les
+## couronnes crénelées des murs, chacune cachée quand son mur tombe, et le calque de référence de l'éditeur ; tout autre
+## chose posée sur le monde appartient à qui l'instancie.
 class_name Monde
 extends Node3D
 
@@ -17,10 +19,13 @@ const DISTANCE_MAX := 40.0
 const ITEM_ATTEIGNABLE := 0
 const ITEM_CIBLE := 1
 const ITEM_SURVOL := 2
+## Le kit des arêtes (`CONTRAT.md`, section « Plateau ») : une pièce par nœud racine, `<famille>--<pièce>`.
+const KIT := "res://kit/kit.glb"
 
 ## Les plaques des surbrillances, par item (`ITEM_*`), chacune posée sans ombre.
 @export var surbrillances: MeshLibrary
-## Ce qui se pose sur une arête : un mur, une porte fermée, le seuil d'une porte ouverte, et la gaine de l'arête choisie.
+## Ce qui se pose sur une arête dont le kit n'a pas la pièce, ou sans kit au projet : un mur, une porte fermée, le seuil
+## d'une porte ouverte ou d'une brèche ; et la gaine de l'arête choisie.
 @export var mesh_mur: BoxMesh
 @export var mesh_porte: BoxMesh
 @export var mesh_seuil: BoxMesh
@@ -35,10 +40,13 @@ const ITEM_SURVOL := 2
 @onready var _volume: Node3D = $Volume
 @onready var _maillage: MeshInstance3D = $Volume/Maillage
 @onready var _forme: CollisionShape3D = $Volume/Corps/Forme
+@onready var _toits: Node3D = $Volume/Toits
+@onready var _couronnes: Node3D = $Volume/Couronnes
 @onready var _pivot: Node3D = $Pivot
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
 @onready var _surbrillance: Node3D = $Surbrillance
 @onready var _aretes: Node3D = $Aretes
+@onready var _etiquettes: Node3D = $Etiquettes
 @onready var _arete_choisie: MeshInstance3D = $AreteChoisie
 @onready var _calque: MeshInstance3D = $Calque
 
@@ -52,6 +60,10 @@ var _aretes_posees: Array = []
 var _couche_des_aretes := 0
 ## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
 var _matieres := {}
+## Le kit des arêtes, caché sous le monde, `null` sans kit au projet.
+var _kit: Node3D
+## Les noms posés (`etiqueter`), par case `x,y,z`.
+var _noms := {}
 ## Les mètres d'une case du dernier monde posé.
 var _metres_par_case := 1.0
 var _pivotement: Tween
@@ -59,6 +71,10 @@ var _pivotement: Tween
 
 func _ready() -> void:
 	_lacet = _pivot.rotation.y
+	if ResourceLoader.exists(KIT):
+		_kit = (load(KIT) as PackedScene).instantiate()
+		_kit.visible = false
+		add_child(_kit)
 
 
 ## Le volume du monde de la scène (`monde`) à l'échelle d'une unité par case, sa case (0, 0) sur la case (0, 0) du
@@ -71,20 +87,8 @@ func poser(monde: Dictionary) -> void:
 	var echelle := MiseEnPage.echelle_metrique(monde.metresParCase)
 	_volume.scale = Vector3(echelle, echelle, echelle)
 	_volume.position = MiseEnPage.centre_de_case(Vector2i.ZERO, 0.0)
+	_maillage.mesh = _maillage_de(monde)
 	var sommets := PackedFloat32Array(monde.positions).to_byte_array().to_vector3_array()
-	var normales := PackedFloat32Array(monde.normales).to_byte_array().to_vector3_array()
-	var couleurs := PackedFloat32Array(monde.couleurs).to_byte_array().to_color_array()
-	var maillage := ArrayMesh.new()
-	for indice in monde.surfaces.size():
-		var surface: Dictionary = monde.surfaces[indice]
-		var tableaux := []
-		tableaux.resize(Mesh.ARRAY_MAX)
-		tableaux[Mesh.ARRAY_VERTEX] = _retournes(sommets.slice(int(surface.debut), int(surface.fin)))
-		tableaux[Mesh.ARRAY_NORMAL] = _retournes(normales.slice(int(surface.debut), int(surface.fin)))
-		tableaux[Mesh.ARRAY_COLOR] = _retournes(couleurs.slice(int(surface.debut), int(surface.fin)))
-		maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
-		maillage.surface_set_material(indice, _matiere(surface.matiere))
-	_maillage.mesh = maillage
 	sommets.reverse()
 	_cases_des_triangles = monde.cases.duplicate()
 	_cases_des_triangles.reverse()
@@ -98,7 +102,58 @@ func poser(monde: Dictionary) -> void:
 	_pivot.position = MiseEnPage.centre_du_plateau(taille())
 
 
-## `tableau` retourné en entier : chaque triangle change de sens (`poser`).
+## Les nappes de toit (`toits`) et les couronnes crénelées des murs (`couronnes`) de la scène (`CONTRAT.md`, section
+## « Monde »), chacune son maillage sous le volume, à la place des précédentes ; le rayon du pointeur les traverse.
+func poser_les_nappes(toits: Array, couronnes: Array) -> void:
+	_poser_sous(_toits, toits)
+	_poser_sous(_couronnes, couronnes)
+
+
+## Chaque nappe de toit cachée si `toits_leves` la nomme (`plateau.toitsLeves`), chaque couronne si `couronnes_abattues`
+## la nomme (`plateau.couronnesAbattues`), montrées sinon.
+func cacher_les_nappes(toits_leves: Array, couronnes_abattues: Array) -> void:
+	_cacher_sous(_toits, toits_leves)
+	_cacher_sous(_couronnes, couronnes_abattues)
+
+
+## Les nappes `nappes` sous `parent`, chacune son maillage nommé par sa `cle`, à la place des précédentes.
+func _poser_sous(parent: Node3D, nappes: Array) -> void:
+	for nappe in parent.get_children():
+		parent.remove_child(nappe)
+		nappe.free()
+	for nappe in nappes:
+		var instance := MeshInstance3D.new()
+		instance.mesh = _maillage_de(nappe)
+		instance.set_meta("cle", nappe.cle)
+		parent.add_child(instance)
+
+
+## Chaque nappe sous `parent` cachée si `cles` la nomme, montrée sinon.
+func _cacher_sous(parent: Node3D, cles: Array) -> void:
+	for nappe in parent.get_children():
+		nappe.visible = not cles.has(nappe.get_meta("cle"))
+
+
+## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `surfaces`) : une surface par matière,
+## texturée ou colorée par sommet (`_matiere`), chaque tableau retourné en entier (`_retournes`).
+func _maillage_de(geometrie: Dictionary) -> ArrayMesh:
+	var sommets := PackedFloat32Array(geometrie.positions).to_byte_array().to_vector3_array()
+	var normales := PackedFloat32Array(geometrie.normales).to_byte_array().to_vector3_array()
+	var couleurs := PackedFloat32Array(geometrie.couleurs).to_byte_array().to_color_array()
+	var maillage := ArrayMesh.new()
+	for indice in geometrie.surfaces.size():
+		var surface: Dictionary = geometrie.surfaces[indice]
+		var tableaux := []
+		tableaux.resize(Mesh.ARRAY_MAX)
+		tableaux[Mesh.ARRAY_VERTEX] = _retournes(sommets.slice(int(surface.debut), int(surface.fin)))
+		tableaux[Mesh.ARRAY_NORMAL] = _retournes(normales.slice(int(surface.debut), int(surface.fin)))
+		tableaux[Mesh.ARRAY_COLOR] = _retournes(couleurs.slice(int(surface.debut), int(surface.fin)))
+		maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
+		maillage.surface_set_material(indice, _matiere(surface.matiere))
+	return maillage
+
+
+## `tableau` retourné en entier : chaque triangle change de sens (`_maillage_de`).
 func _retournes(tableau: Variant) -> Variant:
 	tableau.reverse()
 	return tableau
@@ -165,8 +220,30 @@ func peindre(plaques: Dictionary) -> void:
 		_surbrillance.add_child(plaque)
 
 
+## Les noms `noms` (par case `Vector3i(x, y, z)`, le texte), chacun au-dessus du sol de sa case, toujours devant la scène,
+## à la place des précédents.
+func etiqueter(noms: Dictionary) -> void:
+	for etiquette in _etiquettes.get_children():
+		_etiquettes.remove_child(etiquette)
+		etiquette.free()
+	_noms.clear()
+	for c: Vector3i in noms:
+		var nom := Label3D.new()
+		nom.text = noms[c]
+		nom.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		nom.no_depth_test = true
+		nom.position = MiseEnPage.au_dessus_de_la_case(Vector2i(c.x, c.y), sol(Vector2i(c.x, c.y), c.z))
+		_etiquettes.add_child(nom)
+		_noms["%d,%d,%d" % [c.x, c.y, c.z]] = noms[c]
+
+
+## Les noms posés sur le monde, par case `x,y,z`.
+func noms() -> Dictionary:
+	return _noms
+
+
 ## Les arêtes `aretes` (`CONTRAT.md`, section « Plateau ») de la couche `z`, chacune sur le côté de sa case, posée sur
-## le sol de sa case : un mur, une porte fermée, ou le seuil d'une porte ouverte ; à la place des précédentes.
+## le sol de sa case (`_piece`) ; à la place des précédentes.
 func poser_les_aretes(aretes: Array, z := 0) -> void:
 	if aretes == _aretes_posees and z == _couche_des_aretes:
 		return
@@ -176,9 +253,35 @@ func poser_les_aretes(aretes: Array, z := 0) -> void:
 		_aretes.remove_child(arete)
 		arete.free()
 	for a in aretes:
-		var arete := MeshInstance3D.new()
-		_poser_sur_l_arete(arete, mesh_seuil if a.ouverte else mesh_porte if a.porte else mesh_mur, a, z)
-		_aretes.add_child(arete)
+		_aretes.add_child(_piece(a, z))
+
+
+## La pièce de l'arête `a` de la couche `z` : celle du kit, `<famille>--<pièce>`, étirée à la longueur de l'arête et à
+## la hauteur de son mur (`MiseEnPage.echelle_de_piece`) ; sinon sa boîte (`_boite`).
+func _piece(a: Dictionary, z: int) -> Node3D:
+	var nom := "%s--%s" % [a.famille, a.piece]
+	if _kit == null or a.famille == null or not _kit.has_node(nom):
+		var boite := MeshInstance3D.new()
+		_poser_sur_l_arete(boite, _boite(a.piece), a, z)
+		return boite
+	var sens := Vector2(a.sens.x, a.sens.y)
+	var piece := Node3D.new()
+	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), sol(Vector2i(int(a.case.x), int(a.case.y)), z), 0.0)
+	piece.rotation.y = MiseEnPage.lacet_d_arete(sens)
+	piece.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, _metres_par_case)
+	piece.add_child(_kit.get_node(nom).duplicate())
+	return piece
+
+
+## La boîte de la pièce `piece` d'une arête : le seuil d'une porte ouverte ou d'une brèche, une porte fermée, sinon un
+## mur.
+func _boite(piece: String) -> BoxMesh:
+	match piece:
+		"porte-ouverte", "breche":
+			return mesh_seuil
+		"porte-fermee":
+			return mesh_porte
+	return mesh_mur
 
 
 ## Le nombre d'arêtes posées sur le monde.

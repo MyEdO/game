@@ -32,7 +32,7 @@ function ouvrir(avecPorteur: boolean, bourseDuMeneur = 0): Partie {
   const entrees: EntreesDeLaPartie = { graine: 3, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   const partie = creerPartie({
     ...etatInitialDuJeu(),
-    party, possessions, worldMap: carte, gameTime: 8 * 60,
+    party, possessions, worldMap: carte, lieu: 'A', gameTime: 8 * 60,
     scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
   }, entrees);
   partie.envoyer({ type: 'openLandMarket', args: [] });
@@ -94,7 +94,7 @@ function halleFixee(mode: 'local' | 'guest', cargo: CargoLot[] = [], produits = 
   const entrees: EntreesDeLaPartie = { graine: 3, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   return creerPartie({
     ...etatInitialDuJeu(),
-    party: [heros], worldMap: carte, gameTime: 8 * 60,
+    party: [heros], worldMap: carte, lieu: 'A', gameTime: 8 * 60,
     possessions: [{ uid: 'convoi', ownerId: heros.id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo }],
     scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     landMarket: { placeId: 'A', label: 'Grünburg', market: { ...structuredClone(carte.places[0].market!), produits: [...produits] }, offers: [{ cargoId: 'metal', label: 'Métal', enc: 20, basePrice: 10, wine: false }] },

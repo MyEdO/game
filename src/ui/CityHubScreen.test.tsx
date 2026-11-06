@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { restServicePrice } from '../noyau/restFlow';
-import { atLocationPlace, poiIcon, placeServices, lieuAUnPlan, type MapPlace, type WorldMap } from '../noyau/worldMap';
+import { poiIcon, placeServices, lieuAUnPlan, type MapPlace } from '../noyau/worldMap';
 import { refusDEntrerAuPort } from '../noyau/portFlow';
 import { t } from '../i18n';
 import { findTrappingById } from '../data';
@@ -8,8 +8,8 @@ import { toBrass, priceToMoney } from '../engine/money';
 import type { LandMarketProfile } from '../engine/landCargo';
 
 /**
- * HUB DE VILLE (#343) — surfaces PURES (comme VoyageScreen.test) : composition des services d'un lieu,
- * porte du hub (`atLocationPlace`) et convergence des prix d'auberge sur le catalogue (`restServicePrice`
+ * HUB DE VILLE (#343) — surfaces PURES (comme VoyageScreen.test) : composition des services d'un lieu
+ * et convergence des prix d'auberge sur le catalogue (`restServicePrice`
  * lit trappings.json — source unique partagée avec `restCost`, cf. rest-lodging-price-source.test).
  */
 
@@ -24,8 +24,6 @@ const townPlace = (): MapPlace => place({
   market,
   services: [{ kind: 'auberge', rest: { auberge: true, camp: true } }],
 });
-
-const worldMap = (places: MapPlace[]): WorldMap => ({ id: 'w', label: 'Reikland', places, routes: [] });
 
 describe('placeServices — composition des services d’un lieu au hub (#343)', () => {
   it('liste port, marché puis auberge, chacun porteur de sa donnée référencée', () => {
@@ -58,22 +56,6 @@ describe('refusDEntrerAuPort — porte du bouton « Entrer au port », appliqué
   });
   it('avec un navire de campagne : aucun refus', () => {
     expect(refusDEntrerAuPort({ vessel: { vehicleId: 'barge' } as never })).toBeNull();
-  });
-});
-
-describe('atLocationPlace — porte du hub de ville (#343)', () => {
-  const map = worldMap([townPlace()]);
-  it('exploration à un lieu de la carte : retourne ce lieu', () => {
-    expect(atLocationPlace({ mode: 'exploration', travelPlan: null, worldMap: map, sceneId: 'sc-bogen' })?.id).toBe('bogenhafen');
-  });
-  it('voyage EN COURS : pas de hub (undefined)', () => {
-    expect(atLocationPlace({ mode: 'exploration', travelPlan: {}, worldMap: map, sceneId: 'sc-bogen' })).toBeUndefined();
-  });
-  it('hors exploration (combat) : pas de hub', () => {
-    expect(atLocationPlace({ mode: 'battle', travelPlan: null, worldMap: map, sceneId: 'sc-bogen' })).toBeUndefined();
-  });
-  it('scène qui n’est PAS un lieu de la carte : pas de hub', () => {
-    expect(atLocationPlace({ mode: 'exploration', travelPlan: null, worldMap: map, sceneId: 'ailleurs' })).toBeUndefined();
   });
 });
 

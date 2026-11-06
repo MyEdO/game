@@ -1,7 +1,8 @@
 /**
  * LE VOYAGE PAR LE PONT (#3328) : « Voyage & temps long » joué comme Godot le joue. La carte du monde s'ouvre depuis
  * l'exploration ; chaque trajet nomme sa destination, sa longueur et ses modes de voyage avec leurs jours de route
- * (`carteEnVue`) ; un mode part, les journées et les haltes passent, et le récit dit l'issue du trajet (`recitEnVue`).
+ * (`carteEnVue`) ; un mode part, les journées et les haltes passent, et le récit dit l'issue du trajet (`recitEnVue`). À
+ * l'arrivée, l'écran du lieu tient la main (`lieuEnVue`) : ses services et ses trajets ; « Explorer » entre dans sa scène.
  */
 import { afterEach, describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
@@ -62,6 +63,25 @@ describe('le voyage par le pont', () => {
     expect((corps['recit/route'] as Ligne).texte, 'la route faite').toBe('Parti de Weiler pour Steinbruck · 30 km, à pied');
     expect((corps['recit/duree'] as Ligne).texte, 'la durée du voyage').toMatch(/^Voyage de .+\.$/);
     expect(Object.keys(corps).some((id) => id.startsWith('recit/jour/')), 'l’arrivée ne redit pas les journées').toBe(false);
+  });
+
+  it('arriver au lieu : son écran tient la main, ses services et ses trajets ; « Explorer » entre dans sa scène, d’où il se rouvre', () => {
+    const p = partie();
+    let suite = p.jouer(carte(p.suite), 'carteDuMonde');
+    suite = p.jouer(mode(suite, 'r-grandroute', 'pied'), 'ecranDuLieu');
+    expect(suite.vue.zones['fenetre.titre'].map((l) => l.texte), 'le lieu en titre').toEqual(['Steinbruck']);
+    expect(suite.vue.projection.scene?.id, 'le groupe n’est pas entré dans la scène du lieu').toBe('test-voyage-village');
+    const corps = parId(suite.vue.zones['fenetre.corps']);
+    const gestes = (id: string) => (corps[id] as Entite).elements.map((b) => [(b as Bouton).libelle, ((b as Bouton).jeu as { type: string }).type]);
+    expect(gestes('service/auberge'), 'l’auberge : dormir, recueillir des informations').toEqual([['Dormir', 'openRest'], ['Recueillir des informations', 'gatherInnInfo']]);
+    expect(gestes('service/forgeron'), 'le forgeron : son échoppe').toEqual([['Entrer', 'openPlaceMerchant']]);
+    expect((corps['carte/r-grandroute'] as Entite).nom, 'le trajet qui en part').toBe('Weiler');
+
+    const explorer = suite.vue.zones['fenetre.gestes'].find((b): b is Bouton => b.type === 'bouton' && b.libelle === 'Explorer')!;
+    suite = p.jouer(explorer);
+    expect(suite.vue.projection.scene?.id, 'Explorer entre dans la scène du lieu').toBe('test-voyage-bourg');
+    const leLieu = suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Le lieu')!;
+    expect(p.jouer(leLieu, 'ecranDuLieu').vue.projection.fenetre?.cle, 'le lieu se rouvre depuis sa scène').toBe('ecranDuLieu');
   });
 
   it('une embuscade en chemin : le récit l’annonce, chaque journée et ce qui s’y est passé, puis il faut faire face', () => {

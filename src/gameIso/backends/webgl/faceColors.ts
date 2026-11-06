@@ -26,12 +26,7 @@
  * planche « MATIÈRE UNIQUE par toit ».
  */
 import { AMBIANCE } from '../../catalog/ambiance';
-import { roofMaterial } from '../../catalog/roofs';
-import { facadeStructureAppearance } from '../../catalog/facades';
-import { wallPartColor } from '../../catalog/structures';
-import type { WallPart } from '../../../data/structureAppearance.types';
 import { couleurDeMatiere, propMaterial, recetteDeMatiere } from '../../../noyau/monde/volume/matieres';
-import { MISSING_TONE } from '../../../noyau/monde/volume/missing';
 import { coursesPeriodM, groundPeriodM } from '../../detail/courses';
 import { hash32 } from '../../../data/hash';
 import type { DetailRecipe } from '../../../data/materials.types';
@@ -40,25 +35,6 @@ import { SHADE_CYCLE, type ShadeFamily } from '../../../noyau/monde/volume/world
 
 /** Modes de rendu d'une face — deux MATÉRIAUX du renderer, une seule couleur de base (`faceSurface`). */
 export type ColorMode = 'unlit' | 'lit';
-
-/** Couleur d'une face de TOITURE. Les PANS partagent tous la teinte de référence `N` du matériau, quel
- *  que soit leur cardinal : `sh.N` est déjà le repli des deux backends pour une part sans ton propre.
- *  `soffite` et `fascia` gardent la leur — ce sont des PARTIES distinctes (dessous débordant, planche de
- *  rive), pas deux orientations d'une même couverture.
- *
- *  Un matériau de toit qui n'a AUCUNE teinte de pente peint au ton d'alarme (#877) : `roofMaterial` a
- *  déjà rendu son repli visible pour un id inconnu, il reste le cas d'une entrée RÉELLE sans `N` — les
- *  teintes de pente sont optionnelles au type (`catalog/roofs/types.ts:18`). Mesuré le 2026-09-02 :
- *  1 entrée sur 4 est dans ce cas (`plan`, qui ne porte que ses teintes de vue du dessus) et AUCUNE
- *  masse de toit des documents du dépôt ne la nomme — la donnée n'est donc pas fautive, mais rien
- *  n'interdit à un auteur de la choisir (`validateScene` admet les 4 ids), et ce jour-là la face se
- *  voit au lieu de prendre la teinte d'un sol. */
-function roofColor(id: string, part: string | undefined): string {
-  const sh = roofMaterial(id);
-  if (part === 'soffite') return sh.soffite ?? sh.N ?? MISSING_TONE;
-  if (part === 'fascia') return sh.fascia ?? sh.line ?? sh.N ?? MISSING_TONE;
-  return sh.N ?? MISSING_TONE;
-}
 
 /** Surface d'une face : ce qu'il faut pour la peindre ET pour la texturer. */
 export interface FaceSurface {
@@ -75,35 +51,6 @@ export interface FaceSurface {
   /** Réponse à la lumière d'une matière de DÉCOR (`materials.json`, domaine `prop`) : le seul domaine qui l'authore.
    *  Absente ailleurs — les autres surfaces sont lambertiennes, sans rugosité ni métal authorés. */
   pbr?: { roughness: number; metalness: number };
-}
-
-/** Recette de détail du matériau d'une face, prise à SA def d'apparence. */
-function faceRecipe(face: Face): DetailRecipe | undefined {
-  const { domain, id } = face.material;
-  switch (domain) {
-    case 'structure':
-      return facadeStructureAppearance(id).detail;
-    case 'relief':
-    case 'terrain':
-    case 'prop':
-      return recetteDeMatiere({ domain, id });
-    case 'roof':
-      return roofMaterial(id).detail;
-  }
-}
-
-function faceBaseColor(face: Face): string {
-  const { domain, id, part } = face.material;
-  switch (domain) {
-    case 'structure':
-      return wallPartColor(facadeStructureAppearance(id), part as WallPart);
-    case 'relief':
-    case 'terrain':
-    case 'prop':
-      return couleurDeMatiere({ domain, id, part });
-    case 'roof':
-      return roofColor(id, part);
-  }
 }
 
 /** Période de texture d'une face : celle du SOL pour un terrain (surface continue, période élargie),
@@ -123,8 +70,8 @@ export function surfaceKeyOf(color: string, recipe?: DetailRecipe): string {
 
 /** Résolution UNIQUE d'une face : sa couleur, sa recette, sa clé de texture, son échelle d'UV. */
 export function faceSurface(face: Face): FaceSurface {
-  const color = faceBaseColor(face);
-  const recipe = faceRecipe(face);
+  const color = couleurDeMatiere(face.material);
+  const recipe = recetteDeMatiere(face.material);
   const mat = face.material.domain === 'prop' ? propMaterial(face.material.id) : undefined;
   return {
     color,

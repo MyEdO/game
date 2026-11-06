@@ -4,10 +4,15 @@
  *  `shade()` à partir des couleurs de base ci-dessous ; le POV les teinte par la lumière. */
 import type { DetailRecipe } from './materials.types';
 
+/** Les familles de pièces du kit 3D des arêtes (`hotes/godot/asset/kit.ts`) : pan de bois, pierre, clôture. */
+export type FamilleDuKit = 'colombage' | 'pierre' | 'cloture';
+
 export interface StructureAppearanceDef {
   id: string;
   type: 'structureAppearance';
   label: string;
+  /** La famille de pièces du kit 3D que l'hôte Godot pose sur une arête de cette apparence (`aretes.ts`). */
+  kit: FamilleDuKit;
   /** Hauteur visuelle métrique de la face du mur ; défaut `WALL_H_M`. */
   wallHeightM?: number;
   /** Recette de détail de surface (appareillage/joints/mouchetis) — consommée par les backends (iso + POV). */
@@ -44,7 +49,7 @@ export interface StructureAppearanceDef {
    *  `jut` = SAILLIE par CÔTÉ d'une partie posée devant de la matière pleine (épaisseur totale =
    *  épaisseur du mur + 2×`jut`) ; `thick` = épaisseur TOTALE d'une partie qui BOUCHE une ouverture
    *  (rien derrière elle ; 0 = plan unique au médian). Absent = les défauts par partie de
-   *  `gameIso/catalog/structures/index.ts`. */
+   *  `noyau/monde/volume/structures.ts`. */
   relief?: {
     jut?: Partial<Record<WallPart, number>>;
     thick?: Partial<Record<WallPart, number>>;

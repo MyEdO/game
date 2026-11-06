@@ -19,7 +19,7 @@
  *    translation change par particule — trois écritures dans le tampon, pas une composition de matrice.
  *
  * SOUS COUVERT : la question « cette case est-elle abritée ? » n'est PAS reposée ici. Elle a une seule
- * réponse dans le dépôt (`shelterField`/`isSheltered`, `builders/roofs.ts`), celle-là même dont dépend
+ * réponse dans le dépôt (`shelterField`/`isSheltered`, `noyau/monde/volume/toits.ts`), celle-là même dont dépend
  * le dégagement d'architecture — sinon deux vérités de « suis-je sous un toit ? », et il pleut dans la
  * taverne. Le semis lit le verdict par le prédicat `sheltered` que lui passe l'écran ; un toit LEVÉ par
  * le cutaway reste un toit (le champ ne connaît pas la vue), et le couvert suit le PLAN — une scène

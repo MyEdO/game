@@ -231,6 +231,8 @@ export function figerVuesDeLEcran(): VueFigee[] {
     s = voyage.jouer('jouer', presse(s));
   }
   figer('récit de voyage, arrivée', s);
+  s = voyage.jouer('jouer', enFocus(s));
+  figer('écran du lieu, ses services et ses trajets', s);
   voyage.fermer();
 
   const repit = unPont([]);

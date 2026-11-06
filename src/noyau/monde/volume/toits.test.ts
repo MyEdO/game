@@ -1,19 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { boundarySegs, buildRoofs, clearedSpace, depthToEave, edgeAppearance, fieldHeightAt, gableEnds, roofPans, massRoomZoneIds, massSpaceCells, nappeKey, resolveMass, resolveNappes, riseAt, ROOF_SLOPE_M, type FacadeEdge, type RoofShapeSpec } from './roofs';
-import { massFootprintCells } from '../../noyau/monde/buildings';
-import { facadeStructureAppearance } from '../catalog/facades';
-import { wallApp } from '../catalog/structures';
-import { buildWalls } from './walls';
+import { boundarySegs, buildRoofs, clearedSpace, depthToEave, fieldHeightAt, gableEnds, roofPans, massRoomZoneIds, massSpaceCells, nappeKey, resolveMass, resolveNappes, riseAt, ROOF_SLOPE_M, type RoofShapeSpec } from './toits';
+import { massFootprintCells } from '../buildings';
 import type { RoofLine } from './types';
-import type { Face, GP } from '../../noyau/monde/volume/types';
+import type { Face, GP } from './types';
 import { WALL_H_M } from '../iso';
-import { roofMaterial } from '../catalog/roofs';
-import { MISSING_ID, MISSING_TONE } from '../../noyau/monde/volume/missing';
-import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../noyau/monde/scene';
-import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses } from '../../noyau/sceneEdit';
-import { encloseRect, perimeterWallSegs } from '../../noyau/sceneEdit.testkit';
-import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
-import { buildings } from '../../data';
+import { roofMaterial } from './matieres';
+import { MISSING_ID, MISSING_TONE } from './missing';
+import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../scene';
+import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses } from '../../sceneEdit';
+import { encloseRect, perimeterWallSegs } from '../../sceneEdit.testkit';
+import { diligenceCampaign, paquetDuJeu } from '../../../scenes/campaign';
+import { buildings } from '../../../data';
 
 /**
  * Builder de TOITS du pivot : on teste la FUSION EN PANS CONTINUS (le fix de la cause racine « toit
@@ -1153,45 +1150,6 @@ describe('groupe de nappe — un champ de hauteur sur le domaine UNION (#1186)',
     expect(ouest.field.domain.size).toBe(ouest.cells.size); // aucune union : le comportement d'avant
     expect(centre.groupId).toBe(nappeOf(scene, 'aile-e').groupId); // les deux autres restent groupées
   });
-
-  it('le RACCORD de nappes (`walls.ts`) lit la MÊME hauteur que les pans — une seule vérité', () => {
-    // Un BLOC sur terrasse (autre égout, donc autre nappe) vient buter contre le BOUT de faîtage du
-    // corps central. Là, le versant du groupe arrive à PLEINE hauteur (extrémité fermée) : le quad de
-    // raccord doit relier CETTE cote, jamais la retombée qu'aurait la masse lue seule sur ses cases.
-    const CENTRE_C = { x: 8, y: 4, w: 4, h: 8 };
-    const BLOC = { x: 8, y: 0, w: 4, h: 4 };
-    const scene = emptyScene('scene-test', 24, 20);
-    scene.walls = perimeterWallSegs([CENTRE_C, AILE_E, BLOC]);
-    scene.architecture = [{
-      id: 'corps', style: 'maison', storeys: [], facades: [],
-      masses: [
-        { id: 'aile-e', z: 0, footprint: [AILE_E], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: 'tuile' },
-        { id: 'centre', z: 0, footprint: [CENTRE_C], levels: 1, profile: 'gable', ridge: 'y', pitchDeg: 45, material: 'tuile' },
-        { id: 'bloc', z: 0, footprint: [BLOC], levels: 1, profile: 'hip', pitchDeg: 45, material: 'tuile' },
-      ],
-    }];
-    coter(scene, 0, WALL_H_M, [...Array(BLOC.w * BLOC.h)].map((_, i) => ({
-      x: BLOC.x + (i % BLOC.w), y: BLOC.y + Math.floor(i / BLOC.w),
-    })));
-    const centre = nappeOf(scene, 'centre').field;
-    const bloc = nappeOf(scene, 'bloc').field;
-    expect(nappeOf(scene, 'centre').groupId).not.toBe(nappeOf(scene, 'bloc').groupId);
-    const seams = buildWalls(scene, 'jeu').filter((el) => el.key.includes('centre') && el.key.includes('bloc'));
-    expect(seams.length).toBeGreaterThan(0);
-    let mesures = 0;
-    let auDessusEgout = 0;
-    for (const el of seams) {
-      for (const p of el.faces[0].poly) {
-        const v = { x: p.x + 0.5, y: p.y + 0.5 };
-        const attendues = [fieldHeightAt(centre, v), fieldHeightAt(bloc, v)];
-        expect(attendues.some((h) => Math.abs(h - p.h) < 1e-9)).toBe(true); // aucune cote inventée
-        mesures++;
-        if (Math.abs(p.h - fieldHeightAt(centre, v)) < 1e-9 && p.h > centre.shape.eaveHeightM + 1e-9) auDessusEgout++;
-      }
-    }
-    expect(mesures).toBeGreaterThan(0);
-    expect(auDessusEgout).toBeGreaterThan(0); // le raccord monte jusqu'au versant, pas jusqu'à l'égout
-  });
 });
 
 /**
@@ -1258,8 +1216,6 @@ describe('La Diligence — les nappes de l’étage se REJOIGNENT (#1186)', () =
     }
     expect(coins).toBeGreaterThan(0);
     expect(auDessusEgout).toBeGreaterThan(coins * 0.8); // seuls les BOUTS du joint touchent encore l'égout
-    // Nappes continues au joint : aucun mur de raccord (`walls.ts`) n'a de marche à combler.
-    expect(buildWalls(scene, 'jeu').filter((el) => el.key.startsWith('seam:') && el.cell.z === 1)).toEqual([]);
   });
 
   it('chaque corps en `gable` ferme DEUX pignons, les croupes n’en ferment aucun', () => {
@@ -1404,31 +1360,5 @@ describe('nappes DÉRIVÉES — trois masses d’étage, trois pentes, UN champ 
     const pignons = buildRoofs(scene).filter((el) => el.cell.z === 1 && el.panId?.startsWith('pignon-'));
     expect(pignons).toHaveLength(2);
     expect(new Set(pignons.map((el) => el.sectionId))).toEqual(new Set([gables[0].id]));
-  });
-});
-
-/**
- * #1180 — `edgeAppearance` est la loi d'apparence d'une ARÊTE, SOURCE UNIQUE des deux rendus :
- * `wallGeometry` (`walls.ts`) pour les arêtes de scène, `closureAppearance` (ici) pour les pignons et
- * les coutures de nappes. Son contrat est ici, une fois, parce que le site est unique.
- */
-describe('edgeAppearance — la loi d’arête partagée', () => {
-  const facade = (appearance: string): FacadeEdge =>
-    ({ bodyId: 'corps', sectionId: 'sud', appearance, features: [] });
-  const arete = (seg: Partial<WallSeg> = {}): WallSeg => ({ x: 0, y: 0, side: 'N', ...seg } as WallSeg);
-
-  it('la FAÇADE authorée l’emporte sur l’arête nue', () => {
-    expect(edgeAppearance(facade('chapelle'), arete()).id).toBe(facadeStructureAppearance('chapelle').id);
-  });
-
-  it('une STRUCTURE posée sur le segment l’emporte sur la façade (bâti physique avant panneau)', () => {
-    expect(edgeAppearance(facade('chapelle'), arete({ structure: 'mur-en-pierre' })).id).toBe('mur-en-pierre');
-    expect(edgeAppearance(facade('chapelle'), arete({ appearance: 'mur-en-bois' })).id).toBe('mur-en-bois');
-  });
-
-  it('sans façade : `wallApp` seul — donc le mur nu quand la carte n’authore rien', () => {
-    expect(edgeAppearance(undefined, arete()).id).toBe(wallApp(arete()).id);
-    expect(edgeAppearance(undefined, arete()).id).toBe('plain');
-    expect(edgeAppearance(undefined, arete({ structure: 'mur-en-bois' })).id).toBe('mur-en-bois');
   });
 });

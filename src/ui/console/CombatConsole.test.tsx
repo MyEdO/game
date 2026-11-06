@@ -37,7 +37,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { baseSection, mediaBlock } from '../../../scripts/guards/lib/cssCouches.mjs';
 import { hpColor, ENEMY_TINT } from '../../gameIso/teamColors';
-import { srgbToLinear } from '../../gameIso/shade';
+import { srgbToLinear } from '../../lib/ombrage';
 import { testDeRegle } from '../../engine/reglesChiffrees';
 import { withActingSeat } from '../../noyau/netOwnership';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';

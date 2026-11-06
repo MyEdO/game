@@ -56,8 +56,8 @@ export function borner(entrees: readonly string[], commande: Commande): string[]
   return gardees.map((l) => coupeAuMot(l, BORNES.largeur));
 }
 
-/** Une case écrite `(x,y)`, `(—)` sans case. */
-const pos = (p: [number, number] | null): string => (p ? `(${p[0]},${p[1]})` : '(—)');
+/** Une case écrite `(x,y)`, suivie de son étage hors du sol, `(—)` sans case. */
+const pos = (p: readonly [x: number, y: number, z?: number] | null): string => (p ? `(${p[0]},${p[1]})${p[2] ? ` étage ${p[2]}` : ''}` : '(—)');
 
 /** Un État écrit : son id, et sa valeur au-delà de 1 (`id×n`). */
 const etatEcrit = (id: string, valeur: number): string => (valeur > 1 ? `${id}×${valeur}` : id);
