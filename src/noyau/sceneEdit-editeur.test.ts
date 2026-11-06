@@ -265,6 +265,16 @@ describe('édition de scène — patchZone et la poignée de la sélection', () 
     expect(patchZone(decoupee, sel, { pleine: true }).effectZones![idx]).not.toHaveProperty('tiles');
     expect(patchZone(decoupee, { type: 'entity', id: 'x' }, { z: 1 })).toBe(decoupee);
   });
+  it('une zone d’effet coupe la vue et barre le passage, puis plus ; une zone couvre des entrées de fiche, `null` les retire', () => {
+    const { scene, idx } = addEffectZone(emptyScene('z', 8, 8), { x: 1, y: 1, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);
+    const sel = { type: 'effectZone' as const, idx };
+    const barree = patchZone(scene, sel, { blocksLoS: true, barrier: true, couvre: ['EDO-01#imp1'] });
+    expect(barree.effectZones![idx]).toMatchObject({ blocksLoS: true, barrier: {}, couvre: ['EDO-01#imp1'] });
+    const ouverte = patchZone(barree, sel, { blocksLoS: false, barrier: false, couvre: null }).effectZones![idx];
+    for (const champ of ['blocksLoS', 'barrier', 'couvre']) expect(ouverte).not.toHaveProperty(champ);
+    const trig = { type: 'trigger' as const, id: 'trig-0' };
+    expect(patchZone(patchZone(s, trig, { couvre: ['EDO-01#imp1'] }), trig, { couvre: null }).triggers[0]).not.toHaveProperty('couvre');
+  });
 });
 
 describe('édition de scène — resizeSel (coin NW fixe)', () => {

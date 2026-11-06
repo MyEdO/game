@@ -12,7 +12,7 @@ import type { FireArc } from '../../engine/types';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addLayer, addMember, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
+import { addLayer, addMember, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
 import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -116,8 +116,9 @@ export interface SessionDEdition {
  *  éditée ; ajouter une couche au-dessus de la plus haute, retirer la couche éditée ; appuyer, glisser, relâcher
  *  sur un point de la carte ; poser la volée tracée, effacer son tracé ; écrire sur l'arête sélectionnée, ou poser
  *  son brouillon ; écrire sur l'entité sélectionnée, le poste de l'emplacement de siège sélectionné, une place du décor
- *  sélectionné ou l'appartenance du personnage sélectionné à une rencontre ; écrire sur la zone sélectionnée ; nommer l'entité, l'entrée ou la
- *  zone d'effet sélectionnée (`nom` absent : l'entité reprend le nom de sa fiche) ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
+ *  sélectionné ou l'appartenance du personnage sélectionné à une rencontre ; écrire sur la zone sélectionnée ; nommer l'entité, l'entrée, le
+ *  déclencheur ou la zone d'effet sélectionnée (`nom` absent : l'entité reprend le nom de sa fiche) ; changer l'identifiant de la zone
+ *  d'effet sélectionnée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
  *  demander la planche du calque de la couche éditée, puis l'issue de son chargement, l'image lue ou rien ; régler ce
  *  calque, le caler, le retirer. */
@@ -137,6 +138,7 @@ export type GesteDEdition =
   | { geste: 'membre'; patch: PatchDeMembre }
   | { geste: 'zone'; patch: PatchDeZone }
   | { geste: 'nommer'; nom?: string }
+  | { geste: 'identifier'; id: string }
   | { geste: 'entree'; z: number }
   | { geste: 'copier' }
   | { geste: 'coller' }
@@ -292,10 +294,11 @@ function revenir(s: SessionDEdition, historique: Historique): SessionDEdition {
 /** La session après le geste `g`, sur la couche éditée. Changer de couche efface le tracé de la volée, qui est celui de
  *  sa couche. Écrire sur l'arête sélectionnée la garde sélectionnée, sans cran quand l'arête n'en change pas. Pendant
  *  le calage, l'appui cale le calque et le glissé n'ouvre aucun geste ; demander une planche l'abandonne, cacher le
- *  calque aussi. Écrire sur l'entité ou l'entrée sélectionnée la garde sélectionnée, l'entrée sous son nouveau nom ;
+ *  calque aussi. Écrire sur l'entité, l'entrée, la zone sélectionnée la garde sélectionnée, l'entrée et le déclencheur sous
+ *  leur nouveau nom ;
  *  coller ou dupliquer sélectionne l'entité posée. Un geste sans objet (retirer la couche 0, une couche absente, poser
- *  une volée que son plan refuse, écrire sans arête, entité ou entrée sélectionnée, renommer une entrée d'un nom vide
- *  ou déjà pris, copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
+ *  une volée que son plan refuse, écrire sans arête, entité ou entrée sélectionnée, renommer une entrée ou un déclencheur, ou
+ *  réidentifier une zone d'effet, d'un nom vide ou déjà pris, copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
  *  dupliquer sans entité sélectionnée, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
  *  d'un chargement qui n'est pas en cours, demander une planche pendant un chargement, régler ou retirer un calque
  *  absent) la rend telle quelle. */
@@ -366,9 +369,15 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const ent = entiteDeLaSelection(scene, s.sel);
       if (ent) return ecrireSurLaSelection(s, editEntity(scene, ent.id, { label: g.nom || undefined }), (sc) => entiteDeLaSelection(sc, s.sel));
       if (s.sel?.type === 'effectZone') return g.nom ? ecrireSurLaSelection(s, patchZone(scene, s.sel, { nom: g.nom }), zonesDe) : s;
-      if (s.sel?.type !== 'entry' || g.nom === undefined) return s;
-      const renommee = renameEntry(scene, s.sel.id, g.nom);
-      return renommee === scene ? s : ecrire(s, renommee, { type: 'entry', id: g.nom.trim() });
+      const sel = s.sel;
+      if ((sel?.type !== 'entry' && sel?.type !== 'trigger') || g.nom === undefined) return s;
+      const renommee = (sel.type === 'entry' ? renameEntry : renameTrigger)(scene, sel.id, g.nom);
+      return renommee === scene ? s : ecrire(s, renommee, { type: sel.type, id: g.nom.trim() });
+    }
+    case 'identifier': {
+      const zone = s.sel?.type === 'effectZone' ? scene.effectZones?.[s.sel.idx] : undefined;
+      const renommee = zone ? renameEffectZone(scene, zone.id, g.id) : scene;
+      return renommee === scene ? s : ecrire(s, renommee, s.sel);
     }
     case 'entree': {
       const sel = s.sel;

@@ -275,6 +275,37 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     expect(montee.surcouche.poignee).toBeNull();
     expect(etage.vue.couche).toBe(0);
   });
+
+  it('une zone d’effet change d’identifiant, coupe la ligne de vue, barre le passage ; elle couvre une entrée de fiche, que sa pression retire', () => {
+    const { appel, presser, posee } = tracee('effect');
+    const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
+    const identifiee = editionDe(appel('editer', { type: 'identifier', args: ['fosse-aux-loups'] }));
+    expect(inspecteur(identifiee).find((el) => el.id === 'identifier')).toMatchObject({ type: 'formulaire', champs: [{ valeur: 'fosse-aux-loups' }] });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: [] })).categorie, 'sans identifiant saisi').toBe('validation');
+
+    const opaque = presser(boutonDe(identifiee, 'zone/blocksLoS'));
+    expect(boutonDe(opaque, 'zone/blocksLoS').presse).toBe(true);
+    const barree = presser(boutonDe(opaque, 'zone/barrier'));
+    expect([boutonDe(barree, 'zone/barrier').presse, boutonDe(presser(boutonDe(barree, 'zone/barrier')), 'zone/barrier').presse]).toEqual([true, false]);
+
+    expect(inspecteur(posee).find((el) => el.id === 'zone/couvre')).toMatchObject({ type: 'ligne', texte: 'Aucune entrée de fiche couverte.' });
+    const offerte = (inspecteur(barree).find((el) => el.id === 'zone/couvre/ajouter') as Choix).valeurs[0];
+    const couverte = presser(offerte);
+    const id = offerte.id.slice('zone/couvre/ajouter/'.length);
+    expect(boutonDe(couverte, `zone/couvre/${id}`)).toMatchObject({ presse: true, libelle: offerte.libelle });
+    expect((inspecteur(couverte).find((el) => el.id === 'zone/couvre/ajouter') as Choix).valeurs.some((v) => v.id === offerte.id), 'une entrée couverte ne s’offre plus').toBe(false);
+    expect(inspecteur(presser(boutonDe(couverte, `zone/couvre/${id}`))).find((el) => el.id === 'zone/couvre')?.type, 'retirée, la zone n’en couvre aucune').toBe('ligne');
+  });
+
+  it('un déclencheur se renomme, sous un nom libre seulement, et couvre une entrée de fiche', () => {
+    const { appel, presser, posee } = tracee('trigger');
+    const renomme = editionDe(appel('editer', { type: 'nommer', args: ['arrivee-au-relais'] }));
+    expect(renomme.surcouche.zones.find((z) => z.choisi)).toMatchObject({ sorte: 'declencheur', nom: 'arrivee-au-relais' });
+    const ancien = posee.surcouche.zones.find((z) => z.choisi)!.nom;
+    expect(renomme.surcouche.zones.some((z) => z.nom === ancien), 'le déclencheur ne garde pas son ancien nom').toBe(false);
+    const couvert = presser((renomme.vue.zones['editeur.inspecteur'].find((el) => el.id === 'zone/couvre/ajouter') as Choix).valeurs[0]);
+    expect((couvert.vue.zones['editeur.inspecteur'].find((el) => el.id === 'zone/couvre') as Choix).valeurs.map((v) => v.presse)).toEqual([true]);
+  });
 });
 
 describe('l’éditeur de carte par le pont, le combat et l’ameublement', () => {
