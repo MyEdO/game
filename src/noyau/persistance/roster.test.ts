@@ -19,7 +19,8 @@ const GROUPE_CONNU = 'skaven';
 const GROUPE_INCONNU = 'groupe-hors-registre';
 
 const hero = (id: string, label = 'Héros'): Combatant => ({ id, label, kind: 'hero' }) as unknown as Combatant;
-const entry = (id: string): RosterEntry => ({ hero: hero(id), wealth: { gold: 1, silver: 2, brass: 3 } });
+const BROUILLON = { label: 'Brouillon', motivation: '', ambitionShort: '', ambitionLong: '' } as unknown as RosterEntry['draft'];
+const entry = (id: string): RosterEntry => ({ hero: hero(id), wealth: { gold: 1, silver: 2, brass: 3 }, draft: BROUILLON });
 const porteur = (id: string, ...etats: string[]): RosterEntry => ({ ...entry(id), hero: { ...hero(id), conditions: etats.map((e) => ({ id: e, value: 1 })) } as unknown as Combatant });
 
 describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
@@ -102,9 +103,8 @@ describe('roster — Trait psychologique à Cible hors de `groups.json` (#1463 L
 
 describe('roster — mise à jour d’une entrée (`rosterAvecLeHeros`)', () => {
   it('porte le héros édité à son entrée, brouillon resynchronisé (motivation, ambitions), les autres intactes', () => {
-    const draft = { label: 'Brouillon', motivation: '', ambitionShort: '', ambitionLong: '' } as unknown as RosterEntry['draft'];
     const edited = { ...hero('h1'), motivation: 'Foi', details: { ambitionShort: 'Survivre', ambitionLong: 'Régner' } } as unknown as Combatant;
-    const apres = rosterAvecLeHeros([{ ...entry('h1'), draft }, entry('h2')], edited);
+    const apres = rosterAvecLeHeros([entry('h1'), entry('h2')], edited);
     expect(apres?.map((e) => e.hero.id)).toEqual(['h1', 'h2']);
     expect(apres?.[0].hero).toBe(edited);
     expect(apres?.[0].draft).toMatchObject({ label: 'Brouillon', motivation: 'Foi', ambitionShort: 'Survivre', ambitionLong: 'Régner' });
@@ -144,13 +144,14 @@ describe('roster — export / import (portabilité, sous `FORMAT_EXPORT_HEROS`)'
     expect(rosterImport(rosterExport(porteur('h1', ETAT_CONNU))).retraits, 'un héros connu entier ne rend aucun retrait').toBeUndefined();
   });
 
-  it('kind différent, JSON invalide, hero.id manquant ou non-chaîne → message explicite, jamais null muet', () => {
+  it('kind différent, JSON invalide, hero.id manquant ou non-chaîne, brouillon absent → message explicite, jamais null muet', () => {
     for (const brut of [
       JSON.stringify({ kind: 'autre-chose', version: FORMAT_EXPORT_HEROS, hero: { id: 'h5' } }),
       'pas du json',
       '{}',
       JSON.stringify({ kind: 'wfrp4-hero', version: FORMAT_EXPORT_HEROS, hero: {}, wealth: {} }),
       JSON.stringify({ kind: 'wfrp4-hero', version: FORMAT_EXPORT_HEROS, hero: { id: 42 }, wealth: {} }),
+      JSON.stringify({ kind: 'wfrp4-hero', version: FORMAT_EXPORT_HEROS, hero: { id: 'h5' }, wealth: {} }),
     ]) {
       const res = rosterImport(brut);
       expect(res.entry, brut).toBeUndefined();

@@ -1,8 +1,9 @@
-import type { Combatant, CharKey } from '../engine/types';
+import type { CharKey } from '../engine/types';
 import type { ActionRunCtx, BattleActionMode } from './actionRegistry';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { IndiceAffiché } from './monde/clues';
+import type { HerosEngage } from './creation/engagement';
 import type { HealMode } from '../engine/healing';
 import type { VerbesDeJet } from './rollFlowSpecs';
 import type { VerbeDeReglage } from './reglagesDuJet';
@@ -12,10 +13,9 @@ import type { MedicNpc } from './medicFlow';
 import type * as restFlow from './restFlow';
 import type { RestLodging, RestFood } from './restFlow';
 import type { Pt } from './monde/path';
-import type { RoomPortal } from './monde/roomPortals';
 import type {
   IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
-  IdDEntiteDeScene, IdDeTireurRapide,
+  IdDEntiteDeScene, IdDeTireurRapide, IdDePorte, IdDIndice,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { ShootingStanceKey } from './etat';
@@ -38,7 +38,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  déclaration ouvre (`refusDeLaValidation`). */
   fenetreValider: (fenetre: FenetreAValider) => void;
   /** Épingle/désépingle un indice du carnet (suivi joueur, no-op si l'indice est encore caché). */
-  toggleCluePin: (indiceId: string) => void;
+  toggleCluePin: (indiceId: IdDIndice) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
   markCluesSeen: (affichés: readonly IndiceAffiché[]) => void;
   /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */
@@ -92,13 +92,14 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  Identification (`itemUid`), Convalescence (ADE II), Activités d'Altdorf (ACE Annexe I). Cibles
    *  éventuelles : `CiblesChoisies`. */
   interludeActivity: (heroId: IdDeHeros, activityId: string, opts?: CiblesChoisies) => void;
-  /** Composition d'équipe : ajoute un héros dans un emplacement du siège qui décide (`decidingSeat`) / retire un
-   *  héros (propriétaire seul). */
-  partyAddHero: (hero: Combatant, wealth?: import('../engine/money').Money) => void;
+  /** Composition d'équipe : ajoute le héros que le noyau bâtit de `heros` (`herosDeLEngagement`), avec sa Richesse de
+   *  départ, dans un emplacement du siège qui décide (`decidingSeat`) / retire un héros (propriétaire seul). */
+  partyAddHero: (heros: HerosEngage) => void;
   partyRemoveHero: (heroId: IdDeHeros) => void;
-  /** Remplace EN PLACE le héros `oldId` par `hero` (substitution atomique, possession transférée au siège qui
-   *  possédait `oldId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer » du slot. */
-  partyReplaceHero: (oldId: IdDeHeros, hero: Combatant) => void;
+  /** Remplace EN PLACE le héros `oldId` par celui que le noyau bâtit de `heros` (substitution atomique, possession
+   *  transférée au siège qui possédait `oldId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer »
+   *  du slot. */
+  partyReplaceHero: (oldId: IdDeHeros, heros: HerosEngage) => void;
   toggleEquip: (heroId: IdDePorteur, uid: IdDObjet) => void;
   /** Range (`containerUid`) ou sort (null) un objet d'un héros d'un contenant (LDB 64). */
   stowItem: (heroId: IdDePorteur, uid: IdDObjet, containerUid: IdDObjet | null) => void;
@@ -137,9 +138,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  `intentionDuClicDExploration` (interagir, jouer l'offre, rejoindre, marcher, dire, annuler). La marche se joue en
    *  une passe, pas à pas, sauts compris (`marcherLeChemin`), et s'arrête au premier pas qui ne se joue plus. */
   cliquerLaCase: (pt: Pt, entite?: IdDEntiteDeScene) => void;
-  /** Ouvre ou ferme la porte d'un passage : en combat toute porte, en exploration une porte fermée.
-   *  Rend `true` si la porte a bougé. */
-  actionnerLaPorte: (portail: RoomPortal) => boolean;
+  /** Ouvre ou ferme la porte d'un accès que le mobile du monde emprunte (`portesDuMobile`) : en combat toute porte,
+   *  en exploration une porte fermée. Rend `true` si la porte a bougé. */
+  actionnerLaPorte: (porte: IdDePorte) => boolean;
   /** ESCALADE d'une arête `WallSeg.climb` (LDB 15 l.53-57) : `from` (case basse, adjacente) → `to` (case
    *  haute). Porteur = le mobile de `gesteDArete` (exploration : le meneur, le groupe suit ; combat : l'actif
    *  que ce siège mène, héros ou ennemi mené par le siège MJ) ; tout refus est NOMMÉ (`refuserGeste`),

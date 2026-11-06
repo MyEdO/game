@@ -54,6 +54,7 @@ import { ensureBourse, bourseOf } from '../engine/bourse';
 import { transferPossession } from './possessionsFlow';
 
 import type { Get, Set } from './flowTypes';
+import { herosDeLEngagement, type HerosEngage } from './creation/engagement';
 import type { Jeu } from './etat';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { gainCorruption } from './corruptionFlow';
@@ -760,22 +761,23 @@ export function partieEnCours(s: Pick<Jeu, 'scene' | 'pendingCampaign'>): boolea
 
 /** Ajoute un héros au groupe dans un emplacement du siège qui décide (`decidingSeat` : le siège local, ou celui
  *  du transport pour un intent), au rang `rangDAjout` — point d'entrée UNIQUE de la composition d'équipe (PartyScreen, HeroSelector,
- *  créateur), refusé par `refusDAjoutAuGroupe`. La Richesse de carrière
+ *  créateur), le héros bâti par le noyau de `heros` (`herosDeLEngagement`), refusé par `refusDAjoutAuGroupe` ou par
+ *  le brouillon incomplet. La Richesse de carrière
  *  (LDB 05 l.578-583) crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531) — plus de bourse de groupe. */
-export function partyAddHero(get: Get, set: Set, hero: Combatant, wealth?: Money): void {
+export function partyAddHero(get: Get, set: Set, heros: HerosEngage): void {
   const s = get();
   const seat = decidingSeat(s);
-  if (compositionRefusee(get, set, refusDAjoutAuGroupe(s, hero.id, seat))) return;
-  const copy: Combatant = ensureBourse(structuredClone(hero));
+  const bati = herosDeLEngagement(heros);
+  const refus = 'refus' in bati ? refusDAjoutAuGroupe(s, undefined, seat) ?? bati.refus : refusDAjoutAuGroupe(s, bati.hero.id, seat);
+  if (compositionRefusee(get, set, refus) || 'refus' in bati) return;
+  const copy: Combatant = ensureBourse(bati.hero);
   const rangs = { ...rangsDuGroupe(s), [copy.id]: rangDAjout(s, seat)! };
   set({
     party: [...s.party, copy],
     net: { ...s.net, ownership: { ...s.net.ownership, [copy.id]: seat }, rangs },
   });
-  if (wealth) {
-    creditBourse(get, set, copy.id, wealth);
-    get().log(t('pf.startingWealth', { name: copy.label, money: formatMoney(wealth) }));
-  }
+  creditBourse(get, set, copy.id, bati.wealth);
+  get().log(t('pf.startingWealth', { name: copy.label, money: formatMoney(bati.wealth) }));
 }
 
 /**
@@ -824,18 +826,19 @@ export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
   set((s2) => ({ party: s2.party.filter((h) => h.id !== heroId), net: { ...s2.net, ownership, rangs } }));
 }
 
-/** Remplace ATOMIQUEMENT le héros `oldId` par `hero` à SA position dans `party` (substitution en
+/** Remplace ATOMIQUEMENT le héros `oldId` par celui que le noyau bâtit de `heros` (`herosDeLEngagement`) à SA position dans `party` (substitution en
  *  place → préserve l'index/ordre) et à SON rang (`net.rangs`) ; refusé par `refusDeComposerLeHeros`, la possession
  *  passe du siège qui décide (`decidingSeat`, qui possède `oldId`) au remplaçant (l'ancien id est libéré).
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
  *  « Remplacer » du slot. Ne touche PAS la bourse (un remplacement n'est pas un recrutement). */
-export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combatant): void {
-  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())))) return;
+export function partyReplaceHero(get: Get, set: Set, oldId: string, heros: HerosEngage): void {
+  const bati = herosDeLEngagement(heros);
+  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())) ?? ('refus' in bati ? bati.refus : null)) || 'refus' in bati) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === oldId);
   if (idx < 0) return;                                                    // l'ancien n'est plus là
-  if (hero.id !== oldId && s.party.some((h) => h.id === hero.id)) return; // doublon d'id
-  const copy: Combatant = structuredClone(hero);
+  const copy = bati.hero;
+  if (copy.id !== oldId && s.party.some((h) => h.id === copy.id)) return; // doublon d'id
   const ownership = { ...s.net.ownership };
   delete ownership[oldId];
   ownership[copy.id] = decidingSeat(s);
@@ -879,9 +882,9 @@ export function sortiesDuGroupe(_get: Get, set: Set) {
 
 export function creerActionsDuGroupe(get: Get, set: Set) {
   return {
-    partyAddHero: (hero, wealth) => partyAddHero(get, set, hero, wealth),
+    partyAddHero: (heros) => partyAddHero(get, set, heros),
     partyRemoveHero: (heroId) => partyRemoveHero(get, set, heroId),
-    partyReplaceHero: (oldId, hero) => partyReplaceHero(get, set, oldId, hero),
+    partyReplaceHero: (oldId, heros) => partyReplaceHero(get, set, oldId, heros),
     toggleEquip: (heroId, uid) => toggleEquip(get, set, heroId, uid),
     stowItem: (heroId, uid, containerUid) => stowItem(get, set, heroId, uid, containerUid),
     createLoadout: (heroId) => createLoadout(get, set, heroId),

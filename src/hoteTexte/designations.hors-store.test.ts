@@ -52,8 +52,21 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   });
   it('porte : `actionnerLaPorte`', { timeout: 120_000 }, () => {
     const t = partie('fenetre-ecuries');
-    const [porte] = refuseLId(t, verbe('actionnerLaPorte', 'nobody'), /portail : "nobody" n’est pas un id de porte \(valides : /);
+    const [porte] = refuseLId(t, verbe('actionnerLaPorte', 'nobody'), /porte : "nobody" n’est pas un id de porte \(valides : /);
     passeLeControle(t, verbe('actionnerLaPorte', porte));
+  });
+  it('indice : `toggleCluePin`, et chaque indice affiché de `markCluesSeen`', { timeout: 120_000 }, () => {
+    const t = partie('enquete-carnet');
+    refuseLId(t, verbe('toggleCluePin', 'ind-rumeur-forgeron'), /indiceId : "ind-rumeur-forgeron" n’est pas un id d’indice \(valides : aucun ici\)/);
+    expect(t.jouer(verbe('cliquerLaCase', { x: 7, y: 6 })).erreur).toBeNull();
+    const [indice] = refuseLId(t, verbe('toggleCluePin', 'nobody'), /indiceId : "nobody" n’est pas un id d’indice \(valides : ind-rumeur-forgeron\)/);
+    refuseLId(t, verbe('markCluesSeen', [{ id: 'nobody', étapes: 1, statut: 'réfuté', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
+    passeLeControle(t, verbe('toggleCluePin', indice));
+  });
+  it('pré-tiré : `partyAddHero`, le noyau bâtit le héros de la donnée', { timeout: 120_000 }, () => {
+    const t = partie('revisit');
+    const [pretire] = refuseLId(t, verbe('partyAddHero', { pretire: 'nobody' }), /heros\.pretire : "nobody" n’est pas un id de pré-tiré \(valides : /);
+    passeLeControle(t, verbe('partyAddHero', { pretire }));
   });
   it('porteur et objet : `toggleEquip`', { timeout: 120_000 }, () => {
     const t = partie('revisit');

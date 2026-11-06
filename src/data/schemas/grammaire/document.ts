@@ -62,6 +62,15 @@ export const META_CHARGE: Readonly<Record<CleCharge, MetaChamp>> = {
   die: { label: 'Dé de tirage', hint: 'Expression du dé lancé pour tirer une rangée (ex. « 1d10 », « d100 »)' },
 };
 
+/**
+ * TABLE TIRÉE nichée dans un document : la charge d'un document à rangées tiré au dé
+ * (`options.rangee` + `options.deDeTirage`), posée sous un champ — son dé `die` (`deDeTirageSchema`) et
+ * ses rangées `entries`, nommés par `META_CHARGE`. Même forme que `weather.json › seasons[]`.
+ */
+export function tableTiree<R extends z.ZodType>(rangee: R) {
+  return marquerProduit(nommerChamps(z.strictObject({ die: deDeTirageSchema, entries: z.array(rangee) }), META_CHARGE), 'tableTiree', 'table');
+}
+
 /** Clés d'enveloppe qu'un document ne peut pas EXIGER : `id`/`type`/`label` sont déjà requises,
  *  `variants` n'est pas un champ simple (la fabrique le compose depuis `options.variantes`), et
  *  `descRef` n'est pas un porteur exigible — l'exigence de PROSE se dit `exiges: ['desc']` et

@@ -24,13 +24,16 @@ describe('l’interlude par le pont', () => {
     }
     expect(suite.vue.zones['fenetre.corps'][0], 'la durée de l’interlude').toMatchObject({ id: 'repit/semaines', texte: '3 semaines de répit' });
     const sigmund = heros(suite, 'Sigmund Reikhardt');
-    expect(sigmund.elements.filter((e): e is Puce => e.type === 'puce').map((p) => p.libelle), 'ses Activités et l’Événement de sa période').toEqual(['Activités : 3 / 3', 'Allié inculpé']);
+    expect(sigmund.elements.filter((e): e is Puce => e.type === 'puce').map((p) => [p.libelle, p.valeur]), 'ses Activités, ses PX, sa bourse et l’Événement de sa période').toEqual([
+      ['Activités : 3 / 3', null], ['PX', '0'], ['Bourse', '0 sc'], ['Allié inculpé', null],
+    ]);
     const activites = parLibelle(sigmund);
     expect(activites.Revenus, 'les Revenus se jouent').toMatchObject({ type: 'bouton', refus: null });
     expect((activites['Identifier un artefact'] as Bouton).refus, 'sans artefact, l’identification est fermée').toBe('Aucun objet non identifié dans le sac de Sigmund Reikhardt.');
     const apprentissage = activites['Apprentissage particulier'] as Choix;
     expect(apprentissage.type, 'un Talent par geste, en liste').toBe('liste');
     expect(apprentissage.valeurs[0].refus, 'chaque Talent fermé par sa raison').toBe('Sigmund Reikhardt : PX insuffisants (100).');
+    expect(apprentissage.valeurs[0].libelle, 'une valeur de liste se lit par son libellé seul : il dit ce qu’elle coûte').toMatch(/ · 100 PX$/);
     expect((activites.Sabotage as Bouton).refus, 'une préparation de bataille et son préalable').toBe('Exige un Repérage réussi au préalable.');
 
     suite = jouer(activites.Revenus as Bouton);

@@ -7,6 +7,7 @@ import { creatures, etats, trappings, gods, spells, species, findTraitById, find
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { datasetObject, setDataset } from '../../data/overrides';
 import { CHAR_KEYS } from '../../engine/types';
+import { facesDuDe } from '../../engine/tables';
 import { charAbr } from '../../data';
 import { MORALE_BANDS } from '../../engine/crewMorale';
 
@@ -413,9 +414,9 @@ describe('Codex registry — règles de négoce (#3433, MDG 15 et MSRC 13)', () 
     expect(item.label).toBe(c.label);
     expect(item.source?.book).toBe('MSRC');
     const vin = item.sections!.find((s) => s.title === 'Qualité du vin (1d10)')!;
-    expect(vin.rows).toHaveLength(c.wineQuality.length);
+    expect(vin.rows).toHaveLength(c.wineQuality.entries.length);
     const rumeurs = item.sections!.find((s) => s.title === 'Rumeurs commerciales (1d100)')!;
-    expect(rumeurs.rows.filter((r) => r.t === 'text')).toHaveLength(c.rumours.length);
+    expect(rumeurs.rows.filter((r) => r.t === 'text')).toHaveLength(c.rumours.entries.length);
     expect(rumeurs.rows.some((r) => r.t === 'ref' && r.category === 'cargoes')).toBe(true);
   });
 });
@@ -469,10 +470,10 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
   });
 
   it('« Changement de cap » (MDG 13 l.324-331) : le titre porte le dé ET le bonus de dérive majeure qui mène ses bandes au-delà de 10', () => {
-    const n = datasetObject('seaNavigation') as { orientation: { driftMajorBonus: number; changementDeCap: { max: number }[] } };
+    const n = datasetObject('seaNavigation') as { orientation: { driftMajorBonus: number; changementDeCap: { die: string; entries: { max: number }[] } } };
     const sec = categoryByKey('seaNavigation')!.items[0].sections!.find((s) => s.title.startsWith('Changement de cap'))!;
     expect(sec.title.startsWith(`Changement de cap (1d10, +${n.orientation.driftMajorBonus} à DR `), sec.title).toBe(true);
-    expect(Math.max(...n.orientation.changementDeCap.map((r) => r.max))).toBe(10 + n.orientation.driftMajorBonus);
+    expect(Math.max(...n.orientation.changementDeCap.entries.map((r) => r.max))).toBe(facesDuDe(n.orientation.changementDeCap.die) + n.orientation.driftMajorBonus);
   });
 
   it('la fiche « Périls en mer » (dataset-OBJET, MDG 13) projette Dangers flottants + Détroits + Tourbillons', () => {

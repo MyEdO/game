@@ -14,7 +14,9 @@ import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { FabriqueDuNoyau, JeuDuNoyau } from './machinerieDuNoyau';
-import type { RoomPortal } from './monde/roomPortals';
+import { portalsForParty, type RoomPortal } from './monde/roomPortals';
+import { activeCombatant } from './combatFlow';
+import type { IdDePorte } from './designations';
 
 /** Le pas du groupe vers `pt` est-il une MARCHE : une case voisine à pied de la sienne (`walkNeighbors`, la
  *  connectivité du pathfinder) ? La garde du verbe `moveParty`, que l'écran lit avant d'animer un pas. */
@@ -121,14 +123,21 @@ export function marcherLeChemin(get: Get, chemin: readonly Pt[]): void {
 export const porteActionnable = (mode: Jeu['mode'], portail: Pick<RoomPortal, 'kind'>): boolean =>
   mode === 'battle' ? portail.kind !== 'passage' : mode === 'exploration' && portail.kind === 'door-closed';
 
+/** Les accès que le mobile du monde emprunte (`portalsForParty`) : depuis la case du groupe, en combat depuis celle de
+ *  l'actif. */
+export function portesDuMobile(s: Pick<Jeu, 'scene' | 'mode' | 'partyPos' | 'battle'>): RoomPortal[] {
+  const depuis = s.mode === 'battle' ? (s.battle && activeCombatant(s.battle))?.pos : s.partyPos;
+  return s.scene && depuis ? portalsForParty(s.scene, depuis) : [];
+}
+
 /** Le geste qu'ouvre l'activation d'un accès. */
-export type GesteDuPortail = { verbe: 'actionnerLaPorte'; args: [RoomPortal] } | { verbe: 'cliquerLaCase'; args: [Pt] };
+export type GesteDuPortail = { verbe: 'actionnerLaPorte'; args: [IdDePorte] } | { verbe: 'cliquerLaCase'; args: [Pt] };
 
 /** Le geste qu'ouvre l'activation d'un accès : l'actionner s'il s'actionne (`porteActionnable`), sinon, la marche
  *  ouverte (`marcheOuverte`), marcher jusqu'à sa case d'en face ; `null` en dialogue ou sans scène. */
 export function gesteDuPortail(s: Pick<Jeu, 'mode' | 'dialogue' | 'scene'>, portail: RoomPortal): GesteDuPortail | null {
   if (s.dialogue || !s.scene) return null;
-  if (porteActionnable(s.mode, portail)) return { verbe: 'actionnerLaPorte', args: [portail] };
+  if (porteActionnable(s.mode, portail)) return { verbe: 'actionnerLaPorte', args: [portail.id] };
   return marcheOuverte(s) ? { verbe: 'cliquerLaCase', args: [portail.to] } : null;
 }
 
@@ -192,9 +201,10 @@ export function creerActionsDeMarche(get: Get, set: Set) {
       jouerFlowEntier(runFlow(get, set, plan.flow));
       return false;
     },
-    actionnerLaPorte: (portail) => {
+    actionnerLaPorte: (porte) => {
       const { scene, mode, dialogue } = get();
-      if (dialogue || !scene) return false;
+      const portail = portesDuMobile(get()).find((p) => p.id === porte);
+      if (dialogue || !scene || !portail) return false;
       if (!porteActionnable(mode, portail)) {
         if (mode === 'exploration') refuserGeste(get, set, t('porte.refus.ouverte'));
         return false;

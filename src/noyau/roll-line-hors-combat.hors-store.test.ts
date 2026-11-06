@@ -352,7 +352,7 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     const doc = hero({ id: 'doc', label: 'Doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] as never });
     const patient = hero({
       id: 'p', label: 'Patient', wounds: { current: 40, max: 40 },
-      traumas: [{ label: 'Épaule luxée (bras perdu)', location: 'brasD', restoreDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }] }],
+      traumas: [{ label: 'Épaule luxée (bras perdu)', location: 'brasD', targetDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }] }],
     } as never);
     fresh([doc, patient]);
     set({ pendingSurgery: null } as never);
