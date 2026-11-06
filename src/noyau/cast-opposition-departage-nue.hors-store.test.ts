@@ -65,7 +65,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     const { H, E } = setup();
     const nueH = castingBaseValue(H, 'langue', 'magick');
     const nueE = skillBaseValue(E, undefined, undefined, 'intelligence');
-    const testeeE = testValue(E, undefined, 'intelligence');
+    const testeeE = testValue(E, { characteristic: 'intelligence' });
     const testeeH = castingValue(H, 'langue', 'magick');
     expect([nueH, testeeH], 'lanceur : Niveau de Compétence 44, valeur testée 74 (3 Avantage)').toEqual([44, 74]);
     expect([nueE, testeeE], 'cible : Intelligence nue 90, valeur testée 70 (2 Exténué)').toEqual([90, 70]);

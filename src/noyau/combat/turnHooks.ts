@@ -107,7 +107,7 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
       });
       continue;
     }
-    const res = rollSansPilote(get, c, rawCombatTestBase(c, undefined, char), 'intermediaire', battleRng(), combatTestPenalty(c));
+    const res = rollSansPilote(get, c, rawCombatTestBase(c, { characteristic: char }), 'intermediaire', battleRng(), combatTestPenalty(c));
     out.lines.push(traceLineOf({ who: c.label, label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res }));
     if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.actGateKeepAction', { name: c.label })); }
   }
@@ -131,7 +131,7 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   // que charger, la Frénésie passe au tour suivant. Peek déterministe, sans RNG (avant le test FM) → aucune
   // perturbation du flux `battleRng` quand on diffère, golden RNG préservé sinon.
   if (aiJetteraitUnSort(get, enemy.id)) return;
-  if (resolveFrenzyEntry(testValue(enemy, undefined, 'force-mentale'), battleRng()).success) {
+  if (resolveFrenzyEntry(testValue(enemy, { characteristic: 'force-mentale' }), battleRng()).success) {
     (enemy.psychState ??= []).push({ type: 'frenesie' });
     set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenzy', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });
   }

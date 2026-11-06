@@ -111,7 +111,7 @@ import {
 } from '../engine/miscast';
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleBrute, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
-import { idsDuTest, testValue, valeurDuTest, type SupportDetail, type TestDesigne } from '../engine/skills';
+import { idsDuTest, testValue, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
@@ -465,7 +465,7 @@ export function crowdEligible(battle: BattleState, attacker: Combatant, target: 
  *  doivent choisir une cible ou une Action différente » (rien n'est consommé). */
 export function attackWardGate(attacker: Combatant, target: Combatant, rng: RNG): { allowed: boolean; lines: string[] } {
   if (!hasActiveFlag(target, 'attackWardFM')) return { allowed: true, lines: [] };
-  const t = rollTest(testValue(attacker, undefined, 'force-mentale'), 'accessible', rng);
+  const t = rollTest(testValue(attacker, { characteristic: 'force-mentale' }), 'accessible', rng);
   if (t.success) {
     return { allowed: true, lines: [tr('cs.shameOvercome', { name: attacker.label, roll: t.roll, target: t.target, foe: target.label })] };
   }
@@ -499,7 +499,7 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
   if (!surprised.length || !ambushers.length) return;
   // L'embusqueur de référence = la Discrétion la plus FAIBLE du groupe (l.77). Furtif (LDB 85
   // p.339) : « Ajoutez son bonus d'Agilité au DR de tous ses Tests de Discrétion » → attackerBonusSL.
-  const sneak = ambushers.reduce((a, b) => (testValue(b, 'discretion') < testValue(a, 'discretion') ? b : a));
+  const sneak = ambushers.reduce((a, b) => (testValue(b, { skill: { id: 'discretion' } }) < testValue(a, { skill: { id: 'discretion' } }) ? b : a));
   const sneakDR = skillDRBonus(sneak, 'discretion'); // Furtif : +Bonus d'Agilité au DR (donnée : passive skillDRBonus)
   // Conséquence d'une défaite du guetteur : l'État Surpris. Vigilance (talent `vigilance`) interpose AVANT un
   // Test de Perception (+0) cadence-aware — réussite = pas de Surprise, échec = Surpris.
@@ -618,7 +618,7 @@ export function rerollWindsOfMagic(get: Get, set: SetFn): void {
   const lines: { line: string; id: string }[] = [];
   for (const c of battle.combatants) {
     if (c.kind !== 'hero' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
-    const res = rollTest(testValue(c, 'perception'), 'facile', battleRng());
+    const res = rollTest(testValue(c, { skill: { id: 'perception' } }), 'facile', battleRng());
     if (res.success) {
       revealed = true;
       lines.push({ line: tr('cs.windsOfMagicSeen', { name: c.label }), id: c.id });
@@ -1485,7 +1485,7 @@ export function aiApproachPlan(
   if (charge.kind === 'move' && atContact(charge)) return { plan: charge, ran: null };
   // Course (LDB 15 l.41) : budget = Marche + Course + DR ; pas d'attaque.
   const course = testDuCavalier(enemy, testDeRegle('course', 'courir'));
-  const r = resolveRun(valeurDuTest(enemy, course), course.difficulty, M, rng);
+  const r = resolveRun(testValue(enemy, course), course.difficulty, M, rng);
   const runBudget = M + r.bonusCases;
   const run = runBudget > input.movement ? chooseEnemyAction({ ...inp, movement: runBudget }) : action;
   if (run.kind === 'move' && tileKey(run.to.x, run.to.y, run.to.z ?? 0) !== tileKey(action.to.x, action.to.y, action.to.z ?? 0))
@@ -3707,7 +3707,7 @@ export function poserLEtapeDAttaque(get: Get, set: SetFn, pa: PendingAttack, tit
 export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?: string): boolean {
   const gHand = attackHandGate(attacker, weaponUid);
   if (!gHand) return true;
-  const gt = rollSansPilote(get, attacker, testValue(attacker, undefined, 'dexterite'), 'accessible', battleRng());
+  const gt = rollSansPilote(get, attacker, testValue(attacker, { characteristic: 'dexterite' }), 'accessible', battleRng());
   const bg = get().battle;
   if (!gt.success) {
     const lache = applyOps(attacker, [{ op: 'disarm' }], { rng: battleRng(), location: gHand === 'off' ? 'brasG' : 'brasD' });
@@ -8389,7 +8389,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
     const guided = battle.combatants.some(
       (a) => a.kind === enemy.kind && a.id !== enemy.id && !isOutOfAction(a) && !isStupid(a.traits) && a.pos && chebyshev(a.pos, enemy.pos!) <= 1,
     );
-    if (!guided && !rollSansPilote(get, enemy, testValue(enemy, undefined, 'intelligence'), 'facile', battleRng()).success) {
+    if (!guided && !rollSansPilote(get, enemy, testValue(enemy, { characteristic: 'intelligence' }), 'facile', battleRng()).success) {
       battle.log.push(ev('detail', tr('cf.stupid', { name: enemy.label }), enemy.id));
       set({ battle: { ...battle } });
       return advanceTurn(get, set);

@@ -94,13 +94,13 @@ describe('Fièvre : pénalité aux TESTS, jamais une baisse de Caractéristique 
     expect(effectiveChar(fievreux(), 'force')).toBe(40);
   });
   it('le Test de Force porte le −10', () => {
-    expect(testValue(fievreux(), undefined, 'force')).toBe(30);
+    expect(testValue(fievreux(), { characteristic: 'force' })).toBe(30);
   });
   it('faim + fièvre : la Force effective porte la Faim seule, le Test de Force la Faim et la Fièvre (LDB 18 l.342, LDB 20 l.170)', () => {
     const affame = mk([], 40, { hunger: { days: 4, tests: 1, failures: 1 }, diseases: [{ phase: 'active', symptoms: [{ symptomId: 'fievre' }] }] as never });
     expect(volatileCharLines(affame, 'force').map((l) => [l.ref, l.value])).toEqual([[RULE_REF['faim-et-soif'], -10]]);
     expect(effectiveChar(affame, 'force')).toBe(30);
-    expect(testValue(affame, undefined, 'force')).toBe(20);
+    expect(testValue(affame, { characteristic: 'force' })).toBe(20);
   });
 });
 

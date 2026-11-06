@@ -174,7 +174,7 @@ describe('InterludeScreen — refonte LOT 6', () => {
     useGame.setState({ worldMap: null });
     const catalog = interludeCatalog(useGame.getState());
     const hero = seam.party[0];
-    const base = testValue(hero, 'charme'); // Mendier : Test de Charme (LDB 09 l.97)
+    const base = testValue(hero, { skill: { id: 'charme' } }); // Mendier : Test de Charme (LDB 09 l.97)
     const voir = () => renderToStaticMarkup(
       <InterludeScreen seam={{ ...seam, phase: 'activities', catalog, openPane: { heroId: hero.id, pane: 'mendier' } }} />,
     );

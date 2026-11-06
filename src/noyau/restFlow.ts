@@ -252,7 +252,7 @@ function runContagion(party: Combatant[], n: number, rng: RNG): { actorId: strin
         if (other === sick || other.dead) continue;
         const def = diseaseDefs()[dz.id];
         for (let d = 0; d < n; d++) {
-          const log = rollContraction(other, dz.id, testValue(other, 'resistance'), def?.contractDifficulty ?? 'accessible', rng);
+          const log = rollContraction(other, dz.id, testValue(other, { skill: { id: 'resistance' } }), def?.contractDifficulty ?? 'accessible', rng);
           if (log.length) out.push({ actorId: other.id, dz: dz.id, log });
         }
       }

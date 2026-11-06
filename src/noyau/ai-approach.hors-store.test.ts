@@ -7,7 +7,7 @@ import { chebyshev } from '../engine/grid';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng, seedBattleRng } from './battleRng';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import { valeurDuTest } from '../engine/skills';
+import { testValue } from '../engine/skills';
 import { cibleDuTest, evaluateTest } from '../engine/tests';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { runFromTest } from '../engine/movement';
@@ -103,7 +103,7 @@ describe('Course ennemie — le journal du tour (LDB 15 l.41)', () => {
     const d100 = des.mock.calls.flatMap((args, i) => (args[0] === 1 && args[1] === 100 ? [des.mock.results[i].value as number] : []));
     expect(d100, 'un seul d100 au tour : celui de la Course').toHaveLength(1);
     const course = testDeRegle('course', 'courir');
-    const jet = evaluateTest(d100[0], cibleDuTest(valeurDuTest(enemy, course), course.difficulty));
+    const jet = evaluateTest(d100[0], cibleDuTest(testValue(enemy, course), course.difficulty));
     const lignes = banc.getState().battle!.log.filter((l) => l.actorId === 'e' && l.kind === 'move').map((l) => l.text);
     expect(chebyshev(depart, enemy.pos!), 'arrêt avant le budget').toBeLessThan(4 + runFromTest(jet, 4).bonusCases);
     expect(lignes).toEqual([

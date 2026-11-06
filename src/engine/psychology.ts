@@ -525,7 +525,7 @@ export function resolveFrenzyEntry(fm: number, rng: RNG): JetPose {
 
 /** Valeur de Test de Calme (`testValue`, États compris, LDB 16 l.125). */
 export function calmeValue(c: Combatant): number {
-  return testValue(c, 'calme');
+  return testValue(c, { skill: { id: 'calme' } });
 }
 
 /** Un pas du Test ÉTENDU de Calme contre la Peur, depuis le DR cumulé `prevDR`. LDB 21 l.25 ;

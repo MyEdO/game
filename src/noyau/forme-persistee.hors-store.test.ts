@@ -52,8 +52,8 @@ describe('forme persistée — ce que le chargement lit', () => {
     const nu = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sonde', seed: 1 }), skills: [] };
     const avecAncienneGraphie = { ...nu, skills: [{ skillId: 'resistance', characteristic: 'endurance', advances: 20 }] } as unknown as typeof nu;
     const avecGraphieCourante = { ...nu, skills: [{ id: 'resistance', characteristic: 'endurance', advances: 20 }] } as unknown as typeof nu;
-    expect(testValue(avecAncienneGraphie, 'resistance')).toBe(testValue(nu, 'resistance'));
-    expect(testValue(avecGraphieCourante, 'resistance')).toBe(testValue(nu, 'resistance') + 20);
+    expect(testValue(avecAncienneGraphie, { skill: { id: 'resistance' } })).toBe(testValue(nu, { skill: { id: 'resistance' } }));
+    expect(testValue(avecGraphieCourante, { skill: { id: 'resistance' } })).toBe(testValue(nu, { skill: { id: 'resistance' } }) + 20);
   });
   it('le CADRE DE CAMPAGNE entre au snapshot (#717)', () => {
     const data = snapshotSave(etatInitialDuJeu(), '2026-08-31T00:00:00.000Z').data;

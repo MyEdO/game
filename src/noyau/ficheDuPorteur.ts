@@ -8,7 +8,7 @@ import type { Jeu } from './etat';
 import { porteurParId } from './monde/combatants';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../engine/types';
 import { effectiveChar } from '../engine/characteristics';
-import { effectiveSkillCharKey, valeurDuTest } from '../engine/skills';
+import { effectiveSkillCharKey, testValue } from '../engine/skills';
 import { effectiveTalents } from '../engine/talentEffects';
 import { effectiveEntry } from '../engine/variants';
 import { isWeaponActive, itemLabel } from '../engine/items';
@@ -18,7 +18,7 @@ import { charAbr, findTalentById, skillInstanceLabel, talentConcrete } from '../
 /** Une Caractéristique : son abréviation, son nom, sa valeur effective (`effectiveChar`). */
 export interface CaracteristiqueDeLaFiche { cle: CharKey; abrege: string; libelle: string; valeur: number }
 
-/** Une Compétence : son nom (Spécialisation comprise), la valeur de son Test (`valeurDuTest`), la Caractéristique qui
+/** Une Compétence : son nom (Spécialisation comprise), la valeur de son Test (`testValue`), la Caractéristique qui
  *  la porte (`effectiveSkillCharKey`) et ses Augmentations. */
 export interface CompetenceDeLaFiche { libelle: string; valeur: number; caracteristique: CharKey; avances: number }
 
@@ -76,7 +76,7 @@ export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     caracteristiques: CHAR_KEYS.map((cle) => ({ cle, abrege: charAbr(cle), libelle: CHAR_LABELS[cle], valeur: effectiveChar(c, cle) })),
     competences: c.skills.map((sk) => ({
-      libelle: skillInstanceLabel(sk), valeur: valeurDuTest(c, { skill: { id: sk.id, spec: sk.spec } }),
+      libelle: skillInstanceLabel(sk), valeur: testValue(c, { skill: sk }),
       caracteristique: effectiveSkillCharKey(c, sk.id, { spec: sk.spec }), avances: sk.advances,
     })),
     talents: effectiveTalents(c).map((tt) => ({ libelle: talentConcrete(tt), fois: tt.times, desc: effectiveEntry(findTalentById(tt.talentId))?.desc ?? null })),

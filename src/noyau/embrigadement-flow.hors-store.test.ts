@@ -191,7 +191,7 @@ describe('Embrigadement — base NUE + Soutien NOMMÉ, cible invariante (#1153 L
     set({ party: [lead, aide, autre] });
 
     const nue = skillBaseValue(lead, 'ragot');
-    const jetee = testValue(lead, 'ragot');
+    const jetee = testValue(lead, { skill: { id: 'ragot' } });
     expect(jetee, 'l’État sépare bien la nue de la valeur jetée').toBeLessThan(nue);
     const soutien = soutienDetail(get().party, lead, 'ragot');
     expect(soutien.bonus, 'un camarade éligible soutient (l.195)').toBeGreaterThan(0);
