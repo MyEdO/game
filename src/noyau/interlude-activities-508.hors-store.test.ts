@@ -66,7 +66,7 @@ describe('Gate de Classe (LDB 23 l.197 / AA 12 l.5) — appliqué au chemin rée
     // par coïncidence sur ce tirage de héros.
     h = { ...h, skills: h.skills.filter((k) => k.id !== 'charme' && k.id !== 'divertissement') };
     banc.setState({ party: [h] });
-    expect(testValue(h, 'charme')).toBe(testValue(h, 'divertissement', undefined, 'narration'));
+    expect(testValue(h, { skill: { id: 'charme' } })).toBe(testValue(h, { skill: { id: 'divertissement', spec: 'narration' } }));
     banc.getState().interludeActivity(heroId, 'punchausen');
     const pa = banc.getState().pendingActivity!;
     expect(pa.chosenSkill).toBe('divertissement');

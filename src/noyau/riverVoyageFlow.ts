@@ -745,7 +745,7 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
       });
       pousseSi(insert, st);
     } else {
-      const detect = pilot ? rollTest(testValue(pilot, undefined, 'agilite'), 'intermediaire', rng) : { success: false };
+      const detect = pilot ? rollTest(testValue(pilot, { characteristic: 'agilite' }), 'intermediaire', rng) : { success: false };
       j.push(t('rv.detectLine', { peril: peril.label, roll: 'roll' in detect ? (detect as TestResult).roll : t('rv.fragNoRoll'), issue: t(detect.success ? 'rv.detectOk' : 'rv.detectKo') }));
       if (!detect.success) {
         const impact = resolveRiverImpact(peril.onHit, rng);

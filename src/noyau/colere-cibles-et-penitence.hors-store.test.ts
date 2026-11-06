@@ -136,12 +136,13 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     const effet = (H.activeEffects ?? []).find((e) => e.prayerForAction)!;
     expect(effet.duration).toMatchObject({ scale: 'rounds', left: 7 });
 
-    for (const id of ['attaque', 'defend', 'heal', 'use-item', 'dispel']) {
+    for (const id of ['attaque', 'defend', 'heal', 'dispel']) {
       expect(gate(H, id), id).toMatchObject({ ok: false, reason: expect.stringMatching(/Test de Prière pour son Action/) });
     }
     expect(gate(H, 'cast-spell', 'arme-aethyrique').ok).toBe(false);
     expect(gate(H, 'cast-spell', GUERISON).ok).toBe(true);
     expect(gate(H, 'mouvement').ok).toBe(true);
+    expect(gate(H, 'use-item').ok, 'Action gratuite, LDB 13 l.106').toBe(true);
 
     castSpell(banc.getState, banc.setState, reluDans(banc.getState, H), reluDans(banc.getState, E), 'arme-aethyrique');
     expect(banc.getState().pendingCast).toBeNull();

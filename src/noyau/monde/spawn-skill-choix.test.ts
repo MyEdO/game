@@ -29,9 +29,9 @@ describe('désignation au spawn d’un `choix` de spécialisation (L2 #1548)', (
     expect(savoir).toHaveLength(1);
     const designee = savoir[0].spec;
     expect(poolDe('savoir')).toContain(designee);
-    expect(testValue(c, 'savoir', undefined, designee)).toBe(80);
+    expect(testValue(c, { skill: { id: 'savoir', spec: designee } })).toBe(80);
     const autre = poolDe('savoir').find((id) => id !== designee)!;
-    expect(testValue(c, 'savoir', undefined, autre)).not.toBe(80); // Compétence UNIQUE par spéc
+    expect(testValue(c, { skill: { id: 'savoir', spec: autre } })).not.toBe(80); // Compétence UNIQUE par spéc
     expect(skillInstanceLabel(savoir[0])).not.toMatch(/au choix/i);
   });
 

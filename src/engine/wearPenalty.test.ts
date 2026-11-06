@@ -62,7 +62,7 @@ describe('testValue + port d’armure', () => {
   }
   it('testValue soustrait la pénalité de Discrétion d’une cotte équipée', () => {
     const c = hero('h1', 40, [{ uid: 'a', name: 'Cotte de mailles', kind: 'armor', qualities: q_(['-10% en Discrétion']), enc: 3, equipped: true }]);
-    expect(testValue(c, 'discretion')).toBe(30); // Ag 40 − 10
+    expect(testValue(c, { skill: { id: 'discretion' } })).toBe(30); // Ag 40 − 10
   });
   it('partyBest préfère le héros NON armuré pour un Test de Discrétion', () => {
     const armure = hero('arm', 45, [{ uid: 'a', name: 'Cotte de mailles', kind: 'armor', qualities: q_(['-10% en Discrétion']), enc: 3, equipped: true }]); // 35
@@ -91,7 +91,7 @@ describe('wornSocialMod', () => {
 describe('testValue + Laid (Sociabilité)', () => {
   it('un objet Laid équipé impose -10 aux Tests Soc (caractéristique brute)', () => {
     const c = { characteristics: { sociabilite: 40 }, skills: [], items: [{ uid: 'a', name: 'X', kind: 'armor', qualities: q_(['Laid']), enc: 1, equipped: true }] } as unknown as Combatant;
-    expect(testValue(c, undefined, 'sociabilite')).toBe(30);
+    expect(testValue(c, { characteristic: 'sociabilite' })).toBe(30);
   });
   it('-10 sur une compétence Soc-based (Charme), rien sur une compétence non-Soc (Discrétion)', () => {
     const c = {
@@ -99,8 +99,8 @@ describe('testValue + Laid (Sociabilité)', () => {
       skills: [{ id: 'charme', characteristic: 'sociabilite', advances: 0 }, { id: 'discretion', characteristic: 'agilite', advances: 0 }],
       items: [{ uid: 'a', name: 'X', kind: 'armor', qualities: q_(['Laid']), enc: 1, equipped: true }],
     } as unknown as Combatant;
-    expect(testValue(c, 'charme')).toBe(30); // Soc 40 − 10
-    expect(testValue(c, 'discretion')).toBe(40); // non-Soc, pas de pénalité d'armure → inchangé
+    expect(testValue(c, { skill: { id: 'charme' } })).toBe(30); // Soc 40 − 10
+    expect(testValue(c, { skill: { id: 'discretion' } })).toBe(40); // non-Soc, pas de pénalité d'armure → inchangé
   });
 });
 

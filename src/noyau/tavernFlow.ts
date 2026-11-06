@@ -36,7 +36,7 @@ import { resolveOpposed, isDoubleRoll, evaluateTest, evaluateCombinedTest, estJe
 import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
 import { applyOps, avantageDeCampSansFiche } from '../engine/ops';
-import { idsDuTest, testValue } from '../engine/skills';
+import { idsDuTest, testValue, sujetDesIds } from '../engine/skills';
 import { advantageCap, advantageCapFor } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { touchActors } from './combatOrParty';
@@ -126,9 +126,8 @@ function valeurDesCoequipiers(p: TavernPayload): number {
  * Pari (« Si aucune Compétence n'est indiquée […] faites plutôt un Test opposé de Pari »).
  */
 export function tavernGameValue(hero: Combatant, game: TavernGame): number {
-  if (game.skill) return testValue(hero, game.skill.id, game.characteristic, game.skill.spec);
-  if (game.characteristic) return testValue(hero, undefined, game.characteristic);
-  return testValue(hero, 'pari'); // aucune Compétence indiquée → Pari (l.11)
+  if (game.skill || game.characteristic) return testValue(hero, game);
+  return testValue(hero, { skill: { id: 'pari' } }); // aucune Compétence indiquée → Pari (l.11)
 }
 
 /** L'ACTEUR d'un id de partie, quel que soit son banc : héros (combat ou groupe) ou PNJ de la scène.
@@ -474,7 +473,7 @@ function combinedSecondRead(game: TavernGame, acteur: Combatant | undefined, dif
   const test = testDeSequence(regles.second);
   return {
     label: testSkillLabel(test) ?? game.label,
-    base: acteur ? testValue(acteur, test.skill, test.characteristic, test.spec) : nue,
+    base: acteur ? testValue(acteur, sujetDesIds(test)) : nue,
     target: combinedSecondTarget(regles, acteur, difficulty, nue),
     difficulty,
   };

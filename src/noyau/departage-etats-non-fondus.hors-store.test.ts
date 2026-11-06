@@ -101,7 +101,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     seedBattleRng(1);
     get().portBuyCargo('bois-mer', LOT_ENC);
     const step = get().pendingCascade!.participants[0] as CascadeStep;
-    expect(testValue(leader, 'marchandage')).toBe(NUE + ETAT); // l'État pèse sur la valeur de Test…
+    expect(testValue(leader, { skill: { id: 'marchandage' } })).toBe(NUE + ETAT); // l'État pèse sur la valeur de Test…
     expect(step.base).toBe(NUE); // …mais PAS sur la Compétence (LDB 09 l.17)
     expect(step.target).toBe(NUE + ETAT); // CIBLE INVARIANTE : elle reste la valeur de Test fondue
   });
@@ -173,7 +173,7 @@ describe('#1153 L2 — MARCHÉ TERRESTRE : l’État ne se fond plus dans la gra
     }
     expect(found).not.toBeNull();
     const leader = setupLand();
-    expect(testValue(leader, 'marchandage')).toBe(NUE + ETAT);
+    expect(testValue(leader, { skill: { id: 'marchandage' } })).toBe(NUE + ETAT);
     expect(skillBaseValue(leader, 'marchandage')).toBe(NUE);
     expect(found!.merchant).toBeGreaterThan(NUE + ETAT);
     expect(found!.merchant).toBeLessThan(NUE);

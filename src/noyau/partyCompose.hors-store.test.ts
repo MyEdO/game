@@ -93,7 +93,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     expect(refusDeComposerLeHeros(s, 'g1', 1)).toBeNull();
   });
 
-  it('partyReplaceHero : substitution EN PLACE (index/ordre préservés), possession transférée, aucune Richesse créditée', () => {
+  it('partyReplaceHero : substitution EN PLACE (index/ordre préservés), possession transférée, la Bourse du remplacé portée, aucune Richesse créditée', () => {
     const st = banc.getState();
     st.partyAddHero(engage('a'));
     st.partyAddHero(engage('b'));
@@ -106,18 +106,20 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     expect(s.party.map((h) => h.id)).toEqual(['z', 'b', 'c']); // longueur 3, ordre conservé, a→z en place
     expect(s.net.ownership['z']).toBe(0); // possession transférée au siège
     expect(s.net.ownership['a']).toBeUndefined(); // l'ancien id libéré
-    expect(bourseDe('z')).toBe(0); // pas de crédit (≠ recrutement)
-    expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore - bourseDeA); // la bourse de l'ancien part avec lui
+    expect(bourseDeA).toBeGreaterThan(0);
+    expect(bourseDe('z')).toBe(bourseDeA);
+    expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore);
   });
 
-  it('partyReplaceHero : rejette un oldId inconnu et un hero.id déjà présent (doublon)', () => {
+  it('partyReplaceHero : rejette un oldId inconnu, et un hero.id déjà présent en le disant', () => {
     const st = banc.getState();
     st.partyAddHero(engage('a'));
     st.partyAddHero(engage('b'));
     banc.getState().partyReplaceHero('zzz', engage('z')); // ancien absent → no-op
     expect(banc.getState().party.map((h) => h.id)).toEqual(['a', 'b']);
-    banc.getState().partyReplaceHero('a', engage('b')); // 'b' déjà dans le groupe → no-op
+    banc.getState().partyReplaceHero('a', engage('b'));
     expect(banc.getState().party.map((h) => h.id)).toEqual(['a', 'b']);
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('pf.partyDuplicate', { name: 'Héros b' }));
   });
 
   it('setHeroBackground : édite Motivation + Ambitions sur le héros du groupe (hors combat)', () => {

@@ -3,7 +3,7 @@ import { CHAR_KEYS, CHAR_LABELS, type Combatant, type CharKey } from '../engine/
 import type { Money } from '../engine/money';
 import { dominantAxes } from '../engine/axes';
 import { effectiveChar } from '../engine/characteristics';
-import { effectiveSkillCharKey, valeurDecomposee, valeurDuTest } from '../engine/skills';
+import { effectiveSkillCharKey, testValue, testValueSplit } from '../engine/skills';
 import { effectiveTalents } from '../engine/talentEffects';
 import { itemLabel } from '../engine/items';
 import { castInfoIsPrayer } from '../engine/magic';
@@ -181,8 +181,9 @@ export function HeroSheet({
           <div className="skill-grid">
             {hero.skills.length === 0 && <span className="muted">Aucune.</span>}
             {hero.skills.map((s, i) => {
-              const test = { skill: { id: s.id, spec: s.spec } };
-              const { mods } = valeurDecomposee(hero, test);
+              const test = { skill: s };
+              const valeur = testValue(hero, test);
+              const { mods } = testValueSplit(hero, valeur, { sujet: test });
               const ck = effectiveSkillCharKey(hero, s.id, { spec: s.spec });
               return (
                 <div className="skill-line" key={i} title={`${CHAR_LABELS[ck]} ${effectiveChar(hero, ck)} + ${s.advances}`}>
@@ -191,7 +192,7 @@ export function HeroSheet({
                       {skillInstanceLabel(s)}
                     </CodexRef>
                   </span>
-                  <span className="sk-val">{valeurDuTest(hero, test)}</span>
+                  <span className="sk-val">{valeur}</span>
                   <span className="sk-adv">+{s.advances}</span>
                   {mods.length > 0 && <ModChips mods={mods} />}
                 </div>

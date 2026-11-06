@@ -24,7 +24,7 @@ describe('fenetreValider(\'finDeSeance\') (LDB 05 / LDB 17)', () => {
     const a = pregen(PREGEN.soldat); a.xp = 0;
     const b = pregen(PREGEN.tueur); b.xp = 0;
     banc.setState({ party: [a, b] });
-    banc.getState().openSessionEnd();
+    banc.getState().ouvrirLaFinDeSeance();
     banc.getState().fenetreChoisir('finDeSeance', 'ambitionPersonnelleCourte', true, a.id);
     banc.getState().fenetreChoisir('finDeSeance', 'ambitionPersonnelleLongue', true, a.id);
     banc.getState().fenetreChoisir('finDeSeance', 'ambitionCourte', true);
@@ -40,7 +40,7 @@ describe('fenetreValider(\'finDeSeance\') (LDB 05 / LDB 17)', () => {
   it('regagne 1 Point de Détermination pour un héros ayant agi selon sa Motivation (plafonné)', () => {
     const a = pregen(PREGEN.tueur); a.resolve = 0;
     banc.setState({ party: [a] });
-    banc.getState().openSessionEnd();
+    banc.getState().ouvrirLaFinDeSeance();
     banc.getState().fenetreChoisir('finDeSeance', 'motivation', true, a.id);
     banc.getState().fenetreValider('finDeSeance');
     const h = banc.getState().party.find((x) => x.id === a.id)!;
@@ -51,10 +51,21 @@ describe('fenetreValider(\'finDeSeance\') (LDB 05 / LDB 17)', () => {
     const a = pregen(PREGEN.soldat);
     if (a.fate != null) a.fortune = 0; // dépensée
     banc.setState({ party: [a] });
-    banc.getState().openSessionEnd();
+    banc.getState().ouvrirLaFinDeSeance();
     banc.getState().fenetreValider('finDeSeance');
     const h = banc.getState().party.find((x) => x.id === a.id)!;
     if (h.fate != null) expect(h.fortune).toBe(h.fate);
+  });
+
+  it('le menu de jeu n’ouvre la fin de séance qu’en exploration et chez l’hôte : sinon refusée et dite', () => {
+    banc.setState({ party: [pregen(PREGEN.soldat)], mode: 'battle' });
+    banc.getState().ouvrirLaFinDeSeance();
+    expect(banc.getState().finDeSeance).toBeNull();
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('gameMenu.finDeSeance.horsExploration'));
+    banc.setState({ mode: 'exploration', net: { ...initialNet(), mode: 'guest', mySeat: 1 } });
+    banc.getState().ouvrirLaFinDeSeance();
+    expect(banc.getState().finDeSeance).toBeNull();
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('gameMenu.finDeSeance.invite'));
   });
 });
 
@@ -63,7 +74,7 @@ describe('les cases de la fin de séance : celles du groupe sans héros, celles 
   function seance(): { a: string; b: string } {
     const [a, b] = pregenParty(PREGEN.soldat, PREGEN.tueur);
     banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
-    banc.getState().openSessionEnd();
+    banc.getState().ouvrirLaFinDeSeance();
     return { a: a.id, b: b.id };
   }
 

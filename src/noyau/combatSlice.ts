@@ -1017,15 +1017,13 @@ export function createCombatSlice(get: Get, set: Set) {
     // non servi (arme octroyée, taguée mountSide ; tire au tour suivant via l'option 'poste'), sinon SUPPORT (Arme
     // d'équipe : occupe la pièce, compte dans l'Indice contre le sous-effectif, mais ne tire pas). MÊME mutation
     // KIND-AGNOSTIQUE (`serveAtPoste`) que l'IA et l'author-time ; `recomputeLoadout` canonicalise l'arme du chef.
-    // GRATUIT (ne consomme PAS l'Action) : on s'approche au Mouvement, on sert, et on tire/pousse le MÊME
-    // Round — servir une pièce n'est pas un usage, juste s'y installer. « Tout le monde peut servir une arme
-    // de siège » (cf. l'IA `manPoste`).
+    // GRATUIT (LDB 13 l.106). « Tout le monde peut servir une arme de siège » (cf. l'IA `manPoste`).
     battleManPoste: (target?: { hullId: string; posteUid: string }) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const battle = get().battle;
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
-      if (!active || aiDriven(get(), active) || isOutOfAction(active) || !canTakeAction(active)) return;
+      if (!active || aiDriven(get(), active) || isOutOfAction(active)) return;
       const servable = servablePostes(active, battle.combatants);
       // Cible EXPLICITE (clic sur la pièce) → CE poste précis ; sinon (bouton hotbar) → le 1er servable.
       const chosen = target && typeof target === 'object' && 'hullId' in target
@@ -1039,9 +1037,8 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
     // « Quitter la pièce » (release) : le héros actif lâche le poste qu'il sert → il redevient servable par un autre.
-    // `leaveChef` retire le lien + l'équipage + l'arme ; `recomputeLoadout` re-dérive sans la pièce. Coûte l'Action.
-    // GRATUIT (ne consomme PAS l'Action, LDB 13 l.106 « Actions gratuites » : quitter un poste ne nécessite
-    // aucun Test → action gratuite comme rengainer). Symétrique de `battleManPoste`.
+    // `leaveChef` retire le lien + l'équipage + l'arme ; `recomputeLoadout` re-dérive sans la pièce. GRATUIT
+    // (LDB 13 l.106). Symétrique de `battleManPoste`.
     battleLeavePoste: () => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const battle = get().battle;
@@ -1861,13 +1858,12 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
-      if (battle.acted || !canTakeAction(active)) return; // boire = une Action ; Sonné = pas d'Action
       const it = (active.items ?? []).find((i) => i.uid === uid);
       if (!it) return;
       if (!isConsumable(it)) return;
       if (refuseSi(get, set, () => refusDeConsommer(active, it))) return;
       // Le Flow du consommable passe par la voie de combat cadence-aware (un Test « au boire » devient
-      // une étape de cascade influençable) — consommation + coût d'Action dans `battleConsumeItem`.
+      // une étape de cascade influençable) — consommation dans `battleConsumeItem`.
       battleConsumeItem(get, set, active, it);
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -1937,7 +1933,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const sup = soutienDetail(battle.combatants, active, 'langue', 'intelligence', 'magick',
         (c) => c.kind === active.kind && [...domainsOf(c)].some((d) => mine.has(d))
           && (!active.pos || (!!c.pos && combatDistance(active, c) <= 1)));
-      const value = testValue(active, 'langue', undefined, 'magick') + sup.bonus;
+      const value = testValue(active, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({
         pendingDispel: {
           casterId: active.id, spellId, spellCasterId, label: target.label, ni: target.ni, value,
@@ -1984,7 +1980,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const mine = domainsOf(caster);
       const sup = soutienDetail(party, caster, 'langue', 'intelligence', 'magick',
         (c) => c.kind === caster.kind && [...domainsOf(c)].some((d) => mine.has(d)));
-      const value = testValue(caster, 'langue', undefined, 'magick') + sup.bonus;
+      const value = testValue(caster, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({ pendingDispel: {
         casterId: caster.id, spellId, spellCasterId, label: target.label, ni: target.ni, value,
         ligne: ligneDeDissipation(caster, value, sup),

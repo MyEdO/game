@@ -45,7 +45,7 @@ function setSkill(c: Combatant, skillId: string, advances: number): void {
 /** Cale la Compétence de `c` à EXACTEMENT `want` (les avances absorbent la Caractéristique du pregen). */
 function tuneSkill(c: Combatant, skillId: string, want: number): void {
   setSkill(c, skillId, 0);
-  setSkill(c, skillId, want - testValue(c, skillId));
+  setSkill(c, skillId, want - testValue(c, { skill: { id: skillId } }));
 }
 
 const scene = { id: 'scene-P', label: 'Port', dimensions: { w: 2, h: 2 }, layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }], entities: [], dialogues: [], triggers: [] } as never;
@@ -215,7 +215,7 @@ describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSR
     expect(nue).toBeLessThan(merchant); // Compétence nue PERDANTE
     expect(nue + SOUTIEN_TERRESTRE).toBeGreaterThan(merchant); // valeur SOUTENUE gagnante (le piège)
     const leader = setupLand(nue);
-    expect(testValue(leader, 'marchandage')).toBe(nue);
+    expect(testValue(leader, { skill: { id: 'marchandage' } })).toBe(nue);
     seedBattleRng(seed);
     landBuyCargo(get, set, 'vin-eau-de-vie', 40);
     expect(bargainLineOf()).toMatch(/surcoût de \d+ %/);
@@ -226,7 +226,7 @@ describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSR
     const { seed, nue, merchant } = findTie(probeLandSell);
     expect(nue).toBeLessThan(merchant);
     expect(nue + SOUTIEN_TERRESTRE).toBeGreaterThan(merchant);
-    expect(testValue(setupLand(nue), 'marchandage')).toBe(nue);
+    expect(testValue(setupLand(nue), { skill: { id: 'marchandage' } })).toBe(nue);
     set(persistCarriersCargo(get(), [{ carrierId: LAND_CARRIER, cargo: [{ cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 }] }]));
     seedBattleRng(seed);
     vendLotTerrestre();

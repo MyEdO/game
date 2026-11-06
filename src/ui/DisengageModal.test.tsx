@@ -13,7 +13,7 @@ import { difficultyText } from '../noyau/difficultyText';
 import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../engine/ficheDeTest.testkit';
 import { lignesDeJet } from './ligneDeJet.testkit';
 import { clampTarget, cibleDuTest } from '../engine/tests';
-import { valeurDuTest } from '../engine/skills';
+import { testValue } from '../engine/skills';
 import { t } from '../i18n';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -174,6 +174,6 @@ describe('Désengagement — fuite : la ligne du Test du fuyard avant le jet', (
     act(() => root.render(<DisengageModal />));
     const ligne = [...host.querySelectorAll('.rm-roll-block')].find((b) => texte(b).includes(refLabel('skills', test.skill)))!;
     expect([...ligne.querySelectorAll('.rm-mod')].map(texte)).toContain('−30 Sonné');
-    expect(texte(ligne.querySelector('.rm-roll-calc')!)).toMatch(new RegExp(`= ${clampTarget(cibleDuTest(valeurDuTest(fuyard, test), test.difficulty)).target}$`));
+    expect(texte(ligne.querySelector('.rm-roll-calc')!)).toMatch(new RegExp(`= ${clampTarget(cibleDuTest(testValue(fuyard, test), test.difficulty)).target}$`));
   });
 });

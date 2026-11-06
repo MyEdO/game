@@ -70,7 +70,7 @@ describe('optionals composés — application au spawn (moteur)', () => {
     expect(v.size).toBe('grande'); // Taille (Énorme) → Grande
     expect(v.wounds.max).toBe(42); // B imprimé (84) remplacé par la variante
     expect(v.skills.some((s) => s.id === 'discretion' && s.spec === 'rurale')).toBe(true);
-    expect(testValue(v, 'discretion', undefined, 'rurale')).toBe(65); // valeur de Test IMPRIMÉE (verbatim)
+    expect(testValue(v, { skill: { id: 'discretion', spec: 'rurale' } })).toBe(65); // valeur de Test IMPRIMÉE (verbatim)
     // Sans la variante : Bestial reste, Taille (Énorme), B=84 (livre), pas de Discrétion.
     const plain = creatureToCombatant(c, 'v0', at);
     expect(hasTraitKey(plain.traits, 'bestial')).toBe(true);

@@ -16,6 +16,7 @@
  * targeting.ts, combatSlice.ts, combatCursor.ts, combatOrParty.ts.
  */
 import type { Get, Set } from './flowTypes';
+import type { ActionDeClasse } from './intentionsDeSiege';
 import type { Combatant } from '../engine/types';
 import type { DifficultyShown } from '../engine/combat';
 import { ciblesBasculees } from './reglagesDuJet';
@@ -986,9 +987,10 @@ export function ciblageEntiteArme(get: Get): boolean {
  * Le verdict se lit au MODE de ciblage courant (`electionLocale`) : c'est lui qui sait ce que son
  * clic-token fait, et le mode est le même des deux côtés du fil pour un ciblage armé localement.
  */
-export const INTENT_ELECTION_LOCALE: Record<string, (get: Get, args: readonly unknown[]) => boolean> = {
+type ElectionLocale = (get: Get, args: readonly unknown[]) => boolean;
+export const INTENT_ELECTION_LOCALE: Readonly<Record<string, ElectionLocale>> = {
   battleClickEntity: (get, [id]) => typeof id === 'string' && (currentTargetingMode(get).electionLocale?.(get, id) ?? false),
-};
+} satisfies { readonly [A in ActionDeClasse<'invité'>]?: ElectionLocale };
 
 /** Ce geste se joue-t-il ENTIER chez l'émetteur (aucun intent à envoyer) ? */
 export function intentEluLocalement(get: Get, action: string, args: readonly unknown[]): boolean {
