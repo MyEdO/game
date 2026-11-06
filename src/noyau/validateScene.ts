@@ -6,7 +6,7 @@ import { isRoomZone } from './monde/rooms';
 import { footprintTiles, sizeFootprint } from './monde/footprint';
 import { entitySize } from './monde/spawn';
 import { METRES_PER_LEVEL } from './monde/relief';
-import { realFloorAt } from './sceneEdit';
+import { borneALaCarte, realFloorAt } from './sceneEdit';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
@@ -70,6 +70,11 @@ export type ArchitectureWarningRef =
   | { type: 'architecturePart'; bodyId: string; storeyId: string; id: string }
   | { type: 'facadeSection'; bodyId: string; id: string }
   | { type: 'roofSection'; bodyId: string; id: string };
+
+/** Cible architecturale d'un avertissement (clic → sélection par ids stables), `null` hors architecture. */
+export function architectureSelectionForWarning(warning: Warning): ArchitectureWarningRef | null {
+  return warning.scope === 'architecture' ? warning.architectureRef ?? null : null;
+}
 
 /** Verdict d'un SCHÉMA par objet validé (une scène, la carte), par le mémo CANONIQUE (`memoByRefDeps`),
  *  daté par la version des datasets : les éditions de l'éditeur sont IMMUABLES (`useSceneHistory`),
@@ -242,6 +247,12 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
       if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
+    }
+    // Point d'entrée hors de la convention de pose du noyau (`borneALaCarte`) : une scène chargée, importée
+    // ou écrite à la main n'est pas passée par `editEntry`.
+    for (const [id, pos] of Object.entries(s.entryPoints ?? {})) {
+      const borne = borneALaCarte(s, pos);
+      if (borne.x !== pos.x || borne.y !== pos.y) add('warn', 'scene', id, `Point d'entrée « ${id} » hors carte ou hors d'une case entière (${pos.x},${pos.y}) — le groupe y arriverait hors de la grille. Repose-le sur une case de la carte.`);
     }
     // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `noyau/monde/seating`, source
     // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).

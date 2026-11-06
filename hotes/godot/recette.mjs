@@ -177,7 +177,7 @@ async function parcoursCombat() {
   assert.ok(element(v, 'fenetre.corps', 'cible')?.texte.includes(proche.nom), 'sur sa cible')
   assert.equal(element(v, 'fenetre.corps', 'jet').verdict, null, 'le jet est à lancer')
   noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} » ouverte ; ${corps(v)}`)
-  const localiser = element(v, 'fenetre.reglages', 'attackSetLocation')
+  const localiser = element(v, 'fenetre.reglages', 'jetRegler@attack#localisation')
   const lieu = localiser.valeurs.find((x) => x.jeu.args.at(-1) !== null)
   await cliquerBouton(bouton(lieu))
   v = await vue()
@@ -231,7 +231,7 @@ async function parcoursCombat() {
   assert.ok(zone(v, 'fenetre.etape')[0]?.texte.includes(defenseur.nom), 'l’étape nomme le héros qui se défend')
   noter(`Défense ouverte par les minuteurs : ${corps(v)} ; à ${defenseur.nom}`)
   await capturer('2928-6c-5-defense')
-  const [jetDeDefense, reagir] = [enFocus(v).id, 'defenseSetMode']
+  const [jetDeDefense, reagir] = [enFocus(v).id, 'jetRegler@defense#reaction']
   assert.ok(ouverts(v).includes(reagir), 'avant le jet, la réaction se dessine')
   noter(`gestes dessinés avant la Défense : ${ouverts(v).join(', ')}`)
   await cliquerBouton(bouton(enFocus(v)))

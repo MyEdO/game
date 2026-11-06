@@ -6,8 +6,7 @@ import type { Combatant } from '../engine/types';
 import { influencesLocally } from '../noyau/netOwnership';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
-import { testValueSplit, testBreakdown, testPending } from './breakdown';
-import { APPRAISE_SKILL } from '../noyau/merchantFlow';
+import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeAppraise } from '../noyau/flowOutcomes';
@@ -49,17 +48,15 @@ export function AppraiseModalView({
   const detect = pa.mode === 'detect';
   // Repli aligné sur le flux (`openAppraise`) : le libellé vient du REGISTRE par id stable.
   const skill = libelleDEvaluation(pa);
-  // Soutien du groupe (LDB 12) et composantes de la valeur de Test (États, séquelles, passifs,
-  // effets — #1178) : lignes de mod NOMMÉES, base rebasée sur le Niveau de Compétence nu (LDB 09 l.17).
-  // La Compétence testée vient de la SOURCE UNIQUE du flux (`APPRAISE_SKILL`), par id.
-  const { base, mods: supMods } = testValueSplit(actor, pa.skillValue, { support: pa.support, ...APPRAISE_SKILL[pa.mode ?? 'evaluate'] });
+  // La ligne figée à l'ouverture (`openAppraise`, Soutien LDB 12 compris) : celle que le résolveur jette.
+  const l = pa.ligne;
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor,
     row: {
       combatant: actor,
-      d: rolled ? testBreakdown(skill, base, { roll: pa.roll!, ...cibleMesuree(pa), sl: pa.sl, success: pa.success }, pa.difficulty, supMods) : undefined,
-      pending: testPending(skill, base, cibleMesuree(pa), pa.difficulty, supMods),
+      d: rolled ? testBreakdown(skill, l.base, { roll: pa.roll!, ...cibleMesuree(pa), sl: pa.sl, success: pa.success }, l.difficulty, l.mods) : undefined,
+      pending: testPending(skill, l.base, cibleMesuree(l), l.difficulty, l.mods),
     },
     rerolled: !!pa.rerolled,
     onRoll,

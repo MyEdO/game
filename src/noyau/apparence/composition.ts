@@ -13,7 +13,7 @@ import { compositionSchema, surchargesDEmblemesSchema, file as FICHIER_DES_PRESE
 import { defDe, enfantsDe, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { CLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
-import { declarationDeFeuilleDId, type FeuilleDId } from '../../data/schemas/grammaire/ref';
+import { declarationDeFeuilleDId, type FeuilleDId, type Id } from '../../data/schemas/grammaire/ref';
 import { noeudDuChamp, validateDocument } from '../../data/schemas/validate';
 import { BUILD_NEUTRE } from '../../lib/corpulence';
 import { t } from '../../i18n';
@@ -82,6 +82,9 @@ export interface PorteeDeComposition {
   facteurs: GabaritResolu;
 }
 
+/** L'apparence de l'objet `id` porté par `composition` : son `apparencesObjets`, à défaut la forme du trapping. */
+const apparenceDeLObjet = (composition: Pick<Composition, 'apparencesObjets'>, id: string): string | undefined => composition.apparencesObjets?.[id]?.id ?? findTrappingById(id)?.shape?.id;
+
 const labelDePiece = (id: string): string => findPieceById(id)?.label ?? id;
 
 /** Ce qui apporte une chose portée : la tenue ou l'objet `habille`, au libellé de son ensemble, à défaut, pour un objet,
@@ -97,7 +100,8 @@ const portees = (pieces: readonly string[], apport?: Portee['par']): Portee[] =>
 
 /** Ce que porte `composition` : sa tête, sa coiffure, les pièces de l'ensemble de sa tenue puis ses `pieces` (D6(b)), puis
  *  chaque objet, tenu puis porté : les pièces de l'ensemble qui l'habille, sinon son apparence (`apparencesObjets`, à
- *  défaut sa forme) à sa prise s'il est tenu, sinon à son `rangement` (D1) ; et les facteurs de son gabarit. */
+ *  défaut sa forme) à sa prise s'il est tenu, sinon à son rangement (`rangementsObjets`, à défaut le `rangement` du
+ *  trapping, D1) ; et les facteurs de son gabarit. */
 export function porteeDeComposition(composition: Composition): PorteeDeComposition {
   const race = raceAppearance.find((r) => r.id === composition.race.id);
   if (!race) throw new Error(`porteeDeComposition : « ${composition.race.id} » n'est aucune race de \`raceAppearance.json\`.`);
@@ -106,9 +110,9 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
   if (composition.tenue) liste.push(...portees(piecesDEnsemble({ id: composition.tenue.id, type: 'tenue' }), par({ type: 'tenue', id: composition.tenue.id })));
   liste.push(...portees(composition.pieces ?? []));
   const rapport: string[] = [];
-  const objets: [string, string | undefined][] = [
-    ...Object.entries(composition.prises ?? {}).map(([main, tenu]): [string, string] => [tenu.id, main]),
-    ...(composition.objets ?? []).map((id): [string, undefined] => [id, undefined]),
+  const objets: [Id<'trapping'>, string | undefined][] = [
+    ...Object.entries(composition.prises ?? {}).map(([main, tenu]): [Id<'trapping'>, string] => [tenu.id, main]),
+    ...(composition.objets ?? []).map((id): [Id<'trapping'>, undefined] => [id, undefined]),
   ];
   for (const [id, prise] of objets) {
     const habille = { type: 'trapping' as const, id };
@@ -118,8 +122,8 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
       continue;
     }
     const trapping = findTrappingById(id);
-    const apparence = composition.apparencesObjets?.[id]?.id ?? trapping?.shape?.id;
-    const point = prise ?? trapping?.rangement?.id;
+    const apparence = apparenceDeLObjet(composition, id);
+    const point = prise ?? composition.rangementsObjets?.[id]?.id ?? trapping?.rangement?.id;
     if (apparence === undefined || point === undefined) {
       rapport.push(t(apparence === undefined ? 'compo.objetSansApparence' : 'compo.objetSansPoint', { objet: id }));
       continue;
@@ -130,9 +134,16 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
 }
 
 /** Les emplacements où se range un objet de forme `apparence` : le `rangement` de chaque trapping instanciable de cette
- *  forme (D1), sans doublon, dans l'ordre des trappings. */
-export const emplacementsDeRangement = (apparence: string): string[] =>
-  [...new Set(trappingsInstanciables().flatMap((t) => (t.shape?.id === apparence && t.rangement ? [t.rangement.id] : [])))];
+ *  forme (D1), puis chaque emplacement où un preset range un objet de cette apparence (`rangementsObjets`), sans
+ *  doublon, dans cet ordre. */
+export const emplacementsDeRangement = (apparence: string): string[] => [
+  ...new Set([
+    ...trappingsInstanciables().flatMap((t) => (t.shape?.id === apparence && t.rangement ? [t.rangement.id] : [])),
+    ...presetsDePersonnage.flatMap((p) =>
+      Object.entries(p.rangementsObjets ?? {}).flatMap(([id, ou]) => (apparenceDeLObjet(p, id) === apparence ? [ou.id] : [])),
+    ),
+  ]),
+];
 
 /** Un choix d'un catalogue : l'id stocké, le libellé affiché. */
 export interface Choix {

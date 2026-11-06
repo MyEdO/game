@@ -61,10 +61,10 @@ describe('Prothèses — annulation de la séquelle d’amputation de jambe (LDB
   const legSequela: Trauma = {
     label: 'Membre inférieur amputé (jambeD)', location: 'jambeD',
     ops: [{ op: 'moveScale', num: 1, den: 2 }, { op: 'skillMod', skill: { id: 'esquive' }, mod: -20 }],
-    prosthesis: [{ trappingId: 'merveille-d-ingenierie', cancels: 'all' }, { trappingId: 'fausse-jambe', cancels: 'movement' }],
+    prosthesis: [{ id: 'merveille-d-ingenierie', cancels: 'all' }, { id: 'fausse-jambe', cancels: 'movement' }],
   };
   // Une prothèse doit être PORTÉE (équipée) pour lever le malus (LDB 73), pas seulement possédée. Matchée
-  // par `trappingId` STABLE (≠ libellé) — `worn`/`prosthesisCancels` lisent l'id.
+  // par `id` STABLE (≠ libellé) — `worn`/`prosthesisCancels` lisent l'id.
   const item = (trappingId: string, equipped = true): ItemInstance => ({ uid: trappingId, trappingId, label: trappingId, kind: 'misc', subType: 'Prothèses', qualities: [], enc: 0, equipped } as ItemInstance);
 
   it('sans prothèse : Mouvement ÷2 et −20 Esquive s’appliquent', () => {
@@ -127,7 +127,7 @@ describe('Prothèses — annulation de la séquelle d’amputation de jambe (LDB
   });
 
   it('Nez doré annule le −20 Sociabilité de l’amputation du nez (charPenalty, LDB 73)', () => {
-    const nez: Trauma = { label: 'Nez amputé', traumaId: 'nez-ampute', location: 'tete', ops: [{ op: 'charMod', char: 'sociabilite', mod: -20 }], prosthesis: [{ trappingId: 'nez-dore', cancels: 'all' }] };
+    const nez: Trauma = { label: 'Nez amputé', traumaId: 'nez-ampute', location: 'tete', ops: [{ op: 'charMod', char: 'sociabilite', mod: -20 }], prosthesis: [{ id: 'nez-dore', cancels: 'all' }] };
     expect(traumaCharPenalties(fullCombatant({ traumas: [nez], items: [] }), 'sociabilite')).toEqual([-20]);
     expect(traumaCharPenalties(fullCombatant({ traumas: [nez], items: [item('nez-dore')] }), 'sociabilite')).toEqual([]);
   });

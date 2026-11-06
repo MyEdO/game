@@ -11,6 +11,7 @@ import { confirmerLeCoup } from './jetProps/useAttackJetProps';
 import { libelleDeManoeuvre } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
+import type { ReglagesDuJet } from '../noyau/reglagesDuJet';
 
 /**
  * Modale de MANŒUVRE de créature (LDB 85) qu'un héros active (mutation/polymorphie) : elle influence
@@ -26,7 +27,8 @@ export function ManeuverModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'maneuver');
   const darkPact = useGesteDeJet('jetDarkPact', 'maneuver');
   const force = useGesteDeJet('jetForceSuccess', 'maneuver');
-  const setAvantage = useGame((s) => s.maneuverSetAvantage);
+  const regler = useGame((s) => s.jetRegler);
+  const setAvantage = (v: ReglagesDuJet['maneuver']['avantage']) => regler('maneuver', 'avantage', v);
   const confirm = useGesteDeJet('jetConfirm', 'maneuver');
   const cancel = useGesteDeJet('jetCancel', 'maneuver');
   const awaitingDefense = useGame(maneuverDefensePending);

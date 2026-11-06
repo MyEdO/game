@@ -152,7 +152,7 @@
     "label": "fermeturesDuFlux / fermeturesDeLaFenetre",
     "fichier": "src/noyau/verbesOuverts.ts",
     "concept": "ce qui ferme MAINTENANT chaque verbe du cycle d'un flux de jet (`FermetureDuJet`, libellé `libelleDeLaFermeture`), le prédicat même que gardent ses ops (`RollFlowHandlers.fermetures` : Résilience `fermetureDuForcage`, clôtures `cloture`/`jetPose`/`jetImpose`, annulation `annulation`, issue perdue `perdu` du spec), et chaque verbe de la fenêtre qui tient la main qu'un de ses flux joue ; une fermeture qui attend une décision du joueur (`FERMETURES_DITES`) se montre refusée avec sa raison ; aucun site ne date un verbe « avant » ou « après » le jet",
-    "perimetre": "barre d'actions de `RollShell` (`RollAction.verbe`), Résistance et Détermination des rangées, gestes des hôtes du noyau (`fenetreADessiner` : `attendu`, `ouvert`, `raison` ; `projection.fenetre.fermes`), réglages manuscrits du store (`siOuvert`)",
+    "perimetre": "barre d'actions de `RollShell` (`RollAction.verbe`), Résistance et Détermination des rangées, gestes des hôtes du noyau (`fenetreADessiner` : `attendu`, `ouvert`, `raison` ; `projection.fenetre.fermes`), réglages des jets (`jetRegler`, `fermetureDuReglage`)",
     "verrou": "verbesOuverts.hors-store.test.ts, gestes-a-l-etat.hors-store.test.ts"
   },
   {
@@ -455,7 +455,7 @@
     "label": "SaisieEnBrouillon",
     "fichier": "src/ui/compendium/refField/SaisieEnBrouillon.tsx",
     "concept": "saisie EN CHAÎNE d'une valeur structurée tenue en brouillon local : `afficher` rend la valeur en texte, `relire` relit le brouillon UNE fois à la fin de la saisie (blur, Entrée hors `lignes`) contre la valeur courante ; la frappe n'est jamais réécrite ni émise ; le brouillon ne déclare PAS de saisie en cours au porteur du geste d'enregistrement (il se pose toujours, au blur que ce geste provoque) ; une valeur affichée qui change sous le brouillon le fait tomber ; `SaisieSuggeree` sur une ligne, `<textarea>` à `lignes`",
-    "perimetre": "chaîne d'un Trait posé (rangée de TraitListField/OptionalsListField, OptionalTraitsPicker), Traits ajoutés d'une invocation (GameOpEditor `summon.addTraits`), refs au format livre une par ligne du Codex (Compétences, Talents d'une créature), renommage d'un id stable de l'inspecteur (`EntryRename`)",
+    "perimetre": "chaîne d'un Trait posé (rangée de TraitListField/OptionalsListField, OptionalTraitsPicker), Traits ajoutés d'une invocation (GameOpEditor `summon.addTraits`), refs au format livre une par ligne du Codex (Compétences, Talents d'une créature), renommage d'un id stable de l'éditeur (`EntryRename`, `src/ui/editor/EntryRename.tsx` : inspecteur et LogicDock)",
     "verrou": "saisie-suggeree.test.tsx, codex-edit-competences-au-clic.test.tsx, renommage-garde-la-saisie.test.tsx"
   },
   {
@@ -945,7 +945,7 @@
     "id": "opRows",
     "type": "primitives.manifest",
     "label": "opRows",
-    "fichier": "src/ui/compendium/opRows.ts",
+    "fichier": "src/noyau/codex/opRows.ts",
     "concept": "structure de rangées d’un GameOp[] pour le Codex",
     "perimetre": "vue joueur des effets et fiches du compendium",
     "verrou": "—"
@@ -1399,7 +1399,7 @@
     "nature": "organisme",
     "concept": "panneau d’INSPECTION en lecture seule : identité + jauge, badges de camp/états, puis onglets « Profil » (statbloc) et « Description » (prose de la fiche, avec son porteur) — sans prose, ni onglet ni barre",
     "perimetre": "clic sur l’ordre de bataille ; l’en-tête est partagé avec l’inspecteur de l’éditeur",
-    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/ui/compendium/registry.ts)"
+    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/noyau/codex/registry.ts)"
   },
   {
     "id": "equipmentPanel",

@@ -1017,17 +1017,8 @@ function kindDEmbranchement(flow: unknown): string | null {
  * par sa branche — `test` est toujours `flowTestSchema`, la forme UNIQUE du jet en donnée.
  */
 export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeudTest = {}) {
-  const test = options.difficulteRequise
-    ? flowTestSchema.superRefine((v, ctx) => {
-        if (v.difficulty !== undefined) return;
-        ctx.addIssue({
-          code: 'custom',
-          path: ['difficulty'],
-          message: 'nœud `test` à difficulté REQUISE : `difficulty` absente — un site sans Difficulté n’est pas une épreuve.',
-        });
-      })
-    : flowTestSchema;
-  const noeud = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test, success: branche, fail: branche }), { kind: { label: "type"  }, test: { label: "Test" }, success: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, fail: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
+  const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test: flowTestSchema, success: branche, fail: branche }), { kind: { label: "type"  }, test: { label: "Test" }, success: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, fail: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
+  const noeud = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
   if (!options.echecSeulServi) return noeud;
   return noeud.superRefine((valeur, ctx) => {
     // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : son type de sortie est opaque ici, seule la

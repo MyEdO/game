@@ -3,7 +3,7 @@
  * la donnée (`spell.family`). Arcane : `LDB 47 l.13-17` ; Miracle : `LDB 42 l.7-13` ; Bénédiction :
  * `LDB 41 l.21-27` ; `magic-vdm-incantation` : `VDM 02 l.194-215`.
  *
- * Pur (consommé par castAllocOvercast/jetConfirm('cast')/overcastTargetCandidates + CastModal).
+ * Pur (consommé par les réglages `cast.surincantation…`, jetConfirm('cast'), overcastTargetCandidates et CastModal).
  */
 
 import type { GameOp } from './ops';
@@ -49,7 +49,7 @@ export interface OvercastSpell {
 
 /**
  * Axes de Surincantation PERMIS pour CE sort — prédicat UNIQUE, lu par la modale, par
- * `castAllocOvercast` et par le plan de l'IA. `LDB 47 l.15`, `l.27`, `l.28` ; `LDB 42 l.9-11` ;
+ * réglage `cast.surincantation*` et par le plan de l'IA. `LDB 47 l.15`, `l.27`, `l.28` ; `LDB 42 l.9-11` ;
  * `LDB 41 l.21-27` ; `VDM 02 l.198-199` ; `CRB 070 l.77-79`.
  */
 export function overcastAxesFor(spell: OvercastSpell, missile: boolean): OvercastAxis[] {

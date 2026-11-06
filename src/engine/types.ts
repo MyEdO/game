@@ -678,6 +678,8 @@ export const ALL_MAGIC = 'all';
 
 export interface CastPenalty {
   label: string;
+  /** Entité SOURCE de la pénalité (`OpsCtx.source`) : sa fiche Codex (`effectRef`). */
+  source?: EffectSource;
   /** Compétence visée (id stable skills.json), ou `ALL_MAGIC`. */
   skill: string;
   /** Modificateur (négatif) à la valeur de Test (« Langue maladroite −10 »). */
@@ -753,7 +755,7 @@ export interface ModLine {
  *  `test-value-parts.test.ts`). COUTURE UNIQUE effet→fiche pour les `ModLine` : elle vit ICI, à côté
  *  de la table qu'elle indexe, pour être lisible des DEUX collecteurs (`conditions`, `trauma`) sans
  *  cycle d'import entre eux. */
-export function effectRef(e: ActiveEffect): CodexTarget | undefined {
+export function effectRef(e: Pick<ActiveEffect, 'source' | 'sourceSpellId'>): CodexTarget | undefined {
   if (e.source) return { category: CATEGORY_BY_SOURCE_KIND[e.source.kind], id: e.source.id };
   return e.sourceSpellId ? { category: 'spells', id: e.sourceSpellId } : undefined;
 }
@@ -1045,14 +1047,14 @@ export interface Trauma {
    *  intervention médicale », LDB 18 l.208/239) — traité par le Talent Chirurgie, pas par le simple repos. */
   needsSurgery?: boolean;
   /** Prothèses (LDB 73) qui annulent la séquelle permanente d'une amputation TANT QUE l'objet est porté
-   *  (dans `items`). Réf par `trappingId` STABLE (`crochet`/`fausse-jambe`/`merveille-d-ingenierie`/
+   *  (dans `items`). Réf par `id` STABLE (`crochet`/`fausse-jambe`/`merveille-d-ingenierie`/
    *  `nez-dore`/`cache-oeil`/`oeil-de-verre`/`dents-en-bois`) — matchée contre `ItemInstance.trappingId`.
    *  `cancels: 'all'` annule toute la pénalité (Merveille d'ingénierie : « ignorer complètement la
    *  perte… d'une jambe » ; Nez doré ; Œil de verre…) ; `'movement'` rétablit le déplacement seul
    *  (Fausse jambe : « ignorer 1 Point de Mouvement perdu »). L'Esquive se réapprend SÉPARÉMENT pour 200 PX
    *  (LDB 73) : `ItemInstance.prosthesisTrained` (posé par `trainProsthesis`, noyau/partyFlow.ts) élève l'effet
    *  de CETTE prothèse à `'all'` pour `prosthesisCancels` (trauma.ts), sans changer `cancels` en donnée. */
-  prosthesis?: { trappingId: string; cancels: 'all' | 'movement' }[];
+  prosthesis?: import('zod').z.input<typeof import('../data/schemas/defs/traumas').protheseSchema>[];
   /** Nombre d'éléments perdus pour une séquelle CUMULATIVE par comptage (LDB 18) : doigts (−5/doigt, 4+ →
    *  règle de la main, l.251/263) ou dents (−1 Soc/paire, l.247). Fusionné à chaque nouvelle perte. */
   count?: number;

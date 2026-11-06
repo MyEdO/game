@@ -13,6 +13,7 @@ import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type RollVerb } from './flowVerbs';
 import type { PendingKey } from './stateFields';
+import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
 import { WORLD_STEP_OWNER } from './pendings';
 
 /** Intents adossés à une fenêtre HORS registre de modales (`HORS_MODAL`, #1016) — DÉRIVÉS de ce
@@ -467,6 +468,29 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
 });
 
 /**
+ * Possession du réglage d'un jet (`jetRegler(flux, reglage, valeur, pid?)`), d'après sa déclaration (`REGLAGES_DU_JET`)
+ * — un réglage que son flux ne déclare pas : personne.
+ *  - le réglage que le siège d'un autre combattant joue (`porteurDeLaValeur` : les Bandages, LDB 74 l.41) : ce
+ *    combattant ;
+ *  - un réglage de rangée (l'arme d'enfoncement, EDO 11 l.93) : le combattant de la rangée (`pid`) ;
+ *  - sur un flux MONO : le porteur du jet (`routeJet`), comme ses verbes de jet — sur le Sort d'un ennemi, dont la
+ *    fenêtre est à tous (`'*'`), le siège qui joue l'ennemi, jamais un autre ;
+ *  - un réglage de fenêtre sur un flux MULTI (le virage d'une manœuvre navale) : le repli universel (le owner de sa
+ *    modale).
+ */
+const ROUTE_DU_REGLAGE: Route = {
+  rule: (s, seat, args) => {
+    const [flux, reglage, valeur, pid] = args;
+    const declaration = declarationDuReglage(flux, reglage);
+    if (!declaration || !estFluxRegle(flux)) return false;
+    if (declaration.porteurDeLaValeur) return seatInfluences(s, seat, declaration.porteurDeLaValeur(s, valeur));
+    if (declaration.portee === 'rangee') return seatInfluences(s, seat, idArg(pid));
+    const w: FlowVerbs = FLOW_VERBS[flux];
+    return w.kind === 'mono' ? routeJet(w.jetOwner).rule(s, seat, args) : null;
+  },
+};
+
+/**
  * Gestes TERMINAUX d'une fenêtre HORS registre de modales (`HORS_MODAL.intents`) : possession prise
  * au pending qui héberge le geste. `cleaveEnd`/`dualStrikeSkip` sont émis par le bandeau de phase de
  * la console (sortie d'interlude) ; `cleaveAttack`/`dualStrikeAttack` n'ont AUCUN émetteur d'UI
@@ -549,11 +573,8 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // DÉCLARATION d'un TOMBANT de chute volontaire (#700, EDO 01 l.231) : chaque rangée appartient au
     // siège de SON héros, patron `counterspellDeclare`.
     ['fallChoose', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
-    // Choix de l'arme d'enfoncement (EDO 11 l.93) : la rangée appartient au siège de SON héros.
-    ['forceDoorChoisirArme', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
-    // Bandages d'un soin (LDB 74 l.41) : seul le siège du héros qui les porte les engage ou les retire
-    // (`user-arbitrage-coop-inventaire-par-proprietaire-bg3`).
-    ['healSetBandages', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0]) ?? s.pendingHeal?.bandagesDe ?? undefined) }],
+    // Le réglage d'un jet en attente (`routeDuReglage`).
+    ['jetRegler', ROUTE_DU_REGLAGE],
     // La sortie d'une fenêtre : la fenêtre est le 1ᵉʳ argument, et son registre dit qui la ferme (`sortie`) — l'hôte
     // seul, ou le siège de son propriétaire ('*' : tout siège). Une victoire se ferme par l'hôte : l'invité marque
     // son siège (`victoryReady`), l'hôte ferme à l'unanimité.

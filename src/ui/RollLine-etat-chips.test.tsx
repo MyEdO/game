@@ -20,7 +20,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { RollShell } from './RollShell';
 import { buildRollRow } from './rollRowBuild';
 import type { PendingRoll } from './RollLine';
-import { codexLookupById } from './compendium/registry';
+import { codexLookupById } from '../noyau/codex/registry';
 import { conditionModLines, attackModifiers } from '../engine/combat';
 import { addCondition, COND } from '../engine/conditions';
 import { castWardLine } from '../noyau/combatFlow';

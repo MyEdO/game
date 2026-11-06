@@ -19,7 +19,7 @@ const FOYER = [
   'src/data/apparencesObjets.ts',
   'src/data/overrides.ts',
   'src/data/schemas/_racines-vivantes.generated.ts',
-  'src/ui/compendium/registry.ts',
+  'src/noyau/codex/registry.ts',
   'src/noyau/codex/relations.ts',
 ];
 
