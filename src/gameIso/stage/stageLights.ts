@@ -48,7 +48,7 @@ import {
   SUN_INTENSITY,
   sunRigFrom,
 } from '../backends/webgl/sceneMeshes';
-import { sceneSun, type SunJeu } from '../backends/webgl/sunJeu';
+import { sceneSun, type SunJeu } from '../../noyau/monde/soleil';
 
 /** Élévation (degrés) SOUS laquelle un receveur rasant acnéise : le décalage de profondeur qu'un texel
  *  d'ombre couvre sur une pente vue à `élévation` vaut `texel / tan(élévation)`, et il dépasse le

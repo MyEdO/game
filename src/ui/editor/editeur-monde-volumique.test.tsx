@@ -140,7 +140,6 @@ type Plaque = ReturnType<typeof plaque>;
 
 function baseProps() {
   return {
-    pushSnapshot: () => {},
     brush: 1,
     terrainRect: false,
     encTarget: '',

@@ -1581,8 +1581,6 @@ export interface PendingExtendedTest extends PendingBase {
    *  qu'il ait ATTEINT sa cible ou buté sur `maxAttempts`. `meta` = paramètres sérialisables (jamais de
    *  closure — coop). Absent ⇒ comportement historique (`flag`/`dispel`, réussite seule). */
   outcome?: { kind: IssueDeTestEtendu; meta?: CascadeStepMeta };
-  /** ENJEU du Round (#1117) — référence de donnée résolue par `resolveStake`, rendue par la modale. */
-  stake?: StakeRef;
   /** SUITE du Flow qui a ouvert le Test (Effet `extendedTest`, geste `suspensif`) — rejouée à sa clôture. */
   suite?: Flow;
 }

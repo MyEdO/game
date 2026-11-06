@@ -56,6 +56,10 @@
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
+// - `editeur` (#3508) : « Éditeur » ouvre la Diligence sur sa couche 0 ; l'outil Hauteur, « Haute (4 m) » et le pinceau
+//   3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre l'emprise du
+//   pinceau sur chaque case et le monde reste tel quel ; relâché, la surface des cases peintes monte à l'écran.
+//   « Annuler » la rend à sa place ; « Couche 1 » édite l'étage.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -105,7 +109,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|fiche|inventaire|creation|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|fiche|inventaire|creation|editeur|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -671,6 +675,37 @@ async function parcoursVoyage() {
   await capturer('3328-l1-2-recit')
 }
 
+async function parcoursRepos() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  /** L'Entrée tant qu'une fenêtre autre que `jusqua` tient la main. */
+  const entrer = async (jusqua) => {
+    for (let v = await vue(), pas = 0; v.projection.fenetre && v.projection.fenetre.cle !== jusqua; v = await vue(), pas++) {
+      assert.ok(pas < 40, `l'Entrée mène à ${jusqua} : ${corps(v)}`)
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  await entrer()
+  await cliquerBouton('Carte du monde')
+  await attendreLaVue("v.projection.fenetre?.cle === 'carteDuMonde'")
+  await cliquerBouton('À pied · 2 j')
+  await entrer('rest')
+  let v = await vue()
+  noter(`repos : ${corps(v)}`)
+  await capturer('3328-r1-1-nuit')
+  const dormeur = (v) => zone(v, 'fenetre.corps').find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs.map((b) => `${b.libelle}${b.presse ? '*' : ''}`).join(' ')
+  assert.equal(dormeur(v), 'Privée* Commune Dehors', 'Bjorn en chambre privée')
+  await cliquerBouton('Dehors')
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs[2].presse")
+  v = await vue()
+  noter(`Bjorn : ${dormeur(v)}`)
+  await capturer('3328-r1-2-dehors')
+  await entrer()
+  noter(`après « Dormir » : ${(await vue()).disposition}`)
+}
+
 async function parcoursRepit() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
@@ -851,6 +886,57 @@ async function presser(z, id) {
   await cliquerBouton(bouton(b))
   return vue()
 }
+/** L'éditeur publié (`wfrpEcran.editeur`) : ses zones et sa surcouche. */
+const editeur = async () => (await ecran()).editeur
+/** Le bouton d'id `id` des zones de l'éditeur publié, posé seul ou parmi les valeurs d'un choix. */
+const boutonDeLEditeur = (e, id) => Object.values(e.zones).flat().flatMap((el) => (el.type === 'bouton' ? [el] : el.valeurs ?? [])).find((b) => b.id === id)
+
+async function parcoursEditeur() {
+  await cliquerBouton('Éditeur')
+  await waitFor(session, '!!globalThis.wfrpEcran?.editeur && !!wfrpEcran.cases', { timeoutMs: 120000 })
+  let e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
+  noter(`éditeur ouvert : ${e.zones['editeur.titre'][0].texte}, couches ${e.zones['editeur.couches'][0].valeurs.map((b) => b.libelle).join(', ')}`)
+  await capturer('3508-l1-1-ouverte')
+  for (const id of ['outil/height', 'hauteur/haute', 'pinceau/3']) {
+    await cliquerBouton({ element: `bouton/${id}` })
+    assert.equal(boutonDeLEditeur(await editeur(), id)?.presse, true, `${id} choisi à son bouton`)
+  }
+  const cases = (await ecran()).cases
+  const aLEcran = ([x, y]) => x > 360 && x < 1240 && y > 40 && y < 680
+  const depart = Object.keys(cases).map((k) => k.split(',').map(Number)).find(([x, y]) => [0, 1, 2].every((d) => cases[`${x + d},${y}`] && aLEcran(cases[`${x + d},${y}`])) && x > 1 && y > 1)
+  assert.ok(depart, 'trois cases voisines à l’écran, hors du panneau')
+  const [x0, y0] = depart
+  const avant = cases[`${x0 + 2},${y0}`]
+  const [px, py] = cases[`${x0},${y0}`]
+  let tenu = null
+  await geste(session, { surface: 'canvas', x: px, y: py }, { qui: `glissé depuis la case ${x0},${y0}` }, async ({ x, y }, emettre) => {
+    await emettre('souris', { type: 'mouseMoved', x, y })
+    await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
+    for (const d of [1, 2]) {
+      const [cx, cy] = cases[`${x0 + d},${y0}`]
+      await emettre('souris', { type: 'mouseMoved', x: cx, y: cy, button: 'left', buttons: 1 })
+      await sleep(300)
+    }
+    tenu = { surcouche: (await editeur()).surcouche, point: (await ecran()).cases[`${x0 + 2},${y0}`] }
+    const [fx, fy] = cases[`${x0 + 2},${y0}`]
+    await emettre('souris', { type: 'mouseReleased', x: fx, y: fy, button: 'left', clickCount: 1 })
+  })
+  assert.equal(tenu.surcouche.cases.length, 15, `bouton tenu, la surcouche couvre l’emprise 3×3 sur trois cases : ${JSON.stringify(tenu.surcouche.cases)}`)
+  assert.deepEqual(tenu.point, avant, 'bouton tenu, le monde reste tel quel')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0 && wfrpEcran.cases['${x0 + 2},${y0}'][1] < ${avant[1] - 20}`)
+  e = await editeur()
+  noter(`glissé de (${x0}, ${y0}) à (${x0 + 2}, ${y0}) : ${tenu.surcouche.cases.length} cases en surcouche, puis la surface montée de ${Math.round(avant[1] - (await ecran()).cases[`${x0 + 2},${y0}`][1])} px ; ${e.zones['editeur.pointee'][0]?.texte}`)
+  await capturer('3508-l1-2-peinte')
+  await cliquerBouton({ element: 'bouton/annuler' })
+  await waitFor(session, `Math.abs(globalThis.wfrpEcran?.cases['${x0 + 2},${y0}'][1] - ${avant[1]}) < 0.5`)
+  noter('« Annuler » : la surface revient à sa place')
+  await cliquerBouton({ element: 'bouton/couche/1' })
+  e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, 'la couche 1 s’édite')
+  await capturer('3508-l1-3-couche-1')
+}
+
 /** La page ouverte de la création : son titre. */
 const pageOuverte = (v) => zone(v, 'creation.titre')[0]?.texte
 
@@ -1480,7 +1566,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

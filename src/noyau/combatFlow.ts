@@ -556,14 +556,14 @@ function activeTravelDay(get: Get<Jeu>): TravelRecapDay | undefined {
 }
 
 /** « Plein air » réussi à l'Étape du jour : la nuit n'a pas d'Exposition due au mauvais temps (EDOC 08 l.141). */
-export function nuitDispenseeParPleinAir(get: Get): boolean {
+export function nuitDispenseeParPleinAir(get: Get<Jeu>): boolean {
   return activeTravelDay(get)?.pleinAir === true;
 }
 
 /** Sévérité d'Exposition du lieu où le groupe passe la nuit : la météo du JOUR de voyage
  *  (`activeDayWeather`, convertie par `stageWeatherExposure`) quand elle existe, sinon la météo
  *  authored de la scène. SOURCE unique de l'Exposition de nuit (`buildNightCascade`, `RestBody`). */
-export function activeExposureSeverity(get: Get): ExposureSeverity {
+export function activeExposureSeverity(get: Get<Jeu>): ExposureSeverity {
   if (nuitDispenseeParPleinAir(get)) return 'clement';
   const w = activeDayWeather(get);
   return w ? stageWeatherExposure(w) : weatherExposure(get().scene?.weather); // #2533 c.6071899887
@@ -4540,7 +4540,7 @@ export function useSpellComponent(caster: Combatant, spellId: string, lines: str
  *  (LDB 40 l.89) : aucun plafond à borner, et son plancher est 01 (`clamp` inutile, `mod` positif). */
 export function miscastTableDecl(ctx: PendingMiscastStep): CascadeTableDecl {
   return {
-    tableId: miscastTableId(ctx.severity), spec: { n: 1, sides: 100 },
+    tableId: miscastTableId(ctx.severity), spec: miscastDie(miscastTableId(ctx.severity)),
     ...(ctx.severity === 'colere' ? { modPerActor: { counter: 'sinPoints' as const, factor: 10 } } : {}),
   };
 }

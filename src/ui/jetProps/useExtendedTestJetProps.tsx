@@ -15,6 +15,7 @@ import { useGesteDeJet } from '../useGesteDeJet';
  * via ce hook (une seule fenêtre, comme l'attaque). `pendingExtendedTest` reste le porteur de données
  * (les Rounds y vivent) ; « Round suivant » (`jetConfirm('extendedTest')`) CUMULE le DR et ouvre le Round
  * suivant, ou ferme la cascade à la réussite (total ≥ cible). Total < 0 → recommence à 0.
+ * L'ENJEU vit sur l'étape `extendedJet` : `CascadeModal` le passe à la coquille (`cur.stake`, #1117).
  *
  * QUI lance → portrait dans la ligne de jet (`RollRow.row.combatant`) ; la progression = barre de DR de
  * RANGÉE (`RollRow.extendedDr`, site unique — arbitrage user 2026-07-11).
@@ -46,7 +47,6 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
 
   return {
     flowKey: 'extendedTest',
-    stake: p.stake,
     title: <><Icon id="ui/key" size="sm" /> {p.label}</>,
     subtitle: <>Round {p.rounds.length} · Test étendu (le DR de chaque Round se cumule)</>,
     rolled,

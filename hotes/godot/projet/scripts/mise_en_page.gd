@@ -85,9 +85,36 @@ static func centre_de_case(case: Vector2i, sol: float) -> Vector3:
 	return Vector3(case.x + DEMI_CASE, sol, case.y + DEMI_CASE)
 
 
+## Le point du plateau au-dessus du point (`x`, `y`) de la carte, en cases continues (une case centrée sur l'entier), à
+## `hauteur`.
+static func point_de_la_carte(x: float, y: float, hauteur: float) -> Vector3:
+	return Vector3(x + DEMI_CASE, hauteur, y + DEMI_CASE)
+
+
+## Le sens où éclaire une lumière directionnelle qui vient de `direction` (vers la source).
+static func sens_d_eclairage(direction: Vector3) -> Vector3:
+	return -direction
+
+
+## La profondeur, depuis la caméra, de ce qui est à `cases` au-delà du point qu'elle vise à `distance`.
+static func profondeur_de_brume(distance: float, cases: float) -> float:
+	return distance + cases
+
+
+## L'énergie `energie` d'une flamme qui vacille de la part `amplitude` à `hz` hertz, à l'instant `secondes`.
+static func energie_vacillante(energie: float, amplitude: float, hz: float, secondes: float) -> float:
+	return energie * (1.0 + amplitude * sin(TAU * hz * secondes))
+
+
 ## Le centre du sol d'un plateau de `taille` cases.
 static func centre_du_plateau(taille: Vector2i) -> Vector3:
 	return Vector3(taille.x / 2.0, 0.0, taille.y / 2.0)
+
+
+## Le point de la carte, en cases continues (une case centrée sur l'entier), sous le lieu `lieu` du plateau : celui que
+## l'éditeur de carte désigne (`PointDeCarte.f`, `src/noyau/edition/pointeur.ts`).
+static func point_de_carte_du_lieu(lieu: Vector3) -> Vector2:
+	return Vector2(lieu.x - DEMI_CASE, lieu.z - DEMI_CASE)
 
 
 ## Le lacet de la caméra tourné d'un quart de tour dans le sens `sens` (1 ou -1).

@@ -20,7 +20,8 @@ import { props, findPropById, type PropVolumeRecipe } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { buildProps } from '../builders/props';
 import { gpToWorld } from '../../noyau/monde/volume/worldTris';
-import { pointLightWrites, FLAME_LIFT_M } from './stagePointLights';
+import { pointLightWrites } from './stagePointLights';
+import { FLAME_LIFT_M } from '../../noyau/lumiereDeLaScene';
 import type { Dir4 } from '../../geometry/dir8';
 
 /** Tolérance du contrat, en mètres — « la lampe est au foyer », pas « la lampe est à peu près là ». */

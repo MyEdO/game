@@ -11,22 +11,14 @@ signal case_cliquee(case: Vector2i)
 ## Le corps d'un combattant dessiné a changé (`Combattant.habille`).
 signal habille
 
-const ITEM_ATTEIGNABLE := 0
-const ITEM_CIBLE := 1
-const ITEM_SURVOL := 2
-
 @export var scene_combattant: PackedScene
 @export var mesh_mur: BoxMesh
 @export var mesh_porte: BoxMesh
-## Les plaques des surbrillances, par item (`ITEM_*`), chacune posée sans ombre.
-@export var surbrillances: MeshLibrary
 
 @onready var _monde: Monde = $Monde
-@onready var _surbrillance: Node3D = $Surbrillance
 @onready var _combattants: Node3D = $Combattants
 @onready var _aretes: Node3D = $Aretes
 
-var _bornes := Rect2i()
 var _modeles: Dictionary = {}
 var _entites: Dictionary = {}
 var _aretes_posees: Array = []
@@ -42,8 +34,6 @@ func _ready() -> void:
 ## la cible accuse le coup.
 func montrer(vue: Dictionary, journal: Array) -> void:
 	_vue = vue
-	if not _bornes.has_area() and vue.plateau != null:
-		_bornes = Rect2i(0, 0, int(vue.plateau.w), int(vue.plateau.h))
 	if vue.plateau != null:
 		_poser_les_aretes(vue.plateau.aretes)
 	var combat: Variant = vue.projection.combat
@@ -132,14 +122,9 @@ func point_de_l_apercu() -> Variant:
 	return _monde.a_l_ecran(_lieu(Vector2i(int(case[0]), int(case[1]))))
 
 
-## Le point de l'écran de chaque case du plateau, par sa clé `x,y`.
+## Le point de l'écran de chaque case du plateau, par sa clé `x,y` (`Monde.points`).
 func points() -> Dictionary:
-	var points := {}
-	for y in _bornes.size.y:
-		for x in _bornes.size.x:
-			var point := _monde.a_l_ecran(_lieu(Vector2i(x, y)))
-			points["%d,%d" % [x, y]] = [point.x, point.y]
-	return points
+	return _monde.points()
 
 
 ## Le volume du monde de la scène (`monde`) sous le plateau (`Monde.poser`).
@@ -151,13 +136,13 @@ func _lieu(case: Vector2i) -> Vector3:
 	return _monde.lieu(case)
 
 
-## Les cases peintes : celles de la vue, les cibles, l'aperçu, les entités nommées de l'exploration, puis la case sous le pointeur.
+## Les cases peintes (`Monde.peindre`) : celles de la vue, les cibles, l'aperçu, les entités nommées de l'exploration, puis
+## la case sous le pointeur, chacune à la place de celle qu'elle portait.
 func _peindre() -> void:
-	for plaque in _surbrillance.get_children():
-		_surbrillance.remove_child(plaque)
-		plaque.free()
+	var plaques := {}
+	var surligner := func(case: Vector2i, item: int) -> void: plaques[Vector3i(case.x, case.y, 0)] = item
 	for c in _vue.get("cases", []):
-		_surligner(Vector2i(int(c.case.x), int(c.case.y)), ITEM_ATTEIGNABLE)
+		surligner.call(Vector2i(int(c.case.x), int(c.case.y)), Monde.ITEM_ATTEIGNABLE)
 	var combat: Variant = _vue.get("projection", {}).get("combat")
 	if combat != null:
 		var vises: Array = combat.cibles.liste.duplicate()
@@ -166,31 +151,17 @@ func _peindre() -> void:
 			vises.append(apercu.cible)
 		for c in combat.voisins.liste:
 			if c.pos != null and vises.has(c.id):
-				_surligner(Vector2i(int(c.pos[0]), int(c.pos[1])), ITEM_SURVOL if apercu != null and apercu.cible == c.id else ITEM_CIBLE)
+				surligner.call(Vector2i(int(c.pos[0]), int(c.pos[1])), Monde.ITEM_SURVOL if apercu != null and apercu.cible == c.id else Monde.ITEM_CIBLE)
 		if apercu != null and apercu.case != null:
-			_surligner(Vector2i(int(apercu.case[0]), int(apercu.case[1])), ITEM_SURVOL)
+			surligner.call(Vector2i(int(apercu.case[0]), int(apercu.case[1])), Monde.ITEM_SURVOL)
 	var exploration: Variant = _vue.get("projection", {}).get("exploration")
 	if exploration != null:
 		for e in exploration.entites.liste:
 			if e.nom != null:
-				_surligner(Vector2i(int(e.pos[0]), int(e.pos[1])), ITEM_CIBLE)
+				surligner.call(Vector2i(int(e.pos[0]), int(e.pos[1])), Monde.ITEM_CIBLE)
 	if _survol != null:
-		_surligner(_survol, ITEM_SURVOL)
-
-
-## La plaque de l'item `item` sur le sol de la case `case`, à la place de celle qu'elle portait.
-func _surligner(case: Vector2i, item: int) -> void:
-	var nom := "%d,%d" % [case.x, case.y]
-	var ancienne := _surbrillance.get_node_or_null(nom)
-	if ancienne != null:
-		_surbrillance.remove_child(ancienne)
-		ancienne.free()
-	var plaque := MeshInstance3D.new()
-	plaque.name = nom
-	plaque.mesh = surbrillances.get_item_mesh(item)
-	plaque.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	plaque.transform = surbrillances.get_item_mesh_transform(item).translated(_lieu(case))
-	_surbrillance.add_child(plaque)
+		surligner.call(_survol, Monde.ITEM_SURVOL)
+	_monde.peindre(plaques)
 
 
 func _unhandled_input(event: InputEvent) -> void:

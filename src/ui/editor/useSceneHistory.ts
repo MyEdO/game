@@ -1,53 +1,20 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { Scene } from '../../noyau/monde/scene';
+import { annuler, historiqueDe, poser, reecrire, retablir } from '../../noyau/edition/historique';
 
 /**
- * Historique d'édition (annuler/rétablir) : chaque `setScene` empile un instantané
- * de la scène ; `resetScene` (Nouveau / Charger / Importer) vide l'historique.
- * Les instantanés sont des objets `Scene` complets (les éditions clonent déjà).
+ * L'historique d'édition de la scène (`noyau/edition/historique`) en état React : `setScene` ouvre un cran,
+ * `setSceneNoHistory` prolonge le cran du geste en cours, `resetScene` (Nouveau / Charger / Importer) repart sans cran.
  */
 export function useSceneHistory(initial: Scene | (() => Scene)) {
-  const [scene, setSceneState] = useState<Scene>(initial);
-  const sceneRef = useRef(scene);
-  sceneRef.current = scene; // toujours synchronisé, pour des callbacks stables
-  const past = useRef<Scene[]>([]);
-  const future = useRef<Scene[]>([]);
+  const [h, setH] = useState(() => historiqueDe(typeof initial === 'function' ? initial() : initial));
 
-  const setScene = useCallback((next: Scene) => {
-    past.current.push(sceneRef.current);
-    if (past.current.length > 200) past.current.shift(); // borne mémoire
-    future.current = [];
-    setSceneState(next);
-  }, []);
-  /** Push manuel de l'état COURANT (avant un geste coalescé : peinture / glisser). */
-  const pushSnapshot = useCallback(() => {
-    past.current.push(sceneRef.current);
-    if (past.current.length > 200) past.current.shift();
-    future.current = [];
-  }, []);
-  /** Mutation SANS snapshot (pendant un geste) → 1 seul cran d'undo pour tout le geste. */
-  const setSceneNoHistory = useCallback((next: Scene) => setSceneState(next), []);
-  /** Réécrit TOUT l'historique (passé et futur) par `f`, sans instantané : un renommage propagé reste
-   *  vrai dans chaque état qu'annuler/rétablir peut ramener. */
-  const reecrireHistorique = useCallback((f: (s: Scene) => Scene) => {
-    past.current = past.current.map(f);
-    future.current = future.current.map(f);
-  }, []);
-  const undo = useCallback(() => {
-    if (!past.current.length) return;
-    future.current.push(sceneRef.current);
-    setSceneState(past.current.pop()!);
-  }, []);
-  const redo = useCallback(() => {
-    if (!future.current.length) return;
-    past.current.push(sceneRef.current);
-    setSceneState(future.current.pop()!);
-  }, []);
-  const resetScene = useCallback((s: Scene) => {
-    past.current = [];
-    future.current = [];
-    setSceneState(s);
-  }, []);
+  const setScene = useCallback((next: Scene) => setH((x) => poser(x, next, true)), []);
+  const setSceneNoHistory = useCallback((next: Scene) => setH((x) => poser(x, next, false)), []);
+  const reecrireHistorique = useCallback((f: (s: Scene) => Scene) => setH((x) => reecrire(x, f)), []);
+  const undo = useCallback(() => setH(annuler), []);
+  const redo = useCallback(() => setH(retablir), []);
+  const resetScene = useCallback((s: Scene) => setH(historiqueDe(s)), []);
 
-  return { scene, setScene, setSceneNoHistory, pushSnapshot, reecrireHistorique, undo, redo, resetScene, canUndo: past.current.length > 0, canRedo: future.current.length > 0 };
+  return { scene: h.present, setScene, setSceneNoHistory, reecrireHistorique, undo, redo, resetScene, canUndo: h.passe.length > 0, canRedo: h.futur.length > 0 };
 }

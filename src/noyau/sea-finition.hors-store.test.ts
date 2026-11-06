@@ -7,6 +7,7 @@ import { buildSeaPlan } from './seaVoyageFlow';
 import { encLibreNominale, vesselMaxLoadEnc } from './portFlow';
 import { seaActivityBlocked } from './seaActivities';
 import { activityById } from '../engine/activities';
+import { activityStakeRef } from '../data';
 import { toBrass, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, creditBourse, debitBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
@@ -247,6 +248,8 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     expect(toBrass(partyMoneyTotal(get))).toBe(before - 10 * PA_PER_CO);
     expect(get().pendingExtendedTest).toBeTruthy(); // Test étendu ouvert (primitive #273 Étape 1)
     expect(get().pendingExtendedTest!.maxAttempts).toBe(3);
+    // L'enjeu est celui de l'Activité, sur l'étape que la fenêtre lit (#1117).
+    expect(get().pendingCascade?.participants.find((e) => e.jet === 'extended')?.stake).toEqual(activityStakeRef('commerce-opportunite'));
     await runSeaActivities();
     // La halte suit la clôture du Test étendu (file `opportunityQueue` vidée).
     expect(get().pendingExtendedTest).toBeNull();

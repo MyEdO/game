@@ -8,7 +8,7 @@ import type { Jeu } from './etat';
 import type { CloturesDuJet } from './rollFlowSpecs';
 import { garanti } from '../lib/garanti';
 import { battleRng } from './battleRng';
-import { d10, d100, deMonde, roll as rollDice } from '../engine/dice';
+import { d10, d100, roll, rollDice } from '../engine/dice';
 import { isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
 import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { startCascade } from './cascade';
@@ -54,7 +54,7 @@ import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance,
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
 import { findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
-import { findEffectTableById } from '../data/effectTables';
+import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { currentPlaceId } from './worldMap';
 import { findTableEntry } from '../engine/tables';
 import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
@@ -792,7 +792,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // vous pouvez inverser les dés sur un Test de Charme ou de Divertissement (Narration) » — même
       // canal de jeton que « Entraînement au Combat », SCOPÉ à la Compétence utilisée pour la vente.
       if (!pa.success || !pa.chosenSkill) return { lines: [msg('if.punchausenKo', { name: h.label })] };
-      const pistoles = rollDice(2, 10, battleRng());
+      const pistoles = roll(2, 10, battleRng());
       const gain = fromBrass(pistoles * PA_PER_SC);
       // Jeton posé AVANT le crédit : `creditBourse` clone le groupe et capte la mutation de `h`.
       const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: { id: pa.chosenSkill, ...(pa.chosenSkillSpec ? { spec: pa.chosenSkillSpec } : {}) } }], { rng: battleRng(), label: pa.label, source: activitySource(pa) });
@@ -840,11 +840,12 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // combat) — mesuré, non fabriqué (#510).
       if (!pa.success) return { lines: [msg('if.contremaitreKo', { name: h.label })] };
       const rng = battleRng();
-      // Trois tirages de MONDE par la porte du canal (`deMonde`, `engine/dice`) : ils sont la
-      // CONSÉQUENCE du Test de Ragot déjà joué et surfacé (`pa`), pas une occasion de pose de plus.
-      const lieu = findTableEntry(findEffectTableById('contremaitre-lieu').entries, deMonde(rng));
-      const objectif = findTableEntry(findEffectTableById('contremaitre-objectif').entries, deMonde(rng));
-      const perso = findTableEntry(findEffectTableById('contremaitre-personnalite').entries, deMonde(rng));
+      // Trois tirages de MONDE au dé de chaque table (`effectTableDie`) : ils sont la CONSÉQUENCE du
+      // Test de Ragot déjà joué et surfacé (`pa`), pas une occasion de pose de plus.
+      const tirer = (id: string) => findTableEntry(findEffectTableById(id).entries, rollDice(effectTableDie(id), rng));
+      const lieu = tirer('contremaitre-lieu');
+      const objectif = tirer('contremaitre-objectif');
+      const perso = tirer('contremaitre-personnalite');
       return {
         lines: [
           msg('if.contremaitreOk', { name: h.label, lieu: ligneNommee(lieu, 'contremaitre-lieu'), objectif: ligneNommee(objectif, 'contremaitre-objectif'), perso: ligneNommee(perso, 'contremaitre-personnalite') }),
@@ -878,7 +879,7 @@ function falseQualities(item: { kind: string; qualities: QualityInstance[]; subT
     .map((q) => q.label);
   const out: string[] = [];
   while (out.length < count && pool.length) {
-    const i = rollDice(1, pool.length, battleRng()) - 1;
+    const i = roll(1, pool.length, battleRng()) - 1;
     out.push(pool.splice(i, 1)[0]);
   }
   return out;

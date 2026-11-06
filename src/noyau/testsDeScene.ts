@@ -35,13 +35,13 @@ export function issueDuRound(p: PendingExtendedTest): ReturnType<typeof extended
 
 export function creerActionsDesTestsDeScene(get: Get, set: Set) {
   return {
-    startExtendedTest: (opts) => {
-      set({ pendingExtendedTest: { ...opts, total: 0, rounds: [{ id: 'round-1', interactive: true, result: null }] } });
+    startExtendedTest: ({ stake, ...donnee }) => {
+      set({ pendingExtendedTest: { ...donnee, total: 0, rounds: [{ id: 'round-1', interactive: true, result: null }] } });
       // Par la PORTE (#1262 V2 L4). Le mint vérifie que `pendingExtendedTest` est posé — il vient de
-      // l'être, ligne au-dessus.
+      // l'être, ligne au-dessus. L'enjeu vit sur l'ÉTAPE, que `CascadeModal` lit (`cur.stake`, #1117).
       const steps: BuiltCascadeStep[] = [];
-      pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'extendedJet', jet: 'extended', actorId: opts.actorId }));
-      if (steps.length) openSequence(get, set, { title: opts.label, icon: 'ui/key', purpose: 'test', steps });
+      pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'extendedJet', jet: 'extended', actorId: donnee.actorId, ...(stake ? { stake } : {}) }));
+      if (steps.length) openSequence(get, set, { title: donnee.label, icon: 'ui/key', purpose: 'test', steps });
     },
     // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
     startForceDoor: (opts) => {

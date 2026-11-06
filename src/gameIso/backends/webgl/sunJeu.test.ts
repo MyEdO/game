@@ -11,8 +11,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, type Scene } from '../../../noyau/monde/scene';
-import { SUN_AZIMUTH, SUN_ELEVATION_DEG, sunRig } from './sceneMeshes';
-import { SUN_JEU_MAX_ELEVATION_DEG, sceneSun, sunElevationOf, sunJeu } from './sunJeu';
+import { SUN_AZIMUTH, sunRig } from './sceneMeshes';
+import { SUN_ELEVATION_DEG, SUN_JEU_MAX_ELEVATION_DEG, sceneSun, sunElevationOf, sunJeu } from '../../../noyau/monde/soleil';
 import * as THREE from 'three';
 
 /** Minute d'horloge d'une heure du jour (l'horloge de jeu compte les minutes depuis l'époque). */
