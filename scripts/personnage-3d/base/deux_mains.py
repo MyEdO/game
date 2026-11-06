@@ -29,6 +29,8 @@ vers le fer, du côté du pied avancé. La seconde prise propre à chaque arme s
 
 BRAS = {cote: (f'upperarm_{cote}', f'lowerarm_{cote}', f'hand_{cote}') for cote in ('r', 'l')}
 """Par côté, le bras posé par IK : épaule, coude, main."""
+CLAVICULES = ('clavicle_r', 'clavicle_l')
+"""Les clavicules, au repos dans un clip dérivé : la pose du bras source est remplacée, celle de sa clavicule avec."""
 DOS = ('spine_01', 'spine_02', 'spine_03')
 """Les os qui se partagent la flexion et la torsion du dos."""
 POLES = {'r': Vector((-0.55, 0.35, -0.75)), 'l': Vector((0.55, 0.35, -0.75))}
@@ -45,12 +47,12 @@ REPOS = ((0.0, -0.22, 1.12), (0.78, 0.0, -0.62))
 """Le manche en travers du corps, bas, le fer en haut à droite."""
 GARDE = ((0.04, -0.28, 1.05), (0.55, 0.65, -0.5))
 """Les mains devant le ventre, le fer levé vers l'adversaire, le talon le long de la hanche gauche."""
-LEVEE = ((-0.195, -0.175, 1.33), (0.43, -0.43, -0.79))
+LEVEE = ((-0.3, -0.28, 1.33), (0.43, -0.43, -0.79))
 """Les mains montées devant l'épaule droite, le fer dressé au-dessus d'elle."""
-ARME = ((-0.27, 0.04, 1.72), (-0.05, -0.92, -0.2))
-"""Les mains au-dessus de l'épaule droite, la hache armée derrière la tête, le tranchant vers le haut."""
-COUP = ((0.14, -0.325, 1.0), (0.31, 0.91, -0.26))
-"""Les bras tendus devant, le fer tombé à hauteur de poitrine, le talon tiré vers la hanche gauche."""
+ARME = ((-0.105, -0.065, 1.72), (-0.05, -0.92, -0.2))
+"""Les mains au-dessus de la tête, la hache armée derrière elle, le tranchant vers le haut."""
+COUP = ((0.14, -0.325, 1.0), (0.31, 0.91, -0.6))
+"""Les bras tendus devant, le fer abattu à hauteur de poitrine, le talon tiré vers la hanche gauche."""
 
 HAMPE_REPOS = ((-0.145, -0.18, 1.2975), (0.3, 0.08, 0.95))
 """La hampe dressée devant le torse, la main droite à la hanche, la gauche devant la poitrine, le fer au-dessus."""
@@ -151,7 +153,7 @@ def deriver(bpy, rig, reperes):
                  for cote, (e, c, m) in BRAS.items()}
     prise_main, prise_off = reperes['main'][1], reperes['off'][1]
     scene, pose = bpy.context.scene, rig.pose.bones
-    animes = [n for os in BRAS.values() for n in os] + list(DOS)
+    animes = [n for os in BRAS.values() for n in os] + list(CLAVICULES) + list(DOS)
     derivees = []
     for nom, (source_nom, os_du_cadre, maniement, cles) in CLIPS.items():
         source = bpy.data.actions[source_nom]
