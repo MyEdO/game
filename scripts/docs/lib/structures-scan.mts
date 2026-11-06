@@ -1474,15 +1474,15 @@ function kindsDeCondition(root: string): Set<string> {
  * l'ordre de lecture des fichiers de la grammaire.
  * Les littéraux s'apparient par leur FORME (`formeDuLitteral`), pas par leur seule signature.
  */
-function schemasCommuns(grammaire: readonly ts.SourceFile[]): Map<string, string> {
+function schemasCommuns(grammaire: readonly ts.SourceFile[], resoudre: Resolveur): Map<string, string> {
   const racines = new Map<string, string>();
   const niches = new Map<string, string>();
   const visite = (node: ts.Node, sf: ts.SourceFile) => {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
-      for (const lit of litterauxZod(node.initializer, sf)) {
-        if (!lit.forme) continue;
+      for (const lit of litterauxZod(node.initializer, sf, resoudre)) {
+        if (!lit.resolu.forme || lit.resolu.partiel) continue;
         const cible = lit.champ === '' ? racines : niches;
-        if (!cible.has(lit.forme)) cible.set(lit.forme, node.name.text);
+        if (!cible.has(lit.resolu.forme)) cible.set(lit.resolu.forme, node.name.text);
       }
     }
     node.forEachChild((n) => visite(n, sf));
@@ -1525,6 +1525,91 @@ const formeDuLitteral = (cles: readonly string[], etiquettes: ReadonlyMap<string
     ? [...cles].sort().map((k) => `${k}=${etiquettes.get(k)}`).join(',')
     : signature(cles);
 
+/** Une déclaration `const` de tête : son initialiseur et son fichier. */
+type Declaration = { init: ts.Expression; sf: ts.SourceFile };
+/** Résout un identifiant LU dans `sf` : une `const` de tête de `sf` d'abord, sinon un nom UNIQUE de la grammaire. */
+type Resolveur = (nom: string, sf: ts.SourceFile) => Declaration | undefined;
+
+const constsDeTete = (sf: ts.SourceFile): Map<string, Declaration> => {
+  const out = new Map<string, Declaration>();
+  for (const st of sf.statements)
+    if (ts.isVariableStatement(st))
+      for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name) && d.initializer) out.set(d.name.text, { init: d.initializer, sf });
+  return out;
+};
+
+/** Le résolveur des spreads, adossé aux fichiers de la grammaire : un nom déclaré dans deux modules n'y résout pas. */
+function resolveurDe(grammaire: readonly ts.SourceFile[]): Resolveur {
+  const parNom = new Map<string, Declaration | null>();
+  for (const sf of grammaire) for (const [nom, d] of constsDeTete(sf)) parNom.set(nom, parNom.has(nom) ? null : d);
+  const locales = new WeakMap<ts.SourceFile, Map<string, Declaration>>();
+  return (nom, sf) => {
+    const ici = locales.get(sf) ?? constsDeTete(sf);
+    locales.set(sf, ici);
+    return ici.get(nom) ?? parNom.get(nom) ?? undefined;
+  };
+}
+
+const estFabriqueDObjet = (n: ts.Node): n is ts.CallExpression =>
+  ts.isCallExpression(n) &&
+  ts.isPropertyAccessExpression(n.expression) &&
+  ['object', 'strictObject', 'looseObject'].includes(n.expression.name.text) &&
+  n.arguments.length > 0 &&
+  ts.isObjectLiteralExpression(n.arguments[0]);
+
+/** Les clés d'un littéral, ses SPREADS résolus (`...X.shape` d'un schéma, `...X` d'un objet de shapes), récursivement.
+ *  `partiel` : un spread que le scan ne sait pas résoudre — les clés rendues sont alors un sous-ensemble. */
+function clesDuLitteral(lit: ts.ObjectLiteralExpression, sf: ts.SourceFile, resoudre: Resolveur, vus: ReadonlySet<ts.Node> = new Set()): { cles: string[]; partiel: boolean } {
+  const cles: string[] = [];
+  let partiel = false;
+  const dedans = new Set([...vus, lit]);
+  for (const p of lit.properties) {
+    if (!ts.isSpreadAssignment(p)) {
+      if ('name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) cles.push(p.name.text);
+      continue;
+    }
+    const e = p.expression;
+    const schema = ts.isPropertyAccessExpression(e) && e.name.text === 'shape' && ts.isIdentifier(e.expression) ? e.expression.text : undefined;
+    const nom = schema ?? (ts.isIdentifier(e) ? e.text : undefined);
+    const d = nom === undefined ? undefined : resoudre(nom, sf);
+    const r = d && (schema === undefined ? objetDeShapes(d, resoudre, dedans) : clesDuSchema(d, resoudre, dedans));
+    if (!r) { partiel = true; continue; }
+    cles.push(...r.cles);
+    partiel ||= r.partiel;
+  }
+  return { cles, partiel };
+}
+
+/** `...X` : `X` est un littéral d'objet de shapes. */
+const objetDeShapes = (d: Declaration, resoudre: Resolveur, vus: ReadonlySet<ts.Node>) =>
+  ts.isObjectLiteralExpression(d.init) && !vus.has(d.init) ? clesDuLitteral(d.init, d.sf, resoudre, vus) : undefined;
+
+/** `...X.shape` : `X` est un schéma d'objet, au littéral RACINE UNIQUE (`z.object|strictObject|looseObject`). */
+function clesDuSchema(d: Declaration, resoudre: Resolveur, vus: ReadonlySet<ts.Node>) {
+  const racines: ts.ObjectLiteralExpression[] = [];
+  const visite = (n: ts.Node) => {
+    if (estFabriqueDObjet(n) && champDuLitteral(n) === '') racines.push(n.arguments[0] as ts.ObjectLiteralExpression);
+    n.forEachChild(visite);
+  };
+  visite(d.init);
+  return racines.length === 1 && !vus.has(racines[0]!) ? clesDuLitteral(racines[0]!, d.sf, resoudre, vus) : undefined;
+}
+
+/**
+ * Un littéral d'objet zod LU. `cles`/`forme` : ses clés PROPRES, seules à apparier et classer un littéral de def —
+ * une clé venue d'un spread est COMPOSÉE, jamais re-tapée. `resolu` : ses clés, spreads résolus (`clesDuLitteral`),
+ * signature d'un schéma COMMUN de la grammaire ; `partiel` quand un spread n'a pas pu l'être.
+ */
+type LitteralZod = {
+  ligne: number;
+  champ: string;
+  cles: string[];
+  aSpread: boolean;
+  forme: string;
+  etiquettes: ReadonlyMap<string, string>;
+  resolu: { cles: string[]; partiel: boolean; forme: string };
+};
+
 /**
  * Tous les littéraux d'objet argument d'un `z.object|strictObject|looseObject` sous `node`, PLUS
  * l'argument `champs` (3ᵉ) de la fabrique `document()` (#1467) — même plan de forme, sans fabrique
@@ -1533,8 +1618,8 @@ const formeDuLitteral = (cles: readonly string[], etiquettes: ReadonlyMap<string
  * solde (`interludeEvents` min/max, toujours déclarés, donnée inchangée).
  * Les deux graphies de `champs` sont admises : littéral INLINE et const NOMMÉE référencée.
  */
-function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
-  const out: Array<{ ligne: number; champ: string; cles: string[]; forme: string; etiquettes: ReadonlyMap<string, string> }> = [];
+function litterauxZod(node: ts.Node, sf: ts.SourceFile, resoudre: Resolveur) {
+  const out: Array<LitteralZod> = [];
   const constsObjet = new Map<string, ts.ObjectLiteralExpression>();
   const releve = (n: ts.Node) => {
     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) {
@@ -1545,8 +1630,17 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
   releve(node);
   const pousse = (lit: ts.ObjectLiteralExpression, champ: string) => {
     const cles = lit.properties.flatMap((p) => ('name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : []));
+    const resolu = clesDuLitteral(lit, sf, resoudre);
     const etiquettes = etiquettesDuLitteral(lit, sf);
-    out.push({ ligne: sf.getLineAndCharacterOfPosition(lit.getStart(sf)).line + 1, champ, cles, forme: formeDuLitteral(cles, etiquettes), etiquettes });
+    out.push({
+      ligne: sf.getLineAndCharacterOfPosition(lit.getStart(sf)).line + 1,
+      champ,
+      cles,
+      aSpread: lit.properties.some(ts.isSpreadAssignment),
+      forme: formeDuLitteral(cles, etiquettes),
+      etiquettes,
+      resolu: { ...resolu, forme: formeDuLitteral(resolu.cles, etiquettes) },
+    });
   };
   const visite = (n: ts.Node) => {
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'document') {
@@ -1555,22 +1649,14 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
         arg && ts.isObjectLiteralExpression(arg) ? arg : arg && ts.isIdentifier(arg) ? constsObjet.get(arg.text) : undefined;
       if (lit) pousse(lit, champDuLitteral(n));
     }
-    if (
-      ts.isCallExpression(n) &&
-      ts.isPropertyAccessExpression(n.expression) &&
-      ['object', 'strictObject', 'looseObject'].includes(n.expression.name.text) &&
-      n.arguments.length &&
-      ts.isObjectLiteralExpression(n.arguments[0])
-    ) {
-      pousse(n.arguments[0] as ts.ObjectLiteralExpression, champDuLitteral(n));
-    }
+    if (estFabriqueDObjet(n)) pousse(n.arguments[0] as ts.ObjectLiteralExpression, champDuLitteral(n));
     n.forEachChild(visite);
   };
   visite(node);
   return out;
 }
 
-type LitteralDef = { def: string; ligne: number; champ: string; cles: string[]; forme: string; etiquettes: ReadonlyMap<string, string> };
+type LitteralDef = { def: string } & LitteralZod;
 
 /** Les dossiers des modules de schéma des documents : ceux des registres de `SchemaDef` (`REGISTRIES`,
  *  `cibles-registres.mjs`), jamais une liste écrite ici. */
@@ -1578,7 +1664,7 @@ export const DOSSIERS_DE_DEFS: readonly string[] = REGISTRIES.filter((r) => r.ty
 
 /** Tous les littéraux d'objet zod des modules de `DOSSIERS_DE_DEFS`, avec leur `def:ligne`, leur champ et
  *  leurs clés. Le `def` est le BASENAME du module : deux modules homonymes de deux dossiers LÈVENT. */
-function litterauxDefs(root: string): LitteralDef[] {
+function litterauxDefs(root: string, resoudre: Resolveur = resolveurDe(sourcesGrammaire(root))): LitteralDef[] {
   const out: LitteralDef[] = [];
   const dossierDu = new Map<string, string>();
   for (const dossier of DOSSIERS_DE_DEFS) {
@@ -1590,7 +1676,7 @@ function litterauxDefs(root: string): LitteralDef[] {
       if (deja !== undefined) throw new Error(`redéclarations : le module « ${f} » vit dans ${deja} ET dans ${dossier}, la clé \`def\` les confondrait.`);
       dossierDu.set(f, dossier);
       if (!sf) continue;
-      for (const lit of litterauxZod(sf, sf)) out.push({ def: f, ...lit });
+      for (const lit of litterauxZod(sf, sf, resoudre)) out.push({ def: f, ...lit });
     }
   }
   return out;
@@ -1685,10 +1771,17 @@ const admisAuConcept = (
 };
 
 /** Redéclarations locales dans les modules de `DOSSIERS_DE_DEFS` (un seul walk des defs). */
-export function scannerRedeclarations(root: string): { redeclarations: Redeclaration[]; totalLitteraux: number } {
+export function scannerRedeclarations(root: string): {
+  redeclarations: Redeclaration[];
+  totalLitteraux: number;
+  /** Littéraux de def à spread (vus sur leurs seules clés propres) et littéraux de grammaire PARTIELS (exclus des communs). */
+  angleMortDesSpreads: { defsASpread: number; grammairePartiels: number };
+} {
   const grammaire = sourcesGrammaire(root);
-  const communs = schemasCommuns(grammaire);
-  const lits = litterauxDefs(root);
+  const resoudre = resolveurDe(grammaire);
+  const communs = schemasCommuns(grammaire, resoudre);
+  const lits = litterauxDefs(root, resoudre);
+  const litsGrammaire = grammaire.flatMap((sf) => litterauxZod(sf, sf, resoudre));
   const admises = etiquettesDesPoses();
   const classer = (l: { cles: string[]; champ: string }): Classement | null => {
     const sig = signature(l.cles);
@@ -1696,7 +1789,8 @@ export function scannerRedeclarations(root: string): { redeclarations: Redeclara
   };
   const classements = lits.map(classer);
   const declarations = new Map<string, number>();
-  for (const c of [...grammaire.flatMap((sf) => litterauxZod(sf, sf)).map(classer), ...classements])
+  const declarationsDeGrammaire = litsGrammaire.filter((l) => !l.resolu.partiel).map((l) => classer({ cles: l.resolu.cles, champ: l.champ }));
+  for (const c of [...declarationsDeGrammaire, ...classements])
     if (c && !admises.has(c.concept)) inc(declarations, c.concept);
   const out: Redeclaration[] = [];
   lits.forEach((lit, i) => {
@@ -1716,5 +1810,9 @@ export function scannerRedeclarations(root: string): { redeclarations: Redeclara
       commun: commun ?? '',
     });
   });
-  return { redeclarations: out, totalLitteraux: lits.length };
+  return {
+    redeclarations: out,
+    totalLitteraux: lits.length,
+    angleMortDesSpreads: { defsASpread: lits.filter((l) => l.aSpread).length, grammairePartiels: litsGrammaire.filter((l) => l.resolu.partiel).length },
+  };
 }

@@ -343,7 +343,6 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       // `giveTrapping` est une op TYPÉE (#1903) : l'objet se nomme par `trappingId`, la graphie de
       // `GameOp` (`src/engine/ops.ts`) et de `conditionSchema`.
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.giveTrapping|trappingId',
-      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.grantReverseToken|skill',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.polymorph|ref',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.scheduleRespawn|ref',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillDRBonus|skill',
@@ -352,7 +351,7 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       // (`engine/ops.ts`), tenu par `idDe('creature')`.
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.summon|ref',
       'src/data/schemas/grammaire/mecanique.ts:conditionSchema|trappingId',
-      'src/data/schemas/grammaire/mecanique.ts:jetSchema|skill',
+      'src/data/schemas/grammaire/mecanique.ts:sujetDuJetSchema|skill',
       'src/data/schemas/grammaire/reference.ts:trappingRefSchema|wildcard',
     ]);
     const auStock = dansLaGrammaire.filter((cle) => cle in GRAMMAIRE_STOCK);

@@ -3,7 +3,8 @@ import { nomDuNavire } from '../noyau/carriers';
 import { useGame } from '../state/store';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { findVehicleById, findNavalTrait, findNavalPortById, type NavalPortData } from '../data';
-import { findCargoById, findCargoEntryById, type PortProfile } from '../engine/seaVoyage';
+import { type PortProfile } from '../engine/seaVoyage';
+import { findCargoEntryById } from '../engine/cargo';
 import { foulingEffects } from '../engine/seaNavigation';
 import { toMoney, priceToMoney } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
@@ -282,7 +283,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                   columns={[]}
                   groups={[{ key: 'cargo', rows: cargo.map((lot, i) => ({ lot, i })) }]}
                   rowKey={(r) => String(r.i)}
-                  label={(r) => findCargoById(r.lot.cargoId)?.label ?? r.lot.cargoId}
+                  label={(r) => cargoLabel(r.lot.cargoId)}
                   enc={(r) => r.lot.enc}
                   priceLabel="Prix base/Enc"
                   price={(r) => toMoney({ gold: r.lot.basePriceGold })}

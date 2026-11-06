@@ -34,12 +34,12 @@ const GESTE_DE_FENETRE: Readonly<Record<string, string>> = { fenetreValider: 'va
 
 /** Le libellé d'un geste : pour le choix d'une fenêtre, la clé de son axe (`verbe.<fenetre>.<axe>`) ; pour la validation
  *  ou la sortie d'une fenêtre, la clé propre à sa fenêtre (`verbe.<fenetre>.valider`, `verbe.<fenetre>.fermer`) ; pour
- *  le réglage d'un jet, celui du réglage (`libelleDuReglage`) ; pour un verbe de jet, la clé propre à son flux
+ *  le réglage d'un jet, celui du réglage (`libelleDuReglage`), `reglage.<flux>.<reglage>All` pour sa rangée omise ; pour un verbe de jet, la clé propre à son flux
  *  (`verbe.<flux>.<verbe>`, `verbe.<flux>.<verbe>All` pour sa rangée omise), sinon celle du verbe (`verbe.<verbe>`) ;
  *  tout autre geste, celui de son verbe (`libelleDuVerbe`). */
 export function libelleDuGeste(g: GesteDuJeu): string | null {
   if (g.fenetre) return texte(`verbe.${g.fenetre}.${g.axe ?? GESTE_DE_FENETRE[g.verbe]}`);
-  if (g.flux && g.reglage) return libelleDuReglage(g.flux, g.reglage);
+  if (g.flux && g.reglage) return g.toutes ? texte(`reglage.${g.flux}.${g.reglage}All`) : libelleDuReglage(g.flux, g.reglage);
   const deJet = verbeDeJetDe(g.verbe);
   if (!deJet || !g.flux) return libelleDuVerbe(g.verbe);
   const verbe = g.toutes ? `${deJet}All` : deJet;

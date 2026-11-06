@@ -10,7 +10,7 @@ import { Icon } from './Icon';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { opposedLines } from './breakdown';
-import { opposedResponded } from './opposedFrozen';
+import { JET_FIGE, jetFigeRevele } from '../noyau/netOwnership';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
@@ -60,9 +60,8 @@ export function AuContactModal() {
   ]);
   // Rangée TÉMOIN : Corps à corps du foe, figé à l'ouverture (jamais relancé, aucun bouton) — MASQUÉ
   // tant que le mover n'a pas répondu (#990 : `pd.def` est SA réponse).
-  const foeRow = frozenOpposedRow(useGame.getState(), {
-    ownerId: pd.foeId,
-    responded: opposedResponded(useGame.getState(), [{ id: pd.moverId, interactive: true, result: pd.def }]),
+  const foeRow = frozenOpposedRow({
+    revele: jetFigeRevele(useGame.getState(), JET_FIGE.auContact(pd)),
     row: { combatant: foe, d: foeLine.d },
   });
   // Rangée INTERACTIVE : Corps à corps du mover (héros), porteur de son cycle d'influence.

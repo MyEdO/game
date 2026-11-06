@@ -28,6 +28,9 @@ export const refusDuLanceurDeFiche: VerdictDeGeste = refusEnCombat('cs.oocInComb
  *  fermés en combat), sans appui au Source — le geste écrit pourtant les deux copies (`ecrireActeur`). */
 export const refusDuBackground: VerdictDeGeste = refusEnCombat('pf.backgroundInCombat');
 
+/** Refus d'une dépense de PX : la raison affichée, ou `null`. LDB 05 l.907 */
+export const refusDepensePx: VerdictDeGeste = refusEnCombat('pf.xpInCombat');
+
 /** Refus de rompre une Faveur due en plein combat : parité de l'écran d'avant, sans appui au Source. */
 export const refusDeRompreUneFaveur: VerdictDeGeste = refusEnCombat('favor.breakInCombat');
 

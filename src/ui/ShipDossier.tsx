@@ -3,7 +3,8 @@ import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 import { findVehicleById } from '../data';
-import { findCargoById, findManannFactor } from '../engine/seaVoyage';
+import { findManannFactor } from '../engine/seaVoyage';
+import { findCargoEntryById } from '../engine/cargo';
 import { dossierDuNavire } from '../noyau/seaVoyageFlow';
 import { foulingEffects } from '../engine/seaNavigation';
 import { moraleBand, findMoraleFactor } from '../engine/crewMorale';
@@ -58,7 +59,7 @@ export function ShipDossier({ onClose, initialTab }: { onClose: () => void; init
   // `bulkCarriers` réunit cale + bêtes/véhicules.
   const carriers = useMemo(() => bulkCarriers({ party, vessel, possessions }), [party, vessel, possessions]);
   if (!vessel) return null;
-  const transfer = <CargoTransferPanel carriers={carriers} onMove={move} labelOf={(id) => findCargoById(id)?.label ?? id} />;
+  const transfer = <CargoTransferPanel carriers={carriers} onMove={move} labelOf={(id) => findCargoEntryById(id)?.label ?? id} />;
   return <ShipDossierView vessel={vessel} party={party} onClose={onClose} initialTab={initialTab} transfer={transfer} />;
 }
 
@@ -200,7 +201,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
                   <tbody>
                     {cargo.map((lot, i) => (
                       <tr key={i}>
-                        <td>{findCargoById(lot.cargoId)?.label ?? lot.cargoId}</td>
+                        <td>{findCargoEntryById(lot.cargoId)?.label ?? lot.cargoId}</td>
                         <td>{lot.enc}</td>
                       </tr>
                     ))}

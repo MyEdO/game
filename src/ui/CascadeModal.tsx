@@ -34,7 +34,7 @@ import { useOwns } from './ownership';
 import { sequenceAbandonEtatOf } from '../noyau/sequenceCore';
 import { SequencePanel } from './SequencePanel';
 import { stepForcedDie } from './forcedDieRow';
-import { opposedResponded } from './opposedFrozen';
+import { JET_FIGE, jetFigeRevele } from '../noyau/netOwnership';
 import { frozenOpposedRow, tableRow, witnessRow, buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { referentDeLEtape, type CascadeStep, type CascadeRollStep, type CascadeRoll, type BatchParticipant } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
@@ -386,14 +386,10 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // ligne de JOURNAL (`opposedAttackerLabel`, `rollSeam`) : le libellé AUTHORÉ d'abord (l'alternative
   // qu'aucune structure ne porte), la STRUCTURE figée au catalogue ensuite.
   const oppTestLabel = opposedAttackerLabel(opp);
-  const oppResponders = cur.participants
-    ? cur.participants.map((p) => ({ id: p.id, interactive: p.interactive !== false, result: p.result }))
-    : [{ id: cur.actorId, interactive: true, result: cur.result }];
   const oppRow: BuiltRollRow | null = opp ? {
     key: 'opposed-attacker',
-    ...frozenOpposedRow(useGame.getState(), {
-      ownerId: opp.attackerId,
-      responded: opposedResponded(useGame.getState(), oppResponders),
+    ...frozenOpposedRow({
+      revele: jetFigeRevele(useGame.getState(), JET_FIGE.cascade(cur)),
       row: {
         combatant: oppActor,
         // Ligne d'un Test OPPOSÉ : Difficulté déclarée UNE fois à la fabrique (LDB 12 l.166) — celle

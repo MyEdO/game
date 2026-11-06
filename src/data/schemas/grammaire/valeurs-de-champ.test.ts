@@ -94,6 +94,8 @@ const NOMMES = [
   'obsessions',
   // `windAspectSchema` (MDG 13 l.267-270).
   'arriere|lateral|face',
+  // `voie` du catalogue des cargaisons (#1684) : la table du livre qui porte l'entrée (MDG 15, MSRC 13).
+  'mer|terre',
   // `buildingAnchorSchema` (#1715) : où un ornement d'identité s'accroche sur un bâtiment.
   'ridge|facade|front',
   // `retestAt` (psychology, #1463) : le moment du re-test d'une affliction ciblée active.

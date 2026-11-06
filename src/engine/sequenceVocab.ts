@@ -253,7 +253,7 @@ export interface SequenceSide {
  * ici, avec ce qu'elle coûte quand elle échoue et le RYTHME auquel ce coût se paie. */
 export interface SequenceCombinedRules {
   /** La SECONDE valeur confrontée au même dé (Compétence ou Caractéristique). */
-  second: { skill?: RefASpecialisation; char?: CharKey };
+  second: { skill?: RefASpecialisation; characteristic?: CharKey };
   /** Tous les combien d'échecs de la SECONDE lecture les `ops` se paient (`NADJ 16 l.90` : « Pour
    *  chaque 3 Tests d'Initiative auxquels vous échouez »). 0/absent : à chaque échec. */
   failEvery?: number;

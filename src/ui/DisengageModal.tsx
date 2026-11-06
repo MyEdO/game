@@ -20,7 +20,7 @@ import { Modal } from './Modal';
 import { Stack } from './Layout';
 import { Icon } from './Icon';
 import { opposedLines, testBreakdown, testPending } from './breakdown';
-import { opposedResponded } from './opposedFrozen';
+import { JET_FIGE, jetFigeRevele } from '../noyau/netOwnership';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 import { libelleDeTest, libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
@@ -198,9 +198,8 @@ export function DisengageModal() {
   // même calendrier de découverte que les autres jets figés (#990 : `pd.def` = la réponse du mover).
   const foeRow: BuiltRollRow = {
     key: 'foe',
-    ...frozenOpposedRow(useGame.getState(), {
-      ownerId: pd.foeId,
-      responded: opposedResponded(useGame.getState(), [{ id: pd.moverId, interactive: true, result: pd.def }]),
+    ...frozenOpposedRow({
+      revele: jetFigeRevele(useGame.getState(), JET_FIGE.disengage(pd)),
       row: { combatant: foe, d: foeLine.d },
     }),
   };

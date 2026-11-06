@@ -406,9 +406,15 @@
         },
         {
           "files": [
+            "cargoes.json"
+          ],
+          "desc": "Catalogue des cargaisons, une table par voie : maritime (MDG 15) et terrestre/fluviale (MSRC 13)"
+        },
+        {
+          "files": [
             "land-cargo.json"
           ],
-          "desc": "Cargaison terrestre (commerce)"
+          "desc": "Règles du commerce terrestre (MSRC 13)"
         },
         {
           "files": [
@@ -487,7 +493,7 @@
             "sea-weather.json",
             "sea-cargo.json"
           ],
-          "desc": "Navigation · périls · événements · météo · cargaison maritimes"
+          "desc": "Navigation · périls · événements · météo · règles du commerce maritimes"
         },
         {
           "files": [

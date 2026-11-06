@@ -1,0 +1,32 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "bottes"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "tenue",
+  "couvre": [
+    "pied_g",
+    "pied_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "botte",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "d77dd7edf875f38e2cfa7adbee4ad7c450498b1413a5ccbea54ff1ae8e46f7e9",
+    "octets": 329600
+  }
+}

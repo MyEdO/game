@@ -13,7 +13,7 @@
  *
  * CARDINALITÉ : le contrat est la RÉSOLUTION TOTALE (items ⊆ documents par id), PAS l'égalité de
  * population — une catégorie peut ne projeter qu'une PARTIE de son dataset par filtre déclaré au
- * build (`landCargo`, `seaCargo` : échangeables) sans qu'aucun item n'y perde son ancrage.
+ * build (`cargoes` : échangeables) sans qu'aucun item n'y perde son ancrage.
  */
 import { describe, it, expect } from 'vitest';
 import { CODEX } from './registry';
@@ -30,8 +30,7 @@ const docsDe = (cle: string) => datasetArray(editableDataset(cle)!) as unknown a
  *  catégorie qui tait sans entrée, une entrée dont l'écart ne vaut plus ce qui est écrit (disparu,
  *  augmenté, réduit) = ROUGE nominatif. */
 const FILTRES_DE_BUILD: Record<string, { tus: number; cause: string }> = {
-  landCargo: { tus: 2, cause: "registry.ts build `.filter(isEchangeable)` — marqueurs `echangeable:false` : commerce, subsistance" },
-  seaCargo: { tus: 2, cause: "registry.ts build `.filter(isEchangeable)` — marqueurs `echangeable:false` : commerce, minimum-vital" },
+  cargoes: { tus: 4, cause: "registry.ts build `.filter(isEchangeable)` — marqueurs `echangeable:false` : commerce-mer, minimum-vital, commerce-terre, subsistance" },
 };
 
 /** Borne du TU total : le Codex ne peut pas taire davantage sans décision explicite. */

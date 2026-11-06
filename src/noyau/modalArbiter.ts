@@ -37,8 +37,8 @@ export const AUCUN_VERBE_DE_JOUEUR: readonly never[] = Object.freeze([]);
 
 /** Un geste d'une fenêtre : un verbe de la partie ; un verbe de jet (`NomDeVerbeDeJet`) nomme le flux qu'il vise, et
  *  `toutes` quand il joue sa rangée omise sur un flux à plusieurs jets (« Tout résoudre » : `jetRoll('cascade')`) ; le
- *  réglage d'un jet (`jetRegler`) son flux et son réglage, et, dans le drive d'une fenêtre (`AutoPolicy`), la valeur
- *  qu'il y joue sans rangée (`valeur`) ; le choix d'une fenêtre (`fenetreChoisir`) sa fenêtre et son axe, la validation
+ *  réglage d'un jet (`jetRegler`) son flux et son réglage, `toutes` sur sa rangée omise (« Tout déclarer »), et la
+ *  valeur que la fenêtre y pose (`valeur`) ; le choix d'une fenêtre (`fenetreChoisir`) sa fenêtre et son axe, la validation
  *  (`fenetreValider`) ou la sortie (`fenetreFermer`) d'une fenêtre la fenêtre qu'elle valide ou ferme. */
 export interface GesteDuJeu { verbe: keyof ActionsDuNoyau; flux?: FlowKey; toutes?: true; reglage?: ReglageDuJet; valeur?: string; fenetre?: FenetreQuiSeFerme | FenetreAValider | FenetreAChoix; axe?: AxeDuChoix }
 

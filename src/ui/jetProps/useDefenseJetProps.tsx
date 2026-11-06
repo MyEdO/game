@@ -7,7 +7,8 @@ import { t } from '../../i18n';
 import { defenseTestOf, type DefenseMode } from '../../engine/combat';
 import { composeRollLabel } from '../../noyau/rollSeam';
 import { RollShell, type RollAction } from '../RollShell';
-import { opposedResponded } from '../opposedFrozen';
+import { JET_FIGE, jetFigeRevele } from '../../noyau/netOwnership';
+import { libelleDeLAttaqueFigee } from '../../noyau/jetsEnVue';
 import { buildRollRow, frozenOpposedRow } from '../rollRowBuild';
 import { OptionChooser } from '../OptionChooser';
 import { opposedLines } from '../breakdown';
@@ -90,20 +91,16 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   );
   const riposteOuverte = riposte?.choisie != null;
 
-  // NATURE de l'attaque figée, telle que la frappe l'a DÉCLARÉE en ouvrant la fenêtre (#1858) : une
-  // gratuite de créature s'annonce par la sienne (Morsure, Attaque caudale… LDB 85), le reste est une
-  // Attaque. L'affichage ne devine rien — il lit la suite portée par la fenêtre.
-  const kindGratuit = pd.suite.mode === 'machine' ? pd.suite.coup.manoeuvre?.kind : undefined;
+  // NATURE de l'attaque figée, lue de la suite portée par la fenêtre (`libelleDeLAttaqueFigee`, #1858).
   const [attackLine] = opposedLines([{
-    label: kindGratuit ? pd.weapon.label : 'Attaque',
+    label: libelleDeLAttaqueFigee(pd),
     base: pd.atk.target,
     r: { roll: pd.atk.roll, target: pd.atk.target, sl: pd.atk.sl, success: pd.atk.success },
   }]);
   // Rangée [0] = TÉMOIN : l'attaque FIGÉE (jet déjà eu lieu, aucun bouton), MASQUÉE tant que ce siège
   // n'a pas répondu (#990, calendrier unique `frozenOpposedRow` — mono = N=1 participant : moi).
-  const attackerRow = frozenOpposedRow(useGame.getState(), {
-    ownerId: pd.attackerId,
-    responded: opposedResponded(useGame.getState(), [{ id: pd.defenderId, interactive: true, result: res }]),
+  const attackerRow = frozenOpposedRow({
+    revele: jetFigeRevele(useGame.getState(), JET_FIGE.defense(pd)),
     row: {
       combatant: attacker,
       d: res ? res.attackerDetail : attackLine.d,

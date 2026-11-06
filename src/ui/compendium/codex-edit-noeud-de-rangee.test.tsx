@@ -3,7 +3,7 @@
  * #2099 — l'entrée d'une catégorie éditable est une RANGÉE de son document : l'atelier lit ses nœuds
  * sur la rangée que DÉCLARE la route de son dataset (`noeudDeLEntree`), jamais sur l'enveloppe. Un
  * champ énuméré de rangée NICHÉE (`enumNomme`) se rend donc en `select` libellé, comme un champ de
- * racine ; une rangée dont le discriminant n'ouvre aucune branche est une faute NOMMÉE de l'atelier.
+ * racine.
  */
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
@@ -16,8 +16,7 @@ import { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, 
 import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { versDisque } from '../../data/schemas/grammaire/prose';
-import { datasetArray, resetData, setDataset } from '../../data/overrides';
-import { categoryByKey } from '../../noyau/codex/registry';
+import { resetData } from '../../data/overrides';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -46,18 +45,6 @@ function monter(categorie: string, entree?: { id: string }): HTMLDivElement {
   });
   return container;
 }
-
-function saisir(champ: HTMLInputElement, valeur: string): void {
-  act(() => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(champ, valeur);
-    champ.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-}
-
-const fautesDe = (ecran: HTMLDivElement) => [...ecran.querySelectorAll('.codex-edit-errors li')].map((li) => li.textContent);
-const enregistrerDe = (ecran: HTMLDivElement) => ecran.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!;
-const champTexte = (ecran: HTMLDivElement, nom: string) =>
-  [...ecran.querySelectorAll('.codex-edit-form label.ed-field')].find((l) => l.querySelector('span')?.textContent === nom)?.querySelector('input');
 
 /** TOUTES les routes d'édition : catégorie → dataset-LISTE (`liste`) ou dataset-OBJET. */
 const routes = (): { categorie: string; ds: string; liste: boolean }[] => [
@@ -135,56 +122,4 @@ describe('atelier du Codex — nœud de la RANGÉE d’une catégorie éditable 
       expect(selects.some((o) => attendu.every((a) => o.includes(a))), `aucun select libellé pour ${champ}`).toBe(true);
     });
   }
-
-  it('une rangée au discriminant hors de ses branches est une faute NOMMÉE de l’atelier, levée par son contrôle', () => {
-    const cargaisons = datasetArray('landCargo') as { id: string; label: string; echangeable?: unknown }[];
-    const marqueurs = cargaisons.filter((c) => c.echangeable === false);
-    expect(marqueurs.length, 'la case `echangeable` s’infère d’un marqueur qui précède la cible').toBeGreaterThanOrEqual(2);
-    const cible = marqueurs[marqueurs.length - 1];
-    setDataset('landCargo', cargaisons.map((c) => (c === cible ? { ...c, echangeable: '' } : c)) as never);
-    const ecran = monter('landCargo', cible);
-    const faute = (sujet: string) => [`${sujet} — JSON invalide contre son schéma :`, '  - Échangeable: Entrée invalide'];
-    expect(fautesDe(ecran)).toEqual(faute(cible.label));
-
-    saisir([...ecran.querySelectorAll<HTMLInputElement>('.codex-edit-form input')].find((i) => i.value === cible.label)!, `${cible.label} bis`);
-    expect(fautesDe(ecran), 'la faute se dit au libellé ÉDITÉ, jamais à celui de l’ouverture').toEqual(faute(`${cible.label} bis`));
-    expect(enregistrerDe(ecran).disabled, 'une rangée sans nœud s’enregistrerait').toBe(true);
-
-    const echangeable = [...ecran.querySelectorAll('label.ed-check')].find((l) => l.textContent === 'echangeable')?.querySelector('input');
-    expect(echangeable, 'aucune case `echangeable` : la faute ne se corrige pas à l’écran').toBeTruthy();
-    act(() => { echangeable!.click(); });
-    expect(fautesDe(ecran)).toEqual([]);
-    expect(enregistrerDe(ecran).disabled).toBe(false);
-  });
-
-  it('la faute d’une entrée EXISTANTE dont on vide le libellé se dit au libellé de sa catégorie', () => {
-    const cargaisons = datasetArray('landCargo') as { id: string; label: string; echangeable?: unknown }[];
-    const marqueurs = cargaisons.filter((c) => c.echangeable === false);
-    const cible = marqueurs[marqueurs.length - 1];
-    setDataset('landCargo', cargaisons.map((c) => (c === cible ? { ...c, echangeable: '' } : c)) as never);
-    const ecran = monter('landCargo', cible);
-    expect(fautesDe(ecran)[0]).toBe(`${cible.label} — JSON invalide contre son schéma :`);
-
-    saisir(champTexte(ecran, 'Libellé')!, '');
-    expect(fautesDe(ecran)[0], 'une entrée sans libellé se dit à sa catégorie, jamais au libellé de l’ouverture').toBe(`${categoryByKey('landCargo')!.label} — JSON invalide contre son schéma :`);
-    expect(enregistrerDe(ecran).disabled, 'une rangée sans nœud s’enregistrerait').toBe(true);
-  });
-
-  it('la faute d’une entrée NEUVE se dit au libellé de sa catégorie, puis au libellé saisi', () => {
-    const cargaisons = datasetArray('landCargo') as { id: string; label: string; echangeable?: unknown }[];
-    const marqueur = cargaisons.find((c) => c.echangeable === false)!;
-    setDataset('landCargo', [{ ...marqueur, id: `${marqueur.id}-tete`, echangeable: '' }, ...cargaisons] as never);
-    const ecran = monter('landCargo');
-    const echangeable = champTexte(ecran, 'echangeable');
-    expect(echangeable, 'un échantillon `echangeable: ""` en tête infère un champ texte').toBeTruthy();
-    expect(fautesDe(ecran)).toEqual([]);
-
-    saisir(echangeable!, 'x');
-    const [tete] = fautesDe(ecran);
-    expect(tete).toBe(`${categoryByKey('landCargo')!.label} — JSON invalide contre son schéma :`);
-    expect(enregistrerDe(ecran).disabled, 'une rangée sans nœud s’enregistrerait').toBe(true);
-
-    saisir(champTexte(ecran, 'Libellé')!, 'Sel gemme');
-    expect(fautesDe(ecran)[0]).toBe('Sel gemme — JSON invalide contre son schéma :');
-  });
 });

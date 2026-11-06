@@ -7,7 +7,7 @@ import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { restServicePrice, type RestPlaces } from '../noyau/restFlow';
 import { libelleOuAbsence } from '../data';
-import { findLandCargoById } from '../engine/landCargo';
+import { findCargoEntryById } from '../engine/cargo';
 import { innGatherInfoMinutes } from '../noyau/innFlow';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
@@ -140,7 +140,7 @@ export function CityHubScreen({
               ? <p className="city-hub-empty">Aucune rumeur pour l’instant.</p>
               : <ul className="city-hub-hint">{tradeRumours.map((r, i) => {
                   const target = worldMap?.places.find((p) => p.id === r.placeId)?.label ?? r.placeId;
-                  const biens = r.biens.map((id) => findLandCargoById(id)?.label ?? id).join(', ');
+                  const biens = r.biens.map((id) => findCargoEntryById(id)?.label ?? id).join(', ');
                   return <li key={i}>{biens} — recherchés à {target}.</li>;
                 })}</ul>}
           </section>

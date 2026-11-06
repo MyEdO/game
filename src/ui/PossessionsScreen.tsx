@@ -19,7 +19,7 @@ import type { Combatant } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { possessionLabel, possessionCapacity, possessionLoadEnc, embarkedEnc } from '../engine/possession';
 import { cargoTotalEnc } from '../engine/cargo';
-import { findCargoById } from '../engine/seaVoyage';
+import { findCargoEntryById } from '../engine/cargo';
 import {
   mountProfileForCreature, ALLURES, allureLabel, ALLURE_KMH_PER_M, allureEnduranceHours,
 } from '../engine/mountTravel';
@@ -260,7 +260,7 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
           <CargoTransferPanel
             carriers={carriers}
             onMove={moveCargo}
-            labelOf={(id) => findCargoById(id)?.label ?? id}
+            labelOf={(id) => findCargoEntryById(id)?.label ?? id}
           />
         </>
       ) : mountProfile ? (

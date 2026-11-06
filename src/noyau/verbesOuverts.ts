@@ -46,7 +46,7 @@ function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | n
 const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
   cascade: (s) => s.pendingCascade && {
     [cleDuGeste(TOUT_RESOUDRE)]: fermetureDeToutResoudre(s, s.pendingCascade),
-    [cleDuGeste({ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration' })]: rangeesAReglerIci(s, declarationDuReglage('counterspell', 'declaration')).length ? null : 'rienADeclarer',
+    [cleDuGeste({ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration', toutes: true })]: rangeesAReglerIci(s, declarationDuReglage('counterspell', 'declaration')).length ? null : 'rienADeclarer',
   },
   roundStart: (s) => ({
     armPreempt: preemptShooterIds(() => s).length ? null : 'nonOffert',
@@ -55,13 +55,13 @@ const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<s
 };
 
 /** Les arguments que la fenêtre pose d'office pour son geste `g` : la fenêtre d'une validation ou d'une sortie, la
- *  fenêtre et l'axe d'un choix, le flux d'un geste de jet, le flux et le réglage d'un réglage, et l'id qu'elle désigne
- *  (`pid`) — pour un geste de jet, seulement quand il vise une rangée (`viseUneRangee`) et ne joue pas sa rangée omise
- *  (`toutes`) ; pour un réglage, seulement un réglage de rangée. */
-export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { fenetre?: GesteDuJeu['fenetre']; axe?: GesteDuJeu['axe']; flux?: FlowKey; reglage?: ReglageDuJet; pid?: string } {
+ *  fenêtre et l'axe d'un choix, le flux d'un geste de jet, le flux et le réglage d'un réglage — et la valeur que son
+ *  drive y joue (`valeur`) —, et l'id qu'elle désigne (`pid`), seulement quand le geste vise une rangée
+ *  (`viseUneRangee`, un réglage de rangée) et ne joue pas sa rangée omise (`toutes`). */
+export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { fenetre?: GesteDuJeu['fenetre']; axe?: GesteDuJeu['axe']; flux?: FlowKey; reglage?: ReglageDuJet; valeur?: string; pid?: string } {
   if (g.fenetre) return { fenetre: g.fenetre, ...(g.axe ? { axe: g.axe } : {}) };
   const pid = fenetre.pid ? { pid: fenetre.pid } : {};
-  if (g.flux && g.reglage) return { flux: g.flux, reglage: g.reglage, ...(declarationDuReglage(g.flux, g.reglage)?.portee === 'rangee' ? pid : {}) };
+  if (g.flux && g.reglage) return { flux: g.flux, reglage: g.reglage, ...(g.valeur === undefined ? {} : { valeur: g.valeur }), ...(!g.toutes && declarationDuReglage(g.flux, g.reglage)?.portee === 'rangee' ? pid : {}) };
   const deJet = verbeDeJetDe(g.verbe);
   if (!deJet || !g.flux) return pid;
   return { flux: g.flux, ...(!g.toutes && viseUneRangee(g.flux, deJet) ? pid : {}) };
