@@ -43,19 +43,20 @@ def cle(u, milieu, direction, flexion=0.0, torsion=0.0, elan=False):
     return u, Vector(milieu), Vector(direction).normalized(), Vector((flexion, torsion)), elan
 
 
-REPOS = ((0.0, -0.22, 1.12), (0.78, 0.0, -0.62))
+REPOS = ((0.07, -0.21, 1.15), (0.78, 0.0, -0.62))
 """Le manche en travers du corps, bas, le fer en haut à droite."""
 GARDE = ((0.04, -0.28, 1.05), (0.55, 0.65, -0.5))
 """Les mains devant le ventre, le fer levé vers l'adversaire, le talon le long de la hanche gauche."""
-LEVEE = ((-0.3, -0.28, 1.33), (0.43, -0.43, -0.79))
+LEVEE = ((-0.22, -0.31, 1.33), (0.43, -0.43, -0.79))
 """Les mains montées devant l'épaule droite, le fer dressé au-dessus d'elle."""
-ARME = ((-0.105, -0.065, 1.72), (-0.05, -0.92, -0.2))
+ARME = ((-0.105, -0.11, 1.72), (-0.05, -0.92, -0.2))
 """Les mains au-dessus de la tête, la hache armée derrière elle, le tranchant vers le haut."""
 COUP = ((0.14, -0.325, 1.0), (0.31, 0.91, -0.6))
 """Les bras tendus devant, le fer abattu à hauteur de poitrine, le talon tiré vers la hanche gauche."""
 
-HAMPE_REPOS = ((-0.145, -0.18, 1.2975), (0.3, 0.08, 0.95))
-"""La hampe dressée devant le torse, la main droite à la hanche, la gauche devant la poitrine, le fer au-dessus."""
+HAMPE_REPOS = ((-0.05, -0.25, 1.28), (0.55, 0.05, 0.83))
+"""La hampe dressée devant le torse, penchée vers l'épaule gauche, la main droite à la hanche, la gauche devant le sein
+gauche, le fer au-dessus."""
 HAMPE_GARDE = ((-0.075, -0.24, 1.0925), (0.3, -0.88, 0.37))
 """La main droite au talon contre la hanche droite, la gauche devant, le fer pointé à hauteur de tête."""
 HAMPE_ARME = ((-0.03, -0.1175, 1.2925), (0.2, -0.15, 0.97))
