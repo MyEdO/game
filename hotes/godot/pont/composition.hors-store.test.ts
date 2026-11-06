@@ -20,7 +20,7 @@ const plastron = {
   schema: 3, base: 'humanoide', categorie: 'armure', cle: { piece: 'plastron' }, liaison: { mode: 'squelette' }, couche: 'armure', couvre: ['torse'],
   surfaces: [{ nom: 'acier', palette: 'metal' }], glb: empreinte(glbDElement('root', ['acier'])),
 };
-const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couvre: [] };
+const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'baudrier-sur-armure' }, liaison: { mode: 'surface' }, couvre: [] };
 const soldat = cataloguesDeComposition().presets.find((p) => p.id === 'soldat')!.composition;
 
 /** `brut` sur la première base de `manifestes`, lu par la seule porte d'une composition (`lireComposition`), comme `composer`. */
@@ -41,7 +41,7 @@ describe('composerSurLaBase', () => {
       ...['chemise', 'pourpoint', 'haut-de-chausses', 'bas', 'bottes', 'gants'].map((id) => ({ ligne: `ligne/piece/${id}`, champ: 'piece', id, par: tenue })),
       { ligne: 'ligne/emplacement/genou_g', champ: 'piece', id: 'ruban', par: undefined },
       { ligne: 'ligne/emplacement/poitrine', champ: 'piece', id: 'insigne', par: undefined },
-      { ligne: 'ligne/emplacement/epaule_d', champ: 'piece', id: 'baudrier', par: undefined },
+      { ligne: 'ligne/emplacement/epaule_d', champ: 'piece', id: 'baudrier-sur-armure', par: undefined },
       { ligne: 'ligne/emplacement/cimier', champ: 'piece', id: 'plumet', par: undefined },
       { ligne: 'main', champ: 'apparence', id: 'hallebarde', par: { type: 'trapping', id: 'hallebarde' } },
       { ligne: 'ligne/piece/casque', champ: 'piece', id: 'casque', par: { type: 'trapping', id: 'heaume' } },
@@ -58,7 +58,7 @@ describe('composerSurLaBase', () => {
     expect(montes).toContainEqual({ ligne: 'ligne/piece/plastron', element: 'plastron' });
     expect(montes).toContainEqual({ ligne: 'ligne/emplacement/epaule_d', element: 'broche' });
     expect(manquants.map((m) => m.id)).not.toContain('plastron');
-    expect(manquants.map((m) => m.id)).not.toContain('baudrier');
+    expect(manquants.map((m) => m.id)).not.toContain('baudrier-sur-armure');
   });
 
   it('une variante monte à la ligne de sa pièce (#3446) : l’atelier l’y sert, liste avec la pièce, et la composition l’y choisit', () => {

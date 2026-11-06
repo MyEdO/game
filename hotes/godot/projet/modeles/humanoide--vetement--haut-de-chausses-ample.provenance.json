@@ -1,6 +1,6 @@
 {
-  "model": "humanoide--armure--casque.glb",
-  "model_sha256": "03fa9b8aa63938f48a5d80f88521b3c673bfba6935e15bacd348a82c3995dbaa",
+  "model": "humanoide--vetement--haut-de-chausses-ample.glb",
+  "model_sha256": "2fef0f8b6f8f0687358fc01e76dbd644cd2853446c96b72e28510f3f14ea6dcd",
   "importe_le": "2026-11-05",
   "licences": {},
   "licences_de_pack": [

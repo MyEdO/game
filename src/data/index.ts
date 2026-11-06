@@ -2885,7 +2885,7 @@ const ensembleParHabille = indexParChamp<GardeRobeEntree, string>('gardeRobe', g
 /** L'ensemble qui habille `habille` (égalité de `{ id, type }`), `undefined` si la garde-robe n'en déclare pas. */
 export const findEnsembleParHabille = (habille: HabilleDEnsemble): EnsembleDef | undefined => ensembleParHabille(cleDHabille(habille)) as EnsembleDef | undefined;
 /** Presets de personnage entier (`presets-de-personnage.json`, #3086). */
-export const presetsDePersonnage = presetsDePersonnageJson as PresetDePersonnage[];
+export const presetsDePersonnage = presetsDePersonnageJson as unknown as PresetDePersonnage[];
 export const findPresetDePersonnageById = indexParId('presetsDePersonnage', presetsDePersonnage);
 export const locations = locationsJson as LocationData[];
 const lieuParId = indexParId('locations', locations);
