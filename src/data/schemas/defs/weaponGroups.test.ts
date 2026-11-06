@@ -1,7 +1,7 @@
 /**
  * #3076 — la présentation d'un Groupe vit sur son entrée de `weaponGroups.json` : la charge de chaque `kind`
  * est exigée ou refusée au parse (`refusDeCharge`), `couche` et `palierPA` sont uniques parmi les Groupes
- * d'armure, et un palier 0 est exigé.
+ * d'armure, un palier 0 est exigé, et la teinte d'un Groupe d'armure est une teinte d'objet (#3456).
  */
 import { describe, expect, it } from 'vitest';
 import { schema } from './weaponGroups';
@@ -27,6 +27,12 @@ describe('weaponGroups.json — présentation portée par la donnée (#3076)', (
     expect(schema.safeParse(avec(ARMURE, ARME)).success).toBe(true);
     expect(schema.safeParse(avec({ ...ARME, id: 'mains-nues-de-fixture', maniement: 'poings', poudre: true })).success).toBe(true);
     expect(schema.safeParse(avec({ ...ARMURE, palierPA: 90 })).success).toBe(true);
+    expect(schema.safeParse(avec({ ...ARMURE, teinte: { id: 'aethyrique' } })).success).toBe(true);
+  });
+
+  it('la teinte d’un Groupe d’armure est une teinte d’objet de `materials.json` (#3456)', () => {
+    refus(avec({ ...ARMURE, teinte: { id: 'acier' } }));
+    refus(avec({ ...ARMURE, teinte: { id: 'inconnue' } }));
   });
 
   it.each([
@@ -43,6 +49,7 @@ describe('weaponGroups.json — présentation portée par la donnée (#3076)', (
     ['couche', { ...ARME, couche: 90 }, 'armour'],
     ['palierPA', { ...ARME, palierPA: 90 }, 'armour'],
     ['material', { ...ARME, material: 'metal' }, 'armour'],
+    ['teinte', { ...ARME, teinte: { id: 'aethyrique' } }, 'armour'],
     ['maniement', { ...ARMURE, maniement: 'lame1m' }, 'weapon'],
     ['combat', { ...ARMURE, combat: 'melee' }, 'weapon'],
     ['poudre', { ...ARMURE, poudre: true }, 'weapon, ammo'],
