@@ -292,7 +292,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(banc.getState().pendingOrders).toEqual([{ heroId: h.id, trappingId: exotic.id }]);
     expect(st().left).toBe(2);
     // Clôture + nouvel interlude : la commande est livrée.
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
     banc.getState().startInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     expect(hero().items?.some((i) => i.label === exotic.label)).toBe(true);

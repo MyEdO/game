@@ -30,13 +30,13 @@ import { porteurDeProjet } from './porteurDeProjet';
 export function ChapterRecapScreen() {
   const recap = useGame((s) => s.pendingChapterRecap);
   const campaignDoc = useGame((s) => s.campaignDoc);
-  const cloreChapitre = useGame((s) => s.cloreChapitre);
+  const valider = useGame((s) => s.fenetreValider);
   const fermer = useGame((s) => s.fenetreFermer);
   const ajourner = () => fermer('chapterRecap');
   const invite = useGame((s) => s.net.mode === 'guest');
   const [volet, setVolet] = useState<1 | 2>(1);
   const [masque, setMasque] = useState(false);
-  const seance = useSessionEnd({ apercu: volet === 1, onDone: cloreChapitre, onCancel: ajourner });
+  const seance = useSessionEnd({ apercu: volet === 1, onDone: () => valider('chapterRecap'), onCancel: ajourner });
   if (!recap || masque) return null;
 
   return (

@@ -164,7 +164,7 @@ export function rendreMalade(c: Combatant, n: Noeud): Combatant {
 export function nuitDuMalade(get: Get, n: Noeud, sujetId: string, reussite: boolean): void {
   const { symptomId } = porteDeMaladie(n)!;
   get().openRest({ lieu: sceneLieu(get) });
-  get().restSleep();
+  get().fenetreValider('rest');
   const p = get().pendingCascade;
   const vise = (s: CascadeStep): boolean => s.kind === 'diseaseTick' && s.meta?.symptomId === symptomId
     && (s.participants ? s.participants.some((r) => r.id === sujetId) : s.actorId === sujetId);

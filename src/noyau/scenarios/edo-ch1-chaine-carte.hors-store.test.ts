@@ -102,7 +102,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
   it('du relais à la porte sud, les gestes du groupe posent les drapeaux et la clôture solde les deux objectifs', () => {
     const objectifs = () => get().objectives.map((o) => o.id);
     expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
-    banc.getState().acquitterOuverture();
+    banc.getState().fenetreValider('ouverture');
     expect(get().scene?.id).toBe('la-diligence');
 
     poserLeGroupe(banc.getState, banc.setState, { x: 17, y: 3 });
@@ -148,7 +148,7 @@ describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur d
   const get = () => banc.getState();
   beforeEach(() => {
     expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
-    banc.getState().acquitterOuverture();
+    banc.getState().fenetreValider('ouverture');
   });
   const entrer = (id: string) => {
     if (get().scene?.id !== id) banc.getState().transitionTo(id);

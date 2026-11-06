@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * #253 — les jets du BILAN quotidien (Faim, Exposition, Contagion) passent par la surface
  * INFLUENÇABLE (cascade de nuit), au même titre que leurs frères diseaseTick/weatherResistance :
  * chaque jet est une ÉTAPE lancée puis influençable à la Chance (LDB 17 l.21-25) AVANT de se
- * verrouiller. Ce test prouve, pour la nuit UNIQUE (chemin du bouton Repos, `restSleep` days=1) :
+ * verrouiller. Ce test prouve, pour la nuit UNIQUE (chemin du bouton Repos, `fenetreValider('rest')` days=1) :
  *  1. le jet apparaît en étape de cascade (jamais pré-résolu dans le journal) ;
  *  2. la Chance est proposable sur la RANGÉE ratée (`jetReroll('cascadeBatch')` dépense 1 Point de Chance) ;
  *  3. la conséquence n'est appliquée qu'UNE fois (à la validation, pas aussi en eager).
@@ -60,7 +60,7 @@ describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet t
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().restSet('A', { food: 'rien' });
     banc.getState().restSet('B', { food: 'ration' });
-    banc.getState().restSleep();
+    banc.getState().fenetreValider('rest');
 
     // 1. Le jet est une ÉTAPE, PAS pré-résolu : hunger.tests/failures encore vierges tant que non validé.
     const faim = stepOfKind('faim');
@@ -96,7 +96,7 @@ describe('#253 — CONTAGION de promiscuité : étape de cascade influençable',
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().restSet('A', { food: 'rien' });
     banc.getState().restSet('B', { food: 'rien' });
-    banc.getState().restSleep();
+    banc.getState().fenetreValider('rest');
 
     const cont = stepOfKind('contagion');
     expect(cont).toBeTruthy();
@@ -196,7 +196,7 @@ describe('#253 — EXPOSITION de campement : étape de cascade influençable', (
     banc.setState({ party: [a], scene: sc });
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().restSet('A', { lodging: 'dehors', food: 'rien' });
-    banc.getState().restSleep();
+    banc.getState().fenetreValider('rest');
 
     // L'abri de fortune (Survie en extérieur) ouvre la séquence ; son échec INSÈRE les jets d'Exposition.
     const abri = stepOfKind('shelter');

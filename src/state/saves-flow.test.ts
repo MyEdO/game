@@ -94,7 +94,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
 
   it('en combat : sauvegarde refusée, le slot reste vide', () => {
     useGame.getState().startCombat('enc-mutants');
-    useGame.getState().confirmRoundStart();
+    useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
     expect(useGame.getState().saveGame(1)).toBe(false);
     expect(saveDuStockage(1)).toBeNull();

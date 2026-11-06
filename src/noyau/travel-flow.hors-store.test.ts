@@ -74,7 +74,7 @@ function drainCascade(): void {
 function runToEnd(maxSteps = 60): void {
   for (let i = 0; i < maxSteps; i++) {
     if (get().pendingCascade) { drainCascade(); continue; }
-    if (get().pendingRest) { get().restSleep(); drainCascade(); continue; }
+    if (get().pendingRest) { get().fenetreValider('rest'); drainCascade(); continue; }
     if (!get().travelPlan) return;
   }
 }

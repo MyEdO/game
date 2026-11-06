@@ -96,7 +96,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const resumeTravel = useGame((s) => s.resumeTravel);
   // Porte d'heure de départ (maison, #340) : départ terrestre/fluvial de nuit → attendre l'aube / annuler.
   const pendingDeparture = useGame((s) => s.pendingDeparture);
-  const departWaitDawn = useGame((s) => s.departWaitDawn);
+  const valider = useGame((s) => s.fenetreValider);
+  const attendreLAube = () => valider('departure');
   const rester = () => fermer('departure');
   // Coop : l'invité consulte la carte mais l'HÔTE décide des départs (le voyage déplace tout le
   // groupe et résout des journées entières — audit Lot 4, arbitrage V1 « exploration = miroir »).
@@ -691,7 +692,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               {...raisonSi(refusDuDepart)}
               onClick={() => {
                 startTravel(selRoute.id, mode, opts);
-                if (aLAube) departWaitDawn(); // la porte a différé le départ : la nuit se passe sur place, d'un geste
+                if (aLAube) attendreLAube(); // la porte a différé le départ : la nuit se passe sur place, d'un geste
               }}
             />
           </Row>
@@ -745,7 +746,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
           )}
           <Row justify="end">
             <button type="button" className="btn" onClick={rester}>{t('wm.annuler')}</button>
-            <button type="button" className="btn btn-primary" onClick={departWaitDawn}>{t('wm.attendreAube')}</button>
+            <button type="button" className="btn btn-primary" onClick={attendreLAube}>{t('wm.attendreAube')}</button>
           </Row>
         </div>
       )}

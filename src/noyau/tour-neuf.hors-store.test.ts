@@ -66,7 +66,7 @@ describe('Tour neuf — `etatDeTourNeuf`, source unique du début de Tour', () =
     expect(g().pendingRoundStart, 'le Round se franchit par sa pause').toBeTruthy();
     expect(g().battle!.selectedSpellId, 'pause').toBeNull();
     expect(g().battle!.moveSnapshot ?? null, 'pause').toBeNull();
-    g().confirmRoundStart();
+    g().fenetreValider('roundStart');
     const b = g().battle!;
     expect(b.round).toBe(2);
     expect(b.order[b.turn]).toBe(B.id);
@@ -89,7 +89,7 @@ describe('Tour neuf — `etatDeTourNeuf`, source unique du début de Tour', () =
     g().battleClickTile({ x: A.pos!.x + 2, y: A.pos!.y });
     g().battleClickTile({ x: A.pos!.x + 2, y: A.pos!.y }, { confirm: true });
     expect(g().battle, 'aucun geste n’a réécrit la bataille sous la pause').toBe(pause);
-    g().confirmRoundStart();
+    g().fenetreValider('roundStart');
     const b = g().battle!;
     expect({ selectedAttack: b.selectedAttack, preview: b.preview, action: b.action, moveSnapshot: b.moveSnapshot ?? null })
       .toEqual({ selectedAttack: undefined, preview: null, action: null, moveSnapshot: null });

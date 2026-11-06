@@ -34,7 +34,6 @@ export function VictoryScreen() {
   const appraiseGear = useGame((s) => s.appraiseGear);
   const fermer = useGame((s) => s.fenetreFermer);
   const dismiss = () => fermer('victory');
-  const victoryReady = useGame((s) => s.victoryReady);
   const state = useGame();
   // Tenue du coup fatal : on diffère l'apparition de l'écran d'un beat après `over:'victory'` (la scène, avec
   // l'ennemi à terre, reste visible dessous). Les hooks restent AVANT tout early-return (règles des Hooks).
@@ -48,7 +47,7 @@ export function VictoryScreen() {
   const online = net.mode !== 'local';
   const ready = pv?.readyBySeat ?? {};
   // COUCHE BLOQUANTE tant que l'écran est là : [Continuer] VALIDE la victoire (attribution du butin,
-  // `victoryReady` répliqué au relais en coop) — un congédiement est GRATUIT par contrat
+  // le siège marqué prêt en coop, `fenetreFermer('victory')` au quorum) — un congédiement est GRATUIT par contrat
   // (`dismissStack`), il n'engage rien, donc il ne peut pas porter ce geste. Échap est donc inerte :
   // `Modal` sans `onClose` pose une couche bloquante. Même doctrine qu'une sortie d'interlude qui
   // commet (keybindings.ts:313-315).
@@ -119,7 +118,7 @@ export function VictoryScreen() {
       footer={online ? (
         <>
           <ReadyRow ready={ready} />
-          <button className="btn btn-primary" disabled={!!ready[net.mySeat]} onClick={() => victoryReady()}>
+          <button className="btn btn-primary" disabled={!!ready[net.mySeat]} onClick={dismiss}>
             {ready[net.mySeat] ? <><Icon id="ui/wait" size="sm" /> En attente des autres…</> : 'Continuer'}
           </button>
         </>

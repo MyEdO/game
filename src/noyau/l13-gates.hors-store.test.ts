@@ -35,7 +35,7 @@ describe('L13 — gates & redirections', () => {
     banc.setState({ party: [H, P] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.getState().seedRng(7);
     const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.label === 'H')!;

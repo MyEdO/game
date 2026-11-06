@@ -24,7 +24,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     banc.setState({ party: [W] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     banc.getState().seedRng(5);
     const b = banc.getState().battle!;

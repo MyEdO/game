@@ -103,6 +103,9 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // La sortie d'une fenêtre (`fenetreFermer`) : routée sur la fenêtre de son 1ᵉʳ argument, par le siège que son
   // registre déclare (`sortie` : son propriétaire, ou l'hôte seul), `netOwnership.ROUTES`.
   fenetreFermer: 'invité',
+  // La validation d'une fenêtre (`fenetreValider`) : routée sur la fenêtre de son 1ᵉʳ argument, par le siège que son
+  // registre déclare (`validation` : l'hôte seul, ou chaque siège à quorum), `netOwnership.ROUTES`.
+  fenetreValider: 'invité',
   // Cascade séquentielle (jets de nuit / voyage influençables) : choix / SAISIE d'une quantité
   // (#1279 Sf, jumeau du choix) / navigation (valider l'étape, tout résoudre).
   cascadeNext: 'invité', cascadeResolveAll: 'invité',
@@ -138,12 +141,11 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // `jetConfirm('surgery')` applique, `jetCancel('surgery')` annule la passe, medicAbandonSurgery l'opération.
   medicSelectPatient: 'invité', medicAct: 'invité', medicSetWound: 'invité',
   openSurgeryPass: 'invité', medicAbandonSurgery: 'invité',
-  // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument) + ready-check.
-  restSet: 'invité', restReady: 'invité',
+  // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument), et se dit prêt (`fenetreValider('rest')`).
+  restSet: 'invité',
   // (Psychologie de COMBAT et à la rencontre : passent par les intents `cascade*` dérivés.)
   fateNegate: 'invité', fateSurvive: 'invité', fateAccept: 'invité',
-  cleaveEnd: 'invité', dualStrikeSkip: 'invité',
-  roundStartPromote: 'invité', confirmRoundStart: 'invité', roundStartReady: 'invité',
+  roundStartPromote: 'invité',
   renounceResolve: 'invité',
   // Tir rapide (Talent « Tir rapide ») pendant la pause de début de Round : ARMER la visée depuis la
   // frise, routé sur le TIREUR : pendant la pause il n'y a AUCUN combattant actif (`turn: -1`), donc le
@@ -151,7 +153,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   armPreempt: 'invité',
   // Demande de pause au prochain Round : POSER et RETIRER passent par le même chemin (interrupteur
   // de la frise) — une bascule dont un seul sens serait répliqué laisserait la table bloquée.
-  victoryReady: 'invité', assignVictoryGear: 'invité', raiseHand: 'invité', lowerHand: 'invité',
+  assignVictoryGear: 'invité', raiseHand: 'invité', lowerHand: 'invité',
   // ═══ invité : GROUPE — composition (chaque siège SES emplacements, tranchée par `ROUTES`) et carnet
   // d'enquête (#670, `TOUJOURS` : épingle de groupe, nouveauté vue par siège). ═══
   partyAddHero: 'invité', partyRemoveHero: 'invité', partyReplaceHero: 'invité', toggleCluePin: 'invité',
@@ -173,7 +175,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   dispelSelectCarrier: 'local',
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
   openWorldMap: 'hôte', startTravel: 'hôte',
-  startBilletBargain: 'hôte', resumeTravel: 'hôte', departWaitDawn: 'hôte',
+  startBilletBargain: 'hôte', resumeTravel: 'hôte',
   setVoyageCadence: 'hôte', transitionTo: 'hôte', fouillerLaPiece: 'hôte',
   // Le groupe en exploration : clic de case, offre d'une entité (pastille), porte, pas et pivot du regard.
   cliquerLaCase: 'hôte', jouerAction: 'hôte', actionnerLaPorte: 'hôte', stepPartyRelative: 'hôte', pivotParty: 'hôte',
@@ -191,7 +193,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Bourse du groupe : marché terrestre, marchand, port ───────────────────────────────────────
   addToCart: 'hôte', decFromCart: 'hôte', removeFromCart: 'hôte', clearCart: 'hôte', payCart: 'hôte',
   addToSellCart: 'hôte', removeFromSellCart: 'hôte', clearSellCart: 'hôte', confirmSell: 'hôte',
-  setSellHalving: 'hôte', assignDistribution: 'hôte', confirmDistribution: 'hôte',
+  setSellHalving: 'hôte', assignDistribution: 'hôte',
   barterExchange: 'hôte', repairItem: 'hôte', searchAvailability: 'hôte', startBargain: 'hôte',
   refuseBargain: 'hôte', openPlaceMerchant: 'hôte', openLandMarket: 'hôte',
   landBuyCargo: 'hôte', landSellCargo: 'hôte', landDumpCargo: 'hôte',
@@ -205,23 +207,12 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   seaActivitiesConfirm: 'hôte', resolveShoreLeave: 'hôte', resolveManannPriest: 'hôte',
   playTavernGame: 'hôte', openTavernGames: 'hôte', sequenceAbandon: 'hôte',
   endSession: 'hôte',
-  // Cadre de campagne (#717) : l'invité VOIT les deux écrans (la cérémonie et la chronique se partagent
-  // à la table) mais leurs GESTES sont à l'hôte, comme la fin de séance qu'ils enchaînent — l'ouverture
-  // n'est pas une décision (rien à trancher), la clôture applique la même séance. Un ready-check de
-  // table serait un autre ticket. Le refus est EFFECTIF, pas seulement classé : les actions sont
-  // inertes chez l'invité (`noyau/chapitreRecap.ts`, garde `s.net.mode === 'guest'` ; la sortie du récap,
-  // `refusDeLaSortie`, contrat
-  // `chapitre-recap.hors-store.test.ts` « les trois gestes du cadre sont INERTES ») et les boutons portent leur
-  // raison (`GatedAction`, contrats de `CampaignOpeningScreen.test.tsx`/`ChapterRecapScreen.test.tsx`).
-  acquitterOuverture: 'hôte', cloreChapitre: 'hôte',
   chooseDialogue: 'hôte', designerHerosChoisir: 'hôte',
-  // ── Interlude : ouverture/clôture et bataille de masse ────────────────────────────────────────
-  interludeEnd: 'hôte',
+  // ── Interlude : bataille de masse ─────────────────────────────────────────────────────────────
   setMassBattleHero: 'hôte', massBattleAdvance: 'hôte', massBattleClash: 'hôte',
   massBattleHazard: 'hôte', massBattleRally: 'hôte', massBattleScene: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
-  // `restSleep` : l'HÔTE dort pour le groupe, l'invité passe par `restSet`/`restReady`.
-  openRest: 'hôte', restSleep: 'hôte', assignLootGear: 'hôte', harvestCreature: 'hôte',
+  openRest: 'hôte', assignLootGear: 'hôte', harvestCreature: 'hôte',
   // ── Offres : la porte du registre en intention (`creerActionsDuRegistre`, #2898), la Chance regagnée (règle optionnelle) ──
   jouerLOffre: 'hôte', restoreFortuneNow: 'hôte',
   // Armement d'intention au clavier (registre `state/clavier/keybindings.ts`) : n'écrit que `localIntent`.
@@ -239,7 +230,8 @@ export const PARTY_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invit�
   'partyAddHero', 'partyRemoveHero', 'partyReplaceHero', 'toggleCluePin', 'markCluesSeen',
 ]);
 
-/** Activités d'interlude. `startInterlude`/`interludeEnd` sont `hôte` (l'hôte seul ouvre et clôt la période). */
+/** Activités d'interlude. `startInterlude` est `hôte`, et la clôture se valide par l'hôte (`fenetreValider('interlude')`) :
+ *  l'hôte seul ouvre et clôt la période. */
 export const INTERLUDE_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invité'>>([
   'interludeActivity', 'interludeCraftStart', 'interludeOrder', 'interludeBank', 'interludeWithdraw',
   'interludeEntrainement', 'favorSettle', 'massBattleActivity',

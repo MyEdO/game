@@ -43,7 +43,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
     banc.getState().startScene(testScene());
     seedBattleRng(9);
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.kind === 'hero')!;

@@ -2,7 +2,7 @@
  * Le passage au Round suivant (pause d'initiative `pendingRoundStart`, LDB 17 l.25) doit être
  * jouable au CLAVIER/MANETTE — sinon un joueur sans souris reste bloqué à chaque frontière de Round.
  * Le binding `round-start` (Espace/Entrée, partagé par la manette via runBindingById) appelle
- * `confirmRoundStart` en solo, et n'est actif QUE pendant la pause.
+ * la validation de la pause (`fenetreValider('roundStart')`), et n'est actif QUE pendant la pause.
  */
 import { describe, it, expect } from 'vitest';
 import { KEYBINDINGS, runBindingById } from './clavier/keybindings';
@@ -25,11 +25,11 @@ describe('binding round-start', () => {
     expect(binding().when(fake({ pendingRoundStart: { round: 2 } as never }))).toBe(true);
   });
 
-  it('run appelle confirmRoundStart en solo', () => {
-    let called = 0;
-    const get = () => fake({ pendingRoundStart: { round: 2 } as never, confirmRoundStart: () => { called++; } } as never);
+  it('run valide la pause', () => {
+    const appels: unknown[] = [];
+    const get = () => fake({ pendingRoundStart: { round: 2 } as never, fenetreValider: (f: unknown) => { appels.push(f); } } as never);
     binding().run(get);
-    expect(called).toBe(1);
+    expect(appels).toEqual(['roundStart']);
   });
 
   it('inactif hors combat (pas de battle)', () => {
@@ -38,7 +38,7 @@ describe('binding round-start', () => {
 
   it('runBindingById n’exécute PAS round-start sans pause', () => {
     let called = 0;
-    const get = () => fake({ pendingRoundStart: null, confirmRoundStart: () => { called++; } } as never);
+    const get = () => fake({ pendingRoundStart: null, fenetreValider: () => { called++; } } as never);
     runBindingById('round-start', get);
     expect(called).toBe(0);
   });

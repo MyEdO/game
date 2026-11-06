@@ -236,7 +236,7 @@ function apresUneReputation(success: boolean, sl: number): { banc: Banc; heroId:
 describe('Réputation — le Standing se pose à la clôture, pour l’aventure qui suit (LDB 23 l.234)', () => {
   it('succès : après la clôture, le Statut effectif porte +1 et la Condition « au moins Argent 2 » le voit', () => {
     const { banc } = apresUneReputation(true, 3);
-    banc.actions.interludeEnd();
+    banc.actions.fenetreValider('interlude');
     const h = banc.getState().party[0];
     expect(actorStatus(h)).toEqual({ tier: 'argent', standing: 2 });
     expect(evalCondition({ kind: 'status', atLeast: 'Argent 2' }, conditionCtx({ flags: {}, gameTime: 0, party: [h] }))).toBe(true);
@@ -244,7 +244,7 @@ describe('Réputation — le Standing se pose à la clôture, pour l’aventure 
 
   it('l’effet posé à la clôture porte le libellé de l’Activité, et se dissipe sous ce libellé à l’interlude suivant', () => {
     const { banc } = apresUneReputation(true, 3);
-    banc.actions.interludeEnd();
+    banc.actions.fenetreValider('interlude');
     expect(banc.getState().party[0].activeEffects?.filter((e) => e.statusMod).map((e) => e.label)).toEqual(['Réputation']);
     const journal = banc.getState().journal.length;
     banc.actions.startInterlude(1);
@@ -253,7 +253,7 @@ describe('Réputation — le Standing se pose à la clôture, pour l’aventure 
 
   it('Échec Stupéfiant : après la clôture, Argent 1 devient Bronze 5 pendant l’aventure (LDB 08 l.101)', () => {
     const { banc } = apresUneReputation(false, -6);
-    banc.actions.interludeEnd();
+    banc.actions.fenetreValider('interlude');
     expect(actorStatus(banc.getState().party[0])).toEqual({ tier: 'bronze', standing: 5 });
   });
 });
