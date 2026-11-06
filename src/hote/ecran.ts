@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, toneOf,
+  ACTIONS, avecSigne, batailleEnVue, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -199,6 +199,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...recitDuVoyage(etat),
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
+    ...nuitDuRepos(etat),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
@@ -316,6 +317,31 @@ function champDeBataille(etat: Jeu): Element[] {
     } satisfies Choix] : []),
     ...b.gestes.map((g, i) => boutonDuNoyau(`bataille/geste/${i}`, g)),
     ...(b.issue ? [ligne('bataille/issue', b.issue.texte, b.issue.gagnant ? TON_DE_L_ISSUE[b.issue.gagnant] : 'neutre')] : []),
+  ];
+}
+
+type Repos = NonNullable<ReturnType<typeof reposEnVue>>;
+
+/** Un réglage d'un dormeur en choix : chaque valeur que le lieu lui offre, la sienne pressée. */
+const choixDuDormeur = (id: string, c: Repos['dormeurs'][number]['couchage']): Choix => ({
+  type: 'choix', id, ton: 'neutre', libelle: c.libelle, focus: false, refus: null,
+  valeurs: c.valeurs.map((v, i): Bouton => ({ type: 'bouton', id: String(i), libelle: v.libelle, jeu: { type: v.geste.verbe, args: v.geste.args }, presse: v.choisie, focus: false, refus: null })),
+});
+
+/** La nuit à régler (`reposEnVue`) : la nuit, le temps qu'il fait (en alerte quand il expose), puis chaque dormeur en
+ *  entité, son couchage et sa pitance en choix et ce qui l'attend cette nuit en puces d'alerte ; la note, en alerte
+ *  quand les bourses ne la couvrent pas. */
+function nuitDuRepos(etat: Jeu): Element[] {
+  const r = reposEnVue(etat);
+  if (!r) return [];
+  return [
+    ligne('repos/nuit', r.nuit),
+    ...(r.temps ? [ligne('repos/temps', r.temps.texte, r.temps.alerte ? 'alerte' : 'neutre')] : []),
+    ...r.dormeurs.map((d): Entite => ({
+      type: 'entite', id: `repos/${d.id}`, ton: 'neutre', nom: d.nom,
+      elements: [choixDuDormeur('couchage', d.couchage), choixDuDormeur('pitance', d.pitance), ...d.alertes.map((a, i) => puce(`alerte/${i}`, a, null, null, 'alerte'))],
+    })),
+    ...(r.note ? [ligne('repos/note', r.note.texte, r.note.couverte ? 'neutre' : 'alerte')] : []),
   ];
 }
 

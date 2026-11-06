@@ -227,6 +227,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = voyage.jouer('jouer', grandRoute.elements.find((e): e is Choix => e.id === 'modes')!.valeurs[0].jeu);
   for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'recit/issue'); pas++) {
     if (pas > 80) throw new Error(`aucun récit de voyage après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
+    if (s.vue.zones['fenetre.corps'].some((e) => e.id === 'repos/nuit')) figer('repos, la nuit à régler', s);
     s = voyage.jouer('jouer', presse(s));
   }
   figer('récit de voyage, arrivée', s);

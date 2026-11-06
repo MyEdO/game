@@ -671,6 +671,37 @@ async function parcoursVoyage() {
   await capturer('3328-l1-2-recit')
 }
 
+async function parcoursRepos() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  /** L'Entrée tant qu'une fenêtre autre que `jusqua` tient la main. */
+  const entrer = async (jusqua) => {
+    for (let v = await vue(), pas = 0; v.projection.fenetre && v.projection.fenetre.cle !== jusqua; v = await vue(), pas++) {
+      assert.ok(pas < 40, `l'Entrée mène à ${jusqua} : ${corps(v)}`)
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  await entrer()
+  await cliquerBouton('Carte du monde')
+  await attendreLaVue("v.projection.fenetre?.cle === 'carteDuMonde'")
+  await cliquerBouton('À pied · 2 j')
+  await entrer('rest')
+  let v = await vue()
+  noter(`repos : ${corps(v)}`)
+  await capturer('3328-r1-1-nuit')
+  const dormeur = (v) => zone(v, 'fenetre.corps').find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs.map((b) => `${b.libelle}${b.presse ? '*' : ''}`).join(' ')
+  assert.equal(dormeur(v), 'Privée* Commune Dehors', 'Bjorn en chambre privée')
+  await cliquerBouton('Dehors')
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs[2].presse")
+  v = await vue()
+  noter(`Bjorn : ${dormeur(v)}`)
+  await capturer('3328-r1-2-dehors')
+  await entrer()
+  noter(`après « Dormir » : ${(await vue()).disposition}`)
+}
+
 async function parcoursRepit() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
@@ -1480,7 +1511,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

@@ -2670,6 +2670,15 @@ export const fr = {
   'rf.mauvaisTemps': 'Mauvais temps',
   'rf.tenteAbrite': 'la tente abritera le camp',
   'rf.lieuRoute': '{from} → {to}',
+  'rf.nuits': '{n} nuits',
+  'rf.pietre': 'piètre',
+  'rf.ventreVide': 'Ventre vide',
+  'rf.expositions': 'Exposition ×{n}',
+  'rf.note': 'Note {cout} · Bourse {bourse}',
+  'rf.refus.nuitReglee': 'La nuit est déjà réglée.',
+  'rf.refus.dormeur': 'Ce héros ne dort pas ici.',
+  'rf.refus.couchage': 'Ce couchage n’est pas offert ici.',
+  'rf.refus.pitance': 'Cette pitance n’est pas offerte à {name}.',
 
   // ── #1318 V8c₃ — VOYAGE MARITIME (`noyau/seaVoyageFlow.ts`, `sv.*`, MDG 12-15). Mêmes règles que les
   // flux de voyage déjà migrés : titres d'étape en `step.*`, journal / verdicts / libellés d'action ici.
