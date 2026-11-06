@@ -67,4 +67,18 @@ describe('volumeDuMonde (#3476)', () => {
     expect(haut(volumeDuMonde(s, 0))).toBe(0);
     expect(volumeDuMonde(s, 1)).toEqual(volumeDuMonde(s));
   });
+
+  it('une surface par matière, nommée par son domaine et son id, qui se suivent : le terrain du dessus, le relief de la paroi', () => {
+    const s = marche();
+    s.reliefDefaults = { ...s.reliefDefaults, cliff: 'pierre' };
+    s.layers[0].height = [0, 3];
+    const v = volumeDuMonde(s);
+    expect(v.surfaces.map((m) => m.debut)).toEqual([0, ...v.surfaces.slice(0, -1).map((m) => m.fin)]);
+    expect(v.surfaces[v.surfaces.length - 1].fin).toBe(v.positions.length / 3);
+    expect(new Set(v.surfaces.map((m) => m.matiere)).size).toBe(v.surfaces.length);
+    const tris = triangles(v);
+    const matiere = (t: number) => v.surfaces.find((m) => m.debut <= t * 3 && t * 3 < m.fin)!.matiere;
+    expect(tris.flatMap((t, i) => (t.ys.every((y) => y === 3) ? [matiere(i)] : []))).toEqual(expect.arrayContaining(['terrain--plancher']));
+    expect(tris.flatMap((t, i) => (Math.abs(t.normale[1]) < 1e-3 ? [matiere(i)] : []))).toContain('relief--pierre');
+  });
 });

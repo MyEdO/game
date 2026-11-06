@@ -188,10 +188,10 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, 'validation', message);
   });
-  it('une porte se désigne par son id : l’hôte complète le `RoomPortal`, un id inconnu lève `validation`', { timeout: 120_000 }, () => {
+  it('une porte se désigne par son id, que le noyau résout parmi les accès du groupe ; un id inconnu lève `validation`', { timeout: 120_000 }, () => {
     const t = partie('fenetre-ecuries');
     refuse(t, verbe('actionnerLaPorte', '1:2,4:N:couloir:bureau'), 'regle', /actionnerLaPorte sans effet/);
-    refuse(t, verbe('actionnerLaPorte', 'door-open(2,3)'), 'validation', /portail : "door-open\(2,3\)" n’est pas un id de porte \(valides : 1:2,4:N:couloir:bureau\)/);
+    refuse(t, verbe('actionnerLaPorte', 'door-open(2,3)'), 'validation', /porte : "door-open\(2,3\)" n’est pas un id de porte \(valides : 1:2,4:N:couloir:bureau\)/);
   });
   it('`null` omet un argument optionnel pour poser le suivant', { timeout: 120_000 }, () => {
     const t = partie('revisit', verbe('transitionTo', 'test-revisit-couloir', null, { x: 1, y: 1 }));

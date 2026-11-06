@@ -9,13 +9,13 @@ export const estObjet = (v: unknown): v is Record<string, unknown> => typeof v =
 
 /** La forme JSON d'un argument de verbe, lue du TYPE du paramètre (`scripts/docs/lib/verbesDeLaPartie.mjs`) : une
  *  forme `libre` ne se contrôle pas ; un objet sans `champs` ne contrôle que d'être un objet. `designe` : la
- *  désignation du noyau (`DESIGNATIONS`, src/noyau/designations.ts) dont la chaîne est un id, ou l'objet un `id`. */
+ *  désignation du noyau (`DESIGNATIONS`, src/noyau/designations.ts) dont la chaîne est un id. */
 export type Forme =
   | { genre: 'chaine'; designe?: Designation }
   | { genre: 'nombre' | 'booleen' | 'null' | 'absent' }
   | { genre: 'litteral'; valeur: string | number | boolean }
   | { genre: 'tableau'; element: Forme }
-  | { genre: 'objet'; type: string; champs: { nom: string; optionnel: boolean; forme: Forme }[] | null; designe?: Designation }
+  | { genre: 'objet'; type: string; champs: { nom: string; optionnel: boolean; forme: Forme }[] | null }
   | { genre: 'union'; membres: Forme[]; type?: string }
   | { genre: 'libre'; type: string };
 
@@ -33,9 +33,9 @@ export interface ParametreDeVerbe {
   forme: Forme;
 }
 
-/** Ce que l'état désigne, par clé de désignation : les ids valides, ou les objets désignés par leur `id` ; `undefined`
- *  pour un nom que l'état ne connaît pas. */
-export type Designes = (cle: string) => readonly (string | { id: string })[] | undefined;
+/** Ce que l'état désigne, par clé de désignation : les ids valides ; `undefined` pour un nom que l'état ne connaît
+ *  pas. */
+export type Designes = (cle: string) => readonly string[] | undefined;
 
 /** Une valeur lue à sa forme, ou son écart ; `inconnu` : de la bonne forme, mais un id que l'état ne désigne pas. */
 type Lecture = { valeur: unknown } | { ecart: string; inconnu?: true };
@@ -43,30 +43,19 @@ type Lecture = { valeur: unknown } | { ecart: string; inconnu?: true };
 /** Nombre d'ids valides qu'un refus nomme, les suivants repliés en « +N ». */
 const IDS_NOMMES = 10;
 
-/** Une valeur écrite à sa forme, comme l'hôte la relit (`lireALaForme`) : un objet désigné s'écrit par son `id`. */
-export function ecritALaForme(v: unknown, f: Forme): unknown {
-  if (f.genre === 'objet' && f.designe && estObjet(v) && typeof v.id === 'string') return v.id;
-  if (f.genre === 'tableau' && Array.isArray(v)) return v.map((e) => ecritALaForme(e, f.element));
-  if (f.genre === 'union') return f.membres.map((m) => ecritALaForme(v, m)).find((e) => e !== v) ?? v;
-  return v;
-}
-
 /** Les ids valides d'une désignation, repliés. */
 const idsNommes = (ids: readonly string[]): string =>
   ids.length ? `${ids.slice(0, IDS_NOMMES).join(', ')}${ids.length > IDS_NOMMES ? ` +${ids.length - IDS_NOMMES}` : ''}` : 'aucun ici';
 
-/** L'élément désigné par l'id `v`, ou le refus qui nomme les ids valides. */
+/** L'id `v`, ou le refus qui nomme les ids valides. */
 function lireLeDesigne(v: string, designe: Designation, ou: string, designes: Designes): Lecture {
-  const elements = designes(designe.cle);
-  if (!elements) return { valeur: v };
-  const ids = elements.map((e) => (typeof e === 'string' ? e : e.id));
-  const i = ids.indexOf(v);
-  if (i < 0) return { ecart: `${ou} : ${JSON.stringify(v)} n’est pas un ${designe.mot} (valides : ${idsNommes(ids)})`, inconnu: true };
-  return { valeur: elements[i] };
+  const ids = designes(designe.cle);
+  if (!ids || ids.includes(v)) return { valeur: v };
+  return { ecart: `${ou} : ${JSON.stringify(v)} n’est pas un ${designe.mot} (valides : ${idsNommes(ids)})`, inconnu: true };
 }
 
 /** La valeur JSON `v` lue à sa forme `f`, au chemin `ou` : un id désigné se contrôle contre les ids de l'état
- *  (`designes`) et un objet désigné par son id se complète ; rend la valeur lue, ou l'écart. */
+ *  (`designes`) ; rend la valeur lue, ou l'écart. */
 export function lireALaForme(v: unknown, f: Forme, ou: string, designes: Designes): Lecture {
   const attendu = (quoi: string): Lecture => ({ ecart: `${ou} : ${quoi} attendu` });
   switch (f.genre) {
@@ -94,7 +83,6 @@ export function lireALaForme(v: unknown, f: Forme, ou: string, designes: Designe
       return { valeur };
     }
     case 'objet': {
-      if (f.designe && typeof v === 'string') return lireLeDesigne(v, f.designe, ou, designes);
       if (!estObjet(v)) return { ecart: `${ou} : un objet JSON ${formeEcrite(f)} attendu` };
       const valeur: Record<string, unknown> = { ...v };
       for (const c of f.champs ?? []) {
@@ -126,7 +114,7 @@ export function formeEcrite(f: Forme, profondeur = 0): string {
       return f.type && (profondeur > 0 || membres.length > UNION_ECRITE) ? f.type : membres;
     }
     case 'tableau': return `[${formeEcrite(f.element, profondeur)}, …]`;
-    case 'objet': return f.designe ? f.designe.mot : f.champs && profondeur === 0 ? `{${f.champs.map((c) => `"${c.nom}"${c.optionnel ? '?' : ''}: ${formeEcrite(c.forme, profondeur + 1)}`).join(', ')}}` : f.type;
+    case 'objet': return f.champs && profondeur === 0 ? `{${f.champs.map((c) => `"${c.nom}"${c.optionnel ? '?' : ''}: ${formeEcrite(c.forme, profondeur + 1)}`).join(', ')}}` : f.type;
     default: return f.genre;
   }
 }

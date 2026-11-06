@@ -14,6 +14,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { engage } from './creation/engagement.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -47,14 +48,14 @@ describe('composition du groupe — le corps qui sort quitte sa place', () => {
   it('party[0] REMPLACÉ : l’ancien meneur ne garde pas sa chaise', () => {
     meneurAssis([hero('h'), hero('b')]);
     expect(poseDe(1)).not.toBeNull();
-    banc.getState().partyReplaceHero('h', hero('neuf'));
+    banc.getState().partyReplaceHero('h', engage('neuf'));
     expect(poseDe(1)).toBeNull(); // l'emplacement 1 est vide : ni l'ancien ni le remplaçant ne l'occupe
     expect(banc.getState().scene!.seatAssignments).toEqual({});
   });
 
   it('un remplacement À MÊME ID (édition en place) ne fait PAS lever le meneur', () => {
     meneurAssis([hero('h')]);
-    banc.getState().partyReplaceHero('h', { ...hero('h'), label: 'Retouché' } as Combatant);
+    banc.getState().partyReplaceHero('h', engage('h', 'Retouché'));
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
   });
 

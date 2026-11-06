@@ -2639,6 +2639,30 @@
     }
   },
   {
+    "id": "rencontres-de-voyage",
+    "type": "regles",
+    "label": "Rencontres",
+    "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "rencontres",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "67656c251cacee80"
+        }
+      ]
+    },
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 35,
+      "note": "EDOC 8 l.182-184"
+    }
+  },
+  {
     "id": "evenements-de-bord",
     "type": "regles",
     "label": "Événements de bord",

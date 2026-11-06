@@ -181,12 +181,13 @@ describe('fenetreChoisir', () => {
         expect(banc.getState().pendingSeaActivities?.opportunityQueue, 'rien ne se résout').toBeUndefined();
       };
       const heros = () => banc.getState().party.find((h) => h.id === a)!;
+      const reedite = (h: Combatant) => banc.setState({ party: banc.getState().party.map((x) => (x.id === a ? h : x)) });
       banc.getState().fenetreChoisir('seaActivities', 'activite', 'cartographie', a);
-      banc.getState().partyReplaceHero(a, { ...heros(), skills: heros().skills.filter((sk) => sk.id !== 'metier') });
+      reedite({ ...heros(), skills: heros().skills.filter((sk) => sk.id !== 'metier') });
       ferme();
       banc.getState().fenetreChoisir('seaActivities', 'activite', 'commerce-opportunite', a);
       banc.getState().fenetreChoisir('seaActivities', 'investir', 10, a);
-      banc.getState().partyReplaceHero(a, withBourseMoney(heros(), { gold: 0, silver: 0, brass: 0 }));
+      reedite(withBourseMoney(heros(), { gold: 0, silver: 0, brass: 0 }));
       ferme();
       banc.getState().fenetreChoisir('seaActivities', 'investir', 5, a);
       expect(refusDeLaValidation(banc.getState(), 'seaActivities'), 'la mise reprise dans la bourse qui reste').toBeNull();

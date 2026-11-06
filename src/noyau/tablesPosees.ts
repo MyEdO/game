@@ -10,7 +10,7 @@
  */
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
-import type { CascadeApplier, CascadeTableFold, ExtendedTestOutcomeApplier, TableStepDef, TableStepFamily } from './cascade';
+import type { AnnonceDEtape, CascadeApplier, CascadeTableFold, ExtendedTestOutcomeApplier, TableStepDef, TableStepFamily } from './cascade';
 import type { CombatHook } from './combatHooks';
 import type { HitModifier } from './combat/hitModifiers';
 import type { Cloture, RevealEntry } from './pendings';
@@ -119,6 +119,7 @@ export type InterruptionDePeril =
 /** La valeur d'une entrée de chaque table fermée. */
 interface EntreesDesTables {
   appliers: CascadeApplier;
+  annonces: AnnonceDEtape;
   plis: CascadeTableFold;
   reglesDeSucces: (sl: number) => boolean;
   issuesDeTestEtendu: ExtendedTestOutcomeApplier;
@@ -137,7 +138,7 @@ export type PartDeTable<T extends keyof EntreesDesTables, L extends readonly str
 /**
  * Les tables du jeu, telles que le socle les LIT. Trois sont TOTALES au type sur une union fermée :
  * `clotures` (verbes de `Cloture`), `sequences` (familles de `SequenceFamilies`) et `generateursDEtal`
- * (`CibleDEtal`). Dix sont FERMÉES à la déclaration : `appliers`, `plis`, `reglesDeSucces`,
+ * (`CibleDEtal`). Onze sont FERMÉES à la déclaration : `appliers`, `annonces`, `plis`, `reglesDeSucces`,
  * `issuesDeTestEtendu`, `tablesTirables`, `scoresDeSequence`, `departages`, `effetsDePot`, `lancers` et
  * `interruptionsDePeril` — chaque module y déclare une part TOTALE sur sa liste de clés (`PartDeTable`),
  * et leurs producteurs de production sont typés par l'union des listes (`GenreDEtape`…) ; leur lecteur
@@ -150,6 +151,8 @@ export type PartDeTable<T extends keyof EntreesDesTables, L extends readonly str
 export interface TablesDuJeu {
   /** Conséquence d'une étape de cascade, par `kind`. */
   readonly appliers: Readonly<Record<string, CascadeApplier>>;
+  /** Ce qu'une étape d'affichage annonce à l'arrivée du curseur, par `kind`. */
+  readonly annonces: Readonly<Record<string, AnnonceDEtape>>;
   /** Pli « après le dé » d'une étape à table, par `kind`. */
   readonly plis: Readonly<Record<string, CascadeTableFold>>;
   /** Prédicat de succès d'une étape batch sommée, par id de règle d'agrégat. */

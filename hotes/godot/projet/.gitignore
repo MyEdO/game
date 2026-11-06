@@ -1,3 +1,5 @@
 .godot/
 # Les GLB se tirent de la Release des modèles (`hotes/godot/asset/release.ts`, #2948).
 /modeles/*.glb
+# Les textures du sol aussi (`hotes/godot/asset/textures.ts`, #3476).
+/textures/*.jpg
