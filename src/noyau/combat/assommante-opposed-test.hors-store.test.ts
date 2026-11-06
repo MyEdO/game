@@ -71,7 +71,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(typeof step.meta?.opposed?.aT.roll).toBe('number');
     // Le côté attaquant voyage en STRUCTURE (le rendu en écrit le libellé) : la donnée de l'Atout ne
     // porte aucun libellé pré-composé, elle nomme la Caractéristique jetée.
-    expect(step.meta?.opposed?.test).toEqual({ char: 'force' });
+    expect(step.meta?.opposed?.test).toEqual({ characteristic: 'force' });
     expect(step.meta?.opposed?.attackerLabel, 'aucun libellé authoré : « Force » se dérive').toBeUndefined();
   });
 
@@ -114,7 +114,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(testValue(H, 'resistance')).toBe(testValue(wielder, undefined, 'force'));
 
     // seed POSÉ ICI (après le spawn qui consomme le RNG d’initiative) : la 1ʳᵉ consommation est le jet de
-    // l’ATTAQUANT, la 2ᵉ celui du défenseur (jetRoll('cascade')). seed 113 → deux d100 IDENTIQUES → ÉGALITÉ stricte.
+    // l’ATTAQUANT, la 2ᵉ celui du défenseur (jetRoll('cascade', id)). seed 113 → deux d100 IDENTIQUES → ÉGALITÉ stricte.
     seedBattleRng(113);
     fireTriggers(banc.getState, wielder, 'onHit', { victim: H, weapon: assommante(), location: 'tete', rng: makeRNG(1), set: banc.setState });
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;

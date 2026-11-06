@@ -150,11 +150,11 @@ function triggeredTestStepId(c: Combatant, label: string | undefined, skillLabel
   return `triggeredTest-${c.id}-${label && label !== skillLabel ? `${label}-${skillLabel}` : skillLabel}`;
 }
 
-/** Ids du Test au format du MONTEUR CANONIQUE (`RollLineSpec.test`) — un `FlowTest` nomme sa
- *  Caractéristique `characteristic`, le monteur `char` : la traduction se fait ICI, une fois, pour les
- *  quatre producteurs d'étapes de ce module. */
-function testIds(ft: FlowTest): { skill?: string; char?: CharKey; spec?: string } {
-  return { skill: ft.skill?.id, char: ft.characteristic, spec: ft.skill?.spec };
+/** Ids du Test au format du MONTEUR CANONIQUE (`RollLineSpec.test`) — un `FlowTest` emboîte sa
+ *  Compétence (`{ id, spec }`), le monteur la porte à plat : la traduction se fait ICI, une fois, pour
+ *  les quatre producteurs d'étapes de ce module. */
+function testIds(ft: FlowTest): { skill?: string; characteristic?: CharKey; spec?: string } {
+  return { skill: ft.skill?.id, characteristic: ft.characteristic, spec: ft.skill?.spec };
 }
 
 /**
@@ -181,7 +181,7 @@ export function withDerivedStake(ft: FlowTest, source: EffectSource | undefined)
 export function simpleTriggeredTestStep(
   c: Combatant, ft: FlowTest, branches: { onSuccess: Flow; onFail: Flow }, after: Flow, difficulty: Difficulty, extraMeta: Record<string, unknown> = {},
 ): BuiltCascadeStep | undefined {
-  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
+  const skillLabel = testSkillLabel(ft) ?? 'Test';
   return monoStep({
     id: triggeredTestStepId(c, ft.label, skillLabel),
     kind: 'triggeredTest', icon: 'nav/dice', rollLabel: skillLabel,
@@ -209,7 +209,7 @@ export function simpleTriggeredTestStep(
  *  produites (États de l'attaquant, passifs) ne franchissent pas ce retour — une rangée d'affichage
  *  reconstruite depuis ce seul jet en réconcilierait l'écart en chip « autres » (#1153, ticket ouvert). */
 export function rollFrozenOpposedAttacker(attacker: Combatant, opp: NonNullable<FlowTest['opposed']>, difficulty: Difficulty): TestResult {
-  const line = rollLine({ actor: attacker, test: { skill: opp.attackerSkill, char: opp.attacker }, difficulty });
+  const line = rollLine({ actor: attacker, test: { skill: opp.attackerSkill, characteristic: opp.attacker }, difficulty });
   const r = rollTest(line.target, 'intermediaire', battleRng());
   return { ...r, base: line.base, sl: r.sl + (opp.attackerBonusSL ?? 0), ...(line.clamped ? { clamped: line.clamped } : {}) };
 }
@@ -223,7 +223,7 @@ export function rollFrozenOpposedAttacker(attacker: Combatant, opp: NonNullable<
  */
 function opposedAttackerFreeze(opp: NonNullable<FlowTest['opposed']>): Pick<OpposedFreeze, 'test' | 'attackerLabel'> {
   return {
-    test: { char: opp.attacker, ...(opp.attackerSkill ? { skill: opp.attackerSkill } : {}) },
+    test: { characteristic: opp.attacker, ...(opp.attackerSkill ? { skill: opp.attackerSkill } : {}) },
     ...(opp.attackerLabel ? { attackerLabel: opp.attackerLabel } : {}),
   };
 }
@@ -256,7 +256,7 @@ export function frozenOpposedBatchStep(
   if (!opp) throw new Error('frozenOpposedBatchStep : le FlowTest doit déclarer son opposition (`opposed`).');
   // Test tagué `menace` : la rangée batch porte le tag ELLE-MÊME (comme l'étape mono), donc le verbe
   // `resist` (Résistance (Menace), LDB 10 l.1016-1020) s'y joue PAR RANGÉE — `FLOWS.cascadeBatch.caps`.
-  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
+  const skillLabel = testSkillLabel(ft) ?? 'Test';
   const participants: BatchParticipant[] = [];
   for (const c of defenders) {
     if (flowTestGated(ft, c, combatConditionCtx(c, { caster: attacker }))) continue;
@@ -298,7 +298,7 @@ export function simpleBatchTestStep(
   testers: Combatant[], ft: FlowTest, branches: { onSuccess: Flow; onFail: Flow }, after: Flow,
   difficulty: Difficulty, id: string, hullId?: string,
 ): BuiltCascadeStep | undefined {
-  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
+  const skillLabel = testSkillLabel(ft) ?? 'Test';
   const participants: BatchParticipant[] = [];
   for (const c of testers) {
     if (flowTestGated(ft, c, combatConditionCtx(c, { caster: c }))) continue;
@@ -498,7 +498,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   //  · Test OPPOSÉ → `base` = `testValue` (porte déjà la pénalité d'État) + aucune pénalité ajoutée (penalty 0).
   const base = opp ? testValue(c, ft.skill?.id, ft.characteristic, ft.skill?.spec) : rawCombatTestBase(c, ft.skill?.id, ft.characteristic, ft.skill?.spec);
   const difficulty: Difficulty = resolveTestDifficulty(ft, cc); // dynamique (Brisé : caché/proche/loin), sinon ft.difficulty
-  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
+  const skillLabel = testSkillLabel(ft) ?? 'Test';
   const label = dataLabel(ft.label, skillLabel);
   // Test SIMPLE : `combatTestPenalty` (sur le `base` BRUT → −10 d'État compté une fois). Test OPPOSÉ : 0
   // (l'op `opposedTest` jetait `testValue` brut des deux côtés ; `testValue` porte déjà la pénalité d'État).
@@ -622,7 +622,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
   if (decider && surfaceOf(ctx.get, decider.id)) {
     // Décideur surfacé : étape de CHOIX influençable (rendue par le chemin CHOIX générique de CascadeModal),
     // routée au siège qui tient le décideur — l'hôte ne tranche ni ne dépense l'Avantage d'autrui.
-    // Le coût (en libellé) est joint au « Oui » ; l'option est tranchée par `cascadeChoose`.
+    // Le coût (en libellé) est joint au « Oui » ; l'option est tranchée par `jetRegler('cascade', 'choix')`.
     const yesLabel = node.advantageCost != null ? `${node.prompt} (${node.advantageCost} Av)` : node.prompt;
     // Coût hors de portée : l'option reste PRÉSENTE et porte SA cause (rendue au survol/focus/tap par
     // `OptionChooser`, jamais inline) — l'applier refuse déjà la dépense, l'écran cesse de le taire.

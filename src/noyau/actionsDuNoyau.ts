@@ -8,7 +8,6 @@ import type { VerbesDeJet } from './rollFlowSpecs';
 import type { VerbeDeReglage } from './reglagesDuJet';
 import type { VerbeDeChoix } from './choixDesFenetres';
 import type * as tavernFlow from './tavernFlow';
-import type { CounterDeclaration } from './pendings';
 import type { MedicNpc } from './medicFlow';
 import type * as restFlow from './restFlow';
 import type { RestLodging, RestFood } from './restFlow';
@@ -16,7 +15,7 @@ import type { Pt } from './monde/path';
 import type { RoomPortal } from './monde/roomPortals';
 import type {
   IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
-  IdDEntiteDeScene, IdDEtapeDeCascade, IdDeTireurRapide, IdDeReponseDeDialogue, IdDePlaieDeLOperation,
+  IdDEntiteDeScene, IdDeTireurRapide,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { ShootingStanceKey } from './etat';
@@ -166,7 +165,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  coûte la maison `fouille-piece-minutes` une fois par geste (LDB 12 l.200). Refus DIT hors exploration,
    *  en dialogue, sans meneur debout, hors de toute pièce. */
   fouillerLaPiece: () => void;
-  chooseDialogue: (choix: IdDeReponseDeDialogue) => void;
   /** Marchand de LIEU (#369) — service de catalogue sans `SceneEntity` (forgeron du hub de ville…) : même
    *  système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
   openPlaceMerchant: (entityId: string, archetype: string, backdrop?: string) => void;
@@ -219,8 +217,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   openMedic: (opts?: { patientId?: IdDeHeros; npc?: MedicNpc }) => void;
   /** Lance un acte sur le patient courant (surgery → ARME l'opération). */
   medicAct: (act: HealMode) => void;
-  /** Choisit la Blessure Critique à opérer (avant la 1re passe). */
-  medicSetWound: (uid: IdDePlaieDeLOperation) => void;
   /** OUVRE le jet INFLUENÇABLE d'une passe de Chirurgie (pendingSurgery) depuis l'opération armée. */
   openSurgeryPass: () => void;
   /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,
@@ -252,23 +248,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   battleUseItem: (uid: IdDObjet) => void;
   /** HORS COMBAT : un héros utilise un consommable (bandages, potion) depuis sa fiche. */
   usePartyItem: (heroId: IdDeHeros, uid: IdDObjet) => void;
-  /** PHASE 1 — déclare la rangée `pid` : contrer seul / s'unir au Test Soutenu (LDB 46 l.162,
-   *  transposé à la fenêtre réactive) / passer. Refusé hors éligibilité de Domaine (`soutenu`) et
-   *  dès que la composition est FIGÉE (toutes les rangées ont déclaré). */
-  counterspellDeclare: (pid: string, choice: CounterDeclaration) => void;
-  /** Déclare « contrer seul » les rangées vierges de ce siège (verbe NULLAIRE du drive d'auto-cadence). */
-  counterspellDeclareAll: () => void;
-  /** Pose le héros `heroId` (vivant, du groupe) comme désigné par l'état de `pendingDesignationHeros`, puis
-   *  rejoue la suite. Sans `heroId`, ne clôt (sans rien désigner) que si plus aucun héros n'est vivant. */
-  designerHerosChoisir: (heroId?: IdDeHeros) => void;
-  /** « Choix » d'une étape de séquence (analogue de jetRoll('cascade') côté jet) : pose l'option retenue. */
-  cascadeChoose: (pid: IdDEtapeDeCascade, key: string) => void;
-  /** « Quantité » d'une étape de séquence (jumeau de `cascadeChoose`) : pose le nombre saisi, ramené
-   *  à la plage déclarée par l'étape. */
-  cascadeAmount: (pid: IdDEtapeDeCascade, n: number) => void;
-  /** « Tout lancer » : résout d'office les étapes restantes (on ne peut pas dé-dormir), puis place le
-   *  curseur EN FIN = BILAN — la modale RESTE ouverte pour voir toutes les conséquences. */
-  cascadeResolveAll: () => void;
   /** Incantation HORS COMBAT (couture D) : un héros lanceur cible self/allié ; sorts non-offensifs. */
   oocCastSpell: (casterId: IdDeCombattant, spellId: string, targetId: IdDeCombattant, fromGrimoire?: boolean) => void;
   battleFocusSpell: (spellId: string) => void;
@@ -332,10 +311,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  `gesteDArete`, Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. Tout refus
    *  est NOMMÉ (`refuserGeste`). */
   windowAcross: (from: Pt, to: Pt) => void;
-  /** DÉCLARATION pré-jet de la rangée `pid` (LDB 15 l.82 « vous pouvez tenter ») : `true` = Test,
-   *  `false` = chute PLEINE sans Test. Quand toutes les rangées sautent sans Test, l'étape se résout. */
-  /** `suspendre` : l'axe hauteur (EDO 01 l.231), exigé quand `pendingFall.suspendu` est offert. */
-  fallChoose: (pid: string, attempt: boolean, suspendre?: boolean) => void;
   /** Se relever d'À Terre (LDB 16 l.37) : consomme le Mouvement (pas l'Action) ; impossible à 0 PB (LDB 18 l.15). */
   battleStandUp: () => void;
   /** « Servir cette pièce » (MDG 12) : le héros actif devient chef d'un poste de siège NON servi adjacent (arme octroyée) — coûte l'Action. KIND-AGNOSTIQUE. */
@@ -356,7 +331,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Dissipation de sort permanent HORS COMBAT (couture D, LDB 46 l.160-162, #461). */
   oocDispelSpell: (casterId: IdDeCombattant, spellId: string, spellCasterId: IdDeCombattant) => void;
   // (Psychologie de combat (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
-  //  résolues par les handlers `cascade*`, applier 'combatPsych'.)
+  //  résolues par les verbes de jet de la cascade, applier 'combatPsych'.)
   /** Entrée en Frénésie d'un héros (LDB 21 l.31) : ouvrir la modale, lancer le Test de FM, Chance/Résilience, appliquer. */
   battleFrenzy: () => void;
   /** Action « cumuler l'Avantage » (LDB 09 l.305-308) : Test de la Compétence `skillId` (Intuition/
@@ -371,11 +346,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   battleDismount: () => void;
   /** Désengagement (LDB 15 l.43-68) : menu Sacrifier l'Avantage / Esquiver / Fuir / Renoncer. */
   battleDisengage: () => void;
-  disengageConfirmA: () => void; // Sacrifier l'Avantage
-  disengageFlee: () => void; // Fuir : ouvre le flux MULTI `flee` (coup dans le dos du frappeur + Test `fuite` du fuyard)
-  auContactChoose: (mode: 'normal' | 'contact') => void; // le vainqueur HÉROS tranche
-  grappleBreak: () => void; // Briser l'Empoignade (gratuit, Avantage supérieur)
-  grappleChoose: (mode: 'damage' | 'entangle' | 'free') => void; // le vainqueur choisit Dégâts / Empêtrer / Se libérer
   openWorldMap: () => void;
   /** « Marchander » le billet de `routeId` en `vehicule` depuis le lieu courant (`billetFlow`). */
   startBilletBargain: (routeId: string, vehicule: string) => void;

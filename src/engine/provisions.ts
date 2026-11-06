@@ -56,7 +56,7 @@ function hungerThirstPenalty(value: number): { value: number; label: string; fam
 /** Ids du Test que le RAW nomme pour la Faim comme pour la Soif : `LDB 18 l.338/340/342`. Les DIRE
  *  au lieu de ne transmettre qu'un nombre laisse le monteur de ligne décomposer `resVal` en Niveau
  *  de Compétence nu + composantes nommées (un héros Empoisonné lit « −10 Empoisonné » sur l'étape). */
-const RESISTANCE_TEST = Object.freeze({ skill: 'resistance', char: 'endurance' } as const satisfies { skill: string; char: CharKey }); // #2097
+const RESISTANCE_TEST = Object.freeze({ skill: 'resistance', characteristic: 'endurance' } as const satisfies { skill: string; characteristic: CharKey }); // #2097
 
 /** État de faim d'un personnage (absent = nourri normalement). */
 export interface HungerState {

@@ -33,7 +33,7 @@ const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
 const req = (actorId: string): RollRequest => ({
   side: { actorId },
   actionLabel: 'Résistance',
-  test: { skill: 'resistance', char: 'endurance' },
+  test: { skill: 'resistance', characteristic: 'endurance' },
   difficulty: 'intermediaire',
 });
 

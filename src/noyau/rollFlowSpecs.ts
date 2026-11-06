@@ -20,7 +20,7 @@ import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { FLOW_VERBS, fluxAccepte, rangeeFacultative, viseUneRangee, type FlowKey, type FluxDuVerbe, type RollVerb } from './flowVerbs';
 import { refuserGeste } from './refusVisible';
 import { deDuJet, FERMETURES_DITES, makeRollFlow, type FermetureDuJet, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
-import { declarationDuReglage, fermetureDeLaPhase, type CorpsDesReglages, type FluxRegle, type VerbeDeReglage } from './reglagesDuJet';
+import { declarationDuReglage, fermetureDeLaPhase, type CorpsDesReglages, type DeclarationDuReglage, type FluxRegle, type VerbeDeReglage } from './reglagesDuJet';
 import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
@@ -46,7 +46,7 @@ import { d100 } from '../engine/dice';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady } from './cascade';
+import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, toutResoudre, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady } from './cascade';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
@@ -193,16 +193,16 @@ const DEFENSE_LABEL_FALLBACK = 'Intimidation';
  *  Condition `roundDeCombat`), PLUS les +DR d'effet actif/trait par Compétence (`skillDRBonus`, MDG 09
  *  l.232) et par Caractéristique (`charDRBonusOf`, MDG 09 l.236), et le −DR hors de son terrain (MDG 16
  *  l.17). Lu par le jet naturel et par l'inversion, du Test de scène comme du soin. */
-function drDeReussiteDuTest(s: Jeu, actor: Combatant, test: { skill?: string; char?: CharKey; spec?: string }): number {
+function drDeReussiteDuTest(s: Jeu, actor: Combatant, test: { skill?: string; characteristic?: CharKey; spec?: string }): number {
   const whenHolds = (cond: Condition) => evalCondition(cond, { flags: s.flags, gameTime: s.gameTime, roundDeCombat: !!s.battle });
   return talentTestSLBonus(actor, test, whenHolds)
     + (test.skill ? skillDRBonus(actor, test.skill, test.spec) : 0)
-    + charDRBonusOf(actor, test.char ?? (test.skill ? effectiveSkillCharKey(actor, test.skill, { spec: test.spec }) : undefined))
+    + charDRBonusOf(actor, test.characteristic ?? (test.skill ? effectiveSkillCharKey(actor, test.skill, { spec: test.spec }) : undefined))
     + offTerrainTestDR(actor);
 }
 
 /** Le Test d'un `pendingTest`, tel que `drDeReussiteDuTest` le lit. */
-const testDeScene = (p: PendingTest) => ({ skill: p.skillId, char: p.char, spec: p.spec });
+const testDeScene = (p: PendingTest) => ({ skill: p.skillId, characteristic: p.char, spec: p.spec });
 
 /** Jet d'un Test de Guérison ou de Dextérité de soin (`FLOWS.heal`, `FLOWS.surgery`) : le dé contre la cible figée du
  *  pending (avant bornage), +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) ; un PNJ soigneur n'en a pas. */
@@ -322,7 +322,7 @@ export function creerVerbesDeJet(get: Get, set: Set, clotures: CloturesDuJet): V
   return {
     jetRoll: (flux, pid) => jouer('roll', flux, pid, (h, f, rangee) => {
       if (rangee !== undefined || !rangeeFacultative(f, 'roll')) h.roll(get, set, rangee);
-      else for (const id of h.rangeesALancer(get, FLOW_VERBS[f].kind === 'multi' && FLOW_VERBS[f].pidIsActor)) h.roll(get, set, id);
+      else h.lancerSansRangee(get, set, FLOW_VERBS[f].kind === 'multi' && FLOW_VERBS[f].pidIsActor);
     }),
     jetReroll: simple('reroll'),
     jetBonusSL: simple('bonusSL'),
@@ -684,7 +684,7 @@ export function refusDAnnulerLAttaque(pa: PendingAttack): string | null {
 }
 
 /** Test de Force Mentale contre une Bénédiction de Protection — LDB 41 l.142. */
-const JET_DE_PROTECTION = { test: { char: 'force-mentale' }, difficulty: 'accessible' } as const;
+const JET_DE_PROTECTION = { test: { characteristic: 'force-mentale' }, difficulty: 'accessible' } as const;
 
 /** Ligne du Test de Protection (`rollLine`), lue par le résolveur `ward` et par `WardModal`. LDB 41 l.142. */
 export function ligneDeProtection(actor: Combatant): RollLineParts {
@@ -699,7 +699,7 @@ export function ligneDuTestNomme(actor: Combatant, test: TestNomme): RollLinePar
 
 /** Ligne du Test de Force Mentale d'entrée en Frénésie, lue par le résolveur `frenzy` et par `FrenzyModal`. LDB 21 l.31 */
 export function ligneDeFrenesie(actor: Combatant): RollLineParts {
-  return rollLine({ actor, test: { char: 'force-mentale' }, difficulty: 'intermediaire' });
+  return rollLine({ actor, test: { characteristic: 'force-mentale' }, difficulty: 'intermediaire' });
 }
 
 /** Le d100 du battle RNG contre la cible d'une ligne (`rollLine`) : la cible que la fenêtre annonce est celle du jet. */
@@ -1128,8 +1128,8 @@ export const FLOWS = paresseux({
       const castT = castTestOf(pcCast); // l'incantation figée = l'« attaquant » de l'opposition
       const oppVal = valeurDuTest(actor, pco.test);
       // LDB 09 l.17 ; LDB 12 l.160.
-      const { skill, spec, char } = idsDuTest(pco.test);
-      const oppBase = skillBaseValue(actor, skill, spec, char);
+      const { skill, spec, characteristic } = idsDuTest(pco.test);
+      const oppBase = skillBaseValue(actor, skill, spec, characteristic);
       if (forced?.sl != null) {
         // Résistance (Magie), LDB 10 l.1016-1020 : le Test pour résister au Sort réussit d'office —
         // la cible RÉSISTE (interprétation : « réussir le Test pour résister » = l'opposition est
@@ -1225,7 +1225,7 @@ export const FLOWS = paresseux({
     // Inversion (LDB 12 l.42) du Round : le Test du Test étendu (Studieux LDB 11 l.55, Lecture rapide
     // LDB 10 l.634 sur Recherche ; jetons).
     reverse: {
-      skillOf: (_s, _r, _a, _g, p) => ({ skill: p.skill?.id, spec: p.skill?.spec, char: p.char }),
+      skillOf: (_s, _r, _a, _g, p) => ({ skill: p.skill?.id, spec: p.skill?.spec, characteristic: p.characteristic }),
       current: (r, p) => (r.result ? { roll: r.result.roll, target: p.target } : null),
       evaluate: (_s, _r, _a, _g, tr) => ({ patch: { result: { roll: tr.roll, sl: tr.sl, success: tr.success } }, issue: tr }),
     },
@@ -1243,7 +1243,7 @@ export const FLOWS = paresseux({
     key: 'pendingCascade',
     clotures: { confirm: 'toujours' },
     cloture: fermetureDeLEtape,
-    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape },
+    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape, sansRangee: toutResoudre },
     rolled: (st) => !!st.result,
     actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
     // ACCESSEUR DE DÉ de l'étape (une étape sans jet — `target` nul — n'en a pas). En Test OPPOSÉ,
@@ -1695,7 +1695,7 @@ export const FLOWS = paresseux({
 
   /** Chute VOLONTAIRE (LDB 15 l.82) : le Test de `p.test` — DR-driven comme `run` (Chance « +1 DR »
    *  = 1 m de chute en moins, pas binaire). Flux MULTI (EDO 01 l.231) : une rangée par TOMBANT, sa hauteur
-   *  lue par `metresRetenus`. `part.attempt` (déclaration pré-jet, `fallChoose`) gate le jet : `false` =
+   *  lue par `metresRetenus`. `part.attempt` (déclaration pré-jet, `jetRegler('fall', 'tenter', …)`) gate le jet : `false` =
    *  chute pleine SANS Test (jamais de `roll`) ; aucune rangée ne roule tant qu'une autre n'a pas déclaré
    *  (`phaseDeChute`). */
   fall: () => makeRollFlow<PendingFall, TombantParticipant>({
@@ -1991,7 +1991,7 @@ export const FLOWS = paresseux({
       if (!actor) return null;
       // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) : avant le jet (choisit 01) OU après un échec.
       if (forced) return forcedBinaryResult(p.result, cibleBrute(ligneDeProtection(actor)));
-      return simpleTestResultResolve((_p, a) => testValue(a, undefined, JET_DE_PROTECTION.test.char), JET_DE_PROTECTION.difficulty)(s, p, actor);
+      return simpleTestResultResolve((_p, a) => testValue(a, undefined, JET_DE_PROTECTION.test.characteristic), JET_DE_PROTECTION.difficulty)(s, p, actor);
     },
     outcome: (p) => testOutcome(p.result),
   }),
@@ -2261,7 +2261,7 @@ export const FLOWS = paresseux({
     // jeton d'Activité (consommé) ; le dé renversé s'évalue comme le jet naturel de `resolve` (+DR de
     // réussite, Capricieux, DR exigé).
     reverse: {
-      skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec, char: p.char, ...(p.contexte ? { contexte: p.contexte } : {}) }),
+      skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec, characteristic: p.char, ...(p.contexte ? { contexte: p.contexte } : {}) }),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
         const sl = tr.sl + (tr.success ? drDeReussiteDuTest(s, actor, testDeScene(p)) : 0) + (p.capriciousDR ?? 0);
@@ -2400,7 +2400,7 @@ export const FLOWS = paresseux({
     // Inversion (LDB 23 l.209/218 ; LDB 10 l.899) : le Test déclaré, sous le contexte `bandages` quand une Guérison
     // engage des Bandages ; le dé renversé s'évalue comme `resolve`.
     reverse: {
-      skillOf: (_s, p) => (p.test === 'dexterite' ? { char: 'dexterite' } : { skill: HEAL_SKILL, ...(p.bandagesDe ? { contexte: 'bandages' as const } : {}) }),
+      skillOf: (_s, p) => (p.test === 'dexterite' ? { characteristic: 'dexterite' } : { skill: HEAL_SKILL, ...(p.bandagesDe ? { contexte: 'bandages' as const } : {}) }),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
         const issue = issueDuSoin(s, actor, p.test, tr);
@@ -2452,16 +2452,18 @@ export const oppositionsEnAttente = (p: PendingCastOpposition): OppositionPartic
 function refusDuReglage(s: Jeu, flux: unknown, reglage: unknown, pid: unknown): string | null {
   const declaration = declarationDuReglage(flux, reglage);
   if (!declaration) return t('jet.refus.reglageAbsent');
-  if ((typeof pid === 'string') !== (declaration.portee === 'rangee')) return t('jet.refus.rangee');
+  if (typeof pid === 'string' ? declaration.portee !== 'rangee' : declaration.portee === 'rangee' && !declaration.toutes) return t('jet.refus.rangee');
   return declaration.qui === 'hote' && s.net.mode === 'guest' ? t('jet.refus.hoteSeul') : null;
 }
 
 /** Ce qui ferme maintenant le réglage `reglage` du flux `flux`, sur la rangée `pid` d'un réglage de rangée : sa phase
  *  (`fermetureDeLaPhase`) jugée sur le lancer de son jet (`RollFlowHandlers.fermetures`, la fenêtre que lit
- *  `verbesOuverts`), puis son offre (`DeclarationDuReglage.offre`) ; `null` : il se joue. */
+ *  `verbesOuverts`) — sur la fenêtre entière pour un réglage `horsDuJet`, que la rangée ait un jet ou non —, puis son
+ *  offre (`DeclarationDuReglage.offre`) ; `null` : il se joue. */
 export function fermetureDuReglage(get: Get<Jeu>, flux: FluxRegle, reglage: string, pid?: string): FermetureDuJet | null {
   const declaration = garanti(declarationDuReglage(flux, reglage), `${flux}.${reglage}`, 'réglage déclaré');
-  return fermetureDeLaPhase(declaration.phase, FLOW_HANDLERS[flux].fermetures(get, pid).roll) ?? declaration.offre?.(get()) ?? null;
+  const jugee = declaration.phase === 'horsDuJet' ? undefined : pid;
+  return fermetureDeLaPhase(declaration.phase, FLOW_HANDLERS[flux].fermetures(get, jugee).roll) ?? declaration.offre?.(get()) ?? null;
 }
 
 /** Le verbe qui règle un jet sur `get`/`set` : il refuse, et le dit, le réglage que son flux ne déclare pas
@@ -2485,9 +2487,9 @@ export function creerReglageDuJet(get: Get, set: Set, corps: CorpsDesReglages): 
 const contreSortsDus = (s: Jeu, p: PendingCounterspell): CounterParticipant[] =>
   p.participants.some((x) => x.result?.dispelled) ? [] : p.participants.filter((x) => x.interactive && !x.result && counterspellRolls(s, p, x));
 
-/** Les rangées de Contre-sort que CE siège a encore à déclarer : vierges, surfacées et jouables ici (`influencesLocally`). */
-export const rangeesADeclarerIci = (s: Jeu, p: PendingCounterspell | null | undefined): CounterParticipant[] =>
-  (p?.participants ?? []).filter((x) => !x.declared && x.interactive && influencesLocally(s, x.id));
+/** Les rangées que le réglage `toutes` de `declaration` a encore à régler sur CE siège (`influencesLocally`). */
+export const rangeesAReglerIci = (s: Jeu, declaration: DeclarationDuReglage | null): readonly string[] =>
+  (declaration?.toutes?.(s) ?? []).filter((id) => influencesLocally(s, id));
 
 /** Le refus de la rangée de Contre-sort `pid` (`null` si elle lance maintenant) : phase de déclaration ouverte
  *  (`counterspellDeclarePhase`, #1042/#1059), Sort déjà dissipé par une AUTRE rangée (LDB 46 l.156 ; la rangée

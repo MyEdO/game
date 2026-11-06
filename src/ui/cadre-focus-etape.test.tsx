@@ -127,7 +127,7 @@ describe('focus d’étape — `CascadeBody` réel, le geste d’enchaînement s
     ouvrir('affichage', [{ ...choix('c-a', sigmund), chosen: '0' } as never]);
     act(() => root.render(<StrictMode><button>Jouer</button><CascadeBody /></StrictMode>));
     await vider();
-    act(() => useGame.getState().cascadeResolveAll());
+    act(() => useGame.getState().jetRoll('cascade'));
     await vider();
     const bilan = useGame.getState().pendingCascade!;
     expect(bilan.cursor, 'bilan : curseur en fin').toBe(bilan.participants.length);

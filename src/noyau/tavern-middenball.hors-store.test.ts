@@ -44,7 +44,7 @@ function choisir(option: number): void {
   for (let i = 0; i < 8; i++) {
     const cur = get().pendingCascade?.participants[get().pendingCascade!.cursor];
     if (!cur || cur.kind !== 'tavern-option') return;
-    get().cascadeChoose(cur.id, String(option));
+    get().jetRegler('cascade', 'choix', String(option), cur.id);
     get().jetConfirm('cascade');
   }
 }
@@ -316,7 +316,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     for (let i = 0; i < 40 && get().pendingCascade; i++) {
       const cur = etape();
-      if (cur.kind === 'tavern-option') get().cascadeChoose(cur.id, '0');
+      if (cur.kind === 'tavern-option') get().jetRegler('cascade', 'choix', '0', cur.id);
       else if (cur.participants) {
         for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetRoll('cascadeBatch', row.id);
       }

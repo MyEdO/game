@@ -15,7 +15,7 @@ import { t } from '../i18n';
  * chip anonyme « autres » (`ui/RollLine.tsx`), contraire à #1117.
  *
  * INVARIANT vérifié sur une GRILLE : nu, chaque poste SEUL, puis combinaisons —
- *     testValue(c, skill, char, spec) === skillBaseValue(c, skill, spec, char) + Σ testValueParts(…)
+ *     testValue(c, skill, characteristic, spec) === skillBaseValue(c, skill, spec, characteristic) + Σ testValueParts(…)
  * Un poste AJOUTÉ à `testValue` sans son producteur de parts fait ROUGIR ce test : c'est lui la garde
  * (le décomposeur ne peut pas « oublier » un canal en silence).
  */
@@ -39,7 +39,7 @@ type CasId =
   | 'sequelle' | 'instance-id-only' | 'etat+mutation' | 'etat+effet' | 'mutation+laid';
 
 /** Un cas de la grille : son id stable, son nom lisible, le cobaye, et le Test visé. */
-interface Cas { id: CasId; nom: string; c: Combatant; skill?: string; char?: CharKey; spec?: string }
+interface Cas { id: CasId; nom: string; c: Combatant; skill?: string; characteristic?: CharKey; spec?: string }
 
 /** Le −20 de la mutation « Visage inversé » (`mutations.json`) — lue en DONNÉE, jamais recopiée. */
 const visageInverse = () => {
@@ -180,7 +180,7 @@ const IDS_PAR_CATEGORIE: Record<string, string[]> = {
 
 const GRILLE: Cas[] = [
   { id: 'nu', nom: 'nu (aucun modificateur)', c: hero(), skill: 'marchandage' },
-  { id: 'pure-carac', nom: 'Test de PURE Caractéristique', c: hero(), char: CK },
+  { id: 'pure-carac', nom: 'Test de PURE Caractéristique', c: hero(), characteristic: CK },
   { id: 'etat', nom: 'État (Empoisonné −10)', c: withEtat(), skill: 'marchandage' },
   { id: 'mutation', nom: 'mutation char-qualifiée (Visage inversé −20)', c: withMutation(), skill: 'marchandage' },
   { id: 'qualite-laid', nom: 'qualité d’objet (Laid −10)', c: withLaid(), skill: 'marchandage' },
@@ -202,16 +202,16 @@ const GRILLE: Cas[] = [
 ];
 
 describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socle d’affichage)', () => {
-  it.each(GRILLE)('invariant : base NUE + Σ parts = valeur de Test — $nom', ({ c, skill, char, spec }) => {
-    const nue = skillBaseValue(c, skill, spec, char);
-    const parts = testValueParts(c, skill, char, spec);
+  it.each(GRILLE)('invariant : base NUE + Σ parts = valeur de Test — $nom', ({ c, skill, characteristic, spec }) => {
+    const nue = skillBaseValue(c, skill, spec, characteristic);
+    const parts = testValueParts(c, skill, characteristic, spec);
     const somme = parts.reduce((s, p) => s + p.value, 0);
-    expect(nue + somme, `résidu NON nommé de ${testValue(c, skill, char, spec) - nue - somme} — un poste de \`testValue\` échappe au décomposeur`)
-      .toBe(testValue(c, skill, char, spec));
+    expect(nue + somme, `résidu NON nommé de ${testValue(c, skill, characteristic, spec) - nue - somme} — un poste de \`testValue\` échappe au décomposeur`)
+      .toBe(testValue(c, skill, characteristic, spec));
   });
 
-  it.each(GRILLE)('chaque part est NOMMÉE : ni vide, ni id brut, ni repli de FAMILLE — $nom', ({ c, skill, char, spec }) => {
-    for (const p of testValueParts(c, skill, char, spec)) {
+  it.each(GRILLE)('chaque part est NOMMÉE : ni vide, ni id brut, ni repli de FAMILLE — $nom', ({ c, skill, characteristic, spec }) => {
+    for (const p of testValueParts(c, skill, characteristic, spec)) {
       expect(p.label.length, `part sans libellé : ${JSON.stringify(p)}`).toBeGreaterThan(0);
       // Id BRUT : le libellé APPARTIENT au jeu d'ids d'une catégorie (contrat positif, pas une forme).
       for (const [cat, ids] of Object.entries(IDS_PAR_CATEGORIE)) {
@@ -309,7 +309,7 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
   /** Le NOM n'a AUCUNE exception : c'est l'entité attachée qui le porte, elle l'a toujours. */
   it('aucun nom ne peut manquer : toute part de la grille porte un libellé non vide', () => {
     for (const cas of GRILLE) {
-      for (const p of testValueParts(cas.c, cas.skill, cas.char, cas.spec)) {
+      for (const p of testValueParts(cas.c, cas.skill, cas.characteristic, cas.spec)) {
         expect(p.label.trim(), `nom VIDE (${cas.nom}) — l'émetteur n'a fourni ni \`label\` ni \`src\``).not.toBe('');
       }
     }
@@ -317,7 +317,7 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
 
   it('chaque part porte son renvoi Codex — sauf les exceptions DÉCLARÉES ci-dessous', () => {
     for (const cas of GRILLE) {
-      for (const p of testValueParts(cas.c, cas.skill, cas.char, cas.spec)) {
+      for (const p of testValueParts(cas.c, cas.skill, cas.characteristic, cas.spec)) {
         if (SANS_REF_DECLARE.has(cas.id)) { expect(p.ref, `exception périmée (${cas.nom}) : la part « ${p.label} » a désormais un renvoi — la retirer de SANS_REF_DECLARE`).toBeUndefined(); continue; }
         expect(p.ref, `part sans renvoi Codex (${cas.nom}) : ${p.label} — poser le \`src\` à l'ÉMISSION, ou déclarer l'exception`).toBeTruthy();
       }

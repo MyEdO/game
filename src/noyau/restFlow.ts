@@ -432,7 +432,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
     const st = monoStep({ id: `march-${id}`, kind: 'forcedMarch', actor: h, label: t('step.marcheForcee'), icon: 'travel/foot',
       rollLabel: SKILL_RESISTANCE(), difficulty: 'intermediaire',
       stake: nightStakeRef('forcedMarch'),
-      ligne: { test: { skill: 'resistance', char: 'endurance' } } });
+      ligne: { test: { skill: 'resistance', characteristic: 'endurance' } } });
     pousseSi(steps, st);
   }
   // Tests d'entretien DIFFÉRÉS (faim, soif, maladie, convalescence, dessoûlage) → étapes influençables.
@@ -547,29 +547,43 @@ export function lodgingOptions(places: RestPlaces): RestLodging[] {
   return out;
 }
 
-/** Pitances proposées (orthogonales au couchage : manger à l'auberge et dormir dehors est permis).
+/** Pitances qu'offre le lieu (repas d'auberge, table de la maison), communes à toute la troupe. */
+const pitancesDuLieu = (places: RestPlaces): RestFood[] => [...(places.auberge ? ['repas' as const] : []), ...(places.maison ? ['maison' as const] : [])];
+
+/** Pitances proposées à un héros (orthogonales au couchage : manger à l'auberge et dormir dehors est permis).
  *  « ration » seulement si le héros en a une. */
 export function foodOptions(places: RestPlaces, hero: Combatant): RestFood[] {
-  const out: RestFood[] = [];
-  if (places.auberge) out.push('repas');
-  if (places.maison) out.push('maison');
-  if ((hero.items ?? []).some(isRation)) out.push('ration');
-  out.push('rien');
-  return out;
+  return [...pitancesDuLieu(places), ...((hero.items ?? []).some(isRation) ? ['ration' as const] : []), 'rien'];
 }
 
-/** Coût total du repos (chambres regroupées par 2, repas par convive), par nuit × days. */
-export function restCost(p: PendingRest, party: Combatant[]): Money {
+/** Pitances du choix « pour toute la troupe » : celles du lieu, sans la ration, qui dépend du sac de chacun. */
+export function nourrituresDeTroupe(places: RestPlaces): RestFood[] {
+  return [...pitancesDuLieu(places), 'rien'];
+}
+
+/** Part de chaque héros vivant réglé dans la note du repos, par nuit × days : une chambre privée loge 2
+ *  invités (LDB 66 l.28), sa part est sa moitié (valeur d'ingénierie, la source ne partage pas la
+ *  chambre) ; chambre commune et repas par convive. La somme des parts EST `restCost`. */
+export function partsDuRepos(p: PendingRest, party: Combatant[]): Record<string, Money> {
   const half = p.quality === 'pietre' ? 0.5 : 1;
-  let brass = 0;
   const heroes = party.filter((h) => !h.dead && p.perHero[h.id]);
-  const nPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee').length;
-  const nCommune = heroes.filter((h) => p.perHero[h.id].lodging === 'commune').length;
-  const nRepas = heroes.filter((h) => p.perHero[h.id].food === 'repas').length;
-  brass += Math.ceil(nPrivee / 2) * PRICE_BRASS.privee; // chambre pour 2 (grande pour 4 = ×2, équivalent)
-  brass += nCommune * PRICE_BRASS.commune;
-  brass += nRepas * PRICE_BRASS.repas;
-  return fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
+  const enPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee');
+  const parts: Record<string, Money> = {};
+  for (const h of heroes) {
+    const { lodging, food } = p.perHero[h.id];
+    const i = enPrivee.indexOf(h);
+    const seul = i === enPrivee.length - 1 && i % 2 === 0;
+    const chambre = lodging === 'privee' ? (seul ? PRICE_BRASS.privee : i % 2 === 0 ? Math.ceil(PRICE_BRASS.privee / 2) : Math.floor(PRICE_BRASS.privee / 2))
+      : lodging === 'commune' ? PRICE_BRASS.commune : 0;
+    const brass = chambre + (food === 'repas' ? PRICE_BRASS.repas : 0);
+    parts[h.id] = fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
+  }
+  return parts;
+}
+
+/** Coût total du repos : la somme des `partsDuRepos`. */
+export function restCost(p: PendingRest, party: Combatant[]): Money {
+  return fromBrass(Object.values(partsDuRepos(p, party)).reduce((n, m) => n + toBrass(m), 0));
 }
 
 /** Offre de repos À LA POSITION DU GROUPE : zone de repos (rect d'auteur) prioritaire, sinon
@@ -803,7 +817,7 @@ export const TABLES = {
       // (patron `insert`, re-bandée par la fabrique) : plus AUCUN jet silencieux (#253), et la gueule de bois
       // est due par TOUTE rangée du dessoûlage, pas seulement par les perdantes.
       const d = soberUpDissipate(hero, row.result!.sl);
-      const alcool = { skill: 'resistance-a-l-alcool', char: 'endurance' } as const;
+      const alcool = { skill: 'resistance-a-l-alcool', characteristic: 'endurance' } as const;
       const hangover = monoStep({
         id: `dessoulageHangover-${hero.id}`, kind: 'dessoulageHangover', actor: hero, icon: 'time/night',
         rollLabel: testSkillLabel(alcool) ?? SKILL_RESISTANCE(), label: t('step.gueuleDeBois'), difficulty: 'intermediaire',

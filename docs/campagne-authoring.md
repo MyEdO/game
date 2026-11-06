@@ -188,7 +188,7 @@ L'état narratif d'une partie se partitionne par la FORME de ce que le récit re
   à l'AFFICHAGE, chaque site de prose de paquet (`SITES_PROSE` › `paquet`, `src/ui/liage.ts` ; `<Prose
   paquet>`, ou `mdToText(nommer(…))`) substitue chaque repère, en mot entier et en une passe, par la valeur
   de la ligne du couple espèce (`refChar`) × sexe d'apparence FIGÉ au choix du héros (`GameState.identitesFigees`,
-  posé par `designerHerosChoisir`, EDO 02 l.114) : mort, remplacé ou réédité, le sosie garde son nom
+  posé par le choix `designationHeros.heros`, EDO 02 l.114) : mort, remplacé ou réédité, le sosie garde son nom
   (`identitesResolues` / `nommer`, `src/noyau/monde/identites.ts`). Non désigné, sans sexe d'apparence, ou sans
   ligne : verbatim. Un
   site de catalogue (à `porteur`) ne nomme jamais. L'onglet **États** édite l'identité (ancres, repères
@@ -216,7 +216,7 @@ tant qu'une référence le désigne) un état et ses valeurs. Pas de compteur co
 Un `Dialogue` (`Scene.dialogues`) est un arbre de `DialogueNode` (`id`, `desc`, `choices`) — la
 réplique du nœud est de la PROSE (`desc`), l'étiquette d'un `DialogueChoice` est un LIBELLÉ (`label`),
 deux rôles distincts, deux clés (#1467 L1b). Chaque `DialogueChoice` porte son `id` stable, unique dans son nœud
-(refusé en double au chargement) : c'est lui que `chooseDialogue` reçoit, jamais son rang (#3369). **Aucun nom
+(refusé en double au chargement) : c'est lui que reçoit le choix `fenetreChoisir('dialogue', 'reponse', id)`, jamais son rang (#3369). **Aucun nom
 en clair** n'est jamais authoré dans un nœud (doctrine id-only, AGENTS.md « on ne MANIPULE que des
 IDs ») : le portrait ET le nom de l'interlocuteur se résolvent TOUJOURS par ID d'entité, jamais par une
 chaîne de nom dupliquée dans la donnée.
@@ -233,7 +233,7 @@ chaîne de nom dupliquée dans la donnée.
   les choix d'un même nœud d'accueil sur un flag posé au premier passage (« premier contact » vs
   « on se reconnaît »). Voir `src/scenes/test-scenarios/dialogue-multi.ts` (patron complet, alternance +
   reprise).
-- **Coop** — un dialogue est une décision de GROUPE (jeton d'exploration unique) : `chooseDialogue`/
+- **Coop** — un dialogue est une décision de GROUPE (jeton d'exploration unique) : le choix `dialogue.reponse` et
   `interactEntity` sont réservés au siège hôte/MJ (`netOwnership.intentAllowedFor`), les
   autres sièges LISENT. Un Test social DÉCLENCHÉ depuis un choix reste arbitré normalement par le
   propriétaire du héros testeur (`openSkillTest`→`pendingTest`→`modalArbiter`).

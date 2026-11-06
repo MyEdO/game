@@ -121,7 +121,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
    * LE TABLEAU PROGRESSE ENTRE DEUX MANCHES — déroulé de recette REJOUÉ : Bras de fer contre un
    * adversaire de la salle, manche 1 GAGNÉE (l'op de manche du vainqueur tire : « porte son Avantage
    * à 1 », `NADJ 16 l.34`), puis lecture de la fenêtre de la manche 2. Le dé est LANCÉ par la porte du
-   * jeu (`jetRoll('cascade')`), pas posé : l'issue d'une manche mono passe par l'opposition figée
+   * jeu (`jetRoll('cascade', id)`), pas posé : l'issue d'une manche mono passe par l'opposition figée
    * (`opposedCascadeRoll`), et un résultat posé à la main court-circuiterait justement ce chemin.
    * Ce qu'un cumul vers cible doit montrer, c'est le TOTAL de chaque camp APRÈS la manche close
    * (`LDB 12 l.170-179`) — le socle écrit `seq.cum`, le système le rend, la fenêtre suivante le lit.
@@ -241,7 +241,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     for (let i = 0; i < 4; i++) {
       const cur = get().pendingCascade?.participants[get().pendingCascade!.cursor];
       if (!cur || cur.kind !== 'tavern-option') break;
-      act(() => { get().cascadeChoose(cur.id, '0'); get().jetConfirm('cascade'); });
+      act(() => { get().jetRegler('cascade', 'choix', '0', cur.id); get().jetConfirm('cascade'); });
     }
     const pc = get().pendingCascade!;
     const idx = pc.participants.findIndex((s) => s.kind === 'tavern-round');
@@ -281,7 +281,7 @@ describe('ABANDON — servi par toute branche d’étape de séquence', () => {
     expect(cur().kind, 'le héros annonce d’abord la cible (étape de CHOIX)').toBe('tavern-pot-target');
     render();
     expect(boutons(), 'branche choix').toContain('Abandonner');
-    act(() => { get().cascadeChoose(cur().id, '7'); get().jetConfirm('cascade'); });
+    act(() => { get().jetRegler('cascade', 'choix', '7', cur().id); get().jetConfirm('cascade'); });
     expect(cur().table, 'le tour du héros est un tirage sur TABLE').toBeDefined();
     render();
     expect(boutons(), 'branche table').toContain('Abandonner');
@@ -350,7 +350,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     render();
     expect(boutons(), 'fenêtre d’ouverture : offert').toContain('Abandonner');
     expect(boutonAbandon()!.getAttribute('aria-disabled'), 'ouvert').not.toBe('true');
-    act(() => { get().cascadeChoose(cur().id, '7'); get().jetConfirm('cascade'); });
+    act(() => { get().jetRegler('cascade', 'choix', '7', cur().id); get().jetConfirm('cascade'); });
     act(() => { get().jetSetForcedRoll('cascadeTirage', 17, cur().id); });
     expect(cur().table?.result, 'le dé est posé, l’étape n’est pas validée').toBeTruthy();
     render();

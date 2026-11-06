@@ -281,13 +281,13 @@ describe('ORACLE du canal combat — balayage EXHAUSTIF (#1153 L1b, sonde promue
   });
 
   it('224 combinaisons (canal × État × effet × profil) : ZÉRO reconstruction en échec', () => {
-    const CANAUX: { combat: RollLineCombat; test?: { skill?: string; char?: never | 'force-mentale' | 'dexterite' } }[] = [
+    const CANAUX: { combat: RollLineCombat; test?: { skill?: string; characteristic?: never | 'force-mentale' | 'dexterite' } }[] = [
       { combat: { kind: 'melee' } },
       { combat: { kind: 'melee', weapon: epee } },
       { combat: { kind: 'ranged' } },
       { combat: { kind: 'ranged', weapon: arbalete } },
-      { combat: { kind: 'test' }, test: { char: 'force-mentale' } },
-      { combat: { kind: 'test' }, test: { char: 'dexterite' } },
+      { combat: { kind: 'test' }, test: { characteristic: 'force-mentale' } },
+      { combat: { kind: 'test' }, test: { characteristic: 'dexterite' } },
       { combat: { kind: 'test' }, test: { skill: 'resistance' } },
     ];
     const ETATS = [[], [{ id: 'empoisonne', value: 1 }], [{ id: 'empoisonne', value: 2 }], [{ id: 'sonne', value: 1 }]];
@@ -326,11 +326,11 @@ describe('ORACLE du canal combat — balayage EXHAUSTIF (#1153 L1b, sonde promue
               if (fournie.target !== derive.target) ko.push(`${nom} : cible fournie ${fournie.target} ≠ dérivée ${derive.target}`);
               // ORACLE : la ligne se réduit EXACTEMENT à la formule moteur du canal.
               const attendu = c.combat.kind === 'test'
-                ? rawCombatTestBase(a, c.test?.skill, c.test?.char, undefined) + combatTestPenalty(a)
+                ? rawCombatTestBase(a, c.test?.skill, c.test?.characteristic, undefined) + combatTestPenalty(a)
                 : combatValue(a, c.combat.kind, c.combat.weapon);
               if (valeur !== attendu) ko.push(`${nom} : ${valeur} ≠ formule moteur ${attendu}`);
               const nue = c.combat.kind === 'test'
-                ? skillBaseValue(a, c.test?.skill, undefined, c.test?.char)
+                ? skillBaseValue(a, c.test?.skill, undefined, c.test?.characteristic)
                 : combatBaseValue(a, c.combat.kind, c.combat.weapon);
               if (derive.base !== nue) ko.push(`${nom} : base ${derive.base} ≠ valeur NUE ${nue}`);
               if (inexplique({ ...derive, difficulty: 'intermediaire' }) !== 0) ko.push(`${nom} : écart muet`);
@@ -368,7 +368,7 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
     });
     const valeur = combatValue(tireur, 'ranged', tireur.weapons[0]);
     // Canal HORS COMBAT sur une valeur de combat : la reconstruction rate — en DEV, elle THROW.
-    expect(() => rollLine({ actor: tireur, test: { char: 'capacite-de-tir' }, difficulty: 'intermediaire', valeur }))
+    expect(() => rollLine({ actor: tireur, test: { characteristic: 'capacite-de-tir' }, difficulty: 'intermediaire', valeur }))
       .toThrow(/ne se reconstruit pas/);
     // MÊME valeur par son canal : la ligne se monte et s'explique intégralement.
     const ligne = rollLine({ actor: tireur, difficulty: 'intermediaire', valeur, combat: { kind: 'ranged', weapon: tireur.weapons[0] } });

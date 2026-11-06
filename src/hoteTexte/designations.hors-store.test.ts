@@ -55,11 +55,6 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const [porte] = refuseLId(t, verbe('actionnerLaPorte', 'nobody'), /portail : "nobody" n’est pas un id de porte \(valides : /);
     passeLeControle(t, verbe('actionnerLaPorte', porte));
   });
-  it('étape de cascade : `cascadeChoose`', { timeout: 120_000 }, () => {
-    const t = partie('revisit');
-    const [etape] = refuseLId(t, verbe('cascadeChoose', 'nobody', 'x'), /pid : "nobody" n’est pas un id d’étape de cascade \(valides : /);
-    passeLeControle(t, verbe('cascadeChoose', etape, 'x'));
-  });
   it('porteur et objet : `toggleEquip`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
     const [heros] = refuseLId(t, verbe('toggleEquip', 'nobody', 'x'), /heroId : "nobody" n’est pas un id de porteur \(valides : /);

@@ -905,7 +905,7 @@ export function openSkillTest(
     // Compétence nu ; la cible et l'écrêtage en dérivent par la MÊME primitive que `rollTest`.
     const line = rollStep({
       actor,
-      test: { skill: spec.skill?.id, char: spec.characteristic, spec: spec.skill?.spec, sense: spec.sense },
+      test: { skill: spec.skill?.id, characteristic: spec.characteristic, spec: spec.skill?.spec, sense: spec.sense },
       difficulty,
       valeur: value,
       ...(soutD ? { soutien: soutD } : {}),
@@ -932,7 +932,7 @@ export function openSkillTest(
   const parle = get().dialogue?.speakerId;
   const contrepartie = parle ? get().scene?.entities.find((e) => e.id === parle)?.amateur : undefined;
   // Compétence/Caractéristique RÉELLE (cadre de jet) ≠ intitulé de situation (titre). Char → libellé long.
-  const skill = testSkillLabel({ skill: spec.skill, char: spec.characteristic });
+  const skill = testSkillLabel(spec);
   const label = spec.label || skill || 'Test';
   set({
     pendingTest: {
@@ -1268,7 +1268,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'designerHeros', etat: '' }),
     suspensif: true,
     // EDO 02 l.91 : décision de GROUPE (`pendingDesignationHeros`, modale `designationHeros`) refermée
-    // par `designerHerosChoisir`, qui rejoue la suite ; sans héros vivant, rien à désigner.
+    // par son choix (`designationHeros.heros`) ou, sans héros vivant, par sa sortie, qui rejouent la suite.
     apply: (e, env, suite) => (env.get().designerHerosOuvrir({ etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite }) ? 'suspend' : undefined),
   },
   setObjective: {
@@ -2094,10 +2094,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Cible montée par le MONTEUR CANONIQUE : la valeur SOUTENUE de `partyAssisted` se déclare avec
       // son Soutien, l'écrêtage est celui de `rollTest` (`clampTarget`), plus une borne recopiée ici.
       const { target } = rollStep({
-        actor: best.actor, test: { skill: e.skill?.id, char: e.characteristic, spec: e.skill?.spec },
+        actor: best.actor, test: { skill: e.skill?.id, characteristic: e.characteristic, spec: e.skill?.spec },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel({ skill: e.skill, char: e.characteristic }), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { char: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
+      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
       return 'suspend';
     },
   },

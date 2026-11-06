@@ -109,7 +109,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     // Le Contre-sort passe par SA phase de déclaration (#1042/#1059) : les rangées surfacées passent, la
     // dernière déclaration referme la fenêtre par le résolveur canonique.
     if (st.pendingCounterspell) {
-      for (const p of st.pendingCounterspell.participants) banc.getState().counterspellDeclare(p.id, 'pass');
+      for (const p of st.pendingCounterspell.participants) banc.getState().jetRegler('counterspell', 'declaration', 'pass', p.id);
     } else banc.getState().jetConfirm('cast');
     banc.avancer(2000);
     // Une Maladresse de l'IA déclare son étape à table comme partout (#1426) : la main ne repasse

@@ -153,7 +153,7 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     // Le choix est courant : on JETTE → l'échec de la vague 0 est annulé, et c'est CE choix qui
     // déclenche la construction de la vague 1 (jamais avant : son escalade compterait l'échec annulé).
     expect(current().kind).toBe('exposure-heat-drop');
-    banc.getState().cascadeChoose(current().id, 'jeter');
+    banc.getState().jetRegler('cascade', 'choix', 'jeter', current().id);
     banc.getState().jetConfirm('cascade');
     const wave1 = current();
     expect(wave1.kind).toBe('exposure');

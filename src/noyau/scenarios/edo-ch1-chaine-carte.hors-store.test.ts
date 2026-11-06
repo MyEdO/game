@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc({ etat: { party: makePregens().slice(0, 1
 /** Désigne le sosie (EDO 02 l.91) puis ferme chaque document remis (EDO 02 l.93-95), comme le joueur : la suite du
  *  geste se joue après. */
 const lireLesDocuments = (): void => {
-  if (banc.getState().pendingDesignationHeros) banc.getState().designerHerosChoisir(banc.getState().party[0].id);
+  if (banc.getState().pendingDesignationHeros) banc.getState().fenetreChoisir('designationHeros', 'heros', banc.getState().party[0].id);
   while (banc.getState().document) banc.getState().fenetreFermer('document');
 };
 

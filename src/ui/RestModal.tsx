@@ -6,7 +6,7 @@ import { CharFrame } from './CharFrame';
 import { StateChips } from './StateChips';
 import { Coins } from './Coins';
 import { OptionChooser } from './OptionChooser';
-import { lodgingOptions, foodOptions, restCost, noteDAubergeCouverte, type PendingRest, type RestLodging, type RestFood } from '../noyau/restFlow';
+import { lodgingOptions, foodOptions, nourrituresDeTroupe, restCost, partsDuRepos, noteDAubergeCouverte, type RestLodging, type RestFood } from '../noyau/restFlow';
 import { refusDeLaValidation } from '../noyau/validationDeFenetre';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { exposureTestCount, exposureShelterFromTent } from '../engine/exposure';
@@ -95,12 +95,11 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   // Valeur COMMUNE des followers (sinon aucune sélection maître) — Couchage / Nourriture.
   const commonLodging = followers.length && followers.every((h) => cfgOf(h).lodging === cfgOf(followers[0]).lodging) ? cfgOf(followers[0]).lodging : undefined;
   const commonFood = followers.length && followers.every((h) => cfgOf(h).food === cfgOf(followers[0]).food) ? cfgOf(followers[0]).food : undefined;
-  // Menu de troupe : Couchage = l'offre du lieu (identique pour tous) ; Nourriture = les choix
-  // COLLECTIFS (repas/maison/rien) — la Ration est PERSONNELLE (dépend du sac du héros), hors maître.
-  const masterFood: RestFood[] = [...(p.places.auberge ? ['repas' as const] : []), ...(p.places.maison ? ['maison' as const] : []), 'rien'];
+  // Menu de troupe : Couchage = l'offre du lieu (identique pour tous) ; Nourriture = `nourrituresDeTroupe`.
+  const masterFood = nourrituresDeTroupe(p.places);
   const applyTroupe = (patch: Partial<{ lodging: RestLodging; food: RestFood }>) => { for (const h of followers) restSet(h.id, patch); };
-  // Coût INDIVIDUEL d'un héros (réutilise le calcul canonique `restCost` sur un pending mono-héros).
-  const heroCost = (h: Combatant) => restCost({ ...p, perHero: { [h.id]: cfgOf(h) } } as PendingRest, [h]);
+  // Part de chaque héros dans la note (`partsDuRepos`, dont `restCost` est la somme).
+  const parts = partsDuRepos(p, party);
 
   const reglagesBody = (
     <>
@@ -136,7 +135,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
           const mine = ownsLocal(state, h.id);
           const isOpen = expanded.has(h.id);
           const warns = heroWarnings(h, cfg.lodging, cfg.food, exposureTests);
-          const share = heroCost(h);
+          const share = parts[h.id];
           return (
             <div key={h.id} className="rest-hero">
               <div className="rest-hero-line">

@@ -13,6 +13,7 @@ import { siegeDe } from './sieges';
 import type { ArgumentsDuChoix } from './choixDesFenetres';
 import { pregenParty, PREGEN } from '../data/pregens';
 import { t } from '../i18n';
+import { libelleDeLaFermeture } from './libelles';
 
 /** Coop : l'hôte (siège 0) et un invité (siège 1), un héros chacun. */
 function hoteEtUnInvite(banc: Banc): { a: string; b: string } {
@@ -81,5 +82,30 @@ describe('fenetreChoisir', () => {
     expect(siegeDe(s, modalOwnerOf(s) as string), 'le Destin, à l’invité, tient la main').toBe(1);
     expect([0, 1].filter((siege) => intentAllowedFor(s, siege, 'fenetreChoisir', ['renounce', 'renier', true])), 'la mutation se renie au siège de son héros').toEqual([0]);
     expect([0, 1].filter((siege) => intentAllowedFor(s, siege, 'fenetreChoisir', ['fateSave', 'issue', 'survive'])), 'le Destin, au siège du sien').toEqual([1]);
+  });
+
+  it('la décision de groupe (dialogue, désignation) suit le siège du MONDE : l’hôte, ou le MJ posé', () => {
+    const banc = ouvrirLeBanc();
+    const { a } = hoteEtUnInvite(banc);
+    const decisions: readonly (readonly [Record<string, unknown>, string, unknown[]])[] = [
+      [{ dialogue: { dialogue: { id: 'd', nodes: {} }, nodeId: 'n1', session: 1 } }, 'fenetreChoisir', ['dialogue', 'reponse', 'r1']],
+      [{ pendingDesignationHeros: { etat: 'sosie', suite: [] } }, 'fenetreChoisir', ['designationHeros', 'heros', a]],
+      [{ pendingDesignationHeros: { etat: 'sosie', suite: [] } }, 'fenetreFermer', ['designationHeros']],
+    ];
+    for (const [etat, intent, args] of decisions) {
+      for (const [gmSeat, siege] of [[undefined, 0], [1, 1]] as const) {
+        banc.setState({ dialogue: null, pendingDesignationHeros: null, ...etat, net: { ...banc.getState().net, gmSeat } } as never);
+        expect([0, 1].filter((x) => intentAllowedFor(banc.getState(), x, intent, args)), `${intent} ${String(args[0])}, MJ ${String(gmSeat)}`).toEqual([siege]);
+      }
+    }
+  });
+
+  it('la désignation ne se ferme pas tant qu’un héros vit : la sortie est refusée et dite', () => {
+    const banc = ouvrirLeBanc();
+    hoteEtUnInvite(banc);
+    banc.setState({ pendingDesignationHeros: { etat: 'sosie', suite: [] } } as never);
+    banc.getState().fenetreFermer('designationHeros');
+    expect(banc.getState().journal.slice(-1)[0]).toBe(libelleDeLaFermeture('herosADesigner'));
+    expect(banc.getState().pendingDesignationHeros, 'la désignation reste ouverte').not.toBeNull();
   });
 });

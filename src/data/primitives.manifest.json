@@ -1948,7 +1948,7 @@
     "label": "surfaceTientLaMain/SURFACES_HORS_PENDING",
     "fichier": "src/noyau/modalArbiter.ts",
     "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modaleDuDessus)",
-    "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (chooseDialogue, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
+    "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (choix dialogue.reponse, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
     "verrou": "src/noyau/dialogue-surface-tient-la-main.hors-store.test.ts (un contrat par surface partagée, document partagé en coop compris) ; src/state/dialogue-surface-tient-la-main.test.ts (contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
   },
   {

@@ -216,7 +216,7 @@ describe('Boucle de jeu (store)', () => {
   it('Blessure critique (héros) : « Dévier » sacrifie 1 PA et IGNORE le Critique', () => {
     mkDeviationSetup();
     const dev = joueLaSeverite();
-    banc.getState().cascadeChoose(dev.id, 'devier');
+    banc.getState().jetRegler('cascade', 'choix', 'devier', dev.id);
     banc.getState().jetConfirm('cascade'); // valide le choix → applier 'deviation' → resolveDeviation
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(h.armour.corps).toBe(2);          // 1 PA sacrifiée (LDB 63 l.30-32)
@@ -226,7 +226,7 @@ describe('Boucle de jeu (store)', () => {
   it('Blessure critique (héros) : « Subir » encaisse le Critique (criticalWounds +1, PA intacte)', () => {
     mkDeviationSetup();
     const dev = joueLaSeverite();
-    banc.getState().cascadeChoose(dev.id, 'subir');
+    banc.getState().jetRegler('cascade', 'choix', 'subir', dev.id);
     banc.getState().jetConfirm('cascade');
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(h.criticalWounds ?? 0).toBe(1);   // Coup Critique appliqué (table 18-Traumatisme)
@@ -1035,7 +1035,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().battleDisengage(); // ouvre le menu de choix
     expect(banc.getState().pendingDisengage!.phase).toBe('choice');
     expect(banc.getState().pendingDisengage!.canSacrifice).toBe(true); // Avantage supérieur → option dispo
-    banc.getState().disengageConfirmA(); // « Sacrifier l'Avantage »
+    banc.getState().jetRegler('disengage', 'sacrifier', true); // « Sacrifier l'Avantage »
     st = banc.getState();
     const Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(Ha.advantage).toBe(0); // Avantage sacrifié (l.87)
@@ -1268,7 +1268,7 @@ describe('Boucle de jeu (store)', () => {
       battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     });
-    banc.getState().disengageFlee();
+    banc.getState().jetRegler('disengage', 'fuir', true);
     st = banc.getState();
     let Ea = st.battle!.combatants.find((c) => c.id === E.id)!;
     let Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -3107,10 +3107,10 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
       gameTime: campaignStart(), screen: 'campaign',
       dialogue: { dialogue: { id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [{ id: 'adieu', label: 'Adieu' }] }] }, nodeId: 'n' } as any,
     });
-    banc.getState().chooseDialogue('adieu');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'adieu');
     expect(banc.getState().dialogue).toBeNull();
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.dialogue);
-    banc.getState().chooseDialogue('adieu');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'adieu');
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.dialogue);
   });
 

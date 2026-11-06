@@ -11,7 +11,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * UNE ÉTAPE NOMME CE QU'ON Y JOUE : un verbe d'étape de cascade (`cascadeChoose`, `cascadeAmount`, `jetRoll('cascadeTirage')` et
+ * UNE ÉTAPE NOMME CE QU'ON Y JOUE : un verbe d'étape de cascade (`jetRegler('cascade', 'choix' | 'quantite')`, `jetRoll('cascadeTirage')` et
  * `jetSetForcedRoll('cascadeTirage')`) joué hors de l'étape qu'il sert — un autre `pid` que l'étape courante, ou une
  * interaction autre que celle que l'étape attend (`stepInteraction`) — est refusé par le canal des refus du noyau
  * (`refuserGeste` ; hors combat, le journal) et le refus nomme l'étape attendue. Cas témoin : l'étape de Déviation
@@ -46,7 +46,7 @@ describe('un verbe de cascade joué hors de son étape est refusé en nommant l�
   });
 
   it('le choix avant le tirage de la table : refusé, rien n’est écrit, le refus nomme l’étape et ce qu’elle attend', () => {
-    get().cascadeChoose('deviation', 'devier');
+    get().jetRegler('cascade', 'choix', 'devier', 'deviation');
     expect(courante().chosen).toBeUndefined();
     expect(dernierRefus()).toBe('Geste refusé : l’étape « Blessure critique » (deviation) attend son tirage sur table, pas un choix.');
   });
@@ -61,7 +61,7 @@ describe('un verbe de cascade joué hors de son étape est refusé en nommant l�
     get().jetRoll('cascadeTirage', 'deviation');
     expect(courante().table!.result).toBeTruthy();
     expect(stepInteraction(courante())).toBe('choix');
-    get().cascadeChoose('deviation', 'devier');
+    get().jetRegler('cascade', 'choix', 'devier', 'deviation');
     expect(courante().chosen).toBe('devier');
     expect(get().journal).toEqual([]);
 
@@ -72,7 +72,7 @@ describe('un verbe de cascade joué hors de son étape est refusé en nommant l�
     get().jetSetForcedRoll('cascadeTirage', 77, 'deviation');
     expect(courante()).toMatchObject({ fixed: true, chosen: 'devier', table: { result: { roll: 77 } } });
 
-    get().cascadeChoose('deviation', 'fuir');
+    get().jetRegler('cascade', 'choix', 'fuir', 'deviation');
     expect(courante().chosen).toBe('devier');
     expect(dernierRefus().startsWith('Choix refusé : « fuir » n’est pas une voie de l’étape « Blessure critique » (devier, subir).')).toBe(true);
   });

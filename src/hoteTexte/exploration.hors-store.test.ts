@@ -94,7 +94,7 @@ describe('le groupe en exploration', () => {
     const r = t.jouer(verbe('jetRoll', 'fall', pid));
     expect(r.erreur, r.texte).toBe('regle');
     expect(r.texte.split('\n  ').join(' ')).toMatch(new RegExp(`chaque tombant déclare d’abord s’il tente le Test et s’il se suspend d’abord ; reste à déclarer : [^(]+ \\(${pid}\\)`));
-    expect(t.jouer(verbe('fallChoose', pid, false, false)).erreur).toBeNull();
+    expect(t.jouer(verbe('jetRegler', 'fall', 'suspendre', false, pid), verbe('jetRegler', 'fall', 'tenter', false, pid)).erreur).toBeNull();
     expect(/pid (\S+)\)/.exec(t.lire('vue').texte)?.[1], 'le pid passe au tombant suivant').not.toBe(pid);
   });
 

@@ -122,10 +122,10 @@ describe('bestForTests — meilleur PJ pour des Tests AU CHOIX', () => {
   });
   it('Test de PURE Caractéristique', () => {
     const a = { ...mk({ 'force-mentale': 40 }), id: 'a' }, b = { ...mk({ 'force-mentale': 55 }), id: 'b' };
-    const r = bestForTests([a, b], [{ char: 'force-mentale' }])!;
+    const r = bestForTests([a, b], [{ characteristic: 'force-mentale' }])!;
     expect(r.actor.id).toBe('b');
     expect(r.value).toBe(55);
-    expect(r.test).toEqual({ char: 'force-mentale' });
+    expect(r.test).toEqual({ characteristic: 'force-mentale' });
   });
   it('groupe vide → null', () => {
     expect(bestForTests([], [{ skill: { id: 'perception' } }])).toBeNull();

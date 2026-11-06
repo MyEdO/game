@@ -276,7 +276,7 @@ describe('Mode table — les deux affordances d’une étape à table', () => {
       steps: [{ ...tableStep(T), id: 's1' }, { ...tableStep(T), id: 's2' }],
     });
     render();
-    act(() => { useGame.getState().cascadeResolveAll(); });
+    act(() => { useGame.getState().jetRoll('cascade'); });
     const p = useGame.getState().pendingCascade!;
     expect(p.cursor).toBe(p.participants.length);
     expect(dieInput(), 'un champ au bilan proposerait de re-tirer une conséquence déjà subie').toBeNull();
@@ -603,7 +603,7 @@ describe('BILAN — un tirage joué se VOIT, même sans conséquence écrite (#1
     openTable();
     act(() => { useGame.getState().jetRoll('cascadeTirage', 'tm'); });
     const tire = result()!;
-    act(() => { useGame.getState().cascadeResolveAll(); }); // COMMIT sans fermer → curseur en fin = BILAN
+    act(() => { useGame.getState().jetRoll('cascade'); }); // COMMIT sans fermer → curseur en fin = BILAN
     const casc = useGame.getState().pendingCascade!;
     expect(casc.cursor, 'prémisse : on est bien au bilan').toBe(casc.participants.length);
     expect(casc.participants[0].outcome ?? [], 'prémisse : aucune conséquence écrite').toHaveLength(0);

@@ -314,14 +314,14 @@ export type TestDOption = Pick<FlowTest, 'difficulty'> & ({ skill: RefDesignee; 
 
 /** Ce que désigne le Test d'une option : sa Compétence, sinon sa Caractéristique. PUR. */
 export function designeDe(test: TestDOption): TestDesigne {
-  return test.skill ? { skill: test.skill } : { char: test.characteristic };
+  return test.skill ? { skill: test.skill } : { characteristic: test.characteristic };
 }
 
 /** Difficulté que `def` déclare pour le Test `test` : celle de l'option qui le couvre (`refCouvre` — une
  *  option sans Spécialisation couvre toutes les siennes), sinon celle de l'Activité. Sert la voie qu'un
  *  résolveur DÉRIVE du héros (Savoir de la recherche, arme de l'entraînement). PUR. */
 function difficulteDeclaree(def: Pick<ActivityDef, 'tests' | 'difficulty'>, test: TestDesigne): Difficulty | undefined {
-  const option = def.tests?.find((o) => ('skill' in test ? !!o.skill && refCouvre(o.skill, test.skill) : o.characteristic === test.char));
+  const option = def.tests?.find((o) => ('skill' in test ? !!o.skill && refCouvre(o.skill, test.skill) : o.characteristic === test.characteristic));
   return option ? option.difficulty : def.difficulty;
 }
 
@@ -898,12 +898,17 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
   return [...chars, ...skillOptions.sort((a, b) => parLibelle(a.label, b.label))];
 }
 
-/** Retrait bancaire (LDB 23 l.168-170) : `roll` = le 1d100 du retrait. Planque : seuil de découverte
- *  fixe à 10 (LDB 23 l.170), sauf `rate` positionné (MDG 15 l.292 : 50 pour la Planque liée à une
- *  Carte marine). */
+/** Seuil de perte d'un dépôt au retrait : l'Indice borné à 1-10 pour un investissement (LDB 23 l.168),
+ *  10 pour une planque (LDB 23 l.170), sauf `rate` positionné (MDG 15 l.292 : 50 pour la Planque liée à
+ *  une Carte marine). */
+export function seuilDePerteBancaire(kind: 'invest' | 'stash', rate: number): number {
+  if (kind === 'invest') return Math.max(1, Math.min(10, rate));
+  return rate > 0 ? rate : 10;
+}
+
+/** Retrait bancaire (LDB 23 l.168-170) : `roll` = le 1d100 du retrait, perdu à `seuilDePerteBancaire` ou moins. */
 export function bankWithdrawOutcome(kind: 'invest' | 'stash', rate: number, roll: number): 'ok' | 'lost' {
-  if (kind === 'invest') return roll <= Math.max(1, Math.min(10, rate)) ? 'lost' : 'ok';
-  return roll <= (rate > 0 ? rate : 10) ? 'lost' : 'ok';
+  return roll <= seuilDePerteBancaire(kind, rate) ? 'lost' : 'ok';
 }
 
 /** Somme d'un dépôt récupéré avec intérêts (« les fonds de départ, plus les intérêts générés »,

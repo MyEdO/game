@@ -590,7 +590,7 @@ export function humanizeFlow(f: Flow, etats: readonly EtatDeclare[]): string {
       return f.else ? `${base}${t('codex.flow.sinon', { sinon: humanizeFlow(f.else, etats) })}` : base;
     }
     case 'test': {
-      const who = testSkillLabel({ skill: f.test.skill, char: f.test.characteristic }) ?? t('codex.flow.unTest');
+      const who = testSkillLabel(f.test) ?? t('codex.flow.unTest');
       return t(f.test.opposed ? 'codex.flow.jetOppose' : 'codex.flow.jet', { sujet: deElide(who), ok: humanizeFlow(f.success, etats), ko: humanizeFlow(f.fail, etats) });
     }
     case 'choice': {

@@ -210,7 +210,7 @@ export interface PendingTest {
    *  (via `gainAdvantage`, qui respecte AUSSI le plafond général d'Avantage). Consomme l'Action, réussi
    *  ou non (« Chaque Round que vous passez à… »). Absent = Test ordinaire. */
   combatAdvantage?: { combatantId: string; cap: number };
-  /** Avancée de DIALOGUE différée : quand `chooseDialogue` lance un `choice.flow` qui SUSPEND sur ce
+  /** Avancée de DIALOGUE différée : quand le choix `dialogue.reponse` lance un `choice.flow` qui SUSPEND sur ce
    *  Test, l'avancée (`choice.next` → nœud, ou clôture) est portée ici et appliquée par `jetConfirm('test')`
    *  APRÈS la branche + continuation — sinon le nœud suivant coexiste sous la modale de jet. */
   dialogueNext?: DialogueTransition;
@@ -1520,7 +1520,7 @@ export interface PendingForceDoor extends MultiPending<ForceDoorParticipant> {
 }
 
 /** DÉSIGNATION d'un héros pour l'état de campagne `etat` (Effet `designerHeros`, EDO 02 l.91) : décision
- *  de GROUPE, non annulable, refermée par `designerHerosChoisir` qui rejoue `suite`. `invite` = la prose
+ *  de GROUPE, refermée par son choix (`designationHeros.heros`) ou, sans héros vivant, par sa sortie, qui rejouent `suite`. `invite` = la prose
  *  de l'Effet affichée par la modale. */
 export interface PendingDesignationHeros {
   etat: string;
@@ -1562,9 +1562,9 @@ export interface PendingExtendedTest extends PendingBase {
   label: string; // « Enfoncer la porte »
   skillLabel: string; // « Force » / « Athlétisme » (affichage)
   /** Test lancé en STRUCTURE (Compétence + Spécialisation), lu par l'inversion (Talent, jeton) ; absent :
-   *  Test de la Caractéristique `char`. LDB 12 l.42 */
+   *  Test de la Caractéristique `characteristic`. LDB 12 l.42 */
   skill?: RefDesignee;
-  char?: CharKey;
+  characteristic?: CharKey;
   target: number; // cible effective d'UN Round (difficulté déjà appliquée)
   targetDR: number; // DR CUMULÉ à atteindre (LDB 12 : « une valeur cible »)
   total: number; // DR cumulé courant (dépend des Rounds précédents → c'est ce qui rend le flux SÉQUENTIEL)
@@ -1611,7 +1611,7 @@ export interface OpposedFreeze {
   /** CE QUE TESTE l'attaquant, en STRUCTURE (ids de Compétence/Caractéristique) : le libellé de sa
    *  ligne en est DÉRIVÉ par le rendu (`testSkillLabel`), jamais composé par le flux qui fige le jet —
    *  un flux déclare, le renderer écrit. */
-  test?: { skill?: string; spec?: string; char?: CharKey };
+  test?: { skill?: string; spec?: string; characteristic?: CharKey };
   /** Libellé AUTHORÉ du côté attaquant, quand aucune structure ne peut le porter : une alternative
    *  écrite en donnée (`FlowTest.opposed.attackerLabel`, « Force/Athlétisme ») ou le nom de la
    *  manœuvre affrontée. Lu en second, quand `test` ne rend rien. */
@@ -1684,7 +1684,7 @@ export interface BladeTrapFreeze {
  * clôture qui serait une fonction ne survivrait ni à l'un ni à l'autre.
  */
 export type Cloture =
-  /** Avancée du dialogue (nœud suivant, ou fermeture) — la clôture de `chooseDialogue`/`jetConfirm('test')`. */
+  /** Avancée du dialogue (nœud suivant, ou fermeture) — la clôture du choix `dialogue.reponse`/de `jetConfirm('test')`. */
   | { verbe: 'dialogueSuivant'; transition: DialogueTransition }
   /** Avancée d'horloge d'un verbe (fouille, dialogue) : `advanceTime` (`avancerLHorloge`) en tire
    *  les effets PROGRAMMÉS et les ticks — donc APRÈS le dé, sur des Blessures encaissées. */

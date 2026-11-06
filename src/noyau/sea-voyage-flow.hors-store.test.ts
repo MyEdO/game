@@ -504,7 +504,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
       if (cur?.kind === 'phare') { phare = cur; break; }
       if (cur?.kind === 'progression') progression = cur;
       // Le choix de Progression (MDG 14 l.63) se répond par défaut — voie d'équipage.
-      if (cur?.options && !cur.chosen) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
+      if (cur?.options && !cur.chosen) get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
       else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().jetRoll('cascadeBatch', part.id); }
       else if (cur && !cur.result) get().jetRoll('cascade', cur.id);
       get().jetConfirm('cascade');
@@ -1050,7 +1050,7 @@ describe('Cogue pirate (#327 A5.3) — l’événement navire-hostile PRÉSENTE 
   it('branche PRÉSENTÉE « fuir » (défaut) → Poursuite (mute la crise, aucune perte silencieuse)', () => {
     forceHail();
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
-    get().cascadeChoose(cur.id, 'fuir');
+    get().jetRegler('cascade', 'choix', 'fuir', cur.id);
     get().jetConfirm('cascade');
     expect(get().travelPlan!.sea!.crisis?.kind).toBe('poursuite');
   });
@@ -1058,7 +1058,7 @@ describe('Cogue pirate (#327 A5.3) — l’événement navire-hostile PRÉSENTE 
   it('après « fuir », la conduite du jour REPREND SYNCHRONEMENT (couture `dispatchCascadeDone`, pas de `setTimeout`) → la manche de Poursuite finit par surfacer (#383)', () => {
     forceHail();
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
-    get().cascadeChoose(cur.id, 'fuir');
+    get().jetRegler('cascade', 'choix', 'fuir', cur.id);
     get().jetConfirm('cascade'); // ferme la cascade de choix → dispatchCascadeDone (purpose 'test' + mer) relance runSeaDay
     // Pas de soft-lock : le jour a redémarré SANS attendre un macrotask (la crise reste posée).
     expect(get().travelPlan!.sea!.crisis?.kind).toBe('poursuite');
@@ -1072,7 +1072,7 @@ describe('Cogue pirate (#327 A5.3) — l’événement navire-hostile PRÉSENTE 
     set({ party: makePregens().slice(0, 3).map((h) => ({ ...h, skills: [] })) } as never);
     forceHail();
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
-    get().cascadeChoose(cur.id, 'fuir');
+    get().jetRegler('cascade', 'choix', 'fuir', cur.id);
     get().jetConfirm('cascade'); // → runSeaDay : aucun PJ apte = sous l'effectif minimal → crise résolue au plancher (−2 DR, MDG 14 l.55), pas de lock
     // La manche a JOUÉ : soit la crise s'est résolue (échappée/rattrapée), soit une manche a été jouée
     // ET JOURNALISÉE (`sea.lines`). Au plancher de Manque de bras l'écart peut nier à 0 milles (le navire
@@ -1088,7 +1088,7 @@ describe('Cogue pirate (#327 A5.3) — l’événement navire-hostile PRÉSENTE 
     set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'vin', enc: 30, basePriceGold: 2 }] } } as never);
     forceHail();
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
-    get().cascadeChoose(cur.id, 'soumettre');
+    get().jetRegler('cascade', 'choix', 'soumettre', cur.id);
     get().jetConfirm('cascade');
     expect(get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0)).toBe(0); // cale vidée (piratePillagePct 100 %)
     const p2 = get().pendingCascade;
@@ -2094,8 +2094,8 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
   it.each(PALIERS)('palier « $precip » au monteur canonique : Athlétisme $physique, Perception $manoeuvre, Résistance $autre', ({ precip, physique, manoeuvre, autre }) => {
     const h = get().party[0];
     const ecart = (skill: string, char: 'agilite' | 'initiative' | 'endurance') => {
-      const sec = rollLine({ actor: h, test: { skill, char }, difficulty: 'intermediaire' }).target;
-      return rollLine({ actor: h, test: { skill, char }, difficulty: 'intermediaire', pont: precip }).target - sec;
+      const sec = rollLine({ actor: h, test: { skill, characteristic: char }, difficulty: 'intermediaire' }).target;
+      return rollLine({ actor: h, test: { skill, characteristic: char }, difficulty: 'intermediaire', pont: precip }).target - sec;
     };
     expect(ecart('athletisme', 'agilite')).toBe(physique);
     expect(ecart('perception', 'initiative')).toBe(manoeuvre);
@@ -2461,7 +2461,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
       const p = get().pendingCascade;
       if (!p) break;
       const cur = p.participants[p.cursor];
-      if (cur?.kind === 'sea-progression-choice') { get().cascadeChoose(cur.id, 'nav'); get().jetConfirm('cascade'); break; }
+      if (cur?.kind === 'sea-progression-choice') { get().jetRegler('cascade', 'choix', 'nav', cur.id); get().jetConfirm('cascade'); break; }
       stepCascade();
     }
     const nav = get().pendingCascade!.participants.find((x) => x.kind === 'sea-progression-nav');
@@ -2516,7 +2516,7 @@ describe('Tests d’équipage — enjeu d’EFFET, règle en fiche, choix de Pro
       const p = get().pendingCascade;
       if (!p) break;
       const cur = p.participants[p.cursor];
-      if (cur?.kind === 'sea-progression-choice') { get().cascadeChoose(cur.id, 'nav'); get().jetConfirm('cascade'); break; }
+      if (cur?.kind === 'sea-progression-choice') { get().jetRegler('cascade', 'choix', 'nav', cur.id); get().jetConfirm('cascade'); break; }
       stepCascade();
     }
     const nav = get().pendingCascade!.participants.find((s) => s.kind === 'sea-progression-nav');
@@ -2591,7 +2591,7 @@ describe('Test d’équipage — la chanson de marin est NOMMÉE sur la rangée 
       if (!p) break;
       const cur = p.participants[p.cursor];
       if (cur?.participants?.length) { batch = cur; break; }
-      if (cur?.options && !cur.chosen) { get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key); get().jetConfirm('cascade'); continue; }
+      if (cur?.options && !cur.chosen) { get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id); get().jetConfirm('cascade'); continue; }
       stepCascade();
     }
     expect(batch, 'la journée pose bien un Test d’équipage').toBeTruthy();
@@ -2720,11 +2720,11 @@ describe('journée commandée parquée sur une décision : le PV du jour est ver
   it('la bande résolue à la reprise arrive au PV de la halte', () => {
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'commande' })! });
     const h = get().party[0];
-    const bande = buildBand(get, { id: 'bande-pv', kind: 'orientation', label: fixtureText('Orientation'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne: { test: { skill: 'orientation', char: 'intelligence' } } }] })!;
+    const bande = buildBand(get, { id: 'bande-pv', kind: 'orientation', label: fixtureText('Orientation'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne: { test: { skill: 'orientation', characteristic: 'intelligence' } } }] })!;
     const decision: CascadeStep = { id: 'decision', kind: cleDeFixture('progression-choix-test'), label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
     expect(runCascadeImmediate(get, set, [decision, bande], { title: 'Jour', purpose: 'travelDay', rowSurface: 'pv' })).toBeUndefined();
 
-    get().cascadeChoose('decision', 'a');
+    get().jetRegler('cascade', 'choix', 'a', 'decision');
     get().jetConfirm('cascade');
     for (let i = 0; i < 30 && get().pendingCascade && !get().pendingRest; i++) stepCascade();
     const entrees = get().travelPlan?.log?.slice(-1)[0]?.entries ?? [];
@@ -2862,7 +2862,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
     const pv = get().travelPlan?.log?.slice(-1)[0]?.entries ?? [];
     expect(pv.some((e) => e.id?.startsWith('sea-salissures')), 'le procès-verbal ne recopie pas le dé').toBe(false);
     const navire = get().travelPlan!.vehicle!.label;
-    const libelle = testSkillLabel({ char: 'endurance' })!;
+    const libelle = testSkillLabel({ characteristic: 'endurance' })!;
     const traces = get().journal.filter((x) => x.includes(t('sv.foulingTest')) && x.includes('→'));
     expect(traces, 'le dé du navire a UNE surface : sa trace au journal (#1291)').toHaveLength(1);
     expect(traces[0], 'la trace dit QUI lance (le navire) et QUOI (#1595)').toContain(navire);

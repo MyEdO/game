@@ -10,7 +10,7 @@ import { rollLine } from '../noyau/rollSeam';
 
 /** La ligne figée que l'ouverture pose (`openAppraise`) : le monteur `rollLine` sur la valeur du meneur. */
 const ligneDEvaluation = (valeur: number, actor?: Combatant, soutien?: SupportDetail) =>
-  rollLine({ actor, test: { skill: 'evaluation', char: 'intelligence' }, difficulty: 'intermediaire', valeur, ...(soutien ? { soutien } : {}) });
+  rollLine({ actor, test: { skill: 'evaluation', characteristic: 'intelligence' }, difficulty: 'intermediaire', valeur, ...(soutien ? { soutien } : {}) });
 
 const base: PendingAppraise = {
   actorId: 'h',

@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * runCombatFlow — exécuteur à PILE d'un Flow EN COMBAT, cadence-aware, qui porte la CONTINUATION `after`.
  * Sur un nœud `test` ENFOUI dans un `seq` :
  *  - HÉROS manuel → pousse une étape de cascade `triggeredTest` (influençable) dont le `meta.after` est
- *    le reste du `seq` (le `do` qui suivait) ; `jetRoll('cascade')`+`jetConfirm('cascade')` joue la BRANCHE puis le `do`
+ *    le reste du `seq` (le `do` qui suivait) ; `jetRoll('cascade', id)`+`jetConfirm('cascade')` joue la BRANCHE puis le `do`
  *    de continuation (preuve que `after` est repris) ;
  *  - ENNEMI → jet INLINE + branche + `after`, SANS étape de cascade.
  * Jumeau de `run-flow.hors-store.test` (scène) et de `round-upkeep-cascade.hors-store.test` (cascade).
@@ -152,7 +152,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
    * `runCombatFlow` EN CONTEXTE D'INCANTATION (cascade `jet:'cast'` déjà OUVERTE par openCastCascade,
    * comme pendant un vrai `applyCast`). Le nœud `test` enfoui n'OUVRE PAS une seconde cascade : il
    * APPEND une étape `triggeredTest` à la MÊME cascade `cast` active (preuve « une seule cascade
-   * enrichie »), comme Critique/Maladresse de sort. Sa validation (jetRoll('cascade')+jetConfirm('cascade')) joue la
+   * enrichie »), comme Critique/Maladresse de sort. Sa validation (jetRoll('cascade', id)+jetConfirm('cascade')) joue la
    * branche PUIS la continuation `after` (le `do` final). C'est la machinerie que le Lot 4 utilisera
    * quand un sort portera un nœud Flow `test` ; aucun sort n'en a ENCORE → la voie est juste prête. */
   it('CONTEXTE CAST : test enfoui APPEND à la cascade `cast` ouverte (une seule cascade enrichie)', () => {

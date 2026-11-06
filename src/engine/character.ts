@@ -296,10 +296,18 @@ export interface CreateHeroOptions extends ChoixDeCreation {
 
 const prochainHeros = sequence();
 
+/** Base de la colonne Humain du Tableau des Attributs. LDB 05 l.351-369 */
+export const BASE_HUMAINE = 20;
+
+/** Base d'espèce d'une Caractéristique : sa colonne du Tableau des Attributs, la colonne Humain à défaut. LDB 05 l.351-369 */
+export function baseDEspece(sp: Pick<SpeciesData, 'baseChar'>, k: CharKey): number {
+  return sp.baseChar[k] ?? BASE_HUMAINE;
+}
+
 export function rollCharacteristics(sp: SpeciesData, rng: RNG): Characteristics {
   const chars = {} as Characteristics;
   for (const k of CHAR_KEYS) {
-    const base = sp.baseChar[k] ?? 20;
+    const base = baseDEspece(sp, k);
     chars[k] = base + roll(2, 10, rng);
   }
   return chars;
