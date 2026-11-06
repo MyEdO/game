@@ -23,7 +23,7 @@ import { chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../d
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
 import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, banishNarrationSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
-import { OP_LABEL, opsMissingRefs } from './refsDOp';
+import { OP_LABEL, opsMissingRefs } from '../../data/refsDOp';
 import { opSummary } from './interne/resumeDOp';
 import type { Condition } from '../../engine/flowCore';
 import { TestFields } from './FlowEditor';

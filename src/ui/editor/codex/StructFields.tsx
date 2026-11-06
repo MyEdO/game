@@ -877,7 +877,7 @@ export function HarvestField({ value, onChange }: { value: Harvest | undefined; 
  *    lieu de `false` passe le schéma, passe l'écriture disque, et éteint la règle SANS UN MOT
  *    (`rule(id)` rend une chaîne, qu'aucun `=== true` ne reconnaît). D'où un contrôle PAR `kind` :
  *    interrupteur, nombre borné (`NumberField`, primitive partagée), ou choix parmi `options`.
- *    Le refus au save vit dans `validateEntry` (`CodexEdit.tsx`) : ici on empêche de se tromper,
+ *    Le refus au save vit dans `validateEntry` (`data/atelierDuCodex.ts`) : ici on empêche de se tromper,
  *    là-bas on empêche d'enregistrer une donnée déjà fausse (JSON édité à la main).
  * ──────────────────────────────────────────────────────────────────────────── */
 

@@ -14,7 +14,7 @@ import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
-  skillInstanceLabel, careersForSpecies, findCareerById, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
+  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
@@ -115,23 +115,6 @@ export type CodexGroup = 'Personnage' | 'Compétences' | 'Équipement' | 'Effets
 
 /** Ordre d'affichage des familles (onglets du haut). */
 export const CODEX_GROUPS: CodexGroup[] = ['Personnage', 'Compétences', 'Équipement', 'Effets', 'Magie', 'Monde', 'Tables'];
-
-/**
- * Identité GÉNÉRIQUE d'une entrée de dataset — clé STABLE servant À LA FOIS de `CodexItem.label`
- * (ce que le navigateur passe à l'éditeur) ET de cible du `findIndex` côté `CodexEdit`. Précédence
- * `label → id` : un dataset qui porte un `label` l'expose (maladies, gods, raceAppearance depuis
- * #1467 L1b V-P4…), sinon son `id` fait l'affichage. Mesuré sur les 2 racines (`src/data`, `src/scenes`) : aucune entrée
- * de premier niveau ne porte `key` ni `name` — le dernier porteur de `key` (`calendarPhases`) est
- * passé à `id` en #1467 L1b V-P1.
- * EXCEPTION careerLevels : le libellé de niveau (« Recrue ») revient sur plusieurs carrières et
- * n'identifie rien seul → composite carrière + niveau, identique des deux côtés (l'éditeur réécrit la
- * bonne entrée, plus de collision sur le 1er homonyme).
- */
-export function entryKey(e: Record<string, unknown>): string {
-  if (typeof e.career === 'string' && typeof e.level === 'number')
-    return `${findCareerById(e.career)?.label ?? e.career} · N${e.level} ${e.label ?? ''}`.trim();
-  return String(e.label ?? e.id ?? '');
-}
 
 /** Vue de projection Codex de `SourceRef` (`src/data/schemas/grammaire/valeurs.ts` — SEULE forme à importer,
  *  #563 dette soldée) : `book` y est déjà résolu en ABRÉVIATION affichable (`bookAbr`, cf. `src()`
@@ -1774,7 +1757,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'oups', label: 'codex.fiche.oups', group: 'Tables',
-    // Le `label` EST le texte du résultat (et la clé d'édition `entryKey`) → on le garde tel quel ;
+    // Le `label` EST le texte du résultat → on le garde tel quel ;
     // on enrichit par le TYPE d'effet (kind) en méta.
     build: () => oups.map((o) => {
       const range = 'min' in o ? bandeAuDe('d100', o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
