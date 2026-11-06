@@ -123,7 +123,7 @@ import { combatDistance } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, maladresseCourante, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
+import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS, rangeesADeclarerIci, type CloturesDuJet } from './rollFlowSpecs';
@@ -2047,10 +2047,6 @@ export function createCombatSlice(get: Get, set: Set) {
 
     cascadeChoose: (pid: string, key: string) => setCascadeChoice(get, set, pid, key),
     cascadeAmount: (pid: string, n: number) => setCascadeAmount(get, set, pid, n),
-    // → BILAN (la modale reste ouverte) : rend `null`, rien à router. Rend une cascade FINALISÉE dans le
-    // seul cas où la dernière étape a suspendu la séquence en plein vol (le BILAN n'est pas montrable) —
-    // son dénouement passe alors par le MÊME routage que la validation d'étape et la sortie du bilan.
-    cascadeResolveAll: () => { const done = resolveRemainingCascade(get, set); if (done) dispatchCascadeDone(get, set, done); },
     // Incantation OPPOSÉE (multijet `FLOWS.castOpposition`) : chaque cible oppose son Test ; cible IA
     // = rangée témoin (jet auto-roulé à l'ouverture, cf. openCastOpposition). Mêmes 6 verbes que les autres flux.
     // Préfixe store `opposition` ≠ clé de flux `castOpposition` (handler passé explicitement).

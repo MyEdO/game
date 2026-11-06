@@ -47,13 +47,15 @@ const GESTE_DE_FENETRE: Readonly<Record<string, string>> = { fenetreValider: 'va
 /** Le libellé d'un geste : pour le choix d'une fenêtre, la clé de son axe (`verbe.<fenetre>.<axe>`) ; pour la validation
  *  ou la sortie d'une fenêtre, la clé propre à sa fenêtre (`verbe.<fenetre>.valider`, `verbe.<fenetre>.fermer`) ; pour
  *  le réglage d'un jet, celui du réglage (`libelleDuReglage`) ; pour un verbe de jet, la clé propre à son flux
- *  (`verbe.<flux>.<verbe>`), sinon celle du verbe (`verbe.<verbe>`) ; tout autre geste, celui de son verbe
- *  (`libelleDuVerbe`). */
+ *  (`verbe.<flux>.<verbe>`, `verbe.<flux>.<verbe>All` pour sa rangée omise), sinon celle du verbe (`verbe.<verbe>`) ;
+ *  tout autre geste, celui de son verbe (`libelleDuVerbe`). */
 export function libelleDuGeste(g: GesteDuJeu): string | null {
   if (g.fenetre) return texte(`verbe.${g.fenetre}.${g.axe ?? GESTE_DE_FENETRE[g.verbe]}`);
   if (g.flux && g.reglage) return libelleDuReglage(g.flux, g.reglage);
   const deJet = verbeDeJetDe(g.verbe);
-  return deJet && g.flux ? texte(`verbe.${g.flux}.${deJet}`) ?? texte(`verbe.${deJet}`) : libelleDuVerbe(g.verbe);
+  if (!deJet || !g.flux) return libelleDuVerbe(g.verbe);
+  const verbe = g.toutes ? `${deJet}All` : deJet;
+  return texte(`verbe.${g.flux}.${verbe}`) ?? texte(`verbe.${verbe}`);
 }
 
 const estLocalisation = (v: string): v is keyof typeof HIT_LOCATION_LABELS => Object.prototype.hasOwnProperty.call(HIT_LOCATION_LABELS, v);

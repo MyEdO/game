@@ -23,7 +23,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * si le jeu est configuré pour » — un site n'a aucune classe à choisir, il déclare son dé.
  *
  * Contrats POSITIFS, exercés par les VRAIES coutures du noyau (`jetRoll('cascadeTirage')`/
- * `jetSetForcedRoll('cascadeTirage')`/`jetConfirm('cascade')`/`cascadeResolveAll`) et par le pilote immédiat.
+ * `jetSetForcedRoll('cascadeTirage')`/`jetConfirm('cascade')`/`jetRoll('cascade')`) et par le pilote immédiat.
  */
 describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#1508)', () => {
   const tombes: { roll: number; total: number }[] = [];
@@ -114,7 +114,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
   it('(iv bis) « Tout lancer » résout les `de` restants par le MÊME résolveur', () => {
     banc.getState().seedRng(11);
     startCascade(banc.getState, banc.setState, { title: 'Chute', purpose: 'test', steps: [chute('a'), chute('b')] });
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     expect(tombes).toHaveLength(2);
     for (const t of tombes) { expect(t.roll).toBeGreaterThanOrEqual(2); expect(t.roll).toBeLessThanOrEqual(20); }
   });

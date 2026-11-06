@@ -297,12 +297,12 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           maybeRunEnemyTurn), juste sans les délais de lisibilité (chorégraphie)
  *   __wfrp.advanceSeaDay() → symétrique VOYAGE de `fastForward` : pilote la journée en mer EN COURS
  *                           (cascade du jour, halte de nuit, Activités hebdo…) jusqu'au jour SUIVANT,
- *                           l'arrivée ou un combat — MÊME machinerie que le joueur (cascadeResolveAll/
+ *                           l'arrivée ou un combat — MÊME machinerie que le joueur (`jetRoll('cascade')`/
  *                           Finish, fenetreValider('rest'), seaActivitiesConfirm…), juste sans les clics ;
  *                           advanceSeaDay({stopOnEveryEvent:true}) → s'arrête AUSSI au recap d'un événement
  *                           RACONTÉ (carte-parchemin de `travelDay.events`) — et SEULEMENT là : jamais
  *                           sur une étape STRUCTURELLE du jour (Progression, Orientation, Exposition…),
- *                           que `cascadeResolveAll` traverse aux défauts. Pour observer une étape
+ *                           que `jetRoll('cascade')` traverse aux défauts. Pour observer une étape
  *                           précise : advanceSeaDay({stopAt:'<kind>'}) → s'arrête AVANT de la résoudre
  *                           (ex. stopAt:'sea-progression-choice'), cascade rendue intacte
  *   __wfrp.skipToArrival() → comme `advanceSeaDay` mais ROULE jusqu'à l'ACCOSTAGE (ou interruption)
@@ -447,7 +447,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
             return;
           }
           if (p.cursor < p.participants.length) {
-            s.cascadeResolveAll(); // « Tout lancer » — peut buter sur un CHOIX du joueur (cursor < length)
+            s.jetRoll('cascade'); // « Tout lancer » — peut buter sur un CHOIX du joueur (cursor < length)
             const after = useGame.getState().pendingCascade;
             if (after && after.cursor < after.participants.length) {
               const cur = after.participants[after.cursor];
@@ -1556,7 +1556,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       // draine d'office (sans influence) TOUTE cascade jusqu'à atteindre la victoire, sinon le drive
       // resterait bloqué sur une modale. Borne dure (la reprise 'combat' relance la boucle checkBattleOver).
       for (let guard = 0; useGame.getState().pendingCascade && !useGame.getState().battle?.over && guard < 8; guard++) {
-        useGame.getState().cascadeResolveAll();
+        useGame.getState().jetRoll('cascade');
         if (!refusDeLaSortie(useGame.getState(), 'cascade')) useGame.getState().fenetreFermer('cascade');
         if (!useGame.getState().battle?.over) checkBattleOver(() => useGame.getState(), useGame.setState);
       }
@@ -1603,7 +1603,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *   - Destin/Résilience CRÉDITÉS au héros (≥1 chacun) → les boutons Chance/Résilience sont visibles
      *     dans la modale (preuve que le Test est INFLUENÇABLE avant l'écran de victoire).
      *  Puis tous les ennemis sont mis hors d'action et `checkBattleOver` ouvre la cascade
-     *  (`combatEndBoundary`) AVANT `pendingVictory` — à conduire à la main (jetRoll('cascade')/Next, Chance/
+     *  (`combatEndBoundary`) AVANT `pendingVictory` — à conduire à la main (jetRoll('cascade', id)/Next, Chance/
      *  Résilience), sa fermeture enchaîne sur l'écran de victoire. `corruption` ∈ `EXPOSURE_LADDER` ou false. */
     combatEnd: (opts?: { heroId?: string; critical?: boolean; corruption?: string | false }) => {
       const s = g();

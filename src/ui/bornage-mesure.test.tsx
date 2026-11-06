@@ -172,7 +172,7 @@ describe('rangée de bande à cible au-delà du plafond : l’écrêtage mesuré
     act(() => { g().jetRoll('cascadeBatch', 'H'); });
     nommeLEcretage('plafond', 99);
     // Bilan (« Tout lancer ») : la rangée témoin du pas validé garde sa mesure.
-    act(() => { g().cascadeResolveAll(); });
+    act(() => { g().jetRoll('cascade'); });
     expect(host.textContent).toContain('Bilan');
     nommeLEcretage('plafond', 99);
   });

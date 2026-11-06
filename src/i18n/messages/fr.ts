@@ -182,7 +182,7 @@ export const fr = {
   'verbe.cascadeTirage.roll': 'Lancer le dé',
   'verbe.cascade.confirm': 'Continuer',
   'verbe.cascade.fermer': 'Terminer',
-  'verbe.cascadeResolveAll': 'Tout résoudre',
+  'verbe.cascade.rollAll': 'Tout résoudre',
   'verbe.extendedTest.confirm': 'Round suivant',
   'verbe.surgery.confirm': 'Appliquer la passe',
   'verbe.surgery.cancel': 'Annuler la passe',

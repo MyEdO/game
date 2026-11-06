@@ -187,7 +187,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     const casc = get().pendingCascade!;
     expect(casc.participants).toHaveLength(1);
     set({ pendingCascade: { ...casc, participants: [swimSuccess(casc.participants[0])] } }); // jet POSé (cf. ci-dessus)
-    get().cascadeResolveAll(); // pilote « Tout résoudre » : committe la dernière étape déjà résolue
+    get().jetRoll('cascade'); // pilote « Tout résoudre » : committe la dernière étape déjà résolue
 
     // Le BILAN n'est pas montrable (le slot est passé à la scène d'arrivée) et il ne reste aucune étape :
     // la séquence se FINALISE, elle ne se parque pas.

@@ -774,7 +774,7 @@ function poserLaCourante(get: Get, set: Set, etape: CascadeStep): void {
 }
 
 /** Pose le choix du joueur sur l'étape « choix » COURANTE (`etapeServie`, `key ∈ options`). Analogue de
- *  `jetRoll('cascade')` côté jet : prépare l'étape ; la VALIDATION (conséquence) reste à `advanceCascade`. */
+ *  `jetRoll('cascade', id)` côté jet : prépare l'étape ; la VALIDATION (conséquence) reste à `advanceCascade`. */
 export function setCascadeChoice(get: Get, set: Set, stepId: string, key: string): void {
   const cur = etapeServie(get, set, stepId, 'choix');
   if (!cur) return;
@@ -1748,6 +1748,13 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
   }
   set({ pendingCascade: { ...fondu, participants: steps, seq, cursor: steps.length, log } });
   return null;
+}
+
+/** « Tout résoudre », la rangée omise de `jetRoll('cascade')` (`RollFlowSpec.multi.sansRangee`) : les étapes restantes
+ *  (`resolveRemainingCascade`), puis le dénouement de la séquence qu'elles finalisent (`clotureDeCascade`). */
+export function toutResoudre(get: Get, set: Set): void {
+  const done = resolveRemainingCascade(get, set);
+  if (done) clotureDeCascade(done);
 }
 
 /** « Terminer » du BILAN (curseur en fin) : ferme la cascade et RENVOIE la cascade finalisée (suite

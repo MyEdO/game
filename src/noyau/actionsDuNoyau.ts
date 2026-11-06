@@ -261,14 +261,11 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Pose le héros `heroId` (vivant, du groupe) comme désigné par l'état de `pendingDesignationHeros`, puis
    *  rejoue la suite. Sans `heroId`, ne clôt (sans rien désigner) que si plus aucun héros n'est vivant. */
   designerHerosChoisir: (heroId?: IdDeHeros) => void;
-  /** « Choix » d'une étape de séquence (analogue de jetRoll('cascade') côté jet) : pose l'option retenue. */
+  /** « Choix » d'une étape de séquence (analogue de jetRoll('cascade', id) côté jet) : pose l'option retenue. */
   cascadeChoose: (pid: IdDEtapeDeCascade, key: string) => void;
   /** « Quantité » d'une étape de séquence (jumeau de `cascadeChoose`) : pose le nombre saisi, ramené
    *  à la plage déclarée par l'étape. */
   cascadeAmount: (pid: IdDEtapeDeCascade, n: number) => void;
-  /** « Tout lancer » : résout d'office les étapes restantes (on ne peut pas dé-dormir), puis place le
-   *  curseur EN FIN = BILAN — la modale RESTE ouverte pour voir toutes les conséquences. */
-  cascadeResolveAll: () => void;
   /** Incantation HORS COMBAT (couture D) : un héros lanceur cible self/allié ; sorts non-offensifs. */
   oocCastSpell: (casterId: IdDeCombattant, spellId: string, targetId: IdDeCombattant, fromGrimoire?: boolean) => void;
   battleFocusSpell: (spellId: string) => void;

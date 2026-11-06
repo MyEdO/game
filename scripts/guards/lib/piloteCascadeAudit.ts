@@ -135,8 +135,8 @@ const RAISON_ABANDON_REFUSE = 'le verbe joué est l’abandon que le titre teste
 const RAISON_GESTE_TESTE = 'la boucle porte sur des GRAINES ; le verbe joué est le geste que le titre teste, le confier au kit détruirait le test';
 export const EXEMPTIONS: readonly ExemptionPilote[] = [
   { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:un « Suivant » de trop sur l’étape de défense ne la franchit pas : sa fenêtre reste élue$/, raison: `${RAISON_GESTE_TESTE} (\`jetConfirm('cascade')\`)` },
-  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon$/, raison: `${RAISON_GESTE_TESTE} (\`cascadeResolveAll\`)` },
-  { fichier: 'src/noyau/combat/opposed-base-explicite.hors-store.test.ts', motif: /^it:HÉROS MANUEL : nue haute \+ États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient$/, raison: `${RAISON_GESTE_TESTE} (\`jetRoll('cascade')\`)` },
+  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon$/, raison: `${RAISON_GESTE_TESTE} (\`jetRoll('cascade')\`)` },
+  { fichier: 'src/noyau/combat/opposed-base-explicite.hors-store.test.ts', motif: /^it:HÉROS MANUEL : nue haute \+ États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient$/, raison: `${RAISON_GESTE_TESTE} (\`jetRoll('cascade', id)\`)` },
   { fichier: 'src/noyau/tavern-al-zahr.hors-store.test.ts', motif: /^it:ABANDON en cours de manche \(l\.17\) : FERMÉ « entre deux manches »/, raison: RAISON_ABANDON_REFUSE },
   { fichier: 'src/ui/SequencePanel.test.tsx', motif: /^it:Fléchettes : un CHOIX dû après le jet — fermé, la raison nomme le choix/, raison: RAISON_ABANDON_REFUSE },
 ];

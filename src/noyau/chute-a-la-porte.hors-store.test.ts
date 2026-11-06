@@ -804,7 +804,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       { label: 'Éboulement', chancePct: 100, effects: [{ type: 'fall', target: 'party', metres: 4 }] },
       { label: 'Trouvaille', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-2' }] },
     ], cleDeFixture('terre'));
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     const p = banc.getState().pendingCascade!;
     expect(p.participants.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
     const j = banc.getState().journal;
@@ -858,7 +858,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     const interactif = etatFinal();
 
     monte(deuxChutes, cleDeFixture('terre'));
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     const toutResoudre = etatFinal();
 
     seedBattleRng(3);
@@ -890,7 +890,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       ] },
       { label: 'Jamais joué', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-APRES-ARRET' }] },
     ], SEA_PERIL_INTERRUPT);
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     const apresTroncature = banc.getState().pendingCascade!;
     const seqApres = apresTroncature.seq!;
     expect(apresTroncature.participants.length, 'le tableau a bien RACCOURCI').toBeLessThan(seqApres);

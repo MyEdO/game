@@ -25,8 +25,8 @@ import { VERBES } from './verbes.generated';
 const PARAMETRE_DESIGNE = 'pid';
 
 /** Les paramètres d'un geste (`VERBES`, ceux de son axe pour un réglage de jet ou un choix de fenêtre :
- *  `parametresDeLAxe`), hors la rangée (`pid`) d'un geste de jet qui n'en vise aucune (`viseUneRangee`) ou d'un réglage
- *  de la fenêtre entière. */
+ *  `parametresDeLAxe`), hors la rangée (`pid`) d'un geste de jet qui n'en vise aucune (`viseUneRangee`) ou joue sa
+ *  rangée omise (`toutes`), ou d'un réglage de la fenêtre entière. */
 export function parametresDuGeste(g: GesteDuJeu): readonly ParametreDeVerbe[] {
   if (g.axe) return parametresDeLAxe(VERBE_DE_CHOIX, g.fenetre, g.axe) ?? [];
   if (g.reglage) {
@@ -34,7 +34,7 @@ export function parametresDuGeste(g: GesteDuJeu): readonly ParametreDeVerbe[] {
     return (parametresDeLAxe(VERBE_DE_REGLAGE, g.flux, g.reglage) ?? []).filter((p) => !(deLaFenetre && p.nom === PARAMETRE_DESIGNE));
   }
   const deJet = verbeDeJetDe(g.verbe);
-  const sansRangee = !!deJet && !!g.flux && !viseUneRangee(g.flux, deJet);
+  const sansRangee = !!deJet && !!g.flux && (!!g.toutes || !viseUneRangee(g.flux, deJet));
   return (VERBES[g.verbe] ?? []).filter((p) => !(sansRangee && p.nom === PARAMETRE_DESIGNE));
 }
 

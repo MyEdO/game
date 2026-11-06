@@ -121,7 +121,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
    * LE TABLEAU PROGRESSE ENTRE DEUX MANCHES — déroulé de recette REJOUÉ : Bras de fer contre un
    * adversaire de la salle, manche 1 GAGNÉE (l'op de manche du vainqueur tire : « porte son Avantage
    * à 1 », `NADJ 16 l.34`), puis lecture de la fenêtre de la manche 2. Le dé est LANCÉ par la porte du
-   * jeu (`jetRoll('cascade')`), pas posé : l'issue d'une manche mono passe par l'opposition figée
+   * jeu (`jetRoll('cascade', id)`), pas posé : l'issue d'une manche mono passe par l'opposition figée
    * (`opposedCascadeRoll`), et un résultat posé à la main court-circuiterait justement ce chemin.
    * Ce qu'un cumul vers cible doit montrer, c'est le TOTAL de chaque camp APRÈS la manche close
    * (`LDB 12 l.170-179`) — le socle écrit `seq.cum`, le système le rend, la fenêtre suivante le lit.

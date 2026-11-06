@@ -221,7 +221,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     // tag sur la séquence `purpose:'combat'` en cours).
     banc.setState({ pendingCascade: { ...merged, maneuverResume: { attackerId: E.id, free: true } } });
 
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetRoll('cascade');
     banc.getState().fenetreFermer('cascade'); // « Terminer » → dispatchCascadeDone
 
     // La reprise de tour a joué : la machinerie de tours est RÉ-ARMÉE (jeton d'avance posé) et la pause

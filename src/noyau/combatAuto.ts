@@ -10,7 +10,7 @@
  *  - `MODAL_DEFS.auto` (modalArbiter) pour les modales STANDALONE (frénésie, course, focalisation, Destin…) ;
  *  - `JET_AUTO` (ici) pour les étapes-JET de la `cascade` de COMBAT (attaque/défense/… bespoke) — leur
  *    résolution passe par leur propre flux (`jetRoll(flux)`→`jetConfirm(flux)`, qui fait avancer la cascade), PAS par le
- *    résolveur générique `cascadeResolveAll` (réservé aux jets de NUIT/VOYAGE, qui ont un `target`).
+ *    résolveur générique « tout résoudre » (`jetRoll('cascade')`, réservé aux jets de NUIT/VOYAGE, qui ont un `target`).
  *
  * Module FEUILLE : n'importe RIEN de `combatFlow` ; tout passe par `get().xxx`. INERT tant que la chaîne
  * de reprise (C3/C4) ne l'appelle pas — `cadenceAuto()` est faux par défaut (mode « manuel »).
@@ -98,8 +98,11 @@ const gestesDuFlux = (cle: FlowKey): GesteDuJeu[] => {
   return [...flux.verbs.map((v) => ({ verbe: NOM_DU_VERBE_DE_JET[v], flux: cle })), ...reglagesDuFlux(cle).map((reglage) => ({ verbe: VERBE_DE_REGLAGE, flux: cle, reglage }))];
 };
 
+/** « Tout résoudre » : le jet sans rangée de la cascade, qui résout les étapes restantes et s'arrête sur un choix. */
+export const TOUT_RESOUDRE: GesteDuJeu = { verbe: NOM_DU_VERBE_DE_JET.roll, flux: 'cascade', toutes: true };
+
 /** La navigation de la cascade : valider l'étape (la clôture de son flux), tout résoudre, terminer le bilan (sa sortie). */
-export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: NOM_DU_VERBE_DE_JET.confirm, flux: 'cascade' }, { verbe: 'cascadeResolveAll' }, { verbe: 'fenetreFermer', fenetre: 'cascade' }];
+export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: NOM_DU_VERBE_DE_JET.confirm, flux: 'cascade' }, TOUT_RESOUDRE, { verbe: 'fenetreFermer', fenetre: 'cascade' }];
 
 /** Les gestes `gestes`, chacun une fois (`cleDuGeste`), dans leur premier ordre. */
 const uniques = (gestes: readonly GesteDuJeu[]): GesteDuJeu[] => [...new Map(gestes.map((g) => [cleDuGeste(g), g])).values()];
@@ -318,10 +321,10 @@ function autoResolveCascade(get: Get, set: Set): void {
       get().cascadeChoose(cur.id, cur.defaultChoice);
     }
     // Combat : avancer d'UNE étape (comme le joueur) → les étapes-jet en aval (Maladresse…) gardent leur
-    // driver bespoke au tick suivant, au lieu d'être écrasées par un `cascadeResolveAll` global.
+    // driver bespoke au tick suivant, au lieu d'être écrasées par un « tout résoudre » global.
     if (pc.purpose === 'combat') { get().jetConfirm('cascade'); programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); return; }
   }
-  get().cascadeResolveAll();
+  get().jetRoll('cascade');
   programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); // gérer le bilan / l'étape suivante
 }
 
@@ -336,7 +339,7 @@ function stepAutoResolved(s: Jeu, step: CascadeStep): boolean {
     return !!(w ?? pol.autoDrive); // incantation en Auto
   }
   if (stepInteraction(step) === 'choix') return cadenceAutoCombat() && step.defaultChoice != null; // choix : auto SEULEMENT si un défaut est authoré (sinon décision au joueur, pas de hang)
-  return true; // jet/affichage générique (nuit/voyage) → cascadeResolveAll
+  return true; // jet/affichage générique (nuit/voyage) → tout résoudre (`jetRoll('cascade')`)
 }
 
 /**

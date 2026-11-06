@@ -35,19 +35,20 @@ export type VerbesDeFenetre = readonly (keyof ActionsDuNoyau)[];
  *  une liste vide anonyme ne la vaut pas (`fenetres-nomment-leurs-verbes.hors-store.test.ts`). */
 export const AUCUN_VERBE_DE_JOUEUR: readonly never[] = Object.freeze([]);
 
-/** Un geste d'une fenêtre : un verbe de la partie ; un verbe de jet (`NomDeVerbeDeJet`) nomme le flux qu'il vise, le
- *  réglage d'un jet (`jetRegler`) son flux et son réglage, le choix d'une fenêtre (`fenetreChoisir`) sa fenêtre et son
+/** Un geste d'une fenêtre : un verbe de la partie ; un verbe de jet (`NomDeVerbeDeJet`) nomme le flux qu'il vise, et
+ *  `toutes` quand il joue sa rangée omise sur un flux à plusieurs jets (« Tout résoudre » : `jetRoll('cascade')`) ; le
+ *  réglage d'un jet (`jetRegler`) son flux et son réglage ; le choix d'une fenêtre (`fenetreChoisir`) sa fenêtre et son
  *  axe, la validation (`fenetreValider`) ou la sortie (`fenetreFermer`) d'une fenêtre la fenêtre qu'elle valide ou
  *  ferme. */
-export interface GesteDuJeu { verbe: keyof ActionsDuNoyau; flux?: FlowKey; reglage?: ReglageDuJet; fenetre?: FenetreQuiSeFerme | FenetreAValider | FenetreAChoix; axe?: AxeDuChoix }
+export interface GesteDuJeu { verbe: keyof ActionsDuNoyau; flux?: FlowKey; toutes?: true; reglage?: ReglageDuJet; fenetre?: FenetreQuiSeFerme | FenetreAValider | FenetreAChoix; axe?: AxeDuChoix }
 
-/** L'identité d'un geste dans sa fenêtre : son verbe, et le flux d'un verbe de jet (`jetRoll@attack`), le flux et le
- *  réglage d'un réglage (`jetRegler@attack#arme`), la fenêtre et l'axe d'un choix (`fenetreChoisir@fateSave#issue`) ou
- *  la fenêtre d'une validation ou d'une sortie (`fenetreFermer@council`). */
+/** L'identité d'un geste dans sa fenêtre : son verbe, et le flux d'un verbe de jet (`jetRoll@attack`, `jetRoll@cascade*`
+ *  pour sa rangée omise), le flux et le réglage d'un réglage (`jetRegler@attack#arme`), la fenêtre et l'axe d'un choix
+ *  (`fenetreChoisir@fateSave#issue`) ou la fenêtre d'une validation ou d'une sortie (`fenetreFermer@council`). */
 export const cleDuGeste = (g: GesteDuJeu): string => {
   const cible = g.flux ?? g.fenetre;
   const axe = g.reglage ?? g.axe;
-  return `${g.verbe}${cible ? `@${cible}` : ''}${axe ? `#${axe}` : ''}`;
+  return `${g.verbe}${cible ? `@${cible}` : ''}${g.toutes ? '*' : ''}${axe ? `#${axe}` : ''}`;
 };
 
 /** Qui ferme une fenêtre (`fenetreFermer`) : le siège de son propriétaire (`owner`), l'hôte seul, ou le quorum

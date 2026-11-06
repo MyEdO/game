@@ -256,6 +256,9 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
      *  le dit (`refuserGeste`) et ne fait rien ; une lecture (`reverseAvailable`) n'en écrit rien. Absent : tout slot
      *  se joue. */
     refusDuSlot?: (s: Jeu, pid: string) => string | null;
+    /** Le jet sans rangée de la fenêtre, quand il n'est pas celui de chaque rangée à lancer (`rangeesALancer`) : la
+     *  séquence entière (« Tout résoudre », `cascade`). Absent : chaque rangée à lancer. */
+    sansRangee?: (get: Get, set: Set) => void;
   };
   /** Le jet a-t-il déjà été lancé ? (`slot.result != null` / `slot.roll != null`). */
   rolled: (slot: Slot) => boolean;
@@ -444,10 +447,10 @@ export interface RollFlowHandlers {
   /** Refus du slot `pid` d'un flux multi (`spec.multi.refusDuSlot`), `null` s'il se joue : le texte que TOUT verbe
    *  du slot dit en se refusant (`locate`), lu tel quel par la rangée qui ferme ses gestes. */
   refusDuSlot: (get: Get, pid?: string) => string | null;
-  /** Les rangées d'un flux multi à lancer : sans jet et que le flux ne refuse pas ; `duSiege` (la rangée est son acteur,
-   *  `pidIsActor`), les seules rangées `interactive` que le siège qui décide influence (`influencesLocally`). Le jet
-   *  sans rangée les lance toutes. */
-  rangeesALancer: (get: Get, duSiege: boolean) => string[];
+  /** Le jet sans rangée d'un flux multi : son corps propre (`multi.sansRangee`), sinon chaque rangée à lancer, sans jet
+   *  et que le flux ne refuse pas ; `duSiege` (la rangée est son acteur, `pidIsActor`), les seules rangées `interactive`
+   *  que le siège qui décide influence (`influencesLocally`). */
+  lancerSansRangee: (get: Get, set: Set, duSiege: boolean) => void;
   /** ACTEUR du slot visé — celui que les verbes d'influence DÉBITENT (`spec.actor`, l'entrée de
    *  `opReroll`/`opBonusSL`/`opForceSuccess`/`opDarkPact`). Accesseur PUR en LECTURE SEULE, même
    *  patron que `slotOf` ci-dessus (extraction de `locate` sans son `commit`). Il ouvre le PORTEUR
@@ -834,14 +837,16 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       return (pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0]) ?? null;
     },
     refusDuSlot: (get, pid) => (pid != null ? spec.multi?.refusDuSlot?.(get(), pid) ?? null : null),
-    rangeesALancer(get, duSiege) {
+    lancerSansRangee(get, set, duSiege) {
       const s = get(); const p = pendingOf(s);
-      if (!p || !spec.multi) return [];
+      if (!p || !spec.multi) return;
       const multi = spec.multi;
-      return multi.slots(p)
+      if (multi.sansRangee) { multi.sansRangee(get, set); return; }
+      const aLancer = multi.slots(p)
         .filter((slot) => !spec.rolled(slot) && (!duSiege || (!!(slot as { interactive?: boolean }).interactive && influencesLocally(s, multi.idOf(slot)))))
         .map((slot) => multi.idOf(slot))
         .filter((id) => !multi.refusDuSlot?.(s, id));
+      for (const id of aLancer) handlers.roll(get, set, id);
     },
     // GOULOT d'acquittement des flux à fenêtre : l'issue est DÉRIVÉE de la déclaration du flux
     // (`spec.issue`), jamais composée au site. La LIGNE DE DÉ n'y est pas ré-émise : la fenêtre l'a

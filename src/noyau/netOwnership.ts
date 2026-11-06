@@ -280,7 +280,7 @@ export function seatInfluences(s: Jeu, seat: number, ownerId: string | undefined
  * unique). Distinct de `ownsLocal` (vrai pour TOUS en solo : un gate bâti dessus laisse le joueur
  * dépenser la Résilience d'un ENNEMI) et de `rolledLocally` (calendrier de MASQUAGE, #990).
  * « Local » = le siège qui DÉCIDE maintenant (`decidingSeat`, patron `ownsLocal`) : pendant
- * l'application d'un intent, c'est le siège AGISSANT : le jet sans rangée d'un flux multi (`rangeesALancer`) roule,
+ * l'application d'un intent, c'est le siège AGISSANT : le jet sans rangée d'un flux multi (`lancerSansRangee`) roule,
  * chez l'hôte, les rangées de l'invité émetteur. Hors application d'intent (rendu), `actingSeat` est nul.
  */
 export function influencesLocally(s: Jeu, ownerId: string | undefined): boolean {
@@ -445,7 +445,7 @@ const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => 
  *  - Résistance et inversion d'une étape de `cascade` : l'acteur de l'étape (`acteurDEtape`) ;
  *  - flux MULTI dont la rangée porte SON acteur (`pidIsActor`) : le propriétaire de ce combattant ; le jet sans
  *    rangée (« Tout lancer », `rangeeFacultative`) : tout siège, il ne lance que les rangées du siège qui agit
- *    (`rangeesALancer`, `influencesLocally`) ; un verbe de
+ *    (`lancerSansRangee`, `influencesLocally`) ; un verbe de
  *    fenêtre (`estVerbeDeFenetre` : l'annulation et la clôture, qui agissent pour TOUS), et les flux dont la rangée n'a
  *    pas d'acteur propre (Round, étape, dé) retombent sur le repli universel (le owner de LEUR modale).
  */

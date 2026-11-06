@@ -107,8 +107,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // déclare (`CHOIX_DES_FENETRES`) ; le choix de l'hôte se refuse dans l'état d'un invité (`refusDuChoix`).
   fenetreChoisir: 'invité',
   // Cascade séquentielle (jets de nuit / voyage influençables) : choix / SAISIE d'une quantité
-  // (#1279 Sf, jumeau du choix) / tout résoudre ; valider l'étape est la clôture de son flux (`jetConfirm('cascade')`).
-  cascadeResolveAll: 'invité',
+  // (#1279 Sf, jumeau du choix) ; tout résoudre est le jet sans rangée (`jetRoll('cascade')`), valider l'étape la
+  // clôture de son flux (`jetConfirm('cascade')`).
   cascadeChoose: 'invité', cascadeAmount: 'invité',
   // désengagement : Sacrifier l'Avantage, fuir
   disengageConfirmA: 'invité',

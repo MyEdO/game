@@ -46,7 +46,7 @@ import { d100 } from '../engine/dice';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady } from './cascade';
+import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, toutResoudre, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady } from './cascade';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
@@ -322,7 +322,7 @@ export function creerVerbesDeJet(get: Get, set: Set, clotures: CloturesDuJet): V
   return {
     jetRoll: (flux, pid) => jouer('roll', flux, pid, (h, f, rangee) => {
       if (rangee !== undefined || !rangeeFacultative(f, 'roll')) h.roll(get, set, rangee);
-      else for (const id of h.rangeesALancer(get, FLOW_VERBS[f].kind === 'multi' && FLOW_VERBS[f].pidIsActor)) h.roll(get, set, id);
+      else h.lancerSansRangee(get, set, FLOW_VERBS[f].kind === 'multi' && FLOW_VERBS[f].pidIsActor);
     }),
     jetReroll: simple('reroll'),
     jetBonusSL: simple('bonusSL'),
@@ -1243,7 +1243,7 @@ export const FLOWS = paresseux({
     key: 'pendingCascade',
     clotures: { confirm: 'toujours' },
     cloture: fermetureDeLEtape,
-    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape },
+    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape, sansRangee: toutResoudre },
     rolled: (st) => !!st.result,
     actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
     // ACCESSEUR DE DÉ de l'étape (une étape sans jet — `target` nul — n'en a pas). En Test OPPOSÉ,
