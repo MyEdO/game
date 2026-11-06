@@ -32,7 +32,7 @@ export const HAUTEURS = [
 const TOUS_LES_CALQUES: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 
 /** Les outils que l'éditeur offre. */
-export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' }>;
+export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'erase' }>;
 
 /** Ce que l'inspecteur écrit sur l'arête sélectionnée (`patchWall`) : chaque champ posé, `null` le retire. */
 export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z'>]?: WallSeg[K] | null };
