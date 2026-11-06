@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
+  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
@@ -194,6 +194,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
       qui: nom(defense.defenseurId), libelle: defense.test, cible: t('ecran.jet.cible', { cible: defense.jet.target }), modificateurs: puces('defense/jet', defense.jet.mods),
       detail: detailDuJet({ ...defense.jet, paliers: defense.jet.difficultyParts }),
     })] : []),
+    ...patientDuSoin(etat),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
@@ -201,6 +202,12 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...victoire(etat),
     ...texteDuDocument(etat),
   ];
+}
+
+/** Le patient du soin en attente (`fenetreDuSoin`) ; le soigneur est celui qui tient la fenêtre et jette. */
+function patientDuSoin(etat: Jeu): Element[] {
+  const f = fenetreDuSoin(etat);
+  return f ? [ligne('soin', t('ecran.soin.patient', { patient: garanti(porteurParId(etat, f.patientId), f.patientId, 'patient du soin').label }))] : [];
 }
 
 /** Le texte du document remis (`documentEnVue`) ; son titre est celui de la fenêtre. */

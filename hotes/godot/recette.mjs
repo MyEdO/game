@@ -32,6 +32,9 @@
 // - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement, la liste des sorts de la Haute
 //   Sorcière ouverte, Fléchette choisie au clavier, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
 //   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
+// - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement, les tours passent jusqu'à Grunni, son offre
+//   « Soigner » cliquée puis son patient : la fenêtre du soin nomme le patient, l'acte et le Test en choix ; le jet à
+//   l'Entrée.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
 //   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
@@ -531,6 +534,53 @@ async function parcoursIncantation() {
   await attendreLaVue("v.zones['fenetre.titre'][0]?.texte !== 'Incantation'")
   noter('« Appliquer » : la fenêtre d’incantation se referme')
   await capturer('3328-j1-6-appliquee')
+}
+
+async function parcoursSoin() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  const viderLesFenetres = async () => {
+    for (let v = await vue(); v.projection.fenetre; v = await vue()) {
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  await viderLesFenetres()
+  await cliquerCase({ x: 16, y: 11 })
+  await attendreLaVue('!!v.projection.combat')
+  await viderLesFenetres()
+  /** La main à un héros : sa barre offre la fin du tour, toute fenêtre vidée. */
+  const aUnHeros = async () => {
+    for (;;) {
+      await attendreLaVue("!!v.projection.fenetre || v.zones['combat.offres'].flatMap((c) => c.valeurs).some((b) => b.id === 'end-turn')", 120000)
+      if (!(await vue()).projection.fenetre) return
+      await viderLesFenetres()
+    }
+  }
+  for (let tours = 0; (await aUnHeros(), zone(await vue(), 'combat.actif')[0]?.nom !== 'Grunni Pierre-de-Fer'); tours++) {
+    assert.ok(tours < 5, `Grunni prend la main : ${zone(await vue(), 'combat.actif')[0]?.nom}`)
+    await finirLeTour()
+  }
+  let v = await vue()
+  const soigner = offre(v, 'heal')
+  assert.ok(soigner && !soigner.refus, `Grunni soigne : ${JSON.stringify(soigner)}`)
+  await cliquerBouton(bouton(soigner))
+  v = await vue()
+  const patient = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
+  noter(`« Soigner » : intention ${JSON.stringify(v.projection.combat.intention)}, patients ${v.projection.combat.cibles.liste.join(', ')} ; ${patient.nom} en ${patient.pos}`)
+  await cliquerCase({ x: patient.pos[0], y: patient.pos[1] })
+  noter(`clic : fenêtre ${JSON.stringify((await vue()).projection.fenetre?.cle ?? null)}`)
+  await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.id === 'soin')")
+  v = await vue()
+  noter(`clic sur ${patient.nom} : ${corps(v)} ; réglages ${zone(v, 'fenetre.reglages').map((c) => c.libelle).join(' | ')}`)
+  await capturer('3328-k1-1-soin')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  v = await vue()
+  noter(`jet à l'Entrée : ${corps(v)}`)
+  await capturer('3328-k1-2-jet')
 }
 
 async function parcoursFiche() {
@@ -1236,7 +1286,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

@@ -473,6 +473,7 @@ export const fr = {
   'ecran.jet.echec': 'échec',
   'ecran.defense.qui': '{attaquant} attaque {defenseur} avec {arme}',
   'ecran.drNet': 'DR net {dr}',
+  'ecran.soin.patient': 'Patient : {patient}',
   'ecran.incantation.sort': '{sort} sur {cible}',
   'ecran.incantation.surSoi': 'soi-même',
   'ecran.incantation.zone': 'Zone',
