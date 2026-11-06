@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { buildOperaFloorplan, OPERA_WALL_LEGEND } from '../../scenes/opera/floorplan';
 import { heightAt } from '../../noyau/monde/scene';
 import { buildWalls } from './walls';
-import { buildRoofs, clearedSpace } from './roofs';
+import { buildRoofs, clearedSpace } from '../../noyau/monde/volume/toits';
 
 /**
  * Le théâtre est un CORPS architectural (`MapSpec.architecture`) : la loi de dégagement (`clearedSpace`,
- * `roofs.ts`) y trouve, autour d'un allié, la pièce qu'il occupe et la couche d'étage qui le coiffe (#1771).
+ * `noyau/monde/volume/toits.ts`) y trouve, autour d'un allié, la pièce qu'il occupe et la couche d'étage qui le coiffe (#1771).
  * La géométrie du plan : `scenes/opera/floorplan.test.ts`.
  */
 describe('plan de l’Opéra — corps architectural et loi de dégagement', () => {
@@ -38,7 +38,7 @@ describe('plan de l’Opéra — corps architectural et loi de dégagement', () 
  * `plain`, y compris les arêtes de l'étage assises en hauteur.
  *
  * La garde porte sur les ÉLÉMENTS RENDUS, jamais sur `scene.walls`, et sa population est TOUT ce dont
- * la matière sort de la loi d'apparence d'arête (`edgeAppearance`, `gameIso/builders/roofs.ts`) :
+ * la matière sort de la loi d'apparence d'arête (`edgeAppearance`, `noyau/monde/volume/structures`) :
  *  - `buildWalls` — les ARÊTES `wall:` (`wallGeometry`) et les COUTURES de nappes `seam:`
  *    (`roofSeamGeometry` → `closureAppearance`), matière lue sur `el.appearance` ;
  *  - `buildRoofs` — les PIGNONS de comble, `kind:'roof'` (`gableEnds` → `closureAppearance`), dont la

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { buildWalls } from './walls';
 import type { WallEl } from './types';
-import { WALL_H_M, isoPxToM } from '../iso';
+import { WALL_H_M, isoPxToM } from '../../noyau/monde/iso';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
-import { structureAppearance } from '../catalog/structures';
+import { structureAppearance } from '../../noyau/monde/volume/structures';
 import { emptyScene, setDoorRevealed, setStructureDown, wallEnds, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../noyau/monde/scene';
 import { buildScene } from '../../noyau/mapSpec';
 

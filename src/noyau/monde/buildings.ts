@@ -19,7 +19,7 @@
  * Le CUTAWAY, plus bas, est l'autre moitié du domaine : la structure réelle d'un bâtiment est faite de
  * murs d'arête (`WallSeg`, destructibles via `structure`) sur un sol de terrain — la walkability et la
  * vue passent par le terrain + `wallBetween` (plus aucune empreinte de bâtiment). Ne subsiste que le
- * RENDU du toit (masses de `ArchitectureBody`, `gameIso/builders/roofs.ts`), qui se lève en cutaway
+ * RENDU du toit (masses de `ArchitectureBody`, `noyau/monde/volume/toits.ts`), qui se lève en cutaway
  * quand un allié entre dans l'empreinte.
  */
 import { buildings } from '../../data/index';

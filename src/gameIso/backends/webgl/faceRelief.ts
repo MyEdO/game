@@ -8,11 +8,11 @@
  * `worldTris.ts` reste PUR et sans catalogue : il reçoit cette profondeur en paramètre et ne décide que
  * de la FORME du volume (boîte centrée sur le plan médian, croix d'un montant).
  */
-import { facadeStructureAppearance } from '../../catalog/structures';
-import { wallPartDepthM } from '../../catalog/structures';
+import { facadeStructureAppearance } from '../../../noyau/monde/volume/structures';
+import { wallPartDepthM } from '../../../noyau/monde/volume/structures';
 import { largeurDUnMontant, wallMatterM } from '../../../noyau/monde/volume/montants';
 import type { WallPart } from '../../../data/structureAppearance.types';
-import { roofFasciaThickM, roofMaterial } from '../../catalog/roofs';
+import { roofFasciaThickM, roofMaterial } from '../../../noyau/monde/volume/matieres';
 import type { FaceDepth } from '../../../noyau/monde/volume/worldTris';
 import type { Face } from '../../../noyau/monde/volume/types';
 
@@ -22,7 +22,7 @@ import type { Face } from '../../../noyau/monde/volume/types';
  *  ce même canal — c'est sa seule dimension libre.
  *
  *  Restent PLATS, et c'est leur morphologie qui le dit — pas une dette :
- *  — `roof:soffite` (`builders/roofs.ts`) : plan OBLIQUE **coplanaire au pan** qu'il prolonge ; lui
+ *  — `roof:soffite` (`noyau/monde/volume/toits.ts`) : plan OBLIQUE **coplanaire au pan** qu'il prolonge ; lui
  *    donner une épaisseur le décollerait de la couverture qu'il continue ;
  *  — `terrain:wedge` (`noyau/monde/volume/floors.ts`) : plan HORIZONTAL de raccord entre deux nappes — aucun
  *    chant à éclairer, et `faceQuadsOriented` ne volumise que les plans VERTICAUX ;

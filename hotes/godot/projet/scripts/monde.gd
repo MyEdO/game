@@ -3,7 +3,8 @@
 ## et la caméra pivotante (Q/E, par quart de tour) et zoomable (molette) centrée sur lui. Il rend la case du triangle que
 ## le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
 ## surbrillance que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes (`KIT`) que
-## l'arête nomme, et l'arête choisie ; tout autre chose posée sur le monde appartient à qui l'instancie.
+## l'arête nomme, l'arête choisie, et les nappes de toit, chacune levée quand le groupe est dessous ; tout autre chose
+## posée sur le monde appartient à qui l'instancie.
 class_name Monde
 extends Node3D
 
@@ -36,6 +37,7 @@ const KIT := "res://kit/kit.glb"
 @onready var _volume: Node3D = $Volume
 @onready var _maillage: MeshInstance3D = $Volume/Maillage
 @onready var _forme: CollisionShape3D = $Volume/Corps/Forme
+@onready var _toits: Node3D = $Volume/Toits
 @onready var _pivot: Node3D = $Pivot
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
 @onready var _surbrillance: Node3D = $Surbrillance
@@ -76,20 +78,8 @@ func poser(monde: Dictionary) -> void:
 	var echelle := MiseEnPage.echelle_metrique(monde.metresParCase)
 	_volume.scale = Vector3(echelle, echelle, echelle)
 	_volume.position = MiseEnPage.centre_de_case(Vector2i.ZERO, 0.0)
+	_maillage.mesh = _maillage_de(monde)
 	var sommets := PackedFloat32Array(monde.positions).to_byte_array().to_vector3_array()
-	var normales := PackedFloat32Array(monde.normales).to_byte_array().to_vector3_array()
-	var couleurs := PackedFloat32Array(monde.couleurs).to_byte_array().to_color_array()
-	var maillage := ArrayMesh.new()
-	for indice in monde.surfaces.size():
-		var surface: Dictionary = monde.surfaces[indice]
-		var tableaux := []
-		tableaux.resize(Mesh.ARRAY_MAX)
-		tableaux[Mesh.ARRAY_VERTEX] = _retournes(sommets.slice(int(surface.debut), int(surface.fin)))
-		tableaux[Mesh.ARRAY_NORMAL] = _retournes(normales.slice(int(surface.debut), int(surface.fin)))
-		tableaux[Mesh.ARRAY_COLOR] = _retournes(couleurs.slice(int(surface.debut), int(surface.fin)))
-		maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
-		maillage.surface_set_material(indice, _matiere(surface.matiere))
-	_maillage.mesh = maillage
 	sommets.reverse()
 	_cases_des_triangles = monde.cases.duplicate()
 	_cases_des_triangles.reverse()
@@ -103,7 +93,45 @@ func poser(monde: Dictionary) -> void:
 	_pivot.position = MiseEnPage.centre_du_plateau(taille())
 
 
-## `tableau` retourné en entier : chaque triangle change de sens (`poser`).
+## Les nappes de toit de la scène (`toits`, `CONTRAT.md`, section « Monde »), chacune son maillage sous le volume, à la
+## place des précédentes ; le rayon du pointeur les traverse.
+func poser_les_toits(toits: Array) -> void:
+	for nappe in _toits.get_children():
+		_toits.remove_child(nappe)
+		nappe.free()
+	for nappe in toits:
+		var instance := MeshInstance3D.new()
+		instance.mesh = _maillage_de(nappe)
+		instance.set_meta("cle", nappe.cle)
+		_toits.add_child(instance)
+
+
+## Chaque nappe de toit posée cachée si `cles` la nomme (`plateau.toitsLeves`), montrée sinon.
+func lever_les_toits(cles: Array) -> void:
+	for nappe in _toits.get_children():
+		nappe.visible = not cles.has(nappe.get_meta("cle"))
+
+
+## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `surfaces`) : une surface par matière,
+## texturée ou colorée par sommet (`_matiere`), chaque tableau retourné en entier (`_retournes`).
+func _maillage_de(geometrie: Dictionary) -> ArrayMesh:
+	var sommets := PackedFloat32Array(geometrie.positions).to_byte_array().to_vector3_array()
+	var normales := PackedFloat32Array(geometrie.normales).to_byte_array().to_vector3_array()
+	var couleurs := PackedFloat32Array(geometrie.couleurs).to_byte_array().to_color_array()
+	var maillage := ArrayMesh.new()
+	for indice in geometrie.surfaces.size():
+		var surface: Dictionary = geometrie.surfaces[indice]
+		var tableaux := []
+		tableaux.resize(Mesh.ARRAY_MAX)
+		tableaux[Mesh.ARRAY_VERTEX] = _retournes(sommets.slice(int(surface.debut), int(surface.fin)))
+		tableaux[Mesh.ARRAY_NORMAL] = _retournes(normales.slice(int(surface.debut), int(surface.fin)))
+		tableaux[Mesh.ARRAY_COLOR] = _retournes(couleurs.slice(int(surface.debut), int(surface.fin)))
+		maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
+		maillage.surface_set_material(indice, _matiere(surface.matiere))
+	return maillage
+
+
+## `tableau` retourné en entier : chaque triangle change de sens (`_maillage_de`).
 func _retournes(tableau: Variant) -> Variant:
 	tableau.reverse()
 	return tableau

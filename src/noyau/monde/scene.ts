@@ -284,7 +284,7 @@ export interface Scene {
    *  places assises, divisées par elle (`noyau/monde/volume/propVolumes.ts`, `noyau/monde/seating.ts`, #1507) ; le rayon
    *  des sources de lumière (`rayonEnCases`, `noyau/monde/vision.ts`) ; et, du côté du RENDU, la cadence de la
    *  cuisson (`gpToWorld`, `noyau/monde/volume/worldTris.ts`), la pente des toits (`resolveMass`,
-   *  `builders/roofs.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `noyau/sceneEdit.ts`). */
+   *  `noyau/monde/volume/toits.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `noyau/sceneEdit.ts`). */
   metresPerTile?: number;
   /** Décor : 'interieur' (éclairé en permanence, l'horloge ne l'assombrit pas) vs 'exterieur'
    *  (jour/nuit = horloge). Absent = extérieur. */

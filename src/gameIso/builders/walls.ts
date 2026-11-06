@@ -16,18 +16,18 @@ import { memoByRef } from '../../noyau/monde/sceneMemo';
 import { estAbsent } from '../../noyau/monde/terrain';
 import { viewedBuilder, type Viewed } from '../../noyau/monde/volume/viewTruth';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
-import { structureAppearance } from '../catalog/structures';
+import { edgeAppearance, structureAppearance } from '../../noyau/monde/volume/structures';
 import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
 import { edgeKey, facadeEdges, facadeWallFeatureAppearance, type FacadeEdge } from '../../noyau/monde/facades';
-import { WALL_H_M, isoPxToM } from '../iso';
+import { WALL_H_M, isoPxToM } from '../../noyau/monde/iso';
 import { METRES_PER_LEVEL, gradeBetween } from '../../noyau/monde/relief';
 import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
 import type { WallEl } from './types';
 import type { Face, GP } from '../../noyau/monde/volume/types';
 import type { FloorView } from '../../noyau/monde/volume/floors';
 import {
-  closureAppearance, edgeAppearance, fieldHeightAt, massSpaceCells, nappeKey, resolveNappes, WALL_NB, type RoofField,
-} from './roofs';
+  closureAppearance, fieldHeightAt, massSpaceCells, nappeKey, resolveNappes, WALL_NB, type RoofField,
+} from '../../noyau/monde/volume/toits';
 import { massFootprintCells } from '../../noyau/monde/buildings';
 
 // ── Constantes de FORME (fractions de WALL_H / de l'arête, épaisseurs px-iso converties en mètres) ──
@@ -219,7 +219,7 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
   ];
 }
 
-/** Case VOISINE de l'autre côté de l'arête — SOURCE UNIQUE `WALL_NB` (`builders/roofs.ts`), partagée
+/** Case VOISINE de l'autre côté de l'arête — SOURCE UNIQUE `WALL_NB` (`noyau/monde/volume/toits.ts`), partagée
  *  avec l'indexation des murs que lisent les fermetures de comble. */
 const NB = WALL_NB;
 

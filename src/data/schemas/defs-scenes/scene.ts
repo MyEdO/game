@@ -360,7 +360,7 @@ export const sceneRoofDefaultsSchema = nommerChamps(z.strictObject({
 /** `Scene.roofDefaults` — matière, pente de référence et borne de comble de la scène (#1715). */
 export type SceneRoofDefaults = z.infer<typeof sceneRoofDefaultsSchema>;
 /** MASSE de bâtiment (#823, remplace `RoofSection` authoré à la main) : l'INTENTION, jamais la
- *  géométrie du toit — `gameIso/builders/roofs.ts` DÉRIVE pans/faîte/noues/croupes par une formule
+ *  géométrie du toit — `noyau/monde/volume/toits.ts` DÉRIVE pans/faîte/noues/croupes par une formule
  *  UNIQUE (`hauteur(case) = hauteurÉgout + distance(case, bord de la masse) × métresParCase ×
  *  tan(pente)`), et `roomZoneIds` par intersection avec `Scene.effectZones` (plus de redistribution
  *  manuelle). `z` = étage du PLANCHER SOMMET couvert par le toit (le dessous immédiat de la masse) ;
@@ -763,7 +763,7 @@ export const wallSegSchema = nommerChamps(z.strictObject({
 /**
  * UNE arête, UN segment — verrou AU PARSE (#1624). L'index d'arêtes (`noyau/monde/wallIndex.ts`) est la
  * seule lecture de « quels segments tiennent cette arête ? », et ses consommateurs prennent le
- * PREMIER (`aretesA(...)[0]`, composé par `gameIso/builders/roofs.ts`) : un second segment sur la
+ * PREMIER (`aretesA(...)[0]`, composé par `noyau/monde/volume/toits.ts`) : un second segment sur la
  * même clé `x,y,side,z` serait une donnée MUETTE, jamais rendue ni lue. `setEdgeWall`
  * (`noyau/sceneEdit.ts`) dédoublonne à la pose, mais l'authoring littéral, `asciiMap` et les
  * documents relus par la porte (`parseProject`, `parseSceneDeProjet`, `noyau/worldMap.ts`) ne passent

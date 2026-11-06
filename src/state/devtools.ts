@@ -905,7 +905,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  — `stage/MondeDeCampagne.tsx` ne filtre `el.cell.z !== activeZ` que sous `planVue`
      *  (= `viewPolicy.etageIsole`, vrai pour le seul regard du dessus, `stage/viewPolicy.ts`). En vue
      *  ISO, les deux couches se peignent et c'est la loi de dégagement (`clearedSpace`,
-     *  `builders/roofs.ts`) qui découvre ce qui abrite le groupe : `viewLevel` n'y change RIEN au monde
+     *  `noyau/monde/volume/toits.ts`) qui découvre ce qui abrite le groupe : `viewLevel` n'y change RIEN au monde
      *  peint. Il reste partout l'étage que le PICKING résout par défaut (`etageActif`). */
     viewLevel: (z?: number | null) => {
       if (z === undefined) return { override: getViewZ(), note: 'null = auto (suit le groupe)' };

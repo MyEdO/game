@@ -25,26 +25,22 @@
  * une croupe (`hip`) n'en a aucune, ses rampants rejoignent déjà chaque bord. Ce sont des
  * pièces de la NAPPE — même `rule` de dégagement que ses pans, donc jamais un pignon qui reste quand
  * son toit part — dont la MATIÈRE est celle du MUR qu'elles prolongent (`closureAppearance`, face
- * `domain:'structure'`). C'est pourquoi ce module tient aussi l'apparence d'arête (`edgeAppearance`) et le
- * voisinage d'arête (`WALL_NB`), SOURCE UNIQUE relue par `walls.ts` ; l'index des façades authorées est au noyau
- * (`noyau/monde/facades`).
+ * `domain:'structure'`), lue à l'apparence d'arête du noyau (`apparenceDArete`, `../facades`). Ce module tient
+ * aussi le voisinage d'arête (`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
  */
-import { heightAt, sceneMetresPerTile, type ArchitectureBody, type BuildingMass, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
-import { memoByRef } from '../../noyau/monde/sceneMemo';
-import { aretesA } from '../../noyau/monde/wallIndex';
-import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../noyau/sceneEdit';
-import { roofMaterial } from '../catalog/roofs';
-import { buildingsMeta, massFootprintCells } from '../../noyau/monde/buildings';
-import { edgeKey, facadeEdges, facadeRegit, facadeWallFeatureAppearance, type FacadeEdge } from '../../noyau/monde/facades';
-import { facadeStructureAppearance, wallApp } from '../catalog/structures';
-import type { StructureAppearanceDef } from '../../data/structureAppearance.types';
+import { heightAt, sceneMetresPerTile, type ArchitectureBody, type CellSide, type BuildingMass, type Scene, type WallSeg, type WallSide } from '../scene';
+import { memoByRef } from '../sceneMemo';
+import { aretesA } from '../wallIndex';
+import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../sceneEdit';
+import { roofMaterial } from './matieres';
+import { buildingsMeta, massFootprintCells } from '../buildings';
+import { apparenceDArete, edgeKey, facadeEdges, facadeWallFeatureAppearance } from '../facades';
 import { WALL_H_M, isoPxToM } from '../iso';
-import { roomTilesById, isRoomZone, occupiedRoomIds, roomTiles } from '../../noyau/monde/rooms';
-import { cutawayForSection, type ClearedSpace } from '../stage/architectureVisibility';
-import type { CellSide, RoofEl, RoofLine, RoofLineKind } from './types';
-import type { Face, GP } from '../../noyau/monde/volume/types';
-import { viewedBuilder, type Viewed, type ViewRule } from '../../noyau/monde/volume/viewTruth';
-import { parUnitesDeCode } from '../../lib/ordre.mjs';
+import { roomTilesById, isRoomZone, occupiedRoomIds, roomTiles } from '../rooms';
+import { cutawayForSection, type ClearedSpace } from './architectureVisibility';
+import type { Face, GP, RoofEl, RoofLine, RoofLineKind } from './types';
+import { viewedBuilder, type Viewed, type ViewRule } from './viewTruth';
+import { parUnitesDeCode } from '../../../lib/ordre.mjs';
 
 /** Le nom PEINT sur le plan pour une pièce de nappe (`authoring/roofsSvg`) : le libellé authoré du
  *  corps, sinon celui de son TYPE de bâtiment (`buildings.json`), sinon son id technique. */
@@ -164,7 +160,7 @@ export function boundarySegs(cells: ReadonlySet<string>): BoundarySeg[] {
 
 /** Profondeur (en cases) d'un point QUELCONQUE sous une croupe : sa distance de Manhattan à la ligne
  *  d'égout la plus proche. Aux sommets ENTIERS elle vaut exactement la profondeur `bfsDepth` (garde
- *  `roofs.test.ts`) ; elle ÉTEND la même lecture aux points intermédiaires — ceux que le pavage
+ *  `toits.test.ts`) ; elle ÉTEND la même lecture aux points intermédiaires — ceux que le pavage
  *  insère quand le faîtage tombe entre deux sommets de grille. Elle remplace la lecture par boîte
  *  englobante, qui ne valait que pour une emprise rectangulaire. */
 export function depthToEave(v: VXY, segs: readonly BoundarySeg[]): number {
@@ -771,14 +767,6 @@ export function gableEnds(
  *  partagée avec `walls.ts` — deux tables qui divergent, c'est un mur qui change de camp. */
 export const WALL_NB: Record<WallSide, [number, number]> = { N: [0, -1], E: [1, 0], '\\': [0, 0], '/': [0, 0] };
 
-/** Apparence d'une ARÊTE de mur — SOURCE UNIQUE des deux rendus (`wallGeometry` de `walls.ts` et les
- *  fermetures d'architecture d'ici) : la façade authorée sur l'arête l'emporte tant que le segment ne
- *  pose ni structure ni override, sinon `wallApp` — une DONNÉE de la carte, jamais une cote (#1180).
- *  Un seul site : les deux rendus ne peuvent pas diverger. */
-export function edgeAppearance(facade: FacadeEdge | undefined, seg: WallSeg): StructureAppearanceDef {
-  return facadeRegit(facade, seg) ? facadeStructureAppearance(facade.appearance) : wallApp(seg);
-}
-
 /** Murs de scène indexés par CASE BORDÉE (`x,y,z`) — mémoïsé par scène. L'index par ARÊTE, lui, est le
  *  PARTAGÉ (`noyau/monde/wallIndex.ts`, même clé `x,y,side,z` qu'`edgeKey`) : `aretesA` rend la liste des
  *  segments d'une arête, `[0]` le premier au sens du document. Mesure sur les 65 scènes livrées
@@ -797,15 +785,10 @@ const wallCellIndexOf = memoByRef((scene: Scene) => {
   return { byCell };
 });
 
-/** Apparence RÉSOLUE d'un segment de mur — par la loi d'arête PARTAGÉE (`edgeAppearance`). */
-function segAppearance(facades: ReadonlyMap<string, FacadeEdge>, seg: WallSeg): string {
-  return edgeAppearance(facades.get(edgeKey(seg)), seg).id;
-}
-
 /** Apparence DOMINANTE des murs bordant un ensemble de cases `x,y,z` (ordre d'id à égalité : verdict
  *  déterministe, jamais dépendant de l'ordre d'itération). */
 function dominantAppearance(
-  facades: ReadonlyMap<string, FacadeEdge>,
+  scene: Scene,
   index: { byCell: Map<string, WallSeg[]> },
   space: Iterable<string>,
 ): string | undefined {
@@ -815,7 +798,7 @@ function dominantAppearance(
     for (const seg of index.byCell.get(key) ?? []) {
       if (seen.has(seg)) continue;
       seen.add(seg);
-      const id = segAppearance(facades, seg);
+      const id = apparenceDArete(scene, seg);
       tally.set(id, (tally.get(id) ?? 0) + 1);
     }
   return [...tally].sort((a, b) => b[1] - a[1] || parUnitesDeCode(a[0], b[0]))[0]?.[0];
@@ -844,10 +827,10 @@ export function closureAppearance(
   }
   for (const edge of edges) {
     const seg = aretesA(scene, edge.x, edge.y, edge.side, edge.z)[0];
-    if (seg) return segAppearance(facades, seg);
+    if (seg) return apparenceDArete(scene, seg);
   }
-  return dominantAppearance(facades, index, space)
-    ?? dominantAppearance(facades, index, bodySpace);
+  return dominantAppearance(scene, index, space)
+    ?? dominantAppearance(scene, index, bodySpace);
 }
 
 /** Vérité de JEU pilotant le cutaway (PAS une caméra) : positions des ALLIÉS, ÉTAGE COMPRIS. Le `z`

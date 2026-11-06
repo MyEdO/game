@@ -8,7 +8,7 @@ import { setDataset, resetData } from '../../../data/overrides';
 import type { MaterialEntry } from '../../../data/materials.types';
 import type { TerrainDef } from '../../../data/terrains.types';
 import { effectiveArchitecture } from '../../../noyau/sceneEdit';
-import { roofMaterial } from '../../catalog/roofs';
+import { roofMaterial } from '../../../noyau/monde/volume/matieres';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../scenes/campaign';
 import { testScenarios } from '../../../scenes/test-scenarios';
 
@@ -288,7 +288,7 @@ const plancherScenes = (): number =>
 
 /**
  * SUR-ENSEMBLE DU READ-SET DES TOITURES (#1686 lot 3a-1) — `buildRoofs` résout la couverture de CHAQUE
- * masse par `roofMaterial(mass.material)` (`builders/roofs.ts`), et les masses qu'il voit sont les
+ * masse par `roofMaterial(mass.material)` (`noyau/monde/volume/toits.ts`), et les masses qu'il voit sont les
  * masses EFFECTIVES : celles que l'auteur a écrites ET celles que `deriveArchitectureMasses` calcule
  * depuis `roofDefaults`. Le read-set, lui, se déclare sur `scene.architecture` (l'intention). La
  * question que cette garde tranche est donc : l'intention couvre-t-elle, PAR IDENTITÉ D'OBJET, tout

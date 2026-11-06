@@ -9,6 +9,7 @@ import { apparenceDArete } from './facades';
 import type { Pt } from './path';
 import { METRES_PER_LEVEL } from './relief';
 import { porteEnJeu, sceneMetresPerTile, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
+import { toitsLeves } from './volume/volume';
 
 /** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
  *  la brèche d'une structure abattue. */
@@ -52,8 +53,9 @@ export function aretesDeLaCouche(scene: Scene, z: number): AreteDessinee[] {
 }
 
 /** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les arêtes de sa couche de base
- *  (`aretesDeLaCouche`) et son échelle métrique (`sceneMetresPerTile`). */
-export function plateauDeLaScene(scene: Scene): { w: number; h: number; metresParCase: number; aretes: AreteDessinee[] } {
+ *  (`aretesDeLaCouche`), son échelle métrique (`sceneMetresPerTile`) et les nappes de toit que le groupe posé sur
+ *  `allies` dégage (`toitsLeves`). */
+export function plateauDeLaScene(scene: Scene, allies: readonly Pt[]): { w: number; h: number; metresParCase: number; aretes: AreteDessinee[]; toitsLeves: string[] } {
   const { w, h } = scene.dimensions;
-  return { w, h, metresParCase: sceneMetresPerTile(scene), aretes: aretesDeLaCouche(scene, 0) };
+  return { w, h, metresParCase: sceneMetresPerTile(scene), aretes: aretesDeLaCouche(scene, 0), toitsLeves: toitsLeves(scene, allies) };
 }

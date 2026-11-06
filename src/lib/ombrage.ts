@@ -4,7 +4,7 @@
  * (ombre d'orientation, occlusion, spéculaire) vient d'ici. Dérive un ton en multipliant la luminance d'une
  * base par un facteur, clampé ; un `var(--x)` CSS (pierre) passe tel quel. Aucune lecture DOM.
  */
-import { parseHex } from '../lib/couleurHex';
+import { parseHex } from './couleurHex';
 
 const clamp255 = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
 /** Canaux [r,g,b] (0–255, arrondis et bornés) en `#rrggbb`. Émetteur UNIQUE, pendant de `parseHex`. */

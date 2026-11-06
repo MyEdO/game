@@ -1,9 +1,9 @@
-import { depth, type Dims } from '../../geometry/iso';
-import type { WallSide } from '../../noyau/monde/scene';
+import { depth, type Dims } from '../../../geometry/iso';
+import type { WallSide } from '../scene';
 
 export type Cutaway = 'hidden' | 'visible';
 
-/** ESPACE DÉGAGÉ par les alliés — résolu UNE fois par pas par `clearedSpace` (`builders/roofs.ts`,
+/** ESPACE DÉGAGÉ par les alliés — résolu UNE fois par pas par `clearedSpace` (`noyau/monde/volume/toits.ts`,
  *  qui tient les emprises de masse) et lu par la loi `cutawayForSection` : toits, murs, planchers et
  *  façades s'effacent sur le MÊME espace. Un espace habité s'identifie par sa PIÈCE quand il en a une
  *  (`zoneIds`, et `zoneCells` = les cases de ces pièces), et par l'EMPRISE du bâtiment qui abrite
@@ -47,7 +47,7 @@ export interface EnclosedSpace {
 
 /** LOI de dégagement de l'architecture, UNIQUE pour toute la scène : un élément s'efface quand
  *  l'espace qu'il enferme est dégagé — par sa PIÈCE, ou, à défaut de pièce déclarée, par ses CASES —
- *  ou quand il COIFFE cet espace (`overheadCells`). Toits (`builders/roofs.ts`), planchers, murs et
+ *  ou quand il COIFFE cet espace (`overheadCells`). Toits (`noyau/monde/volume/toits.ts`), planchers, murs et
  *  façades (`frontFacadeCutaway`) passent tous par ici : un bâti sans zone déclarée se dégage
  *  toiture ET façade, jamais l'une sans l'autre, et un étage entier tombe d'un bloc avec son toit.
  *

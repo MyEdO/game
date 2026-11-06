@@ -1,4 +1,5 @@
 ## Le plateau du jeu : sur le monde de la scène (`Monde`), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
+## ses nappes de toit, levées sur le groupe (`toitsLeves`, `Monde.lever_les_toits`),
 ## chaque combattant à sa case (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
 ## corps (`vue.corps`, aucun sous son `refus`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
@@ -32,6 +33,7 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	_vue = vue
 	if vue.plateau != null:
 		_monde.poser_les_aretes(vue.plateau.aretes)
+		_monde.lever_les_toits(vue.plateau.toitsLeves)
 	var combat: Variant = vue.projection.combat
 	var exploration: Variant = vue.projection.exploration
 	var actif: Variant = null if combat == null or combat.actif == null else combat.actif.id
@@ -104,9 +106,11 @@ func points() -> Dictionary:
 	return _monde.points()
 
 
-## Le volume du monde de la scène (`monde`) sous le plateau (`Monde.poser`).
-func poser_le_monde(monde: Dictionary) -> void:
+## Le volume du monde de la scène (`monde`) sous le plateau (`Monde.poser`), et ses nappes de toit (`toits`,
+## `Monde.poser_les_toits`).
+func poser_le_monde(monde: Dictionary, toits: Array) -> void:
 	_monde.poser(monde)
+	_monde.poser_les_toits(toits)
 
 
 func _lieu(case: Vector2i) -> Vector3:

@@ -49,7 +49,7 @@ export interface StructureAppearanceDef {
    *  `jut` = SAILLIE par CÔTÉ d'une partie posée devant de la matière pleine (épaisseur totale =
    *  épaisseur du mur + 2×`jut`) ; `thick` = épaisseur TOTALE d'une partie qui BOUCHE une ouverture
    *  (rien derrière elle ; 0 = plan unique au médian). Absent = les défauts par partie de
-   *  `gameIso/catalog/structures/index.ts`. */
+   *  `noyau/monde/volume/structures.ts`. */
   relief?: {
     jut?: Partial<Record<WallPart, number>>;
     thick?: Partial<Record<WallPart, number>>;

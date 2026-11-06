@@ -1,9 +1,9 @@
 import { tableTotale } from '../../../lib/tableTotale';
 import { describe, expect, it } from 'vitest';
-import { wallPartDepthM, wallPartRelief, type WallPartRelief } from './index';
+import { wallPartDepthM, wallPartRelief, type WallPartRelief } from './structures';
 import { WALL_PARTS, type WallPart, type StructureAppearanceDef } from '../../../data/structureAppearance.types';
-import { structureAppearance } from './index';
-import { FASCIA_THICK_M, roofFasciaThickM, roofMaterial } from '../roofs';
+import { structureAppearance } from './structures';
+import { FASCIA_THICK_M, roofFasciaThickM, roofMaterial } from './matieres';
 import { RELIEF_PART_KEYS, schema } from '../../../data/schemas/defs/structureAppearance';
 
 /** CALIBRAGE épinglé du relief mince (#1176) — ce test garde les VALEURS, jamais la topologie :

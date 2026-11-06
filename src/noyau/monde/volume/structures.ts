@@ -1,9 +1,9 @@
 import type { StructureAppearanceDef, WallPart } from '../../../data/structureAppearance.types';
-import type { WallSeg } from '../../../noyau/monde/scene';
+import type { WallSeg } from '../scene';
 import { structureAppearances } from '../../../data';
-import { shade } from '../../shade';
-import { apparenceDuSegment, facadeAppearance } from '../../../noyau/monde/facades';
-import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from '../../../noyau/monde/volume/missing';
+import { shade } from '../../../lib/ombrage';
+import { apparenceDuSegment, facadeAppearance, facadeRegit, type FacadeEdge } from '../facades';
+import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from './missing';
 
 const MAP: Record<string, StructureAppearanceDef> = Object.fromEntries(structureAppearances.map((s) => [s.id, s]));
 
@@ -132,4 +132,10 @@ export function wallPartDepthM(app: StructureAppearanceDef, part: WallPart, wall
   if (relief.famille === 'matiere') return wallM;
   if (relief.famille === 'saillie') return wallM + 2 * (app.relief?.jut?.[part] ?? relief.jutM);
   return app.relief?.thick?.[part] ?? relief.thickM;
+}
+
+/** Apparence d'une ARÊTE de mur du rendu web (`wallGeometry` de `walls.ts`), résolue en sa def : la façade authorée sur
+ *  l'arête l'emporte tant que le segment ne pose ni structure ni override (`facadeRegit`), sinon `wallApp` (#1180). */
+export function edgeAppearance(facade: FacadeEdge | undefined, seg: WallSeg): StructureAppearanceDef {
+  return facadeRegit(facade, seg) ? facadeStructureAppearance(facade.appearance) : wallApp(seg);
 }

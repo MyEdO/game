@@ -130,7 +130,7 @@ const doc = document(
       .optional(),
     // RELIEF MINCE (m) par partie de mur : `jut` = saillie par côté, `thick` = épaisseur totale d'une
     // partie traversante (`wallPartDepthM`), `wallM` = épaisseur de la MATIÈRE PLEINE de cette
-    // apparence (le défaut est `WALL_MATTER_M`, `catalog/structures`). Les clés de `jut`/`thick` sont
+    // apparence (le défaut est `WALL_MATTER_M`, `noyau/monde/volume/structures`). Les clés de `jut`/`thick` sont
     // CONTRAINTES aux parties RÉELLEMENT surchargeables (`RELIEF_PART_KEYS`) — une clé fautive, comme
     // une clé inerte, échoue au CHARGEMENT au lieu d'être ignorée en silence.
     relief: nommerChamps(z

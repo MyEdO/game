@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { volumeDuMonde, type VolumeDuMonde } from './volume';
+import { toitsDuMonde, toitsLeves, volumeDuMonde, type VolumeDuMonde } from './volume';
+import { nappeKey } from './toits';
+import { perimeterWallSegs } from '../../sceneEdit.testkit';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../scene';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { parseHex } from '../../../lib/couleurHex';
@@ -96,5 +98,34 @@ describe('volumeDuMonde (#3476)', () => {
     expect(Math.max(...tris.flatMap((t) => t.ys))).toBeGreaterThan(0.5);
     const etage: Scene = { ...s, entities: [{ ...s.entities[0], z: 1 }], layers: [...s.layers, { z: 1, tiles: Array(9).fill('vide'), height: Array(9).fill(3) }] };
     expect(volumeDuMonde(etage, 0).surfaces.some((m) => m.matiere.startsWith('prop--'))).toBe(false);
+  });
+});
+
+describe('toitsDuMonde, toitsLeves (#3476)', () => {
+  const MAISON = { x: 2, y: 2, w: 4, h: 3 };
+  const scene = (): Scene => ({
+    ...emptyScene('toits', 10, 8),
+    walls: perimeterWallSegs([MAISON]),
+    architecture: [{ id: 'bourg', storeys: [], facades: [], masses: [{ id: 'maison', z: 0, footprint: [MAISON], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: 'tuile' }] }],
+  });
+
+  it('une nappe par masse, ses pans de couverture et ses pignons de la matière du mur qu’ils prolongent', () => {
+    const [nappe, ...autres] = toitsDuMonde(scene());
+    expect(autres).toEqual([]);
+    expect(nappe.cle).toBe(nappeKey('bourg', 'maison'));
+    expect(nappe.surfaces.map((s) => s.matiere).sort()).toEqual(['roof--tuile', 'structure--plain']);
+    expect(nappe.positions.length % 9).toBe(0);
+    expect(nappe.cases).toHaveLength(nappe.positions.length / 9);
+    const hauteurs = nappe.positions.filter((_, i) => i % 3 === 1);
+    expect(Math.max(...hauteurs), 'le faîte au-dessus de l’égout').toBeGreaterThan(Math.min(...hauteurs));
+  });
+
+  it('le groupe sous la nappe la lève ; dehors, aucune', () => {
+    expect(toitsLeves(scene(), [{ x: 3, y: 3 }])).toEqual([nappeKey('bourg', 'maison')]);
+    expect(toitsLeves(scene(), [{ x: 8, y: 7 }])).toEqual([]);
+  });
+
+  it('une scène sans masse n’a aucune nappe', () => {
+    expect(toitsDuMonde(emptyScene('nue', 4, 4))).toEqual([]);
   });
 });

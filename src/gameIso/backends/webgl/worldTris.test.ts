@@ -26,12 +26,12 @@ import {
   type WorldPoly,
 } from '../../../noyau/monde/volume/worldTris';
 import { faceDepthM, faceDepthOf } from './faceRelief';
-import { wallPartRelief } from '../../catalog/structures';
+import { wallPartRelief } from '../../../noyau/monde/volume/structures';
 import { uprightCrossM, UPRIGHT_OVERHANG_M, UPRIGHT_WIDTH_M, WALL_MATTER_M, wallMatterM } from '../../../noyau/monde/volume/montants';
 import type { StructureAppearanceDef, WallPart } from '../../../data/structureAppearance.types';
 import { buildFloors } from '../../../noyau/monde/volume/floors';
 import { buildWalls } from '../../builders/walls';
-import { buildRoofs } from '../../builders/roofs';
+import { buildRoofs } from '../../../noyau/monde/volume/toits';
 import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';

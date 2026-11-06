@@ -5,8 +5,8 @@
  * `src/geometry/iso.ts` (#161 : `state` en a besoin, ce n'est pas QUE du rendu) — ce module la
  * RÉ-IMPORTE pour ses propres besoins, il ne la redéfinit pas.
  */
-import { METRES_PER_LEVEL } from '../noyau/monde/relief';
-import { LEVEL_H, WALL_H } from '../geometry/iso';
+import { METRES_PER_LEVEL } from './relief';
+import { LEVEL_H, WALL_H } from '../../geometry/iso';
 
 /** Conversion px-iso → MÈTRES MONDE (SOURCE UNIQUE, POV compris) : `LEVEL_H` px (un étage écran)
  *  ⇔ `METRES_PER_LEVEL` m. Les hauteurs px des defs d'apparence (merlons, bandes, linteaux…) passent

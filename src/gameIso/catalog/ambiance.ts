@@ -4,7 +4,7 @@
  *  les MÊMES defs SVG assemblées ici —
  *  plus aucune de ces couleurs en dur dans un renderer. */
 import { ambiance } from '../../data';
-import { ao, luminanceHex, spec } from '../shade';
+import { ao, luminanceHex, spec } from '../../lib/ombrage';
 import type { Dims } from '../../geometry/iso';
 import type { AmbianceDef, RadialVeilDef, WeatherBrumeDef, WeatherFxDef, WeatherPrecipDef } from '../../data/ambiance.types';
 import { isIndoor, type Scene } from '../../noyau/monde/scene';

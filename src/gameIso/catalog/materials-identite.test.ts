@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { materials, matieresDe, findTeinteById, findCouleurById, structureAppearances } from '../../data/index';
 import { DOMAINES_MATIERE, type MaterialEntry } from '../../data/materials.types';
 import { propMaterial } from '../../noyau/monde/volume/matieres';
-import { roofMaterial } from './roofs';
+import { roofMaterial } from '../../noyau/monde/volume/matieres';
 import { reliefMaterial } from '../../noyau/monde/volume/matieres';
 import { terrains } from '../../data/index';
 

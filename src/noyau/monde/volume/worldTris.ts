@@ -494,7 +494,7 @@ export function faceQuads(face: Face, mpt: number, depthM?: number): WorldPoly[]
  *  face est rendue telle que le pivot l'a authorée (aucune convention de sens) et qu'il revient au
  *  consommateur de l'orienter.
  *
- *  UNE forme, deux familles de matière (`catalog/structures` `wallPartRelief`) : une partie POSÉE devant
+ *  UNE forme, deux familles de matière (`./structures` `wallPartRelief`) : une partie POSÉE devant
  *  la matière pleine (panneau, moulure, plinthe…) comme une partie qui BOUCHE une ouverture (vantail,
  *  herse, gravats — le pivot n'émet AUCUNE face derrière elles) deviennent la MÊME boîte centrée sur le
  *  plan médian du mur. Centrée, parce qu'une `Face` de mur ne porte AUCUNE notion de joue intérieure ou

@@ -19,12 +19,13 @@
 import * as THREE from 'three';
 import { buildFloors } from '../../../noyau/monde/volume/floors';
 import { buildWalls } from '../../builders/walls';
-import { buildRoofs, ROOF_SLOPE_M } from '../../builders/roofs';
+import { buildRoofs, ROOF_SLOPE_M } from '../../../noyau/monde/volume/toits';
 import { buildProps } from '../../builders/props';
-import { estPropVolumique, type CellSide, type PropEl, type RoofEl, type SceneEl, type TokenEl, type WallEl } from '../../builders/types';
+import { estPropVolumique, type CellSide, type PropEl, type SceneEl, type TokenEl, type WallEl } from '../../builders/types';
+import type { RoofEl } from '../../../noyau/monde/volume/types';
 import { type Face } from '../../../noyau/monde/volume/types';
 import { findPropById, findPropMaterialById, matieresDe, refEstVolumique } from '../../../data';
-import { roofMaterial } from '../../catalog/roofs';
+import { roofMaterial } from '../../../noyau/monde/volume/matieres';
 import { toitureEffective } from '../../../noyau/sceneEdit';
 import type { PropVertexRange } from './spriteRaycast';
 import { roofCourseStepM, variantOf } from '../../detail/courses';
@@ -375,7 +376,7 @@ function propRecipeDeps(scene: Scene): readonly unknown[] {
  *  - TOITURES : celles que la scène NOMME (`BuildingMass.material`, et la couverture EFFECTIVE dont les
  *    masses DÉRIVÉES héritent — `toitureEffective`, `noyau/sceneEdit.ts` : corps, puis type de bâtiment,
  *    puis scène).
- *    Résolues par le MÊME accès que la cuisson (`roofMaterial`, `builders/roofs.ts`). Une couverture
+ *    Résolues par le MÊME accès que la cuisson (`roofMaterial`, `noyau/monde/volume/toits.ts`). Une couverture
  *    qu'aucun corps ne pose ne recuit donc rien.
  *  - RELIEF : le domaine ENTIER. Les ids que le sol émet viennent de la SCÈNE (`reliefDefaults`, dep
  *    propre de `worldBakeDeps`) et des TERRAINS à bloc plein (`terrainDeps`) — filtrer le domaine sur

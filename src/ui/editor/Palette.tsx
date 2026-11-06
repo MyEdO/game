@@ -21,7 +21,7 @@ import { propDeclaredFoot } from '../../noyau/monde/footprint';
 import { terrainDef } from '../../noyau/monde/volume/matieres';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
 import { premierOffert, profilsStandard, refEstVolumique, structures } from '../../data';
-import { structureAppearance } from '../../gameIso/catalog/structures';
+import { structureAppearance } from '../../noyau/monde/volume/structures';
 import { isWallEdgeStructure } from '../../engine/structures';
 import { GatedAction } from '../GatedAction';
 import type { Pt } from '../../noyau/sceneEdit';
