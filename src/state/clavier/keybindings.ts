@@ -436,7 +436,7 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: conversationRepond,
     run: (g) => {
       const r = reponsesDuNoeud(g()).find((x) => x.rang === i + 1);
-      if (r?.enabled) g().chooseDialogue(r.index); // `index` = position dans la DONNÉE, jamais le rang
+      if (r?.enabled) g().chooseDialogue(r.id); // l'`id` de la DONNÉE, jamais le rang
     },
   })),
   // Cases de la GRILLE de capacités : 1-8 = case au RANG n de la grille (adresse, pas rang d'action

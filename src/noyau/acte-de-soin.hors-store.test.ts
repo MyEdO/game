@@ -76,7 +76,7 @@ describe('medicAct lit refusDActeDeSoin', () => {
   });
 
   it('Rééducation sans Aide Médicale : refusée, dit « Aide Médicale requise avant de rééduquer le membre. »', () => {
-    poser([hero({ id: 'doc' }), hero({ id: 'p', label: 'Patient', skills: [], traumas: [{ label: 'Épaule luxée', location: 'brasD', restoreDR: 6, awaitingMedicalAid: true, ops: [] }] })]);
+    poser([hero({ id: 'doc' }), hero({ id: 'p', label: 'Patient', skills: [], traumas: [{ uid: 't1', label: 'Épaule luxée', location: 'brasD', restoreDR: 6, awaitingMedicalAid: true, ops: [] }] })]);
     banc.getState().medicAct('recovery');
     expect(banc.getState().medic?.surgery).toBeUndefined();
     expect(dernierRefus()).toBe('Aide Médicale requise avant de rééduquer le membre.');

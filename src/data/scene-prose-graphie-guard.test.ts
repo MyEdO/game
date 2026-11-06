@@ -58,7 +58,7 @@ const estExempt = (rel: string): boolean => NOMS_EXEMPTS.has(rel);
 /** Les formes d'authoring RETIRÉES par #1467 L1b V-P2, chacune avec sa cible. */
 const FORMES: readonly { motif: RegExp; quoi: string; cible: string }[] = [
   { motif: /type:\s*'(?:journal|document|setObjective)'[^\n]*?,\s*text:/g, quoi: "effet `journal`/`document`/`setObjective` à `text`", cible: 'desc' },
-  { motif: /choices:\s*\[\s*\{\s*text:/g, quoi: '`DialogueChoice.text`', cible: 'label' },
+  { motif: /choices:\s*\[\s*\{\s*(?:id:\s*'[^']*',\s*)?text:/g, quoi: '`DialogueChoice.text`', cible: 'label' },
   // La lookbehind écarte trois voisinages qui ne sont JAMAIS une propriété d'objet : le backtick
   // (mention en prose de JSDoc, `` `description:` ``), l'ancre `^` d'un littéral d'expression
   // régulière (`/^description:\s*(.+)$/m`) — c'est sous ces deux formes que les générateurs de docs

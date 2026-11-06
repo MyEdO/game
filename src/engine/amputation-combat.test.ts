@@ -19,8 +19,8 @@ const w1off = { name: 'Dague', type: 'melee', hands: 1, hand: 'off', qualities: 
 const w2 = { name: 'Espadon', type: 'melee', hands: 2, qualities: [] } as unknown as Weapon;                 // 2 mains
 
 const withTraumas = (traumas: Trauma[]): Combatant => ({ traumas } as unknown as Combatant);
-const fingers = (loc: 'brasG' | 'brasD', count: number): Trauma => ({ label: '', traumaId: 'doigt-ampute', location: loc, count });
-const handLost = (loc: 'brasG' | 'brasD'): Trauma => ({ label: '', traumaId: 'main-bras-ampute', location: loc });
+const fingers = (loc: 'brasG' | 'brasD', count: number): Trauma => ({ uid: 't1', label: '', traumaId: 'doigt-ampute', location: loc, count });
+const handLost = (loc: 'brasG' | 'brasD'): Trauma => ({ uid: 't2', label: '', traumaId: 'main-bras-ampute', location: loc });
 
 describe('weaponUsesHand (LDB 18)', () => {
   it('arme à 2 mains implique les DEUX mains', () => {

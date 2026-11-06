@@ -2453,7 +2453,7 @@ export interface PendingHeal {
  *  dépense Chance/Pacte/Résilience sur SON jet (PNJ → `actorIn` introuvable → influence no-op, comme
  *  `PendingHeal`). Calque `PendingHeal` (jet du soigneur) + `PendingExtendedTest` (cumul du DR). Le cumul
  *  et la sélection patient/Critique vivent sur `medic.surgery` (état de setup) ; chaque passe inflige
- *  1d10 PB + 1 Hémorragie à la validation (`jetConfirm('surgery')`). `traumaIdx/targetDR/cumDR` sont recopiés de
+ *  1d10 PB + 1 Hémorragie à la validation (`jetConfirm('surgery')`). `targetDR/cumDR` sont recopiés de
  *  `medic.surgery` à l'ouverture de la passe (affichage DrBar dans la modale). */
 export interface PendingSurgery extends PendingBase {
   healerId: string; // chirurgien (héros → influence ; PNJ → no-op)
@@ -2470,7 +2470,6 @@ export interface PendingSurgery extends PendingBase {
   roll: number | null; // null tant que pas lancé (Chance possible ensuite)
   success: boolean;
   sl: number; // DR de la passe
-  traumaIdx: number; // Blessure Critique visée (index dans surgeryTraumas) — figé de medic.surgery
   targetDR: number; // DR cumulé cible (LDB 10) — recopié de medic.surgery (DrBar)
   cumDR: number; // DR cumulé courant — recopié de medic.surgery (DrBar)
   /** Acte PAYANT d'un PNJ (infirmerie) : prix déjà débité — remboursé si on annule AVANT toute passe. */

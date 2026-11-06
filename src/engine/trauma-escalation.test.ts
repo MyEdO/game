@@ -23,7 +23,7 @@ const C = (over: Partial<Combatant>): Combatant =>
 
 /** Plaie chirurgicale (« Amputation ») telle que la pose resolveCritique. */
 const plaie = (loc: HitLocation, extra: Partial<Trauma> = {}): Trauma =>
-  ({ label: 'Amputation', location: loc, needsSurgery: true, desc: 'x', ...extra });
+  ({ uid: `plaie-${loc}`, label: 'Amputation', location: loc, needsSurgery: true, desc: 'x', ...extra });
 
 /** Escalade « Main ouverte » telle qu'elle est DÉCLARÉE en donnée (`criticals.json`, les deux jeux). */
 const FINGER_PER_ROUND = { versTraumaId: 'doigt-ampute' };
@@ -81,7 +81,7 @@ describe('#167 — « Main ouverte » : 1 doigt de plus par Round sans Aide Méd
   it('une main déjà amputée sur l’AUTRE bras ne coupe PAS une escalade « Main ouverte » fraîche', () => {
     // brasD : ancienne amputation de main (crit antérieur). brasG : escalade « Main ouverte » fraîche.
     const c = C({ traumas: [
-      { label: 'Main tranchée (brasD)', traumaId: 'main-bras-ampute', location: 'brasD', desc: 'x', ops: [{ op: 'maxWeaponHands', hands: 1 }] },
+      { uid: 't1', label: 'Main tranchée (brasD)', traumaId: 'main-bras-ampute', location: 'brasD', desc: 'x', ops: [{ op: 'maxWeaponHands', hands: 1 }] },
       plaie('brasG', { awaitingMedicalAid: true, perRound: FINGER_PER_ROUND }),
     ] });
     for (let r = 0; r < 3; r++) tickTraumaEscalation(c);
@@ -166,14 +166,14 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
   });
 
   it('le membre désactivé grève passivement (bras → 2 mains impossibles ; jambe → Mouvement ÷2)', () => {
-    const arm = C({ traumas: [{ label: 'x', location: 'brasD', awaitingMedicalAid: true, restoreDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }] }] });
+    const arm = C({ traumas: [{ uid: 't2', label: 'x', location: 'brasD', awaitingMedicalAid: true, restoreDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }] }] });
     expect(cannotWieldTwoHanded(arm)).toBe(true);
-    const leg = C({ traumas: [{ label: 'x', location: 'jambeD', awaitingMedicalAid: true, restoreDR: 6, ops: [{ op: 'moveScale', num: 1, den: 2 }] }] });
+    const leg = C({ traumas: [{ uid: 't3', label: 'x', location: 'jambeD', awaitingMedicalAid: true, restoreDR: 6, ops: [{ op: 'moveScale', num: 1, den: 2 }] }] });
     expect(traumaMovementHalved(leg)).toBe(true);
   });
 
   it('récupération BLOQUÉE tant que l’Aide Médicale n’est pas reçue, puis débloquée (LDB 18 l.120/179)', () => {
-    const c = C({ traumas: [{ label: 'x', location: 'brasD', awaitingMedicalAid: true, restoreDR: 6, recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }] });
+    const c = C({ traumas: [{ uid: 't4', label: 'x', location: 'brasD', awaitingMedicalAid: true, restoreDR: 6, recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }] });
     expect(hasLimbAwaitingAid(c)).toBe(true);
     expect(hasRecoverableTrauma(c)).toBe(false); // le Test étendu demeure indisponible avant l’Aide Médicale
     receiveMedicalAid(c);
@@ -183,9 +183,9 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
 
   it('`recoverDisabledLimb` retire la séquelle et rend sa `recoveryPenalty` (posée par l’appelant, 1d10 j)', () => {
     const c = C({ traumas: [
-      { label: 'Genou démis (jambe perdue)', location: 'jambeD', restoreDR: 6, ops: [{ op: 'moveScale', num: 1, den: 2 }], recoveryPenalty: [{ op: 'testMod', char: 'agilite', amount: -10, movementOnly: true }, { op: 'moveScale', num: 1, den: 2 }] },
+      { uid: 't5', label: 'Genou démis (jambe perdue)', location: 'jambeD', restoreDR: 6, ops: [{ op: 'moveScale', num: 1, den: 2 }], recoveryPenalty: [{ op: 'testMod', char: 'agilite', amount: -10, movementOnly: true }, { op: 'moveScale', num: 1, den: 2 }] },
     ] });
-    const { penalty, log } = recoverDisabledLimb(c, 0);
+    const { penalty, log } = recoverDisabledLimb(c, 't5');
     expect(c.traumas).toHaveLength(0); // le membre désactivé est retiré (usage récupéré)
     expect(penalty).toEqual([{ op: 'testMod', char: 'agilite', amount: -10, movementOnly: true }, { op: 'moveScale', num: 1, den: 2 }]);
     expect(log.join(' ')).toMatch(/usage du membre récupéré/);
@@ -194,14 +194,14 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
   // #193 — « Tests effectués avec ce bras » (LDB/AA) : `recoverDisabledLimb` scope le `testMod{char:'capacite-de-combat'}`
   // à la main RÉELLE du membre (convention DROITIER, MÊME donnée pour brasD/brasG).
   it("`recoverDisabledLimb` injecte `weaponHand` sur un `testMod{char:'capacite-de-combat'}` selon la Localisation (brasD → main, brasG → off)", () => {
-    const cD = C({ traumas: [{ label: 'x', location: 'brasD', restoreDR: 6, recoveryPenalty: [{ op: 'testMod', char: 'capacite-de-combat', amount: -10 }] }] });
-    expect(recoverDisabledLimb(cD, 0).penalty).toEqual([{ op: 'testMod', char: 'capacite-de-combat', amount: -10, weaponHand: 'main' }]);
-    const cG = C({ traumas: [{ label: 'x', location: 'brasG', restoreDR: 6, recoveryPenalty: [{ op: 'testMod', char: 'capacite-de-combat', amount: -10 }] }] });
-    expect(recoverDisabledLimb(cG, 0).penalty).toEqual([{ op: 'testMod', char: 'capacite-de-combat', amount: -10, weaponHand: 'off' }]);
+    const cD = C({ traumas: [{ uid: 't6', label: 'x', location: 'brasD', restoreDR: 6, recoveryPenalty: [{ op: 'testMod', char: 'capacite-de-combat', amount: -10 }] }] });
+    expect(recoverDisabledLimb(cD, 't6').penalty).toEqual([{ op: 'testMod', char: 'capacite-de-combat', amount: -10, weaponHand: 'main' }]);
+    const cG = C({ traumas: [{ uid: 't7', label: 'x', location: 'brasG', restoreDR: 6, recoveryPenalty: [{ op: 'testMod', char: 'capacite-de-combat', amount: -10 }] }] });
+    expect(recoverDisabledLimb(cG, 't7').penalty).toEqual([{ op: 'testMod', char: 'capacite-de-combat', amount: -10, weaponHand: 'off' }]);
   });
 
   it('Sonné « jusqu’à Aide Médicale » (Épaule luxée/Genou démis) : `unlockBy:medicalAid` le retient, l’Aide le retire', () => {
-    const c = C({ traumas: [{ label: 'x', location: 'brasD', awaitingMedicalAid: true, restoreDR: 6 }] });
+    const c = C({ traumas: [{ uid: 't8', label: 'x', location: 'brasD', awaitingMedicalAid: true, restoreDR: 6 }] });
     addCondition(c, 'sonne', 1, undefined, undefined, undefined, undefined, { unlockBy: 'medicalAid' });
     removeCondition(c, 'sonne'); // récupération d’État normale : INERTE (verrouillé)
     expect(hasCondition(c, 'sonne')).toBe(true);
@@ -238,7 +238,7 @@ describe('#190 — réouverture (bleedOnReinjury) : chaque Dégât à la Localis
   });
 
   it('reinjuryBleed : nouveau Dégât à la MÊME Localisation → N ; autre Localisation → 0', () => {
-    const c = C({ traumas: [{ label: 'Blessure béante', location: 'brasD', bleedOnReinjury: 1, needsSurgery: true }] });
+    const c = C({ traumas: [{ uid: 't9', label: 'Blessure béante', location: 'brasD', bleedOnReinjury: 1, needsSurgery: true }] });
     expect(reinjuryBleed(c, 'brasD')).toBe(1); // le bras rouvert saigne
     expect(reinjuryBleed(c, 'brasG')).toBe(0); // autre bras : rien
     expect(reinjuryBleed(c, 'corps')).toBe(0); // Dégât non localisé au bras : rien
@@ -246,14 +246,14 @@ describe('#190 — réouverture (bleedOnReinjury) : chaque Dégât à la Localis
 
   it('reinjuryBleed : plusieurs plaies gatées à la même Localisation CUMULENT (RAW ne les fusionne pas)', () => {
     const c = C({ traumas: [
-      { label: 'Blessure béante', location: 'corps', bleedOnReinjury: 1, needsSurgery: true },
-      { label: 'Dégâts artériels', location: 'corps', bleedOnReinjury: 2, needsSurgery: true },
+      { uid: 't10', label: 'Blessure béante', location: 'corps', bleedOnReinjury: 1, needsSurgery: true },
+      { uid: 't11', label: 'Dégâts artériels', location: 'corps', bleedOnReinjury: 2, needsSurgery: true },
     ] });
     expect(reinjuryBleed(c, 'corps')).toBe(3);
   });
 
   it('la Chirurgie (removeSurgicalTrauma) retire la plaie → plus de réouverture', () => {
-    const c = C({ criticalWounds: 1, traumas: [{ label: 'Cuisse lacérée', location: 'jambeD', bleedOnReinjury: 1, needsSurgery: true }] });
+    const c = C({ criticalWounds: 1, traumas: [{ uid: 't12', label: 'Cuisse lacérée', location: 'jambeD', bleedOnReinjury: 1, needsSurgery: true }] });
     expect(reinjuryBleed(c, 'jambeD')).toBe(1);
     removeSurgicalTrauma(c);
     expect(reinjuryBleed(c, 'jambeD')).toBe(0);

@@ -20,6 +20,8 @@ import { creaturesADepecer } from './combatEffects';
 import { actorIn } from './monde/combatants';
 import { adversairesADistraire, adversairesDuBattement } from './combatManeuvers';
 import { idsDuCoupleMonte } from './targetingModes';
+import { reponsesDuNoeud } from './dialogue';
+import { plaiesDeLOperation } from './medicFlow';
 
 /** Un combattant : la file de combat et le groupe (`porteurParId`, `monde/combatants.ts`). */
 export type IdDeCombattant = string;
@@ -56,6 +58,10 @@ export type IdDAdversaireDuBattement = string;
 export type IdDAdversaireADistraire = string;
 /** Le cavalier ou la monture que `mountTargetSelect` accepte (`idsDuCoupleMonte`, `targetingModes.ts`). */
 export type IdDuCoupleMonte = string;
+/** Une réponse VISIBLE du nœud de dialogue courant, par son `id` (`reponsesDuNoeud`, `dialogue.ts`). */
+export type IdDeReponseDeDialogue = string;
+/** Une Blessure Critique que l'opération armée peut viser, par son `uid` (`plaiesDeLOperation`, `medicFlow.ts`). */
+export type IdDePlaieDeLOperation = string;
 
 /** Une désignation : son nom en mots, ce qu'elle lit dans l'état (les ids valides, ou les objets désignés par leur `id`),
  *  et le nom en mots du joueur de l'élément d'un id (`null` : l'élément n'a pas de nom). */
@@ -111,5 +117,11 @@ export const DESIGNATIONS = {
   IdDAdversaireDuBattement: { mot: 'id d’adversaire du Battement', lire: (s) => ids(adversairesDuBattement(s)), nom: nomDeCombattant },
   IdDAdversaireADistraire: { mot: 'id d’adversaire à distraire', lire: (s) => ids(adversairesADistraire(s)), nom: nomDeCombattant },
   IdDuCoupleMonte: { mot: 'id du couple monté', lire: idsDuCoupleMonte, nom: nomDeCombattant },
+  IdDeReponseDeDialogue: { mot: 'id de réponse de dialogue', lire: (s) => ids(reponsesDuNoeud(s)), nom: (s, id) => labelParmi(reponsesDuNoeud(s), id) },
+  IdDePlaieDeLOperation: {
+    mot: 'id de plaie de l’opération',
+    lire: (s) => plaiesDeLOperation(s).map((p) => p.uid),
+    nom: (s, uid) => plaiesDeLOperation(s).find((p) => p.uid === uid)?.label ?? null,
+  },
   RoomPortal: { mot: 'id de porte', lire: (s): readonly RoomPortal[] => (s.scene ? portalsForParty(s.scene, s.partyPos) : []), nom: () => null },
 } satisfies Record<string, Designation>;

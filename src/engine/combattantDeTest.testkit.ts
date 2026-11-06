@@ -5,7 +5,7 @@
  * `engine/characteristics.ts`) : une fixture qui omet une Caractéristique ou les Blessures n'est pas un
  * combattant. Aucune lecture du corpus de données.
  */
-import { CHAR_KEYS, LOCALISATIONS_DE_COUP, type Characteristics, type Combatant } from './types';
+import { CHAR_KEYS, LOCALISATIONS_DE_COUP, type Characteristics, type Combatant, type Trauma } from './types';
 import { blessuresPosees } from './characteristics';
 import { tableTotale } from '../lib/tableTotale';
 
@@ -57,4 +57,10 @@ export function blesseDeTest(restantes: number, over: SurchargeDeCombattant = {}
   const c = combattantDeTest(over);
   c.wounds = { ...c.wounds, current: restantes };
   return c;
+}
+
+/** Des séquelles sans leur `uid` : l'identité qu'une séquelle reçoit à sa création naît d'une séquence de module, jamais du
+ *  RNG, et deux poses d'une même séquelle se comparent hors d'elle. */
+export function sequellesSansUid(traumas: readonly Trauma[] | undefined): Omit<Trauma, 'uid'>[] {
+  return (traumas ?? []).map(({ uid: _uid, ...t }) => t);
 }

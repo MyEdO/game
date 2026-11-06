@@ -38,7 +38,7 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
 
   it('settleHealedCriticals : rien tant qu\'un État associé est porté ; octroi une fois tous retirés', () => {
     const c = C({ criticalWounds: 1, conditions: [{ id: 'hemorragique', value: 2 }],
-      traumas: [{ label: 'x (en cours de guérison)', location: 'tete', onHealGrant: { scar: 'cicatrice-spectaculaire', whenClear: ['hemorragique'] } }] });
+      traumas: [{ uid: 't1', label: 'x (en cours de guérison)', location: 'tete', onHealGrant: { scar: 'cicatrice-spectaculaire', whenClear: ['hemorragique'] } }] });
     expect(settleHealedCriticals(c)).toEqual([]); // Hémorragique encore porté
     expect(c.traumas!.some((t) => t.onHealGrant)).toBe(true);
     c.conditions = []; // tous les États associés retirés
@@ -58,7 +58,7 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
 
   it('déclenchement au POINT UNIQUE de retrait d\'État (removeCondition)', () => {
     const c = C({ criticalWounds: 1,
-      traumas: [{ label: 'x', location: 'tete', onHealGrant: { scar: 'cicatrice-spectaculaire', whenClear: ['hemorragique'] } }] });
+      traumas: [{ uid: 't2', label: 'x', location: 'tete', onHealGrant: { scar: 'cicatrice-spectaculaire', whenClear: ['hemorragique'] } }] });
     addCondition(c, 'hemorragique', 1);
     expect(c.traumas!.some((t) => t.onHealGrant)).toBe(true); // l'ajout d'État ne guérit pas
     removeCondition(c, 'hemorragique', 1); // dernier État associé tombe → guérison
@@ -69,7 +69,7 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
   it('nez cassé : cicatrice ±contexte (DR +1 Intimidation / DR -1 Charme), retirée par Chirurgie sans re-décompter', () => {
     const c = C({ criticalWounds: 2, // 1 nez cassé (en cours) + 1 autre Blessure critique
       conditions: [{ id: 'hemorragique', value: 2 }, { id: 'sonne', value: 1 }],
-      traumas: [{ label: 'x', location: 'tete', onHealGrant: { scar: 'cicatrice-nez-casse', whenClear: ['hemorragique', 'sonne'] } }] });
+      traumas: [{ uid: 't3', label: 'x', location: 'tete', onHealGrant: { scar: 'cicatrice-nez-casse', whenClear: ['hemorragique', 'sonne'] } }] });
     removeCondition(c, 'hemorragique', 2);
     expect(c.traumas!.some((t) => t.onHealGrant)).toBe(true); // Sonné encore porté
     removeCondition(c, 'sonne', 1);
@@ -81,8 +81,8 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
     expect(skillDRBonus(c, 'charme')).toBe(-1);
     // Chirurgie sur le nez : retire la cicatrice SANS re-décompter une Blessure critique (cosmetic)
     expect(surgeryTraumas(c).some((t) => t.traumaId === 'cicatrice-nez-casse')).toBe(true);
-    const idx = surgeryTraumas(c).findIndex((t) => t.traumaId === 'cicatrice-nez-casse');
-    removeSurgicalTrauma(c, idx);
+    const cicatrice = surgeryTraumas(c).find((t) => t.traumaId === 'cicatrice-nez-casse')!;
+    removeSurgicalTrauma(c, cicatrice.uid);
     expect(c.traumas!.some((t) => t.traumaId === 'cicatrice-nez-casse')).toBe(false);
     expect(c.criticalWounds).toBe(1); // inchangé : une cicatrice n'est pas une Blessure critique
     expect(skillDRBonus(c, 'intimidation')).toBe(0);

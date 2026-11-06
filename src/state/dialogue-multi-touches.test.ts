@@ -33,6 +33,6 @@ describe('dialogue-multi — la touche du rang choisit la réponse visible', () 
     expect(get().dialogue, 'le 1ᵉʳ passage s’est clos').toBeNull();
     parlerAGustav();
     runBindingById('dialogue-choice-1', get);
-    expect(get().dialogue?.nodeId, 'la touche 1 part vers la 1ʳᵉ réponse VISIBLE (index de donnée 1)').toBe('a2');
+    expect(get().dialogue?.nodeId, 'la touche 1 part vers la 1ʳᵉ réponse VISIBLE (la 2ᵉ de la donnée)').toBe('a2');
   });
 });

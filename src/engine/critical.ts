@@ -18,7 +18,7 @@ import {
   type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
 } from '../data/criticals';
 import { memoParVersion } from '../data/versionDataset';
-import { traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers } from './trauma';
+import { nouvelUidDeTrauma, traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers } from './trauma';
 import { rule } from './policy';
 import { EMPTY_FLOW, poserEnjeu, type Flow, type FlowTestNode } from './flowCore';
 import { combatStakeRef, type StakeRef } from '../data';
@@ -489,7 +489,7 @@ export function resolveCritique(
   // est ARMÉ sur le marqueur `pendingAmputation`, ouvert par la porte au foyer de fin de combat.
   if (!entry.lethal && entry.amputation) {
     const noeud = noeudAmputation(entry, jeu, location)!;
-    if (entry.amputation.timing === 'postEncounter') traumas.push({ label: entry.label, location, pendingAmputation: noeud });
+    if (entry.amputation.timing === 'postEncounter') traumas.push({ uid: nouvelUidDeTrauma(), label: entry.label, location, pendingAmputation: noeud });
     else tests.push(noeud);
   }
   // Escalade GATÉE par les soins (« Main ouverte » : doigt/Round ; « Pied écrasé » : perte du pied sans

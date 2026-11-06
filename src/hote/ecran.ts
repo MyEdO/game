@@ -434,7 +434,7 @@ function zonesDuDialogue(etat: Jeu, fenetreOuverte: boolean): Pick<ZonesDeLEcran
     'dialogue.orateur': v?.orateur ? [ligne('orateur', v.orateur)] : [],
     'dialogue.replique': v?.replique ? [ligne('replique', v.replique)] : [],
     'dialogue.reponses': (v?.reponses ?? []).map((r): Bouton => ({
-      type: 'bouton', id: `reponse/${r.index}`, libelle: [r.annonce, r.label, r.cost && formatMoney(r.cost)].filter(Boolean).join(' '),
+      type: 'bouton', id: `reponse/${r.id}`, libelle: [r.annonce, r.label, r.cost && formatMoney(r.cost)].filter(Boolean).join(' '),
       jeu: { type: r.geste.verbe, args: r.geste.args }, presse: false, focus: false, refus: r.refus ?? null,
     })),
   };

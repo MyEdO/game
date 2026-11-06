@@ -21,6 +21,7 @@ import { entreeEnRencontre, carryOverState, isPersistentCondition, REPORT_DE_COM
 import { bourseInstanceOf, bourseOf } from '../engine/bourse';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
+import { sequellesSansUid } from '../engine/combattantDeTest.testkit';
 import { readFileSync } from 'node:fs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
@@ -103,10 +104,10 @@ describe('coutures du héros en combat (#2312)', () => {
       expect(nouvD).toEqual([contractDisease('vers-de-carie', battleRng()), tirages()]);
 
       id = combat(); seedBattleRng(4242); jouer({ type: 'inflictTrauma', kind: 'fracture', severity: 'mineur', location: 'brasD', heroId: id });
-      const nouvT = [cbt(id).traumas, tirages()];
+      const nouvT = [sequellesSansUid(cbt(id).traumas), tirages()];
       id = combat(); seedBattleRng(4242);
       const be = Math.floor(effectiveChar(grp(id), 'endurance') / 10);
-      expect(nouvT).toEqual([[traumaById(dechirureFractureFicheId('fracture', 'mineur', 'brasD'), { be, d10: d10(battleRng()) }, 'brasD')], tirages()]);
+      expect(nouvT).toEqual([sequellesSansUid([traumaById(dechirureFractureFicheId('fracture', 'mineur', 'brasD'), { be, d10: d10(battleRng()) }, 'brasD')]), tirages()]);
 
       for (const graine of [1, 2, 3, 5, 8]) {
         id = combat(); seedBattleRng(graine); jouer({ type: 'ambitionLost', heroId: id });

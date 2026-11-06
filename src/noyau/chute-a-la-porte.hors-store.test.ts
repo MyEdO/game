@@ -558,8 +558,8 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   const dialogueDUnSaut = (): Dialogue => ({
     id: 'd-saut', start: 'n1',
     nodes: [
-      { id: 'n1', desc: '.', choices: [{ label: 'Sauter', next: 'n2', flow: CHUTE }] },
-      { id: 'n2', desc: 'De l’autre côté.', choices: [{ label: 'Continuer' }] },
+      { id: 'n1', desc: '.', choices: [{ id: 'sauter', label: 'Sauter', next: 'n2', flow: CHUTE }] },
+      { id: 'n2', desc: 'De l’autre côté.', choices: [{ id: 'continuer', label: 'Continuer' }] },
     ],
   } as unknown as Dialogue);
 
@@ -567,8 +567,8 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   const dialogueDeDeuxSauts = (): Dialogue => ({
     id: 'd-deux', start: 'n1',
     nodes: [
-      { id: 'n1', desc: '.', choices: [{ label: 'Sauter deux fois', next: 'n2', flow: { kind: 'seq', steps: [CHUTE, CHUTE] } }] },
-      { id: 'n2', desc: 'Enfin.', choices: [{ label: 'Continuer' }] },
+      { id: 'n1', desc: '.', choices: [{ id: 'sauter-deux-fois', label: 'Sauter deux fois', next: 'n2', flow: { kind: 'seq', steps: [CHUTE, CHUTE] } }] },
+      { id: 'n2', desc: 'Enfin.', choices: [{ id: 'continuer', label: 'Continuer' }] },
     ],
   } as unknown as Dialogue);
 
@@ -583,7 +583,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('sauter');
     expect(banc.getState().pendingCascade, 'le saut a ouvert son dé de chute').not.toBeNull();
     expect(banc.getState().dialogue?.nodeId, 'le nœud suivant n’est pas encore là').toBe('n1');
     poseLeDe(8);
@@ -599,7 +599,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     seedBattleRng(3);
     const d = {
       id: 'd-clot', start: 'n1',
-      nodes: [{ id: 'n1', desc: '.', choices: [{ label: 'Sauter', flow: CHUTE }] }],
+      nodes: [{ id: 'n1', desc: '.', choices: [{ id: 'sauter', label: 'Sauter', flow: CHUTE }] }],
     } as unknown as Dialogue;
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
@@ -607,7 +607,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scheduledEffects: [{ executeAt: 1003, flow: DIT('événement programmé') }],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('sauter');
     expect(banc.getState().gameTime, 'l’horloge attend le dé').toBe(1000);
     expect(banc.getState().scheduledEffects, 'rien n’est encore dû').toHaveLength(1);
     poseLeDe(8);
@@ -649,7 +649,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('sauter-deux-fois');
     poseLeDe(8);
     expect(banc.getState().pendingCascade, 'la 2ᵉ chute a ouvert son dé').not.toBeNull();
     expect(banc.getState().dialogue?.nodeId, 'la clôture est repartie avec LUI').toBe('n1');
@@ -737,7 +737,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
-    banc.getState().chooseDialogue(0);
+    banc.getState().chooseDialogue('sauter-deux-fois');
     poseLeDe(8);
     const clefs = ['pendingCascade', 'dialogue', 'party', 'scene', 'journal', 'gameTime', 'flags', 'scheduledEffects', 'suspendedCascades'] as const;
     const etat = banc.getState() as unknown as Record<string, unknown>;

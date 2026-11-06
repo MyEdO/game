@@ -94,7 +94,7 @@ describe('preventInfection — Cautériser (LDB 47) & cureCriticalWound — Larm
       traumas: [
         tk('dechirure', 'mineur', 'jambeD', { be: 25 }),
         tk('fracture', 'majeur', 'brasG', { be: 25, d10: 5 }),
-        { label: 'Main/bras amputé (brasD)', location: 'brasD', ops: [{ op: 'maxWeaponHands', hands: 1 }] },
+        { uid: 't1', label: 'Main/bras amputé (brasD)', location: 'brasD', ops: [{ op: 'maxWeaponHands', hands: 1 }] },
       ],
     });
     applyOps(c, [{ op: 'cureCriticalWound', count: 1, countPerSL: { every: 2, amount: 1 } }], { rng: desDuTest, sl: 4 }); // 1 + 2 = 3 tentées
@@ -104,7 +104,7 @@ describe('preventInfection — Cautériser (LDB 47) & cureCriticalWound — Larm
   });
 
   it('cureCriticalWound sur une amputation seule : sans objet (sa raison le dit), l’op ne produit rien', () => {
-    const c = dummy({ traumas: [{ label: 'Main/bras amputé (brasD)', location: 'brasD' }] });
+    const c = dummy({ traumas: [{ uid: 't2', label: 'Main/bras amputé (brasD)', location: 'brasD' }] });
     expect(opSansObjet(c, { op: 'cureCriticalWound' })).toMatch(/amputations sont hors d'atteinte/);
     const log = applyOps(c, [{ op: 'cureCriticalWound' }], { rng: desDuTest });
     expect(log).toEqual([]);

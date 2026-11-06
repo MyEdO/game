@@ -59,7 +59,7 @@ describe('traumaFromKind (LDB 18-Traumatisme)', () => {
 
 describe('Prothèses — annulation de la séquelle d’amputation de jambe (LDB 73)', () => {
   const legSequela: Trauma = {
-    label: 'Membre inférieur amputé (jambeD)', location: 'jambeD',
+    uid: 't0', label: 'Membre inférieur amputé (jambeD)', location: 'jambeD',
     ops: [{ op: 'moveScale', num: 1, den: 2 }, { op: 'skillMod', skill: { id: 'esquive' }, mod: -20 }],
     prosthesis: [{ id: 'merveille-d-ingenierie', cancels: 'all' }, { id: 'fausse-jambe', cancels: 'movement' }],
   };
@@ -127,15 +127,15 @@ describe('Prothèses — annulation de la séquelle d’amputation de jambe (LDB
   });
 
   it('Nez doré annule le −20 Sociabilité de l’amputation du nez (charPenalty, LDB 73)', () => {
-    const nez: Trauma = { label: 'Nez amputé', traumaId: 'nez-ampute', location: 'tete', ops: [{ op: 'charMod', char: 'sociabilite', mod: -20 }], prosthesis: [{ id: 'nez-dore', cancels: 'all' }] };
+    const nez: Trauma = { uid: 't1', label: 'Nez amputé', traumaId: 'nez-ampute', location: 'tete', ops: [{ op: 'charMod', char: 'sociabilite', mod: -20 }], prosthesis: [{ id: 'nez-dore', cancels: 'all' }] };
     expect(traumaCharPenalties(fullCombatant({ traumas: [nez], items: [] }), 'sociabilite')).toEqual([-20]);
     expect(traumaCharPenalties(fullCombatant({ traumas: [nez], items: [item('nez-dore')] }), 'sociabilite')).toEqual([]);
   });
 });
 
 describe('consolidateAmputations — cumul doigts (l.251) & dents (l.247) ; pénalité de combat CONTEXTUELLE à l’arme (#101)', () => {
-  const finger = (loc: 'brasG' | 'brasD', count = 1): Trauma => ({ label: `Doigts amputés (${loc})`, traumaId: 'doigt-ampute', location: loc, count });
-  const teeth = (count: number): Trauma => ({ label: 'Dents perdues', traumaId: 'dents-perdues', location: 'tete', count });
+  const finger = (loc: 'brasG' | 'brasD', count = 1): Trauma => ({ uid: 't2', label: `Doigts amputés (${loc})`, traumaId: 'doigt-ampute', location: loc, count });
+  const teeth = (count: number): Trauma => ({ uid: 't3', label: 'Dents perdues', traumaId: 'dents-perdues', location: 'tete', count });
 
   it('cas réel : 1 doigt (main droite) + 3 dents → doigt count 1 SANS charMod (−5 = weapon-context) ; −1 Soc dents', () => {
     const c = fullCombatant({ traumas: [finger('brasD', 1), teeth(3)] });

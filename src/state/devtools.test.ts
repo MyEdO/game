@@ -86,8 +86,9 @@ describe('__wfrp — setup #1561', () => {
     useGame.getState().startCombat('enc-mutants');
     const traumaId = 'dechirure-autre-mineure';
     const opts = { be: 3 };
-    const expected = traumaById(traumaId, opts, 'brasG');
     const out = buildApi().trauma(hero.id, traumaId, opts, 'brasG');
+    // La factory pose un `uid` neuf à chaque appel : la séquelle attendue est celle de la factory, sous l'uid écrit.
+    const expected = { ...traumaById(traumaId, opts, 'brasG'), uid: out.uid };
     expect(out).toEqual(expected);
     expect(useGame.getState().party[0].traumas).toContainEqual(expected);
     expect(useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!.traumas).toContainEqual(expected);

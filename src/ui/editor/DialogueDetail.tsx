@@ -23,6 +23,7 @@ import { useClesDeRangees } from '../useClesDeRangees';
 import { Row, Stack } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 import { CouvreField } from './CouvreField';
+import { nextEntityId } from '../../lib/entityId';
 
 /** Ids posables au clic pour `DialogueChoice.icon` — DÉRIVÉS du registre d'icônes (`ICON_DEFS`,
  *  généré depuis `icons/defs/`), jamais une liste tenue à la main. */
@@ -46,7 +47,6 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
     onChange({ ...dialogue, nodes: [...dialogue.nodes, { id, choices: [] }] });
     setNodeId(id);
   };
-  const clesDesChoix = useClesDeRangees(node?.choices);
   // Le panneau du nœud est keyed sur son identité STABLE : un renommage le garde, un autre nœud le remonte.
   const clesDesNoeuds = useClesDeRangees(dialogue.nodes);
 
@@ -138,7 +138,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
             <div className="mini-title">Choix ({node.choices.length})</div>
             <Stack>
               {node.choices.map((c, ci) => (
-                <details className="eff-row dlg-choice" key={clesDesChoix[ci]}>
+                <details className="eff-row dlg-choice" key={c.id}>
                   <summary>
                     <span className="eff-summary">
                       {c.label ? `« ${coupeAuMot(c.label, 38)} »` : '(choix sans texte)'}
@@ -207,7 +207,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
                   </div>
                 </details>
               ))}
-              <button className="btn small" onClick={() => updNode({ choices: [...node.choices, { label: '' }] })}>
+              <button className="btn small" onClick={() => updNode({ choices: [...node.choices, { id: nextEntityId('choix', node.choices.map((x) => x.id)), label: '' }] })}>
                 + Choix
               </button>
             </Stack>

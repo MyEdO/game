@@ -414,8 +414,9 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().openMedic({ patientId: 'p' });
     banc.getState().medicAct('surgery');
-    banc.getState().medicSetWound(1); // opérer la 2e blessure (brasD)
-    expect(banc.getState().medic!.surgery!.traumaIdx).toBe(1);
+    const brasD = patient.traumas!.find((t) => t.location === 'brasD')!;
+    banc.getState().medicSetWound(brasD.uid); // opérer la blessure du brasD
+    expect(banc.getState().medic!.surgery!.traumaUid).toBe(brasD.uid);
   });
 
   it('Récupération d’usage (« Épaule luxée », #166) : acte Guérison ARMÉ = Test ÉTENDU DR 6 (Accessible), retire le membre désactivé + pose −10 / 1d10 j, SANS dégât', () => {
@@ -423,7 +424,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const patient = hero({
       id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40),
       // Aide Médicale DÉJÀ reçue (awaitingMedicalAid absent) → la récupération est ouvrable (LDB 18 l.120).
-      traumas: [{ label: 'Épaule luxée (bras perdu)', location: 'brasD', restoreDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }],
+      traumas: [{ uid: 't1', label: 'Épaule luxée (bras perdu)', location: 'brasD', restoreDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }],
     });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().openMedic({ patientId: 'p' });
@@ -451,7 +452,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const doc = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
     const patient = hero({
       id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40),
-      traumas: [{ label: 'Épaule luxée (bras perdu)', location: 'brasD', restoreDR: 6, awaitingMedicalAid: true, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }],
+      traumas: [{ uid: 't2', label: 'Épaule luxée (bras perdu)', location: 'brasD', restoreDR: 6, awaitingMedicalAid: true, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }],
     });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().openMedic({ patientId: 'p' });

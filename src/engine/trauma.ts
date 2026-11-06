@@ -32,6 +32,7 @@ import { removeActiveEffects } from './conditions';
 import { valeurSansTirage, type LectureDeCarac, type Referent } from './formule';
 import traumasJson from '../data/traumas.json';
 import { indexParId, memoParVersion } from '../data/versionDataset';
+import { sequence } from './sequences';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
 
 export type TraumaKind = 'dechirure' | 'fracture';
@@ -39,10 +40,21 @@ export type TraumaSeverity = 'mineur' | 'majeur';
 
 const LEG: HitLocation[] = ['jambeG', 'jambeD'];
 
-/** Texte de la plaie chirurgicale d'une amputation (fiche `amputation-plaie`, LDB 18 l.239, DISPLAY-ONLY) —
- *  SOURCE UNIQUE partagée par l'op `amputer` (ops.ts) et `stampCriticalEscalation` (« Pied écrasé »). */
+const prochainUidDeTrauma = sequence();
+/** Un `Trauma.uid` neuf : toute séquelle posée en reçoit un à sa création. */
+export function nouvelUidDeTrauma(): string {
+  return `trauma-${prochainUidDeTrauma.suivant()}`;
+}
+
+/** Texte de la plaie chirurgicale d'une amputation (fiche `amputation-plaie`, LDB 18 l.239, DISPLAY-ONLY). */
 export function amputationWoundDesc(): string | undefined {
   return traumaFicheById('amputation-plaie').desc;
+}
+
+/** La PLAIE chirurgicale d'une amputation à `location` (fiche `amputation-plaie`, LDB 18 l.239) — SOURCE UNIQUE partagée
+ *  par l'op `amputer` (ops.ts) et `stampCriticalEscalation` (« Pied écrasé »). */
+export function plaieDAmputation(location: HitLocation): Trauma {
+  return { uid: nouvelUidDeTrauma(), label: traumaFicheById('amputation-plaie').label, location, needsSurgery: true, desc: amputationWoundDesc() };
 }
 
 /**
@@ -174,6 +186,7 @@ export function setTraumaCount(t: Trauma, f: TraumaFiche, count: number): Trauma
 export function traumaById(id: string, opts?: { be?: number; d10?: number }, location?: HitLocation): Trauma {
   const f = structuredClone(traumaFicheById(id)); // #2097
   const out: Trauma = {
+    uid: nouvelUidDeTrauma(),
     label: f.label,
     traumaId: f.id,
     location: location ?? 'corps',
@@ -245,10 +258,11 @@ function downgradeTornMuscle(t: Trauma, leftDays: number, shape?: BodyShape): st
  * Test de Résistance raté laisse −5 (mineure) / −10 (majeure) en Agilité (Bras/Jambe/Torse) — la Tête
  * (−5/−10 Langue, compétence) est journalisée sans pénalité chiffrée (hors modèle charPenalty).
  */
-function fractureSequela(t: Trauma, shape?: BodyShape): Trauma | null {
-  const pen = t.severity === 'majeur' ? -10 : -5;
-  if (t.location === 'tete') return { label: tr('tra.fractureSequelaLabel', { loc: locationLabel(t.location ?? 'corps', shape) }), location: t.location, ops: [{ op: 'skillMod', skill: { id: 'langue' }, mod: pen }], desc: traumaFicheById('fracture-mal-ressoudee-tete').desc };
-  return { label: tr('tra.fractureSequelaLabel', { loc: locationLabel(t.location ?? 'corps', shape) }), location: t.location, ops: [{ op: 'charMod', char: 'agilite', mod: pen }], desc: traumaFicheById('fracture-mal-ressoudee-membre').desc };
+function fractureSequela(severity: string, location: HitLocation, shape?: BodyShape): Trauma {
+  const pen = severity === 'majeur' ? -10 : -5;
+  const label = tr('tra.fractureSequelaLabel', { loc: locationLabel(location, shape) });
+  if (location === 'tete') return { uid: nouvelUidDeTrauma(), label, location, ops: [{ op: 'skillMod', skill: { id: 'langue' }, mod: pen }], desc: traumaFicheById('fracture-mal-ressoudee-tete').desc };
+  return { uid: nouvelUidDeTrauma(), label, location, ops: [{ op: 'charMod', char: 'agilite', mod: pen }], desc: traumaFicheById('fracture-mal-ressoudee-membre').desc };
 }
 
 /** Difficulté du Test de fin de fracture (LDB 18 l.202/212) selon la sévérité. */
@@ -264,9 +278,7 @@ export function fractureEndDifficulty(severity: string): Difficulty {
  */
 export function applyFractureEnd(c: Combatant, success: boolean, severity: string, location: string, label: string): string[] {
   if (success) return [tr('tra.fractureHealed', { name: c.label, label })];
-  const seq = fractureSequela({ kind: 'fracture', severity, location, label } as Trauma, c.bodyShape);
-  if (!seq) return [];
-  c.traumas = [...(c.traumas ?? []), seq];
+  c.traumas = [...(c.traumas ?? []), fractureSequela(severity, location as HitLocation, c.bodyShape)];
   return [tr('tra.fractureSequela', { name: c.label, label })];
 }
 
@@ -408,8 +420,8 @@ const IS_CUMUL = (t: Trauma): boolean => cumulFiches().some((f) => f.id === t.tr
 
 /** Séquelle cumulative agrégée : `total` unités à `loc`, ops recalculées ; le libellé porte la
  *  Localisation quand le cumul est PAR LOCALISATION (LDB 18 l.251 « cette main »). */
-function aggregateCumul(c: Combatant, f: TraumaFiche, loc: HitLocation, total: number): Trauma {
-  const t = setTraumaCount(traumaById(f.id, undefined, loc), f, total);
+function aggregateCumul(c: Combatant, f: TraumaFiche, loc: HitLocation, total: number, uid: string): Trauma {
+  const t = setTraumaCount({ ...traumaById(f.id, undefined, loc), uid }, f, total);
   if (f.cumul!.portee === 'localisation') t.label = tr('tra.locSuffix', { label: f.label, loc: locationLabel(loc, c.bodyShape) });
   return t;
 }
@@ -456,7 +468,7 @@ export function consolidateAmputations(c: Combatant): string[] {
       const total = groupe.reduce((s, t) => s + (t.count ?? 1), 0);
       const esc = cumul.escalade;
       const atteint = !!esc && total >= esc.atLeast;
-      if (!atteint || esc!.mode === 'ajoute') kept.push(aggregateCumul(c, f, loc, total));
+      if (!atteint || esc!.mode === 'ajoute') kept.push(aggregateCumul(c, f, loc, total, groupe[0].uid));
       if (!atteint) continue;
       const cible = traumaFicheById(esc!.versTraumaId);
       const dejaLa = kept.some((t) => t.traumaId === cible.id && (cumul.portee === 'porteur' || t.location === loc));
@@ -546,7 +558,7 @@ export function stampCriticalEscalation(
   // escalades ; l'op `amputer` dédoublonne par membre (`estPlaieAmputation`), la plaie reste unique.
   let plaie = traumas.find(estPlaieAmputation);
   const plaieOuCreee = (): Trauma => {
-    if (!plaie) { plaie = { label: traumaFicheById('amputation-plaie').label, location, needsSurgery: true, desc: amputationWoundDesc() }; traumas.push(plaie); }
+    if (!plaie) { plaie = plaieDAmputation(location); traumas.push(plaie); }
     return plaie;
   };
   if (esc.perRound) { const p = plaieOuCreee(); p.perRound = { ...esc.perRound }; p.awaitingMedicalAid = true; }
@@ -557,6 +569,7 @@ export function stampCriticalEscalation(
   if (esc.medicalAidGate) {
     const g = esc.medicalAidGate;
     traumas.push({
+      uid: nouvelUidDeTrauma(),
       label: g.label,
       location,
       ops: g.disable.map((o) => ({ ...o })),
@@ -569,13 +582,13 @@ export function stampCriticalEscalation(
     // Plaie « réouverte » (LDB 18 l.101/118/143/145/148/175 ; AA 07 l.119/147/149/152/175) : séquelle
     // chirurgicale portant `bleedOnReinjury` à `location` — la Chirurgie la retire (`needsSurgery`), le
     // déclencheur `reinjuryBleed` la lit au point d'application des Dégâts localisés.
-    traumas.push({ label: esc.bleedOnReinjury.label, location, bleedOnReinjury: esc.bleedOnReinjury.amount, needsSurgery: true });
+    traumas.push({ uid: nouvelUidDeTrauma(), label: esc.bleedOnReinjury.label, location, bleedOnReinjury: esc.bleedOnReinjury.amount, needsSurgery: true });
   }
   if (esc.onHealGrant) {
     // « Une fois que la blessure est guérie… » (LDB 18 l.61/72) : marqueur de la Blessure critique EN COURS de
     // guérison, porteur de la cicatrice à octroyer. La guérison (retrait des États `whenClear`) est détectée par
     // `settleHealedCriticals` au point unique de retrait d'État (`removeCondition`).
-    traumas.push({ label: tr('tra.healingScar', { label: traumaFicheById(esc.onHealGrant.scar).label }), location, onHealGrant: { scar: esc.onHealGrant.scar, whenClear: [...esc.onHealGrant.whenClear] } });
+    traumas.push({ uid: nouvelUidDeTrauma(), label: tr('tra.healingScar', { label: traumaFicheById(esc.onHealGrant.scar).label }), location, onHealGrant: { scar: esc.onHealGrant.scar, whenClear: [...esc.onHealGrant.whenClear] } });
   }
   if (esc.onNextCritWhileCondition) {
     // « Commotion cérébrale » (LDB 18 l.74) : séquelle porteuse d'un `critTrigger` — tant que le personnage
@@ -586,6 +599,7 @@ export function stampCriticalEscalation(
     if (!existing.some(same) && !traumas.some(same)) {
       const noeud = structuredClone(n.test);
       traumas.push({
+        uid: nouvelUidDeTrauma(),
         label: n.label,
         location,
         critTrigger: { location: n.location, whileCondition: n.whileCondition, test: { ...noeud, test: poserEnjeu(noeud.test, enjeu) } },
@@ -672,13 +686,13 @@ function armLocationHand(loc: HitLocation): 'main' | 'off' | undefined {
 }
 
 /** Usage du membre RÉCUPÉRÉ (Test étendu de Guérison atteint) : retire la séquelle « membre désactivé »
- *  d'INDICE `idx` parmi `recoverableTraumas` et renvoie ses `recoveryPenalty` (posées par l'appelant via
+ *  d'`uid` donné parmi `recoverableTraumas` (sans `uid` : la première) et renvoie ses `recoveryPenalty` (posées par l'appelant via
  *  `applyOps`, avec une durée d'horloge partagée 1d10 jours) + le journal. #193 : un `testMod{char:'capacite-de-combat'}`
  *  de la `recoveryPenalty` (même donnée pour brasD/brasG) est ICI scopé à la main RÉELLE du membre — portée
  *  MEMBRE (« Tests effectués avec ce bras ») au lieu d'un `charMod` global historique. */
-export function recoverDisabledLimb(c: Combatant, idx = 0): { penalty: import('./ops').GameOp[]; log: string[] } {
+export function recoverDisabledLimb(c: Combatant, uid?: string): { penalty: import('./ops').GameOp[]; log: string[] } {
   const pool = recoverableTraumas(c);
-  const t = pool[idx] ?? pool[0];
+  const t = uid === undefined ? pool[0] : pool.find((x) => x.uid === uid);
   if (!t) return { penalty: [], log: [tr('tra.noLimbToRehab', { name: c.label })] };
   c.traumas = (c.traumas ?? []).filter((x) => x !== t);
   const hand = armLocationHand(t.location);
@@ -710,13 +724,13 @@ export function surgeryTraumas(c: Combatant): Trauma[] {
   return (c.traumas ?? []).filter((t) => t.needsSurgery);
 }
 
-/** Retire le trauma chirurgical d'INDICE `idx` PARMI les blessures chirurgicales (le joueur choisit
- *  quelle Blessure Critique opérer s'il y en a plusieurs ; défaut = la première), opération réussie ;
+/** Retire le trauma chirurgical d'`uid` donné PARMI les blessures chirurgicales (le joueur choisit
+ *  quelle Blessure Critique opérer s'il y en a plusieurs ; sans `uid` : la première), opération réussie ;
  *  décrémente `criticalWounds`. Mute `c`, renvoie le journal. Les dégâts et l'Infection de l'opération (LDB 10 l.184)
  *  sont appliqués par l'appelant (`medicFlow`) : ils dépendent de `loseWounds`/`addCondition`, hors de ce module pur. */
-export function removeSurgicalTrauma(c: Combatant, idx = 0): string[] {
+export function removeSurgicalTrauma(c: Combatant, uid?: string): string[] {
   const surg = surgeryTraumas(c);
-  const t = surg[idx] ?? surg[0];
+  const t = uid === undefined ? surg[0] : surg.find((x) => x.uid === uid);
   if (!t) return [tr('tra.noSurgicalWound', { name: c.label })];
   c.traumas = (c.traumas ?? []).filter((x) => x !== t);
   if (!t.cosmetic && c.criticalWounds) c.criticalWounds = Math.max(0, c.criticalWounds - 1); // une cicatrice n'est pas une Blessure critique comptée (déjà décomptée à la guérison)

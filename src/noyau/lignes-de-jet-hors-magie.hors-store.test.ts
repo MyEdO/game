@@ -182,7 +182,7 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
     const patient = heros('p');
     banc.setState({
       battle: null, party: [chirurgien, patient],
-      medic: { patientId: 'p', surgery: { kind: 'recovery', difficulty: 'accessible', healerId: 'c', healerName: 'c', skill: 81, intBonus: 6, traumaIdx: 0, targetDR: 6, cumDR: 0 } } as never,
+      medic: { patientId: 'p', surgery: { kind: 'recovery', difficulty: 'accessible', healerId: 'c', healerName: 'c', skill: 81, intBonus: 6, targetDR: 6, cumDR: 0 } } as never,
     });
     seedBattleRng(7);
     openSurgeryPass(banc.getState, banc.setState);

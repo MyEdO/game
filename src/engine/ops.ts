@@ -41,7 +41,7 @@ import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grap
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration, maladieABenir, aucuneMaladieABenir } from './rest';
 import { applyAlcoholTest, EFFET_D_IVRESSE } from './drunkenness';
-import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, traumaFicheById, estPlaieAmputation, amputationWoundDesc } from './trauma';
+import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, estPlaieAmputation, plaieDAmputation } from './trauma';
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
@@ -2422,7 +2422,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // l'a déjà posée avec son échéance (`stampCriticalEscalation`) — la doubler perdrait cette échéance.
         const dejaPlaie = (target.traumas ?? []).some((t) => estPlaieAmputation(t) && t.location === loc);
         const poses: Trauma[] = [
-          ...(dejaPlaie ? [] : [{ label: traumaFicheById('amputation-plaie').label, location: loc, needsSurgery: true, desc: amputationWoundDesc() } as Trauma]),
+          ...(dejaPlaie ? [] : [plaieDAmputation(loc)]),
           ...permanentAmputations(o.sequels, loc, units),
         ];
         target.traumas = [...(target.traumas ?? []), ...poses];
