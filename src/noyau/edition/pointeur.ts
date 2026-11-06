@@ -1,0 +1,182 @@
+/**
+ * LE POINTEUR DE L'ÉDITEUR DE CARTE (#3508) : appui, glissé et relâché d'un point de la carte, routés vers les
+ * écrivains de `../sceneEdit` selon l'outil actif. PUR, sans hôte : l'éditeur web et l'éditeur Godot désignent la
+ * carte par lui, chacun ne fournissant que le point visé. Chaque appel rend l'effet du geste (la scène écrite et
+ * si elle ouvre un cran d'annulation, la sélection désignée, la case tracée d'une volée) et le geste en cours, que
+ * l'hôte repasse au pas suivant.
+ */
+import type { Scene, CellSide } from '../monde/scene';
+import { appliquerOutil, addFacadeSection, moveSel, rectFrom, resizeSel, validerRectangle, type GesteDOutil, type Pt, type Rect } from '../sceneEdit';
+import { canonEdge, dansLaCarte, empriseDuPinceau, hitAt, nearestEdge, pickArchitectureEdge, pickWallEdge, type Layers, type Sel, type Tool } from '../sceneEditLecture';
+
+/** Ce que l'éditeur tient autour du geste : l'outil, la couche, le pinceau, la rencontre que l'outil de rencontre
+ *  complète et la fiche qu'il pose, les calques visibles, la sélection, le rectangle du terrain, et le mode
+ *  architecture (`null` hors de lui) avec la couche de ses arêtes, son action et son corps. */
+export interface ContexteDuPointeur {
+  tool: Tool;
+  z: number;
+  brush: number;
+  encId: string;
+  encRef: string;
+  layers: Layers;
+  sel: Sel;
+  terrainRect: boolean;
+  architecture: { z: number; action: 'select' | 'facade'; bodyId: string | null } | null;
+}
+
+/** Un point de la carte : la case visée et ses coordonnées fractionnaires de case, sur le plan de
+ *  `planDuPointeur`. */
+export interface PointDeCarte {
+  case: Pt;
+  f: Pt;
+}
+
+/** Le geste en cours entre l'appui et le relâché. `trait` : un pinceau, `cran` une fois sa première écriture faite,
+ *  `trace` les cases que le pinceau de terrain a peintes ; `volee` : le tracé d'une volée, sa dernière case ;
+ *  `rectangle` : un rectangle tiré depuis `depart` ; `deplacement` et `redimension` : la sélection `sel` qu'il
+ *  déplace ou redimensionne, `deplace` une fois la scène écrite. */
+export type GesteEnCours =
+  | { sorte: 'trait'; cran: boolean; trace: readonly Pt[] }
+  | { sorte: 'volee'; dernier: Pt }
+  | { sorte: 'rectangle'; depart: Pt; rect: Rect }
+  | { sorte: 'deplacement'; sel: Sel; depuis: Pt; deplace: boolean }
+  | { sorte: 'redimension'; sel: Sel; deplace: boolean };
+
+/** L'effet d'un pas du pointeur. `scene` : la scène écrite, `cran` vrai quand elle ouvre un cran d'annulation,
+ *  faux quand elle prolonge celui du geste ; `sel` (présente) : la sélection désignée, `null` pour aucune ; `encId` :
+ *  la rencontre que l'outil de rencontre a complétée ; `volee` : la case que le tracé de volée bascule ;
+ *  `architectureFinie` : l'action d'architecture est consommée. */
+export interface EffetDuPointeur {
+  geste: GesteEnCours | null;
+  scene?: Scene;
+  cran?: boolean;
+  sel?: Sel;
+  encId?: string;
+  volee?: Pt;
+  architectureFinie?: true;
+}
+
+const memeCase = (a: Pt, b: Pt) => a.x === b.x && a.y === b.y;
+
+/** La couche dont le plan porte le point du pointeur : celle des arêtes d'architecture en mode architecture, la
+ *  couche éditée sinon. */
+export function planDuPointeur(ctx: ContexteDuPointeur): number {
+  return ctx.architecture?.z ?? ctx.z;
+}
+
+/** La case du point fractionnaire `f` et l'arête de cette case la plus proche de lui. */
+function areteDuPoint(f: Pt): { p: Pt; side: CellSide } {
+  const p = { x: Math.round(f.x), y: Math.round(f.y) };
+  return { p, side: nearestEdge(f.x - p.x, f.y - p.y) };
+}
+
+/** L'arête canonique que l'outil murs viserait au point `pt` (cloison ou porte), `null` pour tout autre outil. */
+export function areteVisee(ctx: ContexteDuPointeur, pt: PointDeCarte): { x: number; y: number; side: 'N' | 'E' } | null {
+  if (ctx.tool.mode !== 'wall' || (ctx.tool.paint !== 'wall' && ctx.tool.paint !== 'door')) return null;
+  const { p, side } = areteDuPoint(pt.f);
+  return canonEdge(p.x, p.y, side);
+}
+
+const gesteDOutil = (ctx: ContexteDuPointeur): GesteDOutil => ({ z: ctx.z, brush: ctx.brush, encId: ctx.encId, encRef: ctx.encRef });
+
+/** Un pas de pinceau à la case `p` : la gomme ouvre un cran par écriture, les autres pinceaux un seul pour le trait. */
+function peindre(scene: Scene, ctx: ContexteDuPointeur, trait: Extract<GesteEnCours, { sorte: 'trait' }>, p: Pt): EffetDuPointeur {
+  const out = appliquerOutil(scene, ctx.tool, p, gesteDOutil(ctx));
+  if (!out || out.scene === scene) return { geste: trait };
+  const trace = ctx.tool.mode === 'tile' ? [...trait.trace, ...empriseDuPinceau(scene.dimensions, p, ctx.brush).filter((c) => !trait.trace.some((t) => memeCase(t, c)))] : trait.trace;
+  return { geste: { sorte: 'trait', cran: true, trace }, scene: out.scene, cran: ctx.tool.mode === 'erase' || !trait.cran };
+}
+
+const rectangle = (p: Pt): EffetDuPointeur => ({ geste: { sorte: 'rectangle', depart: p, rect: { x: p.x, y: p.y, w: 1, h: 1 } } });
+
+/** L'appui de l'outil de sélection : une façade sous le point, la façade posée sur l'arête en action « façade », la
+ *  chose désignée sous la case en mode architecture ; hors de lui, une arête de mur proche l'emporte sur la case. Une
+ *  chose désignée sous la case ouvre son déplacement. */
+function selectionner(scene: Scene, ctx: ContexteDuPointeur, pt: PointDeCarte): EffetDuPointeur {
+  const a = ctx.architecture;
+  if (a) {
+    const facade = pickArchitectureEdge(scene, pt.f.x, pt.f.y, a.z);
+    if (facade) return { geste: null, sel: facade, architectureFinie: true };
+    if (a.action === 'facade' && a.bodyId) {
+      const { p, side } = areteDuPoint(pt.f);
+      const out = addFacadeSection(scene, a.bodyId, { ...canonEdge(p.x, p.y, side), ...(a.z ? { z: a.z } : {}) });
+      return out
+        ? { geste: null, scene: out.scene, cran: true, sel: { type: 'facadeSection', bodyId: a.bodyId, id: out.id }, architectureFinie: true }
+        : { geste: null, architectureFinie: true };
+    }
+  } else {
+    const mur = pickWallEdge(scene, pt.f.x, pt.f.y, ctx.z);
+    if (mur) return { geste: null, sel: { type: 'wall', x: mur.x, y: mur.y, side: mur.side, z: ctx.z } };
+  }
+  const sel = hitAt(scene, pt.case, ctx.layers, ctx.z, a?.bodyId ?? undefined);
+  return { geste: sel ? { sorte: 'deplacement', sel, depuis: pt.case, deplace: false } : null, sel };
+}
+
+/** L'appui au point `pt`. */
+export function appuyer(scene: Scene, ctx: ContexteDuPointeur, pt: PointDeCarte): EffetDuPointeur {
+  const p = pt.case;
+  if (!dansLaCarte(scene, p)) return { geste: null };
+  const tool = ctx.tool;
+  switch (tool.mode) {
+    case 'select':
+      return selectionner(scene, ctx, pt);
+    case 'tile':
+      return ctx.terrainRect ? rectangle(p) : peindre(scene, ctx, { sorte: 'trait', cran: false, trace: [] }, p);
+    case 'zone':
+      return rectangle(p);
+    case 'zoneTiles':
+    case 'height':
+    case 'crenellated':
+    case 'erase':
+      return peindre(scene, ctx, { sorte: 'trait', cran: false, trace: [] }, p);
+    case 'stair':
+      return { geste: { sorte: 'volee', dernier: p }, volee: p };
+    case 'entity':
+    case 'emplacement':
+    case 'entry':
+    case 'encounter':
+    case 'wall': {
+      const cible = tool.mode === 'wall' ? areteDuPoint(pt.f) : { p, side: undefined };
+      const out = appliquerOutil(scene, tool, cible.p, { ...gesteDOutil(ctx), side: cible.side });
+      if (!out) return { geste: null };
+      return {
+        geste: null,
+        ...(out.scene !== scene ? { scene: out.scene, cran: true } : {}),
+        ...(out.encId && out.encId !== ctx.encId ? { encId: out.encId } : {}),
+        ...(out.sel ? { sel: out.sel } : {}),
+      };
+    }
+  }
+}
+
+/** La saisie de la poignée de redimensionnement de la sélection. */
+export function saisirLaPoignee(ctx: ContexteDuPointeur): GesteEnCours {
+  return { sorte: 'redimension', sel: ctx.sel, deplace: false };
+}
+
+/** Le glissé du geste `geste` au point `pt` : le même pas qu'à l'appui pour un pinceau, le rectangle étiré, la
+ *  sélection déplacée ou redimensionnée (un cran au premier pas réel), la case suivante d'une volée. */
+export function glisser(scene: Scene, ctx: ContexteDuPointeur, geste: GesteEnCours | null, pt: PointDeCarte): EffetDuPointeur {
+  const p = pt.case;
+  if (!geste) return { geste: null };
+  switch (geste.sorte) {
+    case 'trait':
+      return peindre(scene, ctx, geste, p);
+    case 'rectangle':
+      return { geste: { ...geste, rect: rectFrom(geste.depart, p) } };
+    case 'volee':
+      return !dansLaCarte(scene, p) || memeCase(p, geste.dernier) ? { geste } : { geste: { sorte: 'volee', dernier: p }, volee: p };
+    case 'deplacement':
+      if (!geste.deplace && memeCase(p, geste.depuis)) return { geste };
+      return { geste: { ...geste, deplace: true }, scene: moveSel(scene, geste.sel, p), cran: !geste.deplace };
+    case 'redimension':
+      return { geste: { ...geste, deplace: true }, scene: resizeSel(scene, geste.sel, p), cran: !geste.deplace };
+  }
+}
+
+/** Le relâché du geste `geste` au point `pt` : un rectangle se valide (zone ou terrain), tout autre geste finit. */
+export function relacher(scene: Scene, ctx: ContexteDuPointeur, geste: GesteEnCours | null, pt: PointDeCarte): EffetDuPointeur {
+  if (geste?.sorte !== 'rectangle') return { geste: null };
+  const out = validerRectangle(scene, ctx.tool, rectFrom(geste.depart, pt.case), ctx.z);
+  return out ? { geste: null, scene: out.scene, cran: true, ...(out.sel ? { sel: out.sel } : {}) } : { geste: null };
+}

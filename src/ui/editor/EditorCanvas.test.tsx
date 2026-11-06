@@ -32,7 +32,6 @@ function baseProps() {
   return {
     setScene: () => {},
     setSceneNoHistory: () => {},
-    pushSnapshot: () => {},
     tool: { mode: 'select' as const },
     brush: 1,
     terrainRect: false,

@@ -566,6 +566,10 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `monde/spawn.ts` reste sans
                             import de cette couche).
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
+  edition/                  L'ÉDITEUR DE CARTE sans hôte (#3508) : `pointeur.ts` (appui, glissé, relâché d'un point de la carte
+                            routés vers les écrivains de `sceneEdit.ts` selon l'outil, avec le cran d'annulation et la
+                            sélection que le geste porte), `historique.ts` (annuler, rétablir, crans bornés) ; l'éditeur
+                            web les appelle, l'éditeur Godot les recevra par le pont.
   creation/                 BROUILLON DE CRÉATION de personnage (LDB 04/05), sans écran : `brouillon.ts` (état pur :
                             tirages figés, bonus PX, validation, `buildHero`), `defauts.ts` (`fillDraftDefaults`)
   persistance/              documents PERSISTÉS, sans stockage : `elagage.ts` (`elaguerLePersiste`, seul élagage
@@ -802,7 +806,7 @@ src/ui/                     React : menus, CampaignView (HUD), CharacterSheet, m
                               (elle reste dans WorldMapView, premier consommateur ; le plan de ville #343-B sera
                               le second). Caméra pure = `worldMapViewport.ts` (clamp/fit/viewOn).
   editor/                     Éditeur v2 : Editor.tsx (shell ; ses écrivains PURS dans `noyau/sceneEdit.ts`,
-                              outil/sélection/picking dans `noyau/sceneEditLecture.ts`), EditorCanvas (pointeur/overlays/resize), Palette (rail
+                              outil/sélection/picking dans `noyau/sceneEditLecture.ts`, pointeur et historique dans `noyau/edition/`), EditorCanvas (pointeur/overlays/resize), Palette (rail
                               d'outils + contenu contextuel), Inspector (DOCKÉ, folds ; scène si rien
                               de sélectionné), LogicDock (triggers/dialogues/rencontres/validation en
                               master-détail, édition live), EffectList (rangées repliées + picker),

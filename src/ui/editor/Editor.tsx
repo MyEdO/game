@@ -92,7 +92,7 @@ export function Editor({
   const loadProject = useGame((s) => s.loadProject);
   const party = useGame((s) => s.party);
 
-  const { scene, setScene, setSceneNoHistory, pushSnapshot, reecrireHistorique, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
+  const { scene, setScene, setSceneNoHistory, reecrireHistorique, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
   // Filet de crash : sauvegarde locale débattue de LA scène active, indépendante de
   // « Fichier → Enregistrer » — un crash de rendu (`SceneErrorBoundary`) ne perd plus le travail en
   // mémoire. `setScene` (jamais `resetScene`) au restaurer : une restauration erronée reste ANNULABLE
@@ -1017,7 +1017,6 @@ export function Editor({
           view={view}
           setScene={setScene}
           setSceneNoHistory={setSceneNoHistory}
-          pushSnapshot={pushSnapshot}
           tool={tool}
           brush={brush}
           terrainRect={terrainRect}
