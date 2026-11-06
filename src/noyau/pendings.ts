@@ -123,7 +123,7 @@ export interface PendingTest {
   /** RÔLE tenu (id stable de `crew-roles`) — PROVENANCE de la rangée, jamais son libellé de ligne :
    *  la ligne NOMME la Compétence lancée (Z5), le rôle dit d'où vient le jet (#1117). */
   roleId?: string;
-  char?: CharKey;
+  characteristic?: CharKey;
   skillValue: number;
   difficulty: Difficulty;
   requireSL: number;

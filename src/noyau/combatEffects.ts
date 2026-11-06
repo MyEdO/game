@@ -937,7 +937,7 @@ export function openSkillTest(
   set({
     pendingTest: {
       actorId: def.id, actorName: def.label, label, skill, skillValue: def.value, difficulty,
-      skillId: spec.skill?.id, spec: spec.skill?.spec, char: spec.characteristic, // réf structurée pour talentTestSLBonus (LDB 10)
+      skillId: spec.skill?.id, spec: spec.skill?.spec, characteristic: spec.characteristic, // réf structurée pour talentTestSLBonus (LDB 10)
       requireSL: spec.requireSL ?? 0, target: def.target, clamped: def.clamped, base: def.base, mods: def.mods, psychMod: def.psychMod, psychDetail: def.psychDetail,
       itemUid: def.itemUid, isDouble: false, roll: null, success: false, sl: 0,
       support: def.support, easedBy,
