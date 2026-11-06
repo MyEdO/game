@@ -20,7 +20,7 @@ import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campa
 const dlg: Dialogue = {
   id: 'd-surface', start: 'n1',
   nodes: [
-    { id: 'n1', desc: '…', choices: [{ label: 'Oui', next: 'n2' }, { label: 'Non', next: 'n2' }] },
+    { id: 'n1', desc: '…', choices: [{ id: 'oui', label: 'Oui', next: 'n2' }, { id: 'non', label: 'Non', next: 'n2' }] },
     { id: 'n2', desc: 'Suite', choices: [] },
   ],
 } as Dialogue;
@@ -43,7 +43,7 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
   // verbe. Une surface PARTAGÉE (le document que tous lisent) met la réponse en attente.
   const repondreCommeInvite = (over: Partial<GameState>) => {
     temoin({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } as GameState['net'], ...over });
-    withActingSeat(1, () => useGame.getState().chooseDialogue(0));
+    withActingSeat(1, () => useGame.getState().chooseDialogue('oui'));
     return useGame.getState().dialogue?.nodeId;
   };
 

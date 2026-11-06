@@ -11,8 +11,8 @@ import { validateScene } from './validateScene';
 const dialogue = (): Dialogue => ({
   id: 'd1', start: 'n1',
   nodes: [
-    { id: 'n1', desc: 'un', choices: [{ label: 'vers deux', next: 'n2' }] },
-    { id: 'n2', desc: 'deux', choices: [{ label: 'encore', next: 'n2' }, { label: 'retour', next: 'n1' }] },
+    { id: 'n1', desc: 'un', choices: [{ id: 'choix-1', label: 'vers deux', next: 'n2' }] },
+    { id: 'n2', desc: 'deux', choices: [{ id: 'choix-1', label: 'encore', next: 'n2' }, { id: 'choix-2', label: 'retour', next: 'n1' }] },
     { id: 'n3', desc: 'trois', choices: [] },
   ],
 });
@@ -21,7 +21,7 @@ const scene = (): Scene => ({
   ...emptyScene('scene-test', 8, 8),
   entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: 'd1' } as SceneEntity],
   triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'seq', steps: [ouvrir('d1')] } }],
-  dialogues: [dialogue(), { id: 'd2', start: 'n1', nodes: [{ id: 'n1', desc: 'autre', choices: [{ label: 'autre', flow: ouvrir('d1') }] }] }],
+  dialogues: [dialogue(), { id: 'd2', start: 'n1', nodes: [{ id: 'n1', desc: 'autre', choices: [{ id: 'choix-1', label: 'autre', flow: ouvrir('d1') }] }] }],
 });
 const fautesDeDialogue = (s: Scene) => validateScene([s]).filter((w) => w.level === 'error' && /dialogue/i.test(w.message)).map((w) => w.message);
 const avec = (d: Dialogue): Scene => ({ ...scene(), dialogues: [d, scene().dialogues[1]] });
@@ -69,7 +69,7 @@ describe('écrivains de nœud', () => {
   it('removeDialogueNode : coupe chaque `next` qui visait le nœud, le choix mène à la fin', () => {
     const d = removeDialogueNode(dialogue(), 'n2');
     expect(d.nodes.map((n) => n.id)).toEqual(['n1', 'n3']);
-    expect(d.nodes[0].choices).toEqual([{ label: 'vers deux' }]);
+    expect(d.nodes[0].choices).toEqual([{ id: 'choix-1', label: 'vers deux' }]);
     expect(fautesDeDialogue(avec(d))).toEqual([]);
   });
 

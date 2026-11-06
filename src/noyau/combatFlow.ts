@@ -152,7 +152,7 @@ import { findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE, DE_SALVE_MISFIRE } from '../engine/artilleryMisfire';
 import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
-import { traumaById, dechirureFractureFicheId, consolidateAmputations, maxFingersLostForWeapon, reinjuryBleed } from '../engine/trauma';
+import { avecSequelles, traumaById, dechirureFractureFicheId, consolidateAmputations, maxFingersLostForWeapon, reinjuryBleed } from '../engine/trauma';
 import { effectiveWeaponDamage, isThrownWeapon, solideSaveThreshold, sauvegardeImperdable, effectiveWeapon, type WeaponContext } from '../engine/weaponDamage';
 import { scatter } from '../engine/scatter';
 import { TIME_COST } from '../engine/timeCost';
@@ -1765,7 +1765,7 @@ export function applyCriticalToTarget(
   // RAW (note) — « à quoi ça correspond » (#critique). Localisation FR, et pas de « (Jambe droite) (jambeD) ».
   const details: { text: string; note?: string }[] = [];
   if (crit.traumas.length) {
-    target.traumas = [...(target.traumas ?? []), ...crit.traumas];
+    target.traumas = avecSequelles(target.traumas, crit.traumas);
     for (const t of crit.traumas) {
       const text = `${t.label} (${locationLabel(t.location, target.bodyShape)})`;
       log.push(`  ↳ ${text}.`);
@@ -3245,7 +3245,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
     case 'trauma': {
       c.criticalWounds = (c.criticalWounds ?? 0) + 1; // « compte comme une Blessure critique » (l.41)
       const leg: HitLocation = battleRng().int(0, 1) === 0 ? 'jambeG' : 'jambeD'; // « se tord la cheville »
-      c.traumas = [...(c.traumas ?? []), traumaById(dechirureFractureFicheId('dechirure', 'mineur', leg), { be: bonus(effectiveChar(c, 'endurance')) }, leg)];
+      c.traumas = avecSequelles(c.traumas, [traumaById(dechirureFractureFicheId('dechirure', 'mineur', leg), { be: bonus(effectiveChar(c, 'endurance')) }, leg)]);
       log.push(tr('cf.fumbleTear', { leg: leg === 'jambeG' ? tr('cf.legLeft') : tr('cf.legRight') }));
       break;
     }

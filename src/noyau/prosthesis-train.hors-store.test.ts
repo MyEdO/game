@@ -95,7 +95,7 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
    *  la pénalité entière pour 400 PX ». 4 paliers DÉCLARÉS (`TrappingData.prosthesisTraining`). */
   it('Crochet : chaque tranche de 100 PX rachète 5 points de la pénalité de main perdue', () => {
     const crochet: ItemInstance = { ...itemFromTrappingById('crochet')!, uid: 'cr', equipped: true };
-    const main = { label: 'Main', traumaId: 'main-bras-ampute', location: 'brasD' as const, ops: [{ op: 'maxWeaponHands' as const, hands: 1 }] };
+    const main = { uid: 't0', label: 'Main', traumaId: 'main-bras-ampute', location: 'brasD' as const, ops: [{ op: 'maxWeaponHands' as const, hands: 1 }] };
     const arme = { label: 'Épée', hands: 1, hand: 'main' } as never;
     const h = hero({ id: 'a', xp: 500, traumas: [main], items: [crochet] });
     banc.setState({ party: [h] });
@@ -110,7 +110,7 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
   it('Crochet : les 4 tranches (400 PX) retirent la pénalité ENTIÈRE et rétablissent les armes à deux mains', () => {
     const crochet: ItemInstance = { ...itemFromTrappingById('crochet')!, uid: 'cr', equipped: true };
     const arme = { label: 'Épée', hands: 1, hand: 'main' } as never;
-    const h = hero({ id: 'a', xp: 500, traumas: [{ label: 'Main', traumaId: 'main-bras-ampute', location: 'brasD', ops: [{ op: 'maxWeaponHands' as const, hands: 1 }] }], items: [crochet] });
+    const h = hero({ id: 'a', xp: 500, traumas: [{ uid: 't1', label: 'Main', traumaId: 'main-bras-ampute', location: 'brasD', ops: [{ op: 'maxWeaponHands' as const, hands: 1 }] }], items: [crochet] });
     banc.setState({ party: [h] });
     expect(cannotWieldTwoHanded(banc.getState().party[0])).toBe(true); // avant : pas d'arme à 2 mains
     for (let i = 0; i < 4; i++) banc.getState().trainProsthesis('a', 'cr');

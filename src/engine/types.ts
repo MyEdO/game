@@ -1014,6 +1014,9 @@ export interface ActiveEffect {
  *  le reste (−10 Tests de Localisation, membre inutilisable, amputation, guérison) est journalisé
  *  dans `note` (→ Jalon 5). Persisté entre combats (cf. engine/persistence.ts). */
 export interface Trauma {
+  /** Identité STABLE de la séquelle portée, posée par son porteur (`avecSequelles`, `engine/trauma.ts`) : c'est elle
+   *  qu'un verbe désigne, jamais son rang dans `Combatant.traumas`. */
+  uid: string;
   label: string;
   /** id STABLE d'une séquelle SYNTHÉTIQUE agrégée que le moteur reconnaît par identité
    *  (Dents perdues → 'dents-perdues', Cécité → 'cecite', Surdité → 'surdite') — ≠ libellé d'affichage.

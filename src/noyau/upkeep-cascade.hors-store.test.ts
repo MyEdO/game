@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { itemFromTrappingById } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { contractDisease } from '../engine/disease';
-import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
+import { traumaById, dechirureFractureFicheId, avecSequelles } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';
 const tk = (k: 'dechirure' | 'fracture', s: 'mineur' | 'majeur', loc: HitLocation, opts?: { be?: number; d10?: number }) => traumaById(dechirureFractureFicheId(k, s, loc), opts, loc);
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -59,7 +59,7 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
   });
 
   it('la convalescence d’un trauma décompte les jours CALENDAIRES (LDB 18 l.222), repos ou pas', () => {
-    const c = hero({ traumas: [tk('dechirure', 'mineur', 'jambeD', { be: 28 })] }); // 30−28 = 2 jours
+    const c = hero({ traumas: avecSequelles([], [tk('dechirure', 'mineur', 'jambeD', { be: 28 })]) }); // 30−28 = 2 jours
     banc.setState({ party: [c], gameTime: 0, lastUpkeepDay: 0 });
     banc.getState().advanceTime(2 * MINUTES_PER_DAY);
     expect(banc.getState().party[0].traumas!.length).toBe(0); // guéri sans avoir « dormi »

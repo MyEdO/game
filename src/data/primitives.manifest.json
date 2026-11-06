@@ -1938,7 +1938,7 @@
     "type": "primitives.manifest",
     "label": "reponsesDuNoeud/testAnnonce/ouvrirDialogue",
     "fichier": "src/noyau/dialogue.ts",
-    "concept": "ce qu'une réponse de dialogue OFFRE et ANNONCE, dérivé de sa donnée : liste VISIBLE (filtre when, rang affiché, index de donnée, verdict d'offre) et Test déclaré par son flux, en ids stables",
+    "concept": "ce qu'une réponse de dialogue OFFRE et ANNONCE, dérivé de sa donnée : liste VISIBLE (filtre when, rang affiché, id de donnée, verdict d'offre) et Test déclaré par son flux, en ids stables",
     "perimetre": "la fenêtre de dialogue et les touches dialogue-choice-1..9 — toute surface qui sert une réponse",
     "verrou": "src/scenes/dialogue-label-sans-test.test.ts (le libellé ne recopie jamais le Test de son flux)"
   },

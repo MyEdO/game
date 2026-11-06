@@ -37,7 +37,7 @@ const FICHES: Record<string, () => Combatant> = {
   malade: () => ({ ...FICHES.vierge(), diseases: [maladie(5 * MINUTES_PER_DAY)] }),
   maladeAuDernierJour: () => ({ ...FICHES.vierge(), diseases: [maladie(MINUTES_PER_DAY)] }),
   maladeDepuisDesHeures: () => ({ ...FICHES.vierge(), diseases: [maladie(6 * 60)] }),
-  fracture: () => ({ ...FICHES.vierge(), traumas: [{ label: 'Fracture', location: 'brasG' as const, kind: 'fracture' as const }] }),
+  fracture: () => ({ ...FICHES.vierge(), traumas: [{ uid: 't1', label: 'Fracture', location: 'brasG' as const, kind: 'fracture' as const }] }),
 };
 
 const OPS: GameOp[] = [

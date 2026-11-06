@@ -202,6 +202,7 @@ scenes.push(scene({
             "mais le fond de cale est avitaillé au minimum — le chandelier du quai vous vendra l'eau et les vivres du voyage. »",
           choices: [
             {
+              id: 'accepter-commission',
               label: 'Accepter la commission (40 CO, le Grimm à quai)',
               when: { kind: 'flag', expr: '!ls_commission_acceptee' },
               flow: flowOf([
@@ -229,10 +230,12 @@ scenes.push(scene({
               next: 'k1',
             },
             {
+              id: 'demander-financer-carenage',
               label: 'Lui demander de financer le carénage (60 CO)',
               next: 'k-careene',
             },
             {
+              id: 'prendre-conge',
               label: 'Prendre congé',
               when: { kind: 'flag', expr: 'ls_commission_acceptee' },
               flow: flowOf([{ type: 'endDialogue' }]),
@@ -242,7 +245,7 @@ scenes.push(scene({
         {
           id: 'k-careene',
           desc: '« L’avance de 40 couronnes est tout ce que la Seconde Flotte peut avancer, capitaine. Le reste sort de votre poche — ou vous partez sale, et vous traînerez la salissure dans chaque manœuvre. »',
-          choices: [{ label: 'Revenir à la commission', next: 'k1' }],
+          choices: [{ id: 'revenir-commission', label: 'Revenir à la commission', next: 'k1' }],
         },
       ],
     },
@@ -256,6 +259,7 @@ scenes.push(scene({
             "et je bénis la coque. »",
           choices: [
             {
+              id: 'demander-benediction-navire',
               // Aldo est prêtre initié et sans Point de Péché (texte de présentation) — sa propre bénédiction,
               // sans offrande du capitaine, mappe sur le facteur « prêtre à bord sans péché » (sea-events.json
               // id `pretre-sans-peche`).
@@ -267,48 +271,51 @@ scenes.push(scene({
               next: 'a-benediction',
             },
             {
+              id: 'faire-petit-sacrifice',
               label: 'Faire un petit sacrifice (une pièce jetée à la mer)',
               flow: flowOf([{ type: 'giveMoney', montant: { gold: -1 } }, { type: 'adjustManann', factorId: 'petit-sacrifice' }]),
               next: 'a-petit',
             },
             {
+              id: 'faire-sacrifice-moyen',
               label: 'Faire un sacrifice moyen (une gemme de votre bourse)',
               flow: flowOf([{ type: 'giveMoney', montant: { gold: -20 } }, { type: 'adjustManann', factorId: 'sacrifice-moyen' }]),
               next: 'a-moyen',
             },
             {
+              id: 'faire-grand-sacrifice',
               label: 'Faire un grand sacrifice (une vache entière, la moitié des provisions)',
               flow: flowOf([{ type: 'giveMoney', montant: { gold: -50 } }, { type: 'adjustManann', factorId: 'grand-sacrifice' }]),
               next: 'a-grand',
             },
-            { label: 'Lui demander l’origine de son ordre', next: 'a-origine' },
-            { label: 'Le saluer', flow: flowOf([{ type: 'endDialogue' }]) },
+            { id: 'demander-origine-ordre', label: 'Lui demander l’origine de son ordre', next: 'a-origine' },
+            { id: 'saluer', label: 'Le saluer', flow: flowOf([{ type: 'endDialogue' }]) },
           ],
         },
         {
           id: 'a-benediction',
           desc: 'Frère Aldo asperge la proue d’eau de mer et prie Manann à voix basse. L’équipage se signe. « La coque est bénie, capitaine. Manann veille. »',
-          choices: [{ label: 'Le remercier', next: 'a1' }],
+          choices: [{ id: 'remercier', label: 'Le remercier', next: 'a1' }],
         },
         {
           id: 'a-petit',
           desc: 'Une pièce tombe dans l’écume. Aldo hoche la tête, satisfait. « Manann prend note, capitaine. »',
-          choices: [{ label: 'Revenir', next: 'a1' }],
+          choices: [{ id: 'revenir', label: 'Revenir', next: 'a1' }],
         },
         {
           id: 'a-moyen',
           desc: 'La gemme disparaît sous les vagues. « Un sacrifice qui compte, capitaine. Manann s’en souviendra. »',
-          choices: [{ label: 'Revenir', next: 'a1' }],
+          choices: [{ id: 'revenir', label: 'Revenir', next: 'a1' }],
         },
         {
           id: 'a-grand',
           desc: 'La vache est jetée par-dessus bord avec la moitié des provisions. L’équipage retient son souffle — puis Aldo sourit. « Manann ne vous oubliera pas. »',
-          choices: [{ label: 'Revenir', next: 'a1' }],
+          choices: [{ id: 'revenir', label: 'Revenir', next: 'a1' }],
         },
         {
           id: 'a-origine',
           desc: '« J’ai prêché sur tous les quais de la Mer des Griffes, capitaine. Je connais le Requin — Stromfels, le dieu des naufrageurs — mieux que je ne le voudrais. On ne le paie pas : on le nourrit. »',
-          choices: [{ label: 'Revenir', next: 'a1' }],
+          choices: [{ id: 'revenir', label: 'Revenir', next: 'a1' }],
         },
       ],
     },
@@ -320,8 +327,9 @@ scenes.push(scene({
           desc:
             "« Ma cargaison est dans la cale, capitaine, et j'entends qu'elle y reste jusqu'à Erengrad. »",
           choices: [
-            { label: 'S’enquérir du fret', next: 'kr-fret' },
+            { id: 'enquerir-fret', label: 'S’enquérir du fret', next: 'kr-fret' },
             {
+              id: 'observer-discretement',
               label: 'L’observer discrètement',
               flow: testNode(
                 { skill: { id: 'intuition' }, difficulty: 'difficile', label: 'Intuition — quelque chose cloche chez Kramer', stake: { authored: 'Percer le masque de Dame Kramer : vous la soupçonnez pour la suite du voyage ; raté, elle passe pour une négociante ordinaire.' } },
@@ -335,13 +343,13 @@ scenes.push(scene({
               ),
               next: 'kr1',
             },
-            { label: 'La laisser à ses affaires', flow: flowOf([{ type: 'endDialogue' }]) },
+            { id: 'laisser-affaires', label: 'La laisser à ses affaires', flow: flowOf([{ type: 'endDialogue' }]) },
           ],
         },
         {
           id: 'kr-fret',
           desc: '« Des étoffes, des piécettes d’ambre. Rien qui vous regarde, capitaine. »',
-          choices: [{ label: 'Revenir', next: 'kr1' }],
+          choices: [{ id: 'revenir', label: 'Revenir', next: 'kr1' }],
         },
       ],
     },
@@ -353,9 +361,9 @@ scenes.push(scene({
           desc: "« Une chanson pour la route, capitaine ? »",
           choices: [
             // Après écoute, le choix ne reboucle plus à l'identique : la réplique change (flag ls_chant_griet).
-            { label: 'Écouter sa chanson', when: { kind: 'flag', expr: '!ls_chant_griet' }, flow: flowOf([{ type: 'setFlag', flag: 'ls_chant_griet' }]), next: 'g-chant' },
-            { label: 'Lui demander un autre air', when: { kind: 'flag', expr: 'ls_chant_griet' }, next: 'g-chant-encore' },
-            { label: 'La saluer', flow: flowOf([{ type: 'endDialogue' }]) },
+            { id: 'ecouter-chanson', label: 'Écouter sa chanson', when: { kind: 'flag', expr: '!ls_chant_griet' }, flow: flowOf([{ type: 'setFlag', flag: 'ls_chant_griet' }]), next: 'g-chant' },
+            { id: 'demander-autre-air', label: 'Lui demander un autre air', when: { kind: 'flag', expr: 'ls_chant_griet' }, next: 'g-chant-encore' },
+            { id: 'saluer', label: 'La saluer', flow: flowOf([{ type: 'endDialogue' }]) },
           ],
         },
         {
@@ -363,12 +371,12 @@ scenes.push(scene({
           // Narration VISIBLE : le refrain répond (le vrai effet « Camarades d'équipage »/« Jacques Bret »
           // est un buff de DR de COMBAT — inexprimable à quai, cf. journal d'authoring).
           desc: 'Griet entonne « Jacques Bret a rencontré notre acier ». Le refrain court de bouche en bouche ; les gabiers tapent du pied sur le pont et reprennent en chœur.',
-          choices: [{ label: 'Applaudir', next: 'g1' }],
+          choices: [{ id: 'applaudir', label: 'Applaudir', next: 'g1' }],
         },
         {
           id: 'g-chant-encore',
           desc: '« Toujours la même rengaine ? » Elle rit et enchaîne une complainte plus douce, pour ceux qui restent à quai.',
-          choices: [{ label: 'La saluer', next: 'g1' }],
+          choices: [{ id: 'saluer', label: 'La saluer', next: 'g1' }],
         },
       ],
     },
@@ -502,7 +510,7 @@ scenes.push(scene({
         desc:
           "« Vous naviguez vers Salzenmund ? Faites gaffe à Olg Blóðsalt — un skaeling qui « boit la saumure » " +
           "et écume la route avec son langskip. La guilde marchande a mis une prime sur sa tête. »",
-        choices: [{ label: 'Merci pour l’avertissement', flow: flowOf([{ type: 'setFlag', flag: 'ls_rumeur_olg' }, { type: 'endDialogue' }]) }],
+        choices: [{ id: 'merci-pour-avertissement', label: 'Merci pour l’avertissement', flow: flowOf([{ type: 'setFlag', flag: 'ls_rumeur_olg' }, { type: 'endDialogue' }]) }],
       }],
     },
     {
@@ -514,6 +522,7 @@ scenes.push(scene({
           "Kramer était « à terre toute la nuit ».",
         choices: [
           {
+            id: 'interroger-sur-nuit',
             label: 'L’interroger sur sa nuit',
             flow: testNode(
               { skill: { id: 'intuition' }, difficulty: 'difficile', label: 'Intuition — la nuit du chat', stake: { authored: 'La coincer sur son alibi : démasquée, le sabotage du Grimm cesse ; raté, elle garde les mains libres et le navire continue de souffrir.' } },
@@ -529,7 +538,7 @@ scenes.push(scene({
             ),
             next: 'nc1',
           },
-          { label: 'La laisser tranquille', flow: flowOf([{ type: 'endDialogue' }]) },
+          { id: 'laisser-tranquille', label: 'La laisser tranquille', flow: flowOf([{ type: 'endDialogue' }]) },
         ],
       }],
     },
@@ -540,11 +549,12 @@ scenes.push(scene({
         desc: "« Calfeutrons la coque avant de reprendre la mer, capitaine — la traversée l'a mise à mal. »",
         choices: [
           {
+            id: 'superviser-reparation',
             label: 'Superviser la réparation',
             flow: flowOf([{ type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', label: 'Réparation temporaire du Grimm', targetDR: 5, flag: 'ls_coque_reparee' }]),
             next: 'rp1',
           },
-          { label: 'Plus tard', flow: flowOf([{ type: 'endDialogue' }]) },
+          { id: 'plus-tard', label: 'Plus tard', flow: flowOf([{ type: 'endDialogue' }]) },
         ],
       }],
     },
@@ -660,6 +670,7 @@ scenes.push(scene({
         desc: "« La Seconde Flotte manque de coques, capitaine. La prise du Serpent-de-Sel est à vendre ? »",
         choices: [
           {
+            id: 'toucher-solde-mission',
             label: 'Toucher la solde de la mission (parts + prime)',
             when: { kind: 'flag', expr: '!ls_solde_versee' },
             flow: flowOf([
@@ -671,7 +682,7 @@ scenes.push(scene({
             ]),
             next: 'e1',
           },
-          { label: 'Prendre congé', flow: flowOf([{ type: 'endDialogue' }]) },
+          { id: 'prendre-conge', label: 'Prendre congé', flow: flowOf([{ type: 'endDialogue' }]) },
         ],
       }],
     },

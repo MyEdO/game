@@ -34,8 +34,8 @@ const construireAuberge = (): Scene => buildScene({
           id: 'accueil',
           desc: 'Une chambre pour la nuit, l’ami ? À ce train, vous allez user le plancher.',
           choices: [
-            { label: 'Dormir jusqu’au lendemain.', flow: flowFromEffects([{ type: 'rest', lodging: 'auberge', days: 1 }]) },
-            { label: 'Pas encore.' },
+            { id: 'dormir-jusqu-lendemain', label: 'Dormir jusqu’au lendemain.', flow: flowFromEffects([{ type: 'rest', lodging: 'auberge', days: 1 }]) },
+            { id: 'pas-encore', label: 'Pas encore.' },
           ],
         },
       ],

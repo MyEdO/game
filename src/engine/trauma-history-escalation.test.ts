@@ -78,7 +78,7 @@ describe('#194 (2) — Commotion cérébrale : déclencheur « autre critique t�
   });
 
   const armed = (): Trauma => ({
-    label: 'Commotion cérébrale', location: 'tete',
+    uid: 't1', label: 'Commotion cérébrale', location: 'tete',
     critTrigger: {
       location: 'tete', whileCondition: 'extenue',
       test: {
@@ -128,7 +128,7 @@ describe('#194 — stampCriticalEscalation : dédup du critTrigger (une commotio
   const commotionEsc = (critiqueDoc('ldb', 'tete').entries.find((e) => e.id === 'commotion-cerebrale') as { escalation: import('../data/criticals').CritEscalation }).escalation;
   it('onNextCritWhileCondition présent mais un critTrigger équivalent existe déjà → aucun nouveau stamp', () => {
     const existing: Trauma[] = [{
-      label: 'x', location: 'tete' as HitLocation,
+      uid: 't2', label: 'x', location: 'tete' as HitLocation,
       critTrigger: {
         location: 'tete', whileCondition: 'extenue',
         test: { kind: 'test', test: { difficulty: 'accessible' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },

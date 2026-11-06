@@ -193,7 +193,7 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
 });
 
 describe('dialogue — le refus d’une réponse est un TEXTE, dit par `chooseDialogue`', () => {
-  const dlg: Dialogue = { id: 'dlg-l7', start: 'n1', nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ label: 'Payer', cost: { gold: 50 }, next: 'n1' }] }] } as Dialogue;
+  const dlg: Dialogue = { id: 'dlg-l7', start: 'n1', nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ id: 'payer', label: 'Payer', cost: { gold: 50 }, next: 'n1' }] }] } as Dialogue;
 
   it('bourse trop courte : l’écran et le geste disent le même texte', () => {
     const [a] = heros(1);
@@ -201,7 +201,7 @@ describe('dialogue — le refus d’une réponse est un TEXTE, dit par `chooseDi
     banc.setState({ party: [a] });
     banc.setState({ screen: 'campaign', dialogue: ouvrirDialogue(get(), dlg) });
     expect(reponsesDuNoeud(get())[0].refus).toBe('Pas assez d’argent pour cette option.');
-    get().chooseDialogue(0);
+    get().chooseDialogue('payer');
     expect(dernier()).toBe('Pas assez d’argent pour cette option.');
   });
 
@@ -210,7 +210,7 @@ describe('dialogue — le refus d’une réponse est un TEXTE, dit par `chooseDi
     banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', gmSeat: 1, seatNames: { 1: 'Greta' } } });
     banc.setState({ screen: 'campaign', dialogue: ouvrirDialogue(get(), dlg) });
     expect(reponsesDuNoeud(get())[0].refus).toBe('Greta répond pour le groupe.');
-    get().chooseDialogue(0);
+    get().chooseDialogue('payer');
     expect(dernier()).toBe('Greta répond pour le groupe.');
   });
 });
