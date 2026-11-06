@@ -1,5 +1,4 @@
 import { useGame } from '../state/store';
-import { valeurDecomposee } from '../engine/skills';
 import { cibleMesuree } from '../engine/tests';
 import { flowStakeRef } from '../data';
 import { RollShell, type RollAction } from './RollShell';
@@ -8,6 +7,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeRun } from '../noyau/flowOutcomes';
+import { ligneDuTestNomme } from '../noyau/rollFlowSpecs';
 import { Icon } from './Icon';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
@@ -34,15 +34,15 @@ export function RunModal() {
   if (!c) return null;
   const r = pr.result;
   const skillLabel = libelleDuTestNomme(pr.test);
-  const { base, mods } = valeurDecomposee(c, pr.test);
+  const l = ligneDuTestNomme(c, pr.test); // la ligne que le résolveur `run` jette
   const rolled = !!r;
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: c,
     row: {
       combatant: c,
-      d: r ? testBreakdown(skillLabel, base, { roll: r.roll, ...cibleMesuree(r), sl: r.dr, success: r.success }, pr.test.difficulty, mods) : undefined,
-      pending: testPending(skillLabel, base, undefined, pr.test.difficulty, mods),
+      d: r ? testBreakdown(skillLabel, l.base, { roll: r.roll, ...cibleMesuree(r), sl: r.dr, success: r.success }, l.difficulty, l.mods) : undefined,
+      pending: testPending(skillLabel, l.base, cibleMesuree(l), l.difficulty, l.mods),
     },
     onRoll: roll,
     rerolled: !!pr.rerolled,

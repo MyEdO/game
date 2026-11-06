@@ -24,13 +24,13 @@ const CHAR_ACCESS_RX = /\.characteristics\b/;
  *  `count` = nombre de LIGNES de `file` qui la portent (fail-closed si divergent). */
 const CHAR_ACCESS_EXEMPT: { file: string; match: string; count: number; reason: string }[] = [
   {
-    file: 'src/ui/compendium/registry.ts',
+    file: 'src/noyau/codex/registry.ts',
     match: 'const ch = c.characteristics',
     count: 1,
     reason: "garde d'existence d'une carac de créature — la VALEUR affichée passe par effectiveChar.",
   },
   {
-    file: 'src/ui/compendium/registry.ts',
+    file: 'src/noyau/codex/registry.ts',
     match: 'lv.characteristics',
     count: 2,
     reason: "champ `characteristics: CharKey[]` d'un NIVEAU de carrière (CareerLevel), pas un Combatant.",

@@ -3,8 +3,8 @@
  *
  * Un Rituel EST un Sort (`VDM 02 l.363`) : il vit dans `spells.json` et se résout comme un Sort
  * (`l.379`). Ce qu'il imprime EN PLUS, ce sont les rubriques de `SpellData.ritual`. Un champ n'est
- * admis au schéma qu'avec un CONSOMMATEUR : la fiche Codex des Sorts (`ui/compendium/registry.ts`,
- * prouvée par `src/ui/compendium/codex-rituel-rubriques.test.ts`) pour les rubriques de prose,
+ * admis au schéma qu'avec un CONSOMMATEUR : la fiche Codex des Sorts (`noyau/codex/registry.ts`,
+ * prouvée par `src/noyau/codex/codex-rituel-rubriques.test.ts`) pour les rubriques de prose,
  * `eligibleTalent` (`engine/grimoire.ts`) pour la LISTE de Domaines de la rubrique **Type** (`l.381`).
  * Ce test part de la donnée réelle et assène le résultat sur ce consommateur : débrancher
  * `arcaneDomainsOf` le rend rouge.

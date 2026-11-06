@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Prose, mdToText } from './Prose';
-import { CODEX } from './compendium/registry';
+import { CODEX } from '../noyau/codex/registry';
 import { TeamSegments, type TeamSegment } from './TeamSegments';
 
 /** Porteur d'essai : une entrée réelle, un chemin réel — jamais un porteur fantôme. */

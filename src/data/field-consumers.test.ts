@@ -361,7 +361,7 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['DetailRecipe', 'tintVar', 'src/gameIso/authoring/detailSvg.ts @detailPatternDefs'],
   ['EntityAppearance', 'armurePortee', 'src/noyau/equipementDessine.ts @armurePorteeDe, src/ui/editor/codex/CodexEdit.tsx @AppearanceField'],
   ['CritEscalation', 'onRepeat', 'src/engine/critical.ts @repeat'],
-  ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/ui/compendium/registry.ts @meta'],
+  ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/noyau/codex/registry.ts @meta'],
   ['FlowTest', 'opposed', 'src/noyau/combat/triggeredTest.ts @opp'],
   ['CountSpec', 'fixed', 'src/data/index.ts @count'],
   ['CountSpec', 'roll', 'src/data/index.ts @count'],

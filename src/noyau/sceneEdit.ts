@@ -578,7 +578,7 @@ function clamp(v: number, max: number): number {
 }
 /** Case `p` plafonnée à la carte et ramenée à une case entière — la convention de pose du noyau : un geste
  *  hors carte se pose au bord. */
-function borneALaCarte(scene: Scene, p: Pt): Pt {
+export function borneALaCarte(scene: Scene, p: Pt): Pt {
   return { x: clamp(Math.floor(p.x), scene.dimensions.w), y: clamp(Math.floor(p.y), scene.dimensions.h) };
 }
 
@@ -785,12 +785,12 @@ export function pasteEntity(scene: Scene, data: SceneEntity, p: Pt, z = 0): { sc
   return { scene: addEntity(scene, ent, z), id };
 }
 
-/** Pose un point d'entrée nommé `entree-N` (premier libre) à p, sur l'étage `z` (défaut 0) — comble le
- *  manque du POC : les transitions et la carte du monde les référencent mais rien ne permettait d'en
- *  créer. Étage éditable ensuite dans l'inspecteur (#835 FU-5). */
+/** Pose un point d'entrée nommé `entree-N` (premier libre) à p, plafonné sur une case de la carte comme
+ *  `editEntry` (`borneALaCarte`), sur l'étage `z` (défaut 0). Les transitions et la carte du monde le
+ *  référencent par son id (#835 FU-5). */
 export function placeEntry(scene: Scene, p: Pt, z = 0): { scene: Scene; id: string } {
   const id = nextEntityId('entree', Object.keys(scene.entryPoints ?? {}));
-  return { scene: { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...p, ...(z ? { z } : {}) } } }, id };
+  return { scene: { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, p), ...(z ? { z } : {}) } } }, id };
 }
 
 /** Renomme un point d'entrée (clé unique, non vide). Renvoie la scène inchangée si conflit. */
