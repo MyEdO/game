@@ -125,14 +125,17 @@ func _dessines(zone: Zone) -> Array:
 	return zone.get_parent().get_children().filter(func(n: Node) -> bool: return n.has_meta(Zone.META))
 
 
-## Chaque texte visible sous `noeud` : étiquettes, boutons, champs, chaque entrée d'une liste déroulante, et la bulle
-## de chaque contrôle.
+## Chaque texte lisible sous `noeud` (`_lisible`) : le titre de son onglet, étiquettes, boutons, champs, chaque entrée
+## d'une liste déroulante, et la bulle de chaque contrôle.
 func _textes(noeud: Node) -> Array:
 	var textes := []
+	if noeud.get_parent() is TabContainer:
+		var onglets := noeud.get_parent() as TabContainer
+		textes.append(onglets.get_tab_title(onglets.get_tab_idx_from_control(noeud)))
 	var controles: Array = noeud.find_children("*", "Control", true, false)
 	controles.push_front(noeud)
 	for n in controles:
-		if not (n as Control).is_visible_in_tree():
+		if not _lisible(n):
 			continue
 		if n is Label or n is Button or n is LineEdit:
 			textes.append(n.text)
@@ -142,6 +145,16 @@ func _textes(noeud: Node) -> Array:
 			for i in (n as OptionButton).item_count:
 				textes.append((n as OptionButton).get_item_text(i))
 	return textes
+
+
+## Visible, ou dans un onglet que son `TabContainer` ne montre pas : il se lit en choisissant son onglet.
+func _lisible(n: Control) -> bool:
+	var c: Node = n
+	while c is Control:
+		if not (c as Control).visible and not c.get_parent() is TabContainer:
+			return false
+		c = c.get_parent()
+	return true
 
 
 ## Chaque texte que l'élément `e` et ses éléments imbriqués disent (`DITS`, le nom d'une entité, la valeur d'une

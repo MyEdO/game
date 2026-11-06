@@ -10,10 +10,10 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, recitEnVue, toneOf,
+  ACTIONS, avecSigne, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
-import { t } from '../i18n';
+import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import type { Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
@@ -197,6 +197,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...patientDuSoin(etat),
     ...trajetsDeLaCarte(etat),
     ...recitDuVoyage(etat),
+    ...herosDeLInterlude(etat),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
@@ -224,6 +225,32 @@ function trajetsDeLaCarte(etat: Jeu): Element[] {
           valeurs: tr.modes.map((m) => bouton(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)) },
       ],
     })),
+  ];
+}
+
+/** Un geste du noyau en bouton : son nom, son verbe, sa raison de ne pas se jouer. */
+const boutonDuNoyau = (id: string, g: { libelle: string; geste: { verbe: string; args: unknown[] }; refus: string | null }): Bouton =>
+  ({ type: 'bouton', id, libelle: g.libelle, jeu: { type: g.geste.verbe, args: g.geste.args }, presse: false, focus: false, refus: g.refus });
+
+/** L'interlude ouvert (`interludeEnVue`) : chaque héros en entité, ses Activités restantes et l'Événement de sa période
+ *  en puces, puis chacune de ses Activités, un bouton sans cible, un choix de ses cibles sinon (en liste au-delà de
+ *  `CHOIX_EN_BOUTONS`), fermée avec sa raison ; puis les dépôts en banque, chacun le bouton de son retrait. */
+function herosDeLInterlude(etat: Jeu): Element[] {
+  const itl = interludeEnVue(etat);
+  if (!itl) return [];
+  return [
+    ligne('repit/semaines', t('ecran.repit.semaines', { semaines: itl.semaines, s: pluriel(itl.semaines) })),
+    ...itl.heros.map((h): Entite => ({
+      type: 'entite', id: `repit/${h.id}`, ton: h.restantes ? 'neutre' : 'alerte', nom: h.nom,
+      elements: [
+        puce('restantes', t('ecran.repit.restantes', { restantes: h.restantes, recues: h.recues }), null),
+        ...(h.evenement ? [puce('evenement', h.evenement, null)] : []),
+        ...h.activites.map((a): Bouton | Choix => (a.cible
+          ? { type: a.gestes.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDuNoyau(`${a.id}/${i}`, g)) }
+          : boutonDuNoyau(a.id, a.gestes[0]))),
+      ],
+    })),
+    ...(itl.depots.length ? [{ type: 'entite', id: 'repit/depots', ton: 'neutre', nom: t('ecran.repit.depots'), elements: itl.depots.map((d, i) => boutonDuNoyau(String(i), d)) } satisfies Entite] : []),
   ];
 }
 

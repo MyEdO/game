@@ -4,7 +4,8 @@
 ## l'ordre suit la source ; en `ajout` (un journal), un élément déjà dessiné reste tel quel et le nouveau s'ajoute au
 ## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`
 ## et `Saisie` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, son geste relayé par celle-ci.
-## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer.
+## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer. Sous un `TabContainer`, chaque élément
+## est un onglet, titré de son nom (`nom`, sinon `libelle`), qui ne le redit pas (son `Nom` caché).
 ##
 ## La source d'une zone de l'écran est une clé de `vue.zones` (`CONTRAT.md`). Une zone qui nomme des `ids` n'en montre
 ## que les éléments de ces ids, dans l'ordre de la source ; une zone sans `ids` montre ceux qu'aucune autre zone de sa
@@ -44,6 +45,11 @@ func montrer(elements: Array) -> void:
 			conteneur.add_child(noeud)
 		conteneur.move_child(noeud, -1)
 		Zone.poser(noeud, e, self)
+		if conteneur is TabContainer:
+			var onglets := conteneur as TabContainer
+			onglets.set_tab_title(onglets.get_tab_idx_from_control(noeud), str(e.nom if e.has("nom") else e.libelle))
+			if noeud.has_node("Nom"):
+				(noeud.get_node("Nom") as Control).visible = false
 		dernier = noeud
 	if not ajout:
 		for cle in dessines:

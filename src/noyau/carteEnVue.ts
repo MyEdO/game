@@ -1,5 +1,5 @@
 /**
- * LA CARTE DU MONDE EN VUE (#3328) — ce qu'un hôte montre de la carte ouverte (`worldMapOpen`) : le lieu du groupe, et
+ * LA CARTE DU MONDE EN VUE (#3328) — ce qu'un hôte montre de la carte qui tient la main : le lieu du groupe, et
  * chaque trajet que la carte trace depuis lui (`routesCliquables`), sa destination, sa longueur et chacun de ses modes
  * de voyage, écrit en verbe du noyau (`startTravel`) avec ce qui le ferme maintenant (`refusDeDepart`) et la durée que
  * son devis prévoit (`devisDeTrajet`) ; un voyage interrompu se reprend (`resumeTravel`). Lecteur PUR, lu par les hôtes
@@ -13,6 +13,7 @@ import { condCtx } from './bourseFlow';
 import { partyFullyMounted } from '../engine/mountTravel';
 import { routeDistanceLabel, travelModeLabels, type TravelMode } from '../engine/travel';
 import { rule } from '../engine/policy';
+import { fenetreDuJeu } from './combatAuto';
 import { garanti } from '../lib/garanti';
 
 /** Un mode de voyage d'un trajet : son nom, le verbe qui part (`geste`), pourquoi il ne part pas maintenant (`refus`,
@@ -32,11 +33,11 @@ function modesDuTrajet(s: Jeu, modes: readonly TravelMode[]): TravelMode[] {
   return [...modes, ...(enSelle ? ['monture'] : [])];
 }
 
-/** La carte du monde ouverte en exploration ; `null` : la carte n'est pas ouverte, ou le groupe n'est à aucun de ses
- *  lieux. PUR. */
+/** La carte du monde qui tient la main (`fenetreDuJeu`) ; `null` : elle ne tient pas la main, ou le groupe n'est à
+ *  aucun de ses lieux. PUR. */
 export function carteEnVue(s: Jeu): CarteEnVue | null {
   const map = s.worldMap;
-  const ici = s.worldMapOpen && s.mode === 'exploration' ? placeOfScene(map, s.scene?.id) : undefined;
+  const ici = fenetreDuJeu(s)?.cle === 'carteDuMonde' ? placeOfScene(map, s.scene?.id) : undefined;
   if (!map || !ici) return null;
   const libelles = travelModeLabels();
   const trajets = routesCliquables(map, ici.id, condCtx(() => s)).map(({ route }): TrajetEnVue => ({

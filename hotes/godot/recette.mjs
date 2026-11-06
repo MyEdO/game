@@ -37,6 +37,9 @@
 //   l'Entrée.
 // - `voyage` (`--scenario voyage`) : l'entrée de la scène poursuivie, « Carte du monde » ouvre la carte, chaque trajet
 //   et ses modes ; « À pied » vers Steinbruck part, les journées et la halte passent jusqu'au récit de l'arrivée.
+// - `repit` (`--scenario bataille-de-masse`) : les dés d'Événement tombent, l'entre-deux-aventures montre un onglet par
+//   héros, ses Activités restantes et chaque Activité fermée par sa raison ; « Revenus » cliqué ouvre son jet, lancé à
+//   l'Entrée puis appliqué : l'onglet du héros compte une Activité de moins.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
 //   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
@@ -614,6 +617,39 @@ async function parcoursVoyage() {
   v = await vue()
   noter(`récit : ${corps(v)}`)
   await capturer('3328-l1-2-recit')
+}
+
+async function parcoursRepit() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
+  /** L'Entrée tant qu'un geste a le focus et que la disposition n'est pas `jusqua`. */
+  const entrer = async (jusqua) => {
+    for (let v = await vue(), pas = 0; v.disposition !== jusqua; v = await vue(), pas++) {
+      assert.ok(pas < 12, `l'Entrée mène à ${jusqua} : ${corps(v)}`)
+      assert.ok(zone(v, 'fenetre.gestes').some((b) => b.type === 'bouton' && b.focus), `un geste a le focus : ${corps(v)}`)
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  /** Les puces de l'onglet du premier héros. */
+  const puces = (v) => zone(v, 'fenetre.corps').find((e) => e.type === 'entite').elements.filter((x) => x.type === 'puce').map((x) => x.libelle)
+  await entrer('interlude')
+  let v = await vue()
+  noter(`répit : ${zone(v, 'fenetre.corps')[0].texte} ; ${puces(v).join(' ; ')}`)
+  assert.deepEqual(puces(v)[0], 'Activités : 3 / 3')
+  await capturer('3328-m1-1-repit')
+  await cliquerBouton('Revenus')
+  await attendreLaVue("v.disposition === 'activity'")
+  await capturer('3328-m1-2-revenus')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  await cliquerBouton('Appliquer')
+  await attendreLaVue("v.disposition === 'interlude'")
+  v = await vue()
+  assert.equal(puces(v)[0], 'Activités : 2 / 3', 'une Activité de moins')
+  await capturer('3328-m1-3-repit-apres')
 }
 
 async function parcoursFiche() {
@@ -1319,7 +1355,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repit: parcoursRepit, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null
