@@ -13,6 +13,8 @@ extends RefCounted
 
 const MS_PAR_SECONDE := 1000.0
 const DEMI_CASE := 0.5
+## L'écart du calque de référence au sol de son plan, en unités du plateau.
+const DECALAGE_DU_CALQUE := 0.01
 ## Le côté, en mètres, du motif d'une texture du sol posée sur le volume du monde.
 const METRES_PAR_MOTIF := 2.0
 const QUART_DE_TOUR := PI / 2.0
@@ -75,6 +77,12 @@ static func echelle_metrique(metres_par_case: float) -> float:
 ## Une hauteur de `hauteur` mètres sur le plateau d'une scène de `metres_par_case`.
 static func hauteur_au_plateau(hauteur: float, metres_par_case: float) -> float:
 	return hauteur * echelle_metrique(metres_par_case)
+
+
+## La hauteur du calque de référence posé sur le plan `plan` (mètres), décalé de `decalage` : juste au-dessus du sol
+## qu'il recouvre, ou juste dessous.
+static func hauteur_du_calque(plan: float, metres_par_case: float, decalage: float) -> float:
+	return hauteur_au_plateau(plan, metres_par_case) + decalage
 
 
 ## La hauteur `hauteur` d'un point du corps neutre portée au gabarit dont le sommet des os est à `sommet`, celui du corps

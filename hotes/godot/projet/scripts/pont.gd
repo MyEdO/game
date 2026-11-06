@@ -1,5 +1,5 @@
-## Le seul point de contact avec la page : `globalThis.wfrpPont` par JavaScriptBridge (`hotes/godot/pont/CONTRAT.md`), et
-## les requêtes au serveur qui la sert (`requeter`).
+## Le seul point de contact avec la page : `globalThis.wfrpPont` par JavaScriptBridge (`hotes/godot/pont/CONTRAT.md`), dont
+## l'image que l'auteur choisit sur son disque (`choisir_une_image`), et les requêtes au serveur qui la sert (`requeter`).
 ## Un appel envoie le nom d'une méthode et une chaîne JSON, et rend la réponse décodée ; une réponse `ok: false` est un
 ## refus, que `refus` porte ; une réponse illisible ou une erreur de la page (`erreursGlobales`) est une panne.
 ## Chargé en autoload `Pont` (`project.godot`).
@@ -153,6 +153,17 @@ func requeter(relative: String, recueil: Array[String], methode := HTTPClient.ME
 		recueil.append("requete-echouee : %s (resultat %s, HTTP %s)%s" % [relative, resultat[0], resultat[1], " : " + raison if raison != "" else ""])
 		return PackedByteArray()
 	return resultat[3]
+
+
+## L'image que l'auteur choisit sur son disque (`wfrpPont.choisirUneImage`) : `{ octets, type }`, son contenu et son type
+## MIME ; `{}` s'il renonce.
+func choisir_une_image() -> Dictionary:
+	var rendue := []
+	var rappel := JavaScriptBridge.create_callback(func(args: Array) -> void: rendue.append_array(args))
+	_pont.call("choisirUneImage", rappel)
+	while rendue.is_empty():
+		await get_tree().process_frame
+	return {} if str(rendue[0]) == "" else {octets = Marshalls.base64_to_raw(str(rendue[0])), type = str(rendue[1])}
 
 
 ## Le paramètre `cle` de l'adresse de la page, `""` s'il est absent.
