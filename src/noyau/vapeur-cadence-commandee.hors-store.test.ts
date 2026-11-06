@@ -27,7 +27,7 @@ const seaMap: WorldMap = {
 };
 
 /** Graine dont la journée commandée lance une « Fuite de vapeur » (MDG 12 l.313-328) aux dés réels. */
-const GRAINE = 16;
+const GRAINE = 19;
 
 describe('#1595 — Fuite de vapeur sous ordres : un seul dénouement de la journée', () => {
   it('la journée attend la sauvegarde, puis se clôt une fois', () => {

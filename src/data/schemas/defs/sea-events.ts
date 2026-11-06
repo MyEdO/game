@@ -21,22 +21,27 @@ const manannFactor = nommerChamps(z.strictObject({
   source: { label: 'Source' },
 });
 
-/** Feuille d'un paramètre d'événement (`ParamDEvenement`, `src/engine/seaVoyage.ts`) : un dé s'y écrit
- *  en tirage, jamais en chaîne (`EXPRESSION_DE_DE`). #1652 */
+/** Feuille d'un paramètre d'événement : un dé s'y écrit en tirage, jamais en chaîne (`EXPRESSION_DE_DE`). #1652 */
 const feuilleDeParam = z.union([
   quantiteTireeSchema,
   z.boolean(),
   z.string().refine((s) => !EXPRESSION_DE_DE.test(s), { message: 'dé en chaîne : un tirage s’écrit `{ "dice": { "n", "sides", "plus"? } }`' }),
 ]);
 
-/** `SeaEventDef` (`src/engine/seaVoyage.ts`) — `params` = sac hétérogène PAR `kind`, lu par clé. */
+/** `SeaEventDef` (`src/engine/seaVoyage.ts`) — `params` = les paramètres que lit son `kind`
+ *  (`ParametresDeBord`, `ParametresDePort`). */
 const seaEventDef = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
   desc: z.string(),
   kind: z.string(),
-  params: z.record(z.string(), z.union([feuilleDeParam, z.array(feuilleDeParam), z.record(z.string(), feuilleDeParam)])),
+  params: z.record(z.string(), z.union([
+    feuilleDeParam,
+    effetSigneSchema,
+    z.array(feuilleDeParam),
+    z.record(z.string(), z.union([feuilleDeParam, z.record(z.string(), feuilleDeParam)])),
+  ])),
   source: sourceRefSchema,
 }), {
   ...metaDesChamps(plageOuverteSchema, { exigees: true }),
