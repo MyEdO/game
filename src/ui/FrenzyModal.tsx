@@ -1,6 +1,7 @@
 import { useGame } from '../state/store';
 import { flowStakeRef } from '../data';
-import { valeurDecomposee } from '../engine/skills';
+import { cibleMesuree } from '../engine/tests';
+import { ligneDeFrenesie } from '../noyau/rollFlowSpecs';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
@@ -32,13 +33,13 @@ export function FrenzyModal() {
   const r = pf.result;
   const rolled = !!r;
 
-  const { base, mods } = valeurDecomposee(c, { char: 'force-mentale' });
+  const l = ligneDeFrenesie(c); // la ligne que le résolveur `frenzy` jette
   const actorRow: BuiltRollRow = buildRollRow({
     actor: c,
     row: {
       combatant: c,
-      d: r ? testBreakdown(libelleDeTest('force-mentale'), base, r, undefined, mods) : undefined,
-      pending: testPending(libelleDeTest('force-mentale'), base, undefined, undefined, mods),
+      d: r ? testBreakdown(libelleDeTest('force-mentale'), l.base, r, l.difficulty, l.mods) : undefined,
+      pending: testPending(libelleDeTest('force-mentale'), l.base, cibleMesuree(l), l.difficulty, l.mods),
     },
     rerolled: !!pf.rerolled,
     onRoll: roll,

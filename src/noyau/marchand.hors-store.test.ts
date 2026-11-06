@@ -30,7 +30,7 @@ function ouvrir(tenirComptes: boolean, objets: ItemInstance[] = [], mode: 'local
     scene,
     net: { ...etatInitialDuJeu().net, mode },
   }, entrees);
-  partie.envoyer({ type: 'openMerchant', args: ['pnj'] });
+  partie.envoyer({ type: 'jouerAction', args: ['pnj', 'commercer'] });
   return { partie, budget };
 }
 

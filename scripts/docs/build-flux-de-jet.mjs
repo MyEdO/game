@@ -283,7 +283,10 @@ ${SANS_MODALE.length ? `Flux sans entrée propre dans \`MODAL_DEFS\` : ${SANS_MO
    faire avancer la cascade hôte si le jet en est une étape — jamais une 2ᵉ fenêtre séparée. L'annulation est
    le verbe de jet \`jetCancel(flux)\` : son effet métier se déclare au spec (\`onCancel\`). QUAND la fenêtre se clôt et s'annule se DÉCLARE au spec (\`clotures\`,
    \`cloture\`, \`annulation\`, \`jetPose\`, \`jetImpose\`, \`perdu\`) : \`RollFlowHandlers.fermetures\` en tire ce que
-   la coquille, les hôtes et les verbes de jet ouvrent ; un réglage manuscrit (\`<flux>Set*\`) passe par \`siOuvert\`.
+   la coquille, les hôtes et les verbes de jet ouvrent. Un réglage du jet (l'arme, la localisation, la réaction…) se
+   déclare à \`ReglagesDuJet\` / \`REGLAGES_DU_JET\` (\`src/noyau/reglagesDuJet.ts\` : forme de la valeur, phase, portée),
+   son corps à la table \`CorpsDesReglages\` de son flux ; il se joue par le seul verbe \`jetRegler(flux, reglage, valeur)\`,
+   que sa phase ferme (\`fermetureDeLaPhase\`).
 5. **Ouvrir le pending** depuis le site d'origine ; si le jet est une étape de combat, l'ouvrir comme
    une étape de cascade, pas comme une fenêtre isolée.
 6. **Registre des modales** (\`${ARBITER}\`) — SEULEMENT si le flux n'est pas une étape d'une cascade

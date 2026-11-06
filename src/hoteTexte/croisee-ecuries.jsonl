@@ -5,7 +5,7 @@
 {"type":"stepPartyRelative","args":["back"]}
 {"type":"stepPartyRelative","args":["forward"]}
 {"type":"stepPartyRelative","args":["forward"]}
-{"type":"moveParty","args":[{"x":6,"y":4,"z":1}]}
-{"type":"moveParty","args":[{"x":6,"y":3,"z":1}]}
-{"type":"moveParty","args":[{"x":7,"y":3,"z":1}]}
-{"type":"moveParty","args":[{"x":7,"y":2,"z":1}]}
+{"type":"cliquerLaCase","args":[{"x":6,"y":4,"z":1}]}
+{"type":"cliquerLaCase","args":[{"x":6,"y":3,"z":1}]}
+{"type":"cliquerLaCase","args":[{"x":7,"y":3,"z":1}]}
+{"type":"cliquerLaCase","args":[{"x":7,"y":2,"z":1}]}

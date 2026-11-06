@@ -54,7 +54,7 @@ import { garanti } from '../lib/garanti';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
@@ -463,7 +463,7 @@ export function creerActionsDuPort(get: Get, set: Set) {
     portDumpCargo: (cargoIndex) => portDumpCargo(get, set, cargoIndex),
     portHireCrew: (roleId, count) => portHireCrew(get, set, roleId, count),
     portDismissCrew: (roleId, count) => portDismissCrew(get, set, roleId, count),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

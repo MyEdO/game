@@ -126,8 +126,8 @@ describe('medicAct lit refusDActeDeSoin', () => {
     creditBourse(banc.getState, banc.setState, 'p', { gold: 5, silver: 0, brass: 0 });
     banc.getState().medicAct('wounds');
     expect(banc.getState().pendingHeal?.mode).toBe('wounds');
-    banc.getState().healSetMode('bleed');
-    banc.getState().healSetMode('surgery');
+    banc.getState().jetRegler('heal', 'mode', 'bleed');
+    banc.getState().jetRegler('heal', 'mode', 'surgery');
     expect(banc.getState().pendingHeal?.mode).toBe('wounds');
     expect(dernierRefus()).toBe('À l’infirmerie, l’acte se choisit avant le jet.');
   });
@@ -166,9 +166,9 @@ describe('battleHeal lit le filtre de combat', () => {
     expect(banc.getState().refus?.texte).toBe('Ce soin ne se pratique pas en combat.');
   });
 
-  it('Chirurgie demandée en combat par un invité : refusée, sans bandeau chez l’hôte', () => {
+  it('Chirurgie demandée en combat par un invité : `battleHeal` est de la machinerie, hors allowlist, sans effet ni bandeau', () => {
     poserLeCombat('host');
-    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'battleHeal', ['al', 'surgery'])).toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'battleHeal', ['al', 'surgery'])).toBe('hors-allowlist');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus).toBeNull();
   });

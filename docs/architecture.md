@@ -440,7 +440,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `interactionsDExploration.ts` (offres, assise, fouille), `conversation.ts`,
                             `testsDeScene.ts`, `issueDeCombat.ts`, `campagne.ts` (indices, documents, héros
                             désignés), `orientation.ts`, `horloge.ts`, `journal.ts` ; `fabriquesDuNoyau.ts`
-                            (`creerActionsDuNoyau`) les compose, pour le store comme pour la partie.
+                            (`creerActionsDuNoyau`) les compose, pour le store comme pour la partie, avec la
+                            machinerie (`machinerieDuNoyau.ts`, #3370) : les écritures que le noyau, l'éditeur ou
+                            un test appellent et qu'aucun hôte ne joue, hors de `Intention` et de `VERBES`.
                             `partie.ts` (`creerPartie`, #2817 D9) : le propriétaire de l'état d'un hôte qui
                             n'est pas le web ; chaque `envoyer`/`lancer`/`reprendre` rend `{ issue,
                             evenements, journal }`. `lancementDeScenario.ts` (#2898) : le lancement d'un
@@ -470,6 +472,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             une liste `ResolvedPlaceService[]` — payloads RÉFÉRENCÉS, jamais recopiés (zéro
                             duplication de vérité). Consommée par le hub de lieu (#343) et l'auberge ; les
                             consommateurs actuels (portFlow/landMarketFlow/restPlacesHere) restent inchangés.
+  worldMapEdit.ts           ÉCRIVAINS PURS de la carte du monde (WorldMap → WorldMap) que l'éditeur appelle :
+                            patchs, ajout de lieu (bornes `BORNES_DE_CARTE`, décalage, libellé de la semence),
+                            liaison dédoublonnée par sens, suppressions en cascade (routes, `suite` des billets).
   combatFlow.ts               flux de combat tour par tour (IA, attaques, effets, fin de combat).
                               Les clusters FEUILLES extraits sont des modules séparés, que chaque importeur
                               nomme directement : monde/combatGeometry.ts (géométrie pure),

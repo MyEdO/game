@@ -15,6 +15,7 @@ import { libelleDeTest } from '../noyau/jetsEnVue';
 import { FLOWS } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
+import type { ReglagesDuJet } from '../noyau/reglagesDuJet';
 
 /**
  * Modale de Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant
@@ -31,7 +32,8 @@ export function BattementModal() {
   const darkPact = useGesteDeJet('jetDarkPact', 'battement');
   const force = useGesteDeJet('jetForceSuccess', 'battement');
   const reverse = useGesteDeJet('jetReverse', 'battement'); // Inversion (LDB 12 l.42)
-  const setFoe = useGame((s) => s.battementSetFoe);
+  const regler = useGame((s) => s.jetRegler);
+  const setFoe = (v: ReglagesDuJet['battement']['adversaire']) => regler('battement', 'adversaire', v);
   const confirm = useGesteDeJet('jetConfirm', 'battement');
   const cancel = useGesteDeJet('jetCancel', 'battement');
   if (!pb || !battle) return null;

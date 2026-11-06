@@ -13,12 +13,12 @@ import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
 import * as travelFlow from './travelFlow';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
-import { Combatant, HitLocation, CHAR_LABELS, type FireArc } from '../engine/types';
+import { Combatant, CHAR_LABELS, type FireArc } from '../engine/types';
 import { rollLine, hostStep, pushDisplay, temoinSiSansJet, type RollLineParts } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { activeCombatant, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { activeCombatant, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -44,7 +44,7 @@ import { refusDuLanceurDeFiche, refuseSi } from './verrousDeFiche';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
-import { combatValue, backstabWeapon, attackHandGate, issueAuJet, coupAApplique, type DefenseMode } from '../engine/combat';
+import { combatValue, backstabWeapon, attackHandGate, issueAuJet, coupAApplique } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
 import { areGrappling, clearGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
@@ -70,7 +70,7 @@ import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
-import { raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN, type HealMode, type TestDeSoin } from '../engine/healing';
+import { raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN, type HealMode } from '../engine/healing';
 import { jetDuSoigneur, parametresDuSoin, refusDesBandages, refusDuTestDuSoin } from './soin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
@@ -114,8 +114,8 @@ import { batteryBlock, currentTargetingMode, idsDuCoupleMonte, type BattleClickO
 import { resolveRecoverTest } from './combat/recover';
 import { resolveRenounce } from './corruptionFlow';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
-import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuPasDeSurincantation, refusDuReglage } from './fenetreDIncantation';
-import type { IdDeFormeInvoquee } from './designations';
+import type { CorpsDesReglages } from './reglagesDuJet';
+import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuPasDeSurincantation } from './fenetreDIncantation';
 import { findSpellById } from '../data/index';
 import { reachable, moveReachFor, tileKey, Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
@@ -126,7 +126,7 @@ import { bus, EVT } from './bus';
 import { advanceCascade, maladresseCourante, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
-import { FLOWS, rangeesADeclarerIci, siOuvert, type CloturesDuJet } from './rollFlowSpecs';
+import { FLOWS, rangeesADeclarerIci, type CloturesDuJet } from './rollFlowSpecs';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import { actionsAuthorees } from './monde/usable';
 import { fateSaveOptions } from '../engine/fortune';
@@ -534,13 +534,6 @@ export function createCombatSlice(get: Get, set: Set) {
   };
 
   return {
-    // Peek du planificateur IA exposé au store (convention feuille « tout via get().xxx ») : le hook de
-    // Frénésie (`turnHooks`, module feuille) y lit la meilleure action sans importer `combatFlow` (pas de
-    // cycle). Déterministe, zéro `battleRng`, ne mute rien.
-    aiWouldCast: (id: string): boolean => {
-      const e = inBattleId(get().battle, id);
-      return !!e && aiWouldPrepareSpell(e, get);
-    },
     // ── Combat monté : Monter / Descendre — MAISON [entériné 2026-07-17] (« Met les en Maison pour le
     // moment », #526) : aucune clause de coût citable (LDB 14/15/09 + AA 9 fouillés en entier) ;
     // cadre RAW du combat monté : LDB 14 l.175-187. ──
@@ -981,19 +974,10 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active) || !canTakeAction(active) || !hasBattement(active)) return;
       const foes = battementFoes(active, battle);
-      const foe = foeId ? foes.find((c) => c.id === foeId) : foes[0]; // défaut = 1er éligible ; picker via `battementSetFoe`
+      const foe = foeId ? foes.find((c) => c.id === foeId) : foes[0]; // défaut = 1er éligible ; picker via réglage `battement.adversaire`
       if (!foe) return;
       startBattement(get, set, active, foe);
     },
-    // Change la cible du Battement AVANT le jet (picker OptionChooser de la modale) — re-ouvre sur le foe choisi.
-    battementSetFoe: (foeId: string) => siOuvert('battement', get, () => {
-      const { battle, pendingBattement: pb } = get();
-      if (!battle || !pb) return;
-      const active = inBattleId(battle, pb.attackerId);
-      const foe = adversairesDuBattement(get()).find((c) => c.id === foeId);
-      if (!active || !foe) return;
-      startBattement(get, set, active, foe);
-    }),
 
     // ── Distraire (LDB 10 l.364 / AA 13 l.51) : MOUVEMENT, Test OPPOSÉ Athlétisme vs Calme. Le jet de
     //    Calme du foe est figé à l'ouverture (`startDistraire`) ; l'Athlétisme du mover passe par
@@ -1006,28 +990,11 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active) || !active.pos || !hasDistraire(active)) return;
       const foes = distraireFoes(active, battle);
-      const foe = foeId ? foes.find((c) => c.id === foeId) : foes[0]; // défaut = 1er éligible ; picker via `distraireSetFoe`
+      const foe = foeId ? foes.find((c) => c.id === foeId) : foes[0]; // défaut = 1er éligible ; picker via réglage `distraire.adversaire`
       if (!foe) return;
       startDistraire(get, set, active, foe);
     },
-    // Change la cible du Distraire AVANT le jet (picker OptionChooser) — re-fige le Calme du foe choisi.
-    distraireSetFoe: (foeId: string) => {
-      const { battle, pendingDistraire: pd } = get();
-      if (!battle || !pd || pd.atk) return; // verrouillé une fois lancé
-      const mover = inBattleId(battle, pd.moverId);
-      const foe = adversairesADistraire(get()).find((c) => c.id === foeId);
-      if (!mover || !foe) return;
-      startDistraire(get, set, mover, foe);
-    },
 
-    maneuverSetAvantage: (n: number) => siOuvert('maneuver', get, () => {
-      const { battle, pendingManeuver: pm } = get();
-      if (!battle || !pm) return;
-      const attacker = inBattleId(battle, pm.attackerId);
-      if (!attacker) return;
-      const clamped = Math.max(1, Math.min(n, attacker.advantage)); // 1..Avantage (LDB 85 l.290)
-      set({ pendingManeuver: { ...pm, avantageSpent: clamped } });
-    }),
 
     // ── Course (LDB 15 l.41) : utilise l'Action + le Test de la fiche `course` → déplacement
     //    étendu (Mouvement restant + Course + DR) vers la destination cliquée dans la zone de Course. « Un jet = une
@@ -1067,10 +1034,6 @@ export function createCombatSlice(get: Get, set: Set) {
       });
       // Auto-roule les TÉMOINS (marins PNJ) — leur jet initial est résolu sans influence (cf. makeRollFlow).
       for (const part of opened.participants) if (!part.interactive) get().jetRoll('shipManeuver', part.id);
-    },
-    shipManeuverSetTurn: (steps: number) => {
-      const p = get().pendingShipManeuver;
-      if (p) set({ pendingShipManeuver: { ...p, turnSteps: steps } }); // virage ⟂ jet (le Test ne dépend pas du sens)
     },
 
     // ── BORDÉE (« Tir de batterie », MDG 14 l.128) — JUMEAU de la manœuvre : Test d'équipage MULTI des Artilleurs (★),
@@ -1165,10 +1128,6 @@ export function createCombatSlice(get: Get, set: Set) {
         pendingShanty: { shipId: ship.id, singerId: singer.id, shantyId: known.length === 1 ? findSeaShantyById(known[0])?.id ?? null : null, result: null },
         battle: { ...battle, action: null, preview: null },
       });
-    },
-    shantySetSong: (shantyId: string) => {
-      const p = get().pendingShanty;
-      if (p && chansonsDuChanteur(get()).includes(shantyId)) set({ pendingShanty: { ...p, shantyId } }); // choix pré-jet (chanson ⟂ dé)
     },
 
 
@@ -1746,50 +1705,6 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
 
-    attackSetLocation: (loc: HitLocation | null) => siOuvert('attack', get, () => {
-      const pa = get().pendingAttack;
-      if (!pa) return;
-      set({ pendingAttack: { ...pa, location: loc } });
-    }),
-    attackSetWeapon: (uid: string | null) => siOuvert('attack', get, () => {
-      const pa = get().pendingAttack;
-      if (!pa) return;
-      set({ pendingAttack: { ...pa, weaponUid: uid ?? undefined } });
-    }),
-    attackSetDualMode: (on: boolean) => siOuvert('attack', get, () => {
-      const pa = get().pendingAttack;
-      if (!pa) return;
-      // Mode « des deux armes » : l'attaque-Action utilise la MAIN DIRECTRICE (la 2ᵉ frappe suit, off-hand).
-      const a = inBattleId(get().battle, pa.attackerId);
-      const mainUid = a?.weapons.find((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)?.uid;
-      set({ pendingAttack: { ...pa, dualMode: on, weaponUid: on ? (mainUid ?? pa.weaponUid) : pa.weaponUid } });
-    }),
-    attackSetHarpoonRopeCut: (v: boolean) => siOuvert('attack', get, () => {
-      const pa = get().pendingAttack;
-      if (!pa) return; // ADE II 02 l.677
-      set({ pendingAttack: { ...pa, harpoonRopeCut: v } });
-    }),
-    attackSetWithhold: (v: boolean) => siOuvert('attack', get, () => {
-      const pa = get().pendingAttack;
-      if (!pa) return; // LDB 18 l.30 ; AA 07 l.59
-      set({ pendingAttack: { ...pa, withhold: v } });
-    }),
-    attackSetGrapple: (v: boolean) => siOuvert('attack', get, () => {
-      const pa = get().pendingAttack;
-      if (!pa) return; // LDB 14 l.159
-      set({ pendingAttack: { ...pa, grapple: v } });
-    }),
-    attackSetCritLocation: (loc: HitLocation) => {
-      const pa = get().pendingAttack;
-      // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
-      const battle = get().battle;
-      const cible = pa ? inBattleId(battle, pa.targetId) : undefined;
-      const attaquant = pa ? inBattleId(battle, pa.attackerId) : undefined;
-      if (!battle || !pa || !pa.forced || !pa.result || !cible || !attaquant) return;
-      const victime = victimeDuCoup(battle, cible, pa);
-      if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(battle, attaquant, cible, pa), attaquant).compte.relance) return;
-      set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
-    },
     // `jetCancel('attack')` (« Annuler » / défaire-charge) est GÉNÉRÉ par la fabrique
     // (`FLOWS.attack.onCancel`, cf. la liste de verbes ci-dessus) — plus d'action bespoke ici.
     // PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : la case d'impact est déposée par le placeur
@@ -1823,33 +1738,6 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     dualStrikeAttack: (targetId: string) => frapperDeLaSeconde(get, set, targetId, false),
     dualStrikeSkip: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); }, // « peut viser » = optionnel : pas de 2ᵉ → pas d'Avantage (LDB 10 l.767-773)
-    // ── Défense réactive (héros attaqué par l'IA en mêlée) ──
-    defenseSetMode: (mode: DefenseMode) => {
-      const { pendingDefense: pd, battle } = get();
-      if (!pd || pd.result || !battle) return; // le mode ne change plus après le jet
-      const defenseur = inBattleId(battle, pd.defenderId);
-      const attaquant = inBattleId(battle, pd.attackerId);
-      // LDB 09 l.207, l.287
-      const substitut = mode === 'social' && defenseur && attaquant ? combatSubstitute(defenseur, attaquant, 'defense')?.skillId : undefined;
-      set({ pendingDefense: { ...pd, mode, substituteSkillId: substitut } });
-    },
-    defenseSetParryWeapon: (uid: string | null) => siOuvert('defense', get, () => {
-      const pd = get().pendingDefense;
-      if (!pd) return;
-      set({ pendingDefense: { ...pd, parryWeaponUid: uid ?? undefined } });
-    }),
-    // Réaction de Porte-Bouclier (variante AA 13 l.84) déclarée avant l'Appliquer : 'damage'/'push' ou effacée.
-    defenseSetShieldReaction: (kind: 'damage' | 'push' | null) => {
-      const pd = get().pendingDefense;
-      if (!pd) return;
-      set({ pendingDefense: { ...pd, shieldReaction: kind ?? undefined } });
-    },
-    // Riposte (LDB 10 l.1037) déclarée ou refusée avant l'Appliquer.
-    defenseSetRiposte: (riposte: boolean) => {
-      const pd = get().pendingDefense;
-      if (!pd) return;
-      set({ pendingDefense: { ...pd, riposte } });
-    },
     renounceResolve: (renounce: boolean) => resolveRenounce(get, set, renounce),
 
 
@@ -2118,7 +2006,7 @@ export function createCombatSlice(get: Get, set: Set) {
         pendingHeal: {
           healerId: healer.id, healerName: healer.label, targetId: target.id, targetName: target.label,
           mode, intBonus: bonus(effectiveChar(healer, 'intelligence')),
-          // Le siège du soigneur ouvre : il n'engage que les Bandages de son héros (`healSetBandages`).
+          // Le siège du soigneur ouvre : il n'engage que les Bandages de son héros (réglage `heal.bandages`).
           test: ouverture.test, bandagesDe: ouverture.bandages ? healer.id : null,
           skillValue, difficulty, roll: null, success: false, sl: 0,
           ligne, ...cibleMesuree(ligne),
@@ -2127,48 +2015,8 @@ export function createCombatSlice(get: Get, set: Set) {
       });
     },
 
-    /** Pré-jet : bascule le MODE de soin (Blessures ⇄ Hémorragie) dans la modale, tant que le dé n'a
-     *  pas été lancé. La Difficulté dépend du mode (variante AA, cf. `healDifficulty`) → recalculée avec
-     *  `mode`. */
-    healSetMode: (mode: HealMode) => {
-      const ph = get().pendingHeal;
-      if (!ph || ph.roll != null) return;
-      const target = actorIn(get(), ph.targetId);
-      if (!target) return;
-      const soigneur = actorIn(get(), ph.healerId);
-      // Hors combat, l'acte se choisit à l'infirmerie (`medicAct`, verdict `refusDActeDeSoin`).
-      const raison = get().battle
-        ? raisonDeModeDeSoinEnCombat(target, mode) ?? refusDuTestDeSoin(soigneur ?? null, mode, parametresDuSoin(ph))
-        : t('heal.modeFixeALInfirmerie');
-      if (raison) return void refuserGesteDuSiege(get, set, raison);
-      const bandagesDe = actePanse(mode) ? ph.bandagesDe : null;
-      const difficulty = difficulteDuSoin(ph.test, mode);
-      const ligne = rollLine({
-        actor: soigneur, ...(soigneur ? { test: IDS_DU_TEST_DE_SOIN[ph.test] } : {}),
-        difficulty, valeur: ph.skillValue, soutien: ph.test === 'guerison' ? ph.support : undefined,
-      });
-      set({ pendingHeal: { ...ph, mode, bandagesDe, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
-    },
 
-    /** Pré-jet : le Test du soin (Guérison ⇄ Dextérité, LDB 74 l.41), jugé par `refusDuTestDuSoin` ; valeur, Difficulté
-     *  et ligne re-dérivées du soigneur combattant (un PNJ soigneur ne jette que sa Guérison). */
-    healSetTest: (test: TestDeSoin) => {
-      const ph = get().pendingHeal;
-      if (!ph) return;
-      if (refuseSi(get, set, () => refusDuTestDuSoin(get(), test))) return;
-      const soigneur = garanti(actorIn(get(), ph.healerId), ph.healerId, 'soigneur combattant');
-      const { skillValue, difficulty, ligne } = jetDuSoigneur(soigneur, test, ph.mode, ph.support);
-      set({ pendingHeal: { ...ph, test, skillValue, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
-    },
 
-    /** Pré-jet : engage les Bandages du héros `porteurId` (`null` : les retire), jugé par `refusDesBandages` ; la route
-     *  coop n'admet que le siège du porteur (`netOwnership`). */
-    healSetBandages: (porteurId: string | null) => {
-      const ph = get().pendingHeal;
-      if (!ph) return;
-      if (refuseSi(get, set, () => refusDesBandages(get(), porteurId))) return;
-      set({ pendingHeal: { ...ph, bandagesDe: porteurId } });
-    },
 
     // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. noyau/medicFlow ──
 
@@ -2227,80 +2075,6 @@ export function createCombatSlice(get: Get, set: Set) {
     },
 
 
-    /** Incantation CRITIQUE (LDB 46 l.26-32) : le lanceur choisit l'effet bonus dans la modale. Le
-     *  budget de Surincantation en dépend (`castOvercastBudget`) : l'allocation retombe (`overcastReset`). */
-    castSetCritChoice: (choice: 'critique' | 'puissance' | 'ineluctable') => {
-      if (refuseSi(get, set, (s) => refusDuChoixCritique(s, choice))) return;
-      const pc = garanti(get().pendingCast, 'pendingCast', 'Incantation Critique');
-      const inchange = pc.critChoice === choice;
-      set({ pendingCast: { ...pc, critChoice: choice, ...(inchange ? {} : overcastReset(pc, sceneMetresPerTile(get().scene))) } });
-    },
-    /** Arme invoquée à forme libre (Arme aethyrique) : le lanceur choisit la forme/Spé de Corps à corps. */
-    castSetConjureForm: (arme: IdDeFormeInvoquee) => {
-      if (refuseSi(get, set, (s) => refusDeLaForme(s, arme))) return;
-      const pc = garanti(get().pendingCast, 'pendingCast', 'forme d’arme invoquée');
-      const lanceur = garanti(actorIn(get(), pc.casterId), pc.casterId, 'forme d’arme invoquée');
-      set({ pendingCast: { ...pc, conjureForm: garanti(conjureFormOptions(lanceur).find((f) => f.weapon === arme), arme, 'forme d’arme invoquée') } });
-    },
-    /** « Prêchez, ma sœur ! » (LDB 40 l.42) : entonner la Prière à voix haute (défaut) ou discrètement
-     *  (murmurée → Difficulté d'un cran plus dure). Choix AVANT le jet ; sans effet après lancer. */
-    castSetDiscreet: (discreet: boolean) => {
-      if (refuseSi(get, set, (s) => refusDuReglage(s, 'castSetDiscreet'))) return;
-      set({ pendingCast: { ...garanti(get().pendingCast, 'pendingCast', 'ton de la Prière'), discreet } });
-    },
-    /** Surincantation : un pas (`delta` +1/−1, stepper avec reset), refusé par `refusDuPasDeSurincantation`, que la
-     *  fenêtre lit aussi. L'EFFET d'un pas
-     *  est SOURCE-AWARE (`engine/overcast.ts`). */
-    castAllocOvercast: (axis: OvercastAxis, delta: number) => {
-      if (refuseSi(get, set, (s) => refusDuPasDeSurincantation(s, axis, delta))) return;
-      const pc = garanti(get().pendingCast, 'pendingCast', 'Surincantation');
-      const spell = garanti(findSpellById(pc.spellId), pc.spellId, 'Surincantation');
-      const source = overcastSourceOf(spell);
-      const oc = pc.overcast ?? { range: 0, zone: 0, duration: 0, targets: 0, damage: 0 };
-      const v = oc[axis] + delta;
-      const next = { ...oc, [axis]: v };
-      // ZdE : chaque pas ajoute le Ø INITIAL — le rayon du gabarit suit (pose et aperçu lisent `zone.radius`).
-      const zone = axis === 'zone' && pc.zone
-        ? { ...pc.zone, radius: zoneRadiusTilesAt(pc.zone.r0m ?? 0, next.zone, sceneMetresPerTile(get().scene)) }
-        : pc.zone;
-      // Cible RÉDUITE : on élague les désignations au-delà de la nouvelle capacité (alloc ⊥ désignation).
-      const caster = (get().battle?.combatants ?? get().party).find((c) => c.id === pc.casterId);
-      const cap = caster ? extraTargetCapacity(source, next.targets, spellTargetCount(spell, caster)) : 0;
-      const extraTargetIds = (pc.extraTargetIds ?? []).length > cap ? (pc.extraTargetIds ?? []).slice(0, cap) : pc.extraTargetIds;
-      // Le choix de jets sur le Tableau (EDOC 13 l.276) reste borné aux pas Durée alloués : si l'axe
-      // Durée redescend, re-clamp (jamais un choix > allocation) ; aucun choix explicite encore posé →
-      // rien à clamper (défaut = tous les pas, résolu à l'application).
-      const chosenTableRolls = axis === 'duration' && pc.chosenTableRolls != null
-        ? Math.min(pc.chosenTableRolls, next.duration)
-        : pc.chosenTableRolls;
-      set({ pendingCast: { ...pc, overcast: next, ...(zone ? { zone } : {}), ...(extraTargetIds !== pc.extraTargetIds ? { extraTargetIds } : {}), ...(chosenTableRolls !== pc.chosenTableRolls ? { chosenTableRolls } : {}) } });
-    },
-    /** Jets sur le Tableau CHOISIS (EDOC 13 l.276, déclinable) : borné [0, pas Durée alloués]. */
-    castSetChosenTableRolls: (n: number) => {
-      if (refuseSi(get, set, (s) => refusDuReglage(s, 'castSetChosenTableRolls'))) return;
-      const pc = garanti(get().pendingCast, 'pendingCast', 'jets sur le Tableau');
-      const max = pc.overcast?.duration ?? 0;
-      set({ pendingCast: { ...pc, chosenTableRolls: Math.max(0, Math.min(n, max)) } });
-    },
-    castToggleExtraTarget: (id: string) => {
-      const pc = get().pendingCast;
-      if (!pc || !pc.result?.cast) return;
-      // Garde : seules les cibles ÉLIGIBLES (portée surincantée comprise / éveillées, LDB 47) sont
-      // togglables — indispensable depuis le clic carte (pickingTargets), inoffensif depuis le picker.
-      const pool = get().battle?.combatants ?? get().party;
-      const caster = pool.find((c) => c.id === pc.casterId);
-      const spell = findSpellById(pc.spellId);
-      if (!caster || !spell || !overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).some((c) => c.id === id)) return;
-      // Capacité SOURCE-AWARE : pas × cible initiale (×initial arcane/miracle) ; pas × 1 (bénédiction).
-      const cap = extraTargetCapacity(overcastSourceOf(spell), pc.overcast?.targets ?? 0, spellTargetCount(spell, caster));
-      const cur = pc.extraTargetIds ?? [];
-      const next = cur.includes(id)
-        ? cur.filter((x) => x !== id)
-        : cur.length < cap && id !== pc.targetId
-          ? [...cur, id]
-          : cur;
-      set({ pendingCast: { ...pc, extraTargetIds: next } });
-    },
     castPickTargets: (on: boolean) => {
       const pc = get().pendingCast;
       if (!pc || !pc.result?.cast || !get().battle) return; // hors combat : pas de carte tactique → picker en modale
@@ -2536,7 +2310,226 @@ export function createCombatSlice(get: Get, set: Set) {
   };
 }
 
-/** Les clôtures des flux du combat (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+/** Les réglages des jets du combat (`CorpsDesReglages`) : `jetRegler` les joue, dans leur phase (`REGLAGES_DU_JET`). */
+export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'attack' | 'defense' | 'cast' | 'heal' | 'battement' | 'distraire' | 'maneuver' | 'shipManeuver' | 'shanty'> {
+  /** Un champ de `pendingAttack` posé tel quel. */
+  const attaque = <K extends 'location' | 'harpoonRopeCut' | 'withhold' | 'grapple'>(champ: K) => (v: PendingAttack[K]) => {
+    const pa = get().pendingAttack;
+    if (pa) set({ pendingAttack: { ...pa, [champ]: v } });
+  };
+  /** Les pas de Surincantation de l'axe `axis` (`REGLAGE_DE_L_AXE`), refusés par `refusDuPasDeSurincantation`, que la
+   *  fenêtre lit aussi. L'EFFET d'un pas est SOURCE-AWARE (`engine/overcast.ts`). */
+  const surincantation = (axis: OvercastAxis) => (pas: number) => {
+    if (refuseSi(get, set, (s) => refusDuPasDeSurincantation(s, axis, pas))) return;
+    const pc = garanti(get().pendingCast, 'pendingCast', 'Surincantation');
+    const spell = garanti(findSpellById(pc.spellId), pc.spellId, 'Surincantation');
+    const source = overcastSourceOf(spell);
+    const oc = pc.overcast ?? { range: 0, zone: 0, duration: 0, targets: 0, damage: 0 };
+    const next = { ...oc, [axis]: pas };
+    // ZdE : chaque pas ajoute le Ø INITIAL — le rayon du gabarit suit (pose et aperçu lisent `zone.radius`).
+    const zone = axis === 'zone' && pc.zone
+      ? { ...pc.zone, radius: zoneRadiusTilesAt(pc.zone.r0m ?? 0, next.zone, sceneMetresPerTile(get().scene)) }
+      : pc.zone;
+    // Cible RÉDUITE : on élague les désignations au-delà de la nouvelle capacité (alloc ⊥ désignation).
+    const caster = (get().battle?.combatants ?? get().party).find((c) => c.id === pc.casterId);
+    const cap = caster ? extraTargetCapacity(source, next.targets, spellTargetCount(spell, caster)) : 0;
+    const extraTargetIds = (pc.extraTargetIds ?? []).length > cap ? (pc.extraTargetIds ?? []).slice(0, cap) : pc.extraTargetIds;
+    // Le choix de jets sur le Tableau (EDOC 13 l.276) reste borné aux pas Durée alloués : si l'axe
+    // Durée redescend, re-clamp (jamais un choix > allocation) ; aucun choix explicite encore posé →
+    // rien à clamper (défaut = tous les pas, résolu à l'application).
+    const chosenTableRolls = axis === 'duration' && pc.chosenTableRolls != null
+      ? Math.min(pc.chosenTableRolls, next.duration)
+      : pc.chosenTableRolls;
+    set({ pendingCast: { ...pc, overcast: next, ...(zone ? { zone } : {}), ...(extraTargetIds !== pc.extraTargetIds ? { extraTargetIds } : {}), ...(chosenTableRolls !== pc.chosenTableRolls ? { chosenTableRolls } : {}) } });
+  };
+  return {
+    attack: {
+      localisation: attaque('location'),
+      arme: (uid) => {
+        const pa = get().pendingAttack;
+        if (pa) set({ pendingAttack: { ...pa, weaponUid: uid ?? undefined } });
+      },
+      deuxArmes: (on) => {
+        const pa = get().pendingAttack;
+        if (!pa) return;
+        // Mode « des deux armes » : l'attaque-Action utilise la MAIN DIRECTRICE (la 2ᵉ frappe suit, off-hand).
+        const a = inBattleId(get().battle, pa.attackerId);
+        const mainUid = a?.weapons.find((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)?.uid;
+        set({ pendingAttack: { ...pa, dualMode: on, weaponUid: on ? (mainUid ?? pa.weaponUid) : pa.weaponUid } });
+      },
+      sansLaCorde: attaque('harpoonRopeCut'),
+      retenirSesCoups: attaque('withhold'),
+      empoigner: attaque('grapple'),
+      localisationDuCritique: (loc) => {
+        const pa = get().pendingAttack;
+        // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
+        const battle = get().battle;
+        const cible = pa ? inBattleId(battle, pa.targetId) : undefined;
+        const attaquant = pa ? inBattleId(battle, pa.attackerId) : undefined;
+        if (!battle || !pa || !pa.forced || !pa.result || !cible || !attaquant) return;
+        const victime = victimeDuCoup(battle, cible, pa);
+        if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(battle, attaquant, cible, pa), attaquant).compte.relance) return;
+        set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
+      },
+    },
+    defense: {
+      reaction: (mode) => {
+        const { pendingDefense: pd, battle } = get();
+        if (!pd || !battle) return;
+        const defenseur = inBattleId(battle, pd.defenderId);
+        const attaquant = inBattleId(battle, pd.attackerId);
+        // LDB 09 l.207, l.287
+        const substitut = mode === 'social' && defenseur && attaquant ? combatSubstitute(defenseur, attaquant, 'defense')?.skillId : undefined;
+        set({ pendingDefense: { ...pd, mode, substituteSkillId: substitut } });
+      },
+      armeDeParade: (uid) => {
+        const pd = get().pendingDefense;
+        if (pd) set({ pendingDefense: { ...pd, parryWeaponUid: uid ?? undefined } });
+      },
+      porteBouclier: (kind) => {
+        const pd = get().pendingDefense;
+        if (pd) set({ pendingDefense: { ...pd, shieldReaction: kind ?? undefined } });
+      },
+      riposte: (riposte) => {
+        const pd = get().pendingDefense;
+        if (pd) set({ pendingDefense: { ...pd, riposte } });
+      },
+    },
+    heal: {
+      /** La Difficulté dépend du mode (variante AA, cf. `healDifficulty`) → recalculée avec `mode`. */
+      mode: (mode) => {
+        const ph = get().pendingHeal;
+        if (!ph) return;
+        const target = actorIn(get(), ph.targetId);
+        if (!target) return;
+        const soigneur = actorIn(get(), ph.healerId);
+        // Hors combat, l'acte se choisit à l'infirmerie (`medicAct`, verdict `refusDActeDeSoin`).
+        const raison = get().battle
+          ? raisonDeModeDeSoinEnCombat(target, mode) ?? refusDuTestDeSoin(soigneur ?? null, mode, parametresDuSoin(ph))
+          : t('heal.modeFixeALInfirmerie');
+        if (raison) return void refuserGesteDuSiege(get, set, raison);
+        const bandagesDe = actePanse(mode) ? ph.bandagesDe : null;
+        const difficulty = difficulteDuSoin(ph.test, mode);
+        const ligne = rollLine({
+          actor: soigneur, ...(soigneur ? { test: IDS_DU_TEST_DE_SOIN[ph.test] } : {}),
+          difficulty, valeur: ph.skillValue, soutien: ph.test === 'guerison' ? ph.support : undefined,
+        });
+        set({ pendingHeal: { ...ph, mode, bandagesDe, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
+      },
+      /** Jugé par `refusDuTestDuSoin` ; valeur, Difficulté et ligne re-dérivées du soigneur combattant (un PNJ soigneur
+       *  ne jette que sa Guérison). */
+      test: (test) => {
+        const ph = get().pendingHeal;
+        if (!ph) return;
+        if (refuseSi(get, set, () => refusDuTestDuSoin(get(), test))) return;
+        const soigneur = garanti(actorIn(get(), ph.healerId), ph.healerId, 'soigneur combattant');
+        const { skillValue, difficulty, ligne } = jetDuSoigneur(soigneur, test, ph.mode, ph.support);
+        set({ pendingHeal: { ...ph, test, skillValue, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
+      },
+      /** Jugé par `refusDesBandages` ; la route coop n'admet que le siège du porteur (`porteurDeLaValeur`). */
+      bandages: (porteurId) => {
+        const ph = get().pendingHeal;
+        if (!ph) return;
+        if (refuseSi(get, set, () => refusDesBandages(get(), porteurId))) return;
+        set({ pendingHeal: { ...ph, bandagesDe: porteurId } });
+      },
+    },
+    cast: {
+      /** Refusé par `refusDuChoixCritique`, que la fenêtre lit aussi. Le budget de Surincantation en dépend
+       *  (`castOvercastBudget`) : l'allocation retombe (`overcastReset`). */
+      effetCritique: (choice) => {
+        if (refuseSi(get, set, (s) => refusDuChoixCritique(s, choice))) return;
+        const pc = garanti(get().pendingCast, 'pendingCast', 'Incantation Critique');
+        const inchange = pc.critChoice === choice;
+        set({ pendingCast: { ...pc, critChoice: choice, ...(inchange ? {} : overcastReset(pc, sceneMetresPerTile(get().scene))) } });
+      },
+      /** Refusé par `refusDeLaForme`, que la fenêtre lit aussi. */
+      formeConjuree: (arme) => {
+        if (refuseSi(get, set, (s) => refusDeLaForme(s, arme))) return;
+        const pc = garanti(get().pendingCast, 'pendingCast', 'forme d’arme invoquée');
+        const lanceur = garanti(actorIn(get(), pc.casterId), pc.casterId, 'forme d’arme invoquée');
+        set({ pendingCast: { ...pc, conjureForm: garanti(conjureFormOptions(lanceur).find((f) => f.weapon === arme), arme, 'forme d’arme invoquée') } });
+      },
+      discret: (discreet) => {
+        const pc = get().pendingCast;
+        if (pc) set({ pendingCast: { ...pc, discreet } });
+      },
+      jetsDeTable: (n) => {
+        const pc = get().pendingCast;
+        if (!pc || !pc.result?.cast) return;
+        const max = pc.overcast?.duration ?? 0;
+        set({ pendingCast: { ...pc, chosenTableRolls: Math.max(0, Math.min(n, max)) } });
+      },
+      surincantationPortee: surincantation('range'),
+      surincantationZone: surincantation('zone'),
+      surincantationDuree: surincantation('duration'),
+      surincantationCibles: surincantation('targets'),
+      surincantationDegats: surincantation('damage'),
+      /** Les cibles ÉLIGIBLES (portée surincantée comprise, éveillées, LDB 47), dans la capacité SOURCE-AWARE : pas ×
+       *  cible initiale (×initial arcane/miracle) ; pas × 1 (bénédiction). Une liste hors de ces bornes est refusée. */
+      ciblesSupplementaires: (ids) => {
+        const pc = get().pendingCast;
+        if (!pc || !pc.result?.cast) return;
+        const pool = get().battle?.combatants ?? get().party;
+        const caster = pool.find((c) => c.id === pc.casterId);
+        const spell = findSpellById(pc.spellId);
+        if (!caster || !spell) return;
+        const eligibles = new Set(overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).map((c) => c.id));
+        const cap = extraTargetCapacity(overcastSourceOf(spell), pc.overcast?.targets ?? 0, spellTargetCount(spell, caster));
+        const refus = ids.length > cap ? t('cast.refus.ciblesAuDela', { cap })
+          : new Set(ids).size < ids.length ? t('cast.refus.cibleRepetee')
+            : ids.some((id) => id === pc.targetId || !eligibles.has(id)) ? t('cast.refus.cibleIneligible') : null;
+        if (refus) return void refuserGeste(get, set, refus);
+        set({ pendingCast: { ...pc, extraTargetIds: [...ids] } });
+      },
+    },
+    battement: {
+      /** Re-ouvre sur l'adversaire choisi. */
+      adversaire: (foeId) => {
+        const { battle, pendingBattement: pb } = get();
+        if (!battle || !pb) return;
+        const active = inBattleId(battle, pb.attackerId);
+        const foe = adversairesDuBattement(get()).find((c) => c.id === foeId);
+        if (!active || !foe) return;
+        startBattement(get, set, active, foe);
+      },
+    },
+    distraire: {
+      /** Re-fige le Calme de l'adversaire choisi. */
+      adversaire: (foeId) => {
+        const { battle, pendingDistraire: pd } = get();
+        if (!battle || !pd) return;
+        const mover = inBattleId(battle, pd.moverId);
+        const foe = adversairesADistraire(get()).find((c) => c.id === foeId);
+        if (!mover || !foe) return;
+        startDistraire(get, set, mover, foe);
+      },
+    },
+    maneuver: {
+      avantage: (n) => {
+        const { battle, pendingManeuver: pm } = get();
+        if (!battle || !pm) return;
+        const attacker = inBattleId(battle, pm.attackerId);
+        if (!attacker) return;
+        const clamped = Math.max(1, Math.min(n, attacker.advantage)); // 1..Avantage (LDB 85 l.290)
+        set({ pendingManeuver: { ...pm, avantageSpent: clamped } });
+      },
+    },
+    shipManeuver: {
+      virage: (steps) => {
+        const p = get().pendingShipManeuver;
+        if (p) set({ pendingShipManeuver: { ...p, turnSteps: steps } });
+      },
+    },
+    shanty: {
+      chanson: (shantyId) => {
+        const p = get().pendingShanty;
+        if (p && chansonsDuChanteur(get()).includes(shantyId)) set({ pendingShanty: { ...p, shantyId } });
+      },
+    },
+  };
+}
+
 /** Les sorties des fenêtres du combat : le bilan de la cascade, le choix de monture, le placeur du pilonnage. */
 export function sortiesDuCombat(get: Get, set: Set) {
   return {
@@ -2551,6 +2544,7 @@ export function sortiesDuCombat(get: Get, set: Set) {
   } satisfies Partial<SortiesDeFenetre>;
 }
 
+/** Les clôtures des flux du combat (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
 export function cloturesDuCombat(get: Get, set: Set) {
   return {
     // Maladresse (LDB 14) : les Oups ! tirés sur l'étape COURANTE (`step.fumble`) s'appliquent.

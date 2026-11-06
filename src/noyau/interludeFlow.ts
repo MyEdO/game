@@ -68,7 +68,7 @@ import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 export interface InterludeHeroState {
@@ -1187,7 +1187,7 @@ export function creerActionsDInterlude(get: Get, set: Set) {
     interludeOrder: (heroId, trapping) => orderItem(get, set, heroId, trapping),
     interludeEntrainement: (heroId, kind, id, spec) => entrainementStart(get, set, heroId, kind, id, spec),
     interludeActivity: (heroId, activityId, opts) => openCatalogActivity(get, set, heroId, activityId, opts),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 export function cloturesDInterlude(get: Get, set: Set) {

@@ -212,7 +212,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ party: [hero] });
     applyEffects(g, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', heroId: hero.id }]);
     expect(g().pendingCorruption).toMatchObject({ nature: 'physique', test: testDeFiche('influences-corruptrices', 'physique') });
-    g().corruptionSetNature('spirituelle');
+    g().jetRegler('corruption', 'nature', 'spirituelle');
     expect(g().pendingCorruption).toMatchObject({ nature: 'spirituelle', test: testDeFiche('influences-corruptrices', 'spirituelle') });
     g().jetRoll('corruption');
     expect(g().pendingCorruption!.target).toBe(cible(hero, 'influences-corruptrices', 'spirituelle'));

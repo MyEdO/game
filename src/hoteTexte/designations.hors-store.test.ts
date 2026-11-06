@@ -33,10 +33,10 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const valides = refuseLId(t, verbe('battleClickEntity', 'nobody'), /id : "nobody" n’est pas un id de combattant \(valides : .*enemy-enc-dome-1/);
     passeLeControle(t, verbe('battleClickEntity', valides.find((id) => id.startsWith('enemy'))!));
   });
-  it('héros : `grantXp`', { timeout: 120_000 }, () => {
+  it('héros : `createLoadout`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [heros] = refuseLId(t, verbe('grantXp', 'nobody', 10), /heroId : "nobody" n’est pas un id de héros \(valides : /);
-    const r = t.jouer(verbe('grantXp', heros, 10));
+    const [heros] = refuseLId(t, verbe('createLoadout', 'nobody'), /heroId : "nobody" n’est pas un id de héros \(valides : /);
+    const r = t.jouer(verbe('createLoadout', heros));
     expect(r.erreur, r.texte).toBeNull();
   });
   it('scène : `transitionTo`', { timeout: 120_000 }, () => {
@@ -45,10 +45,10 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const r = t.jouer(verbe('transitionTo', valides.find((id) => id === 'test-revisit-couloir')!));
     expect(r.erreur, r.texte).toBeNull();
   });
-  it('entité de scène : `interactEntity`', { timeout: 120_000 }, () => {
+  it('entité de scène : `cliquerLaCase`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [entite] = refuseLId(t, verbe('interactEntity', 'nobody'), /entityId : "nobody" n’est pas un id d’entité de scène \(valides : /);
-    passeLeControle(t, verbe('interactEntity', entite));
+    const [entite] = refuseLId(t, verbe('cliquerLaCase', { x: 0, y: 0 }, 'nobody'), /entite : "nobody" n’est pas un id d’entité de scène \(valides : /);
+    passeLeControle(t, verbe('cliquerLaCase', { x: 0, y: 0 }, entite));
   });
   it('porte : `actionnerLaPorte`', { timeout: 120_000 }, () => {
     const t = partie('fenetre-ecuries');

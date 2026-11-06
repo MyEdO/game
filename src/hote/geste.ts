@@ -6,14 +6,14 @@
  * refus nomme ce que l'état offre ; l'hôte y joint ses pistes de lecture (`PistesDeLecture`), là où son auteur lit la suite.
  */
 import {
-  ACTIONS, DESIGNATIONS, actionGate, cleDuGeste, argsAvecVerdictLocal, etatDeLaBarre, fenetreDuJeu, offreDesignee, porteurParId,
+  ACTIONS, DESIGNATIONS, VERBE_DE_REGLAGE, actionGate, cleDuGeste, argsAvecVerdictLocal, etatDeLaBarre, fenetreDuJeu, offreDesignee, porteurParId,
   quiTientLaMain, runAction, siegeDe,
   type ActionRunCtx, type Intention, type Jeu, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
 import { estObjet, lireALaForme, signature, type Designes, type ParametreDeVerbe } from './formes';
 import { ErreurDeGeste, valider } from './partie';
 import { offresDeLaBarreOuverte } from './projection';
-import { VERBES } from './verbes.generated';
+import { REGLAGES, VERBES } from './verbes.generated';
 
 /** Un geste écrit : une offre du registre (`jouerLOffre`), ou un verbe brut de la partie, joué au nom d'un siège s'il
  *  est posé. */
@@ -52,6 +52,29 @@ export function lireGeste(v: unknown): Geste {
 const designesDe = (etat: Jeu): Designes => (cle) =>
   cle in DESIGNATIONS ? DESIGNATIONS[cle as keyof typeof DESIGNATIONS].lire(etat) : undefined;
 
+const aLaCle = (table: object, cle: unknown): cle is string => typeof cle === 'string' && Object.prototype.hasOwnProperty.call(table, cle);
+
+/** Les paramètres du réglage `reglage` du flux de jet `flux` : ceux du verbe qui règle un jet (`VERBE_DE_REGLAGE`), le
+ *  flux et le réglage en littéraux, la valeur à la forme du réglage (`REGLAGES`) ; `null` : le flux ne déclare pas ce
+ *  réglage. */
+export function parametresDuReglage(flux: unknown, reglage: unknown): readonly ParametreDeVerbe[] | null {
+  if (!aLaCle(REGLAGES, flux) || !aLaCle(REGLAGES[flux], reglage)) return null;
+  const formes: Readonly<Record<string, ParametreDeVerbe['forme']>> = { flux: { genre: 'litteral', valeur: flux }, reglage: { genre: 'litteral', valeur: reglage }, valeur: REGLAGES[flux][reglage] };
+  return VERBES[VERBE_DE_REGLAGE].map((p) => (p.nom in formes ? { ...p, forme: formes[p.nom] } : p));
+}
+
+/** Les paramètres d'un appel du verbe `verbe` : ceux du verbe, et, pour le verbe qui règle un jet, ceux du réglage que
+ *  ses deux premiers arguments nomment (`parametresDuReglage`) ; un flux ou un réglage que la partie ne déclare pas
+ *  lève une erreur de validation qui nomme ceux qu'elle déclare. */
+function parametresDeLAppel(verbe: string, args: readonly unknown[], parametres: readonly ParametreDeVerbe[]): readonly ParametreDeVerbe[] {
+  if (verbe !== VERBE_DE_REGLAGE) return parametres;
+  const [flux, reglage] = args;
+  if (!aLaCle(REGLAGES, flux)) throw new ErreurDeGeste('validation', `${verbe} : ${JSON.stringify(flux)} n’est pas un flux réglé (${Object.keys(REGLAGES).join(', ')})`);
+  const duReglage = parametresDuReglage(flux, reglage);
+  if (!duReglage) throw new ErreurDeGeste('validation', `${verbe} : ${JSON.stringify(reglage)} n’est pas un réglage du flux ${flux} (${Object.keys(REGLAGES[flux]).join(', ')})`);
+  return duReglage;
+}
+
 /** Les arguments d'un verbe, lus à leurs paramètres (`lireALaForme`) : un id que l'état ne désigne pas lève une erreur
  *  de validation qui nomme les ids valides, un objet désigné par son id est complété, `null` omet un paramètre
  *  optionnel, un argument de forme fausse, en trop ou manquant lève une erreur de validation. */
@@ -71,7 +94,8 @@ export function argumentsDuVerbe(etat: Jeu, verbe: string, args: readonly unknow
 /** Les verbes voisins d'un nom inconnu nommés dans le refus, au plus. */
 const VOISINS_AU_PLUS = 8;
 
-/** Le geste d'un verbe, ses arguments contrôlés contre le type du verbe (`VERBES`, `argumentsDuVerbe`) ; les arguments
+/** Le geste d'un verbe, ses arguments contrôlés contre le type du verbe (`VERBES`, `argumentsDuVerbe`), ceux d'un réglage
+ *  de jet contre la forme de sa valeur (`parametresDeLAppel`) ; les arguments
  *  absents sont un tableau vide. Un verbe inconnu se refuse avec ceux de la fenêtre qui tient la main et ses voisins de
  *  nom. */
 export function gesteDuVerbe(etat: Jeu, v: { type: unknown; args?: unknown; siege?: unknown }, pistes: PistesDeLecture): Geste {
@@ -89,7 +113,7 @@ export function gesteDuVerbe(etat: Jeu, v: { type: unknown; args?: unknown; sieg
     throw new ErreurDeGeste('validation', `verbe inconnu : ${verbe}${dits.length ? ` ; ${dits.join(' ; ')}` : ''}${pistes.verbe(verbe)}`);
   }
   const geste = lireGeste({ type: verbe, args: v.args ?? [], siege: v.siege });
-  return 'offre' in geste ? geste : { ...geste, args: argumentsDuVerbe(etat, geste.type, geste.args, parametres) };
+  return 'offre' in geste ? geste : { ...geste, args: argumentsDuVerbe(etat, geste.type, geste.args, parametresDeLAppel(geste.type, geste.args, parametres)) };
 }
 
 /** Les offres de l'actif (`offresDeLActif`), ou l'erreur de règle qui dit pourquoi la barre n'est pas ouverte
@@ -141,8 +165,8 @@ function controlerLeContexte(offre: string, ctx: ActionRunCtx | undefined, offre
 
 /** L'intention d'un geste, contrôlée. Une offre que l'énumérateur ne rend pas, ou qu'aucun candidat ne désigne
  *  (`offreDesignee`), est une erreur de règle avec la raison du registre ; une offre fermée aussi (`actionGate`, sur les
- *  arguments du geste) ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`) et un verbe inconnu sont
- *  des erreurs de validation. Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
+ *  arguments du geste) ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`) est une erreur de
+ *  validation. Le verbe d'un geste a été contrôlé contre `VERBES` (`gesteDuVerbe`). Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
  *  (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. */
 export function intentionDuGeste(etat: Jeu, geste: Geste, pistes: PistesDeLecture): Intention {
   if ('offre' in geste) {
@@ -160,7 +184,6 @@ export function intentionDuGeste(etat: Jeu, geste: Geste, pistes: PistesDeLectur
     if (!gate.ok) throw new ErreurDeGeste('regle', `${geste.offre} fermée : ${gate.reason ?? 'sans raison'}`);
     return { type: 'jouerLOffre', args: geste.ctx ? [geste.offre, geste.ctx] : [geste.offre] };
   }
-  valider(typeof (etat as unknown as Record<string, unknown>)[geste.type] === 'function', `verbe inconnu : ${geste.type}`);
   if (geste.siege === undefined) return { type: geste.type, args: geste.args } as Intention;
   return { type: geste.type, args: argsAvecVerdictLocal(() => etat, geste.type, geste.args), siege: geste.siege } as Intention;
 }

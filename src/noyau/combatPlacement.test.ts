@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { pushBackTiles, displaceSmaller } from './combatPlacement';
 import { emptyScene, type Scene } from './monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
-import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Get } from './flowTypes';
 import { mk, battle } from './pionsEtages.testkit';
 
@@ -24,7 +24,7 @@ describe('pushBackTiles — la poussée glisse sur SON étage (#802)', () => {
     const scene = twoLayerScene();
     const attacker = mk('a', 4, 5);
     const target = mk('t', 5, 5, 1); // à l'étage 1
-    const get: Get = () => ({ scene, battle: battle([attacker, target]) }) as unknown as Jeu;
+    const get: Get = () => ({ scene, battle: battle([attacker, target]) }) as unknown as JeuDuNoyau;
     const moved = pushBackTiles(get, attacker, target, 1);
     expect(moved).toBe(0);
     expect(target.pos).toEqual({ x: 5, y: 5, z: 1 }); // reste sur place, reste à z=1
@@ -34,7 +34,7 @@ describe('pushBackTiles — la poussée glisse sur SON étage (#802)', () => {
     const scene = twoLayerScene();
     const attacker = mk('a', 4, 5);
     const target = mk('t', 5, 5); // sol
-    const get: Get = () => ({ scene, battle: battle([attacker, target]) }) as unknown as Jeu;
+    const get: Get = () => ({ scene, battle: battle([attacker, target]) }) as unknown as JeuDuNoyau;
     const moved = pushBackTiles(get, attacker, target, 1);
     expect(moved).toBe(1);
     expect(target.pos).toEqual({ x: 6, y: 5 });
@@ -48,7 +48,7 @@ describe('displaceSmaller — ne dégage que sur SON étage (#802)', () => {
     const sameFloor = mk('s', 5, 5, undefined, { size: 'petite' });
     const upperFloor = mk('u', 5, 5, 1, { size: 'petite' });
     const b = battle([sameFloor, upperFloor]);
-    const get: Get = () => ({ scene, battle: b }) as unknown as Jeu;
+    const get: Get = () => ({ scene, battle: b }) as unknown as JeuDuNoyau;
 
     const moved = displaceSmaller(get, mover);
 

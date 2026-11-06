@@ -31,7 +31,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';
 import { reussiteSansObjet, type GameOp } from '../engine/ops';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
 
 /** ConditionCtx de SCÈNE augmenté du BUVEUR comme acteur (`target` ET `caster`) — les Conditions
@@ -193,5 +193,5 @@ export function battleConsumeItem(get: Get, set: SetFn, active: Combatant, it: I
 export function creerActionsDesConsommables(get: Get, set: SetFn) {
   return {
     usePartyItem: (heroId, uid) => usePartyItem(get, set, heroId, uid),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

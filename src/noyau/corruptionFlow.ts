@@ -58,7 +58,7 @@ import { t, deElide } from '../i18n';
 import { stepDetail } from './rollSeam';
 import { NATURES_D_INFLUENCE, type NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { CorpsDesReglages } from './reglagesDuJet';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Le Test d'EXPOSITION de nature `nature` : la fiche `influences-corruptrices` (LDB 19 l.29). SEULE
@@ -357,20 +357,18 @@ export function corruptionTarget(s: Jeu, heroId?: string): Combatant | undefined
   return (heroId ? pool.find((h) => h.id === heroId) : undefined) ?? pool.find((h) => !h.dead && !h.outOfRencontre);
 }
 
-export function creerActionsDeCorruption(get: Get, set: Set) {
+/** Le réglage de l'exposition à une Influence corruptrice (`CorpsDesReglages`) : en EXPOSITION seulement, jamais quand la
+ *  source impose la nature. LDB 19 l.29, l.70 */
+export function reglagesDeCorruption(get: Get, set: Set): Pick<CorpsDesReglages, 'corruption'> {
   return {
-    // Test de scène (hors combat) : Lancer / Chance (relance / +1 DR) / Pacte — Résilience plus haut.
-    // `cancel` : referme la cascade quand le test est annulable (action de combat, `pendingTest.cancellable`).
-    // `determine` : Détermination (LDB 17 l.59), corps dans `FLOWS.test.caps.determine`.
-
-    /** Exposition à une Influence corruptrice (LDB 19) — flux différé, cf. spec `corruption`. */
-    corruptionSetNature: (nature) => {
-      const pc = get().pendingCorruption;
-      // Pré-jet uniquement, en EXPOSITION seulement, et JAMAIS si la source impose la nature.
-      if (!pc || pc.roll != null || pc.kind === 'seuil' || pc.natureFixee) return;
-      set({ pendingCorruption: { ...pc, ...testDExposition(nature) } });
+    corruption: {
+      nature: (nature) => {
+        const pc = get().pendingCorruption;
+        if (!pc || pc.kind === 'seuil' || pc.natureFixee) return;
+        set({ pendingCorruption: { ...pc, ...testDExposition(nature) } });
+      },
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  };
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

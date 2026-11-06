@@ -6,6 +6,8 @@
 // validation des arguments d'un verbe (src/hote/verbes.generated.ts, scripts/gen-verbes.mjs). Aucune forme écrite à la main.
 // Un paramètre (ou un champ) dont la DÉCLARATION nomme une clé de `DESIGNATIONS` (src/noyau/designations.ts) porte
 // ce nom et son mot dans sa forme (`designe`) : un alias de `string` ne survit pas au type résolu, il se lit au nœud déclaré.
+// Le verbe qui règle un jet (`jetRegler`, #3368) prend la valeur de chaque réglage de `ReglagesDuJet`
+// (src/noyau/reglagesDuJet.ts) : la même lecture donne la forme de chacune (`REGLAGES`), que l'hôte contrôle.
 import path from 'node:path'
 import * as ts from 'typescript/unstable/ast'
 import { SignatureKind, SymbolFlags, TypeFlags } from 'typescript/unstable/sync'
@@ -16,6 +18,8 @@ const SOURCE = 'src/noyau/actionsDuNoyau.ts'
 const INTERFACE = 'ActionsDuNoyau'
 const SOURCE_DESIGNATIONS = 'src/noyau/designations.ts'
 const TABLE_DESIGNATIONS = 'DESIGNATIONS'
+const SOURCE_REGLAGES = 'src/noyau/reglagesDuJet.ts'
+const INTERFACE_REGLAGES = 'ReglagesDuJet'
 /** Profondeur de résolution d'un objet : au-delà, l'objet ne contrôle que d'être un objet (`champs: null`). */
 const PROFONDEUR = 1
 /** Nombre de littéraux au-delà duquel une union de littéraux (un id du catalogue) se contrôle par son genre primitif :
@@ -88,22 +92,7 @@ function forme(checker, type, profondeur, designes) {
   if (f & TypeFlags.BooleanLike) return { genre: 'booleen' }
   if (f & TypeFlags.Null) return { genre: 'null' }
   if (f & (TypeFlags.Undefined | TypeFlags.Void)) return { genre: 'absent' }
-  if (type.isUnionType()) {
-    const membres = type.getTypes().map((t) => forme(checker, t, profondeur, designes))
-    // `boolean` est l'union `true | false` : il se lit d'un mot.
-    const booleens = membres.filter((m) => m.genre === 'litteral' && typeof m.valeur === 'boolean').length
-    const reste = booleens === 2 ? [{ genre: 'booleen' }, ...membres.filter((m) => !(m.genre === 'litteral' && typeof m.valeur === 'boolean'))] : membres
-    if (reste.length === 1) return reste[0]
-    const alias = type.getAliasSymbol()?.name
-    const litteraux = reste.filter((m) => m.genre === 'litteral')
-    if (litteraux.length > LITTERAUX_ENUMERES) {
-      const genres = [...new Set(litteraux.map((m) => (typeof m.valeur === 'number' ? 'nombre' : 'chaine')))].map((genre) => ({ genre }))
-      const autres = reste.filter((m) => m.genre !== 'litteral')
-      const membresReduits = [...genres, ...autres]
-      return membresReduits.length === 1 ? membresReduits[0] : { genre: 'union', membres: membresReduits, ...(alias ? { type: alias } : {}) }
-    }
-    return { genre: 'union', membres: reste, ...(alias ? { type: alias } : {}) }
-  }
+  if (type.isUnionType()) return unionDe(type.getTypes().map((t) => forme(checker, t, profondeur, designes)), type.getAliasSymbol()?.name)
   if (checker.isArrayType(type) || checker.isTupleType(type)) {
     const [element] = type.isTypeReference() ? checker.getTypeArguments(type) : []
     return { genre: 'tableau', element: element ? forme(checker, element, profondeur, designes) : { genre: 'libre', type: '?' } }
@@ -122,6 +111,25 @@ function forme(checker, type, profondeur, designes) {
   return { genre: 'libre', type: nomDuType(checker, type) }
 }
 
+/** La forme de l'union des formes `membres` (aplaties, chacune une fois), nommée `alias` s'il y en a un. */
+function unionDe(membresBruts, alias) {
+  const vus = new Map()
+  for (const m of membresBruts.flatMap((m) => (m.genre === 'union' ? m.membres : [m]))) vus.set(JSON.stringify(m), m)
+  const membres = [...vus.values()]
+  // `boolean` est l'union `true | false` : il se lit d'un mot.
+  const booleens = membres.filter((m) => m.genre === 'litteral' && typeof m.valeur === 'boolean').length
+  const reste = booleens === 2 ? [{ genre: 'booleen' }, ...membres.filter((m) => !(m.genre === 'litteral' && typeof m.valeur === 'boolean'))] : membres
+  if (reste.length === 1) return reste[0]
+  const litteraux = reste.filter((m) => m.genre === 'litteral')
+  if (litteraux.length > LITTERAUX_ENUMERES) {
+    const genres = [...new Set(litteraux.map((m) => (typeof m.valeur === 'number' ? 'nombre' : 'chaine')))].map((genre) => ({ genre }))
+    const autres = reste.filter((m) => m.genre !== 'litteral' && !genres.some((g) => g.genre === m.genre && Object.keys(m).length === 1))
+    const membresReduits = [...genres, ...autres]
+    return membresReduits.length === 1 ? membresReduits[0] : { genre: 'union', membres: membresReduits, ...(alias ? { type: alias } : {}) }
+  }
+  return { genre: 'union', membres: reste, ...(alias ? { type: alias } : {}) }
+}
+
 /** Une forme sans son membre `absent` : l'optionnalité se porte par le drapeau du champ ou du paramètre. */
 function sansAbsent(f) {
   if (f.genre !== 'union') return f
@@ -132,16 +140,68 @@ function sansAbsent(f) {
 /** Un paramètre est optionnel par son drapeau, ou parce que son type admet `undefined` (`entry?: string`). */
 const admetAbsent = (f) => f.genre === 'absent' || (f.genre === 'union' && f.membres.some((m) => m.genre === 'absent'))
 
-/** Les verbes de la partie, par nom, ou les seuls `noms` : leurs paramètres, dans l'ordre de l'appel
- *  (`ParametreDeVerbe`, src/hote/formes.ts). */
-export function verbesDeLaPartie(racine = process.cwd(), noms = null) {
+/** Le paramètre `q` d'une signature, lu à son type et à son nœud déclaré. */
+function parametre(checker, q, designes) {
+  const type = checker.getTypeOfSymbol(q)
+  const f = forme(checker, type, 0, designes)
+  return { nom: q.name, optionnel: !!(q.flags & SymbolFlags.Optional) || admetAbsent(f), type: nomDuType(checker, type), forme: designee(sansAbsent(f), typeDeclare(q), designes) }
+}
+
+/** Le tuple nommé que déclare l'alias du nœud de type `noeud` (`...args: ArgumentsDuReglage`) : ses membres, dans
+ *  l'ordre ; `null` : aucun. */
+function tupleDeclare(checker, noeud) {
+  if (!noeud || !ts.isTypeReferenceNode(noeud)) return null
+  const alias = checker.getSymbolAtLocation(noeud.typeName)?.declarations?.[0]?.resolve()
+  let tuple = null
+  const chercher = (n) => { if (!tuple && ts.isTupleTypeNode(n)) tuple = n; else if (!tuple) n.forEachChild(chercher) }
+  if (alias) chercher(alias)
+  return tuple && tuple.elements.every(ts.isNamedTupleMember) ? tuple.elements : null
+}
+
+/** Les paramètres d'un verbe dont l'unique paramètre est le reste d'une union de tuples nommés (`jetRegler`) : un
+ *  paramètre par position, nommé par le tuple que l'alias déclare, sa forme l'union des formes de la position, son type
+ *  écrit celui de la position (`ArgumentsDuReglage[2]`) quand les tuples y diffèrent. */
+function parametresDuReste(checker, q, designes) {
+  const declare = q.valueDeclaration?.resolve()
+  if (!declare?.dotDotDotToken) return null
+  const membres = tupleDeclare(checker, declare.type)
+  const type = checker.getTypeOfSymbol(q)
+  const tuples = type.isUnionType() ? type.getTypes() : [type]
+  if (!membres || !tuples.every((t) => checker.isTupleType(t))) return null
+  return membres.map((m, i) => {
+    const types = tuples.map((t) => checker.getTypeOfSymbol(checker.getPropertyOfType(t, String(i))))
+    const f = unionDe(types.map((t) => forme(checker, t, 0, designes)))
+    const ecrits = [...new Set(types.map((t) => nomDuType(checker, t)))]
+    return { nom: m.name.text, optionnel: !!m.questionToken || admetAbsent(f), type: ecrits.length === 1 ? ecrits[0] : `${declare.type.typeName.text}[${i}]`, forme: sansAbsent(f) }
+  })
+}
+
+/** L'interface `nom` du fichier `source` du programme. */
+function interfaceDe(session, racine, source, nom) {
+  const sf = session.program.getSourceFile(path.resolve(racine, source).replaceAll('\\', '/'))
+  let decl
+  sf?.forEachChild((n) => { if (ts.isInterfaceDeclaration(n) && n.name.text === nom) decl = n })
+  if (!decl) throw new Error(`verbesDeLaPartie : interface \`${nom}\` introuvable dans ${source}`)
+  return decl
+}
+
+/** Les réglages de chaque flux de jet (`ReglagesDuJet`, src/noyau/reglagesDuJet.ts) : la forme de la valeur de chacun. */
+function reglagesLus(session, racine, designes) {
+  const { checker } = session
+  const decl = interfaceDe(session, racine, SOURCE_REGLAGES, INTERFACE_REGLAGES)
+  return Object.fromEntries(checker.getPropertiesOfType(checker.getTypeAtLocation(decl.name)).map((flux) => [
+    flux.name,
+    Object.fromEntries(checker.getPropertiesOfType(checker.getTypeOfSymbol(flux)).map((r) => [r.name, designee(sansAbsent(forme(checker, checker.getTypeOfSymbol(r), 0, designes)), typeDeclare(r), designes)])),
+  ]))
+}
+
+/** La partie lue de son type : ses verbes, par nom, ou les seuls `noms`, leurs paramètres dans l'ordre de l'appel
+ *  (`ParametreDeVerbe`, src/hote/formes.ts), et la forme de la valeur de chaque réglage de jet. */
+export function partieLue(racine = process.cwd(), noms = null) {
   const fichier = path.resolve(racine, SOURCE).replaceAll('\\', '/')
   const session = repoProgram(racine, () => [fichier])
   try {
-    const sf = session.program.getSourceFile(fichier)
-    let decl
-    sf.forEachChild((n) => { if (ts.isInterfaceDeclaration(n) && n.name.text === INTERFACE) decl = n })
-    if (!decl) throw new Error(`verbesDeLaPartie : interface \`${INTERFACE}\` introuvable dans ${SOURCE}`)
+    const decl = interfaceDe(session, racine, SOURCE, INTERFACE)
     const { checker } = session
     const designes = nomsDesignes(session, racine)
     const verbes = {}
@@ -149,14 +209,14 @@ export function verbesDeLaPartie(racine = process.cwd(), noms = null) {
       if (noms && !noms.includes(p.name)) continue
       const [signature] = checker.getSignaturesOfType(checker.getTypeOfSymbol(p), SignatureKind.Call)
       if (!signature) continue
-      verbes[p.name] = signature.getParameters().map((q) => {
-        const type = checker.getTypeOfSymbol(q)
-        const f = forme(checker, type, 0, designes)
-        return { nom: q.name, optionnel: !!(q.flags & SymbolFlags.Optional) || admetAbsent(f), type: nomDuType(checker, type), forme: designee(sansAbsent(f), typeDeclare(q), designes) }
-      })
+      const qs = signature.getParameters()
+      verbes[p.name] = (qs.length === 1 && parametresDuReste(checker, qs[0], designes)) || qs.map((q) => parametre(checker, q, designes))
     }
-    return Object.fromEntries(Object.entries(verbes).sort(([a], [b]) => parUnitesDeCode(a, b)))
+    return { verbes: Object.fromEntries(Object.entries(verbes).sort(([a], [b]) => parUnitesDeCode(a, b))), reglages: reglagesLus(session, racine, designes) }
   } finally {
     libererSessions([session])
   }
 }
+
+/** Les verbes de la partie (`partieLue`). */
+export const verbesDeLaPartie = (racine = process.cwd(), noms = null) => partieLue(racine, noms).verbes

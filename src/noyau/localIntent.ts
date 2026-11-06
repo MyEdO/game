@@ -18,6 +18,7 @@ import type { Get } from './flowTypes';
 import { computeChargeReach, computeRunReach, displayedReach } from './combatFlow';
 import { findActionById } from '../data/index';
 import { unSiegeAgit } from './netOwnership';
+import type { Jeu } from './etat';
 
 /** Le mode d'intention ARMÉ (un seul à la fois) : l'id d'action du registre qui l'a posé. */
 export interface LocalIntent {
@@ -34,7 +35,7 @@ export interface LocalIntent {
  *  module y valait `undefined`, et toute portée d'intention se peignait VIDE (mesuré 2026-08-19 :
  *  `intention-portee` rouge, « expected [] to deeply equal [207 cases] »). Résolues à l'APPEL, elles
  *  sont insensibles à l'ordre d'évaluation des modules. */
-export const INTENT_REACH: Record<string, ((get: Get) => Map<string, number>) | null> = {
+export const INTENT_REACH: Record<string, ((get: Get<Jeu>) => Map<string, number>) | null> = {
   'portee-mouvement': (get) => displayedReach(get),
   'portee-course': null,
   'portee-charge': (get) => computeChargeReach(get),
@@ -44,20 +45,20 @@ export const INTENT_REACH: Record<string, ((get: Get) => Map<string, number>) | 
 /** L'intention armée du PROPRIÉTAIRE du store, ou `null` quand un geste s'exécute au nom d'un AUTRE
  *  siège (`withActingSeat`) : celui-là n'a droit qu'au verdict qu'il joint (`argsAvecVerdictLocal`),
  *  et un verdict absent vaut « non armé ». Seule lecture de `localIntent` par le geste. */
-export function intentionDuProprietaire(get: Get): LocalIntent | null {
+export function intentionDuProprietaire(get: Get<Jeu>): LocalIntent | null {
   return unSiegeAgit() ? null : get().localIntent;
 }
 
 /** Id de PORTÉE de l'intention armée (`intent` de son action), ou `null` — la seule lecture par
  *  laquelle une surface apprend CE QUE le joueur a demandé à voir. */
-export function armedIntentPortee(get: Get): string | null {
+export function armedIntentPortee(get: Get<Jeu>): string | null {
   const armed = intentionDuProprietaire(get);
   return (armed ? findActionById(armed.actionId)?.intent : undefined) ?? null;
 }
 
 /** Bande de cases à peindre pour l'intention ARMÉE — vide si aucune, si l'action ne déclare pas de
  *  portée, ou si sa portée n'a rien à montrer. Source UNIQUE du 3ᵉ `kind` de surbrillance. */
-export function intentReach(get: Get): Map<string, number> {
+export function intentReach(get: Get<Jeu>): Map<string, number> {
   const portee = armedIntentPortee(get);
   const reach = portee ? INTENT_REACH[portee] : null;
   return reach ? reach(get) : new Map();
@@ -74,14 +75,14 @@ export const PORTEE_COURSE = 'portee-course';
 
 /** L'intention armée est-elle celle qui débloque la zone de COURSE (spec § 2026-08-19, école BG3) ?
  *  Source UNIQUE du verdict, lue par le champ (peinture) comme par le clic (commit). */
-export function courseArmee(get: Get): boolean {
+export function courseArmee(get: Get<Jeu>): boolean {
   return armedIntentPortee(get) === PORTEE_COURSE;
 }
 
 /** Les PORTÉES que le champ peint au tour du joueur (`gameIso/stage/highlightLayer.tsx`) et qu'un hôte lit, l'armée
  *  d'abord : celle de l'intention armée (`intentReach`), la zone de Course quand elle est armée (`computeRunReach`), puis
  *  la Marche (`displayedReach`). Vides hors de son tour. */
-export function porteesDuTour(get: Get, monTour: boolean): { intention: Map<string, number>; course: Map<string, number>; marche: Map<string, number> } {
+export function porteesDuTour(get: Get<Jeu>, monTour: boolean): { intention: Map<string, number>; course: Map<string, number>; marche: Map<string, number> } {
   return {
     intention: monTour && get().localIntent ? intentReach(get) : new Map(),
     course: monTour && courseArmee(get) ? computeRunReach(get) : new Map(),
@@ -92,7 +93,7 @@ export function porteesDuTour(get: Get, monTour: boolean): { intention: Map<stri
 /** Même verdict pour l'APPROCHE vers un ennemi (Charge) : le clic-ennemi ne s'approche plus tout seul,
  *  il frappe à portée — l'approche se demande, par la case Charge. */
 export const PORTEE_CHARGE = 'portee-charge';
-export function chargeArmee(get: Get): boolean {
+export function chargeArmee(get: Get<Jeu>): boolean {
   return armedIntentPortee(get) === PORTEE_CHARGE;
 }
 
@@ -108,12 +109,12 @@ export function chargeArmee(get: Get): boolean {
  * Table déclarative (jamais un `if (action === …)` au fil de `netFlow`) : une action de clic, la
  * façon d'enrichir SES args. Les intents absents d'ici voyagent inchangés.
  */
-export const INTENT_VERDICT_ARGS: Record<string, (get: Get, args: readonly unknown[]) => unknown[]> = {
+export const INTENT_VERDICT_ARGS: Record<string, (get: Get<Jeu>, args: readonly unknown[]) => unknown[]> = {
   battleClickEntity: (get, [id, opts]) => [id, { ...(opts as object | undefined), approche: chargeArmee(get) }],
   battleClickTile: (get, [pt, opts]) => [pt, { ...(opts as object | undefined), courseArmee: courseArmee(get) }],
 };
 
 /** Args d'un intent, enrichis du verdict d'armement LOCAL quand l'action en demande un. */
-export function argsAvecVerdictLocal(get: Get, action: string, args: readonly unknown[]): unknown[] {
+export function argsAvecVerdictLocal(get: Get<Jeu>, action: string, args: readonly unknown[]): unknown[] {
   return INTENT_VERDICT_ARGS[action]?.(get, args) ?? [...args];
 }

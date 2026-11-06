@@ -35,7 +35,7 @@ function open() {
     battle: { combatants: [HERO], log: [] } as never,
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
     pendingHandGate: {
-      attackerId: 'H', skillValue: 60, difficulty: 'facile', target: 60, roll: 88, sl: -3, success: false,
+      attackerId: 'H', ligne: { base: 60, mods: [], target: 60, difficulty: 'facile' }, target: 60, roll: 88, sl: -3, success: false,
     } as never,
   });
 }
@@ -45,7 +45,7 @@ function shellHtml() {
   const pg = useGame.getState().pendingHandGate!;
   const row = buildRollRow({
     actor: HERO,
-    row: { combatant: HERO, d: testBreakdown('Dextérité', pg.skillValue, { roll: pg.roll!, target: pg.target, sl: pg.sl, success: pg.success }, pg.difficulty) },
+    row: { combatant: HERO, d: testBreakdown('Dextérité', pg.ligne.base, { roll: pg.roll!, target: pg.target, sl: pg.sl, success: pg.success }, pg.ligne.difficulty) },
     onForce: () => {},
   });
   return renderToStaticMarkup(<RollShell flowKey="handGate" title="Main ensanglantée" rows={[row]} rolled actions={[]} />);
