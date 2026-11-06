@@ -6,7 +6,9 @@
  * Énumération : chaque schéma DISTINCT, sous le nom de son DOCUMENT (`nomDuDocument`), chaque nœud à son plus court
  * chemin de schéma (`cheminsDeSchema`). Sont des sites les nœuds
  * objets et les nœuds non validants (`unknown`, `any`, `custom`) ; ne le sont pas la racine, l'entrée d'un
- * document `entite` et les objets d'enveloppe (`CLES_ENVELOPPE`) qu'y pose `document()`.
+ * document `entite`, la rangée d'un document `config` à rangées (mono-table : la ligne d'un tableau racine sous une
+ * autre enveloppe, #3012) et les objets d'enveloppe (`CLES_ENVELOPPE`) qu'y pose `document()`. Les sous-objets
+ * d'une rangée restent des sites.
  *
  * Classes, jugées dans cet ordre (`classeDuNoeud`) :
  *   D5  nœud non validant ;
@@ -253,10 +255,17 @@ const EXPORTS_DE_GRAMMAIRE: readonly unknown[] = (await Promise.all(
 /** Le chemin de schéma où `document()` pose l'enveloppe : l'entrée d'un document `entite`, sinon la racine. */
 const cheminDEnveloppe = (famille: SchemaDef['famille']): string => (famille === 'entite' ? '[]' : '');
 
-/** La position d'un chemin qui n'est pas un site : racine, entrée d'un document `entite`, objet d'enveloppe. */
-function horsSite(path: string, famille: SchemaDef['famille']): boolean {
+/** Le chemin de schéma des RANGÉES d'un document `config` à rangées (`options.rangee`, corps `corps.rangees` de
+ *  `document()`), `null` pour tout autre schéma : la rangée d'un document mono-table est son ENTRÉE, comme la ligne
+ *  d'un tableau racine (#3012). PURE. */
+const cheminDesRangees = (schema: unknown, famille: SchemaDef['famille']): string | null =>
+  famille === 'config' && ouverts([schema]).some((n) => classeDeProduit(n)?.role === 'corps.rangees') ? '.entries[]' : null;
+
+/** La position d'un chemin qui n'est pas un site : racine, entrée d'un document `entite`, rangée d'un document
+ *  mono-table (`cheminDesRangees`), objet d'enveloppe. */
+function horsSite(path: string, famille: SchemaDef['famille'], rangees: string | null): boolean {
   const entree = cheminDEnveloppe(famille);
-  if (path === '' || path === entree) return true;
+  if (path === '' || path === entree || path === rangees) return true;
   const m = /^\.([A-Za-z]+)(\[\])?$/.exec(path.slice(entree.length));
   return path.startsWith(entree) && m !== null && (CLES_ENVELOPPE as readonly string[]).includes(m[1]);
 }
@@ -283,7 +292,7 @@ function nomDuDocument(documents: readonly SchemaDef[], chemins: ReadonlyMap<obj
 
 /** Un schéma DISTINCT des `defs` : le nom de son document (`nomDuDocument`), sa famille et le plus court chemin de chacun
  *  de ses nœuds (`cheminsDeSchema`). */
-type SchemaNomme = { readonly fichier: string; readonly schema: unknown; readonly famille: SchemaDef['famille']; readonly chemins: Map<object, Chemin> };
+type SchemaNomme = { readonly fichier: string; readonly schema: unknown; readonly famille: SchemaDef['famille']; readonly rangees: string | null; readonly chemins: Map<object, Chemin> };
 
 /** Les schémas DISTINCTS des `defs`, chacun sous le nom de son document. PURE sur les defs. Lève sur deux schémas d'un
  *  même nom. */
@@ -297,7 +306,7 @@ function schemasNommes(defs: readonly SchemaDef[]): SchemaNomme[] {
     const homonyme = noms.get(fichier);
     if (homonyme) throw new Error(`structures locales : ${fichier} nomme deux schémas (${[...homonyme, ...documents].map((x) => x.file).join(', ')})`);
     noms.set(fichier, documents);
-    return { fichier, schema, famille: documents[0].famille, chemins };
+    return { fichier, schema, famille: documents[0].famille, rangees: cheminDesRangees(schema, documents[0].famille), chemins };
   });
 }
 
@@ -329,7 +338,7 @@ export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
   };
   const estDeSite = (n: object): boolean => defDe(n)!.type === 'object' || NON_VALIDANTS.has(defDe(n)!.type);
   const out: NoeudDeStructure[] = [];
-  for (const { fichier, famille, chemins } of nommes) {
+  for (const { fichier, famille, rangees, chemins } of nommes) {
     const point = pointsConjoints(chemins);
     const membres = new Map<object, object[]>();
     const parentDuReste = new Map<object, object>();
@@ -343,7 +352,7 @@ export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
     const parCle = new Map<string, object>();
     for (const [r, noeuds] of membres) {
       const { path } = chemins.get(noeuds[0])!;
-      if (horsSite(path, famille)) continue;
+      if (horsSite(path, famille, rangees)) continue;
       const porteur = noeuds.map((n) => parentDuReste.get(n)).find((p) => p !== undefined && `${chemins.get(p)?.path}.*` === path);
       if (porteur !== undefined && resteJuge(membres.get(point(porteur)) ?? [])) continue;
       const deja = parCle.get(path);
