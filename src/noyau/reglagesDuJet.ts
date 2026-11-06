@@ -17,6 +17,7 @@ import type { FermetureDuJet } from './rollFlowFactory';
 import type { Jeu } from './etat';
 import type { IdDAdversaireADistraire, IdDAdversaireDuBattement, IdDeChanson, IdDeCombattant, IdDeFormeConjuree, IdDeHeros, IdDObjet } from './designations';
 import { offreDeLIncantation, type ReglageOffertDeLIncantation } from './reglagesDIncantation';
+import { sequenceAbandonOf } from './sequenceCore';
 
 /** Le verbe qui règle un jet (`ActionsDuNoyau.jetRegler`). */
 export const VERBE_DE_REGLAGE = 'jetRegler' as const satisfies keyof VerbeDeReglage;
@@ -66,6 +67,13 @@ export interface ReglagesDuJet {
     surincantationDegats: number;
     /** LDB 47 */
     ciblesSupplementaires: readonly IdDeCombattant[];
+    /** Ce que la carte tient à la place de la fenêtre : la désignation des cibles supplémentaires (LDB 47), la pose de
+     *  la zone ; `null` : la fenêtre. */
+    carte: 'cibles' | 'zone' | null;
+  };
+  cascade: {
+    /** L'abandon de la séquence en cours (`SequenceDef.abandon`). */
+    abandon: true;
   };
   heal: {
     mode: HealMode;
@@ -121,19 +129,27 @@ export type PhaseDuReglage = 'avantLeJet' | 'apresLeJet' | 'horsDuJet';
 /** Ce qu'un réglage règle : la fenêtre entière, ou une rangée d'un flux à plusieurs jets, désignée par le `pid`. */
 export type PorteeDuReglage = 'fenetre' | 'rangee';
 
-/** La déclaration d'un réglage : sa phase, sa portée, quand son siège n'est pas le porteur du jet le combattant dont le
- *  siège le joue, lu sur la valeur (`porteurDeLaValeur`, `netOwnership`), et ce qui le ferme dans sa phase là où il ne
- *  change rien au jet (`offre`, `null` : il s'offre). */
+/** Ce que fait un choix, réglage de jet (`jetRegler`) ou choix de fenêtre (`fenetreChoisir`) : sa valeur se change
+ *  jusqu'à la clôture de la fenêtre (`reprenable`), la rangée se déclare sans retour (`fige`), ou le choix applique
+ *  l'issue et ferme la fenêtre (`clot`). Un choix qui ne clôt pas est une option de la fenêtre, pas un pas de sa
+ *  séquence (`GesteDeLaFenetre.reglage`, `src/hote/gestes.ts`). */
+export type EffetDuChoix = 'reprenable' | 'fige' | 'clot';
+
+/** La déclaration d'un réglage : sa phase, sa portée, son effet, le siège qui le joue quand ce n'est pas le porteur du
+ *  jet (`qui` : l'hôte seul ; `porteurDeLaValeur` : le combattant lu sur la valeur, `netOwnership`), et ce qui le ferme
+ *  dans sa phase là où il ne change rien au jet (`offre`, `null` : il s'offre). */
 export interface DeclarationDuReglage {
   phase: PhaseDuReglage;
   portee: PorteeDuReglage;
+  effet: EffetDuChoix;
+  qui?: 'hote';
   porteurDeLaValeur?: (s: Pick<Jeu, 'pendingHeal'>, valeur: unknown) => string | undefined;
   offre?: (s: Jeu) => FermetureDuJet | null;
 }
 
-const avant = { phase: 'avantLeJet', portee: 'fenetre' } as const;
-const apres = { phase: 'apresLeJet', portee: 'fenetre' } as const;
-const horsDuJet = { phase: 'horsDuJet', portee: 'fenetre' } as const;
+const avant = { phase: 'avantLeJet', portee: 'fenetre', effet: 'reprenable' } as const;
+const apres = { phase: 'apresLeJet', portee: 'fenetre', effet: 'reprenable' } as const;
+const horsDuJet = { phase: 'horsDuJet', portee: 'fenetre', effet: 'reprenable' } as const;
 /** Le réglage `reglage` de l'incantation, de déclaration `d`, offert là où il change le Sort. */
 const offertDuSort = (d: Omit<DeclarationDuReglage, 'offre'>, reglage: ReglageOffertDeLIncantation): DeclarationDuReglage =>
   ({ ...d, offre: (s) => offreDeLIncantation(s, reglage) });
@@ -147,7 +163,9 @@ export const REGLAGES_DU_JET = {
     discret: offertDuSort(avant, 'discret'), jetsDeTable: offertDuSort(apres, 'jetsDeTable'),
     surincantationPortee: apres, surincantationZone: apres, surincantationDuree: apres, surincantationCibles: apres, surincantationDegats: apres,
     ciblesSupplementaires: apres,
+    carte: horsDuJet,
   },
+  cascade: { abandon: { ...horsDuJet, effet: 'clot', qui: 'hote', offre: (s) => (sequenceAbandonOf(() => s) ? null : 'nonOffert') } },
   heal: {
     mode: avant, test: avant,
     // LDB 74 l.41 ; `user-arbitrage-coop-inventaire-par-proprietaire-bg3`
@@ -160,7 +178,7 @@ export const REGLAGES_DU_JET = {
   distraire: { adversaire: avant },
   test: { testeur: avant },
   shipManeuver: { virage: horsDuJet },
-  forceDoor: { arme: { phase: 'avantLeJet', portee: 'rangee' } },
+  forceDoor: { arme: { ...avant, portee: 'rangee' } },
 } as const satisfies { [F in FluxRegle]: { [K in ReglageDu<F>]: DeclarationDuReglage } };
 
 /** Le réglage de la Surincantation de chaque axe. */

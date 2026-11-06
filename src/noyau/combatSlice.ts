@@ -110,11 +110,11 @@ import { garanti } from '../lib/garanti';
 import { progresDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './netOwnership';
-import { batteryBlock, currentTargetingMode, idsDuCoupleMonte, type BattleClickOpts, type TileClickOpts } from './targetingModes';
+import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
-import { resolveRenounce } from './corruptionFlow';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import type { CorpsDesReglages } from './reglagesDuJet';
+import type { ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
 import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuPasDeSurincantation } from './fenetreDIncantation';
 import { findSpellById } from '../data/index';
 import { reachable, moveReachFor, tileKey, Pt } from './monde/path';
@@ -130,7 +130,6 @@ import { FLOWS, rangeesADeclarerIci, type CloturesDuJet } from './rollFlowSpecs'
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import { actionsAuthorees } from './monde/usable';
-import { fateSaveOptions } from '../engine/fortune';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { testDuCavalier } from '../engine/movement';
 
@@ -495,7 +494,7 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
 
 /** « Terminer » : ferme la cascade et enchaîne la suite (reprise de voyage…). Le joueur ne la joue qu'au bilan
  *  (`fenetreFermer('cascade')`, `MODAL_DEFS.cascade.sortieFermee`) ; l'abandon d'une manche à son ouverture la joue
- *  d'emblée (`sequenceAbandon`, `sequenceCore.ts`). */
+ *  d'emblée (`jetRegler('cascade', 'abandon', true)`, `sequenceCore.ts`). */
 function terminerLaCascade(get: Get, set: Set): void {
   dispatchCascadeDone(get, set, finalizeCascade(get, set));
 }
@@ -590,15 +589,6 @@ export function createCombatSlice(get: Get, set: Set) {
       }
       set({ battle: { ...battle, ...orderPatch, movementUsed: mountMovement(battle, active), action: null, reachable: new Map(), log: [...battle.log, ev('move', t('cs.dismount', { name: active.label, mount: mountName }), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
-    },
-    // Combat monté (LDB 14 l.181) : applique le choix de cible (cavalier OU monture) puis relance l'attaque/charge
-    // sur l'id choisi en court-circuitant la modale (skipMountChoice). Annuler ne consomme rien.
-    mountTargetSelect: (id: string) => {
-      const pm = get().pendingMountTarget;
-      if (!pm || !idsDuCoupleMonte(get()).includes(id)) return;
-      set({ pendingMountTarget: null });
-      // Le verdict d'armement du clic d'origine revient avec la relance (même raison que le gate de Peur).
-      get().battleClickEntity(id, { skipMountChoice: true, approche: pm.approche });
     },
 
     // ── Désengagement (héros Engagé qui veut quitter le combat, LDB 15 l.43-49) ──
@@ -1349,50 +1339,6 @@ export function createCombatSlice(get: Get, set: Set) {
       maybeRunEnemyTurn(get, set);
     },
 
-    // ── Destin sacrifié (LDB 17 l.29-32) — résolution de la suspension pendingFateSave ──
-    fateNegate: () => {
-      const { battle, pendingFateSave: p } = get();
-      if (!battle || !p || !fateSaveOptions(p.source).includes('negate')) return;
-      const hero = inBattleId(battle, p.heroId);
-      set({ pendingFateSave: null });
-      if (!hero) return;
-      hero.fate = (hero.fate ?? 0) - 1;
-      if (p.restoreWounds != null) hero.wounds.current = p.restoreWounds; // annule tout le coup (restaure les PB)
-      hero.criticalWounds = Math.max(0, (hero.criticalWounds ?? 0) - 1);
-      const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
-      set({ battle: { ...battle, log: [...battle.log, ev('info', t('cs.fateDodge', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
-      resumeEnemyTurn(get, set);
-    },
-    fateSurvive: () => {
-      const { battle, pendingFateSave: p } = get();
-      if (!battle || !p) return;
-      const hero = inBattleId(battle, p.heroId);
-      const source = p.source;
-      set({ pendingFateSave: null });
-      if (!hero) return;
-      hero.fate = (hero.fate ?? 0) - 1;
-      hero.outOfRencontre = true; // survit mais éjecté de la rencontre (vivant)
-      hero.exitReason = 'destin'; // #237 : lu « hors-combat » (endState)
-      if (!hero.conditions.some((c) => c.id === COND.inconscient)) addCondition(hero, COND.inconscient);
-      const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
-      set({ battle: { ...battle, log: [...battle.log, ev('info', t('cs.fateFlee', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
-      if (source === 'slow') resolveRoundBoundary(get, set);
-      else resumeEnemyTurn(get, set);
-    },
-    fateAccept: () => {
-      const { battle, pendingFateSave: p } = get();
-      if (!battle || !p) return;
-      const hero = inBattleId(battle, p.heroId);
-      const source = p.source;
-      set({ pendingFateSave: null });
-      if (hero) {
-        hero.dead = true;
-        set({ battle: { ...battle, log: [...battle.log, ev('death', t('cs.succumb', { name: hero.label }), hero.id)] } });
-      }
-      if (source === 'slow') resolveRoundBoundary(get, set);
-      else resumeEnemyTurn(get, set);
-    },
-
     battleDefendTotal: () => {
       if (!rule('combat-defensive-stance')) return; // règle optionnelle : Action « Sur la Défensive » désactivée (LDB 13 l.118)
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
@@ -1723,7 +1669,6 @@ export function createCombatSlice(get: Get, set: Set) {
       poserLaFrappeSuivante(get, set, { attackerId: pc.attackerId, targetId, location: null, result: null, cleave: true });
     },
     dualStrikeAttack: (targetId: string) => frapperDeLaSeconde(get, set, targetId, false),
-    renounceResolve: (renounce: boolean) => resolveRenounce(get, set, renounce),
 
 
     startCombat: (encounterId: string, onVictory?: Flow, opts?: { noSurprise?: boolean }) => {
@@ -2006,8 +1951,8 @@ export function createCombatSlice(get: Get, set: Set) {
     // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. noyau/medicFlow ──
 
     // Chirurgie : jet INFLUENÇABLE d'une passe (le chirurgien peut être un héros) — jetConfirm('surgery') applique
-    // (medicFlow), jetCancel('surgery') annule la passe, medicAbandonSurgery l'opération. openSurgeryPass POSE la
-    // passe (`creerActionsDuMedecin`, noyau/medicFlow.ts).
+    // (medicFlow), jetCancel('surgery') annule la passe, `fenetreChoisir('medic', 'abandon', true)` l'opération.
+    // openSurgeryPass POSE la passe (`creerActionsDuMedecin`, noyau/medicFlow.ts).
 
 
     // ── Contre-mesure « Asperger d'eau » (MDG 16 l.19, #497) — Créature marine hors de l'eau ──
@@ -2059,20 +2004,6 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
 
-
-    castPickTargets: (on: boolean) => {
-      const pc = get().pendingCast;
-      if (!pc || !pc.result?.cast || !get().battle) return; // hors combat : pas de carte tactique → picker en modale
-      set({ pendingCast: { ...pc, pickingTargets: on } });
-    },
-    /** Pose de la ZONE (flux « jet puis pose ») : la modale s'efface, le gabarit FINAL suit le
-     *  curseur, le clic-case dépose (castCommitZone) ; `false` = revenir à la modale. */
-    castPlaceZone: (on: boolean) => {
-      if (refuseSi(get, set, (s) => refusDeLaPose(s, on))) return;
-      const pc = garanti(get().pendingCast, 'pendingCast', 'pose de la zone');
-      const zone = garanti(pc.zone, pc.spellId, 'pose de la zone');
-      set({ pendingCast: { ...pc, zone: { ...zone, placing: on } } });
-    },
     // Contre-sort (flux multi) : chaque verbe cible un participant via `pid` (fabrique unique).
     /**
      * DÉCLARATION d'une rangée de la fenêtre — PHASE 1 : contrer SEUL, s'UNIR au Test Soutenu
@@ -2120,16 +2051,6 @@ export function createCombatSlice(get: Get, set: Set) {
     // seul cas où la dernière étape a suspendu la séquence en plein vol (le BILAN n'est pas montrable) —
     // son dénouement passe alors par le MÊME routage que la validation d'étape et la sortie du bilan.
     cascadeResolveAll: () => { const done = resolveRemainingCascade(get, set); if (done) dispatchCascadeDone(get, set, done); },
-    // Le joueur renonce à la séquence en cours (noyau/sequenceCore) : l'abandon est DEMANDÉ, et la manche
-    // se clôt par les gestes du joueur (« Suivant », « Terminer ») jusqu'à la clôture, qui le joue — ou
-    // jusqu'à une étape due, que le joueur joue avant. Une manche sans jet posé se ferme d'emblée.
-    sequenceAbandon: () => {
-      abandonSequence(get, set);
-      for (let pas = pasVersLAbandon(get); pas; pas = pasVersLAbandon(get)) {
-        if (pas === 'terminer') terminerLaCascade(get, set);
-        else validerLEtape(get, set);
-      }
-    },
     // Incantation OPPOSÉE (multijet `FLOWS.castOpposition`) : chaque cible oppose son Test ; cible IA
     // = rangée témoin (jet auto-roulé à l'ouverture, cf. openCastOpposition). Mêmes 6 verbes que les autres flux.
     // Préfixe store `opposition` ≠ clé de flux `castOpposition` (handler passé explicitement).
@@ -2294,8 +2215,70 @@ export function createCombatSlice(get: Get, set: Set) {
   };
 }
 
+/** Les choix des fenêtres du combat (`CorpsDesChoix`) : `fenetreChoisir` les joue, parmi les valeurs que l'état ouvre
+ *  (`OUVERTS_DU_CHOIX`). */
+export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave' | 'mountTarget'> {
+  /** Le Point de Destin sacrifié (LDB 17 l.29-32) résout la suspension `pendingFateSave`. */
+  const issues = {
+    negate: () => {
+      const { battle, pendingFateSave: p } = get();
+      if (!battle || !p) return;
+      const hero = inBattleId(battle, p.heroId);
+      set({ pendingFateSave: null });
+      if (!hero) return;
+      hero.fate = (hero.fate ?? 0) - 1;
+      if (p.restoreWounds != null) hero.wounds.current = p.restoreWounds; // annule tout le coup (restaure les PB)
+      hero.criticalWounds = Math.max(0, (hero.criticalWounds ?? 0) - 1);
+      const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
+      set({ battle: { ...battle, log: [...battle.log, ev('info', t('cs.fateDodge', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
+      resumeEnemyTurn(get, set);
+    },
+    survive: () => {
+      const { battle, pendingFateSave: p } = get();
+      if (!battle || !p) return;
+      const hero = inBattleId(battle, p.heroId);
+      const source = p.source;
+      set({ pendingFateSave: null });
+      if (!hero) return;
+      hero.fate = (hero.fate ?? 0) - 1;
+      hero.outOfRencontre = true; // survit mais éjecté de la rencontre (vivant)
+      hero.exitReason = 'destin'; // #237 : lu « hors-combat » (endState)
+      if (!hero.conditions.some((c) => c.id === COND.inconscient)) addCondition(hero, COND.inconscient);
+      const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
+      set({ battle: { ...battle, log: [...battle.log, ev('info', t('cs.fateFlee', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
+      if (source === 'slow') resolveRoundBoundary(get, set);
+      else resumeEnemyTurn(get, set);
+    },
+    accept: () => {
+      const { battle, pendingFateSave: p } = get();
+      if (!battle || !p) return;
+      const hero = inBattleId(battle, p.heroId);
+      const source = p.source;
+      set({ pendingFateSave: null });
+      if (hero) {
+        hero.dead = true;
+        set({ battle: { ...battle, log: [...battle.log, ev('death', t('cs.succumb', { name: hero.label }), hero.id)] } });
+      }
+      if (source === 'slow') resolveRoundBoundary(get, set);
+      else resumeEnemyTurn(get, set);
+    },
+  } satisfies Record<ChoixDesFenetres['fateSave']['issue'], () => void>;
+  return {
+    fateSave: { issue: (issue) => issues[issue]() },
+    // LDB 14 l.181 : l'attaque ou la charge se relance sur l'id choisi, la modale court-circuitée (`skipMountChoice`).
+    mountTarget: {
+      cible: (id) => {
+        const pm = garanti(get().pendingMountTarget, id, 'cible du couple monté');
+        set({ pendingMountTarget: null });
+        // Le verdict d'armement du clic d'origine revient avec la relance (même raison que le gate de Peur).
+        get().battleClickEntity(id, { skipMountChoice: true, approche: pm.approche });
+      },
+    },
+  };
+}
+
 /** Les réglages des jets du combat (`CorpsDesReglages`) : `jetRegler` les joue, dans leur phase (`REGLAGES_DU_JET`). */
-export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'attack' | 'defense' | 'cast' | 'heal' | 'battement' | 'distraire' | 'maneuver' | 'shipManeuver' | 'shanty'> {
+export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'attack' | 'defense' | 'cast' | 'cascade' | 'heal' | 'battement' | 'distraire' | 'maneuver' | 'shipManeuver' | 'shanty'> {
   /** Un champ de `pendingAttack` posé tel quel. */
   const attaque = <K extends 'location' | 'harpoonRopeCut' | 'withhold' | 'grapple'>(champ: K) => (v: PendingAttack[K]) => {
     const pa = get().pendingAttack;
@@ -2461,6 +2444,33 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
             : ids.some((id) => id === pc.targetId || !eligibles.has(id)) ? t('cast.refus.cibleIneligible') : null;
         if (refus) return void refuserGeste(get, set, refus);
         set({ pendingCast: { ...pc, extraTargetIds: [...ids] } });
+      },
+      /** La carte prend la main : la désignation des cibles (en combat seulement, hors combat la fenêtre les nomme), la
+       *  pose de la zone, refusée par `refusDeLaPose` ; `null` rend la main à la fenêtre. */
+      carte: (tenue) => {
+        const placant = !!get().pendingCast?.zone?.placing;
+        if (tenue === 'zone' || (tenue === null && placant)) {
+          if (refuseSi(get, set, (s) => refusDeLaPose(s, tenue === 'zone'))) return;
+          const pc = garanti(get().pendingCast, 'pendingCast', 'pose de la zone');
+          const zone = garanti(pc.zone, pc.spellId, 'pose de la zone');
+          set({ pendingCast: { ...pc, zone: { ...zone, placing: tenue === 'zone' } } });
+          return;
+        }
+        const pc = get().pendingCast;
+        if (!pc || !pc.result?.cast || !get().battle) return;
+        set({ pendingCast: { ...pc, pickingTargets: tenue === 'cibles' } });
+      },
+    },
+    cascade: {
+      /** L'abandon est DEMANDÉ (`abandonSequence`), et la manche se clôt par les gestes du joueur (« Suivant »,
+       *  « Terminer ») jusqu'à la clôture, qui le joue, ou jusqu'à une étape due, que le joueur joue avant. Une manche
+       *  sans jet posé se ferme d'emblée. */
+      abandon: () => {
+        abandonSequence(get, set);
+        for (let pas = pasVersLAbandon(get); pas; pas = pasVersLAbandon(get)) {
+          if (pas === 'terminer') terminerLaCascade(get, set);
+          else validerLEtape(get, set);
+        }
       },
     },
     battement: {
@@ -3272,7 +3282,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         }
         // Lançable → la confirmation EST le passage en pose (la vraie application se fait à la pose,
         // castCommitZone).
-        get().castPlaceZone(true);
+        get().jetRegler('cast', 'carte', 'zone');
         // IA = HÉROS (même flux) : le héros manuel attend le clic réel sur la carte (return ci-dessous) ;
         // un lanceur aiDriven FOURNIT son clic — le centre décidé par l'IA pure (`pc.zone.autoCenter`,
         // équivalent du curseur souris). On pose ici via le MÊME `castCommitZone`, puis on reprend le tour

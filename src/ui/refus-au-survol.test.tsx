@@ -23,6 +23,11 @@ import { ActivityPane, idBlocage } from './ActivityPane';
 import { MedicModal } from './MedicModal';
 import { MerchantPanelView } from './MerchantPanel';
 import { ShoreLeaveBody } from './ShoreLeaveModal';
+import { ManannBody } from './ManannPriestModal';
+import { CouncilModal } from './CouncilModal';
+import { RenounceModal } from './RenounceModal';
+import { findMoraleFactor } from '../engine/crewMorale';
+import { pregenParty, PREGEN } from '../data/pregens';
 import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant, ItemInstance } from '../engine/types';
@@ -151,7 +156,7 @@ const vessel: CampaignVessel = { vehicleId: 'cogue', label: 'Le Cormoran', moral
 const initialNet = useGame.getInitialState().net;
 afterEach(() => {
   Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
-    pendingShoreLeave: null, pendingManannPriest: null, net: initialNet,
+    pendingShoreLeave: null, pendingManannPriest: null, pendingCouncil: null, pendingRenounce: null, vessel: null, net: initialNet,
     medic: null, party: [], pendingHeal: null, pendingSurgery: null,
   });
 });
@@ -218,14 +223,58 @@ describe('#1689 T2 — écrans migrés', () => {
     expect(html).toContain('Aucun membre du groupe ne peut tenter un Test de Guérison.');
   });
 
-  it('ESCALE (relâche) : les deux décisions de l’invité portent leur raison', () => {
+  it('INFIRMERIE : la tuile d’un patient refusé garde le nom du héros, puis le refus du noyau', () => {
+    const [sain, blesse] = pregenParty(PREGEN.soldat, PREGEN.tueur);
+    const patient = { ...blesse, wounds: { ...blesse.wounds, current: blesse.wounds.max - 3 } };
+    Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
+      medic: { patientId: patient.id }, party: [sain, patient], pendingHeal: null, pendingSurgery: null,
+    });
+    const rienASoigner = renderToStaticMarkup(<MedicModal />);
+    expect(rienASoigner, 'un héros indemne : rien à soigner').toContain(`${sain.label} — ${t('medic.patientSansSoin')}`);
+    expect(rienASoigner, 'un blessé se choisit : son nom seul').not.toContain(`${patient.label} — `);
+    const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: sain.label, skill: 40, intBonus: 3, traumaIdx: 0, targetDR: 5, cumDR: 0, stake: {} };
+    Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, { medic: { patientId: patient.id, surgery: operation } });
+    const soinEnCours = renderToStaticMarkup(<MedicModal />);
+    expect(soinEnCours, 'une opération en cours : chaque patient verrouillé').toContain(`${patient.label} — ${t('jet.ferme.soinEnCours')}`);
+  });
+
+  // Le refus d'un choix de fenêtre est celui du noyau (`refusDuChoix`, `choixDeFenetre.ts`), que le verbe joue aussi.
+  it('ESCALE (relâche) : les deux décisions de l’invité portent le refus du noyau', () => {
     Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
       pendingShoreLeave: { to: { label: 'Marienburg' } },
       net: { ...initialNet, mode: 'guest' },
     });
     const html = renderToStaticMarkup(<ShoreLeaveBody />);
-    // Apostrophe DROITE : c'est la graphie du site (`ShoreLeaveModal.tsx`), rendue `&#x27;` par React.
-    attendRefusAtteignable(html, 'Accorder la relâche', "L'hôte décide de la relâche.");
-    attendRefusAtteignable(html, 'Refuser la relâche', "L'hôte décide de la relâche.");
+    attendRefusAtteignable(html, 'Accorder la relâche', t('choix.refus.hoteSeul'));
+    attendRefusAtteignable(html, 'Refuser la relâche', t('choix.refus.hoteSeul'));
+  });
+
+  it('PRÊTRE DE MANANN : payer et refuser portent, chez l’invité, le refus du noyau', () => {
+    Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
+      pendingManannPriest: { cost: { gold: 3, silver: 0, brass: 0 } },
+      net: { ...initialNet, mode: 'guest' },
+    });
+    const html = renderToStaticMarkup(<ManannBody />);
+    attendRefusAtteignable(html, 'Payer', t('choix.refus.hoteSeul'));
+    attendRefusAtteignable(html, 'Refuser', t('choix.refus.hoteSeul'));
+  });
+
+  it('CONSEIL DE BORD : chaque paie porte, chez l’invité, le refus du noyau', () => {
+    Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
+      vessel, pendingCouncil: { today: 7, wageBrass: 240, phase: 'choix' },
+      net: { ...initialNet, mode: 'guest' },
+    });
+    const html = renderToStaticMarkup(<CouncilModal />);
+    attendRefusAtteignable(html, findMoraleFactor('pas-de-paie')!.label, t('choix.refus.hoteSeul'));
+    attendRefusAtteignable(html, findMoraleFactor('paie-reguliere')!.label, t('choix.refus.hoteSeul'));
+  });
+
+  it('« JE TE RENIE ! » sans Point de Résilience : refusé par la raison du noyau (LDB 17 l.67)', () => {
+    const heros = { ...pregenParty(PREGEN.soldat)[0], resilience: 0 };
+    Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
+      party: [heros], pendingRenounce: { heroId: heros.id, testRoll: 90, testTarget: 30 },
+    });
+    const html = renderToStaticMarkup(<RenounceModal />);
+    attendRefusAtteignable(html, 'Je te renie', t('jet.ferme.sansResilience'));
   });
 });

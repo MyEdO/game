@@ -34,7 +34,8 @@ import { rule } from '../../engine/policy';
 import { levelsForCareer, byId, findCareerById, refLabel, specLabel, displayLabelForSex } from '../../data';
 import { memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import { t } from '../../i18n';
-import { refusDepensePx, mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from '../depenseDePx';
+import { mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from '../depenseDePx';
+import { refusDepensePx } from '../verrousDeFiche';
 import type { Jeu } from '../etat';
 
 export interface CharAdvanceRow {

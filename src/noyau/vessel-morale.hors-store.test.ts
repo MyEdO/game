@@ -134,7 +134,7 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
   it('choix « chiche » → facteur paie-chiche (−2d10) + demi-solde prélevée, bilan joué', () => {
     withCrew();
     banc.getState().advanceTime(8 * MINUTES_PER_DAY);
-    banc.getState().councilPay('paie-chiche');
+    banc.getState().fenetreChoisir('council', 'paie', 'paie-chiche');
     const s = banc.getState();
     expect(s.pendingCouncil?.phase).toBe('bilan');
     expect(s.vessel!.morale.score).toBeLessThan(75); // « La paie est chiche » fait chuter le Moral
@@ -148,9 +148,9 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
   it('bourse vide → seule « pas de paie » résout (option payante rejetée), dette cumulée', () => {
     withCrew({ gold: 0, silver: 0, brass: 0 });
     banc.getState().advanceTime(8 * MINUTES_PER_DAY);
-    banc.getState().councilPay('paie-reguliere'); // non payable → rejeté
+    banc.getState().fenetreChoisir('council', 'paie', 'paie-reguliere'); // non payable → rejeté
     expect(banc.getState().pendingCouncil?.phase).toBe('choix'); // reste en choix
-    banc.getState().councilPay('pas-de-paie');
+    banc.getState().fenetreChoisir('council', 'paie', 'pas-de-paie');
     const s = banc.getState();
     expect(s.pendingCouncil?.phase).toBe('bilan');
     expect(s.vessel!.wagesOwed).toBe(288); // solde régulière due cumulée

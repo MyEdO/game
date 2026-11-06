@@ -2402,7 +2402,7 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
   piloteImmediat?: ReprisePilote;
   /** ACCOSTAGE à finaliser À LA CLÔTURE (MDG 15 l.245) : une cascade dont la fermeture doit résoudre
    *  l'événement de port puis transitionner vers la scène du lieu — porté par la désertion à la relâche
-   *  (`resolveShoreLeave`), surfacée au siège MJ (`travelPlan` déjà nul à l'accostage, hors de la branche
+   *  (choix `shoreLeave.accorder`), surfacée au siège MJ (`travelPlan` déjà nul à l'accostage, hors de la branche
    *  générique `purpose:'test' && travelPlan.sea`). La clôture (`dispatchCascadeDone`) enchaîne
    *  `finalizePortArrival` — `resolvePortArrival` peut ouvrir SA propre cascade (`openEmbrigadementRecovery`)
    *  sans garde de synchro puisque `pendingCascade` est DÉJÀ null post-`advanceCascade` (#387, patron #383). */

@@ -11,7 +11,7 @@
  * l'autre, cf. le mur `murs/purete-imports`, #1709).
  */
 import { parseProject } from '../../noyau/worldMap';
-import { buildFloors } from '../builders/floors';
+import { buildFloors } from '../../noyau/monde/volume/floors';
 import { buildProps } from '../builders/props';
 import type { Scene } from '../../noyau/monde/scene';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';

@@ -3,7 +3,7 @@
  *  `reliefMaterial`/`roofMaterial` : le registre par id vit dans `src/data`, le REPLI VISIBLE (#877)
  *  vit ici, avec les autres catalogues de rendu. */
 import { matieresDe, type PropMaterialData } from '../../data';
-import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE } from './missing';
+import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE } from '../../noyau/monde/volume/missing';
 
 /** Entrée de REPLI VISIBLE (#877) : une matière de décor au ton d'alarme, jamais l'apparence d'un
  *  autre matériau. Sa réponse à la lumière est NEUTRE (diffus pur, aucun métal) — le repli ne peint

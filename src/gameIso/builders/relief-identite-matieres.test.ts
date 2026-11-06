@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFloors } from './floors';
+import { buildFloors } from '../../noyau/monde/volume/floors';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 import { testScenarios } from '../../scenes/test-scenarios';
 import { tileAt, type Scene } from '../../noyau/monde/scene';

@@ -197,7 +197,7 @@ describe('Al-zahr — la partie au store', () => {
     const cur = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
     const fermeEntreDeuxManches = (quoi: string) => {
       expect(sequenceAbandonEtatOf(get)?.refus, `${quoi} : fermé`).toBe('Abandon possible entre deux manches.');
-      get().sequenceAbandon();
+      get().jetRegler('cascade', 'abandon', true);
       expect(get().sequence?.abandon, `${quoi} : aucune demande posée`).toBeUndefined();
     };
     get().cascadeChoose(cur().id, '10');
@@ -233,7 +233,7 @@ describe('Al-zahr — la partie au store', () => {
     const cur = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(cur().kind).toBe('tavern-pot-target');
     expect(sequenceAbandonOf(get), 'entre deux manches : offert').not.toBeNull();
-    get().sequenceAbandon();
+    get().jetRegler('cascade', 'abandon', true);
     expect(get().sequence).toBeNull();
     expect(toBrass(bourseOf(get().party[0])) - avant, 'aucune mise prise').toBe(0);
     expect(get().journal.some((l) => l.startsWith('Manche 1 : chacun mise')), 'la manche n’est pas ouverte').toBe(false);
@@ -256,7 +256,7 @@ describe('Al-zahr — la partie au store', () => {
     expect(cur().actorId, 'l’annonce d’un autre se lit à la fenêtre du challenger').toBe(a.id);
     expect(cur().options, 'ce n’est pas lui qui choisit la cible').toBeUndefined();
     expect(sequenceAbandonOf(get), 'entre deux manches : offert').not.toBeNull();
-    get().sequenceAbandon();
+    get().jetRegler('cascade', 'abandon', true);
     expect(get().sequence).toBeNull();
     expect(toBrass(bourseOf(get().party[0])) - avant, 'la manche 1 raflée : +200, la 2 n’a rien coûté').toBe(200);
     expect(get().tavernGames!.result!.rounds).toBe(1);

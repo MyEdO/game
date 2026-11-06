@@ -4,7 +4,7 @@ import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import { buildHighlights, type HighlightEl, type HighlightsView } from '../../builders/highlights';
 import type { BattleState } from '../../../noyau/etat';
 import type { Combatant } from '../../../engine/types';
-import { gpToWorld } from './worldTris';
+import { gpToWorld } from '../../../noyau/monde/volume/worldTris';
 import { SPECKLE_LIFT_M } from './groundAccents';
 import { tileTint } from '../../teamColors';
 import { RING_TARGET_TINT, WALK_TINT, ZONE_SMOKE_TINT } from '../../highlightTints';

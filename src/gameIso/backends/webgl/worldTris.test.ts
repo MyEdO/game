@@ -1,7 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { specificateursDe } from '../../../../scripts/guards/lib/importGraph.mjs';
 import {
   COPLANAR_BIAS_M,
   biasPoly,
@@ -27,11 +24,12 @@ import {
   type Bounds,
   type Vec3,
   type WorldPoly,
-} from './worldTris';
+} from '../../../noyau/monde/volume/worldTris';
 import { faceDepthM, faceDepthOf } from './faceRelief';
-import { uprightCrossM, UPRIGHT_OVERHANG_M, UPRIGHT_WIDTH_M, WALL_MATTER_M, wallMatterM, wallPartRelief } from '../../catalog/structures';
+import { wallPartRelief } from '../../catalog/structures';
+import { uprightCrossM, UPRIGHT_OVERHANG_M, UPRIGHT_WIDTH_M, WALL_MATTER_M, wallMatterM } from '../../../noyau/monde/volume/montants';
 import type { StructureAppearanceDef, WallPart } from '../../../data/structureAppearance.types';
-import { buildFloors } from '../../builders/floors';
+import { buildFloors } from '../../../noyau/monde/volume/floors';
 import { buildWalls } from '../../builders/walls';
 import { buildRoofs } from '../../builders/roofs';
 import { buildScene } from '../../../noyau/mapSpec';
@@ -43,7 +41,7 @@ import { buildOperaFloorplan } from '../../../scenes/opera/floorplan';
 import { sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
 import { memoByRef } from '../../../noyau/monde/sceneMemo';
 import { TW } from '../../../geometry/iso';
-import type { Face } from '../../builders/types';
+import type { Face } from '../../../noyau/monde/volume/types';
 import { detenteur } from '../../../lib/detenteur.testkit';
 
 /**
@@ -804,60 +802,5 @@ describe('RELIEF MINCE — le prix mesuré du volume (#1176 P1-E)', () => {
     const parts = new Set(facesRendues(vitrine()).map((f) => f.material.part));
     for (const part of ['gravats', 'gravats-tas', 'seuil', 'vantail', 'vantail-planche', 'poignee'])
       expect(parts.has(part as WallPart), `${part} absent de la vitrine`).toBe(true);
-  });
-});
-
-/**
- * PURETÉ DU MODULE — sa liste d'IMPORTS est un contrat, pas une intention de JSDoc.
- *
- * `worldTris.ts` annonce en tête « Module PUR : ni DOM, ni renderer, ni `three`, ni catalogue » : c'est
- * ce qui lui permet d'être la SEULE définition du dehors, partagée par la cuisson (`sceneMeshes.ts`) et
- * par l'instrument de QC hors navigateur (`scripts/qc/lib/plancheVolumique.ts`, exécuté par `tsx` en
- * ligne de commande). Un `three` ou un `document` qui y entrerait casserait le QC sans que rien ne le
- * dise, et la LOI d'orientation se dédoublerait aussitôt.
- *
- * Le lecteur d'imports est le CANONIQUE du dépôt (`scripts/guards/lib/importGraph.mjs:specificateursDe`) —
- * jamais un second.
- */
-describe('worldTris — module PUR : ses imports sont son contrat (#1680)', () => {
-  const SRC = readFileSync(fileURLToPath(new URL('./worldTris.ts', import.meta.url)), 'utf8');
-  /** Le code seul, pour la clause DOM : seul le COMMENTAIRE est masqué, jamais la ligne entière —
-   *  `const el = document.body; // …` doit rester lisible. */
-  const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-  const specificateurs = specificateursDe('worldTris.ts', SRC).map(({ spec }) => spec);
-
-  it('n’importe QUE la géométrie pure et la FORME du pivot', () => {
-    expect(specificateurs.length, 'aucun import lu : ce contrat ne mesure plus rien').toBeGreaterThan(0);
-    expect([...specificateurs].sort()).toEqual(
-      [
-        '../../../geometry/iso', // projection pure (TW) — zéro dépendance framework
-        '../../builders/types', // TYPE seul : la forme `Face`/`GP` que le pivot émet
-      ].sort(),
-    );
-  });
-
-  it('ni three, ni catalogue, ni voisin de backends/webgl', () => {
-    const fautes = specificateurs.flatMap((s) => {
-      if (/(^|\/)three($|\/)/.test(s)) return [`${s} — renderer`];
-      if (/(^|\/)catalog\//.test(s)) return [`${s} — catalogue d’apparence (les épaisseurs arrivent par FaceDepth)`];
-      if (/^\.\//.test(s)) return [`${s} — voisin de backends/webgl`];
-      return [];
-    });
-    expect(fautes).toEqual([]);
-  });
-
-  it('aucun accès au DOM ni au global du navigateur', () => {
-    const dom = /\b(document|window|navigator|globalThis|HTMLElement|SVGElement|requestAnimationFrame)\b/g;
-    expect([...CODE.matchAll(dom)].map((m) => m[0])).toEqual([]);
-  });
-});
-
-/** `specificateursDe` rend l'import à effet de bord comme tout `statique`. La clause reste à part
- *  parce qu'elle vise plus large : un `import 'paquet'` NON relatif, qu'aucun parseur de graphe ne
- *  résout, reste un effet de bord qu'un module pur ne porte pas. */
-describe('worldTris — aucun import à effet de bord', () => {
-  it('zéro `import \'…\'` nu', () => {
-    const SRC = readFileSync(fileURLToPath(new URL('./worldTris.ts', import.meta.url)), 'utf8');
-    expect(SRC.match(/^\s*import\s+['"][^'"]+['"]\s*;?\s*$/gm)).toBeNull();
   });
 });

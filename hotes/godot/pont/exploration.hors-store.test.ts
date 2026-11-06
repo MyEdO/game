@@ -1,11 +1,11 @@
 /**
  * L'EXPLORATION PAR LE PONT (#3328) : « La porte close » jouée comme Godot la joue. L'entrée de la scène poursuivie par
  * son geste en focus, le groupe projeté à sa case, les gestes d'exploration en boutons qui portent leur suite de verbes, le clic d'une case qui fait marcher
- * le groupe, la porte dessinée sur le plateau, fermée puis ouverte.
+ * le groupe, la porte dessinée sur le plateau, fermée puis ouverte, le volume du monde de la scène (`monde`).
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
-import { CLICS_DE_L_EXPLORATION, type plateauDeLaScene } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, type plateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
 const { appel } = table();
@@ -27,6 +27,13 @@ describe('l’exploration par le pont', () => {
     expect(suite.vue.champ, 'rien ne tient la main : un clic de case fait marcher le groupe').toEqual(CLICS_DE_L_EXPLORATION);
     expect(exploration.heros.map((h) => h.pos), 'chaque héros se tient à la case du groupe').toEqual(exploration.heros.map(() => exploration.groupe));
     expect(Object.keys(suite.vue.corps.combattants).sort(), 'chaque héros a son corps dans la vue').toEqual(exploration.heros.map((h) => h.id).sort());
+
+    const plateau = suite.vue.plateau!;
+    const { monde } = appel('monde') as unknown as { monde: VolumeDuMonde };
+    expect(monde.metresParCase, 'le monde à l’échelle du plateau').toBe(plateau.metresParCase);
+    expect(monde.positions.length, 'le sol de la scène, en triangles').toBeGreaterThanOrEqual(plateau.w * plateau.h * 2 * 9);
+    expect(monde.cases.length, 'la case de chaque triangle').toBe(monde.positions.length / 9);
+    expect(monde.hauteurs.map((c) => c.rangees.flat().length), 'la hauteur de chaque case de chaque couche').toEqual(monde.hauteurs.map(() => plateau.w * plateau.h));
 
     const boutons = suite.vue.zones['exploration.gestes'];
     expect(boutons.map((b) => b.libelle), 'chaque geste d’exploration est un bouton qui le nomme').toEqual(exploration.gestes.liste.map((g) => g.libelle));

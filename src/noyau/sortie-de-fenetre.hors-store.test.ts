@@ -55,6 +55,15 @@ describe('fenetreFermer', () => {
     expect(banc.getState().pendingChapterRecap).toBeNull();
   });
 
+  it('l’infirmerie ne se ferme pas tant qu’une passe d’opération est posée : refusée et dite', () => {
+    const banc = ouvrirLeBanc();
+    banc.setState({ medic: { patientId: null }, pendingSurgery: { healerId: 'h1' } as never });
+    expect(fermeturesDeLaFenetre(banc.getState()).get('fenetreFermer@medic')).toBe('soinEnCours');
+    banc.getState().fenetreFermer('medic');
+    expect(banc.getState().medic, 'l’infirmerie reste ouverte').not.toBeNull();
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.soinEnCours'));
+  });
+
   it('la sortie du propriétaire suit son siège : l’infirmerie, à tous, se ferme d’un invité ; une fenêtre inconnue, de personne', () => {
     const banc = ouvrirLeBanc();
     banc.setState({ medic: { patientId: null }, net: { ...banc.getState().net, mode: 'host' } });

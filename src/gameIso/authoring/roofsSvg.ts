@@ -37,7 +37,8 @@ import type { DetailRecipe } from '../../data/materials.types';
 import { projGP, type Pt2 } from './project';
 import { structureFaceSvg } from './wallsSvg';
 import { metricToLift } from '../../noyau/monde/relief';
-import type { GP, RoofEl } from '../builders/types';
+import type { RoofEl } from '../builders/types';
+import type { GP } from '../../noyau/monde/volume/types';
 
 // Épaisseurs ÉCRAN (px) des lignes — des formes, jamais des identités de couleur.
 const SEAM_W = 0.6; // liseré au ton du pan : soude les coutures anti-aliasées entre pans

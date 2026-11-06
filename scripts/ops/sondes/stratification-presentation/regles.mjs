@@ -254,7 +254,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/gameIso/catalog/`),
     categorie: 'moteur-generique',
     raison: 'Resolution de catalogues de rendu (terrain, ambiance, materiaux, repli visible) et leurs tests.',
-    preuve: 'src/gameIso/catalog/ambiance.ts:1-5 ; src/gameIso/catalog/missing.ts:1',
+    preuve: 'src/gameIso/catalog/ambiance.ts:1-5 ; src/gameIso/catalog/terrain.ts:1',
   },
   {
     motif: new RegExp(String.raw`^src/gameIso/(TargetReticle|TokenChromeMarks|TopoScene|SurcoucheIso)\.|^src/gameIso/(combatNarration|effectIcons|highlightTints|teamColors|sizeScale|topoMarkers)\.|^src/gameIso/(reticule-teinte|token-chrome-alveoles|TopoScene)[.-]`),

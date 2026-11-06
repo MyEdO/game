@@ -28,9 +28,10 @@ import { detenteur } from '../../lib/detenteur.testkit';
  * dur dans une couche qui ÉMET de la géométrie ou du catalogue.
  *
  * PÉRIMÈTRE (les CINQ couches qui émettent — `src/ui/editor/**` depuis #1716 : la palette et le
- * redimensionnement POSENT le sol d'une scène, rien ne les tenait) : `src/gameIso/builders/**` (géométrie pure),
+ * redimensionnement POSENT le sol d'une scène, rien ne les tenait) : `src/gameIso/builders/**` et
+ * `src/noyau/monde/volume/**` (géométrie pure),
  * `src/gameIso/authoring/*Svg.ts` (peintres du plan et de l'éditeur), `src/gameIso/catalog/**`
- * (catalogues et façades de donnée), et `src/state/**` avec `src/noyau/**` ENTIERS — la DÉRIVATION des masses de toit y
+ * (catalogues et façades de donnée), et `src/state/**` avec le reste de `src/noyau/**` — la DÉRIVATION des masses de toit y
  * émet le `material` de chaque masse (`sceneEdit.ts`, #1715 volet b : il se résout corps > type de
  * bâtiment > scène), et le reste du store pose les mutations de scène que le rendu consomme.
  * Hors périmètre : les backends et le stage, qui peignent la matière que ces couches émettent.
@@ -44,10 +45,14 @@ import { detenteur } from '../../lib/detenteur.testkit';
  */
 const GAMEISO = fileURLToPath(new URL('../', import.meta.url));
 
-/** Les CINQ couches ÉMETTRICES scannées. `bases` nomme leurs dossiers depuis `src/` (le store en a deux :
- *  `src/state` et `src/noyau`) ; `recursif: false` borne la couche à la profondeur 1. */
+/** La géométrie pure du monde que le noyau sert aux hôtes (#3476) : une couche de BUILDERS, que le store ne lit pas. */
+const BUILDERS_DU_NOYAU = 'noyau/monde/volume';
+
+/** Les CINQ couches ÉMETTRICES scannées. `bases` nomme leurs dossiers depuis `src/` (les builders en ont deux,
+ *  `src/gameIso/builders` et `src/noyau/monde/volume` ; le store aussi, `src/state` et le reste de `src/noyau`) ;
+ *  `recursif: false` borne la couche à la profondeur 1. */
 const COUCHES = [
-  { nom: 'builders', bases: ['gameIso/builders'], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
+  { nom: 'builders', bases: ['gameIso/builders', BUILDERS_DU_NOYAU], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
   { nom: 'authoring', bases: ['gameIso/authoring'], recursif: false, filtre: (f: string) => /Svg\.tsx?$/.test(f) },
   { nom: 'catalog', bases: ['gameIso/catalog'], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
   { nom: 'store', bases: ['state', 'noyau'], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
@@ -57,8 +62,8 @@ const COUCHES = [
 /** Les dossiers du STORE, lus dans la table : les autres couches sont celles du rendu et de l'IU. */
 const BASES_DU_STORE: readonly string[] = COUCHES.find((c) => c.nom === 'store')!.bases;
 
-/** Le STORE seul (`src/state`, `src/noyau`). */
-const duStore = (rel: string) => BASES_DU_STORE.some((b) => rel.startsWith(`${b}/`));
+/** Le STORE seul (`src/state`, `src/noyau` hors de ses builders). */
+const duStore = (rel: string) => BASES_DU_STORE.some((b) => rel.startsWith(`${b}/`)) && !rel.startsWith(`${BUILDERS_DU_NOYAU}/`);
 
 /**
  * Les SIGNAUX STRUCTURELS du store, chacun neutralisé par `codeSeul` — aucun nom de fichier,
@@ -81,7 +86,8 @@ function fichiersDuPerimetre(): { rel: string; code: string }[] {
       readCorpus([`src/${b}`])
         .map(({ rel, text }) => ({ f: rel.slice(`src/${b}`.length + 1), text }))
         .filter(({ f }) => (c.recursif || !f.includes('/')) && c.filtre(f.slice(f.lastIndexOf('/') + 1)))
-        .map(({ f, text }) => ({ rel: `${b}/${f}`, code: text })),
+        .map(({ f, text }) => ({ rel: `${b}/${f}`, code: text }))
+        .filter(({ rel }) => c.nom !== 'store' || duStore(rel)),
     ),
   );
 }
@@ -98,6 +104,9 @@ function codeNu(src: string): string[] {
 
 /** Un littéral de chaîne VIDÉ, ses bornes gardées : une neutralisation ne déplace aucune colonne. */
 const litteraux = (t: string) => t.replace(/(['"`])[^'"`\n]*\1/g, (m) => `${m[0]}_${m[0]}`);
+
+/** Un mot lu dans le code, échappé pour entrer dans une expression (`'+x'`, membre d'une union de familles). */
+const echappe = (mot: string) => mot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** UNION de littéraux d'un TYPE (`'lieu' | 'commerce' | 'plan'`) : un type ne rend rien — il DÉCLARE
  *  le vocabulaire d'un état d'IU. Neutralisée comme une collection, pas comme un fichier. */
@@ -156,7 +165,7 @@ const NEUTRALISEURS: readonly Neutraliseur[] = [
     applique: (code, onglets) =>
       onglets.size
         ? code.replace(
-            new RegExp(`\\b(\\w*[Tt]ab)\\s*(===|!==|==|!=)\\s*(['"\`])(?:${[...onglets].join('|')})\\3`, 'g'),
+            new RegExp(`\\b(\\w*[Tt]ab)\\s*(===|!==|==|!=)\\s*(['"\`])(?:${[...onglets].map(echappe).join('|')})\\3`, 'g'),
             '$1 $2 _',
           )
         : code,
@@ -243,7 +252,7 @@ const NEUTRALISEURS_TERRAIN: readonly { nom: string; applique: (code: string, mo
   {
     nom: 'VOCABULAIRE d’union déclaré dans le fichier',
     applique: (code, mots) =>
-      mots.size ? code.replace(new RegExp(`(['"\`])(?:${[...mots].join('|')})\\1`, 'g'), (m) => `${m[0]}_${m[0]}`) : code,
+      mots.size ? code.replace(new RegExp(`(['"\`])(?:${[...mots].map(echappe).join('|')})\\1`, 'g'), (m) => `${m[0]}_${m[0]}`) : code,
   },
   {
     nom: 'UNION de littéraux écrite en place',

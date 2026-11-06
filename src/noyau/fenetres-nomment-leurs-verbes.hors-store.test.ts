@@ -13,6 +13,7 @@ import { AUCUN_VERBE_DE_JOUEUR } from './modalArbiter';
 import { cleDuGeste } from './modalArbiter';
 import { fenetreDuJeu } from './combatAuto';
 import { REGLAGES_DU_JET } from './reglagesDuJet';
+import { CHOIX_DES_FENETRES } from './choixDesFenetres';
 import { libelleDeLaFenetre, libelleDuGeste } from './libelles';
 import type { CascadeStep } from './pendings';
 import { cleDeFixture } from './noyau.testkit';
@@ -56,10 +57,17 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     expect(declares.filter((cle) => !gestes.has(cle)), 'réglage qu’aucune fenêtre ne déclare').toEqual([]);
   });
 
+  it('chaque choix d’une fenêtre (`CHOIX_DES_FENETRES`) est un geste de cette fenêtre', () => {
+    const declares = Object.entries(CHOIX_DES_FENETRES).flatMap(([fenetre, axes]) => Object.keys(axes).map((axe) => `fenetreChoisir@${fenetre}#${axe}`));
+    const gestes = new Set(FENETRES.flatMap((f) => f.gestes.map(cleDuGeste)));
+    expect(declares.length, 'témoin : les choix des fenêtres de la partie').toBeGreaterThan(7);
+    expect(declares.filter((cle) => !gestes.has(cle)), 'choix qu’aucune fenêtre ne déclare').toEqual([]);
+  });
+
   it('`fenetreDuJeu` rend les gestes déclarés : le Sauvetage par Destin, la porte de départ de nuit, la défaite, le repli, l’anéantissement', () => {
     const destin = fenetreDuJeu({ ...ETAT, pendingFateSave: { heroId: 'h1' } } as unknown as Jeu);
     expect(destin).toMatchObject({ cle: 'fateSave', proprietaire: 'h1' });
-    expect(destin!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['fateNegate', 'fateSurvive', 'fateAccept']));
+    expect(destin!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['fenetreChoisir@fateSave#issue']));
     const depart = fenetreDuJeu({ ...ETAT, pendingDeparture: { mode: 'pied', cause: 'nuit', dawnAt: 0 } } as unknown as Jeu);
     expect(depart).toMatchObject({ cle: 'departure', gestes: [{ verbe: 'fenetreValider', fenetre: 'departure' }, { verbe: 'fenetreFermer', fenetre: 'departure' }] });
     const defaite = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defeat' } } as unknown as Jeu);

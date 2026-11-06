@@ -6,8 +6,8 @@
  *   tels quels ; `build`, la corpulence sur le domaine de `src/lib/corpulence.ts` ; `tete`, `coiffure`, `tenue`, des lignes
  *   de la garde-robe, chacune dans sa sous-liste.
  * - `pieces` : les pièces ajoutées à celles de l'ensemble qui habille la `tenue` (D6(b)).
- * - `objets` : les objets instanciables portés hors des mains, revêtus par l'ensemble qui les habille, sinon à leur
- *   `rangement` (`trappings.json`).
+ * - `objets` : les objets instanciables portés hors des mains, revêtus de leurs pièces (`piecesDeLObjet` : l'ensemble qui
+ *   les habille, à défaut les pièces d'armure qui couvrent leurs localisations), sinon à leur `rangement` (`trappings.json`).
  * - `rangementsObjets` : l'emplacement où le personnage range un de ses `objets`, à la place de son `rangement`
  *   (`rangerSesObjets`).
  * - `prises` : les objets instanciables tenus, par main.
@@ -30,7 +30,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { recordDIds, ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { apparencesDObjetsSchema, emblemeSchema, mainSchema, sexeSchema, slotSchema } from '../grammaire/valeurs';
-import { findEnsembleParHabille, findVarianteById } from '../../index';
+import { findEnsembleParHabille, findVarianteById, piecesDeLObjet } from '../../index';
 import type { HabilleDEnsemble, TenueId } from './garde-robe';
 
 export const file = 'presets-de-personnage.json';
@@ -64,7 +64,7 @@ const metaDesChampsDuPreset = {
   coiffure: { label: 'Coiffure', hint: 'Coiffure de la garde-robe' },
   tenue: { label: 'Tenue', hint: 'Tenue de la garde-robe, revêtue des pièces de son ensemble' },
   pieces: { label: 'Pièces', hint: 'Pièces ajoutées à celles de l’ensemble de la tenue' },
-  objets: { label: 'Objets portés', hint: 'Objets hors des mains : revêtus par leur ensemble, sinon à leur emplacement de rangement' },
+  objets: { label: 'Objets portés', hint: 'Objets hors des mains : revêtus de leurs pièces, sinon à leur emplacement de rangement' },
   rangementsObjets: { label: 'Rangements des objets', hint: 'Emplacement où se range un objet porté ; absent, son rangement' },
   variantesPieces: { label: 'Variantes des pièces', hint: 'Apparence d’une pièce portée ; absente, la pièce elle-même' },
   prises: { label: 'Objets tenus', hint: 'Objet tenu par chaque main' },
@@ -75,7 +75,7 @@ const metaDesChampsDuPreset = {
 type Chemin = (string | number)[];
 
 /** Aucune chose portée deux fois : aucun objet sur `prises` puis `objets` ; aucune pièce sur l'ensemble de la tenue, les
- *  `pieces` puis l'ensemble de chaque objet (`findEnsembleParHabille`). L'issue va à l'élément qui la porte la seconde fois.
+ *  `pieces` puis les pièces de chaque objet (`piecesDeLObjet`). L'issue va à l'élément qui la porte la seconde fois.
  *  Rend les pièces portées. */
 function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): ReadonlySet<string> {
   const e = v as Pick<PresetDePersonnage, 'tenue' | 'pieces' | 'objets' | 'prises'>;
@@ -103,7 +103,7 @@ function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): ReadonlySet
       continue;
     }
     objets.set(id, ou);
-    porter(ensemble({ id, type: 'trapping' }), path, `l’ensemble de l’objet « ${id} »`);
+    porter(piecesDeLObjet(id), path, `l’objet « ${id} »`);
   }
   return new Set(pieces.keys());
 }

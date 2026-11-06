@@ -2,6 +2,7 @@ import { useGame } from '../state/store';
 import { Modal } from './Modal';
 import { ChoiceButtons } from './OptionChooser';
 import { Icon } from './Icon';
+import { refusDuChoix } from '../noyau/choixDeFenetre';
 
 /**
  * « Je te renie ! » (LDB 17 l.67) : le héros a échoué au Test `corrompu` du seuil de Corruption —
@@ -13,7 +14,10 @@ export function RenounceModal() {
   const pr = useGame((s) => s.pendingRenounce);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const resolve = useGame((s) => s.renounceResolve);
+  const choisir = useGame((s) => s.fenetreChoisir);
+  const resolve = (renier: boolean) => choisir('renounce', 'renier', renier);
+  const refusSubir = useGame((s) => refusDuChoix(s, 'renounce', 'renier', false));
+  const refusRenier = useGame((s) => refusDuChoix(s, 'renounce', 'renier', true));
   if (!pr) return null;
   const hero = (battle?.combatants ?? party).find((c) => c.id === pr.heroId);
   if (!hero) return null;
@@ -24,11 +28,10 @@ export function RenounceModal() {
         <ChoiceButtons
           idPrefix="renounce"
           options={[
-            { key: 'subir', label: <><Icon id="nav/dice" size="sm" /> Subir la mutation</>, onSelect: () => resolve(false), title: 'Laisser la mutation se développer (tirage sur le Tableau des Corruptions)' },
+            { key: 'subir', label: <><Icon id="nav/dice" size="sm" /> Subir la mutation</>, onSelect: () => resolve(false),
+              ...(refusSubir ? { refus: refusSubir } : { title: 'Laisser la mutation se développer (tirage sur le Tableau des Corruptions)' }) },
             { key: 'renier', label: <><Icon id="resource/resolve" size="sm" /> Je te renie ! (−1 Résilience)</>, primary: true, onSelect: () => resolve(true),
-              ...(resilience <= 0
-                ? { refus: 'Plus aucun Point de Résilience à sacrifier.' }
-                : { title: 'Refuser la mutation — 1 Point de Résilience' }) },
+              ...(refusRenier ? { refus: refusRenier } : { title: 'Refuser la mutation — 1 Point de Résilience' }) },
           ]}
         />
       }

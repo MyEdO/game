@@ -63,6 +63,9 @@ const PIECES_HORS_TABLE: Readonly<Record<string, string>> = { casque: 'heaume' }
 /** Localisations d'une zone nommée (« Tête », « Pattes avant »), ou `undefined`. */
 export const localisationsDeZone = (mot: string): readonly HitLocation[] | undefined => ZONES.get(norm(mot).replace(/\s+/g, ' '));
 
+/** Localisations que couvre une pièce d'armure du catalogue, lues à son `loc` (« Bras, Corps ») ; vide sans `loc`. */
+export const localisationsDeLoc = (loc: string | null | undefined): HitLocation[] => (loc ? loc.split(',').flatMap((zone) => localisationsDeZone(zone) ?? []) : []);
+
 const singulier = (mot: string): string => mot.replace(/s$/, '');
 
 /** Nom de pièce comparable : replié, chaque mot sans sa marque du pluriel, « en » lu « de » (« veste en
@@ -100,7 +103,7 @@ export function emplacementsDesPieces(
   catalogue: readonly { label: string; loc?: string | null; pa?: number | null; subType?: string | null }[],
   matiereDuGroupe: (groupe: string) => MatiereDArmure | undefined = () => undefined,
 ): PiecesDArmure {
-  const pieces = catalogue.flatMap((p) => (p.loc ? [{ nom: nomDePiece(p.label), locs: p.loc.split(',').flatMap((z) => localisationsDeZone(z) ?? []), pa: p.pa ?? undefined, groupe: p.subType ?? undefined }] : []));
+  const pieces = catalogue.flatMap((p) => (p.loc ? [{ nom: nomDePiece(p.label), locs: localisationsDeLoc(p.loc), pa: p.pa ?? undefined, groupe: p.subType ?? undefined }] : []));
   return (nom) => {
     const cle = PIECES_HORS_TABLE[nomDePiece(nom)] ?? nomDePiece(nom);
     const exactes = pieces.filter((p) => p.nom === cle);

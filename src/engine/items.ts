@@ -23,7 +23,7 @@ export type { TrappingResolver } from '../data/apparencesObjets';
 import type { TrappingResolver } from '../data/apparencesObjets';
 import type { EntityAppearance } from './authoringAppearance';
 import { slugId } from '../data/slug';
-import { localisationsDeZone } from './classementDeTrait';
+import { localisationsDeLoc } from './classementDeTrait';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import { dansLaSousListe } from '../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
@@ -364,12 +364,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     throw new Error(`itemFromTrappingById: "${resolu.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
   const t = structuredClone(resolu); // #2097
   const kind = kindOf(t.categorie);
-  const locs =
-    t.loc != null
-      ? t.loc
-          .split(',')
-          .flatMap((p) => localisationsDeZone(p) ?? [])
-      : undefined;
+  const locs = t.loc != null ? localisationsDeLoc(t.loc) : undefined;
   const objet: ItemInstance = {
     ...copierIntrinseques({ ...t, range: t.range ?? null }),
     uid: newUid(),
