@@ -3,7 +3,7 @@
 ## (`null` : vide), un booléen (`null` : faux, toute autre valeur qui n'est pas un booléen : vrai, comme un refus qui
 ## désactive), un nombre, un nom (le ton en variation du thème). Une liste de valeurs nommées remplit une liste
 ## déroulante (`OptionButton`) : chaque libellé, chaque refus désactivé et dit à son survol, la valeur pressée
-## choisie. `cacher_si_nul` : le contrôle se cache quand le champ vaut `null`. Un champ absent de l'élément est une faute de la scène.
+## choisie ; ou une rangée de cases (`FlowContainer`), une case par valeur, cochée quand elle est pressée. `cacher_si_nul` : le contrôle se cache quand le champ vaut `null`. Un champ absent de l'élément est une faute de la scène.
 class_name Liaison
 extends Node
 
@@ -22,6 +22,9 @@ func poser(element: Dictionary) -> void:
 		cible.visible = valeur != null
 	if cible is OptionButton and valeur is Array:
 		_remplir(cible, valeur)
+		return
+	if cible is FlowContainer and valeur is Array:
+		_cocher(cible, valeur)
 		return
 	match typeof(cible.get(propriete)):
 		TYPE_STRING:
@@ -51,3 +54,19 @@ static func _remplir(liste: OptionButton, valeurs: Array) -> void:
 		if valeurs[i].presse:
 			choisie = i
 	liste.select(choisie)
+
+
+## `rangee` refaite d'une case par valeur de `valeurs` : son libellé, cochée si elle est pressée, désactivée si elle
+## porte un refus et le disant à son survol.
+static func _cocher(rangee: FlowContainer, valeurs: Array) -> void:
+	for n in rangee.get_children():
+		if n is CheckBox:
+			rangee.remove_child(n)
+			n.queue_free()
+	for v in valeurs:
+		var case := CheckBox.new()
+		case.text = str(v.libelle)
+		case.button_pressed = v.presse
+		case.disabled = v.refus != null
+		case.tooltip_text = "" if v.refus == null else str(v.refus)
+		rangee.add_child(case)

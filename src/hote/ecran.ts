@@ -10,15 +10,15 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, toneOf,
-  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
+  ACTIONS, avecSigne, batailleEnVue, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import type { Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, resume, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Ton } from './elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, resume, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Saisie, type Ton } from './elements';
 
 /** Chaque zone de l'écran et ses éléments, dans l'ordre où elle les montre, la création comprise. Une zone vide n'a
  *  rien à montrer. */
@@ -177,8 +177,8 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
 
 /** Le corps de la fenêtre qui tient la main : sur l'étape d'attaque de la cascade, la fenêtre d'attaque
  *  (`fenetreDAttaque`) ; sur son étape de Défense, qui attaque qui (`fenetreDeDefense`) et le jet de sa réaction avant
- *  le dé ; puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle, le
- *  Sauvetage par le Destin et la victoire en attente. */
+ *  le dé ; puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle ou
+ *  annonce, le Sauvetage par le Destin et la victoire en attente. */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
   const pc = etat.pendingCascade;
   const jetDeLEtape = pc?.participants[pc.cursor]?.jet;
@@ -199,9 +199,11 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...recitDuVoyage(etat),
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
+    ...nuitDuRepos(etat),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
+    ...issueDeLEtape(etat),
     ...destinEnJeu(etat),
     ...victoire(etat),
     ...texteDuDocument(etat),
@@ -233,6 +235,16 @@ function trajetsDeLaCarte(etat: Jeu): Element[] {
 const boutonDuNoyau = (id: string, g: { libelle: string; geste: { verbe: string; args: unknown[] }; refus: string | null }): Bouton =>
   ({ type: 'bouton', id, libelle: g.libelle, jeu: { type: g.geste.verbe, args: g.geste.args }, presse: false, focus: false, refus: g.refus });
 
+/** Un formulaire d'un geste du noyau : chaque argument que le geste pose en saisie fixe, puis `saisies`. */
+function formulaireDuNoyau(id: string, libelle: string, f: { geste: { verbe: string; args: unknown[] }; refus: string | null }, saisies: Saisie[]): Formulaire {
+  const fixes = f.geste.args.map((valeur, i): Saisie => ({ type: 'fixe', id: `${id}/${i}`, nom: String(i), optionnel: false, valeur }));
+  return { type: 'formulaire', id, libelle, verbe: f.geste.verbe, focus: false, refus: f.refus, champs: [...fixes, ...saisies.map((x) => ({ ...x, id: `${id}/${x.id}` }))] };
+}
+
+/** Une saisie de valeurs nommées, chacune fermée par sa raison : à cocher, ou à choisir une seule. */
+const saisieDeValeurs = (nom: string, libelle: string, valeurs: readonly { libelle: string; valeur: string; refus: string | null }[], type: 'saisieCoches' | 'saisieChoix' = 'saisieCoches'): Saisie =>
+  ({ type, id: nom, ton: 'neutre', nom, optionnel: false, libelle, valeurs: valeurs.map((v) => ({ ...v, presse: false })) });
+
 /** L'interlude ouvert (`interludeEnVue`) : chaque héros en entité, ses Activités restantes et l'Événement de sa période
  *  en puces, puis chacune de ses Activités, un bouton sans cible, un choix de ses cibles sinon (en liste au-delà de
  *  `CHOIX_EN_BOUTONS`), fermée avec sa raison ; puis les dépôts en banque, chacun le bouton de son retrait. */
@@ -249,6 +261,15 @@ function herosDeLInterlude(etat: Jeu): Element[] {
         ...h.activites.map((a): Bouton | Choix => (a.cible
           ? { type: a.gestes.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDuNoyau(`${a.id}/${i}`, g)) }
           : boutonDuNoyau(a.id, a.gestes[0]))),
+        ...(h.ouvrage ? [formulaireDuNoyau(`ouvrage/${h.id}`, t('ecran.repit.ouvrage'), h.ouvrage, h.ouvrage.refus ? [] : [
+          saisieDeValeurs('trappingId', t('ecran.repit.ouvrages'), h.ouvrage.ouvrages, 'saisieChoix'),
+          saisieDeValeurs('atouts', t('ecran.repit.atouts'), h.ouvrage.atouts),
+          saisieDeValeurs('defauts', t('ecran.repit.defauts'), h.ouvrage.defauts),
+        ])] : []),
+        formulaireDuNoyau(`depot/${h.id}`, t('ecran.repit.depot'), h.depot, h.depot.refus ? [] : [
+          saisieDeValeurs('kind', t('ecran.repit.genre'), h.depot.genres, 'saisieChoix'),
+          { type: 'saisieNombre', id: 'amountBrass', ton: 'neutre', nom: 'amountBrass', optionnel: false, libelle: t('ecran.repit.montant'), valeur: h.depot.pas, min: h.depot.pas, max: h.depot.max, pas: h.depot.pas },
+        ]),
       ],
     })),
     ...(itl.depots.length ? [{ type: 'entite', id: 'repit/depots', ton: 'neutre', nom: t('ecran.repit.depots'), elements: itl.depots.map((d, i) => boutonDuNoyau(String(i), d)) } satisfies Entite] : []),
@@ -296,6 +317,31 @@ function champDeBataille(etat: Jeu): Element[] {
     } satisfies Choix] : []),
     ...b.gestes.map((g, i) => boutonDuNoyau(`bataille/geste/${i}`, g)),
     ...(b.issue ? [ligne('bataille/issue', b.issue.texte, b.issue.gagnant ? TON_DE_L_ISSUE[b.issue.gagnant] : 'neutre')] : []),
+  ];
+}
+
+type Repos = NonNullable<ReturnType<typeof reposEnVue>>;
+
+/** Un réglage d'un dormeur en choix : chaque valeur que le lieu lui offre, la sienne pressée. */
+const choixDuDormeur = (id: string, c: Repos['dormeurs'][number]['couchage']): Choix => ({
+  type: 'choix', id, ton: 'neutre', libelle: c.libelle, focus: false, refus: null,
+  valeurs: c.valeurs.map((v, i): Bouton => ({ type: 'bouton', id: String(i), libelle: v.libelle, jeu: { type: v.geste.verbe, args: v.geste.args }, presse: v.choisie, focus: false, refus: null })),
+});
+
+/** La nuit à régler (`reposEnVue`) : la nuit, le temps qu'il fait (en alerte quand il expose), puis chaque dormeur en
+ *  entité, son couchage et sa pitance en choix et ce qui l'attend cette nuit en puces d'alerte ; la note, en alerte
+ *  quand les bourses ne la couvrent pas. */
+function nuitDuRepos(etat: Jeu): Element[] {
+  const r = reposEnVue(etat);
+  if (!r) return [];
+  return [
+    ligne('repos/nuit', r.nuit),
+    ...(r.temps ? [ligne('repos/temps', r.temps.texte, r.temps.alerte ? 'alerte' : 'neutre')] : []),
+    ...r.dormeurs.map((d): Entite => ({
+      type: 'entite', id: `repos/${d.id}`, ton: 'neutre', nom: d.nom,
+      elements: [choixDuDormeur('couchage', d.couchage), choixDuDormeur('pitance', d.pitance), ...d.alertes.map((a, i) => puce(`alerte/${i}`, a, null, null, 'alerte'))],
+    })),
+    ...(r.note ? [ligne('repos/note', r.note.texte, r.note.couverte ? 'neutre' : 'alerte')] : []),
   ];
 }
 
@@ -370,6 +416,18 @@ function revelationDeLEtape(etat: Jeu): Element[] {
     ] : r.lines.map((l, i) => ligne(`revelation/${i}`, l))),
     ...(r.details ?? []).map((d, i) => ligne(`${prefixe}/effet/${i}`, d.text, 'neutre', d.note ?? null)),
   ];
+}
+
+/** Le ton d'une ligne d'issue du noyau (`RecapTone`). */
+const TON_DE_LA_LIGNE: Record<RecapTone, Ton> = { ok: 'reussite', bad: 'echec', info: 'neutre' };
+
+/** Ce que l'étape courante de la cascade dit sans le révéler (`outcome` posé par son monteur : un affichage, le contexte
+ *  d'un choix), chaque ligne à son ton ; une révélation le dit déjà (`revelationDeLEtape`). */
+function issueDeLEtape(etat: Jeu): Element[] {
+  const pc = etat.pendingCascade;
+  const etape = pc?.participants[pc.cursor];
+  if (!etape || etape.reveal) return [];
+  return (etape.outcome ?? []).map((l, i) => ligne(`issue/${i}`, l.text, l.tone ? TON_DE_LA_LIGNE[l.tone] : 'neutre'));
 }
 
 /** Une jauge de `courant` sur `max`. */

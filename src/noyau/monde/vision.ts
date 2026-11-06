@@ -64,7 +64,7 @@ export interface LightSource {
    *  Comme le `tone`, le champ de lumière MÉCANIQUE l'ignore : le couvert et la portée se comptent en
    *  cases depuis `pos`, et un décalage sous-métrique dans la case n'y change rien. Seul le RENDU le
    *  lit. Absent = la source n'a pas de primitive déclarée (billboard, lampe portée) : le rendu applique
-   *  alors sa hauteur par défaut (`FLAME_LIFT_M`). */
+   *  alors sa hauteur par défaut (`FLAME_LIFT_M`, `noyau/lumiereDeLaScene.ts`). */
   foyer?: { x: number; y: number; h: number };
 }
 

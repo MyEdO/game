@@ -47,6 +47,7 @@ import type { Rot } from '../../../geometry/iso';
 import type { Dir8 } from '../../../geometry/dir8';
 import { doorIsOpen, heightAt, porteAuteur, porteEnJeu, structureIsDown, tuilesEffondreesSignature, type LectureDArete, type Scene, type WallSide } from '../../../noyau/monde/scene';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
+import { SUN_ELEVATION_DEG } from '../../../noyau/monde/soleil';
 
 /** ÉCHANTILLONNEUR du champ de teinte de visibilité (1 = pleine), fourni par l'appelant
  *  (`visibilityTint.visibilityField`). `x`/`y` sont des coordonnées de GRILLE CONTINUES — un sommet de
@@ -793,14 +794,9 @@ export function actorPoseKey(p: ActorPose): string {
 // Ce soleil-ci ne bouge JAMAIS : ni l'heure de jeu ni le nord de la carte n'y entrent. C'est le
 // contrat des planches QC de jeu (`scripts/qc/capture-jeu.mjs`), qui
 // comparent des captures d'une session à l'autre — une planche ne peut pas changer parce que
-// l'horloge a tourné. Le soleil du JEU, lui, suit l'heure et le nord de la scène : `sunJeu.ts`
+// l'horloge a tourné. Le soleil du JEU, lui, suit l'heure et le nord de la scène : `noyau/monde/soleil.ts`
 // (course) → `stage/stageLights.ts` (montage), et il pose sa direction par `sunRigFrom`.
 
-/** Élévation du soleil de PLANCHE au-dessus de l'horizon (degrés). CONSTANTE : une hauteur dérivée de la
- *  taille de la carte met le soleil d'autant plus près du zénith que la scène est grande, et les blocs de
- *  terrain cessent d'y projeter. Mesuré (#1176, lancer de rayon sur les centroïdes de sol) : sol d'HERBE
- *  occulté 0,0 % à `siege-enceinte` sous le soleil dérivé, 6,3 % à 38°. */
-export const SUN_ELEVATION_DEG = 38;
 
 /** Azimut du soleil de PLANCHE — direction unitaire au sol du point OÙ IL EST (sud-ouest). Mesuré (#1176,
  *  même lancer de rayon) : herbe occultée siège 0,0 % au nord-ouest → 6,3 % au sud-ouest ; arène 21,8 % →
@@ -848,7 +844,7 @@ export interface SunRig {
  *  scène caste, et rien de plus n'entre dans la carte d'ombre (chaque mètre de frustum en trop est de la
  *  précision perdue). La `box` attendue est celle des CASTEURS, billboards compris (`worldShadowBox`).
  *
- *  C'est la porte du soleil de JEU (`sunJeu.ts` : heure d'horloge × nord de la scène) ; le soleil de
+ *  C'est la porte du soleil de JEU (`noyau/monde/soleil.ts` : heure d'horloge × nord de la scène) ; le soleil de
  *  PLANCHE passe par `sunRig`, qui n'est que cette fonction à direction FIXE. */
 export function sunRigFrom(box: THREE.Box3, dir: { x: number; y: number; z: number }): SunRig {
   const target = box.getCenter(new THREE.Vector3());

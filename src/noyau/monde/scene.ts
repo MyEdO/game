@@ -302,7 +302,7 @@ export interface Scene {
   /** NORD de la carte — rotation HORAIRE (degrés, `[0,360[`) du nord réel par rapport au nord IMPLICITE
    *  du plan, qui est `−y` (la forme canonique de `WallSeg.side:'N'` ci-dessous). Absent = 0 = le nord
    *  implicite. Ne change AUCUNE géométrie ni aucun cap de jeu : seule la course du soleil s'y oriente
-   *  (rendu volumique, `gameIso/backends/webgl/sunJeu.ts`) — deux scènes voisines à la même heure y
+   *  (rendu volumique, `noyau/monde/soleil.ts`) — deux scènes voisines à la même heure y
    *  gagnent des ombres cohérentes entre elles. Posé par `setNorthDeg` (qui le ramène dans `[0,360[`). */
   northDeg?: number;
   /** OFFRE DE REPOS de la scène (bouton de Repos en exploration → modale de Repos) : lieux disponibles

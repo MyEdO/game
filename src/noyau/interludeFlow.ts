@@ -403,7 +403,7 @@ const craftQualLabel = (id: string): string => qualityRefLabel({ id });
 /** Engage un Artisanat : Compétence Métier, matériaux payés avant l'Activité ; l'engagement n'en consomme
  *  aucune (verdict `refusDArtisanat`). LDB 23 l.76 */
 export function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atouts: string[], defauts: string[]): void {
-  if (refuseSi(get, set, (s) => refusDArtisanat(s, heroId, trappingId))) return;
+  if (refuseSi(get, set, (s) => refusDArtisanat(s, heroId, trappingId) ?? (trappingId ? null : msg('interlude.choisir.ouvrage')))) return;
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   const metier = h && metierOf(h);
@@ -1050,7 +1050,7 @@ function appliquerLActivite(get: Get, set: Set): void {
 export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, rate?: number): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (refuseSi(get, set, (s) => devisDeDepot(s, heroId, kind, amountBrass).refus)) return;
+  if (refuseSi(get, set, (s) => (kind ? devisDeDepot(s, heroId, kind, amountBrass).refus : msg('interlude.choisir.depot')))) return;
   if (!st || !h) return;
   const { debite: amount, depose: deposited } = devisDeDepot(get(), heroId, kind, amountBrass);
   const lines: string[] = [];
