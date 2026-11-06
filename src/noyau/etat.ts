@@ -606,6 +606,11 @@ export interface EtatDeJeu {
   worldMap: import('./worldMap').WorldMap | null;
   /** Overlay carte du monde ouvert (exploration). */
   worldMapOpen: boolean;
+  /** Le lieu de la carte où se tient le groupe (id de `worldMap.places`), posé à l'arrivée et au chargement du
+   *  projet, `null` en route ou hors carte. Ses scènes, celle du lieu et celles où l'on y entre, ne le changent pas. */
+  lieu: string | null;
+  /** L'écran du lieu tient la main (`lieuEnVue`) ; « Explorer » le ferme sur la scène du lieu. */
+  lieuOuvert: boolean;
   /** Voyage en cours/interrompu (progression km — « Reprendre le voyage » après une embuscade). */
   travelPlan: import('./travelFlow').TravelPlan | null;
   /** Billet payé dont il reste des tronçons (EDO 01 l.142) — consommé au départ de chacun, sans débit. */
@@ -671,6 +676,8 @@ export function etatInitialDuJeu(): EtatDeJeu {
     landMarket: null,
     worldMap: null,
     worldMapOpen: false,
+    lieu: null,
+    lieuOuvert: false,
     travelPlan: null,
     billetEnMain: null,
     marchandagesDeBillet: {},

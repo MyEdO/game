@@ -11,7 +11,7 @@
  */
 import {
   DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
-  libelleDuGeste, libelleDuParametre, libelleDuReglage, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, REGLAGES_DU_REPOS, reposEnVue,
+  libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, REGLAGES_DU_REPOS, reposEnVue,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
@@ -229,5 +229,5 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
   const pc = fenetre.etape ? etat.pendingCascade : null;
   const etape = fenetre.etape ? (fenetre.etape.label ?? (fenetre.etape.jet ? libelleDuJet(fenetre.etape.jet) : null)) : null;
   const disposition = fenetre.etape?.jet ? `${fenetre.cle}/${fenetre.etape.jet}` : fenetre.cle;
-  return { disposition, titre: pc?.title ?? documentEnVue(etat)?.titre ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), gestes };
+  return { disposition, titre: pc?.title ?? documentEnVue(etat)?.titre ?? lieuEnVue(etat)?.nom ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), gestes };
 }

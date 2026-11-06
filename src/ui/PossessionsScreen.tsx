@@ -73,7 +73,7 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
   const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
   const worldMap = useGame((s) => s.worldMap);
-  const scene = useGame((s) => s.scene);
+  const lieu = useGame((s) => s.lieu);
   const gameTime = useGame((s) => s.gameTime);
   const renamePossession = useGame((s) => s.renamePossession);
   const stablePossession = useGame((s) => s.stablePossession);
@@ -111,7 +111,7 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
 
   // Verdicts du noyau (`refusGestePossession`), ceux que les gestes appliquent au clic ; navires qui
   // accueillent `selected` MAINTENANT (#620 Lot 2c — le joueur CHOISIT sa cale de destination).
-  const etat: EtatDesPossessions = { party, possessions, worldMap, scene };
+  const etat: EtatDesPossessions = { party, possessions, lieu };
   const refusDe = (kind: 'laisser' | 'reprendre' | 'debarquer' | 'abandonner') => (selected ? refusGestePossession(etat, selected.uid, { kind }) : null);
   const embarquement = selected ? ciblesDEmbarquement(etat, selected.uid) : { cibles: [], refus: null };
 

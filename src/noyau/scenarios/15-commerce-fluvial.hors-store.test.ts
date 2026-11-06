@@ -34,10 +34,10 @@ function launch() {
 function drainCascade(): void {
   draineCascade(get, 200, undefined, () => 'forcer');
 }
-function bargeTo(routeId: string, destSceneId: string, maxSteps = 60): void {
+function bargeTo(routeId: string, destPlaceId: string, maxSteps = 60): void {
   get().startTravel(routeId, 'barge');
   for (let i = 0; i < maxSteps; i++) {
-    if (!get().travelPlan && get().scene?.id === destSceneId) return;
+    if (!get().travelPlan && get().lieu === destPlaceId) return;
     // Les jets du JOUR fluvial (et l'exposition) sont une cascade influençable : la drainer.
     if (get().pendingCascade) { drainCascade(); continue; }
     if (get().pendingRest) { get().fenetreValider('rest'); drainCascade(); continue; }
@@ -114,9 +114,9 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     get().fenetreFermer('marcheDeTerre');
 
     // ── DESCENTE du Reik en BARGE (le convoi voyage avec le groupe) ──
-    bargeTo('r-grunburg-altdorf', 'quai-altdorf');
+    bargeTo('r-grunburg-altdorf', 'p-altdorf');
     expect(get().travelPlan).toBeNull();
-    expect(get().scene?.id).toBe('quai-altdorf'); // arrivé à la capitale
+    expect(get().lieu).toBe('p-altdorf'); // arrivé à la capitale
     expect(primaryCargoCarrier(get())!.cargo.length).toBe(1); // cargaison PERSISTÉE pendant le voyage
 
     // ── VENTE à Altdorf (Florissant R 5 → Mise à prix +10 %, l.156) ──
@@ -188,7 +188,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
     }
     expect(decisions.length, 'le barrage posé est rencontré').toBeGreaterThan(0);
     expect(new Set(decisions), 'le barrage (MSRC 7 l.128) est la seule décision de la descente').toEqual(new Set(['riverObstacleChoice']));
-    expect(get().scene?.id).toBe('quai-altdorf');
+    expect(get().lieu).toBe('p-altdorf');
     const jours = journal.filter((l) => /^Progression du jour/.test(l)).length;
     expect(jours, `journal :\n${journal.join('\n')}`).toBeGreaterThan(1);
     // Un dé d'Exposition par jour, et un Test de Résistance par héros pour chaque exposition.

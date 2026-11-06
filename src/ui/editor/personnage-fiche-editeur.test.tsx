@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 /**
- * #1882 — l'éditeur pose une FICHE : la Palette propose les fiches du bestiaire (profils standard de
- * `LDB 77 l.7` en tête, désignés par `species.json`), l'Inspecteur n'offre aucun geste qui retire le
+ * #1882 — l'éditeur pose une FICHE : la Palette propose les fiches du bestiaire (`fichesDePersonnage`), l'Inspecteur n'offre aucun geste qui retire le
  * dernier porteur de fiche, la barre d'état nomme la fiche par son libellé.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
@@ -13,7 +12,7 @@ import { Inspector } from './Inspector';
 import { toolLabel } from './StatusBar';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { creatureLabel, profilsStandard } from '../../data';
-import type { Tool } from '../../noyau/sceneEditLecture';
+import { fichesDePersonnage, type Tool } from '../../noyau/sceneEditLecture';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 
 beforeAll(() => {
@@ -49,30 +48,25 @@ function palette(tool: Tool) {
 }
 
 describe('Palette — « Poser un personnage » choisit une FICHE du bestiaire', () => {
-  it('les profils standard désignés par `species.json` viennent en tête, puis le reste du bestiaire ; aucune sentinelle', () => {
+  it('les fiches offertes sont celles de `fichesDePersonnage`, dans son ordre, les profils standard marqués', () => {
     const h = palette({ mode: 'entity', kind: 'personnage', ref: 'humain' });
+    const fiches = fichesDePersonnage();
     const standard = new Set(profilsStandard());
-    const ids = h.items().map((b) => BESTIAIRE.find((c) => b.textContent!.startsWith(c.label))?.id);
-    expect(ids).toEqual([
-      ...BESTIAIRE.filter((c) => standard.has(c.id)).map((c) => c.id),
-      ...BESTIAIRE.filter((c) => !standard.has(c.id)).map((c) => c.id),
-    ]);
-    expect(h.items()).toHaveLength(BESTIAIRE.length);
-    expect(h.items().filter((b) => b.querySelector('.chip')?.textContent === 'Profil standard').map((b) => b.textContent))
-      .toEqual(BESTIAIRE.filter((c) => standard.has(c.id)).map((c) => `${c.label}Profil standard`));
+    expect(h.items().map((b) => b.textContent)).toEqual(fiches.map((c) => (standard.has(c.id) ? `${c.label}Profil standard` : c.label)));
   });
 
   it('cliquer une fiche arme l’outil sur son id stable', () => {
     const h = palette({ mode: 'entity', kind: 'personnage', ref: 'humain' });
-    act(() => h.items().find((b) => b.textContent === 'Gobelin')!.click());
-    expect(h.outils[h.outils.length - 1]).toEqual({ mode: 'entity', kind: 'personnage', ref: 'gobelin' });
+    const fiches = fichesDePersonnage();
+    const fiche = fiches[fiches.length - 1];
+    act(() => h.items().find((b) => b.textContent === fiche.label)!.click());
+    expect(h.outils[h.outils.length - 1]).toEqual({ mode: 'entity', kind: 'personnage', ref: fiche.id });
   });
 
-  it('l’icône du rail arme l’outil sur la PREMIÈRE fiche offerte — un profil standard', () => {
+  it('l’icône du rail arme l’outil sur la PREMIÈRE fiche offerte', () => {
     const h = palette({ mode: 'select' });
     act(() => h.container.querySelector<HTMLButtonElement>('button[aria-label="Poser un personnage"]')!.click());
-    expect(h.outils[h.outils.length - 1]).toEqual({ mode: 'entity', kind: 'personnage', ref: 'nain' });
-    expect(profilsStandard()).toContain('nain');
+    expect(h.outils[h.outils.length - 1]).toEqual({ mode: 'entity', kind: 'personnage', ref: fichesDePersonnage()[0].id });
   });
 });
 

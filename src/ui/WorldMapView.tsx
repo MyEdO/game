@@ -4,7 +4,7 @@ import { shipboardSouls } from '../noyau/shipCrew';
 import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
 import { t, deElide } from '../i18n';
-import { placeOfScene, placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../noyau/worldMap';
+import { placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../noyau/worldMap';
 import { baseHoursPerDay, maxHoursPerDay, devisDeTrajet, refusDeDepart, MOUNT_MAX_HOURS, type OptionsDeDepart } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
 import { descenteJouee } from '../noyau/riverVoyageFlow';
@@ -75,10 +75,9 @@ const DECLUTTER_MIN = 8;
  * voyage depuis le lieu courant (mode, classe, allure — RAW section « Voyage » du LDB) et reprise
  * d'un voyage interrompu par une péripétie. Mobile-first : panneau en bas, carte au-dessus.
  */
-/** `hereSceneId`/`initialRouteId` : seams de test (rendu statique : le store SSR sert l'état initial). */
-export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?: string; hereSceneId?: string } = {}) {
+/** `hereId`/`initialRouteId` : seams de test (rendu statique : le store SSR sert l'état initial). */
+export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: string; hereId?: string } = {}) {
   const map = useGame((s) => s.worldMap);
-  const scene = useGame((s) => s.scene);
   const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
@@ -123,7 +122,9 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   /** Lieu survolé — révèle son nom sur une carte dense (les non-pertinents n'ont pas de cartouche fixe). */
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const here = placeOfScene(map, hereSceneId ?? scene?.id);
+  const lieu = useGame((s) => s.lieu);
+  const ici = hereId ?? lieu;
+  const here = map && ici ? placeById(map, ici) : undefined;
   // Gating narratif (#684) : le `ConditionCtx` se fabrique CHEZ L'APPELANT (patron `condCtx`,
   // `bourseFlow.ts`) — `worldMap.ts` reste un lecteur pur, sans accès au store.
   const flags = useGame((s) => s.flags);

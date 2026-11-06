@@ -107,7 +107,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
       routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
     };
     set({
-      party: makePregens().slice(0, 3), worldMap: mer, gameTime: 8 * 60, lastUpkeepDay: 0, suspendedCascades: [], pendingCrewTest: null,
+      party: makePregens().slice(0, 3), worldMap: mer, lieu: 'A', gameTime: 8 * 60, lastUpkeepDay: 0, suspendedCascades: [], pendingCrewTest: null,
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);

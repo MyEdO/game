@@ -31,6 +31,7 @@
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { openRest } from './restFlow';
+import { arriverAuLieu } from './lieuFlow';
 import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines, type RecapEvent } from './recapLine';
@@ -2458,14 +2459,14 @@ export interface PendingManannPriest {
 
 /** Permission de faire RELÂCHE À TERRE en attente de CHOIX joueur (MDG 15 l.245), posée à l'accostage
  *  AVANT le tirage de l'événement de port — `trancherLaRelache` tranche puis enchaîne `resolvePortArrival`
- *  et la transition de scène (le lieu d'arrivée `to` porte la scène/l'entrée à rejoindre). */
+ *  et l'arrivée au lieu `to`. */
 export interface PendingShoreLeave {
   to: MapPlace;
 }
 
 /** Ouvre le PORT d'un lieu (arrivée en mer OU Effet scripté `openPort`) — SOURCE UNIQUE : avec profil de
  *  port (`to.port`) → relâche à terre en attente de décision (`pendingShoreLeave`, MDG 15 l.245) ; sans
- *  profil (destination sans port) → résout directement (rien à jouer) et transitionne à la scène du lieu.
+ *  profil (destination sans port) → résout directement (rien à jouer) et le groupe arrive au lieu (`arriverAuLieu`).
  *  Appelée par `continueSeaDayAfterCascade` (accostage) et le handler `openPort` (noyau/combatEffects) —
  *  jamais un doublon de cette décision. */
 export function openPortAt(get: Get, set: Set, to: MapPlace): void {
@@ -2474,7 +2475,7 @@ export function openPortAt(get: Get, set: Set, to: MapPlace): void {
     return;
   }
   resolvePortArrival(get, set, to.port, battleRng(), true);
-  get().transitionTo(to.scene, to.entry);
+  arriverAuLieu(set, to);
 }
 
 /** ÉVÉNEMENT DE PORT (2d10 ± Humeur, ch.15 l.127-129 + Tableau l.239-263). `shoreLeave` = permission de
@@ -2604,11 +2605,11 @@ function trancherLaRelache(get: Get, set: Set, allow: boolean): void {
 }
 
 /** Finalise un ACCOSTAGE (MDG 15 l.245) : événement de port (`resolvePortArrival`, qui peut ouvrir SA
- *  propre cascade) puis transition vers la scène du lieu. SOURCE UNIQUE des deux gestes enchaînés,
+ *  propre cascade) puis arrivée au lieu (`arriverAuLieu`). SOURCE UNIQUE des deux gestes enchaînés,
  *  partagée par `trancherLaRelache` (inline) et la clôture de cascade surfacée (`dispatchCascadeDone`). */
 export function finalizePortArrivalTo(get: Get, set: Set, to: MapPlace, allow: boolean): void {
   resolvePortArrival(get, set, to.port, battleRng(), allow);
-  get().transitionTo(to.scene, to.entry);
+  arriverAuLieu(set, to);
 }
 
 /** Clôture d'une cascade `portArrival` (désertion à la relâche surfacée, #387) : résout le lieu par id
