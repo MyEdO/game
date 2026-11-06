@@ -2,12 +2,15 @@
  * La session d'édition (#3508) : la couche éditée suit l'historique (annuler l'ajout d'une couche ramène au rez), un
  * geste du pointeur s'arrête au changement d'outil ou de couche, le pinceau choisi quitte le rectangle, et
  * l'enregistrement au dépôt ne tient la scène pour enregistrée qu'à l'écriture réussie ; la volée se trace case à
- * case, se pose par son plan (`planStairFlight`) sur un cran, et son tracé s'efface avec la couche.
+ * case, se pose par son plan (`planStairFlight`) sur un cran, et son tracé s'efface avec la couche ; l'inspecteur écrit
+ * sur l'arête sélectionnée, `null` retirant un champ, sans cran quand rien ne change, et son brouillon tombe avec la
+ * sélection.
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, heightAt, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
 import { editer, ouvrirLEdition, planDeLaVolee, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
+import { segmentDeLaSelection } from '../sceneEditLecture';
 
 const ouverteSur = (scene: Scene, duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
@@ -67,5 +70,23 @@ describe('session d’édition', () => {
     expect(jouer(s, { geste: 'appui', point: point(2, 1) }).volee, 'repasser sur une case la retire').toEqual([{ x: 1, y: 1 }, { x: 3, y: 1 }]);
     expect(jouer(s, { geste: 'effacerVolee' }).volee).toEqual([]);
     expect(jouer(s, { geste: 'couche', z: 0 }).volee).toEqual([]);
+  });
+
+  it('l’inspecteur : écrit sur l’arête sélectionnée et la garde, null retire, rien ne change sans cran ; le brouillon tombe avec la sélection ; supprimer', () => {
+    const auNord = { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } };
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const choisie = jouer(ouverte(), { geste: 'outil', outil: { mode: 'wall', paint: 'wall' } }, { geste: 'appui', point: auNord }, { geste: 'relache', point: auNord },
+      { geste: 'outil', outil: { mode: 'select' } }, { geste: 'appui', point: auNord }, { geste: 'relache', point: auNord });
+    const arete = (s: SessionDEdition) => segmentDeLaSelection(sceneEditee(s), s.sel);
+    expect(arete(choisie)).toMatchObject({ x: 1, y: 1, side: 'N' });
+    expect(jouer(choisie, { geste: 'arete', patch: { door: null } }), 'une cloison le reste : rien à écrire').toBe(choisie);
+    const porte = jouer(choisie, { geste: 'arete', patch: { door: true, closed: true } });
+    expect([arete(porte)?.door, arete(porte)?.closed, porte.historique.passe.length]).toEqual([true, true, choisie.historique.passe.length + 1]);
+    expect(arete(jouer(porte, { geste: 'arete', patch: { closed: null } }))?.closed).toBeUndefined();
+    const brouillon = jouer(porte, { geste: 'arete', brouillon: { secret: { face: 'porteuse' } } });
+    expect([brouillon.brouillon, sceneEditee(brouillon)]).toEqual([{ secret: { face: 'porteuse' } }, sceneEditee(porte)]);
+    expect(jouer(brouillon, { geste: 'appui', point: point(2, 2) }).brouillon, 'une autre sélection le lève').toBeNull();
+    const supprimee = jouer(porte, { geste: 'supprimer' });
+    expect([supprimee.sel, sceneEditee(supprimee).walls ?? []]).toEqual([null, []]);
   });
 });

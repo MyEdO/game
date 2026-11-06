@@ -144,6 +144,45 @@ describe('l’éditeur de carte par le pont, les murs', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {
+  it('porte secrète : le brouillon attend difficulté et face, puis l’écrit fermée ; fenêtre franchissable : l’allège à la réglette', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const auNord = { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } };
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/wall'));
+    jouer({ geste: 'appui', point: auNord });
+    presser(boutonDe(jouer({ geste: 'relache', point: auNord }), 'outil/select'));
+    let e = jouer({ geste: 'appui', point: auNord });
+    jouer({ geste: 'relache', point: auNord });
+    const inspecte = (id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id);
+    expect(boutonDe(e, 'arete/cloison').presse).toBe(true);
+
+    e = presser(boutonDe(e, 'arete/porte'));
+    e = presser(boutonDe(e, 'arete/secrete'));
+    expect(inspecte('arete/secreteIncomplete'), 'la porte secrète attend').toMatchObject({ ton: 'alerte' });
+    expect(boutonDe(e, 'arete/fermee').presse, 'rien d’écrit au brouillon').toBe(false);
+    e = presser(boutonDe(e, 'arete/perception/difficile'));
+    e = presser(boutonDe(e, 'arete/face/porteuse'));
+    expect([inspecte('arete/secreteIncomplete'), boutonDe(e, 'arete/fermee').presse, boutonDe(e, 'arete/fermee').refus])
+      .toEqual([undefined, true, 'Une porte secrète est fermée au départ : décochez d’abord « Porte secrète »']);
+
+    e = presser(boutonDe(e, 'arete/cloison'));
+    e = presser(boutonDe(e, 'arete/fenetre'));
+    e = presser(boutonDe(e, 'arete/franchissable'));
+    expect(inspecte('arete/allege')).toMatchObject({ ton: 'alerte' });
+    expect(boutonDe(e, 'arete/allege/moins').refus).toBe('Déjà au minimum');
+    e = presser(boutonDe(e, 'arete/allege/plus'));
+    e = presser(boutonDe(e, 'arete/allege/plus'));
+    expect(inspecte('arete/allege')).toMatchObject({ texte: 'Hauteur d’allège : 0.2 m', ton: 'neutre' });
+    e = presser(boutonDe(e, 'arete/suspendu/plus'));
+    expect(inspecte('arete/suspendu')).toMatchObject({ texte: 'Chute si l’on se suspend d’abord : 0.5 m' });
+
+    e = presser(boutonDe(e, 'arete/supprimer'));
+    expect(e.vue.zones['editeur.inspecteur'], 'l’arête supprimée, plus d’inspecteur').toEqual([]);
+  });
+});
+
 describe('l’éditeur de carte par le pont, la volée', () => {
   it('l’outil volée trace ses cases en surcouche ; poser une volée que son plan refuse se refuse, sa raison en clair ; effacer vide le tracé', () => {
     const { appel } = table();
