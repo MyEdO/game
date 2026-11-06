@@ -256,14 +256,14 @@ function jetEspere(t: TermeDeJet): number {
   return 0;
 }
 
-/** Somme des bonus de DR à une Compétence (`skillId`) conférés au porteur — op `skillDRBonus` PASSIVE
+/** Somme des bonus de DR à une Compétence (`skill`, Spécialisation comprise) conférés au porteur — op `skillDRBonus` PASSIVE
  *  (`TraitData.passive`, lue PAR ID — Furtif : +Bonus d'Agilité au DR de Discrétion, LDB 85), PROJETÉE
  *  par une aura (`auraMods`), portée par une SÉQUELLE (`traumaPassiveMods` — LDB 18 l.61/l.72), OU
  *  TEMPORISÉE par un effet actif (`ActiveEffect.drBonus` — chansons de marin, MDG 09). Distincte de
  *  `skillMod` (valeur du Test) — consommée au calcul du DR d'un Test
  *  RÉUSSI (Discrétion de la Surprise, incantation, attaque, Test générique). */
-export function skillDRBonus(c: Combatant, skillId: string, spec?: string): number {
-  const matches = (s?: RefDesignee) => s != null && refCouvre(s, { id: skillId, spec });
+export function skillDRBonus(c: Combatant, skill: RefDesignee): number {
+  const matches = (s?: RefDesignee) => s != null && refCouvre(s, skill);
   let n = 0;
   for (const t of c.traits ?? []) {
     for (const op of findTraitById(t.id)?.passive ?? []) {
@@ -280,7 +280,7 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   // comme les passifs de trait.
   for (const m of c.auraMods ?? []) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += valeurSansTirage(m.op.bonus, c);
   // Effets ACTIFS temporisés (op `skillDRBonus` exécutée — chanson de marin « Jacques Bret », MDG 09 l.228).
-  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if ('skill' in b && b.skill != null && matches({ id: b.skill, spec: b.spec })) n += b.bonus;
+  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if ('skill' in b && matches(b.skill)) n += b.bonus;
   // Objets POSSÉDÉS : leur `passive` skillDRBonus (Boussole : « Les Tests d'Orientation bénéficient de
   // +1 DR avec l'aide d'une boussole », MDG 14 l.275) — NON gaté sur le port, comme `lockpicks`/`isRations`
   // (l'outil se sort pour servir) ; les passifs de VALEUR d'objet (skillMod des Bésicles) restent, eux,
@@ -2276,7 +2276,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantReverseToken': {
         target.activeEffects = target.activeEffects ?? [];
-        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill?.id, spec: o.skill?.spec, ...(o.characteristic ? { characteristic: o.characteristic } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
+        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill ? structuredClone(o.skill) : undefined, ...(o.characteristic ? { characteristic: o.characteristic } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
         lines.push(t('op.grantReverseToken', {
           name: target.label,
           skill: o.skill ? refLabel('skills', o.skill) : o.characteristic ? t('op.reverseCharTest', { char: deElide(CHAR_LABELS[o.characteristic]) }) : t('op.reverseAnyTest'),
@@ -2993,7 +2993,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx),
-          drBonus: [{ skill: o.skill?.id, ...(o.skill?.spec != null ? { spec: o.skill.spec } : {}), bonus: formuleDuCtx(o.bonus, ref, ctx) }],
+          drBonus: [{ skill: o.skill ? structuredClone(o.skill) : undefined, bonus: formuleDuCtx(o.bonus, ref, ctx) }],
         });
         lines.push(t('op.drBonus', { name: target.label, what: o.skill?.id ?? o.testType ?? '', src: nomDeSource(ctx) }));
         break;

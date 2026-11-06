@@ -112,22 +112,22 @@ describe('Achat un par un (mutation du héros, PX déduits)', () => {
   });
   it('buySkillAdvance : +1 avance, coût selon avances déjà prises ; identité (name, spec)', () => {
     const h = hero(1000);
-    const r = buySkillAdvance(h, 'discretion', undefined); // 0 avance → 10 PX
+    const r = buySkillAdvance(h, { id: 'discretion' }); // 0 avance → 10 PX
     expect(r).toEqual({ ok: true, cost: 10 });
     expect(h.skills.find((s) => s.id === 'discretion')!.advances).toBe(1);
     expect(h.xp).toBe(990);
-    expect(buySkillAdvance(h, 'inconnue', undefined).ok).toBe(false); // compétence non connue
+    expect(buySkillAdvance(h, { id: 'inconnue' }).ok).toBe(false); // compétence non connue
     // Une AUTRE spec du même groupe est une Compétence distincte (LDB 09 l.42).
     h.skills.push({ id: 'discretion', spec: 'urbaine', characteristic: 'agilite', advances: 0 });
-    expect(buySkillAdvance(h, 'discretion', 'rurale').ok).toBe(false); // (Rurale) non connue
-    expect(buySkillAdvance(h, 'discretion', 'urbaine')).toEqual({ ok: true, cost: 10 });
+    expect(buySkillAdvance(h, { id: 'discretion', spec: 'rurale' }).ok).toBe(false); // (Rurale) non connue
+    expect(buySkillAdvance(h, { id: 'discretion', spec: 'urbaine' })).toEqual({ ok: true, cost: 10 });
     expect(h.skills.find((s) => s.spec === 'urbaine')!.advances).toBe(1);
     expect(h.skills.find((s) => !s.spec && s.id === 'discretion')!.advances).toBe(1); // inchangée
   });
   it('buySkillAdvance : remise −5 PX (talent Maître artisan…, LDB 10) in-carrière seulement', () => {
     const h = hero(1000);
-    expect(buySkillAdvance(h, 'discretion', undefined, true, 5)).toEqual({ ok: true, cost: 5 });
-    expect(buySkillAdvance(h, 'discretion', undefined, false, 5).cost).toBe(20); // ×2, pas de remise
+    expect(buySkillAdvance(h, { id: 'discretion' }, true, 5)).toEqual({ ok: true, cost: 5 });
+    expect(buySkillAdvance(h, { id: 'discretion' }, false, 5).cost).toBe(20); // ×2, pas de remise
   });
   it('buyTalent : crée à times 1 (100 PX), puis +1 (200 PX)', () => {
     const h = hero(1000);

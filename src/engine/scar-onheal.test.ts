@@ -51,8 +51,8 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
     expect(scar!.cosmetic).toBe(true);
     // LDB 18 l.61 : canal DR (`skillDRBonus`) sur le périmètre arbitré (Intimidation), et rien sur la
     // valeur du Test (`passiveSkillSum`).
-    expect(skillDRBonus(c, 'intimidation')).toBe(1);
-    expect(skillDRBonus(c, 'charme')).toBe(0);
+    expect(skillDRBonus(c, { id: 'intimidation' })).toBe(1);
+    expect(skillDRBonus(c, { id: 'charme' })).toBe(0);
     expect(passiveSkillSum(c, 'intimidation')).toBe(0);
   });
 
@@ -77,15 +77,15 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
     expect(scar).toBeTruthy();
     expect(scar!.needsSurgery).toBe(true);
     expect(c.criticalWounds).toBe(1); // la Blessure du nez est guérie (2→1), l'autre reste
-    expect(skillDRBonus(c, 'intimidation')).toBe(1);
-    expect(skillDRBonus(c, 'charme')).toBe(-1);
+    expect(skillDRBonus(c, { id: 'intimidation' })).toBe(1);
+    expect(skillDRBonus(c, { id: 'charme' })).toBe(-1);
     // Chirurgie sur le nez : retire la cicatrice SANS re-décompter une Blessure critique (cosmetic)
     expect(surgeryTraumas(c).some((t) => t.traumaId === 'cicatrice-nez-casse')).toBe(true);
     const cicatrice = surgeryTraumas(c).find((t) => t.traumaId === 'cicatrice-nez-casse')!;
     removeSurgicalTrauma(c, cicatrice.uid);
     expect(c.traumas!.some((t) => t.traumaId === 'cicatrice-nez-casse')).toBe(false);
     expect(c.criticalWounds).toBe(1); // inchangé : une cicatrice n'est pas une Blessure critique
-    expect(skillDRBonus(c, 'intimidation')).toBe(0);
+    expect(skillDRBonus(c, { id: 'intimidation' })).toBe(0);
   });
 
   it('flux complet via resolveCritique + applyOps + retrait d\'État (Blessure spectaculaire, tête 01-10)', () => {

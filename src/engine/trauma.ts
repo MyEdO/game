@@ -338,7 +338,7 @@ export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDefe
   // appliquée par l'applier `traumaFracture` (`applyFractureEnd`). La porte est EXIGÉE au type : il n'y
   // a pas de chemin où cette fracture se résout dans le dos du joueur.
   for (const f of fractureTests) {
-    defer({ kind: 'traumaFracture', label: `Convalescence — ${f.label}`, test: { skill: 'resistance' }, difficulty: fractureEndDifficulty(f.severity),
+    defer({ kind: 'traumaFracture', label: `Convalescence — ${f.label}`, test: { skill: { id: 'resistance' } }, difficulty: fractureEndDifficulty(f.severity),
       meta: { severity: f.severity, location: f.location, traumaLabel: f.label } });
   }
   return log;

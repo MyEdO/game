@@ -243,7 +243,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
 
     it('le Test de la Toxine passe par la PORTE, en nommant ce qu’il teste (LDB 20 l.212 : Résistance)', () => {
       const { tick } = toxine({ fate: 0 });
-      expect(tick.test).toEqual({ skill: 'resistance' });
+      expect(tick.test).toEqual({ skill: { id: 'resistance' } });
       expect(tick.difficulty).toBe('tresFacile');
       expect(tick.base, 'aucune valeur maison : la porte la calcule').toBeUndefined();
     });

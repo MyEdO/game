@@ -52,7 +52,7 @@ describe('combatBaseValue — Niveau de Compétence NU (LDB 09 l.17)', () => {
       activeEffects: fx([{ testModChar: 'capacite-de-combat', testMod: -20 }]),
     });
     expect(combatBaseValue(charge, 'melee', epee)).toBe(50);
-    expect(combatBaseValue(charge, 'melee', epee)).toBe(skillBaseValue(charge, 'corps-a-corps', 'epee', 'capacite-de-combat'));
+    expect(combatBaseValue(charge, 'melee', epee)).toBe(skillBaseValue(charge, { skill: { id: 'corps-a-corps', spec: 'epee' }, characteristic: 'capacite-de-combat' }));
     expect(combatBaseValue(charge, 'melee', epee)).toBe(combatBaseValue(nu, 'melee', epee));
     // La fondue, elle, PORTE le mod char-qualifié.
     expect(combatValue(charge, 'melee', epee)).toBe(30);
@@ -102,7 +102,7 @@ describe('defenseBaseValue / defenseValueMods — Esquive, Parade, substitution 
   it('Esquive : nue = Agilité + Augmentations ; mobilité et effets actifs sont des modificateurs', () => {
     const c = hero({ skills: SKILLS_DODGE, enc: 14, advantage: 4 }); // Encombrement palier 2 → −20
     expect(defenseBaseValue(c, 'esquive')).toBe(45);
-    expect(defenseBaseValue(c, 'esquive')).toBe(skillBaseValue(c, 'esquive', undefined, 'agilite'));
+    expect(defenseBaseValue(c, 'esquive')).toBe(skillBaseValue(c, { skill: { id: 'esquive' }, characteristic: 'agilite' }));
     expect(defenseValueMods(c, 'esquive')).toBe(-20);
     expect(defenseValue(c, 'esquive')).toBe(25);
   });

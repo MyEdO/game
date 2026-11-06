@@ -38,7 +38,7 @@ const JETON_CONVALESCENCE = { skill: { id: 'calme' }, contexte: 'psych' } as con
 const jetonsDe = (banc: Banc, id: string) => (banc.getState().battle?.combatants ?? banc.getState().party).find((c) => c.id === id)!.activeEffects ?? [];
 
 /** Une rangée de Calme, cible 55, dé 64 posé (échec, DR −1). */
-const RANGEE: BatchParticipant = { id: 'H', interactive: true, base: 55, target: 55, skillId: 'calme', result: { roll: 64, target: 55, sl: -1, success: false } };
+const RANGEE: BatchParticipant = { id: 'H', interactive: true, base: 55, target: 55, skill: { id: 'calme' }, result: { roll: 64, target: 55, sl: -1, success: false } };
 
 /** Bande ouverte sur `H` : les champs d'étape sont ceux que posent les producteurs (`combatPsychBands`,
  *  `encounterPsych`, bandes de voyage). */
@@ -74,7 +74,7 @@ describe('jeton de Convalescence sur une bande de Psychologie (ADE II 09 l.33 ; 
 
   it('jeton générique (« Observer une cible ») sur un Test de Force Mentale, cible 55, dé 64 : offert, 46', () => {
     const banc = ouvrirLeBanc();
-    bande(banc, jeton(heros('H'), {}), PSY, { skillId: undefined });
+    bande(banc, jeton(heros('H'), {}), PSY, { skill: undefined });
     expect(FLOWS.cascadeBatch.reversePreview(banc.getState, 'H')).toEqual({ roll: 46, sl: 1, success: true });
   });
 
@@ -133,15 +133,15 @@ describe('Calme d’approche (LDB 21 l.27)', () => {
 describe('Pilote (LDB 10 l.966) : seulement sur un Test pour traverser des eaux dangereuses', () => {
   const PILOTE = () => heros('H', { talents: [{ talentId: 'pilote', times: 1 }] as never });
   const etapeDeVoile = (contexte?: 'perilDesEaux'): CascadeStep => ({
-    id: 'st0', kind: cleDeFixture('riverPerilNav'), actorId: 'H', target: 40, base: 40, rollLabel: 'Voile', skillId: 'voile',
+    id: 'st0', kind: cleDeFixture('riverPerilNav'), actorId: 'H', target: 40, base: 40, rollLabel: 'Voile', skill: { id: 'voile' },
     ...(contexte ? { contexte } : {}), result: { roll: 82, target: 40, sl: -4, success: false },
   });
   it('le mint d’étape mono porte la Compétence de sa ligne et le contexte déclaré', () => {
     const st = monoStep({
       id: 'st0', kind: cleDeFixture('riverPerilNav'), actor: PILOTE(), label: fixtureText('Évitement'), difficulty: 'intermediaire',
-      ligne: { test: { skill: 'voile' } }, contexte: 'perilDesEaux', stake: { category: 'x', id: 'y' } as never,
+      ligne: { test: { skill: { id: 'voile' } } }, contexte: 'perilDesEaux', stake: { category: 'x', id: 'y' } as never,
     })!;
-    expect([st.skillId, st.contexte]).toEqual(['voile', 'perilDesEaux']);
+    expect([st.skill, st.contexte]).toEqual([{ id: 'voile' }, 'perilDesEaux']);
   });
   it('évitement d’un péril : offert, 28 réussite plafonnée à DR +1', () => {
     const banc = ouvrirLeBanc();
@@ -159,7 +159,7 @@ describe('Pansement de fortune (LDB 10 l.899) : seulement avec des Bandages', ()
   it('Test de Guérison raté sans Bandages déclarés : non offert', () => {
     const banc = ouvrirLeBanc();
     const h = heros('H', { talents: [{ talentId: 'pansement-de-fortune', times: 1 }] as never });
-    banc.setState({ party: [h], pendingTest: { actorId: 'H', label: 'Guérison', skillId: 'guerison', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: 82, success: false, sl: -4 } as never });
+    banc.setState({ party: [h], pendingTest: { actorId: 'H', label: 'Guérison', sujet: { skill: { id: 'guerison' } }, skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: 82, success: false, sl: -4 } as never });
     expect(FLOWS.test.reverseAvailable(banc.getState)).toBe(false);
   });
 });
@@ -172,8 +172,8 @@ describe('Pratiquer une Compétence (EDOC 8 l.172)', () => {
     const def = activityById('pratiquer-competence')!;
     const spec = travelActivitySpec(h, def, { freeSkill: { id: 'athletisme' } })!;
     appliquerIssueActivite(banc.getState, h, def, spec, { roll: 10, target: 40, sl: 3, success: true });
-    expect(h.activeEffects!.map((e) => [e.reverseToken, e.duration])).toEqual([[{ skill: 'athletisme', spec: undefined }, { scale: 'adventure' }]]);
-    banc.setState({ party: [h], pendingTest: { actorId: 'H', label: 'Athlétisme', skillId: 'athletisme', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: 82, success: false, sl: -4 } as never });
+    expect(h.activeEffects!.map((e) => [e.reverseToken, e.duration])).toEqual([[{ skill: { id: 'athletisme' } }, { scale: 'adventure' }]]);
+    banc.setState({ party: [h], pendingTest: { actorId: 'H', label: 'Athlétisme', sujet: { skill: { id: 'athletisme' } }, skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: 82, success: false, sl: -4 } as never });
     banc.getState().jetReverse('test');
     expect(banc.getState().pendingTest!.roll).toBe(28);
     expect(jetonsDe(banc, 'H').filter((e) => e.reverseToken)).toEqual([]);
@@ -202,7 +202,7 @@ describe('coop : l’inversion se joue au siège du porteur', () => {
   it('étape mono de GROUPE : le siège de l’acteur de l’étape inverse, un tiers et l’hôte sont refusés', () => {
     const banc = ouvrirLeBanc();
     coop(banc, jeton(heros('h2'), {}), {
-      pendingCascade: cascadeDeTest([{ id: 'st0', kind: cleDeFixture('triggeredTest'), actorId: 'h2', groupOwner: true, target: 55, base: 55, rollLabel: 'Calme', skillId: 'calme', result: { roll: 64, target: 55, sl: -1, success: false } }]),
+      pendingCascade: cascadeDeTest([{ id: 'st0', kind: cleDeFixture('triggeredTest'), actorId: 'h2', groupOwner: true, target: 55, base: 55, rollLabel: 'Calme', skill: { id: 'calme' }, result: { roll: 64, target: 55, sl: -1, success: false } }]),
     });
     expect(intention(banc, 2, 'jetReverse', ['cascade', 'st0'])).toBe('refusee');
     expect(intention(banc, 0, 'jetReverse', ['cascade', 'st0'])).toBe('refusee');

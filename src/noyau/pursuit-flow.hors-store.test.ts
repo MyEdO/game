@@ -145,7 +145,7 @@ describe('Poursuite terrestre (#95)', () => {
       partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }],
     });
     const row = banc.getState().pendingCascade!.participants[0].participants![0];
-    expect(row.base).toBe(skillBaseValue(a, 'athletisme')); // NIVEAU NU
+    expect(row.base).toBe(skillBaseValue(a, { skill: { id: 'athletisme' } })); // NIVEAU NU
     expect(row.target).toBe(testValue(banc.getState().party[0], { skill: { id: 'athletisme' } })); // cible DÉRIVÉE
     expect(row.base + (row.mods ?? []).reduce((n, m) => n + m.value, 0)).toBe(row.target); // tout l'écart est NOMMÉ
     expect(row.mods?.some((m) => m.value < 0)).toBe(true); // le Sonné a sa propre ligne

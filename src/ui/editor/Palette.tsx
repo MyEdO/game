@@ -20,14 +20,12 @@ import { terrainIds, terrainLabel } from '../../noyau/monde/terrain';
 import { propDeclaredFoot } from '../../noyau/monde/footprint';
 import { terrainDef } from '../../noyau/monde/volume/matieres';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
-import { premierOffert, profilsStandard, refEstVolumique, structures } from '../../data';
-import { structureAppearance } from '../../noyau/monde/volume/structures';
-import { isWallEdgeStructure } from '../../engine/structures';
+import { premierOffert, profilsStandard, refEstVolumique } from '../../data';
 import { GatedAction } from '../GatedAction';
 import type { Pt } from '../../noyau/sceneEdit';
 import { HAUTEURS, PINCEAUX } from '../../noyau/edition/session';
 import { t } from '../../i18n';
-import { structuresDeLArete, type Tool, type WallPaint, type ZoneVariant } from '../../noyau/sceneEditLecture';
+import { structuresCrenelables, structuresDeLArete, type Tool, type WallPaint, type ZoneVariant } from '../../noyau/sceneEditLecture';
 import { planStairFlight } from '../../noyau/stairFlight';
 import { siegeEngines } from '../../data';
 import { LayerField, layerLabel } from './LayerField';
@@ -154,9 +152,9 @@ export function Palette({
   // Matériau MÉMORISÉ par sous-mode (Cloison/Porte) — l'outil porte son matériau comme un pinceau porte
   // sa couleur : la palette ne montre que ce qui est POSABLE sur une arête pour ce sous-mode (#830).
   const [lastWallStructure, setLastWallStructure] = useState<string | undefined>(undefined);
-  // Structures posables au Crénelage : celles qui portent un PARAPET (`structureAppearance`) — une
+  // Structures posables au Crénelage : celles qui portent un PARAPET (`structuresCrenelables`) — une
   // structure sans parapet n'a rien à dessiner sur le pourtour (#841 FU-H).
-  const crenelStructures = structures.filter((s) => isWallEdgeStructure(s) && !!structureAppearance(s.id).parapet);
+  const crenelStructures = structuresCrenelables();
   const [lastCrenelStructure, setLastCrenelStructure] = useState<string | undefined>(crenelStructures[0]?.id);
   const [lastDoorStructure, setLastDoorStructure] = useState<string | undefined>(undefined);
   // Étages disponibles pour la VOLÉE : la première couche au-dessus de celle qu'on édite est la cible

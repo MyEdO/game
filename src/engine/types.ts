@@ -8,7 +8,8 @@ import type { Money } from './money';
 import type { ReachId, ProprietesIntrinsequesDObjet, ProprietesIntrinsequesDArme } from './items';
 import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
-import type { ArmourBypass } from '../data/schemas/grammaire/mecanique';
+import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecanique';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { CibleEtendue, ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
 
@@ -897,9 +898,9 @@ export interface ActiveEffect {
    *  L'Anguille » : « peut ignorer un État », MDG 09 l.244). Lu par combatTestPenalty/testStatePenalty. */
   ignoreStatesCount?: number;
   /** +DR temporisés (ops `skillDRBonus`/`charDRBonus` exécutées — chansons de marin, MDG 09) : par
-   *  Compétence (`skill`+`spec`) OU par Caractéristique (`char`), `bonus` déjà résolu numérique.
+   *  Compétence (`skill`, Spécialisation comprise) OU par Caractéristique (`char`), `bonus` déjà résolu numérique.
    *  Lus par `skillDRBonus`/`charDRBonusOf` (engine/ops) sur un Test RÉUSSI. */
-  drBonus?: ({ skill?: string; spec?: string; bonus: number } | { char: CharKey; bonus: number })[];
+  drBonus?: ({ skill?: RefDesignee; bonus: number } | { char: CharKey; bonus: number })[];
   /** Modificateur aux Tests INDIVIDUELS d'un Test d'équipage (op `crewTestMod` — « Naviguons tous
    *  ensemble », MDG 09 l.224 : +10). Lu par `crewRoleValue` (engine/crewMorale). */
   crewTestMod?: number;
@@ -1965,11 +1966,11 @@ export type ContexteDeTest = 'psych' | 'perilDesEaux' | 'bandages' | Amateur;
 /** Le Test qu'une inversion vise : Compétence (`skill` absent = Test de Caractéristique `characteristic`, ou
  *  jeton « tout Test »), Caractéristique et contexte. `horsAventure` : Test joué entre deux aventures, où aucun
  *  jeton « pour votre prochaine aventure » ne vaut (LDB 23 l.209/218). */
-export interface ReverseQuery { skill?: string; spec?: string; characteristic?: CharKey; contexte?: ContexteDeTest; horsAventure?: true }
+export interface ReverseQuery extends SujetDuJet { contexte?: ContexteDeTest; horsAventure?: true }
 
 /** Jeton d'inversion : le Test qu'il couvre (`characteristic` : tout Test de cette Caractéristique) ; `illimite` :
  *  jamais consommé (ACE 12 l.60 « tout Test »). */
-export interface JetonDInversion { skill?: string; spec?: string; characteristic?: CharKey; contexte?: ContexteDeTest; illimite?: true }
+export interface JetonDInversion extends SujetDuJet { contexte?: ContexteDeTest; illimite?: true }
 
 export const STAKE_FORMS = ['verbatim', 'descripteur'] as const;
 /** Forme déclarée d'un enjeu — union FERMÉE dérivée de `STAKE_FORMS`. */
@@ -1981,8 +1982,8 @@ export type StakeForm = (typeof STAKE_FORMS)[number];
  *  Compétence PEUT nommer la Caractéristique sur laquelle elle se joue (Venin : Résistance sur
  *  Endurance) ; une Caractéristique NUE se déclare seule (ver de carie, `MSRC 16 l.90`). */
 export type TestIds =
-  | { skill: string; characteristic?: CharKey; spec?: string }
-  | { characteristic: CharKey; skill?: undefined; spec?: undefined };
+  | { skill: RefDesignee; characteristic?: CharKey }
+  | { characteristic: CharKey; skill?: undefined };
 
 /** Spec d'un Test de Résistance d'entretien DIFFÉRÉ (cascade de nuit influençable) : le moteur le
  *  COLLECTE au lieu de le rouler (`noyau/upkeep` calcule la cible et en fait une étape de cascade,

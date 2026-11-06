@@ -20,7 +20,7 @@ import { detailPatternDefs, lodOf, LOD_ZOOM } from '../../gameIso/authoring/deta
 import { editorLowerLayerFilterCss } from '../../gameIso/catalog/ambiance';
 import { ViewControls } from '../ViewControls';
 import { IconG } from '../Icon';
-import { nearestNode, type CalibStep, type TraceTransform } from './traceCalibration';
+import { nearestNode, type CalibStep, type TraceTransform } from '../../noyau/edition/calage';
 import type { useEditorView } from './useEditorView';
 import { effectiveLowerLayerMode, gabaritTint, layerHidden, type LowerLayerMode } from './lowerLayerGabarit';
 import { projectedRangeAxes } from './lampMarker';

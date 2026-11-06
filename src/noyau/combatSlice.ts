@@ -141,7 +141,7 @@ import { testDuCavalier } from '../engine/movement';
  *  performClick d'IsoStage — pour rester neutre vis-à-vis des harnais de test sans UI.) */
 /** La ligne du jet de Dissipation, figée à son ouverture sur sa valeur, Soutien « même Domaine » compris. LDB 46 l.158-162 */
 const ligneDeDissipation = (lanceur: Combatant, value: number, soutien: SupportDetail): RollLineParts =>
-  rollLine({ actor: lanceur, test: { skill: 'langue', spec: 'magick' }, difficulty: 'intermediaire', valeur: value, ...(soutien.bonus > 0 ? { soutien } : {}) });
+  rollLine({ actor: lanceur, test: { skill: { id: 'langue', spec: 'magick' } }, difficulty: 'intermediaire', valeur: value, ...(soutien.bonus > 0 ? { soutien } : {}) });
 
 const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
   !!(pickActiveModalKey(s as never) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
@@ -1017,15 +1017,13 @@ export function createCombatSlice(get: Get, set: Set) {
     // non servi (arme octroyée, taguée mountSide ; tire au tour suivant via l'option 'poste'), sinon SUPPORT (Arme
     // d'équipe : occupe la pièce, compte dans l'Indice contre le sous-effectif, mais ne tire pas). MÊME mutation
     // KIND-AGNOSTIQUE (`serveAtPoste`) que l'IA et l'author-time ; `recomputeLoadout` canonicalise l'arme du chef.
-    // GRATUIT (ne consomme PAS l'Action) : on s'approche au Mouvement, on sert, et on tire/pousse le MÊME
-    // Round — servir une pièce n'est pas un usage, juste s'y installer. « Tout le monde peut servir une arme
-    // de siège » (cf. l'IA `manPoste`).
+    // GRATUIT (LDB 13 l.106). « Tout le monde peut servir une arme de siège » (cf. l'IA `manPoste`).
     battleManPoste: (target?: { hullId: string; posteUid: string }) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const battle = get().battle;
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
-      if (!active || aiDriven(get(), active) || isOutOfAction(active) || !canTakeAction(active)) return;
+      if (!active || aiDriven(get(), active) || isOutOfAction(active)) return;
       const servable = servablePostes(active, battle.combatants);
       // Cible EXPLICITE (clic sur la pièce) → CE poste précis ; sinon (bouton hotbar) → le 1er servable.
       const chosen = target && typeof target === 'object' && 'hullId' in target
@@ -1039,9 +1037,8 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
     // « Quitter la pièce » (release) : le héros actif lâche le poste qu'il sert → il redevient servable par un autre.
-    // `leaveChef` retire le lien + l'équipage + l'arme ; `recomputeLoadout` re-dérive sans la pièce. Coûte l'Action.
-    // GRATUIT (ne consomme PAS l'Action, LDB 13 l.106 « Actions gratuites » : quitter un poste ne nécessite
-    // aucun Test → action gratuite comme rengainer). Symétrique de `battleManPoste`.
+    // `leaveChef` retire le lien + l'équipage + l'arme ; `recomputeLoadout` re-dérive sans la pièce. GRATUIT
+    // (LDB 13 l.106). Symétrique de `battleManPoste`.
     battleLeavePoste: () => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const battle = get().battle;
@@ -1334,8 +1331,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // requis pour armer la pièce) : ceci reste le Soutien générique LDB 12, adjacence (l.196) gatée pareil
       // qu'ailleurs en combat (`combatDistance`) — s'annule d'elle-même si `chef` n'a pas de `pos` propre
       // (équipage navire PASSAGER hors case, shipPostes.ts l.244-245).
-      const sout = soutienDetail(servants, chef, 'projectiles', undefined, 'Poudre noire',
-        chef.pos ? (c) => !!c.pos && combatDistance(chef, c) <= 1 : undefined);
+      const sout = soutienDetail(servants, chef, { skill: { id: 'projectiles', spec: 'Poudre noire' } }, chef.pos ? (c) => !!c.pos && combatDistance(chef, c) <= 1 : undefined);
       const skillValue = combatValue(chef, 'ranged', w) + sout.bonus;
       const ligne = rollLine({
         actor: chef, difficulty: 'intermediaire', valeur: skillValue,
@@ -1861,13 +1857,12 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
-      if (battle.acted || !canTakeAction(active)) return; // boire = une Action ; Sonné = pas d'Action
       const it = (active.items ?? []).find((i) => i.uid === uid);
       if (!it) return;
       if (!isConsumable(it)) return;
       if (refuseSi(get, set, () => refusDeConsommer(active, it))) return;
       // Le Flow du consommable passe par la voie de combat cadence-aware (un Test « au boire » devient
-      // une étape de cascade influençable) — consommation + coût d'Action dans `battleConsumeItem`.
+      // une étape de cascade influençable) — consommation dans `battleConsumeItem`.
       battleConsumeItem(get, set, active, it);
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -1924,7 +1919,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active) || refuseParSonEntree(get, set, 'dispel', active, battle)) return;
-      if (!actorHasSkill(active, 'langue', 'magick')) { get().log(t('cs.cannotDispel')); return; }
+      if (!actorHasSkill(active, { id: 'langue', spec: 'magick' })) { get().log(t('cs.cannotDispel')); return; }
       const target = dispellableSpellsOn(battle.combatants).find((d) => d.spellId === spellId && d.casterId === spellCasterId);
       if (!target) return;
       // SOUTIEN « même Domaine » (LDB 46 l.162) : les AUTRES héros encore en action, possédant Langue (Magick)
@@ -1934,8 +1929,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // `Combatant.spells` = ids STABLES au runtime → résolution par id SEULE (pas de repli libellé : interdit).
       const domainsOf = (h: Combatant) => new Set((h.spells ?? []).map((id) => findSpellById(id)?.subType).filter(Boolean) as string[]);
       const mine = domainsOf(active);
-      const sup = soutienDetail(battle.combatants, active, 'langue', 'intelligence', 'magick',
-        (c) => c.kind === active.kind && [...domainsOf(c)].some((d) => mine.has(d))
+      const sup = soutienDetail(battle.combatants, active, { skill: { id: 'langue', spec: 'magick' }, characteristic: 'intelligence' }, (c) => c.kind === active.kind && [...domainsOf(c)].some((d) => mine.has(d))
           && (!active.pos || (!!c.pos && combatDistance(active, c) <= 1)));
       const value = testValue(active, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({
@@ -1977,13 +1971,12 @@ export function createCombatSlice(get: Get, set: Set) {
       const { party } = get();
       const caster = party.find((c) => c.id === casterId);
       if (!caster) return;
-      if (!actorHasSkill(caster, 'langue', 'magick')) { get().log(t('cs.cannotDispel')); return; }
+      if (!actorHasSkill(caster, { id: 'langue', spec: 'magick' })) { get().log(t('cs.cannotDispel')); return; }
       const target = dispellableSpellsOn(party).find((d) => d.spellId === spellId && d.casterId === spellCasterId);
       if (!target) return;
       const domainsOf = (h: Combatant) => new Set((h.spells ?? []).map((id) => findSpellById(id)?.subType).filter(Boolean) as string[]);
       const mine = domainsOf(caster);
-      const sup = soutienDetail(party, caster, 'langue', 'intelligence', 'magick',
-        (c) => c.kind === caster.kind && [...domainsOf(c)].some((d) => mine.has(d)));
+      const sup = soutienDetail(party, caster, { skill: { id: 'langue', spec: 'magick' }, characteristic: 'intelligence' }, (c) => c.kind === caster.kind && [...domainsOf(c)].some((d) => mine.has(d)));
       const value = testValue(caster, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({ pendingDispel: {
         casterId: caster.id, spellId, spellCasterId, label: target.label, ni: target.ni, value,

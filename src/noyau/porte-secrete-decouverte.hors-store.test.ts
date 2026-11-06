@@ -67,7 +67,7 @@ describe('porte secrète — découverte à l’approche', () => {
     expect(banc.getState().pendingTest).toBeNull();
     marcher(4, 2);
     const pt = banc.getState().pendingTest!;
-    expect(pt.skillId).toBe('perception');
+    expect(pt.sujet?.skill?.id).toBe('perception');
     expect(pt.difficulty).toBe('complexe');
     expect(pt.label).toBe(t('eff.porteSecreteTest'));
     expect(pt.support?.bonus).toBeGreaterThan(0); // LDB 12 l.189
@@ -79,7 +79,7 @@ describe('porte secrète — découverte à l’approche', () => {
   it('réussite → porte révélée (`porteEnJeu`) et ligne de journal neutre', () => {
     explorer(plan(), { x: 3, y: 2 });
     marcher(4, 2);
-    expect(banc.getState().pendingTest?.skillId).toBe('perception');
+    expect(banc.getState().pendingTest?.sujet?.skill?.id).toBe('perception');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 1, success: true, sl: 3 } });
     banc.getState().jetConfirm('test');
     expect(porteEnJeu(banc.getState().scene!, seg())).toBe(true);
@@ -89,7 +89,7 @@ describe('porte secrète — découverte à l’approche', () => {
   it('échec → porte masquée ; ressortir et revenir ne relance rien (une tentative par porte)', () => {
     explorer(plan(), { x: 3, y: 2 });
     marcher(4, 2);
-    expect(banc.getState().pendingTest?.skillId).toBe('perception');
+    expect(banc.getState().pendingTest?.sujet?.skill?.id).toBe('perception');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false, sl: -3 } });
     banc.getState().jetConfirm('test');
     expect(porteMasquee(banc.getState().scene!, seg())).toBe(true);
@@ -108,7 +108,7 @@ describe('porte secrète — découverte à l’approche', () => {
     explorer(plan({ face: 'voisine' }), { x: 8, y: 2 });
     marcher(7, 2);
     marcher(6, 2);
-    expect(banc.getState().pendingTest?.skillId).toBe('perception');
+    expect(banc.getState().pendingTest?.sujet?.skill?.id).toBe('perception');
   });
 
   it('zone hors vue : le noir, ou un mur latéral → rien ; la même case vue lance le Test', () => {
@@ -123,7 +123,7 @@ describe('porte secrète — découverte à l’approche', () => {
     expect(banc.getState().pendingTest).toBeNull();
     explorer(plan(), { x: 1, y: 0 });
     marcher(2, 0);
-    expect(banc.getState().pendingTest?.skillId).toBe('perception');
+    expect(banc.getState().pendingTest?.sujet?.skill?.id).toBe('perception');
   });
 
   it('entrée de scène DANS la zone, sans premier pas → pas de Test', () => {

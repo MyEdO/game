@@ -24,12 +24,12 @@ import { attaqueDeCle } from '../engine/creatureAttacks';
 import { formatDice } from '../engine/dice';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { findCrewRoleById, findSpellById, refLabel, testSkillLabel } from '../data';
-import { idsDuTest } from '../engine/skills';
 import { t } from '../i18n';
 import { HORS_MODAL, MODAL_DEFS, type HorsModalDef, type ModalDef } from './modalArbiter';
 import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
 import { maladresseCourante, specDeEtape, tableStepDef } from './cascade';
 import { opposedAttackerLabel } from './rollSeam';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { APPRAISE_SKILL } from './merchantFlow';
 import { ligneDeFrenesie, ligneDuTestNomme } from './rollFlowSpecs';
 import { JET_FIGE, jetFigeRevele } from './netOwnership';
@@ -103,10 +103,10 @@ export const libelleDePuissance = (nom: string): string => `${nom} · Puissance`
 
 /** Le libellé de ligne d'une Évaluation/Détection. */
 export const libelleDEvaluation = (pa: { skillLabel?: string; mode?: keyof typeof APPRAISE_SKILL }): string =>
-  pa.skillLabel ?? refLabel('skills', { id: APPRAISE_SKILL[pa.mode ?? 'evaluate'].skill });
+  pa.skillLabel ?? refLabel('skills', APPRAISE_SKILL[pa.mode ?? 'evaluate'].skill);
 
 /** Le libellé de ligne d'une opposition de cible à une incantation. */
-export const libelleDOppositionDeSort = (pcs: Pick<PendingCastOpposition, 'test'>): string => testSkillLabel(idsDuTest(pcs.test));
+export const libelleDOppositionDeSort = (pcs: Pick<PendingCastOpposition, 'test'>): string => testSkillLabel(pcs.test);
 
 /** Le libellé de ligne d'une rangée de Test d'équipage : le rôle tenu, étoilé s'il est essentiel. */
 export function libelleDeRole(part: { roleId: string; essential?: boolean }): string {
@@ -114,10 +114,10 @@ export function libelleDeRole(part: { roleId: string; essential?: boolean }): st
   return role ? `${role.label}${part.essential ? ' ★' : ''}` : '';
 }
 
-/** Le libellé de ligne d'une rangée-participant : la Compétence déclarée par la paire `{skillId, spec}` (aucune :
- *  `undefined`, la rangée garde le sien). */
-export const libelleDeRangee = (part: { skillId?: string; spec?: string }): string | undefined =>
-  part.skillId ? refLabel('skills', { id: part.skillId, spec: part.spec }) : undefined;
+/** Le libellé de ligne d'une rangée-participant : la Compétence qu'elle déclare (aucune : `undefined`, la
+ *  rangée garde le sien). */
+export const libelleDeRangee = (part: { skill?: RefDesignee }): string | undefined =>
+  part.skill ? refLabel('skills', part.skill) : undefined;
 
 /** Le libellé de ligne du jet FIGÉ d'un Test opposé d'étape : l'adversaire, et ce qu'il teste. */
 export function libelleDuJetFige(opp: NonNullable<Parameters<typeof opposedAttackerLabel>[0]> & { attackerName: string }): string {

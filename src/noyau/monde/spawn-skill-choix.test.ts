@@ -61,7 +61,7 @@ describe('désignation au spawn d’un `choix` de spécialisation (L2 #1548)', (
       const c = spawn('grand-aigle', uid);
       const langues = c.skills.filter((s) => s.id === 'langue').map((s) => s.spec);
       expect(langues.every((sp) => sp != null)).toBe(true);
-      expect(actorHasSkill(c, 'langue', 'magick')).toBe(langues.includes('magick'));
+      expect(actorHasSkill(c, { id: 'langue', spec: 'magick' })).toBe(langues.includes('magick'));
     }
   });
 
@@ -73,9 +73,9 @@ describe('désignation au spawn d’un `choix` de spécialisation (L2 #1548)', (
     for (const cr of creatures) {
       const c = creatureToCombatant(cr, `${cr.id}-cc`, { x: 0, y: 0 });
       const inst = c.skills.find((s) => s.id === 'langue' && s.spec === 'magick');
-      if (actorHasSkill(c, 'langue', 'magick') !== (inst != null)) ecarts.push(`${cr.id} : actorHasSkill fantôme`);
+      if (actorHasSkill(c, { id: 'langue', spec: 'magick' }) !== (inst != null)) ecarts.push(`${cr.id} : actorHasSkill fantôme`);
       const attendu = traitCapability(c.traits, 'spellcaster') || (inst != null && inst.advances >= 1);
-      if (knowsCastingSkill(c, 'langue', 'magick') !== attendu) ecarts.push(`${cr.id} : knowsCastingSkill hors contrat`);
+      if (knowsCastingSkill(c, { id: 'langue', spec: 'magick' }) !== attendu) ecarts.push(`${cr.id} : knowsCastingSkill hors contrat`);
     }
     expect(ecarts, ecarts.join(' | ')).toEqual([]);
   });

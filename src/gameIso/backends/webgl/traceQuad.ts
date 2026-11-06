@@ -3,7 +3,7 @@
  * (`ui/editor`, #830), portée de la surcouche SVG au volume.
  *
  * ANCRAGE : ÉCRAN, comme la surcouche SVG qu'elle remplace — la sémantique ne change PAS. Le calage
- * (`ui/editor/traceCalibration.ts`) fige un `transform` dans le repère de PROJECTION, pas dans le monde :
+ * (`noyau/edition/calage.ts`) fige un `transform` dans le repère de PROJECTION, pas dans le monde :
  * les coins MONDE calculés ici en sont l'INVERSE par la projection COURANTE, donc ils se déplacent
  * quand la vue tourne (mesuré : 62,17 m d'écart à un cran) et le quad se rebâtit à chaque changement
  * de cadrage pour retomber aux MÊMES pixels. La plaque reste donc collée à l'écran, exactement comme
@@ -19,16 +19,7 @@
 import * as THREE from 'three';
 import type { Dims } from '../../../geometry/iso';
 import { poseFromDims, screenToWorldAtLift } from '../../stage/projection';
-import type { TraceTransform } from '../../../ui/editor/traceCalibration';
-
-/** Coin de l'image (pixels natifs) → pixel ÉCRAN, par la MÊME transformation que le `<g>` SVG :
- *  `translate(tx,ty) rotate(deg) scale(k)`, appliquée dans cet ordre (droite à gauche sur le point). */
-export function traceImagePointToScreen(t: TraceTransform, px: number, py: number): { x: number; y: number } {
-  const a = (t.rotateDeg * Math.PI) / 180;
-  const sx = px * t.scale;
-  const sy = py * t.scale;
-  return { x: t.tx + sx * Math.cos(a) - sy * Math.sin(a), y: t.ty + sx * Math.sin(a) + sy * Math.cos(a) };
-}
+import { pointDeLImage, type TraceTransform } from '../../../noyau/edition/calage';
 
 /** Les QUATRE coins MONDE (mètres, repère three : X est, Z sud) de la plaque, dans l'ordre
  *  haut-gauche, haut-droit, bas-droit, bas-gauche de l'IMAGE. PUR. */
@@ -40,7 +31,7 @@ export function traceQuadCorners(
 ): { x: number; z: number }[] {
   const pose = poseFromDims(dims);
   return ([[0, 0], [image.width, 0], [image.width, image.height], [0, image.height]] as const).map(([px, py]) => {
-    const écran = traceImagePointToScreen(t, px, py);
+    const écran = pointDeLImage(t, px, py);
     const tuile = screenToWorldAtLift(pose, écran, 0);
     return { x: tuile.x * mpt, z: tuile.y * mpt };
   });

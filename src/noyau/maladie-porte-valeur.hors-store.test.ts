@@ -90,7 +90,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     expect(tick, 'le Test de cycle du ver est une ÉTAPE de la nuit (pas un jet du moteur)').toBeTruthy();
 
     const r = rangee(tick!, 'h1');
-    const nue = skillBaseValue(h, undefined, undefined, 'endurance');
+    const nue = skillBaseValue(h, { characteristic: 'endurance' });
     const jetee = testValue(h, { characteristic: 'endurance' });
     // Le témoin qui rend le test PROBANT : sans pénalité, base et valeur jetée seraient égales. Deux
     // sources pèsent ici, et la porte les compte TOUTES DEUX — les 2 États Sonné (−20, LDB 16 l.125) et
@@ -115,11 +115,11 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     expect(tick, 'la pneumonie pose SON Test quotidien en étape').toBeTruthy();
 
     const r = rangee(tick!, 'h1');
-    expect(r.base, 'base = Niveau de Compétence NU de Résistance (LDB 09 l.17)').toBe(skillBaseValue(h, 'resistance'));
+    expect(r.base, 'base = Niveau de Compétence NU de Résistance (LDB 09 l.17)').toBe(skillBaseValue(h, { skill: { id: 'resistance' } }));
     expect(r.target).toBe(clampTarget(testValue(h, { skill: { id: 'resistance' } }) + DIFFICULTY_MODIFIERS.intermediaire).target);
     // La Résistance (E + 12 avances) DIFFÈRE de l'Endurance nue : sans cette séparation, les deux
     // nœuds seraient indiscernables et le test ne prouverait pas que la donnée est lue.
-    expect(skillBaseValue(h, 'resistance')).not.toBe(skillBaseValue(h, undefined, undefined, 'endurance'));
+    expect(skillBaseValue(h, { skill: { id: 'resistance' } })).not.toBe(skillBaseValue(h, { characteristic: 'endurance' }));
   });
 
   it('branche `fail` : la conséquence s’applique sur le résultat INJECTÉ dans l’étape, jamais sur un dé tiré ici', () => {

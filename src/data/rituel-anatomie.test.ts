@@ -59,7 +59,7 @@ describe('donnée — les Rituels de VDM portent leur anatomie', () => {
 describe('NI — la nature Rituel mord sur les modificateurs de la donnée committée', () => {
   it('aucun Rituel curé n’est routé en Test de Prière (la `family` seule en décide)', async () => {
     const { castInfo } = await import('../engine/magic');
-    for (const r of RITUELS) expect(castInfo(r).skill, r.id).toBe('langue');
+    for (const r of RITUELS) expect(castInfo(r).skill.id, r.id).toBe('langue');
   });
 
   it('le grimoire quadruple le NI d’un Rituel là où il double celui d’un Sort', async () => {

@@ -50,13 +50,13 @@ import { releaseSeat } from './monde/seating';
 import type { Scene } from './monde/scene';
 import { persisterLeHeros } from './plateforme';
 import { creditBourse, payWithAllocation, refusDeBourse, soloPayer } from './bourseFlow';
-import { ensureBourse, bourseOf } from '../engine/bourse';
+import { ensureBourse, bourseOf, withBourseMoney } from '../engine/bourse';
 import { transferPossession } from './possessionsFlow';
 
 import type { Get, Set } from './flowTypes';
 import { herosDeLEngagement, type HerosEngage } from './creation/engagement';
 import type { Jeu } from './etat';
-import { memeSpecialisation } from '../data/schemas/grammaire/ref';
+import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
 import { nePeutPasDifferer, applyEffects } from './combatEffects';
@@ -384,11 +384,12 @@ export function buyCharAdvance(get: Get, set: Set, heroId: string, char: CharKey
   if (msg) get().log(msg);
 }
 
-/** Achète une Augmentation de Compétence — identité (skillId, spec), LDB 09 l.42. L'achat via un
+/** Achète une Augmentation de Compétence — identité : la référence, LDB 09 l.44. L'achat via un
  *  emplacement « (Au choix) » libre DÉSIGNE l'emplacement (LDB 09 l.38 : la Spécialisation se
  *  choisit à l'allocation). Remise −5 PX si la Compétence est ajoutée par un talent ET déjà
  *  dans la carrière (LDB 10 Maître artisan…). */
-export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: string, spec?: string): void {
+export function buySkillAdvance(get: Get, set: Set, heroId: string, skill: RefDesignee): void {
+  const { id: skillId, spec } = skill;
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -417,7 +418,7 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
       msg = manque;
       return h;
     }
-    const r = engineBuySkillAdvance(clone, skillId, spec, inC, discount);
+    const r = engineBuySkillAdvance(clone, skill, inC, discount);
     if (!r.ok) {
       msg = t('pf.refused', { name: clone.label, what: libelleAvecSpec(skillLabel, spec), reason: r.reason ?? '' });
       return h;
@@ -621,6 +622,12 @@ export const herosDeLaSeance = (s: Pick<Jeu, 'party'>): Combatant[] => s.party.f
 /** Ouvre la fin de séance, aucune case cochée : l'Effet `sessionEnd` (#83), le menu de jeu, le récap de chapitre. */
 export function ouvrirLaFinDeSeance(set: Set): void {
   set({ finDeSeance: { heros: {}, groupe: {} } });
+}
+
+/** Pourquoi le menu de jeu ne clôt pas la séance : hors exploration, ou chez l'invité ; `null` = elle s'ouvre. */
+export function refusDeFinDeSeance(s: Pick<Jeu, 'mode' | 'net'>): string | null {
+  if (s.mode !== 'exploration') return t('gameMenu.finDeSeance.horsExploration');
+  return s.net.mode === 'guest' ? t('gameMenu.finDeSeance.invite') : null;
 }
 
 /**
@@ -830,15 +837,17 @@ export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
  *  place → préserve l'index/ordre) et à SON rang (`net.rangs`) ; refusé par `refusDeComposerLeHeros`, la possession
  *  passe du siège qui décide (`decidingSeat`, qui possède `oldId`) au remplaçant (l'ancien id est libéré).
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
- *  « Remplacer » du slot. Ne touche PAS la bourse (un remplacement n'est pas un recrutement). */
+ *  « Remplacer » du slot. Le remplaçant porte la Bourse du remplacé (un remplacement n'est pas un recrutement) ; un id
+ *  déjà au groupe est refusé et dit. */
 export function partyReplaceHero(get: Get, set: Set, oldId: string, heros: HerosEngage): void {
   const bati = herosDeLEngagement(heros);
   if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())) ?? ('refus' in bati ? bati.refus : null)) || 'refus' in bati) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === oldId);
   if (idx < 0) return;                                                    // l'ancien n'est plus là
-  const copy = bati.hero;
-  if (copy.id !== oldId && s.party.some((h) => h.id === copy.id)) return; // doublon d'id
+  const doublon = bati.hero.id !== oldId ? s.party.find((h) => h.id === bati.hero.id) : undefined;
+  if (compositionRefusee(get, set, doublon ? t('pf.partyDuplicate', { name: doublon.label }) : null)) return;
+  const copy = withBourseMoney(bati.hero, bourseOf(s.party[idx]));
   const ownership = { ...s.net.ownership };
   delete ownership[oldId];
   ownership[copy.id] = decidingSeat(s);
@@ -895,7 +904,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     choisirApparence: (heroId, uid, apparence) => choisirApparence(get, set, heroId, uid, apparence),
     grantXp: (heroId, amount) => grantXp(get, set, heroId, amount),
     buyCharAdvance: (heroId, char) => buyCharAdvance(get, set, heroId, char),
-    buySkillAdvance: (heroId, skillId, spec) => buySkillAdvance(get, set, heroId, skillId, spec),
+    buySkillAdvance: (heroId, skill) => buySkillAdvance(get, set, heroId, skill),
     buyTalent: (heroId, talentId, spec) => buyTalent(get, set, heroId, talentId, spec),
     designateCareerSlot: (heroId, slotKey, optionId, spec) => designateCareerSlot(get, set, heroId, slotKey, optionId, spec),
     /** Mémorise un sort (PX selon le Talent, LDB 46/10) ; un sort du Chaos corrompt (+1, seuil → mutation). */
@@ -912,7 +921,11 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     buySpellComponent: (heroId, spellId) => buySpellComponent(get, set, heroId, spellId),
     removeSpellComponent: (heroId, spellId) => removeSpellComponent(get, set, heroId, spellId),
     setHeroBackground: (heroId, patch) => setHeroBackground(get, set, heroId, patch),
-    openSessionEnd: () => ouvrirLaFinDeSeance(set),
+    ouvrirLaFinDeSeance: () => {
+      const refus = refusDeFinDeSeance(get());
+      if (refus) refuserGeste(get, set, refus);
+      else ouvrirLaFinDeSeance(set);
+    },
     trainProsthesis: (heroId, uid) => trainProsthesis(get, set, heroId, uid),
     changeCareer: (heroId, newCareer, newLevel) => changeCareer(get, set, heroId, newCareer, newLevel),
     setParty: (p) => set({ party: p }),

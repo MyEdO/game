@@ -17,16 +17,16 @@ const mk = (traits: { id: string }[], ag: number): Combatant => (blessuresSurLeP
 describe('Amphibie — +Bonus d’Agilité au DR des Tests de Natation (LDB 85 l.21)', () => {
   it('Ag 40 (BAg 4) → +4 DR à la Natation, et RIEN sur les autres Compétences', () => {
     const c = mk([{ id: 'amphibie' }], 40);
-    expect(skillDRBonus(c, 'natation')).toBe(4);
-    expect(skillDRBonus(c, 'escalade')).toBe(0);
-    expect(skillDRBonus(c, 'athletisme')).toBe(0);
+    expect(skillDRBonus(c, { id: 'natation' })).toBe(4);
+    expect(skillDRBonus(c, { id: 'escalade' })).toBe(0);
+    expect(skillDRBonus(c, { id: 'athletisme' })).toBe(0);
   });
 
   it('le bonus SUIT l’Agilité de la créature (Ag 25 → BAg 2)', () => {
-    expect(skillDRBonus(mk([{ id: 'amphibie' }], 25), 'natation')).toBe(2);
+    expect(skillDRBonus(mk([{ id: 'amphibie' }], 25), { id: 'natation' })).toBe(2);
   });
 
   it('sans le trait Amphibie → aucun bonus de Natation', () => {
-    expect(skillDRBonus(mk([], 40), 'natation')).toBe(0);
+    expect(skillDRBonus(mk([], 40), { id: 'natation' })).toBe(0);
   });
 });

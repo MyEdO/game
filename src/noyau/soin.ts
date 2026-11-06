@@ -5,7 +5,7 @@
  */
 import type { Combatant } from '../engine/types';
 import type { SupportDetail } from '../engine/skills';
-import { testValue, sujetDesIds } from '../engine/skills';
+import { testValue } from '../engine/skills';
 import {
   actePanse, difficulteDuSoin, HEAL_MODES, IDS_DU_TEST_DE_SOIN, porteDesBandages, raisonDeModeDeSoinEnCombat, refusDuTestDeSoin, TESTS_DE_SOIN,
   type HealMode, type ParametresDeSoin, type TestDeSoin,
@@ -29,7 +29,7 @@ export const parametresDuSoin = (ph: Pick<PendingHeal, 'test' | 'bandagesDe'>): 
 export function jetDuSoigneur(soigneur: Combatant, test: TestDeSoin, mode: HealMode, support?: SupportDetail): { skillValue: number; difficulty: PendingHeal['difficulty']; ligne: RollLineParts } {
   const ids = IDS_DU_TEST_DE_SOIN[test];
   const soutien = test === 'guerison' ? support : undefined;
-  const skillValue = testValue(soigneur, sujetDesIds(ids)) + (soutien?.bonus ?? 0);
+  const skillValue = testValue(soigneur, ids) + (soutien?.bonus ?? 0);
   const difficulty = difficulteDuSoin(test, mode);
   return { skillValue, difficulty, ligne: rollLine({ actor: soigneur, test: ids, difficulty, valeur: skillValue, soutien }) };
 }
