@@ -279,7 +279,7 @@ function champDeBataille(etat: Jeu): Element[] {
     ...b.scenes.map((sc): Entite => ({
       type: 'entite', id: `scene/${sc.id}`, ton: sc.resolue ? 'reussite' : 'neutre', nom: sc.libelle,
       elements: [
-        puce('effet', sc.effet, null, sc.description),
+        puce('effet', sc.effet, null, sc.desc),
         ...(sc.position ? [puce('position', sc.position, null)] : []),
         ...(sc.postes ? [{
           type: 'choix', id: 'postes', ton: 'neutre', libelle: t('ecran.bataille.postes'), focus: false, refus: null,
