@@ -1,0 +1,32 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "baudrier"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "tenue",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    },
+    {
+      "nom": "metal",
+      "palette": "metal"
+    }
+  ],
+  "glb": {
+    "sha256": "77508f31b4b94ff99dc4d2f8e912153ef804facb36bf6f6ba351de4d135c8664",
+    "octets": 331288
+  }
+}
