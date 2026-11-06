@@ -220,6 +220,10 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
     // `chargeParDiscriminant` ne partitionne que par les valeurs d'UN champ chaîne : c'est ce qui soldera
     // cette ligne.
     cargoes: ['echangeable', 'hint', 'tradeHub'],
+    // #1666 : le palier de PA d'un Groupe d'armure (`seuil`, `palierSchema`) est UNIQUE parmi les Groupes d'armure
+    // (`defs/weaponGroups.ts`) : la valeur d'un donneur est refusée par construction. La dette préexistait sous
+    // `palierPA: null`, présent partout donc hors mesure ; même famille que `materials:vueDeDessus` (#1795 → #3006).
+    weaponGroups: ['seuil'],
   };
 
   it('le stock des catégories qui présentent un champ étranger est celui déclaré, et il DÉCROÎT', () => {
