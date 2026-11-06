@@ -222,7 +222,7 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
 
 /**
  * UNE arête, UN segment (#1624) — l'invariant que l'index d'arêtes (`noyau/monde/wallIndex.ts`) SUPPOSE
- * et que ses consommateurs consomment (`aretesA(...)[0]`, `gameIso/builders/roofs.ts`). Mesuré vrai
+ * et que ses consommateurs consomment (`aretesA(...)[0]`, `noyau/monde/volume/toits.ts`). Mesuré vrai
  * sur les 65 scènes livrées ; `setEdgeWall` (`noyau/sceneEdit.ts`) le tient à la POSE, ce banc le
  * tient à la PORTE — le chemin que prennent l'authoring littéral, les migrations et l'import.
  */

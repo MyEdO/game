@@ -3,7 +3,7 @@
  * `noyau/monde/buildings` qui le lit.
  *
  * Un bâtiment n'est pas un volume : ce sont des `WallSeg` (murs d'arête) sur un sol de terrain, sa
- * nappe de toit venant du pivot (`builders/roofs` + `authoring/roofsSvg`). L'entrée porte donc la
+ * nappe de toit venant du pivot (`noyau/monde/volume/toits` + `gameIso/authoring/roofsSvg`). L'entrée porte donc la
  * couverture de référence du type et les ornements que le rendu émet.
  *
  * Rien n'est récité ici : les ids, le cardinal et les cibles de référence se DÉRIVENT du dataset et

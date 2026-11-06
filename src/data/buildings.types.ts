@@ -3,7 +3,7 @@
  *
  * Une entrée porte la couverture de référence du type et les ornements d'identité que le rendu émet
  * en billboard. Le bâtiment réel est fait de murs d'arête (`WallSeg`) sur un sol de terrain, sa nappe
- * de toit venant du pivot `gameIso/builders/roofs.ts`.
+ * de toit venant du pivot `noyau/monde/volume/toits.ts`.
  *
  * Le fichier porte UNE forme d'entrée (schéma `schemas/defs/buildings.ts`) : le handle de la
  * fabrique scelle ses nœuds (`z.infer` vaut `unknown`), aucun type n'est dérivé du schéma — la vue

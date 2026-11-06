@@ -14,7 +14,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Inspector } from './Inspector';
 import { emptyScene, type Scene, type SceneEntity, type Dialogue } from '../../noyau/monde/scene';
-import { buildRoofs } from '../../gameIso/builders/roofs';
+import { buildRoofs } from '../../noyau/monde/volume/toits';
 import { buildWalls } from '../../gameIso/builders/walls';
 import { battleScenesToStations } from '../../noyau/stations';
 import { buildingRoofMaterial } from '../../noyau/monde/buildings';

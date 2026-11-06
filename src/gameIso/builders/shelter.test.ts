@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clearedSpace, isSheltered, massCovers, shelterField } from './roofs';
+import { clearedSpace, isSheltered, massCovers, shelterField } from '../../noyau/monde/volume/toits';
 import { massFootprintCells } from '../../noyau/monde/buildings';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { emptyScene, type BuildingMass, type Scene } from '../../noyau/monde/scene';

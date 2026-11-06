@@ -20,7 +20,7 @@ import {
   type CamPose,
   type Vec3,
 } from './camera';
-import { WALL_H_M } from '../iso';
+import { WALL_H_M } from '../../noyau/monde/iso';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { type Dir8 } from '../../geometry/dir8';

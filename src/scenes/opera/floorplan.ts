@@ -258,7 +258,7 @@ export function operaZoneLayers(): Record<string, string> {
 
 /** CORPS architectural du théâtre — la donnée SANS laquelle aucune masse n'est dérivée (`buildScene` §9
  *  n'itère que `scene.architecture`), donc sans laquelle la loi de dégagement (`clearedSpace`,
- *  `builders/roofs.ts`) ne trouve ni pièce ni emprise autour d'un allié posé au rez : un bâtiment à deux
+ *  `noyau/monde/volume/toits.ts`) ne trouve ni pièce ni emprise autour d'un allié posé au rez : un bâtiment à deux
  *  niveaux comme La Diligence, corps UNIQUE et NON BORNÉ (aucun `parts[].foot`) — tout le plancher réel
  *  des deux couches lui revient, la dérivation le coiffe d'un toit continu par composante 4-connexe.
  *  Aucun `style` : `src/data/buildings.json` ne porte pas de type théâtre/opéra, et un corps sans type

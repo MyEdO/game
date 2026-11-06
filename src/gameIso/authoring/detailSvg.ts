@@ -31,9 +31,9 @@ import {
   type CourseVertical,
 } from '../detail/courses';
 import type { DetailRecipe } from '../../data/materials.types';
-import { shade, ao, spec } from '../shade';
+import { shade, ao, spec } from '../../lib/ombrage';
 import { isSquareView, type Dims } from '../../geometry/iso';
-import { ISO_PX_PER_M } from '../iso';
+import { ISO_PX_PER_M } from '../../noyau/monde/iso';
 import { tousLesTerrains, terrainEntree, terrainStopsOrdonnes } from '../../noyau/monde/terrain';
 import { terrainGradientId } from '../catalog/terrain';
 import { structureAppearances, matieresDe } from '../../data';

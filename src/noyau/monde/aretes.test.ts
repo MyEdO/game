@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { areteDessinee, aretesDeLaCouche } from './aretes';
+import { areteDessinee, aretesDeLaCouche, plateauDeLaScene } from './aretes';
 import { emptyScene, setDoorOpen, setDoorRevealed, setStructureDown, type Scene, type WallSeg } from './scene';
 import { METRES_PER_LEVEL } from './relief';
 import { structureAppearances } from '../../data';
@@ -66,3 +66,19 @@ describe('aretesDeLaCouche', () => {
     expect(aretesDeLaCouche(s, 1).map(({ milieu, sens }) => ({ milieu, sens }))).toEqual([{ milieu: { x: 1.5, y: 2 }, sens: { x: 0, y: 1 } }]);
   });
 });
+
+describe('plateauDeLaScene — les couronnes abattues (#3476)', () => {
+  const abattues = (s: Scene) => plateauDeLaScene(s, []).couronnesAbattues;
+  it('la couronne d’un rempart tombe avec lui', () => {
+    const rempart: WallSeg = { x: 0, y: 0, side: 'N', structure: 'mur-en-pierre' };
+    expect(abattues(scene([rempart]))).toEqual([]);
+    expect(abattues(setStructureDown(scene([rempart]), 0, 0, 'N', 0, true))).toEqual(['0,0,N,0']);
+  });
+  it('celle d’un corps de garde reste sur le linteau de son passage ; un mur sans couronne n’en perd aucune', () => {
+    const portail: WallSeg = { x: 0, y: 0, side: 'N', structure: 'porte-de-ville' };
+    const palissade: WallSeg = { x: 1, y: 0, side: 'N', structure: 'solide-porte-en-bois' };
+    const s = setStructureDown(setStructureDown(scene([portail, palissade]), 0, 0, 'N', 0, true), 1, 0, 'N', 0, true);
+    expect(abattues(s)).toEqual([]);
+  });
+});
+

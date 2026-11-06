@@ -685,7 +685,7 @@ export function buildScene(spec: MapSpec): Scene {
   //   arêtes internes d'une bande épaisse n'en portent pas (une seule herse à abattre). GÉNÉRAL, toute forme.
   const bandSet = new Set(cellCells.filter((c) => spec.cells![c.char].wall || spec.cells![c.char].gate).map((c) => `${c.x},${c.y},${c.z}`));
   // Apparence de CRÉNELURE de la bande = la structure du mur plein (`#`) — merlons de PÉRIMÈTRE dérivés par
-  // `crestGeometry` (décoration de rendu, ne coupe pas la LdV plongeante). Toute la bande la porte (crête continue).
+  // `cretesDePerimetre` (décoration de rendu, ne coupe pas la LdV plongeante). Toute la bande la porte (crête continue).
   const crestApp = Object.values(spec.cells ?? {}).find((r) => r.wall)?.wall?.structure;
   const cellWalls: WallSpec[] = [];
   for (const c of cellCells) {
