@@ -34,6 +34,7 @@ import { cascadeDeTest } from './cascade.testkit';
 import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from './noyau.testkit';
+import { REGLAGES_DU_JET, type DeclarationDuReglage } from './reglagesDuJet';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly RollVerb[]; jetOwner?: JetOwnerRef };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
@@ -255,5 +256,44 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     const s = state(CAST_JET, H_HOST, { net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] } } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(s, 0, ...geste('cast', 'forceSuccess'))).toBe(true);
     expect(intentAllowedFor(s, 0, ...geste('cast', 'bonusSL'))).toBe(true);
+  });
+});
+
+/** Les réglages de la fenêtre entière d'un flux mono à porteur (`REGLAGES_DU_JET`), hors ceux dont la valeur désigne
+ *  le siège qui les joue (`porteurDeLaValeur`). */
+const REGLAGES_PORTES = Object.entries(REGLAGES_DU_JET).flatMap(([flux, reglages]) => {
+  const w = FLOW_VERBS[flux as keyof typeof FLOW_VERBS] as Entry;
+  return w.kind === 'mono' && w.jetOwner
+    ? Object.entries(reglages as Record<string, DeclarationDuReglage>).filter(([, d]) => d.portee === 'fenetre' && !d.porteurDeLaValeur).map(([r]) => [flux, r, w.jetOwner!] as const)
+    : [];
+});
+
+describe('#3368 — un réglage du jet (`jetRegler`) suit le PORTEUR du jet', () => {
+  it('témoin : les réglages des flux mono, et le verbe atteignable par un invité', () => {
+    expect(REGLAGES_PORTES.length).toBeGreaterThan(25);
+    expect(GUEST_INTENTS.has('jetRegler')).toBe(true);
+  });
+
+  it.each(REGLAGES_PORTES)('%s.%s : le siège du porteur héros règle, aucun autre', (flux, reglage, jet) => {
+    const s = state(jet, H_GUEST);
+    expect([0, 1, 2].map((siege) => intentAllowedFor(s, siege, 'jetRegler', [flux, reglage, null]))).toEqual([false, true, false]);
+  });
+
+  it.each(REGLAGES_PORTES)('%s.%s : le jet d’un ennemi se règle du siège MJ seul', (flux, reglage, jet) => {
+    const s = state(jet, ENEMY);
+    expect([0, 1, 2].map((siege) => intentAllowedFor(s, siege, 'jetRegler', [flux, reglage, null]))).toEqual([false, false, true]);
+  });
+
+  it('correction déclarée : le Sort d’un ennemi, à fenêtre partagée (`*`), ne se règle plus de tout siège', () => {
+    const s = state(CAST_JET, ENEMY);
+    expect(modalOwnerOf(s), 'précondition : la fenêtre du Sort ennemi est à tous les sièges').toBe('*');
+    expect([0, 1, 2].map((siege) => intentAllowedFor(s, siege, 'jetRegler', ['cast', 'effetCritique', 'puissance']))).toEqual([false, false, true]);
+    const sansMJ = state(CAST_JET, ENEMY, { net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } } as unknown as Partial<Jeu>);
+    expect([0, 1].map((siege) => intentAllowedFor(sansMJ, siege, 'jetRegler', ['cast', 'surincantationDuree', 1])), 'sans siège MJ, aucun invité ne règle le Sort ennemi').toEqual([false, false]);
+  });
+
+  it('un réglage que son flux ne déclare pas ne se route à aucun siège', () => {
+    const s = state(CAST_JET, H_GUEST);
+    expect([0, 1, 2].map((siege) => intentAllowedFor(s, siege, 'jetRegler', ['cast', 'localisation', null]))).toEqual([false, false, false]);
   });
 });

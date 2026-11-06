@@ -14,7 +14,7 @@ import { currentPlaceId } from './worldMap';
 import { refuserGeste } from './refusVisible';
 import { t } from '../i18n';
 import { makeRNG, hashSeed } from '../engine/dice';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 
 /** Sème les Possessions de dotation (`{id, type}` des dotations de Classe/Carrière,
@@ -245,5 +245,5 @@ export function creerActionsDesPossessions(get: Get, set: Set) {
     disembark: (uid) => disembark(get, set, uid),
     abandonPossession: (uid) => abandonPossession(get, set, uid),
     learnPossessionTrait: (uid, traitId) => learnPossessionTrait(get, set, uid, traitId),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

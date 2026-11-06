@@ -15,14 +15,14 @@ import {
 import { bourseInstanceOf, ensureBourse, bourseOf } from '../engine/bourse';
 import { evalCondition } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
-import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Get, Set } from './flowTypes';
 import { subtract, type Money } from '../engine/money';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Harnais MINIMAL (get/set) sur un état réduit à `party` — même patron que `partyFlow.test.ts`. */
 function makeHarness(party: Combatant[]): { get: Get; set: Set } {
-  let state = { party, flags: {}, gameTime: 0, log: () => {} } as unknown as Jeu;
+  let state = { party, flags: {}, gameTime: 0, log: () => {} } as unknown as JeuDuNoyau;
   const get: Get = () => state;
   const set: Set = (p) => { state = { ...state, ...(typeof p === 'function' ? p(state) : p) }; };
   return { get, set };

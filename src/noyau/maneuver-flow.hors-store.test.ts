@@ -100,7 +100,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0); // 2 − 2
   });
 
-  it('Regard : Avantage variable → maneuverSetAvantage(2) ajoute +2 DR à la marge (Pétrifié)', () => {
+  it('Regard : Avantage variable → réglage maneuver.avantage à 2 ajoute +2 DR à la marge (Pétrifié)', () => {
     banc.getState().seedRng(2);
     const { H, E } = setup();
     H.traits = [{ id: 'regard-petrifiant' }];
@@ -110,7 +110,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     E.skills = E.skills.filter((s) => s.id !== 'initiative');
     activate('regard-petrifiant', E.id);
     expect(banc.getState().pendingManeuver!.avantageSpent).toBe(1); // défaut variable = 1
-    banc.getState().maneuverSetAvantage(6); // dépense tout → +6 DR
+    banc.getState().jetRegler('maneuver', 'avantage', 6); // dépense tout → +6 DR
     expect(banc.getState().pendingManeuver!.avantageSpent).toBe(6);
     banc.getState().jetRoll('maneuver');
     banc.getState().jetConfirm('maneuver');
@@ -121,14 +121,14 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0); // 6 dépensés
   });
 
-  it('maneuverSetAvantage clampe à 1..Avantage', () => {
+  it('réglage maneuver.avantage clampe à 1..Avantage', () => {
     const { H, E } = setup();
     H.traits = [{ id: 'regard-petrifiant' }];
     H.advantage = 3;
     activate('regard-petrifiant', E.id);
-    banc.getState().maneuverSetAvantage(99);
+    banc.getState().jetRegler('maneuver', 'avantage', 99);
     expect(banc.getState().pendingManeuver!.avantageSpent).toBe(3); // plafonné à l’Avantage
-    banc.getState().maneuverSetAvantage(0);
+    banc.getState().jetRegler('maneuver', 'avantage', 0);
     expect(banc.getState().pendingManeuver!.avantageSpent).toBe(1); // plancher 1
   });
 

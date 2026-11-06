@@ -28,6 +28,7 @@ import { basename, join, relative } from 'node:path';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
 import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { typeDuDocument } from '../../guards/lib/proseInline.mjs';
+import { REGISTRIES } from './cibles-registres.mjs';
 import { defsDeDocument } from './slots-registre.mjs';
 import { choixDeclares, choixDesPayloadsDOp, introspecterDefs } from './zod-introspect.mjs';
 import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
@@ -35,7 +36,8 @@ import { IDS_PAR_ESPACE } from '../../../src/data/schemas/_ids.generated';
 import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/collection-cle';
 import { carteDuRecord } from '../../../src/data/schemas/grammaire/cle-d-espace';
 import { conceptDe } from '../../../src/data/schemas/grammaire/concepts';
-import { auPlusProcheAncetre, coDescendre, defDe, descendre, enfantsDe } from '../../../src/data/schemas/grammaire/descente';
+import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
+import { auPlusProcheAncetre, coDescendre, defDe, descendre, enfantsDe, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
 import { sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
 import type { SchemaDef } from '../../../src/data/schemas/types';
@@ -1422,8 +1424,9 @@ export function mesurerEnveloppe(groupes: readonly GroupeEnveloppe[]): Divergenc
 }
 
 // ---------------------------------------------------------------------------
-// Redéclarations LOCALES : AST des `defs/*.ts`, littéraux d'objet passés à z.object/strictObject/
-// looseObject dont la signature recoupe le lexique ou un schéma de la grammaire partagée.
+// Redéclarations LOCALES : AST des modules de schéma des documents (`DOSSIERS_DE_DEFS`), littéraux d'objet
+// passés à z.object/strictObject/looseObject dont la signature recoupe le lexique ou un schéma de la grammaire
+// partagée.
 // ---------------------------------------------------------------------------
 
 /** Les fichiers de la GRAMMAIRE partagée (`src/data/schemas/grammaire/`) — un schéma commun y vit,
@@ -1471,7 +1474,7 @@ function kindsDeCondition(root: string): Set<string> {
  * l'ordre de lecture des fichiers de la grammaire.
  * Les littéraux s'apparient par leur FORME (`formeDuLitteral`), pas par leur seule signature.
  */
-function schemasCommuns(root: string): Map<string, string> {
+function schemasCommuns(grammaire: readonly ts.SourceFile[]): Map<string, string> {
   const racines = new Map<string, string>();
   const niches = new Map<string, string>();
   const visite = (node: ts.Node, sf: ts.SourceFile) => {
@@ -1484,7 +1487,7 @@ function schemasCommuns(root: string): Map<string, string> {
     }
     node.forEachChild((n) => visite(n, sf));
   };
-  for (const sf of sourcesGrammaire(root)) visite(sf, sf);
+  for (const sf of grammaire) visite(sf, sf);
   for (const [sig, nom] of niches) if (!racines.has(sig)) racines.set(sig, nom);
   return racines;
 }
@@ -1498,13 +1501,8 @@ const champDuLitteral = (lit: ts.Node): string => {
   return '';
 };
 
-/**
- * FORME d'un littéral, clé d'appariement aux schémas communs : sa signature, sauf quand TOUTES ses
- * clés sont des étiquettes `z.literal(…)` — la forme est alors l'étiquette avec sa valeur
- * (`kind=always`, `poste=true`). Deux branches d'unions sans autre clé que leur discriminant ne se
- * confondent pas ; un même littéral retapé, si.
- */
-const formeDuLitteral = (lit: ts.ObjectLiteralExpression, sf: ts.SourceFile, cles: readonly string[]): string => {
+/** Les ÉTIQUETTES d'un littéral : ses clés `clé: z.literal(v)`, avec leur valeur. Une étiquette NOMME une variante. */
+const etiquettesDuLitteral = (lit: ts.ObjectLiteralExpression, sf: ts.SourceFile): ReadonlyMap<string, string> => {
   const etiquettes = new Map<string, string>();
   for (const p of lit.properties) {
     if (!ts.isPropertyAssignment(p) || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) continue;
@@ -1513,10 +1511,19 @@ const formeDuLitteral = (lit: ts.ObjectLiteralExpression, sf: ts.SourceFile, cle
     const arg = v.arguments[0];
     if (arg) etiquettes.set(p.name.text, ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg) ? arg.text : arg.getText(sf));
   }
-  return cles.length && cles.every((k) => etiquettes.has(k))
+  return etiquettes;
+};
+
+/**
+ * FORME d'un littéral, clé d'appariement aux schémas communs : sa signature, sauf quand TOUTES ses
+ * clés sont des étiquettes — la forme est alors l'étiquette avec sa valeur (`kind=always`,
+ * `poste=true`). Deux branches d'unions sans autre clé que leur discriminant ne se confondent pas ; un
+ * même littéral retapé, si.
+ */
+const formeDuLitteral = (cles: readonly string[], etiquettes: ReadonlyMap<string, string>): string =>
+  cles.length && cles.every((k) => etiquettes.has(k))
     ? [...cles].sort().map((k) => `${k}=${etiquettes.get(k)}`).join(',')
     : signature(cles);
-};
 
 /**
  * Tous les littéraux d'objet argument d'un `z.object|strictObject|looseObject` sous `node`, PLUS
@@ -1527,7 +1534,7 @@ const formeDuLitteral = (lit: ts.ObjectLiteralExpression, sf: ts.SourceFile, cle
  * Les deux graphies de `champs` sont admises : littéral INLINE et const NOMMÉE référencée.
  */
 function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
-  const out: Array<{ ligne: number; champ: string; cles: string[]; forme: string }> = [];
+  const out: Array<{ ligne: number; champ: string; cles: string[]; forme: string; etiquettes: ReadonlyMap<string, string> }> = [];
   const constsObjet = new Map<string, ts.ObjectLiteralExpression>();
   const releve = (n: ts.Node) => {
     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) {
@@ -1538,7 +1545,8 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
   releve(node);
   const pousse = (lit: ts.ObjectLiteralExpression, champ: string) => {
     const cles = lit.properties.flatMap((p) => ('name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : []));
-    out.push({ ligne: sf.getLineAndCharacterOfPosition(lit.getStart(sf)).line + 1, champ, cles, forme: formeDuLitteral(lit, sf, cles) });
+    const etiquettes = etiquettesDuLitteral(lit, sf);
+    out.push({ ligne: sf.getLineAndCharacterOfPosition(lit.getStart(sf)).line + 1, champ, cles, forme: formeDuLitteral(cles, etiquettes), etiquettes });
   };
   const visite = (n: ts.Node) => {
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'document') {
@@ -1562,16 +1570,28 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
   return out;
 }
 
-type LitteralDef = { def: string; ligne: number; champ: string; cles: string[]; forme: string };
+type LitteralDef = { def: string; ligne: number; champ: string; cles: string[]; forme: string; etiquettes: ReadonlyMap<string, string> };
 
-/** Tous les littéraux d'objet zod des `defs/*.ts`, avec leur `def:ligne`, leur champ et leurs clés. */
+/** Les dossiers des modules de schéma des documents : ceux des registres de `SchemaDef` (`REGISTRIES`,
+ *  `cibles-registres.mjs`), jamais une liste écrite ici. */
+export const DOSSIERS_DE_DEFS: readonly string[] = REGISTRIES.filter((r) => r.type === 'SchemaDef').map((r) => r.dir);
+
+/** Tous les littéraux d'objet zod des modules de `DOSSIERS_DE_DEFS`, avec leur `def:ligne`, leur champ et
+ *  leurs clés. Le `def` est le BASENAME du module : deux modules homonymes de deux dossiers LÈVENT. */
 function litterauxDefs(root: string): LitteralDef[] {
-  const dir = join(root, 'src/data/schemas/defs');
   const out: LitteralDef[] = [];
-  for (const { fichier, sourceFile: sf } of analyserCorpus(listerDossier(dir).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts')).map((f) => ({ rel: join(dir, f), text: readFileSync(join(dir, f), 'utf8') })))) {
-    const f = basename(fichier.rel);
-    if (!sf) continue;
-    for (const lit of litterauxZod(sf, sf)) out.push({ def: f, ...lit });
+  const dossierDu = new Map<string, string>();
+  for (const dossier of DOSSIERS_DE_DEFS) {
+    const dir = join(root, dossier);
+    const modules = listerDossier(dir, { absent: 'vide' }).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+    for (const { fichier, sourceFile: sf } of analyserCorpus(modules.map((f) => ({ rel: join(dir, f), text: readFileSync(join(dir, f), 'utf8') })))) {
+      const f = basename(fichier.rel);
+      const deja = dossierDu.get(f);
+      if (deja !== undefined) throw new Error(`redéclarations : le module « ${f} » vit dans ${deja} ET dans ${dossier}, la clé \`def\` les confondrait.`);
+      dossierDu.set(f, dossier);
+      if (!sf) continue;
+      for (const lit of litterauxZod(sf, sf)) out.push({ def: f, ...lit });
+    }
   }
   return out;
 }
@@ -1626,17 +1646,66 @@ const classerLitteral = (sig: string, cles: readonly string[], champ: string): C
   return hit ? statutDe(CONCEPT_REFERENCE, sig) : null;
 };
 
-/** Redéclarations locales dans `src/data/schemas/defs/*.ts` (un seul walk des defs). */
+/**
+ * Les ÉTIQUETTES qu'admettent les nœuds POSÉS de chaque concept : tout nœud des schémas du registre
+ * (`defsDeDocument`) qui porte une pose (`conceptDe`, par identité ou par classe de produit) y verse ses
+ * valeurs admises par clé (`valeursAdmises`), sous le concept du lexique de sa pose (`CONCEPT_DE_LA_POSE`) ; un
+ * produit `objetDeRef/refTypee` y verse aussi tout `type` que sa fabrique admet (`TYPES`, `refTypee`,
+ * `grammaire/ref.ts`). Un concept absent de la carte n'a aucune pose.
+ */
+function etiquettesDesPoses(): Map<string, Map<string, Set<string>>> {
+  const out = new Map<string, Map<string, Set<string>>>();
+  descendre(defsDeDocument().map((d) => d.schema), ({ noeud }) => {
+    const pose = conceptDe(noeud);
+    if (pose === undefined) return;
+    const parCle = out.get(CONCEPT_DE_LA_POSE[pose]) ?? new Map<string, Set<string>>();
+    const produit = classeDeProduit(noeud);
+    const parFabrique = produit?.fabrique === 'objetDeRef' && produit.role === 'refTypee' ? { type: Object.keys(TYPES) } : {};
+    for (const [cle, valeurs] of [...Object.entries(valeursAdmises(noeud)), ...Object.entries(parFabrique)])
+      for (const v of valeurs) parCle.set(cle, (parCle.get(cle) ?? new Set<string>()).add(String(v)));
+    out.set(CONCEPT_DE_LA_POSE[pose], parCle);
+  });
+  return out;
+}
+
+/**
+ * Un littéral CLASSÉ appartient-il à son concept ? Une ÉTIQUETTE (`clé: z.literal(v)`) nomme une variante : un
+ * concept POSÉ n'admet le littéral que si chacune de ses étiquettes est admise par un de ses nœuds posés
+ * (`etiquettesDesPoses`). Un concept SANS pose n'a pour nœuds que des littéraux : il n'est REdéclaré que s'il est
+ * déclaré plus d'une fois (`declarations`, grammaire et defs réunies) — un littéral unique est sa définition.
+ */
+const admisAuConcept = (
+  classe: Classement,
+  etiquettes: ReadonlyMap<string, string>,
+  admises: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>>,
+  declarations: ReadonlyMap<string, number>,
+): boolean => {
+  const parCle = admises.get(classe.concept);
+  return parCle ? [...etiquettes].every(([k, v]) => parCle.get(k)?.has(v) ?? false) : (declarations.get(classe.concept) ?? 0) > 1;
+};
+
+/** Redéclarations locales dans les modules de `DOSSIERS_DE_DEFS` (un seul walk des defs). */
 export function scannerRedeclarations(root: string): { redeclarations: Redeclaration[]; totalLitteraux: number } {
-  const communs = schemasCommuns(root);
+  const grammaire = sourcesGrammaire(root);
+  const communs = schemasCommuns(grammaire);
   const lits = litterauxDefs(root);
+  const admises = etiquettesDesPoses();
+  const classer = (l: { cles: string[]; champ: string }): Classement | null => {
+    const sig = signature(l.cles);
+    return sig ? classerLitteral(sig, l.cles, l.champ) : null;
+  };
+  const classements = lits.map(classer);
+  const declarations = new Map<string, number>();
+  for (const c of [...grammaire.flatMap((sf) => litterauxZod(sf, sf)).map(classer), ...classements])
+    if (c && !admises.has(c.concept)) inc(declarations, c.concept);
   const out: Redeclaration[] = [];
-  for (const lit of lits) {
+  lits.forEach((lit, i) => {
     const sig = signature(lit.cles);
-    if (!sig) continue;
-    const cl = classerLitteral(sig, lit.cles, lit.champ);
+    if (!sig) return;
+    const classe = classements[i];
+    const cl = classe && admisAuConcept(classe, lit.etiquettes, admises, declarations) ? classe : null;
     const commun = communs.get(lit.forme);
-    if (!cl && !commun) continue;
+    if (!cl && !commun) return;
     out.push({
       def: lit.def,
       ligne: lit.ligne,
@@ -1646,6 +1715,6 @@ export function scannerRedeclarations(root: string): { redeclarations: Redeclara
       statut: cl?.statut ?? 'hors lexique',
       commun: commun ?? '',
     });
-  }
+  });
   return { redeclarations: out, totalLitteraux: lits.length };
 }

@@ -1,7 +1,8 @@
 // STOCK des structures de donnée (#1463, #2705, #3021) : les deux collections que la donnée ne fait pas bouger.
 // `STRUCTURES_CIBLES` fige les signatures `cible` du lexique (`CONCEPTS`, `scripts/docs/lib/structures-lexique.mts`) ;
-// `STRUCTURES_REDECLARATIONS` porte les littéraux zod d'un `defs/*.ts` qui redéclarent un concept, mesurés sur l'AST
-// des defs (`scannerRedeclarations`, `scripts/docs/lib/structures-scan.mts`) et comptés sous la porte des comptes
+// `STRUCTURES_REDECLARATIONS` porte les littéraux zod d'un module de schéma de document (`DOSSIERS_DE_DEFS`, les dossiers
+// des registres de `SchemaDef`) qui redéclarent un concept, mesurés sur l'AST (`scannerRedeclarations`,
+// `scripts/docs/lib/structures-scan.mts`) et comptés sous la porte des comptes
 // (`COLLECTIONS_A_COMPTE`, `scripts/guards/lib/occurrencesStock.mjs`). Contrat : `src/data/structures-contrat.test.ts` ;
 // rendu : `docs/structures-donnees.md` (`npm run docs:structures`).
 //
@@ -184,7 +185,7 @@ export const STRUCTURES_CIBLES = [
   { concept: "effet-narratif", signature: "indiceId,stade,type", date: "2026-10-17" },
 ];
 
-/** Littéral d'objet zod d'un `defs/*.ts` qui REDÉCLARE localement un concept du lexique (ou la
+/** Littéral d'objet zod d'un module de `DOSSIERS_DE_DEFS` qui REDÉCLARE localement un concept du lexique (ou la
  *  signature exacte d'un littéral de la grammaire, `src/data/schemas/grammaire/`). Keyé par `def | champ | concept | signature` :
  *  sans le CHAMP, 13 lignes agrégeaient 2 à 4 champs distincts. Pas de numéro de ligne ici : une
  *  ligne bouge à chaque édition du def et ferait rougir la garde sans qu'aucune structure n'ait

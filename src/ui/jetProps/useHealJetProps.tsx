@@ -18,6 +18,7 @@ import { VsHeader } from '../VsHeader';
 import { libelleDeTest } from '../../noyau/jetsEnVue';
 import { t } from '../../i18n';
 import { useGesteDeJet } from '../useGesteDeJet';
+import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 
 /**
  * Flux de jet d'un SOIN (Guérison, LDB 09-Compétences) : « Lancer » → Chance (relance / +1 DR) →
@@ -39,9 +40,10 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const force = useGesteDeJet('jetForceSuccess', 'heal');
   const confirm = useGesteDeJet('jetConfirm', 'heal');
   const cancel = useGesteDeJet('jetCancel', 'heal');
-  const setMode = useGame((s) => s.healSetMode);
-  const setTest = useGame((s) => s.healSetTest);
-  const setBandages = useGame((s) => s.healSetBandages);
+  const regler = useGame((s) => s.jetRegler);
+  const setMode = (v: ReglagesDuJet['heal']['mode']) => regler('heal', 'mode', v);
+  const setTest = (v: ReglagesDuJet['heal']['test']) => regler('heal', 'test', v);
+  const setBandages = (v: ReglagesDuJet['heal']['bandages']) => regler('heal', 'bandages', v);
   if (!ph) return null;
   const fenetre = fenetreDuSoin(useGame.getState());
   const pool = battle?.combatants ?? party; // même flux en combat (file) et hors combat (groupe)

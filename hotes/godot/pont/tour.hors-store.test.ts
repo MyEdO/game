@@ -87,7 +87,7 @@ describe('un tour complet par le pont', () => {
     ({ suite } = jouer({ type: CLICS_DU_CHAMP.combattant, args: [cible] }));
     expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'attackJet' } });
     expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attack');
-    expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('attackSetLocation');
+    expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('jetRegler@attack#localisation');
     expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetRoll@attack');
     expect(corpsDe(suite.vue, 'degats'), 'les Dégâts de l’arme, à part').toMatchObject({ type: 'puce', valeur: expect.stringMatching(/^\+\d+$/) });
     expect(corpsDe(suite.vue, 'cible'), 'la fenêtre nomme la cible').toMatchObject({ type: 'ligne', texte: expect.stringContaining(nomDeLaCible) });
@@ -95,7 +95,7 @@ describe('un tour complet par le pont', () => {
     expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetRoll@attack');
 
     const localiser = () => {
-      const g = gesteDe(suite.vue, 'attackSetLocation');
+      const g = gesteDe(suite.vue, 'jetRegler@attack#localisation');
       if (g.type !== 'choix' && g.type !== 'liste') throw new Error(`la Localisation : ${g.type}, pas un choix`);
       return g.valeurs;
     };

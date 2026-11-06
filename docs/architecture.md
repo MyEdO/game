@@ -442,7 +442,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `interactionsDExploration.ts` (offres, assise, fouille), `conversation.ts`,
                             `testsDeScene.ts`, `issueDeCombat.ts`, `campagne.ts` (indices, documents, héros
                             désignés), `orientation.ts`, `horloge.ts`, `journal.ts` ; `fabriquesDuNoyau.ts`
-                            (`creerActionsDuNoyau`) les compose, pour le store comme pour la partie.
+                            (`creerActionsDuNoyau`) les compose, pour le store comme pour la partie, avec la
+                            machinerie (`machinerieDuNoyau.ts`, #3370) : les écritures que le noyau, l'éditeur ou
+                            un test appellent et qu'aucun hôte ne joue, hors de `Intention` et de `VERBES`.
                             `partie.ts` (`creerPartie`, #2817 D9) : le propriétaire de l'état d'un hôte qui
                             n'est pas le web ; chaque `envoyer`/`lancer`/`reprendre` rend `{ issue,
                             evenements, journal }`. `lancementDeScenario.ts` (#2898) : le lancement d'un

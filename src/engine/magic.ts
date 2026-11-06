@@ -1057,7 +1057,7 @@ export function overcastSL(res: CastResult, critChoice: CritChoice | undefined):
   return fullPowerChosen(res, critChoice) ? applyFullPower(res).sl : res.sl;
 }
 
-/** BUDGET de Surincantation d'un lancement résolu — SITE UNIQUE (modale, `castAllocOvercast`, plan de
+/** BUDGET de Surincantation d'un lancement résolu — SITE UNIQUE (modale, réglage `cast.surincantation*`, plan de
  *  l'IA) : le DR au-delà du NI effectif figé au jet (`niRequired`), DR augmenté par « Puissance
  *  totale » (`overcastSL`). 0 si le jet n'a pas lancé le Sort ou s'il est dissipé.
  *  `LDB 47 l.17`, `l.21` ; `LDB 46 l.132`, `l.156` ; `LDB 41 l.21` ; `VDM 02 l.55`, `l.196`. */

@@ -3124,6 +3124,19 @@ const carriereParId = indexParId('careers', careers);
 export function findCareerById(id: string | undefined): CareerData | undefined {
   return carriereParId(id);
 }
+/**
+ * Libellé GÉNÉRIQUE d'une entrée de dataset : le `CodexItem.label` du registre du Codex, et le nom
+ * courant de l'entrée éditée à l'atelier, qui la refuse vide (`validateEntry`). Précédence
+ * `label → id`. Mesuré sur les 2 racines (`src/data`, `src/scenes`) : aucune entrée de premier niveau
+ * ne porte `key` ni `name` (#1467 L1b V-P1).
+ * EXCEPTION careerLevels : le libellé de niveau (« Recrue ») revient sur plusieurs carrières et
+ * n'identifie rien seul → composite carrière + niveau.
+ */
+export function entryKey(e: Record<string, unknown>): PlayerText {
+  if (typeof e.career === 'string' && typeof e.level === 'number')
+    return dataLabel(`${findCareerById(e.career)?.label ?? e.career} · N${e.level} ${e.label ?? ''}`.trim());
+  return dataLabel(String(e.label ?? e.id ?? ''));
+}
 /** Choix d'AFFICHAGE masculin/féminin (source unique) : `labelF` si sexe F et disponible, sinon
  *  `label`. Le sexe vit dans l'apparence cosmétique (`Combatant.appearance.sex`), jamais dans le moteur. */
 export function displayLabelForSex(sex: Sexe | undefined, label: string, labelF?: string): PlayerText {

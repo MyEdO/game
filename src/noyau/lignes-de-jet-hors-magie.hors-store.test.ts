@@ -150,7 +150,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     banc.setState({ battle: null, party: [heros()] });
     banc.getState().seedRng(13);
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', heroId: 'h' }]);
-    banc.getState().corruptionSetNature('spirituelle');
+    banc.getState().jetRegler('corruption', 'nature', 'spirituelle');
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), banc.getState().pendingCorruption!.test));
     const enVue = cibleEnVue(banc.getState(), 'corruption', 'h');
@@ -224,7 +224,7 @@ describe('Corruption : la nature que la fenêtre offre est celle que le verbe ac
     it(`l’option ${cle} annonce la cible du Test que son choix fait jeter`, () => {
       const banc = ouvrir();
       const option = fenetreDeCorruption(banc.getState())!.nature!.options.find((o) => o.valeur === cle)!;
-      banc.getState().corruptionSetNature(cle);
+      banc.getState().jetRegler('corruption', 'nature', cle);
       banc.getState().jetRoll('corruption');
       expect(banc.getState().pendingCorruption!.target).toBe(option.cible);
     });
@@ -236,11 +236,11 @@ describe('Corruption : la nature que la fenêtre offre est celle que le verbe ac
       if (lance) banc.getState().jetRoll('corruption');
       for (const cle of NATURES_D_INFLUENCE) {
         const autre = cle === 'physique' ? 'spirituelle' : 'physique';
-        if (!lance) banc.getState().corruptionSetNature(autre);
+        if (!lance) banc.getState().jetRegler('corruption', 'nature', autre);
         const refus = fenetreDeCorruption(banc.getState())!.nature!.options.find((o) => o.valeur === cle)!.refus;
         expect(refus).toBe(refusDeLaNature(banc.getState()));
         const avant = banc.getState().pendingCorruption!.nature;
-        banc.getState().corruptionSetNature(cle);
+        banc.getState().jetRegler('corruption', 'nature', cle);
         expect(banc.getState().pendingCorruption!.nature === cle, `nature ${cle}`).toBe(refus === null || avant === cle);
         expect(refus === null, `nature ${cle}`).toBe(!lance);
       }
@@ -250,7 +250,7 @@ describe('Corruption : la nature que la fenêtre offre est celle que le verbe ac
   it('nature imposée par la source : aucun choix offert, le verbe ne change rien', () => {
     const banc = ouvrir('spirituelle');
     expect(fenetreDeCorruption(banc.getState())!.nature).toBeNull();
-    banc.getState().corruptionSetNature('physique');
+    banc.getState().jetRegler('corruption', 'nature', 'physique');
     expect(banc.getState().pendingCorruption!.nature).toBe('spirituelle');
   });
 });

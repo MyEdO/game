@@ -6,13 +6,14 @@
  */
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import type { EtatDeJeu, Jeu } from './etat';
+import type { EtatDeJeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Scene } from './monde/scene';
 import { actorIn } from './monde/combatants';
 
 /** L'acteur `c` relu par son id dans l'état de `getState` : une écriture copie le combattant dont le maximum
  *  des Blessures bouge (`transitionDuJeu.ts`), une référence prise avant elle désigne l'ancien objet. */
-export function reluDans(getState: () => Jeu, c: Combatant): Combatant {
+export function reluDans(getState: () => JeuDuNoyau, c: Combatant): Combatant {
   return actorIn(getState(), c.id)!;
 }
 
@@ -35,8 +36,8 @@ export function auContact(etat: EtatDeJeu): { H: Combatant; E: Combatant; patch:
 
 /** Le propriétaire qui ouvre le duel (le store, un banc) : son état, son écriture, et l'abandon des suites programmées. */
 export interface ProprietaireDuDuel {
-  getState: () => Jeu;
-  setState: (patch: Partial<Jeu>) => void;
+  getState: () => JeuDuNoyau;
+  setState: (patch: Partial<JeuDuNoyau>) => void;
   abandonner: () => void;
 }
 

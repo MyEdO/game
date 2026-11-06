@@ -21,7 +21,7 @@ import { generateTradeRumour } from './landMarketFlow';
 import { placeOfScene } from './worldMap';
 import { rule } from '../engine/policy';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 const ACTIVITY_ID = 'recueillir-informations';
@@ -49,7 +49,7 @@ export function gatherInnInfo(get: Get, set: Set): void {
 export function creerActionsDeLAuberge(get: Get, set: Set) {
   return {
     gatherInnInfo: () => gatherInnInfo(get, set),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

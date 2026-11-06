@@ -5,7 +5,7 @@
  * (`FermetureDuJet`). Le duel est celui de `combatDeTest.testkit.ts`, ses pendings posés comme `jetsEnVue`.
  */
 import { describe, it, expect } from 'vitest';
-import { creerPartie, etatInitialDuJeu, fermeturesDeLaFenetre, fenetreDuJeu, type EntreesDeLaPartie, type Jeu } from './index';
+import { VERBE_DE_REGLAGE, creerPartie, etatInitialDuJeu, fermeturesDeLaFenetre, fenetreDuJeu, type EntreesDeLaPartie, type Jeu } from './index';
 import { fermeturesDuFlux } from './verbesOuverts';
 import { rollOups } from '../engine/oups';
 import { makeRNG } from '../engine/dice';
@@ -19,13 +19,13 @@ import type { CascadeStep, OppositionParticipant, PendingAttack, PendingCascade,
 import type { HostJet } from './slotsDeJet';
 import type { FermetureDuJet } from './rollFlowFactory';
 import { fixtureText } from '../i18n/fixtureText';
+import { tableTotale } from '../lib/tableTotale';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
 function leDuel() {
-  const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
-  ouverture.envoyer({ type: 'startScene', args: [testScene()] });
-  ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
+  const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
   ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
   const garde = ouverture.etat();
   ouverture.fermer();
@@ -69,15 +69,16 @@ function reserves(r: { resilience?: number; resolve?: number }): Partial<Jeu> {
   return { battle: { ...BASE.battle!, combatants: BASE.battle!.combatants.map((c) => (c.id === H.id ? { ...c, ...r } : c)) } };
 }
 
-/** Les verbes de la fenêtre qui tient la main, ouverts puis fermés avec ce qui les ferme. */
-function verbes(patch: Partial<Jeu>): { ouverts: string[]; fermes: Record<string, FermetureDuJet> } {
+/** Les gestes de la fenêtre qui tient la main, ouverts puis fermés avec ce qui les ferme : ses verbes de jet, ou ses
+ *  réglages (`jetRegler`). */
+function verbes(patch: Partial<Jeu>, reglages = false): { ouverts: string[]; fermes: Record<string, FermetureDuJet> } {
   const s = { ...BASE, ...patch } as Jeu;
   const f = fenetreDuJeu(s);
   expect(f, 'aucune fenêtre ne tient la main').not.toBeNull();
-  const juges = fermeturesDeLaFenetre(s, f);
+  const juges = [...fermeturesDeLaFenetre(s, f)].filter(([v]) => v.startsWith(`${VERBE_DE_REGLAGE}@`) === reglages);
   const fermes: Record<string, FermetureDuJet> = {};
   for (const [v, raison] of juges) if (raison) fermes[v] = raison;
-  return { ouverts: [...juges].filter(([, r]) => r === null).map(([v]) => v).sort(), fermes };
+  return { ouverts: juges.filter(([, r]) => r === null).map(([v]) => v).sort(), fermes };
 }
 
 /** L'étape-jet `jet` de la cascade, son pending posé. */
@@ -126,6 +127,19 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
     const apres = verbes(enEtape('cast', { pendingCast: incantation(true) }));
     expect(apres.ouverts).toEqual(['jetBonusSL@cast', 'jetConfirm@cast', 'jetDarkPact@cast', 'jetSetForcedRoll@cast']);
     expect(apres.fermes).toMatchObject({ 'jetRoll@cast': 'jetLance', 'jetReroll@cast': 'jetReussi', 'jetForceSuccess@cast': 'jetReussi' });
+  });
+
+  it('un réglage se joue dans sa phase (`REGLAGES_DU_JET`) : avant le dé, ou une fois le dé tombé', () => {
+    const avantLeJet = ['arme', 'deuxArmes', 'empoigner', 'localisation', 'retenirSesCoups', 'sansLaCorde'].map((r) => `jetRegler@attack#${r}`);
+    const avant = verbes(enEtape('attack', { pendingAttack: attaque() }), true);
+    expect(avant.ouverts).toEqual(avantLeJet);
+    expect(avant.fermes).toEqual({ 'jetRegler@attack#localisationDuCritique': 'jetNonLance' });
+    const apres = verbes(enEtape('attack', { pendingAttack: attaque(COUP) }), true);
+    expect(apres.ouverts).toEqual(['jetRegler@attack#localisationDuCritique']);
+    expect(apres.fermes).toEqual(tableTotale(avantLeJet, () => 'jetLance'));
+    const lance = verbes(enEtape('cast', { pendingCast: incantation(true, true) }), true);
+    expect(lance.ouverts, 'LDB 46 l.26-32 ; LDB 47 l.15-17').toEqual(expect.arrayContaining(['jetRegler@cast#effetCritique', 'jetRegler@cast#surincantationDuree', 'jetRegler@cast#ciblesSupplementaires']));
+    expect(lance.fermes).toMatchObject({ 'jetRegler@cast#discret': 'jetLance' });
   });
 
   it('sans l’option « Dés fixés », aucun dé ne se fixe après le jet', () => {
@@ -187,15 +201,15 @@ describe('fermeturesDeLaFenetre — un geste de jet se juge sur SON flux (#3311)
   });
 
   it('l’incantation n’offre que les réglages qui changent son Sort', () => {
-    const { fermes } = verbes(enEtape('cast', { pendingCast: incantation(true) }));
-    expect([fermes.castSetCritChoice, fermes.castSetConjureForm, fermes.castSetDiscreet, fermes.castSetChosenTableRolls], 'un Sort jeté sans Critique, sans arme invoquée ni Durée surincantée')
+    const { fermes } = verbes(enEtape('cast', { pendingCast: incantation(true) }), true);
+    expect(['effetCritique', 'formeConjuree', 'discret', 'jetsDeTable'].map((r) => fermes[`jetRegler@cast#${r}`]), 'un Sort jeté sans Critique, sans arme invoquée ni Durée surincantée')
       .toEqual(['nonOffert', 'nonOffert', 'jetLance', 'nonOffert']);
-    expect(verbes(enEtape('cast', { pendingCast: incantation(true, true) })).ouverts, 'LDB 46 l.26-32').toContain('castSetCritChoice');
+    expect(verbes(enEtape('cast', { pendingCast: incantation(true, true) }), true).ouverts, 'LDB 46 l.26-32').toContain('jetRegler@cast#effetCritique');
     setRule('prayer-conviction', true);
     try {
-      const priere = verbes(enEtape('cast', { pendingCast: { ...incantation(false), spellId: 'benediction-de-guerison' } }));
-      expect(priere.ouverts, 'LDB 40 l.42').toContain('castSetDiscreet');
-      expect(priere.fermes.castSetCritChoice, 'une Prière n’a pas de Critique').toBe('jetNonLance');
+      const priere = verbes(enEtape('cast', { pendingCast: { ...incantation(false), spellId: 'benediction-de-guerison' } }), true);
+      expect(priere.ouverts, 'LDB 40 l.42').toContain('jetRegler@cast#discret');
+      expect(priere.fermes['jetRegler@cast#effetCritique'], 'une Prière n’a pas de Critique').toBe('jetNonLance');
     } finally {
       resetRule('prayer-conviction');
     }

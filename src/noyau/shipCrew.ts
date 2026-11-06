@@ -34,7 +34,7 @@ import { propulsionDuNavire, milieuDuVoyage } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /**
@@ -521,7 +521,7 @@ export function refusDeChoixDePaie(s: Jeu, decision: string): string | null {
   return refusDeGesteSurLeGroupe(s) ?? (choixDePaieOuverts(s).includes(decision) ? null : t('crew.paieHorsBourse'));
 }
 
-/** Les chansons que `shantySetSong` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
+/** Les chansons que réglage `shanty.chanson` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
  *  le catalogue porte, tant que le jet n'est pas tombé. MDG 09 l.32-40. */
 export function chansonsDuChanteur(s: Jeu): string[] {
   const p = s.pendingShanty;
@@ -602,5 +602,5 @@ export function creerActionsDeLEquipage(get: Get, set: SetFn) {
       setAmmoChoice(undefined, undefined, ammoUid ?? undefined, poste); // écrivain UNIQUE de la sélection
       set({ battle: { ...b } });
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }

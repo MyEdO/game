@@ -788,6 +788,10 @@ export const EXPRESSION_DE_DE = /^\s*[+-]?\s*(\d+\s*\+\s*)?\d*\s*d\s*\d+\s*([+-]
  *  d'une place assise (`props.json`). */
 export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(), y: z.number().finite() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
 
+/** `{x,y}` en POUR CENT d'un canevas (0-100), point CONTINU et non case — un lieu sur la carte du monde,
+ *  un point d'intérêt sur le plan de son lieu (`defs-scenes/worldmap.ts`). */
+export const pointDuCanevasSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
+
 /**
  * `raceKey` — id STABLE des 7 espèces jouables (LDB + suppléments), patron `defs/characteristics`
  * (#310). Clé de `species.json.refChar`, `hairs.json`/`eyes.json.color`, `details.json.age`/
