@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.83-129 */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
+import { document, tableTiree } from '../grammaire/document';
 import { EXPRESSION_DE_DE, ecartsDeCouverture, effetSigneSchema, plageOuverteSchema, quantiteTireeSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 
@@ -93,7 +93,8 @@ const doc = document(
       source: { label: 'Source' },
       factors: { label: 'Facteurs' },
     }),
-    boardEvents: listeCle(seaEventDef, 'id'),
+    /** MDG 15 l.134 */
+    boardEvents: tableTiree(seaEventDef),
     portEvents: listeCle(seaEventDef, 'id'),
     fastVoyage: nommerChamps(z.strictObject({ source: sourceRefSchema, paliers: z.array(fastVoyagePalier) }), { source: { label: 'Source' }, paliers: { label: 'Paliers' } }),
   },
@@ -108,7 +109,7 @@ const doc = document(
   },
   {
     codex: { keys: ['seaManannFactors', 'seaBoardEvents', 'seaPortEvents'] },
-    edit: { niche: { categories: { seaManannFactors: 'manann.factors', seaBoardEvents: 'boardEvents', seaPortEvents: 'portEvents' } } },
+    edit: { niche: { categories: { seaManannFactors: 'manann.factors', seaBoardEvents: 'boardEvents.entries', seaPortEvents: 'portEvents' } } },
   },
   {
     // MDG 15 l.137, l.235 (boardEvents) ; l.33, l.37 (fastVoyage) ; l.129, l.243-263 (portEvents) ;
@@ -116,10 +117,10 @@ const doc = document(
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         type Bande = { id?: string; min?: number | null; max?: number | null };
-        const d = v as { boardEvents?: Bande[]; fastVoyage?: { paliers?: Bande[] }; portEvents?: Bande[]; manann?: { portEventMod?: number } };
+        const d = v as { boardEvents?: { entries?: Bande[] }; fastVoyage?: { paliers?: Bande[] }; portEvents?: Bande[]; manann?: { portEventMod?: number } };
         const modDePort = d.manann?.portEventMod ?? 0;
         const tables: [(string | number)[], string, Bande[], number | 'ouverte', number | 'ouverte'][] = [
-          [['boardEvents'], "le jet d'Événement de bord", d.boardEvents ?? [], 'ouverte', 'ouverte'],
+          [['boardEvents', 'entries'], "le jet d'Événement de bord", d.boardEvents?.entries ?? [], 'ouverte', 'ouverte'],
           [['fastVoyage', 'paliers'], 'le d10 du Voyage rapide', d.fastVoyage?.paliers ?? [], 'ouverte', 'ouverte'],
           [['portEvents'], "le 2d10 de l'escale, Humeur de Manann comprise", d.portEvents ?? [], 2 - modDePort, 20 + modDePort],
         ];

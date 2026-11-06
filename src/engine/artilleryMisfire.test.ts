@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { lireSalveMisfire, TABLE_SALVE_MISFIRE, DE_SALVE_MISFIRE } from './artilleryMisfire';
-import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
+import { lireSalveMisfire, TABLE_SALVE_MISFIRE } from './artilleryMisfire';
+import { ARTILLERY_MISFIRE, artilleryMisfireDie } from '../data/artilleryMisfire';
 
 /**
  * Incident de Tir d'Artillerie par Salve — LECTURE PURE d'un d10 déjà tombé (AA 10 l.270-277). Le dé
@@ -59,9 +59,10 @@ describe('lireSalveMisfire (AA 10 l.270-277)', () => {
   });
 
   it('chaque face du d10 DÉCLARÉ tombe sur une entrée de la table', () => {
-    expect(DE_SALVE_MISFIRE).toEqual({ n: 1, sides: 10 });
+    const de = artilleryMisfireDie();
+    expect(de).toEqual({ n: 1, sides: 10 });
     expect(TABLE_SALVE_MISFIRE).toBe('artillery-salve-misfire');
-    for (let roll = 1; roll <= DE_SALVE_MISFIRE.sides; roll++) {
+    for (let roll = 1; roll <= de.sides; roll++) {
       expect(ARTILLERY_MISFIRE.some((e) => e.id === lireSalveMisfire(roll, 1).id), `dé ${roll}`).toBe(true);
     }
   });

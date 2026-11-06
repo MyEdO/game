@@ -24,6 +24,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lignesDe } from './lib/monoTable.mjs';
 import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -99,7 +100,7 @@ const CIBLES = [
   ] },
   { rel: 'src/data/sea-cargo.json', sites: (d) => [{ geste: remonterExtensions, porteurs: [[d.opportunite, 'opportunite']] }] },
   { rel: 'src/data/steam-breakdown.json', sites: (d) => [
-    { geste: composer, porteurs: d.flatMap((b) => porteurs(b.restart ?? [], (_p, i) => `${b.id} › restart[${i}]`)) },
+    { geste: composer, porteurs: lignesDe(d).flatMap((b) => porteurs(b.restart ?? [], (_p, i) => `${b.id} › restart[${i}]`)) },
   ] },
   { rel: 'src/data/tavernGames.json', sites: (d) => [
     { geste: composer, porteurs: d.flatMap((g) => porteurs(g.options ?? [], (_p, i) => `${g.id} › options[${i}]`)) },

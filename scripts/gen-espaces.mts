@@ -28,7 +28,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import type { SchemaDef } from '../src/data/schemas/types';
 import type { AccesAuxDocuments, CollectionDeFichier, MarqueDeCollection } from '../src/data/schemas/grammaire/collection-cle';
-import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleFiltree, HORS_DE_LA_GRAPHIE, lireCleDEspace, pasDeLaSuite, suiteAvecPas, suivreLeChemin, type PasResolu } from '../src/data/schemas/grammaire/cle-d-espace';
+import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleFiltree, cleNichee, HORS_DE_LA_GRAPHIE, lireCleDEspace, pasDeLaSuite, suiteAvecPas, suivreLeChemin, type PasResolu } from '../src/data/schemas/grammaire/cle-d-espace';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/grammaire/sourcesDeSpecs';
 import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
@@ -104,11 +104,11 @@ interface CollectionDeCategorie {
   readonly chemin: readonly PasResolu[];
 }
 
-/** Tête du module des clés : le type d'une rangée de `DATASET_DE_LA_CATEGORIE` (import de type seul,
- *  le module reste sans import exécutable). */
+/** Tête du module des clés : le type d'une rangée de `DATASET_DE_LA_CATEGORIE` et de `DATASET_DE_L_ESPACE`
+ *  (import de type seul, le module reste sans import exécutable). */
 const TYPE_DATASET_DE_CATEGORIE =
   `import type { PasResolu } from './grammaire/cle-d-espace';\n\n` +
-  `/** Une rangée de \`DATASET_DE_LA_CATEGORIE\`. */\n` +
+  `/** Une rangée de \`DATASET_DE_LA_CATEGORIE\` et de \`DATASET_DE_L_ESPACE\` : un dataset et le chemin de sa collection. */\n` +
   `export interface DatasetDeCategorie {\n  readonly cle: CleDeDataset;\n  readonly fichier: string;\n  readonly chemin: readonly PasResolu[];\n}\n\n`;
 
 /** Littéral JS d'un pas résolu. */
@@ -154,7 +154,7 @@ function cheminResolu(
 /** L'INDEX DES IDS (clé d'espace → ids, dans l'ordre de la donnée), les CLÉS DE DATASET et les documents
  *  de leur image. Les modules qui importent l'index se chargent ICI, par `import()` : l'appelant a déjà
  *  rendu l'index chargeable. */
-export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; clesCodex: string[]; collections: CollectionDeCategorie[]; datasetsDeRacine: [string, string][]; racines: DocumentDeDataset[] }> {
+export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; clesCodex: string[]; collections: CollectionDeCategorie[]; datasetsDeLEspace: [string, { readonly cle: string; readonly fichier: string; readonly chemin: readonly PasResolu[] }][]; racines: DocumentDeDataset[] }> {
   const { SCHEMA_DEFS } = (await import('../src/data/schemas/_registry.generated')) as { SCHEMA_DEFS: SchemaDef[] };
   const { atteindre, cleDesLibellesDeLaSource, collectionsDesDocuments, idsDeLEspace, lectureDeLEspace } = await import('../src/data/schemas/grammaire/collection-cle');
   const { lectureDuVocabulaire } = await import('../src/data/schemas/grammaire/vocabulaires');
@@ -231,17 +231,21 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
   for (const categorie of Object.keys(HORS_DE_LA_PORTE))
     if (!datasetDe.has(categorie)) throw new Error(`gen-espaces: \`HORS_DE_LA_PORTE\` nomme « ${categorie} », qui n'est aucune catégorie à dataset.`);
   collections.sort((a, b) => parUnitesDeCode(a.categorie, b.categorie));
-  const datasetsDeRacine = new Map<string, string>();
+  // Dataset de chaque ESPACE : celui dont la collection est au bout de la suite de l'espace (`cleNichee`) —
+  // la racine (suite `''`), ou une collection nichée (les rangées d'un document mono-table, `fichier#entries`).
+  const datasetsDeLEspace = new Map<string, { readonly cle: string; readonly fichier: string; readonly chemin: readonly PasResolu[] }>();
   for (const cle of Object.keys(DATASET_FICHIER_DERIVE).sort(parUnitesDeCode)) {
-    if (DATASET_SUITE_DERIVE[cle] !== '') continue;
+    const suite = DATASET_SUITE_DERIVE[cle];
+    if (suite === undefined) continue; // dataset-OBJET : aucune collection
     const fichier = DATASET_FICHIER_DERIVE[cle];
-    if (datasetsDeRacine.has(fichier)) throw new Error(`gen-espaces: « ${fichier} » porte deux clés de dataset de racine, « ${datasetsDeRacine.get(fichier)} » et « ${cle} ».`);
-    datasetsDeRacine.set(fichier, cle);
+    const espace = cleNichee(fichier, suite);
+    if (datasetsDeLEspace.has(espace)) throw new Error(`gen-espaces: l'espace « ${espace} » porte deux clés de dataset, « ${datasetsDeLEspace.get(espace)!.cle} » et « ${cle} ».`);
+    datasetsDeLEspace.set(espace, { cle, fichier, chemin: cheminResolu(schemaParNom.get(fichier), brutParNom.get(fichier), suite, atteindre, `« ${cle} » (${espace})`) });
   }
   for (const [nom, source] of Object.entries(SOURCES_DE_SPECS as Record<string, SourceDeSpecs>)) {
     if (!('champs' in source.libelle)) continue;
     const lue = lireCleDEspace(source.univers);
-    if (lue.niche !== undefined || !datasetsDeRacine.has(lue.fichier)) throw new Error(`gen-espaces: SOURCES_DE_SPECS.${nom} : le libellé se lit aux champs d'une entrée de la collection de RACINE de son univers (« ${source.univers} »), qui n'en a pas.`);
+    if (lue.niche !== undefined || !datasetsDeLEspace.has(lue.fichier)) throw new Error(`gen-espaces: SOURCES_DE_SPECS.${nom} : le libellé se lit aux champs d'une entrée de la collection de RACINE de son univers (« ${source.univers} »), qui n'en a pas.`);
   }
   return {
     table: new Map([...table].sort(([a], [b]) => parUnitesDeCode(a, b))),
@@ -249,7 +253,7 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
     categories,
     clesCodex,
     collections,
-    datasetsDeRacine: [...datasetsDeRacine].sort(([a], [b]) => parUnitesDeCode(a, b)),
+    datasetsDeLEspace: [...datasetsDeLEspace].sort(([a], [b]) => parUnitesDeCode(a, b)),
     racines,
   };
 }
@@ -267,7 +271,7 @@ function specificateur(sortie: string, chemin: string): string {
 
 /** Les trois modules de la phase 2, rendus sans écrire, et ce dont leurs statistiques sont faites. */
 async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
-  const { table, clesDeDataset, categories, clesCodex, collections, datasetsDeRacine, racines } = await indexDesIds();
+  const { table, clesDeDataset, categories, clesCodex, collections, datasetsDeLEspace, racines } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
@@ -320,11 +324,12 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     `export const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {\n` +
     collections.map(({ categorie, cle, fichier, chemin }) => `  ${litteralJs(categorie)}: { cle: ${litteralJs(cle)}, fichier: ${litteralJs(fichier)}, chemin: [${chemin.map(litteralDePas).join(', ')}] },\n`).join('') +
     `};\n\n` +
-    `/** DATASET DE RACINE de chaque fichier dont la racine est une collection (suite \`''\` de\n` +
-    ` *  \`DATASET_SUITE_DERIVE\`) : sa clé (index vivant, \`indexParId\`) — le libellé d'une source de\n` +
-    ` *  spécialisations (\`SPEC_SOURCES\`, \`src/data/index.ts\`). */\n` +
-    `export const DATASET_DE_LA_RACINE: Readonly<Record<string, CleDeDataset>> = {\n` +
-    datasetsDeRacine.map(([f, c]) => `  ${litteralJs(f)}: ${litteralJs(c)},\n`).join('') +
+    `/** DATASET DE CHAQUE ESPACE dont la collection est celle d'une clé de dataset (\`cleNichee\` de son fichier et\n` +
+    ` *  de sa suite \`DATASET_SUITE_DERIVE\`) : sa clé (index vivant, \`indexParId\`) et le chemin de sa collection\n` +
+    ` *  dans la racine — lus par le libellé d'une source de spécialisations (\`SPEC_SOURCES\`) et par l'espace\n` +
+    ` *  d'un type (\`datasetDeLEspaceDuType\`, \`src/data/index.ts\`). */\n` +
+    `export const DATASET_DE_L_ESPACE: Readonly<Record<string, DatasetDeCategorie>> = {\n` +
+    datasetsDeLEspace.map(([e, { cle, fichier, chemin }]) => `  ${litteralJs(e)}: { cle: ${litteralJs(cle)}, fichier: ${litteralJs(fichier)}, chemin: [${chemin.map(litteralDePas).join(', ')}] },\n`).join('') +
     `};\n`;
   const modRacines =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
@@ -363,7 +368,7 @@ export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TA
  *  manquent (clone neuf, #2203 A2) ou qu'il leur manque un export de l'amorce (module rendu avant que
  *  la phase 2 n'en rende un de plus), puis rendus. */
 const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
-  [SORTIE_CLES, TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nconst CATEGORIES = {} as const;\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\nexport type CategorieCodexDuFichier = typeof CATEGORIES;\nexport const CLES_CODEX = [] as const;\nexport type CleCodex = (typeof CLES_CODEX)[number];\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\nexport const DATASET_DE_LA_RACINE: Readonly<Record<string, CleDeDataset>> = {};\n'],
+  [SORTIE_CLES, TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nconst CATEGORIES = {} as const;\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\nexport type CategorieCodexDuFichier = typeof CATEGORIES;\nexport const CLES_CODEX = [] as const;\nexport type CleCodex = (typeof CLES_CODEX)[number];\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\nexport const DATASET_DE_L_ESPACE: Readonly<Record<string, DatasetDeCategorie>> = {};\n'],
   [SORTIE_RACINES, 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n'],
 ]);
 

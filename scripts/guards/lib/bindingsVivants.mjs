@@ -459,21 +459,68 @@ const FORMES_RESOLVEUR = [
  *  et change l'ORDRE D'INSERTION de ses clés, dont `JSON.stringify` dépend (#1717).
  *  La flèche qui rend un CHAMP de l'entrée (`… ?.abr ?? k`) entre dans le vocabulaire comme les
  *  autres : le critère est l'ACCÈS à la donnée vivante, et le classer au cas par cas rouvrirait la
- *  liste tenue à la main que cette dérivation remplace. */
+ *  liste tenue à la main que cette dérivation remplace.
+ *
+ *  S'y ajoute, par STRUCTURE, tout export de `src/data` dont un `return` rend du VIVANT au sens du
+ *  détecteur (`cibleVivante`) : un nœud TIRÉ d'un binding vivant (`CRITIQUE_DOCS.find(…)`), un de ses
+ *  membres, ou l'appel d'un autre résolveur (#1667). Sans accesseur mémoïsé, `critiqueDoc` rendait le
+ *  document même du tableau, et son `die` s'écrivait hors du seam sans un mot. La dérivation tourne au
+ *  POINT FIXE : un résolveur qui en appelle un autre entre au tour suivant. */
 let _resolveurs = null;
 export function resolveursDentree() {
   if (_resolveurs) return _resolveurs;
   const accesseurs = accesseursVivants();
   const out = new Set();
+  const fichiers = [];
   for (const chemin of fichiersSources()) {
     if (!chemin.startsWith('src/data/') || estFichierVitest(chemin) || estKitDeTest(chemin)) continue;
-    const src = sansCommentaires(readFileSync(join(RACINE, chemin), 'utf8'));
+    const text = readFileSync(join(RACINE, chemin), 'utf8');
+    const src = sansCommentaires(text);
     for (const forme of FORMES_RESOLVEUR) {
       for (const m of src.matchAll(forme)) if (accesseurs.has(m[2])) out.add(m[1]);
     }
+    fichiers.push({ chemin, text });
   }
   if (!out.size) throw new Error('resolveursDentree : aucun résolveur lu — la forme des résolveurs de `src/data` a changé');
+  const parBinding = bindingsVivants();
+  const analyses = fichiers.map(({ chemin, text }) => ({ noms: nomsVivantsDuFichier(chemin, text, parBinding), sf: ast({ rel: chemin, text }) }));
+  for (let taille = -1; taille !== out.size; ) {
+    taille = out.size;
+    for (const { noms, sf } of analyses) for (const nom of exportsQuiRendentDuVivant(sf, noms, out)) out.add(nom);
+  }
   _resolveurs = out;
+  return out;
+}
+
+/** Les EXPORTS d'un source (`export function f`, `export const f = (…) => …`) dont un `return` (ou le
+ *  corps-expression de la flèche) est VIVANT — ni ceux d'une fonction imbriquée, qui rendent à elle. */
+function exportsQuiRendentDuVivant(sf, noms, resolveurs) {
+  const resoudre = declarationsParPortee(sf, noms, resolveurs);
+  const vivant = (expr) => !!expr && !!cibleVivante(expr, noms, resolveurs, resoudre);
+  const rendDuVivant = (fonction) => {
+    if (!fonction.body) return false;
+    if (!ts.isBlock(fonction.body)) return vivant(fonction.body);
+    let trouve = false;
+    const visiter = (n) => {
+      if (trouve || ts.isArrowFunction(n) || ts.isFunctionExpression(n) || ts.isFunctionDeclaration(n) || ts.isMethodDeclaration(n)) return;
+      if (ts.isReturnStatement(n) && vivant(n.expression)) { trouve = true; return; }
+      n.forEachChild(visiter);
+    };
+    fonction.body.forEachChild(visiter);
+    return trouve;
+  };
+  const exporte = (n) => (n.modifiers ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  const out = [];
+  for (const s of sf.statements) {
+    if (!exporte(s)) continue;
+    if (ts.isFunctionDeclaration(s) && s.name && rendDuVivant(s)) out.push(s.name.text);
+    if (ts.isVariableStatement(s)) {
+      for (const d of s.declarationList.declarations) {
+        const init = d.initializer && (ts.isArrowFunction(d.initializer) || ts.isFunctionExpression(d.initializer)) ? d.initializer : null;
+        if (init && ts.isIdentifier(d.name) && rendDuVivant(init)) out.push(d.name.text);
+      }
+    }
+  }
   return out;
 }
 

@@ -25,6 +25,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estMonoTable } from './lib/monoTable.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -44,6 +45,11 @@ const chemin = path.join(ROOT, 'src/data', FICHIER);
 const brut = fs.readFileSync(chemin, 'utf8');
 const doc = JSON.parse(brut);
 
+// Document mono-table (`lib/monoTable.mjs`) : ses rangées ne portent pas `type`, ce geste n'y a plus d'objet.
+if (estMonoTable(doc)) {
+  console.log(`${FICHIER} — document mono-table, rien à poser`);
+  process.exit(0);
+}
 if (!Array.isArray(doc)) echoue('racine non-tableau');
 if (doc.length !== CARDINAL) echoue(`cardinal ${doc.length}, attendu ${CARDINAL} — table des Oups CLOSE, LDB 14 l.21-30`);
 if (brut !== `${JSON.stringify(doc, null, 2)}\n` && brut !== JSON.stringify(doc, null, 2))

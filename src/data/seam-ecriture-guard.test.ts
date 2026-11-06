@@ -1,8 +1,8 @@
 /**
  * GARDE STRUCTURELLE (#1692) — le seam d'ÉCRITURE des datasets est UNIQUE.
  *
- * `setDataset`/`setObjectDataset`/`resetData` (`src/data/overrides.ts`) sont les seules portes qui
- * mutent un dataset : elles remplacent son contenu EN PLACE **et** versionnent l'écriture
+ * `setDataset`/`setObjectDataset`/`setDeDeTable`/`resetData` (`src/data/overrides.ts`) sont les seules portes qui
+ * mutent un dataset : elles écrivent son contenu EN PLACE **et** versionnent l'écriture
  * (`bumperDataset`, `src/data/versionDataset.ts`). Un `push`/`splice` posé directement sur le binding
  * exporté change bien la donnée, mais AUCUN index mémoïsé ne l'apprend — le monde de la donnée et
  * celui des lecteurs divergent en silence.
@@ -87,6 +87,16 @@ describe('#1692 — aucune écriture de dataset hors du seam `overrides.ts`', ()
     expect(ecrituresHorsSeam('copie.ts', parFind, parBinding)).toHaveLength(1);
     // La PORTE, elle, ne fabrique que des copies : rien à signaler.
     const parLeSeam = `import { etats } from '../data';\nsetDataset('etats', etats.map((e) => ({ ...e, perStack: undefined })));\n`;
+    expect(ecrituresHorsSeam('copie.ts', parLeSeam, parBinding)).toEqual([]);
+  });
+
+  it('CONTRÔLE POSITIF : un export de `src/data` qui REND du vivant est un résolveur, sans accesseur mémoïsé (#1667)', () => {
+    // `critiqueDoc` rend le document tiré de `CRITIQUE_DOCS` (alias du JSON) : son `die` est la donnée même.
+    const parDocument = `import { critiqueDoc } from '../data/criticals';\nconst tableau = critiqueDoc('ldb', 'corps');\ntableau.die = '2d10';\n`;
+    expect(ecrituresHorsSeam('copie.ts', parDocument, parBinding)).toHaveLength(1);
+    const parChaine = `import { critiqueEntries } from '../data/criticals';\ncritiqueEntries('criticals-ldb-tete').push(ligne);\n`;
+    expect(ecrituresHorsSeam('copie.ts', parChaine, parBinding)).toHaveLength(1);
+    const parLeSeam = `import { setDeDeTable } from '../data/overrides';\nsetDeDeTable('criticalsCorps', '2d10');\n`;
     expect(ecrituresHorsSeam('copie.ts', parLeSeam, parBinding)).toEqual([]);
   });
 

@@ -1,29 +1,27 @@
 /**
  * Schéma de `oups.json` — Maladresses, folio 160 : les 7 bandes du Tableau des Oups !
  * (`LDB 14 l.21-30`) et l'Incident de Tir (`LDB 14 l.32-34`), section DISTINCTE du livre, hors de la
- * table. Ces deux sections du livre partagent ICI un seul dataset ; le découpage côté produit est la
+ * table. Ces deux sections du livre partagent ICI un seul document ; le découpage côté produit est la
  * question #1544.
  *
- * UNE SEULE FORME D'ENTRÉE, la disjonction portée par la charge par `kind` (`chargeParDiscriminant`),
- * que `document()` borne au parse (`refusDeCharge`, `grammaire/collection-cle.ts`) : `min`/`max`/`mod`
- * sont déclarés optionnels, et la charge les exige dans les deux sens — un `misfire` ne porte rien, une
- * bande d100 ses DEUX bornes, le Malus d'Action en plus son `mod`. Une union de deux `strictObject`
- * dirait la même chose au parse, mais elle
- * n'a ni `.shape` ni enveloppe : `document()` ne saurait y poser ni sa provenance, ni son `type`, ni
- * ses métas d'édition. La contrainte reste au schéma, elle change seulement de porteur.
+ * Document mono-table (`config` + `rangee` + `deDeTirage`) : son dé `die` est celui des bandes.
+ * UNE SEULE FORME DE LIGNE, la disjonction portée par la charge par `kind` de l'espace de ses
+ * rangées (`espace.chargeParDiscriminant`, bornée au parse de chaque rangée par la fabrique) : `min`/`max`/`mod` sont déclarés optionnels, et la charge les exige
+ * dans les deux sens — un `misfire` ne porte rien, une bande ses DEUX bornes, le Malus d'Action en plus
+ * son `mod`.
  *
  * La VUE TS reste l'union manuscrite `OupsRow = OupsEntry | OupsMisfireEntry` (`src/data/oups.ts`) :
- * le handle scelle ses nœuds (`z.infer` vaut `unknown`), aucun type n'est dérivé d'ici. C'est cette
- * union qui donne à `oupsTable` ses `min`/`max` NON optionnels (lus par `findTableEntry`) et au Codex
- * sa discrimination `'min' in o` (`src/noyau/codex/registry.ts`, bloc `key: 'oups'`).
+ * c'est elle qui donne à `oupsTable` ses `min`/`max` NON optionnels (lus par `findTableEntry`) et au
+ * Codex sa discrimination `'min' in o` (`src/noyau/codex/registry.ts`, bloc `key: 'oups'`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { enumNomme } from '../grammaire/valeurs';
+import { nommerChamps } from '../grammaire/meta';
+import { enumNomme, sourceRefSchema } from '../grammaire/valeurs';
 import { tableTotale } from '../../../lib/tableTotale';
 
 export const file = 'oups.json';
-export const famille = 'entite';
+export const famille = 'config';
 
 /** Effets mécaniques que le moteur sait jouer (`OupsKind` + `misfire`, `src/engine/oups.ts`), NOMMÉS :
  *  les options de l'enum SONT les clés de cette table (#1694). */
@@ -38,39 +36,46 @@ const KINDS = {
   misfire: 'Incident de Tir',
 } as const;
 
-/** CHARGE par `kind` (`espace.chargeParDiscriminant`), toute exigée : la bande d100 porte ses bornes, le
- *  Malus d'Action son modificateur, l'Incident de Tir rien (LDB 14 l.21-34). */
+/** CHARGE par `kind`, toute exigée : la bande porte ses bornes, le Malus d'Action son modificateur,
+ *  l'Incident de Tir rien (LDB 14 l.21-34). */
 const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(
   Object.keys(KINDS) as (keyof typeof KINDS)[],
   (kind) => (kind === 'misfire' ? [] : kind === 'actionPenalty' ? ['min', 'max', 'mod'] : ['min', 'max']),
 );
 
+/** Une ligne : une bande du dé de la table, ou l'Incident de Tir, hors table. */
+export const rangee = nommerChamps(z.strictObject({
+  id: z.string(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  kind: enumNomme(KINDS),
+  label: z.string(),
+  mod: z.number().optional(),
+  source: sourceRefSchema,
+}), {
+  id: { label: 'identifiant' },
+  min: { label: 'Borne basse du dé' },
+  max: { label: 'Borne haute du dé' },
+  kind: {
+    label: 'Effet mécanique',
+    hint: 'misfire = Incident de Tir, HORS table (LDB 14 folio 160)',
+  },
+  label: { label: 'libellé' },
+  mod: { label: 'Modificateur de l’Action suivante', hint: 'Malus d’Action seulement' },
+  source: { label: 'source' },
+});
+
 const doc = document(
   'oups',
   famille,
-  {
-    min: z.number().optional(),
-    max: z.number().optional(),
-    kind: enumNomme(KINDS),
-    mod: z.number().optional(),
-  },
-  {
-    min: { label: 'Borne basse du d100' },
-    max: { label: 'Borne haute du d100' },
-    kind: {
-      label: 'Effet mécanique',
-      hint: 'misfire = Incident de Tir, HORS table (LDB 14 folio 160)',
-    },
-    mod: { label: 'Modificateur de l’Action suivante', hint: 'Malus d’Action seulement' },
-  },
+  {},
+  {},
   {
     codex: { keys: ['oups'] },
-    edit: { dataset: 'oups' },
+    edit: { niche: { categories: { oups: 'entries' } } },
   },
-  {
-    exiges: ['source'],
-    espace: { discriminant: 'kind', chargeParDiscriminant },
-  },
+  // LDB 14 l.23-30
+  { rangee, deDeTirage: true, espace: { discriminant: 'kind', chargeParDiscriminant } },
 );
 
 export const schema = doc.schema;

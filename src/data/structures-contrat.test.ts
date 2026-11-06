@@ -46,6 +46,7 @@ import { SANS_LIVRE_DEFINITIF, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
 import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
+import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 
 import { STRUCTURES_CIBLES, STRUCTURES_REDECLARATIONS } from '../../scripts/guards/lib/structuresStock.mjs';
 import { sujetDuJetSchema } from './schemas/grammaire/mecanique';
@@ -564,7 +565,8 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
   it('une référence TYPÉE `{id,type}` résout vers le SEUL espace que son type nomme — jamais ambiguë (#2820)', () => {
     const typees = scan.formes.filter((f) => f.concept === 'reference' && f.signature === 'id,type');
     expect(typees.length, 'aucune référence typée mesurée : le contrat ne dirait rien').toBeGreaterThan(0);
-    const espaces = new Set((Object.keys(TYPES) as TypeEntite[]).map(espaceDe));
+    // Le scan résout au FICHIER : l'espace d'une collection nichée (`fichier#chemin`) s'y lit par son fichier.
+    const espaces = new Set((Object.keys(TYPES) as TypeEntite[]).map((t) => lireCleDEspace(espaceDe(t)).fichier));
     const hors = typees.flatMap((f) => f.cibles.filter((c) => !espaces.has(c)).map((c) => `${f.dataset} › ${f.champ} → ${c}`));
     expect(hors, 'une référence typée résout hors de l’espace de son type').toEqual([]);
     const sites = new Set(typees.map((f) => `${f.dataset}|${f.champ}`));

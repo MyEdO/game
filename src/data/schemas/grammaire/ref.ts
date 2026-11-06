@@ -73,7 +73,7 @@ export const TYPES = {
   regle: { espace: 'regles.json', catalogue: 'règles' },
   quality: { espace: 'qualities.json', catalogue: 'qualités' },
   characteristic: { espace: 'characteristics.json', catalogue: 'caractéristiques' },
-  steamBreakdown: { espace: 'steam-breakdown.json', catalogue: 'pannes de navire à vapeur' },
+  steamBreakdown: { espace: 'steam-breakdown.json#entries', catalogue: 'pannes de navire à vapeur' },
   // APPARENCE d'objet (#2948) : `trappings.json › shape`/`formChoices` résolvent AU PARSE contre les
   // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
   apparence: { espace: 'apparences.json', catalogue: 'apparences' },
