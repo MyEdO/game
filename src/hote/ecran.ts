@@ -138,8 +138,8 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
  *  ligne du lanceur (à jeter ou tombée), les pas de Surincantation qui restent, les cibles supplémentaires à désigner
  *  sur la carte, l'issue. */
 function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
-  const lanceur = porteurParId(etat, f.lanceurId)?.label ?? null;
-  const cible = f.surSoi ? t('ecran.incantation.surSoi') : porteurParId(etat, f.cibleId)?.label ?? '';
+  const lanceur = garanti(porteurParId(etat, f.lanceurId), f.lanceurId, 'lanceur de l’incantation').label;
+  const cible = f.surSoi ? t('ecran.incantation.surSoi') : garanti(porteurParId(etat, f.cibleId), f.cibleId, 'cible de l’incantation').label;
   const l = f.ligne;
   const s = f.surincantation;
   const elements: (Element | null)[] = [
