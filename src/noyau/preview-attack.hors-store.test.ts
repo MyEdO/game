@@ -554,7 +554,7 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
     return banc.getState().pendingAttack!.result!.attackerDetail!;
   };
 
-  it('arme CHOISIE (`attackSetWeapon`) : 2 clics « +1 DR » ne changent que le DR', () => {
+  it('arme CHOISIE (réglage `attack.arme`) : 2 clics « +1 DR » ne changent que le DR', () => {
     const avant = ouvrir('it-99');
     expect(avant.label, 'la fixture doit VRAIMENT résoudre un TIR').toBe('Projectiles');
     for (let i = 0; i < 2; i++) banc.getState().jetBonusSL('attack');

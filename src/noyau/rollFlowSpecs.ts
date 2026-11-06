@@ -19,7 +19,8 @@ import { HEAL_SKILL, IDS_DU_TEST_DE_SOIN, type TestDeSoin } from '../engine/heal
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { FLOW_VERBS, fluxAccepte, rangeeFacultative, viseUneRangee, type FlowKey, type FluxDuVerbe, type RollVerb } from './flowVerbs';
 import { refuserGeste } from './refusVisible';
-import { deDuJet, FERMETURES_DITES, makeRollFlow, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
+import { deDuJet, FERMETURES_DITES, makeRollFlow, type FermetureDuJet, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
+import { declarationDuReglage, fermetureDeLaPhase, type CorpsDesReglages, type FluxRegle, type VerbeDeReglage } from './reglagesDuJet';
 import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
@@ -103,7 +104,7 @@ export function rederiveAttack(attacker: Combatant, target: Combatant, p: Pendin
   return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, p.withhold, compo, dmgProxy);
 }
 
-/** Arme avec laquelle cette Défense pare : la DÉCLARÉE (`defenseSetParryWeapon`), sinon `defaultParryWeapon`. Lue par le jet et par sa fenêtre. */
+/** Arme avec laquelle cette Défense pare : la DÉCLARÉE (réglage `defense.armeDeParade`), sinon `defaultParryWeapon`. Lue par le jet et par sa fenêtre. */
 export function parryWeaponOf(defender: Combatant, p: PendingDefense): Weapon | undefined {
   return (p.parryWeaponUid ? defender.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined) ?? defaultParryWeapon(defender);
 }
@@ -2433,10 +2434,37 @@ export const FLOW_HANDLERS = paresseux({
 export const oppositionsEnAttente = (p: PendingCastOpposition): OppositionParticipant[] =>
   p.participants.filter((part) => part.interactive && !part.result);
 
-/** Un réglage du jet que le store écrit à la main (`<flux>Set*`) : `geste` ne joue que tant que le flux ouvre le jet
- *  (`RollFlowHandlers.fermetures`, la fenêtre que lit `verbesOuverts`). */
-export function siOuvert(flux: keyof typeof FLOW_HANDLERS, get: Get, geste: () => void): void {
-  if (!FLOW_HANDLERS[flux].fermetures(get).roll) geste();
+/** Ce qui refuse le réglage venu d'une frontière (JSON d'un hôte, intention d'un siège) : un réglage que son flux ne
+ *  déclare pas (`REGLAGES_DU_JET`), une rangée absente d'un réglage de rangée, ou posée sur un réglage de fenêtre ;
+ *  `null` : il se joue. */
+function refusDuReglage(flux: unknown, reglage: unknown, pid: unknown): string | null {
+  const declaration = declarationDuReglage(flux, reglage);
+  if (!declaration) return t('jet.refus.reglageAbsent');
+  return (typeof pid === 'string') === (declaration.portee === 'rangee') ? null : t('jet.refus.rangee');
+}
+
+/** Ce qui ferme maintenant le réglage `reglage` du flux `flux`, sur la rangée `pid` d'un réglage de rangée : sa phase
+ *  (`fermetureDeLaPhase`) jugée sur le lancer de son jet (`RollFlowHandlers.fermetures`, la fenêtre que lit
+ *  `verbesOuverts`), puis son offre (`DeclarationDuReglage.offre`) ; `null` : il se joue. */
+export function fermetureDuReglage(get: Get, flux: FluxRegle, reglage: string, pid?: string): FermetureDuJet | null {
+  const declaration = garanti(declarationDuReglage(flux, reglage), `${flux}.${reglage}`, 'réglage déclaré');
+  return fermetureDeLaPhase(declaration.phase, FLOW_HANDLERS[flux].fermetures(get, pid).roll) ?? declaration.offre?.(get()) ?? null;
+}
+
+/** Le verbe qui règle un jet sur `get`/`set` : il refuse, et le dit, le réglage que son flux ne déclare pas
+ *  (`refusDuReglage`) ou que sa phase ferme (`fermetureDuReglage`, `libelleDeLaFermeture`), sinon joue son corps
+ *  (`corps`). */
+export function creerReglageDuJet(get: Get, set: Set, corps: CorpsDesReglages): VerbeDeReglage {
+  return {
+    jetRegler: (...[flux, reglage, valeur, pid]) => {
+      const refus = refusDuReglage(flux, reglage, pid);
+      if (refus) { refuserGeste(get, set, refus); return; }
+      const fermeture = fermetureDuReglage(get, flux, reglage, pid);
+      if (fermeture) { refuserGeste(get, set, libelleDeLaFermeture(fermeture)); return; }
+      const corpsDuFlux = corps[flux] as unknown as Readonly<Record<string, (v: unknown, rangee?: string) => void>>;
+      corpsDuFlux[reglage](valeur, pid);
+    },
+  };
 }
 
 /** Les rangées INTERACTIVES de Contre-sort qui lancent (`counterspellRolls`) sans avoir lancé, tant qu'aucune n'a

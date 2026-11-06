@@ -16,6 +16,7 @@ import { Icon } from '../Icon';
 import type { IconIdInput } from '../../data/icons';
 import { Row } from '../Layout';
 import { useGesteDeJet } from '../useGesteDeJet';
+import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou
  *  passe la main quand une Défense surfacée va s'interposer (#1004). Source unique de son libellé. */
@@ -35,9 +36,10 @@ export function confirmerLeCoup(awaitingDefense: boolean, confirm: () => void): 
 export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const pa = useGame((s) => s.pendingAttack);
   const battle = useGame((s) => s.battle);
-  const setLocation = useGame((s) => s.attackSetLocation);
-  const setWeapon = useGame((s) => s.attackSetWeapon);
-  const setDualMode = useGame((s) => s.attackSetDualMode);
+  const regler = useGame((s) => s.jetRegler);
+  const setLocation = (v: ReglagesDuJet['attack']['localisation']) => regler('attack', 'localisation', v);
+  const setWeapon = (v: ReglagesDuJet['attack']['arme']) => regler('attack', 'arme', v);
+  const setDualMode = (v: ReglagesDuJet['attack']['deuxArmes']) => regler('attack', 'deuxArmes', v);
   const roll = useGesteDeJet('jetRoll', 'attack');
   const reroll = useGesteDeJet('jetReroll', 'attack');
   const bonusSL = useGesteDeJet('jetBonusSL', 'attack');
@@ -46,10 +48,10 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const reverseVerb = useGesteDeJet('jetReverse', 'attack');
   const confirm = useGesteDeJet('jetConfirm', 'attack');
   const cancel = useGesteDeJet('jetCancel', 'attack');
-  const setHarpoonRopeCut = useGame((s) => s.attackSetHarpoonRopeCut);
-  const setWithhold = useGame((s) => s.attackSetWithhold);
-  const setGrapple = useGame((s) => s.attackSetGrapple);
-  const setCritLocation = useGame((s) => s.attackSetCritLocation);
+  const setHarpoonRopeCut = (v: ReglagesDuJet['attack']['sansLaCorde']) => regler('attack', 'sansLaCorde', v);
+  const setWithhold = (v: ReglagesDuJet['attack']['retenirSesCoups']) => regler('attack', 'retenirSesCoups', v);
+  const setGrapple = (v: ReglagesDuJet['attack']['empoigner']) => regler('attack', 'empoigner', v);
+  const setCritLocation = (v: ReglagesDuJet['attack']['localisationDuCritique']) => regler('attack', 'localisationDuCritique', v);
   const spendResolve = useGame((s) => s.spendResolveCondition);
   const vue = pa && battle ? fenetreDAttaque(useGame.getState()) : null;
   if (!vue || !battle) return null;

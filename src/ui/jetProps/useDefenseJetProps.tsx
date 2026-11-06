@@ -19,6 +19,7 @@ import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
 import { CodexRef } from '../compendium/CodexRef';
 import { useGesteDeJet } from '../useGesteDeJet';
+import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 
 /** Le titre d'une réaction de Défense, au survol de son option. */
 function titreDeLaReaction(mode: DefenseMode, libelle: string): string {
@@ -39,10 +40,11 @@ function titreDeLaReaction(mode: DefenseMode, libelle: string): string {
 export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const pd = useGame((s) => s.pendingDefense);
   const battle = useGame((s) => s.battle);
-  const setMode = useGame((s) => s.defenseSetMode);
-  const setParry = useGame((s) => s.defenseSetParryWeapon);
-  const setShieldReaction = useGame((s) => s.defenseSetShieldReaction);
-  const setRiposte = useGame((s) => s.defenseSetRiposte);
+  const regler = useGame((s) => s.jetRegler);
+  const setMode = (v: ReglagesDuJet['defense']['reaction']) => regler('defense', 'reaction', v);
+  const setParry = (v: ReglagesDuJet['defense']['armeDeParade']) => regler('defense', 'armeDeParade', v);
+  const setShieldReaction = (v: ReglagesDuJet['defense']['porteBouclier']) => regler('defense', 'porteBouclier', v);
+  const setRiposte = (v: ReglagesDuJet['defense']['riposte']) => regler('defense', 'riposte', v);
   const roll = useGesteDeJet('jetRoll', 'defense');
   const reroll = useGesteDeJet('jetReroll', 'defense');
   const bonusSL = useGesteDeJet('jetBonusSL', 'defense');

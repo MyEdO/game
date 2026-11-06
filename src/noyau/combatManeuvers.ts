@@ -711,7 +711,7 @@ export function distraireFoes(mover: Combatant, battle: BattleState): Combatant[
 }
 
 /** Les adversaires que le Battement en attente (`pendingBattement`) peut viser (`battementFoes`) : ceux que
- *  `battementSetFoe` accepte. */
+ *  le réglage `battement.adversaire` accepte. */
 export function adversairesDuBattement(s: Jeu): Combatant[] {
   const pb = s.pendingBattement;
   const attaquant = pb && s.battle ? inBattleId(s.battle, pb.attackerId) : undefined;
@@ -719,7 +719,7 @@ export function adversairesDuBattement(s: Jeu): Combatant[] {
 }
 
 /** Les adversaires que le Distraire en attente (`pendingDistraire`) peut viser (`distraireFoes`) : ceux que
- *  `distraireSetFoe` accepte. */
+ *  le réglage `distraire.adversaire` accepte. */
 export function adversairesADistraire(s: Jeu): Combatant[] {
   const pd = s.pendingDistraire;
   const mover = pd && s.battle ? inBattleId(s.battle, pd.moverId) : undefined;

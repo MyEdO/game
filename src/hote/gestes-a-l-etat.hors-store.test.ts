@@ -198,13 +198,13 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
     try {
       partie.envoyer({ type: 'battleClickEntity', args: [E.id, { confirm: true }] });
       expect(geste(partie, 'jetRoll@attack')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'attackSetLocation')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetRegler@attack#localisation')).toEqual({ ouvert: true, raison: null });
       expect(geste(partie, 'jetSetForcedRoll@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
       expect(geste(partie, 'jetConfirm@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
       partie.envoyer({ type: 'jetRoll', args: ['attack'] });
       expect(geste(partie, 'jetRoll@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
       expect(geste(partie, 'jetCancel@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
-      expect(geste(partie, 'attackSetLocation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
+      expect(geste(partie, 'jetRegler@attack#localisation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
       expect(geste(partie, 'jetSetForcedRoll@attack')).toEqual({ ouvert: true, raison: null });
       expect(geste(partie, 'jetConfirm@attack')).toEqual({ ouvert: true, raison: null });
     } finally {

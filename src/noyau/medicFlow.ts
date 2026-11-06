@@ -249,7 +249,7 @@ export function fenetreDeLOperation(s: Jeu): { plaie: ChoixNomme<number> | null 
   if (!plaies.length || !m.surgery || !patient) return { plaie: null };
   return {
     plaie: {
-      verbe: 'medicSetWound', parametre: 'idx', libelle: garanti(libelleDuParametre('medicSetWound', 'idx'), 'medicSetWound', 'libellé de la plaie'), choisie: m.surgery.traumaIdx,
+      geste: { verbe: 'medicSetWound' }, parametre: 'idx', libelle: garanti(libelleDuParametre('medicSetWound', 'idx'), 'medicSetWound', 'libellé de la plaie'), choisie: m.surgery.traumaIdx,
       options: plaies.map((p, i) => ({ valeur: i, libelle: t('medic.plaie', { plaie: p.label, localisation: locationLabel(p.location, patient.bodyShape) }) })),
     },
   };

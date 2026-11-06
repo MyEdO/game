@@ -25,7 +25,7 @@ function castTarget(discreet: boolean): number {
   banc.setState({ battle: null, party: [p], journal: [], pendingCast: null, pendingCascade: null, gameTime: 8 * 60 });
   banc.getState().seedRng(5);
   banc.getState().oocCastSpell(p.id, 'benediction-de-guerison', p.id);
-  if (discreet) banc.getState().castSetDiscreet(true);
+  if (discreet) banc.getState().jetRegler('cast', 'discret', true);
   banc.getState().jetRoll('cast');
   return banc.getState().pendingCast!.result!.target;
 }

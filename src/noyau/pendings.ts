@@ -134,7 +134,7 @@ export interface PendingTest {
    *  `LDB 12`, malus psy `LDB 21`, Statut `LDB 08`, météo `MDG 13`), chaque ligne portant la `famille`
    *  et la fiche posées À L'ÉMISSION. L'affichage les REND, il ne les recompose pas : une ligne
    *  re-dérivée à la modale pourrait contredire celle qui a servi à la cible.
-   *  Change avec le lanceur choisi (`testSetActor` recopie celles du candidat). */
+   *  Change avec le lanceur choisi (réglage `test.testeur` recopie celles du candidat). */
   base?: number;
   mods?: ModLine[];
   /** Malus psy de Sociabilité de l'acteur (Animosité −20 / Préjugé −10 envers l'interlocuteur, LDB 21) —
@@ -156,7 +156,7 @@ export interface PendingTest {
   /** Jet double (Maladresse si en plus c'est un échec) — pour casser un outil Bâclé hors combat. */
   isDouble?: boolean;
   /** Membres du GROUPE pouvant tenter ce Test (le défaut `actorId` = le meilleur) — le joueur CHOISIT
-   *  qui lance via `testSetActor` (au lieu d'une désignation automatique). Chaque entrée porte sa
+   *  qui lance via réglage `test.testeur` (au lieu d'une désignation automatique). Chaque entrée porte sa
    *  valeur/cible/malus ET sa LIGNE MONTÉE (`base`/`mods` — le Soutien et les États diffèrent d'un
    *  candidat à l'autre), pour re-cibler le Test sans recalcul. Absent/≤1 → pas de choix. */
   candidates?: { id: string; label: string; value: number; target: number; clamped?: number; base?: number; mods?: ModLine[]; psychMod?: number; psychDetail?: string; itemUid?: string; support?: SupportDetail }[];
@@ -165,7 +165,7 @@ export interface PendingTest {
   clamped?: number;
   /** SOUTIEN (LDB 12 l.187-200) du candidat COURANT, déjà FONDU dans `skillValue`/`target` — porté
    *  pour l'AFFICHAGE (ligne de mod nommée, `engine/skills.supportSplit`), comme `PendingActivity.support`.
-   *  Change avec le lanceur choisi (`testSetActor` recopie celui du candidat). */
+   *  Change avec le lanceur choisi (réglage `test.testeur` recopie celui du candidat). */
   support?: SupportDetail;
   /** La Difficulté a été ALLÉGÉE (`FlowTest.easierIf`) : libellé de la compétence/du talent qui l'a
    *  permise — affiché SUR le chip de difficulté (« Facile (allégée : Crochetage) »). */
@@ -821,7 +821,7 @@ export interface PendingCorruption {
    *  producteur (`testDExposition`, `gainCorruption`). */
   test: TestNomme;
   /** EXPOSITION : nature imposée par la source → pas de choix joueur. Absent/false = indéterminée
-   *  (LDB 19 l.29) → la modale propose les Tests de `influences-corruptrices` (cf. `corruptionSetNature`). */
+   *  (LDB 19 l.29) → la modale propose les Tests de `influences-corruptrices` (cf. réglage `corruption.nature`). */
   natureFixee?: boolean;
   /** Alignement de la SOURCE (Puissance du Chaos) posé par l'éditeur de niveau → table EDOC à tirer
    *  si une mutation survient (sinon la règle globale décide). Voyage exposition → seuil → mutation. */
@@ -1411,11 +1411,11 @@ export interface PendingCast {
   overcast?: { range: number; zone: number; duration: number; targets: number; damage: number };
   /** Jets sur le Tableau CHOISIS par le lanceur, borné aux pas alloués à `overcast.duration` (EDOC 13
    *  l.276 : « vous POUVEZ » — le jet sur le Tableau est déclinable, jamais forcé). Absent = tous les pas
-   *  (le paquet complet reste le geste zéro-clic) — clampé par `castAllocOvercast` si la Durée redescend. */
+   *  (le paquet complet reste le geste zéro-clic) — clampé par réglage `cast.surincantation*` si la Durée redescend. */
   chosenTableRolls?: number;
   extraTargetIds?: string[];
   /** Choix des cibles supplémentaires EN COURS sur le champ de bataille : la modale s'efface
-   *  (bandeau TargetPrompt + clic carte → castToggleExtraTarget), « Valider » la restaure. */
+   *  (bandeau TargetPrompt + clic carte → réglage cast.ciblesSupplementaires), « Valider » la restaure. */
   pickingTargets?: boolean;
   /** Sort à Zone d'Effet (LDB 47 l.28) — flux « jet PUIS pose » : la modale s'ouvre SANS cible
    *  (`center: null`, `targetId` = ancre lanceur), le jet et la Surincantation (+Zone via `r0m`,
@@ -1498,7 +1498,7 @@ export interface ExtendedTestRound extends RollParticipant {
 }
 /** Un héros qui frappe la porte : participant du flux MULTI PARALLÈLE (son propre jet + dégâts). */
 export interface ForceDoorParticipant extends RollParticipant {
-  /** Arme choisie avant le jet (`forceDoorChoisirArme`, `armesDEnfoncement`) ; absente = mains nues. */
+  /** Arme choisie avant le jet (réglage `forceDoor.arme`, `armesDEnfoncement`) ; absente = mains nues. */
   armeUid?: string;
   /** Jet de Corps à corps de CE héros + dégâts infligés à la porte (`degatsDEnfoncement`), ou null = pas lancé. */
   result: { roll: number; target: number; sl: number; damage: number } | null;
@@ -2427,9 +2427,9 @@ export interface PendingHeal {
   targetName: string;
   mode: HealMode; // 'wounds' | 'bleed' | 'trauma' | 'ammo' (jamais 'surgery'/'recovery' — cf. medicFlow)
   intBonus: number; // Bonus d'Intelligence du soigneur
-  /** Test déclaré (`refusDuTestDeSoin`, `healSetTest`). */
+  /** Test déclaré (`refusDuTestDeSoin`, réglage `heal.test`). */
   test: TestDeSoin;
-  /** Héros dont les Bandages sont engagés (`healSetBandages`, `refusDesBandages`) ; `null` : aucun. */
+  /** Héros dont les Bandages sont engagés (réglage `heal.bandages`, `refusDesBandages`) ; `null` : aucun. */
   bandagesDe: string | null;
   skillValue: number; // valeur du Test déclaré — Soutien FONDU (Guérison)
   /** SOUTIEN (LDB 12) des assistants de soin, déjà fondu dans `skillValue` — porté pour l'affichage. */

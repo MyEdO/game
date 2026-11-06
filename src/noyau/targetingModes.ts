@@ -18,6 +18,7 @@
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
 import type { DifficultyShown } from '../engine/combat';
+import { ciblesBasculees } from './reglagesDuJet';
 import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/combat';
 import { castInfo, isMagicMissile, missileDamage, focalisationAboutie } from '../engine/magic';
 import { bonus, bonusDeForce, effectiveChar } from '../engine/characteristics';
@@ -842,7 +843,7 @@ const OVERCAST_MODE: TargetingMode = {
     if (!pc || !caster || !spell) return [];
     return overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
   },
-  commitCombatant: (get, _set, _active, id) => { get().castToggleExtraTarget(id); },
+  commitCombatant: (get, _set, _active, id) => { get().jetRegler('cast', 'ciblesSupplementaires', ciblesBasculees(get().pendingCast?.extraTargetIds, id)); },
 };
 const CLEAVE_MODE: TargetingMode = {
   id: 'cleave', label: 'Frappe Mortelle', consigne: 'consigne.cleave', affordance: cleaveAffordance, anneauCandidats: 'hostile',

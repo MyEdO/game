@@ -71,9 +71,9 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   counterspellDeclare: { parUI: true },
   // Déclaration d'une rangée de chute volontaire (#700) : option de la rangée dans `FallModal`.
   fallChoose: { parUI: true },
-  // Choix de l'arme d'enfoncement (EDO 11 l.93) : option de la rangée dans `ForceDoorModal`.
-  forceDoorChoisirArme: { parUI: true },
-  healSetBandages: { parUI: true },
+  // Réglages des jets (#3368) : l'arme d'enfoncement d'une rangée de `ForceDoorModal` (EDO 11 l.93), les Bandages du
+  // soin (LDB 74 l.41), chacun une option de sa fenêtre.
+  jetRegler: { parUI: true },
   counterspellDeclareAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/noyau/combatAuto.ts' },
   preemptRangedShot: { interne: 'combatSlice.battleClickEntity — le clic voyage par battleClickEntity (visée armée)', dans: 'src/noyau/combatSlice.ts' },
   cleaveAttack: { interne: 'targetingModes.CLEAVE_MODE.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/noyau/targetingModes.ts' },

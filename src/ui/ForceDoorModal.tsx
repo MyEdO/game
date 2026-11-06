@@ -30,7 +30,7 @@ export function ForceDoorModal() {
   const force = useGesteDeJet('jetForceSuccess', 'forceDoor');
   const confirm = useGesteDeJet('jetConfirm', 'forceDoor');
   const cancel = useGesteDeJet('jetCancel', 'forceDoor');
-  const choisirArme = useGame((s) => s.forceDoorChoisirArme);
+  const regler = useGame((s) => s.jetRegler);
   if (!p) return null;
   const pool = battle?.combatants ?? party;
   const { degats: roundDmg, reste, cede, complet: allRolled } = bilanDuRound(p);
@@ -62,8 +62,8 @@ export function ForceDoorModal() {
         layout="seg"
         groupLabel={actor.label}
         options={[
-          { key: 'mains-nues', label: 'Mains nues', selected: !part.armeUid, onSelect: () => choisirArme(part.id) },
-          ...armes.map((w) => ({ key: w.uid!, label: w.label, selected: part.armeUid === w.uid, onSelect: () => choisirArme(part.id, w.uid) })),
+          { key: 'mains-nues', label: 'Mains nues', selected: !part.armeUid, onSelect: () => regler('forceDoor', 'arme', null, part.id) },
+          ...armes.map((w) => ({ key: w.uid!, label: w.label, selected: part.armeUid === w.uid, onSelect: () => regler('forceDoor', 'arme', w.uid!, part.id) })),
         ]}
       />
     )];

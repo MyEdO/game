@@ -5567,7 +5567,7 @@ export function aiWouldPrepareSpell(enemy: Combatant, get: Get): boolean {
 }
 
 /** Axes de Surincantation OUVERTS au lancement `pc` : ceux de CE sort (`overcastAxesFor`), tant que
- *  le gabarit de zone n'est pas posé (`LDB 47 l.15`, `l.28`). Lu par la modale et `castAllocOvercast`. */
+ *  le gabarit de zone n'est pas posé (`LDB 47 l.15`, `l.28`). Lu par la modale et réglage `cast.surincantation*`. */
 export function castOvercastAxes(pc: Pick<PendingCast, 'zone' | 'missile'>, spell: OvercastSpell): OvercastAxis[] {
   return pc.zone?.center ? [] : overcastAxesFor(spell, !!pc.missile);
 }

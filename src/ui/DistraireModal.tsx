@@ -13,6 +13,7 @@ import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
+import type { ReglagesDuJet } from '../noyau/reglagesDuJet';
 
 /**
  * Modale de Distraire (LDB 10 l.364 / AA 13 l.51) : Mouvement, Test OPPOSÉ Athlétisme (mover) vs Calme
@@ -30,7 +31,8 @@ export function DistraireModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'distraire');
   const darkPact = useGesteDeJet('jetDarkPact', 'distraire');
   const force = useGesteDeJet('jetForceSuccess', 'distraire');
-  const setFoe = useGame((s) => s.distraireSetFoe);
+  const regler = useGame((s) => s.jetRegler);
+  const setFoe = (v: ReglagesDuJet['distraire']['adversaire']) => regler('distraire', 'adversaire', v);
   const confirm = useGesteDeJet('jetConfirm', 'distraire');
   const cancel = useGesteDeJet('jetCancel', 'distraire');
   if (!pd || !battle) return null;
