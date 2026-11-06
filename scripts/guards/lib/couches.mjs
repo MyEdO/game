@@ -19,12 +19,12 @@
 // Toute autre zone lui est fermée, même pour un type.
 import { posix as cheminPosix } from 'node:path';
 
-/** La surface du noyau (#2817 D9) : la porte de `noyau` pour un hôte, le seul module de `src/state/` et
- *  `src/noyau/` qui réexporte (`murs/reexportation`, `couchesLint.mjs`). */
+/** La surface du noyau (#2817 D9) : la porte de `noyau` pour un hôte, le seul module de `src/state/`,
+ *  `src/noyau/` et `src/scenes/` qui réexporte (`murs/reexportation`, `couchesLint.mjs`). */
 export const SURFACE_DU_NOYAU = 'src/noyau/index.ts';
 
 /** Les zones dont la production ne réexporte rien hors de `SURFACE_DU_NOYAU` (#2817 D2, `murs/reexportation`). */
-export const ZONES_SANS_REEXPORTATION = Object.freeze(['state', 'noyau']);
+export const ZONES_SANS_REEXPORTATION = Object.freeze(['state', 'noyau', 'scenes']);
 
 /** Les paquets de l'hôte web (#2817 D9) : aucune zone qui survit à la bascule (`survit`) ne les charge. */
 export const PAQUETS_DE_L_HOTE_WEB = Object.freeze(['react', 'react-dom', 'zustand', 'three']);

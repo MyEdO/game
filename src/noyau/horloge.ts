@@ -59,7 +59,7 @@ export function creerActionsDHorloge(get: Get, set: Set) {
         // le témoin. `lastUpkeepDay` (posé par `runDailyUpkeep`) garde l'anti-double-résolution.
         const deferred: DeferredUpkeepTest[] = [];
         const upkeepLines = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
-        if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines, severity: 'minor' });
+        if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines });
         // La file porte des BANDES comme tout le reste de la nuit (#1117 L3) : la fenêtre est formée
         // ICI, à l'émission — `openCombatEndCascade` a seulement à trier ses rangées par pilote.
         const steps = nightBands(restFlow.deferredUpkeepSteps(get().party, deferred));
@@ -72,7 +72,7 @@ export function creerActionsDHorloge(get: Get, set: Set) {
         if (steps.length) openSequence(get, set, { title: 'Entretien quotidien', icon: 'time/night', purpose: 'upkeep', steps, log: upkeepLines });
         // Même `purpose:'upkeep'` que la branche à jets ci-dessus : les deux issues du MÊME entretien
         // quotidien ouvrent la MÊME séquence (le témoin groupé est le cas « zéro jet à influencer »).
-        else if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines, severity: 'minor' }, { purpose: 'upkeep' });
+        else if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines }, { purpose: 'upkeep' });
       }
       checkPartyWiped(get, set); // faim/agonie/maladie a-t-elle anéanti tout le groupe hors combat ? → défaite (recheck à la clôture de cascade)
     },

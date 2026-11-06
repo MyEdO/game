@@ -97,7 +97,7 @@ describe('CSS — toute consommation a sa définition', () => {
   it('le scan VOIT un cas RÉEL de chaque famille (non-vacuité nominative)', () => {
     // Un témoin d'ANIMATION et un témoin de VARIABLE, chacun nommé avec la feuille qui le consomme :
     // le scan regarde bien les deux consommations (#1806 2d).
-    expect(animUsed.get('reveal-timer-drain')).toBe('src/ui/styles/reveal-body.css');
+    expect(animUsed.get('combat-splash-in')).toBe('src/ui/styles/combat-start-splash.css');
     expect(varsUsed.get('--chip-malus-bg')).toBe('src/ui/styles/fx-chip.css');
   });
 });

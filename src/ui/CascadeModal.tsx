@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { useEffect, type ComponentProps, type ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
 import { fermeturesDuFlux } from '../noyau/verbesOuverts';
@@ -19,7 +19,7 @@ import { CastModal } from './CastModal';
 import { type PanelRowData as PanelRow } from './RollPanel';
 import { OptionChooser, type RollGridOption } from './OptionChooser';
 import { NumberField } from './NumberField';
-import { CriticalBody, RevealBody, RevealTimer } from './RevealBody';
+import { CriticalBody, RevealBody } from './RevealBody';
 import { ModalSubject } from './ModalSubject';
 import { RecapLineList } from './RecapLine';
 import { TableRollLine } from './RollLine';
@@ -155,31 +155,11 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // `netOwnership.ownsLocal` vue par `useOwns`, lue jamais redécidée ; hook AVANT tout retour anticipé.
   const owns = useOwns();
 
-  // AUTO-FERMETURE d'une étape d'AFFICHAGE (#942 L8) : l'étape qui DÉCLARE `autoCloseMs` (gravité de
-  // sa révélation) enchaîne d'elle-même passé le délai — « Continuer » reste servi et ferme avant. Le
-  // minuteur est réarmé PAR ÉTAPE (clé = son id) ; il n'a rien à voir avec la Cadence de combat (une
-  // cadence MANUELLE auto-ferme aussi : c'était le comportement de la révélation témoin). COOP : seul
-  // le siège PROPRIÉTAIRE de l'étape l'arme (`actorId` absent ⇒ l'hôte, cf. `netOwnership.ownsLocal`) — deux
-  // sièges qui valident l'étape avanceraient de deux crans.
-  const autoStep = p ? p.participants[p.cursor] : undefined;
   // Prêt-à-valider de l'étape COURANTE, abonné : une étape hôte dépend de son slot (`stepReady`, #1765).
   const curReady = useGame((s) => {
     const st = s.pendingCascade?.participants[s.pendingCascade.cursor];
     return !!st && stepReady(st, s);
   });
-  const autoCloseMs = autoStep?.autoCloseMs;
-  const autoStepId = autoStep?.id;
-  const autoOwned = autoStep ? owns(autoStep.actorId) : false;
-  useEffect(() => {
-    if (autoCloseMs == null || !autoOwned) return;
-    const t = window.setTimeout(() => useGame.getState().jetConfirm('cascade'), autoCloseMs);
-    return () => window.clearTimeout(t);
-  }, [autoStepId, autoCloseMs, autoOwned]);
-  // La barre de temps ne s'affiche qu'au GRAVE (arbitrage 2026-06-11) ; le délai, lui, court pour les
-  // deux. `key` = l'étape, pour que l'animation CSS reparte à zéro d'une étape à la suivante.
-  const autoCloseBar = autoCloseMs != null && autoStep?.reveal?.severity === 'grave'
-    ? <RevealTimer key={autoStepId} ms={autoCloseMs} />
-    : null;
 
   if (!p) return null;
   // Étape du cadre (`useFocusEmprunte`) : purpose et id de l'étape, jamais le curseur (`cascade.ts`, `startCascade`).
@@ -589,7 +569,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
              A→B (`CriticalBody`) — une seule surface, jamais deux portraits du même sujet. */
           extra={revSubject && rev.kind !== 'critical' ? <ModalSubject c={revSubject} /> : undefined}
           rows={[]}
-          postRollExtra={<><RevealBody entry={rev} actor={revActor} subject={revSubject} />{autoCloseBar}</>}
+          postRollExtra={<RevealBody entry={rev} actor={revActor} subject={revSubject} />}
           actions={[continueAction]}
           disableEscClose
           embedded={embedded} etape={etape}
