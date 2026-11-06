@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { stripLiterals } from './cascade-step-difficulty-guard.test';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { PENDING_BY_JET } from './slotsDeJet';
 
 /**
  * CLIQUET — une étape de cascade qui LANCE dit son ENJEU (#1117, arbitrage user : « Louvoyage… ça
@@ -89,6 +90,34 @@ function hasTopLevelKey(lit: string, name: string): boolean {
     if (m[0] === '{') depth++;
     else if (m[0] === '}') depth--;
     else if (depth === 1) return true;
+  }
+  return false;
+}
+
+/** Le `jet` dont le littéral en `start` porte la DONNÉE : celui-ci est la valeur d'une propriété nommée
+ *  par un slot porteur d'étape (`pendingTest: {…}`, table `PENDING_BY_JET` de `slotsDeJet.ts`). */
+const JET_DU_PORTEUR = new Map<string, string>(Object.entries(PENDING_BY_JET).flatMap(([jet, slot]) => (slot ? [[slot, jet]] : [])));
+function jetDuPorteur(s: string, start: number): string | undefined {
+  const m = /[{,]\s*([A-Za-z_$][\w$]*)\s*:\s*$/.exec(s.slice(Math.max(0, start - 200), start));
+  return m ? JET_DU_PORTEUR.get(m[1]) : undefined;
+}
+
+/** La 1ʳᵉ étape hôte de `jet` montée APRÈS `from` (`hostStep(get, { …, jet: '<jet>' })`) porte-t-elle un
+ *  enjeu ? Le slot se pose AVANT son étape : `hostStep` refuse une étape dont le slot est vide. */
+function hoteAvecEnjeu(src: string, s: string, from: number, jet: string): boolean {
+  for (const m of s.slice(from).matchAll(/\bhostStep\s*\(/g)) {
+    const o = s.indexOf('{', from + m.index! + m[0].length);
+    if (o < 0) return false;
+    let depth = 0;
+    let c = -1;
+    for (let j = o + 1; j < s.length; j++) {
+      if (s[j] === '{') depth++;
+      else if (s[j] === '}') { if (depth === 0) { c = j; break; } depth--; }
+    }
+    if (c < 0) return false;
+    // La valeur du `jet` est une chaîne, que `stripLiterals` blanchit : lue sur la source ORIGINALE.
+    if (!new RegExp(`\\bjet\\s*:\\s*'${jet}'`).test(src.slice(o, c))) continue;
+    return /\bstake\s*(?:[,:]|$)/.test(s.slice(o, c));
   }
   return false;
 }
@@ -237,8 +266,14 @@ export function flowTestsWithoutStake(src: string): number[] {
  * précédents mesurent des PORTES (le littéral d'étape, la `RollRequest` du seam, le 1ᵉʳ argument de
  * `testFlow`) ; or un jet se DÉCRIT dans un littéral, et ce littéral entre par bien d'autres portes :
  * un nœud `{ kind:'test', test:{…} }` monté à la main, un `FlowTest` passé DIRECTEMENT à
- * `openSkillTest`, un `spec` d'`openPartyTest`, un `extendedTest`, un pending de chirurgie. Toutes
- * produisent un jet, aucune n'était mesurée.
+ * `openSkillTest`, un `spec` d'`openPartyTest`, un `extendedTest`, l'opération armée de chirurgie
+ * (`medic.surgery`, dont `useSurgeryJetProps` lit l'enjeu). Toutes produisent un jet, aucune n'était
+ * mesurée.
+ *
+ * PORTEUR D'ÉTAPE : le littéral posé dans un slot de `PENDING_BY_JET` (`pendingTest: {…}`) est la
+ * DONNÉE d'une étape hôte, pas la forme qui lance : `CascadeModal` lit l'enjeu sur l'étape
+ * (`cur.stake`). L'enjeu se demande donc à l'étape hôte de ce `jet` montée après lui, et un littéral
+ * de porteur sans elle, ou dont l'étape n'en porte aucun, reste rouge.
  *
  * Le discriminant est donc la FORME du DESCRIPTEUR, pas la fonction qui le reçoit : un littéral qui
  * nomme CE QU'ON TESTE (`skill` / `characteristic`) ET COMMENT (difficulté fixe, dynamique, ou
@@ -277,6 +312,8 @@ export function literalTestsWithoutStake(src: string): number[] {
     // site que l'ancien scan voyait, cf. le rejeu ci-dessous).
     if (!hasTopLevelKey(lit, 'difficulty') && !hasTopLevelKey(lit, 'difficultyBy') && !hasTopLevelKey(lit, 'opposed')) continue;
     if (/\bstake\s*(?:[,:]|$)/.test(lit)) continue;
+    const jet = jetDuPorteur(s, start);
+    if (jet && hoteAvecEnjeu(src, s, end, jet)) continue;
     lines.push(src.slice(0, start).split('\n').length);
   }
   return lines;
@@ -400,6 +437,23 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
     expect(literalTestsWithoutStake(directAvec)).toHaveLength(0);
     expect(literalTestsWithoutStake(dynamique), 'la difficulté DYNAMIQUE compte autant que la fixe').toHaveLength(1);
     expect(literalTestsWithoutStake(pasUnTest)).toHaveLength(0);
+  });
+
+  it('PORTEUR D’ÉTAPE (4ᵉ forme) : l’enjeu se demande à l’étape hôte de son `jet`, jamais effacé', () => {
+    const porteurs = Object.entries(PENDING_BY_JET).flatMap(([jet, slot]) => (slot ? [{ jet, slot }] : []));
+    expect(porteurs.length).toBeGreaterThan(0);
+    for (const { jet, slot } of porteurs) {
+      const pose = `set({ ${slot}: { actorId: a.id, characteristic: 'force', difficulty, roll: null } });`;
+      const hote = (j: string, enjeu: string) => `const e = hostStep(get, { id: 'x', kind: 'k', jet: '${j}', actorId: a.id${enjeu} });`;
+      const autre = porteurs.find((p) => p.jet !== jet)?.jet ?? 'fumble';
+      expect(literalTestsWithoutStake(`${pose}\n${hote(jet, ', ...(f.stake ? { stake: f.stake } : {})')}`), `${slot} : l’étape porte l’enjeu`).toHaveLength(0);
+      expect(literalTestsWithoutStake(`${pose}\n${hote(jet, '')}`), `${slot} : étape hôte sans enjeu`).toHaveLength(1);
+      expect(literalTestsWithoutStake(pose), `${slot} : aucune étape hôte`).toHaveLength(1);
+      expect(literalTestsWithoutStake(`${hote(jet, ', stake')}\n${pose}`), `${slot} : étape montée AVANT le slot`).toHaveLength(1);
+      expect(literalTestsWithoutStake(`${pose}\n${hote(autre, ', stake')}`), `${slot} : étape d’un autre jet`).toHaveLength(1);
+    }
+    const horsPorteur = `set({ medic: { ...m, surgery: { kind: act, skill: h.skill, difficulty: 'intermediaire' } } });\nconst e = hostStep(get, { id: 'x', kind: 'k', jet: 'test', actorId: a.id, stake });`;
+    expect(literalTestsWithoutStake(horsPorteur), 'un slot hors `PENDING_BY_JET` est la forme lue par le joueur').toHaveLength(1);
   });
 
   /** Les `FlowTest` : les 7 producteurs de Flow (vague 5) fournissent leur `FlowTest.stake`

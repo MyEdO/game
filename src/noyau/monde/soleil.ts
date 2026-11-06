@@ -1,14 +1,8 @@
 /**
- * COURSE DU SOLEIL EN JEU (#1176, lot P2-5) — le SECOND soleil du dépôt, et le seul qui bouge.
- *
- * DEUX soleils NOMMÉS, qui ne se croisent jamais :
- *  - le soleil de PLANCHE (`SUN_ELEVATION_DEG`/`SUN_AZIMUTH`/`sunRig`, `sceneMeshes.ts`) : élévation et
- *    azimut FIXES. C'est lui, et lui seul, que consomment les planches QC — leurs gardes
- *    l'épinglent, donc une planche ne change pas parce que l'heure de
- *    jeu a tourné ;
- *  - le soleil de JEU (ce module) : l'heure de l'horloge (`state.gameTime`, minutes) et le NORD de la
- *    scène (`Scene.northDeg`) donnent sa direction. C'est lui que monte l'écran de jeu volumique
- *    (`stage/stageLights.ts` → `stage/GameStage3D.tsx`).
+ * COURSE DU SOLEIL EN JEU (#1176, #3476) : l'heure de l'horloge (`state.gameTime`, minutes) et le NORD de la scène
+ * (`Scene.northDeg`) donnent sa direction. La lumière de la scène (`./lumiere`) le publie aux hôtes ; le rendu web le lit
+ * aussi (`gameIso/stage/stageLights.ts`), à côté de son soleil de PLANCHE fixe (`SUN_AZIMUTH`/`sunRig`,
+ * `gameIso/backends/webgl/sceneMeshes.ts`) qui ne bouge jamais.
  *
  * COURBE (MAISON, assumée) — aucune simulation astronomique : le canon est muet sur l'heure du lever
  * et du coucher (`engine/clock.ts`, `DAY_PHASES`). Une seule arche, symétrique autour de MIDI :
@@ -25,9 +19,14 @@
  * `northDeg` est la rotation HORAIRE, vue du dessus, du nord réel par rapport à ce `−z` : elle s'ajoute
  * au relèvement du soleil. `northDeg = 0` = le nord implicite d'aujourd'hui.
  */
-import { dawnMinute, MINUTES_PER_DAY } from '../../../engine/clock';
-import { isIndoor, type Scene } from '../../../noyau/monde/scene';
-import { SUN_ELEVATION_DEG } from './sceneMeshes';
+import { dawnMinute, MINUTES_PER_DAY } from '../../engine/clock';
+import { isIndoor, type Scene } from './scene';
+
+/** Élévation du soleil de PLANCHE au-dessus de l'horizon (degrés), où la course de jeu passe à mi-matinée. CONSTANTE :
+ *  une hauteur dérivée de la taille de la carte met le soleil d'autant plus près du zénith que la scène est grande, et
+ *  les blocs de terrain cessent d'y projeter. Mesuré (#1176, lancer de rayon sur les centroïdes de sol) : sol d'HERBE
+ *  occulté 0,0 % à `siege-enceinte` sous le soleil dérivé, 6,3 % à 38°. */
+export const SUN_ELEVATION_DEG = 38;
 
 /** Minute de jour de MIDI solaire — le sommet de l'arche. */
 export const SOLAR_NOON_MINUTE = 12 * 60;

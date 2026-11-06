@@ -161,7 +161,7 @@ un chargeur que la lecture ne suit pas (renommé, déstructuré, atteint par un 
 code : `src/test-setup.ts`, environnement de la suite principale (`setupFiles`), charge le store pour toute la suite
 web sans être un arc d'un test ; un test posé sous `src/state/` ou à la racine de `src/` est, par sa zone, un test
 de la coque web, que la sonde `scripts/ops/sondes/classement-tests-state/` classe ; `murs/suite-jouee` refuse une suite qu'aucune suite Vitest ne joue (`racinesDeLaSuite.mjs`) ;
-`murs/reexportation` refuse, en production de `src/state/` et `src/noyau/` (`ZONES_SANS_REEXPORTATION`), toute réexportation hors de la surface
+`murs/reexportation` refuse, en production de `src/state/`, `src/noyau/` et `src/scenes/` (`ZONES_SANS_REEXPORTATION`), toute réexportation hors de la surface
 du noyau ; `murs/quarantaine` refuse, aux fichiers que la config nomme, tout arc vers une cible de ses `cibles`
 (le batch générique de cascade et le domaine naval, #328). Banc : `src/eslint-ordre-total-et-purete.test.ts`. Les outils qui lisent le code des zones en dérivent :
 les murs d'oxlint, le périmètre des gardes et les lectures des gates (`RACINES_PRESENTES`, les racines que l'arbre

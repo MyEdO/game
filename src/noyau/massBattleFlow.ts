@@ -577,19 +577,35 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string, h
 
 // ── Scènes cinématiques (l.116-225) ──────────────────────────────────────────────────────────────
 
+/** Les PJ vivants qui n'ont pas encore agi ce Round. ADE II 8 l.116-118 */
+export const herosLibres = (mb: MassBattleState, party: readonly Combatant[]): Combatant[] => party.filter((h) => !h.dead && !mb.actedHeroes.includes(h.id));
+
+/** Raison du refus d'engager la Scène `sceneId`, ou `null` — verdict UNIQUE de `openMassBattleScene` et de ce
+ *  qu'un hôte montre : une Scène de la situation du Round, ni déjà résolue, ni après le Test spectaculaire ; une
+ *  Scène de combat engage tout le groupe ; une autre attend un PJ libre qui puisse la tenter, et une position
+ *  rompue ne se tient plus. ADE II 8 l.116-118, l.161 */
+export function refusDeSceneDeBataille(s: Pick<Jeu, 'massBattle' | 'party'>, sceneId: string): string | null {
+  const mb = s.massBattle;
+  const scene = battleSceneById(sceneId);
+  if (!mb || mb.phase !== 'round' || !scene || !mb.situation.includes(sceneId)) return t('mbf.sceneHorsSituation');
+  if (mb.awaitingNext) return t('mbf.roundJoue');
+  if (mb.resolvedScenes.includes(sceneId)) return t('mbf.sceneResolue');
+  if (isCombatScene(scene)) return null;
+  if (scene.sceneKind === 'hold' && mb.sceneState[sceneId]?.broken) return t('mbf.holdAlreadyBroken', { scene: scene.label });
+  const libres = herosLibres(mb, s.party);
+  return libres.length ? battleActionRefus(mb, libres, scene) : t('mbf.allActed');
+}
+
 /** Choisit une Scène de la SITUATION : 'test' → modale de jet ; 'hold' → Test opposé de tenue ;
  *  'combat'/'threat' → combat tactique. Scène MULTI-PJ (l.116-118) résolue en SOUTIEN (LDB 12). */
 export function openMassBattleScene(get: Get, set: Set, sceneId: string): void {
-  const mb = get().massBattle;
-  const scene = battleSceneById(sceneId);
-  if (!mb || mb.phase !== 'round' || mb.awaitingNext || !scene) return;
-  if (!mb.situation.includes(sceneId) || mb.resolvedScenes.includes(sceneId)) return;
+  if (refuseSi(get, set, (s) => refusDeSceneDeBataille(s, sceneId))) return;
+  const mb = get().massBattle!;
+  const scene = battleSceneById(sceneId)!;
   if (isCombatScene(scene)) { startBattleCombat(get, set, scene); return; }
   if (scene.sceneKind === 'hold') { openHoldScene(get, set, scene); return; }
   // Scène 'test' MULTI-PJ (l.116-118/151/153) : compétences AU CHOIX, Soutien LDB 12.
-  const party = get().party.filter((h) => !h.dead && !mb.actedHeroes.includes(h.id));
-  if (!party.length) { get().log(t('mbf.allActed')); return; }
-  const at = resolveAssistedTeam(get, mb, party, scene);
+  const at = resolveAssistedTeam(get, mb, herosLibres(mb, get().party), scene);
   if (!at) return;
   const { team, picked, difficulty } = at;
   const mod = massBattleThreatPenalty(mb); // Intrus l.219 : −20 aux Tests des autres Scènes.
@@ -606,10 +622,7 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   const mb = get().massBattle;
   if (!mb || !scene.hold) return;
   const state = mb.sceneState[scene.id] ?? initHoldState();
-  if (state.broken) { get().log(t('mbf.holdAlreadyBroken', { scene: scene.label })); return; }
-  const party = get().party.filter((h) => !h.dead && !mb.actedHeroes.includes(h.id));
-  if (!party.length) { get().log(t('mbf.allActed')); return; }
-  const at = resolveAssistedTeam(get, mb, party, scene);
+  const at = resolveAssistedTeam(get, mb, herosLibres(mb, get().party), scene);
   if (!at) return;
   const { team, picked, difficulty } = at;
   const enemyBonus = holdEnemyBonus(scene.hold, state.held); // +10 cumulatif par Round déjà tenu (l.163).

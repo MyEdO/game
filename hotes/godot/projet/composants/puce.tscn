@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/bulle.gd" id="2_bulle"]
 
 [node name="Puce" type="PanelContainer"]
+size_flags_vertical = 4
 theme_type_variation = &"Puce"
 
 [node name="Rangee" type="HBoxContainer" parent="."]

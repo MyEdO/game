@@ -556,14 +556,14 @@ function activeTravelDay(get: Get<Jeu>): TravelRecapDay | undefined {
 }
 
 /** « Plein air » réussi à l'Étape du jour : la nuit n'a pas d'Exposition due au mauvais temps (EDOC 08 l.141). */
-export function nuitDispenseeParPleinAir(get: Get): boolean {
+export function nuitDispenseeParPleinAir(get: Get<Jeu>): boolean {
   return activeTravelDay(get)?.pleinAir === true;
 }
 
 /** Sévérité d'Exposition du lieu où le groupe passe la nuit : la météo du JOUR de voyage
  *  (`activeDayWeather`, convertie par `stageWeatherExposure`) quand elle existe, sinon la météo
  *  authored de la scène. SOURCE unique de l'Exposition de nuit (`buildNightCascade`, `RestBody`). */
-export function activeExposureSeverity(get: Get): ExposureSeverity {
+export function activeExposureSeverity(get: Get<Jeu>): ExposureSeverity {
   if (nuitDispenseeParPleinAir(get)) return 'clement';
   const w = activeDayWeather(get);
   return w ? stageWeatherExposure(w) : weatherExposure(get().scene?.weather); // #2533 c.6071899887
@@ -1810,7 +1810,7 @@ export function applyCriticalToTarget(
     const sum = critImmediateSummary(crit.ops);
     pushReveal(set, {
       kind: 'critical', title: tr(estUnCoupCritique(origine) ? 'step.coupCritique' : 'step.blessureCritique'), dice: crit.roll, lines: revealLines, subjectId: target.id,
-      severity: 'grave', ...(origine ? { origine } : {}),
+      ...(origine ? { origine } : {}),
       actorId: ctx?.attackerId, weapon: ctx?.weapon, details,
       crit: { location: locationLabel(crit.location, target.bodyShape), woundsLost: sum.woundsLost, conditions: sum.conditions.length ? sum.conditions : undefined },
     }, { table: severity?.table }); // la DÉCLARATION résolue voyage avec la révélation : dé + ligne atteinte sur la rangée
@@ -1858,7 +1858,7 @@ export function applyHullCriticalToTarget(
   if (!suppressReveal && heroConcerned) {
     pushReveal(set, {
       kind: 'critical', title: tr('step.critiqueNavire'), dice: 0, lines: outcome.lines,
-      subjectId: target.id, severity: 'grave', actorId: ctx?.attackerId, weapon: ctx?.weapon, details: [],
+      subjectId: target.id, actorId: ctx?.attackerId, weapon: ctx?.weapon, details: [],
     });
   }
   if (outcome.marinId) {
@@ -1930,7 +1930,7 @@ export function applyStructureCriticalToTarget(
     // `reveal` porte le rendu détaillé partagé (`CriticalBody` : qui inflige → arme → victime).
     const entry: RevealEntry = {
       kind: 'critical', title: tr('step.critiqueStructure'), dice: rolled.roll, lines: rolled.lines,
-      subjectId: target.id, severity: outcome.destroyed ? 'grave' : 'minor', actorId: ctx.attackerId, weapon: ctx.weapon, details: [],
+      subjectId: target.id, actorId: ctx.attackerId, weapon: ctx.weapon, details: [],
     };
     // Étape poussée DÉJÀ tirée : le mint fait descendre l'enjeu à la ligne atteinte (`stakeAtTableRow`
     // lit la catégorie déclarée par la table), et porte la charge riche dans son slot `reveal`.
@@ -2055,7 +2055,7 @@ function autoDeviate(
   if (!deflectCrit(target, location, log)) return false;
   if (heroConcerned)
     pushReveal(set, {
-      kind: 'critical', title: tr('cf.critDeflectedTitle'), dice: roll, severity: 'minor',
+      kind: 'critical', title: tr('cf.critDeflectedTitle'), dice: roll,
       lines: [tr('cf.critDeflectedReveal', { loc: locationLabel(location, target.bodyShape) }), tr('cf.deflect', { name: target.label })],
       subjectId: target.id, actorId: ctx.attackerId, weapon: ctx.weapon,
     });
@@ -4682,7 +4682,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     const colere = severity === 'colere';
     const title = colere ? 'Colère des dieux' : 'Incantation Imparfaite';
     // Charge riche `reveal` (table : dé + lignes) — comme le Critique ; le dé reste observable (Péché +10).
-    const reveal: RevealEntry = { kind: 'miscast', title, dice: m.rolls[0], lines, subjectId: caster.id, severity: 'grave' };
+    const reveal: RevealEntry = { kind: 'miscast', title, dice: m.rolls[0], lines, subjectId: caster.id };
     // FOLD : l'Imparfaite/Colère est une ÉTAPE de la cascade d'incantation ACTIVE (parité avec le
     // Critique d'attaque, appendu via pushReveal) — plus une cascade SÉPARÉE. L'append vise la
     // cascade `purpose:'combat'` en cours (jet d'incantation), ou démarre « Conséquences » si aucune
@@ -7397,7 +7397,7 @@ export function advanceTurn(get: Get, set: SetFn) {
       emitCombatEvent('onRoundEnd', { triggerCtx: { rng: battleRng() }, get, set, battle, sink: tickLine });
       // Tombé pendant l'entretien (saignement à 0 PB, LDB 16 l.105) : même ligne que sur le chemin du coup.
       for (const c of battle.combatants) if (debout.has(c.id) && !c.dead && isOutOfAction(c)) tickLine(tr('cf.outOfAction', { name: c.label }), c);
-      if (heroRoundLines.length) pushReveal(set, { kind: 'round', title: tr('cf.roundEndTitle', { n: round - 1 }), lines: heroRoundLines, severity: 'minor' }); // (entretien HÉROS — fermé au clic, #1270)
+      if (heroRoundLines.length) pushReveal(set, { kind: 'round', title: tr('cf.roundEndTitle', { n: round - 1 }), lines: heroRoundLines }); // (entretien HÉROS)
       // Maniement de deux armes : le −10 défensif expire au DÉBUT du prochain Tour de son porteur. Si ce
       // porteur est order[0] (il rejoue en premier), c'est ICI (le franchissement de Round) que son Tour démarre.
       const firstNext = inBattleId(battle, battle.order[0]);

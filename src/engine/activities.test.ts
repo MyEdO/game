@@ -15,7 +15,7 @@ import { describe, it, expect } from 'vitest';
 import type { RNG } from './dice';
 import { toBrass } from './money';
 import { AVAILABILITIES } from './types';
-import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, bankWithdrawOutcome, statusIncome, ACTIVITIES, activitiesFor, activityById,
+import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, bankWithdrawOutcome, seuilDePerteBancaire, statusIncome, ACTIVITIES, activitiesFor, activityById,
   aggregateActivityOutcomes, STAGE_OUTCOME_AGG, type TravelActivityResult,
   defaultTravelRole, stageAssignmentFromRoles, matchOutcomes, activityAvailableAt } from './activities';
 import { byId } from '../data';
@@ -67,6 +67,17 @@ describe('bankWithdrawOutcome — Opérations bancaires (LDB 23 l.157-159)', () 
   it('planque liée à une Carte marine (MDG 15 l.292) : seuil de découverte 50 au lieu de 10', () => {
     expect(bankWithdrawOutcome('stash', 50, 50)).toBe('lost');
     expect(bankWithdrawOutcome('stash', 50, 51)).toBe('ok');
+  });
+});
+
+describe('seuilDePerteBancaire — le seuil affiché est celui du jet (LDB 23 l.168-170)', () => {
+  it('planque 10, Carte marine 50, investissement à l’Indice borné 1-10', () => {
+    const cas = [['stash', 0, 10], ['stash', 50, 50], ['invest', 6, 6], ['invest', 15, 10], ['invest', 0, 1]] as const;
+    for (const [kind, rate, seuil] of cas) {
+      expect(seuilDePerteBancaire(kind, rate)).toBe(seuil);
+      expect(bankWithdrawOutcome(kind, rate, seuil)).toBe('lost');
+      expect(bankWithdrawOutcome(kind, rate, seuil + 1)).toBe('ok');
+    }
   });
 });
 

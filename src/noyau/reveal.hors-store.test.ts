@@ -20,7 +20,7 @@ import { groupesDe } from '../engine/groups';
  * RÉVÉLATION = étape d'AFFICHAGE de la cascade (#942 L8) : `pushReveal` n'alimente plus une file
  * parallèle, il APPEND une étape dans la séquence d'accueil — celle en vol, sinon une séquence
  * d'affichage qu'il ouvre. Le contrat porte donc sur la SÉQUENCE : ordre d'arrivée, charge riche
- * portée par l'étape, cadence d'auto-fermeture dérivée de la gravité, acquittement par `jetConfirm('cascade')`. La traversée de
+ * portée par l'étape, acquittement par `jetConfirm('cascade')`. La traversée de
  * la sauvegarde du navigateur se joue en `src/state/reveal.test.ts`.
  */
 let banc: Banc;
@@ -30,7 +30,7 @@ describe('révélation → étape d’affichage de cascade', () => {
   beforeEach(() => banc.setState({ pendingCascade: null, suspendedCascades: [], battle: null }));
 
   it('hors combat sans séquence en vol : la révélation OUVRE une séquence d’affichage, titrée par elle', () => {
-    pushReveal(banc.setState, { kind: 'round', title: 'Entretien quotidien', lines: ['x'], severity: 'minor' });
+    pushReveal(banc.setState, { kind: 'round', title: 'Entretien quotidien', lines: ['x'] });
     const c = banc.getState().pendingCascade!;
     expect(c.purpose).toBe('affichage');
     expect(c.title).toBe('Entretien quotidien');
@@ -48,19 +48,6 @@ describe('révélation → étape d’affichage de cascade', () => {
     const c = banc.getState().pendingCascade!;
     expect(c.participants.map((s) => s.reveal?.title)).toEqual(['A', 'B']);
     expect(c.participants.map((s) => s.id)).toEqual(['cons-round-0', 'cons-effet-1']); // ids uniques dans la séquence
-  });
-
-  it('la GRAVITÉ n’arme AUCUN timer : la fermeture est EXPLICITE par défaut (arbitrage #1270)', () => {
-    pushReveal(banc.setState, { kind: 'round', title: 'A', lines: [], severity: 'minor' });
-    pushReveal(banc.setState, { kind: 'mutation', title: 'B', lines: [], severity: 'grave' });
-    pushReveal(banc.setState, { kind: 'effet', title: 'C', lines: [] });
-    expect(banc.getState().pendingCascade!.participants.map((s) => s.autoCloseMs)).toEqual([undefined, undefined, undefined]);
-  });
-
-  it('l’auto-fermeture se DÉCLARE au site, à la cadence de la gravité donnée', () => {
-    pushReveal(banc.setState, { kind: 'round', title: 'A', lines: [] }, { autoClose: 'minor' });
-    pushReveal(banc.setState, { kind: 'mutation', title: 'B', lines: [] }, { autoClose: 'grave' });
-    expect(banc.getState().pendingCascade!.participants.map((s) => s.autoCloseMs)).toEqual([3500, 9000]);
   });
 
   it('`jetConfirm@cascade` dépile étape par étape et ferme la séquence à la dernière', () => {

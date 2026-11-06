@@ -40,6 +40,15 @@
 //   l'Entrée.
 // - `voyage` (`--scenario voyage`) : l'entrée de la scène poursuivie, « Carte du monde » ouvre la carte, chaque trajet
 //   et ses modes ; « À pied » vers Steinbruck part, les journées et la halte passent jusqu'au récit de l'arrivée.
+// - `repit` (`--scenario bataille-de-masse`) : les dés d'Événement tombent, l'entre-deux-aventures montre un onglet par
+//   héros, ses Activités restantes et chaque Activité fermée par sa raison ; « Revenus » cliqué ouvre son jet, lancé à
+//   l'Entrée puis appliqué : l'onglet du héros compte une Activité de moins.
+// - `ouvrage` (`--scenario entre-deux-aventures`) : les dés d'Événement tombent ; dans l'onglet du forgeron, la molette
+//   amène ses formulaires, l'Atout « Solide » coché, le premier ouvrage ouvert choisi dans la liste au clavier,
+//   « Entreprendre un ouvrage » l'engage : l'Artisanat en cours le remplace.
+// - `bataille` (`--scenario bataille-de-masse`) : l'interlude clos, la bataille montre ses armées et les Scènes du
+//   Round ; « Résoudre » ouvre le jet de la première Scène à postes, lancé à l'Entrée puis appliqué : la Scène se
+//   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
 //   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
@@ -660,6 +669,143 @@ async function parcoursVoyage() {
   v = await vue()
   noter(`récit : ${corps(v)}`)
   await capturer('3328-l1-2-recit')
+}
+
+async function parcoursRepos() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  /** L'Entrée tant qu'une fenêtre autre que `jusqua` tient la main. */
+  const entrer = async (jusqua) => {
+    for (let v = await vue(), pas = 0; v.projection.fenetre && v.projection.fenetre.cle !== jusqua; v = await vue(), pas++) {
+      assert.ok(pas < 40, `l'Entrée mène à ${jusqua} : ${corps(v)}`)
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  await entrer()
+  await cliquerBouton('Carte du monde')
+  await attendreLaVue("v.projection.fenetre?.cle === 'carteDuMonde'")
+  await cliquerBouton('À pied · 2 j')
+  await entrer('rest')
+  let v = await vue()
+  noter(`repos : ${corps(v)}`)
+  await capturer('3328-r1-1-nuit')
+  const dormeur = (v) => zone(v, 'fenetre.corps').find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs.map((b) => `${b.libelle}${b.presse ? '*' : ''}`).join(' ')
+  assert.equal(dormeur(v), 'Privée* Commune Dehors', 'Bjorn en chambre privée')
+  await cliquerBouton('Dehors')
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs[2].presse")
+  v = await vue()
+  noter(`Bjorn : ${dormeur(v)}`)
+  await capturer('3328-r1-2-dehors')
+  await entrer()
+  noter(`après « Dormir » : ${(await vue()).disposition}`)
+}
+
+async function parcoursRepit() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
+  /** L'Entrée tant qu'un geste a le focus et que la disposition n'est pas `jusqua`. */
+  const entrer = async (jusqua) => {
+    for (let v = await vue(), pas = 0; v.disposition !== jusqua; v = await vue(), pas++) {
+      assert.ok(pas < 12, `l'Entrée mène à ${jusqua} : ${corps(v)}`)
+      assert.ok(zone(v, 'fenetre.gestes').some((b) => b.type === 'bouton' && b.focus), `un geste a le focus : ${corps(v)}`)
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  /** Les puces de l'onglet du premier héros. */
+  const puces = (v) => zone(v, 'fenetre.corps').find((e) => e.type === 'entite').elements.filter((x) => x.type === 'puce').map((x) => x.libelle)
+  await entrer('interlude')
+  let v = await vue()
+  noter(`répit : ${zone(v, 'fenetre.corps')[0].texte} ; ${puces(v).join(' ; ')}`)
+  assert.deepEqual(puces(v)[0], 'Activités : 3 / 3')
+  await capturer('3328-m1-1-repit')
+  await cliquerBouton('Revenus')
+  await attendreLaVue("v.disposition === 'activity'")
+  await capturer('3328-m1-2-revenus')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  await cliquerBouton('Appliquer')
+  await attendreLaVue("v.disposition === 'interlude'")
+  v = await vue()
+  assert.equal(puces(v)[0], 'Activités : 2 / 3', 'une Activité de moins')
+  await capturer('3328-m1-3-repit-apres')
+}
+
+async function parcoursOuvrage() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
+  for (let v = await vue(), pas = 0; v.disposition !== 'interlude'; v = await vue(), pas++) {
+    assert.ok(pas < 8, `les dés d'Événement mènent à l'interlude : ${corps(v)}`)
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+  }
+  await capturer('3328-o1-1-forgeron')
+  /** Le bouton publié qui porte `texte`, amené à l'écran par la molette sur l'onglet du héros. */
+  const amenerTexte = async (texte) => {
+    for (let n = 0; !trouver((await ecran()).boutons, texte); n++) {
+      assert.ok(n < 30, `« ${texte} » amené par la molette`)
+      await molette(session, { surface: 'canvas', x: 600, y: 420 }, 100)
+      await sleep(250)
+    }
+  }
+  await amenerTexte('Entreprendre un ouvrage')
+  await capturer('3328-o1-2-formulaires')
+  /** Un clic sur le bouton publié `b`, qui ne publie aucun écran neuf (une case, une liste ouverte). */
+  const cliquerSurPlace = (b) => geste(session, { surface: 'canvas', x: b.x, y: b.y }, { qui: `clic sur ${b.texte}` }, clic())
+  await cliquerSurPlace(trouver((await ecran()).boutons, 'Solide'))
+  const ouvrage = zone(await vue(), 'fenetre.corps').find((e) => e.id === 'repit/durin').elements.find((x) => x.id === 'ouvrage/durin')
+  const ouverts = ouvrage.champs.find((c) => c.nom === 'trappingId').valeurs.filter((v) => !v.refus)
+  const liste = (await ecran()).boutons.find((b) => b.choix?.includes(ouverts[0].libelle))
+  assert.ok(liste, `la liste des ouvrages est à l'écran`)
+  await cliquerSurPlace(liste)
+  await sleep(400)
+  await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await sleep(300)
+  await cliquerBouton('Entreprendre un ouvrage')
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'repit/durin').elements.some((x) => x.id === 'craft')")
+  const v = await vue()
+  noter(`ouvrage engagé : ${zone(v, 'fenetre.corps').find((e) => e.id === 'repit/durin').elements.find((x) => x.id === 'craft').libelle}`)
+  await capturer('3328-o1-3-ouvrage-engage')
+}
+
+async function parcoursBataille() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
+  for (let v = await vue(), pas = 0; v.disposition !== 'interlude'; v = await vue(), pas++) {
+    assert.ok(pas < 12, `les dés d'Événement mènent à l'interlude : ${corps(v)}`)
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+  }
+  await cliquerBouton('Clore l’interlude')
+  await attendreLaVue("v.disposition === 'batailleDeMasse'")
+  /** L'élément `id` du corps de la fenêtre. */
+  const element = (v, id) => zone(v, 'fenetre.corps').find((e) => e.id === id)
+  let v = await vue()
+  noter(`bataille : ${element(v, 'bataille/round').texte} ; ${zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('scene/')).map((e) => e.nom).join(', ')}`)
+  await capturer('3328-n1-1-bataille')
+  const [scene] = zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('scene/') && e.elements.some((x) => x.id === 'postes'))
+  await cliquerBouton('Résoudre')
+  await attendreLaVue("v.disposition === 'activity'")
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  await cliquerBouton('Appliquer')
+  await attendreLaVue("v.disposition === 'batailleDeMasse'")
+  v = await vue()
+  assert.equal(element(v, scene.id).elements.find((x) => x.id === 'engager').refus, 'Cette Scène est déjà résolue.', `${scene.nom} se ferme`)
+  await cliquerBouton('Test spectaculaire de Puissance')
+  await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.libelle === 'Round suivant')")
+  await capturer('3328-n1-2-entre-deux-rounds')
+  await cliquerBouton('Round suivant')
+  await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.texte === 'Round de bataille 2 / 3')")
+  await capturer('3328-n1-3-round-2')
 }
 
 async function parcoursFiche() {
@@ -1365,7 +1511,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, exploration: parcoursExploration, relief: parcoursRelief, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

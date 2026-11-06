@@ -47,30 +47,3 @@
   color: var(--muted);
   line-height: 1.35;
 }
-
-/* Barre de temps de l'auto-fermeture d'une révélation GRAVE (arbitrage 2026-06-11) : elle se vide
-   de gauche à droite sur la durée — un clic ferme avant. Durée posée en VARIABLE par `RevealTimer`
-   (arbitrage A2). */
-.reveal-timer {
-  height: 4px;
-  margin: 10px 0 2px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.reveal-timer i {
-  display: block;
-  height: 100%;
-  background: var(--gold);
-  animation: reveal-timer-drain var(--reveal-timer-duree, 0s) linear forwards;
-}
-@keyframes reveal-timer-drain {
-  from { width: 100%; }
-  to { width: 0%; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .reveal-timer i {
-    animation: none;
-    width: 100%;
-  }
-}

@@ -29,7 +29,7 @@ import {
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, massBattleBegin, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
 import {
-  craftTarget, craftSpecOf, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, bankPayout, apprenticeshipTutorCost,
+  craftTarget, craftSpecOf, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
   entrainementTutorCost,
   ACTIVITIES, activitiesFor, activityById, matchOutcomes, activityAvailableAt,
   RESOLVER_OWNER,
@@ -161,7 +161,7 @@ function eventStep(hero: Combatant): CascadeStep {
   return {
     id: `interlude-event-${hero.id}`,
     kind: 'interludeEvent', actorId: hero.id, icon: 'nav/dice',
-    label: stepDetail(t('step.evenement'), dataLabel(hero.label)),
+    label: t('step.evenement'),
     table: INTERLUDE_EVENT_DECL,
     stake: combatStakeRef('interludeEvent'),
   };
@@ -403,7 +403,7 @@ const craftQualLabel = (id: string): string => qualityRefLabel({ id });
 /** Engage un Artisanat : Compétence Métier, matériaux payés avant l'Activité ; l'engagement n'en consomme
  *  aucune (verdict `refusDArtisanat`). LDB 23 l.76 */
 export function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atouts: string[], defauts: string[]): void {
-  if (refuseSi(get, set, (s) => refusDArtisanat(s, heroId, trappingId))) return;
+  if (refuseSi(get, set, (s) => refusDArtisanat(s, heroId, trappingId) ?? (trappingId ? null : msg('interlude.choisir.ouvrage')))) return;
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   const metier = h && metierOf(h);
@@ -1050,7 +1050,7 @@ function appliquerLActivite(get: Get, set: Set): void {
 export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, rate?: number): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (refuseSi(get, set, (s) => devisDeDepot(s, heroId, kind, amountBrass).refus)) return;
+  if (refuseSi(get, set, (s) => (kind ? devisDeDepot(s, heroId, kind, amountBrass).refus : msg('interlude.choisir.depot')))) return;
   if (!st || !h) return;
   const { debite: amount, depose: deposited } = devisDeDepot(get(), heroId, kind, amountBrass);
   const lines: string[] = [];
@@ -1108,7 +1108,7 @@ function bankWithdrawInner(get: Get, set: Set, index: number, crashCheckOnly: bo
   const rest = (get().bank ?? []).filter((_, i) => i !== index);
   if (outcome === 'lost') {
     set({ bank: rest });
-    const threshold = dep.kind === 'invest' ? dep.rate : (dep.rate > 0 ? dep.rate : 10);
+    const threshold = seuilDePerteBancaire(dep.kind, dep.rate);
     return [msg('if.bankLost', {
       name: libelleOuAbsence(h, 'heros', dep.heroId), roll, threshold,
       what: msg(dep.kind === 'invest' ? 'if.bankFailBank' : 'if.bankFailStash'),

@@ -51,18 +51,17 @@ export function poserLeLancement(get: Get, l: LancementDeScenario): void {
   else get().startScene(l.scene);
 }
 
-/** DÉMARRAGE du lancement posé : bourse, navire, combat direct, interlude (ADE II 8 l.65) puis bataille de
- *  masse, sinon écran de campagne. */
+/** DÉMARRAGE du lancement posé : bourse, navire, combat direct, interlude, puis bataille de masse dont il est la
+ *  préparation (ADE II 8 l.65) ; sans l'un ni l'autre, écran de campagne. */
 export function demarrerLeLancement(get: Get, set: Set, l: LancementDeScenario): void {
   // Bourse et navire APRÈS le reset que pose le chargement de la scène.
   const lead = get().party[0];
   if (l.bourse && lead) creditBourse(get, set, lead.id, l.bourse);
   if (l.vessel) set({ vessel: l.vessel });
   if (l.combatDirect) get().startCombat(l.combatDirect);
-  if (l.massBattle) {
-    if (l.semainesDInterlude) get().startInterlude(l.semainesDInterlude);
-    get().startMassBattle(l.massBattle);
-  } else set({ screen: 'campaign' });
+  if (l.semainesDInterlude) get().startInterlude(l.semainesDInterlude);
+  if (l.massBattle) get().startMassBattle(l.massBattle);
+  else if (!l.semainesDInterlude) set({ screen: 'campaign' });
 }
 
 /** Lancement complet : `poserLeLancement` puis `demarrerLeLancement`. */

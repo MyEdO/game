@@ -147,6 +147,7 @@ export interface PendingRest extends PendingBase {
 import type { Get, Set } from './flowTypes';
 import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
+import { refuseSi } from './verrousDeFiche';
 import { t } from '../i18n';
 import { placeById, type WorldMap } from './worldMap';
 import { garanti } from '../lib/garanti';
@@ -441,7 +442,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   for (const c of [...collectContagion(party), ...(opts.extraContagion ?? [])]) {
     const h = party.find((x) => x.id === c.heroId);
     if (!h || h.dead) continue;
-    const st = monoStep({ id: `contagion-${c.heroId}-${steps.length}`, kind: 'contagion', actor: h, label: stepPrecision(t('step.contagion'), dataLabel(c.diseaseName)), icon: 'medical/infection',
+    const st = monoStep({ id: `contagion-${c.heroId}-${steps.length}`, kind: 'contagion', actor: h, label: stepPrecision(t('step.contagion'), diseaseLabel(c.diseaseName)), icon: 'medical/infection',
       rollLabel: SKILL_RESISTANCE(), difficulty: c.difficulty,
       stake: nightStakeRef('contagion'),
       // Contraction = « Test de Résistance » (`LDB 20 l.25`) : valeur de la porte, et les bonus d'effet
@@ -561,18 +562,29 @@ export function nourrituresDeTroupe(places: RestPlaces): RestFood[] {
   return [...pitancesDuLieu(places), 'rien'];
 }
 
-/** Coût total du repos (chambres regroupées par 2, repas par convive), par nuit × days. */
-export function restCost(p: PendingRest, party: Combatant[]): Money {
+/** Part de chaque héros vivant réglé dans la note du repos, par nuit × days : une chambre privée loge 2
+ *  invités (LDB 66 l.28), sa part est sa moitié (valeur d'ingénierie, la source ne partage pas la
+ *  chambre) ; chambre commune et repas par convive. La somme des parts EST `restCost`. */
+export function partsDuRepos(p: PendingRest, party: Combatant[]): Record<string, Money> {
   const half = p.quality === 'pietre' ? 0.5 : 1;
-  let brass = 0;
   const heroes = party.filter((h) => !h.dead && p.perHero[h.id]);
-  const nPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee').length;
-  const nCommune = heroes.filter((h) => p.perHero[h.id].lodging === 'commune').length;
-  const nRepas = heroes.filter((h) => p.perHero[h.id].food === 'repas').length;
-  brass += Math.ceil(nPrivee / 2) * PRICE_BRASS.privee; // chambre pour 2 (grande pour 4 = ×2, équivalent)
-  brass += nCommune * PRICE_BRASS.commune;
-  brass += nRepas * PRICE_BRASS.repas;
-  return fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
+  const enPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee');
+  const parts: Record<string, Money> = {};
+  for (const h of heroes) {
+    const { lodging, food } = p.perHero[h.id];
+    const i = enPrivee.indexOf(h);
+    const seul = i === enPrivee.length - 1 && i % 2 === 0;
+    const chambre = lodging === 'privee' ? (seul ? PRICE_BRASS.privee : i % 2 === 0 ? Math.ceil(PRICE_BRASS.privee / 2) : Math.floor(PRICE_BRASS.privee / 2))
+      : lodging === 'commune' ? PRICE_BRASS.commune : 0;
+    const brass = chambre + (food === 'repas' ? PRICE_BRASS.repas : 0);
+    parts[h.id] = fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
+  }
+  return parts;
+}
+
+/** Coût total du repos : la somme des `partsDuRepos`. */
+export function restCost(p: PendingRest, party: Combatant[]): Money {
+  return fromBrass(Object.values(partsDuRepos(p, party)).reduce((n, m) => n + toBrass(m), 0));
 }
 
 /** Offre de repos À LA POSITION DU GROUPE : zone de repos (rect d'auteur) prioritaire, sinon
@@ -620,13 +632,21 @@ export function openRest(get: Get, set: Set, opts: OpenRestOpts): void {
   set({ ...logPatch, pendingRest: { places, lieu: opts.lieu, quality: opts.quality ?? 'normale', days: Math.max(1, opts.days ?? 1), perHero, phase: 'setup', travelHalt: opts.travelHalt, travelMarch: opts.travelMarch } });
 }
 
+/** Pourquoi le dormeur `heroId` ne prend pas `patch` : la nuit déjà réglée, un héros qui ne dort pas ici, un couchage ou
+ *  une pitance que le lieu ne lui offre pas ; `null` s'il le prend. */
+export function refusDuReglageDeRepos(s: Pick<Jeu, 'pendingRest' | 'party'>, heroId: string, patch: Partial<{ lodging: RestLodging; food: RestFood }>): string | null {
+  const p = s.pendingRest;
+  if (!p || p.phase !== 'setup') return t('rf.refus.nuitReglee');
+  const hero = s.party.find((h) => h.id === heroId);
+  if (!hero || !p.perHero[heroId]) return t('rf.refus.dormeur');
+  if (patch.lodging && !lodgingOptions(p.places).includes(patch.lodging)) return t('rf.refus.couchage');
+  if (patch.food && !foodOptions(p.places, hero).includes(patch.food)) return t('rf.refus.pitance', { name: hero.label });
+  return null;
+}
+
 export function restSet(get: Get, set: Set, heroId: string, patch: Partial<{ lodging: RestLodging; food: RestFood }>): void {
-  const p = get().pendingRest;
-  if (!p || p.phase !== 'setup' || !p.perHero[heroId]) return;
-  const hero = get().party.find((h) => h.id === heroId);
-  if (!hero) return;
-  if (patch.lodging && !lodgingOptions(p.places).includes(patch.lodging)) return;
-  if (patch.food && !foodOptions(p.places, hero).includes(patch.food)) return;
+  if (refuseSi(get, set, (s) => refusDuReglageDeRepos(s, heroId, patch))) return;
+  const p = get().pendingRest!;
   set({ pendingRest: { ...p, perHero: { ...p.perHero, [heroId]: { ...p.perHero[heroId], ...patch } } } });
 }
 
@@ -679,7 +699,7 @@ function dormir(get: Get, set: Set): void {
 /** Titre de la nuit — le couchage RÉELLEMENT choisi (pas l'OFFRE du lieu) : tout le monde dehors →
  *  Campement, même si une auberge était dispo (le joueur a choisi la belle étoile). Identique pour
  *  toutes les nuits d'un repos multi-jours (les choix de couchage ne changent pas en cours de séjour). */
-function nightTitle(p: PendingRest, party: Combatant[]): string {
+export function nightTitle(p: PendingRest, party: Combatant[]): string {
   const lodgings = party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => p.perHero[h.id].lodging);
   return lodgings.some((l) => l === 'privee' || l === 'commune') ? t('rf.nightInn')
     : lodgings.some((l) => l === 'maison') ? t('rf.nightHome')

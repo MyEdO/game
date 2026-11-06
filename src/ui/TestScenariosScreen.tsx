@@ -1,7 +1,7 @@
 import { useGame } from '../state/store';
 import { lancerScenario } from '../state/scenarioFlow';
-import { testScenarios, type TestScenario, type ScenarioCategory } from '../scenes/test-scenarios';
-import { SCENARIO_SECTIONS } from '../scenes/test-scenarios/_shared';
+import { testScenarios } from '../scenes/test-scenarios';
+import { SCENARIO_SECTIONS, type TestScenario, type ScenarioCategory } from '../scenes/test-scenarios/_shared';
 import { Icon } from './Icon';
 import { MenuCard, MenuCardHead } from './MenuCard';
 import { Grid, Row, Stack, grow } from './Layout';

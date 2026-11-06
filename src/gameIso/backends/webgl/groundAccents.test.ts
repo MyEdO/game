@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import {
   accentCounts,
   accentMatrix,
+  dalleDeCase,
   groupAccents,
   mountGroundAccentLots,
   reposeGroundAccents,
@@ -447,7 +448,7 @@ function nappesSemees() {
       const rangs = coplanarRanks(wfs.map((w) => facePoly(w.face, m2t)));
       wfs.forEach((wf, i) => {
         const mat = wf.face.material;
-        if (mat.domain !== 'terrain' || mat.part) return;
+        if (mat.domain !== 'terrain' || mat.part || !dalleDeCase(wf.face.poly)) return;
         const recette = terrainDetail(mat.id);
         if (!recette) return;
         out.push({
@@ -495,8 +496,8 @@ describe('groundAccents — contrat des NAPPES SEMÉES, sur TOUT le registre de 
   });
 
   it('toute nappe à recette est PLANE — le semis lit une seule hauteur pour la tuile entière', () => {
-    // `sceneGroundAccents` passe `poly[0].h` pour toute la face : le jour où un terrain à recette
-    // devient une rampe, les accents flotteraient ou s'enterreraient. Ce test le dira ce jour-là.
+    // `sceneGroundAccents` passe `poly[0].h` pour toute la face : il ne sème que la dalle plate d'une case,
+    // jamais ses marches ni sa pente, où les accents flotteraient ou s'enterreraient.
     const pentues = nappes.filter((n) => Math.max(...n.hs) - Math.min(...n.hs) > 1e-9);
     expect(pentues.map((n) => n.id)).toEqual([]);
   });

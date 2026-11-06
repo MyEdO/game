@@ -279,7 +279,7 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   // comme les passifs de trait.
   for (const m of c.auraMods ?? []) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += valeurSansTirage(m.op.bonus, c);
   // Effets ACTIFS temporisés (op `skillDRBonus` exécutée — chanson de marin « Jacques Bret », MDG 09 l.228).
-  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if (b.skill != null && matches({ id: b.skill, spec: b.spec })) n += b.bonus;
+  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if ('skill' in b && b.skill != null && matches({ id: b.skill, spec: b.spec })) n += b.bonus;
   // Objets POSSÉDÉS : leur `passive` skillDRBonus (Boussole : « Les Tests d'Orientation bénéficient de
   // +1 DR avec l'aide d'une boussole », MDG 14 l.275) — NON gaté sur le port, comme `lockpicks`/`isRations`
   // (l'outil se sort pour servir) ; les passifs de VALEUR d'objet (skillMod des Bésicles) restent, eux,
@@ -346,7 +346,7 @@ export function charDRBonusOf(c: Combatant, char: CharKey | undefined): number {
     }
   }
   for (const m of c.auraMods ?? []) if (m.op.op === 'charDRBonus' && m.op.char === char) n += valeurSansTirage(m.op.bonus, c);
-  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if (b.char === char) n += b.bonus;
+  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if ('char' in b && b.char === char) n += b.bonus;
   return n;
 }
 

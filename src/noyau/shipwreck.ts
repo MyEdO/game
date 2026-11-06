@@ -34,10 +34,9 @@ import type { CascadeStep } from './pendings';
 import type { Get, Set } from './flowTypes';
 import { voyageStakeRef } from '../data';
 import { traceLineOf } from '../engine/traceLine';
-import { dataLabel, refLabel } from '../data';
+import { refLabel } from '../data';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
-import { stepDetail } from './rollSeam';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Libellé du Test de survie : la Compétence vient de `skills.json` (jamais bakée), sa difficulté de
@@ -173,7 +172,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
     const result = human ? null : (() => { const t = rollSansPilote(get, h, value, diff, rng); return { roll: t.roll, target: t.target, sl: t.sl, success: t.success }; })();
     return {
       id: `shipwreck-${h.id}`, kind: 'shipwreckSwim', actorId: h.id, icon: 'nautical/swim',
-      label: stepDetail(dataLabel(h.label), t('step.natation')), rollLabel: refLabel('skills', { id: 'natation' }), difficulty: diff,
+      label: t('step.natation'), rollLabel: refLabel('skills', { id: 'natation' }), difficulty: diff,
       ...rollStep({ actor: h, test: { skill: 'natation', characteristic: 'force' }, difficulty: diff }),
       stake: voyageStakeRef('shipwreckSwim'),
       result,
