@@ -1,0 +1,35 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/monde.gd" id="1_monde"]
+[ext_resource type="PackedScene" path="res://scenes/Lumiere.tscn" id="2_lumiere"]
+
+[sub_resource type="StandardMaterial3D" id="Materiau_monde"]
+cull_mode = 2
+vertex_color_use_as_albedo = true
+vertex_color_is_srgb = true
+roughness = 0.95
+
+[node name="Monde" type="Node3D"]
+script = ExtResource("1_monde")
+
+[node name="Lumiere" parent="." instance=ExtResource("2_lumiere")]
+
+[node name="Volume" type="Node3D" parent="."]
+
+[node name="Maillage" type="MeshInstance3D" parent="Volume"]
+material_override = SubResource("Materiau_monde")
+
+[node name="Corps" type="StaticBody3D" parent="Volume"]
+
+[node name="Forme" type="CollisionShape3D" parent="Volume/Corps"]
+
+[node name="Pivot" type="Node3D" parent="."]
+rotation = Vector3(0, 0.785398, 0)
+
+[node name="Inclinaison" type="Node3D" parent="Pivot"]
+rotation = Vector3(-0.9, 0, 0)
+
+[node name="Camera" type="Camera3D" parent="Pivot/Inclinaison"]
+position = Vector3(0, 0, 24)
+current = true
+fov = 40.0
