@@ -53,6 +53,10 @@ describe('modelesDeLAtelier', () => {
     expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ walk: 'Walk_Loop', idle: 'Idle_Loop' }, 1.25]);
   });
 
+  it('une base sans table des rôles tenus à deux mains la publie vide (#3319)', () => {
+    expect(modeles.bases[0].clipsDeuxMains).toEqual({});
+  });
+
   it('chaque point porte exactement les objets rigides de la base dont un mesh pend à son os, ni le squelette, ni la surface, ni un accessoire', () => {
     expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], main: ['epee'], off: ['epee'] });
   });

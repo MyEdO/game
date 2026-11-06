@@ -6,7 +6,8 @@ extends SceneTree
 ## ses doigts prennent la pose de ceux de la main qui tient, et l'épaule et le coude gardent leurs longueurs ; une cible
 ## hors de portée tend le bras vers elle. La prise `off` occupée, ou un objet sans seconde prise, ne ploie rien. La pose
 ## se relève au signal `skeleton_updated`, après les modificateurs et avant que le squelette ne restaure la pose du clip
-## (`Skeleton3D::_notification`, Godot 4.7).
+## (`Skeleton3D::_notification`, Godot 4.7). Tant que la main libre tient la seconde prise, un rôle joue le clip de
+## `clipsDeuxMains` de la base, `clips` sinon (`MontageDeComposition.clip`), et chaque clip retrouve son rôle.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.001
@@ -14,6 +15,8 @@ const MAIN := {id = "main", genre = "prise", attache = {os = "main_d", position 
 const OFF := {id = "off", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
 const A_PORTEE := {position = [0.0, -0.05, 0.12], rotation = [0.0, 3.14159, 0.0]}
 const HORS_DE_PORTEE := {position = [0.0, 0.0, 2.0], rotation = [0.0, 0.0, 0.0]}
+const CLIPS := {idle = "Repos", hit = "Coup"}
+const CLIPS_DEUX_MAINS := {idle = "Repos_DeuxMains"}
 var _fautes: Array[String] = []
 
 
@@ -57,7 +60,7 @@ func _verifier(cas: String, seconde: Dictionary, montes: Dictionary, ploie: bool
 	var squelette := _squelette()
 	var montage := MontageDeComposition.new()
 	MontageDeComposition.modeles = {secondesPrises = {hache = seconde}}
-	montage.base = {points = [MAIN, OFF]}
+	montage.base = {points = [MAIN, OFF], clips = CLIPS, clipsDeuxMains = CLIPS_DEUX_MAINS}
 	montage.squelette = squelette
 	montage.montes = montes
 	var longueurs := _longueurs(squelette)
@@ -87,7 +90,9 @@ func _verifier(cas: String, seconde: Dictionary, montes: Dictionary, ploie: bool
 		var doigts := squelette.get_bone_pose_rotation(squelette.find_bone("doigt_d"))
 		juste = (releve.main_g.basis.inverse() * releve.doigt_g.basis).is_equal_approx(Basis(doigts))
 		var apres := Vector2(releve.coude_g.origin.distance_to(releve.epaule_g.origin), releve.main_g.origin.distance_to(releve.coude_g.origin))
-		juste = absf(apres.x - longueurs.x) < EPSILON and absf(apres.y - longueurs.y) < EPSILON
+		juste = juste and absf(apres.x - longueurs.x) < EPSILON and absf(apres.y - longueurs.y) < EPSILON
+	var repos_joue: String = CLIPS_DEUX_MAINS.idle if ploie else CLIPS.idle
+	juste = juste and montage.clip("idle") == repos_joue and montage.clip("hit") == CLIPS.hit and montage.role_du_clip(repos_joue) == "idle"
 	if not juste:
 		_fautes.append("%s : prise de la main libre %s, seconde prise %s, montage %s" % [cas, prise, visee, montage.seconde_prise])
 	print("[seconde-prise] %s : %s" % [cas, "OK" if juste else "KO"])

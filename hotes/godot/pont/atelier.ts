@@ -51,6 +51,9 @@ export interface BaseDeLAtelier {
   lignes: LigneDePiece[];
   /** Le clip de chaque rôle que la base joue (`ManifesteDeBase.clips`). */
   clips: ManifesteDeBase['clips'];
+  /** Le clip de chaque rôle que la base joue en tenant un objet des deux mains (`ManifesteDeBase.clipsDeuxMains`), vide
+   *  sans table. */
+  clipsDeuxMains: NonNullable<ManifesteDeBase['clipsDeuxMains']>;
   /** La vitesse au sol en m/s du clip du rôle `walk` (`ManifesteDeBase.appuis.vitesseAuSol`). */
   vitesseAuSol: number;
 }
@@ -148,7 +151,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
           ? [{ sorte: 'emplacement', ...choix(g.id, g.label, (e) => emplacementDe(e) === g.id) }]
           : []),
     ];
-    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, vitesseAuSol: m.appuis.vitesseAuSol };
+    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, vitesseAuSol: m.appuis.vitesseAuSol };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
   return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, emblemes };

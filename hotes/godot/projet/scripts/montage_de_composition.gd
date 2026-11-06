@@ -323,6 +323,25 @@ func poser_la_seconde_prise() -> void:
 	seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde)
 
 
+
+## Le clip du rôle `role` de la base posée : celui de `clipsDeuxMains` tant que la main libre tient la seconde prise
+## (`seconde_prise`), celui de `clips` sinon ou faute de clip à deux mains pour ce rôle ; `""` sans clip.
+func clip(role: String) -> String:
+	var clips: Dictionary = base.get("clips", {})
+	if seconde_prise.is_empty():
+		return clips.get(role, "")
+	return base.get("clipsDeuxMains", {}).get(role, clips.get(role, ""))
+
+
+## Le rôle du clip `nom` dans `clips` ou `clipsDeuxMains` de la base posée, `""` s'il n'en joue aucun.
+func role_du_clip(nom: String) -> String:
+	for table: Dictionary in [base.get("clips", {}), base.get("clipsDeuxMains", {})]:
+		var role: Variant = table.find_key(nom)
+		if role != null:
+			return role
+	return ""
+
+
 ## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache
 ## de son os) ; pour un mesh skinné, le nom de chaque liaison de son skin (`Skin.get_bind_name`, posé à l'import par
 ## `scene_du_glb`) ; aucun pour un mesh à la racine.

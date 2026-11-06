@@ -53,12 +53,13 @@ export function verdictsDesModeles(entrees: readonly EntreeDeModele[], octets: R
   return livrees.sort((a, b) => Number(estBase(b.brut)) - Number(estBase(a.brut))).map(({ id, brut, octets: o }) => ({ id, brut, verdict: validerModele(brut, o, bases) }));
 }
 
-/** La base `brut` jugée contre son GLB `octets` : son schéma (`validerManifesteDeBase`), puis sa table rôle → clip
+/** La base `brut` jugée contre son GLB `octets` : son schéma (`validerManifesteDeBase`), puis ses tables rôle → clip
  *  (`ecartsDeClips`). */
 function validerBase(brut: unknown, octets: Uint8Array): VerdictDeBase {
   const v = validerManifesteDeBase(brut, octets);
   if (!v.ok) return v;
-  const ecarts = ecartsDeClips(v.manifeste.clips, lireGlb(octets).animations);
+  const { animations } = lireGlb(octets);
+  const ecarts = [...ecartsDeClips(v.manifeste.clips, animations), ...ecartsDeClips(v.manifeste.clipsDeuxMains ?? {}, animations, 'clipsDeuxMains')];
   return ecarts.length ? { ok: false, ecarts } : v;
 }
 

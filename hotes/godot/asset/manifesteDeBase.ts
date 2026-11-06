@@ -71,6 +71,9 @@ export interface ManifesteDeBase {
   readonly porteur: PorteurDeReference;
   /** Le clip de chaque rôle que la base joue ; `walk` exigé. */
   readonly clips: TableDeClips & { readonly walk: string };
+  /** Le clip de chaque rôle que la base joue en tenant un objet des deux mains (#3319) ; un rôle absent joue celui de
+   *  `clips`. */
+  readonly clipsDeuxMains?: TableDeClips;
   readonly appuis: Appuis;
   /** Les os, hors racine, dont un clip anime la position (`gardePistesDEchelle`). */
   readonly osAPositionAnimee: readonly string[];
@@ -195,6 +198,8 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   const porteur: PorteurDeReference = { race: id(p.race, 'porteur.race'), gabarit: id(p.gabarit, 'porteur.gabarit'), taille: id(p.taille, 'porteur.taille'), echelleDArt: positif(p.echelleDArt, 'porteur.echelleDArt') };
   const clips = Object.fromEntries(Object.entries(objet(brut.clips, 'clips')).map(([role, nom]) => [role, chaine(nom, `clips.${role}`)]));
   if (estObjet(brut.clips) && clips.walk === undefined) forme('clips.walk', 'le clip du rôle `walk` est exigé');
+  const clipsDeuxMains = brut.clipsDeuxMains === undefined ? undefined
+    : Object.fromEntries(Object.entries(objet(brut.clipsDeuxMains, 'clipsDeuxMains')).map(([role, nom]) => [role, chaine(nom, `clipsDeuxMains.${role}`)]));
   const a = objet(brut.appuis, 'appuis');
   for (const cle of Object.keys(a)) if (!['pieds', 'plusBas', 'vitesseAuSol'].includes(cle)) forme(`appuis.${cle}`, 'champ inconnu');
   const triplet = (v: unknown, ou: string): readonly [number, number, number] => {
@@ -228,7 +233,7 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   const glb = objet(brut.glb, 'glb');
   const empreinte = { sha256: chaine(glb.sha256, 'glb.sha256'), octets: nombre(glb.octets, 'glb.octets') };
   if (ecarts.length || !prises.main || !prises.off) return { ecarts };
-  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, chaines, zones, emplacements, prises: { main: prises.main, off: prises.off }, silhouettes, gabarit, porteur, clips: { ...clips, walk: clips.walk }, appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
+  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, chaines, zones, emplacements, prises: { main: prises.main, off: prises.off }, silhouettes, gabarit, porteur, clips: { ...clips, walk: clips.walk }, ...(clipsDeuxMains ? { clipsDeuxMains } : {}), appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
 }
 
 /** Le manifeste `brut` réduit au schéma 4 et validé contre le GLB de la base `octets`. */
