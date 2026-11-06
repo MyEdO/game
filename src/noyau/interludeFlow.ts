@@ -161,7 +161,7 @@ function eventStep(hero: Combatant): CascadeStep {
   return {
     id: `interlude-event-${hero.id}`,
     kind: 'interludeEvent', actorId: hero.id, icon: 'nav/dice',
-    label: stepDetail(t('step.evenement'), dataLabel(hero.label)),
+    label: t('step.evenement'),
     table: INTERLUDE_EVENT_DECL,
     stake: combatStakeRef('interludeEvent'),
   };
