@@ -37,7 +37,7 @@ const LEGACY_PROP_FOOT_TABLE: [string, number, number][] = [
   ['passerelle-d-embarquement', 2, 1],
   ['rouleau-de-cordage', 1, 1],
   ['stalle-ecurie', 1, 1],
-  // L'empreinte d'une RECETTE dérive de son corps (#1509), tenue par `gameIso/catalog/props-volumiques.test.ts` `EMPREINTES_ATTENDUES`.
+  // L'empreinte d'une RECETTE dérive de son corps (#1509), tenue par `noyau/monde/volume/props-volumiques.test.ts` `EMPREINTES_ATTENDUES`.
   // Cette liste ne peut que DÉCROÎTRE : chaque billboard converti en sort.
   ['tente', 2, 2],
   ['tribune', 3, 1],

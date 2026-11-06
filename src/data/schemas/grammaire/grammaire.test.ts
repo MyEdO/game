@@ -719,7 +719,9 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //   #1665 : `montures` passe de la famille `config` à `entite` (85 → 86) — ses 8 profils de voyage deviennent la liste du fichier.
     //   #1681 : les quatre defs d'enjeux fusionnent en UN def `stakes` (86 → 83).
     //   #1684 : le catalogue des cargaisons naît en def `entite` `cargoes`, `source` exigée (83 → 84).
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 84, mesures: 0 });
+    //   #1667 : `oups`, `interludeEvents`, `steam-breakdown`, `stars` et `peripeties` deviennent des
+    //         documents mono-tables `config` (84 → 79) — leurs lignes passent en `rangee`.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 79, mesures: 0 });
   });
 
 });
@@ -826,7 +828,6 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     'classes.json · desc',
     'classes.json · source',
     'crew-roles.json · desc',
-    'peripeties.json · desc',
     'sea-shanties.json · desc',
     'sea-shanties.json · source',
     // vague 11b — `axes` est le premier document à EXIGER `maison` (mécanique maison, aucun folio).
@@ -835,14 +836,12 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     'careers.json · source',
     'characteristics.json · desc',
     'characteristics.json · source',
-    'interludeEvents.json · desc',
     'locations.json · source',
     'mutations.json · desc',
     'qualities.json · desc',
     'qualities.json · source',
     'regles.json · desc',
     'regles.json · source',
-    'stars.json · source',
     // vague 12 — 17 exigences NEUVES, chacune MORDANTE (la paire n'entre dans la population que si
     // l'entrée amputée est refusée par le schéma). `talents` n'exige que `source` : l'écart est
     // motivé au mesureur ci-dessus (entrée MÉTA `talent-aleatoire`, sans prose).
@@ -854,7 +853,6 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     'naval-traits.json · desc',
     'skills.json · desc',
     'skills.json · source',
-    'steam-breakdown.json · desc',
     // #1688 : `taille` est une valeur MAISON (le RAW `AA 10 l.98` la laisse à déterminer) — toute entrée
     // en porte une, donc toute entrée doit dire sa raison (`affinerEntree`, `defs/structures.ts`).
     'structures.json · maison',
@@ -883,9 +881,6 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     'tavernGames.json · desc',
     'tavernGames.json · source',
     'trappings.json · source',
-    // vague 14 (V-UNION) — `oups` adopte : DERNIER def hors forme, sa disjonction bande/misfire passe
-    // d'une union à un refine ⟺. Les 8 entrées portent le folio 160, donc `source` est exigible.
-    'oups.json · source',
     // #677 — `reseau-routier` naît adopté : ses 15 entrées portent toutes leur folio EDOC, `source`
     // est donc exigible dès la création. `desc` ne l'est pas (les 6 compagnies de la liste l.27-34
     // n'ont que leur nom au Source — aucune prose à recopier, aucune à inventer).

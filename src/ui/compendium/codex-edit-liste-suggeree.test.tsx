@@ -56,7 +56,7 @@ describe('CodexEdit — liste de références à saisie suggérée', () => {
     setDataset('criticalsTete', [CRITIQUE_DE_BANC]);
 
     monter('criticalsTete', CRITIQUE_DE_BANC.id);
-    const champ = host.querySelector<HTMLInputElement>('input[aria-label="séquelles de nouvelle occurrence de escalation — valeur 1"]')!;
+    const champ = host.querySelector<HTMLInputElement>('input[aria-label="séquelles de nouvelle occurrence de aggravation — valeur 1"]')!;
     expect(champ.value).toBe('surdite');
     expect(suggestionsDe(champ)).toEqual(['Surdité', 'Fracture']);
   });
@@ -67,7 +67,7 @@ describe('CodexEdit — liste de références à saisie suggérée', () => {
 
     monter('criticalsTete', CRITIQUE_DE_BANC.id);
     act(() => setDataset('traumas', [traumaDeBanc('surdite', 'Surdité'), traumaDeBanc('cecite', 'Cécité')]));
-    const champ = host.querySelector<HTMLInputElement>('input[aria-label="séquelles de nouvelle occurrence de escalation — valeur 1"]')!;
+    const champ = host.querySelector<HTMLInputElement>('input[aria-label="séquelles de nouvelle occurrence de aggravation — valeur 1"]')!;
     expect(suggestionsDe(champ)).toEqual(['Surdité', 'Cécité']);
   });
 
@@ -76,7 +76,7 @@ describe('CodexEdit — liste de références à saisie suggérée', () => {
     setDataset('criticalsTete', [{ ...CRITIQUE_DE_BANC, escalation: { onRepeat: { traumas: ['surdite', 'fracture-mineure'] } } }]);
 
     monter('criticalsTete', CRITIQUE_DE_BANC.id);
-    const rangees = [1, 2].map((n) => host.querySelector<HTMLInputElement>(`input[aria-label="séquelles de nouvelle occurrence de escalation — valeur ${n}"]`)!);
+    const rangees = [1, 2].map((n) => host.querySelector<HTMLInputElement>(`input[aria-label="séquelles de nouvelle occurrence de aggravation — valeur ${n}"]`)!);
     expect(rangees.map((r) => r.value)).toEqual(['surdite', 'fracture-mineure']);
     expect(rangees[0].getAttribute('list')).toBeTruthy();
     expect(rangees[1].getAttribute('list')).toBe(rangees[0].getAttribute('list'));

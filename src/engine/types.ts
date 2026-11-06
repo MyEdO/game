@@ -196,7 +196,7 @@ export interface VehicleData {
   /** `IconId` du pictogramme d'affichage (registre `src/data/icons/`, famille `travel/*`) — donnée, pas
    *  de ternaire par id en dur. Typé `string` (et non `IconId`) pour NE PAS coupler l'engine pur à
    *  l'UI (règle 3, `src/engine` reste sans dépendance ui) ; les valeurs sont des `IconId` valides
-   *  (garde-fou : `src/ui/no-emoji-affordance.test.ts` + `Icon` throw sur id inconnu). */
+   *  (garde-fou : `src/no-emoji-affordance.test.ts` + `Icon` throw sur id inconnu). */
   icon?: string;
   source?: { book: string; page: number };
   /** Encombrement de l'objet véhicule (LDB 61) — généralement `null` (on ne porte pas une diligence) ;

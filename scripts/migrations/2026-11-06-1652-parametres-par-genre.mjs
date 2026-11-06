@@ -63,7 +63,8 @@ const brut = readFileSync(FICHIER, 'utf8');
 if (brut !== serializeDataset(doc)) arrets.push('sea-events.json : forme non canonique');
 
 for (const table of ['boardEvents', 'portEvents']) {
-  for (const e of doc[table] ?? []) {
+  // `boardEvents.entries` : la forme que pose `2026-11-06-1667-evenements-de-bord-tires.mjs`, reconnue au rejeu.
+  for (const e of (Array.isArray(doc[table]) ? doc[table] : doc[table]?.entries) ?? []) {
     const ou = `${table} « ${e.id} »`;
     const p = e.params;
     if (!p || typeof p !== 'object') continue;

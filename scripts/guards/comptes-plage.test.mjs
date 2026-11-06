@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { envDeDepotForge, forgerDepot } from './lib/depotGabarit.mjs'
-import { INDEX, commitDe, depotDe, ecrireBlob, listerImage, poserDansIndex, reussi, shaDe } from './lib/gitPorte.mjs'
+import { INDEX, SUIVI, commitDe, depotDe, ecrireBlob, listerImage, poserDansIndex, reussi, shaDe } from './lib/gitPorte.mjs'
 import { cleDeSite } from './lib/stock.mjs'
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 import { diffDuCommit } from '../git-hooks/porte-du-commit.mjs'
@@ -327,11 +327,11 @@ test('#1463 `--base` sans ref, ou suivi d’un drapeau, est une erreur nommée',
   }
 })
 
-test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un schéma qui régresse et une op inscrite à `OPS_NON_TYPEES` sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src, ou le détecteur, qui lit sa sortie, changés ensemble, se lient',{ timeout: 600_000 }, () => {
+test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un schéma qui régresse et une op inscrite à `OPS_NON_TYPEES` sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src, ou le détecteur, qui lit sa sortie, changés ensemble, se lient ; un CLASSEMENT changé sans donnée est une baisse du détecteur, un `idDe` retiré une baisse de donnée (#2969)',{ timeout: 900_000 }, () => {
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-plage-'))
   try {
     const reel = depotDe(RACINE, { env: envDeDepotForge() })
-    const suivis = listerImage(reel, 'HEAD', 'src', 'Source', 'scripts', 'package.json', 'tsconfig.json')
+    const suivis = listerImage(reel, SUIVI, 'src', 'Source', 'scripts', 'package.json', 'tsconfig.json')
     for (const rel of suivis) {
       mkdirSync(dirname(join(dossier, rel)), { recursive: true })
       writeFileSync(join(dossier, rel), readFileSync(join(RACINE, rel)))
@@ -369,8 +369,22 @@ test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un
       'scripts/gen-espaces.mts': remplacer('MARQUE_DU_DETECTEUR', 'MARQUE_RENOMMEE'),
       'scripts/docs/lib/structures-scan.mts': (t) => remplacer('MARQUE_DU_DETECTEUR', 'MARQUE_RENOMMEE')(t).replaceAll('MARQUE_DU_DETECTEUR', 'MARQUE_RENOMMEE'),
     }, 'générateur et détecteur renommés ensemble')
+    // Le classement `estFeuilleDId` (module marqué `MARQUE_DE_CLASSEMENT`) changé sans aucune donnée : sous le
+    // détecteur de la base, la tête garde ses feuilles, et la baisse est celle du DÉTECTEUR.
+    const registre = 'src/data/schemas/grammaire/interne/feuilles.ts'
+    const classementDeLaTete = remplacer('typeDeFeuilleDId(noeud) !== undefined;', "typeDeFeuilleDId(noeud) !== undefined && typeDeFeuilleDId(noeud) !== 'maladie';")
+    const reclasse = commiter({ [registre]: classementDeLaTete }, 'classement sans donnée')
+    // Un `idDe` retiré d'un schéma (`OP_DEFS`, une déclaration de l'image) : les deux détecteurs voient la baisse.
+    const retire = commiter({
+      [registre]: remplacer(" && typeDeFeuilleDId(noeud) !== 'maladie';", ';'),
+      'src/data/schemas/grammaire/mecanique.ts': remplacer(
+        `contractDisease: nommerChamps(z.strictObject({ op: z.literal('contractDisease'), disease: idDe('maladie') }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} } }),`,
+        `contractDisease: nommerChamps(z.strictObject({ op: z.literal('contractDisease') }), { op: { label: "opération"  } }),`,
+      ),
+    }, 'idDe retiré')
 
     const [passe, refus, liee, symetrique] = jugerDansTsx(dossier, [[fondation, typee], [typee, lache], [lache, croisee], [lecteur, renommee]])
+    const [duDetecteur, deDonnee] = jugerDansTsx(dossier, [[renommee, reclasse], [renommee, retire]])
     assert.equal(passe.ok, true, passe.texte)
     assert.doesNotMatch(passe.texte, /paire sautée/, passe.texte)
     assert.equal(refus.ok, false, refus.texte)
@@ -392,6 +406,12 @@ test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un
     for (const l of feuilles) assert.ok(refus.texte.includes(`${l} — feuille \`idDe\` RELÂCHÉE : le chemin n’est plus \`idDe\` à la tête (\`libre\`).`), refus.texte)
     for (const l of locales) assert.ok(refus.texte.includes(`${l} — site NEUF : la dette NAÎT. Typer le nœud`), refus.texte)
     assert.match(refus.texte, /aucun `CLIQUET:` ne les couvre/)
+    assert.equal(duDetecteur.ok, false, duDetecteur.texte)
+    assert.match(duDetecteur.texte, /baisse de détecteur non justifiée exactement par FAUX-POSITIF:/, duDetecteur.texte)
+    assert.match(duDetecteur.texte, /FAUX-POSITIF manquant : \["DETTE_OPS","contractDisease \| à plat:disease",1\]/, duDetecteur.texte)
+    assert.doesNotMatch(duDetecteur.texte, /paire sautée/, duDetecteur.texte)
+    assert.equal(deDonnee.ok, true, deDonnee.texte)
+    assert.doesNotMatch(deDonnee.texte, /paire sautée/, deDonnee.texte)
   } finally {
     rmSync(dossier, { recursive: true, force: true })
   }

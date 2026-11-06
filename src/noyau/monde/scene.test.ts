@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, isWalkable, tileAt, heightAt, surfaceLink, layerTiles, normalizeAmbiance, isIndoor } from './scene';
+import { emptyScene, isWalkable, tileAt, heightAt, surfaceLink, layerTiles, normalizeAmbiance, isIndoor, piedDeLArete } from './scene';
 import { evalCondition } from '../../engine/flowCore';
 import type { Scene } from './scene';
 import type { Terrain } from '../../data/schemas/defs-scenes/scene';
@@ -93,5 +93,25 @@ describe('ambiance — intérieur vs extérieur (jour/nuit vient de l’horloge,
     expect(isIndoor({ ambiance: 'interieur' } as Scene)).toBe(true);
     expect(isIndoor({ ambiance: 'exterieur' } as Scene)).toBe(false);
     expect(isIndoor({ ambiance: undefined } as Scene)).toBe(false);
+  });
+});
+
+describe('le pied d’une arête', () => {
+  it('se dresse de la plus basse des deux cases qu’elle sépare ; une diagonale ou un bord de carte, de sa case', () => {
+    const s = emptyScene('pied', 3, 3);
+    s.layers[0].height = [0, 0, 0, 0, 2, 0, 0, 0, 0]; // une marche de volée à 2 m au centre
+    expect(piedDeLArete(s, { x: 1, y: 1, side: 'E' }), 'contre la marche, sur le sol d’en bas').toBe(0);
+    expect(piedDeLArete(s, { x: 1, y: 1, side: 'N' })).toBe(0);
+    expect(piedDeLArete(s, { x: 0, y: 1, side: 'E' }), 'vu de l’autre case').toBe(0);
+    expect(piedDeLArete(s, { x: 1, y: 1, side: '\\' }), 'une diagonale, dans sa case').toBe(2);
+    s.layers[0].height = [0, 3, 0, 0, 0, 0, 0, 0, 0];
+    expect(piedDeLArete(s, { x: 1, y: 0, side: 'N' }), 'au bord de la carte, sa case').toBe(3);
+  });
+
+  it('au pourtour d’un étage, du plancher de l’étage : une case sans sol à côté ne compte pas', () => {
+    const s = emptyScene('pied', 3, 1);
+    s.layers.push({ z: 1, tiles: ['vide', 'plancher', 'vide'], height: [0, 4, 0] });
+    expect(piedDeLArete(s, { x: 1, y: 0, side: 'E', z: 1 }), 'le vide à l’est').toBe(4);
+    expect(piedDeLArete(s, { x: 0, y: 0, side: 'E', z: 1 }), 'le vide est sa propre case').toBe(4);
   });
 });

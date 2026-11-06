@@ -1,745 +1,739 @@
-[
-  {
-    "id": "wymund-l-anachorete",
-    "type": "stars",
-    "label": "Wymund l'Anachorète",
-    "rand": 5,
-    "signe": "Signe de l'Endurance",
-    "classique": "Wymenos",
-    "ascendant": "cœur de l'hiver",
-    "dates": "12 vorhexen - 27 vorhexen",
-    "dieux": "Manann",
-    "apparence": "un visage sévère",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "initiative",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "intelligence",
-        "mod": -3
-      }
-    ],
-    "desc": "Les individus nés sous la lumière de Wymund l'Anachorète sont patients et méthodiques. Ils préfèrent étudier la situation dans ses moindres détails avant de prendre une décision.\n\nLeur lenteur à porter des jugements et leur tolérance à l'égard des faiblesses des autres en font des amis gentils et loyaux, ce qui les dessert parfois. Souvent, ils pardonnent aux autres l'impardonnable, à leur propre détriment. Mais lorsqu'ils décident que quelqu'un n'est plus digne de leurs grâces, ils deviennent des ennemis durs et implacables.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 40
+{
+  "id": "signes-astrologiques",
+  "type": "stars",
+  "label": "Tableau des Signes astrologiques",
+  "die": "d100",
+  "sub": {
+    "dice": {
+      "n": 1,
+      "sides": 10
     }
   },
-  {
-    "id": "la-grande-croix",
-    "type": "stars",
-    "label": "La Grande Croix",
-    "rand": 10,
-    "signe": "Signe de la Clairvoyance",
-    "classique": "Azurios",
-    "ascendant": "cœur de l'hiver",
-    "dates": "28 vorhexen - 8 nachhexen",
-    "dieux": "Ulric",
-    "apparence": "un X",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "force",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "force-mentale",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "initiative",
-        "mod": -3
-      }
-    ],
-    "desc": "Il n'y a pas de place pour l'incertitude dans le cœur de ceux nés sous le signe de la Grande Croix. Le chemin qu'ils doivent suivre en ce monde leur semble évident, et ils font des choix judicieux pour faire en sorte de ne jamais en dévier. Mais cette rationalité peut conduire à une passivité prévisible et à un certain détachement vis-à-vis du monde qui les entoure.\n\nEn effet, si leur route est toute tracée, pourquoi s'en écarter ? Il est vital qu'ils trouvent une cause pour laquelle se battre, au risque de se laisser éternellement porter au fil des eaux du destin.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 40
-    }
+  "source": {
+    "book": "archives-de-l-empire-2",
+    "page": 39,
+    "note": "Tableau des Signes astrologiques, ADE II 03 l.42-63"
   },
-  {
-    "id": "le-trait-du-peintre",
-    "type": "stars",
-    "label": "Le Trait du Peintre",
-    "rand": 15,
-    "signe": "Signe de la Précision",
-    "classique": "Verros",
-    "ascendant": "fin de l'hiver/début du printemps",
-    "dates": "9 nachhexen - 28 nachhexen",
-    "dieux": "Vallich (forgerons et constructeurs de navires (Nordland)) ",
-    "apparence": "un archer bandant son arc",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "capacite-de-tir",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "agilite",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "capacite-de-combat",
-        "mod": -3
-      }
-    ],
-    "desc": "Les natifs du Trait du Peintre sont faits pour devenir poètes, peintres, sculpteurs... Des artistes de toutes sortes. Ils créent de la beauté partout où ils vont, et même ceux qui, au gré des aléas de l'existence, ne se retrouvent pas à exercer dans un domaine artistique, trouvent le moyen de faire de l'œuvre de leur vie une sorte d'art. S'ils sont docteurs en médecine, ce sont des chirurgiens hors pair. S'ils sont soldats, ils deviennent des maîtres tacticiens. Les personnes nées sous le signe du Trait du Peintre doivent veiller à ne pas se montrer trop critiques envers elles-mêmes ou leur travail.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 41
-    }
-  },
-  {
-    "id": "gnuthus-le-buffle",
-    "type": "stars",
-    "label": "Gnuthus le Buffle",
-    "rand": 20,
-    "signe": "Signe du Dévouement et de la Loyauté",
-    "classique": "Nuthlos",
-    "ascendant": "début du printemps",
-    "dates": "29 nachhexen - 16 jahrdrung",
-    "dieux": "Guvaur (taureaux (Ostland))",
-    "apparence": "un bœuf",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "endurance",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "force-mentale",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "intelligence",
-        "mod": -3
-      }
-    ],
-    "desc": "Les individus nés sous le signe du Buffle sont des alliés dévoués dont l'amitié se gagne rapidement. Lorsqu'ils prêtent allégeance à une personne, un idéal ou une cause, rien ne peut les en détourner. Ils tiennent toujours leurs promesses. S'ils ont une dette envers quelqu'un, ils trouveront le moyen de la payer, quoi qu'il leur en coûte. Leur honnêteté s'accompagne parfois d'une certaine naïveté et ils se doivent donc d'être prudents s'ils ne veulent pas que d'autres en profitent. En outre, il leur arrive tout aussi souvent de défendre les mauvaises causes ou d'appartenir au camp des perdants que de se retrouver du côté de la justice.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 41
-    }
-  },
-  {
-    "id": "dragomas-le-dragon",
-    "type": "stars",
-    "label": "Dragomas le Dragon",
-    "rand": 25,
-    "signe": "Signe de la Bravoure",
-    "classique": "Drakonos",
-    "ascendant": "printemps",
-    "dates": "17 jahrdrung - 7 pflugzeit",
-    "dieux": "Khaine",
-    "apparence": "un dragon cabré",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "force-mentale",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "dexterite",
-        "mod": -3
-      }
-    ],
-    "desc": "Audacieux, sûrs d'eux et forts, les natifs de Dragomas le Dragon sont faits pour être des meneurs. Ils rayonnent de confiance et d'assurance, c'est pourquoi les gens ont souvent instinctivement envie de les suivre. Ce charisme peut toutefois vite se transformer en une arrogance inflexible, si bien que même le berger doux et avisé peut finir par devenir un véritable tyran. Être un chef implique une responsabilité envers ses partisans, et les personnes nées sous le signe du Dragon feraient mieux de ne pas l'oublier.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 41
-    }
-  },
-  {
-    "id": "le-crepuscule",
-    "type": "stars",
-    "label": "Le Crépuscule",
-    "rand": 30,
-    "signe": "Signe de l'Illusion et du Mystère",
-    "classique": "Tartotes",
-    "ascendant": "printemps",
-    "dates": "8 pflugzeit - 31 pflugzeit",
-    "dieux": "Morr \r",
-    "apparence": "un amas d'étoiles rouges et bleues qui n'apparaissent qu'au crépuscule ",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "intelligence",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "initiative",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "force-mentale",
-        "mod": -3
-      }
-    ],
-    "desc": "Les étoiles qui composent la constellation du Crépuscule n'apparaissent que dans des conditions spécifiques, à la tombée du jour. Les personnes nées sous le signe du Crépuscule sont des sceptiques et des douteurs. Leur scepticisme peut aller jusqu'à se transformer en une suspicion excessive ou une forme de paranoïa vis-à-vis de tout ce qu'elles ne peuvent pas voir de leurs propres yeux ou toucher de leurs mains. La métaphysique, les théories... rien de tout cela ne leur inspire confiance. Seule la réalité physique et solide du monde leur semble fiable. Toutefois, lorsqu'ils usent de leurs talents à bon escient, les natifs du Crépuscule font de brillants enquêteurs et érudits. Ils sont souvent attirés par la magie en dépit de leur méfiance à l'égard du mystique.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 42
-    }
-  },
-  {
-    "id": "le-fourreau-de-grungni",
-    "type": "stars",
-    "label": "Le Fourreau de Grungni",
-    "rand": 35,
-    "signe": "Signe des Ambitions Martiales",
-    "classique": "Gileon",
-    "ascendant": "fin du printemps/début de l'été",
-    "dates": "32 pflugzeit - 22 sigmarzeit",
-    "dieux": "Grungni (nains, forgerons (Stirland)), Margileo (honneur (Averland)) ",
-    "apparence": "un nain équipé d'un fourreau",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "capacite-de-combat",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "force-mentale",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": -3
-      }
-    ],
-    "desc": "Le Fourreau de Grungni est sacré pour les soldats et les nains. Les individus qui naissent sous sa lumière sont honorables, disciplinés et naturellement disposés à une carrière de guerrier. Même ceux parmi ces derniers qui ne sont pas soldats ont tendance à aborder leur vie personnelle avec une rigueur martiale. Il est difficile pour les natifs du Fourreau d'arriver à se détendre un peu et de profiter des plaisirs de l'existence. Les personnes nées sous des signes plus paisibles peuvent les trouver butés et sans humour.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 42
-    }
-  },
-  {
-    "id": "mammit-le-sage",
-    "type": "stars",
-    "label": "Mammit le Sage",
-    "rand": 40,
-    "signe": "Signe de la Sagesse",
-    "classique": "Mammius",
-    "ascendant": "début de l'été",
-    "dates": "23 sigmarzeit - 11 sommerzeit",
-    "dieux": "Verena",
-    "apparence": "une chouette",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "initiative",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "intelligence",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": -3
-      }
-    ],
-    "desc": "Pour la personne née sous le signe de Mammit le Sage, la vie et le monde sont pleins d'occasions d'apprendre de nouvelles choses. Leur penchant introspectif en fait des individus intelligents, justes et doux, mais il peut tout aussi bien les amener à considérer les malheurs des autres comme un sujet d'étude parmi d'autres. Cela leur permet certes d'agir avec détachement lorsque nécessaire, mais poussé à son paroxysme, ce trait de caractère peut se transformer en indifférence, voire en cruauté.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 42
-    }
-  },
-  {
-    "id": "mummit-le-fou",
-    "type": "stars",
-    "label": "Mummit le Fou",
-    "rand": 45,
-    "signe": "Signe de l'Incertitude",
-    "classique": "le Fou",
-    "ascendant": "été",
-    "dates": "12 sommerzeit - 29 sommerzeit",
-    "dieux": "Ranald",
-    "apparence": "un visage souriant",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "force-mentale",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "chanceux"
+  "entries": [
+    {
+      "id": "wymund-l-anachorete",
+      "label": "Wymund l'Anachorète",
+      "rand": 5,
+      "signe": "Signe de l'Endurance",
+      "classique": "Wymenos",
+      "ascendant": "cœur de l'hiver",
+      "dates": "12 vorhexen - 27 vorhexen",
+      "dieux": "Manann",
+      "apparence": "un visage sévère",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "sociabilite",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "initiative",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "intelligence",
+          "mod": -3
         }
+      ],
+      "desc": "Les individus nés sous la lumière de Wymund l'Anachorète sont patients et méthodiques. Ils préfèrent étudier la situation dans ses moindres détails avant de prendre une décision.\n\nLeur lenteur à porter des jugements et leur tolérance à l'égard des faiblesses des autres en font des amis gentils et loyaux, ce qui les dessert parfois. Souvent, ils pardonnent aux autres l'impardonnable, à leur propre détriment. Mais lorsqu'ils décident que quelqu'un n'est plus digne de leurs grâces, ils deviennent des ennemis durs et implacables.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 40
       }
-    ],
-    "desc": "Mummit le Fou sourit au monde depuis les cieux étoilés et annonce une période de renouveau. Les personnes nées sous le signe de Mummit le Fou sont sensibles, intuitives et surtout, incroyablement chanceuses. Tout leur réussit, ou du moins est- ce l'impression qu'elles donnent. Ainsi, les natifs de ce signe sont connus pour être impulsifs et avoir la bougeotte : ils ont souvent le désir de tout laisser derrière eux et de fuir leurs responsabilités aussi longtemps que possible.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 43
-    }
-  },
-  {
-    "id": "les-deux-boeufs",
-    "type": "stars",
-    "label": "Les Deux Bœufs",
-    "rand": 50,
-    "signe": "Signe de la Fertilité et du Bel Ouvrage",
-    "classique": "Hashoor",
-    "ascendant": "cœur de l'été",
-    "dates": "30 sommerzeit - 13 vorgeheim",
-    "dieux": "Ahalt (chasse, fertilité et sacrifice (Wissenland)) ",
-    "apparence": "deux bœufs",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "intelligence",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "maitre-artisan",
-          "choix": true
-        }
-      }
-    ],
-    "desc": "Les individus nés sous le signe des Deux Bœufs sont innovants, assidus, créatifs et peuvent fabriquer presque tout ce qu'ils désirent. Heureusement pour le monde, ce qu'ils désirent le plus, c'est aider les autres, que ce soit en améliorant une presse à imprimer ou en concevant une meilleure charrue pour labourer les champs de leur famille. Malheureusement, les projets dans lesquels ils se lancent peuvent parfois être fantaisistes et irréalisables, et des personnes mal intentionnées peuvent détourner leur idéalisme vers des causes dangereuses ou injustes.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 43
-    }
-  },
-  {
-    "id": "le-danseur",
-    "type": "stars",
-    "label": "Le Danseur",
-    "rand": 55,
-    "signe": "Signe de l'Amour et de l'Attirance",
-    "classique": "Adamnos",
-    "ascendant": "fin de l'été",
-    "dates": "14 vorgeheim - 2 nachgeheim",
-    "dieux": "Millavog (danse (Wissenland))",
-    "apparence": "un danseur tourbillonnant",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "initiative",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "ferveur-ardente"
-        }
-      }
-    ],
-    "desc": "Le Danseur est un signe de passion... et d'obsession. Quand les natifs de ce signe se lancent à la poursuite de quelque chose, ils le font avec une assiduité à toute épreuve : qu'il s'agisse d'un cœur à conquérir ou d'un mystère à résoudre, le reste du monde s'efface devant leur détermination. Lorsqu'on les méprise, ils le prennent mal et peuvent réagir violemment.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 43
-    }
-  },
-  {
-    "id": "le-tambour",
-    "type": "stars",
-    "label": "Le Tambour",
-    "rand": 60,
-    "signe": "Signe de l'Hédonisme et de l'Excès",
-    "classique": "Lupios",
-    "ascendant": "fin de l'été/début de l'automne",
-    "dates": "3 nachgeheim - 24 nachgeheim",
-    "dieux": "Lupos (prédateurs (Hochland))",
-    "apparence": "un tambour",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "force-mentale",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "noctambule"
-        }
-      }
-    ],
-    "desc": "Les personnes nées sous le signe du Tambour se distinguent par leur caractère expansif et généreux. Elles ne font rien avec modération, et lorsqu'elles donnent, elles donnent tout. Ainsi, un Tambour ne manque jamais de faire l'aumône aux pauvres ou de prendre soin des membres malades de sa famille. Il ne refusera jamais non plus une invitation à une taverne ou à une fête. Les natifs du Tambour sont de bons vivants agréables à côtoyer, mais si leur hédonisme n'est pas contrôlé, ils peuvent se laisser aller à des excès désastreux.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 44
-    }
-  },
-  {
-    "id": "le-flutiste",
-    "type": "stars",
-    "label": "Le Flûtiste",
-    "rand": 65,
-    "signe": "Signe du Roublard",
-    "classique": "Sangist",
-    "ascendant": "automne",
-    "dates": "25 nachgeheim - 16 erntezeit",
-    "dieux": "Ranald, Katya (beauté désarmante (Reikland)) ",
-    "apparence": "un flûtiste folâtre",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "dexterite",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "capacite-de-combat",
-        "mod": -3
-      }
-    ],
-    "desc": "Les meilleurs diplomates sont nés sous la lumière du Flûtiste... De même que les meilleurs voleurs. Les natifs de ce signe sont rusés, habiles et savent faire preuve de beaucoup de tact lorsque nécessaire. Pendant des négociations, il n'y a pas mieux qu'eux pour assurer vos arrières. Cependant, ils n'hésiteront pas à jouer un double jeu, voire à profiter de leurs alliés, s'ils pensent que cela peut leur conférer un quelconque avantage. Les théologiens ne s'accordent pas sur la divinité qu'il convient d'associer au Flûtiste. À Marienburg, il est considéré comme un signe particulièrement providentiel, et certaines familles tentent de concevoir un enfant neuf mois avant qu'il devienne ascendant.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 44
-    }
-  },
-  {
-    "id": "vobist-le-pale",
-    "type": "stars",
-    "label": "Vobist le Pâle",
-    "rand": 70,
-    "signe": "Signe des Ténèbres et de l'Incertitude",
-    "classique": "Vobist",
-    "ascendant": "automne",
-    "dates": "17 erntezeit - 6 brauzeit",
-    "dieux": "Ranald",
-    "apparence": "pas d'étoiles",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "initiative",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "sixieme-sens"
-        }
-      }
-    ],
-    "desc": "Une constellation vide d'étoiles. Un trou noir dans la voûte céleste. Les natifs de Vobist le Pâle peuvent parfois sembler imprévisibles et incertains ; après tout, ils sont nés sous une obscurité totale. Il peut leur arriver de se montrer excessivement prudents, mais aussi audacieux et courageux quand on s'y attend le moins, fonçant au cœur de la mêlée avant même les plus valeureux guerriers. Ce qui s'apparente chez eux à de l'incertitude peut se révéler être un sens aigu des causes auxquelles ils doivent se dévouer et de la manière dont ils doivent se battre pour elles. Enfin, lorsque Morrslieb, la lune du Chaos, est pleine lorsque Vobist le Pâle est ascendant, c'est un présage particulièrement mauvais.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 44
-    }
-  },
-  {
-    "id": "la-charrette-brisee",
-    "type": "stars",
-    "label": "La Charrette Brisée",
-    "rand": 75,
-    "signe": "Signe de l'Orgueil",
-    "classique": "Kharnos",
-    "ascendant": "automne",
-    "dates": "7 brauzeit - 27 brauzeit",
-    "dieux": "Nurgle",
-    "apparence": "une charrette avec une roue cassée",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "force-mentale",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "resistance",
-          "spec": "maladie"
-        }
-      }
-    ],
-    "desc": "Les personnes nées sous le signe de la Charrette Brisée ont tendance à être orgueilleuses et à trop se soucier des apparences. Elles sont capables de dépenser jusqu'à leur dernier sou en quête des plaisirs terrestres, ou de se brûler les ailes en voulant obtenir l'approbation de leurs supérieurs. Toutefois, lorsqu'elles parviennent à réfréner ces tendances, leur fierté se transforme en confiance et leur vanité en sympathie.\n\nLe lien existant entre la Charrette Brisée et Nurgle est rarement évoqué, car toute forme d'adoration des Puissances de la Ruine est un motif suffisant pour finir au bûcher dans la plupart des régions du Vieux Monde. Tout le monde sent cependant que ce signe a quelque chose de sombre et de primitif ancré en lui, et il est couramment associé à la maladie dans de nombreuses cultures. Beaucoup de gens savent que l'influence du Père de la Peste est grande en ce monde, et quand la maladie ravage la terre, les plus désespérés se souviennent alors de vieux contes et de rites interdits, et lui font des offrandes également inavouables.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 45
-    }
-  },
-  {
-    "id": "la-chevre-sauvage",
-    "type": "stars",
-    "label": "La Chèvre Sauvage",
-    "rand": 80,
-    "signe": "Signe des Passions refoulées",
-    "classique": "Talios",
-    "ascendant": "fin de l'automne",
-    "dates": "28 brauzeit - 17 kaldezeit",
-    "dieux": "Taal",
-    "apparence": "une chèvre",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "endurance",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "affinite-avec-les-animaux"
-        }
-      }
-    ],
-    "desc": "Les personnes nées sous le signe de la Chèvre Sauvage ne laissent personne les approcher de trop près. Elles peuvent sembler distantes et apathiques, mais si elles se comportent ainsi, c'est pour ne pas risquer d'être blessées par les éventuelles déceptions auxquelles elles devront inévitablement faire face. Lorsqu'elles sont abattues, elles se complaisent dans leur douleur. Cependant, les rares fois où elles s'autorisent à éprouver de la joie, leur gaieté est contagieuse.\n\nLes natifs de la Chèvre Sauvage ayant une affinité avec la magie sont souvent attirés par le Vent d'Ambre de Ghur. Les individus nés sous ce signe seraient bien avisés de se rappeler que le monde n'est pas là pour les persécuter. Cela peut arriver à n'importe qui d'être frappé par la malchance, mais on ne peut pas passer sa vie à se morfondre pour autant.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 45
-    }
-  },
-  {
-    "id": "le-chaudron-de-rhya",
-    "type": "stars",
-    "label": "Le Chaudron de Rhya",
-    "rand": 85,
-    "signe": "Signe de la Miséricorde, de la Mort et de la Création",
-    "classique": "Rionyes",
-    "ascendant": "début de l'hiver",
-    "dates": "18 kaldezeit - 33 kaldezeit",
-    "dieux": "Rhya",
-    "apparence": "un chaudron",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "agilite",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "volonte-de-fer"
-        }
-      }
-    ],
-    "desc": "Le Chaudron de Rhya est vénéré tant par les astromanciens, les sorciers des ordres de Jade et d'Améthyste que par les astrologues. Ce signe est associé à l'éclosion de choses nouvelles, mais aussi à leur mort inévitable. Les individus nés sous sa lumière sont connus pour suivre des idéaux justes et pour être miséricordieux envers les innocents. Quelle que soit leur situation dans la vie, ils sont implacables dans leur quête de justice. Cet acharnement, s'il n'est pas contrôlé, peut toutefois les rendre insensibles et méprisants à l'égard de la vie et du bien-être des autres.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 46
-    }
-  },
-  {
-    "id": "cackelfax-le-coq",
-    "type": "stars",
-    "label": "Cackelfax le Coq",
-    "rand": 90,
-    "signe": "Signe de la Richesse et du Négoce",
-    "classique": "Kakeros",
-    "ascendant": "hiver",
-    "dates": "1er ulriczeit - 16 ulriczeit",
-    "dieux": "Kakarol (chevaux (Ostland))",
-    "apparence": "deux pièces",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "negociateur"
-        }
-      }
-    ],
-    "desc": "Les natifs de Cackelfax le Coq ont de grandes ambitions et le regard tourné vers l'avenir. Il est rare de rencontrer un Coq dépensier. Les personnes nées sous ce signe s'efforcent d'atteindre leurs objectifs de la manière la plus directe possible : cela implique pour elles d'acquérir des relations, des faveurs, des biens, des compétences et, surtout, de l'argent (beaucoup d'argent). À mesure de leur ascension dans la société, elles prennent sous leur aile ceux qui, auparavant, ont pris soin d'eux. De nombreuses personnalités politiques reconnues ou en passe de le devenir sont nées sous le signe du Coq, ou du moins, le prétendent-elles. Les autres signes peuvent trouver les natifs du Coq avides ou impitoyables, mais ces derniers ont leurs raisons : dans ce monde, la réussite n'est pas offerte aux plus méritants. Elle s'achète, avec de l'argent ou avec du sang.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 46
-    }
-  },
-  {
-    "id": "la-scie-a-os",
-    "type": "stars",
-    "label": "La Scie à Os",
-    "rand": 95,
-    "signe": "Signe de la Compétence et de l'Apprentissage",
-    "classique": "Alyoi",
-    "ascendant": "hiver",
-    "dates": "17 ulriczeit - 31 ulriczeit",
-    "dieux": "Shallya",
-    "apparence": "un couteau",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "intelligence",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": 2
-      },
-      {
-        "op": "charMod",
-        "char": "capacite-de-combat",
-        "mod": -3
-      }
-    ],
-    "desc": "La Scie à Os est le signe des philosophes : ce qu'ils recherchent par-dessus tout est le savoir. Ils consacrent leur vie à explorer et à expérimenter. Cependant, contrairement à d'autres signes tout aussi curieux, les natifs de la Scie à Os ne veulent pas garder les connaissances qu'ils amassent, et ne sont pas repliés sur eux-mêmes non plus. Les personnes nées sous le signe de la Scie à Os souhaitent diffuser leur savoir le plus possible. Cela peut toutefois les faire passer pour des je-sais-tout autoritaires, plutôt que pour des érudits passionnés par les secrets de l'univers.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 46
-    }
-  },
-  {
-    "id": "l-etoile-du-sorcier-sixieme-sens",
-    "type": "stars",
-    "label": "L'Étoile du Sorcier (Sixième sens)",
-    "rand": 100,
-    "signe": "Signe de la Magie",
-    "classique": "Solkios",
-    "ascendant": "hiver",
-    "dates": "32 ulriczeit - 11 vorhexen",
-    "dieux": "Soll",
-    "apparence": "une étoile très lumineuse",
-    "ops": [
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "sixieme-sens"
-        }
-      }
-    ],
-    "sub": {
-      "min": 1,
-      "max": 3
     },
-    "desc": "Magique et mystérieuse, l'Étoile du Sorcier est considérée comme un signe inquiétant par la plupart des astrologues. Ceux qui naissent sous sa lumière font preuve d'un grand courage. Ils sont également d'une versatilité à la limite de l'inconstance ou de la malhonnêteté, ce qui peut causer des problèmes à ceux qui les entourent. Quel que soit le pétrin dans lequel ils se mettent, les natifs de ce signe s'en sortent généralement plutôt bien. Leur charme peut parfois sembler presque mystique, comme s'ils avaient été bénis par les Vents de Magie eux-mêmes.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 47
-    }
-  },
-  {
-    "id": "l-etoile-du-sorcier-seconde-vue",
-    "type": "stars",
-    "label": "L'Étoile du Sorcier (Seconde vue)",
-    "rand": 100,
-    "signe": "Signe de la Magie",
-    "classique": "Solkios",
-    "ascendant": "hiver",
-    "dates": "33 ulriczeit - 11 vorhexen",
-    "dieux": "Soll",
-    "apparence": "une étoile très lumineuse",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "force",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "seconde-vue"
+    {
+      "id": "la-grande-croix",
+      "label": "La Grande Croix",
+      "rand": 10,
+      "signe": "Signe de la Clairvoyance",
+      "classique": "Azurios",
+      "ascendant": "cœur de l'hiver",
+      "dates": "28 vorhexen - 8 nachhexen",
+      "dieux": "Ulric",
+      "apparence": "un X",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "force",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "force-mentale",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "initiative",
+          "mod": -3
         }
+      ],
+      "desc": "Il n'y a pas de place pour l'incertitude dans le cœur de ceux nés sous le signe de la Grande Croix. Le chemin qu'ils doivent suivre en ce monde leur semble évident, et ils font des choix judicieux pour faire en sorte de ne jamais en dévier. Mais cette rationalité peut conduire à une passivité prévisible et à un certain détachement vis-à-vis du monde qui les entoure.\n\nEn effet, si leur route est toute tracée, pourquoi s'en écarter ? Il est vital qu'ils trouvent une cause pour laquelle se battre, au risque de se laisser éternellement porter au fil des eaux du destin.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 40
       }
-    ],
-    "sub": {
-      "min": 4,
-      "max": 6
     },
-    "desc": "Magique et mystérieuse, l'Étoile du Sorcier est considérée comme un signe inquiétant par la plupart des astrologues. Ceux qui naissent sous sa lumière font preuve d'un grand courage. Ils sont également d'une versatilité à la limite de l'inconstance ou de la malhonnêteté, ce qui peut causer des problèmes à ceux qui les entourent. Quel que soit le pétrin dans lequel ils se mettent, les natifs de ce signe s'en sortent généralement plutôt bien. Leur charme peut parfois sembler presque mystique, comme s'ils avaient été bénis par les Vents de Magie eux-mêmes.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 47
-    }
-  },
-  {
-    "id": "l-etoile-du-sorcier-magie-mineure",
-    "type": "stars",
-    "label": "L'Étoile du Sorcier (Magie mineure)",
-    "rand": 100,
-    "signe": "Signe de la Magie",
-    "classique": "Solkios",
-    "ascendant": "hiver",
-    "dates": "34 ulriczeit - 11 vorhexen",
-    "dieux": "Soll",
-    "apparence": "une étoile très lumineuse",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "force",
-        "mod": -3
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "magie-mineure"
+    {
+      "id": "le-trait-du-peintre",
+      "label": "Le Trait du Peintre",
+      "rand": 15,
+      "signe": "Signe de la Précision",
+      "classique": "Verros",
+      "ascendant": "fin de l'hiver/début du printemps",
+      "dates": "9 nachhexen - 28 nachhexen",
+      "dieux": "Vallich (forgerons et constructeurs de navires (Nordland)) ",
+      "apparence": "un archer bandant son arc",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "capacite-de-tir",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "agilite",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "capacite-de-combat",
+          "mod": -3
         }
+      ],
+      "desc": "Les natifs du Trait du Peintre sont faits pour devenir poètes, peintres, sculpteurs... Des artistes de toutes sortes. Ils créent de la beauté partout où ils vont, et même ceux qui, au gré des aléas de l'existence, ne se retrouvent pas à exercer dans un domaine artistique, trouvent le moyen de faire de l'œuvre de leur vie une sorte d'art. S'ils sont docteurs en médecine, ce sont des chirurgiens hors pair. S'ils sont soldats, ils deviennent des maîtres tacticiens. Les personnes nées sous le signe du Trait du Peintre doivent veiller à ne pas se montrer trop critiques envers elles-mêmes ou leur travail.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 41
       }
-    ],
-    "sub": {
-      "min": 7,
-      "max": 9
     },
-    "desc": "Magique et mystérieuse, l'Étoile du Sorcier est considérée comme un signe inquiétant par la plupart des astrologues. Ceux qui naissent sous sa lumière font preuve d'un grand courage. Ils sont également d'une versatilité à la limite de l'inconstance ou de la malhonnêteté, ce qui peut causer des problèmes à ceux qui les entourent. Quel que soit le pétrin dans lequel ils se mettent, les natifs de ce signe s'en sortent généralement plutôt bien. Leur charme peut parfois sembler presque mystique, comme s'ils avaient été bénis par les Vents de Magie eux-mêmes.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 47
-    }
-  },
-  {
-    "id": "l-etoile-du-sorcier-sorcier",
-    "type": "stars",
-    "label": "L'Étoile du Sorcier (Sorcier !)",
-    "rand": 100,
-    "signe": "Signe de la Magie",
-    "classique": "Solkios",
-    "ascendant": "hiver",
-    "dates": "35 ulriczeit - 11 vorhexen",
-    "dieux": "Soll",
-    "apparence": "une étoile très lumineuse",
-    "ops": [
-      {
-        "op": "charMod",
-        "char": "force",
-        "mod": -5
-      },
-      {
-        "op": "grantTalent",
-        "talent": {
-          "id": "sorcier"
+    {
+      "id": "gnuthus-le-buffle",
+      "label": "Gnuthus le Buffle",
+      "rand": 20,
+      "signe": "Signe du Dévouement et de la Loyauté",
+      "classique": "Nuthlos",
+      "ascendant": "début du printemps",
+      "dates": "29 nachhexen - 16 jahrdrung",
+      "dieux": "Guvaur (taureaux (Ostland))",
+      "apparence": "un bœuf",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "endurance",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "force-mentale",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "intelligence",
+          "mod": -3
         }
+      ],
+      "desc": "Les individus nés sous le signe du Buffle sont des alliés dévoués dont l'amitié se gagne rapidement. Lorsqu'ils prêtent allégeance à une personne, un idéal ou une cause, rien ne peut les en détourner. Ils tiennent toujours leurs promesses. S'ils ont une dette envers quelqu'un, ils trouveront le moyen de la payer, quoi qu'il leur en coûte. Leur honnêteté s'accompagne parfois d'une certaine naïveté et ils se doivent donc d'être prudents s'ils ne veulent pas que d'autres en profitent. En outre, il leur arrive tout aussi souvent de défendre les mauvaises causes ou d'appartenir au camp des perdants que de se retrouver du côté de la justice.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 41
       }
-    ],
-    "sub": {
-      "min": 10,
-      "max": 10
     },
-    "desc": "Magique et mystérieuse, l'Étoile du Sorcier est considérée comme un signe inquiétant par la plupart des astrologues. Ceux qui naissent sous sa lumière font preuve d'un grand courage. Ils sont également d'une versatilité à la limite de l'inconstance ou de la malhonnêteté, ce qui peut causer des problèmes à ceux qui les entourent. Quel que soit le pétrin dans lequel ils se mettent, les natifs de ce signe s'en sortent généralement plutôt bien. Leur charme peut parfois sembler presque mystique, comme s'ils avaient été bénis par les Vents de Magie eux-mêmes.",
-    "source": {
-      "book": "archives-de-l-empire-2",
-      "page": 47
+    {
+      "id": "dragomas-le-dragon",
+      "label": "Dragomas le Dragon",
+      "rand": 25,
+      "signe": "Signe de la Bravoure",
+      "classique": "Drakonos",
+      "ascendant": "printemps",
+      "dates": "17 jahrdrung - 7 pflugzeit",
+      "dieux": "Khaine",
+      "apparence": "un dragon cabré",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "force-mentale",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "sociabilite",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "dexterite",
+          "mod": -3
+        }
+      ],
+      "desc": "Audacieux, sûrs d'eux et forts, les natifs de Dragomas le Dragon sont faits pour être des meneurs. Ils rayonnent de confiance et d'assurance, c'est pourquoi les gens ont souvent instinctivement envie de les suivre. Ce charisme peut toutefois vite se transformer en une arrogance inflexible, si bien que même le berger doux et avisé peut finir par devenir un véritable tyran. Être un chef implique une responsabilité envers ses partisans, et les personnes nées sous le signe du Dragon feraient mieux de ne pas l'oublier.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 41
+      }
+    },
+    {
+      "id": "le-crepuscule",
+      "label": "Le Crépuscule",
+      "rand": 30,
+      "signe": "Signe de l'Illusion et du Mystère",
+      "classique": "Tartotes",
+      "ascendant": "printemps",
+      "dates": "8 pflugzeit - 31 pflugzeit",
+      "dieux": "Morr \r",
+      "apparence": "un amas d'étoiles rouges et bleues qui n'apparaissent qu'au crépuscule ",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "intelligence",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "initiative",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "force-mentale",
+          "mod": -3
+        }
+      ],
+      "desc": "Les étoiles qui composent la constellation du Crépuscule n'apparaissent que dans des conditions spécifiques, à la tombée du jour. Les personnes nées sous le signe du Crépuscule sont des sceptiques et des douteurs. Leur scepticisme peut aller jusqu'à se transformer en une suspicion excessive ou une forme de paranoïa vis-à-vis de tout ce qu'elles ne peuvent pas voir de leurs propres yeux ou toucher de leurs mains. La métaphysique, les théories... rien de tout cela ne leur inspire confiance. Seule la réalité physique et solide du monde leur semble fiable. Toutefois, lorsqu'ils usent de leurs talents à bon escient, les natifs du Crépuscule font de brillants enquêteurs et érudits. Ils sont souvent attirés par la magie en dépit de leur méfiance à l'égard du mystique.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 42
+      }
+    },
+    {
+      "id": "le-fourreau-de-grungni",
+      "label": "Le Fourreau de Grungni",
+      "rand": 35,
+      "signe": "Signe des Ambitions Martiales",
+      "classique": "Gileon",
+      "ascendant": "fin du printemps/début de l'été",
+      "dates": "32 pflugzeit - 22 sigmarzeit",
+      "dieux": "Grungni (nains, forgerons (Stirland)), Margileo (honneur (Averland)) ",
+      "apparence": "un nain équipé d'un fourreau",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "capacite-de-combat",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "force-mentale",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "sociabilite",
+          "mod": -3
+        }
+      ],
+      "desc": "Le Fourreau de Grungni est sacré pour les soldats et les nains. Les individus qui naissent sous sa lumière sont honorables, disciplinés et naturellement disposés à une carrière de guerrier. Même ceux parmi ces derniers qui ne sont pas soldats ont tendance à aborder leur vie personnelle avec une rigueur martiale. Il est difficile pour les natifs du Fourreau d'arriver à se détendre un peu et de profiter des plaisirs de l'existence. Les personnes nées sous des signes plus paisibles peuvent les trouver butés et sans humour.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 42
+      }
+    },
+    {
+      "id": "mammit-le-sage",
+      "label": "Mammit le Sage",
+      "rand": 40,
+      "signe": "Signe de la Sagesse",
+      "classique": "Mammius",
+      "ascendant": "début de l'été",
+      "dates": "23 sigmarzeit - 11 sommerzeit",
+      "dieux": "Verena",
+      "apparence": "une chouette",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "initiative",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "intelligence",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "sociabilite",
+          "mod": -3
+        }
+      ],
+      "desc": "Pour la personne née sous le signe de Mammit le Sage, la vie et le monde sont pleins d'occasions d'apprendre de nouvelles choses. Leur penchant introspectif en fait des individus intelligents, justes et doux, mais il peut tout aussi bien les amener à considérer les malheurs des autres comme un sujet d'étude parmi d'autres. Cela leur permet certes d'agir avec détachement lorsque nécessaire, mais poussé à son paroxysme, ce trait de caractère peut se transformer en indifférence, voire en cruauté.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 42
+      }
+    },
+    {
+      "id": "mummit-le-fou",
+      "label": "Mummit le Fou",
+      "rand": 45,
+      "signe": "Signe de l'Incertitude",
+      "classique": "le Fou",
+      "ascendant": "été",
+      "dates": "12 sommerzeit - 29 sommerzeit",
+      "dieux": "Ranald",
+      "apparence": "un visage souriant",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "force-mentale",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "chanceux"
+          }
+        }
+      ],
+      "desc": "Mummit le Fou sourit au monde depuis les cieux étoilés et annonce une période de renouveau. Les personnes nées sous le signe de Mummit le Fou sont sensibles, intuitives et surtout, incroyablement chanceuses. Tout leur réussit, ou du moins est- ce l'impression qu'elles donnent. Ainsi, les natifs de ce signe sont connus pour être impulsifs et avoir la bougeotte : ils ont souvent le désir de tout laisser derrière eux et de fuir leurs responsabilités aussi longtemps que possible.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 43
+      }
+    },
+    {
+      "id": "les-deux-boeufs",
+      "label": "Les Deux Bœufs",
+      "rand": 50,
+      "signe": "Signe de la Fertilité et du Bel Ouvrage",
+      "classique": "Hashoor",
+      "ascendant": "cœur de l'été",
+      "dates": "30 sommerzeit - 13 vorgeheim",
+      "dieux": "Ahalt (chasse, fertilité et sacrifice (Wissenland)) ",
+      "apparence": "deux bœufs",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "intelligence",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "maitre-artisan",
+            "choix": true
+          }
+        }
+      ],
+      "desc": "Les individus nés sous le signe des Deux Bœufs sont innovants, assidus, créatifs et peuvent fabriquer presque tout ce qu'ils désirent. Heureusement pour le monde, ce qu'ils désirent le plus, c'est aider les autres, que ce soit en améliorant une presse à imprimer ou en concevant une meilleure charrue pour labourer les champs de leur famille. Malheureusement, les projets dans lesquels ils se lancent peuvent parfois être fantaisistes et irréalisables, et des personnes mal intentionnées peuvent détourner leur idéalisme vers des causes dangereuses ou injustes.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 43
+      }
+    },
+    {
+      "id": "le-danseur",
+      "label": "Le Danseur",
+      "rand": 55,
+      "signe": "Signe de l'Amour et de l'Attirance",
+      "classique": "Adamnos",
+      "ascendant": "fin de l'été",
+      "dates": "14 vorgeheim - 2 nachgeheim",
+      "dieux": "Millavog (danse (Wissenland))",
+      "apparence": "un danseur tourbillonnant",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "initiative",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "ferveur-ardente"
+          }
+        }
+      ],
+      "desc": "Le Danseur est un signe de passion... et d'obsession. Quand les natifs de ce signe se lancent à la poursuite de quelque chose, ils le font avec une assiduité à toute épreuve : qu'il s'agisse d'un cœur à conquérir ou d'un mystère à résoudre, le reste du monde s'efface devant leur détermination. Lorsqu'on les méprise, ils le prennent mal et peuvent réagir violemment.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 43
+      }
+    },
+    {
+      "id": "le-tambour",
+      "label": "Le Tambour",
+      "rand": 60,
+      "signe": "Signe de l'Hédonisme et de l'Excès",
+      "classique": "Lupios",
+      "ascendant": "fin de l'été/début de l'automne",
+      "dates": "3 nachgeheim - 24 nachgeheim",
+      "dieux": "Lupos (prédateurs (Hochland))",
+      "apparence": "un tambour",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "force-mentale",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "noctambule"
+          }
+        }
+      ],
+      "desc": "Les personnes nées sous le signe du Tambour se distinguent par leur caractère expansif et généreux. Elles ne font rien avec modération, et lorsqu'elles donnent, elles donnent tout. Ainsi, un Tambour ne manque jamais de faire l'aumône aux pauvres ou de prendre soin des membres malades de sa famille. Il ne refusera jamais non plus une invitation à une taverne ou à une fête. Les natifs du Tambour sont de bons vivants agréables à côtoyer, mais si leur hédonisme n'est pas contrôlé, ils peuvent se laisser aller à des excès désastreux.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 44
+      }
+    },
+    {
+      "id": "le-flutiste",
+      "label": "Le Flûtiste",
+      "rand": 65,
+      "signe": "Signe du Roublard",
+      "classique": "Sangist",
+      "ascendant": "automne",
+      "dates": "25 nachgeheim - 16 erntezeit",
+      "dieux": "Ranald, Katya (beauté désarmante (Reikland)) ",
+      "apparence": "un flûtiste folâtre",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "sociabilite",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "dexterite",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "capacite-de-combat",
+          "mod": -3
+        }
+      ],
+      "desc": "Les meilleurs diplomates sont nés sous la lumière du Flûtiste... De même que les meilleurs voleurs. Les natifs de ce signe sont rusés, habiles et savent faire preuve de beaucoup de tact lorsque nécessaire. Pendant des négociations, il n'y a pas mieux qu'eux pour assurer vos arrières. Cependant, ils n'hésiteront pas à jouer un double jeu, voire à profiter de leurs alliés, s'ils pensent que cela peut leur conférer un quelconque avantage. Les théologiens ne s'accordent pas sur la divinité qu'il convient d'associer au Flûtiste. À Marienburg, il est considéré comme un signe particulièrement providentiel, et certaines familles tentent de concevoir un enfant neuf mois avant qu'il devienne ascendant.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 44
+      }
+    },
+    {
+      "id": "vobist-le-pale",
+      "label": "Vobist le Pâle",
+      "rand": 70,
+      "signe": "Signe des Ténèbres et de l'Incertitude",
+      "classique": "Vobist",
+      "ascendant": "automne",
+      "dates": "17 erntezeit - 6 brauzeit",
+      "dieux": "Ranald",
+      "apparence": "pas d'étoiles",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "initiative",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "sixieme-sens"
+          }
+        }
+      ],
+      "desc": "Une constellation vide d'étoiles. Un trou noir dans la voûte céleste. Les natifs de Vobist le Pâle peuvent parfois sembler imprévisibles et incertains ; après tout, ils sont nés sous une obscurité totale. Il peut leur arriver de se montrer excessivement prudents, mais aussi audacieux et courageux quand on s'y attend le moins, fonçant au cœur de la mêlée avant même les plus valeureux guerriers. Ce qui s'apparente chez eux à de l'incertitude peut se révéler être un sens aigu des causes auxquelles ils doivent se dévouer et de la manière dont ils doivent se battre pour elles. Enfin, lorsque Morrslieb, la lune du Chaos, est pleine lorsque Vobist le Pâle est ascendant, c'est un présage particulièrement mauvais.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 44
+      }
+    },
+    {
+      "id": "la-charrette-brisee",
+      "label": "La Charrette Brisée",
+      "rand": 75,
+      "signe": "Signe de l'Orgueil",
+      "classique": "Kharnos",
+      "ascendant": "automne",
+      "dates": "7 brauzeit - 27 brauzeit",
+      "dieux": "Nurgle",
+      "apparence": "une charrette avec une roue cassée",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "force-mentale",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "resistance",
+            "spec": "maladie"
+          }
+        }
+      ],
+      "desc": "Les personnes nées sous le signe de la Charrette Brisée ont tendance à être orgueilleuses et à trop se soucier des apparences. Elles sont capables de dépenser jusqu'à leur dernier sou en quête des plaisirs terrestres, ou de se brûler les ailes en voulant obtenir l'approbation de leurs supérieurs. Toutefois, lorsqu'elles parviennent à réfréner ces tendances, leur fierté se transforme en confiance et leur vanité en sympathie.\n\nLe lien existant entre la Charrette Brisée et Nurgle est rarement évoqué, car toute forme d'adoration des Puissances de la Ruine est un motif suffisant pour finir au bûcher dans la plupart des régions du Vieux Monde. Tout le monde sent cependant que ce signe a quelque chose de sombre et de primitif ancré en lui, et il est couramment associé à la maladie dans de nombreuses cultures. Beaucoup de gens savent que l'influence du Père de la Peste est grande en ce monde, et quand la maladie ravage la terre, les plus désespérés se souviennent alors de vieux contes et de rites interdits, et lui font des offrandes également inavouables.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 45
+      }
+    },
+    {
+      "id": "la-chevre-sauvage",
+      "label": "La Chèvre Sauvage",
+      "rand": 80,
+      "signe": "Signe des Passions refoulées",
+      "classique": "Talios",
+      "ascendant": "fin de l'automne",
+      "dates": "28 brauzeit - 17 kaldezeit",
+      "dieux": "Taal",
+      "apparence": "une chèvre",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "endurance",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "affinite-avec-les-animaux"
+          }
+        }
+      ],
+      "desc": "Les personnes nées sous le signe de la Chèvre Sauvage ne laissent personne les approcher de trop près. Elles peuvent sembler distantes et apathiques, mais si elles se comportent ainsi, c'est pour ne pas risquer d'être blessées par les éventuelles déceptions auxquelles elles devront inévitablement faire face. Lorsqu'elles sont abattues, elles se complaisent dans leur douleur. Cependant, les rares fois où elles s'autorisent à éprouver de la joie, leur gaieté est contagieuse.\n\nLes natifs de la Chèvre Sauvage ayant une affinité avec la magie sont souvent attirés par le Vent d'Ambre de Ghur. Les individus nés sous ce signe seraient bien avisés de se rappeler que le monde n'est pas là pour les persécuter. Cela peut arriver à n'importe qui d'être frappé par la malchance, mais on ne peut pas passer sa vie à se morfondre pour autant.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 45
+      }
+    },
+    {
+      "id": "le-chaudron-de-rhya",
+      "label": "Le Chaudron de Rhya",
+      "rand": 85,
+      "signe": "Signe de la Miséricorde, de la Mort et de la Création",
+      "classique": "Rionyes",
+      "ascendant": "début de l'hiver",
+      "dates": "18 kaldezeit - 33 kaldezeit",
+      "dieux": "Rhya",
+      "apparence": "un chaudron",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "agilite",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "volonte-de-fer"
+          }
+        }
+      ],
+      "desc": "Le Chaudron de Rhya est vénéré tant par les astromanciens, les sorciers des ordres de Jade et d'Améthyste que par les astrologues. Ce signe est associé à l'éclosion de choses nouvelles, mais aussi à leur mort inévitable. Les individus nés sous sa lumière sont connus pour suivre des idéaux justes et pour être miséricordieux envers les innocents. Quelle que soit leur situation dans la vie, ils sont implacables dans leur quête de justice. Cet acharnement, s'il n'est pas contrôlé, peut toutefois les rendre insensibles et méprisants à l'égard de la vie et du bien-être des autres.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 46
+      }
+    },
+    {
+      "id": "cackelfax-le-coq",
+      "label": "Cackelfax le Coq",
+      "rand": 90,
+      "signe": "Signe de la Richesse et du Négoce",
+      "classique": "Kakeros",
+      "ascendant": "hiver",
+      "dates": "1er ulriczeit - 16 ulriczeit",
+      "dieux": "Kakarol (chevaux (Ostland))",
+      "apparence": "deux pièces",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "sociabilite",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "negociateur"
+          }
+        }
+      ],
+      "desc": "Les natifs de Cackelfax le Coq ont de grandes ambitions et le regard tourné vers l'avenir. Il est rare de rencontrer un Coq dépensier. Les personnes nées sous ce signe s'efforcent d'atteindre leurs objectifs de la manière la plus directe possible : cela implique pour elles d'acquérir des relations, des faveurs, des biens, des compétences et, surtout, de l'argent (beaucoup d'argent). À mesure de leur ascension dans la société, elles prennent sous leur aile ceux qui, auparavant, ont pris soin d'eux. De nombreuses personnalités politiques reconnues ou en passe de le devenir sont nées sous le signe du Coq, ou du moins, le prétendent-elles. Les autres signes peuvent trouver les natifs du Coq avides ou impitoyables, mais ces derniers ont leurs raisons : dans ce monde, la réussite n'est pas offerte aux plus méritants. Elle s'achète, avec de l'argent ou avec du sang.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 46
+      }
+    },
+    {
+      "id": "la-scie-a-os",
+      "label": "La Scie à Os",
+      "rand": 95,
+      "signe": "Signe de la Compétence et de l'Apprentissage",
+      "classique": "Alyoi",
+      "ascendant": "hiver",
+      "dates": "17 ulriczeit - 31 ulriczeit",
+      "dieux": "Shallya",
+      "apparence": "un couteau",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "intelligence",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "sociabilite",
+          "mod": 2
+        },
+        {
+          "op": "charMod",
+          "char": "capacite-de-combat",
+          "mod": -3
+        }
+      ],
+      "desc": "La Scie à Os est le signe des philosophes : ce qu'ils recherchent par-dessus tout est le savoir. Ils consacrent leur vie à explorer et à expérimenter. Cependant, contrairement à d'autres signes tout aussi curieux, les natifs de la Scie à Os ne veulent pas garder les connaissances qu'ils amassent, et ne sont pas repliés sur eux-mêmes non plus. Les personnes nées sous le signe de la Scie à Os souhaitent diffuser leur savoir le plus possible. Cela peut toutefois les faire passer pour des je-sais-tout autoritaires, plutôt que pour des érudits passionnés par les secrets de l'univers.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 46
+      }
+    },
+    {
+      "id": "l-etoile-du-sorcier-sixieme-sens",
+      "label": "L'Étoile du Sorcier (Sixième sens)",
+      "rand": 100,
+      "signe": "Signe de la Magie",
+      "classique": "Solkios",
+      "ascendant": "hiver",
+      "dates": "32 ulriczeit - 11 vorhexen",
+      "dieux": "Soll",
+      "apparence": "une étoile très lumineuse",
+      "ops": [
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "sixieme-sens"
+          }
+        }
+      ],
+      "sub": {
+        "min": 1,
+        "max": 3
+      },
+      "desc": "Magique et mystérieuse, l'Étoile du Sorcier est considérée comme un signe inquiétant par la plupart des astrologues. Ceux qui naissent sous sa lumière font preuve d'un grand courage. Ils sont également d'une versatilité à la limite de l'inconstance ou de la malhonnêteté, ce qui peut causer des problèmes à ceux qui les entourent. Quel que soit le pétrin dans lequel ils se mettent, les natifs de ce signe s'en sortent généralement plutôt bien. Leur charme peut parfois sembler presque mystique, comme s'ils avaient été bénis par les Vents de Magie eux-mêmes.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 47
+      }
+    },
+    {
+      "id": "l-etoile-du-sorcier-seconde-vue",
+      "label": "L'Étoile du Sorcier (Seconde vue)",
+      "rand": 100,
+      "signe": "Signe de la Magie",
+      "classique": "Solkios",
+      "ascendant": "hiver",
+      "dates": "33 ulriczeit - 11 vorhexen",
+      "dieux": "Soll",
+      "apparence": "une étoile très lumineuse",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "force",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "seconde-vue"
+          }
+        }
+      ],
+      "sub": {
+        "min": 4,
+        "max": 6
+      },
+      "desc": "Magique et mystérieuse, l'Étoile du Sorcier est considérée comme un signe inquiétant par la plupart des astrologues. Ceux qui naissent sous sa lumière font preuve d'un grand courage. Ils sont également d'une versatilité à la limite de l'inconstance ou de la malhonnêteté, ce qui peut causer des problèmes à ceux qui les entourent. Quel que soit le pétrin dans lequel ils se mettent, les natifs de ce signe s'en sortent généralement plutôt bien. Leur charme peut parfois sembler presque mystique, comme s'ils avaient été bénis par les Vents de Magie eux-mêmes.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 47
+      }
+    },
+    {
+      "id": "l-etoile-du-sorcier-magie-mineure",
+      "label": "L'Étoile du Sorcier (Magie mineure)",
+      "rand": 100,
+      "signe": "Signe de la Magie",
+      "classique": "Solkios",
+      "ascendant": "hiver",
+      "dates": "34 ulriczeit - 11 vorhexen",
+      "dieux": "Soll",
+      "apparence": "une étoile très lumineuse",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "force",
+          "mod": -3
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "magie-mineure"
+          }
+        }
+      ],
+      "sub": {
+        "min": 7,
+        "max": 9
+      },
+      "desc": "Magique et mystérieuse, l'Étoile du Sorcier est considérée comme un signe inquiétant par la plupart des astrologues. Ceux qui naissent sous sa lumière font preuve d'un grand courage. Ils sont également d'une versatilité à la limite de l'inconstance ou de la malhonnêteté, ce qui peut causer des problèmes à ceux qui les entourent. Quel que soit le pétrin dans lequel ils se mettent, les natifs de ce signe s'en sortent généralement plutôt bien. Leur charme peut parfois sembler presque mystique, comme s'ils avaient été bénis par les Vents de Magie eux-mêmes.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 47
+      }
+    },
+    {
+      "id": "l-etoile-du-sorcier-sorcier",
+      "label": "L'Étoile du Sorcier (Sorcier !)",
+      "rand": 100,
+      "signe": "Signe de la Magie",
+      "classique": "Solkios",
+      "ascendant": "hiver",
+      "dates": "35 ulriczeit - 11 vorhexen",
+      "dieux": "Soll",
+      "apparence": "une étoile très lumineuse",
+      "ops": [
+        {
+          "op": "charMod",
+          "char": "force",
+          "mod": -5
+        },
+        {
+          "op": "grantTalent",
+          "talent": {
+            "id": "sorcier"
+          }
+        }
+      ],
+      "sub": {
+        "min": 10,
+        "max": 10
+      },
+      "desc": "Magique et mystérieuse, l'Étoile du Sorcier est considérée comme un signe inquiétant par la plupart des astrologues. Ceux qui naissent sous sa lumière font preuve d'un grand courage. Ils sont également d'une versatilité à la limite de l'inconstance ou de la malhonnêteté, ce qui peut causer des problèmes à ceux qui les entourent. Quel que soit le pétrin dans lequel ils se mettent, les natifs de ce signe s'en sortent généralement plutôt bien. Leur charme peut parfois sembler presque mystique, comme s'ils avaient été bénis par les Vents de Magie eux-mêmes.",
+      "source": {
+        "book": "archives-de-l-empire-2",
+        "page": 47
+      }
     }
-  }
-]
+  ]
+}

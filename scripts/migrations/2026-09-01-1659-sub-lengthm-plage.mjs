@@ -42,6 +42,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lignesDe } from './lib/monoTable.mjs';
 import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -156,7 +157,7 @@ const sourceInconnue = (entrees, champ, attendu, nom, ref) => {
       arrets.push(`${nom} › ${e.id} : tuple à migrer, ABSENT de la table imprimée — ${ref}`);
 };
 
-const variantes = etoiles.doc.filter((e) => e.sub !== undefined);
+const variantes = lignesDe(etoiles.doc).filter((e) => e.sub !== undefined);
 sourceInconnue(variantes, 'sub', ATTENDU_SUB, 'stars.json › [].sub', REF_SUB);
 let migresSub = 0;
 for (const e of variantes) migresSub += enFourchette(e, 'sub', `stars.json › ${e.id}.sub`, Array.isArray(e.sub) ? e.sub[1] : null);

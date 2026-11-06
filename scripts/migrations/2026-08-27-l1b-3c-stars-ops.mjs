@@ -20,6 +20,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estMonoTable, lignesDe } from './lib/monoTable.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/stars.json');
@@ -37,7 +38,8 @@ let migres = 0;
 let dejaMigres = 0;
 let sansEffet = 0;
 
-const sortie = data.map((e, i) => {
+const lignes = lignesDe(data);
+const sortie = lignes.map((e, i) => {
   const aEffect = e?.effect !== undefined;
   const aOps = e?.ops !== undefined;
   if (aEffect && aOps) {
@@ -61,13 +63,13 @@ if (echecs.length) {
   process.exit(1);
 }
 
-const out = JSON.stringify(sortie, null, 2);
+const out = JSON.stringify(estMonoTable(data) ? { ...data, entries: sortie } : sortie, null, 2);
 if (out !== brut) fs.writeFileSync(CIBLE, out, 'utf8');
 
 // PREUVE post-écriture : plus aucun `effect`, et la charge utile op par op est CONSERVÉE.
-const apres = JSON.parse(out);
+const apres = lignesDe(JSON.parse(out));
 const residus = apres.filter((e) => e.effect !== undefined).length;
-const avantOps = JSON.stringify(data.map((e) => e.effect ?? e.ops ?? null));
+const avantOps = JSON.stringify(lignes.map((e) => e.effect ?? e.ops ?? null));
 const apresOps = JSON.stringify(apres.map((e) => e.ops ?? null));
 if (residus || avantOps !== apresOps) {
   console.error(`VÉRIFICATION POST-ÉCRITURE ROUGE : ${residus} \`effect\` résiduel(s) ; charge utile ${avantOps === apresOps ? 'conservée' : 'ALTÉRÉE'}`);

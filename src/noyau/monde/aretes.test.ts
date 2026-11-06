@@ -67,12 +67,25 @@ describe('aretesDeLaCouche', () => {
   });
 });
 
+describe('plateauDeLaScene — les arêtes de toutes les couches (#3476)', () => {
+  it('le mur de l’étage est au plateau, dressé du plancher de l’étage', () => {
+    const s = scene([{ x: 0, y: 0, side: 'N' }, { x: 1, y: 1, side: 'E', z: 1 }]);
+    s.layers.push({ z: 1, tiles: new Array(16).fill('plancher'), height: new Array(16).fill(METRES_PER_LEVEL) });
+    const aretes = plateauDeLaScene(s, []).aretes;
+    expect(aretes.map((a) => [a.case, a.pied])).toEqual([[{ x: 0, y: 0 }, 0], [{ x: 1, y: 1 }, METRES_PER_LEVEL]]);
+  });
+});
+
 describe('plateauDeLaScene — les couronnes abattues (#3476)', () => {
   const abattues = (s: Scene) => plateauDeLaScene(s, []).couronnesAbattues;
   it('la couronne d’un rempart tombe avec lui', () => {
     const rempart: WallSeg = { x: 0, y: 0, side: 'N', structure: 'mur-en-pierre' };
     expect(abattues(scene([rempart]))).toEqual([]);
     expect(abattues(setStructureDown(scene([rempart]), 0, 0, 'N', 0, true))).toEqual(['0,0,N,0']);
+  });
+  it('celle d’un rempart de l’étage aussi', () => {
+    const rempart: WallSeg = { x: 0, y: 0, side: 'N', z: 1, structure: 'mur-en-pierre' };
+    expect(abattues(setStructureDown(scene([rempart]), 0, 0, 'N', 1, true))).toEqual(['0,0,N,1']);
   });
   it('celle d’un corps de garde reste sur le linteau de son passage ; un mur sans couronne n’en perd aucune', () => {
     const portail: WallSeg = { x: 0, y: 0, side: 'N', structure: 'porte-de-ville' };
