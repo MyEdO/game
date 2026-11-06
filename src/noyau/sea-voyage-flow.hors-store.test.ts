@@ -2057,7 +2057,7 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
     expect(orientation?.participants?.length).toBeGreaterThan(0);
     for (const part of orientation!.participants!) {
       expect(part.mods).toContainEqual(expect.objectContaining({
-        label: 'Météo : Très abondantes', value: MALUS_TRES_ABONDANTES[part.skillId ?? ''] ?? -10, famille: 'circonstance',
+        label: 'Météo : Très abondantes', value: MALUS_TRES_ABONDANTES[part.skill?.id ?? ''] ?? -10, famille: 'circonstance',
       }));
     }
   });
@@ -2081,7 +2081,7 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
     sousLaPluie('tres-abondantes', 'jour-par-jour');
     runFlow(get, set, { kind: 'test', test: { characteristic: 'force', difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: EMPTY_FLOW });
     const pt = get().pendingTest!;
-    expect(pt.skillId).toBeUndefined();
+    expect(pt.sujet?.skill?.id).toBeUndefined();
     expect(pt.mods).toContainEqual(expect.objectContaining(METEO_CARAC));
   });
 
@@ -2161,8 +2161,8 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
   it.each(PALIERS)('palier « $precip » au monteur canonique : Athlétisme $physique, Perception $manoeuvre, Résistance $autre', ({ precip, physique, manoeuvre, autre }) => {
     const h = get().party[0];
     const ecart = (skill: string, char: 'agilite' | 'initiative' | 'endurance') => {
-      const sec = rollLine({ actor: h, test: { skill, characteristic: char }, difficulty: 'intermediaire' }).target;
-      return rollLine({ actor: h, test: { skill, characteristic: char }, difficulty: 'intermediaire', pont: precip }).target - sec;
+      const sec = rollLine({ actor: h, test: { skill: { id: skill }, characteristic: char }, difficulty: 'intermediaire' }).target;
+      return rollLine({ actor: h, test: { skill: { id: skill }, characteristic: char }, difficulty: 'intermediaire', pont: precip }).target - sec;
     };
     expect(ecart('athletisme', 'agilite')).toBe(physique);
     expect(ecart('perception', 'initiative')).toBe(manoeuvre);
@@ -2543,7 +2543,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
     seaDay({ forcePace: 1, milesToday: 50, effMToday: 12 });
     set({ party: get().party.map((h) => ({ ...h, conditions: [{ id: 'empoisonne', value: 1 }] })) } as never);
     const porteur = get().party[0]!;
-    expect(testValue(porteur, { skill: { id: 'resistance' }, characteristic: 'endurance' }), 'l’État mord les jets du PJ').toBeLessThan(skillBaseValue(porteur, 'resistance', undefined, 'endurance'));
+    expect(testValue(porteur, { skill: { id: 'resistance' }, characteristic: 'endurance' }), 'l’État mord les jets du PJ').toBeLessThan(skillBaseValue(porteur, { skill: { id: 'resistance' }, characteristic: 'endurance' }));
 
     const st = buildOverspeedSteps(get)[0];
     const hullE = effectiveChar(get().travelPlan!.vehicle!, 'endurance');
@@ -2591,7 +2591,7 @@ describe('Tests d’équipage — enjeu d’EFFET, règle en fiche, choix de Pro
     expect(nav!.participants, 'voie MONO : un barreur, pas un batch d’équipage').toBeUndefined();
     const competence = navigationDuNavire(get, get().travelPlan!.vehicle!);
     expect(estCompetenceDePropulsion(competence.id), 'Voile ou Ramer').toBe(true);
-    expect(nav!.rollLabel).toBe(testSkillLabel({ skill: competence.id, spec: competence.spec }));
+    expect(nav!.rollLabel).toBe(testSkillLabel({ skill: competence }));
   });
 
   it('personne qui puisse tenter la Voile (LDB 09 l.30) : la voie Navigation reste OFFERTE, fermée avec son refus nommé', () => {
@@ -2666,7 +2666,7 @@ describe('Test d’équipage — la chanson de marin est NOMMÉE sur la rangée 
       const crew = get().party.find((h) => h.id === part.id)!;
       expect(part.mods, 'la chanson se NOMME sur la rangée du marin').toContainEqual({ label: chanson.label, value: chanson.crewTestMod, famille: 'jet' });
       expect(part.base, 'base NUE : la chanson n’y est plus fondue')
-        .toBe(skillBaseValue(crew, part.skillId, part.spec));
+        .toBe(skillBaseValue(crew, { skill: part.skill }));
       const st = { base: part.base, target: part.target, mods: part.mods, difficulty: part.difficulty, clamped: part.clamped } as never;
       expect(inexplique(st), 'aucune chip « autres » sur une rangée d’équipage').toBe(0);
     }
@@ -2719,7 +2719,8 @@ describe('#1341 (site maritime) — `engineerOf` demande la spec Métier par ID,
     // Le SITE de production, pas son mécanisme : débrancher l'id au call-site rougit ICI.
     expect(engineerOf([b, i])?.id, 'le mécano de la chaudière est celui qui sait réparer').toBe(i.id);
     // Contre-preuve du mécanisme sous-jacent : la MÊME élection demandée par LIBELLÉ ne trouve aucun porteur.
-    expect(partyBest([b, i], 'metier', undefined, undefined, 'Ingénieur'), 'par libellé : personne ne possède la spécialisation').toBeNull();
+    const libelle = byId('skill', 'metier')?.specs?.find((s) => s.id === 'ingenieur')?.label;
+    expect(partyBest([b, i], { skill: { id: 'metier', spec: libelle } }), 'par libellé : personne ne possède la spécialisation').toBeNull();
   });
 });
 
@@ -2788,7 +2789,7 @@ describe('journée commandée parquée sur une décision : le PV du jour est ver
   it('la bande résolue à la reprise arrive au PV de la halte', () => {
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'commande' })! });
     const h = get().party[0];
-    const bande = buildBand(get, { id: 'bande-pv', kind: 'orientation', label: fixtureText('Orientation'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne: { test: { skill: 'orientation', characteristic: 'intelligence' } } }] })!;
+    const bande = buildBand(get, { id: 'bande-pv', kind: 'orientation', label: fixtureText('Orientation'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne: { test: { skill: { id: 'orientation' }, characteristic: 'intelligence' } } }] })!;
     const decision: CascadeStep = { id: 'decision', kind: cleDeFixture('progression-choix-test'), label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
     expect(runCascadeImmediate(get, set, [decision, bande], { title: 'Jour', purpose: 'travelDay', rowSurface: 'pv' })).toBeUndefined();
 

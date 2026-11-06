@@ -24,9 +24,9 @@ function hero(p: Partial<Combatant> = {}): Combatant {
 
 describe('engine/healing — gate compétence & cibles', () => {
   it('Guérison est Avancée : sans Augmentation, le soigneur ne la possède pas (LDB 09 l.30)', () => {
-    expect(possesses(hero(), HEAL_SKILL)).toBe(true);
-    expect(possesses(hero({ skills: [{ id: HEAL_SKILL, characteristic: 'intelligence', advances: 0 }] }), HEAL_SKILL)).toBe(false);
-    expect(possesses(hero({ skills: [] }), HEAL_SKILL)).toBe(false);
+    expect(possesses(hero(), { id: HEAL_SKILL })).toBe(true);
+    expect(possesses(hero({ skills: [{ id: HEAL_SKILL, characteristic: 'intelligence', advances: 0 }] }), { id: HEAL_SKILL })).toBe(false);
+    expect(possesses(hero({ skills: [] }), { id: HEAL_SKILL })).toBe(false);
   });
 
   it('isHealable : blessé OU hémorragique ; pas mort/éjecté', () => {

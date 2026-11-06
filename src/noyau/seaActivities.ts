@@ -35,7 +35,8 @@
  */
 import { activityById, activitiesFor, travelActivitySpec, type ActivityDef } from '../engine/activities';
 import { appliquerIssueActivite } from './activityIssue';
-import { idsDuTest, peutTenter, refusNePeutTenter } from '../engine/skills';
+import { peutTenter, refusNePeutTenter } from '../engine/skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { PlayerText } from '../i18n/playerText';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
@@ -111,9 +112,9 @@ export function seaActivityBlocked(s: Pick<Jeu, 'vessel'>, def: ActivityDef): st
 
 /** Test d'une Activité en mer à compétence FIXE (MDG 15 l.274-290) ; le chemin générique dérive la
  *  sienne du héros (`travelActivitySpec`). Spec par ID (#1341). */
-function seaActivityTest(def: ActivityDef): { skill: string; spec?: string } | undefined {
-  if (def.resolver === 'seaChart') { const sk = def.tests?.[0]?.skill; return sk && { skill: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) }; }
-  if (def.resolver === 'opportunityTrade') return { skill: OPPORTUNITE.test.skill.id, ...(OPPORTUNITE.test.skill.spec ? { spec: OPPORTUNITE.test.skill.spec } : {}) };
+function seaActivityTest(def: ActivityDef): { skill: RefDesignee } | undefined {
+  if (def.resolver === 'seaChart') { const sk = def.tests?.[0]?.skill; return sk && { skill: sk }; }
+  if (def.resolver === 'opportunityTrade') return { skill: OPPORTUNITE.test.skill };
   return undefined;
 }
 
@@ -123,7 +124,7 @@ export function seaActivityRefus(hero: Combatant, def: ActivityDef): PlayerText 
   if (def.resolver === 'crewTraining') return undefined;
   const test = seaActivityTest(def);
   if (!test) return travelActivitySpec(hero, def)!.refus;
-  return peutTenter(hero, test.skill, test.spec) ? undefined : refusNePeutTenter(hero, { skill: test.skill, ...(test.spec ? { spec: test.spec } : {}) });
+  return peutTenter(hero, test) ? undefined : refusNePeutTenter(hero, test);
 }
 
 /** L'Activité choisie de chaque héros de la semaine (`!dead`) : un choix que l'état ouvre encore, la validation de la
@@ -145,7 +146,7 @@ function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityP
   const difficulty = def.tests?.[0]?.difficulty ?? 'complexe';
   return monoStep({
     id: `sea-activity-chart-${hero.id}`, kind: 'sea-activity-chart', actor: hero,
-    label: composeRollLabel(hero, dataLabel(def.label), test), difficulty, rollLabel: refLabel('skills', { id: chart.skill, ...(chart.spec ? { spec: chart.spec } : {}) }),
+    label: composeRollLabel(hero, dataLabel(def.label), test), difficulty, rollLabel: refLabel('skills', chart.skill),
     // L'enjeu d'une Activité EST l'Activité choisie : il vit sur SA fiche (`ActivityDef.stake`).
     stake: activityStakeRef(def.id),
     ligne: { test },
@@ -172,7 +173,7 @@ export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: Ac
     return undefined;
   }
   const difficulty = spec.difficulty;
-  const test: RollRequest['test'] = idsDuTest(spec.test);
+  const test: RollRequest['test'] = spec.test;
   return monoStep({
     id: `sea-activity-generic-${hero.id}`, kind: 'sea-activity-generic', actor: hero,
     label: composeRollLabel(hero, def.label, test), difficulty, rollLabel: def.label,

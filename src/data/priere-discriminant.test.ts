@@ -20,8 +20,8 @@ const FAMILLES_PRIERE = ['beni', 'invocation'];
 describe('dataset — la famille COMMANDE la branche de résolution', () => {
   it('`castInfo(s).skill === "priere"` ⇔ famille Béni/Invocation, sur tout le catalogue', () => {
     const divergentes = spells
-      .filter((s) => (castInfo(s as SpellLike).skill === 'priere') !== FAMILLES_PRIERE.includes(s.family))
-      .map((s) => `${s.id} (family=${s.family} → skill=${castInfo(s as SpellLike).skill})`);
+      .filter((s) => (castInfo(s as SpellLike).skill.id === 'priere') !== FAMILLES_PRIERE.includes(s.family))
+      .map((s) => `${s.id} (family=${s.family} → skill=${castInfo(s as SpellLike).skill.id})`);
     expect(divergentes).toEqual([]);
   });
 
@@ -46,12 +46,12 @@ describe('câblage — le moteur lit la FAMILLE, jamais un champ-drapeau', () =>
   const arcane: SpellLike = { label: 'Sort témoin', ecole: 'Arcane', family: 'arcane', cn: 4, desc: '' };
 
   it('Béni et Invocation roulent le Test de Prière, sans Niveau d’Incantation', () => {
-    expect(castInfo(beni)).toEqual({ skill: 'priere', requireNI: false });
-    expect(castInfo(invocation)).toEqual({ skill: 'priere', requireNI: false });
+    expect(castInfo(beni)).toEqual({ skill: { id: 'priere' }, requireNI: false });
+    expect(castInfo(invocation)).toEqual({ skill: { id: 'priere' }, requireNI: false });
   });
 
   it('un Sort arcanique roule Langue (Magick) contre son Niveau d’Incantation', () => {
-    expect(castInfo(arcane)).toEqual({ skill: 'langue', spec: 'magick', requireNI: true });
+    expect(castInfo(arcane)).toEqual({ skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuDomaine: true });
   });
 
   it('la dissipabilité suit la même famille', () => {
@@ -61,7 +61,7 @@ describe('câblage — le moteur lit la FAMILLE, jamais un champ-drapeau', () =>
   });
 
   it('une famille ABSENTE reste un Sort (aucun repli sur `cn: null`)', () => {
-    expect(castInfo({ label: 'Sans famille', ecole: '?', cn: null, desc: '' })).toEqual({ skill: 'langue', spec: 'magick', requireNI: true });
+    expect(castInfo({ label: 'Sans famille', ecole: '?', cn: null, desc: '' })).toEqual({ skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuDomaine: true });
   });
 });
 

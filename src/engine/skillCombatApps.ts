@@ -22,12 +22,6 @@ import { bonusDe } from './characteristics';
 import { skillBaseValue, possesses } from './skills';
 import { sousPeur } from './psychology';
 
-/** Valeur d'un Test de la Compétence `skillId` (spécialisation `spec`) pour `c` — SOURCE UNIQUE partagée
- *  avec la valeur de défense sociale : `skillBaseValue` (Caractéristique EFFECTIVE + carac alternative +
- *  Augmentations), pour que la valeur OFFERTE (surface d'attaque/défense) == la valeur RÉSOLUE. */
-function skillValue(c: Combatant, skillId: string, spec?: string): number {
-  return skillBaseValue(c, skillId, spec);
-}
 
 // ── A) Cumuler l'Avantage ────────────────────────────────────────────────────
 
@@ -35,7 +29,7 @@ function skillValue(c: Combatant, skillId: string, spec?: string): number {
  *  Caractéristique `cap` déclarée. 0 si la Compétence n'a pas d'application « Avantage » ou n'est pas possédée. */
 export function skillAdvantageCap(c: Combatant, skillId: string): number {
   const sd = byId('skill', skillId);
-  if (!sd?.combatAdvantage || !possesses(c, skillId)) return 0;
+  if (!sd?.combatAdvantage || !possesses(c, { id: skillId })) return 0;
   return Math.max(0, bonusDe(c, sd.combatAdvantage.cap));
 }
 
@@ -64,9 +58,9 @@ export function combatSubstitute(self: Combatant, foe: Combatant, role: 'defense
   for (const inst of self.skills ?? []) {
     const sub = byId('skill', inst.id)?.combatSubstitute;
     if (!sub || (sub.role !== 'both' && sub.role !== role)) continue;
-    if (!possesses(self, inst.id)) continue;
+    if (!possesses(self, { id: inst.id })) continue;
     if (sub.gate === 'fear' && !fearsBy(foe, self)) continue;
-    const value = skillValue(self, inst.id, inst.spec);
+    const value = skillBaseValue(self, { skill: inst }); // même valeur que la défense sociale résolue
     if (!best || value > best.value) best = { skillId: inst.id, value };
   }
   return best;

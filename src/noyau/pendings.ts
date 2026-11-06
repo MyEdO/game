@@ -30,6 +30,7 @@ import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
 import type { SupportDetail, TestDesigne } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
@@ -115,15 +116,13 @@ export interface PendingTest {
   /** Compétence/Caractéristique RÉELLE testée (« Athlétisme », « Dextérité ») → libellé du cadre de
    *  jet (RollLine), comme « Calme » pour la Psychologie. À défaut, on retombe sur `label`. */
   skill?: string;
-  /** Réf STRUCTURÉE du Test (≠ `skill` libellé d'affichage) : id de Compétence + spec, ou Caractéristique —
-   *  lue par `talentTestSLBonus` (LDB 10 : +DR de Talent par id, jamais un match par libellé). Threadée du
-   *  `FlowTest` (skill/spec/characteristic) au build du pending. */
-  skillId?: string;
-  spec?: string;
+  /** Réf STRUCTURÉE du Test (≠ `skill` libellé d'affichage) : sa Compétence (Spécialisation comprise) ou
+   *  sa Caractéristique — lue par `talentTestSLBonus` (LDB 10 : +DR de Talent par id, jamais un match par
+   *  libellé). Celle du `FlowTest`, posée au build du pending. */
+  sujet?: SujetDuJet;
   /** RÔLE tenu (id stable de `crew-roles`) — PROVENANCE de la rangée, jamais son libellé de ligne :
    *  la ligne NOMME la Compétence lancée (Z5), le rôle dit d'où vient le jet (#1117). */
   roleId?: string;
-  characteristic?: CharKey;
   skillValue: number;
   difficulty: Difficulty;
   requireSL: number;
@@ -1604,7 +1603,7 @@ export interface OpposedFreeze {
   /** CE QUE TESTE l'attaquant, en STRUCTURE (ids de Compétence/Caractéristique) : le libellé de sa
    *  ligne en est DÉRIVÉ par le rendu (`testSkillLabel`), jamais composé par le flux qui fige le jet —
    *  un flux déclare, le renderer écrit. */
-  test?: { skill?: string; spec?: string; characteristic?: CharKey };
+  test?: SujetDuJet;
   /** Libellé AUTHORÉ du côté attaquant, quand aucune structure ne peut le porter : une alternative
    *  écrite en donnée (`FlowTest.opposed.attackerLabel`, « Force/Athlétisme ») ou le nom de la
    *  manœuvre affrontée. Lu en second, quand `test` ne rend rien. */
@@ -1893,8 +1892,7 @@ export interface BatchParticipant extends RollParticipant {
   /** COMPÉTENCE réellement lancée par ce contributeur (résolue à la construction par le flux
    *  propriétaire — naval : `crewRoleValue().used`) : la ligne de jet NOMME la Compétence (Z5), le
    *  rôle tenu n'étant que la PROVENANCE. */
-  skillId?: string;
-  spec?: string;
+  skill?: RefDesignee;
   /** RÔLE tenu (id stable de `crew-roles`) — PROVENANCE de la rangée, jamais son libellé de ligne. */
   roleId?: string;
   /** Contribue DOUBLE à l'agrégat sommé (rôle essentiel MDG 14 l.19 — « compte double », générique). */
@@ -2125,10 +2123,9 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  étape qui lance en porte un, une étape sans jet n'en porte pas. */
   rollLabel?: string;
   /** COMPÉTENCE réellement lancée (id + Spécialisation), posée par le mint depuis le Test de la ligne —
-   *  lue par l'inversion (Talent, jeton), comme `BatchParticipant.skillId`. Absente : Test de
+   *  lue par l'inversion (Talent, jeton), comme `BatchParticipant.skill`. Absente : Test de
    *  Caractéristique, ou étape sans jet. */
-  skillId?: string;
-  spec?: string;
+  skill?: RefDesignee;
   /** CONTEXTE du Test de l'étape (LDB 12 l.42), déclaré par son producteur (Psychologie, péril des eaux)
    *  — lu par l'inversion, qui n'offre une source qu'au Test que son passage vise. */
   contexte?: ContexteDeTest;

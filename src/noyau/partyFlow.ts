@@ -56,7 +56,7 @@ import { transferPossession } from './possessionsFlow';
 import type { Get, Set } from './flowTypes';
 import { herosDeLEngagement, type HerosEngage } from './creation/engagement';
 import type { Jeu } from './etat';
-import { memeSpecialisation } from '../data/schemas/grammaire/ref';
+import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
 import { nePeutPasDifferer, applyEffects } from './combatEffects';
@@ -384,11 +384,12 @@ export function buyCharAdvance(get: Get, set: Set, heroId: string, char: CharKey
   if (msg) get().log(msg);
 }
 
-/** Achète une Augmentation de Compétence — identité (skillId, spec), LDB 09 l.42. L'achat via un
+/** Achète une Augmentation de Compétence — identité : la référence, LDB 09 l.44. L'achat via un
  *  emplacement « (Au choix) » libre DÉSIGNE l'emplacement (LDB 09 l.38 : la Spécialisation se
  *  choisit à l'allocation). Remise −5 PX si la Compétence est ajoutée par un talent ET déjà
  *  dans la carrière (LDB 10 Maître artisan…). */
-export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: string, spec?: string): void {
+export function buySkillAdvance(get: Get, set: Set, heroId: string, skill: RefDesignee): void {
+  const { id: skillId, spec } = skill;
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -417,7 +418,7 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
       msg = manque;
       return h;
     }
-    const r = engineBuySkillAdvance(clone, skillId, spec, inC, discount);
+    const r = engineBuySkillAdvance(clone, skill, inC, discount);
     if (!r.ok) {
       msg = t('pf.refused', { name: clone.label, what: libelleAvecSpec(skillLabel, spec), reason: r.reason ?? '' });
       return h;
@@ -903,7 +904,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     choisirApparence: (heroId, uid, apparence) => choisirApparence(get, set, heroId, uid, apparence),
     grantXp: (heroId, amount) => grantXp(get, set, heroId, amount),
     buyCharAdvance: (heroId, char) => buyCharAdvance(get, set, heroId, char),
-    buySkillAdvance: (heroId, skillId, spec) => buySkillAdvance(get, set, heroId, skillId, spec),
+    buySkillAdvance: (heroId, skill) => buySkillAdvance(get, set, heroId, skill),
     buyTalent: (heroId, talentId, spec) => buyTalent(get, set, heroId, talentId, spec),
     designateCareerSlot: (heroId, slotKey, optionId, spec) => designateCareerSlot(get, set, heroId, slotKey, optionId, spec),
     /** Mémorise un sort (PX selon le Talent, LDB 46/10) ; un sort du Chaos corrompt (+1, seuil → mutation). */

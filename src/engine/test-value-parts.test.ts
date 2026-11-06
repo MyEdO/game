@@ -204,7 +204,7 @@ const GRILLE: Cas[] = [
 
 describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socle d’affichage)', () => {
   it.each(GRILLE)('invariant : base NUE + Σ parts = valeur de Test — $nom', ({ c, sujet }) => {
-    const nue = skillBaseValue(c, sujet.skill?.id, sujet.skill?.spec, sujet.characteristic);
+    const nue = skillBaseValue(c, sujet);
     const parts = testValueParts(c, sujet);
     const somme = parts.reduce((s, p) => s + p.value, 0);
     expect(nue + somme, `résidu NON nommé de ${testValue(c, sujet) - nue - somme} — un poste de \`testValue\` échappe au décomposeur`)
@@ -344,7 +344,7 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
   it('cas de recette : aucun résidu « autres » ne subsiste, même postes cumulés', () => {
     const c = withMutation();
     addCondition(c, COND.empoisonne);
-    expect(skillBaseValue(c, 'marchandage')).toBe(55);
+    expect(skillBaseValue(c, { skill: { id: 'marchandage' } })).toBe(55);
     expect(testValue(c, { skill: { id: 'marchandage' } })).toBe(25); // 55 − 10 (État) − 20 (mutation)
     const parts = testValueParts(c, { skill: { id: 'marchandage' } });
     expect(parts.reduce((s, p) => s + p.value, 0)).toBe(-30); // l'écart ENTIER est nommé
