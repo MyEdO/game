@@ -8,9 +8,9 @@ extends SceneTree
 
 const RECETTE_AUTONOME := true
 const COUCHES := {
-	chemise = {rang = 1, couvre = ["torse", "bras"]},
-	pourpoint = {rang = 2, couvre = ["torse", "bras"]},
-	ceinture = {rang = 2, couvre = ["hanches"]},
+	chemise = {couvre = ["torse", "bras"], masque = []},
+	pourpoint = {couvre = ["torse", "bras"], masque = ["chemise"]},
+	ceinture = {couvre = ["hanches"], masque = ["chemise"]},
 }
 var _fautes: Array[String] = []
 

@@ -13,7 +13,7 @@
  * n'est servi nulle part.
  */
 import type { Attache, Repere } from '../asset/attache';
-import { COUCHES, type Couche, type ManifesteDElement } from '../asset/element';
+import { COUCHES, RANG_DU_CORPS, type Couche, type ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
@@ -72,8 +72,9 @@ export interface ModelesDeLAtelier {
   libelles: Record<string, string>;
   /** Par élément servi qui en déclare une, la prise de la main libre (`SecondePriseDeLAtelier`, #3319). */
   secondesPrises: Record<string, SecondePriseDeLAtelier>;
-  /** Par élément servi qui a une couche, son rang dans `COUCHES` et les zones de sa base qu'il couvre (`couvre`, aucune
-   *  sans déclaration) : monté, il masque les meshes de ces zones, du corps et des éléments de couche plus intérieure. */
+  /** Par élément servi qui a une couche, les zones de sa base qu'il couvre (`couvre`, aucune sans déclaration) et les
+   *  éléments servis qu'il masque (`masque`), ceux de couche plus intérieure dans `COUCHES` ou sans couche : monté, il
+   *  cache les meshes de ces zones, du corps et des éléments de `masque`. */
   couches: Record<string, CoucheDeLAtelier>;
   /** Les emblèmes de la garde-robe (`kind: 'embleme'`). */
   emblemes: EmblemeDeLAtelier[];
@@ -87,10 +88,10 @@ export interface SecondePriseDeLAtelier {
   maniement: Maniement | null;
 }
 
-/** La couche d'un élément au montage : son rang dans `COUCHES`, et les zones qu'il couvre. */
+/** La couche d'un élément au montage : les zones qu'il couvre, et les éléments qu'il masque. */
 export interface CoucheDeLAtelier {
-  rang: number;
   couvre: readonly string[];
+  masque: readonly string[];
 }
 
 /** Un emblème offert au montage : son id, son libellé et son dessin. */
@@ -117,7 +118,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const surfaces: Record<string, readonly Surface[]> = {};
   const libelles: Record<string, string> = {};
   const secondesPrises: Record<string, SecondePriseDeLAtelier> = {};
-  const couches: Record<string, CoucheDeLAtelier> = {};
+  const rangs: Record<string, { rang: number; couvre: readonly string[] }> = {};
   const catalogues = cataloguesDeComposition();
   const libelleDuPoint = (id: string, genre: PointDAccroche['genre']): string =>
     (genre === 'prise' ? catalogues.prises : gardeRobe.filter((g) => g.kind === 'emplacement')).find((c) => c.id === id)?.label ?? id;
@@ -128,7 +129,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
       surfaces[id] = (brut as ManifesteDElement).surfaces;
       libelles[id] = libelleDeCleDElement(cleDe(brut)) ?? id;
       const { couche, couvre } = brut as { couche?: Couche; couvre?: readonly string[] };
-      if (couche) couches[id] = { rang: COUCHES.indexOf(couche), couvre: couvre ?? [] };
+      if (couche) rangs[id] = { rang: COUCHES.indexOf(couche), couvre: couvre ?? [] };
       const { liaison } = brut as ManifesteDElement;
       const forme = cleDe(brut).apparence;
       if ('secondePrise' in liaison && liaison.secondePrise) secondesPrises[id] = { repere: liaison.secondePrise, maniement: (forme && maniementDeLaForme(forme)) || null };
@@ -175,5 +176,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, vitesseAuSol: m.appuis.vitesseAuSol };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
+  const couches = Object.fromEntries(Object.entries(rangs).map(([id, { rang, couvre }]): [string, CoucheDeLAtelier] =>
+    [id, { couvre, masque: Object.keys(libelles).filter((autre) => (rangs[autre]?.rang ?? RANG_DU_CORPS) < rang) }]));
   return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes };
 }

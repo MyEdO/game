@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { BufferAttribute, BufferGeometry, Mesh, SkinnedMesh } from 'three';
 import type { Echantillon } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
-import { gardeTraversee, lierLesCouches, lierSous, mesurerTraversee, PORTEE_DE_COUVERTURE_M, RANG_DU_CORPS, sansLesZonesMasquees } from './traversee.ts';
+import { gardeTraversee, lierLesCouches, lierSous, mesurerTraversee, PORTEE_DE_COUVERTURE_M, sansLesZonesMasquees } from './traversee.ts';
+import { RANG_DU_CORPS } from '../../element.ts';
 
 /** Un carré de 0,2 m de côté à la hauteur `z`, en grille 3 × 3. */
 function carre(z: number): Float32Array {

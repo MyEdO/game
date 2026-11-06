@@ -16,6 +16,7 @@ import { Triangle, Vector3, type Mesh, type SkinnedMesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import type { Echantillon, Pose } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
+import { RANG_DU_CORPS } from '../../element.ts';
 
 /** La distance, en mètres, au-delà de laquelle une couche n'en couvre plus une autre : l'épaisseur d'une manche bouffante. */
 export const PORTEE_DE_COUVERTURE_M = 0.03;
@@ -130,9 +131,6 @@ export function lierSous(sujet: Mesh, couverture: SkinnedMesh, repos: Pick<Pose,
   if (!sommets.length) return null;
   return { sujet, couverture, sommets: Uint32Array.from(sommets), triangles: Uint32Array.from(triangles), barycentres: Float32Array.from(barycentres) };
 }
-
-/** Le rang du corps, sous la couche la plus intérieure de `COUCHES`. */
-export const RANG_DU_CORPS = -1;
 
 /** Par zone, le rang le plus extérieur des éléments de `elements` qui la couvrent ; rend les meshes d'un rang donné
  *  que ne masque aucun élément de couche plus extérieure couvrant leur zone (`zoneDe`). */

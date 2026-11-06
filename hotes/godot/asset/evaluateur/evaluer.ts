@@ -29,8 +29,8 @@ import { gardePoids } from './gardes/poids.ts';
 import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from './gardes/silhouettes.ts';
 import { etenduesDesSegments, gardeSegments, type MesuresDesSegments } from './gardes/segments.ts';
 import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
-import { gardeTraversee, lierLesCouches, mesurerTraversee, RANG_DU_CORPS, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
-import { COUCHES, type Couche } from '../element.ts';
+import { gardeTraversee, lierLesCouches, mesurerTraversee, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
+import { COUCHES, RANG_DU_CORPS, type Couche } from '../element.ts';
 
 /** Ce qu'un élément déclare de sa place sur le corps : sa couche, et les zones du corps qu'il masque. */
 export interface CoucheDeLElement {

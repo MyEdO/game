@@ -16,8 +16,6 @@ const DELAI_DE_REQUETE_S := 10.0
 const BLOC_DE_TELECHARGEMENT := 16777216
 ## La largeur en pixels à laquelle le SVG d'un emblème se rastérise (#3111).
 const LARGEUR_D_EMBLEME := 512.0
-## Le rang de la base parmi les couches des éléments (`couches` de `modeles`) : sous la plus intérieure.
-const RANG_DU_CORPS := -1
 
 
 ## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
@@ -313,24 +311,24 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	return true
 
 
-## Chaque mesh de zone (`extras.zone`), de la base ou d'un élément monté, caché si un élément monté de couche plus
-## extérieure couvre sa zone (`couches` de `modeles`, #2972), montré sinon ; la base est sous toute couche
-## (`hotes/godot/asset/evaluateur/gardes/traversee.ts`, `sansLesZonesMasquees`).
+## Chaque mesh de zone (`extras.zone`), de la base ou d'un élément monté, caché si un élément monté couvre sa zone et
+## masque son porteur (`couvre` et `masque` de `couches` dans `modeles`, #2972), montré sinon ; la base est masquée par
+## toute couche.
 func masquer_les_zones_couvertes() -> void:
 	var couches: Dictionary = modeles.get("couches", {})
-	var couvrant := {}
-	for element in montes.values():
-		var couche: Dictionary = couches.get(element, {})
-		for zone in couche.get("couvre", []):
-			couvrant[zone] = maxi(couvrant.get(zone, RANG_DU_CORPS), int(couche.rang))
-	var rangees: Array = [[_pieces_de_la_base, RANG_DU_CORPS]]
+	var porteurs: Array = [[_pieces_de_la_base, null]]
 	for id in pieces:
-		rangees.append([pieces[id], int(couches.get(montes[id], {}).get("rang", RANG_DU_CORPS))])
-	for rangee in rangees:
-		for piece: MeshInstance3D in rangee[0]:
+		porteurs.append([pieces[id], montes[id]])
+	for porteur in porteurs:
+		for piece: MeshInstance3D in porteur[0]:
 			var zone: Variant = piece.get_meta("extras", {}).get("zone")
 			if zone != null:
-				piece.visible = couvrant.get(zone, RANG_DU_CORPS) <= rangee[1]
+				piece.visible = not montes.values().any(func(par: String) -> bool: return _masque(couches.get(par, {}), porteur[1], zone))
+
+
+## La couche `couche` cache-t-elle la zone `zone` de `porteur`, un élément ou la base (`null`) ?
+static func _masque(couche: Dictionary, porteur: Variant, zone: String) -> bool:
+	return zone in couche.get("couvre", []) and (porteur == null or porteur in couche.get("masque", []))
 
 
 ## La main de la prise `off` posée sur la seconde prise de l'élément monté à la prise `main` (`secondesPrises` de

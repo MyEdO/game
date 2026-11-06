@@ -21,6 +21,8 @@ const VERSION_DU_SCHEMA_D_ELEMENT = 3;
 /** Les couches, de la plus intérieure à la plus extérieure. */
 export const COUCHES = ['peau', 'dessous', 'tenue', 'armure', 'manteau'] as const;
 export type Couche = (typeof COUCHES)[number];
+/** Le rang du corps, sous la couche la plus intérieure de `COUCHES`. */
+export const RANG_DU_CORPS = -1;
 
 export const LIAISONS = ['squelette', 'surface', 'rigide'] as const;
 export type ModeDeLiaison = (typeof LIAISONS)[number];

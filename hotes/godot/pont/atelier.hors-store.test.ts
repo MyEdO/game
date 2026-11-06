@@ -115,11 +115,11 @@ describe('modelesDeLAtelier', () => {
       .toEqual({ hallebarde: { repere: secondePrise, maniement: 'hampe' }, estoc: { repere: secondePrise, maniement: null } });
   });
 
-  it('chaque élément servi qui a une couche donne son rang dans `COUCHES` et les zones qu’il couvre, et lui seul (#2972)', () => {
-    expect(modeles.couches).toEqual({ chemise: { rang: 2, couvre: ['torse'] }, teteNaine: { rang: 0, couvre: ['tete'] } });
+  it('chaque élément servi qui a une couche donne les zones qu’il couvre et les éléments qu’il masque, ceux de couche plus intérieure ou sans couche, et lui seul (#2972)', () => {
+    expect(modeles.couches).toEqual({ chemise: { couvre: ['torse'], masque: ['epee', 'bouclier', 'teteNaine', 'broche'] }, teteNaine: { couvre: ['tete'], masque: ['epee', 'bouclier', 'broche'] } });
     const { couvre: _, ...sansZones } = { ...broche, couche: 'tenue' };
     expect(modelesDeLAtelier({ humanoide, chemise, broche: sansZones }, { humanoide: [], chemise: ['root'], broche: ['root'] }).couches)
-      .toEqual({ chemise: { rang: 2, couvre: ['torse'] }, broche: { rang: 2, couvre: [] } });
+      .toEqual({ chemise: { couvre: ['torse'], masque: [] }, broche: { couvre: [], masque: [] } });
   });
 
   it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {
