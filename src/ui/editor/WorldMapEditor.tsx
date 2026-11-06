@@ -2,7 +2,8 @@ import { useRef, useState } from 'react';
 import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { effectCtxOf } from './EffectList';
-import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById, type MapRouteTrace, type Praticabilite } from '../../noyau/worldMap';
+import { WorldMap, emptyWorldMap, placeById } from '../../noyau/worldMap';
+import { ajouterLieu, basculerMode, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute, type PatchDeCarte, type PatchDeLieu, type PatchDeRoute } from '../../noyau/worldMapEdit';
 import { TravelMode, TRAVEL_DEFAULTS } from '../../engine/travel';
 import { allAxes, coreAxisIds } from '../../data';
 import { Icon, IconG } from '../Icon';
@@ -49,43 +50,30 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
   // plus confondu avec une carte jamais renommée.
   const [named, setNamed] = useState(() => map !== null);
 
-  const upd = (patch: Partial<WorldMap>) => setMap({ ...m, ...patch });
-  const updPlace = (id: string, patch: Partial<MapPlace>) =>
-    upd({ places: m.places.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
-  const updRoute = (id: string, patch: Partial<MapRouteTrace> | Praticabilite) =>
-    upd({ routes: m.routes.map((r) => (r.id === id ? { ...r, ...patch } : r)) });
+  const upd = (patch: PatchDeCarte) => setMap(majCarte(m, patch));
+  const updPlace = (id: string, patch: PatchDeLieu) => setMap(majLieu(m, id, patch));
+  const updRoute = (id: string, patch: PatchDeRoute) => setMap(majRoute(m, id, patch));
 
-  /** Point écran → coordonnées carte (0-100 sur les deux axes ; rendu y × 0,64). */
+  /** Point écran → coordonnées carte en % du canvas (rendu y × 0,64) ; l'écrivain les borne. */
   const toMapPos = (ev: React.PointerEvent | React.MouseEvent) => {
     const r = svgRef.current!.getBoundingClientRect();
-    const x = Math.max(2, Math.min(98, ((ev.clientX - r.left) / r.width) * 100));
-    const y = Math.max(4, Math.min(96, ((ev.clientY - r.top) / r.height) * 100));
-    return { x: Math.round(x), y: Math.round(y) };
+    return { x: ((ev.clientX - r.left) / r.width) * 100, y: ((ev.clientY - r.top) / r.height) * 100 };
   };
 
   const addPlace = (pos: { x: number; y: number }) => {
-    // Décale les ajouts successifs au même point (bouton « + Lieu ») pour qu'ils restent saisissables.
-    while (m.places.some((x) => Math.abs(x.pos.x - pos.x) < 4 && Math.abs(x.pos.y - pos.y) < 4)) {
-      pos = { x: Math.min(96, pos.x + 8), y: pos.y };
-    }
-    const p: MapPlace = {
-      id: idDEntropie('lieu'),
-      label: 'Nouveau lieu',
-      pos,
-      scene: scenes[0]?.id ?? '',
-    };
-    upd({ places: [...m.places, p] });
-    setSel({ kind: 'place', id: p.id });
+    const id = idDEntropie('lieu');
+    setMap(ajouterLieu(m, id, pos, scenes));
+    setSel({ kind: 'place', id });
   };
 
   const clickPlace = (id: string) => {
     if (linkFrom && linkFrom !== id) {
-      // Mode liaison : 2ᵉ lieu cliqué → route (si elle n'existe pas déjà).
-      const exists = m.routes.some((r) => (r.a === linkFrom && r.b === id) || (r.a === id && r.b === linkFrom));
-      if (!exists) {
-        const route: MapRoute = { id: idDEntropie('trajet'), a: linkFrom, b: id, km: 10, modes: ['pied'] };
-        upd({ routes: [...m.routes, route] });
-        setSel({ kind: 'route', id: route.id });
+      // Mode liaison : 2ᵉ lieu cliqué → route, sauf refus de l'écrivain.
+      const routeId = idDEntropie('trajet');
+      const next = lierLieux(m, routeId, linkFrom, id);
+      if (next !== m) {
+        setMap(next);
+        setSel({ kind: 'route', id: routeId });
       }
       setLinkFrom(null);
       return;
@@ -95,14 +83,7 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
 
   const deleteSelected = () => {
     if (!sel) return;
-    if (sel.kind === 'place') {
-      upd({
-        places: m.places.filter((p) => p.id !== sel.id),
-        routes: m.routes.filter((r) => r.a !== sel.id && r.b !== sel.id),
-      });
-    } else {
-      upd({ routes: m.routes.filter((r) => r.id !== sel.id) });
-    }
+    setMap(sel.kind === 'place' ? supprimerLieu(m, sel.id) : supprimerRoute(m, sel.id));
     setSel(null);
   };
 
@@ -112,10 +93,7 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
   // COURANTE au moment du voyage, reste un id libre).
   const effCtx = effectCtxOf({ scenes, worldMap: m, narratif });
 
-  const toggleMode = (r: MapRoute, mode: TravelMode) => {
-    const modes = r.modes.includes(mode) ? r.modes.filter((x) => x !== mode) : [...r.modes, mode];
-    updRoute(r.id, { modes: modes.length ? modes : ['pied'] });
-  };
+  const toggleMode = (routeId: string, mode: TravelMode) => setMap(basculerMode(m, routeId, mode));
 
   return (
     <ScreenShell

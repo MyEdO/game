@@ -360,10 +360,9 @@ export interface PendingAppraise {
   skillLabel?: string;
   truePriceBrass: number; // valeur réelle de base (catalogue) en sous de cuivre
   availability: string | null; // Disponibilité (Rare/Exotique → estimation ±10 %)
-  skillValue: number;
-  /** SOUTIEN (LDB 12) déjà FONDU dans `skillValue` — porté pour l'affichage (ligne de mod nommée). */
-  support?: SupportDetail;
-  difficulty: Difficulty;
+  /** La ligne du jet, figée à l'ouverture (`rollLine`, Soutien LDB 12 compris) : ce que la fenêtre annonce et ce
+   *  que le résolveur jette. */
+  ligne: RollLineParts;
   target: number;
   /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
   clamped?: number;
@@ -473,8 +472,8 @@ export interface PendingHandGate {
   actorName: string;
   /** Main gatée (loadout actif) — pour le `disarm` sur Échec (convention DROITIER `main`/`off`). */
   hand: 'main' | 'off';
-  skillValue: number; // Dextérité BAKÉE (valeur effective de l'attaquant)
-  difficulty: Difficulty; // 'accessible' (+20 « Accessible »)
+  /** La ligne du jet, figée à l'ouverture (`rollLine`) : ce que la fenêtre annonce et ce que le résolveur jette. */
+  ligne: RollLineParts;
   /** Rempli après « Lancer » ; null tant que le jet n'a pas eu lieu (Chance possible ensuite). */
   roll: number | null;
   target: number; // cible effective après difficulté
@@ -2461,12 +2460,11 @@ export interface PendingSurgery extends PendingBase {
   healerName: string;
   targetId: string; // patient opéré
   targetName: string;
-  skillValue: number; // testValue(chirurgien, 'Guérison') — Soutien FONDU
-  /** SOUTIEN (LDB 12) des assistants de chirurgie, déjà fondu dans `skillValue` — porté pour l'affichage. */
-  support?: SupportDetail;
+  /** La ligne de la passe, figée à son ouverture sur l'opération armée (`rollLine`, Soutien LDB 12 compris) : ce que
+   *  la fenêtre annonce et ce que le résolveur jette. */
+  ligne: RollLineParts;
   intBonus: number; // Bonus d'Intelligence du chirurgien
-  difficulty: Difficulty; // 'intermediaire' (+0)
-  target: number; // cible effective d'une passe (affichage) = skillValue
+  target: number; // cible effective d'une passe
   /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
   clamped?: number;
   roll: number | null; // null tant que pas lancé (Chance possible ensuite)
