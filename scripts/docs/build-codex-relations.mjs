@@ -236,7 +236,7 @@ function rendu() {
   // en cours d'écriture dans un arbre partagé ferait diverger le .md sans qu'aucune règle ne bouge.
   const TESTS = [
     'src/noyau/codex/relations.test.ts',
-    'src/ui/compendium/registry.test.ts',
+    'src/noyau/codex/registry.test.ts',
     'src/noyau/codex/humanize.test.ts',
     ...CONTRATS,
     'src/data/serialize.test.ts',
@@ -334,7 +334,7 @@ argument de la fabrique \`document()\` (\`src/data/schemas/grammaire/document.ts
 
 Les ROUTES D'ÉDITION du Codex sont DÉRIVÉES de ces déclarations (#1472) :
 \`src/data/schemas/exposition-derivee.ts\` construit \`CATEGORY_DATASET_DERIVE\` et
-\`OBJECT_CATEGORY_DERIVE\` depuis \`SCHEMA_DEFS\`, et \`src/ui/editor/codex/CodexEdit.tsx\` les consomme
+\`OBJECT_CATEGORY_DERIVE\` depuis \`SCHEMA_DEFS\`, et \`src/data/atelierDuCodex.ts\` les consomme
 telles quelles — plus aucune table à la main. La source lue à l'EXÉCUTION pour l'INDEX du Codex
 reste \`CODEX_SPECS\` (\`${REGISTRY}\`, dont \`CODEX\` est la projection). Les deux sont tenus égaux
 par ${CONTRATS_CITES}, dont voici les cas, tels que les gardes les nomment :

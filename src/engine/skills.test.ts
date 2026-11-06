@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { testValue, partyBest, partyAssisted, skillCharKeyById, bestForSkills, bestForCombined, bestAssistedOption, skillBaseValue, possesses } from './skills';
+import { testValue, partyBest, partyAssisted, skillCharKeyById, bestForTests, bestForCombined, bestAssistedOption, skillBaseValue, possesses } from './skills';
 import { Combatant, SkillInstance } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
@@ -111,35 +111,35 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
   });
 });
 
-describe('bestForSkills — meilleur PJ pour des compétences AU CHOIX', () => {
+describe('bestForTests — meilleur PJ pour des Tests AU CHOIX', () => {
   it('prend l’ACTEUR et l’option qui maximisent la valeur (spec-aware)', () => {
     const a = { ...mk({ dexterite: 30 }, [{ id: 'discretion', advances: 50 }]), id: 'a' }; // discr 80, perc 30
     const b = { ...mk({ initiative: 45 }, [{ id: 'perception', advances: 20 }]), id: 'b' }; // perc 65, discr 30
-    const r = bestForSkills([a, b], [{ id: 'discretion' }, { id: 'perception' }], undefined)!;
+    const r = bestForTests([a, b], [{ skill: { id: 'discretion' } }, { skill: { id: 'perception' } }])!;
     expect(r.actor.id).toBe('a'); // 80 (Discrétion) est la plus haute de toutes les combinaisons acteur×option
-    expect(r.skillId).toBe('discretion');
+    expect(r.test).toEqual({ skill: { id: 'discretion' } });
     expect(r.value).toBe(80);
   });
-  it('skills vide/absent → chemin de PURE Caractéristique (skillId indéfini)', () => {
+  it('Test de PURE Caractéristique', () => {
     const a = { ...mk({ 'force-mentale': 40 }), id: 'a' }, b = { ...mk({ 'force-mentale': 55 }), id: 'b' };
-    const r = bestForSkills([a, b], undefined, 'force-mentale')!;
+    const r = bestForTests([a, b], [{ char: 'force-mentale' }])!;
     expect(r.actor.id).toBe('b');
     expect(r.value).toBe(55);
-    expect(r.skillId).toBeUndefined();
-    expect(r.spec).toBeUndefined();
+    expect(r.test).toEqual({ char: 'force-mentale' });
   });
   it('groupe vide → null', () => {
-    expect(bestForSkills([], [{ id: 'perception' }], undefined)).toBeNull();
+    expect(bestForTests([], [{ skill: { id: 'perception' } }])).toBeNull();
   });
 });
 
-describe('bestAssistedOption — Scène à compétences AU CHOIX résolue en Soutien (ADE II 8)', () => {
-  it('un seul PJ (pas de soutien) → valeur == bestForSkills (aucun +10)', () => {
+describe('bestAssistedOption — Scène à Tests AU CHOIX résolue en Soutien (ADE II 8)', () => {
+  it('un seul PJ (pas de soutien) → valeur == bestForTests (aucun +10)', () => {
     const a = { ...mk({ dexterite: 30 }, [{ id: 'discretion', advances: 50 }]), id: 'a' }; // discr 80
-    const solo = bestAssistedOption([a], [{ id: 'discretion' }, { id: 'perception' }], undefined)!;
-    const ref = bestForSkills([a], [{ id: 'discretion' }, { id: 'perception' }], undefined)!;
+    const tests = [{ skill: { id: 'discretion' } }, { skill: { id: 'perception' } }];
+    const solo = bestAssistedOption([a], tests)!;
+    const ref = bestForTests([a], tests)!;
     expect(solo.value).toBe(ref.value);        // 80, aucun soutien
-    expect(solo.skillId).toBe('discretion');
+    expect(solo.test).toEqual({ skill: { id: 'discretion' } });
     expect(solo.support).toEqual({ count: 0, bonus: 0, ids: [] });
   });
   it('N PJ AVANCÉS dans la compétence → valeur = meneur + 10×assistants (plafonné BCarac)', () => {
@@ -147,7 +147,7 @@ describe('bestAssistedOption — Scène à compétences AU CHOIX résolue en Sou
     const lead = { ...mk({ dexterite: 30 }, [{ id: 'discretion', advances: 30 }]), id: 'L' }; // 60, BDex 3
     const h1 = { ...mk({ dexterite: 30 }, [{ id: 'discretion', advances: 5 }]), id: 'h1' };
     const h2 = { ...mk({ dexterite: 30 }, [{ id: 'discretion', advances: 1 }]), id: 'h2' };
-    const r = bestAssistedOption([lead, h1, h2], [{ id: 'discretion' }], undefined)!;
+    const r = bestAssistedOption([lead, h1, h2], [{ skill: { id: 'discretion' } }])!;
     expect(r.actor.id).toBe('L');
     expect(r.support).toEqual({ count: 2, bonus: 20, ids: ['h1', 'h2'] });
     expect(r.value).toBe(80); // 60 + 20
@@ -155,12 +155,12 @@ describe('bestAssistedOption — Scène à compétences AU CHOIX résolue en Sou
   it('un PJ à 0 Augmentation dans l’option retenue ne soutient pas (LDB 12 l.195)', () => {
     const lead = { ...mk({ dexterite: 30 }, [{ id: 'discretion', advances: 30 }]), id: 'L' }; // 60
     const novice = { ...mk({ dexterite: 30 }, [{ id: 'discretion', advances: 0 }]), id: 'n' };
-    const r = bestAssistedOption([lead, novice], [{ id: 'discretion' }], undefined)!;
+    const r = bestAssistedOption([lead, novice], [{ skill: { id: 'discretion' } }])!;
     expect(r.support).toEqual({ count: 0, bonus: 0, ids: [] });
     expect(r.value).toBe(60);
   });
   it('équipage vide → null', () => {
-    expect(bestAssistedOption([], [{ id: 'perception' }], undefined)).toBeNull();
+    expect(bestAssistedOption([], [{ skill: { id: 'perception' } }])).toBeNull();
   });
 });
 
@@ -170,13 +170,13 @@ describe('bestForCombined — Test COMBINÉ : facteur limitant le plus élevé',
     const a = { ...mk({ dexterite: 30 }, [{ id: 'discretion', advances: 40 }, { id: 'perception', advances: 10 }]), id: 'a' };
     const b = { ...mk({ dexterite: 30 }, [{ id: 'discretion', advances: 20 }, { id: 'perception', advances: 20 }]), id: 'b' };
     const c = { ...mk({ dexterite: 30 }, [{ id: 'discretion', advances: 60 }, { id: 'perception', advances: 0 }]), id: 'c' };
-    const r = bestForCombined([a, b, c], { id: 'discretion' }, { id: 'perception' }, undefined)!;
+    const r = bestForCombined([a, b, c], { skill: { id: 'discretion' } }, { skill: { id: 'perception' } })!;
     expect(r.actor.id).toBe('b');
     expect(r.value1).toBe(50);
     expect(r.value2).toBe(50);
   });
   it('groupe vide → null', () => {
-    expect(bestForCombined([], { id: 'discretion' }, { id: 'perception' }, undefined)).toBeNull();
+    expect(bestForCombined([], { skill: { id: 'discretion' } }, { skill: { id: 'perception' } })).toBeNull();
   });
 });
 

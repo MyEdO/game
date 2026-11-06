@@ -177,6 +177,35 @@ describe('Défense : les modificateurs de la VALEUR sont des lignes NOMMÉES', (
   });
 });
 
+/**
+ * LA CIBLE ANNONCÉE EST CELLE DU JET (#3059, J5) : la rangée pré-jet et la valeur de chaque réaction se lisent de la
+ * fenêtre du noyau (`fenetreDeDefense`), Rapide de l'attaquant compris (LDB 62 l.298-302) ; après le dé, la rangée est
+ * `defenderDetail`.
+ */
+describe('Défense : la cible annoncée, avant le dé, est celle que le dé affronte', () => {
+  const rapiereAdverse = (_h: Combatant, b: BattleState) => {
+    b.combatants[0].weapons = [{ ...sword, name: 'Rapière', label: 'Rapière', qualities: [{ id: 'rapide' }] } as unknown as Weapon];
+  };
+  const maLigne = () => Array.from(host!.querySelectorAll('.rm-roll-block'))[1] as HTMLElement;
+  const cibleDeMaLigne = () => Number(maLigne().querySelector('.rm-roll-calc b')?.textContent);
+  const valeurDuSegment = (libelle: string) => {
+    const b = [...host!.querySelectorAll('.seg button')].find((x) => (x.textContent ?? '').startsWith(libelle));
+    return Number((b?.textContent ?? '').slice(libelle.length).trim());
+  };
+  for (const [mode, libelle] of [['parade', 'Parade'], ['esquive', 'Esquive']] as const) {
+    it(`${libelle} contre une arme Rapide : segment, rangée pré-jet et jet disent la même cible`, () => {
+      openDefense(undefined, rapiereAdverse);
+      act(() => { useGame.getState().jetRegler('defense', 'reaction', mode); });
+      const annoncee = valeurDuSegment(libelle);
+      expect(cibleDeMaLigne(), 'la rangée pré-jet dit la cible du segment').toBe(annoncee);
+      if (mode === 'parade') expect(maLigne().textContent, 'fixture : la Parade porte le malus Rapide').toContain('Rapide');
+      act(() => { useGame.getState().jetRoll('defense'); });
+      expect(useGame.getState().pendingDefense!.result!.defenderDetail!.target, 'le dé affronte la cible annoncée').toBe(annoncee);
+      expect(cibleDeMaLigne(), 'après le dé, la rangée est `defenderDetail`').toBe(annoncee);
+    });
+  }
+});
+
 /** Les volets de Talent de la fenêtre : titre ouvrant la fiche, option hors de portée refusée avec sa cause. */
 describe('Défense : volets Riposte et Porte-bouclier', () => {
   const RAPIERE = { ...sword, name: 'Rapière', label: 'Rapière', uid: 'rp', qualities: [{ id: 'rapide' }] } as unknown as Weapon;

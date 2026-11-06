@@ -156,14 +156,6 @@ import type { SeaWeatherData } from './schemas/defs/sea-weather';
 import type { ShipConstructionData } from './schemas/defs/ship-construction';
 import type { RiverNavigationData } from './schemas/defs/river-navigation';
 
-/** Compétence AU CHOIX d'une Activité (`ActivityDef.skills`, `src/engine/skills.ts` `TestSpec`) —
- *  `difficulty?` porte la Difficulté PROPRE à cette voie quand le RAW en attache une différente par
- *  Compétence (Punchausen, AA 12 l.45-49 : Charme Complexe OU Divertissement (Narration)
- *  Intermédiaire) ; absente, la voie retombe sur `ActivityDef.difficulty`. */
-export interface ActivitySkill extends RefDesignee {
-  difficulty?: Difficulty;
-}
-
 /** Règle d'EMPOIGNADE en DONNÉE (LDB 14 l.159-169) : `init` = ops à la touche d'une Empoignade déclarée
  *  (Empêtré + relation via le flag `grapple`) ; `win` = les 3 options du Test opposé GAGNÉ (l.161), appliquées
  *  avec `ctx.sl = DR`. La mécanique vit ICI (GameOp éditables), le flux `pendingGrapple` n'orchestre que le choix. */
@@ -3119,6 +3111,19 @@ const carriereParId = indexParId('careers', careers);
 /** Résout une Carrière par son `id` STABLE. Le libellé ne sert qu'à l'affichage. */
 export function findCareerById(id: string | undefined): CareerData | undefined {
   return carriereParId(id);
+}
+/**
+ * Libellé GÉNÉRIQUE d'une entrée de dataset : le `CodexItem.label` du registre du Codex, et le nom
+ * courant de l'entrée éditée à l'atelier, qui la refuse vide (`validateEntry`). Précédence
+ * `label → id`. Mesuré sur les 2 racines (`src/data`, `src/scenes`) : aucune entrée de premier niveau
+ * ne porte `key` ni `name` (#1467 L1b V-P1).
+ * EXCEPTION careerLevels : le libellé de niveau (« Recrue ») revient sur plusieurs carrières et
+ * n'identifie rien seul → composite carrière + niveau.
+ */
+export function entryKey(e: Record<string, unknown>): PlayerText {
+  if (typeof e.career === 'string' && typeof e.level === 'number')
+    return dataLabel(`${findCareerById(e.career)?.label ?? e.career} · N${e.level} ${e.label ?? ''}`.trim());
+  return dataLabel(String(e.label ?? e.id ?? ''));
 }
 /** Choix d'AFFICHAGE masculin/féminin (source unique) : `labelF` si sexe F et disponible, sinon
  *  `label`. Le sexe vit dans l'apparence cosmétique (`Combatant.appearance.sex`), jamais dans le moteur. */

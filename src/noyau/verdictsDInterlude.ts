@@ -407,7 +407,7 @@ export function refusDOuvertureDActivite(s: EtatDeDepot, heroId: string, def: Ac
   const ouverture = ouvertureDe(def);
   if (!def.contexts.includes('interlude') || def.blocked) return t('if.activiteFermee', { label: def.label });
   if (ouverture === 'horsCatalogue') return t('if.horsCatalogue', { label: def.label });
-  if (ouverture === 'voie' && !def.skills?.length) return t('if.activiteSansCompetence', { label: def.label });
+  if (ouverture === 'voie' && !def.tests?.length) return t('if.activiteSansCompetence', { label: def.label });
   if (!activityAvailableAt(def, currentPlaceId(s))) return t('if.placeOnly', { label: def.label });
   if (def.resolver === 'dissensionEmeute' && !s.interlude?.perHero[heroId]?.dissensionReady) return t('if.dissensionNotReady', { name: h.label });
   return refusDeCibleDActivite(s, h, def, opts) ?? preJetDActivite(s, heroId, def, opts)?.refus ?? refusDeReussiteSansObjet(h, def, opts);

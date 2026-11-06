@@ -1,9 +1,10 @@
 /**
  * Réfs de registre du vocabulaire `GameOp` — libellé de chaque op (`OP_LABEL`) et champs-réfs
- * (`OP_REF_FIELDS`) avec leurs mesures PURES, partagés par l'atelier, son résumeur et le Codex.
+ * (`OP_REF_FIELDS`) avec leurs mesures PURES, partagés par l'atelier, son résumeur et la validation
+ * d'une entrée du Codex (`atelierDuCodex.ts`), que tout hôte appelle.
  */
-import type { GameOp } from '../../engine/ops';
-import type { DatasetKey } from '../../data/overrides';
+import type { GameOp } from '../engine/ops';
+import type { DatasetKey } from './overrides';
 
 /** Libellé court (texte SEUL, sert aussi de `<option>` natif) de CHAQUE op du vocabulaire `GameOp` —
  *  `Record` TOTAL (TS force sa complétude) : source runtime de l'énumération des kinds pour les

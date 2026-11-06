@@ -430,10 +430,10 @@ const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
  *  d'enveloppe et nominatif par type comme `ZEROS`. Une vue étroite (`ActivityStakeEntry`) y porte tout ce qu'elle ne déclare pas. */
 const ABSENTS: Readonly<Record<string, readonly string[]>> = {
   ActivityStakeEntry: [
-    'assisted', 'blocked', 'char', 'classGate', 'combined', 'contexts', 'difficulty', 'difficultyFrom',
+    'assisted', 'blocked', 'classGate', 'combined', 'contexts', 'difficulty', 'difficultyFrom',
     'encounter', 'extended', 'failExtenue', 'freeSkill', 'generalDownOn', 'grantsFlag', 'hold', 'minInvest',
-    'onSuccess', 'outcomes', 'requires', 'resolver', 'rounds', 'sceneKind', 'skills', 'stageOutcome',
-    'testModFrom', 'testMods', 'threat', 'unavailableIfExtenue', 'weatherMod', 'where', 'worldRolls',
+    'onSuccess', 'outcomes', 'requires', 'resolver', 'rounds', 'sceneKind', 'stageOutcome',
+    'testModFrom', 'testMods', 'tests', 'threat', 'unavailableIfExtenue', 'weatherMod', 'where', 'worldRolls',
   ],
 };
 

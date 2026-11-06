@@ -13,14 +13,6 @@ describe('poste — adaptateurs de projection (donnée-vue commune)', () => {
     expect(p.id).toBe('plein-air');
     expect(p.label).toBe(def.label);
     expect(p.icon).toBe(def.icon); // les activités portent une icône
-    expect(p.skills).toEqual(def.skills ?? []);
-  });
-
-  it("activityAsPoste : une Activité sans skills (Récupérer) projette skills=[]", () => {
-    const def = activitiesFor('voyage').find((a) => a.id === 'recuperer')!;
-    expect(def).toBeTruthy();
-    const p = activityAsPoste(def);
-    expect(p.skills).toEqual([]);
   });
 
   it('crewRoleAsPoste projette un rôle d’équipage en Poste, sans icône', () => {
@@ -30,33 +22,22 @@ describe('poste — adaptateurs de projection (donnée-vue commune)', () => {
     expect(p.id).toBe('capitaine');
     expect(p.label).toBe(r.label);
     expect(p.icon).toBeUndefined(); // les rôles d'équipage n'ont pas d'icône
-    expect(p.skills).toEqual(r.skills);
   });
 
-  it('crewRoleAsPoste : le Mousse (2 compétences) conserve les deux', () => {
-    const r = findCrewRoleById('mousse')!;
-    const p = crewRoleAsPoste(r);
-    expect(p.skills.map((s) => s.id)).toEqual(['voile', 'ramer']);
-  });
-
-  it('stationAsPoste projette une STATION à bord en Poste, SANS compétence', () => {
+  it('stationAsPoste projette une STATION à bord en Poste', () => {
     const st = findShipStation('avirons')!;
     expect(st).toBeTruthy();
     const p = stationAsPoste(st);
     expect(p.id).toBe('avirons');
     expect(p.label).toBe(st.label);
     expect(p.icon).toBeUndefined();
-    // Aucune Compétence ne qualifie une PRÉSENCE : le livre demande qui s'y TROUVE (MDG 13 l.751),
-    // pas qui sait y servir — l'inférence « auto » de la surface partagée n'a rien à proposer.
-    expect(p.skills).toEqual([]);
   });
 
-  it('les CINQ stations se projettent sans exception, et aucune ne porte de compétence', () => {
+  it('les CINQ stations se projettent sans exception', () => {
     const postes: Poste[] = shipStations.map(stationAsPoste);
     expect(postes.map((p) => p.id)).toEqual(['pont', 'greement', 'nid-de-pie', 'avirons', 'cale']);
     for (const p of postes) {
       expect(p.label, p.id).toBeTruthy();
-      expect(p.skills, p.id).toEqual([]);
     }
   });
 
@@ -83,16 +64,15 @@ describe('reposAsPoste — « Repos » est une LIGNE ÉPINGLABLE du roster', () 
     expect(crewRoles.length).toBe(9);
   });
 
-  it('aucune compétence : aucun Test d’équipage ne recrute au repos', () => {
-    expect(reposAsPoste().skills).toEqual([]);
+  it('son libellé est « Repos »', () => {
     expect(reposAsPoste().label).toBe('Repos');
   });
 });
 
 describe('postesOccupes — INVERSION héros→poste (PURE, sans DOM)', () => {
   const postes: Poste[] = [
-    { id: 'pont', label: 'Pont', skills: [] },
-    { id: 'cale', label: 'Cale', skills: [] },
+    { id: 'pont', label: 'Pont' },
+    { id: 'cale', label: 'Cale' },
   ];
 
   it('range chaque héros dans la ligne de SON poste, et garde les lignes VIDES', () => {

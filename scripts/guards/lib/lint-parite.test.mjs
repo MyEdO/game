@@ -178,7 +178,7 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['src/ui/hud/parite-atelier.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',1],
     ['src/ui/parite-atelier-alias.tsx',"import {ConditionEditor} from '@/ui/editor/ConditionEditor';ConditionEditor();",'murs/atelier',1],
     ['src/ui/compendium/parite-atelier.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',1],
-    ['src/ui/hud/parite-atelier-refs.tsx',"import {OP_LABEL} from '../editor/refsDOp';OP_LABEL.x;",'murs/atelier',1],
+    ['src/ui/hud/parite-atelier-refs.tsx',"import {OP_LABEL} from '../../data/refsDOp';OP_LABEL.x;",'murs/atelier',1],
     ['src/ui/editor/codex/parite-atelier.tsx',"import {GameOpEditor} from '../../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/ui/hud/parite-atelier.test.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/state/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',1],

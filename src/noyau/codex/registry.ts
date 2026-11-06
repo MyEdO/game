@@ -14,7 +14,7 @@ import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
-  skillInstanceLabel, careersForSpecies, findCareerById, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
+  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
@@ -79,7 +79,7 @@ import { talentMaxLabel } from '../../engine/careerSlots';
 import type { AdvancementRef, TrappingRef, WaterExposureModifier, SpellData } from '../../data';
 import { POWER_ESTIMATE, MIGHT_MODIFIERS, WAR_MACHINES, STRUCTURES as MASS_BATTLE_STRUCTURES, BATTLE_HAZARDS } from '../../engine/massBattle';
 import { AVAILABILITIES } from '../../engine/types';
-import { ACTIVITIES } from '../../engine/activities';
+import { ACTIVITIES, testsDeLActivite } from '../../engine/activities';
 import type { OutcomeBand } from '../../engine/activities';
 import { traitArgSkeleton, traitLisible } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
@@ -115,23 +115,6 @@ export type CodexGroup = 'Personnage' | 'Compétences' | 'Équipement' | 'Effets
 
 /** Ordre d'affichage des familles (onglets du haut). */
 export const CODEX_GROUPS: CodexGroup[] = ['Personnage', 'Compétences', 'Équipement', 'Effets', 'Magie', 'Monde', 'Tables'];
-
-/**
- * Identité GÉNÉRIQUE d'une entrée de dataset — clé STABLE servant À LA FOIS de `CodexItem.label`
- * (ce que le navigateur passe à l'éditeur) ET de cible du `findIndex` côté `CodexEdit`. Précédence
- * `label → id` : un dataset qui porte un `label` l'expose (maladies, gods, raceAppearance depuis
- * #1467 L1b V-P4…), sinon son `id` fait l'affichage. Mesuré sur les 2 racines (`src/data`, `src/scenes`) : aucune entrée
- * de premier niveau ne porte `key` ni `name` — le dernier porteur de `key` (`calendarPhases`) est
- * passé à `id` en #1467 L1b V-P1.
- * EXCEPTION careerLevels : le libellé de niveau (« Recrue ») revient sur plusieurs carrières et
- * n'identifie rien seul → composite carrière + niveau, identique des deux côtés (l'éditeur réécrit la
- * bonne entrée, plus de collision sur le 1er homonyme).
- */
-export function entryKey(e: Record<string, unknown>): string {
-  if (typeof e.career === 'string' && typeof e.level === 'number')
-    return `${findCareerById(e.career)?.label ?? e.career} · N${e.level} ${e.label ?? ''}`.trim();
-  return String(e.label ?? e.id ?? '');
-}
 
 /** Vue de projection Codex de `SourceRef` (`src/data/schemas/grammaire/valeurs.ts` — SEULE forme à importer,
  *  #563 dette soldée) : `book` y est déjà résolu en ABRÉVIATION affichable (`bookAbr`, cf. `src()`
@@ -1774,7 +1757,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'oups', label: 'codex.fiche.oups', group: 'Tables',
-    // Le `label` EST le texte du résultat (et la clé d'édition `entryKey`) → on le garde tel quel ;
+    // Le `label` EST le texte du résultat → on le garde tel quel ;
     // on enrichit par le TYPE d'effet (kind) en méta.
     build: () => oups.map((o) => {
       const range = 'min' in o ? bandeAuDe('d100', o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
@@ -1795,20 +1778,21 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'activities', label: 'codex.fiche.activites', group: 'Tables',
     // Catalogue UNIQUE des Activités (interlude LDB 23 / voyage EDOC 8 / mer MDG 15 / bataille de
-    // masse ADE II 8). Un Test « posté » (compétence(s) au choix + Difficulté) dont l'issue s'exprime
+    // masse ADE II 8). Un Test « posté » (Tests au choix, chacun avec sa Difficulté) dont l'issue s'exprime
     // en `onSuccess` (GameOp) et/ou en bandes `outcomes` (table DR → résultat, verbatim + effets).
     build: () => ACTIVITIES.map((a) => depuisEnveloppe(a, {
       sub: a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', '),
       meta: facts(
         fact(tr('codex.fiche.contextes'), a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', ')),
-        fact(tr('codex.fiche.competenceS'), a.skills?.length ? a.skills.map((s) => refLabel('skills', { id: s.id, spec: s.spec })).join(' / ') : null),
-        fact(tr('codex.fiche.caracteristique'), a.char ? CHAR_LABELS[a.char] : null),
+        fact(tr('codex.fiche.testsAuChoix'), a.tests?.length
+          ? a.tests.map((o) => [testSkillLabel({ skill: o.skill, char: o.characteristic }), o.difficulty && DIFFICULTY_LABELS[o.difficulty]].filter(Boolean).join(' ')).join(' / ')
+          : null),
         fact(tr('codex.fiche.difficulte'), a.difficulty ? DIFFICULTY_LABELS[a.difficulty] : null),
         fact(tr('codex.fiche.testEtendu'), a.extended ? tr('codex.fiche.drEtape', { drPerStage: a.extended.drPerStage }) : null),
         fact(tr('codex.fiche.resolveur'), a.resolver ?? null),
       ),
       sections: sections(
-        chips(tr('codex.fiche.competencesAuChoix'), (a.skills ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
+        chips(tr('codex.fiche.testsAuChoixListe'), testsDeLActivite(a).flatMap((t) => ('skill' in t ? [idRefRow('skills', t.skill.id, t.skill.spec)] : charRefRows([t.char])))),
         chips(tr('codex.fiche.competenceLibre'), (a.freeSkill ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
         passiveSection(a.onSuccess, tr('codex.fiche.effetDeReussite')),
         outcomeBandsSection(a.outcomes),

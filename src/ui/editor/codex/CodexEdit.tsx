@@ -2,22 +2,21 @@
  * Édition DEV d'une entrée du Compendium — édite la VRAIE donnée (`src/data/*.json`, app-owned).
  * Réutilise le navigateur du Compendium (cet éditeur ne vit QUE dans le panneau détail) + la saisie
  * à suggestions `SaisieSuggeree` (`RefField`) pour les champs-références (traits/talents/sorts…
- * piochés dans leurs vrais datasets, param libre « 8 Tentacules +8 » conservé). Sauvegarde via File
- * System Access (`fsPersist`) + preview mémoire (`setDataset`).
+ * piochés dans leurs vrais datasets, param libre « 8 Tentacules +8 » conservé). Validation et
+ * transaction d'enregistrement : `data/atelierDuCodex.ts` ; écriture disque : File System Access (`fsPersist`).
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from '../../../data/overrides';
-import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../../data/schemas/exposition-derivee';
+import { datasetArray, datasetObject, datasetFile, datasetObjectFile } from '../../../data/overrides';
+import { REF_LIST_DATASET, editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
-import { serializeDataset } from '../../../data/serialize';
-import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
+import { metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
 import { enfantsDe } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
 import { libelleDeValeur, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
-import { categoryByKey, entryKey } from '../../../noyau/codex/registry';
+import { categoryByKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
 import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
 import { weatherCondition } from '../../../engine/travelStages';
@@ -42,13 +41,12 @@ import { armesDEntite } from '../../../noyau/equipementDessine';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../FlowEditor';
 import { ctxDeCatalogue } from '../EffectList';
 import { GameOpEditor, FormulaField } from '../GameOpEditor';
-import { opsMissingRefs } from '../refsDOp';
 import type { GameOp } from '../../../engine/ops';
 import type { ConsumableDuration } from '../../../engine/consumables';
 import { JsonField } from '../JsonField';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
 import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
-import { EMPTY_FLOW, type EffectTrigger } from '../../../engine/flowCore';
+import { EMPTY_FLOW, type EffectTrigger, type FlowTest } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema, familleDesEffets } from '../../../data/schemas/grammaire/mecanique';
 import type { ManeuverDef, ManeuverMeasure } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
@@ -74,7 +72,7 @@ import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/p
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../../data/schemas/defs/talents';
 import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../../data/schemas/defs/spells';
 import { Grid } from '../../Layout';
-import { findTrappingById } from '../../../data';
+import { entryKey, findTrappingById } from '../../../data';
 
 /** Catégories à VARIANTES réglées (#563/#564), avec les champs que leur résolution APPLIQUE — valeurs
  *  LUES des defs (`VARIANT_RESOLVED_FIELDS`), jamais recopiées : `VariantsField` en déduit les sous-
@@ -82,24 +80,6 @@ import { findTrappingById } from '../../../data';
 const VARIANT_FIELDS_BY_CATEGORY: Record<string, readonly string[]> = {
   talents: TALENT_VARIANT_FIELDS,
   spells: SPELL_VARIANT_FIELDS,
-};
-
-/** Catégorie Codex → dataset-LISTE éditable, et catégorie Codex → dataset-OBJET : DÉRIVÉS des
- *  déclarations `exposition` des defs de schéma (`src/data/schemas/exposition-derivee.ts`, #1472).
- *  Le cast aux clés d'`overrides` est tenu par `exposition-contrats.test.ts` (routes ⊆ bindings). */
-const CATEGORY_DATASET = CATEGORY_DATASET_DERIVE as Record<string, DatasetKey>;
-const OBJECT_CATEGORY = OBJECT_CATEGORY_DERIVE as Record<string, { ds: ObjectDatasetKey; mode: 'single' | 'record' }>;
-export const editableObjectDataset = (categoryKey: string): { ds: ObjectDatasetKey; mode: 'single' | 'record' } | undefined => OBJECT_CATEGORY[categoryKey];
-/** Une catégorie est éditable au Codex ssi elle a un dataset tableau OU un dataset-objet. */
-export const editableDataset = (categoryKey: string): DatasetKey | undefined => CATEGORY_DATASET[categoryKey];
-export const isEditableCategory = (categoryKey: string): boolean => !!CATEGORY_DATASET[categoryKey] || !!OBJECT_CATEGORY[categoryKey];
-
-/** Champ-réf → son dataset. Double usage : suggestions (`SaisieSuggeree`) des champs-listes ET
- *  validation des refs (`validateEntry` : chaque `{id}` du champ doit résoudre dans ce dataset). */
-const REF_LIST_DATASET: Record<string, DatasetKey> = {
-  traits: 'traits', optionals: 'traits', skills: 'skills', talents: 'talents',
-  spells: 'spells', trappings: 'trappings', blessings: 'spells', miracles: 'spells', chaosSpells: 'spells',
-  traumas: 'traumas',
 };
 
 /** Catégories/CHAMPS portant un `GameOp[]` NOMMÉ autre que `passive` (#157) — MÊME éditeur
@@ -148,120 +128,6 @@ const OPS_FIELDS: Record<string, string[]> = {
 const opsFieldsOf = (categoryKey: string): string[] => OPS_FIELDS[categoryKey] ?? [];
 
 type Entry = Record<string, unknown>;
-
-/** ids d'un champ-liste de refs — descend dans les branches `of` d'un `{pick}` (`AdvancementRef`) et
- *  dans le `choice` d'une `TrappingRef` ; ignore les `{text}` narratifs et jokers. Une CHAÎNE BRUTE (ex.
- *  `criticalsTete.traumas: string[]`) est traitée comme un id DIRECT (#173 : ces listes référencent
- *  leur dataset par id, jamais par libellé). */
-function refIdsIn(v: unknown): string[] {
-  if (!Array.isArray(v)) return [];
-  const out: string[] = [];
-  for (const x of v) {
-    if (typeof x === 'string') { out.push(x); continue; }
-    if (!x || typeof x !== 'object') continue;
-    const o = x as { choice?: unknown; of?: unknown; ref?: { id?: unknown }; id?: unknown; type?: unknown };
-    if (o.of) out.push(...refIdsIn(o.of));
-    else if (o.choice) out.push(...refIdsIn(o.choice));
-    else if (o.ref && typeof o.ref.id === 'string') out.push(o.ref.id);
-    else if (typeof o.id === 'string' && o.type === undefined) out.push(o.id); // `{id, type}` : le catalogue de son `type`
-  }
-  return out;
-}
-
-/** Champs-réf NICHÉS (une valeur ou une liste, sous un sous-objet/sous-tableau — hors de portée de
- *  `REF_LIST_DATASET`, qui ne regarde QUE les champs top-level de `entry`) : même garantie de
- *  résolvabilité, décrite par un accesseur PUR `entry → (id|undefined)[]`. #173 : `mutationTables.
- *  entries[].mutation` et `domains.castBonus.perCondition` en sont les 2 sites CONFIRMÉS (un éditeur par
- *  datalist-de-labels y écrivait un libellé, cassant `mutations.ts::rollMutation`/`noyau/combatFlow.ts::
- *  domainCastBonus` au runtime) — ajouter une réf nichée = ajouter SON accesseur ici. `weather.json`
- *  partage la forme `entries[]` mais sa clé est `.weather` (union fermée, pas une réf de dataset) :
- *  l'accesseur `mutation` y est simplement `undefined`, filtré plus bas — aucun faux positif. */
-const NESTED_REF_FIELDS: { key: string; ds: DatasetKey; get: (entry: Entry) => (string | undefined)[] }[] = [
-  { key: 'entries[].mutation', ds: 'mutations', get: (e) => ((e.entries as { mutation?: string }[] | undefined) ?? []).map((r) => r.mutation) },
-  { key: 'castBonus.perCondition', ds: 'etats', get: (e) => [(e.castBonus as { perCondition?: string } | undefined)?.perCondition] },
-  { key: 'prosthesis[].id', ds: 'trappings', get: (e) => ((e.prosthesis as { id?: string }[] | undefined) ?? []).map((p) => p.id) },
-];
-
-/** Valide une entrée AVANT persist (bouton Enregistrer bloqué tant que non vide) : identité
- *  (id non vide + unique, libellé non vide) + refs (`{id}` ou chaîne directe) résolvables dans leur
- *  dataset. PUR. `selfIndex` = position de l'entrée éditée dans `entries` (−1 pour une création). */
-export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[], selfIndex: number): string[] {
-  const errors: string[] = [];
-  // id : requis + unique là où le dataset est id-based (toutes les entités migrées par-id).
-  if (entries.some((e) => typeof e.id === 'string')) {
-    const id = typeof entry.id === 'string' ? entry.id.trim() : '';
-    if (!id) errors.push('id vide — identifiant stable requis');
-    else if (entries.some((e, i) => i !== selfIndex && e.id === id)) errors.push(`id « ${id} » déjà pris par une autre entrée`);
-  }
-  // Libellé : la clé d'identité générique (label/name/key/id) ne peut pas être vide — c'est elle
-  // que le navigateur du Codex et l'éditeur utilisent pour retrouver l'entrée.
-  if (!entryKey(entry).trim()) errors.push('libellé vide');
-  // Refs résolvables : chaque `{id}` (ou chaîne directe) d'un champ-réf doit exister dans son dataset —
-  // détecté par nom de champ (table unique).
-  for (const [field, ds] of Object.entries(REF_LIST_DATASET)) {
-    if (!(field in entry)) continue;
-    const known = new Set((datasetArray(ds) as { id?: string }[]).map((e) => e.id).filter(Boolean));
-    for (const id of refIdsIn(entry[field])) {
-      if (id === '') errors.push(`${field} : réf à choisir (${ds})`);
-      else if (!known.has(id)) errors.push(`${field} : réf « ${id} » introuvable (${ds})`);
-    }
-    // `trappings` (classes/careerLevels) porte aussi la dotation de POSSESSION `{id, type}` (foyer de
-    // son `type`, jamais le foyer trappings) : même garantie de résolvabilité.
-    if (field === 'trappings') {
-      for (const tr of (entry[field] as { id?: unknown; type?: unknown }[] | undefined) ?? []) {
-        const dsDuType = tr?.type === 'vehicle' ? 'vehicles' : tr?.type === 'creature' ? 'creatures' : undefined;
-        if (!dsDuType || typeof tr.id !== 'string') continue;
-        if (!datasetArray(dsDuType).some((e) => e.id === tr.id)) errors.push(`${field} : réf « ${tr.id} » introuvable (${dsDuType})`);
-      }
-    }
-  }
-  // Refs NICHÉES (#173) : même garantie, pour les champs-réf sous un sous-objet/sous-tableau.
-  for (const { key, ds, get } of NESTED_REF_FIELDS) {
-    const known = new Set((datasetArray(ds) as { id?: string }[]).map((e) => e.id).filter(Boolean));
-    for (const id of get(entry)) {
-      if (id == null) continue;
-      if (id === '') errors.push(`${key} : réf à choisir (${ds})`);
-      else if (!known.has(id)) errors.push(`${key} : réf « ${id} » introuvable (${ds})`);
-    }
-  }
-  // Ops MÉCANIQUES portées par l'entrée (`passive`, `effects`, `ops`, rangées de table…) : une réf de
-  // registre REQUISE non élue rend l'op inapplicable — source unique `OP_REF_FIELDS`.
-  errors.push(...opsMissingRefs(entry));
-  if (categoryKey === 'reglesOptionnelles') errors.push(...ruleValueErrors(entry));
-  return errors;
-}
-
-/**
- * Règle optionnelle (V9 #1318) : sa VALEUR doit être du type que son `kind` promet. `ruleValueSchema`
- * est l'union booléen|nombre|chaîne — elle laisse donc passer `"false"` sur un `flag`, et le moteur
- * (`rule(id) === true`) ne reconnaîtrait plus rien : la règle s'éteindrait SANS UN MOT. Refus
- * BRUYANT ici, en plus du contrôle typé du formulaire (`RuleValueField`) : une donnée éditée à la
- * main hors du Codex passe par cette porte au premier enregistrement.
- */
-function ruleValueErrors(entry: Entry): string[] {
-  const out: string[] = [];
-  const kind = entry.kind;
-  const options = Array.isArray(entry.options) ? (entry.options as unknown[]).filter((o) => typeof o === 'string') as string[] : [];
-  const check = (champ: string, v: unknown): void => {
-    if (v === undefined) return;
-    if (kind === 'flag' && typeof v !== 'boolean') out.push(`${champ} : un interrupteur (kind « flag ») vaut un booléen, pas ${typeof v === 'string' ? `la chaîne « ${v} »` : String(v)}`);
-    if (kind === 'param' && typeof v !== 'number') out.push(`${champ} : un nombre (kind « param ») vaut un nombre, pas ${typeof v === 'string' ? `la chaîne « ${v} »` : String(v)}`);
-    if (kind === 'mode') {
-      if (typeof v !== 'string') out.push(`${champ} : un choix (kind « mode ») vaut une des valeurs proposées`);
-      else if (options.length > 0 && !options.includes(v)) out.push(`${champ} : « ${v} » n'est pas une des valeurs proposées (${options.join(', ')})`);
-    }
-  };
-  check('default', entry.default);
-  const action = entry.action as { when?: unknown } | undefined;
-  if (action && typeof action === 'object') check('action.when', action.when);
-  if (kind === 'mode' && options.length < 2) out.push('options : un choix (kind « mode ») propose au moins deux valeurs');
-  if (kind === 'param' && (typeof entry.min !== 'number' || typeof entry.max !== 'number')) out.push('min/max : un nombre (kind « param ») déclare ses bornes');
-  if (kind === 'param' && typeof entry.default === 'number' && typeof entry.min === 'number' && typeof entry.max === 'number'
-      && (entry.default < entry.min || entry.default > entry.max)) {
-    out.push(`default : ${entry.default} sort des bornes [${entry.min}, ${entry.max}]`);
-  }
-  return out;
-}
 
 /**
  * COUTURE format livre ↔ refs structurées de l'atelier (#1548) : une ref par LIGNE, rendue par le
@@ -379,10 +245,10 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // `avail` retombait sur le sous-formulaire générique et rendait ses clefs techniques à l'écran.
   if (categoryKey === 'shipHullSizes') add('lengthM');
   if (categoryKey === 'seaCargo' || categoryKey === 'landCargo') add('avail');
-  // #168 : Activité — Test « posté » (contexts/skills « au choix »/char/difficulty) + table d'issues
+  // #168 : Activité — Test « posté » (contexts/tests « au choix »/difficulty) + table d'issues
   // `outcomes` (OutcomeBand[]) → éditeurs dédiés ; `onSuccess` couvert par opsFieldsOf ci-dessus.
   // `resolver` (#1318 V6) : vocabulaire FERMÉ → sélecteur dédié, jamais le champ texte générique.
-  if (categoryKey === 'activities') add('contexts', 'skills', 'freeSkill', 'char', 'difficulty', 'outcomes', 'resolver');
+  if (categoryKey === 'activities') add('contexts', 'tests', 'freeSkill', 'difficulty', 'outcomes', 'resolver');
   // #1612 : `testMods` (modificateurs de situation) et `worldRolls` (dés de MONDE après le Test) sont des
   // tableaux top-level d'objets HOMOGÈNES → éditeur GÉNÉRIQUE commun (`GenericArrayField`), MEME patron
   // que la rubrique de Vent et les options de jeu de taverne — jamais le repli JSON.
@@ -394,20 +260,6 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // GÉNÉRIQUE commun (`GenericArrayField`, nœud du schéma), jamais le repli JSON.
   if (categoryKey === 'buildings') add('features');
   return k;
-}
-
-/** Échantillons pour `inferFields` d'une catégorie éditable (tableau d'entités, objet unique, ou
- *  valeurs d'un Record keyé). SOURCE UNIQUE des champs inférés — utilisée par `CodexEdit` ET le
- *  garde-fou no-json-fields.test (pas de duplication de la logique de projection). */
-export function editableEntries(categoryKey: string): Entry[] {
-  const obj = editableObjectDataset(categoryKey);
-  if (obj) {
-    const data = datasetObject(obj.ds) as Record<string, unknown>;
-    if (obj.mode === 'single') return [data as Entry];
-    const entries = Object.values(data) as Entry[];
-    return entries.length ? entries : [{}];
-  }
-  return datasetArray(editableDataset(categoryKey)!) as Entry[];
 }
 
 /** Props de l'atelier : l'ancrage est un VERROU PAR CONSTRUCTION (#1472) — soit l'entrée est NEUVE
@@ -439,14 +291,14 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // SOURCE de données UNIFIÉE (tableau d'entités OU dataset-objet) → la même UI de formulaire édite les
   // deux formes : tableau (une entité par item Codex) et objet unique (`details`, fiches de règle).
   // `entries` = échantillons pour `inferFields` ; `initial` = l'objet édité ;
-  // `file`/`persist` = écriture disque (preview live in-place + `serializeDataset` byte-fidèle).
+  // `file` = fichier disque du dataset, qu'écrit l'hôte après la transaction (`enregistrerEntree`).
   const obj = editableObjectDataset(categoryKey);
-  const src = useMemo<{ dataset: string; entries: Entry[]; initial: Entry; index: number; file: string; persist: (entry: Entry) => void }>(() => {
+  const src = useMemo<{ dataset: string; entries: Entry[]; initial: Entry; index: number; file: string }>(() => {
     const entries = editableEntries(categoryKey);
     if (obj) {
       const data = datasetObject(obj.ds) as Record<string, unknown>;
       const file = datasetObjectFile(obj.ds);
-      return { dataset: obj.ds, entries, initial: data as Entry, index: -1, file, persist: (e) => setObjectDataset(obj.ds, e as never) };
+      return { dataset: obj.ds, entries, initial: data as Entry, index: -1, file };
     }
     const dsKey = editableDataset(categoryKey)!;
     const arr = entries;
@@ -463,7 +315,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
       initial: arr[index] ?? brouillonNeuf(file, arr as Record<string, unknown>[]),
       index,
       file,
-      persist: (e) => setDataset(dsKey, (index < 0 ? [...arr, e] : arr.map((x, i) => (i === index ? e : x))) as never),
     };
   }, [obj, categoryKey, id, isNew]);
 
@@ -576,7 +427,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // (tableaux top-level) au MÊME éditeur générique commun que les fiches ci-dessus.
   const isRiverNavigation = categoryKey === 'riverNavigation';
   const hasHullLength = categoryKey === 'shipHullSizes'; // `lengthM` : [minM,maxM]
-  // #168 : Activité (`activities`) — Test « posté » (contexts/skills « au choix »/char/difficulty) +
+  // #168 : Activité (`activities`) — Test « posté » (contexts/tests « au choix »/difficulty) +
   // table d'issues `outcomes` (OutcomeBand[]) ; `onSuccess` reste sur le lot GameOpEditor commun.
   const isActivity = categoryKey === 'activities';
   // #851 : Magie environnementale (`arcanePhenomena`, mode 'single') — ses 4 tableaux top-level au
@@ -635,25 +486,11 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const chemin = (champ: string): string => `${porteurEntree}/${champ}`;
 
   const save = async () => {
-    // Contrat de donnée (#176) : la source entière doit parser son schéma zod (SCHEMA_DEFS) avant toute
-    // écriture disque. La racine à valider est celle que la mémoire PORTE (mutation en place) : la pose
-    // est donc TRANSACTIONNELLE (#1530) — au refus, l'état d'avant est REPRIS, sinon un save refusé
-    // laissait l'app diverger du disque en silence.
-    const dsKey = obj ? null : editableDataset(categoryKey)!;
-    const avant: unknown = obj ? structuredClone(datasetObject(obj.ds)) : (datasetArray(dsKey!) as unknown[]).slice();
-    src.persist(entry); // preview mémoire (live) — mutation en place (tableau ou objet)
-    // Le texte écrit = la SOURCE entière (tableau ou objet-dataset), re-sérialisée byte-fidèle.
-    // Les DEUX portes de SÉRIALISATION, jamais la lecture runtime : elles seules rendent la FORME
-    // DISQUE (`versDisque` — le `desc` matérialisé d'une entrée adressée n'y repart pas).
-    const root = obj ? datasetObjectSerializeRoot(obj.ds) : datasetSerializeRoot(dsKey!);
-    const schemaErr = validateDataset(src.file, root);
-    if (schemaErr) {
-      if (obj) setObjectDataset(obj.ds, avant as never);
-      else setDataset(dsKey!, avant as never);
-      setSchemaError(schemaErr); setMsg(''); return;
-    }
+    // Transaction d'enregistrement de la donnée (`enregistrerEntree`) ; l'écriture disque reste ici.
+    const issue = enregistrerEntree(categoryKey, entry, src.index);
+    if (!issue.ok) { setSchemaError(issue.erreurs.join('\n')); setMsg(''); return; }
     setSchemaError(null);
-    const text = serializeDataset(root);
+    const text = issue.texte;
     try {
       if (fsApi && dir && !needsGrant) { await fs.writeFile(dir, src.file, text); setMsg(`Enregistré ${src.file} — Vite recharge…`); }
       else { fs.downloadFallback(src.file, text); setMsg(`Téléchargé ${src.file} — reposez-le dans src/data/`); }
@@ -1294,35 +1131,48 @@ const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
 
 type RestartTest = NonNullable<SteamBreakdownEntry['restart']>[number];
 type WaterTest = WaterExposureData['test'];
+/** Le Test d'une ligne d'éditeur (`flowTestSchema`) : ce qu'il teste et sa Difficulté. */
+type TestEdite = Pick<FlowTest, 'skill' | 'characteristic' | 'difficulty'>;
+
+/** Champs d'un Test de donnée (`flowTestSchema`) sur une ligne d'éditeur : Compétence (et Spécialisation)
+ *  OU Caractéristique, puis Difficulté — que `difficulteFacultative` laisse vide quand le porteur ne
+ *  l'exige pas. */
+function ChampsDuTest({ test, index, onChange, difficulteFacultative = false }: { test: TestEdite; index: number; onChange: (patch: Partial<TestEdite>) => void; difficulteFacultative?: boolean }) {
+  const skillOpts = datasetArray('skills') as { id: string; label: string }[];
+  return (
+    <>
+      <select value={test.skill?.id ?? ''} onChange={(e) => onChange(e.target.value ? { skill: reposerLId(test.skill ?? { id: '' }, e.target.value), characteristic: undefined } : { skill: undefined })}>
+        <option value="">— (Caractéristique) —</option>
+        {skillOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+      </select>
+      {test.skill
+        ? <ChoixDeSpec type="skill" id={test.skill.id} value={test.skill.spec} ariaLabel={`Spécialisation — Test ${index + 1}`} onChange={(spec) => onChange({ skill: { id: test.skill!.id, spec } })} />
+        : (
+          <select value={test.characteristic ?? ''} onChange={(e) => onChange({ characteristic: (e.target.value || undefined) as CharKey | undefined })}>
+            <option value="">— (choisir une Caractéristique) —</option>
+            {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
+          </select>
+        )}
+      <select value={test.difficulty ?? ''} onChange={(e) => onChange({ difficulty: (e.target.value || undefined) as Difficulty | undefined })}>
+        {difficulteFacultative && <option value="">— (aucune) —</option>}
+        {DIFFICULTIES.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
+      </select>
+    </>
+  );
+}
 
 /** Test de REDÉMARRAGE d'un moteur à vapeur (`steamBreakdowns.restart`, MDG 12, #157) :
  *  `{test:{skill?,characteristic?,difficulty},extendedDR?}[]` — Compétence OU Caractéristique + Difficulté
  *  (+ DR cumulés si Test étendu). */
 function RestartTestField({ value, onChange }: { value: RestartTest[] | undefined; onChange: (v: RestartTest[]) => void }) {
   const list = value ?? [];
-  const skillOpts = datasetArray('skills') as { id: string; label: string }[];
   const set = (next: typeof list) => onChange(next);
-  const setTest = (i: number, patch: Partial<RestartTest['test']>) => set(list.map((x, j) => (j === i ? { ...x, test: { ...x.test, ...patch } } : x)));
   return (
     <div className="ed-field">
       <span>Test de redémarrage du moteur — Compétence OU Caractéristique + Difficulté (DR cumulés si Test étendu)</span>
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
-          <select value={r.test.skill?.id ?? ''} onChange={(e) => setTest(i, { skill: e.target.value ? reposerLId(r.test.skill ?? { id: '' }, e.target.value) : undefined })}>
-            <option value="">— (Caractéristique) —</option>
-            {skillOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
-          {r.test.skill
-            ? <ChoixDeSpec type="skill" id={r.test.skill.id} value={r.test.skill.spec} ariaLabel={`Spécialisation — Test ${i + 1}`} onChange={(spec) => setTest(i, { skill: { id: r.test.skill!.id, spec } })} />
-            : (
-              <select value={r.test.characteristic ?? ''} onChange={(e) => setTest(i, { characteristic: (e.target.value || undefined) as CharKey | undefined })}>
-                <option value="">— (choisir une Caractéristique) —</option>
-                {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
-              </select>
-            )}
-          <select value={r.test.difficulty} onChange={(e) => setTest(i, { difficulty: e.target.value as Difficulty })}>
-            {DIFFICULTIES.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
-          </select>
+          <ChampsDuTest test={r.test} index={i} onChange={(patch) => set(list.map((x, j) => (j === i ? { ...x, test: { ...x.test, ...patch, difficulty: patch.difficulty ?? x.test.difficulty } } : x)))} />
           <NumberField variant="nu" label="DR cumulés (étendu)" min={1} placeholder="DR cumulés (étendu)" width={64} vide value={r.extendedDR} onChange={(n) => set(list.map((x, j) => (j === i ? { ...x, extendedDR: n ?? undefined } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
@@ -1428,27 +1278,37 @@ const BATTLE_SIDE_OPTIONS = optionsDuNoeud(battleSideSchema);
 
 const LIBRE = metaPourFichier('activities.json')!.freeSkill;
 
-/** Test « posté » d'une Activité (`TestSpec` — LDB 12) : contextes de proposition + compétence(s) « au
- *  choix » (la meilleure de l'acteur est retenue) + compétence libre (`freeSkill`, EDOC 8 l.172) +
- *  caractéristique de repli + Difficulté. Réutilise `SkillSpecListField` (mêmes `{id,spec?}[]` que les
- *  Rôles d'équipage). Vide = Activité SANS Test. */
+/** Tests AU CHOIX d'une Activité (`tests`, LDB 23 l.209 ; AA 12 l.49) : chacun sa Compétence OU
+ *  sa Caractéristique, et sa Difficulté. */
+function TestsAuChoixField({ value, onChange }: { value: TestEdite[] | undefined; onChange: (v: TestEdite[]) => void }) {
+  const list = value ?? [];
+  return (
+    <div className="ed-subfield">
+      {list.map((o, i) => (
+        <div className="tf-row" key={i}>
+          <ChampsDuTest test={o} index={i} difficulteFacultative onChange={(patch) => onChange(list.map((x, j) => (j === i ? { ...x, ...patch } : x)))} />
+          <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
+        </div>
+      ))}
+      <button className="btn small" onClick={() => onChange([...list, { skill: { id: '' } }])}>+ Test</button>
+    </div>
+  );
+}
+
+/** Test « posté » d'une Activité : contextes de proposition + Tests « au choix » (le meilleur de l'acteur
+ *  est retenu) + compétence libre (`freeSkill`, EDOC 8 l.172) et Difficulté du Test dont la donnée ne
+ *  nomme pas le sujet. Vide = Activité SANS Test. */
 function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, v: unknown) => void }) {
   return (
     <div className="ed-field">
       <span>contextes où l’Activité est proposable (au moins un)</span>
       <EnsembleDeCases nom="Contextes de l’Activité" options={ACTIVITY_CONTEXTS} value={entry.contexts as ActivityContext[] | undefined}
         facultatif={admetLAbsence(noeudDuChamp('activities.json', 'contexts')) ?? false} onChange={(next) => edit('contexts', next)} />
-      <span>Test « posté » — compétence(s) « au choix » + caractéristique de repli + Difficulté (laisser vide = Activité SANS Test)</span>
-      <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
+      <span>Test « posté » — Tests « au choix », chacun avec sa Difficulté (laisser vide = Activité SANS Test)</span>
+      <TestsAuChoixField value={entry.tests as TestEdite[] | undefined} onChange={(v) => edit('tests', v.length ? v : undefined)} />
       <SkillSpecListField hint={[LIBRE.label, LIBRE.hint].filter(Boolean).join(' — ')} value={entry.freeSkill as RefDesignee[] | undefined} onChange={(v) => edit('freeSkill', v.length ? v : undefined)} />
       <div className="tf-row">
-        <label className="dr">Caractéristique (repli)
-          <select value={(entry.char as string) ?? ''} onChange={(e) => edit('char', e.target.value || undefined)}>
-            <option value="">— (aucune) —</option>
-            {CHAR_KEYS.map((k) => <option key={k} value={k}>{CHAR_LABELS[k]}</option>)}
-          </select>
-        </label>
-        <label className="dr">Difficulté
+        <label className="dr">Difficulté (compétence libre ou dérivée)
           <select value={(entry.difficulty as string) ?? ''} onChange={(e) => edit('difficulty', e.target.value || undefined)}>
             <option value="">— (aucune) —</option>
             {DIFFICULTIES.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}

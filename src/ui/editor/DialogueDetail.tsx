@@ -23,6 +23,8 @@ import { useClesDeRangees } from '../useClesDeRangees';
 import { Row, Stack } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 import { CouvreField } from './CouvreField';
+import { EntryRename } from './EntryRename';
+import { addDialogueNode, removeDialogueNode, renameDialogueNode } from '../../noyau/sceneEdit';
 
 /** Ids posables au clic pour `DialogueChoice.icon` — DÉRIVÉS du registre d'icônes (`ICON_DEFS`,
  *  généré depuis `icons/defs/`), jamais une liste tenue à la main. */
@@ -31,7 +33,13 @@ const CHOICE_ICON_IDS = Object.keys(ICON_DEFS).sort();
 /** Nombre de blocs de PREMIER niveau d'un Flow (badge du choix). */
 const flowLen = (flow?: Flow): number => (!flow ? 0 : flow.kind === 'seq' ? flow.steps.length : 1);
 
-export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue; onChange: (d: Dialogue) => void; ctx: Ctx }) {
+export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
+  dialogue: Dialogue;
+  onChange: (d: Dialogue) => void;
+  /** Renomme le dialogue dans sa scène (`renameDialogue`) : ses ouvreurs le suivent. */
+  onRename: (id: string) => void;
+  ctx: Ctx;
+}) {
   const [nodeId, setNodeId] = useState<string>(dialogue.start);
   const node = dialogue.nodes.find((n) => n.id === nodeId) ?? dialogue.nodes[0] ?? null;
 
@@ -40,11 +48,9 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
   const updChoice = (ci: number, patch: Partial<DialogueChoice>) =>
     updNode({ choices: node!.choices.map((c, i) => (i === ci ? { ...c, ...patch } : c)) });
   const addNode = () => {
-    let n = dialogue.nodes.length + 1;
-    while (dialogue.nodes.some((x) => x.id === `n${n}`)) n++;
-    const id = `n${n}`;
-    onChange({ ...dialogue, nodes: [...dialogue.nodes, { id, choices: [] }] });
-    setNodeId(id);
+    const out = addDialogueNode(dialogue);
+    onChange(out.dialogue);
+    setNodeId(out.id);
   };
   const clesDesChoix = useClesDeRangees(node?.choices);
   // Le panneau du nœud est keyed sur son identité STABLE : un renommage le garde, un autre nœud le remonte.
@@ -53,10 +59,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
   return (
     <div className="dlg-detail">
       <Row>
-        <label className="ed-field dlg-id-field">
-          Id du dialogue
-          <input value={dialogue.id} onChange={(e) => onChange({ ...dialogue, id: e.target.value })} />
-        </label>
+        <EntryRename label={dialogue.id} caption="Id du dialogue" className="ed-field dlg-id-field" onRename={onRename} />
         <label className="ed-field">
           Nœud de départ
           <select value={dialogue.start} onChange={(e) => onChange({ ...dialogue, start: e.target.value })}>
@@ -94,19 +97,11 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
         {node && (
           <div className="dlg-node-edit panel sunken" key={clesDesNoeuds[dialogue.nodes.indexOf(node)]}>
             <Row>
-              <input className="node-id" value={node.id} placeholder="id nœud" onChange={(e) => {
-                const id = e.target.value;
-                // renomme le nœud ET les références (start, choix → next)
-                onChange({
-                  ...dialogue,
-                  start: dialogue.start === node.id ? id : dialogue.start,
-                  nodes: dialogue.nodes.map((n) =>
-                    n.id === node.id
-                      ? { ...n, id }
-                      : { ...n, choices: n.choices.map((c) => (c.next === node.id ? { ...c, next: id } : c)) },
-                  ),
-                });
-                setNodeId(id);
+              <EntryRename label={node.id} caption="Id du nœud" className="ed-field node-id" onRename={(next) => {
+                const out = renameDialogueNode(dialogue, node.id, next);
+                if (out === dialogue) return;
+                onChange(out);
+                setNodeId(next.trim());
               }} />
               <select
                 className="node-speaker"
@@ -125,7 +120,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
                 className="btn small danger"
                 title="Supprimer ce nœud"
                 onClick={() => {
-                  onChange({ ...dialogue, nodes: dialogue.nodes.filter((n) => n.id !== node.id) });
+                  onChange(removeDialogueNode(dialogue, node.id));
                   setNodeId(dialogue.start);
                 }}
               >

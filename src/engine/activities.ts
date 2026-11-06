@@ -7,19 +7,19 @@
  */
 import { RNG, roll, rollDice } from './dice';
 import { Money, fromBrass, toBrass, priceToMoney, gainDeStatut, enPieces, PA_PER_SC, type StatusTier } from './money';
-import type { Combatant, Difficulty, SkillInstance, Availability, StakeForm } from './types';
+import type { CharKey, Combatant, Difficulty, SkillInstance, Availability, StakeForm } from './types';
 import type { Formula, FormuleSansTirage, GameOp } from './ops';
 import { valeurSansTirage } from './formule';
-import { evalCondition, type Condition, type ConditionCtx } from './flowCore';
+import { evalCondition, type Condition, type ConditionCtx, type FlowTest } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
-import { bestSkilledOption, idsDuTest, peutTenter, refusNePeutTenter, valeurDuTest, type TestDesigne, type TestSpec } from './skills';
+import { bestSkilledOption, idsDuTest, peutTenter, refusNePeutTenter, valeurDuTest, type TestDesigne } from './skills';
 import { maxBy } from './pick';
 import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
-import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type ActivitySkill, type TrappingData } from '../data';
+import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
@@ -307,15 +307,37 @@ export function activityAvailableAt(def: ActivityDef, placeId: string | null): b
   return !def.where?.length || (placeId != null && def.where.includes(placeId));
 }
 
+/** Test d'une OPTION d'Activité : le `FlowTest` de la donnée, qui nomme sa Compétence OU sa
+ *  Caractéristique (`flowTestSchema`, #1657 B3-3), et sa Difficulté. */
+export type TestDOption = Pick<FlowTest, 'difficulty'> & ({ skill: RefDesignee; characteristic?: never } | { skill?: never; characteristic: CharKey });
+
+/** Ce que désigne le Test d'une option : sa Compétence, sinon sa Caractéristique. PUR. */
+export function designeDe(test: TestDOption): TestDesigne {
+  return test.skill ? { skill: test.skill } : { char: test.characteristic };
+}
+
+/** Difficulté que `def` déclare pour le Test `test` : celle de l'option qui le couvre (`refCouvre` — une
+ *  option sans Spécialisation couvre toutes les siennes), sinon celle de l'Activité. Sert la voie qu'un
+ *  résolveur DÉRIVE du héros (Savoir de la recherche, arme de l'entraînement). PUR. */
+function difficulteDeclaree(def: Pick<ActivityDef, 'tests' | 'difficulty'>, test: TestDesigne): Difficulty | undefined {
+  const option = def.tests?.find((o) => ('skill' in test ? !!o.skill && refCouvre(o.skill, test.skill) : o.characteristic === test.char));
+  return option ? option.difficulty : def.difficulty;
+}
+
+/** Les Tests au choix d'une Activité, désignés, dans l'ordre de la donnée. PUR. */
+export function testsDeLActivite(def: Pick<ActivityDef, 'tests'>): TestDesigne[] {
+  return (def.tests ?? []).map(designeDe);
+}
+
 /**
- * Définition d'une Activité (donnée éditable). Un Test (compétence(s) + Difficulté, éventuellement
- * ÉTENDU) dont l'issue s'exprime, par ordre de préférence, en vocabulaire EXISTANT :
+ * Définition d'une Activité (donnée éditable). Un Test au choix (`tests`, chacun avec sa Difficulté,
+ * éventuellement ÉTENDU) dont l'issue s'exprime, par ordre de préférence, en vocabulaire EXISTANT :
  *  - `onSuccess: GameOp[]` pour tout effet mécanique sur les Personnages (heal/removeCondition/giveTrapping…) ;
  *  - `outcomes: OutcomeBand[]` pour les tables « DR → résultat » (bandes, Maladresse, verbatim) ;
  *  - `stageOutcome` pour les effets de portée Étape (voyage) que `GameOp` n'exprime pas ;
  *  - `resolver` (nom) pour réutiliser une logique existante (`'forage'`, `'masterWeapon'`, `'mecenat'`…).
  */
-export interface ActivityDef extends TestSpec {
+export interface ActivityDef {
   /** id STABLE (slug). */
   id: string;
   label: string;
@@ -324,7 +346,11 @@ export interface ActivityDef extends TestSpec {
   icon: string;
   contexts: ActivityContext[];
   source: { book: string; page: number };
-  /** `skills?` (au choix), `char?`, `difficulty?` viennent de `TestSpec`. Absent = Activité SANS Test. */
+  /** Tests AU CHOIX, chacun avec sa Difficulté ; l'acteur tente le meilleur qu'il peut tenter. LDB 23 l.209 ; AA 12 l.49 */
+  tests?: TestDOption[];
+  /** Difficulté du Test dont la donnée ne nomme pas le sujet : compétence libre (`freeSkill`) ou
+   *  résolveur qui le dérive du héros (`SKILL_DERIVING_RESOLVERS`). Absent avec `tests`. */
+  difficulty?: Difficulty;
   /** Compétence LIBRE choisie par le joueur parmi ces Compétences ; une référence sans `spec` couvre
    *  toutes ses Spécialisations (EDOC 8 l.172). */
   freeSkill?: RefDesignee[];
@@ -365,7 +391,7 @@ export interface ActivityDef extends TestSpec {
   /** Indisponible si le héros porte un État Exténué cette Étape (Récupérer, EDOC 8 l.176). */
   unavailableIfExtenue?: boolean;
   // ── Activités & Scènes de BATAILLE (ADE II 8, contextes 'bataille'/'bataille-round') ──
-  /** Test COMBINÉ (LDB 12 l.202-206) : UN jet confronté aux DEUX premières `skills` (Infiltration Discrétion+
+  /** Test COMBINÉ (LDB 12 l.202-206) : UN jet confronté aux DEUX premiers `tests` (Infiltration Discrétion+
    *  Perception l.75 ; Repérage Chevaucher+Perception l.102). RÉUSSIT si les deux cibles sont atteintes. */
   combined?: boolean;
   /** Test à SOUTIEN multi-PJ (LDB 12 l.187-200) : le meneur lance, les assistants CAPABLES ajoutent +10
@@ -442,15 +468,15 @@ export interface ActivityDef extends TestSpec {
 }
 
 /** Résolveurs qui DÉRIVENT leur compétence du héros au moment d'ouvrir le jet (`openCatalogActivity`,
- *  `src/noyau/interludeFlow.ts`) : leur Activité n'a donc pas de `skills` en donnée, mais elle LANCE.
+ *  `src/noyau/interludeFlow.ts`) : leur Activité n'a donc pas de `tests` en donnée, mais elle LANCE.
  *  SOURCE UNIQUE consommée par `activityRolls` — une Activité de plus dans ce cas = une ligne ici. */
 const SKILL_DERIVING_RESOLVERS = new Set<ActivityResolver>(['income', 'craftExtended', 'learnTalent', 'reputation', 'ritualFocus']);
 
-/** L'Activité LANCE-t-elle un Test ? `skills`/`char`/`freeSkill` déclarés, ou résolveur qui dérive sa
+/** L'Activité LANCE-t-elle un Test ? `tests`/`freeSkill` déclarés, ou résolveur qui dérive sa
  *  compétence du héros. Une Activité sans Test (Récupérer, Entraînement, Scènes de COMBAT tactique
  *  d'une bataille) n'a rien à mettre en jeu — pas de zone d'enjeu muette. PURE. */
-export function activityRolls(def: Pick<ActivityDef, 'skills' | 'char' | 'freeSkill' | 'resolver'>): boolean {
-  return !!(def.skills?.length || def.char || def.freeSkill || (def.resolver && SKILL_DERIVING_RESOLVERS.has(def.resolver)));
+export function activityRolls(def: Pick<ActivityDef, 'tests' | 'freeSkill' | 'resolver'>): boolean {
+  return !!(def.tests?.length || def.freeSkill || (def.resolver && SKILL_DERIVING_RESOLVERS.has(def.resolver)));
 }
 
 /** Ligne de mod du modificateur de SITUATION d'un Test d'Activité (Menace `ADE II 8 l.219`,
@@ -534,7 +560,7 @@ export interface TravelActivityResult {
 }
 
 /** VOIE d'un Test d'Activité : ce que le Test désigne (Compétence ou Caractéristique), sa Difficulté
- *  PROPRE quand le RAW en attache une par voie (`ActivitySkill.difficulty`, AA 12 l.45-49), et sa valeur
+ *  PROPRE (`tests[].difficulty`, AA 12 l.45-49), et sa valeur
  *  quand le Test la pose hors `testValue` (valeur de combat de l'arme visée, ACE 12 l.21 ; Focalisation,
  *  VDM 02 l.129) — même contrat que la `valeur` posée d'une ligne de jet (`rollLine`). */
 export interface VoieDActivite { readonly test: TestDesigne; readonly difficulty?: Difficulty; readonly valeur?: number }
@@ -579,7 +605,7 @@ export function travelActivitySpec(
   if (!activiteTenue(def, opts.freeSkill)) return null;
   const skillMod = opts.skillMod ?? 0;
   const voies: readonly VoieDActivite[] = opts.voies
-    ?? (def.freeSkill ? [{ test: { skill: opts.freeSkill! } }] : ((def.skills ?? []) as ActivitySkill[]).map(({ difficulty, ...skill }) => ({ test: { skill }, difficulty })));
+    ?? (def.freeSkill ? [{ test: { skill: opts.freeSkill! } }] : (def.tests ?? []).map((o) => ({ test: designeDe(o), difficulty: o.difficulty })));
   // Activité SANS Test (Récupérer) : pas d'étape-jet.
   if (!voies.length) return { activityId: def.id, actorId: actor.id, value: 0, target: null, skillMod, drTarget };
   const situation = activityTestMod(def, actor);
@@ -587,7 +613,7 @@ export function travelActivitySpec(
   const surLaCible = skillMod + mods.reduce((s, m) => s + m.value, 0);
   const lues = voies.map((voie) => {
     const value = voie.valeur ?? valeurDuTest(actor, voie.test);
-    const difficulty = classGatedDifficulty({ difficulty: voie.difficulty ?? def.difficulty, classGate: def.classGate }, actor);
+    const difficulty = classGatedDifficulty({ difficulty: voie.difficulty ?? difficulteDeclaree(def, voie.test), classGate: def.classGate }, actor);
     return { voie, value, difficulty, brute: cibleDuTest(value, difficulty, surLaCible) };
   });
   // Meilleure voie TENTABLE par cible (first-max, `maxBy`) ; aucune → la première et son refus nommé,
@@ -730,7 +756,7 @@ export function aggregateActivityOutcomes(results: TravelActivityResult[]): Stag
  *  / sans Test), la meilleure qu'il peut TENTER (`bestSkilledOption`, first-max). Défaut quand le joueur
  *  n'a pas épinglé de `travelRole`. `null` si aucune n'est tentable. EDOC 8 l.131 ; LDB 09 l.30. PUR. */
 export function defaultTravelRole(hero: Combatant): string | null {
-  return bestSkilledOption(hero, activitiesFor('voyage').filter((d) => !d.freeSkill && d.skills?.length))?.option.id ?? null;
+  return bestSkilledOption(hero, activitiesFor('voyage').filter((d) => !d.freeSkill && d.tests?.length), testsDeLActivite)?.option.id ?? null;
 }
 
 /** Une Activité est TENUE quand, à compétence LIBRE, la Compétence pratiquée est nommée et offerte par

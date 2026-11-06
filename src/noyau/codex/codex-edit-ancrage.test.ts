@@ -16,8 +16,8 @@
  * build (`landCargo`, `seaCargo` : échangeables) sans qu'aucun item n'y perde son ancrage.
  */
 import { describe, it, expect } from 'vitest';
-import { CODEX } from '../../noyau/codex/registry';
-import { editableDataset, editableObjectDataset } from '../editor/codex/CodexEdit';
+import { CODEX } from './registry';
+import { editableDataset, editableObjectDataset } from '../../data/atelierDuCodex';
 import { datasetArray } from '../../data/overrides';
 
 /** Catégories projetées sur un dataset-TABLEAU éditable (mesurées, pas déclarées ici). */

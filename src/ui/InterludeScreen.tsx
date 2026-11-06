@@ -19,7 +19,7 @@ import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, noteDeSoutien, preJetDePreparation, refusDePrepaDeBataille, type MassBattleState } from '../noyau/massBattleFlow';
 import {
   craftCatalog, craftTarget, learnableTalents, orderCatalog, bankPayout, entrainementOptions, entrainementTutorRange,
-  activityById,
+  activityById, testsDeLActivite,
   type ActivityDef, type ActivityResolver, type CraftOption, type LearnOption, type EntrainementOption,
 } from '../engine/activities';
 import { nomDeSource } from '../engine/ops';
@@ -1143,10 +1143,10 @@ function BattlePrepPane({ hero, etat, def, refus, massBattle: mb }: {
   const test = mb ? preJetDePreparation(etat, mb, hero, def) : null;
   let prejet: PendingRoll | undefined;
   if (test) {
-    const chips = (def.skills ?? []).map((s, i) => (
-      <Fragment key={`${s.id}-${s.spec ?? ''}`}>
+    const chips = testsDeLActivite(def).map((test, i) => (
+      <Fragment key={i}>
         {i > 0 && (def.combined ? ' + ' : ' ou ')}
-        <SkillChip skillId={s.id} show={s.spec ? skillInstanceLabel(s) : undefined} />
+        <PuceDuTest test={test} />
       </Fragment>
     ));
     const { pending: pa, ligne2 } = test;

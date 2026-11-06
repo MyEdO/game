@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookupById, creatureStatblock, raceTalentSection, type CodexItem } from '../../noyau/codex/registry';
+import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookupById, creatureStatblock, raceTalentSection, type CodexItem } from './registry';
 import { woundsForSize } from '../../engine/size';
 import { replier } from '../../lib/ordre.mjs';
-import { isEditableCategory } from '../editor/codex/CodexEdit';
+import { isEditableCategory } from '../../data/atelierDuCodex';
 import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { datasetObject, setDataset } from '../../data/overrides';
