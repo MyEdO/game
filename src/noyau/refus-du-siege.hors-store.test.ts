@@ -49,7 +49,7 @@ function poser(netMode: 'host' | 'local'): void {
 /** Le geste est le CLIC du combattant ; `battleHeal` est sa machinerie (#3370). La Course, Action dépensée, n'a pas de
  *  geste : le clic de case ne l'offre pas (`resolveMovement`). */
 const gestes: [string, string, unknown[], 'pendingHeal'][] = [
-  ['heal', 'battleClickEntity', ['al'], 'pendingHeal'],
+  ['heal', 'cliquerLaCase', [{ x: 6, y: 5 }, 'al'], 'pendingHeal'],
 ];
 
 describe('Refus d’un geste en coop : dit au siège qui a agi, jamais chez l’hôte', () => {

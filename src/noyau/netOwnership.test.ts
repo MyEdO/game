@@ -144,8 +144,8 @@ describe('possession réseau (netOwnership)', () => {
     expect(intentAllowedFor(s, 0, 'jouerLOffre', ['end-turn'])).toBe(true);
     expect(intentAllowedFor(s, 1, 'jouerLOffre', ['end-turn'])).toBe(false);
     const s2 = base({ battle: { ...base({}).battle!, turn: 1 } }); // actif = h2 (siège 1)
-    expect(intentAllowedFor(s2, 1, 'battleClickEntity')).toBe(true);
-    expect(intentAllowedFor(s2, 0, 'battleClickEntity')).toBe(false);
+    expect(intentAllowedFor(s2, 1, 'cliquerLaCase')).toBe(true);
+    expect(intentAllowedFor(s2, 0, 'cliquerLaCase')).toBe(false);
   });
 
   it('modale ouverte : seul son CONCERNÉ agit (défense du héros de l’invité)', () => {

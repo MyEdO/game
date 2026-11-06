@@ -11,6 +11,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -41,7 +42,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
    *  l'entité (point d'impact / victime) → la zone ouvre `pendingManeuver{targetId}` (1er clic, sans aperçu). */
   function activate(kind: string, targetId: string) {
     banc.getState().armerLAttaque(kind);
-    banc.getState().battleClickEntity(targetId);
+    cliquerSurLeCombattant(banc.getState, targetId);
   }
 
   it('Souffle : ouvrir n’ouvre PAS de jet (result===null) ; Lancer→Appliquer dépense 2 Av, Action préservée, Dégâts', () => {

@@ -38,6 +38,8 @@ export type IdDObjet = string;
 export type IdDeScene = string;
 /** Une entité de la scène courante (`scene.entities`). */
 export type IdDEntiteDeScene = string;
+/** Ce que le clic d'une case désigne (`cliquerLaCase`) : en combat un combattant, hors combat une entité de la scène. */
+export type IdDuClic = string;
 /** Un combattant que `roundStartPromote` accepte (`actFirstIds`, `turnEconomy.ts`). */
 export type IdDeCombattantPromouvable = string;
 /** Un tireur que `armPreempt` et `preemptRangedShot` acceptent (`preemptShooterIds`, `targeting.ts`). */
@@ -115,6 +117,11 @@ export const DESIGNATIONS = {
     nom: (s, id) => labelParmi([...(s.scene ? [s.scene] : []), ...scenesDuRegistre()], id),
   },
   IdDEntiteDeScene: { mot: 'id d’entité de scène', lire: (s) => ids(s.scene?.entities ?? []), nom: (s, id) => labelParmi(s.scene?.entities ?? [], id) },
+  IdDuClic: {
+    mot: 'id de combattant ou d’entité de scène',
+    lire: (s) => (s.battle ? combattants(s) : ids(s.scene?.entities ?? [])),
+    nom: (s, id) => (s.battle ? nomDeCombattant(s, id) : labelParmi(s.scene?.entities ?? [], id)),
+  },
   IdDeCombattantPromouvable: { mot: 'id de combattant promouvable', lire: actFirstIds, nom: nomDeCombattant },
   IdDeTireurRapide: { mot: 'id de tireur rapide', lire: (s) => preemptShooterIds(() => s), nom: nomDeCombattant },
   IdDeChanson: { mot: 'id de chanson', lire: chansonsDuChanteur, nom: (_s, id) => findSeaShantyById(id)?.label ?? null },

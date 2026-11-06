@@ -64,7 +64,9 @@ export type TableDesClasses<S = ActionsDuNoyau, T = Table> = { [A in ActionManus
 /** Classe coop de chaque action manuscrite du noyau. */
 export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ═══ invité : COMBAT (le clic du champ, l'offre du registre, les OUVREURS de flux) ═══
-  battleClickEntity: 'invité', battleClickTile: 'invité', battleClearPreview: 'invité',
+  // Le clic du champ (`cliquerLaCase`) : en combat, routé par ce qu'il désigne ; hors combat, le geste du siège du monde
+  // (`netOwnership.ROUTES`).
+  cliquerLaCase: 'invité', battleClearPreview: 'invité',
   // L'offre du registre (`jouerLOffre`) : son corps se joue chez l'hôte, routé par le lieu de l'offre
   // (`lieuDeLOffre`, `netOwnership.ROUTES`) ; un relais ou une pure intention se joue chez l'émetteur.
   jouerLOffre: 'invité', desarmerLeMode: 'invité',
@@ -88,8 +90,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Le choix d'une fenêtre (`fenetreChoisir`) : routé sur la fenêtre de son 1ᵉʳ argument, par le siège que son choix
   // déclare (`CHOIX_DES_FENETRES`) ; le choix de l'hôte se refuse dans l'état d'un invité (`refusDuChoix`).
   fenetreChoisir: 'invité',
-  // Chute volontaire (ouverte par `battleClickTile`) : trajet, DÉCLARATION de rangée (routée par le siège
-  // du tombant, `netOwnership`).
+  // Chute volontaire (ouverte par le clic d'une case, `cliquerLaCaseDuCombat`) : trajet, DÉCLARATION de rangée
+  // (routée par le siège du tombant, `netOwnership`).
   fallAcross: 'invité',
   // Infirmerie (hors combat) : patients / actes / chirurgie — l'hôte valide.
   // Chirurgie : openSurgeryPass POSE la passe, les verbes de jet sur `surgery` l'influencent,
@@ -102,7 +104,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   roundStartPromote: 'invité',
   // Tir rapide (Talent « Tir rapide ») pendant la pause de début de Round : ARMER la visée depuis la
   // frise, routé sur le TIREUR : pendant la pause il n'y a AUCUN combattant actif (`turn: -1`), donc le
-  // repli universel le refusait à tout siège invité. Le tir est le clic du combattant (`battleClickEntity`).
+  // repli universel le refusait à tout siège invité. Le tir est le clic du combattant (`cliquerLaCase`).
   armPreempt: 'invité',
   // Demande de pause au prochain Round : POSER et RETIRER passent par le même chemin (interrupteur
   // de la frise) — une bascule dont un seul sens serait répliqué laisserait la table bloquée.
@@ -130,8 +132,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   openWorldMap: 'hôte', startTravel: 'hôte',
   startBilletBargain: 'hôte', resumeTravel: 'hôte',
   setVoyageCadence: 'hôte', transitionTo: 'hôte', fouillerLaPiece: 'hôte',
-  // Le groupe en exploration : clic de case, offre d'une entité (pastille), porte, pas et pivot du regard.
-  cliquerLaCase: 'hôte', jouerAction: 'hôte', actionnerLaPorte: 'hôte', stepPartyRelative: 'hôte', pivotParty: 'hôte',
+  // Le groupe en exploration : offre d'une entité (pastille), porte, pas et pivot du regard.
+  jouerAction: 'hôte', actionnerLaPorte: 'hôte', stepPartyRelative: 'hôte', pivotParty: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
   buyCharAdvance: 'hôte', buySkillAdvance: 'hôte', buyTalent: 'hôte', buySpell: 'hôte',
   changeCareer: 'hôte', designateCareerSlot: 'hôte', trainProsthesis: 'hôte', buySpellComponent: 'hôte',
@@ -207,27 +209,27 @@ type Ouvreurs<C extends ClasseCoop> = readonly [ActionDeClasse<C>, ...ActionDeCl
  */
 export type Ouverture = { parInvite: Ouvreurs<'invité'>; interne?: SiteInterne } | { parHote: Ouvreurs<'hôte'> } | { interne: SiteInterne };
 const OUVERTURE_DES_FLUX = {
-  attack: { parInvite: ['battleClickEntity', 'jouerLOffre'] },
+  attack: { parInvite: ['cliquerLaCase', 'jouerLOffre'] },
   defense: { interne: 'réaction : combatFlow.maybeOpenDefense / openSurfacedDefense' },
-  cast: { parInvite: ['jouerLOffre', 'battleClickEntity', 'incanterLeSort'] },
+  cast: { parInvite: ['jouerLOffre', 'cliquerLaCase', 'incanterLeSort'] },
   disengage: { parInvite: ['jouerLOffre'] },
-  auContact: { parInvite: ['battleClickEntity'] }, // ciblage (targetingModes.attackClickCommit)
-  grapple: { parInvite: ['battleClickEntity'] }, // ciblage (targetingModes.attackClickCommit)
+  auContact: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
+  grapple: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
   battement: { parInvite: ['jouerLOffre'] },
   distraire: { parInvite: ['jouerLOffre'] },
-  maneuver: { parInvite: ['battleClickEntity'] }, // manœuvre de créature : ciblage (targetingModes.attackClickCommit)
-  run: { parInvite: ['battleClickTile'] }, // course armée (combatSlice.battleClickTile)
+  maneuver: { parInvite: ['cliquerLaCase'] }, // manœuvre de créature : ciblage (targetingModes.attackClickCommit)
+  run: { parInvite: ['cliquerLaCase'] }, // course armée (combatSlice.cliquerLaCaseDuCombat)
   reload: { parInvite: ['jouerLOffre'] },
   // Main ensanglantée (AA 07 l.117) : posé par l'ouverture d'attaque (interne) ET par la 2ᵉ frappe à
   // deux armes, que joue le clic du combattant.
-  handGate: { parInvite: ['battleClickEntity'], interne: 'combatFlow.openAttackCascade (Test par Action)' },
+  handGate: { parInvite: ['cliquerLaCase'], interne: 'combatFlow.openAttackCascade (Test par Action)' },
   recover: { parInvite: ['jouerLOffre'] },
   focus: { parInvite: ['jouerLOffre', 'focaliserLeSort'] },
   dispel: { parInvite: ['jouerLOffre', 'dissiperLeSort'] },
   frenzy: { parInvite: ['jouerLOffre'] },
-  approach: { parInvite: ['battleClickTile', 'battleClickEntity'] }, // gate de Peur (combatSlice.fearGateBlocks)
-  ward: { parInvite: ['battleClickEntity'] }, // ciblage (targetingModes.attackClickCommit)
-  heal: { parInvite: ['battleClickEntity', 'medicAct'] }, // ciblage (targetingModes) ; infirmerie
+  approach: { parInvite: ['cliquerLaCase'] }, // gate de Peur (combatSlice.fearGateBlocks)
+  ward: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
+  heal: { parInvite: ['cliquerLaCase', 'medicAct'] }, // ciblage (targetingModes) ; infirmerie
   surgery: { parInvite: ['openSurgeryPass'] },
   corruption: { interne: 'exposition/seuil : combatEffects (Effect) et corruptionFlow.gainCorruption' },
   test: { interne: 'combatEffects.openSkillTest (Effet de scène, dialogue, consommable)' },

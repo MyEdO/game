@@ -15,6 +15,7 @@ import { ManeuverModal } from './ManeuverModal';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from '../noyau/combatOrParty';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -44,7 +45,7 @@ function souffleLance(gmSeat: number | undefined): Combatant {
   H.advantage = 3;
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, acted: false } });
   useGame.getState().armerLAttaque('souffle');
-  useGame.getState().battleClickEntity(E.id);
+  cliquerSurLeCombattant(useGame.getState, E.id);
   useGame.getState().jetRoll('maneuver');
   return E;
 }

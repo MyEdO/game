@@ -40,13 +40,12 @@ describe('#1051 — construction de la table : fail-fast sur clé dupliquée', (
     expect(t.get('lowerHand')!.rule({} as never, 0, [])).toBe(false);
   });
 
-  it('une clé se nomme par un verbe invité, de jet, ou, gardée hors allowlist, du noyau (#3371 §3.5)', () => {
+  it('une clé se nomme par un verbe invité ou de jet (#3371 §3.5)', () => {
     // @ts-expect-error aucun verbe ne porte ce nom
     const inconnue = buildRoutes([['intentQuiNExistePas', R]]);
-    // @ts-expect-error verbe de l’hôte sans raison hors allowlist
+    // @ts-expect-error verbe de l’hôte
     const deLHote = buildRoutes([['openRest', R]]);
-    const gardee = buildRoutes([['openRest', { ...R, horsAllowlist: 'raison' }]]);
-    expect([inconnue, deLHote, gardee].map((t) => t.size)).toEqual([1, 1, 1]);
+    expect([inconnue, deLHote].map((t) => t.size)).toEqual([1, 1]);
   });
 });
 
@@ -104,13 +103,8 @@ describe('#1051 — frontière table ⇄ REPLI universel', () => {
     expect(ROUTES.has('intentQuiNExistePas')).toBe(false);
   });
 
-  it('les routes hors `GUEST_INTENTS` sont conservées et DÉCLARENT leur raison', () => {
-    const hors = [...ROUTES.keys()].filter((a) => !GUEST_INTENTS.has(a)).sort();
-    expect(hors, 'route hors allowlist : le geste est inatteignable par le réseau (défense en profondeur)')
-      .toEqual(['cliquerLaCase']);
-    for (const a of hors.filter((x) => NOM.includes(x))) {
-      expect(ROUTES.get(a)!.horsAllowlist, `${a} : route hors allowlist sans justification`).toBeTruthy();
-    }
+  it('toute route est celle d’un geste que l’invité envoie (`GUEST_INTENTS`)', () => {
+    expect([...ROUTES.keys()].filter((a) => !GUEST_INTENTS.has(a)), 'route d’un geste que le réseau ne porte pas').toEqual([]);
   });
 });
 

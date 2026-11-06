@@ -28,10 +28,10 @@ function passeLeControle(t: ReturnType<typeof Table>, geste: GesteDeLAgent): voi
 }
 
 describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
-  it('combattant : `battleClickEntity`', { timeout: 120_000 }, () => {
+  it('ce que le clic désigne, en combat un combattant : `cliquerLaCase`', { timeout: 120_000 }, () => {
     const t = partie('dome', verbe('fenetreValider', 'roundStart'));
-    const valides = refuseLId(t, verbe('battleClickEntity', 'nobody'), /id : "nobody" n’est pas un id de combattant \(valides : .*enemy-enc-dome-1/);
-    passeLeControle(t, verbe('battleClickEntity', valides.find((id) => id.startsWith('enemy'))!));
+    const valides = refuseLId(t, verbe('cliquerLaCase', { x: 7, y: 5 }, 'nobody'), /entite : "nobody" n’est pas un id de combattant ou d’entité de scène \(valides : .*enemy-enc-dome-1/);
+    passeLeControle(t, verbe('cliquerLaCase', { x: 7, y: 5 }, valides.find((id) => id.startsWith('enemy'))!));
   });
   it('héros : `createLoadout`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
@@ -47,7 +47,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   });
   it('entité de scène : `cliquerLaCase`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [entite] = refuseLId(t, verbe('cliquerLaCase', { x: 0, y: 0 }, 'nobody'), /entite : "nobody" n’est pas un id d’entité de scène \(valides : /);
+    const [entite] = refuseLId(t, verbe('cliquerLaCase', { x: 0, y: 0 }, 'nobody'), /entite : "nobody" n’est pas un id de combattant ou d’entité de scène \(valides : /);
     passeLeControle(t, verbe('cliquerLaCase', { x: 0, y: 0 }, entite));
   });
   it('porte : `actionnerLaPorte`', { timeout: 120_000 }, () => {
@@ -82,8 +82,8 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     refuseLId(partie('revisit'), verbe('setMassBattleHero', 'a', ['nobody']), /heroIds\[0\] : "nobody" n’est pas un id de héros/);
   });
   it('la signature dit ce que le paramètre désigne', () => {
-    const r = table().lire('verbes', { id: 'battleClickEntity' });
-    expect(r.texte).toMatch(/battleClickEntity\(id: id de combattant, opts\?: /);
+    const r = table().lire('verbes', { id: 'cliquerLaCase' });
+    expect(r.texte).toMatch(/cliquerLaCase\(pt: .*, entite\?: id de combattant ou d’entité de scène, opts\?: /);
   });
 });
 

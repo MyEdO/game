@@ -16,6 +16,7 @@ import type { Combatant } from '../engine/types';
 import type { TraitList } from '../engine/statEntry';
 import type { SuiteDeCoup } from './pendings';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -59,7 +60,7 @@ function nomsDeLAttaque(kind: string): { option: string; reticule: string; modal
   g().armerLAttaque(option.id);
   const ht = hoverTargeting(g, H, E);
   if (ht.kind !== 'ok') throw new Error(`réticule ${ht.kind}`);
-  g().battleClickEntity(E.id, { confirm: true });
+  cliquerSurLeCombattant(g, E.id, { confirm: true });
   const pa = g().pendingAttack;
   if (pa?.freeKind !== kind) throw new Error(`le clic n'a pas ouvert la gratuite « ${kind} »`);
   const b = g().battle!;

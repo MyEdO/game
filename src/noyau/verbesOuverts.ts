@@ -50,7 +50,7 @@ const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<s
   },
   roundStart: (s) => ({
     armPreempt: preemptShooterIds(() => s).length ? null : 'nonOffert',
-    battleClickEntity: s.preemptAiming ? null : 'nonOffert',
+    cliquerLaCase: s.preemptAiming ? null : 'nonOffert',
   }),
 };
 

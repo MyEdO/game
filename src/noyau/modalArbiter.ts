@@ -329,9 +329,9 @@ export const HORS_MODAL = [
   { key: 'appraise', pendingKey: 'pendingAppraise', tientLaMain: true, owner: (s) => s.pendingAppraise?.actorId, flux: ['appraise'] }, // Évaluation/Détection (écran Marché/Compendium)
   { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*', verbes: ['assignLootGear', 'appraiseGear'], sortie: 'hote' }, // Butin hors victoire : chacun voit qui l'emporte
   { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['assignVictoryGear', 'harvestCreature', 'appraiseGear'], sortie: 'quorum' }, // Écran de victoire : chaque siège se dit prêt, le quorum le ferme
-  { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId, verbes: ['battleClickTile'], sortie: 'proprietaire' }, // Placeur de case (ciblage carte, pas de modale) : le clic de case dépose l'impact
+  { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId, verbes: ['cliquerLaCase'], sortie: 'proprietaire' }, // Placeur de case (ciblage carte, pas de modale) : le clic de case dépose l'impact
   { key: 'interact', pendingKey: 'pendingInteract', tientLaMain: false, owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
-  { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['roundStartPromote', 'armPreempt', 'battleClickEntity'], validation: 'quorum' }, // Pause de début de Round (fenêtre Chance) : chaque siège se dit prêt, le quorum lance le Round ; le clic du combattant tire la visée armée (Tir rapide)
+  { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['roundStartPromote', 'armPreempt', 'cliquerLaCase'], validation: 'quorum' }, // Pause de début de Round (fenêtre Chance) : chaque siège se dit prêt, le quorum lance le Round ; le clic du combattant tire la visée armée (Tir rapide)
   { key: 'seaActivities', pendingKey: 'pendingSeaActivities', tientLaMain: true, owner: () => '*', validation: 'hote' }, // Activités hebdomadaires en mer : chaque siège choisit pour ses héros, l'hôte valide la semaine
   { key: 'manannPriest', pendingKey: 'pendingManannPriest', tientLaMain: true, owner: () => '*' }, // Événement de port (MDG 15) : décision de groupe
   { key: 'shoreLeave', pendingKey: 'pendingShoreLeave', tientLaMain: true, owner: () => '*' }, // Relâche à terre (MDG 15) : décision de groupe
@@ -339,8 +339,8 @@ export const HORS_MODAL = [
   { key: 'orders', pendingKey: 'pendingOrders', tientLaMain: false, owner: () => undefined }, // Commandes d'interlude : dépense de bourse de groupe, hôte
   // Balayage / 2ᵉ frappe : ciblage carte (TargetPrompt), pas de modale — leurs gestes (enchaîner par le clic du
   // combattant, terminer, renoncer) sont ceux de l'ATTAQUANT qui les tient (#1016).
-  { key: 'cleave', pendingKey: 'pendingCleave', tientLaMain: true, owner: (s) => s.pendingCleave?.attackerId, verbes: ['battleClickEntity'], sortie: 'proprietaire' },
-  { key: 'dualStrike', pendingKey: 'pendingDualStrike', tientLaMain: true, owner: (s) => s.pendingDualStrike?.attackerId, verbes: ['battleClickEntity'], sortie: 'proprietaire' },
+  { key: 'cleave', pendingKey: 'pendingCleave', tientLaMain: true, owner: (s) => s.pendingCleave?.attackerId, verbes: ['cliquerLaCase'], sortie: 'proprietaire' },
+  { key: 'dualStrike', pendingKey: 'pendingDualStrike', tientLaMain: true, owner: (s) => s.pendingDualStrike?.attackerId, verbes: ['cliquerLaCase'], sortie: 'proprietaire' },
   { key: 'logQueue', pendingKey: 'pendingLogQueue', tientLaMain: false, owner: () => undefined }, // File de journal DIFFÉRÉE : système, drainée automatiquement (pas d'acteur)
   // Cadre de campagne (#717) : rideau d'ouverture et récap de fin de chapitre — des ÉCRANS
   // (`ScreenShell`), pas des modales de combat, et des gestes d'HÔTE (l'ouverture est un rideau, la

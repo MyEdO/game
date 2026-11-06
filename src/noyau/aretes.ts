@@ -87,7 +87,7 @@ export interface AreteUtilisable {
   largeurPrise: number;
   /** Texte JOUEUR déjà résolu. */
   libelle: string;
-  /** Combattant-structure visé par le geste de siège (`battleClickEntity`). */
+  /** Combattant-structure visé par le geste de siège (`cliquerLaCase`). */
   cid?: string;
   /** Accès de pièce que le geste FRANCHIT (ouvrir la porte, marcher jusqu'à `to`) — jumeau de `cid`
    *  pour la capacité `porte` : la clé d'arête dit OÙ, ce champ dit avec QUOI le geste s'exécute

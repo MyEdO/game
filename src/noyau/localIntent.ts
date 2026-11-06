@@ -102,7 +102,7 @@ export function chargeArmee(get: Get<Jeu>): boolean {
  * VERDICT D'ARMEMENT JOINT AUX ARGS D'UN INTENT RÉSEAU, par action de clic.
  *
  * L'intention est LOCALE au client (hors snapshot, plus haut) : un invité qui arme sa Course puis
- * clique n'envoie que `battleClickTile(pt, opts)`, et l'HÔTE l'exécute dans SON store — où cette
+ * clique n'envoie que `cliquerLaCase(pt, undefined, opts)`, et l'HÔTE l'exécute dans SON store — où cette
  * intention n'existe pas. Sans ce joint, un invité ne pourrait jamais courir ni charger, et l'hôte
  * débloquerait le geste d'autrui en armant SA propre case. Le verdict se calcule donc CHEZ
  * L'ÉMETTEUR, au moment du geste, et voyage dans les args comme `confirm`.
@@ -112,8 +112,9 @@ export function chargeArmee(get: Get<Jeu>): boolean {
  */
 type VerdictJoint = (get: Get<Jeu>, args: readonly unknown[]) => unknown[];
 export const INTENT_VERDICT_ARGS: Readonly<Record<string, VerdictJoint>> = {
-  battleClickEntity: (get, [id, opts]) => [id, { ...(opts as object | undefined), approche: chargeArmee(get) }],
-  battleClickTile: (get, [pt, opts]) => [pt, { ...(opts as object | undefined), courseArmee: courseArmee(get) }],
+  // Le clic d'un combattant porte le verdict de la Charge, celui d'une case libre celui de la Course.
+  cliquerLaCase: (get, [pt, entite, opts]) =>
+    [pt, entite, { ...(opts as object | undefined), ...(entite ? { approche: chargeArmee(get) } : { courseArmee: courseArmee(get) }) }],
 } satisfies { readonly [A in ActionDeClasse<'invité'>]?: VerdictJoint };
 
 /** Args d'un intent, enrichis du verdict d'armement LOCAL quand l'action en demande un. */

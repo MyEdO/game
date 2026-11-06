@@ -20,6 +20,7 @@ import type {
 } from './designations';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { BattleActionMode } from './actionRegistry';
+import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { EtatDeJeu, Jeu, PaquetALancer, PendingInteract, ShootingStanceKey } from './etat';
 
@@ -60,7 +61,14 @@ export interface MachinerieDuNoyau {
   faceAtCombatStart: () => void;
   faceFromPath: (id: IdDeCombattant, path?: Pt[] | null) => void;
   faceToward: (id: IdDeCombattant, from?: Pt, to?: Pt) => void;
-  // ── Commits de clic : le clic du champ (`battleClickEntity`, `battleClickTile`) les appelle ──
+  // ── Le clic du champ en combat : `cliquerLaCase` les joue, et un geste différé s'y relance ──
+  /** Le clic d'un combattant, au mode de ciblage courant (`currentTargetingMode`), ou le tir du Tir rapide armé de la
+   *  pause de Round (`preemptAiming`). */
+  cliquerLeCombattant: (id: IdDeCombattant, opts?: BattleClickOpts) => void;
+  /** Le clic d'une case libre : le commit-case du mode de ciblage courant, sinon le déplacement de l'actif (aperçu,
+   *  puis commit), la Course, ou le Désengagement de l'actif Engagé. */
+  cliquerLaCaseDuCombat: (pt: Pt, opts?: TileClickOpts) => void;
+  // ── Commits de clic : le clic du champ (`cliquerLeCombattant`, `cliquerLaCaseDuCombat`) les appelle ──
   /** Tir rapide (talent, LDB 10) : INTERRUPTION à distance en début de Round (hors de l'ordre) ; le tir
    *  se résout par la modale de jet normale et épuise le tour normal du tireur (Action + Mouvement). */
   preemptRangedShot: (heroId: IdDeTireurRapide, targetId: IdDeCombattant) => void;
@@ -136,7 +144,7 @@ export interface MachinerieDuNoyau {
   armerLeMode: (a: BattleActionMode | null) => void;
   /** Arme une ATTAQUE (id d'`AttackOption` : 'arme'/'morsure'/'tentacule'/'pietinement'…) pour le clic-ennemi
    *  — source UNIQUE de l'attaque armée. Toggle → 'arme'.
-   *  Le clic-ennemi résout l'attaque armée via l'approche-puis-frappe (battleClickEntity). */
+   *  Le clic-ennemi résout l'attaque armée via l'approche-puis-frappe (cliquerLeCombattant). */
   armerLAttaque: (id: string) => void;
   /** Capacité SUR SOI octroyée par un trait (Métamorphose humain↔hybride de l'Enfant d'Ulric) : résout la
    *  manœuvre `targeting:'self'` sur l'acteur et consomme l'Action (la 2ᵉ vient du `loseTurn` de ses effets). */

@@ -159,11 +159,11 @@ export interface TargetingMode {
 export type TileTargetingMode = TargetingMode & Required<Pick<TargetingMode, 'tileValidAt' | 'commitTile' | 'tilePreview'>>;
 
 /**
- * Options du clic-token (parité `battleClickEntity`).
+ * Les options que le clic d'une case porte (`cliquerLaCase`) : la confirmation et les deux verdicts d'armement.
  *
- * `approche` = VERDICT D'ARMEMENT de la Charge (spec HUD § ARBITRAGE 2026-08-19) : sans lui, un
- * clic-ennemi ne frappe qu'À PORTÉE et ne s'approche jamais tout seul. Il VOYAGE avec le geste, comme
- * `confirm`, pour deux raisons mesurées :
+ * `approche` = VERDICT D'ARMEMENT de la Charge (spec HUD § ARBITRAGE 2026-08-19), sur un combattant : sans lui, un
+ * clic-ennemi ne frappe qu'À PORTÉE et ne s'approche jamais tout seul. `courseArmee` en est le pendant exact pour la
+ * zone de Course, sur une case libre. Ils VOYAGENT avec le geste, comme `confirm`, pour deux raisons mesurées :
  *  - COOP : l'intention est locale au CLIENT (`localIntent`, hors snapshot). L'hôte qui exécute
  *    l'intent d'un invité ne peut pas la relire dans SON store — il y verrait sa propre case. Le
  *    verdict se calcule donc chez l'émetteur (`localIntent.INTENT_VERDICT_ARGS`, joint par `netFlow`).
@@ -172,11 +172,14 @@ export type TileTargetingMode = TargetingMode & Required<Pick<TargetingMode, 'ti
  *    premier clic. Le verdict voyage donc aussi DANS le pending, et revient par ici à la relance.
  * Absent = « non renseigné » : le site d'appel local le calcule alors depuis SON store.
  */
-export type BattleClickOpts = { confirm?: boolean; skipMountChoice?: boolean; wardCleared?: boolean; approche?: boolean };
+export type OptionsDuClic = { confirm?: boolean; approche?: boolean; courseArmee?: boolean };
 
-/** Options du clic-CASE (parité `battleClickTile`). `courseArmee` = le pendant exact de `approche`
- *  pour la zone de Course (même voyage, mêmes deux raisons). */
-export type TileClickOpts = { confirm?: boolean; courseArmee?: boolean };
+/** Options du clic d'un combattant (`cliquerLeCombattant`) : celles du clic, et les sauts de portail d'une relance dans
+ *  le noyau (`skipMountChoice`, `wardCleared`). */
+export type BattleClickOpts = Omit<OptionsDuClic, 'courseArmee'> & { skipMountChoice?: boolean; wardCleared?: boolean };
+
+/** Options du clic d'une case libre du combat (`cliquerLaCaseDuCombat`). */
+export type TileClickOpts = Omit<OptionsDuClic, 'approche'>;
 
 /** Ops « cible » qui rendent un sort OFFENSIF → ciblable sur un ennemi (réticule + interdit hors portée,
  *  comme le tir). Tous les États WFRP sont négatifs (`condition`) ; `wounds` = Dégâts. Liste tenue
@@ -528,7 +531,7 @@ function dualAffordance(get: Get, _active: Combatant, target: Combatant): HoverT
 // ───────────────────────────────────────────────────────────────────────────
 
 /** ATTAQUE : approche-puis-frappe — le SEUL exécuteur charge/moveAttack du jeu ; `active`/`id`/`opts`
- *  fournis par l'aiguilleur (`battleClickEntity`). Lit `refusDAttaque` en tête. */
+ *  fournis par l'aiguilleur (`cliquerLeCombattant`). Lit `refusDAttaque` en tête. */
 function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, opts?: BattleClickOpts): void {
   const battle = get().battle;
   const scene = get().scene;
@@ -636,7 +639,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   } else {
     if (plan.kind === 'moveAttack') {
       // Rejoindre la cible dans la Marche restante (pas une Charge → pas de bonus), puis attaquer.
-      // MÊMES mutations qu'un segment de battleClickTile (snapshot d'annulation compris).
+      // MÊMES mutations qu'un segment de cliquerLaCaseDuCombat (snapshot d'annulation compris).
       const b = get().battle!;
       const snapshot = (b.movementUsed ?? 0) === 0 ? captureMoveSnapshot(b, get().facing) : b.moveSnapshot ?? null;
       const geom = mountOf(b, active) ?? active;
@@ -744,7 +747,7 @@ function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
   const hull = poste && posteHullOf(poste, battle.combatants);
   if (!poste || !hull?.pos) return;
   // Annulation (#199) : au PREMIER segment du Tour (`movementUsed === 0`), capture l'état AVANT de
-  // pousser — MÊME snapshot que battleClickTile/moveAttack (positions + facing + movedPreAction +
+  // pousser — MÊME snapshot que cliquerLaCaseDuCombat/moveAttack (positions + facing + movedPreAction +
   // loseNextMovement des servants), pour que `annulerLeDeplacement` défasse aussi une poussée.
   const snapshot = (battle.movementUsed ?? 0) === 0 ? captureMoveSnapshot(battle, get().facing) : battle.moveSnapshot ?? null;
   const delta = { x: pt.x - active.pos.x, y: pt.y - active.pos.y };
@@ -778,7 +781,7 @@ function castCommitTile(get: Get, set: Set, active: Combatant, _pt: Pt): void {
 /** Pose la zone en cours sur la case d'un combattant cliqué (cast-zone / siège). */
 function placingCommitCombatant(get: Get, _set: Set, _active: Combatant, id: string): void {
   const t = inBattleId(get().battle, id);
-  if (t?.pos) get().battleClickTile({ ...t.pos });
+  if (t?.pos) get().cliquerLaCaseDuCombat({ ...t.pos });
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -934,7 +937,7 @@ export function ciblesHorsDeVue(get: Get): globalThis.Set<string> {
 }
 
 /**
- * Aiguilleur UNIQUE — extrait factuellement des priorités de `battleClickEntity`/`hoverAim` :
+ * Aiguilleur UNIQUE — extrait factuellement des priorités de `cliquerLeCombattant`/`hoverAim` :
  *   pendingCleave > pendingDualStrike > pendingCast.pickingTargets (Surincantation) >
  *   zoneEnPose (cast-zone OU siège) > battle.action ∈ {cast, heal, dispel, battery, teleport} > attack.
  * `battle.action` (string) et les `pending*` RESTENT l'état sous-jacent (ils gatent aussi mouvement/
@@ -970,7 +973,7 @@ export function currentTargetingMode(get: Get<Jeu>): TargetingMode {
  * sur une entité) et ce n'est pas `ATTACK_MODE`, que l'aiguilleur rend AUSSI quand rien n'est armé —
  * il ne peut donc témoigner d'aucun armement. Les modes-CASE (téléportation, poussée) n'ont pas de
  * `commitCombatant` : ils en sortent d'eux-mêmes.
- * Consommé par les surfaces PORTRAIT (dock du groupe), pour router le clic vers `battleClickEntity`
+ * Consommé par les surfaces PORTRAIT (dock du groupe), pour router le clic vers `cliquerLaCase`
  * comme le clic-jeton au lieu d'ouvrir la fiche.
  */
 export function ciblageEntiteArme(get: Get): boolean {
@@ -990,7 +993,7 @@ export function ciblageEntiteArme(get: Get): boolean {
  */
 type ElectionLocale = (get: Get, args: readonly unknown[]) => boolean;
 export const INTENT_ELECTION_LOCALE: Readonly<Record<string, ElectionLocale>> = {
-  battleClickEntity: (get, [id]) => typeof id === 'string' && (currentTargetingMode(get).electionLocale?.(get, id) ?? false),
+  cliquerLaCase: (get, [, entite]) => typeof entite === 'string' && (currentTargetingMode(get).electionLocale?.(get, entite) ?? false),
   // Un RELAIS ou une pure intention se joue chez l'émetteur (`lieuDeLOffre`) : son verbe voyage, l'offre ne voyage pas.
   jouerLOffre: (_get, [id]) => lieuDeLOffre(id) === 'emetteur',
 } satisfies { readonly [A in ActionDeClasse<'invité'>]?: ElectionLocale };

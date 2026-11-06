@@ -90,7 +90,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     // Tab/flèches : le curseur trouve la cible valide du TIREUR (aucun actif à turn:-1 — cursorActor renvoie le tireur).
     useGame.getState().snapCursorToTarget(1);
     expect(useGame.getState().combatCursor?.snappedId).toBe(E.id);
-    // Entrée (commitCursor) : tire l'interruption via battleClickEntity (armé) → preemptRangedShot.
+    // Entrée (commitCursor) : tire l'interruption via cliquerLaCase (armé) → preemptRangedShot.
     useGame.getState().commitCursor();
     const st = useGame.getState();
     expect(st.pendingAttack?.interrupt).toBe(true);    // modale de tir ouverte pour le tireur

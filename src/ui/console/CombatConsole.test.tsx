@@ -41,6 +41,7 @@ import { srgbToLinear } from '../../gameIso/shade';
 import { testDeRegle } from '../../engine/reglesChiffrees';
 import { withActingSeat } from '../../noyau/netOwnership';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from '../../noyau/combatOrParty';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -2631,8 +2632,8 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     porteur(e, 2);
     monter(h, { foes: [e] });
     act(() => { (host.querySelector('[data-action="dispel"]') as HTMLButtonElement).dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    // Le clic-token du champ passe par la MÊME porte que la carte (`battleClickEntity`).
-    act(() => { useGame.getState().battleClickEntity('e1'); });
+    // Le clic-token du champ passe par la MÊME porte que la carte (`cliquerLaCase`).
+    act(() => { cliquerSurLeCombattant(useGame.getState, 'e1'); });
     expect(useGame.getState().dispelCarrierId).toBe('e1');
     expect(options().map((b) => b.textContent), 'un candidat par Sort de CE porteur, NI en méta')
       .toEqual(['Sort 1NI 3', 'Sort 2NI 4']);
@@ -2647,7 +2648,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     porteur(e, 2);
     monter(h, { foes: [e] });
     act(() => { (host.querySelector('[data-action="dispel"]') as HTMLButtonElement).dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    act(() => { useGame.getState().battleClickEntity('e1'); });
+    act(() => { cliquerSurLeCombattant(useGame.getState, 'e1'); });
     expect(panneau()).toBeTruthy();
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     expect(panneau()).toBeNull();
@@ -2856,7 +2857,7 @@ describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvem
     h.conditions = [];
     monter(h);
     const depart = { ...h.pos! };
-    act(() => { useGame.getState().battleClickTile({ x: depart.x + 1, y: depart.y }, { confirm: true }); });
+    act(() => { useGame.getState().cliquerLaCase({ x: depart.x + 1, y: depart.y }, undefined, { confirm: true }); });
     act(() => { root.render(<CombatConsole />); });
     const st = useGame.getState().battle!;
     expect(st.movementUsed, 'aucun segment commis : la sonde mesurerait le vide').toBeGreaterThan(0);
@@ -2878,7 +2879,7 @@ describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvem
     h.conditions = [];
     monter(h);
     const depart = { ...h.pos! };
-    act(() => { useGame.getState().battleClickTile({ x: depart.x + 1, y: depart.y }, { confirm: true }); });
+    act(() => { useGame.getState().cliquerLaCase({ x: depart.x + 1, y: depart.y }, undefined, { confirm: true }); });
     act(() => { root.render(<CombatConsole />); });
     expect(geste()).toBeTruthy();
     act(() => { useGame.setState({ battle: { ...useGame.getState().battle!, acted: true } }); });
@@ -2906,7 +2907,7 @@ describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvem
     expect(host.querySelector('.cc-gutter-move [data-geste]')!.children.length, 'slot vide tant que rien n’est à annuler').toBe(0);
 
     const depart = { ...h.pos! };
-    act(() => { useGame.getState().battleClickTile({ x: depart.x + 1, y: depart.y }, { confirm: true }); });
+    act(() => { useGame.getState().cliquerLaCase({ x: depart.x + 1, y: depart.y }, undefined, { confirm: true }); });
     act(() => { root.render(<CombatConsole />); });
     expect(geste(), 'témoin : sans geste offert la sonde ne mesurerait rien').toBeTruthy();
     expect(rangs(), 'la venue du geste a changé la place du socle').toEqual(avant);
@@ -2926,7 +2927,7 @@ describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvem
     h.conditions = [];
     monter(h);
     const depart = { ...h.pos! };
-    act(() => { useGame.getState().battleClickTile({ x: depart.x + 1, y: depart.y }, { confirm: true }); });
+    act(() => { useGame.getState().cliquerLaCase({ x: depart.x + 1, y: depart.y }, undefined, { confirm: true }); });
     act(() => { root.render(<CombatConsole />); });
     const bouton = geste()!;
     expect(bouton.querySelector('i')!.textContent, 'le geste ne dit rien à l’écran').toBe('ANNULER');

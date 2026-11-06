@@ -65,7 +65,7 @@ export const FLOW_VERBS = {
   // vivent dans `jetConfirm('maneuver')`) — le porteur est donc `attackerId`, jamais la cible.
   maneuver:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingManeuver', field: 'attackerId' } },
   run:          { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'], jetOwner: { pending: 'pendingRun', field: 'combatantId' } },
-  // Chute VOLONTAIRE (clic sur une arête de capacité `chute`, ouverte par `battleClickTile`).
+  // Chute VOLONTAIRE (clic sur une arête de capacité `chute`, ouverte par `cliquerLaCaseDuCombat`).
   fall:         { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
   reload:       { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingReload', field: 'actorId' } },
   handGate:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingHandGate', field: 'attackerId' } },

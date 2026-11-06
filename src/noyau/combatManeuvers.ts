@@ -163,7 +163,7 @@ export const MANEUVER_ICON: Record<AttackKind, IconId> = {
 export const MELEE_MANEUVER_KINDS: AttackKind[] = ['morsure', 'caudale', 'tentacules', 'pietinement'];
 
 /** ATTAQUE activable par le héros actif — descripteur UNIFIÉ (arme tenue + attaques gratuites/zone),
- *  SOURCE UNIQUE de la liste d'attaques (hotbar) ET de la résolution (`battleClickEntity`). `targeting`
+ *  SOURCE UNIQUE de la liste d'attaques (hotbar) ET de la résolution (`cliquerLeCombattant`). `targeting`
  *  pilote la résolution : 'melee' → approche-puis-frappe (attackPlan + pendingAttack) ; 'zone' →
  *  resolveManeuver (pendingManeuver). `cost.action` = coûte l'Action (Arme), sinon gratuite ;
  *  `cost.movement` = paie l'Action de Mouvement (`freeAttackCost`). `reach`/`forceMelee` = Allonge de

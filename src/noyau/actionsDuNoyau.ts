@@ -2,7 +2,7 @@ import type { CharKey } from '../engine/types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ContexteDOffre } from './actionRegistry';
 import type { OptionDeDetermination } from './combatSlice';
-import type { BattleClickOpts, TileClickOpts } from './targetingModes';
+import type { OptionsDuClic } from './targetingModes';
 import type { IndiceAffiché } from './monde/clues';
 import type { HerosEngage } from './creation/engagement';
 import type { HealMode } from '../engine/healing';
@@ -16,7 +16,7 @@ import type { RestLodging, RestFood } from './restFlow';
 import type { Pt } from './monde/path';
 import type {
   IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
-  IdDEntiteDeScene, IdDeTireurRapide, IdDePorte, IdDIndice, IdDOffre,
+  IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDOffre,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
@@ -152,10 +152,13 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Change de Carrière/Niveau (validation LDB 07 l.137 / LDB 08 : complétion, +100 hors Classe). */
   changeCareer: (heroId: IdDeHeros, newCareer: string, newLevel: number) => void;
   transitionTo: (sceneId: IdDeScene, entry?: string, pos?: Pt) => void;
-  /** Le clic de la case `pt` en exploration, sur l'entité `entite` que le geste désigne : ce qu'il joue est
-   *  `intentionDuClicDExploration` (interagir, jouer l'offre, rejoindre, marcher, dire, annuler). La marche se joue en
-   *  une passe, pas à pas, sauts compris (`marcherLeChemin`), et s'arrête au premier pas qui ne se joue plus. */
-  cliquerLaCase: (pt: Pt, entite?: IdDEntiteDeScene) => void;
+  /** Le clic de la case `pt`, sur ce que le geste y désigne (`entite`), le combat lu dans `battle`. En combat, un
+   *  combattant désigné se joue par `cliquerLeCombattant` (le mode de ciblage, le Tir rapide de la pause de Round), une
+   *  case libre par `cliquerLaCaseDuCombat` ; `opts` porte la confirmation et les verdicts d'armement (`OptionsDuClic`).
+   *  En exploration, sur l'entité de scène désignée, ce qu'il joue est `intentionDuClicDExploration` (interagir, jouer
+   *  l'offre, rejoindre, marcher, dire, annuler) ; la marche se joue en une passe, pas à pas, sauts compris
+   *  (`marcherLeChemin`), et s'arrête au premier pas qui ne se joue plus. */
+  cliquerLaCase: (pt: Pt, entite?: IdDuClic, opts?: OptionsDuClic) => void;
   /** Ouvre ou ferme la porte d'un accès que le mobile du monde emprunte (`portesDuMobile`) : en combat toute porte,
    *  en exploration une porte fermée. Rend `true` si la porte a bougé. */
   actionnerLaPorte: (porte: IdDePorte) => boolean;
@@ -235,11 +238,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
   openRest: (opts: restFlow.OpenRestOpts) => void;
   restSet: (heroId: IdDeHeros, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => void;
-  // Les OPTIONS de ces deux clics vivent avec leur consommateur (`targetingModes`) : les recopier ici
-  // en littéral les faisait diverger en silence — le champ `approche` (verdict d'armement de la
-  // Charge, spec § 2026-08-19) manquait déjà de cette copie, et TypeScript ne pouvait pas le dire.
-  battleClickTile: (pt: Pt, opts?: TileClickOpts) => void;
-  battleClickEntity: (id: IdDeCombattant, opts?: BattleClickOpts) => void;
   /** Retire l'aperçu armé par un premier clic (`battle.preview`). */
   battleClearPreview: () => void;
   /** Chance, 3e usage (LDB 17 l.25) : en début de Round, place un héros en tête de l'ordre
@@ -335,8 +333,6 @@ export interface GesteDuNoyau {
   args: unknown[];
 }
 
-/** Les clics du champ de bataille, par ce qu'ils désignent : un combattant (son id), une case (`Pt`). Un premier clic
- *  pose l'aperçu, le même clic le confirme (`battle.preview`). */
-export const CLICS_DU_CHAMP = { combattant: 'battleClickEntity', case: 'battleClickTile' } as const satisfies Record<string, keyof ActionsDuNoyau>;
-/** Le clic d'une case en exploration (`cliquerLaCase`). */
-export const CLICS_DE_L_EXPLORATION = { case: 'cliquerLaCase' } as const satisfies Record<string, keyof ActionsDuNoyau>;
+/** Le clic du champ, en combat comme en exploration : la case, et ce qu'elle porte. En combat, un premier clic pose
+ *  l'aperçu, le même clic le confirme (`battle.preview`). */
+export const CLIC_DU_CHAMP = 'cliquerLaCase' satisfies keyof ActionsDuNoyau;

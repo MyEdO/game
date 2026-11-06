@@ -171,7 +171,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     banc.getState().pousserLEngin();
     expect(banc.getState().battle!.action).toBe('push');
     const dest = { x: soldat.pos!.x, y: soldat.pos!.y - 2 };
-    banc.getState().battleClickTile(dest);
+    banc.getState().cliquerLaCase(dest);
     const delta = { x: dest.x - before.get(soldat.id)!.x, y: dest.y - before.get(soldat.id)!.y };
     expect(delta).toEqual({ x: 0, y: -2 });
     for (const c of movers) {
@@ -197,12 +197,12 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     // Hors de portée (cap+1) : la case n'est même pas dans `battle.reachable` → le clic est ignoré, personne ne bouge.
     const tooFar = { x: start.x, y: start.y - (cap + 1) };
     expect(banc.getState().battle!.reachable.has(`${tooFar.x},${tooFar.y}`)).toBe(false);
-    banc.getState().battleClickTile(tooFar);
+    banc.getState().cliquerLaCase(tooFar);
     expect(soldat.pos).toEqual(start);
     expect(banc.getState().battle!.action).toBe('push'); // toujours ouvert : ce n'était pas un commit
     // Dans la portée (exactement le plafond) : le clic commet.
     const atCap = { x: start.x, y: start.y - cap };
-    banc.getState().battleClickTile(atCap);
+    banc.getState().cliquerLaCase(atCap);
     expect(soldat.pos).toEqual(atCap);
     expect(ram.pos).toEqual({ x: atCap.x + 1, y: atCap.y }); // offset relatif chef↔engin préservé
   });
@@ -227,7 +227,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const pushBy = (dy: number) => {
       setActive(soldat.id);
       banc.getState().pousserLEngin();
-      banc.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
+      banc.getState().cliquerLaCase({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     // Départ (3 cases d'écart) : hors d'Allonge, la porte étant inanimée (jamais de Charge/approche implicite).
     expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('blocked');
@@ -248,7 +248,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const pushBy = (dy: number) => {
       setActive(avant.id);
       banc.getState().pousserLEngin();
-      banc.getState().battleClickTile({ x: lu().pos!.x, y: lu().pos!.y - dy });
+      banc.getState().cliquerLaCase({ x: lu().pos!.x, y: lu().pos!.y - dy });
     };
     pushBy(2); // (3,8) → (3,6)
     pushBy(1); // (3,6) → (3,5) : adjacente DIRECTE à la porte (arête N de (5,4), dx=0)
@@ -271,7 +271,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const pushBy = (dy: number) => {
       setActive(soldat.id);
       banc.getState().pousserLEngin();
-      banc.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
+      banc.getState().cliquerLaCase({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     pushBy(2);
     pushBy(1); // coque adjacente à la porte ; le chef (3,5) en reste à distance 2
@@ -297,7 +297,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const pushBy = (dy: number) => {
       setActive(soldat.id);
       banc.getState().pousserLEngin();
-      banc.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
+      banc.getState().cliquerLaCase({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     pushBy(2);
     pushBy(1); // coque adjacente (le clic « Servir » doit fonctionner sans approche)

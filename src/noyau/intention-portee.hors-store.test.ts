@@ -28,6 +28,7 @@ import { chargeReach } from '../engine/movement';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { effectiveMovement } from '../engine/encumbrance';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 /** Combat témoin : un héros au tour ENTIER, les ennemis parqués au loin (grille libre autour de lui). */
 function setup() {
@@ -118,7 +119,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
   it('SANS intention, un clic-case non confirmé reste un APERÇU (le héros ne bouge pas)', () => {
     const { H } = setup();
     const dest = pickAtDist(displayedReach(get), 2);
-    get().battleClickTile(dest);
+    get().cliquerLaCase(dest);
     const h = get().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.pos).toEqual({ x: 6, y: 10 }); // rien n'a bougé
     expect(get().battle!.preview).toMatchObject({ kind: 'move', tile: dest });
@@ -127,7 +128,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
   it('SANS intention, un clic-case CONFIRMÉ déplace, comme avant', () => {
     const { H } = setup();
     const dest = pickAtDist(displayedReach(get), 2);
-    get().battleClickTile(dest, { confirm: true });
+    get().cliquerLaCase(dest, undefined, { confirm: true });
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(dest);
     expect(get().battle!.movementUsed).toBe(2);
   });
@@ -135,7 +136,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
   it('SANS intention, un clic-ennemi au contact ouvre l’attaque, comme avant', () => {
     const { H, E } = setup();
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y };
-    get().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(get, E.id, { confirm: true });
     expect(get().pendingAttack).toMatchObject({ attackerId: H.id, targetId: E.id });
   });
 
@@ -143,7 +144,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
     const { H } = setup();
     const dest = pickAtDist(displayedReach(get), 2);
     get().jouerLOffre('mouvement');
-    get().battleClickTile(dest); // pas de `confirm` : l'intention armée VAUT confirmation
+    get().cliquerLaCase(dest); // pas de `confirm` : l'intention armée VAUT confirmation
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(dest);
     expect(get().localIntent, 'l’intention doit se dissoudre au commit').toBeNull();
   });
@@ -155,7 +156,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
     const loin = [...course.keys()].find((k) => !marche.has(k))!;
     const [x, y] = loin.split(',').map(Number);
     get().jouerLOffre('course');
-    get().battleClickTile({ x, y });
+    get().cliquerLaCase({ x, y });
     expect(get().pendingRun ?? get().pendingCascade, 'la Course réelle n’a pas démarré').toBeTruthy();
     expect(get().localIntent).toBeNull();
   });
@@ -179,7 +180,6 @@ describe('(d) COOP : l’intention est LOCALE au client', () => {
   it('l’ARMEMENT n’est pas un intent réseau (seul le COMMIT du geste en est un)', () => {
     expect(GUEST_INTENTS).not.toContain('battleArmIntent');
     // Le commit, lui, passe par les portes de clic déjà exposées.
-    expect(GUEST_INTENTS).toContain('battleClickTile');
-    expect(GUEST_INTENTS).toContain('battleClickEntity');
+    expect(GUEST_INTENTS).toContain('cliquerLaCase');
   });
 });

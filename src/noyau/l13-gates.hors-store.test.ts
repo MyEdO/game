@@ -19,6 +19,7 @@ import type { AttackResult } from '../engine/combat';
 import type { CastResult, MissileResult } from '../engine/magic';
 import { desEnSuite } from '../engine/dice.testkit';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -91,7 +92,7 @@ describe('L13 — gates & redirections', () => {
     const turn = banc.getState().battle!.order.indexOf(hero.id);
     banc.setState({ battle: { ...banc.getState().battle!, turn, action: null, acted: false } });
     // Tap-2 (confirm) sur la cible bénie → AUCUNE attaque encore : on diffère derrière pendingWard.
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingWard).toMatchObject({ attackerId: hero.id, targetId: E.id });
     expect(banc.getState().pendingAttack).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();
@@ -105,7 +106,7 @@ describe('L13 — gates & redirections', () => {
     E.pos = { x: 11, y: 10 };
     const turn = banc.getState().battle!.order.indexOf(hero.id);
     banc.setState({ battle: { ...banc.getState().battle!, turn, action: null, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     // Force le succès du Test de FM puis valide → l’attaque se relance (cascade d’attaque ouverte).
     banc.setState({ pendingWard: { ...banc.getState().pendingWard!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
     banc.getState().jetConfirm('ward');
@@ -122,7 +123,7 @@ describe('L13 — gates & redirections', () => {
     E.pos = { x: 11, y: 10 };
     const turn = banc.getState().battle!.order.indexOf(hero.id);
     banc.setState({ battle: { ...banc.getState().battle!, turn, action: null, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.setState({ pendingWard: { ...banc.getState().pendingWard!, result: { success: false, roll: 96, target: 50, sl: -4 } } });
     banc.getState().jetConfirm('ward');
     expect(banc.getState().pendingWard).toBeNull();

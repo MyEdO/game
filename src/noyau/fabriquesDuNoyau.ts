@@ -76,7 +76,7 @@ type NomDeVerbe = ActionDuLexique | `${ActionDuLexique}${Majuscule}${string}`
 type NomEnAttente =
   'abandonPossession' | 'addToCart' | 'addToSellCart' | 'appraiseGear' | 'appraiseItem' | 'armPreempt'
   | 'assignDistribution' | 'assignLootGear' | 'assignVictoryGear' | 'barterExchange' | 'battleArmIntent'
-  | 'battleClearPreview' | 'battleClickEntity' | 'battleClickTile' | 'buyCharAdvance' | 'buySkillAdvance' | 'buySpell'
+  | 'battleClearPreview' | 'buyCharAdvance' | 'buySkillAdvance' | 'buySpell'
   | 'buySpellComponent' | 'buyTalent' | 'changeCareer' | 'choisirApparence' | 'clearCart' | 'clearSellCart'
   | 'climbAcross' | 'confirmSell' | 'createLoadout' | 'decFromCart' | 'deleteLoadout' | 'designateCareerSlot'
   | 'disembark' | 'dispelSelectCarrier' | 'embark' | 'fallAcross' | 'favorBreak' | 'favorSettle' | 'gatherInnInfo'

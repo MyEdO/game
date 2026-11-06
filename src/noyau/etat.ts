@@ -81,7 +81,7 @@ export interface BattleState {
    *  +2 crans de Difficulté (Manque de bras, MDG 14 l.53). */
   crewActed?: Record<string, string[]>;
   /** Mode d'action À BOUTON en cours (panneau ouvert). Le déplacement et l'attaque n'ont PAS de mode :
-   *  ils sont implicites au clic (sol/ennemi) quand `action === null` — cf. battleClickTile/Entity.
+   *  ils sont implicites au clic (sol/ennemi) quand `action === null` — cf. `cliquerLaCaseDuCombat`/`cliquerLeCombattant`.
    *  La Focalisation / l'usage d'objet / le ramassage NE sont PAS des modes : ils passent par
    *  `focaliserLeSort`→`pendingFocus`, `utiliserLObjet`, `ramasserLObjet`.
    *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +

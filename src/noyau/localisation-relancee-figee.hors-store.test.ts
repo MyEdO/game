@@ -8,6 +8,7 @@ import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, HitLocation, Weapon } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -64,7 +65,7 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
     E.wounds = blessuresDeBase(30, 0, E);
     E.talents = [{ talentId: 'chanceux', times: 1 }] as never; // AA 07 l.67
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     seedBattleRng(3);
     banc.getState().jetRoll('attack');
     banc.getState().jetForceSuccess('attack');

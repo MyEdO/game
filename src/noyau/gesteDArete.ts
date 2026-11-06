@@ -11,6 +11,7 @@
 import type { Jeu, BattleState } from './etat';
 import type { Combatant } from '../engine/types';
 import type { Pt } from './monde/path';
+import type { IdDeCombattant } from './designations';
 import type { MsgKey } from '../i18n';
 import { caseOpposee, type AreteUtilisable, type CapaciteArete } from './aretes';
 import { mouvementDeLaChute, type RefusFranchissement, metresRetenus, planFranchissement, tombantsNommes, mouvementDeLAllege } from './fallMove';
@@ -58,12 +59,12 @@ export const gesteDeDenivele = (a: AreteUtilisable): GesteDeDenivele | null =>
   estDeplacant(a.capacite) ? { verbe: VERBE_DU_GESTE_DEPLACANT[a.capacite], args: [a.ancrage, caseOpposee(a)] } : null;
 
 /** Le geste qu'une arête offre, en verbe du noyau : un dénivelé (`gesteDeDenivele`), le geste de l'accès
- *  (`gesteDuPortail`), la structure qu'on frappe par le clic de son Combattant (`battleClickEntity`). */
-export function gesteDeLArete(s: Jeu, a: AreteUtilisable): GesteDeDenivele | GesteDuPortail | { verbe: 'battleClickEntity'; args: [string] } | null {
+ *  (`gesteDuPortail`), la structure qu'on frappe par le clic de son Combattant, sur sa case (`cliquerLaCase`). */
+export function gesteDeLArete(s: Jeu, a: AreteUtilisable): GesteDeDenivele | GesteDuPortail | { verbe: 'cliquerLaCase'; args: [Pt, IdDeCombattant] } | null {
   const denivele = gesteDeDenivele(a);
   if (denivele) return denivele;
   if (a.portail) return gesteDuPortail(s, a.portail);
-  return a.cid ? { verbe: 'battleClickEntity', args: [a.cid] } : null;
+  return a.cid ? { verbe: 'cliquerLaCase', args: [a.ancrage, a.cid] } : null;
 }
 
 /** Les arêtes offertes : un geste déplaçant n'est offert que si le mobile peut le jouer maintenant (`ouverts`,

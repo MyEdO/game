@@ -44,7 +44,7 @@ export { quiTientLaMain } from './netOwnership';
 export { siegeDe } from './sieges';
 export { DESIGNATIONS } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
-export { CLICS_DU_CHAMP, CLICS_DE_L_EXPLORATION, type GesteDuNoyau } from './actionsDuNoyau';
+export { CLIC_DU_CHAMP, type GesteDuNoyau } from './actionsDuNoyau';
 export { capDuGroupe, porteurParId } from './monde/combatants';
 export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';

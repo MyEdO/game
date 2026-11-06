@@ -7,6 +7,7 @@ import { createHero } from '../engine/character';
 import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -72,7 +73,7 @@ describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! »
     E.armour = { tete: autresPA, brasG: paBrasG, brasD: autresPA, corps: autresPA, jambeG: autresPA, jambeD: autresPA };
     E.talents = chanceux ? [{ talentId: 'chanceux', times: 1 }] as never : []; // AA 07 l.67
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     seedBattleRng(3);
     banc.getState().jetRoll('attack');
     expect(banc.getState().pendingAttack!.result!.hit, 'la graine fait rater le jet').toBe(false);

@@ -654,7 +654,7 @@ export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
    *  est un ARRIVAGE sur place — le même commit que le clic-sol, par la même porte. */
   teleportStay: relais((get) => {
     const active = actif(get);
-    if (active?.pos) get().battleClickTile({ ...active.pos });
+    if (active?.pos) get().cliquerLaCase({ ...active.pos });
   }),
 };
 

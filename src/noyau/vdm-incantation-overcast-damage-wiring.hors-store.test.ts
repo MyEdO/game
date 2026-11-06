@@ -17,6 +17,7 @@ import { testScene } from '../scenes/test-fixture';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { findSpellById } from '../data';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -42,7 +43,7 @@ function setup() {
   enemy.characteristics.endurance = 20;
   enemy.wounds = blessuresDeBase(40, 40, enemy);
   banc.setState({ battle: { ...b, turn: b.order.indexOf(heroC.id), action: 'cast', selectedSpellId: 'carreau', acted: false } });
-  banc.getState().battleClickEntity(enemy.id);
+  cliquerSurLeCombattant(banc.getState, enemy.id);
   // Jet FIGÉ (DR 10 pour NI 4 → surplus 6, budget VDM = 6 pas) — exactement ce que produit
   // `resolveMagicMissile` au ROLL, AVANT que l'allocation de Surincantation n'existe (0 pas).
   const frozen: CastResult = { cast: true, roll: 20, target: 90, sl: 10, isCritical: false, isFumble: false, log: 'jet' };
@@ -83,7 +84,7 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
     const b = banc.getState().battle!;
     const heroC = b.combatants.find((c) => c.label === 'W')!;
     banc.setState({ battle: { ...b, turn: b.order.indexOf(heroC.id), action: 'cast', selectedSpellId: 'armure-aethyrique', acted: false } });
-    banc.getState().battleClickEntity(heroC.id);
+    cliquerSurLeCombattant(banc.getState, heroC.id);
     banc.setState((s) => ({
       pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 10, isCritical: false, isFumble: false, log: 'jet' } },
     }));

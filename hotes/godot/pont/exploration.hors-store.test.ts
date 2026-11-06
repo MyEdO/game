@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
-import { CLICS_DE_L_EXPLORATION, type plateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, type plateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
 const { appel } = table();
@@ -24,7 +24,7 @@ describe('l’exploration par le pont', () => {
     }
     const exploration = suite.vue.projection.exploration!;
     expect(exploration, 'hors combat, la vue est celle de l’exploration').not.toBeNull();
-    expect(suite.vue.champ, 'rien ne tient la main : un clic de case fait marcher le groupe').toEqual(CLICS_DE_L_EXPLORATION);
+    expect(suite.vue.champ, 'rien ne tient la main : un clic de case fait marcher le groupe').toBe(CLIC_DU_CHAMP);
     expect(exploration.heros.map((h) => h.pos), 'chaque héros se tient à la case du groupe').toEqual(exploration.heros.map(() => exploration.groupe));
     expect(Object.keys(suite.vue.corps.combattants).sort(), 'chaque héros a son corps dans la vue').toEqual(exploration.heros.map((h) => h.id).sort());
 
@@ -47,7 +47,7 @@ describe('l’exploration par le pont', () => {
     expect(porteDuPlateau(suite.vue.plateau!.aretes)?.ouverte, 'la porte ouverte, le plateau la dessine ouverte').toBe(true);
 
     const reduit = { x: 4, y: 1 };
-    ({ suite } = drainer(appel, appel('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [reduit] })));
+    ({ suite } = drainer(appel, appel('jouer', { type: CLIC_DU_CHAMP, args: [reduit] })));
     expect(suite.vue.projection.exploration!.groupe, 'la porte ouverte, le clic d’une case du réduit y mène le groupe').toEqual([reduit.x, reduit.y]);
   });
 });

@@ -1,6 +1,6 @@
 /**
  * Actions de COMBAT du jeu (#2817 D5) — `createCombatSlice(get, set)`, fabrique du noyau : clic de
- * combat (battleClick*), attaque, défense et cascade, désengagement, monture, fin de tour, pause de
+ * combat (`cliquerLeCombattant`, `cliquerLaCaseDuCombat`), attaque, défense et cascade, désengagement, monture, fin de tour, pause de
  * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
 import type { Get, Set } from './flowTypes';
@@ -649,7 +649,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!foe || !areGrappling(active, foe) || isOutOfAction(foe)) return;
       startGrapple(get, set, active, foe);
     },
-    battleClickTile: (pt: Pt, opts?: TileClickOpts) => {
+    cliquerLaCaseDuCombat: (pt: Pt, opts?: TileClickOpts) => {
       const { battle, scene } = get();
       if (!battle || !scene || battle.over || champAttendSaFenetre(get())) return;
       const active = activeCombatant(battle);
@@ -688,7 +688,7 @@ export function createCombatSlice(get: Get, set: Set) {
         return;
       }
       // Peur (LDB 21 l.27) : `retenuParLaPeur`. L'intention rejoue le clic BRUT (`pt`) après le Test →
-      // `battleClickTile` re-résout l'escalier ; le contrôle, lui, porte sur la destination réelle (`dest`).
+      // `cliquerLaCaseDuCombat` re-résout l'escalier ; le contrôle, lui, porte sur la destination réelle (`dest`).
       const fearGateBlocks = (): boolean =>
         retenuParLaPeur(get, set, active, dest, { kind: 'tile', pt: { ...pt }, courseArmee: courseDemandee });
       const geom = mountOf(battle, active) ?? active;
@@ -773,7 +773,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ localIntent: !actionId || armed?.actionId === actionId ? null : { actionId } });
       bus.emit(EVT.SCENE_DIRTY);
     },
-    battleClickEntity: (id: string, opts?: BattleClickOpts) => {
+    cliquerLeCombattant: (id: string, opts?: BattleClickOpts) => {
       const battle = get().battle;
       if (!battle || battle.over) return;
       // Tir rapide ARMÉ (pause de début de Round, LDB 11 l.97-103) : cliquer un adversaire — token de carte OU portrait
@@ -1079,7 +1079,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // ciblage-CASE 'push' — le clic-sol suivant (PUSH_MODE.commitTile, targetingModes.ts) commet la
     // translation de la formation. Gate : chef d'un poste MOBILE (`pushEligible`), Action dispo, Équipe ≥
     // moitié requise (`pushCrewOk`, sinon no-op — comme un tir sous-effectif refusé, `firedAttackBlock`).
-    // Ne consomme RIEN ici (la dépense de l'Action a lieu au COMMIT, comme `battleClickTile`/`servirLePoste`).
+    // Ne consomme RIEN ici (la dépense de l'Action a lieu au COMMIT, comme `cliquerLaCaseDuCombat`/`servirLePoste`).
     pousserLEngin: () => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const battle = get().battle;
@@ -1752,7 +1752,7 @@ export function createCombatSlice(get: Get, set: Set) {
         return;
       }
       // Quitter le mode incantation oublie le sort sélectionné. Le déplacement et l'attaque sont
-      // implicites au clic (battleClickTile/battleClickEntity), sans mode : le reachable stocké ne
+      // implicites au clic (cliquerLaCaseDuCombat/cliquerLeCombattant), sans mode : le reachable stocké ne
       // porte que les budgets spéciaux (Course, post-Désengagement), on ne le touche pas ici.
       const selectedSpellId = a === 'cast' ? battle.selectedSpellId : null;
       // Changer (ou quitter) le mode armé oublie le PORTEUR élu du mode Dissiper : son panneau de
@@ -2053,7 +2053,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
         const pm = garanti(get().pendingMountTarget, id, 'cible du couple monté');
         set({ pendingMountTarget: null });
         // Le verdict d'armement du clic d'origine revient avec la relance (même raison que le gate de Peur).
-        get().battleClickEntity(id, { skipMountChoice: true, approche: pm.approche });
+        get().cliquerLeCombattant(id, { skipMountChoice: true, approche: pm.approche });
       },
     },
   };
@@ -2852,8 +2852,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Relance l'intention différée (le gate est 'passed') AVEC son verdict d'armement :
         // l'intention qui l'a produite a été dissoute par le premier clic, la relire ici refuserait le
         // geste que le joueur vient de gagner à son Test `calme-d-approche`.
-        if (pa.intent.kind === 'tile') get().battleClickTile(pa.intent.pt, { confirm: true, courseArmee: pa.intent.courseArmee });
-        else get().battleClickEntity(pa.intent.id, { confirm: true, approche: pa.intent.approche });
+        if (pa.intent.kind === 'tile') get().cliquerLaCaseDuCombat(pa.intent.pt, { confirm: true, courseArmee: pa.intent.courseArmee });
+        else get().cliquerLeCombattant(pa.intent.id, { confirm: true, approche: pa.intent.approche });
       }
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -2874,7 +2874,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         : t('cs.shameBlocked', { name: attacker.label, foe: target.label }), attacker.id, target.id)];
       set({ battle: { ...get().battle!, log } });
       // Succès : relance la déclaration d'attaque (le gate est franchi pour CE clic via `wardCleared`).
-      if (ok) get().battleClickEntity(pw.targetId, { confirm: true, wardCleared: true, approche: pw.approche });
+      if (ok) get().cliquerLeCombattant(pw.targetId, { confirm: true, wardCleared: true, approche: pw.approche });
       bus.emit(EVT.SCENE_DIRTY);
     },
     reload: () => {

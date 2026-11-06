@@ -16,7 +16,7 @@ import { KEYBINDINGS } from './clavier/keybindings';
 /**
  * ÉMISSION — une route ne protège que ce que quelqu'un ÉMET. Le défaut d'origine était exactement
  * là : `cleaveAttack` routé alors qu'AUCUN site d'écran ne le demande (le clic voyage par
- * `battleClickEntity`). Chaque intent routé par #1016 déclare donc son émetteur, et le scan
+ * `cliquerLaCase`). Chaque intent routé par #1016 déclare donc son émetteur, et le scan
  * CONFRONTE la déclaration aux sources d'écran.
  * UN GESTE PEUT ÊTRE ÉMIS PAR TROIS CHEMINS, et le scan les connaît tous les trois :
  *   1. TEXTUEL — le nom du verbe apparaît dans une source d'écran (`src/ui`/`src/gameIso`) ;
@@ -28,12 +28,10 @@ import { KEYBINDINGS } from './clavier/keybindings';
  * DEUX LIMITES DÉCLARÉES : (a) le scan reste TEXTUEL — il prouve l'existence d'un site d'émission,
  * JAMAIS son atteignabilité à l'écran (bouton affiché, affordance ouverte), qui se juge en recette
  * navigateur ; (b) la liste confrontée à cette table est DÉRIVÉE de `netOwnership.ROUTES` (#1051) —
- * toute route nominative doit donc déclarer son émetteur, sauf celles que `Route.horsAllowlist`
- * marque inatteignables par le réseau.
+ * toute route nominative doit donc déclarer son émetteur.
  */
 const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string } | { sansSurface: string }> = {
-  battleClickEntity: { parUI: true },
-  battleClickTile: { parUI: true },
+  cliquerLaCase: { parUI: true },
   // L'offre du registre (#3371) : chaque case, touche ou bandeau qui la joue (`jouerLOffre(<id>)`).
   jouerLOffre: { parUI: true },
   // Les sorts de la fiche, hors combat comme en combat (`CharacterSheet`).
@@ -150,7 +148,7 @@ describe('#1016 — toute route porte sur un geste RÉELLEMENT émis (ou déclar
     const derivees = new Set<string>(Object.values(NOM_DU_VERBE_DE_JET));
     const routes = [...ROUTES.keys()].filter((a) => !derivees.has(a));
     expect(routes.length, 'précondition : la table expose bien ses routes nominatives').toBeGreaterThan(10);
-    const sansVerdict = routes.filter((n) => !(n in EMISSION) && !ROUTES.get(n)!.horsAllowlist);
+    const sansVerdict = routes.filter((n) => !(n in EMISSION));
     expect(sansVerdict, 'route sans entrée EMISSION — déclarer qui l’émet').toEqual([]);
   });
 });

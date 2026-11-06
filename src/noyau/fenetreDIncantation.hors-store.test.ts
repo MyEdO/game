@@ -199,7 +199,7 @@ describe('pose de la Zone d’Effet : refusée sur un Sort qui ne part pas, la p
     const banc = ouvrirLeBanc({ desFixes: true });
     const { H } = enCombat(banc);
     banc.setState({ battle: { ...banc.getState().battle!, action: 'cast', selectedSpellId: 'explosion' } });
-    banc.getState().battleClickTile({ x: 9, y: 9 });
+    banc.getState().cliquerLaCase({ x: 9, y: 9 });
     expect(banc.getState().pendingCast, 'chemin : la zone s’ouvre sans centre').toMatchObject({ casterId: H.id, zone: { center: null } });
     banc.getState().jetRoll('cast');
     banc.getState().jetSetForcedRoll('cast', 99);

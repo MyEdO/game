@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
-import { CLICS_DU_CHAMP } from '../../../src/noyau/index';
+import { clicDuCombattant } from './pont';
 import type { Bouton, Choix, Element } from '../../../src/hote/elements';
 
 const { appel } = table();
@@ -44,7 +44,7 @@ describe('Entrée dans la cascade', () => {
         expect(combat && !combat.fin, 'le combat se poursuit').toBeTruthy();
         const offres = suite.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
         jeu = combat!.intention && combat!.cibles.liste.length
-          ? { type: CLICS_DU_CHAMP.combattant, args: [combat!.cibles.liste[0]] }
+          ? clicDuCombattant(suite.vue, combat!.cibles.liste[0])!
           : (offres.find((o) => o.id === 'attaque' && !combat!.intention) ?? offres.find((o) => o.id === 'end-turn'))!.jeu;
       }
       ({ suite } = drainer(appel, appel('jouer', jeu)));

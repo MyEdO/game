@@ -27,6 +27,7 @@ import { FICHE_DE_TEST, poserFicheDeTest, restaurerFiche, testDeFiche, testDuJeu
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { draineCascade } from './cascade.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 /**
  * CÂBLAGE des Tests nommés (#2779, #1173) : la compétence et la Difficulté d'un Test que nomme une règle
@@ -115,8 +116,8 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
   it('Course d’un cavalier : le clic de case au-delà de la Marche, Course armée, ouvre le Test de `course` sur Chevaucher (LDB 14 l.179), Difficulté de la fiche', () => {
     const { R } = enSelle();
     const cible = caseDeCourse();
-    g().battleClickTile(cible, { courseArmee: true });
-    g().battleClickTile(cible, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { courseArmee: true });
     expect(g().pendingRun, 'la Course s’ouvre').toMatchObject({ combatantId: R.id, dest: cible });
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' }, difficulty: testDeFiche('course', 'courir').difficulty });
   });
@@ -129,8 +130,8 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const [cle] = [...computeRunReach(g)].sort((a, b) => b[1] - a[1])[0];
     const [x, y] = cle.split(',').map(Number);
     const cible = { x, y };
-    g().battleClickTile(cible, { courseArmee: true });
-    g().battleClickTile(cible, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { courseArmee: true });
     expect(g().pendingRun, 'la Course s’ouvre').toMatchObject({ combatantId: R.id, dest: cible });
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' } });
   });
@@ -175,7 +176,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H, E } = auCombat();
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 2, calmeDR: 0 }];
     banc.setState({ battle: { ...g().battle!, reachable: new Map([['11,10', 1]]) } });
-    g().battleClickTile({ x: 11, y: 10 }, { confirm: true });
+    g().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     expect(g().pendingApproach!.test).toMatchObject(testDeFiche('calme-d-approche', 'se-rapprocher'));
     g().jetRoll('approach');
     expect(g().pendingApproach!.result!.target).toBe(cible(H, 'calme-d-approche', 'se-rapprocher'));
@@ -185,7 +186,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H, E } = auCombat();
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 2, calmeDR: 0 }];
     E.pos = { x: 13, y: 10 };
-    g().battleClickEntity(E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(g, E.id, { confirm: true, approche: true });
     expect(g().pendingApproach!.test).toMatchObject(testDeFiche('calme-d-approche', 'se-rapprocher'));
   });
 

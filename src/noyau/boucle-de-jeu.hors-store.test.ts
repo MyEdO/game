@@ -50,6 +50,7 @@ import { poserLeGroupe } from './marcheDuGroupe';
 import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { blessuresPosees } from '../engine/characteristics';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => {
@@ -617,7 +618,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'flechette', acted: false } });
     // Flux par modale : cliquer la cible OUVRE l'incantation (jet différé), n'applique rien.
-    banc.getState().battleClickEntity(enemy.id);
+    cliquerSurLeCombattant(banc.getState, enemy.id);
     expect(banc.getState().pendingCast).not.toBeNull();
     expect(banc.getState().battle!.acted).toBe(false); // pas encore lancé
     banc.getState().jetRoll('cast'); // « Lancer » : fige le jet
@@ -648,7 +649,7 @@ describe('Boucle de jeu (store)', () => {
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'benediction-de-bataille', acted: false } });
-    banc.getState().battleClickEntity(heroC.id); // se cibler soi-même → ouvre la modale
+    cliquerSurLeCombattant(banc.getState, heroC.id); // se cibler soi-même → ouvre la modale
     banc.getState().jetRoll('cast'); // « Lancer »
     banc.getState().jetConfirm('cast'); // « Appliquer »
     st = banc.getState();
@@ -677,7 +678,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     const before = enemy.wounds.current;
-    banc.getState().battleClickEntity(enemy.id, { confirm: true }); // ouvre la modale d'attaque
+    cliquerSurLeCombattant(banc.getState, enemy.id, { confirm: true }); // ouvre la modale d'attaque
     banc.getState().jetRoll('attack'); // lance le jet
     banc.getState().jetConfirm('attack'); // applique le résultat
     st = banc.getState();
@@ -738,7 +739,7 @@ describe('Boucle de jeu (store)', () => {
     heroC.pos = { x: enemy.pos!.x - 1, y: enemy.pos!.y }; // adjacent
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(enemy.id, { confirm: true }); // ouvre la modale
+    cliquerSurLeCombattant(banc.getState, enemy.id, { confirm: true }); // ouvre la modale
     banc.getState().jetRoll('attack'); // le +1 Sonné s'applique AVANT le jet
     st = banc.getState();
     const heroAfter = st.battle!.combatants.find((c) => c.id === heroC.id)!;
@@ -860,7 +861,7 @@ describe('Boucle de jeu (store)', () => {
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y }; // adjacent : seul le Sonné bloque l'attaque
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack).toBeNull(); // Action refusée (Sonné)
     expect(computeMoveReach(banc.getState).size).toBeGreaterThan(0); // le déplacement reste permis (à demi-Mouvement)
   });
@@ -909,7 +910,7 @@ describe('Boucle de jeu (store)', () => {
     H.pos = { x: E.pos!.x - 1, y: E.pos!.y };
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
     st = banc.getState();
@@ -936,7 +937,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     banc.abandonner();
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : l'approche vers l'ennemi cliqué se DEMANDE.
-    banc.getState().battleClickEntity(E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, approche: true });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     st = banc.getState();
     const Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -960,7 +961,7 @@ describe('Boucle de jeu (store)', () => {
     E.pos = { x: 8, y: 10 };
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true }); // Engagé → pas de Charge (plan blocked)
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // Engagé → pas de Charge (plan blocked)
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0); // pas de charge
     expect(st.pendingAttack).toBeNull();
@@ -1004,7 +1005,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     // Clic confirmé sur la monture → la modale de choix s'ouvre (pas d'attaque encore).
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : le couple est hors d'Allonge, l'approche se demande.
-    banc.getState().battleClickEntity(mount.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, mount.id, { confirm: true, approche: true });
     st = banc.getState();
     // Le verdict voyage DANS le pending : le choix `mountTarget.cible` relance le clic, l'intention est déjà dissoute.
     expect(st.pendingMountTarget).toEqual({ riderId: rider.id, mountId: mount.id, approche: true });
@@ -1156,7 +1157,7 @@ describe('Boucle de jeu (store)', () => {
     E.advantage = 1; // force l'option B (Avantage non supérieur)
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
-    banc.getState().battleClickTile({ x: H.pos!.x - 1, y: H.pos!.y }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: H.pos!.x - 1, y: H.pos!.y }, undefined, { confirm: true });
     st = banc.getState();
     expect(st.pendingDisengage).not.toBeNull(); // routé vers le Désengagement
     expect(st.pendingDisengage!.phase).toBe('choice'); // clic-sol Engagé ouvre le menu de désengagement
@@ -1240,7 +1241,7 @@ describe('Boucle de jeu (store)', () => {
     // État après une tentative d'Esquive RATÉE : Action consommée (acted), héros toujours Engagé.
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: true }, pendingDisengage: null });
     const posBefore = { ...H.pos! };
-    banc.getState().battleClickTile({ x: posBefore.x - 1, y: posBefore.y }, { confirm: true }); // re-clic sol
+    banc.getState().cliquerLaCase({ x: posBefore.x - 1, y: posBefore.y }, undefined, { confirm: true }); // re-clic sol
     st = banc.getState();
     // Pas de NOUVELLE Esquive (l'Action est dépensée, LDB 15 l.49) : seule la Fuite, « coup dans le dos », reste
     // (LDB 15 l.49, l.61).
@@ -1306,7 +1307,7 @@ describe('Boucle de jeu (store)', () => {
     H.pos = { x: E.pos!.x - 1, y: E.pos!.y - 1 }; // DIAGONALE : Chebyshev 1, mais manhattan 2
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true }); // doit ouvrir la modale (Chebyshev, pas Manhattan)
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // doit ouvrir la modale (Chebyshev, pas Manhattan)
     st = banc.getState();
     expect(st.pendingAttack).not.toBeNull(); // attaque en diagonale autorisée
     expect(st.pendingAttack!.targetId).toBe(E.id);
@@ -2440,7 +2441,7 @@ describe('annulerLeDeplacement — annuler un déplacement décomposé tant qu�
     const H = moveSetup();
     const from = { ...H.pos! };
     const target = firstMoveTarget(from.x, from.y);
-    banc.getState().battleClickTile(target, { confirm: true });
+    banc.getState().cliquerLaCase(target, undefined, { confirm: true });
     let st = banc.getState();
     expect(st.battle!.movementUsed).toBeGreaterThan(0);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(target);
@@ -2455,7 +2456,7 @@ describe('annulerLeDeplacement — annuler un déplacement décomposé tant qu�
     const H = moveSetup();
     const from = { ...H.pos! };
     const target = firstMoveTarget(from.x, from.y);
-    banc.getState().battleClickTile(target, { confirm: true });
+    banc.getState().cliquerLaCase(target, undefined, { confirm: true });
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } }); // une Action a été prise
     banc.getState().annulerLeDeplacement();
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(target);
@@ -2613,7 +2614,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   it('tirer consomme 1 munition et décharge une arme à Recharge', () => {
     const { H, E } = archer();
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true }); // ouvre la modale d'attaque (chargé + munition OK)
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // ouvre la modale d'attaque (chargé + munition OK)
     expect(banc.getState().pendingAttack).not.toBeNull();
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
@@ -2625,7 +2626,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   it('arme déchargée : tir refusé (modale non ouverte)', () => {
     const { H, E } = archer();
     rangedOf(H).loaded = false;
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
@@ -2716,7 +2717,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   it('plus de munitions : tir refusé', () => {
     const { H, E } = archer();
     (H.items![0] as ItemInstance).qty = 0;
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
@@ -2756,7 +2757,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     h = swap('pist');
     expect(weaponLoaded(h, h.weapons.find((w) => w.uid === 'w-pist')!)).toBe(true);
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack, 'le pistolet chargé TIRE').not.toBeNull();
     banc.getState().jetCancel('attack');
     // (4) Retour à l'ARBALÈTE : elle est restée déchargée, avec SA progression intacte.
@@ -2876,7 +2877,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // La sélection change APRÈS le chargement : le coup déjà chargé, lui, ne change pas.
     rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).ammoUid = 'am1';
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -2891,7 +2892,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).loadedAmmoUid = 'am1';
     rangedOf(H).ammoUid = 'am2';
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -2911,7 +2912,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().approvisionnerLArme('fl2');
     expect(rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).loaded).toBe(true);
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -2928,7 +2929,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     H.items = [{ uid: 'fl1', label: 'Flèche', kind: 'ammo', qualities: [{ id: 'empaleuse' }], enc: 0, equipped: false, subType: 'Arc', qty: 5 } as ItemInstance];
     rangedOf(H).loaded = true;
     rangedOf(H).ammoUid = 'fl1';
-    banc.getState().battleClickEntity(E.id, { confirm: true }); // E à (4,0) → l'Arc (weapons[1]) doit s'employer, pas « hors de portée de mêlée »
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // E à (4,0) → l'Arc (weapons[1]) doit s'employer, pas « hors de portée de mêlée »
     expect(banc.getState().pendingAttack).not.toBeNull();
   });
 
@@ -2960,7 +2961,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // Difficulté du jet (#1153) au lieu de flotter en chip — on lit donc TOUT ce que la ligne nomme.
     banc.setState({ battle: { ...banc.getState().battle!, acted: false, action: null } });
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     const pa = banc.getState().pendingAttack!;
     const d = pa.result!.attackerDetail!;

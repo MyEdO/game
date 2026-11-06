@@ -10,6 +10,7 @@ import { createHero } from '../engine/character';
 import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -34,7 +35,7 @@ function openCast() {
   const b = banc.getState().battle!;
   const heroC = b.combatants.find((c) => c.label === 'W')!;
   banc.setState({ battle: { ...b, turn: b.order.indexOf(heroC.id), action: 'cast', selectedSpellId: 'allure-demoniaque', acted: false } });
-  banc.getState().battleClickEntity(heroC.id);
+  cliquerSurLeCombattant(banc.getState, heroC.id);
   banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: critRes } }));
   banc.getState().jetRegler('cast', 'effetCritique', 'puissance');
 }

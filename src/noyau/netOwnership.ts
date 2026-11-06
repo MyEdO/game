@@ -7,12 +7,11 @@ import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
 import { fenetreDuRegistre, modalOwnerOf, horsModalByPending, sortieDeLaFenetre, validationDeLaFenetre, type GesteDeFenetreDeclare, type HorsModalDef, type QuiValideLaFenetre } from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
-import { seatOwns, jetSurfaced, siegeDuHeros } from './sieges';
+import { seatOwns, jetSurfaced, siegeDuHeros, worldSeat } from './sieges';
 import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type NomDeVerbeDeJet, type RollVerb } from './flowVerbs';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { lieuDeLOffre } from './actionRegistry';
 import type { ActionDeClasse } from './intentionsDeSiege';
 import type { PendingKey } from './stateFields';
@@ -401,15 +400,10 @@ export function seatSlotsRemaining(s: Pick<Jeu, 'net' | 'party'>, seat: number):
  */
 export interface Route {
   rule: (s: Jeu, seat: number, args: unknown[]) => boolean | null;
-  /** Route CONSERVÉE bien que son intent soit hors `GUEST_INTENTS` (défense en profondeur : un futur
-   *  ajout à l'allowlist ne doit pas ouvrir le geste à tous). La valeur porte la raison MESURÉE. */
-  horsAllowlist?: string;
 }
 
-/** L'entrée d'une route, par nom de verbe (#3371 §3.5) : un verbe que l'invité joue, ou tout verbe du noyau dont la route
- *  se garde hors allowlist. */
-type EntreeDeRoute = readonly [ActionDeClasse<'invité'> | NomDeVerbeDeJet, Route]
-  | readonly [keyof ActionsDuNoyau, Route & Required<Pick<Route, 'horsAllowlist'>>];
+/** L'entrée d'une route, par nom de verbe (#3371 §3.5) : un verbe que l'invité joue. */
+type EntreeDeRoute = readonly [ActionDeClasse<'invité'> | NomDeVerbeDeJet, Route];
 
 /**
  * Assemble la table des routes en FAIL-FAST : une clé fournie deux fois lève un litige NOMINATIF au
@@ -443,9 +437,9 @@ const PAR_ARG1: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[
 /**
  * CLIC DE CARTE pendant un ciblage détenu par une fenêtre HORS registre de modales (#1016) — c'est
  * LE chemin : le balayage et la 2ᵉ frappe (`cleaveAttack`/`dualStrikeAttack`) sont la machinerie du clic
- * (`targetingModes`, `MachinerieDuNoyau`), et le clic voyage par `battleClickEntity`/`battleClickTile`. Ces deux verbes retombaient sur `modalOwnerOf`, qui ne consulte que
- * `MODAL_DEFS` : sous un `fateSave` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
- * REFUSÉ et la victime acceptée — son clic mourait ensuite dans les gardes de `battleClickEntity`,
+ * (`targetingModes`, `MachinerieDuNoyau`), et le clic voyage par `cliquerLaCase`. Ce clic retombait sur
+ * `modalOwnerOf`, qui ne consulte que `MODAL_DEFS` : sous un `fateSave` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
+ * REFUSÉ et la victime acceptée — son clic mourait ensuite dans les gardes de `cliquerLeCombattant`,
  * donc PERSONNE ne poursuivait le balayage. Tant qu'un pending hors-modale tient le ciblage
  * (`targetingHolder`, projection de `detenteurDuCiblage`, que l'aiguilleur projette aussi), le clic
  * appartient au PORTEUR de ce pending : l'attaquant du balayage / de la 2ᵉ frappe, l'artilleur du
@@ -463,13 +457,20 @@ const CLIC_CARTE: Route = {
 
 /**
  * CLIC-TOKEN pendant une visée de TIR RAPIDE armée (Talent « Tir rapide ») : le clic n'ouvre pas un
- * ciblage ordinaire, il DÉCLENCHE le tir d'interruption du héros visant (`combatSlice.battleClickEntity`
+ * ciblage ordinaire, il DÉCLENCHE le tir d'interruption du héros visant (`combatSlice.cliquerLeCombattant`
  * consulte `preemptAiming` AVANT toute autre garde) — la possession suit donc le TIREUR. Sans cela, la
  * pause de début de Round n'a AUCUN combattant actif (`turn: -1`) et le repli universel rendait l'hôte :
  * le clic de l'invité tireur était refusé. Hors visée armée : la route du clic de carte, inchangée.
  */
 const CLIC_ENTITE: Route = {
   rule: (s, seat, args) => (s.preemptAiming ? seatOwns(s, seat, s.preemptAiming) : CLIC_CARTE.rule(s, seat, args)),
+};
+
+/** LE CLIC DU CHAMP (`cliquerLaCase(pt, entite?)`), par ce qu'il désigne : hors combat, la marche du groupe est une
+ *  décision de GROUPE (#669), au siège du monde (`worldSeat`) ; en combat, un combattant désigné prend `CLIC_ENTITE`,
+ *  une case libre `CLIC_CARTE`. */
+const CLIC_DU_CHAMP: Route = {
+  rule: (s, seat, args) => (!s.battle ? seat === worldSeat(s) : args[1] ? CLIC_ENTITE.rule(s, seat, args) : CLIC_CARTE.rule(s, seat, args)),
 };
 
 /** Geste de la pause de début de Round visant un héros par son 1ᵉʳ argument (Tir rapide : armer la
@@ -632,8 +633,7 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['incanterLeSort', PAR_ARG0],
     ['focaliserLeSort', PAR_ARG0],
     ['dissiperLeSort', PAR_ARG0],
-    ['battleClickEntity', CLIC_ENTITE],
-    ['battleClickTile', CLIC_CARTE],
+    ['cliquerLaCase', CLIC_DU_CHAMP],
     // Pause de début de Round (`pendingRoundStart`) : la FENÊTRE est à tous ('*' — ready-check par
     // siège), ses gestes ne le sont pas.
     //  - `roundStartPromote` dépense la Chance du héros promu (LDB 17 l.25) → routé par le prédicat des
@@ -662,13 +662,6 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
       const duHeros = declaration.portee === 'rangee' && declaration.qui === 'proprietaire';
       return { ...registre, qui: declaration.qui, ...(duHeros ? { proprietaire: () => idArg(pid) } : {}) };
     })],
-    // #669 — la marche d'exploration est une décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) ;
-    // la réponse d'un dialogue et la désignation d'un héros sont des choix de fenêtre (`fenetreChoisir`), au siège du
-    // MONDE que leur registre déclare.
-    ['cliquerLaCase', {
-      rule: (s: Jeu, seat: number) => seat === (s.net.gmSeat ?? 0),
-      horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteur mesuré : `cliquerLaCase` useStagePointer)',
-    }],
   ],
   // Les gestes de jet, clôture comprise, routés par le flux qu'ils visent (`routeDuVerbeDeJet`).
   VERBES_DE_JET.map((v) => [NOM_DU_VERBE_DE_JET[v], routeDuVerbeDeJet(v)] as const),

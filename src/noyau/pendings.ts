@@ -728,7 +728,7 @@ export interface PendingApproach {
 /** Bénédiction de Protection (LDB 41 l.142 : « Les ennemis doivent effectuer un Test de Force Mentale
  *  Accessible (+20) pour attaquer votre cible […]. Sur un échec, ils doivent choisir une cible ou une
  *  Action différente. ») : la DÉCLARATION d'attaque d'un héros sur une cible bénie est DIFFÉRÉE derrière
- *  ce Test de FM. Succès → l'attaque est relancée (`battleClickEntity(targetId, {confirm, wardCleared})`) ;
+ *  ce Test de FM. Succès → l'attaque est relancée (`cliquerLeCombattant(targetId, {confirm, wardCleared})`) ;
  *  échec → l'attaque n'a pas lieu (rien n'est consommé). Modelé sur `PendingApproach` (gate pré-attaque). */
 export interface PendingWard {
   attackerId: string;

@@ -214,7 +214,7 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
     const { E, patch } = auContact(garde);
     const partie = creerPartie({ ...garde, ...patch }, ENTREES);
     try {
-      partie.envoyer({ type: 'battleClickEntity', args: [E.id, { confirm: true }] });
+      partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
       expect(geste(partie, 'jetRoll@attack')).toEqual({ ouvert: true, raison: null });
       expect(geste(partie, 'jetRegler@attack#localisation')).toEqual({ ouvert: true, raison: null });
       expect(geste(partie, 'jetSetForcedRoll@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });

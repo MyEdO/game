@@ -10,7 +10,7 @@
 import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
-import { CLICS_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
 import { baseDeTest, elementSchema3 } from '../asset/modeles.testkit.ts';
@@ -83,7 +83,7 @@ describe('le pont et sa partie', () => {
     expect(plateauDeLaScene({ ...scene, metresPerTile: 1.5 }).metresParCase, 'l’échelle que la scène déclare').toBe(1.5);
     expect(fautesDeLaFenetre(v), 'chaque verbe de la fenêtre ouverte, dessinable').toEqual([]);
     expect(v.champ, 'l’ouverture du round tient la main : le champ ne se clique pas').toBeNull();
-    for (const verbe of Object.values(CLICS_DU_CHAMP)) expect(VERBES[verbe], verbe).toBeDefined();
+    expect(VERBES[CLIC_DU_CHAMP], CLIC_DU_CHAMP).toBeDefined();
   });
 
   it('un jeton inconnu se refuse en `validation`', () => {

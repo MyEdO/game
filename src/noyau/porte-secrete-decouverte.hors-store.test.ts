@@ -155,7 +155,7 @@ describe('porte secrète — combat : aucune découverte', () => {
       scene: sc, lightLevel: 1,
       battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed: 0, acted: false, movedPreAction: false, reachable: new Map(), preview: null },
     });
-    banc.getState().battleClickTile({ x: 4, y: 2 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 4, y: 2 }, undefined, { confirm: true });
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 4, y: 2 });
     expect(banc.getState().pendingTest).toBeNull();
     expect(porteTentee(banc.getState().scene!, seg())).toBe(false);
