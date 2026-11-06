@@ -19,10 +19,10 @@ import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { CascadeStep } from './pendings';
-import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, SURFACES_HORS_PENDING, AUCUN_VERBE_DE_JOUEUR, cleDuGeste, type AutoPolicy, type FenetreQuiSeFerme, type GesteDuJeu, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type SurfaceHorsPendingDef, type VerbesDeFenetre } from './modalArbiter';
+import { pickActiveModalKey, modalOwnerOf, voyageHubActive, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, SURFACES_HORS_PENDING, AUCUN_VERBE_DE_JOUEUR, cleDuGeste, type AutoPolicy, type FenetreQuiSeFerme, type GesteDuJeu, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type SurfaceHorsPendingDef, type VerbesDeFenetre } from './modalArbiter';
 import { maladresseCourante, stepInteraction } from './cascade';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from './flowVerbs';
-import { influencesLocally } from './netOwnership';
+import { influencesLocally, ownsLocal } from './netOwnership';
 import { seatOwns } from './sieges';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { beatHold } from './combatDirector';
@@ -350,6 +350,23 @@ export function willAutoResolve(s: Jeu): boolean {
       return stepAutoResolved(s, pc.participants[pc.cursor]);
     }
   }
+}
+
+/**
+ * SIÈGE ATTENDU sur la modale prioritaire, vu de ce siège — `null` : aucun (solo, aucune modale, modale du
+ * hub de voyage, modale que le pilote d'auto-cadence résout seul, modale à tous `'*'`, ou modale de ce
+ * siège). Décision UNIQUE que lisent la puce de spectateur de la modale et la bande d'attente de la console.
+ * Vit ici, avec `willAutoResolve` qu'elle compose : `netOwnership` est importé par ce module.
+ */
+export function spectatorSeatOfModal(s: Jeu): number | null {
+  if (s.net.mode === 'local') return null;
+  const key = pickActiveModalKey(s);
+  if (!key) return null;
+  if ((key === 'cascade' || key === 'rest') && voyageHubActive(s)) return null;
+  if (willAutoResolve(s)) return null;
+  const ownerId = modalOwnerOf(s);
+  if (ownerId === '*' || ownerId === null || ownsLocal(s, ownerId)) return null;
+  return ownerId ? s.net.ownership[ownerId] ?? 0 : 0;
 }
 
 /**

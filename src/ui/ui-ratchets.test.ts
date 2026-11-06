@@ -434,7 +434,7 @@ function scanBareButtons(files: readonly Fichier[]) {
 }
 
 // ── (xv) Rangées TÉMOINS (`interactive:false`) porteuses d'une VALEUR inline (`d:`/`pending:`) hors
-//    du builder `opposedFrozen.ts` (#990) : toute rangée qui affiche le jet FIGÉ d'un adversaire doit
+//    du builder `frozenOpposedRow` (`rollRowBuild.ts`, #990) : toute rangée qui affiche le jet FIGÉ d'un adversaire doit
 //    passer par le calendrier de découverte UNIQUE (`frozenOpposedRow`) — sinon un site ré-affiche un
 //    jet masqué ailleurs. Le stock recensé au #990 est gelé et décroissant.
 //    COUVERTURE du détecteur (à énoncer, pas à supposer) : il ne voit que les littéraux de rangée

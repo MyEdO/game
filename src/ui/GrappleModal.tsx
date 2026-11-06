@@ -7,7 +7,7 @@ import { VsHeader } from './VsHeader';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { opposedLines } from './breakdown';
-import { opposedResponded } from './opposedFrozen';
+import { JET_FIGE, jetFigeRevele } from '../noyau/netOwnership';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { Icon } from './Icon';
 import { libelleDeTest } from '../noyau/jetsEnVue';
@@ -55,9 +55,8 @@ export function GrappleModal() {
   ]);
   // Rangée TÉMOIN : Force du foe, figée à l'ouverture (jamais relancée) — MASQUÉE tant que l'acteur
   // n'a pas répondu (#990 : `pd.def` est SA réponse ; le calendrier est celui de tous les jets figés).
-  const foeRow = frozenOpposedRow(useGame.getState(), {
-    ownerId: pd.foeId,
-    responded: opposedResponded(useGame.getState(), [{ id: pd.actorId, interactive: true, result: pd.def }]),
+  const foeRow = frozenOpposedRow({
+    revele: jetFigeRevele(useGame.getState(), JET_FIGE.grapple(pd)),
     row: { combatant: foe, d: foeLine.d },
   });
   // Rangée INTERACTIVE : Force de l'acteur, porteur de son cycle d'influence.

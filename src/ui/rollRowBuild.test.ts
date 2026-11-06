@@ -4,7 +4,6 @@
  */
 import { describe, it, expect } from 'vitest';
 import { buildRollRow, participantRow, tableRow, drawRow, worldRow, frozenOpposedRow, isBuiltRollRow } from './rollRowBuild';
-import type { GameState } from '../state/store';
 import type { Combatant } from '../engine/types';
 
 const hero = (): Combatant =>
@@ -64,7 +63,7 @@ describe('#1262 L0 — la famille de la porte', () => {
     expect(isBuiltRollRow(tableRow({ key: 's:die', row: {} }))).toBe(true);
     expect(isBuiltRollRow(drawRow({ row: {}, onRoll: () => {} }))).toBe(true);
     expect(isBuiltRollRow(worldRow({ row: {}, onRoll: () => {} }))).toBe(true);
-    expect(isBuiltRollRow(frozenOpposedRow({} as GameState, { responded: true, row: { d } }))).toBe(true);
+    expect(isBuiltRollRow(frozenOpposedRow({ revele: true, row: { d } }))).toBe(true);
     expect(isBuiltRollRow({ row: {}, rolled: false })).toBe(false);
   });
 
@@ -104,12 +103,12 @@ describe('#1262 L0 — la famille de la porte', () => {
   });
 
   it('`frozenOpposedRow` : témoin FIGÉ (`rolled` vrai même en valeur opaque `pending` — BargainModal:93)', () => {
-    const r = frozenOpposedRow({} as GameState, { responded: true, row: { pending: { label: 'Marchandage', base: 40 } } });
+    const r = frozenOpposedRow({ revele: true, row: { pending: { label: 'Marchandage', base: 40 } } });
     expect([r.rolled, r.interactive]).toEqual([true, false]);
   });
 
-  it('`frozenOpposedRow` : tant que la réponse n’est pas jouée, le calendrier masque — marque conservée', () => {
-    const r = frozenOpposedRow({} as GameState, { responded: false, row: { d } });
+  it('`frozenOpposedRow` : non révélé, la rangée se masque — marque conservée', () => {
+    const r = frozenOpposedRow({ revele: false, row: { d } });
     expect(r.row.d?.mask).toBe('roll');
     expect(isBuiltRollRow(r)).toBe(true);
   });
