@@ -98,6 +98,7 @@ import calendarIntercalaryJson from './calendarIntercalary.json';
 import calendarWeekdaysJson from './calendarWeekdays.json';
 import calendarPhasesJson from './calendarPhases.json';
 import weatherJson from './weather.json';
+import { saisonParId } from './saisons';
 import symptomsJson from './symptoms.json';
 import detailsJson from './details.json';
 import semencesDeSceneJson from './semences-de-scene.json';
@@ -926,13 +927,13 @@ export interface SkillData {
   tool?: { capability: keyof ItemCapabilities; withoutMod: number };
 }
 /** UN « matcher » de Test (recodage de la ligne « Tests : » du livre, cf. `TalentTest`) : à quel(s)
- *  Test(s) le talent se rapporte. `skill` (référence de Compétence `{id, spec?}`, XOR `char`) OU `char`
+ *  Test(s) le talent se rapporte. `skill` (référence de Compétence `{id, spec?}`, XOR `characteristic`) OU `characteristic`
  *  (Caractéristique nue). La `spec` de la référence est la spécialisation FIXE ; `specFromInstance` =
  *  « (Au choix) » → matche la spec CHOISIE de l'instance (`t.spec`). `when` = contexte MÉCANISABLE (Condition combat — auto si vraie) ; `manual` =
  *  contexte NARRATIF inmécanisable (« quand vous soulevez ») → advisory, JAMAIS auto-appliqué. */
 export interface TestMatch {
   skill?: RefDesignee;
-  char?: import('../engine/types').CharKey;
+  characteristic?: import('../engine/types').CharKey;
   specFromInstance?: boolean;
   /** EXCLUT une spécialisation (matche toute spec SAUF celle-ci) — Linguistique « Langue (toutes) » qui
    *  « ne fonctionne pas avec Langue (Magick) » : `{ skill:{id:'langue'}, exceptSpec:'magick' }`. */
@@ -2176,12 +2177,12 @@ export interface SpellData {
   /** Sort « Souffle » (LDB 47 l.503) : délégué à l'attaque de ZONE du Trait Souffle. */
   breathAttack?: true;
   /** OPPOSITION de la cible (multijet dans la modale d'incantation).
-   *  `resist` : Test opposé par la caractéristique/compétence `char`/`skill` de la cible.
+   *  `resist` : Test opposé par la caractéristique/compétence `characteristic`/`skill` de la cible.
    *  `contact` : Sort de Portée Contact — frappe via Test opposé de Corps à corps (Bagarre). */
   opposed?: {
     kind: 'resist' | 'contact';
     /** Caractéristique opposée (`resist` uniquement). */
-    char?: import('../engine/types').CharKey;
+    characteristic?: import('../engine/types').CharKey;
     /** Compétence opposée (`resist` uniquement, rare) — référence `{ id, spec? }`. */
     skill?: RefDesignee;
   };
@@ -2586,8 +2587,8 @@ export function findNavalTrait(id: string): NavalTraitData | undefined {
 }
 /** Index des ports de la Mer des Griffes (#217, MDG 15 l.439-506) — catalogue app-owned éditable au
  *  Codex, consommé PAR RÉFÉRENCE depuis un lieu de la carte du monde (`MapPlace.port.ref`,
- *  `noyau/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de `sea-cargo.json`
- *  (+ marqueurs `commerce`/`minimum-vital`), même vocabulaire que `PortProfile` (`engine/seaVoyage.ts`). */
+ *  `noyau/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de la voie `mer` de `cargoes.json`
+ *  (+ marqueurs `commerce-mer`/`minimum-vital`), même vocabulaire que `PortProfile` (`engine/seaVoyage.ts`). */
 export interface NavalPortData {
   id: string;
   type: 'naval-ports';
@@ -2838,7 +2839,7 @@ export const weather = weatherData.seasons;
  * pas de nom à afficher : elle est NOMMÉE par sa clé plutôt que passée sous silence.
  */
 export function seasonLabel(id: string): PlayerText {
-  return libelleOuAbsence(weatherData.seasons.find((s) => s.id === id), 'saison', id);
+  return libelleOuAbsence(saisonParId(id), 'saison', id);
 }
 
 /** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant

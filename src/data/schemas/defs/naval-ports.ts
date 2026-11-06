@@ -1,8 +1,8 @@
 /**
  * Schéma de `naval-ports.json` — Index des ports de la Mer des Griffes (#217, MDG 15 l.439-506) :
  * catalogue par id STABLE, consommé par référence (`MapPlace.port.ref`) depuis la carte du monde
- * (`src/noyau/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de `sea-cargo.json`
- * (+ marqueurs `commerce`/`minimum-vital`, cf. `PortProfile`, `src/engine/seaVoyage.ts`).
+ * (`src/noyau/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de la voie
+ * `mer` de `cargoes.json` (marqueurs compris, cf. `PortProfile`, `src/engine/seaVoyage.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -19,9 +19,9 @@ const doc = document(
     region: z.string(),
     taille: z.number(),
     richesse: z.number(),
-    production: refs('seaCargo').optional(),
-    surplus: recordDIds('seaCargo', z.number()).optional(),
-    demande: recordDIds('seaCargo', z.number()).optional(),
+    production: refs('cargo', { sousListe: 'mer' }).optional(),
+    surplus: recordDIds('cargo', z.number(), 'mer').optional(),
+    demande: recordDIds('cargo', z.number(), 'mer').optional(),
     /** Grand port cosmopolite (Marienburg/Lothern, MDG 15 l.343-349). */
     cosmopolite: z.boolean().optional(),
     /** Colonne Dirigeant, verbatim. */

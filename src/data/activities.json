@@ -706,7 +706,7 @@
         "ops": [
           {
             "op": "grantReverseToken",
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "contexte": "amateurDeTheatre",
             "illimite": true
           }
@@ -721,7 +721,7 @@
         "ops": [
           {
             "op": "grantReverseToken",
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "contexte": "amateurDArt"
           }
         ]
@@ -735,7 +735,7 @@
         "ops": [
           {
             "op": "grantReverseToken",
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "contexte": "amateurDArt"
           }
         ]

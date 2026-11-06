@@ -10,7 +10,7 @@
  * union d'objets), un texte JSON. Aucune règle ne se calcule ici : chaque valeur vient d'un lecteur du noyau ou du type.
  */
 import {
-  DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
+  DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
   libelleDuGeste, libelleDuParametre, libelleDuReglage, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DE_L_OPERATION, REGLAGES_DU_BUTIN,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
@@ -97,13 +97,22 @@ const duFlux = (flux: string, reglages?: readonly string[]) => (g: GesteDuJeu): 
 /** Les gestes des verbes `verbes`. */
 const parmi = (verbes: readonly string[]) => (g: GesteDuJeu): boolean => verbes.includes(g.verbe);
 
-/** Les fenêtres lues qui règlent des gestes : chacune, sa lecture et les gestes qu'elle règle. */
-const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle: (g: GesteDuJeu) => boolean }[] = [
+/** Les réglages des flux de jet dont la lecture `lecture` nomme un réglage : elle règle le flux entier, et un réglage
+ *  qu'elle ne nomme pas maintenant ne s'offre pas. */
+const fluxNommes = (lecture: object) => {
+  const flux = new Set(reglagesDesElements(lecture).map((r) => r.geste.flux));
+  return (g: GesteDuJeu): boolean => g.verbe === VERBE_DE_REGLAGE && flux.has(g.flux);
+};
+
+/** Les fenêtres lues qui règlent des gestes : chacune, sa lecture et les gestes qu'elle règle (`fluxNommes` sans
+ *  `regle`). */
+const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle?: (g: GesteDuJeu) => boolean }[] = [
   { lire: fenetreDAttaque, regle: duFlux('attack') },
   { lire: fenetreDeDefense, regle: duFlux('defense') },
   // La fenêtre d'incantation nomme ses choix et les pas de Surincantation de chaque axe ; les cibles supplémentaires se
   // désignent sur la carte, que la carte tient (`carte`) ; les jets sur le Tableau sont un réglage qu'elle ne nomme pas.
   { lire: fenetreDIncantation, regle: duFlux('cast', ['discret', 'formeConjuree', 'effetCritique', 'ciblesSupplementaires', 'carte', ...Object.values(REGLAGE_DE_L_AXE)]) },
+  { lire: fenetreDuSoin },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
   { lire: fenetreDeLOperation, regle: parmi(REGLAGES_DE_L_OPERATION) },
 ];
@@ -113,7 +122,10 @@ const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle: (g: GesteDuJe
 function reglagesDeLaFenetre(etat: Jeu, fenetre: NonNullable<ReturnType<typeof fenetreDuJeu>>): { reglages: Reglage[]; regle: (g: GesteDuJeu) => boolean } {
   const { etape } = fenetre;
   const parEtape = etape ? VERBES_D_INTERACTION[stepInteraction(etape)].reglage?.(etape) : undefined;
-  const ouverts = LECTEURS.map((l) => ({ lecture: l.lire(etat), regle: l.regle })).filter((l) => l.lecture !== null);
+  const ouverts = LECTEURS.flatMap((l) => {
+    const lecture = l.lire(etat);
+    return lecture === null ? [] : [{ lecture, regle: l.regle ?? fluxNommes(lecture) }];
+  });
   return {
     reglages: [...ouverts.flatMap((l) => reglagesDesElements(l.lecture)), ...(parEtape ? [parEtape] : []), ...reglagesDesChoix(etat, fenetre.gestes)],
     regle: (g) => ouverts.some((l) => l.regle(g)),

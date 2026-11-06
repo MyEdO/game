@@ -3,7 +3,8 @@
  * le combattant concerné — modale ouverte → son concerné seul ('*' = tous) ; sinon le tour actif.
  */
 import { describe, it, expect } from 'vitest';
-import { intentAllowedFor, seatSlotsRemaining, controlsActive, controlsCombatant, pilotedByHuman, aiDriven, ownsLocal, rolledLocally } from './netOwnership';
+import { intentAllowedFor, seatSlotsRemaining, controlsActive, controlsCombatant, pilotedByHuman, aiDriven, ownsLocal, rolledLocally, reponseDonnee, jetFigeRevele } from './netOwnership';
+import { spectatorSeatOfModal } from './combatAuto';
 import { modalOwnerOf } from './modalArbiter';
 import { fermerLeSiege, seatOwns } from './sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
@@ -74,6 +75,67 @@ describe('rolledLocally (#990) — « ce siège a-t-il produit CE jet ? », base
     } finally {
       resetCadence();
     }
+  });
+});
+
+describe('reponseDonnee et jetFigeRevele (#990) — le calendrier d’un Test opposé à jet figé, par siège', () => {
+  // h1 et h3 : héros de l'hôte (siège 0) ; h2 : héros de l'invité (siège 1) ; e1 : ennemi de l'IA. Le siège 2
+  // ne tient aucun combattant : il regarde la table.
+  const net = (mode: 'host' | 'guest', mySeat: number) =>
+    ({ mode, mySeat, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Léa' }, ownership: { h2: 1 }, slots: [0, 0, 0, 0] });
+  const table = (mode: 'host' | 'guest', mySeat: number): Jeu => base({
+    net: net(mode, mySeat),
+    battle: { order: ['h1', 'h2', 'h3'], turn: 0, combatants: [
+      { id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }, { id: 'h3', kind: 'hero' }, { id: 'e1', kind: 'enemy' },
+    ] },
+  } as unknown as Partial<Jeu>);
+  const hote = table('host', 0);
+  const invite = table('guest', 1);
+  const spectateur = table('guest', 2);
+  const jete = { roll: 40 };
+  const defense = (id: string, result?: unknown) => [{ id, interactive: true, result }];
+
+  it('Défense du héros de l’invité contre l’IA : masqué partout avant sa réponse, révélé partout après', () => {
+    for (const [nom, s] of [['hôte', hote], ['invité', invite], ['spectateur', spectateur]] as const) {
+      expect(jetFigeRevele(s, { ownerId: 'e1', participants: defense('h2') }), `${nom} : avant la réponse`).toBe(false);
+      expect(jetFigeRevele(s, { ownerId: 'e1', participants: defense('h2', jete) }), `${nom} : après la réponse`).toBe(true);
+    }
+  });
+
+  it('un siège ne se masque jamais son propre dé ; un autre siège attend la réponse', () => {
+    expect(jetFigeRevele(hote, { ownerId: 'h1', participants: defense('h2') }), 'l’hôte a jeté pour h1').toBe(true);
+    expect(jetFigeRevele(invite, { ownerId: 'h1', participants: defense('h2') }), 'l’invité attend sa propre réponse').toBe(false);
+    expect(jetFigeRevele(spectateur, { ownerId: 'h1', participants: defense('h2') }), 'le spectateur attend la première réponse').toBe(false);
+    expect(jetFigeRevele(invite, { ownerId: 'h2', participants: defense('h1') }), 'l’invité a jeté pour h2').toBe(true);
+  });
+
+  it('multi : chaque rangée de ce siège doit avoir répondu ; le spectateur suit la première réponse', () => {
+    const parts = [{ id: 'h1', interactive: true, result: jete }, { id: 'h3', interactive: true }, { id: 'h2', interactive: true }];
+    expect(reponseDonnee(hote, parts), 'h3, rangée de l’hôte, n’a pas jeté').toBe(false);
+    expect(reponseDonnee(invite, parts), 'h2, rangée de l’invité, n’a pas jeté').toBe(false);
+    expect(reponseDonnee(spectateur, parts), 'h1 a répondu : le spectateur voit').toBe(true);
+    expect(reponseDonnee(hote, [{ id: 'h1', interactive: false }, { id: 'h2', interactive: true, result: jete }]),
+      'une rangée témoin de ce siège ne s’attend pas').toBe(true);
+    expect(reponseDonnee(hote, []), 'aucun répondant : rien à attendre').toBe(true);
+  });
+});
+
+describe('spectatorSeatOfModal — le siège attendu sur la modale prioritaire', () => {
+  const defense = (over: Partial<Jeu>) => base({
+    pendingDefense: { attackerId: 'e1', defenderId: 'h2' } as Jeu['pendingDefense'],
+    pendingCascade: cascadeDeTest([{ id: 'd', jet: 'defense', kind: 'defenseJet', actorId: 'h2' }]),
+    ...over,
+  });
+
+  it('la Défense du héros de l’invité : l’hôte et le spectateur attendent le siège 1, l’invité aucun', () => {
+    expect(spectatorSeatOfModal(defense({}))).toBe(1);
+    expect(spectatorSeatOfModal(defense({ net: { ...base({}).net, mode: 'guest', mySeat: 1 } }))).toBeNull();
+    expect(spectatorSeatOfModal(defense({ net: { ...base({}).net, mode: 'guest', mySeat: 2 } }))).toBe(1);
+  });
+
+  it('solo, ou aucune modale : aucun siège attendu', () => {
+    expect(spectatorSeatOfModal(defense({ net: { ...base({}).net, mode: 'local' } }))).toBeNull();
+    expect(spectatorSeatOfModal(base({}))).toBeNull();
   });
 });
 describe('possession réseau (netOwnership)', () => {

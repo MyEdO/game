@@ -2,9 +2,8 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.162-306 */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, enumNomme, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { difficultySchema, enumNomme, parSaison, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { refOuSpec } from '../grammaire/ref';
-import { seasonLabel } from '../../index';
 
 export const file = 'sea-weather.json';
 export const famille = 'config';
@@ -53,16 +52,10 @@ const champs = {
     }),
   ),
   seasonMod: nommerChamps(z.strictObject({
-    ete: z.number(),
-    automne: z.number(),
-    printemps: z.number(),
-    hiver: z.number(),
+    saisons: parSaison(z.number()),
     source: sourceRefSchema,
   }), {
-    ete: { get label() { return seasonLabel('ete'); } },
-    automne: { get label() { return seasonLabel('automne'); } },
-    printemps: { get label() { return seasonLabel('printemps'); } },
-    hiver: { get label() { return seasonLabel('hiver'); } },
+    saisons: { label: 'Saisons' },
     source: { label: 'Source' },
   }),
   warmSeaMod: z.number(),

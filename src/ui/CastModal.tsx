@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
-import { influencesLocally } from '../noyau/netOwnership';
+import { JET_FIGE, influencesLocally, jetFigeRevele } from '../noyau/netOwnership';
 import { counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor } from '../noyau/combatFlow';
 import type { CounterDeclaration } from '../noyau/pendings';
 import { fenetreDIncantation } from '../noyau/fenetreDIncantation';
@@ -15,7 +15,7 @@ import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { RollRow } from './RollRow';
 import { refusDeRangee, rowForcedDie } from './forcedDieRow';
-import { maskOpposedRow, opposedResponded, opposedRevealed } from './opposedFrozen';
+import { maskOpposedRow } from './opposedFrozen';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
@@ -100,10 +100,8 @@ export function CastModal() {
   const placeable = !!vue.pose && !vue.pose.refus;
   // #990 — CALENDRIER de découverte de l'incantation FIGÉE (arbitrage user 2026-07-30) : tant que le
   // répondant de CE siège (opposition de cible OU Contre-sort) n'a pas lancé, la rangée du lanceur ET
-  // le verdict qui la trahit restent masqués. Formule UNIQUE.
-  const responders = [...(pcs?.participants ?? []), ...(csp?.participants ?? [])];
-  const responded = opposedResponded(useGame.getState(), responders);
-  const castRevealed = opposedRevealed(useGame.getState(), pc.casterId, responded);
+  // le verdict qui la trahit restent masqués. Verdict du noyau (`jetFigeRevele`).
+  const castRevealed = jetFigeRevele(useGame.getState(), JET_FIGE.cast(useGame.getState(), pc));
   const outcome = castRevealed ? vue.issue : '';
 
   // Rangée MONO d'incantation = le jet du lanceur, porteur de son cycle d'influence (Lancer → Chance/
@@ -113,7 +111,7 @@ export function CastModal() {
   // (#1005) ; un lanceur ENNEMI (IA, ou MJ d'un AUTRE siège) rend une rangée TÉMOIN. Elle passe ENSUITE par le
   // calendrier #990 — `maskOpposedRow` MASQUE sa ligne, et le cycle d'influence, DÉRIVÉ de cette ligne, s'éteint
   // avec elle.
-  const castRow: BuiltRollRow = maskOpposedRow(useGame.getState(), { ownerId: pc.casterId, responded }, buildRollRow({
+  const castRow: BuiltRollRow = maskOpposedRow(castRevealed, buildRollRow({
     actor: caster,
     // Le ✓/✗ de la LIGNE est le verdict du TEST (`LDB 46 l.22-24`), jamais celui du Sort lancé.
     row: ligne.jet

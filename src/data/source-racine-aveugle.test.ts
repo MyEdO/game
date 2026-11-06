@@ -34,7 +34,6 @@ const RACINE_NUE = [
   'sea-events.json',
   'sea-navigation.json',
   'sea-perils.json',
-  'sea-cargo.json',
   'land-cargo.json',
   'river-perils.json',
   'weather.json',
@@ -62,8 +61,13 @@ const RACINE_NUE = [
  *  le MÊME chemin que `miscast` — les deux racines-objet nues sont devenues 8 documents-tables dans
  *  un seul fichier, chacun portant SA `source` (LDB 174 ×4, AA 83/84/85/86). Il n'y a plus de racine
  *  à rendre aveugle, et leurs 168 entrées (8 documents + 160 rangées) restent SOUS garde de
- *  couverture, mesuré : `auditDataset` rend `array-of-documents` 168/168. */
-const SOUS_ENTREES_MESUREES = 294;
+ *  couverture, mesuré : `auditDataset` rend `array-of-documents` 168/168.
+ *
+ *  272 le 2026-11-05 : les 22 cargaisons de `sea-cargo.json` et `land-cargo.json` forment le dataset-liste
+ *  `cargoes.json` (#1684), cité par entrée sous `citation-coverage-guard.test.ts` (forme `array`) ;
+ *  `sea-cargo.json`, sans liste, SORT de la classe et porte la citation de son chapitre à la racine
+ *  (MDG 15 l.309), comme `river-navigation.json`. */
+const SOUS_ENTREES_MESUREES = 272;
 
 const lire = (f: string): unknown => JSON.parse(readFileSync(join(DATA_DIR, f), 'utf8'));
 

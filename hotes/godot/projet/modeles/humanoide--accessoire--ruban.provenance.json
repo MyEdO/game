@@ -1,0 +1,17 @@
+{
+  "model": "humanoide--accessoire--ruban.glb",
+  "model_sha256": "f9386d0bcefb1baa4fa93a24e625e4b550fd6b4eb3a884028ddc4cfd0cc83f45",
+  "importe_le": "2026-11-06",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

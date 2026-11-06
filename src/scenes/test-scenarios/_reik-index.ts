@@ -20,10 +20,10 @@ import type { IdsParEspace } from '../../data/schemas/_ids.generated';
  * `wineBonusEchelons` n'est posé que là où le livre le CITE explicitement (Kemperbad, +2 échelons, l.95).
  */
 
-/** Colonne « Produits » du livre → id de cargaison, l'espace `land-cargo.json#cargoes` de
- *  `IdsParEspace`. `commerce`/`subsistance` sont des MARQUEURS (pas des biens) portés tels quels ;
+/** Colonne « Produits » du livre → id de cargaison, l'espace `cargoes.json?voie=terre` de
+ *  `IdsParEspace`. `commerce-terre`/`subsistance` sont des MARQUEURS (pas des biens) portés tels quels ;
  *  « Briques » relève des Produits de luxe (l.117). */
-export type Produit = IdsParEspace['land-cargo.json#cargoes'];
+export type Produit = IdsParEspace['cargoes.json?voie=terre'];
 
 /** Une ligne de l'Index géographique (verbatim). `r` = colonne Richesse (`null` = Misérable « - »). */
 export interface ReikEntry {

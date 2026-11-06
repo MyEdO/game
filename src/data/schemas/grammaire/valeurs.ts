@@ -18,10 +18,11 @@ import type { Slot } from '../../../lib/palette';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
-import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
+import { listeCle } from './collection-cle';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { marquerProduit } from './interne/produits';
+import { saisonParId } from '../../saisons';
 import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../../source/decoupe';
 
 export const blocageDeLivraison = nommerChamps(z.strictObject({ ticket: z.string(), raison: z.string() }), {
@@ -262,7 +263,7 @@ export const sourceRefSchema = nommerChamps(z.strictObject({
  *  string; page: number }` inline, F20). Réf de source UNIQUE du repo (#278) : posée par ENTRÉE sur
  *  les datasets d'extraction de table RAW (`sea-events`/`sea-navigation`/`sea-perils`/`sea-weather`/
  *  `ship-construction`/`naval-progression`/`crew-morale`/`crew-test-types`/`mass-battle`/
- *  `land-cargo`/`sea-cargo`/`river-navigation`/`river-perils`), à la racine quand le dataset est un
+ *  `land-cargo`/`sea-cargo`/`cargoes`/`river-navigation`/`river-perils`), à la racine quand le dataset est un
  *  objet de config unique plutôt qu'une liste. */
 export type SourceRef = z.infer<typeof sourceRefSchema>;
 
@@ -750,19 +751,27 @@ export const replisSansExposeSchema = nommerChamps(z.strictObject({
   maison: maisonSchema.optional(),
 }), { cible: { label: "cible" }, maison: { label: "arbitrage maison" } });
 
+const libelleDeSaison = (cle: string): string => saisonParId(cle)?.label ?? cle;
+
 /**
- * UNE VALEUR PAR SAISON — les deux livres de commerce impriment leurs tableaux en quatre colonnes
- * saisonnières (`Season`, `src/engine/travelStages.ts`) : disponibilité d100 (MDG 15 l.406-418, MSRC 13
- * l.73-78) comme prix de base (MDG 15 l.422-434, MSRC 13 l.84-89). Les quatre clés se déclarent ICI,
- * une seule fois pour le dépôt ; ce que la colonne CONTIENT reste au porteur.
+ * UNE VALEUR PAR SAISON — quatre colonnes saisonnières (`Season`, `src/engine/travelStages.ts`) :
+ * disponibilité d100 (MDG 15 l.406-418, MSRC 13 l.73-78) et prix de base (MDG 15 l.422-434, MSRC 13
+ * l.84-89) des cargaisons, modificateur de la météo marine (MDG 13 l.164-166). Les quatre clés se
+ * déclarent ICI, une seule fois pour le dépôt ; ce que la colonne CONTIENT reste au porteur. Le libellé
+ * d'une colonne est celui de la saison en donnée (`saisonParId`), lu à chaque accès ; une saison sans
+ * fiche se nomme par sa clé.
  */
 export const parSaison = <T extends z.ZodType>(valeur: T) =>
-  marquerProduit(nommerChamps(z.strictObject({ printemps: valeur, ete: valeur, automne: valeur, hiver: valeur }), { printemps: { label: "printemps" }, ete: { label: "été" }, automne: { label: "automne" }, hiver: { label: "hiver" } }), 'parSaison', 'saisons');
+  marquerProduit(nommerChamps(z.strictObject({ printemps: valeur, ete: valeur, automne: valeur, hiver: valeur }), {
+    printemps: { get label() { return libelleDeSaison('printemps'); } },
+    ete: { get label() { return libelleDeSaison('ete'); } },
+    automne: { get label() { return libelleDeSaison('automne'); } },
+    hiver: { get label() { return libelleDeSaison('hiver'); } },
+  }), 'parSaison', 'saisons');
 
 /**
  * PRIX DE BASE d'une cargaison par SAISON (MDG 15 l.422-434, MSRC 13 l.80-90) : le résolveur y lit la
- * colonne de la saison courante. Le concept `prix` du lexique n'avait AUCUN nœud ici — les deux defs
- * le retapaient à l'identique.
+ * colonne de la saison courante.
  */
 export const prixSaisonnierSchema = parSaison(z.number());
 
@@ -1209,98 +1218,53 @@ export function ecartsDeCouverture<F extends { min?: number | null; max?: number
 
 /**
  * DISPONIBILITÉ SAISONNIÈRE d'une cargaison — quatre colonnes d100, chacune une FOURCHETTE `{min, max}`
- * (MDG 15 l.406-418, MSRC 13 l.73-78). Nœud NOMMÉ du concept, symétrique de `prixSaisonnierSchema` :
- * les deux defs de commerce composaient `parSaison(plageSchema)` chacune de leur côté.
+ * (MDG 15 l.406-418, MSRC 13 l.73-78). Nœud NOMMÉ du concept, symétrique de `prixSaisonnierSchema`.
  */
 export const dispoSaisonniereSchema = parSaison(plageSchema);
 
 /** Les quatre colonnes, DÉRIVÉES du nœud : la liste des saisons n'est écrite qu'une fois (`parSaison`). */
 const SAISONS_DE_DISPO = Object.keys(dispoSaisonniereSchema.shape) as (keyof z.infer<typeof dispoSaisonniereSchema>)[];
 
-/**
- * CARGAISON ÉCHANGEABLE — rangée MARCHANDE du tableau des cargaisons des deux livres de commerce
- * (MDG 15 l.406-434, MSRC 13 l.73-90), déclarée une fois. `echangeable` : `CargoDef` (`src/engine/cargo.ts`).
- * Un def qui porte un champ de plus en reprend la `shape` (`wine` de `defs/land-cargo.ts`).
- */
-export const cargaisonMarchandeSchema = nommerChamps(z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  echangeable: z.literal(true).optional(),
-  avail: dispoSaisonniereSchema,
-  price: z.union([prixSaisonnierSchema, tirageSchema]),
-  source: sourceRefSchema,
-}), {
-  id: { label: 'Identifiant' },
-  label: { label: 'Libellé' },
-  echangeable: { label: 'Échangeable' },
-  avail: { label: 'Disponibilité' },
-  price: { label: 'Prix' },
-  source: { label: 'Source' },
-});
+/** Ce que le refine lit d'une entrée du catalogue : un libellé (le refus est NOMINATIF), les quatre
+ *  colonnes d'une MARCHANDISE, et le CHAMP d'exclusion d'un MARQUEUR de colonne Production/Produits
+ *  (`echangeable: false`, sans colonne), lu comme le moteur le lit (`isEchangeable`, `src/engine/cargo.ts`). */
+type EntreeDuCatalogue = Record<string, unknown> & { label: string; echangeable?: boolean; avail?: z.infer<typeof dispoSaisonniereSchema> };
 
 /**
- * MARQUEUR de la colonne Production/Produits (MDG 15 l.321, MSRC 13 l.24-28) : `CargoMarkerDef`
- * (`src/engine/cargo.ts`), reconnu à son CHAMP d'exclusion `echangeable: false` (`isEchangeable`).
+ * CATALOGUE DE CARGAISONS TIRÉ AU D100 — raffinement du catalogue des cargaisons (maritime MDG 15
+ * l.406-418, terrestre MSRC 13 l.73-78) : chaque TABLE du catalogue, les MARCHANDISES d'une même valeur
+ * du champ `tablePar`, couvre le d100 de 1 à 100 d'un seul tenant dans chacune de ses quatre colonnes
+ * saisonnières. L'invariant porte sur la COLONNE d'une table, jamais sur une entrée — d'où sa place au
+ * CATALOGUE ; et chaque livre imprime SA table, tirée seule (`rollSeasonalCargo`, `src/engine/cargo.ts`).
+ *
+ * @param catalogue le nœud du catalogue (`affinerDataset` de son def)
+ * @param options `site` = le porteur cité en tête du refus ; `tablePar` = le champ dont chaque valeur
+ *  désigne une table du livre
  */
-export const marqueurDeCargaisonSchema = nommerChamps(z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  echangeable: z.literal(false),
-  hint: z.string().optional(),
-  tradeHub: z.literal(true).optional(),
-  source: sourceRefSchema,
-}), {
-  id: { label: 'Identifiant' },
-  label: { label: 'Libellé' },
-  echangeable: { label: 'Échangeable' },
-  hint: { label: 'Aide' },
-  tradeHub: { label: 'Plaque tournante' },
-  source: { label: 'Source' },
-});
-
-type EntreeMarchande = z.infer<typeof cargaisonMarchandeSchema>;
-type EntreeMarqueur = z.infer<typeof marqueurDeCargaisonSchema>;
-
-/**
- * CATALOGUE DE CARGAISONS TIRÉ AU D100 — fabrique du tableau `cargoes` des deux livres de commerce
- * (maritime MDG 15 l.406-418, terrestre MSRC 13 l.73-78) : un tableau d'entrées MARCHANDES ou de
- * MARQUEURS (`marqueurDeCargaisonSchema`), sous l'invariant que chacune des quatre colonnes
- * saisonnières couvre 1 à 100 d'un seul tenant. L'invariant porte sur la COLONNE, jamais sur une
- * entrée — d'où sa place au TABLEAU.
- *
- * Pourquoi une fabrique et non deux refines jumeaux : les deux livres impriment la MÊME table à quatre
- * colonnes, et les deux defs en écrivaient le verrou à l'identique. Ce qui reste au site est ce qui
- * DIFFÈRE : la rangée marchande (le Vin terrestre porte `wine`) et le `site` cité par le refus.
- *
- * Le filtre des marqueurs est celui du moteur (`isEchangeable`) : le CHAMP d'exclusion, jamais un id.
- * Ce champ DISCRIMINE l'élément : une rangée est l'une ou l'autre variante, jamais les deux.
- * Le catalogue est une collection à clé `id` et un ESPACE d'ids (`grammaire/collection-cle.ts`).
- *
- * @param marchand `cargaisonMarchandeSchema`, ou la rangée d'un def qui en reprend la `shape`
- * @param options `site` = le porteur cité en tête du refus (`'sea-cargo.json › cargoes'`)
- */
-export function catalogueSaisonnier<A extends EntreeMarchande>(
-  marchand: z.ZodType<A> & z.core.$ZodTypeDiscriminable<'echangeable'>,
-  options: { site: string },
-): z.ZodType<(A | EntreeMarqueur)[]> {
-  const catalogue = z.array(z.discriminatedUnion('echangeable', [marchand, marqueurDeCargaisonSchema])).superRefine((entrees: (A | EntreeMarqueur)[], ctx) => {
-    const marchandes = entrees.filter((e): e is A => e.echangeable !== false);
-    for (const saison of SAISONS_DE_DISPO) {
-      const ecarts = ecartsDeCouverture(
-        marchandes.map((c) => ({ ...c.avail[saison], label: c.label })),
-        1,
-        100,
-        (f) => `« ${f.label} » (${f.min}–${f.max})`,
-      );
-      if (ecarts.length) {
-        ctx.addIssue({
-          code: 'custom',
-          message: `${options.site} : la colonne de disponibilité ${saison} ne couvre pas le d100 de 1 à 100 d'un seul tenant — ${ecarts.join(' ; ')}.`,
-        });
+export function catalogueSaisonnier(catalogue: z.ZodType<unknown>, options: { site: string; tablePar: string }): z.ZodType<unknown> {
+  return catalogue.superRefine((valeur, ctx) => {
+    const tables = new Map<unknown, EntreeDuCatalogue[]>();
+    for (const e of valeur as EntreeDuCatalogue[]) {
+      if (e.echangeable === false || !e.avail) continue;
+      tables.set(e[options.tablePar], [...(tables.get(e[options.tablePar]) ?? []), e]);
+    }
+    for (const [table, marchandes] of tables) {
+      for (const saison of SAISONS_DE_DISPO) {
+        const ecarts = ecartsDeCouverture(
+          marchandes.map((c) => ({ ...c.avail![saison], label: c.label })),
+          1,
+          100,
+          (f) => `« ${f.label} » (${f.min}–${f.max})`,
+        );
+        if (ecarts.length) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `${options.site} › ${options.tablePar} « ${String(table)} » : la colonne de disponibilité ${saison} ne couvre pas le d100 de 1 à 100 d'un seul tenant — ${ecarts.join(' ; ')}.`,
+          });
+        }
       }
     }
   });
-  return marquerCollection(catalogue, marqueDeListe<EntreeMarchande | EntreeMarqueur>('id', {}));
 }
 
 /**

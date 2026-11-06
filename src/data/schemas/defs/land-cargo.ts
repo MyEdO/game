@@ -4,8 +4,6 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { refs } from '../grammaire/ref';
 import {
-  cargaisonMarchandeSchema,
-  catalogueSaisonnier,
   difficultySchema,
   ecartsDeCouverture,
   plageSchema,
@@ -33,19 +31,10 @@ const offerByRichesseSchema = z
   });
 
 
-/** MSRC 13 l.93-104 */
-const cargoMarchand = nommerChamps(z.strictObject({ ...cargaisonMarchandeSchema.shape, wine: z.boolean().optional() }), {
-  ...metaDesChamps(cargaisonMarchandeSchema, { exigees: true }),
-  wine: { label: 'Vin' },
-});
-
-const cargoesSchema = catalogueSaisonnier(cargoMarchand, { site: 'land-cargo.json › cargoes' });
-
 const doc = document(
   'land-cargo',
   famille,
   {
-  cargoes: cargoesSchema,
   wineQuality: z.array(
     nommerChamps(z.strictObject({ ...plageSchema.shape, label: z.string(), price: z.number(), source: sourceRefSchema }), {
       ...metaDesChamps(plageSchema, { exigees: true }),
@@ -94,7 +83,7 @@ const doc = document(
   rumours: z.array(
     nommerChamps(z.strictObject({
       ...plageSchema.shape,
-      biens: refs('landCargo'),
+      biens: refs('cargo', { sousListe: 'terre' }),
       /** Prose de la rumeur — `desc`, la cible du rôle prose de l'enveloppe. Ces rangées n'ont pas de
        *  `label` : elles sortent du DÉNOMINATEUR du détecteur de structures, qui ne mesure que les
        *  entrées de racine. Une graphie divergente ne survit pas parce qu'elle est hors mesure — c'est
@@ -110,10 +99,6 @@ const doc = document(
   ),
   },
   {
-    cargoes: {
-      label: 'Cargaisons',
-      hint: 'Catalogue des cargaisons terrestres/fluviales échangeables et des marqueurs de colonne Produits',
-    },
     wineQuality: {
       label: 'Qualité du vin',
       hint: "Table secrète de prix du Vin/Eau-de-vie, tirée à part de la colonne saisonnière",
@@ -124,8 +109,14 @@ const doc = document(
     rumours: { label: 'Rumeurs', hint: 'Table de tirage d100 de rumeurs commerciales' },
   },
   {
-    codex: { keys: ['landCargo'] },
-    edit: { niche: { categories: { landCargo: 'cargoes' } } },
+    codex: {
+      exempt: {
+        kind: 'dette',
+        raison: 'règles de négoce (qualité du vin, achat, vente, ragot, rumeurs) lues par le moteur, sans fiche de règle au Codex',
+        ticket: '#3433',
+      },
+    },
+    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },
   },
 );
 

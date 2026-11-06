@@ -5193,7 +5193,7 @@ export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, target
  *  Compétence déclarée, sinon la Caractéristique. */
 function testDOppositionDeSort(spellId: string, opposed: NonNullable<SpellData['opposed']>): TestDesigne {
   if (opposed.kind === 'contact') return { skill: { id: 'corps-a-corps', spec: 'bagarre' } };
-  return opposed.skill ? { skill: opposed.skill } : { char: garanti(opposed.char, spellId, 'opposition de sort') };
+  return opposed.skill ? { skill: opposed.skill } : { char: garanti(opposed.characteristic, spellId, 'opposition de sort') };
 }
 
 /** Cibles SUPPLÉMENTAIRES d'une incantation figée (Surincantation, LDB 47 l.28-31) ; ZdE : toutes les

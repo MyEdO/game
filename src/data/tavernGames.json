@@ -248,7 +248,7 @@
     "difficulty": "accessible",
     "combined": {
       "second": {
-        "char": "initiative"
+        "characteristic": "initiative"
       },
       "failEvery": 3,
       "eraseEvery": 2,

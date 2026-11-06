@@ -1,8 +1,7 @@
 import { EtalLotModal } from './EtalLotModal';
 import { nomDuSiege } from '../noyau/sieges';
 import { useGame } from '../state/store';
-import { spectatorSeatOfModal } from './ownership';
-import { willAutoResolve } from '../noyau/combatAuto';
+import { spectatorSeatOfModal, willAutoResolve } from '../noyau/combatAuto';
 import type { JSX } from 'react';
 import { SpectatorChip } from './SpectatorChip';
 import { ReloadModal } from './ReloadModal';
@@ -72,7 +71,7 @@ export function ActiveModal(): JSX.Element | null {
   // de quelques ms). Le BILAN voyage/nuit et les vrais choix (surincantation/Destin en Rapide) restent rendus.
   if (willAutoResolve(s)) return null;
   // La modale ne s'affiche que chez le propriétaire du combattant concerné ; ailleurs, la puce NOMME
-  // le siège attendu. Qui la pose est UNE décision (`spectatorSeatOfModal`, `ui/ownership`) que la
+  // le siège attendu. Qui la pose est UNE décision (`spectatorSeatOfModal`, `noyau/combatAuto`) que la
   // bande d'attente de la console lit aussi : une seule puce à l'écran.
   const seat = spectatorSeatOfModal(s);
   if (seat !== null) return <SpectatorChip pose="ecran" label={nomDuSiege(s.net, seat)} />;

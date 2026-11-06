@@ -58,6 +58,7 @@ const CLES: Record<string, string> = {
   "stakes": '7cadf9f2dd12544f',
   "races": '6b2e87edeb415f0c',
   "careers": '4a1e1257849261cb',
+  "cargoes": '4ac9ce4d7d904873',
   "characteristics": '8f583e09b7e35f6e',
   "classes": '379df048977ddf91',
   "stars": '8f583e09b7e35f6e',
@@ -164,8 +165,6 @@ const CLES: Record<string, string> = {
   "surincantation": '865800cac699c951',
   "structureCriticals": 'ed935a21da6026cc',
   "artilleryMisfire": 'ed935a21da6026cc',
-  "landCargo": '7ec365878940bd8f',
-  "seaCargo": 'bbf72cb62b75aad4',
   "riverPerils": '8d0caf6fd088004a',
   "crewMoraleFactors": 'd6999c398eb1da98',
   "crewMoraleBands": '97b338e5362dfa4e',
@@ -191,6 +190,7 @@ const FORME: Record<string, string> = {
   "stakes": 'desc group id label sections source sub',
   "races": 'desc group id label meta source tabs',
   "careers": 'desc group id label meta source sub tabs',
+  "cargoes": 'group id label meta source sub',
   "characteristics": 'desc id label meta sections source sub',
   "classes": 'desc id label sections source',
   "stars": 'desc id label meta sections source sub',
@@ -297,8 +297,6 @@ const FORME: Record<string, string> = {
   "surincantation": 'id label meta source sub',
   "structureCriticals": 'desc id label meta sub',
   "artilleryMisfire": 'desc id label meta sub',
-  "landCargo": 'id label meta source',
-  "seaCargo": 'id label source',
   "riverPerils": 'id label source sub',
   "crewMoraleFactors": 'desc id label source',
   "crewMoraleBands": 'desc id label meta source sub',
@@ -308,7 +306,7 @@ const FORME: Record<string, string> = {
 
 /** ANGLE MORT de la PROVENANCE : catégories dont la donnée échappe au mapping déduit — les Critiques
  *  (rangées nichées dans un document-table, `criticals.json#0` en `ORPHELINS`) et les cargaisons
- *  (`land-cargo.json#0`, `sea-cargo.json#0` en `PARTIELS`). Chaque item y porte les champs déclarés. */
+ *  (`cargoes.json#0` en `PARTIELS`). Chaque item y porte les champs déclarés. */
 const PORTES_HORS_MAPPING: Record<string, readonly ('desc' | 'source')[]> = {
   criticalsTete: ['desc', 'source'],
   criticalsBras: ['desc', 'source'],
@@ -318,8 +316,7 @@ const PORTES_HORS_MAPPING: Record<string, readonly ('desc' | 'source')[]> = {
   aaCriticalsBras: ['desc', 'source'],
   aaCriticalsCorps: ['desc', 'source'],
   aaCriticalsJambe: ['desc', 'source'],
-  landCargo: ['source'],
-  seaCargo: ['source'],
+  cargoes: ['source'],
 };
 /** Cliquet POSITIF DÉCROISSANT : catégories dont ≥1 item DÉFAUSSE une `source`/`desc` que la donnée
  *  porte (#1472 T3). Plus AUCUN item apparié ne tait ce que sa donnée porte. Le gel à vide est l'assertion : une projection qui redroppe un champ
@@ -332,10 +329,9 @@ const MUETS: Record<string, number> = {};
  *  Ce qui est gelé est le TABLEAU (fichier + rang), jamais son nombre d'entrées : un dataset
  *  app-owned croît légitimement, et un cardinal gelé ferait payer un recalage à chaque ajout (#1812). */
 const PARTIELS: string[] = [
-  "land-cargo.json#0",
+  "cargoes.json#0",
   "merchants.json#0",
   "river-navigation.json#0",
-  "sea-cargo.json#0",
   "sea-perils.json#0",
   "sea-perils.json#1",
   "sea-perils.json#2",
@@ -354,7 +350,7 @@ const ORPHELINS: string[] = [
   "miscast.json#0",
   "reseau-routier.json#0",
   "river-navigation.json#1",
-  "sea-cargo.json#1",
+  "sea-cargo.json#0",
   "sea-events.json#3",
   "sea-navigation.json#0",
   "sea-weather.json#0",

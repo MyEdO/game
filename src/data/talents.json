@@ -993,7 +993,7 @@
           "manual": true
         },
         {
-          "char": "agilite",
+          "characteristic": "agilite",
           "manual": true
         }
       ]
@@ -1137,7 +1137,7 @@
       "raw": "Tests de Force quand vous soulevez",
       "matches": [
         {
-          "char": "force",
+          "characteristic": "force",
           "manual": true
         }
       ]
@@ -1842,7 +1842,7 @@
       "raw": "Intelligence (Escroquerie)",
       "matches": [
         {
-          "char": "intelligence",
+          "characteristic": "intelligence",
           "manual": true
         }
       ]
@@ -2098,7 +2098,7 @@
       "raw": "Tests d'Initiative pour tout ce qui concerne ce Talent",
       "matches": [
         {
-          "char": "initiative",
+          "characteristic": "initiative",
           "manual": true
         }
       ]
@@ -2335,7 +2335,7 @@
       "raw": "Force Mentale (Groupe à combattre)",
       "matches": [
         {
-          "char": "force-mentale",
+          "characteristic": "force-mentale",
           "manual": true
         }
       ]
@@ -2601,7 +2601,7 @@
       "raw": "Tests d'Intelligence pour tout ce qui concerne ce Talent",
       "matches": [
         {
-          "char": "intelligence",
+          "characteristic": "intelligence",
           "manual": true
         }
       ]
@@ -5648,7 +5648,7 @@
       "raw": "Force Mentale (Résister à la cible)",
       "matches": [
         {
-          "char": "force-mentale",
+          "characteristic": "force-mentale",
           "manual": true
         }
       ]

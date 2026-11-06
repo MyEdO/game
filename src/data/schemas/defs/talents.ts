@@ -1,10 +1,10 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 05 l.484 */
 import { z } from 'zod';
-import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema, termeBonusDe } from '../grammaire/valeurs';
+import { combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema, termeBonusDe } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { conditionSchema, mecaniqueDe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
-import { ref, refOuSpec, refs } from '../grammaire/ref';
+import { conditionSchema, mecaniqueDe, passifsDe, sujetDuJetSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
 export const file = 'talents.json';
@@ -16,8 +16,7 @@ export const famille = 'entite';
  *  (`src/engine/magic.ts`) laisse `specFromInstance` ÉCRASER `skill.spec`, et rend `exceptSpec`
  *  inerte dès que la spec est épinglée : la donnée mentirait sur ce qu'elle déclare. */
 const testMatchSchema = nommerChamps(z.strictObject({
-  skill: refOuSpec('skill').optional(),
-  char: charKeySchema.optional(),
+  ...sujetDuJetSchema.shape,
   specFromInstance: z.boolean().optional(),
   exceptSpec: z.string().optional(),
   when: conditionSchema.optional(),
@@ -35,7 +34,7 @@ const testMatchSchema = nommerChamps(z.strictObject({
   }
 }), {
   skill: { label: 'Compétence' },
-  char: { label: 'Caractéristique' },
+  characteristic: { label: 'Caractéristique' },
   specFromInstance: { label: 'Spécialisation de l’instance' },
   exceptSpec: { label: 'Spécialisation exclue' },
   when: { label: 'Condition' },

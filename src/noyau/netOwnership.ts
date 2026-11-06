@@ -16,6 +16,7 @@ import type { PendingKey } from './stateFields';
 import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
 import { declarationDuChoix } from './choixDesFenetres';
 import { WORLD_STEP_OWNER } from './pendings';
+import type { CascadeStep, PendingAuContact, PendingBargain, PendingCast, PendingDefense, PendingDisengage, PendingDistraire, PendingGrapple } from './pendings';
 
 /** Fenêtres HORS-modale indexées par leur `pending*` (#1016) — la possession du CLIC DE CARTE s'y
  *  prend quand `targetingHolder` désigne l'une d'elles. */
@@ -210,6 +211,70 @@ export function rolledLocally(s: Jeu, ownerId: string | undefined): boolean {
   const c = porteurParId(s, ownerId);
   return !!c && pilotedByHuman(s, c) && ownsLocal(s, c.id);
 }
+
+/** Participant d'un Test opposé à jet figé, réduit à ce que le calendrier #990 lit : id, rangée jouée
+ *  ou témoin, jet posé. */
+export interface ParticipantDeJetFige {
+  id?: string;
+  interactive?: boolean;
+  result?: unknown;
+}
+
+/**
+ * Le RÉPONDANT d'un Test opposé à jet figé a-t-il joué, vu de CE siège ? (#990). Formule unique, mono
+ * comme multi (le mono = un participant) :
+ *  - au moins une rangée de ce siège (jouée et produite ici) : toutes doivent porter leur jet (multi
+ *    acteur : chacun joue à l'aveugle et ne voit qu'après SON jet) ;
+ *  - aucune rangée de ce siège (spectateur tiers) : la première réponse posée suffit ;
+ *  - aucun participant (jet non opposé) : rien à attendre.
+ */
+export function reponseDonnee(s: Jeu, participants: readonly ParticipantDeJetFige[]): boolean {
+  if (!participants.length) return true;
+  const miennes = participants.filter((p) => p.interactive && rolledLocally(s, p.id));
+  return miennes.length ? miennes.every((p) => !!p.result) : participants.some((p) => !!p.result);
+}
+
+/** Le jet FIGÉ d'un Test opposé : son porteur (`undefined` : adversaire abstrait, sans combattant) et ses
+ *  répondants. */
+export interface JetFige {
+  ownerId: string | undefined;
+  participants: readonly ParticipantDeJetFige[];
+}
+
+/** Le jet figé est-il RÉVÉLÉ à ce siège ? (#990) Un siège ne se masque jamais son propre dé (`rolledLocally`) ;
+ *  sinon la révélation suit la réponse (`reponseDonnee`). */
+export function jetFigeRevele(s: Jeu, jet: JetFige): boolean {
+  return rolledLocally(s, jet.ownerId) || reponseDonnee(s, jet.participants);
+}
+
+const repondant = (id: string, result: unknown): ParticipantDeJetFige[] => [{ id, interactive: true, result }];
+
+/**
+ * LE JET FIGÉ DE CHAQUE TEST OPPOSÉ À JET FIGÉ (#990), lu de son pending : la source unique de ses répondants,
+ * lue par la fenêtre web qui le montre et par `jetsEnVue`.
+ */
+export const JET_FIGE = {
+  defense: (pd: PendingDefense): JetFige => ({ ownerId: pd.attackerId, participants: repondant(pd.defenderId, pd.result) }),
+  /** Les répondants de l'incantation : l'opposition de cible et le Contre-sort. */
+  cast: (s: Pick<Jeu, 'pendingCastOpposition' | 'pendingCounterspell'>, pc: PendingCast): JetFige => ({
+    ownerId: pc.casterId,
+    participants: [...(s.pendingCastOpposition?.participants ?? []), ...(s.pendingCounterspell?.participants ?? [])],
+  }),
+  disengage: (pd: PendingDisengage): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
+  auContact: (pd: PendingAuContact): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
+  grapple: (pd: PendingGrapple): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.actorId, pd.def) }),
+  /** Le jet figé est le Calme du foe ; la réponse, l'Athlétisme du mover (`atk`). */
+  distraire: (pd: PendingDistraire): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.atk) }),
+  /** L'opposant du Marchandage n'est pas un combattant. */
+  bargain: (pb: PendingBargain): JetFige => ({ ownerId: undefined, participants: repondant(pb.playerId, pb.roll ?? undefined) }),
+  /** L'étape opposée d'une cascade (`meta.opposed`) : chaque rangée de sa bande, ou son acteur. */
+  cascade: (step: CascadeStep): JetFige => ({
+    ownerId: step.meta?.opposed?.attackerId,
+    participants: step.participants
+      ? step.participants.map((p) => ({ id: p.id, interactive: p.interactive !== false, result: p.result }))
+      : [{ id: step.actorId, interactive: true, result: step.result }],
+  }),
+};
 
 /**
  * Le combattant `c` est-il piloté par l'IA ? — base AGNOSTIQUE AU CAMP de l'orchestrateur de tour.

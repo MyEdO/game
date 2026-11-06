@@ -62,7 +62,7 @@ describe('sauvegarde éditeur — chaque clé de dataset résout un fichier REGI
   });
 
   it('la racine sérialisée d’un tableau NICHÉ est le DOCUMENT entier (l’enveloppe survit au save)', () => {
-    for (const k of ['weather', 'crewTestTypes', 'landCargo', 'seaCargo', 'riverPerils', 'crewMoraleFactors', 'crewMoraleBands'] as const) {
+    for (const k of ['weather', 'crewTestTypes', 'riverPerils', 'crewMoraleFactors', 'crewMoraleBands'] as const) {
       const root = datasetSerializeRoot(k) as Record<string, unknown>;
       expect(Array.isArray(root), `${k} : racine sérialisée NUE — l’enveloppe du document serait écrasée`).toBe(false);
       expect(typeof root.id, `${k} : racine sans \`id\` d’enveloppe`).toBe('string');
