@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState, type ComponentProps, type ReactN
 import { useGame } from '../../state/store';
 import type { BattleState, ShootingStanceKey } from '../../noyau/etat';
 import { mouvementDuTour } from '../../noyau/mount';
-import type { Combatant, Weapon, WeaponLoadout } from '../../engine/types';
+import type { Combatant, Weapon } from '../../engine/types';
 import { hasMeaningfulOption } from '../../noyau/turnEconomy';
 import { actionPrise, wastesAction, endTurnArmed } from '../../noyau/endTurnGuard';
 import { advantageCapFor } from '../../engine/advantage';
@@ -17,22 +17,21 @@ import { targetingModeLabel, targetingModeConsigne, dispellableOnCarrier } from 
 import { CodexRef } from '../compendium/CodexRef';
 import { isConsumable } from '../../engine/consumables';
 import { t } from '../../i18n';
-import { loadedAmmo, compatibleAmmo, loadoutLabel, activeLoadout, weaponFromItem } from '../../engine/items';
-import { weaponLoaded, reloadProgressOf, aRecharger } from '../../engine/weaponLoad';
+import { loadedAmmo, compatibleAmmo, loadoutLabel, activeLoadout, setNonCharge } from '../../engine/items';
+import { weaponLoaded, reloadProgressOf, aRecharger, chambrePleine } from '../../engine/weaponLoad';
 import type { DispellableSpell } from '../../engine/dispel';
 import { PanneauParametre, type ParamOption } from '../PanneauParametre';
 import { useLongPress } from '../useLongPress';
 import { ReadyRow } from '../ReadyRow';
 import { SpectatorChip } from '../SpectatorChip';
 import { spectatorSeatOfModal } from '../../noyau/combatAuto';
-import { isOutOfAction, raisonRefusDetermination } from '../../engine/conditions';
+import { raisonRefusDetermination } from '../../engine/conditions';
 import { isFrenzied } from '../../engine/psychology';
 import { posteARecharger } from '../../noyau/monde/shipPostes';
 import { isVehicle } from '../../engine/coque';
-import { controlsCombatant } from '../../noyau/netOwnership';
+import { etatsDeSituation, pontDOuverture } from '../../noyau/pontDeCombat';
 import { nomDuSiege } from '../../noyau/sieges';
 import { inBattleId } from '../../noyau/monde/combatants';
-import { combatDistance } from '../../noyau/monde/footprint';
 import { hotbar } from '../../state/hotbarBridge';
 import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, resoudreDisposition } from '../../state/dispositionConsole';
 import { type EntreeBarre, type ZoneBarre } from '../../engine/types';
@@ -294,22 +293,6 @@ export function PhaseBanner({ label, consigne, actions, ready, adresse = 'pont' 
   );
 }
 
-/** Un SET porte-t-il une arme à distance qui n'est pas prête à tirer ? L'état de charge vit sur
- *  l'ARME (registre `engine/weaponLoad`), pas sur le porteur : chaque objet du set est projeté par la
- *  dérivation UNIQUE `weaponFromItem` (l'`uid` survit, donc `loadRegister` retombe sur l'objet
- *  possédé) — c'est ainsi qu'un set NON ACTIF, dont les armes ne sont pas dans `c.weapons`, dit son
- *  état. PUR. */
-function loadoutUnloaded(c: Combatant, lo: WeaponLoadout): boolean {
-  const items = c.items ?? [];
-  for (const uid of [lo.main, lo.off]) {
-    const it = uid ? items.find((i) => i.uid === uid) : undefined;
-    if (!it || it.kind !== 'ranged') continue;
-    const w = weaponFromItem(it);
-    if ((w.reload ?? 0) > 0 && !weaponLoaded(c, w)) return true;
-  }
-  return false;
-}
-
 /** GOUTTIÈRE de l'arche : une ressource du tour en crans verticaux (longueur constante, N segments
  *  égaux) + son SOCLE au pied — VALEUR COURANTE seule, `short` gravé dessous (planche 2026-08-17 :
  *  « 3 / MOUV. », « 1 / ACTION »). Le MAXIMUM se lit aux crans du rail, jamais deux fois.
@@ -378,7 +361,7 @@ export function ConsoleArch({ active, move, action, etats, retraitDEtat }: {
    *  Mouvement — elle ne paraît que quand le gate `deplacement-annulable` passe). */
   move: { value: number; max: number; spend?: number; geste?: Cell };
   action: { value: number; max: number; spend?: number };
-  /** États de la SITUATION, qui entrent dans le rack avec les États portés (`actorStateChips`). */
+  /** États de la SITUATION, qui entrent dans le rack avec les États portés (`etatsDeSituation`). */
   etats?: EffectChip[];
   retraitDEtat?: ComponentProps<typeof StateChips>['action'];
 }) {
@@ -418,23 +401,14 @@ export function ConsoleArch({ active, move, action, etats, retraitDEtat }: {
   );
 }
 
-/** États du porteur qui ne vivent PAS sur le Combatant mais sur la SITUATION (`battle`) : ils entrent
- *  dans le même rack d'alvéoles que les États portés (spec §1c-bis, chrome d'état de l'arche §1c) —
- *  Assailli ×N (ennemis vivants au contact, `combatDistance` z-aware), Cloué (`battle.fearGate`),
- *  Renfort de pièce (servant qui n'est pas le chef, `crewIds[0]`). Pur.
- *  Vaut pour TOUT acteur actif : les trois données sont celles du Tour en cours (`battle.fearGate`,
- *  `movementUsed`… sont per-Tour) et se lisent pour un ennemi comme pour un héros (spec zone 7 :
- *  hors du tour du joueur la console reste en LECTURE, mêmes cases). */
+/** CHROME des États de situation (`etatsDeSituation`) : ils entrent dans le même rack d'alvéoles que les États
+ *  portés (spec §1c-bis, chrome d'état de l'arche §1c). */
 function actorStateChips(active: Combatant, battle: BattleState): EffectChip[] {
+  const { assailli, cloue, renfort } = etatsDeSituation(active, battle);
   const out: EffectChip[] = [];
-  const assailliN = active.pos
-    ? battle.combatants.filter((c) => c.kind !== active.kind && !isOutOfAction(c) && c.pos && combatDistance(active, c) <= 1).length
-    : 0;
-  if (assailliN >= 2) out.push({ key: 'a-assailli', icon: 'action/attack', label: `Assailli par ${assailliN} ennemis au contact`, kind: 'state', severity: 58, indice: assailliN });
-  if (battle.fearGate === 'failed') out.push({ key: 'a-cloue', flagId: 'calmeApproche', icon: 'flag/fear', label: 'Cloué', kind: 'state', severity: 64 });
-  if (active.mannedPoste && active.mannedPoste.crewIds?.[0] !== active.id) {
-    out.push({ key: 'a-renfort', icon: 'action/serve-engine', label: 'Renfort de pièce (le chef fait feu)', kind: 'state', severity: 40 });
-  }
+  if (assailli) out.push({ key: 'a-assailli', icon: 'action/attack', label: `Assailli par ${assailli.nombre} ennemis au contact`, kind: 'state', severity: 58, indice: assailli.nombre });
+  if (cloue) out.push({ key: 'a-cloue', flagId: 'calmeApproche', icon: 'flag/fear', label: 'Cloué', kind: 'state', severity: 64 });
+  if (renfort) out.push({ key: 'a-renfort', icon: 'action/serve-engine', label: 'Renfort de pièce (le chef fait feu)', kind: 'state', severity: 40 });
   return out;
 }
 
@@ -452,21 +426,6 @@ function actorStateChips(active: Combatant, battle: BattleState): EffectChip[] {
  * travée DROITE = la grille de capacités du personnage ; hors du tour du joueur la console reste
  * en LECTURE (mêmes cases, inertes) sous un bandeau de phase SUPERPOSÉ (le pont ne bouge pas).
  */
-/** COMBATTANT du pont à l'OUVERTURE d'un combat (pause de Round : personne n'agit encore). Le pont est
- *  celui du JOUEUR : il montre d'abord un combattant VIVANT qu'il pilote (`controlsCombatant` +
- *  `isOutOfAction` — un héros KO ou mort à l'ouverture ne porte pas le pont, il n'agira pas), à défaut
- *  un héros vivant du groupe (partie entièrement conduite par l'IA), et seulement en dernier recours la
- *  tête de l'initiative — qui, sur une embuscade, est un ENNEMI. */
-function pontDOuverture(battle: BattleState): Combatant | undefined {
-  const s = useGame.getState();
-  const ordonnes = battle.order.map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
-  const debout = ordonnes.filter((c) => !isOutOfAction(c));
-  return debout.find((c) => controlsCombatant(s, c))
-    ?? debout.find((c) => c.kind === 'hero')
-    ?? ordonnes.find((c) => controlsCombatant(s, c))
-    ?? inBattleId(battle, battle.order[0]);
-}
-
 export function CombatConsole() {
   const battle = useGame((s) => s.battle);
   const net = useGame((s) => s.net);
@@ -585,7 +544,7 @@ export function CombatConsole() {
   // groupe (partie entièrement en Auto-combat), sinon seulement la tête d'ordre.
   /** Le bandeau d'ouverture se pose en haut de la carte. */
   const ouverture = !!pendingRoundStart && pendingRoundStart.round <= 1;
-  const active = activeCombatant(battle) ?? (phase ? pontDOuverture(battle) : undefined);
+  const active = activeCombatant(battle) ?? (phase ? pontDOuverture(useGame.getState()) : undefined);
   if (!active) {
     return phase ? (
       <>
@@ -751,9 +710,9 @@ export function CombatConsole() {
     if (!ammo) return [];
     const choix = compatibleAmmo(active, w);
     const choisissable = live && choix.length >= 2;
-    // Chambre PLEINE : c'est ce que MESURE le dispatcher pour décider s'il décharge (`combatSlice.ts:2137`,
-    // mêmes prédicats) — donc ce que le panneau doit annoncer au candidat qui n'est pas celui en chambre.
-    const chargee = (w.reload ?? 0) > 0 && weaponLoaded(active, w);
+    // Chambre PLEINE (`chambrePleine`, le verdict du dispatcher de munition) : ce que le panneau annonce au
+    // candidat qui n'est pas celui en chambre.
+    const chargee = chambrePleine(active, w);
     const options: ParamOption[] = choisissable
       ? choix.map((a) => {
           const cell = cellFor('select-ammo', 'arme', {
@@ -1204,7 +1163,7 @@ export function CombatConsole() {
                     }
                     const mainItem = lo.main ? active.items?.find((it) => it.uid === lo.main) : undefined;
                     const held = heldSet?.id === lo.id;
-                    const unloaded = loadoutUnloaded(active, lo);
+                    const unloaded = setNonCharge(active, lo);
                     // La VIGNETTE porte sa fiche : l'infobulle `CodexRef` (mode `wrap`) montre l'arme du
                     // set — profil, Atouts/Défauts, source — là où un `title` cachait le libellé du set.
                     // Le nom accessible reste sur le bouton (le libellé ne tient pas dans 39px).

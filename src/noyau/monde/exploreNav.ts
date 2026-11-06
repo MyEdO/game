@@ -49,7 +49,7 @@ export function aPorteeDe(pos: Pt, ent: SceneEntity): boolean {
  *
  *  `null` = aucune marche : interaction sur place (on est déjà à côté), badaud déjà adjacent, ou aucune
  *  case adjacente atteignable. Pour un déplacement simple on renvoie la case telle quelle — le filtrage
- *  « marchable » reste à `pathTo` (aperçu) / `moveAlong` (clic), comme aujourd'hui. */
+ *  « marchable » reste à `pathTo` (aperçu) / `exploreMovePlan` (clic). */
 export function exploreMoveDest(sc: Scene, partyPos: Pt, tile: Pt): Pt | null {
   const tz = tile.z ?? 0;
   const ent = sc.entities.find((e) => e.pos.x === tile.x && e.pos.y === tile.y && (e.z ?? 0) === tz);

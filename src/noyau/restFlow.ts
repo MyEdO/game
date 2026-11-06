@@ -547,15 +547,18 @@ export function lodgingOptions(places: RestPlaces): RestLodging[] {
   return out;
 }
 
-/** Pitances proposées (orthogonales au couchage : manger à l'auberge et dormir dehors est permis).
+/** Pitances qu'offre le lieu (repas d'auberge, table de la maison), communes à toute la troupe. */
+const pitancesDuLieu = (places: RestPlaces): RestFood[] => [...(places.auberge ? ['repas' as const] : []), ...(places.maison ? ['maison' as const] : [])];
+
+/** Pitances proposées à un héros (orthogonales au couchage : manger à l'auberge et dormir dehors est permis).
  *  « ration » seulement si le héros en a une. */
 export function foodOptions(places: RestPlaces, hero: Combatant): RestFood[] {
-  const out: RestFood[] = [];
-  if (places.auberge) out.push('repas');
-  if (places.maison) out.push('maison');
-  if ((hero.items ?? []).some(isRation)) out.push('ration');
-  out.push('rien');
-  return out;
+  return [...pitancesDuLieu(places), ...((hero.items ?? []).some(isRation) ? ['ration' as const] : []), 'rien'];
+}
+
+/** Pitances du choix « pour toute la troupe » : celles du lieu, sans la ration, qui dépend du sac de chacun. */
+export function nourrituresDeTroupe(places: RestPlaces): RestFood[] {
+  return [...pitancesDuLieu(places), 'rien'];
 }
 
 /** Coût total du repos (chambres regroupées par 2, repas par convive), par nuit × days. */
