@@ -78,7 +78,7 @@ import { StatblockEditor } from './StatblockEditor';
 import { emptyStatblock } from '../../data/valeursNeuves';
 import { CreatureProfile, OptionalTraitsPicker, SpellsField } from './OptionalTraitsPicker';
 import { SeatAssignmentsField } from './SeatAssignmentsField';
-import { type Sel, type Tool, capDeLEntite, capsOfferts, effectZoneRect, effectZoneArea, flowEffectCount } from '../../noyau/sceneEditLecture';
+import { type Sel, type Tool, capDeLEntite, capsOfferts, effectZoneRect, lumiereAllumee, effectZoneArea, flowEffectCount } from '../../noyau/sceneEditLecture';
 import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
@@ -1564,7 +1564,7 @@ function EntityPanel({
             <input
               type="checkbox"
               checked={!!ent.light}
-              onChange={(e) => updateSel({ light: e.target.checked ? { ...ent.light, radiusM: ent.light?.radiusM ?? 6 } : undefined })}
+              onChange={(e) => updateSel({ light: e.target.checked ? lumiereAllumee(ent) : undefined })}
             />{' '}
             <Icon id="ui/eye" size="sm" /> Source de lumière (override de l'instance — sinon rayon du type de décor)
           </label>
