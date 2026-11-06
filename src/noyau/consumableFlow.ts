@@ -21,7 +21,6 @@ import { condCtx } from './bourseFlow';
 import { flowTestGated } from './combat/flowEval';
 import { buildActorView } from '../engine/actorView';
 import { runCombatFlow, withDerivedStake } from './combat/triggeredTest';
-import { markActed } from './combatFlow';
 import { openSkillTest, runFlow, applyLeafOps, drainPendingLog, confierLaSuite, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
 import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
@@ -156,7 +155,7 @@ export function runConsumable(get: Get, set: SetFn, hero: Combatant, item: ItemI
 
 /** HORS COMBAT : un héros utilise un consommable (potion, drogue, bandage) depuis sa fiche —
  *  consommé, journalisé, Flow exécuté (un Test « au boire » ouvre sa modale). Le combat passe par
- *  `battleUseItem` (coûte l'Action). */
+ *  `battleUseItem`. */
 export function usePartyItem(get: Get, set: SetFn, heroId: string, uid: string): void {
   if (refuseSi(get, set, refusDInventaire)) return; // en combat → battleUseItem
   const party = get().party;
@@ -172,9 +171,9 @@ export function usePartyItem(get: Get, set: SetFn, heroId: string, uid: string):
   bus.emit(EVT.SCENE_DIRTY);
 }
 
-/** EN COMBAT : consommation par le combattant ACTIF (une Action) — appelée par `battleUseItem`
- *  (combatSlice) après ses gardes (tour du héros, Action disponible). Le Flow passe par la voie de
- *  combat cadence-aware ; le journal différé est déversé dans le log de bataille. */
+/** EN COMBAT : consommation par le combattant ACTIF, Action gratuite (LDB 13 l.106) — appelée par
+ *  `battleUseItem` (combatSlice) après ses gardes. Le Flow passe par la voie de combat cadence-aware ;
+ *  le journal différé est déversé dans le log de bataille. */
 export function battleConsumeItem(get: Get, set: SetFn, active: Combatant, it: ItemInstance): void {
   active.items = (active.items ?? []).filter((i) => i.uid !== it.uid); // consommé
   active.aiming = false; // une autre action que le tir gâche la visée
@@ -184,7 +183,7 @@ export function battleConsumeItem(get: Get, set: SetFn, active: Combatant, it: I
   const queued = drainPendingLog(get, set); // lignes du Flow (inline) → événements du log de bataille
   set({
     battle: {
-      ...markActed(get, set), action: null,
+      ...battle, action: null,
       log: [...battle.log, ev('item', t('cs.useConsumable', { name: active.label, item: it.label }), active.id), ...queued],
     },
   });

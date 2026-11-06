@@ -63,8 +63,6 @@ export const MAISON_MASQUEES = [
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["dismount","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["dual-strike-skip","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["end-turn","maison","",""]', occurrence: 1 },
-  { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["leave-poste","maison","",""]', occurrence: 1 },
-  { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["man-poste","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["mount","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["mouvement","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["overcast-validate","maison","",""]', occurrence: 1 },
