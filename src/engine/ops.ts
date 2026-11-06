@@ -13,7 +13,7 @@
  * citation est portée par la spec/table qui l'emploie ; ce qui n'est pas
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
-import { RNG, parseDiceRequired, roll, type DiceSpec, rollDice, totalDuDe } from './dice';
+import { RNG, roll, type DiceSpec, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
@@ -36,7 +36,8 @@ import { caracDuCombattant, evaluer, slBonus, valeurSansTirage } from './formule
 import { traitsOctroyes } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
-import { findEffectTableById } from '../data/effectTables';
+import { effectTableDie, findEffectTableById } from '../data/effectTables';
+import { deDeTirageDe } from '../data/rangees';
 import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration, maladieABenir, aucuneMaladieABenir } from './rest';
@@ -2728,7 +2729,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Table INLINE (`entries`) ou RÉFÉRENCÉE (`tableId` → tables.json, fail-fast) — jamais les deux.
         const table = 'tableId' in o ? findEffectTableById(o.tableId) : o;
         const rows: { min: number; max: number; ops: GameOp[] }[] = table.entries;
-        const de = parseDiceRequired(table.die, 'rollTable.die');
+        const de = 'tableId' in o ? effectTableDie(o.tableId) : deDeTirageDe(o);
         // Modificateur CONSTANT (Haute Alchimie « 1d10 + 3 », VDM 03 l.698) + |DR négatif| (Vers de carie,
         // MSRC 16 l.90) → lookup `[min,max]` (source unique) → ops de la rangée.
         const modifier = (o.mod ?? 0) + (o.addNegativeSL ? Math.max(0, -(ctx.sl ?? 0)) : 0);

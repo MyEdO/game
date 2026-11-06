@@ -91,6 +91,7 @@ export interface MachinerieDuNoyau {
   shipAutoBattery: (shipId: IdDeCombattant, targetId: IdDeCombattant) => boolean;
   // ── Effets de scène ──
   openMerchant: (entityId: IdDEntiteDeScene) => void;
+  /** Ouvre la fin de séance (`ouvrirLaFinDeSeance`) : l'Effet `sessionEnd`, le menu de jeu. */
   openSessionEnd: () => void;
   /** Remet un document : l'estampille d'une remise neuve (`remise`). */
   remettreDocument: (doc: Omit<NonNullable<EtatDeJeu['document']>, 'remise'>) => void;

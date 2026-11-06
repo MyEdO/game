@@ -7,10 +7,12 @@
  *    suite passe de ~80 s à ~17 s. Contrepartie : les SINGLETONS de module gardent leur état d'un test
  *    à l'autre. On repart donc d'un état NEUF avant CHAQUE test (les hooks de setupFile sont les plus
  *    EXTERNES → s'exécutent AVANT le `beforeEach` propre du fichier, qui pose ensuite son décor) :
- *    - le STORE Zustand (`useGame`) : même reset « zéro-maintenance » que `startScene` (le JSON
- *      round-trip retire les fonctions → seules les données sont remises à plat ; le merge partiel de
- *      zustand préserve les actions). Remis à plat AUSSI en fin de FICHIER (`afterAll`) : le corps de
- *      module du fichier suivant (`const NET0 = useGame.getState().net`) s'évalue HORS de tout
+ *    - le STORE Zustand (`useGame`, `etatViergeDuStore`) : ses DONNÉES par le même reset
+ *      « zéro-maintenance » que `startScene` (copie JSON neuve), ses ACTIONS par celles de l'état
+ *      initial. Le JSON retire les fonctions, et le merge partiel de zustand garde alors l'action
+ *      COURANTE : un banc qui stubbait `jouerAction` (`vi.fn()`) la léguait à tout le reste du worker,
+ *      où un clic de meuble ne jouait plus rien (#3503). Remis à plat AUSSI en fin de FICHIER
+ *      (`afterAll`) : le corps de module du fichier suivant (`const NET0 = useGame.getState().net`) s'évalue HORS de tout
  *      `beforeEach` : sans ce filet, il lit l'état du DERNIER test du fichier précédent du worker
  *      (un `gmSeat` posé y surface les ennemis, #1765).
  *    - le REGISTRE DES RÈGLES OPTIONNELLES (`engine/policy`) : `loadRuleOverrides({})` purge toute
@@ -98,6 +100,13 @@ import { __resetTraceLayerForTest } from './state/traceLayer';
 // État initial figé UNE fois (le `stringify` est la moitié coûteuse, et le geler à l'init le rend
 // immunisé à toute mutation du gabarit) ; chaque test n'en `parse` qu'une copie fraîche.
 const PRISTINE_STATE = JSON.stringify(useGame.getInitialState());
+
+/** L'état VIERGE du store : les actions de l'état initial, sous une copie neuve de ses données. Une
+ *  clé que le JSON retire (fonction, `undefined`) garde la valeur initiale : aucune action substituée
+ *  par un test ne survit (#3503). */
+export function etatViergeDuStore(): GameState {
+  return { ...useGame.getInitialState(), ...(JSON.parse(PRISTINE_STATE) as Partial<GameState>) };
+}
 
 /** Description d'un nœud ÉLÉMENT résiduel : `<tag class="…">`, jamais son contenu (le nom suffit à
  *  retrouver le montage fautif, le contenu ferait un message illisible). */
@@ -248,11 +257,11 @@ beforeEach(async () => {
 });
 
 afterAll(() => {
-  useGame.setState(JSON.parse(PRISTINE_STATE) as Partial<GameState>);
+  useGame.setState(etatViergeDuStore());
 });
 
 beforeEach(() => {
-  useGame.setState(JSON.parse(PRISTINE_STATE) as Partial<GameState>);
+  useGame.setState(etatViergeDuStore());
   loadRuleOverrides({});
   // PRÉFÉRENCE « Dés fixés » (`engine/fixedDie`) : singleton de module, donc PARTAGÉ entre fichiers de
   // test sous `isolate:false` — un fichier qui l'allume sans le rendre contamine les suivants (une
