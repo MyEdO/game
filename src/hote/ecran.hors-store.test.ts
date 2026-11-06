@@ -5,6 +5,8 @@ import { fenetreADessiner } from './gestes';
 import { projeter } from './projection';
 import type { Jeu, LigneDuJournal } from '../noyau/index';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
+import { choixPiegeLame } from '../noyau/combatFlow';
+import { choiceStep } from '../noyau/rollSeam';
 import { t } from '../i18n';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
@@ -106,6 +108,25 @@ describe('le début du Round (`fenetre.gestes`)', () => {
       expect(debut.pendingRoundStart, 'le combat du dôme s’ouvre sur la pause de Round').not.toBeNull();
       expect(gestes(debut), 'seul : qui agit en premier, et le lancer').toEqual(['roundStartPromote', 'fenetreValider@roundStart']);
       expect(gestes({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(['roundStartPromote', 'fenetreValider@roundStart']);
+    } finally {
+      partie.fermer();
+    }
+  });
+});
+
+describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
+  it('le choix d’une parade Piège-lame dit sa portée et son issue avant qu’on tranche', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const combattants = partie.etat().battle!.combatants;
+      const heros = combattants.find((c) => c.kind === 'hero')!;
+      const ennemi = combattants.find((c) => c.kind === 'enemy')!;
+      const lame = ennemi.weapons[0];
+      const parade = heros.weapons[0];
+      const etape = choiceStep(choixPiegeLame({ defenderId: heros.id, attackerId: ennemi.id, weapon: lame, parryWeaponUid: parade.uid!, defSL: 2, roll: 34 }, heros, ennemi, parade))!;
+      const etat: Jeu = { ...partie.etat(), pendingCascade: { title: t('step.paradePiegerLame'), icon: 'item/weapon', purpose: 'combat', cursor: 0, log: [], participants: [etape], seq: 1 } };
+      const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, null)['fenetre.corps'];
+      expect(corps.filter((e) => e.id.startsWith('issue/')).map((e) => 'texte' in e && e.texte), 'ses deux lignes, dans l’ordre du flux').toEqual(etape.outcome!.map((l) => l.text));
     } finally {
       partie.fermer();
     }

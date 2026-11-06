@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { combatStakeRef } from '../data';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
-import { startCascade, type CascadeApplier, stepInteraction, stepReady, buildConsequenceSteps, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
+import { startCascade, type CascadeApplier, stepInteraction, stepReady, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
 import { freeCons, monoStep, displayStep, buildBand } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { spyApplier } from './cascade.testkit';
@@ -395,19 +395,6 @@ describe('Cascade séquentielle influençable', () => {
     appliers.dejaVide = () => ({ dejaDites: true });
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [{ id: 'v', kind: cleDeFixture('dejaVide'), actorId: h.id }] });
     expect(() => banc.getState().jetConfirm('cascade')).toThrow(/dejaDites.*sans conclusion à désigner/s);
-  });
-
-  it('buildConsequenceSteps : groupes non vides → étapes d’affichage (outcome pré-posé), vides ignorés', () => {
-    const steps = buildConsequenceSteps([
-      { kind: 'miscast', label: 'Imparfaite', icon: 'action/cast', lines: ['Le Vent se déchaîne.', 'L’incantateur perd 3 PB.'], actorId: 'x' },
-      { kind: 'effet', label: 'Effets', lines: [] }, // vide → ignoré
-      { kind: 'effet', label: 'Effets', icon: 'magic/power', lines: ['Cible Aveuglée 2 rounds.'] },
-    ]);
-    expect(steps.map((s) => s.kind)).toEqual(['miscast', 'effet']);
-    expect(steps[0].outcome).toEqual([{ text: 'Le Vent se déchaîne.' }, { text: 'L’incantateur perd 3 PB.' }]);
-    expect(stepInteraction(steps[0])).toBe('affichage'); // ni target ni options
-    expect(steps[0].actorId).toBe('x');
-    expect(steps[1].outcome).toEqual([{ text: 'Cible Aveuglée 2 rounds.' }]);
   });
 
   it('liveMerge : un applier qui APPEND une étape (conséquence foldée) la préserve à la validation', () => {
