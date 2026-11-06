@@ -94,6 +94,7 @@ const TABLES_NICHEES_LIVRE: Record<string, { die: string; ref: string }> = {
   'land-cargo.json › wineQuality': { die: '1d10', ref: 'MSRC 13 l.97' },
   'river-navigation.json › windDirections': { die: '1d10', ref: 'MSRC 7 l.25' },
   'river-navigation.json › windForces': { die: '1d10', ref: 'MSRC 7 l.27' },
+  'sea-events.json › boardEvents': { die: '1d100', ref: 'MDG 15 l.134' },
   'sea-navigation.json › orientation.changementDeCap': { die: '1d10', ref: 'MDG 13 l.326' },
   'water-exposure.json › diseases': { die: '1d100', ref: 'MSRC 16 l.53' },
 };

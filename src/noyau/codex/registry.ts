@@ -61,7 +61,7 @@ import ventsJson from '../../data/vents-tourbillonnants.json';
 import type * as accidents from '../../data/schemas/defs/driving-mishap';
 import type * as ivresse from '../../data/schemas/defs/drunkenness';
 import type * as vents from '../../data/schemas/defs/vents-tourbillonnants';
-import { DE_DES_EVENEMENTS_DE_BORD } from '../../engine/seaVoyage';
+import { deDesEvenementsDeBord } from '../../engine/seaVoyage';
 import { findCargoEntryById, isEchangeable } from '../../engine/cargo';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
 import { RIVER_PERILS } from '../../engine/riverNavigation';
@@ -2204,7 +2204,7 @@ const CODEX_SPECS = {
   },
   seaBoardEvents: {
     label: 'codex.fiche.evenementsDeBordMer', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
-    build: () => datasetArray('seaBoardEvents').map((e) => seaEventItem(e, facesDuDe(DE_DES_EVENEMENTS_DE_BORD))),
+    build: () => datasetArray('seaBoardEvents').map((e) => seaEventItem(e, facesDuDe(deDesEvenementsDeBord()))),
   },
   seaPortEvents: {
     label: 'codex.fiche.evenementsDePortMer', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',

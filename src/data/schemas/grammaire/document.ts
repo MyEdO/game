@@ -68,7 +68,12 @@ export const META_CHARGE: Readonly<Record<CleCharge, MetaChamp>> = {
  * ses rangées `entries`, nommés par `META_CHARGE`. Même forme que `weather.json › seasons[]`.
  */
 export function tableTiree<R extends z.ZodType>(rangee: R) {
-  return marquerProduit(nommerChamps(z.strictObject({ die: deDeTirageSchema, entries: z.array(rangee) }), META_CHARGE), 'tableTiree', 'table');
+  return marquerProduit(nommerChamps(z.strictObject({ die: deDeTirageSchema, entries: rangeesDeCharge(rangee) }), META_CHARGE), 'tableTiree', 'table');
+}
+
+/** Les RANGÉES d'une charge (`entries`), collection à clé `id` quand la rangée en déclare un. */
+function rangeesDeCharge<R extends z.ZodType>(rangee: R): z.ZodArray<R> {
+  return pasDeDonnee(ouverts([rangee]), 'id').length ? marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')) : z.array(rangee);
 }
 
 /** Clés d'enveloppe qu'un document ne peut pas EXIGER : `id`/`type`/`label` sont déjà requises,
@@ -548,7 +553,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
         ? marquerProduit(z.strictObject({
             ...complet.shape,
             ...(deDeTirage ? { die: deDeTirageSchema } : {}),
-            entries: pasDeDonnee(ouverts([rangee]), 'id').length ? marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')) : z.array(rangee),
+            entries: rangeesDeCharge(rangee),
           }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
