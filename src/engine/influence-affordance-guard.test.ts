@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { RACINES_DES_ZONES } from '../../scripts/guards/lib/couches.mjs';
 
 /**
  * CLIQUET — une AFFORDANCE D'INFLUENCE exportée a au moins UN consommateur de PRODUCTION (#1106).
  * Précédent MESURÉ : `ledgerRerollable` (procès-verbal) vivait avec son seul test, zéro appelant —
  * un prédicat d'influence qui ne pilote AUCUN bouton donne l'illusion que la relance existe.
- * Périmètre : les fonctions exportées de `src/` dont le nom dit l'affordance (`*Rerollable`,
- * `can*Reroll`). Un test ne compte PAS comme consommateur.
+ * Périmètre : les fonctions exportées des racines des zones (`RACINES_DES_ZONES`, `couches.mjs`) dont le nom dit
+ * l'affordance (`*Rerollable`, `can*Reroll`). Un test ne compte PAS comme consommateur.
  */
 
 const AFFORDANCE_RX = /export\s+function\s+([a-zA-Z0-9_]*(?:Rerollable|Reroll(?:able)?))\s*\(/g;
@@ -30,7 +31,7 @@ export function nameOccurrences(src: string, name: string): number {
 
 describe('cliquet — toute affordance d’influence exportée a un consommateur de PRODUCTION (#1106)', () => {
   it('aucune affordance morte (déclarée, testée, jamais appelée par la production)', () => {
-    const prod = readCorpus(['src']);
+    const prod = readCorpus(RACINES_DES_ZONES);
     const declared: { name: string; file: string }[] = [];
     for (const { rel, text } of prod) for (const n of scanAffordanceNames(text)) declared.push({ name: n, file: rel });
     const dead: string[] = [];

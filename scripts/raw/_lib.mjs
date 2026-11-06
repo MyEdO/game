@@ -352,7 +352,7 @@ export const allAbbrAlternation = () => ABBR_ALT
 // Même fabrique, `alternationDe` (`src/lib/regex.ts`), autre population : tout livre du registre
 // porteur d'un `abbr`, extrait ou non. `allAbbrAlternation` ne couvre que les livres extraits, que
 // l'Atlas adresse ; un livre sans extraction se cite quand même, et la garde qui juge une réf rendue
-// (`src/ui/book-ref-guard.test.ts`, #1826) doit voir tout le registre.
+// (`src/book-ref-guard.test.ts`, #1826) doit voir tout le registre.
 const ABBR_ALT_REGISTRE = alternationDe(booksData.filter((b) => b.abbr).map((b) => b.abbr))
 export const alternationDuRegistre = () => ABBR_ALT_REGISTRE
 

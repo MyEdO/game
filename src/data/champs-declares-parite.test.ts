@@ -20,7 +20,7 @@ import { CARGO_ENTRIES, isTradeHubColumn, isTradeHubEntry, isEchangeable } from 
  * marque aujourd'hui sont EXACTEMENT celles que le moteur nommait — ni une de plus (un comportement
  * accordé par mégarde à une autre entrée), ni une de moins (le comportement perdu en silence).
  *
- * C'est le pendant du plafond `src/ui/registry-id-branch-guard.test.ts` : là-bas on compte les
+ * C'est le pendant du plafond `src/registry-id-branch-guard.test.ts` : là-bas on compte les
  * branchements restants, ici on prouve que leur remplacement DÉCLARÉ couvre la même population.
  */
 describe('#1318 E4/C4-δ2 — parité « le moteur ne nomme plus d’id, l’entrée porte la marque »', () => {

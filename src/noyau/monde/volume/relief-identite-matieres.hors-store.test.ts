@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildFloors } from '../../noyau/monde/volume/floors';
-import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
-import { testScenarios } from '../../scenes/test-scenarios';
-import { tileAt, type Scene } from '../../noyau/monde/scene';
-import { terrainMatiere, terrainSolidHeightM } from '../../noyau/monde/terrain';
-import { matieresDe } from '../../data';
+import { buildFloors } from './floors';
+import { allBuiltinCampaigns, paquetDuJeu } from '../../../scenes/campaign';
+import { testScenarios } from '../../../scenes/test-scenarios';
+import { tileAt, type Scene } from '../scene';
+import { terrainMatiere, terrainSolidHeightM } from '../terrain';
+import { matieresDe } from '../../../data';
 
 /**
  * IDENTITÉ des matières de relief sur TOUTES les scènes livrées (#1691) — contrat POSITIF et DÉRIVÉ :

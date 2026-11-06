@@ -23,7 +23,7 @@ const DESC_REF = {
   parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }],
 };
 
-/** Un projet VALIDE minimal (même forme que `projet()` de `state/forme-vivante.test.ts`). */
+/** Un projet VALIDE minimal. */
 const projetValide = () => ({
   type: 'projet', id: 'proj', label: 'Projet', versionContenu: 1,
   maison: 'fixture de test', narratif: emptyNarratif(), scenes: [{ ...emptyScene('s1', 4, 4), label: 'Salle' }],

@@ -1,10 +1,12 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
-import { codeSeul as sansCommentaires } from '../../../scripts/guards/lib/commentPoison.mjs';
-import { materials, semencesDeScene, terrains } from '../../data';
-import { detenteur } from '../../lib/detenteur.testkit';
+import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
+import { dossierDe } from '../../../../scripts/guards/lib/couches.mjs';
+import { codeSeul as sansCommentaires } from '../../../../scripts/guards/lib/commentPoison.mjs';
+import { materials, semencesDeScene, terrains } from '../../../data';
+import { detenteur } from '../../../lib/detenteur.testkit';
 
 /**
  * GARDE DÉRIVÉE (#1691, élargie #1715, #1716, #1789) — aucune couche ÉMETTRICE du monde ne NOMME une
@@ -34,7 +36,8 @@ import { detenteur } from '../../lib/detenteur.testkit';
  * (catalogues et façades de donnée), et `src/state/**` avec le reste de `src/noyau/**` — la DÉRIVATION des masses de toit y
  * émet le `material` de chaque masse (`sceneEdit.ts`, #1715 volet b : il se résout corps > type de
  * bâtiment > scène), et le reste du store pose les mutations de scène que le rendu consomme.
- * Hors périmètre : les backends et le stage, qui peignent la matière que ces couches émettent.
+ * Hors périmètre : les backends et le stage, qui peignent la matière que ces couches émettent. Les zones `gameIso`,
+ * `state` et `ui` sont celles de l'hôte web (#3556), balayées avec les couches du noyau.
  *
  * Le vocabulaire interdit est DÉRIVÉ du dataset — aucune liste récitée ici : une matière ajoutée
  * demain est gardée le jour même. Les fichiers de TEST sont hors scan : ils POSENT des matières en
@@ -43,20 +46,23 @@ import { detenteur } from '../../lib/detenteur.testkit';
  *
  * AUCUNE exception nominative : le stock mesuré est vide, il doit le rester.
  */
-const GAMEISO = fileURLToPath(new URL('../', import.meta.url));
+const RACINE = fileURLToPath(new URL('../../../../', import.meta.url));
+
+/** Le dossier `sous` de la zone `z` (`COUCHES`), relatif à la racine du dépôt. */
+const sous = (z: string, d?: string) => (d ? `${dossierDe(z)}/${d}` : dossierDe(z));
 
 /** La géométrie pure du monde que le noyau sert aux hôtes (#3476) : une couche de BUILDERS, que le store ne lit pas. */
-const BUILDERS_DU_NOYAU = 'noyau/monde/volume';
+const BUILDERS_DU_NOYAU = sous('noyau', 'monde/volume');
 
-/** Les CINQ couches ÉMETTRICES scannées. `bases` nomme leurs dossiers depuis `src/` (les builders en ont deux,
+/** Les CINQ couches ÉMETTRICES scannées. `bases` nomme leurs dossiers depuis la racine (les builders en ont deux,
  *  `src/gameIso/builders` et `src/noyau/monde/volume` ; le store aussi, `src/state` et le reste de `src/noyau`) ;
  *  `recursif: false` borne la couche à la profondeur 1. */
 const COUCHES = [
-  { nom: 'builders', bases: ['gameIso/builders', BUILDERS_DU_NOYAU], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
-  { nom: 'authoring', bases: ['gameIso/authoring'], recursif: false, filtre: (f: string) => /Svg\.tsx?$/.test(f) },
-  { nom: 'catalog', bases: ['gameIso/catalog'], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
-  { nom: 'store', bases: ['state', 'noyau'], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
-  { nom: 'editor', bases: ['ui/editor'], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
+  { nom: 'builders', bases: [sous('gameIso', 'builders'), BUILDERS_DU_NOYAU], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
+  { nom: 'authoring', bases: [sous('gameIso', 'authoring')], recursif: false, filtre: (f: string) => /Svg\.tsx?$/.test(f) },
+  { nom: 'catalog', bases: [sous('gameIso', 'catalog')], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
+  { nom: 'store', bases: [sous('state'), sous('noyau')], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
+  { nom: 'editor', bases: [sous('ui', 'editor')], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
 ] as const;
 
 /** Les dossiers du STORE, lus dans la table : les autres couches sont celles du rendu et de l'IU. */
@@ -79,12 +85,12 @@ const LIGNE_STRUCTURELLE = new RegExp(SIGNAUX_STRUCTURELS.map((s) => s.re.source
 
 /** Tous les fichiers du périmètre : la marche de l'arbre ET la lecture viennent de la primitive de
  *  corpus (`readCorpus`, une clé par base, `*.test.*` hors corpus). Le chemin rendu est celui que le
- *  rapport porte, relatif à `src/`. */
+ *  rapport porte, relatif à la racine du dépôt. */
 function fichiersDuPerimetre(): { rel: string; code: string }[] {
   return COUCHES.flatMap((c) =>
     c.bases.flatMap((b) =>
-      readCorpus([`src/${b}`])
-        .map(({ rel, text }) => ({ f: rel.slice(`src/${b}`.length + 1), text }))
+      readCorpus([b])
+        .map(({ rel, text }) => ({ f: rel.slice(b.length + 1), text }))
         .filter(({ f }) => (c.recursif || !f.includes('/')) && c.filtre(f.slice(f.lastIndexOf('/') + 1)))
         .map(({ f, text }) => ({ rel: `${b}/${f}`, code: text }))
         .filter(({ rel }) => c.nom !== 'store' || duStore(rel)),
@@ -285,11 +291,11 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
   it('le scan couvre les CINQ couches émettrices (sanity)', () => {
     for (const c of COUCHES)
       for (const b of c.bases) expect(fichiers().filter((f) => f.rel.startsWith(`${b}/`)).length, b).toBeGreaterThan(0);
-    expect(fichiers().some((f) => f.rel === 'noyau/sceneEdit.ts'), 'la dérivation des masses n’est plus scannée').toBe(true);
-    expect(fichiers().some((f) => f.rel === 'noyau/monde/scene.ts'), 'le SCHÉMA de scène n’est plus scanné').toBe(true);
-    expect(fichiers().some((f) => duStore(f.rel) && f.rel.split('/').length > 2), 'le scan du store n’est plus récursif').toBe(true);
-    expect(fichiers().some((f) => f.rel === 'ui/editor/Palette.tsx'), 'la PALETTE de l’éditeur n’est plus scannée').toBe(true);
-    expect(fichiers().some((f) => f.rel === 'ui/editor/Editor.tsx'), 'le redimensionnement de l’éditeur n’est plus scanné').toBe(true);
+    expect(fichiers().some((f) => f.rel === `${sous('noyau')}/sceneEdit.ts`), 'la dérivation des masses n’est plus scannée').toBe(true);
+    expect(fichiers().some((f) => f.rel === `${sous('noyau')}/monde/scene.ts`), 'le SCHÉMA de scène n’est plus scanné').toBe(true);
+    expect(fichiers().some((f) => duStore(f.rel) && f.rel.split('/').length > 3), 'le scan du store n’est plus récursif').toBe(true);
+    expect(fichiers().some((f) => f.rel === `${sous('ui', 'editor')}/Palette.tsx`), 'la PALETTE de l’éditeur n’est plus scannée').toBe(true);
+    expect(fichiers().some((f) => f.rel === `${sous('ui', 'editor')}/Editor.tsx`), 'le redimensionnement de l’éditeur n’est plus scanné').toBe(true);
     expect(materials.length).toBeGreaterThan(5);
   });
 
@@ -462,7 +468,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
   });
 
   it('la neutralisation est STRUCTURELLE : une COMPARAISON de partie n’est pas une émission de matière', () => {
-    const fichierTemoin = `${GAMEISO}authoring/floorsSvg.ts`;
+    const fichierTemoin = join(RACINE, sous('gameIso', 'authoring'), 'floorsSvg.ts');
     expect(existsSync(fichierTemoin), 'le site témoin de la comparaison de partie a disparu — reformuler la garde.').toBe(true);
     const brut = readFileSync(fichierTemoin, 'utf8');
     const partie = materials.find((m) => brut.includes(`part === '${m.id}'`) || brut.includes(`part !== '${m.id}'`));

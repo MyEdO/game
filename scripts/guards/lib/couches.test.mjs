@@ -5,7 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync, statSync } from 'node:fs'
-import { COUCHES, PAQUETS_DE_L_HOTE_WEB, couvre, fermeParLaSurvie, outillageAtteint, paquetFerme, zoneDe } from './couches.mjs'
+import { COUCHES, PAQUETS_DE_L_HOTE_WEB, couvre, dossierDe, fermeParLaSurvie, outillageAtteint, paquetFerme, porteeDeGarde, zoneDe } from './couches.mjs'
 import { lintFixtures, selectionnerMessages } from './lint.testkit.mjs'
 
 const RACINE = new URL('../../../', import.meta.url)
@@ -108,4 +108,15 @@ test('MUR : un module de `hotes/` hors du dossier de l’évaluateur ne l’impo
     { filePath: `${EVALUATEUR}gardes/zz-inverse-3.ts`, code: "import { evaluer } from '../evaluer';\nexport const e = evaluer;\n" },
   ]
   assert.deepEqual(verdicts(fixtures, 'Outillage atteint'), ['murs/purete-imports', 'murs/purete-imports', 'passe', 'passe'])
+})
+
+test('ORACLE : `porteeDeGarde` rend les dossiers des zones qui survivent puis ceux des zones web ; une zone inconnue, `racine` ou du mauvais bord lève', () => {
+  const survivent = Object.keys(COUCHES).filter((z) => COUCHES[z].survit === true)
+  const web = Object.keys(COUCHES).filter((z) => COUCHES[z].survit !== true && z !== 'racine')
+  assert.ok(survivent.length > 0 && web.length > 0, 'la table n’a plus deux bords : l’oracle ne mesure rien')
+  assert.deepEqual(porteeDeGarde(survivent, web), [...survivent, ...web].map(dossierDe))
+  assert.deepEqual(porteeDeGarde(survivent), survivent.map(dossierDe))
+  for (const [s, w] of [[[web[0]], []], [[], [survivent[0]]], [['racine'], []], [[], ['racine']], [['zz-inconnue'], []], [['constructor'], []]]) {
+    assert.throws(() => porteeDeGarde(s, w), /porteeDeGarde/, `${s} | ${w}`)
+  }
 })

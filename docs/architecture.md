@@ -539,7 +539,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `LectureDArete` (lecture `auteur`/`jeu` d'une arête, `porteSelon`),
                             `Atterrissage` (où l'on atterrit en quittant une surface,
                             `surfaceDAtterrissage`), `CellSide` (alias primitif). Comptes
-                            et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
+                            et liste GATÉS par `noyau/scene-field-editability-guard.test.ts`.
                             Les types que la donnée lit vivent avec leurs schémas : l'union `Effect` et
                             ses deux annotations du `z.lazy` (`DelayedEffect`, `PetitePriere`) dans
                             `defs-scenes/effets.ts` ; `Terrain`, `ReliefDefaults` et `SceneRoofDefaults`

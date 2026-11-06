@@ -1,13 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
-import { sitesBandeEnLigne } from '../../scripts/guards/lib/bandeEnLigne.mjs';
+import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
+import { analyserCorpus } from '../../../scripts/guards/lib/dialecte.mjs';
+import { sitesBandeEnLigne } from '../../../scripts/guards/lib/bandeEnLigne.mjs';
+import { dossierDe, porteeDeGarde } from '../../../scripts/guards/lib/couches.mjs';
 
 /**
- * Garde de la primitive `fourchette` (`src/engine/tables.ts`, #1595) : dans `src/ui` et le Codex du noyau
- * (`src/noyau/codex`), la graphie d'une bande de table ne se recompose pas en ligne. Motif et angle mort : en-tête de `bandeEnLigne.mjs`.
+ * Garde de la primitive `fourchette` (`src/engine/tables.ts`, #1595) : dans le Codex du noyau (`src/noyau/codex`) et la
+ * zone `ui` de l'hôte web (#3556), la graphie d'une bande de table ne se recompose pas en ligne. Motif et angle mort : en-tête de `bandeEnLigne.mjs`.
  * EXCLUSIONS AU SITE (fichier + texte du site), chacune un intervalle qui n'est PAS une bande de table :
  */
+/** Le Codex du noyau, puis la zone `ui` de l'hôte web. */
+const PORTEE = [`${dossierDe('noyau')}/codex`, ...porteeDeGarde([], ['ui'])];
+
 const HORS_BANDE = new Map<string, string>([
   ['src/ui/NumberField.tsx :: <span id={domaineId} className="hint" role="status">{min}–{max}</span>', 'domaine d’une saisie numérique, rendu au refus : des bornes de champ, aucune ligne de table'],
 ]);
@@ -16,7 +20,7 @@ describe('#1595 — une bande de table s’écrit par `fourchette`', () => {
   it('aucune bande recomposée en ligne dans src/ui et src/noyau/codex, sauf exclusion au site ; toute exclusion vise un site vivant', () => {
     const sites: string[] = [];
     const lignes: string[] = [];
-    for (const { fichier, sourceFile } of analyserCorpus(readCorpus(['src/ui', 'src/noyau/codex']))) {
+    for (const { fichier, sourceFile } of analyserCorpus(readCorpus(PORTEE))) {
       if (!sourceFile) continue;
       for (const s of sitesBandeEnLigne(fichier, sourceFile)) {
         sites.push(`${fichier.rel} :: ${s.texte}`);

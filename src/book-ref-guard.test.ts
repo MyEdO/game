@@ -1,11 +1,12 @@
-import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
+import { ast, analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { alternationDuRegistre, REGISTRE_LIVRES } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
-import { garanti } from '../lib/garanti';
+import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { alternationDuRegistre, REGISTRE_LIVRES } from '../scripts/guards/lib/rawRefIntegrity.mjs';
+import { garanti } from './lib/garanti';
+import { dossierDe, porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
 
 /**
  * Garde-fou « réf de livre hors surface Codex » (#601, même classe que #596).
@@ -29,7 +30,7 @@ import { garanti } from '../lib/garanti';
  * d'exception à vider : une décision de PÉRIMÈTRE, stable.
  */
 
-const UI_DIR = fileURLToPath(new URL('.', import.meta.url));
+const SRC_DIR = fileURLToPath(new URL('.', import.meta.url));
 
 /**
  * `abbr` d'un livre du registre (`src/data/books.json`) suivi d'un numéro de chapitre/fiche.
@@ -72,14 +73,14 @@ const BOOK_REF = new RegExp(`\\b(${SIGLES})\\s+\\d+|\\((?:${SIGLES})\\)`);
  * `murs/atelier` réserve `editor/GameOpEditor` et `editor/ConditionEditor` à `src/ui/editor/`,
  * `src/ui/compendium/` et `src/ui/gallery/`. Même partition, appliquée ici à la réf de livre.
  */
-const AUTHORING_DIRS = ['src/ui/compendium/', 'src/ui/editor/'];
+const AUTHORING_DIRS = ['compendium', 'editor'].map((d) => `${dossierDe('ui')}/${d}/`);
 
 /**
  * Le Codex hors `src/ui` : sa PROJECTION vit au noyau (`src/noyau/codex/`, #3059) et ses libellés de fiche au
  * catalogue sous le préfixe `codex.fiche.` (`registry.ts`). Même surface de citation que `src/ui/compendium/`,
  * même dispense de PÉRIMÈTRE (répertoire, préfixe de clé), jamais une liste de clés.
  */
-const CODEX_DU_NOYAU = 'src/noyau/codex/';
+const CODEX_DU_NOYAU = `${dossierDe('noyau')}/codex/`;
 const CLES_DU_CODEX = 'codex.fiche.';
 
 /**
@@ -142,10 +143,10 @@ function renderedBookRefs(file: string, src: string, sf = ast({ rel: file, text:
  * `MainMenu`) rend leurs titres et descriptions, c'est une surface de jeu.
  */
 const PERIMETRES_DE_JEU = [
-  { nom: 'catalogue i18n', racines: ['src/i18n/messages'], horsDiagnostic: false },
-  { nom: 'noyau, state et engine', racines: ['src/noyau', 'src/state', 'src/engine'], horsDiagnostic: true },
-  { nom: 'hôtes', racines: ['src/hote', 'src/hoteTexte', 'hotes/godot'], horsDiagnostic: false },
-  { nom: 'scénarios de test', racines: ['src/scenes/test-scenarios'], horsDiagnostic: false },
+  { nom: 'catalogue i18n', racines: [`${dossierDe('i18n')}/messages`], horsDiagnostic: false },
+  { nom: 'noyau, state et engine', racines: porteeDeGarde(['noyau', 'engine'], ['state']), horsDiagnostic: true },
+  { nom: 'hôtes', racines: [...porteeDeGarde(['hote', 'hoteTexte']), `${dossierDe('hotes')}/godot`], horsDiagnostic: false },
+  { nom: 'scénarios de test', racines: [`${dossierDe('scenes')}/test-scenarios`], horsDiagnostic: false },
 ] as const;
 
 const CONSIGNE = 'retirer la réf (elle va en commentaire au site qui écrit le message) ; si la glose porte une RÈGLE, la relier par <CodexRef> à son entrée réelle';
@@ -153,7 +154,7 @@ const CONSIGNE = 'retirer la réf (elle va en commentaire au site qui écrit le 
 describe('réfs de livre — réservées au Codex et aux surfaces d’authoring (#601)', () => {
   it('aucune surface de JEU de src/ui ne rend une référence de livre', () => {
     const offenders: string[] = [];
-    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(['src/ui']))) {
+    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(porteeDeGarde([], ['ui'])))) {
       if (AUTHORING_DIRS.some((d) => rel.startsWith(d))) continue;
       for (const h of renderedBookRefs(rel, text, sourceFile!)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
     }
@@ -201,7 +202,7 @@ describe('réfs de livre — réservées au Codex et aux surfaces d’authoring 
     // serait déjà échappé) : aucune identité de livre n'est écrite ici, et un registre qui perdrait
     // ce livre déplacerait la sonde avec lui.
     const sigle = REGISTRE_LIVRES.find((b) => b.abbr)!.abbr!;
-    const probe = join(UI_DIR, '__probe.tsx');
+    const probe = join(SRC_DIR, '__probe.tsx');
     const sf = ast({ rel: probe, text: [
         `// glose en commentaire (${sigle} 23 l.141) — tolérée`,
         `export const a = "Refuser la Faveur (${sigle} 23 l.141)";`,

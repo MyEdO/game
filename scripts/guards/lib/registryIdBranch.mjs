@@ -9,7 +9,7 @@ import { ast } from './dialecte.mjs';
 // ⚠ Distincte de `labelLogic.mjs` (logique keyée par LABEL au lieu de l'id) : ici, keyer par id est
 // tout aussi fautif — dans un code générique, on ne key pas, on lit un champ.
 //
-// Module ESM pur, consommé par src/ui/registry-id-branch-guard.test.ts. Le scan parse le fichier avec
+// Module ESM pur, consommé par src/registry-id-branch-guard.test.ts. Le scan parse le fichier avec
 // le compilateur TypeScript : la NATURE de la liaison (valeur reçue/itérée vs
 // tenue par le module), l'opérateur et la littéralité de l'opérande se lisent sur l'AST — aucune liste
 // de noms d'offenseurs tolérés. En revanche l'EXPRESSION D'IDENTITÉ se reconnaît, elle, à une
@@ -25,19 +25,20 @@ import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs'
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { estTableTotale } from './canonUnique.mjs';
+import { porteeDeGarde } from './couches.mjs';
 
 /** Liaison LOCALE du compilateur : sous le transformeur SSR de Vitest, chaque `ts.x` d'un import est
  *  une traversée de module (`__vite_ssr_import_N__.default.x`) — sur le visiteur d'AST, chaud, elle
  *  coûte le gros du scan. Une liaison locale la paie UNE fois. */
 const ts = tsModule;
 
-/** Dossiers scannés. `src/ui` est le trou d'origine (les deux cas réels y vivent, et `hardcode.mjs`
- *  ne l'a jamais scanné) ; `src/engine`/`src/state` complètent le périmètre des gardes de doctrine ;
- *  `src/gameIso` et `src/data` portent les ROUTAGES D'ART et les registres chargés (le dépôt a déjà
- *  payé un routage d'art d'arme par id) ; `scripts` porte les compilateurs d'authoring, qui écrivent
- *  de la donnée de scène — un branchement par id y produit du contenu non généralisable. */
+/** Dossiers scannés, dérivés de `COUCHES` (`porteeDeGarde`) : `engine` et `noyau` portent le code générique des
+ *  gardes de doctrine ; `data` les registres chargés ; les zones `ui` (le trou d'origine, que `hardcode.mjs` ne
+ *  scannait pas), `state`, `gameIso` (les ROUTAGES D'ART : le dépôt a déjà payé un routage d'art d'arme par id) et
+ *  `web` sont celles de l'hôte web (#3556) ; `scripts`, hors des zones, porte les compilateurs d'authoring, qui
+ *  écrivent de la donnée de scène — un branchement par id y produit du contenu non généralisable. */
 
-export const SCAN_DIRS = ['src/ui', 'src/engine', 'src/state', 'src/noyau', 'src/gameIso', 'src/data', 'src/web', 'scripts'];
+export const SCAN_DIRS = [...porteeDeGarde(['engine', 'noyau', 'data'], ['ui', 'state', 'gameIso', 'web']), 'scripts'];
 
 /** Extensions scannées : TypeScript du jeu ET JavaScript d'outillage (`scripts/**` est en `.mjs`). */
 export const SCAN_EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.js'];
