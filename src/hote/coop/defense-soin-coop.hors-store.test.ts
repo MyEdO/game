@@ -89,7 +89,7 @@ describe('Défense et soin en coop : la même fenêtre des deux côtés', () => 
     combat(banc, [doc, al], 0);
     const { guest, chezLInvite } = table(banc);
     banc.setState({ battle: { ...banc.getState().battle!, action: 'heal' } });
-    guest.sendIntent('battleHeal', ['al', 'wounds']);
+    guest.sendIntent('battleClickEntity', ['al']);
     const vueHote = fenetreDuSoin(banc.getState());
     expect(vueHote?.mode.choisie, 'chemin : le soin du héros de l’invité s’ouvre chez l’hôte').toBe('wounds');
     const vueInvite = fenetreDuSoin(chezLInvite());
