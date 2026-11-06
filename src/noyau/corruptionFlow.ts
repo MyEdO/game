@@ -59,6 +59,7 @@ import { stepDetail } from './rollSeam';
 import { NATURES_D_INFLUENCE, type NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import type { CorpsDesReglages } from './reglagesDuJet';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Le Test d'EXPOSITION de nature `nature` : la fiche `influences-corruptrices` (LDB 19 l.29). SEULE
@@ -291,7 +292,7 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   const hero = corruptionTarget(get(), pr.heroId);
   if (!hero) { releaseCorruptionSlot(get, set); return; }
   const lines: string[] = [];
-  if (renounce && (hero.resilience ?? 0) > 0) {
+  if (renounce) {
     hero.resilience = (hero.resilience ?? 0) - 1;
     lines.push(t('cor.renounced', { name: hero.label }));
     pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id, severity: 'minor' });
@@ -355,6 +356,11 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
 export function corruptionTarget(s: Jeu, heroId?: string): Combatant | undefined {
   const pool = s.battle?.combatants.filter((c) => followsCharacterRules(c)) ?? s.party;
   return (heroId ? pool.find((h) => h.id === heroId) : undefined) ?? pool.find((h) => !h.dead && !h.outOfRencontre);
+}
+
+/** Le choix de « Je te renie ! » (`CorpsDesChoix`, LDB 17 l.67) : `resolveRenounce`. */
+export function choixDeCorruption(get: Get, set: Set): Pick<CorpsDesChoix, 'renounce'> {
+  return { renounce: { renier: (renier) => resolveRenounce(get, set, renier) } };
 }
 
 /** Le réglage de l'exposition à une Influence corruptrice (`CorpsDesReglages`) : en EXPOSITION seulement, jamais quand la

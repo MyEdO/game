@@ -2447,12 +2447,13 @@ export const oppositionsEnAttente = (p: PendingCastOpposition): OppositionPartic
   p.participants.filter((part) => part.interactive && !part.result);
 
 /** Ce qui refuse le réglage venu d'une frontière (JSON d'un hôte, intention d'un siège) : un réglage que son flux ne
- *  déclare pas (`REGLAGES_DU_JET`), une rangée absente d'un réglage de rangée, ou posée sur un réglage de fenêtre ;
- *  `null` : il se joue. */
-function refusDuReglage(flux: unknown, reglage: unknown, pid: unknown): string | null {
+ *  déclare pas (`REGLAGES_DU_JET`), une rangée absente d'un réglage de rangée, ou posée sur un réglage de fenêtre, le
+ *  réglage de l'hôte dans l'état d'un invité ; `null` : il se joue. */
+function refusDuReglage(s: Jeu, flux: unknown, reglage: unknown, pid: unknown): string | null {
   const declaration = declarationDuReglage(flux, reglage);
   if (!declaration) return t('jet.refus.reglageAbsent');
-  return (typeof pid === 'string') === (declaration.portee === 'rangee') ? null : t('jet.refus.rangee');
+  if ((typeof pid === 'string') !== (declaration.portee === 'rangee')) return t('jet.refus.rangee');
+  return declaration.qui === 'hote' && s.net.mode === 'guest' ? t('jet.refus.hoteSeul') : null;
 }
 
 /** Ce qui ferme maintenant le réglage `reglage` du flux `flux`, sur la rangée `pid` d'un réglage de rangée : sa phase
@@ -2469,7 +2470,7 @@ export function fermetureDuReglage(get: Get<Jeu>, flux: FluxRegle, reglage: stri
 export function creerReglageDuJet(get: Get, set: Set, corps: CorpsDesReglages): VerbeDeReglage {
   return {
     jetRegler: (...[flux, reglage, valeur, pid]) => {
-      const refus = refusDuReglage(flux, reglage, pid);
+      const refus = refusDuReglage(get(), flux, reglage, pid);
       if (refus) { refuserGeste(get, set, refus); return; }
       const fermeture = fermetureDuReglage(get, flux, reglage, pid);
       if (fermeture) { refuserGeste(get, set, libelleDeLaFermeture(fermeture)); return; }

@@ -1006,11 +1006,11 @@ describe('Boucle de jeu (store)', () => {
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : le couple est hors d'Allonge, l'approche se demande.
     banc.getState().battleClickEntity(mount.id, { confirm: true, approche: true });
     st = banc.getState();
-    // Le verdict voyage DANS le pending : `mountTargetSelect` relance le clic, l'intention est déjà dissoute.
+    // Le verdict voyage DANS le pending : le choix `mountTarget.cible` relance le clic, l'intention est déjà dissoute.
     expect(st.pendingMountTarget).toEqual({ riderId: rider.id, mountId: mount.id, approche: true });
     expect(st.pendingAttack).toBeNull();
     // Choisir la monture → modale fermée + attaque ciblée sur la monture.
-    banc.getState().mountTargetSelect(mount.id);
+    banc.getState().fenetreChoisir('mountTarget', 'cible', mount.id);
     st = banc.getState();
     expect(st.pendingMountTarget).toBeNull();
     expect(st.pendingAttack?.targetId).toBe(mount.id);
@@ -2537,7 +2537,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 2 });
     banc.getState().seedRng(1);
     banc.getState().battleEndTurn();
-    banc.getState().fateSurvive();
+    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.dead ?? false).toBe(false);
     expect(h.outOfRencontre).toBe(true);
@@ -2549,7 +2549,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 });
     banc.getState().seedRng(1);
     banc.getState().battleEndTurn();
-    banc.getState().fateAccept();
+    banc.getState().fenetreChoisir('fateSave', 'issue', 'accept');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.dead).toBe(true);
   });
 

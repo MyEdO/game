@@ -8,7 +8,6 @@ import type { Jeu } from './etat';
 import { fenetreDuJeu, type FenetreDuJeu } from './combatAuto';
 import { stepInteraction } from './cascade';
 import type { PendingCascade } from './pendings';
-import { fateSaveOptions } from '../engine/fortune';
 import { preemptShooterIds } from './targeting';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
@@ -40,26 +39,26 @@ function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | n
 }
 
 /** Ce qui ferme maintenant les verbes qu'une fenêtre joue sans flux de jet, par sa clé : « tout résoudre » sur la
- *  cascade, la déclaration du Contre-sort quand ce siège n'a plus de rangée à déclarer (`rangeesADeclarerIci`),
- *  l'annulation du coup que le Sauvetage par le Destin n'offre pas (`fateSaveOptions`) ; au début du Round, la visée du
- *  Tir rapide sans tireur (`preemptShooterIds`) et le clic du combattant sans visée armée (`preemptAiming`). */
+ *  cascade, la déclaration du Contre-sort quand ce siège n'a plus de rangée à déclarer (`rangeesADeclarerIci`) ; au
+ *  début du Round, la visée du Tir rapide sans tireur (`preemptShooterIds`) et le clic du combattant sans visée armée
+ *  (`preemptAiming`). Les valeurs d'un choix de fenêtre se ferment à `OUVERTS_DU_CHOIX`. */
 const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
   cascade: (s) => s.pendingCascade && {
     cascadeResolveAll: fermetureDeToutResoudre(s, s.pendingCascade),
     counterspellDeclareAll: rangeesADeclarerIci(s, s.pendingCounterspell).length ? null : 'rienADeclarer',
   },
-  fateSave: (s) => s.pendingFateSave && { fateNegate: fateSaveOptions(s.pendingFateSave.source).includes('negate') ? null : 'nonOffert' },
   roundStart: (s) => ({
     armPreempt: preemptShooterIds(() => s).length ? null : 'nonOffert',
     battleClickEntity: s.preemptAiming ? null : 'nonOffert',
   }),
 };
 
-/** Les arguments que la fenêtre pose d'office pour son geste `g` : la fenêtre d'une validation ou d'une sortie, le flux d'un geste de jet,
- *  le flux et le réglage d'un réglage, et l'id qu'elle désigne (`pid`) — pour un geste de jet, seulement quand il vise
- *  une rangée (`viseUneRangee`) ; pour un réglage, seulement un réglage de rangée. */
-export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { fenetre?: GesteDuJeu['fenetre']; flux?: FlowKey; reglage?: ReglageDuJet; pid?: string } {
-  if (g.fenetre) return { fenetre: g.fenetre };
+/** Les arguments que la fenêtre pose d'office pour son geste `g` : la fenêtre d'une validation ou d'une sortie, la
+ *  fenêtre et l'axe d'un choix, le flux d'un geste de jet, le flux et le réglage d'un réglage, et l'id qu'elle désigne
+ *  (`pid`) — pour un geste de jet, seulement quand il vise une rangée (`viseUneRangee`) ; pour un réglage, seulement
+ *  un réglage de rangée. */
+export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { fenetre?: GesteDuJeu['fenetre']; axe?: GesteDuJeu['axe']; flux?: FlowKey; reglage?: ReglageDuJet; pid?: string } {
+  if (g.fenetre) return { fenetre: g.fenetre, ...(g.axe ? { axe: g.axe } : {}) };
   const pid = fenetre.pid ? { pid: fenetre.pid } : {};
   if (g.flux && g.reglage) return { flux: g.flux, reglage: g.reglage, ...(declarationDuReglage(g.flux, g.reglage)?.portee === 'rangee' ? pid : {}) };
   const deJet = verbeDeJetDe(g.verbe);

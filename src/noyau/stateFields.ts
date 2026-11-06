@@ -115,7 +115,7 @@ const STATE_FIELDS = {
   // il doit rester actif dans la nouvelle scène (comme pendingSeaActivities ci-dessus).
   pendingManannPriest: { init: null, resetOn: [] },
   // Posé à l'accostage AVANT toute transition de scène (celle-ci n'intervient qu'à la résolution du
-  // choix, `resolveShoreLeave`) — aucune scène à survivre, mais transitoire de voyage comme les autres.
+  // choix `shoreLeave.accorder`) — aucune scène à survivre, mais transitoire de voyage comme les autres.
   pendingShoreLeave: { init: null, resetOn: [] },
   // Campagne publiée choisie au menu (PartyScreen) : survit jusqu'à la constitution du groupe, jamais
   // remis par un changement de scène/combat (posé AVANT toute scène de jeu).

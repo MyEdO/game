@@ -110,7 +110,7 @@ describe('ZdE « jet puis pose » — LdV vers la case centre À LA POSE', () =>
     const pc = banc.getState().pendingCast!;
     expect(pc.zone).toMatchObject({ center: null });
     banc.setState({ pendingCast: { ...pc, result: { cast: true, roll: 11, target: 70, sl: 4, isCritical: false, isFumble: false, log: 'lancé' } as never } });
-    banc.getState().castPlaceZone(true);
+    banc.getState().jetRegler('cast', 'carte', 'zone');
     banc.getState().battleClickTile({ x: 16, y: 4 }); // centre masqué par le mur
     expect(banc.getState().journal.join('\n')).toMatch(/pas de ligne de vue/i);
     expect(banc.getState().pendingCast?.zone?.placing).toBe(true); // la pose continue

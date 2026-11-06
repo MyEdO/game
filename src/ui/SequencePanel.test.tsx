@@ -315,7 +315,7 @@ describe('ABANDON — servi par toute branche d’étape de séquence', () => {
       expect(get().suspendedCascades.map((c) => c.purpose), 'la manche est parquée').toEqual(['sequence']);
       render();
       expect(boutons(), 'branche jet hébergé').not.toContain('Abandonner');
-      act(() => { get().sequenceAbandon(); });
+      act(() => { get().jetRegler('cascade', 'abandon', true); });
       expect(get().sequence, 'la partie continue').not.toBeNull();
       expect(get().pendingTest, 'le Test hébergé reste à jouer').toBeTruthy();
       expect(get().suspendedCascades.map((c) => c.purpose), 'la manche reste parquée, prête à reprendre').toEqual(['sequence']);
@@ -361,7 +361,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     render();
     ferme('pli dû', 'Abandon possible entre deux manches.');
     expect(sequenceAbandonOf(get), 'pli dû : non offert').toBeNull();
-    act(() => { get().sequenceAbandon(); });
+    act(() => { get().jetRegler('cascade', 'abandon', true); });
     expect(get().sequence?.abandon, 'aucune demande posée').toBeUndefined();
     expect(cur().kind, 'le pli reste à trancher').toBe('tavern-pot-fold');
   });
@@ -376,7 +376,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
       if (st.options && st.chosen == null && st.kind === 'tavern-throw-gain') {
         render();
         ferme('gain à choisir', 'Répondez d’abord au choix en cours.');
-        act(() => { get().sequenceAbandon(); });
+        act(() => { get().jetRegler('cascade', 'abandon', true); });
         expect(get().sequence?.abandon, 'aucune demande posée').toBeUndefined();
         vu = true;
         break;
@@ -406,7 +406,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     render();
     ferme('pinte due');
     expect(sequenceAbandonOf(get), 'pinte due : non offert').toBeNull();
-    act(() => { get().sequenceAbandon(); });
+    act(() => { get().jetRegler('cascade', 'abandon', true); });
     expect(get().sequence, 'la partie continue').not.toBeNull();
     expect(cur().kind, 'le Test d’alcool reste à jouer').toBe('tavern-drink');
   });
@@ -433,7 +433,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     render();
     expect(boutons(), 'manche résolue : offert').toContain('Abandonner');
     const manche = get().sequence!.round;
-    act(() => { get().sequenceAbandon(); });
+    act(() => { get().jetRegler('cascade', 'abandon', true); });
     expect(cur().kind, 'la validation du lancer appende la pinte, qui reste due').toBe('tavern-drink');
     expect(get().sequence?.abandon, 'la demande est portée par l’état de la séquence').toBe('abandon');
     expect(sequenceAbandonOf(get), 'aucune seconde demande').toBeNull();

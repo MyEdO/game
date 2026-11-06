@@ -7,7 +7,9 @@
 // Un paramètre (ou un champ) dont la DÉCLARATION nomme une clé de `DESIGNATIONS` (src/noyau/designations.ts) porte
 // ce nom et son mot dans sa forme (`designe`) : un alias de `string` ne survit pas au type résolu, il se lit au nœud déclaré.
 // Le verbe qui règle un jet (`jetRegler`, #3368) prend la valeur de chaque réglage de `ReglagesDuJet`
-// (src/noyau/reglagesDuJet.ts) : la même lecture donne la forme de chacune (`REGLAGES`), que l'hôte contrôle.
+// (src/noyau/reglagesDuJet.ts), le verbe qui choisit dans une fenêtre (`fenetreChoisir`, #3369) celle de chaque axe de
+// `ChoixDesFenetres` (src/noyau/choixDesFenetres.ts) : la même lecture donne la forme de chacune (`REGLAGES`, `CHOIX`),
+// que l'hôte contrôle.
 import path from 'node:path'
 import * as ts from 'typescript/unstable/ast'
 import { SignatureKind, SymbolFlags, TypeFlags } from 'typescript/unstable/sync'
@@ -20,6 +22,8 @@ const SOURCE_DESIGNATIONS = 'src/noyau/designations.ts'
 const TABLE_DESIGNATIONS = 'DESIGNATIONS'
 const SOURCE_REGLAGES = 'src/noyau/reglagesDuJet.ts'
 const INTERFACE_REGLAGES = 'ReglagesDuJet'
+const SOURCE_CHOIX = 'src/noyau/choixDesFenetres.ts'
+const INTERFACE_CHOIX = 'ChoixDesFenetres'
 /** Profondeur de résolution d'un objet : au-delà, l'objet ne contrôle que d'être un objet (`champs: null`). */
 const PROFONDEUR = 1
 /** Nombre de littéraux au-delà duquel une union de littéraux (un id du catalogue) se contrôle par son genre primitif :
@@ -185,10 +189,11 @@ function interfaceDe(session, racine, source, nom) {
   return decl
 }
 
-/** Les réglages de chaque flux de jet (`ReglagesDuJet`, src/noyau/reglagesDuJet.ts) : la forme de la valeur de chacun. */
-function reglagesLus(session, racine, designes) {
+/** Les axes de chaque clé de l'interface `nom` du fichier `source` (les réglages de chaque flux de jet, `ReglagesDuJet` ;
+ *  les choix de chaque fenêtre, `ChoixDesFenetres`) : la forme de la valeur de chacun. */
+function axesLus(session, racine, designes, source, nom) {
   const { checker } = session
-  const decl = interfaceDe(session, racine, SOURCE_REGLAGES, INTERFACE_REGLAGES)
+  const decl = interfaceDe(session, racine, source, nom)
   return Object.fromEntries(checker.getPropertiesOfType(checker.getTypeAtLocation(decl.name)).map((flux) => [
     flux.name,
     Object.fromEntries(checker.getPropertiesOfType(checker.getTypeOfSymbol(flux)).map((r) => [r.name, designee(sansAbsent(forme(checker, checker.getTypeOfSymbol(r), 0, designes)), typeDeclare(r), designes)])),
@@ -196,7 +201,8 @@ function reglagesLus(session, racine, designes) {
 }
 
 /** La partie lue de son type : ses verbes, par nom, ou les seuls `noms`, leurs paramètres dans l'ordre de l'appel
- *  (`ParametreDeVerbe`, src/hote/formes.ts), et la forme de la valeur de chaque réglage de jet. */
+ *  (`ParametreDeVerbe`, src/hote/formes.ts), et la forme de la valeur de chaque réglage de jet et de chaque choix de
+ *  fenêtre. */
 export function partieLue(racine = process.cwd(), noms = null) {
   const fichier = path.resolve(racine, SOURCE).replaceAll('\\', '/')
   const session = repoProgram(racine, () => [fichier])
@@ -212,7 +218,11 @@ export function partieLue(racine = process.cwd(), noms = null) {
       const qs = signature.getParameters()
       verbes[p.name] = (qs.length === 1 && parametresDuReste(checker, qs[0], designes)) || qs.map((q) => parametre(checker, q, designes))
     }
-    return { verbes: Object.fromEntries(Object.entries(verbes).sort(([a], [b]) => parUnitesDeCode(a, b))), reglages: reglagesLus(session, racine, designes) }
+    return {
+      verbes: Object.fromEntries(Object.entries(verbes).sort(([a], [b]) => parUnitesDeCode(a, b))),
+      reglages: axesLus(session, racine, designes, SOURCE_REGLAGES, INTERFACE_REGLAGES),
+      choix: axesLus(session, racine, designes, SOURCE_CHOIX, INTERFACE_CHOIX),
+    }
   } finally {
     libererSessions([session])
   }
