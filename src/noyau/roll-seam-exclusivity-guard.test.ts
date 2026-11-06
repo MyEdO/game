@@ -785,7 +785,7 @@ const LIGNE_A_LA_MAIN_STOCK: Record<string, number> = {
   // COMBAT : SOLDÉ — toute cible de Test se forme par `cibleDuTest` (`engine/tests.ts`), y compris la
   // rangée batch du Test de Peur (`encounterPsychFlow`) et le dé d'une manœuvre (`rollFlowSpecs`).
   // HORS COMBAT — les sites de jet sont routés par `rollLine`/`rollStep` ; ce qui reste n'est pas une cible.
-  'src/noyau/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'une infestation (pas une cible)
+  'src/noyau/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'un Test d'équipage (`buildVoyageCrewStep`, pas une cible)
 };
 
 /** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 1 occurrence / 1 fichier, aucune en combat — verrou

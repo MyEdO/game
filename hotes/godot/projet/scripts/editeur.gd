@@ -2,8 +2,9 @@
 ## il ouvre la campagne du jeu de l'adresse de la page (`?campagne=<id>`, sinon `CAMPAGNE`), telle que le dépôt la sert
 ## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
-## Le monde rendu va au monde (`Monde.poser`), sur la couche éditée ; la surcouche du geste en cours, en plaques sur le
-## sol de ses cases (`Monde.peindre`) ; chaque zone de l'écran (`Zone.racines`) reçoit les éléments de sa source
+## Le monde rendu va au monde (`Monde.poser`), sur la couche éditée, avec les arêtes de la couche
+## (`Monde.poser_les_aretes`) ; la surcouche du geste en cours, en plaques sur le sol de ses cases (`Monde.peindre`), et
+## l'arête sélectionnée, gainée (`Monde.choisir_l_arete`) ; chaque zone de l'écran (`Zone.racines`) reçoit les éléments de sa source
 ## (`vue.zones`). Chaque geste part au pont : celui de l'élément pressé (`Zone.geste`, `{ edition }`), ou le pointeur sur
 ## le monde, appuyé, glissé d'une case à l'autre et relâché, chacun au point de la carte que le monde touche
 ## (`Monde.touche_sous`). Un refus se dit. Chaque réponse montrée, il publie à la page ce que l'écran porte
@@ -22,7 +23,7 @@ const CAMPAGNE := "la-diligence"
 var _zones: Array[Zone] = []
 ## La dernière réponse montrée : sa vue et sa surcouche.
 var _vue: Dictionary = {}
-var _surcouche: Dictionary = {cases = []}
+var _surcouche: Dictionary = {cases = [], arete = null}
 ## Le dernier point de la carte que le pointeur tenu a touché, `null` bouton relâché.
 var _tenu: Variant = null
 
@@ -51,7 +52,7 @@ func _pointer(geste: String, touche: Dictionary) -> void:
 	_jouer({edition = {geste = geste, point = {case = {x = touche.case.x, y = touche.case.y}, f = {x = touche.f.x, y = touche.f.y}}}})
 
 
-## Une réponse de `editer` : le monde posé s'il y en a un, la surcouche peinte, les zones montrées, et le texte à
+## Une réponse de `editer` : le monde et ses arêtes posés s'il y en a un, la surcouche peinte, les zones montrées, et le texte à
 ## enregistrer écrit au dépôt.
 func _suivre(reponse: Dictionary) -> void:
 	if reponse.get("ok") != true:
@@ -59,8 +60,10 @@ func _suivre(reponse: Dictionary) -> void:
 	_refus.text = ""
 	if reponse.has("monde"):
 		_monde.poser(reponse.monde)
+		_monde.poser_les_aretes(reponse.aretes, int(reponse.vue.couche))
 	_vue = reponse.vue
 	_surcouche = reponse.surcouche
+	_monde.choisir_l_arete(_surcouche.arete, int(_vue.couche))
 	var plaques := {}
 	for c in _surcouche.cases:
 		plaques[Vector3i(int(c.x), int(c.y), int(c.z))] = Monde.ITEM_SURVOL
@@ -105,7 +108,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 ## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de
-## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones et sa surcouche.
+## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche et le nombre d'arêtes posées
+## sur le monde.
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche}})
+	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.nombre_d_aretes()}})

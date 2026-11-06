@@ -50,7 +50,7 @@ import { releaseSeat } from './monde/seating';
 import type { Scene } from './monde/scene';
 import { persisterLeHeros } from './plateforme';
 import { creditBourse, payWithAllocation, refusDeBourse, soloPayer } from './bourseFlow';
-import { ensureBourse, bourseOf } from '../engine/bourse';
+import { ensureBourse, bourseOf, withBourseMoney } from '../engine/bourse';
 import { transferPossession } from './possessionsFlow';
 
 import type { Get, Set } from './flowTypes';
@@ -624,6 +624,12 @@ export function ouvrirLaFinDeSeance(set: Set): void {
   set({ finDeSeance: { heros: {}, groupe: {} } });
 }
 
+/** Pourquoi le menu de jeu ne clôt pas la séance : hors exploration, ou chez l'invité ; `null` = elle s'ouvre. */
+export function refusDeFinDeSeance(s: Pick<Jeu, 'mode' | 'net'>): string | null {
+  if (s.mode !== 'exploration') return t('gameMenu.finDeSeance.horsExploration');
+  return s.net.mode === 'guest' ? t('gameMenu.finDeSeance.invite') : null;
+}
+
 /**
  * Fin de séance de jeu (LDB 05 Ambitions l.793-841 + LDB 17 Détermination l.81) : octroie les PX
  * d'Ambition accomplie (personnelle +50/+500, de groupe +50/+500 à chaque héros), regagne 1 Point de
@@ -831,15 +837,17 @@ export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
  *  place → préserve l'index/ordre) et à SON rang (`net.rangs`) ; refusé par `refusDeComposerLeHeros`, la possession
  *  passe du siège qui décide (`decidingSeat`, qui possède `oldId`) au remplaçant (l'ancien id est libéré).
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
- *  « Remplacer » du slot. Ne touche PAS la bourse (un remplacement n'est pas un recrutement). */
+ *  « Remplacer » du slot. Le remplaçant porte la Bourse du remplacé (un remplacement n'est pas un recrutement) ; un id
+ *  déjà au groupe est refusé et dit. */
 export function partyReplaceHero(get: Get, set: Set, oldId: string, heros: HerosEngage): void {
   const bati = herosDeLEngagement(heros);
   if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())) ?? ('refus' in bati ? bati.refus : null)) || 'refus' in bati) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === oldId);
   if (idx < 0) return;                                                    // l'ancien n'est plus là
-  const copy = bati.hero;
-  if (copy.id !== oldId && s.party.some((h) => h.id === copy.id)) return; // doublon d'id
+  const doublon = bati.hero.id !== oldId ? s.party.find((h) => h.id === bati.hero.id) : undefined;
+  if (compositionRefusee(get, set, doublon ? t('pf.partyDuplicate', { name: doublon.label }) : null)) return;
+  const copy = withBourseMoney(bati.hero, bourseOf(s.party[idx]));
   const ownership = { ...s.net.ownership };
   delete ownership[oldId];
   ownership[copy.id] = decidingSeat(s);
@@ -913,7 +921,11 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     buySpellComponent: (heroId, spellId) => buySpellComponent(get, set, heroId, spellId),
     removeSpellComponent: (heroId, spellId) => removeSpellComponent(get, set, heroId, spellId),
     setHeroBackground: (heroId, patch) => setHeroBackground(get, set, heroId, patch),
-    openSessionEnd: () => ouvrirLaFinDeSeance(set),
+    ouvrirLaFinDeSeance: () => {
+      const refus = refusDeFinDeSeance(get());
+      if (refus) refuserGeste(get, set, refus);
+      else ouvrirLaFinDeSeance(set);
+    },
     trainProsthesis: (heroId, uid) => trainProsthesis(get, set, heroId, uid),
     changeCareer: (heroId, newCareer, newLevel) => changeCareer(get, set, heroId, newCareer, newLevel),
     setParty: (p) => set({ party: p }),

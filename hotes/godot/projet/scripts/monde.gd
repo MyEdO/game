@@ -2,7 +2,8 @@
 ## (`monde`, `CONTRAT.md`, section « Monde ») à l'échelle d'une unité par case, rendu et touché des deux côtés, sa lumière,
 ## et la caméra pivotante (Q/E, par quart de tour) et zoomable (molette) centrée sur lui. Il rend la case du triangle que
 ## le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
-## surbrillance que lui passe qui l'instancie, à qui appartient tout autre chose posée sur le monde.
+## surbrillance que lui passe qui l'instancie, les arêtes de la scène (murs, portes, seuils des portes ouvertes) et l'arête
+## choisie ; tout autre chose posée sur le monde appartient à qui l'instancie.
 class_name Monde
 extends Node3D
 
@@ -19,6 +20,11 @@ const ITEM_SURVOL := 2
 
 ## Les plaques des surbrillances, par item (`ITEM_*`), chacune posée sans ombre.
 @export var surbrillances: MeshLibrary
+## Ce qui se pose sur une arête : un mur, une porte fermée, le seuil d'une porte ouverte, et la gaine de l'arête choisie.
+@export var mesh_mur: BoxMesh
+@export var mesh_porte: BoxMesh
+@export var mesh_seuil: BoxMesh
+@export var mesh_arete_choisie: BoxMesh
 ## La matière d'une surface sans texture : la couleur de ses sommets.
 @export var couleur_des_sommets: StandardMaterial3D
 ## Le modèle de la matière d'une surface texturée, projetée sur ses trois axes (triplanaire) dans le repère du volume.
@@ -30,12 +36,17 @@ const ITEM_SURVOL := 2
 @onready var _pivot: Node3D = $Pivot
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
 @onready var _surbrillance: Node3D = $Surbrillance
+@onready var _aretes: Node3D = $Aretes
+@onready var _arete_choisie: MeshInstance3D = $AreteChoisie
 
 ## La case `[x, y]` de chaque triangle du maillage du monde, dans son ordre.
 var _cases_des_triangles: Array = []
 ## Par couche `z`, le sol de chaque case, `[y][x]`.
 var _sols: Dictionary = {}
 var _lacet := 0.0
+## Les arêtes posées et leur couche (`poser_les_aretes`).
+var _aretes_posees: Array = []
+var _couche_des_aretes := 0
 ## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
 var _matieres := {}
 var _pivotement: Tween
@@ -146,6 +157,43 @@ func peindre(plaques: Dictionary) -> void:
 		plaque.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		plaque.transform = surbrillances.get_item_mesh_transform(item).translated(lieu(Vector2i(c.x, c.y), c.z))
 		_surbrillance.add_child(plaque)
+
+
+## Les arêtes `aretes` (`CONTRAT.md`, section « Plateau ») de la couche `z`, chacune sur le côté de sa case, posée sur
+## le sol de sa case : un mur, une porte fermée, ou le seuil d'une porte ouverte ; à la place des précédentes.
+func poser_les_aretes(aretes: Array, z := 0) -> void:
+	if aretes == _aretes_posees and z == _couche_des_aretes:
+		return
+	_aretes_posees = aretes
+	_couche_des_aretes = z
+	for arete in _aretes.get_children():
+		_aretes.remove_child(arete)
+		arete.free()
+	for a in aretes:
+		var arete := MeshInstance3D.new()
+		_poser_sur_l_arete(arete, mesh_seuil if a.ouverte else mesh_porte if a.porte else mesh_mur, a, z)
+		_aretes.add_child(arete)
+
+
+## Le nombre d'arêtes posées sur le monde.
+func nombre_d_aretes() -> int:
+	return _aretes.get_child_count()
+
+
+## La gaine de l'arête choisie sur l'arête `arete` de la couche `z`, aucune si `arete` est `null`.
+func choisir_l_arete(arete: Variant, z := 0) -> void:
+	_arete_choisie.visible = arete != null
+	if arete != null:
+		_poser_sur_l_arete(_arete_choisie, mesh_arete_choisie, arete, z)
+
+
+## Le maillage `mesh` posé par `instance` sur l'arête `a` de la couche `z`, debout sur le sol de sa case.
+func _poser_sur_l_arete(instance: MeshInstance3D, mesh: BoxMesh, a: Dictionary, z: int) -> void:
+	instance.mesh = mesh
+	var sens := Vector2(a.sens.x, a.sens.y)
+	instance.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), sol(Vector2i(int(a.case.x), int(a.case.y)), z), mesh.size.y)
+	instance.rotation.y = MiseEnPage.lacet_d_arete(sens)
+	instance.scale.x = MiseEnPage.longueur_d_arete(sens)
 
 
 ## Le point de l'écran du lieu `lieu` du monde.
