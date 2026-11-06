@@ -71,15 +71,16 @@ export function enjeuDuSoin(ph: Pick<PendingHeal, 'mode' | 'test' | 'bandagesDe'
   return ph.mode === 'trauma' ? 'heal-trauma' : 'heal-ammo';
 }
 
-/** La fenêtre du soin en données : l'acte, le Test et les Bandages engagés (réglages `heal.mode`, `heal.test`,
- *  `heal.bandages`), chaque option avec sa raison de refus ; `null` sans soin en attente. Les porteurs offerts : les
- *  héros présents qui portent des Bandages. PUR. */
-export function fenetreDuSoin(s: Jeu): { mode: ChoixNomme<HealMode>; test: ChoixNomme<TestDeSoin>; bandages: ChoixNomme<string> | null } | null {
+/** La fenêtre du soin en données : le patient, l'acte, le Test et les Bandages engagés (réglages
+ *  `heal.mode`, `heal.test`, `heal.bandages`), chaque option avec sa raison de refus ; `null` sans soin en attente. Les
+ *  porteurs offerts : les héros présents qui portent des Bandages. PUR. */
+export function fenetreDuSoin(s: Jeu): { patientId: string; mode: ChoixNomme<HealMode>; test: ChoixNomme<TestDeSoin>; bandages: ChoixNomme<string> | null } | null {
   const ph = s.pendingHeal;
   if (!ph) return null;
   const pool = (s.battle?.combatants ?? s.party).filter((c) => c.kind === 'hero');
   const porteurs = pool.filter((c) => porteDesBandages(c) || c.id === ph.bandagesDe);
   return {
+    patientId: ph.targetId,
     mode: {
       geste: gesteDuReglage('heal', 'mode'), libelle: libelleDuReglage('heal', 'mode'), choisie: ph.mode,
       options: HEAL_MODES.map((mode) => ({ valeur: mode, libelle: t(`valeur.${mode}`), refus: refusDuModeDuSoin(s, mode) })),
