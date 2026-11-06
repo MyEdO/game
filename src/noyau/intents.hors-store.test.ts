@@ -22,10 +22,10 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
     const sansClasse = (t: TableDesClasses): TableDesClasses<EtatAvecActionNeuve> =>
       // @ts-expect-error — `actionNeuve` n'a pas de classe
       t;
-    const classee = (t: TableDesClasses): TableDesClasses<EtatAvecActionNeuve> => ({ ...t, actionNeuve: 'interne' });
+    const classee = (t: TableDesClasses): TableDesClasses<EtatAvecActionNeuve> => ({ ...t, actionNeuve: 'hôte' });
     const table = { battleEndTurn: 'invité' } as TableDesClasses;
     expect(sansClasse(table)).toBe(table);
-    expect(classee(table).actionNeuve).toBe('interne');
+    expect(classee(table).actionNeuve).toBe('hôte');
   });
 
   it('seules les actions MANUSCRITES s’écrivent : ni champ d’état, ni verbe de jet', () => {
@@ -34,7 +34,7 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
     const champ: ActionManuscrite<EtatAvecActionNeuve> = 'champNeuf';
     // @ts-expect-error — un verbe de jet a sa classe DÉRIVÉE de `FLOW_VERBS`
     const delegue: ActionManuscrite = 'jetReroll';
-    // @ts-expect-error — quatre classes, aucune autre
+    // @ts-expect-error — trois classes, aucune autre
     const classe: ClasseCoop = 'miroir';
     expect([neuve, champ, delegue, classe]).toHaveLength(4);
   });

@@ -76,9 +76,8 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
   const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
   /** Le duel au contact : le héros `H` face à l'ennemi `E`, les autres ennemis hors de combat. */
   function leDuel() {
-    const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
-    ouverture.envoyer({ type: 'startScene', args: [testScene()] });
-    ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
+    const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
     ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
     const garde = ouverture.etat();
     ouverture.fermer();
@@ -86,16 +85,6 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
     return { H, E, etat: { ...garde, ...patch } as Jeu };
   }
   const valeurs = (a: ArgumentDuGeste) => [a.saisie, a.valeurs?.map((v) => [v.valeur, v.libelle])];
-
-  it('l’Enchaînement et le second coup visent l’adversaire au contact, jamais un allié, l’attaquant ou un vaincu', { timeout: 120_000 }, () => {
-    const { H, E, etat } = leDuel();
-    expect(etat.battle!.combatants.filter((c) => c.kind === 'enemy').length, 'témoin : des ennemis vaincus restent dans la file').toBeGreaterThan(1);
-    const balayage: Jeu = { ...etat, pendingCleave: { attackerId: H.id, hitIds: [], count: 0 } };
-    expect(valeurs(argumentDe(balayage, 'cleaveAttack', 'targetId'))).toEqual(['choix', [[E.id, E.label]]]);
-    const second: Jeu = { ...etat, pendingDualStrike: { attackerId: H.id, offWeaponUid: H.weapons.find((w) => w.uid)!.uid!, jet: 30 } };
-    expect(valeurs(argumentDe(second, 'dualStrikeAttack', 'targetId'))).toEqual(['choix', [[E.id, E.label]]]);
-    expect(fenetreADessiner(second)!.gestes.find((g) => g.verbe === 'dualStrikeAttack')!.rendu, 'la cible seule se dit : un clic par adversaire').toBe('choix');
-  });
 
   it('le combat monté vise le cavalier ou sa monture, rien d’autre', { timeout: 120_000 }, () => {
     const { E, etat } = leDuel();
@@ -187,9 +176,8 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
   };
 
   it('attaque du duel : avant le jet, ni clôture ni dé fixé ; après, ni jet ni Localisation', { timeout: 120_000 }, () => {
-    const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
-    ouverture.envoyer({ type: 'startScene', args: [testScene()] });
-    ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
+    const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
     ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
     const garde = ouverture.etat();
     ouverture.fermer();

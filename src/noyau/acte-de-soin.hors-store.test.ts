@@ -166,9 +166,9 @@ describe('battleHeal lit le filtre de combat', () => {
     expect(banc.getState().refus?.texte).toBe('Ce soin ne se pratique pas en combat.');
   });
 
-  it('Chirurgie demandée en combat par un invité : refusée, sans bandeau chez l’hôte', () => {
+  it('Chirurgie demandée en combat par un invité : `battleHeal` est de la machinerie, hors allowlist, sans effet ni bandeau', () => {
     poserLeCombat('host');
-    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'battleHeal', ['al', 'surgery'])).toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'battleHeal', ['al', 'surgery'])).toBe('hors-allowlist');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus).toBeNull();
   });

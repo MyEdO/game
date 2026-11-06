@@ -133,8 +133,8 @@ export interface TargetingMode {
   /** CONSIGNE de la phase : ce que la carte attend du joueur (clé du catalogue `src/i18n`), rendue par
    *  le MÊME bandeau que `label`. Absente = mode sans bandeau. */
   consigne?: MsgKey;
-  affordance?(get: Get, active: Combatant, target: Combatant): HoverTargeting;
-  candidates?(get: Get, active: Combatant): Combatant[];
+  affordance?(get: Get<Jeu>, active: Combatant, target: Combatant): HoverTargeting;
+  candidates?(get: Get<Jeu>, active: Combatant): Combatant[];
   /** Les `candidates` de ce mode sont-ils PEINTS en anneaux sur le terrain quand il tient le ciblage,
    *  et de quelle TEINTE ? `'ami'` = la cible élue est un allié (anneau vert : Soin) ; `'hostile'` =
    *  un adversaire. Absent = ce mode ne peint aucun anneau de candidat (l'attaque en mode neutre a les
@@ -147,9 +147,9 @@ export interface TargetingMode {
    *  `netFlow` ne l'envoie pas à l'hôte (`INTENT_ELECTION_LOCALE`), au même titre que l'intention
    *  armée est un mode d'écran qui ne voyage pas. Absent = tout clic de ce mode est un geste de jeu. */
   electionLocale?(get: Get, id: string): boolean;
-  tileValidAt?(get: Get, active: Combatant, pt: Pt): boolean;
+  tileValidAt?(get: Get<Jeu>, active: Combatant, pt: Pt): boolean;
   commitTile?(get: Get, set: Set, active: Combatant, pt: Pt): void;
-  tilePreview?(get: Get, active: Combatant, pt: Pt): TilePreview | null;
+  tilePreview?(get: Get<Jeu>, active: Combatant, pt: Pt): TilePreview | null;
 }
 
 /** Mode-CASE COMPLET : `tileValidAt`/`commitTile`/`tilePreview` tous requis — un mode qui cible des
@@ -451,7 +451,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
 }
 
 /** Alliés soignables à portée de `active` (soi + adjacents, son camp). */
-const soignablesAPortee = (get: Get, active: Combatant): Combatant[] =>
+const soignablesAPortee = (get: Get<Jeu>, active: Combatant): Combatant[] =>
   healableTargets(active, (get().battle?.combatants ?? []).filter((c) => c.kind === active.kind), { adjacency: true });
 
 /** Mode SOIN (Guérison, LDB 09 ; Dextérité sous Bandages, LDB 74 l.41) : réticule « Soigner » sur soi + alliés
@@ -468,7 +468,7 @@ function healAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
 /** Sorts permanents dissipables PORTÉS par un combattant donné (regroupés par (sort, lanceur) —
  *  `dispellableSpellsOn` les rend déjà groupés, `carriers` dit qui en porte les effets). PUR :
  *  source unique du mode de ciblage ET du panneau-paramètre de la console. */
-export function dispellableOnCarrier(get: Get, carrierId: string): DispellableSpell[] {
+export function dispellableOnCarrier(get: Get<Jeu>, carrierId: string): DispellableSpell[] {
   const battle = get().battle;
   if (!battle) return [];
   return dispellableSpellsOn(battle.combatants).filter((d) => d.carriers.includes(carrierId));
@@ -941,7 +941,7 @@ export function ciblesHorsDeVue(get: Get): globalThis.Set<string> {
  * `detenteurDuCiblage` (#1016), que la possession du clic chez l'invité (`targetingHolder`) projette
  * aussi : un genre de détenteur sans mode casse la compilation ici.
  */
-export function currentTargetingMode(get: Get): TargetingMode {
+export function currentTargetingMode(get: Get<Jeu>): TargetingMode {
   const s = get();
   const d = detenteurDuCiblage(s);
   switch (d?.genre) {

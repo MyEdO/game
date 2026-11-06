@@ -12,7 +12,7 @@ import * as restFlow from './restFlow';
 import { openSequence } from './rollSeam';
 import { checkPartyWiped } from './partyWipe';
 import type { Get, Set, SetDesClesReservees } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
 
 /** L'UNIQUE écrivain de l'avance d'horloge (#668, #1599, #2817 D7) : tout chemin qui fait passer le temps
@@ -24,7 +24,7 @@ export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees)
       fireScheduledEffects(get, set);
       purgeSurAvanceDHorloge(get, set);
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 export function creerActionsDHorloge(get: Get, set: Set) {
@@ -76,7 +76,7 @@ export function creerActionsDHorloge(get: Get, set: Set) {
       }
       checkPartyWiped(get, set); // faim/agonie/maladie a-t-elle anéanti tout le groupe hors combat ? → défaite (recheck à la clôture de cascade)
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */

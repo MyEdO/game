@@ -719,8 +719,8 @@ export const BLOCS_LINT = [
     rules: {
       'murs/atelier': ['error', {
         patterns: [{
-          group: ['**/editor/GameOpEditor', '**/editor/GameOpEditor.*', '**/editor/ConditionEditor', '**/editor/ConditionEditor.*', '**/editor/refsDOp', '**/editor/refsDOp.*'],
-          message: 'Atelier (#495) : `GameOpEditor`, `ConditionEditor` et la palette d’auteur `refsDOp` ne servent qu’à l’atelier (`src/ui/editor/`, et la galerie DEV `src/ui/gallery/`) — une surface joueur compose `opRows`/`GameOpChips`/`humanizeCondition`.',
+          group: ['**/editor/GameOpEditor', '**/editor/GameOpEditor.*', '**/editor/ConditionEditor', '**/editor/ConditionEditor.*', '**/data/refsDOp', '**/data/refsDOp.*'],
+          message: 'Atelier (#495) : `GameOpEditor`, `ConditionEditor` et la palette d’auteur `refsDOp` ne servent qu’à l’atelier (`src/ui/editor/`, et la galerie DEV `src/ui/gallery/`) et à sa validation (`src/data/atelierDuCodex.ts`) — une surface joueur compose `opRows`/`GameOpChips`/`humanizeCondition`.',
         }],
       }],
     },

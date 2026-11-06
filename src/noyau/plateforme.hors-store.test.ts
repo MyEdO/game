@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from '../engine/types';
-import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import { enAttente, persisterLeHeros, programmer, retirerLaPlateforme, type Jeton } from './plateforme';
 import { brancherLeJeu, debrancherLeJeu, jeuBranche } from './branchement';
 import { tablesDuJeu } from './tablesDuJeu';
@@ -21,8 +21,8 @@ describe('plateforme du noyau, sans hôte', () => {
 
 describe('brancherLeJeu — une pose par propriétaire', () => {
   it('une seconde pose sans retrait LÈVE, et le premier branchement reste en place', () => {
-    const premier = { get: () => ({}) as Jeu, set: () => {} };
-    const second = { get: () => ({}) as Jeu, set: () => {} };
+    const premier = { get: () => ({}) as JeuDuNoyau, set: () => {} };
+    const second = { get: () => ({}) as JeuDuNoyau, set: () => {} };
     brancherLeJeu(premier.get, premier.set, tablesDuJeu());
     try {
       expect(() => brancherLeJeu(second.get, second.set, tablesDuJeu())).toThrow(/déjà branché/);

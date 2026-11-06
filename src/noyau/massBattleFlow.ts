@@ -47,7 +47,7 @@ import { t } from '../i18n';
 import { rule } from '../engine/policy';
 import { refusDActivite, type EtatDInterlude } from './verdictsDInterlude';
 import { refuseSi } from './verrousDeFiche';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
@@ -1003,7 +1003,7 @@ export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
     massBattleHazard: (roll) => massBattleSetHazard(get, set, roll),
     massBattleClash: () => massBattleClash(get, set),
     massBattleAdvance: () => massBattleAdvance(get, set),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 export function sortiesDeBatailleDeMasse(get: Get, set: Set) {

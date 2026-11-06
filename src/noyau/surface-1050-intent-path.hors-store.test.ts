@@ -189,13 +189,10 @@ describe('#1050 — Tir rapide (Talent) : l’invité arme sa visée et tire pen
     expect(pa?.interrupt, 'le tir hors de l’ordre d’Initiative').toBe(true);
   });
 
-  it('preemptRangedShot (défense en profondeur) : routé sur le tireur, avec effet', () => {
+  it('preemptRangedShot est la machinerie du clic (#3370) : hors allowlist, même pour le tireur', () => {
     pause();
-    expect(applyIntent(2, 'preemptRangedShot', ['h2', 'e1'])).toBe('refusee');
-    expect(applyIntent(0, 'preemptRangedShot', ['h2', 'e1'])).toBe('refusee');
+    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'preemptRangedShot', ['h2', 'e1']), `siège ${seat}`).toBe('hors-allowlist');
     expect(banc.getState().pendingAttack).toBeNull();
-    expect(applyIntent(1, 'preemptRangedShot', ['h2', 'e1'])).toBe('appliquee');
-    expect(banc.getState().pendingAttack?.interrupt).toBe(true);
   });
 
   it('hors pause de Round, le geste n’appartient à personne (la fenêtre n’existe pas)', () => {

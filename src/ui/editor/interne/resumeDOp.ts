@@ -22,7 +22,7 @@ import { ruleDef } from '../../../engine/policy';
 import { terrainLabel } from '../../../noyau/monde/terrain';
 import { dureePropre, plancher, traitOctroyeLisible } from '../../../noyau/codex/humanize';
 import { coupeAuMot } from '../../../lib/coupeAuMot.mjs';
-import { opMissingRefs } from '../refsDOp';
+import { opMissingRefs } from '../../../data/refsDOp';
 import { libelleDeLaNature } from './libelleDeLaNature';
 
 /** Résumé court d'une Formula (lecture sans perte dans les résumés d'op). */

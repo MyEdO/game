@@ -322,7 +322,7 @@ function differerALAube(get: Get, set: Set, depart: Omit<NonNullable<Jeu['pendin
 /** Le départ de `route` en `mode` est-il un passage PAYANT — un billet (EDO 01 l.142 ; implicite,
  *  LDB 51 l.178) ? Ni la marche, ni la selle, ni le navire de campagne, ni la descente fluviale jouée
  *  (`descenteJouee`). Lu par l'écran de départ ET par `startTravel`. */
-export function passagePayant(get: Get, route: MapRoute, mode: TravelMode): boolean {
+export function passagePayant(get: Get<Jeu>, route: MapRoute, mode: TravelMode): boolean {
   return mode !== 'pied' && mode !== 'monture' && mode !== 'mer' && !descenteJouee(get, route, mode);
 }
 
