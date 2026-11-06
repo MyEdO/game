@@ -184,7 +184,7 @@ export function HeroSheet({
               const test = { skill: s };
               const valeur = testValue(hero, test);
               const { mods } = testValueSplit(hero, valeur, { sujet: test });
-              const ck = effectiveSkillCharKey(hero, s.id, { spec: s.spec });
+              const ck = effectiveSkillCharKey(hero, test);
               return (
                 <div className="skill-line" key={i} title={`${CHAR_LABELS[ck]} ${effectiveChar(hero, ck)} + ${s.advances}`}>
                   <span className="sk-name">

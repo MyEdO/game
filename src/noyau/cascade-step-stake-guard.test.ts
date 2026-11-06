@@ -127,6 +127,31 @@ function hoteAvecEnjeu(src: string, s: string, from: number, jet: string): boole
   return false;
 }
 
+/** Une RANGÉE de bande (`BatchParticipant` : son `result` et son `interactive`, qu'aucun descripteur de
+ *  jet ne porte) est la DONNÉE d'une étape `bandStep`, qui porte l'enjeu (`BandSpec.stake`,
+ *  `CascadeModal` le lit sur l'étape). */
+const estRangeeDeBande = (lit: string): boolean => hasTopLevelKey(lit, 'result') && hasTopLevelKey(lit, 'interactive');
+
+/** Les bandes du fichier — `bandStep({…})` et les déclarations `makeBandFactory({…})`, dont la
+ *  `situation` pose l'étape — portent-elles toutes un enjeu ? Faux sans aucune bande : une rangée sans
+ *  étape qui la monte n'a d'enjeu nulle part. Mesure au FICHIER, la rangée étant montée par une
+ *  fonction que la bande appelle (`pursuitRow` → `pursuitRoundBand`). */
+function bandesAvecEnjeu(s: string): boolean {
+  let bandes = 0;
+  for (const m of s.matchAll(/\b(?:bandStep|makeBandFactory)\s*(?:<[^>(]*>)?\s*\(\s*\{/g)) {
+    const o = s.indexOf('{', m.index!);
+    let depth = 0;
+    let c = -1;
+    for (let j = o + 1; j < s.length; j++) {
+      if (s[j] === '{') depth++;
+      else if (s[j] === '}') { if (depth === 0) { c = j; break; } depth--; }
+    }
+    if (c < 0 || !/\bstake\s*(?:[,:]|$)/.test(s.slice(o, c))) return false;
+    bandes++;
+  }
+  return bandes > 0;
+}
+
 /** Étapes qui LANCENT (cible posée), sans `stake` — renvoie leurs numéros de ligne (1-based). */
 export function stepsWithoutStake(src: string): number[] {
   const s = strip(src);
@@ -279,7 +304,8 @@ export function flowTestsWithoutStake(src: string): number[] {
  * PORTEUR D'ÉTAPE : le littéral posé dans un slot de `PENDING_BY_JET` (`pendingTest: {…}`) est la
  * DONNÉE d'une étape hôte, pas la forme qui lance : `CascadeModal` lit l'enjeu sur l'étape
  * (`cur.stake`). L'enjeu se demande donc à l'étape hôte de ce `jet` montée après lui, et un littéral
- * de porteur sans elle, ou dont l'étape n'en porte aucun, reste rouge.
+ * de porteur sans elle, ou dont l'étape n'en porte aucun, reste rouge. De même une RANGÉE de bande
+ * (`estRangeeDeBande`) est la donnée d'un `bandStep` : l'enjeu se demande aux bandes du fichier.
  *
  * Le discriminant est donc la FORME du DESCRIPTEUR, pas la fonction qui le reçoit : un littéral qui
  * nomme CE QU'ON TESTE (`skill` / `characteristic`) ET COMMENT (`COMMENT_IL_SE_LANCE` : difficulté fixe,
@@ -318,6 +344,7 @@ export function literalTestsWithoutStake(src: string): number[] {
     // site que l'ancien scan voyait, cf. le rejeu ci-dessous), OU la cible d'un Test étendu.
     if (!COMMENT_IL_SE_LANCE.some((k) => hasTopLevelKey(lit, k))) continue;
     if (/\bstake\s*(?:[,:]|$)/.test(lit)) continue;
+    if (estRangeeDeBande(lit) && bandesAvecEnjeu(s)) continue;
     const jet = jetDuPorteur(s, start);
     if (jet && hoteAvecEnjeu(src, s, end, jet)) continue;
     lines.push(src.slice(0, start).split('\n').length);
@@ -463,6 +490,20 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
     }
     const horsPorteur = `set({ medic: { ...m, surgery: { kind: act, skill: h.skill, difficulty: 'intermediaire' } } });\nconst e = hostStep(get, { id: 'x', kind: 'k', jet: 'test', actorId: a.id, stake });`;
     expect(literalTestsWithoutStake(horsPorteur), 'un slot hors `PENDING_BY_JET` est la forme lue par le joueur').toHaveLength(1);
+  });
+
+  it('RANGÉE DE BANDE (4ᵉ forme) : l’enjeu se demande à la bande qui la monte, jamais effacé', () => {
+    const rangee = `const r = { id: h.id, label, skill: { id: s }, difficulty: 'intermediaire', result: null, interactive: true };`;
+    const bande = (enjeu: string) => `return bandStep({ id: 'x', kind: 'k', label${enjeu} }, rangees);`;
+    expect(literalTestsWithoutStake(`${rangee}\n${bande(', stake: combatStakeRef(\'pursuitMove\')')}`), 'la bande porte l’enjeu').toHaveLength(0);
+    expect(literalTestsWithoutStake(`${rangee}\n${bande('')}`), 'bande sans enjeu').toHaveLength(1);
+    expect(literalTestsWithoutStake(rangee), 'aucune bande').toHaveLength(1);
+    expect(literalTestsWithoutStake(`${rangee}\n${bande(', stake')}\n${bande('')}`), 'une des bandes sans enjeu').toHaveLength(1);
+    const fabrique = (enjeu: string) => `const b = makeBandFactory<Due>({ cle: (d) => d.k, rangee: (d) => d.row, situation: (d) => ({ id: 'x', kind: 'k'${enjeu} }) });`;
+    expect(literalTestsWithoutStake(`${rangee}\n${fabrique(', stake: combatStakeRef(\'combatPsych\')')}`), 'la fabrique de bandes porte l’enjeu').toHaveLength(0);
+    expect(literalTestsWithoutStake(`${rangee}\n${fabrique('')}`), 'fabrique sans enjeu').toHaveLength(1);
+    const descripteur = `const t = { skill: { id: s }, difficulty: 'intermediaire' };\n${bande(', stake')}`;
+    expect(literalTestsWithoutStake(descripteur), 'un descripteur, sans `result`/`interactive`, n’est pas une rangée').toHaveLength(1);
   });
 
   /** Les `FlowTest` : les 7 producteurs de Flow (vague 5) fournissent leur `FlowTest.stake`

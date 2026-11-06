@@ -130,11 +130,11 @@ export function deriveManeuverFromCrew(ship: Combatant, crewTotal: number, milie
 
 /** Le barreur : parmi l'équipage présent (`exposedCrew` : vivant, Blessures > 0) qui peut tenter le Test
  *  (`peutTenter`, lu par `partyBest` — un Inconscient ne tient pas la barre, LDB 16 l.113), celui qui a la
- *  MEILLEURE valeur de Test de `skillId` (Voile/Ramer). */
+ *  MEILLEURE valeur de Test de `competence` (Voile/Ramer). */
 function bestHelmsman(crew: Combatant[], competence: RefDesignee): Combatant | undefined {
   // Argmax sur l'axe ACTEUR (`partyBest` = maxBy sur `testValue`) : first-max strict, identique au tri desc stable
   // qui rendait le PREMIER max en `[0]`.
-  return partyBest(exposedCrew(crew), competence.id, undefined, undefined, competence.spec)?.actor;
+  return partyBest(exposedCrew(crew), { skill: competence })?.actor;
 }
 
 export interface ManeuverResult extends ShipManeuverOutcome {
@@ -227,14 +227,13 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const ship = inBattleId(battle, shipId);
   if (!battle || !ship) return null;
   const params = shipManeuverParams(ship, milieuDuVoyage(get().travelPlan));
-  const { id: skillId, spec } = params.competence;
   const crew = (ship.crewIds ?? [])
     .map((id) => inBattleId(battle, id))
     .filter((c): c is Combatant => !!c);
   const imposed = helmsmanId ? inBattleId(battle, helmsmanId) : undefined;
-  const helm = helmsmanId ? (imposed && peutTenter(imposed, skillId, spec) ? imposed : undefined) : bestHelmsman(crew, params.competence);
+  const helm = helmsmanId ? (imposed && peutTenter(imposed, { skill: params.competence }) ? imposed : undefined) : bestHelmsman(crew, params.competence);
   // LDB 09 l.30, MSRC 7 l.17 ; #2588 Q1.
-  if (!helm) return imposed ? maneuverSansJet(params, refusNePeutTenter(imposed, { skill: skillId, spec }), imposed.label) : maneuverSansJet(params, refusPersonneNePeutTenter({ skill: skillId, spec }));
+  if (!helm) return imposed ? maneuverSansJet(params, refusNePeutTenter(imposed, { skill: params.competence }), imposed.label) : maneuverSansJet(params, refusPersonneNePeutTenter({ skill: params.competence }));
   return deriveManeuver(params, ship, rollTest(testValue(helm, { skill: params.competence }), 'intermediaire', battleRng()), helm.label);
 }
 

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { Vector3 } from 'three';
-import { buildTraceQuad, traceImagePointToScreen, traceQuadCorners, TRACE_LIFT_M } from './traceQuad';
+import { buildTraceQuad, traceQuadCorners, TRACE_LIFT_M } from './traceQuad';
 import { affineCamera, projectToScreen } from './cameras';
 import { RENDER_ORDER } from './renderRanks';
 import { stage3dFramingFor, viewBoxScreen } from '../../stage/stage3dCamera';
 import { viewBoxScreenPixel } from '../../stage/stageCam';
 import { stageSize, type Dims, type Rot } from '../../../geometry/iso';
-import type { TraceTransform } from '../../../ui/editor/traceCalibration';
+import { pointDeLImage, type TraceTransform } from '../../../noyau/edition/calage';
 
 /**
  * PLAQUE DE DÉCALQUAGE en QUAD MONDE (#1176, P3-3, vague B). Ce qui se prouve : la plaque tombe au
@@ -37,7 +37,7 @@ describe('Plaque de décalquage — quad MONDE, ancrage prouvé au pixel (#1176,
     const imgCoins = [[0, 0], [IMAGE.width, 0], [IMAGE.width, IMAGE.height], [0, IMAGE.height]] as const;
     coins.forEach((c, i) => {
       // Côté SVG : le coin d'image passe par le `transform` du calque, puis par le viewBox rendu.
-      const écran = traceImagePointToScreen(CALAGE, imgCoins[i][0], imgCoins[i][1]);
+      const écran = pointDeLImage(CALAGE, imgCoins[i][0], imgCoins[i][1]);
       const svg = viewBoxScreenPixel({ cx: écran.x, cy: écran.y }, viewBox, canvas);
       // Côté volume : le coin MONDE passe par la caméra de la frame.
       const gl = projectToScreen(camera, new Vector3(c.x, 0, c.z), canvas);
@@ -70,7 +70,7 @@ describe('Plaque de décalquage — quad MONDE, ancrage prouvé au pixel (#1176,
       const coin = traceQuadCorners(CALAGE, IMAGE, dims, MPT)[0];
       const px = projectToScreen(camera, new Vector3(coin.x, 0, coin.z), canvas);
       const attendu = viewBoxScreenPixel(
-        { cx: traceImagePointToScreen(CALAGE, 0, 0).x, cy: traceImagePointToScreen(CALAGE, 0, 0).y },
+        { cx: pointDeLImage(CALAGE, 0, 0).x, cy: pointDeLImage(CALAGE, 0, 0).y },
         viewBox,
         canvas,
       );

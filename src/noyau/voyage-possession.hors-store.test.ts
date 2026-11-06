@@ -152,7 +152,7 @@ describe('#1262 V2 — la décision d’Embrigadement est au siège du MENEUR', 
     resolvePortArrival(get, set, undefined, ones);
 
     const decision = parKind('embrigadementDecision')!;
-    const meneur = partyAssisted(get().party.filter((h) => !h.dead), 'ragot')!;
+    const meneur = partyAssisted(get().party.filter((h) => !h.dead), { skill: { id: 'ragot' } })!;
     expect(meneur.actor.id, 'le meneur mesuré est bien A').toBe(a.id);
     expect(decision.actorId, 'la décision porte le meneur de la tentative').toBe(a.id);
     expect(modalOwnerOf(get())).toBe(a.id);

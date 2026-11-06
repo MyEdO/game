@@ -68,7 +68,7 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     H.activeEffects = [...(H.activeEffects ?? []), { id: 'fx-e', label: 'Mystracine', testModChar: 'endurance', testMod: -10 } as never];
     addCondition(H, COND.sonne, 2); // H porte Sonné AU MOMENT du Test → sa pénalité ne compte qu'UNE fois
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
-    const nue = skillBaseValue(H, 'resistance');
+    const nue = skillBaseValue(H, { skill: { id: 'resistance' } });
     expect(nue, 'sonde inerte : sans écart nue/valeur testée, l’assert passerait par coïncidence').not.toBe(rawCombatTestBase(H, { skill: { id: 'resistance' } }));
     // `base` = Niveau de Compétence NU (`LDB 09 l.17`) ; `target` = valeur TESTÉE de combat + Intermédiaire(0)
     // + `combatTestPenalty` (UNE fois) ; tout l'écart entre les deux est NOMMÉ en `mods` (zéro chip anonyme).

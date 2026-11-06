@@ -304,14 +304,14 @@ export function symptomOnTick(inst: DiseaseSymptom, severite: 'moderee' | 'grave
 /** Ce que testent les deux jets du cycle que la DONNÉE ne porte pas en nœud (la machinerie stateful les
  *  fabrique) : la Gangrène (`LDB 20 l.176`) et la fin de Durée d'une infection persistante
  *  (`LDB 20 l.200`) — tous deux « Test de Résistance ». */
-const TEST_RESISTANCE: TestIds = Object.freeze({ skill: 'resistance' }); // #2097
+const TEST_RESISTANCE: TestIds = Object.freeze({ skill: { id: 'resistance' } }); // #2097
 
 /** Ce que le nœud NOMME comme testé — la forme que le producteur DIT à la porte (`UpkeepDeferTest.test`),
  *  qui en tire la valeur (`testValue`). MSRC 16 l.90 : le ver de carie teste l'Endurance NUE, LDB 20
  *  l.145/l.212 : Blessé et Toxine testent la Compétence Résistance. */
 function idsDuNoeud(node: FlowTestNode): TestIds {
   const { skill, characteristic } = node.test;
-  if (skill) return { skill: skill.id, ...(characteristic ? { characteristic } : {}), ...(skill.spec ? { spec: skill.spec } : {}) };
+  if (skill) return { skill, ...(characteristic ? { characteristic } : {}) };
   if (characteristic) return { characteristic };
   // Inatteignable en donnée : le schéma REFUSE un nœud sans ids (`flowTestSchema`, refine #1657 B3-3).
   // Le dire ici plutôt que rendre `{}` : un nœud forgé en mémoire ne se joue pas sur une valeur de 0.

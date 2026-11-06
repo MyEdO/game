@@ -62,11 +62,11 @@ const contexte = (partie: Partie): ActionCtx => {
 /** L'attendu par entrée : `true` = un gate de l'entrée se FERME sous l'État, avec la raison de l'État ; `false` = aucun
  *  gate de l'entrée ne bouge. Brisé : LDB 16 l.52. Sonné : LDB 16 l.125 ; Distraire coûte le Mouvement, LDB 10 l.364 ;
  *  Course coûte l'Action, LDB 15 l.41, et Brisé court pour fuir, LDB 16 l.52 ; Désengagement : l'Esquive coûte l'Action,
- *  LDB 15 l.49, Brisé s'éloigne, LDB 16 l.52 (porteur sans Avantage ni départ libre, LDB 15 l.47, LDB 85 l.253, l.373-374). */
+ *  LDB 15 l.49, Brisé s'éloigne, LDB 16 l.52 (porteur sans Avantage ni départ libre, LDB 15 l.47, LDB 85 l.253, l.373-374) ;
+ *  Action gratuite : LDB 13 l.106. */
 const MATRICE: Record<string, { brise: boolean; sonne: boolean }> = {
   reload: { brise: true, sonne: true },
   aim: { brise: true, sonne: true },
-  'use-item': { brise: true, sonne: true },
   heal: { brise: true, sonne: true },
   water: { brise: true, sonne: true },
   defend: { brise: true, sonne: true },
@@ -77,7 +77,6 @@ const MATRICE: Record<string, { brise: boolean; sonne: boolean }> = {
   'self-maneuver': { brise: true, sonne: true },
   'maneuver-area': { brise: true, sonne: true },
   'cast-spell': { brise: true, sonne: true },
-  'leave-poste': { brise: true, sonne: true },
   'maneuver-ship': { brise: true, sonne: true },
   'select-attack': { brise: true, sonne: true },
   dismount: { brise: true, sonne: false },
@@ -91,6 +90,8 @@ const MATRICE: Record<string, { brise: boolean; sonne: boolean }> = {
   'resolve-psych-immune': { brise: false, sonne: false },
   'resolve-ignore-crit': { brise: false, sonne: false },
   'resolve-remove-condition': { brise: false, sonne: false },
+  'use-item': { brise: false, sonne: false },
+  'leave-poste': { brise: false, sonne: false },
 };
 
 /** Les gates de `def` que l'État `etat`, posé par `addCondition`, fait passer d'ouvert à fermé, avec leur raison. */

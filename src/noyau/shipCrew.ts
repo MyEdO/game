@@ -19,7 +19,7 @@ import { findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyB
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
-import { partyBest, peutTenter, testValue, sujetDesIds } from '../engine/skills';
+import { partyBest, peutTenter, testValue } from '../engine/skills';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { maxBy } from '../engine/pick';
 import { applyOps } from '../engine/ops';
@@ -53,7 +53,7 @@ export const BENCHED = 'repos';
 function trainedForRole(c: Combatant, roleId: string, navigation: RefDesignee): boolean {
   const role = findCrewRoleById(roleId);
   return !!role && competencesDuRole(role, navigation).some((s) =>
-    (c.skills ?? []).some((k) => refCouvre(s, k)) && peutTenter(c, s.id, s.spec));
+    (c.skills ?? []).some((k) => refCouvre(s, k)) && peutTenter(c, { skill: s }));
 }
 
 /**
@@ -78,7 +78,7 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string, navigati
     // Meilleur marin FORMÉ encore libre : `partyBest` (skill/characteristic indéfinis → `testValue`=0) score PUREMENT sur
     // `crewRoleValue`. Le `.filter` préserve l'ordre d'`apte` → first-max identique à la boucle strict-`>` d'origine.
     const candidates = apte.filter((c) => free.has(c.id) && trainedForRole(c, roleId, navigation));
-    const winner = partyBest(candidates, undefined, undefined, (c) => crewRoleValue(c, role, navigation).value ?? -Infinity)?.actor;
+    const winner = partyBest(candidates, {}, (c) => crewRoleValue(c, role, navigation).value ?? -Infinity)?.actor;
     if (winner) { out.set(winner.id, roleId); free.delete(winner.id); }
   }
   // Le reste → Mousse (rôle par défaut, l.15) s'il sait Voile/Ramer.
@@ -236,11 +236,11 @@ const SHANTY_LABEL = (label: string): string => t('crew.shantyLabel', { label })
  * sur le chanteur (interruption sur Dégâts, l.38) et consomme le QUART du navire (l.40). Renvoie le journal.
  */
 /** MDG 09 l.36. */
-const TEST_DE_CHANSON = { skill: 'divertissement', spec: 'chant' } as const;
+const TEST_DE_CHANSON = { skill: { id: 'divertissement', spec: 'chant' } } as const;
 
 /** Valeur du Test de Chanson de marin — MDG 09 l.34-36. */
 export function valeurDeChanson(singer: Combatant): number {
-  return testValue(singer, sujetDesIds(TEST_DE_CHANSON));
+  return testValue(singer, TEST_DE_CHANSON);
 }
 
 /** Ligne du Test de Chanson de marin (`rollLine`) — MDG 09 l.34-36. */

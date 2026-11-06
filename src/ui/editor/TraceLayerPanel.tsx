@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from 'react';
-import { CALIB_INSTRUCTIONS, type CalibStep } from './traceCalibration';
+import type { CalibStep } from '../../noyau/edition/calage';
+import { t } from '../../i18n';
 import { OptionChooser } from '../OptionChooser';
 import { layerLabel } from './LayerField';
 import { Row } from '../Layout';
@@ -108,9 +109,9 @@ export function TraceLayerPanel({
 
       {expanded && (calibrating ? (
         <>
-          <p className="hint">{CALIB_INSTRUCTIONS[calibStep as Exclude<CalibStep, 'idle'>]}</p>
+          <p className="hint">{t(`ecran.editeur.calque.calage.${calibStep as Exclude<CalibStep, 'idle'>}`)}</p>
           <button className="btn small" onClick={onCancelCalibration}>
-            Annuler le calage
+            {t('ecran.editeur.calque.calage.annuler')}
           </button>
         </>
       ) : !hasLayer ? (

@@ -10,6 +10,7 @@ import { rollMiscast } from './miscast';
 import { applyOps, type GameOp } from './ops';
 import {
   castingValue, castBlockedBy, prayerMaxZeroDR, evaluateCasting, castPenaltyMod,
+  incantationArcane,
 } from './magic';
 import { endOfRound, removeCondition, hasCondition, isMagicallyAsleep } from './conditions';
 import { outOfCombatUpkeep } from '../noyau/outOfCombatUpkeep';
@@ -35,14 +36,14 @@ function hero(p: Partial<Combatant> = {}): Combatant {
 describe('castPenalty — pénalités/blocages temporisés', () => {
   it('Langue maladroite : −10 aux Tests de Langue pendant N Rounds, dissipé par endOfRound', () => {
     const c = hero();
-    const base = castingValue(c, 'langue', 'magick');
+    const base = castingValue(c, incantationArcane());
     applyOps(c, [{ op: 'castPenalty', skill: { id: 'langue' }, mod: -10, rounds: 2 }], { rng: desDuTest, label: 'Langue maladroite' });
-    expect(castingValue(c, 'langue', 'magick')).toBe(base - 10);
+    expect(castingValue(c, incantationArcane())).toBe(base - 10);
     expect(castPenaltyMod(c, 'priere')).toBe(0); // ne touche pas la Prière
     endOfRound(c, makeRNG(1));
-    expect(castingValue(c, 'langue', 'magick')).toBe(base - 10); // round 1 restant
+    expect(castingValue(c, incantationArcane())).toBe(base - 10); // round 1 restant
     const log = endOfRound(c, makeRNG(1));
-    expect(castingValue(c, 'langue', 'magick')).toBe(base); // expiré
+    expect(castingValue(c, incantationArcane())).toBe(base); // expiré
     expect(log.join('\n')).toMatch(/Langue maladroite se dissipe/);
   });
 

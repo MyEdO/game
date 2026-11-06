@@ -120,8 +120,8 @@ qui le rend inutile.
 - **Les outils d'auteur passent en Godot.** Le Compendium, l'atelier de cartes et les galeries de
   contrôle suivent l'écran de jeu dans la bascule : laurent, 2026-11-06, « Tout passe en Godot. »
   Leur version web entre dans le gel de `ui` : on n'y corrige rien de structurel, et ses défauts
-  s'inventorient au sujet global #3006 pour être soldés dans la version Godot. Ce qui ne sert que
-  l'atelier reste d'ici là dans `src/ui/editor/` (le calage du calque, `traceCalibration.ts`).
+  s'inventorient au sujet global #3006 pour être soldés dans la version Godot. Le calage du calque,
+  que l'atelier web et l'éditeur Godot partagent, vit au noyau (`src/noyau/edition/calage.ts`).
 
 ## Arborescence
 

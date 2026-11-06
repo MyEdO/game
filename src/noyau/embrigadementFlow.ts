@@ -34,7 +34,7 @@ const diff = (v: unknown, d: Difficulty): Difficulty => (typeof v === 'string' ?
 
 /** Le MENEUR de l'enquête (Ragot soutenu, LDB 12) : il PORTE la décision de tenter — la porte de choix
  *  exige un porteur (`choiceStep`), et c'est ce meneur que la tentative engage. `null` = personne. */
-const ragotLead = (get: Get) => partyAssisted(get().party, 'ragot');
+const ragotLead = (get: Get) => partyAssisted(get().party, { skill: { id: 'ragot' } });
 
 /** Sans meneur, il n'y a rien à tenter : la voie est close AVANT la décision (elle a seulement une issue). */
 const SANS_MENEUR = 'Personne à bord ne peut mener l\'enquête : vos compagnons restent captifs.';
@@ -115,7 +115,7 @@ export const TABLES = {
         const lead = ragotLead(get);
         if (!lead) return { consequences: freeCons([SANS_MENEUR]) };
         const st = ragotStep(
-          { actor: lead.actor, ligne: { test: { skill: 'ragot' }, valeur: lead.value, soutien: lead.support } },
+          { actor: lead.actor, ligne: { test: { skill: { id: 'ragot' } }, valeur: lead.value, soutien: lead.support } },
           num(step.meta?.recover), num(step.meta?.ransomCO), num(step.meta?.extraLoss),
           diff(step.meta?.gossipDiff, 'intermediaire'), diff(step.meta?.stealthDiff, 'complexe'),
         );
@@ -147,7 +147,7 @@ export const TABLES = {
         }
         // Discrétion : Test Complexe (−10) du plus discret — insertion d'une étape-jet.
         const stealthDiff = diff(step.meta?.stealthDiff, 'complexe');
-        const lead = partyAssisted(get().party, 'discretion');
+        const lead = partyAssisted(get().party, { skill: { id: 'discretion' } });
         if (!lead) return { consequences: freeCons(['Personne à bord n\'est assez discret pour tenter la libération.']) };
         const st = monoStep({
           id: 'embrig-discretion', kind: 'embrigadementDiscretion', actor: lead.actor,
@@ -155,7 +155,7 @@ export const TABLES = {
           rollLabel: refLabel('skills', { id: 'discretion' }),
           difficulty: stealthDiff,
           stake: voyageStakeRef('embrigadementDiscretion'),
-          ligne: { test: { skill: 'discretion' }, valeur: lead.value, soutien: lead.support },
+          ligne: { test: { skill: { id: 'discretion' } }, valeur: lead.value, soutien: lead.support },
           label: stepDetail(t('step.libererEnDouce'), t('step.discretionDiff', { diff: DIFFICULTY_LABELS[stealthDiff] })),
           meta: { recover, extraLoss },
         });

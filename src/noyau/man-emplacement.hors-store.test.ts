@@ -4,6 +4,7 @@ import { firedWeapon, resolveAttack, buildAiInput } from './combatFlow';
 import { availableAttacks } from './combatManeuvers';
 import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
+import { addCondition } from '../engine/conditions';
 import { crewedPenalty } from '../engine/crewedWeapon';
 import { seedBattleRng } from './battleRng';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -180,7 +181,14 @@ describe('(D) Affordance joueur — store `battleManPoste` / `battleLeavePoste`'
     expect(hero.mannedPoste!.item.uid).toBe(poste.item.uid);
     expect(poste.crewIds![0]).toBe('hero');
     expect(hero.weapons.some((w) => w.uid === poste.item.uid)).toBe(true);
-    expect(st.battle!.acted).toBe(false); // servir est GRATUIT : on s'installe puis on tire/pousse le même Round
+    expect(st.battle!.acted).toBe(false); // LDB 13 l.106
+  });
+
+  it('Sonné, le héros prend quand même la pièce : son verrou est l’Action (LDB 16 l.125, LDB 13 l.106)', () => {
+    const { poste, hero } = setup();
+    addCondition(hero, 'sonne');
+    banc.getState().battleManPoste();
+    expect(banc.getState().battle!.combatants.find((c) => c.id === 'hero')!.mannedPoste?.item.uid).toBe(poste.item.uid);
   });
 
   it('Quitter libère la pièce : mannedPoste retiré, arme retirée, SANS coûter l’Action', () => {
@@ -190,7 +198,7 @@ describe('(D) Affordance joueur — store `battleManPoste` / `battleLeavePoste`'
     const hero = st.battle!.combatants.find((c) => c.id === 'hero')!;
     expect(hero.mannedPoste).toBeUndefined();
     expect(hero.weapons.some((w) => w.uid === poste.item.uid)).toBe(false);
-    expect(st.battle!.acted).toBe(false); // quitter est GRATUIT (LDB 13 l.106 : aucun Test → action gratuite)
+    expect(st.battle!.acted).toBe(false); // LDB 13 l.106
   });
 });
 

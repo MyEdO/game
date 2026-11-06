@@ -69,7 +69,7 @@ describe('Applications de combat — substitution sociale (LDB 09 l.207/287)', (
   });
   it('la valeur de substitution == skillBaseValue (source UNIQUE offre==résolution)', () => {
     const d = defender();
-    expect(combatSubstitute(d, attacker(true), 'defense')!.value).toBe(skillBaseValue(d, 'intimidation'));
+    expect(combatSubstitute(d, attacker(true), 'defense')!.value).toBe(skillBaseValue(d, { skill: { id: 'intimidation' } }));
   });
 });
 

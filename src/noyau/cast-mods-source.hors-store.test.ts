@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
-import { resolveCasting, resolveCounterspell, resolveFocus, castingValue, castTestOf, castTestDRMods } from '../engine/magic';
+import { resolveCasting, resolveCounterspell, resolveFocus, castingValue, castTestOf, castTestDRMods, incantationArcane } from '../engine/magic';
 import type { SpellLike } from '../engine/magic';
 import { setRule, resetRule } from '../engine/policy';
 import { evaluateTest } from '../engine/tests';
@@ -90,7 +90,7 @@ beforeEach(() => {
     battle: { combatants: [A, E], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
   } as never);
-  VALEUR = castingValue(A, 'langue', 'magick');
+  VALEUR = castingValue(A, incantationArcane());
   DR_NU = evaluateTest(DE, VALEUR).sl;
   DR_DISSIPATION = DR_NU + TALENT;
   DR_INCANTATION = DR_NU + TALENT - PA;
@@ -319,7 +319,7 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
     const naturel = resolveCounterspell(hero, castT, RNG_DE).counter.sl;
     // Voie 2 — dé saisi.
     poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },
-      pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { roll: 88, target: castingValue(hero, 'langue', 'magick'), sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' } }] } });
+      pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { roll: 88, target: castingValue(hero, incantationArcane()), sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' } }] } });
     setDesFixes(true);
     st().jetSetForcedRoll('counterspell', DE, 'A');
     const saisi = counterOf().sl;
@@ -333,7 +333,7 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
 
   const incDR = (pa: number) => {
     const hero = lanceur(pa);
-    const cible = castingValue(hero, 'langue', 'magick');
+    const cible = castingValue(hero, incantationArcane());
     const naturel = resolveCasting(hero, findSpellById(SPELL_ID)!, RNG_DE).sl;
     const pending = { casterId: 'A', targetId: 'E', spellId: SPELL_ID, missile: false, focused: false,
       result: { cast: false, roll: 88, target: cible, sl: evaluateTest(88, cible).sl, isCritical: false, isFumble: false, log: '' } };

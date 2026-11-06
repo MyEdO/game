@@ -9,6 +9,7 @@ import { affichés, narratif, hero, fixtureScene } from './clues.fixture';
 import { applyEffects } from '../combatEffects';
 import { withActingSeat } from '../netOwnership';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { t } from '../../i18n';
 import { chargerSurLeBanc, sansLaCleDeJeu, sauverLeBanc } from '../persistance/save.testkit';
 
 let banc: Banc;
@@ -89,6 +90,9 @@ describe('clues — câblage noyau (#670)', () => {
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     banc.getState().toggleCluePin('ind-lettre');
     expect(banc.getState().clues['ind-lettre'].épinglé).toBe(true);
+    banc.getState().toggleCluePin('ind-mono');
+    expect(banc.getState().clues['ind-mono']).toBeUndefined();
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('carnet.refus.indiceInconnu', { id: 'ind-mono' }));
   });
 
   describe('save/load RÉEL (chargerLaSave, #670)', () => {

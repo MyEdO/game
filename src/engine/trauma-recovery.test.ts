@@ -74,7 +74,7 @@ describe('Convalescence des Blessures critiques (LDB 18)', () => {
     const c = C({ traumas: avecSequelles([], [t]), criticalWounds: 1 });
     const { specs: collected, defer } = porteFracture();
     tickTraumaRecovery(c, 1, defer);
-    expect(collected[0]?.test, 'LDB 18 l.202 — « Test de Résistance »').toEqual({ skill: 'resistance' });
+    expect(collected[0]?.test, 'LDB 18 l.202 — « Test de Résistance »').toEqual({ skill: { id: 'resistance' } });
     expect(collected[0]?.kind).toBe('traumaFracture'); // Test de fin DIFFÉRÉ en étape
     expect(c.traumas!.length).toBe(0); // la fracture est retirée (résolution déférée)
     expect(c.criticalWounds).toBe(0);

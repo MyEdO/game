@@ -110,6 +110,18 @@ const VERROU_SUJET_CHAR = [
   `:matches(TSTypeLiteral, TSInterfaceBody):has(> ${CHAMP_CHAR}):has(> ${CHAMP_DU_SUJET})`,
 ].map((selector) => ({ selector, message: MSG_SUJET_CHAR }));
 
+const CLE_SKILL = 'Property:matches([key.name="skill"], [key.value="skill"])';
+const CLE_SPEC = 'Property:matches([key.name="spec"], [key.value="spec"])';
+const CHAMP_SKILL = 'TSPropertySignature:matches([key.name="skill"], [key.value="skill"])';
+const CHAMP_SPEC = 'TSPropertySignature:matches([key.name="spec"], [key.value="spec"])';
+const MSG_SUJET_SPEC = 'Compétence d’un Test (#3012, LDB 09 l.44) : chaque Spécialisation est une Compétence unique, la référence la porte, `skill: { id, spec }` (`RefDesignee`, `SujetDuJet`). Une clé `spec` à côté de `skill`, dans un littéral ou un type, en est la graphie à plat, que tsc laisse passer sur un objet non frais, un spread conditionnel ou un cast.';
+const VERROU_SUJET_SPEC = [
+  `ObjectExpression:has(> ${CLE_SKILL}):has(> ${CLE_SPEC})`,
+  `ObjectExpression:has(> ${CLE_SKILL}) > ${SPREAD_CONDITIONNEL} > ${CLE_SPEC}`,
+  `ObjectExpression:has(> ${CLE_SPEC}) > ${SPREAD_CONDITIONNEL} > ${CLE_SKILL}`,
+  `:matches(TSTypeLiteral, TSInterfaceBody):has(> ${CHAMP_SKILL}):has(> ${CHAMP_SPEC})`,
+].map((selector) => ({ selector, message: MSG_SUJET_SPEC }));
+
 const PROPRIETAIRE_DATALIST = 'src/ui/compendium/refField/**';
 const MSG_DATALIST = 'Datalist (#286, #2724) : le motif `<input list>`/`<datalist>` appartient à `RefField` (`src/ui/compendium/refField/`) — composer `RefField` (modes `freeText`, `vocab`) ou sa saisie libre à suggestions `SaisieSuggeree`.';
 const VERROU_DATALIST = [
@@ -578,7 +590,7 @@ export const BLOCS_LINT = [
   {
     // #3012
     files: ['src/**'],
-    rules: { 'murs/sujet-char': ['error', ...VERROU_SUJET_CHAR] },
+    rules: { 'murs/sujet-char': ['error', ...VERROU_SUJET_CHAR], 'murs/sujet-spec': ['error', ...VERROU_SUJET_SPEC] },
   },
   {
     // #286, #2724

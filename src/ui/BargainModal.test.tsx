@@ -92,7 +92,7 @@ describe('BargainModal (#2c)', () => {
       mutations: [(() => { const m = findMutationById('visage-inverse')!; return { id: m.id, label: m.label, desc: m.desc, kind: m.kind, roll: 1, passive: m.passive }; })()],
     } as unknown as Combatant;
     // Compétence NUE 55 (Soc 40 + 15 avances) ; Empoisonné −10 + Visage inversé −20 → Test 25 ; Soutien +10 → 35.
-    expect(skillBaseValue(negociateur, 'marchandage')).toBe(55);
+    expect(skillBaseValue(negociateur, { skill: { id: 'marchandage' } })).toBe(55);
     expect(testValue(negociateur, { skill: { id: 'marchandage' } })).toBe(25);
     const pb: PendingBargain = {
       ...base, playerSkill: 35, playerBase: 55, support: { count: 1, bonus: 10, ids: ['h2'] },

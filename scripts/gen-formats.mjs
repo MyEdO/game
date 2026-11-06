@@ -35,6 +35,7 @@ export const RACINES = [
   { constante: 'FORMAT_ROSTER', module: 'src/noyau/persistance/roster.ts', type: 'RosterStocke' },
   { constante: 'FORMAT_EXPORT_HEROS', module: 'src/noyau/persistance/roster.ts', type: 'ExportDeHeros' },
   { constante: 'FORMAT_CALQUE', module: 'src/state/traceLayer.ts', type: 'CalqueStocke' },
+  { constante: 'FORMAT_CALQUES', module: 'src/noyau/edition/calque.ts', type: 'CalquesStockes' },
 ]
 
 /** Fichier virtuel qui nomme chaque racine (`R<i>`), ajouté au programme du dépôt. */
