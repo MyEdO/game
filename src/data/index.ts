@@ -1600,6 +1600,8 @@ export interface SemencesDeSceneData {
   roofDefaults: SceneRoofDefaults;
   /** Structure d'un pan de façade posé à l'éditeur (`addFacadeSection`). */
   facade: string;
+  /** Libellé d'un lieu posé sur la carte du monde (`ajouterLieu`). */
+  lieu: string;
 }
 /**
  * DÉFAUTS DE COMPILATION (#1716/#1789) — ce que le compilateur de scène (`noyau/mapSpec.ts`) pose
