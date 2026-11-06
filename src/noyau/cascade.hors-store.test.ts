@@ -7,7 +7,10 @@ import { startCascade, type CascadeApplier, stepInteraction, stepReady, buildCon
 import { freeCons, monoStep, displayStep, buildBand } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { spyApplier } from './cascade.testkit';
-import { fermeturesDuFlux } from './verbesOuverts';
+import { fermeturesDeLaFenetre, fermeturesDuFlux } from './verbesOuverts';
+import { fenetreDuJeu } from './combatAuto';
+import { cleDuGeste } from './modalArbiter';
+import type { FermetureDuJet } from './rollFlowFactory';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { journaliser } from './combatLog';
 import { jouerLesClotures } from './combatEffects';
@@ -178,6 +181,47 @@ describe('Cascade séquentielle influençable', () => {
     expect(banc.getState().pendingCascade, 'la validation ne termine pas le bilan').not.toBeNull();
     banc.getState().fenetreFermer('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
+  });
+
+  it('la validation se juge sur la fenêtre entière : avant le jet, l’id d’étape que la fenêtre désigne ne l’ouvre pas', () => {
+    const h = hero();
+    startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [step('s1', h.id)] });
+    const valider = cleDuGeste({ verbe: 'jetConfirm', flux: 'cascade' });
+    const avant = banc.getState();
+    const fenetre = fenetreDuJeu(avant);
+    expect(fenetre?.pid, 'la fenêtre désigne l’étape').toBe('s1');
+    expect(fermeturesDuFlux(avant, 'cascade', 's1').confirm, 'jugée sur la rangée, la validation serait ouverte').toBeNull();
+    expect(fermeturesDeLaFenetre(avant, fenetre).get(valider)).toBe('jetNonLance');
+    banc.getState().jetConfirm('cascade');
+    expect(banc.getState().pendingCascade, 'refusée, la validation ne change rien').toEqual(avant.pendingCascade);
+    expect(applied).toHaveLength(0);
+    banc.getState().jetRoll('cascade', 's1');
+    expect(fermeturesDeLaFenetre(banc.getState()).get(valider), 'le jet lancé, elle s’ouvre').toBeNull();
+    banc.getState().jetConfirm('cascade');
+    expect(applied).toHaveLength(1);
+  });
+
+  it('« Tout résoudre » s’annonce fermé exactement quand le jouer ne change rien', () => {
+    banc.getState().seedRng(7);
+    const h = hero();
+    appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
+    const choix: CascadeStep = { id: 'c', kind: cleDeFixture('pick'), actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
+    const toutResoudre = cleDuGeste({ verbe: 'cascadeResolveAll' });
+    /** L'annonce de « Tout résoudre » dans la fenêtre, et si le jouer change la cascade. */
+    const annonceEtEffet = (): [FermetureDuJet | null | undefined, boolean] => {
+      const avant = banc.getState();
+      const annonce = fermeturesDeLaFenetre(avant).get(toutResoudre);
+      banc.getState().cascadeResolveAll();
+      return [annonce, JSON.stringify(banc.getState().pendingCascade) !== JSON.stringify(avant.pendingCascade)];
+    };
+    startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [step('s1', h.id), choix] });
+    expect(annonceEtEffet(), 'une étape-jet : ouvert, joué').toEqual([null, true]);
+    expect(banc.getState().pendingCascade?.cursor, 'arrêté sur le choix').toBe(1);
+    expect(annonceEtEffet(), 'un choix non tranché : fermé, refusé').toEqual(['choixDu', false]);
+    banc.getState().cascadeChoose('c', 'a');
+    expect(annonceEtEffet(), 'le choix tranché : ouvert, joué').toEqual([null, true]);
+    expect(banc.getState().pendingCascade?.cursor, 'bilan').toBe(2);
+    expect(annonceEtEffet(), 'au bilan : fermé, refusé').toEqual(['etapesJouees', false]);
   });
 
   it('« Tout résoudre » résout les étapes auto mais S\'ARRÊTE sur un CHOIX (pas d\'auto-tranche)', () => {
