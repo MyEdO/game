@@ -3,11 +3,11 @@
  * N projections ».
  *
  * Part FACTUELLE, DÉRIVÉE à chaque génération :
- *  - le PIVOT : l'union `SceneEl` et les interfaces `GP`/`Face`/`ElBase`/`ElStates` de
- *    `src/gameIso/builders/types.ts`, et `MaterialRef` de `src/data/materials.types.ts` (champs + 1re
- *    phrase de JSDoc) ;
- *  - les BUILDERS : les fonctions `build*` réellement exportées sous `src/gameIso/builders/`, avec
- *    leur type de sortie, leur site et leur JSDoc ;
+ *  - le PIVOT : l'union `SceneEl` de `src/gameIso/builders/types.ts`, les interfaces
+ *    `GP`/`Face`/`ElBase`/`ElStates` de `src/noyau/monde/volume/types.ts`, et `MaterialRef` de
+ *    `src/data/materials.types.ts` (champs + 1re phrase de JSDoc) ;
+ *  - les BUILDERS : les fonctions `build*` réellement exportées sous `src/noyau/monde/volume/` et
+ *    `src/gameIso/builders/`, avec leur type de sortie, leur site et leur JSDoc ;
  *  - l'ARBORESCENCE de `src/gameIso/` : nombre de modules directs par sous-dossier ;
  *  - les clés d'AMBIANCE lues à `src/data/ambiance.json` ;
  *  - la COUVERTURE réelle de la garde anti-couleur, lue dans la garde elle-même (arborescences
@@ -32,6 +32,8 @@ function rendu() {
   const OUTIL = 'build-rendu-pipeline'
   const ISO = 'src/gameIso'
   const TYPES = `${ISO}/builders/types.ts`
+  const VOLUME = 'src/noyau/monde/volume'
+  const TYPES_DU_VOLUME = `${VOLUME}/types.ts`
   const BUILDERS = `${ISO}/builders`
   const GARDE = `${ISO}/renderer-no-hardcoded-color.test.ts`
   const AMBIANCE = 'src/data/ambiance.json'
@@ -46,10 +48,10 @@ function rendu() {
     return p
   }
   const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
-  for (const p of [TYPES, BUILDERS, GARDE, AMBIANCE, MATIERES]) ancre(p, 'source du générateur')
+  for (const p of [TYPES, TYPES_DU_VOLUME, BUILDERS, GARDE, AMBIANCE, MATIERES]) ancre(p, 'source du générateur')
 
-  const PIVOT = { chemin: TYPES, ...loadSource(TYPES) }
-  const { sf: T_SF } = PIVOT
+  const { sf: T_SF } = loadSource(TYPES)
+  const PIVOT = { chemin: TYPES_DU_VOLUME, ...loadSource(TYPES_DU_VOLUME) }
   const M_SRC = { chemin: MATIERES, ...loadSource(MATIERES) }
   const ligne = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1
 
@@ -114,9 +116,9 @@ function rendu() {
 
   // ── Les BUILDERS réellement exportés ─────────────────────────────────────────────────────────────
 
-  const fichiersBuilders = listerDossier(BUILDERS)
+  const fichiersBuilders = [VOLUME, BUILDERS].flatMap((dossier) => listerDossier(dossier)
     .filter((f) => /\.tsx?$/.test(f) && !f.includes('.test.'))
-    .map((f) => ({ rel: `${BUILDERS}/${f}`, text: readFileSync(`${BUILDERS}/${f}`, 'utf8') }))
+    .map((f) => ({ rel: `${dossier}/${f}`, text: readFileSync(`${dossier}/${f}`, 'utf8') })))
 
   /** Type de sortie déclaré d'un builder (`FloorEl[]`…). Deux formes co-existent : `export function`
    *  (type de retour à la signature) et `export const b: (…) => X` (type de retour du TYPE FONCTION). */
@@ -139,7 +141,7 @@ function rendu() {
       BUILDERS_MESURES.push({ ...b, fichier: fichier.rel, sortie: sortieDe(sf, b.name) })
     }
   }
-  if (BUILDERS_MESURES.length < 6) abandon(`moins de 6 builders exportés sous ${BUILDERS}/ — le pipeline a changé de forme`)
+  if (BUILDERS_MESURES.length < 6) abandon(`moins de 6 builders exportés sous ${VOLUME}/ et ${BUILDERS}/ — le pipeline a changé de forme`)
 
   // ── L'arborescence de gameIso : modules DIRECTS par sous-dossier ─────────────────────────────────
 
@@ -237,8 +239,8 @@ function rendu() {
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-rendu-pipeline.mjs\` (\`npm run docs:rendu-pipeline\`) — NE PAS ÉDITER À LA MAIN.
 
 **Périmètre mesuré / angles morts** — sont DÉRIVÉS à chaque génération : les ${SCENE_EL.membres.length} membres
-de \`SceneEl\` et les champs de \`GP\`/\`Face\`/\`ElBase\`/\`ElStates\`
-(\`${TYPES}\`) et de \`MaterialRef\` (\`${MATIERES}\`), les ${BUILDERS_MESURES.length} builders exportés sous \`${BUILDERS}/\` avec leur type
+de \`SceneEl\` (\`${TYPES}\`), les champs de \`GP\`/\`Face\`/\`ElBase\`/\`ElStates\`
+(\`${TYPES_DU_VOLUME}\`) et de \`MaterialRef\` (\`${MATIERES}\`), les ${BUILDERS_MESURES.length} builders exportés sous \`${VOLUME}/\` et \`${BUILDERS}/\` avec leur type
 de sortie, les ${SOUS_DOSSIERS.length} sous-dossiers de \`${ISO}/\` et leur nombre de modules directs, les
 ${CLES_AMB.length} clés d'ambiance de \`${AMBIANCE}\`, les ${RECETTE.rows.length} sections d'une
 \`DetailRecipe\`, la
@@ -261,11 +263,14 @@ Scene ──(builders, PURS, espace MONDE)──▶ SceneEl[] ──┬─(monde
 **Contrat de perf** : un builder n'importe ni dimensions d'écran ni caméra. Sa sortie survit à toute
 rotation ou changement de projection ; la première personne n'hérite d'aucun concept d'écran.
 
-## 1. Le pivot — \`${TYPES}\`
+## 1. Le pivot — \`${TYPES}\` et \`${TYPES_DU_VOLUME}\`
 
 \`SceneEl\` (\`${TYPES}:${SCENE_EL.l}\`) = ${SCENE_EL.membres.map((m) => `\`${m}\``).join(' | ')} — union
 discriminée par \`kind\`. \`PropEl\` (\`${TYPES}:${PROP_EL.l}\`) se subdivise elle-même en
 ${PROP_EL.membres.map((m) => `\`${m}\``).join(' | ')}.
+
+Ses formes de base (\`GP\`, \`Face\`, \`ElBase\`, \`ElStates\`) et le builder de sols vivent au noyau
+(\`${VOLUME}/\`, #3476), d'où l'hôte Godot reçoit le volume du monde par le pont.
 
 ### \`GP\` — un point en espace MONDE
 

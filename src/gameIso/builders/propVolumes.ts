@@ -18,13 +18,13 @@
  * l'ancre, montée au pied.
  *
  * ORIENTATION : chaque polygone sort tourné vers le DEHORS de la primitive qui le porte, dans la
- * convention du rendu (`(x, y, h) → three (X, Y, Z) = (x, h, y)`, `backends/webgl/worldTris:gpToWorld`),
+ * convention du rendu (`(x, y, h) → three (X, Y, Z) = (x, h, y)`, `noyau/monde/volume/worldTris:gpToWorld`),
  * et le DÉCLARE par `Face.oriented` — la cuisson (`backends/webgl/sceneMeshes`) propage ce sens tel quel
  * pour la carte d'ombre au lieu de le re-dériver du centre de la carte.
  */
 import { polygonesDePrimitive, rotatePropLocal, type PropData } from '../../data/props.types';
 import type { Dir4 } from '../../geometry/dir8';
-import type { Face, GP } from './types';
+import type { Face, GP } from '../../noyau/monde/volume/types';
 
 /** ANCRAGE d'une recette dans le monde : le point (fractionnaire, en cases) où son origine locale se
  *  pose, le cap qui la tourne, l'altitude métrique de son pied, et l'entité qui la porte quand il y en

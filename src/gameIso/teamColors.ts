@@ -73,12 +73,6 @@ export function veilTint(isHero: boolean): string {
   return isHero ? ALLY_TINT : ENEMY_TINT;
 }
 
-/** Ton d'ALARME du repli visible (#223, #877) — SOURCE UNIQUE, partagée par l'art de repli
- *  (`catalog/viewArt.ts` `MISSING_ART`) et les entrées de repli des catalogues (`catalog/missing.ts`). */
-export const MISSING_TONE = '#ff2fb0';
-/** Fond sourd de la caisse d'alarme (contraste du ton criard). */
-export const MISSING_TONE_DARK = '#2a0820';
-
 /**
  * Couleur PLEINE d'une barre de vie selon le ratio (PB courant / max) :
  * rouge sombre à 0, rouge en zone critique, orange entamé, vert sain.

@@ -13,7 +13,7 @@
 import { Dims, depth, diamondCorners, tileCenter } from '../../geometry/iso';
 import { metricToLift } from '../../noyau/monde/relief';
 import { terrainGradient } from '../catalog/terrain';
-import { reliefMaterial } from '../catalog/relief';
+import { reliefMaterial } from '../../noyau/monde/volume/matieres';
 import { shade, ao, warm, spec } from '../shade';
 import { projGP, type Pt2 } from './project';
 import {
@@ -23,7 +23,8 @@ import {
   coursesOverlaySvg,
   type DetailOpts,
 } from './detailSvg';
-import type { CellSide, Face, FloorEl } from '../builders/types';
+import type { CellSide } from '../builders/types';
+import type { Face, FloorEl } from '../../noyau/monde/volume/types';
 
 /** Pied de rampe = nez de pente × ce facteur (ombrage doux du haut vers le bas). */
 const SLOPE_BOT = 0.67;

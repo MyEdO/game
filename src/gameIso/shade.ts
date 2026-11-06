@@ -4,15 +4,8 @@
  * (ombre d'orientation, occlusion, spéculaire) vient d'ici. Dérive un ton en multipliant la luminance d'une
  * base par un facteur, clampé ; un `var(--x)` CSS (pierre) passe tel quel. Aucune lecture DOM.
  */
+import { parseHex } from '../lib/couleurHex';
 
-/** Parse `#rgb`/`#rrggbb` en canaux [r,g,b] (0–255) ; null si non-hex (`var(--x)`, `rgb(...)`).
- *  Parseur UNIQUE partagé par `shade`/`mix` ici ET par les helpers de teinte POV (camera.ts). */
-export function parseHex(hex: string): [number, number, number] | null {
-  const m = hex.trim().match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
-  if (!m) return null;
-  const h = m[1].length === 3 ? m[1].replace(/(.)/g, '$1$1') : m[1];
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
 const clamp255 = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
 /** Canaux [r,g,b] (0–255, arrondis et bornés) en `#rrggbb`. Émetteur UNIQUE, pendant de `parseHex`. */
 export const toHex = (r: number, g: number, b: number) =>

@@ -1,6 +1,6 @@
 import type { RoofMaterialDef } from './types';
 import { matieresDe } from '../../../data';
-import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from '../missing';
+import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from '../../../noyau/monde/volume/missing';
 export type { RoofMaterialDef } from './types';
 
 /** Entrée de REPLI VISIBLE (#877) : une couverture au ton d'alarme sur tous ses pans et sur son plan vu

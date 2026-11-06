@@ -5,7 +5,7 @@ import { Combatant } from '../../engine/types';
 import { buildTokens, partyTokenOf } from './tokens';
 import { combatantRingDecor, teamRings } from './dynamicMarks';
 import { tokenChromes } from './tokenChrome';
-import { isOverhang, capsSolid } from './floors';
+import { isOverhang, capsSolid } from '../../noyau/monde/volume/floors';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /** Fabrique un combattant MINIMAL (champs consommés par le builder + prédicats de filtre). */

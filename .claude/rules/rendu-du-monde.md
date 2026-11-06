@@ -8,7 +8,7 @@ paths:
 
 # Rendu du monde
 
-- **Ce rendu web est abandonné, remplacé par l'hôte Godot** (#2794, #3009). Il ne reçoit que ce qui garde le jeu web jouable jusqu'à la bascule. On n'y ajoute rien, on n'en migre rien, et aucun travail 3D ou Godot n'en tire un id, une forme ou un modèle. Il se supprime à la bascule.
+- **Ce rendu web est abandonné, remplacé par l'hôte Godot** (#2794, #3009). Il ne reçoit que ce qui garde le jeu web jouable jusqu'à la bascule. On n'y ajoute rien et aucun travail 3D ou Godot n'en tire un id, une forme ou un modèle de son art (SVG, rig, catalogues de rendu). Seule sa géométrie pure du monde (builders, triangulation, résolution matière → couleur) descend au noyau, `src/noyau/monde/volume/`, que le rendu web importe et que l'hôte Godot reçoit par le pont (#3476). Il se supprime à la bascule.
 - **Le jeu web n'affiche aucun personnage** (#3160). Aucun dessin de personnage ni de créature ne se pose sous `src/gameIso/` ; leur rendu revient à l'hôte Godot (`hotes/godot/`). `src/retour-du-rig-guard.test.ts`
 - Ce qui bouge à la cadence de l'image passe par un module vivant et le battement unique, jamais par l'état React, qui ne commite qu'aux frontières discrètes, en ABSOLU. `src/state/stagePan.ts` `src/state/stageYaw.ts` `src/gameIso/stage/stageFrames.ts`
 - Un module vivant se remet à zéro aux frontières : entrée de scène, recentrage, `afterEach` des tests (`resetStagePan`, `resetStageYaw`).

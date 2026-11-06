@@ -7,7 +7,7 @@
 import type { PropViz, RenderCtx } from '../types';
 import { project, type View } from '../../facing';
 import { nearestView, MISSING_ART } from '../viewArt';
-import { warnMissing } from '../missing';
+import { warnMissing } from '../../../noyau/monde/volume/missing';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { Rot } from '../../../geometry/iso';
 import { PROP_DEFS } from './_registry.generated';

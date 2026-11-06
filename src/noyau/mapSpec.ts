@@ -970,7 +970,7 @@ export function buildScene(spec: MapSpec): Scene {
 
 /**
  * Tous les ids de CATALOGUE authorés par un `MapSpec`, validés à la compilation contre `src/data` —
- * un id faux ne produirait sinon qu'un `console.warn` DEV au rendu (`gameIso/catalog/missing.ts`) et la
+ * un id faux ne produirait sinon qu'un `console.warn` DEV au rendu (`noyau/monde/volume/missing.ts`) et la
  * carte se construirait avec une arête sans matière. La garde porte sur TOUTES les sources d'id du
  * spec, jamais sur la seule table la plus récente : `wallLegend` (y compris un char déclaré mais absent
  * de la grille), les arêtes COMPILÉES (`walled`, `walls[]`, diagonales, herses de `cells`),
