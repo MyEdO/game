@@ -239,7 +239,7 @@ export function CharacterCreator() {
   const setEditingHero = useGame((s) => s.setEditingHero);
 
   // MODE ÉDITION : héros déjà dans le groupe (bouton « Modifier ») → on rouvre son brouillon.
-  // Round-trip SANS perte si le roster a gardé le `draft` exact ; sinon reconstruction partielle
+  // Round-trip SANS perte si le héros est au roster, qui garde son `draft` exact ; sinon reconstruction partielle
   // (espèce/carrière/identité/apparence — pas les tirages figés ni les allocations).
   const editing = useMemo(() => {
     if (!editingHeroId) return null;
@@ -247,7 +247,7 @@ export function CharacterCreator() {
     if (!hero) return null;
     const saved = chargerLeRoster(stockageDuRoster()).find((e) => e.hero.id === editingHeroId);
     const draft = saved?.draft ?? draftFromHero(hero, graineDEntropie());
-    return { heroId: hero.id, draft, lossless: !!saved?.draft };
+    return { heroId: hero.id, draft, lossless: !!saved };
   }, [editingHeroId, party]);
 
   const [d, setD] = useState<CreatorDraft>(() => editing?.draft ?? newDraft(graineDEntropie()));

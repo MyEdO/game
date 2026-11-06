@@ -63,6 +63,11 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     refuseLId(t, verbe('markCluesSeen', [{ id: 'nobody', étapes: 1, statut: 'réfuté', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
     passeLeControle(t, verbe('toggleCluePin', indice));
   });
+  it('pré-tiré : `partyAddHero`, le noyau bâtit le héros de la donnée', { timeout: 120_000 }, () => {
+    const t = partie('revisit');
+    const [pretire] = refuseLId(t, verbe('partyAddHero', { pretire: 'nobody' }), /heros\.pretire : "nobody" n’est pas un id de pré-tiré \(valides : /);
+    passeLeControle(t, verbe('partyAddHero', { pretire }));
+  });
   it('porteur et objet : `toggleEquip`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
     const [heros] = refuseLId(t, verbe('toggleEquip', 'nobody', 'x'), /heroId : "nobody" n’est pas un id de porteur \(valides : /);

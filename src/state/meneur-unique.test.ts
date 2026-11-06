@@ -14,6 +14,7 @@ import { combatantRingDecor } from '../gameIso/builders/dynamicMarks';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { engage } from '../noyau/creation/engagement.testkit';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -89,7 +90,7 @@ describe('changer de meneur ne change QUE le meneur — le cap n’est keyé par
   it('REMPLACEMENT du meneur par un héros d’id NEUF (`partyReplaceHero`) : cap intact', () => {
     entrerPuisPivoter();
     const capAvant = capPov();
-    useGame.getState().partyReplaceHero('a', hero('a2', 12));
+    useGame.getState().partyReplaceHero('a', engage('a2'));
     expect(meneurDuMonde(useGame.getState())?.id).toBe('a2');
     expect(capPov(), 'aucun id de héros ne keye le cap : le remplacement ne le perd pas').toBe(capAvant);
   });
@@ -97,7 +98,7 @@ describe('changer de meneur ne change QUE le meneur — le cap n’est keyé par
   it('AJOUT d’un héros (`partyAddHero`) puis chute des précédents : cap intact', () => {
     entrerPuisPivoter();
     const capAvant = capPov();
-    useGame.getState().partyAddHero(hero('c', 12));
+    useGame.getState().partyAddHero(engage('c'));
     useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'c' ? h : blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }))) }));
     expect(meneurDuMonde(useGame.getState())?.id).toBe('c');
     expect(capPov()).toBe(capAvant);

@@ -1,8 +1,9 @@
-import type { Combatant, CharKey } from '../engine/types';
+import type { CharKey } from '../engine/types';
 import type { ActionRunCtx, BattleActionMode } from './actionRegistry';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { IndiceAffiché } from './monde/clues';
+import type { HerosEngage } from './creation/engagement';
 import type { HealMode } from '../engine/healing';
 import type { VerbesDeJet } from './rollFlowSpecs';
 import type { VerbeDeReglage } from './reglagesDuJet';
@@ -91,13 +92,14 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  Identification (`itemUid`), Convalescence (ADE II), Activités d'Altdorf (ACE Annexe I). Cibles
    *  éventuelles : `CiblesChoisies`. */
   interludeActivity: (heroId: IdDeHeros, activityId: string, opts?: CiblesChoisies) => void;
-  /** Composition d'équipe : ajoute un héros dans un emplacement du siège qui décide (`decidingSeat`) / retire un
-   *  héros (propriétaire seul). */
-  partyAddHero: (hero: Combatant, wealth?: import('../engine/money').Money) => void;
+  /** Composition d'équipe : ajoute le héros que le noyau bâtit de `heros` (`herosDeLEngagement`), avec sa Richesse de
+   *  départ, dans un emplacement du siège qui décide (`decidingSeat`) / retire un héros (propriétaire seul). */
+  partyAddHero: (heros: HerosEngage) => void;
   partyRemoveHero: (heroId: IdDeHeros) => void;
-  /** Remplace EN PLACE le héros `oldId` par `hero` (substitution atomique, possession transférée au siège qui
-   *  possédait `oldId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer » du slot. */
-  partyReplaceHero: (oldId: IdDeHeros, hero: Combatant) => void;
+  /** Remplace EN PLACE le héros `oldId` par celui que le noyau bâtit de `heros` (substitution atomique, possession
+   *  transférée au siège qui possédait `oldId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer »
+   *  du slot. */
+  partyReplaceHero: (oldId: IdDeHeros, heros: HerosEngage) => void;
   toggleEquip: (heroId: IdDePorteur, uid: IdDObjet) => void;
   /** Range (`containerUid`) ou sort (null) un objet d'un héros d'un contenant (LDB 64). */
   stowItem: (heroId: IdDePorteur, uid: IdDObjet, containerUid: IdDObjet | null) => void;

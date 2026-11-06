@@ -10,7 +10,7 @@ import { portesDuMobile } from './marcheDuGroupe';
 import { scenesDuRegistre } from './monde/registreDesScenes';
 import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
-import { findCreatureById, findSeaShantyById, findTrappingById } from '../data';
+import { findCreatureById, findSeaShantyById, findTrappingById, pregens } from '../data';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
@@ -63,6 +63,8 @@ export type IdDePlaieDeLOperation = string;
 export type IdDePorte = string;
 /** Un indice présent au carnet (`clues`). */
 export type IdDIndice = string;
+/** Un pré-tiré de la donnée (`pregens.json`), par son `id`. */
+export type IdDePretire = string;
 
 /** Une désignation : son nom en mots, les ids valides qu'elle lit dans l'état, et le nom en mots du joueur de
  *  l'élément d'un id (`null` : l'élément n'a pas de nom). */
@@ -124,5 +126,6 @@ export const DESIGNATIONS = {
     nom: (s, uid) => plaiesDeLOperation(s).find((p) => p.uid === uid)?.label ?? null,
   },
   IdDePorte: { mot: 'id de porte', lire: (s) => ids(portesDuMobile(s)), nom: () => null },
+  IdDePretire: { mot: 'id de pré-tiré', lire: () => ids(pregens), nom: (_s, id) => labelParmi(pregens, id) },
   IdDIndice: { mot: 'id d’indice', lire: (s) => Object.keys(s.clues), nom: (s, id) => s.campaignNarratif?.indices.find((i) => i.id === id)?.titre ?? null },
 } satisfies Record<string, Designation>;

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import { pregenParty, PREGEN } from '../data/pregens';
-import { profilsStandard } from '../data';
+import { pregens, profilsStandard } from '../data';
 import { ensureBourse, setBourseBrass } from '../engine/bourse';
 import { seedBattleRng } from './battleRng';
 import { refusDAjoutAuGroupe } from './partyFlow';
@@ -32,13 +32,15 @@ const dernier = () => get().journal[get().journal.length - 1];
 
 const heros = (n: number): Combatant[] =>
   pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.pretre, PREGEN.chasseur).slice(0, n).map(ensureBourse);
+/** L'engagement du pré-tiré `h` par son id. */
+const pretireDe = (h: Combatant) => ({ pretire: pregens.find((p) => `pregen-${p.seed}` === h.id)!.id });
 
 describe('composition du groupe — `refusDAjoutAuGroupe`', () => {
   it('hôte coop au quota épuisé, groupe 1/4 : le verdict et le geste disent le quota', () => {
     const [a, b] = heros(2);
     banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', slots: [0, 1, 1, 1], ownership: { [a.id]: 0 } } });
     expect(refusDAjoutAuGroupe(get(), undefined, 0)).toBe('Tous vos emplacements du groupe sont remplis.');
-    get().partyAddHero(b);
+    get().partyAddHero(pretireDe(b));
     expect(get().party.map((h) => h.id)).toEqual([a.id]);
     expect(dernier()).toBe('Tous vos emplacements du groupe sont remplis.');
   });
@@ -46,7 +48,7 @@ describe('composition du groupe — `refusDAjoutAuGroupe`', () => {
   it('groupe plein : le geste dit le groupe complet', () => {
     const cinq = heros(5);
     banc.setState({ party: cinq.slice(0, 4) });
-    get().partyAddHero(cinq[4]);
+    get().partyAddHero(pretireDe(cinq[4]));
     expect(get().party).toHaveLength(4);
     expect(dernier()).toBe('Le groupe est complet (4 héros).');
   });
@@ -54,7 +56,7 @@ describe('composition du groupe — `refusDAjoutAuGroupe`', () => {
   it('héros déjà présent : le geste le nomme', () => {
     const [a] = heros(1);
     banc.setState({ party: [a] });
-    get().partyAddHero(a);
+    get().partyAddHero(pretireDe(a));
     expect(dernier()).toBe(`${a.label} fait déjà partie du groupe.`);
   });
 });
