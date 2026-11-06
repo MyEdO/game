@@ -3,7 +3,8 @@
  * et sa TRANSACTION d'enregistrement (#3059). Tout hôte les appelle ; l'écriture disque reste à l'hôte
  * (`web/fsPersist.ts` pour le web).
  */
-import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from './overrides';
+import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, deDeLaTable, setDeDeTable, type DatasetKey, type ObjectDatasetKey } from './overrides';
+import { deDeTirageSchema } from './schemas/grammaire/valeurs';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from './schemas/exposition-derivee';
 import { validateDataset } from './schemas/validate';
 import { serializeDataset } from './serialize';
@@ -163,11 +164,13 @@ export type Enregistrement = { ok: true; fichier: string; texte: string } | { ok
 
 /**
  * Enregistre `entry` dans le dataset de `categoryKey` (#176, #1530) : à la position `index` d'un
- * dataset-liste (`-1` l'ajoute), en fusion d'un dataset-objet. Refuse sans rien poser une entrée que
- * `validateEntry` refuse ; sinon la pose, valide la racine sérialisée contre son schéma et, au refus,
- * REPREND l'état d'avant. Le texte rendu est la forme disque de la source entière.
+ * dataset-liste (`-1` l'ajoute), en fusion d'un dataset-objet ; `deDeTable`, posé, est le dé de tirage
+ * de la table que porte un ancêtre de sa collection (`setDeDeTable`, #1667), écrit dans la MÊME
+ * transaction. Refuse sans rien poser une entrée que `validateEntry` refuse, ou un dé illisible ; sinon
+ * la pose, valide la racine sérialisée contre son schéma et, au refus, REPREND l'état d'avant. Le texte
+ * rendu est la forme disque de la source entière.
  */
-export function enregistrerEntree(categoryKey: string, entry: Entry, index: number): Enregistrement {
+export function enregistrerEntree(categoryKey: string, entry: Entry, index: number, deDeTable?: string): Enregistrement {
   const obj = editableObjectDataset(categoryKey);
   if (obj) {
     const avant = structuredClone(datasetObject(obj.ds));
@@ -178,10 +181,17 @@ export function enregistrerEntree(categoryKey: string, entry: Entry, index: numb
   const ds = editableDataset(categoryKey)!;
   const entries = datasetArray(ds) as Entry[];
   const erreurs = validateEntry(categoryKey, entry, entries, index);
+  const deLu = deDeTable === undefined ? undefined : deDeTirageSchema.safeParse(deDeTable);
+  if (deLu && !deLu.success) erreurs.push(...deLu.error.issues.map((i) => `die : ${i.message}`));
   if (erreurs.length) return { ok: false, erreurs };
   const avant = entries.slice();
+  const deAvant = deDeLaTable(ds);
+  if (deDeTable !== undefined) setDeDeTable(ds, deDeTable);
   setDataset(ds, (index < 0 ? [...entries, entry] : entries.map((x, i) => (i === index ? entry : x))) as never);
-  return racineValidee(datasetFile(ds), datasetSerializeRoot(ds), () => setDataset(ds, avant as never));
+  return racineValidee(datasetFile(ds), datasetSerializeRoot(ds), () => {
+    setDataset(ds, avant as never);
+    if (deDeTable !== undefined) setDeDeTable(ds, deAvant!);
+  });
 }
 
 /** La racine posée, validée contre le schéma de `fichier` ; `reprendre` restaure l'état d'avant au refus. */

@@ -22,7 +22,8 @@ import {
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { refLabel, testSkillLabel, weatherStakeRef, voyageStakeRef } from '../data';
 import { stageEncounterCategory } from '../engine/travelEncounter';
-import { encounterTable, rollEncounter, ENCOUNTER_DIE, type EncounterCategory } from '../engine/travelTables';
+import { encounterTable, rollEncounter, encounterDie, type EncounterCategory } from '../engine/travelTables';
+import { facesDuDe } from '../engine/tables';
 import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
@@ -420,7 +421,7 @@ export const TABLES = {
       if (bilan.pleinAir && jours.length) jours[jours.length - 1].pleinAir = true;
       const rencontre = bilan.rencontre ? tableStep({
         id: 'stage-encounter', kind: 'stageEncounter', worldOwner: true, icon: 'ui/warning', label: t(ENCOUNTER_KEY[bilan.rencontre]),
-        table: { tableId: tableDeRencontre(bilan.rencontre), spec: ENCOUNTER_DIE },
+        table: { tableId: tableDeRencontre(bilan.rencontre), spec: encounterDie() },
         stake: voyageStakeRef('stageEncounter'),
       }) : undefined;
       return { consequences: freeCons(lignesDuBilan(get(), bilan)), insert: [...(rencontre ? [rencontre] : []), ...(bilan.pleinAir ? [] : buildExposureSteps(get(), plan.stage))] };
@@ -474,8 +475,8 @@ export const TABLES = {
   } satisfies PartDeTable<'annonces', readonly ['stageAggregate']>,
   tablesTirables: Object.fromEntries(CATEGORIES_DE_RENCONTRE.map((c) => [tableDeRencontre(c), {
     label: t(ENCOUNTER_KEY[c]),
-    die: ENCOUNTER_DIE.sides,
-    rows: encounterTable(c).map(({ id, min, max, label }) => ({ id, min, max, label })),
+    get die() { return facesDuDe(encounterDie()); },
+    get rows() { return encounterTable(c).map(({ id, min, max, label }) => ({ id, min, max, label })); },
     lines: (roll: number) => {
       const e = rollEncounter(c, roll);
       return [t('out.travelEncounter', { label: e.label, text: e.desc })];

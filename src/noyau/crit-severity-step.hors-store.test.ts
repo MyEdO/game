@@ -8,7 +8,8 @@ import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG, d100 } from '../engine/dice';
 import { resolveCritique, critTableRows } from '../engine/critical';
 import { bonus, effectiveChar } from '../engine/characteristics';
-import { critiqueDoc, critiqueTable, critTableKeyFor } from '../data/criticals';
+import { critiqueTable, critTableKeyFor } from '../data/criticals';
+import { deDeLaTable, setDeDeTable } from '../data/overrides';
 import { findTableEntry } from '../engine/tables';
 import { createHero } from '../engine/character';
 import { setDesFixes, desFixes } from '../engine/fixedDie';
@@ -106,14 +107,14 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
 
   it('déclaration : le dé de l’étape est le `die` du tableau de la Localisation, lu VIVANT (LDB 18 l.53 ; #1667)', () => {
     const { H } = startFight();
-    const tableau = critiqueDoc('ldb', critTableKeyFor('corps'));
     expect(critSeverityDecl(H, 'corps', 0).spec).toEqual({ n: 1, sides: 100 });
-    const imprime = tableau.die;
+    const imprime = deDeLaTable('criticalsCorps')!;
+    setDeDeTable('criticalsCorps', '2d10');
     try {
-      tableau.die = '2d10';
       expect(critSeverityDecl(H, 'corps', 0).spec, 'le dé suit la donnée').toEqual({ n: 2, sides: 10 });
+      expect(tableStepDef(CRIT_TABLE_IDS.corps)!.die, 'la table tirable suit le dé écrit').toBe(20);
     } finally {
-      tableau.die = imprime;
+      setDeDeTable('criticalsCorps', imprime);
     }
   });
 

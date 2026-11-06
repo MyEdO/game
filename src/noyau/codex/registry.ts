@@ -46,14 +46,14 @@ import { trappingCategorieSchema } from '../../data/schemas/defs/trappings';
 import { MOUNT_PROFILES } from '../../engine/mountTravel';
 import { windsOfMagicTable } from '../../engine/windsOfMagic';
 import { miscastDie } from '../../engine/miscast';
-import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, MOUNT_INCIDENT_DIE, VEHICLE_PROBLEM_DIE, ENCOUNTER_DIE } from '../../engine/travelTables';
+import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, mountIncidentDie, vehicleProblemDie, encounterDie } from '../../engine/travelTables';
 import type { TravelTableEntry } from '../../engine/travelTables';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { OBSESSIONS } from '../../data/obsessions';
 import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
 import { bandeAuDe, facesDuDe, fourchette } from '../../engine/tables';
-import { ARTILLERY_MISFIRE, ARTILLERY_MISFIRE_DIE } from '../../data/artilleryMisfire';
-import { STRUCTURE_CRITICALS_DIE } from '../../data/structureCriticals';
+import { ARTILLERY_MISFIRE, artilleryMisfireDie } from '../../data/artilleryMisfire';
+import { structureCriticalsDie } from '../../data/structureCriticals';
 import { deDeTirageDe } from '../../data/rangees';
 import drivingMishapJson from '../../data/driving-mishap.json';
 import drunkennessJson from '../../data/drunkenness.json';
@@ -2140,23 +2140,23 @@ const CODEX_SPECS = {
   },
   incidentsMonture: {
     label: 'codex.fiche.incidentsDeMonte', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => MOUNT_INCIDENTS.map((e) => travelEntryItem(e, MOUNT_INCIDENT_DIE, tr('codex.fiche.effetSurLeCavalier'))),
+    build: () => MOUNT_INCIDENTS.map((e) => travelEntryItem(e, mountIncidentDie(), tr('codex.fiche.effetSurLeCavalier'))),
   },
   problemesVehicule: {
     label: 'codex.fiche.problemesDeVehicule', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => VEHICLE_PROBLEMS.map((e) => travelEntryItem(e, VEHICLE_PROBLEM_DIE, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => VEHICLE_PROBLEMS.map((e) => travelEntryItem(e, vehicleProblemDie(), tr('codex.fiche.effetSurLesOccupants'))),
   },
   rencontresPositives: {
     label: 'codex.fiche.rencontresPositives', group: 'tables', cluster: 'codex.fiche.rencontres',
-    build: () => datasetArray('rencontresPositives').map((e) => travelEntryItem(e, ENCOUNTER_DIE, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => datasetArray('rencontresPositives').map((e) => travelEntryItem(e, encounterDie(), tr('codex.fiche.effetSurLesOccupants'))),
   },
   rencontresFortuites: {
     label: 'codex.fiche.rencontresFortuites', group: 'tables', cluster: 'codex.fiche.rencontres',
-    build: () => datasetArray('rencontresFortuites').map((e) => travelEntryItem(e, ENCOUNTER_DIE, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => datasetArray('rencontresFortuites').map((e) => travelEntryItem(e, encounterDie(), tr('codex.fiche.effetSurLesOccupants'))),
   },
   rencontresDangereuses: {
     label: 'codex.fiche.rencontresDangereuses', group: 'tables', cluster: 'codex.fiche.rencontres',
-    build: () => datasetArray('rencontresDangereuses').map((e) => travelEntryItem(e, ENCOUNTER_DIE, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => datasetArray('rencontresDangereuses').map((e) => travelEntryItem(e, encounterDie(), tr('codex.fiche.effetSurLesOccupants'))),
   },
   shipCriticalsCargaison: {
     label: 'codex.fiche.critiquesDeNavireCargaison', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
@@ -2615,7 +2615,7 @@ const CODEX_SPECS = {
   structureCriticals: {
     label: 'codex.fiche.critiquesDeStructure', group: 'effets',
     build: () => tableDesCritiquesDeStructure().map((c) => ({
-      id: c.id, label: c.label, sub: bandeAuDe(STRUCTURE_CRITICALS_DIE, c.min, c.max), desc: c.note,
+      id: c.id, label: c.label, sub: bandeAuDe(structureCriticalsDie(), c.min, c.max), desc: c.note,
       meta: facts(
         c.wounds != null ? fact(tr('codex.fiche.blessures'), c.wounds) : null,
         c.trivial ? fact(tr('codex.fiche.type'), tr('codex.fiche.trivialeT')) : null,
@@ -2626,7 +2626,7 @@ const CODEX_SPECS = {
   artilleryMisfire: {
     label: 'codex.fiche.incidentsDeTirParSalve', group: 'effets',
     build: () => ARTILLERY_MISFIRE.map((e) => ({
-      id: e.id, label: e.label, sub: bandeAuDe(ARTILLERY_MISFIRE_DIE, e.min, e.max), desc: e.note,
+      id: e.id, label: e.label, sub: bandeAuDe(artilleryMisfireDie(), e.min, e.max), desc: e.note,
       meta: facts(
         fact(tr('codex.fiche.localisation'), e.location === 'brasPrincipal' ? tr('codex.fiche.brasPrincipal') : tr('codex.fiche.aleatoire')),
         e.perSalveIndex ? fact(tr('codex.fiche.repetition'), tr('codex.fiche.parIndiceDeSalveRestant')) : null,

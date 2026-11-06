@@ -7,7 +7,7 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { datasetArray, datasetObject, datasetFile, datasetObjectFile } from '../../../data/overrides';
+import { datasetArray, datasetObject, datasetFile, datasetObjectFile, deDeLaTable, type DatasetKey } from '../../../data/overrides';
 import { REF_LIST_DATASET, editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
@@ -315,6 +315,10 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   }, [obj, categoryKey, id, isNew]);
 
   const [entry, setEntry] = useState<Entry>(() => structuredClone(src.initial));
+  // DÉ DE TIRAGE porté par un ANCÊTRE de la table (`deDeLaTable`) : commun à toutes ses rangées, il
+  // s'écrit dans la même transaction que l'entrée (#1667). `undefined` : la table n'en porte pas.
+  const deImprime = obj ? undefined : deDeLaTable(src.dataset as DatasetKey);
+  const [deSaisi, setDeSaisi] = useState(deImprime);
   // Libellé COURANT de l'entrée (`entryKey`), celui de sa catégorie tant qu'elle n'en porte pas (#1830).
   const libelle = entryKey(entry).trim() || categoryByKey(categoryKey)!.label;
   const { dir, needsGrant } = connexion;
@@ -480,7 +484,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
 
   const save = async () => {
     // Transaction d'enregistrement de la donnée (`enregistrerEntree`) ; l'écriture disque reste ici.
-    const issue = enregistrerEntree(categoryKey, entry, src.index);
+    const issue = enregistrerEntree(categoryKey, entry, src.index, deSaisi === deImprime ? undefined : deSaisi);
     if (!issue.ok) { setSchemaError(issue.erreurs.join('\n')); setMsg(''); return; }
     setSchemaError(null);
     const text = issue.texte;
@@ -523,6 +527,12 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
       )}
       <SuiviDesSaisies signaler={saisies.signaler}>
       <div className="codex-edit-form">
+        {deSaisi !== undefined && (
+          <div className="ed-field">
+            <span>dé de tirage de la table — commun à toutes ses rangées</span>
+            <DeDeTirageField value={deSaisi} onChange={(d) => { setDeSaisi(d); setDirty(true); setSchemaError(null); }} />
+          </div>
+        )}
         {hasAppearance && <AppearanceField traits={entry.traits as TraitPose[]} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
@@ -1245,12 +1255,7 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
   return (
     <div className="ed-field">
       <span>maladies contractées — jet {libelleDe} après échec du Test de Résistance (MSRC 16 l.49-61)</span>
-      <label className="dr">Dé
-        <SaisieEnBrouillon
-          ariaLabel="Dé de tirage" placeholder="ex. d10, 2d10" value={die} afficher={(d) => d}
-          relire={(texte, avant) => (deDeTirageSchema.safeParse(texte.trim()).success ? texte.trim() : avant)}
-          onChange={(d) => onChange({ die: d, entries: list })} />
-      </label>
+      <DeDeTirageField value={die} onChange={(d) => onChange({ die: d, entries: list })} />
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
           <label className="dr">{libelleDe}&nbsp;<NumberField variant="nu" label={`Plage ${libelleDe} — borne basse`} min={bas} max={haut} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label={`Plage ${libelleDe} — borne haute`} min={bas} max={haut} value={r.max} onChange={(max) => set(i, { max })} /></label>
@@ -1465,6 +1470,18 @@ interface MutationRange { min: number; max: number; mutation: string; }
 
 /** DOMAINE d'une plage tirée au dé de sa table (`die`) : son nom et ses bornes de saisie — aucun tant
  *  que la chaîne en cours d'édition ne se lit pas (le schéma la refuse à l'enregistrement). */
+/** Saisie du DÉ DE TIRAGE d'une table (`deDeTirageSchema`) : une expression illisible n'est pas retenue. */
+function DeDeTirageField({ value, onChange }: { value: string; onChange: (die: string) => void }) {
+  return (
+    <label className="dr">Dé
+      <SaisieEnBrouillon
+        ariaLabel="Dé de tirage" placeholder="ex. d10, 2d10" value={value} afficher={(d) => d}
+        relire={(texte, avant) => (deDeTirageSchema.safeParse(texte.trim()).success ? texte.trim() : avant)}
+        onChange={onChange} />
+    </label>
+  );
+}
+
 function domaineDuDe(die: unknown): PlageDomaine {
   const spec = typeof die === 'string' ? parseDice(die) : null;
   return spec ? { nom: formatDice(spec), min: totalDuDe(spec, spec.n), max: totalDuDe(spec, spec.n * spec.sides) } : {};

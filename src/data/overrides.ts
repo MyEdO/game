@@ -33,6 +33,7 @@ import {
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
 import type { TraumaFiche } from '../engine/trauma';
 import { versDisque } from './schemas/grammaire/prose';
+import { parseDiceRequired } from '../engine/dice';
 import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/travelTables';
@@ -383,6 +384,49 @@ const idsVivantsDeLEspace = (cle: string): ReadonlySet<string> | undefined =>
   lectureVivante(cle) && idsDeLEspace(cle, (c) => lectureVivante(c) ?? lectureDeVocabulaire(c));
 poserRegimeVivant(idsVivantsDeLEspace);
 
+/** Le PORTEUR du dé de tirage de la collection `cible` dans `racine` : son ancêtre objet le plus proche
+ *  qui porte un `die` (le document d'une table, `tableTiree`, ou la racine qui le partage entre ses
+ *  tables), trouvé par IDENTITÉ ; `undefined` quand aucun ancêtre n'en porte — le dé est alors un champ
+ *  de l'ENTRÉE (`setDataset`), ou la table n'en a pas. */
+function porteurDuDe(racine: unknown, cible: unknown): Record<string, unknown> | undefined {
+  const ancetres: Record<string, unknown>[] = [];
+  const chercher = (v: unknown): boolean => {
+    if (v === cible) return true;
+    if (v === null || typeof v !== 'object') return false;
+    const objet = !Array.isArray(v);
+    if (objet) ancetres.push(v as Record<string, unknown>);
+    for (const enfant of Object.values(v)) if (chercher(enfant)) return true;
+    if (objet) ancetres.pop();
+    return false;
+  };
+  return chercher(racine) ? ancetres.reverse().find((n) => typeof n.die === 'string') : undefined;
+}
+
+/** Porteur du dé de chaque dataset-tableau dont la table tire au dé d'un ancêtre (#1667). */
+const PORTEUR_DU_DE = new Map<DatasetKey, Record<string, unknown>>();
+for (const k of DATASET_KEYS) {
+  const porteur = porteurDuDe(RACINES_VIVANTES[DATASET_FICHIER_DERIVE[k]], ARRAYS[k]);
+  if (porteur) PORTEUR_DU_DE.set(k, porteur);
+}
+/** Seeds des dés de table, pour `resetData()`. */
+const DE_SEED = new Map([...PORTEUR_DU_DE].map(([k, porteur]) => [k, porteur.die as string] as const));
+
+/** Le DÉ DE TIRAGE de la table du dataset `key`, quand un ancêtre de sa collection le porte. */
+export function deDeLaTable(key: DatasetKey): string | undefined {
+  return PORTEUR_DU_DE.get(key)?.die as string | undefined;
+}
+
+/** Écrit EN PLACE le DÉ DE TIRAGE de la table du dataset `key` sur son porteur et VERSIONNE l'écriture
+ *  pour toutes les clés de son fichier (#1667) — un dé partagé (`rencontres-edoc.json`) l'est par toutes
+ *  ses tables. LÈVE sur une expression illisible, et sur un dataset dont aucun ancêtre ne porte le dé. */
+export function setDeDeTable(key: DatasetKey, die: string): void {
+  const porteur = PORTEUR_DU_DE.get(key);
+  if (!porteur) throw new Error(`setDeDeTable('${key}') : aucun ancêtre de la collection ne porte de dé de tirage — un dé d'ENTRÉE s'écrit par \`setDataset\`.`);
+  parseDiceRequired(die, `${key} › die`);
+  porteur.die = die;
+  for (const cle of CLES_DU_FICHIER.get(DATASET_FICHIER_DERIVE[key]) ?? []) bumperDataset(cle);
+}
+
 /** Ce dataset a-t-il une route d'ÉDITION déclarée ? (sinon `datasetFile` refuse — #1530) */
 export function datasetEditable(key: DatasetKey): boolean {
   return DATASETS_EDITABLES_DERIVE.has(key);
@@ -431,6 +475,7 @@ export function setObjectDataset<K extends ObjectDatasetKey>(key: K, next: (type
 
 /** Réinitialise tous les datasets (tableaux ET objets) au seed d'origine (JSON app-owned). */
 export function resetData(): void {
+  for (const [k, die] of DE_SEED) PORTEUR_DU_DE.get(k)!.die = die;
   for (const k of DATASET_KEYS) {
     const arr = ARRAYS[k] as unknown[];
     arr.splice(0, arr.length, ...structuredClone(SEED[k]));

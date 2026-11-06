@@ -44,7 +44,7 @@ import {
   type ForcedPaceAnimal, type ForcedPaceAnimalOutcome,
 } from '../engine/vehicle';
 import { bonus } from '../engine/characteristics';
-import { rollVehicleProblem, mountIncidentEffects, VEHICLE_PROBLEM_DIE } from '../engine/travelTables';
+import { rollVehicleProblem, mountIncidentEffects, vehicleProblemDie } from '../engine/travelTables';
 import { applyOps } from '../engine/ops';
 import { ouvrirChute, jouerFlowEntier, applyEffectsLoot } from './combatEffects';
 import { applyHealWounds } from '../engine/healing';
@@ -61,6 +61,7 @@ import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
 import { evalCondition } from '../engine/flowCore';
 import { rollDice } from '../engine/dice';
+import { facesDuDe } from '../engine/tables';
 import { rule } from '../engine/policy';
 import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from '../engine/clock';
 import { seasonOfMonth, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
@@ -770,7 +771,7 @@ export const stageWeatherRows = (entries: { min: number; max: number; weather: s
 const tablesDeMeteo = memoParVersion('weather', () => new Map<string, TableStepDef>(
   weather.map((saison) => [stageWeatherTableId(saison.id as Season), {
     label: t('step.stageWeather'),
-    die: weatherDie(saison.id as Season).sides,
+    die: facesDuDe(weatherDie(saison.id as Season)),
     rows: stageWeatherRows(saison.entries),
     lines: (die) => [t('out.stageWeather', { weather: weatherCondition(weatherFromRoll(die, saison.id as Season)).label })],
   }]),
@@ -1144,7 +1145,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
 function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDayResult, 'lines' | 'entries'>): { vehicleOut: boolean; vehicleLame: boolean } {
   const vehicle = get().travelPlan?.vehicle;
   if (!vehicle) return { vehicleOut: false, vehicleLame: false }; // garde : coque toujours créée en allure forcée
-  const roll = rollDice(VEHICLE_PROBLEM_DIE, battleRng());
+  const roll = rollDice(vehicleProblemDie(), battleRng());
   let entry = rollVehicleProblem(roll);
   if (entry.id === 'incontrolable') {
     // EDOC 07 l.284, l.286 ; LDB 09 l.30.
@@ -1507,7 +1508,7 @@ export const TABLES = {
         finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false });
         return { consequences: freeCons(j) };
       }
-      const roll = rollDice(VEHICLE_PROBLEM_DIE, battleRng());
+      const roll = rollDice(vehicleProblemDie(), battleRng());
       let entry = rollVehicleProblem(roll);
       if (entry.id === 'incontrolable') {
         j.push(t('tf.vehicleProblem', { label: entry.label }));
