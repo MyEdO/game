@@ -424,14 +424,19 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 	return pose
 
 
-## L'élément monté à l'emplacement `id` habillé de la palette de la composition et de l'emblème demandé (`_peindre`) ;
-## rend si l'emblème est posé sur une surface au moins, et un emblème demandé qu'aucune ne reçoit donne
-## `blason-sans-surface`.
+## L'élément monté à l'emplacement `id` habillé de la palette de la composition, chaque emplacement de palette que
+## colore la `palette` de son entrée de `montes` (sa teinte, #3456) pris à celle-ci quand cette entrée monte cet élément,
+## et de l'emblème demandé (`_peindre`) ; rend si l'emblème est posé sur une surface au moins, et un emblème demandé
+## qu'aucune ne reçoit donne `blason-sans-surface`.
 func _habiller(id: String) -> bool:
 	var element: String = montes[id]
 	var embleme: String = _emblemes_demandes.get(id, VIDE)
 	var texture: ImageTexture = null if embleme == VIDE else _texture_de_l_embleme(embleme)
-	var posee := _peindre(pieces[id], modeles.surfaces[element], texture)
+	var monte: Dictionary = cibles().get(id, {})
+	var palette: Dictionary = composee.get("palette", {}).duplicate()
+	if monte.get("element") == element:
+		palette.merge(monte.get("palette", {}), true)
+	var posee := _peindre(pieces[id], modeles.surfaces[element], texture, palette)
 	if texture != null and not posee:
 		erreurs.append("blason-sans-surface : %s" % element)
 	return posee
@@ -440,16 +445,15 @@ func _habiller(id: String) -> bool:
 ## Les meshes de la base posée habillés de la palette de la composition (`_peindre`, `surfaces` de la base).
 func habiller_la_base() -> void:
 	if not base.is_empty():
-		_peindre(_pieces_de_la_base, modeles.surfaces[base.id], null)
+		_peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}))
 
 
 ## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` reçoit un matériau propre
-## (`materiau_local`) si la `palette` de la composition colore son emplacement de palette, ou si elle est `blason` et
+## (`materiau_local`) si `palette` colore son emplacement de palette, ou si elle est `blason` et
 ## `texture` n'est pas nulle : la couleur y remplace l'albédo du GLB, texture comprise, pour que la tête et le corps
 ## d'une même peau aient la même couleur, et `texture` devient la couche de détail, en UV1 et en mélange. Toute autre
 ## surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
-func _peindre(meshes: Array, surfaces: Array, texture: ImageTexture) -> bool:
-	var palette: Dictionary = composee.get("palette", {})
+func _peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
@@ -478,6 +482,22 @@ func _peindre(meshes: Array, surfaces: Array, texture: ImageTexture) -> bool:
 				local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
 				posee = true
 	return posee
+
+
+## Par emplacement monté dont une surface porte un matériau propre, la couleur d'albédo `#rrggbb` de ce matériau, par nom
+## du matériau du GLB.
+func couleurs_posees() -> Dictionary:
+	var couleurs := {}
+	for id in pieces:
+		var posees := {}
+		for piece: MeshInstance3D in pieces[id]:
+			for rang in piece.mesh.get_surface_count():
+				var local := piece.get_surface_override_material(rang) as BaseMaterial3D
+				if local != null:
+					posees[local.resource_name] = "#" + local.albedo_color.to_html(false)
+		if not posees.is_empty():
+			couleurs[id] = posees
+	return couleurs
 
 
 ## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de

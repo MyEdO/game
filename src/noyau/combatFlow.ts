@@ -33,6 +33,7 @@ import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalSt
 import { sizeGap } from '../engine/size';
 import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
+import { effectifAuContact } from './combat/surnombre';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed, ciblesDeLEffet, flowOffert, type TriggerCtx } from './triggeredEffects';
@@ -747,7 +748,7 @@ export function attackEnv(
   // « high-ground » — RAW : seul ce malus existe). Comparaison de la hauteur métrique des surfaces.
   if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
   // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible.
-  const onm = outnumberMod(battle.combatants.filter((c) => c.kind === attacker.kind && !isOutOfAction(c) && c.pos && combatDistance(c, target) <= 1).length);
+  const onm = outnumberMod(effectifAuContact(battle, target, attacker.kind));
   if (onm) env.push(onm);
   env.push(...mountedAttackMods(battle, attacker, target, 'melee')); // LDB 14 l.180/181
   return { env, blocked: false, inMelee: false, crowd: [], cm: null, sc, flankRear };

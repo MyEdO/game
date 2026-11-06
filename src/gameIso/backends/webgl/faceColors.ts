@@ -26,28 +26,21 @@
  * planche « MATIÈRE UNIQUE par toit ».
  */
 import { AMBIANCE } from '../../catalog/ambiance';
-import { reliefMaterial } from '../../catalog/relief';
 import { roofMaterial } from '../../catalog/roofs';
 import { facadeStructureAppearance } from '../../catalog/facades';
 import { wallPartColor } from '../../catalog/structures';
 import type { WallPart } from '../../../data/structureAppearance.types';
-import { terrainDef } from '../../catalog/terrain';
 import { propMaterial } from '../../catalog/propMaterials';
-import { MISSING_TONE } from '../../catalog/missing';
-import { TINT_SPREAD } from '../../detail/expand';
+import { couleurDuSol, recetteDuSol } from '../../../noyau/monde/volume/matieres';
+import { MISSING_TONE } from '../../../noyau/monde/volume/missing';
 import { coursesPeriodM, groundPeriodM } from '../../detail/courses';
 import { hash32 } from '../../../data/hash';
 import type { DetailRecipe } from '../../../data/materials.types';
-import type { Face } from '../../builders/types';
-import { SHADE_CYCLE, type ShadeFamily } from './worldTris';
+import type { Face } from '../../../noyau/monde/volume/types';
+import { SHADE_CYCLE, type ShadeFamily } from '../../../noyau/monde/volume/worldTris';
 
 /** Modes de rendu d'une face — deux MATÉRIAUX du renderer, une seule couleur de base (`faceSurface`). */
 export type ColorMode = 'unlit' | 'lit';
-
-function reliefColor(id: string, part: string | undefined): string {
-  const m = reliefMaterial(id);
-  return (part === 'ramp' ? m.slopeTop : undefined) ?? m.face;
-}
 
 /** Couleur d'une face de TOITURE. Les PANS partagent tous la teinte de référence `N` du matériau, quel
  *  que soit leur cardinal : `sh.N` est déjà le repli des deux backends pour une part sans ton propre.
@@ -92,11 +85,10 @@ function faceRecipe(face: Face): DetailRecipe | undefined {
     case 'structure':
       return facadeStructureAppearance(id).detail;
     case 'relief':
-      return reliefMaterial(id).detail;
+    case 'terrain':
+      return recetteDuSol({ domain, id });
     case 'roof':
       return roofMaterial(id).detail;
-    case 'terrain':
-      return terrainDef(id).detail;
     case 'prop':
       return undefined;
   }
@@ -108,11 +100,10 @@ function faceBaseColor(face: Face): string {
     case 'structure':
       return wallPartColor(facadeStructureAppearance(id), part as WallPart);
     case 'relief':
-      return reliefColor(id, part);
+    case 'terrain':
+      return couleurDuSol({ domain, id, part });
     case 'roof':
       return roofColor(id, part);
-    case 'terrain':
-      return terrainDef(id).swatch;
     case 'prop':
       return propMaterial(id).color;
   }
@@ -157,14 +148,4 @@ export function shadeFactorOf(f: ShadeFamily | null): number {
   if (f === 'haut') return d.haut;
   if (f === 'bas') return d.bas;
   return d.verticales[SHADE_CYCLE.indexOf(f)];
-}
-
-/** Facteur de variance de TEINTE d'une surface à l'identité MONDE de sa case ∈ [1−tintVar, 1+tintVar] :
- *  MÊME tirage que l'affine (`authoring/detailSvg.ts` `terrainFillGradient`) — variante
- *  `hash32('tint', x, y, z) % TINT_SPREAD.length`, facteur `1 + tintVar × TINT_SPREAD[k]`. Les deux
- *  backends tombent donc sur la même nuance pour la même tuile. 1 sans `tintVar` (surface uniforme). */
-export function tintVarFactor(recipe: DetailRecipe | undefined, cell: { x: number; y: number; z: number }): number {
-  const tv = recipe?.tintVar;
-  if (!tv) return 1;
-  return 1 + tv * TINT_SPREAD[hash32('tint', cell.x, cell.y, cell.z) % TINT_SPREAD.length];
 }

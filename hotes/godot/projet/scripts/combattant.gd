@@ -60,10 +60,10 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, metres_p
 	_vetir(corps)
 
 
-## Ce que son corps porte, lu de son montage : l'id de sa base posée (`null` sans corps), chaque élément monté, et par
-## emplacement l'emblème posé.
+## Ce que son corps porte, lu de son montage : l'id de sa base posée (`null` sans corps), chaque élément monté, par
+## emplacement l'emblème posé, et par emplacement les couleurs posées (`MontageDeComposition.couleurs_posees`).
 func corps() -> Dictionary:
-	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate()}
+	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate(), couleurs = _montage.couleurs_posees()}
 
 
 ## Tourné vers `cible` (une position du plateau), il frappe.

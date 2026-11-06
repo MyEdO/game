@@ -18,7 +18,7 @@ import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, noteDeSoutien, preJetDePreparation, refusDePrepaDeBataille, type MassBattleState } from '../noyau/massBattleFlow';
 import {
-  craftCatalog, craftTarget, learnableTalents, orderCatalog, bankPayout, entrainementOptions, entrainementTutorRange,
+  craftCatalog, craftTarget, learnableTalents, orderCatalog, bankPayout, seuilDePerteBancaire, entrainementOptions, entrainementTutorRange,
   activityById, testsDeLActivite,
   type ActivityDef, type ActivityResolver, type CraftOption, type LearnOption, type EntrainementOption,
 } from '../engine/activities';
@@ -1205,11 +1205,11 @@ function BankList({ etat, canDrive }: {
             enabled={!refus}
             {...raisonSi(refus)}
             descOfferte={b.kind === 'invest'
-              ? `Retirer (1 Activité) : ${fmt(bankPayout('invest', b.brass, b.rate))} si la banque tient (faillite sur d100 ≤ ${b.rate})`
+              ? `Retirer (1 Activité) : ${fmt(bankPayout('invest', b.brass, b.rate))} si la banque tient (faillite sur d100 ≤ ${seuilDePerteBancaire('invest', b.rate)})`
               // ACE 12 l.49/57-65
               : b.kind === 'mecenat'
                 ? 'Retirer le mécénat (1 Activité) : Test d’Évaluation Intermédiaire (+0) — rendu de 120 % à la perte totale'
-                : `Retirer la planque (libre) : ${fmt(b.brass)} — découverte sur d100 ≤ ${b.rate > 0 ? b.rate : 10}`}
+                : `Retirer la planque (libre) : ${fmt(b.brass)} — découverte sur d100 ≤ ${seuilDePerteBancaire('stash', b.rate)}`}
             onClick={() => withdraw(i)}
             primary={false}
             btnClassName="small"

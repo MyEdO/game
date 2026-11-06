@@ -17,7 +17,7 @@ import { CAP_GROUPE } from '../../noyau/monde/combatants';
 import type { Combatant } from '../../engine/types';
 import { isStructure } from '../../engine/structures';
 import { campOf } from '../../engine/relations';
-import { isOverhang, capsSolid } from './floors';
+import { isOverhang, capsSolid } from '../../noyau/monde/volume/floors';
 import type { TokenEl } from './types';
 import { heroRingIndex } from './dynamicMarks';
 

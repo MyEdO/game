@@ -89,7 +89,7 @@ export type Grade = 'flat' | 'ramp' | 'cliff';
 
 /**
  * PARTIES de relief — le vocabulaire des `MaterialRef.part` que le builder de sols ÉMET pour une face
- * de domaine `relief` (`src/gameIso/builders/floors.ts`), et RIEN d'autre : les deux liens verticaux
+ * de domaine `relief` (`src/noyau/monde/volume/floors.ts`), et RIEN d'autre : les deux liens verticaux
  * franchissables/infranchissables du relief (`Grade` moins `flat`, qui ne dessine aucune paroi), la
  * dalle fine d'un tablier de surplomb (`deck`) et le montant qui la porte (`pilier`).
  *

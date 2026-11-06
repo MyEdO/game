@@ -8,6 +8,7 @@ import { document } from '../grammaire/document';
 import { enumNomme, maniementSchema, matiereDArmureSchema } from '../grammaire/valeurs';
 import { manieAussiSchema, qualityRefSchema } from '../grammaire/reference';
 import { tableTotale } from '../../../lib/tableTotale';
+import { ref } from '../grammaire/ref';
 
 export const file = 'weaponGroups.json';
 export const famille = 'entite';
@@ -18,7 +19,7 @@ type Kind = keyof typeof KINDS;
 
 /** CHARGE par `kind` (`espace.chargeParDiscriminant`) : seul le `kind` qui la déclare porte une clé. #3076 */
 const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
-  kind === 'armour' ? ['material', 'couche', 'palierPA'] : kind === 'weapon' ? ['combat', 'maniement', 'poudre', 'manieAussi'] : kind === 'ammo' ? ['poudre'] : [],
+  kind === 'armour' ? ['material', 'couche', 'palierPA', 'teinte'] : kind === 'weapon' ? ['combat', 'maniement', 'poudre', 'manieAussi'] : kind === 'ammo' ? ['poudre'] : [],
 );
 /** Clés EXIGÉES de la charge (`espace.requisesParDiscriminant`). */
 const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
@@ -39,9 +40,11 @@ const doc = document(
     qualities: z.array(qualityRefSchema).optional(),
     /** Rang de couche d'un Groupe d'armure : la pièce de rang le plus haut s'affiche par-dessus. */
     couche: z.number().int().min(0).optional(),
-    /** PA à partir desquels une armure de statbloc portée se dessine dans la matière du Groupe ; `null` :
-     *  aucune armure de statbloc ne s'y dessine (#2948). */
+    /** PA à partir desquels une armure de statbloc portée est de la matière du Groupe ; `null` : aucune armure de
+     *  statbloc n'en est (#2948, #3456). */
     palierPA: z.number().int().min(0).nullable().optional(),
+    /** Teinte d'une pièce d'armure du Groupe, à défaut de la sienne (#3456). */
+    teinte: ref('material', undefined, 'objet').optional(),
     maniement: maniementSchema.optional(),
     /** LDB 62 l.99 ; LDB 62 l.129 */
     poudre: z.literal(true).optional(),
@@ -62,8 +65,9 @@ const doc = document(
       hint: 'Mêlée ou distance — source des pools de spécialisation de Compétence',
     },
     qualities: { label: 'Qualités communes', hint: 'Qualités communes à toute la famille, fusionnées à celles de l’objet' },
-    couche: { label: 'Rang de couche (armure)', hint: 'La pièce d’armure de rang le plus haut s’affiche par-dessus les autres' },
-    palierPA: { label: 'Palier de PA (armure)', hint: 'PA à partir desquels une armure de statbloc portée se dessine dans cette matière — vide : jamais' },
+    couche: { label: 'Rang de couche (armure)', hint: 'Deux armures portées qui revêtent une même pièce : celle de rang le plus haut la donne' },
+    palierPA: { label: 'Palier de PA (armure)', hint: 'PA à partir desquels une armure de statbloc portée est de cette matière, et en prend la teinte — vide : jamais' },
+    teinte: { label: 'Teinte (armure)', hint: 'Teinte d’objet que prend une pièce d’armure du Groupe, à défaut de la sienne' },
     maniement: { label: 'Maniement (arme)', hint: 'Animation d’une arme du Groupe dont la forme ne déclare pas de maniement' },
     poudre: { label: 'À poudre', hint: 'Arme ou munition à Poudre noire et d’Ingénierie' },
     manieAussi: { label: 'Armes aussi maniées en', hint: 'Par Groupe de Corps à corps qui manie aussi toute arme du Groupe : ses Atouts et Défauts, ses mains, à pied seulement' },

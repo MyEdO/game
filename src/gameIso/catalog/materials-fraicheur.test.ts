@@ -5,7 +5,7 @@ import type { MaterialEntry } from '../../data/materials.types';
 import { editees } from '../../data/materials.testkit';
 import { propMaterial } from './propMaterials';
 import { roofMaterial } from './roofs';
-import { reliefMaterial } from './relief';
+import { reliefMaterial } from '../../noyau/monde/volume/matieres';
 
 /**
  * FRAÎCHEUR DES MATIÈRES (#1686 lot 3a-1), côté RENDU — les trois façades de rendu (`catalogEntry` sur une

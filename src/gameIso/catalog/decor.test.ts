@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PROPS, propSvg, missingPropSvg } from './decor';
-import { MISSING_TONE } from './missing';
+import { MISSING_TONE } from '../../noyau/monde/volume/missing';
 import { findPropById } from '../../data';
 import { CAP_IDENTITE_PROP, empreinteDuProp } from '../../data/props.types';
 import { sceneMetresPerTile } from '../../noyau/monde/scene';

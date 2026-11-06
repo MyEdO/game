@@ -1,9 +1,8 @@
 /** Présentation des terrains — DÉRIVÉE du dataset `src/data/terrains.json` via la façade
  *  `noyau/monde/terrain` (lecture VIVANTE, index O(1)). La méta sémantique (walkable/priority) vient du même
  *  document : ici on n'expose que ce que le rendu lit. */
-import { terrainEntree } from '../../noyau/monde/terrain';
-import { type TerrainDef } from '../../data/terrains.types';
-import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE } from './missing';
+import { MISSING_ID } from '../../noyau/monde/volume/missing';
+import { terrainDef } from '../../noyau/monde/volume/matieres';
 
 /**
  * Id du `<linearGradient>` d'un terrain — DÉRIVÉ de son id, jamais une donnée : aucun partage de
@@ -15,27 +14,6 @@ export const terrainGradientId = (id: string): string => `g_${id}`;
  *  à côté des dégradés de terrain — un id de terrain absent du dataset peint la case en magenta criard,
  *  jamais l'herbe (ni aucun autre terrain réel). */
 export const MISSING_GRADIENT = 'g_terrain_manquant';
-
-/** Entrée de REPLI VISIBLE (#877) : un terrain au ton d'alarme, jamais l'apparence d'un autre terrain.
- *  `stops` VIDE : le dégradé peint du repli est `MISSING_GRADIENT`, émis par `defsGlobaux()` — une rampe recopiée
- *  ici en serait une seconde définition. Infranchissable et de priorité nulle : le repli ne déborde sur
- *  aucun voisin et n'ouvre aucun passage que la donnée n'a pas authorisé. */
-const MANQUANT: TerrainDef = {
-  id: MISSING_ID,
-  type: 'terrains',
-  label: MISSING_LABEL,
-  maison: 'entrée de REPLI VISIBLE du catalogue de rendu — hors dataset, aucune donnée ne la référence',
-  walkable: false,
-  priority: 0,
-  swatch: MISSING_TONE,
-  stops: {},
-};
-
-/** Terrain par id ; id absent du dataset → repli VISIBLE + avertissement DEV. Le seul accès du rendu
- *  au dataset : `swatch`, `detail` et `gradient` en sortent tous, donc du MÊME repli. */
-export function terrainDef(id: string): TerrainDef {
-  return catalogEntry(terrainEntree, id, 'terrain', MANQUANT);
-}
 
 /** Id du dégradé d'un terrain ; id absent du dataset → repli VISIBLE + avertissement DEV. */
 export function terrainGradient(id: string): string {

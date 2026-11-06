@@ -5,7 +5,7 @@
  *
  * RÈGLE D'UNITÉ (#1507) : une recette est en MÈTRES dans son repère local ; le monde est en CASES ; la
  * traduction mètres→cases se fait par DIVISION par `metresPerTile` de la scène, et cases→mètres par
- * UNE multiplication (`gpToWorld`, `gameIso/backends/webgl/worldTris.ts`).
+ * UNE multiplication (`gpToWorld`, `noyau/monde/volume/worldTris.ts`).
  * Un CONCEPT du décor = UNE couture, nommée — quatre en tout, et pas deux pour le même concept :
  *  - la GÉOMÉTRIE de la recette → `buildPropVolumes` (`gameIso/builders/propVolumes.ts`) ;
  *  - l'ANCRE d'une place assise → `placesPartielles` (`noyau/monde/seating.ts`) ;
@@ -112,7 +112,7 @@ export interface PropPoint3 { xM: number; yM: number; hM: number }
 export interface PropSize3 { xM: number; yM: number; hM: number }
 
 /** Côtés admis d'un cylindre. 12 est EXCLU : ses faces latérales tombent sur l'arête de couteau du
- *  modelé de forme (4 normales à ±45°, `backends/webgl/worldTris:shadeFamily` départage alors des
+ *  modelé de forme (4 normales à ±45°, `noyau/monde/volume/worldTris:shadeFamily` départage alors des
  *  familles de 4/3/3/2 au lieu de 3/3/3/3) — un fût de la même recette y prend deux tons de trop. */
 export type PropCylinderSides = 8 | 16;
 export const PROP_CYLINDER_SIDES: readonly PropCylinderSides[] = [8, 16];

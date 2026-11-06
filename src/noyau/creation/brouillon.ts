@@ -58,6 +58,7 @@ import {
   poolDuJoker,
   fluxDeCreation,
   cleDOption,
+  baseDEspece,
   type ChoixDeCreation,
   type CompetenceDeCarriere,
 } from '../../engine/character';
@@ -385,7 +386,7 @@ export function draftChars(d: CreatorDraft): Characteristics {
   if (!sp) { for (const k of CHAR_KEYS) out[k] = 0; return out; } // page blanche : aucune base d'espèce
   for (let i = 0; i < CHAR_KEYS.length; i++) {
     const k = CHAR_KEYS[i];
-    const base = sp.baseChar[k] ?? 20;
+    const base = baseDEspece(sp, k);
     if (d.charMode === 'pointBuy') out[k] = base + d.pointBuy[k];
     // Agentivité (#393) : avant le geste « Tirer aux dés », aucun jet n'existe — base d'espèce seule.
     else out[k] = base + (d.charsRolled ? rolls[d.charMode === 'reassigned' ? d.assignment[k] : i] : 0);

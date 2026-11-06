@@ -21,7 +21,7 @@
  *    au GPU il faut une séparation métrique — rang d'émission × `COPLANAR_BIAS_M` le long de la normale.
  */
 import { TW } from '../../../geometry/iso';
-import type { Face, GP } from '../../builders/types';
+import type { Face, GP } from './types';
 
 /** Point MÉTRIQUE en repère three : X = est, Y = haut, Z = sud. */
 export interface Vec3 {
@@ -106,6 +106,34 @@ export function orienterPoly(
   const dehors = n ? n.x * (g.x - centre.x) + n.z * (g.z - centre.z) : 0;
   const versLExterieur = oriented || !n ? true : Math.abs(n.y) > NORMALE_HORIZONTALE ? n.y > 0 : dehors >= 0;
   return { versLExterieur, normale: n && !versLExterieur ? { x: -n.x, y: -n.y, z: -n.z } : n };
+}
+
+/** CENTRE de la carte de `dimensions` cases à `mpt` mètres par case : celui que la loi d'orientation reçoit. */
+export function centreDeLaCarte(dimensions: { w: number; h: number }, mpt: number): CentreCarte {
+  return { x: ((dimensions.w - 1) / 2) * mpt, z: ((dimensions.h - 1) / 2) * mpt };
+}
+
+/** Un triangle d'une face après la loi d'orientation : ses sommets dans le sens de parcours qui porte le DEHORS,
+ *  l'ORDRE appliqué aux sommets d'origine (que tout attribut par sommet, UV comprises, doit suivre) et la normale que
+ *  la loi présente. */
+export interface TriangleOriente {
+  sommets: Tri;
+  ordre: readonly [0, 1, 2] | readonly [0, 2, 1];
+  normale: Vec3 | null;
+}
+
+const ORDRE_DIRECT = [0, 1, 2] as const;
+const ORDRE_RETOURNE = [0, 2, 1] as const;
+
+/** Les triangles de la géométrie `g` d'une face, chacun orienté par `orienterPoly` autour de `centre` : la SEULE
+ *  boucle qui tire des triangles d'une face leur sens de parcours, lue par la cuisson web et par le volume du monde
+ *  des hôtes. */
+export function trianglesOrientes(g: FaceGeom, centre: CentreCarte): TriangleOriente[] {
+  return g.tris.map((tri) => {
+    const { versLExterieur, normale } = orienterPoly(tri, g.oriented, centre);
+    const ordre = versLExterieur ? ORDRE_DIRECT : ORDRE_RETOURNE;
+    return { sommets: [tri[ordre[0]], tri[ordre[1]], tri[ordre[2]]], ordre, normale };
+  });
 }
 
 /** FAMILLES D'ORIENTATION du modelé de forme (#1300) : les deux horizontales (`haut` = sol, toit,

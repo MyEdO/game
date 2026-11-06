@@ -188,7 +188,7 @@ const NOMMES = [
   // `defs/garde-robe.ts` (#3114, #3113, #3111) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
   'tete|coiffure|tenue|emplacement|piece|variante|ensemble|embleme',
   'vetement|armure|accessoire',
-  'trapping|apparence|tenue',
+  'trapping|tenue',
   // `mainSchema` (`grammaire/valeurs.ts`) : la main d'un objet tenu (`prises`) ou d'une arme (`weaponHand`).
   'main|off',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.

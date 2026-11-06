@@ -12,7 +12,7 @@ import {
   JEU_SCALE,
   subjectQuad,
 } from './billboardMath';
-import { pxPerM } from './worldTris';
+import { pxPerM } from '../../../noyau/monde/volume/worldTris';
 import { VIEWS, project, facingView } from '../../facing';
 import { povView } from '../../pov/camera';
 import { PROP_H_M, BB_W, BB_H } from '../../pov/billboardCore';

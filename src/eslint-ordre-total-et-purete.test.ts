@@ -223,10 +223,13 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['hoteTexte', 'scenes', false, null],
       ['hoteTexte', 'engine', true, 'type'], // fermé (#2898)
       ['hoteTexte', 'state', true, 'type'],
+      ['hoteTexte', 'data', true, 'type'],
       ['noyau', 'hoteTexte', false, 'type'],
       ['hote', 'noyau', false, null], // importe (par sa porte, #2928)
       ['hote', 'scenes', false, null],
       ['hote', 'engine', true, 'type'], // fermé
+      ['hote', 'data', true, 'type'],
+      ['hote', 'state', true, 'type'],
       ['hote', 'hoteTexte', true, 'type'], // le module commun ne lit aucun hôte
       ['hote', 'hotes', true, 'type'],
       ['noyau', 'hote', true, 'type'],
