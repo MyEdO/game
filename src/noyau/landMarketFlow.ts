@@ -192,7 +192,7 @@ export function landEvalWine(get: Get, set: Set, cargoId: string): void {
   const refus = appraiseRefus(get().party);
   if (refus) { log(get, set, [refus]); return; }
   const best = partyBest(get().party, APPRAISE_SKILL.evaluate.skill)!;
-  const diff = wineEvalDifficulty(testValue(best.actor, 'resistance-a-l-alcool'));
+  const diff = wineEvalDifficulty(testValue(best.actor, { skill: { id: 'resistance-a-l-alcool' } }));
   // #274 sweep : `rollTest` inline silencieux — migré sur `openRoll`.
   openPartyTest(get, set, {
     skill: 'evaluation', assisted: false,

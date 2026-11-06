@@ -19,7 +19,7 @@ import { findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyB
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
-import { partyBest, peutTenter, testValue } from '../engine/skills';
+import { partyBest, peutTenter, testValue, sujetDesIds } from '../engine/skills';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { maxBy } from '../engine/pick';
 import { applyOps } from '../engine/ops';
@@ -240,7 +240,7 @@ const TEST_DE_CHANSON = { skill: 'divertissement', spec: 'chant' } as const;
 
 /** Valeur du Test de Chanson de marin — MDG 09 l.34-36. */
 export function valeurDeChanson(singer: Combatant): number {
-  return testValue(singer, TEST_DE_CHANSON.skill, undefined, TEST_DE_CHANSON.spec);
+  return testValue(singer, sujetDesIds(TEST_DE_CHANSON));
 }
 
 /** Ligne du Test de Chanson de marin (`rollLine`) — MDG 09 l.34-36. */

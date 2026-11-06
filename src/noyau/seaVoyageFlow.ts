@@ -124,7 +124,7 @@ import { stepPrecision, idDansLaSequence } from './rollSeam';
 import { actorIn, equipageApte } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import type { PlayerText } from '../i18n/playerText';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
@@ -1578,7 +1578,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
         tell(get, set, [t('sv.wardedExposure', { name: h.label, what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') })]);
         continue;
       }
-      const resVal = testValue(h, 'resistance', 'endurance');
+      const resVal = testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' });
       // FROID : l'absence de manteau est DÉJÀ fondue dans la valeur jetée (`exposureTarget`) — elle se
       // déclare donc en `dansLaValeur` pour redevenir la chip NOMMÉE que `exposureCoatMods` produit.
       // PLANCHER : `exposureTarget` borne la valeur à 0 ; quand ce plancher MORD, la valeur ne vient
@@ -1836,7 +1836,7 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
   let lastDR = 0;
   for (const step of restart) {
     const { skill, characteristic, difficulty } = step.test;
-    const value = testValue(eng, skill?.id, characteristic, skill?.spec);
+    const value = testValue(eng, { skill, characteristic });
     const label = testSkillLabel({ skill, characteristic }) ?? '';
     if (step.targetDR != null) {
       let etape = { total: 0, done: step.targetDR <= 0 };
@@ -1909,7 +1909,7 @@ function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
   const eng = engineerOf(get().party);
   if (!eng) return;
   const dmg = Math.max(1, tirer(failDamage, rng)); // « (1 minimum) » sur les Dégâts
-  const value = testValue(eng, undefined, 'initiative'); // Test d'INITIATIVE (Difficulté par défaut : Intermédiaire +0)
+  const value = testValue(eng, { characteristic: 'initiative' }); // Test d'INITIATIVE (Difficulté par défaut : Intermédiaire +0)
   set({
     pendingSteamSave: {
       actorId: eng.id, actorName: eng.label, skillValue: value, difficulty: 'intermediaire',
@@ -2631,7 +2631,7 @@ export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
     portRepair: () => portRepairVessel(get, set).forEach((l) => get().log(l)),
     portCareen: () => portCareenVessel(get, set).forEach((l) => get().log(l)),
     portInstallUpgrade: (traitId, units) => portInstallUpgrade(get, set, traitId, units).forEach((l) => get().log(l)),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

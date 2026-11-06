@@ -235,7 +235,7 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const helm = helmsmanId ? (imposed && peutTenter(imposed, skillId, spec) ? imposed : undefined) : bestHelmsman(crew, params.competence);
   // LDB 09 l.30, MSRC 7 l.17 ; #2588 Q1.
   if (!helm) return imposed ? maneuverSansJet(params, refusNePeutTenter(imposed, { skill: skillId, spec }), imposed.label) : maneuverSansJet(params, refusPersonneNePeutTenter({ skill: skillId, spec }));
-  return deriveManeuver(params, ship, rollTest(testValue(helm, skillId, undefined, spec), 'intermediaire', battleRng()), helm.label);
+  return deriveManeuver(params, ship, rollTest(testValue(helm, { skill: params.competence }), 'intermediaire', battleRng()), helm.label);
 }
 
 /**

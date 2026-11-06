@@ -853,7 +853,7 @@ describe('Navigation du jour — base NUE + Soutien NOMMÉ, cible invariante (#1
     const picked = partyAssisted(get().party, skillId, undefined, undefined, spec)!;
     const lead = picked.actor;
     const nue = skillBaseValue(lead, skillId, spec);
-    const jetee = testValue(lead, skillId, undefined, spec);
+    const jetee = testValue(lead, { skill: { id: skillId, spec } });
     expect(jetee, 'l’État mord le jet, pas le Niveau de Compétence').toBeLessThan(nue);
     expect(picked.support.bonus, 'les camarades éligibles soutiennent (l.195)').toBeGreaterThan(0);
 
@@ -942,9 +942,10 @@ describe('#1341 — la spec d’un Test se demande par ID (la donnée en stocke 
 
   it('testValue trouve la spécialisation par son ID — le LIBELLÉ ne matche rien et perd les avances', () => {
     const h = charpentier();
-    expect(testValue(h, 'metier', undefined, 'charpentier'), 'par id : Dextérité 30 + 30 avances').toBe(60);
+    expect(testValue(h, { skill: { id: 'metier', spec: 'charpentier' } }), 'par id : Dextérité 30 + 30 avances').toBe(60);
     // Le cas FAUTIF, gardé comme contre-preuve : la demande par libellé rend la carac NUE (silencieusement).
-    expect(testValue(h, 'metier', undefined, 'Charpentier'), 'par libellé : la compétence est réputée absente').toBe(30);
+    const libelle = byId('skill', 'metier')?.specs?.find((s) => s.id === 'charpentier')?.label;
+    expect(testValue(h, { skill: { id: 'metier', spec: libelle } }), 'par libellé : la compétence est réputée absente').toBe(30);
   });
 
   it('le site réel (`bestShipwright` → étape de calfatage) jauge le charpentier AVEC ses avances', () => {

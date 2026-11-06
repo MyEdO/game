@@ -141,7 +141,7 @@ describe('Convalescence des Blessures critiques (LDB 18)', () => {
     expect(traumaSkillPenalty(c, 'langue')).toBe(-10); // séquelle de Langue (par id stable)
     expect(traumaSkillPenalty(c, 'charme')).toBe(0);
     // testValue intègre la séquelle : Int 30 + 20 avances − 10 = 40.
-    expect(testValue(c, 'langue')).toBe(40);
+    expect(testValue(c, { skill: { id: 'langue' } })).toBe(40);
   });
 
   it('Chirurgie : une fracture MAJEURE exige la chirurgie ; removeSurgicalTrauma la retire (criticalWounds--)', () => {

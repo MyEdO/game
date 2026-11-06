@@ -1003,7 +1003,7 @@ export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
  * Test de **Calme Facile (+40)** ; sur un échec, il est en proie à de terribles cauchemars et gagne
  * un État **Exténué**. Pur ; mute `c`, renvoie le journal.
  *
- * `calme` = la valeur de la PORTE (`testValue(c, 'calme')`), passée par l'appelant : `testValue` vit
+ * `calme` = la valeur de la PORTE (`testValue(c, { skill: { id: 'calme' } })`), passée par l'appelant : `testValue` vit
  * dans `skills.ts`, qui importe CE module — le cycle interdit de la lire ici (#1657 B3-3).
  */
 export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { base: number; result: TestResult }[]): string[] {

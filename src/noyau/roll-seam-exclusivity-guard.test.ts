@@ -190,7 +190,7 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
   });
 
   it('(M) ne blanchit pas un Test déguisé : un d100 qui nourrit une valeur de Test reste une violation', () => {
-    const deguise = "const sl = Math.floor(testValue(c, 'perception') / 10) - Math.floor(d100(rng) / 10);";
+    const deguise = "const sl = Math.floor(testValue(c, { skill: { id: 'perception' } }) / 10) - Math.floor(d100(rng) / 10);";
     expect(scanRollSeamExclusivity('src/state/x.ts', deguise).length).toBe(1);
   });
 
@@ -248,7 +248,7 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
 
   it('pré-filtre : les formes espacées/multilignes/génériques passent la garde ET sont détectées', () => {
     const formes: [string, string][] = [
-      ['C1b d100 espacé', "const t = rollTest(1,'moyen',rng);\nconst r = d100 (rng);\nconst dr = Math.floor(testValue(c,'x')/10) - Math.floor(r/10);"],
+      ['C1b d100 espacé', "const t = rollTest(1,'moyen',rng);\nconst r = d100 (rng);\nconst dr = Math.floor(testValue(c,{ skill: { id: 'x' } })/10) - Math.floor(r/10);"],
       ['C3b TestOutcome .seal multiligne', "const t = rollTest(1,'moyen',rng);\nreturn TestOutcome\n  .seal({ roll: 1, target: 40, success: true, sl: 1, isDouble: false });"],
       ['C4b rollTest espacé', "const x = d100(rng);\nconst t = rollTest (40, 'moyen', battleRng());"],
       ['F2 rollTest générique', "const t = rollTest<string>(40, 'moyen', battleRng());"],
@@ -390,7 +390,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
     const clean = [
       "import { rollTavernTest } from '../engine/tavernGame';",
       "import { battleRng } from '../noyau/battleRng';",
-      "const v = testValue(hero, 'pari');",
+      "const v = testValue(hero, { skill: { id: 'pari' } });",
       "const opponentTR = rollTavernTest(opponentValue, battleRng());",
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', clean, contexte()).length).toBe(0);

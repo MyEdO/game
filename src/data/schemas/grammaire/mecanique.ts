@@ -147,6 +147,7 @@ export const sujetDuJetSchema = nommerChamps(z.strictObject({
   skill: refOuSpec('skill').optional(),
   characteristic: charKeySchema.optional(),
 }), { skill: { label: 'Compétence' }, characteristic: { label: 'caractéristique' } });
+export type SujetDuJet = z.infer<typeof sujetDuJetSchema>;
 
 /**
  * Payload STRICT par op (`src/engine/ops.ts`, union `GameOp`). Chaque entrée est un contrat POSITIF

@@ -24,13 +24,13 @@ describe('nightmareCheck (LDB 21 l.95)', () => {
   it('Calme Facile +40 raté → Exténué', () => {
     const c = hero({ characteristics: { 'force-mentale': 35 } as never });
     const fail: RNG = deFixe(90); // 90 > (35+40=75) → échec
-    nightmareCheck(c, testValue(c, 'calme'), fail); // LDB 21 l.95 — Test de Calme, valeur de la porte
+    nightmareCheck(c, testValue(c, { skill: { id: 'calme' } }), fail); // LDB 21 l.95 — Test de Calme, valeur de la porte
     expect(hasCondition(c, 'extenue')).toBe(true);
   });
   it('Calme réussi → pas d’Exténué', () => {
     const c = hero({ characteristics: { 'force-mentale': 35 } as never });
     const ok: RNG = deFixe(20); // 20 ≤ 75 → réussite
-    nightmareCheck(c, testValue(c, 'calme'), ok);
+    nightmareCheck(c, testValue(c, { skill: { id: 'calme' } }), ok);
     expect(hasCondition(c, 'extenue')).toBe(false);
   });
 });

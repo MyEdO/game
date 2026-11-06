@@ -24,7 +24,7 @@ function negociateur(): Combatant {
   h.talents = [...h.talents.filter((t) => t.talentId !== 'negociateur'), { talentId: 'negociateur', times: 1 }];
   h.skills = h.skills.filter((s) => s.id !== 'marchandage');
   h.skills.push({ id: 'marchandage', advances: 0 } as SkillInstance);
-  h.skills[h.skills.length - 1].advances = 80 - testValue(h, 'marchandage');
+  h.skills[h.skills.length - 1].advances = 80 - testValue(h, { skill: { id: 'marchandage' } });
   return h;
 }
 

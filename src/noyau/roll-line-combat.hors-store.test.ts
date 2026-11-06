@@ -7,7 +7,7 @@ import { resolveActGates } from './combat/turnHooks';
 import { forceCrewRole } from './shipManeuver';
 import { combatBaseValue, combatValue, combatValueMods, combineMods, type ModLine } from '../engine/combat';
 import { combatTestPenalty, testStatePenalty, testStatePenaltyParts } from '../engine/conditions';
-import { testValue, testValueParts, skillBaseValue, rawCombatTestBase } from '../engine/skills';
+import { testValue, testValueParts, skillBaseValue, rawCombatTestBase, sujetDesIds } from '../engine/skills';
 import { effectiveChar } from '../engine/characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
@@ -95,7 +95,7 @@ describe('Rechargement (combatSlice) — canal COMBAT du monteur', () => {
     const jetee = combatValue(tireur, 'ranged', tireur.weapons[0]);
     expect(jetee, 'l’effet char-qualifié sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
     expect(jetee, 'la valeur de COMBAT n’est pas la valeur hors combat : le canal a un sens')
-      .not.toBe(testValue(tireur, 'projectiles', 'capacite-de-tir'));
+      .not.toBe(testValue(tireur, { skill: { id: 'projectiles' }, characteristic: 'capacite-de-tir' }));
 
     get().battleReload();
     const pr = get().pendingReload!;
@@ -112,7 +112,7 @@ describe('Main ensanglantée (`poserLeTestDeMain`) — cible montée sur la vale
   it('le gate de Dextérité se jette sur sa valeur de Test (`testValue`, États compris, LDB 16 l.125), cible = valeur + Accessible', () => {
     const brute = hero({ id: 'br', label: 'Brute', conditions: ETAT, handGates: ['main'] as never, weapons: [] });
     setBattle([brute], 'br');
-    const dex = testValue(brute, undefined, 'dexterite');
+    const dex = testValue(brute, { characteristic: 'dexterite' });
     expect(dex, 'l’État sépare la Dextérité nue de la valeur jetée').toBeLessThan(effectiveChar(brute, 'dexterite'));
 
     openAttackCascade(get, set, { attackerId: 'br', targetId: 'br', location: null, result: null } as never, 'Attaquer', 'action/attack');
@@ -133,7 +133,7 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
     const blesse = hero({ id: 'bl', label: 'Blessé', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }] as never, pos: { x: 2, y: 1 } });
     setBattle([doc, blesse], 'doc');
 
-    const v = testValue(doc, 'guerison');
+    const v = testValue(doc, { skill: { id: 'guerison' } });
     const nue = skillBaseValue(doc, 'guerison');
     expect(v, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
 
@@ -194,7 +194,7 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     const corruption = steps.find((s) => s.kind === 'combatEndCorruption')?.participants?.find((r) => r.id === 'sv');
     if (corruption) {
       expect(corruption.base, 'base = Niveau de Compétence NU (l’État sort en chip)').toBe(skillBaseValue(survivant, 'resistance'));
-      expect(corruption.target, 'pénalité de combat comptée UNE fois').toBe(clampTarget(rawCombatTestBase(survivant, 'resistance') + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
+      expect(corruption.target, 'pénalité de combat comptée UNE fois').toBe(clampTarget(rawCombatTestBase(survivant, { skill: { id: 'resistance' } }) + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
       expect(inexplique(corruption)).toBe(0);
     }
     // Les DEUX familles de BANDE doivent être produites, chacune avec la rangée du survivant (#1117 L4).
@@ -213,11 +213,11 @@ describe('Gate d’Action par Round (combat/turnHooks) — canal COMBAT « Test 
     });
     setBattle([porteur], 'po');
 
-    const brut = rawCombatTestBase(porteur, undefined, 'force-mentale');
+    const brut = rawCombatTestBase(porteur, { characteristic: 'force-mentale' });
     const penalite = combatTestPenalty(porteur);
     expect(penalite).toBeLessThan(0);
     expect(brut, 'la valeur BRUTE ne contient PAS la pénalité hors combat (sinon double compte)')
-      .toBe(testValue(porteur, undefined, 'force-mentale') - testStatePenalty(porteur, undefined));
+      .toBe(testValue(porteur, { characteristic: 'force-mentale' }) - testStatePenalty(porteur, undefined));
 
     resolveActGates(get, set, porteur);
     const step = (get().pendingCascade?.participants ?? []).find((s) => s.kind === 'actGate')!;
@@ -274,7 +274,7 @@ describe('ORACLE du canal combat — balayage EXHAUSTIF (#1153 L1b, sonde promue
         { id: 'vigueur', label: 'Vigueur', testModChar: 'force', testMod: 10 }] as never,
     });
     const etats = testStatePenaltyParts(charge, 'natation').filter((p) => p.value !== 0);
-    const toutes = testValueParts(charge, 'natation', undefined, undefined, undefined);
+    const toutes = testValueParts(charge, { skill: { id: 'natation' } });
     expect(etats.length, 'la fixture doit produire des parts d’État').toBeGreaterThan(0);
     expect(toutes.length).toBeGreaterThanOrEqual(etats.length);
     expect(toutes.slice(0, etats.length)).toEqual(etats);
@@ -326,7 +326,7 @@ describe('ORACLE du canal combat — balayage EXHAUSTIF (#1153 L1b, sonde promue
               if (fournie.target !== derive.target) ko.push(`${nom} : cible fournie ${fournie.target} ≠ dérivée ${derive.target}`);
               // ORACLE : la ligne se réduit EXACTEMENT à la formule moteur du canal.
               const attendu = c.combat.kind === 'test'
-                ? rawCombatTestBase(a, c.test?.skill, c.test?.characteristic, undefined) + combatTestPenalty(a)
+                ? rawCombatTestBase(a, sujetDesIds({ skill: c.test?.skill, characteristic: c.test?.characteristic })) + combatTestPenalty(a)
                 : combatValue(a, c.combat.kind, c.combat.weapon);
               if (valeur !== attendu) ko.push(`${nom} : ${valeur} ≠ formule moteur ${attendu}`);
               const nue = c.combat.kind === 'test'
