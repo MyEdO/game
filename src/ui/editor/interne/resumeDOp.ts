@@ -89,7 +89,7 @@ export function opSummary(o: GameOp): string {
     case 'castPenalty': return `${o.blocked ? 'magie interdite' : o.maxZeroDR ? 'Prière plafonnée' : `${o.mod ?? 0} ${o.skill ? refOuChoix('skills', o.skill, 'compétence de magie') : 'toute magie'}`}`;
     case 'money': return `bourse ${typeof o.montant.brass === 'number' && o.montant.brass < 0 ? '' : '+'}${formulaSummary(o.montant.brass)} sc`;
     case 'statusMod': return `Standing ${formulaSummary(o.amount)} (prochaine aventure)`;
-    case 'grantReverseToken': return `inverser ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : o.char ? `un Test ${deElide(CHAR_LABELS[o.char])}` : 'un Test (cible)'}${o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : ''}${o.illimite ? ' (illimité)' : ''}`;
+    case 'grantReverseToken': return `inverser ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : o.characteristic ? `un Test ${deElide(CHAR_LABELS[o.characteristic])}` : 'un Test (cible)'}${o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : ''}${o.illimite ? ' (illimité)' : ''}`;
     case 'castWard': return `${o.mod >= 0 ? '+' : '−'}${Math.abs(o.mod)} Langue, rayon ${formulaSummary(o.radius)} m`;
     case 'arrowWard': return 'projectiles organiques détruits (ZdE du sort)';
     case 'domeWard': return `${formatWardSave({ kind: 'trait', id: o.trait.id }, o.trait.value === undefined ? '?' : formulaSummary(o.trait.value))} (ZdE du sort)`;

@@ -142,6 +142,12 @@ function refuserLaCibleHorsCiblage(type: string, cible: unknown, ctx: z.Refineme
   }
 }
 
+/** Le SUJET d'un jet : ce qu'il teste, Compétence ou Caractéristique (LDB 12 l.7, l.131). */
+export const sujetDuJetSchema = nommerChamps(z.strictObject({
+  skill: refOuSpec('skill').optional(),
+  characteristic: charKeySchema.optional(),
+}), { skill: { label: 'Compétence' }, characteristic: { label: 'caractéristique' } });
+
 /**
  * Payload STRICT par op (`src/engine/ops.ts`, union `GameOp`). Chaque entrée est un contrat POSITIF
  * vérifié sur toutes les occurrences réelles de l'op dans les 2 racines authorées. Une entrée est un
@@ -351,7 +357,7 @@ const DECLARATIONS_D_OPS = {
   suppressTalents: nommerChamps(z.strictObject({ op: z.literal('suppressTalents'), talents: z.array(ref('talent')).min(1), durationDays: formulaSchema }), { op: { label: "opération" }, talents: { label: "Talents suspendus", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   deityBan: nommerChamps(z.strictObject({ op: z.literal('deityBan'), durationDays: formulaSchema }), { op: { label: "opération" }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   prayerForAction: nommerChamps(z.strictObject({ op: z.literal('prayerForAction'), durationRounds: formulaSchema }), { op: { label: "opération" }, durationRounds: { label: 'durée en Rounds', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
-  grantReverseToken: nommerChamps(z.strictObject({ op: z.literal('grantReverseToken'), skill: refOuSpec('skill').optional(), char: charKeySchema.optional(), contexte: contexteDeTestSchema.optional(), illimite: z.literal(true).optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" }, char: { label: "Caractéristique du Test" }, contexte: { label: "contexte du Test" }, illimite: { label: "jamais consommé" } }),
+  grantReverseToken: nommerChamps(z.strictObject({ op: z.literal('grantReverseToken'), ...sujetDuJetSchema.shape, contexte: contexteDeTestSchema.optional(), illimite: z.literal(true).optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" }, characteristic: { label: "Caractéristique du Test" }, contexte: { label: "contexte du Test" }, illimite: { label: "jamais consommé" } }),
   exposeDisease: nommerChamps(z.strictObject({
     op: z.literal('exposeDisease'),
     disease: ouReserve(idDe('maladie'), ARG_TEMPLATE),
@@ -883,10 +889,9 @@ export const facilitationSchema = nommerChamps(z
 
 /** Le JET : ce qu'il teste et sa Difficulté (LDB 12 l.7, l.137) — forme partagée, sans refine. */
 export const jetSchema = nommerChamps(z.strictObject({
-  skill: refOuSpec('skill').optional(),
-  characteristic: charKeySchema.optional(),
+  ...sujetDuJetSchema.shape,
   difficulty: difficultySchema.optional(),
-}), { skill: { label: 'Compétence' }, characteristic: { label: 'caractéristique' }, difficulty: { label: 'difficulté' } });
+}), { ...metaDesChamps(sujetDuJetSchema, { exigees: true }), difficulty: { label: 'difficulté' } });
 
 /** Tag `menace` d'un Test : une spécialisation de l'entrée `resistance` de `talents.json`
  *  (`MenaceId`, `engine/menace.ts`). */

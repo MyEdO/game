@@ -441,7 +441,7 @@ export function humanizeOp(o: GameOp): string {
     }
     case 'statusMod': return t(typeof o.amount === 'number' && o.amount < 0 ? 'codex.op.statusMod.perd' : 'codex.op.statusMod.gagne', { n: humanizeFormula(o.amount) });
     case 'grantReverseToken': return t(o.illimite ? 'codex.op.grantReverseToken.illimite' : 'codex.op.grantReverseToken', {
-      quoi: o.skill ? refLabel('skills', o.skill) : o.char ? t('codex.op.grantReverseToken.car', { car: deElide(CHAR_LABELS[o.char]) }) : t('codex.op.grantReverseToken.cible'),
+      quoi: o.skill ? refLabel('skills', o.skill) : o.characteristic ? t('codex.op.grantReverseToken.car', { car: deElide(CHAR_LABELS[o.characteristic]) }) : t('codex.op.grantReverseToken.cible'),
       contexte: o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : '',
     });
     case 'grantTrait': return t('codex.op.grantTrait', { trait: traitOctroyeLisible(o, humanizeFormula), duree: pendant(o) });

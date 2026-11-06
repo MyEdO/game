@@ -107,7 +107,7 @@ describe('oppositionDiscount — Sorts de Contact / résistés (LDB 46 l.103-105
     expect(oppositionDiscount(spell({ kind: 'contact' }), caster(), target())).toBeLessThan(1);
   });
   it('Sort résisté → 0.5', () => {
-    expect(oppositionDiscount(spell({ kind: 'resist', char: 'force-mentale' }), caster(), target())).toBe(0.5);
+    expect(oppositionDiscount(spell({ kind: 'resist', characteristic: 'force-mentale' }), caster(), target())).toBe(0.5);
   });
   it('Sort NON opposé → ×1 (passe à coup sûr)', () => {
     expect(oppositionDiscount(spell(undefined), caster(), target())).toBe(1);

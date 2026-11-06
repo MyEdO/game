@@ -5534,7 +5534,7 @@
     "family": "arcane",
     "opposed": {
       "kind": "resist",
-      "char": "force-mentale"
+      "characteristic": "force-mentale"
     }
   },
   {
@@ -10452,7 +10452,7 @@
     "family": "chaos",
     "opposed": {
       "kind": "resist",
-      "char": "intelligence"
+      "characteristic": "intelligence"
     }
   },
   {
@@ -19569,7 +19569,7 @@
     "family": "arcane",
     "opposed": {
       "kind": "resist",
-      "char": "force-mentale"
+      "characteristic": "force-mentale"
     }
   },
   {
@@ -20481,7 +20481,7 @@
     "family": "arcane",
     "opposed": {
       "kind": "resist",
-      "char": "force-mentale"
+      "characteristic": "force-mentale"
     }
   },
   {

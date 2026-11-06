@@ -381,8 +381,8 @@ function matchApplies(
     const wantSpec = m.specFromInstance ? inst.spec : m.skill.spec;
     if (wantSpec != null && wantSpec !== q.spec) return false;
     if (m.exceptSpec != null && m.exceptSpec === q.spec) return false; // Linguistique : toute Langue SAUF Magick
-  } else if (m.char != null) {
-    if (m.char !== q.char) return false;
+  } else if (m.characteristic != null) {
+    if (m.characteristic !== q.char) return false;
   } else return false;
   return m.when ? whenHolds(m.when) : true;
 }

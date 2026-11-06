@@ -48,7 +48,7 @@ import type { SchemaDef } from './schemas/types';
 import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
 
 import { STRUCTURES_CIBLES, STRUCTURES_REDECLARATIONS } from '../../scripts/guards/lib/structuresStock.mjs';
-import { jetSchema } from './schemas/grammaire/mecanique';
+import { sujetDuJetSchema } from './schemas/grammaire/mecanique';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -620,12 +620,12 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
   it('les porteurs de `difficulty` se PARTITIONNENT en plage / identité / référence / sans sujet / sujet nommé, et « sujet nommé » EST le concept `test`', () => {
     const ID = new Set(CLES_IDENTITE as readonly string[]);
     // Le SUJET du Test : les clés que l'invariant de `flowTestSchema` exige (#1657 B3-3), lues au nœud
-    // canonique ; le lexique les DÉCLARE en `coPresence`, avec la graphie historique `char`.
+    // canonique `sujetDuJetSchema` ; le lexique les DÉCLARE en `coPresence`, aucune autre graphie.
     const sujets = CONCEPTS.find((c) => c.id === 'test')?.coPresence ?? [];
     expect(
-      Object.keys(jetSchema.shape).filter((k) => k !== 'difficulty').filter((k) => !sujets.includes(k)),
-      'une clé de SUJET du nœud canonique manque à la `coPresence` du concept `test`.',
-    ).toEqual([]);
+      [...sujets].sort(),
+      'la `coPresence` du concept `test` est exactement le SUJET du nœud canonique.',
+    ).toEqual(Object.keys(sujetDuJetSchema.shape).sort());
     const porteurs: { site: string; famille: string }[] = [];
     const intersections: Record<string, number> = { 'plage∩identité': 0, 'plage∩référence': 0, 'identité∩référence': 0 };
     const marche = (v: unknown, dataset: string, champ: string): void => {

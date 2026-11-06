@@ -49,8 +49,8 @@ export interface TavernGame {
   /** RÉGIME RAPIDE : le Test joué par CETTE entrée quand la table s'écarte de la lettre. Absent =
    *  `NADJ 16 l.11` mot à mot (la Compétence indiquée ; Pari si aucune n'est indiquée) — une
    *  Caractéristique n'est PAS une Compétence, donc le Bras de fer tombe sur Pari par défaut. Poser
-   *  ici `{ char: 'force', maison: '…' }` est la lecture d'esprit, éditable au Codex et taguée. */
-  fastSkill?: { skill?: RefDesignee; char?: CharKey; maison: string };
+   *  ici `{ characteristic: 'force', maison: '…' }` est la lecture d'esprit, éditable au Codex et taguée. */
+  fastSkill?: { skill?: RefDesignee; characteristic?: CharKey; maison: string };
   /** Mode : `opposed` (un Test opposé, +DR l'emporte — variante rapide) ou `extended` (Test opposé étendu
    *  jusqu'à `target` DR cumulés — Bras de fer, l.34). */
   mode?: 'opposed' | 'extended';
@@ -169,13 +169,13 @@ export function tavernFastRegime(): boolean {
  * toujours (`tavernTestSpec`/`tavernGameValue`, `noyau/tavernFlow.ts`).
  */
 export function fastTavernGame(g: TavernGame): TavernGame {
-  const test: { skill?: RefDesignee; char?: CharKey } = g.fastSkill ?? { skill: g.skill ?? { id: 'pari' } };
+  const test: { skill?: RefDesignee; characteristic?: CharKey } = g.fastSkill ?? { skill: g.skill ?? { id: 'pari' } };
   return {
     id: g.id,
     label: g.label,
     desc: g.desc,
     ...(test.skill ? { skill: test.skill } : {}),
-    ...(test.char ? { characteristic: test.char } : {}),
+    ...(test.characteristic ? { characteristic: test.characteristic } : {}),
     mode: 'opposed',
     source: g.source,
   };

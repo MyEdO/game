@@ -606,7 +606,7 @@ export type GameOp =
    *  Test (« concernant votre cible », l.218) ; `char` : tout Test de cette Caractéristique ; `contexte` :
    *  le jeton ne vaut que sur un Test de ce contexte (ADE II 09 l.33) ; `illimite` : jamais consommé
    *  (ACE 12 l.60). */
-  | { op: 'grantReverseToken'; skill?: RefDesignee; char?: CharKey; contexte?: ContexteDeTest; illimite?: true }
+  | { op: 'grantReverseToken'; skill?: RefDesignee; characteristic?: CharKey; contexte?: ContexteDeTest; illimite?: true }
   /** Trait de créature TEMPORISÉ (Jalon 2.6 — « vous gagnez le Trait X tant que le Sort est
    *  actif ») : posé dans `c.traits` (vu par TOUS les consommateurs — dispatch, psy, IA,
    *  déplacement), retiré à l'expiration de l'ActiveEffect porteur. `trait` : le Trait OCTROYÉ, résolu
@@ -2276,10 +2276,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantReverseToken': {
         target.activeEffects = target.activeEffects ?? [];
-        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill?.id, spec: o.skill?.spec, ...(o.char ? { char: o.char } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
+        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill?.id, spec: o.skill?.spec, ...(o.characteristic ? { char: o.characteristic } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
         lines.push(t('op.grantReverseToken', {
           name: target.label,
-          skill: o.skill ? refLabel('skills', o.skill) : o.char ? t('op.reverseCharTest', { char: deElide(CHAR_LABELS[o.char]) }) : t('op.reverseAnyTest'),
+          skill: o.skill ? refLabel('skills', o.skill) : o.characteristic ? t('op.reverseCharTest', { char: deElide(CHAR_LABELS[o.characteristic]) }) : t('op.reverseAnyTest'),
           contexte: o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : '',
           fois: t(o.illimite ? 'op.reverseIllimite' : 'op.reverseUneFois'),
         }));
