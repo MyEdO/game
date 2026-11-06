@@ -324,9 +324,9 @@ describe('InterludeScreen — catalogue d’Activités data-driven (ADE II + ACE
     expect(html).not.toContain('Mécénat');
   });
 
-  it('à Altdorf (place de la carte liée à la scène courante) : les Activités d’ACE apparaissent', () => {
+  it('à Altdorf (le lieu où se tient le groupe) : les Activités d’ACE apparaissent', () => {
     const seam = buildSeam();
-    useGame.setState({ worldMap: { id: 'w', label: 'W', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: testScene().id }], routes: [] } });
+    useGame.setState({ lieu: 'altdorf' });
     const catalog = interludeCatalog(useGame.getState());
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, phase: 'activities', catalog }} />);
     expect(html).toContain('Convalescence');
@@ -655,9 +655,9 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
 
   /** Le seam relu sur le store, à Altdorf, le volet `pane` du Vétéran ouvert. */
   const aAltdorf = (seam: InterludeSeam, pane: string, extra: Partial<InterludeSeam> = {}): InterludeSeam => {
-    useGame.setState({ worldMap: { id: 'w', label: 'W', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: testScene().id }], routes: [] } });
+    useGame.setState({ lieu: 'altdorf' });
     const s = useGame.getState();
-    return { ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities', catalog: interludeCatalog(s), lieu: { scene: s.scene, worldMap: s.worldMap }, massBattle: s.massBattle, openPane: { heroId: s.party[0].id, pane }, ...extra };
+    return { ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities', catalog: interludeCatalog(s), lieu: { lieu: s.lieu }, massBattle: s.massBattle, openPane: { heroId: s.party[0].id, pane }, ...extra };
   };
   const raisonDuGeste = (geste: () => void): string[] => {
     const avant = useGame.getState().journal.length;
@@ -705,9 +705,9 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
     aAltdorf(seam, 'bank');
     useGame.getState().interludeBank(heroId, 'mecenat', 1200);
     expect(useGame.getState().bank.map((d) => d.kind), 'témoin : dépôt de Mécénat à Altdorf').toEqual(['mecenat']);
-    useGame.setState({ worldMap: { id: 'w', label: 'W', places: [{ id: 'ubersreik', label: 'Ubersreik', pos: { x: 0, y: 0 }, scene: testScene().id }], routes: [] } });
+    useGame.setState({ lieu: 'ubersreik' });
     const s = useGame.getState();
-    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities', lieu: { scene: s.scene, worldMap: s.worldMap } }} />);
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities', lieu: { lieu: s.lieu } }} />);
     const raison = 'Mécénat n\'est praticable qu\'en un lieu précis — pas ici.';
     expect(raisonDId(html, 'interlude-bank-withdraw-0-reason')).toBe(raison);
     expect(raisonDuGeste(() => useGame.getState().interludeWithdraw(0))).toEqual([raison]);

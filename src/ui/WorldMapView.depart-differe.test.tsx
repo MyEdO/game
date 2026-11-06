@@ -47,7 +47,7 @@ afterEach(async () => {
 });
 
 async function monter(): Promise<void> {
-  await act(async () => { root.render(<WorldMapView hereSceneId="s-auberge" initialRouteId="auberge-altdorf" />); });
+  await act(async () => { root.render(<WorldMapView hereId="auberge" initialRouteId="auberge-altdorf" />); });
 }
 const boutons = (texte: string): number =>
   [...container.querySelectorAll('button')].filter((b) => b.textContent?.trim() === texte).length;
@@ -55,7 +55,7 @@ const boutons = (texte: string): number =>
 describe('WorldMapView — départ différé à l’aube', () => {
   it('route du jour FAITE, avant le clic : le panneau l’annonce, et l’action est « Attendre l’aube »', async () => {
     const { gameTime } = useGame.getState();
-    useGame.setState({ worldMap: carte, scene: auberge(), party: marcheur(), pendingDeparture: null, pendingRest: null, travelDayHours: { day: dayIndex(gameTime), foot: 24, mount: 0, marched: true } });
+    useGame.setState({ worldMap: carte, lieu: 'auberge', scene: auberge(), party: marcheur(), pendingDeparture: null, pendingRest: null, travelDayHours: { day: dayIndex(gameTime), foot: 24, mount: 0, marched: true } });
     await monter();
     expect(container.textContent).toContain(t('wm.departAvantAube'));
     expect(boutons('Partir')).toBe(0);

@@ -354,14 +354,14 @@ describe('gestes de possession — le verdict (`refusGestePossession`) est celui
 
   it('reprendre une possession laissée à un AUTRE Lieu que celui du groupe : refusé ; au bon Lieu, elle revient', () => {
     const aAltdorf = { ...mule, location: { kind: 'au-lieu', placeId: 'altdorf' } } as Possession;
-    const carte = { places: [{ id: 'altdorf', scene: 'sc-altdorf' }, { id: 'ubersreik', scene: 'sc-ubersreik' }] } as unknown as EtatDeJeu['worldMap'];
-    const etat = (sceneId: string) => ({ ...etatInitialDuJeu(), party: [heros()], possessions: [aAltdorf], worldMap: carte, scene: { ...testScene(), id: sceneId } });
-    avecPartie(etat('sc-ubersreik'), (partie) => {
+    const carte = { places: [{ id: 'altdorf' }, { id: 'ubersreik' }] } as unknown as EtatDeJeu['worldMap'];
+    const etat = (lieu: string) => ({ ...etatInitialDuJeu(), lieu, party: [heros()], possessions: [aAltdorf], worldMap: carte });
+    avecPartie(etat('ubersreik'), (partie) => {
       const appel = partie.envoyer({ type: 'retrievePossession', args: [aAltdorf.uid] });
       expect(partie.etat().possessions[0].location, 'la mule a rejoint le groupe depuis un autre Lieu').toEqual({ kind: 'au-lieu', placeId: 'altdorf' });
       expect(lignesDuJournal(appel)).toEqual([t('pos.ailleurs', { chose: possessionLabel(aAltdorf) })]);
     });
-    avecPartie(etat('sc-altdorf'), (partie) => {
+    avecPartie(etat('altdorf'), (partie) => {
       partie.envoyer({ type: 'retrievePossession', args: [aAltdorf.uid] });
       expect(partie.etat().possessions[0].location).toEqual({ kind: 'avec-le-groupe' });
     });
@@ -370,14 +370,14 @@ describe('gestes de possession — le verdict (`refusGestePossession`) est celui
   it('débarquer d’un navire laissé à un autre Lieu : refusé (la mule ne contourne pas « Reprendre ») ; au Lieu du navire, elle débarque', () => {
     const aQuai = navire({ kind: 'au-lieu', placeId: 'altdorf' });
     const aBord = { ...mule, location: { kind: 'embarquee', hostUid: 'pos-2' } } as Possession;
-    const carte = { places: [{ id: 'altdorf', scene: 'sc-altdorf' }, { id: 'ubersreik', scene: 'sc-ubersreik' }] } as unknown as EtatDeJeu['worldMap'];
-    const etat = (sceneId: string) => ({ ...etatInitialDuJeu(), party: [heros()], possessions: [aBord, aQuai], worldMap: carte, scene: { ...testScene(), id: sceneId } });
-    avecPartie(etat('sc-ubersreik'), (partie) => {
+    const carte = { places: [{ id: 'altdorf' }, { id: 'ubersreik' }] } as unknown as EtatDeJeu['worldMap'];
+    const etat = (lieu: string) => ({ ...etatInitialDuJeu(), lieu, party: [heros()], possessions: [aBord, aQuai], worldMap: carte });
+    avecPartie(etat('ubersreik'), (partie) => {
       const appel = partie.envoyer({ type: 'disembark', args: [aBord.uid] });
       expect(partie.etat().possessions[0].location, 'la mule a quitté un navire resté à Altdorf').toEqual({ kind: 'embarquee', hostUid: 'pos-2' });
       expect(lignesDuJournal(appel)).toEqual([t('pos.ailleurs', { chose: possessionLabel(aQuai) })]);
     });
-    avecPartie(etat('sc-altdorf'), (partie) => {
+    avecPartie(etat('altdorf'), (partie) => {
       partie.envoyer({ type: 'disembark', args: [aBord.uid] });
       expect(partie.etat().possessions[0].location).toEqual({ kind: 'avec-le-groupe' });
     });
@@ -385,8 +385,8 @@ describe('gestes de possession — le verdict (`refusGestePossession`) est celui
 
   it('embarquer sur un navire à quai AU LIEU COURANT : accepté (même règle que pour le quitter)', () => {
     const aQuai = navire({ kind: 'au-lieu', placeId: 'altdorf' });
-    const carte = { places: [{ id: 'altdorf', scene: 'sc-altdorf' }] } as unknown as EtatDeJeu['worldMap'];
-    avecPartie({ ...etatInitialDuJeu(), party: [heros()], possessions: [mule, aQuai], worldMap: carte, scene: { ...testScene(), id: 'sc-altdorf' } }, (partie) => {
+    const carte = { places: [{ id: 'altdorf' }] } as unknown as EtatDeJeu['worldMap'];
+    avecPartie({ ...etatInitialDuJeu(), party: [heros()], possessions: [mule, aQuai], worldMap: carte, lieu: 'altdorf' }, (partie) => {
       expect(ciblesDEmbarquement(partie.etat(), mule.uid).cibles.map((p) => p.uid)).toEqual(['pos-2']);
       partie.envoyer({ type: 'embark', args: [mule.uid, 'pos-2'] });
       expect(partie.etat().possessions[0].location).toEqual({ kind: 'embarquee', hostUid: 'pos-2' });
@@ -395,8 +395,8 @@ describe('gestes de possession — le verdict (`refusGestePossession`) est celui
 
   it('un immeuble ne se reprend pas, même au bon Lieu', () => {
     const maison = { uid: 'pos-1', ownerId: 'h1', nature: 'immeuble', ref: {}, location: { kind: 'au-lieu', placeId: 'altdorf' }, items: [] } as unknown as Possession;
-    const carte = { places: [{ id: 'altdorf', scene: 'sc-altdorf' }] } as unknown as EtatDeJeu['worldMap'];
-    avecPartie({ ...etatInitialDuJeu(), party: [heros()], possessions: [maison], worldMap: carte, scene: { ...testScene(), id: 'sc-altdorf' } }, (partie) => {
+    const carte = { places: [{ id: 'altdorf' }] } as unknown as EtatDeJeu['worldMap'];
+    avecPartie({ ...etatInitialDuJeu(), party: [heros()], possessions: [maison], worldMap: carte, lieu: 'altdorf' }, (partie) => {
       const appel = partie.envoyer({ type: 'retrievePossession', args: [maison.uid] });
       expect(partie.etat().possessions[0].location).toEqual({ kind: 'au-lieu', placeId: 'altdorf' });
       expect(lignesDuJournal(appel)).toEqual([t('pos.immeubleImmobile')]);
