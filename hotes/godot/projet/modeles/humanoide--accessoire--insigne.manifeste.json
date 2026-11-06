@@ -1,0 +1,27 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "insigne"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "couche": "armure",
+  "surfaces": [
+    {
+      "nom": "champ",
+      "palette": "vet2",
+      "blason": true
+    },
+    {
+      "nom": "bordure",
+      "palette": "vet1"
+    }
+  ],
+  "glb": {
+    "sha256": "52338dd003e0b6f4a2fb62b6b861ff82f1fb46a0d393ed99befc576a7fdca055",
+    "octets": 29464
+  }
+}

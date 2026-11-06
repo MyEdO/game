@@ -1,0 +1,39 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "haut-de-chausses"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "tenue",
+  "couvre": [
+    "hanches",
+    "cuisse_g",
+    "cuisse_d",
+    "genou_g",
+    "genou_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "haut_de_chausses",
+      "palette": "vet1"
+    },
+    {
+      "nom": "creves",
+      "palette": "vet2"
+    }
+  ],
+  "glb": {
+    "sha256": "f8fe643499a6f5c8838b9b36fe72809af3c0c82bfb7ec1cb824a4d0c344b8156",
+    "octets": 472480
+  }
+}

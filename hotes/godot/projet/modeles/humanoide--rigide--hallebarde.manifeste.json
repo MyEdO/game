@@ -1,0 +1,29 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "hallebarde"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "metal",
+      "palette": "metal"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois"
+    },
+    {
+      "nom": "accent",
+      "palette": "accent"
+    }
+  ],
+  "glb": {
+    "sha256": "0e64a4ae4e1955c2c90663aa237ff4d74636a2e4f444b1ae4aec55b974563479",
+    "octets": 51692
+  }
+}
