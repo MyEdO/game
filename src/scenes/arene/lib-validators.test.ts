@@ -74,9 +74,10 @@ describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
     expect(() => NPC('t', 0, 0, 'Test', { appearance: { tenue: 'Mendiant' } })).toThrow(/tenue/i);
   });
 
-  it('NPC : une tenue par id de CARRIÈRE, de CLASSE ou « nu » reste valide', () => {
-    for (const tenue of ['archer', 'roublards', 'nu'])
+  it('NPC : une tenue par id de CARRIÈRE ou « nu » reste valide ; une CLASSE → throw (#3456)', () => {
+    for (const tenue of ['archer', 'nu'])
       expect(NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { tenue } }).appearance.tenue).toBe(tenue);
+    expect(() => NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { tenue: 'roublards' } })).toThrow(/tenue « roublards » inconnue/);
   });
 
   it('NPC : un LIBELLÉ d’arme → throw', () => {
