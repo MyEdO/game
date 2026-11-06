@@ -5,8 +5,7 @@
 import type { DetailRecipe } from './materials.types';
 
 /** Les familles de pièces du kit 3D des arêtes (`hotes/godot/asset/kit.ts`) : pan de bois, pierre, clôture. */
-export const FAMILLES_DU_KIT = ['colombage', 'pierre', 'cloture'] as const;
-export type FamilleDuKit = (typeof FAMILLES_DU_KIT)[number];
+export type FamilleDuKit = 'colombage' | 'pierre' | 'cloture';
 
 export interface StructureAppearanceDef {
   id: string;

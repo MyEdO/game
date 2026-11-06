@@ -7,8 +7,8 @@ import { nommerChamps } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { detailRecipeSchema } from '../grammaire/valeurs';
-import { FAMILLES_DU_KIT, WALL_PARTS, type WallPart } from '../../structureAppearance.types';
+import { detailRecipeSchema, enumNomme } from '../grammaire/valeurs';
+import { WALL_PARTS, type FamilleDuKit, type WallPart } from '../../structureAppearance.types';
 
 export const file = 'structureAppearance.json';
 export const famille = 'entite';
@@ -33,7 +33,7 @@ const doc = document(
   'structureAppearance',
   famille,
   {
-    kit: z.enum(FAMILLES_DU_KIT),
+    kit: enumNomme({ colombage: 'Pan de bois', pierre: 'Pierre', cloture: 'Clôture' } satisfies Record<FamilleDuKit, string>),
     wallHeightM: z.number().positive().optional(),
     detail: detailRecipeSchema.optional(),
     face: z.string(),
