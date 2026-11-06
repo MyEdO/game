@@ -45,13 +45,22 @@ import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
 import { trappingCategorieSchema } from '../../data/schemas/defs/trappings';
 import { MOUNT_PROFILES } from '../../engine/mountTravel';
 import { windsOfMagicTable } from '../../engine/windsOfMagic';
-import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS } from '../../engine/travelTables';
+import { miscastDie } from '../../engine/miscast';
+import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, MOUNT_INCIDENT_DIE, VEHICLE_PROBLEM_DIE, ENCOUNTER_DIE } from '../../engine/travelTables';
 import type { TravelTableEntry } from '../../engine/travelTables';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { OBSESSIONS } from '../../data/obsessions';
 import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
 import { bandeAuDe, facesDuDe, fourchette } from '../../engine/tables';
-import { ARTILLERY_MISFIRE } from '../../data/artilleryMisfire';
+import { ARTILLERY_MISFIRE, ARTILLERY_MISFIRE_DIE } from '../../data/artilleryMisfire';
+import { STRUCTURE_CRITICALS_DIE } from '../../data/structureCriticals';
+import { deDeTirageDe } from '../../data/rangees';
+import drivingMishapJson from '../../data/driving-mishap.json';
+import drunkennessJson from '../../data/drunkenness.json';
+import ventsJson from '../../data/vents-tourbillonnants.json';
+import type * as accidents from '../../data/schemas/defs/driving-mishap';
+import type * as ivresse from '../../data/schemas/defs/drunkenness';
+import type * as vents from '../../data/schemas/defs/vents-tourbillonnants';
 import { DE_DES_EVENEMENTS_DE_BORD } from '../../engine/seaVoyage';
 import { findCargoEntryById, isEchangeable } from '../../engine/cargo';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
@@ -63,7 +72,7 @@ import { spellOps, type Flow, type FlowTestNode } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp } from '../../engine/ops';
 import { noeudAmputation } from '../../engine/critical';
 import { CRIT_TABLE_LOCATION, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
-import type { CrewTarget, ShipCritEntry } from '../../data/shipCriticals';
+import { SHIP_CRIT_SET, RIVER_CRIT_SET, type CrewTarget, type ShipCritEntry, type ShipCritSet } from '../../data/shipCriticals';
 import { datasetArray, datasetObject } from '../../data/overrides';
 import type { CritTableEntry, MiscastRowEntry } from '../../data/overrides';
 import type { RuleValue } from '../../engine/policy';
@@ -739,12 +748,12 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
   });
 }
 
-/** Item Codex d'une entrée de table de voyage d100 (`TravelTableEntry` — Incidents de monte EDOC 7,
+/** Item Codex d'une entrée de table de voyage (`TravelTableEntry` — Incidents de monte EDOC 7,
  *  Problèmes de véhicule EDOC 7, Rencontres EDOC 8, #157 suite) — MÊME projection pour les 3
- *  familles : plage d100 → texte + Dégâts véhicule éventuels + effet GameOp sur les occupants. */
-function travelEntryItem(e: TravelTableEntry, occupantsTitle: string): CodexItem {
+ *  familles : bande au dé `de` de sa table → texte + Dégâts véhicule éventuels + effet GameOp sur les occupants. */
+function travelEntryItem(e: TravelTableEntry, de: DiceSpec, occupantsTitle: string): CodexItem {
   return depuisEnveloppe(e, {
-    sub: bandeAuDe('d100', e.min, e.max),
+    sub: bandeAuDe(de, e.min, e.max),
     meta: facts(fact(tr('codex.fiche.degatsVehicule'), e.vehicleWounds ? formatDice(e.vehicleWounds.dice) : null)),
     sections: sections(passiveSection(e.occupantOps, occupantsTitle)),
   });
@@ -759,15 +768,15 @@ function crewTargetLabel(cible: CrewTarget): string {
 }
 
 /** Item Codex d'une entrée de Critique de coque (`ShipCritEntry` — MDG 13 navire, MSRC 07 fluvial,
- *  #157 suite) : plage d10 → effet immédiat (`ops`) + coup à l'équipage (`crewHit` : qui encaisse, et
+ *  #157 suite) : bande au dé du `jeu`, aucune quand il n'en tire pas (`die: null`) → effet immédiat (`ops`) + coup à l'équipage (`crewHit` : qui encaisse, et
  *  soit l'épreuve du nœud `test` avec les ops de sa branche d'échec, soit les ops certaines), MÊME
  *  vocabulaire que les autres Critiques (`critEntryItem`). */
-function shipCritEntryItem(e: ShipCritEntry): CodexItem {
+function shipCritEntryItem(e: ShipCritEntry, jeu: ShipCritSet): CodexItem {
   const ch = e.crewHit;
   const jet = ch?.test?.test;
   const sujet = jet && (testSkillLabel(jet) ?? '');
   return depuisEnveloppe(e, {
-    sub: bandeAuDe('d10', e.min, e.max),
+    sub: jeu.die ? bandeAuDe(jeu.die, e.min, e.max) : undefined,
     desc: e.note,
     meta: facts(
       typeof e.shrapnel === 'number' ? fact(tr('codex.fiche.eclatsIndice'), e.shrapnel) : null,
@@ -995,9 +1004,9 @@ function miscastTestSection(t: NonNullable<MiscastRowEntry['test']>): CodexSecti
 
 /** Item Codex d'une entrée de table miscast (Incantation Imparfaite / Colère des dieux) — plage d100 →
  *  nom, effet immédiat (`ops`, dialecte) + Test imbriqué éventuel + relance (cascade/multiplication). */
-function miscastRowItem(e: MiscastRowEntry): CodexItem {
+function miscastRowItem(e: MiscastRowEntry, de: DiceSpec): CodexItem {
   return depuisEnveloppe(e, {
-    sub: bandeAuDe('d100', e.min, e.max),
+    sub: bandeAuDe(de, e.min, e.max),
     meta: facts(e.reroll ? fact(tr('codex.fiche.relance'), e.reroll === 'majeure' ? tr('codex.fiche.cascadeTableauMajeur') : tr('codex.fiche.multiplication2TiragesMineurs')) : null),
     sections: sections(
       e.ops?.length ? { title: tr('codex.fiche.effetImmediat'), layout: 'list', rows: replieCausesPersistantes(e.ops).map(miscastOpRow) } : null,
@@ -1189,14 +1198,14 @@ const CODEX_SPECS = {
   drivingMishap: {
     label: 'codex.fiche.accidentsDeConduiteDAttelage', group: 'tables', cluster: 'codex.fiche.voyageTerrestre', sourceRef: 'LDB 09',
     build: () => datasetArray('drivingMishap').map((e) => ({
-      id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max), desc: e.desc,
+      id: e.id, label: e.label, sub: bandeAuDe(deDeTirageDe<typeof accidents>(drivingMishapJson), e.min, e.max), desc: e.desc,
       meta: facts(fact(tr('codex.fiche.type'), libelleDeValeur(drivingMishapOutcomeSchema, e.outcome))),
     })),
   },
   drunkenness: {
     label: 'codex.fiche.ivresseTableau', group: 'tables', sourceRef: 'LDB 09',
     build: () => datasetArray('drunkenness').map((e) => ({
-      id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max), desc: e.desc,
+      id: e.id, label: e.label, sub: bandeAuDe(deDeTirageDe<typeof ivresse>(drunkennessJson), e.min, e.max), desc: e.desc,
       meta: facts(fact(tr('codex.fiche.type'), libelleDeValeur(drunkennessOutcomeSchema, e.outcome))),
       sections: sections(passiveSection(e.ops, tr('codex.fiche.effet'))),
     })),
@@ -1290,15 +1299,15 @@ const CODEX_SPECS = {
   },
   miscastMinor: {
     label: 'codex.fiche.incantationsImparfaitesMineures', group: 'magie', sourceRef: 'LDB 46',
-    build: () => datasetArray('miscastMinor').map(miscastRowItem),
+    build: () => datasetArray('miscastMinor').map((e) => miscastRowItem(e, miscastDie('miscast-mineure'))),
   },
   miscastMajor: {
     label: 'codex.fiche.incantationsImparfaitesMajeures', group: 'magie', sourceRef: 'LDB 46',
-    build: () => datasetArray('miscastMajor').map(miscastRowItem),
+    build: () => datasetArray('miscastMajor').map((e) => miscastRowItem(e, miscastDie('miscast-majeure'))),
   },
   miscastWrath: {
     label: 'codex.fiche.colereDesDieux', group: 'magie', sourceRef: 'LDB 40',
-    build: () => datasetArray('miscastWrath').map(miscastRowItem),
+    build: () => datasetArray('miscastWrath').map((e) => miscastRowItem(e, miscastDie('miscast-colere'))),
   },
   stakes: {
     // Enjeux des jets de cascade (#1117, collection #1681), groupés par cascade ; `sub` = la clé de
@@ -1637,10 +1646,10 @@ const CODEX_SPECS = {
   },
   ventsTourbillonnants: {
     label: 'codex.fiche.ventsTourbillonnants', group: 'magie',
-    // Option `vents-tourbillonnants` (LDB 46 l.179-190) : table 1d10 de force des Vents, ajoutée
+    // Option `vents-tourbillonnants` (LDB 46 l.179-190) : table de force des Vents, ajoutée
     // aux Tests d'Incantation/Focalisation (`engine/windsOfMagic.ts`).
     build: () => windsOfMagicTable.map((e) => ({
-      id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max),
+      id: e.id, label: e.label, sub: bandeAuDe(deDeTirageDe<typeof vents>(ventsJson), e.min, e.max),
       meta: facts(fact(tr('codex.fiche.modificateur'), e.mod >= 0 ? `+${e.mod}` : `${e.mod}`)),
     })),
   },
@@ -2131,63 +2140,63 @@ const CODEX_SPECS = {
   },
   incidentsMonture: {
     label: 'codex.fiche.incidentsDeMonte', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => MOUNT_INCIDENTS.map((e) => travelEntryItem(e, tr('codex.fiche.effetSurLeCavalier'))),
+    build: () => MOUNT_INCIDENTS.map((e) => travelEntryItem(e, MOUNT_INCIDENT_DIE, tr('codex.fiche.effetSurLeCavalier'))),
   },
   problemesVehicule: {
     label: 'codex.fiche.problemesDeVehicule', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => VEHICLE_PROBLEMS.map((e) => travelEntryItem(e, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => VEHICLE_PROBLEMS.map((e) => travelEntryItem(e, VEHICLE_PROBLEM_DIE, tr('codex.fiche.effetSurLesOccupants'))),
   },
   rencontresPositives: {
     label: 'codex.fiche.rencontresPositives', group: 'tables', cluster: 'codex.fiche.rencontres',
-    build: () => datasetArray('rencontresPositives').map((e) => travelEntryItem(e, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => datasetArray('rencontresPositives').map((e) => travelEntryItem(e, ENCOUNTER_DIE, tr('codex.fiche.effetSurLesOccupants'))),
   },
   rencontresFortuites: {
     label: 'codex.fiche.rencontresFortuites', group: 'tables', cluster: 'codex.fiche.rencontres',
-    build: () => datasetArray('rencontresFortuites').map((e) => travelEntryItem(e, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => datasetArray('rencontresFortuites').map((e) => travelEntryItem(e, ENCOUNTER_DIE, tr('codex.fiche.effetSurLesOccupants'))),
   },
   rencontresDangereuses: {
     label: 'codex.fiche.rencontresDangereuses', group: 'tables', cluster: 'codex.fiche.rencontres',
-    build: () => datasetArray('rencontresDangereuses').map((e) => travelEntryItem(e, tr('codex.fiche.effetSurLesOccupants'))),
+    build: () => datasetArray('rencontresDangereuses').map((e) => travelEntryItem(e, ENCOUNTER_DIE, tr('codex.fiche.effetSurLesOccupants'))),
   },
   shipCriticalsCargaison: {
     label: 'codex.fiche.critiquesDeNavireCargaison', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
-    build: () => datasetArray('shipCriticalsCargaison').map(shipCritEntryItem),
+    build: () => datasetArray('shipCriticalsCargaison').map((e) => shipCritEntryItem(e, SHIP_CRIT_SET)),
   },
   shipCriticalsGreement: {
     label: 'codex.fiche.critiquesDeNavireGreement', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
-    build: () => datasetArray('shipCriticalsGreement').map(shipCritEntryItem),
+    build: () => datasetArray('shipCriticalsGreement').map((e) => shipCritEntryItem(e, SHIP_CRIT_SET)),
   },
   shipCriticalsCoque: {
     label: 'codex.fiche.critiquesDeNavireCoque', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
-    build: () => datasetArray('shipCriticalsCoque').map(shipCritEntryItem),
+    build: () => datasetArray('shipCriticalsCoque').map((e) => shipCritEntryItem(e, SHIP_CRIT_SET)),
   },
   shipCriticalsAvirons: {
     label: 'codex.fiche.critiquesDeNavireAvirons', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
-    build: () => datasetArray('shipCriticalsAvirons').map(shipCritEntryItem),
+    build: () => datasetArray('shipCriticalsAvirons').map((e) => shipCritEntryItem(e, SHIP_CRIT_SET)),
   },
   shipCriticalsEquipements: {
     label: 'codex.fiche.critiquesDeNavireEquipements', group: 'effets', cluster: 'codex.fiche.critiquesDeNavire', sourceRef: 'MDG 13',
-    build: () => datasetArray('shipCriticalsEquipements').map(shipCritEntryItem),
+    build: () => datasetArray('shipCriticalsEquipements').map((e) => shipCritEntryItem(e, SHIP_CRIT_SET)),
   },
   riverCriticalsGreement: {
     label: 'codex.fiche.critiquesFluviauxGreement', group: 'effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
-    build: () => datasetArray('riverCriticalsGreement').map(shipCritEntryItem),
+    build: () => datasetArray('riverCriticalsGreement').map((e) => shipCritEntryItem(e, RIVER_CRIT_SET)),
   },
   riverCriticalsAvirons: {
     label: 'codex.fiche.critiquesFluviauxRames', group: 'effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
-    build: () => datasetArray('riverCriticalsAvirons').map(shipCritEntryItem),
+    build: () => datasetArray('riverCriticalsAvirons').map((e) => shipCritEntryItem(e, RIVER_CRIT_SET)),
   },
   riverCriticalsGouvernail: {
     label: 'codex.fiche.critiquesFluviauxGouvernail', group: 'effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
-    build: () => datasetArray('riverCriticalsGouvernail').map(shipCritEntryItem),
+    build: () => datasetArray('riverCriticalsGouvernail').map((e) => shipCritEntryItem(e, RIVER_CRIT_SET)),
   },
   riverCriticalsCoque: {
     label: 'codex.fiche.critiquesFluviauxCoque', group: 'effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
-    build: () => datasetArray('riverCriticalsCoque').map(shipCritEntryItem),
+    build: () => datasetArray('riverCriticalsCoque').map((e) => shipCritEntryItem(e, RIVER_CRIT_SET)),
   },
   riverCriticalsSuperstructure: {
     label: 'codex.fiche.critiquesFluviauxSuperstructure', group: 'effets', cluster: 'codex.fiche.critiquesFluviaux', sourceRef: 'MSRC 7',
-    build: () => datasetArray('riverCriticalsSuperstructure').map(shipCritEntryItem),
+    build: () => datasetArray('riverCriticalsSuperstructure').map((e) => shipCritEntryItem(e, RIVER_CRIT_SET)),
   },
   seaManannFactors: {
     label: 'codex.fiche.humeurDeManannFacteurs', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
@@ -2606,7 +2615,7 @@ const CODEX_SPECS = {
   structureCriticals: {
     label: 'codex.fiche.critiquesDeStructure', group: 'effets',
     build: () => tableDesCritiquesDeStructure().map((c) => ({
-      id: c.id, label: c.label, sub: bandeAuDe('d100', c.min, c.max), desc: c.note,
+      id: c.id, label: c.label, sub: bandeAuDe(STRUCTURE_CRITICALS_DIE, c.min, c.max), desc: c.note,
       meta: facts(
         c.wounds != null ? fact(tr('codex.fiche.blessures'), c.wounds) : null,
         c.trivial ? fact(tr('codex.fiche.type'), tr('codex.fiche.trivialeT')) : null,
@@ -2617,7 +2626,7 @@ const CODEX_SPECS = {
   artilleryMisfire: {
     label: 'codex.fiche.incidentsDeTirParSalve', group: 'effets',
     build: () => ARTILLERY_MISFIRE.map((e) => ({
-      id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max), desc: e.note,
+      id: e.id, label: e.label, sub: bandeAuDe(ARTILLERY_MISFIRE_DIE, e.min, e.max), desc: e.note,
       meta: facts(
         fact(tr('codex.fiche.localisation'), e.location === 'brasPrincipal' ? tr('codex.fiche.brasPrincipal') : tr('codex.fiche.aleatoire')),
         e.perSalveIndex ? fact(tr('codex.fiche.repetition'), tr('codex.fiche.parIndiceDeSalveRestant')) : null,

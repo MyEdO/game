@@ -471,8 +471,9 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
 - **Le récap est une DIFFÉRENCE.** « Prendre la route » pose la borne `chapitreDepuis` (PX par héros,
   vivants, date) ; l'Effet `clearObjective` DÉPLACE désormais l'objectif soldé dans `objectifsSoldes`
   au lieu de le perdre. `ChapterRecapScreen` en dérive PX du chapitre, chronique, tombés en chemin et
-  lieux révélés, puis enchaîne sur la fin de séance (`SessionEndBody`, même formulaire que le menu
-  système). Aucun journal parallèle n'est écrit.
+  lieux révélés, puis enchaîne sur la fin de séance que le récap ouvre avec lui (`finDeSeance`, même
+  formulaire que le menu système, `useSessionEnd`), terminée par sa validation
+  `fenetreValider('chapterRecap')`. Aucun journal parallèle n'est écrit.
 - **Édition.** Onglet « Cadre » du `NarratifEditor` (champs texte, pitch, ambiance, `ConditionEditor`
   pour la clôture) — le cadre est de la DONNÉE de campagne, jamais du texte au catalogue i18n.
 

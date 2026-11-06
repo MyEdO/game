@@ -63,7 +63,7 @@ export type FermetureDuJet =
   | 'deNonFixable' | 'desFixesInactifs' | 'sansVoieDInversion' | 'sansMenace' | 'sansResistance' | 'sansMalusPsy'
   | 'declarationsDues' | 'oppositionsDues' | 'choixCritiqueDu' | 'actionEngagee'
   | 'choixDu' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
-  | 'quorumAttendu' | 'noteNonCouverte' | 'evenementsATirer' | 'rienARepartir';
+  | 'quorumAttendu' | 'noteNonCouverte' | 'evenementsATirer' | 'rienARepartir' | 'seanceDuChapitre' | 'choixAReprendre';
 
 /** Les fermetures qui attendent une DÉCISION du joueur : le verbe se montre refusé, sa raison dite, au lieu de se taire. */
 export const FERMETURES_DITES: ReadonlySet<FermetureDuJet> = new Set<FermetureDuJet>(['declarationsDues', 'oppositionsDues', 'choixCritiqueDu', 'actionEngagee']);

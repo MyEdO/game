@@ -93,10 +93,6 @@ const solQuiCompte = () => {
   return { positions, moveParty: vi.fn((pos: Pt) => { positions.push(pos); }) };
 };
 
-const CLIMB_ACROSS_VRAI = useGame.getState().climbAcross;
-const FALL_ACROSS_VRAI = useGame.getState().fallAcross;
-const MOVE_PARTY_VRAI = useGame.getState().moveParty;
-
 describe('Escalade et chute passent par l’étage `arete`', () => {
   let root: Root | null = null;
   let pointer: StagePointer | undefined;
@@ -123,7 +119,6 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
     pointer = undefined;
     attache?.remove();
     attache = null;
-    useGame.setState({ climbAcross: CLIMB_ACROSS_VRAI, fallAcross: FALL_ACROSS_VRAI, moveParty: MOVE_PARTY_VRAI });
   });
 
   it('un clic sur le trait d’escalade grimpe vers la case d’en face, par le VERDICT de pixel', () => {

@@ -14,6 +14,7 @@ import { ChapterRecapScreen } from './ChapterRecapScreen';
 import { SessionEndModal } from './SessionEndModal';
 import { useGame } from '../state/store';
 import { applyEffects } from '../noyau/combatEffects';
+import { t } from '../i18n';
 import type { ChapterRecap } from '../noyau/chapitreRecap';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
@@ -48,13 +49,13 @@ beforeEach(() => {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  useGame.setState({ pendingChapterRecap: recap, pendingOuverture: null, party: [hero('h1', 'Magnus')] });
+  useGame.setState({ pendingChapterRecap: recap, finDeSeance: { heros: {}, groupe: {} }, pendingOuverture: null, party: [hero('h1', 'Magnus')] });
 });
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
   useGame.setState({
-    pendingChapterRecap: null, party: [], objectifsSoldes: [], chapitreDepuis: null,
+    pendingChapterRecap: null, finDeSeance: null, party: [], objectifsSoldes: [], chapitreDepuis: null,
     clotureConsommee: false, campaignNarratif: null, flags: {},
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0 },
   });
@@ -110,12 +111,30 @@ describe('ChapterRecapScreen (#717)', () => {
   });
 
   it('la MÊME fin de séance se monte en modale au menu système (source unique du formulaire)', async () => {
-    await mount(<SessionEndModal onClose={() => {}} />);
+    useGame.setState({ pendingChapterRecap: null });
+    await mount(<SessionEndModal />);
     const txt = container.textContent ?? '';
     expect(txt).toContain('Terminer la séance');
     expect(txt).toContain('Ambitions de groupe');
     expect(container.querySelector('[data-apercu]')).toBeNull();
     expect(inputs().some((i) => i.disabled)).toBe(false);
+  });
+
+  it('chaque case lit et écrit la fin de séance du noyau ; chez l’invité, cases fermées et « Terminer » porte le refus de l’hôte', async () => {
+    useGame.setState({ pendingChapterRecap: null });
+    await mount(<SessionEndModal />);
+    await act(async () => inputs()[0].click());
+    expect(useGame.getState().finDeSeance?.groupe).toEqual({ ambitionCourte: true });
+    expect(inputs()[0].checked).toBe(true);
+    await act(async () => inputs()[4].click());
+    expect(useGame.getState().finDeSeance?.heros).toEqual({ h1: { motivation: true } });
+
+    await act(async () => useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 1 } }));
+    expect(inputs().every((i) => i.disabled)).toBe(true);
+    expect(inputs()[0].checked, 'l’invité voit la case cochée par l’hôte').toBe(true);
+    const terminer = [...container.querySelectorAll('button')].find((b) => b.textContent === 'Terminer la séance')!;
+    expect(terminer.getAttribute('aria-disabled')).toBe('true');
+    expect(document.getElementById(terminer.getAttribute('aria-describedby')!)?.textContent).toBe(t('validation.refus.hoteSeul'));
   });
 
   it('« Plus tard » ajourne sans rien perdre : l’archive reste, le récap se re-posera', async () => {

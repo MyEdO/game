@@ -61,6 +61,10 @@ import { touchActors } from './combatOrParty';
 import { nePeutPasDifferer, applyEffects } from './combatEffects';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { ValidationsDeFenetre } from './validationDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
+import type { IdDeHeros } from './designations';
+import { garanti } from '../lib/garanti';
 
 /** Contexte carrière d'un héros : niveaux + slots cumulés/courants + désignations (LDB 07). */
 function careerCtx(hero: Combatant) {
@@ -598,25 +602,40 @@ export function setHeroBackground(get: Get, set: Set, heroId: string, patch: { m
   if (hero) persisterLeHeros(hero);
 }
 
-/** Récompenses de fin de séance (écran de fin de séance) : Ambitions accomplies par héros (perso) et de
- *  groupe, + héros ayant agi selon leur Motivation (regain de Détermination). */
-export interface SessionRewards {
-  heroes?: Record<string, { ambitionShort?: boolean; ambitionLong?: boolean; motivation?: boolean }>;
-  group?: { ambitionShort?: boolean; ambitionLong?: boolean };
+/** Les cases du groupe de la fin de séance (`ChoixDesFenetres.finDeSeance`, sans rangée). */
+export type AxeDuGroupe = 'ambitionCourte' | 'ambitionLongue';
+/** Les cases de chaque héros de la fin de séance (`ChoixDesFenetres.finDeSeance`, rangée du héros). */
+export type AxeDuHerosDeLaSeance = 'ambitionPersonnelleCourte' | 'ambitionPersonnelleLongue' | 'motivation';
+
+/** La fin de séance ouverte (LDB 05 Ambitions, LDB 17 Détermination) : les cases cochées de chaque héros et du groupe,
+ *  que choisit `fenetreChoisir('finDeSeance', …)` et qu'applique `fenetreValider('finDeSeance')`. */
+export interface FinDeSeance {
+  heros: Record<IdDeHeros, Partial<Record<AxeDuHerosDeLaSeance, boolean>>>;
+  groupe: Partial<Record<AxeDuGroupe, boolean>>;
+}
+
+/** Les héros dont la fin de séance coche les cases. */
+export const herosDeLaSeance = (s: Pick<Jeu, 'party'>): Combatant[] => s.party.filter((h) => h.kind === 'hero');
+
+/** Ouvre la fin de séance, aucune case cochée : l'Effet `sessionEnd` (#83), le menu de jeu, le récap de chapitre. */
+export function ouvrirLaFinDeSeance(set: Set): void {
+  set({ finDeSeance: { heros: {}, groupe: {} } });
 }
 
 /**
  * Fin de séance de jeu (LDB 05 Ambitions l.793-841 + LDB 17 Détermination l.81) : octroie les PX
  * d'Ambition accomplie (personnelle +50/+500, de groupe +50/+500 à chaque héros), regagne 1 Point de
- * Détermination aux héros ayant agi selon leur Motivation (plafonné au max), puis restaure la Chance du
- * groupe (couture de séance, `restoreFortune`). SOURCE UNIQUE derrière l'écran de fin de séance.
+ * Détermination aux héros ayant agi selon leur Motivation (plafonné au max), ferme la fin de séance, puis restaure la
+ * Chance du groupe (couture de séance, `restoreFortune`). SOURCE UNIQUE de la validation de la fin de séance et du récap
+ * de chapitre.
  */
-export function endSession(get: Get, set: Set, rewards: SessionRewards): void {
-  const group = { short: rewards.group?.ambitionShort, long: rewards.group?.ambitionLong };
+export function terminerLaSeance(get: Get, set: Set): void {
+  const { heros, groupe } = garanti(get().finDeSeance, 'finDeSeance', 'fin de séance ouverte');
+  const group = { short: groupe.ambitionCourte, long: groupe.ambitionLongue };
   const lines = new Map<string, string[]>();
-  set((s) => ecrireActeur(s, s.party.filter((h) => h.kind === 'hero').map((h) => h.id), (h) => {
-    const f = rewards.heroes?.[h.id] ?? {};
-    const xp = heroSessionXp({ short: f.ambitionShort, long: f.ambitionLong }, group);
+  set((s) => ecrireActeur(s, herosDeLaSeance(s).map((h) => h.id), (h) => {
+    const f = heros[h.id] ?? {};
+    const xp = heroSessionXp({ short: f.ambitionPersonnelleCourte, long: f.ambitionPersonnelleLongue }, group);
     if (!xp && !f.motivation) return h;
     const clone: Combatant = structuredClone(h);
     const siennes: string[] = [];
@@ -630,6 +649,7 @@ export function endSession(get: Get, set: Set, rewards: SessionRewards): void {
     return clone;
   }));
   for (const l of [...lines.values()].flat()) get().log(l);
+  set({ finDeSeance: null });
   get().restoreFortuneNow(); // Chance restaurée pour la prochaine séance (LDB 17 l.41)
 }
 
@@ -827,8 +847,34 @@ export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combat
 }
 
 
+/** Les cases de la fin de séance (`CorpsDesChoix`), cochées ou décochées par l'hôte, parmi celles que l'état ouvre
+ *  (`OUVERTS_DU_CHOIX`). */
+export function choixDeLaFinDeSeance(get: Get, set: Set) {
+  const ouverte = () => garanti(get().finDeSeance, 'finDeSeance', 'fin de séance ouverte');
+  const duGroupe = (axe: AxeDuGroupe) => (valeur: boolean) => set({ finDeSeance: { ...ouverte(), groupe: { ...ouverte().groupe, [axe]: valeur } } });
+  const duHeros = (axe: AxeDuHerosDeLaSeance) => (valeur: boolean, pid: IdDeHeros) => {
+    const f = ouverte();
+    set({ finDeSeance: { ...f, heros: { ...f.heros, [pid]: { ...f.heros[pid], [axe]: valeur } } } });
+  };
+  return {
+    finDeSeance: {
+      ambitionCourte: duGroupe('ambitionCourte'),
+      ambitionLongue: duGroupe('ambitionLongue'),
+      ambitionPersonnelleCourte: duHeros('ambitionPersonnelleCourte'),
+      ambitionPersonnelleLongue: duHeros('ambitionPersonnelleLongue'),
+      motivation: duHeros('motivation'),
+    },
+  } satisfies Partial<CorpsDesChoix>;
+}
+
+/** « Terminer la séance » (`ValidationsDeFenetre`, l'hôte) : `terminerLaSeance`. */
+export function validationsDuGroupe(get: Get, set: Set) {
+  return { finDeSeance: () => terminerLaSeance(get, set) } satisfies Partial<ValidationsDeFenetre>;
+}
+
+/** « Annuler » : la fin de séance se ferme sans rien appliquer. */
 export function sortiesDuGroupe(_get: Get, set: Set) {
-  return { finDeSeance: () => set({ sessionEndOpen: false }) } satisfies Partial<SortiesDeFenetre>;
+  return { finDeSeance: () => set({ finDeSeance: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function creerActionsDuGroupe(get: Get, set: Set) {
@@ -863,8 +909,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     buySpellComponent: (heroId, spellId) => buySpellComponent(get, set, heroId, spellId),
     removeSpellComponent: (heroId, spellId) => removeSpellComponent(get, set, heroId, spellId),
     setHeroBackground: (heroId, patch) => setHeroBackground(get, set, heroId, patch),
-    endSession: (rewards) => endSession(get, set, rewards),
-    openSessionEnd: () => set({ sessionEndOpen: true }),
+    openSessionEnd: () => ouvrirLaFinDeSeance(set),
     trainProsthesis: (heroId, uid) => trainProsthesis(get, set, heroId, uid),
     changeCareer: (heroId, newCareer, newLevel) => changeCareer(get, set, heroId, newCareer, newLevel),
     setParty: (p) => set({ party: p }),
