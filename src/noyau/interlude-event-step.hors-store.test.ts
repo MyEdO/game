@@ -142,6 +142,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     expect(steps().map((s) => s.kind)).toEqual(['interludeEvent', 'interludeEvent', 'interludePurse']);
     party.forEach((h, i) => {
       expect(steps()[i].actorId).toBe(h.id); // chaque héros SON étape (en coop, chaque siège pose pour les siens)
+      expect(steps()[i].label, 'l’étape se nomme ; son héros, l’acteur, ne s’y redit pas').toBe('Événement');
       expect(stepInteraction(steps()[i])).toBe('table'); // dé À POSER → les deux affordances de la modale
       expect(steps()[i].table).toMatchObject({ tableId: INTERLUDE_EVENT_TABLE, spec: { n: 1, sides: 100 } });
       expect(steps()[i].table!.result).toBeUndefined();
