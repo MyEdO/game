@@ -2094,8 +2094,8 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
   it.each(PALIERS)('palier « $precip » au monteur canonique : Athlétisme $physique, Perception $manoeuvre, Résistance $autre', ({ precip, physique, manoeuvre, autre }) => {
     const h = get().party[0];
     const ecart = (skill: string, char: 'agilite' | 'initiative' | 'endurance') => {
-      const sec = rollLine({ actor: h, test: { skill, char }, difficulty: 'intermediaire' }).target;
-      return rollLine({ actor: h, test: { skill, char }, difficulty: 'intermediaire', pont: precip }).target - sec;
+      const sec = rollLine({ actor: h, test: { skill, characteristic: char }, difficulty: 'intermediaire' }).target;
+      return rollLine({ actor: h, test: { skill, characteristic: char }, difficulty: 'intermediaire', pont: precip }).target - sec;
     };
     expect(ecart('athletisme', 'agilite')).toBe(physique);
     expect(ecart('perception', 'initiative')).toBe(manoeuvre);
@@ -2720,7 +2720,7 @@ describe('journée commandée parquée sur une décision : le PV du jour est ver
   it('la bande résolue à la reprise arrive au PV de la halte', () => {
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'commande' })! });
     const h = get().party[0];
-    const bande = buildBand(get, { id: 'bande-pv', kind: 'orientation', label: fixtureText('Orientation'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne: { test: { skill: 'orientation', char: 'intelligence' } } }] })!;
+    const bande = buildBand(get, { id: 'bande-pv', kind: 'orientation', label: fixtureText('Orientation'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne: { test: { skill: 'orientation', characteristic: 'intelligence' } } }] })!;
     const decision: CascadeStep = { id: 'decision', kind: cleDeFixture('progression-choix-test'), label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
     expect(runCascadeImmediate(get, set, [decision, bande], { title: 'Jour', purpose: 'travelDay', rowSurface: 'pv' })).toBeUndefined();
 
@@ -2862,7 +2862,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
     const pv = get().travelPlan?.log?.slice(-1)[0]?.entries ?? [];
     expect(pv.some((e) => e.id?.startsWith('sea-salissures')), 'le procès-verbal ne recopie pas le dé').toBe(false);
     const navire = get().travelPlan!.vehicle!.label;
-    const libelle = testSkillLabel({ char: 'endurance' })!;
+    const libelle = testSkillLabel({ characteristic: 'endurance' })!;
     const traces = get().journal.filter((x) => x.includes(t('sv.foulingTest')) && x.includes('→'));
     expect(traces, 'le dé du navire a UNE surface : sa trace au journal (#1291)').toHaveLength(1);
     expect(traces[0], 'la trace dit QUI lance (le navire) et QUOI (#1595)').toContain(navire);

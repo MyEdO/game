@@ -761,12 +761,12 @@ function seaStrandingPenalty(get: Get): ModLine[] {
 function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: GenreDEtape, { penalite = [], stakeValues }: { penalite?: ModLine[]; stakeValues?: Record<string, number> } = {}): BuiltCascadeStep | undefined {
   const force = partyAssisted(get().party, undefined, 'force');
   if (!force) return undefined;
-  const test = { char: 'force' as const };
+  const test = { characteristic: 'force' as const };
   return monoStep({
     id: kind, kind, actor: force.actor, icon: 'travel/repair',
     label: composeRollLabel(force.actor, t('sv.degagement'), test),
     difficulty,
-    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, surLaCible: penalite, pont: activeSeaPrecipitation(get) },
+    ligne: { test: { characteristic: 'force' }, valeur: force.value, soutien: force.support, surLaCible: penalite, pont: activeSeaPrecipitation(get) },
     stake: voyageStakeRef(kind, stakeValues),
   });
 }
@@ -774,7 +774,7 @@ function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: Ge
 /** Ligne du Test du VAISSEAU (MDG 12 l.58, MDG 13 l.125, l.148) : l'Endurance de la coque, tenue par le
  *  porteur MONDE de `monoStep`. */
 function ligneDuVaisseau(hull: Combatant) {
-  return { test: { char: 'endurance' as const }, valeur: effectiveChar(hull, 'endurance') };
+  return { test: { characteristic: 'endurance' as const }, valeur: effectiveChar(hull, 'endurance') };
 }
 
 /** Étape MONO « Ça va lâcher, capitaine ! » (MDG 13 l.121-142, `sea-overspeed`, applier ci-dessous),
@@ -790,7 +790,7 @@ function buildOverspeedStep(get: Get, index: number): BuiltCascadeStep | undefin
   if (!row) return undefined;
   return monoStep({
     id: `sea-overspeed-${index}`, kind: 'sea-overspeed', monde: true, icon: 'travel/sail-ship',
-    label: composeRollLabel(hull, t('sv.overspeed'), { char: 'endurance' }),
+    label: composeRollLabel(hull, t('sv.overspeed'), { characteristic: 'endurance' }),
     difficulty: row.difficulty,
     ligne: ligneDuVaisseau(hull),
     // SURPLUS de M du jour (`effMToday − M de conception`) : c'est ce qui choisit la bande du tableau
@@ -831,7 +831,7 @@ function buildFoulingStep(get: Get): BuiltCascadeStep | undefined {
   const hull = garanti(plan.vehicle, plan.routeId, 'navire du voyage');
   return monoStep({
     id: 'sea-salissures', kind: 'sea-salissures', monde: true, icon: 'travel/sail-ship',
-    label: composeRollLabel(hull, t('sv.foulingTest'), { char: 'endurance' }),
+    label: composeRollLabel(hull, t('sv.foulingTest'), { characteristic: 'endurance' }),
     difficulty: rule('sea-salissures-difficulty') as Difficulty,
     ligne: ligneDuVaisseau(hull),
     stake: voyageStakeRef('sea-salissures'),
@@ -1388,7 +1388,7 @@ function applySeaProgress(get: Get, set: Set, progressionDR: number): string[] {
 function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel | null): BuiltCascadeStep[] {
   if (vessel?.waterLitres == null) return [];
   const out: BuiltCascadeStep[] = [];
-  const test: RollRequest['test'] = { skill: 'resistance', char: 'endurance' };
+  const test: RollRequest['test'] = { skill: 'resistance', characteristic: 'endurance' };
   if (sea.waterContaminated) {
     const diseaseId = sea.waterContaminated.diseaseId;
     const diff: Difficulty = diseaseDefs()[diseaseId]?.contractDifficulty ?? 'intermediaire';
@@ -1397,7 +1397,7 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
         id: `sea-tonneau-expose-${h.id}`, kind: 'sea-tonneau-expose', actor: h,
         label: composeRollLabel(h, t('sv.waterBarrelTainted'), test), difficulty: diff,
         rollLabel: refLabel('skills', { id: 'resistance' }),
-        ligne: { test: { skill: 'resistance', char: 'endurance' } },
+        ligne: { test: { skill: 'resistance', characteristic: 'endurance' } },
         stake: voyageStakeRef('sea-tonneau-expose', { disease: diseaseLabel(diseaseId) }), meta: { diseaseId },
       }));
     }
@@ -1410,7 +1410,7 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
         id: `sea-tonneau-contamine-${h.id}`, kind: 'sea-tonneau-contamine', actor: h,
         label: composeRollLabel(h, t('sv.waterBarrel'), test), difficulty: 'intermediaire',
         rollLabel: refLabel('skills', { id: 'resistance' }),
-        ligne: { test: { skill: 'resistance', char: 'endurance' } },
+        ligne: { test: { skill: 'resistance', characteristic: 'endurance' } },
         stake: voyageStakeRef('sea-tonneau-contamine', { disease: diseaseLabel(dz.id) }), meta: { diseaseId: dz.id },
       }));
     }
@@ -1439,7 +1439,7 @@ function buildSeasicknessSteps(get: Get, sea: SeaVoyageState): BuiltCascadeStep[
     id, kind: 'sea-mal-de-mer', label,
     stake: voyageStakeRef('sea-mal-de-mer', { disease: diseaseLabel('mal-de-mer') }),
     difficulty,
-    porteurs: appeles.map((h) => ({ actor: h, ligne: { test: { skill: 'resistance', char: 'endurance' } } })),
+    porteurs: appeles.map((h) => ({ actor: h, ligne: { test: { skill: 'resistance', characteristic: 'endurance' } } })),
   });
   const out: BuiltCascadeStep[] = [];
   if (firstDay) pousseSi(out, bande('sea-mal-de-mer-premier', t('sv.seasickFirst'), 'complexe'));
@@ -1465,7 +1465,7 @@ function buildScurvySteps(get: Get, daysAtSea: number): BuiltCascadeStep[] {
     porteurs: appeles.map((h) => {
       const soup = (h.items ?? []).some((it) => itemCapability(it, 'scurvyGuard'));
       return {
-        actor: h, ligne: { test: { skill: 'resistance', char: 'endurance' } },
+        actor: h, ligne: { test: { skill: 'resistance', characteristic: 'endurance' } },
         ...(soup ? { difficulty: 'facile' as Difficulty } : {}),
         meta: { soup },
       };
@@ -1604,7 +1604,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
         difficulty: expDiff,
         montee: rollStep(valeur === brut
           ? {
-            actor: h, test: { skill: 'resistance', char: 'endurance' }, valeur,
+            actor: h, test: { skill: 'resistance', characteristic: 'endurance' }, valeur,
             ...(coat.length ? { dansLaValeur: coat } : {}),
             difficulty: expDiff, pont,
           }
@@ -1654,7 +1654,7 @@ export function continueSeaDayAfterExposure(get: Get, set: Set, doneSteps?: Casc
     id: 'sea-epuisement', kind: 'sea-epuisement', label: t('sv.exhaustion'),
     stake: voyageStakeRef('sea-epuisement', { condition: conditionLabel('extenue') }),
     difficulty: exhaustionDifficulty(sea.paceToday != null),
-    porteurs: patients.map((h) => ({ actor: h, ligne: { test: { skill: 'resistance', char: 'endurance' }, pont: activeSeaPrecipitation(get) } })), // MDG 13 l.111, l.185, l.200
+    porteurs: patients.map((h) => ({ actor: h, ligne: { test: { skill: 'resistance', characteristic: 'endurance' }, pont: activeSeaPrecipitation(get) } })), // MDG 13 l.111, l.185, l.200
   });
   if (bande) {
     const resolues = openSequence(get, set, { title: t('sv.exhaustionTitle'), icon: 'medical/infection', purpose: 'seaExhaustion', steps: [bande] });
@@ -1834,7 +1834,7 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
   for (const step of restart) {
     const { skill, characteristic, difficulty } = step.test;
     const value = testValue(eng, skill?.id, characteristic, skill?.spec);
-    const label = testSkillLabel({ skill, char: characteristic }) ?? '';
+    const label = testSkillLabel({ skill, characteristic }) ?? '';
     if (step.targetDR != null) {
       let total = 0;
       for (let i = 0; total < step.targetDR && i < 20; i++) total += Math.max(0, rollTest(value, difficulty, rng).sl);
@@ -1910,7 +1910,7 @@ function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
   set({
     pendingSteamSave: {
       actorId: eng.id, actorName: eng.label, skillValue: value, difficulty: 'intermediaire',
-      ...cibleMesuree(rollLine({ actor: eng, test: { char: 'initiative' }, difficulty: 'intermediaire', valeur: value })),
+      ...cibleMesuree(rollLine({ actor: eng, test: { characteristic: 'initiative' }, difficulty: 'intermediaire', valeur: value })),
       scaldOps: [{ op: 'wounds', amount: dmg, ignoreTB: false, ignoreAP: true }], // « qui ignorent l'Armure » (le BE reste déduit)
       roll: null, success: false, sl: 0,
     } satisfies PendingSteamSave,

@@ -182,7 +182,7 @@ export function testAnnonce(flow: Flow | undefined, cc: ConditionCtx): TestAnnon
  * (garde `scripts/guards/lib/dialogueLabelTest.mjs`).
  */
 export function libelleDuTestAnnonce(test: TestAnnonce): string {
-  const quoi = testSkillLabel({ skill: test.skill, char: test.characteristic }) ?? '';
+  const quoi = testSkillLabel(test) ?? '';
   const diff = DIFFICULTY_LABELS[test.difficulty];
   return test.targetDR != null ? t('dlg.testTagCumul', { quoi, diff, dr: test.targetDR }) : t('dlg.testTag', { quoi, diff });
 }

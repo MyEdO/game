@@ -23,14 +23,14 @@ export function armeDEnfoncement(actor: Combatant, part: Pick<ForceDoorParticipa
   return part.armeUid ? armesDEnfoncement(actor).find((w) => w.uid === part.armeUid) : undefined;
 }
 
-function testDEnfoncement(actor: Combatant, arme: Weapon | undefined): { skill?: string; spec?: string; char?: Parameters<typeof testValue>[2] } {
+function testDEnfoncement(actor: Combatant, arme: Weapon | undefined): { skill?: string; spec?: string; characteristic?: Parameters<typeof testValue>[2] } {
   return arme ? attackTestOf(actor, arme, 'melee') : TEST_A_MAINS_NUES;
 }
 
 /** Valeur du Test d'enfoncement — EDO 11 l.93. */
 export function valeurDEnfoncement(actor: Combatant, arme: Weapon | undefined): number {
   const t = testDEnfoncement(actor, arme);
-  return testValue(actor, t.skill, t.char, t.spec);
+  return testValue(actor, t.skill, t.characteristic, t.spec);
 }
 
 /** Ligne du Test d'enfoncement (`rollLine`) — EDO 11 l.93. */

@@ -75,7 +75,7 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string, navigati
   for (const roleId of specific) {
     if ([...out.values()].includes(roleId)) continue; // déjà tenu (épinglé)
     const role = findCrewRoleById(roleId)!;
-    // Meilleur marin FORMÉ encore libre : `partyBest` (skill/char indéfinis → `testValue`=0) score PUREMENT sur
+    // Meilleur marin FORMÉ encore libre : `partyBest` (skill/characteristic indéfinis → `testValue`=0) score PUREMENT sur
     // `crewRoleValue`. Le `.filter` préserve l'ordre d'`apte` → first-max identique à la boucle strict-`>` d'origine.
     const candidates = apte.filter((c) => free.has(c.id) && trainedForRole(c, roleId, navigation));
     const winner = partyBest(candidates, undefined, undefined, (c) => crewRoleValue(c, role, navigation).value ?? -Infinity)?.actor;

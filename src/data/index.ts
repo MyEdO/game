@@ -3603,16 +3603,16 @@ export function skillInstanceLabel(s: { id: string; spec?: string }): PlayerText
 }
 /** La Spé d'une référence vit DANS la référence : `spec` sœur n'existe que sur la branche id. */
 type TestDeclare =
-  | { skill?: string; spec?: string; char?: CharKey }
-  | { skill?: RefASpecialisation; spec?: never; char?: CharKey };
+  | { skill?: string; spec?: string; characteristic?: CharKey }
+  | { skill?: RefASpecialisation; spec?: never; characteristic?: CharKey };
 /** Libellé du Test DÉCLARÉ par ses ids — Compétence (Spé) ou Caractéristique : « Corps à corps (Bagarre) »
  *  (LDB 14 l.155), « Langue (Magick) » (LDB 46 l.24). La Compétence se donne en id (+ `spec`) ou en
  *  référence (`refLabel`, emplacement `choix` compris). `undefined` sans l'une ni l'autre : le repli est au site. */
-export function testSkillLabel(test: { skill: string; spec?: string } | { skill: RefASpecialisation; spec?: never } | { char: CharKey }): PlayerText;
+export function testSkillLabel(test: { skill: string; spec?: string } | { skill: RefASpecialisation; spec?: never } | { characteristic: CharKey }): PlayerText;
 export function testSkillLabel(test: TestDeclare): PlayerText | undefined;
 export function testSkillLabel(test: TestDeclare): PlayerText | undefined {
   if (test.skill) return typeof test.skill === 'string' ? skillInstanceLabel({ id: test.skill, spec: test.spec }) : refLabel('skills', test.skill);
-  return test.char ? dataLabel(CHAR_LABELS[test.char]) : undefined;
+  return test.characteristic ? dataLabel(CHAR_LABELS[test.characteristic]) : undefined;
 }
 /** Libellé d'affichage d'une `TalentInstance` (id+spec → « Magie des Arcanes (Bête) »). Repli sur l'id. */
 export function talentConcrete(t: { talentId: string; spec?: string }): PlayerText {

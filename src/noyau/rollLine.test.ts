@@ -139,7 +139,7 @@ describe('rollLine — GRILLE D’INVARIANCE : la cible ne bouge pas d’un poin
     { nom: 'acteur seul, Intermédiaire', spec: { actor: solo, test: { skill: 'ragot' }, difficulty: 'intermediaire' }, valeur: testValue(solo, 'ragot') },
     { nom: 'acteur seul, Difficile', spec: { actor: solo, test: { skill: 'ragot' }, difficulty: 'difficile' }, valeur: testValue(solo, 'ragot') },
     { nom: 'acteur sous État', spec: { actor: malade, test: { skill: 'ragot' }, difficulty: 'intermediaire' }, valeur: testValue(malade, 'ragot') },
-    { nom: 'caractéristique pure', spec: { actor: solo, test: { char: 'sociabilite' }, difficulty: 'facile' }, valeur: testValue(solo, undefined, 'sociabilite') },
+    { nom: 'caractéristique pure', spec: { actor: solo, test: { characteristic: 'sociabilite' }, difficulty: 'facile' }, valeur: testValue(solo, undefined, 'sociabilite') },
     { nom: 'côté monde (seuil)', spec: { difficulty: 'intermediaire', valeur: 55 }, valeur: 55 },
     { nom: 'malus de cible nommé', spec: { actor: solo, test: { skill: 'ragot' }, difficulty: 'intermediaire', surLaCible: [{ label: 'Hors de contrôle', value: -20, famille: 'jet' }] }, valeur: testValue(solo, 'ragot') },
   ];

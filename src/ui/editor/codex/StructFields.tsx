@@ -236,7 +236,7 @@ export function ShipCrewHitField({ value, onChange }: { value: ShipCrewHitValue 
 /* ─────────────────────────────────────────────────────────────────────────────
  * 1bis) talents.test — { raw verbatim, matches: TestMatch[] } (LDB 10 : +DR sur un Test lié)
  *    `raw` = la ligne « Tests : » du livre (affichage) ; `matches` = la règle STRUCTURÉE id-based
- *    (skill XOR char, spec / « au choix » / sauf-spec, contexte `when` mécanisable, `manual` narratif).
+ *    (skill XOR characteristic, spec / « au choix » / sauf-spec, contexte `when` mécanisable, `manual` narratif).
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export function TalentTestField({ value, onChange }: { value: TalentTest | undefined; onChange: (v: TalentTest | undefined) => void }) {

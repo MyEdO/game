@@ -1962,14 +1962,14 @@ export type Amateur = 'amateurDArt' | 'amateurDeTheatre';
  *  `perilDesEaux` LDB 10 l.966 ; `bandages` LDB 10 l.899 ; amateurs ACE 12 l.60-62. */
 export type ContexteDeTest = 'psych' | 'perilDesEaux' | 'bandages' | Amateur;
 
-/** Le Test qu'une inversion vise : Compétence (`skill` absent = Test de Caractéristique `char`, ou jeton
- *  « tout Test »), Caractéristique et contexte. `horsAventure` : Test joué entre deux aventures, où aucun
+/** Le Test qu'une inversion vise : Compétence (`skill` absent = Test de Caractéristique `characteristic`, ou
+ *  jeton « tout Test »), Caractéristique et contexte. `horsAventure` : Test joué entre deux aventures, où aucun
  *  jeton « pour votre prochaine aventure » ne vaut (LDB 23 l.209/218). */
-export interface ReverseQuery { skill?: string; spec?: string; char?: CharKey; contexte?: ContexteDeTest; horsAventure?: true }
+export interface ReverseQuery { skill?: string; spec?: string; characteristic?: CharKey; contexte?: ContexteDeTest; horsAventure?: true }
 
-/** Jeton d'inversion : le Test qu'il couvre (`char` : tout Test de cette Caractéristique) ; `illimite` :
+/** Jeton d'inversion : le Test qu'il couvre (`characteristic` : tout Test de cette Caractéristique) ; `illimite` :
  *  jamais consommé (ACE 12 l.60 « tout Test »). */
-export interface JetonDInversion { skill?: string; spec?: string; char?: CharKey; contexte?: ContexteDeTest; illimite?: true }
+export interface JetonDInversion { skill?: string; spec?: string; characteristic?: CharKey; contexte?: ContexteDeTest; illimite?: true }
 
 export const STAKE_FORMS = ['verbatim', 'descripteur'] as const;
 /** Forme déclarée d'un enjeu — union FERMÉE dérivée de `STAKE_FORMS`. */
@@ -1981,8 +1981,8 @@ export type StakeForm = (typeof STAKE_FORMS)[number];
  *  Compétence PEUT nommer la Caractéristique sur laquelle elle se joue (Venin : Résistance sur
  *  Endurance) ; une Caractéristique NUE se déclare seule (ver de carie, `MSRC 16 l.90`). */
 export type TestIds =
-  | { skill: string; char?: CharKey; spec?: string }
-  | { char: CharKey; skill?: undefined; spec?: undefined };
+  | { skill: string; characteristic?: CharKey; spec?: string }
+  | { characteristic: CharKey; skill?: undefined; spec?: undefined };
 
 /** Spec d'un Test de Résistance d'entretien DIFFÉRÉ (cascade de nuit influençable) : le moteur le
  *  COLLECTE au lieu de le rouler (`noyau/upkeep` calcule la cible et en fait une étape de cascade,

@@ -432,7 +432,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
     const st = monoStep({ id: `march-${id}`, kind: 'forcedMarch', actor: h, label: t('step.marcheForcee'), icon: 'travel/foot',
       rollLabel: SKILL_RESISTANCE(), difficulty: 'intermediaire',
       stake: nightStakeRef('forcedMarch'),
-      ligne: { test: { skill: 'resistance', char: 'endurance' } } });
+      ligne: { test: { skill: 'resistance', characteristic: 'endurance' } } });
     pousseSi(steps, st);
   }
   // Tests d'entretien DIFFÉRÉS (faim, soif, maladie, convalescence, dessoûlage) → étapes influençables.
@@ -803,7 +803,7 @@ export const TABLES = {
       // (patron `insert`, re-bandée par la fabrique) : plus AUCUN jet silencieux (#253), et la gueule de bois
       // est due par TOUTE rangée du dessoûlage, pas seulement par les perdantes.
       const d = soberUpDissipate(hero, row.result!.sl);
-      const alcool = { skill: 'resistance-a-l-alcool', char: 'endurance' } as const;
+      const alcool = { skill: 'resistance-a-l-alcool', characteristic: 'endurance' } as const;
       const hangover = monoStep({
         id: `dessoulageHangover-${hero.id}`, kind: 'dessoulageHangover', actor: hero, icon: 'time/night',
         rollLabel: testSkillLabel(alcool) ?? SKILL_RESISTANCE(), label: t('step.gueuleDeBois'), difficulty: 'intermediaire',

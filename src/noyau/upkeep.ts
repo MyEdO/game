@@ -128,7 +128,7 @@ export interface DeferredUpkeepTest {
   base: number;
   /** Ids du Test (`UpkeepDeferTest.test`) quand le producteur les porte — la base est alors le Niveau
    *  de Compétence NU et le libellé de compétence de l'étape s'en DÉRIVE (`testSkillLabel`). */
-  test?: { skill?: string; char?: CharKey; spec?: string };
+  test?: { skill?: string; characteristic?: CharKey; spec?: string };
   /** Difficulté DÉCLARÉE du Test (comprise dans `target`) — la ligne de jet la DIT (#1112). */
   difficulty: Difficulty;
   /** Modificateurs NOMMÉS compris dans `target` (Faim/Soif : « -10 % de plus pour chaque Test », LDB 18 l.338). */
@@ -197,8 +197,8 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
       // 1ter. Dessoûlage (LDB 09 l.485) : une nuit sans boire dégrise. Deux Tests de Résistance à l'alcool
       //       Intermédiaires fixent la dissipation (10−DR h) et la gueule de bois (Exténué 5−DR h, horloge).
       if (h.drunk) {
-        const alcool = { skill: 'resistance-a-l-alcool', char: 'endurance' } as const;
-        const alc = testValue(h, alcool.skill, alcool.char);
+        const alcool = { skill: 'resistance-a-l-alcool', characteristic: 'endurance' } as const;
+        const alc = testValue(h, alcool.skill, alcool.characteristic);
         // DIFFÉRÉ comme ses voisins (faim/soif) : le Test de Résistance à l'alcool est une étape de
         // cascade, jamais un jet roulé ici (sinon pré-résolu).
         defer({ kind: 'dessoulage', label: t('upkeep.sobering'), base: alc, test: alcool, difficulty: 'intermediaire' });

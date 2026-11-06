@@ -143,7 +143,7 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
       pendingCascade: cascade(etapeHote('cast')),
       pendingCast: { casterId: E.id, targetId: H.id, spellId: 'alerte', missile: false, focused: false, result: { cast: true, roll: 21, target: 45, sl: 2, isCritical: false, isFumble: false, log: '' } },
       pendingCounterspell: { participants: [{ id: H.id, result: { dispelled: true, counter: tr(10, 50), casterNetSL: 0, log: '' } }] },
-      pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: H.id, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, result: { oppose: tr(30, 40), resisted: true, margin: 1 } }] },
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: H.id, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, result: { oppose: tr(30, 40), resisted: true, margin: 1 } }] },
     },
     flux: ['cast', 'counterspell', 'opposition'],
     oppose: true,
