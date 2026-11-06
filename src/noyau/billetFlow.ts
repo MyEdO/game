@@ -8,7 +8,7 @@
  * l'issue de son Marchandage dans `marchandagesDeBillet` (un Test par billet).
  */
 import type { Get, Set } from './flowTypes';
-import { cleDeBillet, otherEnd, placeOfScene, type MapRoute, type RouteBillet, type WorldMap } from './worldMap';
+import { cleDeBillet, lieuDuGroupe, otherEnd, type MapRoute, type RouteBillet, type WorldMap } from './worldMap';
 import { billetImplicite, type TarifDePassage, type TravelMode } from '../engine/travel';
 import type { BargainOutcome } from '../engine/bargain';
 import { t } from '../i18n';
@@ -108,8 +108,8 @@ export function offreDePassage(
 
 /** L'offre de passage du lieu courant, sur `routeId` en `vehicule`, lue dans l'état. */
 function offreIci(get: Get, routeId: string, vehicule: string): OffreDePassage | null {
-  const { worldMap, scene, billetEnMain, marchandagesDeBillet } = get();
-  const ici = placeOfScene(worldMap, scene?.id);
+  const { worldMap, billetEnMain, marchandagesDeBillet } = get();
+  const ici = lieuDuGroupe(get());
   const route = worldMap?.routes.find((r) => r.id === routeId);
   return worldMap && ici && route ? offreDePassage(worldMap, route, vehicule, ici.id, billetEnMain, marchandagesDeBillet) : null;
 }

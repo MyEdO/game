@@ -345,6 +345,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Désengagement (LDB 15 l.43-68) : menu Sacrifier l'Avantage / Esquiver / Fuir / Renoncer. */
   battleDisengage: () => void;
   openWorldMap: () => void;
+  /** Rouvre l'écran du lieu où se tient le groupe (`lieuFlow`). */
+  ouvrirLeLieu: () => void;
   /** « Marchander » le billet de `routeId` en `vehicule` depuis le lieu courant (`billetFlow`). */
   startBilletBargain: (routeId: string, vehicule: string) => void;
   /** Démarre un voyage depuis le lieu courant le long d'une route (mode + classe + allure). */

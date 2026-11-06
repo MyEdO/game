@@ -43,6 +43,7 @@ import { choixDeCorruption, cloturesDeCorruption, reglagesDeCorruption } from '.
 import { creerActionsDuJournal } from './journal';
 import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from './horloge';
 import { creerActionsDuVoyage, sortiesDuVoyage, validationsDuVoyage } from './travelFlow';
+import { creerActionsDuLieu, sortiesDuLieu } from './lieuFlow';
 import { creerActionsDesPostesDeVoyage } from './travelPostes';
 import { creerActionsDuBillet } from './billetFlow';
 import { creerActionsDuPort, sortiesDuPort } from './portFlow';
@@ -128,6 +129,7 @@ function sortiesDeFenetre(get: Get, set: SetDesClesReservees): SortiesDeFenetre 
     ...sortiesDuRepos(get, set),
     ...sortiesDeLEquipage(get, set),
     ...sortiesDuVoyage(get, set),
+    ...sortiesDuLieu(get, set),
     ...sortiesDuPort(get, set),
     ...sortiesDuMarcheTerrestre(get, set),
   } satisfies SortiesDeFenetre;
@@ -190,6 +192,7 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
       ...creerActionsDAvanceeDHorloge(get, set),
       ...creerActionsDHorloge(get, set),
       ...creerActionsDuVoyage(get, set),
+      ...creerActionsDuLieu(get, set),
       ...creerActionsDesPostesDeVoyage(get, set),
       ...creerActionsDuBillet(get, set),
       ...creerActionsDuPort(get, set),

@@ -58,7 +58,8 @@ import { CityHubScreen } from './CityHubScreen';
 import { CarnetScreen } from './CarnetScreen';
 import { DialogueHistoryScreen } from './DialogueHistoryScreen';
 import { voyageHubActive, voyageStepPending } from '../noyau/modalArbiter';
-import { placeOfScene, atLocationPlace, placeServices } from '../noyau/worldMap';
+import { lieuDuGroupe } from '../noyau/worldMap';
+import { sceneDuRegistre } from '../noyau/monde/registreDesScenes';
 import { restPlacesHere, sceneLieu } from '../noyau/restFlow';
 import { fouilleOuverte } from '../noyau/interactionsDExploration';
 import { hoverClickCommits } from './pointerCaps';
@@ -161,7 +162,6 @@ export function CampaignView() {
   const [saveOpen, setSaveOpen] = useState(false); // modale Sauvegarder/Charger (Jalon 5)
   const [dossierOpen, setDossierOpen] = useState(false); // dossier du navire persistant (#227, EN et HORS combat)
   const [voyageMin, setVoyageMin] = useState(false); // écran-hub de voyage RÉDUIT (#333) — forcé ouvert dès qu'une étape attend
-  const [cityHubOpen, setCityHubOpen] = useState(false); // hub de ville (#343) — s'ouvre depuis le bouton du lieu
   const [carnetOpen, setCarnetOpen] = useState(false); // carnet d'enquête (#670) — s'ouvre depuis le bouton dédié
   const [historyOpen, setHistoryOpen] = useState(false); // relecture des conversations (#718 dernier lot) — s'ouvre depuis le tiroir-journal
   const dialogueHistory = useGame((s) => s.dialogueHistory);
@@ -172,9 +172,14 @@ export function CampaignView() {
   const pendingOuverture = useGame((s) => s.pendingOuverture);
   const pendingChapterRecap = useGame((s) => s.pendingChapterRecap);
   // Hub de ville (#343) : le groupe est À un lieu de la carte → UN écran-lieu remplace les boutons
-  // flottants Port/Marché/Dormir. `hubPlace` = le lieu courant (null hors lieu : route, camp sauvage).
-  const hubPlace = atLocationPlace({ mode, travelPlan, worldMap, sceneId: scene?.id });
-  const hubServices = hubPlace ? placeServices(hubPlace, scene ?? undefined) : [];
+  // flottants Port/Marché/Dormir. `hubPlace` = le lieu où se tient le groupe (null en route ou hors carte) ; l'écran
+  // tient la main tant que `lieuOuvert`, « Explorer » (sa sortie) entre dans la scène du lieu.
+  const lieu = useGame((s) => s.lieu);
+  const lieuOuvert = useGame((s) => s.lieuOuvert);
+  const ouvrirLeLieu = useGame((s) => s.ouvrirLeLieu);
+  const hubPlace = mode === 'exploration' && !travelPlan ? lieuDuGroupe({ lieu, worldMap }) : undefined;
+  const hubScene = hubPlace ? sceneDuRegistre(hubPlace.scene) : undefined;
+  const hubRest = hubPlace && scene?.id === hubPlace.scene ? restHere : null;
   const pendingCascade = useGame((s) => s.pendingCascade);
   const pendingRest = useGame((s) => s.pendingRest);
   // Écran-hub de voyage (#333) : actif tout au long d'un voyage EN COURS (source unique `voyageHubActive`).
@@ -304,9 +309,9 @@ export function CampaignView() {
                forcé ouvert). */
             onVoyage={voyageHub && voyageMin && !voyageStepUp ? () => setVoyageMin(false) : undefined}
             /* Carte du monde (#T2) : la scène est un lieu connu, ou un voyage interrompu attend. */
-            worldMap={worldMap && (placeOfScene(worldMap, scene?.id) || travelPlan) ? { onOpen: openWorldMap, interrupted: !!travelPlan?.interrupted } : undefined}
+            worldMap={worldMap && (lieu || travelPlan) ? { onOpen: openWorldMap, interrupted: !!travelPlan?.interrupted } : undefined}
             /* Hub de ville (#343) : à un lieu offrant au moins un service, ou un couchage sur place. */
-            hub={hubPlace && (hubServices.length > 0 || restHere) ? { label: hubPlace.label, icon: hubPlace.icon ?? 'nav/campaign', onOpen: () => setCityHubOpen(true) } : undefined}
+            hub={hubPlace ? { label: hubPlace.label, icon: hubPlace.icon ?? 'nav/campaign', onOpen: ouvrirLeLieu } : undefined}
             /* Dormir ici HORS lieu (route, camp sauvage) — l'offre vient de la ZONE où se tient le
                groupe, sinon de la scène. À un lieu, le repos vit DANS le hub. */
             rest={!travelPlan && restHere && !hubPlace
@@ -411,8 +416,8 @@ export function CampaignView() {
             la modale de repos (`pendingRest` → `ActiveModal` clé `rest`) : « Dormir » depuis le panneau
             auberge armait `pendingRest` SANS fermer le hub, qui restait monté DERRIÈRE la modale flottante
             (bouton « Recueillir des informations » écrasé sous son bord, #376 pt.4). */}
-        {cityHubOpen && hubPlace && mode === 'exploration' && !worldMapOpen && !port && !landMarket && !pendingRest && (
-          <CityHubScreen place={hubPlace} scene={scene ?? undefined} rest={restHere} onClose={() => setCityHubOpen(false)} />
+        {lieuOuvert && hubPlace && !worldMapOpen && !port && !landMarket && !pendingRest && !merchant && (
+          <CityHubScreen place={hubPlace} scene={hubScene} rest={hubRest} onClose={() => fermer('ecranDuLieu')} />
         )}
         {carnetOpen && mode === 'exploration' && <CarnetScreen onClose={() => setCarnetOpen(false)} />}
         {historyOpen && mode === 'exploration' && <DialogueHistoryScreen onClose={() => setHistoryOpen(false)} />}

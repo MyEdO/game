@@ -13,7 +13,7 @@ beforeAll(() => {
 });
 
 /** Le HTML de la carte sur la VRAIE carte de l'Arène, posée comme la pose son lancement (la carte d'une
- *  partie vient de la campagne lancée, #1692) ; `hereSceneId`/`initialRouteId` fixent le lieu et la route. */
+ *  partie vient de la campagne lancée, #1692) ; `hereId`/`initialRouteId` fixent le lieu et la route. */
 function renduDeLaCarte(props: ComponentProps<typeof WorldMapView>): string {
   useGame.setState({ worldMap: paquetDuJeu(areneCampaign).worldMap! });
   const hote = document.createElement('div');
@@ -32,7 +32,7 @@ function renduDeLaCarte(props: ComponentProps<typeof WorldMapView>): string {
  */
 describe('WorldMapView — carte de campagne cliquable et lisible', () => {
   it('au Bourg : « Vous êtes ici », Futaie/Felsbach cliquables (cerclées), Tourbière estompée (aide)', () => {
-    const html = renduDeLaCarte({ hereSceneId: 'arene-hub' });
+    const html = renduDeLaCarte({ hereId: 'bourg' });
     expect(html).toContain('Vous êtes ici');
     expect(html).toContain('Cliquez une destination CERCLÉE');
     expect(html).toContain('cursor: pointer'); // destinations reliées (et leurs routes)
@@ -44,7 +44,7 @@ describe('WorldMapView — carte de campagne cliquable et lisible', () => {
   });
 
   it('route sélectionnée (Bourg → Futaie) : panneau de départ — itinéraire, 18 km, marche forcée, Partir', () => {
-    const html = renduDeLaCarte({ hereSceneId: 'arene-hub', initialRouteId: 'route-futaie' });
+    const html = renduDeLaCarte({ hereId: 'bourg', initialRouteId: 'route-futaie' });
     expect(html).toContain('Le Bourg de l’Arène');
     expect(html).toContain('La Vieille Futaie');
     expect(html).toContain('18 km');
@@ -74,7 +74,7 @@ describe('carte du monde — le calque carte ne déborde pas sur le panneau (#11
   });
 
   it('les commandes de cadence sont bien RENDUES dans le panneau (pas dans le canevas)', () => {
-    const html = renduDeLaCarte({ hereSceneId: 'arene-hub', initialRouteId: 'route-futaie' });
+    const html = renduDeLaCarte({ hereId: 'bourg', initialRouteId: 'route-futaie' });
     const panelStart = html.indexOf('worldmap-panel');
     expect(panelStart, 'le panneau existe').toBeGreaterThan(-1);
     // Le canevas est rendu AVANT le panneau : toute commande `.wm-modes` vit après son ouverture.
@@ -121,7 +121,7 @@ describe('carte du monde — la géométrie de ses deux régimes (#1117)', () =>
     .flatMap((r) => declarations(r.corps))
     .filter((d) => d.prop === prop)
     .pop()?.valeur ?? null;
-  const html = renduDeLaCarte({ hereSceneId: 'arene-hub', initialRouteId: 'route-futaie' });
+  const html = renduDeLaCarte({ hereId: 'bourg', initialRouteId: 'route-futaie' });
 
   it('≥901px : deux colonnes — le canevas, puis l’aside BORNÉ', () => {
     expect(html.indexOf('worldmap-canvas'), 'le canevas est le PREMIER enfant').toBeLessThan(html.indexOf('worldmap-side'));

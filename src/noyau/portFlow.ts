@@ -25,7 +25,7 @@
 import { battleRng } from './battleRng';
 import type { RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
-import { placeOfScene } from './worldMap';
+import { lieuDuGroupe } from './worldMap';
 import { partyAssisted } from '../engine/skills';
 import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
@@ -86,8 +86,7 @@ const log = (get: Get, _set: Set, lines: string[]) => {
 
 /** Lieu portuaire courant (place de la carte dont la scène EST la scène courante + `port`). */
 export function currentPort(get: Get): { placeId: string; label: string; ref?: string; port: PortProfile; cosmopolite: boolean } | null {
-  const map = get().worldMap;
-  const place = map ? placeOfScene(map, get().scene?.id) : undefined;
+  const place = lieuDuGroupe(get());
   if (!place?.port) return null;
   return { placeId: place.id, label: place.label, ref: place.port.ref, port: place.port, cosmopolite: !!place.port.cosmopolite };
 }

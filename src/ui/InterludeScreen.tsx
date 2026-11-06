@@ -113,8 +113,8 @@ export interface InterludeSeam {
    *  en jeu, dérivé du store (`interludeCatalog`) ; en SSR, fourni par le seam (le store SSR sert
    *  l'état initial, comme les autres lectures). */
   catalog?: ActivityDef[];
-  /** Le lieu courant (scène, carte du monde) que lisent les verdicts d'Activité — en SSR, fourni par le seam. */
-  lieu?: Pick<EtatDeDepot, 'scene' | 'worldMap'>;
+  /** Le lieu courant que lisent les verdicts d'Activité — en SSR, fourni par le seam. */
+  lieu?: Pick<EtatDeDepot, 'lieu'>;
   net?: InterludeNet;
   /** L'heure de jeu dont part la clôture — en SSR, fournie par le seam. */
   gameTime?: number;
@@ -155,18 +155,16 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   const net: InterludeNet = seam?.net ?? storeNet;
   const gameTime = seam?.gameTime ?? storeGameTime;
   // Catalogue d'Activités data-driven (`activities.json`) : contexte 'interlude' + gate `where`
-  // résolu contre le LIEU courant (place de la carte du monde ↔ scène courante).
-  const storeWorldMap = useGame((s) => s.worldMap);
-  const storeScene = useGame((s) => s.scene);
-  const worldMap = seam?.lieu ? seam.lieu.worldMap : storeWorldMap;
-  const scene = seam?.lieu ? seam.lieu.scene : storeScene;
+  // résolu contre le lieu où se tient le groupe (`lieu`).
+  const storeLieu = useGame((s) => s.lieu);
+  const lieu = seam?.lieu ? seam.lieu.lieu : storeLieu;
   const storeMassBattle = useGame((s) => s.massBattle);
   const massBattle = seam?.massBattle ?? storeMassBattle;
   // Le catalogue inclut les Activités de PRÉPARATION de bataille quand une bataille est en attente de prépa
   // (`interludeCatalog` lit `massBattle`) — « Interlude c'est interlude » : pas d'écran à part.
   const catalog = useMemo(
-    () => seam?.catalog ?? interludeCatalog({ scene, worldMap, massBattle }),
-    [seam?.catalog, scene, worldMap, massBattle],
+    () => seam?.catalog ?? interludeCatalog({ lieu, massBattle }),
+    [seam?.catalog, lieu, massBattle],
   );
   const [phase, setPhase] = useState<'events' | 'activities' | 'closing'>(seam?.phase ?? 'events');
   // Héros ACTIF (les onglets sélectionnent — un seul volet d'Activités rendu à la fois, #330) +
@@ -184,7 +182,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   // La validation de l'interlude se juge sur l'état de la partie, l'interlude et le siège que le seam lui donne.
   const etatDuJeu = useGame.getState();
   const refusClore = refusDeLaValidation({ ...etatDuJeu, interlude, net: { ...etatDuJeu.net, ...net } }, 'interlude');
-  const etat: EtatDeDepot & EtatDeFaveur = { interlude, party, bank, scene, worldMap, favors };
+  const etat: EtatDeDepot & EtatDeFaveur = { interlude, party, bank, lieu, favors };
   return (
     <div className="interlude-shell tx-ink">
       <div className="interlude-column">

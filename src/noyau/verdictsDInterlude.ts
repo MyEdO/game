@@ -31,7 +31,6 @@ import { memeSpecialisation, refCouvre } from '../data/schemas/grammaire/ref';
 import type { Jeu } from './etat';
 import { refusDeBourse } from './bourseFlow';
 import { refusDePx } from './depenseDePx';
-import { currentPlaceId } from './worldMap';
 import { bourseOf } from '../engine/bourse';
 import { aubeApresNuits } from '../engine/clock';
 
@@ -218,7 +217,7 @@ export function refusDeCommande(s: EtatDInterlude, heroId: string, trappingId: s
 }
 
 /** L'état que lit le devis d'un dépôt : celui de l'interlude, et le lieu (Mécénat). */
-export type EtatDeDepot = EtatDInterlude & Pick<Jeu, 'scene' | 'worldMap'>;
+export type EtatDeDepot = EtatDInterlude & Pick<Jeu, 'lieu'>;
 
 /** Les trois dépôts d'une Opération bancaire. */
 export type GenreDeDepot = 'invest' | 'stash' | 'mecenat';
@@ -245,7 +244,7 @@ function refusDeDepot(s: EtatDeDepot, heroId: string, kind: GenreDeDepot, montan
   if (kind === 'invest' && actorStatus(h).tier === 'bronze') return t('if.bankTierKo', { name: h.label });
   if (kind === 'mecenat') {
     const def = activiteDeMecenat();
-    if (!def || !activityAvailableAt(def, currentPlaceId(s))) return t('if.mecenatHorsLieu');
+    if (!def || !activityAvailableAt(def, s.lieu)) return t('if.mecenatHorsLieu');
     const min = toBrass(toMoney(def.minInvest ?? {}));
     if (montant < min) return t('if.mecenatMin', { min: formatMoney(fromBrass(min)) });
   }
@@ -408,7 +407,7 @@ export function refusDOuvertureDActivite(s: EtatDeDepot, heroId: string, def: Ac
   if (!def.contexts.includes('interlude') || def.blocked) return t('if.activiteFermee', { label: def.label });
   if (ouverture === 'horsCatalogue') return t('if.horsCatalogue', { label: def.label });
   if (ouverture === 'voie' && !def.tests?.length) return t('if.activiteSansCompetence', { label: def.label });
-  if (!activityAvailableAt(def, currentPlaceId(s))) return t('if.placeOnly', { label: def.label });
+  if (!activityAvailableAt(def, s.lieu)) return t('if.placeOnly', { label: def.label });
   if (def.resolver === 'dissensionEmeute' && !s.interlude?.perHero[heroId]?.dissensionReady) return t('if.dissensionNotReady', { name: h.label });
   return refusDeCibleDActivite(s, h, def, opts) ?? preJetDActivite(s, heroId, def, opts)?.refus ?? refusDeReussiteSansObjet(h, def, opts);
 }

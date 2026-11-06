@@ -22,10 +22,8 @@ import { battleActivityById, battlePrepEntries, preJetDePreparation, refusDePrep
 import careers from '../data/careers.json';
 import type { Combatant, Difficulty, ItemInstance } from '../engine/types';
 import type { ActivityDef } from '../engine/activities';
-import type { WorldMap } from './worldMap';
 
 const SCENE = { ...emptyScene('altdorf-centre', 2, 2), label: 'Altdorf', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] };
-const CARTE: WorldMap = { id: 'w', label: 'Monde', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: SCENE.id }], routes: [] };
 
 const COUTEAU_DE_HARALD = { uid: 'arme-1', trappingId: 'couteau-de-harald', label: 'Couteau de Harald', kind: 'melee', qualities: [], enc: 0, equipped: false, requiresMastery: true } as unknown as ItemInstance;
 const AMULETTE = { uid: 'art-1', label: 'Amulette étrange', kind: 'trapping', qualities: [], enc: 0, equipped: false, identified: false } as unknown as ItemInstance;
@@ -51,7 +49,7 @@ function vétéran(seed = 1601, instruit = false): Combatant {
 
 /** Un banc à Altdorf, dés d'Événement posés, sur `party`. */
 function banc(party: Combatant[]): Banc {
-  const b = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party, scene: SCENE, worldMap: CARTE } });
+  const b = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party, scene: SCENE, lieu: 'altdorf' } });
   b.actions.startInterlude(3);
   draineCascade(b.getState);
   expect(b.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');

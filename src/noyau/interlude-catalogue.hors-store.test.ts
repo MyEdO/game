@@ -22,10 +22,8 @@ import type { PsychTrait } from '../engine/psychology';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { applyOps } from '../engine/ops';
 import { makeRNG } from '../engine/dice';
-import type { WorldMap } from './worldMap';
 
 const SCENE = { ...emptyScene('altdorf-centre', 2, 2), label: 'Altdorf', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] };
-const carte = (lieu: string): WorldMap => ({ id: 'w', label: 'Monde', places: [{ id: lieu, label: lieu, pos: { x: 0, y: 0 }, scene: SCENE.id }], routes: [] });
 
 /** Une armure qui se dit « inhabituelle » : la donnée le permet à tout objet, la maîtrise ne vise que les armes. */
 const ARMURE_INHABITUELLE = { uid: 'armure-1', trappingId: 'armure-etrange', label: 'Armure étrange', kind: 'armour', qualities: [], enc: 0, equipped: false, requiresMastery: true } as unknown as ItemInstance;
@@ -44,7 +42,7 @@ function auLieu(fiche: Fiche = {}, favors: (heroId: string) => Favor[] = () => [
     h.talents.push({ talentId: fiche.magie.talent, spec: fiche.magie.spec, times: 1 } as never);
     h.spells = fiche.magie.sorts;
   }
-  const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h], scene: SCENE, worldMap: carte(lieu), favors: favors(h.id) } });
+  const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h], scene: SCENE, lieu, favors: favors(h.id) } });
   banc.actions.startInterlude(3);
   draineCascade(banc.getState);
   expect(banc.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
@@ -232,7 +230,7 @@ describe('Mécénat — le retrait s’ouvre comme son Activité (ACE 12 l.47-49
     const { banc, heroId } = auLieu();
     banc.actions.interludeBank(heroId, 'mecenat', 1200);
     expect(banc.getState().bank.map((d) => d.kind), 'témoin : le dépôt de Mécénat est fait à Altdorf').toEqual(['mecenat']);
-    banc.setState(() => ({ worldMap: carte('ubersreik') }));
+    banc.setState(() => ({ lieu: 'ubersreik' }));
     const ecran = refusDeRetrait(banc.getState(), 0);
     expect(ecran).toBe('Mécénat n\'est praticable qu\'en un lieu précis — pas ici.');
     expect(refuse(banc, () => banc.actions.interludeWithdraw(0))).toEqual([ecran]);

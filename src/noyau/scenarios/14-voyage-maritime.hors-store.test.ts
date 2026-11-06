@@ -40,7 +40,7 @@ function sleepThroughHalt(): void {
 function sailToPort(maxSteps = 400): string[] {
   const kinds: string[] = [];
   for (let i = 0; i < maxSteps; i++) {
-    if (!get().travelPlan && get().scene?.id === 'test-mer-arrivee') break; // arrivé
+    if (!get().travelPlan && get().lieu === 'p-marienburg') break; // arrivé
     if (get().pendingCascade) {
       const k = avanceEtapeCascade(get);
       if (k !== undefined) kinds.push(k);
@@ -136,7 +136,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
 
     // ARRIVÉE : la traversée est finie, on est à Marienburg, plusieurs jours ont passé.
     expect(get().travelPlan).toBeNull();
-    expect(get().scene?.id).toBe('test-mer-arrivee');
+    expect(get().lieu).toBe('p-marienburg');
     expect(get().gameTime - t0).toBeGreaterThan(24 * 60); // plus d’un jour de mer
     expect(kinds).toContain('sea-epuisement'); // la Timonière manie la voile chaque jour navigable (MDG 13 l.111)
     // Les Tests d’équipage de VOYAGE ont bien été joués (Progression quotidienne, Orientation).
@@ -150,7 +150,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
   it('à quai : l’écran Port ouvre et propose réparation + offres de commerce', () => {
     get().startTravel('route-marienburg', 'mer');
     sailToPort();
-    expect(get().scene?.id).toBe('test-mer-arrivee');
+    expect(get().lieu).toBe('p-marienburg');
 
     // Coque endommagée persistée sur le navire de campagne → réparable au chantier (1 CO/Blessure).
     const woundsBefore = get().vessel!.wounds!.current;

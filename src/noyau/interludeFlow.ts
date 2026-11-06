@@ -55,7 +55,6 @@ import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
 import { findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
-import { currentPlaceId } from './worldMap';
 import { findTableEntry } from '../engine/tables';
 import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
@@ -444,8 +443,8 @@ export function craftStart(get: Get, set: Set, heroId: string, trappingId: strin
  *  la préparation de bataille se joue DANS le menu d'Activités, pas sur un écran à part (ADE II 8 l.65 :
  *  budget d'Activités UNIQUE). Le rendu gate les prérequis (Infiltration ⇐ Planification, Sabotage ⇐
  *  Repérage) et l'anti-répétition — cf. `battlePrepEntries`. Sans bataille pendante, catalogue inchangé. */
-export function interludeCatalog(s: Pick<Jeu, 'scene' | 'worldMap' | 'massBattle'>): ActivityDef[] {
-  const place = currentPlaceId(s);
+export function interludeCatalog(s: Pick<Jeu, 'lieu' | 'massBattle'>): ActivityDef[] {
+  const place = s.lieu;
   const base = activitiesFor('interlude').filter((d) => activityAvailableAt(d, place));
   if (s.massBattle?.phase !== 'prep') return base;
   return [...base, ...battlePrepEntries(s.massBattle).map((e) => e.def)];

@@ -20,7 +20,8 @@ import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { garanti } from '../lib/garanti';
 import { checkPartyWiped } from './partyWipe';
-import { placeById, placeOfScene, visiblePlaces, type WorldMap, type MapPlace } from './worldMap';
+import { arriverAuLieu } from './lieuFlow';
+import { lieuDuGroupe, placeById, visiblePlaces, type WorldMap, type MapPlace } from './worldMap';
 import { condCtx } from './bourseFlow';
 import { testValue } from '../engine/skills';
 import { isOutOfAction } from '../engine/conditions';
@@ -58,7 +59,7 @@ function nearestPlaceTo(places: MapPlace[], pos: { x: number; y: number }): MapP
 }
 
 /** Lieu d'échouage : le plus proche de la position estimée sur la traversée (`kmDone/km` interpolé entre
- *  départ et arrivée), sinon le lieu de la scène courante. `undefined` = pas de carte (on reste sur place). */
+ *  départ et arrivée), sinon le lieu où se tient le groupe. `undefined` = pas de carte (on reste sur place). */
 function shorePlace(get: Get): MapPlace | undefined {
   const map = get().worldMap as WorldMap | undefined;
   if (!map) return undefined;
@@ -72,7 +73,7 @@ function shorePlace(get: Get): MapPlace | undefined {
       return nearestPlaceTo(visiblePlaces(map, condCtx(get)), est);
     }
   }
-  return placeOfScene(map, get().scene?.id);
+  return lieuDuGroupe(get());
 }
 
 /**
@@ -190,7 +191,7 @@ function emitShipwreckLines(get: Get, lines: string[]): void {
 }
 
 /** Clôture commune (inline ET cascade) : rescapés déduits de `swimmerIds` (les vivants parmi eux),
- *  échouage au rivage le plus proche + transition, modale document (texte = la tranche de journal
+ *  échouage au rivage le plus proche (`arriverAuLieu`), modale document (texte = la tranche de journal
  *  DÉJÀ écrite depuis `journalMark`, complétée des lignes renvoyées ICI), puis `checkPartyWiped`.
  *  Renvoie les lignes à journaliser par l'appelant (dans le BON ordre — cascade : via le retour
  *  d'applier ; inline : via `emitShipwreckLines`). */
@@ -204,7 +205,7 @@ function finishShipwreck(get: Get, set: Set, shore: MapPlace | undefined, swimme
     ? t('wreck.survivors', { names: survivors.join(', '), place: shore.label })
     : t('wreck.noSurvivor'));
   // #686
-  if (survivors.length && shore) get().transitionTo(shore.scene, shore.entry);
+  if (survivors.length && shore) arriverAuLieu(set, shore);
   get().remettreDocument({ title: t('wreck.title'), text: [...get().journal.slice(journalMark), ...lines].join('\n\n') });
   // Aucun survivant → défaite hors combat (écran unique `checkPartyWiped`).
   checkPartyWiped(get, set);

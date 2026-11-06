@@ -250,6 +250,7 @@ export const fr = {
   'verbe.jeuxDeTaverne.fermer': 'Quitter la table',
   'verbe.document.fermer': 'Refermer',
   'verbe.carteDuMonde.fermer': 'Fermer la carte',
+  'verbe.ecranDuLieu.fermer': 'Explorer',
   'verbe.port.fermer': 'Quitter le port',
   'verbe.marcheDeTerre.fermer': 'Quitter le marché',
   'verbe.recitDeVoyage.fermer': 'Continuer',
@@ -410,6 +411,7 @@ export const fr = {
   'fenetre.jeuxDeTaverne': 'Jeux de taverne',
   'fenetre.document': 'Document',
   'fenetre.carteDuMonde': 'Carte du monde',
+  'fenetre.ecranDuLieu': 'Lieu',
   'fenetre.port': 'Port',
   'fenetre.marcheDeTerre': 'Marché',
   'fenetre.recitDeVoyage': 'Récit de voyage',
@@ -1404,6 +1406,7 @@ export const fr = {
   'exploration.ailleurs': '{geste} depuis ({x},{y})',
   'exploration.offre': '{porteur} : {action}',
   'exploration.carte': 'Carte du monde',
+  'exploration.lieu': 'Le lieu',
   'exploration.figurantMuet': '{who} n’a rien à vous dire.',
   'saut.horsDuGroupe': 'Saut refusé : il part de la case du groupe.',
   'saut.horsDePortee': 'Saut refusé : aucun saut ne mène à cette case.',
@@ -3291,6 +3294,9 @@ export const fr = {
   // MDG 12 l.70-75 / MDG 15 l.319-399, MDG 14 l.293-302). `port.bargainLine` sert l'ACHAT et la VENTE
   // (le signe et l'issue sont portés par l'appelant) ; « Ragot » vient de `skills.json`.
   'lieu.repos': 'Repos',
+  'lieu.entrer': 'Entrer',
+  'lieu.dormir': 'Dormir',
+  'lieu.informations': 'Recueillir des informations',
   'crew.paieHorsBourse': 'Bourse insuffisante.',
   'sv.benedictionHorsBourse': 'La bourse ne suit pas.',
   'port.roleSansSolde': '{role} : aucun barème de solde, rôle non recrutable.',

@@ -26,7 +26,8 @@ import { battleRng } from './battleRng';
 import { minutesUntilNext, duskMinute } from '../engine/clock';
 import { effectTargets, openWaterExposure } from './combatEffects';
 import { openRest, placesOfKind, routeLieu } from './restFlow';
-import { placeById, type MapRoute, type WorldMap } from './worldMap';
+import { placeById, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import { arriverAuLieu } from './lieuFlow';
 import { damageVesselHull, healVesselHull, syncHullWoundsFromVessel, spoilVesselCargoOnLeak } from './seaVoyageFlow';
 import { baseHoursPerDay } from './travelFlow';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
@@ -136,10 +137,6 @@ export interface RiverDayContext {
   forceDrift: boolean;
   /** Le vent impose un louvoyage (Modéré/Fort de côté) : le `windPct` n'est acquis qu'avec `riverTack` réussi. */
   tack?: boolean;
-  /** Libellé de destination (repris à la clôture pour la halte/arrivée). */
-  toScene: string;
-  toEntry?: string;
-  toLabel: string;
   /** Longueur du journal au DÉBUT du jour (repère) : le RÉCAP de la halte (`TravelRecapDay.lines`,
    *  affiché en tête de la modale de nuit) = la tranche de journal écrite depuis ce repère. */
   journalMark: number;
@@ -219,13 +216,13 @@ export function runRiverDays(get: Get, set: Set): void {
   const to = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
   if (!route || !to) { set({ travelPlan: null }); return; }
   if (plan.km - plan.kmDone < 1e-9) { arriveRiver(get, set, to); return; }
-  resolveRiverDay(get, set, route, to);
+  resolveRiverDay(get, set, route);
 }
 
-function arriveRiver(get: Get, set: Set, to: { scene: string; entry?: string; label: string }): void {
+function arriveRiver(get: Get, set: Set, to: MapPlace): void {
   set({ travelPlan: null });
   log(get, set, [t('rv.arrive', { to: to.label })]);
-  get().transitionTo(to.scene, to.entry);
+  arriverAuLieu(set, to);
 }
 
 /** Meilleur pilote (barreur/rameur) de l'équipage apte avec Soutien (LDB 12) pour la Compétence de Navigation. */
@@ -243,8 +240,8 @@ function riverPilot(get: Get, competence: RefDesignee) {
  * → `continueRiverDayAfterCascade`), le store calcule les km du jour à partir des résultats d'étape
  * — SEUL endroit où ils se calculent — puis enchaîne la halte de nuit ou l'arrivée.
  */
-function resolveRiverDay(get: Get, set: Set, route: MapRoute, to: { scene: string; entry?: string; label: string }): void {
-  const { steps, log: lines } = buildRiverDayCascade(get, set, route, to);
+function resolveRiverDay(get: Get, set: Set, route: MapRoute): void {
+  const { steps, log: lines } = buildRiverDayCascade(get, set, route);
   for (const l of lines) log(get, set, [l]);
   if (!steps.length) {
     // Aucun jet influençable (bateau coulé d'entrée, personne à la barre) : on finalise directement,
@@ -312,7 +309,7 @@ function riverPropulsion(hull: Combatant | undefined): PropulsionDuNavire {
  * (`river.day`) que la clôture relira pour les km. Renvoie aussi les lignes de journal d'ambiance
  * (vent du jour) déjà connues. Consomme ZÉRO RNG (les jets vivent dans les étapes / appliers).
  */
-export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { scene: string; entry?: string; label: string }): { steps: BuiltCascadeStep[]; log: string[] } {
+export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { steps: BuiltCascadeStep[]; log: string[] } {
   const plan = get().travelPlan!;
   const river = plan.river!;
   const worldMap = get().worldMap as WorldMap;
@@ -336,7 +333,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
   // % de vent, louvoyage requis. Les appliers le complètent (perte de contrôle, chavirage → dérive).
   const dayCtx: RiverDayContext = {
     baseKm, windPct: eff.pct ?? 0, forceDrift: !!eff.drift || !!river.outOfControl || !!river.broken,
-    tack: !!eff.tack, toScene: to.scene, toEntry: to.entry, toLabel: to.label, journalMark: get().journal.length,
+    tack: !!eff.tack, journalMark: get().journal.length,
   };
   set({ travelPlan: { ...get().travelPlan!, river: { ...river, day: dayCtx } } });
 
@@ -449,9 +446,7 @@ export function continueRiverDayAfterCascade(get: Get, set: Set): void {
   const ctx = river.day;
   const worldMap = get().worldMap as WorldMap;
   const route = worldMap?.routes.find((r) => r.id === plan.routeId);
-  const to = ctx
-    ? { scene: ctx.toScene, entry: ctx.toEntry, label: ctx.toLabel }
-    : (worldMap ? placeById(worldMap, plan.toPlaceId) : undefined);
+  const to = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
   if (!route || !to) { set({ travelPlan: null }); return; }
 
   const sunk = !!river.sunk;
@@ -811,7 +806,7 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
 /** Fin de journée : horloge avancée (arrivée = +24 h ; halte = jusqu'au crépuscule), puis arrivée ou
  *  halte de nuit (la coque est déjà PERSISTÉE au coup par coup, `damageVesselHull`/`healVesselHull`,
  *  #296). L'entretien du jour se résout dans la cascade de nuit. */
-function finishRiverDay(get: Get, set: Set, to: { scene: string; entry?: string; label: string }, kmDay: number, dayLines: string[]): void {
+function finishRiverDay(get: Get, set: Set, to: MapPlace, kmDay: number, dayLines: string[]): void {
   const plan = get().travelPlan!;
   const river = plan.river!;
 

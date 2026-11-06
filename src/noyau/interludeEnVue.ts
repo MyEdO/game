@@ -54,7 +54,7 @@ export interface HerosDInterlude {
 /** L'interlude ouvert : sa durée en semaines, ses héros, ses dépôts en banque. */
 export interface InterludeEnVue { semaines: number; heros: HerosDInterlude[]; depots: GesteDInterlude[] }
 
-type Etat = Pick<Jeu, 'interlude' | 'party' | 'bank' | 'scene' | 'worldMap' | 'massBattle' | 'favors'>;
+type Etat = Pick<Jeu, 'interlude' | 'party' | 'bank' | 'lieu' | 'massBattle' | 'favors'>;
 
 const activite = (id: string): ActivityDef => garanti(activityById(id), id, 'Activité d’interlude');
 

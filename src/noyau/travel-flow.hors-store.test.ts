@@ -184,7 +184,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     get().startTravel('r1', 'pied');
     drainCascade();
     const st = get();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     expect((st.party[0].items ?? []).length).toBe(1); // ration trouvée
     const j = st.journal.join('\n');
     // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — succès sans effet PROPRE (le
@@ -229,7 +229,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     get().startTravel('r1', 'pied');
     drainCascade();
     const st = get();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     expect(st.party[0].conditions.some((c) => c.id === 'extenue')).toBe(false); // Survie réussie → pas d'Exténué
     const j = st.journal.join('\n');
     expect(j).toContain('Voyage éreintant');
@@ -244,7 +244,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     get().startTravel('r1', 'pied');
     drainCascade();
     const st = get();
-    expect(st.scene?.id).toBe('lieu-b-scene');
+    expect(st.lieu).toBe('pb');
     expect(st.party[0].wounds.current).toBe(12); // soin total (non-régression sans munition logée)
     expect(st.journal.join('\n')).toContain('Hilda récupère toutes ses Blessures.');
   });
@@ -313,7 +313,7 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
     // Dormir puis reprendre : arrivée.
     runToEnd();
     expect(get().travelPlan).toBeNull();
-    expect(get().scene?.id).toBe('lieu-b-scene');
+    expect(get().lieu).toBe('pb');
   });
 
   it('péripétie de combat pendant le jour : le voyage est INTERROMPU (recap.then), pas de halte', () => {
