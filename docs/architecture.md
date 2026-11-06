@@ -472,6 +472,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             une liste `ResolvedPlaceService[]` — payloads RÉFÉRENCÉS, jamais recopiés (zéro
                             duplication de vérité). Consommée par le hub de lieu (#343) et l'auberge ; les
                             consommateurs actuels (portFlow/landMarketFlow/restPlacesHere) restent inchangés.
+  worldMapEdit.ts           ÉCRIVAINS PURS de la carte du monde (WorldMap → WorldMap) que l'éditeur appelle :
+                            patchs, ajout de lieu (bornes `BORNES_DE_CARTE`, décalage, libellé de la semence),
+                            liaison dédoublonnée par sens, suppressions en cascade (routes, `suite` des billets).
   combatFlow.ts               flux de combat tour par tour (IA, attaques, effets, fin de combat).
                               Les clusters FEUILLES extraits sont des modules séparés, que chaque importeur
                               nomme directement : monde/combatGeometry.ts (géométrie pure),

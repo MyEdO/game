@@ -3,7 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
  * Schéma de `characteristics.json` — l'EXEMPLAIRE de la convention des defs de schéma (Lot 1 du
  * contrat de donnée). Dérivé du contenu RÉEL du JSON (10 caracs à jet + Blessure/Destin/Chance/
  * Résilience/Détermination/Extra Points/Mouvement/Corruption/Péché) et de son seul consommateur typé,
- * `src/ui/compendium/registry.ts` (`{ label, abr?, nature?, desc?, source? }`, `c.nature === 'roll'`).
+ * `src/noyau/codex/registry.ts` (`{ label, abr?, nature?, desc?, source? }`, `c.nature === 'roll'`).
  */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';

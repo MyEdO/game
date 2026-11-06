@@ -145,10 +145,10 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     state: { pendingReload: { actorId: 'H', actorName: 'H', weaponUid: 'w', reload: 1, progressBefore: 0, skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingReload'),
   },
-  handGate: { state: { pendingHandGate: { attackerId: 'H', skillValue: T, difficulty: 'intermediaire', ...rate } }, read: flatRead('pendingHandGate') },
+  handGate: { state: { pendingHandGate: { attackerId: 'H', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } }, read: flatRead('pendingHandGate') },
   steamSave: { state: { pendingSteamSave: { actorId: 'H', skillValue: T, difficulty: 'intermediaire', ...rate } }, read: flatRead('pendingSteamSave') },
   appraise: {
-    state: { pendingAppraise: { actorId: 'H', actorName: 'H', itemUid: 'x', itemName: 'x', truePriceBrass: 1, availability: 'Rare', skillValue: T, difficulty: 'intermediaire', ...rate } },
+    state: { pendingAppraise: { actorId: 'H', actorName: 'H', itemUid: 'x', itemName: 'x', truePriceBrass: 1, availability: 'Rare', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
     read: flatRead('pendingAppraise'),
   },
   heal: {
@@ -156,7 +156,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: flatRead('pendingHeal'),
   },
   surgery: {
-    state: { pendingSurgery: { healerId: 'H', healerName: 'H', targetId: 'H', targetName: 'H', kind: 'surgery', skillValue: T, difficulty: 'intermediaire', ...rate } },
+    state: { pendingSurgery: { healerId: 'H', healerName: 'H', targetId: 'H', targetName: 'H', kind: 'surgery', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
     read: flatRead('pendingSurgery'),
   },
   // Exposition à une Influence corruptrice (LDB 19 l.29) : un Test, donc la Résilience (LDB 17 l.68) et son

@@ -7,7 +7,7 @@ import { Modal } from './Modal';
 import { CharFrame } from './CharFrame';
 import { summarizeEffects, combatantFlags } from '../gameIso/effectIcons';
 import { CodexSections } from './compendium/CodexEntry';
-import { combatantSections, proseDeFiche } from './compendium/registry';
+import { combatantSections, proseDeFiche } from '../noyau/codex/registry';
 import { Tabs } from './composites/Tabs';
 import { EffectChips } from './EffectChips';
 import { isFrenzied } from '../engine/psychology';

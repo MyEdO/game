@@ -544,7 +544,7 @@ export const victoryConditionSchema = z.discriminatedUnion('type', [
   nommerChamps(z.strictObject({ type: z.literal('surviveRounds'), rounds: z.number() }), { type: { label: "type"  }, rounds: { label: "Rounds" } }),
   nommerChamps(z.strictObject({
     type: z.literal('reachZone'),
-    rect: nommerChamps(z.strictObject({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, w: { label: "largeur" }, h: { label: "hauteur" } }),
+    rect: architectureRectSchema,
     camp: campSchema.optional(),
   }), { type: { label: "type"  }, rect: { label: "rectangle" }, camp: { label: "camp"  } }),
   /** Reddition à seuil de dommage partiel (#215) — `targetId` = `SceneEntity.id`. */
@@ -775,7 +775,7 @@ const cleDArete = { nom: 'x,y,side,z', de: (w: z.infer<typeof wallSegSchema>): s
  *  côté consommateur. */
 export const sceneStationAnchorSchema = nommerChamps(z.strictObject({
   sceneId: z.string(),
-  pos: nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } }),
+  pos: ptSchema,
 }), { sceneId: { label: "scène" , texte: { regime: "technique"} }, pos: { label: "position" } });
 
 /** Les trois BLOCS DE LOGIQUE d'une scène, listes à clé : la scène les compose, et la modale « Avancé »
@@ -854,7 +854,7 @@ export const sceneSchema = nommerChamps(z.strictObject({
   stations: listeCle(sceneStationAnchorSchema, 'sceneId').optional(),
   flags: z.record(z.string(), z.boolean()).optional(),
   /** Points d'arrivée nommés — `z` = étage visé (défaut 0, #835 FU-5). */
-  entryPoints: z.record(z.string(), nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } })).optional(),
+  entryPoints: z.record(z.string(), ptSchema).optional(),
   startMessage: messageIntroductionSchema.optional(),
   couvre: couvreSchema.optional(),
   /** Groupes que porte le lieu, source psychologique de la scène (`etiquetteDeScene`). #3045 */

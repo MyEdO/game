@@ -3,7 +3,7 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  * RULE_REF (#1078 LOT B3a) — CLIQUET NOMINATIF : le stock des producteurs de `ModLine` SANS `ref`
  * est ÉNUMÉRÉ, `fichier:label` par `fichier:label`. Lier une règle de plus retire sa ligne du stock
  * (la liste DÉCROÎT) ; en pousser une nouvelle SANS `ref` échoue immédiatement. L'INTÉGRITÉ des
- * renvois au Codex : `src/ui/compendium/codex-rule-refs.test.ts`.
+ * renvois au Codex : `src/noyau/codex/codex-rule-refs.test.ts`.
  *
  * PÉRIMÈTRE (#1117 L5a) — TOUT `src/**` hors `*.test.*`, jamais une liste de fichiers producteurs :
  * une `ModLine` naît aussi bien dans une modale (`ui/FocusModal.tsx`) que dans le moteur, et un

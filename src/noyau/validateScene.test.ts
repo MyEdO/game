@@ -1,7 +1,7 @@
 import { flowFromEffects, testFlow } from './monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { describe, it, expect } from 'vitest';
-import { validateScene, type Warning } from './validateScene';
+import { architectureSelectionForWarning, validateScene, type Warning } from './validateScene';
 import { emptyNarratif } from './monde/campaignNarratif';
 import { resolveStake, matieresDe, findTrappingById } from '../data';
 import { emptyScene, type Scene } from './monde/scene';
@@ -651,5 +651,42 @@ describe('validateScene — assise authorée (`Scene.seatAssignments`)', () => {
 
   it('une place tenue par le GROUPE ne réclame aucune entité de scène', () => {
     expect(validateScene([attable({ 'table-1': { 'place-2': { kind: 'party', rang: 1 } } })])).toEqual([]);
+  });
+});
+
+describe('validateScene — point d’entrée hors de la convention de pose (`borneALaCarte`)', () => {
+  const entrees = (entryPoints: Scene['entryPoints']) =>
+    validateScene([{ ...base(), entryPoints }]).filter((w) => w.message.startsWith('Point d\'entrée'));
+
+  it('signale un point d’entrée hors carte ou hors d’une case entière, rattaché à son id', () => {
+    const avis = entrees({ dehors: { x: 5, y: 0 }, negatif: { x: 1, y: -1 }, demi: { x: 1.5, y: 2 } });
+    expect(avis.map((w) => [w.level, w.scope, w.refId])).toEqual([
+      ['warn', 'scene', 'dehors'], ['warn', 'scene', 'negatif'], ['warn', 'scene', 'demi'],
+    ]);
+    expect(avis[0].message).toContain('(5,0)');
+  });
+
+  it('un point d’entrée posé sur une case de la carte, à tout étage, ne dit rien', () => {
+    expect(entrees({ coin: { x: 4, y: 4 }, origine: { x: 0, y: 0 }, etage: { x: 2, y: 2, z: 1 } })).toEqual([]);
+  });
+});
+
+describe('architectureSelectionForWarning', () => {
+  it('sélectionne une cible architecturale de warning par ids stables', () => {
+    expect(architectureSelectionForWarning({
+      level: 'error',
+      sceneId: 'scene',
+      scope: 'architecture',
+      refId: 'feature-0',
+      message: 'Feature invalide',
+      architectureRef: { type: 'facadeSection', bodyId: 'corps-0', id: 'facade-0' },
+    })).toEqual({ type: 'facadeSection', bodyId: 'corps-0', id: 'facade-0' });
+  });
+
+  it('un avertissement hors architecture ne sélectionne rien', () => {
+    expect(architectureSelectionForWarning({
+      level: 'error', sceneId: 'scene', scope: 'entity', refId: 'e', message: 'x',
+      architectureRef: { type: 'architectureBody', id: 'corps-0' },
+    })).toBeNull();
   });
 });

@@ -266,16 +266,14 @@ export function openSurgeryPass(get: Get, set: Set): void {
   if (!m || !sg || get().pendingSurgery) return;
   const patient = get().party.find((h) => h.id === m.patientId);
   if (!patient) { set({ medic: { ...m, surgery: undefined } }); return; }
+  // Difficulté de l'opération (Rééducation = Accessible) : LDB 18 l.120, l.179. `sg.skill` est la valeur FIGÉE à
+  // l'armement : la ligne se monte sans fiche vivante.
+  const ligne = ligneDuSoigneur({ skill: sg.skill, support: sg.support }, sg.difficulty);
   set({
     pendingSurgery: {
       healerId: sg.healerId ?? 'pnj-soigneur', healerName: sg.healerName,
       targetId: patient.id, targetName: patient.label,
-      skillValue: sg.skill, support: sg.support, intBonus: sg.intBonus, difficulty: sg.difficulty,
-      // La cible PORTE la Difficulté de l'opération (Rééducation = Accessible, `LDB 18 l.120/179`) : c'est
-      // celle que `rollTest` jettera (`FLOWS.surgery`, `simpleTestResolve`). `sg.skill` est l'instantané
-      // FIGÉ à l'armement (le chirurgien peut avoir changé d'État depuis) : aucune fiche vivante à en
-      // déduire, la valeur reste celle de l'opération engagée.
-      ...cibleMesuree(ligneDuSoigneur({ skill: sg.skill, support: sg.support }, sg.difficulty)),
+      intBonus: sg.intBonus, ligne, ...cibleMesuree(ligne),
       roll: null, success: false, sl: 0,
       traumaIdx: sg.traumaIdx, targetDR: sg.targetDR, cumDR: sg.cumDR, paidCost: sg.paidCost,
     },

@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
-import { enumNomme } from '../grammaire/valeurs';
+import { enumNomme, pointDuCanevasSchema } from '../grammaire/valeurs';
 import { routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
 import { idDe, recordDIds, refs } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
@@ -100,8 +100,8 @@ export const placePoiSchema = nommerChamps(z
   .strictObject({
     id: z.string(),
     label: z.string(),
-    /** Coordonnées PLAN-LOCALES 0-100, indépendantes de `MapPlace.pos`. */
-    pos: nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } }),
+    /** Coordonnées PLAN-LOCALES, indépendantes de `MapPlace.pos`. */
+    pos: pointDuCanevasSchema,
     icon: z.string().optional(),
     sceneId: z.string().optional(),
     serviceKind: z.string().optional(),
@@ -119,8 +119,8 @@ export const placePoiSchema = nommerChamps(z
 export const mapPlaceSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
-  /** Position sur la carte en % du canvas (0-100). */
-  pos: nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } }),
+  /** Position sur la carte du monde. */
+  pos: pointDuCanevasSchema,
   /** Scène liée (id du registre de scènes du projet). */
   scene: z.string(),
   entry: z.string().optional(),

@@ -31,7 +31,7 @@ describe('noeudTest — `difficulteRequise` resserre le nœud PARTAGÉ, pour son
     const r = noeudTest(flowSchema, { difficulteRequise: true }).safeParse(SANS_DIFFICULTE);
     expect(r.success, 'le nœud resserré a ACCEPTÉ un jet sans Difficulté').toBe(false);
     expect(issues(r)).toEqual([
-      'test.difficulty: nœud `test` à difficulté REQUISE : `difficulty` absente — un site sans Difficulté n’est pas une épreuve.',
+      'test.difficulty: Test : `difficulty` exigée.',
     ]);
   });
 

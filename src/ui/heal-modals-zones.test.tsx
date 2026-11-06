@@ -140,7 +140,7 @@ describe('Chirurgie (MedicModal → useSurgeryJetProps) — la Difficulté vit s
       },
       pendingSurgery: {
         healerId: surgeon.id, healerName: surgeon.label, targetId: patient.id, targetName: patient.label,
-        kind: 'surgery', skillValue: 45, intBonus: 4, difficulty: DIFF, target: 65, roll: null, success: false, sl: 0,
+        kind: 'surgery', ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, intBonus: 4, target: 65, roll: null, success: false, sl: 0,
         traumaIdx: 0, targetDR: 6, cumDR: 2,
       },
     } as never);
@@ -219,7 +219,7 @@ describe('infirmerie — les gestes du jet posé sont au PIED de la boîte des s
       },
       pendingSurgery: {
         healerId: surgeon.id, healerName: surgeon.label, targetId: patient.id, targetName: patient.label,
-        kind: 'surgery', skillValue: 45, intBonus: 4, difficulty: DIFF, target: 65, roll: null, success: false, sl: 0,
+        kind: 'surgery', ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, intBonus: 4, target: 65, roll: null, success: false, sl: 0,
         traumaIdx: 0, targetDR: 6, cumDR: 2,
       },
     } as never);

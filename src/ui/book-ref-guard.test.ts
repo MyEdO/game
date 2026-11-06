@@ -75,6 +75,14 @@ const BOOK_REF = new RegExp(`\\b(${SIGLES})\\s+\\d+|\\((?:${SIGLES})\\)`);
 const AUTHORING_DIRS = ['src/ui/compendium/', 'src/ui/editor/'];
 
 /**
+ * Le Codex hors `src/ui` : sa PROJECTION vit au noyau (`src/noyau/codex/`, #3059) et ses libellés de fiche au
+ * catalogue sous le préfixe `codex.fiche.` (`registry.ts`). Même surface de citation que `src/ui/compendium/`,
+ * même dispense de PÉRIMÈTRE (répertoire, préfixe de clé), jamais une liste de clés.
+ */
+const CODEX_DU_NOYAU = 'src/noyau/codex/';
+const CLES_DU_CODEX = 'codex.fiche.';
+
+/**
  * PUITS DE DIAGNOSTIC — `throw`, `new …Error(…)`, `console.*(…)` et `garanti` (`src/lib/garanti.ts` : « un
  * défaut interne […] — jamais un affichage »). Leur texte n'est pas muet : un `throw` du noyau remonte
  * au CANAL DE DÉFAUT des hôtes — `envoyerLIntention` (`src/hote/geste.ts:184`) le relaie en
@@ -101,6 +109,7 @@ function renderedBookRefs(file: string, src: string, sf = ast({ rel: file, text:
   const hits: { line: number; text: string }[] = [];
   const visit = (node: ts.Node): void => {
     if (horsDiagnostic && estPuitsDeDiagnostic(node, sf)) return;
+    if (ts.isPropertyAssignment(node) && ts.isStringLiteral(node.name) && node.name.text.startsWith(CLES_DU_CODEX)) return;
     let text: string | null = null;
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) text = node.text;
     else if (ts.isJsxText(node)) text = node.text;
@@ -154,6 +163,7 @@ describe('réfs de livre — réservées au Codex et aux surfaces d’authoring 
   it.each(PERIMETRES_DE_JEU)('aucun texte joueur du périmètre $nom ne porte une référence de livre (#3059)', ({ racines, horsDiagnostic }) => {
     const offenders: string[] = [];
     for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus([...racines]))) {
+      if (rel.startsWith(CODEX_DU_NOYAU)) continue;
       for (const h of renderedBookRefs(rel, text, sourceFile!, horsDiagnostic)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
     }
     expect(offenders, `Réf de livre dans un texte joueur (${CONSIGNE}) :\n${offenders.join('\n')}`).toEqual([]);
@@ -171,6 +181,18 @@ describe('réfs de livre — réservées au Codex et aux surfaces d’authoring 
     const lignes = (horsDiagnostic: boolean) => renderedBookRefs('__probe.ts', texte, undefined, horsDiagnostic).map((h) => h.line);
     expect(lignes(true)).toEqual([1, 5]);
     expect(lignes(false)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('au catalogue, seule une clé de fiche du Codex (`codex.fiche.`) cite sa source (#3059)', () => {
+    const sigle = REGISTRE_LIVRES.find((b) => b.abbr)!.abbr!;
+    const catalogue = [
+      `export const fr = {`,
+      `  'codex.fiche.table': 'Table du Codex (${sigle} 13)',`,
+      `  'codex.op.degats': 'inflige des Dégâts (${sigle} 13)',`,
+      `  'log.coup': 'Le coup porte (${sigle} 13)',`,
+      `};`,
+    ].join('\n');
+    expect(renderedBookRefs('__catalogue.ts', catalogue).map((h) => h.line)).toEqual([3, 4]);
   });
 
   it('le détecteur voit RÉELLEMENT une réf rendue (et ignore les commentaires)', () => {

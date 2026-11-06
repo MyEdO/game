@@ -117,9 +117,10 @@ describe('Main ensanglantée (`poserLeTestDeMain`) — cible montée sur la vale
 
     openAttackCascade(get, set, { attackerId: 'br', targetId: 'br', location: null, result: null } as never, 'Attaquer', 'action/attack');
     const pg = get().pendingHandGate!;
-    expect(pg.skillValue).toBe(dex);
+    expect(pg.ligne.base + pg.ligne.mods.reduce((n, m) => n + m.value, 0)).toBe(dex);
     expect(pg.target).toBe(clampTarget(dex + DIFFICULTY_MODIFIERS.accessible).target);
-    expect(inexplique({ base: pg.skillValue, target: pg.target, difficulty: pg.difficulty }), 'aucun écart muet').toBe(0);
+    expect(pg.ligne.target).toBe(pg.target);
+    expect(inexplique(pg.ligne), 'aucun écart muet').toBe(0);
   });
 });
 

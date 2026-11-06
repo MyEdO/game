@@ -945,7 +945,7 @@
     "id": "opRows",
     "type": "primitives.manifest",
     "label": "opRows",
-    "fichier": "src/ui/compendium/opRows.ts",
+    "fichier": "src/noyau/codex/opRows.ts",
     "concept": "structure de rangées d’un GameOp[] pour le Codex",
     "perimetre": "vue joueur des effets et fiches du compendium",
     "verrou": "—"
@@ -1399,7 +1399,7 @@
     "nature": "organisme",
     "concept": "panneau d’INSPECTION en lecture seule : identité + jauge, badges de camp/états, puis onglets « Profil » (statbloc) et « Description » (prose de la fiche, avec son porteur) — sans prose, ni onglet ni barre",
     "perimetre": "clic sur l’ordre de bataille ; l’en-tête est partagé avec l’inspecteur de l’éditeur",
-    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/ui/compendium/registry.ts)"
+    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/noyau/codex/registry.ts)"
   },
   {
     "id": "equipmentPanel",

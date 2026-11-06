@@ -61,7 +61,7 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
     const s = banc.getState();
     expect(s.pendingHandGate).toBeTruthy();
     expect(s.pendingHandGate!.hand).toBe('main');
-    expect(s.pendingHandGate!.difficulty).toBe('accessible');
+    expect(s.pendingHandGate!.ligne.difficulty).toBe('accessible');
     expect(s.pendingAttack).toBeNull(); // l'attaque n'est PAS encore ouverte
     expect(s.pendingCascade).toBeNull();
   });

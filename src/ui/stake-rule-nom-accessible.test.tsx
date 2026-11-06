@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { voyageStakeRef } from '../data';
-import { codexLookupById } from './compendium/registry';
+import { codexLookupById } from '../noyau/codex/registry';
 import { StakeRule, stakeRuleOf } from './StakeNote';
 import { RollShell } from './RollShell';
 import type { RollAction } from './RollShell';
