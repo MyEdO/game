@@ -1,7 +1,6 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/plateau.gd" id="1_plateau"]
-[ext_resource type="MeshLibrary" path="res://art/cases.tres" id="2_cases"]
 [ext_resource type="PackedScene" path="res://scenes/Combattant.tscn" id="3_combattant"]
 [ext_resource type="PackedScene" path="res://scenes/Monde.tscn" id="4_monde"]
 
@@ -26,11 +25,8 @@ script = ExtResource("1_plateau")
 scene_combattant = ExtResource("3_combattant")
 mesh_mur = SubResource("Mesh_mur")
 mesh_porte = SubResource("Mesh_porte")
-surbrillances = ExtResource("2_cases")
 
 [node name="Monde" parent="." instance=ExtResource("4_monde")]
-
-[node name="Surbrillance" type="Node3D" parent="."]
 
 [node name="Aretes" type="Node3D" parent="."]
 

@@ -8,7 +8,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, plateauDeLaScene, porteeDeComposition, presetDeComposition, volumeDuMonde, type Composition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, plateauDeLaScene, porteeDeComposition, presetDeComposition, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -20,6 +20,8 @@ import { composerSurLaBase, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
+import { boutonDeLEdition, estUnGesteDuPointeur, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
+import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -115,6 +117,8 @@ export function creerPont() {
   const erreurs: ErreurGlobale[] = [];
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` et les corps de la vue lisent. */
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
+  /** La session de l'éditeur de carte (`editer`), et la scène et la couche du dernier monde qu'elle a rendu. */
+  let edition: { session: SessionDEdition; monde: { scene: Scene; z: number } } | null = null;
 
   const demarree = () => {
     if (!ouverte) throw new ErreurDeGeste('validation', 'aucune partie : demarrer d’abord');
@@ -272,6 +276,32 @@ export function creerPont() {
       const rendu = presetDeComposition(composition, e.preset as string | undefined);
       if (!rendu.ok) throw new ErreurDeGeste('validation', `presetDeComposition : preset, l’id d’un preset de catalogues (${rendu.presets.join(', ')})`);
       return rendu;
+    },
+    editer(json) {
+      const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir'] : ['edition']));
+      let session: SessionDEdition;
+      if ('ouvrir' in e) {
+        const campagne = allBuiltinCampaigns.find((c) => c.id === e.ouvrir);
+        valider(campagne !== undefined, `editer : ouvrir, l’id d’une campagne du jeu (${allBuiltinCampaigns.map((c) => c.id).join(', ')})`);
+        session = ouvrirLEdition(paquetDuJeu(campagne!));
+      } else {
+        valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
+        const s = edition!.session;
+        if (!estUnGesteDuPointeur(e.edition)) {
+          const b = boutonDeLEdition(zonesDeLEditeur(s), e.edition);
+          valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers) ou le geste `{ edition }` d’un bouton des zones editeur.*');
+          if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
+        }
+        session = editer(s, e.edition as GesteDEdition);
+      }
+      const scene = sceneEditee(session);
+      const neuf = !edition || 'ouvrir' in e || (session.geste === null && (scene !== edition.monde.scene || session.z !== edition.monde.z));
+      edition = { session, monde: neuf ? { scene, z: session.z } : edition!.monde };
+      return {
+        vue: { zones: zonesDeLEditeur(session), couche: session.z },
+        surcouche: surcoucheDeLEdition(session),
+        ...(neuf ? { monde: volumeDuMonde(scene, session.z) } : {}),
+      };
     },
     erreursGlobales(json) {
       entreeDe('erreursGlobales', json, []);

@@ -31,6 +31,11 @@ describe('pointeur de l’éditeur', () => {
     expect(relacher(g.scene!, c, g.geste, au(2, 1))).toEqual({ geste: null });
   });
 
+  it('le pinceau de hauteur trace l’emprise de chaque écriture, sa taille comprise', () => {
+    const a = appuyer(vide(), ctx({ mode: 'height', metres: 4 }, { brush: 3 }), au(1, 1));
+    expect(a.geste?.sorte === 'trait' && a.geste.trace).toHaveLength(9);
+  });
+
   it('la gomme ouvre un cran par entité retirée', () => {
     const c = ctx({ mode: 'entity', kind: 'prop', ref: 'tonneau' });
     const pose1 = appuyer(vide(), c, au(1, 1)).scene!;
