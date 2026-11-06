@@ -62,7 +62,8 @@
 //   l'emprise du pinceau sur chaque case et le monde reste tel quel ; relâché, la surface des cases peintes monte à
 //   l'écran. « Enregistrer » l'écrit à la copie du dépôt, puis rien à enregistrer ; « Annuler » rend la surface à sa
 //   place. L'outil Murs, un clic sur le côté commun de deux de ces cases pose une cloison sur le monde ; l'outil
-//   Sélection, un clic au même point la choisit, gainée, et la dit ; « Annuler » la retire. L'outil Volée, un clic trace
+//   Sélection, un clic au même point la choisit, gainée, et la dit ; à l'inspecteur, « Porte » en fait une porte, puis
+//   « Fermée au départ » la ferme, que le monde dessine ; « Annuler » trois fois la retire. L'outil Volée, un clic trace
 //   une case, en surcouche, et « Poser la volée » se refuse d'une case seule, sa raison en clair au panneau ; « Effacer le tracé » la retire.
 //   « Couche 1 » édite l'étage.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
@@ -972,9 +973,19 @@ async function parcoursEditeur() {
   assert.match(choisie?.texte ?? '', /^Arête .* · couche 0 · mur · /, 'la sélection dit l’arête choisie')
   noter(`outil Sélection, même point : ${choisie.texte}, gainée`)
   await capturer('3508-l2-1-cloison-choisie')
+  await cliquerBouton({ element: 'bouton/arete/porte' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.arete?.porte === true`)
+  await cliquerBouton({ element: 'bouton/arete/fermee' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.arete?.ouverte === false`)
+  e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'arete/fermee')?.presse, true, 'la porte fermée au départ, à l’inspecteur')
+  noter(`inspecteur : « Porte » puis « Fermée au départ » : ${e.zones['editeur.pointee'].find((l) => l.id === 'arete')?.texte}, ${e.aretes} arêtes`)
+  await capturer('3508-l2-3-porte-fermee')
+  await cliquerBouton({ element: 'bouton/annuler' })
+  await cliquerBouton({ element: 'bouton/annuler' })
   await cliquerBouton({ element: 'bouton/annuler' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes} && globalThis.wfrpEcran.editeur.surcouche.arete === null`)
-  noter('« Annuler » : la cloison retirée')
+  noter('« Annuler » trois fois : la cloison retirée')
   await cliquerBouton({ element: 'bouton/outil/stair' })
   await cliquerPoint(ax, ay)
   await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 1')

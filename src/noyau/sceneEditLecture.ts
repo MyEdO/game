@@ -3,9 +3,10 @@
  * Node-safe, sans `ui` ni `gameIso` : tout hôte qui embarque le noyau désigne par elles ce qu'il édite.
  * Les ÉCRIVAINS vivent dans `./sceneEdit`, le `BRIDGE_PATH` de `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { type Scene, type SceneEntity, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { type FaceDArete, type Scene, type SceneEntity, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import type { Terrain } from '../data/schemas/defs-scenes/scene';
+import { faceDAreteSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { StructureData } from '../engine/types';
@@ -64,6 +65,9 @@ export const EFFECT_ZONE_SEEDS: Record<'room' | 'effect', EffectZoneSeed> = {
 
 /** Sous-mode de l'outil MURS : cloison pleine, porte (arête franchissable), ou diagonale en travers. */
 export type WallPaint = 'wall' | 'door' | 'diagBack' | 'diagFwd';
+
+/** Les faces d'où se découvre une porte secrète, `[valeur, libellé]` (`faceDAreteSchema`, EDO 07 l.263). */
+export const FACES_D_ARETE = optionsDuNoeud(faceDAreteSchema) as [FaceDArete, string][];
 
 /** Les structures que l'outil murs pose au sous-mode `paint` : un mur sur une cloison, une fermeture sur une porte,
  *  aucune sur une diagonale (#830). */
