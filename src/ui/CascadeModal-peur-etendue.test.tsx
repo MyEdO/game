@@ -34,7 +34,7 @@ describe('Peur de combat entamée — barre de la rangée', () => {
     useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })], pendingCascade: null });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
-    useGame.getState().confirmRoundStart();
+    useGame.getState().fenetreValider('roundStart');
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');

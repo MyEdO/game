@@ -266,7 +266,7 @@ describe('gueule de bois (LDB 09 l.485) — due par TOUTE rangée du dessoûlage
       ...r, result: i === 0 ? { roll: 1, target: r.target, sl: 3, success: true } : { roll: 99, target: r.target, sl: -3, success: false },
     }));
     set({ pendingCascade: { ...p, participants: p.participants.map((s) => (s.id === desso.id ? { ...s, participants: rows } : s)) } });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
 
     const hangover = bandsOf('dessoulageHangover');
     expect(hangover, 'le 2ᵉ Test est dû « une fois tous les effets dissipés », pas aux seuls perdants').toHaveLength(1);
@@ -299,7 +299,7 @@ describe('une bande par MALADIE', () => {
     set({ party: [h('m1', { diseases: [sick] }), h('s1'), h('s2')], scene: emptyScene('scene-test', 6, 6) } as never);
     get().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     for (const id of ['m1', 's1', 's2']) get().restSet(id, { food: 'rien' });
-    get().restSleep();
+    get().fenetreValider('rest');
 
     const cont = bandsOf('contagion');
     expect(cont).toHaveLength(1);
@@ -422,7 +422,7 @@ describe('SONDE B — ids de bande UNIQUES dans la séquence', () => {
       vus.push({ kind: cur.kind, id: String(cur.id) });
       const rows = cur.participants!.map((r) => ({ ...r, result: { roll: 50, target: r.target, sl: 0, success: true } }));
       set({ pendingCascade: { ...p, participants: p.participants.map((s, k) => (k === p.cursor ? { ...s, participants: rows } : s)) } });
-      get().cascadeNext();
+      get().jetConfirm('cascade');
     }
 
     const hangovers = vus.filter((v) => v.kind === 'dessoulageHangover');
@@ -454,7 +454,7 @@ describe('SONDE D — Exposition (chaleur) de bout en bout : drop → cancelsRow
     const p = get().pendingCascade!;
     const rows = wave0.participants!.map((r) => ({ ...r, result: { roll: 99, target: r.target, sl: -5, success: false } }));
     set({ pendingCascade: { ...p, participants: p.participants.map((s, k) => (k === p.cursor ? { ...s, participants: rows } : s)) } });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
 
     // UN SEUL délestage inséré (h2 n'a rien de lourd à jeter — sa conséquence est immédiate).
     const cur = () => { const c = get().pendingCascade!; return c.participants[c.cursor]; };
@@ -462,7 +462,7 @@ describe('SONDE D — Exposition (chaleur) de bout en bout : drop → cancelsRow
     expect(cur().actorId).toBe('h1');
     expect(cur().meta?.cancelsRowId).toBe(`${wave0.id}:h1`);
     get().cascadeChoose(cur().id, 'jeter');
-    get().cascadeNext();
+    get().jetConfirm('cascade');
 
     const wave1 = cur();
     expect(wave1.kind).toBe('exposure');

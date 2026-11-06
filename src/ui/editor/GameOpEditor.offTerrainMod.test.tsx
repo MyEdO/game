@@ -8,7 +8,8 @@
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { GameOpEditor, newOp } from './GameOpEditor';
+import { GameOpEditor } from './GameOpEditor';
+import { newOp } from '../../noyau/valeursNeuves';
 import { opSummary } from './interne/resumeDOp';
 import { terrainsElectifs, terrainAbsent, terrainHorsGrille, tousLesTerrains } from '../../noyau/monde/terrain';
 import type { GameOp } from '../../engine/ops';

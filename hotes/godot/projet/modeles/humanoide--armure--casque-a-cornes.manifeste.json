@@ -1,0 +1,48 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "armure",
+  "cle": {
+    "piece": "casque-a-cornes"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "armure",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "carrure_moins",
+    "carrure_plus",
+    "corpulence"
+  ],
+  "surfaces": [
+    {
+      "nom": "metal",
+      "palette": "metal"
+    },
+    {
+      "nom": "corne",
+      "palette": "corne"
+    }
+  ],
+  "emplacements": {
+    "cimier": {
+      "os": "Head",
+      "position": [
+        0,
+        0.215487,
+        -0.006071
+      ],
+      "rotation": [
+        -0.02897,
+        0,
+        0
+      ]
+    }
+  },
+  "glb": {
+    "sha256": "03fa9b8aa63938f48a5d80f88521b3c673bfba6935e15bacd348a82c3995dbaa",
+    "octets": 328948
+  }
+}

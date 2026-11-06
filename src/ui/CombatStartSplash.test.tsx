@@ -70,7 +70,7 @@ describe('CombatStartSplash — le beat attend la cascade d’ouverture', () => 
     expect(beat(), 'rien ne se joue sous la fenêtre de Surprise').toBeNull();
 
     for (const p of cascade!.participants[0].participants ?? []) act(() => { useGame.getState().jetRoll('cascadeBatch', p.id); });
-    act(() => { useGame.getState().cascadeNext(); });
+    act(() => { useGame.getState().jetConfirm('cascade'); });
     render();
 
     const s = useGame.getState();

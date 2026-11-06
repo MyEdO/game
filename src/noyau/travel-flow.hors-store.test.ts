@@ -74,7 +74,7 @@ function drainCascade(): void {
 function runToEnd(maxSteps = 60): void {
   for (let i = 0; i < maxSteps; i++) {
     if (get().pendingCascade) { drainCascade(); continue; }
-    if (get().pendingRest) { get().restSleep(); drainCascade(); continue; }
+    if (get().pendingRest) { get().fenetreValider('rest'); drainCascade(); continue; }
     if (!get().travelPlan) return;
   }
 }
@@ -425,10 +425,10 @@ describe('#341 — Résistance de traversée Neige/Blizzard (pas BATCH au démar
     const h = hero({ id: 'h' });
     set({ party: [h], pendingCascade: null, journal: [] });
     const steps = buildWeatherResistanceSteps(get, 'neige');
-    // Jet FORCÉ en échec (déterministe) : la rangée est prête → cascadeNext commit → applier.
+    // Jet FORCÉ en échec (déterministe) : la rangée est prête → jetConfirm('cascade') commit → applier.
     steps[0].participants![0].result = { roll: 99, target: steps[0].participants![0].target, sl: -4, success: false };
     set({ pendingCascade: cascadeDeTest(steps, { title: 'Traversée', icon: 'rest/cold' }) });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     const st = get();
     expect(st.party[0].conditions.some((c) => c.id === 'extenue')).toBe(true);
     expect(st.journal.join('\n')).toContain('État Exténué subi.'); // opConsequenceLine case condition

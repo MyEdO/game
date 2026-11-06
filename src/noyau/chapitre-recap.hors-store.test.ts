@@ -128,7 +128,7 @@ describe('cycle de vie de la borne (#717)', () => {
     expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), scenes[0].id)).toBeNull();
     expect(get().pendingOuverture?.titre).toBe(narratif.ouverture!.titre);
 
-    banc.getState().acquitterOuverture();
+    banc.getState().fenetreValider('ouverture');
     expect(get().pendingOuverture).toBeNull();
     expect(get().chapitreDepuis).not.toBeNull();
 
@@ -151,7 +151,7 @@ describe('cycle de vie de la borne (#717)', () => {
 });
 
 describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre pour de bon (#717)', () => {
-  it('après `cloreChapitre`, aucun lot d’effets ultérieur ne ré-arme le récap', () => {
+  it('après la validation du récap, aucun lot d’effets ultérieur ne ré-arme le récap', () => {
     banc.setState({ party: [hero('h1', 10)], campaignNarratif: narratifClos });
     applyEffects(get, set, [{ type: 'setObjective', id: 'obj-1', desc: 'Atteindre Altdorf' }]);
     applyEffects(get, set, [{ type: 'clearObjective', id: 'obj-1' }]);
@@ -160,7 +160,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
       { text: 'Atteindre Altdorf', icon: 'map-tool/start-flag', tone: 'ok', paquet: true },
     ]);
 
-    banc.getState().cloreChapitre();
+    banc.getState().fenetreValider('chapterRecap');
     expect(get().clotureConsommee).toBe(true);
 
     // La Condition de clôture est TOUJOURS vraie (un drapeau ne se retire pas) : c'est le fait de
@@ -175,7 +175,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
   it('une partie NEUVE rouvre la clôture (le fait meurt avec l’état, il ne se traîne pas)', () => {
     banc.setState({ party: [hero('h1', 10)], campaignNarratif: narratifClos });
     applyEffects(get, set, [{ type: 'setFlag', flag: 'chapitre-clos', value: true }]);
-    banc.getState().cloreChapitre();
+    banc.getState().fenetreValider('chapterRecap');
     expect(get().clotureConsommee).toBe(true);
 
     banc.getState().startScene(testScene());
@@ -195,14 +195,14 @@ describe('cadre de campagne en COOP — l’invité VOIT, l’hôte TOURNE LA PA
     });
     guest();
 
-    banc.getState().acquitterOuverture();
+    banc.getState().fenetreValider('ouverture');
     expect(get().pendingOuverture?.titre).toBe('T');
     expect(get().chapitreDepuis).toBeNull();
 
     banc.getState().fenetreFermer('chapterRecap');
     expect(get().pendingChapterRecap?.titre).toBe('C');
 
-    banc.getState().cloreChapitre();
+    banc.getState().fenetreValider('chapterRecap');
     expect(get().pendingChapterRecap?.titre).toBe('C');
     expect(get().objectifsSoldes).toEqual([{ id: 'o', text: 'Atteindre Altdorf' }]);
     expect(get().clotureConsommee).toBe(false);
@@ -213,7 +213,7 @@ describe('cadre de campagne en COOP — l’invité VOIT, l’hôte TOURNE LA PA
       party: [hero('h1', 10)],
       pendingOuverture: { titre: 'T', pitch: 'P' },
     });
-    banc.getState().acquitterOuverture();
+    banc.getState().fenetreValider('ouverture');
     expect(get().pendingOuverture).toBeNull();
     expect(get().chapitreDepuis).not.toBeNull();
   });

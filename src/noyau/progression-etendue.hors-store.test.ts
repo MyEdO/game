@@ -34,7 +34,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -70,7 +70,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     const { H, E } = peurEntamee(5, 3);
     jet(H.id, -2, false);
     expect(cumulEtenduDeRangee(row(H.id), band().participants!)).toEqual({ cum: 1, target: 5 });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const peur = (heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === E.id)!;
     expect(peur.calmeDR).toBe(1);
     expect(peur.surmontee).toBeFalsy();
@@ -81,7 +81,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     expect(row(H.id).meta?.sansPeur).toBe(true);
     jet(H.id, 1, true);
     expect(cumulEtenduDeRangee(row(H.id), band().participants!)).toEqual({ cum: 4, target: 4 });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const peur = (heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === E.id)!;
     expect(peur.surmontee).toBe(true);
   });

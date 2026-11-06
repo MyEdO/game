@@ -45,7 +45,7 @@ function setup(heros = 1, ennemis = 1, groups?: string[]) {
   banc.setState({ party });
   g().startScene({ ...testScene(), groups });
   g().startCombat('enc-mutants');
-  g().confirmRoundStart();
+  g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.filter((c) => c.kind === 'hero');

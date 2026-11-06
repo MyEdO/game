@@ -135,7 +135,7 @@ describe('la 2ᵉ frappe après un Coup Critique prend un d100 du tableau, jamai
     const st = etapeCourante();
     expect(st?.kind).toBe('sauvegarde');
     banc.getState().jetSetForcedRoll('cascadeTirage', 8, st!.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(vivant('cible').wounds.current, 'le coup est ignoré').toBe(30);
     expect(jet()).toBe(D100_AU_BESOIN_APRES_SAUVEGARDE);
   });

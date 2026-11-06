@@ -19,7 +19,7 @@ function setupBattle(nHeroes: number) {
   banc.setState({ party });
   banc.getState().startScene(testScene());
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   return banc.getState().battle!;
 }
 

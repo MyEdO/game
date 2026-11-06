@@ -31,13 +31,13 @@ describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, su
   it('l’ouverture cérémonielle s’arme au chargement du paquet et pose la borne du chapitre', () => {
     expect(get().pendingOuverture?.titre).toBe(barge.narratif.ouverture!.titre);
     expect(get().chapitreDepuis).toBeNull();
-    banc.getState().acquitterOuverture();
+    banc.getState().fenetreValider('ouverture');
     expect(get().pendingOuverture).toBeNull();
     expect(get().chapitreDepuis).not.toBeNull();
   });
 
   it('le cap se prend SUR LES PLANCHES : au premier pas la traversée est encore fermée, au rang 5 elle s’ouvre', () => {
-    banc.getState().acquitterOuverture();
+    banc.getState().fenetreValider('ouverture');
     const carte = get().worldMap!;
 
     poserLeGroupe(banc.getState, banc.setState, { x: 2, y: 4 }); // un pas dans le sable : le départ s'énonce, pas le cap
@@ -52,7 +52,7 @@ describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, su
   });
 
   it('ARRIVER ne suffit pas : le drapeau d’accostage se pose au premier PAS sur l’îlot, et le récap s’arme là', () => {
-    banc.getState().acquitterOuverture();
+    banc.getState().fenetreValider('ouverture');
     poserLeGroupe(banc.getState, banc.setState, { x: 2, y: 5 });
 
     banc.getState().transitionTo('barge-du-sel-ilot');

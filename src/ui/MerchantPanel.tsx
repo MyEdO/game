@@ -692,7 +692,7 @@ export function MerchantPanel() {
   const refuseBargain = useGame((s) => s.refuseBargain);
   const payCart = useGame((s) => s.payCart);
   const assignDistribution = useGame((s) => s.assignDistribution);
-  const confirmDistribution = useGame((s) => s.confirmDistribution);
+  const valider = useGame((s) => s.fenetreValider);
   const addToSellCart = useGame((s) => s.addToSellCart);
   const removeFromSellCart = useGame((s) => s.removeFromSellCart);
   const clearSellCart = useGame((s) => s.clearSellCart);
@@ -713,7 +713,7 @@ export function MerchantPanel() {
     <MerchantPanelView
       merchant={merchant} party={party} money={money} refusHote={refusHote} speakerEnt={speakerEnt} speakerName={speakerName} boniment={arch?.boniment}
       onAddToCart={addToCart} onDecCart={decFromCart} onRemoveCart={removeFromCart} onClearCart={clearCart} onRefuse={refuseBargain} onPay={payCart}
-      onAssignDist={assignDistribution} onConfirmDist={confirmDistribution}
+      onAssignDist={assignDistribution} onConfirmDist={() => valider('marchand')}
       onAddToSellCart={addToSellCart} onRemoveSellCart={removeFromSellCart} onClearSellCart={clearSellCart} onConfirmSell={confirmSell}
       onRepair={repairItem} onBargain={startBargain} onAppraise={appraiseItem} onClose={quitter}
       onSellHalving={setSellHalving} onBarter={barterExchange} onSearchAvailability={searchAvailability}

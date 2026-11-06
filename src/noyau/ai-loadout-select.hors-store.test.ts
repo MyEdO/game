@@ -22,7 +22,7 @@ describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
     banc.setState({ party: makeShowcaseParty() });
     banc.getState().startScene(embuscadeConstruit.scene);
     banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const ael = b.combatants.find((c) => /aelindra/i.test(c.label))!; // PREGEN.chasseur (fronde + arme simple)
     // Héros AUTO (cf. en-tête) : `runEnemyAI` ne joue QUE des combattants `aiDriven` — pour un héros,

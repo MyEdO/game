@@ -154,7 +154,7 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
   it('stamp `medicalAidGate` POUSSE une séquelle « membre désactivé » (pas de plaie chirurgicale) à la localisation', () => {
     const traumas: Trauma[] = []; // Épaule luxée n’engendre PAS d’amputation → aucune plaie chirurgicale préalable
     stampCriticalEscalation(traumas, {
-      medicalAidGate: { label: 'Épaule luxée (bras perdu)', disable: [{ op: 'maxWeaponHands', hands: 1 }], restoreDR: 6, recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] },
+      medicalAidGate: { label: 'Épaule luxée (bras perdu)', disable: [{ op: 'maxWeaponHands', hands: 1 }], targetDR: 6, recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] },
     }, 'brasD', C({}), desDuTest);
     expect(traumas).toHaveLength(1);
     const t = traumas[0];
@@ -220,12 +220,12 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
   });
 
   it('les 4 entrées « Épaule luxée »/« Genou démis » portent `medicalAidGate` (DR 6)', () => {
-    const gate = (arr: { id: string; escalation?: { medicalAidGate?: { restoreDR: number } } }[], id: string) =>
+    const gate = (arr: { id: string; escalation?: { medicalAidGate?: { targetDR: number } } }[], id: string) =>
       arr.find((e) => e.id === id)!.escalation!.medicalAidGate!;
-    expect(gate(critiqueDoc('aa', 'bras').entries, 'aa-bras-96').restoreDR).toBe(6);
-    expect(gate(critiqueDoc('aa', 'jambe').entries, 'aa-jambe-96').restoreDR).toBe(6);
-    expect(gate(critiqueDoc('ldb', 'bras').entries, 'epaule-luxee').restoreDR).toBe(6);
-    expect(gate(critiqueDoc('ldb', 'jambe').entries, 'genou-demis').restoreDR).toBe(6);
+    expect(gate(critiqueDoc('aa', 'bras').entries, 'aa-bras-96').targetDR).toBe(6);
+    expect(gate(critiqueDoc('aa', 'jambe').entries, 'aa-jambe-96').targetDR).toBe(6);
+    expect(gate(critiqueDoc('ldb', 'bras').entries, 'epaule-luxee').targetDR).toBe(6);
+    expect(gate(critiqueDoc('ldb', 'jambe').entries, 'genou-demis').targetDR).toBe(6);
   });
 });
 

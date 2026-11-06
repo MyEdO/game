@@ -4,7 +4,7 @@
  * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
  * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
  */
-import type { CreatorDraft, GesteDuBrouillon, PageDeCreation, ValeurDuReglage } from '../noyau/index';
+import type { ActionRunCtx, CreatorDraft, GesteDuBrouillon, PageDeCreation, ValeurDuReglage } from '../noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
@@ -60,11 +60,12 @@ export interface CreationOuverte { brouillon: CreatorDraft; page: PageDeCreation
  *  engager le héros dans le groupe. */
 export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engager'; args: [] } | { geste: 'page'; args: [PageDeCreation] } | GesteDuBrouillon;
 
-/** L'intention qu'un geste joue : un verbe de la partie et ses arguments, une offre de l'actif, une suite de verbes
+/** L'intention qu'un geste joue : un verbe de la partie et ses arguments, une offre de l'actif (sur le contexte qui
+ *  désigne son candidat, `CandidatEnVue`), une suite de verbes
  *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), la fiche que l'hôte
  *  montre (`null` : aucune), qui ne touche pas la partie, ou un geste de la création d'un héros (`null` : la
  *  ferme). */
-export type Jeu = Appel | { offre: string } | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null };
+export type Jeu = Appel | { offre: string; ctx?: ActionRunCtx } | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */

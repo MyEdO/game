@@ -102,6 +102,7 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['cle-inconnue', 'coiffure absente de la garde-robe', manifeste('pilosite', { cle: { coiffure: 'tonsure' } })],
   ['cle-inconnue', 'apparence absente du jeu', manifeste('rigide', { cle: { apparence: 'epee-de-verre' } })],
   ['piece-hors-categorie', 'armure qui vise un vêtement', manifeste('armure', { cle: { piece: 'pourpoint' } })],
+  ['piece-hors-categorie', 'vêtement qui vise la variante d’une armure', manifeste('vetement', { cle: { piece: 'casque-a-cornes' } })],
   ['base-differente', 'élément construit pour une autre base', manifeste('rigide', { base: 'quadrupede' })],
   ['liaison-hors-categorie', 'vêtement en surface', manifeste('vetement', { liaison: { mode: 'surface' } })],
   ['liaison-hors-categorie', 'mode inconnu', manifeste('accessoire', { liaison: { mode: 'colle' } })],

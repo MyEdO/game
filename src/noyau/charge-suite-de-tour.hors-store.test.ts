@@ -91,7 +91,7 @@ function ouvrirUneFenetreNeutre(acteurId: string): void {
   startCascade(g, banc.setState, { title: 'T', purpose: 'combat', steps: [{ id: 'aff', kind: cleDeFixture('display'), actorId: acteurId, options: [{ key: 'ok', label: fixtureText('OK') }] }] });
 }
 
-/** Le joueur tranche et valide l'unique étape de la fenêtre neutre : la séquence se clôt (`cascadeNext`). */
+/** Le joueur tranche et valide l'unique étape de la fenêtre neutre : la séquence se clôt (`jetConfirm('cascade')`). */
 function fermerLaFenetreNeutre(): void {
   avanceEtapeCascade(g);
 }
@@ -293,7 +293,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     banc.avancer(3000);
     expect([suite(), parquee(), attaques('e', 'h')], 'la frappe est parquée, rien frappé').toEqual(['frappe', true, 0]);
     g().jetRoll('cascadeBatch', 'h');
-    g().cascadeNext();
+    g().jetConfirm('cascade');
     tantQue(() => !g().pendingDefense);
     jouerLaSequence();
     banc.reprendreTout();
@@ -311,7 +311,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     banc.avancer(3000);
     expect([suite(), parquee(), b().turn], 'l’« avancer » est parqué').toEqual(['avancer', true, 0]);
     g().jetRoll('cascadeBatch', 'h');
-    g().cascadeNext();
+    g().jetConfirm('cascade');
     banc.reprendreTout();
     expect(attaques('e'), 'aucune frappe').toBe(0);
     expect(decisions('e'), 'une décision').toBe(1);
@@ -326,7 +326,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     tantQue(() => !bandeOuverte());
     expect([bandeOuverte(), suite(), parquee()], 'chemin : la bande est ouverte, la frappe attend son échéance').toEqual([true, 'frappe', false]);
     g().jetRoll('cascadeBatch', 'h');
-    g().cascadeNext();
+    g().jetConfirm('cascade');
     tantQue(() => !g().pendingDefense);
     jouerLaSequence();
     banc.reprendreTout();

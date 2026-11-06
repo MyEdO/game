@@ -21,7 +21,7 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
-import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
+import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, defenseValueModParts, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
@@ -1002,8 +1002,8 @@ export function previewDefense(
 }
 
 /** La ligne ENTIÈRE du jet de défense `mode` avant le dé, valeur et cible comprises : ce que le défenseur lit de sa
- *  propre réaction. Montée comme `rollMeleeDefender` la jette (valeur `defenseValue`, modificateurs qui font la cible
- *  `defenseTargetMods`, LDB 13 l.118), par le monteur canonique en mode plafonné. `socialBase` : la valeur de la
+ *  propre réaction. Montée comme `rollMeleeDefender` la jette (valeur `defenseValue`, nommée en base NUE et
+ *  `defenseValueModParts`, modificateurs qui font la cible `defenseTargetMods`, LDB 13 l.118), par le monteur canonique en mode plafonné. `socialBase` : la valeur de la
  *  Compétence substituée (LDB 09 l.207, l.287). */
 export function ligneDeDefense(
   defender: Combatant,
@@ -1011,7 +1011,7 @@ export function ligneDeDefense(
 ): RollLineParts {
   return rollLine({
     difficulty: 'intermediaire', // LDB 13 l.118
-    valeur: defenseValue(defender, ctx.mode, ctx.parryWeapon, ctx.socialBase), valeurEtrangere: true,
+    valeur: defenseValue(defender, ctx.mode, ctx.parryWeapon, ctx.socialBase), dansLaValeur: defenseValueModParts(defender, ctx.mode, ctx.parryWeapon), valeurEtrangere: true,
     surLaCible: defenseTargetMods(defender, ctx.mode, ctx.dodgeMods ?? [], ctx.parryWeapon, ctx.vsWeapon), plafond: 'difficultes',
   });
 }
@@ -4780,7 +4780,7 @@ export function castRefused(get: Get, set: SetFn, actor: Combatant, msg: string)
 /** Avance l'étape-jet d'attaque de la cascade combat à la FIN de la chaîne (plus de
  *  `pendingAttack` NI d'enchaînement balayage/dual) → conséquences inline (Coup Critique
  *  foldé) ou reprise. La cascade reste ouverte pendant la chaîne ; on n'avance qu'au bout. Partagé par
- *  jetConfirm('attack') / cleaveEnd / dualStrikeSkip (zéro duplication).
+ *  jetConfirm('attack') / fenetreFermer('cleave') / fenetreFermer('dualStrike') (zéro duplication).
  *  L'étape 'defense' est admise pour l'INTERPOSITION de défense surfacée (#989) : le curseur y passe à
  *  l'ouverture de la fenêtre, et l'application de l'attaque (reprise d'`jetConfirm('attack')`) l'enchaîne au bout.
  *  Un enchaînement en cours ne retient pas le curseur quand le coup est SUSPENDU (`coupFerme`) : il passe
@@ -4790,7 +4790,7 @@ export function advanceCombatJet(get: () => Jeu): void {
   const jet = seq?.purpose === 'combat' ? seq.participants[seq.cursor]?.jet : undefined;
   if ((jet === 'attack' || jet === 'defense')
     && !get().pendingAttack && !get().pendingDefense
-    && ((!get().pendingCleave && !get().pendingDualStrike) || !coupFerme(get()))) get().cascadeNext();
+    && ((!get().pendingCleave && !get().pendingDualStrike) || !coupFerme(get()))) get().jetConfirm('cascade');
 }
 
 /** Jet d'attaque (verbe `roll` du flux `attack`, `FLOWS.attack.onRoll`). */
@@ -7296,7 +7296,7 @@ export function resumeEnemyTurn(get: Get, set: SetFn): void {
 }
 
 /** Reprend un tour d'IA SUSPENDU par la séquence de conséquences de combat (jets, révélations) une
- *  fois qu'elle est CLOSE — appelée par la fin de cette séquence (`cascadeNext`, la sortie du bilan →
+ *  fois qu'elle est CLOSE — appelée par la fin de cette séquence (`jetConfirm('cascade')`, la sortie du bilan →
  *  `dispatchCascadeDone`), seule couture depuis #942 L8. Garde alignée sur celle de `resumeEnemyTurn`. */
 export function resumeSuspendedAI(get: Get, set: SetFn): void {
   const s = get();
@@ -7333,7 +7333,7 @@ export function etatDeTourNeuf(): Pick<BattleState, 'action' | 'selectedAttack' 
 
 export function advanceTurn(get: Get, set: SetFn) {
   // Pause de début de Round (PERSONNE n'est actif, turn -1) : un advanceTurn retardataire (timer
-  // d'IA en vol) ne doit pas ré-incrémenter le tour SOUS la pause — confirmRoundStart le posera.
+  // d'IA en vol) ne doit pas ré-incrémenter le tour SOUS la pause — `lancerLeRound` le posera.
   if (get().pendingRoundStart) return;
   if (combatAdvanceBlocked(get())) return;
   if (get().localIntent) set({ localIntent: null }); // l'intention armée appartient au tour qui s'achève
@@ -7507,7 +7507,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
 
 /** Pause de DÉBUT DE ROUND (LDB 17 l.25) : on s'arrête à CHAQUE début de Round pour montrer
  *  l'initiative (frise d'initiative (InitiativeStrip)) et permettre la pré-emption (Chance, 3e usage ;
- *  futurs Atouts/talents). L'IA reste gelée jusqu'à « Commencer le round » (confirmRoundStart) — cf.
+ *  futurs Atouts/talents). L'IA reste gelée jusqu'à « Commencer le round » (`lancerLeRound`) — cf.
  *  garde de maybeRunEnemyTurn. EN COOP (arbitrage 2026-06-11) : seul le round 1 est gaté (ready-check
  *  de tous) — les rounds suivants S'ENCHAÎNENT sans pause. Point d'entrée à part de
  *  `resolveRoundBoundary` : il se rappelle après la cascade de Peur de fin de Round. */
@@ -7518,18 +7518,27 @@ export function enterRoundStartPause(get: Get, set: SetFn): void {
   const reset = { ...b, ...etatDeTourNeuf(), crewActed: {} }; // `crewActed` : par Round (`BattleState.crewActed`)
   if (get().net.mode !== 'local' && b.round > 1 && !(b.handRaisedBy?.length)) {
     set({ battle: reset, pendingRoundStart: null });
-    get().confirmRoundStart();
+    lancerLeRound(get, set);
     return;
   }
   // Auto-combat SOLO : on enchaîne les Rounds sans pause (l'IA joue tout le groupe). On NE touche PAS la
   // branche coop (ready-check du Round 1 préservé ci-dessus) ni le mode manuel/Rapide (pause conservée).
   if (cadenceAutoCombat() && get().net.mode === 'local') {
     set({ battle: reset, pendingRoundStart: null });
-    get().confirmRoundStart();
+    lancerLeRound(get, set);
     return;
   }
-  // Pause de début de Round : PERSONNE n'est actif (turn -1) — confirmRoundStart posera le tour.
+  // Pause de début de Round : PERSONNE n'est actif (turn -1) — `lancerLeRound` posera le tour.
   set({ battle: { ...reset, turn: -1, handRaisedBy: [] }, pendingRoundStart: { round: b.round } });
+}
+
+/** Lance le Round que la pause tenait : la pause se ferme et toute visée Tir rapide armée retombe, puis les tirs
+ *  d'interruption, et `ouvrirLeRound` au bout de leur boucle (LDB 11 l.97-103). Rien ne suit ici : un tir qui tient la
+ *  main emporte la boucle dans sa suite (`enchainement: 'tirRapide'`). Corps de `fenetreValider('roundStart')`, joué
+ *  aussi par l'enchaînement des Rounds sans pause. */
+export function lancerLeRound(get: Get, set: SetFn): void {
+  set({ pendingRoundStart: null, preemptAiming: null });
+  jouerFlowEntier(runPreemptShots(get, set) ? OPS_DIFFEREES : undefined);
 }
 
 /** IA : si le combattant actif est PILOTÉ par l'IA (ennemi, ou héros en Auto-combat possédé localement),
@@ -8114,7 +8123,7 @@ function resoudreEnLigne(get: Get, set: SetFn, c: Combatant, decl: CombatPsychDe
 
 /** Passe de Psychologie de DÉBUT de Round (LDB 21 l.9, l.25) : les Peurs neuves s'enregistrent, puis les
  *  Tests dus se jouent, une bande par entrée de règle pour les rangées surfacées. Appelée APRÈS
- *  `confirmRoundStart` (acteur posé) ; la cascade suspend l'IA jusqu'à résolution. */
+ *  `lancerLeRound` (acteur posé) ; la cascade suspend l'IA jusqu'à résolution. */
 export function openRoundStartPsych(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
@@ -8766,7 +8775,7 @@ export const TABLES = {
      *   · OUI — « Subir » applique le Critique montré, « Dévier » l'ignore (−1 PA) : `resolveDeviation` ;
      *   · NON — le Critique est subi, et sa RÉVÉLATION reste DUE (aucune fenêtre ne l'a montrée) : la
      *     reprise part sans `deviation` tranchée, ce qui laisse le chemin normal la produire.
-     *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`cascadeNext`, la sortie du bilan
+     *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`jetConfirm('cascade')`, la sortie du bilan
      *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
      *  (préservées par le liveMerge de commitStep). */
     deviation: (get, set, step) => {

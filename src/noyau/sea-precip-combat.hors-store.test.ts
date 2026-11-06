@@ -45,7 +45,7 @@ describe('Précipitations Très abondantes au combat ouvert pendant un voyage en
     banc.getState().startScene(testScene());
     banc.setState({ travelPlan: seaPlan() });
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;

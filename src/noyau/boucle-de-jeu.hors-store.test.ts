@@ -120,7 +120,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner(); // purge le timer d'IA armé par startCombat — on pilote l'ordre nous-mêmes
 
     const b = banc.getState().battle!;
@@ -217,7 +217,7 @@ describe('Boucle de jeu (store)', () => {
     mkDeviationSetup();
     const dev = joueLaSeverite();
     banc.getState().cascadeChoose(dev.id, 'devier');
-    banc.getState().cascadeNext(); // valide le choix → applier 'deviation' → resolveDeviation
+    banc.getState().jetConfirm('cascade'); // valide le choix → applier 'deviation' → resolveDeviation
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(h.armour.corps).toBe(2);          // 1 PA sacrifiée (LDB 63 l.30-32)
     expect(h.criticalWounds ?? 0).toBe(0);   // Coup Critique ignoré
@@ -227,7 +227,7 @@ describe('Boucle de jeu (store)', () => {
     mkDeviationSetup();
     const dev = joueLaSeverite();
     banc.getState().cascadeChoose(dev.id, 'subir');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(h.criticalWounds ?? 0).toBe(1);   // Coup Critique appliqué (table 18-Traumatisme)
     expect(h.armour.corps).toBe(3);          // PA intacte (rien dévié)
@@ -389,7 +389,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [{ ...hero, conditions: [{ id: 'hemorragique', value: 1 }, { id: 'a-terre', value: 1 }] }] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const h = banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
     expect(h.conditions.find((x) => x.id === 'hemorragique')?.value).toBe(1); // persistant ré-importé
@@ -402,7 +402,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [a, { ...b, dead: true }] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const heroes = banc.getState().battle!.combatants.filter((c) => c.kind === 'hero');
     expect(heroes.length).toBe(1);
@@ -414,7 +414,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
@@ -431,7 +431,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
@@ -447,7 +447,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
@@ -467,7 +467,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
@@ -515,7 +515,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
@@ -547,7 +547,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     b.combatants.forEach((c) => { c.fortune = 0; }); // neutralise la pré-emption Chance
@@ -561,7 +561,7 @@ describe('Boucle de jeu (store)', () => {
     expect(st.battle!.combatants.find((c) => c.id === h.id)!.actLastNextRound).toBeFalsy(); // flag purgé
     // Franchir un 2e Round : « Commencer le round 2 » d'abord (pendant la pause PERSONNE n'est
     // actif et advanceTurn est inerte), puis fin du dernier tour → ordre canonique restauré.
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const b2 = banc.getState().battle!;
     banc.setState({ battle: { ...b2, turn: b2.order.length - 1 } });
     banc.getState().battleEndTurn();
@@ -574,7 +574,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
@@ -597,7 +597,7 @@ describe('Boucle de jeu (store)', () => {
     expect(banc.getState().party[0].items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
     // (3) Combat suivant : l'usure est ré-importée (carry-in + recomputeLoadout).
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const h2 = banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
     expect(h2.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
@@ -610,7 +610,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -643,7 +643,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [pretre] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const turn = st.battle!.order.indexOf(heroC.id);
@@ -667,7 +667,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(2); // RNG de combat contrôlé : seed 2 ⇒ touche avec dégâts (cf. recherche)
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -729,7 +729,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(2);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -751,7 +751,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(4);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -791,7 +791,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(5);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner(); // purge le timer d'IA armé par startCombat → on pilote nous-mêmes l'ordre du tour
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -818,7 +818,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(5);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -852,7 +852,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     H.conditions.push({ id: 'sonne', value: 1 });
@@ -871,7 +871,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(5);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner(); // purge le timer d'IA armé par startCombat → on pilote nous-mêmes l'ordre du tour
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -901,7 +901,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(2);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -923,7 +923,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(7);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -950,7 +950,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -973,7 +973,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -987,7 +987,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1022,7 +1022,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(3);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1050,7 +1050,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1083,7 +1083,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(3);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1118,7 +1118,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(4);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1146,7 +1146,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(6);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1167,7 +1167,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1199,7 +1199,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(3);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const enemies = st.battle!.combatants.filter((c) => c.kind === 'enemy');
@@ -1230,7 +1230,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1254,7 +1254,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(5);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1299,7 +1299,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().seedRng(2);
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -2336,7 +2336,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     banc.getState().battleEndTurn();
     banc.reprendreLesEnAttente(); // aucun timer d'IA ne doit être en attente pendant la pause
     expect(banc.getState().pendingRoundStart).not.toBeNull(); // l'ennemi n'a pas joué : on attend la confirmation
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     expect(banc.getState().pendingRoundStart).toBeNull();
   });
 
@@ -2349,11 +2349,11 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1);
   });
 
-  it('confirmRoundStart ferme la modale et active le héros promu en premier', () => {
+  it('la validation de la pause (`fenetreValider(\'roundStart\')`) ferme la modale et active le héros promu en premier', () => {
     const { H } = endOfRoundBattle(1);
     banc.getState().battleEndTurn();
     banc.getState().roundStartPromote(H.id);
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     expect(st.pendingRoundStart).toBeNull();
     expect(st.battle!.order[st.battle!.turn]).toBe(H.id); // H agit en premier ce Round
@@ -2381,7 +2381,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     expect(h1.loseNextMovement).toBe(true);               // ... et Mouvement épuisé
     // Son tour NORMAL : on le place en tête et on démarre le Round → le tour a lieu (effets début/fin) mais épuisé.
     banc.setState({ battle: { ...st.battle!, order: [H.id, ...st.battle!.order.filter((id) => id !== H.id)] } });
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     st = banc.getState();
     expect(st.battle!.order[st.battle!.turn]).toBe(H.id); // c'est bien son tour
     expect(st.battle!.acted).toBe(true);                  // Action déjà dépensée
@@ -2389,7 +2389,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.loseNextAction).toBeFalsy(); // consommé
   });
 
-  it('Tir rapide (LDB 10) — chemin IA : un ennemi tireur interrompt à l’ouverture du Round (confirmRoundStart) et épuise son tour', () => {
+  it('Tir rapide (LDB 10) — chemin IA : un ennemi tireur interrompt à l’ouverture du Round (`lancerLeRound`) et épuise son tour', () => {
     const { H, E } = endOfRoundBattle(0);
     E.talents = [{ talentId: 'tir-rapide', times: 1 }];
     E.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
@@ -2397,10 +2397,10 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     H.pos = { x: 0, y: 0 };
     banc.getState().battleEndTurn(); // → Round 2, pendingRoundStart
     // H en tête de l'ordre : le tour NORMAL de l'ennemi n'ouvre pas immédiatement → sa dette de tour
-    // (posée par le Tir rapide) PERSISTE et reste observable (sinon confirmRoundStart la consommerait aussitôt).
+    // (posée par le Tir rapide) PERSISTE et reste observable (sinon `lancerLeRound` la consommerait aussitôt).
     banc.setState({ battle: { ...banc.getState().battle!, order: [H.id, E.id] } });
     seedBattleRng(1);
-    banc.getState().confirmRoundStart(); // au sommet : runPreemptShots fait tirer l'IA hors de l'ordre
+    banc.getState().fenetreValider('roundStart'); // au sommet : runPreemptShots fait tirer l'IA hors de l'ordre
     const st = banc.getState();
     expect(st.pendingAttack).toBeNull();       // l'IA résout son tir INLINE (aucune modale ouverte)
     expect(st.pendingRoundStart).toBeNull();   // le Round a démarré derrière l'interruption
@@ -2420,7 +2420,7 @@ describe('cancelMove — annuler un déplacement décomposé tant qu’aucune Ac
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const turn = st.battle!.order.indexOf(H.id);
@@ -3119,7 +3119,7 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     b.combatants.forEach((c) => { c.fortune = 0; }); // neutralise la pré-emption Chance
@@ -3207,7 +3207,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     expect(st.merchant!.pendingDistribution).toHaveLength(2); // 2 objets en attente de répartition
     st.assignDistribution(0, 'h');
     st.assignDistribution(1, 'h');
-    st.confirmDistribution();
+    st.fenetreValider('marchand');
     const st2 = banc.getState();
     expect(st2.merchant!.pendingDistribution).toBeNull();
     expect(st2.party[0].items!.filter((i) => i.trappingId === id)).toHaveLength(2);

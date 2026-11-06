@@ -19,7 +19,7 @@ import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { tirerSigne, type EffetSigne, type RNG } from './dice';
 import { rollTest, easeDifficulty, ECHEC_SANS_JET } from './tests';
-import { bestForSkills, refusNePeutTenter } from './skills';
+import { bestForTests, refusNePeutTenter } from './skills';
 import type { PlayerText } from '../i18n/playerText';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { talentTestSLBonus } from './magic';
@@ -345,7 +345,7 @@ export function competencesDuRole(role: CrewRoleData, navigation: RefDesignee): 
  *  (Surdité, LDB 18) via `testValue`. Absent = comportement historique. PUR. */
 export function crewRoleValue(crew: Combatant, role: CrewRoleData, navigation: RefDesignee, sense?: PairedSense): CrewRoleValue {
   const skills = competencesDuRole(role, navigation);
-  const b = bestForSkills([crew], skills, undefined, sense);
+  const b = bestForTests([crew], skills.map((skill) => ({ skill })), sense);
   if (!b) {
     const sk = skills[0];
     return {
@@ -353,7 +353,7 @@ export function crewRoleValue(crew: Combatant, role: CrewRoleData, navigation: R
       refus: refusNePeutTenter(crew, sk ? { skill: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) } : { action: role.label }),
     };
   }
-  return { value: b.value + crewTestModOf(crew), used: b.skillId ? { id: b.skillId, spec: b.spec } : undefined };
+  return { value: b.value + crewTestModOf(crew), used: 'skill' in b.test ? b.test.skill : undefined };
 }
 
 /** Valeur d'un membre à son rôle : la Compétence tenue et sa valeur, OU — quand il ne peut tenter

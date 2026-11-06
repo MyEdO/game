@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
+import { t } from '../i18n';
 import { draineCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
 import { fromBrass, toBrass } from '../engine/money';
@@ -290,7 +291,7 @@ describe('InterludeScreen — coop (audit M7) : chacun mène SES héros', () => 
     expect(html).toContain('Hôte');
     expect(html).toContain('Mené par Hôte'); // … et ses volets sont désactivés (title)
     expect(html.match(/<button[^>]*aria-describedby="interlude-close-reason"[^>]*>/)?.[0], 'la clôture est fermée à l’invité').toContain('aria-disabled="true"');
-    expect(raisonDId(html, 'interlude-close-reason')).toBe('L’hôte seul engage la bourse et la cale du groupe.');
+    expect(raisonDId(html, 'interlude-close-reason')).toBe(t('validation.refus.hoteSeul'));
   });
 
   it('hôte : tout est actif chez lui, le héros de l’invité est en lecture seule', () => {

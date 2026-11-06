@@ -20,7 +20,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#activities', ref: '[].onSuccess[].*', occurrence: 1 },
   { fichier: 'src/data#activities', ref: '[].outcomes[]', occurrence: 1 },
   { fichier: 'src/data#activities', ref: '[].outcomes[].battle[]', occurrence: 1 },
-  { fichier: 'src/data#activities', ref: '[].skills[]', occurrence: 1 },
   { fichier: 'src/data#activities', ref: '[].testMods[]', occurrence: 1 },
   { fichier: 'src/data#activities', ref: '[].threat', occurrence: 1 },
   { fichier: 'src/data#activities', ref: '[].worldRolls[]', occurrence: 1 },

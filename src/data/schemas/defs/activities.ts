@@ -1,23 +1,20 @@
-import { nommerChamps, nommerNoeud } from '../grammaire/meta';
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `activities.json` — catalogue UNIQUE des Activités (LDB 23, EDOC 8, MDG 15,
- * ADE II 8 Bataille de masse), miroir strict de `ActivityDef` (`src/engine/activities.ts`,
- * étend `TestSpec` de `src/engine/skills.ts`) + `OutcomeBand`/`BattleOutcome`/`BattleCond`
+ * ADE II 8 Bataille de masse), miroir strict de `ActivityDef` (`src/engine/activities.ts`)
+ * + `OutcomeBand`/`BattleOutcome`/`BattleCond`
  * (`.../activities.ts`). Inventaire réel (40 entrées, script node) : tous les champs déclarés
  * ci-dessous sont observés au moins une fois ; aucun champ de l'interface n'est ABSENT du JSON.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { blocageDeLivraison, charKeySchema, difficultySchema, enumNomme, formulaSchema, formuleSansTirageSchema, foyerDeRegleSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
-import { conditionSchema, executeesDe, stageOutcomeSchema } from '../grammaire/mecanique';
+import { blocageDeLivraison, difficultySchema, enumNomme, formulaSchema, formuleSansTirageSchema, foyerDeRegleSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
+import { conditionSchema, executeesDe, flowTestSchema, stageOutcomeSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'activities.json';
 export const famille = 'entite';
 
-// `difficulty?` = Difficulté PROPRE à cette voie quand le RAW en attache une différente par
-// Compétence (Punchausen, AA 12 l.45-49) — absente, la voie retombe sur `difficulty` de l'Activité.
-const voieDeCompetenceSchema = refOuSpec('skill', { difficulty: nommerNoeud(difficultySchema.optional(), { nom: 'difficulté' }) });
 
 
 const activityContextSchema = enumNomme({
@@ -104,9 +101,10 @@ const doc = document(
   famille,
   {
     contexts: z.array(activityContextSchema),
-    // ── TestSpec (src/engine/skills.ts) ──
-    skills: z.array(voieDeCompetenceSchema).optional(),
-    char: charKeySchema.optional(),
+    /** Tests AU CHOIX (LDB 23 l.209 ; AA 12 l.49), chacun avec sa Difficulté. */
+    tests: z.array(flowTestSchema).min(1).optional(),
+    /** Difficulté du Test dont la donnée ne nomme pas le sujet (`freeSkill`, résolveur qui le dérive
+     *  du héros) ; une option porte la sienne dans son `test`. */
     difficulty: difficultySchema.optional(),
     combined: z.boolean().optional(),
     // ── ActivityDef propre ──
@@ -183,12 +181,11 @@ const doc = document(
       label: 'Contextes d’offre',
       hint: 'Situations (interlude, voyage, mer, bataille…) où l’Activité est proposée',
     },
-    skills: { label: 'Compétences du Test' },
-    char: { label: 'Caractéristique du Test', hint: 'Utilisée quand aucune Compétence n’est requise' },
-    difficulty: { label: 'Difficulté' },
+    tests: { label: 'Tests au choix', hint: 'Le Test que tente l’acteur, au choix parmi ceux-ci, chacun avec sa Difficulté' },
+    difficulty: { label: 'Difficulté', hint: 'Difficulté du Test dont la Compétence est libre ou dérivée du héros' },
     combined: {
       label: 'Test combiné',
-      hint: 'UN jet confronté aux deux premières Compétences listées ; réussi seulement si les deux cibles sont atteintes',
+      hint: 'UN jet confronté aux deux premiers Tests listés ; réussi seulement si les deux cibles sont atteintes',
     },
     freeSkill: {
       label: 'Compétence libre',
@@ -270,7 +267,14 @@ const doc = document(
     exiges: ['source', 'icon'],
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const a = v as { id: string; contexts: string[]; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string };
+        const a = v as { id: string; contexts: string[]; tests?: { skill?: unknown; characteristic?: unknown }[]; difficulty?: string; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string };
+        if (a.tests && a.difficulty) {
+          ctx.addIssue({ code: 'custom', path: ['difficulty'], message: `${a.id} : la Difficulté d’un Test au choix vit dans chacun de ses Tests (\`tests[].difficulty\`), pas à l’Activité` });
+        }
+        (a.tests ?? []).forEach((o, i) => {
+          if (o.skill && o.characteristic)
+            ctx.addIssue({ code: 'custom', path: ['tests', i, 'characteristic'], message: `${a.id} : un Test au choix nomme une Compétence OU une Caractéristique, pas les deux` });
+        });
         if (a.freeSkill && a.contexts.includes('mer')) {
           ctx.addIssue({ code: 'custom', path: ['freeSkill'], message: `${a.id} : une Activité de contexte mer ne déclare pas de Compétence libre — le choix d’Activité en mer ne nomme aucune Compétence (MDG 15 l.266-300)` });
         }

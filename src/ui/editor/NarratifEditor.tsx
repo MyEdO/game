@@ -20,10 +20,10 @@ import { RefNarrativeField } from '../compendium/refField/RefField';
 import { LIBELLE_NARRATIF } from '../../noyau/codex/libellesNarratifs';
 import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE, identiteSchema } from '../../data/schemas/grammaire/campagne';
-import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
-import { lieuDuSite, referencesA, renommeRef, type CibleNarrative, type LieuDeSite, type Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
-import type { Scene } from '../../noyau/monde/scene';
-import type { WorldMap } from '../../noyau/worldMap';
+import type { RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
+import type { CibleNarrative, Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
+import { ajouteEntree, idFrais, type RegistreCreable } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
+import { refusDeRenommage, refusDeRetrait, refusDId, renommeAuProjet, retireDuProjet, type ProjetEdite } from '../../noyau/narratifEdit';
 import type { CreatureData } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { ListRow } from '../ListRow';
@@ -49,44 +49,15 @@ type NarratifTab = 'cadre' | 'affaires' | 'indices' | 'documents' | 'etats' | 'p
 /** Liste des créatures globales (base d'un preset), triée par libellé — patron `Inspector.tsx`. */
 const optionsDeCreature = memoParVersion('creatures', () => [...creatures].map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label)));
 
-/** Id frais `<prefixe>-<n>` — `n` part de la taille de la liste `depuis` + 1 — qu'aucune entrée de `pris`
- *  ne porte. */
-function idFrais(prefixe: string, depuis: readonly { id?: string }[], pris: readonly { id?: string }[] = depuis): string {
-  let n = depuis.length + 1;
-  while (pris.some((e) => e.id === `${prefixe}-${n}`)) n++;
-  return `${prefixe}-${n}`;
-}
-
-/** Les entrées de TOUS les registres du narratif (`REGISTRES_NARRATIFS`) : l'id frais d'un registre n'en
- *  recoupe aucune (unicité inter-registres de `narratifSchema`). Un stade, lui, n'est unique que DANS son
- *  indice. */
-const entreesDuNarratif = (narratif: NarratifBlock): readonly { id?: string }[] =>
-  REGISTRES_NARRATIFS.flatMap((r) => narratif[r.cle] as readonly { id?: string }[]);
-
-/** L'AUTRE entrée d'un registre narratif (`REGISTRES_NARRATIFS`) qui porte déjà l'id candidat, hors
- *  l'entrée elle-même, nommée pour l'auteur (« l'affaire « titre » ») ; `null` s'il est libre. Collision
- *  inter-registres gardée ici ; collision avec un id global reste vérifiée par `narratifSchema` au parse. */
-function porteurDeLId(
-  narratif: NarratifBlock,
-  candidate: string,
-  self: { registre: CleDeRegistreNarratif; id: string },
-): string | null {
-  for (const r of REGISTRES_NARRATIFS) {
-    const e = (narratif[r.cle] as readonly { id: string }[]).find((x) => x.id === candidate && !(r.cle === self.registre && x.id === self.id));
-    if (e) return `${r.nom} « ${(LIBELLE_NARRATIF[r.cle] as (x: { id: string }) => string)(e)} »`;
-  }
-  return null;
-}
-
 /** Id STABLE renommable, même règle que les clés d'un record du Codex : la saisie reste à l'écran telle
  *  que tapée ; un id vide ou déjà porté n'est pas retenu, et le champ le dit (`aria-invalid` + message)
  *  et le signale saisie en cours. Seul un id libre est émis. */
-function ChampIdStable({ libelle, className = 'ed-field', value, porteurDe, onRename }: {
+function ChampIdStable({ libelle, className = 'ed-field', value, refusDe, onRename }: {
   libelle: string;
   className?: string;
   value: string;
-  /** Ce qui porte déjà `candidat` (hors l'entrée elle-même), nommé pour l'auteur ; `null` s'il est libre. */
-  porteurDe: (candidat: string) => string | null;
+  /** Le refus de retenir `candidat` (rogné), `null` s'il est retenu ou inchangé (`refusDeRenommage`). */
+  refusDe: (candidat: string) => string | null;
   onRename: (id: string) => void;
 }) {
   const [saisie, setSaisie] = useState(value);
@@ -95,12 +66,6 @@ function ChampIdStable({ libelle, className = 'ed-field', value, porteurDe, onRe
     setRetenu(value);
     setSaisie(value);
   }
-  const refusDe = (candidat: string): string | null => {
-    if (candidat === value) return null;
-    if (candidat === '') return 'Identifiant vide';
-    const porteur = porteurDe(candidat);
-    return porteur && `Identifiant « ${candidat} » déjà porté par ${porteur}`;
-  };
   const candidat = saisie.trim();
   const refus = refusDe(candidat);
   // La saisie devenue libre est retenue, qu'elle vienne d'une frappe ou de l'id libéré par une autre entrée.
@@ -122,24 +87,6 @@ function ChampIdStable({ libelle, className = 'ed-field', value, porteurDe, onRe
   );
 }
 
-/** Le projet ÉDITÉ, tel que l'éditeur le détient : ses scènes (l'active en tête), sa carte du monde,
- *  son narratif. Un renommage d'entrée du narratif réécrit ses références PARTOUT (`renommeRef`). */
-export interface ProjetEdite {
-  scenes: Scene[];
-  worldMap: WorldMap | null;
-  narratif: NarratifBlock;
-}
-
-/** Un lieu de site, lisible par l'auteur : « scène « Le relais » », « carte du monde », « indice « L'affiche » ». */
-const lieuLisible = (l: LieuDeSite): string => (l.racine === 'carte' ? 'carte du monde' : `${l.racine === 'scene' ? 'scène' : 'indice'} « ${l.nom} »`);
-
-/** La raison qui refuse de retirer une entrée encore désignée : les lieux DISTINCTS qui la désignent. */
-function raisonDeRefus(projet: ProjetEdite, cible: CibleNarrative): string | undefined {
-  const sites = referencesA(projet, cible);
-  const lieux = [...new Set(sites.map((s) => lieuLisible(lieuDuSite(projet, s))))].join(', ');
-  return sites.length ? `Encore désigné par : ${lieux} — changez ou retirez ces références d'abord.` : undefined;
-}
-
 export function NarratifEditor({ projet, onChange, onClose }: {
   projet: ProjetEdite;
   /** Chemin d'écriture (#671 lot B) — toute mutation produit un projet neuf (immutable) ; seules les
@@ -158,33 +105,41 @@ export function NarratifEditor({ projet, onChange, onClose }: {
 
   const poserNarratif = (n: NarratifBlock) => onChange?.({ ...projet, narratif: n });
 
-  /** Renomme l'entrée `id` du `registre` en `nextId` — un id LIBRE, que `ChampIdStable` seul émet — et
-   *  PROPAGE le renommage à toute référence du projet (`renommeRef`) ; `suite` achève le narratif renommé
-   *  (les `refs` d'indice). */
-  const renommeEntree = (registre: RegistreReference, id: string, nextId: string, suite = (n: NarratifBlock) => n) => {
-    const p = renommeRef(projet, { registre, id }, nextId);
-    const liste = (p.narratif[registre] as readonly { id: string }[]).map((e) => (e.id === id ? { ...e, id: nextId } : e));
-    onChange?.({ ...p, narratif: suite({ ...p.narratif, [registre]: liste }) }, { cible: { registre, id }, nouveau: nextId });
+  /** Renomme `cible` en `nextId` (`renommeAuProjet`), propagé à toute référence du projet ; un renommage
+   *  refusé ne pose rien. Rend l'id retenu, ou `null`. */
+  const renomme = (cible: CibleNarrative, nextId: string): string | null => {
+    const p = renommeAuProjet(projet, cible, nextId);
+    if (p === projet) return null;
+    const nouveau = nextId.trim();
+    onChange?.(p, { cible, nouveau });
+    return nouveau;
   };
-  /** Ce qui porte déjà `candidat` dans un registre, hors l'entrée `id` du `registre` (`ChampIdStable`). */
-  const porteurDe = (registre: RegistreReference, id: string) => (candidat: string) => porteurDeLId(narratif, candidat, { registre, id });
-  /** Retire l'entrée `id` du `registre`. La seule porte du retrait est `BoutonRetirer` (`raisonDeRefus`). */
-  const retireEntree = (registre: RegistreReference, id: string, suite = (n: NarratifBlock) => n) =>
-    poserNarratif(suite({ ...narratif, [registre]: (narratif[registre] as readonly { id: string }[]).filter((e) => e.id !== id) }));
+  /** Le refus de renommer `cible` en `candidat` (`ChampIdStable`). */
+  const refusDe = (registre: RegistreReference, id: string, sous?: string) => (candidat: string) => refusDeRenommage(narratif, { registre, id, sous }, candidat);
+  /** Le refus de retirer `cible` (`BoutonRetirer`). */
+  const refusDeRetirer = (registre: RegistreReference, id: string, sous?: string) => refusDeRetrait(projet, { registre, id, sous });
+  /** Retire `cible` (`retireDuProjet`) ; rend `true` s'il est retiré. */
+  const retire = (cible: CibleNarrative): boolean => {
+    const p = retireDuProjet(projet, cible);
+    if (p === projet) return false;
+    onChange?.(p);
+    return true;
+  };
+  /** Crée une entrée (`ajouteEntree`) et la sélectionne. */
+  const ajoute = <R extends RegistreCreable>(registre: R, entree: Omit<NarratifBlock[R][number], 'id'>, choisir: (id: string) => void) => {
+    const out = ajouteEntree(narratif, registre, entree);
+    poserNarratif(out.narratif);
+    choisir(out.id);
+  };
 
   const setPresets = (presetsPnj: PresetPnj[]) => poserNarratif({ ...narratif, presetsPnj });
 
-  const addPreset = () => {
-    const id = idFrais('pnj', narratif.presetsPnj, entreesDuNarratif(narratif));
-    // Base par défaut = première créature globale : garantit un preset VALIDE au round-trip
-    // (`narratifSchema` refuse un preset sans base ni profil) ; l'auteur la change ensuite.
-    setPresets([...narratif.presetsPnj, { id, base: optionsDeCreature()[0]?.id }]);
-    setSelId(id);
-  };
+  // Base par défaut = première créature globale : garantit un preset VALIDE au round-trip
+  // (`narratifSchema` refuse un preset sans base ni profil) ; l'auteur la change ensuite.
+  const addPreset = () => ajoute('presetsPnj', { base: optionsDeCreature()[0]?.id }, setSelId);
 
   const removePreset = (id: string) => {
-    retireEntree('presetsPnj', id);
-    if (selId === id) setSelId(null);
+    if (retire({ registre: 'presetsPnj', id }) && selId === id) setSelId(null);
   };
 
   const updatePreset = (id: string, patch: Partial<PresetPnj>) => {
@@ -192,8 +147,8 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   };
 
   const renamePreset = (id: string, nextId: string) => {
-    renommeEntree('presetsPnj', id, nextId);
-    if (selId === id) setSelId(nextId);
+    const nouveau = renomme({ registre: 'presetsPnj', id }, nextId);
+    if (nouveau && selId === id) setSelId(nouveau);
   };
 
   const selected = narratif.presetsPnj.find((p) => p.id === selId) ?? null;
@@ -205,15 +160,10 @@ export function NarratifEditor({ projet, onChange, onClose }: {
 
   const setAffaires = (affaires: Affaire[]) => poserNarratif({ ...narratif, affaires });
 
-  const addAffaire = () => {
-    const id = idFrais('affaire', narratif.affaires, entreesDuNarratif(narratif));
-    setAffaires([...narratif.affaires, { id, titre: 'Nouvelle affaire' }]);
-    setSelAffaireId(id);
-  };
+  const addAffaire = () => ajoute('affaires', { titre: 'Nouvelle affaire' }, setSelAffaireId);
 
   const removeAffaire = (id: string) => {
-    retireEntree('affaires', id);
-    if (selAffaireId === id) setSelAffaireId(null);
+    if (retire({ registre: 'affaires', id }) && selAffaireId === id) setSelAffaireId(null);
   };
 
   const updateAffaire = (id: string, patch: Partial<Affaire>) => {
@@ -221,8 +171,8 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   };
 
   const renameAffaire = (id: string, nextId: string) => {
-    renommeEntree('affaires', id, nextId);
-    if (selAffaireId === id) setSelAffaireId(nextId);
+    const nouveau = renomme({ registre: 'affaires', id }, nextId);
+    if (nouveau && selAffaireId === id) setSelAffaireId(nouveau);
   };
 
   const selectedAffaire = narratif.affaires.find((a) => a.id === selAffaireId) ?? null;
@@ -234,29 +184,11 @@ export function NarratifEditor({ projet, onChange, onClose }: {
     // appelant est désactivé dans ce cas (garantit un indice VALIDE au round-trip, même esprit qu'`addPreset`).
     const firstAffaireId = narratif.affaires[0]?.id;
     if (!firstAffaireId) return;
-    const id = idFrais('indice', narratif.indices, entreesDuNarratif(narratif));
-    setIndices([...narratif.indices, { id, affaireId: firstAffaireId, kind: 'indice', titre: 'Nouvel indice', stades: [{ id: 'stade-1', prose: '' }] }]);
-    setSelIndiceId(id);
+    ajoute('indices', { affaireId: firstAffaireId, kind: 'indice', titre: 'Nouvel indice', stades: [{ id: 'stade-1', prose: '' }] }, setSelIndiceId);
   };
 
-  /** Les `refs` d'indice (recoupements) ne sont pas une clé de `REFERENCES_NARRATIVES` : un recoupement
-   *  vers l'indice retiré tombe avec lui, un recoupement vers l'indice renommé le suit. */
-  const refsSans = (id: string) => (n: NarratifBlock): NarratifBlock => ({
-    ...n,
-    indices: n.indices.map((i) => {
-      if (!i.refs?.includes(id)) return i;
-      const refs = i.refs.filter((r) => r !== id);
-      return { ...i, refs: refs.length ? refs : undefined };
-    }),
-  });
-  const refsVers = (id: string, nouveau: string) => (n: NarratifBlock): NarratifBlock => ({
-    ...n,
-    indices: n.indices.map((i) => (i.refs?.includes(id) ? { ...i, refs: i.refs.map((r) => (r === id ? nouveau : r)) } : i)),
-  });
-
   const removeIndice = (id: string) => {
-    retireEntree('indices', id, refsSans(id));
-    if (selIndiceId === id) setSelIndiceId(null);
+    if (retire({ registre: 'indices', id }) && selIndiceId === id) setSelIndiceId(null);
   };
 
   const updateIndice = (id: string, patch: Partial<Indice>) => {
@@ -264,35 +196,18 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   };
 
   const renameIndice = (id: string, nextId: string) => {
-    renommeEntree('indices', id, nextId, refsVers(id, nextId));
-    if (selIndiceId === id) setSelIndiceId(nextId);
+    const nouveau = renomme({ registre: 'indices', id }, nextId);
+    if (nouveau && selIndiceId === id) setSelIndiceId(nouveau);
   };
-
-  /** Renomme la sous-entrée `from` (stade d'un indice, valeur d'un état) de l'entrée `id` du `registre` en
-   *  `nextId` — un id libre DANS l'entrée, que `ChampIdStable` seul émet — et le propage à toute référence
-   *  du projet (`renommeRef`) ; `renomme` réécrit l'entrée elle-même. */
-  const renommeSousEntree = <R extends 'indices' | 'etats'>(registre: R, id: string, from: string, nextId: string, renomme: (e: NarratifBlock[R][number]) => NarratifBlock[R][number]) => {
-    const cible: CibleNarrative = { registre, id, sous: from };
-    const p = renommeRef(projet, cible, nextId);
-    const liste = (p.narratif[registre] as readonly NarratifBlock[R][number][]).map((e) => (e.id === id ? renomme(e) : e));
-    onChange?.({ ...p, narratif: { ...p.narratif, [registre]: liste } }, { cible, nouveau: nextId });
-  };
-  const renameStade = (indiceId: string, from: string, nextId: string) =>
-    renommeSousEntree('indices', indiceId, from, nextId, (i) => ({ ...i, stades: i.stades.map((s) => (s.id === from ? { ...s, id: nextId } : s)) }));
 
   const selectedIndice = narratif.indices.find((i) => i.id === selIndiceId) ?? null;
 
   const setDocuments = (documents: DocumentNarratif[]) => poserNarratif({ ...narratif, documents });
 
-  const addDocument = () => {
-    const id = idFrais('document', narratif.documents, entreesDuNarratif(narratif));
-    setDocuments([...narratif.documents, { id, titre: 'Nouveau document', prose: '' }]);
-    setSelDocumentId(id);
-  };
+  const addDocument = () => ajoute('documents', { titre: 'Nouveau document', prose: '' }, setSelDocumentId);
 
   const removeDocument = (id: string) => {
-    retireEntree('documents', id);
-    if (selDocumentId === id) setSelDocumentId(null);
+    if (retire({ registre: 'documents', id }) && selDocumentId === id) setSelDocumentId(null);
   };
 
   const updateDocument = (id: string, patch: Partial<DocumentNarratif>) => {
@@ -300,31 +215,22 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   };
 
   const renameDocument = (id: string, nextId: string) => {
-    renommeEntree('documents', id, nextId);
-    if (selDocumentId === id) setSelDocumentId(nextId);
+    const nouveau = renomme({ registre: 'documents', id }, nextId);
+    if (nouveau && selDocumentId === id) setSelDocumentId(nouveau);
   };
 
   const selectedDocument = narratif.documents.find((d) => d.id === selDocumentId) ?? null;
 
   const setEtats = (etats: EtatNarratif[]) => poserNarratif({ ...narratif, etats });
-  const addEtat = () => {
-    const id = idFrais('etat', narratif.etats, entreesDuNarratif(narratif));
-    setEtats([...narratif.etats, { id, label: 'Nouvel état', forme: formeNeuve('heros') }]);
-    setSelEtatId(id);
-  };
+  const addEtat = () => ajoute('etats', { label: 'Nouvel état', forme: formeNeuve('heros') }, setSelEtatId);
   const removeEtat = (id: string) => {
-    retireEntree('etats', id);
-    if (selEtatId === id) setSelEtatId(null);
+    if (retire({ registre: 'etats', id }) && selEtatId === id) setSelEtatId(null);
   };
   const updateEtat = (id: string, patch: Partial<EtatNarratif>) => setEtats(narratif.etats.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   const renameEtat = (id: string, nextId: string) => {
-    renommeEntree('etats', id, nextId);
-    if (selEtatId === id) setSelEtatId(nextId);
+    const nouveau = renomme({ registre: 'etats', id }, nextId);
+    if (nouveau && selEtatId === id) setSelEtatId(nouveau);
   };
-  const renameValeur = (etatId: string, from: string, nextId: string) =>
-    renommeSousEntree('etats', etatId, from, nextId, (x) => (FORMES_D_ETAT[x.forme.kind].valeursDeclarees
-      ? { ...x, forme: { ...x.forme, valeurs: valeursDeclarees(x).map((v) => (v.id === from ? { ...v, id: nextId } : v)) } as EtatNarratif['forme'] }
-      : x));
   const selectedEtat = narratif.etats.find((x) => x.id === selEtatId) ?? null;
 
   const setOuverture = (ouverture: OuvertureBlock | undefined) => poserNarratif({ ...narratif, ouverture });
@@ -379,8 +285,8 @@ export function NarratifEditor({ projet, onChange, onClose }: {
             selectedAffaire
               ? <AffaireForm
                   affaire={selectedAffaire}
-                  refus={raisonDeRefus(projet, { registre: 'affaires', id: selectedAffaire.id })}
-                  porteurDe={porteurDe('affaires', selectedAffaire.id)}
+                  refus={refusDeRetirer('affaires', selectedAffaire.id)}
+                  refusDe={refusDe('affaires', selectedAffaire.id)}
                   onRename={(nextId) => renameAffaire(selectedAffaire.id, nextId)}
                   onPatch={(patch) => updateAffaire(selectedAffaire.id, patch)}
                   onRemove={() => removeAffaire(selectedAffaire.id)}
@@ -422,12 +328,14 @@ export function NarratifEditor({ projet, onChange, onClose }: {
                   narratif={narratif}
                   affaires={narratif.affaires}
                   otherIndices={narratif.indices.filter((i) => i.id !== selectedIndice.id)}
-                  porteurDe={porteurDe('indices', selectedIndice.id)}
+                  refusDe={refusDe('indices', selectedIndice.id)}
                   onRename={(nextId) => renameIndice(selectedIndice.id, nextId)}
                   onPatch={(patch) => updateIndice(selectedIndice.id, patch)}
-                  onRenameStade={(from, nextId) => renameStade(selectedIndice.id, from, nextId)}
-                  refusDeStade={(stade) => raisonDeRefus(projet, { registre: 'indices', id: selectedIndice.id, sous: stade })}
-                  refus={raisonDeRefus(projet, { registre: 'indices', id: selectedIndice.id })}
+                  refusDeRenommerStade={(stade) => refusDe('indices', selectedIndice.id, stade)}
+                  onRenameStade={(from, nextId) => renomme({ registre: 'indices', id: selectedIndice.id, sous: from }, nextId)}
+                  refusDeStade={(stade) => refusDeRetirer('indices', selectedIndice.id, stade)}
+                  onRemoveStade={(stade) => retire({ registre: 'indices', id: selectedIndice.id, sous: stade })}
+                  refus={refusDeRetirer('indices', selectedIndice.id)}
                   onRemove={() => removeIndice(selectedIndice.id)}
                 />
               : <p className="empty">Sélectionnez un indice à éditer, ou ajoutez-en un.</p>
@@ -456,8 +364,8 @@ export function NarratifEditor({ projet, onChange, onClose }: {
               ? <DocumentForm
                   porteur={`document:${clesDocuments[narratif.documents.indexOf(selectedDocument)]}`}
                   doc={selectedDocument}
-                  porteurDe={porteurDe('documents', selectedDocument.id)}
-                  refus={raisonDeRefus(projet, { registre: 'documents', id: selectedDocument.id })}
+                  refusDe={refusDe('documents', selectedDocument.id)}
+                  refus={refusDeRetirer('documents', selectedDocument.id)}
                   onRename={(nextId) => renameDocument(selectedDocument.id, nextId)}
                   onPatch={(patch) => updateDocument(selectedDocument.id, patch)}
                   onRemove={() => removeDocument(selectedDocument.id)}
@@ -490,11 +398,13 @@ export function NarratifEditor({ projet, onChange, onClose }: {
               ? <EtatForm
                   porteur={`etat:${clesEtats[narratif.etats.indexOf(selectedEtat)]}`}
                   etat={selectedEtat}
-                  porteurDe={porteurDe('etats', selectedEtat.id)}
-                  refus={raisonDeRefus(projet, { registre: 'etats', id: selectedEtat.id })}
-                  refusDeValeur={(valeur) => raisonDeRefus(projet, { registre: 'etats', id: selectedEtat.id, sous: valeur })}
+                  refusDe={refusDe('etats', selectedEtat.id)}
+                  refus={refusDeRetirer('etats', selectedEtat.id)}
+                  refusDeRenommerValeur={(valeur) => refusDe('etats', selectedEtat.id, valeur)}
+                  refusDeValeur={(valeur) => refusDeRetirer('etats', selectedEtat.id, valeur)}
+                  onRemoveValeur={(valeur) => retire({ registre: 'etats', id: selectedEtat.id, sous: valeur })}
                   onRename={(nextId) => renameEtat(selectedEtat.id, nextId)}
-                  onRenameValeur={(from, nextId) => renameValeur(selectedEtat.id, from, nextId)}
+                  onRenameValeur={(from, nextId) => renomme({ registre: 'etats', id: selectedEtat.id, sous: from }, nextId)}
                   onPatch={(patch) => updateEtat(selectedEtat.id, patch)}
                   onRemove={() => removeEtat(selectedEtat.id)}
                 />
@@ -524,10 +434,10 @@ export function NarratifEditor({ projet, onChange, onClose }: {
               ? <PresetForm narratif={narratif}
                   porteur={`pnj:${clesPnj[narratif.presetsPnj.indexOf(selected)]}`}
                   preset={selected}
-                  porteurDe={porteurDe('presetsPnj', selected.id)}
+                  refusDe={refusDe('presetsPnj', selected.id)}
                   onRename={(nextId) => renamePreset(selected.id, nextId)}
                   onPatch={(patch) => updatePreset(selected.id, patch)}
-                  refus={raisonDeRefus(projet, { registre: 'presetsPnj', id: selected.id })}
+                  refus={refusDeRetirer('presetsPnj', selected.id)}
                   onRemove={() => removePreset(selected.id)}
                 />
               : <p className="empty">Sélectionnez un PNJ à éditer, ou ajoutez-en un.</p>
@@ -628,17 +538,17 @@ function CadreForm({ narratif, ouverture, cloture, onOuverture, onCloture }: {
 }
 
 /** Formulaire d'une affaire : identité + titre + description, suppression bloquée si des indices y sont rattachés. */
-function AffaireForm({ affaire, refus, porteurDe, onRename, onPatch, onRemove }: {
+function AffaireForm({ affaire, refus, refusDe, onRename, onPatch, onRemove }: {
   affaire: Affaire;
   refus: string | undefined;
-  porteurDe: (candidat: string) => string | null;
+  refusDe: (candidat: string) => string | null;
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<Affaire>) => void;
   onRemove: () => void;
 }) {
   return (
     <div>
-      <ChampIdStable libelle="Identifiant (id stable)" value={affaire.id} porteurDe={porteurDe} onRename={onRename} />
+      <ChampIdStable libelle="Identifiant (id stable)" value={affaire.id} refusDe={refusDe} onRename={onRename} />
       <label className="ed-field">
         Titre
         <input value={affaire.titre} onChange={(e) => onPatch({ titre: e.target.value })} />
@@ -651,11 +561,11 @@ function AffaireForm({ affaire, refus, porteurDe, onRename, onPatch, onRemove }:
 
 /** Formulaire d'un document remis au joueur (#679) : identité + titre + prose Markdown VERBATIM + source,
  *  suppression bloquée tant qu'un stade d'indice le croise. */
-function DocumentForm({ porteur, doc, porteurDe, refus, onRename, onPatch, onRemove }: {
+function DocumentForm({ porteur, doc, refusDe, refus, onRename, onPatch, onRemove }: {
   /** Identité STABLE du document, tenue par `NarratifEditor` à travers ses renommages. */
   porteur: string;
   doc: DocumentNarratif;
-  porteurDe: (candidat: string) => string | null;
+  refusDe: (candidat: string) => string | null;
   refus: string | undefined;
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<DocumentNarratif>) => void;
@@ -663,7 +573,7 @@ function DocumentForm({ porteur, doc, porteurDe, refus, onRename, onPatch, onRem
 }) {
   return (
     <div>
-      <ChampIdStable libelle="Identifiant (id stable)" value={doc.id} porteurDe={porteurDe} onRename={onRename} />
+      <ChampIdStable libelle="Identifiant (id stable)" value={doc.id} refusDe={refusDe} onRename={onRename} />
       <label className="ed-field">
         Titre
         <input value={doc.titre} onChange={(e) => onPatch({ titre: e.target.value })} />
@@ -683,14 +593,18 @@ function formeNeuve(kind: FormeDEtatKind): EtatNarratif['forme'] {
 /** Formulaire d'un ÉTAT DE CAMPAGNE (#2539) : identité, libellé, provenance (source OU raison maison), forme (`FORMES_D_ETAT`)
  *  et, pour une forme qui les déclare, ses valeurs (id stable + libellé). Changer de forme est refusé tant
  *  qu'une référence désigne l'état (l'usage qu'elle en fait dépend de la forme). */
-function EtatForm({ porteur, etat, porteurDe, refus, refusDeValeur, onRename, onRenameValeur, onPatch, onRemove }: {
+function EtatForm({ porteur, etat, refusDe, refus, refusDeRenommerValeur, refusDeValeur, onRename, onRenameValeur, onRemoveValeur, onPatch, onRemove }: {
   /** Identité STABLE de l'état, tenue par `NarratifEditor` à travers ses renommages. */
   porteur: string;
   etat: EtatNarratif;
-  porteurDe: (candidat: string) => string | null;
+  refusDe: (candidat: string) => string | null;
   refus: string | undefined;
-  /** Raison qui refuse de retirer cette valeur (des références la nomment), ou `undefined`. */
+  /** Le refus de renommer une valeur en `candidat` (`refusDeRenommage`). */
+  refusDeRenommerValeur: (valeur: string) => (candidat: string) => string | null;
+  /** Raison qui refuse de retirer cette valeur (`refusDeRetrait`), ou `undefined`. */
   refusDeValeur: (valeur: string) => string | undefined;
+  /** Retire une valeur (`retireDuProjet`). */
+  onRemoveValeur: (valeur: string) => void;
   onRename: (nextId: string) => void;
   /** Renomme une valeur ET propage le renommage aux références qui la nomment. */
   onRenameValeur: (from: string, nextId: string) => void;
@@ -700,17 +614,11 @@ function EtatForm({ porteur, etat, porteurDe, refus, refusDeValeur, onRename, on
   const valeurs = valeursDeclarees(etat);
   const clesValeurs = useClesDeRangees(valeurs);
   const setValeurs = (vs: readonly { id: string; label: string }[]) => onPatch({ forme: { ...etat.forme, valeurs: [...vs] } as EtatNarratif['forme'] });
-  /** Une forme à valeurs en garde au moins une ; une valeur nommée par une référence ne se retire pas. */
-  const refusDuRetrait = (id: string): string | undefined => (valeurs.length <= 1 ? 'Un état énuméré garde au moins une valeur.' : refusDeValeur(id));
-  const valeurPorteuse = (soi: string, candidat: string): string | null => {
-    const j = valeurs.findIndex((v) => v.id !== soi && v.id === candidat);
-    return j >= 0 ? `la valeur ${j + 1}` : null;
-  };
   /** Changer de forme ne perd ni l'usage d'une référence, ni une identité. */
   const refusDeForme = refus ?? (etat.forme.kind === 'heros' && etat.forme.identite ? 'Retirez d’abord l’identité de l’état : une autre forme n’en porte pas.' : undefined);
   return (
     <div>
-      <ChampIdStable libelle="Identifiant (id stable)" value={etat.id} porteurDe={porteurDe} onRename={onRename} />
+      <ChampIdStable libelle="Identifiant (id stable)" value={etat.id} refusDe={refusDe} onRename={onRename} />
       <label className="ed-field">
         Libellé
         <input value={etat.label} onChange={(e) => onPatch({ label: e.target.value })} />
@@ -735,13 +643,13 @@ function EtatForm({ porteur, etat, porteurDe, refus, refusDeValeur, onRename, on
             <div key={clesValeurs[idx]}>
               <ChampIdStable
                 libelle={`Id de la valeur ${idx + 1}`} className="ed-subfield" value={v.id}
-                porteurDe={(c) => valeurPorteuse(v.id, c)} onRename={(id) => onRenameValeur(v.id, id)}
+                refusDe={refusDeRenommerValeur(v.id)} onRename={(id) => onRenameValeur(v.id, id)}
               />
               <label className="ed-subfield">
                 {`Libellé de la valeur ${idx + 1}`}
                 <input value={v.label} onChange={(e) => setValeurs(valeurs.map((x) => (x.id === v.id ? { ...x, label: e.target.value } : x)))} />
               </label>
-              <BoutonRetirer id={`supprimer-valeur-${etat.id}-${v.id}`} libelle={`Supprimer la valeur ${idx + 1}`} refus={refusDuRetrait(v.id)} onRemove={() => setValeurs(valeurs.filter((x) => x.id !== v.id))} />
+              <BoutonRetirer id={`supprimer-valeur-${etat.id}-${v.id}`} libelle={`Supprimer la valeur ${idx + 1}`} refus={refusDeValeur(v.id)} onRemove={() => onRemoveValeur(v.id)} />
             </div>
           ))}
           <button type="button" className="btn small" onClick={() => setValeurs([...valeurs, { id: idFrais('valeur', valeurs), label: `Valeur ${valeurs.length + 1}` }])}>
@@ -824,7 +732,7 @@ function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identi
         <div key={clesReperes[i]}>
           <ChampIdStable
             libelle={`Id du repère ${i + 1}`} className="ed-subfield" value={r.id}
-            porteurDe={(c) => { const j = identite.reperes.findIndex((x) => x.id !== r.id && x.id === c); return j >= 0 ? `le repère ${j + 1}` : null; }}
+            refusDe={(c) => refusDId(r.id, c.trim(), (x) => { const j = identite.reperes.findIndex((y) => y.id !== r.id && y.id === x); return j >= 0 ? `le repère ${j + 1}` : null; })}
             onRename={(id) => renommerRepere(r.id, id)}
           />
           <label className="ed-subfield">
@@ -886,7 +794,7 @@ function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identi
 }
 
 /** Retrait d'une entrée du narratif, REFUSÉ tant qu'une référence la désigne : la raison nomme les
- *  lieux qui la désignent (`raisonDeRefus`). */
+ *  lieux qui la désignent (`refusDeRetrait`). */
 function BoutonRetirer({ id, libelle, refus, onRemove }: { id: string; libelle: string; refus: string | undefined; onRemove: () => void }) {
   return (
     <GatedAction
@@ -902,20 +810,24 @@ function BoutonRetirer({ id, libelle, refus, onRemove }: { id: string; libelle: 
 }
 
 /** Formulaire d'un indice/rumeur : identité + affaire + nature + titre + recoupements + stades révélables. */
-function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, porteurDe, onRename, onPatch, onRenameStade, refusDeStade, refus, onRemove }: {
+function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, refusDe, onRename, onPatch, refusDeRenommerStade, onRenameStade, refusDeStade, onRemoveStade, refus, onRemove }: {
   /** Identité STABLE de l'indice, tenue par `NarratifEditor` à travers ses renommages. */
   porteur: string;
   indice: Indice;
   narratif: NarratifBlock;
   affaires: Affaire[];
   otherIndices: Indice[];
-  porteurDe: (candidat: string) => string | null;
+  refusDe: (candidat: string) => string | null;
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<Indice>) => void;
+  /** Le refus de renommer un stade en `candidat` (`refusDeRenommage`). */
+  refusDeRenommerStade: (stade: string) => (candidat: string) => string | null;
   /** Renomme un stade ET propage le renommage aux Effects qui le désignent. */
   onRenameStade: (from: string, nextId: string) => void;
-  /** Raison qui refuse de retirer ce stade (des Effects le désignent), ou `undefined`. */
+  /** Raison qui refuse de retirer ce stade (`refusDeRetrait`), ou `undefined`. */
   refusDeStade: (stade: string) => string | undefined;
+  /** Retire un stade (`retireDuProjet`). */
+  onRemoveStade: (stade: string) => void;
   refus: string | undefined;
   onRemove: () => void;
 }) {
@@ -927,23 +839,14 @@ function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, porteur
 
   const setStades = (stades: IndiceStade[]) => onPatch({ stades });
   const addStade = () => setStades([...indice.stades, { id: idFrais('stade', indice.stades), prose: '' }]);
-  /** Un indice garde au moins un stade ; un stade qu'un Effect désigne ne se retire pas. */
-  const refusDuRetrait = (id: string): string | undefined =>
-    (indice.stades.length <= 1 ? 'Un indice garde au moins un stade.' : refusDeStade(id));
-  const removeStade = (id: string) => setStades(indice.stades.filter((s) => s.id !== id));
   const updateStade = (id: string, patch: Partial<IndiceStade>) => {
     setStades(indice.stades.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  };
-  /** Le stade (hors `soi`) qui porte déjà `candidat` : `narratifSchema` exige l'unicité dans l'indice. */
-  const stadePorteur = (soi: string, candidat: string): string | null => {
-    const j = indice.stades.findIndex((s) => s.id !== soi && s.id === candidat);
-    return j >= 0 ? `le stade ${j + 1}` : null;
   };
   const clesStades = useClesDeRangees(indice.stades);
 
   return (
     <div>
-      <ChampIdStable libelle="Identifiant (id stable)" value={indice.id} porteurDe={porteurDe} onRename={onRename} />
+      <ChampIdStable libelle="Identifiant (id stable)" value={indice.id} refusDe={refusDe} onRename={onRename} />
       <div className="ed-field">
         <span>Affaire</span>
         {affaires.length === 0
@@ -985,7 +888,7 @@ function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, porteur
           <div key={clesStades[idx]}>
             <ChampIdStable
               libelle={`Id du stade ${idx + 1}`} className="ed-subfield" value={s.id}
-              porteurDe={(c) => stadePorteur(s.id, c)} onRename={(id) => onRenameStade(s.id, id)}
+              refusDe={refusDeRenommerStade(s.id)} onRename={(id) => onRenameStade(s.id, id)}
             />
             {/* Au moins la prose ou le document (`raffineNarratif`). */}
             <ProseField
@@ -1002,7 +905,7 @@ function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, porteur
               nullable
             />
             <ProvenanceDuTexte identite={`${porteur}/stade:${clesStades[idx]}`} copie sujet={`du stade ${idx + 1}`} value={s} onChange={(p) => updateStade(s.id, p)} />
-            <BoutonRetirer id={`supprimer-stade-${indice.id}-${s.id}`} libelle={`Supprimer le stade ${idx + 1}`} refus={refusDuRetrait(s.id)} onRemove={() => removeStade(s.id)} />
+            <BoutonRetirer id={`supprimer-stade-${indice.id}-${s.id}`} libelle={`Supprimer le stade ${idx + 1}`} refus={refusDeStade(s.id)} onRemove={() => onRemoveStade(s.id)} />
           </div>
         ))}
         <button type="button" className="btn small" onClick={addStade}>
@@ -1025,12 +928,12 @@ const ongletsDuPnj = (preset: PresetPnj): TabItem<OngletDuPnj>[] => [
 
 /** Formulaire d'un preset de PNJ, en onglets : profil (identité, base, caracs, source), apparence (réglages,
  *  portrait), couverture des entrées de fiche. */
-function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRemove, narratif }: {
+function PresetForm({ porteur, preset, refusDe, onRename, onPatch, refus, onRemove, narratif }: {
   narratif: NarratifBlock;
   /** Identité STABLE du PNJ, tenue par `NarratifEditor` à travers ses renommages. */
   porteur: string;
   preset: PresetPnj;
-  porteurDe: (candidat: string) => string | null;
+  refusDe: (candidat: string) => string | null;
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<PresetPnj>) => void;
   refus: string | undefined;
@@ -1067,7 +970,7 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
       <div>
         {onglet === 'profil' && (
           <>
-            <ChampIdStable libelle="Identifiant (id stable)" value={preset.id} porteurDe={porteurDe} onRename={onRename} />
+            <ChampIdStable libelle="Identifiant (id stable)" value={preset.id} refusDe={refusDe} onRename={onRename} />
             <label className="ed-field">
               Créature de base (profil de combat)
               <select value={preset.base ?? ''} onChange={(e) => onPatch({ base: e.target.value || undefined })}>

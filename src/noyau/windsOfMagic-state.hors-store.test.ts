@@ -149,7 +149,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     setupCombat();
     seedBattleRng(777);
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     // Sentinelle hors-table (1-10) : si le hook de Round tourne, elle disparaît forcément.
     banc.setState({ battle: { ...banc.getState().battle!, windsOfMagic: { roll: 999, mod: 0, revealed: false } } });
     seedBattleRng(4242);
@@ -163,7 +163,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     setupCombat();
     seedBattleRng(777);
     banc.getState().startCombat('enc-mutants');
-    banc.getState().confirmRoundStart();
+    banc.getState().fenetreValider('roundStart');
     banc.setState({ battle: { ...banc.getState().battle!, windsOfMagic: { roll: 999, mod: 0, revealed: false } } });
     seedBattleRng(4242);
     banc.setState({ battle: { ...banc.getState().battle!, turn: banc.getState().battle!.order.length - 1 } });

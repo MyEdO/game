@@ -520,7 +520,7 @@ export interface PendingCleave {
   restitution?: SuiteDeCoup['restitution'];
 }
 /** Sélection de la 2ᵉ cible du Maniement de deux armes (LDB 10 l.767-773), après une 1ʳᵉ frappe RÉUSSIE.
- *  Calqué sur PendingCleave : le joueur clique une cible (ou renonce via `dualStrikeSkip`). `jet` = le jet
+ *  Calqué sur PendingCleave : le joueur clique une cible (ou renonce via `fenetreFermer('dualStrike')`). `jet` = le jet
  *  d'attaquant de la 2ᵉ frappe, tranché à l'ouverture (LDB 10 l.773).
  *  Avantage : +1 UNIQUE accordé si les DEUX frappes touchent (l.638) — son existence prouve que la 1ʳᵉ a touché. */
 export interface PendingDualStrike {

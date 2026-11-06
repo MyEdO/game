@@ -79,7 +79,7 @@ function poseLancer(roll: number, sl: number): void {
     participants: [{ ...row, result: { roll, target: row.target!, sl, success: evaluateTest(roll, row.target!).success } }],
   };
   banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
-  get().cascadeNext();
+  get().jetConfirm('cascade');
 }
 
 /** Tranche le CHOIX ouvert (ligne visée, gain), et le commit. */
@@ -87,7 +87,7 @@ function trancher(kind: string, cle: string): void {
   const cur = courant();
   expect(cur?.kind, `le choix « ${kind} » est ouvert`).toBe(kind);
   get().cascadeChoose(cur!.id, cle);
-  get().cascadeNext();
+  get().jetConfirm('cascade');
 }
 
 /** SAISIT le nombre de l'étape « quantité » ouverte (gain libre, l.97), et le commit. */
@@ -95,7 +95,7 @@ function saisir(kind: string, n: number): void {
   const cur = courant();
   expect(cur?.kind, `la saisie « ${kind} » est ouverte`).toBe(kind);
   get().cascadeAmount(cur!.id, n);
-  get().cascadeNext();
+  get().jetConfirm('cascade');
 }
 
 /** L'état de volée en cours. */
@@ -372,7 +372,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
         vus.push(board!.camps[0].score);
         for (const row of cur.participants ?? []) if (row.interactive !== false && !row.result) get().jetRoll('cascadeBatch', row.id);
       }
-      get().cascadeNext();
+      get().jetConfirm('cascade');
       await tick();
     }
     const res = get().tavernGames!.result!;

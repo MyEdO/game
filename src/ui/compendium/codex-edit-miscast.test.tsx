@@ -8,9 +8,11 @@ import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { CodexEdit, editableEntries } from '../editor/codex/CodexEdit';
+import { CodexEdit } from '../editor/codex/CodexEdit';
+import { editableEntries } from '../../data/atelierDuCodex';
 import { exposition } from '../../data/schemas/defs/miscast';
-import { LIBELLE_DE_FORME, type FormulaShape } from '../editor/GameOpEditor';
+import { LIBELLE_DE_FORME } from '../editor/GameOpEditor';
+import type { FormulaShape } from '../../noyau/valeursNeuves';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

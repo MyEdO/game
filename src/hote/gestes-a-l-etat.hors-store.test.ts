@@ -53,7 +53,7 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
       const preempter = argumentDe(etat, 'armPreempt', 'heroId');
       expect(preempter.saisie).toBe('choix');
       expect(preempter.valeurs!.filter((v) => v.valeur !== null).map((v) => camp(v.valeur)), 'armPreempt offre un non-héros').toEqual(preempter.valeurs!.filter((v) => v.valeur !== null).map(() => 'hero'));
-      expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'roundStartReady')!.rendu).toBe('bouton');
+      expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'fenetreValider')!.rendu).toBe('bouton');
     });
   });
 
@@ -78,7 +78,7 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
   function leDuel() {
     const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
     ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-    ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+    ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
     const garde = ouverture.etat();
     ouverture.fermer();
     const { H, E, patch } = auContact(garde);
@@ -178,7 +178,7 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
   it('attaque du duel : avant le jet, ni clôture ni dé fixé ; après, ni jet ni Localisation', { timeout: 120_000 }, () => {
     const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
     ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-    ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+    ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
     const garde = ouverture.etat();
     ouverture.fermer();
     const { E, patch } = auContact(garde);

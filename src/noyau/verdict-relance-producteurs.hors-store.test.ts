@@ -25,7 +25,7 @@ function combat(current: number): { H: Combatant; cible: Combatant } {
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   banc.getState().startScene(structuredClone(testScene()));
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;

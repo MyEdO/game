@@ -29,7 +29,7 @@ function launch(seed = 1) {
 
 /** Dort à une halte de nuit (« Dormir » → cascade de nuit → reprise de la route au matin). */
 function sleepThroughHalt(): void {
-  get().restSleep();
+  get().fenetreValider('rest');
   draineCascade(get, 80);
 }
 

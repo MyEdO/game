@@ -6,7 +6,8 @@
  */
 import { semencesDeScene } from '../data';
 import type { TravelMode } from '../engine/travel';
-import type { MapPlace, MapRoute, MapRouteTrace, Praticabilite, WorldMap } from './worldMap';
+import type { LandMarketProfile } from '../engine/landCargo';
+import type { MapPlace, MapRoute, MapRouteTrace, Praticabilite, RoutePeril, WorldMap } from './worldMap';
 
 type Pos = MapPlace['pos'];
 
@@ -15,6 +16,15 @@ export const BORNES_DE_CARTE = { x: { min: 2, max: 98 }, y: { min: 4, max: 96 } 
 
 /** Route d'une liaison neuve. */
 const ROUTE_PAR_DEFAUT: Pick<MapRouteTrace, 'km' | 'modes'> = { km: 10, modes: ['pied'] };
+
+/** Péripétie d'auteur neuve d'une route. */
+export const peripetieNeuve = (): RoutePeril => ({ label: 'Péripétie', chancePct: 10, effects: [] });
+
+/** Port maritime neuf d'un lieu : petit port de production côtière. */
+export const portNeuf = (): NonNullable<MapPlace['port']> => ({ taille: 2, richesse: 2, production: [] });
+
+/** Marché terrestre neuf d'un lieu. */
+export const marcheNeuf = (): LandMarketProfile => ({ taille: 2, richesse: 2, produits: [] });
 
 /** Écart sous lequel deux lieux se chevauchent, et pas du décalage d'un ajout au même point. */
 const CHEVAUCHEMENT = 4;

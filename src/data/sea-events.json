@@ -635,7 +635,7 @@
       "params": {
         "testType": "extermination-nuisibles",
         "difficulty": "complexe",
-        "totalDR": 25,
+        "targetDR": 25,
         "spoilEncPerNight": {
           "dice": {
             "n": 3,
@@ -731,7 +731,7 @@
       "params": {
         "testType": "extermination-nuisibles",
         "difficulty": "intermediaire",
-        "totalDR": 10,
+        "targetDR": 10,
         "spoilEncPerNight": {
           "dice": {
             "n": 1,

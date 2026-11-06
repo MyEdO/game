@@ -129,7 +129,7 @@ function observeReprise(porteur: Porteur): Observation {
     title: 'Parité', purpose: 'test',
     steps: [etapeMuette(porteur, heroId, 'parite-sus', cleDeFixture('parite-suspend')), etapeTable(porteur, heroId)],
   });
-  get().cascadeNext();               // l'applier suspend en plein vol
+  get().jetConfirm('cascade');               // l'applier suspend en plein vol
   if (get().pendingCascade) suspendActiveCascade(get, set); // (le store peut déjà l'avoir reprise)
   resumeSuspendedCascade(get, set);
   return mesure(trace);
@@ -141,7 +141,7 @@ function mesure(trace: number[]): Observation {
   const st = p ? p.participants[p.cursor] : undefined;
   const avant = curseur();
   const pose = !!st && !!stepForcedDie(get(), st, () => {}).forcedRoll;
-  get().cascadeNext();
+  get().jetConfirm('cascade');
   const obs: Observation = {
     interaction: st ? stepInteraction(st) : 'aucune',
     prete: !!st && stepReady(st, useGame.getState()),

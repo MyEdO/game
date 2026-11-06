@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  activityById, activitiesFor, matchBattleOutcomes, battleOutcomeAmount, battleCondMet,
+  activityById, activitiesFor, matchBattleOutcomes, battleOutcomeAmount, battleCondMet, testsDeLActivite,
   type ActivityDef, type BattleResolution,
 } from './activities';
 
@@ -43,7 +43,7 @@ describe('Activités de préparation de bataille (ADE II 08 l.79-110) — donné
 
   it('Planification (l.79-89) : Savoir (Guerre), assistée ; Succès +10 / Stupéfiant +20 aux Tests alliés', () => {
     const plan = activityById('planification')!;
-    expect(plan.skills).toEqual([{ id: 'savoir', spec: 'guerre' }]);
+    expect(testsDeLActivite(plan)).toEqual([{ skill: { id: 'savoir', spec: 'guerre' } }]);
     expect(plan.assisted).toBe(true);
     expect(plan.grantsFlag).toBe('planned');
     // Succès (DR < 6) : +10 permanent (l.81).
@@ -55,7 +55,7 @@ describe('Activités de préparation de bataille (ADE II 08 l.79-110) — donné
   it('Infiltration (l.75) : combiné Discrétion+Perception, requiert la Planification ; Succès = +20 à la Planification', () => {
     const inf = activityById('infiltration')!;
     expect(inf.combined).toBe(true);
-    expect(inf.skills).toEqual([{ id: 'discretion' }, { id: 'perception' }]);
+    expect(testsDeLActivite(inf)).toEqual([{ skill: { id: 'discretion' } }, { skill: { id: 'perception' } }]);
     expect(inf.requires).toEqual(['planned']);
     // RAW ADE II 8 l.75 : « En cas de Succès, le Personnage obtient un bonus de +20 à l'Activité Planification. »
     expect(matchBattleOutcomes(inf, testRes(true, 1)).flatMap((b) => b.battle!)).toEqual([{ target: 'planningBonus', scale: 'fixed', amount: 20 }]);
@@ -64,7 +64,7 @@ describe('Activités de préparation de bataille (ADE II 08 l.79-110) — donné
   it('Repérage (l.100-102) : combiné Chevaucher+Perception, octroie scouted ; Succès +10 à la Planification', () => {
     const rep = activityById('reperage')!;
     expect(rep.combined).toBe(true);
-    expect(rep.skills).toEqual([{ id: 'chevaucher' }, { id: 'perception' }]);
+    expect(testsDeLActivite(rep)).toEqual([{ skill: { id: 'chevaucher' } }, { skill: { id: 'perception' } }]);
     expect(rep.grantsFlag).toBe('scouted');
     expect(matchBattleOutcomes(rep, testRes(true, 1)).flatMap((b) => b.battle!)).toEqual([{ target: 'planningBonus', scale: 'fixed', amount: 10 }]);
   });
@@ -78,7 +78,7 @@ describe('Activités de préparation de bataille (ADE II 08 l.79-110) — donné
 
   it('Rassembler des forces (l.94-96) : +5 (Succès) / +10 (Stupéfiant) / −10 (Éch. Stupéfiant) de départ allié', () => {
     const ras = activityById('rassembler-des-forces')!;
-    expect(ras.skills!.map((s) => s.id)).toEqual(['commandement', 'charme', 'intimidation']);
+    expect(ras.tests!.map((o) => o.skill?.id)).toEqual(['commandement', 'charme', 'intimidation']);
     expect(matchBattleOutcomes(ras, testRes(true, 2)).flatMap((b) => b.battle!)).toEqual([{ side: 'ally', target: 'startMight', scale: 'fixed', amount: 5 }]);
     expect(matchBattleOutcomes(ras, testRes(true, 6)).flatMap((b) => b.battle!)).toEqual([{ side: 'ally', target: 'startMight', scale: 'fixed', amount: 10 }]);
     // Échec Stupéfiant (DR ≤ −6) : −10 (mutinerie/désertion, l.96).
@@ -166,8 +166,7 @@ describe('Scènes cinématiques de bataille (ADE II 08 l.137-225) — données R
   it('Rassemblement (l.122) : sceneKind rally, Test de Résistance — sa résolution passe par le genre de Scène', () => {
     const r = activityById('rassemblement')!;
     expect(r.sceneKind).toBe('rally');
-    expect(r.skills).toEqual([{ id: 'resistance' }]);
-    expect(r.difficulty).toBe('intermediaire');
+    expect(r.tests).toEqual([{ skill: { id: 'resistance' }, difficulty: 'intermediaire' }]);
     // Le genre 'rally' est la SEULE clé de résolution (branche `sceneKind === 'rally'` de
     // `massBattleFlow.confirmBattleActivity`) : aucune bande d'issue, aucun résolveur.
     expect(r.outcomes ?? []).toEqual([]);

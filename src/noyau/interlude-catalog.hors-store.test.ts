@@ -82,7 +82,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     expect(hasCondition(hero(), 'extenue')).toBe(false); // rien MAINTENANT (serait dissipé au repos)
     expect(st().closeOps).toEqual([{ ops: [{ op: 'condition', id: 'extenue' }], ctx: { label: 'Pénitence', source: { kind: 'activity', id: 'penitence' }, sl: -2 } }]);
     const avant = banc.getState().journal.length;
-    banc.getState().interludeEnd();
+    banc.getState().fenetreValider('interlude');
     expect(hasCondition(hero(), 'extenue')).toBe(true); // posé après les nuits de clôture
     expect(banc.getState().journal.slice(avant)).toContain('A reçoit 1 État Exténué.');
   });

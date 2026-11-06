@@ -23,7 +23,7 @@ function setup() {
   banc.setState({ party: [hero] });
   banc.getState().startScene(testScene());
   banc.getState().startCombat('enc-mutants');
-  banc.getState().confirmRoundStart();
+  banc.getState().fenetreValider('roundStart');
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   // Éloigne tous les ennemis pour libérer la grille autour du héros (couloir y=10 libre).

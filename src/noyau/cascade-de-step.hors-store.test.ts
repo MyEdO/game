@@ -23,7 +23,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * si le jeu est configuré pour » — un site n'a aucune classe à choisir, il déclare son dé.
  *
  * Contrats POSITIFS, exercés par les VRAIES coutures du noyau (`jetRoll('cascadeTirage')`/
- * `jetSetForcedRoll('cascadeTirage')`/`cascadeNext`/`cascadeResolveAll`) et par le pilote immédiat.
+ * `jetSetForcedRoll('cascadeTirage')`/`jetConfirm('cascade')`/`cascadeResolveAll`) et par le pilote immédiat.
  */
 describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#1508)', () => {
   const tombes: { roll: number; total: number }[] = [];
@@ -46,7 +46,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
     expect(stepReady(st, banc.getState())).toBe(false);
     banc.getState().seedRng(4);
     startCascade(banc.getState, banc.setState, { title: 'Chute', purpose: 'test', steps: [st] });
-    banc.getState().cascadeNext(); // pas encore tiré → no-op : la fenêtre force d'abord le dé
+    banc.getState().jetConfirm('cascade'); // pas encore tiré → no-op : la fenêtre force d'abord le dé
     expect(tombes).toHaveLength(0);
     banc.getState().jetRoll('cascadeTirage', 'd1');
     const res = banc.getState().pendingCascade!.participants[0].de!.result!;
@@ -56,7 +56,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
     expect(res.roll).toBeLessThanOrEqual(plage.max);
     expect(res.total, 'sans mod ni plus, le total EST le naturel').toBe(res.roll);
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(true);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(tombes).toEqual([{ roll: res.roll, total: res.total }]);
     expect(banc.getState().pendingCascade).toBeNull();
   });

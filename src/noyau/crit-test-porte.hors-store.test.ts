@@ -118,7 +118,7 @@ describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAP
           : s)),
       },
     } as never);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
 
     expect(stacks(hero, 'sonne'), 'la branche `fail` (LDB 18 l.72 : « ou gagnez l’État Sonné ») n’a pas joué').toBe(1);
   });

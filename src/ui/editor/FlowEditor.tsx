@@ -31,12 +31,13 @@ import {
   Ctx,
   menuDEffets,
   EFFECT_ICON,
-  newEffect,
   effectSummary,
   ctxDeCatalogue,
 } from './EffectList';
 import type { RacineDeCatalogue } from '../../noyau/combatEffects';
 import { AddMenu, pickable } from './AddMenu';
+import { newEffect } from '../../noyau/valeursNeuves';
+import { blocNeuf, noeudTestNeuf } from '../../data/valeursNeuves';
 import { ConditionEditor } from './ConditionEditor';
 import { condSummary } from './interne/resumeDeCondition';
 
@@ -60,9 +61,6 @@ function nodeSummary(node: Flow, ctx: Ctx): string | JSX.Element {
 /** Le NŒUD `test` tel qu'un porteur de SCÈNE l'épingle — la forme unique de `flowCore`, appliquée à
  *  la feuille `Effect` de la scène (transition/dialogue compris), jamais une seconde déclaration. */
 export type NoeudTest = FlowTestNode<Effect>;
-
-/** Nœud `test` NEUF, complet dès la pose — jamais un nœud à moitié valide que le schéma refuserait. */
-export const noeudTestNeuf = (): NoeudTest => ({ kind: 'test', test: { difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: EMPTY_FLOW });
 
 /**
  * Éditeur d'un CHAMP portant un nœud `test` (`{kind:'test', test, success, fail}`), pas un Flow
@@ -234,17 +232,17 @@ function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: Flow) => void; ctx: Ctx }) 
             {
               key: 'if',
               label: <><Icon id="ui/branch" size="sm" /> Condition (si…)</>,
-              onPick: () => onAdd({ kind: 'if', cond: { kind: 'flag', expr: '' }, then: EMPTY_FLOW }),
+              onPick: () => onAdd(blocNeuf('if')),
             },
             {
               key: 'test',
               label: <><Icon id="nav/dice" size="sm" /> Test de compétence</>,
-              onPick: () => onAdd({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire', requireSL: 0 }, success: EMPTY_FLOW, fail: EMPTY_FLOW }),
+              onPick: () => onAdd(blocNeuf('test')),
             },
             {
               key: 'choice',
               label: <><Icon id="ui/balance" size="sm" /> Choix du joueur</>,
-              onPick: () => onAdd({ kind: 'choice', prompt: '', yes: EMPTY_FLOW }),
+              onPick: () => onAdd(blocNeuf('choice')),
             },
           ],
         },

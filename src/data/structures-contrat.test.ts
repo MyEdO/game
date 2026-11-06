@@ -1472,15 +1472,15 @@ const reTape = (cle: string, valeur: string) => (schemas: string) => {
 };
 
 /** Le Test COMPOSÉ de `sea-perils.ts › freeTest`, tel que le def l'écrit. */
-const FREE_TEST_COMPOSE = 'z.strictObject({ test: flowTestSchema, totalDR: z.number() })';
+const FREE_TEST_COMPOSE = 'z.strictObject({ test: flowTestSchema, ...cibleEtendueSchema.shape })';
 
 /** Une contrefaçon RE-TAPÉE dans `sea-perils.ts` d'une racine : le littéral de `freeTest` à plat, `cles` à la
- *  place du Test composé. */
+ *  place du Test composé, sa cible re-tapée. */
 const reTapeFreeTest = (cles: string) => (schemas: string) => {
   const chemin = join(schemas, 'defs', 'sea-perils.ts');
   const texte = readFileSync(chemin, 'utf8');
   if (texte.split(FREE_TEST_COMPOSE).length !== 2) throw new Error(`sea-perils.ts : \`${FREE_TEST_COMPOSE}\` introuvable ou ambigu, la contrefaçon ne se pose pas.`);
-  writeFileSync(chemin, texte.replace(FREE_TEST_COMPOSE, `z.strictObject({ ${cles}, totalDR: z.number() })`), 'utf8');
+  writeFileSync(chemin, texte.replace(FREE_TEST_COMPOSE, `z.strictObject({ ${cles}, targetDR: z.number() })`), 'utf8');
 };
 
 /** La sonde injectée dans CHAQUE dossier de la borne (`DOSSIERS_DE_DEFS`), une racine par dossier : la clé
@@ -1607,7 +1607,7 @@ describe('scannerRedeclarations — CONTREFACTUEL du sujet de Test (#3012)', () 
     ]);
   });
 
-  it('D1 — `{difficulty, totalDR}` sous `freeTest` : AUCUNE ligne ne naît, le littéral ne nomme aucun sujet', () => {
+  it('D1 — `{difficulty, targetDR}` sous `freeTest` : AUCUNE ligne ne naît, le littéral ne nomme aucun sujet', () => {
     const diff = verdictRedecl('cfTestSansSujet');
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
     expect(diff.litterauxApres - diff.litterauxAvant, 'la contrefaçon n’a pas REMPLACÉ le littéral composé : le compte des littéraux a bougé.').toBe(0);

@@ -46,6 +46,7 @@ import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ShipPoste } from '../engine/types';
 import { pushSlot } from './siegePush';
 import { ACTIONS, findConditionById, findSpellById, type ActionDef } from '../data/index';
+import { garanti } from '../lib/garanti';
 import { isArcaneSpell, castBlockedBy, castInfoIsPrayer, focusSkillFor, focusWindLabel } from '../engine/magic';
 import { t } from '../i18n';
 import { aPorteeDe } from './monde/exploreNav';
@@ -441,7 +442,8 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
 export interface ActionPorteur {
   porteurId: string;
   args: ActionRunCtx;
-  /** Nom du CANDIDAT (pas de l'action) — porté par le panneau-paramètre quand le porteur en offre N. */
+  /** Nom du CANDIDAT (pas de l'action), quand ce n'est pas une entité du champ : ce qui le distingue des autres
+   *  candidats de la même entrée. */
   label?: string;
 }
 
@@ -472,7 +474,7 @@ export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteu
    *  l'alvéole du sort, et lui que le geste secondaire de Focalisation paramètre. */
   'sorts-du-heros': (c) => {
     const id = c as string;
-    return { porteurId: id, args: { spellId: id } };
+    return { porteurId: id, args: { spellId: id }, label: garanti(findSpellById(id), id, 'sort du héros').label };
   },
   /** Une ARME à distance : son `uid` porte le candidat (l'alvéole de recharge en est paramétrée). */
   'armes-a-distance': porteurDArme,
@@ -492,6 +494,14 @@ export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteu
 function porteurDArme(c: unknown): ActionPorteur {
   const w = c as { uid: string; label?: string };
   return { porteurId: w.uid, args: { weaponUid: w.uid }, label: w.label };
+}
+
+/** L'offre de `def` sur `args` est-elle armée ? Son intention est celle que vise le siège (`localIntent`), ou le mode
+ *  qu'elle arme (`armed`) est celui du combat, sur le sort élu (`selectedSpellId`) quand elle en désigne un. */
+export function offreArmee(etat: Pick<Jeu, 'battle' | 'localIntent'>, def: ActionDef, args: ActionRunCtx = {}): boolean {
+  const b = etat.battle;
+  if (def.intent && etat.localIntent?.actionId === def.id) return true;
+  return !!def.armed && b?.action === def.armed && (!args.spellId || b.selectedSpellId === args.spellId);
 }
 
 /** Ce que l'acte prend dans l'économie du tour, en toutes lettres — la donnée `cost` du registre, dite
@@ -592,23 +602,18 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
   },
   cancelMove: (get) => get().cancelMove(),
   /** PORTE UNIQUE de la pause d'initiative (LDB 17 l.25) : le bandeau de phase de la console ET la
-   *  touche du registre (`keybindings.round-start`) passent ICI. Solo, le geste OUVRE le Round ; en
-   *  réseau, il ne fait que marquer le siège PRÊT — c'est le quorum (`roundStartReady`, sièges requis)
-   *  qui lance, jamais un client. Deux branchements séparés laissaient le bouton court-circuiter le
-   *  ready-check que la touche, elle, respectait. */
-  roundStart: (get) => {
-    const s = get();
-    if (s.net.mode === 'local') { s.confirmRoundStart(); return; }
-    if (!s.pendingRoundStart?.readyBySeat?.[s.net.mySeat]) s.roundStartReady();
-  },
+   *  touche du registre (`keybindings.round-start`) passent ICI : la validation de la pause, qui marque le siège
+   *  PRÊT — c'est le quorum (sièges requis) qui lance, jamais un client ; en solo, le quorum est ce siège. Deux
+   *  branchements séparés laissaient le bouton court-circuiter le ready-check que la touche, elle, respectait. */
+  roundStart: (get) => get().fenetreValider('roundStart'),
   /** Demande de pause au prochain Round — INTERRUPTEUR : `toggleOff` retire la demande (annulation
    *  gratuite, `lowerHand`), même porte et même routage réseau que la pose. */
   raiseHand: (get, ctx) => (ctx.toggleOff ? get().lowerHand() : get().raiseHand()),
   // ── SORTIES D'INTERLUDE (`surface: 'interlude'`) : une enveloppe NOMMÉE par entrée, jamais un
-  //    dispatcher mutualisé — deux interludes ne partagent ni leur verbe ni ses gardes (`cleaveEnd`
-  //    clôt l'étape-jet de la cascade, `battleSelectAction` est avalé sous `combatBusy`).
-  cleaveEnd: (get) => get().cleaveEnd(),
-  dualStrikeSkip: (get) => get().dualStrikeSkip(),
+  //    dispatcher mutualisé — deux interludes ne partagent ni leur verbe ni ses gardes (la sortie du
+  //    balayage clôt l'étape-jet de la cascade, `battleSelectAction` est avalé sous `combatBusy`).
+  fermerLeBalayage: (get) => get().fenetreFermer('cleave'),
+  renoncerALaSecondeFrappe: (get) => get().fenetreFermer('dualStrike'),
   castPickTargetsOff: (get) => get().castPickTargets(false),
   /** Sortie du placeur de zone, ROUTÉE PAR LA SOURCE que mesure `placingZoneOf` — symétrique de
    *  `commitPlacedZone` (même aiguilleur pour poser et pour renoncer) : un sort revient à sa modale,

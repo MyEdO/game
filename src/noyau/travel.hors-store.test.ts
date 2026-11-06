@@ -86,7 +86,7 @@ function drainCascade(): void {
     if (cur?.participants && cur.participants.some((part) => !part.result)) { for (const part of cur.participants) if (!part.result) banc.getState().jetRoll('cascadeBatch', part.id); }
     else if (cur?.table && !cur.table.result) banc.getState().jetRoll('cascadeTirage', cur.id); // étape à TABLE (Météo d'Étape…)
     else if (cur && cur.target != null && !cur.result) banc.getState().jetRoll('cascade', cur.id);
-    else banc.getState().cascadeNext();
+    else banc.getState().jetConfirm('cascade');
   }
 }
 
@@ -94,7 +94,7 @@ function drainCascade(): void {
  *  jet) s'il y en a une — sinon (rien à influencer) la route a déjà repris. La fin de cascade reprend
  *  le voyage (purpose 'travel'). */
 function sleepThroughHalt(): void {
-  banc.getState().restSleep();
+  banc.getState().fenetreValider('rest');
   drainCascade();
 }
 
@@ -136,7 +136,7 @@ describe('startTravel — à pied', () => {
     const p = banc.getState().pendingRest!;
     expect(p.phase).toBe('setup');
     expect((p.travelMarch ?? []).length).toBeGreaterThan(0); // héros à tester en marche forcée
-    banc.getState().restSleep();
+    banc.getState().fenetreValider('rest');
     const cas = banc.getState().pendingCascade!;
     // Le jet de marche forcée du jour est une ÉTAPE influençable de la cascade de nuit.
     expect(cas.participants[0].kind).toBe('forcedMarch');

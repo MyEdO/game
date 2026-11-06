@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { GameOpEditor, FormulaField, newOp, shapeOf, formulaForShape } from './GameOpEditor';
-import { OP_LABEL, OP_REF_FIELDS, opMissingRefs, opsMissingRefs } from './refsDOp';
+import { GameOpEditor, FormulaField } from './GameOpEditor';
+import { formulaForShape, newOp, shapeOf } from '../../noyau/valeursNeuves';
+import { OP_LABEL, OP_REF_FIELDS, opMissingRefs, opsMissingRefs } from '../../data/refsDOp';
 import { formulaSummary, opSummary } from './interne/resumeDOp';
 import { datasetArray } from '../../data/overrides';
 import { fallTables } from '../../data/shipCriticals';

@@ -397,11 +397,14 @@ func _selecteur(ligne: Dictionary) -> void:
 	_liste(_emplacement("ligne/%s" % ligne.sorte, ligne.sorte, "lignes", "tete", elements), ligne.label, choix)
 
 
-## La case d'une pièce : son `label`, de clé `ligne/piece/<id>`, qui monte l'élément de la pièce, unique par (base, clé),
-## ou le démonte s'il l'est.
+## La ligne d'une pièce, de clé `ligne/piece/<id>` : la case de son `label`, qui monte son seul élément ou le démonte s'il
+## l'est ; si la vue lui déclare des `variantes` (#3446), la liste de ses éléments (`_liste`).
 func _case_de_piece(ligne: Dictionary) -> void:
 	var cle := "piece/%s" % ligne.id
 	var emplacement := _emplacement("ligne/%s" % cle, cle, "lignes", "piece", ligne.elements)
+	if ligne.variantes:
+		_liste(emplacement, ligne.label, _choix_des_elements(ligne.elements))
+		return
 	var element: String = ligne.elements[0]
 	var case := CheckButton.new()
 	case.text = ligne.label

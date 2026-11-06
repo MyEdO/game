@@ -62,7 +62,7 @@ describe('la naissance est câblée aux flux réels', () => {
     expect(objet).toBeDefined();
     expect(objet).not.toHaveProperty('apparence');
     banc.getState().assignDistribution(0, 'humain');
-    banc.getState().confirmDistribution();
+    banc.getState().fenetreValider('marchand');
     expect(banc.getState().party[1].items?.find((i) => i.uid === objet?.uid)).not.toHaveProperty('apparence');
   });
 });

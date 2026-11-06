@@ -62,7 +62,7 @@ export interface Suite {
 }
 
 /** Godot dessine tout : aucune liste de la projection n'est bornée. */
-const SANS_BORNE: BornesDeLaProjection = { autres: Infinity, offres: Infinity, cibles: Infinity, gestes: Infinity, entites: Infinity };
+export const SANS_BORNE: BornesDeLaProjection = { autres: Infinity, offres: Infinity, cibles: Infinity, gestes: Infinity, entites: Infinity };
 
 /** Les clés de l'entrée d'un geste : celles d'une offre, ou celles d'un verbe (`Geste`). */
 const clesDuGeste = (e: Record<string, unknown>): readonly string[] => ('offre' in e ? ['offre', 'ctx'] : 'suite' in e ? ['suite'] : ['type', 'args', 'siege']);
@@ -269,7 +269,14 @@ export function creerPont() {
     }
   }
 
-  return { appeler };
+  /** Ferme la partie ouverte : le noyau n'en tient qu'une par processus, et un hôte sans page à recharger (la sonde qui
+   *  fige un scénario après l'autre) la rend avant d'en démarrer une autre sur un pont neuf. */
+  function fermer(): void {
+    demarree().partie.fermer();
+    ouverte = null;
+  }
+
+  return { appeler, fermer };
 }
 
 /** Le pont que la page expose à Godot. */
