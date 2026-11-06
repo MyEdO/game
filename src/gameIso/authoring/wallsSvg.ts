@@ -12,7 +12,7 @@ import { WALL_H_M, isoPxToM } from '../iso';
 import { metricToLift } from '../../noyau/monde/relief';
 import { wallPartColor, windowLit } from '../catalog/structures';
 import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
-import { facadeStructureAppearance } from '../catalog/facades';
+import { facadeStructureAppearance } from '../catalog/structures';
 import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
 import { hash32 } from '../../data/hash';

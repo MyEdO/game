@@ -27,8 +27,7 @@
  */
 import { AMBIANCE } from '../../catalog/ambiance';
 import { roofMaterial } from '../../catalog/roofs';
-import { facadeStructureAppearance } from '../../catalog/facades';
-import { wallPartColor } from '../../catalog/structures';
+import { facadeStructureAppearance, wallPartColor } from '../../catalog/structures';
 import type { WallPart } from '../../../data/structureAppearance.types';
 import { couleurDeMatiere, propMaterial, recetteDeMatiere } from '../../../noyau/monde/volume/matieres';
 import { MISSING_TONE } from '../../../noyau/monde/volume/missing';

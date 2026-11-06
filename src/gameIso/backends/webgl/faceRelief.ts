@@ -8,7 +8,7 @@
  * `worldTris.ts` reste PUR et sans catalogue : il reçoit cette profondeur en paramètre et ne décide que
  * de la FORME du volume (boîte centrée sur le plan médian, croix d'un montant).
  */
-import { facadeStructureAppearance } from '../../catalog/facades';
+import { facadeStructureAppearance } from '../../catalog/structures';
 import { wallPartDepthM } from '../../catalog/structures';
 import { largeurDUnMontant, wallMatterM } from '../../../noyau/monde/volume/montants';
 import type { WallPart } from '../../../data/structureAppearance.types';

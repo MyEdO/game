@@ -48,7 +48,8 @@ export { CLICS_DU_CHAMP, CLICS_DE_L_EXPLORATION, type GesteDuNoyau } from './act
 export { capDuGroupe, porteurParId } from './monde/combatants';
 export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
-export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, type AreteDessinee, type Scene } from './monde/scene';
+export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, type AreteDessinee } from './monde/aretes';
+export type { Scene } from './monde/scene';
 export { volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
 export { editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, sceneEditee, texteAEnregistrer, HAUTEURS, PINCEAUX, type BrouillonDArete, type GesteDEdition, type PatchDArete, type SessionDEdition } from './edition/session';
 export { terrainIds, terrainLabel } from './monde/terrain';

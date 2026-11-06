@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { periodTextureData, jointFactor, PERIOD_PX_PER_M } from './periodTexture';
 import { coursesPeriod, coursesPeriodM, coursesKey, patternWM, N_VARIANTS } from '../../detail/courses';
-import { facadeStructureAppearance } from '../../catalog/facades';
+import { facadeStructureAppearance } from '../../catalog/structures';
 import { wallPartColor } from '../../catalog/structures';
 import { matieresDe } from '../../../data';
 import type { DetailRecipe } from '../../../data/materials.types';
