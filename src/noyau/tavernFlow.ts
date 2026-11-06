@@ -471,7 +471,7 @@ export function playTavernGame(get: Get, set: Set, opts: ReglageDePartie): void 
 function combinedSecondRead(game: TavernGame, acteur: Combatant | undefined, difficulty: Difficulty, nue: number): CascadeSecondRead | undefined {
   const regles = game.combined;
   if (!regles) return undefined;
-  const test = testDeSequence({ skill: regles.second.skill, characteristic: regles.second.char });
+  const test = testDeSequence(regles.second);
   return {
     label: testSkillLabel(test) ?? game.label,
     base: acteur ? testValue(acteur, test.skill, test.char, test.spec) : nue,
@@ -2355,7 +2355,7 @@ function combinedEraseRound(get: Get, seq: SequenceState<TavernPayload>, game: T
 /** La SECONDE cible d'un camp : la valeur DÉCLARÉE (`combined.second`) montée par l'accesseur canon
  *  pour un porteur, ou la valeur de table pour un adversaire abstrait. */
 function combinedSecondTarget(regles: SequenceCombinedRules, acteur: Combatant | undefined, difficulty: Difficulty, nue: number): number {
-  const test = testDeSequence({ skill: regles.second.skill, characteristic: regles.second.char });
+  const test = testDeSequence(regles.second);
   return acteur
     ? effectiveTarget(acteur, test, difficulty)
     : effectiveTarget(undefined, test, difficulty, nue);
