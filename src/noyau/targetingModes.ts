@@ -77,7 +77,7 @@ export type HoverTargeting =
    *  l.33) ; `cible-gratuite` = cible hors de ce que la gratuite armée admet ; `action-depensee` = l'approche
    *  d'une attaque qui coûte l'Action, l'Action dépensée. */
   | { kind: 'invalid'; reason: 'los' | 'range' | 'engaged' | 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'approche-non-armee' | 'sans-sort-dissipable' | 'hors-d-etat' | 'frenesie-cible' | 'cible-gratuite' | 'action-depensee' }
-  /** Mode Soin armé : allié soignable à portée, mais aucun soin de combat ne s'offre (`combatHealModes`). */
+  /** Mode Soin armé : allié soignable à portée, mais aucun soin de combat ne s'offre (`modesDOuverture`). */
   | { kind: 'invalid'; reason: 'sans-soin-de-combat' }
   | {
       kind: 'ok';
