@@ -1836,9 +1836,9 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
     const value = testValue(eng, skill?.id, characteristic, skill?.spec);
     const label = testSkillLabel({ skill, char: characteristic }) ?? '';
     if (step.targetDR != null) {
-      let total = 0;
-      for (let i = 0; total < step.targetDR && i < 20; i++) total += Math.max(0, rollTest(value, difficulty, rng).sl);
-      tell(get, set, [t('sv.engineStep', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], need: step.targetDR, issue: total >= step.targetDR ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
+      let etape = { total: 0, done: step.targetDR <= 0 };
+      for (let i = 0; !etape.done && i < 20; i++) etape = extendedTestStep(etape.total, rollTest(value, difficulty, rng), step.targetDR);
+      tell(get, set, [t('sv.engineStep', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], need: step.targetDR, issue: etape.done ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
     } else {
       let t = rollTest(value, difficulty, rng);
       for (let i = 0; !t.success && i < 20; i++) t = rollTest(value, difficulty, rng);

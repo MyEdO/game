@@ -58,6 +58,8 @@ export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { ficheDuPorteur, type FicheDuPorteur } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
+export { carteEnVue } from './carteEnVue';
+export { recitEnVue } from './recitEnVue';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';
 export { libelleDuGeste, libelleDuReglage, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';

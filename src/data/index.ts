@@ -136,6 +136,8 @@ import seaPerilsJson from './sea-perils.json';
 import seaWeatherJson from './sea-weather.json';
 import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
+import seaCargoJson from './sea-cargo.json';
+import landCargoJson from './land-cargo.json';
 import { CharKey, Weapon, VehicleData, StructureData, Availability, type TestedAvailability, Difficulty, type NightTestKind, type StakeForm } from '../engine/types';
 import type { MutationData, MutationTable } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
 import type { DiseaseDef } from './schemas/defs/maladies';
@@ -156,6 +158,8 @@ import type { SeaPerilsData } from './schemas/defs/sea-perils';
 import type { SeaWeatherData } from './schemas/defs/sea-weather';
 import type { ShipConstructionData } from './schemas/defs/ship-construction';
 import type { RiverNavigationData } from './schemas/defs/river-navigation';
+import type { SeaCargoData } from './schemas/defs/sea-cargo';
+import type { LandCargoData } from './schemas/defs/land-cargo';
 
 /** Règle d'EMPOIGNADE en DONNÉE (LDB 14 l.159-169) : `init` = ops à la touche d'une Empoignade déclarée
  *  (Empêtré + relation via le flag `grapple`) ; `win` = les 3 options du Test opposé GAGNÉ (l.161), appliquées
@@ -2626,6 +2630,11 @@ export const shipConstruction = shipConstructionJson as ShipConstructionData;
 /** LOT 2 #422 : Navigation fluviale (MSRC 7) — pendant fluvial de `seaNavigation`, même patron
  *  d'export (référence LIVE au même fichier physique relu par `engine/riverNavigation.ts`). */
 export const riverNavigation = riverNavigationJson as RiverNavigationData;
+
+/** Règles de négoce (#3433) : MDG 15 maritime, MSRC 13 terrestre — même patron d'export (référence
+ *  LIVE au même fichier physique relu par `engine/seaVoyage.ts` et `engine/landCargo.ts`). */
+export const seaCargo = seaCargoJson as SeaCargoData;
+export const landCargo = landCargoJson as LandCargoData;
 
 /** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE consommé par
  *  référence (`MapPlace.services[].kind`) et résolu par `placeServices` (`src/noyau/worldMap.ts`).

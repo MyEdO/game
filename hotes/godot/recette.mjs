@@ -35,6 +35,8 @@
 // - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement, les tours passent jusqu'à Grunni, son offre
 //   « Soigner » cliquée puis son patient : la fenêtre du soin nomme le patient, l'acte et le Test en choix ; le jet à
 //   l'Entrée.
+// - `voyage` (`--scenario voyage`) : l'entrée de la scène poursuivie, « Carte du monde » ouvre la carte, chaque trajet
+//   et ses modes ; « À pied » vers Steinbruck part, les journées et la halte passent jusqu'au récit de l'arrivée.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
 //   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
@@ -581,6 +583,37 @@ async function parcoursSoin() {
   v = await vue()
   noter(`jet à l'Entrée : ${corps(v)}`)
   await capturer('3328-k1-2-jet')
+}
+
+async function parcoursVoyage() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  /** Joue le geste que l'Entrée jouerait, sinon le premier bouton ouvert, tant qu'une fenêtre autre que `jusqua` tient la
+   *  main. */
+  const avancer = async (jusqua) => {
+    for (let v = await vue(), pas = 0; v.projection.fenetre && v.projection.fenetre.cle !== jusqua; v = await vue(), pas++) {
+      assert.ok(pas < 80, `les fenêtres se vident jusqu'à ${jusqua} : ${corps(v)}`)
+      const gestes = zone(v, 'fenetre.gestes')
+      if (gestes.some((b) => b.type === 'bouton' && b.focus)) {
+        await marquer()
+        await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+        await nouvelEcran()
+      } else await cliquerBouton(bouton(gestes.find((b) => b.type === 'bouton' && !b.refus)))
+    }
+  }
+  await avancer()
+  await cliquerBouton('Carte du monde')
+  await attendreLaVue("v.projection.fenetre?.cle === 'carteDuMonde'")
+  let v = await vue()
+  const trajets = zone(v, 'fenetre.corps').filter((e) => e.type === 'entite')
+  noter(`carte : ${zone(v, 'fenetre.corps')[0].texte} ; ${trajets.map((e) => `${e.nom} (${e.elements.map((x) => x.libelle ?? x.valeurs.map((b) => b.libelle).join(', ')).join(' ; ')})`).join(' | ')}`)
+  await capturer('3328-l1-1-carte')
+  await cliquerBouton('À pied · 2 j')
+  await avancer('recitDeVoyage')
+  await attendreLaVue("v.projection.fenetre?.cle === 'recitDeVoyage'")
+  v = await vue()
+  noter(`récit : ${corps(v)}`)
+  await capturer('3328-l1-2-recit')
 }
 
 async function parcoursFiche() {
@@ -1286,7 +1319,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null
