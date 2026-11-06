@@ -1,32 +1,46 @@
 /**
- * Schéma de `peripeties.json` — Table des Péripéties de voyage (1d10, `Source/…/51 - Magie du
- * Chaos.md` l.210-221 — le fichier mélange 2 chapitres réels du LDB post-ré-extraction Marker, cette
- * table appartient au conseil MJ « Voyage », pas aux sorts du Chaos, #309 phase 3), miroir strict de
- * `Peripetie` (`src/data/peripeties.ts`). 10 entrées, une par face du d10.
+ * Schéma de `peripeties.json` — Table des Péripéties de voyage (`Source/…/51 - Magie du Chaos.md`
+ * l.210-221 — le fichier mélange 2 chapitres réels du LDB post-ré-extraction Marker, cette table
+ * appartient au conseil MJ « Voyage », pas aux sorts du Chaos, #309 phase 3), document mono-table :
+ * une rangée par face de son dé `die`. Vue TS : `Peripetie` (`src/data/peripeties.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { nommerChamps } from '../grammaire/meta';
+import { sourceRefSchema } from '../grammaire/valeurs';
 
 export const file = 'peripeties.json';
-export const famille = 'entite';
+export const famille = 'config';
+
+/** Une Péripétie, à sa face du dé de la table. */
+export const rangee = nommerChamps(z.strictObject({
+  id: z.string(),
+  roll: z.number(),
+  label: z.string(),
+  /** Ce que le MOTEUR sait jouer sans rien inventer (cf. `src/data/peripeties.ts`). */
+  kind: z.enum(['reposant', 'narratif', 'ereintant', 'attaque']),
+  desc: z.string().min(1),
+  source: sourceRefSchema,
+}), {
+  id: { label: 'identifiant' },
+  roll: { label: 'Face du dé', hint: 'Valeur du dé de la table qui déclenche cette Péripétie' },
+  label: { label: 'libellé' },
+  kind: { label: 'Nature de la Péripétie', hint: 'Ce que le moteur sait jouer sans rien inventer' },
+  desc: { label: 'texte' },
+  source: { label: 'source' },
+});
 
 const doc = document(
   'peripeties',
   famille,
-  {
-    roll: z.number(),
-    /** Ce que le MOTEUR sait jouer sans rien inventer (cf. `src/data/peripeties.ts`). */
-    kind: z.enum(['reposant', 'narratif', 'ereintant', 'attaque']),
-  },
-  {
-    roll: { label: 'Face du dé', hint: 'Valeur du d10 qui déclenche cette Péripétie' },
-    kind: { label: 'Nature de la Péripétie', hint: 'Ce que le moteur sait jouer sans rien inventer' },
-  },
+  {},
+  {},
   {
     codex: { keys: ['peripeties'] },
-    edit: { dataset: 'peripeties' },
+    edit: { niche: { categories: { peripeties: 'entries' } } },
   },
-  { exiges: ['desc'] },
+  // LDB 51 l.210
+  { rangee, deDeTirage: true },
 );
 
 export const schema = doc.schema;

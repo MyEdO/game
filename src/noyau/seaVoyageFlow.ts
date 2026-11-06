@@ -52,7 +52,7 @@ import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
 import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, NAVAL_TRAITS, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
 import { profilNavalDe } from '../engine/coque';
-import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
+import { installCost, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { deMonde, formatEffetSigne, roll as rollDice, tirer, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
@@ -2781,8 +2781,8 @@ export const TABLES = {
           && steamBreakdownTriggered({ success: evaluateTest(x.result.roll, x.result.target).success, sl: x.result.sl, isDouble: isDoubleRoll(x.result.roll) }));
         if (triggered) {
           // Tirage POST-POSE de la table de panne : l'étape `progression` est déjà posée, ce dé en est la
-          // conséquence — porte du canal (`deMonde`), même position RNG qu'inline (MDG 12 l.313).
-          const b = steamBreakdownFor(deMonde(rng));
+          // conséquence — au dé de sa table, même position RNG qu'inline (MDG 12 l.313).
+          const b = rollSteamBreakdown(rng);
           j.push(t('sv.steamBreakdown', { label: b.label }), b.desc);
           applySteamBreakdown(get, set, b, rng); // « Fuite de vapeur » → `pendingSteamSave` (sauvegarde d'Initiative) suspend AVANT le reste du jour
         }

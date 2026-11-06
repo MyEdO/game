@@ -1,493 +1,473 @@
-[
-  {
-    "id": "allie-inculpe",
-    "type": "interludeEvents",
-    "min": 1,
-    "max": 3,
-    "label": "Allié inculpé",
-    "desc": "Un de vos alliés est impliqué dans un horrible crime — le disculper demanderait des Activités (Savoir (Loi) Accessible +20, ou trois Activités du groupe) ; sinon il sera pendu.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    },
-    "atelierNote": "Le suivi des Activités de disculpation n'est pas modélisé en fx — se rejoue en narration/journal."
+{
+  "id": "tableau-des-evenements",
+  "type": "interludeEvents",
+  "label": "Tableau des Événements",
+  "die": "d100",
+  "source": {
+    "book": "livre-de-base",
+    "page": 193,
+    "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
   },
-  {
-    "id": "encheres-esoteriques",
-    "type": "interludeEvents",
-    "min": 4,
-    "max": 6,
-    "label": "Enchères ésotériques",
-    "desc": "Les biens d’un voisin décédé sont aux enchères, dont un vieux livre d’origine inconnue (10 CO) — il donnerait +20 aux Recherches de Savoir des Lettrés.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+  "entries": [
+    {
+      "id": "allie-inculpe",
+      "min": 1,
+      "max": 3,
+      "label": "Allié inculpé",
+      "desc": "Un de vos alliés est impliqué dans un horrible crime — le disculper demanderait des Activités (Savoir (Loi) Accessible +20, ou trois Activités du groupe) ; sinon il sera pendu.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      },
+      "atelierNote": "Le suivi des Activités de disculpation n'est pas modélisé en fx — se rejoue en narration/journal."
     },
-    "atelierNote": "L'achat du livre et son bonus aux Recherches ne sont pas modélisés en fx — se rejoue en narration/journal."
-  },
-  {
-    "id": "trahison",
-    "type": "interludeEvents",
-    "min": 7,
-    "max": 10,
-    "label": "Trahison !",
-    "desc": "Un ami, un parent ou un allié se retourne contre vous ; les répercussions influenceront votre prochaine aventure.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+    {
+      "id": "encheres-esoteriques",
+      "min": 4,
+      "max": 6,
+      "label": "Enchères ésotériques",
+      "desc": "Les biens d’un voisin décédé sont aux enchères, dont un vieux livre d’origine inconnue (10 CO) — il donnerait +20 aux Recherches de Savoir des Lettrés.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      },
+      "atelierNote": "L'achat du livre et son bonus aux Recherches ne sont pas modélisés en fx — se rejoue en narration/journal."
+    },
+    {
+      "id": "trahison",
+      "min": 7,
+      "max": 10,
+      "label": "Trahison !",
+      "desc": "Un ami, un parent ou un allié se retourne contre vous ; les répercussions influenceront votre prochaine aventure.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "imprevu",
+      "min": 11,
+      "max": 14,
+      "label": "Imprévu",
+      "desc": "La porte de l’écurie est restée ouverte : votre monture s’est enfuie (Test de Dressage (Cheval) Accessible +20 pour la rattraper). Sans monture : une ampoule douloureuse au pied.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      },
+      "atelierNote": "Le Test de Dressage pour rattraper la monture n'est pas modélisé en fx — se rejoue en narration/journal."
+    },
+    {
+      "id": "eh-tu-as-renverse-ma-pinte",
+      "min": 15,
+      "max": 18,
+      "label": "Eh ! Tu as renversé ma pinte !",
+      "desc": "Un petit différend a tourné au conflit : quelqu’un ne laissera pas passer une occasion de se venger.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "repression-du-crime",
+      "min": 19,
+      "max": 21,
+      "label": "Répression du crime",
+      "desc": "La Garde veut une augmentation : tous les « coups » sont en suspens. Les Voleurs ne peuvent rien gagner avec Revenus.",
+      "fx": {
+        "revenueBlockedClasses": [
+          "roublards"
+        ],
+        "partyWide": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "le-prevot-arrive",
+      "min": 22,
+      "max": 25,
+      "label": "Le Prévôt arrive",
+      "desc": "Le collecteur d’impôts sillonne la communauté : tous les Personnages perdent 30 % de leur argent avant de pouvoir le dépenser.",
+      "fx": {
+        "moneyPct": -30,
+        "partyWide": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "fausse-monnaie",
+      "min": 26,
+      "max": 29,
+      "label": "Fausse monnaie",
+      "desc": "Un trafic de pièces contrefaites sévit : un cinquième de toutes les pièces est concerné — Opérations bancaires et Revenus réduits de 20 %.",
+      "fx": {
+        "revenuePct": -20,
+        "bankPct": -20,
+        "partyWide": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "profits-abondants",
+      "min": 30,
+      "max": 33,
+      "label": "Profits abondants",
+      "desc": "Les affaires du commerce fluvial sont excellentes : les Riverains gagnent 50 % de plus avec Revenus.",
+      "fx": {
+        "revenuePct": 50,
+        "revenueClasses": [
+          "riverains"
+        ],
+        "partyWide": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "un-homme-averti-en-vaut-deux",
+      "min": 34,
+      "max": 36,
+      "label": "Un homme averti en vaut deux",
+      "desc": "Un présage cryptique vous a été donné : votre maximum de Points de Chance augmente de 1 pour la prochaine aventure.",
+      "fx": {
+        "fortuneMaxDelta": 1
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "festivites",
+      "min": 37,
+      "max": 40,
+      "label": "Festivités",
+      "desc": "Une fête est annoncée — mariage, récolte généreuse ou exécution publique ! Vous êtes entraîné dans l’événement et perdez une Activité.",
+      "fx": {
+        "loseActivity": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "meteo-defavorable",
+      "min": 41,
+      "max": 44,
+      "label": "Météo défavorable",
+      "desc": "Conditions détestables : pour la prochaine aventure, les Tests sociaux subissent −10 et le prix des aliments augmente de 20 %.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      },
+      "atelierNote": "Le malus social et la hausse du prix des aliments ne sont pas modélisés en fx pour la prochaine aventure — se rejoue en narration/journal."
+    },
+    {
+      "id": "meteo-radieuse",
+      "min": 45,
+      "max": 48,
+      "label": "Météo radieuse",
+      "desc": "Les magnifiques conditions vous inspirent : vous pouvez ajouter une nouvelle Ambition.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "mauvaise-recolte",
+      "min": 49,
+      "max": 52,
+      "label": "Mauvaise récolte",
+      "desc": "La nourriture devient extrêmement rare : les Ruraux ne peuvent pas entreprendre Revenus, et le prix des aliments double pour la prochaine aventure.",
+      "fx": {
+        "revenueBlockedClasses": [
+          "ruraux"
+        ],
+        "partyWide": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "maladie-pernicieuse",
+      "min": 53,
+      "max": 56,
+      "label": "Maladie pernicieuse",
+      "desc": "Le Flux Sanglant sévit en ville : Test d’Endurance Facile (+40) ou contracter la maladie.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      },
+      "atelierNote": "Le Flux Sanglant n'existe pas au registre des maladies (V1) — Test et maladie se rejouent en narration/journal."
+    },
+    {
+      "id": "complications-monstrueuses",
+      "min": 57,
+      "max": 60,
+      "label": "Complications monstrueuses",
+      "desc": "Un monstre sème la panique : Revenus ne fournit aucun fonds tant que la bête rôde (la régler = une rencontre à jouer).",
+      "fx": {
+        "revenueBlockedClasses": [
+          "*"
+        ],
+        "partyWide": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "l-etreinte-de-morr",
+      "min": 61,
+      "max": 63,
+      "label": "L’étreinte de Morr",
+      "desc": "Un parent, ami ou allié meurt — causes naturelles, accident… ou le début de quelque chose de plus sinistre.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "nouvelle-lune",
+      "min": 64,
+      "max": 65,
+      "label": "Nouvelle lune",
+      "desc": "Les nuits sont particulièrement noires : les Voleurs qui entreprennent Revenus gagnent +20 %.",
+      "fx": {
+        "revenuePct": 20,
+        "revenueClasses": [
+          "roublards"
+        ],
+        "partyWide": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "vieilles-dettes",
+      "min": 66,
+      "max": 67,
+      "label": "Vieilles dettes",
+      "desc": "Une Faveur Majeure ou Importante vous est réclamée : ses tenants feront partie de votre prochaine aventure, et vous perdez une Activité en préparation.",
+      "fx": {
+        "loseActivity": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "opportunite-de-passage",
+      "min": 68,
+      "max": 69,
+      "label": "Opportunité de passage",
+      "desc": "Soldats, riches marchands ou nobles traversent la région : les Citadins et Ruraux gagnent +50 % avec Revenus.",
+      "fx": {
+        "revenuePct": 50,
+        "revenueClasses": [
+          "citadins",
+          "ruraux"
+        ],
+        "partyWide": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "paix-et-serenite",
+      "min": 70,
+      "max": 71,
+      "label": "Paix et sérénité",
+      "desc": "Un sommeil paisible après un bon fromage : vous serez en pleine forme au début de votre prochaine aventure.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "colporteur",
+      "min": 72,
+      "max": 73,
+      "label": "Colporteur",
+      "desc": "Un colporteur friand de ragots arrive : pour 3 sc, +10 à toutes vos Activités Dernières nouvelles.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      },
+      "atelierNote": "L'Activité « Dernières nouvelles » n'existe pas au catalogue (V2) — se rejoue en narration/journal."
+    },
+    {
+      "id": "animal-domestique-malade",
+      "min": 74,
+      "max": 76,
+      "label": "Animal domestique malade",
+      "desc": "Un de vos animaux tombe malade : Test de Soin aux animaux Intermédiaire (+0) ou la créature meurt. Sans animal : un nuage menaçant vous tourmente.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      },
+      "atelierNote": "Le Test de Soin aux animaux et ses conséquences ne sont pas modélisés en fx — se rejoue en narration/journal."
+    },
+    {
+      "id": "mise-a-sac",
+      "min": 77,
+      "max": 79,
+      "label": "Mise à sac",
+      "desc": "Avant toute Opération bancaire, votre planque est dévalisée : tout l’argent planqué a disparu (et votre équipement le plus précieux si le butin valait moins d’1 CO).",
+      "fx": {
+        "stashRaided": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "emeutes",
+      "min": 80,
+      "max": 82,
+      "label": "Émeutes",
+      "desc": "Le peuple est furieux contre les puissants : les Courtisans ne peuvent pas entreprendre Revenus, et les banques vérifient immédiatement la faillite. Semer la dissension gagne +10.",
+      "fx": {
+        "revenueBlockedClasses": [
+          "courtisans"
+        ],
+        "bankCrashCheck": true,
+        "partyWide": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "kleptomane",
+      "min": 83,
+      "max": 85,
+      "label": "Kleptomane",
+      "desc": "Votre sacoche est entaillée ! Vous perdez la moitié de l’argent avec lequel vous avez terminé votre dernière aventure.",
+      "fx": {
+        "moneyPct": -50
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 194,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "soupconne-d-heresie",
+      "min": 86,
+      "max": 88,
+      "label": "Soupçonné d’hérésie",
+      "desc": "Un Répurgateur vous soupçonne : Test de Charme Très Difficile (−30) pour le convaincre, sinon vous gagnez une némésis.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      },
+      "atelierNote": "Le Test de Charme et la némésis résultante ne sont pas modélisés en fx — se rejoue en narration/journal."
+    },
+    {
+      "id": "suspect",
+      "min": 89,
+      "max": 91,
+      "label": "Suspect",
+      "desc": "Votre soudaine richesse attire les soupçons : tous les Personnages renoncent à une Activité pour faire profil bas ; les Voleurs ne peuvent pas utiliser Revenus.",
+      "fx": {
+        "loseActivity": true,
+        "revenueBlockedClasses": [
+          "roublards"
+        ],
+        "partyWide": true
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "rien-a-signaler",
+      "min": 92,
+      "max": 94,
+      "label": "Rien à signaler",
+      "desc": "Peu de choses se passent : vous commencez la prochaine aventure avec un appétit pour le risque inspiré par l’ennui.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      }
+    },
+    {
+      "id": "consideration-inattendue",
+      "min": 95,
+      "max": 97,
+      "label": "Considération inattendue",
+      "desc": "Quelqu’un que vous avez aidé vous rend la pareille — d’un objet de grande qualité à une bourse d’argent. Tout ce qui brille n’est pas or…",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      },
+      "atelierNote": "Le don (objet ou bourse, et son éventuel piège) n'est pas modélisé en fx — se rejoue en narration/journal."
+    },
+    {
+      "id": "mercenaires-particuliers",
+      "min": 98,
+      "max": 100,
+      "label": "Mercenaires particuliers",
+      "desc": "Des mercenaires peu communs cherchent du travail : Entraînement et Apprentissage particulier coûtent −20 % pour les Compétences et Talents martiaux, et l’Entraînement au Combat gagne +20 % aux Tests adaptés.",
+      "source": {
+        "book": "livre-de-base",
+        "page": 193,
+        "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
+      },
+      "atelierNote": "La réduction de coût d'Entraînement/Apprentissage et le bonus d'Entraînement au combat ne sont pas modélisés en fx — se rejoue en narration/journal."
     }
-  },
-  {
-    "id": "imprevu",
-    "type": "interludeEvents",
-    "min": 11,
-    "max": 14,
-    "label": "Imprévu",
-    "desc": "La porte de l’écurie est restée ouverte : votre monture s’est enfuie (Test de Dressage (Cheval) Accessible +20 pour la rattraper). Sans monture : une ampoule douloureuse au pied.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    },
-    "atelierNote": "Le Test de Dressage pour rattraper la monture n'est pas modélisé en fx — se rejoue en narration/journal."
-  },
-  {
-    "id": "eh-tu-as-renverse-ma-pinte",
-    "type": "interludeEvents",
-    "min": 15,
-    "max": 18,
-    "label": "Eh ! Tu as renversé ma pinte !",
-    "desc": "Un petit différend a tourné au conflit : quelqu’un ne laissera pas passer une occasion de se venger.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "repression-du-crime",
-    "type": "interludeEvents",
-    "min": 19,
-    "max": 21,
-    "label": "Répression du crime",
-    "desc": "La Garde veut une augmentation : tous les « coups » sont en suspens. Les Voleurs ne peuvent rien gagner avec Revenus.",
-    "fx": {
-      "revenueBlockedClasses": [
-        "roublards"
-      ],
-      "partyWide": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "le-prevot-arrive",
-    "type": "interludeEvents",
-    "min": 22,
-    "max": 25,
-    "label": "Le Prévôt arrive",
-    "desc": "Le collecteur d’impôts sillonne la communauté : tous les Personnages perdent 30 % de leur argent avant de pouvoir le dépenser.",
-    "fx": {
-      "moneyPct": -30,
-      "partyWide": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "fausse-monnaie",
-    "type": "interludeEvents",
-    "min": 26,
-    "max": 29,
-    "label": "Fausse monnaie",
-    "desc": "Un trafic de pièces contrefaites sévit : un cinquième de toutes les pièces est concerné — Opérations bancaires et Revenus réduits de 20 %.",
-    "fx": {
-      "revenuePct": -20,
-      "bankPct": -20,
-      "partyWide": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "profits-abondants",
-    "type": "interludeEvents",
-    "min": 30,
-    "max": 33,
-    "label": "Profits abondants",
-    "desc": "Les affaires du commerce fluvial sont excellentes : les Riverains gagnent 50 % de plus avec Revenus.",
-    "fx": {
-      "revenuePct": 50,
-      "revenueClasses": [
-        "riverains"
-      ],
-      "partyWide": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "un-homme-averti-en-vaut-deux",
-    "type": "interludeEvents",
-    "min": 34,
-    "max": 36,
-    "label": "Un homme averti en vaut deux",
-    "desc": "Un présage cryptique vous a été donné : votre maximum de Points de Chance augmente de 1 pour la prochaine aventure.",
-    "fx": {
-      "fortuneMaxDelta": 1
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "festivites",
-    "type": "interludeEvents",
-    "min": 37,
-    "max": 40,
-    "label": "Festivités",
-    "desc": "Une fête est annoncée — mariage, récolte généreuse ou exécution publique ! Vous êtes entraîné dans l’événement et perdez une Activité.",
-    "fx": {
-      "loseActivity": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "meteo-defavorable",
-    "type": "interludeEvents",
-    "min": 41,
-    "max": 44,
-    "label": "Météo défavorable",
-    "desc": "Conditions détestables : pour la prochaine aventure, les Tests sociaux subissent −10 et le prix des aliments augmente de 20 %.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    },
-    "atelierNote": "Le malus social et la hausse du prix des aliments ne sont pas modélisés en fx pour la prochaine aventure — se rejoue en narration/journal."
-  },
-  {
-    "id": "meteo-radieuse",
-    "type": "interludeEvents",
-    "min": 45,
-    "max": 48,
-    "label": "Météo radieuse",
-    "desc": "Les magnifiques conditions vous inspirent : vous pouvez ajouter une nouvelle Ambition.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "mauvaise-recolte",
-    "type": "interludeEvents",
-    "min": 49,
-    "max": 52,
-    "label": "Mauvaise récolte",
-    "desc": "La nourriture devient extrêmement rare : les Ruraux ne peuvent pas entreprendre Revenus, et le prix des aliments double pour la prochaine aventure.",
-    "fx": {
-      "revenueBlockedClasses": [
-        "ruraux"
-      ],
-      "partyWide": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "maladie-pernicieuse",
-    "type": "interludeEvents",
-    "min": 53,
-    "max": 56,
-    "label": "Maladie pernicieuse",
-    "desc": "Le Flux Sanglant sévit en ville : Test d’Endurance Facile (+40) ou contracter la maladie.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    },
-    "atelierNote": "Le Flux Sanglant n'existe pas au registre des maladies (V1) — Test et maladie se rejouent en narration/journal."
-  },
-  {
-    "id": "complications-monstrueuses",
-    "type": "interludeEvents",
-    "min": 57,
-    "max": 60,
-    "label": "Complications monstrueuses",
-    "desc": "Un monstre sème la panique : Revenus ne fournit aucun fonds tant que la bête rôde (la régler = une rencontre à jouer).",
-    "fx": {
-      "revenueBlockedClasses": [
-        "*"
-      ],
-      "partyWide": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "l-etreinte-de-morr",
-    "type": "interludeEvents",
-    "min": 61,
-    "max": 63,
-    "label": "L’étreinte de Morr",
-    "desc": "Un parent, ami ou allié meurt — causes naturelles, accident… ou le début de quelque chose de plus sinistre.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "nouvelle-lune",
-    "type": "interludeEvents",
-    "min": 64,
-    "max": 65,
-    "label": "Nouvelle lune",
-    "desc": "Les nuits sont particulièrement noires : les Voleurs qui entreprennent Revenus gagnent +20 %.",
-    "fx": {
-      "revenuePct": 20,
-      "revenueClasses": [
-        "roublards"
-      ],
-      "partyWide": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "vieilles-dettes",
-    "type": "interludeEvents",
-    "min": 66,
-    "max": 67,
-    "label": "Vieilles dettes",
-    "desc": "Une Faveur Majeure ou Importante vous est réclamée : ses tenants feront partie de votre prochaine aventure, et vous perdez une Activité en préparation.",
-    "fx": {
-      "loseActivity": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "opportunite-de-passage",
-    "type": "interludeEvents",
-    "min": 68,
-    "max": 69,
-    "label": "Opportunité de passage",
-    "desc": "Soldats, riches marchands ou nobles traversent la région : les Citadins et Ruraux gagnent +50 % avec Revenus.",
-    "fx": {
-      "revenuePct": 50,
-      "revenueClasses": [
-        "citadins",
-        "ruraux"
-      ],
-      "partyWide": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "paix-et-serenite",
-    "type": "interludeEvents",
-    "min": 70,
-    "max": 71,
-    "label": "Paix et sérénité",
-    "desc": "Un sommeil paisible après un bon fromage : vous serez en pleine forme au début de votre prochaine aventure.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "colporteur",
-    "type": "interludeEvents",
-    "min": 72,
-    "max": 73,
-    "label": "Colporteur",
-    "desc": "Un colporteur friand de ragots arrive : pour 3 sc, +10 à toutes vos Activités Dernières nouvelles.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    },
-    "atelierNote": "L'Activité « Dernières nouvelles » n'existe pas au catalogue (V2) — se rejoue en narration/journal."
-  },
-  {
-    "id": "animal-domestique-malade",
-    "type": "interludeEvents",
-    "min": 74,
-    "max": 76,
-    "label": "Animal domestique malade",
-    "desc": "Un de vos animaux tombe malade : Test de Soin aux animaux Intermédiaire (+0) ou la créature meurt. Sans animal : un nuage menaçant vous tourmente.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    },
-    "atelierNote": "Le Test de Soin aux animaux et ses conséquences ne sont pas modélisés en fx — se rejoue en narration/journal."
-  },
-  {
-    "id": "mise-a-sac",
-    "type": "interludeEvents",
-    "min": 77,
-    "max": 79,
-    "label": "Mise à sac",
-    "desc": "Avant toute Opération bancaire, votre planque est dévalisée : tout l’argent planqué a disparu (et votre équipement le plus précieux si le butin valait moins d’1 CO).",
-    "fx": {
-      "stashRaided": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "emeutes",
-    "type": "interludeEvents",
-    "min": 80,
-    "max": 82,
-    "label": "Émeutes",
-    "desc": "Le peuple est furieux contre les puissants : les Courtisans ne peuvent pas entreprendre Revenus, et les banques vérifient immédiatement la faillite. Semer la dissension gagne +10.",
-    "fx": {
-      "revenueBlockedClasses": [
-        "courtisans"
-      ],
-      "bankCrashCheck": true,
-      "partyWide": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "kleptomane",
-    "type": "interludeEvents",
-    "min": 83,
-    "max": 85,
-    "label": "Kleptomane",
-    "desc": "Votre sacoche est entaillée ! Vous perdez la moitié de l’argent avec lequel vous avez terminé votre dernière aventure.",
-    "fx": {
-      "moneyPct": -50
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 194,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "soupconne-d-heresie",
-    "type": "interludeEvents",
-    "min": 86,
-    "max": 88,
-    "label": "Soupçonné d’hérésie",
-    "desc": "Un Répurgateur vous soupçonne : Test de Charme Très Difficile (−30) pour le convaincre, sinon vous gagnez une némésis.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    },
-    "atelierNote": "Le Test de Charme et la némésis résultante ne sont pas modélisés en fx — se rejoue en narration/journal."
-  },
-  {
-    "id": "suspect",
-    "type": "interludeEvents",
-    "min": 89,
-    "max": 91,
-    "label": "Suspect",
-    "desc": "Votre soudaine richesse attire les soupçons : tous les Personnages renoncent à une Activité pour faire profil bas ; les Voleurs ne peuvent pas utiliser Revenus.",
-    "fx": {
-      "loseActivity": true,
-      "revenueBlockedClasses": [
-        "roublards"
-      ],
-      "partyWide": true
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "rien-a-signaler",
-    "type": "interludeEvents",
-    "min": 92,
-    "max": 94,
-    "label": "Rien à signaler",
-    "desc": "Peu de choses se passent : vous commencez la prochaine aventure avec un appétit pour le risque inspiré par l’ennui.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    }
-  },
-  {
-    "id": "consideration-inattendue",
-    "type": "interludeEvents",
-    "min": 95,
-    "max": 97,
-    "label": "Considération inattendue",
-    "desc": "Quelqu’un que vous avez aidé vous rend la pareille — d’un objet de grande qualité à une bourse d’argent. Tout ce qui brille n’est pas or…",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    },
-    "atelierNote": "Le don (objet ou bourse, et son éventuel piège) n'est pas modélisé en fx — se rejoue en narration/journal."
-  },
-  {
-    "id": "mercenaires-particuliers",
-    "type": "interludeEvents",
-    "min": 98,
-    "max": 100,
-    "label": "Mercenaires particuliers",
-    "desc": "Des mercenaires peu communs cherchent du travail : Entraînement et Apprentissage particulier coûtent −20 % pour les Compétences et Talents martiaux, et l’Entraînement au Combat gagne +20 % aux Tests adaptés.",
-    "source": {
-      "book": "livre-de-base",
-      "page": 193,
-      "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-    },
-    "atelierNote": "La réduction de coût d'Entraînement/Apprentissage et le bonus d'Entraînement au combat ne sont pas modélisés en fx — se rejoue en narration/journal."
-  }
-]
+  ]
+}

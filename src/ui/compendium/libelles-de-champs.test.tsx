@@ -9,9 +9,9 @@
  *  - le CANAL atelier→picker de réf (`RefField` reçoit le libellé, pas la clé) ;
  *  - la CONVENTION D'EXPORT que le générateur de registre sait lire (export PLAT `export const meta`).
  * Les champs de charge utile suivent la méta du def : leur libellé FR arrive avec l'adoption de
- * `document()` par le def (lot L1b #1467). Au 2026-08-28 les 76 defs `entite` ont adopté ; `oups.json`
- * reste le SEUL document registré sans méta (schéma d'UNION, hors des vagues d'adoption), et c'est lui
- * qui sert de témoin au canal « document sans méta » ci-dessous.
+ * `document()` par le def (lot L1b #1467) ; tout document registré y passe (témoin positif ci-dessous).
+ * Un document mono-table nomme sa racine par le canal, et les champs de ses rangées par le nœud de sa
+ * rangée.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -25,7 +25,7 @@ import { RefField, refFieldCfg } from './refField/RefField';
 import { editableEntries, isEditableCategory } from '../../data/atelierDuCodex';
 import { CODEX } from '../../noyau/codex/registry';
 import { CLES_ENVELOPPE, LIBELLES_ENVELOPPE, document } from '../../data/schemas/grammaire/document';
-import { metaPourFichier, DEFS_DE_DOCUMENT, noeudObjet, schemaForFile } from '../../data/schemas/validate';
+import { metaPourFichier, DEFS_DE_DOCUMENT, noeudDeLEntree, noeudObjet, schemaForFile } from '../../data/schemas/validate';
 import { enumNomme } from '../../data/schemas/grammaire/valeurs';
 import { refOuSpec } from '../../data/schemas/grammaire/ref';
 import { enfantsDe } from '../../data/schemas/grammaire/descente';
@@ -184,8 +184,11 @@ describe('canal registre → atelier (`metaPourFichier`)', () => {
     expect(tables.size, 'les defs de campagne doivent partager la MÊME table de méta (un seul handle)').toBe(1);
   });
 
-  it('`oups.json` rend bien ses libellés de champs par le canal (témoin nominatif de l’adoption)', () => {
-    expect(metaPourFichier('oups.json')?.kind?.label).toBe('Effet mécanique');
+  it('`oups.json`, document mono-table : le canal nomme sa racine, le nœud de sa rangée en nomme les champs', () => {
+    expect(metaPourFichier('oups.json')?.die?.label).toBe('Dé de tirage');
+    expect(metaPourFichier('oups.json')?.kind).toBeUndefined();
+    const rangee = noeudDeLEntree('oups', editableEntries('oups')[0] as object);
+    expect(libelleDuChamp('kind', { niveau: 'profondeur', noeud: rangee })).toBe('Effet mécanique');
   });
 
   it('un fichier inconnu du registre rend `undefined` (jamais une exception)', () => {
