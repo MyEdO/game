@@ -116,7 +116,7 @@ const joueePar = (cle: 'cascade' | 'cascadeBatch') => ({ flux: cle, get gestes()
 
 /** L'interaction d'étape que règle le seul verbe `verbe`, qui prend l'id d'étape puis l'argument que `lecture` règle. */
 const regleePar = (verbe: keyof ActionsDuNoyau, lecture: (g: GesteDuJeu) => (e: CascadeStep) => Reglage) =>
-  ({ gestes: nommes([verbe]), pid: idDEtape, reglage: lecture({ verbe }) });
+  ({ gestes: nommes([verbe]), pid: idDEtape, reglage: (e: CascadeStep) => lecture({ verbe })(e) });
 
 /** Les gestes d'une étape de cascade sans jet de COMBAT, par son interaction (`stepInteraction`), l'id qu'ils désignent
  *  (`pid`), le réglage de l'argument qui suit (`reglage` : les clés d'un choix, les bornes d'une quantité) et le flux de
