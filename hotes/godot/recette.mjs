@@ -40,6 +40,9 @@
 // - `repit` (`--scenario bataille-de-masse`) : les dés d'Événement tombent, l'entre-deux-aventures montre un onglet par
 //   héros, ses Activités restantes et chaque Activité fermée par sa raison ; « Revenus » cliqué ouvre son jet, lancé à
 //   l'Entrée puis appliqué : l'onglet du héros compte une Activité de moins.
+// - `bataille` (`--scenario bataille-de-masse`) : l'interlude clos, la bataille montre ses armées et les Scènes du
+//   Round ; « Résoudre » ouvre le jet de la première Scène à postes, lancé à l'Entrée puis appliqué : la Scène se
+//   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
 //   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
@@ -650,6 +653,40 @@ async function parcoursRepit() {
   v = await vue()
   assert.equal(puces(v)[0], 'Activités : 2 / 3', 'une Activité de moins')
   await capturer('3328-m1-3-repit-apres')
+}
+
+async function parcoursBataille() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
+  for (let v = await vue(), pas = 0; v.disposition !== 'interlude'; v = await vue(), pas++) {
+    assert.ok(pas < 12, `les dés d'Événement mènent à l'interlude : ${corps(v)}`)
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+  }
+  await cliquerBouton('Clore l’interlude')
+  await attendreLaVue("v.disposition === 'batailleDeMasse'")
+  /** L'élément `id` du corps de la fenêtre. */
+  const element = (v, id) => zone(v, 'fenetre.corps').find((e) => e.id === id)
+  let v = await vue()
+  noter(`bataille : ${element(v, 'bataille/round').texte} ; ${zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('scene/')).map((e) => e.nom).join(', ')}`)
+  await capturer('3328-n1-1-bataille')
+  const [scene] = zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('scene/') && e.elements.some((x) => x.id === 'postes'))
+  await cliquerBouton('Résoudre')
+  await attendreLaVue("v.disposition === 'activity'")
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  await cliquerBouton('Appliquer')
+  await attendreLaVue("v.disposition === 'batailleDeMasse'")
+  v = await vue()
+  assert.equal(element(v, scene.id).elements.find((x) => x.id === 'engager').refus, 'Cette Scène est déjà résolue.', `${scene.nom} se ferme`)
+  await cliquerBouton('Test spectaculaire de Puissance')
+  await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.libelle === 'Round suivant')")
+  await capturer('3328-n1-2-entre-deux-rounds')
+  await cliquerBouton('Round suivant')
+  await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.texte === 'Round de bataille 2 / 3')")
+  await capturer('3328-n1-3-round-2')
 }
 
 async function parcoursFiche() {
@@ -1355,7 +1392,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repit: parcoursRepit, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repit: parcoursRepit, bataille: parcoursBataille, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

@@ -9,7 +9,7 @@ import { AssignRow } from './console/AssignRow';
 import { battleScenesToStations, type Station } from '../noyau/stations';
 import {
   massBattleThreatPenalty, armyMight, armyStartMight,
-  battleSceneById, battleSceneEffectLabel, battleActionRefus, refusDeRassemblement,
+  battleSceneById, battleSceneEffectLabel, herosLibres, refusDeRassemblement, refusDeSceneDeBataille,
   type MassBattleState, type MassBattleArmy,
 } from '../noyau/massBattleFlow';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
@@ -171,8 +171,8 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
  * description VERBATIM, puis résolution. La CARDINALITÉ suit le RAW : une Scène de combat/menace engage
  * TOUT le groupe (pas d'affectation par PJ) ; une Scène de Compétence/Tenue est MULTI-PJ (ADE II 8
  * l.116-118 : « les Personnages peuvent choisir de participer à l'une des Scènes ») → `AssignRow`
- * (max Infinity) : le joueur affecte N PJ, résolus en SOUTIEN (l.153/157). La désactivation du Résoudre
- * reste IDENTIQUE à l'ancienne liste plate (résolue / Round figé / plus de PJ pour un Test·Tenue / rompue).
+ * (max Infinity) : le joueur affecte N PJ, résolus en SOUTIEN (l.153/157). Le Résoudre est fermé par le verdict
+ * du verbe (`refusDeSceneDeBataille`).
  */
 function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Station }) {
   const chooseScene = useGame((s) => s.massBattleScene);
@@ -186,19 +186,12 @@ function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Sta
   const kindLabel = sc.sceneKind === 'combat' ? 'Combat' : sc.sceneKind === 'threat' ? 'Menace' : sc.sceneKind === 'hold' ? 'Tenue' : 'Compétence';
   const hold = mb.sceneState[sceneId];
   const living = party.filter((h) => !h.dead);
-  // PJ encore libres ce Round.
-  const available = living.filter((h) => !mb.actedHeroes.includes(h.id));
-  const remaining = available.length;
+  const available = herosLibres(mb, party);
   // Équipage POSTÉ à cette Scène (Scène MULTI-PJ) — ids résolus en héros vivants, ordre préservé.
   const postedIds = mb.assignment[sceneId] ?? [];
   const posted = postedIds.map((id) => living.find((h) => h.id === id)).filter((h): h is Combatant => !!h);
-  // Un combat (Scène 'combat'/'threat', incl. le Duel) engage tout le groupe → PAS de garde « plus de PJ libre ».
   const isCombat = sc.sceneKind === 'combat' || sc.sceneKind === 'threat';
-  const broken = sc.sceneKind === 'hold' && !!hold?.broken;
-  const refusTenter = isCombat ? null : battleActionRefus(mb, available, sc);
-  const disabled = resolved || mb.awaitingNext
-    || (!isCombat && remaining === 0)
-    || broken || !!refusTenter;
+  const refus = refusDeSceneDeBataille({ massBattle: mb, party }, sceneId);
   return (
     <div className={`mb-scene${resolved ? ' mb-scene-done' : ''}`}>
       <div className="bar mb-scene-head">
@@ -231,12 +224,8 @@ function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Sta
         <GatedAction
           id={`mb-scene-${sceneId}`}
           label={resolved ? 'Scène résolue' : isCombat ? 'Engager le combat' : 'Résoudre'}
-          enabled={!disabled}
-          {...raisonSi(resolved ? 'Cette Scène est déjà résolue.'
-            : mb.awaitingNext ? 'Résolvez le Round en cours avant d’engager une Scène.'
-            : !isCombat && remaining === 0 ? 'Plus aucun Personnage libre ce Round.'
-            : broken ? 'La position est perdue — cette Scène ne se tient plus.'
-            : refusTenter)}
+          enabled={!refus}
+          {...raisonSi(refus)}
           onClick={() => chooseScene(sceneId)}
           btnClassName="small"
         />

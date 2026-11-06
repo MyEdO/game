@@ -192,6 +192,15 @@ export function figerVuesDeLEcran(): VueFigee[] {
     s = repit.jouer('jouer', enFocus(s));
   }
   figer('entre deux aventures, un onglet par héros', s);
+  s = repit.jouer('jouer', enFocus(s));
+  const geste = (s: Suite, id: string): Jeu => {
+    const b = s.vue.zones['fenetre.corps'].find((e): e is Bouton => e.type === 'bouton' && e.id === id);
+    if (!b) throw new Error(`aucun geste ${id} dans ${JSON.stringify(s.vue.zones['fenetre.corps'].map((e) => e.id))}`);
+    return b.jeu;
+  };
+  figer('bataille de masse, les Scènes du Round', s);
+  s = repit.jouer('jouer', geste(s, 'bataille/geste/0'));
+  figer('bataille de masse, entre deux Rounds', s);
   repit.fermer();
 
   const vides: ZonesDeLEcran = {

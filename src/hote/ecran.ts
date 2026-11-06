@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, toneOf,
+  ACTIONS, avecSigne, batailleEnVue, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -198,6 +198,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...trajetsDeLaCarte(etat),
     ...recitDuVoyage(etat),
     ...herosDeLInterlude(etat),
+    ...champDeBataille(etat),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
@@ -251,6 +252,50 @@ function herosDeLInterlude(etat: Jeu): Element[] {
       ],
     })),
     ...(itl.depots.length ? [{ type: 'entite', id: 'repit/depots', ton: 'neutre', nom: t('ecran.repit.depots'), elements: itl.depots.map((d, i) => boutonDuNoyau(String(i), d)) } satisfies Entite] : []),
+  ];
+}
+
+/** Le ton de l'issue d'une bataille, par le camp qui l'emporte. */
+const TON_DE_L_ISSUE = { ally: 'reussite', enemy: 'echec' } as const satisfies Record<'ally' | 'enemy', Ton>;
+
+/** La bataille de masse ouverte (`batailleEnVue`) : son Round, chaque armée en entité, sa Puissance en jauge et le bonus
+ *  de ses Tests ce Round, son terrain et sa Menace, puis chaque Scène en entité, son effet (sa description au détail),
+ *  sa position, ses postes en choix (chaque PJ libre pressé quand il y est posté) et son engagement fermé avec sa
+ *  raison ; l'aléa du Round, ou les gestes qui le tirent ; les gestes du Round ; l'issue. */
+function champDeBataille(etat: Jeu): Element[] {
+  const b = batailleEnVue(etat);
+  if (!b) return [];
+  return [
+    ...(b.round ? [ligne('bataille/round', b.round)] : []),
+    ...b.armees.map((a): Entite => ({
+      type: 'entite', id: `armee/${a.camp}`, ton: 'neutre', nom: a.nom,
+      elements: [
+        { type: 'jauge', id: 'puissance', ton: 'neutre', libelle: t('ecran.bataille.puissance'), courant: a.puissance, max: a.max, texte: t('ecran.bataille.depart', { puissance: a.puissance, depart: a.depart }) },
+        ...(a.bonus ? [puce('bonus', t('ecran.bataille.bonus'), avecSigne(a.bonus))] : []),
+      ],
+    })),
+    ...(b.terrain ? [ligne('bataille/terrain', b.terrain)] : []),
+    ...(b.menace ? [ligne('bataille/menace', t('ecran.bataille.menace', { penalite: b.menace }), 'alerte')] : []),
+    ...b.scenes.map((sc): Entite => ({
+      type: 'entite', id: `scene/${sc.id}`, ton: sc.resolue ? 'reussite' : 'neutre', nom: sc.libelle,
+      elements: [
+        puce('effet', sc.effet, null, sc.description),
+        ...(sc.position ? [puce('position', sc.position, null)] : []),
+        ...(sc.postes ? [{
+          type: 'choix', id: 'postes', ton: 'neutre', libelle: t('ecran.bataille.postes'), focus: false, refus: null,
+          valeurs: sc.postes.map((p, i): Bouton => ({ type: 'bouton', id: String(i), libelle: p.nom, jeu: { type: p.geste.verbe, args: p.geste.args }, presse: p.poste, focus: false, refus: null })),
+        } satisfies Choix] : []),
+        boutonDuNoyau('engager', sc.engager),
+      ],
+    })),
+    ...(b.alea ? [ligne('bataille/alea', t('ecran.bataille.alea', { alea: b.alea.libelle }), 'neutre', b.alea.texte)] : []),
+    ...(b.tirerAlea ? [boutonDuNoyau('bataille/tirerAlea', b.tirerAlea)] : []),
+    ...(b.choisirAlea.length ? [{
+      type: 'liste', id: 'bataille/choisirAlea', ton: 'neutre', libelle: t('ecran.bataille.choisirAlea'), focus: false, refus: null,
+      valeurs: b.choisirAlea.map((g, i) => boutonDuNoyau(String(i), g)),
+    } satisfies Choix] : []),
+    ...b.gestes.map((g, i) => boutonDuNoyau(`bataille/geste/${i}`, g)),
+    ...(b.issue ? [ligne('bataille/issue', b.issue.texte, b.issue.gagnant ? TON_DE_L_ISSUE[b.issue.gagnant] : 'neutre')] : []),
   ];
 }
 
