@@ -10,7 +10,7 @@
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Bourse"]
 script = ExtResource("2_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("marchand/bourse")
+ids = PackedStringArray("bourse")
 
 [node name="Echoppe" type="HBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
 size_flags_vertical = 3
