@@ -15,7 +15,7 @@ import {
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  ACTIONS_D_ARCHITECTURE, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS,
 } from '../noyau/index';
@@ -36,6 +36,7 @@ export interface ZonesDeLEditeur {
   'editeur.fichier': Bouton[];
   'editeur.pointee': Ligne[];
   'editeur.inspecteur': (Choix | Ligne | Bouton | Formulaire)[];
+  'editeur.validation': (Ligne | Bouton)[];
   'editeur.calque': (Choix | Ligne | Bouton)[];
 }
 
@@ -52,12 +53,13 @@ export interface RepereDeLEdition {
 }
 
 /** Les sortes de zone de l'éditeur : un déclencheur, une zone de repos, une pièce (`isRoomZone`), toute autre zone
- *  d'effet. */
+ *  d'effet, une partie ou une masse de toiture d'un corps. */
 export type SorteDeZone = 'declencheur' | 'repos' | 'piece' | 'zone' | 'partie' | 'masse';
 
-/** Une zone de la couche éditée sur la carte : sa sorte, son nom, ses cases et si elle est sélectionnée. */
+/** Une zone de la couche éditée sur la carte, ou le défaut de plan suivi depuis la validation : sa sorte, son nom, ses
+ *  cases et si elle est sélectionnée. */
 export interface ZoneDeLEdition {
-  sorte: SorteDeZone;
+  sorte: SorteDeZone | 'defaut';
   nom: string;
   cases: { x: number; y: number; z: number }[];
   choisi: boolean;
@@ -969,8 +971,29 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
       ...ligneDeLaSelection(s),
     ],
     'editeur.inspecteur': inspecteur(s),
+    'editeur.validation': validation(s),
     'editeur.calque': zoneDuCalque(s),
   };
+}
+
+/** Les avertissements que la validation montre d'emblée ; au-delà, leur nombre. */
+const AVERTISSEMENTS_MONTRES = 20;
+
+/** La validation de la scène éditée de la session `s` (`avertissementsDeLaSession`) : sans défaut, ce qu'elle a
+ *  contrôlé ; sinon leur décompte, puis chaque avertissement, son niveau et son message, et, s'il désigne un fautif de
+ *  la carte (`versLaFautive`), le bouton qui y mène ; au-delà des premiers, le nombre des autres. */
+function validation(s: SessionDEdition): (Ligne | Bouton)[] {
+  const ws = avertissementsDeLaSession(s);
+  if (!ws.length) return [ligne('validation', t('ecran.editeur.validation.aucun', { controle: [t('ecran.editeur.validation.logique'), t('ecran.editeur.validation.architecture'), ...PLAN_DEFECT_FAMILIES.map((f) => f.title)].join(' ; ') }))];
+  const erreurs = ws.filter((w) => w.level === 'error').length;
+  return [
+    ligne('validation', t('ecran.editeur.validation', { erreurs, avertissements: ws.length - erreurs })),
+    ...ws.slice(0, AVERTISSEMENTS_MONTRES).flatMap((w, rang) => [
+      ligne(`validation/${rang}`, t(`ecran.editeur.validation.${w.level}`, { message: w.message })),
+      ...(versLaFautive(w) ? [bouton(`validation/${rang}/aller`, t('ecran.editeur.validation.aller'), { geste: 'avertissement', rang })] : []),
+    ]),
+    ...(ws.length > AVERTISSEMENTS_MONTRES ? [ligne('validation/reste', t('ecran.editeur.validation.reste', { n: ws.length - AVERTISSEMENTS_MONTRES }))] : []),
+  ];
 }
 
 /** Les repères de la couche éditée de la session `s` : ses entités, puis ses entrées. */
@@ -998,9 +1021,18 @@ export function surcoucheDeLEdition(s: SessionDEdition): SurcoucheDeLEdition {
     cases: [...cases, ...s.volee].map(aLaCouche),
     arete: seg ? areteDessinee(scene, seg) : null,
     reperes: reperes(s),
-    zones: [...zonesLues(scene), ...(s.outil.mode === 'architecture' ? ouvragesLus(s) : [])].filter((z) => z.z === s.z).map((z) => ({ sorte: z.sorte, nom: z.nom, cases: z.cases.map(aLaCouche), choisi: sameSel(z.sel, s.sel) })),
+    zones: [
+      ...[...zonesLues(scene), ...(s.outil.mode === 'architecture' ? ouvragesLus(s) : [])].filter((z) => z.z === s.z).map((z) => ({ sorte: z.sorte, nom: z.nom, cases: z.cases.map(aLaCouche), choisi: sameSel(z.sel, s.sel) })),
+      ...defautSuivi(s),
+    ],
     poignee: poignee && aLaCouche(poignee),
   };
+}
+
+/** Le défaut de plan que suit la session `s`, ses cases de la couche éditée, choisi ; aucun sans lui, ou corrigé. */
+function defautSuivi(s: SessionDEdition): ZoneDeLEdition[] {
+  const cases = casesDuDefaut(s).filter((c) => c.z === s.z);
+  return cases.length ? [{ sorte: 'defaut', nom: t('ecran.editeur.validation.defaut'), cases, choisi: true }] : [];
 }
 
 /** Le bouton des zones `z` qui joue le geste d'édition `edition`, un qui l'offre sans refus d'abord ; `undefined` si
