@@ -13,6 +13,25 @@ scene_combattant = ExtResource("3_combattant")
 
 [node name="Combattants" type="Node3D" parent="."]
 
-[node name="Immersion" type="Node" parent="." node_paths=PackedStringArray("monde")]
+[node name="Immersion" type="Node" parent="." node_paths=PackedStringArray("monde", "mire")]
 script = ExtResource("5_immersion")
 monde = NodePath("../Monde")
+mire = NodePath("Viseur/Mire")
+
+[node name="Viseur" type="CanvasLayer" parent="Immersion"]
+
+[node name="Mire" type="ColorRect" parent="Immersion/Viseur"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -3.0
+offset_top = -3.0
+offset_right = 3.0
+offset_bottom = 3.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0.85)

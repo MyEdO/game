@@ -262,10 +262,6 @@ export interface PendingReload {
   success: boolean;
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
-  /** Recharge d'un POSTE de navire (MDG 12) : la pièce visée (`ShipPoste.item.uid`) + sa coque (`shipId`).
-   *  Présents → l'application écrit le DR cumulé sur le POSTE (pas le champ `loaded` du marin) et occupe son équipage. */
-  posteUid?: string;
-  shipId?: string;
   /** Soutien générique (LDB 12) déjà FONDU dans `skillValue` : nb de servants assistants + bonus total (affichage). */
   soutien?: SupportDetail;
 }

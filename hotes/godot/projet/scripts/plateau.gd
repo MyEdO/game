@@ -1,13 +1,13 @@
 ## Le plateau du jeu : sur le monde de la scène (`Monde`), sous le regard du plateau (`vue.plateau.regard`,
 ## `Monde.regarder`), sa caméra à la suite de l'actif du combat, sinon du groupe (`Monde.suivre`), ou l'œil du meneur
-## (`Immersion`, dont chaque case franchie part en clic), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
+## (`Immersion`, dont chaque case jouée part en clic), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
 ## ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
 ## corps (`vue.corps`, aucun sous son `refus`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion. Il ne rend que la
-## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit.
+## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise.
 class_name Plateau
 extends Node3D
 
@@ -28,7 +28,7 @@ var _survol: Variant = null
 
 func _ready() -> void:
 	_monde.cadrage_change.connect(func() -> void: _survoler(_monde.case_sous(get_viewport().get_mouse_position())))
-	_immersion.case_franchie.connect(case_cliquee.emit)
+	_immersion.case_jouee.connect(case_cliquee.emit)
 
 
 ## Montre la vue ; chaque ligne de `journal` qui nomme un acteur et sa cible tourne l'acteur vers elle et l'anime, et

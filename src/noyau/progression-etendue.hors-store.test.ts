@@ -100,13 +100,13 @@ describe('Poste servi à effectif COMPLET — la cible appliquée est celle anno
     const poste = { side: 'tribord', loaded: false, reloadProgress: 4, crewIds: crew,
       item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
         reload: 6, qualities: [{ id: 'recharge', value: 6 }, { id: 'arme-d-equipe', value: 3 }] } } as unknown as ShipPoste;
-    const ship = combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
+    const ship = combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
       crewIds: crew, postes: [poste], pos: { x: 5, y: 5 }, conditions: [], weapons: [unarmedWeapon()] });
     const servants = crew.map(servant);
     serveChef(servants[0], poste); // le chef sert la pièce : il en porte l'arme dérivée (`shipPostes.ts`)
     banc.setState({ battle: { combatants: [ship, ...servants], order: ['ship'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
       party: crew.map(servant), facing: { ship: 'N' }, pendingReload: null, scene: null as never });
-    banc.getState().rechargerLaPiece('ship', 'canon');
+    banc.getState().rechargerLArme('canon');
     const pr = banc.getState().pendingReload!;
     expect(pr.reload).toBe(6);
     banc.setState({ pendingReload: { ...pr, roll: 20, sl: 2, success: true } });
