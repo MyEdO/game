@@ -65,6 +65,13 @@ static func centre_d_arete(milieu: Vector2, pied: float, metres_par_case: float,
 	return Vector3(milieu.x + DEMI_CASE, hauteur_au_plateau(pied, metres_par_case) + hauteur / 2.0, milieu.y + DEMI_CASE)
 
 
+## Une arête dégagée (`plateau.aretesDegagees`) tombe sous le regard `regard` (sur le plateau, x et y de la carte) : au-dessus
+## de la tête d'un allié (`dedans` nul), toujours ; au bord de l'espace dégagé, quand le regard va de son dehors à son
+## dedans (`dedans`), le mur entre la caméra et la pièce.
+static func arete_abattue(dedans: Variant, regard: Vector2) -> bool:
+	return dedans == null or Vector2(dedans.x, dedans.y).dot(regard) > 0.0
+
+
 ## Le lacet d'une arête qui court selon `sens` sur le plateau.
 static func lacet_d_arete(sens: Vector2) -> float:
 	return atan2(-sens.y, sens.x)

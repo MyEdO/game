@@ -95,3 +95,24 @@ describe('plateauDeLaScene — les couronnes abattues (#3476)', () => {
   });
 });
 
+
+describe('plateauDeLaScene — les arêtes que le groupe dégage (#3476)', () => {
+  /** Une salle (1..2, 1..2) close de quatre murs, sur une scène sans façade authorée. */
+  const salle = (): Scene => ({
+    ...emptyScene('salle', 4, 4),
+    walls: [{ x: 1, y: 1, side: 'N' }, { x: 2, y: 3, side: 'N' }, { x: 0, y: 1, side: 'E' }, { x: 2, y: 2, side: 'E' }, { x: 3, y: 3, side: 'E' }],
+    effectZones: [{ id: 'salle', label: 'Salle', presentation: 'interior', area: { kind: 'rect', x: 1, y: 1, w: 2, h: 2 } }],
+  });
+  it('un mur qui borde la pièce du groupe, avec le pas de grille de son dehors à son dedans', () => {
+    expect(plateauDeLaScene(salle(), [{ x: 1, y: 1 }]).aretesDegagees).toEqual([
+      { cle: '1,1,N,0', dedans: { x: 0, y: 1 } },
+      { cle: '2,3,N,0', dedans: { x: 0, y: -1 } },
+      { cle: '0,1,E,0', dedans: { x: 1, y: 0 } },
+      { cle: '2,2,E,0', dedans: { x: -1, y: 0 } },
+    ]);
+  });
+  it('aucune hors de la pièce, ni sans groupe', () => {
+    expect(plateauDeLaScene(salle(), [{ x: 3, y: 0 }]).aretesDegagees).toEqual([]);
+    expect(plateauDeLaScene(salle(), []).aretesDegagees).toEqual([]);
+  });
+});

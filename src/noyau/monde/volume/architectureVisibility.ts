@@ -1,4 +1,5 @@
 import { depth, type Dims } from '../../../geometry/iso';
+import type { Pt } from '../path';
 import type { WallSide } from '../scene';
 
 export type Cutaway = 'hidden' | 'visible';
@@ -76,7 +77,7 @@ export function exteriorWallViewZ(activeZ: number, interiorFocused: boolean, lay
   return interiorFocused ? activeZ : Math.max(activeZ, ...layerZs);
 }
 
-interface FacadePanel {
+export interface FacadePanel {
   roomZoneIds?: readonly string[];
   x: number;
   y: number;
@@ -89,24 +90,30 @@ const adjacent: Record<'N' | 'E', [{ x: number; y: number }, { x: number; y: num
   E: [{ x: 0, y: 0 }, { x: 1, y: 0 }],
 };
 
-/** Un panneau de façade tombe quand il sépare l'espace dégagé du dehors, ET que ce dehors est DEVANT
- *  lui à l'écran — sinon la caméra verrait tomber le mur du fond par-dessus la pièce ouverte. Le
- *  dedans se lit case par case par LA loi (`cutawayForSection`) : la pièce du panneau qui contient
- *  réellement cette case, ou la case elle-même quand aucune pièce n'est déclarée. Une arête
- *  diagonale n'a pas de devant/derrière tranché. */
-export function frontFacadeCutaway(panel: FacadePanel, cleared: ClearedSpace, dims: Dims): boolean {
-  if (panel.side !== 'N' && panel.side !== 'E') return false;
+/** Les deux cases qu'un panneau sépare quand il borde l'espace dégagé : `dedans`, la case dégagée, et `dehors`, l'autre ;
+ *  `null` s'il ne le borde pas, ou pour une arête diagonale, qui n'a pas de côté tranché. Le dedans se lit case par case
+ *  par LA loi (`cutawayForSection`) : la pièce du panneau qui contient réellement cette case, celle des pièces dégagées
+ *  pour un panneau qui n'en déclare aucune (un mur hors façade authorée), ou la case elle-même quand aucune pièce n'est
+ *  déclarée. */
+export function coteDegage(panel: FacadePanel, cleared: ClearedSpace): { dedans: Pt; dehors: Pt } | null {
+  if (panel.side !== 'N' && panel.side !== 'E') return null;
   const z = panel.z ?? 0;
   const [a, b] = adjacent[panel.side].map((offset) => ({ x: panel.x + offset.x, y: panel.y + offset.y }));
-  const isInterior = (cell: { x: number; y: number }) => {
+  const pieces = panel.roomZoneIds ?? [...cleared.zoneIds];
+  const isInterior = (cell: Pt) => {
     const key = spaceCellKey(cell.x, cell.y, z);
-    const rooms = panel.roomZoneIds?.filter((id) => cleared.zoneCells.get(id)?.has(key));
+    const rooms = pieces.filter((id) => cleared.zoneCells.get(id)?.has(key));
     return cutawayForSection({ roomZoneIds: rooms, cells: [key] }, cleared) === 'hidden';
   };
   const aInterior = isInterior(a);
-  const bInterior = isInterior(b);
-  if (aInterior === bInterior) return false;
-  const interior = aInterior ? a : b;
-  const exterior = aInterior ? b : a;
-  return depth(exterior.x, exterior.y, dims, z) > depth(interior.x, interior.y, dims, z);
+  if (aInterior === isInterior(b)) return null;
+  return aInterior ? { dedans: a, dehors: b } : { dedans: b, dehors: a };
+}
+
+/** Un panneau de façade tombe quand il sépare l'espace dégagé du dehors (`coteDegage`), ET que ce dehors est DEVANT
+ *  lui à l'écran — sinon la caméra verrait tomber le mur du fond par-dessus la pièce ouverte. */
+export function frontFacadeCutaway(panel: FacadePanel, cleared: ClearedSpace, dims: Dims): boolean {
+  const cote = coteDegage(panel, cleared);
+  const z = panel.z ?? 0;
+  return !!cote && depth(cote.dehors.x, cote.dehors.y, dims, z) > depth(cote.dedans.x, cote.dedans.y, dims, z);
 }

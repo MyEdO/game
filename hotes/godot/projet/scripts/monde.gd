@@ -57,6 +57,9 @@ var _sols: Dictionary = {}
 var _lacet := 0.0
 ## Les arêtes posées (`poser_les_aretes`).
 var _aretes_posees: Array = []
+## Les clés des couronnes abattues, et le pas de grille vers le dedans de chaque arête dégagée, par clé (`cacher_le_bati`).
+var _couronnes_abattues: Array = []
+var _aretes_degagees: Dictionary = {}
 ## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
 var _matieres := {}
 ## Le kit des arêtes, caché sous le monde, `null` sans kit au projet.
@@ -109,10 +112,24 @@ func poser_les_nappes(toits: Array, couronnes: Array) -> void:
 
 
 ## Chaque nappe de toit cachée si `toits_leves` la nomme (`plateau.toitsLeves`), chaque couronne si `couronnes_abattues`
-## la nomme (`plateau.couronnesAbattues`), montrées sinon.
-func cacher_les_nappes(toits_leves: Array, couronnes_abattues: Array) -> void:
+## la nomme (`plateau.couronnesAbattues`), et chaque arête que le groupe dégage (`aretes_degagees`,
+## `plateau.aretesDegagees`) abattue avec sa couronne sous le regard de la caméra (`_abattre_les_aretes`) ; montrées sinon.
+func cacher_le_bati(toits_leves: Array, couronnes_abattues: Array, aretes_degagees: Array) -> void:
 	_cacher_sous(_toits, toits_leves)
-	_cacher_sous(_couronnes, couronnes_abattues)
+	_couronnes_abattues = couronnes_abattues
+	_aretes_degagees.clear()
+	for a in aretes_degagees:
+		_aretes_degagees[a.cle] = a.dedans
+	_abattre_les_aretes()
+
+
+## Les arêtes dégagées que le regard de la caméra abat (`MiseEnPage.arete_abattue`) cachées avec leur couronne, et les
+## couronnes abattues ; le reste montré.
+func _abattre_les_aretes() -> void:
+	var regard := -_camera.global_basis.z
+	var abattues := _aretes_degagees.keys().filter(func(cle: String) -> bool: return MiseEnPage.arete_abattue(_aretes_degagees[cle], Vector2(regard.x, regard.z)))
+	_cacher_sous(_aretes, abattues)
+	_cacher_sous(_couronnes, _couronnes_abattues + abattues)
 
 
 ## Les nappes `nappes` sous `parent`, chacune son maillage nommé par sa `cle`, à la place des précédentes.
@@ -256,7 +273,10 @@ func poser_les_aretes(aretes: Array) -> void:
 		_aretes.remove_child(arete)
 		arete.free()
 	for a in aretes:
-		_aretes.add_child(_piece(a))
+		var piece := _piece(a)
+		piece.set_meta("cle", a.cle)
+		_aretes.add_child(piece)
+	_abattre_les_aretes()
 
 
 ## La pièce de l'arête `a`, debout à son pied (`a.pied`) : celle du kit, `<famille>--<pièce>`, étirée à la longueur de
@@ -379,6 +399,7 @@ func _pivoter(sens: float) -> void:
 		_pivotement.kill()
 	_pivotement = create_tween()
 	_pivotement.tween_property(_pivot, "rotation:y", _lacet, DUREE_QUART_S)
+	_pivotement.tween_callback(_abattre_les_aretes)
 	_pivotement.tween_callback(cadrage_change.emit)
 
 
