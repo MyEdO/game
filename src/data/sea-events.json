@@ -1339,419 +1339,423 @@
       }
     ]
   },
-  "portEvents": [
-    {
-      "min": 1,
-      "max": 1,
-      "id": "embrigadement",
-      "label": "Embrigadement",
-      "desc": "Embrigadement. Un bateau manquant de bras pour son équipage a enlevé une partie des vôtres. Vous perdez 2d10 membres d'équipage. Vous pouvez les récupérer en réussissant un Test de Ragot Intermédiaire (+0), puis en payant 2d10 CO ou en réussissant un Test de Discrétion Complexe (–10). En cas d'échec sur n'importe lequel des deux Tests, vous perdez 1d10 membres d'équipage de plus, car votre plan pour libérer vos compagnons tourne mal et l'autre navire prend la mer et quitte le port. Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement n'a pas lieu.",
-      "kind": "embrigadement",
-      "params": {
-        "lostCrew": {
-          "dice": {
-            "n": 2,
-            "sides": 10
+  "portEvents": {
+    "die": "2d10",
+    "entries": [
+      {
+        "min": 1,
+        "max": 1,
+        "id": "embrigadement",
+        "label": "Embrigadement",
+        "desc": "Embrigadement. Un bateau manquant de bras pour son équipage a enlevé une partie des vôtres. Vous perdez 2d10 membres d'équipage. Vous pouvez les récupérer en réussissant un Test de Ragot Intermédiaire (+0), puis en payant 2d10 CO ou en réussissant un Test de Discrétion Complexe (–10). En cas d'échec sur n'importe lequel des deux Tests, vous perdez 1d10 membres d'équipage de plus, car votre plan pour libérer vos compagnons tourne mal et l'autre navire prend la mer et quitte le port. Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement n'a pas lieu.",
+        "kind": "embrigadement",
+        "params": {
+          "lostCrew": {
+            "dice": {
+              "n": 2,
+              "sides": 10
+            }
+          },
+          "gossipDifficulty": "intermediaire",
+          "ransomCO": {
+            "dice": {
+              "n": 2,
+              "sides": 10
+            }
+          },
+          "stealthDifficulty": "complexe",
+          "failExtraLostCrew": {
+            "dice": {
+              "n": 1,
+              "sides": 10
+            }
           }
         },
-        "gossipDifficulty": "intermediaire",
-        "ransomCO": {
-          "dice": {
-            "n": 2,
-            "sides": 10
-          }
-        },
-        "stealthDifficulty": "complexe",
-        "failExtraLostCrew": {
-          "dice": {
-            "n": 1,
-            "sides": 10
-          }
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
         }
       },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 2,
-      "max": 2,
-      "id": "pretre-de-manann",
-      "label": "Prêtre de Manann",
-      "desc": "Prêtre de Manann. Un Prêtre de Manann s'avance vers votre vaisseau et s'exclame haut et fort que vous avez courroucé Manann par votre impiété et que votre bateau doit être purifié. Vous pouvez soit payer 1d10 CO plus la Taille du navire en pistoles pour une bénédiction, soit réduire l'Humeur de Manann de 4d10.",
-      "kind": "pretre-manann",
-      "params": {
-        "blessingCO": {
-          "dice": {
-            "n": 1,
-            "sides": 10
+      {
+        "min": 2,
+        "max": 2,
+        "id": "pretre-de-manann",
+        "label": "Prêtre de Manann",
+        "desc": "Prêtre de Manann. Un Prêtre de Manann s'avance vers votre vaisseau et s'exclame haut et fort que vous avez courroucé Manann par votre impiété et que votre bateau doit être purifié. Vous pouvez soit payer 1d10 CO plus la Taille du navire en pistoles pour une bénédiction, soit réduire l'Humeur de Manann de 4d10.",
+        "kind": "pretre-manann",
+        "params": {
+          "blessingCO": {
+            "dice": {
+              "n": 1,
+              "sides": 10
+            }
+          },
+          "blessingSilverPerSize": 1,
+          "manann": {
+            "sign": -1,
+            "dice": {
+              "n": 4,
+              "sides": 10
+            }
           }
         },
-        "blessingSilverPerSize": 1,
-        "manann": {
-          "sign": -1,
-          "dice": {
-            "n": 4,
-            "sides": 10
-          }
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
         }
       },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 3,
-      "max": 3,
-      "id": "controle-a-quai",
-      "label": "Contrôle à quai",
-      "desc": "Contrôle à quai. Un superviseur des taxes et son escorte de contrôleurs subalternes lourdement armés s'approchent de votre navire. Les droits de douane sont évalués à 10 % de la valeur de toute la cargaison que vous n'avez pas cachée. Si vous ne payez pas, votre cargaison est saisie. Si vous réussissez un Test de Subornation Difficile (–20), vous vous rendez compte qu'un pot-de-vin de 2d10 CO peut faire en sorte que les formulaires administratifs soient « perdus ».",
-      "kind": "controle-a-quai",
-      "params": {
-        "taxPct": 10,
-        "bribeDifficulty": "difficile",
-        "bribeCO": {
-          "dice": {
-            "n": 2,
-            "sides": 10
-          }
-        }
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 4,
-      "max": 4,
-      "id": "tempete",
-      "label": "Tempête",
-      "desc": "Tempête. Une tempête s'abat sur le port. Vous ne pouvez plus repartir sans risque avant 1d10 jours. Si vous partez plus tôt, le climat est considéré comme suit jusqu'à ce que les 1d10 jours soient écoulés : Précipitations : Abondantes, Vents : Vent violent, Visibilité : Brouillard. La Température n'est pas affectée. Pour chaque matin de tempête, lancez 1d10. Sur un 8 ou plus, les Vents deviennent une Violente tempête.",
-      "kind": "tempete",
-      "params": {
-        "days": {
-          "dice": {
-            "n": 1,
-            "sides": 10
+      {
+        "min": 3,
+        "max": 3,
+        "id": "controle-a-quai",
+        "label": "Contrôle à quai",
+        "desc": "Contrôle à quai. Un superviseur des taxes et son escorte de contrôleurs subalternes lourdement armés s'approchent de votre navire. Les droits de douane sont évalués à 10 % de la valeur de toute la cargaison que vous n'avez pas cachée. Si vous ne payez pas, votre cargaison est saisie. Si vous réussissez un Test de Subornation Difficile (–20), vous vous rendez compte qu'un pot-de-vin de 2d10 CO peut faire en sorte que les formulaires administratifs soient « perdus ».",
+        "kind": "controle-a-quai",
+        "params": {
+          "taxPct": 10,
+          "bribeDifficulty": "difficile",
+          "bribeCO": {
+            "dice": {
+              "n": 2,
+              "sides": 10
+            }
           }
         },
-        "escalation": {
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 4,
+        "max": 4,
+        "id": "tempete",
+        "label": "Tempête",
+        "desc": "Tempête. Une tempête s'abat sur le port. Vous ne pouvez plus repartir sans risque avant 1d10 jours. Si vous partez plus tôt, le climat est considéré comme suit jusqu'à ce que les 1d10 jours soient écoulés : Précipitations : Abondantes, Vents : Vent violent, Visibilité : Brouillard. La Température n'est pas affectée. Pour chaque matin de tempête, lancez 1d10. Sur un 8 ou plus, les Vents deviennent une Violente tempête.",
+        "kind": "tempete",
+        "params": {
+          "days": {
+            "dice": {
+              "n": 1,
+              "sides": 10
+            }
+          },
+          "escalation": {
+            "roll": {
+              "dice": {
+                "n": 1,
+                "sides": 10
+              }
+            },
+            "min": 8,
+            "weather": {
+              "vent": "violente-tempete"
+            }
+          },
+          "weather": {
+            "visibilite": "brouillard",
+            "precipitations": "abondantes",
+            "vent": "vent-violent"
+          }
+        },
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 5,
+        "max": 5,
+        "id": "port-desert",
+        "label": "Port désert",
+        "desc": "Port désert. Si le port est un hameau ou un petit village (Taille 1 ou 2), il est mystérieusement désert. La population a totalement disparu. Elle peut être partie en exil à cause d'une famine ou d'une trop grande pauvreté, ou avoir été capturée par des pillards. La plupart des objets de valeur ont été perdus ou volés et l'équipage estime que rester ici va porter malheur. Si le capitaine insiste pour fouiller le port en quête de butin ou de provisions, il peut en trouver, mais le Moral diminue d'1d10.",
+        "kind": "port-desert",
+        "params": {
+          "maxSize": 2,
+          "moral": {
+            "sign": -1,
+            "dice": {
+              "n": 1,
+              "sides": 10
+            }
+          }
+        },
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 6,
+        "max": 6,
+        "id": "gangs-des-quais",
+        "label": "Gangs des quais",
+        "desc": "Gangs des quais. Les dockers locaux font beaucoup de contrebande. Si vous avez de la cargaison à faire décharger ici, 2d10 Enc disparaissent.",
+        "kind": "gangs-des-quais",
+        "params": {
+          "lostEnc": {
+            "dice": {
+              "n": 2,
+              "sides": 10
+            }
+          }
+        },
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 7,
+        "max": 7,
+        "id": "la-tache-noire",
+        "label": "La tache noire",
+        "desc": "La tache noire. Pendant votre séjour au port, vous êtes informé que vous vous êtes fait un ennemi d'un autre capitaine. Le MJ détermine de qui il s'agit, pourquoi il vous méprise à ce point et quand vous le rencontrerez la prochaine fois.",
+        "kind": "tache-noire",
+        "params": {},
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 8,
+        "max": 8,
+        "id": "penuries",
+        "label": "Pénuries",
+        "desc": "Pénuries. Une pénurie de marchandises inattendue sévit dans ce port. Les marchandises de la colonne Production (voir Tableau p. 138) ne sont pas disponibles et celles de la colonne Surplus perdent leur statut de Surplus et passent dans la colonne Production.",
+        "kind": "penuries",
+        "params": {},
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 9,
+        "max": 12,
+        "id": "pas-d-evenement",
+        "label": "Pas d'événement",
+        "desc": "Pas d'événement. Le port est paisible et il ne se passe rien d'inattendu pendant votre séjour.",
+        "kind": "rien",
+        "params": {},
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 13,
+        "max": 13,
+        "id": "constructeur-de-navires-itinerant",
+        "label": "Constructeur de navires itinérant",
+        "desc": "Constructeur de navires itinérant. Un constructeur de navires talentueux est en ville. Si votre bateau a besoin de réparations, il possède Métier (Charpentier 72, Constructeur de navires 68, Tailleur 63). Il peut aussi ajouter des Améliorations au vaisseau. Chaque réparation ou Amélioration prend 1d10 jours.",
+        "kind": "constructeur-itinerant",
+        "params": {
+          "metier": {
+            "charpentier": 72,
+            "constructeur-de-navires": 68,
+            "tailleur": 63
+          },
+          "daysPerJob": {
+            "dice": {
+              "n": 1,
+              "sides": 10
+            }
+          }
+        },
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 14,
+        "max": 14,
+        "id": "trop-beau-pour-etre-vrai",
+        "label": "Trop beau pour être vrai ?",
+        "desc": "Trop beau pour être vrai ? Un client suspect vous aborde sur les quais et propose de vous vendre jusqu'à 500 points d'Encombrement d'une cargaison choisie au hasard avec une remise incroyable de 50 %. Si vous acceptez l'offre, l'absence de papiers officiels vous encourage à quitter le port rapidement.",
+        "kind": "offre-suspecte",
+        "params": {
+          "maxEnc": 500,
+          "discountPct": 50
+        },
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 15,
+        "max": 15,
+        "id": "beau-temps-au-port",
+        "label": "Beau temps",
+        "desc": "Beau temps. Le temps est clément pendant les 1d10 prochains jours. Précipitations : Aucune, Température : Médiane, Vents : Brise fraîche, Visibilité : Dégagé.",
+        "kind": "beau-temps",
+        "params": {
+          "days": {
+            "dice": {
+              "n": 1,
+              "sides": 10
+            }
+          },
+          "weather": {
+            "visibilite": "degage",
+            "precipitations": "aucune",
+            "temperature": "mediane",
+            "vent": "brise-fraiche"
+          }
+        },
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 16,
+        "max": 16,
+        "id": "passager-clandestin",
+        "label": "Passager clandestin",
+        "desc": "Passager clandestin. Quelqu'un se faufile discrètement à bord de votre navire. Si vous réussissez un Test de Perception Complexe (–10), vous le repérez avant de repartir, sinon, vous découvrez sa présence après 1d10 jours passés à voyager. Le MJ détermine de qui il s'agit et pourquoi il cherche à se cacher à bord. Lancez 1d10 pour savoir comment il pourrait aider l'équipage (1 à 3 : Mousse ; 4 à 6 : Marin ; 7 : Mercenaire expérimenté ; 8 : Nautonier ; 9 : Médecin de bord ; 10 : Officier).",
+        "kind": "passager-clandestin",
+        "params": {
+          "perceptionDifficulty": "complexe",
+          "discoverDays": {
+            "dice": {
+              "n": 1,
+              "sides": 10
+            }
+          },
           "roll": {
             "dice": {
               "n": 1,
               "sides": 10
             }
           },
-          "min": 8,
-          "weather": {
-            "vent": "violente-tempete"
+          "contents": [
+            "1 à 3 : Mousse",
+            "4 à 6 : Marin",
+            "7 : Mercenaire expérimenté",
+            "8 : Nautonier",
+            "9 : Médecin de bord",
+            "10 : Officier"
+          ]
+        },
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 17,
+        "max": 17,
+        "id": "rumeurs-commerciales",
+        "label": "Rumeurs commerciales",
+        "desc": "Rumeurs commerciales. En prenant un verre dans une taverne sur les quais, vous apprenez qu'une grosse pénurie d'un produit donné frappe dans un autre port. Si vous réussissez un Test de Ragot Accessible (+20), choisissez une cargaison et un port au hasard. La Demande pour cette cargaison dans ce port augmente de 2 pour les 10+2d10 prochains jours.",
+        "kind": "rumeurs-commerciales",
+        "params": {
+          "gossipDifficulty": "accessible",
+          "demandBonus": 2,
+          "days": {
+            "dice": {
+              "n": 2,
+              "sides": 10,
+              "plus": 10
+            }
           }
         },
-        "weather": {
-          "visibilite": "brouillard",
-          "precipitations": "abondantes",
-          "vent": "vent-violent"
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
         }
       },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 5,
-      "max": 5,
-      "id": "port-desert",
-      "label": "Port désert",
-      "desc": "Port désert. Si le port est un hameau ou un petit village (Taille 1 ou 2), il est mystérieusement désert. La population a totalement disparu. Elle peut être partie en exil à cause d'une famine ou d'une trop grande pauvreté, ou avoir été capturée par des pillards. La plupart des objets de valeur ont été perdus ou volés et l'équipage estime que rester ici va porter malheur. Si le capitaine insiste pour fouiller le port en quête de butin ou de provisions, il peut en trouver, mais le Moral diminue d'1d10.",
-      "kind": "port-desert",
-      "params": {
-        "maxSize": 2,
-        "moral": {
-          "sign": -1,
-          "dice": {
-            "n": 1,
-            "sides": 10
-          }
-        }
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 6,
-      "max": 6,
-      "id": "gangs-des-quais",
-      "label": "Gangs des quais",
-      "desc": "Gangs des quais. Les dockers locaux font beaucoup de contrebande. Si vous avez de la cargaison à faire décharger ici, 2d10 Enc disparaissent.",
-      "kind": "gangs-des-quais",
-      "params": {
-        "lostEnc": {
-          "dice": {
-            "n": 2,
-            "sides": 10
-          }
-        }
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 7,
-      "max": 7,
-      "id": "la-tache-noire",
-      "label": "La tache noire",
-      "desc": "La tache noire. Pendant votre séjour au port, vous êtes informé que vous vous êtes fait un ennemi d'un autre capitaine. Le MJ détermine de qui il s'agit, pourquoi il vous méprise à ce point et quand vous le rencontrerez la prochaine fois.",
-      "kind": "tache-noire",
-      "params": {},
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 8,
-      "max": 8,
-      "id": "penuries",
-      "label": "Pénuries",
-      "desc": "Pénuries. Une pénurie de marchandises inattendue sévit dans ce port. Les marchandises de la colonne Production (voir Tableau p. 138) ne sont pas disponibles et celles de la colonne Surplus perdent leur statut de Surplus et passent dans la colonne Production.",
-      "kind": "penuries",
-      "params": {},
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 9,
-      "max": 12,
-      "id": "pas-d-evenement",
-      "label": "Pas d'événement",
-      "desc": "Pas d'événement. Le port est paisible et il ne se passe rien d'inattendu pendant votre séjour.",
-      "kind": "rien",
-      "params": {},
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 13,
-      "max": 13,
-      "id": "constructeur-de-navires-itinerant",
-      "label": "Constructeur de navires itinérant",
-      "desc": "Constructeur de navires itinérant. Un constructeur de navires talentueux est en ville. Si votre bateau a besoin de réparations, il possède Métier (Charpentier 72, Constructeur de navires 68, Tailleur 63). Il peut aussi ajouter des Améliorations au vaisseau. Chaque réparation ou Amélioration prend 1d10 jours.",
-      "kind": "constructeur-itinerant",
-      "params": {
-        "metier": {
-          "charpentier": 72,
-          "constructeur-de-navires": 68,
-          "tailleur": 63
-        },
-        "daysPerJob": {
-          "dice": {
-            "n": 1,
-            "sides": 10
-          }
-        }
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 14,
-      "max": 14,
-      "id": "trop-beau-pour-etre-vrai",
-      "label": "Trop beau pour être vrai ?",
-      "desc": "Trop beau pour être vrai ? Un client suspect vous aborde sur les quais et propose de vous vendre jusqu'à 500 points d'Encombrement d'une cargaison choisie au hasard avec une remise incroyable de 50 %. Si vous acceptez l'offre, l'absence de papiers officiels vous encourage à quitter le port rapidement.",
-      "kind": "offre-suspecte",
-      "params": {
-        "maxEnc": 500,
-        "discountPct": 50
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 15,
-      "max": 15,
-      "id": "beau-temps-au-port",
-      "label": "Beau temps",
-      "desc": "Beau temps. Le temps est clément pendant les 1d10 prochains jours. Précipitations : Aucune, Température : Médiane, Vents : Brise fraîche, Visibilité : Dégagé.",
-      "kind": "beau-temps",
-      "params": {
-        "days": {
-          "dice": {
-            "n": 1,
-            "sides": 10
+      {
+        "min": 18,
+        "max": 18,
+        "id": "fete-de-manann",
+        "label": "Fête de Manann",
+        "desc": "Fête de Manann. Le port donne actuellement un festival en l'honneur de Manann, qui célèbre son importance pour sa communauté. Si le capitaine autorise son équipage à faire relâche à terre et se joint aux festivités avec sincérité, l'Humeur de Manann augmente de 2d10.",
+        "kind": "fete-manann",
+        "params": {
+          "manann": {
+            "sign": 1,
+            "dice": {
+              "n": 2,
+              "sides": 10
+            }
           }
         },
-        "weather": {
-          "visibilite": "degage",
-          "precipitations": "aucune",
-          "temperature": "mediane",
-          "vent": "brise-fraiche"
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
         }
       },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 16,
-      "max": 16,
-      "id": "passager-clandestin",
-      "label": "Passager clandestin",
-      "desc": "Passager clandestin. Quelqu'un se faufile discrètement à bord de votre navire. Si vous réussissez un Test de Perception Complexe (–10), vous le repérez avant de repartir, sinon, vous découvrez sa présence après 1d10 jours passés à voyager. Le MJ détermine de qui il s'agit et pourquoi il cherche à se cacher à bord. Lancez 1d10 pour savoir comment il pourrait aider l'équipage (1 à 3 : Mousse ; 4 à 6 : Marin ; 7 : Mercenaire expérimenté ; 8 : Nautonier ; 9 : Médecin de bord ; 10 : Officier).",
-      "kind": "passager-clandestin",
-      "params": {
-        "perceptionDifficulty": "complexe",
-        "discoverDays": {
-          "dice": {
-            "n": 1,
-            "sides": 10
-          }
+      {
+        "min": 19,
+        "max": 19,
+        "id": "offre-de-mission",
+        "label": "Offre de mission",
+        "desc": "Offre de mission. Une personne qui dissimule son identité vous offre 200 CO pour livrer un « colis » sans l'ouvrir dans un port choisi au hasard. Le MJ détermine la description détaillée et les dimensions du colis.",
+        "kind": "offre-mission",
+        "params": {
+          "rewardCO": 200
         },
-        "roll": {
-          "dice": {
-            "n": 1,
-            "sides": 10
-          }
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
+        }
+      },
+      {
+        "min": 20,
+        "max": 20,
+        "id": "bonne-peche",
+        "label": "Bonne pêche",
+        "desc": "Bonne pêche. Récemment, les pêcheurs locaux remontent des filets grouillant de poissons ou de crabes. Vous pouvez les acheter en tant que rations pour un jour au prix réduit de 3sc.",
+        "kind": "bonne-peche",
+        "params": {
+          "rationPriceBronze": 3
         },
-        "contents": [
-          "1 à 3 : Mousse",
-          "4 à 6 : Marin",
-          "7 : Mercenaire expérimenté",
-          "8 : Nautonier",
-          "9 : Médecin de bord",
-          "10 : Officier"
-        ]
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 17,
-      "max": 17,
-      "id": "rumeurs-commerciales",
-      "label": "Rumeurs commerciales",
-      "desc": "Rumeurs commerciales. En prenant un verre dans une taverne sur les quais, vous apprenez qu'une grosse pénurie d'un produit donné frappe dans un autre port. Si vous réussissez un Test de Ragot Accessible (+20), choisissez une cargaison et un port au hasard. La Demande pour cette cargaison dans ce port augmente de 2 pour les 10+2d10 prochains jours.",
-      "kind": "rumeurs-commerciales",
-      "params": {
-        "gossipDifficulty": "accessible",
-        "demandBonus": 2,
-        "days": {
-          "dice": {
-            "n": 2,
-            "sides": 10,
-            "plus": 10
-          }
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
         }
       },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 18,
-      "max": 18,
-      "id": "fete-de-manann",
-      "label": "Fête de Manann",
-      "desc": "Fête de Manann. Le port donne actuellement un festival en l'honneur de Manann, qui célèbre son importance pour sa communauté. Si le capitaine autorise son équipage à faire relâche à terre et se joint aux festivités avec sincérité, l'Humeur de Manann augmente de 2d10.",
-      "kind": "fete-manann",
-      "params": {
-        "manann": {
-          "sign": 1,
-          "dice": {
-            "n": 2,
-            "sides": 10
-          }
+      {
+        "min": 21,
+        "max": 21,
+        "id": "saturation-de-produits",
+        "label": "Saturation de produits",
+        "desc": "Saturation de produits. Les ballots de cargaison s'entassent dans les entrepôts du rivage. Tous les biens mentionnés dans la colonne Production passent dans la colonne Surplus et gagnent +1. Le nombre de tous les produits déjà mentionnés dans la colonne Surplus double.",
+        "kind": "saturation",
+        "params": {},
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 133,
+          "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
         }
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
       }
-    },
-    {
-      "min": 19,
-      "max": 19,
-      "id": "offre-de-mission",
-      "label": "Offre de mission",
-      "desc": "Offre de mission. Une personne qui dissimule son identité vous offre 200 CO pour livrer un « colis » sans l'ouvrir dans un port choisi au hasard. Le MJ détermine la description détaillée et les dimensions du colis.",
-      "kind": "offre-mission",
-      "params": {
-        "rewardCO": 200
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 20,
-      "max": 20,
-      "id": "bonne-peche",
-      "label": "Bonne pêche",
-      "desc": "Bonne pêche. Récemment, les pêcheurs locaux remontent des filets grouillant de poissons ou de crabes. Vous pouvez les acheter en tant que rations pour un jour au prix réduit de 3sc.",
-      "kind": "bonne-peche",
-      "params": {
-        "rationPriceBronze": 3
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    },
-    {
-      "min": 21,
-      "max": 21,
-      "id": "saturation-de-produits",
-      "label": "Saturation de produits",
-      "desc": "Saturation de produits. Les ballots de cargaison s'entassent dans les entrepôts du rivage. Tous les biens mentionnés dans la colonne Production passent dans la colonne Surplus et gagnent +1. Le nombre de tous les produits déjà mentionnés dans la colonne Surplus double.",
-      "kind": "saturation",
-      "params": {},
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 133,
-        "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-      }
-    }
-  ],
+    ]
+  },
   "fastVoyage": {
-    "paliers": [
+    "die": "d10",
+    "entries": [
       {
         "min": null,
         "max": 0,

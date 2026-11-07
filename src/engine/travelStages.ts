@@ -12,14 +12,13 @@
  * (« Trouver de la nourriture et des herbes », LDB 09 l.565-572). Les valeurs RAW sont citées en
  * commentaire ; rien n'est inventé.
  */
-import { parseDiceRequired, type DiceSpec } from './dice';
 import type { CharKey, Difficulty } from './types';
 import { rule } from './policy';
 import type { CodexTarget } from './ruleRefs';
 import { weatherConditions, weatherPhysicalTestChars } from '../data';
 import { saisonParId } from '../data/saisons';
 import { weatherIdSchema } from '../data/schemas/defs/weather';
-import { findTableEntry } from './tables';
+import { deDeLaTableTiree, findTableEntry, type DeDeTable } from './tables';
 import type { ExposureSeverity } from './exposure';
 
 /** Les quatre saisons du tableau de Météo (EDOC 8 l.52). */
@@ -73,10 +72,10 @@ export function weatherRanges(season: Season): WeatherRange[] {
 }
 
 /** Le DÉ DE TIRAGE de la table de Météo d'une saison (`die`), LIVE — FAIL-FAST sur une saison absente. */
-export function weatherDie(season: Season): DiceSpec {
+export function weatherDie(season: Season): DeDeTable {
   const saison = saisonParId(season);
   if (!saison) throw new Error(`weatherDie : aucune saison « ${season} » dans weather.json.`);
-  return parseDiceRequired(saison.die, `weather.json › ${season}.die`);
+  return deDeLaTableTiree(saison);
 }
 
 /** Météo depuis un jet explicite et une saison — lecture LIVE de la donnée éditable. */

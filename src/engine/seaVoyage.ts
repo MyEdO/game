@@ -9,8 +9,8 @@
  *    facteur appliqué UNE fois (registre `applied`).
  *  - Événements de bord (l.89) : « Tous les 1d10 jours … Les lancers dans ce tableau sont modifiés
  *    par le score actuel d'Humeur de Manann ».
- *  - Événements de port (l.127-129) : à l'accostage, 2d10 (« dans les 2d10 heures ») ; Humeur
- *    négative → −1 au 2d10, positive → +1.
+ *  - Événements de port (l.127-129) : à l'accostage, au dé de sa table (« dans les 2d10 heures ») ; Humeur
+ *    négative → −1 au jet, positive → +1.
  *  - Commerce maritime (l.309-399) : achat (Production/Surplus, taille du lot = (Taille + Richesse +
  *    Surplus) × 1d10 × 10, 1 sur le d10 = rien) ; vente (nombre visé selon la relation du port au
  *    bien, Prix d'offre par Richesse+Taille+Demande) ; brader à 25 % du prix de base (l.399).
@@ -20,9 +20,9 @@ import seaEventsJson from '../data/sea-events.json';
 import { t } from '../i18n';
 import seaCargoJson from '../data/sea-cargo.json';
 import type { SeaCargoData } from '../data/schemas/defs/sea-cargo';
-import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
+import { deDeLaTableTiree, findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, parseDiceRequired, tirerSigne, type DiceSpec, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
+import { d10, rollDice, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { ShipCritKey } from '../data/shipCriticals';
@@ -120,7 +120,7 @@ export type EvenementDeBord = EvenementDe<ParametresDeBord>;
 export type EvenementDePort = EvenementDe<ParametresDePort>;
 export type SeaEventDef = EvenementDeBord | EvenementDePort;
 
-/** Palier du VOYAGE RAPIDE (l.33-37) : cran du d10, conséquences en % + Coups Critiques. */
+/** Palier du VOYAGE RAPIDE (l.33-37) : cran du dé de sa table, conséquences en % + Coups Critiques. */
 export interface FastVoyagePalier extends BandeOuverte {
   id: string;
   label: string;
@@ -134,8 +134,8 @@ export interface FastVoyagePalier extends BandeOuverte {
 const EVENTS = seaEventsJson as unknown as {
   manann: { base: number; portEventMod: number; factors: ManannFactor[] };
   boardEvents: { die: string; entries: EvenementDeBord[] };
-  portEvents: EvenementDePort[];
-  fastVoyage: { paliers: FastVoyagePalier[] };
+  portEvents: { die: string; entries: EvenementDePort[] };
+  fastVoyage: { die: string; entries: FastVoyagePalier[] };
 };
 
 /** Palier de SURCHARGE de la cale (MDG 12 l.70-75) : `fromPct` = seuil strict (>) en % de la Contenance,
@@ -146,15 +146,19 @@ const CARGO = seaCargoJson as SeaCargoData;
 
 export const MANANN_FACTORS = EVENTS.manann.factors;
 export const BOARD_EVENTS = EVENTS.boardEvents.entries;
-export const PORT_EVENTS = EVENTS.portEvents;
-export const FAST_VOYAGE_PALIERS = EVENTS.fastVoyage.paliers;
+export const PORT_EVENTS = EVENTS.portEvents.entries;
+export const FAST_VOYAGE_PALIERS = EVENTS.fastVoyage.entries;
 /** Les tables d'événements et de paliers telles que `findTableEntry` les lit (`tableOuverte`) : leurs
  *  bandes extrêmes sont ouvertes (MDG 15). Mémoïsées sur leur dataset quand le Codex les édite. */
 export const evenementsDeBord = memoParVersion('seaBoardEvents', () => tableOuverte(BOARD_EVENTS));
 /** Le dé du Tableau des événements de bord, lu à l'appel. */
-export const deDesEvenementsDeBord = (): DiceSpec => parseDiceRequired(EVENTS.boardEvents.die, 'sea-events.json › boardEvents.die');
-const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(EVENTS.portEvents));
-const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(EVENTS.fastVoyage.paliers);
+export const deDesEvenementsDeBord = (): DeDeTable => deDeLaTableTiree(EVENTS.boardEvents);
+const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(PORT_EVENTS));
+/** Le dé du Tableau des événements d'escale, lu à l'appel. */
+export const deDesEvenementsDePort = (): DeDeTable => deDeLaTableTiree(EVENTS.portEvents);
+const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(FAST_VOYAGE_PALIERS);
+/** Le dé du tableau du Voyage rapide, lu à l'appel. */
+export const deDuVoyageRapide = (): DeDeTable => deDeLaTableTiree(EVENTS.fastVoyage);
 /** `test` exige `skill` et `difficulty` au parse (`exigerDuTest`, `defs/sea-cargo.ts`). */
 export const OPPORTUNITE = CARGO.opportunite as SeaCargoData['opportunite'] & { test: TestExige<'skill' | 'difficulty'> };
 /** La table du Prix d'offre telle que `findTableEntry` la lit (`tableOuverte`, tronc commun — sa
@@ -264,13 +268,13 @@ function seulDuGenre<E extends SeaEventDef, K extends E['kind']>(table: E[], nom
   return trouves[0] as DuGenre<E, K>;
 }
 export const seulEvenementDeBord = <K extends EvenementDeBord['kind']>(kind: K) => seulDuGenre(BOARD_EVENTS, 'boardEvents', kind);
-export const seulEvenementDePort = <K extends EvenementDePort['kind']>(kind: K) => seulDuGenre(EVENTS.portEvents, 'portEvents', kind);
+export const seulEvenementDePort = <K extends EvenementDePort['kind']>(kind: K) => seulDuGenre(PORT_EVENTS, 'portEvents', kind);
 
-/** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) : 2d10, ±1 selon le signe de l'Humeur ;
+/** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) au dé de sa table, ±1 selon le signe de l'Humeur ;
  *  il « se produit dans les 2d10 heures après accostage ». PUR. */
 export function rollPortEvent(manannScore: number, rng: RNG): { roll: number; hours: number; event: EvenementDePort } {
   const mod = manannScore < 0 ? -EVENTS.manann.portEventMod : manannScore > 0 ? EVENTS.manann.portEventMod : 0;
-  const roll = d10(rng) + d10(rng) + mod;
+  const roll = rollDice(deDesEvenementsDePort(), rng) + mod;
   return { roll, hours: d10(rng) + d10(rng), event: findTableEntry(evenementsDePort(), roll) };
 }
 
@@ -284,7 +288,7 @@ export function rollPortEvent(manannScore: number, rng: RNG): { roll: number; ho
 export function resolveFastVoyage(
   crewDR: number, manannScore: number, weeksAtSea: number, rng: RNG,
 ): { roll: number; manannTens: number; result: number; palier: FastVoyagePalier } {
-  const roll = d10(rng);
+  const roll = rollDice(deDuVoyageRapide(), rng);
   const manannTens = Math.trunc(manannScore / 10); // « la dizaine de l'Humeur de Manann » (l.26/l.28)
   const result = roll - Math.max(0, weeksAtSea) + manannTens + crewDR;
   return { roll, manannTens, result, palier: findTableEntry(PALIERS_DE_VOYAGE_RAPIDE, result) };

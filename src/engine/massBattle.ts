@@ -266,7 +266,7 @@ export function isDestroyed(might: number): boolean {
 
 // ── Aléa de bataille (l.307-322) ─────────────────────────────────────────────────────────────────
 
-/** Facteur environnemental tiré/choisi (l.309, 1d10) — « vous pouvez faire un jet sur la table
+/** Facteur environnemental tiré/choisi (l.309-311) — « vous pouvez faire un jet sur la table
  *  ci-dessous, ou simplement choisir l'un des résultats ». */
 export function battleHazard(roll: number): HazardRow {
   return findTableEntry(BATTLE_HAZARDS, roll);
