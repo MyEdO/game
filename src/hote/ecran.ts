@@ -388,7 +388,7 @@ function recitDuVoyage(etat: Jeu): Element[] {
 function echoppe(etat: Jeu): Element[] {
   const m = marchandEnVue(etat);
   if (!m) return [];
-  const avecPrix = (nom: string, prix: string | null) => (prix === null ? nom : t('ecran.marchand.article', { nom, prix }));
+  const avecPrix = (nom: string, prix: string | null) => (prix === null ? nom : t('ecran.echoppe.article', { nom, prix }));
   return [
     puce('bourse', t('ecran.bourse'), m.bourse),
     ...m.etal.map((f): Entite => ({
@@ -396,17 +396,17 @@ function echoppe(etat: Jeu): Element[] {
       elements: f.articles.map((a) => boutonDeGeste(a.id, avecPrix(a.nom, a.prix), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0)),
     })),
     {
-      type: 'entite', id: 'panier', ton: 'neutre', nom: t('ecran.marchand.panier'),
+      type: 'entite', id: 'panier', ton: 'neutre', nom: t('ecran.echoppe.panier'),
       elements: [
-        ...m.panier.lignes.map((l) => boutonDeGeste(l.id, avecPrix(t('ecran.marchand.ligne', { nom: l.nom, qty: l.qty }), l.sousTotal), l.oter, null)),
-        boutonDeGeste('payer', t('ecran.marchand.payer', { total: m.panier.total }), m.panier.payer.geste, m.panier.payer.refus),
+        ...m.panier.lignes.map((l) => boutonDeGeste(l.id, avecPrix(t('ecran.echoppe.ligne', { nom: l.nom, qty: l.qty }), l.sousTotal), l.oter, null)),
+        boutonDeGeste('payer', t('ecran.echoppe.payer', { total: m.panier.total }), m.panier.payer.geste, m.panier.payer.refus),
       ],
     },
     ...m.vente.heros.map((h): Entite => ({
       type: 'entite', id: `vente/${h.id}`, ton: 'neutre', nom: h.nom,
       elements: h.possessions.map((p) => boutonDeGeste(p.uid, avecPrix(p.nom, p.gain), p.basculer, p.refus, p.auLot)),
     })),
-    boutonDeGeste('vendre', t('ecran.marchand.vendre', { total: m.vente.total }), m.vente.vendre.geste, m.vente.vendre.refus),
+    boutonDeGeste('vendre', t('ecran.echoppe.vendre', { total: m.vente.total }), m.vente.vendre.geste, m.vente.vendre.refus),
   ];
 }
 
