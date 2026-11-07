@@ -120,6 +120,7 @@ func points() -> Dictionary:
 func poser_le_monde(monde: Dictionary) -> void:
 	_monde.poser(monde.monde)
 	_monde.poser_les_nappes(monde.toits, monde.couronnes)
+	_monde.poser_la_meteo(monde.meteo)
 
 
 ## Le centre du sol de la case `pos` (`[x, y, z]`, la case et sa couche).

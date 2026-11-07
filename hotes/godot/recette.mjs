@@ -33,6 +33,10 @@
 //   relais ; en tactique, D tenue fait glisser la caméra, Origine la ramène au groupe ; la touche V passe du regard
 //   tactique au plateau, puis à l'immersion ; en immersion, une touche de marche
 //   tenue (Z, Q, S ou D) mène le groupe à une case voisine, que le noyau a jouée ; V rend la tactique.
+// - `meteo` (`--scenario voyage`, #3625) : le village sous la pluie ; en tactique, des averses tombent dans le monde ; au
+//   plateau, rien ne tombe ; en immersion, la pluie tombe autour de l'œil.
+// - `brume` (`--scenario brouillard`, #3625) : la clairière sous le brouillard ; en tactique, les nappes de la donnée ;
+//   en immersion, aucune nappe et la brume de profondeur part de l'œil, plus serrée.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
 //   réponse cliquée : l'interlocuteur suivant prend la parole.
@@ -152,7 +156,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|fiche|inventaire|creation|editeur|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|brume|fiche|inventaire|creation|editeur|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -594,6 +598,67 @@ async function parcoursRegards() {
   noter('V : la tactique, à la suite du groupe')
   await sleep(600)
   await capturer('3476-v4-tactique-suivie')
+}
+
+async function parcoursMeteo() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const meteo = async () => JSON.parse(await evaluate(session, "wfrpPont.appeler('monde')")).meteo
+  const particules = (m) => (m?.pluie?.averses ?? []).reduce((n, a) => n + a.nombre, 0)
+  let m = await meteo()
+  assert.ok(particules(m) > 0, `en tactique, la pluie tombe : ${JSON.stringify(m)?.slice(0, 200)}`)
+  noter(`tactique : ${m.pluie.averses.length} averses, ${particules(m)} particules`)
+  await sleep(1500)
+  await capturer('3625-m1-tactique-pluie')
+  const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
+  await realKey(session, V)
+  await attendreLaVue("v.plateau.regard === 'plateau'")
+  m = await meteo()
+  assert.equal(m.pluie, null, 'au plateau, rien ne tombe')
+  noter('plateau : rien ne tombe')
+  await realKey(session, V)
+  await attendreLaVue("v.plateau.regard === 'immersion'")
+  assert.ok(particules(await meteo()) > 0, 'en immersion, la pluie tombe')
+  await sleep(1500)
+  await capturer('3625-m2-immersion-pluie')
+  noter('immersion : la pluie tombe autour de l’œil')
+}
+
+async function parcoursBrume() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const meteo = async () => JSON.parse(await evaluate(session, "wfrpPont.appeler('monde')")).meteo
+  let m = await meteo()
+  assert.ok(m.nappes.length > 0 && m.pluie === null, `en tactique, les nappes du brouillard, rien ne tombe : ${JSON.stringify(m)?.slice(0, 200)}`)
+  const loin = v.lumiere.brume.finCases
+  noter(`tactique : ${m.nappes.length} nappes (${m.nappes.map((n) => n.alpha).join(', ')}), brume de profondeur à ${loin} cases du point visé`)
+  await capturer('3625-b1-tactique-nappes')
+  const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
+  for (const regard of ['plateau', 'immersion']) {
+    await realKey(session, V)
+    await attendreLaVue(`v.plateau.regard === '${regard}'`)
+  }
+  v = await vue()
+  m = await meteo()
+  assert.equal(m.nappes.length, 0, 'en immersion, aucune nappe')
+  assert.ok(v.lumiere.brume.depuisLOeil && v.lumiere.brume.finCases < loin, `en immersion, la brume part de l’œil, plus serrée : ${JSON.stringify(v.lumiere.brume)}`)
+  noter(`immersion : brume depuis l’œil, de ${v.lumiere.brume.debutCases} à ${v.lumiere.brume.finCases} cases`)
+  await sleep(600)
+  await capturer('3625-b2-immersion-brume')
 }
 
 async function parcoursDialogue() {
@@ -2136,7 +2201,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

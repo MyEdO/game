@@ -5,11 +5,11 @@
 ## revenir au lieu suivi), centrée sur lui puis sur le lieu qu'elle suit (`suivre`), de biais en tactique, à la verticale
 ## et sans perspective au plateau ; et l'œil du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche
 ## sur le sol touché sous lui (`sol_sous`). Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la case
-## du triangle que
-## le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
+## du triangle que le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
 ## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes
 ## (`KIT`) que l'arête nomme, l'arête choisie, les nappes de toit, chacune levée quand le groupe est dessous, les
-## couronnes crénelées des murs, chacune cachée quand son mur tombe, et le calque de référence de l'éditeur ; tout autre
+## couronnes crénelées des murs, chacune cachée quand son mur tombe, la météo (`poser_la_meteo`) et le calque de
+## référence de l'éditeur ; tout autre
 ## chose posée sur le monde appartient à qui l'instancie.
 class_name Monde
 extends Node3D
@@ -24,6 +24,10 @@ const TANGAGE_TACTIQUE := -0.9
 const SOUS_LE_MONDE := -1000.0
 ## La vitesse (m/s) de la caméra qui glisse au clavier.
 const VITESSE_DE_GLISSE_M_S := 16.0
+## La distance (cases) en deçà de laquelle une particule de météo s'efface devant la caméra, et celle où elle est
+## pleine : une goutte qui frôle l'œil de l'immersion n'est pas un pan de mur.
+const PRES_DE_L_OEIL := 0.5
+const LOIN_DE_L_OEIL := 1.5
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
 ## Les items de `surbrillances`.
@@ -53,6 +57,7 @@ const KIT := "res://kit/kit.glb"
 @onready var _forme: CollisionShape3D = $Volume/Corps/Forme
 @onready var _toits: Node3D = $Volume/Toits
 @onready var _couronnes: Node3D = $Volume/Couronnes
+@onready var _meteo: Node3D = $Volume/Meteo
 @onready var _pivot: Node3D = $Pivot
 @onready var _inclinaison: Node3D = $Pivot/Inclinaison
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
@@ -128,6 +133,73 @@ func poser(monde: Dictionary) -> void:
 func poser_les_nappes(toits: Array, couronnes: Array) -> void:
 	_poser_sous(_toits, toits)
 	_poser_sous(_couronnes, couronnes)
+
+
+## La météo du regard (`meteo`, `CONTRAT.md`, section « Monde ») dans le volume, à la place de la précédente : une
+## averse de particules par boîte de `pluie.averses`, étirées dans le sens de leur chute et effacées près de la caméra,
+## et chaque nappe de brume, plate et translucide ; rien sans météo.
+func poser_la_meteo(meteo: Variant) -> void:
+	for posee in _meteo.get_children():
+		_meteo.remove_child(posee)
+		posee.free()
+	if meteo == null:
+		return
+	if meteo.pluie != null:
+		for averse in meteo.pluie.averses:
+			_meteo.add_child(_averse(meteo.pluie, averse))
+	for nappe in meteo.nappes:
+		_meteo.add_child(_nappe_de_brume(nappe))
+
+
+func _averse(pluie: Dictionary, averse: Dictionary) -> CPUParticles3D:
+	var particules := CPUParticles3D.new()
+	particules.position = Vector3(averse.centre[0], averse.centre[1], averse.centre[2])
+	particules.amount = int(averse.nombre)
+	particules.lifetime = pluie.dureeS
+	particules.preprocess = pluie.dureeS
+	particules.local_coords = true
+	particules.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	particules.emission_box_extents = Vector3(averse.demiEtendue[0], averse.demiEtendue[1], averse.demiEtendue[2])
+	particules.direction = Vector3(pluie.sens.x, pluie.sens.y, pluie.sens.z)
+	particules.spread = 0.0
+	particules.gravity = Vector3.ZERO
+	particules.initial_velocity_min = pluie.vitesseMs
+	particules.initial_velocity_max = pluie.vitesseMs
+	particules.particle_flag_align_y = true
+	particules.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var goutte := BoxMesh.new()
+	goutte.size = Vector3(pluie.largeurM, pluie.longueurM, pluie.largeurM)
+	var matiere := _translucide(pluie.couleur, pluie.opacite)
+	matiere.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+	matiere.distance_fade_min_distance = PRES_DE_L_OEIL
+	matiere.distance_fade_max_distance = LOIN_DE_L_OEIL
+	goutte.material = matiere
+	particules.mesh = goutte
+	return particules
+
+
+func _nappe_de_brume(nappe: Dictionary) -> MeshInstance3D:
+	var tableaux := []
+	tableaux.resize(Mesh.ARRAY_MAX)
+	tableaux[Mesh.ARRAY_VERTEX] = PackedFloat32Array(nappe.positions).to_byte_array().to_vector3_array()
+	var maillage := ArrayMesh.new()
+	maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
+	var instance := MeshInstance3D.new()
+	instance.mesh = maillage
+	instance.material_override = _translucide(nappe.couleur, nappe.alpha)
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return instance
+
+
+## Une matière sans éclairage ni brume de profondeur, vue des deux côtés, de teinte `couleur` à l'opacité `opacite`.
+func _translucide(couleur: String, opacite: float) -> StandardMaterial3D:
+	var matiere := StandardMaterial3D.new()
+	matiere.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	matiere.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	matiere.cull_mode = BaseMaterial3D.CULL_DISABLED
+	matiere.disable_fog = true
+	matiere.albedo_color = Color(couleur, opacite)
+	return matiere
 
 
 ## Chaque nappe de toit cachée si `toits_leves` la nomme (`plateau.toitsLeves`), chaque couronne si `couronnes_abattues`

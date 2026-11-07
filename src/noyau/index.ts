@@ -76,6 +76,7 @@ export { isRoomZone } from './monde/rooms';
 export { sceneZoneTiles } from './monde/zones';
 export { capDeLEntite, capsOfferts, effectZoneRect, entiteDeLaSelection, FACES_D_ARETE, fichesDePersonnage, libelleDeStructure, lumiereAllumee, poigneeDeLaSelection, sameSel, segmentDeLaSelection, selRect, structuresCrenelables, structuresDeLArete, type Sel, type WallPaint, ZONE_VARIANTS } from './sceneEditLecture';
 export { lumiereDeLaScene, type LumiereDeLaScene } from './lumiereDeLaScene';
+export { meteoDuRegard, type MeteoDuRegard } from './monde/meteo';
 export { registerScene } from './monde/registreDesScenes';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';

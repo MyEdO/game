@@ -1,6 +1,6 @@
 ## La lumière de la scène que le noyau publie (`vue.lumiere`, `CONTRAT.md`, section « Lumière ») : le soleil de l'heure,
 ## l'ambiante, le ciel d'un extérieur ou le fond d'un intérieur, la brume de profondeur au-delà du point que la caméra
-## vise, et une lampe vacillante par source de lumière de la scène. Sans `eclairer`, la lumière fixe de la scène reste
+## vise ou depuis l'œil, et une lampe vacillante par source de lumière de la scène. Sans `eclairer`, la lumière fixe de la scène reste
 ## (l'atelier).
 class_name Lumiere
 extends Node3D
@@ -55,11 +55,12 @@ func _poser_les_sources(sources: Array, metres_par_case: float) -> void:
 			_flammes.append({lampe = lampe, energie = source.energie, scintillement = source.scintillement})
 
 
-## La brume suit la distance de la caméra au point qu'elle vise, que le zoom change ; les flammes vacillent.
+## La brume suit la distance de la caméra au point qu'elle vise, que le zoom change, ou part de l'œil
+## (`brume.depuisLOeil`) ; les flammes vacillent.
 func _process(_delta: float) -> void:
 	if _brume.is_empty():
 		return
-	var distance := get_viewport().get_camera_3d().position.z
+	var distance := 0.0 if _brume.depuisLOeil else get_viewport().get_camera_3d().position.z
 	_environnement.fog_depth_begin = MiseEnPage.profondeur_de_brume(distance, _brume.debutCases)
 	_environnement.fog_depth_end = MiseEnPage.profondeur_de_brume(distance, _brume.finCases)
 	var secondes := MiseEnPage.secondes(Time.get_ticks_msec())
