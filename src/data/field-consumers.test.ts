@@ -34,6 +34,7 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const rapport = detenteur(buildFieldConsumersMd);
 
 const STOCK_CHAMPS_DE_SCHEMA: readonly (readonly [string, string])[] = [
+  ["sea-events.json:portEvents.entries[].params{}.sign", "Schéma de rangée PARTAGÉ avec boardEvents (`seaEventDef`) : la feuille `effetSigne` des `params` n'est lue qu'à bord (Triton, MDG 15 l.136-139) ; scinder la rangée ferait naître une structure locale. Meurt avec la migration du Triton (#1652)."],
   ["talents.json:[].variants", "Lecteur vérifié : src/engine/variants.ts:29-31 via src/engine/magic.ts:365, careerSlots.ts:295 et combatFeatures/dispatch.ts:20/56/61 ; provenance générique non reliée par le scanner."],
 ];
 

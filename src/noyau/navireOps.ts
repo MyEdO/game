@@ -13,6 +13,9 @@ import { MINUTES_PER_DAY, toDate } from '../engine/clock';
 import { estOpDuNavire, nomDeSource, resolveFormula, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
 import type { EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
+import { caracDuCombattant, type Referent } from '../engine/formule';
+import { profilNavalDe } from '../engine/coque';
+import { valeurDeLaCargaison } from '../engine/cargo';
 import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo, spoilCargoByPct, type ModificateurDuNavire } from '../engine/seaVoyage';
 import { ajouterAuRoster } from '../engine/crewMorale';
 import { seasonOfMonth } from '../engine/travelStages';
@@ -40,11 +43,25 @@ function coqueVisee(get: Get, set: Set): { coque: Combatant; persister: () => vo
   return { coque: bati.hull, persister: () => setVesselHull(get, set, bati.hull.wounds.current, bati.hull.wounds.max) };
 }
 
-/** Jours tirés d'une durée de navire, sur la coque : jamais négatifs. */
-const joursTires = (f: Parameters<typeof resolveFormula>[0], coque: Combatant, ctx: OpsCtx): number => Math.max(0, Math.round(resolveFormula(f, coque, ctx.rng)));
+/** Le RÉFÉRENT des formules du navire de campagne : sa coque, sa Taille (longueur, MDG 12 l.54) et la valeur de
+ *  sa cargaison (MDG 15 l.247) ; `null` sans navire de campagne à coque. */
+export function referentDuNavire(get: Get, set: Set): Referent | null {
+  const visee = coqueVisee(get, set);
+  return visee && referentDeLaCoque(get, visee.coque);
+}
+
+const referentDeLaCoque = (get: Get, coque: Combatant): Referent => ({
+  ...caracDuCombattant(coque),
+  tailleDuNavire: () => profilNavalDe(coque)?.lengthM ?? 0,
+  valeurCargaison: () => valeurDeLaCargaison(get().vessel?.cargo ?? []),
+});
+
+/** Jours tirés d'une durée de navire, sur son référent : jamais négatifs. */
+const joursTires = (f: Parameters<typeof resolveFormula>[0], ref: Referent, ctx: OpsCtx): number => Math.max(0, Math.round(resolveFormula(f, ref, ctx.rng)));
 
 /** Résout UNE op de navire sur `coque` ; rend ses lignes. `ctx.label` = la source de l'état posé. */
 function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire, ctx: OpsCtx): string[] {
+  const ref = referentDeLaCoque(get, coque);
   switch (o.op) {
     case 'shipMorale':
       return applyShipMoraleDelta(get, set, coque, tirerSigne(o.delta, ctx.rng));
@@ -63,7 +80,7 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       return [t('sv.manannMood', { delta: `${delta >= 0 ? '+' : ''}${delta}`, score: vesselManann(get().vessel).score })];
     }
     case 'shipCritical': {
-      const n = Math.max(0, Math.round(resolveFormula(o.count, coque, ctx.rng)));
+      const n = Math.max(0, Math.round(resolveFormula(o.count, ref, ctx.rng)));
       for (let i = 0; i < n; i++) {
         applyVesselCritical(get, set, rollShipCritical(o.location === 'aleatoire' ? localisationAleatoire(ctx.rng) : o.location, ctx.rng), o.equipageEpargne);
       }
@@ -72,7 +89,7 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     case 'navireMod': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const now = get().gameTime;
-      const jusqua: ModificateurDuNavire['jusqua'] = typeof o.jusqua === 'string' ? o.jusqua : now + joursTires(o.jusqua.jours, coque, ctx) * MINUTES_PER_DAY;
+      const jusqua: ModificateurDuNavire['jusqua'] = typeof o.jusqua === 'string' ? o.jusqua : now + joursTires(o.jusqua.jours, ref, ctx) * MINUTES_PER_DAY;
       const label = nomDeSource(ctx);
       const mod: ModificateurDuNavire = {
         label, ...(o.m !== undefined ? { m: o.m } : {}), ...(o.manDR !== undefined ? { manDR: o.manDR } : {}), ...(o.evite ? { evite: [...o.evite] } : {}), jusqua,
@@ -89,7 +106,7 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     case 'meteoImposee': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const now = get().gameTime;
-      const jours = joursTires(o.jours, coque, ctx);
+      const jours = joursTires(o.jours, ref, ctx);
       const label = nomDeSource(ctx);
       const meteo = {
         label, jusqua: now + jours * MINUTES_PER_DAY,
@@ -108,22 +125,22 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
         return [t('eff.cargaisonPerdue', { pct: o.perduePct, enc: removed })];
       }
       if (o.perteAuDechargement !== undefined) {
-        const perte = Math.max(0, Math.round(resolveFormula(o.perteAuDechargement, coque, ctx.rng)));
+        const perte = Math.max(0, Math.round(resolveFormula(o.perteAuDechargement, ref, ctx.rng)));
         set({ vessel: { ...vessel, perteAuDechargement: perte } });
         return [t('eff.perteAuDechargement', { enc: perte })];
       }
-      const enc = Math.max(0, Math.round(resolveFormula(o.enc, coque, ctx.rng)));
+      const enc = Math.max(0, Math.round(resolveFormula(o.enc, ref, ctx.rng)));
       const season = seasonOfMonth(toDate(get().gameTime).month);
       const cargo = rollRandomCargo(season, ctx.rng);
       set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { uid: newUid(), cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, ctx.rng) }] } });
       return [t('eff.cargaison', { enc, cargo: cargo.label })];
     }
     case 'provisions':
-      return o.gateesPct !== undefined ? gaterLesProvisions(get, set, o.gateesPct) : ajouterDesVivres(get, set, joursTires(o.jours, coque, ctx));
+      return o.gateesPct !== undefined ? gaterLesProvisions(get, set, o.gateesPct) : ajouterDesVivres(get, set, joursTires(o.jours, ref, ctx));
     case 'equipage':
       return o.perdusPct !== undefined
         ? changerLEquipage(get, set, -Math.round(shipboardSouls(get()).crew * o.perdusPct / 100), undefined, undefined)
-        : changerLEquipage(get, set, Math.round(resolveFormula(o.delta, coque, ctx.rng)), o.role?.id, o.sansSolde);
+        : changerLEquipage(get, set, Math.round(resolveFormula(o.delta, ref, ctx.rng)), o.role?.id, o.sansSolde);
     case 'perilDeMer':
       return o.collision !== undefined ? heurterLePeril(get, set, coque, o.collision.id, ctx.rng) : entrerDansLeTourbillon(get, set, o.tourbillon.id, nomDeSource(ctx));
     case 'navireHostile':

@@ -66,7 +66,6 @@
     "src/ui/ListRow.tsx",
     "src/ui/LootModal.tsx",
     "src/ui/MainMenu.tsx",
-    "src/ui/ManannPriestModal.tsx",
     "src/ui/ManeuverModal.tsx",
     "src/ui/MapCanvas.tsx",
     "src/ui/MassBattleView.tsx",

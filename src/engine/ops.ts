@@ -33,7 +33,7 @@ import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { dernierIndex, grantTrait, grantPsychTrait, memeTraitPsy, removeGrantedTrait, sameInstance, traitsAccordesPar } from './grantedTraits';
-import { caracDuCombattant, evaluer, slBonus, valeurSansTirage } from './formule';
+import { caracDuCombattant, evaluer, slBonus, valeurSansTirage, type Referent } from './formule';
 import { traitsOctroyes } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
@@ -105,7 +105,14 @@ export type TermeDeJet =
    *  un socle). Mendier : « un nombre de sous de cuivre égal à votre Bonus de Sociabilité x DR par heure »
    *  (LDB 09 l.97) s'écrit `{times:{of:{times:{of:{bonusOf:'sociabilite'},factor:{sl:true}}},factor:{rule:…}}}`.
    *  Hors contexte de Test (aucun `ctx.sl`) : 0, jamais NaN. */
-  | { sl: true };
+  | { sl: true }
+  | TermeLie;
+
+/** VALEUR LIÉE dans la portée d'un Flow : `{tire, de}` la DÉFINIT, `{tire}` la RELIT. Toutes sont tirées
+ *  UNE fois au départ du Flow et substituées par leur valeur (`lierLesTirages`, `engine/flowCore.ts`) avant
+ *  toute évaluation : « Vous pouvez les récupérer » rend les MÊMES 2d10 marins (MDG 15 l.245). Lue non
+ *  liée, elle lève. */
+export type TermeLie = { tire: string; de?: Formula };
 
 /** La grammaire d'une quantité, paramétrée par les termes de jet qu'elle admet (`J`). */
 export type FormuleDe<J> =
@@ -131,6 +138,12 @@ export type FormuleDe<J> =
   /** BLESSURES MAXIMALES du référent (`wounds.max`) — « Le vaisseau perd 75 % de ses Blessures » (MDG 15
    *  l.33) s'écrit `{parTranche:4, of:{times:{of:{blessuresMax:true}, factor:3}}}`. 0 sans combattant. */
   | { blessuresMax: true }
+  /** TAILLE du navire référent, sa longueur en mètres (MDG 12 l.54) : « payer 1d10 CO plus la Taille du
+   *  navire en pistoles » (MDG 15 l.246). 0 hors du référent du navire de campagne (`referentDuNavire`). */
+  | { tailleDuNavire: true }
+  /** VALEUR de la cargaison en cale du navire référent, en sous de cuivre (Enc × prix de base de chaque lot) :
+   *  « 10 % de la valeur de toute la cargaison » (MDG 15 l.247). 0 hors du référent du navire de campagne. */
+  | { valeurCargaison: true }
   /** SOMME de termes (composition) — « 1d10 + (pions − 1) » des Dégâts d'En Flammes (LDB 16 l.84). Permet
    *  d'authorer une formule composée sans coder en dur l'addition au moteur. Récursif. */
   | { sum: FormuleDe<J>[] }
@@ -164,8 +177,13 @@ export type FormuleSansTirage = FormuleDe<never>;
 /** Résout une formule contre son référent (`ref`) — RNG seedable pour les dés. `rolled` = valeur du
  *  jet courant d'un `rollThreshold` (injectée par l'op ; 0 hors de ce contexte) ; `indice` = Indice
  *  de l'attaque naturelle d'une manœuvre (`{indiceOf}`, 0 hors contexte). */
-export function resolveFormula(f: Formula, ref: Combatant, rng: RNG, rolled?: number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number, sl?: number): number {
-  return evaluer<TermeDeJet>(f, caracDuCombattant(ref), (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
+export function resolveFormula(f: Formula, ref: Combatant | Referent, rng: RNG, rolled?: number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number, sl?: number): number {
+  return evaluer<TermeDeJet>(f, 'bonusDe' in ref ? ref : caracDuCombattant(ref), (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : 'tire' in t ? valeurNonLiee(t) : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
+}
+
+/** Une valeur liée atteint l'évaluation sans avoir été tirée : anomalie de portée, jamais un 0 muet. */
+export function valeurNonLiee(t: TermeLie): never {
+  throw new Error(`#1652 — valeur liée « ${t.tire} » évaluée hors de la portée d'un Flow qui la tire (lierLesTirages).`);
 }
 
 /** L'Avantage d'un CAMP SANS FICHE (habitué, figurants) après des ops DÉCLARÉES : seul le vocabulaire
@@ -185,7 +203,7 @@ export function avantageDeCampSansFiche(avant: number, ops: readonly GameOp[], p
 /** Clés reconnues d'une `Formula` OBJET — SOURCE UNIQUE, alignée sur l'union `Formula` et sur les
  *  branches de `resolveFormula`. Réutilisée par le garde-fou d'intégrité des données
  *  (`src/data/data-wellformed.test.ts`) pour valider les champs Formula des `GameOp` sans re-coder la liste. */
-export const FORMULA_OBJECT_KEYS = ['bonusOf', 'charOf', 'dice', 'rolled', 'indiceOf', 'stacks', 'engagedAdvantageGap', 'woundsDealt', 'blessuresMax', 'sl', 'rule', 'sum', 'times', 'minimum', 'parTranche'] as const;
+export const FORMULA_OBJECT_KEYS = ['bonusOf', 'charOf', 'dice', 'rolled', 'indiceOf', 'stacks', 'engagedAdvantageGap', 'woundsDealt', 'blessuresMax', 'tailleDuNavire', 'valeurCargaison', 'sl', 'tire', 'rule', 'sum', 'times', 'minimum', 'parTranche'] as const;
 
 /** Une valeur est-elle une `Formula` VALIDE — résoluble par `resolveFormula` sans planter ? `number` FINI,
  *  ou objet portant exactement une clé connue (`sum` récursif). PUR. Rejette une string (un `'$indice'`
@@ -197,6 +215,7 @@ export function isValidFormula(f: unknown): f is Formula {
   if ('minimum' in o) return typeof o.minimum === 'number' && Number.isFinite(o.minimum) && isValidFormula(o.of);
   if ('parTranche' in o) return Number.isInteger(o.parTranche) && (o.parTranche as number) > 0 && isValidFormula(o.of);
   if ('sum' in o) return Array.isArray(o.sum) && o.sum.every(isValidFormula);
+  if ('tire' in o) return typeof o.tire === 'string' && (o.de === undefined || isValidFormula(o.de));
   if ('times' in o) {
     const t = o.times as Record<string, unknown> | null;
     return !!t && typeof t === 'object' && isValidFormula(t.of) && isValidFormula(t.factor);
@@ -252,8 +271,8 @@ export function formulaExpectation(f: Formula, ref: Combatant): number {
   return evaluer<TermeDeJet>(f, caracDuCombattant(ref), jetEspere);
 }
 
-/** Le terme de jet à son espérance (`formulaExpectation`) : dé moyen, `{rolled}` 5,5, `{sl}` et tout objet
- *  inconnu (formule malformée) 0. */
+/** Le terme de jet à son espérance (`formulaExpectation`) : dé moyen, `{rolled}` 5,5, `{sl}`, une valeur liée et
+ *  tout objet inconnu (formule malformée) 0. */
 function jetEspere(t: TermeDeJet): number {
   if ('dice' in t) return totalDuDe(t.dice, t.dice.n * (t.dice.sides + 1) / 2);
   if ('rolled' in t) return 5.5;
@@ -834,8 +853,11 @@ export type GameOp =
    *  et le solde ne descend jamais sous 0. FRONTIÈRE avec l'Effet de scène `giveMoney`
    *  (`data/schemas/defs-scenes/effets.ts`) : celui-ci est un mouvement de GROUPE (réparti/drainé sur
    *  toutes les bourses par `distributeCredit`/`drainGroup`) ; `money` vise UN porteur, celui que
-   *  `applyOps` traite. Les deux composent les MÊMES parts (`engine/bourse.ts`) — aucune 2ᵉ arithmétique. */
-  | { op: 'money'; montant: { brass: Formula } }
+   *  `applyOps` traite. Les deux composent les MÊMES parts (`engine/bourse.ts`) — aucune 2ᵉ arithmétique.
+   *  `groupe` : le mouvement vise la BOURSE DU GROUPE (`mouvementDeLaBourseDuGroupe`, la couture de
+   *  `giveMoney`), une fois pour la feuille qui la porte (`estOpDeLaBourseDuGroupe`) ; `applyOps` la laisse
+   *  inerte. MDG 15 l.245-247 */
+  | { op: 'money'; montant: { brass: Formula }; groupe?: true }
   /** Invoque une arme MAGIQUE temporaire (Arme aethyrique : Dégâts = BFM ; Faux de Shyish : Arme
    *  d'hast, BFM+3 ; Épée ardente de Rhuin : Dégâts +6, Percutante). `damage` (résolue vs lanceur)
    *  + `damagePlus` (offset constant) donnent la composante chiffrée ; `plusBF` y ajoute le Bonus de
@@ -1262,6 +1284,10 @@ export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<S
 export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile'] as const satisfies readonly GameOp['op'][];
 export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
 export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
+
+/** Op de la BOURSE DU GROUPE (`money` à `groupe`) : résolue une fois par la feuille de scène qui la porte
+ *  (Effet `ops`, `noyau/combatEffects.ts`), inerte dans `applyOps`. */
+export const estOpDeLaBourseDuGroupe = (o: GameOp): o is Extract<GameOp, { op: 'money' }> => o.op === 'money' && o.groupe === true;
 
 /** Op d'une liste lue par le collecteur `passiveMods` : sans `auTotal` (#3060). */
 export type OpPassive = Exclude<GameOp, { op: 'attrMod'; attr: 'wounds' }> | { op: 'attrMod'; attr: 'wounds'; mod: FormuleSansTirage; auTotal?: never };
@@ -2758,6 +2784,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'money': {
+        if (o.groupe) break;
         const n = Math.round(formuleDuCtx(o.montant.brass, ref, ctx));
         if (n === 0) break;
         const avant = bourseBrass(target);
