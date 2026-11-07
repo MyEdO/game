@@ -15,7 +15,7 @@ import { interiorCells } from '../../noyau/planDefects';
 import { memoByRef } from '../../noyau/monde/sceneMemo';
 import { estAbsent } from '../../noyau/monde/terrain';
 import { viewedBuilder, type Viewed } from '../../noyau/monde/volume/viewTruth';
-import { effectiveArchitecture } from '../../noyau/sceneEdit';
+import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../noyau/sceneEdit';
 import { edgeAppearance } from '../../noyau/monde/volume/structures';
 import { crownFaces, cretesDePerimetre } from '../../noyau/monde/volume/creneaux';
 import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
@@ -309,8 +309,8 @@ function facadeFeatureFaces(
       facadeWallFeatureAppearance(facade.appearance, feature.kind);
     if (!appearance) continue;
     const id = `${facade.bodyId}:${facade.sectionId}:${feature.id}`;
-    const center = feature.offset ?? 0.5;
-    const width = feature.width ?? 0.6;
+    const center = feature.offset ?? DEFAUTS_D_OUVERTURE.offset;
+    const width = feature.width ?? DEFAUTS_D_OUVERTURE.width;
     const t0 = center - width / 2;
     const t1 = center + width / 2;
     const tagged = (part: WallPart, poly: Face['poly']): Face => ({

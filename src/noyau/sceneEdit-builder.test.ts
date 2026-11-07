@@ -226,7 +226,7 @@ describe('édition de scène — corps d’architecture : écrivains bornés du 
     const partId = body(scene, id).storeys[0].parts[0].id;
     const out = patchArchitecturePart(scene, id, storeyId, partId, { foot: { x: 9, y: -1, w: 3, h: 9 } });
     expect(body(out, id).storeys[0].parts[0].foot).toEqual({ x: 3, y: 0, w: 3, h: 6 });
-    const ex = patchRoofExclusion(addRoofExclusion(scene, id, 0), id, 0, { rect: { x: 7, y: 0, w: 2, h: 2 } });
+    const ex = patchRoofExclusion(addRoofExclusion(scene, id, 0, { x: 0, y: 0, w: 2, h: 2 }), id, 0, { rect: { x: 7, y: 0, w: 2, h: 2 } });
     expect(body(ex, id).roofExclusions?.[0].rect).toEqual({ x: 4, y: 0, w: 2, h: 2 });
   });
 

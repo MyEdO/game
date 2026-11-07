@@ -79,11 +79,11 @@ export function poseToitureDuCorps(scene: Scene, bodyId: string, champ: keyof Ro
 
 type ExclusionDeToiture = NonNullable<ArchitectureBody['roofExclusions']>[number];
 
-/** Ajoute au corps une exclusion de toiture 2×2 en (0,0), à l'étage `z`, et re-dérive ses masses. */
-export function addRoofExclusion(scene: Scene, bodyId: string, z: number): Scene {
+/** Ajoute au corps une exclusion de toiture sur `rect` (plafonné à la carte), à l'étage `z`, et re-dérive ses masses. */
+export function addRoofExclusion(scene: Scene, bodyId: string, z: number, rect: Rect): Scene {
   return rederiveRoofMasses(updateArchitectureBody(scene, bodyId, (body) => ({
     ...body,
-    roofExclusions: [...(body.roofExclusions ?? []), { z, rect: boundedRect(scene, { x: 0, y: 0, w: 2, h: 2 }) }],
+    roofExclusions: [...(body.roofExclusions ?? []), { z, rect: boundedRect(scene, rect) }],
   })));
 }
 
@@ -141,6 +141,8 @@ function areteALEtage<T extends { z?: number }>(edge: T, z: number): T {
 /** BORNES d'une ouverture de façade, en fraction de son arête : `offset` place son centre (0 = début,
  *  1 = fin), `width` est sa largeur. Lues par l'Inspecteur pour ses champs, tenues ici à l'écriture. */
 export const BORNES_D_OUVERTURE = { offset: { min: 0, max: 1 }, width: { min: 0.05, max: 1 } } as const;
+/** La position et la largeur d'une ouverture qui n'en porte pas, en fraction de l'arête. */
+export const DEFAUTS_D_OUVERTURE = { offset: 0.5, width: 0.6 } as const;
 
 /** Ouverture `feature` patchée par `patch`, chaque fraction ramenée dans `BORNES_D_OUVERTURE` ;
  *  `undefined` retire le champ (défaut de rendu). */
