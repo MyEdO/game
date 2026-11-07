@@ -79,7 +79,8 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
       // #1652 lot 6 (2026-11-07) : +12 sur la bourse du GROUPE des escales (`sea-events.json`, MDG 15 l.245-247) —
       // 6 `money.montant` (bénédiction, rançon, pot-de-vin, 3 droits de douane) et 6 seuils `atLeast` de la
       // Condition `money` sur une valeur liée (`{brass: {tire}}`).
-      brass: 15,
+      // #1652 lot 7 (2026-11-07) : +1, les 3d10 CO du Vaisseau de pestiférés (MDG 15 l.194).
+      brass: 16,
     });
 
     // AUCUN objet-ACTION n'étale de dénomination parmi ses propres clés : toute charge porte un NOM
