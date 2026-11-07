@@ -353,10 +353,11 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
     // 30→31 (#700, 2026-09-30) : `porte-secrete-rayon-m` (1..20 m), LDB 09 l.399 ne chiffre pas la distance.
     // 31→30 (#700, 2026-10-05) : `fenetre-hauteur-allege` supprimée, l'allège est une donnée de la croisée.
     // 30→31 (#700, 2026-10-05) : `fouille-piece-minutes` (1..120 min), LDB 12 l.200 ne chiffre pas la durée.
-    expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBe(31);
+    // 31→32 (#1652, 2026-11-07) : `cibleVulnerablePct` (10..300 %), MDG 15 l.150/171 ne chiffre pas la cible vulnérable.
+    expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBe(32);
     expect(
       bornees.filter((r) => r.kind !== 'param').map((r) => r.id),
-      'un réglage borné n’est pas un paramètre chiffré : la co-présence mesurée 31/31 ne porte plus sur la même population.',
+      'un réglage borné n’est pas un paramètre chiffré : la co-présence mesurée 32/32 ne porte plus sur la même population.',
     ).toEqual([]);
     const i = regles.indexOf(bornees[0]);
     const { max: _absente, ...ampute } = bornees[0];

@@ -10,12 +10,10 @@
       "note": "ch.13 « Navigation maritime » — Échouer (l.471-473)."
     }
   },
-  "hazardsWeightNote": "MAISON (#444) — le RAW (MDG 13 l.475-499) ne donne aucune fréquence relative entre Icebergs/Débris marins/Rocher/Bas-fonds lors d'une collision : pondération du tirage éditable via hazards[].weight (défaut 1 = équiprobable).",
   "hazards": [
     {
       "id": "iceberg",
       "label": "Iceberg",
-      "weight": 1,
       "m": 1,
       "ic": 25,
       "desc": "Un Iceberg se déplace à une vitesse de M1. La masse d'un Iceberg est très variable, mais en moyenne, il a un Indice de Collision de 25.",
@@ -28,7 +26,6 @@
     {
       "id": "debris-marins",
       "label": "Débris marins",
-      "weight": 1,
       "m": 1,
       "ic": 3,
       "entangleChancePct": 20,
@@ -62,7 +59,6 @@
     {
       "id": "rocher",
       "label": "Rocher",
-      "weight": 1,
       "ic": 47,
       "strandChancePct": 20,
       "desc": "La taille et la masse d'un Rocher sont très variables, mais le Rocher moyen possède un Indice de Collision de 47. En cas de collision avec un Rocher, un vaisseau a 20 % de chances de s'Échouer dessus.",
@@ -75,7 +71,6 @@
     {
       "id": "bas-fonds",
       "label": "Bas-fonds",
-      "weight": 1,
       "ic": 10,
       "strandChancePct": 40,
       "desc": "Les Bas-fonds sont des bancs de petits rochers, de sable ou de boue. Leur taille et leur masse peuvent beaucoup varier d'un cas à l'autre, mais une zone de Bas-fonds typique possède un Indice de Collision de 10. S'il entre en collision avec des Bas-fonds, un bateau a 40 % de chances de s'y Échouer.",

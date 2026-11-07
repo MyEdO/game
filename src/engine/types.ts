@@ -1455,6 +1455,9 @@ export interface Combatant {
   /** Coque/navire (`bodyShape:'vehicule'`) : `id`s des Combattants d'ÉQUIPAGE exposés à bord (MDG 14).
    *  Un Critique « Équipage » et les Éclats reviennent à ces marins (Critiques de personnage / Dégâts). */
   crewIds?: string[];
+  /** Coque : les marins de la créature `ref` encore en RÉSERVE à bord, qui montent à l'abordage par vagues de
+   *  `vague` quand tout l'équipage exposé (`crewIds`) est hors de combat (`monterLesVagues`). MDG 15 l.150, l.171 */
+  reserveDAbordage?: { ref: string; restant: number; vague: number };
   /** Pièces d'artillerie MONTÉES sur ce Combattant-coque (source de vérité, MDG 12-13). Au spawn, chaque
    *  poste pose son arme sur le chef de pièce via `mannedPoste`. */
   postes?: ShipPoste[];

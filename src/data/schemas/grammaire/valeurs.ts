@@ -637,10 +637,7 @@ export const deckCoverSchema = z.enum(['imparfaite', 'moyenne', 'totale']);
  * nomment une Caractéristique (`domains`/`maneuvers`/`qualities`/`talents`/`etats`/`spells`/`species`/
  * `careerLevels`…).
  */
-export const charKeySchema = z.enum([
-  'capacite-de-combat', 'capacite-de-tir', 'force', 'endurance', 'initiative', 'agilite', 'dexterite',
-  'intelligence', 'force-mentale', 'sociabilite',
-]);
+export const charKeySchema = enumNomme(CHAR_LABELS);
 
 /**
  * Clés d'un PROFIL chiffré : les 10 Caractéristiques ∪ `M` (Déplacement) ∪ `B` (Blessures) — la

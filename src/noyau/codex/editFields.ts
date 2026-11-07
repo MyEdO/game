@@ -63,7 +63,7 @@ const SANS_FORME = Symbol('sans forme');
 
 /** Un nœud de la fermeture `ouverts` qui ne porte aucune forme de valeur à lui seul : enveloppe,
  *  union, intersection, `lazy`, `pipe` (ses enfants transparents la portent), ou `transform`. */
-const estTransparent = (noeud: unknown): boolean =>
+export const estTransparent = (noeud: unknown): boolean =>
   defDe(noeud)?.type === 'transform' || enfantsDe(noeud).some((e) => e.segment === '' || e.segment.startsWith('|') || e.segment.startsWith('&'));
 
 /** Échantillon d'une forme CONCRÈTE de la fermeture : la valeur dont `kindOf` tire le kind. */
