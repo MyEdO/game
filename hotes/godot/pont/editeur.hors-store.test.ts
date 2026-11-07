@@ -308,6 +308,45 @@ describe('l’éditeur de carte par le pont, les zones', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, l’architecture', () => {
+  it('un corps bâti sur la case pointée se nomme et se type ; un étage au-dessus devient la couche éditée, où se bâtit une partie ; le dernier étage ne se supprime pas', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const outil = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture'));
+    expect(boutonDe(outil, 'batir/corps').refus).toBe('Appuyez d’abord sur une case de cette couche');
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const pointee = jouer({ geste: 'relache', point: point(2, 2) });
+    const bati = presser(boutonDe(pointee, 'batir/corps'));
+    const corps = valeursDe(bati, 'corps').find((b) => b.presse)!;
+    expect(bati.surcouche.zones.find((z) => z.sorte === 'partie')?.cases, 'sa partie de départ, la case pointée').toEqual([{ x: 2, y: 2, z: 0 }]);
+    const nomme = editionDe(appel('editer', { type: 'nommer', args: ['Relais'] }));
+    expect(valeursDe(nomme, 'corps').find((b) => b.presse)?.libelle).toBe('Relais');
+    const style = (nomme.vue.zones['editeur.inspecteur'].find((el) => el.id === 'corps/style') as Choix).valeurs[1];
+    expect(boutonDe(presser(style), style.id).presse).toBe(true);
+    expect(boutonDe(nomme, 'architecture/supprimer').refus).toBeNull();
+
+    const etage = presser(boutonDe(nomme, 'batir/etage'));
+    expect(etage.vue.couche).toBe(1);
+    expect(etage.vue.zones['editeur.inspecteur'].find((el) => el.id === 'etage')).toMatchObject({ type: 'ligne' });
+    expect(boutonDe(etage, 'batir/partie').refus, 'la case pointée est au rez').toBe('Appuyez d’abord sur une case de cette couche');
+    jouer({ geste: 'appui', point: point(4, 4) });
+    const partie = presser(boutonDe(jouer({ geste: 'relache', point: point(4, 4) }), 'batir/partie'));
+    expect(partie.surcouche.zones.find((z) => z.choisi)).toMatchObject({ sorte: 'partie', cases: [{ x: 4, y: 4, z: 1 }] });
+    expect(partie.surcouche.poignee).toEqual({ x: 4, y: 4, z: 1 });
+
+    const rez = presser(boutonDe(presser(boutonDe(partie, 'couche/0')), corps.id));
+    expect(rez.vue.zones['editeur.inspecteur'].find((el) => el.id === 'corps/etages')).toMatchObject({ texte: '2 étages' });
+  });
+
+  it('sans corps, la façade et les ouvrages d’un corps se refusent', () => {
+    const { appel } = table();
+    const outil = editionDe(appel('editer', boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture').jeu));
+    expect(boutonDe(outil, 'architecture/facade').refus).toBe('Aucun corps dans la scène');
+    expect(['etage', 'partie', 'masse'].map((o) => boutonDe(outil, `batir/${o}`).refus)).toEqual(Array(3).fill('Aucun corps dans la scène'));
+  });
+});
+
 describe('l’éditeur de carte par le pont, le combat et l’ameublement', () => {
   it('un emplacement de siège posé à l’outil : son engin, son arc, ses servants et leur chef ; un personnage enrôlé dans une rencontre neuve, allié piloté', () => {
     const { appel } = table();

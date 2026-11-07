@@ -15,7 +15,7 @@ import {
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  buildingsMeta, corpsActif, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS,
 } from '../noyau/index';
@@ -53,7 +53,7 @@ export interface RepereDeLEdition {
 
 /** Les sortes de zone de l'éditeur : un déclencheur, une zone de repos, une pièce (`isRoomZone`), toute autre zone
  *  d'effet. */
-export type SorteDeZone = 'declencheur' | 'repos' | 'piece' | 'zone';
+export type SorteDeZone = 'declencheur' | 'repos' | 'piece' | 'zone' | 'partie' | 'masse';
 
 /** Une zone de la couche éditée sur la carte : sa sorte, son nom, ses cases et si elle est sélectionnée. */
 export interface ZoneDeLEdition {
@@ -125,6 +125,7 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
     return [choix('zones', t('ecran.editeur.zones'),
       ZONE_VARIANTS.map((zone) => bouton(`zone/${zone}`, t(`ecran.editeur.zone.${zone}`), { geste: 'outil', outil: { mode: 'zone', zone } }, outil.zone === zone)))];
   }
+  if (outil.mode === 'architecture') return optionsDArchitecture(s, outil.action);
   if (outil.mode === 'zoneTiles') return [...emprise(outil.zoneId, outil), bouton('emprise/finir', t('ecran.editeur.zone.emprise.finir'), { geste: 'outil', outil: { mode: 'select' } })];
   if (outil.mode === 'emplacement') {
     return [choix('engins', t('ecran.editeur.engins'),
@@ -183,6 +184,25 @@ function entreeDeLaSelection(s: SessionDEdition): { nom: string; x: number; y: n
   return pos && s.sel?.type === 'entry' ? { nom: s.sel.id, x: pos.x, y: pos.y, z: pos.z ?? 0 } : undefined;
 }
 
+/** Les options de l'outil d'architecture de la session `s`, à l'action `action` : le corps actif parmi ceux de la
+ *  scène, sélectionner ou poser une façade (refusée sans corps), et chaque ouvrage à bâtir, refusé avec sa raison. */
+function optionsDArchitecture(s: SessionDEdition, action: 'select' | 'facade'): (Choix | Bouton)[] {
+  const corps = sceneEditee(s).architecture ?? [];
+  const actif = corpsActif(s);
+  const outil = (a: 'select' | 'facade'): GesteDEdition => ({ geste: 'outil', outil: { mode: 'architecture', action: a } });
+  return [
+    ...(corps.length ? [choix('corps', t('ecran.editeur.corps'), corps.map((c) => bouton(`corps/${c.id}`, c.label ?? c.id, { geste: 'corps', id: c.id }, c.id === actif?.id)))] : []),
+    choix('architecture/action', t('ecran.editeur.architecture.action'), [
+      bouton('architecture/select', t('ecran.editeur.architecture.select'), outil('select'), action === 'select'),
+      bouton('architecture/facade', t('ecran.editeur.architecture.facade'), outil('facade'), action === 'facade', actif ? null : t('ecran.editeur.ouvrage.refus.sansCorps')),
+    ]),
+    ...OUVRAGES.map((o) => {
+      const refus = refusDOuvrage(s, o);
+      return bouton(`batir/${o}`, t(`ecran.editeur.ouvrage.${o}`), { geste: 'batir', ouvrage: o }, false, refus && t(`ecran.editeur.ouvrage.refus.${refus}`));
+    }),
+  ];
+}
+
 /** La ligne de l'entité, de l'entrée ou de la zone sélectionnée de la session `s` : sa sorte, son nom, sa case (le
  *  rectangle d'une zone) et sa couche. */
 function ligneDeLaSelection(s: SessionDEdition): Ligne[] {
@@ -190,7 +210,7 @@ function ligneDeLaSelection(s: SessionDEdition): Ligne[] {
   if (ent) return [ligne('entite', t('ecran.editeur.entite', { sorte: t(`ecran.editeur.entite.${ent.kind}`), nom: nomALEcran(s, ent), x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 }))];
   const entree = entreeDeLaSelection(s);
   if (entree) return [ligne('entree', t('ecran.editeur.entree', entree))];
-  const zone = zonesLues(sceneEditee(s)).find((z) => sameSel(z.sel, s.sel));
+  const zone = [...zonesLues(sceneEditee(s)), ...ouvragesLus(s)].find((z) => sameSel(z.sel, s.sel));
   return zone ? [ligne('zone', t('ecran.editeur.zone.choisie', { sorte: t(`ecran.editeur.zone.sorte.${zone.sorte}`), nom: zone.nom, ...zone.rect, z: zone.z }))] : [];
 }
 
@@ -412,6 +432,61 @@ function zonesLues(scene: Scene): ZoneLue[] {
   ];
 }
 
+/** Les ouvrages du corps actif de la session `s` sur sa carte : les parties de chaque étage, puis ses masses de toiture
+ *  posées à la main (une masse dérivée se règle sur le corps). */
+function ouvragesLus(s: SessionDEdition): ZoneLue[] {
+  const corps = corpsActif(s);
+  if (!corps) return [];
+  return [
+    ...corps.storeys.flatMap((e) => e.parts.map((p) => ({ sel: { type: 'architecturePart' as const, bodyId: corps.id, storeyId: e.id, id: p.id }, sorte: 'partie' as const, nom: p.id, rect: p.foot, z: e.z, cases: casesDuRect(p.foot) }))),
+    ...corps.masses.filter((m) => !m.derived).map((m) => {
+      const sel = { type: 'roofSection' as const, bodyId: corps.id, id: m.id };
+      return { sel, sorte: 'masse' as const, nom: m.id, rect: selRect(sceneEditee(s), sel)!, z: m.z, cases: m.footprint.flatMap(casesDuRect) };
+    }),
+  ];
+}
+
+/** Les pièces de la couche `z` qu'un étage ou une façade révèle (`roomZoneIds`). */
+const piecesDeLaCouche = (scene: Scene, z: number) => (scene.effectZones ?? []).filter((zone) => isRoomZone(zone) && (zone.z ?? 0) === z);
+
+/** L'inspecteur de la sélection d'architecture de la session `s`, vide hors d'elle. D'un corps : son nom, son type de
+ *  bâtiment, son nombre d'étages ; d'un étage : sa couche, les pièces qu'il révèle ; d'une partie, la poignée qui la
+ *  redimensionne ; chacun se supprime, l'étage sauf le dernier du corps. */
+function inspecteurDArchitecture(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
+  const scene = sceneEditee(s);
+  const sel = s.sel;
+  const corps = corpsActif(s);
+  const supprimer = (refus: string | null = null) => bouton('architecture/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, refus);
+  if (sel?.type === 'architectureBody' && corps) {
+    const styles = Object.values(buildingsMeta());
+    return [
+      formulaireDuNom(corps.label ?? '', true),
+      choix('corps/style', t('ecran.editeur.corps.style'), [
+        bouton('corps/style/aucun', t('ecran.editeur.corps.style.aucun'), { geste: 'architecture', patch: { style: null } }, corps.style === undefined),
+        ...styles.map((m) => bouton(`corps/style/${m.id}`, m.label, { geste: 'architecture', patch: { style: m.id } }, corps.style === m.id)),
+      ], 'liste'),
+      ligne('corps/etages', t('ecran.editeur.corps.etages', { n: corps.storeys.length, s: pluriel(corps.storeys.length) })),
+      supprimer(),
+    ];
+  }
+  if (sel?.type === 'architectureStorey' && corps) {
+    const etage = corps.storeys.find((e) => e.id === sel.id)!;
+    const pieces = piecesDeLaCouche(scene, etage.z);
+    const basculer = (id: string) => (etage.roomZoneIds.includes(id) ? etage.roomZoneIds.filter((p) => p !== id) : [...etage.roomZoneIds, id]);
+    return [
+      ligne('etage', t('ecran.editeur.etage', { id: etage.id, z: etage.z })),
+      pieces.length
+        ? choix('etage/pieces', t('ecran.editeur.pieces'), pieces.map((p) => bouton(`etage/pieces/${p.id}`, p.label, { geste: 'architecture', patch: { pieces: basculer(p.id) } }, etage.roomZoneIds.includes(p.id))))
+        : ligne('etage/pieces', t('ecran.editeur.pieces.aucune')),
+      supprimer(corps.storeys.length > 1 ? null : t('ecran.editeur.etage.dernier')),
+    ];
+  }
+  if (sel?.type === 'architecturePart' || sel?.type === 'roofSection' || sel?.type === 'facadeSection') {
+    return [...(sel.type === 'facadeSection' ? [] : [ligne('architecture/poignee', t('ecran.editeur.zone.poignee'))]), supprimer()];
+  }
+  return [];
+}
+
 /** L'emprise au pinceau de la zone d'effet `zoneId` : y ajouter des cases, en retirer (l'outil d'emprise armé dans ce
  *  sens, pressé). */
 function emprise(zoneId: string, outil: SessionDEdition['outil']): Choix[] {
@@ -585,7 +660,11 @@ function inspecteur(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[]
   const ent = entiteDeLaSelection(sceneEditee(s), s.sel);
   const entree = entreeDeLaSelection(s);
   const zone = zonesLues(sceneEditee(s)).find((z) => sameSel(z.sel, s.sel));
-  return ent ? inspecteurDEntite(s, ent) : entree ? inspecteurDEntree(s, entree) : zone ? inspecteurDeZone(s, zone) : inspecteurDArete(s);
+  if (ent) return inspecteurDEntite(s, ent);
+  if (entree) return inspecteurDEntree(s, entree);
+  if (zone) return inspecteurDeZone(s, zone);
+  const architecture = inspecteurDArchitecture(s);
+  return architecture.length ? architecture : inspecteurDArete(s);
 }
 
 /** La ligne du parapet crénelé de la case pointée de la session `s`, sa structure ; aucune sans parapet. */
@@ -680,6 +759,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     bouton('outil/emplacement', t('ecran.editeur.outil.emplacement'), { geste: 'outil', outil: { mode: 'emplacement', trappingId: outil.mode === 'emplacement' ? outil.trappingId : siegeEngines()[0].id } }, outil.mode === 'emplacement'),
     bouton('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entity', kind: 'heroStart' } }, s.outil.mode === 'entity' && s.outil.kind === 'heroStart'),
     bouton('outil/entry', t('ecran.editeur.outil.entry'), { geste: 'outil', outil: { mode: 'entry' } }, s.outil.mode === 'entry'),
+    bouton('outil/architecture', t('ecran.editeur.outil.architecture'), { geste: 'outil', outil: { mode: 'architecture', action: 'select' } }, outil.mode === 'architecture'),
     bouton('outil/zone', t('ecran.editeur.outil.zone'), { geste: 'outil', outil: { mode: 'zone', zone: outil.mode === 'zone' ? outil.zone : ZONE_VARIANTS[0] } }, outil.mode === 'zone'),
     bouton('outil/erase', t('ecran.editeur.outil.erase'), { geste: 'outil', outil: { mode: 'erase' } }, s.outil.mode === 'erase'),
   ];
@@ -736,7 +816,7 @@ export function surcoucheDeLEdition(s: SessionDEdition): SurcoucheDeLEdition {
     cases: [...cases, ...s.volee].map(aLaCouche),
     arete: seg ? areteDessinee(scene, seg) : null,
     reperes: reperes(s),
-    zones: zonesLues(scene).filter((z) => z.z === s.z).map((z) => ({ sorte: z.sorte, nom: z.nom, cases: z.cases.map(aLaCouche), choisi: sameSel(z.sel, s.sel) })),
+    zones: [...zonesLues(scene), ...(s.outil.mode === 'architecture' ? ouvragesLus(s) : [])].filter((z) => z.z === s.z).map((z) => ({ sorte: z.sorte, nom: z.nom, cases: z.cases.map(aLaCouche), choisi: sameSel(z.sel, s.sel) })),
     poignee: poignee && aLaCouche(poignee),
   };
 }

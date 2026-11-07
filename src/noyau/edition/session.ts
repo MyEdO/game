@@ -6,13 +6,13 @@
  * (`./historique`), aux écrivains de `../sceneEdit`, à la volée (`../stairFlight`) et au calque (`./calque`) ; aucun
  * n'écrit de règle de scène. L'éditeur Godot la reçoit par le pont.
  */
-import type { Scene, SceneEntity, WallSecret, WallSeg } from '../monde/scene';
+import type { ArchitectureBody, ArchitectureStorey, Scene, SceneEntity, WallSecret, WallSeg } from '../monde/scene';
 import type { Dir8 } from '../../geometry/dir8';
 import type { FireArc } from '../../engine/types';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addLayer, addMember, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addLayer, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
 import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -36,8 +36,23 @@ export const HAUTEURS = [
 /** Les calques de la carte, tous visibles. */
 const TOUS_LES_CALQUES: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 
-/** Les outils que l'éditeur offre. */
-export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'entity' | 'emplacement' | 'entry' | 'zone' | 'zoneTiles' | 'erase' }>;
+/** Les outils que l'éditeur offre ; l'architecture sélectionne dans le corps actif (`corpsActif`), ou pose une façade
+ *  sur l'arête appuyée. */
+export type OutilDeLEditeur =
+  | Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'entity' | 'emplacement' | 'entry' | 'zone' | 'zoneTiles' | 'erase' }>
+  | { mode: 'architecture'; action: 'select' | 'facade' };
+
+/** Ce que bâtit l'outil d'architecture : un corps ou une partie sur la case pointée, l'étage au-dessus du corps actif,
+ *  une masse de toiture sur la case pointée. */
+export const OUVRAGES = ['corps', 'etage', 'partie', 'masse'] as const;
+export type Ouvrage = (typeof OUVRAGES)[number];
+
+/** Ce que l'inspecteur écrit sur le corps ou l'étage sélectionné : le type de bâtiment du corps (`null` : sans type),
+ *  les pièces que révèle l'étage. */
+export interface PatchDArchitecture {
+  style?: string | null;
+  pieces?: string[];
+}
 
 /** Ce que l'inspecteur écrit sur l'arête sélectionnée (`patchWall`) : chaque champ posé, `null` le retire. */
 export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z'>]?: WallSeg[K] | null };
@@ -137,6 +152,9 @@ export type GesteDEdition =
   | { geste: 'place'; place: string; occupant: SeatOccupant | null }
   | { geste: 'membre'; patch: PatchDeMembre }
   | { geste: 'zone'; patch: PatchDeZone }
+  | { geste: 'corps'; id: string }
+  | { geste: 'batir'; ouvrage: Ouvrage }
+  | { geste: 'architecture'; patch: PatchDArchitecture }
   | { geste: 'nommer'; nom?: string }
   | { geste: 'identifier'; id: string }
   | { geste: 'entree'; z: number }
@@ -211,9 +229,65 @@ export function planDeLaVolee(s: SessionDEdition): StairFlightPlan | null {
   return s.outil.mode === 'stair' ? planStairFlight(sceneEditee(s), s.volee, s.z, s.outil.toZ) : null;
 }
 
-/** Le contexte du pointeur de la session. */
+/** Le corps de la sélection d'architecture `sel`, `undefined` hors d'elle. */
+const corpsDeLaSelection = (sel: Sel): string | undefined => {
+  if (sel?.type === 'architectureBody') return sel.id;
+  return sel?.type === 'architectureStorey' || sel?.type === 'architecturePart' || sel?.type === 'facadeSection' || sel?.type === 'roofSection' ? sel.bodyId : undefined;
+};
+
+/** Le corps actif de la session `s` : celui de la sélection, sinon le premier de la scène ; `null` sans corps. */
+export function corpsActif(s: SessionDEdition): ArchitectureBody | null {
+  const corps = sceneEditee(s).architecture ?? [];
+  const id = corpsDeLaSelection(s.sel);
+  return corps.find((c) => c.id === id) ?? corps[0] ?? null;
+}
+
+/** L'étage du corps actif de la session `s` sur sa couche éditée, `null` sans lui. */
+export const etageActif = (s: SessionDEdition): ArchitectureStorey | null => corpsActif(s)?.storeys.find((e) => e.z === s.z) ?? null;
+
+/** Le contexte du pointeur de la session : l'outil d'architecture y est la sélection, en mode architecture. */
 function contexte(s: SessionDEdition): ContexteDuPointeur {
-  return { tool: s.outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture: null };
+  const outil = s.outil;
+  const architecture = outil.mode === 'architecture' ? { z: s.z, action: outil.action, bodyId: corpsActif(s)?.id ?? null } : null;
+  return { tool: outil.mode === 'architecture' ? { mode: 'select' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture };
+}
+
+/** Pourquoi l'outil d'architecture de la session `s` ne bâtit pas `ouvrage`, `null` s'il le bâtit. */
+export function refusDOuvrage(s: SessionDEdition, ouvrage: Ouvrage): 'sansCorps' | 'sansEtage' | 'sansCase' | null {
+  if (ouvrage !== 'corps' && !corpsActif(s)) return 'sansCorps';
+  if ((ouvrage === 'partie' || ouvrage === 'masse') && !etageActif(s)) return 'sansEtage';
+  return ouvrage !== 'etage' && s.pointee?.z !== s.z ? 'sansCase' : null;
+}
+
+/** La session `s` où l'outil d'architecture bâtit `ouvrage`, sélectionné ; telle quelle s'il ne le bâtit pas. L'étage
+ *  bâti devient la couche éditée. */
+function batir(s: SessionDEdition, ouvrage: Ouvrage): SessionDEdition {
+  if (refusDOuvrage(s, ouvrage)) return s;
+  const scene = sceneEditee(s);
+  const corps = corpsActif(s);
+  const etage = etageActif(s);
+  const caseSeule = s.pointee && { x: s.pointee.x, y: s.pointee.y, w: 1, h: 1 };
+  if (ouvrage === 'corps') {
+    const out = addArchitectureBody(scene, undefined, caseSeule!);
+    return ecrire(s, out.scene, { type: 'architectureBody', id: out.id });
+  }
+  if (ouvrage === 'etage') {
+    const out = addStoreyAbove(scene, corps!.id)!;
+    return { ...ecrire(s, out.scene, { type: 'architectureStorey', bodyId: corps!.id, id: out.id }), z: out.z };
+  }
+  if (ouvrage === 'partie') {
+    const out = addArchitecturePart(scene, corps!.id, etage!.id, caseSeule!)!;
+    return ecrire(s, out.scene, { type: 'architecturePart', bodyId: corps!.id, storeyId: etage!.id, id: out.id });
+  }
+  const out = addBuildingMass(scene, corps!.id, caseSeule!, s.z)!;
+  return ecrire(s, out.scene, { type: 'roofSection', bodyId: corps!.id, id: out.id });
+}
+
+/** La scène `scene` où `patch` s'écrit sur le corps ou l'étage sélectionné par `sel` ; telle quelle hors d'eux. */
+function architecturePatchee(scene: Scene, sel: Sel, patch: PatchDArchitecture): Scene {
+  if (sel?.type === 'architectureBody' && patch.style !== undefined) return patchArchitectureBody(scene, sel.id, { style: patch.style ?? undefined });
+  if (sel?.type === 'architectureStorey' && patch.pieces) return patchArchitectureStorey(scene, sel.bodyId, sel.id, { roomZoneIds: patch.pieces });
+  return scene;
 }
 
 /** Le tracé `volee` où la case `p` bascule : retirée si elle y est, ajoutée au bout sinon. */
@@ -224,6 +298,7 @@ const basculer = (volee: readonly Pt[], p: Pt): readonly Pt[] =>
 function porter(s: SessionDEdition, effet: EffetDuPointeur): SessionDEdition {
   return {
     ...s,
+    ...(effet.architectureFinie && s.outil.mode === 'architecture' ? { outil: { mode: 'architecture', action: 'select' } } : {}),
     ...(effet.sel !== undefined ? { brouillon: null } : {}),
     geste: effet.geste,
     ...(effet.volee ? { volee: basculer(s.volee, effet.volee) } : {}),
@@ -325,7 +400,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
         const pas = caler(s.calage, calque, g.point.f);
         return { ...s, calage: pas.progress, ...(pas.transform ? { calques: avecLeCalque(s, s.sceneId, s.z, { ...calque, calage: pas.transform }) } : {}) };
       }
-      const poignee = s.outil.mode === 'select' ? poigneeDeLaSelection(scene, s.sel, s.z) : null;
+      const poignee = s.outil.mode === 'select' || (s.outil.mode === 'architecture' && s.outil.action === 'select') ? poigneeDeLaSelection(scene, s.sel, s.z) : null;
       const saisie = poignee?.x === g.point.case.x && poignee.y === g.point.case.y;
       return { ...(saisie ? { ...s, geste: saisirLaPoignee(contexte(s)) } : porter(s, appuyer(scene, contexte(s), g.point))), pointee: { ...g.point.case, z: s.z } };
     }
@@ -369,11 +444,22 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const ent = entiteDeLaSelection(scene, s.sel);
       if (ent) return ecrireSurLaSelection(s, editEntity(scene, ent.id, { label: g.nom || undefined }), (sc) => entiteDeLaSelection(sc, s.sel));
       if (s.sel?.type === 'effectZone') return g.nom ? ecrireSurLaSelection(s, patchZone(scene, s.sel, { nom: g.nom }), zonesDe) : s;
+      if (s.sel?.type === 'architectureBody') return ecrireSurLaSelection(s, patchArchitectureBody(scene, s.sel.id, { label: g.nom?.trim() || undefined }), (sc) => sc.architecture);
       const sel = s.sel;
       if ((sel?.type !== 'entry' && sel?.type !== 'trigger') || g.nom === undefined) return s;
       const renommee = (sel.type === 'entry' ? renameEntry : renameTrigger)(scene, sel.id, g.nom);
       return renommee === scene ? s : ecrire(s, renommee, { type: sel.type, id: g.nom.trim() });
     }
+    case 'corps': {
+      const corps = scene.architecture?.find((c) => c.id === g.id);
+      if (!corps) return s;
+      const z = corps.storeys.map((e) => e.z).find((ze) => scene.layers.some((l) => l.z === ze)) ?? s.z;
+      return { ...s, sel: { type: 'architectureBody', id: corps.id }, z, geste: null, volee: [], brouillon: null };
+    }
+    case 'batir':
+      return batir(s, g.ouvrage);
+    case 'architecture':
+      return ecrireSurLaSelection(s, architecturePatchee(scene, s.sel, g.patch), (sc) => sc.architecture);
     case 'identifier': {
       const zone = s.sel?.type === 'effectZone' ? scene.effectZones?.[s.sel.idx] : undefined;
       const renommee = zone ? renameEffectZone(scene, zone.id, g.id) : scene;
