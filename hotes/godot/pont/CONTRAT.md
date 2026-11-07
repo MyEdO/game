@@ -60,8 +60,8 @@ type Suite = {
 ```
 
 - `programmes` : les jetons que l'appel a programmés, chacun numéroté dans l'ordre d'arrivée (`tenueDesJetons`, `src/hote/partie.ts`). Godot arme un minuteur de `delai` millisecondes, puis appelle `reprendre { jeton: id }`. Un jeton se reprend une seule fois.
-- `journal` : les lignes que l'appel a écrites, `{ de: 'journal', texte }` ou `{ de: 'combat', evenement }` (`LigneDuJournal`, `src/noyau/partie.ts`), que le plateau anime.
-- `zones` : ce que l'appel ajoute à l'écran (`ZonesDeLaSuite`) : sous `journal.lignes`, les lignes du journal en éléments (`lignesDuJournal`, `src/hote/ecran.ts`), chacune son id (`journal/<n>`, numérotée à la suite de la partie) ; une ligne par événement, les sous-lignes d'un événement à son `detail`, montré au survol ; son ton dit ce qu'il pèse (le début d'un round en `alerte`, un Critique ou une mort en `echec` sur un héros, en `reussite` sur un adversaire) ; un événement sans texte n'en écrit aucune. Godot les ajoute à la zone de même source.
+- `journal` : les lignes que l'appel a écrites, `{ de: 'journal', texte, heure }` ou `{ de: 'combat', evenement, heure }` (`LigneDuJournal`, `src/noyau/partie.ts`, `heure` le temps de jeu où elle s'écrit), que le plateau anime.
+- `zones` : ce que l'appel ajoute à l'écran (`ZonesDeLaSuite`) : sous `journal.lignes`, les lignes du journal en éléments (`lignesDuJournal`, `src/hote/ecran.ts`), chacune son id (`journal/<n>`, numérotée à la suite de la partie) ; une ligne par événement, les sous-lignes d'un événement à son `detail`, montré au survol ; son ton dit ce qu'il pèse (le début d'un round en `alerte`, un Critique ou une mort en `echec` sur un héros, en `reussite` sur un adversaire) ; un événement sans texte n'en écrit aucune. Chaque jour de jeu s'ouvre sur sa date (`journal/jour/<jour>`, en `alerte` : « Festag · 30 Jahrdrung 2512 CI »), avant la première ligne écrite ce jour-là, le premier jour de la partie compris. Godot les ajoute à la zone de même source.
 
 ## Vue
 

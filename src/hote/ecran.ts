@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, carteEnVue, cleDuGeste, marchandEnVue, marcheEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  ACTIONS, avecSigne, batailleEnVue, carteEnVue, cleDuGeste, dayIndex, formatJourImperial, marchandEnVue, marcheEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -791,17 +791,24 @@ const tonDeLEvenement = (etat: Jeu, e: CombatEvent): Ton => {
 
 /** Les lignes que le journal ajoute, numérotées à la suite des `avant` lignes déjà écrites : une par événement, son
  *  ton dit ce qu'il pèse ; les sous-lignes d'un événement (`detail`) vont au détail de la ligne qui les précède dans
- *  l'appel, montré à la demande. Un événement sans texte n'en écrit aucune. */
-export const lignesDuJournal = (etat: Jeu, avant: number, journal: readonly LigneDuJournal[]): Ligne[] =>
-  journal.reduce<Ligne[]>((lignes, l, i) => {
+ *  l'appel, montré à la demande. Un événement sans texte n'en écrit aucune. Chaque jour de jeu s'ouvre sur sa date, en
+ *  alerte, dès qu'une ligne s'écrit un autre jour que `veille` (le jour de la dernière ligne déjà écrite, `null` avant
+ *  la première) ; `jour` est celui de la dernière ligne de l'appel. */
+export function lignesDuJournal(etat: Jeu, avant: number, journal: readonly LigneDuJournal[], veille: number | null): { lignes: Ligne[]; jour: number | null } {
+  let jour = veille;
+  const lignes = journal.reduce<Ligne[]>((lignes, l, i) => {
     const texte = l.de === 'journal' ? l.texte : l.evenement.text;
     if (!texte) return lignes;
-    const id = `journal/${avant + i}`;
-    if (l.de === 'journal') return [...lignes, ligne(id, texte)];
     const precedente = lignes[lignes.length - 1] as Ligne | undefined;
-    if (l.evenement.kind === 'detail' && precedente) {
+    if (l.de === 'combat' && l.evenement.kind === 'detail' && precedente) {
       const sous = texte.replace(/^\s*↳\s*/, '');
       return [...lignes.slice(0, -1), { ...precedente, detail: precedente.detail === null ? sous : `${precedente.detail}\n${sous}` }];
     }
-    return [...lignes, ligne(id, texte, tonDeLEvenement(etat, l.evenement))];
+    const ce = dayIndex(l.heure);
+    const date = ce === jour ? [] : [ligne(`journal/jour/${ce}`, formatJourImperial(l.heure), 'alerte')];
+    jour = ce;
+    const id = `journal/${avant + i}`;
+    return [...lignes, ...date, l.de === 'journal' ? ligne(id, texte) : ligne(id, texte, tonDeLEvenement(etat, l.evenement))];
   }, []);
+  return { lignes, jour };
+}
