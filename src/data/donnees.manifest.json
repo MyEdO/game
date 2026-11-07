@@ -559,6 +559,12 @@
         },
         {
           "files": [
+            "planDeBestiaire.json"
+          ],
+          "desc": "LE plan de bestiaire — par espèce d'apparence, la base humanoïde à une race de rendu (`race`), un corps de générateur (`corps`, sa `famille`) ou, omise, son motif (`omis`), et l'échelle d'art (`echelle`) ; il fait le domaine des espèces d'apparence"
+        },
+        {
+          "files": [
             "structureAppearance.json"
           ],
           "desc": "Apparence de structure (murs, portes)"

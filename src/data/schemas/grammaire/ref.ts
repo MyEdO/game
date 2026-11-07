@@ -87,6 +87,8 @@ export const TYPES = {
   gabarit: { espace: 'gabarits.json', catalogue: 'gabarits' },
   // RACE DE RENDU (#3113) : `presets-de-personnage.json › race` et l'id d'une tête de `garde-robe.json` résolvent AU PARSE.
   raceAppearance: { espace: 'raceAppearance.json', catalogue: 'races de rendu' },
+  // PLAN DE BESTIAIRE (#2993) : une espèce d'apparence (`especeDApparenceSchema`) résout AU PARSE.
+  planDeBestiaire: { espace: 'planDeBestiaire.json', catalogue: 'espèces du plan de bestiaire' },
   // GARDE-ROBE des éléments 3D (#3114) : un type, trois sous-listes discriminées par `kind`
   // (`idDe('gardeRobe', 'piece')`, patron `material`).
   gardeRobe: { espace: 'garde-robe.json', catalogue: 'garde-robe' },

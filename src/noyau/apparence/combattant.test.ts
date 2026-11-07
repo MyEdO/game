@@ -10,7 +10,7 @@ import { facteursDeComposition, porteesDeLaTenue } from './composition';
 import { piecesDEnsemble } from './gardeRobe';
 import { createHero } from '../../engine/character';
 import { itemFromGive, loadoutCreate, loadoutSetActive, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
-import { findCreatureById, findGroupeDArmureById, findSpeciesById, findTenueDeCarriere, findTrappingById, piecesCouvrant, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
+import { findCreatureById, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTrappingById, piecesCouvrant, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
 import { findTierEntry } from '../../engine/tables';
 import { resetData, setDataset } from '../../data/overrides';
 import { localisationsDeLoc } from '../../engine/classementDeTrait';
@@ -70,6 +70,13 @@ describe('porteeDuCombattant', () => {
 
   it('une créature sans base humanoïde ne porte rien', () => {
     expect(porteeDuCombattant(creature('cheval'))).toBeNull();
+  });
+
+  it('une créature prend la base humanoïde à la race que le plan de bestiaire donne à son espèce (#2993)', () => {
+    const race = findPlanDEspeceById(findCreatureById('gor')!.appearance.species)!.race!.id;
+    expect(race).not.toBe('gor');
+    expect(porteeDuCombattant(creature('gor'))!.portees[0].cle).toEqual({ champ: 'tete', id: race });
+    expect(porteeDuCombattant(creature('gor'))!.facteurs).toEqual(facteursDeComposition(undefined, raceAppearance.find((r) => r.id === race)!));
   });
 
   it('l’arme tenue porte sa forme à sa main, l’arme rangée au rangement de son trapping', () => {
