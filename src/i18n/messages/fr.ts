@@ -840,6 +840,12 @@ export const fr = {
   'ecran.bataille.choisirAlea': 'Choisir un facteur',
   'ecran.carte.reprendre': 'Reprendre le voyage',
   'ecran.carte.mode': '{mode} · {jours} j',
+  'ecran.bourse': 'Bourse',
+  'ecran.echoppe.article': '{nom} · {prix}',
+  'ecran.echoppe.panier': 'Panier',
+  'ecran.echoppe.ligne': '{nom} ×{qty}',
+  'ecran.echoppe.payer': 'Payer {total}',
+  'ecran.echoppe.vendre': 'Vendre le lot · {total}',
   'ecran.incantation.sort': '{sort} sur {cible}',
   'ecran.incantation.surSoi': 'soi-même',
   'ecran.incantation.zone': 'Zone',
@@ -2169,7 +2175,7 @@ export const fr = {
 
   // MARCHAND (`noyau/merchantFlow.ts`, LDB 59/60) — narration de journal et libellés d'étape.
   'mf.marketRoll': 'Marché ({settlement}) : {lignes}.',
-  'mf.stockLine': '{label} ✔×{qty}',
+  'mf.stockLine': '{label} ×{qty}',
   'mf.dispoTrace': 'Disponibilité',
   'mf.dispoQty': 'disponible ×{qty}',
   'mf.restockTitle': 'Réassort marchand',
