@@ -435,8 +435,8 @@ function zonesLues(scene: Scene): ZoneLue[] {
     ...(scene.restZones ?? []).map((r, idx) => ({
       sel: { type: 'restZone' as const, idx }, sorte: 'repos' as const, nom: t('ecran.editeur.zone.sorte.repos'), rect: r.rect, z: r.rect.z ?? 0, cases: casesDuRect(r.rect),
     })),
-    ...(scene.effectZones ?? []).map((ez, idx) => ({
-      sel: { type: 'effectZone' as const, idx }, sorte: isRoomZone(ez) ? 'piece' as const : 'zone' as const, nom: ez.label, rect: effectZoneRect(ez.area), z: ez.z ?? 0, cases: sceneZoneTiles(ez),
+    ...(scene.effectZones ?? []).map((ez) => ({
+      sel: { type: 'effectZone' as const, id: ez.id }, sorte: isRoomZone(ez) ? 'piece' as const : 'zone' as const, nom: ez.label, rect: effectZoneRect(ez.area), z: ez.z ?? 0, cases: sceneZoneTiles(ez),
     })),
   ];
 }
@@ -635,7 +635,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
   const sel = zone.sel;
   const propre: (Choix | Ligne | Bouton | Formulaire)[] = [];
   if (sel?.type === 'effectZone') {
-    const ez = scene.effectZones![sel.idx];
+    const ez = scene.effectZones!.find((z) => z.id === sel.id)!;
     propre.push(
       formulaireDuNom(ez.label, false),
       formulaireDeLIdentifiant(ez.id),

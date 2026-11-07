@@ -144,7 +144,6 @@ function zoneInk(zone: SceneEffectZone, isSel: boolean) {
  *  à la SEULE poignée de redimensionnement. */
 type ZoneDraw = {
   zone: SceneEffectZone;
-  idx: number;
   z: number;
   tiles: number;
   fill: string;
@@ -154,14 +153,13 @@ type ZoneDraw = {
 
 function buildZoneDraws(zones: readonly SceneEffectZone[] | undefined, dims: Dims): ZoneDraw[] {
   const out: ZoneDraw[] = [];
-  (zones ?? []).forEach((zone, idx) => {
+  (zones ?? []).forEach((zone) => {
     const tiles = sceneZoneTiles(zone);
     if (!tiles.length) return; // emprise entièrement effacée : plus une seule case à peindre
     const z = zone.z ?? 0;
     const a = zoneAnchorTile(tiles);
     out.push({
       zone,
-      idx,
       z,
       tiles: tiles.length,
       fill: zoneFillPath(tiles, dims, z),
@@ -822,7 +820,7 @@ export function EditorCanvas({
               {zoneDraws.map((zd) => {
                 if (zHidden(zd.z)) return null;
                 const dim = zd.z < currentLayer;
-                const ink = zoneInk(zd.zone, sel?.type === 'effectZone' && sel.idx === zd.idx);
+                const ink = zoneInk(zd.zone, sel?.type === 'effectZone' && sel.id === zd.zone.id);
                 return (
                   <g key={`ez-${zd.zone.id}`} data-zone={zd.zone.id} style={dim ? { filter: LOWER_LAYER_FILTER } : undefined}>
                     <path d={zd.fill} fill={ink.fill} fillOpacity={ink.fillOpacity} />

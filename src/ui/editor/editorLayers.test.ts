@@ -32,8 +32,8 @@ describe('calques de l’éditeur — tout ce que la scène porte s’ouvre visi
 
   it('aux calques de défaut, pièce ET piège sont cliquables sur la carte', () => {
     const scene = { ...emptyScene('scene-test', 10, 10), effectZones: [piece, piege] };
-    expect(hitAt(scene, { x: 2, y: 2 }, DEFAULT_LAYERS)).toEqual({ type: 'effectZone', idx: 0 });
-    expect(hitAt(scene, { x: 5, y: 5 }, DEFAULT_LAYERS)).toEqual({ type: 'effectZone', idx: 1 });
+    expect(hitAt(scene, { x: 2, y: 2 }, DEFAULT_LAYERS)).toEqual({ type: 'effectZone', id: piece.id });
+    expect(hitAt(scene, { x: 5, y: 5 }, DEFAULT_LAYERS)).toEqual({ type: 'effectZone', id: piege.id });
   });
 
   it('éteindre le calque des zones les rend cliquables À TRAVERS — le clic passe au dessous', () => {
