@@ -21,7 +21,7 @@ export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 export { PARTS_RELIEF } from '../data/materials.types';
 export type { Cadence } from '../engine/cadence';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
-export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, gesteDeLOffre, refusDeLOffre, type EtatDeLaBarre, type ActionCtx, type ContexteDOffre, type Offre } from './actionRegistry';
+export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, gesteDeLOffre, refusDeLOffreHorsDuTour, type EtatDeLaBarre, type ActionCtx, type ContexteDOffre, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
 export { ENTREES_DE_DOSSIER } from '../data/dossiers';
 export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';

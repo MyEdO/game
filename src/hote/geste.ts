@@ -124,7 +124,7 @@ export function offresDeLaBarre(etat: Jeu, pistes: PistesDeLecture): Offre[] {
 
 /** L'intention d'un geste, son verbe contrôlé contre `VERBES` (`gesteDuVerbe`). Un verbe joué au nom d'un siège joint le
  *  verdict d'armement que ce siège voit (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. Le
- *  verbe juge le geste : celui d'une offre, par l'offre qui le déclare (`verdictDuGeste`). */
+ *  verbe juge le geste : un verbe de la barre, par le refus de son geste (`refusDuGeste`). */
 export function intentionDuGeste(etat: Jeu, geste: Geste): Intention {
   if (geste.siege === undefined) return { type: geste.type, args: geste.args } as Intention;
   return { type: geste.type, args: argsAvecVerdictLocal(() => etat, geste.type, geste.args), siege: geste.siege } as Intention;

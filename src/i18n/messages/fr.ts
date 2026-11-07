@@ -1743,7 +1743,7 @@ export const fr = {
   'cs.aim': '{name} vise soigneusement (+20 au prochain tir).',
   'cs.fragGettingUp': ' (+1 PB en se relevant)',
   'cs.determinationRemove': "{name} puise dans sa Détermination : retire l'État {cond}{extra}.",
-  'offre.inconnue': 'Offre inconnue : {id}.',
+  'offre.sansEntree': 'Aucune offre ne déclare ce geste.',
   'offre.sansCandidat': 'Aucun candidat ne porte cette offre.',
   'offre.sansCandidatDuContexte': 'Aucun candidat ne correspond au contexte.',
   'cs.determinationHorsCombat': 'Cette dépense de Détermination dure des Rounds : elle ne se fait qu’en combat.',

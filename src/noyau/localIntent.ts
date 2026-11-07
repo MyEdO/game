@@ -20,7 +20,7 @@ import { ACTIONS, findActionById } from '../data/index';
 import { unSiegeAgit } from './netOwnership';
 import type { Jeu } from './etat';
 import type { ActionDeClasse } from './intentionsDeSiege';
-import { armerLOffre, verdictDuGeste } from './actionRegistry';
+import { armerLOffre, refusDuGeste } from './actionRegistry';
 import type { VerbesDeLaBarre } from './actionsDuNoyau';
 
 /** Le mode d'intention ARMÉ (un seul à la fois) : l'id d'action du registre qui l'a posé. */
@@ -124,12 +124,12 @@ export const INTENT_VERDICT_ARGS: Readonly<Record<string, VerdictJoint>> = {
  *
  * L'armement d'une intention est LOCAL au client (hors snapshot) : l'hôte qui joue le verbe de la barre d'un invité ne
  * l'arme pas (`armerLOffre`). Un verbe de la barre dont l'offre arme une intention (`attaque`) l'arme donc chez
- * l'émetteur, au geste, sur le verdict de son état (`verdictDuGeste`), comme le verbe l'arme où il se joue.
+ * l'émetteur, au geste, sur le refus de son geste dans son état (`refusDuGeste`), comme le verbe l'arme où il se joue.
  */
 type PreparationLocale = (get: Get, args: readonly unknown[]) => void;
 const armerChezLEmetteur = (verbe: keyof VerbesDeLaBarre): PreparationLocale => (get, args) => {
-  const verdict = verdictDuGeste(get(), { verbe, args: [...args] });
-  if ('offre' in verdict) armerLOffre(get, verdict.offre.def);
+  const verdict = refusDuGeste(get(), { verbe, args: [...args] });
+  if ('def' in verdict) armerLOffre(get, verdict.def);
 };
 export const INTENT_PREPARATION_LOCALE: Readonly<Record<string, PreparationLocale>> = Object.fromEntries(
   ACTIONS.flatMap((def) => (def.intent && def.run && def.run !== 'armerLIntention' ? [[def.run, armerChezLEmetteur(def.run as keyof VerbesDeLaBarre)]] : [])),

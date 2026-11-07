@@ -36,8 +36,8 @@ type Specialisation = TexteLibre;
 export interface CompetenceDesignee { id: IdDeCompetence; spec?: Specialisation }
 
 /** Les gestes de la BARRE de l'actif (#3610) : chacun est le verbe qu'une offre du registre déclare (`ENTREES_PAR_RUN`,
- *  `actionRegistry.ts`), et nul autre geste ne le joue. L'offre le juge (`verdictDuGeste`) : refusé, et dit, hors de
- *  l'offre ouverte qui le déclare ; l'intention que cette offre arme s'arme chez l'émetteur. */
+ *  `actionRegistry.ts`), et nul autre geste ne le joue. Le refus de son geste le juge (`refusDuGeste`), dont l'offre
+ *  est la projection : refusé, et dit, hors de l'entrée qui l'admet ; l'intention que cette offre arme s'arme chez l'émetteur. */
 export interface VerbesDeLaBarre {
   /** Arme l'intention de l'offre `actionId` (`ActionDef.intent`) : sa portée se peint, le clic du champ la commet. */
   armerLIntention: (actionId: IdDIntention) => void;

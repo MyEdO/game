@@ -118,7 +118,7 @@ const cellule = (s) => String(s).replaceAll('|', '\\|')
 const CAS_D_ERREUR = {
   validation: 'aucune partie de ce nom, ou aucune ouverte ; verbe inconnu (le refus nomme les gestes de la fenêtre et les voisins de nom) ; argument d’une forme fausse, en trop ou manquant (contrôlé contre le type du verbe) ; id que l’état ne désigne pas (le refus nomme les ids valides) ; intention hors de l’allowlist d’un siège ; verbe qui lève ; ligne du fichier qui ne se rejoue plus',
   permission: 'intention de siège refusée : le siège ne possède pas ce combattant ; partie tenue par un autre serveur de l’hôte (le refus nomme son processus)',
-  regle: 'barre non ouverte à la lecture des offres (`etatDeLaBarre`, avec sa raison) ; geste sans effet, celui d’une offre fermée compris (le verbe la refuse : `verdictDuGeste`) : ni fait de la partie changé, ni suite programmée (avec le refus, la ligne de journal ou l’événement qu’il a reçus)',
+  regle: 'barre non ouverte à la lecture des offres (`etatDeLaBarre`, avec sa raison) ; geste sans effet, celui d’une offre fermée compris (le verbe la refuse : `refusDuGeste`) : ni fait de la partie changé, ni suite programmée (avec le refus, la ligne de journal ou l’événement qu’il a reçus)',
 }
 
 /** Les budgets de temps mesurés (prose fixe, datée) : le coût d'un appel et celui du rejeu par scénario. */
