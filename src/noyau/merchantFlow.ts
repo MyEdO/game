@@ -879,7 +879,7 @@ export function appraiseRefus(party: Combatant[], mode: 'evaluate' | 'detect' = 
 }
 
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
- *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (rollFlows.appraise). */
+ *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (`FLOWS.appraise`, `rollFlowSpecs.ts`). */
 function openAppraise(
   get: Get, set: Set,
   target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },

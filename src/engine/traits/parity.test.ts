@@ -20,7 +20,7 @@ import { slugId } from '../../data/slug';
 const COUVERT_AILLEURS = new Map<string, string>([
   // Environnement aquatique (MSRC 15 l.137-139 / MDG 16 l.14-19 / LDB 85 l.19-21) — op passive `offTerrainMod` (terrain d’election `eau`) :
   // (1) le drapeau positionnel `Combatant.offTerrain`, re-derive par `placeCombatant` selon la tuile, module le M
-  // (encumbrance) et le DR de TOUS les Tests (combat/magic/rollFlows) hors de l’eau ; (2) `eau` est TRAVERSABLE en
+  // (encumbrance) et le DR de TOUS les Tests (combat/magic/rollFlowSpecs) hors de l’eau ; (2) `eau` est TRAVERSABLE en
   // pathing (`MoveEnv.swim` <- `requiredTerrains`, path.ts). Mecanise + teste (off-terrain.test.ts / path-swim.test.ts).
   ['Aquatique', 'ne peut aller a terre (M->0, offTerrainMod mSet:0) + traverse l’eau a pleine vitesse (MoveEnv.swim)'],
   ['Amphibie', 'full M en eau + eau traversable (offTerrainMod{eau} sans malus + MoveEnv.swim) ; +BAg au DR des Tests de Natation = residuel (pas de Test de Natation authore)'],

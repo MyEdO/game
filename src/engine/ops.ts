@@ -320,7 +320,7 @@ export function offTerrainMoveCap(c: Combatant): number | null {
 /** Malus de DR à TOUS les Tests hors de son terrain (op `offTerrainMod.testDR` — Créature marine :
  *  « tous les Tests qu'elle effectue subissent –2 DR », MDG 16 l.17), gaté par `c.offTerrain`. Σ. Consommé
  *  aux épines de Test : attaque (`applyHit` via les sites `skillDRBonus` de combat.ts), Test générique
- *  (`rollFlows`), incantation (`magicTestSLBonus`). PUR. */
+ *  (`rollFlowSpecs`), incantation (`magicTestSLBonus`). PUR. */
 export function offTerrainTestDR(c: Combatant): number {
   if (!c.offTerrain) return 0;
   return offTerrainOps(c).reduce((s, o) => s + (o.testDR ?? 0), 0);
