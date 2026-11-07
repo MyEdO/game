@@ -115,7 +115,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
 
   it('Course (Exténué ×3)', () => {
     const { H } = heroFaceAUnEnnemi(); H.conditions = [{ id: 'extenue', value: 3 }];
-    g().battleRun({ x: 16, y: 10 });
+    g().ouvrirLaCourse({ x: 16, y: 10 });
     const p = g().pendingRun!;
     const att = cible(H, p.test, p.test.difficulty);
     act(() => root.render(createElement(RunModal)));

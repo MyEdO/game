@@ -171,7 +171,7 @@ export const MACHINERY_RX = new RegExp([
   'criticalWounds', 'roundsAtZero', 'outOfRencontre', '\\.dead\\b', 'wounds\\.current\\s*<=\\s*0',
   'canTakeAction', 'isEngaged', 'controlsCombatant', 'movementUsed',
   'sizeGap', '\\breturn reach\\b', 'hasActiveCapability', 'pilotedByHuman', 'removeCondition',
-  '\\b(?:const|let)\\s+\\w+\\s*=\\s*stacks\\([^)]*\\);?\\s*$', 'log\\.push\\(', '\\.log\\(', '\\breturn tr\\(',
+  '\\b(?:const|let)\\s+\\w+\\s*=\\s*stacks\\([^)]*\\);?\\s*$', 'log\\.push\\(', '\\.(?:log|ecrireAuJournal)\\(', '\\breturn tr\\(',
   "return '(?:ambush|assault|combat|embuscade)'",
 ].join('|'));
 

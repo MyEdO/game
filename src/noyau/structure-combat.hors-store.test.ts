@@ -34,7 +34,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Structures destructibles JOUABLES en combat (AA 10 l.94-127) : enrôlement depuis les arêtes de mur,
  * Dégâts par le CHEMIN combat (`applyAttackResult`), BRÈCHE à 0 Blessure et Critique de Structure.
  * Déterministe (RNG seedé, `forcedRoll` pour les Critiques) — on dépose un `WallSeg.structure` dans la
- * scène de fixture puis on `startCombat`, et la structure devient un Combattant inerte ciblable.
+ * scène de fixture puis on `lancerLeCombat`, et la structure devient un Combattant inerte ciblable.
  */
 const mkWeapon = (over: Partial<Weapon> = {}): Weapon => ({
   label: 'arme', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], ...over,
@@ -56,11 +56,11 @@ function sceneWithStructure(structId: string, down = false): Scene {
 /** Lance un combat sur la scène de fixture munie d'une structure d'arête, RNG seedé. Renvoie la structure
  *  enrôlée (undefined si `down`), un héros attaquant et le combat. */
 function start(structId: string, opts?: { down?: boolean; seed?: number }) {
-  banc.getState().seedRng(opts?.seed ?? 1);
+  banc.getState().ensemencerLeTirage(opts?.seed ?? 1);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: opts?.seed ?? 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(sceneWithStructure(structId, opts?.down));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(sceneWithStructure(structId, opts?.down));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;

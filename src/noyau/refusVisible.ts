@@ -39,7 +39,7 @@ const nonces = sequence();
  */
 export function refuserGeste(get: Get, set: Set, texte: string): boolean {
   if (!get().battle) {
-    get().log(texte); // hors combat, le journal EST la surface visible — le refus s'y dit vraiment
+    get().ecrireAuJournal(texte); // hors combat, le journal EST la surface visible — le refus s'y dit vraiment
     return true;
   }
   set({ refus: { texte, nonce: nonces.suivant() } });

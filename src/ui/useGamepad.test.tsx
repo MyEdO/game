@@ -81,7 +81,7 @@ describe('manette — gestes MAINTENUS armés ET relâchés par la boucle', () =
     const sc = emptyScene('scene-test', 12, 12);
     sc.id = 'pad-marche';
     sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 6, y: 6 } });
-    useGame.getState().startScene(sc);
+    useGame.getState().lancerLaScene(sc);
     useGame.setState({
       screen: 'campaign', mode: 'exploration', partyPos: { x: 6, y: 6 },
       camRot: 0, camEdge: false, viewMode: undefined, povActive: false,

@@ -57,6 +57,13 @@ theme = SubResource("Etape_du_monde")
 script = ExtResource("1_zone")
 source = "fenetre.etape"
 
+[node name="Bourse" type="HBoxContainer" parent="Cadre/Marges/Colonne"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Bourse"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("bourse")
+
 [node name="Contenu" type="VBoxContainer" parent="Cadre/Marges/Colonne"]
 size_flags_vertical = 3
 theme_override_constants/separation = 16

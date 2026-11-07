@@ -62,7 +62,7 @@ function rendMalade(id: string, maladie: string, jours = 0): Combatant {
 
 /** La nuit du joueur : auberge → « Dormir ». Rend les étapes de la cascade ouverte. */
 function dort(): CascadeStep[] {
-  banc.getState().ouvrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
+  banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
   banc.getState().fenetreValider('rest');
   return banc.getState().pendingCascade?.participants ?? [];
 }
@@ -148,10 +148,10 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
     const journal: string[] = [];
-    const vraiLog = banc.getState().log;
-    banc.setState({ log: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
+    const vraiLog = banc.getState().ecrireAuJournal;
+    banc.setState({ ecrireAuJournal: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
 
-    banc.getState().restParty(3); // clôture d'interlude / triche de recette : 3 nuits d'affilée
+    banc.getState().reposerLeGroupe(3); // clôture d'interlude / triche de recette : 3 nuits d'affilée
 
     // Le cycle a AVANCÉ (les étapes ont été résolues par leurs appliers) et rien n'attend le joueur.
     expect(banc.getState().pendingCascade, 'ce chemin résout d’office, il n’ouvre pas de fenêtre').toBeNull();
@@ -177,16 +177,16 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     // Un second héros valide : la défaite (`checkPartyWiped`) ne peut pas être ce qui interrompt.
     banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
-    banc.getState().ouvrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
     banc.getState().fenetreValider('rest');
     const vivant = banc.getState().pendingCascade;
     expect(vivant, 'une fenêtre de nuit est ouverte AVANT le sommeil multi-jours').toBeTruthy();
 
     const journal: string[] = [];
-    const vraiLog = banc.getState().log;
-    banc.setState({ log: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
+    const vraiLog = banc.getState().ecrireAuJournal;
+    banc.setState({ ecrireAuJournal: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
 
-    banc.getState().restParty(2);
+    banc.getState().reposerLeGroupe(2);
 
     const lignesDeJet = journal.filter((l) => /[ ]:[ ]\d+[/]\d+[ ]→[ ]/.test(l));
     expect(lignesDeJet.length, `les DEUX nuits roulent leur Test : ${journal.join(' | ')}`).toBeGreaterThanOrEqual(2);

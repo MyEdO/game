@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('clues — câblage noyau (#670)', () => {
   it('applyEffects « revealClue » pose state.clues et journalise une ligne', () => {
     banc.setState({ party: [hero()] });
-    banc.getState().loadProject({ scenes: [fixtureScene('scene-a')], entryId: 'scene-a', narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-a')], entryId: 'scene-a', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     expect(banc.getState().clues['ind-lettre'].stadeCourant).toBe('s1');
     expect(banc.getState().journal.some((l) => l.includes('nouvel indice au carnet'))).toBe(true);
@@ -26,7 +26,7 @@ describe('clues — câblage noyau (#670)', () => {
 
   it('applyEffects « discreditClue » passe l’indice réfuté et journalise', () => {
     banc.setState({ party: [hero()] });
-    banc.getState().loadProject({ scenes: [fixtureScene('scene-b')], entryId: 'scene-b', narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-b')], entryId: 'scene-b', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'discreditClue', indiceId: 'ind-lettre' }]);
     expect(banc.getState().clues['ind-lettre'].statut).toBe('réfuté');
     expect(banc.getState().journal.some((l) => l.includes('fausse piste écartée'))).toBe(true);
@@ -36,7 +36,7 @@ describe('clues — câblage noyau (#670)', () => {
     banc.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-a2');
     const sceneB = fixtureScene('scene-b2');
-    banc.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-a2', narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [sceneA, sceneB], entryId: 'scene-a2', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     expect(banc.getState().clues['ind-lettre']).toBeDefined();
     banc.getState().quitterLaScene('scene-b2');
@@ -44,18 +44,18 @@ describe('clues — câblage noyau (#670)', () => {
     expect(banc.getState().clues['ind-lettre'].stadeCourant).toBe('s1'); // assertion POSITIVE, survit
   });
 
-  it('nouvelle partie (startScene) REMET le carnet à vide', () => {
+  it('nouvelle partie (lancerLaScene) REMET le carnet à vide', () => {
     banc.setState({ party: [hero()] });
-    banc.getState().loadProject({ scenes: [fixtureScene('scene-c')], entryId: 'scene-c', narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-c')], entryId: 'scene-c', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     expect(Object.keys(banc.getState().clues)).toHaveLength(1);
-    banc.getState().startScene(fixtureScene('scene-d'));
+    banc.getState().lancerLaScene(fixtureScene('scene-d'));
     expect(banc.getState().clues).toEqual({});
   });
 
   it('`marquerLesIndices` marque le siège LOCAL hors intent (#2415)', () => {
     banc.setState({ party: [hero()] });
-    banc.getState().loadProject({ scenes: [fixtureScene('scene-n')], entryId: 'scene-n', narratif: narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-n')], entryId: 'scene-n', narratif: narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     expect(estNouveauPour(banc.getState().clues['ind-lettre'], 0)).toBe(true);
     banc.getState().marquerLesIndices(affichés(banc.getState().clues, ['ind-lettre']));
@@ -64,7 +64,7 @@ describe('clues — câblage noyau (#670)', () => {
 
   it('`marquerLesIndices` appliqué AU NOM du siège 1 ne marque que lui : le siège 0 voit encore la nouveauté (#2415)', () => {
     banc.setState({ party: [hero()] });
-    banc.getState().loadProject({ scenes: [fixtureScene('scene-p')], entryId: 'scene-p', narratif: narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-p')], entryId: 'scene-p', narratif: narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     withActingSeat(1, () => banc.getState().marquerLesIndices(affichés(banc.getState().clues, ['ind-lettre'])));
     const c = banc.getState().clues['ind-lettre'];
@@ -74,7 +74,7 @@ describe('clues — câblage noyau (#670)', () => {
 
   it('COURSE : l’intent du siège 1 arrive APRÈS que l’hôte a avancé l’indice — s2 reste nouveau pour lui (#2415)', () => {
     banc.setState({ party: [hero()] });
-    banc.getState().loadProject({ scenes: [fixtureScene('scene-q')], entryId: 'scene-q', narratif: narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-q')], entryId: 'scene-q', narratif: narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     const affiché = affichés(banc.getState().clues, ['ind-lettre']); // le Carnet du siège 1 affiche s1 et émet son intent
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre', stade: 's2' }]);
@@ -86,7 +86,7 @@ describe('clues — câblage noyau (#670)', () => {
 
   it('epinglerLIndice épingle/désépingle par l’action du noyau', () => {
     banc.setState({ party: [hero()] });
-    banc.getState().loadProject({ scenes: [fixtureScene('scene-e')], entryId: 'scene-e', narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-e')], entryId: 'scene-e', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     banc.getState().epinglerLIndice('ind-lettre');
     expect(banc.getState().clues['ind-lettre'].épinglé).toBe(true);
@@ -98,7 +98,7 @@ describe('clues — câblage noyau (#670)', () => {
   describe('save/load RÉEL (chargerLaSave, #670)', () => {
     it('un indice révélé+épinglé et un autre réfuté survivent à une vraie sauvegarde → chargement', () => {
       banc.setState({ party: [hero()] });
-      banc.getState().loadProject({ scenes: [fixtureScene('scene-f')], entryId: 'scene-f', narratif, projet: null });
+      banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-f')], entryId: 'scene-f', narratif, projet: null });
       applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
       banc.getState().epinglerLIndice('ind-lettre');
       applyEffects(banc.getState, banc.setState, [{ type: 'discreditClue', indiceId: 'ind-mono' }]);
@@ -114,7 +114,7 @@ describe('clues — câblage noyau (#670)', () => {
 
     it('tolérance PAR CONSTRUCTION : clé « clues » absente du snapshot → valeur initiale ({}) au chargement', () => {
       banc.setState({ party: [hero()] });
-      banc.getState().loadProject({ scenes: [fixtureScene('scene-g')], entryId: 'scene-g', narratif, projet: null });
+      banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-g')], entryId: 'scene-g', narratif, projet: null });
       applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
       // La save est écrite à la version COURANTE, clé `clues` RETIRÉE : c'est le filet n°1 de la
       // politique de version (champ manquant → `initialFields`), pas une save d'une autre version.

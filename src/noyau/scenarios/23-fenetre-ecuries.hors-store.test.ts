@@ -62,7 +62,7 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
 
   it('le départ du groupe est hors de la zone d’approche ; entrer au bureau en vue de la face ouvre le Test (Complexe)', () => {
     banc.setState({ party: scenario.construire().party });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ lightLevel: 1 });
     expect(startOf(scene)).toEqual({ x: 7, y: 6, z: 1 });
     expect(banc.getState().pendingTest).toBeNull();
@@ -73,11 +73,11 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
     expect(pt.difficulty).toBe('complexe');
   });
 
-  it('le groupe démarre à l’ÉTAGE du départ authored (`startOf`), par `startScene` comme par `quitterLaScene`', () => {
+  it('le groupe démarre à l’ÉTAGE du départ authored (`startOf`), par `lancerLaScene` comme par `quitterLaScene`', () => {
     banc.setState({ party: scenario.construire().party });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     expect(banc.getState().partyPos).toEqual({ x: 7, y: 6, z: 1 });
-    banc.getState().startScene(emptyScene('depart-sans-etage'));
+    banc.getState().lancerLaScene(emptyScene('depart-sans-etage'));
     banc.getState().quitterLaScene(scene.id);
     expect(banc.getState().partyPos).toEqual({ x: 7, y: 6, z: 1 });
   });
@@ -98,9 +98,9 @@ describe('Scénario « La fenêtre sur les écuries » — formation de début d
   /** Ouvre la rencontre de l'homme de main, le groupe en `partyPos` ; rend les cases des héros. */
   function formation(partyPos: { x: number; y: number; z?: number }) {
     banc.setState({ party: scenario.construire().party });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos });
-    banc.getState().startCombat('enc-homme-de-main');
+    banc.getState().lancerLeCombat('enc-homme-de-main');
     return banc.getState().battle!.combatants.filter((c) => c.kind === 'hero' && !c.mountable).map((c) => c.pos!);
   }
 
@@ -128,9 +128,9 @@ describe('Scénario « La fenêtre sur les écuries » — l’homme de main se 
   it('il s’approche sur le plancher de z1 et frappe un héros de l’étage', () => {
     const g = banc.getState;
     banc.setState({ party: scenario.construire().party });
-    g().startScene(scene);
+    g().lancerLaScene(scene);
     banc.setState({ partyPos: { x: 7, y: 6, z: 1 } });
-    g().startCombat('enc-homme-de-main');
+    g().lancerLeCombat('enc-homme-de-main');
     const homme = () => g().battle!.combatants.find((c) => c.id === 'homme-de-main')!;
     expect(homme().pos!.z).toBe(1);
     for (let i = 0; i < 80 && !g().pendingDefense; i++) {

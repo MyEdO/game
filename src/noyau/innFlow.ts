@@ -58,7 +58,7 @@ export const GENRES_D_ETAPE = [INN_GOSSIP_KIND] as const;
 export const TABLES = {
   appliers: {
     [INN_GOSSIP_KIND]: (get, set, step, hero) => {
-      get().advanceTime(innGatherInfoMinutes()); // « tout est horodaté » : quelle que soit l'issue
+      get().avancerLeTemps(innGatherInfoMinutes()); // « tout est horodaté » : quelle que soit l'issue
       if (step.result?.success) {
         const placeId = get().lieu ?? '';
         generateTradeRumour(get, set, placeId, battleRng());

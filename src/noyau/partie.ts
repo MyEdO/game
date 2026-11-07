@@ -43,10 +43,10 @@ export interface EntreesDeLaPartie {
 }
 
 /** Une ligne écrite pendant un appel : au journal de la partie (`journal`), ou au journal du combat
- *  (`battle.log`). */
+ *  (`battle.log`) ; `heure` : le temps de jeu (`gameTime`) où elle s'écrit. */
 export type LigneDuJournal =
-  | { de: 'journal'; texte: string }
-  | { de: 'combat'; evenement: CombatEvent };
+  | { de: 'journal'; texte: string; heure: number }
+  | { de: 'combat'; evenement: CombatEvent; heure: number };
 
 /** L'issue d'un appel : celle d'une intention de siège (`appliquerLIntentionDUnSiege`), `'appliquee'`
  *  sinon ; `'jeton-inconnu'` pour un `reprendre` dont le jeton n'est pas en attente. */
@@ -96,12 +96,12 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   let vuAuCombat = [...(etatInitial.battle?.log ?? [])];
   const capter = (): void => {
     const combat = get().battle?.log ?? [];
-    for (const evenement of ajoutees(vuAuCombat, combat)) lignes.push({ de: 'combat', evenement });
+    for (const evenement of ajoutees(vuAuCombat, combat)) lignes.push({ de: 'combat', evenement, heure: get().gameTime });
     vuAuCombat = [...combat];
   };
   proprietaire.abonner(capter);
   const desabonnements = [
-    bus.on(EVT.LIGNE_AU_JOURNAL, ({ texte }: { texte: string }) => lignes.push({ de: 'journal', texte })),
+    bus.on(EVT.LIGNE_AU_JOURNAL, ({ texte }: { texte: string }) => lignes.push({ de: 'journal', texte, heure: get().gameTime })),
     ...Object.values(EVT).flatMap((evt) => (evt === EVT.LIGNE_AU_JOURNAL ? [] : [bus.on(evt, (payload: unknown) => tampon.push({ type: 'emis', evt, payload }))])),
   ];
 

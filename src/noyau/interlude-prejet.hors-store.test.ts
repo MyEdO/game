@@ -50,7 +50,7 @@ function vétéran(seed = 1601, instruit = false): Combatant {
 /** Un banc à Altdorf, dés d'Événement posés, sur `party`. */
 function banc(party: Combatant[]): Banc {
   const b = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party, scene: SCENE, lieu: 'altdorf' } });
-  b.actions.startInterlude(3);
+  b.actions.ouvrirLInterlude(3);
   draineCascade(b.getState);
   expect(b.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
   return b;
@@ -65,7 +65,7 @@ const CIBLES: Record<string, (b: Banc, heroId: string) => CiblesChoisies> = {
   identify: () => ({ itemUid: 'art-1' }),
   'tester-objets-magiques': () => ({ itemUid: 'art-1' }),
   'entrainement-arme-inhabituelle': () => ({ itemUid: 'arme-1' }),
-  convalescence: () => ({ traitPsy: { type: 'peur' } }),
+  convalescence: () => ({ traitPsy: 'peur' }),
   mecenat: (b, id) => { b.actions.deposerALaBanque(id, 'mecenat', 1200); return { depotId: b.getState().bank[0]?.uid }; },
   'recherche-universitaire': (b, id) => ({ spellId: learnableSpells(héros(b, id)).find((x) => x.cost > 0)!.spell.id }),
 };
@@ -208,7 +208,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     const meneur = instruit(vétéran(), 10);
     const second = instruit(withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Second', seed: 1602 }), { gold: 1, silver: 0, brass: 0 }), 5);
     const b = banc([meneur, second]);
-    b.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    b.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     b.actions.affecterLeHeros('planification', [meneur.id, second.id]);
     const s = b.getState();
     const { ligne } = preJetDePreparation(s, s.massBattle!, héros(b, meneur.id), battleActivityById('planification')!)!.pending;
@@ -230,9 +230,9 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     const a = instruit(careerId, 9000 + i);
     const second = instruit(CARRIERES[(i + 17) % CARRIERES.length], 9500 + i);
     const b = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [a, second], scene: SCENE } });
-    b.actions.startInterlude(4);
+    b.actions.ouvrirLInterlude(4);
     draineCascade(b.getState);
-    b.actions.startMassBattle({ allyMight: 40 + (i % 30), enemyMight: 55, plannedRounds: 3 });
+    b.actions.amorcerLaBataille({ allyMight: 40 + (i % 30), enemyMight: 55, plannedRounds: 3 });
     // Réservoir de modificateur posé, comme un Repérage réussi le pose (ADE II 8 l.100).
     if (i % 2) b.setState((s) => ({ massBattle: { ...s.massBattle!, planningBonus: 20 } }));
     const ecarts: string[] = [];
@@ -305,7 +305,7 @@ function premieresCibles(h: Combatant, def: ActivityDef): CiblesChoisies {
   if (c.armes[0]) return { itemUid: c.armes[0].uid };
   if (c.artefacts[0]) return { itemUid: c.artefacts[0].uid };
   if (c.sorts[0]) return { spellId: c.sorts[0].spell.id };
-  return c.traitsPsy[0] ? { traitPsy: c.traitsPsy[0].vise } : {};
+  return c.traitsPsy[0] ? { traitPsy: c.traitsPsy[0].cle } : {};
 }
 
 /** Ouvre `def` par le geste : refusé ⇔ aucun jet ; ouvert, le pré-jet rendu par le volet == le jet posé, cible lancée comprise. */

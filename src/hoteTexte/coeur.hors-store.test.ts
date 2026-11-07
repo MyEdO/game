@@ -54,15 +54,15 @@ describe('les erreurs d’un geste : catégorie, drapeau d’erreur, fichier int
 });
 
 describe('une écriture du noyau n’est pas un geste (`MachinerieDuNoyau`, #3370)', () => {
-  it('`jouer` refuse `startScene` en `validation`, verbe inconnu', () => {
-    refuse(partie('dome'), verbe('startScene', {}), 'validation', /verbe inconnu : startScene/);
+  it('`jouer` refuse `lancerLaScene` en `validation`, verbe inconnu', () => {
+    refuse(partie('dome'), verbe('lancerLaScene', {}), 'validation', /verbe inconnu : lancerLaScene/);
   });
-  it('le rejeu refuse la ligne du fichier qui nomme `startScene`, avec son rang', () => {
+  it('le rejeu refuse la ligne du fichier qui nomme `lancerLaScene`, avec son rang', () => {
     const t = partie('dome', verbe('fenetreValider', 'roundStart'));
-    t.disque.ecrire('p', `${t.fichier()}{"type":"startScene","args":[{}]}\n`);
+    t.disque.ecrire('p', `${t.fichier()}{"type":"lancerLaScene","args":[{}]}\n`);
     const r = t.lire('vue');
     expect(r.erreur, r.texte).toBe('validation');
-    expect(r.texte.split('\n  ').join(' ')).toMatch(/ligne 3 du fichier ne se rejoue plus : verbe inconnu : startScene/);
+    expect(r.texte.split('\n  ').join(' ')).toMatch(/ligne 3 du fichier ne se rejoue plus : verbe inconnu : lancerLaScene/);
   });
 });
 
@@ -181,7 +181,7 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
   it.each([
     ['un Pt écrit en tableau', verbe('cliquerLaCase', [3, 6]), /pt : un objet JSON \{"x": nombre, "y": nombre, "z"\?: nombre\} attendu/],
     ['un Pt sans y', verbe('cliquerLaCase', { x: 3 }), /pt\.y manque/],
-    ['un pid nombre', verbe('jetRegler', 'cascade', 'choix', 'devier', 0), /pid : une chaîne attendue/],
+    ['un pid nombre', verbe('jetLancer', 'cascade', 0), /pid : une chaîne attendue/],
     ['un argument requis manquant', verbe('dissiperLeSort', 'sorciere'), /l’argument spellId manque/],
     ['un argument en trop', verbe('jetValider', 'cascade', 1), /1 argument\(s\) au plus/],
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {

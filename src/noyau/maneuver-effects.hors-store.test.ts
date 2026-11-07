@@ -27,7 +27,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   ...over,
 }) as Combatant);
 
-const get = (() => ({ log: () => {}, battle: undefined })) as never;
+const get = (() => ({ ecrireAuJournal: () => {}, battle: undefined })) as never;
 const hit: AttackResult = { hit: true, woundsLost: 3 } as AttackResult;
 const empetre = (c: Combatant) => c.conditions.find((x) => x.id === 'empetre');
 const aTerre = (c: Combatant) => c.conditions.find((x) => x.id === 'a-terre');
@@ -104,8 +104,8 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     seedBattleRng(5);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -148,8 +148,8 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     seedBattleRng(5);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -188,8 +188,8 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     seedBattleRng(5);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

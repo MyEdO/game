@@ -14,9 +14,9 @@ describe('Focalisation en modale (store)', () => {
     hero.spells = ['arme-aethyrique'];
     if (!hero.skills.some((s) => s.id === 'focalisation')) hero.skills.push({ id: 'focalisation', advances: 20, characteristic: 'force-mentale' } as never);
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(2);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(2);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
@@ -41,9 +41,9 @@ describe('Focalisation en modale (store)', () => {
   it('IA : un ennemi ACTIF peut focaliser pour lui-même ; jetValider@focus pose le DR et reprend son tour', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'PJ', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(7);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(7);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
@@ -78,8 +78,8 @@ describe('Focalisation en modale (store)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.spells = ['flechette'];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const st = banc.getState();

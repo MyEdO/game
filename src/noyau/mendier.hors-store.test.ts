@@ -307,13 +307,13 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1, speciesTalentChoices: PERSPICACE });
     a.characteristics.sociabilite = 45; // Bonus de Sociabilité = 4
     banc.setState({ party: [a] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     banc.setState({ worldMap: carte() });
-    banc.getState().seedRng(13);
+    banc.getState().ensemencerLeTirage(13);
     seedBattleRng(13);
     setRule('mendier-heures-par-jour', 4);
     setRule('mendier-surpris-pct', 0); // le dé de monde est testé à part : ici on isole les bandes
-    banc.getState().startInterlude(3);
+    banc.getState().ouvrirLInterlude(3);
     draineCascade(banc.getState);
   });
 

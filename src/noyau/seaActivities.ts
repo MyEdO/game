@@ -29,7 +29,7 @@
  * `travelActivitySpec`, Commerce d'opportunité étendu) sont des étapes de cascade construites en
  * UNE passe (`buildSeaActivitiesCascade`) — plus de bulk synchrone. Cartographie/générique sont POUSSÉES
  * à la porte de séquence, qui dérive la surface de leurs porteurs ; le Commerce d'opportunité SÉQUENCE un
- * Test étendu (`startExtendedTest`, `maxAttempts`+`outcome` #273 Étape 1) par héros à la fois (un seul
+ * Test étendu (`ouvrirLeTestEtendu`, `maxAttempts`+`outcome` #273 Étape 1) par héros à la fois (un seul
  * `pendingExtendedTest` actif) — `pendingSeaActivities.opportunityQueue` porte la file, vidée par
  * `continueSeaActivitiesAfterCascade` jusqu'à la halte de nuit.
  */
@@ -236,7 +236,7 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
   }
   payFromGroup(get, set, fromBrass(invest * PA_PER_CO), { purpose: 'commerce d’opportunité' });
   const test: RollRequest['test'] = seaActivityTest(def)!;
-  get().startExtendedTest({
+  get().ouvrirLeTestEtendu({
     actorId: hero.id, label: dataLabel(def.label), skillLabel: refLabel('skills', OPPORTUNITE.test.skill), skill: OPPORTUNITE.test.skill,
     target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), targetDR: OPPORTUNITE.targetDR,
     maxAttempts: OPPORTUNITE.maxAttempts,

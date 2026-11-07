@@ -34,7 +34,7 @@ const critRes = (cast: boolean, sl: number): CastResult => ({
 });
 
 beforeEach(() => {
-  banc.getState().seedRng(21);
+  banc.getState().ensemencerLeTirage(21);
 });
 
 describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {

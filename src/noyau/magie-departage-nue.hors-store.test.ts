@@ -149,7 +149,7 @@ describe('LDB 12 l.160 — seam de CASCADE opposée : la nue de l’étape, jama
     // qui ATTEIGNENT l'égalité de DR (les autres sont tranchés par le DR, LDB 12 l.160 première phrase).
     let egalites = 0;
     for (let seed = 1; seed <= 60; seed++) {
-      banc.getState().seedRng(seed);
+      banc.getState().ensemencerLeTirage(seed);
       openCascade(step({ result: null }));
       st().jetLancer('cascade', 's1');
       const r = P<{ participants: { result: { sl: number; success: boolean } | null }[] }>('pendingCascade').participants[0].result;

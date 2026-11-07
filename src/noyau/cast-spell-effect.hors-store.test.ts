@@ -20,8 +20,8 @@ describe('Effet castSpell (#98)', () => {
       const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
       const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
       banc.setState({ party: [wiz, ally] });
-      banc.getState().startScene(testScene());
-      banc.getState().startCombat('enc-mutants');
+      banc.getState().lancerLaScene(testScene());
+      banc.getState().lancerLeCombat('enc-mutants');
       banc.getState().fenetreValider('roundStart');
       const b = banc.getState().battle!;
       const W = b.combatants.find((c) => c.kind === 'hero' && c.label === 'W')!;

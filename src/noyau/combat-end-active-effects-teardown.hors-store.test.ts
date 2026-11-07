@@ -21,15 +21,15 @@ describe('finalizeBattle — un effet en Rounds revient au groupe et s’écoule
   function setup() {
     const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     banc.setState({ party: [W] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     return b.combatants.find((c) => c.label === 'W')!;
   }
   const heros = (id: string) => banc.getState().party.find((h) => h.id === id)!;
-  const rounds = (n: number) => banc.getState().advanceTime(n * TIME_COST.combatRound);
+  const rounds = (n: number) => banc.getState().avancerLeTemps(n * TIME_COST.combatRound);
 
   it('mutation accordée pour 3 Rounds : revient au groupe, puis se détache au 3e Round hors combat', () => {
     const caster = setup();

@@ -23,9 +23,9 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
   }
 
   it('cumule le DR Round par Round jusqu’à la cible (≥ 2 Rounds = vraiment séquentiel)', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const h = hero();
-    banc.getState().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
     let rounds = 0;
     let prevTotal = 0;
     while (banc.getState().pendingExtendedTest && rounds++ < 40) {
@@ -44,7 +44,7 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
 
   it('un Round à DR négatif fait repartir le total à 0 + ouvre un nouveau Round', () => {
     const h = hero();
-    banc.getState().startExtendedTest({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 50, targetDR: 20 });
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 50, targetDR: 20 });
     const p = banc.getState().pendingExtendedTest!;
     // total à 5, Round raté à DR -8 → total clampé à 0 (« recommencer depuis le début »).
     banc.setState({ pendingExtendedTest: { ...p, total: 5, rounds: [{ id: 'round-1', interactive: true, result: { roll: 95, sl: -8, success: false } }] } });
@@ -60,7 +60,7 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
       activeEffects: [{ label: 'Écorce', char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 5 },
         spell: { spellId: 'ecorce', ni: 2, casterId: h.id, label: 'Écorce' } }] });
     banc.setState({ battle: { round: 1, combatants: [h, cible], log: [] } as any });
-    banc.getState().startExtendedTest({ actorId: h.id, label: 'Dissiper Écorce', skillLabel: 'Langue (Magick)',
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Dissiper Écorce', skillLabel: 'Langue (Magick)',
       target: 60, targetDR: 2, dispel: { spellId: 'ecorce', casterId: h.id, label: 'Écorce' } });
     const p = banc.getState().pendingExtendedTest!;
     // un Round réussi à DR +2 → atteint le NI 2 → dissipation.
@@ -73,13 +73,13 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
 
   it('mêmes verbes d’influence que tout flux : Chance relance, Résilience garantit le Round', () => {
     const h = hero();
-    banc.getState().startExtendedTest({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 30, targetDR: 50 });
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 30, targetDR: 50 });
     const p = banc.getState().pendingExtendedTest!;
     banc.setState({ pendingExtendedTest: { ...p, rounds: [{ id: 'round-1', interactive: true, result: { roll: 88, sl: -5, success: false }, rerolled: false }] } });
     banc.getState().jetRelancer('extendedTest', 'round-1'); // Chance : relance le Round propre raté
     expect(banc.getState().party[0].fortune).toBe(1); // 1 Point de Chance dépensé
     // Résilience (nouveau flux) : Round garanti réussi.
-    banc.getState().startExtendedTest({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 30, targetDR: 50 });
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 30, targetDR: 50 });
     banc.getState().jetForcerLaReussite('extendedTest', 'round-1');
     expect(banc.getState().pendingExtendedTest!.rounds[0].result!.success).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(0); // 1 Point de Résilience dépensé
@@ -88,7 +88,7 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
   it('l’enjeu vit sur l’étape `extendedJet`, que la fenêtre lit, jamais recopié sur le porteur (#1117)', () => {
     const h = hero();
     const stake = flowStakeRef('extended-test-roll');
-    banc.getState().startExtendedTest({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 50, targetDR: 5, stake });
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 50, targetDR: 5, stake });
     expect(banc.getState().pendingCascade?.participants.find((e) => e.jet === 'extended')?.stake).toEqual(stake);
     expect(banc.getState().pendingExtendedTest).not.toHaveProperty('stake');
   });
@@ -100,7 +100,7 @@ describe('Test Étendu — règle « DR 0 = ±1 minimum » (LDB 12 l.185)', () =
   function setRound(total: number, sl: number, success: boolean) {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 1 });
     banc.setState({ party: [h] });
-    banc.getState().startExtendedTest({ actorId: h.id, label: 'X', skillLabel: 'Force', target: 50, targetDR: 30 });
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'X', skillLabel: 'Force', target: 50, targetDR: 30 });
     const p = banc.getState().pendingExtendedTest!;
     banc.setState({ pendingExtendedTest: { ...p, total, rounds: [{ id: 'round-1', interactive: true, result: { roll: success ? 40 : 96, sl, success } }] } });
   }

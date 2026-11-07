@@ -25,13 +25,13 @@ function poserGroupe(): Combatant {
   hero.talents.push({ talentId: 'magie-mineure', times: 1 });
   hero.spells = [];
   banc.setState({ battle: null, party: [hero], pendingCascade: null, pendingRoundStart: null, journal: [] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
   return hero;
 }
 
 function entrerEnCombat(): void {
   seedBattleRng(777);
-  banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+  banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
 }
 
 const jouer = (e: Effect) => nePeutPasDifferer(applyEffects(() => banc.getState(), banc.setState, [e]), 'ecrire-acteur.hors-store.test');

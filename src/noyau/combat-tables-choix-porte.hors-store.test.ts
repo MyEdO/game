@@ -58,12 +58,12 @@ const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id
 
 /** Un combat de fixture avec N héros du groupe. `ownership` : héros TENUS par le siège INVITÉ (1). */
 function combat(nb: number, seed = 7, invites: number[] = []) {
-  banc.getState().seedRng(seed);
+  banc.getState().ensemencerLeTirage(seed);
   const heros = Array.from({ length: nb }, (_, i) =>
     createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: seed + i }));
   banc.setState({ party: heros });
-  banc.getState().startScene(structuredClone(testScene()));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(structuredClone(testScene()));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;

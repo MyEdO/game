@@ -49,7 +49,7 @@ function scèneDeTaverne(): Scene {
 
 function poser(party: Combatant[], sc: Scene, pos?: { x: number; y: number }) {
   useGame.setState({ party, scene: null, mode: 'exploration', journal: [], battle: null, dialogue: null, pendingInteract: null });
-  useGame.getState().startScene(sc);
+  useGame.getState().lancerLaScene(sc);
   if (pos) useGame.setState({ partyPos: { ...pos } });
 }
 

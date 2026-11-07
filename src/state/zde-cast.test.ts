@@ -19,7 +19,7 @@ function wiz() {
 describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
   beforeEach(() => {
     useGame.setState({ battle: null, party: [], journal: [], pendingCast: null, refus: null, combatCursor: null });
-    useGame.getState().seedRng(17);
+    useGame.getState().ensemencerLeTirage(17);
   });
 
   function setupBattle() {

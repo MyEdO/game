@@ -180,9 +180,9 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
   function activiteOuverte() {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ net: NET0, party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, pendingCascade: null, journal: [] });
-    banc.getState().startScene(testScene());
-    banc.getState().seedRng(13);
-    banc.getState().startInterlude(3);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().ensemencerLeTirage(13);
+    banc.getState().ouvrirLInterlude(3);
     draineCascade(banc.getState);
     const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 2 };

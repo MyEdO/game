@@ -11,21 +11,21 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * CÂBLAGE des deux coutures d'intégration du modèle « Avantage de groupe » (AA 11) — par le BANC du noyau
- * (le propriétaire du jeu), pas un contexte forgé : `combatSlice.startCombat` (ouverture des réserves de camp) et
+ * (le propriétaire du jeu), pas un contexte forgé : `combatSlice.lancerLeCombat` (ouverture des réserves de camp) et
  * `combatFlow.resolveRoundBoundary` (transfert de domination de fin de Round). Les tests unitaires de
  * `noyau/combat/advantage-group.test.ts` appellent les primitives à la main : ils ne prouvent PAS que
- * quelqu'un les appelle en jeu. Ici, la seule entrée est `startCombat` / le franchissement de Round.
+ * quelqu'un les appelle en jeu. Ici, la seule entrée est `lancerLeCombat` / le franchissement de Round.
  */
 function startFixtureCombat() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
   seedBattleRng(777);
-  banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+  banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
   return banc.getState().battle!;
 }
 
-describe('startCombat — ouverture des réserves d’Avantage de camp (AA 11 l.47-67)', () => {
+describe('lancerLeCombat — ouverture des réserves d’Avantage de camp (AA 11 l.47-67)', () => {
   it('règle ACTIVE : la bataille naît avec ses réserves, dérivées du positionnement initial, et projetées', () => {
     setRule('combat-aa-avantage-groupe', true);
     const battle = startFixtureCombat();

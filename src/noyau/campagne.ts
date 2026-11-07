@@ -27,12 +27,12 @@ export function creerActionsDeCampagne(get: Get, set: Set) {
       const clues = marquerVus(s.clues, affichés, decidingSeat(s));
       if (clues !== s.clues) set({ clues });
     },
-    designerHerosOuvrir: (p) => {
+    ouvrirLaDesignation: (p) => {
       if (!get().party.some((h) => !h.dead)) return false;
       set({ pendingDesignationHeros: p });
       return true;
     },
-    remettreDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
+    remettreLeDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
   } satisfies FabriqueDuNoyau;
 }
 

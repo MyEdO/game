@@ -40,7 +40,7 @@ function confirmPrayerWithRoll(casterId: string, targetId: string, roll: number,
 describe('Péché et Colère Divine (LDB 40)', () => {
   beforeEach(() => {
     banc.setState({ battle: null, pendingCast: null, pendingCascade: null, party: [], journal: [] });
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
   });
 
   it('unités ≤ Péchés sur Prière RÉUSSIE → l\'effet s\'applique ET la Colère frappe, Péché −1', () => {

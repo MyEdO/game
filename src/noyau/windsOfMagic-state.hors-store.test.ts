@@ -29,7 +29,7 @@ function wizardWithSecondeVue(): Combatant {
 
 function setupCombat(): void {
   banc.setState({ party: [wizardWithSecondeVue()] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
 }
 
 /** Cible de Test MODÉRÉE (loin du plafond `targetMax` 99 de `testPolicy`, LDB 12 l.75, option
@@ -46,14 +46,14 @@ function moderateCaster(): Combatant {
 
 function setupModerateCombat(): void {
   banc.setState({ party: [moderateCaster()] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
 }
 
 describe('#491 — Vents Tourbillonnants, câblage state', () => {
   it("option OFF (défaut) : aucun tirage, `battle.windsOfMagic` absent", () => {
     setupCombat();
     seedBattleRng(1);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     expect(banc.getState().battle!.windsOfMagic).toBeUndefined();
   });
 
@@ -61,7 +61,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     setRule('vents-tourbillonnants', 'scene');
     setupCombat();
     seedBattleRng(99);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     const first = banc.getState().battle!.windsOfMagic;
     expect(first).toBeDefined();
     expect(first!.mod).toEqual(expect.any(Number));
@@ -69,7 +69,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     banc.setState({ battle: null });
     setupCombat();
     seedBattleRng(99);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     const again = banc.getState().battle!.windsOfMagic;
     expect(again).toEqual(first); // déterminisme
   });
@@ -81,7 +81,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
       banc.setState({ battle: null });
       setupCombat();
       seedBattleRng(seed);
-      banc.getState().startCombat('enc-mutants');
+      banc.getState().lancerLeCombat('enc-mutants');
       revealed = !!banc.getState().battle!.windsOfMagic?.revealed;
     }
     expect(revealed).toBe(true);
@@ -92,13 +92,13 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     const w = wizardWithSecondeVue();
     w.talents = w.talents.filter((t) => t.talentId !== 'seconde-vue');
     banc.setState({ party: [w] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     for (let seed = 1; seed <= 10; seed++) {
       banc.setState({ battle: null });
       banc.setState({ party: [w] });
-      banc.getState().startScene(testScene());
+      banc.getState().lancerLaScene(testScene());
       seedBattleRng(seed);
-      banc.getState().startCombat('enc-mutants');
+      banc.getState().lancerLeCombat('enc-mutants');
       expect(banc.getState().battle!.windsOfMagic?.revealed).toBe(false);
     }
   });
@@ -110,7 +110,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     banc.setState({ battle: null });
     setupModerateCombat();
     seedBattleRng(1);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     const battle = banc.getState().battle!;
     banc.setState({ battle: { ...battle, windsOfMagic: { roll: 5, mod, revealed: false } } });
     const w = battle.combatants.find((c) => c.kind === 'hero')!;
@@ -129,7 +129,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     banc.setState({ battle: null });
     setupModerateCombat();
     seedBattleRng(1);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     const battle = banc.getState().battle!;
     const w = battle.combatants.find((c) => c.kind === 'hero')!;
     w.spells = ['arc-de-t-essla'];
@@ -148,7 +148,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     setRule('vents-tourbillonnants', 'round');
     setupCombat();
     seedBattleRng(777);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     // Sentinelle hors-table (1-10) : si le hook de Round tourne, elle disparaît forcément.
     banc.setState({ battle: { ...banc.getState().battle!, windsOfMagic: { roll: 999, mod: 0, revealed: false } } });
@@ -162,7 +162,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     setRule('vents-tourbillonnants', 'scene');
     setupCombat();
     seedBattleRng(777);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.setState({ battle: { ...banc.getState().battle!, windsOfMagic: { roll: 999, mod: 0, revealed: false } } });
     seedBattleRng(4242);

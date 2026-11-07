@@ -59,8 +59,8 @@ describe('Piétinement en combat (store)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -85,7 +85,7 @@ describe('Piétinement en combat (store)', () => {
   const advDe = (id: string): number => banc.getState().battle!.combatants.find((c) => c.id === id)!.advantage;
 
   it('héros plus grand : le Piétinement est un Test OPPOSÉ de Corps à corps, gratuit (LDB 13 l.123 ; LDB 85 l.387)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.size = 'grande';
     H.characteristics['capacite-de-combat'] = 85;
@@ -103,7 +103,7 @@ describe('Piétinement en combat (store)', () => {
 
   // LDB 85 l.387 ; LDB 13 l.123 ; LDB 15 l.12 (empreinte par Taille : `sizes.json` footprintSide).
   it('héros Énorme : la cible au BORD de son empreinte est au contact — le Piétinement se déclare, opposé, option consommée', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.size = 'enorme';
     H.advantage = 3;
@@ -119,7 +119,7 @@ describe('Piétinement en combat (store)', () => {
   });
 
   it('Morsure jouée par un héros : l’arme du JET est la Morsure, jamais l’arme tenue (#1026 ; LDB 85 l.237)', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H, E } = setup();
     H.traits = [{ id: 'morsure', value: 10 }];
     H.advantage = 2;
@@ -134,7 +134,7 @@ describe('Piétinement en combat (store)', () => {
 
   // LDB 13 l.123 ; LDB 14 l.219.
   it('Piétinement perdu (CC=1) : l’adversaire gagne +1 Avantage, le piétineur perd tout le sien', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.size = 'grande';
     H.characteristics['capacite-de-combat'] = 1;
@@ -249,7 +249,7 @@ describe('Piétinement en combat (store)', () => {
 
   it('IA : un ennemi plus grand avec de l’Avantage piétine un héros adjacent plus petit (via aiCreatureFreeAttacks, #527)', () => {
     // `aiCreatureFreeAttacks` joue le Piétinement en dernière gratuite de la liste unique (`attaquesNaturelles`).
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 85;
@@ -268,7 +268,7 @@ describe('Piétinement en combat (store)', () => {
   });
 
   it('IA : Se cabrer piétine même à 0 Avantage SI l’Action de Mouvement est encore entière (coût 0 Avantage, movementUsed → plein M)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 85;
@@ -295,7 +295,7 @@ describe('Piétinement en combat (store)', () => {
   });
 
   it('IA : Se cabrer NE piétine PAS gratuitement si l’Action de Mouvement est DÉJÀ dépensée (approche → plus de sacrifice possible)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 85;
@@ -318,7 +318,7 @@ describe('Piétinement en combat (store)', () => {
   });
 
   it('IA : SANS Se cabrer, à 0 Avantage le Piétinement générique (coût 1) est SAUTÉ', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 85;
@@ -338,7 +338,7 @@ describe('Piétinement en combat (store)', () => {
   });
 
   it('IA : Se cabrer + Mouvement DÉJÀ dépensé, mais de l’Avantage : piétine à 1 Avantage (LDB 85 l.387)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 85;
@@ -362,7 +362,7 @@ describe('Piétinement en combat (store)', () => {
   // ci-dessus (movementUsed === 0) restait toujours vraie en production, laissant passer approche +
   // Piétinement gratuit (Se cabrer) du MÊME tour.
   it('#527 IA Se cabrer : APPROCHER ce tour trace movementUsed (la Marche consommée n’est plus invisible)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 85;
@@ -385,7 +385,7 @@ describe('Piétinement en combat (store)', () => {
   });
 
   it('#527 IA Se cabrer : DÉJÀ adjacent (aucune approche) → movementUsed reste à 0, le Piétinement gratuit reste possible', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 85;
@@ -406,7 +406,7 @@ describe('Piétinement en combat (store)', () => {
 
   // LDB 85 l.387 ; LDB 85 l.237.
   it('héros : un Piétinement par tour — joué, l’option disparaît, Avantage restant', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.size = 'grande';
     H.advantage = 3;
@@ -421,7 +421,7 @@ describe('Piétinement en combat (store)', () => {
 
   // La case de gate lit l'option, jamais un second prédicat. LDB 85 l.387 ; LDB 85 l.314.
   it('gate « pietinement-gratuit » : fermée une fois le plafond atteint', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.size = 'grande';
     H.advantage = 3;
@@ -450,7 +450,7 @@ describe('Piétinement en combat (store)', () => {
     { cas: 'Piétinement', kind: 'pietinement', traits: [], plafond: 1 },
     { cas: '2 Tentacules', kind: 'tentacules', traits: [{ id: 'tentacules', value: 6, count: 2 }], plafond: 2 },
   ] as const)('IA et héros, même plafond par tour : $cas', ({ kind, traits, plafond }) => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'enorme';
     E.traits = [...traits] as unknown as Combatant['traits'];

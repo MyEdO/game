@@ -20,7 +20,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 beforeEach(() => {
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
 });
 
 describe('Effet inflictHunger (LDB 18 l.337-343)', () => {
@@ -70,7 +70,7 @@ describe('Effet exposureNight (LDB 18 l.326-334) — BANDE influençable par VAG
   it('froid → UNE bande (la 1ʳᵉ vague) portant le nombre TOTAL de vagues, une rangée par héros, AUCUN jet résolu', () => {
     const party = makePregens().slice(0, 1);
     banc.setState({ party, pendingCascade: null, journal: [] });
-    banc.getState().seedRng(3); // graine dont les jets échoueraient s'ils roulaient inline
+    banc.getState().ensemencerLeTirage(3); // graine dont les jets échoueraient s'ils roulaient inline
     const beforeW = banc.getState().party[0].wounds.current;
     applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'froid', count: 4, target: 'hero', heroId: party[0].id }]);
     const pc = banc.getState().pendingCascade;
@@ -347,7 +347,7 @@ describe('Op `manann` sur la cible `navire` (#213, #1652 — MDG 15 l.83-125)', 
   const manann = (o: Extract<GameOp, { op: 'manann' }>): Effect => ({ type: 'ops', on: 'navire', ops: [o] });
   beforeEach(() => {
     banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } });
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
   });
 
   it('sans navire de campagne → no-op journalisé', () => {

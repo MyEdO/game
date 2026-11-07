@@ -16,7 +16,7 @@ const REPRESSION_DU_CRIME = 20;
 function apresLaRepression(careerId: string, label: string): { banc: Banc; heroId: string } {
   const h = createHero({ speciesId: 'humains-reiklander', careerId, label, seed: 1701 });
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h] } });
-  banc.actions.startInterlude(1);
+  banc.actions.ouvrirLInterlude(1);
   draineCascade(banc.getState, 200, poseSurDeNonTombe(REPRESSION_DU_CRIME));
   expect(banc.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
   expect(banc.getState().interlude?.perHero[h.id].eventRoll, 'témoin : l’Événement posé').toBe(REPRESSION_DU_CRIME);

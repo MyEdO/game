@@ -31,7 +31,7 @@ function apresLeTirage(xp: number, bourse: Money): { banc: Banc; heroId: string 
   const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), bourse);
   h.xp = xp;
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h] } });
-  banc.actions.startInterlude(1);
+  banc.actions.ouvrirLInterlude(1);
   draineCascade(banc.getState);
   expect(banc.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
   expect(banc.getState().interlude?.perHero[h.id].left, 'témoin : une Activité reste').toBeGreaterThan(0);
@@ -46,7 +46,7 @@ const empreinte = (banc: Banc) => {
 
 /** Joue `geste` sur un RNG réensemencé : les lignes qu'il ajoute au journal, et si le dé a roulé. */
 function jouer(banc: Banc, geste: () => void): { journal: string[]; deRoule: boolean } {
-  banc.actions.seedRng(GRAINE_DU_GESTE);
+  banc.actions.ensemencerLeTirage(GRAINE_DU_GESTE);
   const avant = banc.getState().journal.length;
   geste();
   return { journal: banc.getState().journal.slice(avant), deRoule: battleRng().int(1, 1e9) !== makeRNG(GRAINE_DU_GESTE).int(1, 1e9) };
@@ -201,7 +201,7 @@ describe('Réputation — le Standing gagné vaut pour la PROCHAINE aventure, pa
   it('Réputation réussie puis Revenus et seconde Réputation dans le même interlude : Standing de carrière', () => {
     const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), { gold: 20, silver: 0, brass: 0 });
     const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h] } });
-    banc.actions.startInterlude(3);
+    banc.actions.ouvrirLInterlude(3);
     draineCascade(banc.getState);
     expect(banc.getState().interlude?.perHero[h.id].left, 'témoin : trois Activités').toBe(3);
     banc.actions.pratiquerLActivite(h.id, 'reputation');
@@ -211,7 +211,7 @@ describe('Réputation — le Standing gagné vaut pour la PROCHAINE aventure, pa
     banc.actions.pratiquerLActivite(h.id, 'reputation');
     expect(banc.getState().pendingActivity?.costBrass, 'la seconde Réputation coûte le Standing de carrière').toBe(coutDeCarriere);
     banc.setState({ pendingActivity: null });
-    banc.actions.seedRng(GRAINE_DU_GESTE);
+    banc.actions.ensemencerLeTirage(GRAINE_DU_GESTE);
     banc.actions.pratiquerLActivite(h.id, 'revenus');
     confirmerReussi(banc);
     expect(banc.getState().interlude?.perHero[h.id].revenueBrass, 'Revenus au Standing de carrière (Argent 1)').toBe(REVENUS_ARGENT_1);
@@ -223,7 +223,7 @@ describe('Réputation — le Standing gagné vaut pour la PROCHAINE aventure, pa
 function apresUneReputation(success: boolean, sl: number): { banc: Banc; heroId: string } {
   const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), { gold: 20, silver: 0, brass: 0 });
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h] } });
-  banc.actions.startInterlude(3);
+  banc.actions.ouvrirLInterlude(3);
   draineCascade(banc.getState);
   banc.actions.pratiquerLActivite(h.id, 'reputation');
   banc.actions.jetLancer('activity');
@@ -247,7 +247,7 @@ describe('Réputation — le Standing se pose à la clôture, pour l’aventure 
     banc.actions.fenetreValider('interlude');
     expect(banc.getState().party[0].activeEffects?.filter((e) => e.statusMod).map((e) => e.label)).toEqual(['Réputation']);
     const journal = banc.getState().journal.length;
-    banc.actions.startInterlude(1);
+    banc.actions.ouvrirLInterlude(1);
     expect(banc.getState().journal.slice(journal)).toContain('Vétéran : Réputation se dissipe (fin de l\'aventure).');
   });
 

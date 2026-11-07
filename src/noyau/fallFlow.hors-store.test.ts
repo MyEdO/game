@@ -149,7 +149,7 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
   });
 
   it('jetLancer@fall résout via resolveDeliberateFall : effectiveMetres = max(0, metres − max(0,dr))', () => {
-    g().seedRng(3);
+    g().ensemencerLeTirage(3);
     g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', true, H);
     g().jetLancer('fall', H);
@@ -261,8 +261,8 @@ describe('franchirLArete, chute — combat', () => {
   function setup(atPos = top) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const sc = cliffScene();

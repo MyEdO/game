@@ -485,7 +485,7 @@ export const dialogueNodeSchema = proseNommee(nommerChamps(z.strictObject({
   id: z.string(),
   /** Id d'une `SceneEntity` de la scène courante → son PORTRAIT et son NOM (label) pour CE nœud.
    *  Permet d'alterner les interlocuteurs dans une même conversation. À défaut, l'interlocuteur de
-   *  SESSION (`state.dialogue.speakerId`, posé par `interactEntity` ou `startDialogue.speakerId`). */
+   *  SESSION (`state.dialogue.speakerId`, posé par `interagirAvecLEntite` ou `startDialogue.speakerId`). */
   speakerId: z.string().optional(),
   choices: listeCle(dialogueChoiceSchema, 'id'),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, speakerId: { label: "locuteur" , texte: { regime: "technique"} }, choices: { label: "réponses" } }), 'dialogues[].nodes[].desc');

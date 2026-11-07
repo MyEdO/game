@@ -84,7 +84,7 @@ export interface PortState {
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
-  if (lines.length) get().log(lines);
+  if (lines.length) get().ecrireAuJournal(lines);
 };
 
 /** Lieu portuaire courant (place de la carte dont la scène EST la scène courante + `port`). */

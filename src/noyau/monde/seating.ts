@@ -266,7 +266,7 @@ export function seatSlotsOf(scene: Scene, propId: string): ResolvedSeatSlot[] {
 /**
  * Les places JOUABLES du meuble `propId` — la MÊME géométrie que `seatSlotsOf`, GATÉE par
  * l'ACTIVATION de l'instance (`SceneEntity.usable`, #1687). SOURCE UNIQUE des lecteurs
- * d'INTERACTION : halo de place libre, clic de meuble, assise au clic (`store.interactEntity`).
+ * d'INTERACTION : halo de place libre, clic de meuble, assise au clic (`store.interagirAvecLEntite`).
  *
  * La GÉOMÉTRIE ne dépend d'aucune activation : `seatSlotsOf` reste inchangé et sert l'éditeur, le
  * placement d'un PNJ authoré assis, et la validation de document — un tabouret non activé

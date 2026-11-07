@@ -186,7 +186,7 @@ export function casesDuGroupe(monde: Pick<Jeu, 'battle' | 'partyPos'>): Pt[] {
 /**
  * CAP D'EXPLORATION posé : hors combat, l'orientation du regard est UNE valeur du GROUPE, stockée
  * SOUS `CAP_GROUPE` et nulle part ailleurs. ÉCRIVAIN UNIQUE du cap d'exploration — entrée de scène,
- * marche, pivot, pas relatif et assise passent par ici ; `faceToward`/`faceFromPath` restent la couture
+ * marche, pivot, pas relatif et assise passent par ici ; `orienterVers`/`orienterSelonLeChemin` restent la couture
  * des caps INDIVIDUELS du combat. Les caps des combattants et des coques présents dans la table sont
  * conservés tels quels. PUR : rend la table suivante.
  */

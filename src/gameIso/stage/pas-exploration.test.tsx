@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
  * UN PAS D'EXPLORATION EST UNE REPOSE — mesuré sur l'écran monté, au chemin RÉEL du pas clavier
- * (`store.stepPartyDir` : émission de la marche, puis `moveParty`, donc champ de vision NEUF).
+ * (`store.stepPartyDir` : émission de la marche, puis `deplacerLeGroupe`, donc champ de vision NEUF).
  *
  * Trois faits, chacun réfutable seul, chacun avec une panne coûteuse en face :
  *  1. les quads SURVIVENT au pas — aucun `dispose`, aucune identité perdue (le rebuild du groupe

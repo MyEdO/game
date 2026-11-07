@@ -103,7 +103,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
       entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }],
     });
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     expect(banc.getState().pendingCascade!.participants[0].reveal?.lines).toEqual([texte]);
   });
 
@@ -131,7 +131,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
 
   it('la carte passe DEVANT les Tests de rencontre, qui reprennent à sa clôture', () => {
     banc.setState({ party: [heroHaineux()], pendingCascade: null, suspendedCascades: [], battle: null });
-    banc.getState().startScene(CRYPTE);
+    banc.getState().lancerLaScene(CRYPTE);
     const c = banc.getState().pendingCascade!;
     expect(c.participants[0].kind).toBe('sceneEntry'); // la carte est l'étape COURANTE, pas la dernière
     expect(c.purpose).toBe('affichage');
@@ -146,7 +146,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     registerScene(CRYPTE);
     registerScene(suite);
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
-    banc.getState().startScene(CRYPTE);
+    banc.getState().lancerLaScene(CRYPTE);
     expect(banc.getState().pendingCascade!.participants[0].reveal?.kind).toBe('sceneEntry');
     suspendActiveCascade(banc.getState, banc.setState); // ce que fait l'ouverture d'un combat sur la carte ouverte
     expect(banc.getState().suspendedCascades).toHaveLength(1);
@@ -159,18 +159,18 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
   });
 
   it('une révélation appendue DERRIÈRE la carte survit à la transition SANS être sautée', () => {
-    // Scène de crypte JOUABLE en combat (la rencontre de fixture) : `startCombat` est le vrai parqueur.
+    // Scène de crypte JOUABLE en combat (la rencontre de fixture) : `lancerLeCombat` est le vrai parqueur.
     const crypteCombat: Scene = { ...CRYPTE, id: 'probe-crypte-combat', encounters: testScene().encounters, entities: testScene().entities };
     const suite: Scene = { ...testScene(), id: 'probe-suite-2', label: 'Salle basse', startMessage: { texte: 'Un escalier descend.' }, encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
     registerScene(crypteCombat);
     registerScene(suite);
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
-    banc.getState().startScene(crypteCombat);
+    banc.getState().lancerLaScene(crypteCombat);
     pushReveal(banc.setState, { kind: 'effet', title: 'Conséquence B', lines: ['b'] }); // rejoint la séquence d'affichage EN VOL, derrière la carte
     expect(banc.getState().pendingCascade!.participants).toHaveLength(2);
     banc.getState().jetValider('cascade'); // la carte est acquittée : le curseur pointe « Conséquence B »
     expect(banc.getState().pendingCascade!.cursor).toBe(1);
-    banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true }); // parque la séquence mixte
+    banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true }); // parque la séquence mixte
     banc.getState().quitterLaScene('probe-suite-2'); // purge la carte de la scène quittée
     const parked = banc.getState().suspendedCascades.find((c) => c.purpose === 'affichage')!;
     expect(parked.participants.map((s) => s.reveal?.title)).toEqual(['Conséquence B']);
@@ -182,7 +182,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     registerScene(CRYPTE);
     registerScene(suite);
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
-    banc.getState().startScene(CRYPTE);
+    banc.getState().lancerLaScene(CRYPTE);
     suspendActiveCascade(banc.getState, banc.setState); // la carte d'entrée est parquée…
     // …et sous elle, un jour de voyage parqué plus tôt, curseur au milieu de ses étapes.
     banc.setState({

@@ -224,7 +224,7 @@ async function metALEssai(): Promise<{ refus: string | null; titre: string | nul
 
 describe('Éditeur — « ▶ Tester » passe la MÊME porte que les autres sorties (#877)', () => {
   it('groupe VIDE : refus titré, l’écran reste l’éditeur', async () => {
-    useGame.getState().setParty([]);
+    useGame.getState().fixerLeGroupe([]);
     await monter(sceneSaine());
     const { refus, titre, ecran } = await metALEssai();
     expect(titre).toBe('Tester la scène');
@@ -235,7 +235,7 @@ describe('Éditeur — « ▶ Tester » passe la MÊME porte que les autres sort
   });
 
   it('projet FAUTIF avec un groupe : le refus NOMME scène et entité, l’écran reste l’éditeur', async () => {
-    useGame.getState().setParty(makeShowcaseParty());
+    useGame.getState().fixerLeGroupe(makeShowcaseParty());
     await monter(sceneSaine());
     await act(async () => { await buildApi().editorPatchEntity('p0', { ref: DECOR_MORT }); });
     const { refus, titre, ecran } = await metALEssai();

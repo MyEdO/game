@@ -22,8 +22,8 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -42,7 +42,7 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
   }
 
   it('Animosité (Mort-vivant) : la cascade s’ouvre face à un ennemi du groupe ; échec → affliction active', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const { H, E } = setup();
     H.psychTraits = [{ type: 'animosite', cible: ciblePsy.groupe('mort-vivant') }];
     E.groups = ['mort-vivant'];
@@ -61,7 +61,7 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
   });
 
   it('succès (Résilience) → marqueur inerte, plus de re-déclenchement ce Round', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const { H, E } = setup();
     H.psychTraits = [{ type: 'animosite', cible: ciblePsy.groupe('mort-vivant') }];
     E.groups = ['mort-vivant'];
@@ -76,7 +76,7 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
   });
 
   it('IA : la passe de début de Round pose une affliction ciblée active sur échec (Haine, LDB 21 l.9)', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const { H, E } = setup();
     E.psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('humain') }];
     H.groups = ['humain'];

@@ -68,7 +68,7 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
             return;
           }
           set(touchActors(get()));
-          for (const l of lines) get().log(l);
+          for (const l of lines) get().ecrireAuJournal(l);
         }
         break;
       }

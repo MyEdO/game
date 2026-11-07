@@ -5,7 +5,7 @@
  * Hors combat (entretien/faim, exposition, maladie, cascade de nuit, damnation, effets de scène), rien
  * ne constatait la non-viabilité du groupe : un groupe entier mort de faim en mer laissait le voyage
  * continuer. `checkPartyWiped` est le pendant hors-combat, appelé aux carrefours de mort hors combat
- * (`advanceTime` après l'entretien, la clôture de toute séquence hors combat — modale ou pilote
+ * (`avancerLeTemps` après l'entretien, la clôture de toute séquence hors combat — modale ou pilote
  * immédiat, `clotureHorsCombat` —, la damnation) — il présente le
  * MÊME écran de défaite (drapeau `partyWiped`, lu par `CampaignView`) et purge les flux SUSPENDUS.
  *

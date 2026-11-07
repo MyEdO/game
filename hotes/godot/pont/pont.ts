@@ -152,7 +152,7 @@ function calquesGardes(texte: string): unknown {
 
 /** Le pont : ses méthodes, chacune appelée par `appeler`. */
 export function creerPont() {
-  let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; fiche: FicheOuverte | null; creation: CreationOuverte | null; brouillons: number; regard: Regard }) | null = null;
+  let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; jour: number | null; fiche: FicheOuverte | null; creation: CreationOuverte | null; brouillons: number; regard: Regard }) | null = null;
   const erreurs: ErreurGlobale[] = [];
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` et les corps de la vue lisent. */
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
@@ -208,8 +208,10 @@ export function creerPont() {
   const suite = (o: NonNullable<typeof ouverte>, resultat: ResultatDeLAppel): Suite => {
     if (!o.creation && resultat.evenements.some(demandeUnHeros)) ouvrirLaCreation(o);
     const programmes = o.jetons.programmes(resultat);
-    const zones = { 'journal.lignes': lignesDuJournal(o.partie.etat(), o.lignes, resultat.journal) };
+    const { lignes, jour } = lignesDuJournal(o.partie.etat(), o.lignes, resultat.journal, o.jour);
+    const zones = { 'journal.lignes': lignes };
     o.lignes += resultat.journal.length;
+    o.jour = jour;
     return { vue: vueDe(o), programmes, journal: resultat.journal, zones };
   };
 
@@ -242,7 +244,7 @@ export function creerPont() {
         o = ouvrirLaPartie(entete, sansRoster);
         graine = entete.graine;
       }
-      ouverte = { ...o, graine, pas: 0, lignes: 0, fiche: null, creation: null, brouillons: 0, regard: 'tactique' };
+      ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, fiche: null, creation: null, brouillons: 0, regard: 'tactique' };
       return suite(ouverte, o.lancement);
     },
     vue(json) {

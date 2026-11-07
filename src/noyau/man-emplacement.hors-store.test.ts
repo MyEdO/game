@@ -64,7 +64,7 @@ const groundScene = (): Scene =>
     layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
 const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string> = {}): (() => JeuDuNoyau) =>
-  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => JeuDuNoyau;
+  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing, gameTime: 0, net: initialNet(), ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 // (A) DISPONIBILITÉ kind-agnostique — `servablePostes` voit un poste NON servi pour un combattant adjacent.

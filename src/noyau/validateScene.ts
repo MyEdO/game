@@ -173,7 +173,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
           addWm(r.id, `Route « ${r.id} » → rencontre d'embuscade inexistante « ${amb.encounter} » dans « ${amb.scene} »`);
       }
     }
-    // DÉPART DU GROUPE d'une scène-DESTINATION. Le runtime replie toujours (`noyau/entreeEnScene.ts` : `startScene`
+    // DÉPART DU GROUPE d'une scène-DESTINATION. Le runtime replie toujours (`noyau/entreeEnScene.ts` : `lancerLaScene`
     // prend `findFreeTile` à défaut de `heroStart` ; `quitterLaScene` prend `pos`, puis le point d'arrivée
     // NOMMÉ, puis `heroStart`, puis `findFreeTile`) — d'où un `warn`, jamais une erreur. Ne sont
     // concernées que les scènes où l'on débarque SANS point d'arrivée nommé : un lieu qui déclare son

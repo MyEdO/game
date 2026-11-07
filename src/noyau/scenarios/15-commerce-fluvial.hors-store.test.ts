@@ -177,15 +177,15 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
   it('graine 5, cadence par défaut, barrage posé : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
     seedBattleRng(5);
     barragePose();
-    // Le journal du store est plafonné : chaque ligne se capte à son puits (`log`), le temps de la descente.
+    // Le journal du store est plafonné : chaque ligne se capte à son puits (`ecrireAuJournal`), le temps de la descente.
     const journal: string[] = [];
-    const puits = get().log;
-    banc.setState({ log: (msg) => { journal.push(...(Array.isArray(msg) ? msg : [msg])); puits(msg); } });
+    const puits = get().ecrireAuJournal;
+    banc.setState({ ecrireAuJournal: (msg) => { journal.push(...(Array.isArray(msg) ? msg : [msg])); puits(msg); } });
     const decisions: string[] = [];
     try {
       expect(descendre(undefined, decisions), 'aucune fenêtre de jet sur la descente').toEqual([]);
     } finally {
-      banc.setState({ log: puits });
+      banc.setState({ ecrireAuJournal: puits });
     }
     expect(decisions.length, 'le barrage posé est rencontré').toBeGreaterThan(0);
     expect(new Set(decisions), 'le barrage (MSRC 7 l.128) est la seule décision de la descente').toEqual(new Set(['riverObstacleChoice']));

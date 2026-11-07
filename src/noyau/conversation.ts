@@ -16,7 +16,7 @@ import type { FragmentDeTables } from './tablesPosees';
  *  la réponse (`fenetreChoisir('dialogue', 'reponse', …)`, cas sans Test) et `jetValider('test')` (reprise après un Test suspendu par `choice.flow`). */
 function applyDialogueTransition(get: Get, set: Set, tr: DialogueTransition): void {
   if (tr === 'close') {
-    if (get().dialogue) get().advanceTime(TIME_COST.dialogue); // clôture (no-op si un Effect a déjà fermé)
+    if (get().dialogue) get().avancerLeTemps(TIME_COST.dialogue); // clôture (no-op si un Effect a déjà fermé)
     set({ dialogue: null });
     return;
   }
@@ -42,7 +42,7 @@ function repondre(get: Get, set: Set, choix: string): void {
   // unique) débitée AVANT les effets ; refus si le total du groupe ne couvre pas.
   if (choice.cost) {
     const cost = toMoney(choice.cost);
-    if (!payFromGroup(get, set, cost, { purpose: 'Dialogue' })) { get().log(t('store.dialogueNoMoney')); return; }
+    if (!payFromGroup(get, set, cost, { purpose: 'Dialogue' })) { get().ecrireAuJournal(t('store.dialogueNoMoney')); return; }
   }
   const transition: DialogueTransition = choice.next
     ? { ...etat, nodeId: choice.next } // même conversation : `session` et interlocuteur voyagent avec

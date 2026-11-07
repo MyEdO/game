@@ -30,7 +30,7 @@ let container: HTMLDivElement | null = null;
 afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; container = null; });
 
 /** Amorce la VRAIE bataille du scénario de test (même spec, même scène : les Scènes du Round sont
- *  posées sur le plan par leurs ancres authorées), par la porte du jeu `startMassBattle`. */
+ *  posées sur le plan par leurs ancres authorées), par la porte du jeu `amorcerLaBataille`. */
 beforeEach(() => {
   seedBattleRng(1234);
   const { party, scene, massBattle } = scenario.construire();
@@ -38,7 +38,7 @@ beforeEach(() => {
     party, scene, battle: null, interlude: null,
     journal: [], partyPos: { x: 3, y: 8 },
   });
-  useGame.getState().startMassBattle(massBattle!);
+  useGame.getState().amorcerLaBataille(massBattle!);
 });
 
 /** Monte l'écran ET sélectionne une Scène sur le plan : son détail (donc sa case) s'ouvre à droite.

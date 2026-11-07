@@ -90,7 +90,7 @@ const milieu = (a: AreteProjetee) => pointerEvent(milieuPt(a).cx, milieuPt(a).cy
  *  ce que le déplacement reçoit ; la liste vide EST l'assertion. */
 const solQuiCompte = () => {
   const positions: Pt[] = [];
-  return { positions, moveParty: vi.fn((pos: Pt) => { positions.push(pos); }) };
+  return { positions, deplacerLeGroupe: vi.fn((pos: Pt) => { positions.push(pos); }) };
 };
 
 describe('Escalade et chute passent par l’étage `arete`', () => {
@@ -123,8 +123,8 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
 
   it('un clic sur le trait d’escalade grimpe vers la case d’en face, par le VERDICT de pixel', () => {
     const franchirLArete = vi.fn();
-    const { positions, moveParty } = solQuiCompte();
-    useGame.setState({ scene: scèneGrimpable(), mode: 'exploration', dialogue: null, partyPos: { x: 1, y: 1 }, party: [], franchirLArete, moveParty });
+    const { positions, deplacerLeGroupe } = solQuiCompte();
+    useGame.setState({ scene: scèneGrimpable(), mode: 'exploration', dialogue: null, partyPos: { x: 1, y: 1 }, party: [], franchirLArete, deplacerLeGroupe: deplacerLeGroupe });
     const aretes = ESCALADE();
     monter(aretes);
 
@@ -137,8 +137,8 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
 
   it('un clic sur le trait de chute ouvre le saut vers la case d’en bas, par le VERDICT de pixel', () => {
     const franchirLArete = vi.fn();
-    const { positions, moveParty } = solQuiCompte();
-    useGame.setState({ scene: scèneDeFalaise(), mode: 'exploration', dialogue: null, partyPos: { x: 2, y: 0 }, party: [], franchirLArete, moveParty });
+    const { positions, deplacerLeGroupe } = solQuiCompte();
+    useGame.setState({ scene: scèneDeFalaise(), mode: 'exploration', dialogue: null, partyPos: { x: 2, y: 0 }, party: [], franchirLArete, deplacerLeGroupe: deplacerLeGroupe });
     const aretes = CHUTE();
     monter(aretes);
 
@@ -154,8 +154,8 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
     // pas. Le trait la reprend donc SANS handler — le `pointerdown` qui s'y pose remonte au SVG racine,
     // qui résout par le PIXEL (`pickResolve`), pas par la cible : une seule chaîne d'activation.
     const franchirLArete = vi.fn();
-    const { positions, moveParty } = solQuiCompte();
-    useGame.setState({ scene: scèneGrimpable(), mode: 'exploration', dialogue: null, partyPos: { x: 1, y: 1 }, party: [], franchirLArete, moveParty });
+    const { positions, deplacerLeGroupe } = solQuiCompte();
+    useGame.setState({ scene: scèneGrimpable(), mode: 'exploration', dialogue: null, partyPos: { x: 1, y: 1 }, party: [], franchirLArete, deplacerLeGroupe: deplacerLeGroupe });
     const aretes = ESCALADE();
 
     const Harnais = () => {

@@ -1,5 +1,5 @@
 /**
- * INTERACTION D'ASSISE — le meneur s'assoit et se relève par le MÊME `interactEntity` (aucune route
+ * INTERACTION D'ASSISE — le meneur s'assoit et se relève par le MÊME `interagirAvecLEntite` (aucune route
  * `sit`/`seat`, aucun second pending). Ce que ces tests tiennent : la BASCULE, la condition d'abord
  * EXACT, l'unicité de l'occupant sur la dernière place, et les libérations de la marche.
  */
@@ -41,7 +41,7 @@ function poser(pos: { x: number; y: number }, seatAssignments?: Scene['seatAssig
   banc.setState({ party: [hero()], scene: null, mode: 'exploration', journal: [], battle: null, dialogue: null, pendingInteract: null });
   const sc = scèneDeTaverne();
   if (seatAssignments) sc.seatAssignments = seatAssignments;
-  banc.getState().startScene(sc);
+  banc.getState().lancerLaScene(sc);
   banc.setState({ partyPos: { ...pos } });
 }
 
@@ -50,21 +50,21 @@ const dernierJournal = () => { const j = banc.getState().journal; return j[j.len
 const journalEntier = () => banc.getState().journal.join(' | ');
 const occupants = (sc: Scene) => Object.values(sc.seatAssignments ?? {}).flatMap((m) => Object.values(m));
 
-describe('interactEntity sur un meuble à places — bascule s’asseoir / se relever', () => {
+describe('interagirAvecLEntite sur un meuble à places — bascule s’asseoir / se relever', () => {
   beforeEach(() => poser(ABORD_NORD));
 
-  it('assoit puis relève party[0] par le même interactEntity', () => {
-    banc.getState().interactEntity(PROP);
+  it('assoit puis relève party[0] par le même interagirAvecLEntite', () => {
+    banc.getState().interagirAvecLEntite(PROP);
     expect(poseDuMeneur()).toMatchObject({ propId: PROP, slotId: 'place-1' });
     expect(dernierJournal()).toContain('Vous prenez place');
 
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(poseDuMeneur()).toBeNull();
     expect(dernierJournal()).toContain('Vous vous levez');
   });
 
   it('la place prise porte l’ANCRE et le CAP de la place, pas la case du groupe', () => {
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     const pose = poseDuMeneur()!;
     expect(pose.facing).toBe('S');                       // assis au nord de la table, on regarde le sud
     expect(pose.anchor.x).toBeCloseTo(5, 5);
@@ -75,7 +75,7 @@ describe('interactEntity sur un meuble à places — bascule s’asseoir / se re
 
   it('refuse la transaction si le groupe n’est pas exactement sur l’approche du slot', () => {
     poser({ x: ABORD_NORD.x + 1, y: ABORD_NORD.y });
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(poseDuMeneur()).toBeNull();
     expect(dernierJournal()).toContain('Vous devez rejoindre la place');
   });
@@ -84,7 +84,7 @@ describe('interactEntity sur un meuble à places — bascule s’asseoir / se re
     const pris = (id: string): SeatOccupant => ({ kind: 'entity', entityId: id });
     poser(ABORD_NORD, { [PROP]: { 'place-1': pris('pnj-1'), 'place-2': pris('pnj-2'), 'place-3': pris('pnj-3'), 'place-4': pris('pnj-4') } });
     const avant = banc.getState().scene!;
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(poseDuMeneur()).toBeNull();
     expect(dernierJournal()).toContain('Toutes les places sont occupées');
     expect(banc.getState().scene).toBe(avant); // aucune écriture de scène
@@ -93,7 +93,7 @@ describe('interactEntity sur un meuble à places — bascule s’asseoir / se re
   it('un seul gagnant sur la DERNIÈRE place : celle que tient déjà un corps ne se redonne pas', () => {
     // « nord » (le seul abord sous les pieds du groupe) est déjà tenu par un PNJ.
     poser(ABORD_NORD, { [PROP]: { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } });
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(poseDuMeneur()).toBeNull();
     const sc = banc.getState().scene!;
     expect(occupants(sc)).toHaveLength(1);
@@ -105,9 +105,9 @@ describe('interactEntity sur un meuble à places — bascule s’asseoir / se re
     const sc = emptyScene('scene-test', 12, 12);
     sc.id = 'sans-places';
     sc.entities = [{ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } }, { id: 'caisse', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'comptoir-droit' }];
-    banc.getState().startScene(sc);
+    banc.getState().lancerLaScene(sc);
     banc.setState({ partyPos: { x: 5, y: 4 } });
-    banc.getState().interactEntity('caisse');
+    banc.getState().interagirAvecLEntite('caisse');
     expect(banc.getState().scene!.seatAssignments).toBeUndefined();
     expect(dernierJournal()).not.toContain('Vous prenez place');
   });
@@ -127,43 +127,43 @@ describe('meuble à places ET fouillable — les deux affordances restent atteig
     const table = sc.entities.find((e) => e.id === PROP)!;
     (table as { usable?: unknown }).usable = { assise: true, ...FOUILLE };
     if (seatAssignments) sc.seatAssignments = seatAssignments;
-    banc.getState().startScene(sc);
+    banc.getState().lancerLaScene(sc);
     banc.setState({ partyPos: { ...pos }, flags: {} });
   }
 
   it('fouille D’ABORD, assise ENSUITE : les deux gestes passent par le même meuble', () => {
     posrFouillable(ABORD_NORD);
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(journalEntier(), 'le journal NOMME le geste joué').toContain('Fouiller…');
     expect(poseDuMeneur(), 'la fouille ne fait pas asseoir').toBeNull();
 
-    banc.getState().interactEntity(PROP); // fouille épuisée → la place prend le relais
+    banc.getState().interagirAvecLEntite(PROP); // fouille épuisée → la place prend le relais
     expect(poseDuMeneur()).toMatchObject({ slotId: 'place-1' });
     expect(dernierJournal()).toContain('Vous prenez place');
   });
 
   it('assis à un meuble fouillable : le clic du meuble occupé RELÈVE, quoi que porte le meuble', () => {
     posrFouillable(ABORD_NORD);
-    banc.getState().interactEntity(PROP); // fouille consommée
-    banc.getState().interactEntity(PROP); // place prise
+    banc.getState().interagirAvecLEntite(PROP); // fouille consommée
+    banc.getState().interagirAvecLEntite(PROP); // place prise
     expect(poseDuMeneur()).not.toBeNull();
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(poseDuMeneur()).toBeNull();
   });
 
   it('TABLE PLEINE : la fouille reste atteignable (elle n’est jamais avalée par l’assise)', () => {
     const pris = (id: string): SeatOccupant => ({ kind: 'entity', entityId: id });
     posrFouillable(ABORD_NORD, { [PROP]: { 'place-1': pris('a'), 'place-2': pris('b'), 'place-3': pris('c'), 'place-4': pris('d') } });
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(journalEntier(), 'le journal NOMME le geste joué').toContain('Fouiller…');
     // …et une fois épuisée, le meuble dit la seule chose qui reste vraie.
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(dernierJournal()).toContain('Toutes les places sont occupées');
   });
 
   it('un meuble à places SANS fouille ne journalise jamais la fouille', () => {
     poser(ABORD_NORD);
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(dernierJournal()).toContain('Vous prenez place');
   });
 });
@@ -172,7 +172,7 @@ describe('la POSE est unique — le cap d’ÉTAT suit la place', () => {
   it('s’asseoir aligne le cap du GROUPE sur le cap du slot', () => {
     poser(ABORD_NORD);
     banc.setState((s) => ({ facing: poserCapDuGroupe(s.facing, 'N') })); // regard opposé avant l'assise
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(poseDuMeneur()!.facing).toBe('S');
     expect(capDuGroupe(banc.getState()), 'le cap d’état, celui que lit la vue subjective').toBe('S');
   });
@@ -180,16 +180,16 @@ describe('la POSE est unique — le cap d’ÉTAT suit la place', () => {
   it('chaque abord donne SON cap : l’état n’est jamais celui de la marche', () => {
     for (const place of seatSlotsOf(scèneDeTaverne(), PROP)) {
       poser(place.approach);
-      banc.getState().interactEntity(PROP);
+      banc.getState().interagirAvecLEntite(PROP);
       expect(capDuGroupe(banc.getState()), `place « ${place.slotId} »`).toBe(place.facing);
     }
   });
 });
 
 describe('marcher, c’est se lever — et le déplacement-puis-assise arrive sur l’ABORD', () => {
-  it('moveParty libère la place du meneur AVANT de le déplacer', () => {
+  it('deplacerLeGroupe libère la place du meneur AVANT de le déplacer', () => {
     poser(ABORD_NORD);
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(poseDuMeneur()).not.toBeNull();
     poserLeGroupe(banc.getState, banc.setState, { x: 5, y: 3 });
     expect(poseDuMeneur()).toBeNull();
@@ -205,7 +205,7 @@ describe('marcher, c’est se lever — et le déplacement-puis-assise arrive su
 
   it('pendingInteract armé sur un meuble à places se consomme À L’ARRIVÉE sur l’abord', () => {
     poser({ x: 5, y: 2 });
-    banc.getState().setPendingInteract({ id: PROP, at: ABORD_NORD });
+    banc.getState().poserLInteraction({ id: PROP, at: ABORD_NORD });
     poserLeGroupe(banc.getState, banc.setState, { x: 5, y: 3 }); // hors de tout abord : rien ne se déclenche
     expect(banc.getState().pendingInteract).toMatchObject({ id: PROP });
     expect(poseDuMeneur()).toBeNull();
@@ -227,7 +227,7 @@ describe('marcher, c’est se lever — et le déplacement-puis-assise arrive su
     const CROISEE = { x: 4, y: 4 }; // diagonale de la table (5,5) — et AUCUN de ses abords
     expect(abords, 'la case croisée ne doit pas être un abord, sinon le test ne mord pas').not.toContain(`${CROISEE.x},${CROISEE.y}`);
 
-    banc.getState().setPendingInteract({ id: PROP, at: ABORD_NORD });
+    banc.getState().poserLInteraction({ id: PROP, at: ABORD_NORD });
     poserLeGroupe(banc.getState, banc.setState, CROISEE);
     expect(banc.getState().pendingInteract, 'le pending survit au passage').toMatchObject({ id: PROP });
     expect(journalEntier(), 'aucun refus d’assise en passant').not.toContain('Vous devez rejoindre la place');
@@ -239,7 +239,7 @@ describe('marcher, c’est se lever — et le déplacement-puis-assise arrive su
   it('les 4 abords de la table mènent chacun à LEUR place', () => {
     for (const attendu of seatSlotsOf(scèneDeTaverne(), PROP)) {
       poser(attendu.approach);
-      banc.getState().interactEntity(PROP);
+      banc.getState().interagirAvecLEntite(PROP);
       expect(poseDuMeneur(), `abord de « ${attendu.slotId} »`).toMatchObject({ slotId: attendu.slotId });
     }
   });

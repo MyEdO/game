@@ -76,8 +76,8 @@ const dit = (cle: MsgKey, vars: Record<string, string | number> = {}) => expect(
 function combat(scene: Scene, pos: Pt, tour: { movementUsed?: number; acted?: boolean; movedPreAction?: boolean } = {}) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], net: NET0 });
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -319,8 +319,8 @@ describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
     S.skills = [...S.skills.filter((k) => k.id !== 'escalade'), { id: 'escalade', characteristic: 'force', advances: 60 }];
     H.skills = H.skills.filter((k) => k.id !== 'escalade');
     banc.setState({ party: [H, S], net: NET0 });
-    g().startScene(testScene());
-    g().startCombat('enc-mutants');
+    g().lancerLaScene(testScene());
+    g().lancerLeCombat('enc-mutants');
     g().fenetreValider('roundStart');
     const b = g().battle!;
     const cH = b.combatants.find((x) => x.id === H.id)!;

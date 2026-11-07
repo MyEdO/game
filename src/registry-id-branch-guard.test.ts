@@ -180,7 +180,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     // dans le gestionnaire générique, et le bouton de Chance branché sur l'id de l'entrée rendue.
     const handler = [
       'const change = (id: string, v: RuleValue) => {',
-      "  if (id === 'combat-cadence') resumeCadence();",
+      "  if (id === 'combat-cadence') reprendreLaCadence();",
       '  setHouseRule(id, v);',
       '};',
     ].join('\n');

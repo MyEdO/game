@@ -277,7 +277,7 @@ export function resultLines(cons: Consequence[]): RecapLine[] {
 
 /**
  * Rend la ou les conséquences d'une étape DÉJÀ dénouée EN UNE CHAÎNE — repli pour les ~100 call-sites
- * NON convertis au rendu structuré (journal texte, `get().log()`) : joint `resultLines` (#349, source
+ * NON convertis au rendu structuré (journal texte, `get().ecrireAuJournal()`) : joint `resultLines` (#349, source
  * UNIQUE — ne recalcule rien). Le verdict ✓/✗ ±DR reste porté par la rangée de jet (`RollLine`) seule.
  */
 export function resultLine(cons: Consequence[]): string {
