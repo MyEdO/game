@@ -26,7 +26,7 @@ import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
-import { estOpDuNavire, opDemandeUnDe, type Formula, type GameOp, type PairedSense } from './ops';
+import { estOpDeLaBourseDuGroupe, estOpDuNavire, opDemandeUnDe, valeurNonLiee, type Formula, type GameOp, type PairedSense } from './ops';
 import type { CibleEnVue } from './psychology';
 import { refCouvre, type Id, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -91,6 +91,11 @@ export function leafOpsCtx<C extends { defaultUntilTime?: number; label?: string
  *  qui MUTE l'état — purement interrogative. */
 /** Bourse (sous-ensemble de `Money`) — comparée en sous de cuivre (1 CO = 240 sc, 1 pistole = 12 sc). */
 export interface Purse { gold?: number; silver?: number; brass?: number }
+/** Le seuil d'une Condition `money` : un montant, ou le nom de la valeur liée qu'il relit. */
+export function seuilDeBourse(atLeast: Extract<Condition, { kind: 'money' }>['atLeast']): { montant: Purse } | { lie: string } {
+  return typeof atLeast.brass === 'object' ? { lie: atLeast.brass.tire } : { montant: atLeast as Purse };
+}
+
 const brassValue = (m: Purse): number => (m.gold ?? 0) * 240 + (m.silver ?? 0) * 12 + (m.brass ?? 0);
 
 /** Applique un opérateur de comparaison — SOURCE UNIQUE pour les Conditions `compare` et `woundsDealt`. */
@@ -149,8 +154,10 @@ export type Condition =
   /** Le GROUPE possède au moins `count` (défaut 1) exemplaire(s) de l'objet d'`id` `trappingId` (réf de
    *  catalogue stable). Repli sur le NOM pour les objets CUSTOM (hors-base, sans `trappingId`). */
   | { kind: 'hasItem'; trappingId: string; count?: number }
-  /** La bourse du groupe vaut AU MOINS le seuil `atLeast` (comparaison en sous de cuivre). */
-  | { kind: 'money'; atLeast: Purse }
+  /** La bourse du groupe vaut AU MOINS le seuil `atLeast` (comparaison en sous de cuivre) : un montant, ou une
+   *  valeur LIÉE du Flow en sous de cuivre (`{brass: {tire}}`, substituée par `lierLesTirages`) — « la bourse
+   *  couvre la rançon tirée » (MDG 15 l.245-247). */
+  | { kind: 'money'; atLeast: Purse | { brass: { tire: string } } }
   /** État vital du groupe : `any` = au moins un héros mort, `all` = tous morts, `{etat}` = le héros désigné
    *  est mort. */
   | { kind: 'partyDead'; who: PartySelector }
@@ -367,7 +374,11 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
       const have = (ctx.party ?? []).reduce((n, h) => n + (h.items ?? []).filter((it) => (it.trappingId ?? it.label) === cond.trappingId).length, 0);
       return have >= need;
     }
-    case 'money': return ctx.money ? brassValue(ctx.money) >= brassValue(cond.atLeast) : false;
+    case 'money': {
+      const seuil = seuilDeBourse(cond.atLeast);
+      if ('lie' in seuil) return valeurNonLiee({ tire: seuil.lie });
+      return ctx.money ? brassValue(ctx.money) >= brassValue(seuil.montant) : false;
+    }
     case 'partyDead': {
       if (typeof cond.who === 'object') return membreDesigne(ctx, cond.who.etat)?.dead === true;
       const party = ctx.party ?? [];
@@ -846,9 +857,10 @@ export function flowHasTest<E = EffectOp>(flow: Flow<E>): boolean {
  *  `test` contenant l'une d'elles vers l'exécuteur IMPUR plutôt que `runPureFlowLines` (qui les avalerait). */
 const HOOK_BACKED_OPS = new Set(['grantFreeAttack', 'interruptFocus', 'breakBlade', 'delayed']);
 
-/** Op IMPURE : de `HOOK_BACKED_OPS`, ou de NAVIRE (`estOpDuNavire`), résolue sur la cible `navire` par
- *  `noyau/navireOps.ts` — `applyOps` les laisse toutes inertes. */
-const estOpImpure = (o: GameOp): boolean => HOOK_BACKED_OPS.has(o.op) || estOpDuNavire(o);
+/** Op IMPURE : de `HOOK_BACKED_OPS`, de NAVIRE (`estOpDuNavire`), résolue sur la cible `navire` par
+ *  `noyau/navireOps.ts`, ou de la BOURSE DU GROUPE (`estOpDeLaBourseDuGroupe`) — `applyOps` les laisse toutes
+ *  inertes. */
+const estOpImpure = (o: GameOp): boolean => HOOK_BACKED_OPS.has(o.op) || estOpDuNavire(o) || estOpDeLaBourseDuGroupe(o);
 
 /** Le Flow porte-t-il une op IMPURE (cf. `estOpImpure`) ? Si oui, son exécution ne passe jamais par
  *  `runPureFlowLines`, qui l'avalerait. */
@@ -1047,6 +1059,45 @@ export function reecrireLesOps<E = EffectOp>(flow: Flow<E>, f: (op: GameOp) => G
   return reecrireFlow(flow, (n) => (n.kind === 'do' && isEffectOp(n.effect)
     ? { ...n, effect: { ...n.effect, ops: n.effect.ops.flatMap((o) => f(o) ?? []) } }
     : n));
+}
+
+/** Les valeurs LIÉES d'un Flow (`TermeLie`, `engine/ops.ts`) : leurs définitions `{tire, de}` par nom, et les
+ *  noms relus `{tire}` sans définition. Une définition en double lève. PUR. */
+export function tiragesDuFlow(flow: unknown): { definitions: Map<string, Formula>; nonLies: string[] } {
+  const definitions = new Map<string, Formula>();
+  const lus = new Set<string>();
+  const visiter = (v: unknown): void => {
+    if (Array.isArray(v)) { v.forEach(visiter); return; }
+    if (!v || typeof v !== 'object') return;
+    const o = v as Record<string, unknown>;
+    if (typeof o.tire === 'string') {
+      if (o.de === undefined) { lus.add(o.tire); return; }
+      if (definitions.has(o.tire)) throw new Error(`#1652 — valeur liée « ${o.tire} » définie deux fois dans le même Flow.`);
+      definitions.set(o.tire, o.de as Formula);
+      return;
+    }
+    Object.values(o).forEach(visiter);
+  };
+  visiter(flow);
+  return { definitions, nonLies: [...lus].filter((n) => !definitions.has(n)) };
+}
+
+/** LIE les valeurs tirées d'un Flow : chaque définition `{tire, de}` est tirée UNE fois par `valeurDe`, au départ
+ *  du Flow et dans l'ordre du document, puis chaque `{tire}` (définition ou relecture) devient sa valeur.
+ *  Un Flow sans valeur liée ressort tel quel ; une relecture sans définition lève. Immuable. MDG 15 l.245 */
+export function lierLesTirages<E>(flow: Flow<E>, valeurDe: (de: Formula) => number): Flow<E> {
+  const { definitions, nonLies } = tiragesDuFlow(flow);
+  if (nonLies.length) throw new Error(`#1652 — valeur(s) liée(s) relue(s) sans définition dans le Flow : ${nonLies.join(', ')}.`);
+  if (!definitions.size) return flow;
+  const valeurs = new Map([...definitions].map(([nom, de]) => [nom, valeurDe(de)]));
+  const lier = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(lier);
+    if (!v || typeof v !== 'object') return v;
+    const o = v as Record<string, unknown>;
+    if (typeof o.tire === 'string') return valeurs.get(o.tire);
+    return Object.fromEntries(Object.entries(o).map(([k, x]) => [k, lier(x)]));
+  };
+  return lier(flow) as Flow<E>;
 }
 
 /** Visite RÉCURSIVE de tous les nœuds d'un Flow (branches `if`/`test` comprises) — pour la validation

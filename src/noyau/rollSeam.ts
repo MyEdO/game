@@ -291,7 +291,7 @@ export type FreeConsLine = string | { text: string; tone?: RecapTone; icon?: str
 
 /** Enveloppe des lignes de conséquence DÉJÀ composées (sans roll/target/sl du jet visible) en
  *  `Consequence[]` (#295 Lot 1, `out.free` passthrough) — SOURCE UNIQUE, réutilisée par tous les
- *  appliers de cascade migrés (river/travel/sea/shipwreck/pursuit/combat/rest/embrigadement). */
+ *  appliers de cascade migrés (river/travel/sea/shipwreck/pursuit/combat/rest). */
 export const freeCons = (texts: FreeConsLine[]): Consequence[] => texts
   .map((x): { text: string; tone?: RecapTone; icon?: string } => (typeof x === 'string' ? { text: x } : x))
   .filter((x) => x.text.length > 0)
@@ -831,7 +831,7 @@ export function assertSeparabilite(surLaCible: ModLine[], combine: number, circC
 /**
  * MONTEUR CANONIQUE d'une ligne de jet (#1153) — le SEUL endroit du jeu où `base`/`mods`/`target`
  * d'une étape se calculent. La porte du seam (`buildMonoStep`) comme les monteurs LOCAUX des flux
- * (voyage fluvial/maritime/terrestre, embrigadement, activités hors combat) le consomment : un
+ * (voyage fluvial/maritime/terrestre, activités hors combat) le consomment : un
  * call-site DÉCLARE, il ne calcule plus — une erreur de cette famille se corrige ICI, une fois.
  *
  * INVARIANTS :

@@ -2390,7 +2390,7 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  l'événement de port puis transitionner vers la scène du lieu — porté par la désertion à la relâche
    *  (choix `shoreLeave.accorder`), surfacée au siège MJ (`travelPlan` déjà nul à l'accostage, hors de la branche
    *  générique `purpose:'test' && travelPlan.sea`). La clôture (`dispatchCascadeDone`) enchaîne
-   *  `finalizePortArrival` — `resolvePortArrival` peut ouvrir SA propre cascade (`openEmbrigadementRecovery`)
+   *  `finalizePortArrival` — `resolvePortArrival` peut ouvrir SA propre cascade (la `consequence` de l'événement)
    *  sans garde de synchro puisque `pendingCascade` est DÉJÀ null post-`advanceCascade` (#387, patron #383).
    *  `evenementJoue` : la cascade est CELLE de l'événement de port (sa `consequence` a suspendu,
    *  `finalizePortArrivalTo`) — sa clôture fait seulement l'arrivée au lieu. */

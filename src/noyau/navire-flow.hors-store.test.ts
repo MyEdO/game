@@ -10,21 +10,22 @@ import { rollShipCritical } from '../engine/shipCritical';
 import { makeRNG } from '../engine/dice';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 import { applierDe } from './cascade';
-import { creditBourse } from './bourseFlow';
+import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { ModificateurDuNavire } from '../engine/seaVoyage';
 import type { Jeu } from './etat';
 import { fixtureText } from '../i18n/fixtureText';
 import { setDataset, resetData } from '../data/overrides';
 import { BOARD_EVENTS, FAST_VOYAGE_PALIERS, PORT_EVENTS } from '../engine/seaVoyage';
-import type { Flow } from '../engine/flowCore';
+import { lierLesTirages, tiragesDuFlow, type Flow } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../engine/types';
 import { itemFromTrappingById } from '../engine/items';
 import { shipboardSouls } from './shipCrew';
 import { t } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
-import type { GameOp } from '../engine/ops';
+import { applyOps, type GameOp } from '../engine/ops';
+import { toBrass } from '../engine/money';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { checkBattleOver } from './combatFlow';
 
@@ -700,5 +701,204 @@ describe('Voyage rapide en grammaire (#1652 lot 5 — MDG 15 l.33-37, l.49-51)',
     expect(get().vessel!.criticals).toHaveLength(1);
     applyVesselCritical(get, set, crit());
     expect(get().pendingCascade).not.toBeNull();
+  });
+});
+
+describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, valeurs maison du 2026-11-07)', () => {
+  beforeEach(etatFrais);
+  afterEach(() => resetData());
+
+  const enSous = () => toBrass(partyMoneyTotal(get));
+  const finance = (co: number) => creditBourse(get, set, get().party[0].id, { gold: co, silver: 0, brass: 0 });
+  const surLeGroupe = (ops: unknown[]): Effect => ({ type: 'ops', on: 'party', ops } as never);
+  const escale = (id: string) => {
+    const c = PORT_EVENTS.find((e) => e.id === id)!.consequence;
+    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id: rangee, label, desc }) => ({ min, max, id: rangee, label, desc, consequence: c })) as never);
+    finalizePortArrivalTo(get, set, carte.places[1], true);
+  };
+  const choixOuvert = () => get().pendingCascade?.participants.find((s) => s.kind === 'flowChoice' && s.chosen == null);
+  const tranche = (id: string, oui: boolean) => {
+    expect(choixOuvert()?.id).toBe(`flowChoice-${id}`);
+    avanceEtapeCascade(get, undefined, () => (oui ? 'yes' : 'no'));
+  };
+  const joueLeTest = (reussi: boolean) => {
+    get().jetLancer('test');
+    set({ pendingTest: { ...get().pendingTest!, roll: reussi ? 1 : 99, success: reussi, sl: reussi ? 1 : -3 } });
+    get().jetValider('test');
+  };
+  const cale = (enc: number, basePriceGold: number) => set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot', cargoId: 'bois-mer', enc, basePriceGold }] } });
+  const encEnCale = () => (get().vessel!.cargo ?? []).reduce((s, l) => s + l.enc, 0);
+
+  it('une valeur liée se tire UNE fois : sa définition et ses relectures valent le même nombre', () => {
+    const flow: Flow = { kind: 'seq', steps: [
+      { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'equipage', delta: { tire: 'n', de: { dice: { n: 2, sides: 10 } } } }] } as never },
+      { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'equipage', delta: { tire: 'n' } }] } as never },
+    ] };
+    let tirages = 0;
+    expect(JSON.stringify(lierLesTirages(flow, () => { tirages++; return 7; }))).toBe(JSON.stringify({ kind: 'seq', steps: [
+      { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'equipage', delta: 7 }] } },
+      { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'equipage', delta: 7 }] } },
+    ] }));
+    expect(tirages).toBe(1);
+    expect(() => tiragesDuFlow({ a: { tire: 'n', de: 1 }, b: { tire: 'n', de: 2 } })).toThrow(/deux fois/);
+    expect(() => lierLesTirages({ kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'equipage', delta: { tire: 'x' } }] } } as never, () => 0)).toThrow(/sans définition/);
+  });
+
+  it('`money.groupe` débite puis crédite la bourse du GROUPE, et le journal dit le mouvement', () => {
+    finance(10);
+    applyEffects(get, set, [surLeGroupe([{ op: 'money', montant: { brass: -480 }, groupe: true }])]);
+    expect(enSous()).toBe(10 * 240 - 480);
+    expect(get().journal).toContain(t('eff.bourseDuGroupe', { sens: '−', montant: '2 CO' }));
+    applyEffects(get, set, [surLeGroupe([{ op: 'money', montant: { brass: 240 }, groupe: true }])]);
+    expect(enSous()).toBe(9 * 240);
+  });
+
+  it('`money.groupe` est inerte dans `applyOps` (la bourse du groupe se résout à la feuille d’Effet)', () => {
+    const h = get().party[0];
+    expect(applyOps(h, [{ op: 'money', montant: { brass: 240 }, groupe: true }], { rng: makeRNG(1) } as never)).toEqual([]);
+  });
+
+  it('Prêtre de Manann : la donnée porte la RAW (1d10 CO + Taille en pistoles, ou Humeur −4d10)', () => {
+    const txt = JSON.stringify(PORT_EVENTS.find((e) => e.id === 'pretre-de-manann')!.consequence);
+    expect(txt).toContain('{"tire":"benediction","de":{"sum":[{"times":{"of":{"dice":{"n":1,"sides":10}},"factor":240}},{"times":{"of":{"tailleDuNavire":true},"factor":12}}]}}');
+    expect(txt).toContain('{"op":"manann","delta":{"sign":-1,"dice":{"n":4,"sides":10}}}');
+  });
+
+  it('Prêtre de Manann : payer débite 1d10 CO + 25 pistoles (cogue de 25 m, MDG 12 l.54), l’Humeur ne bouge pas', () => {
+    finance(12);
+    escale('pretre-de-manann');
+    expect(choixOuvert()!.options![0].detail).toMatch(/bourse du groupe perd/);
+    tranche('Payer la bénédiction', true);
+    const paye = 12 * 240 - enSous();
+    expect(paye % 240).toBe(25 * 12 % 240);
+    expect(paye).toBeGreaterThanOrEqual(240 + 300);
+    expect(paye).toBeLessThanOrEqual(2400 + 300);
+    expect(get().vessel!.manann?.score ?? 0).toBe(0);
+  });
+
+  it('Prêtre de Manann : refuser coûte 4d10 d’Humeur, la bourse reste', () => {
+    finance(12);
+    escale('pretre-de-manann');
+    tranche('Payer la bénédiction', false);
+    expect(enSous()).toBe(12 * 240);
+    expect(get().vessel!.manann!.score).toBeLessThanOrEqual(-4);
+    expect(get().vessel!.manann!.score).toBeGreaterThanOrEqual(-40);
+  });
+
+  it('Prêtre de Manann : une bourse sous le moindre prix (2 CO < 1 CO + 25 pistoles) n’offre pas de payer', () => {
+    finance(2);
+    escale('pretre-de-manann');
+    expect(choixOuvert()).toBeUndefined();
+    expect(enSous()).toBe(2 * 240);
+    expect(get().vessel!.manann!.score).toBeLessThan(0);
+  });
+
+  it('Embrigadement : la rançon payée ramène les MÊMES marins enlevés', () => {
+    finance(30);
+    escale('embrigadement');
+    const enleves = get().vessel!.crewLost!;
+    expect(enleves).toBeGreaterThanOrEqual(2);
+    tranche('Tenter de récupérer l’équipage enlevé', true);
+    joueLeTest(true);
+    tranche('Payer la rançon', true);
+    expect(get().vessel!.crewLost).toBe(0);
+    const rancon = 30 * 240 - enSous();
+    expect(rancon % 240).toBe(0);
+    expect(rancon / 240).toBeGreaterThanOrEqual(2);
+    expect(rancon / 240).toBeLessThanOrEqual(20);
+  });
+
+  /** 1d10 de plus, plafonnés à l'effectif nominal de la cogue (15). */
+  const unD10DePlus = (avant: number) => {
+    const apres = get().vessel!.crewLost!;
+    expect(avant, 'prémisse : la cogue garde des marins à perdre').toBeLessThan(15);
+    expect(apres).toBeGreaterThanOrEqual(avant + 1);
+    expect(apres).toBeLessThanOrEqual(Math.min(15, avant + 10));
+  };
+
+  it('Embrigadement : sans payer, la Discrétion réussie les libère tous', () => {
+    escale('embrigadement');
+    tranche('Tenter de récupérer l’équipage enlevé', true);
+    joueLeTest(true);
+    tranche('Les libérer en douce', true);
+    joueLeTest(true);
+    expect(get().vessel!.crewLost).toBe(0);
+  });
+
+  it('Embrigadement : la Discrétion échouée coûte 1d10 marins de plus', () => {
+    escale('embrigadement');
+    const avant = get().vessel!.crewLost!;
+    tranche('Tenter de récupérer l’équipage enlevé', true);
+    joueLeTest(true);
+    tranche('Les libérer en douce', true);
+    joueLeTest(false);
+    unD10DePlus(avant);
+  });
+
+  it('Embrigadement : le Ragot échoué coûte 1d10 marins de plus', () => {
+    escale('embrigadement');
+    const avant = get().vessel!.crewLost!;
+    tranche('Tenter de récupérer l’équipage enlevé', true);
+    joueLeTest(false);
+    unD10DePlus(avant);
+  });
+
+  it('Embrigadement : renoncer ne coûte que les enlevés', () => {
+    escale('embrigadement');
+    const perte = get().vessel!.crewLost!;
+    tranche('Tenter de récupérer l’équipage enlevé', false);
+    expect(get().vessel!.crewLost).toBe(perte);
+    expect(get().pendingCascade).toBeNull();
+  });
+
+  it('Contrôle à quai : les droits valent 10 % de la valeur de la cargaison (MDG 15 l.247, l.436)', () => {
+    finance(50);
+    cale(10, 10); // 10 Enc à 10 CO l’Enc : 100 CO
+    escale('controle-a-quai');
+    joueLeTest(false);
+    tranche('Payer les droits de douane', true);
+    expect(enSous()).toBe((50 - 10) * 240);
+    expect(encEnCale()).toBe(10);
+  });
+
+  it('Contrôle à quai : refuser les droits, ou ne pas pouvoir les payer, fait saisir la cargaison', () => {
+    finance(50);
+    cale(10, 10);
+    escale('controle-a-quai');
+    joueLeTest(false);
+    tranche('Payer les droits de douane', false);
+    expect(encEnCale()).toBe(0);
+    expect(enSous()).toBe(50 * 240);
+
+    etatFrais();
+    finance(5);
+    cale(10, 10);
+    escale('controle-a-quai');
+    joueLeTest(false);
+    expect(choixOuvert()).toBeUndefined();
+    expect(encEnCale()).toBe(0);
+  });
+
+  it('Contrôle à quai : la Subornation réussie offre un pot-de-vin de 2d10 CO, la cargaison reste', () => {
+    finance(50);
+    cale(10, 10);
+    escale('controle-a-quai');
+    joueLeTest(true);
+    tranche('Verser le pot-de-vin', true);
+    const verse = 50 * 240 - enSous();
+    expect(verse % 240).toBe(0);
+    expect(verse / 240).toBeGreaterThanOrEqual(2);
+    expect(verse / 240).toBeLessThanOrEqual(20);
+    expect(encEnCale()).toBe(10);
+  });
+
+  it('Contrôle à quai : la Subornation réussie mais le pot-de-vin refusé, restent les droits', () => {
+    finance(50);
+    cale(10, 10);
+    escale('controle-a-quai');
+    joueLeTest(true);
+    tranche('Verser le pot-de-vin', false);
+    tranche('Payer les droits de douane', true);
+    expect(enSous()).toBe((50 - 10) * 240);
   });
 });

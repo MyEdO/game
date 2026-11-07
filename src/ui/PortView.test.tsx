@@ -6,25 +6,23 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { findNavalPortById } from '../data';
-import { toMoney } from '../engine/money';
 import type { PortProfile } from '../engine/seaVoyage';
 import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import { PortHeader, EscaleTab } from './PortView';
 import { refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 
-// `ShoreLeaveBody`/`ManannBody` (composés par `EscaleTab`) lisent l'événement en attente directement au
-// store (SEULE source, cf. VoyageScreen embedded), jamais via une prop `pendingXxx` ad hoc sur ces deux
-// corps. `renderToStaticMarkup` (environnement Vitest `node`) fait passer zustand par
+// `ShoreLeaveBody` (composé par `EscaleTab`) lit l'événement en attente directement au store (SEULE
+// source, cf. VoyageScreen embedded), jamais via une prop `pendingXxx` ad hoc sur ce corps. `renderToStaticMarkup` (environnement Vitest `node`) fait passer zustand par
 // `getServerState ?? getInitialState` (cf. `node_modules/zustand/react.js`) — un `setState` classique
 // n'est donc JAMAIS visible ici : seule une mutation de l'objet `getInitialState()` l'est. Restauré
 // après chaque test (jamais de fuite vers un test ultérieur qui lirait `getInitialState()`).
-const seedInitial = (patch: { pendingShoreLeave?: unknown; pendingManannPriest?: unknown; net?: unknown }) => {
+const seedInitial = (patch: { pendingShoreLeave?: unknown; net?: unknown }) => {
   Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, patch);
 };
 const initialNetMode = useGame.getInitialState().net;
 afterEach(() => {
-  seedInitial({ pendingShoreLeave: null, pendingManannPriest: null, net: initialNetMode });
+  seedInitial({ pendingShoreLeave: null, net: initialNetMode });
 });
 
 const pp: PortProfile = {
@@ -37,7 +35,7 @@ const vessel = (crew?: CampaignVessel['crew']): CampaignVessel => ({
 const noop = () => {};
 const escaleProps = {
   vessel: vessel(), refusHote: null,
-  pendingShoreLeave: null, pendingManannPriest: null,
+  pendingShoreLeave: null,
   onHire: noop, onDismiss: noop,
 };
 
@@ -80,15 +78,6 @@ describe('EscaleTab — actions d’escale (#228)', () => {
     expect(html).not.toContain('Aucun équipage salarié');
   });
 
-  it('événement PRÊTRE DE MANANN surfacé (pas caché)', () => {
-    const pendingManannPriest = { cost: toMoney({ gold: 5, silver: 3 }) };
-    seedInitial({ pendingManannPriest });
-    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} pendingManannPriest={pendingManannPriest} />);
-    expect(html).toContain('Prêtre de Manann');
-    expect(html).toContain('Payer');
-    expect(html).not.toContain('Aucun événement d’escale en cours');
-  });
-
   it('RELÂCHE À TERRE en attente surfacée', () => {
     const pendingShoreLeave = { to: { id: 'x', label: 'X', pos: { x: 0, y: 0 }, scene: 's' } };
     seedInitial({ pendingShoreLeave });
@@ -112,12 +101,4 @@ describe('EscaleTab — actions d’escale (#228)', () => {
     expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Refuser la relâche/);
   });
 
-  it('invité (guest) : PRÊTRE DE MANANN non résolvable localement (régression #343)', () => {
-    const pendingManannPriest = { cost: toMoney({ gold: 5, silver: 3 }) };
-    seedInitial({ pendingManannPriest, net: { ...initialNetMode, mode: 'guest' } });
-    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })} pendingManannPriest={pendingManannPriest} />);
-    expect(html).toContain('Payer');
-    expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Payer/);
-    expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Refuser/);
-  });
 });

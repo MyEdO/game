@@ -12,8 +12,9 @@ import type { FormuleDe, FormuleSansTirage, PerSL } from './ops';
 export type LectureDeCarac = (k: CharKey) => number;
 
 /** Le RÉFÉRENT d'une formule : ses Caractéristiques (`charOf`), leurs Bonus (`bonusOf`) et, pour un combattant,
- *  ses Blessures maximales (`blessuresMax`). */
-export interface Referent { carac: LectureDeCarac; bonusDe: LectureDeCarac; blessuresMax?: () => number }
+ *  ses Blessures maximales (`blessuresMax`) ; pour le navire de campagne, sa Taille (`tailleDuNavire`) et la
+ *  valeur de sa cargaison (`valeurCargaison`). */
+export interface Referent { carac: LectureDeCarac; bonusDe: LectureDeCarac; blessuresMax?: () => number; tailleDuNavire?: () => number; valeurCargaison?: () => number }
 
 /** Le référent d'un combattant : ses Caractéristiques effectives, leurs Bonus par `bonusDe`, ses Blessures
  *  maximales. LDB 21 l.33 */
@@ -38,6 +39,8 @@ export function evaluer<J>(f: FormuleDe<J>, ref: Referent, jet: (t: J) => number
   if ('engagedAdvantageGap' in f) return gap ?? 0;
   if ('woundsDealt' in f) return woundsDealt ?? 0;
   if ('blessuresMax' in f) return ref.blessuresMax?.() ?? 0;
+  if ('tailleDuNavire' in f) return ref.tailleDuNavire?.() ?? 0;
+  if ('valeurCargaison' in f) return ref.valeurCargaison?.() ?? 0;
   if ('rule' in f) { const v = rule(f.rule); return typeof v === 'number' && Number.isFinite(v) ? v : 0; }
   if ('minimum' in f) return Math.max(f.minimum, sous(f.of));
   if ('parTranche' in f) return Math.floor(sous(f.of) / f.parTranche);

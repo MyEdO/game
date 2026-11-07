@@ -13,7 +13,7 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
-import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire,
+import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDeLaBourseDuGroupe,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
@@ -53,15 +53,15 @@ import { TIME_COST } from '../engine/timeCost';
 import { feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
 import { findSpellById } from '../data/index';
-import { toBrass, fromBrass, toMoney } from '../engine/money';
-import { distributeCredit, drainGroup, condCtx } from './bourseFlow';
+import { toBrass, fromBrass, toMoney, formatMoney } from '../engine/money';
+import { mouvementDeLaBourseDuGroupe, condCtx, partyMoneyTotal } from './bourseFlow';
 import { groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './monde/scene';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
 import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import { type FlowTest, type EffectOp, type CibleDeRole, type Condition, flowEffects, evalCondition, leafOpsCtx, EMPTY_FLOW } from '../engine/flowCore';
+import { type FlowTest, type EffectOp, type CibleDeRole, type Condition, flowEffects, evalCondition, leafOpsCtx, lierLesTirages, EMPTY_FLOW } from '../engine/flowCore';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
@@ -75,9 +75,11 @@ import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
 import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde } from './monde/combatants';
-import { appliquerAuNavire, ouvrirLeTestDEquipage } from './navireOps';
+import { appliquerAuNavire, ouvrirLeTestDEquipage, referentDuNavire } from './navireOps';
+import type { Referent } from '../engine/formule';
 import { marinsDuRole } from '../engine/shipCritical';
 import { garanti } from '../lib/garanti';
+import { humanizeFlowSentence } from './codex/humanize';
 import { ajouterLaPossession } from './possessionsFlow';
 import { possessionLabel, type Possession, type PossessionInput } from '../engine/possession';
 import { effectiveTalents } from '../engine/talentEffects';
@@ -790,6 +792,21 @@ export function estCibleDeScene(on: EffectOp['on']): on is Exclude<CibleDEffetDe
   return CIBLES_D_EFFET_DE_SCENE.some((c) => c.on === (genreDeCible(on) ?? 'party'));
 }
 
+/** Résout les ops de la BOURSE DU GROUPE de la feuille `e`, une fois chacune, montant résolu sur le référent de
+ *  scène (`referentDeScene`) ; rend la feuille sans elles, ou `null` s'il n'y reste rien. MDG 15 l.245-247 */
+function bougerLaBourseDuGroupe(env: EffectEnv, e: EffectOp, rng: RNG): EffectOp | null {
+  const bourse = e.ops.filter(estOpDeLaBourseDuGroupe);
+  if (!bourse.length) return e;
+  for (const o of meneurDuMonde(env.get()) ? bourse : []) {
+    const avant = toBrass(partyMoneyTotal(env.get));
+    mouvementDeLaBourseDuGroupe(env.get, env.set, Math.round(resolveFormula(o.montant.brass, referentDeScene(env.get, env.set), rng)));
+    const delta = toBrass(partyMoneyTotal(env.get)) - avant;
+    if (delta) env.log(t('eff.bourseDuGroupe', { sens: delta > 0 ? '+' : '−', montant: formatMoney(fromBrass(Math.abs(delta))) }));
+  }
+  const reste = e.ops.filter((o) => !estOpDeLaBourseDuGroupe(o));
+  return reste.length ? { ...e, ops: reste } : null;
+}
+
 /** La feuille `e` dont la durée `pendantJours` est TIRÉE une fois (sur `sujet`) puis bakée en échéance
  *  d'horloge, sous la source du Flow ; la durée se dit au journal. MDG 15 l.211-212, l.233-234 */
 function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, sujet: Combatant, rng: RNG): EffectOp {
@@ -1014,7 +1031,7 @@ function ouvrirGeste(get: Get, set: SetFn, e: Effect, suite: Flow, sl?: number):
  * la conséquence aura produit).
  */
 export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.flowTitle'), sl?: number): Applique {
-  const stack: Flow[] = [structuredClone(flow)]; // #2097
+  const stack: Flow[] = [lierLesTirages(structuredClone(flow), (de) => Math.round(resolveFormula(de, referentDeScene(get, set), battleRng())))]; // #2097
   const batch: Effect[] = [];
   const flush = (): Applique => {
     return batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined;
@@ -1072,6 +1089,19 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
   return flush();
 }
 
+/** Ce que fait une branche de choix, en prose joueur : la conséquence chiffrée (valeurs liées déjà tirées) se
+ *  lit avant de trancher. MDG 15 l.246 */
+const detailDeBranche = (f: Flow | undefined): { detail?: string } => {
+  const detail = f ? humanizeFlowSentence(f, []) : '';
+  return detail ? { detail } : {};
+};
+
+/** Référent d'une valeur de scène sans combattant (valeur liée `lierLesTirages`, bourse du groupe) : le navire de
+ *  campagne (Taille, valeur de la cargaison) quand il y en a un, sinon le meneur du groupe. MDG 15 l.246-247 */
+function referentDeScene(get: Get, set: SetFn): Referent | Combatant {
+  return referentDuNavire(get, set) ?? garanti(meneurDuMonde(get()), 'valeur liée', 'meneur du groupe');
+}
+
 /**
  * Ouvre la DÉCISION d'un nœud `choice` d'un Flow de scène (`runFlow`) : une étape de choix `flowChoice`
  * au MENEUR du groupe, oui / renoncer, dont l'applier joue la branche puis `after`. L'auto-pilote prend
@@ -1085,7 +1115,10 @@ function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: '
   openChoice(get, set, {
     title: label, purpose: 'test', icon: node.icon ?? 'ui/think',
     id: `flowChoice-${node.prompt}`, kind: 'flowChoice', actorId: decideur.id, label: dataLabel(node.prompt),
-    options: [{ key: 'yes', label: dataLabel(node.prompt) }, { key: 'no', label: t('opt.renoncer') }],
+    options: [
+      { key: 'yes', label: dataLabel(node.prompt), ...detailDeBranche(node.yes) },
+      { key: 'no', label: t('opt.renoncer'), ...detailDeBranche(node.no) },
+    ],
     defaultChoice: 'yes',
     meta: { choiceYes: node.yes, choiceNo: node.no ?? EMPTY_FLOW, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) },
   });
@@ -1458,13 +1491,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: libelleEffet('giveMoney'), icon: 'resource/gold-purse',
     make: () => ({ type: 'giveMoney', montant: { gold: 0, silver: 0, brass: 0 } }),
     apply: (e, env) => {
-      // Argent de GROUPE sans bénéficiaire unique : positif = butin/récompense réparti PAR TÊTE
-      // (`distributeCredit`) ; négatif = perte SCRIPTÉE — `drainGroup` (glouton PLAFONNÉ, jamais
-      // esquivée par le tout-ou-rien de `payFromGroup` : une perte > total du groupe vide tout à 0).
+      // Argent de GROUPE sans bénéficiaire unique (`mouvementDeLaBourseDuGroupe`) : une perte > total du
+      // groupe vide tout à 0, jamais esquivée par le tout-ou-rien de `payFromGroup`.
       const m = e.montant;
-      const net = toBrass(toMoney(m));
-      if (net > 0) distributeCredit(env.get, env.set, fromBrass(net));
-      else if (net < 0) drainGroup(env.get, env.set, fromBrass(-net));
+      mouvementDeLaBourseDuGroupe(env.get, env.set, toBrass(toMoney(m)));
       const parts = [m.gold && t('eff.coin.gold', { n: m.gold }), m.silver && t('eff.coin.silver', { n: m.silver }), m.brass && t('eff.coin.brass', { n: m.brass })].filter(Boolean); // noms canon FR (couronne/pistole/sou)
       if (parts.length) env.log(t('eff.purse', { sign: (m.gold ?? 0) < 0 || (m.silver ?? 0) < 0 ? '' : '+', parts: parts.join(' ') }));
     },
@@ -1561,16 +1591,18 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   ops: {
     group: 'Afflictions', label: libelleEffet('ops'), icon: 'mechanic/stat-mod',
     make: () => ({ type: 'ops', on: 'party', ops: [{ op: 'wounds', amount: 5 }] }),
-    apply: (e, env) => {
+    apply: (feuilleAuthoree, env) => {
       // EffectOp : applique les GameOps (vocabulaire mécanique des sorts) à la cible de SCÈNE
       // (`party`/`hero`, défaut `party`). `applyLeafOps` = SOURCE UNIQUE : contexte de FEUILLE
       // (untilTime/label bakés par un consommable — la branche d'un `test` suspendu garde sa durée)
       // + programmation des ops `delayed`.
-      const on = e.on ?? 'party';
-      if (!estCibleDeScene(on)) throw new Error(messageCibleHorsScene(e, on));
-      const horsNavire = messageOpDuNavireHorsNavire(e);
+      const on = feuilleAuthoree.on ?? 'party';
+      if (!estCibleDeScene(on)) throw new Error(messageCibleHorsScene(feuilleAuthoree, on));
+      const horsNavire = messageOpDuNavireHorsNavire(feuilleAuthoree);
       if (horsNavire) throw new Error(horsNavire);
       const base = { rng: battleRng(), sl: env.sl };
+      const e = bougerLaBourseDuGroupe(env, feuilleAuthoree, base.rng);
+      if (!e) return;
       if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
       const targets = typeof on === 'object' ? marinsDuRole(env.targets('party'), on.role.id) : env.targets(on, e.heroId);
       if (!targets.length) {

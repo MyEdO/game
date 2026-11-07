@@ -6,7 +6,7 @@
  * porteur (ex. `CONDITION_KINDS_CARTE`) ; absente = toute l'algèbre. Remplace les
  * adaptateurs plats `whenFlag/whenWindow/buildWhen` (qui n'exprimaient que « flag ET créneau »).
  */
-import type { Condition, ActorRef, ActorField, CompareOp, PartySelector, TemporalCondition } from '../../engine/flowCore';
+import { seuilDeBourse, type Condition, type ActorRef, type ActorField, type CompareOp, type PartySelector, type TemporalCondition } from '../../engine/flowCore';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
 import { libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
@@ -163,16 +163,7 @@ export function ConditionEditor({ cond, onChange, kinds, narratif, noeud = condi
           <label className="dr">×<NumberField variant="nu" label="Nombre d’exemplaires" min={1} value={cond.count ?? 1} onChange={(count) => onChange({ kind: 'hasItem', trappingId: cond.trappingId, count })} /></label>
         </>
       )}
-      {cond.kind === 'money' && (
-        <span className="cond-time">≥
-          {(['gold', 'silver', 'brass'] as const).map((k) => (
-            <label className="dr" key={k}>
-              {k === 'gold' ? 'CO' : k === 'silver' ? 'pa' : 'sc'}
-              <NumberField variant="nu" label={k === 'gold' ? 'Couronnes d’or' : k === 'silver' ? 'Pistoles d’argent' : 'Sous de cuivre'} min={0} vide value={cond.atLeast[k]} onChange={(n) => onChange({ kind: 'money', atLeast: { ...cond.atLeast, [k]: n ?? undefined } })} />
-            </label>
-          ))}
-        </span>
-      )}
+      {cond.kind === 'money' && <SeuilDeBourse atLeast={cond.atLeast} onChange={(atLeast) => onChange({ kind: 'money', atLeast })} />}
       {cond.kind === 'partyDead' && (
         <SelecteurDeHeros narratif={narratif} who={cond.who} onChange={(who) => onChange({ kind: 'partyDead', who })} />
       )}
@@ -409,4 +400,25 @@ export function WhenEditor({ when, onChange, kinds, narratif }: {
   narratif?: NarratifBlock;
 }) {
   return <ConditionEditor cond={when ?? CONDITION_TOUJOURS} kinds={kinds} narratif={narratif} onChange={(c) => onChange(c.kind === 'always' ? undefined : c)} />;
+}
+
+type SeuilDeLaBourse = Extract<Condition, { kind: 'money' }>['atLeast'];
+
+/** Seuil de la Condition `money` : un montant, ou une valeur liée du Flow relue par son nom (MDG 15 l.245-247). */
+function SeuilDeBourse({ atLeast, onChange }: { atLeast: SeuilDeLaBourse; onChange: (s: SeuilDeLaBourse) => void }) {
+  const seuil = seuilDeBourse(atLeast);
+  return (
+    <span className="cond-time">≥
+      <label className="cond-time"><input type="checkbox" checked={'lie' in seuil}
+        onChange={(e) => onChange(e.target.checked ? { brass: { tire: 'valeur' } } : {})} /> valeur liée</label>
+      {'lie' in seuil
+        ? <input className="cond-flag" value={seuil.lie} placeholder="nom de la valeur liée (ex. rancon)" onChange={(e) => onChange({ brass: { tire: e.target.value.trim() } })} />
+        : (['gold', 'silver', 'brass'] as const).map((k) => (
+          <label className="dr" key={k}>
+            {k === 'gold' ? 'CO' : k === 'silver' ? 'pa' : 'sc'}
+            <NumberField variant="nu" label={k === 'gold' ? 'Couronnes d’or' : k === 'silver' ? 'Pistoles d’argent' : 'Sous de cuivre'} min={0} vide value={seuil.montant[k]} onChange={(n) => onChange({ ...seuil.montant, [k]: n ?? undefined })} />
+          </label>
+        ))}
+    </span>
+  );
 }

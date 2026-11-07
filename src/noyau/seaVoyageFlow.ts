@@ -48,13 +48,12 @@ import type { Scene } from './monde/scene';
 import { buildScene } from './mapSpec';
 import type { AuthoredEnemy } from './monde/encounterAuthoring';
 import { registerScene } from './monde/registreDesScenes';
-import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
 import { type StakeRef, voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, NAVAL_TRAITS, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
 import { profilNavalDe } from '../engine/coque';
 import { installCost, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
-import { deMonde, formatDice, roll as rollDice, tirer, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
+import { deMonde, formatDice, roll as rollDice, tirer, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
@@ -82,9 +81,9 @@ import { addCondition } from '../engine/conditions';
 import { effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { findSeaHazard, findWhirlpool, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
-  evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
+  evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
-  seulEvenementDePort, meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
+  meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
   type CargoOverload, type EvenementDeBord, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
@@ -96,7 +95,7 @@ import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCre
 import type { NightEntry } from './restFlow';
 import { provisioningManifest } from '../engine/provisions';
 import { toMoney, canAfford, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
+import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog, jouerFlowEntier, runFlow } from './combatEffects';
@@ -2177,14 +2176,6 @@ export function entrerDansLeTourbillon(get: Get, set: Set, whirlpoolId: string, 
   return [t('sv.whirlpoolEvasion', { label: w.label, dr: w.evasion.targetDR })];
 }
 
-function tellManann(get: Get, set: Set, effet: EffetSigne): void {
-  const vessel = get().vessel;
-  if (!vessel) return;
-  const delta = tirerSigne(effet, battleRng());
-  set({ vessel: { ...vessel, manann: addManann(vesselManann(vessel), delta) } });
-  tell(get, set, [t('sv.manannMood', { delta: `${delta >= 0 ? '+' : ''}${delta}`, score: vesselManann(get().vessel).score })]);
-}
-
 // ── Services PORTUAIRES (#30 — réparation, carénage, Améliorations, construction) ────────────────
 // Flux MINIMAL data-driven, consommé par la recette `__wfrp` (DEV) et les tests — l'écran de chantier
 // (UI) viendra dessus. La CONSTRUCTION (ch.12 l.108-164) est un DEVIS pur (`engine/shipBuild.buildShip`) :
@@ -2299,12 +2290,6 @@ export function installerLAmelioration(get: Get, set: Set, traitId: string, unit
 
 // ── Événements de PORT (ch.15 l.127-129 + l.239-263) ─────────────────────────────────────────────
 
-/** Prêtre de Manann en attente de CHOIX joueur (MDG 15 l.246) : payer la bénédiction (coût déjà
- *  tiré) OU réduire l'Humeur de Manann de 4d10 — tranché par `fenetreChoisir('manannPriest', 'payer', …)`. */
-export interface PendingManannPriest {
-  cost: Money;
-}
-
 /** Permission de faire RELÂCHE À TERRE en attente de CHOIX joueur (MDG 15 l.245), posée à l'accostage
  *  AVANT le tirage de l'événement de port — `trancherLaRelache` tranche puis enchaîne `resolvePortArrival`
  *  et l'arrivée au lieu `to`. */
@@ -2342,72 +2327,7 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
   if (event.relache && !shoreLeave) { log(get, set, [t('sv.relacheRefusee', { label: event.label })]); return; }
   // MDG 15 l.249
   if (event.taillePortMax !== undefined && (port?.taille ?? Infinity) > event.taillePortMax) { log(get, set, [t('sv.portTropGrand', { label: event.label, taille: event.taillePortMax })]); return; }
-  if (event.kind === undefined) {
-    if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
-    return;
-  }
-  switch (event.kind) {
-    case 'pretre-manann': {
-      // MDG 15 l.246 : choix du joueur entre payer et réduire l'Humeur — `fenetreChoisir('manannPriest', 'payer', …)`.
-      if (vessel) {
-        // MDG 15 l.246 ; MDG 12 l.54
-        const lengthM = findVehicleById(vessel.vehicleId)?.ship?.lengthM ?? 0;
-        const cost = toMoney({ gold: tirer(event.params.blessingCO, rng), silver: lengthM * event.params.blessingSilverPerSize });
-        set({ pendingManannPriest: { cost } });
-      }
-      break;
-    }
-    case 'embrigadement': {
-      // « Vous perdez 2d10 membres d'équipage » (MDG 15 l.245) : perte PERSISTÉE puis SÉQUENCE de
-      // recouvrement (Ragot Intermédiaire → rançon 2d10 CO OU Discrétion Complexe ; échec → 1d10 de
-      // plus) — cascade influençable dans `embrigadementFlow`. Difficultés en donnée (`sea-events.json`).
-      const p = event.params;
-      openEmbrigadementRecovery(get, set, {
-        lost: tirer(p.lostCrew, rng),
-        ransomCO: tirer(p.ransomCO, rng),
-        extraLoss: tirer(p.failExtraLostCrew, rng),
-        gossipDiff: p.gossipDifficulty,
-        stealthDiff: p.stealthDifficulty,
-      });
-      break;
-    }
-    case 'controle-a-quai': {
-      // « Les droits de douane sont évalués à 10 % de la valeur de toute la cargaison … Si vous ne payez
-      // pas, votre cargaison est saisie. »
-      const cargo = vessel?.cargo ?? [];
-      const tax = Math.ceil(cargo.reduce((s, l) => s + l.enc * l.basePriceGold, 0) * event.params.taxPct / 100);
-      if (tax > 0 && payFromGroup(get, set, toMoney({ gold: tax }), { purpose: 'douane' })) {
-        log(get, set, [t('sv.customsPaid', { tax })]);
-      } else if (tax > 0 && vessel) {
-        set({ vessel: { ...vessel, cargo: [] } });
-        log(get, set, [t('sv.cargoSeized')]);
-      }
-      break;
-    }
-    default:
-      break; // narratif / à jouer en scène — le verbatim au journal
-  }
-}
-
-/** Refus de payer la bénédiction du Prêtre de Manann (MDG 15 l.246) : la bourse ne couvre pas son prix ; `null` sinon.
- *  Lu par le choix du Prêtre (`OUVERTS_DU_CHOIX`), que `refusDuChoix` refuse d'abord à un invité. */
-export function refusDePayerManann(s: Pick<Jeu, 'party' | 'pendingManannPriest'>): string | null {
-  const p = s.pendingManannPriest;
-  return p && !canAfford(totalDesBourses(s.party), p.cost) ? t('sv.benedictionHorsBourse') : null;
-}
-
-/** Résout le choix « Prêtre de Manann » (MDG 15 l.246) : `pay` payé → débite le coût déjà tiré, que le choix n'admet
- *  que couvert (`refusDePayerManann`) ; refusé → réduit l'Humeur de Manann de 4d10 (`tellManann`, réutilise le facteur
- *  libre existant). */
-function trancherLePretreDeManann(get: Get, set: Set, pay: boolean): void {
-  const p = garanti(get().pendingManannPriest, String(pay), 'Prêtre de Manann');
-  set({ pendingManannPriest: null });
-  if (pay) {
-    payFromGroup(get, set, p.cost, { purpose: 'bénédiction Manann' });
-    log(get, set, [t('sv.purificationPaid', { gold: p.cost.gold, silver: p.cost.silver })]);
-    return;
-  }
-  tellManann(get, set, seulEvenementDePort('pretre-manann').params.manann);
+  if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
 }
 
 /** Résout le choix « Relâche à terre » (MDG 15 l.245) posé à l'accostage, AVANT le tirage de
@@ -2486,10 +2406,9 @@ export function finalizePortArrival(get: Get, set: Set, arrival: NonNullable<Pen
   else finalizePortArrivalTo(get, set, to, arrival.allow);
 }
 
-/** Les choix du port (`CorpsDesChoix`, MDG 15 l.245-246) : la bénédiction du Prêtre de Manann, la relâche à terre. */
+/** Les choix du port (`CorpsDesChoix`, MDG 15 l.245) : la relâche à terre. */
 export function choixDuVoyageEnMer(get: Get, set: Set) {
   return {
-    manannPriest: { payer: (payer) => trancherLePretreDeManann(get, set, payer) },
     shoreLeave: { accorder: (accorder) => trancherLaRelache(get, set, accorder) },
   } satisfies Partial<CorpsDesChoix>;
 }

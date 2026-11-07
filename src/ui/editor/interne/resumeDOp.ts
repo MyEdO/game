@@ -38,6 +38,9 @@ export function formulaSummary(f: JsonFormula | undefined): string {
   if ('engagedAdvantageGap' in f) return 'écart d’Avantage';
   if ('woundsDealt' in f) return 'PB infligés';
   if ('blessuresMax' in f) return 'B max';
+  if ('tailleDuNavire' in f) return 'Taille du navire';
+  if ('valeurCargaison' in f) return 'valeur de la cargaison';
+  if ('tire' in f) return f.de === undefined ? `« ${f.tire} »` : `${formulaSummary(f.de)} (« ${f.tire} »)`;
   if ('sl' in f) return 'DR';
   if ('sinPoints' in f) return 'Points de Péché';
   if ('rule' in f) return ruleDef(f.rule)?.label ?? f.rule;
@@ -89,7 +92,7 @@ export function opSummary(o: GameOp): string {
     case 'sinMod': return `${o.amount >= 0 ? '+' : ''}${o.amount}`;
     case 'corruptionExposure': return o.easeSteps != null ? `abri : −${o.easeSteps} cran(s) d’Influence` : `${libelleDeValeur(exposureLevelSchema, o.level ?? '')}${o.nature ? ` (${libelleDeLaNature(o.nature)})` : ''}`;
     case 'castPenalty': return `${o.blocked ? 'magie interdite' : o.maxZeroDR ? 'Prière plafonnée' : `${o.mod ?? 0} ${o.skill ? refOuChoix('skills', o.skill, 'compétence de magie') : 'toute magie'}`}`;
-    case 'money': return `bourse ${typeof o.montant.brass === 'number' && o.montant.brass < 0 ? '' : '+'}${formulaSummary(o.montant.brass)} sc`;
+    case 'money': return `bourse${o.groupe ? ' du groupe' : ''} ${typeof o.montant.brass === 'number' && o.montant.brass < 0 ? '' : '+'}${formulaSummary(o.montant.brass)} sc`;
     case 'statusMod': return `Standing ${formulaSummary(o.amount)} (prochaine aventure)`;
     case 'grantReverseToken': return `inverser ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : o.characteristic ? `un Test ${deElide(CHAR_LABELS[o.characteristic])}` : 'un Test (cible)'}${o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : ''}${o.illimite ? ' (illimité)' : ''}`;
     case 'castWard': return `${o.mod >= 0 ? '+' : '−'}${Math.abs(o.mod)} Langue, rayon ${formulaSummary(o.radius)} m`;

@@ -9,7 +9,7 @@ import { toMoney, priceToMoney } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
 import type { CampaignVessel } from '../noyau/etat';
 import { devisDAchatEnPort, caleALEscale, refusDeBradageEnPort, rolesRecrutables, refusDEmbauche, refusDeDebarquement } from '../noyau/portFlow';
-import { devisDeChantier, ameliorationsAuChantier, type PendingShoreLeave, type PendingManannPriest } from '../noyau/seaVoyageFlow';
+import { devisDeChantier, ameliorationsAuChantier, type PendingShoreLeave } from '../noyau/seaVoyageFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Prose } from './Prose';
@@ -20,7 +20,6 @@ import { ScreenShell } from './ScreenShell';
 import { Tabs } from './composites/Tabs';
 import { TradeTable, type TradeGroup } from './TradeTable';
 import { ShoreLeaveBody } from './ShoreLeaveModal';
-import { ManannBody } from './ManannPriestModal';
 import { GatedAction, raisonSi } from './GatedAction';
 import { Grid, Split } from './Layout';
 
@@ -48,25 +47,23 @@ export function PortHeader({ pp, catalogue }: { pp: PortProfile; catalogue?: Nav
   );
 }
 
-/** Onglet ESCALE (#228) — actions d'escale agrégées : événements d'escale en cours surfacés (Relâche à
- *  terre MDG 15 l.245 / Prêtre de Manann l.246 — le hub COMPOSE `ShoreLeaveBody`/`ManannBody`, déjà
- *  résolvants et branchés au store, aucune 2e prose de décision) et RECRUTEMENT salarié (MDG 14
- *  l.293-302, `crew-roles.json`, PUR sur ce volet — `onHire`/`onDismiss` en props). */
-export function EscaleTab({ vessel, refusHote, pendingShoreLeave, pendingManannPriest, onHire, onDismiss }: {
+/** Onglet ESCALE (#228) — actions d'escale agrégées : la Relâche à terre en cours surfacée (MDG 15 l.245 —
+ *  le hub COMPOSE `ShoreLeaveBody`, déjà résolvant et branché au store, aucune 2e prose de décision) et
+ *  RECRUTEMENT salarié (MDG 14 l.293-302, `crew-roles.json`, PUR sur ce volet — `onHire`/`onDismiss` en props). */
+export function EscaleTab({ vessel, refusHote, pendingShoreLeave, onHire, onDismiss }: {
   vessel: CampaignVessel; refusHote: string | null;
-  pendingShoreLeave: PendingShoreLeave | null; pendingManannPriest: PendingManannPriest | null;
+  pendingShoreLeave: PendingShoreLeave | null;
   onHire: (roleId: string) => void; onDismiss: (roleId: string) => void;
 }) {
   const hireable = rolesRecrutables();
   const countOf = (roleId: string) => vessel.crew?.find((h) => h.roleId === roleId)?.count ?? 0;
-  const hasEvent = !!(pendingShoreLeave || pendingManannPriest);
+  const hasEvent = !!pendingShoreLeave;
   return (
     <Split aside="md" stackBelow={900} gap="xl" pad="xl">
       <section className="panel port-section">
         <h3>Vie du port</h3>
         {!hasEvent && <p className="port-hint">Aucun événement d’escale en cours.</p>}
         <ShoreLeaveBody embedded />
-        <ManannBody embedded />
       </section>
       <section className="panel port-section">
         <h3>Recruter de l’équipage</h3>
@@ -129,7 +126,6 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const hire = useGame((s) => s.recruterLEquipage);
   const dismiss = useGame((s) => s.renvoyerLEquipage);
   const pendingShoreLeave = useGame((s) => s.pendingShoreLeave);
-  const pendingManannPriest = useGame((s) => s.pendingManannPriest);
   const refusHote = useGame(refusDeGesteSurLeGroupe);
   const net = useGame((s) => s.net);
   const [tab, setTab] = useState<'coque' | 'cargaison' | 'escale'>(initialTab);
@@ -144,7 +140,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const { max: woundsMax, current: woundsCur, missing, lissage, reparationGold: repairCost, carenagePct: careenPct, carenageGold: careenCost } = chantier;
   const cargo = vessel.cargo ?? [];
   const catalogue = port.ref ? findNavalPortById(port.ref) : undefined;
-  const hasEscaleEvent = !!(pendingShoreLeave || pendingManannPriest);
+  const hasEscaleEvent = !!pendingShoreLeave;
 
   return (
     <ScreenShell
@@ -307,7 +303,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
         ) : (
           <EscaleTab
             vessel={vessel} refusHote={refusHote}
-            pendingShoreLeave={pendingShoreLeave} pendingManannPriest={pendingManannPriest}
+            pendingShoreLeave={pendingShoreLeave}
             onHire={(roleId) => hire(roleId, 1)} onDismiss={(roleId) => dismiss(roleId, 1)}
           />
         )}

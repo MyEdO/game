@@ -14,6 +14,7 @@ import { findTableEntryIndex } from './tables';
 import type { Season } from './travelStages';
 import type { PossessionLocation } from './possession';
 import { newUid } from './items';
+import { PA_PER_CO } from './money';
 
 /** La VOIE d'une cargaison : la table du livre qui la porte — maritime (MDG 15), terrestre et fluviale
  *  (MSRC 13). */
@@ -132,6 +133,11 @@ export interface CargoLot {
   cargoId: string;
   enc: number;
   basePriceGold: number;
+}
+
+/** VALEUR de la cargaison au prix de base noté de chaque lot, en sous de cuivre. PUR. MDG 15 l.335, l.436 */
+export function valeurDeLaCargaison(lots: CargoLot[]): number {
+  return Math.round(lots.reduce((s, l) => s + Math.max(0, l.enc) * l.basePriceGold, 0) * PA_PER_CO);
 }
 
 /** Enc TOTAL embarqué (pénalités de Contenance, avaries « gâtent 1d10 Enc »…). PUR. */

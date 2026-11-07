@@ -147,7 +147,10 @@ export const LIBELLE_DE_FORME: Record<FormulaShape, string> = {
   ecartAvantage: 'Écart d’Avantage (adversaires engagés)',
   blessuresInfligees: 'Blessures infligées (attaque courante)',
   blessuresMax: 'Blessures maximales de la cible',
+  tailleDuNavire: 'Taille du navire',
+  valeurCargaison: 'Valeur de la cargaison (sous)',
   dr: 'DR du Test',
+  tire: 'Valeur liée du Flow',
   regle: 'Règle optionnelle',
   minimum: 'Minimum',
   tranches: 'Tranches entières',
@@ -256,6 +259,18 @@ export function FormulaField(props: FormulaFieldProps) {
             onChange={(e) => onChange({ rule: e.target.value })}>
             {paramsDeRegle().map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
           </select>
+        )}
+        {/* `tire` = VALEUR LIÉE du Flow (MDG 15 l.245) : son nom, et le tirage qui la définit — sans tirage,
+            elle relit la valeur définie ailleurs dans le même Flow. */}
+        {shape === 'tire' && typeof value === 'object' && value != null && 'tire' in value && (
+          <span className="fml-dice">
+            <input aria-label="nom de la valeur liée" value={value.tire} onChange={(e) => onChange({ tire: e.target.value.trim(), ...(value.de !== undefined ? { de: value.de } : {}) })} />
+            <label className="ed-check"><input type="checkbox" checked={value.de !== undefined}
+              onChange={(e) => onChange(e.target.checked ? { tire: value.tire, de: { dice: { n: 1, sides: 10 } } } : { tire: value.tire })} /> tirée ici</label>
+            {value.de !== undefined && (
+              <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.de} onChange={(de: Formula) => onChange({ tire: value.tire, de })} />
+            )}
+          </span>
         )}
         {shape === 'lit' && (
           <NumberField variant="nu" label={label ? `${label} — nombre` : 'Nombre'} min={min} value={typeof value === 'number' ? value : 0}
