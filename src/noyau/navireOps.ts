@@ -7,14 +7,18 @@
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { tirerSigne } from '../engine/dice';
-import { estOpDuNavire, resolveFormula, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
+import { MINUTES_PER_DAY } from '../engine/clock';
+import { estOpDuNavire, nomDeSource, resolveFormula, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
 import type { EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
-import { addManann, applyManannFactor } from '../engine/seaVoyage';
+import { addManann, applyManannFactor, meteosActives, modificateursActifs } from '../engine/seaVoyage';
 import { rollShipCritical } from '../engine/shipCritical';
+import { voyageStakeRef } from '../data';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta } from './shipCrew';
-import { applyVesselCritical, coqueDuNavireDeCampagne, localisationAleatoire, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
+import { applyVesselCritical, buildVoyageCrewStep, coqueDuNavireDeCampagne, localisationAleatoire, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
 import { applyLeafOps, OPS_DIFFEREES } from './combatEffects';
+import { startCascade } from './cascade';
 import type { Get, Set } from './flowTypes';
 
 /** La coque visée par `navire`, et l'écriture qui la persiste ; `null` sans navire de campagne à coque. */
@@ -29,7 +33,10 @@ function coqueVisee(get: Get, set: Set): { coque: Combatant; persister: () => vo
   return { coque: bati.hull, persister: () => setVesselHull(get, set, bati.hull.wounds.current, bati.hull.wounds.max) };
 }
 
-/** Résout UNE op de navire sur `coque` ; rend ses lignes. */
+/** Jours tirés d'une durée de navire, sur la coque : jamais négatifs. */
+const joursTires = (f: Parameters<typeof resolveFormula>[0], coque: Combatant, ctx: OpsCtx): number => Math.max(0, Math.round(resolveFormula(f, coque, ctx.rng)));
+
+/** Résout UNE op de navire sur `coque` ; rend ses lignes. `ctx.label` = la source de l'état posé. */
 function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire, ctx: OpsCtx): string[] {
   switch (o.op) {
     case 'shipMorale':
@@ -55,7 +62,51 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       }
       return [];
     }
+    case 'navireMod': {
+      const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      const now = get().gameTime;
+      const jours = o.jusqua === 'carenage' ? null : joursTires(o.jusqua.jours, coque, ctx);
+      const label = nomDeSource(ctx);
+      const mod = { label, ...(o.m !== undefined ? { m: o.m } : {}), ...(o.manDR !== undefined ? { manDR: o.manDR } : {}), jusqua: jours === null ? 'carenage' as const : now + jours * MINUTES_PER_DAY };
+      set({ vessel: { ...vessel, modificateurs: [...modificateursActifs(vessel.modificateurs, now), mod] } });
+      const axes = [...(o.m !== undefined ? [t('eff.navireModM', { m: signe(o.m) })] : []), ...(o.manDR !== undefined ? [t('eff.navireModMan', { dr: signe(o.manDR) })] : [])];
+      return [t('eff.navireMod', { label, axes: axes.join(', '), duree: jours === null ? t('eff.jusquAuCarenage') : t('eff.pendantNJours', { n: jours }) })];
+    }
+    case 'meteoImposee': {
+      const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      const now = get().gameTime;
+      const jours = joursTires(o.jours, coque, ctx);
+      const label = nomDeSource(ctx);
+      const meteo = {
+        label, jusqua: now + jours * MINUTES_PER_DAY,
+        ...(o.meteo ? { meteo: { ...o.meteo } } : {}),
+        ...(o.ventInverse ? { ventInverse: true as const } : {}),
+        ...(o.aggravation ? { aggravation: structuredClone(o.aggravation) } : {}), // #2097
+      };
+      set({ vessel: { ...vessel, meteosImposees: [...meteosActives(vessel.meteosImposees, now), meteo] } });
+      return [t('eff.meteoImposee', { label, n: jours })];
+    }
   }
+}
+
+const signe = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
+
+/**
+ * Ouvre le TEST D'ÉQUIPAGE d'un nœud `test` de Flow (`crewTestType`) : l'étape à participants du voyage
+ * (`buildVoyageCrewStep`), dont l'applier `flowCrewTest` (`seaVoyageFlow.ts`) joue la branche du verdict
+ * puis `after`. Son enjeu est celui que le Test nomme, sinon celui du type de Test. `false` : aucun marin
+ * apte à bord, l'appelant joue l'échec. MDG 14 l.39 ; MDG 15 l.144-145
+ */
+export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { kind: 'test' }>, after: Flow, label: string, sl?: number): boolean {
+  const { crewTestType, difficulty, stake } = node.test;
+  const type = garanti(crewTestType, label, 'type de Test d’équipage');
+  const st = buildVoyageCrewStep(get, type, 'flowCrewTest', { ...(difficulty ? { difficulty } : {}), stake: stake ?? voyageStakeRef(type) });
+  if (!st) return false;
+  startCascade(get, set, {
+    title: label, icon: 'travel/anchor', purpose: 'test',
+    steps: [{ ...st, meta: { ...st.meta, onSuccess: node.success, onFail: node.fail, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) } }],
+  });
+  return true;
 }
 
 /** Applique la feuille `e` (`on: 'navire'`) au navire de campagne, ops dans l'ordre authoré ; rend les

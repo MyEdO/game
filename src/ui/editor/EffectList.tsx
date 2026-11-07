@@ -14,7 +14,7 @@ import { EncounterDef, Dialogue, Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { Icon } from '../Icon';
 import { EMPTY_FLOW } from '../../engine/flowCore';
-import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCatalogue, type TableDeCibles } from '../../noyau/combatEffects';
+import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, genreDeCible, type RacineDeCatalogue, type TableDeCibles } from '../../noyau/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
 import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
@@ -26,8 +26,8 @@ import { giveTrappingLabel } from '../../engine/items';
 import { FlowEditor } from './FlowEditor';
 import { newEffect } from '../../noyau/valeursNeuves';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
-import { GameOpEditor } from './GameOpEditor';
-import { opSummary } from './interne/resumeDOp';
+import { FormulaField, GameOpEditor } from './GameOpEditor';
+import { formulaSummary, opSummary } from './interne/resumeDOp';
 import { ScheduleSpecFields } from './ScheduleSpecFields';
 import { RefField, RefNarrativeField, SOURCE_NARRATIVE } from '../compendium/refField/RefField';
 import { entreesDeStades, libelleDEtat, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../../noyau/codex/libellesNarratifs';
@@ -247,11 +247,13 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'ambitionLost': return `Ambition anéantie → Trauma${e.heroId ? ` → ${e.heroId}` : ''}`;
     case 'inflictPsychology': return `${e.kind === 'terreur' ? 'Terreur' : 'Peur'} ${e.indice ?? 1} — ${e.label || '?'} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
     case 'ops': {
-      const on: string = e.on ?? ctx.cibles[0].on;
+      const on: string = genreDeCible(e.on) ?? ctx.cibles[0].on;
       const cible = ctx.cibles.find((c) => c.on === on);
       const who = !cible ? `« on: ${on} » hors du vocabulaire de cette racine`
-        : on === 'hero' ? `${cible.label} (${e.heroId || '1ᵉʳ'})` : cible.label;
-      return `${who} : ${(e.ops ?? []).map(opSummary).join(', ') || '(aucune op)'}`;
+        : on === 'hero' ? `${cible.label} (${e.heroId || '1ᵉʳ'})`
+        : typeof e.on === 'object' ? `${cible.label} (${crewRoles.find((r) => r.id === e.on.role.id)?.label ?? (e.on.role.id || '?')})`
+        : cible.label;
+      return `${who} : ${(e.ops ?? []).map(opSummary).join(', ') || '(aucune op)'}${e.pendantJours !== undefined ? ` · pendant ${formulaSummary(e.pendantJours)} jour(s)` : ''}`;
     }
     case 'zoneBlast': return `Souffle ${(e.ops ?? []).length} op(s) rayon ${e.radius ?? 0} @(${e.center?.x ?? 0},${e.center?.y ?? 0})`;
     case 'fall': return `Chute ${e.metres ?? 0} m → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}${e.to ? ` ⤓(${e.to.x},${e.to.y}${e.to.z ? `,z${e.to.z}` : ''})` : ''}`;
@@ -775,15 +777,33 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <div className="tf-row">
                 <label className="dr">
                   Cible
-                  <select value={e.on ?? ctx.cibles[0].on} onChange={(ev) => upd({ on: ev.target.value })}>
+                  <select value={genreDeCible(e.on) ?? ctx.cibles[0].on}
+                    onChange={(ev) => upd({ on: ev.target.value === 'role' ? { role: { id: crewRoles[0].id } } : ev.target.value })}>
                     {ctx.cibles.map((c) => <option key={c.on} value={c.on}>{c.label}</option>)}
                   </select>
                 </label>
                 {e.on === 'hero' && (
                   <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
                 )}
+                {typeof e.on === 'object' && (
+                  <label className="dr">
+                    Rôle
+                    <select value={e.on.role.id} onChange={(ev) => upd({ on: { role: { id: ev.target.value } } })}>
+                      {crewRoles.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+                    </select>
+                  </label>
+                )}
               </div>
             )}
+            <div className="tf-row">
+              <label className="dr">
+                <input type="checkbox" checked={e.pendantJours !== undefined}
+                  onChange={(ev) => upd({ pendantJours: ev.target.checked ? 1 : undefined })} /> Pendant une durée en jours
+              </label>
+              {e.pendantJours !== undefined && (
+                <FormulaField label="Jours" value={e.pendantJours} onChange={(pendantJours) => upd({ pendantJours })} />
+              )}
+            </div>
             <GameOpEditor objets={objetsDuProjet(ctx)} noeud={ctx.famille?.gameOp} ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
           </div>
         )}

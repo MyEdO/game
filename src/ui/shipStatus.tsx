@@ -4,6 +4,8 @@ import { crewRoles } from '../data';
 import { Coins } from './Coins';
 import type { GaugeTone } from './NotchGauge';
 import type { CampaignVessel } from '../noyau/etat';
+import { modificateursAuCarenage } from '../engine/seaVoyage';
+import { foulingEffects } from '../engine/seaNavigation';
 
 /** Bande de Moral d'équipage (MDG 14) → ton de jauge : canailles = danger, satisfait = warn,
  *  excellent/mené de main de maître = ok. Keyé par l'id STABLE de bande, jamais le libellé.
@@ -22,6 +24,13 @@ export const crewRoleLabel = (roleId: string): string => crewRoles.find((r) => r
 /** Résumé de l'équipage SALARIÉ (#216) : roster (rôle × compte), solde hebdomadaire due, dette cumulée.
  *  Barème `crew-roles.json` via `weeklyCrewWageBrass`. Source UNIQUE partagée par PortView et le dossier
  *  de navire. `null` si aucun équipage salarié ni dette. */
+/** Salissures de la coque (MDG 13 l.144-159) et ce que seul le carénage lèvera (MDG 15 l.185). */
+export function SalissuresDeLaCoque({ vessel }: { vessel: CampaignVessel }) {
+  const niveau = vessel.fouling?.level ?? 0;
+  const aRacler = modificateursAuCarenage(vessel.modificateurs).map((m) => ` · ${m.label}`).join('');
+  return <p className="port-hint">Salissures : niveau <b>{niveau}</b>{aRacler}{niveau > 0 ? ` — ${foulingEffects(niveau).desc}` : ''}</p>;
+}
+
 export function ShipCrewWages({ vessel }: { vessel: CampaignVessel }) {
   const weeklyWageBrass = weeklyCrewWageBrass(vessel.crew);
   if (!(vessel.crew?.length || weeklyWageBrass > 0 || vessel.wagesOwed)) return null;

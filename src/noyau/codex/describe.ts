@@ -12,13 +12,13 @@ import type { GameOp } from '../../engine/ops';
 import type { Flow, TriggeredEffect } from '../../data/schemas/defs-scenes/effets';
 import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { walkFlow } from '../../engine/flowCore';
-import { refLabel } from '../../data';
+import { refLabel, testSkillLabel } from '../../data';
 import { statName } from '../../engine/statEntry';
 import { onLabel } from './triggerLabels';
 import { effectTriggerSchema } from '../../data/schemas/grammaire/mecanique';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { t } from '../../i18n';
-import { humanizeFlowSentence, humanizeOp, humanizeCondition, coutAvantageTexte, flowMuet } from './humanize';
+import { humanizeFlowSentence, humanizeOp, humanizeCondition, dureeDeLaFeuille, coutAvantageTexte, flowMuet } from './humanize';
 
 /** Octrois de carrière (`grantCareerSkill`/`grantCareerTalent`) — affichés à part (cross-réf cliquable),
  *  jamais comme « modificateur continu ». Filtrés ici pour ne pas doublonner avec `careerGrantSection`. */
@@ -49,14 +49,14 @@ export function careerGrantSection(ops: GameOp[] | undefined, title: string = t(
  *  c'est un nœud de STRUCTURE Flow (`{kind:'test'}`) décrit ci-dessous (zéro vocabulaire dupliqué). */
 function flowSummary(f: Flow, etats: readonly EtatDeclare[]): string {
   switch (f.kind) {
-    case 'do': return f.effect.type === 'ops' ? f.effect.ops.map(humanizeOp).join(', ') : f.effect.type;
+    case 'do': return f.effect.type === 'ops' ? `${f.effect.ops.map(humanizeOp).join(', ')}${dureeDeLaFeuille(f.effect)}` : f.effect.type;
     case 'seq': return f.steps.map((s) => flowSummary(s, etats)).filter(Boolean).join(' ; ');
     case 'if': {
       const base = t('codex.tech.si', { cond: humanizeCondition(f.cond, etats), alors: flowSummary(f.then, etats) });
       return f.else ? `${base}${t('codex.tech.sinon', { sinon: flowSummary(f.else, etats) })}` : base;
     }
     case 'test': {
-      const sujet = f.test.skill ? refLabel('skills', f.test.skill) : (f.test.characteristic ?? '');
+      const sujet = testSkillLabel(f.test) ?? '';
       const oppose = f.test.opposed ? t('codex.tech.oppose', { attaquant: f.test.opposed.attackerLabel ?? f.test.opposed.attacker }) : '';
       return t('codex.tech.jet', { oppose, sujet, ok: flowSummary(f.success, etats), ko: flowSummary(f.fail, etats) });
     }

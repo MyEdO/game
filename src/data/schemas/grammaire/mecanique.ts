@@ -12,11 +12,11 @@ import { declarerEnfants } from './descente';
 import { marquerProduit } from './interne/produits';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
 import type { StakeRef } from '../../index';
-import { messageRecurrenceHorloge, SELF_REF, type GameOp, type OpPassive } from '../../../engine/ops';
+import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
+import { chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
@@ -239,6 +239,21 @@ const DECLARATIONS_D_OPS = {
     },
   }),
   shipCritical: nommerChamps(z.strictObject({ op: z.literal('shipCritical'), location: z.union([shipLocationSchema, z.literal('aleatoire')]), count: formulaSchema }), { op: { label: "opération"  }, location: { label: "localisation" }, count: { label: "nombre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  /** `navireMod` — MDG 15 l.184-185, l.187-188 */
+  navireMod: nommerChamps(z.strictObject({
+    op: z.literal('navireMod'),
+    m: z.number().int().optional(),
+    manDR: z.number().int().optional(),
+    jusqua: z.union([z.literal('carenage'), nommerChamps(z.strictObject({ jours: formulaSchema }), { jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } })]),
+  }).refine((v) => v.m !== undefined || v.manDR !== undefined, { message: 'navireMod VIDE : nommer « m » (Mouvement) ou « manDR » (DR de Manœuvre).' }), { op: { label: "opération"  }, m: { label: "Mouvement" }, manDR: { label: "DR de Manœuvre" }, jusqua: { label: "jusqu’à" } }),
+  /** `meteoImposee` — MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
+  meteoImposee: nommerChamps(z.strictObject({
+    op: z.literal('meteoImposee'),
+    jours: formulaSchema,
+    meteo: meteoImposeeSchema.optional(),
+    ventInverse: z.literal(true).optional(),
+    aggravation: nommerChamps(z.strictObject({ de: formulaSchema, seuil: z.number().int(), meteo: meteoImposeeSchema }), { de: { label: "dé de chaque matin" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, seuil: { label: "seuil" }, meteo: { label: "météo aggravée" } }).optional(),
+  }).refine((v) => v.meteo !== undefined || v.ventInverse !== undefined, { message: 'meteoImposee VIDE : nommer « meteo » (axes imposés) ou « ventInverse ».' }), { op: { label: "opération"  }, jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, meteo: { label: "météo imposée" }, ventInverse: { label: "vent inversé" }, aggravation: { label: "aggravation" } }),
   healCaster: nommerChamps(z.strictObject({ op: z.literal('healCaster'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   gainAdvantage: nommerChamps(z.strictObject({ op: z.literal('gainAdvantage'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   topUpAdvantage: nommerChamps(z.strictObject({ op: z.literal('topUpAdvantage'), amount: ouReserve(formulaSchema, INDICE_TEMPLATE), feedOpposingPool: z.boolean().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, feedOpposingPool: { label: "réserve adverse" } }),
@@ -925,6 +940,8 @@ export const flowTestSchema = nommerChamps(z.strictObject({
   stake: stakeRefSchema.optional(),
   ...jetSchema.shape,
   sense: senseSchema.optional(),
+  /** MDG 15 l.144-145 */
+  crewTestType: idDe('crewTestType').optional(),
   requireSL: z.number().optional(),
   label: z.string().optional(),
   tool: z.string().optional(),
@@ -958,14 +975,23 @@ export const flowTestSchema = nommerChamps(z.strictObject({
   // calculer : `testValue` rend 0 et le jet devient un auto-échec SILENCIEUX, sur une cible qui n'est
   // la valeur de personne. Les deux peuvent coexister — une Compétence jouée sur une autre
   // Caractéristique que la sienne (Venin : Résistance sur Endurance, `LDB 20`) est une forme RAW.
+  if (v.crewTestType) {
+    if (!v.skill && !v.characteristic) return;
+    ctx.addIssue({
+      code: 'custom',
+      path: ['crewTestType'],
+      message: 'Test d’équipage EXCLUSIF : `crewTestType` (l’équipage le joue par ses rôles) OU `skill`/`characteristic`, jamais les deux.',
+    });
+    return;
+  }
   if (v.skill || v.characteristic) return;
   ctx.addIssue({
     code: 'custom',
     path: ['skill'],
     message: 'jet SANS compétence ni caractéristique : la porte le jouerait sur une valeur de 0 '
-      + '(auto-échec muet). Nommer `skill` (id de compétence) ou `characteristic`.',
+      + '(auto-échec muet). Nommer `skill` (id de compétence), `characteristic`, ou `crewTestType`.',
   });
-}), { stake: { label: "enjeu" }, ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, easierIf: { label: "facilité conditionnelle" }, argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, gate: { label: "condition d’accès" }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, difficultyBy: { label: "difficultés conditionnelles" }, opposed: { label: "opposition" } });
+}), { stake: { label: "enjeu" }, ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, easierIf: { label: "facilité conditionnelle" }, argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, gate: { label: "condition d’accès" }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, difficultyBy: { label: "difficultés conditionnelles" }, opposed: { label: "opposition" } });
 
 
 /** Champ que `flowTestSchema` laisse FACULTATIF et qu'un porteur peut exiger. */
@@ -1140,10 +1166,14 @@ export const stageOutcomeSchema = z.enum([
  * Résolution : `applyCrewHit` (`src/engine/shipCritical.ts`) compare l'ÉPINGLAGE du joueur
  * (`Combatant.shipStation` / `Combatant.shipRole`) — jamais une inférence par Compétence.
  */
+/** Le marin ÉPINGLÉ à un rôle d'équipage (`Combatant.shipRole`) : cible d'un coup d'équipage, et d'une
+ *  feuille `ops` de scène (`EffectOp.on`, `CibleDeRole`). MSRC 07 l.86 ; MDG 15 l.233 */
+export const cibleDeRoleSchema = nommerChamps(z.strictObject({ role: ref('crewRole') }), { role: { label: "rôle" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} } });
+
 export const crewTargetSchema = z.union([
   nommerChamps(z.strictObject({ poste: z.literal(true) }), { poste: { label: "poste" } }),
   nommerChamps(z.strictObject({ stations: refs('shipStation', { min: 1 }) }), { stations: { label: "présences" , texte: { regime: "technique"} } }),
-  nommerChamps(z.strictObject({ role: ref('crewRole') }), { role: { label: "rôle" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} } }),
+  cibleDeRoleSchema,
 ]);
 
 // ============================================================================
@@ -1250,11 +1280,12 @@ function construire(regimes: Regimes) {
   const effectOp = marquerProduit(nommerChamps(z.strictObject({
     type: z.literal('ops'),
     ops: executeesDe(gameOp),
-    on: z.enum(['party', 'hero', 'navire', 'caster', 'target']).optional(),
+    on: z.union([z.enum(['party', 'hero', 'navire', 'caster', 'target']), cibleDeRoleSchema]).optional(),
     heroId: z.string().optional(),
     untilTime: z.number().optional(),
     label: z.string().optional(),
-  }), { type: { label: "type"  }, ops: { label: "opérations" }, on: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, untilTime: { label: "échéance" }, label: { label: "libellé" , texte: { regime: "designation"} } }), 'construire', 'effectOp');
+    pendantJours: (formulaSchema as z.ZodType<Formula>).optional(),
+  }).refine((v) => v.untilTime === undefined || v.pendantJours === undefined, { message: 'durée EXCLUSIVE : « untilTime » (échéance bakée) OU « pendantJours » (jours tirés à l’application), jamais les deux.' }), { type: { label: "type"  }, ops: { label: "opérations" }, on: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, untilTime: { label: "échéance" }, label: { label: "libellé" , texte: { regime: "designation"} }, pendantJours: { label: "pendant (jours)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }), 'construire', 'effectOp');
 
   // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
   // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.

@@ -5,7 +5,6 @@ import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { findVehicleById, findNavalTrait, findNavalPortById, type NavalPortData } from '../data';
 import { type PortProfile } from '../engine/seaVoyage';
 import { findCargoEntryById } from '../engine/cargo';
-import { foulingEffects } from '../engine/seaNavigation';
 import { toMoney, priceToMoney } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
 import type { CampaignVessel } from '../noyau/etat';
@@ -16,7 +15,7 @@ import { NumberField } from './NumberField';
 import { Prose } from './Prose';
 import { Icon } from './Icon';
 import { NotchGauge } from './NotchGauge';
-import { moraleTone, ShipCrewWages } from './shipStatus';
+import { moraleTone, SalissuresDeLaCoque, ShipCrewWages } from './shipStatus';
 import { ScreenShell } from './ScreenShell';
 import { Tabs } from './composites/Tabs';
 import { TradeTable, type TradeGroup } from './TradeTable';
@@ -142,7 +141,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const devisDe = (cargoId: string) => devisDAchatEnPort({ port, vessel, net, party }, CAMPAIGN_VESSEL_CARRIER_ID, cargoId, buyEnc[cargoId]);
   const chantier = devisDeChantier(vessel, money, refusHote);
   const cale = caleALEscale(vessel);
-  const { max: woundsMax, current: woundsCur, missing, lissage, reparationGold: repairCost, foulLevel, carenagePct: careenPct, carenageGold: careenCost } = chantier;
+  const { max: woundsMax, current: woundsCur, missing, lissage, reparationGold: repairCost, carenagePct: careenPct, carenageGold: careenCost } = chantier;
   const cargo = vessel.cargo ?? [];
   const catalogue = port.ref ? findNavalPortById(port.ref) : undefined;
   const hasEscaleEvent = !!(pendingShoreLeave || pendingManannPriest);
@@ -190,7 +189,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                 format={(v) => `${v} — ${moraleBand(v).label}`}
               />
               <ShipCrewWages vessel={vessel} />
-              <p className="port-hint">Salissures : niveau <b>{foulLevel}</b>{vessel.crabs ? ' · crabes boxeurs' : ''}{foulLevel > 0 ? ` — ${foulingEffects(foulLevel).desc}` : ''}</p>
+              <SalissuresDeLaCoque vessel={vessel} />
               <GatedAction
                 id="port-careen"
                 label={<><Icon id="travel/careen" size="sm" /> Caréner{careenCost > 0 ? <> — <Coins money={toMoney({ gold: careenCost })} /></> : null}</>}

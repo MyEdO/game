@@ -11,10 +11,10 @@ import { revealToStep } from './revealStep';
 import { Combatant, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
-import { d10, d100 } from '../engine/dice';
+import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire,
-  type OpsCtx, type DemandeDe, type GameOp } from '../engine/ops';
+  type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
 import { verdictApprentissage } from '../engine/grimoire';
@@ -48,7 +48,7 @@ import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
-import { DAY_PHASES, minutesUntilNext, scheduleAt } from '../engine/clock';
+import { DAY_PHASES, MINUTES_PER_DAY, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
 import { feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
@@ -61,7 +61,7 @@ import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import { type FlowTest, type EffectOp, type Condition, flowEffects, evalCondition, leafOpsCtx, EMPTY_FLOW } from '../engine/flowCore';
+import { type FlowTest, type EffectOp, type CibleDeRole, type Condition, flowEffects, evalCondition, leafOpsCtx, EMPTY_FLOW } from '../engine/flowCore';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
@@ -75,7 +75,8 @@ import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
 import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde } from './monde/combatants';
-import { appliquerAuNavire } from './navireOps';
+import { appliquerAuNavire, ouvrirLeTestDEquipage } from './navireOps';
+import { marinsDuRole } from '../engine/shipCritical';
 import { garanti } from '../lib/garanti';
 import { addPossession } from './possessionsFlow';
 import { possessionLabel, type Possession, type PossessionInput } from '../engine/possession';
@@ -743,8 +744,13 @@ export const CIBLES_D_EFFET_DE_SCENE = [
   { on: 'party', label: 'Tout le groupe' },
   { on: 'hero', label: 'Un héros' },
   { on: 'navire', label: 'Le navire' },
+  { on: 'role', label: 'Un rôle d’équipage' },
 ] as const;
 export type CibleDEffetDeScene = (typeof CIBLES_D_EFFET_DE_SCENE)[number]['on'];
+
+/** Le GENRE d'une cible de feuille : la valeur de `on`, ou `role` pour sa forme objet (`CibleDeRole`) — la clé
+ *  que les tables de cibles (`CIBLES_PAR_RACINE`) et l'atelier lisent. */
+export const genreDeCible = (on: EffectOp['on']): string | undefined => (typeof on === 'object' ? 'role' : on);
 
 /**
  * REGISTRE des tables de cibles d'un Effet `ops`, une entrée par RACINE : chaque table offre EXACTEMENT
@@ -780,22 +786,33 @@ export type TableDeCibles = (typeof CIBLES_PAR_RACINE)[RacineDEffet];
 
 /** `on` (défaut `party`) appartient-il au vocabulaire de scène ? Garde de type : le handler narrowe
  *  dessus avant d'appeler `env.targets`. */
-export function estCibleDeScene(on: string | undefined): on is CibleDEffetDeScene {
-  return CIBLES_D_EFFET_DE_SCENE.some((c) => c.on === (on ?? 'party'));
+export function estCibleDeScene(on: EffectOp['on']): on is Exclude<CibleDEffetDeScene, 'role'> | CibleDeRole {
+  return CIBLES_D_EFFET_DE_SCENE.some((c) => c.on === (genreDeCible(on) ?? 'party'));
+}
+
+/** La feuille `e` dont la durée `pendantJours` est TIRÉE une fois (sur `sujet`) puis bakée en échéance
+ *  d'horloge, sous la source du Flow ; la durée se dit au journal. MDG 15 l.211-212, l.233-234 */
+function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, sujet: Combatant, rng: RNG): EffectOp {
+  const { pendantJours: _tiree, ...reste } = e;
+  const jours = Math.max(0, Math.round(resolveFormula(pendantJours, sujet, rng)));
+  const label = e.label ?? env.label;
+  env.log(t('eff.pendantJours', { label: label ?? t('eff.flowTitle'), n: jours }));
+  return { ...reste, untilTime: env.get().gameTime + jours * MINUTES_PER_DAY, ...(label ? { label } : {}) };
 }
 
 /** Le refus, dit UNE fois — même phrase à la validation d'une scène et à la levée du marcheur. */
-export function messageCibleHorsScene(e: { label?: string; on?: string }, on: string): string {
+export function messageCibleHorsScene(e: { label?: string; on?: EffectOp['on'] }, on: string): string {
   return `Effet ${e.label ? `« ${e.label} » ` : ''}à « on: ${on} » : ce vocabulaire est celui d'un effet DÉCLENCHÉ `
     + '(cible et lanceur résolus par sa porte, `routeTriggeredTest`), que le marcheur de scène ne connaît pas. '
-    + 'Une scène vise `party`, `hero` (+ `heroId`) ou `navire`.';
+    + 'Une scène vise `party`, `hero` (+ `heroId`), `navire` ou un rôle d’équipage (`{ role }`).';
 }
 
 /** Le refus d'une op de NAVIRE posée sur une autre cible que `navire` : elle n'y aurait aucun effet. */
-export function messageOpDuNavireHorsNavire(e: { on?: string; ops: readonly GameOp[] }): string | undefined {
+export function messageOpDuNavireHorsNavire(e: { on?: EffectOp['on']; ops: readonly GameOp[] }): string | undefined {
   const ops = e.ops.filter(estOpDuNavire).map((o) => o.op);
-  return ops.length && (e.on ?? 'party') !== 'navire'
-    ? t('eff.opDuNavireHorsNavire', { on: e.on ?? 'party', ops: ops.join(', ') })
+  const on = genreDeCible(e.on) ?? 'party';
+  return ops.length && on !== 'navire'
+    ? t('eff.opDuNavireHorsNavire', { on, ops: ops.join(', ') })
     : undefined;
 }
 
@@ -1031,6 +1048,12 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
       case 'test': {
         if (flush()) return confier(node);
         const after: Flow = { kind: 'seq', steps: stack.splice(0) };
+        if (node.test.crewTestType) {
+          if (ouvrirLeTestDEquipage(get, set, node, after, label, sl)) return undefined;
+          // Aucun marin apte à bord : aucun DR au total, échec. MDG 14 l.13
+          stack.unshift(node.fail, after);
+          break;
+        }
         // Personne ne peut tenter → on saute le Test et on reprend directement la continuation.
         if (!openSkillTest(get, set, node.test, node.success, node.fail, after)) return runFlow(get, set, after, label, sl);
         return undefined;
@@ -1089,6 +1112,9 @@ export interface EffectEnv {
   /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`jetValider('test')`/`pt.sl`, symétrique de
    *  `opsCtx.sl` en combat, `triggeredTest.ts:159`) — absent hors Test (déclencheur de scène, etc.). */
   sl?: number;
+  /** Libellé du Flow qui applique ce lot (`runFlow`) : la SOURCE d'un effet durable ou d'un état du navire
+   *  qu'une feuille ne nomme pas (`EffectOp.label`). */
+  label?: string;
   /** Cibles d'un effet `party`/`hero` (héros vivants concernés, bon ensemble) — `effectTargets`. */
   targets(on: 'party' | 'hero', heroId?: string): Combatant[];
   /**
@@ -1109,11 +1135,12 @@ export interface EffectEnv {
   ): Combatant | null;
 }
 
-function makeEffectEnv(get: Get, set: SetFn, sl?: number): EffectEnv {
+function makeEffectEnv(get: Get, set: SetFn, sl?: number, label?: string): EffectEnv {
   return {
     get,
     set,
     sl,
+    label,
     log: (line) => get().log(line),
     pushReveal: (entry) => pushReveal(set, entry),
     targets: (on, heroId) => effectTargets(get, on, heroId),
@@ -1544,14 +1571,20 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const horsNavire = messageOpDuNavireHorsNavire(e);
       if (horsNavire) throw new Error(horsNavire);
       const base = { rng: battleRng(), sl: env.sl };
-      if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, base).forEach((l) => env.log(l)); return; }
-      const targets = env.targets(on, e.heroId);
-      if (!targets.length) return;
+      if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
+      const targets = typeof on === 'object' ? marinsDuRole(env.targets('party'), on.role.id) : env.targets(on, e.heroId);
+      if (!targets.length) {
+        if (typeof on === 'object') env.log(t('eff.roleSansTitulaire', { role: refLabel('crewRoles', on.role) }));
+        return;
+      }
+      // Durée TIRÉE une fois pour la feuille (MDG 15 l.212 « Pendant les 1d10 prochains jours ») puis
+      // bakée en échéance, sous la source du Flow.
+      const feuille = e.pendantJours == null ? e : avecDureeTiree(env, e, e.pendantJours, targets[0], base.rng);
       // Une cible dont la feuille part à la PORTE (#1508) n'a pas de ligne ICI : sa conséquence se dit
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, e, { ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
+        const issue = applyLeafOps(env.get, env.set, c, feuille, { ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));
@@ -2197,7 +2230,7 @@ const appliquerLExpositionHydrique: CascadeApplier = (_get, _set, step, hero) =>
  * pending la rejouera à sa clôture et la boucle s'arrête là — aucun Effet ne se perd.
  */
 export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: number, label?: string): Applique {
-  const env = makeEffectEnv(get, set, sl);
+  const env = makeEffectEnv(get, set, sl, label);
   const file = structuredClone(effects); // #2097
   let differe: Applique;
   while (file.length) {

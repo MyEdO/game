@@ -249,8 +249,10 @@ export interface CampaignVessel {
   cargo?: import('../engine/seaVoyage').CargoLot[];
   /** Critiques de navire subis EN VOYAGE (notes verbatim, MDG 13) — à purger à la remise en état. */
   criticals?: string[];
-  /** Crabes boxeurs (événement ch.15) : M −1 jusqu'à ce que la coque soit raclée. */
-  crabs?: boolean;
+  /** Modificateurs de M et de Manœuvre posés par un événement (op `navireMod`). MDG 15 l.184-185, l.187-188 */
+  modificateurs?: import('../engine/seaVoyage').ModificateurDuNavire[];
+  /** Météos imposées par un événement (op `meteoImposee`), valables en mer comme au départ d'un port. MDG 15 l.248 */
+  meteosImposees?: import('../engine/seaVoyage').MeteoImposeeDuNavire[];
   /** Eau douce embarquée (litres — tonneau : 145 L, MDG 14 l.242). Absent = ravitaillement réputé
    *  assuré (même décision de périmètre que la Soif, cf. provisions.ts). */
   waterLitres?: number;

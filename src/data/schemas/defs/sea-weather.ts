@@ -2,20 +2,12 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.162-306 */
 import { z } from 'zod';
 import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, enumNomme, parSaison, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { difficultySchema, enumNomme, meteoMarineSchema, parSaison, plageSchema, sourceRefSchema, ventMarinSchema } from '../grammaire/valeurs';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'sea-weather.json';
 export const famille = 'config';
 
-const windForce = z.enum([
-  'calme-plat',
-  'legere-brise',
-  'brise-fraiche',
-  'vent-modere',
-  'vent-violent',
-  'violente-tempete',
-]);
 /** MDG 13 l.267-270 */
 export const windAspectSchema = enumNomme({ arriere: 'vent arrière', lateral: 'vent latéral', face: 'vent de face' });
 const windEffectCell = nommerChamps(z.strictObject({
@@ -31,24 +23,18 @@ const windEffectCell = nommerChamps(z.strictObject({
   affaler: { label: 'Amener les voiles' },
   virement: { label: 'Virement' },
 });
-const windEffectTable = z.record(windForce, z.record(windAspectSchema, windEffectCell));
+const windEffectTable = z.record(ventMarinSchema, z.record(windAspectSchema, windEffectCell));
 
 const champs = {
   /** MDG 13 l.170 */
   table: tableTiree(
     nommerChamps(z.strictObject({
       ...plageSchema.shape,
-      precipitations: z.enum(['aucune', 'legeres', 'abondantes', 'tres-abondantes']),
-      temperature: z.enum(['caniculaire', 'chaude', 'mediane', 'froide', 'glaciale']),
-      visibilite: z.enum(['degage', 'brume', 'brouillard', 'puree-de-pois']),
-      vent: windForce,
+      ...meteoMarineSchema.shape,
       source: sourceRefSchema,
     }), {
       ...metaDesChamps(plageSchema, { exigees: true }),
-      precipitations: { label: 'Précipitations' },
-      temperature: { label: 'Température' },
-      visibilite: { label: 'Visibilité' },
-      vent: { label: 'Vent' },
+      ...metaDesChamps(meteoMarineSchema, { exigees: true }),
       source: { label: 'Source' },
     }),
   ),

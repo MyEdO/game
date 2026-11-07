@@ -739,7 +739,7 @@
     "label": "Affaler sous l’ouragan",
     "cascade": "voyage",
     "cle": "sea-ouragan-affaler",
-    "template": "Le Test subit −2 DR ; échoué : Coup Critique au gréement.",
+    "template": "L’équipage affale sous l’Ouragan : échoué, le vaisseau subit les Coups Critiques au Gréement que l’événement chiffre.",
     "form": "descripteur",
     "rule": {
       "id": "test-equipage-affaler",
@@ -747,8 +747,8 @@
     },
     "source": {
       "book": "mer-des-griffes",
-      "page": 123,
-      "note": "MDG 14 l.94"
+      "page": 131,
+      "note": "MDG 15 l.144-145"
     }
   },
   {

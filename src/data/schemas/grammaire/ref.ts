@@ -49,6 +49,7 @@ export const TYPES = {
   navalPort: { espace: 'naval-ports.json', catalogue: 'ports' },
   shipStation: { espace: 'ship-stations.json', catalogue: 'postes de navire' },
   crewRole: { espace: 'crew-roles.json', catalogue: 'rôles d’équipage' },
+  crewTestType: { espace: 'crew-test-types.json#types', catalogue: 'types de Test d’équipage' },
   table: { espace: 'tables.json', catalogue: 'tables' },
   etat: { espace: 'etats.json', catalogue: 'états' },
   maladie: { espace: 'maladies.json', catalogue: 'maladies' },
