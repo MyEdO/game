@@ -128,7 +128,8 @@ func _planche(image: String) -> Texture2D:
 	return _planches[image]
 
 
-## Les calques `memoire.calques` gardés à la place des précédents, et chaque planche de `memoire.oublier` effacée.
+## Les calques `memoire.calques` gardés à la place des précédents, chaque planche de `memoire.oublier` effacée, et chaque
+## planche de `memoire.deplacer` déplacée.
 func _garder(memoire: Dictionary) -> void:
 	DirAccess.make_dir_recursive_absolute(CALQUES)
 	var fichier := FileAccess.open(_fichier_des_calques(), FileAccess.WRITE)
@@ -137,6 +138,10 @@ func _garder(memoire: Dictionary) -> void:
 	for image in memoire.oublier:
 		DirAccess.remove_absolute("user://%s.png" % image)
 		_planches.erase(image)
+	for planche in memoire.deplacer:
+		DirAccess.make_dir_recursive_absolute(("user://%s.png" % planche.vers).get_base_dir())
+		DirAccess.rename_absolute("user://%s.png" % planche.de, "user://%s.png" % planche.vers)
+		_planches.erase(planche.de)
 
 
 ## La planche `image` choisie sur le disque de l'auteur, écrite en `user://<image>.png`, puis sa taille rendue au pont ;

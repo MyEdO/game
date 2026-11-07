@@ -1269,6 +1269,20 @@ async function parcoursEditeur() {
   assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, 'la couche 1 s’édite')
   assert.equal(e.calque_pose, false, 'la couche 1 n’a pas de calque')
   await capturer('3508-l1-3-couche-1')
+  const scenes = (z) => z['editeur.scenes'].find((el) => el.id === 'scenes').valeurs
+  const avantLAjout = scenes(e.zones)
+  await cliquerAuPanneau({ element: 'bouton/scenes/ajouter' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === 'Nouvelle scène'`)
+  e = await editeur()
+  assert.equal(scenes(e.zones).length, avantLAjout.length + 1, '« Nouvelle scène » l’ajoute au projet')
+  assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la scène neuve s’édite sur sa couche 0')
+  noter(`« Nouvelle scène » : ${scenes(e.zones).length} scènes, ${e.zones['editeur.titre'][0].texte} éditée, ${Object.keys((await ecran()).cases).length} cases`)
+  await capturer('3508-l6-3-scene-neuve')
+  await cliquerAuPanneau({ element: 'bouton/scenes/retirer' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.scenes'].find((el) => el.id === 'scenes').valeurs.length === ${avantLAjout.length}`)
+  e = await editeur()
+  assert.equal(e.zones['editeur.titre'][0].texte, avantLAjout.at(-1).libelle, 'retirée, sa précédente s’édite')
+  noter(`« Retirer la scène » : ${scenes(e.zones).length} scènes, ${e.zones['editeur.titre'][0].texte} éditée`)
 }
 
 /** La page ouverte de la création : son titre. */

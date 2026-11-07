@@ -13,7 +13,7 @@ import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
   capDeLEntite, capsOfferts, entiteDeLaSelection, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
-  DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, secretAuteur,
+  DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
@@ -28,6 +28,7 @@ import { ligne, type Bouton, type Choix, type Formulaire, type Ligne } from './e
 /** Les zones de l'éditeur, dans l'ordre où chacune montre ses éléments. */
 export interface ZonesDeLEditeur {
   'editeur.titre': Ligne[];
+  'editeur.scenes': (Choix | Bouton)[];
   'editeur.outils': Choix[];
   'editeur.options': (Choix | Ligne | Bouton)[];
   'editeur.couches': (Choix | Bouton)[];
@@ -226,11 +227,9 @@ const formulaireAUnChamp = (verbe: string, libelle: string, nom: string, intitul
   champs: [{ type: 'saisieTexte', id: `${verbe}/${nom}`, ton: 'neutre', nom, optionnel, libelle: intitule, valeur }],
 });
 
-/** Le formulaire qui change l'identifiant `id` de la zone d'effet sélectionnée. */
-const formulaireDeLIdentifiant = (id: string): Formulaire => ({
-  type: 'formulaire', id: 'identifier', libelle: t('ecran.editeur.zone.identifier'), verbe: 'identifier', focus: false, refus: null,
-  champs: [{ type: 'saisieTexte', id: 'identifier/id', ton: 'neutre', nom: 'id', optionnel: false, libelle: t('ecran.editeur.zone.identifiant'), valeur: id }],
-});
+/** Le formulaire qui change l'identifiant `id` de la sélection, ou de la scène sans elle. */
+const formulaireDeLIdentifiant = (id: string): Formulaire =>
+  formulaireAUnChamp('identifier', t('ecran.editeur.identifier'), 'id', t('ecran.editeur.identifiant'), id, false);
 
 /** Par entrée des fiches commitées, son texte coupé au mot. */
 const COURT_DE_L_ENTREE = new Map(ENTREES_DE_DOSSIER.map((e) => [e.id, coupeAuMot(e.libelle, 70)]));
@@ -817,6 +816,7 @@ function inspecteurDeScene(scene: Scene): (Choix | Ligne | Bouton | Formulaire)[
   const nonDit = t('ecran.editeur.scene.nonDit');
   return [
     formulaireDuNom(scene.label, false),
+    formulaireDeLIdentifiant(scene.id),
     formulaireAUnChamp('decrire', t('ecran.editeur.scene.decrire'), 'desc', t('ecran.editeur.scene.description'), scene.desc ?? '', true),
     ...reglette('scene/largeur', t('ecran.editeur.scene.largeur', { v: w }), w, PAS_DE_GRILLE, (v) => sur({ dimensions: { w: v, h } })),
     ...reglette('scene/hauteur', t('ecran.editeur.scene.hauteur', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v } })),
@@ -907,21 +907,38 @@ export function calqueAffiche(s: SessionDEdition): CalqueAffiche | null {
 }
 
 /** Ce que l'hôte garde des calques après le geste qui mène de `avant` (`null` : l'ouverture) à `apres` : `null` s'ils
- *  n'ont pas changé ; sinon leur forme stockée, et les planches des calques retirés, à oublier. À l'ouverture, ils ne
- *  changent que retirés d'un autre format. */
-export function memoireDesCalques(avant: SessionDEdition | null, apres: SessionDEdition): { calques: CalquesStockes; oublier: string[] } | null {
+ *  n'ont pas changé ; sinon leur forme stockée, les planches des calques retirés, à oublier, et celles de la scène
+ *  renommée, à déplacer sous son nouvel identifiant. À l'ouverture, ils ne changent que retirés d'un autre format. */
+export function memoireDesCalques(avant: SessionDEdition | null, apres: SessionDEdition): { calques: CalquesStockes; oublier: string[]; deplacer: { de: string; vers: string }[] } | null {
   if (avant ? apres.calques === avant.calques : !apres.ecartes) return null;
-  const oublier = Object.entries(avant?.calques ?? {}).flatMap(([sceneId, couches]) =>
+  const siens = avant && avant.sceneId !== apres.sceneId && !avant.calques[apres.sceneId] ? avant.calques[avant.sceneId] : undefined;
+  const renommee = siens && apres.calques[apres.sceneId] === siens ? avant!.sceneId : null;
+  const oublier = Object.entries(avant?.calques ?? {}).filter(([sceneId]) => sceneId !== renommee).flatMap(([sceneId, couches]) =>
     Object.keys(couches).filter((z) => !apres.calques[sceneId]?.[z]).map((z) => cheminDeLaPlanche(apres.projet.id, sceneId, Number(z))));
-  return { calques: calquesAStocker(apres.calques), oublier };
+  const deplacer = renommee ? Object.keys(siens!).map((z) => ({ de: cheminDeLaPlanche(apres.projet.id, renommee, Number(z)), vers: cheminDeLaPlanche(apres.projet.id, apres.sceneId, Number(z)) })) : [];
+  return { calques: calquesAStocker(apres.calques), oublier, deplacer };
 }
 
-/** Pourquoi la session `s` ne s'enregistre pas : son projet vient du jeu, un enregistrement est en cours, ou la
- *  scène éditée est celle que le dépôt porte. */
+/** Les scènes du projet de la session `s` : chacune en liste, l'éditée pressée, qui s'édite à sa pression ; en ajouter
+ *  une vide, dupliquer l'éditée, la retirer, refusé pour la seule scène du projet. */
+function scenesDuProjet(s: SessionDEdition): (Choix | Bouton)[] {
+  const scenes = s.projet.scenes;
+  return [
+    choix('scenes', t('ecran.editeur.scenes', { n: scenes.length }), scenes.map((sc) => bouton(`scenes/${sc.id}`, sc.id === s.sceneId ? sceneEditee(s).label || sc.id : sc.label || sc.id, { geste: 'scenes', quoi: 'aller', id: sc.id }, sc.id === s.sceneId)), 'liste'),
+    bouton('scenes/ajouter', t('ecran.editeur.scenes.ajouter'), { geste: 'scenes', quoi: 'ajouter' }),
+    bouton('scenes/dupliquer', t('ecran.editeur.scenes.dupliquer'), { geste: 'scenes', quoi: 'dupliquer' }),
+    bouton('scenes/retirer', t('ecran.editeur.scenes.retirer'), { geste: 'scenes', quoi: 'retirer' }, false, scenes.length > 1 ? null : t('ecran.editeur.scenes.seule')),
+  ];
+}
+
+/** Pourquoi la session `s` ne s'enregistre pas : son projet vient du jeu, un enregistrement est en cours, ou ses
+ *  scènes sont celles que le dépôt porte. */
 function refusDEnregistrer(s: SessionDEdition): string | null {
   if (!s.depot) return t('ecran.editeur.enregistrer.horsDuDepot');
   if (s.depot.enCours) return t('ecran.editeur.enregistrer.enCours');
-  return sceneEditee(s) === s.depot.enregistree ? t('ecran.editeur.rien.enregistrer') : null;
+  const scenes = scenesDeLaSession(s);
+  const memes = scenes.length === s.depot.enregistrees.length && scenes.every((sc, i) => sc === s.depot!.enregistrees[i]);
+  return memes ? t('ecran.editeur.rien.enregistrer') : null;
 }
 
 /** Les zones de l'éditeur de la session `s`. Le terrain s'ouvre sur le premier terrain, ou garde celui de l'outil. */
@@ -951,6 +968,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
   const p = s.pointee;
   return {
     'editeur.titre': [ligne('scene', scene.label || scene.id)],
+    'editeur.scenes': scenesDuProjet(s),
     'editeur.outils': [choix('outils', t('ecran.editeur.outils'), outils)],
     'editeur.options': options(s),
     'editeur.couches': [

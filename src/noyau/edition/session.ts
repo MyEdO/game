@@ -13,15 +13,16 @@ import type { FireArc } from '../../engine/types';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
 import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
+import { nextEntityId } from '../../lib/entityId';
 import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../validateScene';
 import { planDefectKey, planFocusAt, planFocusTiles } from '../planDefects';
-import { annuler, historiqueDe, poser, retablir, type Historique } from './historique';
+import { annuler, historiqueDe, poser, reecrire, retablir, type Historique } from './historique';
 import { appuyer, glisser, relacher, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type GesteEnCours, type PointDeCarte } from './pointeur';
 import type { CalibProgress } from './calage';
 import { caler, calqueNeuf, calquesLus, type CalqueDeCouche, type CalquesDuProjet, type ReglageDuCalque } from './calque';
@@ -72,8 +73,7 @@ export interface PatchDeScene {
 /** Les avertissements de la validation (`validateScene`) qui concernent la scène éditée de la session `s`, ceux de la
  *  carte du monde compris. */
 export function avertissementsDeLaSession(s: SessionDEdition): Warning[] {
-  const { scenes, worldMap, narratif } = s.projet;
-  return validateScene(scenes.map((sc) => (sc.id === s.sceneId ? sceneEditee(s) : sc)), worldMap, narratif)
+  return validateScene(scenesDeLaSession(s), s.projet.worldMap, s.projet.narratif)
     .filter((w) => w.sceneId === s.sceneId || w.scope === 'worldMap');
 }
 
@@ -112,6 +112,40 @@ function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): Sessi
   }
   if (w.scope === 'entity') return vers(scene.entities.find((e) => e.id === w.refId)?.z, { type: 'entity', id: w.refId! }, { mode: 'select' });
   return vers(scene.triggers.find((t) => t.id === w.refId)?.rect.z, { type: 'trigger', id: w.refId! }, { mode: 'select' });
+}
+
+/** Les scènes du projet de la session `s` autour de la scène éditée. */
+function scenesEnProjet(s: SessionDEdition): ProjectScenes {
+  const scenes = scenesDeLaSession(s);
+  const rang = scenes.findIndex((sc) => sc.id === s.sceneId);
+  return { avant: scenes.slice(0, rang), scene: scenes[rang], apres: scenes.slice(rang + 1) };
+}
+
+/** La session `s` qui édite la scène `p.scene` de son projet `p`, à l'outil de sélection, sur la couche 0, son
+ *  historique neuf ; les calques d'une scène retirée retirés. Telle quelle sans `p`. */
+function versLaScene(s: SessionDEdition, p: ProjectScenes | null): SessionDEdition {
+  if (!p) return s;
+  const scenes = [...p.avant, p.scene, ...p.apres];
+  const calques = Object.fromEntries(Object.entries(s.calques).filter(([id]) => scenes.some((sc) => sc.id === id)));
+  return {
+    ...s, projet: { ...s.projet, scenes }, sceneId: p.scene.id, historique: historiqueDe(p.scene), outil: { mode: 'select' }, z: 0,
+    sel: null, geste: null, volee: [], brouillon: null, pointee: null, defaut: null, calage: HORS_DU_CALAGE,
+    ...(Object.keys(calques).length === Object.keys(s.calques).length ? {} : { calques }),
+  };
+}
+
+/** La session `s` dont la scène éditée `scene` prend l'identifiant `id` (`renameScene`), hors de l'historique : chaque
+ *  cran le porte, et ses calques le suivent. Telle quelle sous un identifiant vide ou déjà pris. */
+function sceneRenommee(s: SessionDEdition, scene: Scene, id: string): SessionDEdition {
+  const renommee = renameScene(scene, s.projet.scenes.filter((sc) => sc.id !== s.sceneId), id);
+  if (renommee === scene) return s;
+  const { [s.sceneId]: siens, ...autres } = s.calques;
+  return {
+    ...s, sceneId: renommee.id,
+    projet: { ...s.projet, scenes: s.projet.scenes.map((sc) => (sc.id === s.sceneId ? { ...sc, id: renommee.id } : sc)) },
+    historique: { ...reecrire(s.historique, (sc) => ({ ...sc, id: renommee.id })), present: renommee },
+    ...(siens ? { calques: { ...autres, [renommee.id]: siens } } : {}),
+  };
 }
 
 /** La scène `scene` où `patch` s'écrit. */
@@ -201,7 +235,7 @@ export interface BrouillonDArete {
 }
 
 export interface SessionDEdition {
-  /** Le projet ouvert : son document, la scène éditée tenue par `historique`. */
+  /** Le projet ouvert : son document, la scène éditée tenue par `historique` (`scenesDeLaSession`). */
   projet: Omit<ProjectDoc, 'schema'>;
   /** L'id de la scène éditée du projet. */
   sceneId: string;
@@ -220,9 +254,9 @@ export interface SessionDEdition {
   pointee: (Pt & { z: number }) | null;
   /** L'entité copiée, que coller pose sur la case pointée ; `null` avant toute copie. */
   presse: SceneEntity | null;
-  /** Le dépôt d'où le projet s'est ouvert : la scène éditée telle qu'il la porte, et celle qu'un enregistrement en
-   *  cours lui écrit. `null` : le projet vient du jeu, il ne s'enregistre pas. */
-  depot: { enregistree: Scene; enCours: Scene | null } | null;
+  /** Le dépôt d'où le projet s'est ouvert : les scènes du projet telles qu'il les porte, et celles qu'un
+   *  enregistrement en cours lui écrit. `null` : le projet vient du jeu, il ne s'enregistre pas. */
+  depot: { enregistrees: readonly Scene[]; enCours: readonly Scene[] | null } | null;
   /** Les calques de référence du projet, par scène et par couche, hors de l'historique. */
   calques: CalquesDuProjet;
   /** Le calage du calque de la couche éditée : `idle` hors du calage. */
@@ -241,7 +275,8 @@ export interface SessionDEdition {
  *  son brouillon ; écrire sur l'entité sélectionnée, le poste de l'emplacement de siège sélectionné, une place du décor
  *  sélectionné ou l'appartenance du personnage sélectionné à une rencontre ; écrire sur la zone sélectionnée, ou sur la scène ; nommer l'entité, l'entrée, le
  *  déclencheur, la zone d'effet ou le corps sélectionné, ou la scène sans sélection (`nom` absent : l'entité reprend le nom de sa fiche) ; changer l'identifiant de la zone
- *  d'effet sélectionnée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
+ *  d'effet sélectionnée, ou de la scène sans sélection ; éditer une autre scène du projet, en ajouter une vide, dupliquer
+ *  ou retirer l'éditée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
  *  demander la planche du calque de la couche éditée, puis l'issue de son chargement, l'image lue ou rien ; régler ce
  *  calque, le caler, le retirer. */
@@ -266,6 +301,8 @@ export type GesteDEdition =
   | { geste: 'baie'; id: string | null; patch: PatchDOuverture | null }
   | { geste: 'scene'; patch: PatchDeScene }
   | { geste: 'avertissement'; rang: number }
+  | { geste: 'scenes'; quoi: 'aller'; id: string }
+  | { geste: 'scenes'; quoi: 'ajouter' | 'dupliquer' | 'retirer' }
   | { geste: 'nommer'; nom?: string }
   | { geste: 'identifier'; id: string }
   | { geste: 'entree'; z: number }
@@ -287,6 +324,9 @@ export type GesteDEdition =
 /** La scène éditée. */
 export const sceneEditee = (s: SessionDEdition): Scene => s.historique.present;
 
+/** Les scènes du projet de la session `s`, dans l'ordre du document, la scène éditée à jour. */
+export const scenesDeLaSession = (s: SessionDEdition): Scene[] => s.projet.scenes.map((sc) => (sc.id === s.sceneId ? sceneEditee(s) : sc));
+
 /** La session qui édite la première scène du projet `projet`, à l'outil de sélection, sur la couche 0 ; `duDepot` :
  *  le projet est celui que le dépôt porte, où il s'enregistre ; `gardes`, s'il est donné, les calques que l'hôte
  *  gardait pour lui (`calquesLus`), retirés s'ils sont d'un autre format. */
@@ -295,7 +335,7 @@ export function ouvrirLEdition(projet: Omit<ProjectDoc, 'schema'>, duDepot: bool
   const calques = gardes === undefined ? {} : calquesLus(gardes);
   return {
     projet, sceneId: scene.id, historique: historiqueDe(scene), outil: { mode: 'select' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
-    depot: duDepot ? { enregistree: scene, enCours: null } : null,
+    depot: duDepot ? { enregistrees: projet.scenes, enCours: null } : null,
     calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null, defaut: null,
   };
 }
@@ -326,11 +366,11 @@ function aLaPorte<T>(geste: GesteDePorte, passer: () => T): { ok: true; valeur: 
 /** Le projet `lu` que sert le dépôt, prose matérialisée, passé par la porte, ou son refus. */
 export const projetDuDepot = (lu: unknown) => aLaPorte('ouverture', () => parseProject(lu));
 
-/** Le texte que l'enregistrement de la session `s` écrit au dépôt : son projet, la scène éditée à jour, passé par la
- *  porte, en forme dépôt (`texteDuDepot`) ; ou le refus de la porte. */
+/** Le texte que l'enregistrement de la session `s` écrit au dépôt : son projet, ses scènes à jour, passé par la porte,
+ *  en forme dépôt (`texteDuDepot`) ; ou le refus de la porte. */
 export function texteAEnregistrer(s: SessionDEdition) {
-  const { scenes, worldMap, activeAxes, narratif, ...identite } = s.projet;
-  const doc = documentDeProjet(identite, scenes.map((sc) => (sc.id === s.sceneId ? sceneEditee(s) : sc)), { worldMap, activeAxes, narratif });
+  const { scenes: _scenes, worldMap, activeAxes, narratif, ...identite } = s.projet;
+  const doc = documentDeProjet(identite, scenesDeLaSession(s), { worldMap, activeAxes, narratif });
   return aLaPorte('export', () => (parseProject(doc), texteDuDepot(doc)));
 }
 
@@ -611,6 +651,10 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return ecrireSurLaSelection(s, architecturePatchee(scene, s.sel, g.patch), (sc) => sc.architecture);
     case 'baie':
       return ecrireSurLaSelection(s, ouverturePosee(scene, s.sel, g.id, g.patch), (sc) => sc.architecture);
+    case 'scenes':
+      return g.quoi === 'aller' ? versLaScene(s, switchProjectScene(scenesEnProjet(s), g.id))
+        : g.quoi === 'retirer' ? versLaScene(s, deleteProjectScene(scenesEnProjet(s)))
+          : versLaScene(s, (g.quoi === 'ajouter' ? addProjectScene : duplicateProjectScene)(scenesEnProjet(s), nextEntityId('scene', s.projet.scenes.map((sc) => sc.id))));
     case 'avertissement': {
       const w = avertissementsDeLaSession(s)[g.rang];
       return w && versLaFautive(w) ? versLAvertissement(s, scene, w) : s;
@@ -620,6 +664,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return patchee === scene ? s : ecrire(s, patchee, s.sel);
     }
     case 'identifier': {
+      if (s.sel === null) return sceneRenommee(s, scene, g.id);
       const zone = s.sel?.type === 'effectZone' ? scene.effectZones?.[s.sel.idx] : undefined;
       const renommee = zone ? renameEffectZone(scene, zone.id, g.id) : scene;
       return renommee === scene ? s : ecrire(s, renommee, s.sel);
@@ -650,9 +695,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'retablir':
       return revenir(s, retablir(s.historique));
     case 'enregistrer':
-      return s.depot ? { ...s, depot: { ...s.depot, enCours: scene } } : s;
+      return s.depot ? { ...s, depot: { ...s.depot, enCours: scenesDeLaSession(s) } } : s;
     case 'enregistrement':
-      return s.depot?.enCours ? { ...s, depot: { enregistree: g.reussi ? s.depot.enCours : s.depot.enregistree, enCours: null } } : s;
+      return s.depot?.enCours ? { ...s, depot: { enregistrees: g.reussi ? s.depot.enCours : s.depot.enregistrees, enCours: null } } : s;
     case 'planche':
       return s.chargement ? s : { ...s, chargement: { sceneId: s.sceneId, z: s.z }, calage: HORS_DU_CALAGE };
     case 'chargement': {

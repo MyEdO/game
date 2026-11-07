@@ -25,7 +25,7 @@ interface Edition {
   depot?: { id: string; texte: string };
   calque: CalqueAffiche | null;
   planche?: { image: string };
-  memoire?: { calques: { version: string; calques: Record<string, Record<string, Record<string, unknown>>> }; oublier: string[] };
+  memoire?: { calques: { version: string; calques: Record<string, Record<string, Record<string, unknown>>> }; oublier: string[]; deplacer: { de: string; vers: string }[] };
 }
 
 /** L'édition d'une réponse réussie, ou l'échec qui dit la réponse. */
@@ -500,6 +500,37 @@ describe('l’éditeur de carte par le pont, la scène', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, les scènes du projet', () => {
+  it('chaque scène du projet s’édite à sa pression, ses changements gardés ; une scène s’ajoute vide, se duplique, se retire, se renomme', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const scenes = (e: Edition) => valeursDe({ ...e, vue: { ...e.vue, zones: { ...e.vue.zones, 'editeur.options': e.vue.zones['editeur.scenes'] } } }, 'scenes');
+    const titre = (e: Edition) => e.vue.zones['editeur.titre'][0].texte;
+    const derniere = (e: Edition) => scenes(e)[scenes(e).length - 1];
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const [premiere, seconde] = scenes(ouverte);
+    expect(scenes(ouverte).length, 'les scènes de la campagne, la première éditée').toBeGreaterThan(1);
+    expect([premiere.presse, seconde.presse]).toEqual([true, false]);
+
+    editionDe(appel('editer', { type: 'nommer', args: ['Relais de poste'] }));
+    const ailleurs = presser(seconde);
+    expect([titre(ailleurs), scenes(ailleurs)[0].libelle, scenes(ailleurs)[1].presse]).toEqual([seconde.libelle, 'Relais de poste', true]);
+    expect(boutonDe(ailleurs, 'annuler').refus, 'l’historique est celui de la scène éditée').toBe('Rien à annuler');
+    expect(titre(presser(scenes(ailleurs)[0])), 'revenue, la scène garde son nom').toBe('Relais de poste');
+
+    const neuve = presser(boutonDe(ailleurs, 'scenes/ajouter'));
+    expect([titre(neuve), scenes(neuve).length, derniere(neuve).id]).toEqual(['Nouvelle scène', scenes(ouverte).length + 1, 'scenes/scene-0']);
+    const copie = presser(boutonDe(neuve, 'scenes/dupliquer'));
+    expect([titre(copie), derniere(copie).id]).toEqual(['Nouvelle scène (copie)', 'scenes/scene-1']);
+    const retiree = presser(boutonDe(copie, 'scenes/retirer'));
+    expect([titre(retiree), scenes(retiree).length], 'la copie retirée, sa précédente éditée').toEqual(['Nouvelle scène', scenes(neuve).length]);
+
+    const renommee = editionDe(appel('editer', { type: 'identifier', args: ['cour'] }));
+    expect(derniere(renommee)).toMatchObject({ id: 'scenes/cour', presse: true });
+    expect(derniere(editionDe(appel('editer', { type: 'identifier', args: [premiere.id.slice('scenes/'.length)] }))).id, 'un identifiant déjà pris se refuse').toBe('scenes/cour');
+  });
+});
+
 describe('l’éditeur de carte par le pont, le combat et l’ameublement', () => {
   it('un emplacement de siège posé à l’outil : son engin, son arc, ses servants et leur chef ; un personnage enrôlé dans une rencontre neuve, allié piloté', () => {
     const { appel } = table();
@@ -587,7 +618,7 @@ describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {
     expect(inspecte('arete/suspendu')).toMatchObject({ texte: 'Chute si l’on se suspend d’abord : 0.5 m' });
 
     e = presser(boutonDe(e, 'arete/supprimer'));
-    expect(e.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.startsWith('scene/') && !['nommer', 'decrire', 'drapeau'].includes(id)), 'l’arête supprimée, l’inspecteur de la scène').toEqual([]);
+    expect(e.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.startsWith('scene/') && !['nommer', 'identifier', 'decrire', 'drapeau'].includes(id)), 'l’arête supprimée, l’inspecteur de la scène').toEqual([]);
   });
 });
 
@@ -658,7 +689,18 @@ describe('l’éditeur de carte par le pont, le calque de référence', () => {
     expect(hg, 'le coin haut-gauche de l’image au coin de la case 0, 0').toEqual({ x: -0.5, y: -0.5 });
     expect([hd.y, bd.x - hd.x, bg.x, (hd.x - hg.x) / (bg.y - hg.y)], 'l’image droite, sans déformation').toEqual([-0.5, 0, -0.5, 2]);
     const sceneId = demande.planche!.image.split('/')[2];
-    expect(charge.memoire).toEqual({ calques: { version: expect.any(String), calques: { [sceneId]: { 0: expect.objectContaining({ largeur: 200, hauteur: 100 }) } } }, oublier: [] });
+    expect(charge.memoire).toEqual({ calques: { version: expect.any(String), calques: { [sceneId]: { 0: expect.objectContaining({ largeur: 200, hauteur: 100 }) } } }, oublier: [], deplacer: [] });
+  });
+
+  it('la scène renommée garde son calque : sa planche se déplace sous son nouvel identifiant ; la scène retirée l’oublie', () => {
+    const { appel, ouverte, jouer, presser } = ouvrirLaCarte();
+    presser(boutonDe(ouverte, 'calque/charger'));
+    const charge = jouer({ geste: 'chargement', image: { largeur: 200, hauteur: 100 } });
+    const renommee = editionDe(appel('editer', { type: 'identifier', args: ['cour'] }));
+    expect(renommee.calque?.image).toBe(`calques/${CAMPAGNE}/cour/0`);
+    expect(renommee.memoire).toEqual({ calques: { version: expect.any(String), calques: { cour: { 0: expect.objectContaining({ largeur: 200 }) } } }, oublier: [], deplacer: [{ de: charge.calque!.image, vers: `calques/${CAMPAGNE}/cour/0` }] });
+    const retiree = presser(boutonDe(renommee, 'scenes/retirer'));
+    expect(retiree.memoire).toEqual({ calques: { version: expect.any(String), calques: {} }, oublier: [`calques/${CAMPAGNE}/cour/0`], deplacer: [] });
   });
 
   it('caler par deux points : un point de l’image, son nœud, un second point, son nœud ; la planche se pose sur la grille', () => {
@@ -716,7 +758,7 @@ describe('l’éditeur de carte par le pont, le calque de référence', () => {
     for (const autre of [JSON.stringify({ ...charge.memoire!.calques, version: 'ancien' }), '{']) {
       const ecartee = ouvrirLaCarte(autre).ouverte;
       expect(ecartee.calque).toBeNull();
-      expect(ecartee.memoire, 'les calques retirés, à garder vides').toEqual({ calques: { version: charge.memoire!.calques.version, calques: {} }, oublier: [] });
+      expect(ecartee.memoire, 'les calques retirés, à garder vides').toEqual({ calques: { version: charge.memoire!.calques.version, calques: {} }, oublier: [], deplacer: [] });
       expect(lignes(ecartee)['calque/ecartes']).toBe('Calques d’un autre format : ils ont été retirés.');
     }
   });
@@ -730,7 +772,11 @@ describe('l’éditeur de carte par le pont, au dépôt', () => {
   it('ouverte du jeu, elle ne s’enregistre pas ; ouverte du dépôt, rien à enregistrer tant qu’elle n’a pas changé', () => {
     const { appel } = table();
     expect(boutonDe(editionDe(appel('editer', { ouvrir: servi.id })), 'enregistrer').refus).toBe('Ouverte du jeu, hors du dépôt : elle ne s’enregistre pas');
-    expect(boutonDe(editionDe(appel('editer', ouvrir())), 'enregistrer').refus).toBe('Rien à enregistrer');
+    const ouverte = editionDe(appel('editer', ouvrir()));
+    expect(boutonDe(ouverte, 'enregistrer').refus).toBe('Rien à enregistrer');
+    const scenes = ouverte.vue.zones['editeur.scenes'][0] as Choix;
+    if (scenes.valeurs.length > 1) expect(boutonDe(editionDe(appel('editer', scenes.valeurs[1].jeu)), 'enregistrer').refus, 'une autre scène éditée, rien de changé').toBe('Rien à enregistrer');
+    expect(boutonDe(editionDe(appel('editer', { edition: { geste: 'scenes', quoi: 'ajouter' } })), 'enregistrer').refus, 'une scène ajoutée est à enregistrer').toBeNull();
   });
 
   it('un projet servi illisible, d’un autre id ou refusé par la porte se refuse', () => {
