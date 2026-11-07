@@ -39,6 +39,8 @@ import {
 } from '../../data';
 import { findFallTable } from '../../data/shipCriticals';
 import { effectTableDie, findEffectTableById } from '../../data/effectTables';
+import { deDeTirageDe } from '../../data/rangees';
+import { facesDuDe, fourchette } from '../../engine/tables';
 import { deElide, t, type MsgKey } from '../../i18n';
 import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { libelleDEtat } from './libellesNarratifs';
@@ -79,6 +81,14 @@ export function traitOctroyeLisible(o: Extract<GameOp, { op: 'grantTrait' }>, fo
   const table = o.cible && libelleDeValeur(tablesDeCiblesSchema, o.cible.table.id);
   const cible = o.cible ? ` ${t(o.cible.pick > 1 ? 'codex.trait.cibleTireeFois' : 'codex.trait.cibleTiree', { table: table!, pick: o.cible.pick })}` : '';
   return `${traitLisible(nombre ? { ...pose, value } : pose)}${indice}${cible}`;
+}
+
+/** Les rangées d'une table en ligne (`rollTable.entries`) : chaque bande au dé de la table, puis ses ops. */
+function rangeesLisibles(o: Extract<GameOp, { op: 'rollTable'; entries: unknown }>): string {
+  const faces = facesDuDe(deDeTirageDe(o));
+  return t('codex.op.rollTable.rangees', {
+    rangees: o.entries.map((r) => `${fourchette(r.min, r.max, faces)} : ${r.ops.length ? r.ops.map(humanizeOp).join(', ') : t('codex.op.rollTable.rien')}`).join(' ; '),
+  });
 }
 
 /** « de » + une formule humanisée, AVEC la contraction française : `de le` → `du`, `de les` → `des`
@@ -531,7 +541,7 @@ export function humanizeOp(o: GameOp): string {
       de: 'tableId' in o ? formatDice(effectTableDie(o.tableId)) : o.die,
       negatifs: o.addNegativeSL ? t('codex.op.rollTable.negatifs') : '',
       extra: o.extraRollsPerStep ? t('codex.op.rollTable.extra', { n: o.extraRollsPerStep }) : '',
-    });
+    }) + ('entries' in o ? rangeesLisibles(o) : '');
     case 'rollMutation': return t(o.duration === 'permanent' ? 'codex.op.rollMutation.permanente' : 'codex.op.rollMutation', { table: o.table });
     case 'charDamage': return t('codex.op.charDamage', { n: humanizeFormula(o.amount), car: CHAR_LABELS[o.char] });
     case 'summon': return `${t('codex.op.summon', { n: humanizeFormula(o.count), nom: creatureLabel(o.ref) })}${o.allyOfCaster === false ? t('codex.op.summon.hostile') : ''}`;
@@ -631,6 +641,10 @@ export function humanizeOp(o: GameOp): string {
       difficulte: DIFFICULTY_LABELS[o.difficulty], dr: o.targetDR,
       nuit: humanizeFlow(o.chaqueNuit, []),
     });
+    case 'combatEnMer': return t('codex.op.combatEnMer', { nombre: o.adversaire.nombre, adversaire: creatureLabel(o.adversaire.id) })
+      + `${o.adversaire.optionals ? t('codex.op.combatEnMer.optionals', { traits: o.adversaire.optionals.map((p) => traitLisible(p)).join(', ') }) : ''}`
+      + `${o.repousseAPct !== undefined ? t('codex.op.combatEnMer.repousse', { pct: o.repousseAPct }) : ''}`
+      + `${o.victoire ? t('codex.op.combatEnMer.victoire', { victoire: humanizeFlow(o.victoire, []) }) : ''}`;
   }
   return assertNever(o);
 }

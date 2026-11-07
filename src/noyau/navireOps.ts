@@ -25,7 +25,7 @@ import { rollShipCritical } from '../engine/shipCritical';
 import { dataLabel, findCrewRoleById, voyageStakeRef } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
-import { applyVesselCritical, buildVoyageCrewStep, coqueDuNavireDeCampagne, entrerDansLeTourbillon, heurterLePeril, localisationAleatoire, navireHostileEnVue, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
+import { applyVesselCritical, buildVoyageCrewStep, combattreEnMer, coqueDuNavireDeCampagne, entrerDansLeTourbillon, heurterLePeril, localisationAleatoire, navireHostileEnVue, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
 import { findSeaHazard } from '../engine/seaPerils';
 import { applyLeafOps, OPS_DIFFEREES } from './combatEffects';
 import { startCascade } from './cascade';
@@ -153,6 +153,8 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       return o.collision !== undefined ? heurterLePeril(get, set, coque, o.collision.id, ctx.rng) : entrerDansLeTourbillon(get, set, o.tourbillon.id, nomDeSource(ctx));
     case 'navireHostile':
       return navireHostileEnVue(get, set, coque, o, nomDeSource(ctx));
+    case 'combatEnMer':
+      return combattreEnMer(get, set, o, nomDeSource(ctx));
     case 'infestation': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const label = nomDeSource(ctx);

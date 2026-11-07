@@ -318,6 +318,16 @@ const DECLARATIONS_D_OPS = {
     ...cibleEtendueSchema.shape,
     chaqueNuit: z.lazy(() => flowSchema),
   }), { op: { label: "opération"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique"} }, difficulty: { label: "difficulté" }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), chaqueNuit: { label: "chaque nuit" } }),
+  /** `combatEnMer` — MDG 15 l.136-139, l.142-143, l.165-168 */
+  combatEnMer: nommerChamps(z.strictObject({
+    op: z.literal('combatEnMer'),
+    adversaire: ref('creature', {
+      nombre: nommerNoeud(z.number().int().min(1), { nom: 'effectif' }),
+      optionals: nommerNoeud(z.array(traitInstanceSchema).min(1).optional(), { nom: 'Traits facultatifs' }),
+    }),
+    repousseAPct: z.number().int().min(1).max(99).optional(),
+    victoire: z.lazy(() => flowSchema).optional(),
+  }), { op: { label: "opération"  }, adversaire: { label: "adversaire" }, repousseAPct: { label: "repoussé à (% des Blessures)" }, victoire: { label: "sur la victoire" } }),
   /** `provisions` : jours de vivres gagnés (`jours`), part gâtée (`gateesPct`), rations de mer (`rations`) OU tonneaux
    *  d'eau (`eauTonneaux`), exclusifs. MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242 */
   provisions: z.union([
@@ -1412,6 +1422,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   perilDeMer: 'Péril de mer',
   navireHostile: 'Navire hostile',
   infestation: 'Infestation du navire',
+  combatEnMer: 'Combat en mer',
 };
 
 /** Payloads d'une famille, chacun nommé par le libellé de son op (`OP_LABEL`) : une FORME se ferme en `z.strictObject`,

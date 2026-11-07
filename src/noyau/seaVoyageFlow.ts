@@ -44,7 +44,8 @@ import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
  *  interrupteur sur-le-champ (`reprendreLeVoyage` rejoue la traversée). Exporté pour être NOMMÉ par les
  *  contrats, jamais recopié en littéral. */
 export const SEA_PERIL_INTERRUPT = 'voyage-mer';
-import type { Scene } from './monde/scene';
+import type { Scene, VictoryCondition } from './monde/scene';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { buildScene } from './mapSpec';
 import type { AuthoredEnemy } from './monde/encounterAuthoring';
 import { registerScene } from './monde/registreDesScenes';
@@ -114,7 +115,7 @@ import { startCascade, runCascadeImmediate, pushStep, type TableStepDef } from '
 import { checkPartyWiped } from './partyWipe';
 import { memoParVersion } from '../data/versionDataset';
 import { exposureWaveBand } from './nightBands';
-import { dataLabel } from '../data';
+import { creatureLabel, dataLabel } from '../data';
 // Tuile de PONT d'une scène de bord : défaut de compilation (`defauts-de-compilation.json`), éditable
 // au Codex — la scène d'abordage est compilée, elle n'authore pas son sol.
 import { defautsDeCompilation } from '../data';
@@ -1908,64 +1909,104 @@ function premiereVague(b: SeaBoarding): { marins: number; vague: number } {
   return { marins, vague: Math.min(tailleDeVague(), marins) };
 }
 
-/** Construit la Scène d'abordage GÉNÉRIQUE (ponts bord à bord) à partir du navire hostile de l'événement
- *  et de la coque de campagne — MÊME machinerie navale que les scènes authorées (`buildScene` + `enemies`
- *  terse : coque à PV + équipage exposé `crewIds`, cf. `16-embuscade-fluviale`/`ls-abordage-cogue`). La
- *  coque ennemie porte sa première vague d'abordage (`premiereVague`, + `chefRef`) comme équipage exposé
- *  (MDG 14) ; la coque de campagne est le camp allié (le groupe y EMBARQUE au `lancerLeCombat`). */
 /** Id du combattant d'index `i` de la rencontre d'abordage générique (`buildEncounter`) : 0 est la coque
  *  hostile, son équipage exposé suit. */
 const idDAbordage = (i: number): string => `enemy-enc-abordage-${i}`;
 
-function buildBoardingScene(playerHullRef: string, playerHullName: string, b: SeaBoarding): Scene {
-  const wave = premiereVague(b).vague;
-  const chef = b.chefRef ? 1 : 0;
-  // Équipage EXPOSÉ de la coque ennemie = la vague (crew + chef).
-  const crewIds = Array.from({ length: wave + chef }, (_, i) => idDAbordage(i + 1));
-  const enemies: AuthoredEnemy[] = [
-    { ref: b.shipRef, pos: { x: 14, y: 6 }, label: b.label, crewIds },
-    ...Array.from({ length: wave }, (_, i) => ({ ref: b.crewRef, pos: { x: 12, y: 3 + (i % 6) } })),
-    ...(b.chefRef ? [{ ref: b.chefRef, pos: { x: 16, y: 6 } }] : []),
-    { ref: playerHullRef, pos: { x: 3, y: 6 }, side: 'ally' as const, label: playerHullName },
-  ];
+/** La coque de campagne qui porte un combat sur le PONT : sa réf et son nom ; `null` hors de la mer ou sans
+ *  coque de campagne connue (impossibilité réelle, non simulable). */
+function coqueDuPont(get: Get): { ref: string; nom: string } | null {
+  const plan = get().travelPlan;
+  if (!plan?.sea) return null;
+  const ref = get().vessel?.vehicleId ?? plan.vehicle?.creatureId;
+  if (!ref) return null;
+  const vessel = get().vessel;
+  return { ref, nom: vessel ? nomDuNavire(vessel) : garanti(plan.vehicle, plan.routeId, 'navire du voyage').label };
+}
+
+/** La Scène GÉNÉRIQUE du PONT, construite à la volée : la coque de campagne au camp allié (le groupe y
+ *  EMBARQUE au `lancerLeCombat`), `ennemis` en face — MÊME machinerie navale que les scènes authorées
+ *  (`buildScene` + `enemies` terse, cf. `16-embuscade-fluviale`/`ls-abordage-cogue`). */
+function sceneDuPont(coque: { ref: string; nom: string }, label: string, debut: string, rencontre: { id: string; ennemis: AuthoredEnemy[]; victoryCondition?: VictoryCondition }): Scene {
   return buildScene({
     id: BOARDING_SCENE_ID,
-    label: `Abordage — ${b.label}`,
+    label,
     size: [18, 12],
     terrain: defautsDeCompilation.pont,
     ambiance: 'exterieur',
     heroStart: [3, 7],
-    startMessage: { texte: t('sv.boardingStart', { ship: b.label }) },
-    encounters: [{ id: 'enc-abordage', enemies }],
+    startMessage: { texte: debut },
+    encounters: [{
+      id: rencontre.id,
+      enemies: [...rencontre.ennemis, { ref: coque.ref, pos: { x: 3, y: 6 }, side: 'ally' as const, label: coque.nom }],
+      ...(rencontre.victoryCondition ? { victoryCondition: rencontre.victoryCondition } : {}),
+    }],
   });
 }
 
-/** Ouvre l'abordage GÉNÉRIQUE dérivé de l'événement (`SeaBoarding`) : construit la Scène bord à bord,
- *  l'enregistre, INTERROMPT la traversée et lance le combat — MÊME couture de suspension/reprise que
- *  l'embuscade authorée (`openAuthoredSeaAmbush` : `interrupted` + `lancerLeCombat` suspend la cascade en
- *  cours, le teardown de victoire la reprend). Requiert une coque de campagne (le groupe est EN MER).
- *  Renvoie `false` si aucune coque de campagne n'est connue (impossibilité réelle, non simulable). */
-function openGenericBoarding(get: Get, set: Set, b: SeaBoarding, noSurprise = true): boolean {
-  const plan = get().travelPlan;
-  if (!plan?.sea) return false;
-  const playerHullRef = get().vessel?.vehicleId ?? plan.vehicle?.creatureId;
-  if (!playerHullRef) return false;
-  const vessel = get().vessel;
-  const playerHullName = vessel ? nomDuNavire(vessel) : garanti(plan.vehicle, plan.routeId, 'navire du voyage').label;
-  registerScene(buildBoardingScene(playerHullRef, playerHullName, b));
-  set({ travelPlan: { ...plan, interrupted: true, sea: { ...plan.sea, boarding: undefined } } });
+/** Lance le combat `encounterId` de la Scène du pont : l'enregistre, INTERROMPT la traversée et lance le
+ *  combat — MÊME couture de suspension/reprise que l'embuscade authorée (`openAuthoredSeaAmbush` :
+ *  `interrupted` + `lancerLeCombat` suspend la cascade en cours, le teardown de combat la reprend).
+ *  `onVictory` : la suite jouée sur la victoire (`finishVictory`). */
+function combattreSurLePont(get: Get, set: Set, scene: Scene, encounterId: string, onVictory?: Flow, noSurprise = true): void {
+  const plan = garanti(get().travelPlan?.sea && get().travelPlan, encounterId, 'traversée en mer');
+  registerScene(scene);
+  set({ travelPlan: { ...plan, interrupted: true, sea: { ...plan.sea!, boarding: undefined } } });
   get().quitterLaScene(BOARDING_SCENE_ID, undefined);
-  get().lancerLeCombat('enc-abordage', undefined, { noSurprise });
+  get().lancerLeCombat(encounterId, onVictory, { noSurprise });
+}
+
+/** L'abordage du navire hostile `b` sur le pont : sa coque porte sa première vague d'abordage
+ *  (`premiereVague`, + `chefRef`) comme équipage exposé (MDG 14). */
+function buildBoardingScene(coque: { ref: string; nom: string }, b: SeaBoarding): Scene {
+  const wave = premiereVague(b).vague;
+  const chef = b.chefRef ? 1 : 0;
+  // Équipage EXPOSÉ de la coque ennemie = la vague (crew + chef).
+  const crewIds = Array.from({ length: wave + chef }, (_, i) => idDAbordage(i + 1));
+  const ennemis: AuthoredEnemy[] = [
+    { ref: b.shipRef, pos: { x: 14, y: 6 }, label: b.label, crewIds },
+    ...Array.from({ length: wave }, (_, i) => ({ ref: b.crewRef, pos: { x: 12, y: 3 + (i % 6) } })),
+    ...(b.chefRef ? [{ ref: b.chefRef, pos: { x: 16, y: 6 } }] : []),
+  ];
+  return sceneDuPont(coque, `Abordage — ${b.label}`, t('sv.boardingStart', { ship: b.label }), { id: 'enc-abordage', ennemis });
+}
+
+/** Ouvre l'abordage GÉNÉRIQUE dérivé de l'événement (`SeaBoarding`) sur le pont (`combattreSurLePont`).
+ *  Renvoie `false` sans coque de campagne (`coqueDuPont`). */
+function openGenericBoarding(get: Get, set: Set, b: SeaBoarding, noSurprise = true): boolean {
+  const coque = coqueDuPont(get);
+  if (!coque) return false;
+  combattreSurLePont(get, set, buildBoardingScene(coque, b), 'enc-abordage', undefined, noSurprise);
   // Les marins hors de la première vague restent en RÉSERVE sur la coque hostile ; ils montent à bord par
   // vagues (`monterLesVagues`, `shipCrew.ts`). MDG 15 l.150, l.171
   const { marins, vague } = premiereVague(b);
   const battle = get().battle;
-  const coque = inBattleId(battle, idDAbordage(0));
-  if (battle && coque && marins > vague) {
-    coque.reserveDAbordage = { ref: b.crewRef, restant: marins - vague, vague: tailleDeVague() };
+  const coqueHostile = inBattleId(battle, idDAbordage(0));
+  if (battle && coqueHostile && marins > vague) {
+    coqueHostile.reserveDAbordage = { ref: b.crewRef, restant: marins - vague, vague: tailleDeVague() };
     set({ battle: { ...battle } });
   }
   return true;
+}
+
+/** COMBAT EN MER (op `combatEnMer`) : `adversaire.nombre` créatures attaquent sur le pont du navire de
+ *  campagne (`combattreSurLePont`) ; chacune est repoussée à `repousseAPct` % de ses Blessures de départ ou
+ *  moins (objectif `woundsThreshold` sans cible), `victoire` se joue sur la victoire. Rend les lignes.
+ *  MDG 15 l.136-139, l.142-143, l.165-168 */
+export function combattreEnMer(get: Get, set: Set, o: Extract<GameOp, { op: 'combatEnMer' }>, label: string): string[] {
+  const coque = coqueDuPont(get);
+  if (!coque) return [t('sv.combatEnMerSansPont', { label })];
+  const { id, nombre, optionals } = o.adversaire;
+  const ennemis: AuthoredEnemy[] = Array.from({ length: nombre }, (_, i) => ({
+    ref: id, pos: { x: 12 - 2 * Math.floor(i / 3), y: 2 + 4 * (i % 3) }, ...(optionals ? { optionals: structuredClone(optionals) } : {}), // #2097
+  }));
+  const adversaire = `${nombre} × ${creatureLabel(id)}`;
+  const scene = sceneDuPont(coque, `${label} — ${adversaire}`, t('sv.combatEnMerStart', { label, adversaire }), {
+    id: 'enc-en-mer', ennemis,
+    ...(o.repousseAPct !== undefined ? { victoryCondition: { type: 'woundsThreshold' as const, atOrBelowPercent: o.repousseAPct } } : {}),
+  });
+  combattreSurLePont(get, set, scene, 'enc-en-mer', o.victoire && structuredClone(o.victoire)); // #2097
+  return [];
 }
 
 /** Rattrapé par un navire hostile → ABORDAGE (MDG 13 l.420). Priorité : embuscade AUTHORÉE de la route

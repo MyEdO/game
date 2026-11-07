@@ -67,6 +67,47 @@ describe('LogicDock — onglet Rencontres (remplace la modale EncountersEditor)'
   });
 });
 
+describe('LogicDock — sortie à seuil de dommage (#215 ; MDG 15 l.143, l.166-168)', () => {
+  afterEach(demonterRacines);
+  const rencontre = (victoryCondition: NonNullable<Scene['encounters'][number]['victoryCondition']>): Scene => {
+    const scene = emptyScene('scene-test', 10, 10);
+    scene.entities = [{ id: 'syrene', kind: 'personnage', ref: 'syrene-bleue', pos: { x: 1, y: 1 } }];
+    scene.encounters = [{ id: 'e1', members: [{ entityId: 'syrene' }], victoryCondition }];
+    return scene;
+  };
+  const selectDeCible = (racine: HTMLElement): HTMLSelectElement =>
+    [...racine.querySelectorAll('select')].find((s) => [...s.options].some((o) => o.textContent === '— chaque adversaire —'))!;
+  const choisir = (select: HTMLSelectElement, valeur: string) => act(() => {
+    select.value = valeur;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
+  it('sans cible, « chaque adversaire » est retenu ; élire une cible la pose', async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const scene = rencontre({ type: 'woundsThreshold', atOrBelowPercent: 50 });
+    let pose: Scene = scene;
+    const montage = monterRacine(null);
+    await act(() => montage.rendre(dock({ scene, tab: 'encounters', encSel: 'e1', setScene: (s: Scene) => { pose = s; } })));
+    const select = selectDeCible(montage.container);
+    expect(select.value).toBe('');
+    expect(montage.container.textContent).toContain('% de ses Blessures ou moins');
+    await choisir(select, 'syrene');
+    expect(pose.encounters[0].victoryCondition).toEqual({ type: 'woundsThreshold', targetId: 'syrene', atOrBelowPercent: 50 });
+  });
+
+  it('revenir à « chaque adversaire » retire la cible', async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const scene = rencontre({ type: 'woundsThreshold', targetId: 'syrene', atOrBelowPercent: 40 });
+    let pose: Scene = scene;
+    const montage = monterRacine(null);
+    await act(() => montage.rendre(dock({ scene, tab: 'encounters', encSel: 'e1', setScene: (s: Scene) => { pose = s; } })));
+    const select = selectDeCible(montage.container);
+    expect(select.value).toBe('syrene');
+    await choisir(select, '');
+    expect(pose.encounters[0].victoryCondition).toEqual({ type: 'woundsThreshold', atOrBelowPercent: 40 });
+  });
+});
+
 describe('LogicDock — onglet Triggers (master-détail, édition LIVE)', () => {
   it('liste les triggers et édite le sélectionné (rect + condition + effets)', () => {
     const scene = emptyScene('scene-test', 10, 10);
