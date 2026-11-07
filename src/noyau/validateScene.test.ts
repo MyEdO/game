@@ -514,13 +514,11 @@ describe('validateScene', () => {
     expect(validateScene([s]).filter((w) => /zone/i.test(w.message))).toEqual([]);
   });
 
-  it('musique de scène inconnue au registre de l’hôte → avertissement ; piste réelle / silence / auto = OK', () => {
+  it('musique de scène inconnue au registre → avertissement ; piste réelle / silence / auto = OK', () => {
     const s = base();
-    const pistes = new Set(['musique-combat']);
-    expect(msgs(validateScene([{ ...s, music: { ambient: 'piste-fantome', combat: 'musique-combat' } }], null, undefined, pistes)).some((m) => /Musique .*piste-fantome/.test(m))).toBe(true);
-    expect(validateScene([{ ...s, music: { ambient: null, combat: 'musique-combat' } }], null, undefined, pistes)).toEqual([]); // silence + piste réelle
-    expect(validateScene([{ ...s, music: undefined }], null, undefined, pistes)).toEqual([]); // automatique
-    expect(validateScene([{ ...s, music: { ambient: 'piste-fantome', combat: null } }]), 'sans registre fourni, la musique n’est pas jugée').toEqual([]);
+    expect(msgs(validateScene([{ ...s, music: { ambient: 'piste-fantome', combat: 'musique-combat' } }])).some((m) => /Musique .*piste-fantome/.test(m))).toBe(true);
+    expect(validateScene([{ ...s, music: { ambient: null, combat: 'musique-combat' } }])).toEqual([]); // silence + piste réelle
+    expect(validateScene([{ ...s, music: undefined }])).toEqual([]); // automatique
   });
 });
 

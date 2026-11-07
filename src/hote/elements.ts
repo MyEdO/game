@@ -81,12 +81,13 @@ export interface Choix { type: 'choix' | 'liste'; id: string; ton: Ton; libelle:
 export interface Valeur { libelle: string; valeur: unknown; presse: boolean; refus: string | null }
 
 /** Une saisie d'un formulaire : sa position parmi les arguments du verbe (`nom`), et son contrôle. `fixe` : posée par
- *  la fenêtre, jamais saisie ; `saisieCoches` : la liste des valeurs cochées, chacune pressée quand elle l'est déjà. */
+ *  la fenêtre, jamais saisie ; `saisieCoches` : la liste des valeurs cochées, chacune pressée quand elle l'est déjà ;
+ *  `saisieMultiligne` : un texte sur plusieurs lignes, saisi tel quel. */
 export type Saisie =
   | { type: 'fixe'; id: string; nom: string; optionnel: boolean; valeur: unknown }
   | { type: 'saisieChoix' | 'saisieCoches'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeurs: Valeur[] }
   | { type: 'saisieNombre'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeur: number; min: number; max: number; pas: number }
-  | { type: 'saisieTexte' | 'saisieJson'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeur: string }
+  | { type: 'saisieTexte' | 'saisieMultiligne' | 'saisieJson'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeur: string }
   | { type: 'saisieObjet'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; champs: Saisie[] };
 
 /** Un formulaire : ses saisies dans l'ordre des arguments du verbe, puis son bouton ; `refus` : pourquoi il ne se joue
@@ -149,6 +150,7 @@ function saisie(id: string, a: ArgumentDuGeste): Saisie {
     case 'nombre': return { ...dite, type: 'saisieNombre', valeur: typeof a.valeur === 'number' ? a.valeur : 0, ...(a.bornes ? { min: a.bornes.min, max: a.bornes.max, pas: a.bornes.pas ?? 1 } : SANS_BORNE) };
     case 'objet': return { ...dite, type: 'saisieObjet', champs: (a.champs ?? []).map((c) => saisie(`${id}/${c.nom}`, c)) };
     case 'texte': return { ...dite, type: 'saisieTexte', valeur: a.valeur == null ? '' : String(a.valeur) };
+    case 'multiligne': return { ...dite, type: 'saisieMultiligne', valeur: a.valeur == null ? '' : String(a.valeur) };
     case 'json': return { ...dite, type: 'saisieJson', valeur: a.valeur == null ? '' : JSON.stringify(a.valeur) };
   }
 }

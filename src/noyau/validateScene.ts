@@ -27,6 +27,7 @@ import { placeServices, type WorldMap } from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
 import { memoByRefDeps } from './monde/sceneMemo';
+import { allMusicDefs } from '../data/sons/musique';
 
 /** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
 const VOCABULAIRE_DU_TAG: VocabulaireDuTag = {
@@ -135,10 +136,9 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
 /**
  * Vérifie un PROJET (liste de scènes + carte du monde optionnelle) avant le runtime : réfs cassées
  * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte),
- * zones hors-carte, ids dupliqués. `pistesDeMusique` : les ids des pistes que l'hôte sait jouer (son
- * registre) ; sans elles, la musique d'une scène n'est pas jugée. PUR.
+ * zones hors-carte, ids dupliqués, musique inconnue du registre (`allMusicDefs`). PUR.
  */
-export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock, pistesDeMusique?: ReadonlySet<string>): Warning[] {
+export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Warning[] {
   const presetDe = presetDuNarratif(narratif);
   const out: Warning[] = [];
   const sceneIds = new Set(project.map((s) => s.id));
@@ -237,8 +237,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       add('error', f.scope, f.element?.cle, messageDeFaute(f, faute.message), f.architectureRef);
     }
 
-    if (pistesDeMusique) for (const [slot, v] of Object.entries(s.music ?? {}))
-      if (typeof v === 'string' && !pistesDeMusique.has(v)) add('warn', 'scene', undefined, `Musique (${slot === 'ambient' ? 'ambiance' : 'combat'}) inconnue au registre « ${v} »`);
+    for (const [slot, v] of Object.entries(s.music ?? {}))
+      if (typeof v === 'string' && !allMusicDefs().some((d) => d.id === v)) add('warn', 'scene', undefined, `Musique (${slot === 'ambient' ? 'ambiance' : 'combat'}) inconnue au registre « ${v} »`);
 
     // Couches (`Scene.layers`) : ids d'étage valides pour rattacher les entités posées en hauteur.
     const layerZs = new Set(s.layers.map((l) => l.z));

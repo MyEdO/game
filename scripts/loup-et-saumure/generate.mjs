@@ -431,8 +431,8 @@ scenes.push(scene({
       // déjà alignée (`applyNavalSurprisePosition`). Repérée → placement authoré (~150 m, aucun avantage).
       surprise: 'party',
       // Reddition à mi-coque (#215) : la Dent de Manann amène son pavillon quand la coque `cogue` tombe
-      // sous 50 % de ses Blessures — la victoire se déclenche à la reddition, pas au naufrage.
-      victoryCondition: { type: 'woundsThreshold', targetId: 'cogue', belowPercent: 50 },
+      // à 50 % de ses Blessures ou moins — la victoire se déclenche à la reddition, pas au naufrage.
+      victoryCondition: { type: 'woundsThreshold', targetId: 'cogue', atOrBelowPercent: 50 },
       members: [
         { entityId: 'grimm', side: 'ally' },
         { entityId: 'aldo-crew', side: 'ally' },
@@ -608,9 +608,9 @@ scenes.push(scene({
       // plus près, bordée alignée ; repéré → ~150 m sans avantage.
       surprise: 'party',
       // Reddition à mi-coque (#215), comme la Dent de Manann : le Serpent-de-Sel amène son pavillon quand
-      // la coque `serpent-de-sel` tombe sous 50 % de ses Blessures — la victoire = la reddition (texte VRAI),
+      // la coque `serpent-de-sel` tombe à 50 % de ses Blessures ou moins — la victoire = la reddition (texte VRAI),
       // pas le naufrage. `targetId` référence la coque ENNEMIE réelle enrôlée dans cette scène.
-      victoryCondition: { type: 'woundsThreshold', targetId: 'serpent-de-sel', belowPercent: 50 },
+      victoryCondition: { type: 'woundsThreshold', targetId: 'serpent-de-sel', atOrBelowPercent: 50 },
       members: [
         { entityId: 'grimm2', side: 'ally' },
         { entityId: 'aldo-crew-2', side: 'ally' },

@@ -98,7 +98,8 @@
 //   huit plus loin comme son nœud : la planche s'étire du double, son échelle dite en pixels par case moitié de celle
 //   d'avant.
 //   « Couche 1 » édite l'étage, sans calque. À l'ouverture, sans sélection, l'inspecteur est celui de la scène : « +15° »
-//   tourne son nord, « Annuler » le rend au haut du plan. « Nouvelle scène » l'ajoute au projet, « Retirer la scène »
+//   tourne son nord, « Annuler » le rend au haut du plan ; son message de départ tapé au clavier sur deux lignes (#3606),
+//   « Écrire le message de départ » le pose, « Annuler » le retire. « Nouvelle scène » l'ajoute au projet, « Retirer la scène »
 //   rend la précédente. Une seconde « Nouvelle scène » reçoit, dans un bloc de cases à l'écran, les ouvrages de la
 //   Diligence : une couche ajoutée, un palier peint en Dallage à 4 m ; douze côtés en Mur à ossature en bois autour de
 //   trois cases sur trois, une porte au nord, une fenêtre au sud ; la pièce tirée sur elles ; un corps, son étage, une
@@ -1200,9 +1201,33 @@ async function parcoursEditeur() {
   await capturer('3508-l6-1-scene')
   await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : vers le haut du plan'`)
+  noter('« Annuler » : le nord rendu au haut du plan')
+  const message = 'Au relais\nEn route'
+  const champDuMessage = async () => (await ecran()).saisies.find((x) => x.element === 'saisieMultiligne/introduire/texte')
+  for (let n = 0; !((await champDuMessage())?.y <= 480); n++) {
+    assert.ok(n < 20, 'le champ du message de départ amené par la molette au milieu du panneau')
+    await molette(session, { surface: 'canvas', x: 160, y: 400 }, 100)
+    await sleep(250)
+  }
+  const champMessage = await champDuMessage()
+  assert.equal(champMessage.texte, '', 'la Diligence n’a pas de message de départ')
+  await geste(session, { surface: 'canvas', x: champMessage.x, y: champMessage.y }, { qui: 'le champ du message de départ' }, clic())
+  for (const lettre of message) {
+    await realKey(session, lettre === '\n' ? { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 }
+      : lettre === ' ' ? { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 }
+        : { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
+  }
+  await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === 'saisieMultiligne/introduire/texte')?.texte === ${JSON.stringify(message)}`)
+  await cliquerAuPanneau({ element: 'formulaire/introduire' })
+  const valeurDuMessage = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'introduire')?.champs[0].valeur`
+  await waitFor(session, `${valeurDuMessage} === ${JSON.stringify(message)}`)
+  noter(`inspecteur de la scène, le message de départ tapé sur deux lignes, « ${(await editeur()).zones['editeur.inspecteur'].find((l) => l.id === 'introduire').libelle} » : ${JSON.stringify(message)}`)
+  await capturer('3606-m0c-1-message-de-depart')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `${valeurDuMessage} === ''`)
+  noter('« Annuler » : la scène rendue sans message de départ')
   for (let n = 0; n < 20; n++) await molette(session, { surface: 'canvas', x: 160, y: 400 }, -100)
   e = await editeur()
-  noter('« Annuler » : le nord rendu au haut du plan')
   for (const id of ['outil/height', 'hauteur/haute', 'pinceau/3']) {
     await cliquerAuPanneau({ element: `bouton/${id}` })
     assert.equal(boutonDeLEditeur(await editeur(), id)?.presse, true, `${id} choisi à son bouton`)

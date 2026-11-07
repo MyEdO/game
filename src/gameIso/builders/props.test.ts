@@ -494,7 +494,7 @@ describe('buildProps — features de façade authorées', () => {
    * L'`appearance` d'une feature est AUTHORABLE (`data/schemas/defs-scenes/scene.ts`) et servait DEUX
    * lecteurs : le nom d'un décor pour `buildProps`, celui d'une apparence de MUR pour `buildWalls`.
    * Une enseigne à apparence authorée sortait donc en double. Le verrou est par CONSTRUCTION
-   * (`KINDS_DE_DECOR`, `builders/walls.ts`) : quoi que l'auteur pose, le plan du mur reste muet.
+   * (`KINDS_DE_DECOR`, `noyau/monde/facades`) : quoi que l'auteur pose, le plan du mur reste muet.
    */
   it.each([
     ['sans apparence authorée', undefined],

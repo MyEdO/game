@@ -214,7 +214,7 @@ export const tracerCalque = () => {
       'FacadeFeature.edge',
       'RoofDefaults.pitchDeg',
       'SceneEffectZone.area.radius', // membre `disc` de l'union ZoneArea
-      'EncounterDef.victoryCondition.belowPercent', // membre de l'union VictoryCondition
+      'EncounterDef.victoryCondition.atOrBelowPercent', // membre de l'union VictoryCondition
       'ArchitectureEdgeRef.side', // type RÉUTILISÉ par `victoryCondition.edge` — cf. cliquet ci-dessous
       'ArchitectureEdgeRef.z',
     ]) {

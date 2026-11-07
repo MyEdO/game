@@ -7032,9 +7032,9 @@ function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleSta
       return battle.combatants.some((c) => c.kind === kind && !c.inert && !isOutOfAction(c) && c.pos && inRect(c.pos, vc.rect));
     }
     case 'woundsThreshold': {
+      if (vc.targetId === undefined) return !enemiesAlive;
       const target = inBattleId(battle, vc.targetId);
-      if (!target?.wounds || target.wounds.max <= 0) return false;
-      return target.wounds.current / target.wounds.max < vc.belowPercent / 100;
+      return !!target && auSeuilDeBlessures(target, vc.atOrBelowPercent);
     }
     case 'firstBlood':
       // Les DEUX fins du RAW restent actives en parallèle (NADJ 06 l.175-177) : premier sang — marqué
@@ -7045,19 +7045,29 @@ function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleSta
   }
 }
 
-/** REDDITION (#215) — sweep de `checkBattleOver` pour un objectif `woundsThreshold` : dès que la
- *  cible passe SOUS le seuil, elle sort du combat (`outOfRencontre`, même mécanisme que la coque
- *  PRISE de `resolveShipUnits` — kind-agnostique, aucun 2e flag de sortie de combat) et le journal
- *  reçoit une ligne de reddition. Idempotent (`outOfRencontre` déjà posé → no-op) ; muet si la cible
- *  est déjà hors d'action (mort/coulée) — `isOutOfAction` couvre alors seule la fin de rencontre. */
+/** `c` est-il à `pct` % de ses Blessures de départ OU MOINS ? MDG 15 l.143, l.166-168 */
+const auSeuilDeBlessures = (c: Combatant, pct: number): boolean => !!c.wounds && c.wounds.max > 0 && c.wounds.current * 100 <= c.wounds.max * pct;
+
+/** SORTIE À SEUIL (#215) — sweep de `checkBattleOver` pour un objectif `woundsThreshold` : dès qu'une
+ *  cible (la `targetId`, sinon chaque adversaire) atteint le seuil, elle sort du combat (`outOfRencontre`,
+ *  même mécanisme que la coque PRISE de `resolveShipUnits` — aucun 2e flag de sortie de combat) : un
+ *  navire amène son pavillon, une créature est repoussée. Idempotent (`outOfRencontre` déjà posé → no-op) ;
+ *  muet sur une cible déjà hors d'action (mort/coulée) — `isOutOfAction` couvre alors seule la fin de
+ *  rencontre. MDG 15 l.143, l.166-168 */
 function resolveSurrenderThreshold(battle: BattleState, vc: VictoryCondition | undefined): string[] {
   if (vc?.type !== 'woundsThreshold') return [];
-  const target = inBattleId(battle, vc.targetId);
-  if (!target?.wounds || target.wounds.max <= 0 || isOutOfAction(target)) return [];
-  if (target.wounds.current / target.wounds.max >= vc.belowPercent / 100) return [];
-  target.outOfRencontre = true;
-  target.exitReason = 'reddition'; // #237 : pavillon amené, lu « rendu » (endState)
-  return [tr('cf.surrender', { name: target.label })];
+  const cibles = vc.targetId === undefined
+    ? battle.combatants.filter((c) => c.kind === 'enemy' && !c.inert)
+    : [inBattleId(battle, vc.targetId)].filter((c): c is Combatant => !!c);
+  return cibles.filter((c) => !isOutOfAction(c) && auSeuilDeBlessures(c, vc.atOrBelowPercent)).map((c) => {
+    c.outOfRencontre = true;
+    if (estNavire(c)) {
+      c.exitReason = 'reddition'; // #237 : pavillon amené, lu « rendu » (endState)
+      return tr('cf.surrender', { name: c.label });
+    }
+    c.exitReason = 'repousse';
+    return tr('cf.repousse', { name: c.label });
+  });
 }
 
 /** DUEL JUDICIAIRE — premier sang (#471, NADJ 06 l.175-177) : « le premier sang est la première
