@@ -108,7 +108,7 @@ export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Bouton | Choi
 
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */
-const SANS_BORNE = { min: -(2 ** 31), max: 2 ** 31 - 1, pas: 1 };
+export const SANS_BORNE = { min: -(2 ** 31), max: 2 ** 31 - 1, pas: 1 };
 
 /** Les caractères au plus d'une description au détail d'un élément : son premier paragraphe, coupé au mot. */
 const DESCRIPTION_AU_DETAIL = 300;

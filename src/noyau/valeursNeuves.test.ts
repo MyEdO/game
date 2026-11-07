@@ -22,7 +22,7 @@ describe('valeurs neuves de l’atelier au noyau (#3059) : toute valeur neuve pa
   });
 
   it('formulaForShape : chaque forme rend une formule de cette forme, conforme à `formulaSinSchema`', () => {
-    const formes: FormulaShape[] = ['lit', 'bonus', 'char', 'dice', 'times', 'rolled', 'indice', 'pions', 'ecartAvantage', 'blessuresInfligees', 'dr', 'regle', 'minimum', 'tranches', 'somme', 'peche'];
+    const formes: FormulaShape[] = ['lit', 'bonus', 'char', 'dice', 'times', 'rolled', 'indice', 'pions', 'ecartAvantage', 'blessuresInfligees', 'blessuresMax', 'dr', 'regle', 'minimum', 'tranches', 'somme', 'peche'];
     expect(paramsDeRegle().length, 'aucune règle optionnelle numérique : `{rule}` sans défaut').toBeGreaterThan(0);
     for (const s of formes) {
       const f = formulaForShape(s, undefined);

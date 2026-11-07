@@ -18,6 +18,7 @@ export const MAISON_SANS_SOURCE = [
   { famille: 'maison-sans-source', fichier: 'src/data/naval-traits.json', ref: '["proue-idole-de-stromfels","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["boardingWaveSize","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["chute-tombant-non-debout","maison","",""]', occurrence: 1 },
+  { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["cibleVulnerablePct","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["combat-round-seconds","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["combat-voice-range-m","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["exposure-expire-hours","maison","",""]', occurrence: 1 },

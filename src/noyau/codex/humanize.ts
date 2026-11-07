@@ -31,6 +31,7 @@ import { formatMoney } from '../../engine/money';
 import { formatDice, formatEffetSigne } from '../../engine/dice';
 import { seaWeatherLabel } from '../../engine/seaWeather';
 import { shipLocationLabel } from '../../engine/shipCritical';
+import { findSeaHazard, findWhirlpool } from '../../engine/seaPerils';
 import { rule, ruleDef } from '../../engine/policy';
 import {
   conditionLabel, psychologyLabel, groupLabel, symptomLabel, creatureLabel,
@@ -141,6 +142,7 @@ function formuleEnMots(f: Formula, regles: string[] | null): string {
   if ('stacks' in f) return t('codex.f.stacks');
   if ('engagedAdvantageGap' in f) return t('codex.f.engagedAdvantageGap');
   if ('woundsDealt' in f) return t('codex.f.woundsDealt');
+  if ('blessuresMax' in f) return t('codex.f.blessuresMax');
   if ('sl' in f) return t('codex.f.sl');
   // Les formes NON numériques (`flag`/`mode`) n'ont pas de nombre à montrer : elles se nomment, quel que
   // soit le rendu demandé. Un id hors du registre (brouillon d'éditeur) se nomme par son id : `ruleDef` le
@@ -575,13 +577,14 @@ export function humanizeOp(o: GameOp): string {
     case 'shipCritical': return t('codex.op.shipCritical', {
       n: humanizeFormula(o.count),
       loc: o.location === 'aleatoire' ? t('codex.op.shipCritical.aleatoire') : shipLocationLabel(o.location),
-    });
+    }) + (o.equipageEpargne ? t('codex.op.shipCritical.equipageEpargne') : '');
     case 'navireMod': return t('codex.op.navireMod', {
       axes: [
         ...(o.m !== undefined ? [t('eff.navireModM', { m: `${o.m >= 0 ? '+' : '−'}${Math.abs(o.m)}` })] : []),
         ...(o.manDR !== undefined ? [t('eff.navireModMan', { dr: `${o.manDR >= 0 ? '+' : '−'}${Math.abs(o.manDR)}` })] : []),
+        ...(o.evite ? [t('eff.navireModEvite', { perils: o.evite.map((id) => findSeaHazard(id)?.label ?? id).join(', ') })] : []),
       ].join(', '),
-      duree: o.jusqua === 'carenage' ? t('eff.jusquAuCarenage') : t('codex.op.pendantJours', { n: humanizeFormula(o.jusqua.jours) }),
+      duree: o.jusqua === 'carenage' ? t('eff.jusquAuCarenage') : o.jusqua === 'evenementDeBord' ? t('eff.jusquAuProchainEvenement') : t('codex.op.pendantJours', { n: humanizeFormula(o.jusqua.jours) }),
     });
     case 'meteoImposee': return t('codex.op.meteoImposee', {
       meteo: [...(o.meteo ? [seaWeatherLabel(o.meteo)] : []), ...(o.ventInverse ? [t('codex.op.meteoImposee.ventInverse')] : [])].join(', '),
@@ -589,11 +592,22 @@ export function humanizeOp(o: GameOp): string {
     });
     case 'cargaison': return o.perteAuDechargement !== undefined
       ? t('codex.op.cargaison.perte', { enc: humanizeFormula(o.perteAuDechargement) })
-      : t('codex.op.cargaison', { enc: humanizeFormula(o.enc) });
-    case 'equipage': return `${t('codex.op.equipage', { delta: humanizeFormula(o.delta) })}${o.role ? t('codex.op.equipage.role', { role: refLabel('crewRoles', o.role) }) : ''}${o.sansSolde ? t('codex.op.equipage.sansSolde') : ''}`;
+      : o.perduePct !== undefined
+        ? t('codex.op.cargaison.perduePct', { pct: o.perduePct })
+        : t('codex.op.cargaison', { enc: humanizeFormula(o.enc) });
+    case 'equipage': return o.perdusPct !== undefined
+      ? t('codex.op.equipage.perdusPct', { pct: o.perdusPct })
+      : `${t('codex.op.equipage', { delta: humanizeFormula(o.delta) })}${o.role ? t('codex.op.equipage.role', { role: refLabel('crewRoles', o.role) }) : ''}${o.sansSolde ? t('codex.op.equipage.sansSolde') : ''}`;
     case 'provisions': return o.gateesPct !== undefined
       ? t('codex.op.provisions.gatees', { pct: o.gateesPct })
       : t('codex.op.provisions.jours', { n: humanizeFormula(o.jours) });
+    case 'perilDeMer': return o.collision !== undefined
+      ? t('codex.op.perilDeMer.collision', { peril: findSeaHazard(o.collision.id)?.label ?? o.collision.id })
+      : t('codex.op.perilDeMer.tourbillon', { tourbillon: findWhirlpool(o.tourbillon.id)?.label ?? o.tourbillon.id });
+    case 'navireHostile': return `${t('codex.op.navireHostile', { navire: refLabel('vehicles', o.navire), nombre: o.equipage.nombre, equipage: creatureLabel(o.equipage.id) })}`
+      + `${o.chef ? t('codex.op.navireHostile.chef', { chef: creatureLabel(o.chef.id) }) : ''}`
+      + `${o.grandsCanons ? t('codex.op.navireHostile.canons', { n: o.grandsCanons }) : ''}`
+      + `${o.exigence === 'fouille' ? t('codex.op.navireHostile.fouille') : ''}`;
   }
   return assertNever(o);
 }

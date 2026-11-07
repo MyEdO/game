@@ -94,9 +94,8 @@ export type Layers = { triggers: boolean; spawns: boolean; roofs: boolean; entri
 /** Sélection unifiée — une seule chose sélectionnée à la fois, sur la carte comme dans les panneaux. */
 export type Sel =
   | null
-  | { type: 'entity' | 'trigger' | 'entry'; id: string }
+  | { type: 'entity' | 'trigger' | 'entry' | 'effectZone'; id: string }
   | { type: 'restZone'; idx: number }
-  | { type: 'effectZone'; idx: number }
   | { type: 'architectureBody'; id: string }
   | { type: 'architectureStorey'; bodyId: string; id: string }
   | { type: 'architecturePart'; bodyId: string; storeyId: string; id: string }
@@ -194,7 +193,6 @@ const inRect = (p: Pt, r: Rect) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y &
 export function sameSel(a: Sel, b: Sel): boolean {
   if (!a || !b || a.type !== b.type) return a === b;
   if (a.type === 'restZone' && b.type === 'restZone') return a.idx === b.idx;
-  if (a.type === 'effectZone' && b.type === 'effectZone') return a.idx === b.idx;
   if (a.type === 'wall' && b.type === 'wall') return a.x === b.x && a.y === b.y && a.side === b.side && a.z === b.z;
   if (a.type === 'architecturePart' && b.type === 'architecturePart') return a.bodyId === b.bodyId && a.storeyId === b.storeyId && a.id === b.id;
   if (a.type === 'architectureBody' && b.type === 'architectureBody') return a.id === b.id;
@@ -226,8 +224,8 @@ export function hitAt(scene: Scene, p: Pt, layers: Layers, currentLayer = 0, act
     if (zi >= 0) return { type: 'restZone', idx: zi };
   }
   if (layers.zones) {
-    const ei = (scene.effectZones ?? []).findIndex((z) => (z.z ?? 0) === currentLayer && inRect(p, effectZoneRect(z.area)));
-    if (ei >= 0) return { type: 'effectZone', idx: ei };
+    const ez = scene.effectZones?.find((z) => (z.z ?? 0) === currentLayer && inRect(p, effectZoneRect(z.area)));
+    if (ez) return { type: 'effectZone', id: ez.id };
   }
   if (layers.roofs) {
     for (const body of scene.architecture ?? []) {
@@ -257,7 +255,7 @@ export function hitAt(scene: Scene, p: Pt, layers: Layers, currentLayer = 0, act
 export function selRect(scene: Scene, sel: Sel): Rect | null {
   if (sel?.type === 'trigger') return scene.triggers.find((t) => t.id === sel.id)?.rect ?? null;
   if (sel?.type === 'restZone') return scene.restZones?.[sel.idx]?.rect ?? null;
-  if (sel?.type === 'effectZone') { const z = scene.effectZones?.[sel.idx]; return z ? effectZoneRect(z.area) : null; }
+  if (sel?.type === 'effectZone') { const z = scene.effectZones?.find((ez) => ez.id === sel.id); return z ? effectZoneRect(z.area) : null; }
   if (sel?.type === 'architecturePart') return scene.architecture?.find((body) => body.id === sel.bodyId)?.storeys.find((storey) => storey.id === sel.storeyId)?.parts.find((part) => part.id === sel.id)?.foot ?? null;
   if (sel?.type === 'roofSection') {
     const parts = scene.architecture?.find((body) => body.id === sel.bodyId)?.masses.find((mass) => mass.id === sel.id)?.footprint;
@@ -283,7 +281,7 @@ export function selZ(scene: Scene, sel: Sel): number {
   if (sel.type === 'entry') return scene.entryPoints?.[sel.id]?.z ?? 0;
   if (sel.type === 'trigger') return scene.triggers.find((t) => t.id === sel.id)?.rect.z ?? 0;
   if (sel.type === 'restZone') return scene.restZones?.[sel.idx]?.rect.z ?? 0;
-  if (sel.type === 'effectZone') return scene.effectZones?.[sel.idx]?.z ?? 0;
+  if (sel.type === 'effectZone') return scene.effectZones?.find((z) => z.id === sel.id)?.z ?? 0;
   if (sel.type === 'architectureStorey')
     return scene.architecture?.find((b) => b.id === sel.bodyId)?.storeys.find((s) => s.id === sel.id)?.z ?? 0;
   if (sel.type === 'architecturePart')

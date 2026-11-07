@@ -958,7 +958,7 @@ elle reprend à la CONFIRMATION de ces étapes/modales, jamais via `time()`/`res
 | `forceSeaWeather({ temperature?, precipitations?, visibilite?, vent? })` | arme la MÉTÉO de mer du jour EN COURS (`travelPlan.sea.weather`) ; aucun dé n'est touché, la journée se joue ensuite (`advanceSeaDay()`) | `✗` sans traversée en cours (`travelPlan.sea`) |
 | `forceOverspeed(overM = 5)` | arme la SURVITESSE du jour de mer : pose le M EFFECTIF du jour (`sea.effMToday`) et les milles parcourus, les deux entrées que lit `buildOverspeedStep` ; `overM` = l'excès VOULU au-dessus du M de conception du navire | `✗` sans traversée en cours |
 | `riverDayCascade()` | (re)POSE la cascade du JOUR fluvial en cours et rend le compte d'étapes et leurs `kind` — observer les étapes sans rejouer achat, carte et départ (`forceRiverCapsize` l'appelle après avoir armé le vent) | voir « `forceRiverCapsize` arme ET reconstruit la journée » (Pièges vécus) |
-| `forceEncounter(id='navire-hostile')` | force un événement de bord maritime NOMMÉ (`sea-events.json`, id ou kind) au PROCHAIN jour — court-circuite le timer 1d10 + le tirage d100/Manann | à dérouler avec `advanceSeaDay()` : le drive s'ARRÊTE sur la décision présentée (Cogue pirate fuir/combattre/soumettre) sans la trancher — voir doctrine ci-dessous ; `✗` si aucune traversée en cours / événement introuvable |
+| `forceEncounter(id='cogue-pirate')` | force un événement de bord maritime NOMMÉ (`sea-events.json`, par id) au PROCHAIN jour — court-circuite le timer 1d10 + le tirage d100/Manann | à dérouler avec `advanceSeaDay()` : le drive s'ARRÊTE sur la décision présentée (Cogue pirate fuir/combattre/soumettre) sans la trancher — voir doctrine ci-dessous ; `✗` si aucune traversée en cours / événement introuvable |
 
 **Observer le PROCÈS-VERBAL groupé du jour (`MultiRollList`, une bande par rubrique + son enjeu)** —
 le PV se lit à `SeaVoyageScreen` (`.sea-voyage-log`) et à `TravelRecapModal`, alimenté par
@@ -988,7 +988,7 @@ vraie accélération native du jeu ; il n'est pas rejouable après coup sur une 
 au pas.
 
 **`forceEncounter` + `advanceSeaDay` s'ARRÊTENT à l'événement PRÉSENTÉ** : un événement de bord qui
-ouvre une DÉCISION du joueur (Cogue pirate `navire-hostile` → cascade `purpose:test` fuir/combattre/
+ouvre une DÉCISION du joueur (Cogue pirate, op `navireHostile` → cascade `purpose:test` fuir/combattre/
 soumettre, `openPirateHail`) n'est PAS de la routine — le drive (`advanceSeaDay`/`skipToArrival`)
 s'arrête PROPREMENT dessus et le signale (`✓ événement présenté — « … » attend une décision …`),
 laissant `pendingCascade` intact pour que le recetteur voie et tranche les 3 choix (jamais un
@@ -997,7 +997,7 @@ journée (`purpose:travelDay`) gardent, eux, leur défaut de routine. Dérouler 
 (vrais boutons) ; `advanceSeaDay()` reprend ensuite le voyage.
 
 **Constater une carte-parchemin de ROUTINE** : `forceEncounter()` tire par défaut
-`navire-hostile`, un événement DÉCISIONNEL (le drive s'arrête sur la décision, pas sur une carte
+`cogue-pirate`, un événement DÉCISIONNEL (le drive s'arrête sur la décision, pas sur une carte
 racontée). Pour observer une carte-parchemin de routine (`sea.events`, `SeaVoyageBody`), NE PAS
 forcer : laisser le tirage d100/Manann jouer et rouler avec `advanceSeaDay({stopOnEveryEvent:true})`
 — le drive s'arrête au recap dès qu'un événement raconté vient d'être résolu.

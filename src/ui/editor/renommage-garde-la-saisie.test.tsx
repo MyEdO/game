@@ -114,18 +114,18 @@ describe('inspecteur — un porteur renommé garde la saisie de ses champs (#199
   };
 
   it('zone d’effet : renommer l’id garde le JSON en cours de saisie ; une autre zone ne le reçoit pas', () => {
-    monter(<Inspecteur initiale={zones} sel0={{ type: 'effectZone', idx: 0 }} />);
+    monter(<Inspecteur initiale={zones} sel0={{ type: 'effectZone', id: 'piege-a' }} />);
     saisir(jsons()[0], BROUILLON);
     renommerAuBlur(champSousLibelle('Identifiant'), 'piege-a-renomme');
     expect(sceneVue.effectZones?.[0].id, 'le renommage n’a pas été appliqué').toBe('piege-a-renomme');
     expect(jsons()[0].value, 'le renommage a effacé le JSON en saisie').toBe(BROUILLON);
 
-    act(() => { choisir({ type: 'effectZone', idx: 1 }); });
+    act(() => { choisir({ type: 'effectZone', id: 'piege-b' }); });
     afficheSesParametres(2, 'la zone B affiche le brouillon de la zone A');
   });
 
   it('zone d’effet : un id REFUSÉ (doublon) ne reste pas au champ, qui revient à l’id en vigueur', () => {
-    monter(<Inspecteur initiale={zones} sel0={{ type: 'effectZone', idx: 0 }} />);
+    monter(<Inspecteur initiale={zones} sel0={{ type: 'effectZone', id: 'piege-a' }} />);
     const champ = champSousLibelle('Identifiant');
     renommerAuBlur(champ, 'piege-b');
     expect(sceneVue.effectZones?.map((z) => z.id), 'le doublon a été posé').toEqual(['piege-a', 'piege-b']);
@@ -133,10 +133,10 @@ describe('inspecteur — un porteur renommé garde la saisie de ses champs (#199
   });
 
   it('zone d’effet : un id en cours de saisie n’est jamais recopié sur la zone sélectionnée ensuite', () => {
-    monter(<Inspecteur initiale={zones} sel0={{ type: 'effectZone', idx: 0 }} />);
+    monter(<Inspecteur initiale={zones} sel0={{ type: 'effectZone', id: 'piege-a' }} />);
     act(() => { champSousLibelle('Identifiant').focus(); });
     saisir(champSousLibelle('Identifiant'), 'piege-a-en-cours');
-    act(() => { choisir({ type: 'effectZone', idx: 1 }); });
+    act(() => { choisir({ type: 'effectZone', id: 'piege-b' }); });
     expect(champSousLibelle('Identifiant').value).toBe('piege-b');
     expect(sceneVue.effectZones?.map((z) => z.id)).toEqual(['piege-a', 'piege-b']);
   });

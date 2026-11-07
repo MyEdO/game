@@ -64,11 +64,7 @@ export function updateArchitectureBody(scene: Scene, bodyId: string, update: (bo
 /** Pose le libellé et le type de bâtiment du corps `bodyId` ; `undefined` retire le champ. Le type gouverne
  *  la couverture des toitures dérivées (`toitureEffective`) : le changer re-dérive les masses dans le geste. */
 export function patchArchitectureBody(scene: Scene, bodyId: string, patch: Partial<Pick<ArchitectureBody, 'label' | 'style'>>): Scene {
-  const out = updateArchitectureBody(scene, bodyId, (body) => {
-    const next: ArchitectureBody = { ...body, ...patch };
-    for (const [k, v] of Object.entries(patch)) if (v === undefined) delete next[k as keyof typeof patch];
-    return next;
-  });
+  const out = updateArchitectureBody(scene, bodyId, (body) => champs(body, patch));
   return 'style' in patch ? rederiveRoofMasses(out) : out;
 }
 
@@ -147,14 +143,10 @@ export const DEFAUTS_D_OUVERTURE = { offset: 0.5, width: 0.6 } as const;
 /** Ouverture `feature` patchée par `patch`, chaque fraction ramenée dans `BORNES_D_OUVERTURE` ;
  *  `undefined` retire le champ (défaut de rendu). */
 function ouverturePatchee(feature: FacadeFeature, patch: Partial<Omit<FacadeFeature, 'id'>>): FacadeFeature {
-  const next: FacadeFeature = { ...feature, ...patch };
-  for (const cle of ['offset', 'width'] as const) {
-    const v = next[cle];
-    if (v === undefined) delete next[cle];
-    else next[cle] = Math.max(BORNES_D_OUVERTURE[cle].min, Math.min(BORNES_D_OUVERTURE[cle].max, Number.isFinite(v) ? v : BORNES_D_OUVERTURE[cle].min));
-  }
-  if (next.appearance === undefined) delete next.appearance;
-  return next;
+  const borne = (cle: keyof typeof BORNES_D_OUVERTURE, v: number | undefined) =>
+    v === undefined ? undefined : Math.max(BORNES_D_OUVERTURE[cle].min, Math.min(BORNES_D_OUVERTURE[cle].max, Number.isFinite(v) ? v : BORNES_D_OUVERTURE[cle].min));
+  const next = champs(feature, patch);
+  return champs(next, { offset: borne('offset', next.offset), width: borne('width', next.width) });
 }
 
 /** Ajoute au pan de façade une ouverture en pignon sur sa première arête (id frais). null sans pan ni arête. */
@@ -488,12 +480,7 @@ export function setPosteCrew(scene: Scene, entityId: string, crewIds: string[]):
 /** Pose / retire l'arc de tir du créneau : `side` absent = tir OMNI (pivot libre) ; présent = arc relatif
  *  à l'orientation-monde du chef de pièce. */
 export function setPosteSide(scene: Scene, entityId: string, side: FireArc | undefined): Scene {
-  return patchPoste0(scene, entityId, (p) => {
-    const next = { ...p };
-    if (side) next.side = side;
-    else delete next.side;
-    return next;
-  });
+  return patchPoste0(scene, entityId, (p) => champ(p, 'side', side || undefined));
 }
 
 /** Change l'engin du poste : référence catalogue, libellé et `ref` de l'entité, équipage conservé.
@@ -519,11 +506,8 @@ const carveTile = (p: Pt, z?: number): ScenePt => (z ? { x: p.x, y: p.y, z } : {
 /** Emprise NORMALISÉE : `tiles` disparaît dès que la découpe couvre TOUTE l'aire (« pleine » n'a
  *  qu'une seule représentation) et se matérialise sinon, triée pour un document stable. */
 function withCarve(zone: SceneEffectZone, tiles: ScenePt[]): SceneEffectZone {
-  const full = zoneAreaTiles(zone.area, zone.z);
-  const next = { ...zone };
-  if (tiles.length >= full.length) delete next.tiles;
-  else next.tiles = [...tiles].sort((a, b) => a.y - b.y || a.x - b.x);
-  return next;
+  const pleine = tiles.length >= zoneAreaTiles(zone.area, zone.z).length;
+  return champ(zone, 'tiles', pleine ? undefined : [...tiles].sort((a, b) => a.y - b.y || a.x - b.x));
 }
 
 /** Boîte englobant la boîte de `area` ET la case `p` — support d'une emprise peinte HORS de l'aire. */
@@ -559,9 +543,7 @@ export function paintEffectZone(scene: Scene, zoneId: string, p: Pt, paint: 'add
 
 /** Rétablit l'emprise PLEINE (la zone occupe toute son aire) — retire la découpe. */
 export function clearEffectZoneCarve(zone: SceneEffectZone): SceneEffectZone {
-  const next = { ...zone };
-  delete next.tiles;
-  return next;
+  return champ(zone, 'tiles', undefined);
 }
 
 /** Change l'AIRE d'une zone en emportant sa découpe : les cases retenues SUIVENT la boîte (translation)
@@ -612,8 +594,8 @@ export function moveSel(scene: Scene, sel: Sel, to: Pt): Scene {
   if (sel?.type === 'effectZone')
     return {
       ...scene,
-      effectZones: (scene.effectZones ?? []).map((z, i) => {
-        if (i !== sel.idx) return z;
+      effectZones: (scene.effectZones ?? []).map((z) => {
+        if (z.id !== sel.id) return z;
         const r = effectZoneRect(z.area);
         const moved = { x: clamp(to.x, w - r.w + 1), y: clamp(to.y, h - r.h + 1), w: r.w, h: r.h };
         return setEffectZoneArea(z, effectZoneArea(z.area.kind, moved));
@@ -664,7 +646,7 @@ export function resizeSel(scene: Scene, sel: Sel, to: Pt): Scene {
   const next = rectFrom({ x: r.x, y: r.y }, { x: Math.max(r.x, clamp(to.x, w)), y: Math.max(r.y, clamp(to.y, h)) });
   if (sel?.type === 'trigger') return { ...scene, triggers: scene.triggers.map((t) => (t.id === sel.id ? { ...t, rect: { ...next, ...(t.rect.z ? { z: t.rect.z } : {}) } } : t)) };
   if (sel?.type === 'restZone') return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === sel.idx ? { ...z, rect: { ...next, ...(z.rect.z ? { z: z.rect.z } : {}) } } : z)) };
-  if (sel?.type === 'effectZone') return { ...scene, effectZones: (scene.effectZones ?? []).map((z, i) => (i === sel.idx ? setEffectZoneArea(z, effectZoneArea(z.area.kind, next)) : z)) };
+  if (sel?.type === 'effectZone') return { ...scene, effectZones: (scene.effectZones ?? []).map((z) => (z.id === sel.id ? setEffectZoneArea(z, effectZoneArea(z.area.kind, next)) : z)) };
   if (sel?.type === 'architecturePart') return {
     ...scene,
     architecture: scene.architecture?.map((body) => body.id !== sel.bodyId ? body : {
@@ -727,7 +709,7 @@ export function deleteSel(scene: Scene, sel: Sel): Scene {
     }),
   };
   if (sel?.type === 'restZone') return { ...scene, restZones: (scene.restZones ?? []).filter((_, i) => i !== sel.idx) };
-  if (sel?.type === 'effectZone') return { ...scene, effectZones: (scene.effectZones ?? []).filter((_, i) => i !== sel.idx) };
+  if (sel?.type === 'effectZone') return { ...scene, effectZones: (scene.effectZones ?? []).filter((z) => z.id !== sel.id) };
   if (sel?.type === 'wall') {
     const others = (scene.walls ?? []).filter((w) => !(w.x === sel.x && w.y === sel.y && w.side === sel.side && (w.z ?? 0) === sel.z));
     return { ...scene, walls: others.length ? others : undefined };
@@ -957,12 +939,19 @@ export interface PatchDeZone {
   couvre?: string[] | null;
 }
 
-/** `o` où le champ `k` vaut `v`, ou s'en retire quand `v` est `undefined`. */
+/** LA règle d'absence des écrivains de l'éditeur : `o` où le champ `k` vaut `v`, ou s'en retire quand `v` est
+ *  `undefined`. */
 function champ<T extends object, K extends keyof T>(o: T, k: K, v: T[K] | undefined): T {
   const out = { ...o };
   if (v === undefined) delete out[k];
   else out[k] = v;
   return out;
+}
+
+/** `o` où chaque champ de `patch` est posé par `champ` : une clé portée à `undefined` RETIRE le champ. */
+function champs<T extends object>(o: T, patch: Partial<NoInfer<T>>): T {
+  const poses: Partial<T> = patch;
+  return (Object.keys(poses) as (keyof T)[]).reduce((out, k) => champ<T, keyof T>(out, k, poses[k]), o);
 }
 
 /** Les entrées couvertes `couvre` d'un patch, `undefined` pour aucune. */
@@ -1014,8 +1003,8 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
     };
   }
   if (sel?.type === 'effectZone') {
-    const zone = scene.effectZones?.[sel.idx];
-    return zone ? replaceEffectZone(scene, sel.idx, zoneDEffetPatchee(zone, patch)) : scene;
+    const zone = scene.effectZones?.find((z) => z.id === sel.id);
+    return zone ? replaceEffectZone(scene, sel.id, zoneDEffetPatchee(zone, patch)) : scene;
   }
   return scene;
 }
@@ -1027,18 +1016,18 @@ export type EffectZoneSeed = Partial<Omit<SceneEffectZone, 'id' | 'area' | 'z'>>
 /** Crée une ZONE D'EFFET sur `rect`, à l'étage `z` (id frais pour le rendu/sélection). Tout ce que la
  *  zone PORTE vient de `seed` : sans seed, elle naît DESCRIPTIVE (`isDescriptiveZone`) et libellée par
  *  son id, renommable dans l'inspecteur. */
-export function addEffectZone(scene: Scene, rect: Rect, z = 0, seed: EffectZoneSeed = {}): { scene: Scene; idx: number } {
+export function addEffectZone(scene: Scene, rect: Rect, z = 0, seed: EffectZoneSeed = {}): { scene: Scene; id: string } {
   const id = nextEntityId('zone', (scene.effectZones ?? []).map((ez) => ez.id));
   const zones = [
     ...(scene.effectZones ?? []),
     { label: id, ...seed, id, area: { kind: 'rect' as const, ...rect }, ...(z ? { z } : {}) },
   ];
-  return { scene: { ...scene, effectZones: zones }, idx: zones.length - 1 };
+  return { scene: { ...scene, effectZones: zones }, id };
 }
 
-/** Remplace la zone d'effet d'indice `idx` par `zone`. */
-export function replaceEffectZone(scene: Scene, idx: number, zone: SceneEffectZone): Scene {
-  return { ...scene, effectZones: (scene.effectZones ?? []).map((z, i) => (i === idx ? zone : z)) };
+/** Remplace la zone d'effet `id` par `zone`. */
+export function replaceEffectZone(scene: Scene, id: string, zone: SceneEffectZone): Scene {
+  return { ...scene, effectZones: (scene.effectZones ?? []).map((z) => (z.id === id ? zone : z)) };
 }
 
 /** Renomme l'id d'une ZONE D'EFFET (référencée par `FacadeSection.roomZoneIds` — lien Façade↔Pièce) et
@@ -1162,19 +1151,14 @@ export function setSceneLabel(scene: Scene, label: string): Scene {
 
 /** Pose les champs scalaires de `patch` ; une clé portée à `undefined` RETIRE le champ du document. */
 export function setSceneScalaires(scene: Scene, patch: ScalairesDeScene): Scene {
-  const next: Scene = { ...scene, ...patch };
-  for (const [k, v] of Object.entries(patch)) if (v === undefined) delete next[k as keyof ScalairesDeScene];
-  return next;
+  return champs(scene, patch);
 }
 
 /** NORD de la carte (degrés horaires depuis `−y`, cf. `Scene.northDeg`). `undefined` = nord implicite
  *  (0). La valeur est RAMENÉE dans `[0,360[` — un cap est un angle, pas un compteur : 450° et 90°
  *  désignent le même nord, et une valeur non finie n'en désigne aucun (le champ est alors retiré). */
 export function setNorthDeg(scene: Scene, deg: number | undefined): Scene {
-  const next = { ...scene };
-  if (deg === undefined || !Number.isFinite(deg)) delete next.northDeg;
-  else next.northDeg = ((deg % 360) + 360) % 360;
-  return next;
+  return champ(scene, 'northDeg', deg === undefined || !Number.isFinite(deg) ? undefined : ((deg % 360) + 360) % 360);
 }
 
 /** Renomme la scène éditée. Refusé (scène rendue inchangée) pour un id vide, ou déjà porté par une autre
@@ -1394,9 +1378,7 @@ export function editEntityCombat(scene: Scene, id: string, patch: Partial<NonNul
  *  fabriquer la liste. L'ÉTAGE se pose ICI, une fois (`z` = couche demandée ; sol (0) = champ
  *  absent, convention du modèle) — l'appelant ne le recolle plus sur l'entité. */
 export function addEntity(scene: Scene, ent: SceneEntity, z = 0): Scene {
-  const pose: SceneEntity = { ...ent, z };
-  if (!z) delete pose.z;
-  return normaliseAssises({ ...scene, entities: [...scene.entities, pose] }, GROUPE_A_L_AUTHORING);
+  return normaliseAssises({ ...scene, entities: [...scene.entities, champ(ent, 'z', z || undefined)] }, GROUPE_A_L_AUTHORING);
 }
 
 /** Suppression d'AUTHORING d'une entité — traverse le seam. */
@@ -2071,7 +2053,7 @@ export function validerRectangle(scene: Scene, tool: Tool, rect: Rect, z: number
     return { scene: out.scene, sel: { type: 'restZone', idx: out.idx } };
   }
   const out = addEffectZone(scene, rect, z, EFFECT_ZONE_SEEDS[tool.zone]);
-  return { scene: out.scene, sel: { type: 'effectZone', idx: out.idx } };
+  return { scene: out.scene, sel: { type: 'effectZone', id: out.id } };
 }
 
 /** Les scènes d'un projet autour de la scène éditée : l'ordre du document, la première est l'entrée. */

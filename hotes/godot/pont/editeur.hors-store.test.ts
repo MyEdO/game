@@ -3,7 +3,8 @@
  * ses zones offrent et les gestes du pointeur, rend la surcouche du geste en cours, et le monde à l'ouverture, au
  * changement de couche et à chaque écriture finie, jamais pendant le geste. Ouverte du texte que sert le dépôt, la carte
  * s'y enregistre : `editer` rend le texte à écrire, et la tient pour enregistrée à l'issue réussie de l'écriture. Les
- * entités et les entrées de la couche éditée se repèrent en surcouche ; le formulaire de l'inspecteur les nomme.
+ * entités et les entrées de la couche éditée se repèrent en surcouche ; le formulaire de l'inspecteur les nomme. Le
+ * formulaire tiré du schéma écrit le Test de traversée et les effets d'une zone d'effet (#3606).
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
@@ -921,5 +922,63 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
     rmSync(depot, { recursive: true, force: true });
     const relue = editionDe(rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu));
     expect((relue.vue.zones['editeur.validation'][0] as Ligne).texte, 'rouverte du dépôt, la porte la lit et la validation ne dit aucune erreur').toMatch(/^Validation : 0 erreur\(s\)/);
+  });
+});
+
+describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#3606)', () => {
+  const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
+  const servi = lireProjetLivre(manuscrit) as { id: string };
+
+  it('le Test de traversée et les effets à chaque Round d’une zone d’effet s’écrivent au formulaire ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    const formulaire = (id: string) => e.vue.zones['editeur.inspecteur'].find((el): el is Formulaire => el.type === 'formulaire' && el.id === id)!;
+    const saisir = (id: string, valeur: unknown) => {
+      const [porteur, chemin] = formulaire(id).champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
+      return (e = editionDe(appel('editer', { type: 'valeur', args: [porteur, chemin, valeur] })));
+    };
+    const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
+    const sansErreur = /^Validation : (aucun défaut|0 erreur\(s\))/;
+    expect(validation()).toMatch(sansErreur);
+
+    presser('scenes/ajouter'); presser('outil/zone'); presser('zone/effect');
+    jouer({ geste: 'appui', point: point(2, 2) });
+    jouer({ geste: 'relache', point: point(3, 3) });
+    const zoneId = (formulaire('valeur/perRound').champs[0] as { valeur: { id: string } }).valeur.id;
+    expect(() => boutonDe(e, 'valeur/crossTest/characteristic/force'), 'sans Test, aucun de ses champs').toThrow();
+    presser('valeur/crossTest/ajouter');
+    expect(validation(), 'un Test vide se refuse à la porte, que la validation relit').toMatch(/^Validation : 1 erreur\(s\)/);
+    expect(e.vue.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/crossTest')).toMatchObject({ type: 'ligne', texte: 'Test de traversée' });
+    expect(valeursDeLInspecteur(e, 'valeur/crossTest/characteristic')[0]).toMatchObject({ id: 'valeur/crossTest/characteristic/aucune', presse: true });
+    presser('valeur/crossTest/characteristic/force');
+    presser('valeur/crossTest/difficulty/difficile');
+    saisir('valeur/crossTest/requireSL', 1);
+    saisir('valeur/perRound', [{ op: 'corruption', amount: 1 }]);
+    expect(boutonDe(e, 'valeur/crossTest/characteristic/force').presse).toBe(true);
+    expect(formulaire('valeur/crossTest/requireSL').champs[2]).toMatchObject({ type: 'saisieNombre', valeur: 1, pas: 0.01 });
+    expect(formulaire('valeur/perRound').champs[2]).toMatchObject({ type: 'saisieJson', valeur: '[{"op":"corruption","amount":1}]' });
+    expect(erreurDe(appel('editer', { type: 'valeur', args: [{ sorte: 'zone', id: zoneId }, ['label'], 'Fosse'] })).categorie, 'un champ que le formulaire n’offre pas').toBe('validation');
+    expect(validation()).toMatch(sansErreur);
+
+    const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
+    const depot = mkdtempSync(join(tmpdir(), 'editeur-3606-'));
+    const fichier = join(dossierDesProjetsLivres(depot), manuscrit);
+    mkdirSync(dirname(fichier), { recursive: true });
+    writeFileSync(fichier, enregistree.depot!.texte);
+    const { appel: rouvrir } = table();
+    const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
+    rmSync(depot, { recursive: true, force: true });
+    const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.id === zoneId))!;
+    rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu);
+    rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
+    e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
+    expect(formulaire('valeur/perRound').champs[0]).toMatchObject({ valeur: { sorte: 'zone', id: zoneId } });
+    expect(boutonDe(e, 'valeur/crossTest/characteristic/force').presse, 'rouverte, la caractéristique').toBe(true);
+    expect(boutonDe(e, 'valeur/crossTest/difficulty/difficile').presse, 'rouverte, la difficulté').toBe(true);
+    expect(formulaire('valeur/crossTest/requireSL').champs[2]).toMatchObject({ valeur: 1 });
+    expect(formulaire('valeur/perRound').champs[2]).toMatchObject({ valeur: '[{"op":"corruption","amount":1}]' });
+    expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
   });
 });

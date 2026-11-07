@@ -603,8 +603,7 @@ export function Editor({
       if (scene.layers.some((layer) => layer.z === at.z)) setCurrentLayer(at.z);
       setTool({ mode: 'select' });
       if (at.kind === 'zone') {
-        const idx = (scene.effectZones ?? []).findIndex((z) => z.id === at.zoneId);
-        if (idx >= 0) setSel({ type: 'effectZone', idx });
+        if (scene.effectZones?.some((z) => z.id === at.zoneId)) setSel({ type: 'effectZone', id: at.zoneId });
       }
       return;
     }

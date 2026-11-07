@@ -495,8 +495,21 @@
         "id": "maelstrom",
         "label": "Maelstrom",
         "desc": "Maelstrom. Un grand tourbillon s'ouvre et amène le bateau à la périphérie de sa zone. Pour plus de détails concernant les Tourbillons, reportez-vous à la page 113.",
-        "kind": "maelstrom",
-        "params": {},
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "perilDeMer",
+                "tourbillon": {
+                  "id": "maelstrom"
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 131,
@@ -581,8 +594,21 @@
         "id": "puissant-vortex",
         "label": "Puissant vortex",
         "desc": "Puissant vortex. Un tourbillon s'ouvre et amène le bateau à la périphérie de sa zone. Pour plus de détails, reportez-vous à la page 113.",
-        "kind": "vortex",
-        "params": {},
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "perilDeMer",
+                "tourbillon": {
+                  "id": "puissant-vortex"
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 131,
@@ -595,8 +621,6 @@
         "id": "nemesis",
         "label": "Némésis",
         "desc": "Némésis. Un vaste vaisseau rempli d'ennemis apparaît à l'horizon ; il s'agit d'une némésis, comme par exemple Wulfrik le Sarl ou Vrisk Gratte-le-Fer, à bord de son bateau fétiche.",
-        "kind": "nemesis",
-        "params": {},
         "source": {
           "book": "mer-des-griffes",
           "page": 131,
@@ -609,11 +633,24 @@
         "id": "langskip-skaeling",
         "label": "Langskip skaeling",
         "desc": "Langskip skaeling. Un langskip avec un équipage de 45 norses apparaît à l'horizon. Si votre navire ressemble à une cible vulnérable, les norses approchent pour répandre le sang de vos marins en l'honneur du dieu du sang.",
-        "kind": "navire-hostile",
-        "params": {
-          "ship": "langskip",
-          "crew": 45,
-          "crewRef": "humain"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "navireHostile",
+                "navire": {
+                  "id": "langskip"
+                },
+                "equipage": {
+                  "id": "humain",
+                  "nombre": 45
+                }
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -765,13 +802,29 @@
         "id": "cogue-pirate",
         "label": "Cogue pirate",
         "desc": "Cogue pirate. Une cogue avec un équipage de 25 personnes et 6 grands canons apparaît à l'horizon. Si votre navire ressemble à une cible vulnérable, les forbans approchent et exigent de pouvoir fouiller la cale et prendre ce qu'ils veulent, sinon ils tueront tous ceux qui s'opposent à eux. Même si leurs demandes sont satisfaites, ils réclament ensuite un prisonnier à sacrifier à Stromfels.",
-        "kind": "navire-hostile",
-        "params": {
-          "ship": "cogue",
-          "crew": 25,
-          "greatGuns": 6,
-          "crewRef": "humain",
-          "chefRef": "jaego-roth"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "navireHostile",
+                "navire": {
+                  "id": "cogue"
+                },
+                "equipage": {
+                  "id": "humain",
+                  "nombre": 25
+                },
+                "chef": {
+                  "id": "jaego-roth"
+                },
+                "grandsCanons": 6,
+                "exigence": "fouille"
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -849,8 +902,21 @@
         "id": "collision-soudaine",
         "label": "Collision soudaine",
         "desc": "Collision soudaine. Sans prévenir, le bateau se heurte à un rocher. Pour plus de détails concernant les collisions, reportez-vous à la page 111.",
-        "kind": "collision",
-        "params": {},
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "perilDeMer",
+                "collision": {
+                  "id": "rocher"
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 131,
@@ -1210,8 +1276,6 @@
         "id": "navigation-ordinaire",
         "label": "Navigation ordinaire",
         "desc": "Navigation ordinaire. Rien ne se passe, cette partie du voyage se déroule paisiblement.",
-        "kind": "rien",
-        "params": {},
         "source": {
           "book": "mer-des-griffes",
           "page": 132,
@@ -1595,9 +1659,19 @@
         "id": "vents-favorables",
         "label": "Vents favorables",
         "desc": "Vents favorables. Les vents sont vifs et soufflent dans la bonne direction. Augmentez le Mouvement du vaisseau de 1.",
-        "kind": "vents-favorables",
-        "params": {
-          "mMod": 1
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "navireMod",
+                "m": 1,
+                "jusqua": "evenementDeBord"
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -1611,13 +1685,28 @@
         "id": "marsouin-amical",
         "label": "Marsouin amical",
         "desc": "Marsouin amical. Pendant les 1d10 prochains jours, un marsouin suit votre bateau. Il évite soigneusement tout danger comme les rochers ou les bancs de sable.",
-        "kind": "marsouin",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "navireMod",
+                "evite": [
+                  "rocher",
+                  "bas-fonds"
+                ],
+                "jusqua": {
+                  "jours": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  }
+                }
+              }
+            ]
           }
         },
         "source": {
@@ -1919,14 +2008,45 @@
         "id": "port-desert",
         "label": "Port désert",
         "desc": "Port désert. Si le port est un hameau ou un petit village (Taille 1 ou 2), il est mystérieusement désert. La population a totalement disparu. Elle peut être partie en exil à cause d'une famine ou d'une trop grande pauvreté, ou avoir été capturée par des pillards. La plupart des objets de valeur ont été perdus ou volés et l'équipage estime que rester ici va porter malheur. Si le capitaine insiste pour fouiller le port en quête de butin ou de provisions, il peut en trouver, mais le Moral diminue d'1d10.",
-        "kind": "port-desert",
-        "params": {
-          "maxSize": 2,
-          "moral": {
-            "sign": -1,
-            "dice": {
-              "n": 1,
-              "sides": 10
+        "taillePortMax": 2,
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Fouiller le port",
+          "yes": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "provisions",
+                  "jours": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  }
+                },
+                {
+                  "op": "cargaison",
+                  "enc": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 100
+                    }
+                  }
+                },
+                {
+                  "op": "shipMorale",
+                  "delta": {
+                    "sign": -1,
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -2000,8 +2120,6 @@
         "id": "pas-d-evenement",
         "label": "Pas d'événement",
         "desc": "Pas d'événement. Le port est paisible et il ne se passe rien d'inattendu pendant votre séjour.",
-        "kind": "rien",
-        "params": {},
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
@@ -2401,10 +2519,45 @@
         "id": "desastreux",
         "label": "Voyage désastreux",
         "desc": "Voyage désastreux. 50 % des PNJ membres de l'équipage sont manquants. 75 % de la cargaison s'est gâtée ou a été volée. Le vaisseau perd 75 % de ses Blessures et subit 3 Coups Critiques.",
-        "crewLostPct": 50,
-        "cargoLostPct": 75,
-        "hullLostPct": 75,
-        "criticals": 3,
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "equipage",
+                "perdusPct": 50
+              },
+              {
+                "op": "cargaison",
+                "perduePct": 75
+              },
+              {
+                "op": "wounds",
+                "amount": {
+                  "parTranche": 4,
+                  "of": {
+                    "times": {
+                      "of": {
+                        "blessuresMax": true
+                      },
+                      "factor": 3
+                    }
+                  }
+                },
+                "ignoreTB": true,
+                "ignoreAP": true
+              },
+              {
+                "op": "shipCritical",
+                "location": "aleatoire",
+                "count": 3,
+                "equipageEpargne": true
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 128,
@@ -2417,10 +2570,40 @@
         "id": "ereintant",
         "label": "Voyage éreintant",
         "desc": "Voyage éreintant. 20 % des PNJ membres de l'équipage sont perdus. 50 % de la cargaison s'est gâtée ou a été volée. Le vaisseau perd 50 % de ses Blessures et subit 2 Coups Critiques.",
-        "crewLostPct": 20,
-        "cargoLostPct": 50,
-        "hullLostPct": 50,
-        "criticals": 2,
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "equipage",
+                "perdusPct": 20
+              },
+              {
+                "op": "cargaison",
+                "perduePct": 50
+              },
+              {
+                "op": "wounds",
+                "amount": {
+                  "parTranche": 2,
+                  "of": {
+                    "blessuresMax": true
+                  }
+                },
+                "ignoreTB": true,
+                "ignoreAP": true
+              },
+              {
+                "op": "shipCritical",
+                "location": "aleatoire",
+                "count": 2,
+                "equipageEpargne": true
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 128,
@@ -2433,10 +2616,40 @@
         "id": "difficile",
         "label": "Voyage difficile",
         "desc": "Voyage difficile. 10 % des PNJ membres de l'équipage sont perdus. 25 % de la cargaison s'est gâtée ou a été volée. Le vaisseau perd 25 % de ses Blessures et subit 1 Coup Critique.",
-        "crewLostPct": 10,
-        "cargoLostPct": 25,
-        "hullLostPct": 25,
-        "criticals": 1,
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "equipage",
+                "perdusPct": 10
+              },
+              {
+                "op": "cargaison",
+                "perduePct": 25
+              },
+              {
+                "op": "wounds",
+                "amount": {
+                  "parTranche": 4,
+                  "of": {
+                    "blessuresMax": true
+                  }
+                },
+                "ignoreTB": true,
+                "ignoreAP": true
+              },
+              {
+                "op": "shipCritical",
+                "location": "aleatoire",
+                "count": 1,
+                "equipageEpargne": true
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 128,
@@ -2449,10 +2662,19 @@
         "id": "sans-encombre",
         "label": "Voyage sans encombre",
         "desc": "Voyage sans encombre. 10 % de la cargaison s'est gâtée.",
-        "crewLostPct": 0,
-        "cargoLostPct": 10,
-        "hullLostPct": 0,
-        "criticals": 0,
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "cargaison",
+                "perduePct": 10
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 129,
@@ -2465,10 +2687,6 @@
         "id": "parfait",
         "label": "Voyage parfait",
         "desc": "Voyage parfait. Pas de conséquence négative.",
-        "crewLostPct": 0,
-        "cargoLostPct": 0,
-        "hullLostPct": 0,
-        "criticals": 0,
         "source": {
           "book": "mer-des-griffes",
           "page": 129,
