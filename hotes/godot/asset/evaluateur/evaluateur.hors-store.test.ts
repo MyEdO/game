@@ -2,7 +2,7 @@
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
-  AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
+  AnimationClip, Bone, InterpolateDiscrete, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
   Matrix4, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
 } from 'three';
 import { ecrireGlb, lireGlb } from '../glb.ts';
@@ -16,6 +16,7 @@ import { CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FEMININ } from '../silhouettes
 import { validerManifesteDeBase, type CandidatDAppui, type CodeDEcartDeBase, type TableDeGabarit } from '../manifesteDeBase.ts';
 import { mesurerAppuis, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
+import { gardePistesDeChaine, suivreLesChaines } from './gardes/chaines.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
 import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement } from './gardes/etirement.ts';
@@ -1399,5 +1400,54 @@ describe('monter', () => {
     expect(lame?.parent === os && os !== undefined).toBe(true);
     expect(lame?.position.toArray()).toEqual([0, 0.1, 0]);
     expect(os?.getObjectsByProperty('isMesh', true).length).toBe(primitives);
+  });
+});
+
+describe('pistes de chaîne (#3102)', () => {
+  const brin = () => {
+    const racine = new Bone();
+    racine.name = 'pelvis';
+    const os = new Bone();
+    os.name = 'jupe_01';
+    os.position.set(0, -0.2, 0);
+    racine.add(os);
+    const scene = new Group();
+    scene.add(racine);
+    scene.updateMatrixWorld(true);
+    return scene;
+  };
+  const QUART_DE_TOUR_X = [0, 0, 0, 1, Math.SQRT1_2, 0, 0, Math.SQRT1_2];
+  const JUPE = { jupe: ['jupe_01'] };
+
+  it('rejoue la piste LINEAR d’un os de chaîne et mesure sa rotation locale la plus forte depuis son repos', () => {
+    const scene = brin();
+    const clip = new AnimationClip('Walk_Loop', 1, [new QuaternionKeyframeTrack('jupe_01.quaternion', [0, 1], QUART_DE_TOUR_X)]);
+    const { ecarts, clipsPistes } = gardePistesDeChaine(scene, [clip], JUPE);
+    expect(ecarts).toEqual([]);
+    const suivi = suivreLesChaines(scene, JUPE, poseDeRepos(scene, []));
+    for (const e of echantillonner(scene, [], [clip], 0.5)) suivi.echantillon(e);
+    const [mesure] = suivi.mesures(clipsPistes);
+    expect(mesure).toMatchObject({ chaine: 'jupe', os: 1, clipsPistes: 1, rotationMax: { os: 'jupe_01', clip: 'Walk_Loop', t: 1 } });
+    expect(mesure.rotationMax?.degres).toBeCloseTo(90, 3);
+  });
+
+  it('refuse un clip sans piste de rotation pour un os de chaîne, et une piste de rotation non LINEAR', () => {
+    const scene = brin();
+    const sans = new AnimationClip('Idle_Loop', 1, [new VectorKeyframeTrack('jupe_01.position', [0, 1], [0, -0.2, 0, 0, -0.3, 0])]);
+    const marche = new QuaternionKeyframeTrack('jupe_01.quaternion', [0, 1], QUART_DE_TOUR_X);
+    marche.setInterpolation(InterpolateDiscrete);
+    const { ecarts, clipsPistes } = gardePistesDeChaine(scene, [sans, new AnimationClip('Walk_Loop', 1, [marche])], JUPE);
+    expect(ecarts.map(({ code, clip, detail }) => [code, clip, detail])).toEqual([
+      ['piste-de-chaine-absente', 'Idle_Loop', 'jupe : sans piste de rotation : jupe_01'],
+      ['piste-de-chaine-non-lineaire', 'Walk_Loop', 'jupe : piste de rotation non LINEAR : jupe_01'],
+    ]);
+    expect(clipsPistes).toEqual({ jupe: 0 });
+  });
+
+  it('l’évaluateur juge les chaînes du manifeste : un clip de la base sans leurs pistes est un écart, chaque chaîne mesurée', async () => {
+    const base = glbFabrique({ pelvis: true, clips: { Repos: [0, 0] } });
+    const fiche = await evaluer({ base, manifeste: manifesteDe(base, ['racine', 'pelvis']), pas: 1 });
+    expect(fiche.ecarts.filter((e) => e.garde === 'chaines').map(({ code, clip }) => [code, clip])).toEqual([['piste-de-chaine-absente', 'Repos']]);
+    expect(fiche.mesures.chaines).toMatchObject([{ chaine: 'jambe', os: 1, clipsPistes: 0, rotationMax: { os: 'racine', degres: 0 } }]);
   });
 });

@@ -2,7 +2,8 @@
  * L'ÉVALUATEUR D'UNE BASE ET DE SES ÉLÉMENTS (#2972) : charge les GLB (`chargerScene`), monte les éléments sur le
  * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, mesure au repos les shape keys de la
  * base (`gardes/silhouettes.ts`), échantillonne les clips, puis appelle chaque garde de `gardes/` : `poids`,
- * `enroulement`, `budget`, `pistesDEchelle`, `echelleDuRigide`, `silhouettes`, `segments`, `appuis`, `piedsAuSol`, `etirement`, `suiviDuCorps`.
+ * `enroulement`, `budget`, `pistesDEchelle`, `chaines`, `echelleDuRigide`, `silhouettes`, `segments`, `appuis`, `piedsAuSol`,
+ * `etirement`, `suiviDuCorps`.
  * Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone est un corps d'un seul
  * tenant : ses meshes skinnés.
  */
@@ -17,6 +18,7 @@ import { appliquerGabarit, poserFormes } from './gabarit.ts';
 import { poidsDeCarrure, poidsDuGabarit, poseDuGabarit } from '../gabarit.ts';
 import { FACTEURS_NEUTRES, sontNeutres } from '../facteursDuGabarit.ts';
 import { PREFIXE_DES_CLES_DU_GABARIT, validerManifesteDeBase, type ManifesteDeBase } from '../manifesteDeBase.ts';
+import { gardePistesDeChaine, suivreLesChaines, type MesureDeChaine } from './gardes/chaines.ts';
 import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
 import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
@@ -72,6 +74,8 @@ export interface FicheDeMesures {
     readonly silhouettes: MesuresDesSilhouettes;
     /** Les segments du gabarit mesurés au repos ; `null` sans manifeste valide. */
     readonly segments: MesuresDesSegments | null;
+    /** Les chaînes du manifeste valide, leurs pistes et leurs rotations jouées ; aucune sans manifeste. */
+    readonly chaines: readonly MesureDeChaine[];
   };
 }
 
@@ -164,6 +168,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   if (inconnus.length) throw new Error(`évaluation : clip(s) absent(s) de la base : ${inconnus.join(', ')} ; clips : ${base.clips.map((c) => c.name).join(', ')}`);
   const clips = entree.clips ? base.clips.filter((c) => entree.clips?.includes(c.name)) : base.clips;
 
+  const chaines = manifeste?.chaines ?? {};
+  const pistesDeChaine = gardePistesDeChaine(base.scene, clips, chaines);
   ecarts.push(
     ...gardePoids({
       meshes: skinnes,
@@ -173,6 +179,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     ...gardeEnroulement(meshes, libelle),
     ...gardeBudget(meshes, libelle, entree.plafond ?? PLAFOND_ASSEMBLE),
     ...gardePistesDEchelle(base.scene, clips, racine, manifeste?.osAPositionAnimee ?? []),
+    ...pistesDeChaine.ecarts,
     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste?.prises ? [manifeste.prises.main.os, manifeste.prises.off.os] : [])), libelle),
   );
 
@@ -181,6 +188,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
   const repos = poseDeRepos(base.scene, meshes);
+  const suiviDesChaines = suivreLesChaines(base.scene, chaines, repos);
   const aretes = new Map(meshes.map((m) => [m, aretesDe(m)]));
   ecarts.push(...gardeEtirementAuRepos(aretes, libelle, sansCles, repos));
   const niveaux: NiveauDuCorps[] = [];
@@ -190,6 +198,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit)) {
     niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, corps) });
     etirements.push(mesurerEtirement(aretes, sansCles, e));
+    suiviDesChaines.echantillon(e);
     if (manifeste && e.clip === manifeste.clips.walk) posesDesPieds.push(...poserPieds(e, surfaces, racine));
   }
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.walk]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
@@ -213,6 +222,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
       etirement: piresAretes(etirements, libelle),
       silhouettes: silhouettes.mesures,
       segments: segments?.mesures ?? null,
+      chaines: suiviDesChaines.mesures(pistesDeChaine.clipsPistes),
     },
   };
 }

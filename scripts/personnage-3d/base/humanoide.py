@@ -17,6 +17,7 @@ from mathutils import Matrix, Vector  # noqa: E402
 from seuils import IMAGES_PAR_SECONDE  # noqa: E402
 from pistes import sacs  # noqa: E402
 from script_node import lancer  # noqa: E402
+from chaines import ajouter_chaines, cuire_chaines  # noqa: E402
 from corpulence import ajouter_corpulence  # noqa: E402
 from diagnostic_poids import imprimer_retournements  # noqa: E402
 from poids import (PASSES_MAX, peau_lineaire, etats_ponderes, sommets_des_surfaces,  # noqa: E402
@@ -372,6 +373,8 @@ def construire(args):
         bpy.data.objects.remove(objet, do_unlink=True)
     clear_animation(squelette)
     bpy.context.view_layer.update()
+    chaines = ajouter_chaines(bpy, squelette, corps)
+    cuire_chaines(bpy, squelette, clips, chaines)
     print('GABARIT_ANATOMIE_OK table disjointe ; head sans enfants', flush=True)
     print('GABARIT_BORNES', json.dumps(table['bornes']), flush=True)
     exporter_gabarit(peaux, references)
@@ -380,7 +383,7 @@ def construire(args):
     manifeste = poser(squelette, peaux)
     manifeste['appuis']['plusBas'] = candidats
     manifeste['gabarit'] = table
-    manifeste = {'os': [b.name for b in squelette.data.bones], 'chaines': {}, **manifeste, 'silhouettes': formes,
+    manifeste = {'os': [b.name for b in squelette.data.bones], 'chaines': chaines, **manifeste, 'silhouettes': formes,
                  'osAPositionAnimee': os_a_position_animee(squelette, clips, manifeste['gabarit']['racine'])}
     clear_animation(squelette)
     bpy.context.view_layer.update()
