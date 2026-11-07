@@ -17,7 +17,8 @@ import { detenteur } from '../lib/detenteur.testkit';
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
  * utilisateur du 2026-07-26, verbatim : « Assure toi toujours qu'on doit pouvoir éditer toutes les
- * données de la scene, on ne doit pas dépendre d'une IA »).
+ * données de la scene, on ne doit pas dépendre d'une IA »). Tout champ de Scene a un chemin d'écriture
+ * d'auteur : l'interface web (`src/ui/**`) ou l'éditeur Godot (méthode `editer` du pont, #3508 décision 8).
  *
  * Le défaut que cette garde ferme n'est pas une liste de 22 champs — c'est la CLASSE : un champ peut
  * naître au modèle, être lu par le moteur, et n'avoir pour seul écrivain le compilateur d'authoring
@@ -563,6 +564,77 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     try {
       expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program)))).toEqual([]);
 
+    } finally { program.dispose(); }
+  });
+
+  it('le chemin Godot crédite : une primitive atteinte depuis la méthode `editer` du pont, et elle seule', () => {
+    // Aucun fichier d'interface : `setNotes` n'est appelée que par `editer`, `setSceneFlags` que par une autre méthode
+    // du pont (la partie, que l'auteur n'édite pas).
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': PONT['src/noyau/monde/scene.ts'],
+      'src/noyau/sceneEdit.ts': PONT['src/noyau/sceneEdit.ts'],
+      'hotes/godot/pont/pont.ts': `import type { Scene } from '../../../src/noyau/monde/scene';
+import { setNotes, setSceneFlags } from '../../../src/noyau/sceneEdit';
+export function creerPont(s: Scene) {
+  return {
+    editer(v: string) { return setNotes(s, v); },
+    jouer() { return setSceneFlags(s, { vu: true }); },
+  };
+}\n`,
+    });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
+      expect(ids(orphanFields(rows)).sort()).toEqual(['Scene.flags', 'Scene.id']);
+    } finally { program.dispose(); }
+  });
+
+  it('le helper à CLÉ `champ<T, K extends keyof T>(o, k, v)` qui écrit `o[k]` crédite la clé littérale passée, un lecteur de même signature rien', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': PONT['src/noyau/monde/scene.ts'],
+      'src/noyau/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
+function champ<T extends object, K extends keyof T>(o: T, k: K, v: T[K] | undefined): T {
+  const out = { ...o };
+  if (v === undefined) delete out[k];
+  else out[k] = v;
+  return out;
+}
+function lire<T extends object, K extends keyof T>(o: T, k: K): T[K] {
+  return o[k];
+}
+export const setNotes = (s: Scene, v: string): Scene => champ(s, 'notes', v);
+export const drapeaux = (s: Scene) => lire(s, 'flags');\n`,
+      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../noyau/monde/scene';
+import { drapeaux, setNotes } from '../../noyau/sceneEdit';
+declare function setScene(s: Scene): void;
+export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
+export const voir = (s: Scene) => drapeaux(s);
+export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
+    });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
+      expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
+    } finally { program.dispose(); }
+  });
+
+  it('la valeur d’un AUTRE type affectée à un champ lui apporte ses champs ; celle du même type ne fait que recopier', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Emprise { x: number; w: number }
+export interface Partie { id: string; foot: Emprise }
+export interface Scene { parts: Partie[] }\n`,
+      // `Rect` n'est pas `Emprise` : le rectangle tiré au pointeur écrit `foot.x` et `foot.w`. Recopier l'emprise d'une
+      // autre partie (`foot: modele.foot`) n'écrit rien.
+      'src/ui/editor/Poignee.ts': `import type { Partie, Scene } from '../../noyau/monde/scene';
+interface Rect { x: number; w: number }
+declare function rectTire(): Rect;
+export const redimensionner = (s: Scene): Scene => ({ ...s, parts: s.parts.map((p): Partie => ({ ...p, foot: rectTire() })) });\n`,
+      'src/ui/editor/Copie.ts': `import type { Partie } from '../../noyau/monde/scene';
+export const copier = (p: Partie, modele: Partie): Partie => ({ ...p, foot: modele.foot });\n`,
+    });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      for (const id of ['Emprise.x', 'Emprise.w']) expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/ui/editor/Poignee.ts']);
     } finally { program.dispose(); }
   });
 });

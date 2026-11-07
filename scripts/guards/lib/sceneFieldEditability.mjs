@@ -1,5 +1,6 @@
 import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
-// Mécanique de scan du garde-fou « tout champ de Scene a un chemin d'écriture d'UI » (#841).
+// Mécanique de scan du garde-fou « tout champ de Scene a un chemin d'écriture d'auteur » (#841) : l'interface web
+// (`src/ui/**`) ou l'éditeur Godot (méthode `editer` du pont, `hotes/godot/pont/CONTRAT.md`, #3508 décision 8).
 //
 // Le constat qui fonde le ticket : 22 champs du document de Scène n'étaient joignables QUE par le
 // compilateur d'authoring (`mapSpec.ts`) ou un script `.mjs` — donc par un agent, jamais par un
@@ -20,8 +21,9 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     lecture à un contexte d'évaluation ne créditent rien : leur type porteur n'est pas celui du
 //     document de scène.
 //  3. CRÉDIT RATTACHÉ À UN APPELANT. Hors interface (`BRIDGE_PATH`), une primitive ne crédite que
-//     si sa fonction porteuse est ATTEINTE depuis `src/ui/**` par une chaîne d'appels résolue au
-//     TypeChecker (`uiReachableScopes`). L'EXISTENCE d'un écrivain ne prouve rien : une primitive
+//     si sa fonction porteuse est ATTEINTE depuis `src/ui/**` ou depuis la méthode `editer` du pont
+//     Godot (`ENTREE_GODOT`) par une chaîne d'appels résolue au TypeChecker
+//     (`auteurReachableScopes`). L'EXISTENCE d'un écrivain ne prouve rien : une primitive
 //     complète, testée, ré-exportée par l'éditeur et jamais appelée EST le défaut de #841 — c'est
 //     l'état mesuré de `setSceneFlags` au 2026-07-26.
 //
@@ -53,12 +55,14 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //   - une collection SANS annotation dont le type ne vient que de l'inférence
 //     (`const zones = […].map((b) => ({ … }))` puis `s = { ...s, effectZones: zones }`) ;
 //   - une écriture via un helper générique dont le paramètre de type se résout à l'appel
-//     (`assign<T>(cible, { … })`, `Object.assign`, un `structuredClone` retouché) ;
-//   - une écriture par index/clé dynamique (`obj[k] = v`, `Object.entries(...).forEach`) ;
+//     (`assign<T>(cible, { … })`, `Object.assign`, un `structuredClone` retouché) — sauf le helper
+//     à clé `f<T, K extends keyof T>(o: T, k: K, …)` qui écrit `x[k] = …` : l'appel qui lui passe une clé
+//     LITTÉRALE crédite ce champ du type de `o` (`ecrituresParCle`) ;
+//   - une écriture par index/clé dynamique hors de ce helper (`obj[k] = v`, `Object.entries(...).forEach`) ;
 //   - une écriture depuis un fichier hors `AUTHOR_PATH`/`PIPELINE_PATH` : les scripts `.mjs` de
 //     `scripts/`, non typés par le `tsconfig`, n'alimentent AUCUNE colonne.
 //   - une écriture de `BRIDGE_PATH` appelée INDIRECTEMENT (table de dispatch, callback, `obj[k]()`) :
-//     la fermeture d'appels de `uiReachableScopes` déclare ses propres angles morts, à lire là-bas.
+//     la fermeture d'appels de `auteurReachableScopes` déclare ses propres angles morts, à lire là-bas.
 // Précédent mesuré (2026-07-26) : `SceneEffectZone.tiles`, écrit par `src/noyau/mapSpec.ts` à
 // travers `Array.prototype.map`, était rapporté « écrivains : AUCUN » — le littéral traverse le
 // paramètre de type `U` de `map`, ce qui lui fait perdre sa freshness et prive `getContextualType`
@@ -70,19 +74,41 @@ import path from 'node:path';
 import * as ts from 'typescript/unstable/ast';
 import { repoProgram, libererSessions } from './tsProgram.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
+import { dossierDe, porteeDeGarde } from './couches.mjs';
+
+/** `rel` (relatif à la racine, séparateurs quelconques) est-il sous le dossier `dossier` ? */
+const sous = (dossier) => (rel) => norm(rel).startsWith(`${dossier}/`);
+
+/** Les deux chemins d'auteur, dérivés de `COUCHES` (`porteeDeGarde`) : l'interface web (`ui`, qui lève dès que la zone
+ *  quitte la table, #3556 lot D) et les zones des hôtes du noyau (`hote`, le modèle de vue commun ; `hotes`, le pont
+ *  Godot). */
+const [DOSSIER_HOTE, DOSSIER_HOTES, DOSSIER_UI] = porteeDeGarde(['hote', 'hotes'], ['ui']);
 
 /** Fichiers d'INTERFACE : un écrivain qui y vit est joignable au clic par construction — l'auteur
  *  ouvre l'écran. Crédit DIRECT. */
-const UI_PATH = [/^src[\\/]ui[\\/]/];
+const UI_PATH = [sous(DOSSIER_UI)];
 
-/** Primitives d'édition qui ne sont PAS une interface : `sceneEdit.ts`, le pointeur et l'historique de l'éditeur
- *  (`src/noyau/edition/`, #3508) et le parseur de saisie « format livre » (`src/data/refFormatLivre.ts`) n'ont aucun
- *  écran. Une écriture
+/** Le point d'entrée de l'éditeur Godot : la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, #3508). Hors
+ *  interface, il est la seule racine de la fermeture d'appels côté Godot : le pont sert aussi la partie, que l'auteur
+ *  n'édite pas. */
+const PONT = `${DOSSIER_HOTES}/godot/pont`;
+const ENTREE_GODOT = { fichier: `${PONT}/pont.ts`, methode: 'editer' };
+
+/** Primitives d'édition qui ne sont PAS une interface : le pont Godot et le modèle de vue commun des hôtes
+ *  (`src/hote/`), les modules d'édition du noyau (`src/noyau/*Edit*.ts`, dont `sceneEdit.ts` et ses lectures
+ *  `sceneEditLecture.ts`), la session, le pointeur et l'historique de l'éditeur (`src/noyau/edition/`, #3508) et le
+ *  parseur de saisie « format livre » (`src/data/refFormatLivre.ts`) n'ont aucun écran. Une écriture
  *  qui y vit ne crédite QUE si sa fonction porteuse est ATTEINTE par une chaîne d'appels partant de
- *  `src/ui/**`. Une définition, fût-elle exportée, testée et ré-exportée par l'éditeur, ne crédite
+ *  `src/ui/**` ou d'`ENTREE_GODOT`. Une définition, fût-elle exportée, testée et ré-exportée par l'éditeur, ne crédite
  *  rien : `Scene.flags` ← `setSceneFlags`, exportée, testée et appelée par AUCUN composant,
  *  est précisément le défaut de #841 — le travail s'arrête à la porte de l'interface. */
-const BRIDGE_PATH = [/^src[\\/]noyau[\\/]sceneEdit\.ts$/, /^src[\\/]noyau[\\/]edition[\\/]/, /^src[\\/]data[\\/]refFormatLivre\.ts$/];
+const BRIDGE_PATH = [
+  sous(PONT),
+  sous(DOSSIER_HOTE),
+  (rel) => path.posix.dirname(norm(rel)) === dossierDe('noyau') && /Edit[^/]*\.ts$/.test(rel),
+  sous(`${dossierDe('noyau')}/edition`),
+  (rel) => norm(rel) === `${dossierDe('data')}/refFormatLivre.ts`,
+];
 
 /** Chemin d'écriture ATTEIGNABLE PAR L'AUTEUR = interface + primitives réellement appelées par elle. */
 const AUTHOR_PATH = [...UI_PATH, ...BRIDGE_PATH];
@@ -92,11 +118,11 @@ const AUTHOR_PATH = [...UI_PATH, ...BRIDGE_PATH];
  *  Les scripts `.mjs` de `scripts/` ne sont pas typés par le `tsconfig` du dépôt : ils ne peuvent
  *  donc pas alimenter cette colonne INDICATIVE. Ils n'influent pas sur le verdict, qui ne dépend
  *  que de la colonne `authors`. */
-const PIPELINE_PATH = [/^src[\\/]noyau[\\/]mapSpec\.ts$/, /^src[\\/]scenes[\\/]/];
+const PIPELINE_PATH = [(rel) => norm(rel) === `${dossierDe('noyau')}/mapSpec.ts`, sous(dossierDe('scenes'))];
 
-const isUiPath = (rel) => UI_PATH.some((re) => re.test(rel));
-const isAuthorPath = (rel) => AUTHOR_PATH.some((re) => re.test(rel));
-const isPipelinePath = (rel) => PIPELINE_PATH.some((re) => re.test(rel));
+const isUiPath = (rel) => UI_PATH.some((dans) => dans(rel));
+const isPipelinePath = (rel) => PIPELINE_PATH.some((dans) => dans(rel));
+const isAuthorPath = (rel) => AUTHOR_PATH.some((dans) => dans(rel));
 const isTestFile = (rel) => estFichierVitest(rel) || estKitDeTest(rel);
 
 const SCENE_FILE = 'src/noyau/monde/scene.ts';
@@ -348,7 +374,7 @@ function writtenNames(checker, prop) {
  * champ dans `scene.ts` : les mappings (`Partial<WallSeg>`, `Pick`, accès indexé) sont donc suivis,
  * les homonymes d'autres types écartés.
  * `creditable(node)` filtre les sites d'écriture retenus — c'est par lui que passe l'exigence
- * d'ATTEIGNABILITÉ depuis l'interface pour les fichiers de `BRIDGE_PATH`.
+ * d'ATTEIGNABILITÉ depuis un chemin d'auteur pour les fichiers de `BRIDGE_PATH`.
  * @returns {Set<string>} ids de champ (`Porteur.champ`)
  */
 export function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditable = () => true) {
@@ -374,6 +400,51 @@ export function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditabl
   const credit = (type, name) => {
     for (const id of idsOf(type, name)) out.add(id);
   };
+
+  /** Ce qu'une valeur de type `source` APPORTE au porteur `cible` : les champs de `cible` homonymes d'un champ de
+   *  `source` qui n'en viennent pas déjà (l'étalement du porteur lui-même ne fait que recopier). */
+  const apporte = (cible, source) => {
+    for (const prop of flatten(source).flatMap((t) => checker.getPropertiesOfType(t))) {
+      const target = idsOf(cible, prop.name);
+      if (target.size === 0) continue;
+      const origin = idsOf(source, prop.name);
+      for (const id of target) if (!origin.has(id)) out.add(id);
+    }
+  };
+
+  /** Écritures d'un appel au helper à CLÉ `f<T, K extends keyof T>(o: T, k: K, …)` dont le corps écrit `x[k] = …` :
+   *  le type de l'argument passé pour `o`, et les clés LITTÉRALES passées pour `k`. Résolution par SYMBOLE
+   *  (`calleeDeclarations`), jamais par nom : la forme de la signature et l'écriture indexée du corps font le helper. */
+  const ecrituresParCle = (call) =>
+    calleeDeclarations(checker, call).flatMap((decl) => {
+      if (!ts.isFunctionLikeDeclaration(decl) || !decl.body || !decl.typeParameters) return [];
+      const nomDuType = (n) => (n && ts.isTypeReferenceNode(n) && ts.isIdentifier(n.typeName) ? n.typeName.text : undefined);
+      return decl.typeParameters.flatMap((k) => {
+        const c = k.constraint;
+        if (!c || !ts.isTypeOperatorNode(c) || c.operator !== ts.SyntaxKind.KeyOfKeyword) return [];
+        const t = nomDuType(c.type);
+        const iK = decl.parameters.findIndex((p) => nomDuType(p.type) === k.name.text);
+        const iT = decl.parameters.findIndex((p) => nomDuType(p.type) === t);
+        const pK = decl.parameters[iK];
+        if (!t || iK < 0 || iT < 0 || !ts.isIdentifier(pK.name) || !call.arguments[iK] || !call.arguments[iT]) return [];
+        let ecrit = false;
+        const chercher = (n) => {
+          if (
+            ts.isBinaryExpression(n) &&
+            n.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+            ts.isElementAccessExpression(n.left) &&
+            ts.isIdentifier(n.left.argumentExpression) &&
+            n.left.argumentExpression.text === pK.name.text
+          )
+            ecrit = true;
+          if (!ecrit) n.forEachChild(chercher);
+        };
+        chercher(decl.body);
+        if (!ecrit) return [];
+        const cles = flatten(checker.getTypeAtLocation(call.arguments[iK])).filter((x) => x.isStringLiteralType()).map((x) => x.value);
+        return [{ cible: checker.getTypeAtLocation(call.arguments[iT]), cles }];
+      });
+    });
 
   const elementsOf = (types) =>
     types.flatMap((t) =>
@@ -503,15 +574,22 @@ export function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditabl
         for (const p of node.properties) for (const n of writtenNames(checker, p)) credit(b, n);
         // Un étalement d'une valeur d'un AUTRE type (`{ ...rectTiréAuPointeur }`) APPORTE ses
         // champs au porteur ; l'étalement du porteur lui-même (`{ ...trigger, … }`) les recopie.
-        for (const s of spreads) {
-          for (const prop of flatten(s).flatMap((t) => checker.getPropertiesOfType(t))) {
-            const target = idsOf(b, prop.name);
-            if (target.size === 0) continue;
-            const origin = idsOf(s, prop.name);
-            for (const id of target) if (!origin.has(id)) out.add(id);
-          }
+        for (const s of spreads) apporte(b, s);
+        // De même, la valeur d'un AUTRE type affectée à un champ (`{ ...part, foot: rectTiréAuPointeur }`) apporte ses
+        // champs à celui du champ ; un littéral d'objet affecté se scanne de lui-même.
+        for (const p of node.properties) {
+          if (!ts.isPropertyAssignment(p) || ts.isObjectLiteralExpression(p.initializer)) continue;
+          const valeur = checker.getTypeAtLocation(p.initializer);
+          for (const n of writtenNames(checker, p))
+            for (const f of flatten(b)) {
+              const prop = checker.getPropertyOfType(f, n);
+              const d = prop?.declarations?.[0]?.resolve();
+              if (prop && d) apporte(checker.getTypeOfSymbolAtLocation(prop, d), valeur);
+            }
         }
       }
+    } else if (ts.isCallExpression(node) && node.arguments.some((a) => ts.isStringLiteral(a) && fieldNames.has(a.text)) && creditable(node)) {
+      for (const { cible, cles: noms } of ecrituresParCle(node)) for (const n of noms) credit(cible, n);
     } else if (
       ts.isBinaryExpression(node) &&
       node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
@@ -561,9 +639,10 @@ function calleeDeclarations(checker, call) {
 }
 
 /**
- * Portées d'exécution ATTEIGNABLES depuis l'interface (`UI_PATH`), par fermeture transitive des
- * appels. Le crédit d'un fichier de `BRIDGE_PATH` en dépend : une primitive que personne n'appelle
- * n'est pas un chemin d'édition, c'est une définition.
+ * Portées d'exécution ATTEIGNABLES par l'auteur, par fermeture transitive des appels depuis deux racines : l'interface
+ * web (`UI_PATH`, tout le fichier) et l'éditeur Godot (`ENTREE_GODOT`, la seule méthode `editer` du pont). Le crédit
+ * d'un fichier de `BRIDGE_PATH` en dépend : une primitive que personne n'appelle n'est pas un chemin d'édition, c'est
+ * une définition.
  *
  * CE QUE CETTE FERMETURE NE VOIT PAS — donc autant de sources d'orphelins RAPPORTÉS à tort :
  *   - un appel INDIRECT (primitive rangée dans une table de dispatch, passée en callback, atteinte
@@ -572,10 +651,12 @@ function calleeDeclarations(checker, call) {
  *   - à l'inverse elle SUR-crédite : une fonction d'un fichier d'interface est réputée atteignable
  *     même si aucun écran ne la monte, et un callback jamais rappelé compte pour sa porteuse. La
  *     frontière mesurée est celle du FICHIER — « une primitive hors interface a-t-elle un appelant
- *     dans l'interface ? » — pas la vivacité d'un composant.
+ *     dans l'interface ? » — pas la vivacité d'un composant. Côté Godot, elle est celle de la méthode
+ *     `editer` : tout ce qu'elle appelle, l'essai de la scène compris.
+ * Un pont présent au programme sans sa méthode `editer` lève : la racine Godot ne se perd pas en silence.
  * @returns {Set<import('typescript/unstable/ast').Node>}
  */
-export function uiReachableScopes(checker, program, root) {
+export function auteurReachableScopes(checker, program, root) {
   const reachable = new Set();
   const queue = [];
   const edges = new Map();
@@ -596,6 +677,16 @@ export function uiReachableScopes(checker, program, root) {
     const rel = path.relative(root, sf.fileName);
     if (rel.startsWith('..') || isTestFile(rel) || !isAuthorPath(rel)) continue;
     const ui = isUiPath(rel);
+    if (norm(rel) === ENTREE_GODOT.fichier) {
+      const entrees = [];
+      const chercher = (n) => {
+        if (ts.isMethodDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === ENTREE_GODOT.methode) entrees.push(n);
+        n.forEachChild(chercher);
+      };
+      chercher(sf);
+      if (entrees.length !== 1) throw new Error(`${ENTREE_GODOT.fichier} : ${entrees.length} méthode(s) \`${ENTREE_GODOT.methode}\`, l’entrée de l’éditeur Godot en attend une`);
+      seed(entrees[0]);
+    }
     if (ui) {
       seed(sf);
       // Le corps de module d'une primitive IMPORTÉE par l'interface s'exécute au chargement.
@@ -657,10 +748,10 @@ export function auditSceneFieldEditability(root, program) {
     })
   );
 
-  const reachable = uiReachableScopes(checker, program, root);
+  const reachable = auteurReachableScopes(checker, program, root);
   // Hors interface, une écriture ne crédite que si l'une de ses portées d'exécution est atteinte
-  // depuis `src/ui/**` : le crédit exige un APPELANT, jamais la seule existence d'une définition.
-  const reachedFromUi = (node) => owningScopes(node).some((s) => reachable.has(s));
+  // depuis `src/ui/**` ou `ENTREE_GODOT` : le crédit exige un APPELANT, jamais la seule existence d'une définition.
+  const atteinte = (node) => owningScopes(node).some((s) => reachable.has(s));
 
   for (const sf of program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file))) {
     if (sf.isDeclarationFile) continue;
@@ -670,7 +761,7 @@ export function auditSceneFieldEditability(root, program) {
     const author = isAuthorPath(rel);
     const pipeline = isPipelinePath(rel);
     if (!author && !pipeline) continue;
-    const creditable = author && !isUiPath(rel) ? reachedFromUi : () => true;
+    const creditable = author && !isUiPath(rel) ? atteinte : () => true;
     for (const id of fieldsWrittenIn(checker, sf, cles, fieldNames, creditable)) {
       const row = rows.get(id);
       if (row) (author ? row.authors : row.pipeline).push(norm(rel));
