@@ -71,7 +71,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   seRemettreDeLEtat: 'invité', seRelever: 'invité', faireUnBattement: 'invité', tenterDeDistraire: 'invité',
   entrerEnFrenesie: 'invité', manoeuvrerSurSoi: 'invité', monterEnSelle: 'invité', mettrePiedATerre: 'invité',
   servirLePoste: 'invité', quitterLePoste: 'invité', pousserLEngin: 'invité', aiderLEquipe: 'invité',
-  ramasserLObjet: 'invité', manoeuvrerLeNavire: 'invité', eprouverLEquipage: 'invité', chanterLaChanson: 'invité',
+  ramasserLObjet: 'invité', manoeuvrerLeNavire: 'invité', chanterLaChanson: 'invité',
   annulerLeDeplacement: 'invité', terminerLeTour: 'invité', desarmerLeMode: 'invité',
   // Les gestes d'un lanceur et d'un porteur, en combat comme hors combat : routés par le siège du lanceur ou du porteur
   // (1ᵉʳ argument, `netOwnership.ROUTES`).

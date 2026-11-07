@@ -11,7 +11,7 @@ import { scenesDuRegistre } from './monde/registreDesScenes';
 import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
 import {
-  ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, crewTestTypes, findConditionById, findCreatureById, findSeaShantyById,
+  ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, findConditionById, findCreatureById, findSeaShantyById,
   findTrappingById, maneuvers, pregens, profilsStandard, shipStations, skills, spells, talents, trappingsInstanciables,
 } from '../data';
 import { ACTIVITIES, entrainementOptions, qualitesDArtisanat } from '../engine/activities';
@@ -168,8 +168,6 @@ export type IdDAttaque = string;
 /** Un objet que le décor d'une entité de la scène courante donne à ramasser, par sa clé (`entityPickables`,
  *  `combatEffects.ts`). */
 export type IdDObjetRamassable = string;
-/** Un Test d'équipage du catalogue (`crew-test-types.json`). MDG 13 */
-export type IdDeTestDEquipage = string;
 /** Un stade qu'un indice du carnet a franchi (`ClueState.historique`), son stade courant compris. */
 export type IdDeStadeDIndice = string;
 /** Un Trait psychologique porté par un héros du groupe, par sa clé d'instance (`traitsPsyChoisissables`,
@@ -353,7 +351,6 @@ export const DESIGNATIONS = {
     lire: (s) => lesRamassables(s).map((p) => p.key),
     nom: (s, cle) => lesRamassables(s).find((p) => p.key === cle)?.label ?? null,
   },
-  IdDeTestDEquipage: { mot: 'id de Test d’équipage', lire: () => ids(crewTestTypes), nom: (_s, id) => labelParmi(crewTestTypes, id) },
   IdDeStadeDIndice: {
     mot: 'id de stade d’indice',
     lire: (s) => sansDoublon(Object.values(s.clues).flatMap((c) => [c.stadeCourant, ...c.historique.map((h) => h.stade)])),

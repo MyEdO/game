@@ -21,7 +21,7 @@ import type { FabriqueDuNoyau, JeuDuNoyau } from './machinerieDuNoyau';
 import type { ActionsDuNoyau, GesteDuNoyau, VerbesDeLaBarre } from './actionsDuNoyau';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type {
-  IdDAttaque, IdDeCombattant, IdDeCompetence, IdDeCondition, IdDeManoeuvre, IdDEntiteDeScene, IdDeSort, IdDePanoplie, IdDeTestDEquipage, IdDObjet,
+  IdDAttaque, IdDeCombattant, IdDeCompetence, IdDeCondition, IdDeManoeuvre, IdDEntiteDeScene, IdDeSort, IdDePanoplie, IdDObjet,
   IdDObjetRamassable,
 } from './designations';
 import { refuserGesteDuSiege } from './refusVisible';
@@ -54,7 +54,7 @@ import { servablePostes, crewPosteOf, shipOfCrew, rechargeDuTour } from './monde
 import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ItemInstance, type ShipPoste, type Weapon, type WeaponLoadout } from '../engine/types';
 import { pushSlot } from './siegePush';
-import { ACTIONS, byId, crewTestTypes, type ManeuverDef, findConditionById, findSpellById, type ActionDef } from '../data/index';
+import { ACTIONS, byId, type ManeuverDef, findConditionById, findSpellById, type ActionDef } from '../data/index';
 import { garanti } from '../lib/garanti';
 import { isArcaneSpell, castBlockedBy, castInfoIsPrayer, focusSkillFor, focusWindLabel } from '../engine/magic';
 import { t } from '../i18n';
@@ -575,7 +575,6 @@ export interface ContexteDOffre {
    *  barreur, pas le navire. Deux champs parce que ce sont deux entités — un seul mentait. */
   crewId?: IdDeCombattant;
   posteUid?: IdDObjet;
-  crewTestId?: IdDeTestDEquipage;
 }
 
 /** Ce que l'entrée d'une offre lit pour déclarer son geste : l'entrée, les arguments de sa case, l'état, et le combattant
@@ -602,13 +601,6 @@ function sansFinAbsente(args: readonly unknown[]): unknown[] {
 
 /** L'id du combattant actif, que l'offre d'un porteur prend pour porteur. */
 const idDeLActif = (o: OffreAJouer): IdDeCombattant => garanti(o.active, o.def.id, 'actif de l’offre').id;
-
-/** Le Test d'équipage qu'une entrée déclare : celui dont la règle (`rule`) est la sienne. FAIL-FAST, comme
- *  `etatDeclare`. */
-function testDEquipageDeclare(def: ActionDef): IdDeTestDEquipage {
-  const id = crewTestTypes.find((tt) => !!def.rule && tt.rule?.id === def.rule.id)?.id;
-  return garanti(id, def.id, 'Test d’équipage de l’entrée');
-}
 
 /** Ce que porte une position d'argument d'un verbe de la barre : une clé du contexte de la case ; pour un argument
  *  objet, la clé que porte chacun de ses champs (`champs`) ; ou la valeur qu'un champ déclaré de l'ENTRÉE lui donne
@@ -663,7 +655,6 @@ const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuV
   ramasserLObjet: { args: ['entityId', 'pickKey'], requis: ['entityId', 'pickKey'] },
   // La barre : le barreur la tient, ou la coque elle-même (`manoeuvrerLeNavire` accepte l'un ou l'autre).
   manoeuvrerLeNavire: { args: ['crewId'], defaut: 'actif' },
-  eprouverLEquipage: { args: ['shipId', { entree: testDEquipageDeclare }], defaut: 'actif' },
   chanterLaChanson: { args: ['shipId'], defaut: 'actif' },
   annulerLeDeplacement: {},
   terminerLeTour: {},

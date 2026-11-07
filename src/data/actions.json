@@ -822,26 +822,6 @@
     ]
   },
   {
-    "id": "crew-test-rude-epreuve",
-    "type": "actions",
-    "label": "Rude épreuve",
-    "icon": "scenario/naval",
-    "surface": "grille",
-    "gate": [
-      "navire",
-      "navire-action"
-    ],
-    "run": "eprouverLEquipage",
-    "coutAction": "action",
-    "rule": {
-      "id": "test-equipage-rude-epreuve",
-      "type": "regle"
-    },
-    "keys": [
-      "crew-test-rude-epreuve"
-    ]
-  },
-  {
     "id": "sing-shanty",
     "type": "actions",
     "label": "Chanson de marin",

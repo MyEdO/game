@@ -806,7 +806,6 @@ export function CombatConsole() {
     // (`chanteur-disponible`, `arme-a-recharger` : l'Action du chef de pièce), sans Action du navire.
     // Recharge : LDB 62 l.335 ; bordée, Rude épreuve, chant : MDG 14.
     cellFor('battery', 'attaque'),
-    cellFor('crew-test-rude-epreuve', 'geste', { args: { shipId: active.id, crewTestId: 'rude-epreuve' } }),
     cellFor('sing-shanty', 'geste', { args: { shipId: active.id } }),
     cellFor('ship-reload', 'geste', { args: { weaponUid: reloadable?.uid } }),
   ];

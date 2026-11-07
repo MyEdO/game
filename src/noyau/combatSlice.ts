@@ -59,7 +59,7 @@ import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurat
 import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
-import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, calmeDeLAnimositeAcquise, ciblesDAnimositeAcquise } from '../engine/psychology';
+import { spendResolveForPsychImmunity, calmeDeLAnimositeAcquise, ciblesDAnimositeAcquise } from '../engine/psychology';
 import { recomputeLoadout, giveTrappingLabel, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback } from '../engine/qualities/dispatch';
@@ -68,7 +68,7 @@ import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, peutEntrerEnFrenesie, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
 import { raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN, type HealMode } from '../engine/healing';
 import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -166,8 +166,8 @@ function acquireAnimositeOnFate(get: Get, set: Set, hero: Combatant, foeId: stri
 
 /** OUVERTURE partagée d'un Test d'équipage MULTI (MDG 14) : contributeurs par rôle (`crewTestContributors` —
  *  UN jet par poste, PJ interactifs, l.9/39/41), Moral, Manque de bras (l.55) et SABOTAGE (l.45-47) dérivés du
- *  navire. SOURCE UNIQUE des 3 flux jumeaux (manœuvre / bordée / Test d'équipage générique) — le pending
- *  appelant y ajoute ses champs propres (turnSteps, targetId+side, testTypeId). `null` si aucun rôle tenu. */
+ *  navire. SOURCE UNIQUE des flux jumeaux (manœuvre / bordée) — le pending appelant y ajoute ses champs propres
+ *  (turnSteps, targetId+side). `null` si aucun rôle tenu. */
 function openCrewTestPending(get: Get, ship: Combatant, testTypeId: string): {
   participants: ShipManeuverParticipant[];
   essentialRoleId?: string;
@@ -956,26 +956,6 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!suspendu) checkBattleOver(get, set);
       bus.emit(EVT.SCENE_DIRTY);
       return true;
-    },
-
-    // ── TEST D'ÉQUIPAGE GÉNÉRIQUE (MDG 14, « Types de Test d'équipage ») — 3ᵉ jumeau de la manœuvre/bordée,
-    //    paramétré par `testTypeId`. Câblé en COMBAT : **Rude épreuve** (l.106-114 — « les gens ont peur de ce
-    //    que pourrait prochainement subir le bateau ») : un total NÉGATIF réduit le Moral d'autant (l.110),
-    //    persisté sur le navire de campagne. Les types de NAVIGATION/VOYAGE réutiliseront ce pending (7b). ──
-    eprouverLEquipage: (shipId: string, testTypeId: string) => {
-      const battle = get().battle;
-      if (!battle || battle.over || battle.acted) return;
-      const active = activeCombatant(battle);
-      if (!active || !canTakeAction(active)) return;
-      const ship = estNavire(active) && active.id === shipId ? active : shipOfCrew(battle.combatants, active.id);
-      if (!ship || ship.id !== shipId || !findCrewTestTypeById(testTypeId)) return;
-      const opened = openCrewTestPending(get, ship, testTypeId);
-      if (!opened) return; // aucun rôle tenu → pas de Test d'équipage
-      set({
-        pendingCrewTest: { shipId: ship.id, testTypeId, ...opened },
-        battle: { ...battle, action: null, preview: null },
-      });
-      for (const part of opened.participants) if (!part.interactive) get().jetLancer('crewTest', part.id); // témoins auto-roulés
     },
 
     // ── CHANSON DE MARIN (Talent, MDG 09 l.32-40) : le chanteur (équipage doté du Talent) choisit une
@@ -1854,7 +1834,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const battle = get().battle;
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
-      if (!active || isFrenzied(active) || !isFrenzyCapable(active)) return;
+      if (!active || !peutEntrerEnFrenesie(active)) return;
       // OUVRE la modale — le Test de FM se fait au clic « Lancer ».
       set({ pendingFrenzy: { combatantId: active.id, result: null }, battle: { ...battle, action: null } });
     },
@@ -2264,7 +2244,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
             : {}),
         });
         bus.emit(EVT.SCENE_DIRTY);
-        // Rangée TÉMOIN auto-roulée à l'ouverture (précédent `eprouverLEquipage`) : le coup dans le dos d'un
+        // Rangée TÉMOIN auto-roulée à l'ouverture (comme les témoins d'`openCrewTestPending`) : le coup dans le dos d'un
         // frappeur non joué est résolu tout de suite ; celui d'un héros l'attend (il porte son cycle).
         if (!played(foe)) get().jetLancer('flee', foe.id);
         // Aucune modale affichable (aucun des deux acteurs JOUÉ, combat fini, Destin en attente) →

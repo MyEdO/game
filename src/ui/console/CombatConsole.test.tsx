@@ -2438,18 +2438,18 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
   it('N-1 — la console VIT au tour de la coque : aucune bande d’attente, les cinq cases navales sont là', () => {
     monterNavire();
     expect(host.querySelector('.cc-phase'), 'le tour d’un acteur CONTRÔLÉ n’est pas une phase d’attente').toBeNull();
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'sing-shanty', 'ship-reload']) {
+    for (const id of ['maneuver-ship', 'battery', 'sing-shanty', 'ship-reload']) {
       expect(caseAction(id), `case navale « ${id} » absente de la travée`).not.toBeNull();
     }
     // BRANCHÉES, pas seulement dessinées : le pont clavier ne publie que les cases qui portent un `run`.
     const publiees = [...host.querySelectorAll('.cc-grid-left .cc-cell:not(.cc-empty)')]
       .filter((c) => !(c as HTMLButtonElement).disabled)
       .map((c) => c.getAttribute('data-action'));
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'ship-reload']) {
+    for (const id of ['maneuver-ship', 'battery', 'ship-reload']) {
       expect(publiees, `« ${id} » n’est pas branchée (aucun dispatcher publié)`).toContain(id);
     }
     // Manœuvrer / Bordée / Rude épreuve : Action du navire INTACTE → offertes (gates du registre).
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve']) {
+    for (const id of ['maneuver-ship', 'battery']) {
       expect(estFermee(caseAction(id)!), `« ${id} » est fermée alors que l’Action du navire est intacte`).toBe(false);
       expect(caseAction(id)!.hasAttribute('data-gated'), `« ${id} » porte une raison de refus`).toBe(false);
     }
@@ -2464,7 +2464,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     act(() => {
       useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [{ ...chariot, id: ship.id, kind: 'hero', pos: ship.pos, crewIds: ship.crewIds, postes: ship.postes }, ...useGame.getState().battle!.combatants.slice(1)] } });
     });
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'sing-shanty']) {
+    for (const id of ['maneuver-ship', 'battery', 'sing-shanty']) {
       expect(caseAction(id), `case navale « ${id} » offerte au tour d’un chariot`).toBeNull();
     }
     expect(caseAction('ship-reload'), 'la recharge d’une pièce montée reste offerte (LDB 62 l.335)').not.toBeNull();

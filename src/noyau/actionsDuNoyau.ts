@@ -19,7 +19,7 @@ import type {
   IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
   IdDeCompetenceOuDeTalent, IdDEntrainement, IdDePointDEntree, IdDActionDEntite, IdDeServiceDuLieu, IdDArticle, IdDeRoute,
   IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
-  IdDObjetRamassable, IdDeTestDEquipage,
+  IdDObjetRamassable,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
@@ -113,8 +113,6 @@ export interface VerbesDeLaBarre {
   ramasserLObjet: (entityId: IdDEntiteDeScene, key: IdDObjetRamassable) => void;
   /** Manœuvre navale (MDG 13) : ouvre la modale du Test de Navigation pour le navire que sert `crewId`. */
   manoeuvrerLeNavire: (crewId: IdDeCombattant) => void;
-  /** Test d'équipage GÉNÉRIQUE (MDG 14) : ouvre la modale multi-jets du type `testTypeId` (Rude épreuve…). */
-  eprouverLEquipage: (shipId: IdDeCombattant, testTypeId: IdDeTestDEquipage) => void;
   /** Chanson de marin (Talent, MDG 09 l.32-40) : ouvre la modale du chanteur (choix de chanson + Test de Chant). */
   chanterLaChanson: (shipId: IdDeCombattant) => void;
   /** Annule TOUT le déplacement décomposé du Tour (R6) tant qu'aucune Action n'a été prise :
