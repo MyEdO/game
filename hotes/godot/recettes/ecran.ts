@@ -10,7 +10,7 @@
  * dans `magie` la Fléchette choisie parmi les sorts de l'actif, sa fenêtre d'incantation avant puis après le jet et un pas
  * de Surincantation alloué, la création d'un héros hors de la partie (`zonesDeLaCreation` sur
  * l'état initial : la race avant puis après son d100, la carrière tirée, les Caractéristiques en 100 points, chacune en
- * liste), la carte du monde et le récit d'une arrivée dans `voyage`, puis dans `bataille-de-masse` l'entre-deux-aventures
+ * liste), la carte du monde, la journée de route arrêtée aux jets des héros puis ces jets tombés, et le récit d'une arrivée dans `voyage`, puis dans `bataille-de-masse` l'entre-deux-aventures
  * (un onglet par héros), les Scènes du premier Round de la bataille et l'entre-deux-Rounds, dans
  * `entre-deux-aventures` les formulaires d'ouvrage et de dépôt du forgeron, et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`) et d'une rangée
  * de cases. Chaque vue porte
@@ -225,8 +225,10 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('carte du monde', s);
   const plan = s.vue.zones['fenetre.corps'].find((e): e is Plan => e.type === 'plan')!;
   s = voyage.jouer('jouer', plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.id === 'r-grandroute')!.valeurs[0].jeu);
+  figer('voyage : la journée arrêtée aux jets des héros', s);
   for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'recit/issue'); pas++) {
     if (pas > 80) throw new Error(`aucun récit de voyage après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
+    if (pas === 4) figer('voyage : les jets des héros tombés, la Chance à saisir', s);
     if (s.vue.zones['fenetre.corps'].some((e) => e.id === 'repos/nuit')) figer('repos, la nuit à régler', s);
     s = voyage.jouer('jouer', presse(s));
   }

@@ -11,7 +11,7 @@
  */
 import {
   DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuChoix, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
-  libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, reposEnVue,
+  libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, voyageEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, reposEnVue,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
@@ -84,8 +84,12 @@ export interface GesteDeLaFenetre {
   reglage: boolean;
 }
 
+/** La disposition d'une séquence jouée en route (`voyageEnVue`) : la scène du voyage. */
+const DISPOSITION_DU_VOYAGE = 'voyage';
+
 /** La fenêtre qui tient la main, prête à dessiner : sa disposition (la clé de la fenêtre, `<clé>/<jet>` pour l'étape
- *  d'un jet), son titre, son étape de séquence, qui tient la main, ses gestes. */
+ *  d'un jet, `voyage` pour une autre étape d'une séquence jouée en route), son titre, son étape de séquence, qui tient
+ *  la main, ses gestes. */
 export interface FenetreADessiner {
   disposition: string;
   titre: string;
@@ -234,6 +238,6 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
   });
   const pc = fenetre.etape ? etat.pendingCascade : null;
   const etape = fenetre.etape ? (fenetre.etape.label ?? (fenetre.etape.jet ? libelleDuJet(fenetre.etape.jet) : null)) : null;
-  const disposition = fenetre.etape?.jet ? `${fenetre.cle}/${fenetre.etape.jet}` : fenetre.cle;
+  const disposition = fenetre.etape?.jet ? `${fenetre.cle}/${fenetre.etape.jet}` : fenetre.etape && voyageEnVue(etat) ? DISPOSITION_DU_VOYAGE : fenetre.cle;
   return { disposition, titre: pc?.title ?? documentEnVue(etat)?.titre ?? lieuEnVue(etat)?.nom ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), gestes };
 }

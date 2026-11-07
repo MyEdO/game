@@ -69,7 +69,7 @@ import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from
 import { seasonOfMonth, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
 import { buildStageSteps, buildWeatherResistanceSteps, type StageContext } from './travelPostes';
-import { startCascade, type TableStepDef, type TableStepRow } from './cascade';
+import { jouerLaJournee, type TableStepDef, type TableStepRow } from './cascade';
 import { freeCons, rollSansPilote, monoStep, surfaceOf, tableStep, pousseSi } from './rollSeam';
 import { t } from '../i18n';
 import type { CascadeStep, PendingCascade } from './pendings';
@@ -636,7 +636,7 @@ function runTravelDays(get: Get, set: Set): void {
       recap?.days.push(recapDay);
       if (recap) set({ travelPlan: { ...get().travelPlan!, recap } });
       const daySteps = buildTravelDayCascade(get, set, route, recapDay, [], { toLabel: to.label, destLabel: to.label });
-      startCascade(get, set, { title: t('tf.dayTitleForced'), icon: 'travel/cart', purpose: 'travelDay', steps: [premierKm, ...daySteps] });
+      jouerLaJournee(get, set, [premierKm, ...daySteps], { title: t('tf.dayTitleForced'), purpose: 'travelDay' }, false);
       return; // la clôture de la cascade (continueTravelDayAfterCascade) finalise le jour
     }
     const forced = forcedDriver ? forcedPaceDay(get, set, kmLeft, forcedDriver) : null;
@@ -710,7 +710,7 @@ function runTravelDays(get: Get, set: Set): void {
     // locaux ne survivent pas — `continueTravelDayAfterCascade` les relit depuis `plan.recap`.
     if (recap) set({ travelPlan: { ...get().travelPlan!, recap } });
     if (daySteps.length) {
-      startCascade(get, set, { title: t('tf.dayTitle'), icon: 'travel/compass', purpose: 'travelDay', steps: daySteps });
+      jouerLaJournee(get, set, daySteps, { title: t('tf.dayTitle'), purpose: 'travelDay' }, false);
       return; // la clôture de la cascade (continueTravelDayAfterCascade) finalise le jour
     }
     // Aucun jet influençable : finalisation immédiate (arrivée / halte de nuit) — comme la cascade le

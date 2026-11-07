@@ -42,6 +42,6 @@ describe('le repos par le pont', () => {
     expect(parId(c['repos/bjorn'] as Entite)['alerte/0'], 'le ventre vide se dit').toMatchObject({ libelle: 'Ventre vide', ton: 'alerte' });
 
     suite = jouer(enFocus(suite).jeu);
-    expect(suite.vue.disposition, '« Dormir » ouvre la nuit').toBe('cascade');
+    expect(suite.vue.disposition, '« Dormir » ouvre la nuit, dans la scène du voyage').toBe('voyage');
   });
 });

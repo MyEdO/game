@@ -85,7 +85,7 @@ function assembler() {
   const generateursDEtal = disjointes('generateursDEtal', portFlow.generateursDEtal, landMarketFlow.generateursDEtal) satisfies TablesDuJeu['generateursDEtal'];
   return {
     appliers,
-    annonces: disjointes('annonces', travelPostes.annonces, interludeFlow.annonces),
+    annonces: disjointes('annonces', interludeFlow.annonces),
     plis: disjointes('plis', combatFlow.plis),
     reglesDeSucces: disjointes('reglesDeSucces', seaVoyageFlow.reglesDeSucces),
     issuesDeTestEtendu: disjointes('issuesDeTestEtendu', seaActivities.issuesDeTestEtendu),
