@@ -1321,11 +1321,6 @@
     "id": "cibleVulnerablePct",
     "type": "reglesOptionnelles",
     "label": "Navire hostile — seuil de cible vulnérable (% de notre effectif)",
-    "source": {
-      "book": "mer-des-griffes",
-      "page": 131,
-      "note": "ch.15 « Longs voyages » — Langskip skaeling et Cogue pirate : « Si votre navire ressemble à une cible vulnérable » (l.150, l.171)."
-    },
     "ref": "MDG 15 l.150/171",
     "maison": "MDG 15 l.150/171 : le navire hostile n’attaque que s’il juge sa cible vulnérable, sans chiffrer ce jugement : comparaison maison de l’effectif et des grands canons (consigne utilisateur du 2026-11-07 : « N attends pas les arbitrages, met ce qui te semble juste »).",
     "group": "Voyage",
