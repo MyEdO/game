@@ -1,6 +1,6 @@
 ## Le plateau du jeu : sur le monde de la scène (`Monde`), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
-## ses nappes de toit, levées sur le groupe (`toitsLeves`), et ses couronnes crénelées, tombées avec leur mur
-## (`couronnesAbattues`, `Monde.cacher_les_nappes`),
+## ses nappes de toit, levées sur le groupe (`toitsLeves`), ses arêtes dégagées, abattues sous le regard de la caméra
+## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
 ## corps (`vue.corps`, aucun sous son `refus`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
@@ -33,7 +33,7 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	_vue = vue
 	if vue.plateau != null:
 		_monde.poser_les_aretes(vue.plateau.aretes)
-		_monde.cacher_les_nappes(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues)
+		_monde.cacher_le_bati(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues, vue.plateau.aretesDegagees)
 	var combat: Variant = vue.projection.combat
 	var exploration: Variant = vue.projection.exploration
 	var actif: Variant = null if combat == null or combat.actif == null else combat.actif.id
