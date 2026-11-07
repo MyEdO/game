@@ -166,7 +166,7 @@
       "src/ui/PortView.tsx"
     ],
     "etat": "partiel",
-    "ticket": "Marchandage terrestre résolu hors modale (landMarketFlow.ts landBuyCargo / landSellCargo → bargainOpposed, opposedTest direct) — #2687",
+    "ticket": "Marchandage terrestre résolu hors modale (landMarketFlow.ts acheterALaHalle / vendreALaHalle → bargainOpposed, opposedTest direct) — #2687",
     "notes": "—"
   },
   {

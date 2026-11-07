@@ -106,11 +106,12 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     const carrierId = primaryCargoCarrier(get())!.id;
     const buyEnc = Math.min(carrierFreeEnc(primaryCargoCarrier(get())!), offer.enc);
     const purseBeforeBuy = toBrass(partyMoneyTotal(get));
-    get().landBuyCargo(offer.cargoId, buyEnc);
+    get().acheterLaCargaison(carrierId, offer.cargoId, buyEnc);
     const spent = purseBeforeBuy - toBrass(partyMoneyTotal(get));
     expect(spent).toBeGreaterThan(0);
     expect(primaryCargoCarrier(get())!.cargo.length).toBe(1);
     expect(primaryCargoCarrier(get())!.cargo[0].cargoId).toBe(offer.cargoId);
+    const lotId = primaryCargoCarrier(get())!.cargo[0].uid;
     get().fenetreFermer('marcheDeTerre');
 
     // ── DESCENTE du Reik en BARGE (le convoi voyage avec le groupe) ──
@@ -127,7 +128,7 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     const purseBeforeSell = toBrass(partyMoneyTotal(get));
     // Le dé d'acheteur est un dé de MONDE : le joueur le LANCE dans sa fenêtre (#1426), et la vente
     // s'enchaîne sur ses maillons différés (mise à prix, Marchandage).
-    get().landSellCargo(carrierId, 0);
+    get().vendreLaCargaison(lotId);
     draineCascadeDifferee(get, () => banc.reprendreTout());
     const earned = toBrass(partyMoneyTotal(get)) - purseBeforeSell;
     expect(earned).toBeGreaterThan(0);

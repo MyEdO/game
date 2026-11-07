@@ -90,7 +90,7 @@ describe('la partie et son fichier', () => {
   it('un geste refusé qui a touché l’état (son refus) ne laisse rien en mémoire : la partie est rejouée depuis le fichier', () => {
     const t = partie('pont-vitrine', verbe('stepPartyRelative', 'back'));
     const avant = t.lire('vue').texte;
-    refuse(t, verbe('fallAcross', { x: 13, y: 12 }, { x: 13, y: 13 }), 'regle', /fallAcross sans effet : /);
+    refuse(t, verbe('franchirLArete', { x: 13, y: 12 }, { x: 13, y: 13 }), 'regle', /franchirLArete sans effet : /);
     expect(t.lire('vue').texte, 'la mémoire a divergé du fichier : la vue garde le refus').toBe(avant);
   });
   it('deux rejeux d’un fichier dans un même processus rendent la même empreinte (les séquences d’ids repartent de zéro)', () => {

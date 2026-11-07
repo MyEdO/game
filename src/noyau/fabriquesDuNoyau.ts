@@ -49,6 +49,7 @@ import { creerActionsDuBillet } from './billetFlow';
 import { creerActionsDuPort, sortiesDuPort } from './portFlow';
 import { choixDuVoyageEnMer, creerActionsDuVoyageEnMer } from './seaVoyageFlow';
 import { creerActionsDuMarcheTerrestre, sortiesDuMarcheTerrestre } from './landMarketFlow';
+import { creerActionsDeLaCargaison } from './cargaison';
 import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 
@@ -77,23 +78,22 @@ type NomDeVerbe = ActionDuLexique | `${ActionDuLexique}${Majuscule}${string}`
 type NomEnAttente =
   'abandonPossession' | 'appraiseGear' | 'appraiseItem' | 'armPreempt' | 'barterExchange' | 'battleArmIntent'
   | 'battleClearPreview' | 'buyCharAdvance' | 'buySkillAdvance' | 'buySpell' | 'buySpellComponent' | 'buyTalent'
-  | 'changeCareer' | 'choisirApparence' | 'climbAcross' | 'confirmSell' | 'createLoadout' | 'deleteLoadout'
-  | 'designateCareerSlot' | 'disembark' | 'dispelSelectCarrier' | 'embark' | 'fallAcross' | 'favorBreak'
-  | 'favorSettle' | 'gatherInnInfo' | 'harvestCreature' | 'interludeActivity' | 'interludeBank'
-  | 'interludeCraftStart' | 'interludeEntrainement' | 'interludeOrder' | 'interludeWithdraw' | 'jetBonusSL'
-  | 'jetCancel' | 'jetConfirm' | 'jetDarkPact' | 'jetDetermine' | 'jetForceSuccess' | 'jetReroll' | 'jetResist'
-  | 'jetReverse' | 'jetRoll' | 'jetSetForcedRoll' | 'landBuyCargo' | 'landDumpCargo' | 'landEvalWine'
-  | 'landSellCargo' | 'lowerHand' | 'markCluesSeen' | 'massBattleActivity' | 'massBattleAdvance' | 'massBattleClash'
+  | 'changeCareer' | 'choisirApparence' | 'confirmSell' | 'createLoadout' | 'deleteLoadout' | 'designateCareerSlot'
+  | 'disembark' | 'dispelSelectCarrier' | 'embark' | 'favorBreak' | 'favorSettle' | 'gatherInnInfo'
+  | 'harvestCreature' | 'interludeActivity' | 'interludeBank' | 'interludeCraftStart' | 'interludeEntrainement'
+  | 'interludeOrder' | 'interludeWithdraw' | 'jetBonusSL' | 'jetCancel' | 'jetConfirm' | 'jetDarkPact'
+  | 'jetDetermine' | 'jetForceSuccess' | 'jetReroll' | 'jetResist' | 'jetReverse' | 'jetRoll' | 'jetSetForcedRoll'
+  | 'landEvalWine' | 'markCluesSeen' | 'massBattleActivity' | 'massBattleAdvance' | 'massBattleClash'
   | 'massBattleHazard' | 'massBattleRally' | 'massBattleScene' | 'medicAct' | 'moveCargo' | 'openLandMarket'
   | 'openMedic' | 'openPlaceMerchant' | 'openPort' | 'openRest' | 'openSurgeryPass' | 'openTavernGames'
   | 'openWorldMap' | 'partyAddHero' | 'partyRemoveHero' | 'partyReplaceHero' | 'payCart' | 'pivotParty'
-  | 'playTavernGame' | 'portBuyCargo' | 'portCareen' | 'portDismissCrew' | 'portDumpCargo' | 'portHireCrew'
-  | 'portInstallUpgrade' | 'portRepair' | 'portSellCargo' | 'raiseHand' | 'refuseBargain' | 'removeSpellComponent'
-  | 'renamePossession' | 'repairItem' | 'restoreFortuneNow' | 'resumeTravel' | 'retrievePossession'
-  | 'roundStartPromote' | 'searchAvailability' | 'setHeroBackground' | 'setLoadoutSlot' | 'setMassBattleHero'
-  | 'setPosteAmmo' | 'setShipRole' | 'setShipStation' | 'setTravelRole' | 'setVoyageCadence' | 'stablePossession'
-  | 'startBargain' | 'startBilletBargain' | 'startTravel' | 'stepPartyRelative' | 'stowItem' | 'toggleCluePin'
-  | 'toggleEquip' | 'trainProsthesis' | 'transferItem' | 'transitionTo' | 'windowAcross';
+  | 'playTavernGame' | 'portCareen' | 'portDismissCrew' | 'portHireCrew' | 'portInstallUpgrade' | 'portRepair'
+  | 'refuseBargain' | 'removeSpellComponent' | 'renamePossession' | 'repairItem' | 'restoreFortuneNow'
+  | 'resumeTravel' | 'retrievePossession' | 'roundStartPromote' | 'searchAvailability' | 'setHeroBackground'
+  | 'setLoadoutSlot' | 'setMassBattleHero' | 'setPosteAmmo' | 'setShipRole' | 'setShipStation' | 'setTravelRole'
+  | 'setVoyageCadence' | 'stablePossession' | 'startBargain' | 'startBilletBargain' | 'startTravel'
+  | 'stepPartyRelative' | 'stowItem' | 'toggleCluePin' | 'toggleEquip' | 'trainProsthesis' | 'transferItem'
+  | 'transitionTo';
 
 /** Un nom de `Noms` ni du lexique ni en attente. */
 type HorsLexique<Noms extends string> = Exclude<Noms, NomDeVerbe | NomEnAttente>;
@@ -234,6 +234,7 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerActionsDuPort(get, set),
     ...creerActionsDuVoyageEnMer(get, set),
     ...creerActionsDuMarcheTerrestre(get, set),
+    ...creerActionsDeLaCargaison(get, set),
     ...creerActionsDeLAuberge(get, set),
   };
 }

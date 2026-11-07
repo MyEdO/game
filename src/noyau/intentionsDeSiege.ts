@@ -74,10 +74,9 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // (1ᵉʳ argument, `netOwnership.ROUTES`).
   incanterLeSort: 'invité', focaliserLeSort: 'invité', dissiperLeSort: 'invité', utiliserLObjet: 'invité',
   prendreLaPanoplie: 'invité', depenserLaDetermination: 'invité',
-  // Escalade d'une arête (capacité `escalade`) : jumeau de `fallAcross`, même possession (l'actif).
-  climbAcross: 'invité',
-  // Enjambement d'une croisée (capacité `fenetre`, #700) : même possession (l'actif), aucun jet.
-  windowAcross: 'invité',
+  // Le franchissement d'une arête (escalade, chute volontaire, enjambement d'une croisée #700) : la possession de l'actif
+  // (repli universel) ; la DÉCLARATION de rangée d'une chute est routée par le siège du tombant (`netOwnership`).
+  franchirLArete: 'invité',
   // Le réglage d'un jet en attente (`jetRegler`, `REGLAGES_DU_JET`) : routé par le porteur de son jet, ou par celui de
   // sa rangée ou de sa valeur quand le réglage le déclare, `netOwnership.ROUTES`.
   jetRegler: 'invité',
@@ -90,9 +89,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Le choix d'une fenêtre (`fenetreChoisir`) : routé sur la fenêtre de son 1ᵉʳ argument, par le siège que son choix
   // déclare (`CHOIX_DES_FENETRES`) ; le choix de l'hôte se refuse dans l'état d'un invité (`refusDuChoix`).
   fenetreChoisir: 'invité',
-  // Chute volontaire (ouverte par le clic d'une case, `cliquerLaCaseDuCombat`) : trajet, DÉCLARATION de rangée
-  // (routée par le siège du tombant, `netOwnership`).
-  fallAcross: 'invité',
   // Infirmerie (hors combat) : patients / actes / chirurgie — l'hôte valide.
   // Chirurgie : openSurgeryPass POSE la passe, les verbes de jet sur `surgery` l'influencent,
   // `jetConfirm('surgery')` applique, `jetCancel('surgery')` annule la passe, `fenetreChoisir('medic', 'abandon', true)`
@@ -104,9 +100,9 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // frise, routé sur le TIREUR : pendant la pause il n'y a AUCUN combattant actif (`turn: -1`), donc le
   // repli universel le refusait à tout siège invité. Le tir est le clic du combattant (`cliquerLaCase`).
   armPreempt: 'invité',
-  // Demande de pause au prochain Round : POSER et RETIRER passent par le même chemin (interrupteur
+  // Demande de pause au prochain Round : POSER et RETIRER passent par le même verbe (interrupteur
   // de la frise) — une bascule dont un seul sens serait répliqué laisserait la table bloquée.
-  raiseHand: 'invité', lowerHand: 'invité',
+  leverLaMain: 'invité',
   // ═══ invité : GROUPE — composition (chaque siège SES emplacements, tranchée par `ROUTES`) et carnet
   // d'enquête (#670, `TOUJOURS` : épingle de groupe, nouveauté vue par siège). ═══
   partyAddHero: 'invité', partyRemoveHero: 'invité', partyReplaceHero: 'invité', toggleCluePin: 'invité',
@@ -146,9 +142,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   payCart: 'hôte', confirmSell: 'hôte',
   barterExchange: 'hôte', repairItem: 'hôte', searchAvailability: 'hôte', startBargain: 'hôte',
   refuseBargain: 'hôte', openPlaceMerchant: 'hôte', openLandMarket: 'hôte',
-  landBuyCargo: 'hôte', landSellCargo: 'hôte', landDumpCargo: 'hôte',
-  landEvalWine: 'hôte', moveCargo: 'hôte', openPort: 'hôte', portBuyCargo: 'hôte',
-  portSellCargo: 'hôte', portDumpCargo: 'hôte', portRepair: 'hôte', portCareen: 'hôte',
+  acheterLaCargaison: 'hôte', vendreLaCargaison: 'hôte', jeterLaCargaison: 'hôte',
+  landEvalWine: 'hôte', moveCargo: 'hôte', openPort: 'hôte', portRepair: 'hôte', portCareen: 'hôte',
   portInstallUpgrade: 'hôte', portHireCrew: 'hôte', portDismissCrew: 'hôte', gatherInnInfo: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────
   setShipRole: 'hôte', setShipStation: 'hôte', setTravelRole: 'hôte', setPosteAmmo: 'hôte',

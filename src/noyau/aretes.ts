@@ -293,3 +293,16 @@ export function aretesUtilisables(ctx: ContexteAretes): AreteUtilisable[] {
   }
   return out;
 }
+
+/** La capacité de l'arête que franchit le pas `de` → `vers` (case cardinale d'en face), telle que le dériveur la rend au
+ *  mobile posé en `de`, à sa couche, sans brouillard ; `null` sans arête qui offre un geste. */
+export function capaciteDuPas(scene: Scene, de: Pt, vers: Pt): CapaciteArete | null {
+  const z = de.z ?? 0;
+  const ctx: ContexteAretes = { scene, visible: new Set([`${de.x},${de.y},${z}`]), controleur: { ...de, z }, activeZ: z };
+  const arete = aretesUtilisables(ctx).find((a) => {
+    const [c1, c2] = cotes(a.x, a.y, a.side);
+    const borde = (p: Pt, q: Pt) => p.x === de.x && p.y === de.y && q.x === vers.x && q.y === vers.y;
+    return borde(c1, c2) || borde(c2, c1);
+  });
+  return arete?.capacite ?? null;
+}

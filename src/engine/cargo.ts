@@ -13,6 +13,7 @@ import { d100, rollDice, type DiceSpec, type RNG } from './dice';
 import { findTableEntryIndex } from './tables';
 import type { Season } from './travelStages';
 import type { PossessionLocation } from './possession';
+import { newUid } from './items';
 
 /** La VOIE d'une cargaison : la table du livre qui la porte — maritime (MDG 15), terrestre et fluviale
  *  (MSRC 13). */
@@ -124,8 +125,10 @@ export function cargoBasePrice(cargo: CargoDef, season: Season, rng: RNG): numbe
 }
 
 /** Un LOT de cargaison en cale/soute (`basePriceGold` = prix de base NOTÉ à l'achat, CO par point d'Enc —
- *  le Vin fige sa qualité/son 3d10 à ce moment). Modèle commun aux deux commerces. */
+ *  le Vin fige sa qualité/son 3d10 à ce moment). Modèle commun aux deux commerces. `uid` : son identité, posée à
+ *  sa naissance (achat, repêchage, part séparée d'un transfert) ; deux lots du même `cargoId` restent distincts. */
 export interface CargoLot {
+  uid: string;
   cargoId: string;
   enc: number;
   basePriceGold: number;
@@ -137,8 +140,8 @@ export function cargoTotalEnc(lots: CargoLot[]): number {
 }
 
 /** SÉPARE jusqu'à `enc` points d'une cargaison (au fil des lots de cet id) en deux parts qui conservent
- *  chacune leur `basePriceGold` : `remaining` (ce qui reste) et `taken` (ce qui a été prélevé, splitté au
- *  besoin sur le dernier lot). PUR (nouvelles listes) — brique commune du retrait et du transfert. */
+ *  chacune leur `basePriceGold` et leur `uid` : `remaining` (ce qui reste) et `taken` (ce qui a été prélevé,
+ *  splitté au besoin sur le dernier lot). PUR (nouvelles listes) — brique commune du retrait et du transfert. */
 export function splitCargo(lots: CargoLot[], cargoId: string, enc: number): { remaining: CargoLot[]; taken: CargoLot[] } {
   let left = Math.max(0, enc);
   const remaining: CargoLot[] = [];
@@ -276,21 +279,21 @@ export function carriersColocated(a: PorteurLocalise, b: PorteurLocalise): boole
   }
 }
 
-/** TRANSFÈRE jusqu'à `enc` points d'une cargaison d'un porteur vers un autre CO-LOCALISÉ (décision 8).
+/** TRANSFÈRE jusqu'à `enc` points du lot `lotId` d'un porteur vers un autre CO-LOCALISÉ (décision 8).
  *  Refuse (moved = 0) si les porteurs ne sont pas au même endroit. Le montant déplacé est plafonné par la
- *  place LIBRE de la cible (plafond dur v1) et par ce que la source possède ; les prix des lots sont
- *  préservés (split au besoin). PUR (nouveaux porteurs). */
+ *  place LIBRE de la cible (plafond dur v1) et par le lot ; son prix est préservé, et la part séparée d'un lot
+ *  qui reste chez la source naît avec son propre `uid`. Nouveaux porteurs. */
 export function transferCargo(
-  from: CargoCarrier, to: CargoCarrier, cargoId: string, enc: number,
+  from: CargoCarrier, to: CargoCarrier, lotId: string, enc: number,
 ): { from: CargoCarrier; to: CargoCarrier; moved: number } {
-  if (!carriersColocated(from, to)) return { from, to, moved: 0 };
-  const cap = Math.min(Math.max(0, enc), carrierFreeEnc(to));
-  const { remaining, taken } = splitCargo(from.cargo, cargoId, cap);
-  const moved = taken.reduce((s, l) => s + l.enc, 0);
-  if (moved <= 0) return { from, to, moved: 0 };
+  const lot = from.cargo.find((l) => l.uid === lotId);
+  if (!lot || !carriersColocated(from, to)) return { from, to, moved: 0 };
+  const { remaining, taken } = splitCargo([lot], lot.cargoId, Math.min(Math.max(0, enc), carrierFreeEnc(to)));
+  const [part] = taken;
+  if (!part) return { from, to, moved: 0 };
   return {
-    from: { ...from, cargo: remaining },
-    to: { ...to, cargo: [...to.cargo, ...taken] },
-    moved,
+    from: { ...from, cargo: from.cargo.flatMap((l) => (l.uid === lotId ? remaining : [l])) },
+    to: { ...to, cargo: [...to.cargo, remaining.length ? { ...part, uid: newUid() } : part] },
+    moved: part.enc,
   };
 }

@@ -147,7 +147,7 @@ describe('commerce maritime (MDG 15 l.309-436)', () => {
   });
 
   it('cargaison embarquée : total d’Enc, retrait par lots (avaries d’événement)', () => {
-    const lots = [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 1.5 }, { cargoId: 'bois-mer', enc: 40, basePriceGold: 1 }, { cargoId: 'sel', enc: 20, basePriceGold: 2 }];
+    const lots = [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 100, basePriceGold: 1.5 }, { uid: 'lot-2', cargoId: 'bois-mer', enc: 40, basePriceGold: 1 }, { uid: 'lot-3', cargoId: 'sel', enc: 20, basePriceGold: 2 }];
     expect(cargoTotalEnc(lots)).toBe(160);
     const r = removeCargo(lots, 'bois-mer', 120);
     expect(r.removed).toBe(120);

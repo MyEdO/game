@@ -135,7 +135,7 @@ describe('Commerce terrestre MSRC 13 — RUMEURS (l.176-303)', () => {
 
 describe('Tronc commun partagé (mer + terre) — CargoLot', () => {
   it('cargoTotalEnc / removeCargo fonctionnent identiquement pour la cargaison terrestre', () => {
-    const lots = [{ cargoId: 'vin-eau-de-vie', enc: 250, basePriceGold: 3 }, { cargoId: 'metal', enc: 40, basePriceGold: 8 }];
+    const lots = [{ uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: 250, basePriceGold: 3 }, { uid: 'lot-2', cargoId: 'metal', enc: 40, basePriceGold: 8 }];
     expect(cargoTotalEnc(lots)).toBe(290);
     const r = removeCargo(lots, 'vin-eau-de-vie', 100);
     expect(r.removed).toBe(100);

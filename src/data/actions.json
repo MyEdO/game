@@ -925,7 +925,7 @@
     "icon": "ui/wait",
     "surface": "frise",
     "gate": "coop",
-    "run": "raiseHand",
+    "run": "leverLaMain",
     "coutAction": "aucun",
     "maison": "demande de pause au prochain début de Round — geste de table (coop), aucun coût de jeu.",
     "keys": [

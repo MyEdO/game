@@ -16,7 +16,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * VENTE au port (`portSellCargo`, dernier reliquat #275/#274) — la chaîne Ragot → acheteur →
+ * VENTE au port (`vendreLaCargaison`, dernier reliquat #275/#274) — la chaîne Ragot → acheteur →
  * Marchandage est désormais une CASCADE (`openRoll` par étape, enchaînée via `chainStep`,
  * `noyau/portFlow.ts`). Chaque test isole une branche via un `PortProfile`/parti CONTRÔLÉ (jamais un
  * `openPort` aléatoire) pour un déterminisme lisible.
@@ -59,21 +59,21 @@ function setup(port: PortProfile, party: Combatant[], enc = 40): void {
     party, scene,
     battle: null,
     worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port }], routes: [] },
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois-mer', enc, basePriceGold: 10 }], lastVoyageMilles: 0 },
+    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc, basePriceGold: 10 }], lastVoyageMilles: 0 },
     port: { placeId: 'P', label: 'Port', port: structuredClone(port), offers: [] },
     journal: [],
     pendingCascade: null,
   } as never);
 }
 
-describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#274)', () => {
+describe('vendreLaCargaison au port — cascade Ragot → acheteur → Marchandage (#275/#274)', () => {
   // Bandes automatiques du d100 (LDB 12 l.28, 01-05 auto-succès / 96-00 auto-échec) OFF pour ces tests :
   // les cibles construites (0 ou ≥ 100) doivent trancher SEULES, sans les 10 % de rolls « forcés ».
   beforeEach(() => setRule('test-auto-bands', 'off'));
 
   it('port producteur (Ragot requis), groupe VIDE → refus IMMÉDIAT (aucun candidat au Ragot), aucun jet', () => {
     setup({ taille: 4, richesse: 4, production: ['bois-mer'] }, []);
-    get().portSellCargo(0);
+    get().vendreLaCargaison('lot-1');
     expect(get().pendingCascade).toBeNull();
     expect(get().journal.some((l) => /ne trouve pas de camelot/.test(l))).toBe(true);
     expect(get().vessel!.cargo).toHaveLength(1); // rien vendu
@@ -83,7 +83,7 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
     const hero = makePregens()[0];
     setSkill(hero, 'ragot', 0);
     setup({ taille: 4, richesse: 4, production: ['bois-mer'] }, [hero]);
-    get().portSellCargo(0);
+    get().vendreLaCargaison('lot-1');
     await drain();
     expect(get().pendingCascade).toBeNull();
     const j = get().journal.join('\n');
@@ -98,7 +98,7 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
     // n'a AUCUN bénéficiaire : le revenu se prouve donc sur la LIGNE de vente (montant en CO, jamais 0 sc),
     // pas sur une bourse de groupe qui n'existe plus.
     setup({ taille: 10, richesse: 4, production: [] }, []);
-    get().portSellCargo(0);
+    get().vendreLaCargaison('lot-1');
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(0); // lot ENTIER vendu
@@ -109,7 +109,7 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
   it('port SANS relation au bien, cible d’acheteur NULLE (Taille 0) → aucun marchand intéressé, cargaison intacte', async () => {
     setup({ taille: 0, richesse: 1, production: [] }, [], 40);
     seedBattleRng(2);
-    get().portSellCargo(0);
+    get().vendreLaCargaison('lot-1');
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(1);
@@ -120,11 +120,11 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
     const hero = makePregens()[0];
     setup({ taille: 5, richesse: 1, production: [] }, [hero]); // nombre visé 50 (MDG 15 l.362)
     imposeD100(51, 50);
-    get().portSellCargo(0);
+    get().vendreLaCargaison('lot-1');
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().journal.some((l) => /la moitié \(20 Enc\) trouve preneur/.test(l))).toBe(true);
-    expect(get().vessel!.cargo).toEqual([{ cargoId: 'bois-mer', enc: 20, basePriceGold: 10 }]); // moitié vendue
+    expect(get().vessel!.cargo).toEqual([{ uid: 'lot-1', cargoId: 'bois-mer', enc: 20, basePriceGold: 10 }]); // moitié vendue
   });
 
   it('port SANS relation au bien, marchandeur compétent (skill 90) → Marchandage joué, gain crédité et journalisé', async () => {
@@ -132,7 +132,7 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
     setSkill(hero, 'marchandage', 90);
     setup({ taille: 10, richesse: 4, production: [] }, [hero]);
     const before = partyMoneyTotal(get).gold;
-    get().portSellCargo(0);
+    get().vendreLaCargaison('lot-1');
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(0);
@@ -144,14 +144,14 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
     const hero = makePregens()[0];
     setSkill(hero, 'marchandage', 90);
     setup({ taille: 10, richesse: 4, production: [] }, [hero]);
-    get().portSellCargo(0);
+    get().vendreLaCargaison('lot-1');
     await drain();
     const gainA = partyMoneyTotal(get).gold;
 
     const hero2 = makePregens()[0];
     setSkill(hero2, 'marchandage', 90);
     setup({ taille: 10, richesse: 4, production: [] }, [hero2]);
-    get().portSellCargo(0);
+    get().vendreLaCargaison('lot-1');
     await drain();
     const gainB = partyMoneyTotal(get).gold;
 
@@ -160,7 +160,7 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
 });
 
 /**
- * ACHAT au port (`portBuyCargo`, #266) — le Marchandage d'achat est SURFACÉ par la même cascade
+ * ACHAT au port (`acheterLaCargaison`, #266) — le Marchandage d'achat est SURFACÉ par la même cascade
  * `openRoll` (hero-test) que la vente, jamais résolu en silence. Chaque test contrôle l'offre + le parti.
  */
 function setupBuy(party: Combatant[], offerEnc = 20, basePrice = 10): void {
@@ -178,13 +178,13 @@ function setupBuy(party: Combatant[], offerEnc = 20, basePrice = 10): void {
   if (party.length) creditBourse(get, set, party[0].id, { gold: 5000, silver: 0, brass: 0 }); // bourse du groupe (SOCLE POSSESSIONS #531)
 }
 
-describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (#266)', () => {
+describe('acheterLaCargaison au port — Marchandage d’achat SURFACÉ par cascade openRoll (#266)', () => {
   beforeEach(() => setRule('test-auto-bands', 'off'));
 
   it('groupe VIDE / sans bourse → refusé AVANT tout jet : la bourse ne couvre pas le prix plancher (MDG 15 l.335)', () => {
     // Sans marchandeur, le plancher est le prix plein : 10 Enc × 10 CO. Aucune bourse → refus du devis.
     setupBuy([]);
-    get().portBuyCargo('bois-mer', 10);
+    get().acheterLaCargaison('vessel', 'bois-mer', 10);
     expect(get().pendingCascade).toBeNull(); // aucun Test de Marchandage ouvert
     expect(get().vessel!.cargo).toHaveLength(0);
     expect(get().journal).toContain(t('cargo.bourseSousPlancher', { plancher: 100 }));
@@ -194,7 +194,7 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
     const hero = makePregens()[0];
     setSkill(hero, 'marchandage', 90);
     setupBuy([hero]);
-    get().portBuyCargo('bois-mer', 10);
+    get().acheterLaCargaison('vessel', 'bois-mer', 10);
     // Le Marchandage doit se résoudre dans la modale AVANT tout embarquement : cale intacte, cascade ouverte.
     expect(get().pendingCascade).not.toBeNull();
     expect(get().vessel!.cargo).toHaveLength(0);
@@ -205,7 +205,7 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
     setSkill(hero, 'marchandage', 90);
     setupBuy([hero]);
     const before = partyMoneyTotal(get).gold;
-    get().portBuyCargo('bois-mer', 10);
+    get().acheterLaCargaison('vessel', 'bois-mer', 10);
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(1);
@@ -217,14 +217,14 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
     const hero = makePregens()[0];
     setSkill(hero, 'marchandage', 90);
     setupBuy([hero]);
-    get().portBuyCargo('bois-mer', 10);
+    get().acheterLaCargaison('vessel', 'bois-mer', 10);
     await drain();
     const spentA = 5000 - partyMoneyTotal(get).gold;
 
     const hero2 = makePregens()[0];
     setSkill(hero2, 'marchandage', 90);
     setupBuy([hero2]);
-    get().portBuyCargo('bois-mer', 10);
+    get().acheterLaCargaison('vessel', 'bois-mer', 10);
     await drain();
     const spentB = 5000 - partyMoneyTotal(get).gold;
 
@@ -232,10 +232,10 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
   });
 });
 
-/** Étape de Marchandage portuaire POSÉE par la porte (`portBuyCargo` → `openRoll`), jet du héros rendu (`sl`). */
+/** Étape de Marchandage portuaire POSÉE par la porte (`acheterLaCargaison` → `openRoll`), jet du héros rendu (`sl`). */
 function etapeMarchandage(hero: Combatant, kind: GenreDeCascade, sl: number, success: boolean, meta: CascadeStep['meta']): CascadeStep {
   setupBuy([hero]);
-  get().portBuyCargo('bois-mer', 20);
+  get().acheterLaCargaison('vessel', 'bois-mer', 20);
   const posee = get().pendingCascade!.participants[0];
   set({ pendingCascade: null } as never);
   return { ...posee, id: kind, kind, meta, result: { roll: 50, target: 60, sl, success } };
@@ -258,7 +258,7 @@ describe('Marchandage portuaire et Négociateur (MDG 15 l.335/385 → LDB 59 l.4
 
   it('vente : l’acheteur Négociateur l’emporte de moins de 6 DR → le prix d’offre baisse de 20 %', () => {
     const hero = makePregens()[0];
-    const step = etapeMarchandage(hero, 'port-sell-bargain', -3, false, { cargoIndex: 0, sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: true, sellerDR: 0 });
+    const step = etapeMarchandage(hero, 'port-sell-bargain', -3, false, { lotId: 'lot-1', sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: true, sellerDR: 0 });
     setup({ taille: 4, richesse: 4, production: [] } as unknown as PortProfile, [hero]);
     imposeD100(40); // l’acheteur (50) réussit : DR +1
     expect(ligneDe('port-sell-bargain', step, hero)).toMatch(/: -20 %/);

@@ -1562,7 +1562,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   `useGame.setState({ battle: { ...b } })` sans toucher `action`/`selectedAttack`) — repositionner une
   coque/un servant PUIS re-choisir l'arme, ou l'inverse, donne le MÊME résultat avec ce helper de
   triche. Le mouvement RÉEL (clic-pour-se-déplacer, hors `place()`) remet lui `battle.action` à `null`
-  (ex. `windowAcross`, `src/noyau/gesteDArete.ts`) — un réflexe distinct, à ne pas confondre avec la triche `place()`.
+  (ex. `franchirLArete`, `src/noyau/gesteDArete.ts`) — un réflexe distinct, à ne pas confondre avec la triche `place()`.
 - **Combat naval — cibler un membre d'équipage d'une coque composite** : les sous-jetons
   superposés d'un poste (chef + servants sur la même case) n'ont pas de bbox fiable au clic. Méthode
   fiable : le PORTRAIT du roster HUD (frise/dock, bas d'écran) route par `cliquerLaCase` sur le combattant — MÊME

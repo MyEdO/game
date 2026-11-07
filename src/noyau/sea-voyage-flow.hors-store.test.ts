@@ -446,7 +446,7 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
     const seen = new Set<number>();
     for (let seed = 1; seed <= 60; seed++) {
       freshState();
-      set({ vessel: { ...vessel0, cargo: [{ cargoId: 'bois-mer', enc: contenance, basePriceGold: 1 }] } });
+      set({ vessel: { ...vessel0, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: contenance, basePriceGold: 1 }] } });
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', testType: 'extermination-nuisibles', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
       const before = get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0);
@@ -947,7 +947,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
   it('palier DÉSASTREUX (Humeur de Manann effondrée) : équipage manquant, cargaison perdue, coque meurtrie, 3 Critiques', () => {
     set({ vessel: {
       ...get().vessel!, manann: { score: -1000, applied: [] }, // dizaine −100 → résultat ≤ 0 quel que soit le d10/DR
-      wounds: { current: 50, max: 50 }, cargo: [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }], criticals: [],
+      wounds: { current: 50, max: 50 }, cargo: [{ uid: 'lot-2', cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }], criticals: [],
     } });
     get().startTravel('r1', 'mer', { fast: true });
     driveFast();
@@ -961,7 +961,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
   it('palier PARFAIT (Humeur de Manann au zénith) : aucune conséquence négative', () => {
     set({ vessel: {
       ...get().vessel!, manann: { score: 1000, applied: [] }, // dizaine +100 → résultat ≥ 10 → Voyage parfait
-      wounds: { current: 50, max: 50 }, cargo: [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }], criticals: [],
+      wounds: { current: 50, max: 50 }, cargo: [{ uid: 'lot-3', cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }], criticals: [],
     } });
     get().startTravel('r1', 'mer', { fast: true });
     driveFast();
@@ -1087,7 +1087,7 @@ describe('Cogue pirate (#327 A5.3) — l’événement navire-hostile PRÉSENTE 
   });
 
   it('branche PRÉSENTÉE « soumettre » → pillage (100 %) puis choix du tribut (étape insérée)', () => {
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'vin', enc: 30, basePriceGold: 2 }] } } as never);
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-4', cargoId: 'vin', enc: 30, basePriceGold: 2 }] } } as never);
     forceHail();
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().jetRegler('cascade', 'choix', 'soumettre', cur.id);
@@ -1362,7 +1362,7 @@ describe('#1652 — chaque événement lit SES paramètres en donnée (MDG 15 l.
 
   it('Contrôle à quai : les droits valent `taxPct` %de la valeur de la cargaison (MDG 15 l.247)', () => {
     creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'vin', enc: 10, basePriceGold: 10 }] } });
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-5', cargoId: 'vin', enc: 10, basePriceGold: 10 }] } });
     dEscale('controle-a-quai', { taxPct: 25 });
     // 2d10 = 1+2 = 3 → « Contrôle à quai » (Humeur neutre) ; 2d10 d'heures sans effet.
     resolvePortArrival(get, set, undefined, seq(1, 2, 1, 1));
@@ -2042,7 +2042,7 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
   });
 
   it('ÉCHOUÉ, cargaison de 18 Enc : le Test de Force de dégagement reste Intermédiaire et porte −18 sur la cible (MDG 13 l.473)', () => {
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'vin', enc: 18, basePriceGold: 0 }] } });
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-6', cargoId: 'vin', enc: 18, basePriceGold: 0 }] } });
     const plan = planWithSea();
     set({ travelPlan: { ...plan, orders: { cadence: 'jour-par-jour' }, sea: { ...plan.sea!, stranded: { hazardId: 'rocher', label: 'Rocher' } } } });
     runSeaDay(get, set);

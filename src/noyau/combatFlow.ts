@@ -7765,7 +7765,7 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
   if (geom !== enemy) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path });
   applyZoneCrossings(get, set, enemy, path ?? [{ ...mv.vers }]); // Mur de feu & co (L11) : traverser coûte
   // Grimpant (LDB 85 l.160-162) : le pathing IA franchit une arête `WallSeg.climb` SANS Test —
-  // pas un jet silencieux, journalisé comme le geste joueur `climbAcross` (#504, MÊME clé i18n).
+  // pas un jet silencieux, journalisé comme l'escalade du joueur (`franchirLArete`, #504, MÊME clé i18n).
   if (path && path.some((p, i) => i > 0 && climbEdgeBetween(scene, path[i - 1], p)?.climb)) {
     battle.log.push(ev('move', tr('climb.auto', { name: enemy.label }), enemy.id));
   }

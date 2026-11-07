@@ -1,7 +1,7 @@
 /**
  * LES OFFRES EN COOP (#3371), sur transport en mémoire (`FakeTransport`) : l'invité du siège 1 joue chez l'hôte
  * l'offre d'un corps (`jouerLOffre`, routée par son lieu, `lieuDeLOffre`) ; un relais ne voyage pas, il s'élit chez
- * l'émetteur (`intentEluLocalement`) et c'est son verbe qui voyage (`fenetreValider`, `raiseHand`) ; un sort hors
+ * l'émetteur (`intentEluLocalement`) et c'est son verbe qui voyage (`fenetreValider`, `leverLaMain`) ; un sort hors
  * combat se route au propriétaire de son lanceur.
  */
 import { describe, it, expect } from 'vitest';
@@ -90,7 +90,7 @@ describe('Offres en coop : le corps voyage, le relais s’élit chez l’émette
     const t = enPause();
     auTourDe(t, 'H');
     expect(intentEluLocalement(t.banc.getState, 'jouerLOffre', ['raise-hand'])).toBe(true);
-    expect(t.envoyer('raiseHand', [])).toBe('appliquee');
+    expect(t.envoyer('leverLaMain', [true])).toBe('appliquee');
     expect(t.banc.getState().battle!.handRaisedBy).toEqual([1]);
   });
 });

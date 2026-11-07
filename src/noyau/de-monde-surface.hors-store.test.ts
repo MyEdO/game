@@ -23,7 +23,7 @@ import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { seedBattleRng, battleRng } from './battleRng';
-import { landSellCargo, openLandMarket } from './landMarketFlow';
+import { vendreALaHalle, openLandMarket } from './landMarketFlow';
 import { persistCarriersCargo } from './carriers';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { buildScene } from './mapSpec';
@@ -55,7 +55,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  1. la surface d'un jet de monde en solo — la fenêtre s'ouvre, option OFF comme ON ;
  *  2. la DOMINATION de la cadence auto, qui ne se renverse pas ;
  *  3. la coop — la fenêtre suit le siège MJ, jamais « l'hôte par défaut » ;
- *  4. la PARITÉ terre/mer du commerce (`landSellCargo`), passé par la porte ;
+ *  4. la PARITÉ terre/mer du commerce (`vendreALaHalle`), passé par la porte ;
  *  5. le FLUX RNG, identique quelle que soit l'option de pose.
  */
 
@@ -211,7 +211,7 @@ describe('#1426 socle — la surface se juge sur l’ID du porteur (combat comme
   });
 });
 
-// ── PARITÉ TERRE/MER du commerce : `landSellCargo` passe par `openWorldTest` ─────────────────────
+// ── PARITÉ TERRE/MER du commerce : `vendreALaHalle` passe par `openWorldTest` ─────────────────────
 
 function skill(c: Combatant, skillId: string, advances: number): void {
   const ex = c.skills.find((s) => s.id === skillId && s.spec == null);
@@ -221,7 +221,7 @@ function skill(c: Combatant, skillId: string, advances: number): void {
 
 const CARRIER_ID = 'convoi-1';
 const profile = (extra: Partial<LandMarketProfile> = {}): LandMarketProfile => ({ taille: 4, richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'], ...extra });
-const lot: CargoLot = { cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
+const lot: CargoLot = { uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
 const marche = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });
 
 function carte(): WorldMap {
@@ -271,7 +271,7 @@ describe('#1426 — le flux RNG de la vente terrestre ne dépend pas de l’opti
   it('sous graine FIXE, la vente jouée AU LANCER rend un gain EXACT (un dé de plus/de moins le change)', () => {
     marcheAvecLot();
     seedBattleRng(3);
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     expect(get().pendingCascade, 'le siège du monde tient la fenêtre : elle s’ouvre même sans option de pose').toBeTruthy();
     lancer(); // 1ʳᵉ tentative : le dé se LANCE (aucune pose), c'est le geste sans option
     if (get().pendingCascade) lancer(); // 2ᵉ tentative (moitié du lot) quand la 1ʳᵉ rate
@@ -291,7 +291,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 
   it('le dé d’acheteur OUVRE une étape de MONDE (plus aucune résolution muette au journal)', () => {
     marcheAvecLot();
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     const p = get().pendingCascade;
     expect(p, 'la vente ouvre une fenêtre au lieu de trancher en silence').toBeTruthy();
     const step = p!.participants[p!.cursor];
@@ -305,7 +305,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 
   it('1ʳᵉ tentative RÉUSSIE : la vente se conclut, SANS le message de moitié', () => {
     marcheAvecLot();
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     poser(1); // ≤ 70 → acheteur trouvé
     const j = get().journal.join('\n');
     expect(j).not.toContain('la moitié');
@@ -314,7 +314,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 
   it('1ʳᵉ ratée → 2ᵉ tentative sur la MOITIÉ du lot, à la MÊME Demande (l.146 verbatim)', () => {
     marcheAvecLot();
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     poser(99); // > 70 → pas d'acheteur pour tout le lot
     const p = get().pendingCascade;
     expect(p, 'la 2ᵉ tentative est une SECONDE étape posable').toBeTruthy();
@@ -326,7 +326,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 
   it('2ᵉ tentative RÉUSSIE : le message « la moitié trouve preneur » précède la ligne de vente', () => {
     marcheAvecLot();
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     poser(99);
     poser(1);
     const j = get().journal;
@@ -338,7 +338,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 
   it('les DEUX tentatives ratées : aucun acheteur, et la ligne NOMME la Demande visée', () => {
     marcheAvecLot();
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     poser(99);
     poser(99);
     expect(get().journal.join('\n')).toContain('aucun acheteur intéressé à Altdorf (Demande 70)');
@@ -461,7 +461,7 @@ describe('#1426 Q2 — le pourcentage d’auteur se lit « dé ≤ nombre visé 
     marcheAvecLot();
     resetDesFixes();
     seedBattleRng(3);
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     // Le dé d'acheteur est un dé de MONDE : il se joue dans SA fenêtre (#1426). Ce que le joueur LIT
     // de ce dé, c'est donc l'étape (sa rangée + son dénouement), pas une ligne de journal.
     // L'étape AVEC son dé tombé, telle que la fenêtre la montre : relue à chaque état du banc.

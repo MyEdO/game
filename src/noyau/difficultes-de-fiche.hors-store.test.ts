@@ -136,12 +136,12 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' } });
   });
 
-  it('Chute volontaire : `fallAcross` pose le Test de `chute`, `jetRoll@fall` le jette', () => {
+  it('Chute volontaire : `franchirLArete` pose le Test de `chute`, `jetRoll@fall` le jette', () => {
     const s = emptyScene('scene-test', 4, 4);
     s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     const hero = heros();
     banc.setState({ party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingCascade: null });
-    g().fallAcross({ x: 2, y: 0 }, { x: 2, y: 1 });
+    g().franchirLArete({ x: 2, y: 0 }, { x: 2, y: 1 });
     expect(g().pendingFall!.test).toMatchObject(testDeFiche('chute', 'tenter'));
     g().jetRegler('fall', 'tenter', true, hero.id);
     g().jetRoll('fall', hero.id);

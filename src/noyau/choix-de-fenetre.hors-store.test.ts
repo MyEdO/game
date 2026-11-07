@@ -191,7 +191,7 @@ describe('fenetreChoisir', () => {
       ferme();
       banc.getState().fenetreChoisir('seaActivities', 'investir', 5, a);
       expect(refusDeLaValidation(banc.getState(), 'seaActivities'), 'la mise reprise dans la bourse qui reste').toBeNull();
-      banc.setState({ vessel: { ...banc.getState().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 100_000, basePriceGold: 10 }] } } as never);
+      banc.setState({ vessel: { ...banc.getState().vessel!, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 100_000, basePriceGold: 10 }] } } as never);
       ferme();
       banc.getState().fenetreChoisir('seaActivities', 'activite', null, a);
       expect(refusDeLaValidation(banc.getState(), 'seaActivities'), 'le Repos repris').toBeNull();

@@ -248,10 +248,10 @@ describe('jouerLOffre (#3371) : la route se déduit du lieu de l’offre', () =>
     expect(intentAllowedFor(s, 0, 'jouerLOffre', ['inconnue']), 'offre inconnue').toBe(false);
   });
 
-  it('le relais de la levée de main émet `raiseHand`, admis hors de son tour', () => {
+  it('le relais de la levée de main émet `leverLaMain`, admis hors de son tour dans les deux sens', () => {
     const s = base({}); // actif = h1, au siège 0
-    expect(intentAllowedFor(s, 1, 'raiseHand')).toBe(true);
-    expect(intentAllowedFor(s, 1, 'lowerHand')).toBe(true);
+    expect(intentAllowedFor(s, 1, 'leverLaMain', [true])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'leverLaMain', [false])).toBe(true);
   });
 });
 

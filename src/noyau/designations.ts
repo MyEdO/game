@@ -23,6 +23,9 @@ import { reponsesDuNoeud } from './dialogue';
 import { plaiesDeLOperation } from './medicFlow';
 import { seaActivitiesCatalog } from './seaActivities';
 import { catalogEntryOf, libelleDeLaRepartition } from './merchantFlow';
+import { bulkCarriers, lotDeCargaison } from './carriers';
+import { offresDeCargaison } from './cargaison';
+import { findCargoById } from '../engine/cargo';
 
 /** Un combattant : la file de combat et le groupe (`porteurParId`, `monde/combatants.ts`). */
 export type IdDeCombattant = string;
@@ -79,6 +82,13 @@ export type IdDArticle = string;
 export type IdDeLigneDeButin = string;
 /** Une ligne de la répartition des achats payés (`MerchantState.pendingDistribution`), par son `uid`. */
 export type IdDeLigneDeRepartition = string;
+/** Un porteur de vrac du groupe (`bulkCarriers`, `carriers.ts`) : l'`uid` d'une bête ou d'un véhicule possédé, ou
+ *  `vessel`, le navire de campagne. */
+export type IdDePorteurDeCargaison = string;
+/** Un lot de vrac d'un porteur du groupe, par son `uid` (`CargoLot`). */
+export type IdDeCargaison = string;
+/** Une offre du marché ouvert, par l'id de sa cargaison (`offresDeCargaison`, `cargaison.ts`). */
+export type IdDOffreDeCargaison = string;
 
 /** Une désignation : son nom en mots, les ids valides qu'elle lit dans l'état, et le nom en mots du joueur de
  *  l'élément d'un id (`null` : l'élément n'a pas de nom). */
@@ -158,6 +168,20 @@ export const DESIGNATIONS = {
       const d = s.merchant?.pendingDistribution?.find((x) => x.uid === uid);
       return d ? libelleDeLaRepartition(d) : null;
     },
+  },
+  IdDePorteurDeCargaison: { mot: 'id de porteur de cargaison', lire: (s) => ids(bulkCarriers(s)), nom: (s, id) => labelParmi(bulkCarriers(s), id) },
+  IdDeCargaison: {
+    mot: 'id de cargaison',
+    lire: (s) => bulkCarriers(s).flatMap((c) => c.cargo.map((l) => l.uid)),
+    nom: (s, uid) => {
+      const lot = lotDeCargaison(s, uid)?.lot;
+      return lot ? findCargoById(lot.cargoId)?.label ?? null : null;
+    },
+  },
+  IdDOffreDeCargaison: {
+    mot: 'id d’offre de cargaison',
+    lire: (s) => offresDeCargaison(s).map((o) => o.cargoId),
+    nom: (s, id) => offresDeCargaison(s).find((o) => o.cargoId === id)?.label ?? null,
   },
   IdDIndice: { mot: 'id d’indice', lire: (s) => Object.keys(s.clues), nom: (s, id) => s.campaignNarratif?.indices.find((i) => i.id === id)?.titre ?? null },
 } satisfies Record<string, Designation>;

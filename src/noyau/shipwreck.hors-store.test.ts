@@ -77,7 +77,7 @@ function freshState() {
     document: null,
     gameTime: 8 * 60,
     lastUpkeepDay: 0,
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }] },
+    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }] },
     journal: [],
     pendingCascade: null,
     suspendedCascades: [],

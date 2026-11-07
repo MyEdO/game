@@ -158,7 +158,7 @@ export const MODAL_DEFS = [
   { key: 'approach', when: (s) => !!s.pendingApproach, owner: (s) => s.pendingApproach?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'approach' }, { verbe: 'jetConfirm', flux: 'approach' }] }, covers: ['pendingApproach'], flux: ['approach'] },
   { key: 'ward', when: (s) => !!s.pendingWard, owner: (s) => s.pendingWard?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'ward' }, { verbe: 'jetConfirm', flux: 'ward' }] }, covers: ['pendingWard'], flux: ['ward'] },
   { key: 'run', when: (s) => !!s.pendingRun, owner: (s) => s.pendingRun?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'run' }, { verbe: 'jetConfirm', flux: 'run' }] }, covers: ['pendingRun'], flux: ['run'] },
-  // Chute VOLONTAIRE (LDB 15 l.82) : initiée par le JOUEUR (clic sur une arête de capacité `chute`, jamais l'IA, cf. `fallAcross`)
+  // Chute VOLONTAIRE (LDB 15 l.82) : initiée par le JOUEUR (clic sur une arête de capacité `chute`, jamais l'IA, cf. `franchirLArete`)
   // → vrai CHOIX (mode 'choice', comme `auContact`/`grapple`) : Rapide/Auto-combat ne la déclenchent jamais.
   { key: 'fall', when: (s) => !!s.pendingFall, owner: (s) => s.pendingFall?.initiateurId, auto: { mode: 'choice' }, covers: ['pendingFall'], flux: ['fall'], rangees: (s) => (s.pendingFall ? rangeesDuesDeChute(s.pendingFall) : undefined) },
   { key: 'shipManeuver', when: (s) => !!s.pendingShipManeuver, owner: (s) => s.pendingShipManeuver?.shipId, auto: { mode: 'choice' }, covers: ['pendingShipManeuver'], flux: ['shipManeuver'], rangees: (s) => s.pendingShipManeuver?.participants }, // Test d'équipage MULTI : chaque PJ pilote SON jet (cf. RollRow), pas d'auto-drive mono

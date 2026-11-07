@@ -1192,26 +1192,19 @@ export function createCombatSlice(get: Get, set: Set) {
       if (heroId === null || !preemptShooterIds(get).includes(heroId)) { set({ preemptAiming: null }); return; }
       set({ preemptAiming: get().preemptAiming === heroId ? null : heroId }); // bascule
     },
-    /** DEMANDE DE PAUSE au prochain Round, POSÉE PAR SON SIÈGE : le siège vient de `decidingSeat` (le
-     *  siège agissant quand l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un
-     *  argument — la demande d'un joueur ne peut pas être signée d'un autre. */
-    raiseHand: () => {
+    /** DEMANDE DE PAUSE au prochain Round, POSÉE (`levee`) ou RETIRÉE PAR SON SIÈGE : le siège vient de `decidingSeat`
+     *  (le siège agissant quand l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — la
+     *  demande d'un joueur ne peut pas être signée d'un autre. Le retrait est gratuit : tant que le Round n'a pas tourné,
+     *  un joueur qui s'est ravisé rend la table à son enchaînement ; il ne retire QUE son siège, la pause tient tant
+     *  qu'un autre siège la demande. */
+    leverLaMain: (levee: boolean) => {
       const b = get().battle;
       if (!b) return;
       const seat = decidingSeat(get());
       const deja = b.handRaisedBy ?? [];
-      if (deja.includes(seat)) return;
-      set({ battle: { ...b, handRaisedBy: [...deja, seat], log: [...b.log, ev('info', t('store.handRaised'))] } });
-    },
-    /** RETRAIT de la demande de pause (interrupteur de la frise) : symétrique de `raiseHand`, gratuit —
-     *  tant que le Round n'a pas tourné, un joueur qui s'est ravisé rend la table à son enchaînement. Il
-     *  ne retire QUE son siège : la pause tient tant qu'un autre siège la demande. */
-    lowerHand: () => {
-      const b = get().battle;
-      if (!b) return;
-      const seat = decidingSeat(get());
-      if (!(b.handRaisedBy ?? []).includes(seat)) return;
-      set({ battle: { ...b, handRaisedBy: (b.handRaisedBy ?? []).filter((s) => s !== seat), log: [...b.log, ev('info', t('store.handLowered'))] } });
+      if (deja.includes(seat) === levee) return;
+      const handRaisedBy = levee ? [...deja, seat] : deja.filter((s) => s !== seat);
+      set({ battle: { ...b, handRaisedBy, log: [...b.log, ev('info', t(levee ? 'store.handRaised' : 'store.handLowered'))] } });
     },
 
     /** Reprise après un CHANGEMENT DE CADENCE en plein combat. La cadence vit dans le registre de RÈGLES

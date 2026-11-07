@@ -592,7 +592,7 @@ export interface PendingRun {
   result: import('../engine/movement').IssueDeCourse | null;
   rerolled?: boolean;
 }
-/** Chute VOLONTAIRE en attente (LDB 15 l.82 ; EDO 01 l.231) : posée par `fallAcross` (case de départ en
+/** Chute VOLONTAIRE en attente (LDB 15 l.82 ; EDO 01 l.231) : posée par `franchirLArete` (case de départ en
  *  bordure d'une falaise, `noyau/fallMove.planFranchissement`) vers `to` (case d'atterrissage, couche
  *  comprise), hauteur RÉELLE `metres` (relief). Étape À PARTICIPANTS, patron Contre-sort
  *  (`CounterParticipant.declared`) : UNE rangée par TOMBANT, chacune déclare son choix pré-jet. La PHASE

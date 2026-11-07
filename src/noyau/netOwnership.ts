@@ -592,10 +592,9 @@ const routeDuGesteDeFenetre = (declaration: (args: unknown[]) => GesteDeFenetreD
  */
 export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
   [
-    // Levée de main : le siège marque le SIEN. `raiseHand`/`lowerHand` sont NULLAIRES et lisent leur siège au
-    // transport (`decidingSeat`) : il n'y a aucun argument à valider ici.
-    ['raiseHand', TOUJOURS],
-    ['lowerHand', TOUJOURS],
+    // Levée de main : le siège pose ou retire la SIENNE. `leverLaMain` ne prend que le sens et lit son siège au
+    // transport (`decidingSeat`) : il n'y a aucun siège à valider ici.
+    ['leverLaMain', TOUJOURS],
     // Carnet d'enquête (#670) : `toggleCluePin` annote l'épingle de GROUPE ; `markCluesSeen` marque la
     // nouveauté vue par le siège qui l'émet, lu au transport (`decidingSeat`).
     ['toggleCluePin', TOUJOURS],

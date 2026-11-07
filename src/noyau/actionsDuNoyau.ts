@@ -16,6 +16,7 @@ import type { Pt } from './monde/path';
 import type {
   IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
   IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDOffre, IdDeLigneDeButin,
+  IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
@@ -64,9 +65,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10) d'une ligne de butin ENCORE en
    *  fenêtre (loot ou victoire) : révéler un objet AVANT de choisir qui l'emporte. */
   appraiseGear: (scope: 'loot' | 'victory', uid: IdDeLigneDeButin, mode?: 'evaluate' | 'detect') => void;
-  /** Coop : demande la pause du prochain début de Round (fenêtre Chance). */
-  raiseHand: () => void;
-  lowerHand: () => void;
+  /** Coop : pose (`levee`) ou retire la demande de pause du prochain début de Round (fenêtre Chance), du siège qui
+   *  joue le geste. */
+  leverLaMain: (levee: boolean) => void;
   /** « Acquitter une Faveur » (LDB 23 l.147/149) : consomme une Activité d'interlude du héros. */
   favorSettle: (heroId: IdDeHeros, favorId: string) => void;
   /** Rompt une Faveur — Niveau de Carrière −1 (min 0) si la rumeur se répand (LDB 23 l.141). */
@@ -157,13 +158,18 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Ouvre ou ferme la porte d'un accès que le mobile du monde emprunte (`portesDuMobile`) : en combat toute porte,
    *  en exploration une porte fermée. Rend `true` si la porte a bougé. */
   actionnerLaPorte: (porte: IdDePorte) => boolean;
-  /** ESCALADE d'une arête `WallSeg.climb` (LDB 15 l.53-57) : `from` (case basse, adjacente) → `to` (case
-   *  haute). Porteur = le mobile de `gesteDArete` (exploration : le meneur, le groupe suit ; combat : l'actif
-   *  que ce siège mène, héros ou ennemi mené par le siège MJ) ; tout refus est NOMMÉ (`refuserGeste`),
-   *  en combat le Test d'Escalade est celui du mobile. `ladder` monte d'office (pas de Test) au
-   *  coût du Mouvement à ½ vitesse ; `surface` déclenche un Test d'Escalade influençable (cascade RollShell)
-   *  dont l'échec fait chuter, et consomme l'Action en combat (LDB 13 l.86-88). Geste EXPLICITE (overlay). */
-  climbAcross: (from: Pt, to: Pt) => void;
+  /** FRANCHIT l'arête de `de` (case du mobile) vers `vers` (case cardinale d'en face), selon la capacité qu'elle
+   *  porte (`capaciteDuPas`, `aretes.ts`). Porteur = le mobile de `gesteDArete` (exploration : le meneur, le groupe
+   *  suit ; combat : l'actif que ce siège mène, héros ou ennemi mené par le siège MJ) ; tout refus est NOMMÉ
+   *  (`refuserGeste`).
+   *  - `escalade` (`WallSeg.climb`, LDB 15 l.53-57) : `ladder` monte d'office (pas de Test) au coût du Mouvement à
+   *    ½ vitesse ; `surface` déclenche un Test d'Escalade influençable (cascade RollShell) du mobile, dont l'échec
+   *    fait chuter, et consomme l'Action en combat (LDB 13 l.86-88).
+   *  - `chute` (LDB 15 l.82) : vers une case plus basse, croisée franchissable comprise, ouvre le choix pré-jet
+   *    (Sauter / Tenter le Test `chute`).
+   *  - `fenetre` (#700 ; LDB 15 l.55, allège `WallSeg.allege`) : enjamber une croisée de plain-pied ; exploration =
+   *    le pas du groupe ; combat = Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. */
+  franchirLArete: (de: Pt, vers: Pt) => void;
   /** POV : pivote le REGARD du meneur d'un cran de 45° (+1 = horaire/droite, -1 = anti-horaire/gauche) —
    *  aucun déplacement (donc pas de réorientation par `faceFromPath`). */
   pivotParty: (turn: 1 | -1) => void;
@@ -223,15 +229,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Chance, 3e usage (LDB 17 l.25) : en début de Round, place un héros en tête de l'ordre
    *  contre 1 point de Chance (pré-emption d'initiative). */
   roundStartPromote: (heroId: IdDeCombattantPromouvable) => void;
-  /** Chute volontaire (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
-   *  basse, croisée franchissable comprise), ouvre le choix pré-jet (Sauter / Tenter le Test
-   *  `chute`). Porteur = le mobile de `gesteDArete` ; tout refus est NOMMÉ (`refuserGeste`). */
-  fallAcross: (from: Pt, to: Pt) => void;
-  /** ENJAMBER une croisée franchissable de plain-pied (#700 ; LDB 15 l.55, allège de la croisée
-   *  `WallSeg.allege`) : exploration = le pas du groupe (`moveParty`) ; combat = le mobile de
-   *  `gesteDArete`, Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. Tout refus
-   *  est NOMMÉ (`refuserGeste`). */
-  windowAcross: (from: Pt, to: Pt) => void;
   // (Psychologie de combat (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
   //  résolues par les verbes de jet de la cascade, applier 'combatPsych'.)
   openWorldMap: () => void;
@@ -274,12 +271,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   abandonPossession: (uid: IdDePossession) => void;
   /** Ouvre l'écran Port si le groupe est à un lieu portuaire de la carte avec un navire de campagne. */
   openPort: () => void;
-  /** Achète `enc` points d'une cargaison de l'escale (Type/Taille/Marchandage, MDG 15 l.319-349). */
-  portBuyCargo: (cargoId: string, enc: number) => void;
-  /** Vend un lot de la cale (Trouver un acheteur/Prix d'offre/Marchandage, MDG 15 l.351-397). */
-  portSellCargo: (cargoIndex: number) => void;
-  /** Brade un lot invendable (¼ du prix de base, MDG 15 l.399). */
-  portDumpCargo: (cargoIndex: number) => void;
   /** Répare la coque au chantier (1 CO/Blessure, MDG 13 l.643) — journalise le résultat. */
   portRepair: () => void;
   /** Carène en cale sèche (Salissures, MDG 13 l.150-159). */
@@ -292,15 +283,18 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   portDismissCrew: (roleId: string, count?: number) => void;
   /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`). */
   openLandMarket: () => void;
-  /** Achète `enc` d'une cargaison de l'étape (disponibilité 2 temps/Marchandage/lot partiel, MSRC 13 l.129-131) —
-   *  chargée sur le porteur de défaut du groupe dans la limite de sa Contenance (#327). */
-  landBuyCargo: (cargoId: string, enc: number) => void;
-  /** Vend un lot d'un porteur (Demande/Mise à prix/Marchandage, MSRC 13 l.133-160). */
-  landSellCargo: (carrierId: string, cargoIndex: number) => void;
-  /** Brade un lot invendable (½ du prix de base dans un Lieu de Commerce, MSRC 13 l.160). */
-  landDumpCargo: (carrierId: string, cargoIndex: number) => void;
-  /** Transfère `enc` d'une cargaison entre deux porteurs CO-LOCALISÉS (bête/véhicule/navire, #327). */
-  moveCargo: (fromId: string, toId: string, cargoId: string, enc: number) => void;
+  /** Achète `enc` points d'une offre du marché ouvert, chargés sur le porteur `porteurId` dans la limite de sa
+   *  Contenance (#327) : au port, le navire (Type/Taille/Marchandage, MDG 15 l.319-349) ; à la halle, un porteur de
+   *  vrac (disponibilité 2 temps/Marchandage/lot partiel, MSRC 13 l.129-131). */
+  acheterLaCargaison: (porteurId: IdDePorteurDeCargaison, cargoId: IdDOffreDeCargaison, enc: number) => void;
+  /** Vend le lot `lotId` au marché ouvert : au port, un lot de la cale (Trouver un acheteur/Prix d'offre/Marchandage,
+   *  MDG 15 l.351-397) ; à la halle, le lot d'un porteur (Demande/Mise à prix/Marchandage, MSRC 13 l.133-160). */
+  vendreLaCargaison: (lotId: IdDeCargaison) => void;
+  /** Brade le lot `lotId` au marché ouvert : ¼ du prix de base au port (MDG 15 l.399), ½ dans un Lieu de Commerce
+   *  (MSRC 13 l.160). */
+  jeterLaCargaison: (lotId: IdDeCargaison) => void;
+  /** Transfère `enc` du lot `lotId` vers le porteur CO-LOCALISÉ `toId` (bête/véhicule/navire, #327). */
+  moveCargo: (lotId: IdDeCargaison, toId: IdDePorteurDeCargaison, enc: number) => void;
   /** Évalue la qualité secrète d'un lot de Vin proposé (Test d'Évaluation, MSRC 13 l.95). */
   landEvalWine: (cargoId: string) => void;
   /** Ouvre le Test de Ragot de l'auberge du hub de ville (#352, Activité `recueillir-informations`

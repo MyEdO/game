@@ -279,7 +279,7 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
     // #617/#618) — `partyCargoTotalEnc` la lit (#327).
     const ownerId = get().party[0].id;
     const possessions: Possession[] = [
-      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: cargoEnc > 0 ? [{ cargoId: 'vin-eau-de-vie', enc: cargoEnc, basePriceGold: 10 }] : [] },
+      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: cargoEnc > 0 ? [{ uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: cargoEnc, basePriceGold: 10 }] : [] },
     ];
     set({ possessions, travelPlan: plan, journal: [] });
     seedBattleRng(7);
@@ -313,7 +313,7 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
     launch();
     const ownerId = get().party[0].id;
     const possessions: Possession[] = [
-      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ cargoId: 'vin-eau-de-vie', enc: 30, basePriceGold: 10 }] },
+      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ uid: 'lot-2', cargoId: 'vin-eau-de-vie', enc: 30, basePriceGold: 10 }] },
     ];
     const detect = {
       id: 'river-peril-0', kind: 'riverPerilDetect' as const, actorId: ownerId, icon: 'nautical/tack', label: fixtureText('Détection'),
