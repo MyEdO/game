@@ -84,8 +84,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   // scripts/guards/lib/tsProgram.mjs ; src/analyse-retention-guard.test.ts
   const perimetre = detenteur(() => programmeDuPerimetre(ROOT), (session) => session.dispose());
   /** L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`). */
-  let audit: ReturnType<typeof auditSceneFieldEditability> | undefined;
-  const auditReel = () => (audit ??= auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecrituresJouees() }));
+  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecrituresJouees() }));
 
   it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 240_000 }, () => {
     const orphelins = orphanFields(auditReel());
