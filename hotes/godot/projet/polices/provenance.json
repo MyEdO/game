@@ -1,0 +1,29 @@
+{
+  "OpenSans-SemiBold.ttf": {
+    "sha256": "733eb93b167e6d45de09aa768f6c0355647c2c26f5416dbc7407a08ed41e81c6",
+    "source": "https://fonts.googleapis.com/css2?family=Open+Sans:wght@600 (instance statique servie en truetype : https://fonts.gstatic.com/s/opensans/v44/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsgH1y4n.ttf)",
+    "licence": "OFL-1.1 (LICENSE-OpenSans.txt)",
+    "traitement": "aucun : la police par défaut de Godot (Open Sans SemiBold), complète"
+  },
+  "NotoSans-SemiBold.ttf": {
+    "sha256": "2141a11a79c2c07ea55d8ddf77d4d8e9d3e81c8e0e710f5e33966e263c62b8d0",
+    "source": "https://github.com/notofonts/latin-greek-cyrillic/releases/tag/NotoSans-v2.015 (NotoSans-v2.015.zip : NotoSans/unhinted/ttf/NotoSans-SemiBold.ttf)",
+    "sha256_source": "a7af8d4a11e8e49fea9a19786a6469210b512cd4061413e8036bdd2425722795",
+    "licence": "OFL-1.1 (LICENSE-NotoSans.txt)",
+    "traitement": "fonttools 4.55.3 : pyftsubset --unicodes=\"U+0100-036F,U+1D00-1DBF,U+1E00-1EFF\" --layout-features='*' ; métriques verticales (hhea, OS/2 typo et win) calées sur celles de la base, ascendante 1069 et descendante 293 pour 1000 : Godot prend la plus haute de la chaîne pour la hauteur de ligne"
+  },
+  "NotoSansMath-Regular.ttf": {
+    "sha256": "c5d32056070d98a8cb4ce03a3d9ca63bf938ca0962fee35f16f533b8c0d58d17",
+    "source": "https://github.com/notofonts/math/releases/tag/NotoSansMath-v3.000 (NotoSansMath-v3.000.zip : NotoSansMath/unhinted/ttf/NotoSansMath-Regular.ttf)",
+    "sha256_source": "b127e84699212b6b2ef50aff58e0ebebeec04ffe6db1b9eb9e209c8c3d97b4aa",
+    "licence": "OFL-1.1 (LICENSE-NotoSansMath.txt)",
+    "traitement": "fonttools 4.55.3 : pyftsubset --unicodes=\"U+2190-22FF,U+2600-26FF,U+27F0-27FF,U+2900-297F\" --layout-features='*' ; métriques verticales (hhea, OS/2 typo et win) calées sur celles de la base, ascendante 1069 et descendante 293 pour 1000 : Godot prend la plus haute de la chaîne pour la hauteur de ligne"
+  },
+  "NotoSansSymbols2-Regular.ttf": {
+    "sha256": "d5bfce4a958ecd84562be4fdde1501e8a07a5caf0f5f2d15e0bbf647713ee57c",
+    "source": "https://github.com/notofonts/symbols/releases/tag/NotoSansSymbols2-v2.008 (NotoSansSymbols2-v2.008.zip : NotoSansSymbols2/unhinted/ttf/NotoSansSymbols2-Regular.ttf)",
+    "sha256_source": "c4a0a80f0041ce4be81e2478faad22776d23edb98ae3f0d19bd37044820ecf9d",
+    "licence": "OFL-1.1 (LICENSE-NotoSansSymbols2.txt)",
+    "traitement": "fonttools 4.55.3 : pyftsubset --unicodes=\"U+25A0-27BF\" --layout-features='*' ; métriques verticales (hhea, OS/2 typo et win) calées sur celles de la base, ascendante 1069 et descendante 293 pour 1000 : Godot prend la plus haute de la chaîne pour la hauteur de ligne"
+  }
+}
