@@ -30,7 +30,8 @@
 //   relais ; un clic sur une case du couloir de l'étage y mène le groupe : la case cliquée est celle du plancher sous le
 //   pointeur, à sa couche, pas celle de la salle basse dessous.
 // - `regards` (`--scenario fenetre-ecuries`, #3476) : l'entrée de la scène poursuivie à l'Entrée, le groupe à l'étage du
-//   relais ; la touche V passe du regard tactique au plateau, puis à l'immersion ; en immersion, une touche de marche
+//   relais ; en tactique, D tenue fait glisser la caméra, Origine la ramène au groupe ; la touche V passe du regard
+//   tactique au plateau, puis à l'immersion ; en immersion, une touche de marche
 //   tenue (Z, Q, S ou D) mène le groupe à une case voisine, que le noyau a jouée ; V rend la tactique.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
@@ -551,6 +552,18 @@ async function parcoursRegards() {
   }
   assert.equal(v.plateau.regard, 'tactique', 'la partie commence en tactique')
   await capturer('3476-v1-tactique')
+  const x0 = v.projection.exploration
+  const cle = `${x0.groupe[0]},${x0.groupe[1]},${x0.etage ?? 0}`
+  const [px] = (await ecran()).cases[cle]
+  const D = { key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 }
+  await realKeyDown(session, D)
+  await sleep(800)
+  await realKeyUp(session, D)
+  await waitFor(session, `wfrpEcran.cases['${cle}'][0] < ${px - 20}`)
+  noter(`D tenue en tactique : la caméra glisse, la case du groupe de ${Math.round(px)} à ${Math.round((await ecran()).cases[cle][0])} px`)
+  await realKey(session, { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 })
+  await waitFor(session, `Math.abs(wfrpEcran.cases['${cle}'][0] - ${px}) < 2`)
+  noter('Origine : la caméra revient au groupe')
   const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
   for (const regard of ['plateau', 'immersion']) {
     await realKey(session, V)
