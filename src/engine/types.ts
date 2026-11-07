@@ -1455,6 +1455,9 @@ export interface Combatant {
   /** Coque/navire (`bodyShape:'vehicule'`) : `id`s des Combattants d'ÉQUIPAGE exposés à bord (MDG 14).
    *  Un Critique « Équipage » et les Éclats reviennent à ces marins (Critiques de personnage / Dégâts). */
   crewIds?: string[];
+  /** Coque : les marins de la créature `ref` encore en RÉSERVE à bord, qui montent à l'abordage par vagues de
+   *  `vague` quand tout l'équipage exposé (`crewIds`) est hors de combat (`monterLesVagues`). MDG 15 l.150, l.171 */
+  reserveDAbordage?: { ref: string; restant: number; vague: number };
   /** Pièces d'artillerie MONTÉES sur ce Combattant-coque (source de vérité, MDG 12-13). Au spawn, chaque
    *  poste pose son arme sur le chef de pièce via `mannedPoste`. */
   postes?: ShipPoste[];
@@ -1792,9 +1795,10 @@ export interface Combatant {
   /** MOTIF de sortie de rencontre (#237/#215/#471), pose le langage visuel de fin : `reddition` (seuil
    *  de dommage franchi), `prise` (coque amenée à l'abordage) → lus « rendu » (pavillon amené) ;
    *  `destin` (Meurs un autre jour), `naufrage` (passé par-dessus bord), `firstBlood` (Duel judiciaire,
-   *  premier sang, NADJ 06 l.175-177) → lus « hors-combat ». Absent = sortie générique (hors-combat).
+   *  premier sang, NADJ 06 l.175-177), `repousse` (créature repoussée au seuil de dommage, MDG 15 l.143)
+   *  → lus « hors-combat ». Absent = sortie générique (hors-combat).
    *  Seul champ distinguant `rendu` de `hors-combat`. */
-  exitReason?: 'reddition' | 'prise' | 'destin' | 'naufrage' | 'firstBlood';
+  exitReason?: 'reddition' | 'prise' | 'destin' | 'naufrage' | 'firstBlood' | 'repousse';
   /** Combattant INVOQUÉ par un Sort (champ `SpellSpec.summon` — Nécromancie, Hurlement du loup,
    *  Manifestation de démon…) : `byId` = le lanceur ; `expiresAtRound` = la créature se dissipe au
    *  franchissement de Round une fois ce numéro dépassé ; `despawnIfSummonerDown` = elle s'effondre

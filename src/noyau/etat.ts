@@ -280,6 +280,16 @@ export interface CampaignVessel {
   /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,
    *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
   perteAuDechargement?: number;
+  /** INFESTATION de la cale (op `infestation`) jusqu'à son extermination : `progres` DR cumulés au Test
+   *  étendu `crewTestType` ; `chaqueNuit` joue à chaque nuit en mer. MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
+  infestation?: {
+    label: string;
+    crewTestType: string;
+    difficulty: import('../engine/types').Difficulty;
+    targetDR: number;
+    progres: number;
+    chaqueNuit: import('../engine/flowCore').Flow;
+  };
 }
 
 /** État réseau SÉRIALISABLE (dans l'état du jeu). `ownership` : heroId → siège (0 = hôte).
@@ -660,8 +670,6 @@ export interface EtatDeJeu {
   landMarket: import('./landMarketFlow').LandMarketState | null;
   /** ACTIVITÉS EN MER en attente (semaine de 8 jours, MDG 15 l.266-306) — modale de choix par héros. */
   pendingSeaActivities: import('./seaActivities').PendingSeaActivities | null;
-  /** ÉVÉNEMENT DE PORT « Prêtre de Manann » en attente de CHOIX (MDG 15 l.246). */
-  pendingManannPriest: import('./seaVoyageFlow').PendingManannPriest | null;
   /** Permission de RELÂCHE À TERRE en attente de CHOIX, posée à l'accostage AVANT l'événement de
    *  port (MDG 15 l.245). */
   pendingShoreLeave: import('./seaVoyageFlow').PendingShoreLeave | null;

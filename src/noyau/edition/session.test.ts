@@ -6,15 +6,20 @@
  * sur l'arête sélectionnée, `null` retirant un champ, sans cran quand rien ne change, et son brouillon tombe avec la
  * sélection ; les entités se posent, se nomment, s'orientent parmi les caps de leur type, changent de type ou de
  * couche, se copient, se collent sur la case pointée de la couche éditée et se dupliquent sur leur couche ; une entrée
- * se renomme d'un nom libre et change de couche.
+ * se renomme d'un nom libre et change de couche. La scène écrit par ses écrivains dédiés (#3606) sa musique, son
+ * message d'introduction, ses ancres de bataille et ses groupes ; une ouverture de façade, son apparence.
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, heightAt, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
-import { editer, ouvrirLEdition, planDeLaVolee, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
+import { champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
+import { addArchitectureBody, addFacadeFeature, addFacadeSection } from '../sceneEdit';
+import { ciblesDAncreDeBataille } from '../massBattleFlow';
+import { apparencesDeLOuverture } from '../monde/facades';
+import { allMusicDefs } from '../../data/sons/musique';
 import { entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
 import { seatSlotsOf } from '../monde/seating';
-import { props, refEstVolumique } from '../../data';
+import { props } from '../../data';
 
 const ouverteSur = (scene: Scene, duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
@@ -96,17 +101,16 @@ describe('session d’édition', () => {
 
   it('les entités : posées sélectionnées, nommées puis rendues au nom de leur fiche, orientées parmi les caps de leur type, retypées, sur une autre couche', () => {
     const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
-    const volumique = props.find((p) => refEstVolumique(p.id))!;
-    const billboard = props.find((p) => !refEstVolumique(p.id))!;
-    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: billboard.id } }, { geste: 'appui', point: point(1, 1) });
+    const [decor, autre] = props;
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: decor.id } }, { geste: 'appui', point: point(1, 1) });
     const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel);
-    expect(ent(pose)).toMatchObject({ kind: 'prop', ref: billboard.id, pos: { x: 1, y: 1 }, label: billboard.label });
+    expect(ent(pose)).toMatchObject({ kind: 'prop', ref: decor.id, pos: { x: 1, y: 1 }, label: decor.label });
     expect(ent(jouer(pose, { geste: 'nommer', nom: 'Comptoir' }))?.label).toBe('Comptoir');
     expect(ent(jouer(pose, { geste: 'nommer' }))?.label, 'sans nom, il n’en porte plus').toBeUndefined();
-    const tourne = jouer(pose, { geste: 'entite', patch: { facing: 'NE' } });
-    expect([ent(tourne)?.facing, tourne.historique.passe.length]).toEqual(['NE', pose.historique.passe.length + 1]);
-    expect(jouer(tourne, { geste: 'entite', patch: { facing: 'NE' } }), 'rien ne change : aucun cran').toBe(tourne);
-    expect(ent(jouer(tourne, { geste: 'entite', patch: { ref: volumique.id } })), 'un décor volumique ne garde pas un cap diagonal').toMatchObject({ ref: volumique.id, facing: 'S' });
+    const tourne = jouer(pose, { geste: 'entite', patch: { facing: 'E' } });
+    expect([ent(tourne)?.facing, tourne.historique.passe.length]).toEqual(['E', pose.historique.passe.length + 1]);
+    expect(jouer(tourne, { geste: 'entite', patch: { facing: 'E' } }), 'rien ne change : aucun cran').toBe(tourne);
+    expect(ent(jouer(tourne, { geste: 'entite', patch: { ref: autre.id } })), 'retypé, il garde son cap cardinal').toMatchObject({ ref: autre.id, facing: 'E' });
     const etage = jouer(pose, { geste: 'ajouterCouche' }, { geste: 'couche', z: 0 }, { geste: 'appui', point: point(1, 1) }, { geste: 'entite', patch: { z: 1 } });
     expect(ent(etage)?.z).toBe(1);
     expect(ent(jouer(etage, { geste: 'entite', patch: { z: 0 } }))?.z).toBeUndefined();
@@ -198,5 +202,66 @@ describe('session d’édition', () => {
     expect(membre(jouer(allie, { geste: 'membre', patch: { rencontre: enc, camp: 'enemy' } })), 'un ennemi n’est pas piloté').toMatchObject({ side: undefined, ai: undefined });
     expect(membre(jouer(allie, { geste: 'membre', patch: { rencontre: enc, enrole: false } }))).toBeUndefined();
     expect(jouer(enrole, { geste: 'membre', patch: { rencontre: enc, enrole: true } }), 'déjà membre : aucun cran').toBe(enrole);
+  });
+});
+
+describe('session d’édition, les écrivains dédiés de la scène (#3606)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const sur = (patch: Extract<GesteDEdition, { geste: 'scene' }>['patch']): GesteDEdition => ({ geste: 'scene', patch });
+
+  it('la musique : une piste du registre, le silence, puis la piste du contexte ; sans aucune piste posée, elle quitte la scène', () => {
+    const [piste] = allMusicDefs();
+    const posee = jouer(ouverte(), sur({ musique: { piste: 'ambient', id: piste.id } }), sur({ musique: { piste: 'combat', id: null } }));
+    expect(sceneEditee(posee).music).toEqual({ ambient: piste.id, combat: null });
+    const auto = jouer(posee, sur({ musique: { piste: 'ambient' } }));
+    expect(sceneEditee(auto).music).toEqual({ combat: null });
+    expect('music' in sceneEditee(jouer(auto, sur({ musique: { piste: 'combat' } }))), 'aucune piste : le champ quitte la scène').toBe(false);
+  });
+
+  it('le message d’introduction : saisi sur plusieurs lignes tel quel, sa provenance gardée ; vide, il se retire avec elle', () => {
+    expect(champDuMessage(), 'une prose nommée se saisit sur plusieurs lignes').toMatchObject({ key: 'texte', kind: 'textarea' });
+    const texte = '  Le relais est désert.\n\nUne lanterne bat au vent.';
+    const source = { book: 'ldb', page: 12 };
+    const scene = { ...emptyScene('session', 4, 4), startMessage: { texte: 'Ancien.', source } } as Scene;
+    const saisi = jouer(ouverteSur(scene), sur({ message: texte }));
+    expect(sceneEditee(saisi).startMessage).toEqual({ texte, source });
+    expect('startMessage' in sceneEditee(jouer(saisi, sur({ message: '' }))), 'vide : le message quitte la scène, provenance comprise').toBe(false);
+  });
+
+  it('les ancres de bataille : ajoutées vers une Scène de Round, repointées, posées à une case, retirées ; la dernière retirée, le champ quitte la scène ; un rang absent laisse la session', () => {
+    const [a, b] = ciblesDAncreDeBataille();
+    const posee = jouer(ouverte(), sur({ stations: { ajouter: a.id } }), sur({ stations: { ajouter: a.id } }));
+    expect(sceneEditee(posee).stations).toEqual([{ sceneId: a.id, pos: { x: 0, y: 0 } }, { sceneId: a.id, pos: { x: 0, y: 0 } }]);
+    const reglee = jouer(posee, sur({ stations: { rang: 1, sceneId: b.id } }), sur({ stations: { rang: 1, pos: { x: 2, y: 3 } } }));
+    expect(sceneEditee(reglee).stations?.[1]).toEqual({ sceneId: b.id, pos: { x: 2, y: 3 } });
+    expect(jouer(reglee, sur({ stations: { rang: 5, sceneId: a.id } })), 'un rang absent ne se patche pas').toBe(reglee);
+    expect(jouer(reglee, sur({ stations: { retirer: 5 } })), 'un rang absent ne se retire pas').toBe(reglee);
+    const une = jouer(reglee, sur({ stations: { retirer: 0 } }));
+    expect(sceneEditee(une).stations).toEqual([{ sceneId: b.id, pos: { x: 2, y: 3 } }]);
+    expect('stations' in sceneEditee(jouer(une, sur({ stations: { retirer: 0 } }))), 'la dernière retirée : le champ quitte la scène').toBe(false);
+  });
+
+  it('les groupes du lieu : choisis parmi ceux qu’un porteur déclare, puis retirés', () => {
+    const groupes = groupesDuLieu().map((g) => g.valeur);
+    expect(groupes, 'un groupe relatif ne se déclare pas').not.toContain('etranger');
+    const [g] = groupes as string[];
+    const declares = jouer(ouverte(), sur({ scalaires: { groups: [g] } }));
+    expect(sceneEditee(declares).groups).toEqual([g]);
+    expect('groups' in sceneEditee(jouer(declares, sur({ scalaires: { groups: null } })))).toBe(false);
+  });
+
+  it('une ouverture de façade : son apparence parmi celles de sa sorte, puis le défaut du rendu ; une ouverture absente laisse la session', () => {
+    const corps = addArchitectureBody(emptyScene('session', 6, 6), 'maison', { x: 1, y: 1, w: 2, h: 2 });
+    const pan = addFacadeSection(corps.scene, corps.id, { x: 1, y: 1, side: 'N' })!;
+    const pose = addFacadeFeature(pan.scene, corps.id, pan.id)!;
+    const s = { ...ouverteSur(pose.scene), sel: { type: 'facadeSection' as const, bodyId: corps.id, id: pan.id } };
+    const ouverture = (x: SessionDEdition) => sceneEditee(x).architecture![0].facades[0].features![0];
+    const [apparence] = apparencesDeLOuverture(ouverture(s).kind);
+    const habillee = jouer(s, { geste: 'baie', id: pose.id, patch: { apparence: apparence.id } });
+    expect(ouverture(habillee).appearance).toBe(apparence.id);
+    expect('appearance' in ouverture(jouer(habillee, { geste: 'baie', id: pose.id, patch: { apparence: null } }))).toBe(false);
+    expect(jouer(habillee, { geste: 'baie', id: 'absente', patch: { apparence: apparence.id } })).toBe(habillee);
+    const decor = (['chimney', 'sign', 'belfry'] as const).find((k) => !apparencesDeLOuverture(k).some((a) => a.id === apparence.id))!;
+    expect('appearance' in ouverture(jouer(habillee, { geste: 'baie', id: pose.id, patch: { sorte: decor } })), 'une sorte d’un autre catalogue retire l’apparence').toBe(false);
   });
 });

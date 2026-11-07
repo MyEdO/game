@@ -70,7 +70,7 @@ describe('validerRectangle — le rectangle tracé', () => {
   it('une pièce naît intérieure, une zone d’effet naît piégée', () => {
     const piece = validerRectangle(vide(), { mode: 'zone', zone: 'room' }, rect, 0)!;
     expect(piece.scene.effectZones![0]).toMatchObject({ label: 'Pièce', presentation: 'interior', area: { kind: 'rect', ...rect } });
-    expect(piece.sel).toEqual({ type: 'effectZone', idx: 0 });
+    expect(piece.sel).toEqual({ type: 'effectZone', id: piece.scene.effectZones![0].id });
     const piege = validerRectangle(vide(), { mode: 'zone', zone: 'effect' }, rect, 0)!;
     expect(piege.scene.effectZones![0].onCross).toEqual([{ op: 'wounds', amount: 5, ignoreTB: false, ignoreAP: true }]);
   });

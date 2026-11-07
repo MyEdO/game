@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { musicDefsFor } from './music';
+import { musicDefsFor } from './musique';
 
 describe('musicDefsFor — pistes par contexte (registre)', () => {
   it('chaque contexte a au moins une piste', () => {

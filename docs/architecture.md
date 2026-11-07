@@ -100,7 +100,7 @@ qui le rend inutile.
 | `hote` | module commun aux hôtes du noyau | la porte du noyau, `scenes`, feuilles | oui |
 | `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` | oui |
 | `web` | services d'exécution du navigateur : minuteries, IndexedDB, stockage local, fichiers | feuilles | non |
-| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `web`) | non |
+| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `web`, `data`) | non |
 | `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` compris) ; `ui` en type seul | non |
 | `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` : `ui` seule) | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
@@ -539,7 +539,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `LectureDArete` (lecture `auteur`/`jeu` d'une arête, `porteSelon`),
                             `Atterrissage` (où l'on atterrit en quittant une surface,
                             `surfaceDAtterrissage`), `CellSide` (alias primitif). Comptes
-                            et liste GATÉS par `noyau/scene-field-editability-guard.test.ts`.
+                            et liste GATÉS par `src/scene-field-editability-guard.test.ts`.
                             Les types que la donnée lit vivent avec leurs schémas : l'union `Effect` et
                             ses deux annotations du `z.lazy` (`DelayedEffect`, `PetitePriere`) dans
                             `defs-scenes/effets.ts` ; `Terrain`, `ReliefDefaults` et `SceneRoofDefaults`
@@ -659,7 +659,7 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                             décider d'aucun effet de jeu (§ Couches).
   audioWiring.ts            câblage audio de l'hôte : sons ponctuels sur le bus (`brancherLesSons`), musique
                             de fond depuis l'état du store (`musicSelectionOf`, `initAudioWiring`) ;
-                            `src/audio/` garde le registre et la lecture.
+                            `src/audio/` garde la lecture, `src/data/sons/` le registre.
   campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
                             de la partie passé à `presetDuNarratif`).
   store.ts                  store Zustand : `GameState` = `Jeu` (`noyau/etat.ts`) + l'état et les actions

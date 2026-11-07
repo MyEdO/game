@@ -2,13 +2,13 @@
  * Moteur audio minimal (Jalon 8 — arbitrage « assets libres CC0 », packs Kenney.nl +
  * pistes OpenGameArt dans `public/audio/`). SFX par `HTMLAudioElement` jetable (variante au
  * hasard, registre `defs/`) ; MUSIQUE sur un canal dédié (boucle + fondu enchaîné, contexte
- * résolu par `music.ts`). Volumes (effets/musique) + sourdine PERSISTANTS.
+ * résolu par `data/sons/musique.ts`). Volumes (effets/musique) + sourdine PERSISTANTS.
  * Les erreurs de lecture (politique d'autoplay avant la première interaction) sont silencieuses ;
  * la musique se relance au premier geste utilisateur.
  */
-import { SOUND_DEFS } from './_registry.generated';
-import type { SoundDef } from './types';
-import { musicDefsFor, type MusicSelection } from './music';
+import { SOUND_DEFS } from '../data/sons/_registry.generated';
+import type { SoundDef } from '../data/sons/types';
+import { musicDefsFor, type MusicSelection } from '../data/sons/musique';
 import { lireDictionnaire } from '../lib/stockage';
 import { stockageWeb } from '../web/stockageWeb';
 import { entierDEntropie } from '../web/entropie';

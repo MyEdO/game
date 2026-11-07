@@ -587,6 +587,15 @@
     "verrou": "src/data/schemas/grammaire/co-descente.test.ts"
   },
   {
+    "id": "formulaireDuSchema",
+    "type": "primitives.manifest",
+    "label": "inferFields/FieldDesc/choixDuNoeud/champsDeclares/bornesDuNoeud/unionDuNoeud/elementDuNoeud",
+    "fichier": "src/noyau/codex/editFields.ts",
+    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, référence de catalogue avec sa sous-liste), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste (`elementDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `gestesDeLaListe`, `src/noyau/sceneEdit.ts`)",
+    "perimetre": "Compendium (`CodexEdit`) ; éditeur Godot : formulaire d'une zone d'effet et de la condition d'entrée d'un déclencheur (`formulaireDe`, `FORMULAIRES`), traduit en gestes par `src/hote/editeur.ts` (`renduDe`, `elementsDesGestes`) et joué par le geste `valeur` de la session d'édition",
+    "verrou": "src/noyau/edition/formulaire.test.ts"
+  },
+  {
     "id": "conceptDe",
     "type": "primitives.manifest",
     "label": "conceptDe/noeudDuConcept/posesPerdues",
@@ -930,7 +939,7 @@
     "fichier": "src/ui/editor/CouvreField.tsx",
     "concept": "lien d'un élément du paquet de campagne vers les entrées des fiches de dossier de chapitre commitées (docs/dossiers/<ABBR>/<NN>.json, validées par ficheDeDossier) : CouvreField édite `couvre` (rangées entrée + retrait, sélecteur d'ajout, liste vide qui se dit vide, liste vidée retirée) ; SelecteurDEntreeDeFiche choisit UNE entrée (groupes par fiche et famille, id global + texte court, entrée introuvable affichée comme telle)",
     "perimetre": "inspecteur de scène (entité, zone d'effet, scène), panneau Logique (déclencheur, dialogue, rencontre), carte du monde (lieu, route), éditeur narratif (indice, PNJ, onglet Écarts)",
-    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/noyau/scene-field-editability-guard.test.ts"
+    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/scene-field-editability-guard.test.ts"
   },
   {
     "id": "freeAttackWeapon",

@@ -201,6 +201,10 @@ export function battleSceneById(id: string): ActivityDef | undefined {
   const d = activityById(id);
   return d?.contexts.includes('bataille-round') ? d : undefined;
 }
+/** Les cibles d'une ancre de bataille (`Scene.stations[].sceneId`), chacune son id et son libellé : les Scènes de
+ *  Round du catalogue, le seul espace d'ids que `battleScenesToStations` résout (`battleSceneById`), jamais les Scènes
+ *  du projet. */
+export const ciblesDAncreDeBataille = (): { id: string; label: string }[] => ROUND_SCENES().map((def) => ({ id: def.id, label: def.label }));
 /** Activité de préparation par id (repli undefined). */
 export function battleActivityById(id: string): ActivityDef | undefined {
   const d = activityById(id);

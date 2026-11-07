@@ -24,8 +24,8 @@ import { clearFaceBakes } from '../backends/webgl/faceBake';
 import { clearPeriodTextures } from '../backends/webgl/periodTexture';
 import { clearBillboardTextures } from '../backends/webgl/svgTexture';
 import { viderTexturesStatiques } from './texturesStatiques';
-import { props, refEstVolumique } from '../../data';
 import { resetStageFrames } from './stageFrames';
+import { REF_HORS_CATALOGUE } from '../../noyau/monde/volume/decorVolumique.testkit';
 
 // #2967
 export function hérosAvecArme(base: Combatant, trappingId: string): Combatant {
@@ -333,11 +333,10 @@ export function quads(): THREE.Mesh[] {
   return out;
 }
 
-/** Une ref de décor SERVIE EN BILLBOARD, DÉRIVÉE du catalogue (`refEstVolumique`) : un décor à recette
- *  volumique se fond dans la géométrie cuite et ne pose aucun quad, un banc qui le sème mesurerait le
- *  vide. Sans lumière : une source posée par le décor entrerait dans l'éclairage, que ces bancs ne
- *  mesurent pas. */
-export const refDecorBillboard = (): string => props.find((p) => !refEstVolumique(p.id) && !p.light)!.id;
+/** Une ref de décor SERVIE EN BILLBOARD : chaque type du catalogue porte sa recette (#3198) et se fond
+ *  dans la géométrie cuite sans poser de quad — un banc qui le sèmerait mesurerait le vide. Seul le repli
+ *  d'ERREUR d'une ref hors catalogue (#877) se sert encore en billboard, et sans lumière. */
+export const refDecorBillboard = (): string => REF_HORS_CATALOGUE;
 
 /**
  * PLAFOND d'attente de ces bancs, déclaré UNE fois (#1442) — la borne haute que les attentes au fait

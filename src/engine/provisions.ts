@@ -330,6 +330,9 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
   return res;
 }
 
+/** Contenance d'un tonneau d'eau douce, en litres. MDG 14 l.242 */
+export const LITRES_PAR_TONNEAU = 145;
+
 /** Manifeste d'avitaillement AU DÉPART (#241/#245) : vivres/eau disponibles vs requis pour couvrir
  *  `joursEstimes` de voyage, sur la POPULATION EMBARQUÉE ENTIÈRE (héros + effectif PNJ, MDG 14 l.238).
  *  PUR — aucune mutation, aucune consommation. `waterLitres` = tonneaux du navire (`CampaignVessel.waterLitres`,

@@ -331,9 +331,9 @@ describe('Cuisson du monde — les matières de TOIT du read-set couvrent les ma
 describe('Cuisson du monde — la part RECETTES du read-set se compte en DEFS, pas en instances (#1343)', () => {
   afterEach(() => resetData());
 
-  /** Les deux premières recettes du catalogue, DÉRIVÉES : cette garde mesure une TAILLE de liste, pas
-   *  une def en particulier. */
-  const [DEF_A, DEF_B] = props.filter((p) => p.volume).map((p) => p.id);
+  /** Les deux recettes les plus SOBRES du catalogue, DÉRIVÉES : cette garde mesure une TAILLE de liste,
+   *  pas une def en particulier, et trois cents corps d'une recette chargée ne cuisent pas dans le budget. */
+  const [DEF_A, DEF_B] = [...props].sort((a, b) => a.volume.primitives.length - b.volume.primitives.length).map((p) => p.id);
 
   const salle = (defs: readonly string[], parDef: number): Scene => {
     const scene = emptyScene('scene-test', 40, 40);
@@ -380,7 +380,7 @@ describe('Cuisson du monde — la part RECETTES du read-set se compte en DEFS, p
     const clé = {};
     const depsAvant = worldBakeDeps(scene, mptS);
     const avant = memo(clé, depsAvant, () => bakeWorldGeometry(scene, mptS, 'jeu'));
-    setDataset('props', props.map((p) => (p.id === DEF_A ? { ...p, volume: { ...p.volume!, primitives: [...p.volume!.primitives] } } : p)));
+    setDataset('props', props.map((p) => (p.id === DEF_A ? { ...p, volume: { ...p.volume, primitives: [...p.volume.primitives] } } : p)));
     expect(memesDeps(depsAvant, worldBakeDeps(scene, mptS))).toBe(false);
     const après = memo(clé, worldBakeDeps(scene, mptS), () => bakeWorldGeometry(scene, mptS, 'jeu'));
     expect(après).not.toBe(avant);

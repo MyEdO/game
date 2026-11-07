@@ -17,6 +17,7 @@ import {
 } from '../noyau/index';
 import { garanti } from '../lib/garanti';
 import { proprietaireDeLaFenetre, type ProprietaireDeLaFenetre } from './projection';
+import type { Valeur } from './elements';
 import type { Forme, ParametreDeVerbe } from './formes';
 import { parametresDeLAxe } from './geste';
 import { VERBES } from './verbes.generated';
@@ -44,16 +45,17 @@ export function parametresDuGeste(g: GesteDuJeu): readonly ParametreDeVerbe[] {
 /** Au-delà de ce nombre de valeurs, un choix se rend en liste plutôt qu'en rangée de boutons. */
 export const CHOIX_EN_BOUTONS = 7;
 
-/** Un argument d'un geste : `fixe`, posé par la fenêtre (`valeur`) ; `choix` parmi `valeurs` ; `nombre`, entre ses
- *  `bornes` quand le réglage en pose ; `texte`, une chaîne ; `objet`, ses `champs` saisis chacun ; `json`, une valeur
- *  JSON. `valeur` est la valeur courante que le réglage dit (`null` sans réglage). */
+/** Un argument d'un geste : `fixe`, posé par la fenêtre (`valeur`) ; `choix` parmi `valeurs`, chacune ce qu'elle vaut,
+ *  son libellé et ce qui la refuse ; `nombre`, entre ses
+ *  `bornes` quand le réglage en pose ; `texte`, une chaîne ; `multiligne`, une chaîne sur plusieurs lignes ; `objet`,
+ *  ses `champs` saisis chacun ; `json`, une valeur JSON. `valeur` est la valeur courante que le réglage dit (`null` sans réglage). */
 export interface ArgumentDuGeste {
   nom: string;
   optionnel: boolean;
-  saisie: 'fixe' | 'choix' | 'nombre' | 'texte' | 'objet' | 'json';
+  saisie: 'fixe' | 'choix' | 'nombre' | 'texte' | 'multiligne' | 'objet' | 'json';
   libelle: string | null;
   valeur: unknown;
-  valeurs: ValeurDuReglage[] | null;
+  valeurs: Omit<Valeur, 'presse'>[] | null;
   bornes: Reglage['bornes'];
   note: string | null;
   champs: ArgumentDuGeste[] | null;
@@ -191,7 +193,7 @@ function argument(etat: Jeu, verbe: string, p: { nom: string; optionnel: boolean
 }
 
 /** Le rendu d'un geste, d'après les arguments qu'il fait dire, et l'argument de son choix. */
-function renduDe(args: readonly ArgumentDuGeste[]): Pick<GesteDeLaFenetre, 'rendu' | 'aChoisir'> {
+export function renduDe(args: readonly ArgumentDuGeste[]): Pick<GesteDeLaFenetre, 'rendu' | 'aChoisir'> {
   const aDire = args.filter((a) => a.saisie !== 'fixe' && (!a.optionnel || a.saisie === 'choix'));
   if (!aDire.length) return { rendu: 'bouton', aChoisir: null };
   const [seul] = aDire;

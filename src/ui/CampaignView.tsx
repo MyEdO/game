@@ -51,7 +51,6 @@ import { PortView } from './PortView';
 import { ShipDossier } from './ShipDossier';
 import { LandMarketView } from './LandMarketView';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
-import { ManannPriestModal } from './ManannPriestModal';
 import { ShoreLeaveModal } from './ShoreLeaveModal';
 import { TravelRecapModal } from './TravelRecapModal';
 import { VoyageScreen } from './VoyageScreen';
@@ -133,7 +132,6 @@ export function CampaignView() {
   const port = useGame((s) => s.port);
   const landMarket = useGame((s) => s.landMarket);
   const pendingSeaActivities = useGame((s) => s.pendingSeaActivities);
-  const pendingManannPriest = useGame((s) => s.pendingManannPriest);
   const pendingShoreLeave = useGame((s) => s.pendingShoreLeave);
   const vessel = useGame((s) => s.vessel);
   const travelPlan = useGame((s) => s.travelPlan);
@@ -425,7 +423,6 @@ export function CampaignView() {
         {landMarket && mode === 'exploration' && <LandMarketView />}
         {pendingSeaActivities && mode === 'exploration' && <SeaActivitiesModal />}
         {/* Au port ouvert, ces décisions sont surfacées par l'onglet Escale du hub (#228) — pas de double surface. */}
-        {pendingManannPriest && mode === 'exploration' && !port && <ManannPriestModal />}
         {/* Relâche à terre : incrustée au CENTRE du hub de voyage quand il est actif (VoyageScreen) ;
             modale flottante seulement HORS hub (arbitrage user 2026-07-11). */}
         {pendingShoreLeave && mode === 'exploration' && !port && !voyageHub && <ShoreLeaveModal />}

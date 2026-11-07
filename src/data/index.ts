@@ -116,6 +116,7 @@ import booksJson from './books.json';
 import namesJson from './names.json';
 import raceAppearanceJson from './raceAppearance.json';
 import gabaritsJson from './gabarits.json';
+import planDeBestiaireJson from './planDeBestiaire.json';
 import type { GabaritDef, GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 import gardeRobeJson from './garde-robe.json';
 import { cleDHabille, type EmplacementId, type EnsembleDef, type GardeRobeEntree, type HabilleDEnsemble, type PieceId, type TenueDeGardeRobe } from './schemas/defs/garde-robe';
@@ -1380,7 +1381,8 @@ export interface CreatureData {
   /** Apparence par défaut UNIFIÉE (plan P2) — UN seul bloc éditable porté par l'enregistrement, couche
    *  de défaut sous une éventuelle surcharge de scène. Même format que `EntityAppearance` (éditeur de
    *  scène) → une SEULE structure d'apparence dans toute l'app. */
-  appearance?: EntityAppearance;
+  /** #2993 : son espèce range son corps au plan de bestiaire (`planDeBestiaire`). */
+  appearance: EntityAppearance & { species: string };
   /** Récolte « Précieuses Entrailles » (ZI) : rareté + dangerosité (→ coût par Enc des pièces,
    *  cf. engine/harvest) et usages supposés des organes. Porté par la créature (pas de table //). */
   harvest?: { rarity: HarvestRarity; danger: HarvestDanger; uses: string };
@@ -2281,7 +2283,17 @@ export interface RaceAppearanceData {
   label: string;
   gabarit: { id: GabaritId };
   gabaritOverride?: SurchargeDeGabarit;
-  scale?: number;
+}
+/** Une espèce du plan de bestiaire (`planDeBestiaire.json`, #2993) : la base humanoïde à sa race de rendu, un corps
+ *  de générateur, ou omise et son motif ; l'échelle d'art de qui porte un corps. */
+export interface PlanDEspece {
+  id: string;
+  label: string;
+  race?: { id: string };
+  corps?: string;
+  famille?: string;
+  omis?: string;
+  echelle?: number;
 }
 /** Banque de noms d'UNE race jouable : prénoms M/F + noms de famille (LDB 05). L'`id` est le
  *  `RaceKey` de la race (`species.refChar`) ; le `label` est de l'AFFICHAGE. */
@@ -2790,7 +2802,7 @@ export const DEFAULT_LIGHT_TONE_ID = 'flamme';
 /** Contrats NEUTRES du décor (type de prop, recette volumique, matériaux, places assises) — définis
  *  hors du chargeur pour rester importables sans lui (cf. `props.types.ts`). */
 export type { PropData, PropMaterialData, PropMaterialId, PropPoint3, PropSize3, PropPrimitive, PropVolumeRecipe, PropSeatSlot } from './props.types';
-export { validatePropCatalog, propFootOf } from './props.types';
+export { validatePropCatalog } from './props.types';
 export const props = propsJson as PropData[];
 /** Type de décor par id — `undefined` en entrée rend `undefined` : une entité qui ne NOMME aucun type
  *  n'en résout aucun, exactement comme une ref hors registre (#877). */
@@ -2892,6 +2904,10 @@ export const celestialHouses = astrologyJson as CelestialHouseData[];
 /** Apparences d'espèce (app-owned, éditable) — lues par le Codex (`noyau/codex/registry.ts`), la
  *  composition (`noyau/apparence/composition.ts`) et `scripts/personnage-3d/base/`. */
 export const raceAppearance = raceAppearanceJson as RaceAppearanceData[];
+/** Le plan de bestiaire (`planDeBestiaire.json`, #2993) : lu par la composition d'un combattant
+ *  (`noyau/apparence/combattant.ts`) et par `scripts/personnage-3d/base/`. */
+export const planDeBestiaire = planDeBestiaireJson as PlanDEspece[];
+export const findPlanDEspeceById = indexParId('planDeBestiaire', planDeBestiaire);
 export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 /** Carrures (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
 export const gabarits = gabaritsJson as GabaritDef[];

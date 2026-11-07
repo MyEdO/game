@@ -764,6 +764,14 @@ describe('validerManifesteDeBase', () => {
     return verdict.ok ? [] : verdict.ecarts.map((e) => e.code);
   };
 
+  it('accepte un corps sans prises ni table de gabarit, au porteur sans gabarit, que l’évaluateur juge sans facteurs (#2991)', async () => {
+    const { prises: _prises, gabarit: _gabarit, ...corps } = valide();
+    const m = { ...corps, silhouettes: [], porteur: { espece: 'loup', taille: 'moyenne', echelleDArt: 0.82 } };
+    expect(validerManifesteDeBase(m, octets)).toEqual({ ok: true, manifeste: m });
+    expect((await evaluer({ base: octets, manifeste: m, pas: 1 })).ecarts.filter((e) => e.garde === 'manifeste')).toEqual([]);
+    await expect(evaluer({ base: octets, manifeste: m, facteurs: { legs: 1.2 } })).rejects.toThrow('des facteurs de gabarit sans table de gabarit');
+  });
+
   it('accepte des surfaces qui nomment un matériau du GLB et son emplacement de palette ; sans `surfaces`, aucune', () => {
     const m = { ...valide(), surfaces: [{ nom: 'peau', palette: 'peau' }] };
     expect(validerManifesteDeBase(m, octets)).toEqual({ ok: true, manifeste: m });
@@ -906,8 +914,9 @@ describe('validerManifesteDeBase', () => {
 
   it.each<[string, CodeDEcartDeBase, (m: ReturnType<typeof valide>) => unknown]>([
     ['porteur absent', 'forme', ({ porteur: _, ...m }) => m],
-    ['race vide', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, race: '' } })],
+    ['espèce vide', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, espece: '' } })],
     ['gabarit absent', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, gabarit: undefined } })],
+    ['gabarit de porteur sans table de gabarit', 'forme', ({ gabarit: _, ...m }) => m],
     ['taille non chaîne', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, taille: 3 } })],
     ['échelle d’art nulle', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, echelleDArt: 0 } })],
     ['échelle d’art infinie', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, echelleDArt: Infinity } })],
@@ -964,8 +973,8 @@ describe('evaluer', () => {
     expect(positionsAnimees(fiche)).toEqual([]);
   });
 
-  it('refuse des facteurs de gabarit sans manifeste valide, et un clip absent', async () => {
-    await expect(evaluer({ base: glbFabrique(), facteurs: { legs: 1.1 } })).rejects.toThrow(/sans manifeste/);
+  it('refuse des facteurs de gabarit sans table de gabarit valide, et un clip absent', async () => {
+    await expect(evaluer({ base: glbFabrique(), facteurs: { legs: 1.1 } })).rejects.toThrow(/sans table de gabarit/);
     await expect(evaluer({ base: glbFabrique(), clips: ['Absent'] })).rejects.toThrow(/Absent/);
   });
 

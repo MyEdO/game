@@ -116,12 +116,12 @@ import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/charact
 import { testValue, soutienDetail, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
-import { endShanty, resolveShipUnits, withCrewActed } from './shipCrew';
+import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie, STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
-import { actorIn, inBattleId } from './monde/combatants';
+import { actorIn, ecrireActeur, inBattleId } from './monde/combatants';
 import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
@@ -6670,20 +6670,47 @@ function decideCombatEndHeroTests(
   // maladie (`def.contractDifficulty`), décalée des crans de l'exposition (Contagieux, EDO App.2
   // l.228-230 : « 2 niveaux plus difficile » → shift −2 ; « incubation “Instantanée” » → `instant`).
   // 'off' : aucune contraction.
-  if (dm !== 'off' && !c.dead) {
-    for (const exp of c.diseaseExposure ?? []) {
-      const def = diseaseDefs()[exp.disease];
-      if (def && contractionDue(c, def.id)) diseases.push({
-        entry: 'contagion',
-        disease: def.id,
-        difficulty: easeDifficulty(def.contractDifficulty, exp.difficultyShift ?? 0),
-        label: stepPrecision(tr('step.contagion'), diseaseLabel(def.id)),
-        ...(exp.instant ? { instant: true } : {}),
-      });
-    }
-  }
+  diseases.push(...contagionsDues(c));
   c.diseaseExposure = undefined;
   return { diseases, corruption: c.dead ? null : worstCorruption };
+}
+
+/** Les Tests de Contraction que doivent les EXPOSITIONS de `c` (`diseaseExposure`, op `exposeDisease`) : la
+ *  difficulté de la maladie (`def.contractDifficulty`), décalée des crans de l'exposition. PUR. LDB 20 l.25/51 ;
+ *  EDO App.2 l.228-230 */
+function contagionsDues(c: Combatant): CombatEndDiseaseTest[] {
+  if (rule('disease-mode') === 'off' || c.dead) return [];
+  return (c.diseaseExposure ?? []).flatMap((exp) => {
+    const def = diseaseDefs()[exp.disease];
+    return def && contractionDue(c, def.id) ? [{
+      entry: 'contagion' as const,
+      disease: def.id,
+      difficulty: easeDifficulty(def.contractDifficulty, exp.difficultyShift ?? 0),
+      label: stepPrecision(tr('step.contagion'), diseaseLabel(def.id)),
+      ...(exp.instant ? { instant: true } : {}),
+    }] : [];
+  });
+}
+
+/** HORS COMBAT, les expositions des héros `ids` (op `exposeDisease`) se résolvent tout de suite : une bande de
+ *  Tests de Contraction par maladie et difficulté, même applier que le bilan de combat ; les marqueurs sont
+ *  consommés. LDB 20 l.25/51 */
+export function ouvrirLesContagions(get: Get, set: SetFn, ids: readonly string[]): void {
+  const exposes = get().party.filter((h) => ids.includes(h.id) && h.diseaseExposure?.length);
+  if (!exposes.length) return;
+  const bandes = new Map<string, { test: CombatEndDiseaseTest; porteurs: Combatant[] }>();
+  for (const h of exposes) {
+    for (const d of contagionsDues(h)) {
+      const cle = `${d.disease}|${d.difficulty}|${d.instant ? 'instant' : ''}`;
+      const bande = bandes.get(cle) ?? { test: d, porteurs: [] };
+      bande.porteurs.push(h);
+      bandes.set(cle, bande);
+    }
+  }
+  set((s) => ecrireActeur(s, exposes.map((h) => h.id), (h) => ({ ...h, diseaseExposure: undefined })));
+  for (const { test, porteurs } of bandes.values()) {
+    ouvrirLaBandeDeContraction(get, set, porteurs, test, test.label);
+  }
 }
 
 /** Pire Degré d'EXPOSITION à la Corruption des créatures affrontées (LDB 85 l.87 → LDB 19), désigné par
@@ -6853,12 +6880,20 @@ function bandeDeFinDeCombat(
  *  + auto-succès Résistance (Menace : Maladie) offerts, jamais un jet silencieux. `combatEndResistVal`
  *  fige la Résistance. Une bande d'UN porteur — la forme est celle de l'applier, pas celle du nombre. */
 export function openContractionCascade(get: Get, set: SetFn, patient: Combatant, disease: string, difficulty: Difficulty, title: string): void {
+  ouvrirLaBandeDeContraction(get, set, [patient], { entry: 'chirurgie', disease, difficulty }, title);
+}
+
+/** Ouvre HORS COMBAT une bande de Tests de Contraction de `disease` pour `porteurs` (applier `combatEndDisease`). */
+function ouvrirLaBandeDeContraction(
+  get: Get, set: SetFn, porteurs: readonly Combatant[], test: Pick<CombatEndDiseaseTest, 'entry' | 'disease' | 'difficulty' | 'instant'>, title: string,
+): void {
+  const { entry, disease, difficulty, instant } = test;
   openBand(get, set, {
-    id: `infection-${patient.id}-${disease}`, kind: 'combatEndDisease', icon: 'medical/infection',
-    label: dataLabel(title), menace: 'maladie', meta: { entry: 'chirurgie', disease },
+    id: `infection-${porteurs.map((p) => p.id).join('-')}-${entry}-${disease}`, kind: 'combatEndDisease', icon: 'medical/infection',
+    label: dataLabel(title), menace: 'maladie', meta: { entry, disease, ...(instant ? { instant: true } : {}) },
     stake: combatStakeRef('combatEndDisease', { entryId: disease }),
     difficulty,
-    porteurs: [{ actor: patient, ligne: { valeur: combatEndResistVal(patient), surLaCible: conditionModLines(patient, { skill: 'resistance', disease }) }, label: 'Résistance', menace: 'maladie' }],
+    porteurs: porteurs.map((p) => ({ actor: p, ligne: { valeur: combatEndResistVal(p), surLaCible: conditionModLines(p, { skill: 'resistance', disease }) }, label: 'Résistance', menace: 'maladie' as const })),
     title, purpose: 'test',
   });
 }
@@ -6997,9 +7032,9 @@ function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleSta
       return battle.combatants.some((c) => c.kind === kind && !c.inert && !isOutOfAction(c) && c.pos && inRect(c.pos, vc.rect));
     }
     case 'woundsThreshold': {
+      if (vc.targetId === undefined) return !enemiesAlive;
       const target = inBattleId(battle, vc.targetId);
-      if (!target?.wounds || target.wounds.max <= 0) return false;
-      return target.wounds.current / target.wounds.max < vc.belowPercent / 100;
+      return !!target && auSeuilDeBlessures(target, vc.atOrBelowPercent);
     }
     case 'firstBlood':
       // Les DEUX fins du RAW restent actives en parallèle (NADJ 06 l.175-177) : premier sang — marqué
@@ -7010,19 +7045,29 @@ function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleSta
   }
 }
 
-/** REDDITION (#215) — sweep de `checkBattleOver` pour un objectif `woundsThreshold` : dès que la
- *  cible passe SOUS le seuil, elle sort du combat (`outOfRencontre`, même mécanisme que la coque
- *  PRISE de `resolveShipUnits` — kind-agnostique, aucun 2e flag de sortie de combat) et le journal
- *  reçoit une ligne de reddition. Idempotent (`outOfRencontre` déjà posé → no-op) ; muet si la cible
- *  est déjà hors d'action (mort/coulée) — `isOutOfAction` couvre alors seule la fin de rencontre. */
+/** `c` est-il à `pct` % de ses Blessures de départ OU MOINS ? MDG 15 l.143, l.166-168 */
+const auSeuilDeBlessures = (c: Combatant, pct: number): boolean => !!c.wounds && c.wounds.max > 0 && c.wounds.current * 100 <= c.wounds.max * pct;
+
+/** SORTIE À SEUIL (#215) — sweep de `checkBattleOver` pour un objectif `woundsThreshold` : dès qu'une
+ *  cible (la `targetId`, sinon chaque adversaire) atteint le seuil, elle sort du combat (`outOfRencontre`,
+ *  même mécanisme que la coque PRISE de `resolveShipUnits` — aucun 2e flag de sortie de combat) : un
+ *  navire amène son pavillon, une créature est repoussée. Idempotent (`outOfRencontre` déjà posé → no-op) ;
+ *  muet sur une cible déjà hors d'action (mort/coulée) — `isOutOfAction` couvre alors seule la fin de
+ *  rencontre. MDG 15 l.143, l.166-168 */
 function resolveSurrenderThreshold(battle: BattleState, vc: VictoryCondition | undefined): string[] {
   if (vc?.type !== 'woundsThreshold') return [];
-  const target = inBattleId(battle, vc.targetId);
-  if (!target?.wounds || target.wounds.max <= 0 || isOutOfAction(target)) return [];
-  if (target.wounds.current / target.wounds.max >= vc.belowPercent / 100) return [];
-  target.outOfRencontre = true;
-  target.exitReason = 'reddition'; // #237 : pavillon amené, lu « rendu » (endState)
-  return [tr('cf.surrender', { name: target.label })];
+  const cibles = vc.targetId === undefined
+    ? battle.combatants.filter((c) => c.kind === 'enemy' && !c.inert)
+    : [inBattleId(battle, vc.targetId)].filter((c): c is Combatant => !!c);
+  return cibles.filter((c) => !isOutOfAction(c) && auSeuilDeBlessures(c, vc.atOrBelowPercent)).map((c) => {
+    c.outOfRencontre = true;
+    if (estNavire(c)) {
+      c.exitReason = 'reddition'; // #237 : pavillon amené, lu « rendu » (endState)
+      return tr('cf.surrender', { name: c.label });
+    }
+    c.exitReason = 'repousse';
+    return tr('cf.repousse', { name: c.label });
+  });
 }
 
 /** DUEL JUDICIAIRE — premier sang (#471, NADJ 06 l.175-177) : « le premier sang est la première
@@ -7059,6 +7104,13 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
   // Navires comme UNITÉS (MDG 13-14) : une coque COULÉE emporte son équipage par-dessus bord, une coque
   // sans équipage en état est PRISE et sort du combat — les deux voies de victoire navale (naufrage OU
   // abordage) convergent ici (kind-agnostique, sweep centralisé comme le désarçonnement ci-dessus).
+  // Vagues d'abordage (MDG 15 l.150, l.171) : la réserve d'une coque monte AVANT que la coque soit déclarée prise.
+  const vagues = scene ? monterLesVagues(battle, scene) : [];
+  if (vagues.length) {
+    battle.log = [...battle.log, ...evLines(vagues, 'detail')]; // en place : les journaux de cette passe la suivent
+    set({ battle: { ...battle } });
+    bus.emit(EVT.SCENE_DIRTY);
+  }
   const navalResolved = resolveShipUnits(battle.combatants);
   if (navalResolved.length) {
     set({ battle: { ...battle, log: [...battle.log, ...evLines(navalResolved, 'detail')] } });

@@ -23,7 +23,6 @@ import { ActivityPane, idBlocage } from './ActivityPane';
 import { MedicModal } from './MedicModal';
 import { MerchantPanelView } from './MerchantPanel';
 import { ShoreLeaveBody } from './ShoreLeaveModal';
-import { ManannBody } from './ManannPriestModal';
 import { CouncilModal } from './CouncilModal';
 import { RenounceModal } from './RenounceModal';
 import { findMoraleFactor } from '../engine/crewMorale';
@@ -156,7 +155,7 @@ const vessel: CampaignVessel = { vehicleId: 'cogue', label: 'Le Cormoran', moral
 const initialNet = useGame.getInitialState().net;
 afterEach(() => {
   Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
-    pendingShoreLeave: null, pendingManannPriest: null, pendingCouncil: null, pendingRenounce: null, vessel: null, net: initialNet,
+    pendingShoreLeave: null, pendingCouncil: null, pendingRenounce: null, vessel: null, net: initialNet,
     medic: null, party: [], pendingHeal: null, pendingSurgery: null,
   });
 });
@@ -166,7 +165,7 @@ describe('#1689 T2 — écrans migrés', () => {
     const html = renderToStaticMarkup(
       <EscaleTab
         vessel={vessel} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })}
-        pendingShoreLeave={null} pendingManannPriest={null}
+        pendingShoreLeave={null}
         onHire={() => {}} onDismiss={() => {}}
       />,
     );
@@ -247,16 +246,6 @@ describe('#1689 T2 — écrans migrés', () => {
     const html = renderToStaticMarkup(<ShoreLeaveBody />);
     attendRefusAtteignable(html, 'Accorder la relâche', t('choix.refus.hoteSeul'));
     attendRefusAtteignable(html, 'Refuser la relâche', t('choix.refus.hoteSeul'));
-  });
-
-  it('PRÊTRE DE MANANN : payer et refuser portent, chez l’invité, le refus du noyau', () => {
-    Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
-      pendingManannPriest: { cost: { gold: 3, silver: 0, brass: 0 } },
-      net: { ...initialNet, mode: 'guest' },
-    });
-    const html = renderToStaticMarkup(<ManannBody />);
-    attendRefusAtteignable(html, 'Payer', t('choix.refus.hoteSeul'));
-    attendRefusAtteignable(html, 'Refuser', t('choix.refus.hoteSeul'));
   });
 
   it('CONSEIL DE BORD : chaque paie porte, chez l’invité, le refus du noyau', () => {

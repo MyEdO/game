@@ -19,7 +19,6 @@ import type { BillboardPropEl } from '../builders/types';
 import { exploreMovePlan, exploreSeatPlan } from '../../noyau/monde/exploreNav';
 import { offresUtilisables } from '../../state/offresUtilisables';
 import { useGame } from '../../state/store';
-import { props } from '../../data';
 import { bus, EVT } from '../../noyau/bus';
 import type { Combatant } from '../../engine/types';
 import type { BattleState } from '../../noyau/etat';
@@ -31,6 +30,7 @@ import { setSpritePicker } from './spritePicker';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw, resetStageYaw } from '../../state/stageYaw';
 import { getStagePan, resetStagePan } from '../../state/stagePan';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
+import { REF_HORS_CATALOGUE } from '../../noyau/monde/volume/decorVolumique.testkit';
 
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -45,9 +45,8 @@ beforeEach(() => {
 
 const dims: Dims = { w: 8, h: 8, rot: 0, view: 'iso' };
 
-/** Un décor encore BILLBOARD, DÉRIVÉ du catalogue : la vague volumique (#1343) convertit les refs lot
- *  par lot — une ref écrite en dur ferait rougir cette garde le jour de SA recette. */
-const REF_BILLBOARD = props.find((p) => !p.volume)!.id;
+/** Un décor servi en BILLBOARD : seul le repli d'ERREUR d'une ref hors catalogue en pose un (#877, #3198). */
+const REF_BILLBOARD = REF_HORS_CATALOGUE;
 
 /** Élément de stage MESURÉ : sa surface vaut exactement le viewBox (VW×VH) posé au coin (0,0) — le
  *  recouvrement `slice` y vaut donc 1, et un pixel client EST un point de viewBox. C'est le contrat
@@ -1454,13 +1453,6 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     expect(picker).toHaveBeenCalled();
   });
 
-  it('le filet des fixtures billboard tient encore : au moins deux refs SANS recette au catalogue', () => {
-    expect(
-      props.filter((p) => !p.volume).length,
-      'la phase 4 de #1343 (mort du chemin billboard des props) fera tomber ce filet EXPRÈS : ces fixtures '
-      + 'devront alors être reformulées — il n’y aura plus de décor billboard à témoin.',
-    ).toBeGreaterThanOrEqual(2);
-  });
 });
 
 /**

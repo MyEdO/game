@@ -33,6 +33,10 @@
 //   relais ; en tactique, D tenue fait glisser la caméra, Origine la ramène au groupe ; la touche V passe du regard
 //   tactique au plateau, puis à l'immersion ; en immersion, une touche de marche
 //   tenue (Z, Q, S ou D) mène le groupe à une case voisine, que le noyau a jouée ; V rend la tactique.
+// - `meteo` (`--scenario voyage`, #3625) : le village sous la pluie ; en tactique, des averses tombent dans le monde ; au
+//   plateau, rien ne tombe ; en immersion, la pluie tombe autour de l'œil.
+// - `brume` (`--scenario brouillard`, #3625) : la clairière sous le brouillard ; en tactique, les nappes de la donnée ;
+//   en immersion, aucune nappe et la brume de profondeur part de l'œil, plus serrée.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
 //   réponse cliquée : l'interlocuteur suivant prend la parole.
@@ -80,22 +84,26 @@
 //   copie, « Source de lumière » l'allume à 6 m, « Rayon +1 m » la porte à 7 m. L'outil Emplacement de siège, un clic sur
 //   une case libre y pose le premier engin, nommé comme lui ; « Droite (tribord) » fixe son créneau. L'outil Sélection,
 //   un clic sur une case libre vide la sélection. L'outil Zone, une pièce tirée de deux cases sur deux, nommée et munie de
-//   sa poignée ; l'outil Sélection, la poignée glissée l'agrandit, « Supprimer » la retire. L'outil Architecture, un clic
-//   sur une case libre puis « Nouveau corps » y pose un corps, dont l'inspecteur dit la toiture ; « Poser une façade »,
-//   un clic sur le côté nord de la case y pose une façade, « Ajouter une ouverture » lui en donne une ; « Tirer une
-//   exclusion de toiture », un rectangle tiré à côté l'ajoute au corps ; un clic sur la case puis « Nouvelle masse de
-//   toiture » y pose une masse, que « +1 » monte à deux niveaux.
+//   sa poignée ; l'outil Sélection, la poignée glissée l'agrandit ; à son inspecteur (#3606), « Ajouter : Test de
+//   traversée », la difficulté choisie en liste et « sans assistance » au clic ; « Supprimer » la retire. L'outil
+//   Architecture, un clic sur une case libre puis « Nouveau corps » y pose un corps, dont l'inspecteur dit la toiture ;
+//   « Poser une façade », un clic sur le côté nord de la case y pose une façade, « Ajouter une ouverture » lui en donne
+//   une ; « Tirer une exclusion de toiture », un rectangle tiré à côté l'ajoute au corps ; un clic sur la case puis
+//   « Nouvelle masse de toiture » y pose une masse, que « +1 » monte à deux niveaux. L'outil Sélection, un clic sur la
+//   case voisine du décor choisit le déclencheur qui la couvre : à son inspecteur, sa condition « TOUS (ET) » choisie en
+//   liste, puis « Ajouter » lui donne une condition dans son contenu ; « Annuler » deux fois la retire.
 //   « Charger une planche… » ouvre le choix d'un fichier de la page, que la recette remplit d'une planche quadrillée : le
 //   calque se pose sur toute la carte ; « Caler par deux points », puis le centre d'une case comme premier point de
 //   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
 //   huit plus loin comme son nœud : la planche s'étire du double, son échelle dite en pixels par case moitié de celle
 //   d'avant.
 //   « Couche 1 » édite l'étage, sans calque. À l'ouverture, sans sélection, l'inspecteur est celui de la scène : « +15° »
-//   tourne son nord, « Annuler » le rend au haut du plan. « Nouvelle scène » l'ajoute au projet, « Retirer la scène »
+//   tourne son nord, « Annuler » le rend au haut du plan ; son message de départ tapé au clavier sur deux lignes (#3606),
+//   « Écrire le message de départ » le pose, « Annuler » le retire. « Nouvelle scène » l'ajoute au projet, « Retirer la scène »
 //   rend la précédente. Une seconde « Nouvelle scène » reçoit, dans un bloc de cases à l'écran, les ouvrages de la
 //   Diligence : une couche ajoutée, un palier peint en Dallage à 4 m ; douze côtés en Mur à ossature en bois autour de
 //   trois cases sur trois, une porte au nord, une fenêtre au sud ; la pièce tirée sur elles ; un corps, son étage, une
-//   façade au nord et son ouverture ; une volée de quatre cases tirée vers le palier, posée ; un décor tourné au nord-est,
+//   façade au nord et son ouverture ; une volée de quatre cases tirée vers le palier, posée ; un décor tourné à l’est,
 //   un départ, un déclencheur tiré : la validation ne dit aucune erreur. « Enregistrer » écrit au dépôt la scène et
 //   chacun de ces ouvrages ; « Tester la scène » ouvre le combat sur elle.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
@@ -152,7 +160,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|fiche|inventaire|creation|editeur|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|brume|fiche|inventaire|creation|editeur|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -594,6 +602,67 @@ async function parcoursRegards() {
   noter('V : la tactique, à la suite du groupe')
   await sleep(600)
   await capturer('3476-v4-tactique-suivie')
+}
+
+async function parcoursMeteo() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const meteo = async () => JSON.parse(await evaluate(session, "wfrpPont.appeler('monde')")).meteo
+  const particules = (m) => (m?.pluie?.averses ?? []).reduce((n, a) => n + a.nombre, 0)
+  let m = await meteo()
+  assert.ok(particules(m) > 0, `en tactique, la pluie tombe : ${JSON.stringify(m)?.slice(0, 200)}`)
+  noter(`tactique : ${m.pluie.averses.length} averses, ${particules(m)} particules`)
+  await sleep(1500)
+  await capturer('3625-m1-tactique-pluie')
+  const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
+  await realKey(session, V)
+  await attendreLaVue("v.plateau.regard === 'plateau'")
+  m = await meteo()
+  assert.equal(m.pluie, null, 'au plateau, rien ne tombe')
+  noter('plateau : rien ne tombe')
+  await realKey(session, V)
+  await attendreLaVue("v.plateau.regard === 'immersion'")
+  assert.ok(particules(await meteo()) > 0, 'en immersion, la pluie tombe')
+  await sleep(1500)
+  await capturer('3625-m2-immersion-pluie')
+  noter('immersion : la pluie tombe autour de l’œil')
+}
+
+async function parcoursBrume() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const meteo = async () => JSON.parse(await evaluate(session, "wfrpPont.appeler('monde')")).meteo
+  let m = await meteo()
+  assert.ok(m.nappes.length > 0 && m.pluie === null, `en tactique, les nappes du brouillard, rien ne tombe : ${JSON.stringify(m)?.slice(0, 200)}`)
+  const loin = v.lumiere.brume.finCases
+  noter(`tactique : ${m.nappes.length} nappes (${m.nappes.map((n) => n.alpha).join(', ')}), brume de profondeur à ${loin} cases du point visé`)
+  await capturer('3625-b1-tactique-nappes')
+  const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
+  for (const regard of ['plateau', 'immersion']) {
+    await realKey(session, V)
+    await attendreLaVue(`v.plateau.regard === '${regard}'`)
+  }
+  v = await vue()
+  m = await meteo()
+  assert.equal(m.nappes.length, 0, 'en immersion, aucune nappe')
+  assert.ok(v.lumiere.brume.depuisLOeil && v.lumiere.brume.finCases < loin, `en immersion, la brume part de l’œil, plus serrée : ${JSON.stringify(v.lumiere.brume)}`)
+  noter(`immersion : brume depuis l’œil, de ${v.lumiere.brume.debutCases} à ${v.lumiere.brume.finCases} cases`)
+  await sleep(600)
+  await capturer('3625-b2-immersion-brume')
 }
 
 async function parcoursDialogue() {
@@ -1116,8 +1185,8 @@ async function parcoursEditeur() {
   }
   /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
    *  ouverte d'un clic, qui n'y place aucun article, la flèche descendue du premier jusqu'à elle, puis Entrée. */
-  const choisirALaListe = async (liste, id) => {
-    const libelle = (await editeur()).zones['editeur.options'].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
+  const choisirALaListe = async (liste, id, zone = 'editeur.options') => {
+    const libelle = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
     const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
     const rang = deroulante.choix.indexOf(libelle)
     assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
@@ -1126,7 +1195,7 @@ async function parcoursEditeur() {
     for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
     await marquer()
     await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.options'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
   }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
@@ -1142,9 +1211,33 @@ async function parcoursEditeur() {
   await capturer('3508-l6-1-scene')
   await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : vers le haut du plan'`)
+  noter('« Annuler » : le nord rendu au haut du plan')
+  const message = 'Au relais\nEn route'
+  const champDuMessage = async () => (await ecran()).saisies.find((x) => x.element === 'saisieMultiligne/introduire/texte')
+  for (let n = 0; !((await champDuMessage())?.y <= 480); n++) {
+    assert.ok(n < 20, 'le champ du message de départ amené par la molette au milieu du panneau')
+    await molette(session, { surface: 'canvas', x: 160, y: 400 }, 100)
+    await sleep(250)
+  }
+  const champMessage = await champDuMessage()
+  assert.equal(champMessage.texte, '', 'la Diligence n’a pas de message de départ')
+  await geste(session, { surface: 'canvas', x: champMessage.x, y: champMessage.y }, { qui: 'le champ du message de départ' }, clic())
+  for (const lettre of message) {
+    await realKey(session, lettre === '\n' ? { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 }
+      : lettre === ' ' ? { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 }
+        : { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
+  }
+  await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === 'saisieMultiligne/introduire/texte')?.texte === ${JSON.stringify(message)}`)
+  await cliquerAuPanneau({ element: 'formulaire/introduire' })
+  const valeurDuMessage = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'introduire')?.champs[0].valeur`
+  await waitFor(session, `${valeurDuMessage} === ${JSON.stringify(message)}`)
+  noter(`inspecteur de la scène, le message de départ tapé sur deux lignes, « ${(await editeur()).zones['editeur.inspecteur'].find((l) => l.id === 'introduire').libelle} » : ${JSON.stringify(message)}`)
+  await capturer('3606-m0c-1-message-de-depart')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `${valeurDuMessage} === ''`)
+  noter('« Annuler » : la scène rendue sans message de départ')
   for (let n = 0; n < 20; n++) await molette(session, { surface: 'canvas', x: 160, y: 400 }, -100)
   e = await editeur()
-  noter('« Annuler » : le nord rendu au haut du plan')
   for (const id of ['outil/height', 'hauteur/haute', 'pinceau/3']) {
     await cliquerAuPanneau({ element: `bouton/${id}` })
     assert.equal(boutonDeLEditeur(await editeur(), id)?.presse, true, `${id} choisi à son bouton`)
@@ -1330,6 +1423,19 @@ async function parcoursEditeur() {
   e = await editeur()
   noter(`outil Sélection, la poignée glissée de deux cases à l’est : ${e.zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)
   await capturer('3508-l4-2-piece-agrandie')
+  await cliquerAuPanneau({ element: 'bouton/valeur/crossTest/ajouter' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/crossTest/difficulty')`)
+  /** L'id du bouton qui joue la valeur `valeur` du choix `choix` de l'inspecteur (`{ type: 'valeur', args: [porteur, chemin, valeur] }`). */
+  const idDeLaValeur = (e, choix, valeur) => inspecte(e, choix).valeurs.find((b) => b.jeu.args[2] === valeur).id
+  e = await editeur()
+  await choisirALaListe('valeur/crossTest/difficulty', idDeLaValeur(e, 'valeur/crossTest/difficulty', 'difficile'), 'editeur.inspecteur')
+  const sansSoutien = idDeLaValeur(e, 'valeur/crossTest/noSupport', true)
+  await cliquerAuPanneau({ element: `bouton/${sansSoutien}` })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/crossTest/noSupport')?.valeurs.find((b) => b.id === '${sansSoutien}')?.presse === true`)
+  e = await editeur()
+  const difficulte = inspecte(e, 'valeur/crossTest/difficulty').valeurs.find((b) => b.presse).libelle
+  noter(`« Ajouter Test de traversée », difficulté « ${difficulte} », soutien refusé : ${e.zones['editeur.validation'][0].texte}`)
+  await capturer('3606-m0a-1-test-de-traversee')
   await cliquerAuPanneau({ element: 'bouton/zone/supprimer' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur?.surcouche.zones.some((z) => z.choisi)')
   noter('« Supprimer » : la pièce retirée')
@@ -1368,6 +1474,19 @@ async function parcoursEditeur() {
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
   await waitFor(session, '(globalThis.wfrpEcran?.editeur?.zones["editeur.pointee"] ?? []).some((l) => l.id === "zone")')
   noter(`outil Sélection, un clic sur la case ${dx + 1}, ${dy} : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/kind')`)
+  e = await editeur()
+  await choisirALaListe('valeur/when/kind', inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.libelle === 'TOUS (ET)').id, 'editeur.inspecteur')
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/of/ajouter')`)
+  await cliquerAuPanneau({ element: 'bouton/valeur/when/of/ajouter' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/of/0/kind')`)
+  e = await editeur()
+  const sousCondition = inspecte(e, 'valeur/when/of/0/kind').valeurs.find((b) => b.presse)?.libelle
+  noter(`à l’inspecteur du déclencheur, la condition « ${inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.presse).libelle} », puis « Ajouter » : une condition « ${sousCondition} » dans son contenu`)
+  await capturer('3606-m0b-1-condition-du-declencheur')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/when/of'))`)
   const planche = join(depot, 'planche.png')
   ecrirePlanche(planche)
   await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
@@ -1508,7 +1627,7 @@ async function parcoursEditeur() {
   await cliquerLaCase(5, 4)
   await presserTour('outil/select')
   await cliquerLaCase(5, 4)
-  await presserTour('entite/cap/NE')
+  await presserTour('entite/cap/E')
   await presserTour('outil/heroStart')
   await cliquerLaCase(3, 5)
   await presserTour('outil/zone', 'zone/trigger')
@@ -1517,7 +1636,7 @@ async function parcoursEditeur() {
   e = await editeur()
   const validation = e.zones['editeur.validation'][0].texte
   assert.match(validation, /^Validation : 0 erreur\(s\)/, 'la scène bâtie ne porte aucune erreur')
-  noter(`un décor tourné au nord-est, un départ, un déclencheur tiré sur trois cases sur trois : ${validation}`)
+  noter(`un décor tourné à l’est, un départ, un déclencheur tiré sur trois cases sur trois : ${validation}`)
   await capturer('3508-l7-1-batie')
   const avantLeBati = lus()
   await cliquerAuPanneau({ element: 'bouton/enregistrer' })
@@ -1534,7 +1653,7 @@ async function parcoursEditeur() {
   assert.deepEqual(batie.architecture[0].storeys.map((st) => st.z), [0, 1], 'un corps de deux étages')
   assert.equal(batie.architecture[0].facades.flatMap((f) => f.features ?? []).length, 1, 'une façade et son ouverture')
   assert.deepEqual(batie.effectZones.map((z) => [z.presentation, z.area]), [['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]], 'la pièce')
-  assert.deepEqual(batie.entities.map((en) => [en.kind, en.pos, en.facing]), [['prop', ici(5, 4), 'NE'], ['heroStart', ici(3, 5), undefined]], 'le décor tourné, le départ')
+  assert.deepEqual(batie.entities.map((en) => [en.kind, en.pos, en.facing]), [['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]], 'le décor tourné, le départ')
   assert.deepEqual(batie.triggers.map((tr) => [tr.rect, tr.flow]), [[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]], 'le déclencheur, au flux vide')
   noter(`« Enregistrer » : ${MANUSCRITS[ecrit]} porte la scène ${batie.id} : ${batie.layers.length} couches, ${batie.walls.length} arêtes, ${batie.architecture[0].storeys.length} étages, ${batie.effectZones.length} pièce, ${batie.entities.length} entités, ${batie.triggers.length} déclencheur`)
   await cliquerAuPanneau({ element: 'bouton/tester' })
@@ -2174,7 +2293,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

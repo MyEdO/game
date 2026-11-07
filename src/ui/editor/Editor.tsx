@@ -4,7 +4,6 @@ import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scen
 import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, dupliquerLEntite, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
 import { placeStairFlight } from '../../noyau/stairFlight';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../../noyau/validateScene';
-import { idsDesPistesDeMusique } from '../../audio/music';
 import { planDefectKey, planFocusAt, planFocusTiles } from '../../noyau/planDefects';
 import { testScene } from '../../scenes/test-fixture';
 import { creatures, premierOffert } from '../../data';
@@ -562,7 +561,7 @@ export function Editor({
 
   // Avertissements de LA scène éditée + ceux de la carte du monde.
   const warnings = useMemo(
-    () => validateScene(scenesDuProjet, worldMap, narratif, idsDesPistesDeMusique())
+    () => validateScene(scenesDuProjet, worldMap, narratif)
       .filter((w) => w.sceneId === scene.id || w.scope === 'worldMap'),
     [scenesDuProjet, scene.id, worldMap, narratif],
   );
@@ -603,8 +602,7 @@ export function Editor({
       if (scene.layers.some((layer) => layer.z === at.z)) setCurrentLayer(at.z);
       setTool({ mode: 'select' });
       if (at.kind === 'zone') {
-        const idx = (scene.effectZones ?? []).findIndex((z) => z.id === at.zoneId);
-        if (idx >= 0) setSel({ type: 'effectZone', idx });
+        if (scene.effectZones?.some((z) => z.id === at.zoneId)) setSel({ type: 'effectZone', id: at.zoneId });
       }
       return;
     }

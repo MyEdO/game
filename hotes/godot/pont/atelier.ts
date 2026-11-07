@@ -113,7 +113,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     const pieces = deLaBase.filter(estUnePiece);
     glb[id] = fichiersDuModele(id).glb;
     surfaces[id] = m.surfaces ?? [];
-    const osDesPrises = Object.values(m.prises).map((a) => a.os);
+    const osDesPrises = Object.values(m.prises ?? {}).map((a) => a.os);
     const pointsDe = (genre: PointDAccroche['genre'], attaches: Readonly<Record<string, Attache>>): PointDAccroche[] =>
       Object.entries(attaches).map(([pointId, attache]) => {
         const pendA = (e: EntreeDeModele, porteurs: readonly string[]) => (osDesRigides[e.id] ?? []).some((os) => porteurs.includes(os));
@@ -124,7 +124,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
         const offert = genre === 'prise' ? (e: EntreeDeModele) => pendA(e, osDesPrises) : (e: EntreeDeModele) => pendA(e, [attache.os]) || seRangeIci(e);
         return { id: pointId, label: libelleDuPoint(pointId, genre), genre, attache, elements: servir(objets.filter(offert)) };
       });
-    const points = [...pointsDe('emplacement', m.emplacements), ...pointsDe('prise', m.prises)];
+    const points = [...pointsDe('emplacement', m.emplacements), ...pointsDe('prise', m.prises ?? {})];
     const choix = (idDeChoix: string, label: string, porte: (e: EntreeDeModele) => boolean): ChoixDeLigne => ({ id: idDeChoix, label, elements: servir(pieces.filter(porte)) });
     const racineDe = (e: EntreeDeModele) => {
       const piece = cleDe(e.brut).piece;

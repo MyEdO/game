@@ -170,28 +170,25 @@ describe('#3059 — siège invité : les dépenses du chantier disent le refus d
   });
 });
 
-describe('#3059 — siège invité : vente, bradage, Conseil et Prêtre de Manann disent le refus de groupe', () => {
-  it('vente et bradage au port, paie du Conseil, bénédiction de Manann : refusés, rien ne bouge', () => {
+describe('#3059 — siège invité : vente, bradage et Conseil disent le refus de groupe', () => {
+  it('vente et bradage au port, paie du Conseil : refusés, rien ne bouge', () => {
     const lot = { uid: 'lot-2', cargoId: 'bois-mer', enc: 10, basePriceGold: 10 };
     const port = { taille: 4, richesse: 4, production: [] as string[] } as never;
     const partie = aQuai(navire({ cargo: [lot] }), { gold: 500, silver: 0, brass: 0 }, 'guest', {
       port: { placeId: 'P', label: 'Port', port, offers: [] },
       pendingCouncil: { today: 7, wageBrass: 240, phase: 'choix' },
-      pendingManannPriest: { cost: { gold: 3, silver: 0, brass: 0 } },
     });
     try {
       const avant = bourseDuGroupe(partie);
       partie.envoyer({ type: 'vendreLaCargaison', args: ['lot-2'] });
       partie.envoyer({ type: 'jeterLaCargaison', args: ['lot-2'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['council', 'paie', 'paie-reguliere'] });
-      partie.envoyer({ type: 'fenetreChoisir', args: ['manannPriest', 'payer', true] });
       const s = partie.etat();
       expect(s.vessel!.cargo).toEqual([lot]);
       expect(bourseDuGroupe(partie)).toBe(avant);
       expect(s.pendingCouncil?.phase).toBe('choix');
-      expect(s.pendingManannPriest).not.toBeNull();
       expect(s.journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length, 'vente et bradage').toBe(2);
-      expect(s.journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length, 'paie et bénédiction').toBe(2);
+      expect(s.journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length, 'paie').toBe(1);
     } finally {
       partie.fermer();
     }

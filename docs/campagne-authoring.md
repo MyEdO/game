@@ -153,7 +153,7 @@ pour les scènes de TRAVERSÉE ; réserver le modèle navire-unité au jour où 
 
 Six formes (`VictoryCondition`, `src/noyau/monde/scene.ts`), défaut `allEnemiesDead` :
 `allEnemiesDead` · `destroyStructure` (arête) · `surviveRounds` · `reachZone` (rect) · `woundsThreshold`
-(reddition d'une cible sous `belowPercent` de ses Blessures) · `firstBlood` (fin de rencontre au premier
+(une cible à `atOrBelowPercent` % de ses Blessures ou moins sort du combat ; sans `targetId`, chaque adversaire) · `firstBlood` (fin de rencontre au premier
 sang — la première cible neutralisée clôt le combat, `threshold?` = seuil de Blessures ; le tir est banni
 par défaut, duel). `onVictory` = un `Flow` (aplati en Effets).
 

@@ -9,7 +9,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LancementDeScenario, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, meteoDuRegard, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LancementDeScenario, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -21,7 +21,7 @@ import { composerSurLaBase, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
-import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
+import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
@@ -192,7 +192,7 @@ export function creerPont() {
       zones: zonesDeLEcran(etat, projection, fenetre, o.fiche, o.creation),
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null,
-      lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }) : null,
+      lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regardDuJeu(o.regard, !!etat.battle)) : null,
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
       occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]},${c.pos[2]}`, c.id]] : []))),
     };
@@ -256,7 +256,8 @@ export function creerPont() {
       const o = demarree();
       const etat = o.partie.etat();
       const scene = etat.scene;
-      return { monde: scene ? volumeDuRegard(scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDuMonde(scene) : [] };
+      const regard = regardDuJeu(o.regard, !!etat.battle);
+      return { monde: scene ? volumeDuRegard(scene, casesDuGroupe(etat), regard) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDuMonde(scene) : [], meteo: scene ? meteoDuRegard(scene, regard) : null };
     },
     jouer(json) {
       const o = demarree();
@@ -360,7 +361,7 @@ export function creerPont() {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = edition!.session;
         const nomme = 'type' in e ? gesteDuFormulaire(zonesDeLEditeur(s), e) : undefined;
-        if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] }');
+        if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
         else if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
         else if (!estUnGesteDuPointeur(e.edition)) {
@@ -369,6 +370,8 @@ export function creerPont() {
           if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
         }
         const geste = nomme ?? (e.edition as GesteDEdition);
+        const refusDeValeur = geste.geste === 'valeur' ? refusDeLaValeurDit(s, geste) : null;
+        if (refusDeValeur) throw new ErreurDeGeste('regle', `editer : ${refusDeValeur}`);
         if (geste.geste === 'enregistrer') {
           const passe = texteAEnregistrer(s);
           if (!passe.ok) throw new ErreurDeGeste('regle', `editer : ${passe.refus}`);

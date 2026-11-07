@@ -143,6 +143,14 @@ export function drainGroup(get: Get, set: Set, cost: Money): void {
   payWithAllocation(get, set, { debits, purpose: 'perte' });
 }
 
+/** MOUVEMENT de la BOURSE DU GROUPE de `brass` sous de cuivre, sans bénéficiaire unique : un gain se répartit
+ *  par tête (`distributeCredit`), une perte se draine (`drainGroup`, plafonnée). Couture unique de l'Effet
+ *  `giveMoney` et de l'op `money` à `groupe`. */
+export function mouvementDeLaBourseDuGroupe(get: Get, set: Set, brass: number): void {
+  if (brass > 0) distributeCredit(get, set, fromBrass(brass));
+  else if (brass < 0) drainGroup(get, set, fromBrass(-brass));
+}
+
 /** Crédite une somme, répartie par `allocation` (héros→montant) — défaut : PAR TÊTE (`perHead`), reste
  *  au doyen. Miroir crédit de `payWithAllocation`. No-op si le groupe est vide. */
 export function distributeCredit(get: Get, set: Set, m: Money, allocation?: Record<string, Money>): void {

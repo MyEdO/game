@@ -142,7 +142,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#progression-schemas.derived', ref: '.schemas[]', occurrence: 1 },
   { fichier: 'src/data#progression-schemas.derived', ref: '.schemas[].lv', occurrence: 1 },
   { fichier: 'src/data#progression-schemas.derived', ref: '.schemas[].lv.1[]', occurrence: 1 },
-  { fichier: 'src/data#props', ref: '[].foot', occurrence: 1 },
   { fichier: 'src/data#props', ref: '[].light', occurrence: 1 },
   { fichier: 'src/data#props', ref: '[].seatSlots[]', occurrence: 1 },
   { fichier: 'src/data#props', ref: '[].seatSlots[].anchor', occurrence: 1 },

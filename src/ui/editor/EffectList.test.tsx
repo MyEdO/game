@@ -426,9 +426,16 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
     expect(effectSummary(f, ctxDeCatalogue('maladie'))).toMatch(/^Le malade : /);
   });
 
-  it('racine SCÈNE : quatre options, groupe, héros, navire et rôle d’équipage', () => {
+  it('racine SCÈNE : six options, groupe, héros, navire, rôle d’équipage, membre au hasard et volontaires', () => {
     const [sel] = selectsDeCible(monte({ type: 'ops', on: 'party', ops: [] }, 'scene'));
-    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['party', 'hero', 'navire', 'role']);
+    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['party', 'hero', 'navire', 'role', 'membreAuHasard', 'volontaires']);
+  });
+
+  it('racine SCÈNE : la cible « volontaires » s’édite par sa question, posée à chaque héros (MDG 15 l.196)', () => {
+    const c = monte({ type: 'ops', on: { volontaires: 'Monter à bord' }, ops: [] } as never, 'scene');
+    const [sel] = selectsDeCible(c);
+    expect(sel.value).toBe('volontaires');
+    expect(c.querySelector<HTMLInputElement>('input[aria-label="Question posée à chaque héros"]')?.value).toBe('Monter à bord');
   });
 
   it('cible « rôle d’équipage » : le rôle se choisit, la durée en jours se coche, le résumé dit les deux', async () => {

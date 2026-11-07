@@ -3,7 +3,10 @@
  * ses zones offrent et les gestes du pointeur, rend la surcouche du geste en cours, et le monde à l'ouverture, au
  * changement de couche et à chaque écriture finie, jamais pendant le geste. Ouverte du texte que sert le dépôt, la carte
  * s'y enregistre : `editer` rend le texte à écrire, et la tient pour enregistrée à l'issue réussie de l'écriture. Les
- * entités et les entrées de la couche éditée se repèrent en surcouche ; le formulaire de l'inspecteur les nomme.
+ * entités et les entrées de la couche éditée se repèrent en surcouche ; le formulaire de l'inspecteur les nomme. Le
+ * formulaire tiré du schéma écrit la condition d'entrée d'un déclencheur, le Test de traversée et les effets d'une zone d'effet (#3606).
+ * Les écrivains dédiés de la scène y passent aussi : sa musique, son message d'introduction saisi sur plusieurs lignes,
+ * ses ancres de bataille, ses groupes, et l'apparence d'une ouverture de façade (#3606).
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
@@ -635,7 +638,7 @@ describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {
     expect(inspecte('arete/suspendu')).toMatchObject({ texte: 'Chute si l’on se suspend d’abord : 0.5 m' });
 
     e = presser(boutonDe(e, 'arete/supprimer'));
-    expect(e.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.startsWith('scene/') && !['nommer', 'identifier', 'decrire', 'drapeau'].includes(id)), 'l’arête supprimée, l’inspecteur de la scène').toEqual([]);
+    expect(e.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.startsWith('scene/') && !['nommer', 'identifier', 'decrire', 'introduire', 'drapeau'].includes(id)), 'l’arête supprimée, l’inspecteur de la scène').toEqual([]);
   });
 });
 
@@ -891,7 +894,7 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
     expect(e.vue.zones['editeur.options'].filter((l) => l.type === 'ligne').map((l) => (l as Ligne).texte)).toEqual(['Tracé : 4 cases', '0 m → 4 m · cotes 1 · 2 · 3 · 4 m']);
     presser('volee/poser');
 
-    presser('outil/prop'); cliquerLaCase(5, 4); presser('outil/select'); cliquerLaCase(5, 4); presser('entite/cap/NE');
+    presser('outil/prop'); cliquerLaCase(5, 4); presser('outil/select'); cliquerLaCase(5, 4); presser('entite/cap/E');
     presser('outil/heroStart'); cliquerLaCase(3, 5);
     presser('outil/zone'); presser('zone/trigger'); tirerPar([[6, 4], [7, 5], [8, 6]]);
     expect((e.vue.zones['editeur.validation'][0] as Ligne).texte).toMatch(/^Validation : 0 erreur\(s\)/);
@@ -909,7 +912,7 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
     expect(corps.storeys.map((st) => st.z), 'un corps de deux étages').toEqual([0, 1]);
     expect(corps.facades!.flatMap((f) => f.features ?? []).map((f) => f.kind), 'une façade et son ouverture').toEqual(['gable']);
     expect(neuve.effectZones!.map((z) => [z.presentation, z.area]), 'la pièce').toEqual([['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]]);
-    expect(neuve.entities.map((en) => [en.kind, en.pos, en.facing])).toEqual([['prop', ici(5, 4), 'NE'], ['heroStart', ici(3, 5), undefined]]);
+    expect(neuve.entities.map((en) => [en.kind, en.pos, en.facing])).toEqual([['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]]);
     expect(neuve.triggers.map((tr) => [tr.rect, tr.flow]), 'le déclencheur tiré, au flux vide').toEqual([[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]]);
 
     const { appel: rouvrir } = table();
@@ -921,5 +924,181 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
     rmSync(depot, { recursive: true, force: true });
     const relue = editionDe(rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu));
     expect((relue.vue.zones['editeur.validation'][0] as Ligne).texte, 'rouverte du dépôt, la porte la lit et la validation ne dit aucune erreur').toMatch(/^Validation : 0 erreur\(s\)/);
+  });
+});
+
+describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#3606)', () => {
+  const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
+  const servi = lireProjetLivre(manuscrit) as { id: string };
+
+  it('la condition d’entrée d’un déclencheur, le Test de traversée et les listes d’ops d’une zone d’effet s’écrivent au formulaire, variante par variante, élément par élément ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    /** La valeur de libellé `libelle` du choix d'id `id` de l'inspecteur : le bouton qui la joue. */
+    const option = (id: string, libelle: string) => valeursDeLInspecteur(e, id).find((b) => b.libelle === libelle) ?? (() => { throw new Error(`aucune valeur ${libelle} sous ${id}`); })();
+    const choisir = (id: string, libelle: string) => (e = editionDe(appel('editer', option(id, libelle).jeu)));
+    const inspecteur = () => e.vue.zones['editeur.inspecteur'];
+    const formulaire = (id: string) => inspecteur().find((el): el is Formulaire => el.type === 'formulaire' && el.id === id) ?? (() => { throw new Error(`aucun formulaire ${id}`); })();
+    const saisir = (id: string, valeur: unknown) => {
+      const [porteur, chemin] = formulaire(id).champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
+      return (e = editionDe(appel('editer', { type: 'valeur', args: [porteur, chemin, valeur] })));
+    };
+    const tracer = (sorte: string, de: [number, number], a: [number, number]) => {
+      presser('outil/zone'); presser(`zone/${sorte}`);
+      jouer({ geste: 'appui', point: point(...de) });
+      jouer({ geste: 'relache', point: point(...a) });
+    };
+    const porteurDe = (id: string) => ((boutonDe(e, id).jeu as { edition: { porteur: { sorte: string; id: string } } }).edition.porteur);
+    const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
+    const sansErreur = /^Validation : (aucun défaut|0 erreur\(s\))/;
+    expect(validation()).toMatch(sansErreur);
+
+    presser('scenes/ajouter');
+    tracer('trigger', [0, 0], [1, 1]);
+    const declencheur = porteurDe('valeur/when/kind/aucune');
+    expect(declencheur.sorte).toBe('declencheur');
+    expect(boutonDe(e, 'valeur/when/kind/aucune').presse, 'sans condition d’entrée').toBe(true);
+    expect(inspecteur().some((el) => el.id.startsWith('valeur/flow')), 'le flux n’est pas au formulaire').toBe(false);
+    choisir('valeur/when/kind', 'TOUS (ET)');
+    expect(option('valeur/when/kind', 'TOUS (ET)').presse).toBe(true);
+    expect(inspecteur().some((el) => el.id.startsWith('valeur/when/of/0')), 'TOUS de « Toujours » : une liste vide').toBe(false);
+    presser('valeur/when/of/ajouter');
+    choisir('valeur/when/of/0/kind', 'Drapeaux');
+    saisir('valeur/when/of/0/expr', 'porte');
+    presser('valeur/when/of/ajouter');
+    choisir('valeur/when/of/1/kind', 'NON');
+    choisir('valeur/when/of/1/of/kind', 'Ennemi en Ligne de Vue');
+    expect(boutonDe(e, 'valeur/when/of/1/monter').libelle).toMatch(/^Monter/);
+    expect(inspecteur().some((el) => el.id === 'valeur/when/of/0/monter'), 'le premier ne monte pas').toBe(false);
+
+    tracer('effect', [2, 2], [3, 3]);
+    const zone = porteurDe('valeur/onCross/ajouter');
+    expect(zone.sorte).toBe('zone');
+    expect(option('valeur/onCross/0/op', 'Blessures (ignore BE/PA)').presse, 'la zone posée porte l’op de sa graine').toBe(true);
+    expect(inspecteur().find((el) => el.id === 'valeur/onCross/0/motif'), 'une op sans forme déclarée le dit').toMatchObject({ type: 'ligne' });
+    saisir('valeur/onCross/0', { op: 'wounds', amount: 3 });
+    expect(formulaire('valeur/onCross/0').champs[2], 'et se saisit en JSON').toMatchObject({ type: 'saisieJson', valeur: '{"op":"wounds","amount":3}' });
+    presser('valeur/onCross/0/retirer');
+    expect(inspecteur().some((el) => el.id === 'valeur/onCross'), 'vidée, la liste quitte la zone').toBe(false);
+    presser('valeur/crossTest/ajouter');
+    choisir('valeur/crossTest/characteristic', 'Force');
+    presser('valeur/onCross/ajouter');
+    choisir('valeur/onCross/0/op', 'Points de Corruption');
+    saisir('valeur/onCross/0/amount', 2);
+    presser('valeur/onCross/ajouter');
+    choisir('valeur/onCross/1/op', 'Modif. de caractéristique');
+    choisir('valeur/onCross/1/char', 'Agilité');
+    saisir('valeur/onCross/1/mod', -5);
+    presser('valeur/onCross/1/monter');
+    expect(option('valeur/onCross/0/op', 'Modif. de caractéristique').presse, 'montée, la seconde op passe première').toBe(true);
+    expect(option('valeur/onCross/1/op', 'Points de Corruption').presse).toBe(true);
+    expect(erreurDe(appel('editer', { type: 'valeur', args: [zone, ['label'], 'Fosse'] })).categorie, 'un champ que le formulaire n’offre pas').toBe('validation');
+    const horsSorte = erreurDe(appel('editer', { type: 'valeur', args: [zone, ['onCross', 0, 'mod'], 'cinq'] }));
+    expect([horsSorte.categorie, horsSorte.message], 'une valeur hors de la sorte de son champ, refusée avec sa raison').toEqual(['regle', expect.stringContaining('onCross/0/mod')]);
+    expect(validation()).toMatch(sansErreur);
+
+    const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
+    const depot = mkdtempSync(join(tmpdir(), 'editeur-3606-'));
+    const fichier = join(dossierDesProjetsLivres(depot), manuscrit);
+    mkdirSync(dirname(fichier), { recursive: true });
+    writeFileSync(fichier, enregistree.depot!.texte);
+    const { appel: rouvrir } = table();
+    const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
+    rmSync(depot, { recursive: true, force: true });
+    const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.id === zone.id))!;
+    expect(neuve.triggers.find((t) => t.id === declencheur.id)?.when).toEqual({ kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] });
+    expect(neuve.effectZones!.find((z) => z.id === zone.id)).toMatchObject({
+      crossTest: { characteristic: 'force' },
+      onCross: [{ op: 'charMod', char: 'agilite', mod: -5 }, { op: 'corruption', amount: 2 }],
+    });
+    rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu);
+    rouvrir('editer', { edition: { geste: 'appui', point: point(0, 0) } });
+    e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(0, 0) } }));
+    expect(option('valeur/when/kind', 'TOUS (ET)').presse, 'rouverte, la condition du déclencheur').toBe(true);
+    expect(option('valeur/when/of/1/of/kind', 'Ennemi en Ligne de Vue').presse).toBe(true);
+    expect(formulaire('valeur/when/of/0/expr').champs[2]).toMatchObject({ valeur: 'porte' });
+    rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
+    e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
+    expect(option('valeur/onCross/0/char', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
+    expect(formulaire('valeur/onCross/1/amount').champs[2]).toMatchObject({ valeur: 2 });
+    expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
+  });
+
+  it('la musique, le message d’introduction sur plusieurs lignes, les ancres de bataille, les groupes du lieu et l’apparence d’une ouverture s’écrivent par leurs écrivains dédiés ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    const inspecteur = () => e.vue.zones['editeur.inspecteur'];
+    const liste = (id: string) => valeursDeLInspecteur(e, id);
+    const choisir = (id: string, rang = 0) => (e = editionDe(appel('editer', liste(id).filter((b) => !b.presse)[rang].jeu)));
+    const message = () => (inspecteur().find((el): el is Formulaire => el.type === 'formulaire' && el.verbe === 'introduire') ?? (() => { throw new Error('aucun formulaire du message'); })()).champs[0];
+    const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
+    const sansErreur = /^Validation : (aucun défaut|0 erreur\(s\))/;
+    presser('scenes/ajouter');
+
+    const piste = liste('scene/musique/ambient').find((b) => !['scene/musique/ambient/auto', 'scene/musique/ambient/silence'].includes(b.id))!;
+    presser(piste.id);
+    presser('scene/musique/combat/silence');
+    expect([boutonDe(e, piste.id).presse, boutonDe(e, 'scene/musique/combat/silence').presse], 'ambiance choisie, combat au silence').toEqual([true, true]);
+    presser('scene/musique/ambient/auto');
+    presser('scene/musique/combat/auto');
+    expect([boutonDe(e, 'scene/musique/ambient/auto').presse, boutonDe(e, 'scene/musique/combat/auto').presse], 'retirées, les deux suivent le contexte').toEqual([true, true]);
+
+    expect(message(), 'le message d’introduction, une prose, se saisit sur plusieurs lignes').toMatchObject({ type: 'saisieMultiligne', valeur: '' });
+    const texte = 'Le relais est désert.\n\nUne lanterne bat au vent.';
+    e = editionDe(appel('editer', { type: 'introduire', args: ['Brouillon'] }));
+    e = editionDe(appel('editer', { type: 'introduire', args: [null] }));
+    expect(message(), 'vidé, il se retire').toMatchObject({ valeur: '' });
+    e = editionDe(appel('editer', { type: 'introduire', args: [texte] }));
+    expect(message()).toMatchObject({ valeur: texte });
+
+    expect(inspecteur().find((el) => el.id === 'scene/stations')).toMatchObject({ texte: 'Aucune ancre de bataille : les Scènes de Round s’étalent d’office.' });
+    choisir('scene/stations/ajouter');
+    choisir('scene/stations/ajouter', 1);
+    expect(boutonDe(e, 'scene/stations/0/pointee').refus, 'sans case pointée').toBe('Appuyez d’abord sur une case de la carte');
+    jouer({ geste: 'appui', point: point(1, 2) });
+    jouer({ geste: 'relache', point: point(1, 2) });
+    presser('scene/stations/1/pointee');
+    expect(inspecteur().find((el) => el.id === 'scene/stations/1/position')).toMatchObject({ texte: 'Ancre 2 : case (1, 2), couche 0' });
+    presser('scene/stations/0/retirer');
+    const ancre = liste('scene/stations/0').find((b) => b.presse)!;
+
+    choisir('scene/groupes/ajouter');
+    const groupe = (inspecteur().find((el) => el.id === 'scene/groupes/retirer') as Choix).valeurs[0].libelle;
+
+    presser('outil/architecture');
+    jouer({ geste: 'appui', point: point(2, 2) });
+    jouer({ geste: 'relache', point: point(2, 2) });
+    presser('batir/corps');
+    presser('architecture/facade');
+    jouer({ geste: 'appui', point: { case: { x: 2, y: 2 }, f: { x: 2, y: 1.55 } } });
+    presser('baie/ajouter');
+    const baie = inspecteur().find((el) => el.id.startsWith('baie/') && el.id.endsWith('/apparence'))!.id;
+    expect(boutonDe(e, `${baie}/defaut`).presse, 'sans apparence, le défaut du rendu').toBe(true);
+    choisir(baie);
+    const apparence = liste(baie).find((b) => b.presse)!;
+    expect(apparence.id).not.toBe(`${baie}/defaut`);
+    expect(validation()).toMatch(sansErreur);
+
+    const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
+    const depot = mkdtempSync(join(tmpdir(), 'editeur-3606-m0c-'));
+    const fichier = join(dossierDesProjetsLivres(depot), manuscrit);
+    mkdirSync(dirname(fichier), { recursive: true });
+    writeFileSync(fichier, enregistree.depot!.texte);
+    const { appel: rouvrir } = table();
+    const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
+    rmSync(depot, { recursive: true, force: true });
+    const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.architecture?.length && sc.startMessage)!;
+    expect(neuve.music, 'retirée, la musique quitte la scène').toBeUndefined();
+    expect(neuve.startMessage).toEqual({ texte });
+    expect(neuve.stations).toEqual([{ sceneId: ancre.id.split('/').pop(), pos: { x: 1, y: 2 } }]);
+    expect(neuve.groups).toEqual([groupe]);
+    expect(neuve.architecture![0].facades[0].features![0].appearance).toBe(apparence.id.split('/').pop());
+    e = editionDe(rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu));
+    expect(message(), 'rouverte du dépôt, le message sur ses lignes').toMatchObject({ type: 'saisieMultiligne', valeur: texte });
+    expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
   });
 });

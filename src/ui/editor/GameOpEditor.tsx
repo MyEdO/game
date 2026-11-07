@@ -21,9 +21,9 @@ import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
-import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, banishNarrationSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
+import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, OP_LABEL, armourBypassCategorieSchema, banishNarrationSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
-import { OP_LABEL, opsMissingRefs } from '../../data/refsDOp';
+import { opsMissingRefs } from '../../data/refsDOp';
 import { opSummary } from './interne/resumeDOp';
 import type { Condition } from '../../engine/flowCore';
 import { TestFields } from './FlowEditor';
@@ -98,7 +98,7 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   armourPierce: 'item/weapon', critOnRoll: 'journal/critical', spendAdvantage: 'flag/focus', rollThreshold: 'nav/dice',
   rollTable: 'nav/dice', rollMutation: 'nav/mutation', charDamage: 'mechanic/stat-mod',
   intoxicate: 'item/consumable', narrative: 'journal/detail',
-  shipMorale: 'travel/anchor', manann: 'travel/anchor', shipCritical: 'travel/anchor', navireMod: 'travel/anchor', meteoImposee: 'nautical/wind', cargaison: 'item/misc', provisions: 'item/consumable', equipage: 'travel/anchor',
+  shipMorale: 'travel/anchor', manann: 'travel/anchor', shipCritical: 'travel/anchor', navireMod: 'travel/anchor', meteoImposee: 'nautical/wind', cargaison: 'item/misc', provisions: 'item/consumable', equipage: 'travel/anchor', perilDeMer: 'nautical/wind', navireHostile: 'travel/anchor', infestation: 'medical/infection', combatEnMer: 'action/attack',
 };
 
 /** TOUTES les op du vocabulaire, groupées par intention d'auteur. Libellé de groupe = texte SEUL
@@ -119,7 +119,7 @@ const OP_GROUPS: [string, GameOp['op'][]][] = [
   ['Contrôle', ['rollThreshold', 'rollTable', 'rollMutation', 'spendAdvantage']],
   ['Création de personnage (Talents)', ['attrMod', 'grantCareerSkill', 'grantCareerTalent']],
   ['Narration', ['narrative']],
-  ['Navire', ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage']],
+  ['Navire', ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer']],
 ];
 
 /** VOCABULAIRE UNIQUE des ops à l'atelier : la rangée de menu (icône + libellé) écrite UNE fois,
@@ -146,7 +146,11 @@ export const LIBELLE_DE_FORME: Record<FormulaShape, string> = {
   pions: 'Pions de l’État déclencheur',
   ecartAvantage: 'Écart d’Avantage (adversaires engagés)',
   blessuresInfligees: 'Blessures infligées (attaque courante)',
+  blessuresMax: 'Blessures maximales de la cible',
+  tailleDuNavire: 'Taille du navire',
+  valeurCargaison: 'Valeur de la cargaison (sous)',
   dr: 'DR du Test',
+  tire: 'Valeur liée du Flow',
   regle: 'Règle optionnelle',
   minimum: 'Minimum',
   tranches: 'Tranches entières',
@@ -255,6 +259,18 @@ export function FormulaField(props: FormulaFieldProps) {
             onChange={(e) => onChange({ rule: e.target.value })}>
             {paramsDeRegle().map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
           </select>
+        )}
+        {/* `tire` = VALEUR LIÉE du Flow (MDG 15 l.245) : son nom, et le tirage qui la définit — sans tirage,
+            elle relit la valeur définie ailleurs dans le même Flow. */}
+        {shape === 'tire' && typeof value === 'object' && value != null && 'tire' in value && (
+          <span className="fml-dice">
+            <input aria-label="nom de la valeur liée" value={value.tire} onChange={(e) => onChange({ tire: e.target.value.trim(), ...(value.de !== undefined ? { de: value.de } : {}) })} />
+            <label className="ed-check"><input type="checkbox" checked={value.de !== undefined}
+              onChange={(e) => onChange(e.target.checked ? { tire: value.tire, de: { dice: { n: 1, sides: 10 } } } : { tire: value.tire })} /> tirée ici</label>
+            {value.de !== undefined && (
+              <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.de} onChange={(de: Formula) => onChange({ tire: value.tire, de })} />
+            )}
+          </span>
         )}
         {shape === 'lit' && (
           <NumberField variant="nu" label={label ? `${label} — nombre` : 'Nombre'} min={min} value={typeof value === 'number' ? value : 0}

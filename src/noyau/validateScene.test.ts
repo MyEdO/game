@@ -32,14 +32,14 @@ describe('validateScene', () => {
   });
 
   /** L'espèce d'apparence est jugée au schéma (`especeDApparenceSchema`, `grammaire/valeurs.ts`). */
-  it('apparence : espèce hors domaine → erreur nominative ; les trois catalogues du domaine passent', () => {
+  it('apparence : espèce hors domaine → erreur nominative ; les deux catalogues du domaine passent', () => {
     const avec = (appearance: object) => {
       const s = base();
       s.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, appearance });
       return msgs(validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'pnj' && x.level === 'error'));
     };
     for (const faute of ['zorglub', 'rat-geants'])
-      expect(avec({ species: faute })).toEqual([`entité « pnj » › apparence › espèce : espèce « ${faute} » inconnue : ni espèce jouable, ni créature, ni race de rendu, ni forme de corps.`]);
+      expect(avec({ species: faute })).toEqual([`entité « pnj » › apparence › espèce : espèce « ${faute} » inconnue : ni espèce jouable, ni espèce du plan de bestiaire (planDeBestiaire.json).`]);
     for (const ok of [{ species: 'humains-reiklander' }, { species: 'amibe' }, { species: 'goule' }, { species: 'sangsue-geante' }])
       expect(avec(ok), JSON.stringify(ok)).toEqual([]);
   });
@@ -73,7 +73,7 @@ describe('validateScene', () => {
    * l'auteur l'apprend, AVANT le rendu. La règle est celle du CATALOGUE (`refEstVolumique`) : le même
    * cap sur un décor billboard reste licite.
    */
-  it('décor VOLUMIQUE au cap diagonal → erreur nominative ; un billboard au même cap passe', () => {
+  it('décor VOLUMIQUE au cap diagonal → erreur nominative ; un décor hors catalogue n’en reçoit pas d’orientation', () => {
     const s = base();
     s.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'NE' });
     const w = validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'table' && x.level === 'error');
@@ -84,8 +84,8 @@ describe('validateScene', () => {
     expect(validateScene([cardinal])).toEqual([]);
 
     const billboard = base();
-    billboard.entities.push({ id: 'brasero-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'brasero', facing: 'NE' });
-    expect(validateScene([billboard])).toEqual([]);
+    billboard.entities.push({ id: 'brasero-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'decor-hors-catalogue', facing: 'NE' });
+    expect(msgs(validateScene([billboard])).filter((m) => /orientation/.test(m))).toEqual([]);
   });
 
   it('entité sur un étage inexistant → avertissement', () => {
@@ -514,13 +514,11 @@ describe('validateScene', () => {
     expect(validateScene([s]).filter((w) => /zone/i.test(w.message))).toEqual([]);
   });
 
-  it('musique de scène inconnue au registre de l’hôte → avertissement ; piste réelle / silence / auto = OK', () => {
+  it('musique de scène inconnue au registre → avertissement ; piste réelle / silence / auto = OK', () => {
     const s = base();
-    const pistes = new Set(['musique-combat']);
-    expect(msgs(validateScene([{ ...s, music: { ambient: 'piste-fantome', combat: 'musique-combat' } }], null, undefined, pistes)).some((m) => /Musique .*piste-fantome/.test(m))).toBe(true);
-    expect(validateScene([{ ...s, music: { ambient: null, combat: 'musique-combat' } }], null, undefined, pistes)).toEqual([]); // silence + piste réelle
-    expect(validateScene([{ ...s, music: undefined }], null, undefined, pistes)).toEqual([]); // automatique
-    expect(validateScene([{ ...s, music: { ambient: 'piste-fantome', combat: null } }]), 'sans registre fourni, la musique n’est pas jugée').toEqual([]);
+    expect(msgs(validateScene([{ ...s, music: { ambient: 'piste-fantome', combat: 'musique-combat' } }])).some((m) => /Musique .*piste-fantome/.test(m))).toBe(true);
+    expect(validateScene([{ ...s, music: { ambient: null, combat: 'musique-combat' } }])).toEqual([]); // silence + piste réelle
+    expect(validateScene([{ ...s, music: undefined }])).toEqual([]); // automatique
   });
 });
 

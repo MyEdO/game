@@ -452,35 +452,67 @@
         "id": "triton",
         "label": "Triton !",
         "desc": "Triton ! Manann ne supporte plus que le vaisseau vogue sur sa mer et envoie Triton pour le détruire. La créature apparaît et fait tout son possible pour détruire le navire. Si l'équipage parvient à vaincre Triton, lancez 1d10. Sur 1-5, Manann est impressionné que le bateau ait réussi à l'emporter sur son avatar ; ajoutez 2d10 à son Humeur. Sur 6-10, Manann est courroucé par cette humiliation de son champion ; soustrayez 2d10 à son Humeur.",
-        "kind": "triton",
-        "params": {
-          "victoryRoll": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "impressed": {
-            "min": 1,
-            "max": 5
-          },
-          "wrathful": {
-            "min": 6,
-            "max": 10
-          },
-          "impressedManann": {
-            "sign": 1,
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
-          },
-          "wrathfulManann": {
-            "sign": -1,
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "combatEnMer",
+                "adversaire": {
+                  "id": "triton",
+                  "nombre": 1
+                },
+                "victoire": {
+                  "kind": "do",
+                  "effect": {
+                    "type": "ops",
+                    "on": "navire",
+                    "ops": [
+                      {
+                        "op": "rollTable",
+                        "die": "1d10",
+                        "entries": [
+                          {
+                            "min": 1,
+                            "max": 5,
+                            "ops": [
+                              {
+                                "op": "manann",
+                                "delta": {
+                                  "sign": 1,
+                                  "dice": {
+                                    "n": 2,
+                                    "sides": 10
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "min": 6,
+                            "max": 10,
+                            "ops": [
+                              {
+                                "op": "manann",
+                                "delta": {
+                                  "sign": -1,
+                                  "dice": {
+                                    "n": 2,
+                                    "sides": 10
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
           }
         },
         "source": {
@@ -495,8 +527,21 @@
         "id": "maelstrom",
         "label": "Maelstrom",
         "desc": "Maelstrom. Un grand tourbillon s'ouvre et amène le bateau à la périphérie de sa zone. Pour plus de détails concernant les Tourbillons, reportez-vous à la page 113.",
-        "kind": "maelstrom",
-        "params": {},
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "perilDeMer",
+                "tourbillon": {
+                  "id": "maelstrom"
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 131,
@@ -509,20 +554,76 @@
         "id": "puissant-monstre-marin",
         "label": "Puissant monstre marin",
         "desc": "Puissant monstre marin. Un monstre marin attaque le bateau. Lancez 1d10 pour savoir lequel (1-3 : hydre d'os, 4-5 : sangsue des abysses, 6-9 : gargantuan ou 10 : léviathan noir). La créature peut être repoussée si elle tombe à la moitié de ses Blessures de départ.",
-        "kind": "monstre-puissant",
-        "params": {
-          "roll": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "creatures": [
-            "1-3 : hydre d'os",
-            "4-5 : sangsue des abysses",
-            "6-9 : gargantuan",
-            "10 : léviathan noir"
-          ]
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "rollTable",
+                "die": "1d10",
+                "entries": [
+                  {
+                    "min": 1,
+                    "max": 3,
+                    "ops": [
+                      {
+                        "op": "combatEnMer",
+                        "adversaire": {
+                          "id": "hydre-d-os",
+                          "nombre": 1
+                        },
+                        "repousseAPct": 50
+                      }
+                    ]
+                  },
+                  {
+                    "min": 4,
+                    "max": 5,
+                    "ops": [
+                      {
+                        "op": "combatEnMer",
+                        "adversaire": {
+                          "id": "sangsue-des-abysses",
+                          "nombre": 1
+                        },
+                        "repousseAPct": 50
+                      }
+                    ]
+                  },
+                  {
+                    "min": 6,
+                    "max": 9,
+                    "ops": [
+                      {
+                        "op": "combatEnMer",
+                        "adversaire": {
+                          "id": "gargantuan",
+                          "nombre": 1
+                        },
+                        "repousseAPct": 50
+                      }
+                    ]
+                  },
+                  {
+                    "min": 10,
+                    "max": 10,
+                    "ops": [
+                      {
+                        "op": "combatEnMer",
+                        "adversaire": {
+                          "id": "leviathan-noir",
+                          "nombre": 1
+                        },
+                        "repousseAPct": 50
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -581,8 +682,21 @@
         "id": "puissant-vortex",
         "label": "Puissant vortex",
         "desc": "Puissant vortex. Un tourbillon s'ouvre et amène le bateau à la périphérie de sa zone. Pour plus de détails, reportez-vous à la page 113.",
-        "kind": "vortex",
-        "params": {},
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "perilDeMer",
+                "tourbillon": {
+                  "id": "puissant-vortex"
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 131,
@@ -595,8 +709,6 @@
         "id": "nemesis",
         "label": "Némésis",
         "desc": "Némésis. Un vaste vaisseau rempli d'ennemis apparaît à l'horizon ; il s'agit d'une némésis, comme par exemple Wulfrik le Sarl ou Vrisk Gratte-le-Fer, à bord de son bateau fétiche.",
-        "kind": "nemesis",
-        "params": {},
         "source": {
           "book": "mer-des-griffes",
           "page": 131,
@@ -609,11 +721,24 @@
         "id": "langskip-skaeling",
         "label": "Langskip skaeling",
         "desc": "Langskip skaeling. Un langskip avec un équipage de 45 norses apparaît à l'horizon. Si votre navire ressemble à une cible vulnérable, les norses approchent pour répandre le sang de vos marins en l'honneur du dieu du sang.",
-        "kind": "navire-hostile",
-        "params": {
-          "ship": "langskip",
-          "crew": 45,
-          "crewRef": "humain"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "navireHostile",
+                "navire": {
+                  "id": "langskip"
+                },
+                "equipage": {
+                  "id": "humain",
+                  "nombre": 45
+                }
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -680,26 +805,75 @@
         "id": "infestation-de-rats-geants",
         "label": "Infestation de rats géants",
         "desc": "Infestation de rats géants. Des nuisibles anormalement grands sont repérés dans les entrailles du bateau. Jusqu'à ce que l'équipage réussisse un Test d'équipage étendu d'Extermination des nuisibles Complexe (–10) pour un total de 25 DR, les rats gâtent 3d10 Enc de cargaison chaque nuit, et vous avez 30 % de chances qu'un membre d'équipage doive entreprendre un Test pour éviter de contracter la fièvre du rongeur (voir page 186 de WFJDR). Si n'importe laquelle des étapes du Test d'Extermination des nuisibles génère un résultat de DR négatif, un membre d'équipage choisi au hasard est attaqué par les rats ; il subit 1d10 attaques avec CC 35 et le Trait Arme +5. Quiconque est blessé par une telle attaque doit effectuer un Test pour éviter de contracter la fièvre du rongeur.",
-        "kind": "infestation",
-        "params": {
-          "testType": "extermination-nuisibles",
-          "difficulty": "complexe",
-          "targetDR": 25,
-          "spoilEncPerNight": {
-            "dice": {
-              "n": 3,
-              "sides": 10
-            }
-          },
-          "diseaseChancePct": 30,
-          "ratAttacks": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "ratCC": 35,
-          "ratWeapon": 5
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "infestation",
+                "crewTestType": {
+                  "id": "extermination-nuisibles"
+                },
+                "difficulty": "complexe",
+                "targetDR": 25,
+                "chaqueNuit": {
+                  "kind": "seq",
+                  "steps": [
+                    {
+                      "kind": "do",
+                      "effect": {
+                        "type": "ops",
+                        "on": "navire",
+                        "ops": [
+                          {
+                            "op": "cargaison",
+                            "perdueEnc": {
+                              "dice": {
+                                "n": 3,
+                                "sides": 10
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "do",
+                      "effect": {
+                        "type": "ops",
+                        "on": "membreAuHasard",
+                        "ops": [
+                          {
+                            "op": "rollTable",
+                            "die": "1d100",
+                            "entries": [
+                              {
+                                "min": 1,
+                                "max": 30,
+                                "ops": [
+                                  {
+                                    "op": "exposeDisease",
+                                    "disease": "fievre-du-rongeur"
+                                  }
+                                ]
+                              },
+                              {
+                                "min": 31,
+                                "max": 100,
+                                "ops": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -713,20 +887,81 @@
         "id": "monstre-marin",
         "label": "Monstre marin",
         "desc": "Monstre marin. Un monstre marin attaque le vaisseau. Lancez 1d10 pour déterminer son espèce (1-3 : kharibde, 4-5 : nuée d'anguilles mâcheprises, 6-9 : 3 syrènes bleues ou 10 : wyrm des mers). La ou les créatures peuvent être repoussées si elles tombent à la moitié de leurs Blessures de départ.",
-        "kind": "monstre-puissant",
-        "params": {
-          "roll": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "creatures": [
-            "1-3 : kharibde",
-            "4-5 : nuée d'anguilles mâcheprises",
-            "6-9 : 3 syrènes bleues",
-            "10 : wyrm des mers"
-          ]
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "rollTable",
+                "die": "1d10",
+                "entries": [
+                  {
+                    "min": 1,
+                    "max": 3,
+                    "ops": [
+                      {
+                        "op": "combatEnMer",
+                        "adversaire": {
+                          "id": "kharibde",
+                          "nombre": 1
+                        },
+                        "repousseAPct": 50
+                      }
+                    ]
+                  },
+                  {
+                    "min": 4,
+                    "max": 5,
+                    "ops": [
+                      {
+                        "op": "combatEnMer",
+                        "adversaire": {
+                          "id": "anguille-macheprise",
+                          "nombre": 1,
+                          "optionals": [
+                            {
+                              "id": "nuee"
+                            }
+                          ]
+                        },
+                        "repousseAPct": 50
+                      }
+                    ]
+                  },
+                  {
+                    "min": 6,
+                    "max": 9,
+                    "ops": [
+                      {
+                        "op": "combatEnMer",
+                        "adversaire": {
+                          "id": "syrene-bleue",
+                          "nombre": 3
+                        },
+                        "repousseAPct": 50
+                      }
+                    ]
+                  },
+                  {
+                    "min": 10,
+                    "max": 10,
+                    "ops": [
+                      {
+                        "op": "combatEnMer",
+                        "adversaire": {
+                          "id": "wyrm-des-mers",
+                          "nombre": 1
+                        },
+                        "repousseAPct": 50
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -765,13 +1000,29 @@
         "id": "cogue-pirate",
         "label": "Cogue pirate",
         "desc": "Cogue pirate. Une cogue avec un équipage de 25 personnes et 6 grands canons apparaît à l'horizon. Si votre navire ressemble à une cible vulnérable, les forbans approchent et exigent de pouvoir fouiller la cale et prendre ce qu'ils veulent, sinon ils tueront tous ceux qui s'opposent à eux. Même si leurs demandes sont satisfaites, ils réclament ensuite un prisonnier à sacrifier à Stromfels.",
-        "kind": "navire-hostile",
-        "params": {
-          "ship": "cogue",
-          "crew": 25,
-          "greatGuns": 6,
-          "crewRef": "humain",
-          "chefRef": "jaego-roth"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "navireHostile",
+                "navire": {
+                  "id": "cogue"
+                },
+                "equipage": {
+                  "id": "humain",
+                  "nombre": 25
+                },
+                "chef": {
+                  "id": "jaego-roth"
+                },
+                "grandsCanons": 6,
+                "exigence": "fouille"
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -785,26 +1036,75 @@
         "id": "infestation-de-rats",
         "label": "Infestation de rats",
         "desc": "Infestation de rats. Les rats prolifèrent dans les recoins sombres du bateau. Jusqu'à ce que l'équipage réussisse un Test d'équipage étendu d'Extermination des nuisibles Intermédiaire (+0) pour un total de 10 DR, les rats gâtent 1d10 Enc de cargaison chaque nuit, et vous avez 15 % de chances qu'un membre d'équipage doive entreprendre un Test pour éviter de contracter la fièvre du rongeur (voir page 186 de WFJDR). Si n'importe laquelle des étapes du Test d'Extermination des nuisibles génère un résultat de DR négatif, un membre d'équipage choisi au hasard est attaqué par les rats ; il subit 1d10 attaques avec CC 25 et le Trait Arme +4.",
-        "kind": "infestation",
-        "params": {
-          "testType": "extermination-nuisibles",
-          "difficulty": "intermediaire",
-          "targetDR": 10,
-          "spoilEncPerNight": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "diseaseChancePct": 15,
-          "ratAttacks": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "ratCC": 25,
-          "ratWeapon": 4
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "infestation",
+                "crewTestType": {
+                  "id": "extermination-nuisibles"
+                },
+                "difficulty": "intermediaire",
+                "targetDR": 10,
+                "chaqueNuit": {
+                  "kind": "seq",
+                  "steps": [
+                    {
+                      "kind": "do",
+                      "effect": {
+                        "type": "ops",
+                        "on": "navire",
+                        "ops": [
+                          {
+                            "op": "cargaison",
+                            "perdueEnc": {
+                              "dice": {
+                                "n": 1,
+                                "sides": 10
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "do",
+                      "effect": {
+                        "type": "ops",
+                        "on": "membreAuHasard",
+                        "ops": [
+                          {
+                            "op": "rollTable",
+                            "die": "1d100",
+                            "entries": [
+                              {
+                                "min": 1,
+                                "max": 15,
+                                "ops": [
+                                  {
+                                    "op": "exposeDisease",
+                                    "disease": "fievre-du-rongeur"
+                                  }
+                                ]
+                              },
+                              {
+                                "min": 16,
+                                "max": 100,
+                                "ops": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -849,8 +1149,21 @@
         "id": "collision-soudaine",
         "label": "Collision soudaine",
         "desc": "Collision soudaine. Sans prévenir, le bateau se heurte à un rocher. Pour plus de détails concernant les collisions, reportez-vous à la page 111.",
-        "kind": "collision",
-        "params": {},
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "perilDeMer",
+                "collision": {
+                  "id": "rocher"
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 131,
@@ -974,33 +1287,91 @@
         "id": "vaisseau-de-pestiferes",
         "label": "Vaisseau de pestiférés",
         "desc": "Vaisseau de pestiférés. Vous repérez une cogue apparemment abandonnée dérivant sur les flots. Si vous l'abordez, elle contient du butin composé de 2d10 caisses d'une cargaison choisie au hasard, d'1d100 jours de rations de biscuits de mer, de 2d10 tonneaux d'eau et de 3d10 CO. Quelques membres d'équipage sont également encore présents à bord, mais ils ne sont qu'à moitié conscients, car ils subissent un stade avancé de la peste noire (voir page 187 de WFJDR). Quiconque monte à bord du bateau est mordu par des puces et doit effectuer un Test de Résistance Accessible (+20) pour éviter de contracter la maladie.",
-        "kind": "vaisseau-pestifere",
-        "params": {
-          "cargoCrates": {
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
-          },
-          "biscuitDays": {
-            "dice": {
-              "n": 1,
-              "sides": 100
-            }
-          },
-          "waterBarrels": {
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
-          },
-          "co": {
-            "dice": {
-              "n": 3,
-              "sides": 10
-            }
-          },
-          "resistDifficulty": "accessible"
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Aborder la cogue",
+          "yes": {
+            "kind": "seq",
+            "steps": [
+              {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "navire",
+                  "ops": [
+                    {
+                      "op": "cargaison",
+                      "enc": {
+                        "dice": {
+                          "n": 2,
+                          "sides": 10
+                        }
+                      }
+                    },
+                    {
+                      "op": "provisions",
+                      "rations": {
+                        "dice": {
+                          "n": 1,
+                          "sides": 100
+                        }
+                      }
+                    },
+                    {
+                      "op": "provisions",
+                      "eauTonneaux": {
+                        "dice": {
+                          "n": 2,
+                          "sides": 10
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "party",
+                  "ops": [
+                    {
+                      "op": "money",
+                      "montant": {
+                        "brass": {
+                          "times": {
+                            "of": {
+                              "dice": {
+                                "n": 3,
+                                "sides": 10
+                              }
+                            },
+                            "factor": 240
+                          }
+                        }
+                      },
+                      "groupe": true
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": {
+                    "volontaires": "Monter à bord"
+                  },
+                  "ops": [
+                    {
+                      "op": "exposeDisease",
+                      "disease": "peste-noire"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -1066,6 +1437,11 @@
                   "entryId": "presage-divin-albatros",
                   "entryCategory": "seaBoardEvents"
                 }
+              },
+              "gate": {
+                "kind": "talent",
+                "id": "beni",
+                "spec": "manann"
               }
             },
             "success": {
@@ -1210,8 +1586,6 @@
         "id": "navigation-ordinaire",
         "label": "Navigation ordinaire",
         "desc": "Navigation ordinaire. Rien ne se passe, cette partie du voyage se déroule paisiblement.",
-        "kind": "rien",
-        "params": {},
         "source": {
           "book": "mer-des-griffes",
           "page": 132,
@@ -1595,9 +1969,19 @@
         "id": "vents-favorables",
         "label": "Vents favorables",
         "desc": "Vents favorables. Les vents sont vifs et soufflent dans la bonne direction. Augmentez le Mouvement du vaisseau de 1.",
-        "kind": "vents-favorables",
-        "params": {
-          "mMod": 1
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "navireMod",
+                "m": 1,
+                "jusqua": "evenementDeBord"
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -1611,13 +1995,28 @@
         "id": "marsouin-amical",
         "label": "Marsouin amical",
         "desc": "Marsouin amical. Pendant les 1d10 prochains jours, un marsouin suit votre bateau. Il évite soigneusement tout danger comme les rochers ou les bancs de sable.",
-        "kind": "marsouin",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "navireMod",
+                "evite": [
+                  "rocher",
+                  "bas-fonds"
+                ],
+                "jusqua": {
+                  "jours": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  }
+                }
+              }
+            ]
           }
         },
         "source": {
@@ -1653,6 +2052,11 @@
                   "entryId": "presage-divin-feu-bleu",
                   "entryCategory": "seaBoardEvents"
                 }
+              },
+              "gate": {
+                "kind": "talent",
+                "id": "beni",
+                "spec": "manann"
               }
             },
             "success": {
@@ -1785,28 +2189,267 @@
         "label": "Embrigadement",
         "desc": "Embrigadement. Un bateau manquant de bras pour son équipage a enlevé une partie des vôtres. Vous perdez 2d10 membres d'équipage. Vous pouvez les récupérer en réussissant un Test de Ragot Intermédiaire (+0), puis en payant 2d10 CO ou en réussissant un Test de Discrétion Complexe (–10). En cas d'échec sur n'importe lequel des deux Tests, vous perdez 1d10 membres d'équipage de plus, car votre plan pour libérer vos compagnons tourne mal et l'autre navire prend la mer et quitte le port. Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement n'a pas lieu.",
         "relache": true,
-        "kind": "embrigadement",
-        "params": {
-          "lostCrew": {
-            "dice": {
-              "n": 2,
-              "sides": 10
+        "consequence": {
+          "kind": "seq",
+          "steps": [
+            {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "navire",
+                "ops": [
+                  {
+                    "op": "equipage",
+                    "delta": {
+                      "times": {
+                        "of": {
+                          "tire": "enleves",
+                          "de": {
+                            "dice": {
+                              "n": 2,
+                              "sides": 10
+                            }
+                          }
+                        },
+                        "factor": -1
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "kind": "choice",
+              "prompt": "Tenter de récupérer l’équipage enlevé",
+              "yes": {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "ragot"
+                  },
+                  "difficulty": "intermediaire",
+                  "stake": {
+                    "key": {
+                      "dataset": "voyage",
+                      "kind": "sea-embrigadement-ragot",
+                      "entryId": "embrigadement",
+                      "entryCategory": "seaPortEvents"
+                    }
+                  }
+                },
+                "success": {
+                  "kind": "if",
+                  "cond": {
+                    "kind": "money",
+                    "atLeast": {
+                      "brass": {
+                        "tire": "rancon"
+                      }
+                    }
+                  },
+                  "then": {
+                    "kind": "choice",
+                    "prompt": "Payer la rançon",
+                    "yes": {
+                      "kind": "seq",
+                      "steps": [
+                        {
+                          "kind": "do",
+                          "effect": {
+                            "type": "ops",
+                            "on": "party",
+                            "ops": [
+                              {
+                                "op": "money",
+                                "montant": {
+                                  "brass": {
+                                    "times": {
+                                      "of": {
+                                        "tire": "rancon",
+                                        "de": {
+                                          "times": {
+                                            "of": {
+                                              "dice": {
+                                                "n": 2,
+                                                "sides": 10
+                                              }
+                                            },
+                                            "factor": 240
+                                          }
+                                        }
+                                      },
+                                      "factor": -1
+                                    }
+                                  }
+                                },
+                                "groupe": true
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "kind": "do",
+                          "effect": {
+                            "type": "ops",
+                            "on": "navire",
+                            "ops": [
+                              {
+                                "op": "equipage",
+                                "delta": {
+                                  "tire": "enleves"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "no": {
+                      "kind": "choice",
+                      "prompt": "Les libérer en douce",
+                      "yes": {
+                        "kind": "test",
+                        "test": {
+                          "skill": {
+                            "id": "discretion"
+                          },
+                          "difficulty": "complexe",
+                          "stake": {
+                            "key": {
+                              "dataset": "voyage",
+                              "kind": "sea-embrigadement-discretion",
+                              "entryId": "embrigadement",
+                              "entryCategory": "seaPortEvents"
+                            }
+                          }
+                        },
+                        "success": {
+                          "kind": "do",
+                          "effect": {
+                            "type": "ops",
+                            "on": "navire",
+                            "ops": [
+                              {
+                                "op": "equipage",
+                                "delta": {
+                                  "tire": "enleves"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "fail": {
+                          "kind": "do",
+                          "effect": {
+                            "type": "ops",
+                            "on": "navire",
+                            "ops": [
+                              {
+                                "op": "equipage",
+                                "delta": {
+                                  "times": {
+                                    "of": {
+                                      "dice": {
+                                        "n": 1,
+                                        "sides": 10
+                                      }
+                                    },
+                                    "factor": -1
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "kind": "choice",
+                    "prompt": "Les libérer en douce",
+                    "yes": {
+                      "kind": "test",
+                      "test": {
+                        "skill": {
+                          "id": "discretion"
+                        },
+                        "difficulty": "complexe",
+                        "stake": {
+                          "key": {
+                            "dataset": "voyage",
+                            "kind": "sea-embrigadement-discretion",
+                            "entryId": "embrigadement",
+                            "entryCategory": "seaPortEvents"
+                          }
+                        }
+                      },
+                      "success": {
+                        "kind": "do",
+                        "effect": {
+                          "type": "ops",
+                          "on": "navire",
+                          "ops": [
+                            {
+                              "op": "equipage",
+                              "delta": {
+                                "tire": "enleves"
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "fail": {
+                        "kind": "do",
+                        "effect": {
+                          "type": "ops",
+                          "on": "navire",
+                          "ops": [
+                            {
+                              "op": "equipage",
+                              "delta": {
+                                "times": {
+                                  "of": {
+                                    "dice": {
+                                      "n": 1,
+                                      "sides": 10
+                                    }
+                                  },
+                                  "factor": -1
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "fail": {
+                  "kind": "do",
+                  "effect": {
+                    "type": "ops",
+                    "on": "navire",
+                    "ops": [
+                      {
+                        "op": "equipage",
+                        "delta": {
+                          "times": {
+                            "of": {
+                              "dice": {
+                                "n": 1,
+                                "sides": 10
+                              }
+                            },
+                            "factor": -1
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
             }
-          },
-          "gossipDifficulty": "intermediaire",
-          "ransomCO": {
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
-          },
-          "stealthDifficulty": "complexe",
-          "failExtraLostCrew": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          }
+          ]
         },
         "source": {
           "book": "mer-des-griffes",
@@ -1820,20 +2463,103 @@
         "id": "pretre-de-manann",
         "label": "Prêtre de Manann",
         "desc": "Prêtre de Manann. Un Prêtre de Manann s'avance vers votre vaisseau et s'exclame haut et fort que vous avez courroucé Manann par votre impiété et que votre bateau doit être purifié. Vous pouvez soit payer 1d10 CO plus la Taille du navire en pistoles pour une bénédiction, soit réduire l'Humeur de Manann de 4d10.",
-        "kind": "pretre-manann",
-        "params": {
-          "blessingCO": {
-            "dice": {
-              "n": 1,
-              "sides": 10
+        "consequence": {
+          "kind": "if",
+          "cond": {
+            "kind": "money",
+            "atLeast": {
+              "brass": {
+                "tire": "benediction"
+              }
             }
           },
-          "blessingSilverPerSize": 1,
-          "manann": {
-            "sign": -1,
-            "dice": {
-              "n": 4,
-              "sides": 10
+          "then": {
+            "kind": "choice",
+            "prompt": "Payer la bénédiction",
+            "icon": "faith/trident",
+            "yes": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "party",
+                "ops": [
+                  {
+                    "op": "money",
+                    "montant": {
+                      "brass": {
+                        "times": {
+                          "of": {
+                            "tire": "benediction",
+                            "de": {
+                              "sum": [
+                                {
+                                  "times": {
+                                    "of": {
+                                      "dice": {
+                                        "n": 1,
+                                        "sides": 10
+                                      }
+                                    },
+                                    "factor": 240
+                                  }
+                                },
+                                {
+                                  "times": {
+                                    "of": {
+                                      "tailleDuNavire": true
+                                    },
+                                    "factor": 12
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "factor": -1
+                        }
+                      }
+                    },
+                    "groupe": true
+                  }
+                ]
+              }
+            },
+            "no": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "navire",
+                "ops": [
+                  {
+                    "op": "manann",
+                    "delta": {
+                      "sign": -1,
+                      "dice": {
+                        "n": 4,
+                        "sides": 10
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "else": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "manann",
+                  "delta": {
+                    "sign": -1,
+                    "dice": {
+                      "n": 4,
+                      "sides": 10
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -1849,14 +2575,267 @@
         "id": "controle-a-quai",
         "label": "Contrôle à quai",
         "desc": "Contrôle à quai. Un superviseur des taxes et son escorte de contrôleurs subalternes lourdement armés s'approchent de votre navire. Les droits de douane sont évalués à 10 % de la valeur de toute la cargaison que vous n'avez pas cachée. Si vous ne payez pas, votre cargaison est saisie. Si vous réussissez un Test de Subornation Difficile (–20), vous vous rendez compte qu'un pot-de-vin de 2d10 CO peut faire en sorte que les formulaires administratifs soient « perdus ».",
-        "kind": "controle-a-quai",
-        "params": {
-          "taxPct": 10,
-          "bribeDifficulty": "difficile",
-          "bribeCO": {
-            "dice": {
-              "n": 2,
-              "sides": 10
+        "consequence": {
+          "kind": "test",
+          "test": {
+            "skill": {
+              "id": "subornation"
+            },
+            "difficulty": "difficile",
+            "stake": {
+              "key": {
+                "dataset": "voyage",
+                "kind": "sea-controle-subornation",
+                "entryId": "controle-a-quai",
+                "entryCategory": "seaPortEvents"
+              }
+            }
+          },
+          "success": {
+            "kind": "if",
+            "cond": {
+              "kind": "money",
+              "atLeast": {
+                "brass": {
+                  "tire": "potDeVin"
+                }
+              }
+            },
+            "then": {
+              "kind": "choice",
+              "prompt": "Verser le pot-de-vin",
+              "yes": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "party",
+                  "ops": [
+                    {
+                      "op": "money",
+                      "montant": {
+                        "brass": {
+                          "times": {
+                            "of": {
+                              "tire": "potDeVin",
+                              "de": {
+                                "times": {
+                                  "of": {
+                                    "dice": {
+                                      "n": 2,
+                                      "sides": 10
+                                    }
+                                  },
+                                  "factor": 240
+                                }
+                              }
+                            },
+                            "factor": -1
+                          }
+                        }
+                      },
+                      "groupe": true
+                    }
+                  ]
+                }
+              },
+              "no": {
+                "kind": "if",
+                "cond": {
+                  "kind": "money",
+                  "atLeast": {
+                    "brass": {
+                      "tire": "droits"
+                    }
+                  }
+                },
+                "then": {
+                  "kind": "choice",
+                  "prompt": "Payer les droits de douane",
+                  "yes": {
+                    "kind": "do",
+                    "effect": {
+                      "type": "ops",
+                      "on": "party",
+                      "ops": [
+                        {
+                          "op": "money",
+                          "montant": {
+                            "brass": {
+                              "times": {
+                                "of": {
+                                  "tire": "droits",
+                                  "de": {
+                                    "parTranche": 10,
+                                    "of": {
+                                      "valeurCargaison": true
+                                    }
+                                  }
+                                },
+                                "factor": -1
+                              }
+                            }
+                          },
+                          "groupe": true
+                        }
+                      ]
+                    }
+                  },
+                  "no": {
+                    "kind": "do",
+                    "effect": {
+                      "type": "ops",
+                      "on": "navire",
+                      "ops": [
+                        {
+                          "op": "cargaison",
+                          "perduePct": 100
+                        }
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "kind": "do",
+                  "effect": {
+                    "type": "ops",
+                    "on": "navire",
+                    "ops": [
+                      {
+                        "op": "cargaison",
+                        "perduePct": 100
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "else": {
+              "kind": "if",
+              "cond": {
+                "kind": "money",
+                "atLeast": {
+                  "brass": {
+                    "tire": "droits"
+                  }
+                }
+              },
+              "then": {
+                "kind": "choice",
+                "prompt": "Payer les droits de douane",
+                "yes": {
+                  "kind": "do",
+                  "effect": {
+                    "type": "ops",
+                    "on": "party",
+                    "ops": [
+                      {
+                        "op": "money",
+                        "montant": {
+                          "brass": {
+                            "times": {
+                              "of": {
+                                "tire": "droits"
+                              },
+                              "factor": -1
+                            }
+                          }
+                        },
+                        "groupe": true
+                      }
+                    ]
+                  }
+                },
+                "no": {
+                  "kind": "do",
+                  "effect": {
+                    "type": "ops",
+                    "on": "navire",
+                    "ops": [
+                      {
+                        "op": "cargaison",
+                        "perduePct": 100
+                      }
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "navire",
+                  "ops": [
+                    {
+                      "op": "cargaison",
+                      "perduePct": 100
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "fail": {
+            "kind": "if",
+            "cond": {
+              "kind": "money",
+              "atLeast": {
+                "brass": {
+                  "tire": "droits"
+                }
+              }
+            },
+            "then": {
+              "kind": "choice",
+              "prompt": "Payer les droits de douane",
+              "yes": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "party",
+                  "ops": [
+                    {
+                      "op": "money",
+                      "montant": {
+                        "brass": {
+                          "times": {
+                            "of": {
+                              "tire": "droits"
+                            },
+                            "factor": -1
+                          }
+                        }
+                      },
+                      "groupe": true
+                    }
+                  ]
+                }
+              },
+              "no": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "navire",
+                  "ops": [
+                    {
+                      "op": "cargaison",
+                      "perduePct": 100
+                    }
+                  ]
+                }
+              }
+            },
+            "else": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "navire",
+                "ops": [
+                  {
+                    "op": "cargaison",
+                    "perduePct": 100
+                  }
+                ]
+              }
             }
           }
         },
@@ -1919,14 +2898,45 @@
         "id": "port-desert",
         "label": "Port désert",
         "desc": "Port désert. Si le port est un hameau ou un petit village (Taille 1 ou 2), il est mystérieusement désert. La population a totalement disparu. Elle peut être partie en exil à cause d'une famine ou d'une trop grande pauvreté, ou avoir été capturée par des pillards. La plupart des objets de valeur ont été perdus ou volés et l'équipage estime que rester ici va porter malheur. Si le capitaine insiste pour fouiller le port en quête de butin ou de provisions, il peut en trouver, mais le Moral diminue d'1d10.",
-        "kind": "port-desert",
-        "params": {
-          "maxSize": 2,
-          "moral": {
-            "sign": -1,
-            "dice": {
-              "n": 1,
-              "sides": 10
+        "taillePortMax": 2,
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Fouiller le port",
+          "yes": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "provisions",
+                  "jours": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  }
+                },
+                {
+                  "op": "cargaison",
+                  "enc": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 100
+                    }
+                  }
+                },
+                {
+                  "op": "shipMorale",
+                  "delta": {
+                    "sign": -1,
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -2000,8 +3010,6 @@
         "id": "pas-d-evenement",
         "label": "Pas d'événement",
         "desc": "Pas d'événement. Le port est paisible et il ne se passe rien d'inattendu pendant votre séjour.",
-        "kind": "rien",
-        "params": {},
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
@@ -2401,10 +3409,45 @@
         "id": "desastreux",
         "label": "Voyage désastreux",
         "desc": "Voyage désastreux. 50 % des PNJ membres de l'équipage sont manquants. 75 % de la cargaison s'est gâtée ou a été volée. Le vaisseau perd 75 % de ses Blessures et subit 3 Coups Critiques.",
-        "crewLostPct": 50,
-        "cargoLostPct": 75,
-        "hullLostPct": 75,
-        "criticals": 3,
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "equipage",
+                "perdusPct": 50
+              },
+              {
+                "op": "cargaison",
+                "perduePct": 75
+              },
+              {
+                "op": "wounds",
+                "amount": {
+                  "parTranche": 4,
+                  "of": {
+                    "times": {
+                      "of": {
+                        "blessuresMax": true
+                      },
+                      "factor": 3
+                    }
+                  }
+                },
+                "ignoreTB": true,
+                "ignoreAP": true
+              },
+              {
+                "op": "shipCritical",
+                "location": "aleatoire",
+                "count": 3,
+                "equipageEpargne": true
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 128,
@@ -2417,10 +3460,40 @@
         "id": "ereintant",
         "label": "Voyage éreintant",
         "desc": "Voyage éreintant. 20 % des PNJ membres de l'équipage sont perdus. 50 % de la cargaison s'est gâtée ou a été volée. Le vaisseau perd 50 % de ses Blessures et subit 2 Coups Critiques.",
-        "crewLostPct": 20,
-        "cargoLostPct": 50,
-        "hullLostPct": 50,
-        "criticals": 2,
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "equipage",
+                "perdusPct": 20
+              },
+              {
+                "op": "cargaison",
+                "perduePct": 50
+              },
+              {
+                "op": "wounds",
+                "amount": {
+                  "parTranche": 2,
+                  "of": {
+                    "blessuresMax": true
+                  }
+                },
+                "ignoreTB": true,
+                "ignoreAP": true
+              },
+              {
+                "op": "shipCritical",
+                "location": "aleatoire",
+                "count": 2,
+                "equipageEpargne": true
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 128,
@@ -2433,10 +3506,40 @@
         "id": "difficile",
         "label": "Voyage difficile",
         "desc": "Voyage difficile. 10 % des PNJ membres de l'équipage sont perdus. 25 % de la cargaison s'est gâtée ou a été volée. Le vaisseau perd 25 % de ses Blessures et subit 1 Coup Critique.",
-        "crewLostPct": 10,
-        "cargoLostPct": 25,
-        "hullLostPct": 25,
-        "criticals": 1,
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "equipage",
+                "perdusPct": 10
+              },
+              {
+                "op": "cargaison",
+                "perduePct": 25
+              },
+              {
+                "op": "wounds",
+                "amount": {
+                  "parTranche": 4,
+                  "of": {
+                    "blessuresMax": true
+                  }
+                },
+                "ignoreTB": true,
+                "ignoreAP": true
+              },
+              {
+                "op": "shipCritical",
+                "location": "aleatoire",
+                "count": 1,
+                "equipageEpargne": true
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 128,
@@ -2449,10 +3552,19 @@
         "id": "sans-encombre",
         "label": "Voyage sans encombre",
         "desc": "Voyage sans encombre. 10 % de la cargaison s'est gâtée.",
-        "crewLostPct": 0,
-        "cargoLostPct": 10,
-        "hullLostPct": 0,
-        "criticals": 0,
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "cargaison",
+                "perduePct": 10
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 129,
@@ -2465,10 +3577,6 @@
         "id": "parfait",
         "label": "Voyage parfait",
         "desc": "Voyage parfait. Pas de conséquence négative.",
-        "crewLostPct": 0,
-        "cargoLostPct": 0,
-        "hullLostPct": 0,
-        "criticals": 0,
         "source": {
           "book": "mer-des-griffes",
           "page": 129,
