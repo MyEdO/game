@@ -219,6 +219,50 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
   });
 });
 
+describe('salon — l’offre d’un invité (`jouerLOffre`) : le corps part, le relais se joue chez lui, l’attaque s’arme avant', () => {
+  /** Le duel du héros `h1` de l'invité (siège 0 de la table) contre `e1`, à son tour. */
+  function duel(): void {
+    const h = makePregens()[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
+    const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
+    const w = 22, hh = 16;
+    banc.setState({
+      battle: { combatants: [h, enemy], order: ['h1', 'e1'], baseOrder: ['h1', 'e1'], turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,
+      scene: { id: 's', dimensions: { w, h: hh }, layers: [{ z: 0, tiles: new Array(w * hh).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as never,
+      party: [h], mode: 'battle', screen: 'campaign', net: { ...initialNet(), mode: 'guest', mySeat: 0, ownership: { h1: 0 } }, localIntent: null,
+    });
+  }
+
+  it('un corps (`end-turn`) part tel quel et ne se joue pas chez l’émetteur', () => {
+    duel();
+    const local = vi.fn();
+    const envoyer = vi.fn();
+    emettreIntentInvite(banc.getState, 'jouerLOffre', local, envoyer, ['end-turn']);
+    expect(envoyer.mock.calls).toEqual([['jouerLOffre', ['end-turn']]]);
+    expect(local).not.toHaveBeenCalled();
+    expect(banc.getState().localIntent).toBeNull();
+  });
+
+  it('un relais (`raise-hand`) se joue chez l’émetteur : rien ne part', () => {
+    duel();
+    const local = vi.fn();
+    const envoyer = vi.fn();
+    emettreIntentInvite(banc.getState, 'jouerLOffre', local, envoyer, ['raise-hand']);
+    expect(local).toHaveBeenCalledWith('raise-hand');
+    expect(envoyer).not.toHaveBeenCalled();
+  });
+
+  it('`attaque`, jouée chez l’hôte : son intention s’arme chez l’émetteur AVANT l’envoi', () => {
+    duel();
+    const local = vi.fn();
+    const armeeALEnvoi: (string | null)[] = [];
+    const envoyer = vi.fn(() => { armeeALEnvoi.push(banc.getState().localIntent?.actionId ?? null); });
+    emettreIntentInvite(banc.getState, 'jouerLOffre', local, envoyer, ['attaque']);
+    expect(envoyer.mock.calls).toEqual([['jouerLOffre', ['attaque']]]);
+    expect(armeeALEnvoi, 'l’intention n’était pas armée quand l’offre est partie').toEqual(['attaque']);
+    expect(local, 'le corps s’est joué chez l’émetteur').not.toHaveBeenCalled();
+  });
+});
+
 describe('salon — lobby : une attribution refusée laisse `net` inchangé et dit son refus (#3059 F10)', () => {
   const hote = (): NetState => ({ ...initialNet(), mode: 'host', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna' }, rangs: { h: 0 } });
   beforeEach(() => { banc.setState({ net: hote(), party: [{ ...makePregens()[0], id: 'h' }], battle: null }); });

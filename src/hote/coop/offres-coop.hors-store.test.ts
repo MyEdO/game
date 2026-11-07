@@ -1,7 +1,8 @@
 /**
  * LES OFFRES EN COOP (#3371), sur transport en mémoire (`FakeTransport`) : l'invité du siège 1 joue chez l'hôte
  * l'offre d'un corps (`jouerLOffre`, routée par son lieu, `lieuDeLOffre`) ; un relais ne voyage pas, il s'élit chez
- * l'émetteur (`intentEluLocalement`) et c'est son verbe qui voyage (`fenetreValider`, `leverLaMain`) ; un sort hors
+ * l'émetteur (`intentEluLocalement`) et c'est son verbe qui voyage (`fenetreValider`, `leverLaMain`) ; une offre jouée
+ * chez l'hôte qui arme une intention (`attaque`) l'arme chez l'émetteur (`preparerLIntentLocal`) ; un sort hors
  * combat se route au propriétaire de son lanceur.
  */
 import { describe, it, expect } from 'vitest';
@@ -9,7 +10,8 @@ import { FakeTransport } from './transport.testkit';
 import { HostSession, GuestSession } from './session';
 import { ouvrirLeBanc, type Banc } from '../../noyau/banc.testkit';
 import { appliquerLIntentionDUnSiege, type IssueDIntention } from '../../noyau/intentionsDeSiege';
-import { instantaneDeLaCoop } from '../../noyau/coop';
+import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
+import { emettreIntentInvite } from './salon';
 import { activeCombatant } from '../../noyau/combatFlow';
 import { intentEluLocalement } from '../../noyau/targetingModes';
 import { testScene } from '../../scenes/test-fixture';
@@ -74,6 +76,30 @@ describe('Offres en coop : le corps voyage, le relais s’élit chez l’émette
     auTourDe(t, 'H');
     expect(t.envoyer('jouerLOffre', ['end-turn']), 'l’invité finissait le tour du héros de l’hôte').toBe('refusee');
     expect(activeCombatant(t.banc.getState().battle!)?.id).toBe('H');
+  });
+
+  it('`attaque` se joue chez l’hôte : l’intention s’arme chez l’invité, pas chez l’hôte, et le mode revient par l’instantané', () => {
+    const t = enPause();
+    auTourDe(t, 'L');
+    t.banc.setState({ battle: { ...t.banc.getState().battle!, acted: false, selectedAttack: 'autre' } });
+    // Un seul jeu se branche par test : le banc joue l'invité sur l'instantané de l'hôte, puis l'hôte reprend sa place.
+    const hote = { ...t.banc.getState() };
+    t.banc.setState(appliquerLInstantane(instantaneDeLaCoop(hote), { ...hote, net: { ...NET, mode: 'guest', mySeat: 1 } }).etat);
+    const envoyes: [string, unknown[]][] = [];
+    emettreIntentInvite(t.banc.getState, 'jouerLOffre', t.banc.getState().jouerLOffre as never, (action, args) => envoyes.push([action, args]), ['attaque']);
+    const invite = { ...t.banc.getState() };
+    expect(envoyes).toEqual([['jouerLOffre', ['attaque']]]);
+    expect(invite.localIntent?.actionId, 'l’intention n’est pas armée chez l’invité').toBe('attaque');
+    expect(invite.battle!.selectedAttack, 'le corps s’est joué chez l’invité').toBe('autre');
+
+    t.banc.setState(hote);
+    expect(t.envoyer(...envoyes[0])).toBe('appliquee');
+    expect(t.banc.getState().localIntent ?? null, 'l’hôte a armé l’intention d’autrui').toBeNull();
+    expect(t.banc.getState().battle!.selectedAttack, 'le corps ne s’est pas joué chez l’hôte').toBe('arme');
+
+    const recu = appliquerLInstantane(instantaneDeLaCoop(t.banc.getState()), invite).etat;
+    expect(recu.battle!.selectedAttack, 'le mode n’est pas revenu par l’instantané').toBe('arme');
+    expect(recu.localIntent?.actionId, 'l’instantané a écrasé l’intention locale').toBe('attaque');
   });
 
   it('`round-start` est un relais : élu chez l’émetteur, il ne voyage pas ; son verbe marque le siège prêt', () => {

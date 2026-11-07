@@ -115,7 +115,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ═══ hôte / local : émis par un écran ═══
   // Élection LOCALE d'écran, hors réseau PAR CONSTRUCTION (même famille que `localIntent`) : le clic
   // qui élit le porteur du mode Dissiper n'engage rien — il ouvre le choix du Sort CHEZ CE JOUEUR.
-  // `netFlow.emettreIntentInvite` le joue dans le store de l'émetteur et n'envoie aucun intent ; le
+  // `emettreIntentInvite` (`hote/coop/salon.ts`) le joue dans le store de l'émetteur et n'envoie aucun intent ; le
   // COMMIT, lui (`dissiperLeSort`), est exposé. Voyager le ferait naître chez l'HÔTE.
   designerLeSupport: 'local',
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
