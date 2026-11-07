@@ -133,7 +133,16 @@ const doc = document(
     codex: { keys: ['creatures'] },
     edit: { dataset: 'creatures' },
   },
-  { exiges: ['source'] },
+  {
+    exiges: ['source'],
+    /** #2993 */
+    affinerEntree: (entree) =>
+      entree.superRefine((v, ctx) => {
+        const { id, appearance } = v as { id: string; appearance?: { species?: string } };
+        if (appearance?.species === undefined)
+          ctx.addIssue({ code: 'custom', path: ['appearance', 'species'], message: `${id} : statbloc sans \`appearance.species\` — son espèce range son corps au plan de bestiaire (planDeBestiaire.json).` });
+      }),
+  },
 );
 
 export const schema = doc.schema;

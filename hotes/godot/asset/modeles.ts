@@ -62,7 +62,7 @@ function validerBase(brut: unknown, octets: Uint8Array): VerdictDeBase {
   return ecarts.length ? { ok: false, ecarts } : v;
 }
 
-/** Un validateur par contrat : base schéma 4, élément schéma 3 contre sa base validée. */
+/** Un validateur par contrat : base au schéma `VERSION_DU_SCHEMA_DE_BASE`, élément schéma 3 contre sa base validée. */
 export function validerModele(brut: unknown, octets: Uint8Array, bases: ReadonlyMap<string, BaseLivree> = new Map()): VerdictDeModele {
   try {
     const fuites = cheminsAbsolus(brut, 'manifeste');

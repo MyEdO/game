@@ -1,5 +1,4 @@
-/** Apparence de base d'une race : gabarit et échelle d'art. */
-import { z } from 'zod';
+/** Apparence de base d'une race : son gabarit. */
 import { document } from '../grammaire/document';
 import { ref } from '../grammaire/ref';
 import { surchargeDeGabaritSchema } from './gabarits';
@@ -13,7 +12,6 @@ const doc = document(
   {
     gabarit: ref('gabarit'),
     gabaritOverride: surchargeDeGabaritSchema.optional(),
-    scale: z.number().optional(),
   },
   {
     gabarit: { label: 'Gabarit', hint: 'Identifiant du gabarit de silhouette par défaut de la race' },
@@ -21,7 +19,6 @@ const doc = document(
       label: 'Surcharge de gabarit',
       hint: 'Mesures du gabarit surchargées pour cette race (longueur et épaisseur globales, jambes, bras, tête)',
     },
-    scale: { label: 'Échelle d’art', hint: 'Facteur d’échelle de l’élément 3D par rapport à sa race' },
   },
   {
     codex: { keys: ['raceAppearance'] },

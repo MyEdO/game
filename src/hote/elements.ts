@@ -4,7 +4,7 @@
  * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
  * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
  */
-import type { CreatorDraft, GesteDEdition, GesteDuBrouillon, PageDeCreation, ValeurDuReglage } from '../noyau/index';
+import type { CreatorDraft, GesteDEdition, GesteDuBrouillon, PageDeCreation } from '../noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
@@ -134,7 +134,7 @@ function argumentsAvec(g: GesteDeLaFenetre, nom: string, valeur: unknown): unkno
 /** Les valeurs de l'argument à choisir `a` du geste `g`, chacune un bouton qui joue le geste avec elle, refusée avec
  *  le geste. */
 const valeursDuChoix = (g: GesteDeLaFenetre, a: ArgumentDuGeste): Bouton[] =>
-  (a.valeurs ?? []).map((v: ValeurDuReglage, i): Bouton => ({
+  (a.valeurs ?? []).map((v, i): Bouton => ({
     type: 'bouton', id: `${g.cle}/${i}`, libelle: v.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, a.nom, v.valeur) },
     presse: v.valeur === a.valeur, focus: false, refus: v.refus ?? g.raison,
   }));

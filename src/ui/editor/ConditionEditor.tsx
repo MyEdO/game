@@ -16,6 +16,7 @@ import type { Camp, Relation } from '../../engine/relations';
 import { ChoixDeSpec, RefField, reposerLId } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';
 import { CONDITION_TOUJOURS, recast } from '../../data/valeursNeuves';
+import { unionDuNoeud } from '../../noyau/codex/editFields';
 import { ATTACK_KIND_LABELS, valeurDeHas } from './interne/resumeDeCondition';
 
 
@@ -57,43 +58,17 @@ function EtatFields({ cond, narratif, onChange }: { cond: Extract<Condition, { k
 
 const COMPARE_OPS: CompareOp[] = ['>=', '<=', '==', '<', '>'];
 
-const KIND_OPTIONS: [Condition['kind'], string][] = [
-  ['always', 'Toujours'],
-  ['flag', 'Flag(s)'],
-  ['etat', 'État de campagne'],
-  ['time', 'Créneau horaire'],
-  ['hasItem', 'Possède un objet'],
-  ['money', 'Bourse ≥'],
-  ['partyDead', 'Héros mort'],
-  ['compare', 'État du porteur (comparaison)'],
-  ['slThreshold', 'Marge (DR)'],
-  ['location', 'Localisation touchée'],
-  ['attackKind', 'Type d’attaque'],
-  ['startleCause', 'Cause d’effarouchement'],
-  ['woundsDealt', 'Blessures infligées'],
-  ['engagedAdvantageGap', 'Écart d’Avantage (engagés)'],
-  ['engagedAdvantageLead', 'Avance d’Avantage (sur tous les engagés)'],
-  ['foeInLoS', 'Ennemi en Ligne de Vue'],
-  ['cibleEnVue', 'Cible de l’affliction en vue (psychologie)'],
-  ['hiddenFromFoes', 'Caché de l’ennemi (hors de vue)'],
-  ['engaged', 'Engagé avec un ennemi'],
-  ['crewTest', 'Au sein d’un Test d’équipage (à bord)'],
-  ['roundDeCombat', 'Pendant un Round de combat'],
-  ['nearestFoe', 'Distance à l’ennemi le plus proche'],
-  ['capability', 'Capacité de combat'],
-  ['visiblePassive', 'Atteinte VISIBLE (apparence)'],
-  ['relation', 'Camp / relation'],
-  ['has', 'Possède (Groupe/Talent/Trait)'],
-  ['casterChaosDomain', 'Domaine du Chaos du lanceur'],
-  ['skill', 'Compétence du groupe'],
-  ['talent', 'Talent du groupe'],
-  ['career', 'Carrière du groupe'],
-  ['species', 'Espèce du groupe'],
-  ['status', 'Statut du groupe ≥'],
-  ['all', 'TOUS (ET)'],
-  ['any', 'AU MOINS UN (OU)'],
-  ['not', 'NON'],
-];
+/** Le libellé de chaque variante de l'algèbre `Condition`, porté par son schéma (`unionDuNoeud`). */
+const LIBELLE_DE_CONDITION = new Map(unionDuNoeud(conditionSchema)!.variantes.map((v) => [v.cle, v.libelle]));
+
+/** Les variantes de Condition offertes, dans l'ordre du sélecteur, nommées par l'algèbre (`LIBELLE_DE_CONDITION`). */
+const KIND_OPTIONS: [Condition['kind'], string][] = ([
+  'always', 'flag', 'etat', 'time', 'hasItem', 'money', 'partyDead', 'compare', 'slThreshold', 'location',
+  'attackKind', 'startleCause', 'woundsDealt', 'engagedAdvantageGap', 'engagedAdvantageLead', 'foeInLoS',
+  'cibleEnVue', 'hiddenFromFoes', 'engaged', 'crewTest', 'roundDeCombat', 'nearestFoe', 'capability',
+  'visiblePassive', 'relation', 'has', 'casterChaosDomain', 'skill', 'talent', 'career', 'species', 'status', 'all',
+  'any', 'not',
+] as const).map((k): [Condition['kind'], string] => [k, LIBELLE_DE_CONDITION.get(k)!]);
 
 /** La Condition `has`, dont la branche se lit à son `what`. */
 type ConditionHas = Extract<Condition, { kind: 'has' }>;

@@ -21,7 +21,7 @@ import { composerSurLaBase, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
-import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
+import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
@@ -374,6 +374,8 @@ export function creerPont() {
           if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
         }
         const geste = nomme ?? (e.edition as GesteDEdition);
+        const refusDeValeur = geste.geste === 'valeur' ? refusDeLaValeurDit(s, geste) : null;
+        if (refusDeValeur) throw new ErreurDeGeste('regle', `editer : ${refusDeValeur}`);
         if (geste.geste === 'enregistrer') {
           const passe = texteAEnregistrer(s);
           if (!passe.ok) throw new ErreurDeGeste('regle', `editer : ${passe.refus}`);

@@ -1,13 +1,13 @@
 /**
  * LECTURES de l'édition de scène — outil actif, calques, sélection, picking, emprise du pinceau et formulaire tiré
- * du schéma (`formulaireDeZone`). PURES,
+ * du schéma de chaque porteur (`formulaireDe`). PURES,
  * Node-safe, sans import d'hôte : tout hôte qui embarque le noyau désigne par elles ce qu'il édite.
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { faceDAreteSchema, sceneEffectZoneSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import { faceDAreteSchema, sceneEffectZoneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { inferFields, type FieldDesc } from './codex/editFields';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
@@ -382,12 +382,21 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
  *  redise sa forme (la palette le construit, le canevas le transmet, la pose le consomme). */
 export type EntityTool = Extract<Tool, { mode: 'entity' }>;
 
-/** Les champs du formulaire d'une zone d'effet : son Test de traversée, ses effets à la traversée et à chaque Round. */
-export const CHAMPS_DU_FORMULAIRE_DE_ZONE = ['crossTest', 'onCross', 'perRound'] as const;
+/** Les formulaires tirés du schéma, par sorte de porteur : le nœud de sa donnée et les champs qu'il offre. D'une zone
+ *  d'effet, son Test de traversée, ses effets à la traversée et à chaque Round ; d'un déclencheur, sa condition
+ *  d'entrée. */
+export const FORMULAIRES = {
+  zone: { schema: sceneEffectZoneSchema, champs: ['crossTest', 'onCross', 'perRound'] },
+  declencheur: { schema: triggerSchema, champs: ['when'] },
+} as const;
 
-/** Le formulaire de la zone d'effet `zone` : chacun de `CHAMPS_DU_FORMULAIRE_DE_ZONE`, décrit par `inferFields` sur
- *  `sceneEffectZoneSchema`. */
-export function formulaireDeZone(zone: SceneEffectZone): FieldDesc[] {
-  const champs = inferFields([zone as unknown as Record<string, unknown>], { noeud: sceneEffectZoneSchema, niveau: 'profondeur' });
-  return CHAMPS_DU_FORMULAIRE_DE_ZONE.flatMap((cle) => champs.filter((f) => f.key === cle));
+/** La sorte d'un porteur de formulaire tiré du schéma. */
+export type SorteDePorteur = keyof typeof FORMULAIRES;
+
+/** Le formulaire du porteur de sorte `sorte`, de donnée `donnee` : chacun de ses champs offerts (`FORMULAIRES`), décrit
+ *  par `inferFields` sur le nœud de sa donnée. */
+export function formulaireDe(sorte: SorteDePorteur, donnee: SceneEffectZone | Trigger): FieldDesc[] {
+  const { schema, champs } = FORMULAIRES[sorte];
+  const decrits = inferFields([donnee as unknown as Record<string, unknown>], { noeud: schema, niveau: 'profondeur' });
+  return champs.flatMap((cle) => decrits.filter((f) => f.key === cle));
 }

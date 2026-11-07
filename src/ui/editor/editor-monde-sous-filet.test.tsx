@@ -55,7 +55,7 @@ describe('Éditeur — une espèce hors domaine se voit, elle ne lève pas', () 
 
     const onglet = [...container.querySelectorAll('button')].find((b) => b.textContent?.includes('Validation'))!;
     await act(async () => { onglet.click(); });
-    expect(container.querySelector('.ed-validation')?.textContent).toContain('espèce « espece-hors-vocabulaire » inconnue : ni espèce jouable, ni créature, ni race de rendu, ni forme de corps.');
+    expect(container.querySelector('.ed-validation')?.textContent).toContain('espèce « espece-hors-vocabulaire » inconnue : ni espèce jouable, ni espèce du plan de bestiaire (planDeBestiaire.json).');
   });
 });
 
