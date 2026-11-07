@@ -35,7 +35,9 @@ export interface CompositionSurLaBase {
   manquants: Manquant[];
   /** Les objets ni tenus ni rangés (`PorteeDeComposition.rapport`). */
   rapport: string[];
-  gabarit: PoseDuGabarit;
+  /** Absente sur un corps sans table de gabarit (`ManifesteDeBase.gabarit`). */
+  gabarit?: PoseDuGabarit;
+  /** Vide sur un corps sans table de gabarit. */
   morphes: Record<string, number>;
   /** La couleur `#rrggbb` de chaque emplacement de palette que la composition colore (`couleurs`). */
   palette: Record<string, string>;
@@ -77,13 +79,13 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     montes.push({ ligne, element: element ?? null, ...(porteUnBlason && embleme ? { embleme } : {}), ...(teinte ? { palette: { ...teinte.palette } } : {}) });
     if (element === undefined) manquants.push({ ligne, champ: p.cle.champ, id: p.cle.id, label: p.label, ...(p.par ? { par: p.par } : {}) });
   }
-  const manifeste = manifestes[base.id] as ManifesteDeBase;
+  const { gabarit, appuis } = manifestes[base.id] as ManifesteDeBase;
   return {
     montes,
     manquants,
     rapport: portee.rapport,
-    gabarit: poseDuGabarit(manifeste, portee.facteurs),
-    morphes: poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, manifeste.gabarit),
+    ...(gabarit ? { gabarit: poseDuGabarit({ gabarit, appuis }, portee.facteurs) } : {}),
+    morphes: gabarit ? poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, gabarit) : {},
     palette: Object.fromEntries(Object.entries(portee.couleurs ?? {}).map(([slot, { id }]) => [slot, findCouleurById(id)!.color])),
   };
 }

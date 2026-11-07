@@ -127,9 +127,9 @@ export const ATTACHE = { os: 'racine', position: [0, 0, 0], rotation: [0, 0, 0] 
 
 /** Le manifeste qui décrit le GLB `octets` de `glbFabrique`, d'os `os`. */
 export const manifesteDe = (octets: Uint8Array, os = ['racine']) => ({
-  schema: 4, base: 'fabrique', os, chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...ATTACHE } },
+  schema: 5, base: 'fabrique', os, chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...ATTACHE } },
   prises: { main: { ...ATTACHE }, off: { ...ATTACHE } }, silhouettes: [FEMININ], gabarit: { ...TABLE, legs: [] },
-  porteur: { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
+  porteur: { espece: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
   clips: { walk: [...lireGlb(octets).animations][0] },
   appuis: { pieds: ['racine'], plusBas: [{ position: [0, 0, 0] as const, os: [{ nom: 'racine', poids: 1 }], deltas: {} }], vitesseAuSol: 1.4 },
   osAPositionAnimee: os.filter((o) => o !== 'racine'),
