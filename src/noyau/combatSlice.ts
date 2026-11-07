@@ -1076,9 +1076,9 @@ export function createCombatSlice(get: Get, set: Set) {
       const battle = get().battle;
       const scene = get().scene;
       if (!battle || battle.over || !scene) return;
-      // Toggle (parité cast/heal) : re-cliquer « Pousser » alors qu'on est déjà en mode 'push' ferme le mode
-      // (retour neutre, reachable purgé) sans consommer l'Action.
-      if (battle.action === 'push') { set({ battle: { ...battle, action: null, reachable: new Map(), preview: null } }); bus.emit(EVT.SCENE_DIRTY); return; }
+      // Toggle (parité cast/heal) : re-cliquer « Pousser » alors qu'on est déjà en mode 'push' ferme le mode sans consommer
+      // l'Action, comme le re-clic de sa case (`desarmerLeMode`).
+      if (battle.action === 'push') return void get().desarmerLeMode();
       const active = activeCombatant(battle);
       // Pousser = le MOUVEMENT (pas l'Action) : bloqué si le Mouvement du chef est déjà dépensé, PAS si l'Action
       // a été prise (on peut pousser puis assener, ou l'inverse — ordre libre, LDB 13 l.79). Et pas davantage
@@ -1675,7 +1675,9 @@ export function createCombatSlice(get: Get, set: Set) {
       const selectedSpellId = a === 'cast' ? battle.selectedSpellId : null;
       // Changer (ou quitter) le mode armé oublie le PORTEUR élu du mode Dissiper : son panneau de
       // paramètre n'a plus de déclencheur allumé d'où naître.
-      set({ battle: { ...battle, action: a, selectedSpellId, preview: null }, dispelCarrierId: null });
+      // Le mode Pousser peint SA portée (`reachable`, `pousserLEngin`) : le quitter la purge.
+      const reachable = battle.action === 'push' && a !== 'push' ? new Map() : battle.reachable;
+      set({ battle: { ...battle, action: a, selectedSpellId, preview: null, reachable }, dispelCarrierId: null });
       bus.emit(EVT.SCENE_DIRTY);
     },
 

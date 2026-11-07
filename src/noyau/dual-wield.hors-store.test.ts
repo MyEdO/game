@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialFields } from './stateFields';
-import { resolveDualSecond, applyAttackResult } from './combatFlow';
+import { resolveDualSecond, applyAttackResult, advanceTurn } from './combatFlow';
 import { rollMeleeDefender, type AttackResult } from '../engine/combat';
 import { reverseRoll } from '../engine/tests';
 import { isOutOfAction } from '../engine/conditions';
@@ -289,11 +289,11 @@ describe('purge du −10 au début du prochain Tour du porteur', () => {
     const { h } = setupBattle();
     h.dualStrikeDefensePenalty = -10;
     banc.setState({ battle: { ...banc.getState().battle!, turn: 0 } });
-    banc.getState().terminerLeTour(); banc.abandonner(); // → f1 : flag de h conservé
+    advanceTurn(banc.getState, banc.setState); banc.abandonner(); // → f1 : flag de h conservé
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
-    banc.getState().terminerLeTour(); banc.abandonner(); // → f2 : conservé
+    advanceTurn(banc.getState, banc.setState); banc.abandonner(); // → f2 : conservé
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
-    banc.getState().terminerLeTour(); // franchissement de Round → h (order[0]) : purgé
+    advanceTurn(banc.getState, banc.setState); // franchissement de Round → h (order[0]) : purgé
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBeUndefined();
   });
 });

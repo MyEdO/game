@@ -156,8 +156,9 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     }
     // La case juste au nord (vers la porte) EST une destination proposée.
     expect(reach.has(`${start.x},${start.y - 1}`)).toBe(true);
-    // Toggle (parité cast/heal) : re-cliquer « Pousser » ferme le mode sans consommer l'Action.
-    banc.getState().pousserLEngin();
+    // Toggle (parité cast/heal) : re-cliquer la case « Pousser » (son geste armé, `desarmerLeMode`) ferme le mode sans
+    // consommer l'Action.
+    banc.jouerLaCase('push-engine');
     expect(banc.getState().battle!.action).toBeNull();
     expect(banc.getState().battle!.reachable.size).toBe(0);
     expect(banc.getState().battle!.acted).toBe(false);
