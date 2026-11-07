@@ -531,6 +531,23 @@ describe('l’éditeur de carte par le pont, les scènes du projet', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, l’essai', () => {
+  it('« Tester la scène » met la scène éditée à l’essai : demarrer { essai } la joue, à jour, par le groupe vitrine', () => {
+    const { appel } = table();
+    expect(erreurDe(appel('demarrer', { essai: true })).message).toBe('demarrer : essai, aucune scène mise à l’essai par editer');
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const seconde = (ouverte.vue.zones['editeur.scenes'][0] as Choix).valeurs[1];
+    const ailleurs = editionDe(appel('editer', seconde.jeu));
+    editionDe(appel('editer', { type: 'nommer', args: ['Relais de poste'] }));
+    const testee = appel('editer', boutonDe(ailleurs, 'tester').jeu) as Reponse & { essai?: boolean };
+    expect(testee.essai).toBe(true);
+    const partie = appel('demarrer', { essai: true }) as Reponse & { vue?: { projection: { scene: { id: string } | null } } };
+    expect(partie.ok).toBe(true);
+    expect(partie.vue!.projection.scene, 'la partie s’ouvre sur la scène éditée, à jour').toEqual({ id: seconde.id.slice('scenes/'.length), nom: 'Relais de poste' });
+    expect(erreurDe(appel('demarrer', { essai: true })).message).toMatch(/^demarrer : une partie par page/);
+  });
+});
+
 describe('l’éditeur de carte par le pont, le combat et l’ameublement', () => {
   it('un emplacement de siège posé à l’outil : son engin, son arc, ses servants et leur chef ; un personnage enrôlé dans une rencontre neuve, allié piloté', () => {
     const { appel } = table();

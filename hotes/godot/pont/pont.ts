@@ -9,8 +9,8 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
-import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LancementDeScenario, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/hote/formes';
@@ -158,6 +158,8 @@ export function creerPont() {
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
   /** La session de l'éditeur de carte (`editer`), et la scène et la couche du dernier monde qu'elle a rendu. */
   let edition: { session: SessionDEdition; monde: { scene: Scene; z: number } } | null = null;
+  /** Ce qui construit le lancement de la dernière scène mise à l'essai par l'éditeur, que `demarrer { essai }` ouvre. */
+  let essai: (() => LancementDeScenario) | null = null;
 
   const demarree = () => {
     if (!ouverte) throw new ErreurDeGeste('validation', 'aucune partie : demarrer d’abord');
@@ -225,12 +227,22 @@ export function creerPont() {
 
   const methodes: Record<string, (json?: string | null) => object> = {
     demarrer(json) {
-      const e = entreeDe('demarrer', json, ['scenario', 'graine']);
+      const e = entreeDe('demarrer', json, (e) => ('essai' in e ? ['essai', 'graine'] : ['scenario', 'graine']));
       valider(!ouverte, 'demarrer : une partie par page, déjà démarrée ; recharger la page pour en commencer une autre');
-      valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
-      const entete = nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined });
-      const o = ouvrirLaPartie(entete, sansRoster);
-      ouverte = { ...o, graine: entete.graine, pas: 0, lignes: 0, fiche: null, creation: null, brouillons: 0 };
+      let o: PartieOuverte;
+      let graine: number;
+      if ('essai' in e) {
+        valider(e.essai === true && essai, 'demarrer : essai, aucune scène mise à l’essai par editer');
+        const entrees = nouvellesEntrees({ graine: e.graine as number | undefined });
+        o = ouvrirLeLancement(entrees, essai!, sansRoster);
+        graine = entrees.graine;
+      } else {
+        valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
+        const entete = nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined });
+        o = ouvrirLaPartie(entete, sansRoster);
+        graine = entete.graine;
+      }
+      ouverte = { ...o, graine, pas: 0, lignes: 0, fiche: null, creation: null, brouillons: 0 };
       return suite(ouverte, o.lancement);
     },
     vue(json) {
@@ -351,6 +363,11 @@ export function creerPont() {
           if (!passe.ok) throw new ErreurDeGeste('regle', `editer : ${passe.refus}`);
           depot = { id: s.projet.id, texte: passe.valeur };
         }
+        if (geste.geste === 'tester') {
+          const lance = essaiDeLaScene(s);
+          if (!lance.ok) throw new ErreurDeGeste('regle', `editer : ${lance.refus}`);
+          essai = lance.valeur;
+        }
         session = editer(s, geste);
       }
       const scene = sceneEditee(session);
@@ -364,6 +381,7 @@ export function creerPont() {
         calque: calqueAffiche(session),
         ...(neuf ? { monde: volumeDuMonde(scene, session.z), aretes: aretesDeLaCouche(scene, session.z) } : {}),
         ...(depot ? { depot } : {}),
+        ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
         ...(charge ? { planche: { image: cheminDeLaPlanche(session.projet.id, charge.sceneId, charge.z) } } : {}),
         ...(memoire ? { memoire } : {}),
       };

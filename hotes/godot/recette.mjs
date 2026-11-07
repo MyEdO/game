@@ -1283,6 +1283,13 @@ async function parcoursEditeur() {
   e = await editeur()
   assert.equal(e.zones['editeur.titre'][0].texte, avantLAjout.at(-1).libelle, 'retirée, sa précédente s’édite')
   noter(`« Retirer la scène » : ${scenes(e.zones).length} scènes, ${e.zones['editeur.titre'][0].texte} éditée`)
+  const testee = e.zones['editeur.titre'][0].texte
+  await cliquerAuPanneau({ element: 'bouton/tester' })
+  await waitFor(session, '!globalThis.wfrpEcran?.editeur && !!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  const v = await vue()
+  assert.equal(v.projection.scene?.nom, testee, '« Tester la scène » ouvre le combat sur la scène éditée')
+  noter(`« Tester la scène » : partie ouverte sur ${v.projection.scene.nom}, ${Object.keys((await ecran()).cases).length} cases`)
+  await capturer('3508-l6-4-essai')
 }
 
 /** La page ouverte de la création : son titre. */

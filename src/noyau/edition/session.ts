@@ -18,6 +18,8 @@ import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSel
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { nextEntityId } from '../../lib/entityId';
+import { makeShowcaseParty } from '../../data/pregens';
+import type { LancementDeScenario } from '../lancementDeScenario';
 import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../validateScene';
@@ -278,6 +280,7 @@ export interface SessionDEdition {
  *  d'effet sélectionnée, ou de la scène sans sélection ; éditer une autre scène du projet, en ajouter une vide, dupliquer
  *  ou retirer l'éditée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
+ *  mettre la scène à l'essai, que l'hôte joue (`essaiDeLaScene`), la session telle quelle ;
  *  demander la planche du calque de la couche éditée, puis l'issue de son chargement, l'image lue ou rien ; régler ce
  *  calque, le caler, le retirer. */
 export type GesteDEdition =
@@ -314,6 +317,7 @@ export type GesteDEdition =
   | { geste: 'annuler' }
   | { geste: 'retablir' }
   | { geste: 'enregistrer' }
+  | { geste: 'tester' }
   | { geste: 'enregistrement'; reussi: boolean }
   | { geste: 'planche' }
   | { geste: 'chargement'; image: { largeur: number; hauteur: number } | null }
@@ -372,6 +376,21 @@ export function texteAEnregistrer(s: SessionDEdition) {
   const { scenes: _scenes, worldMap, activeAxes, narratif, ...identite } = s.projet;
   const doc = documentDeProjet(identite, scenesDeLaSession(s), { worldMap, activeAxes, narratif });
   return aLaPorte('export', () => (parseProject(doc), texteDuDepot(doc)));
+}
+
+/** L'essai de la scène éditée de la session `s` : le projet, ses scènes à jour, passé par la porte, et ce qui construit
+ *  son lancement, la scène éditée à l'entrée, joué par le groupe vitrine (`makeShowcaseParty`), à l'ouverture de la
+ *  partie ; ou le refus de la porte. */
+export function essaiDeLaScene(s: SessionDEdition) {
+  const { scenes: _scenes, worldMap, activeAxes, narratif, ...identite } = s.projet;
+  const doc = documentDeProjet(identite, scenesDeLaSession(s), { worldMap, activeAxes, narratif });
+  return aLaPorte('test', (): (() => LancementDeScenario) => {
+    const projet = parseProject(doc);
+    return () => ({
+      party: makeShowcaseParty(), scene: projet.scenes.find((sc) => sc.id === s.sceneId)!, extraScenes: projet.scenes.filter((sc) => sc.id !== s.sceneId),
+      ...(projet.worldMap ? { worldMap: projet.worldMap } : {}), narratif: projet.narratif,
+    });
+  });
 }
 
 /** Le plan de la volée tracée de la session `s` vers l'étage de son outil (`planStairFlight`), `null` hors de l'outil
@@ -696,6 +715,8 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return revenir(s, retablir(s.historique));
     case 'enregistrer':
       return s.depot ? { ...s, depot: { ...s.depot, enCours: scenesDeLaSession(s) } } : s;
+    case 'tester':
+      return s;
     case 'enregistrement':
       return s.depot?.enCours ? { ...s, depot: { enregistrees: g.reussi ? s.depot.enCours : s.depot.enregistrees, enCours: null } } : s;
     case 'planche':

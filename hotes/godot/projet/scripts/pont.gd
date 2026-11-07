@@ -21,6 +21,9 @@ const SILENCE_S := 10.0
 const BLOC_DE_TELECHARGEMENT := 16777216
 
 var est_web := OS.has_feature("web")
+## Si la partie à démarrer est la scène que l'éditeur a mise à l'essai (`demarrer { essai }`), plutôt que le scénario de
+## l'adresse de la page.
+var essai := false
 var _pont: JavaScriptObject = null
 
 
