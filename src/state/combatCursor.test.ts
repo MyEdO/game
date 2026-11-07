@@ -197,7 +197,7 @@ describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) —
   it("le curseur clavier atteint la case AXIALE au nord (5,4)→(5,3) en mode Pousser, jamais bloqué sur le seul pas diagonal", async () => {
     const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
     const { party, scene } = scenario.construire();
-    useGame.setState({ party });
+    useGame.setState({ screen: 'campaign', party });
     useGame.getState().lancerLaScene(scene);
     useGame.getState().lancerLeCombat('siege-belier');
     useGame.getState().fenetreValider('roundStart');

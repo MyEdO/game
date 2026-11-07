@@ -4,6 +4,7 @@
  * jeu elle-même se joue au banc du noyau (`src/noyau/boucle-de-jeu.hors-store.test.ts`).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { advanceTurn } from '../noyau/combatFlow';
 import { GARDES_D_UNE_PARTIE_A_L_AUTRE, useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { createHero } from '../engine/character';
@@ -72,7 +73,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
       combatants: [H, E], order: [E.id, H.id], turn: 1, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8) });
+    useGame.setState({ screen: 'campaign', party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8) });
     return { H, E };
   }
 
@@ -82,7 +83,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
     rangedOf(H).loaded = true; H.pos = { x: 0, y: 0 };
     E.pos = { x: 2, y: 0 }; // à portée + LdV (scène vide)
-    useGame.getState().terminerLeTour(); // → Round 2, pendingRoundStart
+    advanceTurn(useGame.getState, useGame.setState); // → Round 2, pendingRoundStart
     seedBattleRng(1);
     // Touche T : arme la visée du tireur (source unique preemptShooterIds → armerLeTirPreventif).
     useGame.getState().armerLeTirPreventif(H.id);

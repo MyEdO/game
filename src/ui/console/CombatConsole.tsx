@@ -604,6 +604,8 @@ export function CombatConsole() {
   /** Les gestes secondaires, par PORTEUR : l'identité d'un candidat est DÉCLARÉE par l'enveloppe de sélecteur du
    *  registre, et une alvéole a seulement à se reconnaître dans ses propres paramètres. */
   const offres2e = offresParPorteur(offres, 'geste-secondaire');
+  /** Les arguments du premier candidat d'une entrée offerte par candidat (`ACTION_PORTEURS`). */
+  const argsDuPremierCandidat = (actionId: string): ContexteDOffre | undefined => offres.find((o) => o.actionId === actionId)?.args;
   /** GESTES SECONDAIRES d'une alvéole — RENDEUR UNIQUE (aucun id d'action ici), appelé pour TOUTE
    *  case : les entrées `surface: 'geste-secondaire'` dont l'`hote` est l'entrée de la case et dont la
    *  population couvre l'un de ses candidats. Chacune EST une entrée du registre habillée par
@@ -844,7 +846,7 @@ export function CombatConsole() {
     }),
     cellFor('heal', 'geste', { key: 'q-soigner' }),
     // L'aspersion s'offre par allié (`cibles-aspersion`) : la case joue le premier, que le verbe prend par défaut.
-    cellFor('water', 'geste', { args: offres.find((o) => o.actionId === 'water')?.args }),
+    cellFor('water', 'geste', { args: argsDuPremierCandidat('water') }),
   ];
   const quick = placer('accesRapide', rapides.filter((c): c is Cell => !!c));
 

@@ -56,6 +56,7 @@ import { type ItemInstance, type ShipPoste, type Weapon, type WeaponLoadout } fr
 import { pushSlot } from './siegePush';
 import { ACTIONS, byId, type ManeuverDef, findConditionById, findSpellById, type ActionDef } from '../data/index';
 import { garanti } from '../lib/garanti';
+import { tableTotale } from '../lib/tableTotale';
 import { isArcaneSpell, castBlockedBy, castInfoIsPrayer, focusSkillFor, focusWindLabel } from '../engine/magic';
 import { t } from '../i18n';
 import { aPorteeDe } from './monde/exploreNav';
@@ -820,10 +821,10 @@ const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<string, EntreeDOffre>
 /** Les entrées des offres, par `run` : celle de chaque verbe de la barre, et les autres. Un `run` des deux lève. */
 export const ENTREES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
   ...ENTREES_HORS_DES_VERBES_DE_LA_BARRE,
-  ...Object.fromEntries((Object.keys(ARGUMENTS_DE_LA_BARRE) as (keyof VerbesDeLaBarre)[]).map((verbe) => {
+  ...tableTotale(Object.keys(ARGUMENTS_DE_LA_BARRE) as (keyof VerbesDeLaBarre)[], (verbe) => {
     if (Object.prototype.hasOwnProperty.call(ENTREES_HORS_DES_VERBES_DE_LA_BARRE, verbe)) throw new Error(`entrée d’offre ${verbe} déclarée deux fois`);
-    return [verbe, duTour((o) => gesteDuVerbeDeLaBarre(verbe, o))];
-  })),
+    return duTour((o) => gesteDuVerbeDeLaBarre(verbe, o));
+  }),
 };
 
 /** L'entrée d'offre de chaque action qui se joue (`run`), résolue au CHARGEMENT : un `run` absent d'`ENTREES_PAR_RUN`
@@ -977,13 +978,13 @@ type CorpsDeLaBarre = Omit<VerbesDeLaBarre, 'armerLIntention' | 'armerLeMode'> &
 export function creerVerbesDeLaBarre(get: Get<JeuDuNoyau>, set: Set, corps: CorpsDeLaBarre): VerbesDeLaBarre & Pick<ActionsDuNoyau, 'desarmerLeMode'> {
   const corpsDe = (verbe: keyof VerbesDeLaBarre): ((...args: unknown[]) => void) | undefined =>
     (verbe === 'armerLIntention' ? undefined : corps[verbe] as (...args: unknown[]) => void);
-  const verbes = Object.fromEntries((Object.keys(ARGUMENTS_DE_LA_BARRE) as (keyof VerbesDeLaBarre)[]).map((verbe) => [verbe, (...args: unknown[]) => {
+  const verbes = tableTotale(Object.keys(ARGUMENTS_DE_LA_BARRE) as (keyof VerbesDeLaBarre)[], (verbe) => (...args: unknown[]) => {
     const verdict = refusDuGeste(get(), { verbe, args });
     if ('refus' in verdict) return void refuserGesteDuSiege(get, set, verdict.refus);
     armerLOffre(get, verdict.def);
     // Le corps reçoit le candidat que le verdict a désigné, défauts du corps compris.
     corpsDe(verbe)?.(...argumentsDuContexte(ARGUMENTS_DE_LA_BARRE[verbe], verdict.def, verdict.args));
-  }])) as unknown as VerbesDeLaBarre;
+  }) as unknown as VerbesDeLaBarre;
   return {
     ...verbes,
     desarmerLeMode: () => {

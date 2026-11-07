@@ -23,7 +23,7 @@ describe('Piétinement en combat (store)', () => {
 
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    useGame.setState({ party: [hero] });
+    useGame.setState({ screen: 'campaign', party: [hero] });
     useGame.getState().lancerLaScene(testScene());
     useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');

@@ -622,7 +622,8 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days: 3, weeks: 0 } } } });
       // L'étape que le voyage construit (traversée rapide, nœud `test` de Flow à `crewTestType`), son total posé.
       const etape = buildVoyageCrewStep(get, 'rude-epreuve', kind, { stake: voyageStakeRef('voyage-rapide') })!;
-      applierDe(kind)!(get, set, { ...etape, result: { roll: 0, target: 0, sl, success: sl >= 1 } } as CascadeStep, undefined, { steps: [], index: 0 });
+      const resolue: CascadeStep = { ...etape, result: { roll: 0, target: 0, sl, success: sl >= 1 } };
+      applierDe(kind)!(get, set, resolue, undefined, { steps: [], index: 0 });
       return get().vessel!.morale.score;
     };
     expect(traverser(-2)).toBe(73);

@@ -44,7 +44,7 @@ export interface ProprietaireDuDuel {
 /** Ouvre le duel chez `p`, dans `scene` (la scène de fixture, que le noyau n'importe pas) : la scène, le combat, la
  *  manche confirmée, les suites programmées abandonnées, puis le patch d'`auContact` écrit. */
 export function heroFaceAUnEnnemi(p: ProprietaireDuDuel, scene: Scene): { H: Combatant; E: Combatant } {
-  p.setState({ party: [heroDuDuel()] });
+  p.setState({ screen: 'campaign', party: [heroDuDuel()] });
   p.getState().lancerLaScene(scene);
   p.getState().lancerLeCombat('enc-mutants');
   p.getState().fenetreValider('roundStart');
