@@ -15,8 +15,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * ANCRAGE DE RÈGLE d'un contrecoup — chemin RÉEL (`applyMiscast` → `finishMiscast` → `runCombatFlow`,
  * qui partagent UN `OpsCtx`). L'effet durable posé par « Purifier la chair » (`LDB 40 l.75`) est une
  * pastille du joueur : sans entité SOURCE, elle s'affiche nue (ni fiche, ni popover — arbitrage user
- * 2026-07-18). La source est la RANGÉE tirée, dans la catégorie que sa table déclare en donnée. La
- * pastille de cette source et sa fiche : `src/gameIso/miscast-chip-codex.test.ts`.
+ * 2026-07-18). La source est la RANGÉE tirée, dans la catégorie que sa table déclare en donnée.
  */
 describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)', () => {
   function setup() {

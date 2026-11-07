@@ -2,7 +2,7 @@
  * IDENTITÉ d'un état `heros` à l'affichage d'une prose de paquet (EDO 02 l.112-127, #686) : la prose
  * STOCKÉE reste verbatim, seul le texte rendu nomme le héros désigné. Le couple espèce × sexe se FIGE
  * au choix du héros (`coupleDIdentite`, EDO 02 l.114) ; les textes restent dans `identite.lignes`.
- * Fonctions PURES ; le rendu les lit par `useIdentites` (`src/ui/useIdentites.ts`).
+ * Fonctions PURES ; le rendu les lit par `useIdentites`.
  */
 import { findSpeciesById } from '../../data';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
