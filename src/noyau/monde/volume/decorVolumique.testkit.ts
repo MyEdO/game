@@ -1,7 +1,6 @@
 /**
- * KIT DU DÉCOR VOLUMIQUE — la population des recettes de `props.json` et les mesures que ses contrats partagent : le
- * contrat de la donnée (`props-volumiques.test.ts`, ce dossier) et celui de l'émetteur de l'hôte web
- * (`src/gameIso/catalog/props-volumiques.test.ts`, #3556).
+ * KIT DU DÉCOR VOLUMIQUE — la population des recettes de `props.json` et les mesures que ses contrats partagent, dont le
+ * contrat de la donnée (`props-volumiques.test.ts`, ce dossier).
  */
 import { findPropById, props } from '../../../data';
 import { empriseLocaleM, placeAssiseDe, type PropPrimitive } from '../../../data/props.types';

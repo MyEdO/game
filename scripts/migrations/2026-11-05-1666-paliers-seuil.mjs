@@ -15,7 +15,7 @@
  * de celui qu'IMPRIME le livre (table close, référence au refus). Les phases du jour, liste éditable,
  * n'ont aucun cardinal gelé (#1812).
  * FORMATAGE : `serializeDataset` pour `src/data`, `JSON.stringify(…, null, 1)` + saut de ligne pour
- * un projet de campagne (`src/ui/editor/Editor.tsx`).
+ * un projet de campagne.
  */
 import fs from 'node:fs';
 import path from 'node:path';

@@ -1,8 +1,8 @@
 /**
  * LE LANCEMENT D'UN SCÉNARIO (#2898) : ce qu'un hôte lance (`LancementDeScenario`, le contenu construit d'un
  * scénario de test et ses réglages de lancement) et l'UNIQUE séquence qui le joue, en deux temps, sur les actions
- * du noyau : la pose (`poserLeLancement`), puis le démarrage (`demarrerLeLancement`). Le web la joue par
- * `src/state/scenarioFlow.ts`, la partie par `Partie.lancer` (`partie.ts`). Le noyau ne lit ni le registre des
+ * du noyau : la pose (`poserLeLancement`), puis le démarrage (`demarrerLeLancement`). La partie la joue par
+ * `Partie.lancer` (`partie.ts`). Le noyau ne lit ni le registre des
  * scénarios ni leur fiche : l'hôte construit le lancement (`lancementDuScenario`, `scenes/test-scenarios/_shared.ts`).
  */
 import { setRule, type RuleValue } from '../engine/policy';

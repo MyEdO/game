@@ -53,9 +53,10 @@ export type Tool =
   | { mode: 'crenellated'; structure: string | null }
   | { mode: 'erase' };
 
-/** Variantes de l'outil ZONE (rail « zone » de la Palette). `room` et `effect` produisent toutes deux
- *  une `SceneEffectZone` ; ce qui les distingue est leur GRAINE ci-dessous, pas le créateur. */
-export type ZoneVariant = 'room' | 'trigger' | 'rest' | 'effect';
+/** Variantes de l'outil ZONE (rail « zone » de la Palette), la pièce d'abord. `room` et `effect` produisent toutes
+ *  deux une `SceneEffectZone` ; ce qui les distingue est leur GRAINE ci-dessous, pas le créateur. */
+export const ZONE_VARIANTS = ['room', 'trigger', 'rest', 'effect'] as const;
+export type ZoneVariant = (typeof ZONE_VARIANTS)[number];
 
 /** Ce que chaque variante de zone d'effet DONNE à la zone qu'elle dessine — déclaré ICI, à côté du
  *  choix de la variante, et passé tel quel à `addEffectZone`. La PIÈCE naît nue : un intérieur, un nom
@@ -289,6 +290,13 @@ export function selZ(scene: Scene, sel: Sel): number {
   if (sel.type === 'roofSection')
     return scene.architecture?.find((b) => b.id === sel.bodyId)?.masses?.find((m) => m.id === sel.id)?.z ?? 0;
   return 0;
+}
+
+/** La case de la poignée de redimensionnement de la sélection `sel` de `scene` sur la couche `z` : le coin SE de son
+ *  rectangle (`selRect`), `null` pour une sélection ponctuelle ou d'une autre couche (`selZ`). */
+export function poigneeDeLaSelection(scene: Scene, sel: Sel, z: number): Pt | null {
+  const r = selRect(scene, sel);
+  return r && selZ(scene, sel) === z ? { x: r.x + r.w - 1, y: r.y + r.h - 1 } : null;
 }
 
 /** Position d'ancrage de la sélection (coin NW pour les rects) — cible des flèches de nudge. */

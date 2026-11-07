@@ -172,7 +172,7 @@ function bandSpecOf(band: CascadeStep): BandSpec {
  * re-dérive de SES rangées — une moitié à un seul porteur le NOMME (`actorId`) au lieu de garder le
  * `groupOwner` de la bande d'origine.
  *
- * L'étampe de TRACE (`meta.autoResolved`, #1281) ne se pose PAS ici : mesuré sur `src/state`, les
+ * L'étampe de TRACE (`meta.autoResolved`, #1281) ne se pose PAS ici : mesuré, les
  * rangées de la moitié `others` naissent TOUTES non roulées (33/33) — c'est `runCascadeImmediate` qui
  * les jette, et c'est donc lui qui les étampe (`cascade.rollBatchParticipants`).
  */

@@ -14,7 +14,7 @@ for (const porteur of ['commentaire', 'raison']) test(`suite citée ${porteur} :
     for (const dir of ['src', 'scripts/test', 'scripts/git-hooks', 'scripts/hooks', 'docs', '.claude/rules', '.claude/agents', '.claude/skills', '.codex/agents']) mkdirSync(join(racine, dir), { recursive: true })
     const cible = 'scripts/test/temoin.test.mjs'
     writeFileSync(join(racine, cible), '')
-    writeFileSync(join(racine, 'scripts/porteur.mjs'), porteur === 'commentaire' ? `// ${cible}\n// src/ui/X.test.tsx ; src/x.test.ts ; src/.test.ts\nconst exemple = '// scripts/test/invente.test.mjs'\n` : `const ECRIT_LU = { gate: { raison: '${cible}' } }\nconst fixture = { raison: 'scripts/test/invente.test.mjs' }`)
+    writeFileSync(join(racine, 'scripts/porteur.mjs'), porteur === 'commentaire' ? `// ${cible}\n// src/noyau/X.test.tsx ; src/x.test.ts ; src/.test.ts\nconst exemple = '// scripts/test/invente.test.mjs'\n` : `const ECRIT_LU = { gate: { raison: '${cible}' } }\nconst fixture = { raison: 'scripts/test/invente.test.mjs' }`)
     const lancer = () => spawnSync(process.execPath, [CLI], { cwd: racine, encoding: 'utf8', timeout: 15_000 })
     const vert = lancer()
     assert.equal(vert.status, 0, vert.stderr)
@@ -38,7 +38,7 @@ test('préfiltre : jetons complets, spans AST et politique de chemins conservés
       'scripts/non-candidat.mjs': [
         "const suffixe = '.test.mjs'",
         '// scripts/test/outil.mjs',
-        '// src/ui/X.test.tsx ; src/x.test.ts ; src/.test.ts',
+        '// src/noyau/X.test.tsx ; src/x.test.ts ; src/.test.ts',
         '// scripts/test/<nom>.test.mjs',
       ].join('\n'),
       'scripts/citations.mjs': [

@@ -1,6 +1,6 @@
 /**
- * LA PARTIE (#2817 D9) — l'état d'un hôte qui n'est pas le web, au même titre que le store
- * (`src/state/store.ts`), tenu par le propriétaire du jeu (`proprietaireDuJeu.ts`) : l'état et les actions du
+ * LA PARTIE (#2817 D9) — l'état d'un hôte qui n'est pas le web, au même titre que le store,
+ * tenu par le propriétaire du jeu (`proprietaireDuJeu.ts`) : l'état et les actions du
  * noyau, le branchement, une plateforme dont l'appel différé rend un jeton que l'hôte rejoue par `reprendre`,
  * et les entrées de D8. Chaque appel rend son issue, les événements du bus émis pendant lui, les appels
  * différés qu'il a programmés, et les lignes de journal qu'il a écrites. Un seul propriétaire par contexte JS (`branchement.ts`) : une partie ne cohabite ni

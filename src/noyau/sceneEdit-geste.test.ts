@@ -1,7 +1,7 @@
 /**
  * Le GESTE de l'éditeur au noyau (#3059) : appliquer un outil à une case, valider un rectangle, créer
- * une architecture, décaler une sélection, poser une volée — sans `src/ui` ni `gameIso`, avec les bornes
- * et refus de l'éditeur web. `editEntity` refuse l'identité (`id`, `kind`) par un refus nommé.
+ * une architecture, décaler une sélection, poser une volée — sans écran ni rendu, avec les bornes
+ * et refus de l'éditeur. `editEntity` refuse l'identité (`id`, `kind`) par un refus nommé.
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, heightAt, tileAt, type Scene } from './monde/scene';

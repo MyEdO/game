@@ -697,7 +697,7 @@ const worldMap = {
   places: [
     {
       id: 'salzenmund', label: 'Salzenmund', pos: { x: 25, y: 60 }, scene: 'ls-quai-salzenmund', icon: 'scenario/port',
-      backdrop: 'port', // bande d'ambiance du hub (`MapPlace.backdrop`, registre `src/ui/backdrops`, #371)
+      backdrop: 'port', // bande d'ambiance du hub (`MapPlace.backdrop`, #371)
       port: { ref: 'salzenmund' }, // #217 — Taille/Richesse/Production/Surplus/Demande RAW coulent du catalogue
       // `temple` : `naval-ports.json#salzenmund.desc` (RAW MDG p.138) — « Grand Temple d'Ulric et temple de
       // Manann Resplendissant » — Frère Aldo (NPC de la scène) l'incarne (bénédiction du départ, #360).

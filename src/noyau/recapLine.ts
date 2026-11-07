@@ -30,7 +30,7 @@ export interface RecapLine {
   /** Phase du jour (clé de `DAY_PHASE_CATALOG`) — posée quand la ligne provient d'une étape de
    *  cascade (`kind` connu) ; absente pour les notes hors-cascade (météo, entretien, soins d'arrivée). */
   phase?: string;
-  /** Le texte est une prose de PAQUET (`SITES_PROSE`, `src/ui/liage.ts`) : nommé par les identités en vigueur. */
+  /** Le texte est une prose de PAQUET : nommé par les identités en vigueur. */
   paquet?: true;
 }
 
@@ -58,7 +58,7 @@ export interface RecapEvent {
 /** Une PHASE reconnue d'une journée de voyage TERRESTRE (agenda du jour EN COURS, #333 vague 2) —
  *  catalogue GÉNÉRIQUE par PRÉFIXE de `CascadeStep.kind` (aucun id de mode nommé) : ajouter une
  *  phase = une entrée ici, jamais un branchement par mode. Source UNIQUE, partagée par l'agenda du
- *  jour EN COURS (`ui/VoyageScreen.dayAgenda`) ET le sectionnement des jours CLOS (`noyau/travelFlow`,
+ *  jour EN COURS (`dayAgenda`) ET le sectionnement des jours CLOS (`noyau/travelFlow`,
  *  via `RecapLine.phase`) — le même catalogue groupe les deux (#349, dette 3).
  */
 export interface DayPhaseDef {
