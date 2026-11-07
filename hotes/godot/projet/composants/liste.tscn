@@ -17,6 +17,8 @@ champ = "ton"
 propriete = &"theme_type_variation"
 
 [node name="Valeurs" type="OptionButton" parent="."]
+fit_to_longest_item = false
+clip_text = true
 
 [node name="valeurs" type="Node" parent="Valeurs"]
 script = ExtResource("1_liaison")

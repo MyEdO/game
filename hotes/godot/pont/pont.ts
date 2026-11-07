@@ -4,7 +4,8 @@
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend. La fiche que
  * l'écran montre et la création d'un héros sont des états du pont, que les méthodes `fiche` et `creation` posent,
- * jamais de la partie ; seul l'engagement du héros créé la touche. Les modèles servis (`modeles`) sont un état du pont
+ * jamais de la partie ; seul l'engagement du héros créé la touche, et l'Effet de scène qui demande un héros neuf
+ * (`demandeUnHeros`) ouvre la création comme « Nouveau héros ». Les modèles servis (`modeles`) sont un état du pont
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
@@ -85,6 +86,9 @@ export function clicDuCombattant(vue: VueDuPont, id: string): { type: typeof CLI
   const [x, y, z] = cle.split(',').map(Number);
   return { type: vue.champ, args: [z ? { x, y, z } : { x, y }, id] };
 }
+
+/** L'événement du noyau qui demande la création d'un héros neuf (`EVT.HEROS_A_CREER`, `src/noyau/bus.ts`). */
+const demandeUnHeros = (e: ResultatDeLAppel['evenements'][number]): boolean => e.type === 'emis' && e.evt === 'heros_a_creer';
 
 /** Godot dessine tout : aucune liste de la projection n'est bornée. */
 export const SANS_BORNE: BornesDeLaProjection = { autres: Infinity, offres: Infinity, cibles: Infinity, gestes: Infinity, entites: Infinity };
@@ -192,7 +196,15 @@ export function creerPont() {
     };
   };
 
+  /** Ouvre la création sur un brouillon neuf, à sa première page, et ferme la fiche. */
+  const ouvrirLaCreation = (o: NonNullable<typeof ouverte>): void => {
+    o.creation = { brouillon: brouillonDeLaPartie(o.graine, o.brouillons++), page: pagesDeCreation()[0] };
+    o.fiche = null;
+  };
+
+  /** La suite de `resultat` ; un héros neuf demandé (`demandeUnHeros`) ouvre la création, sauf déjà ouverte. */
   const suite = (o: NonNullable<typeof ouverte>, resultat: ResultatDeLAppel): Suite => {
+    if (!o.creation && resultat.evenements.some(demandeUnHeros)) ouvrirLaCreation(o);
     const programmes = o.jetons.programmes(resultat);
     const zones = { 'journal.lignes': lignesDuJournal(o.partie.etat(), o.lignes, resultat.journal) };
     o.lignes += resultat.journal.length;
@@ -267,10 +279,8 @@ export function creerPont() {
       if (b!.refus) throw new ErreurDeGeste('regle', `creation : ${b!.refus}`);
       const g = e.creation as GesteDeLaCreation | null;
       if (g === null) o.creation = null;
-      else if (g.geste === 'ouvrir') {
-        o.creation = { brouillon: brouillonDeLaPartie(o.graine, o.brouillons++), page: pagesDeCreation()[0] };
-        o.fiche = null;
-      } else if (g.geste === 'engager') {
+      else if (g.geste === 'ouvrir') ouvrirLaCreation(o);
+      else if (g.geste === 'engager') {
         const resultat = envoyerLIntention(o.partie, intentionDEngagement(o.creation!.brouillon));
         o.creation = null;
         o.pas++;
@@ -327,7 +337,7 @@ export function creerPont() {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = edition!.session;
         const nomme = 'type' in e ? gesteDuFormulaire(zonesDeLEditeur(s), e) : undefined;
-        if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer, args: [nom] }');
+        if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] }');
         else if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
         else if (!estUnGesteDuPointeur(e.edition)) {

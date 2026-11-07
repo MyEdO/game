@@ -17,6 +17,8 @@ champ = "ton"
 propriete = &"theme_type_variation"
 
 [node name="Valeurs" type="OptionButton" parent="."]
+fit_to_longest_item = false
+clip_text = true
 size_flags_horizontal = 3
 
 [node name="valeurs" type="Node" parent="Valeurs"]

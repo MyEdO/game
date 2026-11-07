@@ -108,7 +108,7 @@ export function chargeArmee(get: Get<Jeu>): boolean {
  * débloquerait le geste d'autrui en armant SA propre case. Le verdict se calcule donc CHEZ
  * L'ÉMETTEUR, au moment du geste, et voyage dans les args comme `confirm`.
  *
- * Table déclarative (jamais un `if (action === …)` au fil de `netFlow`) : une action de clic, la
+ * Table déclarative (jamais un `if (action === …)` au fil de l'émission) : une action de clic, la
  * façon d'enrichir SES args. Les intents absents d'ici voyagent inchangés.
  */
 type VerdictJoint = (get: Get<Jeu>, args: readonly unknown[]) => unknown[];
