@@ -26,6 +26,7 @@ import { renommagesDeStructure, SOUS_LA_PORTE, type EntreeDeStructure } from '..
 import { cheminsDeDocument } from '../scripts/guards/lib/structuresLocales.mts';
 import { commitDe, depotDe, reussi, shaDe } from '../scripts/guards/lib/gitPorte.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { CHEMINS_EXPORTES } from '../scripts/migrations/replay-head.mjs';
 
 const comptes = (entrees: Partial<Record<string, object[]>>): Comptes => new Map(Object.entries(entrees)) as Comptes;
 
@@ -390,10 +391,9 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
   it('dans chaque document, liste, record ou config (projets de scène compris), une entrée copiée sous un id neuf et une entrée NON référencée retirée tant que son schéma l’admet, un projet de scène neuf, cibles de code régénérées : aucun refus dans les deux sens, chaque volet inchangé', { timeout: 260_000 }, () => {
     const dossier = mkdtempSync(join(tmpdir(), 'comptes-2995-'));
     try {
-      for (const rel of ['src', 'scripts'])
-        cpSync(join(ROOT, rel), join(dossier, rel), { recursive: true, filter: (p) => !p.includes('node_modules') && (!/\.[A-Za-z0-9]+$/.test(p) || TEXTE.test(p)) });
-      for (const rel of ['package.json', 'tsconfig.json']) cpSync(join(ROOT, rel), join(dossier, rel));
-      symlinkSync(join(ROOT, 'Source'), join(dossier, 'Source'), 'junction');
+      for (const rel of Object.keys(CHEMINS_EXPORTES))
+        if (rel === 'Source') symlinkSync(join(ROOT, rel), join(dossier, rel), 'junction');
+        else cpSync(join(ROOT, rel), join(dossier, rel), { recursive: true, filter: (p) => !p.includes('node_modules') && (!/\.[A-Za-z0-9]+$/.test(p) || TEXTE.test(p)) });
       const documents = scanDuCorpus(ROOT).scan.documents;
       const lus = documents.map((d) => JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')) as unknown);
       const code = readCorpus(['src'], { exts: ['.ts', '.tsx', '.mts', '.mjs'], tests: true }).filter((f) => !f.rel.includes('.generated.')).map((f) => f.text);

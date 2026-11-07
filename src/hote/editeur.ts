@@ -15,11 +15,12 @@ import {
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  effectZoneRect, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
+import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from './formes';
 import { ligne, type Bouton, type Choix, type Formulaire, type Ligne } from './elements';
@@ -198,6 +199,30 @@ const formulaireDuNom = (nom: string, optionnel: boolean): Formulaire => ({
   type: 'formulaire', id: 'nommer', libelle: t('ecran.editeur.entite.nommer'), verbe: 'nommer', focus: false, refus: null,
   champs: [{ type: 'saisieTexte', id: 'nommer/nom', ton: 'neutre', nom: 'nom', optionnel, libelle: t('ecran.editeur.entite.nom'), valeur: nom }],
 });
+
+/** Le formulaire qui change l'identifiant `id` de la zone d'effet sélectionnée. */
+const formulaireDeLIdentifiant = (id: string): Formulaire => ({
+  type: 'formulaire', id: 'identifier', libelle: t('ecran.editeur.zone.identifier'), verbe: 'identifier', focus: false, refus: null,
+  champs: [{ type: 'saisieTexte', id: 'identifier/id', ton: 'neutre', nom: 'id', optionnel: false, libelle: t('ecran.editeur.zone.identifiant'), valeur: id }],
+});
+
+/** Par entrée des fiches commitées, son texte coupé au mot. */
+const COURT_DE_L_ENTREE = new Map(ENTREES_DE_DOSSIER.map((e) => [e.id, coupeAuMot(e.libelle, 70)]));
+
+/** Les entrées de fiche que couvre la zone (`couvre`), chacune retirée à sa pression, ou la ligne qui dit qu'il n'y en a
+ *  aucune ; puis la liste des entrées des fiches commitées qu'elle ne couvre pas, chacune ajoutée à son choix. */
+function couverture(couvre: readonly string[] | undefined, sur: (patch: PatchDeZone) => GesteDEdition): (Choix | Ligne)[] {
+  const ids = couvre ?? [];
+  const reste = (sans: string) => ids.filter((id) => id !== sans);
+  return [
+    ids.length
+      ? choix('zone/couvre', t('ecran.editeur.zone.couvre'), ids.map((id) =>
+        bouton(`zone/couvre/${id}`, `${id} — ${COURT_DE_L_ENTREE.get(id) ?? t('ecran.editeur.zone.couvre.introuvable')}`, sur({ couvre: reste(id).length ? reste(id) : null }), true)))
+      : ligne('zone/couvre', t('ecran.editeur.zone.couvre.aucune')),
+    choix('zone/couvre/ajouter', t('ecran.editeur.zone.couvre.ajouter'), ENTREES_DE_DOSSIER.filter((e) => !ids.includes(e.id)).map((e) =>
+      bouton(`zone/couvre/ajouter/${e.id}`, `${e.id} — ${COURT_DE_L_ENTREE.get(e.id)}`, sur({ couvre: [...ids, e.id] }), false)), 'liste'),
+  ];
+}
 
 /** La rangée des couches de la scène éditée de `s`, la couche `z` pressée, chacune jouant `jeu`. */
 const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: number) => GesteDEdition): Choix =>
@@ -395,9 +420,11 @@ function emprise(zoneId: string, outil: SessionDEdition['outil']): Choix[] {
     bouton(`emprise/${paint}`, t(`ecran.editeur.zone.emprise.${paint}`), { geste: 'outil', outil: { mode: 'zoneTiles', zoneId, paint } }, sens === paint)))];
 }
 
-/** L'inspecteur de la zone sélectionnée `zone` de la session `s` : la poignée qui la redimensionne ; d'une zone d'effet,
- *  son nom, sa nature, sa forme, son emprise au pinceau et toute son aire rendue ; sa couche ; d'un déclencheur, s'il
- *  ne joue qu'une fois ; d'une zone de repos, ses lieux et sa qualité ; la supprimer. */
+/** L'inspecteur de la zone sélectionnée `zone` de la session `s` : la poignée qui la redimensionne ; d'un déclencheur,
+ *  son nom ; d'une zone d'effet, son nom, son identifiant, sa nature, sa forme, son emprise au pinceau et toute son aire
+ *  rendue, si elle coupe la ligne de vue, si elle barre le passage, et les entrées de fiche qu'elle couvre ; sa couche ;
+ *  d'un déclencheur, s'il ne joue qu'une fois et les entrées de fiche qu'il couvre ; d'une zone de repos, ses lieux et
+ *  sa qualité ; la supprimer. */
 function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
   const sur = (patch: PatchDeZone): GesteDEdition => ({ geste: 'zone', patch });
@@ -407,18 +434,23 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
     const ez = scene.effectZones![sel.idx];
     propre.push(
       formulaireDuNom(ez.label, false),
+      formulaireDeLIdentifiant(ez.id),
       choix('zone/nature', t('ecran.editeur.zone.nature'), ([null, 'interior', 'exterior'] as const).map((n) =>
         bouton(`zone/nature/${n ?? 'aucune'}`, t(`ecran.editeur.zone.nature.${n ?? 'aucune'}`), sur({ presentation: n }), (ez.presentation ?? null) === n))),
       choix('zone/forme', t('ecran.editeur.zone.forme'), (['rect', 'disc'] as const).map((f) =>
         bouton(`zone/forme/${f}`, t(`ecran.editeur.zone.forme.${f}`), sur({ forme: f }), ez.area.kind === f))),
       ...emprise(ez.id, s.outil),
       bouton('zone/pleine', t('ecran.editeur.zone.emprise.pleine'), sur({ pleine: true }), false, ez.tiles ? null : t('ecran.editeur.zone.emprise.dejaPleine')),
+      bouton('zone/blocksLoS', t('ecran.editeur.zone.blocksLoS'), sur({ blocksLoS: !ez.blocksLoS }), !!ez.blocksLoS),
+      bouton('zone/barrier', t('ecran.editeur.zone.barrier'), sur({ barrier: !ez.barrier }), !!ez.barrier),
+      ...couverture(ez.couvre, sur),
     );
   }
   propre.push(choixDeLaCouche(s, 'zone/couche', zone.z, (z) => sur({ z })));
   if (sel?.type === 'trigger') {
-    const once = !!scene.triggers.find((tr) => tr.id === sel.id)?.once;
-    propre.push(bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !once }), once));
+    const declencheur = scene.triggers.find((tr) => tr.id === sel.id)!;
+    propre.unshift(formulaireDuNom(declencheur.id, false));
+    propre.push(bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !declencheur.once }), !!declencheur.once), ...couverture(declencheur.couvre, sur));
   }
   if (sel?.type === 'restZone') {
     const repos = scene.restZones![sel.idx];
@@ -721,15 +753,18 @@ export function boutonDeLEdition(z: ZonesDeLEditeur, edition: unknown): Bouton |
 const estEntier = (v: unknown): v is number => Number.isInteger(v);
 const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
-/** Le geste du formulaire qui nomme la sélection (`formulaireDuNom`) que portent les zones `z`, joué
- *  `{ type: 'nommer', args }` : `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ; `undefined` si les
- *  zones ne portent pas ce formulaire ou si `args` n'est pas ce qu'il saisit. */
-export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): Extract<GesteDEdition, { geste: 'nommer' }> | undefined {
-  if (!estObjet(jeu) || Object.keys(jeu).length !== 2 || jeu.type !== 'nommer' || !Array.isArray(jeu.args)) return undefined;
-  const [nom, ...reste] = jeu.args as unknown[];
-  if (reste.length || !(nom === undefined || nom === null || typeof nom === 'string')) return undefined;
-  if (!z['editeur.inspecteur'].some((e) => e.type === 'formulaire' && e.verbe === 'nommer')) return undefined;
-  return { geste: 'nommer', ...(typeof nom === 'string' ? { nom } : {}) };
+/** Le geste du formulaire de l'inspecteur que portent les zones `z`, joué `{ type, args }` : celui qui nomme la
+ *  sélection (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ; celui qui change
+ *  l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }` ; `undefined` si les zones
+ *  ne portent pas ce formulaire ou si `args` n'est pas ce qu'il saisit. */
+export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): Extract<GesteDEdition, { geste: 'nommer' | 'identifier' }> | undefined {
+  if (!estObjet(jeu) || Object.keys(jeu).length !== 2 || (jeu.type !== 'nommer' && jeu.type !== 'identifier') || !Array.isArray(jeu.args)) return undefined;
+  const [valeur, ...reste] = jeu.args as unknown[];
+  const vide = valeur === undefined || valeur === null;
+  if (reste.length || !(typeof valeur === 'string' || (vide && jeu.type === 'nommer'))) return undefined;
+  if (!z['editeur.inspecteur'].some((e) => e.type === 'formulaire' && e.verbe === jeu.type)) return undefined;
+  if (jeu.type === 'identifier') return { geste: 'identifier', id: valeur as string };
+  return { geste: 'nommer', ...(typeof valeur === 'string' ? { nom: valeur } : {}) };
 }
 
 /** Si `g` est l'issue de l'écriture d'un enregistrement au dépôt : `{ geste: 'enregistrement', reussi }`, rien de plus. */

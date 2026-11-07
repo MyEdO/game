@@ -118,8 +118,9 @@ export const MARQUE_DE_CLASSEMENT = '// CLASSEMENT DU DÉTECTEUR';
 const RACINE_DU_CLASSEMENT = 'src/data/schemas/grammaire';
 /** Le texte d'un module est-il du classement ? */
 const estDuClassement = (texte: string): boolean => texte.startsWith(MARQUE_DE_CLASSEMENT);
-/** Ce que l'image apporte : `src/` (donnée ET schémas) et `Source/` (les chapitres que mesure `SOURCE_FORMAT`). */
-const DE_L_IMAGE = ['src', 'Source'];
+/** Ce que l'image apporte : `src/` (donnée ET schémas), `Source/` (les chapitres que mesure `SOURCE_FORMAT`) et
+ *  `docs/dossiers/` (les fiches que lit le registre `FICHIERS_DE_DOSSIER`, cible de code de `src/`). */
+const DE_L_IMAGE = ['src', 'Source', 'docs/dossiers'];
 /** Les fichiers TEXTE que la mesure lit ; un fichier binaire ne se pose pas. */
 const TEXTE = /\.(?:md|json|ts|tsx|mts|mjs|js|cjs|css|snap)$/;
 /** Le point d'entrée de la mesure, dans le code d'un détecteur. */
