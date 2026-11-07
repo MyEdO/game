@@ -3,7 +3,8 @@
  * couche, le pinceau, la sélection, le geste du pointeur en cours, le tracé d'une volée, le brouillon de l'arête
  * sélectionnée, l'entité copiée, l'enregistrement au dépôt et les calques de référence, et le seul réducteur qui les fait avancer
  * (`editer`) sur une union fermée de gestes. Chaque geste délègue au pointeur (`./pointeur`), à l'historique
- * (`./historique`), aux écrivains de `../sceneEdit`, à la volée (`../stairFlight`) et au calque (`./calque`) ; aucun
+ * (`./historique`), aux écrivains de `../sceneEdit`, au formulaire tiré du schéma (`./formulaire`), à la volée
+ * (`../stairFlight`) et au calque (`./calque`) ; aucun
  * n'écrit de règle de scène. L'éditeur Godot la reçoit par le pont.
  */
 import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, WallSecret, WallSeg } from '../monde/scene';
@@ -13,7 +14,7 @@ import type { FireArc } from '../../engine/types';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, replaceEffectZone, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
 import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -28,6 +29,7 @@ import { annuler, historiqueDe, poser, reecrire, retablir, type Historique } fro
 import { appuyer, glisser, relacher, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type GesteEnCours, type PointDeCarte } from './pointeur';
 import type { CalibProgress } from './calage';
 import { caler, calqueNeuf, calquesLus, type CalqueDeCouche, type CalquesDuProjet, type ReglageDuCalque } from './calque';
+import { zoneAvecLaValeur, type Segment } from './formulaire';
 
 /** Les tailles du pinceau, en cases de côté. */
 export const PINCEAUX = [1, 3, 5] as const;
@@ -275,7 +277,9 @@ export interface SessionDEdition {
  *  éditée ; ajouter une couche au-dessus de la plus haute, retirer la couche éditée ; appuyer, glisser, relâcher
  *  sur un point de la carte ; poser la volée tracée, effacer son tracé ; écrire sur l'arête sélectionnée, ou poser
  *  son brouillon ; écrire sur l'entité sélectionnée, le poste de l'emplacement de siège sélectionné, une place du décor
- *  sélectionné ou l'appartenance du personnage sélectionné à une rencontre ; écrire sur la zone sélectionnée, ou sur la scène ; nommer l'entité, l'entrée, le
+ *  sélectionné ou l'appartenance du personnage sélectionné à une rencontre ; écrire sur la zone sélectionnée, ou sur la scène ; écrire
+ *  une valeur au chemin `chemin` du formulaire de la zone d'effet `porteur` (`formulaireDeZone`, `undefined` retire le
+ *  champ) ; nommer l'entité, l'entrée, le
  *  déclencheur, la zone d'effet ou le corps sélectionné, ou la scène sans sélection (`nom` absent : l'entité reprend le nom de sa fiche) ; changer l'identifiant de la zone
  *  d'effet sélectionnée, ou de la scène sans sélection ; éditer une autre scène du projet, en ajouter une vide, dupliquer
  *  ou retirer l'éditée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
@@ -298,6 +302,7 @@ export type GesteDEdition =
   | { geste: 'place'; place: string; occupant: SeatOccupant | null }
   | { geste: 'membre'; patch: PatchDeMembre }
   | { geste: 'zone'; patch: PatchDeZone }
+  | { geste: 'valeur'; porteur: { sorte: 'zone'; id: string }; chemin: Segment[]; valeur?: unknown }
   | { geste: 'corps'; id: string }
   | { geste: 'batir'; ouvrage: Ouvrage }
   | { geste: 'architecture'; patch: PatchDArchitecture }
@@ -570,7 +575,8 @@ function revenir(s: SessionDEdition, historique: Historique): SessionDEdition {
  *  calque aussi. Écrire sur l'entité, l'entrée, la zone sélectionnée la garde sélectionnée, l'entrée et le déclencheur sous
  *  leur nouveau nom ;
  *  coller ou dupliquer sélectionne l'entité posée. Un geste sans objet (retirer la couche 0, une couche absente, poser
- *  une volée que son plan refuse, écrire sans arête, entité ou entrée sélectionnée, renommer une entrée ou un déclencheur, ou
+ *  une volée que son plan refuse, écrire sans arête, entité ou entrée sélectionnée, écrire une valeur sur une zone d'effet
+ *  absente ou que son formulaire n'offre pas, renommer une entrée ou un déclencheur, ou
  *  réidentifier une zone d'effet, d'un nom vide ou déjà pris, copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
  *  dupliquer sans entité sélectionnée, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
  *  d'un chargement qui n'est pas en cours, demander une planche pendant un chargement, régler ou retirer un calque
@@ -647,6 +653,12 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'zone':
       return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
+    case 'valeur': {
+      const zones = scene.effectZones ?? [];
+      const rang = zones.findIndex((z) => z.id === g.porteur.id);
+      const ecrite = rang < 0 ? undefined : zoneAvecLaValeur(zones[rang], g.chemin, g.valeur);
+      return ecrite ? ecrireSurLaSelection(s, replaceEffectZone(scene, rang, ecrite), (sc) => sc.effectZones) : s;
+    }
     case 'nommer': {
       const ent = entiteDeLaSelection(scene, s.sel);
       if (ent) return ecrireSurLaSelection(s, editEntity(scene, ent.id, { label: g.nom || undefined }), (sc) => entiteDeLaSelection(sc, s.sel));
