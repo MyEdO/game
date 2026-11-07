@@ -10,6 +10,7 @@ import { derouleEnum, libelleDeValeur, metaDesChamps, nomDeNoeud, valeursDe, typ
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { declarationDEnfants, defDe, enfantsDe, ouverts, pasDeDonnee, valeursAdmises } from '../../data/schemas/grammaire/descente';
 import { declarationDeFeuilleDId } from '../../data/schemas/grammaire/ref';
+import { declarationProseNommee } from '../../data/schemas/grammaire/prose';
 import { OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
 import { choixDeLaFeuilleDId, datasetDeLEspaceDuType } from '../../data';
 import type { GameOp } from '../../engine/ops';
@@ -401,7 +402,9 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
     if (valeurs) return { key, label: libelleDuChamp(key, regime), kind: (derouleEnum(noeud)?.liste ? 'selectList' : 'select') as FieldKind, nullable, valeurs, noeud };
     // Un champ qui porte ici un tableau, là un scalaire (union `booléen | chaînes`) n'a aucun contrôle
     // structuré qui rende ses deux formes : il s'édite en JSON.
-    const kind = tableaux && scalaires ? 'json' : !vues.includes(key) ? kindDuNoeud(key, noeud) : kindDuChampVu(key, noeud, echantillon);
+    // Le texte d'une prose nommée (`proseNommee`) se saisit sur plusieurs lignes.
+    const infere = tableaux && scalaires ? 'json' : !vues.includes(key) ? kindDuNoeud(key, noeud) : kindDuChampVu(key, noeud, echantillon);
+    const kind = infere === 'text' && ferme.some((n) => declarationProseNommee(n)?.champ === key) ? 'textarea' : infere;
     const bornes = kind === 'number' ? bornesDuNoeud(noeud) : undefined;
     return { key, label: libelleDuChamp(key, regime), kind, nullable, noeud, ...(bornes ? { bornes } : {}) };
   });

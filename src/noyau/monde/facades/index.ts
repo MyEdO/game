@@ -5,6 +5,7 @@
  */
 import type { FacadeFeature, Scene, WallSeg } from '../scene';
 import { memoByRef } from '../sceneMemo';
+import { props, structureAppearances } from '../../../data';
 import { facade as aubergeRelaisImperiale } from './defs/auberge-relais-imperiale';
 import { facade as forge } from './defs/forge';
 import { facade as chapelle } from './defs/chapelle';
@@ -36,6 +37,21 @@ const BY_ID: ReadonlyMap<string, FacadeAppearanceDef> = new Map(
 /** ids posables au clic (picker de `FacadeSection.appearance`, éditeur — #841 FU-C) : pas de `label`
  *  propre à ce catalogue (id technique de préset), affiché tel quel. */
 export const FACADE_APPEARANCE_IDS: readonly string[] = DEFINITIONS.map((definition) => definition.id);
+
+/**
+ * Kinds de feature rendus en DÉCOR ANCRÉ au bâtiment (`builders/props` : recette volumique ou
+ * billboard), et JAMAIS dans le plan du mur (`builders/walls`) — leur `appearance` authorable
+ * (`data/schemas/defs-scenes/scene.ts`) nomme alors un DÉCOR, pas une apparence de mur. Le verrou est
+ * par CONSTRUCTION : sans lui, une apparence posée par l'auteur ferait sortir la même feature
+ * DEUX fois — sa géométrie de décor et un panneau plaqué sur la façade (#1624).
+ */
+export const KINDS_DE_DECOR: ReadonlySet<FacadeFeature['kind']> = new Set(['chimney', 'sign', 'belfry']);
+
+/** Les apparences que l'`appearance` d'une ouverture de sorte `kind` nomme, chacune son id et son libellé : un décor
+ *  du catalogue (`props`) pour un kind rendu en décor (`KINDS_DE_DECOR`), une apparence de structure
+ *  (`structureAppearances`) sinon. */
+export const apparencesDeLOuverture = (kind: FacadeFeature['kind']): readonly { id: string; label: string }[] =>
+  KINDS_DE_DECOR.has(kind) ? props : structureAppearances;
 
 export function facadeAppearance(id?: string): FacadeAppearanceDef | undefined {
   return id ? BY_ID.get(id) : undefined;

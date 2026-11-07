@@ -1293,26 +1293,32 @@ export function addStation(scene: Scene, sceneId: string): Scene {
   return { ...scene, stations: [...(scene.stations ?? []), { sceneId, pos: { x: 0, y: 0 } }] };
 }
 
-/** Patche l'ancre de bataille d'indice `i`. */
+/** Patche l'ancre de bataille d'indice `i` ; la scène telle quelle sans elle. */
 export function patchStation(scene: Scene, i: number, patch: Partial<SceneStationAnchor>): Scene {
-  return { ...scene, stations: (scene.stations ?? []).map((st, j) => (j === i ? { ...st, ...patch } : st)) };
+  const stations = scene.stations ?? [];
+  return i in stations ? { ...scene, stations: stations.map((st, j) => (j === i ? { ...st, ...patch } : st)) } : scene;
 }
 
-/** Retire l'ancre de bataille d'indice `i` ; la dernière retirée, le champ quitte le document. */
+/** Retire l'ancre de bataille d'indice `i` ; la dernière retirée, le champ quitte le document. La scène telle quelle
+ *  sans elle. */
 export function removeStation(scene: Scene, i: number): Scene {
-  const stations = (scene.stations ?? []).filter((_, j) => j !== i);
-  return { ...scene, stations: stations.length ? stations : undefined };
+  const stations = scene.stations ?? [];
+  if (!(i in stations)) return scene;
+  const reste = stations.filter((_, j) => j !== i);
+  return champ(scene, 'stations', reste.length ? reste : undefined);
 }
 
-/** Pose la piste `piste` de la musique de scène ; sans aucune piste, le champ quitte le document. */
-export function setSceneMusic(scene: Scene, piste: 'ambient' | 'combat', v: string | null | undefined): Scene {
-  const music = { ...scene.music, [piste]: v };
-  return { ...scene, music: music.ambient === undefined && music.combat === undefined ? undefined : music };
+/** Pose la piste `piste` de la musique de scène : un id du registre, `null` pour le silence, `undefined` pour la
+ *  piste du contexte ; sans aucune piste posée, le champ quitte le document. */
+export function setSceneMusic(scene: Scene, piste: keyof NonNullable<Scene['music']>, v: string | null | undefined): Scene {
+  const pistes = { ...scene.music, [piste]: v };
+  const music = champs<NonNullable<Scene['music']>>({}, { ambient: pistes.ambient, combat: pistes.combat });
+  return champ(scene, 'music', Object.keys(music).length ? music : undefined);
 }
 
 /** Pose le texte du message d'introduction ; un texte vide retire le message (provenance comprise). */
 export function setStartMessageTexte(scene: Scene, texte: string): Scene {
-  return { ...scene, startMessage: texte ? { ...scene.startMessage, texte } : undefined };
+  return champ(scene, 'startMessage', texte ? { ...scene.startMessage, texte } : undefined);
 }
 
 /** Patche la provenance du message d'introduction. No-op sans message. */

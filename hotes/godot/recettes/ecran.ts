@@ -45,11 +45,12 @@ const FORMULAIRE: GesteDeLaFenetre = {
     argument('choix', 'choix', { valeur: 'b', valeurs: [{ valeur: 'a', libelle: 'Valeur A', refus: null }, { valeur: 'b', libelle: 'Valeur B', refus: null }, { valeur: 'c', libelle: 'Valeur C', refus: 'Refusée' }] }),
     argument('nombre', 'nombre', { valeur: 3, bornes: { min: 0, max: 10, pas: 1 } }),
     argument('texte', 'texte', { valeur: 'mot' }),
+    argument('multiligne', 'multiligne', { valeur: 'deux\nlignes' }),
     argument('json', 'json', { valeur: { a: 1 } }),
     argument('objet', 'objet', { champs: [argument('x', 'nombre', { valeur: 2 }), argument('y', 'texte', { valeur: 'z' })] }),
   ],
 };
-const ARGUMENTS_DU_FORMULAIRE = ['designe', 'b', 3, 'mot', { a: 1 }, { x: 2, y: 'z' }];
+const ARGUMENTS_DU_FORMULAIRE = ['designe', 'b', 3, 'mot', 'deux\nlignes', { a: 1 }, { x: 2, y: 'z' }];
 
 /** Un formulaire d'une rangée de cases, une case cochée, une libre, une refusée : il joue la liste des cochées. */
 const CASES: Formulaire = {
@@ -71,7 +72,8 @@ function lueDessinee(c: Saisie): unknown[] {
     case 'saisieChoix': return c.valeurs.filter((v) => v.presse).map((v) => v.valeur);
     case 'saisieCoches': return [c.valeurs.filter((v) => v.presse).map((v) => v.valeur)];
     case 'saisieNombre': return [c.valeur];
-    case 'saisieTexte': return c.valeur ? [c.valeur] : [];
+    case 'saisieTexte':
+    case 'saisieMultiligne': return c.valeur ? [c.valeur] : [];
     case 'saisieJson': return c.valeur ? [JSON.parse(c.valeur)] : [];
     case 'saisieObjet': return [Object.fromEntries(c.champs.flatMap((x) => {
       const lue = lueDessinee(x);

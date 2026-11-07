@@ -8,7 +8,7 @@
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, piedDeLArete, tileAt, wallEnds, doorIsOpen, structureIsDown, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
+import { heightAt, piedDeLArete, tileAt, wallEnds, doorIsOpen, structureIsDown, porteMasquee, porteSelon, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
 import { findStructureById } from '../../data';
 import { isWallEdgeStructure } from '../../engine/structures';
 import { interiorCells } from '../../noyau/planDefects';
@@ -19,7 +19,7 @@ import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../noyau/sceneEdi
 import { edgeAppearance } from '../../noyau/monde/volume/structures';
 import { crownFaces, cretesDePerimetre } from '../../noyau/monde/volume/creneaux';
 import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
-import { edgeKey, facadeEdges, facadeWallFeatureAppearance, type FacadeEdge } from '../../noyau/monde/facades';
+import { edgeKey, facadeEdges, facadeWallFeatureAppearance, KINDS_DE_DECOR, type FacadeEdge } from '../../noyau/monde/facades';
 import { WALL_H_M, isoPxToM } from '../../noyau/monde/iso';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
 import type { Dir4 } from '../../geometry/dir8';
@@ -279,15 +279,6 @@ const envelopeEdgesOf = memoByRef((scene: Scene): ReadonlySet<string> => {
   }
   return out;
 });
-
-/**
- * Kinds de feature rendus en DÉCOR ANCRÉ au bâtiment (`builders/props` : recette volumique ou
- * billboard), et JAMAIS dans le plan du mur — leur `appearance` authorable
- * (`data/schemas/defs-scenes/scene.ts`) nomme alors un DÉCOR, pas une apparence de mur. Le verrou est
- * ICI, par CONSTRUCTION : sans lui, une apparence posée par l'auteur ferait sortir la même feature
- * DEUX fois — sa géométrie de décor et un panneau plaqué sur la façade (#1624).
- */
-const KINDS_DE_DECOR: ReadonlySet<FacadeFeature['kind']> = new Set(['chimney', 'sign', 'belfry']);
 
 function facadeFeatureFaces(
   seg: WallSeg,
