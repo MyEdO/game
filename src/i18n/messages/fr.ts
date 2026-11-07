@@ -765,6 +765,7 @@ export const fr = {
   'ecran.editeur.scenes.dupliquer': 'Dupliquer la scène',
   'ecran.editeur.scenes.retirer': 'Retirer la scène',
   'ecran.editeur.scenes.seule': 'Seule scène du projet',
+  'ecran.editeur.tester': 'Tester la scène',
   'ecran.editeur.couche.retirer': 'Retirer cette couche',
   'ecran.editeur.couche.rez': 'Le rez ne se retire pas',
   'ecran.editeur.annuler': 'Annuler',

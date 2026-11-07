@@ -6,6 +6,7 @@
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type LigneDuJournal } from './partie';
+export type { LancementDeScenario } from './lancementDeScenario';
 export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu, type NetState } from './etat';
 export type { Get, Set } from './flowTypes';
 export type { Jeton } from './plateforme';
@@ -62,7 +63,7 @@ export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, type AreteDessinee }
 export type { Scene } from './monde/scene';
 export { couronnesDuMonde, toitsDuMonde, volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
-export { avertissementsDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, refusDOuvrage, sceneEditee, scenesDeLaSession, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDeScene, type SessionDEdition } from './edition/session';
+export { avertissementsDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, refusDOuvrage, sceneEditee, scenesDeLaSession, essaiDeLaScene, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDeScene, type SessionDEdition } from './edition/session';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS } from './monde/facades';
 export { BORNES_D_OUVERTURE, DEFAUTS_D_OUVERTURE, toitureEffective } from './sceneEdit';
