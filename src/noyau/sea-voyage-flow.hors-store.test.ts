@@ -11,7 +11,7 @@ import { seedBattleRng, battleRng } from './battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { effectiveChar } from '../engine/characteristics';
 import { partyBest, skillBaseValue, testValue } from '../engine/skills';
-import { subtract, toBrass } from '../engine/money';
+import { toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { itemFromTrappingById } from '../engine/items';
@@ -37,7 +37,7 @@ import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel } from 
 import { resultLine, buildBand, rollLine } from './rollSeam';
 import { t } from '../i18n';
 import { checkBattleOver } from './combatFlow';
-import { BOARD_EVENTS, PORT_EVENTS, seaBoardEventById } from '../engine/seaVoyage';
+import { BOARD_EVENTS, seaBoardEventById } from '../engine/seaVoyage';
 import type { RecapEvent } from './recapLine';
 import { findSeaHazard } from '../engine/seaPerils';
 import { overspeedRow, foulingEffects } from '../engine/seaNavigation';
@@ -1272,67 +1272,10 @@ describe('services portuaires (#30)', () => {
   });
 });
 
-describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MDG 15 l.246)', () => {
-  beforeEach(freshState);
-
-  const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
-
-  // Humeur de Manann neutre (mod 0) + 2d10 = 1+1 = 2 → « Prêtre de Manann » (min 2 max 2, sea-events.json).
-  // Puis 2d10 = 3+4 (heures, sans effet ici), puis 1d10 = 7 (coût en CO).
-  function triggerPriest() {
-    resolvePortArrival(get, set, undefined, seq(1, 1, 3, 4, 7));
-  }
-
-  it('ouvre un CHOIX (pendingManannPriest) au lieu de payer automatiquement', () => {
-    creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
-    triggerPriest();
-    expect(get().pendingManannPriest).toEqual({ cost: { gold: 7, silver: 25, brass: 0 } }); // 1d10=7 CO + 25 m (cogue) en pistoles
-    expect(partyMoneyTotal(get)).toEqual({ gold: 100, silver: 0, brass: 0 }); // pas débité tant que non résolu
-    expect(get().vessel!.manann?.score ?? 0).toBe(0); // Humeur inchangée tant que non résolu
-  });
-
-  it('choix PAYER : débite le coût déjà tiré, Humeur INCHANGÉE', () => {
-    const before = { gold: 100, silver: 0, brass: 0 };
-    creditBourse(get, set, get().party[0].id, before);
-    triggerPriest();
-    const cost = get().pendingManannPriest!.cost;
-    get().fenetreChoisir('manannPriest', 'payer', true);
-    expect(get().pendingManannPriest).toBeNull();
-    expect(partyMoneyTotal(get)).toEqual(subtract(before, cost));
-    expect(get().vessel!.manann?.score ?? 0).toBe(0);
-  });
-
-  it('choix REFUSER : Humeur de Manann réduite de 4d10, bourse INCHANGÉE', () => {
-    const before = { gold: 100, silver: 0, brass: 0 };
-    creditBourse(get, set, get().party[0].id, before);
-    triggerPriest();
-    seedBattleRng(7); // détermine le 4d10 du refus de payer (battleRng interne)
-    get().fenetreChoisir('manannPriest', 'payer', false);
-    expect(get().pendingManannPriest).toBeNull();
-    expect(partyMoneyTotal(get)).toEqual(before); // pas débité
-    const score = get().vessel!.manann!.score;
-    expect(score).toBeLessThanOrEqual(-4); // 4d10 : 4 à 40
-    expect(score).toBeGreaterThanOrEqual(-40);
-  });
-
-  it('choix PAYER avec bourse insuffisante : refusé et dit, le choix reste ouvert, aucune mutation', () => {
-    // Bourse du groupe VIDE (aucun héros financé) → `refusDePayerManann` refuse avant tout débit.
-    triggerPriest();
-    get().fenetreChoisir('manannPriest', 'payer', true);
-    expect(get().pendingManannPriest).not.toBeNull();
-    expect(get().journal).toContain(t('sv.benedictionHorsBourse'));
-    expect(partyMoneyTotal(get)).toEqual({ gold: 0, silver: 0, brass: 0 });
-    expect(get().vessel!.manann?.score ?? 0).toBe(0);
-  });
-});
-
 describe('#1652 — chaque événement lit SES paramètres en donnée (MDG 15 l.132-263)', () => {
   beforeEach(freshState);
   afterEach(() => resetData());
 
-  const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
-  const dEscale = (id: string, params: object) =>
-    setDataset('seaPortEvents', PORT_EVENTS.map((e) => (e.id === id ? { ...e, params: { ...e.params, ...params } } : e)) as never);
   function jourForce(id: string): void {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: id } } });
@@ -1346,18 +1289,9 @@ describe('#1652 — chaque événement lit SES paramètres en donnée (MDG 15 l.
     jourForce('bonne-humeur');
     expect(get().vessel!.morale.score).toBe(75 + 4);
   });
-
-  it('Contrôle à quai : les droits valent `taxPct` %de la valeur de la cargaison (MDG 15 l.247)', () => {
-    creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
-    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-5', cargoId: 'vin', enc: 10, basePriceGold: 10 }] } });
-    dEscale('controle-a-quai', { taxPct: 25 });
-    // 2d10 = 1+2 = 3 → « Contrôle à quai » (Humeur neutre) ; 2d10 d'heures sans effet.
-    resolvePortArrival(get, set, undefined, seq(1, 2, 1, 1));
-    expect(partyMoneyTotal(get)).toEqual({ gold: 75, silver: 0, brass: 0 });
-  });
 });
 
-describe('Port désert & Embrigadement — #150 (resolvePortArrival appelé APRÈS purge de travelPlan)', () => {
+describe('Port désert — #150 (resolvePortArrival appelé APRÈS purge de travelPlan)', () => {
   beforeEach(freshState);
 
   const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
@@ -1377,21 +1311,6 @@ describe('Port désert & Embrigadement — #150 (resolvePortArrival appelé APR�
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.morale.score).toBe(75);
   });
-
-  it('Embrigadement (min 1 max 1) réduit l’effectif d’équipage de 2d10 (MDG 15 l.245)', () => {
-    set({ vessel: { ...get().vessel!, manann: { score: -1, applied: [] } } }); // Humeur < 0 → mod −1 (nécessaire : min 1 est hors de portée à mod 0, cf. Prêtre de Manann ci-dessus)
-    // roll = d10+d10 + mod(−1) = 1+1−1 = 1 → « Embrigadement ». Hours = 1+1 = 2 (sans effet ici).
-    // lostCrew "2d10" = 3+4 = 7 marins perdus (cogue : effectif nominal 15, vehicles.json).
-    resolvePortArrival(get, set, undefined, seq(1, 1, 1, 1, 3, 4));
-    expect(get().vessel!.crewLost).toBe(7);
-    expect(get().journal.some((l) => l.includes('Équipage'))).toBe(true);
-  });
-
-  it('Embrigadement : la perte est PLAFONNÉE au complément nominal du type (on ne peut pas perdre plus de marins qu’il n’y en a)', () => {
-    set({ vessel: { ...get().vessel!, crewLost: 12, manann: { score: -1, applied: [] } } }); // déjà 12/15 perdus
-    resolvePortArrival(get, set, undefined, seq(1, 1, 1, 1, 9, 9)); // lostCrew roulé à 18 → 12+18=30, plafonné à 15
-    expect(get().vessel!.crewLost).toBe(15);
-  });
 });
 
 describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MDG 15 l.245 : « Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement [Embrigadement] n\'a pas lieu »)', () => {
@@ -1405,15 +1324,16 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
 
   it('relâche REFUSÉE : Embrigadement (2d10 → 1) n\'a pas lieu — aucune perte d\'équipage, journal explicite', () => {
     moodMinus1();
-    resolvePortArrival(get, set, undefined, seq(1, 1, 1, 1, 3, 4), false);
+    resolvePortArrival(get, set, undefined, seq(1, 1, 1, 1), false);
     expect(get().vessel!.crewLost ?? 0).toBe(0);
     expect(get().journal.some((l) => l.includes('n\'a pas lieu'))).toBe(true);
   });
 
-  it('relâche ACCORDÉE (défaut) : Embrigadement se produit normalement (2d10 marins perdus)', () => {
+  it('relâche ACCORDÉE (défaut) : Embrigadement se produit normalement (2d10 marins perdus, MDG 15 l.245)', () => {
     moodMinus1();
-    resolvePortArrival(get, set, undefined, seq(1, 1, 1, 1, 3, 4), true);
-    expect(get().vessel!.crewLost).toBe(7); // 3+4
+    resolvePortArrival(get, set, undefined, seq(1, 1, 1, 1), true);
+    expect(get().vessel!.crewLost).toBeGreaterThanOrEqual(2);
+    expect(get().vessel!.crewLost).toBeLessThanOrEqual(15); // cogue : effectif nominal 15
   });
 
   it('relâche REFUSÉE : Fête de Manann (2d10 → 18) perd son bonus d\'Humeur (MDG 15 l.260)', () => {

@@ -2,7 +2,7 @@
  * Résumeur d'ATELIER de l'algèbre de `Condition` (`condSummary`), réservé à `src/ui/editor/`
  * (#495, #2724).
  */
-import type { Condition, CompareSubject, PartySelector, TemporalCondition } from '../../../engine/flowCore';
+import { seuilDeBourse, type Condition, type CompareSubject, type PartySelector, type TemporalCondition } from '../../../engine/flowCore';
 import type { NarratifBlock } from '../../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS } from '../../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../../data/schemas/grammaire/meta';
@@ -54,7 +54,10 @@ export function condSummary(c: Condition | undefined, narratif?: NarratifBlock):
     case 'flag': return c.expr || '(flag ?)';
     case 'time': return winSummary(c.window);
     case 'hasItem': return `a « ${trappingLabelOrId(c.trappingId) || '?'} »${c.count && c.count > 1 ? ` ×${c.count}` : ''}`;
-    case 'money': return `bourse ≥ ${formatMoney({ gold: c.atLeast.gold ?? 0, silver: c.atLeast.silver ?? 0, brass: c.atLeast.brass ?? 0 })}`;
+    case 'money': {
+      const seuil = seuilDeBourse(c.atLeast);
+      return `bourse ≥ ${'lie' in seuil ? `« ${seuil.lie} »` : formatMoney({ gold: seuil.montant.gold ?? 0, silver: seuil.montant.silver ?? 0, brass: seuil.montant.brass ?? 0 })}`;
+    }
     case 'partyDead': return c.who === 'all' ? 'tout le groupe mort' : `${quiResume(c.who, narratif)} mort`;
     case 'etat': {
       const nom = c.etat ? libelleDEtat(narratif?.etats, c.etat) : '?';

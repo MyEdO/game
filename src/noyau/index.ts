@@ -68,7 +68,7 @@ export { avertissementsDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif,
 export { formulaireDe } from './sceneEditLecture';
 export { champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from './codex/editFields';
 export { valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
-export { gestesDeLaListe, type RefusDeValeur, type Segment } from './sceneEdit';
+export { gestesDeLaListe, type Segment } from './sceneEdit';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS, apparencesDeLOuverture } from './monde/facades';
 export { ciblesDAncreDeBataille } from './massBattleFlow';

@@ -28,7 +28,6 @@ function hoteEtUnInvite(banc: Banc): { a: string; b: string } {
 /** Chaque choix que l'hôte seul joue, l'état qui ouvre sa fenêtre, et le champ qui reste tant qu'il ne se joue pas. */
 const CHOIX_DE_L_HOTE: readonly (readonly [string, ArgumentsDuChoix, Record<string, unknown>])[] = [
   ['council', ['council', 'paie', 'pas-de-paie'], { pendingCouncil: { today: 7, wageBrass: 240, phase: 'choix' } }],
-  ['manannPriest', ['manannPriest', 'payer', false], { pendingManannPriest: { cost: { gold: 3, silver: 0, brass: 0 } } }],
   ['shoreLeave', ['shoreLeave', 'accorder', true], { pendingShoreLeave: { to: { id: 'B', label: 'B' } } }],
   ['finDeSeance', ['finDeSeance', 'ambitionCourte', true], { finDeSeance: { heros: {}, groupe: {} } }],
 ];

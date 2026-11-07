@@ -18,7 +18,7 @@ import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
 import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
-import { INDICE_TEMPLATE, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
+import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
 import { CHAR_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } from '../../engine/types';
@@ -27,7 +27,7 @@ import { giveTrappingLabel } from '../../engine/items';
 import { traumaLabelOf } from '../../engine/trauma';
 import { cibleDeRef, libelleDePsy } from '../../engine/psych/ciblage';
 import { libelleDuTraitOctroye } from '../../engine/psych/opsPsy';
-import { formatMoney } from '../../engine/money';
+import { formatMoney, fromBrass } from '../../engine/money';
 import { formatDice, formatEffetSigne } from '../../engine/dice';
 import { seaWeatherLabel } from '../../engine/seaWeather';
 import { shipLocationLabel } from '../../engine/shipCritical';
@@ -143,7 +143,10 @@ function formuleEnMots(f: Formula, regles: string[] | null): string {
   if ('engagedAdvantageGap' in f) return t('codex.f.engagedAdvantageGap');
   if ('woundsDealt' in f) return t('codex.f.woundsDealt');
   if ('blessuresMax' in f) return t('codex.f.blessuresMax');
+  if ('tailleDuNavire' in f) return t('codex.f.tailleDuNavire');
+  if ('valeurCargaison' in f) return t('codex.f.valeurCargaison');
   if ('sl' in f) return t('codex.f.sl');
+  if ('tire' in f) return f.de === undefined ? t('codex.f.tire', { nom: f.tire }) : t('codex.f.tire.de', { de: formuleEnMots(f.de, regles), nom: f.tire });
   // Les formes NON numériques (`flag`/`mode`) n'ont pas de nombre à montrer : elles se nomment, quel que
   // soit le rendu demandé. Un id hors du registre (brouillon d'éditeur) se nomme par son id : `ruleDef` le
   // lit avant `rule()`, qui lève (#1463 LD.1).
@@ -265,7 +268,13 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
       const label = c.trappingId || '?';
       return `${t(neg ? 'codex.c.hasItem.non' : 'codex.c.hasItem', { objet: label })}${c.count && c.count > 1 ? ` (×${c.count})` : ''}`;
     }
-    case 'money': return t(neg ? 'codex.c.money.non' : 'codex.c.money', { montant: formatMoney({ gold: c.atLeast.gold ?? 0, silver: c.atLeast.silver ?? 0, brass: c.atLeast.brass ?? 0 }) });
+    case 'money': {
+      const seuil = seuilDeBourse(c.atLeast);
+      const montant = 'lie' in seuil
+        ? t('codex.f.tire', { nom: seuil.lie })
+        : formatMoney({ gold: seuil.montant.gold ?? 0, silver: seuil.montant.silver ?? 0, brass: seuil.montant.brass ?? 0 });
+      return t(neg ? 'codex.c.money.non' : 'codex.c.money', { montant });
+    }
     case 'partyDead': {
       if (!neg) return t('codex.c.partyDead', { sujet: sujetDuGroupe(c.who) });
       return c.who === 'all' ? t('codex.c.partyDead.nonTous') : c.who === 'any' ? t('codex.c.partyDead.nonAucun') : t('codex.c.partyDead.non', { sujet: sujetDuGroupe(c.who) });
@@ -442,7 +451,10 @@ export function humanizeOp(o: GameOp): string {
     case 'castPenalty': return effetDeContrecoup(o);
     case 'money': {
       const debit = estDebit(o.montant.brass);
-      const { valeur, note } = humanizeQuantite(debit ? sansSigne(o.montant.brass) : o.montant.brass);
+      const montant = debit ? sansSigne(o.montant.brass) : o.montant.brass;
+      if (o.groupe && typeof montant === 'number') return t(debit ? 'codex.op.money.groupe.perd' : 'codex.op.money.groupe.gagne', { valeur: formatMoney(fromBrass(montant)) });
+      const { valeur, note } = humanizeQuantite(montant);
+      if (o.groupe) return `${t(debit ? 'codex.op.money.groupe.perd' : 'codex.op.money.groupe.gagne', { valeur: t('codex.op.money.enSous', { valeur }) })}${note}`;
       return `${t(debit ? 'codex.op.money.perd' : 'codex.op.money.gagne', { valeur })}${note}`;
     }
     case 'statusMod': return t(typeof o.amount === 'number' && o.amount < 0 ? 'codex.op.statusMod.perd' : 'codex.op.statusMod.gagne', { n: humanizeFormula(o.amount) });
