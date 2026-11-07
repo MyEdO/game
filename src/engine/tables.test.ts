@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bandeAuDe, facesDuDe, findTableEntry, findTableEntryIndex, findTierEntry, fourchette, tableOuverte } from './tables';
+import { bandeAuDe, deDeLaTableTiree, facesDuDe, findTableEntry, findTableEntryIndex, findTierEntry, fourchette, tableOuverte } from './tables';
 import { tableDesCritiquesDeStructure } from './structureCritical';
 
 describe('findTableEntry — lookup d100 par fourchette [min,max] (source unique)', () => {
@@ -77,17 +77,38 @@ describe('tableOuverte — la borne que le livre n’écrit pas s’ouvre à l�
   });
 });
 
+describe('deDeLaTableTiree — le dé se lit sur le nœud de sa table (#1667)', () => {
+  it('lit le `die` d\'une table, ou le `dice` de son `Tirage`', () => {
+    expect(deDeLaTableTiree({ die: '2d10' })).toEqual({ n: 2, sides: 10 });
+    expect(deDeLaTableTiree({ dice: { n: 1, sides: 10 } })).toEqual({ n: 1, sides: 10 });
+  });
+  it('refuse un dé illisible en nommant la table', () => {
+    expect(() => deDeLaTableTiree({ id: 'fixture', die: 'deux dés' })).toThrow('fixture.die invalide');
+  });
+  it('un dé nu ne compile pas, ni chaîne ni `DiceSpec` littéral : `tsc` rougit (TS2578) si une directive cesse de servir', () => {
+    const refuses = [
+      // @ts-expect-error — chaîne : le dé d'une table se lit sur la table
+      () => facesDuDe('d10'),
+      // @ts-expect-error — `DiceSpec` littéral : la marque de lecture est absente
+      () => bandeAuDe({ n: 1, sides: 10 }, 1, 5),
+    ];
+    expect(refuses).toHaveLength(2);
+  });
+});
+
 describe('facesDuDe — faces d’un dé de table (source unique)', () => {
-  it('d10 → 10, d100 → 100', () => {
-    expect(facesDuDe('d10')).toBe(10);
-    expect(facesDuDe('d100')).toBe(100);
+  it('d10 → 10, d100 → 100, 2d10 → 20', () => {
+    expect(facesDuDe(deDeLaTableTiree({ die: 'd10' }))).toBe(10);
+    expect(facesDuDe(deDeLaTableTiree({ die: 'd100' }))).toBe(100);
+    expect(facesDuDe(deDeLaTableTiree({ die: '2d10' }))).toBe(20);
   });
 });
 
 describe('bandeAuDe — bande précédée du libellé de son dé (docs/charte-ui.md, « Bande de table »)', () => {
   it('libellé du schéma et faces du dé : « 1d100 01–35 », « 1d10 9–10 », bande ouverte « 1d100 96+ »', () => {
-    expect(bandeAuDe('d100', 1, 35)).toBe('1d100 01–35');
-    expect(bandeAuDe('d10', 9, 10)).toBe('1d10 9–10');
-    expect(bandeAuDe('d100', 96, null)).toBe('1d100 96+');
+    const d100 = deDeLaTableTiree({ die: 'd100' });
+    expect(bandeAuDe(d100, 1, 35)).toBe('1d100 01–35');
+    expect(bandeAuDe(deDeLaTableTiree({ die: 'd10' }), 9, 10)).toBe('1d10 9–10');
+    expect(bandeAuDe(d100, 96, null)).toBe('1d100 96+');
   });
 });

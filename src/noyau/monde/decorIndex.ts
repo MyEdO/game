@@ -77,7 +77,7 @@ export const decorEnCaseEtage = (scene: Scene, x: number, y: number, z: number):
   indexDe(scene).parCaseEtage.get(`${x},${y},${z}`);
 
 /** TOUTES les entités ANCRÉES sur la case (x, y, z) — toutes natures, dans l'ordre du document. C'est
- *  la lecture PAR POSITION du picking (`gameIso/stage/pickResolve.ts` § `Verdict`) : le rayon nomme ce
+ *  la lecture PAR POSITION du picking : le rayon nomme ce
  *  qu'il a frappé, et quand c'est la CASE qui est la question (survol « y a-t-il de l'interactif ici ? »,
  *  clic sur une case qu'aucun rayon n'a nommée), on lit ICI — en O(1), là où un balayage de
  *  `scene.entities` à chaque `pointermove` coûte la scène entière. Vue d'ANCRAGE et non de

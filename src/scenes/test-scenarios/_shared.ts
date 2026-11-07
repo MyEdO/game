@@ -70,8 +70,8 @@ export interface TestScenario {
   interludeWeeks?: number;
 }
 
-/** LE lancement d'un scénario (#2898), constructeur UNIQUE que partagent le web (`state/scenarioFlow.ts`) et tout
- *  hôte du noyau : le contenu construit à neuf, et les réglages de la fiche. */
+/** LE lancement d'un scénario (#2898), constructeur UNIQUE que partagent tous les
+ *  hôtes du noyau : le contenu construit à neuf, et les réglages de la fiche. */
 export function lancementDuScenario(sc: TestScenario): LancementDeScenario {
   return { ...sc.construire(), regles: sc.rules, bourse: sc.money, combatDirect: sc.autoCombat, semainesDInterlude: sc.interludeWeeks };
 }

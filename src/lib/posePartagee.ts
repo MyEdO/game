@@ -1,6 +1,6 @@
 /** POSE PARTAGÉE (#1806) : des écouteurs posés à la PREMIÈRE prise et retirés à la DERNIÈRE rendue,
  *  quel que soit le nombre de preneurs. Composée par la porte d'Échap de la pile
- *  (`ui/clavier/couches/porteEchap.ts`) et par la délégation de la couche d'infobulle (`Infobulle`). */
+ *  et par la délégation de la couche d'infobulle (`Infobulle`). */
 export interface PosePartagee {
   /** Prend la pose (la pose au premier preneur) ; rend sa remise, qui n'agit qu'une fois. */
   prendre(): () => void;

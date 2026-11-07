@@ -12,8 +12,8 @@
  * (carac), `ap` (armure naturelle), `grantNaturalWeapon` (arme), `grantTrait`/`grantPsychTrait` (traits) ;
  * descriptif non modélisable en `note`.
  */
-import { RNG, rollDice, type DiceSpec } from '../engine/dice';
-import { findTableEntry } from '../engine/tables';
+import { RNG, rollDice } from '../engine/dice';
+import { findTableEntry, type DeDeTable } from '../engine/tables';
 import type { Mutation } from '../engine/corruption';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import { deDeTirageDe, type RangeeDe } from './rangees';
@@ -105,7 +105,7 @@ export function mutationOfRow(id: string, roll: number): Mutation {
 }
 
 /** Le DÉ DE TIRAGE de la table `table` (`die`), lu VIVANT à l'appel (`deDeTirageDe`). */
-export function mutationTableDie(table: string): DiceSpec {
+export function mutationTableDie(table: string): DeDeTable {
   return deDeTirageDe<typeof tablesDeCorruption>(TABLES, table);
 }
 

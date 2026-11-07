@@ -9,9 +9,9 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { executeesDe, mecaniqueDe } from '../grammaire/mecanique';
 import { nommerChamps } from '../grammaire/meta';
-import { ecartsDeCouverture, plageSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
-import { formatDice, type DiceSpec } from '../../../engine/dice';
-import { facesDuDe } from '../../../engine/tables';
+import { ecartsDuDeDeLaTable, plageSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
+import { formatDice, totalDuDe, type Tirage } from '../../../engine/dice';
+import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 
 export const file = 'stars.json';
 export const famille = 'config';
@@ -83,7 +83,8 @@ const doc = document(
     // replie sur la dernière entrée, et un 5 rendrait la variante « Sorcier ! ».
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
-        const { sub: { dice: subDie }, entries } = v as { sub: { dice: DiceSpec }; entries: { id: string; rand: number; sub?: { min: number; max: number } }[] };
+        const { sub, entries } = v as { sub: Tirage; entries: { id: string; rand: number; sub?: { min: number; max: number } }[] };
+        const subDie = deDeLaTableTiree(sub);
         const groupes = new Map<number, typeof entries>();
         for (const e of entries) groupes.set(e.rand, [...(groupes.get(e.rand) ?? []), e]);
         for (const [rand, groupe] of groupes) {
@@ -105,18 +106,12 @@ const doc = document(
             });
             continue;
           }
-          const faces = facesDuDe(subDie);
-          const ecarts = ecartsDeCouverture(
-            groupe.map((e) => ({ ...e.sub!, id: e.id })),
-            1,
-            faces,
-            (f) => `la variante « ${f.id} » (${f.min}–${f.max})`,
-          );
+          const ecarts = ecartsDuDeDeLaTable(sub, groupe.map((e) => ({ ...e.sub!, id: e.id })), (f) => `la variante « ${f.id} » (${f.min}–${f.max})`);
           if (ecarts.length) {
             ctx.addIssue({
               code: 'custom',
               path: ['entries'],
-              message: `stars.json : les variantes du seuil ${rand} ne couvrent pas le ${formatDice(subDie)} de 1 à ${faces} d'un seul tenant — ${ecarts.join(' ; ')}.`,
+              message: `stars.json : les variantes du seuil ${rand} ne couvrent pas le ${formatDice(subDie)} de ${totalDuDe(subDie, subDie.n)} à ${facesDuDe(subDie)} d'un seul tenant — ${ecarts.join(' ; ')}.`,
             });
           }
         }

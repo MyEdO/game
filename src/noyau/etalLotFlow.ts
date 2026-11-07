@@ -11,7 +11,7 @@
  *  - un siège tient le monde : il tourne une fois sur un rng ENREGISTREUR (même flux d'aléa, même
  *    ordre), la fenêtre montre ses dés, et la validation le REJOUE avec les dés du lot — sans
  *    consommer d'aléa. L'option « Dés fixés » n'entre pas dans l'ouverture de la fenêtre : elle ne
- *    gate que la POSE d'un dé, au site unique de la pose (`ui/forcedDieRow`, `canFixDie`).
+ *    gate que la POSE d'un dé, au site unique de la pose (`canFixDie`).
  *
  * L'invariant que ce flux ne paie jamais : la fenêtre ne change rien par sa seule existence. Valider
  * sans rien poser rejoue les dés enregistrés et rend l'étal identique.

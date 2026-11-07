@@ -1,8 +1,8 @@
 // QUARANTAINE d'import « rng vivant → résolveur moteur » (#370, ronde 2 du seam de jet). Le garde
 // d'exclusivité (`rollSeamExclusivity.mjs`, #274) exempte TOUT `src/engine/**` au motif que « le
-// moteur pur REÇOIT un rng sans jamais décider du surfaçage — c'est l'APPELANT (state/) qui choisit
+// moteur pur REÇOIT un rng sans jamais décider du surfaçage — c'est l'APPELANT (noyau/) qui choisit
 // modale/MJ/inline ». Ce motif suppose que l'appelant, lui, PASSE PAR le seam (`openRoll`) — mais un
-// flux state/** peut contourner l'hypothèse en appelant DIRECTEMENT un résolveur moteur importé
+// flux noyau/** peut contourner l'hypothèse en appelant DIRECTEMENT un résolveur moteur importé
 // (`../engine/...`) avec un rng VIVANT (`battleRng()`) au call-site : le résolveur roule ET décide de
 // l'issue (Test opposé/étendu), sans jamais passer par la policy M/V/I.
 //
@@ -13,7 +13,7 @@
 // affinage, ronde 3) : un résolveur PUR (`resolveOpposed`, `resolveTavernRound` — `TestResult,
 // TestResult → issue`, aucun paramètre `RNG`) ne peut recevoir aucun générateur, vivant ou non ; le
 // signaler par coexistence de fichier seule est un faux positif par construction (`portFlow.ts`/
-// `tavernFlow.ts`, cf. `battleRngEngineLeakWhitelist.mjs`). Un fichier state/** NON listé dans la
+// `tavernFlow.ts`, cf. `battleRngEngineLeakWhitelist.mjs`). Un fichier noyau/** NON listé dans la
 // whitelist (`battleRngEngineLeakWhitelist.mjs`) qui matche un résolveur RNG-capable est un flux qui a
 // contourné le seam. Import renommé et appel `ns.f` comptent, sous le nom EXPORTÉ ; un homonyme local
 // non importé ne compte pas.

@@ -14,7 +14,7 @@ import areneProjet from './arene/arene-projet.json';
 
 /**
  * Registre des campagnes du jeu (#211) : « Nouvelle partie → Changer » les liste toutes via
- * `CampaignSelect` (`ui/PartyScreen.tsx`), au MÊME mécanisme que les projets publiés de l'éditeur
+ * `CampaignSelect`, au MÊME mécanisme que les projets publiés de l'éditeur
  * (`pendingCampaign` + `loadProject`) — jamais un chemin parallèle.
  */
 describe('builtinCampaigns — registre des campagnes exposées au picker', () => {

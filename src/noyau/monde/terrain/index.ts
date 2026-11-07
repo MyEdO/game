@@ -36,7 +36,7 @@ export function tousLesTerrains(): readonly TerrainDef[] {
 
 /**
  * Arrêts d'une rampe de terrain, ORDONNÉS par offset croissant — source UNIQUE des émetteurs de
- * `<linearGradient>` (`gameIso/sprites.ts`, `gameIso/authoring/detailSvg.ts`) et de la fiche Codex.
+ * `<linearGradient>` du rendu et de la fiche Codex.
  * SVG lit les `<stop>` dans l'ordre d'ÉMISSION et clampe un offset qui recule sur son prédécesseur :
  * un arrêt émis hors ordre est inerte, sans un mot. L'ordre est aussi exigé au PARSE
  * (`schemas/defs/terrains.ts`) ; le tri ici rend l'émission indépendante de l'ordre des clés du Record.

@@ -336,12 +336,12 @@ export function bestSkilledOption<T>(
 /** DÉTAIL d'un Soutien (LDB 12 l.187-200) tel qu'il s'AFFICHE : combien de membres soutiennent et le
  *  bonus total qu'ils octroient. FORME UNIQUE, partagée par le moteur (`partyAssisted`/
  *  `bestAssistedOption`), les pendings qui la portent (`noyau/pendings.ts`) et la primitive de
- *  breakdown qui la rend en ligne de mod (`ui/breakdown.ts` — `soutienMod`). */
+ *  breakdown qui la rend en ligne de mod (`soutienMod`). */
 export interface SupportDetail {
   count: number;
   bonus: number;
   /** Les SOUTIENS eux-mêmes, par id de Combattant — la provenance du bonus est une STRUCTURE, jamais
-   *  un libellé composé. Rendue en micro-chips par `ui/RollLine.tsx` (`ModLine.by`). */
+   *  un libellé composé. Rendue en micro-chips (`ModLine.by`). */
   ids: string[];
 }
 
@@ -349,7 +349,7 @@ export interface SupportDetail {
  *  comme TOUT autre modificateur (ligne du breakdown, verte si +), pas fondu dans la base ni relégué
  *  en sous-titre. `undefined` si personne ne soutient (aucune ligne « Soutien +0 » inventée).
  *  La provenance ne porte QUE des ids : le moteur est pur, et le NOM se résout au RENDU (couture
- *  unique `ui/RollLine.tsx`) — un résolveur à fournir par appelant s'oublie, et l'écran affiche
+ *  unique) — un résolveur à fournir par appelant s'oublie, et l'écran affiche
  *  alors l'id brut (recette B3a, « pregen-101 »). */
 export function soutienMod(support?: SupportDetail): ModLine | undefined {
   if (!support || support.count <= 0) return undefined;

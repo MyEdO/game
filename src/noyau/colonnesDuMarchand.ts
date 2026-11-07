@@ -25,7 +25,7 @@ function unitCapacity(id: string): string {
   return v?.chargement != null ? `Chargement ${v.chargement}` : DASH;
 }
 /** Registre FIXE des colonnes de stats disponibles pour une famille (`merchantFamilies.json:columns`
- *  y référence par id), lu par le panneau du marchand (`ui/MerchantPanel.tsx`) et par la garde de cohérence
+ *  y référence par id), lu par le panneau du marchand et par la garde de cohérence
  *  (`noyau/merchantFamilies.test.ts`). */
 export const MERCHANT_COL_RENDERERS: Record<string, { label: string; get: (id: string) => string }> = {
   damage: { label: 'Dégâts', get: trapCol(dmg) },

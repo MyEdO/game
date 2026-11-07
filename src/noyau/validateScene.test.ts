@@ -69,7 +69,7 @@ describe('validateScene', () => {
 
   /**
    * CAP CARDINAL d'un décor VOLUMIQUE (#1680 ligne 3) : sa recette tourne là où son empreinte solide ne
-   * tourne pas (#1509). L'émetteur (`gameIso/builders/props.ts`) lève sur une diagonale — c'est ici que
+   * tourne pas (#1509). L'émetteur du rendu lève sur une diagonale — c'est ici que
    * l'auteur l'apprend, AVANT le rendu. La règle est celle du CATALOGUE (`refEstVolumique`) : le même
    * cap sur un décor billboard reste licite.
    */

@@ -51,7 +51,7 @@ function avecCloison(sc: Scene, ax: number, ay: number, bx: number, by: number):
 const MPT = sceneMetresPerTile(salle());
 
 /** Ancrage MONDE d'un meuble posé : le CENTRE de son empreinte (`decorAncre`, la règle unique que
- *  `gameIso/builders/props.ts` applique), son cap, le sol qu'il touche. */
+ *  le rendu applique), son cap, le sol qu'il touche. */
 const ancrageDe = (ent: SceneEntity) => ({
   ancre: decorAncre(ent.pos, empreinteDuProp(findPropById(ent.ref), ent.facing, MPT)),
   facing: capVolumique(ent.facing)!,

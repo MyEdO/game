@@ -1,6 +1,6 @@
 /**
  * CLIQUET NOMINATIF « un enjeu porte sa RÈGLE » (#1117 L0b) — jumeau du cliquet « une étape dit son
- * enjeu » (`state/cascade-step-stake-guard`), à l'étage de la DONNÉE : chaque entrée de `stakes.json`
+ * enjeu », à l'étage de la DONNÉE : chaque entrée de `stakes.json`
  * doit renvoyer vers la fiche de sa règle, pour que la règle soit à UN CLIC.
  *
  * Le schéma EXIGE cette porte de toute cascade sauf le voyage (`schemas/defs/stakes.ts`) ; le stock

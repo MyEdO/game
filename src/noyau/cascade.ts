@@ -444,7 +444,7 @@ export function stepInteraction(step: CascadeStep): 'jet' | 'table' | 'de' | 'ba
  *  (`slotsDeJet.hoteEnAttente`, #1765).
  *
  *  CONTRAT d'une rangée TÉMOIN (`interactive:false`) : elle NAÎT avec son `result` — c'est son
- *  PRODUCTEUR qui le roule à la construction (`pursuitFlow.pursuitRow`, `ui/rollRowBuild.frozenOpposedRow`). Rien ne
+ *  PRODUCTEUR qui le roule à la construction (`pursuitFlow.pursuitRow`). Rien ne
  *  roule les rangées d'une étape ouverte : `rollBatchParticipants` n'est appelé QUE par les pilotes
  *  « tout résoudre »/immédiat (`resolveRemainingCascade`/`runCascadeImmediate`). Une témoin sans
  *  `result` n'en obtiendrait donc jamais — et comme elle ne freine pas ce prédicat, son jet serait

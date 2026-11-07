@@ -5,7 +5,7 @@ import { analyserCorpus } from './dialecte.mjs';
 // principe, et `docs/registre-jets.md` écrit la condition de cette exemption : « `rollSeamExcluded`
 // exempte `src/engine/**` de principe (le moteur reçoit un rng, il ne décide pas du surfaçage) — CE
 // QUI SUPPOSE QUE L'APPELANT PASSE PAR LE SEAM. » `battleRngEngineLeak.mjs` (#370) a fermé la moitié
-// APPELANT du trou (un flux `state/**` qui remet un rng vivant à un résolveur moteur). Ce module ferme
+// APPELANT du trou (un flux `noyau/**` qui remet un rng vivant à un résolveur moteur). Ce module ferme
 // la moitié DONNÉE : un nœud `test` (`FlowTestNode`, `src/engine/flowCore.ts`) est la forme UNIQUE du
 // jet en donnée ; un moteur qui LIT ce nœud le REND (patron `miscast.mkTest` → `MiscastResult.testFlow`
 // → `runCombatFlow`) ou le DIFFÈRE (patron `UpkeepDeferTest`) — il ne le roule pas, sinon l'issue est

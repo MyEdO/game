@@ -39,7 +39,7 @@ export const PORTEURS_D_ETAPE: readonly PorteurDEtape[] = Object.values(PENDING_
 /**
  * HÔTE ORPHELIN (#1852) — « cette étape-jet n'a PAS de quoi rendre un corps ». DÉFINITION UNIQUE,
  * partagée par la porte du curseur (`cascade.poserLeCurseur`) et par les hooks de props des jets
- * (`ui/jetProps/useXJetProps`) : c'est parce qu'elle est TOTALE que `CascadeModal` rend ses étapes-jets
+ * (`useXJetProps`) : c'est parce qu'elle est TOTALE que `CascadeModal` rend ses étapes-jets
  * INCONDITIONNELLEMENT (`{...props!}` sur un hook rendu `null` donne `{}` à `RollShell`, donc un crash).
  *
  * Trois causes, toutes portées ici — le slot VIDE, l'ACTEUR sorti du `battle`, et la donnée portée par

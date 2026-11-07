@@ -94,9 +94,9 @@ export interface TravelRecapDay {
   kmTo: number;
   hours: number;
   /** Fatigue, péripéties narratives, entretien… Ligne STRUCTURÉE (#349) : `{ text, icon?, tone?,
-   *  phase? }`, rendue par le renderer partagé `ui/RecapLine.tsx` — `phase` (jour terrestre
+   *  phase? }`, rendue par le renderer partagé — `phase` (jour terrestre
    *  seulement) rattache la ligne à `DAY_PHASE_CATALOG` (`noyau/recapLine.ts`), même catalogue que
-   *  l'agenda du jour EN COURS (`ui/VoyageScreen.dayAgenda`) : le sectionnement des jours CLOS en
+   *  l'agenda du jour EN COURS : le sectionnement des jours CLOS en
    *  tombe GRATUITEMENT (dette 3). */
   lines: RecapLine[];
   /** Les JETS du jour (marche forcée, Survie, Perception…) en lignes de jet structurées —
@@ -827,7 +827,7 @@ function buildTravelDayCascade(
 /** Lignes STRUCTURÉES d'une étape de cascade DÉJÀ committée, phase-taguée (#349, dette 3) — un pas
  *  BATCH déplie ses PARTICIPANTS (chacun porte SA conséquence, `stagePosteBatch`/`weatherResistance`) ;
  *  un pas MONO lit `step.outcome`. `phaseOfKind` (catalogue PARTAGÉ, `noyau/recapLine.ts`, le MÊME que
- *  l'agenda du jour EN COURS `ui/VoyageScreen.dayAgenda`) rattache la ligne à sa phase — `undefined`
+ *  l'agenda du jour EN COURS) rattache la ligne à sa phase — `undefined`
  *  pour un `kind` hors catalogue (silencieux). */
 function stepRecapLines(step: CascadeStep): RecapLine[] {
   const phase = phaseOfKind(step.kind);

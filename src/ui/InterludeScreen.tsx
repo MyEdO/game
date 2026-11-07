@@ -1,7 +1,8 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { nomDuSiege } from '../noyau/sieges';
 import { useGame } from '../state/store';
-import { interludeEventFor } from '../data/interludeEvents';
+import { interludeEventDie, interludeEventFor } from '../data/interludeEvents';
+import { formatDice } from '../engine/dice';
 import { formatMoney, formuleDeRevenus, libelleDEchelon, fromBrass, toBrass, PA_PER_SC, type Money, type Status } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { actorStatus } from '../engine/social';
@@ -385,7 +386,7 @@ function EventsIntro({ heroes, etat, onDone }: { heroes: Combatant[]; etat: Etat
   return (
     <>
       <p className="interlude-phase-hint">
-        {t('interlude.events.hint')}
+        {t('interlude.events.hint', { die: formatDice(interludeEventDie()) })}
       </p>
       <div className="interlude-chronicle">
         {heroes.map((h) => {

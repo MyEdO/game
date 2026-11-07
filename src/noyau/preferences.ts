@@ -1,13 +1,12 @@
 /**
  * LA TABLE DES PRÉFÉRENCES de confort (#3041) : chaque entrée porte sa forme de contrôle, son défaut, et la lecture
  * et l'écriture de sa valeur, qui vit dans son module du moteur. Leur persistance est à l'hôte
- * (`hote/preferences.ts`) ; l'effet d'un changement JOUEUR sur l'affichage est à l'hôte qui affiche
- * (`state/preferences.ts` pour le web).
+ * (`hote/preferences.ts`) ; l'effet d'un changement JOUEUR sur l'affichage est à l'hôte qui affiche.
  *
  * Ce n'est PAS le registre des règles optionnelles (`engine/policy.ts`, dont chaque entrée cite un folio d'un livre
  * autorisé et dont le moteur reconstruit l'état de combat) : ces réglages ne changent aucun état de jeu déjà
  * construit et restent donc modifiables pendant un combat. Ajouter un réglage = une entrée ICI (son id entre dans
- * `IdDePreference`), et son effet chez chaque hôte qui en déclare un (`state/preferences.ts`, exhaustif par id) ; zéro
+ * `IdDePreference`), et son effet chez chaque hôte qui en déclare un (exhaustif par id) ; zéro
  * ligne d'UI (doctrine utilisateur 2026-07-26 : « "if (id=" n'est jamais une solution »).
  */
 import { CADENCE_DEFAULT, CADENCE_MODES, cadence, setCadence, type Cadence } from '../engine/cadence';

@@ -13,6 +13,8 @@ import {
   type MassBattleState, type MassBattleArmy,
 } from '../noyau/massBattleFlow';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
+import { formatDice } from '../engine/dice';
+import { massBattleHazardsDie } from '../data';
 import type { Combatant } from '../engine/types';
 import { GatedAction, raisonSi } from './GatedAction';
 import { Grid } from './Layout';
@@ -134,7 +136,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
         </div>
       ) : (
         <div className="bar mb-actions">
-          <button className="btn small" disabled={mb.awaitingNext} onClick={() => rollHazard()}>Tirer un facteur (1d10)</button>
+          <button className="btn small" disabled={mb.awaitingNext} onClick={() => rollHazard()}>{t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) })}</button>
           <select
             className="mb-select"
             defaultValue=""

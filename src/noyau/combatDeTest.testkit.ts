@@ -1,7 +1,7 @@
 /**
  * Le duel de test des flux de combat (#2779, #2817) : un héros à fiche réelle (`createHero`) face au
  * premier ennemi de `enc-mutants`, au contact ((10,10)-(11,10)), les autres ennemis hors de combat, le
- * tour au héros. Le propriétaire de l'état (le store, `state/combatDeTest.testkit.ts` ; un banc ; une partie) lance
+ * tour au héros. Le propriétaire de l'état (le store, un banc, une partie) lance
  * la scène et le combat, puis écrit le patch que rend `auContact`.
  */
 import { createHero } from '../engine/character';

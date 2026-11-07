@@ -3,7 +3,7 @@
  * verbe du noyau, et ce qui le ferme maintenant : le porter (`equiperLObjet`), le tenir dans une main du set actif
  * (`garnirLaPanoplie`), le ranger dans un contenant ou l'en sortir (`rangerLObjet`), le donner à un porteur à ses côtés
  * (`transmettreLObjet`), l'utiliser (`utiliserLObjet`), l'évaluer ou le détecter (`evaluerLObjet`). Chaque refus est le verdict
- * que le verbe applique. Lecteur PUR, lu par la fiche web (`ui/CarrierInventory`, `ui/CharacterSheet`) et par les
+ * que le verbe applique. Lecteur PUR, lu par la fiche de personnage et par les
  * hôtes du noyau (`hote/ecran.ts`).
  */
 import type { Jeu } from './etat';

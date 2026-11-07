@@ -65,16 +65,19 @@ export const META_CHARGE: Readonly<Record<CleCharge, MetaChamp>> = {
 /**
  * TABLE TIRÉE nichée dans un document : la charge d'un document à rangées tiré au dé
  * (`options.rangee` + `options.deDeTirage`), posée sous un champ — son dé `die` (`deDeTirageSchema`) et
- * ses rangées `entries`, nommés par `META_CHARGE`. Même forme que `weather.json › seasons[]`.
+ * ses rangées `entries` (au moins une), nommés par `META_CHARGE`. L'`enveloppe` apporte les champs propres à la table
+ * (`weather.json › seasons[]` : `id`, `label`, `source`), chacun avec sa méta.
  */
-export function tableTiree<R extends z.ZodType>(rangee: R) {
-  return marquerProduit(nommerChamps(z.strictObject({ die: deDeTirageSchema, entries: rangeesDeCharge(rangee) }), META_CHARGE), 'tableTiree', 'table');
+export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record<never, never>>(rangee: R, enveloppe?: { champs: E; meta: MetaDesChamps<E> }) {
+  const champs = enveloppe?.champs ?? ({} as E);
+  const meta = { ...enveloppe?.meta, ...META_CHARGE } as MetaDesChamps<E & Record<CleCharge, z.ZodType>>;
+  return marquerProduit(nommerChamps(z.strictObject({ ...champs, die: deDeTirageSchema, entries: rangeesDeCharge(z.array(rangee).min(1)) }), meta), 'tableTiree', 'table', champs);
 }
 
 /** Les RANGÉES d'une charge (`entries`), collection à clé `id` quand la rangée en déclare un, sous l'`espace` de
  *  noms que le document leur ouvre. */
-function rangeesDeCharge<R extends z.ZodType>(rangee: R, espace?: EspaceDeNoms): z.ZodArray<R> {
-  return pasDeDonnee(ouverts([rangee]), 'id').length ? marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id', espace)) : z.array(rangee);
+function rangeesDeCharge<R extends z.ZodType>(rangees: z.ZodArray<R>, espace?: EspaceDeNoms): z.ZodArray<R> {
+  return pasDeDonnee(ouverts([rangees.element]), 'id').length ? marquerCollection(rangees, marqueDeListe<{ id: string }>('id', espace)) : rangees;
 }
 
 /** Clés d'enveloppe qu'un document ne peut pas EXIGER : `id`/`type`/`label` sont déjà requises,
@@ -567,7 +570,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
         ? marquerProduit(z.strictObject({
             ...complet.shape,
             ...(deDeTirage ? { die: deDeTirageSchema } : {}),
-            entries: rangeesDeCharge(rangeeChargee!, espaceDesRangees),
+            entries: rangeesDeCharge(z.array(rangeeChargee!), espaceDesRangees),
           }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };

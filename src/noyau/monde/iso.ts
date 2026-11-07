@@ -2,7 +2,7 @@
  * Conversion px-iso → MÈTRES MONDE (dépend de `noyau/monde/relief` : `METRES_PER_LEVEL`) — seule partie de
  * la projection isométrique qui a besoin du MONDE plutôt que du seul écran. La géométrie de
  * projection elle-même (grille↔écran, centres/arêtes de tuile, tri de profondeur…) vit dans
- * `src/geometry/iso.ts` (#161 : `state` en a besoin, ce n'est pas QUE du rendu) — ce module la
+ * `src/geometry/iso.ts` (#161 : le noyau en a besoin, ce n'est pas QUE du rendu) — ce module la
  * RÉ-IMPORTE pour ses propres besoins, il ne la redéfinit pas.
  */
 import { METRES_PER_LEVEL } from './relief';

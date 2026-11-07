@@ -23,13 +23,13 @@ import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './monde/combatants';
-import { d10, d100, type RNG } from '../engine/dice';
+import { d100, rollDice, type RNG } from '../engine/dice';
 import { testValue, skillBaseValue, bestForTests, bestForCombined, bestAssistedOption, peutTenter, refusPersonneNePeutTenter, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
 import { bonus, effectiveChar, blessuresPosees } from '../engine/characteristics';
-import { dataLabel, testSkillLabel } from '../data';
+import { dataLabel, massBattleHazardsDie, testSkillLabel } from '../data';
 import { clampTarget } from '../engine/tests';
 import { rollLine, type RollLineParts } from './rollSeam';
 import {
@@ -913,11 +913,11 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
 
 // ── Aléa, Test spectaculaire, Rounds, issue (l.120-124/309) ──────────────────────────────────────
 
-/** Tire (ou choisit) le facteur environnemental du Round (l.309, 1d10). */
+/** Tire (ou choisit) le facteur environnemental du Round (ADE II 08 l.309-311). */
 export function massBattleSetHazard(get: Get, set: Set, roll?: number): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round') return;
-  const h = battleHazard(roll ?? d10(battleRng()));
+  const h = battleHazard(roll ?? rollDice(massBattleHazardsDie(), battleRng()));
   set({ massBattle: { ...mb, hazard: { label: h.label, text: h.desc }, log: [...mb.log, t('mbf.hazardLog', { label: h.label })] } });
   get().log(t('mbf.hazard', { label: h.label }));
 }
