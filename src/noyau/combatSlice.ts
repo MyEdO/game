@@ -18,7 +18,7 @@ import { rollLine, hostStep, pushDisplay, temoinSiSansJet, type RollLineParts } 
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { activeCombatant, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { activeCombatant, jetDeRecharge, appliquerLaRecharge, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -44,7 +44,7 @@ import { refuseSi } from './verrousDeFiche';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, drainPendingLog } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
-import { combatValue, backstabWeapon, attackHandGate, issueAuJet, coupAApplique } from '../engine/combat';
+import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
 import { areGrappling, clearGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
@@ -60,11 +60,10 @@ import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, calmeDeLAnimositeAcquise, ciblesDAnimositeAcquise } from '../engine/psychology';
-import { reloadProgressOf, aRecharger } from '../engine/weaponLoad';
-import { recomputeLoadout, giveTrappingLabel, loadWeapon, unloadWeapon, setReloadProgress, choisirLaMunition, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
+import { recomputeLoadout, giveTrappingLabel, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
-import { canPushback, reloadDRTarget } from '../engine/qualities/dispatch';
-import { talentFearIndice, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
+import { canPushback } from '../engine/qualities/dispatch';
+import { talentFearIndice, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { refusDeConsommer, runConsumable } from './consumableFlow';
@@ -79,7 +78,7 @@ import { entreeEnRencontre } from '../engine/persistence';
 import { testValue, actorHasSkill, soutienDetail, type SupportDetail } from '../engine/skills';
 import { spawnEnemy, placeCombatant } from './monde/spawn';
 import { ficheDEntite } from './monde/sceneNpc';
-import { applyShipPostes, autoFormCrews, servingCrewPresent, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, posteARecharger } from './monde/shipPostes';
+import { applyShipPostes, autoFormCrews, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, rechargeDuTour } from './monde/shipPostes';
 import { posteHullOf, pushEligible, pushCrewOk, pushReachable } from './siegePush';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
 import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, quartChante, chanteurDuNavire, withCrewActed, chansonsDuChanteur } from './shipCrew';
@@ -100,14 +99,12 @@ import { resolveVolley } from '../engine/volley';
 import type { ShipManeuverParticipant } from './pendings';
 import { estNavire } from '../engine/coque';
 import { navalTestTypeDR, hullNavalTraits } from '../engine/navalTraits';
-import { crewedFireWeapon } from '../engine/crewedWeapon';
-import { exposedCrew } from '../engine/shipCritical';
 import { sceneZonesToBattle } from './monde/zones';
 import { resetFields } from './stateFields';
 import { seaMagicContext, touchActors } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
-import { progresDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
+import { armeDuJetDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './netOwnership';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
@@ -1288,82 +1285,17 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...battle, stances: { ...battle.stances, [active.id]: { ...armee, [stance]: !armee[stance] } } } });
     },
 
-    // ── Rechargement = Test étendu de Projectiles (LDB 62 l.335 + LDB 12 l.170-174) — par modale ──
-    // `weaponUid` DÉSIGNE l'arme rechargée : chaque arme à distance a son cycle (arbitrage utilisateur
-    // 2026-08-16 : « si j ai 2 armes à distance elles gèrent chacune leur propre rechargement et
-    // munition »).
-    // Absent → la 1re arme à distance DÉCHARGÉE du set.
+    // `weaponUid` DÉSIGNE l'arme rechargée, chacune son cycle (arbitrage utilisateur 2026-08-16, #2998,
+    // `docs/plans/2026-08-16-hud-combat.md` : « si j ai 2 armes à distance elles gèrent chacune leur propre rechargement
+    // et munition ») ; absent, la première à recharger. LDB 62 l.335 ; LDB 12 l.170-174
     rechargerLArme: (weaponUid?: string) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const { battle } = get();
-      if (!battle || battle.over || battle.acted) return;
-      const active = activeCombatant(battle);
-      if (!active || !controlsCombatant(get(), active) || !canTakeAction(active)) return;
-      const w0 = weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : active.weapons.find((x) => aRecharger(active, x));
-      if (!w0 || !aRecharger(active, w0)) return;
-      // Pièce SERVIE en sous-effectif : recharge ×2 (MDG 12 l.462). Le bake reflète les servants APTES présents
-      // (effectif complet → recharge normale) ; pour un chef sans poste → arme inchangée (cas héros qui sert seul).
-      const present = servingCrewPresent(active, battle.combatants);
-      const w = present != null ? crewedFireWeapon(w0, present) : w0;
-      const skillValue = combatValue(active, 'ranged', w); // CT + avances Projectiles (Spé du groupe d'arme)
-      const ligne = rollLine({ actor: active, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: w } });
-      set({
-        pendingReload: {
-          actorId: active.id,
-          actorName: active.label,
-          weaponUid: w.uid!,
-          reload: reloadDRTarget(w), // sous-effectif baké (recharge ×2) ; arme NON-équipe ou effectif complet → ×1
-          progressBefore: reloadProgressOf(active, w0),
-          skillValue,
-          difficulty: 'intermediaire',
-          roll: null,
-          ligne,
-          ...cibleMesuree(ligne),
-          sl: 0,
-          success: false,
-        },
-      });
-    },
-    // RECHARGE D'UN POSTE DE NAVIRE (MDG 12 l.462 / LDB 62 l.333) — Test étendu de Projectiles du CHEF de
-    // pièce, avec le SOUTIEN générique des autres servants (`soutienBonus`, LDB 12). Tâche d'équipage PARALLÈLE :
-    // elle occupe les servants (`crewActed`) mais NE consomme PAS le tour du navire (≠ `acted`). Réutilise le flux
-    // `FLOWS.reload` (mono-jet) ; la branche d'application vit dans `jetValider('reload')` (cf. `pr.posteUid`).
-    rechargerLaPiece: (shipId: string, posteUid: string) => {
-      if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
-      const battle = get().battle;
       if (!battle || battle.over) return;
-      const ship = inBattleId(battle, shipId);
-      const poste = ship?.postes?.find((p) => p.item.uid === posteUid);
-      if (!ship || !poste || !posteARecharger(ship, poste, battle)) return;
-      const chef = inBattleId(battle, poste.crewIds![0])!;
-      const servants = (poste.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
-      const w0 = mannedPosteWeapon(chef, poste);
-      if (!w0) return;
-      // Effectif EFFECTIF = même décompte que le tir (servants aptes ET à la bonne Projectiles, AA 10 l.230) : la
-      // recharge ×2 du sous-effectif suit la MÊME source que `firedWeapon`. Repli `exposedCrew` si le chef ne
-      // « sert » pas formellement le poste (`mannedPoste` absent — état construit sans `applyShipPostes`).
-      const present = servingCrewPresent(chef, battle.combatants) ?? exposedCrew(servants).length;
-      const w = crewedFireWeapon(w0, present); // ×2 recharge si sous-effectif ; arme-d-equipe retirée
-      // Soutien (LDB 12, primitive GÉNÉRIQUE) : +10 par AUTRE servant capable (Projectiles Poudre noire), plafonné.
-      // DISTINCT du Défaut Arme d'équipe (MDG 12 l.464, `crewedFireWeapon`/`exposedCrew` ci-dessus — headcount
-      // requis pour armer la pièce) : ceci reste le Soutien générique LDB 12, adjacence (l.196) gatée pareil
-      // qu'ailleurs en combat (`combatDistance`) — s'annule d'elle-même si `chef` n'a pas de `pos` propre
-      // (équipage navire PASSAGER hors case, shipPostes.ts l.244-245).
-      const sout = soutienDetail(servants, chef, { skill: { id: 'projectiles', spec: 'Poudre noire' } }, chef.pos ? (c) => !!c.pos && combatDistance(chef, c) <= 1 : undefined);
-      const skillValue = combatValue(chef, 'ranged', w) + sout.bonus;
-      const ligne = rollLine({
-        actor: chef, difficulty: 'intermediaire', valeur: skillValue,
-        soutien: sout.bonus ? sout : undefined, combat: { kind: 'ranged', weapon: w },
-      });
-      set({
-        pendingReload: {
-          actorId: chef.id, actorName: chef.label, weaponUid: w.uid!,
-          reload: reloadDRTarget(w), progressBefore: poste.reloadProgress ?? 0,
-          skillValue, difficulty: 'intermediaire', roll: null,
-          ligne, ...cibleMesuree(ligne), sl: 0, success: false,
-          posteUid, shipId, soutien: sout.bonus ? sout : undefined,
-        },
-      });
+      const active = activeCombatant(battle);
+      if (!active || !controlsCombatant(get(), active)) return;
+      const recharge = rechargeDuTour(active, battle, weaponUid);
+      if (recharge) set({ pendingReload: jetDeRecharge(recharge.porteur, recharge.arme, battle.combatants) });
     },
     seRemettreDeLEtat: (state: string) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
@@ -1529,7 +1461,7 @@ export function createCombatSlice(get: Get, set: Set) {
         if (c.items?.length) recomputeLoadout(c);
         // Armes à distance CHARGÉES au début du combat (le cycle de charge ne joue que pour les armes à
         // Recharge) — CHACUNE la sienne. Le CHOIX de munition n'est PAS réinitialisé : la munition est un
-        // état de l'ARME (arbitrage utilisateur 2026-08-16 : « si j ai 2 armes à distance elles gèrent
+        // état de l'ARME (arbitrage utilisateur 2026-08-16, #2998 : « si j ai 2 armes à distance elles gèrent
         // chacune leur propre rechargement et munition ») et se fixe au chargement
         // (AskUserQuestion 2026-08-16), donc celui posé au
         // combat précédent (ou à l'équipement) tient ; `loadWeapon` capture le choix courant, et
@@ -2865,50 +2797,13 @@ export function cloturesDuCombat(get: Get, set: Set) {
     reload: () => {
       const { battle, pendingReload: pr } = get();
       if (!battle || !pr) return;
-      // — Recharge d'un POSTE de navire : applique le DR cumulé à la PIÈCE (pas au champ `loaded` du marin) et
-      //   occupe l'équipage du poste (équipage-ressource), sans consommer le tour du navire.
-      if (pr.posteUid && pr.shipId) {
-        const ship = inBattleId(battle, pr.shipId);
-        const chef = inBattleId(battle, pr.actorId);
-        const poste = ship?.postes?.find((p) => p.item.uid === pr.posteUid);
-        set({ pendingReload: null });
-        if (!ship || !chef || !poste) return;
-        const w = chef.weapons.find((x) => x.uid === pr.weaponUid);
-        const step = progresDeRecharge(pr, chef);
-        if (step.done) loadWeapon(chef, w, poste); // couture UNIQUE : la PIÈCE porte son état de charge et sa munition capturée
-        else setReloadProgress(chef, w, step.total, poste);
-        if (pr.success && reloadGrantsAssessAdvantage(chef)) campGain(get, chef, 1); // AA 13 l.9/90 : recharger = Action Évaluer → +1 Avantage (mode groupe)
-        // ISSUE dérivée par le goulot (`FLOWS.reload.apply`, canal COMBAT) : le pending est FOURNI (il
-        // vient d'être fermé), le `ctx` porte le DR réalisé et le nom résolu de la pièce.
-        const crewIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: step.total, weapon: w?.label ?? 'pièce' } });
-        set({ battle: { ...battle, action: null,
-          crewActed: withCrewActed(battle.crewActed, ship.id, poste.crewIds ?? []), // chef + servants OCCUPÉS ce Round
-          log: [...battle.log, ...evLines(crewIssue, 'reload', chef.id)] } });
-        bus.emit(EVT.SCENE_DIRTY);
-        return;
-      }
-      const a = inBattleId(battle, pr.actorId);
       set({ pendingReload: null });
-      if (!a) return;
-      a.aiming = false; // recharger est une autre action → la visée est perdue
-      // ARME rechargée = celle du pending (chaque arme à distance a SON cycle — arbitrage utilisateur
-      // 2026-08-16 : « si j ai 2 armes à distance elles gèrent chacune leur propre rechargement et
-      // munition »).
-      const rw = garanti(a.weapons.find((x) => x.uid === pr.weaponUid), pr.weaponUid, 'arme rechargée');
-      const { total: progress, done } = progresDeRecharge(pr, a);
-      if (done) {
-        loadWeapon(a, rw); // couture UNIQUE : état de charge + munition capturée, sur CETTE arme
-      } else {
-        setReloadProgress(a, rw, progress);
-      }
-      if (pr.success && reloadGrantsAssessAdvantage(a)) campGain(get, a, 1); // AA 13 l.9/90 : recharger = Action Évaluer → +1 Avantage (mode groupe)
-      // ISSUE dérivée par le goulot (`FLOWS.reload.apply`, canal COMBAT) : `progress` inclut le bonus de
-      // Talent (réalisé à l'application), le nom d'arme est résolu ici (uid → NOM d'affichage).
-      const reloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: rw.label } });
-      set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ...evLines(reloadIssue, 'reload', a.id)] } });
-      bus.emit(EVT.SCENE_DIRTY);
+      const porteur = inBattleId(battle, pr.actorId);
+      if (!porteur) return;
+      appliquerLaRecharge(get, set, pr, garanti(armeDuJetDeRecharge(pr, porteur), pr.weaponUid, 'arme rechargée'));
       // Acteur PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (comme cast/défense).
-      if (aiDriven(get(), a) && get().battle) resumeEnemyTurn(get, set);
+      const active = activeCombatant(get().battle!);
+      if (active && aiDriven(get(), active)) resumeEnemyTurn(get, set);
     },
     // Main ensanglantée (AA 07 l.117) : « Appliquer » le Test de Dextérité PAR ACTION.
     handGate: () => {

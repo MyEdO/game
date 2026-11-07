@@ -27,7 +27,7 @@ import { SpectatorChip } from '../SpectatorChip';
 import { spectatorSeatOfModal } from '../../noyau/combatAuto';
 import { raisonRefusDetermination } from '../../engine/conditions';
 import { isFrenzied } from '../../engine/psychology';
-import { posteARecharger } from '../../noyau/monde/shipPostes';
+import { rechargeDuTour } from '../../noyau/monde/shipPostes';
 import { isVehicle } from '../../engine/coque';
 import { etatsDeSituation, pontDOuverture } from '../../noyau/pontDeCombat';
 import { nomDuSiege } from '../../noyau/sieges';
@@ -673,7 +673,7 @@ export function CombatConsole() {
   // ARMES À DISTANCE du porteur — le SÉLECTEUR DU REGISTRE (`armes-a-distance`, déclaré par l'entrée
   // `reload`), jamais un filtre recopié : deux pistolets sont DEUX armes, chacune avec son cycle de
   // charge (`weaponLoad.ts`, registre par `uid`) et sa munition — ce que les dispatchers mesurent déjà
-  // (`combatSlice.ts:1939` `rechargerLArme`, `:2151` `approvisionnerLArme`, tous deux paramétrés par l'arme).
+  // (`rechargerLArme`, `approvisionnerLArme`, tous deux paramétrés par l'arme).
   const rangedWs = ACTION_CANDIDATES['armes-a-distance'](gateCtx) as Weapon[];
   const heldSet = activeLoadout(active);
   /** Un AUTRE set se prend-il : la porte du registre (`switch-loadout`), jamais `loadoutSwapped` relu ici. */
@@ -753,9 +753,9 @@ export function CombatConsole() {
       return acc;
     }, {}),
   );
-  // La pièce que la case de recharge de la coque paramètre : la première que le prédicat du gate
-  // `piece-dechargee` accepte (`posteARecharger`).
-  const reloadable = vehicule ? (active.postes ?? []).find((p) => posteARecharger(active, p, battle)) : undefined;
+  // La pièce que la case de recharge de la coque paramètre : celle que le prédicat du gate
+  // `arme-a-recharger` accepte (`rechargeDuTour`).
+  const reloadable = vehicule ? rechargeDuTour(active, battle)?.arme : undefined;
 
   // Gestes DÉDUITS du set au poing (spec §1a, G1-G6bis). Chaque case EST une entrée du registre,
   // habillée du contenu réel (art de l'arme tenue, progression de charge). Une case non pertinente
@@ -802,12 +802,12 @@ export function CombatConsole() {
     // NAVIRE (échelle Mer) : au tour de la coque, ses Tests d'équipage sont les gestes de la travée —
     // les MÊMES cases du registre, pas une 2ᵉ barre. Bordée et Rude épreuve dépensent l'Action du navire
     // (gate `navire-action`) ; chant et recharge sont des tâches parallèles, fermées par leurs gates de préalable
-    // (`chanteur-disponible`, `piece-dechargee`), sans Action du navire.
+    // (`chanteur-disponible`, `arme-a-recharger` : l'Action du chef de pièce), sans Action du navire.
     // Recharge : LDB 62 l.335 ; bordée, Rude épreuve, chant : MDG 14.
     cellFor('battery', 'attaque'),
     cellFor('crew-test-rude-epreuve', 'geste', { args: { shipId: active.id, crewTestId: 'rude-epreuve' } }),
     cellFor('sing-shanty', 'geste', { args: { shipId: active.id } }),
-    cellFor('ship-reload', 'geste', { args: { shipId: active.id, posteUid: reloadable?.item.uid } }),
+    cellFor('ship-reload', 'geste', { args: { weaponUid: reloadable?.uid } }),
   ];
   // ADRESSE FIXE — chaque case d'une zone rend ce que le PORTEUR y a posé (`active.barre`), et à
   // défaut le pré-remplissage déduit (`dispositionDeduite`). Une case laissée vide RESTE à sa place :

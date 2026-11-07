@@ -1,9 +1,11 @@
 ## Le monde 3D d'une scène, que le plateau du jeu et l'éditeur de carte instancient tous deux : le volume du monde
 ## (`monde`, `CONTRAT.md`, section « Monde ») à l'échelle d'une unité par case, rendu et touché des deux côtés, sa lumière,
-## et ses caméras (`regarder`) : celle des regards `tactique` et `plateau`, pivotante (Q/E, par quart de tour), zoomable
-## (molette), centrée sur lui puis sur le lieu qu'elle suit (`suivre`), de biais en tactique, à la verticale et sans
-## perspective au plateau ; et l'œil du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le
-## sol touché sous lui (`sol_sous`). Il rend la case du triangle que
+## et ses caméras (`regarder`) : celle des regards `tactique` et `plateau`, aux touches d'un jeu de rôle tactique (A/E
+## d'un quart de tour, bouton du milieu tenu librement, molette pour zoomer, ZQSD pour la faire glisser, Origine pour
+## revenir au lieu suivi), centrée sur lui puis sur le lieu qu'elle suit (`suivre`), de biais en tactique, à la verticale
+## et sans perspective au plateau ; et l'œil du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche
+## sur le sol touché sous lui (`sol_sous`). Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la case
+## du triangle que
 ## le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
 ## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes
 ## (`KIT`) que l'arête nomme, l'arête choisie, les nappes de toit, chacune levée quand le groupe est dessous, les
@@ -20,6 +22,8 @@ const DUREE_QUART_S := 0.25
 const TANGAGE_TACTIQUE := -0.9
 ## Une hauteur sous tout monde, où finit le rayon qui cherche le sol sous un lieu.
 const SOUS_LE_MONDE := -1000.0
+## La vitesse (m/s) de la caméra qui glisse au clavier.
+const VITESSE_DE_GLISSE_M_S := 16.0
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
 ## Les items de `surbrillances`.
@@ -80,6 +84,8 @@ var _noms := {}
 var _metres_par_case := 1.0
 var _pivotement: Tween
 var _suivi: Tween
+## Le dernier lieu que la caméra suit (`suivre`), `null` avant le premier.
+var _suivi_lieu: Variant = null
 ## Le regard posé (`regarder`).
 var _regard := "tactique"
 
@@ -420,17 +426,23 @@ func regarder(regard: String) -> void:
 	_inclinaison.rotation.x = MiseEnPage.TANGAGE_DU_PLATEAU if plateau else TANGAGE_TACTIQUE
 	_camera.projection = Camera3D.PROJECTION_ORTHOGONAL if plateau else Camera3D.PROJECTION_PERSPECTIVE
 	_camera.size = _camera.position.z
-	_pivot.rotation.y = MiseEnPage.lacet_du_plateau(_lacet) if plateau else _lacet
+	_orienter()
 	for nom: Label3D in _etiquettes.get_children():
 		nom.no_depth_test = regard != "immersion"
 	_abattre_les_aretes()
 	cadrage_change.emit()
 
 
-## La caméra des regards `tactique` et `plateau` glisse jusqu'au lieu `lieu`, qu'elle suit.
+## La caméra des regards `tactique` et `plateau` glisse jusqu'au lieu `lieu`, qu'elle suit, dès qu'il change : une caméra
+## qu'on a fait glisser reste où elle est tant qu'il ne bouge pas.
 func suivre(lieu: Vector3) -> void:
-	if lieu.is_equal_approx(_pivot.position):
+	if _suivi_lieu != null and lieu.is_equal_approx(_suivi_lieu):
 		return
+	_suivi_lieu = lieu
+	_rejoindre(lieu)
+
+
+func _rejoindre(lieu: Vector3) -> void:
 	if _suivi != null:
 		_suivi.kill()
 	_suivi = create_tween()
@@ -445,6 +457,30 @@ func poser_l_oeil(lieu: Vector3, lacet: float, tangage: float) -> void:
 	cadrage_change.emit()
 
 
+## Le clavier mène la caméra ou l'œil : aucun champ de saisie n'a le focus.
+func clavier_libre() -> bool:
+	var focus := get_viewport().gui_get_focus_owner()
+	return not (focus is LineEdit or focus is TextEdit)
+
+
+## La caméra des regards `tactique` et `plateau` glisse au clavier (ZQSD), dans le sens où elle regarde.
+func _process(delta: float) -> void:
+	if _regard == "immersion" or not clavier_libre():
+		return
+	var forces := [Input.get_action_strength(&"gauche"), Input.get_action_strength(&"droite"), Input.get_action_strength(&"avant"), Input.get_action_strength(&"arriere")]
+	if forces.all(func(f: float) -> bool: return f == 0.0):
+		return
+	if _suivi != null:
+		_suivi.kill()
+	_pivot.position = MiseEnPage.lieu_apres_la_marche(_pivot.position, forces[0], forces[1], forces[2], forces[3], _pivot.rotation.y, MiseEnPage.metres_de_marche(VITESSE_DE_GLISSE_M_S, delta), _metres_par_case)
+	cadrage_change.emit()
+
+
+## Le lacet de la caméra posé sur le pivot : décalé d'un demi-quart de tour au plateau (`MiseEnPage.lacet_du_plateau`).
+func _orienter() -> void:
+	_pivot.rotation.y = MiseEnPage.lacet_du_plateau(_lacet) if _regard == "plateau" else _lacet
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _regard == "immersion":
 		return
@@ -452,6 +488,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		_pivoter(1.0)
 	elif event.is_action_pressed("pivoter_droite"):
 		_pivoter(-1.0)
+	elif event.is_action_pressed("recentrer") and _suivi_lieu != null:
+		_rejoindre(_suivi_lieu)
+	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE):
+		if _pivotement != null:
+			_pivotement.kill()
+		_lacet = MiseEnPage.lacet_glisse(_lacet, event.relative.x)
+		_orienter()
+		_abattre_les_aretes()
+		cadrage_change.emit()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
 		_zoomer(-1.0)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:

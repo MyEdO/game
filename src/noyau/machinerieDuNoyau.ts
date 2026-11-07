@@ -172,10 +172,9 @@ export interface MachinerieDuNoyau {
   annulerLeDeplacement: () => void;
   /** Sélectionne la munition à tirer (uid d'un item `kind 'ammo'`). */
   approvisionnerLArme: (uid: IdDObjet, weaponUid?: IdDObjet) => void;
-  /** Recharger l'arme à distance (LDB 62 l.335) : OUVRE la modale de Test étendu de Projectiles. */
+  /** Recharger l'arme `weaponUid` du Tour, portée par l'actif ou pièce que sert son équipage (`rechargeDuTour`) : OUVRE
+   *  la modale du Test étendu de Projectiles de son porteur. LDB 62 l.335 ; MDG 12 l.462 */
   rechargerLArme: (weaponUid?: IdDObjet) => void;
-  /** Recharge d'un poste (MDG 12 l.462) : ouvre la modale du Test étendu de Projectiles du chef de pièce + Soutien. */
-  rechargerLaPiece: (shipId: IdDeCombattant, posteUid: string) => void;
   // ── Navire ──
   /** Manœuvre NAVALE (MDG 13) : vire le cap (`Dir8`) du navire `shipId` de `turnSteps` crans de 45°
    *  (>0 = tribord/droite, <0 = bâbord/gauche) → re-mappe d'un coup TOUS ses arcs de bordée. */
