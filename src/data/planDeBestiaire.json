@@ -197,7 +197,7 @@
     "id": "elementaire-incarne-du-feu",
     "type": "planDeBestiaire",
     "label": "Élémentaire incarné du Feu",
-    "omis": "forme non décrite, une « apparence maigre » de braises (VDM p.174) : son corps se tranche sur planche"
+    "omis": "forme non décrite, une « apparence maigre » de braises (VDM 13 l.42) : son corps se tranche sur planche"
   },
   {
     "id": "elfe-sylvain",
@@ -212,25 +212,25 @@
     "id": "fabrique-par-magie",
     "type": "planDeBestiaire",
     "label": "Fabriqué",
-    "omis": "le sorcier façonne son corps de matériaux bruts (VDM p.28) : aucune forme commune"
+    "omis": "le sorcier façonne son corps de matériaux bruts (VDM 02 l.444) : aucune forme commune"
   },
   {
     "id": "familier-de-combat",
     "type": "planDeBestiaire",
     "label": "Familier de combat",
-    "omis": "forme propre à chaque familier, de l’oiseau de bronze à la volute de fumée (VDM p.181)"
+    "omis": "forme propre à chaque familier, de l’oiseau de bronze à la volute de fumée (VDM 13 l.225)"
   },
   {
     "id": "familier-de-pouvoir",
     "type": "planDeBestiaire",
     "label": "Familier de pouvoir",
-    "omis": "forme propre à chaque familier, de l’oiseau de bronze à la volute de fumée (VDM p.181)"
+    "omis": "forme propre à chaque familier, de l’oiseau de bronze à la volute de fumée (VDM 13 l.225)"
   },
   {
     "id": "familier-de-sorts",
     "type": "planDeBestiaire",
     "label": "Familier de sorts",
-    "omis": "forme propre à chaque familier, de l’oiseau de bronze à la volute de fumée (VDM p.181)"
+    "omis": "forme propre à chaque familier, de l’oiseau de bronze à la volute de fumée (VDM 13 l.225)"
   },
   {
     "id": "fantome",
