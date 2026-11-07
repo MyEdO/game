@@ -17,13 +17,14 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS,
+  type WallPaint, ZONE_VARIANTS, formulaireDeZone, type ChampDeFormulaire,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from './formes';
-import { ligne, type Bouton, type Choix, type Formulaire, type Ligne } from './elements';
+import { ligne, SANS_BORNE, type Bouton, type Choix, type Formulaire, type Ligne, type Saisie } from './elements';
+import { CHOIX_EN_BOUTONS } from './gestes';
 
 /** Les zones de l'éditeur, dans l'ordre où chacune montre ses éléments. */
 export interface ZonesDeLEditeur {
@@ -624,9 +625,64 @@ function emprise(zoneId: string, outil: SessionDEdition['outil']): Choix[] {
     bouton(`emprise/${paint}`, t(`ecran.editeur.zone.emprise.${paint}`), { geste: 'outil', outil: { mode: 'zoneTiles', zoneId, paint } }, sens === paint)))];
 }
 
+/** Le porteur des valeurs qu'écrit un formulaire tiré du schéma (`{ geste: 'valeur' }`). */
+type PorteurDeValeur = Extract<GesteDEdition, { geste: 'valeur' }>['porteur'];
+
+/** Le pas d'une saisie de nombre qui n'est pas entier. */
+const PAS_D_UN_REEL = 0.01;
+
+/** Le formulaire `id` qui écrit au champ `c` du porteur `porteur` la valeur de sa saisie `saisie` : le porteur et le
+ *  chemin posés (`fixe`), puis elle. */
+const formulaireDeValeur = (id: string, porteur: PorteurDeValeur, c: ChampDeFormulaire, saisie: Saisie): Formulaire => ({
+  type: 'formulaire', id, libelle: t('ecran.editeur.valeur.ecrire'), verbe: 'valeur', focus: false, refus: null,
+  champs: [
+    { type: 'fixe', id: `${id}/porteur`, nom: 'porteur', optionnel: false, valeur: porteur },
+    { type: 'fixe', id: `${id}/chemin`, nom: 'chemin', optionnel: false, valeur: c.chemin },
+    saisie,
+  ],
+});
+
+/** Les éléments du formulaire tiré du schéma `champs` (`formulaireDeZone`) du porteur `porteur`, à plat, chacun d'id
+ *  `valeur/<chemin>`, chaque geste jouant `{ geste: 'valeur', porteur, chemin, valeur }` (`valeur` absente : le champ
+ *  se retire). Un objet présent : son libellé, ses champs, et « Retirer » si son absence est admise ; absent : « Ajouter »,
+ *  qui pose sa valeur neuve. Un choix : chacune de ses options, en liste au-delà de `CHOIX_EN_BOUTONS`, précédées de
+ *  « Aucune » si son absence est admise. Un nombre, un texte ou du JSON : le formulaire de sa saisie, qui retire un
+ *  texte ou un JSON laissé vide ; un nombre présent dont l'absence est admise, « Retirer ». */
+function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly ChampDeFormulaire[]): (Choix | Ligne | Bouton | Formulaire)[] {
+  return champs.flatMap((c): (Choix | Ligne | Bouton | Formulaire)[] => {
+    const id = `valeur/${c.chemin.join('/')}`;
+    const ecrire = (valeur?: unknown): GesteDEdition => ({ geste: 'valeur', porteur, chemin: c.chemin, ...(valeur === undefined ? {} : { valeur }) });
+    const retirer = c.present && c.absenceAdmise ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: c.libelle }), ecrire())] : [];
+    const saisie = { id: `${id}/valeur`, ton: 'neutre' as const, nom: 'valeur', optionnel: c.absenceAdmise, libelle: c.libelle };
+    switch (c.sorte) {
+      case 'objet':
+        return c.present
+          ? [ligne(id, c.libelle), ...elementsDuFormulaire(porteur, c.champs), ...retirer]
+          : [bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: c.libelle }), ecrire(c.neuve))];
+      case 'choix': {
+        const valeurs = [
+          ...(c.absenceAdmise ? [bouton(`${id}/aucune`, t('ecran.editeur.valeur.aucune'), ecrire(), !c.present)] : []),
+          ...c.options.map((o) => bouton(`${id}/${String(o.valeur)}`, o.libelle, ecrire(o.valeur), c.present && c.valeur === o.valeur)),
+        ];
+        return [choix(id, c.libelle, valeurs, valeurs.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix')];
+      }
+      case 'nombre':
+        return [formulaireDeValeur(id, porteur, c, {
+          ...saisie, type: 'saisieNombre', valeur: typeof c.valeur === 'number' ? c.valeur : 0,
+          min: c.min ?? SANS_BORNE.min, max: c.max ?? SANS_BORNE.max, pas: c.entier ? 1 : PAS_D_UN_REEL,
+        }), ...retirer];
+      case 'texte':
+        return [formulaireDeValeur(id, porteur, c, { ...saisie, type: 'saisieTexte', valeur: typeof c.valeur === 'string' ? c.valeur : '' })];
+      case 'json':
+        return [formulaireDeValeur(id, porteur, c, { ...saisie, type: 'saisieJson', valeur: c.present ? JSON.stringify(c.valeur) : '' })];
+    }
+  });
+}
+
 /** L'inspecteur de la zone sélectionnée `zone` de la session `s` : la poignée qui la redimensionne ; d'un déclencheur,
  *  son nom ; d'une zone d'effet, son nom, son identifiant, sa nature, sa forme, son emprise au pinceau et toute son aire
- *  rendue, si elle coupe la ligne de vue, si elle barre le passage, et les entrées de fiche qu'elle couvre ; sa couche ;
+ *  rendue, si elle coupe la ligne de vue, si elle barre le passage, les entrées de fiche qu'elle couvre, et le formulaire
+ *  tiré du schéma de son Test de traversée et de ses effets à la traversée et à chaque Round (`formulaireDeZone`) ; sa couche ;
  *  d'un déclencheur, s'il ne joue qu'une fois et les entrées de fiche qu'il couvre ; d'une zone de repos, ses lieux et
  *  sa qualité ; la supprimer. */
 function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | Bouton | Formulaire)[] {
@@ -648,6 +704,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
       bouton('zone/blocksLoS', t('ecran.editeur.zone.blocksLoS'), sur({ blocksLoS: !ez.blocksLoS }), !!ez.blocksLoS),
       bouton('zone/barrier', t('ecran.editeur.zone.barrier'), sur({ barrier: !ez.barrier }), !!ez.barrier),
       ...couverture('zone/couvre', ez.couvre, (couvre) => sur({ couvre })),
+      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDeZone(ez)),
     );
   }
   propre.push(choixDeLaCouche(s, 'zone/couche', zone.z, (z) => sur({ z })));
@@ -1072,14 +1129,24 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
  *  sélection ou la scène (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ;
  *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }` ; celui
  *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ à la
- *  scène, vrai ; `undefined` si les zones ne portent pas ce formulaire ou si `args` n'est pas ce qu'il saisit. */
+ *  scène, vrai ; celui qui écrit une valeur d'un formulaire tiré du schéma (`formulaireDeValeur`), `args` son porteur,
+ *  son chemin et la valeur saisie, absente si elle est laissée vide, `{ geste: 'valeur', porteur, chemin, valeur }`,
+ *  quand un formulaire des zones porte ce porteur et ce chemin ; `undefined` si les zones ne portent pas ce formulaire
+ *  ou si `args` n'est pas ce qu'il saisit. */
 export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEdition | undefined {
   if (!estObjet(jeu) || Object.keys(jeu).length !== 2 || !VERBES_DE_FORMULAIRE.includes(jeu.type as string) || !Array.isArray(jeu.args)) return undefined;
+  const formulaires = z['editeur.inspecteur'].filter((e): e is Formulaire => e.type === 'formulaire' && e.verbe === jeu.type);
+  if (jeu.type === 'valeur') {
+    const [porteur, chemin, ...valeur] = jeu.args as unknown[];
+    const pose = jsonCanonique([porteur, chemin]);
+    const offert = formulaires.some((f) => jsonCanonique(f.champs.slice(0, 2).map((c) => (c.type === 'fixe' ? c.valeur : undefined))) === pose);
+    return offert && valeur.length <= 1 ? { geste: 'valeur', porteur: porteur as PorteurDeValeur, chemin: chemin as ChampDeFormulaire['chemin'], ...(valeur.length ? { valeur: valeur[0] } : {}) } : undefined;
+  }
   const [valeur, ...reste] = jeu.args as unknown[];
   const vide = valeur === undefined || valeur === null;
   const optionnel = jeu.type === 'nommer' || jeu.type === 'decrire';
   if (reste.length || !(typeof valeur === 'string' || (vide && optionnel))) return undefined;
-  if (!z['editeur.inspecteur'].some((e) => e.type === 'formulaire' && e.verbe === jeu.type)) return undefined;
+  if (!formulaires.length) return undefined;
   const texte = typeof valeur === 'string' ? valeur : undefined;
   switch (jeu.type) {
     case 'identifier': return { geste: 'identifier', id: valeur as string };
@@ -1090,7 +1157,7 @@ export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEditi
 }
 
 /** Les verbes des formulaires de l'inspecteur. */
-const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'drapeau'];
+const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'drapeau', 'valeur'];
 
 /** Si `g` est l'issue de l'écriture d'un enregistrement au dépôt : `{ geste: 'enregistrement', reussi }`, rien de plus. */
 export function estLIssueDUnEnregistrement(g: unknown): g is Extract<GesteDEdition, { geste: 'enregistrement' }> {

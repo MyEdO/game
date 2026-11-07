@@ -64,6 +64,7 @@ export type { Scene } from './monde/scene';
 export { couronnesDuMonde, toitsDuMonde, volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export { avertissementsDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, refusDOuvrage, sceneEditee, scenesDeLaSession, essaiDeLaScene, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDeScene, type SessionDEdition } from './edition/session';
+export { formulaireDeZone, type ChampDeFormulaire } from './edition/formulaire';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS } from './monde/facades';
 export { BORNES_D_OUVERTURE, DEFAUTS_D_OUVERTURE, toitureEffective } from './sceneEdit';

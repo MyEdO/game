@@ -1007,8 +1007,8 @@ async function parcoursEditeur() {
   }
   /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
    *  ouverte d'un clic, qui n'y place aucun article, la flèche descendue du premier jusqu'à elle, puis Entrée. */
-  const choisirALaListe = async (liste, id) => {
-    const libelle = (await editeur()).zones['editeur.options'].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
+  const choisirALaListe = async (liste, id, zone = 'editeur.options') => {
+    const libelle = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
     const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
     const rang = deroulante.choix.indexOf(libelle)
     assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
@@ -1017,7 +1017,7 @@ async function parcoursEditeur() {
     for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
     await marquer()
     await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.options'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
   }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
@@ -1221,6 +1221,15 @@ async function parcoursEditeur() {
   e = await editeur()
   noter(`outil Sélection, la poignée glissée de deux cases à l’est : ${e.zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)
   await capturer('3508-l4-2-piece-agrandie')
+  await cliquerAuPanneau({ element: 'bouton/valeur/crossTest/ajouter' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/crossTest/difficulty')`)
+  await choisirALaListe('valeur/crossTest/difficulty', 'valeur/crossTest/difficulty/difficile', 'editeur.inspecteur')
+  await cliquerAuPanneau({ element: 'bouton/valeur/crossTest/noSupport/true' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/crossTest/noSupport')?.valeurs.find((b) => b.id === 'valeur/crossTest/noSupport/true')?.presse === true`)
+  e = await editeur()
+  const difficulte = inspecte(e, 'valeur/crossTest/difficulty').valeurs.find((b) => b.presse).libelle
+  noter(`« Ajouter Test de traversée », difficulté « ${difficulte} », soutien refusé : ${e.zones['editeur.validation'][0].texte}`)
+  await capturer('3606-m0a-1-test-de-traversee')
   await cliquerAuPanneau({ element: 'bouton/zone/supprimer' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur?.surcouche.zones.some((z) => z.choisi)')
   noter('« Supprimer » : la pièce retirée')
