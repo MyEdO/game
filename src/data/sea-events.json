@@ -536,12 +536,38 @@
         "id": "ouragan",
         "label": "Ouragan",
         "desc": "Ouragan. Un ouragan soulève des vagues qui pourraient couler n'importe quel navire. L'équipage doit réussir un Test d'équipage d'Affaler les voiles Difficile (–20), sinon le vaisseau subit 3 Coups Critiques au Gréement.",
-        "kind": "ouragan",
-        "params": {
-          "testType": "affaler",
-          "difficulty": "difficile",
-          "failCrits": 3,
-          "critLocation": "greement"
+        "consequence": {
+          "kind": "test",
+          "test": {
+            "crewTestType": "affaler",
+            "difficulty": "difficile",
+            "stake": {
+              "key": {
+                "dataset": "voyage",
+                "kind": "sea-ouragan-affaler",
+                "entryId": "ouragan",
+                "entryCategory": "seaBoardEvents"
+              }
+            }
+          },
+          "success": {
+            "kind": "seq",
+            "steps": []
+          },
+          "fail": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "shipCritical",
+                  "location": "greement",
+                  "count": 3
+                }
+              ]
+            }
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -828,10 +854,20 @@
         "id": "infestation-de-crabes-boxeurs",
         "label": "Infestation de crabes boxeurs",
         "desc": "Infestation de crabes boxeurs. Une colonie de larves de crabes boxeurs s'étend sur la coque du bateau. Réduisez le M de 1 et la Man de –1 DR jusqu'à ce que la coque soit raclée.",
-        "kind": "crabes-boxeurs",
-        "params": {
-          "mMod": -1,
-          "manDR": -1
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "navireMod",
+                "m": -1,
+                "manDR": -1,
+                "jusqua": "carenage"
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -845,15 +881,42 @@
         "id": "vaisseau-fantome-litteralement",
         "label": "Vaisseau fantôme (littéralement)",
         "desc": "Vaisseau fantôme (littéralement). Votre vigie repère un vaisseau d'un vert fluorescent à l'horizon. C'est un mauvais présage. Vous pouvez soit changer de cap et réduire votre Mouvement de 2 pour un jour de voyage, soit continuer et perdre 2d10 Moral.",
-        "kind": "choix-vaisseau-fantome",
-        "params": {
-          "detourMMod": -2,
-          "detourDays": 1,
-          "moral": {
-            "sign": -1,
-            "dice": {
-              "n": 2,
-              "sides": 10
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Changer de cap",
+          "yes": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "navireMod",
+                  "m": -2,
+                  "jusqua": {
+                    "jours": 1
+                  }
+                }
+              ]
+            }
+          },
+          "no": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "shipMorale",
+                  "delta": {
+                    "sign": -1,
+                    "dice": {
+                      "n": 2,
+                      "sides": 10
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -869,16 +932,25 @@
         "id": "calme-plat",
         "label": "Calme plat",
         "desc": "Calme plat. Les vents vous abandonnent pour les prochains 1d10 jours.",
-        "kind": "calme-plat",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "weather": {
-            "vent": "calme-plat"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "meteoImposee",
+                "jours": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "meteo": {
+                  "vent": "calme-plat"
+                }
+              }
+            ]
           }
         },
         "source": {
@@ -933,13 +1005,23 @@
         "id": "vents-inhabituels",
         "label": "Vents inhabituels",
         "desc": "Vents inhabituels. Les vents soufflent de manière étrange. Les vents dominants normaux changent de direction et soufflent à l'opposé de leur flux normal, ce qui affecte le Mouvement de votre vaisseau pendant 1d10 jours.",
-        "kind": "vents-inhabituels",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "meteoImposee",
+                "jours": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "ventInverse": true
+              }
+            ]
           }
         },
         "source": {
@@ -1053,17 +1135,26 @@
         "id": "bruine",
         "label": "Bruine",
         "desc": "Bruine. Une brume humide enveloppe la mer. Pendant les 1d10 prochains jours, la Visibilité est celle d'une Brume et les Précipitations sont Légères.",
-        "kind": "bruine",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "weather": {
-            "visibilite": "brume",
-            "precipitations": "legeres"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "meteoImposee",
+                "jours": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "meteo": {
+                  "visibilite": "brume",
+                  "precipitations": "legeres"
+                }
+              }
+            ]
           }
         },
         "source": {
@@ -1173,22 +1264,41 @@
         "id": "rafale-de-ghyran",
         "label": "Rafale de Ghyran",
         "desc": "Rafale de Ghyran. Le Vent de Ghyran est concentré sur cette partie de l'océan. Pendant les 1d10 prochains jours, les Tests de Focalisation (Ghyran), de Guérison et de Résistance bénéficient de +2 DR.",
-        "kind": "rafale-ghyran",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "drBonus": 2,
-          "skills": [
-            "focalisation",
-            "guerison",
-            "resistance"
-          ],
-          "specs": {
-            "focalisation": "vie"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "party",
+            "pendantJours": {
+              "dice": {
+                "n": 1,
+                "sides": 10
+              }
+            },
+            "ops": [
+              {
+                "op": "skillDRBonus",
+                "skill": {
+                  "id": "focalisation",
+                  "spec": "vie"
+                },
+                "bonus": 2
+              },
+              {
+                "op": "skillDRBonus",
+                "skill": {
+                  "id": "guerison"
+                },
+                "bonus": 2
+              },
+              {
+                "op": "skillDRBonus",
+                "skill": {
+                  "id": "resistance"
+                },
+                "bonus": 2
+              }
+            ]
           }
         },
         "source": {
@@ -1232,16 +1342,25 @@
         "id": "beau-temps",
         "label": "Beau temps",
         "desc": "Beau temps. Pendant les 1d10 prochains jours, la Température est Médiane.",
-        "kind": "beau-temps",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "weather": {
-            "temperature": "mediane"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "meteoImposee",
+                "jours": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "meteo": {
+                  "temperature": "mediane"
+                }
+              }
+            ]
           }
         },
         "source": {
@@ -1322,17 +1441,26 @@
         "id": "ciel-degage",
         "label": "Ciel dégagé",
         "desc": "Ciel dégagé. Les nuages s'écartent et le brouillard se lève. Pendant les 1d10 prochains jours, la Visibilité est toujours celle d'un ciel Dégagé et vous ne subissez Aucune Précipitation.",
-        "kind": "ciel-degage",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "weather": {
-            "visibilite": "degage",
-            "precipitations": "aucune"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "meteoImposee",
+                "jours": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "meteo": {
+                  "visibilite": "degage",
+                  "precipitations": "aucune"
+                }
+              }
+            ]
           }
         },
         "source": {
@@ -1454,15 +1582,30 @@
         "id": "chance-du-navigateur",
         "label": "Chance du navigateur",
         "desc": "Chance du navigateur. Manann semble accorder sa faveur à ce vaisseau. Le capitaine gagne 1 niveau du Talent Chanceux pour les 1d10 prochains jours.",
-        "kind": "chance-navigateur",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "talent": "chanceux"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": {
+              "role": {
+                "id": "capitaine"
+              }
+            },
+            "pendantJours": {
+              "dice": {
+                "n": 1,
+                "sides": 10
+              }
+            },
+            "ops": [
+              {
+                "op": "grantTalent",
+                "talent": {
+                  "id": "chanceux"
+                }
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -1583,30 +1726,39 @@
         "id": "tempete",
         "label": "Tempête",
         "desc": "Tempête. Une tempête s'abat sur le port. Vous ne pouvez plus repartir sans risque avant 1d10 jours. Si vous partez plus tôt, le climat est considéré comme suit jusqu'à ce que les 1d10 jours soient écoulés : Précipitations : Abondantes, Vents : Vent violent, Visibilité : Brouillard. La Température n'est pas affectée. Pour chaque matin de tempête, lancez 1d10. Sur un 8 ou plus, les Vents deviennent une Violente tempête.",
-        "kind": "tempete",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "escalation": {
-            "roll": {
-              "dice": {
-                "n": 1,
-                "sides": 10
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "meteoImposee",
+                "jours": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "meteo": {
+                  "visibilite": "brouillard",
+                  "precipitations": "abondantes",
+                  "vent": "vent-violent"
+                },
+                "aggravation": {
+                  "de": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  },
+                  "seuil": 8,
+                  "meteo": {
+                    "vent": "violente-tempete"
+                  }
+                }
               }
-            },
-            "min": 8,
-            "weather": {
-              "vent": "violente-tempete"
-            }
-          },
-          "weather": {
-            "visibilite": "brouillard",
-            "precipitations": "abondantes",
-            "vent": "vent-violent"
+            ]
           }
         },
         "source": {
@@ -1750,19 +1902,28 @@
         "id": "beau-temps-au-port",
         "label": "Beau temps",
         "desc": "Beau temps. Le temps est clément pendant les 1d10 prochains jours. Précipitations : Aucune, Température : Médiane, Vents : Brise fraîche, Visibilité : Dégagé.",
-        "kind": "beau-temps",
-        "params": {
-          "days": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "weather": {
-            "visibilite": "degage",
-            "precipitations": "aucune",
-            "temperature": "mediane",
-            "vent": "brise-fraiche"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "meteoImposee",
+                "jours": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "meteo": {
+                  "visibilite": "degage",
+                  "precipitations": "aucune",
+                  "temperature": "mediane",
+                  "vent": "brise-fraiche"
+                }
+              }
+            ]
           }
         },
         "source": {

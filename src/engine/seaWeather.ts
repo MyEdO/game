@@ -85,9 +85,14 @@ export const visibilityDef = (id: SeaVisibilityId): VisibilityDef => ficheMer('v
 export const windForceLabel = (id: SeaWindForceId): string => ficheMer('vents', DATA.vents, id).label;
 export const AFFALER_RULES = DATA.affaler;
 
-/** Libellé compact d'une météo (journal / recap). */
-export function seaWeatherLabel(w: SeaWeather): string {
-  return `${precipitationDef(w.precipitations).label} · ${temperatureDef(w.temperature).label} · ${visibilityDef(w.visibilite).label} · ${windForceLabel(w.vent)}`;
+/** Libellé compact d'une météo (journal / recap), ou des seuls axes qu'une météo imposée fixe. */
+export function seaWeatherLabel(w: Partial<SeaWeather>): string {
+  return [
+    w.precipitations && precipitationDef(w.precipitations).label,
+    w.temperature && temperatureDef(w.temperature).label,
+    w.visibilite && visibilityDef(w.visibilite).label,
+    w.vent && windForceLabel(w.vent),
+  ].filter(Boolean).join(' · ');
 }
 
 /** Tire la météo du jour (l.164-166) : dé de la table + saison PAR ASPECT ; mer chaude → −2 (min 1) sur
@@ -109,7 +114,13 @@ export function rollSeaWeather(season: Season, rng: RNG, warmSea = false): SeaWe
 
 /** Direction du vent (rose des vents, l.250-260). `dominantDirection` = vents dominants du plan
  *  d'eau (Mer des Griffes : ouest, l.253 — paramétrable par carte). PUR. */
-export function rollWindDirection(rng: RNG, dominantDirection: WindDirection = 'ouest'): WindDirection {
+/** Vents dominants de la Mer des Griffes. MDG 13 l.253-255 */
+export const VENT_DOMINANT: WindDirection = 'ouest';
+const OPPOSEE: Record<WindDirection, WindDirection> = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
+/** La direction opposée à `dir`. PUR. */
+export const directionOpposee = (dir: WindDirection): WindDirection => OPPOSEE[dir];
+
+export function rollWindDirection(rng: RNG, dominantDirection: WindDirection = VENT_DOMINANT): WindDirection {
   const dir = findTableEntry(DATA.roseDesVents.entries, rollDice(deDeLaTableTiree(DATA.roseDesVents), rng)).direction;
   return dir === 'dominant' ? dominantDirection : (dir as WindDirection);
 }
@@ -118,8 +129,7 @@ export function rollWindDirection(rng: RNG, dominantDirection: WindDirection = '
  *  DEPUIS le nord → cap au nord = vent de face ; cap au sud = vent arrière ; est/ouest = latéral. PUR. */
 export function windAspect(heading: WindDirection, windFrom: WindDirection): WindAspect {
   if (heading === windFrom) return 'face';
-  const opposite: Record<WindDirection, WindDirection> = { nord: 'sud', sud: 'nord', est: 'ouest', ouest: 'est' };
-  return opposite[heading] === windFrom ? 'arriere' : 'lateral';
+  return directionOpposee(heading) === windFrom ? 'arriere' : 'lateral';
 }
 
 /** UNE mise à jour de la force du vent (l.272). PUR. */

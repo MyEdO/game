@@ -25,6 +25,7 @@ import { findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
+import type { SeaWeather } from './seaWeather';
 import { ALL_MAGIC, type CastPenalty } from './types';
 import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -1213,11 +1214,22 @@ export type GameOp =
   | { op: 'manann'; factorId: string; delta?: never }
   /** COUPS CRITIQUES de coque : `count` Critiques sur `location`, ou sur une localisation tirée
    *  (`aleatoire`). Op de NAVIRE. MDG 15 l.153 */
-  | { op: 'shipCritical'; location: ShipCritKey | 'aleatoire'; count: Formula };
+  | { op: 'shipCritical'; location: ShipCritKey | 'aleatoire'; count: Formula }
+  /** MODIFICATEUR du navire : `m` au Mouvement, `manDR` en DR aux Tests de Manœuvre, jusqu'au carénage
+   *  (`carenage`) ou pendant `jours` jours. Op de NAVIRE. MDG 15 l.184-185, l.187-188 */
+  | { op: 'navireMod'; m?: number; manDR?: number; jusqua: 'carenage' | { jours: Formula } }
+  /** MÉTÉO IMPOSÉE au navire pendant `jours` jours : les axes de `meteo` remplacent la météo tirée, le vent
+   *  souffle à l'opposé des dominants (`ventInverse`), et chaque matin `aggravation.de` ≥ `seuil` impose en
+   *  plus `aggravation.meteo`. Posée sur le navire, elle vaut au départ d'un port. Op de NAVIRE.
+   *  MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
+  | { op: 'meteoImposee'; jours: Formula; meteo?: Partial<SeaWeather>; ventInverse?: true; aggravation?: AggravationMeteo };
+
+/** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
+export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<SeaWeather> }
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
-export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical'] as const satisfies readonly GameOp['op'][];
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee'] as const satisfies readonly GameOp['op'][];
 export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
 export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
 
@@ -2931,6 +2943,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'shipMorale':
       case 'manann':
       case 'shipCritical':
+      case 'navireMod':
+      case 'meteoImposee':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la

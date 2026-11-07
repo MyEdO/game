@@ -26,9 +26,9 @@ import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
-import { estOpDuNavire, opDemandeUnDe, type GameOp, type PairedSense } from './ops';
+import { estOpDuNavire, opDemandeUnDe, type Formula, type GameOp, type PairedSense } from './ops';
 import type { CibleEnVue } from './psychology';
-import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type Id, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 // Type SEUL (effacé à la compilation — aucun cycle runtime) : `StakeRef` est la forme canonique de la
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
@@ -54,7 +54,7 @@ export interface TemporalCondition {
 export interface EffectOp {
   type: 'ops';
   ops: GameOp[];
-  on?: 'party' | 'hero' | 'navire' | 'caster' | 'target';
+  on?: 'party' | 'hero' | 'navire' | 'caster' | 'target' | CibleDeRole;
   heroId?: string;
   /** Échéance d'HORLOGE (minute `gameTime`) des effets DURABLES posés par ces ops — BAKÉE sur la feuille
    *  (durée d'un consommable résolue AU BOIRE, `bakeConsumableFlow`) pour SURVIVRE aux suspensions (une
@@ -63,13 +63,21 @@ export interface EffectOp {
   untilTime?: number;
   /** Libellé de SOURCE des ActiveEffect posés (nom du consommable) — baké avec `untilTime` (même raison). */
   label?: string;
+  /** DURÉE en jours des effets durables, TIRÉE une fois à l'application de la feuille puis bakée en
+   *  `untilTime` (exclusive de lui) par l'exécuteur qui la résout (handler de scène `ops`). MDG 15 l.211-212, l.233-234 */
+  pendantJours?: Formula;
 }
+
+/** Cible d'une feuille de SCÈNE : le ou les marins ÉPINGLÉS au rôle d'équipage `role` (`Combatant.shipRole`),
+ *  forme de `crewTargetSchema`. MDG 15 l.233 */
+export interface CibleDeRole { role: { id: Id<'crewRole'> } }
 
 /** OpsCtx d'une FEUILLE EffectOp : le contexte de l'appelant SURCHARGÉ par les champs bakés de la feuille
  *  (`untilTime` → durée d'horloge, `label` → source). SOURCE UNIQUE — tous les exécuteurs d'EffectOp
  *  (handler de scène `ops`, `runCombatFlow`, `runPureFlowLines`, runner de consommable) DOIVENT l'appliquer,
  *  sinon une branche suspendue perdrait sa durée (charMod permanent au lieu de « 2d10 minutes »). */
 export function leafOpsCtx<C extends { defaultUntilTime?: number; label?: string }>(base: C, e: EffectOp): C {
+  if (e.pendantJours != null) throw new Error(`EffectOp${e.label ? ` « ${e.label} »` : ''} : \`pendantJours\` non résolu — seul le handler de scène \`ops\` le tire et le bake en \`untilTime\`.`);
   if (e.untilTime == null && e.label == null) return base;
   return {
     ...base,
@@ -477,6 +485,9 @@ export interface FlowTest {
    *  → `testValue`. */
   sense?: PairedSense;
   characteristic?: CharKey;
+  /** TEST D'ÉQUIPAGE de ce type (`crew-test-types.json`, XOR `skill`/`characteristic`) : l'équipage du navire
+   *  le joue par ses rôles (MDG 14 l.39), la branche suit son verdict. MDG 15 l.144-145 */
+  crewTestType?: string;
   difficulty?: Difficulty;
   /** DR minimum requis (défaut 0 = simple réussite). */
   requireSL?: number;

@@ -50,7 +50,7 @@ import type { AuthoredEnemy } from './monde/encounterAuthoring';
 import { registerScene } from './monde/registreDesScenes';
 import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
-import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, NAVAL_TRAITS, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
+import { type StakeRef, voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, NAVAL_TRAITS, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
 import { profilNavalDe } from '../engine/coque';
 import { installCost, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
@@ -61,14 +61,14 @@ import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { buildWeapon, newUid } from '../engine/items';
-import { applyOps, type GameOp, type PairedSense } from '../engine/ops';
+import { applyOps, resolveFormula, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
 import { itemCapability } from '../engine/capabilities';
 import { isRation } from '../engine/provisions';
 import { toDate, MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex } from '../engine/clock';
 import { seasonOfMonth } from '../engine/travelStages';
 import {
-  rollSeaWeather, rollWindDirection, windAspect, tickWindForceDay, windEffect, windAdjustedM,
+  rollSeaWeather, rollWindDirection, directionOpposee, VENT_DOMINANT, windAspect, tickWindForceDay, windEffect, windAdjustedM,
   seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
   type SeaWeather, type WindDirection, type WindAspect, type SeaPrecipitationId,
 } from '../engine/seaWeather';
@@ -85,7 +85,7 @@ import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, de
 import {
   evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
-  evenementDeBord, seulEvenementDeBord, seulEvenementDePort, rollRandomCargo, cargoBasePrice,
+  seulEvenementDePort, rollRandomCargo, cargoBasePrice, meteosActives, modificateursAuCarenage, sommeDesModificateurs,
   type CargoOverload, type EvenementDeBord, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
@@ -101,6 +101,7 @@ import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, totalDesBourses
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog, jouerFlowEntier, runFlow } from './combatEffects';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
 import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef, type ContexteDeTest } from '../engine/types';
@@ -194,10 +195,6 @@ export interface SeaVoyageState {
   lighthouseDR?: number;
   /** Voiles affalées aujourd'hui (vents trop forts) : ancre jetée ou dérive à 25 % (ch.13 l.294). */
   sailsDown?: boolean;
-  /** Verrou météo d'événement (Bruine / Beau temps / Ciel dégagé / Calme plat — ch.15). */
-  weatherLock?: { days: number; weather: Partial<SeaWeather> };
-  /** Vents inhabituels (ch.15) : le vent souffle à l'OPPOSÉ des dominants pendant N jours. */
-  reversedWinds?: number;
   /** M modifié par événement (Vents favorables +1 — appliqué au jour). */
   eventMMod?: number;
   /** Infestation de rats ACTIVE (Test étendu d'Extermination, MDG 14 l.98 + événements ch.15). */
@@ -559,9 +556,9 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const overloadM = cargoOverload(cargoTotalEnc(vessel?.cargo ?? []), vd?.capacity ?? 0).mMod;
   // Empêtré dans des Débris marins (MDG 13 l.487-489, #444) : pénalité de M tant que non dégagé.
   const entangleM = sea.entangled?.mMod ?? 0;
-  // MDG 15 l.184-185
-  const crabesM = vessel?.crabs ? seulEvenementDeBord('crabes-boxeurs').params.mMod : 0;
-  const baseM = croisiere + fouling.mMod + (sea.eventMMod ?? 0) + crabesM + pace + overloadM + entangleM;
+  // Modificateurs d'événement posés sur le navire (op `navireMod`) : MDG 15 l.184-185, l.187-188
+  const modsM = sommeDesModificateurs(vessel?.modificateurs, get().gameTime, 'm');
+  const baseM = croisiere + fouling.mMod + (sea.eventMMod ?? 0) + modsM + pace + overloadM + entangleM;
   const aspect = windAspect(sea.heading, sea.windFrom);
   // Gréement de course (MSRC 12 l.137) « inclut un clinfoc … les avantages des deux ne sont pas cumulables »
   // → il PRIME sur le Clinfoc quand les deux sont présents.
@@ -580,11 +577,11 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
  *  `cascade.aggregateBatchStep`, MÊME formule que `maneuverCrewTotal`). `null` = aucun PJ n'a de rôle
  *  utile (aucun jet à jouer ce Test-là, l'appelant applique son chemin sans-jet). `kind` = la clé du
  *  table `appliers` (#275 Ronde 2 cran 2/3) — les 10 Tests canoniques partagent leur
- *  `testTypeId`, un ÉVÉNEMENT peut réutiliser un `testTypeId` sous un AUTRE `kind` (Ouragan → Affaler,
- *  cf. `sea-ouragan-affaler`) pour ne jamais retomber dans la routine auto-résolue (`KINDS_SOUS_ORDRES`
+ *  `testTypeId`, un ÉVÉNEMENT peut réutiliser un `testTypeId` sous un AUTRE `kind` (le `test` d'équipage
+ *  d'un Flow → `flowCrewTest`) pour ne jamais retomber dans la routine auto-résolue (`KINDS_SOUS_ORDRES`
  *  est indexée par `kind`, pas `testTypeId`). */
 
-function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, opts: { sense?: PairedSense; extraDR?: number; difficulty?: Difficulty; icon?: string; contexte?: ContexteDeTest } = {}): BuiltCascadeStep | undefined {
+export function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, opts: { sense?: PairedSense; extraDR?: number; difficulty?: Difficulty; icon?: string; contexte?: ContexteDeTest; stake?: StakeRef } = {}): BuiltCascadeStep | undefined {
   const plan = get().travelPlan;
   const ship = plan?.vehicle;
   if (!ship) return undefined;
@@ -638,9 +635,9 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, op
   const traitDR = navalTestTypeDR(hullNavalTraits(ship), testTypeId);
   // « Bouteur »/« Gréement de course » modifient le Test de Navigation POUR DIRIGER (MSRC 12 l.66/140) —
   // seul le Test d'équipage de manœuvre (steering) le reçoit, converti en DR (`navalNavTestDR`, ÷10).
-  // MDG 15 l.184-185
-  const crabesDR = get().vessel?.crabs ? seulEvenementDeBord('crabes-boxeurs').params.manDR : 0;
-  const navDirDR = testType?.steering ? navalNavTestDR(hullNavalTraits(ship)) + crabesDR : 0;
+  // Modificateurs d'événement posés sur le navire (op `navireMod`) : MDG 15 l.184-185
+  const modsDR = sommeDesModificateurs(get().vessel?.modificateurs, get().gameTime, 'manDR');
+  const navDirDR = testType?.steering ? navalNavTestDR(hullNavalTraits(ship)) + modsDR : 0;
   // MANQUE DE BRAS (MDG 14 l.55) — s'applique à TOUT Test d'équipage, voyage compris : −2 DR par tranche de
   // 10 % manquante ET plafond au Succès Minime. En campagne l'attrition vient des pertes d'équipage
   // (`vessel.crewLost`, MDG 15 l.245) — MÊME couture que le combat (`shipUndercrew`).
@@ -652,7 +649,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, op
   // ENJEU = ce que CE jet change (effet réel), jamais la règle-cadre « ce Test peut être remplacé par
   // un Test d'équipage » (MDG 14 l.63), qui ne dit rien de l'enjeu. La FICHE se dérive de la MÊME
   // entrée au rendu (`resolveStake`) : le flux ne la nomme plus (elle avait deux sources divergentes).
-  const stake = voyageStakeRef(kind);
+  const stake = opts.stake ?? voyageStakeRef(kind);
   // La POSSESSION de la bande est posée par le socle (`bandStep`) : N contributeurs ⇒ `groupOwner`, un
   // seul ⇒ son porteur. Déclarée nulle part ici — c'est ce qui laissait la fenêtre à l'hôte seul (#1268).
   return bandStep({
@@ -1062,6 +1059,22 @@ function pushDayEntries(get: Get, set: Set, resolved: CascadeStep[]): void {
   }
 }
 
+/** La météo d'un jour en mer (MDG 13 l.164, l.250, l.272) sous les météos imposées au navire (op
+ *  `meteoImposee`), dans leur ordre de pose : leurs axes remplacent ceux du tirage, les vents dominants
+ *  soufflent à l'opposé (`ventInverse`), et l'aggravation tire son dé ce matin-là. `ventDeLaVeille` absent =
+ *  premier jour, sans cran de vent. MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
+function meteoDuJour(get: Get, coque: Combatant, ventDeLaVeille: SeaWeather['vent'] | undefined, rng: RNG): { weather: SeaWeather; windFrom: WindDirection } {
+  const verrous = meteosActives(get().vessel?.meteosImposees, get().gameTime);
+  let weather = rollSeaWeather(seasonOfMonth(toDate(get().gameTime).month), rng);
+  if (ventDeLaVeille) weather = { ...weather, vent: tickWindForceDay(ventDeLaVeille, rng) };
+  const windFrom = rollWindDirection(rng, verrous.some((v) => v.ventInverse) ? directionOpposee(VENT_DOMINANT) : VENT_DOMINANT);
+  for (const v of verrous) {
+    if (v.meteo) weather = { ...weather, ...v.meteo };
+    if (v.aggravation && resolveFormula(v.aggravation.de, coque, rng) >= v.aggravation.seuil) weather = { ...weather, ...v.aggravation.meteo };
+  }
+  return { weather, windFrom };
+}
+
 /** Construit le TravelPlan d'une TRAVERSÉE (route `sea`) sur le navire de campagne — `null` si aucun
  *  navire ; une coque à 0 Blessure navigue (MDG 13 l.656, l.674). La coque de trajet repart des Blessures PERSISTÉES (#30). */
 export function buildSeaPlan(
@@ -1074,7 +1087,6 @@ export function buildSeaPlan(
   const heading = route.seaHeading;
   if (!heading) throw new Error(`buildSeaPlan: route mer sans seaHeading — cap requis, jamais de défaut silencieux (#416, pit #408)`);
   const rng = battleRng();
-  const season = seasonOfMonth(toDate(get().gameTime).month);
   // ORDRES permanents (couche `voyageCadence`) : `DEFAULT_VOYAGE_ORDERS` faute de cadence passée ;
   // l'écran de départ passe COMMANDÉE (son défaut d'affichage) hors traversée rapide.
   const orders: VoyageOrders = { cadence: opts.cadence ?? DEFAULT_VOYAGE_ORDERS.cadence };
@@ -1084,8 +1096,7 @@ export function buildSeaPlan(
     vehicle: ship.hull,
     sea: {
       heading,
-      weather: rollSeaWeather(season, rng), // graine du 1ᵉʳ jour (le cran de vent quotidien s'y accroche)
-      windFrom: rollWindDirection(rng),
+      ...meteoDuJour(get, ship.hull, undefined, rng), // graine du 1ᵉʳ jour (le cran de vent quotidien s'y accroche)
       daysToEvent: rollDaysToNextEvent(rng), // « Tous les 1d10 jours » (ch.15 l.89)
       daysAtSea: 0, lines: [], milesToday: 0, hullAtDayStart: ship.hull.wounds.current,
       ...(opts.pace ? { forcePace: opts.pace } : {}), // Forcer le rythme (MDG 13 l.95-107)
@@ -1241,8 +1252,8 @@ function finalizeFastVoyage(get: Get, set: Set): void {
 // ── Boucle jour par jour (#275 Ronde 2 cran 3 — pipeline cascade) ───────────────────────────────
 
 /** Événement de bord tous les 1d10 jours (ch.15 l.89) — résolu AVANT la cascade du jour (ne dépend
- *  d'aucune Progression). La `consequence` d'un événement (Test, choix : `runFlow`) et l'Ouragan
- *  (`sea-ouragan-affaler`, applier ci-dessous) peuvent SURFACER leur propre mini-cascade (`purpose:'test'`) — renvoie `true` si
+ *  d'aucune Progression). La `consequence` d'un événement (Test, Test d'équipage,
+ *  choix : `runFlow`) peut SURFACER leur propre mini-cascade (`purpose:'test'`) — renvoie `true` si
  *  c'est le cas ; sa clôture reprend `runSeaDay` par la couture canonique `dispatchCascadeDone`. */
 function resolveSeaDayEvent(get: Get, set: Set, rng: RNG): boolean {
   const plan = get().travelPlan!;
@@ -1590,7 +1601,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
       const valeur = froid ? exposureTarget(h, resVal) : Math.max(0, resVal);
       // Une VAGUE = une BANDE influençable (MDG 13 l.203-225 : la cadence de la bande donne le nombre
       // de Tests de la Période de travail) — kind PROPRE à la route de mer (`sea-exposition`, patron
-      // `sea-ouragan-affaler`), même applier d'escalade que la nuit (`EXPOSURE_BAND_KINDS`).
+      // `flowCrewTest`), même applier d'escalade que la nuit (`EXPOSURE_BAND_KINDS`).
       // La ligne est montée ICI : sa branche PLANCHER ne nomme aucun acteur (valeur d'une autre
       // formule, rien à décomposer) — la faire remonter par le mint la décomposerait.
       const st = monoStep({
@@ -1691,20 +1702,11 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
     milesLeft: Math.max(0, Math.round(plan.km - kmDone)),
     daysLeft: joursDeMer(plan.km - kmDone, mDeCroisiere(navireDeLaCoque(hull))),
   };
-  // Météo du LENDEMAIN (ch.13 l.164), direction du vent (l.250), force du vent (l.272).
-  const season = seasonOfMonth(toDate(get().gameTime).month);
-  let weather = rollSeaWeather(season, rng);
-  weather = { ...weather, vent: tickWindForceDay(sea.weather?.vent ?? weather.vent, rng) };
-  let windFrom = rollWindDirection(rng);
-  // Verrous d'événement (Bruine / Beau temps / Ciel dégagé / Calme plat, ch.15).
-  let lock = sea.weatherLock;
-  if (lock && lock.days > 0) { weather = { ...weather, ...lock.weather }; lock = { ...lock, days: lock.days - 1 }; }
-  if (lock && lock.days <= 0) lock = undefined;
-  let reversed = sea.reversedWinds;
-  if (reversed && reversed > 0) { windFrom = 'est'; reversed -= 1; } // dominants d'ouest inversés (ch.15)
+  // Météo du LENDEMAIN, sous les météos imposées au navire.
+  const { weather, windFrom } = meteoDuJour(get, hull, sea.weather.vent, rng);
   patchSea(get, set, {
     daysAtSea, lines: [], entries: [], events: [],
-    weather, windFrom, weatherLock: lock, reversedWinds: reversed,
+    weather, windFrom,
     milesToday: 0, effMToday: undefined, modeToday: undefined, sailsDown: false, lighthouseDR: 0, eventMMod: sea.eventMMod, paceToday: undefined, manieursToday: undefined,
     hullAtDayStart: hull.wounds.current,
   });
@@ -1743,18 +1745,8 @@ export function openSeaHalt(get: Get, set: Set, travelDay: TravelRecapDay): void
 // ── Appliers des Tests d'équipage de VOYAGE (#275 Ronde 2 cran 3 — PILOTE RÉEL,
 //    câblé par `buildSeaDayCascade`/`buildPostProgressionSteps`/`runSeaDay`) ────────────────────
 
-/** Les ops d'un événement posées sur `cibles` pour ses jours tirés (MDG 15 l.212, l.233). */
-function effetsDeJours(get: Get, set: Set, cibles: Combatant[], event: Extract<EvenementDeBord, { kind: 'rafale-ghyran' | 'chance-navigateur' }>, ops: GameOp[], rng: RNG): { lignes: string[]; jours: number } {
-  const jours = tirer(event.params.days, rng);
-  const until = get().gameTime + jours * 24 * 60;
-  const lignes = cibles.flatMap((h) => applyOps(h, ops, { label: event.label, rng, defaultUntilTime: until }));
-  set({ party: [...get().party] });
-  return { lignes, jours };
-}
-
 /** Conséquence d'Affaler (ch.13 l.288-294) : échec → Critique au Gréement (MDG 14 l.92-96). Appelée par
- *  l'applier de la CASCADE DU JOUR (`'affaler'`, routine) ; l'Ouragan (`'sea-ouragan-affaler'`, jamais
- *  routine) n'en garde que la réussite, son échec coûte les Critiques de l'événement (MDG 15 l.145). */
+ *  l'applier de la CASCADE DU JOUR (`'affaler'`, routine). */
 function affalerConsequence(get: Get, set: Set, step: CascadeStep): Consequence[] {
   if (!step.result) return [];
   // MDG 13 l.292
@@ -2132,16 +2124,6 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
   const vessel = get().vessel;
   const ship = get().travelPlan?.vehicle;
   switch (event.kind) {
-    case 'ouragan': {
-      // Kind d'étape DISTINCT `sea-ouragan-affaler` (jamais `KINDS_SOUS_ORDRES` — une URGENCE interrompt
-      // TOUJOURS, `voyageCadence.ts`), toujours en cascade INTERACTIVE (jamais l'auto-pilote) ; l'étape
-      // nomme l'événement, son applier en relit les Critiques.
-      const p = event.params;
-      const st = buildVoyageCrewStep(get, p.testType, 'sea-ouragan-affaler', { difficulty: p.difficulty, icon: 'nautical/wind' });
-      if (st) startCascade(get, set, { title: 'Ouragan — Affaler !', icon: 'nautical/wind', purpose: 'test', steps: [{ ...st, meta: { ...st.meta, evenement: event.id } }] });
-      else critiquesDOuragan(get, set, event, rng);
-      break;
-    }
     case 'infestation': {
       const p = event.params;
       patchSea(get, set, {
@@ -2163,20 +2145,8 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
       tell(get, set, [t('sv.rationsSpoiled', { n: spoiled })]);
       break;
     }
-    case 'calme-plat':
-    case 'bruine':
-    case 'beau-temps':
-    case 'ciel-degage':
-      patchSea(get, set, { weatherLock: { days: tirer(event.params.days, rng), weather: { ...event.params.weather } } });
-      break;
-    case 'vents-inhabituels':
-      patchSea(get, set, { reversedWinds: tirer(event.params.days, rng) });
-      break;
     case 'vents-favorables':
       patchSea(get, set, { eventMMod: (get().travelPlan?.sea?.eventMMod ?? 0) + event.params.mMod });
-      break;
-    case 'crabes-boxeurs':
-      if (vessel) set({ vessel: { ...vessel, crabs: true } });
       break;
     case 'collision': {
       // « Sans prévenir, le bateau se heurte à… » — le péril RENCONTRÉ (Iceberg/Débris marins/Rocher/
@@ -2255,30 +2225,10 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
       tell(get, set, [t('sv.cargoFished', { enc, cargo: cargo.label })]);
       break;
     }
-    case 'chance-navigateur': {
-      // MDG 15 l.233
-      const captain = partyAssisted(get().party, { skill: { id: 'commandement' } });
-      if (captain) tell(get, set, effetsDeJours(get, set, [captain.actor], event, [{ op: 'grantTalent', talent: { id: event.params.talent } }], rng).lignes);
-      break;
-    }
-    case 'rafale-ghyran': {
-      // MDG 15 l.212
-      const { skills, specs, drBonus } = event.params;
-      const refs = skills.map((id) => (specs[id] ? { id, spec: specs[id] } : { id }));
-      const ops: GameOp[] = refs.map((skill) => ({ op: 'skillDRBonus', skill, bonus: drBonus }));
-      const { jours } = effetsDeJours(get, set, get().party.filter((h) => !h.dead), event, ops, rng);
-      tell(get, set, [t('sv.ghyranBlessing', { bonus: drBonus, competences: refs.map((r) => refLabel('skills', r)).join(', '), jours })]);
-      break;
-    }
     default:
       break; // narratif : le desc verbatim au journal suffit — rien d'inventé
   }
   return ligne;
-}
-
-/** Échec d'Affaler sous l'Ouragan (MDG 15 l.145) : les Critiques que l'événement chiffre. */
-function critiquesDOuragan(get: Get, set: Set, event: Extract<EvenementDeBord, { kind: 'ouragan' }>, rng: RNG): void {
-  for (let i = 0; i < event.params.failCrits; i++) applyVesselCritical(get, set, rollShipCritical(event.params.critLocation, rng));
 }
 
 function tellManann(get: Get, set: Set, effet: EffetSigne): void {
@@ -2316,7 +2266,7 @@ export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusHote
     refusReparation: refusHote ?? (missing <= 0 && !vessel.criticals?.length ? t('sv.hullIntact')
       : !canAfford(bourse, toMoney({ gold: reparationGold })) ? t('sv.yardTooExpensive', { cost: reparationGold })
       : null),
-    refusCarenage: refusHote ?? (foulLevel <= 0 && !vessel.crabs ? t('sv.hullClean')
+    refusCarenage: refusHote ?? (foulLevel <= 0 && !modificateursAuCarenage(vessel.modificateurs).length ? t('sv.hullClean')
       : carenageGold > 0 && !canAfford(bourse, toMoney({ gold: carenageGold })) ? t('sv.careenTooExpensive', { cost: carenageGold, pct: carenagePct })
       : null),
   };
@@ -2345,8 +2295,7 @@ export function portRepairVessel(get: Get, set: Set): string[] {
 
 /** CARÉNAGE en cale sèche (Salissures, ch.13 l.150-159) : « pour récurer un bateau de Taille Moyenne ou
  *  plus, il doit être emmené dans une cale sèche » — coût = % du coût de base par NIVEAU (colonne
- *  Réparation du tableau). Racle aussi les crabes boxeurs (événement ch.15 : « jusqu'à ce que la coque
- *  soit raclée »). */
+ *  Réparation du tableau). Lève aussi les modificateurs « jusqu'au carénage » (`modificateursAuCarenage`). */
 export function portCareenVessel(get: Get, set: Set): string[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
@@ -2356,7 +2305,7 @@ export function portCareenVessel(get: Get, set: Set): string[] {
   const { carenageGold: cost, carenagePct: pct } = devis;
   const costMoney = toMoney({ gold: cost });
   if (cost > 0) payFromGroup(get, set, costMoney, { purpose: 'carénage navire' });
-  set({ vessel: { ...vessel, fouling: { level: 0, lastWeek: vessel.fouling?.lastWeek ?? 0 }, crabs: undefined } });
+  set({ vessel: { ...vessel, fouling: { level: 0, lastWeek: vessel.fouling?.lastWeek ?? 0 }, modificateurs: (vessel.modificateurs ?? []).filter((m) => m.jusqua !== 'carenage') } }); // MDG 15 l.185
   return [t('sv.careened', { cost: cost ? t('sv.fragCareenCost', { cost, pct }) : '' })];
 }
 
@@ -2594,7 +2543,7 @@ export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
 export const GENRES_D_ETAPE = [
   SEA_BOARD_EVENT_KIND, 'sea-force-pace', 'sea-scorbut', 'sea-mal-de-mer',
   'sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-epuisement', 'progression', 'sea-overspeed',
-  'sea-salissures', 'affaler', 'sea-ouragan-affaler', 'orientation', 'phare', 'embuscade',
+  'sea-salissures', 'affaler', 'flowCrewTest', 'orientation', 'phare', 'embuscade',
   'sea-progression-choice', 'sea-progression-nav', 'poursuite', 'tourbillon', 'extermination',
   'sea-degagement', 'sea-degagement-debris', 'voyage-rapide', 'entretien', 'sea-pirate-hail',
   'sea-pirate-tribute', 'sea-desertion',
@@ -2764,12 +2713,14 @@ export const TABLES = {
       return { consequences: freeCons([line]) };
     },
     affaler: (get, set, step) => ({ consequences: affalerConsequence(get, set, step) }),
-    // Ouragan : cascade AUTONOME (`purpose:'test'`) ouverte AVANT la construction du jour
-    // (`resolveSeaDayEvent`) — sa clôture reprend `runSeaDay` par la couture canonique `dispatchCascadeDone`.
-    'sea-ouragan-affaler': (get, set, step) => {
-      if (!step.result || step.result.success) return { consequences: affalerConsequence(get, set, step) };
-      critiquesDOuragan(get, set, evenementDeBord(String(step.meta?.evenement), 'ouragan'), battleRng());
-      return {};
+    /** Test d'équipage d'un nœud `test` de Flow (`navireOps.ouvrirLeTestDEquipage`) : cascade AUTONOME
+     *  (`purpose:'test'`), dont la branche du verdict puis la suite du Flow se jouent ici, sous le libellé et
+     *  le DR du Flow qui l'a ouverte. MDG 14 l.13 */
+    flowCrewTest: (get, set, step) => {
+      if (!step.result) return;
+      const branche = (step.result.success ? step.meta?.onSuccess : step.meta?.onFail) ?? EMPTY_FLOW;
+      jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
+      return { consequences: freeCons([]) };
     },
     /** Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311) → Repères / Changement de cap. */
     orientation: (get, set, step) => {

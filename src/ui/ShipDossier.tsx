@@ -6,7 +6,6 @@ import { findVehicleById } from '../data';
 import { findManannFactor } from '../engine/seaVoyage';
 import { findCargoEntryById } from '../engine/cargo';
 import { dossierDuNavire } from '../noyau/seaVoyageFlow';
-import { foulingEffects } from '../engine/seaNavigation';
 import { moraleBand, findMoraleFactor } from '../engine/crewMorale';
 import { fromBrass } from '../engine/money';
 import { bulkCarriers, nomDuNavire } from '../noyau/carriers';
@@ -16,7 +15,7 @@ import { rigSchema } from '../data/schemas/defs/vehicles';
 import { rigDuNavire } from '../engine/shipBuild';
 import { Icon } from './Icon';
 import { NotchGauge, type GaugeTone } from './NotchGauge';
-import { moraleTone, crewRoleLabel } from './shipStatus';
+import { moraleTone, crewRoleLabel, SalissuresDeLaCoque } from './shipStatus';
 import { ScreenShell } from './ScreenShell';
 import { Tabs } from './composites/Tabs';
 import { CargoTransferPanel } from './CargoTransferPanel';
@@ -81,7 +80,6 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
   const manannScore = manann?.score ?? 0;
   const manannBound = Math.max(20, Math.abs(manannScore) + 5); // domaine centré sur 0, contient toujours la valeur
 
-  const foulLevel = vessel.fouling?.level ?? 0;
   const criticals = vessel.criticals ?? [];
 
   return (
@@ -148,7 +146,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
 
             <section className="panel port-section">
               <h3>État</h3>
-              <p className="port-hint">Salissures : niveau <b>{foulLevel}</b>{vessel.crabs ? ' · crabes boxeurs' : ''}{foulLevel > 0 ? ` — ${foulingEffects(foulLevel).desc}` : ''}</p>
+              <SalissuresDeLaCoque vessel={vessel} />
               {missing > 0 && <p className="port-hint">Avarie de coque : <b>{missing}</b> Blessure(s) à réparer au chantier.</p>}
               {criticals.length > 0 && (
                 <div>

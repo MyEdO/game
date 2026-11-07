@@ -5,8 +5,14 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
-import { buildSeaPlan, finalizePortArrivalTo, runSeaDay } from './seaVoyageFlow';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { buildSeaPlan, finalizePortArrivalTo, portCareenVessel, runSeaDay } from './seaVoyageFlow';
+import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { applierDe } from './cascade';
+import { creditBourse } from './bourseFlow';
+import { MINUTES_PER_DAY } from '../engine/clock';
+import type { ModificateurDuNavire } from '../engine/seaVoyage';
+import type { Jeu } from './etat';
+import { fixtureText } from '../i18n/fixtureText';
 import { setDataset, resetData } from '../data/overrides';
 import { BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
 import type { Flow } from '../engine/flowCore';
@@ -167,5 +173,166 @@ describe('Escale : une `consequence` qui suspend reprend AVANT l’arrivée au l
     avanceEtapeCascade(get, undefined, () => 'yes');
     expect(get().flags.paye).toBe(true);
     expect(get().lieu).toBe('B');
+  });
+});
+
+describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
+  beforeEach(etatFrais);
+  afterEach(() => resetData());
+
+  function jour(evenement: string): void {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
+    runSeaDay(get, set);
+  }
+  const etape = (kind: string) => get().pendingCascade?.participants.find((s) => s.kind === kind);
+  const ilYA = (jours: number) => get().gameTime + jours * MINUTES_PER_DAY;
+  /** Remplace la `consequence` de la rangée de bord `id` (une durée constante rend l'échéance lisible). */
+  const consequenceDeBord = (id: string, consequence: Flow) =>
+    setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === id ? { ...e, consequence } : e)) as never);
+  const surLeNavire = (ops: unknown[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'navire', ops } as never });
+  /** Échéances d'horloge des effets actifs du héros. */
+  const echeances = (h: Combatant): number[] => (h.activeEffects ?? []).flatMap((e) => (e.duration.scale === 'clock' ? [e.duration.until] : []));
+
+  it('Ouragan : Test d’équipage d’Affaler Difficile (–20) ; raté, 3 Coups Critiques au Gréement (l.144-145)', () => {
+    jour('ouragan');
+    expect(etape('flowCrewTest')?.label).toBe('Affaler les voiles');
+    avanceEtapeCascade(get, () => 99);
+    expect(get().vessel!.criticals).toHaveLength(3);
+  });
+
+  it('Ouragan : la difficulté Difficile (–20) descend au Test d’équipage en −2 DR plats (l.144 ; MDG 14 l.13)', () => {
+    const ouragan = BOARD_EVENTS.find((e) => e.id === 'ouragan')!.consequence as Extract<Flow, { kind: 'test' }>;
+    expect(ouragan.test).toMatchObject({ crewTestType: 'affaler', difficulty: 'difficile' });
+    const drPlats = (difficulty: string): number => {
+      etatFrais();
+      consequenceDeBord('ouragan', { ...ouragan, test: { ...ouragan.test, difficulty } } as Flow);
+      jour('ouragan');
+      return Number(etape('flowCrewTest')?.meta?.aggregateFlatDR ?? 0);
+    };
+    expect(drPlats('difficile')).toBe(drPlats('intermediaire') - 2);
+  });
+
+  it('Ouragan : l’équipage affale à temps, aucun Coup Critique (l.144-145)', () => {
+    jour('ouragan');
+    avanceEtapeCascade(get, () => 1);
+    expect(get().vessel!.criticals ?? []).toHaveLength(0);
+  });
+
+  it('Ouragan sans équipage apte à tenter le Test : personne n’affale, les 3 Coups Critiques tombent (l.144-145 ; LDB 09 l.30)', () => {
+    set({ party: get().party.map((h) => ({ ...h, outOfRencontre: true })) });
+    jour('ouragan');
+    expect(etape('flowCrewTest')).toBeUndefined();
+    expect(get().vessel!.criticals).toHaveLength(3);
+  });
+
+  it('Crabes boxeurs : M −1 et Man −1 DR jusqu’au carénage (l.184-185)', () => {
+    jour('infestation-de-crabes-boxeurs');
+    expect(get().vessel!.modificateurs).toEqual([expect.objectContaining({ m: -1, manDR: -1, jusqua: 'carenage' })]);
+  });
+
+  it('un modificateur `navireMod` du navire abaisse le M du jour à la Progression', () => {
+    const progression = (modificateurs: ModificateurDuNavire[]): number | undefined => {
+      etatFrais();
+      set({ vessel: { ...get().vessel!, modificateurs } });
+      const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!;
+      // Légère brise, vent arrière : aucun pourcentage de vent, le M du jour est le M de base.
+      set({ travelPlan: { ...plan, sea: { ...plan.sea!, weather: { ...plan.sea!.weather, vent: 'legere-brise' }, windFrom: 'ouest' } } });
+      applierDe('progression')!(get, set, { id: 'p', kind: 'progression', label: fixtureText('Progression'), result: { roll: 0, target: 0, sl: 2, success: true } }, undefined, { steps: [], index: 0 });
+      return get().travelPlan!.sea!.effMToday;
+    };
+    const sans = progression([]);
+    expect(progression([{ label: 'Crabes', m: -1, jusqua: 'carenage' }])).toBe(sans! - 1);
+    expect(progression([{ label: 'Détour', m: -2, jusqua: get().gameTime - 1 }])).toBe(sans);
+  });
+
+  it('le carénage lève les modificateurs « jusqu’au carénage », pas les autres (l.185)', () => {
+    set({ vessel: { ...get().vessel!, modificateurs: [{ label: 'Crabes', m: -1, manDR: -1, jusqua: 'carenage' }, { label: 'Détour', m: -2, jusqua: ilYA(1) }] } });
+    creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
+    portCareenVessel(get, set);
+    expect(get().vessel!.modificateurs).toEqual([expect.objectContaining({ label: 'Détour' })]);
+  });
+
+  it.each([
+    ['yes', (v: NonNullable<Jeu['vessel']>, t0: number) => expect(v.modificateurs).toEqual([expect.objectContaining({ m: -2, jusqua: t0 + MINUTES_PER_DAY })])],
+    ['no', (v: NonNullable<Jeu['vessel']>) => { expect(v.modificateurs ?? []).toEqual([]); expect(v.morale.score).toBeLessThan(75); }],
+  ])('Vaisseau fantôme (littéralement), « %s » : changer de cap (M −2 un jour) ou perdre 2d10 Moral (l.187-188)', (cle, verifie) => {
+    jour('vaisseau-fantome-litteralement');
+    expect(etape('flowChoice')).toBeDefined();
+    const t0 = get().gameTime;
+    avanceEtapeCascade(get, undefined, () => cle);
+    verifie(get().vessel!, t0);
+  });
+
+  it('Calme plat : la météo imposée tient au lendemain, puis expire (l.189)', () => {
+    consequenceDeBord('calme-plat', surLeNavire([{ op: 'meteoImposee', jours: 3, meteo: { vent: 'calme-plat' } }]));
+    jour('calme-plat');
+    expect(get().vessel!.meteosImposees).toEqual([expect.objectContaining({ jusqua: ilYA(3), meteo: { vent: 'calme-plat' } })]);
+    draineCascade(get);
+    expect(get().travelPlan!.sea!.weather.vent).toBe('calme-plat');
+  });
+
+  it('une météo imposée au navire tient dès l’appareillage, et pas au-delà de son échéance', () => {
+    const vent = (jusqua: number) => {
+      etatFrais();
+      set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Calme plat', jusqua, meteo: { vent: 'calme-plat' } }] } });
+      return buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!.sea!.weather.vent;
+    };
+    expect(vent(ilYA(2))).toBe('calme-plat');
+    expect(vent(get().gameTime)).not.toBe('calme-plat');
+  });
+
+  it('Tempête : chaque matin, 1d10 ≥ 8 aggrave en Violente tempête (l.248)', () => {
+    const vent = (de: number) => {
+      etatFrais();
+      set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Tempête', jusqua: ilYA(2), meteo: { vent: 'vent-violent' }, aggravation: { de, seuil: 8, meteo: { vent: 'violente-tempete' } } }] } });
+      return buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!.sea!.weather.vent;
+    };
+    expect(vent(8)).toBe('violente-tempete');
+    expect(vent(7)).toBe('vent-violent');
+  });
+
+  it('Vents inhabituels : les vents dominants soufflent de l’est au lieu de l’ouest (l.196-197 ; MDG 13 l.253-255)', () => {
+    const directions = (ventInverse: boolean) => Array.from({ length: 40 }, (_, i) => {
+      etatFrais();
+      seedBattleRng(i + 1);
+      if (ventInverse) set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Vents inhabituels', jusqua: ilYA(2), ventInverse: true }] } });
+      return buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!.sea!.windFrom;
+    });
+    const compte = (ds: string[], d: string) => ds.filter((x) => x === d).length;
+    const normaux = directions(false);
+    const inverses = directions(true);
+    expect(compte(normaux, 'ouest')).toBeGreaterThan(compte(normaux, 'est'));
+    expect(compte(inverses, 'est')).toBeGreaterThan(compte(inverses, 'ouest'));
+    // Même graine : seul le résultat « dominant » change de bord (rose des vents, MDG 13 l.252).
+    normaux.forEach((d, i) => { if (inverses[i] !== d) expect([d, inverses[i]]).toEqual(['ouest', 'est']); });
+  });
+
+  it('Rafale de Ghyran : +2 DR pendant 1d10 jours, échéance d’horloge sur chaque héros (l.211-212)', () => {
+    const t0 = get().gameTime;
+    jour('rafale-de-ghyran');
+    for (const h of get().party) {
+      const fins = echeances(h);
+      expect(fins).toHaveLength(3);
+      expect(new Set(fins).size).toBe(1);
+      const jours = (fins[0] - t0) / MINUTES_PER_DAY;
+      expect(Number.isInteger(jours) && jours >= 1 && jours <= 10).toBe(true);
+    }
+  });
+
+  it('Chance du navigateur : seul le Capitaine gagne Chanceux, pour 1d10 jours (l.233-234)', () => {
+    const [a, b, c] = get().party;
+    set({ party: [a, { ...b, shipRole: 'capitaine' }, c] });
+    const talentsAvant = get().party.map((h) => h.talents);
+    jour('chance-du-navigateur');
+    const chanceux = get().party.map((h) => (h.activeEffects ?? []).some((e) => e.grantedTalent?.talentId === 'chanceux' && e.duration.scale === 'clock'));
+    expect(chanceux).toEqual([false, true, false]);
+    expect(get().party.map((h) => h.talents)).toEqual(talentsAvant);
+  });
+
+  it('Chance du navigateur sans Capitaine : personne ne la reçoit, et le journal le dit', () => {
+    jour('chance-du-navigateur');
+    expect(get().party.some((h) => (h.activeEffects ?? []).some((e) => e.grantedTalent?.talentId === 'chanceux'))).toBe(false);
+    expect(get().journal.some((l) => l.includes('Capitaine'))).toBe(true);
   });
 });

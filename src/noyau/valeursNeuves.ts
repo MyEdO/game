@@ -202,6 +202,8 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'shipMorale': return { op: 'shipMorale', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
     case 'manann': return { op: 'manann', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
     case 'shipCritical': return { op: 'shipCritical', location: 'aleatoire', count: 1 };
+    case 'navireMod': return { op: 'navireMod', m: -1, jusqua: 'carenage' };
+    case 'meteoImposee': return { op: 'meteoImposee', jours: { dice: { n: 1, sides: 10 } }, meteo: { vent: 'calme-plat' } };
     default: return { op: 'wounds', amount: 5 };
   }
 }

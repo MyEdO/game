@@ -30,6 +30,7 @@ import { parLibelle } from '../lib/ordre.mjs';
 import { emplacementsDesPieces, localisationsDeLoc } from '../engine/classementDeTrait';
 import { norm } from '../lib/normalize';
 import { tableTotale } from '../lib/tableTotale';
+import { garanti } from '../lib/garanti';
 import { effectiveEntry } from '../engine/variants';
 import { CATEGORY_BY_SOURCE_KIND, CHAR_LABELS, type EffectSource } from '../engine/types';
 import type { PairedSense } from '../engine/ops';
@@ -3655,13 +3656,15 @@ export function skillInstanceLabel(s: { id: string; spec?: string }): PlayerText
 }
 /** Ce que déclare un Test : sa Compétence par RÉFÉRENCE (la Spé vit DANS la référence, emplacement `choix`
  *  compris) ou sa Caractéristique. */
-type TestDeclare = { readonly skill?: RefASpecialisation; readonly characteristic?: CharKey };
-/** Libellé du Test DÉCLARÉ — Compétence (Spé) ou Caractéristique : « Corps à corps (Bagarre) »
- *  (LDB 14 l.155), « Langue (Magick) » (LDB 46 l.24). `undefined` sans l'une ni l'autre : le repli est au site. */
+type TestDeclare = { readonly skill?: RefASpecialisation; readonly characteristic?: CharKey; readonly crewTestType?: string };
+/** Libellé du Test DÉCLARÉ — Compétence (Spé), Caractéristique ou type de Test d'équipage : « Corps à corps
+ *  (Bagarre) » (LDB 14 l.155), « Langue (Magick) » (LDB 46 l.24), « Affaler les voiles » (MDG 15 l.144-145).
+ *  `undefined` sans aucun des trois : le repli est au site. */
 export function testSkillLabel(test: { readonly skill: RefASpecialisation } | { readonly characteristic: CharKey }): PlayerText;
 export function testSkillLabel(test: TestDeclare): PlayerText | undefined;
 export function testSkillLabel(test: TestDeclare): PlayerText | undefined {
   if (test.skill) return refLabel('skills', test.skill);
+  if (test.crewTestType) return dataLabel(garanti(findCrewTestTypeById(test.crewTestType), test.crewTestType, 'type de Test d’équipage').label);
   return test.characteristic ? dataLabel(CHAR_LABELS[test.characteristic]) : undefined;
 }
 /** Libellé d'affichage d'une `TalentInstance` (id+spec → « Magie des Arcanes (Bête) »). Repli sur l'id. */

@@ -1317,27 +1317,11 @@ describe('#1652 — chaque événement lit SES paramètres en donnée (MDG 15 l.
     setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === id ? { ...e, params: { ...e.params, ...params } } : e)) as never);
   const dEscale = (id: string, params: object) =>
     setDataset('seaPortEvents', PORT_EVENTS.map((e) => (e.id === id ? { ...e, params: { ...e.params, ...params } } : e)) as never);
-  function affalerRate(): void {
-    applierDe('sea-ouragan-affaler')!(get, set, {
-      id: 'x', kind: 'sea-ouragan-affaler', label: fixtureText('x'),
-      result: { roll: 99, target: 40, sl: -6, success: false }, meta: { evenement: 'ouragan' },
-    }, undefined, { steps: [], index: 0 });
-  }
   function jourForce(id: string): void {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: id } } });
     runSeaDay(get, set);
   }
-
-  it('Ouragan raté : `failCrits` Coups Critiques (MDG 15 l.145 « 3 Coups Critiques au Gréement »)', () => {
-    set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])! });
-    affalerRate();
-    expect(get().vessel!.criticals).toHaveLength(3);
-    set({ vessel: { ...get().vessel!, criticals: [] } });
-    deBord('ouragan', { failCrits: 1 });
-    affalerRate();
-    expect(get().vessel!.criticals).toHaveLength(1);
-  });
 
   it('Débris marins : `cargoEnc` Enc d’une cargaison tirée, à son prix de base (MDG 15 l.209-210 « une cargaison choisie au hasard »)', () => {
     deBord('debris-marins', { cargoEnc: 37 });
@@ -1354,12 +1338,6 @@ describe('#1652 — chaque événement lit SES paramètres en donnée (MDG 15 l.
     setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === 'bonne-humeur' ? { ...e, consequence: moral({ sign: 1, dice: { n: 0, sides: 10, plus: 4 } }) } : e)) as never);
     jourForce('bonne-humeur');
     expect(get().vessel!.morale.score).toBe(75 + 4);
-  });
-
-  it('Rafale de Ghyran : `drBonus` DR aux Tests de `skills`, la Focalisation à sa spécialisation (MDG 15 l.211-212)', () => {
-    deBord('rafale-de-ghyran', { drBonus: 3 });
-    jourForce('rafale-de-ghyran');
-    expect(get().journal.some((l) => l.includes('+3 DR aux Tests de Focalisation ('))).toBe(true);
   });
 
   it('Contrôle à quai : les droits valent `taxPct` %de la valeur de la cargaison (MDG 15 l.247)', () => {

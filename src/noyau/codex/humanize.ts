@@ -29,6 +29,7 @@ import { cibleDeRef, libelleDePsy } from '../../engine/psych/ciblage';
 import { libelleDuTraitOctroye } from '../../engine/psych/opsPsy';
 import { formatMoney } from '../../engine/money';
 import { formatDice, formatEffetSigne } from '../../engine/dice';
+import { seaWeatherLabel } from '../../engine/seaWeather';
 import { shipLocationLabel } from '../../engine/shipCritical';
 import { rule, ruleDef } from '../../engine/policy';
 import {
@@ -575,6 +576,17 @@ export function humanizeOp(o: GameOp): string {
       n: humanizeFormula(o.count),
       loc: o.location === 'aleatoire' ? t('codex.op.shipCritical.aleatoire') : shipLocationLabel(o.location),
     });
+    case 'navireMod': return t('codex.op.navireMod', {
+      axes: [
+        ...(o.m !== undefined ? [t('eff.navireModM', { m: `${o.m >= 0 ? '+' : '−'}${Math.abs(o.m)}` })] : []),
+        ...(o.manDR !== undefined ? [t('eff.navireModMan', { dr: `${o.manDR >= 0 ? '+' : '−'}${Math.abs(o.manDR)}` })] : []),
+      ].join(', '),
+      duree: o.jusqua === 'carenage' ? t('eff.jusquAuCarenage') : t('codex.op.pendantJours', { n: humanizeFormula(o.jusqua.jours) }),
+    });
+    case 'meteoImposee': return t('codex.op.meteoImposee', {
+      meteo: [...(o.meteo ? [seaWeatherLabel(o.meteo)] : []), ...(o.ventInverse ? [t('codex.op.meteoImposee.ventInverse')] : [])].join(', '),
+      n: humanizeFormula(o.jours),
+    });
   }
   return assertNever(o);
 }
@@ -586,13 +598,17 @@ export function humanizeOp(o: GameOp): string {
 /** Met une majuscule initiale (première phrase d'un effet). */
 const cap = (s: string): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
+/** La durée TIRÉE d'une feuille `ops` (`pendantJours`), en suffixe ; vide sans elle. */
+export const dureeDeLaFeuille = (e: EffectOp): string =>
+  (e.pendantJours === undefined ? '' : ` (${t('codex.op.pendantJours', { n: humanizeFormula(e.pendantJours) })})`);
+
 /** Effet MÉCANIQUE d'un Flow en prose JOUEUR — « Si {condition}, {conséquence}. » / « Jet de … : en cas
  *  de réussite … ». Switch EXHAUSTIF sur les 5 kinds de Flow (never en default). SOURCE UNIQUE joueur. */
 export function humanizeFlow(f: Flow, etats: readonly EtatDeclare[]): string {
   switch (f.kind) {
     case 'do': {
       const e = f.effect as EffectOp;
-      if (e && e.type === 'ops') return e.ops.map(humanizeOp).filter(Boolean).join(' ; ');
+      if (e && e.type === 'ops') return `${e.ops.map(humanizeOp).filter(Boolean).join(' ; ')}${dureeDeLaFeuille(e)}`;
       return (f.effect as { type?: string }).type ?? '';
     }
     case 'seq': return f.steps.map((s) => humanizeFlow(s, etats)).filter(Boolean).join(' ; ');
