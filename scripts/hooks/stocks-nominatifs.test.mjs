@@ -71,7 +71,7 @@ const diffDe = (fichier, ajoutees = [], retirees = []) =>
 const REPLI = { lirePostImage: () => null }
 
 const ENTREE_A = "  'src/noyau/combatSlice.ts',"
-const ENTREE_B = "  'src/ui/CampaignView.test.tsx // div',"
+const ENTREE_B = "  'src/hote/CampaignView.test.tsx // div',"
 const ENTREE_CLE = "  'scripts/guards/lib/labelLogic.mjs': 'raison mesurée',"
 
 test('périmètre — les porteurs de stock, et eux seuls', () => {
@@ -452,7 +452,7 @@ test('entrée — élément de liste, clé d objet et balise commentée comptent
   assert.equal(estEntreeNominative(ENTREE_A), true)
   assert.equal(estEntreeNominative(ENTREE_B), true)
   assert.equal(estEntreeNominative(ENTREE_CLE), true)
-  assert.equal(estEntreeNominative("  'src/ui/Tabs.tsx:42',"), true)
+  assert.equal(estEntreeNominative("  'src/hote/Tabs.tsx:42',"), true)
 })
 
 test('entrée — le cas FONDATEUR : une clé de registre en NOM DE FICHIER nu', () => {
@@ -488,7 +488,7 @@ test('croissance — un stock qui décroît ou échange ses entrées ne dit rien
     [],
     'B sort, A entre : net nul',
   )
-  const renommages = new Map([['src/ui/CampaignView.test.tsx', 'src/noyau/combatSlice.ts']])
+  const renommages = new Map([['src/hote/CampaignView.test.tsx', 'src/noyau/combatSlice.ts']])
   assert.deepEqual(croissanceDesStocks(diffDe(porteur, [ENTREE_A], [ENTREE_B]), { ...REPLI, renommages }), [],
     'le fichier nommé a été RENOMMÉ par le commit : la clé du parent se reporte, le renommage pur coûte 0')
   assert.deepEqual(croissanceDesStocks(diffDe(porteur, [ENTREE_A, ENTREE_B], [ENTREE_B, ENTREE_A]), REPLI), [],
@@ -498,8 +498,8 @@ test('croissance — un stock qui décroît ou échange ses entrées ne dit rien
 test('croissance par porteur : X +3 moins Q −3 donne zéro, X +3 seul exige un cliquet', () => {
   const F = 'scripts/guards/lib/cssCouchesStock.mjs'
   const e = (f, r) => `  { fichier: '${f}', ref: '${r}', occurrence: 1 },`
-  const Q = 'src/ui/styles/ecran-q.css'
-  const X = 'src/ui/styles/ecran-x.css'
+  const Q = 'src/hote/styles/ecran-q.css'
+  const X = 'src/hote/styles/ecran-x.css'
   const refs = (sel) => [`${sel} :: color`, `${sel} :: border`, `${sel} :: font-size`]
   const qs = refs('.e').map((r) => e(Q, r))
   const xs = refs('.e').map((r) => e(X, r))
@@ -515,12 +515,12 @@ test('croissance par porteur : X +3 moins Q −3 donne zéro, X +3 seul exige un
 })
 
 test('fichierNommePar : la clé d’une entrée est le fichier qu’elle nomme, extension comprise, sans `:ligne`, `:symbole` ni balise', () => {
-  assert.equal(fichierNommePar("  { fichier: 'src/ui/styles/x.css', ref: '.e :: color', occurrence: 1 },"), 'src/ui/styles/x.css')
+  assert.equal(fichierNommePar("  { fichier: 'src/hote/styles/x.css', ref: '.e :: color', occurrence: 1 },"), 'src/hote/styles/x.css')
   assert.equal(fichierNommePar("  ['CritEscalation', 'onRepeat', 'src/x.ts:325'],"), 'src/x.ts')
-  assert.equal(fichierNommePar(ENTREE_B), 'src/ui/CampaignView.test.tsx')
+  assert.equal(fichierNommePar(ENTREE_B), 'src/hote/CampaignView.test.tsx')
   assert.equal(fichierNommePar("  'criticals.json': 'raison',"), 'criticals.json')
   assert.equal(fichierNommePar('  "Source/Warhammer v4 - Livre de base/08 - Statut.md",'), 'Source/Warhammer v4 - Livre de base/08 - Statut.md')
-  assert.equal(fichierNommePar("  ['View', 'src/gameIso/facing'],"), 'src/gameIso/facing', 'sans extension écrite, aucune n’est ajoutée (#2223)')
+  assert.equal(fichierNommePar("  ['View', 'src/geometry/facing'],"), 'src/geometry/facing', 'sans extension écrite, aucune n’est ajoutée (#2223)')
   assert.equal(fichierNommePar('  { "chapitre": "LDB 8" },'), '  { "chapitre": "LDB 8" },', 'sans fichier nommé, le texte entier est la clé')
 })
 
@@ -551,12 +551,12 @@ test('déclarations — UN lecteur par mot-clé : `CLIQUET:` et `RECLASSEMENT:` 
     'refactor: lot',
     '',
     'CLIQUET: scripts/x.test.mjs +2 — deux fixtures du test neuf, motif assez long',
-    'RECLASSEMENT: src/ui/styles/console.css +255 — la console devient un organisme, refs #1806',
+    'RECLASSEMENT: src/hote/styles/console.css +255 — la console devient un organisme, refs #1806',
   ].join('\n')
   assert.deepEqual(cliquetsDuMessage(message).map((k) => [k.fichier, k.n]), [['scripts/x.test.mjs', 2]])
   assert.deepEqual(
     declarationsDuMessage(message, 'RECLASSEMENT').map((k) => [k.fichier, k.n]),
-    [['src/ui/styles/console.css', 255]],
+    [['src/hote/styles/console.css', 255]],
   )
   assert.deepEqual(declarationsDuMessage('RECLASSEMENT: a.css +1 — court', 'RECLASSEMENT'), [])
 })
@@ -616,7 +616,7 @@ test('porte des comptes (#2705) — chaque porteur porte un volet de `SOUS_LA_PO
 
 /** L'entrée telle qu'elle vit dans `enregistreur-lectures.test.mjs` (429b9a1a2), copiée ici. */
 const FIXTURE =
-  "  'scripts/docs/build-systemes.mjs': { cibles: ['docs/systemes.md'], fichiers: ['src/state/store.ts'], dossiers: [] },"
+  "  'scripts/docs/build-systemes.mjs': { cibles: ['docs/systemes.md'], fichiers: ['src/engine/store.ts'], dossiers: [] },"
 
 /** Post-image où la fixture vit DANS un corps de test (donnée locale). */
 const POST_LOCALE = [
@@ -696,7 +696,7 @@ test('portée — le RETRAIT se juge sur le PRÉ-image : retirer une fixture ne 
 // ARGUMENT d'un appel est local — le corps d'un `test`/`it`/`describe`, pas une déclaration.
 test('portée — aucune ENVELOPPE ne cache un stock de module', () => {
   const f = 'scripts/guards/lib/xStock.mjs'
-  const E = ["  'src/noyau/combatFlow.ts',", "  'src/ui/RollShell.tsx',", "  'src/ui/Tabs.tsx',"]
+  const E = ["  'src/noyau/combatFlow.ts',", "  'src/hote/RollShell.tsx',", "  'src/hote/Tabs.tsx',"]
   const diff = [
     `diff --git a/${f} b/${f}`, `--- a/${f}`, `+++ b/${f}`, `@@ -2,0 +2,${E.length} @@`, ...E.map((e) => `+${e}`),
   ].join('\n')
@@ -726,7 +726,7 @@ test('portée — aucune ENVELOPPE ne cache un stock de module', () => {
 /** Les quatre formes de stock du dépôt, et les lignes (1-based) où vivent leurs entrées. */
 const FORMES = {
   'tableau de chaînes': {
-    corps: ['const STOCK = [', "  'src/noyau/combatFlow.ts',", "  'src/ui/Tabs.tsx',", ']'],
+    corps: ['const STOCK = [', "  'src/noyau/combatFlow.ts',", "  'src/hote/Tabs.tsx',", ']'],
     entrees: [2, 3],
   },
   'tableau d’objets': {
@@ -742,7 +742,7 @@ const FORMES = {
     corps: [
       'const AUTO_RESOLUS = {',
       "  'criticals.json': 'Blessures critiques (LDB 18) : le noeud est auto-résolu.',",
-      "  'src/ui/Tabs.tsx': 'auto-résolu',",
+      "  'src/hote/Tabs.tsx': 'auto-résolu',",
       '}',
     ],
     entrees: [2, 3],
@@ -763,9 +763,9 @@ const FORMES = {
   'clé-chemin dont la valeur est un objet': {
     corps: [
       'const STOCK = {',
-      "  'src/ui/Tabs.tsx': {",
+      "  'src/hote/Tabs.tsx': {",
       "    raison: 'vocabulaire hérité',",
-      "    voir: 'src/ui/App.tsx',",
+      "    voir: 'src/hote/App.tsx',",
       '  },',
       '}',
     ],
@@ -792,7 +792,7 @@ test('définition — une entrée MULTILIGNE vit à la ligne de son PREMIER cara
   const corps = [
     'export const STOCK = [',
     '  {',
-    "    fichier: 'src/ui/Tabs.tsx',",
+    "    fichier: 'src/hote/Tabs.tsx',",
     "    raison: 'vocabulaire hérité',",
     '  },',
     ']',
@@ -818,7 +818,7 @@ test('définition — un FOYER déclaré n’est pas une entrée : la valeur de 
 
 test('définition — un porteur JSON se lit comme les autres', () => {
   const f = 'scripts/hooks/ecrans-ui.json'
-  const table = ['{', '  "ecrans": [', '    "src/ui/App.tsx",', '    "src/ui/Tabs.tsx"', '  ]', '}'].join('\n')
+  const table = ['{', '  "ecrans": [', '    "src/hote/App.tsx",', '    "src/hote/Tabs.tsx"', '  ]', '}'].join('\n')
   assert.deepEqual(lignesDe(`${table}\n`, f), [3, 4], 'les deux écrans ; la rubrique `ecrans` n’en est pas un')
   const [c] = croissanceDesStocks(diffAjoutA(f, 3), { lirePostImage: () => table })
   assert.deepEqual([c.fichier, c.net], [f, 1])
@@ -826,10 +826,10 @@ test('définition — un porteur JSON se lit comme les autres', () => {
 
 test('repli — sur une image `null`, une entrée à ACCOLADE n’est pas vue, et l’en-tête le dit', () => {
   const f = 'scripts/guards/lib/legacyVocabStock.mjs'
-  const post = ['export const STOCK = [', '  {', "    fichier: 'src/ui/Tabs.tsx',", '  },', ']'].join('\n')
+  const post = ['export const STOCK = [', '  {', "    fichier: 'src/hote/Tabs.tsx',", '  },', ']'].join('\n')
   const diff = [
     `diff --git a/${f} b/${f}`, `--- a/${f}`, `+++ b/${f}`, '@@ -2,0 +2,3 @@',
-    '+  {', "+    fichier: 'src/ui/Tabs.tsx',", '+  },',
+    '+  {', "+    fichier: 'src/hote/Tabs.tsx',", '+  },',
   ].join('\n')
   assert.deepEqual(croissanceDesStocks(diff, REPLI), [], 'image `null` : le repli de ligne ne voit pas l’accolade')
   const [c] = croissanceDesStocks(diff, { lirePostImage: () => `${post}\n` })
@@ -1211,17 +1211,17 @@ test('argument — le stock RÉEL d’un `const` de module reste compté (contre
 // au module et ne compte pas en argument. C'est la ligne « un stock de DOSSIERS passé en ARGUMENT est
 // hors de vue » de l'en-tête de `stocksNominatifs.mjs`.
 test('argument — la même liste de RACINES : comptée au module, exempte en argument', () => {
-  const R = ["  'src/ui',", "  'src/state',"]
+  const R = ["  'src/hote',", "  'src/engine',"]
   assert.deepEqual(entreesA(['const R = [', ...R, ']']), [2, 3], 'au module, une racine est une entrée')
   assert.deepEqual(entreesA(['const R = registre([', ...R, '])']), [], 'en argument, elle ne l’est plus')
 })
 
 test('argument — une liste de RACINES passée à un APPEL n’est une entrée à aucun niveau', () => {
   for (const [nom, lignes] of Object.entries({
-    'appel nu': ["readCorpus(['src/ui'])"],
-    'appel lié à un const de module': ["const SHEETS = readCorpus(['src/ui/styles'], { exts: ['.css'] })"],
-    'appel imbriqué': ["const X = f(g(['src/ui', 'src/gameIso']))"],
-    'argument multiligne': ['const X = readCorpus([', "  'src/ui',", "  'src/gameIso',", '])'],
+    'appel nu': ["readCorpus(['src/hote'])"],
+    'appel lié à un const de module': ["const SHEETS = readCorpus(['src/hote/styles'], { exts: ['.css'] })"],
+    'appel imbriqué': ["const X = f(g(['src/hote', 'src/geometry']))"],
+    'argument multiligne': ['const X = readCorpus([', "  'src/hote',", "  'src/geometry',", '])'],
   })) {
     assert.deepEqual(entreesA(lignes), [], nom)
   }
@@ -1259,7 +1259,7 @@ test('argument — un ÉLÉMENT de stock qui nomme son fichier via un appel rest
 
 test('argument — une flèche à corps CONCIS qui APPELLE ne compte rien, mais son littéral NU compte', () => {
   assert.deepEqual(
-    entreesA(["const ecranFiles = () => readCorpus(['src/ui', 'src/gameIso']);"]), [],
+    entreesA(["const ecranFiles = () => readCorpus(['src/hote', 'src/geometry']);"]), [],
     'le littéral est l’argument de `readCorpus`, pas le stock que la flèche rend',
   )
   assert.deepEqual(
@@ -1269,7 +1269,7 @@ test('argument — une flèche à corps CONCIS qui APPELLE ne compte rien, mais 
 })
 
 test('argument — la forme VÉCUE, dans un `describe` comme au module, ne compte rien', () => {
-  const boucle = "for (const { rel, text } of readCorpus(['src/ui'])) {"
+  const boucle = "for (const { rel, text } of readCorpus(['src/hote'])) {"
   assert.deepEqual(entreesA([boucle, '  void rel; void text;', '}']), [], 'au niveau du module')
   assert.deepEqual(
     entreesA(["describe('x', () => {", `  ${boucle}`, '    void rel; void text;', '  }', '})']), [],
@@ -1314,7 +1314,7 @@ test('#2223 IDENTITÉ — dictionnaire : la clé renommée, la valeur égale, ne
 })
 
 test('#2223 IDENTITÉ — Map : l’extension ajoutée au fichier nommé ne fait rien naître (`VOCABULARY_TYPES`)', () => {
-  assert.deepEqual(croissanceReelle(carte("['View', 'src/gameIso/facing'],"), carte("['View', 'src/gameIso/facing.ts'],")), [])
+  assert.deepEqual(croissanceReelle(carte("['View', 'src/geometry/facing'],"), carte("['View', 'src/geometry/facing.ts'],")), [])
 })
 
 test('#2223 IDENTITÉ — repli MIXTE : image post lisible, pré-image `null`, une seule fonction d’identité', () => {
@@ -1330,12 +1330,12 @@ test('#2223 IDENTITÉ — repli MIXTE : image post lisible, pré-image `null`, u
 const liste = (ligne) => `export const L = [\n  ${ligne}\n]\n`
 
 test('#2223 IDENTITÉ — l’extension fait partie du fichier nommé : deux chemins à extension sont deux fichiers', () => {
-  for (const [a, b] of [['src/a.ts', 'src/a.json'], ['src/ui/X.css', 'src/ui/X.tsx'], ['src/ui/editor/vue.ts', 'src/ui/editor/vue.tsx']]) {
+  for (const [a, b] of [['src/a.ts', 'src/a.json'], ['src/hote/X.css', 'src/hote/X.tsx'], ['src/hote/editor/vue.ts', 'src/hote/editor/vue.tsx']]) {
     assert.notEqual(fichierNommePar(JSON.stringify(a)), fichierNommePar(JSON.stringify(b)))
   }
   assert.deepEqual(croissanceReelle(liste("'src/a.ts',"), liste("'src/a.json',")), [], 'a.ts → a.json')
-  assert.deepEqual(croissanceReelle(liste("'src/ui/X.css',"), liste("'src/ui/X.tsx',")), [], 'X.css → X.tsx')
-  assert.deepEqual(croissanceReelle(liste("'src/ui/editor/vue.ts',"), liste("'src/ui/editor/vue.tsx',")), [], 'vue.ts → vue.tsx')
+  assert.deepEqual(croissanceReelle(liste("'src/hote/X.css',"), liste("'src/hote/X.tsx',")), [], 'X.css → X.tsx')
+  assert.deepEqual(croissanceReelle(liste("'src/hote/editor/vue.ts',"), liste("'src/hote/editor/vue.tsx',")), [], 'vue.ts → vue.tsx')
 })
 
 test('#2223 IDENTITÉ — un stock de structures repointé échange une entrée à net nul', () => {

@@ -152,7 +152,7 @@ function decisionOf(tool_input) {
 test('DRIVER : le hook décide de bout en bout, et se tait sur une écriture ordinaire', () => {
   assert.equal(decisionOf({ file_path: FICHE, old_string: 'x', new_string: 'SUPERSÉDÉ : x' }), 'deny')
   assert.equal(decisionOf({ file_path: FICHE, old_string: 'x', new_string: 'La mesure du 2026-09-02 dit y.' }), null)
-  assert.equal(decisionOf({ file_path: join(REPO, 'src', 'ui', 'App.tsx'), content: 'OBSOLÈTE' }), null)
+  assert.equal(decisionOf({ file_path: join(REPO, 'src', 'noyau', 'rollSeam.ts'), content: 'OBSOLÈTE' }), null)
 })
 
 test('DRIVER : une fiche hors `user-*` est refusée sans liste, MEMORY.md et une `user-*` passent', () => {

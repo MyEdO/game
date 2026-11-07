@@ -92,7 +92,7 @@ export function sAppliqueA(fichier, declaration) {
   return ![declaration.foyer ?? []].flat().includes(fichier.rel) && (declaration.domaine?.(fichier.rel) ?? true);
 }
 
-/** Chemin POSIX depuis la racine du dépôt (`src/state`, `../Temp/xyz` pour une racine hors dépôt). */
+/** Chemin POSIX depuis la racine du dépôt (`src/noyau`, `../Temp/xyz` pour une racine hors dépôt). */
 const posixDepuisRacine = (p) => relative(ROOT, p).split('\\').join('/');
 
 /** Corpus par CLÉ de contenu des paramètres. Vit aussi longtemps que ce module — soit, sous
