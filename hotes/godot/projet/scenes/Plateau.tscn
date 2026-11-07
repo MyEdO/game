@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/plateau.gd" id="1_plateau"]
 [ext_resource type="PackedScene" path="res://scenes/Combattant.tscn" id="3_combattant"]
 [ext_resource type="PackedScene" path="res://scenes/Monde.tscn" id="4_monde"]
+[ext_resource type="Script" path="res://scripts/immersion.gd" id="5_immersion"]
 
 [node name="Plateau" type="Node3D"]
 script = ExtResource("1_plateau")
@@ -11,3 +12,7 @@ scene_combattant = ExtResource("3_combattant")
 [node name="Monde" parent="." instance=ExtResource("4_monde")]
 
 [node name="Combattants" type="Node3D" parent="."]
+
+[node name="Immersion" type="Node" parent="." node_paths=PackedStringArray("monde")]
+script = ExtResource("5_immersion")
+monde = NodePath("../Monde")

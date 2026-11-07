@@ -123,7 +123,7 @@ function emballer(scene: Scene, listees: readonly { face: Face; cell: { x: numbe
 /** Le volume du monde de `scene` : le sol de la couche `activeZ` et de celles du dessous (terrain, relief, raccords,
  *  piliers), les crêtes de ses zones crénelées (`cretesDePerimetre`) et les décors volumiques qui s'y posent, sans les
  *  surplombs fantômes des couches au-dessus ; sans `activeZ`, de toutes ses couches ; sans les cases du `couvercle`
- *  (clés `x,y,z`, `couvercleDuGroupe`). PUR. */
+ *  (clés `x,y,z`, `volumeDuRegard`). PUR. */
 export function volumeDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.map((l) => l.z)), couvercle: ReadonlySet<string> = new Set()): VolumeDuMonde {
   const mpt = sceneMetresPerTile(scene);
   const sol = buildFloors(scene, undefined, { activeZ }).filter((el) => !el.states.ghost).flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell })));
@@ -150,6 +150,11 @@ export function toitsDuMonde(scene: Scene): NappeDuMonde[] {
  *  couvrent l'espace où il se tient. PUR. */
 export function toitsLeves(scene: Scene, allies: readonly { x: number; y: number; z?: number }[]): string[] {
   return [...new Set(buildRoofs(scene, { allies: [...allies] }).filter((el) => el.states.roofOccupied).map((el) => nappeKey(el.bodyId!, el.sectionId!)))];
+}
+
+/** Les clés (`nappeKey`) de toutes les nappes de toit de `scene` (`toitsDuMonde`). PUR. */
+export function toutesLesNappes(scene: Scene): string[] {
+  return [...new Set(buildRoofs(scene).map((el) => nappeKey(el.bodyId!, el.sectionId!)))];
 }
 
 /** Les couronnes crénelées des murs fortifiés de `scene`, de toutes ses couches (`crownFaces`, apparence à `parapet`),
