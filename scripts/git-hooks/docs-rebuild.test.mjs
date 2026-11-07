@@ -92,16 +92,16 @@ test('#2285 callback docs : refus complet et commit ordinaire silencieux', () =>
 
 /** Une mesure FORGÉE : un fichier lu, un dossier LISTÉ, une cible signée. */
 const MESURE = {
-  'g/a.mjs': { cibles: ['docs/a.md'], fichiers: ['src/ui/Prose.tsx', 'notes/lue.md'], dossiers: ['.github/workflows'] },
+  'g/a.mjs': { cibles: ['docs/a.md'], fichiers: ['src/noyau/rollSeam.ts', 'notes/lue.md'], dossiers: ['.github/workflows'] },
 }
 
 test('une SOURCE LUE, une CIBLE signée, un dossier LISTÉ : les trois font régénérer', () => {
-  assert.equal(touchesDocSources(['src/ui/Prose.tsx'], MESURE), true)
+  assert.equal(touchesDocSources(['src/noyau/rollSeam.ts'], MESURE), true)
   assert.equal(touchesDocSources(['docs/a.md'], MESURE), true)
   // Un fichier neuf sous un dossier LISTÉ : c'est le listing hashé qui bouge.
   assert.equal(touchesDocSources(['.github/workflows/neuf.yml'], MESURE), true)
   // Graphie Windows comprise (le hook reçoit ce que git rend).
-  assert.equal(touchesDocSources(['src\\ui\\Prose.tsx'], MESURE), true)
+  assert.equal(touchesDocSources(['src\\noyau\\rollSeam.ts'], MESURE), true)
 })
 
 test('un FRÈRE simplement voisin d’une source lue ne fait pas régénérer ; la source elle-même, si', () => {

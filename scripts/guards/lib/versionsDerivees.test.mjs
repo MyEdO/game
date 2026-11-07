@@ -10,7 +10,7 @@ const juge = versionsNonDerivees
 const f = (rel, text) => ({ rel, text })
 
 test('P3 : un champ `version` stampé prend un format importé du module généré — contrat positif', () => {
-  const sain = f('src/state/saves.ts', `import { FORMAT_SAVE } from './formats.generated';
+  const sain = f('src/noyau/saves.ts', `import { FORMAT_SAVE } from './formats.generated';
 export const a = { version: FORMAT_SAVE };
 export const b = { kind: 'x', v: FORMAT_SAVE };
 export function copie(s: { version: string }) { return { version: s.version }; }

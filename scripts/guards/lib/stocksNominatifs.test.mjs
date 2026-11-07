@@ -17,7 +17,7 @@ const PORTEUR = 'scripts/guards/lib/temoin.mjs';
 const compter = (source, chemin = PORTEUR) => entreesNominatives(source, chemin).length;
 test('les mêmes formes sont classées par structure dans chaque dialecte et hors test', () => {
   for (const chemin of [PORTEUR, 'scripts/outils.test.mjs', 'src/fixture.test.ts']) {
-    assert.equal(compter("readCorpus({ racines: ['src/ui'] })", chemin), 0);
+    assert.equal(compter("readCorpus({ racines: ['src/noyau'] })", chemin), 0);
     assert.equal(compter("const chemin = ['docs', 'vivant.md'].join('/')", chemin), 0);
     assert.equal(compter("const stock = Object.freeze(['src/a.ts'])", chemin), 1);
     assert.equal(compter("test('fixture', () => { const fichiers = ['src/a.ts'] })", chemin), 0);
@@ -28,8 +28,8 @@ test('un foyer est canonique et une déclaration attendue supplémentaire reste 
   assert.equal(compter("const ATTENDU = ['src/a.ts']"), 1);
 });
 test('un constructeur de collection garde les racines de son stock', () => {
-  assert.equal(compter("const stock = new Set(['src/ui'])"), 1);
-  assert.equal(compter("const stock = new Map([['src/ui', 1]])"), 1);
+  assert.equal(compter("const stock = new Set(['src/noyau'])"), 1);
+  assert.equal(compter("const stock = new Map([['src/noyau', 1]])"), 1);
   assert.equal(compter("readCorpus({ options: { fichiers: ['src/a.ts'] } })"), 1);
 });
 test('les racines sous options sont des paramètres, même avec enveloppes transparentes', () => {
@@ -107,7 +107,7 @@ test('occurrences originales : options de scan et trois chemins porteSpawn reste
     "[docs, 'architecture.md']", "[docs, 'raw', 'talents.md']", "[docs, 'plans', 'plan-fictif.md']",
   ]) assert.equal(compter("const docs = 'docs';\nconst chemin = " + fragments + ".join('/');", 'scripts/guards/lib/porteSpawn.test.mjs'), 0);
 });
-const ancien = 'src/state/projet-migration-12-vers-13.test.ts';
+const ancien = 'src/noyau/projet-migration-12-vers-13.test.ts';
 const nouveau = 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts';
 const titres = [
   'au SCHÉMA : chaque porteur SEUL suffit, l’absence de tous est l’issue nommée au chemin `ref`',
