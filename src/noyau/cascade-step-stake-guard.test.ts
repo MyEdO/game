@@ -5,6 +5,7 @@ import { stripLiterals } from './cascade-step-difficulty-guard.test';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { PENDING_BY_JET } from './slotsDeJet';
 import { cibleEtendueSchema } from '../data/schemas/grammaire/valeurs';
+import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 
 /**
  * CLIQUET — une étape de cascade qui LANCE dit son ENJEU (#1117, arbitrage user : « Louvoyage… ça
@@ -24,16 +25,16 @@ import { cibleEtendueSchema } from '../data/schemas/grammaire/valeurs';
  * DÉCROISSANTE (`BASELINE_REQ`) : un site doté ABAISSE sa ligne.
  */
 
-/** COUVERTURE des quatre scans : `src/state` et `src/noyau` (les flux) ET `src/scenes` (les Flows AUTHORÉS des
- *  documents de scène — ils décrivent des jets pour de vrai, et un `testFlow` y est aussi muet
- *  qu'ailleurs). Un détecteur ne mesure que sa couverture : elle est NOMMÉE ici, la clé de baseline
- *  porte le dossier (`state/…`, `noyau/…`, `scenes/…`). */
+/** COUVERTURE des quatre scans : les flux (`src/noyau`, avec les zones de l'hôte web que `porteeDeGarde` balaie)
+ *  ET `src/scenes` (les Flows AUTHORÉS des documents de scène — ils décrivent des jets pour de vrai, et un
+ *  `testFlow` y est aussi muet qu'ailleurs). Un détecteur ne mesure que sa couverture : elle est NOMMÉE ici,
+ *  la clé de baseline porte le dossier (`noyau/…`, `scenes/…`). */
 const SRC = join(process.cwd(), 'src');
-const SCAN_ROOTS = [join(SRC, 'state'), join(SRC, 'noyau'), join(SRC, 'scenes')];
+const SCAN_ROOTS = porteeDeGarde(['noyau', 'scenes'], ['state']).map((d) => join(process.cwd(), d));
 
 /** Corpus RÉEL d'un jeu de racines : marche, lecture et mémoïsation par clé dans
  *  `scripts/guards/lib/sourceCorpus.mjs` — PARESSEUX, payé au 1ᵉʳ `it` qui le demande, jamais à la
- *  collecte des tests. Le PÉRIMÈTRE reste ici : `.ts` seuls (aucun `.tsx` sous `state/`+`noyau/`+`scenes/`),
+ *  collecte des tests. Le PÉRIMÈTRE reste ici : `.ts` seuls (aucun `.tsx` sous ces racines),
  *  hors tests. */
 function corpus(roots: string[]): { file: string; src: string }[] {
   return readCorpus(roots, { exts: ['.ts'] }).map(({ abs, text }) => ({ file: abs, src: text }));
@@ -621,23 +622,23 @@ describe('« un signe, un sens » — les enjeux et leurs conséquences parlent 
 /**
  * L'enjeu AUTHORÉ reste au CONTENU (#1262 V2 L6c). `AuthoredStake` (`{ authored: '…' }`) est la forme
  * ouverte aux DOCUMENTS de campagne par l'arbitrage user du 2026-08-12 — « l'enjeu d'un Flow authoré
- * s'AUTHORE DANS LA SCÈNE ». Ce n'est PAS une amnistie du texte au call-site : le MOTEUR (`src/state`,
- * `src/noyau`, `src/engine`) continue de passer par les portes fail-closed de dataset, sans quoi la zone d'enjeu
+ * s'AUTHORE DANS LA SCÈNE ». Ce n'est PAS une amnistie du texte au call-site : le MOTEUR (`src/noyau`,
+ * `src/engine`) continue de passer par les portes fail-closed de dataset, sans quoi la zone d'enjeu
  * redeviendrait le champ libre que l'arbitrage Z5 a fermé — et une paraphrase de règle y rentrerait
  * par la fenêtre.
  *
- * COUVERTURE, nommée : les sources de `src/state`, `src/noyau` et `src/engine`, hors tests. L'ÉDITEUR
- * (`src/ui/editor`) en écrit, lui, par construction — c'est la plume de l'auteur ; les documents
+ * COUVERTURE, nommée : les sources de `src/noyau` et `src/engine`, avec les zones de l'hôte web que
+ * `porteeDeGarde` balaie, hors tests. L'ÉDITEUR en écrit, lui, par construction — c'est la plume de l'auteur ; les documents
  * (`src/scenes`, projets JSON) en portent.
  */
 describe('l’enjeu AUTHORÉ reste au contenu — le moteur passe par les datasets (#1262 V2 L6c)', () => {
-  const MOTEUR = [join(SRC, 'state'), join(SRC, 'noyau'), join(SRC, 'engine')];
+  const MOTEUR = porteeDeGarde(['noyau', 'engine'], ['state']).map((d) => join(process.cwd(), d));
   // La FORME du littéral d'enjeu authoré : `{ authored: … }` — `AuthoredStake` n'a que ce champ (ses
   // deux autres sont `never`), il ouvre donc toujours son accolade. Une ANNOTATION de paramètre
   // (`captureMutation(current: Scene, authored: Scene)`) ne pose aucun enjeu et suit une virgule.
   const AUTHORED = /\{\s*authored\s*:/;
 
-  it('aucun enjeu authoré à la main dans `src/state` / `src/noyau` / `src/engine`', () => {
+  it('aucun enjeu authoré à la main dans le moteur', () => {
     const fautifs: string[] = [];
     for (const { file, src } of corpus(MOTEUR)) {
       if (AUTHORED.test(strip(src))) fautifs.push(keyOf(file));

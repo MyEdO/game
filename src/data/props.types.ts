@@ -405,7 +405,7 @@ export function empriseLocaleM(p: PropPrimitive): { x0: number; x1: number; y0: 
  *
  * UNE définition, deux lecteurs : l'empreinte dérivée ci-dessous, qui exclut les sièges du corps qui
  * décide des cases (un tabouret n'est pas un obstacle : c'est par lui qu'on s'assoit), et le contrat
- * de catalogue `gameIso/catalog/props-volumiques.test.ts`. PURE.
+ * de catalogue `noyau/monde/volume/props-volumiques.test.ts`. PURE.
  */
 export function placeAssiseDe(prop: PropData, primitive: PropPrimitive): PropSeatSlot | undefined {
   const e = empriseLocaleM(primitive);

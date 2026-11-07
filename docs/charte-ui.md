@@ -582,7 +582,7 @@ le signe de comparaison ne se lit pas comme un modificateur, ce que ferait « 50
 négative prend le signe moins « − » et la bande le séparateur « à » (« DR −4 à −3 », « DR −2 à 0 »,
 « DR ≤−5 ») : « -4–-3 » enchaîne deux traits que l'œil ne départage pas, et le livre écrit lui-même
 « –3 à –4 » (MDG 13 l.74). Graphie unique : `fourchette` (`src/engine/tables.ts`) ; précédée du libellé de
-son dé (« 1d100 01–35 »), `bandeAuDe`, même fichier. Cliquet : `src/ui/bande-en-ligne-guard.test.ts`.
+son dé (« 1d100 01–35 »), `bandeAuDe`, même fichier. Cliquet : `src/noyau/codex/bande-en-ligne-guard.test.ts`.
 Ce dé est celui que la table porte en donnée : `bandeAuDe` et `facesDuDe` ne prennent qu'un `DeDeTable`,
 que seul `deDeLaTableTiree` forge depuis le nœud de la table (`deDeTirageDe` pour un document) ; un dé
 écrit en littéral ne compile pas, le cast qui nomme la marque est refusé par `murs/marques`.

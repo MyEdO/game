@@ -60,7 +60,7 @@ export interface LandMarketProfile {
   /** Réplique de halle (saveur maison, pas de RAW) de l'hôte du marché — surcharge PAR LIEU du défaut
    *  partagé (`lieux-services.json` id `marche`). Résolue par l'UI, jamais lue par une règle. */
   hostLine?: string;
-  /** Bande d'ambiance du marché (id du registre `src/ui/backdrops`) — surcharge PAR LIEU du défaut
+  /** Bande d'ambiance du marché (id du registre des fonds de l'hôte) — surcharge PAR LIEU du défaut
    *  partagé. Résolue par l'UI (slot `backdrop` de `ScreenShell`), jamais lue par une règle. */
   backdrop?: string;
 }

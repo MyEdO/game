@@ -6,13 +6,13 @@
  */
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import {
-  baissesDuDetecteur, detecteurDuCommit, jugerLesComptes, refsAPlat, refusDesComptes, sitesDeDetteDOps,
+  baissesDuDetecteur, detecteurDuCommit, jugerLesComptes, MARQUE_DE_CLASSEMENT, refsAPlat, refusDesComptes, sitesDeDetteDOps,
   verdictDesDetecteurs, type Comptes,
 } from '../scripts/guards/lib/corpusDesComptes.mts';
 import { idDe, ref, refs } from './data/schemas/grammaire/ref';
@@ -216,22 +216,31 @@ describe('verdictDesDetecteurs — deux détecteurs constants, la tête et la ba
     expect(verdict.texte).toContain('aucune paire de détecteur ne se lie');
   });
 
-  it('le détecteur de la base pose le `scripts/` DU COMMIT de base, pas celui qui tourne', () => {
+  it('le détecteur de la base pose le `scripts/` et le CLASSEMENT DU COMMIT de base, pas ceux qui tournent ; une déclaration reste à l’image (#2969)', () => {
     const racine = mkdtempSync(join(tmpdir(), 'detecteur-base-'));
     const image = mkdtempSync(join(tmpdir(), 'detecteur-image-'));
     try {
       const git = (...args: string[]) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' });
+      const grammaire = join(racine, 'src/data/schemas/grammaire');
+      const versions = (n: number) => {
+        writeFileSync(join(racine, 'scripts/detecteur.mjs'), `export const version = ${n};\n`);
+        writeFileSync(join(grammaire, 'classement.ts'), `${MARQUE_DE_CLASSEMENT}\nexport const version = ${n};\n`);
+        writeFileSync(join(grammaire, 'declaration.ts'), `export const version = ${n};\n`);
+      };
       git('init', '-q');
       mkdirSync(join(racine, 'scripts'));
-      writeFileSync(join(racine, 'scripts/detecteur.mjs'), 'export const version = 1;\n');
+      mkdirSync(grammaire, { recursive: true });
+      versions(1);
       writeFileSync(join(racine, 'package.json'), '{}\n');
       git('add', '.');
       git('commit', '-q', '-m', 'base');
       const base = git('rev-parse', 'HEAD').trim();
-      writeFileSync(join(racine, 'scripts/detecteur.mjs'), 'export const version = 2;\n');
+      versions(2);
       git('commit', '-q', '-am', 'tête');
       detecteurDuCommit(depotDe(racine, { env: envDeDepotForge() }), base).poser(image);
       expect(readFileSync(join(image, 'scripts/detecteur.mjs'), 'utf8')).toBe('export const version = 1;\n');
+      expect(readFileSync(join(image, 'src/data/schemas/grammaire/classement.ts'), 'utf8')).toBe(`${MARQUE_DE_CLASSEMENT}\nexport const version = 1;\n`);
+      expect(existsSync(join(image, 'src/data/schemas/grammaire/declaration.ts')), 'une déclaration ne voyage pas avec le détecteur').toBe(false);
     } finally {
       rmSync(racine, { recursive: true, force: true });
       rmSync(image, { recursive: true, force: true });

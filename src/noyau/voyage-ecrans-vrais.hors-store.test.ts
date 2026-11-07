@@ -1,8 +1,7 @@
 /**
  * #2533 — les écrans du voyage terrestre disent vrai : la halte nomme son lieu et joue l'Exposition sous
  * la météo du JOUR, la durée du récapitulatif est l'heure écoulée, le jour clos n'a qu'une carte, et le
- * d10 des péripéties passe par la porte des jets. Les cartes de jour de l'écran (`voyageDayCards`, `ui/VoyageScreen`,
- * lié au store) se jouent en `src/state/voyage-ecrans-vrais.test.ts`.
+ * d10 des péripéties passe par la porte des jets.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { seedBattleRng } from './battleRng';

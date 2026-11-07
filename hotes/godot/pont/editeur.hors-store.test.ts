@@ -196,6 +196,87 @@ describe('l’éditeur de carte par le pont, les entités', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, les zones', () => {
+  /** Une table ouverte sur la campagne, l'outil Zone pris à la sorte `sorte`, et la zone tracée du rectangle (2, 2)–(3, 3). */
+  function tracee(sorte: string) {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const outil = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/zone'));
+    expect(valeursDe(outil, 'zones').map((b) => b.id)).toEqual(['zone/room', 'zone/trigger', 'zone/rest', 'zone/effect']);
+    presser(boutonDe(outil, `zone/${sorte}`));
+    jouer({ geste: 'appui', point: point(2, 2) });
+    expect(jouer({ geste: 'glisse', point: point(3, 3) }).surcouche.cases, 'le rectangle tiré, en surcouche').toHaveLength(4);
+    return { appel, jouer, presser, posee: jouer({ geste: 'relache', point: point(3, 3) }) };
+  }
+
+  it('une pièce tracée au rectangle est sélectionnée, nommée en surcouche ; sa poignée la redimensionne, que l’annulation défait', () => {
+    const { jouer, presser, posee } = tracee('room');
+    const choisie = posee.surcouche.zones.filter((z) => z.choisi);
+    expect(choisie).toEqual([{ sorte: 'piece', nom: 'Pièce', cases: [{ x: 2, y: 2, z: 0 }, { x: 3, y: 2, z: 0 }, { x: 2, y: 3, z: 0 }, { x: 3, y: 3, z: 0 }], choisi: true }]);
+    expect(posee.surcouche.poignee, 'la poignée, au coin sud-est').toEqual({ x: 3, y: 3, z: 0 });
+    expect(posee.vue.zones['editeur.pointee'].map((l) => l.texte)).toContain('Pièce « Pièce » · 2 × 2 cases depuis 2, 2 · couche 0');
+    expect(boutonDe(posee, 'zone/nature/interior').presse).toBe(true);
+
+    presser(boutonDe(posee, 'outil/select'));
+    jouer({ geste: 'appui', point: point(3, 3) });
+    jouer({ geste: 'glisse', point: point(5, 4) });
+    const agrandie = jouer({ geste: 'relache', point: point(5, 4) });
+    expect(agrandie.vue.zones['editeur.pointee'].map((l) => l.texte)).toContain('Pièce « Pièce » · 4 × 3 cases depuis 2, 2 · couche 0');
+    expect(agrandie.surcouche.poignee).toEqual({ x: 5, y: 4, z: 0 });
+    expect(presser(boutonDe(agrandie, 'annuler')).surcouche.zones.find((z) => z.nom === 'Pièce')?.cases, 'annuler défait le redimensionnement').toHaveLength(4);
+  });
+
+  it('une zone d’effet : son nom, sa nature, sa forme, son emprise au pinceau puis toute son aire ; elle se supprime', () => {
+    const { appel, jouer, presser, posee } = tracee('effect');
+    expect(posee.surcouche.zones.find((z) => z.choisi)).toMatchObject({ sorte: 'zone', nom: 'Piège' });
+    const nommee = editionDe(appel('editer', { type: 'nommer', args: ['Fosse'] }));
+    expect(nommee.surcouche.zones.find((z) => z.choisi)?.nom).toBe('Fosse');
+    expect(boutonDe(nommee, 'zone/nature/aucune').presse).toBe(true);
+    expect(presser(boutonDe(nommee, 'zone/nature/exterior')).surcouche.zones.find((z) => z.choisi)?.sorte, 'un piège reste une zone, à ciel ouvert').toBe('zone');
+    expect(boutonDe(nommee, 'zone/pleine').refus).toBe('La zone occupe déjà toute son aire');
+
+    const pinceau = presser(boutonDe(nommee, 'emprise/remove'));
+    expect(boutonDe(pinceau, 'emprise/remove').presse).toBe(true);
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const decoupee = jouer({ geste: 'relache', point: point(2, 2) });
+    expect(decoupee.surcouche.zones.find((z) => z.choisi)?.cases, 'la case retirée de l’emprise').toHaveLength(3);
+    const pleine = presser(boutonDe(decoupee, 'zone/pleine'));
+    expect(pleine.surcouche.zones.find((z) => z.choisi)?.cases).toHaveLength(4);
+
+    const disque = presser(boutonDe(presser(boutonDe(pleine, 'emprise/finir')), 'zone/forme/disc'));
+    expect(boutonDe(disque, 'zone/forme/disc').presse).toBe(true);
+    const supprimee = presser(boutonDe(disque, 'zone/supprimer'));
+    expect(supprimee.surcouche.zones.some((z) => z.choisi)).toBe(false);
+    expect(supprimee.surcouche.poignee).toBeNull();
+  });
+
+  it('un déclencheur joue une fois, ou à chaque entrée ; une zone de repos offre ses lieux, piètre ; chacune change de couche', () => {
+    const declencheur = tracee('trigger');
+    expect(declencheur.posee.surcouche.zones.find((z) => z.choisi)?.sorte).toBe('declencheur');
+    expect(boutonDe(declencheur.posee, 'zone/uneFois').presse, 'un déclencheur naît à usage unique').toBe(true);
+    const rejouable = declencheur.presser(boutonDe(declencheur.posee, 'zone/uneFois'));
+    expect(boutonDe(rejouable, 'zone/uneFois').presse).toBe(false);
+    expect(boutonDe(declencheur.presser(boutonDe(rejouable, 'zone/uneFois')), 'zone/uneFois').presse).toBe(true);
+
+    const repos = tracee('rest');
+    expect(repos.posee.surcouche.zones.find((z) => z.choisi)).toMatchObject({ sorte: 'repos', nom: 'Zone de repos' });
+    const camp = boutonDe(repos.posee, 'zone/lieux/camp').presse;
+    const auberge = repos.presser(boutonDe(repos.posee, 'zone/lieux/auberge'));
+    expect([boutonDe(auberge, 'zone/lieux/auberge').presse, boutonDe(auberge, 'zone/lieux/camp').presse]).toEqual([true, camp]);
+    expect(boutonDe(repos.presser(boutonDe(auberge, 'zone/pietre')), 'zone/pietre').presse).toBe(true);
+
+    const etage = repos.presser(boutonDe(repos.presser(boutonDe(auberge, 'couche/ajouter')), 'couche/0'));
+    repos.presser(boutonDe(etage, 'outil/select'));
+    const reprise = repos.jouer({ geste: 'appui', point: point(2, 2) });
+    expect(reprise.surcouche.zones.find((z) => z.choisi)?.sorte, 'la sélection la reprend sur la carte').toBe('repos');
+    const montee = repos.presser(boutonDe(reprise, 'zone/couche/1'));
+    expect(montee.surcouche.zones.some((z) => z.choisi), 'montée d’une couche, elle quitte la surcouche du rez').toBe(false);
+    expect(montee.surcouche.poignee).toBeNull();
+    expect(etage.vue.couche).toBe(0);
+  });
+});
+
 describe('l’éditeur de carte par le pont, le combat et l’ameublement', () => {
   it('un emplacement de siège posé à l’outil : son engin, son arc, ses servants et leur chef ; un personnage enrôlé dans une rencontre neuve, allié piloté', () => {
     const { appel } = table();

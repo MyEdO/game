@@ -281,10 +281,10 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
 describe('G5 — le prédicat de posture n’est recodé nulle part', () => {
   it('aucune surface ne re-dérive le Mouvement de la posture (`STANCE_BLOCK` seul)', () => {
     const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
-    // Périmètre = les SURFACES de la posture (fenêtre de jet, console, registre) : c'est là qu'un
+    // Périmètre = la SURFACE de la posture au noyau (le registre des actions) : c'est là qu'un
     // second prédicat naît. `combatSlice` porte le même motif pour l'économie du Mouvement elle-même
     // (Maladresse, annulation de segment), qui n'a rien d'une posture.
-    for (const rel of ['../ui/jetProps/useAttackJetProps.tsx', '../ui/console/CombatConsole.tsx', '../noyau/actionRegistry.ts']) {
+    for (const rel of ['../noyau/actionRegistry.ts']) {
       expect(lire(rel), `${rel} recode le prédicat de posture`).not.toMatch(/movementUsed\s*===\s*0/);
     }
     // … et le prédicat, lui, l'exprime bien (une garde qui ne mesure rien serait verte pour rien).

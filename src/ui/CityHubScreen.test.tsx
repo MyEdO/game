@@ -1,44 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { restServicePrice } from '../noyau/restFlow';
 import { poiIcon, placeServices, lieuAUnPlan, type MapPlace } from '../noyau/worldMap';
-import { refusDEntrerAuPort } from '../noyau/portFlow';
-import { t } from '../i18n';
-import { findTrappingById } from '../data';
-import { toBrass, priceToMoney } from '../engine/money';
-import type { LandMarketProfile } from '../engine/landCargo';
 
 /**
- * HUB DE VILLE (#343) — surfaces PURES (comme VoyageScreen.test) : composition des services d'un lieu
- * et convergence des prix d'auberge sur le catalogue (`restServicePrice`
- * lit trappings.json — source unique partagée avec `restCost`, cf. rest-lodging-price-source.test).
+ * HUB DE VILLE (#343) — surfaces PURES de présentation : la porte de l'onglet Plan et l'icône d'un marqueur de plan.
+ * Les services d'un lieu, la porte du port et les prix d'auberge : `src/noyau/worldMap-services.hors-store.test.ts`.
  */
-
-const market: LandMarketProfile = { taille: 3, richesse: 2, produits: ['commerce-terre'] };
 
 const place = (over: Partial<MapPlace> = {}): MapPlace => ({
   id: 'bogenhafen', label: 'Bögenhafen', pos: { x: 40, y: 30 }, scene: 'sc-bogen', ...over,
-});
-
-const townPlace = (): MapPlace => place({
-  port: { taille: 4, richesse: 3, production: ['commerce-mer'] } as MapPlace['port'],
-  market,
-  services: [{ kind: 'auberge', rest: { auberge: true, camp: true } }],
-});
-
-describe('placeServices — composition des services d’un lieu au hub (#343)', () => {
-  it('liste port, marché puis auberge, chacun porteur de sa donnée référencée', () => {
-    const list = placeServices(townPlace());
-    expect(list.map((s) => s.id)).toEqual(['port', 'marche', 'auberge']);
-    expect(list.find((s) => s.id === 'port')!.category).toBe('port');
-    expect(list.find((s) => s.id === 'marche')!.market).toBe(market);
-    const auberge = list.find((s) => s.id === 'auberge')!;
-    expect(auberge.category).toBe('auberge');
-    expect(auberge.rest).toEqual({ auberge: true, camp: true });
-  });
-
-  it('lieu sans service ni offre : liste vide (le hub n’a alors rien à ouvrir)', () => {
-    expect(placeServices(place())).toEqual([]);
-  });
 });
 
 describe('lieuAUnPlan — porte de l’onglet Plan (#345 phase 5)', () => {
@@ -47,15 +16,6 @@ describe('lieuAUnPlan — porte de l’onglet Plan (#345 phase 5)', () => {
   });
   it('lieu avec au moins un POI : onglet Plan', () => {
     expect(lieuAUnPlan(place({ poi: [{ id: 'poi-1', label: 'Auberge', pos: { x: 10, y: 10 }, serviceKind: 'auberge' }] }))).toBe(true);
-  });
-});
-
-describe('refusDEntrerAuPort — porte du bouton « Entrer au port », appliquée par openPort', () => {
-  it('sans navire de campagne : refus nommé', () => {
-    expect(refusDEntrerAuPort({ vessel: null })).toBe(t('port.sansNavire'));
-  });
-  it('avec un navire de campagne : aucun refus', () => {
-    expect(refusDEntrerAuPort({ vessel: { vehicleId: 'barge' } as never })).toBeNull();
   });
 });
 
@@ -84,17 +44,5 @@ describe('poiIcon — résolution GÉNÉRALE de l’icône d’un marqueur de pl
   });
   it('cible absente : défaut nav/entry-point', () => {
     expect(poiIcon({ id: 'p', label: 'Nu', pos: { x: 0, y: 0 } }, services)).toBe('nav/entry-point');
-  });
-});
-
-describe('restServicePrice — prix d’auberge lus au catalogue trappings (source unique, LDB 66 l.12-16)', () => {
-  it('chambre privée == trapping "chambre-privee-nuit"', () => {
-    expect(toBrass(restServicePrice('privee'))).toBe(toBrass(priceToMoney(findTrappingById('chambre-privee-nuit')!.price)));
-  });
-  it('chambre commune == trapping "chambre-commune-nuit"', () => {
-    expect(toBrass(restServicePrice('commune'))).toBe(toBrass(priceToMoney(findTrappingById('chambre-commune-nuit')!.price)));
-  });
-  it('repas == trapping "repas-auberge"', () => {
-    expect(toBrass(restServicePrice('repas'))).toBe(toBrass(priceToMoney(findTrappingById('repas-auberge')!.price)));
   });
 });

@@ -294,7 +294,7 @@
     "fichier": "src/engine/tables.ts",
     "concept": "graphie d'une bande de table (« 01–50 », « 96+ », « ≤50 », « −4 à −3 »)",
     "perimetre": "toute bande de table affichée dans src/ui : tuile d'étape à table, Codex, création de personnage",
-    "verrou": "src/ui/bande-en-ligne-guard.test.ts (scripts/guards/lib/bandeEnLigne.mjs)"
+    "verrou": "src/noyau/codex/bande-en-ligne-guard.test.ts (scripts/guards/lib/bandeEnLigne.mjs)"
   },
   {
     "id": "baseTestMods",
@@ -529,7 +529,7 @@
     "fichier": "src/ui/ItemIcon.tsx",
     "concept": "icône d'OBJET (glyphe de catégorie)",
     "perimetre": "sac, onglet Combat de la fiche, pickers MediaSelect, hotbar de combat",
-    "verrou": "src/ui/no-emoji-affordance.test.ts"
+    "verrou": "src/no-emoji-affordance.test.ts"
   },
   {
     "id": "mediaSelect",
@@ -930,7 +930,7 @@
     "fichier": "src/ui/editor/CouvreField.tsx",
     "concept": "lien d'un élément du paquet de campagne vers les entrées des fiches de dossier de chapitre commitées (docs/dossiers/<ABBR>/<NN>.json, validées par ficheDeDossier) : CouvreField édite `couvre` (rangées entrée + retrait, sélecteur d'ajout, liste vide qui se dit vide, liste vidée retirée) ; SelecteurDEntreeDeFiche choisit UNE entrée (groupes par fiche et famille, id global + texte court, entrée introuvable affichée comme telle)",
     "perimetre": "inspecteur de scène (entité, zone d'effet, scène), panneau Logique (déclencheur, dialogue, rencontre), carte du monde (lieu, route), éditeur narratif (indice, PNJ, onglet Écarts)",
-    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/ui/editor/scene-field-editability-guard.test.ts"
+    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/noyau/scene-field-editability-guard.test.ts"
   },
   {
     "id": "freeAttackWeapon",

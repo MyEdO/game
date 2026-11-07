@@ -539,7 +539,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `LectureDArete` (lecture `auteur`/`jeu` d'une arête, `porteSelon`),
                             `Atterrissage` (où l'on atterrit en quittant une surface,
                             `surfaceDAtterrissage`), `CellSide` (alias primitif). Comptes
-                            et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
+                            et liste GATÉS par `noyau/scene-field-editability-guard.test.ts`.
                             Les types que la donnée lit vivent avec leurs schémas : l'union `Effect` et
                             ses deux annotations du `z.lazy` (`DelayedEffect`, `PetitePriere`) dans
                             `defs-scenes/effets.ts` ; `Terrain`, `ReliefDefaults` et `SceneRoofDefaults`
@@ -836,9 +836,10 @@ src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios 
                             largeurs inégales / char inconnu → throw. Entités/props/départ : poser des
                             MARQUEURS custom dans l'ASCII (ex. `@BFLr`), nettoyer avant le parse (`replace`)
                             puis scanner leurs positions.
-src/net/                    Coop en ligne de l'hôte web (relay WebSocket) : relay.ts (RelayClient heartbeat/backoff,
-                            RoomHost = un Transport virtuel par siège, RoomGuest), compress.ts ; la session et le
-                            protocole : `src/hote/coop/`
+src/net/                    compress.ts : la compression de l'hôte web (CompressionStream), port `Compression` du relay
+src/hote/coop/              Coop en ligne, plateforme injectée : protocol.ts, session.ts, relay.ts (RelayClient
+                            heartbeat/backoff, RoomHost = un Transport virtuel par siège, RoomGuest), salon.ts
+                            (politique de session) ; `src/state/netFlow.ts` en branche les ports web
                             — codes de room 6 chars, reconnexion auto par token (grace 2 min)
                             Reprise du lien invité ou retour de l'hôte (host-up) : GuestSession.rejoin
                             relance le handshake, puis reçoit campagne et snapshot autoritaire frais.

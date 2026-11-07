@@ -57,7 +57,7 @@ export interface MerchantState {
   settlement: Settlement;
   resaleRate: number;
   buyMarkup?: number;
-  /** Bande d'ambiance de l'écran (id du registre `src/ui/backdrops`) — provient de la donnée du service
+  /** Bande d'ambiance de l'écran (id du registre des fonds de l'hôte) — provient de la donnée du service
    *  de lieu qui ouvre la visite (`lieux-services.json`, ex. `forge` pour le forgeron, #369) ; absente
    *  pour un marchand de scène sans décor seedé. Rendue dans le slot `backdrop` du `ScreenShell`. */
   backdrop?: string;

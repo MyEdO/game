@@ -1,6 +1,6 @@
 /**
  * Écrivains de la carte du monde (`./worldMapEdit`) : ce qu'un hôte qui embarque le noyau édite sans
- * `src/ui` — défauts, bornes, dédoublonnage, cascades.
+ * écran — défauts, bornes, dédoublonnage, cascades.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetData, setObjectDataset } from '../data/overrides';

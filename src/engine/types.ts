@@ -196,7 +196,7 @@ export interface VehicleData {
   /** `IconId` du pictogramme d'affichage (registre `src/data/icons/`, famille `travel/*`) — donnée, pas
    *  de ternaire par id en dur. Typé `string` (et non `IconId`) pour NE PAS coupler l'engine pur à
    *  l'UI (règle 3, `src/engine` reste sans dépendance ui) ; les valeurs sont des `IconId` valides
-   *  (garde-fou : `src/ui/no-emoji-affordance.test.ts` + `Icon` throw sur id inconnu). */
+   *  (garde-fou : `src/no-emoji-affordance.test.ts` + `Icon` throw sur id inconnu). */
   icon?: string;
   source?: { book: string; page: number };
   /** Encombrement de l'objet véhicule (LDB 61) — généralement `null` (on ne porte pas une diligence) ;
@@ -275,7 +275,7 @@ export interface StructureData {
   /** RENDU (pas règle) : `true` = fortification de siège (rempart de PIERRE crénelé + ferré, brèche =
    *  gravats). `false`/absent = cloison ORDINAIRE (mur de maison texturé, sans créneaux). Découplé de
    *  `kind` : une `porte` fortifiée = corps de garde à herse ; un `mur` fortifié = courtine. Route le
-   *  rendu du `WallSeg` porteur (`gameIso/walls.ts::structureSeg`) — TOUJOURS destructible/brèchable. */
+   *  rendu du `WallSeg` porteur (`structureSeg`) — TOUJOURS destructible/brèchable. */
   fortified?: boolean;
   /** Profil à PV (calqué sur `VehicleData.hull.char`) — `BE` = Bonus d'Endurance (l'Endurance dérivée vaut
    *  `BE × 10`, posée par `structureCombatant`) ; `B` = Blessures (PV de la structure). ADE II donne le BE
@@ -706,9 +706,8 @@ export type EffectSourceKind =
   | 'miscastMinor' | 'miscastMajor' | 'miscastWrath';
 
 /** Catégorie Codex de CHAQUE nature de source — table TOTALE, SOURCE UNIQUE des deux consommateurs :
- *  le routage d'affichage d'une pastille (`chipCodex`, `src/gameIso/effectIcons.ts`) ET la descente de
- *  l'ENJEU d'un jet à l'entité qui l'exige (`src/state`, #1117). Elle vit ICI, à côté du vocabulaire
- *  qu'elle indexe, parce qu'`src/state` ne peut pas dépendre de `src/gameIso` : une copie côté state
+ *  le routage d'affichage d'une pastille (`chipCodex`) ET la descente de l'ENJEU d'un jet à l'entité qui
+ *  l'exige (#1117). Elle vit ICI, à côté du vocabulaire qu'elle indexe : une copie chez l'un des deux
  *  aurait fait DEUX vérités pour une seule question. */
 export const CATEGORY_BY_SOURCE_KIND: Record<EffectSourceKind, string> = {
   spell: 'spells', prayer: 'spells', talent: 'talents', trait: 'traits', trapping: 'trappings',
@@ -742,7 +741,7 @@ export interface ModLine {
   famille: ModFamille;
   value: number;
   /** La RÈGLE qui octroie ce modificateur, en ids STABLES (`RULE_REF`, ou une entité : État,
-   *  Domaine, qualité d'arme). L'affichage en fait une chip liée au Codex (`ui/RollLine.tsx`) ;
+   *  Domaine, qualité d'arme). L'affichage en fait une chip liée au Codex ;
    *  le moteur ne la lit jamais. */
   ref?: CodexTarget;
   /** Qui octroie ce modificateur, en STRUCTURE (les soutiens d'un Test de groupe) — jamais du
@@ -1402,7 +1401,7 @@ export interface EntreeBarre {
  *  Record = laissé au pré-remplissage déduit. Objet creux, jamais un tableau à trous : le snapshot de
  *  partie sérialise en JSON, où un trou deviendrait `null` — donc « vidée ».
  *  UN modèle pour les trois zones — le set au poing n'est qu'une dimension de l'adresse de l'arsenal.
- *  Lecture/écriture : `src/state/dispositionConsole.ts` (validateur `poserDansBarre`). */
+ *  Lecture/écriture : le validateur `poserDansBarre` de l'hôte. */
 export interface DispositionConsole {
   /** Arsenal, par `WeaponLoadout.id` : commuter le set affiche SA disposition. */
   arsenal?: Record<string, Record<number, EntreeBarre | null>>;
@@ -1634,7 +1633,7 @@ export interface Combatant {
   /** DISPOSITION de la console de combat, PAR ADRESSE de case (spec HUD zone 6 : la barre est
    *  éditable, la déduction ne fait que pré-remplir). Donnée du PORTEUR : elle voyage avec lui
    *  (save, roster, coop) sans table annexe ni clé de partie. Porte unique d'écriture :
-   *  `poserDansBarre` (`src/state/dispositionConsole.ts`). */
+   *  `poserDansBarre`, chez l'hôte. */
   barre?: DispositionConsole;
   /** Sorts/prières connus — `id` de `src/data/spells.json`, résolus par `findSpellById`. */
   spells?: string[];

@@ -22,7 +22,7 @@ import { proseDeFiche, codexLookupById } from '../noyau/codex/registry';
 import { CodexEntry } from './compendium/CodexEntry';
 import { Prose } from './Prose';
 import { porteurDuNarratif } from './porteurDeProjet';
-import { CHEMINS_ADRESSES } from './liage';
+import { CHEMINS_ADRESSES } from '../noyau/codex/chemins-adresses';
 import type { Porteur } from '../noyau/codex/porteur';
 import { InspectPanel } from './InspectPanel';
 import { CampaignView } from './CampaignView';

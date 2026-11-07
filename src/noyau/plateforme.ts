@@ -1,7 +1,7 @@
 /**
  * Services que le noyau demande à l'environnement d'exécution (#2817, D6) : un appel différé, l'état
  * de son jeton et la persistance d'un héros. L'hôte pose UNE plateforme (`poserLaPlateforme`) ; tout appel
- * sans plateforme posée lève. Le web la pose à la création du store (`src/state/store.ts`).
+ * sans plateforme posée lève.
  */
 import type { Combatant } from '../engine/types';
 

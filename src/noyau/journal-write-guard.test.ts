@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { scanJournalWrite } from '../../scripts/guards/lib/journalWrite.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 
 /**
  * Garde-fou « composeur du journal » (#319). `….journal.slice(-40)` réinvente l'action canonique
@@ -16,7 +17,7 @@ import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichier
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const SCAN_DIRS = ['src/state', 'src/noyau'];
+const SCAN_DIRS = porteeDeGarde(['noyau'], ['state']);
 const FOYER = 'src/noyau/journal.ts';
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel) || rel === FOYER;
 
@@ -31,7 +32,7 @@ function countsByFile(): Record<string, number> {
 }
 
 describe('garde-fou « log » — composition du journal (cliquet, #319)', () => {
-  it('aucun fichier de src/state ni de src/noyau (hors journal.ts) ne réinvente `.journal.slice(-40)`', () => {
+  it(`aucun fichier de ${SCAN_DIRS.join(', ')} (hors journal.ts) ne réinvente \`.journal.slice(-40)\``, () => {
     const counts = countsByFile();
     const offenders = Object.entries(counts).map(([rel, n]) => `${rel} : ${n} site(s)`);
     expect(
@@ -42,7 +43,7 @@ describe('garde-fou « log » — composition du journal (cliquet, #319)', () =>
 
   it('fail-closed : le scanner détecte une écriture SYNTHÉTIQUE du motif', () => {
     const regressed = "set({ journal: [...get().journal.slice(-40), 'ligne'] });";
-    expect(scanJournalWrite('src/state/x.ts', regressed).length).toBe(1);
+    expect(scanJournalWrite('src/noyau/x.ts', regressed).length).toBe(1);
   });
 
   it('la primitive canonique elle-même (journal.ts, hors scan) porte bien le motif — sinon le foyer a bougé', () => {

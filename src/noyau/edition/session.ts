@@ -12,12 +12,12 @@ import type { FireArc } from '../../engine/types';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addLayer, addMember, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, propRefPatch, removeLayer, removeMember, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, type Pt } from '../sceneEdit';
-import { entiteDeLaSelection, etageSuivant, segmentDeLaSelection, type Layers, type Sel, type Tool } from '../sceneEditLecture';
+import { addLayer, addMember, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
+import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { annuler, historiqueDe, poser, retablir, type Historique } from './historique';
-import { appuyer, glisser, relacher, type ContexteDuPointeur, type EffetDuPointeur, type GesteEnCours, type PointDeCarte } from './pointeur';
+import { appuyer, glisser, relacher, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type GesteEnCours, type PointDeCarte } from './pointeur';
 import type { CalibProgress } from './calage';
 import { caler, calqueNeuf, calquesLus, type CalqueDeCouche, type CalquesDuProjet, type ReglageDuCalque } from './calque';
 
@@ -37,7 +37,7 @@ export const HAUTEURS = [
 const TOUS_LES_CALQUES: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 
 /** Les outils que l'éditeur offre. */
-export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'entity' | 'emplacement' | 'entry' | 'erase' }>;
+export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'entity' | 'emplacement' | 'entry' | 'zone' | 'zoneTiles' | 'erase' }>;
 
 /** Ce que l'inspecteur écrit sur l'arête sélectionnée (`patchWall`) : chaque champ posé, `null` le retire. */
 export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z'>]?: WallSeg[K] | null };
@@ -116,8 +116,8 @@ export interface SessionDEdition {
  *  éditée ; ajouter une couche au-dessus de la plus haute, retirer la couche éditée ; appuyer, glisser, relâcher
  *  sur un point de la carte ; poser la volée tracée, effacer son tracé ; écrire sur l'arête sélectionnée, ou poser
  *  son brouillon ; écrire sur l'entité sélectionnée, le poste de l'emplacement de siège sélectionné, une place du décor
- *  sélectionné ou l'appartenance du personnage sélectionné à une rencontre ; nommer l'entité ou l'entrée sélectionnée (`nom` absent : l'entité
- *  reprend le nom de sa fiche) ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
+ *  sélectionné ou l'appartenance du personnage sélectionné à une rencontre ; écrire sur la zone sélectionnée ; nommer l'entité, l'entrée ou la
+ *  zone d'effet sélectionnée (`nom` absent : l'entité reprend le nom de sa fiche) ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
  *  demander la planche du calque de la couche éditée, puis l'issue de son chargement, l'image lue ou rien ; régler ce
  *  calque, le caler, le retirer. */
@@ -135,6 +135,7 @@ export type GesteDEdition =
   | { geste: 'poste'; patch: PatchDePoste }
   | { geste: 'place'; place: string; occupant: SeatOccupant | null }
   | { geste: 'membre'; patch: PatchDeMembre }
+  | { geste: 'zone'; patch: PatchDeZone }
   | { geste: 'nommer'; nom?: string }
   | { geste: 'entree'; z: number }
   | { geste: 'copier' }
@@ -232,6 +233,9 @@ function porter(s: SessionDEdition, effet: EffetDuPointeur): SessionDEdition {
 /** La scène `scene` écrite sur un cran neuf, la sélection et son brouillon levés, ou `sel` sélectionnée. */
 const ecrire = (s: SessionDEdition, scene: Scene, sel: Sel = null): SessionDEdition => ({ ...s, historique: poser(s.historique, scene, true), sel, brouillon: null });
 
+/** Les zones de la scène `sc` : ses déclencheurs, ses zones de repos et d'effet. */
+const zonesDe = (sc: Scene) => [sc.triggers, sc.restZones, sc.effectZones];
+
 /** La session `s` où la scène `scene` s'écrit sur un cran neuf si ce que `lire` y lit de la sélection change : sinon,
  *  `s` telle quelle. La sélection reste. */
 function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Scene) => T): SessionDEdition {
@@ -318,7 +322,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
         const pas = caler(s.calage, calque, g.point.f);
         return { ...s, calage: pas.progress, ...(pas.transform ? { calques: avecLeCalque(s, s.sceneId, s.z, { ...calque, calage: pas.transform }) } : {}) };
       }
-      return { ...porter(s, appuyer(scene, contexte(s), g.point)), pointee: { ...g.point.case, z: s.z } };
+      const poignee = s.outil.mode === 'select' ? poigneeDeLaSelection(scene, s.sel, s.z) : null;
+      const saisie = poignee?.x === g.point.case.x && poignee.y === g.point.case.y;
+      return { ...(saisie ? { ...s, geste: saisirLaPoignee(contexte(s)) } : porter(s, appuyer(scene, contexte(s), g.point))), pointee: { ...g.point.case, z: s.z } };
     }
     case 'glisse':
       return s.calage.step !== 'idle' ? s : porter(s, glisser(scene, contexte(s), s.geste, g.point));
@@ -354,9 +360,12 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const ent = entiteDeLaSelection(scene, s.sel);
       return ent?.kind === 'personnage' ? ecrireSurLaSelection(s, membrePatche(scene, ent.id, g.patch), (sc) => sc.encounters) : s;
     }
+    case 'zone':
+      return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
     case 'nommer': {
       const ent = entiteDeLaSelection(scene, s.sel);
       if (ent) return ecrireSurLaSelection(s, editEntity(scene, ent.id, { label: g.nom || undefined }), (sc) => entiteDeLaSelection(sc, s.sel));
+      if (s.sel?.type === 'effectZone') return g.nom ? ecrireSurLaSelection(s, patchZone(scene, s.sel, { nom: g.nom }), zonesDe) : s;
       if (s.sel?.type !== 'entry' || g.nom === undefined) return s;
       const renommee = renameEntry(scene, s.sel.id, g.nom);
       return renommee === scene ? s : ecrire(s, renommee, { type: 'entry', id: g.nom.trim() });

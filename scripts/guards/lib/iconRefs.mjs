@@ -1,7 +1,7 @@
 // Mécanique de scan du garde-fou anti-icône-fantôme : toute réf d'icône LITTÉRALE (`icon: 'x/y'`
 // en TS, `"icon": "x/y"` en JSON) doit résoudre dans le registre d'icônes généré
 // (`src/data/icons/_registry.generated.ts`). Module ESM pur, exécutable par `node` nu — consommé par
-// src/ui/no-phantom-icon.test.ts (qui porte la POLICY : répertoires scannés, exceptions, import du
+// src/data/no-phantom-icon.test.ts (qui porte la POLICY : répertoires scannés, exceptions, import du
 // registre). Ici ne vit QUE la mécanique d'extraction des réfs.
 
 /** Réf littérale d'icône : clé `icon` (TS non-quotée ou JSON quotée) suivie d'une chaîne, QUEL QUE SOIT son

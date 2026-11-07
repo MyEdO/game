@@ -3,7 +3,7 @@
  *
  * `structureAppearance.json` portait sur chaque entrée un `material` ('bois' | 'pierre') qu'AUCUN
  * lecteur d'exécution ne consultait : la couleur de chaque partie de mur vient des CHAMPS de l'entrée
- * (`wallPartColor`, `src/gameIso/catalog/structures/index.ts`), l'iso et le POV n'en lisent aucun
+ * (`wallPartColor`), l'iso et le POV n'en lisent aucun
  * autre canal. Une clé qu'on ne lit pas mais qu'on écrit à chaque nouvelle apparence est une seconde
  * vérité en attente : elle part avec son schéma, son type et son repli, dans le même commit.
  *

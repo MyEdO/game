@@ -41,7 +41,7 @@
  *  - FABRIQUE INTER-MODULE — `const PAR_ID = construire();` où `construire()` (autre fichier) lit le
  *    dataset : le détecteur ne suit aucun appel hors du fichier. Les tables du jeu (`tablesDuJeu()`)
  *    en ont la forme : leur relecture d'une donnée éditée se prouve en exécution
- *    (`src/noyau/tablesDuJeu.test.ts`) ;
+ *    (`src/noyau/tablesDuJeu.hors-store.test.ts`) ;
  *  - RÉ-EXPORT RENOMMÉ — `export { traits as tousLesTraits }` dans un module tiers, puis
  *    `new Map(tousLesTraits.map(…))` chez son importateur : le vocabulaire ne suit que le seam ;
  *  - PARTITION PAR UN PRÉDICAT VIVANT — `const TENUES = TENUE_DEFS.filter((d) => !isClassDef(d.id))` :
