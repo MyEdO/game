@@ -212,9 +212,9 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
     });
     const local = vi.fn();
     const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'battleClickEntity', local, envoyer, ['e1', { confirm: true }]);
-    emettreIntentInvite(banc.getState, 'battleClickTile', local, envoyer, [{ x: 12, y: 4 }, { confirm: false }]);
-    expect(envoyer.mock.calls.map(([action]) => action)).toEqual(['battleClickEntity', 'battleClickTile']);
+    emettreIntentInvite(banc.getState, 'cliquerLaCase', local, envoyer, [{ x: 7, y: 10 }, 'e1', { confirm: true }]);
+    emettreIntentInvite(banc.getState, 'cliquerLaCase', local, envoyer, [{ x: 12, y: 4 }, undefined, { confirm: false }]);
+    expect(envoyer.mock.calls.map(([action]) => action)).toEqual(['cliquerLaCase', 'cliquerLaCase']);
     expect(local, 'le geste s’est joué en local au lieu de partir à l’hôte').not.toHaveBeenCalled();
   });
 });
