@@ -737,6 +737,16 @@ async function parcoursVoyage() {
   v = await vue()
   noter(`lieu : ${zone(v, 'fenetre.titre')[0].texte} ; ${zone(v, 'fenetre.corps').map((e) => e.nom ?? e.texte).join(' | ')}`)
   await capturer('3534-l2-lieu')
+  await cliquerBouton(bouton(zone(v, 'fenetre.corps').find((e) => e.id === 'service/forgeron').elements[0]))
+  await attendreLaVue("v.projection.fenetre?.cle === 'marchand'")
+  v = await vue()
+  noter(`échoppe : ${zone(v, 'fenetre.corps').map((e) => `${e.id} (${(e.elements ?? []).map((b) => b.libelle).join(', ')})`).join(' | ')}`)
+  await capturer('3534-echoppe-1-etal')
+  const article = zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('etal/')).flatMap((e) => e.elements).find((b) => !b.refus)
+  await cliquerBouton(bouton(article))
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'panier').elements.length > 1")
+  noter(`panier : ${zone(await vue(), 'fenetre.corps').find((e) => e.id === 'panier').elements.map((b) => b.libelle).join(', ')}`)
+  await capturer('3534-echoppe-2-panier')
 }
 
 async function parcoursRepos() {

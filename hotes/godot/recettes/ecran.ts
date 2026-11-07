@@ -20,7 +20,7 @@
 import { clicDuCombattant, creerPont, type Suite } from '../pont/pont';
 import { CLIC_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type Element, type Formulaire, type GesteDeLaCreation, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type Formulaire, type GesteDeLaCreation, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
 import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 
@@ -233,6 +233,12 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('récit de voyage, arrivée', s);
   s = voyage.jouer('jouer', enFocus(s));
   figer('écran du lieu, ses services et ses trajets', s);
+  const forgeron = s.vue.zones['fenetre.corps'].find((e): e is Entite => e.id === 'service/forgeron')!;
+  s = voyage.jouer('jouer', (forgeron.elements[0] as Bouton).jeu);
+  figer('échoppe : l’étal et ses prix, le panier vide, les possessions à vendre', s);
+  const article = s.vue.zones['fenetre.corps'].filter((e): e is Entite => e.id.startsWith('etal/')).flatMap((f) => f.elements as Bouton[]).find((b) => !b.refus)!;
+  s = voyage.jouer('jouer', article.jeu);
+  figer('échoppe : un article au panier, son total à payer', s);
   voyage.fermer();
 
   const repit = unPont([]);

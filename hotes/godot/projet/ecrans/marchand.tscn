@@ -1,0 +1,64 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://cadres/monde.tscn" id="1_monde"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="Monde" instance=ExtResource("1_monde")]
+
+[node name="Bourse" type="HBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Bourse"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("marchand/bourse")
+
+[node name="Echoppe" type="HBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="Etal" type="ScrollContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe"]
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.5
+horizontal_scroll_mode = 0
+
+[node name="Familles" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Etal"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Etal/Familles"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("etal/")
+
+[node name="Separation" type="VSeparator" parent="Cadre/Marges/Colonne/Contenu/Echoppe"]
+
+[node name="Comptoir" type="ScrollContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe"]
+size_flags_horizontal = 3
+horizontal_scroll_mode = 0
+
+[node name="Pile" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="Panier" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile/Panier"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("panier")
+
+[node name="Separation" type="HSeparator" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile"]
+
+[node name="Vente" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile"]
+theme_override_constants/separation = 12
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile/Vente"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("vente/")
+
+[node name="Reste" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile/Reste"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
