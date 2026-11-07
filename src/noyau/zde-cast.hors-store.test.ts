@@ -1,8 +1,7 @@
 /**
  * Lot 6 — Ciblage de Zone d'Effet (LDB 47 l.28) : parsing diamètre/portée,
  * clic-case en mode incantation → toutes les cibles du rayon visées par le
- * même jet, garde-fou de portée. Le clic du curseur de combat sur une cible hors de portée se joue en
- * `src/state/zde-cast.test.ts`.
+ * même jet, garde-fou de portée, et cible hors de portée refusée avant le routage de zone (LDB 47 l.27).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -12,6 +11,8 @@ import { zdeDiameterMeters, zdeRadiusTiles, spellRangeTiles } from '../engine/ma
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { currentTargetingMode } from './targetingModes';
+import { jouerLeClicDeCase } from './combatOrParty';
 
 let banc: Banc;
 
@@ -118,5 +119,18 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     // En combat, la sortie commune (finishPlayerAction) écrit dans le LOG de combat.
     expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/ne touche personne/);
     expect(banc.getState().battle!.acted).toBe(true);
+  });
+
+  // LDB 47 l.27. Le clic passe par la porte du champ (`jouerLeClicDeCase`), celle du clic-sol et du curseur.
+  it('cible HORS de portée : rien au survol, aucune cascade ouverte au clic, et le refus est DIT', () => {
+    const { w, e3 } = setupBattle();
+    w.characteristics['force-mentale'] = 20; // portée du sort = FM mètres → 10 cases
+    e3.pos = { x: 19, y: 19 }; // 17 cases depuis (2,2) : au-delà de la portée
+    const mode = currentTargetingMode(banc.getState);
+    expect(mode.id).toBe('cast');
+    expect(mode.affordance!(banc.getState, w, e3), 'invalide = le survol n’affiche rien').toMatchObject({ kind: 'invalid' });
+    expect(jouerLeClicDeCase(banc.getState, e3.pos!, true), 'le clic de la cible se joue').toBe(true);
+    expect(banc.getState().pendingCast, 'une zone ne s’ouvre PAS sur une cible hors d’atteinte').toBeNull();
+    expect(banc.getState().refus?.texte, 'le refus se dit au point du geste').toBeTruthy();
   });
 });

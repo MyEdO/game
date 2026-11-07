@@ -19,6 +19,7 @@ export type { Cadence } from '../engine/cadence';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, champsLusParLOffre, refusDeLOffre, type EtatDeLaBarre, type ActionCtx, type ContexteDOffre, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
+export { ENTREES_DE_DOSSIER } from '../data/dossiers';
 export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { EmblemeDef } from '../data/schemas/defs/garde-robe';
 export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';

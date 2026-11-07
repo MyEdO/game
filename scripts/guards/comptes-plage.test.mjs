@@ -331,7 +331,7 @@ test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-plage-'))
   try {
     const reel = depotDe(RACINE, { env: envDeDepotForge() })
-    const suivis = listerImage(reel, SUIVI, 'src', 'Source', 'scripts', 'package.json', 'tsconfig.json')
+    const suivis = listerImage(reel, SUIVI, 'src', 'Source', 'docs/dossiers', 'scripts', 'package.json', 'tsconfig.json')
     for (const rel of suivis) {
       mkdirSync(dirname(join(dossier, rel)), { recursive: true })
       writeFileSync(join(dossier, rel), readFileSync(join(RACINE, rel)))

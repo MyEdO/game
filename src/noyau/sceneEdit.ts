@@ -939,7 +939,8 @@ export function patchRestZone(scene: Scene, idx: number, patch: Partial<NonNulla
 
 /** Ce que l'inspecteur écrit sur la zone sélectionnée (`patchZone`) : sa couche ; d'un déclencheur, s'il ne joue
  *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité piètre ; d'une zone d'effet, son nom, sa nature (`null` :
- *  non déclarée), sa forme, et son emprise rendue pleine (`clearEffectZoneCarve`). */
+ *  non déclarée), sa forme, son emprise rendue pleine (`clearEffectZoneCarve`), si elle masque la ligne de vue et si
+ *  elle barre le passage ; d'un déclencheur ou d'une zone d'effet, les entrées de fiche qu'il couvre (`null` : aucune). */
 export interface PatchDeZone {
   z?: number;
   once?: boolean;
@@ -949,27 +950,41 @@ export interface PatchDeZone {
   presentation?: 'interior' | 'exterior' | null;
   forme?: ZoneArea['kind'];
   pleine?: true;
+  blocksLoS?: boolean;
+  barrier?: boolean;
+  couvre?: string[] | null;
 }
+
+/** `o` où le champ `k` vaut `v`, ou s'en retire quand `v` est `undefined`. */
+function champ<T extends object, K extends keyof T>(o: T, k: K, v: T[K] | undefined): T {
+  const out = { ...o };
+  if (v === undefined) delete out[k];
+  else out[k] = v;
+  return out;
+}
+
+/** Les entrées couvertes `couvre` d'un patch, `undefined` pour aucune. */
+const couvertes = (couvre: string[] | null) => (couvre?.length ? couvre : undefined);
 
 /** Le rectangle `r` porté à la couche `z` (`z` omis au rez). */
 const rectALaCouche = (r: Rect, z: number) => ({ x: r.x, y: r.y, w: r.w, h: r.h, ...(z ? { z } : {}) });
 
 /** La zone d'effet `zone` portée à la couche `z`, son emprise découpée avec elle. */
 function zoneDEffetALaCouche(zone: SceneEffectZone, z: number): SceneEffectZone {
-  const { z: _z, tiles, ...reste } = zone;
-  return { ...reste, ...(z ? { z } : {}), ...(tiles ? { tiles: tiles.map((t) => carveTile(t, z)) } : {}) };
+  const out = champ(zone, 'z', z || undefined);
+  return zone.tiles ? { ...out, tiles: zone.tiles.map((t) => carveTile(t, z)) } : out;
 }
 
-/** La zone d'effet `zone` patchée de `patch` (`PatchDeZone`). */
+/** La zone d'effet `zone` patchée de `patch` (`PatchDeZone`). Barrer le passage garde les groupes qu'elle bloquait. */
 function zoneDEffetPatchee(zone: SceneEffectZone, patch: PatchDeZone): SceneEffectZone {
   let out = patch.z === undefined ? zone : zoneDEffetALaCouche(zone, patch.z);
   if (patch.nom !== undefined) out = { ...out, label: patch.nom };
-  if (patch.presentation !== undefined) {
-    const { presentation: _p, ...reste } = out;
-    out = patch.presentation ? { ...reste, presentation: patch.presentation } : reste;
-  }
+  if (patch.presentation !== undefined) out = champ(out, 'presentation', patch.presentation ?? undefined);
   if (patch.forme) out = setEffectZoneArea(out, effectZoneArea(patch.forme, effectZoneRect(out.area)));
-  return patch.pleine ? clearEffectZoneCarve(out) : out;
+  if (patch.pleine) out = clearEffectZoneCarve(out);
+  if (patch.blocksLoS !== undefined) out = champ(out, 'blocksLoS', patch.blocksLoS || undefined);
+  if (patch.barrier !== undefined) out = champ(out, 'barrier', patch.barrier ? zone.barrier ?? {} : undefined);
+  return patch.couvre === undefined ? out : champ(out, 'couvre', couvertes(patch.couvre));
 }
 
 /** La zone sélectionnée `sel` de `scene` (déclencheur, zone de repos ou d'effet) patchée de `patch` ; `scene` telle
@@ -980,9 +995,9 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
       ...scene,
       triggers: scene.triggers.map((t) => {
         if (t.id !== sel.id) return t;
-        const { once: _once, ...reste } = t;
-        const once = patch.once ?? t.once;
-        return { ...reste, rect: patch.z === undefined ? t.rect : rectALaCouche(t.rect, patch.z), ...(once ? { once } : {}) };
+        let out = patch.z === undefined ? t : { ...t, rect: rectALaCouche(t.rect, patch.z) };
+        if (patch.once !== undefined) out = champ(out, 'once', patch.once || undefined);
+        return patch.couvre === undefined ? out : champ(out, 'couvre', couvertes(patch.couvre));
       }),
     };
   }
@@ -991,14 +1006,8 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
       ...scene,
       restZones: (scene.restZones ?? []).map((r, i) => {
         if (i !== sel.idx) return r;
-        const { quality: _q, ...reste } = r;
-        const pietre = patch.pietre ?? r.quality === 'pietre';
-        return {
-          ...reste,
-          rect: patch.z === undefined ? r.rect : rectALaCouche(r.rect, patch.z),
-          places: { ...r.places, ...patch.lieux },
-          ...(pietre ? { quality: 'pietre' as const } : {}),
-        };
+        const out = { ...r, rect: patch.z === undefined ? r.rect : rectALaCouche(r.rect, patch.z), places: { ...r.places, ...patch.lieux } };
+        return patch.pietre === undefined ? out : champ(out, 'quality', patch.pietre ? 'pietre' : undefined);
       }),
     };
   }
