@@ -10,11 +10,19 @@ import { portesDuMobile } from './marcheDuGroupe';
 import { scenesDuRegistre } from './monde/registreDesScenes';
 import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
-import { ACTIONS, findCreatureById, findSeaShantyById, findTrappingById, pregens } from '../data';
+import {
+  ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, findConditionById, findCreatureById, findSeaShantyById,
+  findTrappingById, pregens, profilsStandard, shipStations, skills, spells, talents, trappings,
+} from '../data';
+import { ACTIVITIES, entrainementOptions, qualitesDArtisanat } from '../engine/activities';
+import { TAVERN_GAMES } from '../engine/tavernGame';
+import { travelVehicles } from '../engine/travel';
+import { actionsDe } from './monde/usable';
+import { creneauxDuHeros } from './partyFlow';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
-import { chansonsDuChanteur, choixDePaieOuverts } from './shipCrew';
+import { BENCHED, chansonsDuChanteur, choixDePaieOuverts } from './shipCrew';
 import { creaturesADepecer } from './combatEffects';
 import { actorIn } from './monde/combatants';
 import { adversairesADistraire, adversairesDuBattement } from './combatManeuvers';
@@ -22,7 +30,7 @@ import { idsDuCoupleMonte } from './targetingModes';
 import { reponsesDuNoeud } from './dialogue';
 import { plaiesDeLOperation } from './medicFlow';
 import { seaActivitiesCatalog } from './seaActivities';
-import { catalogEntryOf, libelleDeLaRepartition } from './merchantFlow';
+import { catalogEntryOf, echoppesDuLieu, libelleDeLaRepartition } from './merchantFlow';
 import { bulkCarriers, lotDeCargaison } from './carriers';
 import { offresDeCargaison } from './cargaison';
 import { libelleDuDepot } from './interludeEnVue';
@@ -36,7 +44,8 @@ export type IdDeHeros = string;
 export type IdDePorteur = string;
 /** Une possession du groupe, par son `uid`. */
 export type IdDePossession = string;
-/** Un objet porté (`ItemInstance.uid`) par un héros, un combattant ou une possession. */
+/** Un objet porté (`ItemInstance.uid`) par un héros, un combattant (les munitions de ses pièces, `ShipPoste.ammo`,
+ *  comprises) ou une possession. */
 export type IdDObjet = string;
 /** Une scène que la partie rejoint : la scène courante et celles du registre (`scenesDuRegistre`), celui que lit
  *  `quitterLaScene`. */
@@ -92,6 +101,56 @@ export type IdDeCargaison = string;
 export type IdDOffreDeCargaison = string;
 /** Un dépôt en banque, par son `uid` (`BankDeposit`). */
 export type IdDeDepot = string;
+/** Un sort du catalogue (`spells.json`). */
+export type IdDeSort = string;
+/** Un set d'armes d'un combattant (`WeaponLoadout.id`). */
+export type IdDePanoplie = string;
+/** Un État du catalogue (`etats.json`). */
+export type IdDeCondition = string;
+/** Une Faveur due au groupe (`favors`), par son `id`. */
+export type IdDeFaveur = string;
+/** Une Activité du catalogue (`activities.json`) : d'interlude, de préparation ou Scène de bataille. */
+export type IdDActivite = string;
+/** Un objet du catalogue (`trappings.json`). */
+export type IdDObjetDuCatalogue = string;
+/** Un Atout qu'un ouvrage d'Artisanat peut viser (`qualitesDArtisanat`). */
+export type IdDAtoutDArtisanat = string;
+/** Un Défaut qu'un ouvrage d'Artisanat peut viser (`qualitesDArtisanat`). */
+export type IdDeDefautDArtisanat = string;
+/** Une apparence du catalogue (`apparences.json`), ou la forme propre d'un objet (`TrappingData.shape`). */
+export type IdDApparence = string;
+/** Un Talent du catalogue (`talents.json`). */
+export type IdDeTalent = string;
+/** Une Carrière du catalogue (`careers.json`). */
+export type IdDeCarriere = string;
+/** Un emplacement de carrière d'un héros du groupe (`creneauxDuHeros`, `partyFlow.ts`), par sa clé. */
+export type IdDeCreneau = string;
+/** Une Compétence ou un Talent du catalogue (`skills.json`, `talents.json`) : l'option d'un emplacement. */
+export type IdDeCompetenceOuDeTalent = string;
+/** Une Compétence ou une Caractéristique qu'un héros du groupe peut s'entraîner à acquérir (`entrainementOptions`). */
+export type IdDEntrainement = string;
+/** Un point d'entrée nommé d'une scène du registre (`Scene.entryPoints`). */
+export type IdDePointDEntree = string;
+/** Une offre nommée d'une entité de la scène courante (`ActionOfferte.id`, `actionsDe`). */
+export type IdDActionDEntite = string;
+/** Un service à échoppe du lieu où se tient le groupe (`placeServices`, `merchantArchetype`), par son `id`. */
+export type IdDeServiceDuLieu = string;
+/** Un jeu de taverne du catalogue (`tavern-games.json`). */
+export type IdDeJeuDeTaverne = string;
+/** Un profil standard (`profilsStandard`, LDB 77 l.7). */
+export type IdDeProfilStandard = string;
+/** Une route de la carte du monde (`MapRoute.id`). */
+export type IdDeRoute = string;
+/** Un mode de voyage (`TravelMode`) : à pied, à monture, ou un véhicule à passage payant (`travelVehicles`). */
+export type IdDeModeDeVoyage = string;
+/** Un rôle d'équipage naval (`crew-roles.json`), ou le Repos (`BENCHED`). */
+export type IdDeRoleABord = string;
+/** Une station à bord (`ship-stations.json`). */
+export type IdDeStation = string;
+/** Une pièce d'artillerie montée d'un combattant (`ShipPoste.item.uid`). */
+export type IdDePoste = string;
+/** Un trait naval du catalogue (`naval-traits.json`) : Amélioration ou trait de navire. */
+export type IdDeTraitNaval = string;
 
 /** Une désignation : son nom en mots, les ids valides qu'elle lit dans l'état, et le nom en mots du joueur de
  *  l'élément d'un id (`null` : l'élément n'a pas de nom). */
@@ -108,7 +167,16 @@ const combattants = (s: Jeu): string[] => sansDoublon(ids(lesCombattants(s)));
 /** Le `label` de l'élément d'id `id` parmi `xs`. */
 const labelParmi = (xs: readonly { id: string; label?: string }[], id: string): string | null => xs.find((x) => x.id === id)?.label ?? null;
 const nomDeCombattant = (s: Jeu, id: string): string | null => labelParmi(lesCombattants(s), id);
-const lesObjets = (s: Jeu) => [...lesCombattants(s).flatMap((c) => c.items ?? []), ...s.possessions.flatMap((p) => p.items)];
+const lesObjets = (s: Jeu) => [
+  ...lesCombattants(s).flatMap((c) => [...(c.items ?? []), ...(c.postes ?? []).flatMap((p) => p.ammo ?? [])]),
+  ...s.possessions.flatMap((p) => p.items),
+];
+const lesPostes = (s: Jeu) => lesCombattants(s).flatMap((c) => c.postes ?? []);
+const lesPanoplies = (s: Jeu) => lesCombattants(s).flatMap((c) => c.loadouts ?? []);
+const lesEntites = (s: Jeu) => s.scene?.entities ?? [];
+const lesActionsDEntite = (s: Jeu) => (s.scene ? lesEntites(s).flatMap((e) => actionsDe(s.scene!, e, s.flags)) : []);
+const lesModesDeVoyage = (): { id: string; label?: string }[] => [{ id: 'pied' }, { id: 'monture' }, ...travelVehicles()];
+const lesEntrainements = (s: Jeu) => s.party.flatMap(entrainementOptions);
 /** Les armes dont le lanceur du Sort en attente peut donner la forme (`conjureFormOptions`), LDB 47. */
 const formesConjurables = (s: Jeu): string[] => {
   const lanceur = s.pendingCast ? actorIn(s, s.pendingCast.casterId) : undefined;
@@ -194,5 +262,49 @@ export const DESIGNATIONS = {
       return d ? libelleDuDepot(s, d) : null;
     },
   },
+  IdDeSort: { mot: 'id de sort', lire: () => ids(spells), nom: (_s, id) => labelParmi(spells, id) },
+  IdDePanoplie: { mot: 'id de panoplie', lire: (s) => sansDoublon(ids(lesPanoplies(s))), nom: (s, id) => labelParmi(lesPanoplies(s), id) },
+  IdDeCondition: { mot: 'id d’État', lire: conditionIds, nom: (_s, id) => findConditionById(id)?.label ?? null },
+  IdDeFaveur: { mot: 'id de Faveur', lire: (s) => ids(s.favors), nom: () => null },
+  IdDActivite: { mot: 'id d’Activité', lire: () => ids(ACTIVITIES), nom: (_s, id) => labelParmi(ACTIVITIES, id) },
+  IdDObjetDuCatalogue: { mot: 'id d’objet du catalogue', lire: () => ids(trappings), nom: (_s, id) => findTrappingById(id)?.label ?? null },
+  IdDAtoutDArtisanat: { mot: 'id d’Atout d’Artisanat', lire: () => qualitesDArtisanat().atouts, nom: () => null },
+  IdDeDefautDArtisanat: { mot: 'id de Défaut d’Artisanat', lire: () => qualitesDArtisanat().defauts, nom: () => null },
+  IdDApparence: {
+    mot: 'id d’apparence',
+    lire: () => sansDoublon([...ids(apparences), ...trappings.flatMap((t) => (t.shape ? [t.shape.id] : []))]),
+    nom: (_s, id) => labelParmi(apparences, id),
+  },
+  IdDeTalent: { mot: 'id de Talent', lire: () => ids(talents), nom: (_s, id) => labelParmi(talents, id) },
+  IdDeCarriere: { mot: 'id de Carrière', lire: () => ids(careers), nom: (_s, id) => labelParmi(careers, id) },
+  IdDeCreneau: { mot: 'id d’emplacement de carrière', lire: (s) => sansDoublon(s.party.flatMap(creneauxDuHeros)), nom: () => null },
+  IdDeCompetenceOuDeTalent: {
+    mot: 'id de Compétence ou de Talent',
+    lire: () => sansDoublon([...ids(skills), ...ids(talents)]),
+    nom: (_s, id) => labelParmi(skills, id) ?? labelParmi(talents, id),
+  },
+  IdDEntrainement: { mot: 'id d’Entraînement', lire: (s) => sansDoublon(ids(lesEntrainements(s))), nom: () => null },
+  IdDePointDEntree: {
+    mot: 'id de point d’entrée',
+    lire: () => sansDoublon(scenesDuRegistre().flatMap((sc) => Object.keys(sc.entryPoints ?? {}))),
+    nom: () => null,
+  },
+  IdDActionDEntite: { mot: 'id d’offre d’entité', lire: (s) => sansDoublon(ids(lesActionsDEntite(s))), nom: (s, id) => labelParmi(lesActionsDEntite(s), id) },
+  IdDeServiceDuLieu: { mot: 'id de service du lieu', lire: (s) => ids(echoppesDuLieu(s)), nom: (s, id) => labelParmi(echoppesDuLieu(s), id) },
+  IdDeJeuDeTaverne: { mot: 'id de jeu de taverne', lire: () => ids(TAVERN_GAMES), nom: (_s, id) => labelParmi(TAVERN_GAMES, id) },
+  IdDeProfilStandard: { mot: 'id de profil standard', lire: profilsStandard, nom: (_s, id) => findCreatureById(id)?.label ?? null },
+  IdDeRoute: { mot: 'id de route', lire: (s) => ids(s.worldMap?.routes ?? []), nom: (s, id) => labelParmi(s.worldMap?.routes ?? [], id) },
+  IdDeModeDeVoyage: { mot: 'id de mode de voyage', lire: () => ids(lesModesDeVoyage()), nom: (_s, id) => labelParmi(lesModesDeVoyage(), id) },
+  IdDeRoleABord: { mot: 'id de rôle à bord', lire: () => [...ids(crewRoles), BENCHED], nom: (_s, id) => labelParmi(crewRoles, id) },
+  IdDeStation: { mot: 'id de station', lire: () => ids(shipStations), nom: (_s, id) => labelParmi(shipStations, id) },
+  IdDePoste: {
+    mot: 'id de poste',
+    lire: (s) => sansDoublon(lesPostes(s).map((p) => p.item.uid)),
+    nom: (s, uid) => {
+      const poste = lesPostes(s).find((p) => p.item.uid === uid);
+      return poste ? itemLabel(poste.item) : null;
+    },
+  },
+  IdDeTraitNaval: { mot: 'id de trait naval', lire: () => ids(NAVAL_TRAITS), nom: (_s, id) => labelParmi(NAVAL_TRAITS, id) },
   IdDIndice: { mot: 'id d’indice', lire: (s) => Object.keys(s.clues), nom: (s, id) => s.campaignNarratif?.indices.find((i) => i.id === id)?.titre ?? null },
 } satisfies Record<string, Designation>;

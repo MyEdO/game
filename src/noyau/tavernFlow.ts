@@ -48,6 +48,7 @@ import { refuseSi } from './verrousDeFiche';
 import { refuserGeste } from './refusVisible';
 import { rule } from '../engine/policy';
 import type { Jeu } from './etat';
+import type { IdDeHeros, IdDeJeuDeTaverne, IdDeProfilStandard } from './designations';
 import { bourseOf } from '../engine/bourse';
 import {
   freeCons, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget, tableStep, displayStep,
@@ -357,7 +358,7 @@ function potSeats(challenger: Combatant, opponentHero: Combatant | undefined, op
 /** Réglage d'une partie : le jeu, le challenger, son vis-à-vis, la mise unitaire (sous de cuivre),
  *  le coéquipier d'un jeu d'équipe, l'effectif d'une table de pot. */
 export interface ReglageDePartie {
-  gameId: string; challengerId: string; opponent: TavernOpponent; stakeBrass?: number; allyProfil?: string; tablePlayers?: number;
+  gameId: IdDeJeuDeTaverne; challengerId: IdDeHeros; opponent: TavernOpponent; stakeBrass?: number; allyProfil?: IdDeProfilStandard; tablePlayers?: number;
 }
 
 /** Partie prête à jouer : ses acteurs résolus et sa mise plafonnée à la bourse du challenger. */

@@ -79,7 +79,12 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     refuseLId(partie('revisit'), verbe('renommerLaPossession', 'nobody', 'x'), /uid : "nobody" n’est pas un id de possession \(valides : aucun ici\)/);
   });
   it('un id dans un tableau : `affecterLeHeros`', { timeout: 120_000 }, () => {
-    refuseLId(partie('revisit'), verbe('affecterLeHeros', 'a', ['nobody']), /heroIds\[0\] : "nobody" n’est pas un id de héros/);
+    refuseLId(partie('revisit'), verbe('affecterLeHeros', 'motivation', ['nobody']), /heroIds\[0\] : "nobody" n’est pas un id de héros/);
+  });
+  it('un id du catalogue : `affecterLeHeros`, un id que l’état du lieu ouvre : `ouvrirLaBoutique`', { timeout: 120_000 }, () => {
+    const t = partie('revisit');
+    refuseLId(t, verbe('affecterLeHeros', 'nulle', []), /activityId : "nulle" n’est pas un id d’Activité \(valides : plein-air, /);
+    refuseLId(t, verbe('ouvrirLaBoutique', 'forgeron'), /serviceId : "forgeron" n’est pas un id de service du lieu \(valides : aucun ici\)/);
   });
   it('la signature dit ce que le paramètre désigne', () => {
     const r = table().lire('verbes', { id: 'cliquerLaCase' });

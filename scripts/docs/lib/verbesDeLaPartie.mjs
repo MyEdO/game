@@ -180,6 +180,21 @@ function parametresDuReste(checker, q, designes) {
   })
 }
 
+/** Les paramètres d'un verbe déclaré à `SOURCE` dont le type écrit `string` nu, en paramètre ou en champ d'un objet
+ *  écrit sur place : ce qui existe se désigne par son `IdDe…` (`DESIGNATIONS`), un texte du joueur par `TexteLibre`
+ *  (`.claude/rules/verbes-du-noyau.md`). */
+function chainesNues(membre) {
+  if (!ts.isPropertySignatureDeclaration(membre) || !membre.type || !ts.isFunctionTypeNode(membre.type)) return []
+  const nues = []
+  const chercher = (n, chemin) => {
+    if (n.kind === ts.SyntaxKind.StringKeyword) nues.push(chemin)
+    else if (ts.isPropertySignatureDeclaration(n) && n.type) chercher(n.type, `${chemin}.${n.name.text}`)
+    else n.forEachChild((c) => chercher(c, chemin))
+  }
+  for (const q of membre.type.parameters) if (q.type) chercher(q.type, `${membre.name.text}(${q.name.text})`)
+  return nues
+}
+
 /** L'interface `nom` du fichier `source` du programme. */
 function interfaceDe(session, racine, source, nom) {
   const sf = session.program.getSourceFile(path.resolve(racine, source).replaceAll('\\', '/'))
@@ -211,6 +226,8 @@ export function partieLue(racine = process.cwd(), noms = null) {
     const { checker } = session
     const designes = nomsDesignes(session, racine)
     const verbes = {}
+    const nues = decl.members.flatMap(chainesNues)
+    if (nues.length) throw new Error(`verbesDeLaPartie : ${INTERFACE} écrit \`string\` nu (un id se désigne par son \`IdDe…\` de ${SOURCE_DESIGNATIONS}, un texte du joueur par \`TexteLibre\`) : ${nues.join(', ')}`)
     for (const p of checker.getPropertiesOfType(checker.getTypeAtLocation(decl.name))) {
       if (noms && !noms.includes(p.name)) continue
       const [signature] = checker.getSignaturesOfType(checker.getTypeOfSymbol(p), SignatureKind.Call)

@@ -83,6 +83,13 @@ function careerCtx(hero: Combatant) {
   };
 }
 
+/** Les clés des emplacements de carrière du héros, Compétences puis Talents (`careerCtx`), que `designerLeCreneau`
+ *  désigne. */
+export function creneauxDuHeros(hero: Combatant): string[] {
+  const ctx = careerCtx(hero);
+  return [...ctx.sSlots, ...ctx.tSlots].map((sl) => sl.key);
+}
+
 function isCompleted(hero: Combatant): boolean {
   const ctx = careerCtx(hero);
   if (!ctx.levels.some((l) => l.level === ctx.level)) return false;

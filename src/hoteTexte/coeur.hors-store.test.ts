@@ -136,7 +136,7 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('jetValider', 'cascade'), 'regle', /jetValider sans effet/);
   });
   it('une Dissipation sans Langue (Magick) ne dit sa raison qu’au journal : sans effet, la ligne du journal est la raison', { timeout: 120_000 }, () => {
-    refuse(partie('revisit'), verbe('dissiperLeSort', 'pregen-101', 'nulle-part', 'pregen-101'), 'regle', /dissiperLeSort sans effet : Il faut la compétence Langue \(Magick\)/);
+    refuse(partie('revisit'), verbe('dissiperLeSort', 'pregen-101', 'arme-aethyrique', 'pregen-101'), 'regle', /dissiperLeSort sans effet : Il faut la compétence Langue \(Magick\)/);
   });
   it('un pas bloqué n’émet qu’un événement informatif : sans effet, l’événement est la raison', { timeout: 120_000 }, () => {
     const t = partie('pont-vitrine', verbe('avancerDUnPas', 'back'));

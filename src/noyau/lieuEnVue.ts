@@ -5,7 +5,7 @@
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau } from './actionsDuNoyau';
-import { lieuDuGroupe, placeServiceMerchantId, placeServices, type MapPlace, type ResolvedPlaceService } from './worldMap';
+import { lieuDuGroupe, placeServices, type MapPlace, type ResolvedPlaceService } from './worldMap';
 import { trajetsDepuis, type TrajetEnVue } from './carteEnVue';
 import { refusDEntrerAuPort } from './portFlow';
 import { sceneDuRegistre } from './monde/registreDesScenes';
@@ -35,7 +35,7 @@ function gestesDuService(s: Jeu, ici: MapPlace, svc: ResolvedPlaceService): Gest
   }
   if (svc.category === 'port' || svc.opensScreen === 'port') return entrer({ verbe: 'ouvrirLePort', args: [] }, refusDEntrerAuPort(s));
   if (svc.category === 'marche') return entrer({ verbe: 'ouvrirLeMarche', args: [] });
-  if (svc.merchantArchetype) return entrer({ verbe: 'ouvrirLaBoutique', args: [placeServiceMerchantId(ici.id, svc.id), svc.merchantArchetype, ...(svc.backdrop ? [svc.backdrop] : [])] });
+  if (svc.merchantArchetype) return entrer({ verbe: 'ouvrirLaBoutique', args: [svc.id] });
   return [];
 }
 
