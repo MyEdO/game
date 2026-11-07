@@ -1,6 +1,7 @@
 /**
  * VALEURS NEUVES DE L'ATELIER (#3059) : l'op neuve d'un type (`newOp`), la formule d'une forme
- * (`formulaForShape`, `shapeOf`) et l'effet neuf d'un type (`newEffect`). Fonctions pures, au noyau parce qu'elles lisent le moteur et le modèle du monde
+ * (`formulaForShape`, `shapeOf`), l'effet neuf d'un type (`newEffect`) et la valeur neuve d'un nœud de schéma
+ * (`valeurNeuveDe`). Fonctions pures, au noyau parce qu'elles lisent le moteur et le modèle du monde
  * (`terrainsElectifs`, `EFFECT_HANDLERS`) : tout hôte crée la même valeur que l'éditeur web.
  */
 import type { Formula, GameOp } from '../engine/ops';
@@ -11,6 +12,7 @@ import { memoParVersion } from '../data';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { terrainsElectifs } from './monde/terrain';
 import { EFFECT_HANDLERS } from './combatEffects';
+import { admetUneListe, bornesDuNoeud, champsDeclares, choixDuNoeud, kindDuNoeud, videDuNoeud } from './codex/editFields';
 
 
 /** Règles optionnelles NUMÉRIQUES (`kind: 'param'`) — seules éligibles au terme `{rule}` d'une Formula
@@ -220,4 +222,23 @@ export function newOp(op: GameOp['op'] | string): GameOp {
 /** Effet par défaut d'un type — délégué à la FABRIQUE du registre (`EFFECT_HANDLERS[t].make`). */
 export function newEffect(type: Effect['type']): Effect {
   return EFFECT_HANDLERS[type].make();
+}
+
+/** La valeur NEUVE du nœud de schéma `noeud` : d'un champ à choix, sa première valeur (`choixDuNoeud`) ; d'un objet,
+ *  ses seuls champs dont le nœud n'admet pas le retrait (`videDuNoeud`), chacun à sa valeur neuve ; d'un nombre, 0, ou
+ *  sa borne basse si elle est au-dessus ; d'un texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un
+ *  objet neuf ne porte pas. */
+export function valeurNeuveDe(noeud: unknown): unknown {
+  const choix = choixDuNoeud(noeud);
+  if (choix) return choix[0]?.valeur;
+  const champs = champsDeclares(noeud);
+  if (champs) return Object.fromEntries(champs.flatMap(([cle, n]) => {
+    const neuve = videDuNoeud(n) === undefined ? undefined : valeurNeuveDe(n);
+    return neuve === undefined ? [] : [[cle, neuve]];
+  }));
+  const bornes = bornesDuNoeud(noeud);
+  if (bornes) return bornes.min !== null && bornes.min > 0 ? bornes.min : 0;
+  const kind = kindDuNoeud('', noeud);
+  if (kind === 'text' || kind === 'textarea') return '';
+  return admetUneListe(noeud) ? [] : undefined;
 }

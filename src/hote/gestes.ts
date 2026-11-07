@@ -187,7 +187,7 @@ function argument(etat: Jeu, verbe: string, p: { nom: string; optionnel: boolean
 }
 
 /** Le rendu d'un geste, d'après les arguments qu'il fait dire, et l'argument de son choix. */
-function renduDe(args: readonly ArgumentDuGeste[]): Pick<GesteDeLaFenetre, 'rendu' | 'aChoisir'> {
+export function renduDe(args: readonly ArgumentDuGeste[]): Pick<GesteDeLaFenetre, 'rendu' | 'aChoisir'> {
   const aDire = args.filter((a) => a.saisie !== 'fixe' && (!a.optionnel || a.saisie === 'choix'));
   if (!aDire.length) return { rendu: 'bouton', aChoisir: null };
   const [seul] = aDire;

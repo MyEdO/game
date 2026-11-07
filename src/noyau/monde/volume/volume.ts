@@ -4,7 +4,8 @@
  * la surface de chaque case de chaque couche. Repère des builders : X = est, Y = haut, Z = sud, en mètres, la case
  * (x, y) centrée sur (x·m, y·m) où m = `metresParCase`.
  */
-import { heightAt, piedDeLArete, sceneMetresPerTile, wallEnds, type Scene } from '../scene';
+import { heightAt, piedDeLArete, sceneMetresPerTile, tileAt, wallEnds, type Scene } from '../scene';
+import { terrainOverlayProp } from '../terrain';
 import { parseHex } from '../../../lib/couleurHex';
 import { MISSING_TONE } from './missing';
 import { buildFloors } from './floors';
@@ -66,17 +67,23 @@ const nomDeMatiere = ({ domain, id }: MaterialRef): string => `${domain}--${id}`
 /** Trois décimales : le millimètre, et le millième d'un canal de couleur. */
 const arrondi = (v: number): number => Math.round(v * 1000) / 1000;
 
-/** Les faces des décors volumiques posés sur la scène (entités `prop` dont le type porte une recette,
- *  `facesDuDecor`), chacune avec sa case, jusqu'à la couche `activeZ` : ancrés au centre de leur empreinte à leur cap
- *  (`decorAncre`), sur le sol de leur case. */
+/** Les faces des décors volumiques de la scène (`facesDuDecor`), chacune avec sa case, jusqu'à la couche `activeZ` :
+ *  le décor que son terrain pose sur chaque case (`terrainOverlayProp`, le bois et ses arbres), au centre de la case, et
+ *  les entités `prop`, ancrées au centre de leur empreinte à leur cap (`decorAncre`), sur le sol de leur case. */
 function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): { face: Face; cell: { x: number; y: number; z: number } }[] {
-  return scene.entities.flatMap((ent) => {
+  const { w, h } = scene.dimensions;
+  const duTerrain = scene.layers.filter((l) => l.z <= activeZ).flatMap(({ z }) =>
+    Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w), z })).flatMap((cell) => {
+      const faces = facesDuDecor(terrainOverlayProp(tileAt(scene, cell.x, cell.y, z)), { ancre: cell, baseHeightM: heightAt(scene, cell.x, cell.y, z) }, mpt);
+      return (faces ?? []).map((face) => ({ face, cell }));
+    }));
+  return duTerrain.concat(scene.entities.flatMap((ent) => {
     const z = ent.z ?? 0;
     if (ent.kind !== 'prop' || z > activeZ) return [];
     const ancre = decorAncre(ent.pos, empreinteDuProp(findPropById(ent.ref), ent.facing, mpt));
     const faces = facesDuDecor(ent.ref, { ancre, ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: heightAt(scene, ent.pos.x, ent.pos.y, z), entId: ent.id }, mpt);
     return (faces ?? []).map((face) => ({ face, cell: { ...ent.pos, z } }));
-  });
+  }));
 }
 
 /** Les faces `listees` triangulées (`facesGeometry`), orientées (`trianglesOrientes`) et colorées depuis la donnée, chacune

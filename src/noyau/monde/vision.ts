@@ -225,10 +225,10 @@ export function mapLights(scene: Scene): LightSource[] {
  * Aucun des deux n'est recalculé ici : un second calcul d'offset divergerait au premier changement
  * d'ancrage, et c'est précisément ce que ce foyer ne doit pas pouvoir faire.
  *
- * Rien à rendre sans recette ou sans `emet` : la source garde alors le défaut du rendu. PUR.
+ * Rien à rendre sans type résolu ou sans `emet` : la source garde alors le défaut du rendu. PUR.
  */
 function foyerDe(prop: PropData | undefined, pos: Pt, facing: Dir8 | undefined, mpt: number): { foyer?: LightSource['foyer'] } {
-  const emettrice = prop?.volume?.primitives.find((p) => p.emet);
+  const emettrice = prop?.volume.primitives.find((p) => p.emet);
   if (!emettrice) return {};
   const ancre = decorAncre(pos, empreinteDuProp(prop, facing, mpt));
   const [x, y] = rotatePropLocal(emettrice.center.xM / mpt, emettrice.center.yM / mpt, facing ?? CAP_IDENTITE_PROP);

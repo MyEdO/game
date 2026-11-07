@@ -149,7 +149,7 @@ export function terrainsAvecGlyphe(): Readonly<Record<string, Terrain>> {
   return glyphesVivants();
 }
 
-/** Décor billboard posé sur chaque tuile du terrain (id de `props.json`), ou undefined. */
+/** Décor posé sur chaque tuile du terrain (id de `props.json`), ou undefined. */
 export function terrainOverlayProp(id: string): string | undefined {
   return indexDesTerrains()[id]?.overlayProp;
 }

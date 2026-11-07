@@ -73,7 +73,7 @@ describe('validateScene', () => {
    * l'auteur l'apprend, AVANT le rendu. La règle est celle du CATALOGUE (`refEstVolumique`) : le même
    * cap sur un décor billboard reste licite.
    */
-  it('décor VOLUMIQUE au cap diagonal → erreur nominative ; un billboard au même cap passe', () => {
+  it('décor VOLUMIQUE au cap diagonal → erreur nominative ; un décor hors catalogue n’en reçoit pas d’orientation', () => {
     const s = base();
     s.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'NE' });
     const w = validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'table' && x.level === 'error');
@@ -84,8 +84,8 @@ describe('validateScene', () => {
     expect(validateScene([cardinal])).toEqual([]);
 
     const billboard = base();
-    billboard.entities.push({ id: 'brasero-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'brasero', facing: 'NE' });
-    expect(validateScene([billboard])).toEqual([]);
+    billboard.entities.push({ id: 'brasero-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'decor-hors-catalogue', facing: 'NE' });
+    expect(msgs(validateScene([billboard])).filter((m) => /orientation/.test(m))).toEqual([]);
   });
 
   it('entité sur un étage inexistant → avertissement', () => {

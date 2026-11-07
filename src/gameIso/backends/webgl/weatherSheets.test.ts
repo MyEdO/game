@@ -5,10 +5,9 @@
  */
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { brumeSheetGeometry, buildBrumeSheets, openSkyRuns, retainBrumeSheets } from './weatherSheets';
-import { sceneGroundSpan } from './weatherParticles';
+import { brumeSheetGeometry, buildBrumeSheets, retainBrumeSheets } from './weatherSheets';
+import { sceneGroundSpan } from '../../../noyau/monde/meteo';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../noyau/monde/scene';
-import { isSheltered, shelterField } from '../../../noyau/monde/volume/toits';
 import type { WeatherBrumeDef } from '../../../data/ambiance.types';
 
 const BRUME: WeatherBrumeDef = {
@@ -39,31 +38,12 @@ const nappesDe = (scene: Scene, def = BRUME) =>
   buildBrumeSheets(retainBrumeSheets(null, scene, sceneMetresPerTile(scene), def).plan, def);
 
 describe('weatherSheets — les nappes ne couvrent QUE le ciel ouvert', () => {
-  it('carte NUE : une bande pleine par rangée (la fusion, pas un quad par case)', () => {
-    const scene = emptyScene('scene-test', 12, 12);
-    const runs = openSkyRuns(scene);
-    expect(runs.length).toBe(12);
-    for (const r of runs) expect([r.x0, r.x1]).toEqual([0, 11]);
-  });
-
-  it('sous une masse : la colonne coiffée est RETIRÉE, la rangée se coupe en deux bandes', () => {
-    const scene = scèneCouverte();
-    const runs = openSkyRuns(scene);
-    const rangée = runs.filter((r) => r.y === 4);
-    expect(rangée.map((r) => [r.x0, r.x1])).toEqual([[0, 2], [7, 11]]);
-    // …et c'est bien la vérité d'ABRI du dépôt qui décide, pas un second calcul de ce module.
-    const abris = shelterField(scene);
-    for (let x = 3; x <= 6; x++) expect(isSheltered(abris, x, 4, 0)).toBe(true);
-    expect(isSheltered(abris, 2, 4, 0)).toBe(false);
-  });
-
   it('aucune colonne ouverte (bâti partout) : AUCUNE nappe montée', () => {
     const scene = emptyScene('scene-test', 4, 4);
     scene.architecture = [{
       id: 'bloc', label: 'Bloc', style: 'maison', storeys: [], facades: [],
       masses: [{ ...TOIT, id: 'toit-bloc', footprint: [{ x: 0, y: 0, w: 4, h: 4 }] }],
     }];
-    expect(openSkyRuns(scene)).toEqual([]);
     expect(nappesDe(scene)).toEqual([]);
   });
 });
