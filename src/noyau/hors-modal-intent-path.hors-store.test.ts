@@ -12,8 +12,7 @@
  *
  * Le geste RÉEL voyage par `cliquerLaCase`, sur un combattant ou une case libre (dispatchés par
  * `currentTargetingMode`) — `cleaveAttack`/`dualStrikeAttack` sont la machinerie que `targetingModes` appelle
- * (`MachinerieDuNoyau`, #3370), hors allowlist. Le clic et ce refus sont éprouvés ici ; la table `EMISSION` de
- * `src/state/hors-modal-intent-path.test.ts` empêche qu'une route porte de nouveau sur un verbe que personne n'émet.
+ * (`MachinerieDuNoyau`, #3370), hors allowlist. Le clic et ce refus sont éprouvés ici.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';

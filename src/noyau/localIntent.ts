@@ -8,8 +8,8 @@
  * case), et son annulation est GRATUITE par construction — aucune ressource n'est engagée à l'armement.
  *
  * COOP : `localIntent` vit à la RACINE du store, HORS `battle` — le mode est LOCAL au client (aucun
- * intent réseau à l'armement, seul le COMMIT du geste part), et `applyHostSnapshot` le préserve
- * (`netFlow.ts`). Les POSTURES, elles, sont du JEU : elles vivent dans `battle`.
+ * intent réseau à l'armement, seul le COMMIT du geste part), et `appliquerLInstantane` (`noyau/coop.ts`) le
+ * préserve. Les POSTURES, elles, sont du JEU : elles vivent dans `battle`.
  *
  * Chaque action du registre qui arme une intention déclare, en donnée (`intent` de `actions.json`),
  * l'id de la PORTÉE que le champ doit peindre ; le code de cette portée vit ici, jamais en JSON.
@@ -107,7 +107,7 @@ export function chargeArmee(get: Get<Jeu>): boolean {
  * débloquerait le geste d'autrui en armant SA propre case. Le verdict se calcule donc CHEZ
  * L'ÉMETTEUR, au moment du geste, et voyage dans les args comme `confirm`.
  *
- * Table déclarative (jamais un `if (action === …)` au fil de `netFlow`) : une action de clic, la
+ * Table déclarative (jamais un `if (action === …)` au fil de l'émission) : une action de clic, la
  * façon d'enrichir SES args. Les intents absents d'ici voyagent inchangés.
  */
 type VerdictJoint = (get: Get<Jeu>, args: readonly unknown[]) => unknown[];

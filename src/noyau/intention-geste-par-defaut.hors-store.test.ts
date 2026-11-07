@@ -9,8 +9,8 @@
  *  3. « Zones par défaut = Marche seule — la Course ne se peint qu'à l'armement de sa case ».
  *
  * Et les trois lois d'accompagnement : refus VISIBLE (jamais le journal, invisible en combat),
- * annulation GRATUITE par construction, intention JAMAIS bloquante des modes de ciblage. La peinture des zones et
- * l'annulation par Échap se jouent en `src/state/intention-geste-par-defaut.test.ts`.
+ * annulation GRATUITE par construction, intention JAMAIS bloquante des modes de ciblage. Les zones peintes se lisent
+ * à `porteesDuTour` (`localIntent.ts`), la lecture du champ de chaque hôte.
  *
  * L'approche vers l'ennemi cliqué s'arme donc par la CHARGE : sans elle le clic ne s'approche plus,
  * avec elle la case Charge garde son effet (une affordance qui ne fait rien serait morte).
@@ -21,6 +21,7 @@ import { computeRunReach, displayedReach } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { porteesDuTour } from './localIntent';
 
 /** Même combat témoin que `intention-portee.hors-store.test.ts` : un héros au tour ENTIER, ennemis parqués loin. */
 function setup() {
@@ -60,6 +61,17 @@ beforeEach(() => {
 });
 
 describe('(a) le clic-SOL au-delà de la Marche exige la Course ARMÉE', () => {
+  it('la zone de COURSE ne se peint QU’À l’armement (par défaut : la Marche seule), et le désarmement l’efface', () => {
+    setup();
+    const zones = () => porteesDuTour(get, true);
+    expect(zones().marche.size, 'témoin : la Marche est bien peinte').toBeGreaterThan(0);
+    expect(zones().course.size, 'la zone de Course se peint sans avoir été demandée').toBe(0);
+    get().jouerLOffre('course');
+    expect(zones().course.size, 'la Course armée ne peint pas sa zone').toBeGreaterThan(0);
+    get().battleArmIntent(null);
+    expect(zones().course.size, 'le désarmement laisse la zone de Course peinte').toBe(0);
+  });
+
   it('sans Course armée : ni déplacement, ni Course — un refus VISIBLE (bandeau, pas le journal)', () => {
     const { H } = setup();
     const loin = caseDeCourse();
@@ -133,5 +145,17 @@ describe('(c) le clic-ENNEMI frappe à PORTÉE, et ne s’approche que si la Cha
     cliquerSurLeCombattant(get, E.id, { confirm: true });
     expect(get().pendingAttack).toMatchObject({ attackerId: H.id, targetId: E.id });
     expect(refusAffiche()).toBeNull();
+  });
+});
+
+describe('(d) l’annulation reste GRATUITE par construction', () => {
+  it('armer puis désarmer ne dépense NI Mouvement, NI Action, NI Avantage', () => {
+    const { H } = setup();
+    const avant = { mv: get().battle!.movementUsed ?? 0, acted: get().battle!.acted, adv: H.advantage };
+    get().jouerLOffre('course');
+    get().battleArmIntent(null);
+    expect(get().localIntent).toBeNull();
+    const b = get().battle!;
+    expect({ mv: b.movementUsed ?? 0, acted: b.acted, adv: b.combatants.find((c) => c.id === H.id)!.advantage }).toEqual(avant);
   });
 });

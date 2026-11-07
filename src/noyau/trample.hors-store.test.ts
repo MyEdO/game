@@ -14,7 +14,6 @@ import { cliquerSurLeCombattant } from './combatOrParty';
 // ---------------------------------------------------------------------------
 // Piétinement — attaque gratuite de mêlée, OPPOSÉE (LDB 85 l.387 ; LDB 13 l.123)
 // ---------------------------------------------------------------------------
-// Le chemin du joueur au clavier (curseur de combat) se joue en `src/state/trample.test.ts`.
 
 let banc: Banc;
 
@@ -100,6 +99,23 @@ describe('Piétinement en combat (store)', () => {
     expect(pa.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
     banc.getState().jetConfirm('attack');
     expect(banc.getState().battle!.acted, 'action GRATUITE : l’Action reste').toBe(false);
+  });
+
+  // LDB 85 l.387 ; LDB 13 l.123 ; LDB 15 l.12 (empreinte par Taille : `sizes.json` footprintSide).
+  it('héros Énorme : la cible au BORD de son empreinte est au contact — le Piétinement se déclare, opposé, option consommée', () => {
+    banc.getState().seedRng(2);
+    const { H, E } = setup();
+    H.size = 'enorme';
+    H.advantage = 3;
+    E.pos = { x: 13, y: 10 };
+    pietiner(E.id);
+    expect(banc.getState().pendingAttack?.freeKind, 'le clic ouvre le jet du Piétinement').toBe('pietinement');
+    banc.getState().jetRoll('attack');
+    expect(banc.getState().pendingAttack!.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
+    banc.getState().jetConfirm('attack');
+    const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
+    expect(availableAttacks(h, banc.getState().battle!).some((o) => o.id === 'pietinement'), 'l’option disparaît').toBe(false);
   });
 
   it('Morsure jouée par un héros : l’arme du JET est la Morsure, jamais l’arme tenue (#1026 ; LDB 85 l.237)', () => {
@@ -227,6 +243,8 @@ describe('Piétinement en combat (store)', () => {
     expect(st.pendingAttack).toBeNull();
     expect(advDe(H.id), 'Avantage rendu').toBe(2);
     expect(st.battle!.movementUsed, 'Mouvement rendu').toBe(0);
+    const h = st.battle!.combatants.find((c) => c.id === H.id)!;
+    expect(availableAttacks(h, st.battle!).some((o) => o.id === attaque), 'l’option est rendue').toBe(true);
   });
 
   it('IA : un ennemi plus grand avec de l’Avantage piétine un héros adjacent plus petit (via aiCreatureFreeAttacks, #527)', () => {
