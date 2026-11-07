@@ -44,13 +44,13 @@ describe('session d’édition', () => {
     expect([s.pinceau, s.rectangle]).toEqual([3, false]);
   });
 
-  it('enregistrer : hors du dépôt, rien ; au dépôt, la scène n’est enregistrée qu’à l’écriture réussie', () => {
+  it('enregistrer : hors du dépôt, rien ; au dépôt, les scènes ne sont enregistrées qu’à l’écriture réussie', () => {
     expect(editer(ouverte(), { geste: 'enregistrer' }).depot).toBeNull();
     const modifiee = editer(ouverte(true), { geste: 'ajouterCouche' });
     const enCours = editer(modifiee, { geste: 'enregistrer' });
-    expect(enCours.depot).toEqual({ enregistree: sceneEditee(ouverte(true)), enCours: sceneEditee(modifiee) });
-    expect(editer(enCours, { geste: 'enregistrement', reussi: true }).depot).toEqual({ enregistree: sceneEditee(modifiee), enCours: null });
-    expect(editer(enCours, { geste: 'enregistrement', reussi: false }).depot).toEqual({ enregistree: sceneEditee(ouverte(true)), enCours: null });
+    expect(enCours.depot).toEqual({ enregistrees: [sceneEditee(ouverte(true))], enCours: [sceneEditee(modifiee)] });
+    expect(editer(enCours, { geste: 'enregistrement', reussi: true }).depot).toEqual({ enregistrees: [sceneEditee(modifiee)], enCours: null });
+    expect(editer(enCours, { geste: 'enregistrement', reussi: false }).depot).toEqual({ enregistrees: [sceneEditee(ouverte(true))], enCours: null });
     expect(editer(modifiee, { geste: 'enregistrement', reussi: true }), 'aucun enregistrement en cours').toBe(modifiee);
   });
 
