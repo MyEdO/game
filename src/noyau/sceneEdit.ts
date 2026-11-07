@@ -30,11 +30,9 @@ import {
   type SeatOccupant,
 } from './monde/seating';
 import { METRES_PER_LEVEL } from './monde/relief';
-import { entityKindSchema, sceneEffectZoneSchema, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
-import { ouverts } from '../data/schemas/grammaire/descente';
-import { declarationDeFeuilleDId } from '../data/schemas/grammaire/ref';
-import { champsDeclares, choixDuNoeud, videDuNoeud } from './codex/editFields';
-import { valeurNeuveDe } from './valeursNeuves';
+import { entityKindSchema, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
+import { champsDeclares, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, unionDuNoeud, varianteCourante, videDuNoeud } from './codex/editFields';
+import { valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { buildingRoofMaterial } from './monde/buildings';
 import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
@@ -43,7 +41,7 @@ import { ACTION_FOUILLER } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { CHAMPS_DU_FORMULAIRE_DE_ZONE, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
+import { FORMULAIRES, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Pt = { x: number; y: number };
@@ -803,9 +801,9 @@ export function addTrigger(scene: Scene, rect: Rect, z = 0): { scene: Scene; id:
   return { scene: { ...scene, triggers: [...scene.triggers, { id, rect: { ...rect, ...(z ? { z } : {}) }, once: true, flow: EMPTY_FLOW }] }, id };
 }
 
-/** Patche le trigger `id`. */
+/** Patche le trigger `id` (`champs` : une clé portée à `undefined` en retire le champ). */
 export function patchTrigger(scene: Scene, id: string, patch: Partial<Trigger>): Scene {
-  return { ...scene, triggers: scene.triggers.map((t) => (t.id === id ? { ...t, ...patch } : t)) };
+  return { ...scene, triggers: scene.triggers.map((t) => (t.id === id ? champs(t, patch) : t)) };
 }
 
 /** Renomme le trigger `from`. Refusé (scène inchangée) pour un id vide ou déjà porté par un autre trigger. */
@@ -967,53 +965,103 @@ type Objet = Record<string, unknown>;
 /** Le nœud admet-il que son champ soit retiré ? */
 const retirable = (noeud: unknown): boolean => videDuNoeud(noeud) === undefined;
 
-/** La valeur `valeur` est-elle de la sorte du nœud `noeud` ? `undefined` : s'il admet le retrait ; d'un champ à choix,
- *  l'une de ses valeurs (`choixDuNoeud`) ; d'un objet, sa valeur neuve (`valeurNeuveDe`) ; sinon, une valeur que le
- *  nœud parse. */
-function admise(noeud: unknown, valeur: unknown): boolean {
+/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin ;
+ *  pour chaque élément, « Retirer », la liste sans lui, et « Monter », celle où il passe avant le précédent (`null`
+ *  pour le premier). */
+export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[]; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
+  return {
+    ajouter: [...liste, neuve],
+    elements: liste.map((e, rang) => ({
+      retirer: liste.filter((_, i) => i !== rang),
+      monter: rang ? [...liste.slice(0, rang - 1), e, liste[rang - 1], ...liste.slice(rang + 1)] : null,
+    })),
+  };
+}
+
+/** La valeur `valeur` est-elle de la sorte du nœud `noeud`, où la valeur `actuelle` est écrite ? `undefined` : s'il
+ *  admet le retrait ; d'un champ à choix, l'une de ses valeurs (`choixDuNoeud`) ; d'un objet, sa valeur neuve
+ *  (`valeurNeuveDe`) ; d'une union, l'une de ses variantes à choisir (`variantesAChoisir`), ou de l'union qu'est sa
+ *  variante courante ; d'une liste, l'actuelle après l'un de ses gestes (`gestesDeLaListe`) ; sinon, et pour une union
+ *  ou une liste saisie entière, une valeur que le nœud parse. */
+function admise(noeud: unknown, actuelle: unknown, valeur: unknown): boolean {
   if (valeur === undefined) return retirable(noeud);
   const choix = choixDuNoeud(noeud);
   if (choix) return choix.some((o) => o.valeur === valeur);
   if (champsDeclares(noeud)) return jsonCanonique(valeur) === jsonCanonique(valeurNeuveDe(noeud));
-  return (noeud as { safeParse: (v: unknown) => { success: boolean } }).safeParse(valeur).success;
+  const parse = () => (noeud as { safeParse: (v: unknown) => { success: boolean } }).safeParse(valeur).success;
+  const jouee = jsonCanonique(valeur);
+  const union = unionDuNoeud(noeud);
+  if (union) {
+    const courante = varianteCourante(union, actuelle)?.noeud;
+    return variantesAChoisir(noeud, actuelle)!.some((v) => jsonCanonique(v.valeur) === jouee)
+      || (unionDuNoeud(courante) !== undefined && admise(courante, actuelle, valeur)) || parse();
+  }
+  const element = elementDuNoeud(noeud);
+  if (element !== undefined) {
+    const gestes = gestesDeLaListe(Array.isArray(actuelle) ? actuelle : [], valeurNeuveDe(element));
+    return [gestes.ajouter, ...gestes.elements.flatMap((e) => [e.retirer, e.monter])].some((l) => l && jsonCanonique(l) === jouee) || parse();
+  }
+  return parse();
 }
 
-/** L'objet `o` où le champ au chemin `[cle, ...reste]` vaut `valeur`, posé par `champ` ; un objet que ce retrait vide,
- *  au rang `rang` du chemin, en part aussi quand `vidable(rang)`. */
-function ecrit(o: Objet, [cle, ...reste]: readonly string[], valeur: unknown, vidable: (rang: number) => boolean, rang = 0): Objet {
-  if (!reste.length) return champ(o, cle, valeur);
-  const sous = o[cle] as Objet;
-  const suite = ecrit(sous, reste, valeur, vidable, rang + 1);
-  const vide = valeur === undefined && Object.keys(sous).length > 0 && !Object.keys(suite).length;
-  return champ(o, cle, vide && vidable(rang) ? undefined : suite);
+/** Le conteneur `o` où le champ au chemin `[cle, ...reste]` vaut `valeur`, posé par `champ` (un élément de liste se
+ *  remplace à son rang) ; un objet que ce retrait vide, au rang `rang` du chemin, en part aussi quand `vidable(rang)`. */
+function ecrit(o: unknown, [cle, ...reste]: readonly Segment[], valeur: unknown, vidable: (rang: number) => boolean, rang = 0): unknown {
+  const sous = (o as Record<Segment, unknown>)[cle];
+  const suite = reste.length ? ecrit(sous, reste, valeur, vidable, rang + 1) : valeur;
+  if (Array.isArray(o)) return o.map((e, i) => (i === cle ? suite : e));
+  const vide = valeur === undefined && reste.length > 0 && Object.keys(sous as object).length > 0 && !Object.keys(suite as object).length;
+  return champ(o as Objet, cle as string, vide && vidable(rang) ? undefined : suite);
 }
 
-/** La donnée `donnee` de l'objet de schéma `objet` où `valeur` s'écrit au chemin `chemin`, le champ retiré si elle
- *  vaut `undefined` (`ecrit`) ; `undefined` si le formulaire ne l'offre pas : un pas qui n'est pas une clé déclarée
- *  d'un objet présent (`champsDeclares`), une clé `id` qui n'est pas une référence `idDe` (une identité se change par
- *  son geste dédié, qui la propage), ou une valeur qui n'est pas de la sorte du champ (`admise`). Le schéma entier ne se
- *  vérifie qu'à l'enregistrement et à l'essai. */
-export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown): Objet | undefined {
+/** Le nœud du pas `pas` depuis le point de nœud `noeud` et de valeur `point` : le rang d'un élément d'une liste
+ *  présente (`elementDuNoeud`) ; une clé déclarée de l'objet présent (`champsDeclares`), à travers ses unions
+ *  (`formeAuPoint`), ni discriminant que tient le choix d'une variante, ni identité (`cleOfferte`) ; `undefined` si le
+ *  formulaire ne l'offre pas. */
+function noeudDuPas(noeud: unknown, point: unknown, pas: Segment): unknown {
+  if (typeof pas === 'number') {
+    const element = elementDuNoeud(noeud);
+    return element !== undefined && Array.isArray(point) && Number.isInteger(pas) && pas >= 0 && pas < point.length ? element : undefined;
+  }
+  if (point === null || typeof point !== 'object' || Array.isArray(point)) return undefined;
+  const forme = formeAuPoint(noeud, point);
+  const n = forme && champsDeclares(forme.noeud)?.find(([cle]) => cle === pas)?.[1];
+  return n !== undefined && !forme!.tenus.includes(pas) && cleOfferte(pas, n) ? n : undefined;
+}
+
+/** Pourquoi une valeur ne s'écrit pas : le formulaire n'offre pas son chemin, elle n'est pas de la sorte du champ, ou
+ *  elle est arrivée `null` (un JSON illisible) là où le champ ne l'admet pas. */
+export type RefusDeValeur = 'nonOffert' | 'horsSorte' | 'illisible';
+
+/** Ce qu'écrit une valeur : la donnée écrite, ou son refus. */
+export type EcritureDeValeur<T> = { ok: true; valeur: T } | { ok: false; refus: RefusDeValeur };
+
+/** La donnée `donnee` de l'objet de schéma `objet` où `valeur` s'écrit au chemin `chemin` (`ecrit`), le champ retiré si
+ *  elle vaut `undefined`, une liste vidée retirée si son nœud admet l'absence ; ou son refus : un pas que le
+ *  formulaire n'offre pas (`noeudDuPas`), une valeur qui n'est pas de la sorte du champ (`admise`). Le schéma entier
+ *  ne se vérifie qu'à l'enregistrement et à l'essai. */
+export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown): EcritureDeValeur<Objet> {
   const noeuds: unknown[] = [];
-  let champsIci = champsDeclares(objet);
   let point: unknown = donnee;
   for (const pas of chemin) {
-    if (!champsIci || typeof pas !== 'string' || point === null || typeof point !== 'object') return undefined;
-    const noeud = champsIci.find(([cle]) => cle === pas)?.[1];
-    if (noeud === undefined || (pas === 'id' && !ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined))) return undefined;
+    const noeud = noeudDuPas(noeuds.length ? noeuds[noeuds.length - 1] : objet, point, pas);
+    if (noeud === undefined) return { ok: false, refus: 'nonOffert' };
     noeuds.push(noeud);
-    champsIci = champsDeclares(noeud);
-    point = (point as Objet)[pas];
+    point = (point as Record<Segment, unknown>)[pas];
   }
-  if (!noeuds.length || !admise(noeuds[noeuds.length - 1], valeur)) return undefined;
-  return ecrit(donnee, chemin as readonly string[], valeur, (rang) => retirable(noeuds[rang]));
+  const dernier = noeuds[noeuds.length - 1];
+  if (dernier === undefined) return { ok: false, refus: 'nonOffert' };
+  const ecrite = Array.isArray(valeur) && !valeur.length && elementDuNoeud(dernier) !== undefined && retirable(dernier) ? undefined : valeur;
+  if (!admise(dernier, point, ecrite)) return { ok: false, refus: valeur === null ? 'illisible' : 'horsSorte' };
+  return { ok: true, valeur: ecrit(donnee, chemin, ecrite, (rang) => retirable(noeuds[rang])) as Objet };
 }
 
-/** La zone d'effet `zone` où `valeur` s'écrit au chemin `chemin` de son formulaire (`CHAMPS_DU_FORMULAIRE_DE_ZONE`,
- *  `avecLaValeur`) ; `undefined` si son formulaire ne l'offre pas. */
-export function zoneAvecLaValeur(zone: SceneEffectZone, chemin: readonly Segment[], valeur: unknown): SceneEffectZone | undefined {
-  const offert = (CHAMPS_DU_FORMULAIRE_DE_ZONE as readonly Segment[]).includes(chemin[0]);
-  return offert ? (avecLaValeur(sceneEffectZoneSchema, zone as unknown as Objet, chemin, valeur) as SceneEffectZone | undefined) : undefined;
+/** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
+ *  (`FORMULAIRES`, `avecLaValeur`), ou son refus : un chemin hors de ses champs n'est pas offert. */
+export function avecLaValeurDuPorteur<T extends SceneEffectZone | Trigger>(sorte: SorteDePorteur, donnee: T, chemin: readonly Segment[], valeur: unknown): EcritureDeValeur<T> {
+  const { schema, champs: offerts } = FORMULAIRES[sorte];
+  if (!(offerts as readonly Segment[]).includes(chemin[0])) return { ok: false, refus: 'nonOffert' };
+  return avecLaValeur(schema, donnee as unknown as Objet, chemin, valeur) as EcritureDeValeur<T>;
 }
 
 /** Les entrées couvertes `couvre` d'un patch, `undefined` pour aucune. */
