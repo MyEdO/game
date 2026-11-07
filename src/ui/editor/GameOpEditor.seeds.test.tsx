@@ -2,7 +2,8 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
 import { GameOpEditor } from './GameOpEditor';
-import { OP_LABEL, OP_REF_FIELDS, opRefValue } from '../../data/refsDOp';
+import { OP_REF_FIELDS, opRefValue } from '../../data/refsDOp';
+import { OP_LABEL } from '../../data/schemas/grammaire/mecanique';
 import type { GameOp } from '../../engine/ops';
 import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
