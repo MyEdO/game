@@ -87,7 +87,7 @@ describe('Structure d’orchestrateur — garde structurelle (elle ne connaît a
       expect.arrayContaining(AUTORISES),
     );
     const lus = new Set([...CODE.matchAll(/get\(\)\.(\w+)/g)].map((m) => m[1]));
-    for (const champ of lus) expect([...AUTORISES, 'pendingCascade', 'log']).toContain(champ);
+    for (const champ of lus) expect([...AUTORISES, 'pendingCascade', 'ecrireAuJournal']).toContain(champ);
   });
 });
 
@@ -158,7 +158,7 @@ describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 m
   beforeEach(() => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Barreur', seed: 1 });
     banc.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
-    banc.getState().seedRng(9);
+    banc.getState().ensemencerLeTirage(9);
   });
 
   it('deux manches s’enchaînent, l’état PERSISTE entre elles et la charge navale traverse intacte', () => {

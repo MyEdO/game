@@ -21,8 +21,8 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const priest = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
     banc.setState({ party: [hero, priest] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.label === 'H')!;

@@ -8,7 +8,7 @@ const hero = (id: string, current: number): Combatant =>
   combattantDeTest({ id, label: id, kind: 'hero', dead: false, wounds: blessuresDeBase(20, current) });
 
 function fakeStore(party: Combatant[]) {
-  let s: any = { battle: undefined, party, flags: {}, journal: [], log: () => {} };
+  let s: any = { battle: undefined, party, flags: {}, journal: [], ecrireAuJournal: () => {} };
   const get = () => s;
   const set = (patch: any) => { s = { ...s, ...(typeof patch === 'function' ? patch(s) : patch) }; };
   return { get, set, state: () => s };

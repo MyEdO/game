@@ -54,15 +54,15 @@ describe('les erreurs d’un geste : catégorie, drapeau d’erreur, fichier int
 });
 
 describe('une écriture du noyau n’est pas un geste (`MachinerieDuNoyau`, #3370)', () => {
-  it('`jouer` refuse `startScene` en `validation`, verbe inconnu', () => {
-    refuse(partie('dome'), verbe('startScene', {}), 'validation', /verbe inconnu : startScene/);
+  it('`jouer` refuse `lancerLaScene` en `validation`, verbe inconnu', () => {
+    refuse(partie('dome'), verbe('lancerLaScene', {}), 'validation', /verbe inconnu : lancerLaScene/);
   });
-  it('le rejeu refuse la ligne du fichier qui nomme `startScene`, avec son rang', () => {
+  it('le rejeu refuse la ligne du fichier qui nomme `lancerLaScene`, avec son rang', () => {
     const t = partie('dome', verbe('fenetreValider', 'roundStart'));
-    t.disque.ecrire('p', `${t.fichier()}{"type":"startScene","args":[{}]}\n`);
+    t.disque.ecrire('p', `${t.fichier()}{"type":"lancerLaScene","args":[{}]}\n`);
     const r = t.lire('vue');
     expect(r.erreur, r.texte).toBe('validation');
-    expect(r.texte.split('\n  ').join(' ')).toMatch(/ligne 3 du fichier ne se rejoue plus : verbe inconnu : startScene/);
+    expect(r.texte.split('\n  ').join(' ')).toMatch(/ligne 3 du fichier ne se rejoue plus : verbe inconnu : lancerLaScene/);
   });
 });
 

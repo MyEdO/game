@@ -176,7 +176,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   });
 
   it('LANCÉES (jamais posées), les deux étapes mènent à la même conséquence — via le pilote de fenêtre', () => {
-    banc.getState().seedRng(12);
+    banc.getState().ensemencerLeTirage(12);
     ouvrir();
     expect(draineCascade(banc.getState)).toEqual(['opsDe', 'opsDe']);
     const perte = 200 - gabier().wounds.current;
@@ -212,7 +212,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
       pendingCascade: null, journal: [],
       party: [marin('matelot', { shipStation: 'greement' } as Partial<Combatant>), coque()],
     });
-    banc.getState().seedRng(21);
+    banc.getState().ensemencerLeTirage(21);
     const matelot = banc.getState().party[0];
     applyLeafOps(banc.getState, banc.setState, matelot, feuille(opsDeChute()), { rng: desDuTest, hull: coque() });
     const st = banc.getState().pendingCascade!.participants[0];
@@ -592,7 +592,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   });
 
   it('HORLOGE de la clôture : l’événement PROGRAMMÉ se joue sur des Blessures ENCAISSÉES', () => {
-    // `advanceTime` tire `fireScheduledEffects` et les ticks (Hémorragique, Poison, agonie). Jouée
+    // `avancerLeTemps` tire `fireScheduledEffects` et les ticks (Hémorragique, Poison, agonie). Jouée
     // devant le dé, l'horloge les tire sur des Blessures que la chute n'a pas ôtées : le tick lit un
     // état que la conséquence en vol va contredire.
     // Ici la clôture est la FERMETURE du dialogue (choix sans `next`), qui horodate la conversation.
@@ -777,7 +777,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     openSequence(banc.getState, banc.setState, {
       title: 'Périls', purpose: 'sequence', steps: buildAuthorPerilSteps(r, 'Ubersreik', interruptId),
     });
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
   };
 
   it('le péril suivant joue APRÈS le dé de chute du précédent (ordre authoré)', () => {
@@ -827,7 +827,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       party: [marinBlesse('h1')], gameTime: 1000,
       worldMap: { routes: [r] } as never, travelPlan: { routeId: 'r1' } as never,
     });
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const joues = runCascadeImmediate(banc.getState, banc.setState,
       buildAuthorPerilSteps(r, 'Ubersreik', cleDeFixture('terre')) as never, { title: 'Périls', purpose: 'sequence' })!;
     expect(joues.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
@@ -868,7 +868,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       party: [marinBlesse('h1')], gameTime: 1000,
       worldMap: { routes: [r] } as never, travelPlan: { routeId: 'r1' } as never,
     });
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     runCascadeImmediate(banc.getState, banc.setState,
       buildAuthorPerilSteps(r, 'Ubersreik', cleDeFixture('terre')) as never, { title: 'Périls', purpose: 'sequence' });
     const immediat = etatFinal();
@@ -1062,7 +1062,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   it('(c) MARIN SANS SIÈGE : le socle tire d’office — et la chute l’ATTEINT', () => {
     const pnj = marinPoste('matelot', 'greement', 'npc');
     monteLeCombat([pnj], []); // enregistré au combat, tenu par PERSONNE
-    banc.getState().seedRng(21);
+    banc.getState().ensemencerLeTirage(21);
     ouvrirLaBande([pnj], 'combat');
     // Aucun siège ne tient ce marin : la bande ne s'ouvre pas pour lui, la voie INLINE joue son Test —
     // et la chute qui suit tire ses dés d'office, sans laisser d'étape en attente.
@@ -1078,7 +1078,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
     // ne doit donc pas porter la mention — elle la portait, héritée du slot amont : mensonge d'affordance.
     const ott = marinPoste('ott', 'greement');
     monteLeCombat([ott]);
-    banc.getState().seedRng(12);
+    banc.getState().ensemencerLeTirage(12);
     ouvrirLaBande([ott], 'combat');
     raterLeTest();
     draineCascade(banc.getState); // les deux dés de chute sont LANCÉS, jamais posés

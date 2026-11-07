@@ -443,11 +443,11 @@ describe('#1852 — un combattant ne décide qu’UNE fois son tour', () => {
     expect(joues(), 'le tour repris est décidé — une fois').toBe(1);
   });
 
-  it('chemin joueur : `resumeCadence` pendant un timer de tour IA en vol ne rejoue pas le tour', () => {
+  it('chemin joueur : `reprendreLaCadence` pendant un timer de tour IA en vol ne rejoue pas le tour', () => {
     const { enemy } = setup();
     enemy.traits = [];
     maybeRunEnemyTurn(g, banc.setState); // timer de tour EN VOL
-    g().resumeCadence();                    // le joueur change la cadence de combat
+    g().reprendreLaCadence();                    // le joueur change la cadence de combat
     banc.reprendreTout();
     const tours = aiTurnLog().filter((r) => r.id === enemy.id && r.round === 1);
     expect(tours.length).toBe(1);

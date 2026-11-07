@@ -49,7 +49,7 @@ function presetScene(id = 'sc-preset'): Scene {
 }
 
 function spawnedEnemy(): Combatant {
-  banc.getState().startCombat('enc-preset');
+  banc.getState().lancerLeCombat('enc-preset');
   return banc.getState().battle!.combatants.find((c) => c.id === 'pnj-1')!;
 }
 
@@ -87,13 +87,13 @@ describe('mergeCreatureProfile (#671, PUR)', () => {
 describe('resolvePresetCreature + spawn par presetId (chemin d’état réel #671)', () => {
   it('campagne chargée : le Combatant spawné porte la carac SURCHARGÉE + le label du preset', () => {
     banc.setState({ party: [hero()] });
-    // Chemin RÉEL : loadProject pose la couche narrative ET active la scène d’entrée.
-    banc.getState().loadProject({ scenes: [presetScene()], entryId: 'sc-preset', narratif: narratifFixture(), projet: null });
+    // Chemin RÉEL : chargerLeProjet pose la couche narrative ET active la scène d’entrée.
+    banc.getState().chargerLeProjet({ scenes: [presetScene()], entryId: 'sc-preset', narratif: narratifFixture(), projet: null });
     // La résolution de couche voit la base mergée.
     const r = resolvePresetCreature('pnj-test', presetPnjById)!;
     expect(r.creature.char[CC]).toBe(99);
     expect(r.creature.label).toBe('Nommé Test');
-    // Spawn par le chemin d’état réel (startCombat → spawnEnemy(presetCreature)).
+    // Spawn par le chemin d’état réel (lancerLeCombat → spawnEnemy(presetCreature)).
     const e = spawnedEnemy();
     expect(e.characteristics[CC]).toBe(99); // base brigand (40) surchargée par le profil (99)
     expect(e.label).toBe('Nommé Test');
@@ -101,9 +101,9 @@ describe('resolvePresetCreature + spawn par presetId (chemin d’état réel #67
 
   it('couche NON chargée : le presetId ne résout pas, et le PNJ sans autre porteur est un BOGUE nommé, jamais un PNJ générique (#1882)', () => {
     banc.setState({ party: [hero()], campaignNarratif: null });
-    expect(() => banc.getState().startScene(presetScene('sc-nu'))).toThrow(FicheAbsente);
+    expect(() => banc.getState().lancerLaScene(presetScene('sc-nu'))).toThrow(FicheAbsente);
     expect(resolvePresetCreature('pnj-test', presetPnjById)).toBeUndefined();
-    expect(() => banc.getState().startScene(presetScene('sc-nu'))).toThrow(/personnage « pnj-1 » : preset de PNJ « pnj-test » irrésoluble/);
+    expect(() => banc.getState().lancerLaScene(presetScene('sc-nu'))).toThrow(/personnage « pnj-1 » : preset de PNJ « pnj-test » irrésoluble/);
   });
 
   it('resolvePresetCreature : base introuvable → undefined (fail-doux)', () => {
@@ -138,7 +138,7 @@ describe('cross-ref parseProject (#671, validation reportée de #765)', () => {
 describe('coop — l’invité re-dérive la couche narrative du paquet de l’hôte (#1882)', () => {
   it('l’hôte et l’invité voient le MÊME PNJ à preset', () => {
     banc.setState({ party: [hero()], campaignNarratif: null });
-    banc.getState().loadProject({ scenes: [presetScene('sc-coop')], entryId: 'sc-coop', worldMap: null, narratif: narratifFixture(), projet: null });
+    banc.getState().chargerLeProjet({ scenes: [presetScene('sc-coop')], entryId: 'sc-coop', worldMap: null, narratif: narratifFixture(), projet: null });
     expect(sceneNpc(banc.getState().scene, 'pnj-1', presetPnjById)?.label).toBe('Nommé Test');
 
     const snap = instantaneDeLaCoop(banc.getState());

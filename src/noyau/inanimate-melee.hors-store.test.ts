@@ -22,14 +22,14 @@ const hache = (): Weapon => ({ label: 'Hache', type: 'melee', damage: { plusBF: 
 
 /** Enrôle une diligence (coque à PV) comme ENNEMI dans la scène de fixture, puis démarre le combat. */
 function startWithVehicle() {
-  banc.getState().seedRng(1);
+  banc.getState().ensemencerLeTirage(1);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   const scene = structuredClone(testScene());
   scene.entities.push({ id: 'veh', kind: 'personnage', ref: 'diligence', pos: { x: 7, y: 10 } } as never);
   (scene.encounters[0].members ??= []).push({ entityId: 'veh' } as never);
-  banc.getState().startScene(scene);
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(scene);
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;

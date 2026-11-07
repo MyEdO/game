@@ -26,32 +26,32 @@ const condOk = (when: Condition) => evalCondition(when, { flags: banc.getState()
 
 /**
  * Preuve que l'arène (données pures) tourne sur le MOTEUR EXISTANT, sans code applicatif :
- * loadProject (voie de l'éditeur) → on entre sur le sol → un trigger déclenche le combat →
+ * chargerLeProjet (voie de l'éditeur) → on entre sur le sol → un trigger déclenche le combat →
  * les Effets onVictory donnent argent/XP, posent le flag et transitionnent au hub → la porte
  * de la zone suivante s'ouvre (flag). Tout via des primitives déjà testées (checkTriggers,
- * startCombat, applyEffects, transition, condMet).
+ * lancerLeCombat, applyEffects, transition, condMet).
  */
 const doc = parseProject(lireProjetLivre('arene/arene-projet.json'));
 const project: Scene[] = doc.scenes;
 const zone1 = project.find((s) => s.id === 'arene-zone1')!;
 
 describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () => {
-  it('loadProject démarre sur la zone d’entrée, sans combat', () => {
-    banc.getState().setParty(makeShowcaseParty());
+  it('chargerLeProjet démarre sur la zone d’entrée, sans combat', () => {
+    banc.getState().fixerLeGroupe(makeShowcaseParty());
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     expect(banc.getState().scene?.id).toBe('arene-zone1');
     expect(banc.getState().battle).toBeNull();
   });
 
   it('entrer sur le sol (dans le rect du trigger) DÉCLENCHE la rencontre', () => {
-    banc.getState().setParty(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty());
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     poserLeGroupe(banc.getState, banc.setState, { x: 8, y: 8 }); // dans le rect de combat (x≥7) → checkTriggers
     expect(banc.getState().battle).not.toBeNull();
   });
 
   it('onVictory : argent + flag zone1_clear + transition vers le hub', () => {
-    banc.getState().setParty(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty());
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     runFlow(banc.getState, banc.setState, zone1.encounters[0].onVictory!);
     expect(banc.getState().flags.zone1_clear).toBe(true);
@@ -59,7 +59,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('au hub, la porte des Ruines s’ouvre une fois la Cour nettoyée', () => {
-    banc.getState().setParty(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty());
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     runFlow(banc.getState, banc.setState, zone1.encounters[0].onVictory!);
     const hub = banc.getState().scene!;
@@ -69,7 +69,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('ÉCHELLE COMPLÈTE : les 13 victoires enchaînées ouvrent chaque porte puis le titre de champion', () => {
-    banc.getState().setParty(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty());
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     const dlgHub = project.find((s) => s.id === 'arene-hub')!.dialogues.find((d) => d.id === 'dlg-hub')!;
     const choices = dlgHub.nodes.flatMap((n) => n.choices);
@@ -92,7 +92,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('ARCHITECTURE : la taverne du Bourg est cernée de murs d’arête, franchissable par sa PORTE', () => {
-    banc.getState().setParty(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty());
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     const hub = banc.getState().scene!;
     const bourg = hub.architecture?.find((body) => body.id === 'bourg');
@@ -118,7 +118,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('CONTRATS : la victoire au camp de Bella pose contrat_foret_fait → la prime du Maître se débloque', () => {
-    banc.getState().setParty(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty());
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     const foret = project.find((s) => s.id === 'arene-exp-foret')!;
     const bande = foret.encounters.find((e) => e.id === 'enc-foret-bande')!;

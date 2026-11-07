@@ -183,7 +183,7 @@ describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refu
     }
   });
 
-  it('Coque : la Bordée se ferme quand aucune pièce n’est chargée (`postesPretsAFaireFeu`, lu par `battleShipBattery`)', () => {
+  it('Coque : la Bordée se ferme quand aucune pièce n’est chargée (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee`)', () => {
     const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'hero');
     try {
       const ctx = contexte(partie);

@@ -24,9 +24,9 @@ function makeHero() {
 
 function startFixtureCombat(hero: ReturnType<typeof makeHero>, possessions: Possession[]) {
   banc.setState({ party: [hero], battle: null });
-  banc.getState().startScene(testScene()); // reset qui vide `possessions` (seedStartingPossessions) — injecter APRÈS
+  banc.getState().lancerLaScene(testScene()); // reset qui vide `possessions` (seedStartingPossessions) — injecter APRÈS
   banc.setState({ possessions });
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLeCombat('enc-mutants');
 }
 
 describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () => {
@@ -157,8 +157,8 @@ function cavalerieScene(preMonte: boolean): { scene: Scene; montureId: string; c
 
 function startCavalerie(scene: Scene) {
   banc.setState({ party: [makeHero()], battle: null });
-  banc.getState().startScene(scene);
-  banc.getState().startCombat(ENC_CAVALERIE);
+  banc.getState().lancerLaScene(scene);
+  banc.getState().lancerLeCombat(ENC_CAVALERIE);
   return banc.getState().battle!;
 }
 

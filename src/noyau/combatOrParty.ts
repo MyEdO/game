@@ -80,7 +80,7 @@ export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): 
   if (!battle || battle.over) return false;
   // Tir rapide ARMÉ (pause de début de Round, LDB 10) : cliquer un adversaire DÉCLENCHE l'interruption — même
   // prédicat partagé carte ⇄ frise, donc les DEUX surfaces l'honorent (sinon la carte serait inerte hors tour).
-  // Le store (`preemptRangedShot`) valide portée/Ligne de Vue/état ; ici on n'ouvre l'affordance que sur un adversaire.
+  // Le store (`declencherLeTirPreventif`) valide portée/Ligne de Vue/état ; ici on n'ouvre l'affordance que sur un adversaire.
   const aiming = get().preemptAiming;
   if (aiming) {
     const shooter = inBattleId(battle, aiming);

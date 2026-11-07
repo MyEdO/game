@@ -100,12 +100,12 @@ function fermerLaFenetreNeutre(): void {
 /** Le joueur remet l'Auto-combat (effet de la préférence de cadence, `state/preferences.ts`). */
 function remettreLAutoCombat(): void {
   setCadence('auto');
-  g().resumeCadence();
+  g().reprendreLaCadence();
 }
 /** Le joueur reprend la main (cadence manuelle). */
 function passerEnManuel(): void {
   setCadence('manuel');
-  g().resumeCadence();
+  g().reprendreLaCadence();
 }
 
 describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe réactive : UNE décision, UNE frappe', () => {

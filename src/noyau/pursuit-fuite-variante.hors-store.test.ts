@@ -46,7 +46,7 @@ function doneRound(h: Combatant, sl: number): MancheClose {
 
 /** Distance obtenue au bout d'une manche, groupe POURSUIVI, héros et adversaire à Mouvement 4. */
 function distanceAfterRound(h: Combatant, partyRole: 'fleeing' | 'pursuing'): number {
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
   banc.setState({
     sequence: {
       def: 'pursuit', round: 1, cum: {}, params: { score: { fleeing: 'min', pursuers: 'max' } },

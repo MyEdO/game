@@ -51,7 +51,7 @@ import type { Scene } from './monde/scene';
 import { persisterLeHeros } from './plateforme';
 import { creditBourse, payWithAllocation, refusDeBourse, soloPayer } from './bourseFlow';
 import { ensureBourse, bourseOf, withBourseMoney } from '../engine/bourse';
-import { transferPossession } from './possessionsFlow';
+import { transmettreLaPossession } from './possessionsFlow';
 
 import type { Get, Set } from './flowTypes';
 import { herosDeLEngagement, type HerosEngage } from './creation/engagement';
@@ -145,7 +145,7 @@ export function equiperLObjet(get: Get, set: Set, carrierId: string, uid: string
       }),
     };
   });
-  if (msg) get().log(msg);
+  if (msg) get().ecrireAuJournal(msg);
 }
 
 /** Range (`containerUid` non-null) ou sort (null) un objet d'un PORTEUR d'un contenant (LDB 64). Ranger
@@ -198,7 +198,7 @@ export function rangerLObjet(get: Get, set: Set, carrierId: string, uid: string,
       }),
     };
   });
-  if (msg) get().log(msg);
+  if (msg) get().ecrireAuJournal(msg);
 }
 
 /** Applique une mutation de loadout à un héros (clone + recompute), même pattern qu'equiperLObjet. */
@@ -329,7 +329,7 @@ export function transmettreLObjet(get: Get, set: Set, uid: string, fromCarrierId
     }
     return patch;
   });
-  get().log(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
+  get().ecrireAuJournal(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
 }
 
 /** #2967 */
@@ -342,7 +342,7 @@ export function poserLApparence(get: Get, set: Set, heroId: string, uid: string,
   });
 }
 
-export function grantXp(get: Get, set: Set, heroId: string, amount: number): void {
+export function accorderLesPx(get: Get, set: Set, heroId: string, amount: number): void {
   let name = '';
   set((s) => ecrireActeur(s, heroId, (h) => {
     name = h.label;
@@ -350,7 +350,7 @@ export function grantXp(get: Get, set: Set, heroId: string, amount: number): voi
     clone.xp = (clone.xp ?? 0) + amount;
     return clone;
   }));
-  if (name) get().log(`${name} : ${amount >= 0 ? '+' : ''}${amount} PX.`);
+  if (name) get().ecrireAuJournal(`${name} : ${amount >= 0 ? '+' : ''}${amount} PX.`);
 }
 
 /** SEULE couture de dépense de PX : le refus (`refusDepensePx`) tombe ici, sinon `depense` s'écrit par
@@ -385,7 +385,7 @@ export function acheterLaCaracteristique(get: Get, set: Set, heroId: string, cha
     msg = t('pf.advanceBought', { name: clone.label, what: CHAR_LABELS[char], cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
     return clone;
   })) return;
-  if (msg) get().log(msg);
+  if (msg) get().ecrireAuJournal(msg);
 }
 
 /** Achète une Augmentation de Compétence — identité : la référence, LDB 09 l.44. L'achat via un
@@ -435,7 +435,7 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
     msg = t('pf.advanceBought', { name: clone.label, what: libelleAvecSpec(skillLabel, spec), cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
     return clone;
   })) return;
-  if (msg) get().log(msg);
+  if (msg) get().ecrireAuJournal(msg);
 }
 
 /** Désigne GRATUITEMENT un emplacement « (Au choix) » de la carrière courante sur une (id, spec)
@@ -461,7 +461,7 @@ export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: s
     msg = t('pf.designated', { name: clone.label, label });
     return clone;
   }));
-  if (msg) get().log(msg);
+  if (msg) get().ecrireAuJournal(msg);
 }
 
 /** Achète une Augmentation de Talent — identité (talentId, spec). In-carrière = `talentEnCarriere` : un
@@ -512,7 +512,7 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talentId: st
     }
     return clone;
   })) return;
-  if (msg) get().log(msg);
+  if (msg) get().ecrireAuJournal(msg);
 }
 
 /** Apprend/mémorise un sort (LDB 46 l.16-20 + Talents LDB 10) : coût en PX selon la
@@ -551,7 +551,7 @@ export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: strin
     result = { ok: true, chaos: sp.family === 'chaos' };
     return clone;
   })) return { ok: false };
-  if (msg) get().log(msg);
+  if (msg) get().ecrireAuJournal(msg);
   return result;
 }
 
@@ -567,7 +567,7 @@ export function acheterLaComposante(get: Get, set: Set, heroId: string, spellId:
   const cost = coutDuComposant(sp);
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'Composant d’incantation' });
   set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, componentSpells: [...(h.componentSpells ?? []), spellId] })));
-  get().log(t('pf.componentBought', { name: hero!.label, spell: sp.label, money: formatMoney(cost) }));
+  get().ecrireAuJournal(t('pf.componentBought', { name: hero!.label, spell: sp.label, money: formatMoney(cost) }));
 }
 
 /** Coût d'un composant d'incantation. LDB 46 l.113 */
@@ -660,7 +660,7 @@ export function terminerLaSeance(get: Get, set: Set): void {
     lines.set(h.id, siennes);
     return clone;
   }));
-  for (const l of [...lines.values()].flat()) get().log(l);
+  for (const l of [...lines.values()].flat()) get().ecrireAuJournal(l);
   set({ finDeSeance: null });
   get().restaurerLaFortune(); // Chance restaurée pour la prochaine séance (LDB 17 l.41)
 }
@@ -699,7 +699,7 @@ export function entrainerLaProthese(get: Get, set: Set, heroId: string, uid: str
     msg = t('pf.prosthesisTierBought', { name: clone.label, item: it.label, tier: tier.label, cost: tier.px });
     return clone;
   })) return;
-  if (msg) get().log(msg);
+  if (msg) get().ecrireAuJournal(msg);
 }
 
 export function changerDeCarriere(get: Get, set: Set, heroId: string, newCareer: string, newLevel: number): void {
@@ -721,7 +721,7 @@ export function changerDeCarriere(get: Get, set: Set, heroId: string, newCareer:
     msg = t('pf.careerChanged', { name: clone.label, career: dataLabel(findCareerById(newCareer)?.label ?? newCareer), level: newLevel, cost: r.cost });
     return clone;
   })) return;
-  if (msg) get().log(msg);
+  if (msg) get().ecrireAuJournal(msg);
 }
 
 /** Couture de la composition du groupe (ajout, retrait, remplacement, intentions coop comprises) : en
@@ -788,7 +788,7 @@ export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
     net: { ...s.net, ownership: { ...s.net.ownership, [copy.id]: seat }, rangs },
   });
   creditBourse(get, set, copy.id, bati.wealth);
-  get().log(t('pf.startingWealth', { name: copy.label, money: formatMoney(bati.wealth) }));
+  get().ecrireAuJournal(t('pf.startingWealth', { name: copy.label, money: formatMoney(bati.wealth) }));
 }
 
 /**
@@ -825,7 +825,7 @@ export function renvoyerLeHeros(get: Get, set: Set, heroId: string): void {
   const heir = remaining.find((h) => !h.dead);
   if (heir) {
     for (const p of get().possessions) {
-      if (p.ownerId === heroId) transferPossession(get, set, p.uid, heir.id);
+      if (p.ownerId === heroId) transmettreLaPossession(get, set, p.uid, heir.id);
     }
     const bourse = bourseOf(hero);
     if (bourse.gold || bourse.silver || bourse.brass) creditBourse(get, set, heir.id, bourse);
@@ -905,7 +905,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     garnirLaPanoplie: (heroId, id, slot, uid) => garnirLaPanoplie(get, set, heroId, id, slot, uid),
     transmettreLObjet: (uid, fromHeroId, toHeroId) => transmettreLObjet(get, set, uid, fromHeroId, toHeroId),
     poserLApparence: (heroId, uid, apparence) => poserLApparence(get, set, heroId, uid, apparence),
-    grantXp: (heroId, amount) => grantXp(get, set, heroId, amount),
+    accorderLesPx: (heroId, amount) => accorderLesPx(get, set, heroId, amount),
     acheterLaCaracteristique: (heroId, char) => acheterLaCaracteristique(get, set, heroId, char),
     acheterLaCompetence: (heroId, skill) => acheterLaCompetence(get, set, heroId, skill),
     acheterLeTalent: (heroId, talentId, spec) => acheterLeTalent(get, set, heroId, talentId, spec),
@@ -916,7 +916,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
       if (r.ok && r.chaos) {
         const hero = actorIn(get(), heroId);
         if (hero) {
-          for (const l of gainCorruption(get, set, hero, 1)) get().log(l);
+          for (const l of gainCorruption(get, set, hero, 1)) get().ecrireAuJournal(l);
           set(touchActors(get()));
         }
       }
@@ -931,7 +931,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     },
     entrainerLaProthese: (heroId, uid) => entrainerLaProthese(get, set, heroId, uid),
     changerDeCarriere: (heroId, newCareer, newLevel) => changerDeCarriere(get, set, heroId, newCareer, newLevel),
-    setParty: (p) => set({ party: p }),
+    fixerLeGroupe: (p) => set({ party: p }),
     // Longues Séances de Jeu (LDB 17 l.47) : réutilise l'Effet `restoreFortune` (NE DUPLIQUE PAS la
     // logique — même case que le début de session, qui appelle `engine/fortune.restoreFortune`).
     // Corps de BLOC, retour CONSOMMÉ (#1508) : une flèche à corps expression typée `() => void` avale le

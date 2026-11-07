@@ -61,7 +61,7 @@ export function refusDeCourseDuPorteur(c: Combatant): string | null {
   return refusCoque(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusEngage(c) ?? refusRampe(c);
 }
 
-/** Verdict de la Course (LDB 15 l.41), lu par le gate `course-possible`, `battleRun` et `computeRunReach`. */
+/** Verdict de la Course (LDB 15 l.41), lu par le gate `course-possible`, `ouvrirLaCourse` et `computeRunReach`. */
 export function refusDeCourse(battle: BattleState, c: Combatant): string | null {
   return refusActionDepensee(battle) ?? refusDeCourseDuPorteur(c) ?? refusSansMouvement(battle, c);
 }

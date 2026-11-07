@@ -231,7 +231,7 @@ export function spellAffinity(spell: NonNullable<ReturnType<typeof findSpellById
 
 /**
  * BORDÉE — ce qui EMPÊCHE la volée sur cette cible, ou `null`. MESURE UNIQUE : le survol en tire son
- * `invalid` (rien ne s'affiche) et le commit (`battleShipBattery`) en tire son refus DIT — sans elle, le
+ * `invalid` (rien ne s'affiche) et le commit (`ouvrirLaBordee`) en tire son refus DIT — sans elle, le
  * clic tirait hors de portée (aucun gate au commit) et l'arc ne se disait qu'au journal.
  */
 export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { reason: 'arc' | 'range'; detail: PlayerText } | null {
@@ -558,9 +558,9 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     return;
   }
   // « Au Contact » (LDB 62 l.176) : action de Test opposé (pas une frappe) → flux dédié, jamais l'approche-puis-frappe.
-  if (option.targeting === 'aucontact') return get().battleAuContact(target.id);
+  if (option.targeting === 'aucontact') return get().ouvrirLAuContact(target.id);
   // Empoignade (LDB 14 l.161) : action de Test opposé de Force entre deux Empoignés → flux dédié.
-  if (option.targeting === 'grapple') return get().battleGrapple(target.id);
+  if (option.targeting === 'grapple') return get().ouvrirLEmpoignade(target.id);
   if (option.targeting === 'zone') {
     set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, attaque: option.id, targetId: target.id, avantageSpent: option.advantageMode === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
     return;
@@ -627,8 +627,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     active.pos = { ...plan.dest };
     if (geom !== active) geom.pos = { ...plan.dest }; // la monture charge sous le cavalier
     displaceSmaller(get, geom); // charge d'un grand : idem dégage les plus petits (85 l.373-374)
-    get().faceFromPath(active.id, approachPath);
-    if (geom !== active) get().faceFromPath(geom.id, approachPath);
+    get().orienterSelonLeChemin(active.id, approachPath);
+    if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
     bus.emit(EVT.ANIM_MOVE, { id: active.id, path: approachPath });
     if (geom !== active) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path: approachPath });
     applyZoneCrossings(get, set, active, approachPath); // Mur de feu & co (L11) : charger À TRAVERS coûte
@@ -648,8 +648,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       active.pos = { ...plan.dest };
       if (geom !== active) geom.pos = { ...plan.dest };
       displaceSmaller(get, geom);
-      get().faceFromPath(active.id, approachPath);
-      if (geom !== active) get().faceFromPath(geom.id, approachPath);
+      get().orienterSelonLeChemin(active.id, approachPath);
+      if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
       bus.emit(EVT.ANIM_MOVE, { id: active.id, path: approachPath });
       if (geom !== active) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path: approachPath });
       applyZoneCrossings(get, set, active, approachPath); // Mur de feu & co (L11)
@@ -722,7 +722,7 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
   active.pos = { ...pt };
   if (mount) mount.pos = { ...pt }; // couple cavalier↔monture solidaire (comme le déplacement)
   displaceSmaller(get, mount ?? active); // un grand qui se téléporte dégage aussi les plus petits sous son empreinte (LDB 85 l.373-374)
-  get().faceFromPath(active.id, [from, pt]);
+  get().orienterSelonLeChemin(active.id, [from, pt]);
   bus.emit(EVT.ANIM_MOVE, { id: active.id, path: [{ ...pt }] });
   if (mount) bus.emit(EVT.ANIM_MOVE, { id: mount.id, path: [{ ...pt }] });
   set({ battle: { ...battle, action: null, reachable: new Map(), preview: null, log: [...battle.log, ev('move', t('cs.teleport', { name: active.label }), active.id)] } });
@@ -799,7 +799,7 @@ export const CAST_MODE: TargetingMode = {
 };
 const BATTERY_MODE: TargetingMode = {
   id: 'battery', label: 'Bordée', consigne: 'consigne.battery', affordance: batteryAffordance,
-  commitCombatant: (get, _set, active, id) => { get().battleShipBattery(active.id, id); },
+  commitCombatant: (get, _set, active, id) => { get().ouvrirLaBordee(active.id, id); },
 };
 const HEAL_MODE: TargetingMode = {
   id: 'heal', affordance: healAffordance, anneauCandidats: 'ami',
@@ -807,8 +807,8 @@ const HEAL_MODE: TargetingMode = {
   commitCombatant: (get, _set, active, id) => {
     const target = inBattleId(get().battle, id);
     if (!target) return;
-    // Mode par défaut au ciblage-carte (la modale permet de basculer) ; sans soin de combat, `battleHeal` dit le refus.
-    get().battleHeal(id, modesDOuverture(target, active)[0] ?? HEAL_MODES[0]);
+    // Mode par défaut au ciblage-carte (la modale permet de basculer) ; sans soin de combat, `ouvrirLaGuerison` dit le refus.
+    get().ouvrirLaGuerison(id, modesDOuverture(target, active)[0] ?? HEAL_MODES[0]);
   },
 };
 /** ≥2 Sorts dissipables sur ce porteur : il reste un PARAMÈTRE à demander (le panneau borné de la
@@ -859,7 +859,7 @@ const CLEAVE_MODE: TargetingMode = {
     const atk = battle && pc && inBattleId(battle, pc.attackerId);
     return battle && pc && atk ? cleaveTargets(battle, atk, pc.hitIds) : [];
   },
-  commitCombatant: (get, _set, _active, id) => { get().cleaveAttack(id); },
+  commitCombatant: (get, _set, _active, id) => { get().frapperEnBalayage(id); },
 };
 const DUAL_MODE: TargetingMode = {
   id: 'dual', label: 'Des deux armes', consigne: 'consigne.dual', affordance: dualAffordance, anneauCandidats: 'hostile',
@@ -871,7 +871,7 @@ const DUAL_MODE: TargetingMode = {
     const off = atk && ds && atk.weapons.find((w) => w.uid === ds.offWeaponUid);
     return battle && atk && off ? dualStrikeTargets(battle, atk, off) : [];
   },
-  commitCombatant: (get, _set, _active, id) => { get().dualStrikeAttack(id); },
+  commitCombatant: (get, _set, _active, id) => { get().frapperDeLaSecondeArme(id); },
 };
 const TELEPORT_MODE: TileTargetingMode = {
   id: 'teleport', label: 'Téléportation', consigne: 'consigne.teleport',

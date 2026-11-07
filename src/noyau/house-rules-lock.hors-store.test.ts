@@ -28,9 +28,9 @@ const verrou = () => reglesMaisonMutables(banc.getState());
 function startFixtureCombat() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
   seedBattleRng(777);
-  banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+  banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
   return banc.getState().battle!;
 }
 

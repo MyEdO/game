@@ -61,7 +61,7 @@ const groundScene = (): Scene =>
     layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
 const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string> = {}, movementUsed = 0): (() => JeuDuNoyau) =>
-  (() => ({ scene: sc, battle: { combatants, movementUsed }, facing, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => JeuDuNoyau;
+  (() => ({ scene: sc, battle: { combatants, movementUsed }, facing, gameTime: 0, net: initialNet(), ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
 
 // (A) SERVICE — la SceneEntity au sol qui PORTE des postes se spawn avec `Combatant.postes` ; au combat,
 //     `applyShipPostes` (kind-agnostique) sert la pièce au chef d'équipage. SANS `side` (tir omni).

@@ -75,11 +75,11 @@ const doubleAbsorbe = (attaquant: Combatant, cible: Combatant): AttackResult =>
   rederivePassiveAttack(attaquant, cible, gourdin, { roll: 44, target: 90, success: true, sl: 2, isDouble: true } as never, 'melee', { rng: makeRNG(1595) }, 'corps');
 
 function combat(seed = 7) {
-  banc.getState().seedRng(seed);
+  banc.getState().ensemencerLeTirage(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
-  banc.getState().startScene(structuredClone(testScene()));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(structuredClone(testScene()));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -126,13 +126,13 @@ describe('Critique d’un personnage ou d’une créature dont le coup est absor
 // ── Structure : AA 10 l.114 ────────────────────────────────────────────────────────────────────
 const fleche: Weapon = { label: 'Flèche', type: 'ranged', damage: { plusBF: false, flat: 0 }, qualities: [] };
 function mur(structure = 'mur-en-pierre', graine = 1): { S: Combatant; H: Combatant } {
-  banc.getState().seedRng(graine);
+  banc.getState().ensemencerLeTirage(graine);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   const s: Scene = structuredClone(testScene());
   s.walls = [{ x: 2, y: 2, side: 'E', structure }];
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
-  banc.getState().startScene(s);
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(s);
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;

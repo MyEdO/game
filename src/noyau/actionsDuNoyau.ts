@@ -179,14 +179,14 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *    le pas du groupe ; combat = Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. */
   franchirLArete: (de: Pt, vers: Pt) => void;
   /** POV : pivote le REGARD du meneur d'un cran de 45° (+1 = horaire/droite, -1 = anti-horaire/gauche) —
-   *  aucun déplacement (donc pas de réorientation par `faceFromPath`). */
+   *  aucun déplacement (donc pas de réorientation par `orienterSelonLeChemin`). */
   pivoterLeGroupe: (turn: 1 | -1) => void;
   /** POV : un pas RELATIF au cap du meneur (avance/recul/pas latéral) — cap monde = regard tourné de
    *  0/2/4/6 crans (90° par cadran), case d'arrivée via `povStepDest`. Le regard est préservé pour tout
    *  pas ≠ avant (un pas latéral/arrière ne réoriente pas le meneur). */
   avancerDUnPas: (rel: 'forward' | 'back' | 'left' | 'right') => void;
   /** JOUE une offre NOMMÉE d'une entité (`ActionOfferte.id`) — l'exécuteur UNIQUE des gestes
-   *  d'exploration ; `interactEntity` n'en est que le raccourci « joue l'unique offre ». */
+   *  d'exploration ; `interagirAvecLEntite` n'en est que le raccourci « joue l'unique offre ». */
   jouerAction: (entityId: IdDEntiteDeScene, actionId: IdDActionDEntite) => void;
   /** FOUILLER LA PIÈCE où se tient le groupe (`rooms.roomFocusAt`) — geste d'exploration du GROUPE :
    *  second déclencheur de la découverte des portes secrètes (`decouvertePorteSecrete.fouilleDeLaPiece`),

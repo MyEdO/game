@@ -50,12 +50,12 @@ function buildSeam(weeks = 3, groupe?: Combatant[]): InterludeSeam {
   const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 });
   if (!b.skills.some((s) => s.id === 'metier')) b.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
   useGame.setState({ party: groupe ?? [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
-  useGame.getState().startScene(testScene());
+  useGame.getState().lancerLaScene(testScene());
   vi.clearAllTimers();
   useGame.setState({ screen: 'interlude' });
   distributeCredit(useGame.getState, useGame.setState, fromBrass(5000)); // richesse de départ répartie sur les bourses perso (#531)
-  useGame.getState().seedRng(7);
-  useGame.getState().startInterlude(weeks);
+  useGame.getState().ensemencerLeTirage(7);
+  useGame.getState().ouvrirLInterlude(weeks);
   draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
   const s = useGame.getState();
   return { interlude: s.interlude!, party: s.party, bank: s.bank, pendingOrders: s.pendingOrders };
@@ -444,7 +444,7 @@ describe('InterludeScreen — préparation de bataille : « Entreprendre » suit
       ? { ...h, skills: [...h.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: savoirGuerre }] }
       : h));
     useGame.setState({ party });
-    useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     const s = useGame.getState();
     const catalog = interludeCatalog(s);
     return renderToStaticMarkup(
@@ -516,11 +516,11 @@ describe('InterludeScreen — Revenus bloqués par l’Événement : entrée et 
     larron.careerLevel = 2; // Voleur N2 : Bronze 3
     const veteran = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
     useGame.setState({ party: [larron, veteran], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
-    useGame.getState().startScene(testScene());
+    useGame.getState().lancerLaScene(testScene());
     vi.clearAllTimers();
     useGame.setState({ screen: 'interlude' });
-    useGame.getState().seedRng(7);
-    useGame.getState().startInterlude(1);
+    useGame.getState().ensemencerLeTirage(7);
+    useGame.getState().ouvrirLInterlude(1);
     draineCascade(useGame.getState, 200, poseSurDeNonTombe(20));
     const s = useGame.getState();
     return { interlude: s.interlude!, party: s.party, bank: s.bank, pendingOrders: s.pendingOrders, phase: 'activities' };
@@ -744,7 +744,7 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
       setRule('interlude-assist-costs-activity', cout);
       try {
         const seam = buildSeam();
-        useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+        useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
         return mdToPlain(renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'planification')} />));
       } finally { resetRule('interlude-assist-costs-activity'); }
     };
@@ -755,7 +755,7 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
   it('préparation déjà faite : la bannière dit le refus du geste', () => {
     const seam = buildSeam();
     const heroId = seam.party[0].id;
-    useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     useGame.getState().menerLActionDeBataille('inspire', heroId);
     useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 20, success: true, sl: 2 } });
     useGame.getState().jetValider('activity');
@@ -780,7 +780,7 @@ describe('InterludeScreen — chaque volet affiche le pré-jet du noyau (#3059 S
     const seam = buildSeam();
     const party = seam.party.map((h, i) => ({ ...h, skills: [...h.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: i === 0 ? 10 : 5 }] }));
     useGame.setState({ party });
-    useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     useGame.getState().affecterLeHeros('planification', party.map((h) => h.id));
     const s = useGame.getState();
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, party, phase: 'activities', catalog: interludeCatalog(s), massBattle: s.massBattle, openPane: { heroId: party[0].id, pane: 'planification' } }} />);

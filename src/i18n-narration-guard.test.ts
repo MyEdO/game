@@ -113,7 +113,7 @@ function stripComments(src: string): string {
 
 /** Sites d'émission de JOURNAL : le littéral de chaîne suit DIRECTEMENT l'ouverture (pas un `t(`/`tr(`). */
 const EMIT_SHAPES: RegExp[] = [
-  /\.log\(\s*(['"`])/g, // get().log('…') / env.log(`…`)
+  /\.(?:log|ecrireAuJournal)\(\s*(['"`])/g, // get().ecrireAuJournal('…') / env.log(`…`)
   /\bev\('[a-z]+',\s*(['"`])/g, // ev('kind', `…`)
   /\.push\(\s*(['"`])/g, // <journalArray>.push(`…`)
   /castRefused\([^;]*?,\s*(['"`])/g, // castRefused(get, set, c, `…`)
@@ -146,13 +146,13 @@ function readString(body: string, from: number, quote: string): string | null {
 
 /**
  * 6ᵉ FORME (#1318 V8c₁) : `.log(` dont l'argument n'est PAS un littéral COLLÉ à l'ouverture — le cas
- * réel est le TERNAIRE, `get().log(free ? `…` : `…`)`, qui cachait DEUX phrases joueur du chemin
+ * réel est le TERNAIRE, `get().ecrireAuJournal(free ? `…` : `…`)`, qui cachait DEUX phrases joueur du chemin
  * d'achat le plus fréquenté (`merchantFlow.ts`) : les cinq formes ci-dessus exigent le délimiteur
  * immédiatement après l'ouverture, donc elles ne voyaient ni l'une ni l'autre.
  *
  * On lit ici tous les littéraux de PROFONDEUR 0 de l'appel — ceux passés en argument DIRECT, quelle
  * que soit l'expression qui les enchâsse (ternaire, concaténation). Un littéral sous appel imbriqué
- * (`get().log(t('mf.buy', { label }))`) est à profondeur 1 : jamais compté, c'est du catalogue.
+ * (`get().ecrireAuJournal(t('mf.buy', { label }))`) est à profondeur 1 : jamais compté, c'est du catalogue.
  * Les appels dont le PREMIER argument est déjà un littéral appartiennent à la forme 1 et sont laissés
  * à elle (sans quoi ils compteraient deux fois).
  */
@@ -460,26 +460,26 @@ describe('garde-fou i18n — narration moteur (Phase C, #410 inversé)', () => {
     // Fixture posée ICI, jamais lue dans l'arbre : le scan ignore les `.test.ts`.
     // Avant le correctif, la lecture s'arrêtait au `\'` — le fragment `'Impossible d\'` ne portait plus
     // ni élision ni mot-outil, et la phrase entière sortait du compte (cas réel : `massBattleFlow.ts`).
-    expect(narrationCount("get().log('Impossible d\\'ouvrir une bataille de masse en plein combat tactique.');")).toBe(1);
+    expect(narrationCount("get().ecrireAuJournal('Impossible d\\'ouvrir une bataille de masse en plein combat tactique.');")).toBe(1);
     expect(narrationCount("  return 'La bataille s\\'achève sans vainqueur clair.';")).toBe(1);
     // Le délimiteur ÉCHAPPÉ ne coupe plus le littéral : les deux moitiés ne comptent pas pour deux.
-    expect(narrationCount("get().log('Le tuteur demande l\\'argent d\\'un maître.');")).toBe(1);
+    expect(narrationCount("get().ecrireAuJournal('Le tuteur demande l\\'argent d\\'un maître.');")).toBe(1);
     // Aucune régression sur la forme ordinaire (sans échappement).
-    expect(narrationCount('get().log("Bourse insuffisante pour payer le panier.");')).toBe(1);
+    expect(narrationCount('get().ecrireAuJournal("Bourse insuffisante pour payer le panier.");')).toBe(1);
     // …ni faux positif sur une chaîne technique échappée.
-    expect(narrationCount("get().log('a\\'b');")).toBe(0);
+    expect(narrationCount("get().ecrireAuJournal('a\\'b');")).toBe(0);
   });
 
   it('6ᵉ FORME : un `.log(` TERNAIRE compte SES DEUX branches (l’argument n’est pas collé à l’ouverture)', () => {
     // Le site réel (`merchantFlow.ts`, chemin d'achat) : deux phrases joueur, zéro vue avant ce lot.
-    const ternaire = 'get().log(free ? `Achat : ${e} (dans les moyens du Statut du groupe — Tenir les comptes).` : `Vente : ${e} à la criée.`);';
+    const ternaire = 'get().ecrireAuJournal(free ? `Achat : ${e} (dans les moyens du Statut du groupe — Tenir les comptes).` : `Vente : ${e} à la criée.`);';
     expect(narrationCount(ternaire)).toBe(2);
     // Un littéral sous appel IMBRIQUÉ n'est pas une LIGNE DE JOURNAL — cette forme-ci ne le compte donc
     // pas. « Pas compté ici » ≠ « au catalogue » : ce paramètre s'affiche tel quel, et c'est la 8ᵉ FORME
     // qui le mesure (ci-dessous) — d'où 1, et non 0, sur cet exemple.
-    expect(narrationCount("get().log(t('mf.buy', { label: 'Épée' }));")).toBe(1);
+    expect(narrationCount("get().ecrireAuJournal(t('mf.buy', { label: 'Épée' }));")).toBe(1);
     // La forme 1 garde ses appels : un littéral collé ne compte pas DEUX fois.
-    expect(narrationCount("get().log(`Bourse insuffisante pour ${x}.`);")).toBe(1);
+    expect(narrationCount("get().ecrireAuJournal(`Bourse insuffisante pour ${x}.`);")).toBe(1);
   });
 
   it('7ᵉ FORME : un `return [ … ]` compte SES lignes (le journal RENDU en tableau)', () => {

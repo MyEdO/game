@@ -108,7 +108,7 @@ describe('#3059 — coop : seul l’hôte rejoue la frappe pilotée d’un invit
     expect([tour?.suite?.geste.kind, tour?.parquee, !!banc.getState().pendingDefense], 'chemin : chez l’hôte, la frappe échue pendant la défense est parquée').toEqual(['frappePilotee', true, true]);
     const chezLInvite = appliquerLInstantane(instantaneDeLaCoop(banc.getState()), { ...etatInitialDuJeu(), net: { ...NET('guest', 1), ownership: { h: 1 } } }).etat;
     banc.setState({ ...chezLInvite, pendingDefense: null, pendingCascade: null, suspendedCascades: [] } as never);
-    banc.getState().resumeCadence();
+    banc.getState().reprendreLaCadence();
     banc.reprendreTout();
     expect([banc.getState().net.mode, banc.getState().pendingAttack], 'l’invité n’ouvre aucune frappe de lui-même').toEqual(['guest', null]);
   });

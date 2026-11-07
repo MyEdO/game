@@ -190,7 +190,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   'charge-possible': ({ active, battle }) => verdict(refusDeCharge(battle, active)),
   'mouvement-restant': ({ active, battle }) => (canMove(battle, active) ? ok : no(t('agate.noMovementLeft'))),
   desengagement: desengagementGate,
-  /** Course — verdict `refusDeCourse` (`refusDuTour.ts`, LDB 15 l.41), que lisent aussi `battleRun` et `computeRunReach`. */
+  /** Course — verdict `refusDeCourse` (`refusDuTour.ts`, LDB 15 l.41), que lisent aussi `ouvrirLaCourse` et `computeRunReach`. */
   'course-possible': ({ active, battle }) => verdict(refusDeCourse(battle, active)),
   /** Verdict `refusDeDetermination` (LDB 17 l.59-61, LDB 20 l.188), que lisent aussi `depenserLaDetermination` et `DeterminationButton`. */
   'determination-en-reserve': ({ active, args }) => verdict(refusDeDetermination(active, args?.conditionId) ?? null),
@@ -297,7 +297,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     const poste = active.postes?.find((p) => p.item.uid === args?.posteUid);
     return poste && posteARecharger(active, poste, battle) ? ok : no(t('agate.noPosteToReload'));
   },
-  /** Une pièce du navire est prête à faire feu (`postesPretsAFaireFeu`, lu par `battleShipBattery` via `batteryBlock`). */
+  /** Une pièce du navire est prête à faire feu (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee` via `batteryBlock`). */
   'pieces-au-navire': ({ active }) => (postesPretsAFaireFeu(active).length > 0 ? ok : no(t('agate.noLoadedPostes'))),
   // ── PERTINENCE (#2911) : l'entrée a-t-elle lieu d'être offerte à CE porteur (`GATES_DE_PERTINENCE`) ?
   fantassin,

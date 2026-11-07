@@ -95,7 +95,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
       battle: { combatants: [hull, chef, aide, foeHull()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
       party: [chef, aide], facing: { ship: 'N' }, pendingShipBattery: null, scene: null as never,
     });
-    banc.getState().battleShipBattery('ship', 'target');
+    banc.getState().ouvrirLaBordee('ship', 'target');
     const p = banc.getState().pendingShipBattery!;
     for (const part of p.participants) banc.getState().jetLancer('shipBattery', part.id);
     banc.getState().jetValider('shipBattery');
@@ -120,7 +120,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
       battle: { combatants: [hull, chef, aide, foeHull()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
       party: [chef, aide], facing: { ship: 'N' }, pendingShipBattery: null, scene: null as never,
     });
-    banc.getState().battleShipBattery('ship', 'target');
+    banc.getState().ouvrirLaBordee('ship', 'target');
     const before = banc.getState().battle!.combatants.find((c) => c.id === 'target')!.wounds.current;
     // Jets FORCÉS à l'échec franc (le dé n'est pas l'objet du test, la CONSÉQUENCE l'est) : −4 DR chacun,
     // doublé pour le rôle essentiel → Test d'équipage raté quels que soient le Moral et la graine.

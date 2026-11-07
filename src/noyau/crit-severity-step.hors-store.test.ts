@@ -43,11 +43,11 @@ const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
 
 /** Combat de fixture : un héros (victime, sans PA — aucune offre de Déviation) et un ennemi attaquant. */
 function startFight(seed = 7) {
-  banc.getState().seedRng(seed);
+  banc.getState().ensemencerLeTirage(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(structuredClone(testScene()));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(structuredClone(testScene()));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;

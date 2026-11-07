@@ -247,7 +247,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
                 <Icon id="resource/gold-purse" size="sm" /> {t('interlude.close.warning')}
               </p>
               {massBattle?.phase === 'prep'
-                /* Bataille en attente : la clôture ENGAGE la bataille (`fenetreValider('interlude')` → massBattleBegin, C2b) —
+                /* Bataille en attente : la clôture ENGAGE la bataille (`fenetreValider('interlude')` → engagerLaBataille, C2b) —
                    le bouton de clôture porte alors ce libellé, une SEULE porte de sortie (pas de 2e écran). */
                 ? <GatedAction id="interlude-close" label={<><Icon id="action/attack" size="sm" /> {t('interlude.close.bataille')}</>}
                     descOfferte={t('interlude.close.bataille.desc')} enabled={!refusClore} {...raisonSi(refusClore)} onClick={() => setPhase('closing')} />

@@ -496,7 +496,7 @@ export interface PendingHandGate {
 }
 /** Pilonnage INDIRECT EN COURS (« viser une case », AA 10 l.169/171) : une pièce indirecte SERVIE attend le
  *  POINT D'IMPACT au sol — placeur de zone PARTAGÉ (`placingZoneOf` source 'siege', même gabarit que les
- *  sorts de zone). Le clic-case → `siegeAimCommit` ouvre la modale de tir (`pendingAttack` siège). */
+ *  sorts de zone). Le clic-case → `poserLePointDImpact` ouvre la modale de tir (`pendingAttack` siège). */
 export interface PendingSiegeAim {
   gunnerId: string;
   /** uid de l'arme de la pièce servie (canon ÉPINGLÉ) — re-dérivée par `firedWeapon` à la résolution. */
@@ -1681,7 +1681,7 @@ export interface BladeTrapFreeze {
 export type Cloture =
   /** Avancée du dialogue (nœud suivant, ou fermeture) — la clôture du choix `dialogue.reponse`/de `jetValider('test')`. */
   | { verbe: 'dialogueSuivant'; transition: DialogueTransition }
-  /** Avancée d'horloge d'un verbe (fouille, dialogue) : `advanceTime` (`avancerLHorloge`) en tire
+  /** Avancée d'horloge d'un verbe (fouille, dialogue) : `avancerLeTemps` (`avancerLHorloge`) en tire
    *  les effets PROGRAMMÉS et les ticks — donc APRÈS le dé, sur des Blessures encaissées. */
   | { verbe: 'avancerHorloge'; minutes: number }
   /** Décor consommé par sa fouille (`interact.consume`). */

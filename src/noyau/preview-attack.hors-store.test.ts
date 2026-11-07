@@ -51,7 +51,7 @@ const scene = (): Scene =>
 // Mode local : l'actif héros est piloté à la main (`controlsCombatant` → surfaçage des cibles éligibles).
 const NET_LOCAL = { mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] };
 const mkGet = (combatants: Combatant[]): (() => JeuDuNoyau) =>
-  (() => ({ scene: scene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
+  (() => ({ scene: scene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
 
 describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
   it('la valeur de toucher prévue == la cible du jet réellement résolu', () => {
@@ -118,7 +118,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 6, y: 0 } });
     const s = scene();
     (s.layers[0].tiles as string[])[3] = 'mur'; // mur intercalé sur la ligne (x=3,y=0)
-    const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => JeuDuNoyau;
+    const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
     expect(previewAttack(get, a, b).blocked).toBe(true);
   });
 
@@ -130,7 +130,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     const seen = combatant({ id: 'E2', kind: 'enemy', pos: { x: 0, y: 5 } }); // ligne dégagée
     const deadHidden = combatant({ id: 'E3', kind: 'enemy', pos: { x: 6, y: 1 }, dead: true });
     const mk = (cs: Combatant[], order: string[]) =>
-      (() => ({ scene: s, battle: { combatants: cs, order, turn: 0, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
+      (() => ({ scene: s, battle: { combatants: cs, order, turn: 0, movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
     const ids = outOfSightTargetIds(mk([archer, hidden, seen, deadHidden], ['A', 'E1', 'E2', 'E3']));
     expect(ids.has('E1')).toBe(true);
     expect(ids.has('E2')).toBe(false);
@@ -330,7 +330,7 @@ describe('attackPlan — gate PRÉ-clic du tir (parité avec le refus de sort)',
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 6, y: 0 } });
     const s = scene();
     (s.layers[0].tiles as string[])[3] = 'mur';
-    const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => JeuDuNoyau;
+    const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
     const plan = attackPlan(get, a, b);
     expect(plan.kind).toBe('blocked');
     expect((plan as { reason: string }).reason).toMatch(/ligne de vue/i);
@@ -363,7 +363,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
   });
   /** Le tireur a DÉJÀ bougé ce Round (`LDB 14 l.70` : −10) — lu à l'identique par l'aperçu et par la résolution. */
   const getMobile = (combatants: Combatant[]): (() => JeuDuNoyau) =>
-    (() => ({ scene: scene(), battle: { combatants, movementUsed: 1 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
+    (() => ({ scene: scene(), battle: { combatants, movementUsed: 1 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
 
   it('tir mobile à courte portée : le résultat annonce la MÊME Difficulté combinée que l’aperçu', () => {
     const a = archer();

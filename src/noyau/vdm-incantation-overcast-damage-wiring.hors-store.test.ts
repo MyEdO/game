@@ -28,11 +28,11 @@ function setup() {
   const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
   w.spells = ['carreau'];
   banc.setState({ party: [w] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
   const b = banc.getState().battle!;
   const heroC = b.combatants.find((c) => c.label === 'W')!;
   const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
@@ -77,8 +77,8 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
     const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     w.spells = ['armure-aethyrique'];
     banc.setState({ party: [w] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

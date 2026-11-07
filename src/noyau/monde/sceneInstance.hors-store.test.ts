@@ -81,7 +81,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     banc.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-a');
     const sceneB = fixtureScene('scene-b');
-    banc.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-a', projet: null });
+    banc.getState().chargerLeProjet({ scenes: [sceneA, sceneB], entryId: 'scene-a', projet: null });
 
     removeEntity(banc.getState, banc.setState, 'decor-retire');
     banc.setState((s) => ({ scene: setDoorOpen(s.scene!, 1, 1, 'N', 0, true) }));
@@ -108,7 +108,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     banc.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-c');
     const sceneB = fixtureScene('scene-d');
-    banc.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-c', projet: null });
+    banc.getState().chargerLeProjet({ scenes: [sceneA, sceneB], entryId: 'scene-c', projet: null });
     banc.getState().quitterLaScene('scene-d');
     banc.getState().quitterLaScene('scene-c');
     expect(banc.getState().sceneInstances).toEqual({});
@@ -117,14 +117,14 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     expect(doorIsOpen(back, DOOR_OPENED)).toBe(false);
   });
 
-  it('nouvelle partie (startScene) REMET sceneInstances à vide', () => {
+  it('nouvelle partie (lancerLaScene) REMET sceneInstances à vide', () => {
     banc.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-e');
-    banc.getState().loadProject({ scenes: [sceneA], entryId: 'scene-e', projet: null });
+    banc.getState().chargerLeProjet({ scenes: [sceneA], entryId: 'scene-e', projet: null });
     removeEntity(banc.getState, banc.setState, 'decor-retire');
     banc.getState().quitterLaScene('scene-e'); // capture (même scène, revisit immédiat)
     expect(Object.keys(banc.getState().sceneInstances)).toHaveLength(1);
-    banc.getState().startScene(fixtureScene('scene-f'));
+    banc.getState().lancerLaScene(fixtureScene('scene-f'));
     expect(banc.getState().sceneInstances).toEqual({});
   });
 
@@ -139,7 +139,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     b.seatAssignments = {
       'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' }, 'place-3': { kind: 'party', rang: 4 } },
     };
-    banc.getState().loadProject({ scenes: [a, b], entryId: 'scene-t1', projet: null });
+    banc.getState().chargerLeProjet({ scenes: [a, b], entryId: 'scene-t1', projet: null });
     banc.getState().quitterLaScene('scene-t2');
     // Le PNJ authoré reste assis ; le héros qui n'est pas du groupe ne réserve rien.
     expect(banc.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } });
@@ -150,7 +150,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
       banc.setState({ party: [hero()] });
       const sceneA = fixtureScene('scene-g');
       const sceneB = fixtureScene('scene-h');
-      banc.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-g', projet: null });
+      banc.getState().chargerLeProjet({ scenes: [sceneA, sceneB], entryId: 'scene-g', projet: null });
       removeEntity(banc.getState, banc.setState, 'decor-retire');
       banc.getState().quitterLaScene('scene-h', undefined, { x: 0, y: 0 }); // capture scene-g avant sauvegarde d'une AUTRE scène
       const texte = sauverLeBanc(banc);
@@ -171,7 +171,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
       const s = fixtureScene('scene-assise');
       s.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'N' });
       s.entities.push({ id: 'attable', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } }); // abord NORD de la table
-      banc.getState().loadProject({ scenes: [s], entryId: 'scene-assise', projet: null });
+      banc.getState().chargerLeProjet({ scenes: [s], entryId: 'scene-assise', projet: null });
       banc.setState((st) => ({ scene: { ...st.scene!, seatAssignments: { 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } } } }));
       // La save est trafiquée à la VERSION COURANTE : meuble disparu, héros hors groupe, slot inconnu
       // — exactement ce qu'un paquet de campagne réédité ou un groupe recomposé produit.
@@ -190,7 +190,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     it('tolérance PAR CONSTRUCTION : clé « sceneInstances » absente du snapshot → valeur initiale ({}) au chargement', () => {
       banc.setState({ party: [hero()] });
       const sceneA = fixtureScene('scene-i');
-      banc.getState().loadProject({ scenes: [sceneA], entryId: 'scene-i', projet: null });
+      banc.getState().chargerLeProjet({ scenes: [sceneA], entryId: 'scene-i', projet: null });
       removeEntity(banc.getState, banc.setState, 'decor-retire');
       banc.getState().quitterLaScene('scene-i'); // capture : l'état chargé avant la save porte une instance
       expect(Object.keys(banc.getState().sceneInstances)).toHaveLength(1);

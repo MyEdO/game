@@ -17,8 +17,8 @@ describe('Miscast en séquence (store)', () => {
   function battle() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -29,7 +29,7 @@ describe('Miscast en séquence (store)', () => {
   }
 
   it('une Colère des dieux d’un HÉROS ouvre une séquence (étape d’affichage)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { hero } = battle();
     banc.setState({ pendingCascade: null });
     applyMiscast(banc.getState, banc.setState, hero, 'colere');
@@ -43,7 +43,7 @@ describe('Miscast en séquence (store)', () => {
   });
 
   it('une Incantation Imparfaite Mineure d’un HÉROS ouvre une séquence', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { hero } = battle();
     banc.setState({ pendingCascade: null });
     applyMiscast(banc.getState, banc.setState, hero, 'mineure');
@@ -55,7 +55,7 @@ describe('Miscast en séquence (store)', () => {
   });
 
   it('une Maladresse d’un ENNEMI : étape résolue D’OFFICE par le socle, et AUCUNE révélation', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { enemy } = battle();
     banc.setState({ pendingCascade: null });
     applyMiscast(banc.getState, banc.setState, enemy, 'colere');

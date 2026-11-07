@@ -21,12 +21,12 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () => {
   /** Un héros (avec les deux Talents) face à UN ennemi armé et pourvu d'Avantage, adjacent. */
   function setup() {
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.talents = [{ talentId: 'battement', times: 1 }, { talentId: 'distraire', times: 1 }] as Combatant['talents'];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -117,12 +117,12 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
 describe('Battement & Distraire — le verdict d’offre porte la condition de CIBLE', () => {
   /** Un héros portant les deux Talents, face à UN ennemi armé, et la scène réelle du combat. */
   function terrain() {
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     h.talents = [{ talentId: 'battement', times: 1 }, { talentId: 'distraire', times: 1 }] as Combatant['talents'];
     banc.setState({ party: [h] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

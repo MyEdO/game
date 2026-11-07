@@ -266,7 +266,7 @@ const HUB = parseProject(
   areneProjet,
 ).scenes.find((sc) => sc.id === 'arene-hub')!;
 
-/** Le poste de départ authoré du groupe (`heroStart`) — la même lecture que `store.startScene`. */
+/** Le poste de départ authoré du groupe (`heroStart`) — la même lecture que `store.lancerLaScene`. */
 const DÉPART = { ...(HUB.entities.find((e) => e.kind === 'heroStart')!.pos) };
 
 /** Une case COUVERTE du hub (sous une masse bâtie) : c'est en y entrant que le groupe fait tomber le
@@ -335,14 +335,14 @@ const monterHub = (): Promise<void> => monterÉcran(HUB, DÉPART);
  *  c'est l'état où un tour se joue et où la frise se survole. */
 async function monterCombat(): Promise<void> {
   useGame.setState({ party: [{ ...HÉROS }] });
-  await act(async () => { useGame.getState().startScene(testScene()); });
+  await act(async () => { useGame.getState().lancerLaScene(testScene()); });
   viderCaptures();
   hôte = document.createElement('div');
   document.body.appendChild(hôte);
   root = createRoot(hôte);
   await act(async () => { root!.render(<CampaignView />); });
   await attendrePopulation();
-  await act(async () => { useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true }); });
+  await act(async () => { useGame.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true }); });
   await attendreRepos('l’engagement du combat doit être servi');
   await act(async () => { useGame.getState().fenetreValider('roundStart'); });
   await attendreRepos('la levée de la pause de début de round doit être servie');

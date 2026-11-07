@@ -13,7 +13,7 @@
  *                    inventée. Aucune file : à l'arrivée, on regarde ce qui est tenu MAINTENANT.
  *
  * Chaque case traversée est une ARRIVÉE : le pas passe par `stepPartyDir`/`avancerDUnPas` du store
- * (donc `moveParty` — facing, déclencheurs, déplacement-puis-fouille). Une porte qui s'ouvre pendant la
+ * (donc `deplacerLeGroupe` — facing, déclencheurs, déplacement-puis-fouille). Une porte qui s'ouvre pendant la
  * marche (dialogue, combat, écran, modale, fenêtre hors-modale) la termine sur la case atteinte.
  */
 import type { GameState } from './store';

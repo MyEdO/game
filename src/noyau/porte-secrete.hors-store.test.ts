@@ -151,10 +151,10 @@ describe('porte secrète — enrôlement de sa Structure au combat (AA 10 l.94-1
   function structuresEnrolees(reveler: boolean): number {
     const s = structuredClone(testScene());
     s.walls = [{ x: 2, y: 2, side: 'E', door: true, closed: true, secret: SECRET, structure: 'solide-porte-en-bois' }];
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })] });
-    banc.getState().startScene(reveler ? setDoorRevealed(s, 2, 2, 'E', 0, true) : s);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(reveler ? setDoorRevealed(s, 2, 2, 'E', 0, true) : s);
+    banc.getState().lancerLeCombat('enc-mutants');
     return banc.getState().battle!.combatants.filter((c) => c.bodyShape === 'structure').length;
   }
 

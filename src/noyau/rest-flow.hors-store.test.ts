@@ -4,7 +4,7 @@
  * PLUSIEURS passent par une CHAÎNE de cascades séquentielles influençables (#347, `openRestNight`/
  * `continueRestNights`) — chaque jet = une étape, verrouillée à « Valider » avant le suivant, chaque
  * nuit reconstruite APRÈS que la précédente ait été validée (jamais de jet pré-résolu). Le moteur de
- * nuit `sleepParty` (chemin EAGER — cheat `restParty`, clôture d'interlude) reste testé par
+ * nuit `sleepParty` (chemin EAGER — cheat `reposerLeGroupe`, clôture d'interlude) reste testé par
  * rest.hors-store.test / upkeep-cascade.
  */
 import { fixtureText } from '../i18n/fixtureText';

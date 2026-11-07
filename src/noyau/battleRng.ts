@@ -1,7 +1,7 @@
 /**
  * RNG de combat — seedable (déterminisme des tests + future coop réseau). Module partagé par le
  * store et les modules de flux (combat/magie/IA…) : tous tirent du MÊME générateur via `battleRng()`,
- * réensemencé par `seedBattleRng` (action `store.seedRng`).
+ * réensemencé par `seedBattleRng` (action `store.ensemencerLeTirage`).
  */
 import { RNG, makeRNG } from '../engine/dice';
 import type { Get, Set } from './flowTypes';
@@ -24,7 +24,7 @@ export function seedBattleRng(seed: number): void {
 
 export function creerActionsDesDes(_get: Get, _set: Set) {
   return {
-    seedRng: (seed) => {
+    ensemencerLeTirage: (seed) => {
       seedBattleRng(seed);
     },
   } satisfies FabriqueDuNoyau;

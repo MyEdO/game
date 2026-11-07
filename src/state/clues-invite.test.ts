@@ -16,7 +16,7 @@ beforeEach(() => {
 describe('clues — câblage store (#670)', () => {
   it('chez un invité, `marquerLesIndices` PART en intent vers l’hôte et ne s’exécute pas localement (#2415)', () => {
     useGame.setState({ party: [hero()] });
-    useGame.getState().loadProject({ scenes: [fixtureScene('scene-o')], entryId: 'scene-o', narratif: narratif, projet: null });
+    useGame.getState().chargerLeProjet({ scenes: [fixtureScene('scene-o')], entryId: 'scene-o', narratif: narratif, projet: null });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     const local = useGame.getState().marquerLesIndices;
     const vus = affichés(useGame.getState().clues, ['ind-lettre']);

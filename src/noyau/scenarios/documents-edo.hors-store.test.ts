@@ -40,7 +40,7 @@ const A_COTE = { x: 2, y: 2 };
 function charger(): void {
   const { party, scene, narratif } = scenario.construire();
   banc.setState({ party, scene: null, dialogue: null, document: null, clues: {}, dialogueHistory: [] });
-  banc.getState().loadProject({ scenes: [scene], entryId: scene.id, narratif, projet: null });
+  banc.getState().chargerLeProjet({ scenes: [scene], entryId: scene.id, narratif, projet: null });
   banc.setState({ screen: 'campaign', pendingCascade: null });
 }
 

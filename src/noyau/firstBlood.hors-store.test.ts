@@ -22,8 +22,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 function setup(scene: Scene = testScene()) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], battle: null });
-  banc.getState().startScene(scene);
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(scene);
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -170,7 +170,7 @@ describe('Duel judiciaire — premier sang mesuré sur le coup FINALISÉ (#471 d
     E.important = true; // LDB 18 l.44 : hors Mort subite
     E.wounds = blessuresDeBase(20, 20, E);
     E.armour = { corps: 0, tete: 0, brasD: 0, brasG: 0, jambeD: 0, jambeG: 0 } as never;
-    banc.getState().seedRng(1); // graine calibrée : table du Bras, « Coupure profonde » (+3 Blessures)
+    banc.getState().ensemencerLeTirage(1); // graine calibrée : table du Bras, « Coupure profonde » (+3 Blessures)
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' } } });
     const res: AttackResult = {
       hit: true, attackerRoll: 33, netSL: 1, location: 'corps', critLocation: 'brasG', damage: 2, woundsLost: 2,

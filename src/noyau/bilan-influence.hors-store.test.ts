@@ -117,11 +117,11 @@ describe('#253 — CONTAGION de promiscuité : étape de cascade influençable',
   });
 });
 
-describe("#253 — AVANCE D'HORLOGE (advanceTime) : bilan en cascade influençable, plus de témoin pré-résolu", () => {
-  it('advanceTime 24h, héros affamé sans ration → étape de Faim DIFFÉRÉE (purpose upkeep), Chance proposable, résolue 1×', () => {
+describe("#253 — AVANCE D'HORLOGE (avancerLeTemps) : bilan en cascade influençable, plus de témoin pré-résolu", () => {
+  it('avancerLeTemps 24h, héros affamé sans ration → étape de Faim DIFFÉRÉE (purpose upkeep), Chance proposable, résolue 1×', () => {
     const a = hero({ id: 'A', label: 'Affamée', hunger: { days: 1, tests: 0, failures: 0 }, fortune: 2 });
     banc.setState({ party: [a], gameTime: 0, lastUpkeepDay: 0, lastNightDay: 0, pendingCascade: null });
-    banc.getState().advanceTime(MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
 
     // 1. Le franchissement de jour OUVRE une cascade d'entretien (jamais un reveal-témoin pré-résolu).
     const p = banc.getState().pendingCascade;
@@ -151,10 +151,10 @@ describe("#253 — AVANCE D'HORLOGE (advanceTime) : bilan en cascade influençab
     expect(aEnd.hunger!.failures).toBe(1);
   });
 
-  it('advanceTime 24h, héros IVRE → étape de Dessoûlage DIFFÉRÉE, Chance proposable, dessoûlé 1×', () => {
+  it('avancerLeTemps 24h, héros IVRE → étape de Dessoûlage DIFFÉRÉE, Chance proposable, dessoûlé 1×', () => {
     const a = hero({ id: 'A', label: 'Éméché', drunk: { failedTests: 2, drunk: true }, fortune: 2 });
     banc.setState({ party: [a], gameTime: 0, lastUpkeepDay: 0, lastNightDay: 0, pendingCascade: null });
-    banc.getState().advanceTime(MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
 
     const p = banc.getState().pendingCascade;
     expect(p!.purpose).toBe('upkeep');
@@ -173,10 +173,10 @@ describe("#253 — AVANCE D'HORLOGE (advanceTime) : bilan en cascade influençab
     expect(banc.getState().party.find((h) => h.id === 'A')!.drunk).toBeUndefined();
   });
 
-  it('advanceTime 24h SANS jet (ration consommée) → témoin groupé en ÉTAPE d’affichage de la MÊME séquence', () => {
+  it('avancerLeTemps 24h SANS jet (ration consommée) → témoin groupé en ÉTAPE d’affichage de la MÊME séquence', () => {
     const a = hero({ id: 'A', label: 'Repue', items: [ration('r1')] });
     banc.setState({ party: [a], gameTime: 0, lastUpkeepDay: 0, lastNightDay: 0, pendingCascade: null });
-    banc.getState().advanceTime(MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
 
     // #942 L8 : les deux issues du MÊME entretien ouvrent la MÊME séquence ('upkeep') — le témoin
     // groupé des lignes SANS jet (rations…) y est l'étape d'AFFICHAGE, plus une file parallèle.

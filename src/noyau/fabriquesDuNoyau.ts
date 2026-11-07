@@ -67,17 +67,32 @@ type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'affronter' | 'app
 type ActionDeFenetre = 'choisir' | 'valider' | 'fermer';
 
 /** Les noms du lexique : un verbe manuscrit, un verbe de jet ou de réglage de jet, un verbe de fenêtre. */
-type NomDeVerbe = ActionDuLexique | `${ActionDuLexique}${Majuscule}${string}`
+type NomDeVerbe = NomDAction<ActionDuLexique>
   | Extract<NomDeVerbeDeJet | keyof VerbeDeReglage, `jet${Capitalize<ActionDeJet>}${string}`>
   | `fenetre${Capitalize<ActionDeFenetre>}`;
 
-/** Un nom de `Noms` hors du lexique. */
-type HorsLexique<Noms extends string> = Exclude<Noms, NomDeVerbe>;
-/** `true` si et seulement si `Noms` est du lexique ; sinon, les noms en faute. */
-export type VerrouDuLexique<Noms extends string> = [HorsLexique<Noms>] extends [never] ? true : { horsLexique: HorsLexique<Noms> };
-/** VERROU : tout verbe du noyau se nomme dans le lexique. */
-const verrouDuLexique: VerrouDuLexique<keyof ActionsDuNoyau> = true;
-void verrouDuLexique;
+/** Les actions propres à la machinerie (#3605) : une écriture du noyau se nomme dans le lexique des verbes ou par l'une
+ *  d'elles, chacune l'action d'un membre de `MachinerieDuNoyau`. Un verbe ne les prend pas. */
+type ActionDeLaMachinerie = ActionDuLexique | 'accorder' | 'aider' | 'ajouter' | 'amorcer' | 'annuler' | 'apprendre'
+  | 'asperger' | 'basculer' | 'chanter' | 'charger' | 'declencher' | 'denouer' | 'enfoncer' | 'ensemencer' | 'entrer'
+  | 'eprouver' | 'faire' | 'frapper' | 'gagner' | 'interagir' | 'lancer' | 'manoeuvrer' | 'mettre' | 'monter' | 'orienter'
+  | 'pousser' | 'ramasser' | 'recharger' | 'relever' | 'remettre' | 'reposer' | 'sauter' | 'servir' | 'tenter' | 'terminer'
+  | 'tirer' | 'virer';
+
+/** Un nom formé sur les actions `A` : `<action>` ou `<action><Complément>`. */
+type NomDAction<A extends string> = A | `${A}${Majuscule}${string}`;
+/** Les noms de la machinerie : une action ou sa forme pronominale (`seRelever`), avec ou sans complément. */
+type NomDeMachinerie = NomDAction<ActionDeLaMachinerie> | `se${Capitalize<NomDAction<ActionDeLaMachinerie>>}`;
+
+/** `true` si et seulement si chaque nom de `Noms` est de `Lexique` ; sinon, les noms en faute. */
+type Verrou<Noms extends string, Lexique extends string> = [Exclude<Noms, Lexique>] extends [never] ? true : { horsLexique: Exclude<Noms, Lexique> };
+/** `true` si et seulement si `Noms` est du lexique des verbes ; sinon, les noms en faute. */
+export type VerrouDuLexique<Noms extends string> = Verrou<Noms, NomDeVerbe>;
+/** `true` si et seulement si `Noms` est du lexique de la machinerie ; sinon, les noms en faute. */
+export type VerrouDeLaMachinerie<Noms extends string> = Verrou<Noms, NomDeMachinerie>;
+/** VERROU : tout verbe du noyau se nomme dans le lexique des verbes, toute machinerie dans le sien. */
+const verrousDuLexique: [VerrouDuLexique<keyof ActionsDuNoyau>, VerrouDeLaMachinerie<keyof MachinerieDuNoyau>] = [true, true];
+void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */
 function cloturesDuJet(get: Get, set: SetDesClesReservees): CloturesDuJet {

@@ -17,7 +17,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 /**
  * L'ABONNEMENT AU CAP EST PORTÉ PAR LE PION (#1176, P3-5c) — `store.facing` n'est LU que par le disque,
  * qui n'existe que sous le verdict `pionsEnDisques`. L'écriture d'un cap reforge la table entière à
- * chaque pas et à chaque attaque (`faceToward`/`faceFromPath`) : un abonnement porté par la surcouche
+ * chaque pas et à chaque attaque (`orienterVers`/`orienterSelonLeChemin`) : un abonnement porté par la surcouche
  * elle-même la rendrait à chaque pas, sur le plateau iso compris, où pas un pixel n'en dépend.
  *
  * La sonde COMPTE les rendus (un commit React, un `onRender` de `Profiler`) de part et d'autre d'une
@@ -92,11 +92,11 @@ function démonter(): void {
 
 afterEach(démonter);
 
-/** Écrit le cap d'un jeton POSTÉ par l'écrivain canonique (`faceToward` : un pas d'une case dans la
+/** Écrit le cap d'un jeton POSTÉ par l'écrivain canonique (`orienterVers` : un pas d'une case dans la
  *  direction voulue) — le store n'expose aucune pose de cap « nue ». */
 function poserCap(id: string, dir: Dir8): void {
   const d = DIR8_DELTA[dir];
-  act(() => { useGame.getState().faceToward(id, { x: 0, y: 0 }, { x: d.gx, y: d.gy }); });
+  act(() => { useGame.getState().orienterVers(id, { x: 0, y: 0 }, { x: d.gx, y: d.gy }); });
 }
 
 const caps = (el: HTMLElement): (string | null)[] => [...el.querySelectorAll('g[data-pion-cid="h1"] path')].map((p) => p.getAttribute('d'));

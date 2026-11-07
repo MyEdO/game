@@ -24,7 +24,7 @@ function castFrozen(casterId: string, spellId: string, roll: number, corruption:
 }
 
 describe('Règle du 8 — câblage store (LDB 46 l.89)', () => {
-  beforeEach(() => { banc.getState().seedRng(7); });
+  beforeEach(() => { banc.getState().ensemencerLeTirage(7); });
 
   it('dé des unités = 8 près d’une Corruption → Incantation Imparfaite', () => {
     const mage = pregen(PREGEN.sorcier);

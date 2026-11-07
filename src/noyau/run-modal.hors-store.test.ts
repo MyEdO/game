@@ -14,8 +14,8 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     prep?.(hero);
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -29,7 +29,7 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
 
   it('jetValider@run avant le jet : la clôture est fermée (`jetNonLance`), personne ne court', () => {
     const { H } = setup();
-    banc.getState().battleRun({ x: 16, y: 10 });
+    banc.getState().ouvrirLaCourse({ x: 16, y: 10 });
     banc.getState().jetValider('run');
     const st = banc.getState();
     expect(st.pendingRun, 'la fenêtre reste ouverte').toBeTruthy();
@@ -37,11 +37,11 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
   });
 
-  it('battleRun(dest) ouvre pendingRun ; jetLancer@run lance ; jetValider@run court vers la destination + consomme l’Action', () => {
-    banc.getState().seedRng(2);
+  it('ouvrirLaCourse(dest) ouvre pendingRun ; jetLancer@run lance ; jetValider@run court vers la destination + consomme l’Action', () => {
+    banc.getState().ensemencerLeTirage(2);
     const { H } = setup();
     const dest = { x: 16, y: 10 }; // 6 cases plein est (au-delà de la Marche M4)
-    banc.getState().battleRun(dest);
+    banc.getState().ouvrirLaCourse(dest);
     const pr = banc.getState().pendingRun;
     expect(pr).toBeTruthy();
     expect(pr!.combatantId).toBe(H.id);
@@ -64,9 +64,9 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
   // Journal : la fenêtre de Course a MONTRÉ le dé ; le journal ne porte que la CONSÉQUENCE, la distance
   // parcourue (Décision 1b, `noyau/rollSeam.ts` `Consequence`).
   it('jetValider@run journalise la seule conséquence : les cases parcourues', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H } = setup();
-    banc.getState().battleRun({ x: 16, y: 10 });
+    banc.getState().ouvrirLaCourse({ x: 16, y: 10 });
     banc.getState().jetLancer('run');
     const avant = banc.getState().battle!.log.length;
     const parcouru = banc.getState().battle!.movementUsed ?? 0;
@@ -78,18 +78,18 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
     expect(lignes).toEqual([t('cs.run', { name: H.label, cost: (b.movementUsed ?? 0) - parcouru, short: court ? t('cs.fragRunShort') : '' })]);
   });
 
-  it('Engagé → battleRun n’ouvre rien (il faut se désengager d’abord)', () => {
+  it('Engagé → ouvrirLaCourse n’ouvre rien (il faut se désengager d’abord)', () => {
     const { H } = setup();
     H.engagedWith = ['x'];
     banc.setState({ battle: { ...banc.getState().battle! } });
-    banc.getState().battleRun({ x: 16, y: 10 });
+    banc.getState().ouvrirLaCourse({ x: 16, y: 10 });
     expect(banc.getState().pendingRun).toBeNull();
   });
 
-  it('Action déjà dépensée → battleRun n’ouvre rien', () => {
+  it('Action déjà dépensée → ouvrirLaCourse n’ouvre rien', () => {
     setup();
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } });
-    banc.getState().battleRun({ x: 16, y: 10 });
+    banc.getState().ouvrirLaCourse({ x: 16, y: 10 });
     expect(banc.getState().pendingRun).toBeNull();
   });
 
@@ -100,7 +100,7 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
       if (sprinter) hero.talents = [...(hero.talents ?? []), { talentId: 'sprinter', times: 1 }];
       hero.resilience = 2;
     });
-    banc.getState().battleRun({ x: 16, y: 10 });
+    banc.getState().ouvrirLaCourse({ x: 16, y: 10 });
     banc.getState().jetForcerLaReussite('run');
     const r = banc.getState().pendingRun!.result!;
     expect(r.success).toBe(true);

@@ -59,12 +59,12 @@ function heroCoureur(): Combatant {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   hero.characteristics = { ...hero.characteristics, agilite: 95 };
   useGame.setState({ party: [hero] });
-  g().startScene(testScene()); g().startCombat('enc-mutants'); g().fenetreValider('roundStart'); vi.clearAllTimers();
+  g().lancerLaScene(testScene()); g().lancerLeCombat('enc-mutants'); g().fenetreValider('roundStart'); vi.clearAllTimers();
   const b = g().battle!; const H = b.combatants.find((c) => c.kind === 'hero')!;
   H.pos = { x: 10, y: 10 }; H.engagedWith = [];
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), acted: false, movementUsed: 0 }, pendingRun: null });
-  g().seedRng(2);
-  g().battleRun({ x: 16, y: 10 });
+  g().ensemencerLeTirage(2);
+  g().ouvrirLaCourse({ x: 16, y: 10 });
   return H;
 }
 

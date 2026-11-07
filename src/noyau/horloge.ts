@@ -16,7 +16,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
 
 /** L'UNIQUE écrivain de l'avance d'horloge (#668, #1599, #2817 D7) : tout chemin qui fait passer le temps
- *  (advanceTime, repos, voyages terrestre, fluvial et en mer, chantier naval) l'appelle. */
+ *  (avancerLeTemps, repos, voyages terrestre, fluvial et en mer, chantier naval) l'appelle. */
 export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees) {
   return {
     avancerLHorloge: (minutes) => {
@@ -29,7 +29,7 @@ export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees)
 
 export function creerActionsDHorloge(get: Get, set: Set) {
   return {
-    advanceTime: (minutes) => {
+    avancerLeTemps: (minutes) => {
       if (minutes <= 0) return;
       get().avancerLHorloge(minutes);
 
@@ -40,7 +40,7 @@ export function creerActionsDHorloge(get: Get, set: Set) {
         if (rounds > 0) {
           const party = get().party;
           const log = outOfCombatUpkeep(party, rounds, battleRng());
-          if (log.length) { set({ party: [...party] }); get().log(log); }
+          if (log.length) { set({ party: [...party] }); get().ecrireAuJournal(log); }
           // L'agonie hors combat est la SEULE voie par laquelle un corps assis s'éteint sans combat :
           // la couture unique de libération y est appelée (no-op si personne n'est assis).
           releaseSeatsOfDowned(get, set);
@@ -83,6 +83,6 @@ export function creerActionsDHorloge(get: Get, set: Set) {
 export const TABLES = {
   clotures: {
     /** L'horloge avance APRÈS le Flow de son site — verbe de CLÔTURE (#1508). */
-    avancerHorloge: (get, _set, c) => get().advanceTime(c.minutes),
+    avancerHorloge: (get, _set, c) => get().avancerLeTemps(c.minutes),
   },
 } satisfies FragmentDeTables;

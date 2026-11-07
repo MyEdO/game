@@ -18,10 +18,10 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 /** Sème les Possessions de dotation (`{id, type}` des dotations de Classe/Carrière,
  *  #617/#618 SOCLE POSSESSIONS Lot 1) pour CHAQUE héros du groupe courant — SEAM = `noyau/entreeEnScene.ts`
- *  `startScene` (démarrage d'une partie neuve, seule couture qui repart d'un registre `possessions`
+ *  `lancerLaScene` (démarrage d'une partie neuve, seule couture qui repart d'un registre `possessions`
  *  vidé ; `loadGame`/`quitterLaScene` ne repassent JAMAIS ici, cf. §3 du brief Lot 1 — le registre
  *  chargé d'une save fait foi, aucun re-semis). Garde anti-double-semis : un héros qui a déjà UNE
- *  possession au registre n'est pas re-semé (défensif — `startScene` vide déjà le registre avant
+ *  possession au registre n'est pas re-semé (défensif — `lancerLaScene` vide déjà le registre avant
  *  d'appeler ce seam, mais protège tout appelant futur). */
 export function seedStartingPossessions(get: Get, set: Set): void {
   for (const hero of get().party) {
@@ -33,13 +33,13 @@ export function seedStartingPossessions(get: Get, set: Set): void {
     // `battleRng()` : le semis n'est pas du combat (#370 exclusivité seam ; #663, duel-naval — un
     // tirage de semis ne doit PAS consommer le RNG de combat partagé).
     const rng = makeRNG(hashSeed(`possession-seed:${hero.id}`));
-    for (const grant of possessionGrantsFromRefs(refs, hero.id, rng)) addPossession(get, set, grant);
+    for (const grant of possessionGrantsFromRefs(refs, hero.id, rng)) ajouterLaPossession(get, set, grant);
   }
 }
 
 /** Attribue un `uid` `pos-N` par SCAN du registre (anti-collision — jamais un compteur-module, cf.
  *  `newUid`/`it-N` de `engine/items.ts` qui ne convient qu'aux items). Ajoute au registre, renvoie l'uid. */
-export function addPossession(get: Get, set: Set, p: PossessionInput): string {
+export function ajouterLaPossession(get: Get, set: Set, p: PossessionInput): string {
   const existing = get().possessions;
   const maxN = existing.reduce((max, cur) => {
     const m = /^pos-(\d+)$/.exec(cur.uid);
@@ -57,7 +57,7 @@ export function renommerLaPossession(_get: Get, set: Set, uid: string, label: st
 }
 
 /** Réaffecte le propriétaire (succession, don, vente). */
-export function transferPossession(_get: Get, set: Set, uid: string, newOwnerId: string): void {
+export function transmettreLaPossession(_get: Get, set: Set, uid: string, newOwnerId: string): void {
   set((s) => ({ possessions: s.possessions.map((p) => (p.uid === uid ? { ...p, ownerId: newOwnerId } : p)) }));
 }
 
@@ -209,7 +209,7 @@ export function cederLaPossession(get: Get, set: Set, uid: string): void {
 }
 
 /** Ajoute un trait appris (`learnedTraits`, nature `bete` uniquement — LDB 23 → LDB 85, dresse-*). */
-export function learnPossessionTrait(_get: Get, set: Set, uid: string, traitId: string): void {
+export function apprendreLeTrait(_get: Get, set: Set, uid: string, traitId: string): void {
   set((s) => ({
     possessions: s.possessions.map((p) => {
       if (p.uid !== uid || p.nature !== 'bete') return p;
@@ -235,14 +235,14 @@ export function possessionsByLocation(get: Get, location: PossessionLocation['ki
 
 export function creerActionsDesPossessions(get: Get, set: Set) {
   return {
-    addPossession: (p) => addPossession(get, set, p),
+    ajouterLaPossession: (p) => ajouterLaPossession(get, set, p),
     renommerLaPossession: (uid, label) => renommerLaPossession(get, set, uid, label),
-    transferPossession: (uid, newOwnerId) => transferPossession(get, set, uid, newOwnerId),
+    transmettreLaPossession: (uid, newOwnerId) => transmettreLaPossession(get, set, uid, newOwnerId),
     remiserLaPossession: (uid) => remiserLaPossession(get, set, uid),
     recupererLaPossession: (uid) => recupererLaPossession(get, set, uid),
     embarquer: (uid, hostUid) => embarquer(get, set, uid, hostUid),
     debarquer: (uid) => debarquer(get, set, uid),
     cederLaPossession: (uid) => cederLaPossession(get, set, uid),
-    learnPossessionTrait: (uid, traitId) => learnPossessionTrait(get, set, uid, traitId),
+    apprendreLeTrait: (uid, traitId) => apprendreLeTrait(get, set, uid, traitId),
   } satisfies FabriqueDuNoyau;
 }

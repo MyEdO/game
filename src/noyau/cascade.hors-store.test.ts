@@ -48,7 +48,7 @@ describe('Cascade séquentielle influençable', () => {
     ({ id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', base: target, target, result: null});
 
   it('présente une étape à la fois, applique chaque conséquence dans l’ordre, puis finalise', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const h = hero();
     startCascade(banc.getState, banc.setState, {
       title: 'Nuit', purpose: 'test', steps: [step('s1', h.id), step('s2', h.id)],
@@ -77,7 +77,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   it('une conséquence peut INSÉRER des étapes suivantes (dépendance abri → Exposition)', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const h = hero();
     appliers.shelter = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ insert: step.result?.success ? [] : [step1Insert(h, 'expo-a'), step1Insert(h, 'expo-b')] }));
     // Une étape insérée passe par un mint de la porte (`insert` n'accepte aucun littéral) : valeur
@@ -95,7 +95,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   it('« Tout lancer » résout d’office les étapes restantes puis montre le BILAN avant fermeture', () => {
-    banc.getState().seedRng(9);
+    banc.getState().ensemencerLeTirage(9);
     const h = hero();
     startCascade(banc.getState, banc.setState, {
       title: 'Nuit', purpose: 'test', steps: [step('s1', h.id), step('s2', h.id), step('s3', h.id)],
@@ -202,7 +202,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   it('« Tout résoudre » s’annonce fermé exactement quand le jouer ne change rien', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const h = hero();
     appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
     const choix: CascadeStep = { id: 'c', kind: cleDeFixture('pick'), actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
@@ -225,7 +225,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   it('« Tout résoudre » résout les étapes auto mais S\'ARRÊTE sur un CHOIX (pas d\'auto-tranche)', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const h = hero();
     appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
@@ -247,7 +247,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   it('runCascadeImmediate : CHOIX sans `defaultChoice` authoré → S\'ARRÊTE PENDANTE (jamais `options[0]` en silence, #351)', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const h = hero();
     appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
@@ -268,7 +268,7 @@ describe('Cascade séquentielle influençable', () => {
 
   it('runCascadeImmediate : étape HÔTE dont la fenêtre vit (`pendingExtendedTest`) → S’ARRÊTE PENDANTE, non validée (#1765)', () => {
     const h = hero();
-    banc.getState().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
     const hote = banc.getState().pendingCascade!.participants[0];
     banc.setState({ pendingCascade: null });
     const resolved = runCascadeImmediate(banc.getState, banc.setState, [hote]);
@@ -286,7 +286,7 @@ describe('Cascade séquentielle influençable', () => {
     appliers.extendedJet = spyApplier(applied, () => ({ kind: 'extendedJet', success: true }));
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     const sequence = (): CascadeStep[] => {
-      g().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+      g().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
       const hote = g().pendingCascade!.participants[0];
       s({ pendingCascade: null });
       return [hote, step('s1', h.id), { id: 'd', kind: cleDeFixture('note'), actorId: h.id }];
@@ -294,14 +294,14 @@ describe('Cascade séquentielle influençable', () => {
 
     const temoinSteps = sequence();
     s({ pendingExtendedTest: null });
-    g().seedRng(7);
+    g().ensemencerLeTirage(7);
     const temoin = runCascadeImmediate(g, s, temoinSteps)!;
     const appliquesTemoin = [...applied];
     expect(appliquesTemoin.map((a) => a.kind)).toEqual(['extendedJet', 'tally', 'note']);
 
     applied.length = 0;
     const steps = sequence();
-    g().seedRng(7);
+    g().ensemencerLeTirage(7);
     expect(runCascadeImmediate(g, s, steps), 'pilote PARQUÉ sur l’hôte').toBeUndefined();
     expect(g().pendingCascade!.piloteImmediat, 'la séquence parquée sur l’hôte ne porte pas la reprise').toEqual({ sansContexte: true });
     expect(applied).toEqual([]);
@@ -318,7 +318,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   it('runCascadeImmediate : CHOIX avec `defaultChoice` authoré → tranché sans surfacer (comportement inchangé)', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const h = hero();
     appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
     const steps: CascadeStep[] = [
@@ -346,7 +346,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   it('étape « batch » (participants — seam de jet #275 Décision 4 cran 1) : agrège les contributeurs à la validation', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const h1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Timonier', seed: 2 });
     const h2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vigie', seed: 3 });
     banc.setState({ party: [h1, h2] });
@@ -681,7 +681,7 @@ describe('reprise du pilote immédiat : le contexte de lancement voyage avec la 
   const choix = (): CascadeStep => ({ id: 'decision', kind: cleDeFixture('repriseNeutre'), label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] });
 
   it('`rowSurface` déclarée au lancement : la bande résolue APRÈS la décision ne redit pas ses dés au journal, et la clôture la rend', () => {
-    g().seedRng(5);
+    g().ensemencerLeTirage(5);
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     s({ party: [h] });
     const bande = buildBand(g, { id: 'bande', kind: cleDeFixture('repriseNeutre'), label: fixtureText('Bande'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne }] })!;

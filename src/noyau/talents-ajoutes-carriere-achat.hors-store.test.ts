@@ -21,7 +21,7 @@ const MARQUE = [{ id: 'marque-de-tzeentch' }];
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [] });
-  banc.getState().seedRng(1);
+  banc.getState().ensemencerLeTirage(1);
 });
 
 describe('acheterLeTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)', () => {

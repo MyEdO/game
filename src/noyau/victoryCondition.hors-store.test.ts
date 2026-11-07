@@ -19,8 +19,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 function startFixtureCombat(scene: Scene = testScene()) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], battle: null });
-  banc.getState().startScene(scene);
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(scene);
+  banc.getState().lancerLeCombat('enc-mutants');
 }
 
 describe('checkBattleOver — objectif de victoire authorable (#197)', () => {

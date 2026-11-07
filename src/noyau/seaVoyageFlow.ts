@@ -263,7 +263,7 @@ export function activeSeaPrecipitation(get: Get): SeaPrecipitationId | undefined
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
-  if (lines.length) get().log(lines);
+  if (lines.length) get().ecrireAuJournal(lines);
 };
 
 /** Écrit au journal ET au recap du jour (mêmes lignes — patron travelFlow). */
@@ -278,7 +278,7 @@ function tell(get: Get, set: Set, lines: string[]): void {
  *  `sea.lines`) : le titre + texte verbatim de l'événement se rendent en `ParchmentCard`
  *  (`SeaVoyageBody`), pas en ligne de routine. REND la ligne qui le nomme au lieu de l'écrire : depuis
  *  un applier de cascade, cette ligne est la CONSÉQUENCE de l'étape (`commitStep` la journalise ET la
- *  garde dans `outcome`, donc dans la pile à l'écran) ; hors cascade, l'appelant la passe à `log`.
+ *  garde dans `outcome`, donc dans la pile à l'écran) ; hors cascade, l'appelant la passe à `ecrireAuJournal`.
  *  Même partage des voix que `noteSeaLine` ci-dessous — un applier n'écrit jamais au journal en direct. */
 function noteEvent(get: Get, set: Set, event: RecapEvent): string {
   const plan = get().travelPlan;
@@ -1203,7 +1203,7 @@ function applyFastPalier(get: Get, set: Set, palierId?: string): void {
  *  d'abord (le reste s'achève en rapide APRÈS le combat, la cascade `'voyage-rapide'` s'étant SUSPENDUE
  *  — resumée au teardown de combat, `resumeSuspendedCascade`) ; sinon
  *  RACONTE puis applique le palier (MÊME geste — jamais avant, cf. `computeFastPalier`), avance de N
- *  jours (couture unique `advanceTime` → faim/soif/maladies/paie d'équipage), consomme l'eau des
+ *  jours (couture unique `avancerLeTemps` → faim/soif/maladies/paie d'équipage), consomme l'eau des
  *  tonneaux (comme le détaillé) et accoste (`openPortAt`). */
 function finalizeFastVoyage(get: Get, set: Set): void {
   const plan = get().travelPlan;
@@ -1242,9 +1242,9 @@ function finalizeFastVoyage(get: Get, set: Set): void {
   log(get, set, consumeCrewProvisions(get, set, fast.days));
   const to = get().worldMap ? placeById(get().worldMap!, plan.toPlaceId) : undefined;
   set({ travelPlan: null });
-  // Jours écoulés : franchissement par la couture UNIQUE `advanceTime` (entretien quotidien : faim/soif,
+  // Jours écoulés : franchissement par la couture UNIQUE `avancerLeTemps` (entretien quotidien : faim/soif,
   // maladies, convalescence, paie hebdomadaire de l'équipage) — l'eau vient d'être décrémentée.
-  get().advanceTime(fast.days * MINUTES_PER_DAY);
+  get().avancerLeTemps(fast.days * MINUTES_PER_DAY);
   log(get, set, [t('sv.arriveFast', { to: libelleOuAbsence(to, 'lieu', plan.toPlaceId), days: fast.days })]);
   if (to) openPortAt(get, set, to);
 }
@@ -1945,7 +1945,7 @@ function openAuthoredSeaAmbush(get: Get, set: Set, route: MapRoute | undefined, 
   if (plan?.sea?.ambushFired || !(route?.ambush?.scene && route.ambush.encounter)) return false;
   set({ travelPlan: { ...plan!, interrupted: true, sea: { ...plan!.sea!, ambushFired: true } } });
   get().quitterLaScene(route.ambush.scene, route.ambush.entry);
-  get().startCombat(route.ambush.encounter, undefined, { noSurprise });
+  get().lancerLeCombat(route.ambush.encounter, undefined, { noSurprise });
   return true;
 }
 
@@ -1956,7 +1956,7 @@ const BOARDING_SCENE_ID = 'sea-boarding-generic';
  *  et de la coque de campagne — MÊME machinerie navale que les scènes authorées (`buildScene` + `enemies`
  *  terse : coque à PV + équipage exposé `crewIds`, cf. `16-embuscade-fluviale`/`ls-abordage-cogue`). La
  *  coque ennemie porte sa vague d'abordage (`boardingWaveSize` × `crewRef` + `chefRef`) comme équipage
- *  exposé (MDG 14) ; la coque de campagne est le camp allié (le groupe y EMBARQUE au `startCombat`). */
+ *  exposé (MDG 14) ; la coque de campagne est le camp allié (le groupe y EMBARQUE au `lancerLeCombat`). */
 function buildBoardingScene(playerHullRef: string, playerHullName: string, b: SeaBoarding): Scene {
   const wave = Math.max(1, Math.round(Number(rule('boardingWaveSize'))));
   const chef = b.chefRef ? 1 : 0;
@@ -1983,7 +1983,7 @@ function buildBoardingScene(playerHullRef: string, playerHullName: string, b: Se
 
 /** Ouvre l'abordage GÉNÉRIQUE dérivé de l'événement (`SeaBoarding`) : construit la Scène bord à bord,
  *  l'enregistre, INTERROMPT la traversée et lance le combat — MÊME couture de suspension/reprise que
- *  l'embuscade authorée (`openAuthoredSeaAmbush` : `interrupted` + `startCombat` suspend la cascade en
+ *  l'embuscade authorée (`openAuthoredSeaAmbush` : `interrupted` + `lancerLeCombat` suspend la cascade en
  *  cours, le teardown de victoire la reprend). Requiert une coque de campagne (le groupe est EN MER).
  *  Renvoie `false` si aucune coque de campagne n'est connue (impossibilité réelle, non simulable). */
 function openGenericBoarding(get: Get, set: Set, b: SeaBoarding, noSurprise = true): boolean {
@@ -1996,7 +1996,7 @@ function openGenericBoarding(get: Get, set: Set, b: SeaBoarding, noSurprise = tr
   registerScene(buildBoardingScene(playerHullRef, playerHullName, b));
   set({ travelPlan: { ...plan, interrupted: true, sea: { ...plan.sea, boarding: undefined } } });
   get().quitterLaScene(BOARDING_SCENE_ID, undefined);
-  get().startCombat('enc-abordage', undefined, { noSurprise });
+  get().lancerLeCombat('enc-abordage', undefined, { noSurprise });
   return true;
 }
 
@@ -2113,7 +2113,7 @@ export function localisationAleatoire(rng: RNG): ShipCritKey {
 
 /** Applique un événement de bord et REND la ligne qui le raconte (titre + texte verbatim de
  *  `sea-events.json`) — son écriture appartient à l'appelant : conséquence d'étape sous cascade,
- *  `log` direct hors cascade. Les lignes MÉCANIQUES de la conséquence (dégâts, Moral, avarie) restent
+ *  `ecrireAuJournal` direct hors cascade. Les lignes MÉCANIQUES de la conséquence (dégâts, Moral, avarie) restent
  *  du ressort des sites qui les produisent (`tell`), comme ailleurs dans ce flux. */
 function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG, roll?: number): string {
   const ligne = noteEvent(get, set, { title: event.label, text: event.desc, roll });
@@ -2533,9 +2533,9 @@ export function choixDuVoyageEnMer(get: Get, set: Set) {
 
 export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
   return {
-    reparerLeNavire: () => portRepairVessel(get, set).forEach((l) => get().log(l)),
-    carenerLeNavire: () => portCareenVessel(get, set).forEach((l) => get().log(l)),
-    installerLAmelioration: (traitId, units) => installerLAmelioration(get, set, traitId, units).forEach((l) => get().log(l)),
+    reparerLeNavire: () => portRepairVessel(get, set).forEach((l) => get().ecrireAuJournal(l)),
+    carenerLeNavire: () => portCareenVessel(get, set).forEach((l) => get().ecrireAuJournal(l)),
+    installerLAmelioration: (traitId, units) => installerLAmelioration(get, set, traitId, units).forEach((l) => get().ecrireAuJournal(l)),
   } satisfies FabriqueDuNoyau;
 }
 

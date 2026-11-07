@@ -43,7 +43,7 @@ function auLieu(fiche: Fiche = {}, favors: (heroId: string) => Favor[] = () => [
     h.spells = fiche.magie.sorts;
   }
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h], scene: SCENE, lieu, favors: favors(h.id) } });
-  banc.actions.startInterlude(3);
+  banc.actions.ouvrirLInterlude(3);
   draineCascade(banc.getState);
   expect(banc.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
   expect(banc.getState().interlude?.perHero[h.id].left, 'témoin : une Activité reste').toBeGreaterThan(0);
@@ -215,7 +215,7 @@ describe('Faveur Importante', () => {
 describe('Préparation de bataille', () => {
   it('déjà faite : refusée et dite, rien en attente', () => {
     const { banc, heroId } = auLieu();
-    banc.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     banc.actions.menerLActionDeBataille('inspire', heroId);
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le Discours s’ouvre').toBe('inspire');
     banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 20, success: true, sl: 2 } }));

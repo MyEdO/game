@@ -66,9 +66,9 @@ function journeeDeFleuve(cadence: Cadence): void {
   const g = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
   for (const [id, adv] of [['ramer', 50], ['voile', 45]] as const) g.skills.push({ id, characteristic: skillCharacteristicById(id), advances: adv } as never);
   const o = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
-  get().setParty([g, o]);
+  get().fixerLeGroupe([g, o]);
   const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] } as never);
-  get().loadProject({ scenes: [quai('quai-a', 'A'), quai('quai-b', 'B')], entryId: 'quai-a', worldMap: {
+  get().chargerLeProjet({ scenes: [quai('quai-a', 'A'), quai('quai-b', 'B')], entryId: 'quai-a', worldMap: {
     id: 'm', label: 'Reik',
     places: [{ id: 'A', label: 'A', pos: { x: 0, y: 0 }, scene: 'quai-a' }, { id: 'B', label: 'B', pos: { x: 90, y: 0 }, scene: 'quai-b' }],
     routes: [{ id: 'r-reik', a: 'A', b: 'B', km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 }],

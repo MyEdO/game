@@ -22,8 +22,8 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
   /** Combat du Dôme ouvert, au DERNIER tour du Round 1, l'Action et le Mouvement de l'actif déjà dépensés. */
   function dernierTourSaigne(enTete?: (b: Combatant[]) => string): { sorciere: Combatant } {
     banc.setState({ party: scenario.construire().party });
-    banc.getState().startScene(scenarioConstruit.scene);
-    banc.getState().startCombat('enc-dome');
+    banc.getState().lancerLaScene(scenarioConstruit.scene);
+    banc.getState().lancerLeCombat('enc-dome');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const sorciere = b.combatants.find((c) => c.id === 'sorciere')!;

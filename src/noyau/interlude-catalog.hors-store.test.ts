@@ -27,11 +27,11 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     // Prière et Recherche sont avancées : le héros les a apprises pour tenter Pénitence et l'étude (LDB 09 l.30).
     a.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 }, { id: 'recherche', characteristic: 'intelligence', advances: 5 });
     banc.setState({ party: [a] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     banc.setState({ lieu: 'altdorf' });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, fromBrass(5000));
-    banc.getState().seedRng(13);
-    banc.getState().startInterlude(3);
+    banc.getState().ensemencerLeTirage(13);
+    banc.getState().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     // Neutralise l'événement d100 tiré (on teste le catalogue, pas l'événement).
     const itl = banc.getState().interlude!;

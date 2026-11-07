@@ -1,6 +1,6 @@
 /**
  * Registre des scènes (pour les transitions de campagne) : les scènes d'une campagne y entrent
- * quand elle se lance (`loadProject`) ou se recharge (`reposerPaquetDeCampagne`), jamais à l'import.
+ * quand elle se lance (`chargerLeProjet`) ou se recharge (`reposerPaquetDeCampagne`), jamais à l'import.
  */
 import type { Scene } from './scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';

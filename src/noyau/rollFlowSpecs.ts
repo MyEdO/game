@@ -1815,7 +1815,7 @@ export const FLOWS = paresseux({
           const msg = spendResolveForPsychImmunity(actor); // dépense + psychImmuneRoundsLeft (ActiveEffect 2 Rounds)
           if (!msg) return;
           commit({ immune: true, result: { roll: slot.target, target: slot.target, sl: 0, success: true } }, { touch: true });
-          get().log(msg);
+          get().ecrireAuJournal(msg);
         },
       },
     },
@@ -2224,8 +2224,8 @@ export const FLOWS = paresseux({
           const msg = spendResolveForPsychImmunity(actor); // null = plus de Détermination → rien ne se passe
           if (!msg || !p.psychMod) return;
           commit({ skillValue: p.skillValue - p.psychMod, target: p.target - p.psychMod, psychMod: 0, psychDetail: undefined }, { touch: true });
-          get().log(msg);
-          get().log(t('psy.determinationSocial', { name: actor.label }));
+          get().ecrireAuJournal(msg);
+          get().ecrireAuJournal(t('psy.determinationSocial', { name: actor.label }));
         },
       },
     },

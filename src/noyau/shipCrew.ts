@@ -502,7 +502,7 @@ function arreterLaPaie(get: Get, set: SetFn, decision: string): void {
     vessel: out.vessel,
     pendingCouncil: { ...p, phase: 'bilan', decision, results: factorLedger(out.factorRolls), delta: out.delta, before: out.before, after: out.after },
   });
-  get().log(out.lines);
+  get().ecrireAuJournal(out.lines);
 }
 
 /** Les choix de paie que `fenetreChoisir('council', 'paie', …)` accepte : ceux du registre (`payChoices`) que la bourse du groupe couvre, le choix

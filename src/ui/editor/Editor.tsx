@@ -89,7 +89,7 @@ export function Editor({
   onSceneChange?: (scene: Scene) => void;
 } = {}) {
   const setScreen = useGame((s) => s.setScreen);
-  const loadProject = useGame((s) => s.loadProject);
+  const chargerLeProjet = useGame((s) => s.chargerLeProjet);
   const party = useGame((s) => s.party);
 
   const { scene, setScene, setSceneNoHistory, reecrireHistorique, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
@@ -754,7 +754,7 @@ export function Editor({
       return;
     }
     setRefusDuGeste(null);
-    loadProject({ scenes: scenesDuProjet, entryId: scene.id, worldMap, narratif, projet: { id: doc.id } });
+    chargerLeProjet({ scenes: scenesDuProjet, entryId: scene.id, worldMap, narratif, projet: { id: doc.id } });
     setScreen('campaign');
   }
   function loadScenario(sc: TestScenario) {

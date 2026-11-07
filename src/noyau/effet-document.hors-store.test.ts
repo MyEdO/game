@@ -34,7 +34,7 @@ function fixtureScene(): Scene {
 }
 
 beforeEach(() => {
-  banc.getState().loadProject({ scenes: [fixtureScene()], entryId: 'scene-doc', narratif, projet: null });
+  banc.getState().chargerLeProjet({ scenes: [fixtureScene()], entryId: 'scene-doc', narratif, projet: null });
 });
 
 describe('Effect `document` — le registre narratif atteint la modale', () => {
@@ -44,7 +44,7 @@ describe('Effect `document` — le registre narratif atteint la modale', () => {
   });
 
   it('document SOURCÉ : `store.document` porte aussi sa source (le badge de la modale la lit)', () => {
-    banc.getState().loadProject({ scenes: [fixtureScene()], entryId: 'scene-doc', narratif: {
+    banc.getState().chargerLeProjet({ scenes: [fixtureScene()], entryId: 'scene-doc', narratif: {
       ...narratif,
       documents: [{ ...narratif.documents[0], source: { book: 'livre-de-base', page: 90 } }],
     }, projet: null });

@@ -85,8 +85,8 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
   function setupBattle() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -100,7 +100,7 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
   }
 
   it('aiMaybeFrenzy : ennemi capable + adversaire en LdV → entre en Frénésie (Test de FM réussi)', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const { E } = setupBattle();
     E.traits = [{ id: 'frenesie' }];
     E.characteristics['force-mentale'] = 99; // réussite quasi certaine
@@ -128,7 +128,7 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
   // meilleure action est un SORT (ici un Projectile sur le héros, seule action d'un lanceur DÉSARMÉ) ne
   // frénésie PAS — il lance son sort d'abord (l'Unicité retirera les sorts un à un avant de charger).
   it('aiMaybeFrenzy : un sort jouable prime (aiJetteraitUnSort vrai) → REPORTE la Frénésie', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const { H, E } = setupBattle();
     E.traits = [{ id: 'frenesie' }];
     E.characteristics['force-mentale'] = 99; E.characteristics.intelligence = 60; // FM → entrerait sinon en Frénésie ; Int → incantation fiable
@@ -143,7 +143,7 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
   });
 
   it('aiMaybeFrenzy : AUCUN sort jouable (aiJetteraitUnSort faux) → entre bien en Frénésie', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const { E } = setupBattle();
     E.traits = [{ id: 'frenesie' }];
     E.characteristics['force-mentale'] = 99;
@@ -155,7 +155,7 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
   });
 
   it('aiAvailableFreeAttack : attaque de mêlée LIBRE contre un héros → SA défense s’ouvre, puis l’Action reste intacte', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const { E, H } = setupBattle();
     (E.psychState ??= []).push({ type: 'frenesie' });
     E.weapons = [MELEE];

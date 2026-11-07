@@ -34,10 +34,10 @@ describe('L13 — gates & redirections', () => {
     const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const P = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
     banc.setState({ party: [H, P] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.label === 'H')!;
     const priest = b.combatants.find((c) => c.label === 'P')!;
@@ -71,11 +71,11 @@ describe('L13 — gates & redirections', () => {
     // graine dont le 1er d100 rate la cible 21 (cherchée puis rejouée — déterministe par seed).
     let failSeed: number | null = null;
     for (let s = 1; s <= 60; s++) {
-      banc.getState().seedRng(s);
+      banc.getState().ensemencerLeTirage(s);
       if (!attackWardGate(E, hero, battleRng()).allowed) { failSeed = s; break; }
     }
     expect(failSeed).not.toBeNull();
-    banc.getState().seedRng(failSeed!);
+    banc.getState().ensemencerLeTirage(failSeed!);
     const before = hero.wounds.current;
     const suspended = doAttack(banc.getState, banc.setState, E, hero);
     expect(suspended).toBeUndefined();

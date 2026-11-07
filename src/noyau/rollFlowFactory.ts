@@ -538,7 +538,7 @@ export function opReroll<P extends PendingBase>(
   if (!patch) return;
   if (free) {
     const label = consumeActiveFlag(actor, 'freeReroll');
-    get().log(t('roll.freeReroll', { name: actor.label, src: label ?? t('roll.blessingFallback') }));
+    get().ecrireAuJournal(t('roll.freeReroll', { name: actor.label, src: label ?? t('roll.blessingFallback') }));
   } else {
     actor.fortune = (actor.fortune ?? 0) - 1;
   }
@@ -619,7 +619,7 @@ function opDarkPact<P extends PendingBase>(
   const patch = reresolve();
   if (!patch) return;
   const lines = gainCorruption(get, set, actor, 1);
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
   commit(patch, { touch: true });
 }
 
@@ -857,7 +857,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (!p || !spec.issue) return [];
       const out = spec.issue(p, s, opts?.ctx as Ctx);
       const lines = (Array.isArray(out) ? out : [out]).filter((l): l is string => !!l);
-      if (spec.issueChannel !== 'battle') for (const l of lines) s.log(l);
+      if (spec.issueChannel !== 'battle') for (const l of lines) s.ecrireAuJournal(l);
       return lines;
     },
     actorOf(get, pid) {

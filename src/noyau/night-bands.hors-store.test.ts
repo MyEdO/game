@@ -87,7 +87,7 @@ beforeEach(() => {
 describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
   it('3 jours franchis, 1 héros ivre → TROIS bandes de Dessoûlage (une par jour), jamais une bande à 3 rangées', () => {
     set({ party: [h('h1', { drunk: { failedTests: 3, drunk: true } })] } as never);
-    get().advanceTime(3 * MINUTES_PER_DAY);
+    get().avancerLeTemps(3 * MINUTES_PER_DAY);
 
     const bandes = bandsOf('dessoulage');
     expect(bandes).toHaveLength(3); // un Test par journée franchie (LDB 09 l.485), donc trois fenêtres
@@ -99,7 +99,7 @@ describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
    *  seconde serait INJOIGNABLE (les verbes de rangée s'adressent à `part.id`). */
   it('INVARIANT : aucune bande de nuit ne contient deux rangées de même id', () => {
     set({ party: [h('h1', { drunk: { failedTests: 2, drunk: true } }), h('h2', { drunk: { failedTests: 1, drunk: true } })] } as never);
-    get().advanceTime(3 * MINUTES_PER_DAY);
+    get().avancerLeTemps(3 * MINUTES_PER_DAY);
 
     const doublons: string[] = [];
     for (const band of get().pendingCascade!.participants) {
@@ -179,7 +179,7 @@ describe('une bande, N rangées', () => {
   it('deux affamés le même jour → UNE fenêtre « Faim » à deux rangées', () => {
     const affame = (id: string) => h(id, { hunger: { days: 1, tests: 0, failures: 0 } });
     set({ party: [affame('h1'), affame('h2')] } as never);
-    get().advanceTime(MINUTES_PER_DAY);
+    get().avancerLeTemps(MINUTES_PER_DAY);
 
     const faim = bandsOf('faim');
     expect(faim).toHaveLength(1);
@@ -200,7 +200,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
 
   it('DEUX dormeurs → `groupOwner` (chaque siège voit la fenêtre où se tient SA rangée)', () => {
     set({ party: [affame('h1'), affame('h2')] } as never);
-    get().advanceTime(MINUTES_PER_DAY);
+    get().avancerLeTemps(MINUTES_PER_DAY);
 
     const faim = bandsOf('faim')[0];
     expect(faim.groupOwner, 'plus d’un porteur : la fenêtre est partagée').toBe(true);
@@ -211,7 +211,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
   it('UN dormeur → SON `actorId`, et la fenêtre part à SON siège (plus à l’hôte)', () => {
     const solo = affame('h1');
     set({ party: [solo] } as never);
-    get().advanceTime(MINUTES_PER_DAY);
+    get().avancerLeTemps(MINUTES_PER_DAY);
     const faim = bandsOf('faim')[0];
     expect(faim.actorId, 'une bande d’un seul porteur EST son porteur').toBe('h1');
     expect(faim.groupOwner).toBeUndefined();
@@ -232,7 +232,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
    */
   it('une moitié de `splitBandRows` à UNE rangée NOMME son porteur (possession re-dérivée)', () => {
     set({ party: [affame('h1'), affame('h2')] } as never);
-    get().advanceTime(MINUTES_PER_DAY);
+    get().avancerLeTemps(MINUTES_PER_DAY);
     const faim = bandsOf('faim')[0];
     expect(faim.groupOwner, 'la bande d’origine est bien partagée').toBe(true);
 
@@ -257,7 +257,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
 describe('gueule de bois (LDB 09 l.485) — due par TOUTE rangée du dessoûlage', () => {
   it('deux ivres, l’un réussit l’autre rate → UNE bande de gueule de bois à DEUX rangées', () => {
     set({ party: [h('h1', { drunk: { failedTests: 2, drunk: true } }), h('h2', { drunk: { failedTests: 4, drunk: true } })] } as never);
-    get().advanceTime(MINUTES_PER_DAY);
+    get().avancerLeTemps(MINUTES_PER_DAY);
     const desso = bandsOf('dessoulage')[0];
     expect(desso.participants).toHaveLength(2);
 
@@ -409,7 +409,7 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
 describe('SONDE B — ids de bande UNIQUES dans la séquence', () => {
   it('deux jours de Dessoûlage → deux bandes de gueule de bois aux ids DISTINCTS', () => {
     set({ party: [h('h1', { drunk: { failedTests: 3, drunk: true } })] } as never);
-    get().advanceTime(2 * MINUTES_PER_DAY);
+    get().avancerLeTemps(2 * MINUTES_PER_DAY);
     expect(bandsOf('dessoulage')).toHaveLength(2);
 
     // Déroule TOUTE la séquence (chaque Dessoûlage INSÈRE sa gueule de bois derrière lui) en relevant

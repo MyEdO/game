@@ -102,8 +102,8 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
     const L = pregen(PREGEN.sorcier);
     L.id = 'L'; L.label = 'L';
     const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [L], net: NET('host', 0, 'L') } });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const [E, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');

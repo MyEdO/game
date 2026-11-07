@@ -8,7 +8,7 @@
  *
  * La couture est UNIQUE et ne dépend d'AUCUN appelant : elle observe la transition d'état du store
  * (`transitionDuJeu`, jouée à chaque écriture du propriétaire du jeu) et compare les corps rang par rang. Ces tests l'attaquent donc par des
- * écrivains qui ne la connaissent pas — `setState` brut, `setParty` en bloc — autant que par les
+ * écrivains qui ne la connaissent pas — `setState` brut, `fixerLeGroupe` en bloc — autant que par les
  * primitives de recomposition.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -48,7 +48,7 @@ function attable(rangs: number[], party: Combatant[]): void {
     sc = r.scene;
   }
   banc.setState({ party, scene: null, mode: 'exploration', journal: [], battle: null, dialogue: null });
-  banc.getState().startScene(sc);
+  banc.getState().lancerLaScene(sc);
 }
 
 describe('recomposition du groupe — l’emplacement dont le corps change se lève', () => {
@@ -88,9 +88,9 @@ describe('recomposition du groupe — l’emplacement dont le corps change se l�
     expect(banc.getState().scene).toBe(avant); // aucune écriture inutile
   });
 
-  it('`setParty` en BLOC (devtools, écran de scénarios) lève la place du corps remplacé', () => {
+  it('`fixerLeGroupe` en BLOC (devtools, écran de scénarios) lève la place du corps remplacé', () => {
     attable([1], [hero('h1')]);
-    banc.getState().setParty([hero('autre')]);
+    banc.getState().fixerLeGroupe([hero('autre')]);
     expect(poseDe(1)).toBeNull();
     expect(placesDeGroupe()).toEqual([]);
   });

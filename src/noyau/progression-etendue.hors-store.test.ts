@@ -30,10 +30,10 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
 
   /** Combat à un héros face à une source de Peur, Peur ENTAMÉE (`calmeDR`) sur l'Indice `indice`. */
   function peurEntamee(indice: number, calmeDR: number, sansPeur = false) {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

@@ -132,7 +132,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   // Navire + cargaison sombrent avec la coque (#244, règle 7) : purgé IMMÉDIATEMENT, indépendant de
   // l'issue des jets de Natation (le navire est perdu dès qu'il coule, pas seulement s'il y a des noyés).
   set({ party, vessel: null, travelPlan: null, travelRecap: null, worldMapOpen: false });
-  get().log([t('wreck.banner'), ...opening]);
+  get().ecrireAuJournal([t('wreck.banner'), ...opening]);
 
   if (!swimmerIds.length) { emitShipwreckLines(get, finishShipwreck(get, set, shore, [], journalMark)); return; }
 
@@ -183,11 +183,11 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   startCascade(get, set, { title: t('wreck.title'), icon: 'nautical/swim', purpose: 'test', steps });
 }
 
-/** Journalise (réellement, `get().log`) une liste de lignes accumulées AVANT qu'elles n'existent dans
+/** Journalise (réellement, `get().ecrireAuJournal`) une liste de lignes accumulées AVANT qu'elles n'existent dans
  *  le journal (chemin inline/sans-nageur — le pilote CASCADE les fait vivre via le retour d'applier,
  *  poussées par `commitStep`). Petite brique pour ne pas dupliquer la boucle aux deux sites inline. */
 function emitShipwreckLines(get: Get, lines: string[]): void {
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
 }
 
 /** Clôture commune (inline ET cascade) : rescapés déduits de `swimmerIds` (les vivants parmi eux),
@@ -206,7 +206,7 @@ function finishShipwreck(get: Get, set: Set, shore: MapPlace | undefined, swimme
     : t('wreck.noSurvivor'));
   // #686
   if (survivors.length && shore) arriverAuLieu(set, shore);
-  get().remettreDocument({ title: t('wreck.title'), text: [...get().journal.slice(journalMark), ...lines].join('\n\n') });
+  get().remettreLeDocument({ title: t('wreck.title'), text: [...get().journal.slice(journalMark), ...lines].join('\n\n') });
   // Aucun survivant → défaite hors combat (écran unique `checkPartyWiped`).
   checkPartyWiped(get, set);
   return lines;

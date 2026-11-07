@@ -59,7 +59,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
   });
 
   it('tirage NATUREL par les vraies coutures : le dé tombe dans SA fourchette, la ligne est affichée puis APPLIQUÉE', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     startCascade(banc.getState, banc.setState, { title: 'Tirage', purpose: 'test', steps: [tableStep('t1')] });
     banc.getState().jetValider('cascade'); // pas encore tiré → no-op (la modale force d'abord le dé)
     expect(applied).toHaveLength(0);
@@ -100,7 +100,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
   });
 
   it('les pilotes AUTOMATIQUES tirent la table par le même résolveur (« Tout lancer » et résolution immédiate)', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     startCascade(banc.getState, banc.setState, { title: 'Tirage', purpose: 'test', steps: [tableStep('t1'), tableStep('t2')] });
     banc.getState().jetLancer('cascade');
     expect(applied).toHaveLength(2);
@@ -251,7 +251,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     expect(curStep().table!.result).toMatchObject({ roll: 48, die: 58, id: 'haute' });
     expect(curStep().fixed, 'la provenance « dé fixé » vit sur l’étape (rangée + journal)').toBe(true);
     // JOURNAL : la mention suit le jet tant que le slot est ouvert (couture unique `fixedDieMark`).
-    banc.getState().log('Conséquence du tirage');
+    banc.getState().ecrireAuJournal('Conséquence du tirage');
     const journal = banc.getState().journal;
     expect(journal[journal.length - 1]).toContain('(dé fixé)');
   });

@@ -56,7 +56,7 @@ export type IdDEntiteDeScene = string;
 export type IdDuClic = string;
 /** Un combattant que `promouvoirLeCombattant` accepte (`actFirstIds`, `turnEconomy.ts`). */
 export type IdDeCombattantPromouvable = string;
-/** Un tireur qu'`armerLeTirPreventif` et `preemptRangedShot` acceptent (`preemptShooterIds`, `targeting.ts`). */
+/** Un tireur qu'`armerLeTirPreventif` et `declencherLeTirPreventif` acceptent (`preemptShooterIds`, `targeting.ts`). */
 export type IdDeTireurRapide = string;
 /** Une chanson que le réglage `shanty.chanson` accepte (`chansonsDuChanteur`, `shipCrew.ts`). */
 export type IdDeChanson = string;

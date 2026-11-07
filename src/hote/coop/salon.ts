@@ -86,7 +86,7 @@ export function emettreIntentInvite(
 /** HÔTE : siège FERMÉ (départ définitif, fin de grâce) — `fermerLeSiege` (spec §6). */
 function siegeFerme(get: Get, set: Set, seat: number): void {
   set({ net: fermerLeSiege(get().net, seat) });
-  get().log(t('coop.seatClosed'));
+  get().ecrireAuJournal(t('coop.seatClosed'));
 }
 
 /** Pose le réseau `apres(net)`, sauf si `refus` tombe : le refus se dit alors au siège qui décide
@@ -196,7 +196,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       onSeatClosed: (seat) => siegeFerme(get, set, seat),
     });
     rh.onFatal = () => {
-      get().log(t('coop.hostLinkLost'));
+      get().ecrireAuJournal(t('coop.hostLinkLost'));
       quitter(set);
     };
     rh.onJoin = (seat, gname) => {
@@ -240,7 +240,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       roomGuest = rg;
       rg.onFatal = (reason) => {
         if (settled) {
-          get().log(t('coop.reason', { reason }));
+          get().ecrireAuJournal(t('coop.reason', { reason }));
           quitter(set);
           return;
         }
@@ -264,8 +264,8 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
           applySnapshot: appliquerSnapshot,
           // Motif typé de l'hôte (mismatch de protocole) : canal du journal réseau, distinct du onClose générique
           // qui suit juste après (silencieux, cf. session.ts).
-          onProtocolMismatch: (expected, got) => get().log(t('coop.protocolMismatch', { got, expected })),
-          onFormatMismatch: () => get().log(t('coop.formatMismatch')),
+          onProtocolMismatch: (expected, got) => get().ecrireAuJournal(t('coop.protocolMismatch', { got, expected })),
+          onFormatMismatch: () => get().ecrireAuJournal(t('coop.formatMismatch')),
           onClosed: () => quitter(set),
         });
         set({ net: { ...initialNet(), mode: 'guest', mySeat: seat, roomCode: code, seatNames: { [seat]: name } } });

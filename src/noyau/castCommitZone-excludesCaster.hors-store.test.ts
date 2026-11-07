@@ -59,7 +59,7 @@ const combatant = (id: string) => banc.getState().battle!.combatants.find((cc) =
 
 describe("castCommitZone — le lanceur dans sa propre Zone d'Effet", () => {
   beforeEach(() => {
-    banc.getState().seedRng(17);
+    banc.getState().ensemencerLeTirage(17);
   });
 
   it("sans excludesCaster : une ZdE de dégâts touche le lanceur ET un allié à son côté (LDB 47 l.28)", () => {

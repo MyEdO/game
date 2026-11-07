@@ -135,7 +135,7 @@ export function bandeDeNuit(rowFn: NightRowApplier, bandFn?: NightBandApplier): 
       const out = rowFn(get, set, step, row, hero, ctx);
       const lines = out?.consequences ? resultLines(out.consequences) : [];
       row.outcome = lines;
-      for (const l of lines) get().log(l.text);
+      for (const l of lines) get().ecrireAuJournal(l.text);
       if (out?.insert?.length) insert.push(...out.insert);
     }
     set({ party: [...get().party] });

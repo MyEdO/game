@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [], pendingCast: null });
-  banc.getState().seedRng(41);
+  banc.getState().ensemencerLeTirage(41);
 });
 
 describe('acheterLeSort', () => {

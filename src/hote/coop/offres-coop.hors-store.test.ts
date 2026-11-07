@@ -53,8 +53,8 @@ function table(): { banc: Banc; envoyer: (action: string, args: unknown[]) => Is
 /** Le combat ouvert, en pause de Round. */
 function enPause(): ReturnType<typeof table> {
   const t = table();
-  t.banc.getState().startScene(testScene());
-  t.banc.getState().startCombat('enc-mutants');
+  t.banc.getState().lancerLaScene(testScene());
+  t.banc.getState().lancerLeCombat('enc-mutants');
   return t;
 }
 
@@ -124,7 +124,7 @@ describe('Offres en coop : le corps voyage, le relais s’élit chez l’émette
 describe('Sort hors combat en coop : le geste se route au propriétaire du lanceur', () => {
   it('l’invité incante avec SON héros ; avec le héros de l’hôte il est refusé', () => {
     const t = table();
-    t.banc.getState().startScene(testScene());
+    t.banc.getState().lancerLaScene(testScene());
     expect(t.envoyer('incanterLeSort', ['H', 'arme-aethyrique', 'H']), 'l’invité incantait pour le héros de l’hôte').toBe('refusee');
     expect(t.banc.getState().pendingCast ?? null).toBeNull();
     expect(t.envoyer('incanterLeSort', ['L', 'arme-aethyrique', 'L'])).toBe('appliquee');
