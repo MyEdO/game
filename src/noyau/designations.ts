@@ -12,7 +12,7 @@ import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
 import {
   ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, findConditionById, findCreatureById, findSeaShantyById,
-  findTrappingById, pregens, profilsStandard, shipStations, skills, spells, talents, trappings,
+  findTrappingById, pregens, profilsStandard, shipStations, skills, spells, talents, trappingsInstanciables,
 } from '../data';
 import { ACTIVITIES, entrainementOptions, qualitesDArtisanat } from '../engine/activities';
 import { TAVERN_GAMES } from '../engine/tavernGame';
@@ -267,12 +267,12 @@ export const DESIGNATIONS = {
   IdDeCondition: { mot: 'id d’État', lire: conditionIds, nom: (_s, id) => findConditionById(id)?.label ?? null },
   IdDeFaveur: { mot: 'id de Faveur', lire: (s) => ids(s.favors), nom: () => null },
   IdDActivite: { mot: 'id d’Activité', lire: () => ids(ACTIVITIES), nom: (_s, id) => labelParmi(ACTIVITIES, id) },
-  IdDObjetDuCatalogue: { mot: 'id d’objet du catalogue', lire: () => ids(trappings), nom: (_s, id) => findTrappingById(id)?.label ?? null },
+  IdDObjetDuCatalogue: { mot: 'id d’objet du catalogue', lire: () => ids(trappingsInstanciables()), nom: (_s, id) => findTrappingById(id)?.label ?? null },
   IdDAtoutDArtisanat: { mot: 'id d’Atout d’Artisanat', lire: () => qualitesDArtisanat().atouts, nom: () => null },
   IdDeDefautDArtisanat: { mot: 'id de Défaut d’Artisanat', lire: () => qualitesDArtisanat().defauts, nom: () => null },
   IdDApparence: {
     mot: 'id d’apparence',
-    lire: () => sansDoublon([...ids(apparences), ...trappings.flatMap((t) => (t.shape ? [t.shape.id] : []))]),
+    lire: () => sansDoublon([...ids(apparences), ...trappingsInstanciables().flatMap((t) => (t.shape ? [t.shape.id] : []))]),
     nom: (_s, id) => labelParmi(apparences, id),
   },
   IdDeTalent: { mot: 'id de Talent', lire: () => ids(talents), nom: (_s, id) => labelParmi(talents, id) },
