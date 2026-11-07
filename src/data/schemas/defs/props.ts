@@ -93,7 +93,7 @@ export const propSeatSlotSchema = nommerChamps(z.strictObject({
 
 /** `PropData` (`src/data/props.types.ts`) — type de décor app-owned : vérité UNIQUE de l'empreinte,
  *  de la physique, de la recette volumique et des places assises. Entrée de `props.json`, et contrat
- *  partagé par `src/state` (walkability, LdV, lumière) et `src/gameIso` (rendu). Le `label` de
+ *  partagé par la règle (walkability, LdV, lumière) et le rendu. Le `label` de
  *  l'enveloppe est la seule source du libellé du décor. */
 const doc = document(
   'props',

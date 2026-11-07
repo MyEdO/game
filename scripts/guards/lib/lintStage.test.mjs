@@ -24,9 +24,9 @@ const NBSP = String.fromCharCode(0x00a0)
 const dossierDeFixtures = () => mkdtempSync(join(tmpdir(), 'lint-fixtures-'))
 
 test('rapport : chaque message devient un site `fichier:ligne:colonne` relatif à la racine', () => {
-  const json = JSON.stringify({diagnostics:[{filename:'src/ui/A.tsx',message:"'x' is defined but never used.",code:'eslint(no-unused-vars)',severity:'error',labels:[{span:{line:12,column:3}}]}]})
+  const json = JSON.stringify({diagnostics:[{filename:'src/noyau/A.tsx',message:"'x' is defined but never used.",code:'eslint(no-unused-vars)',severity:'error',labels:[{span:{line:12,column:3}}]}]})
   assert.deepEqual(defautsDeRapport(json, RACINE, () => '\n'.repeat(11)+' '.repeat(3)), [
-    { site: 'src/ui/A.tsx:12:3', gravite: 'erreur', regle: 'no-unused-vars', message: "'x' is defined but never used." },
+    { site: 'src/noyau/A.tsx:12:3', gravite: 'erreur', regle: 'no-unused-vars', message: "'x' is defined but never used." },
   ])
 })
 

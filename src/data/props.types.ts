@@ -1,7 +1,7 @@
 /**
  * Contrats NEUTRES du décor : type de prop app-owned (`props.json`), recette VOLUMIQUE locale, matériaux
- * et places assises. Vivent hors de `src/data/index.ts` pour rester importables par `src/state` comme par
- * `src/gameIso` sans traverser le chargeur app-owned. PUR — aucune donnée, aucune caméra, aucun rendu.
+ * et places assises. Vivent hors de `src/data/index.ts` pour rester importables sans traverser le
+ * chargeur app-owned. PUR — aucune donnée, aucune caméra, aucun rendu.
  *
  * RÈGLE D'UNITÉ (#1507) : une recette est en MÈTRES dans son repère local ; le monde est en CASES ; la
  * traduction mètres→cases se fait par DIVISION par `metresPerTile` de la scène, et cases→mètres par
@@ -16,8 +16,8 @@
  * `noyau/monde/echelle-de-scene.test.ts` : un site de plus s'y déclare, ou il sort rouge.
  *
  * Repère LOCAL d'une recette : origine à l'ANCRE du décor, `xM`/`yM` en mètres dans le plan, `hM` en
- * mètres depuis le pied de l'ancrage. L'ancre est le point MONDE que le builder déclare (`AncrageDecor`,
- * `gameIso/builders/props.ts`) : le CENTRE de l'empreinte pour un décor d'entité (donc le centre de sa
+ * mètres depuis le pied de l'ancrage. L'ancre est le point MONDE que le builder déclare (`AncrageDecor`) :
+ * le CENTRE de l'empreinte pour un décor d'entité (donc le centre de sa
  * case quand elle est 1×1, le milieu du bloc au-delà), le point fractionnaire de l'arête pour une
  * feature de façade, le milieu de l'empreinte pour un ornement de faîte. L'orientation vient du cap
  * déclaré (`SceneEntity.facing` pour un décor posé).
@@ -54,10 +54,10 @@ import type { PropMaterialData } from './materials.types';
  * diagonale muterait 2×2 cases pour un corps qui n'en occupe vraiment aucune entière : du
  * SUR-blocage, pas du débordement ; (2) le corps ne se cuit qu'au cap cardinal (`AncrageVolume`).
  * Le prédicat est `capDecorAdmis`, lu tel quel : `undefined` = cap refusé, que le cuiseur du monde
- * rend en billboard d'ERREUR (`gameIso/builders/props.ts`, #877) sans lever. La chaîne : le schéma de
+ * rend en billboard d'ERREUR (#877) sans lever. La chaîne : le schéma de
  * scène la refuse au parse (`schemas/defs-scenes/scene.ts`), `changePropRef` la fait retomber au cap
- * d'identité (`propRefPatch`, `noyau/sceneEdit.ts`), le sélecteur d'orientation ne l'offre pas
- * (`ui/editor/Inspector.tsx`), `noyau/validateScene.ts` la nomme à l'écran. PURE.
+ * d'identité (`propRefPatch`, `noyau/sceneEdit.ts`), le sélecteur d'orientation de l'éditeur ne l'offre
+ * pas, `noyau/validateScene.ts` la nomme à l'écran. PURE.
  */
 export function capVolumique(facing: Dir8 | undefined): Dir4 | undefined {
   const cap = facing ?? CAP_IDENTITE_PROP;
@@ -84,7 +84,7 @@ export const cransDepuisCapIdentite = (facing: Dir8): number =>
  * Rotation d'un point du repère LOCAL d'une recette vers le repère de la scène, au cap d'auteur —
  * l'UNIQUE définition de ce que `SceneEntity.facing` fait subir à une géométrie de décor (volumes,
  * ancres de place, cases d'abord). Vit ici, à l'étage NEUTRE, pour être servie aussi bien au
- * builder volumique (`gameIso`) qu'à la résolution d'assise (`state`) : deux copies divergeraient.
+ * builder volumique qu'à la résolution d'assise : deux copies divergeraient.
  * `CAP_IDENTITE_PROP` est l'identité ; chaque cran vaut 45° horaires. PURE.
  */
 export function rotatePropLocal(x: number, y: number, facing: Dir8): [number, number] {
@@ -292,7 +292,7 @@ export function polygonesDePrimitive(p: PropPrimitive): PropPoint3[][] {
  * Un SOMMET pour la mesure de FERMETURE : trois coordonnées, SANS unité. La fermeture est une
  * propriété TOPOLOGIQUE — elle vaut aussi bien sur la géométrie LOCALE d'une recette (mètres,
  * `PropPoint3`) que sur les faces MONDE qu'un builder en tire (cases dans le plan, mètres en
- * hauteur — `GP`, `gameIso/builders/types.ts`). Ces deux repères ne portent PLUS les mêmes noms de
+ * hauteur — `GP`). Ces deux repères ne portent PLUS les mêmes noms de
  * champs depuis #1507, et c'est le verrou : le triplet est l'unique forme qu'ils partagent, et
  * chaque appelant DIT lequel des deux il mesure.
  */
@@ -486,7 +486,7 @@ export function empreinteDuProp(prop: PropData | undefined, facing: Dir8 | undef
 
 /**
  * OFFSET de l'ANCRE dans son empreinte : du coin NO (`SceneEntity.pos`) vers le CENTRE du bloc, en
- * cases. Écrite ICI parce que `src/data` ne peut pas remonter vers `src/state` sans cycle, et qu'il
+ * cases. Écrite ICI parce que `src/data` ne peut pas remonter vers `src/noyau` sans cycle, et qu'il
  * n'en existe qu'UNE : `noyau/monde/footprint.ts` (`decorFootGeometry`, puis `decorAncre` qui la sert au
  * monde) la LIT, elle ne la refait pas. 1×1 ⇒ (0,0). PURE.
  */

@@ -56,8 +56,8 @@ describe('aucun `index` de `src/` n’est une entrée de knip', () => {
   it('le détecteur MORD sur chaque forme qui taisait un `index`', () => {
     // Les littéraux s'assemblent ici, sinon le scan de ce fichier les trouverait.
     const url = (chemin: string) => `new ${'URL'}('${chemin}', import.meta.url)`;
-    expect(designesPar('src/state/x.test.ts', `fileURLToPath(${url('../noyau/')})`)).toEqual(['src/noyau']);
-    expect(designesPar('src/state/x.test.ts', `new ${'URL'}('../noyau/', import.meta.url,)`), 'virgule finale').toEqual(['src/noyau']);
+    expect(designesPar('src/hote/x.test.ts', `fileURLToPath(${url('../noyau/')})`)).toEqual(['src/noyau']);
+    expect(designesPar('src/hote/x.test.ts', `new ${'URL'}('../noyau/', import.meta.url,)`), 'virgule finale').toEqual(['src/noyau']);
     expect(designesPar('src/data/x.test.ts', url('.'))).toEqual(['src/data']);
     expect(designesPar('src/noyau/x.test.ts', `import.meta.${'resolve'}('./index.ts')`)).toEqual([SURFACE_DU_NOYAU]);
     expect(designesPar('scripts/a/b.mjs', `require.${'resolve'}('../../src/data')`)).toEqual(['src/data']);

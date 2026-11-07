@@ -78,16 +78,16 @@ describe('garde — un résolveur d’Activité a un CONSOMMATEUR (#1318 V6)', (
 
   it('MORSURE : le détecteur voit un résolveur absent, et ne s’émeut pas d’un présent (fixture)', () => {
     const fixture = [
-      { rel: 'src/state/fauxFlow.ts', contenu: "export const f = (d: Def) => d.resolver === 'forage' ? 1 : 0;" },
+      { rel: 'src/noyau/fauxFlow.ts', contenu: "export const f = (d: Def) => d.resolver === 'forage' ? 1 : 0;" },
       { rel: 'src/engine/activities.ts', contenu: `export const X = ['forage', '${MOT_FORGE}'];` }, // définition : ignorée
     ];
     const consumers = consumersByResolver(fixture, ['forage', MOT_FORGE]);
-    expect(consumers.get('forage')).toEqual(['src/state/fauxFlow.ts']);
+    expect(consumers.get('forage')).toEqual(['src/noyau/fauxFlow.ts']);
     expect(consumers.get(MOT_FORGE)).toEqual([]);
   });
 
   it('MORSURE : un littéral de COMMENTAIRE ne compte pas comme consommation', () => {
-    const fixture = [{ rel: 'src/state/fauxFlow.ts', contenu: `// mentionne '${MOT_FORGE}' en prose\nexport const f = 1;` }];
+    const fixture = [{ rel: 'src/noyau/fauxFlow.ts', contenu: `// mentionne '${MOT_FORGE}' en prose\nexport const f = 1;` }];
     expect(consumersByResolver(fixture, [MOT_FORGE]).get(MOT_FORGE)).toEqual([]);
   });
 });
