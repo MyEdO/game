@@ -107,6 +107,8 @@ const NOMMES = [
   'action|free|charge',
   'base|avancee',
   'capacite-de-combat|capacite-de-tir',
+  // `charKeySchema` (#3606) : les 10 Caractéristiques, nommées par `CHAR_LABELS`.
+  'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',
   'circonstance|jet',
   'esquive|parade|init|resist|auto',
   'feeding|praying|cowering|standing|howling',

@@ -587,6 +587,15 @@
     "verrou": "src/data/schemas/grammaire/co-descente.test.ts"
   },
   {
+    "id": "formulaireDuSchema",
+    "type": "primitives.manifest",
+    "label": "formulaireDeZone/valeurNeuveDe/avecLaValeur",
+    "fichier": "src/noyau/edition/formulaire.ts",
+    "concept": "formulaire tiré du schéma zod d'une donnée : sa description sérialisable champ par champ (objet, choix d'énumération, de booléen, de littéral ou de référence de catalogue avec sa sous-liste, nombre borné, texte, repli JSON), la valeur neuve d'un nœud, et l'écriture bornée à ce que la description offre, qui retire un champ et le conteneur qu'il vide",
+    "perimetre": "éditeur Godot : formulaire d'une zone d'effet (`crossTest`, `onCross`, `perRound`), traduit en éléments par `src/hote/editeur.ts` et joué par le geste `valeur` de la session d'édition",
+    "verrou": "src/noyau/edition/formulaire.test.ts"
+  },
+  {
     "id": "conceptDe",
     "type": "primitives.manifest",
     "label": "conceptDe/noeudDuConcept/posesPerdues",

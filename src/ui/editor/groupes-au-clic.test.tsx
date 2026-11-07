@@ -119,7 +119,7 @@ describe('barrière d’une zone — `blockGroups` (cible)', () => {
         <Inspector
           scene={scene} otherScenes={[]} worldMap={null}
           setScene={(s) => { dernier = s; setScene(s); }}
-          sel={{ type: 'effectZone', idx: 0 }} setSel={() => undefined}
+          sel={{ type: 'effectZone', id: 'zone-b' }} setSel={() => undefined}
           enemyCreatures={[]} openLogic={() => undefined} resizeScene={() => undefined}
           narratif={emptyNarratif()} tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
         />

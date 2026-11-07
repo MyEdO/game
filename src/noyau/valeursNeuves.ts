@@ -22,19 +22,19 @@ export const paramsDeRegle = memoParVersion('reglesOptionnelles', () => OPTIONAL
  *  (`GameOpEditor.formule-totale.test.tsx`). */
 export type FormulaShape =
   | 'lit' | 'bonus' | 'char' | 'dice' | 'times' | 'rolled' | 'indice' | 'pions' | 'ecartAvantage'
-  | 'blessuresInfligees' | 'dr' | 'regle' | 'minimum' | 'tranches' | 'somme' | 'peche';
+  | 'blessuresInfligees' | 'blessuresMax' | 'dr' | 'regle' | 'minimum' | 'tranches' | 'somme' | 'peche';
 
 /** Forme d'une `Formula` objet, par la clé qui la porte. */
 export const FORME_DE_CLE: Readonly<Record<string, FormulaShape>> = {
   bonusOf: 'bonus', charOf: 'char', dice: 'dice', times: 'times', rolled: 'rolled', indiceOf: 'indice',
-  stacks: 'pions', engagedAdvantageGap: 'ecartAvantage', woundsDealt: 'blessuresInfligees', sl: 'dr',
+  stacks: 'pions', engagedAdvantageGap: 'ecartAvantage', woundsDealt: 'blessuresInfligees', blessuresMax: 'blessuresMax', sl: 'dr',
   rule: 'regle', minimum: 'minimum', parTranche: 'tranches', sum: 'somme', sinPoints: 'peche',
 };
 
 /** Termes CONSTANTS : leur forme est leur valeur, sans champ à saisir. */
 const TERME_CONSTANT: Partial<Record<FormulaShape, JsonFormula>> = {
   rolled: { rolled: true }, indice: { indiceOf: true }, pions: { stacks: 'self' }, ecartAvantage: { engagedAdvantageGap: true },
-  blessuresInfligees: { woundsDealt: true }, dr: { sl: true }, peche: { sinPoints: true },
+  blessuresInfligees: { woundsDealt: true }, blessuresMax: { blessuresMax: true }, dr: { sl: true }, peche: { sinPoints: true },
 };
 
 export const shapeOf = (f: JsonFormula | undefined): FormulaShape => {
@@ -207,6 +207,8 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'cargaison': return { op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } };
     case 'provisions': return { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } };
     case 'equipage': return { op: 'equipage', delta: 1 };
+    case 'perilDeMer': return { op: 'perilDeMer', collision: { id: '' } };
+    case 'navireHostile': return { op: 'navireHostile', navire: { id: '' }, equipage: { id: '', nombre: 1 } };
     default: return { op: 'wounds', amount: 5 };
   }
 }

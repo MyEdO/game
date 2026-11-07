@@ -34,13 +34,15 @@ const feuilleDeParam = z.union([
 /** `SeaEventDef` (`src/engine/seaVoyage.ts`) — `consequence` = sa suite MÉCANIQUE en grammaire (`Flow`),
  *  jouée par `runFlow` ; sans elle ni genre, la rangée est narrative. `kind`/`params` = le genre d'une
  *  rangée dont la suite est codée (`ParametresDeBord`, `ParametresDePort`). `relache` : la rangée ne se
- *  joue qu'avec la relâche à terre accordée (MDG 15 l.245, l.260). #1652 */
+ *  joue qu'avec la relâche à terre accordée (MDG 15 l.245, l.260) ; `taillePortMax` : qu'à l'escale d'un port
+ *  de Taille au plus celle-ci (MDG 15 l.249). #1652 */
 const seaEventDef = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
   desc: z.string(),
   relache: z.literal(true).optional(),
+  taillePortMax: z.number().int().min(1).optional(),
   consequence: flowSchema.optional(),
   kind: z.string().optional(),
   params: z.record(z.string(), z.union([
@@ -56,6 +58,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   label: { label: 'Libellé' },
   desc: { label: 'Description' },
   relache: { label: 'Relâche à terre requise' },
+  taillePortMax: { label: 'Taille de port maximale' },
   consequence: { label: 'Conséquence' },
   kind: { label: 'Type' },
   params: { label: 'Paramètres' },
@@ -63,27 +66,21 @@ const seaEventDef = nommerChamps(z.strictObject({
 });
 
 /** Palier du VOYAGE RAPIDE (`FastVoyagePalier`, `src/engine/seaVoyage.ts`) — cran du dé de sa table (l.33-37) :
- *  fourchette `[min,max]` (`findTableEntry`) + conséquences en % (équipage/cargaison/Blessures) et
- *  Coups Critiques. `desc` = verbatim RAW (règle 5). */
+ *  fourchette `[min,max]` (`findTableEntry`) et `consequence`, ses pertes en grammaire (`Flow`, ops du navire),
+ *  absente pour un palier sans perte. `desc` = verbatim RAW (règle 5). */
 const fastVoyagePalier = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
   desc: z.string(),
-  crewLostPct: z.number(),
-  cargoLostPct: z.number(),
-  hullLostPct: z.number(),
-  criticals: z.number(),
+  consequence: flowSchema.optional(),
   source: sourceRefSchema,
 }), {
   ...metaDesChamps(plageOuverteSchema, { exigees: true }),
   id: { label: 'Identifiant' },
   label: { label: 'Libellé' },
   desc: { label: 'Description' },
-  crewLostPct: { label: 'Équipage perdu (%)' },
-  cargoLostPct: { label: 'Cargaison perdue (%)' },
-  hullLostPct: { label: 'Coque perdue (%)' },
-  criticals: { label: 'Critiques' },
+  consequence: { label: 'Conséquence' },
   source: { label: 'Source' },
 });
 
@@ -115,7 +112,7 @@ const doc = document(
     portEvents: { label: 'Événements de port', hint: 'Table de tirage d’événements à l’escale' },
     fastVoyage: {
       label: 'Voyage rapide',
-      hint: 'Paliers de conséquences (équipage/cargaison/coque/Critiques) du choix de forcer l’allure',
+      hint: 'Paliers de conséquences (équipage, cargaison, coque, Critiques) d’une traversée résolue en un Test',
     },
   },
   {

@@ -98,7 +98,7 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   armourPierce: 'item/weapon', critOnRoll: 'journal/critical', spendAdvantage: 'flag/focus', rollThreshold: 'nav/dice',
   rollTable: 'nav/dice', rollMutation: 'nav/mutation', charDamage: 'mechanic/stat-mod',
   intoxicate: 'item/consumable', narrative: 'journal/detail',
-  shipMorale: 'travel/anchor', manann: 'travel/anchor', shipCritical: 'travel/anchor', navireMod: 'travel/anchor', meteoImposee: 'nautical/wind', cargaison: 'item/misc', provisions: 'item/consumable', equipage: 'travel/anchor',
+  shipMorale: 'travel/anchor', manann: 'travel/anchor', shipCritical: 'travel/anchor', navireMod: 'travel/anchor', meteoImposee: 'nautical/wind', cargaison: 'item/misc', provisions: 'item/consumable', equipage: 'travel/anchor', perilDeMer: 'nautical/wind', navireHostile: 'travel/anchor',
 };
 
 /** TOUTES les op du vocabulaire, groupées par intention d'auteur. Libellé de groupe = texte SEUL
@@ -119,7 +119,7 @@ const OP_GROUPS: [string, GameOp['op'][]][] = [
   ['Contrôle', ['rollThreshold', 'rollTable', 'rollMutation', 'spendAdvantage']],
   ['Création de personnage (Talents)', ['attrMod', 'grantCareerSkill', 'grantCareerTalent']],
   ['Narration', ['narrative']],
-  ['Navire', ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage']],
+  ['Navire', ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile']],
 ];
 
 /** VOCABULAIRE UNIQUE des ops à l'atelier : la rangée de menu (icône + libellé) écrite UNE fois,
@@ -146,6 +146,7 @@ export const LIBELLE_DE_FORME: Record<FormulaShape, string> = {
   pions: 'Pions de l’État déclencheur',
   ecartAvantage: 'Écart d’Avantage (adversaires engagés)',
   blessuresInfligees: 'Blessures infligées (attaque courante)',
+  blessuresMax: 'Blessures maximales de la cible',
   dr: 'DR du Test',
   regle: 'Règle optionnelle',
   minimum: 'Minimum',
