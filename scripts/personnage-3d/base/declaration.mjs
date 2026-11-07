@@ -7,7 +7,7 @@ import { chargerAssets } from '../../../hotes/godot/asset/charger.mjs'
 /** Les lectures de la donnée qui jugent le porteur, chargées une fois par processus. */
 let donnee
 const chargerDonnee = () =>
-  (donnee ??= chargerAssets(["export { raceAppearance, gabarits, taillesDeLaRace } from '/src/data/index.ts';"]))
+  (donnee ??= chargerAssets(["export { raceAppearance, planDeBestiaire, gabarits, taillesDeLaRace } from '/src/data/index.ts';"]))
 
 /** La part déclarée du manifeste de base (`manifeste.mjs`) : `base`, `porteur`, `clips` et, déclarées, `surfaces`. */
 export const champsDeclares = ({ base, porteur, clips, surfaces }) => ({ base, porteur, clips, ...(surfaces === undefined ? {} : { surfaces }) })
@@ -16,20 +16,21 @@ export const champsDeclares = ({ base, porteur, clips, surfaces }) => ({ base, p
 export const lireDeclaration = (chemin, lireDonnee) => jugerDeclaration(JSON.parse(readFileSync(chemin, 'utf8')), chemin, lireDonnee)
 
 /** `declaration`, lue à `chemin`, refusée sans clip du rôle `walk` (`clips.walk`), si la race ou le gabarit du porteur n'existe pas dans la donnée, ou si sa
- *  Taille ou son échelle d'art diffère de celle que la donnée donne à sa race (`scale` de son entrée de
- *  `raceAppearance`, 1 sans `scale`). `lireDonnee` rend les lectures de la donnée (`raceAppearance`, `gabarits`,
+ *  Taille ou son échelle d'art diffère de celle que la donnée donne à sa race (`echelle` de l'espèce de la race au plan de
+ *  bestiaire, #2993). `lireDonnee` rend les lectures de la donnée (`raceAppearance`, `planDeBestiaire`, `gabarits`,
  *  `taillesDeLaRace`). */
 export async function jugerDeclaration(declaration, chemin, lireDonnee = chargerDonnee) {
   const { porteur, clips } = declaration
   if (typeof clips?.walk !== 'string') throw new Error(`${chemin} : clips.walk, nom de clip attendu`)
-  const { raceAppearance, gabarits, taillesDeLaRace } = await lireDonnee()
+  const { raceAppearance, planDeBestiaire, gabarits, taillesDeLaRace } = await lireDonnee()
   const race = raceAppearance.find((r) => r.id === porteur?.race)
   if (!race) throw new Error(`${chemin} : porteur.race ${porteur?.race} absente de raceAppearance.json`)
   if (!gabarits.some((g) => g.id === porteur.gabarit)) throw new Error(`${chemin} : porteur.gabarit ${porteur.gabarit} absent de gabarits.json`)
   const tailles = taillesDeLaRace(porteur.race)
   if (tailles.length !== 1) throw new Error(`${chemin} : porteur.taille ${porteur.taille}, Taille de la race ${porteur.race} indéterminée dans la donnée (${tailles.join(', ') || 'aucune espèce'})`)
   if (porteur.taille !== tailles[0]) throw new Error(`${chemin} : porteur.taille ${porteur.taille}, la donnée donne ${tailles[0]} à la race ${porteur.race}`)
-  const echelle = race.scale ?? 1
+  const echelle = planDeBestiaire.find((e) => e.id === porteur.race && e.race?.id === porteur.race)?.echelle
+  if (echelle === undefined) throw new Error(`${chemin} : porteur.race ${porteur.race}, le plan de bestiaire ne la porte pas sur la base humanoïde`)
   if (porteur.echelleDArt !== echelle) throw new Error(`${chemin} : porteur.echelleDArt ${porteur.echelleDArt}, la donnée donne ${echelle} à la race ${porteur.race}`)
   return declaration
 }

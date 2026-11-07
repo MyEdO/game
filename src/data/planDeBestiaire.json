@@ -1,0 +1,821 @@
+[
+  {
+    "id": "amibe",
+    "type": "planDeBestiaire",
+    "label": "Amibe",
+    "corps": "amibe",
+    "famille": "amorphe",
+    "echelle": 1.15
+  },
+  {
+    "id": "araignee-geante",
+    "type": "planDeBestiaire",
+    "label": "Araignée géante",
+    "corps": "araignee",
+    "famille": "arachnide",
+    "echelle": 1
+  },
+  {
+    "id": "babrakkos",
+    "type": "planDeBestiaire",
+    "label": "Babrakkos",
+    "omis": "deux formes successives, spectrale puis incarnée (Middenheim p.159) : son corps se tranche sur planche"
+  },
+  {
+    "id": "banshee",
+    "type": "planDeBestiaire",
+    "label": "Banshee",
+    "corps": "banshee",
+    "famille": "sans-jambes",
+    "echelle": 0.96
+  },
+  {
+    "id": "basilic",
+    "type": "planDeBestiaire",
+    "label": "Basilic",
+    "corps": "basilic",
+    "famille": "quadrupede",
+    "echelle": 1.25
+  },
+  {
+    "id": "bete-des-marais",
+    "type": "planDeBestiaire",
+    "label": "Bête des marais",
+    "corps": "bete-des-marais",
+    "famille": "sans-jambes",
+    "echelle": 1.15
+  },
+  {
+    "id": "blaireau",
+    "type": "planDeBestiaire",
+    "label": "Blaireau",
+    "corps": "blaireau",
+    "famille": "quadrupede",
+    "echelle": 0.84
+  },
+  {
+    "id": "boeuf",
+    "type": "planDeBestiaire",
+    "label": "Bœuf",
+    "corps": "boeuf",
+    "famille": "quadrupede",
+    "echelle": 1.06
+  },
+  {
+    "id": "brochet-du-stir",
+    "type": "planDeBestiaire",
+    "label": "Brochet du Stir",
+    "corps": "brochet",
+    "famille": "poisson",
+    "echelle": 1.05
+  },
+  {
+    "id": "carnosaure",
+    "type": "planDeBestiaire",
+    "label": "Carnosaure",
+    "corps": "carnosaure",
+    "famille": "theropode",
+    "echelle": 1.35
+  },
+  {
+    "id": "chamane-brey",
+    "type": "planDeBestiaire",
+    "label": "Chamane-Brey",
+    "race": {
+      "id": "homme-bete"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "chat-sauvage",
+    "type": "planDeBestiaire",
+    "label": "Chat Sauvage",
+    "corps": "chat",
+    "famille": "quadrupede",
+    "echelle": 0.7
+  },
+  {
+    "id": "chauve-souris-vampire-varghulf",
+    "type": "planDeBestiaire",
+    "label": "Chauve-souris vampire (Varghulf)",
+    "corps": "varghulf",
+    "famille": "quadrupede-aile",
+    "echelle": 1.12
+  },
+  {
+    "id": "cheval",
+    "type": "planDeBestiaire",
+    "label": "Cheval",
+    "corps": "cheval",
+    "famille": "quadrupede",
+    "echelle": 0.9
+  },
+  {
+    "id": "chien",
+    "type": "planDeBestiaire",
+    "label": "Chien",
+    "corps": "chien",
+    "famille": "quadrupede",
+    "echelle": 0.8
+  },
+  {
+    "id": "chimere",
+    "type": "planDeBestiaire",
+    "label": "Chimère",
+    "corps": "chimere",
+    "famille": "quadrupede-aile",
+    "echelle": 1.25
+  },
+  {
+    "id": "choses-du-bois-mort",
+    "type": "planDeBestiaire",
+    "label": "Choses du Bois Mort",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "cochon",
+    "type": "planDeBestiaire",
+    "label": "Cochon",
+    "corps": "cochon",
+    "famille": "quadrupede",
+    "echelle": 1
+  },
+  {
+    "id": "cockatrice",
+    "type": "planDeBestiaire",
+    "label": "Cockatrice",
+    "corps": "cockatrice",
+    "famille": "theropode",
+    "echelle": 1.05
+  },
+  {
+    "id": "cornu",
+    "type": "planDeBestiaire",
+    "label": "Cornu",
+    "corps": "cornu",
+    "famille": "theropode",
+    "echelle": 1.12
+  },
+  {
+    "id": "demon",
+    "type": "planDeBestiaire",
+    "label": "Démon",
+    "race": {
+      "id": "demon"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "demonette-de-slaanesh",
+    "type": "planDeBestiaire",
+    "label": "Démonette de Slaanesh",
+    "race": {
+      "id": "demon"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "dragon",
+    "type": "planDeBestiaire",
+    "label": "Dragon",
+    "corps": "dragon",
+    "famille": "quadrupede-aile",
+    "echelle": 1.25
+  },
+  {
+    "id": "elementaire-incarne-de-la-mort",
+    "type": "planDeBestiaire",
+    "label": "Élémentaire incarné de la Mort",
+    "corps": "elementaire-de-la-mort",
+    "famille": "sans-membres",
+    "echelle": 1
+  },
+  {
+    "id": "elementaire-incarne-du-feu",
+    "type": "planDeBestiaire",
+    "label": "Élémentaire incarné du Feu",
+    "omis": "forme non décrite, une « apparence maigre » de braises (VDM 13 l.42) : son corps se tranche sur planche"
+  },
+  {
+    "id": "elfe-sylvain",
+    "type": "planDeBestiaire",
+    "label": "Elfe sylvain",
+    "race": {
+      "id": "elfe-sylvain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "fabrique-par-magie",
+    "type": "planDeBestiaire",
+    "label": "Fabriqué",
+    "omis": "le sorcier façonne son corps de matériaux bruts (VDM 02 l.444) : aucune forme commune"
+  },
+  {
+    "id": "familier-de-combat",
+    "type": "planDeBestiaire",
+    "label": "Familier de combat",
+    "omis": "forme propre à chaque familier, de l’oiseau de bronze à la volute de fumée (VDM 13 l.225)"
+  },
+  {
+    "id": "familier-de-pouvoir",
+    "type": "planDeBestiaire",
+    "label": "Familier de pouvoir",
+    "omis": "forme propre à chaque familier, de l’oiseau de bronze à la volute de fumée (VDM 13 l.225)"
+  },
+  {
+    "id": "familier-de-sorts",
+    "type": "planDeBestiaire",
+    "label": "Familier de sorts",
+    "omis": "forme propre à chaque familier, de l’oiseau de bronze à la volute de fumée (VDM 13 l.225)"
+  },
+  {
+    "id": "fantome",
+    "type": "planDeBestiaire",
+    "label": "Fantôme",
+    "corps": "fantome",
+    "famille": "sans-jambes",
+    "echelle": 0.95
+  },
+  {
+    "id": "faucon-des-montagnes-grises",
+    "type": "planDeBestiaire",
+    "label": "Faucon des Montagnes Grises",
+    "corps": "faucon",
+    "famille": "oiseau",
+    "echelle": 0.78
+  },
+  {
+    "id": "fimir",
+    "type": "planDeBestiaire",
+    "label": "Fimir",
+    "race": {
+      "id": "fimir"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "fr-hough-mournbreath",
+    "type": "planDeBestiaire",
+    "label": "Fr’hough Mournbreath",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1.35
+  },
+  {
+    "id": "furie-du-chaos",
+    "type": "planDeBestiaire",
+    "label": "Furie du Chaos",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "geant",
+    "type": "planDeBestiaire",
+    "label": "Géant",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1.2
+  },
+  {
+    "id": "gnome",
+    "type": "planDeBestiaire",
+    "label": "Gnome",
+    "race": {
+      "id": "gnome"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "gobelin",
+    "type": "planDeBestiaire",
+    "label": "Gobelin",
+    "race": {
+      "id": "gobelin"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "gor",
+    "type": "planDeBestiaire",
+    "label": "Gor",
+    "race": {
+      "id": "homme-bete"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "goule",
+    "type": "planDeBestiaire",
+    "label": "Goule",
+    "race": {
+      "id": "goule"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "grain-d-achillee",
+    "type": "planDeBestiaire",
+    "label": "Grain d'achillée le lutin",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 0.5
+  },
+  {
+    "id": "grand-aigle",
+    "type": "planDeBestiaire",
+    "label": "Grand Aigle",
+    "corps": "aigle",
+    "famille": "oiseau",
+    "echelle": 1.05
+  },
+  {
+    "id": "grand-cerf",
+    "type": "planDeBestiaire",
+    "label": "Grand Cerf",
+    "corps": "cerf",
+    "famille": "quadrupede",
+    "echelle": 1.12
+  },
+  {
+    "id": "griffon",
+    "type": "planDeBestiaire",
+    "label": "Griffon",
+    "corps": "griffon",
+    "famille": "quadrupede-aile",
+    "echelle": 1.15
+  },
+  {
+    "id": "guerrier-du-chaos",
+    "type": "planDeBestiaire",
+    "label": "Guerrier du Chaos",
+    "race": {
+      "id": "guerrier-du-chaos"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "halfling",
+    "type": "planDeBestiaire",
+    "label": "Halfling",
+    "race": {
+      "id": "halfling"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "haut-elfe",
+    "type": "planDeBestiaire",
+    "label": "Haut-Elfe",
+    "race": {
+      "id": "haut-elfe"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "heomreth-hibou-geant",
+    "type": "planDeBestiaire",
+    "label": "Heomreth (Hibou Géant)",
+    "corps": "hibou-geant",
+    "famille": "oiseau",
+    "echelle": 1
+  },
+  {
+    "id": "homme-bete",
+    "type": "planDeBestiaire",
+    "label": "Homme-bête",
+    "race": {
+      "id": "homme-bete"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "horreur-bleue",
+    "type": "planDeBestiaire",
+    "label": "Horreur bleue",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 0.8
+  },
+  {
+    "id": "horreur-rose",
+    "type": "planDeBestiaire",
+    "label": "Horreur rose",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1.15
+  },
+  {
+    "id": "humain",
+    "type": "planDeBestiaire",
+    "label": "Humain",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "hydre",
+    "type": "planDeBestiaire",
+    "label": "Hydre",
+    "corps": "hydre",
+    "famille": "quadrupede",
+    "echelle": 1.2
+  },
+  {
+    "id": "hyppogriffe",
+    "type": "planDeBestiaire",
+    "label": "Hyppogriffe",
+    "corps": "hippogriffe",
+    "famille": "quadrupede-aile",
+    "echelle": 1
+  },
+  {
+    "id": "il-potente-granchio",
+    "type": "planDeBestiaire",
+    "label": "Il Potente Granchio",
+    "corps": "crabe",
+    "famille": "arthropode-a-pinces",
+    "echelle": 1.1
+  },
+  {
+    "id": "jabberslythe",
+    "type": "planDeBestiaire",
+    "label": "Jabberslythe",
+    "corps": "jabberslythe",
+    "famille": "unique",
+    "echelle": 1.15
+  },
+  {
+    "id": "le-dechiqueteur-de-cadavres",
+    "type": "planDeBestiaire",
+    "label": "Le Déchiqueteur de Cadavres",
+    "corps": "dechiqueteur",
+    "famille": "quadrupede",
+    "echelle": 1.15
+  },
+  {
+    "id": "leviathan",
+    "type": "planDeBestiaire",
+    "label": "Léviathan",
+    "corps": "leviathan",
+    "famille": "arthropode-a-pinces",
+    "echelle": 1.15
+  },
+  {
+    "id": "lion-de-guerre-de-chrace",
+    "type": "planDeBestiaire",
+    "label": "Lion de Guerre de Chrace",
+    "corps": "lion",
+    "famille": "quadrupede",
+    "echelle": 1.12
+  },
+  {
+    "id": "loup",
+    "type": "planDeBestiaire",
+    "label": "Loup",
+    "corps": "loup",
+    "famille": "quadrupede",
+    "echelle": 0.82
+  },
+  {
+    "id": "macareux-a-bec-tranchant",
+    "type": "planDeBestiaire",
+    "label": "Macareux à Bec Tranchant",
+    "corps": "macareux",
+    "famille": "oiseau",
+    "echelle": 0.6
+  },
+  {
+    "id": "manticore",
+    "type": "planDeBestiaire",
+    "label": "Manticore",
+    "corps": "manticore",
+    "famille": "quadrupede-aile",
+    "echelle": 1.15
+  },
+  {
+    "id": "minotaure",
+    "type": "planDeBestiaire",
+    "label": "Minotaure",
+    "race": {
+      "id": "minotaure"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "mouton",
+    "type": "planDeBestiaire",
+    "label": "Mouton",
+    "corps": "mouton",
+    "famille": "quadrupede",
+    "echelle": 1
+  },
+  {
+    "id": "nain",
+    "type": "planDeBestiaire",
+    "label": "Nain",
+    "race": {
+      "id": "nain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "ogre",
+    "type": "planDeBestiaire",
+    "label": "Ogre",
+    "race": {
+      "id": "ogre"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "orc",
+    "type": "planDeBestiaire",
+    "label": "Orc",
+    "race": {
+      "id": "orc"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "ours",
+    "type": "planDeBestiaire",
+    "label": "Ours",
+    "corps": "ours",
+    "famille": "quadrupede",
+    "echelle": 1.05
+  },
+  {
+    "id": "peau-de-loup",
+    "type": "planDeBestiaire",
+    "label": "Peau-de-Loup",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "pegase",
+    "type": "planDeBestiaire",
+    "label": "Pégase",
+    "corps": "pegase",
+    "famille": "quadrupede-aile",
+    "echelle": 0.95
+  },
+  {
+    "id": "pieuvre-des-tourbieres",
+    "type": "planDeBestiaire",
+    "label": "Pieuvre des tourbières",
+    "corps": "pieuvre",
+    "famille": "cephalopode",
+    "echelle": 1.05
+  },
+  {
+    "id": "pigeon",
+    "type": "planDeBestiaire",
+    "label": "Pigeon",
+    "corps": "pigeon",
+    "famille": "oiseau",
+    "echelle": 0.62
+  },
+  {
+    "id": "poulet",
+    "type": "planDeBestiaire",
+    "label": "Poulet",
+    "corps": "poulet",
+    "famille": "oiseau",
+    "echelle": 0.7
+  },
+  {
+    "id": "predateur-sanglant",
+    "type": "planDeBestiaire",
+    "label": "Prédateur sanglant",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1.08
+  },
+  {
+    "id": "preyton",
+    "type": "planDeBestiaire",
+    "label": "Preyton",
+    "corps": "preyton",
+    "famille": "quadrupede-aile",
+    "echelle": 1.1
+  },
+  {
+    "id": "rat-geant",
+    "type": "planDeBestiaire",
+    "label": "Rat géant",
+    "corps": "rat-geant",
+    "famille": "quadrupede",
+    "echelle": 0.62
+  },
+  {
+    "id": "rat-loup",
+    "type": "planDeBestiaire",
+    "label": "Rat Loup",
+    "corps": "rat-loup",
+    "famille": "quadrupede",
+    "echelle": 0.85
+  },
+  {
+    "id": "rat-ogre",
+    "type": "planDeBestiaire",
+    "label": "Rat ogre",
+    "race": {
+      "id": "skaven"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "sanglier",
+    "type": "planDeBestiaire",
+    "label": "Sanglier",
+    "corps": "sanglier",
+    "famille": "quadrupede",
+    "echelle": 0.84
+  },
+  {
+    "id": "sangsue-geante",
+    "type": "planDeBestiaire",
+    "label": "Sangsue géante",
+    "corps": "sangsue",
+    "famille": "sans-membres",
+    "echelle": 0.92
+  },
+  {
+    "id": "serpent",
+    "type": "planDeBestiaire",
+    "label": "Serpent",
+    "corps": "serpent",
+    "famille": "sans-membres",
+    "echelle": 1
+  },
+  {
+    "id": "singe",
+    "type": "planDeBestiaire",
+    "label": "Singe",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 0.7
+  },
+  {
+    "id": "sirene",
+    "type": "planDeBestiaire",
+    "label": "Sirène",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "skaven",
+    "type": "planDeBestiaire",
+    "label": "Skaven",
+    "race": {
+      "id": "skaven"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "slenderthigh-whiptongue",
+    "type": "planDeBestiaire",
+    "label": "Slenderthigh Whiptongue",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1.15
+  },
+  {
+    "id": "snotling",
+    "type": "planDeBestiaire",
+    "label": "Snotling",
+    "race": {
+      "id": "snotling"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "spectre-de-cairn",
+    "type": "planDeBestiaire",
+    "label": "Spectre de cairn",
+    "corps": "spectre",
+    "famille": "sans-jambes",
+    "echelle": 0.98
+  },
+  {
+    "id": "spectre-middenheim",
+    "type": "planDeBestiaire",
+    "label": "Spectre",
+    "corps": "spectre",
+    "famille": "sans-jambes",
+    "echelle": 0.98
+  },
+  {
+    "id": "squelette",
+    "type": "planDeBestiaire",
+    "label": "Squelette",
+    "race": {
+      "id": "squelette"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "squig-des-cavernes",
+    "type": "planDeBestiaire",
+    "label": "Squig des cavernes",
+    "corps": "squig",
+    "famille": "squig",
+    "echelle": 0.85
+  },
+  {
+    "id": "stegadon",
+    "type": "planDeBestiaire",
+    "label": "Stégadon",
+    "corps": "stegadon",
+    "famille": "quadrupede",
+    "echelle": 1.3
+  },
+  {
+    "id": "tregara",
+    "type": "planDeBestiaire",
+    "label": "Trégara",
+    "corps": "tregara",
+    "famille": "arthropode-a-pinces",
+    "echelle": 0.95
+  },
+  {
+    "id": "troll",
+    "type": "planDeBestiaire",
+    "label": "Troll",
+    "race": {
+      "id": "troll"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "ungor",
+    "type": "planDeBestiaire",
+    "label": "Ungor",
+    "race": {
+      "id": "homme-bete"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "vampire",
+    "type": "planDeBestiaire",
+    "label": "Vampire",
+    "race": {
+      "id": "vampire"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "vermine-de-choc",
+    "type": "planDeBestiaire",
+    "label": "Vermine de choc",
+    "race": {
+      "id": "skaven"
+    },
+    "echelle": 1.1
+  },
+  {
+    "id": "vers",
+    "type": "planDeBestiaire",
+    "label": "Vers",
+    "corps": "vers",
+    "famille": "sans-membres",
+    "echelle": 0.7
+  },
+  {
+    "id": "volee-de-noctecorbes",
+    "type": "planDeBestiaire",
+    "label": "Volée de Noctecorbes",
+    "corps": "noctecorbe",
+    "famille": "oiseau",
+    "echelle": 1
+  },
+  {
+    "id": "zombie",
+    "type": "planDeBestiaire",
+    "label": "Zombie",
+    "race": {
+      "id": "zombie"
+    },
+    "echelle": 1
+  }
+]

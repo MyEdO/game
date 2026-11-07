@@ -913,12 +913,12 @@ export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>> 
 
 /** Refus d'une espèce d'apparence hors de `especeDApparenceSchema`. */
 export function messageDEspeceInconnue(id: string): string {
-  return `espèce « ${id} » inconnue : ni espèce jouable, ni créature, ni race de rendu, ni forme de corps.`;
+  return `espèce « ${id} » inconnue : ni espèce jouable, ni espèce du plan de bestiaire (planDeBestiaire.json).`;
 }
 
-/** Espèce d'APPARENCE (`EntityAppearance.species`) : espèce jouable, créature ou race de rendu. */
+/** Espèce d'APPARENCE (`EntityAppearance.species`) : espèce jouable ou espèce du plan de bestiaire (#2993). */
 export const especeDApparenceSchema = z.union(
-  [idDe('species'), idDe('creature'), idDe('raceAppearance')],
+  [idDe('species'), idDe('planDeBestiaire')],
   { error: (iss) => messageDEspeceInconnue(String(iss.input)) },
 );
 
