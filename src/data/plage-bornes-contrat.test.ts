@@ -201,8 +201,8 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
   });
 
   it('F — aucun schéma de document n’admet une paire de nombres en TUPLE hors d’une recette de RENDU (`detailRecipeSchema`)', () => {
-    // Un paramètre de recette de RENDU est un intervalle géométrique lu POSITIONNELLEMENT
-    // (`src/gameIso/detail/courses.ts:44`), pas une bande de table : aucun d100 ne le traverse. Une paire
+    // Un paramètre de recette de RENDU est un intervalle géométrique lu POSITIONNELLEMENT,
+    // pas une bande de table : aucun d100 ne le traverse. Une paire
     // de bornes de tirage s'écrit `{min, max}`, la forme que `findTableEntry` lit.
     const recette = atteints(detailRecipeSchema);
     const paires = NOEUDS_DE_DOCUMENT.filter(([, n]) => {

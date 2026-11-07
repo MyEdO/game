@@ -65,8 +65,8 @@ const GARDE = {
       'NATURE révolue (« n’est plus du code ») y entre, à 1 site mesuré.',
     'Le SITE quitté n’est mesuré que devant l’adverbe de PROXIMITÉ : l’adverbe de DISTANCE reste HORS de la ' +
       'famille tombale — 5 sites mesurés le 2026-09-05 (`src/noyau/partyFlow.ts:767`, `src/noyau/combat/triggeredTest.ts:375`, ' +
-      '`src/noyau/poste-ammo.hors-store.test.ts:162`, `src/gameIso/stage/entree-en-scene-demontage.test.tsx:12`, ' +
-      '`src/gameIso/backends/webgl/cacheBorne.ts:149`), tous une absence À L’EXÉCUTION, aucun une tombale.',
+      '`src/noyau/poste-ammo.hors-store.test.ts:162` et deux sites du rendu), ' +
+      'tous une absence À L’EXÉCUTION, aucun une tombale.',
     'Le DÉPART au passé composé n’est mesuré que collé à un artefact BACK-TICKÉ : sans lui, la forme reste HORS de la ' +
       'famille tombale — 13 commentaires mesurés le 2026-09-22 dans `src/**`+`scripts/**` après purge, dont aucun ne ' +
       'raconte l’histoire du code : 11 un départ À L’EXÉCUTION (un combattant hors de la rencontre, une arme hors de ' +
@@ -138,7 +138,7 @@ describe('garde-fou commentaires — en-tête structuré (#1475)', () => {
 
   it('un script GDScript de l’hôte Godot est lu par son dialecte : ses commentaires `#` portent le poison, ses chaînes non', () => {
     expect(estFichierScanne('hotes/godot/projet/scripts/combat.gd')).toBe(true);
-    const source = '## La fenêtre.\n## Fonction déplacée vers state/foo.ts\nvar t := "Fonction déplacée vers state/foo.ts"';
+    const source = '## La fenêtre.\n## Fonction déplacée vers noyau/foo.ts\nvar t := "Fonction déplacée vers noyau/foo.ts"';
     expect(scanTombstones('hotes/godot/projet/scripts/temoin.gd', source).map((x) => x.line)).toEqual([2]);
     expect(scanExcuses('hotes/godot/projet/scripts/temoin.gd', `# Affichage en attendant ${'la '}primitive partagée.`)).toHaveLength(1);
     expect(commentairesDe('hotes/godot/projet/scripts/temoin.gd', source).map((c) => c.line)).toEqual([1]);
@@ -189,8 +189,8 @@ describe('garde-fou commentaires — pierres tombales (#136, AGENTS.md règle 6)
   });
 
   it('cas planté : "déplacé(e) vers/dans" est détecté même au féminin/pluriel (preuve TDD)', () => {
-    expect(tombstonesIn('// Fonction déplacée vers state/foo.ts').length).toBeGreaterThan(0);
-    expect(tombstonesIn('// Fonctions déplacées dans state/foo.ts').length).toBeGreaterThan(0);
+    expect(tombstonesIn('// Fonction déplacée vers noyau/foo.ts').length).toBeGreaterThan(0);
+    expect(tombstonesIn('// Fonctions déplacées dans noyau/foo.ts').length).toBeGreaterThan(0);
   });
 
   it('faux positif écarté : "déplacé dans la boîte" (a11y, pas du code — affinage #136)', () => {
@@ -509,7 +509,7 @@ describe('garde-fou commentaires — excuses non tracées (#136, AGENTS.md règl
     // Verbatims du site réel `src/engine/travelStages.ts` (reformulé dans le même geste) : sans renvoi
     // explicite, le premier échappait au motif de report, le second n'était couvert par aucune famille.
     expect(untaggedExcuseMatch(' * ... relève de la MÊME classe que ce lot et reste à migrer :')).not.toBeNull();
-    expect(untaggedExcuseMatch(" * il était hors périmètre le jour du murage (`src/ui/**` n'était pas ouvert).")).not.toBeNull();
+    expect(untaggedExcuseMatch(" * il était hors périmètre le jour du murage (`src/hote/**` n'était pas ouvert).")).not.toBeNull();
     expect(untaggedExcuseMatch('// ces deux lignes restent à traiter')).not.toBeNull();
     expect(untaggedExcuseMatch('// hors périmètre le jour de la revue')).not.toBeNull();
     // Le report ASSUMÉ par l'utilisateur reste admis ici aussi.
@@ -550,7 +550,7 @@ describe('garde-fou commentaires — excuses non tracées (#136, AGENTS.md règl
   });
 
   it('site d’ORIGINE (#1732) : la phrase est vue À CHEVAL sur deux lignes d’un bloc enroulé', () => {
-    // VERBATIM des lignes 16-17 de `src/gameIso/stage/AreteOverlay.tsx` au commit 2a27b8b60 : le bloc
+    // VERBATIM des lignes 16-17 de `AreteOverlay.tsx` au commit 2a27b8b60 : le bloc
     // s'enroule à ~100 colonnes, donc la phrase porte son marqueur sur la ligne SUIVANTE, derrière le
     // préfixe de continuation. C'est l'unité PHRASE qui la rend visible, pas la ligne.
     const bloc = [
@@ -559,7 +559,7 @@ describe('garde-fou commentaires — excuses non tracées (#136, AGENTS.md règl
       ' * partagée (lot 3).',
       ' */',
     ].join('\n');
-    const trouve = scanExcuses('src/gameIso/stage/AreteOverlay.tsx', bloc);
+    const trouve = scanExcuses('src/noyau/x.ts', bloc);
     expect(trouve).toHaveLength(1);
     expect(trouve[0].line).toBe(2); // la ligne de la LOCUTION, pas celle du marqueur
     expect(trouve[0].detail).toContain('en attendant');
@@ -720,35 +720,35 @@ const HORS_ART = 'src/x.ts';
 
 /** Les seconds noms (#1903) : `[commentaire, chemin, sites attendus]`, joués par `scanLegacyVocab`. */
 const CAS_DES_SECONDS_NOMS: [string, string, number][] = [
-  ['// le token @peau', 'src/ui/x.ts', 0],
+  ['// le token @peau', HORS_ART, 0],
   ['// le token @peau', 'scripts/qc/x.mts', 1],
   ['// le token @peau', 'scripts/x.mts', 0],
   ['// `token` cité', 'scripts/qc/x.mts', 0],
   ['// TOKEN_RE lit', 'scripts/qc/x.mts', 0],
   ['// PartyToken', 'scripts/qc/x.mts', 0],
   ['// solo/hôte', 'scripts/qc/x.mts', 0],
-  ['// variante où', 'src/ui/x.ts', 0],
-  ['// variante O du jeton', 'src/ui/x.ts', 1],
+  ['// variante où', HORS_ART, 0],
+  ['// variante O du jeton', HORS_ART, 1],
   ['// O/H', 'scripts/qc/x.mts', 1],
-  ['// O/H', 'src/ui/x.ts', 0],
+  ['// O/H', HORS_ART, 0],
   ['// o/h', 'scripts/qc/x.mts', 1],
   ['// palette token→hex', 'src/engine/x.ts', 1],
   ['// gammes (base, O, H)', 'scripts/x.mjs', 1],
   ['// un Gradient partagé', 'scripts/qc/x.mts', 1],
-  ['// des gradients partagés', 'src/ui/x.ts', 1],
+  ['// des gradients partagés', HORS_ART, 1],
   ['// art tokenisé', 'scripts/gen-x.mjs', 1],
   ['// art tokenisé', 'scripts/qc/x.mts', 1],
   ['// prose tokenisée', 'scripts/gen-x.mjs', 0],
-  ['// texte tokenisé pour l’auto-liage', 'src/ui/compendium/x.ts', 0],
+  ['// texte tokenisé pour l’auto-liage', HORS_ART, 0],
   ['// art dédié à gradients', 'scripts/gen-x.mts', 1],
-  ['// un gradient de ciel', 'src/gameIso/catalog/x.ts', 0],
+  ['// un gradient de ciel', HORS_ART, 0],
   ['// le token @peau [entériné 2026-09-27]', 'scripts/qc/x.mts', 0],
-  ['// Prop DIRECTIONNEL', 'src/gameIso/catalog/x.ts', 1],
-  ['// art multi-vues', 'src/ui/x.ts', 1],
+  ['// Prop DIRECTIONNEL', HORS_ART, 1],
+  ['// art multi-vues', HORS_ART, 1],
   ['// art multi-vues', 'scripts/qc/x.mts', 1],
-  ['// la directionnelle rasante', 'src/gameIso/stage/x.ts', 0],
-  ['// croix directionnelle', 'src/ui/x.ts', 0],
-  ['// contrat bidirectionnel', 'src/ui/x.ts', 0],
+  ['// la directionnelle rasante', HORS_ART, 0],
+  ['// croix directionnelle', HORS_ART, 0],
+  ['// contrat bidirectionnel', HORS_ART, 0],
   ['// biais directionnel', 'scripts/qc/x.mts', 0],
   ['// famille @aile*', 'scripts/qc/x.mts', 1],
   ['// la famille `botte`', 'scripts/qc/x.mts', 1],
@@ -756,31 +756,31 @@ const CAS_DES_SECONDS_NOMS: [string, string, number][] = [
   ['// famille de palette', 'scripts/qc/x.mts', 1],
   ['// famille d’arme', 'scripts/qc/x.mts', 0],
   ['// famille équine', 'scripts/qc/x.mts', 0],
-  ['// famille @aile*', 'src/ui/x.ts', 0],
-  ['// la famille `.rm-*`', 'src/ui/x.ts', 0],
+  ['// famille @aile*', HORS_ART, 0],
+  ['// la famille `.rm-*`', HORS_ART, 0],
   ['// les props ORIENTABLES du catalogue', 'scripts/qc/x.mts', 1],
   ['// props orientables', 'scripts/gen-x.mts', 1],
   ['// un globe oculaire orientable', 'scripts/qc/x.mts', 0],
   ['// teinte sombre de la robe (@corpsO)', 'scripts/qc/x.mts', 1],
-  ['// teinte sombre lisible sur le losange', 'src/ui/x.ts', 0],
+  ['// teinte sombre lisible sur le losange', HORS_ART, 0],
   ['// dont directionnels en 3 vues', 'scripts/gen-x.mjs', 1],
-  ['// un prop\n// DIRECTIONNEL (`views`)', 'src/gameIso/catalog/x.ts', 1],
-  ['// Croix directionnelle TACTILE de la vue subjective', 'src/ui/x.ts', 0],
+  ['// un prop\n// DIRECTIONNEL (`views`)', HORS_ART, 1],
+  ['// Croix directionnelle TACTILE de la vue subjective', HORS_ART, 0],
   ['// Main (poing) directionnelle', 'scripts/qc/x.mts', 1],
   ['// art absent/directionnel', 'scripts/x.mts', 1],
   ['// `tok` = famille de\n//  palette', 'scripts/qc/x.mts', 1],
   ['/** la famille de\n *  jetons `robe*` */', 'scripts/qc/x.mts', 1],
   ['// la famille `robe*`', 'scripts/qc/x.mts', 1],
   ['// vues des familles `parts/monster/defs/`', 'scripts/qc/x.mts', 0],
-  ['// table EXHAUSTIVE keyée par une union', 'src/ui/x.ts', 1],
-  ['// `Record` EXHAUSTIF (TS force sa complétude)', 'src/ui/x.ts', 1],
+  ['// table EXHAUSTIVE keyée par une union', HORS_ART, 1],
+  ['// `Record` EXHAUSTIF (TS force sa complétude)', HORS_ART, 1],
   ['// rend le record EXHAUSTIF', 'src/data/x.ts', 1],
-  ['// La table est\n// EXHAUSTIVE par le TYPE', 'src/ui/x.ts', 1],
-  ['// table TOTALE', 'src/ui/x.ts', 0],
+  ['// La table est\n// EXHAUSTIVE par le TYPE', HORS_ART, 1],
+  ['// table TOTALE', HORS_ART, 0],
   ['// relevé exhaustif', 'scripts/x.mjs', 0],
   ['// switchs EXHAUSTIFS', 'scripts/x.mjs', 0],
   ['// garde d’exhaustivité', 'src/x.ts', 0],
-  ['// table exhaustive [entériné 2026-09-27]', 'src/ui/x.ts', 0],
+  ['// table exhaustive [entériné 2026-09-27]', HORS_ART, 0],
 ];
 
 describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, credo règle 1)', () => {
@@ -807,7 +807,7 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
     const repli = 'repli pour un état antérieur';
     expect(legacyVocabIn("// TÉMOIN du repli mort : 'soir' (l'ancienne cible de `[length - 2]`) n'est PAS le crépuscule.", HORS_ART)).not.toContain(repli);
     expect(legacyVocabIn('// s’appliquent donc en repli IDEMPOTENT à chaque chargement', HORS_ART)).not.toContain(repli);
-    expect(legacyVocabIn('// Le chemin replié `src/ui/{Ancien.tsx => Nouveau.tsx}` du `--numstat` ne nomme aucun état', HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// Le chemin replié `src/noyau/{Ancien.ts => Nouveau.ts}` du `--numstat` ne nomme aucun état', HORS_ART)).not.toContain(repli);
     expect(legacyVocabIn('// le slot écrase l’ancienne sauvegarde après confirmation', HORS_ART)).not.toContain(repli);
     expect(legacyVocabIn('// une sauvegarde ancienne de trois jours de JEU reste chargeable', HORS_ART)).not.toContain(repli);
     expect(legacyVocabIn('// le vieux saule et l’ancienne savane du décor', HORS_ART)).not.toContain(repli);
@@ -1013,7 +1013,7 @@ describe('baseline nominative des signaux de commentaires (#136, 2026-08-03)', (
   });
 
   it('la péremption ne se conclut QUE sur les fichiers scannés (hook diff-scopé)', () => {
-    const v = partitionBaseline([], [ENTREE], ['src/ui/HeroSheet.tsx']);
+    const v = partitionBaseline([], [ENTREE], ['src/noyau/partie.ts']);
     expect(v.perimees).toEqual([]);
   });
 

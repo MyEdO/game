@@ -5,7 +5,7 @@
  * (`CHOIX`) ; `argumentsDuVerbe` (`geste.ts`) contrôle un id contre elle, et la valeur d'un réglage ou d'un choix contre
  * la forme du sien (#3368, #3369).
  */
-import { describe, it, expect, afterAll } from 'vitest';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { DESIGNATIONS } from '../noyau/index';
 import { CHOIX, REGLAGES, VERBES } from './verbes.generated';
 import type { Forme } from './formes';
@@ -35,19 +35,23 @@ describe('la table du noyau est la seule source des désignations', () => {
 });
 
 describe('la valeur d’un réglage de jet ou d’un choix de fenêtre se contrôle contre la forme de son axe (`REGLAGES`, `CHOIX`)', () => {
-  const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+  let partie: ReturnType<typeof ouvrirLaPartie>['partie'];
+  let etat: ReturnType<typeof partie.etat>;
+  beforeAll(() => {
+    ({ partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {}));
+    etat = partie.etat();
+  });
   afterAll(() => partie.fermer());
-  const etat = partie.etat();
-  const refusDe = (type: string, de: typeof etat) => (args: unknown[]): string | null => {
+  const refusDe = (type: string) => (args: unknown[]): string | null => {
     try {
-      gesteDuVerbe(de, { type, args }, SANS_PISTE);
+      gesteDuVerbe(etat, { type, args }, SANS_PISTE);
       return null;
     } catch (e) {
       if (e instanceof ErreurDeGeste && e.categorie === 'validation') return e.message;
       throw e;
     }
   };
-  const refus = refusDe('jetRegler', etat);
+  const refus = refusDe('jetRegler');
 
   it('une valeur à la forme de son réglage passe', () => {
     expect(refus(['attack', 'localisation', 'tete'])).toBeNull();
@@ -67,13 +71,12 @@ describe('la valeur d’un réglage de jet ou d’un choix de fenêtre se contr�
     expect(refus(['shanty', 'chanson', 'pas-une-chanson'])).toContain('pas-une-chanson');
   });
   describe('un choix de fenêtre', () => {
-    const heros = etat.party[0];
-    const choix = refusDe('fenetreChoisir', etat);
+    const choix = refusDe('fenetreChoisir');
 
     it('une valeur à la forme de son choix passe', () => {
       expect(choix(['fateSave', 'issue', 'accept'])).toBeNull();
       expect(choix(['renounce', 'renier', false])).toBeNull();
-      expect(choix(['medic', 'patient', heros.id])).toBeNull();
+      expect(choix(['medic', 'patient', etat.party[0].id])).toBeNull();
     });
 
     it('une valeur d’une autre forme, un id que l’état ne désigne pas, un choix ou une fenêtre que la partie ne déclare pas se refusent', () => {

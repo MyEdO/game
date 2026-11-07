@@ -7,9 +7,9 @@
  * `rollInitialWealth`) n'est PAS produite par `createHero` (créditée au groupe par l'appelant) —
  * exposée séparément par `makePregensWithWealth`.
  *
- * `src/data` ne doit JAMAIS importer `src/ui` (inversion de couche, #421 REDO) : ce module ne
+ * `src/data` n'importe JAMAIS une couche qui la consomme (inversion de couche, #421 REDO) : ce module ne
  * consomme QUE des primitives `engine` (`createHero`, `rollInitialWealth`, `pettySpellQuotaFor`,
- * `fillPettySpellsToQuota`), jamais `ui/creator`.
+ * `fillPettySpellsToQuota`).
  *
  * Les DÉFINITIONS (espèce/carrière/seed/talent/sorts…) vivent dans `pregens.json` (éditable, comme
  * `creatures.json`) ; ce module = type + chargement + fabrique. Ajouter un pré-tiré = éditer le

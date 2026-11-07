@@ -11,8 +11,8 @@ import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichier
 
 /**
  * Garde-fou anti-icône-fantôme (#269) : une réf d'icône `icon: '...'`/`"icon": "..."` posée en
- * DONNÉE (`src/noyau/**`, `src/scenes/**`, `src/data/*.json`, et `src/state/**` de l'hôte web, #3556) porte le type large `IconIdInput`
- * (`src/data/icons/types.ts`) — pas l'union `IconId` GÉNÉRÉE qui verrouille `src/ui/**` à la
+ * DONNÉE (les zones de `SCAN_DIRS` et `src/data/*.json`) porte le type large `IconIdInput`
+ * (`src/data/icons/types.ts`) — pas l'union `IconId` GÉNÉRÉE qui verrouille les composants à la
  * compilation. Une réf inconnue n'y throw QU'AU RENDU (DEV), absorbée en silence par
  * `SceneErrorBoundary` — c'est ce trou que ce test de BUILD ferme : toute réf littérale hors du
  * registre (`src/data/icons/_registry.generated.ts`, régénéré par `npm run gen`) fait échouer la suite.
@@ -40,7 +40,7 @@ function scanFiles(): { rel: string; text: string }[] {
 }
 
 describe('garde-fou anti-icône-fantôme (réfs de donnée → registre d’icônes)', () => {
-  it('toute réf `icon:`/`"icon":` du noyau, des scènes, de src/data/*.json et de src/state résout dans le registre', () => {
+  it('toute réf `icon:`/`"icon":` des zones de SCAN_DIRS et de src/data/*.json résout dans le registre', () => {
     const offenders: string[] = [];
     let scanned = 0;
     for (const { rel, text } of scanFiles()) {

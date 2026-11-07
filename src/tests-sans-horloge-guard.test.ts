@@ -79,7 +79,7 @@ describe('tests-sans-horloge-guard : aucun test joué par `npm test` ne lit l’
 
   it('le corpus scanné est le RÉEL — sinon la garde mesurerait le vide', () => {
     expect(tests().length).toBeGreaterThan(100);
-    expect(tests().map((f) => f.rel)).toContain('src/gameIso/backends/webgl/sceneTint.test.ts');
+    expect(tests().map((f) => f.rel)).toContain('src/engine/advantage.test.ts');
     expect(tests().map((f) => f.rel), 'la suite du noyau est dans le corpus').toContain('src/noyau/partie.hors-store.test.ts');
     expect(tests().map((f) => f.rel), 'le HARNAIS est dans le corpus — sinon sa graine échappe à la garde')
       .toContain('src/test-setup.ts');
