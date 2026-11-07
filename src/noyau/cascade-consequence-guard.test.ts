@@ -42,7 +42,7 @@ function dupCounts(src: string): { journalArrays: number; jetDup: number; verdic
 const SCOPE = [
   'src/noyau/travelFlow.ts', 'src/noyau/travelPostes.ts', 'src/noyau/seaVoyageFlow.ts', 'src/noyau/shipwreck.ts',
   'src/noyau/pursuitFlow.ts', 'src/noyau/combatFlow.ts', 'src/noyau/combat/roundHooks.ts', 'src/noyau/combat/turnHooks.ts',
-  'src/noyau/combat/triggeredTest.ts', 'src/noyau/restFlow.ts', 'src/noyau/embrigadementFlow.ts', 'src/noyau/riverVoyageFlow.ts',
+  'src/noyau/combat/triggeredTest.ts', 'src/noyau/restFlow.ts', 'src/noyau/riverVoyageFlow.ts',
   'src/noyau/combatEffects.ts', 'src/noyau/combatManeuvers.ts', 'src/noyau/encounterPsychFlow.ts',
 ];
 

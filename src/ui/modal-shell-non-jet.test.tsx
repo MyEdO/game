@@ -5,7 +5,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../state/store';
 import { SaveLoadModal } from './SaveLoadModal';
-import { ManannPriestModal } from './ManannPriestModal';
 import { ShoreLeaveModal } from './ShoreLeaveModal';
 import { RenounceModal } from './RenounceModal';
 import type { Combatant } from '../engine/types';
@@ -42,7 +41,6 @@ beforeEach(() => {
   useGame.setState({
     party: [HERO],
     battle: null,
-    pendingManannPriest: { cost: { co: 1, sc: 0, pa: 0 }, vesselId: 'V' } as never,
     pendingShoreLeave: { to: { id: 'p', label: 'Marienburg' } } as never,
     pendingRenounce: { heroId: 'H', testRoll: 71, testTarget: 40 } as never,
   });
@@ -55,12 +53,11 @@ afterEach(() => {
   act(() => root.unmount());
   host.remove();
   vi.unstubAllGlobals();
-  useGame.setState({ pendingManannPriest: null, pendingShoreLeave: null, pendingRenounce: null });
+  useGame.setState({ pendingShoreLeave: null, pendingRenounce: null });
 });
 
 const NON_JET: [string, () => JSX.Element][] = [
   ['SaveLoadModal', () => <SaveLoadModal mode="save" onClose={() => {}} />],
-  ['ManannPriestModal', () => <ManannPriestModal />],
   ['ShoreLeaveModal', () => <ShoreLeaveModal />],
   ['RenounceModal', () => <RenounceModal />],
 ];

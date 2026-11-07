@@ -1874,28 +1874,267 @@
         "label": "Embrigadement",
         "desc": "Embrigadement. Un bateau manquant de bras pour son équipage a enlevé une partie des vôtres. Vous perdez 2d10 membres d'équipage. Vous pouvez les récupérer en réussissant un Test de Ragot Intermédiaire (+0), puis en payant 2d10 CO ou en réussissant un Test de Discrétion Complexe (–10). En cas d'échec sur n'importe lequel des deux Tests, vous perdez 1d10 membres d'équipage de plus, car votre plan pour libérer vos compagnons tourne mal et l'autre navire prend la mer et quitte le port. Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement n'a pas lieu.",
         "relache": true,
-        "kind": "embrigadement",
-        "params": {
-          "lostCrew": {
-            "dice": {
-              "n": 2,
-              "sides": 10
+        "consequence": {
+          "kind": "seq",
+          "steps": [
+            {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "navire",
+                "ops": [
+                  {
+                    "op": "equipage",
+                    "delta": {
+                      "times": {
+                        "of": {
+                          "tire": "enleves",
+                          "de": {
+                            "dice": {
+                              "n": 2,
+                              "sides": 10
+                            }
+                          }
+                        },
+                        "factor": -1
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "kind": "choice",
+              "prompt": "Tenter de récupérer l’équipage enlevé",
+              "yes": {
+                "kind": "test",
+                "test": {
+                  "skill": {
+                    "id": "ragot"
+                  },
+                  "difficulty": "intermediaire",
+                  "stake": {
+                    "key": {
+                      "dataset": "voyage",
+                      "kind": "sea-embrigadement-ragot",
+                      "entryId": "embrigadement",
+                      "entryCategory": "seaPortEvents"
+                    }
+                  }
+                },
+                "success": {
+                  "kind": "if",
+                  "cond": {
+                    "kind": "money",
+                    "atLeast": {
+                      "brass": {
+                        "tire": "rancon"
+                      }
+                    }
+                  },
+                  "then": {
+                    "kind": "choice",
+                    "prompt": "Payer la rançon",
+                    "yes": {
+                      "kind": "seq",
+                      "steps": [
+                        {
+                          "kind": "do",
+                          "effect": {
+                            "type": "ops",
+                            "on": "party",
+                            "ops": [
+                              {
+                                "op": "money",
+                                "montant": {
+                                  "brass": {
+                                    "times": {
+                                      "of": {
+                                        "tire": "rancon",
+                                        "de": {
+                                          "times": {
+                                            "of": {
+                                              "dice": {
+                                                "n": 2,
+                                                "sides": 10
+                                              }
+                                            },
+                                            "factor": 240
+                                          }
+                                        }
+                                      },
+                                      "factor": -1
+                                    }
+                                  }
+                                },
+                                "groupe": true
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "kind": "do",
+                          "effect": {
+                            "type": "ops",
+                            "on": "navire",
+                            "ops": [
+                              {
+                                "op": "equipage",
+                                "delta": {
+                                  "tire": "enleves"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "no": {
+                      "kind": "choice",
+                      "prompt": "Les libérer en douce",
+                      "yes": {
+                        "kind": "test",
+                        "test": {
+                          "skill": {
+                            "id": "discretion"
+                          },
+                          "difficulty": "complexe",
+                          "stake": {
+                            "key": {
+                              "dataset": "voyage",
+                              "kind": "sea-embrigadement-discretion",
+                              "entryId": "embrigadement",
+                              "entryCategory": "seaPortEvents"
+                            }
+                          }
+                        },
+                        "success": {
+                          "kind": "do",
+                          "effect": {
+                            "type": "ops",
+                            "on": "navire",
+                            "ops": [
+                              {
+                                "op": "equipage",
+                                "delta": {
+                                  "tire": "enleves"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "fail": {
+                          "kind": "do",
+                          "effect": {
+                            "type": "ops",
+                            "on": "navire",
+                            "ops": [
+                              {
+                                "op": "equipage",
+                                "delta": {
+                                  "times": {
+                                    "of": {
+                                      "dice": {
+                                        "n": 1,
+                                        "sides": 10
+                                      }
+                                    },
+                                    "factor": -1
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "kind": "choice",
+                    "prompt": "Les libérer en douce",
+                    "yes": {
+                      "kind": "test",
+                      "test": {
+                        "skill": {
+                          "id": "discretion"
+                        },
+                        "difficulty": "complexe",
+                        "stake": {
+                          "key": {
+                            "dataset": "voyage",
+                            "kind": "sea-embrigadement-discretion",
+                            "entryId": "embrigadement",
+                            "entryCategory": "seaPortEvents"
+                          }
+                        }
+                      },
+                      "success": {
+                        "kind": "do",
+                        "effect": {
+                          "type": "ops",
+                          "on": "navire",
+                          "ops": [
+                            {
+                              "op": "equipage",
+                              "delta": {
+                                "tire": "enleves"
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "fail": {
+                        "kind": "do",
+                        "effect": {
+                          "type": "ops",
+                          "on": "navire",
+                          "ops": [
+                            {
+                              "op": "equipage",
+                              "delta": {
+                                "times": {
+                                  "of": {
+                                    "dice": {
+                                      "n": 1,
+                                      "sides": 10
+                                    }
+                                  },
+                                  "factor": -1
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "fail": {
+                  "kind": "do",
+                  "effect": {
+                    "type": "ops",
+                    "on": "navire",
+                    "ops": [
+                      {
+                        "op": "equipage",
+                        "delta": {
+                          "times": {
+                            "of": {
+                              "dice": {
+                                "n": 1,
+                                "sides": 10
+                              }
+                            },
+                            "factor": -1
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
             }
-          },
-          "gossipDifficulty": "intermediaire",
-          "ransomCO": {
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
-          },
-          "stealthDifficulty": "complexe",
-          "failExtraLostCrew": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          }
+          ]
         },
         "source": {
           "book": "mer-des-griffes",
@@ -1909,20 +2148,103 @@
         "id": "pretre-de-manann",
         "label": "Prêtre de Manann",
         "desc": "Prêtre de Manann. Un Prêtre de Manann s'avance vers votre vaisseau et s'exclame haut et fort que vous avez courroucé Manann par votre impiété et que votre bateau doit être purifié. Vous pouvez soit payer 1d10 CO plus la Taille du navire en pistoles pour une bénédiction, soit réduire l'Humeur de Manann de 4d10.",
-        "kind": "pretre-manann",
-        "params": {
-          "blessingCO": {
-            "dice": {
-              "n": 1,
-              "sides": 10
+        "consequence": {
+          "kind": "if",
+          "cond": {
+            "kind": "money",
+            "atLeast": {
+              "brass": {
+                "tire": "benediction"
+              }
             }
           },
-          "blessingSilverPerSize": 1,
-          "manann": {
-            "sign": -1,
-            "dice": {
-              "n": 4,
-              "sides": 10
+          "then": {
+            "kind": "choice",
+            "prompt": "Payer la bénédiction",
+            "icon": "faith/trident",
+            "yes": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "party",
+                "ops": [
+                  {
+                    "op": "money",
+                    "montant": {
+                      "brass": {
+                        "times": {
+                          "of": {
+                            "tire": "benediction",
+                            "de": {
+                              "sum": [
+                                {
+                                  "times": {
+                                    "of": {
+                                      "dice": {
+                                        "n": 1,
+                                        "sides": 10
+                                      }
+                                    },
+                                    "factor": 240
+                                  }
+                                },
+                                {
+                                  "times": {
+                                    "of": {
+                                      "tailleDuNavire": true
+                                    },
+                                    "factor": 12
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "factor": -1
+                        }
+                      }
+                    },
+                    "groupe": true
+                  }
+                ]
+              }
+            },
+            "no": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "navire",
+                "ops": [
+                  {
+                    "op": "manann",
+                    "delta": {
+                      "sign": -1,
+                      "dice": {
+                        "n": 4,
+                        "sides": 10
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "else": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "manann",
+                  "delta": {
+                    "sign": -1,
+                    "dice": {
+                      "n": 4,
+                      "sides": 10
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -1938,14 +2260,267 @@
         "id": "controle-a-quai",
         "label": "Contrôle à quai",
         "desc": "Contrôle à quai. Un superviseur des taxes et son escorte de contrôleurs subalternes lourdement armés s'approchent de votre navire. Les droits de douane sont évalués à 10 % de la valeur de toute la cargaison que vous n'avez pas cachée. Si vous ne payez pas, votre cargaison est saisie. Si vous réussissez un Test de Subornation Difficile (–20), vous vous rendez compte qu'un pot-de-vin de 2d10 CO peut faire en sorte que les formulaires administratifs soient « perdus ».",
-        "kind": "controle-a-quai",
-        "params": {
-          "taxPct": 10,
-          "bribeDifficulty": "difficile",
-          "bribeCO": {
-            "dice": {
-              "n": 2,
-              "sides": 10
+        "consequence": {
+          "kind": "test",
+          "test": {
+            "skill": {
+              "id": "subornation"
+            },
+            "difficulty": "difficile",
+            "stake": {
+              "key": {
+                "dataset": "voyage",
+                "kind": "sea-controle-subornation",
+                "entryId": "controle-a-quai",
+                "entryCategory": "seaPortEvents"
+              }
+            }
+          },
+          "success": {
+            "kind": "if",
+            "cond": {
+              "kind": "money",
+              "atLeast": {
+                "brass": {
+                  "tire": "potDeVin"
+                }
+              }
+            },
+            "then": {
+              "kind": "choice",
+              "prompt": "Verser le pot-de-vin",
+              "yes": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "party",
+                  "ops": [
+                    {
+                      "op": "money",
+                      "montant": {
+                        "brass": {
+                          "times": {
+                            "of": {
+                              "tire": "potDeVin",
+                              "de": {
+                                "times": {
+                                  "of": {
+                                    "dice": {
+                                      "n": 2,
+                                      "sides": 10
+                                    }
+                                  },
+                                  "factor": 240
+                                }
+                              }
+                            },
+                            "factor": -1
+                          }
+                        }
+                      },
+                      "groupe": true
+                    }
+                  ]
+                }
+              },
+              "no": {
+                "kind": "if",
+                "cond": {
+                  "kind": "money",
+                  "atLeast": {
+                    "brass": {
+                      "tire": "droits"
+                    }
+                  }
+                },
+                "then": {
+                  "kind": "choice",
+                  "prompt": "Payer les droits de douane",
+                  "yes": {
+                    "kind": "do",
+                    "effect": {
+                      "type": "ops",
+                      "on": "party",
+                      "ops": [
+                        {
+                          "op": "money",
+                          "montant": {
+                            "brass": {
+                              "times": {
+                                "of": {
+                                  "tire": "droits",
+                                  "de": {
+                                    "parTranche": 10,
+                                    "of": {
+                                      "valeurCargaison": true
+                                    }
+                                  }
+                                },
+                                "factor": -1
+                              }
+                            }
+                          },
+                          "groupe": true
+                        }
+                      ]
+                    }
+                  },
+                  "no": {
+                    "kind": "do",
+                    "effect": {
+                      "type": "ops",
+                      "on": "navire",
+                      "ops": [
+                        {
+                          "op": "cargaison",
+                          "perduePct": 100
+                        }
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "kind": "do",
+                  "effect": {
+                    "type": "ops",
+                    "on": "navire",
+                    "ops": [
+                      {
+                        "op": "cargaison",
+                        "perduePct": 100
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "else": {
+              "kind": "if",
+              "cond": {
+                "kind": "money",
+                "atLeast": {
+                  "brass": {
+                    "tire": "droits"
+                  }
+                }
+              },
+              "then": {
+                "kind": "choice",
+                "prompt": "Payer les droits de douane",
+                "yes": {
+                  "kind": "do",
+                  "effect": {
+                    "type": "ops",
+                    "on": "party",
+                    "ops": [
+                      {
+                        "op": "money",
+                        "montant": {
+                          "brass": {
+                            "times": {
+                              "of": {
+                                "tire": "droits"
+                              },
+                              "factor": -1
+                            }
+                          }
+                        },
+                        "groupe": true
+                      }
+                    ]
+                  }
+                },
+                "no": {
+                  "kind": "do",
+                  "effect": {
+                    "type": "ops",
+                    "on": "navire",
+                    "ops": [
+                      {
+                        "op": "cargaison",
+                        "perduePct": 100
+                      }
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "navire",
+                  "ops": [
+                    {
+                      "op": "cargaison",
+                      "perduePct": 100
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "fail": {
+            "kind": "if",
+            "cond": {
+              "kind": "money",
+              "atLeast": {
+                "brass": {
+                  "tire": "droits"
+                }
+              }
+            },
+            "then": {
+              "kind": "choice",
+              "prompt": "Payer les droits de douane",
+              "yes": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "party",
+                  "ops": [
+                    {
+                      "op": "money",
+                      "montant": {
+                        "brass": {
+                          "times": {
+                            "of": {
+                              "tire": "droits"
+                            },
+                            "factor": -1
+                          }
+                        }
+                      },
+                      "groupe": true
+                    }
+                  ]
+                }
+              },
+              "no": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "navire",
+                  "ops": [
+                    {
+                      "op": "cargaison",
+                      "perduePct": 100
+                    }
+                  ]
+                }
+              }
+            },
+            "else": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "navire",
+                "ops": [
+                  {
+                    "op": "cargaison",
+                    "perduePct": 100
+                  }
+                ]
+              }
             }
           }
         },

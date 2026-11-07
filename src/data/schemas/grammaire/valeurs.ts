@@ -974,7 +974,7 @@ export const parLocalisationSchema = nommerChamps(
 const refRegleOptionnelle = idDe('regleOptionnelle');
 
 /** Termes de jet de la grammaire (`TermeDeJet`, `src/engine/ops.ts`) : leur valeur ne se connaît qu'AU jet. */
-export const TERMES_DE_JET = ['dice', 'rolled', 'sl'] as const;
+export const TERMES_DE_JET = ['dice', 'rolled', 'sl', 'tire'] as const;
 
 /** Premier terme de jet rencontré dans une formule (imbrications `sum[]`, `times.of`, `times.factor`,
  *  `minimum.of`, `parTranche.of`), ou `null`. PURE. */
@@ -1016,8 +1016,14 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
   marquerProduit(nommerChamps(z.strictObject({ woundsDealt: z.literal(true) }), { woundsDealt: { label: "Blessures infligées" } }), 'optionsDeFormule', 'woundsDealt'),
   // MDG 15 l.33.
   marquerProduit(nommerChamps(z.strictObject({ blessuresMax: z.literal(true) }), { blessuresMax: { label: "Blessures maximales" } }), 'optionsDeFormule', 'blessuresMax'),
+  // MDG 15 l.246.
+  marquerProduit(nommerChamps(z.strictObject({ tailleDuNavire: z.literal(true) }), { tailleDuNavire: { label: "Taille du navire" } }), 'optionsDeFormule', 'tailleDuNavire'),
+  // MDG 15 l.247.
+  marquerProduit(nommerChamps(z.strictObject({ valeurCargaison: z.literal(true) }), { valeurCargaison: { label: "valeur de la cargaison" } }), 'optionsDeFormule', 'valeurCargaison'),
   // LDB 09 l.97.
   ...(avecJet ? [marquerProduit(nommerChamps(z.strictObject({ sl: z.literal(true) }), { sl: { label: "DR" } }), 'optionsDeFormule', 'sl')] : []),
+  // MDG 15 l.245.
+  ...(avecJet ? [marquerProduit(nommerChamps(z.strictObject({ tire: z.string().min(1), de: soi.optional() }), { tire: { label: "valeur liée", texte: { regime: "technique" } }, de: { label: "tirage" } }), 'optionsDeFormule', 'tire')] : []),
   marquerProduit(nommerChamps(z.strictObject({ rule: refRegleOptionnelle }), { rule: { label: "règle" } }), 'optionsDeFormule', 'rule'),
   marquerProduit(nommerChamps(z.strictObject({ sum: z.array(soi) }), { sum: { label: "somme" } }), 'optionsDeFormule', 'sum'),
   // VDM 05.
@@ -1029,7 +1035,8 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
 ];
 
 /** `Formula` (`src/engine/ops.ts`) — quantité résolue à l'application (littéral/dés/bonus/Indice/
- *  jet-associé/pions/écart d'Avantage/Blessures infligées/Blessures maximales/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
+ *  jet-associé/pions/écart d'Avantage/Blessures infligées/Blessures maximales/Taille du navire/valeur de la
+ *  cargaison/valeur liée/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
  *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
 export const formulaSchema: z.ZodType<unknown> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<unknown>, ...z.ZodType<unknown>[]]));
 
