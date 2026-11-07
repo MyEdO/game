@@ -589,10 +589,10 @@
   {
     "id": "formulaireDuSchema",
     "type": "primitives.manifest",
-    "label": "formulaireDeZone/valeurNeuveDe/avecLaValeur",
-    "fichier": "src/noyau/edition/formulaire.ts",
-    "concept": "formulaire tiré du schéma zod d'une donnée : sa description sérialisable champ par champ (objet, choix d'énumération, de booléen, de littéral ou de référence de catalogue avec sa sous-liste, nombre borné, texte, repli JSON), la valeur neuve d'un nœud, et l'écriture bornée à ce que la description offre, qui retire un champ et le conteneur qu'il vide",
-    "perimetre": "éditeur Godot : formulaire d'une zone d'effet (`crossTest`, `onCross`, `perRound`), traduit en éléments par `src/hote/editeur.ts` et joué par le geste `valeur` de la session d'édition",
+    "label": "inferFields/FieldDesc/choixDuNoeud/champsDeclares/bornesDuNoeud",
+    "fichier": "src/noyau/codex/editFields.ts",
+    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, référence de catalogue avec sa sous-liste), les bornes d'un nombre, les champs déclarés d'un objet ; la valeur neuve d'un nœud (`valeurNeuveDe`, `src/noyau/valeursNeuves.ts`) ; l'écriture bornée à ce que le formulaire offre, qui retire un champ et le conteneur qu'il vide (`avecLaValeur`, `src/noyau/sceneEdit.ts`)",
+    "perimetre": "Compendium (`CodexEdit`) ; éditeur Godot : formulaire d'une zone d'effet (`formulaireDeZone`), traduit en gestes par `src/hote/editeur.ts` (`renduDe`, `elementsDesGestes`) et joué par le geste `valeur` de la session d'édition",
     "verrou": "src/noyau/edition/formulaire.test.ts"
   },
   {
@@ -939,7 +939,7 @@
     "fichier": "src/ui/editor/CouvreField.tsx",
     "concept": "lien d'un élément du paquet de campagne vers les entrées des fiches de dossier de chapitre commitées (docs/dossiers/<ABBR>/<NN>.json, validées par ficheDeDossier) : CouvreField édite `couvre` (rangées entrée + retrait, sélecteur d'ajout, liste vide qui se dit vide, liste vidée retirée) ; SelecteurDEntreeDeFiche choisit UNE entrée (groupes par fiche et famille, id global + texte court, entrée introuvable affichée comme telle)",
     "perimetre": "inspecteur de scène (entité, zone d'effet, scène), panneau Logique (déclencheur, dialogue, rencontre), carte du monde (lieu, route), éditeur narratif (indice, PNJ, onglet Écarts)",
-    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/noyau/scene-field-editability-guard.test.ts"
+    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/scene-field-editability-guard.test.ts"
   },
   {
     "id": "freeAttackWeapon",

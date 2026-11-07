@@ -1,18 +1,20 @@
 import { API, SymbolFlags } from 'typescript/unstable/sync';
-import { ast } from '../../scripts/guards/lib/dialecte.mjs';
+import { ast } from '../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect, vi } from 'vitest';
 import path from 'node:path';
 import fs from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as ts from 'typescript/unstable/ast';
 import {
+  ALLER_RETOUR,
   auditSceneFieldEditability,
   orphanFields,
   sceneScope,
   programmeDuPerimetre,
-} from '../../scripts/guards/lib/sceneFieldEditability.mjs';
-import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../../scripts/guards/lib/tsProgram.mjs';
-import { detenteur } from '../lib/detenteur.testkit';
+} from '../scripts/guards/lib/sceneFieldEditability.mjs';
+import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../scripts/guards/lib/tsProgram.mjs';
+import { detenteur } from './lib/detenteur.testkit';
+import { ecrituresJouees } from './ecrituresJouees.testkit';
 
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
@@ -37,7 +39,7 @@ import { detenteur } from '../lib/detenteur.testkit';
  * mesure sur le programme RÉEL (cliquet de compte + la mesure du SEAM, qui bâtit le programme du
  * DOCUMENT avec un module modifié EN MÉMOIRE).
  */
-const ROOT = path.resolve(__dirname, '..', '..');
+const ROOT = path.resolve(__dirname, '..');
 
 const ids = (rows: { id: string }[]) => rows.map((r) => r.id);
 
@@ -81,9 +83,11 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   });
   // scripts/guards/lib/tsProgram.mjs ; src/analyse-retention-guard.test.ts
   const perimetre = detenteur(() => programmeDuPerimetre(ROOT), (session) => session.dispose());
+  /** L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`). */
+  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecrituresJouees() }));
 
   it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 240_000 }, () => {
-    const orphelins = orphanFields(auditSceneFieldEditability(ROOT, perimetre()));
+    const orphelins = orphanFields(auditReel());
     // Rendu en TEXTE : l'échec doit NOMMER les champs et leur `fichier:ligne`, pas afficher « …(9) ».
     const detail = orphelins
       .map((r) => `${r.id} (${r.at}) — écrivains : ${r.pipeline.join(', ') || 'AUCUN'}`)
@@ -97,7 +101,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     // vivant y était donc rapporté « écrivains : AUCUN » — un faux négatif qui invite à supprimer du
     // code vivant. `src/noyau/mapSpec.ts:902` (`const namedZones: SceneEffectZone[] = […].map(…)`)
     // est la sonde : l'annotation de la collection porte le type, la garde doit la lire.
-    const rows = auditSceneFieldEditability(ROOT, perimetre());
+    const rows = auditReel();
     const zone = (field: string) => rows.find((r) => r.id === `SceneEffectZone.${field}`);
     for (const field of ['tiles', 'area', 'id', 'label', 'z']) {
       expect(zone(field)?.pipeline, `SceneEffectZone.${field} sans écrivain de pipeline`).toContain(
@@ -108,6 +112,36 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     // membre d'union réellement écrit (`kind: 'rect'`), jamais sur `disc`.
     expect(zone('area.w')?.pipeline).toContain('src/noyau/mapSpec.ts');
     expect(zone('area.radius')?.pipeline).not.toContain('src/noyau/mapSpec.ts');
+  });
+
+  it('crédite ce que l’éditeur Godot écrit en jouant `editer` — sonde réelle : le Test de traversée d’une zone d’effet', { timeout: 240_000 }, () => {
+    expect(auditReel().find((r) => r.id === 'SceneEffectZone.crossTest')?.authors).toContain(ALLER_RETOUR);
+  });
+
+  it('une écriture jouée crédite le DERNIER pas de son chemin, marché sur le type `Scene`, si le document a changé, la valeur relue est la jouée et la saisie n’est pas du JSON', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Rect { kind: 'rect'; w: number }
+export interface Disc { kind: 'disc'; radius: number }
+export interface Test { difficulty: string }
+export interface SceneEffectZone { id: string; area: Rect | Disc; crossTest?: Test; perRound?: unknown[]; tags?: Record<string, { n: number }> }
+export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
+    });
+    const doc = (zone: Record<string, unknown> = {}) => ({ id: 's', effectZones: [{ id: 'z', area: { kind: 'disc', radius: 2 }, tags: { a: { n: 1 } }, ...zone }] });
+    const jouee = (apres: Record<string, unknown>, chemin: (string | number)[], valeur: unknown, saisie: string, avant: Record<string, unknown> = {}) =>
+      ({ avant: doc(avant), apres: doc(apres), chemin: ['effectZones', 0, ...chemin], valeur, saisie });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
+        jouee({ crossTest: { difficulty: 'x' } }, ['crossTest'], { difficulty: 'x' }, 'bouton'),
+        jouee({ area: { kind: 'disc', radius: 3 } }, ['area', 'radius'], 3, 'saisieNombre'),
+        jouee({ perRound: [] }, ['perRound'], [], 'saisieJson'),
+        jouee({}, ['tags', 'a', 'n'], 1, 'saisieNombre'),
+        jouee({ area: { kind: 'disc', radius: 2, w: 4 } }, ['area', 'w'], 4, 'saisieNombre'),
+      ] });
+      expect(rows.filter((r) => r.authors.length).map((r) => [r.id, r.authors])).toEqual([
+        ['Disc.radius', [ALLER_RETOUR]],
+        ['SceneEffectZone.crossTest', [ALLER_RETOUR]],
+      ]);
+    } finally { program.dispose(); }
   });
 
   it('NON VACANTE (c) : à travers `Array.map`, seule l’annotation de la COLLECTION crédite — pas un homonyme', () => {

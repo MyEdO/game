@@ -1,12 +1,14 @@
 /**
- * LECTURES de l'édition de scène — outil actif, calques, sélection, picking et emprise du pinceau. PURES,
+ * LECTURES de l'édition de scène — outil actif, calques, sélection, picking, emprise du pinceau et formulaire tiré
+ * du schéma (`formulaireDeZone`). PURES,
  * Node-safe, sans import d'hôte : tout hôte qui embarque le noyau désigne par elles ce qu'il édite.
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { type FaceDArete, type Scene, type SceneEntity, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { faceDAreteSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import { faceDAreteSchema, sceneEffectZoneSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import { inferFields, type FieldDesc } from './codex/editFields';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
@@ -379,3 +381,13 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 /** L'outil d'ENTITÉ seul — ce que `placeEntity` demande, dérivé de `Tool` pour qu'aucun site ne
  *  redise sa forme (la palette le construit, le canevas le transmet, la pose le consomme). */
 export type EntityTool = Extract<Tool, { mode: 'entity' }>;
+
+/** Les champs du formulaire d'une zone d'effet : son Test de traversée, ses effets à la traversée et à chaque Round. */
+export const CHAMPS_DU_FORMULAIRE_DE_ZONE = ['crossTest', 'onCross', 'perRound'] as const;
+
+/** Le formulaire de la zone d'effet `zone` : chacun de `CHAMPS_DU_FORMULAIRE_DE_ZONE`, décrit par `inferFields` sur
+ *  `sceneEffectZoneSchema`. */
+export function formulaireDeZone(zone: SceneEffectZone): FieldDesc[] {
+  const champs = inferFields([zone as unknown as Record<string, unknown>], { noeud: sceneEffectZoneSchema, niveau: 'profondeur' });
+  return CHAMPS_DU_FORMULAIRE_DE_ZONE.flatMap((cle) => champs.filter((f) => f.key === cle));
+}

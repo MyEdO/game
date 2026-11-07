@@ -1,15 +1,17 @@
 /**
- * Le formulaire tiré du schéma (#3606) : la description d'une zone d'effet (son Test de traversée en objets, choix,
- * référence de catalogue, nombres et repli JSON ; ses listes d'ops en JSON), la valeur neuve d'un nœud, et le geste
- * `valeur` de la session, qui écrit, retire (un conteneur vidé part avec son dernier champ), refuse ce que le formulaire
- * n'offre pas, et entre dans l'historique.
+ * Le formulaire tiré du schéma (#3606) : la description d'une zone d'effet par `inferFields` (son Test de traversée en
+ * objet, ses choix, sa référence de catalogue, ses nombres bornés ; ses listes d'ops en JSON), la valeur neuve d'un
+ * nœud, et le geste `valeur` de la session, qui écrit, retire (un conteneur vidé part avec son dernier champ), refuse ce
+ * que le formulaire n'offre pas, et entre dans l'historique.
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { emptyScene, type Scene } from '../monde/scene';
-import { addEffectZone } from '../sceneEdit';
+import { addEffectZone, avecLaValeur } from '../sceneEdit';
+import { formulaireDeZone } from '../sceneEditLecture';
+import { valeurNeuveDe } from '../valeursNeuves';
+import { champsDeclares, choixDuNoeud, inferFields, type FieldDesc } from '../codex/editFields';
 import { editer, ouvrirLEdition, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
-import { avecLaValeur, formulaireDeZone, valeurNeuveDe, type ChampDeFormulaire } from './formulaire';
 import { flowTestSchema } from '../../data/schemas/grammaire/mecanique';
 import { idDe, idsDe, idsDeLaSousListe, refOuSpec } from '../../data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../data/schemas/grammaire/sousListes';
@@ -21,41 +23,47 @@ type Zone = NonNullable<Scene['effectZones']>[number];
 /** Une zone d'effet neuve, ses champs `champs` posés. */
 const zone = (champs: Partial<Zone> = {}): Zone => ({ ...addEffectZone(emptyScene('s', 4, 4), { x: 0, y: 0, w: 2, h: 2 }).scene.effectZones![0], ...champs });
 
-/** Le champ au chemin `chemin` de la description `champs`. */
-function champ(champs: readonly ChampDeFormulaire[], ...chemin: string[]): ChampDeFormulaire {
-  const trouve = champs.find((c) => c.chemin.join('/') === chemin.slice(0, c.chemin.length).join('/'));
-  if (!trouve) throw new Error(`aucun champ ${chemin.join('/')}`);
-  if (trouve.chemin.length === chemin.length) return trouve;
-  if (trouve.sorte !== 'objet' || !trouve.present) throw new Error(`${trouve.chemin.join('/')} n’a pas de champs`);
-  return champ(trouve.champs, ...chemin);
+/** Le champ au chemin `chemin` de la donnée `donnee`, décrit comme l'hôte le descend : `inferFields` sur la valeur de
+ *  chaque objet traversé, au nœud de son champ. */
+function champ(champs: readonly FieldDesc[], donnee: Record<string, unknown>, cle: string, ...reste: string[]): FieldDesc {
+  const trouve = champs.find((c) => c.key === cle);
+  if (!trouve) throw new Error(`aucun champ ${cle}`);
+  if (!reste.length) return trouve;
+  const sous = donnee[cle] as Record<string, unknown>;
+  return champ(inferFields([sous], { noeud: trouve.noeud, niveau: 'profondeur' }), sous, ...(reste as [string, ...string[]]));
 }
 
 describe('la description du formulaire d’une zone d’effet', () => {
-  it('offre son Test de traversée, ses effets à la traversée et à chaque Round ; absent, le Test s’ajoute vide', () => {
-    const champs = formulaireDeZone(zone());
-    expect(champs.map((c) => [c.chemin, c.libelle, c.sorte, c.present, c.absenceAdmise])).toEqual([
-      [['crossTest'], 'Test de traversée', 'objet', false, true],
-      [['onCross'], 'à la traversée', 'json', false, true],
-      [['perRound'], 'par Round', 'json', false, true],
+  it('vient d’`inferFields` sur son schéma : son Test de traversée, ses effets à la traversée et à chaque Round', () => {
+    const z = zone();
+    const champs = formulaireDeZone(z);
+    expect(champs.map((c) => [c.key, c.label, c.kind, c.nullable])).toEqual([
+      ['crossTest', 'Test de traversée', 'object', true],
+      ['onCross', 'à la traversée', 'json', true],
+      ['perRound', 'par Round', 'json', true],
     ]);
-    expect(champs[0]).toMatchObject({ neuve: {} });
+    expect(valeurNeuveDe(champs[0].noeud), 'absent, le Test s’ajoute vide').toEqual({});
   });
 
-  it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres, le reste en JSON', () => {
-    const champs = formulaireDeZone(zone({ crossTest: { skill: { id: 'athletisme' as never }, characteristic: 'force', requireSL: 2 } }));
-    const competence = champ(champs, 'crossTest', 'skill', 'id');
-    expect(competence).toMatchObject({ sorte: 'choix', present: true, valeur: 'athletisme', absenceAdmise: false });
-    expect(competence.sorte === 'choix' && competence.options).toEqual(choixDeLaFeuilleDId({ type: 'skill' }).map((e) => ({ valeur: e.id, libelle: e.label })));
-    expect(champ(champs, 'crossTest', 'skill', 'spec')).toMatchObject({ sorte: 'texte', present: false, absenceAdmise: true });
-    const caracteristique = champ(champs, 'crossTest', 'characteristic');
-    expect(caracteristique).toMatchObject({ sorte: 'choix', present: true, valeur: 'force' });
-    expect(caracteristique.sorte === 'choix' && caracteristique.options.map((o) => o.valeur)).toContain('force');
-    const difficulte = champ(champs, 'crossTest', 'difficulty');
-    expect(difficulte.sorte === 'choix' && difficulte.options).toEqual(Object.entries(DIFFICULTY_LABELS).map(([valeur, libelle]) => ({ valeur, libelle })));
-    expect(champ(champs, 'crossTest', 'begging')).toMatchObject({ sorte: 'choix', options: [{ valeur: false, libelle: 'Non' }, { valeur: true, libelle: 'Oui' }] });
-    expect(champ(champs, 'crossTest', 'requireSL')).toMatchObject({ sorte: 'nombre', entier: false, min: null, max: null, present: true, valeur: 2 });
-    expect(champ(champs, 'crossTest', 'opposed')).toMatchObject({ sorte: 'objet', present: false, neuve: { attacker: 'capacite-de-combat' } });
-    for (const repli of ['stake', 'gate', 'vsGroups', 'difficultyBy']) expect(champ(champs, 'crossTest', repli).sorte, repli).toBe('json');
+  it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, le reste en JSON', () => {
+    const z = zone({ crossTest: { skill: { id: 'athletisme' as never }, characteristic: 'force', requireSL: 2 } });
+    const donnee = z as unknown as Record<string, unknown>;
+    const champs = formulaireDeZone(z);
+    const competence = champ(champs, donnee, 'crossTest', 'skill', 'id');
+    expect(competence).toMatchObject({ nullable: false });
+    expect(choixDuNoeud(competence.noeud)).toEqual(choixDeLaFeuilleDId({ type: 'skill' }).map((e) => ({ valeur: e.id, libelle: e.label })));
+    expect(champ(champs, donnee, 'crossTest', 'skill', 'spec')).toMatchObject({ kind: 'text', nullable: true });
+    expect(choixDuNoeud(champ(champs, donnee, 'crossTest', 'characteristic').noeud)?.map((o) => o.valeur)).toContain('force');
+    expect(choixDuNoeud(champ(champs, donnee, 'crossTest', 'difficulty').noeud)).toEqual(Object.entries(DIFFICULTY_LABELS).map(([valeur, libelle]) => ({ valeur, libelle })));
+    expect(choixDuNoeud(champ(champs, donnee, 'crossTest', 'begging').noeud)).toEqual([{ valeur: false, libelle: 'Non' }, { valeur: true, libelle: 'Oui' }]);
+    expect(champ(champs, donnee, 'crossTest', 'requireSL')).toMatchObject({ kind: 'number', bornes: { entier: false, min: null, max: null } });
+    const opposition = champ(champs, donnee, 'crossTest', 'opposed');
+    expect(champsDeclares(opposition.noeud), 'un objet absent s’ajoute').toBeDefined();
+    expect(valeurNeuveDe(opposition.noeud)).toEqual({ attacker: 'capacite-de-combat' });
+    for (const repli of ['stake', 'gate', 'vsGroups', 'difficultyBy']) {
+      const f = champ(champs, donnee, 'crossTest', repli);
+      expect([choixDuNoeud(f.noeud), champsDeclares(f.noeud), f.kind === 'number' || f.kind === 'text'], repli).toEqual([undefined, undefined, false]);
+    }
   });
 
   it('une référence se choisit dans la sous-liste que sa feuille déclare', () => {

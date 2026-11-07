@@ -3,7 +3,7 @@
  * couche, le pinceau, la sélection, le geste du pointeur en cours, le tracé d'une volée, le brouillon de l'arête
  * sélectionnée, l'entité copiée, l'enregistrement au dépôt et les calques de référence, et le seul réducteur qui les fait avancer
  * (`editer`) sur une union fermée de gestes. Chaque geste délègue au pointeur (`./pointeur`), à l'historique
- * (`./historique`), aux écrivains de `../sceneEdit`, au formulaire tiré du schéma (`./formulaire`), à la volée
+ * (`./historique`), aux écrivains de `../sceneEdit` (dont l'écriture bornée du formulaire tiré du schéma), à la volée
  * (`../stairFlight`) et au calque (`./calque`) ; aucun
  * n'écrit de règle de scène. L'éditeur Godot la reçoit par le pont.
  */
@@ -14,7 +14,7 @@ import type { FireArc } from '../../engine/types';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, replaceEffectZone, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, replaceEffectZone, zoneAvecLaValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, type PatchDeZone, type Pt } from '../sceneEdit';
 import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -29,7 +29,6 @@ import { annuler, historiqueDe, poser, reecrire, retablir, type Historique } fro
 import { appuyer, glisser, relacher, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type GesteEnCours, type PointDeCarte } from './pointeur';
 import type { CalibProgress } from './calage';
 import { caler, calqueNeuf, calquesLus, type CalqueDeCouche, type CalquesDuProjet, type ReglageDuCalque } from './calque';
-import { zoneAvecLaValeur, type Segment } from './formulaire';
 
 /** Les tailles du pinceau, en cases de côté. */
 export const PINCEAUX = [1, 3, 5] as const;

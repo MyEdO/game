@@ -934,6 +934,9 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
     const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
     const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    /** La valeur `valeur` du choix d'id `id` de l'inspecteur : le bouton qui la joue. */
+    const option = (id: string, valeur: unknown) => valeursDeLInspecteur(e, id).find((b) => (b.jeu as { args: unknown[] }).args[2] === valeur)!;
+    const choisir = (id: string, valeur: unknown) => (e = editionDe(appel('editer', option(id, valeur).jeu)));
     const formulaire = (id: string) => e.vue.zones['editeur.inspecteur'].find((el): el is Formulaire => el.type === 'formulaire' && el.id === id)!;
     const saisir = (id: string, valeur: unknown) => {
       const [porteur, chemin] = formulaire(id).champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
@@ -947,16 +950,17 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     jouer({ geste: 'appui', point: point(2, 2) });
     jouer({ geste: 'relache', point: point(3, 3) });
     const zoneId = (formulaire('valeur/perRound').champs[0] as { valeur: { id: string } }).valeur.id;
-    expect(() => boutonDe(e, 'valeur/crossTest/characteristic/force'), 'sans Test, aucun de ses champs').toThrow();
+    expect(e.vue.zones['editeur.inspecteur'].some((el) => el.id === 'valeur/crossTest/characteristic'), 'sans Test, aucun de ses champs').toBe(false);
     presser('valeur/crossTest/ajouter');
     expect(validation(), 'un Test vide se refuse à la porte, que la validation relit').toMatch(/^Validation : 1 erreur\(s\)/);
     expect(e.vue.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/crossTest')).toMatchObject({ type: 'ligne', texte: 'Test de traversée' });
-    expect(valeursDeLInspecteur(e, 'valeur/crossTest/characteristic')[0]).toMatchObject({ id: 'valeur/crossTest/characteristic/aucune', presse: true });
-    presser('valeur/crossTest/characteristic/force');
-    presser('valeur/crossTest/difficulty/difficile');
+    expect(boutonDe(e, 'valeur/crossTest/characteristic/aucune').presse, 'la caractéristique absente').toBe(true);
+    choisir('valeur/crossTest/characteristic', 'force');
+    choisir('valeur/crossTest/difficulty', 'difficile');
     saisir('valeur/crossTest/requireSL', 1);
     saisir('valeur/perRound', [{ op: 'corruption', amount: 1 }]);
-    expect(boutonDe(e, 'valeur/crossTest/characteristic/force').presse).toBe(true);
+    expect(option('valeur/crossTest/characteristic', 'force').presse).toBe(true);
+    expect(boutonDe(e, 'valeur/crossTest/characteristic/aucune').presse).toBe(false);
     expect(formulaire('valeur/crossTest/requireSL').champs[2]).toMatchObject({ type: 'saisieNombre', valeur: 1, pas: 0.01 });
     expect(formulaire('valeur/perRound').champs[2]).toMatchObject({ type: 'saisieJson', valeur: '[{"op":"corruption","amount":1}]' });
     expect(erreurDe(appel('editer', { type: 'valeur', args: [{ sorte: 'zone', id: zoneId }, ['label'], 'Fosse'] })).categorie, 'un champ que le formulaire n’offre pas').toBe('validation');
@@ -975,8 +979,8 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
     e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
     expect(formulaire('valeur/perRound').champs[0]).toMatchObject({ valeur: { sorte: 'zone', id: zoneId } });
-    expect(boutonDe(e, 'valeur/crossTest/characteristic/force').presse, 'rouverte, la caractéristique').toBe(true);
-    expect(boutonDe(e, 'valeur/crossTest/difficulty/difficile').presse, 'rouverte, la difficulté').toBe(true);
+    expect(option('valeur/crossTest/characteristic', 'force').presse, 'rouverte, la caractéristique').toBe(true);
+    expect(option('valeur/crossTest/difficulty', 'difficile').presse, 'rouverte, la difficulté').toBe(true);
     expect(formulaire('valeur/crossTest/requireSL').champs[2]).toMatchObject({ valeur: 1 });
     expect(formulaire('valeur/perRound').champs[2]).toMatchObject({ valeur: '[{"op":"corruption","amount":1}]' });
     expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
