@@ -163,7 +163,7 @@ export function rendreMalade(c: Combatant, n: Noeud): Combatant {
  *  rangée un 1. Aucun dé tiré : deux nuits de même décor ne divergent que par l'issue du jet du nœud. */
 export function nuitDuMalade(get: Get, n: Noeud, sujetId: string, reussite: boolean): void {
   const { symptomId } = porteDeMaladie(n)!;
-  get().ouvrirLeRepos({ lieu: sceneLieu(get) });
+  get().offrirLeRepos({ lieu: sceneLieu(get) });
   get().fenetreValider('rest');
   const p = get().pendingCascade;
   const vise = (s: CascadeStep): boolean => s.kind === 'diseaseTick' && s.meta?.symptomId === symptomId

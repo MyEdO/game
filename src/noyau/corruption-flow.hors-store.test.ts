@@ -28,7 +28,7 @@ function party2() {
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [], pendingCorruption: null, pendingTest: null, pendingRenounce: null, corruptionQueue: [] });
-  banc.getState().seedRng(13);
+  banc.getState().ensemencerLeTirage(13);
 });
 
 describe('Effet corruptionExposure → modale → jetValider@corruption', () => {
@@ -250,7 +250,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
         roll: 95, sl: -6, success: false, isDouble: false, rerolled: true, onSuccess: [], onFailure: [],
       } as never,
     });
-    banc.getState().seedRng(1); // reseed JUSTE avant la relance → d100 déterministe (indépendant du setup)
+    banc.getState().ensemencerLeTirage(1); // reseed JUSTE avant la relance → d100 déterministe (indépendant du setup)
     banc.getState().jetPactiser('test');
     const pt = banc.getState().pendingTest as { roll?: number } | null;
     expect(pt?.roll).not.toBe(95); // relancé (seed fixe → valeur stable ≠ 95)
@@ -268,7 +268,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
         roll: 12, sl: 2, success: true, isDouble: false, onSuccess: [], onFailure: [],
       } as never,
     });
-    banc.getState().seedRng(1); // reseed JUSTE avant la relance → d100 déterministe
+    banc.getState().ensemencerLeTirage(1); // reseed JUSTE avant la relance → d100 déterministe
     banc.getState().jetPactiser('test');
     expect((banc.getState().pendingTest as { roll?: number }).roll, 'le Test réussi a été relancé').not.toBe(12);
     expect(banc.getState().party.find((h) => h.id === a.id)!.corruption).toBe(1);
@@ -285,7 +285,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
         roll: 95, sl: -6, success: false, isDouble: false, rerolled: true, onSuccess: [], onFailure: [],
       } as never,
     });
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     banc.getState().jetPactiser('test');
     const apres1 = (banc.getState().pendingTest as { roll?: number }).roll;
     banc.getState().jetPactiser('test');

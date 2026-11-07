@@ -3,7 +3,7 @@
  * pour se déplacer sur le champ de bataille » — RAW muet sur un Test ou une vitesse chiffrée). Décision de
  * design (#156, Lot 2) : mouvement SIMPLE (aucun jet), effort collectif de l'Équipe — le CHEF de pièce
  * pousse, l'ENGIN et TOUS les servants du poste (`ShipPoste.crewIds`) translatent du MÊME delta (formation
- * rigide), exactement comme `shipAdvance` (`shipManeuver.ts`) déplace une coque + son équipage. Distance
+ * rigide), exactement comme `avancerLeNavire` (`shipManeuver.ts`) déplace une coque + son équipage. Distance
  * plafonnée à une valeur MAISON éditable (`rule('siege-engine-push-speed')`, engine/policy.ts).
  *
  * Module FEUILLE (aucune dépendance combatFlow/combatSlice) : mute les combattants, l'appelant (store)
@@ -30,7 +30,7 @@ export function posteHullOf(poste: ShipPoste, combatants: Combatant[]): Combatan
 /** L'arme dérivée d'un poste est-elle un engin de siège MOBILE (ADE II 8) : catalogue « armes de
  *  siège » (`subType`) portant la Qualité `equipe` (l.233 — l'Équipe requise, réutilisée comme seuil de
  *  poussée). Un poste NAVAL (bordée de navire, MDG 12) n'a jamais cette combinaison → jamais poussable
- *  ici — la coque, elle, avance par `shipAdvance` (cap + Manœuvre), mécanisme DISTINCT jamais mêlé à
+ *  ici — la coque, elle, avance par `avancerLeNavire` (cap + Manœuvre), mécanisme DISTINCT jamais mêlé à
  *  celui-ci. PUR. */
 export function isPushableEngine(w: Pick<Weapon, 'subType' | 'qualities'>): boolean {
   return w.subType === 'armes-de-siege' && warMachineCrewRequired(w) > 0;

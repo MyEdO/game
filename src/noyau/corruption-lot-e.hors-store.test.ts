@@ -22,7 +22,7 @@ function hero(): Combatant {
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [], pendingCorruption: null, pendingRenounce: null });
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
 });
 
 describe('Âme pure (LDB 10) — seuil de Corruption +niveau', () => {

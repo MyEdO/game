@@ -21,7 +21,7 @@ export function grantFavor(get: Get, set: Set, heroId: string, level: FavorLevel
   const favor: Favor = { id: nextEntityId('favor', (get().favors ?? []).map((f) => f.id)), heroId, level, owedTo, desc, progress: 0 };
   set({ favors: [...(get().favors ?? []), favor] });
   const h = get().party.find((x) => x.id === heroId);
-  get().log(t('favor.granted', { name: h?.label ?? heroId, level, owedTo }));
+  get().ecrireAuJournal(t('favor.granted', { name: h?.label ?? heroId, level, owedTo }));
   return favor;
 }
 
@@ -44,7 +44,7 @@ export function settleFavorActivity(get: Get, set: Set, heroId: string, favorId:
   });
   itl.perHero[heroId] = { ...st, left: st.left - 1, favorProgress: [...(st.favorProgress ?? []), favorId] };
   set({ interlude: { ...itl } });
-  get().log(done
+  get().ecrireAuJournal(done
     ? t('favor.settled', { name: h.label, level: favor.level, owedTo: favor.owedTo })
     : t('favor.progressed', { name: h.label, level: favor.level, owedTo: favor.owedTo, progress, required }));
 }
@@ -86,15 +86,15 @@ export function breakFavor(get: Get, set: Set, heroId: string, favorId: string):
   if (rule('favor-rumor-spreads')) {
     h.careerLevel = Math.max(0, (h.careerLevel ?? 1) - 1);
     set({ party: [...get().party] });
-    get().log(t('favor.brokenRumor', { name: h.label, level: favor.level, owedTo: favor.owedTo, lvl: h.careerLevel }));
+    get().ecrireAuJournal(t('favor.brokenRumor', { name: h.label, level: favor.level, owedTo: favor.owedTo, lvl: h.careerLevel }));
   } else {
-    get().log(t('favor.brokenSilent', { name: h.label, level: favor.level, owedTo: favor.owedTo }));
+    get().ecrireAuJournal(t('favor.brokenSilent', { name: h.label, level: favor.level, owedTo: favor.owedTo }));
   }
 }
 
 export function creerActionsDesFaveurs(get: Get, set: Set) {
   return {
-    favorGrant: (heroId, level, owedTo, desc) => grantFavor(get, set, heroId, level, owedTo, desc),
+    accorderLaFaveur: (heroId, level, owedTo, desc) => grantFavor(get, set, heroId, level, owedTo, desc),
     solderLaFaveur: (heroId, favorId) => settleFavorActivity(get, set, heroId, favorId),
     rompreLaFaveur: (heroId, favorId) => breakFavor(get, set, heroId, favorId),
   } satisfies FabriqueDuNoyau;

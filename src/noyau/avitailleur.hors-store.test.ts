@@ -68,7 +68,7 @@ const sceneWithAvitailleur = (marketMode?: string) => {
   return sc;
 };
 
-describe('curated garanti QUEL QUE SOIT le mode de marché (chemin réel `openMerchant`)', () => {
+describe('curated garanti QUEL QUE SOIT le mode de marché (chemin réel `ouvrirLeMarchand`)', () => {
   beforeEach(() => banc.setState({ party: [], scene: null, merchant: null, merchantStocks: {} }));
 
   for (const mode of ['simplifie', 'sans-disponibilite'] as const) {
@@ -76,7 +76,7 @@ describe('curated garanti QUEL QUE SOIT le mode de marché (chemin réel `openMe
       expect(findMerchantArchetypeById('avitailleur')?.curated).toContain('mitraille-et-poudre');
       expect(trappings.find((t) => t.id === 'mitraille-et-poudre')!.availability).toBe('Exotique');
       banc.setState({ party: [hero()], scene: sceneWithAvitailleur(mode) });
-      banc.getState().openMerchant('pnj');
+      banc.getState().ouvrirLeMarchand('pnj');
       expect(banc.getState().merchant!.stock.map((l) => l.id)).toContain('mitraille-et-poudre');
     });
   }
@@ -84,7 +84,7 @@ describe('curated garanti QUEL QUE SOIT le mode de marché (chemin réel `openMe
   it('la règle GLOBALE « simplifie » (sans override d’entité) garantit le curated de même', () => {
     setRule('market-mode', 'simplifie');
     banc.setState({ party: [hero()], scene: sceneWithAvitailleur() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant!.stock.map((l) => l.id)).toContain('mitraille-et-poudre');
   });
 });

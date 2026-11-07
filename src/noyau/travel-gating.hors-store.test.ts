@@ -68,7 +68,7 @@ function auDepart(flags: Record<string, boolean> = {}): void {
     travelRecap: null,
     battle: null,
   });
-  get().loadProject({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carte, projet: null });
+  get().chargerLeProjet({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carte, projet: null });
   set({ gameTime: campaignStart(), flags, journal: [] });
 }
 

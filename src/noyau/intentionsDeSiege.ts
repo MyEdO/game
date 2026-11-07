@@ -167,7 +167,7 @@ export const PARTY_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invit�
   'recruterLeHeros', 'renvoyerLeHeros', 'remplacerLeHeros', 'epinglerLIndice', 'marquerLesIndices',
 ]);
 
-/** Activités d'interlude. `startInterlude` est `hôte`, et la clôture se valide par l'hôte (`fenetreValider('interlude')`) :
+/** Activités d'interlude. `ouvrirLInterlude` est `hôte`, et la clôture se valide par l'hôte (`fenetreValider('interlude')`) :
  *  l'hôte seul ouvre et clôt la période. */
 export const INTERLUDE_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invité'>>([
   'pratiquerLActivite', 'fabriquerLObjet', 'commanderLObjet', 'deposerALaBanque', 'retirerDeLaBanque',
@@ -245,7 +245,7 @@ export type IssueDIntention = 'hors-allowlist' | 'refusee' | 'appliquee';
 export function appliquerLIntentionDUnSiege(get: Get, siege: number, action: string, args: readonly unknown[]): IssueDIntention {
   if (!GUEST_INTENTS.has(action)) return 'hors-allowlist';
   if (!intentAllowedFor(get(), siege, action, [...args])) {
-    get().log(t('coop.intentRefused'));
+    get().ecrireAuJournal(t('coop.intentRefused'));
     return 'refusee';
   }
   const fn = (get() as unknown as Record<string, unknown>)[action];

@@ -1,5 +1,5 @@
 /**
- * #668, #2817 D7 — chaque chemin RÉEL qui avance l'horloge hors `advanceTime` (nuit du joueur `restFlow`,
+ * #668, #2817 D7 — chaque chemin RÉEL qui avance l'horloge hors `avancerLeTemps` (nuit du joueur `restFlow`,
  * voyages terrestre `travelFlow`, fluvial `riverVoyageFlow` et en mer `seaVoyageFlow`) passe par l'écrivain
  * unique `avancerLHorloge` : une échéance de l'échéancier narratif armée avant le chemin tire quand le flux
  * franchit sa borne.
@@ -46,7 +46,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
   it('nuit du joueur (`restFlow`) : la modale de repos, Dormir, puis la cascade de nuit tirent l’échéance', () => {
     set({ party: makePregens().slice(0, 1), scene: emptyScene('scene-test', 10, 10), gameTime: campaignStart() + 20 * 60 });
     const t0 = armeLEcheance();
-    get().ouvrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
+    get().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     get().fenetreValider('rest');
     expect(get().pendingRest, 'Dormir a été refusé').toBeNull();
     draineCascade(get, 30);
@@ -63,7 +63,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
       routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 12, modes: ['pied'], perilDie: 0 }],
     };
     set({ party: makePregens().slice(0, 1) });
-    get().loadProject({ scenes: [scene('lieu-a'), scene('lieu-b')], entryId: 'lieu-a', worldMap: carte, projet: null });
+    get().chargerLeProjet({ scenes: [scene('lieu-a'), scene('lieu-b')], entryId: 'lieu-a', worldMap: carte, projet: null });
     set({ gameTime: campaignStart(), flags: {}, scheduledEffects: [] });
     const t0 = armeLEcheance();
     get().partirEnVoyage('r1', 'pied');
@@ -87,8 +87,8 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
     };
     const quai = (id: string) => buildScene({ id, label: id, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });
     seedBattleRng(7);
-    get().setParty([gunnar]);
-    get().loadProject({ scenes: [quai('quai-a'), quai('quai-b')], entryId: 'quai-a', worldMap: reik, projet: null });
+    get().fixerLeGroupe([gunnar]);
+    get().chargerLeProjet({ scenes: [quai('quai-a'), quai('quai-b')], entryId: 'quai-a', worldMap: reik, projet: null });
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], flags: {}, scheduledEffects: [] });
     creditBourse(get, set, gunnar.id, { gold: 500, silver: 0, brass: 0 });
     const t0 = armeLEcheance();

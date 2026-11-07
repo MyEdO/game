@@ -3,7 +3,7 @@
  * PROSE DE PAQUET au rendu (#686, EDO 02 l.112-127) : `<Prose paquet>` nomme par les identités figées à la
  * désignation, `<Prose>` nue jamais ; `DocumentModal` nomme le seul document de paquet (`documentId`),
  * pas le rapport de naufrage ; chez l'invité, le masque vaut pour UNE remise. Chemin réel : Effet
- * `designerHeros` puis choix au store ; `remettreDocument`.
+ * `designerHeros` puis choix au store ; `remettreLeDocument`.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act, Profiler } from 'react';
@@ -39,7 +39,7 @@ let root: Root | undefined;
 function charger(mode: 'local' | 'guest' = 'local') {
   const s = emptyScene('scene-test', 4, 4); s.id = 'sc'; s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
   useGame.setState({ campaignNarratif: null, party: [], scene: null, document: null, flags: {}, etats: {}, identitesFigees: {}, net: { ...get().net, mode: 'local' } });
-  get().loadProject({ scenes: [s], entryId: 'sc', narratif, projet: null });
+  get().chargerLeProjet({ scenes: [s], entryId: 'sc', narratif, projet: null });
   useGame.setState({ party: [heros('h1', 'humains-reiklander', 'M'), heros('h2', 'nains', 'F')] });
   runFlow(get, useGame.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });
   get().fenetreChoisir('designationHeros', 'heros', 'h2');
@@ -72,23 +72,23 @@ describe('<Prose paquet> — le paquet suit le sosie désigné', () => {
 describe('DocumentModal — seul un document de paquet est nommé', () => {
   it('document à `documentId` : nommé ; rapport de naufrage : verbatim', () => {
     charger();
-    get().remettreDocument({ title: 'D3', text: 'Cher Herr Lieberung,', documentId: 'doc-3' });
+    get().remettreLeDocument({ title: 'D3', text: 'Cher Herr Lieberung,', documentId: 'doc-3' });
     monter(<DocumentModal />);
     expect(document.body.textContent).toContain('Chère Frau Linkassniz,');
-    act(() => get().remettreDocument({ title: 'Naufrage', text: 'Cher Herr Lieberung,' }));
+    act(() => get().remettreLeDocument({ title: 'Naufrage', text: 'Cher Herr Lieberung,' }));
     expect(document.body.textContent).toContain('Cher Herr Lieberung,');
     expect(document.body.textContent).not.toContain('Linkassniz');
   });
 
   it('invité : il masque UNE remise ; la même remise répétée par l’hôte se montre de nouveau', () => {
     charger('guest');
-    get().remettreDocument({ title: 'D3', text: 'Cher Herr Lieberung,', documentId: 'doc-3' });
+    get().remettreLeDocument({ title: 'D3', text: 'Cher Herr Lieberung,', documentId: 'doc-3' });
     monter(<DocumentModal />);
     const fermer = [...document.querySelectorAll('button')].find((b) => b.textContent === 'Fermer')!;
     act(() => fermer.click());
     expect(document.body.textContent).not.toContain('Frau Linkassniz');
     expect(get().document, 'l’hôte tient le document').not.toBeNull();
-    act(() => get().remettreDocument({ title: 'D3', text: 'Cher Herr Lieberung,', documentId: 'doc-3' }));
+    act(() => get().remettreLeDocument({ title: 'D3', text: 'Cher Herr Lieberung,', documentId: 'doc-3' }));
     expect(document.body.textContent).toContain('Chère Frau Linkassniz,');
   });
 });

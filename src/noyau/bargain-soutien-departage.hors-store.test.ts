@@ -241,7 +241,7 @@ function setupAmbulant(party: Combatant[]): void {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
   sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier' } } as never);
   set({ party, scene: sc, merchant: null, merchantStocks: {}, journal: [], pendingCascade: null, pendingBargain: null } as never);
-  get().openMerchant('pnj');
+  get().ouvrirLeMarchand('pnj');
 }
 
 /** Meneur nu à 40 + 1 soutien (+10, fondu à 50) face à l'armurier à 45, DR ÉGAL des deux côtés. */

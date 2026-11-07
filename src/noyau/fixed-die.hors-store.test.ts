@@ -291,14 +291,14 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
     banc.getState().jetImposerLeResultat('attack', 33); // double ≤ cible → touche + Critique
     banc.setState({ journal: [] });
     // Le pending est ENCORE ouvert pendant que l'applicateur compose : c'est la fenêtre du marquage.
-    banc.getState().log('Att touche Cible à la tête · CRITIQUE !');
+    banc.getState().ecrireAuJournal('Att touche Cible à la tête · CRITIQUE !');
     expect(banc.getState().journal.join('\n')).toContain('(dé fixé)');
   });
 
   it('un jet NATUREL ne marque rien', () => {
     setupAttack(); // aucun dé saisi
     banc.setState({ journal: [] });
-    banc.getState().log('Att touche Cible à la tête · CRITIQUE !');
+    banc.getState().ecrireAuJournal('Att touche Cible à la tête · CRITIQUE !');
     expect(banc.getState().journal.join('\n')).not.toContain('dé fixé');
   });
 
@@ -315,7 +315,7 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
     setDesFixes(true);
     banc.getState().jetImposerLeResultat('attack', 33);
     banc.setState({ pendingAttack: null, journal: [] });
-    banc.getState().log('Le Gobelin se relève.');
+    banc.getState().ecrireAuJournal('Le Gobelin se relève.');
     expect(banc.getState().journal.join('\n')).not.toContain('dé fixé');
   });
 });
@@ -346,7 +346,7 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
   });
 
   it('E1 dé POSÉ + E2 dé NATUREL : seule la ligne d’E1 porte la mention', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     startCascade(banc.getState, banc.setState, { title: 'Séquence', purpose: 'test', steps: [etape('e1'), etape('e2')] });
     banc.getState().jetImposerLeResultat('cascadeTirage', 33, 'e1');
     banc.setState({ journal: [] });
@@ -376,14 +376,14 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
         ],
       } as never,
     });
-    banc.getState().log('La porte cède.');
+    banc.getState().ecrireAuJournal('La porte cède.');
     expect(banc.getState().journal.join('\n')).not.toContain('dé fixé');
     // Le MONO reste le cas N=1 : seul participant, dé saisi → la ligne porte la mention.
     banc.setState({
       journal: [],
       pendingForceDoor: { participants: [{ id: 'A', interactive: true, fixed: true, result: { roll: 33, target: 45, sl: 1, success: true } }] } as never,
     });
-    banc.getState().log('La porte cède.');
+    banc.getState().ecrireAuJournal('La porte cède.');
     expect(banc.getState().journal.join('\n')).toContain('dé fixé');
     banc.setState({ pendingForceDoor: null });
   });

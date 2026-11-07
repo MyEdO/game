@@ -30,8 +30,8 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     });
     hero.spells = ['parole-de-tzeentch'];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -61,7 +61,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
   }
 
   it('à DR ÉGAL, la CIBLE l’emporte par sa nue (90 contre 44) alors que les valeurs testées disent l’inverse', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, E } = setup();
     const nueH = castingBaseValue(H, incantationArcane());
     const nueE = skillBaseValue(E, { characteristic: 'intelligence' });
@@ -92,7 +92,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
   });
 
   it('CONTRAT : le flux d’opposition ne déclenche AUCUN repli deux-cibles (sonde REPLIS_DEUX_CIBLES)', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, E } = setup();
     frozenCast(H, E);
     // La sonde est VIVANTE dans ce runtime : deux jets SANS nue la font compter.

@@ -45,8 +45,8 @@ export interface ProprietaireDuDuel {
  *  manche confirmée, les suites programmées abandonnées, puis le patch d'`auContact` écrit. */
 export function heroFaceAUnEnnemi(p: ProprietaireDuDuel, scene: Scene): { H: Combatant; E: Combatant } {
   p.setState({ party: [heroDuDuel()] });
-  p.getState().startScene(scene);
-  p.getState().startCombat('enc-mutants');
+  p.getState().lancerLaScene(scene);
+  p.getState().lancerLeCombat('enc-mutants');
   p.getState().fenetreValider('roundStart');
   p.abandonner();
   const { H, E, patch } = auContact(p.getState());

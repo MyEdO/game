@@ -56,8 +56,8 @@ const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', s
 function launch(withSavoir = false, km = 45, extra: Partial<MapRouteTrace> = {}): void {
   seedBattleRng(7);
   const g = get();
-  g.setParty(crew(withSavoir));
-  g.loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(km, extra), projet: null });
+  g.fixerLeGroupe(crew(withSavoir));
+  g.chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(km, extra), projet: null });
   set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
   creditBourse(get, set, get().party[0].id, { gold: 500, silver: 0, brass: 0 }); // bourse du groupe (péages/auberges) — SOCLE POSSESSIONS #531
 }

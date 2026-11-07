@@ -189,7 +189,7 @@ export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('
 
 /** Combat de masse / Puissance de Bataille : ouvre l'écran de bataille sur le
  *  `MassBattleSpec` AUTHORÉ (armées, Rounds prévus, situations de Scènes par Round, rencontres des
- *  Scènes de combat, modificateur permanent). Appliqué par le store `startMassBattle` (noyau/massBattleFlow). */
+ *  Scènes de combat, modificateur permanent). Appliqué par le store `amorcerLaBataille` (noyau/massBattleFlow). */
 /** ADE II 8 */
 export const startMassBattleSchema = nommerChamps(z.strictObject({ type: z.literal('startMassBattle'), battle: massBattleSpecSchema }), { type: { label: "type"  }, battle: { label: "bataille" } });
 
@@ -538,7 +538,7 @@ export const endDialogueSchema = nommerChamps(z.strictObject({ type: z.literal('
  *  (date impériale absolue) > `afterDays` (« J+N », à `atHour:atMinute`, défaut minuit) >
  *  `afterMinutes` (compte à rebours relatif : mèche de bombe) > `atHour`/`atMinute` seuls (prochaine
  *  occurrence de cette heure du jour). Annulé si `cancelFlag` est posé avant l'échéance
- *  (désamorçage). Déclenché au FRANCHISSEMENT dans `advanceTime` (le temps avance par actions
+ *  (désamorçage). Déclenché au FRANCHISSEMENT dans `avancerLeTemps` (le temps avance par actions
  *  discrètes : un événement programmé entre deux pas se déclenche dès le pas qui le dépasse). */
 export const delayedEffectSchema = z.strictObject({
   type: z.literal('delayedEffect'),

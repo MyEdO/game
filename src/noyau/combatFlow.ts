@@ -288,7 +288,7 @@ export function attackWeaponOf(battle: BattleState, attacker: Combatant, target:
   const freeNatural = pa.freeKind ? armeDeLaGratuite(attacker, pa.freeKind, pa.weaponUid) : null;
   // Sinon l'arme FIGÉE au jet (#1153) : `Combatant.weapons` ne porte que le loadout ACTIF, un uid seul
   // peut donc être introuvable et rendre la main à l'auto-choix. `firedWeapon` : pending pas encore
-  // lancé (`openAttackCascade`, `cleaveAttack`) ou 2ᵉ frappe (`dualStrikeAttack`).
+  // lancé (`openAttackCascade`, `frapperEnBalayage`) ou 2ᵉ frappe (`frapperDeLaSecondeArme`).
   return freeNatural ?? pa.weapon ?? firedWeapon(attacker, target, pa.weaponUid, battle.combatants, pa.harpoonRopeCut);
 }
 
@@ -885,7 +885,7 @@ export function dualStrikeTargets(battle: BattleState, attacker: Combatant, offW
 }
 
 /** Les cibles que la 2ᵉ frappe en attente (`pendingDualStrike`) peut viser (`dualStrikeTargets`) : celles que
- *  `dualStrikeAttack` accepte. */
+ *  `frapperDeLaSecondeArme` accepte. */
 export function ciblesDeLaDoubleFrappe(s: Jeu): Combatant[] {
   const ds = s.pendingDualStrike;
   const attaquant = ds && s.battle ? inBattleId(s.battle, ds.attackerId) : undefined;
@@ -2209,7 +2209,7 @@ function apresLeCritiqueDe(a: ApresLeCritique): (lethal: boolean, origine: Origi
 
 /** Fabrique de cibles d'aire pour le combat COURANT (terre = rayon métrique à l'échelle de la scène ;
  *  navire = équipage exposé via `crewIds`) — SOURCE UNIQUE de la résolution `crewOf`, partagée par l'aire du
- *  tir individuel (`applyAttackResult`) ET le PILONNAGE INDIRECT (`siegeAimCommit`). Évite la re-duplication. */
+ *  tir individuel (`applyAttackResult`) ET le PILONNAGE INDIRECT (`poserLePointDImpact`). Évite la re-duplication. */
 export function battleAreaTargets(get: Get): (indice: number) => AreaTargets {
   const battle = get().battle!;
   return areaTargets(battle.combatants, sceneMetresPerTile(get().scene), (ship) => (ship.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c));
@@ -3748,7 +3748,7 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // Taille de sa monture — PARITÉ avec le joueur (le proxy ne s'applique que s'il chevauche réellement).
   const r = resolveAttack(get, attacker, target, undefined, attacker.chargedThisTurn);
   if (!r) {
-    get().log(firedWeapon(attacker, target).type === 'ranged' ? tr('cf.noLoSMasked') : tr('cs.meleeOutOfRange'));
+    get().ecrireAuJournal(firedWeapon(attacker, target).type === 'ranged' ? tr('cf.noLoSMasked') : tr('cs.meleeOutOfRange'));
     return undefined;
   }
   // r.victim = allié touché par un tir dévié (LDB 14 l.116) ; l'enchaînement non déclaré est le balayage
@@ -3791,7 +3791,7 @@ export function cleaveTargets(battle: BattleState, attacker: Combatant, hitIds: 
 }
 
 /** Les cibles que le balayage en attente (`pendingCleave`) peut frapper maintenant (`cleaveTargets`), aucune passé ses
- *  BCC enchaînements (LDB 14 l.9) : celles que `cleaveAttack` accepte. */
+ *  BCC enchaînements (LDB 14 l.9) : celles que `frapperEnBalayage` accepte. */
 export function ciblesDuBalayage(s: Jeu): Combatant[] {
   const pc = s.pendingCleave;
   const attaquant = pc && s.battle ? inBattleId(s.battle, pc.attackerId) : undefined;
@@ -4126,7 +4126,7 @@ export function applyFreeAttackEffects(get: Get, attacker: Combatant, target: Co
   //  — atteint aussi les attaques gratuites.)
   // SCOPED à cette manœuvre (≠ l'onHit générique des traits/atouts), via le MÊME exécuteur de Flow.
   const mEffects = maneuverEffectsOf(attacker, kind);
-  if (mEffects.length) applyTriggeredEffects(get, attacker, mEffects, 'onHit', { victim: target, woundsDealt: res.woundsLost, attackKind: kind, rng: battleRng() }).forEach((l) => get().log(l));
+  if (mEffects.length) applyTriggeredEffects(get, attacker, mEffects, 'onHit', { victim: target, woundsDealt: res.woundsLost, attackKind: kind, rng: battleRng() }).forEach((l) => get().ecrireAuJournal(l));
   // (Vampirique = `effects` onHit du trait `vampirique`, gaté par la Condition Flow `attackKind: 'morsure'` →
   //  Vol de vie ; appliqué par le `fireTriggers('onHit')` d'`applyAttackResult` — atteint aussi les attaques gratuites.)
   // (Venin = `effects` du trait `Venin`, appliqué par le `fireTriggers('onHit')` d'`applyAttackResult`.)
@@ -4812,7 +4812,7 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
   const weapon = attackWeaponOf(battle, attacker, target, pa);
   const r = resolveAttack(get, attacker, target, pa.location ?? undefined, pa.fromCharge, pa.intoCrowd, pa.heldGround, weapon, pa.withhold); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
   if (!r) {
-    get().log(weapon.type === 'ranged' ? tr('cf.noLoSMasked') : tr('cs.meleeOutOfRange'));
+    get().ecrireAuJournal(weapon.type === 'ranged' ? tr('cf.noLoSMasked') : tr('cs.meleeOutOfRange'));
     set({ pendingAttack: null });
     advanceCombatJet(get); // défense en profondeur : ne JAMAIS laisser la cascade d'attaque orpheline (sinon soft-lock de fin de tour)
     return;
@@ -4852,8 +4852,8 @@ export function lancerLIncantation(get: Get, set: SetFn): void {
   const res = pc.missile && !unplacedZone
     ? resolveMagicMissile(caster, target, spell, battleRng(), pc.focused, ward, seaMagicContext(get()))
     : resolveCasting(caster, spell, battleRng(), difficulty, pc.focused, ward, seaMagicContext(get()));
-  if (sigmar) get().log(tr('cs.sigmarWard', { name: caster.label }));
-  if (aqshy) get().log(tr('cs.aqshyBonus', { name: caster.label, n: aqshy }));
+  if (sigmar) get().ecrireAuJournal(tr('cs.sigmarWard', { name: caster.label }));
+  if (aqshy) get().ecrireAuJournal(tr('cs.aqshyBonus', { name: caster.label, n: aqshy }));
   // Lanceur ENNEMI : Surincantation automatique (LDB 47 l.28-31) — le surplus de DR alloué à
   // l'axe Cible d'un Projectile (l'IA n'a pas de modale de choix ; ZdE déjà toutes-cibles).
   // Lanceur CONDUIT PAR LE MOTEUR (IA, cadence auto) : il n'a pas de modale pour trancher son
@@ -5384,7 +5384,7 @@ export function commitPlacedZone(get: Get, set: SetFn, pt: Pt): void {
   if (!pz) return;
   switch (pz.source) {
     case 'cast': castCommitZone(get, set, pt); return;
-    case 'siege': get().siegeAimCommit(pt); return; // pilonnage indirect → ouvre la modale de tir sur la case
+    case 'siege': get().poserLePointDImpact(pt); return; // pilonnage indirect → ouvre la modale de tir sur la case
     default: pz.source satisfies never;
   }
 }
@@ -5404,11 +5404,11 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   if (!castAfterCrit(res, pc.critChoice)) return;
   const range = spellRangeTiles(spell.range, caster);
   if (range != null && chebyshev(caster.pos, pt) > range) {
-    get().log(tr('cf.zoneOutOfRange', { spell: spell.label, range }));
+    get().ecrireAuJournal(tr('cf.zoneOutOfRange', { spell: spell.label, range }));
     return;
   }
   if (castSightBlocked(get, caster.pos, pt)) {
-    get().log(tr('cf.noLineOfSight', { spell: spell.label }));
+    get().ecrireAuJournal(tr('cf.noLineOfSight', { spell: spell.label }));
     return;
   }
   const radius = pc.zone.radius;
@@ -6792,7 +6792,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
   // site : ici il fait tomber le Test dans la voie RÉSOLUE D'OFFICE (il est jeté), là où la fin de Round
   // le SAUTE tout court (`openRoundEndCascade`) — divergence MESURÉE (#1265).
   const manual = (id: string) => { const c = actorIn(get(), id); return !!c && surfaceOf(get, c.id) && !isOutOfAction(c); };
-  if (inlineLines.length) get().log(inlineLines);
+  if (inlineLines.length) get().ecrireAuJournal(inlineLines);
   for (const band of combatEndBands(monos)) routeBandByPilot(get, set, band, steps, manual);
   // Tests d'entretien du FRANCHISSEMENT DE JOUR mis en file pendant le combat (#253) : consommés ICI, à la
   // MÊME cadence-awareness que les jets de fin de combat — la file porte des BANDES (#1117 L3), scindées
@@ -6840,7 +6840,7 @@ function bandeDeFinDeCombat(
       if (!hero || !row.result) { row.outcome = []; continue; }
       const lines = rowFn(get, set as SetFn, step, row, hero, combatEndRowMeta(step, row));
       row.outcome = resultLines(freeCons(lines));
-      for (const l of lines) get().log(l);
+      for (const l of lines) get().ecrireAuJournal(l);
     }
     set(touchActors(get()));
     return { consequences: [] };
@@ -6867,7 +6867,7 @@ export function openContractionCascade(get: Get, set: SetFn, patient: Combatant,
  * COUTURE UNIQUE « la mort ou l'indisponibilité libère la place » — le seul endroit qui
  * traduise « ce corps est hors d'action » en « sa chaise est rendue ». Appelée là où la mise hors de
  * combat est ACTÉE : `notifySlain` (tous les chemins de mort d'un combattant, garde d'unicité
- * `slainNotified`) et l'entretien hors combat de `advanceTime` (agonie, Hémorragie, Poison, Flammes —
+ * `slainNotified`) et l'entretien hors combat de `avancerLeTemps` (agonie, Hémorragie, Poison, Flammes —
  * la seule voie par laquelle un corps s'éteint sans combat).
  *
  * L'oracle de disponibilité est bâti ICI, où le groupe ET le combat sont lisibles : un héros du
@@ -6939,7 +6939,7 @@ export function finalizeBattle(get: Get, set: SetFn): void {
     return c ? { ...h, ...carryOverState(c) } : h;
   });
   set({ party: newParty });
-  if (endLines.length) get().log(endLines);
+  if (endLines.length) get().ecrireAuJournal(endLines);
   // #30/#296 — Blessures de COQUE persistantes : si une coque du combat EST le navire de campagne
   // (creatureId = vehicleId), son état de fin de combat est écrit sur `CampaignVessel.wounds` (SOURCE
   // UNIQUE) — le voyage maritime/fluvial en repart, et `reprendreLeVoyage` recharge la copie de travail
@@ -7364,7 +7364,7 @@ export function advanceTurn(get: Get, set: SetFn) {
       // (morts lentes avec sauvetage par Destin) est déléguée à resolveRoundBoundary — résumable,
       // car elle peut suspendre (pendingFateSave / pendingRoundStart).
       const round = battle.round + 1;
-      get().advanceTime(TIME_COST.combatRound); // « tout est horodaté » : 1 Round franchi = +combatRound min
+      get().avancerLeTemps(TIME_COST.combatRound); // « tout est horodaté » : 1 Round franchi = +combatRound min
       battle.log.push(ev('round', tr('cf.roundHeader', { round })));
       // Ordre du Round : on REPART de l'ordre canonique (baseOrder) — donc tout réordonnancement
       // (Maladresse « agir en dernier » Oups! 21-40, pré-emption Chance) ne dure qu'UN Round (l.22-25).
@@ -7549,7 +7549,7 @@ export function lancerLeRound(get: Get, set: SetFn): void {
 
 /** IA : si le combattant actif est PILOTÉ par l'IA (ennemi, ou héros en Auto-combat possédé localement),
  *  il agit puis passe la main — cf. `aiDriven`. SEUL point de reprise d'un tour en cours (#1852, #3058, #3059) :
- *  rappelé par tout ce qui relance le combat (`resumeCadence`, clôture d'une fenêtre, scrutation de recette), il
+ *  rappelé par tout ce qui relance le combat (`reprendreLaCadence`, clôture d'une fenêtre, scrutation de recette), il
  *  réarme la frappe pilotée PARQUÉE du joueur, ne décide qu'un tour que l'IA n'a pas décidé, et ne réarme d'un tour
  *  décidé que sa suite PARQUÉE. */
 export function maybeRunEnemyTurn(get: Get, set: SetFn) {
@@ -7761,8 +7761,8 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
   placeCombatant(enemy, scene, mv.vers);
   if (geom !== enemy) placeCombatant(geom, scene, mv.vers); // Combat monté : la monture suit le cavalier (couple solidaire)
   displaceSmaller(get, geom); // un grand « dégage » les plus petits sous son empreinte (85 l.373-374)
-  get().faceFromPath(enemy.id, path);
-  if (geom !== enemy) get().faceFromPath(geom.id, path);
+  get().orienterSelonLeChemin(enemy.id, path);
+  if (geom !== enemy) get().orienterSelonLeChemin(geom.id, path);
   bus.emit(EVT.ANIM_MOVE, { id: enemy.id, path });
   if (geom !== enemy) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path });
   applyZoneCrossings(get, set, enemy, path ?? [{ ...mv.vers }]); // Mur de feu & co (L11) : traverser coûte
@@ -8362,7 +8362,7 @@ function endShipTurn(get: Get, set: SetFn, ship: Combatant, delay?: number): voi
 
 /**
  * IA d'une COQUE à son tour (échelle MER) — décision RAW-sensée, headless (aucune modale) :
- *  1. si un bord ARMÉ porte sur une coque adverse ET qu'elle est à portée → BORDÉE (`shipAutoBattery` : Test
+ *  1. si un bord ARMÉ porte sur une coque adverse ET qu'elle est à portée → BORDÉE (`tirerLaBordee` : Test
  *     d'équipage des Artilleurs résolu sans modale, mêmes fns pures que le joueur) ;
  *  2. sinon MANŒUVRE (`maneuverShip`, barreur = meilleur de l'équipage APTE) : virer pour amener le bord le plus
  *     armé en batterie quand la cible est déjà à portée, sinon fermer la distance cap sur elle (la coque avance
@@ -8386,7 +8386,7 @@ function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
   // 1) Le bord qui porte (cap courant) est-il armé ET la cible à portée de ses pièces ? → FEU.
   const side = targetArc(heading, shipPos, targetPos);
   const bearingRange = Math.max(0, ...bearingPostes(ship, side).map(posteRangeM));
-  if (bearingRange > 0 && distMetres <= bearingRange && get().shipAutoBattery(ship.id, target.id)) {
+  if (bearingRange > 0 && distMetres <= bearingRange && get().tirerLaBordee(ship.id, target.id)) {
     return endShipTurn(get, set, ship, TEMPO.aimTelegraph);
   }
   // 2) MANŒUVRE : aligner le bord le plus armé (si à portée) ou fermer la distance (hors portée).
@@ -8938,7 +8938,7 @@ export const TABLES = {
         if (!hero || !part.result) { part.outcome = []; continue; }
         const lines = resultLines(resolveCombatPsychRow(get, set, hero, cp, psychRowMeta(part), part.result, !!part.immune));
         part.outcome = lines;
-        for (const l of lines) get().log(l.text);
+        for (const l of lines) get().ecrireAuJournal(l.text);
       }
       set(touchActors(get()));
       return { consequences: [] };

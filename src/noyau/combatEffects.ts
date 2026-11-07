@@ -78,7 +78,7 @@ import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, men
 import { appliquerAuNavire, ouvrirLeTestDEquipage } from './navireOps';
 import { marinsDuRole } from '../engine/shipCritical';
 import { garanti } from '../lib/garanti';
-import { addPossession } from './possessionsFlow';
+import { ajouterLaPossession } from './possessionsFlow';
 import { possessionLabel, type Possession, type PossessionInput } from '../engine/possession';
 import { effectiveTalents } from '../engine/talentEffects';
 import { ev } from './combatLog';
@@ -197,7 +197,7 @@ export function flowRestant(entId: string, action: { id: string; flow: Flow }, f
 
 /** Joue les déclencheurs de zone (`triggersEnJeu` : authorés + dérivés des portes secrètes) où le groupe
  *  vient d'ENTRER. Seul appelant : la pose du groupe en exploration (`poserLeGroupe`) — ni le combat, ni l'entrée de scène
- *  (`quitterLaScene`/`startScene`) sans premier pas ne jouent un déclencheur. */
+ *  (`quitterLaScene`/`lancerLaScene`) sans premier pas ne jouent un déclencheur. */
 export function checkTriggers(get: Get, set: SetFn) {
   const { scene, partyPos, flags } = get();
   if (!scene) return;
@@ -352,7 +352,7 @@ function jouerEffetsProgrammes(get: Get, set: SetFn, entrees: ScheduledEffect[])
     // Reconstitution DIFFÉRÉE (Gardien éternel) : ré-invoque la créature programmée à la mort, près de sa
     // position de chute et dans son camp (`applySummon`, MÊME résolveur que les invocations de sort). Le
     // `caster` est un instantané minimal du défunt — applySummon n'en lit que id/name/kind/pos.
-    if (s.respawn) { for (const line of applySummon(get, set, s.respawn.caster as unknown as Combatant, s.respawn.summon, { rng: battleRng() })) get().log(line); continue; }
+    if (s.respawn) { for (const line of applySummon(get, set, s.respawn.caster as unknown as Combatant, s.respawn.summon, { rng: battleRng() })) get().ecrireAuJournal(line); continue; }
     if (!s.flow) continue;
     const issue = runFlow(get, set, s.flow, t('eff.flowTitleEvent'));
     if (issue === OPS_DIFFEREES) {
@@ -1141,7 +1141,7 @@ function makeEffectEnv(get: Get, set: SetFn, sl?: number, label?: string): Effec
     set,
     sl,
     label,
-    log: (line) => get().log(line),
+    log: (line) => get().ecrireAuJournal(line),
     pushReveal: (entry) => pushReveal(set, entry),
     targets: (on, heroId) => effectTargets(get, on, heroId),
     hero: (heroId, pick) => choisirHeros(get(), heroId, pick),
@@ -1269,7 +1269,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env, suite) => {
       const doc = documentDuNarratif(env.get().campaignNarratif)(e.documentId);
       if (!doc) { console.warn(`document : document inconnu « ${e.documentId} ».`); return; }
-      env.get().remettreDocument({ title: doc.titre, text: doc.prose, documentId: doc.id, suite, ...(doc.source ? { source: structuredClone(doc.source) } : {}) }); // #2097
+      env.get().remettreLeDocument({ title: doc.titre, text: doc.prose, documentId: doc.id, suite, ...(doc.source ? { source: structuredClone(doc.source) } : {}) }); // #2097
       return 'suspend';
     },
   },
@@ -1313,7 +1313,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('endDialogue'), icon: 'ui/close',
     make: () => ({ type: 'endDialogue' }),
     apply: (_e, env) => {
-      if (env.get().dialogue) env.get().advanceTime(TIME_COST.dialogue); // clôture d'une conversation ≈ dialogue min
+      if (env.get().dialogue) env.get().avancerLeTemps(TIME_COST.dialogue); // clôture d'une conversation ≈ dialogue min
       env.set({ dialogue: null });
     },
   },
@@ -1334,7 +1334,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     suspensif: true,
     // EDO 02 l.91 : décision de GROUPE (`pendingDesignationHeros`, modale `designationHeros`) refermée
     // par son choix (`designationHeros.heros`) ou, sans héros vivant, par sa sortie, qui rejouent la suite.
-    apply: (e, env, suite) => (env.get().designerHerosOuvrir({ etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite }) ? 'suspend' : undefined),
+    apply: (e, env, suite) => (env.get().ouvrirLaDesignation({ etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite }) ? 'suspend' : undefined),
   },
   setObjective: {
     group: 'Narration', label: libelleEffet('setObjective'), icon: 'map-tool/start-flag',
@@ -1442,7 +1442,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const input: PossessionInput = 'type' in r && r.type === 'vehicle'
         ? { nature: 'vehicule', vehicleId: r.id, ...commun }
         : { nature: e.nature === 'serviteur' ? 'serviteur' : 'bete', ref: 'custom' in r ? r : { id: r.id }, ...commun };
-      const uid = addPossession(env.get, env.set, input);
+      const uid = ajouterLaPossession(env.get, env.set, input);
       env.log(t('eff.recover', { name: owner.label, item: possessionLabel({ ...input, uid } as Possession) }));
     },
     // La bête ou le serviteur donné est une RÉFÉRENCE : sa fiche (monture de combat, `spawnEnemy`) s'y lit (#1882).
@@ -1553,7 +1553,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Faveur de départ de campagne ou octroi narratif (#509) — cible : héros désigné, sinon le
       // premier héros vivant (`env.targets` : même défaut que les autres Effets `hero`).
       const hero = env.targets('hero', e.heroId)[0];
-      if (hero) env.get().favorGrant(hero.id, e.level, e.owedTo, garanti(e.desc, e.owedTo, 'texte de la Faveur matérialisé'));
+      if (hero) env.get().accorderLaFaveur(hero.id, e.level, e.owedTo, garanti(e.desc, e.owedTo, 'texte de la Faveur matérialisé'));
     },
   },
 
@@ -1907,7 +1907,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'interlude', weeks: 1 }),
     apply: (e, env) => {
       // « Entre deux aventures » (LDB 22-23) — via l'action store (pas d'import direct : cycle).
-      env.get().startInterlude(e.weeks ?? 1);
+      env.get().ouvrirLInterlude(e.weeks ?? 1);
     },
   },
   setTime: {
@@ -1919,7 +1919,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const target = e.phase !== undefined
         ? (DAY_PHASES.find((p) => p.id === e.phase)?.seuil ?? 0)
         : (e.hour ?? 0) * 60 + (e.minute ?? 0);
-      env.get().advanceTime(minutesUntilNext(env.get().gameTime, target));
+      env.get().avancerLeTemps(minutesUntilNext(env.get().gameTime, target));
     },
   },
   delayedEffect: {
@@ -2024,7 +2024,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   startCombat: {
     group: 'Combat & social', label: libelleEffet('startCombat'), icon: 'action/attack',
     make: () => ({ type: 'startCombat', encounter: '' }),
-    apply: (e, env) => { env.get().startCombat(e.encounter); },
+    apply: (e, env) => { env.get().lancerLeCombat(e.encounter); },
     refs: (e, ctx) => ctx.encounterIds.has(e.encounter) ? [] : [{ level: 'error', message: `Effet → rencontre inexistante « ${e.encounter} »` }],
   },
   startPursuit: {
@@ -2048,7 +2048,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   startMassBattle: {
     group: 'Combat & social', label: libelleEffet('startMassBattle'), icon: 'map-tool/start-flag',
     make: () => ({ type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, plannedRounds: 3 } }),
-    apply: (e, env) => { env.get().startMassBattle(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
+    apply: (e, env) => { env.get().amorcerLaBataille(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
     // Les rencontres mappées aux Scènes de combat/menace doivent exister dans la scène courante.
     refs: (e, ctx) => Object.entries(e.battle.sceneEncounters ?? {}).flatMap(([sceneId, encId]) =>
       ctx.encounterIds.has(encId) ? [] : [{ level: 'error' as const, message: `Combat de masse → rencontre inexistante « ${encId} » (Scène ${sceneId})` }]),
@@ -2056,7 +2056,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   openMerchant: {
     group: 'Combat & social', label: libelleEffet('openMerchant'), icon: 'merchant/cart',
     make: () => ({ type: 'openMerchant', entityId: '' }),
-    apply: (e, env) => { env.get().openMerchant(e.entityId); }, // ouvre la boutique de l'entité (Marchand inclus dans un dialogue, #2)
+    apply: (e, env) => { env.get().ouvrirLeMarchand(e.entityId); }, // ouvre la boutique de l'entité (Marchand inclus dans un dialogue, #2)
   },
   openPort: {
     group: 'Navigation', label: libelleEffet('openPort'), icon: 'travel/anchor',
@@ -2151,7 +2151,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         actor: best.actor, test: { skill: e.skill, characteristic: e.characteristic },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
+      env.get().ouvrirLeTestEtendu({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
       return 'suspend';
     },
   },
@@ -2163,7 +2163,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Enfoncer une PORTE/objet à plusieurs (EDO Append. 2) : tout le groupe vivant frappe.
       const heroes = env.get().party.filter((h) => !h.dead).map((h) => h.id);
       if (!heroes.length) return;
-      env.get().startForceDoor({ label: e.label, doorBE: e.doorBE, doorB: e.doorB, heroIds: heroes, flag: e.flag, suite });
+      env.get().enfoncerLaPorte({ label: e.label, doorBE: e.doorBE, doorB: e.doorB, heroIds: heroes, flag: e.flag, suite });
       return 'suspend';
     },
   },
@@ -2269,8 +2269,8 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
   // valeur de Guérison et son Bonus d'Intelligence s'y LISENT. Sans fiche, ou sans la Compétence
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
   const npc = sceneNpc(get().scene, e.entityId, presetDuNarratif(get().campaignNarratif));
-  if (!npc) { get().log(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
-  if (!possesses(npc, { id: HEAL_SKILL })) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
+  if (!npc) { get().ecrireAuJournal(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
+  if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medicNoHealSkill', { name: npc.label })); return; }
   ouvrirLeMedecin(get, set, {
     npc: {
       id: e.entityId,

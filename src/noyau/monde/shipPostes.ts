@@ -270,7 +270,7 @@ export function assignCrewFormation(
  * de la coque. Un servant à une position DISTINCTE de la coque (authorée à la main) n'est JAMAIS touché —
  * le placement d'AUTEUR prime toujours. Ne lit QUE `hull.postes[].crewIds` (postes terrestres, bélier/
  * baliste) — l'équipage de COQUE navale (`Combatant.crewIds`, MDG 14) est PASSAGER hors case propre,
- * hors du champ de cette fonction. Mute en place ; appelé une fois au spawn (`combatSlice.startCombat`).
+ * hors du champ de cette fonction. Mute en place ; appelé une fois au spawn (`combatSlice.lancerLeCombat`).
  */
 export function autoFormCrews(combatants: Combatant[], scene: Scene, facingOf?: (hull: Combatant) => Dir8 | undefined): void {
   for (const hull of combatants) {

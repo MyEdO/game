@@ -444,6 +444,8 @@ export interface RollFlowHandlers {
    *  c'est ce qui permet à `RollShell` de dériver le sélecteur de dé pour TOUT flux. `null` si le
    *  pending est fermé ou le `pid` inconnu. */
   slotOf: (get: Get, pid?: string) => PendingBase | null;
+  /** Les ids des rangées du flux ouvert (`multi.idOf` de chaque slot) ; vide : un flux à un jet, ou fermé. */
+  rangees: (get: Get<Jeu>) => string[];
   /** Refus du slot `pid` d'un flux multi (`spec.multi.refusDuSlot`), `null` s'il se joue : le texte que TOUT verbe
    *  du slot dit en se refusant (`locate`), lu tel quel par la rangée qui ferme ses gestes. */
   refusDuSlot: (get: Get, pid?: string) => string | null;
@@ -538,7 +540,7 @@ export function opReroll<P extends PendingBase>(
   if (!patch) return;
   if (free) {
     const label = consumeActiveFlag(actor, 'freeReroll');
-    get().log(t('roll.freeReroll', { name: actor.label, src: label ?? t('roll.blessingFallback') }));
+    get().ecrireAuJournal(t('roll.freeReroll', { name: actor.label, src: label ?? t('roll.blessingFallback') }));
   } else {
     actor.fortune = (actor.fortune ?? 0) - 1;
   }
@@ -619,7 +621,7 @@ function opDarkPact<P extends PendingBase>(
   const patch = reresolve();
   if (!patch) return;
   const lines = gainCorruption(get, set, actor, 1);
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
   commit(patch, { touch: true });
 }
 
@@ -836,6 +838,10 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const slots = spec.multi.slots(p);
       return (pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0]) ?? null;
     },
+    rangees(get) {
+      const p = pendingOf(get());
+      return p && spec.multi ? spec.multi.slots(p).map(spec.multi.idOf) : [];
+    },
     refusDuSlot: (get, pid) => (pid != null ? spec.multi?.refusDuSlot?.(get(), pid) ?? null : null),
     lancerSansRangee(get, set, duSiege) {
       const s = get(); const p = pendingOf(s);
@@ -857,7 +863,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (!p || !spec.issue) return [];
       const out = spec.issue(p, s, opts?.ctx as Ctx);
       const lines = (Array.isArray(out) ? out : [out]).filter((l): l is string => !!l);
-      if (spec.issueChannel !== 'battle') for (const l of lines) s.log(l);
+      if (spec.issueChannel !== 'battle') for (const l of lines) s.ecrireAuJournal(l);
       return lines;
     },
     actorOf(get, pid) {

@@ -92,7 +92,7 @@ describe('#997 — Tir rapide du héros (`pa.interrupt`) : le défenseur surfac�
     h1.talents = [{ talentId: 'tir-rapide', times: 1 }];
     h1.weapons = [ARC()];
     g().terminerLeTour();
-    g().preemptRangedShot('h1', 'e1');
+    g().declencherLeTirPreventif('h1', 'e1');
     expect(g().pendingAttack?.interrupt).toBe(true);
     g().jetLancer('attack');
     g().jetValider('attack');

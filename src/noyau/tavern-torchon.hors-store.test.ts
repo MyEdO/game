@@ -29,18 +29,18 @@ const get = () => banc.getState();
 const TORCHON = findTavernGameById('torchon')!;
 
 /**
- * LE RÉCIT, mesuré au PUITS (`log` du noyau) et non au slot `journal` : ce slot est un ANNEAU de 40
+ * LE RÉCIT, mesuré au PUITS (`ecrireAuJournal` du noyau) et non au slot `journal` : ce slot est un ANNEAU de 40
  * lignes (`noyau/journal.ts`) alors qu'une partie de Torchon en émet ~85 d'un seul geste (le tour
  * du héros, puis les 23 tours de figurants qui s'enchaînent d'office). Le tour joué en FENÊTRE est le
  * PREMIER : ses lignes sont les premières chassées de l'anneau, alors même que le socle les a
  * produites. Le puits est la surface où le socle écrit — c'est là que se mesure « le coup est raconté ».
  */
-let PUITS: JeuDuNoyau['log'];
+let PUITS: JeuDuNoyau['ecrireAuJournal'];
 const recit: string[] = [];
 function capterLeRecit(): void {
   recit.length = 0;
   banc.setState({
-    log: (msg: string | string[]) => { recit.push(...(Array.isArray(msg) ? msg : [msg])); PUITS(msg); },
+    ecrireAuJournal: (msg: string | string[]) => { recit.push(...(Array.isArray(msg) ? msg : [msg])); PUITS(msg); },
   } as never);
 }
 
@@ -84,7 +84,7 @@ function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): vo
 }
 
 beforeEach(() => {
-  PUITS = banc.getState().log;
+  PUITS = banc.getState().ecrireAuJournal;
   seedBattleRng(5);
   banc.setState({ battle: null, pendingCascade: null, sequence: null } as never);
 });

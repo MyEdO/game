@@ -1,6 +1,6 @@
 // Résolveurs de la couche de campagne (#767) sur un narratif passé en ARGUMENT (#2817). Frontière RÉFÉRENCE
 // vs NARRATIF (doctrine `user-doctrine-campagne-json-portable-frontiere-reference-narratif`) : le narratif
-// d'un paquet de campagne (`state.campaignNarratif`, posé par `loadProject` ; ou celui du projet ÉDITÉ) est
+// d'un paquet de campagne (`state.campaignNarratif`, posé par `chargerLeProjet` ; ou celui du projet ÉDITÉ) est
 // lu ICI par id STABLE, jamais copié dans `src/data` global. Les résolveurs d'indice/preset/document
 // n'existent QUE dans la couche ; seul `objetDuNarratif` chaîne campagne-d'abord puis règle globale
 // (`trappingDesObjetsPuisDuCatalogue`). Aucune lecture du store : l'appelant passe son narratif.

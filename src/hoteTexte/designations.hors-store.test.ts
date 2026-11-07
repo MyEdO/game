@@ -86,6 +86,17 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     refuseLId(t, verbe('affecterLeHeros', 'nulle', []), /activityId : "nulle" n’est pas un id d’Activité \(valides : plein-air, /);
     refuseLId(t, verbe('ouvrirLaBoutique', 'forgeron'), /serviceId : "forgeron" n’est pas un id de service du lieu \(valides : aucun ici\)/);
   });
+  it('une rangée de jet : la séquence d’entrée en scène, `jetLancer`', { timeout: 120_000 }, () => {
+    const t = partie('revisit');
+    const [rangee] = refuseLId(t, verbe('jetLancer', 'cascade', 'nobody'), /pid : "nobody" n’est pas un id de rangée \(valides : cons-sceneEntry-0\)/);
+    passeLeControle(t, verbe('jetLancer', 'cascade', rangee));
+  });
+  it('un id dans un objet d’options : `pratiquerLActivite`, le Trait psychologique porté', { timeout: 120_000 }, () => {
+    const t = partie('revisit');
+    const [heros] = refuseLId(t, verbe('creerLaPanoplie', 'nobody'), /heroId : "nobody" n’est pas un id de héros/);
+    refuseLId(t, verbe('pratiquerLActivite', heros, 'plein-air', { traitPsy: 'nobody' }), /opts\.traitPsy : "nobody" n’est pas un id de Trait psychologique porté/);
+    refuseLId(t, verbe('pratiquerLActivite', heros, 'plein-air', { spellId: 'nobody' }), /opts\.spellId : "nobody" n’est pas un id de sort/);
+  });
   it('la signature dit ce que le paramètre désigne', () => {
     const r = table().lire('verbes', { id: 'cliquerLaCase' });
     expect(r.texte).toMatch(/cliquerLaCase\(pt: .*, entite\?: id de combattant ou d’entité de scène, opts\?: /);
@@ -101,6 +112,9 @@ describe('un champ du contexte d’une offre que rien ne lit se refuse en `valid
     expect(r.erreur, texte).toBe('validation');
     expect(texte).toMatch(/charge ne lit pas targetId du contexte \(champs acceptés : aucun\) ; la cible de cette offre se choisit après elle, par le clic de son combattant/);
     expect(t.fichier()).toBe(avant);
+  });
+  it('un id du contexte que l’état ne désigne pas se refuse, en nommant les ids valides', { timeout: 120_000 }, () => {
+    refuseLId(partie('dome', verbe('fenetreValider', 'roundStart')), { offre: 'attaque', ctx: { attackId: 'nobody' } }, /ctx\.attackId : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
   });
   it('un champ que la porte de l’offre lit passe le contrôle', { timeout: 120_000 }, () => {
     passeLeControle(partie('dome', verbe('fenetreValider', 'roundStart')), { offre: 'attaque', ctx: { attackId: 'arme' } });

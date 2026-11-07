@@ -230,7 +230,7 @@ describe('Marche volumique — aucune géométrie reconstruite entre deux pas (#
     let tick: FrameRequestCallback | null = marcher('h1', CHEMIN);
     for (let i = 0; i < 4; i++) tick = image(tick!, STEP_MS / 8);
     expect(cuisson.mock.calls.length).toBe(cAvant);
-    act(() => { useGame.getState().faceToward('__sonde-orientation', { x: 0, y: 1 }, { x: 0, y: 0 }); }); // cap N
+    act(() => { useGame.getState().orienterVers('__sonde-orientation', { x: 0, y: 1 }, { x: 0, y: 0 }); }); // cap N
     expect(cuisson.mock.calls.length).toBe(cAvant);
   });
 });

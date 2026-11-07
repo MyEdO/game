@@ -16,7 +16,7 @@ function forge() {
   const h = withBourseMoney(createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 }), { gold: 10, silver: 0, brass: 0 });
   if (!h.skills.some((s) => s.id === 'metier')) h.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h], screen: 'interlude' } });
-  banc.actions.startInterlude(1);
+  banc.actions.ouvrirLInterlude(1);
   draineCascade(banc.getState);
   const vue = () => interludeEnVue(banc.getState())!.heros[0];
   const dernier = () => banc.getState().journal.slice(-1)[0];

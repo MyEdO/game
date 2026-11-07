@@ -192,7 +192,7 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
 
   it('carnet : `marquerLesIndices` part en intention et ne se joue pas localement (#2415)', () => {
     banc.setState({ party: [heroDesIndices()] });
-    banc.getState().loadProject({ scenes: [fixtureScene('scene-o')], entryId: 'scene-o', narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-o')], entryId: 'scene-o', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     const envoyer = vi.fn();
     const vus = affichés(banc.getState().clues, ['ind-lettre']);

@@ -70,7 +70,7 @@ const construireScene = (): Scene => buildScene({
         { ref: 'jaego-roth', pos: { x: 15, y: 6 } },
         // index 4 = la BARGE AMIE (côté allié) : 2 pierriers SERVIS par les 2 canonniers du groupe. Son
         // équipage exposé (`crewIds`) = ces canonniers ; `applyShipPostes` leur pose le `mannedPoste`. Cap NORD
-        // (appliqué par `faceAtCombatStart`) → la cogue, plein EST, tombe pile dans l'arc de la bordée TRIBORD
+        // (appliqué par `orienterLesCombattants`) → la cogue, plein EST, tombe pile dans l'arc de la bordée TRIBORD
         // (octant 2) ; vire le cap (Phase 2 Manœuvre) et la cogue sort de l'arc.
         { ref: 'bateau-de-patrouille', pos: { x: 3, y: 6 }, side: 'ally', facing: 'N', label: 'Barge des aventuriers',
           crewIds: [...GUNNERS], postes: [pierrierPoste(GUNNERS[0]), pierrierPoste(GUNNERS[1])] },

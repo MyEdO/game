@@ -46,7 +46,7 @@ describe('Bonus de Force en Frénésie (LDB 21 l.33)', () => {
     const cible = combattantDeTest({ id: 't', pos: { x: 1, y: 0 } });
     const dmg = (fr: boolean): number => {
       const { c, w } = heros(fr, 'arme-simple');
-      const get = (() => ({ scene: scene(), battle: { combatants: [c, cible], movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => Jeu;
+      const get = (() => ({ scene: scene(), battle: { combatants: [c, cible], movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {} })) as unknown as () => Jeu;
       return previewAttack(get, c, cible, 'corps', { weapon: w }).dmg;
     };
     expect(dmg(true)).toBe(9);
@@ -144,7 +144,7 @@ describe('Arme naturelle dont l’Indice inclut le BF : la part passive s’y aj
     const apercu = (fr: boolean): number => {
       const { c, arme } = creature(fr);
       const t = cible();
-      const get = (() => ({ scene: scene(), battle: { combatants: [c, t], movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => Jeu;
+      const get = (() => ({ scene: scene(), battle: { combatants: [c, t], movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {} })) as unknown as () => Jeu;
       return previewAttack(get, c, t, 'corps', { weapon: arme }).dmg;
     };
     expect(apercu(true)).toBe(9);

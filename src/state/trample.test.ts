@@ -24,8 +24,8 @@ describe('Piétinement en combat (store)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene());
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLaScene(testScene());
+    useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
     const b = useGame.getState().battle!;
@@ -54,7 +54,7 @@ describe('Piétinement en combat (store)', () => {
 
   // LDB 85 l.387 ; LDB 13 l.123. La cible se tient au bord de l'empreinte Énorme (`sizes.json` footprintSide).
   it('héros Énorme : Tab puis Entrée déclarent le Piétinement — jet opposé, option consommée', () => {
-    useGame.getState().seedRng(2);
+    useGame.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.size = 'enorme';
     H.advantage = 3;

@@ -161,8 +161,8 @@ describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’
     gunner.pos = { x: 3, y: 6 }; // à bord de la barge
     const cogue = all.find((c) => c.id === 'enemy-enc-naval-0')!; // plein est de la barge
     const barge = all.find((c) => c.id === 'enemy-enc-naval-4')!;
-    // `faceAtCombatStart` applique le cap authoré (Nord) ; la cogue plein EST tombe dans l'arc TRIBORD.
-    const get = (() => ({ battle: { combatants: all }, facing: { [barge.id]: 'N' }, log: () => {} })) as never;
+    // `orienterLesCombattants` applique le cap authoré (Nord) ; la cogue plein EST tombe dans l'arc TRIBORD.
+    const get = (() => ({ battle: { combatants: all }, facing: { [barge.id]: 'N' }, ecrireAuJournal: () => {} })) as never;
     // null = le tir PART : dans l'arc (cap Nord) + munition compatible + chargé. (Un cap 'E' le mettrait en
     // proue → reason 'arc' ; sans munition → 'noammo'.) → garde-fou contre les deux régressions.
     expect(firedAttackBlock(get, gunner, cogue, gunner.mannedPoste!.item.uid)).toBeNull();
@@ -184,7 +184,7 @@ describe('combat-naval — bordée de la barge sur un pirate, par la porte du jo
     const pirate = () => banc.getState().battle!.combatants.find((c) => c.id === PIRATE)!;
     const avant = pirate().wounds.current;
     const logAvant = banc.getState().battle!.log.length;
-    banc.getState().battleShipBattery(BARGE, PIRATE);
+    banc.getState().ouvrirLaBordee(BARGE, PIRATE);
     const p = banc.getState().pendingShipBattery;
     expect(p, `bordée refusée : ${banc.getState().refus?.texte}`).not.toBeNull();
     for (const x of p!.participants) if (!x.result) banc.getState().jetLancer('shipBattery', x.id);

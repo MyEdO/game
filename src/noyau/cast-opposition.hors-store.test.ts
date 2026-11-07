@@ -28,8 +28,8 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     });
     hero.spells = ['fauche-demon', 'parole-de-tzeentch'];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -70,7 +70,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
   });
 
   it('le lanceur l’emporte (DR d’incantation > opposition) → la cible Démoniaque est annihilée', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, E } = setup();
     E.characteristics['force-mentale'] = 20; // opposition ≤ +2 DR, l'incantation à +6 gagne toujours
     frozenCast(H, E, 'fauche-demon', 6);
@@ -84,7 +84,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
   });
 
   it('la cible résiste (FM élevée) → le Sort ne l’affecte pas (PB intacts, pas d’annihilation)', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, E } = setup();
     E.characteristics['force-mentale'] = 100; // FM ≥ 100 → DR d'opposition toujours ≥ l'incantation à +0
     E.wounds = blessuresDeBase(20, 12, E);
@@ -123,7 +123,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
   });
 
   it('IDEMPOTENCE : un second « Appliquer » ne RECONSTRUIT pas la fenêtre — les Tests déjà opposés tiennent', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, E } = setup();
     banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 2, gmSeat: 2, ownership: {} } }); // rangée ennemie TENUE (jet dû)
     frozenCast(H, E, 'parole-de-tzeentch', 4);
@@ -158,8 +158,8 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
     caster.spells = ['fauche-demon'];
     const cible = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'T', seed: 31 });
     banc.setState({ party: [caster, cible] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.id === caster.id)!;
@@ -225,8 +225,8 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
     caster.spells = ['parole-de-tzeentch'];
     const allie = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'PNJ', seed: 31 });
     banc.setState({ party: [caster, allie] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.id === caster.id)!;
@@ -248,7 +248,7 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
   };
 
   it('SOLO — cible héros `aiControlled` : rangée TÉMOIN auto-roulée, le flux AVANCE (plus de blocage)', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, P } = setupPnj();
     frozen(H.id, P.id);
     banc.getState().jetValider('cast');
@@ -261,7 +261,7 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
   });
 
   it('gmSeat — cible ENNEMIE : rangée INTERACTIVE tenue par le MJ (jet non volé)', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, E } = setupPnj();
     banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 2, gmSeat: 2, ownership: {}, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'MJ' } } });
     frozen(H.id, E.id);

@@ -12,8 +12,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   const battle = banc.getState().battle!;
   const active = battle.combatants.find((combatant) => combatant.kind === 'hero')!;
@@ -96,7 +96,7 @@ describe('résolution canonique du déplacement', () => {
 
   it('refuse l’ouverture directe d’une Course sans résolution atteignable', () => {
     const active = setup();
-    banc.getState().battleRun({ x: active.pos!.x + 30, y: active.pos!.y });
+    banc.getState().ouvrirLaCourse({ x: active.pos!.x + 30, y: active.pos!.y });
     expect(banc.getState().pendingRun).toBeNull();
   });
 

@@ -154,7 +154,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('coureur qu’aucun humain ne pilote (héros conduit par l’IA) : sa rangée est un TÉMOIN déjà roulé (#1246)', () => {
     const [a, b] = heroes();
     banc.setState({ party: [a, { ...b, aiControlled: true }] });
-    banc.getState().seedRng(21);
+    banc.getState().ensemencerLeTirage(21);
     startGroundPursuit(banc.getState, banc.setState, {
       partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }],
     });
@@ -169,7 +169,7 @@ describe('Poursuite terrestre (#95)', () => {
     const [a, b] = heroes();
     const net0 = banc.getState().net;
     banc.setState({ net: { ...net0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [b.id]: 1 } } as Jeu['net'] });
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     startGroundPursuit(banc.getState, banc.setState, {
       partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }],
     });
@@ -188,7 +188,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('manche gagnée par les poursuivis (poursuivants médiocres) → Distance grimpe jusqu’à l’évasion', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const party = heroes();
     banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 8, foes: [{ label: 'Bandit', movement: 4, skill: 1 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 6));
@@ -197,7 +197,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('manche gagnée par les poursuivants (proie lente) → Distance ≤ 0 : le camp poursuivi DÉCIDE (l.94)', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const party = heroes();
     banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 2, foes: [{ label: 'Cavalier', movement: 4, skill: 95 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, -6));
@@ -215,7 +215,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('manche indécise → une nouvelle manche s’ouvre (la poursuite continue)', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const party = heroes();
     banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: 'Bandit', movement: 4, skill: 40 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 0));
@@ -313,7 +313,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('poursuite JOUÉE de bout en bout via les bandes (rangées influençables) atteint une issue terminale', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     heroes();
     startGroundPursuit(banc.getState, banc.setState, {
       partyRole: 'fleeing', distance: 5, escapeAt: 8, skill: 'athletisme',
@@ -334,7 +334,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('MANCHE SUIVANTE : une manche indécise rouvre UNE bande neuve, jamais la précédente rejouée', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const party = heroes();
     banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: 'Bandit', movement: 4, skill: 40 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 0));

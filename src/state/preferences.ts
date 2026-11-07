@@ -12,7 +12,7 @@ import { stockageWeb } from '../web/stockageWeb';
 const EFFETS: Record<IdDePreference, () => void> = {
   // Basculer en Rapide/Auto EN PLEIN COMBAT ne traverse pas la boucle de tours : sans reprise explicite, le tour
   // courant reste figé.
-  'combat-cadence': () => useGame.getState().resumeCadence(),
+  'combat-cadence': () => useGame.getState().reprendreLaCadence(),
   // La valeur vit hors du store (module feuille) : une modale de jet DÉJÀ ouverte ne se re-rendrait pas. On touche
   // la tranche `net`, celle à laquelle `RollShell` s'abonne pour son sélecteur de dé.
   'des-fixes': () => useGame.setState((s) => ({ net: { ...s.net } })),

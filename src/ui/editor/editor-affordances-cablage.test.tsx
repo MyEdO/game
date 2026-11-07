@@ -529,8 +529,8 @@ function sceneNavale(): Scene {
 
 const spawned = (scene: Scene, id: string) => {
   useGame.setState({ party: pregenParty(PREGEN.soldat) });
-  useGame.getState().startScene(scene);
-  useGame.getState().startCombat('abordage');
+  useGame.getState().lancerLaScene(scene);
+  useGame.getState().lancerLeCombat('abordage');
   return useGame.getState().battle!.combatants.find((c) => c.id === id)!;
 };
 

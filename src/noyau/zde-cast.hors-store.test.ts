@@ -45,7 +45,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
   beforeEach(() => {
     banc = ouvrirLeBanc();
     banc.setState({ battle: null, party: [], journal: [], pendingCast: null, refus: null });
-    banc.getState().seedRng(17);
+    banc.getState().ensemencerLeTirage(17);
   });
 
   function setupBattle() {

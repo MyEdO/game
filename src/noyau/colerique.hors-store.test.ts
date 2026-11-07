@@ -120,8 +120,8 @@ describe('Colérique en combat', () => {
   function enCombat(lanceur: number) {
     const [a, s, p] = pregenParty(lanceur, PREGEN.soldat, PREGEN.pretre);
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [a, s, p] } });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -158,8 +158,8 @@ describe('Colérique en combat', () => {
   it('un lanceur PNJ sans allié de la cible à désigner : le Trait reste sans effet', () => {
     const [s] = pregenParty(PREGEN.soldat);
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [s] } });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

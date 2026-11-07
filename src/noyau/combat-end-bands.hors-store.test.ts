@@ -41,8 +41,8 @@ function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Comb
   const party = Array.from({ length: n }, (_, i) =>
     createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   banc.setState({ party });
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;

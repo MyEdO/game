@@ -5,7 +5,7 @@
  * à l'aube — le « temps minimum entre deux repos » est le temps lui-même), entretien quotidien #T3
  * (anti-double-comptage), récupération + cauchemars par héros, contagion de promiscuité. Consommé
  * par : la MODALE de Repos (ci-dessous), la nuit de voyage (travelFlow), la clôture d'interlude et
- * la triche de recette (`restParty`).
+ * la triche de recette (`reposerLeGroupe`).
  *
  * La MODALE (pendingRest) ajoute par-dessus la phase RÉGLAGES par héros (couchage + pitance, coût
  * RAW calculé) ; « Dormir » ouvre ensuite une CHAÎNE de cascades séquentielles influençables (#347,
@@ -113,7 +113,7 @@ export interface NightEntry {
   group?: string;
   /** Vocabulaire PARTAGÉ (#349) — `RecapTone`, `noyau/recapLine.ts` (même trio que `RecapLine.tone`). */
   tone?: RecapTone;
-  /** Type de jet HÉROS de `sleepParty` (chemin EAGER — cheat `restParty`, clôture d'interlude) —
+  /** Type de jet HÉROS de `sleepParty` (chemin EAGER — cheat `reposerLeGroupe`, clôture d'interlude) —
    *  décoratif hors de ces deux chemins. */
   reKind?: 'recovery' | 'nightmare';
   /** Relance de Chance déjà consommée sur CETTE ligne (LDB 12 l.40 : une relance max par Test). */
@@ -148,7 +148,8 @@ import type { Get, Set } from './flowTypes';
 import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
-import { placeById, type WorldMap } from './worldMap';
+import { lieuDuGroupe, placeById, placeServices, type WorldMap } from './worldMap';
+import { sceneDuRegistre } from './monde/registreDesScenes';
 import { garanti } from '../lib/garanti';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
@@ -166,7 +167,7 @@ const SKILL_CALME = (): string => refLabel('skills', { id: 'calme' });
 /**
  * LE moteur de nuit (sans modale) : avance l'horloge à l'aube (× days), entretien #T3, récupération
  * + cauchemars, contagion. Renvoie le bilan structuré ; écrit aussi le journal.
- * NB : on n'avance PAS l'horloge minute par minute (advanceTime rejouerait l'entretien de Round —
+ * NB : on n'avance PAS l'horloge minute par minute (avancerLeTemps rejouerait l'entretien de Round —
  * hémorragie/poison/feu tueraient le dormeur ; LDB 16 l.105 : le repos suppose des États stabilisés,
  * restRecovery refuse d'ailleurs un héros Hémorragique/En flammes/Empoisonné).
  */
@@ -237,7 +238,7 @@ export function sleepParty(
 
   const title = n > 1 ? t('rf.titleDays', { n }) : t('rf.titleNight');
   set({ party: [...get().party] });
-  get().log([title, ...journal]);
+  get().ecrireAuJournal([title, ...journal]);
   bus.emit(EVT.SCENE_DIRTY);
   return entries;
 }
@@ -369,7 +370,7 @@ const UPKEEP_STEP_ICON: Record<string, string> = {
 /** Convertit les Tests d'entretien DIFFÉRÉS (`runDailyUpkeep` onDeferTest — Faim/Soif/maladie/
  *  convalescence/dessoûlage) en étapes de cascade influençables, avec leur enjeu verbatim (`stakes.json`)
  *  quand il est documenté. SOURCE UNIQUE partagée par la nuit (`buildNightCascade`) et l'avance
- *  d'horloge (`advanceTime`). `startIndex` = décalage d'id quand d'autres étapes précèdent (marche forcée). */
+ *  d'horloge (`avancerLeTemps`). `startIndex` = décalage d'id quand d'autres étapes précèdent (marche forcée). */
 export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeepTest[], startIndex = 0): BuiltCascadeStep[] {
   const steps: BuiltCascadeStep[] = [];
   for (const t of deferred) {
@@ -513,7 +514,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // Journal : le titre de nuit + tout ce qui s'est ajouté APRÈS l'entretien (tente, récupération sans
   // jet…) — l'entretien lui-même est déjà dans le journal (`runDailyUpkeep`, écriture unique, #216).
   set({ party: [...get().party] });
-  get().log([t('rf.titleNight'), ...log.slice(upkeepCount)]);
+  get().ecrireAuJournal([t('rf.titleNight'), ...log.slice(upkeepCount)]);
   bus.emit(EVT.SCENE_DIRTY);
   return { steps: banded, log, slept: { from, to: get().gameTime } };
 }
@@ -611,6 +612,22 @@ export interface OpenRestOpts {
   /** Le jour de voyage CLOS par cette halte — rejoint `travelPlan.log`, sa seule demeure. */
   travelDay?: import('./travelFlow').TravelRecapDay;
   travelMarch?: string[];
+}
+
+/** Le repos qu'offre l'endroit où se tient le groupe : à un lieu de la carte, l'auberge de ses services
+ *  (`placeServices`), à la qualité de la scène du lieu ; ailleurs, la scène à la position du groupe
+ *  (`restPlacesHere`) ; `null` : aucun. */
+export function reposDuLieu(get: Get): OpenRestOpts | null {
+  const s = get();
+  const ici = lieuDuGroupe(s);
+  if (ici) {
+    const scene = sceneDuRegistre(ici.scene);
+    const auberge = placeServices(ici, scene).find((svc) => svc.category === 'auberge' && svc.rest);
+    const quality = scene?.rest?.quality;
+    return auberge?.rest ? { places: auberge.rest, lieu: libelleOuAbsence(ici, 'lieu', ici.id), ...(quality ? { quality } : {}) } : null;
+  }
+  const scene = restPlacesHere(s);
+  return scene && { places: scene.places, lieu: sceneLieu(get), quality: scene.quality };
 }
 
 /** Ouvre la modale de Repos avec une OFFRE de lieux (effet, halte de voyage, bouton de Repos). */
@@ -753,9 +770,13 @@ export function validationsDuRepos(get: Get, set: Set) {
 
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
-    ouvrirLeRepos: (opts) => ouvrirLeRepos(get, set, opts),
+    ouvrirLeRepos: () => {
+      const repos = reposDuLieu(get);
+      if (repos) ouvrirLeRepos(get, set, repos);
+    },
+    offrirLeRepos: (opts) => ouvrirLeRepos(get, set, opts),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).
-    restParty: (days = 1) => { sleepParty(get, set, days); },
+    reposerLeGroupe: (days = 1) => { sleepParty(get, set, days); },
   } satisfies FabriqueDuNoyau;
 }
 

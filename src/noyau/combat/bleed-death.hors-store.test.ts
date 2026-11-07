@@ -27,8 +27,8 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -62,7 +62,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
 
   it('ennemi : jet ≤ 10×pions → mort finalisée (annonce différée + onSlain)', () => {
     const { E } = setup();
-    seedBattleRng(7); // après setup (startCombat a consommé le RNG d'initiative) : 1ᵉʳ d100 = ≤10 → mort
+    seedBattleRng(7); // après setup (lancerLeCombat a consommé le RNG d'initiative) : 1ᵉʳ d100 = ≤10 → mort
     saigneInconscient(E, 3);
     endRound();
     const e = banc.getState().battle!.combatants.find((x) => x.id === E.id)!;

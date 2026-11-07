@@ -37,7 +37,7 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    du jargon technique dans un texte joueur. Un changement de forme réécrit les paquets commités dans le MÊME
    commit (#2404) : par leur générateur, ou par un script one-shot non commité pour un paquet manuscrit. Une MÉCANIQUE à prouver se prouve sur une scène de FIXTURE (skill `creer-un-scenario-de-test`),
    jamais sur la carte livrée.
-6. **Recette navigateur** — `loadProject(doc.scenes, startId, doc.worldMap, doc.narratif)` puis flux
+6. **Recette navigateur** — `chargerLeProjet(doc.scenes, startId, doc.worldMap, doc.narratif)` puis flux
    complet déroulé : skill `recette-navigateur`.
 
 ## `scripts/campagne/lib.mjs` et les générateurs

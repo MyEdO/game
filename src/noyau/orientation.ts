@@ -7,16 +7,16 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 export function creerActionsDOrientation(get: Get, set: Set) {
   return {
-    faceToward: (id, from, to) => {
+    orienterVers: (id, from, to) => {
       if (!from || !to) return;
       set((s) => ({ facing: { ...s.facing, [id]: facingToward(from, to) } }));
     },
-    faceFromPath: (id, path) => {
+    orienterSelonLeChemin: (id, path) => {
       if (!path || path.length < 2) return;
-      get().faceToward(id, path[0], path[path.length - 1]);
+      get().orienterVers(id, path[0], path[path.length - 1]);
     },
     // Orientation à l'entrée en combat : valeur authored (entité de scène) sinon vers l'ennemi le plus proche.
-    faceAtCombatStart: () => {
+    orienterLesCombattants: () => {
       const { battle, scene, facing } = get();
       if (!battle) return;
       const next: Record<string, Dir8> = { ...facing };

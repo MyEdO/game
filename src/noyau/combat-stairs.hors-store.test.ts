@@ -38,8 +38,8 @@ describe('combat multi-couche — rampe : portée/aperçu/clic z-aware', () => {
   function setup(heroPos: { x: number; y: number; z?: number }) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const sc = rampScene();

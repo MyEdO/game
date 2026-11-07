@@ -57,8 +57,8 @@ let root: Root;
 /** Le groupe à quai à Grünburg, bourse garnie, aucun voyage en cours. */
 function aQuai(): void {
   seedBattleRng(7);
-  get().setParty([batelier()]);
-  get().loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf'), quai('quai-c', 'Marienburg')], entryId: 'quai-a', worldMap: carte, projet: null });
+  get().fixerLeGroupe([batelier()]);
+  get().chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf'), quai('quai-c', 'Marienburg')], entryId: 'quai-a', worldMap: carte, projet: null });
   set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], vessel: null });
   creditBourse(get, set, get().party[0].id, { gold: 500, silver: 0, brass: 0 });
 }

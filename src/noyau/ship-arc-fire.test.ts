@@ -32,7 +32,7 @@ const hull = (): Combatant =>
 const mkGet = (combatants: Combatant[], heading: string): (() => JeuDuNoyau) =>
   (() => ({
     battle: { combatants, order: combatants.map((c) => c.id), turn: 0, movementUsed: 0, action: null, selectedSpellId: null, acted: false, over: null },
-    facing: { hull: heading }, gameTime: 0, log: () => {},
+    facing: { hull: heading }, gameTime: 0, ecrireAuJournal: () => {},
   })) as unknown as () => JeuDuNoyau;
 
 describe('firedAttackBlock — garde d’arc de bordée bout-en-bout (MDG 12-13)', () => {

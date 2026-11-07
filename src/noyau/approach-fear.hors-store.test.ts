@@ -201,8 +201,8 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
   function field() {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });
     banc.setState({ party: [h] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;

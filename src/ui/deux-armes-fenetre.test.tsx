@@ -80,7 +80,7 @@ describe('#998 — Deux armes : la fenêtre survit entre les deux frappes (recet
       expect(g().pendingDualStrike, 'la 1ʳᵉ frappe a touché : la 2ᵉ attend sa cible').toBeTruthy();
       expect(pickActiveModalKey(g()), 'aucune fenêtre sans corps n’est élue').not.toBe('cascade');
       expect(host!.querySelector('.modal-overlay'), 'la carte tient la main (TargetPrompt)').toBeNull();
-      act(() => g().dualStrikeAttack(gobelin.id));
+      act(() => g().frapperDeLaSecondeArme(gobelin.id));
       const seq = g().pendingCascade!;
       expect(seq.participants[seq.cursor].jet, 'la 2ᵉ frappe est rendue par une étape d’attaque').toBe('attack');
       expect(host!.querySelector('.modal-overlay'), 'la fenêtre de la 2ᵉ frappe est montée').not.toBeNull();

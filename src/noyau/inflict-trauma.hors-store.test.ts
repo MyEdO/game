@@ -8,7 +8,7 @@ let banc: Banc;
 beforeEach(() => {
   banc = ouvrirLeBanc();
   banc.setState({ battle: null, party: [], journal: [] });
-  banc.getState().seedRng(11);
+  banc.getState().ensemencerLeTirage(11);
 });
 
 describe('Effet inflictTrauma', () => {

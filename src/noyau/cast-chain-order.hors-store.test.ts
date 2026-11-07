@@ -24,8 +24,8 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
     });
     hero.spells = ['fauche-demon'];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -71,7 +71,7 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
   });
 
   it('Contre-sort réglé + opposition résolue → la chaîne APPLIQUE (Fauche-démon annihile)', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, E } = setup();
     frozenCast(H, E);
     const pc = banc.getState().pendingCast!;
@@ -83,7 +83,7 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
   });
 
   it('CHAÎNE COMPLÈTE par les vraies coutures : « Laisser passer » → « Appliquer » → opposition → confirm → annihilation', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, E } = setup();
     frozenCast(H, E);
     // Fenêtre de Contre-sort telle que `routeCounterspell` la pose après le jet figé (ici, un

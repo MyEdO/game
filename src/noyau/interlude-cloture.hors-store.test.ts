@@ -32,7 +32,7 @@ const heros = (label: string, seed: number, careerLevel: number, bourse: Money):
 /** Un banc à Altdorf, dés d'Événement POSÉS (`des`, un par héros), séquence dénouée. */
 function apresLeTirage(party: Combatant[], des: number[]): Banc {
   const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party, scene: SCENE, lieu: 'altdorf' } });
-  banc.actions.startInterlude(2);
+  banc.actions.ouvrirLInterlude(2);
   for (const de of des) avanceEtapeCascade(banc.getState, () => de);
   avanceEtapeCascade(banc.getState); // dénouement de groupe
   expect(banc.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
@@ -103,7 +103,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
 
   it('les Événements encore à tirer : la clôture est refusée et dite, rien de changé (LDB 22 l.5)', () => {
     const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party: [heros('Vétéran', 1601, 3, { gold: 2, silver: 0, brass: 0 })], scene: SCENE, lieu: 'altdorf' } });
-    banc.actions.startInterlude(2);
+    banc.actions.ouvrirLInterlude(2);
     expect(banc.getState().interlude?.phase, 'témoin : le tirage est ouvert').toBe('tirage');
     expect(refusDeLaValidation(banc.getState(), 'interlude')).toBe('L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.');
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime]);
@@ -129,7 +129,7 @@ describe('Clôture — devis = geste = oracle, sur 60 groupes tirés', () => {
     const party = Array.from({ length: n }, (_, i) => heros(`H${i}`, graine * 10 + i, ri(1, 4), fromBrass(ri(0, 3) === 0 ? 0 : ri(1, 9000))));
     const weeks = ri(1, 4);
     const banc = ouvrirLeBanc({ graine, desFixes: true, etat: { party, scene: SCENE, lieu: 'altdorf' } });
-    banc.actions.startInterlude(weeks);
+    banc.actions.ouvrirLInterlude(weeks);
     for (let i = 0; i < n; i++) avanceEtapeCascade(banc.getState, () => SANS_EFFET);
     avanceEtapeCascade(banc.getState);
     const ids = banc.getState().party.map((h) => h.id);

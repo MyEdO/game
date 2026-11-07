@@ -159,17 +159,17 @@ function poserLeCombat(netMode: 'host' | 'local'): void {
   } as never);
 }
 
-describe('battleHeal lit le filtre de combat', () => {
+describe('ouvrirLaGuerison lit le filtre de combat', () => {
   it('Chirurgie demandée en combat : refusée, dit « Ce soin ne se pratique pas en combat. »', () => {
     poserLeCombat('local');
-    banc.getState().battleHeal('al', 'surgery');
+    banc.getState().ouvrirLaGuerison('al', 'surgery');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus?.texte).toBe('Ce soin ne se pratique pas en combat.');
   });
 
-  it('Chirurgie demandée en combat par un invité : `battleHeal` est de la machinerie, hors allowlist, sans effet ni bandeau', () => {
+  it('Chirurgie demandée en combat par un invité : `ouvrirLaGuerison` est de la machinerie, hors allowlist, sans effet ni bandeau', () => {
     poserLeCombat('host');
-    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'battleHeal', ['al', 'surgery'])).toBe('hors-allowlist');
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'ouvrirLaGuerison', ['al', 'surgery'])).toBe('hors-allowlist');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus).toBeNull();
   });
@@ -195,7 +195,7 @@ describe('battleHeal lit le filtre de combat', () => {
 
   it('Hémorragie demandée en combat : le jet se pose', () => {
     poserLeCombat('local');
-    banc.getState().battleHeal('al', 'bleed');
+    banc.getState().ouvrirLaGuerison('al', 'bleed');
     expect(banc.getState().pendingHeal?.mode).toBe('bleed');
   });
 });

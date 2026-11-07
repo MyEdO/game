@@ -39,7 +39,7 @@ const JOUER_CAPACITE: Readonly<Record<CapaciteId, (get: Get, set: Set, ent: Scen
     const dlg = scene.dialogues.find((d) => d.id === ent.dialogueId);
     if (dlg) set({ dialogue: ouvrirDialogue(get(), dlg, ent.id) });
   },
-  commercer: (get, _set, ent) => get().openMerchant(ent.id),
+  commercer: (get, _set, ent) => get().ouvrirLeMarchand(ent.id),
 };
 
 /** Places JOUABLES d'une entité : la géométrie vit sur le TYPE de décor, donc seule une instance de
@@ -95,10 +95,10 @@ export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos
 /**
  * Ce que joue un clic d'EXPLORATION sur la case `tuile`, où l'hôte a résolu l'entité `entiteId` sous son pointeur
  * (`stage/geste.ts:entiteDuGeste`) : l'homologue hors combat d'`intentionDuClicDeCase` (`combatOrParty.ts`). Chaque
- * variante nomme les verbes que l'hôte joue : `interagir` → `interactEntity` ; `jouer` → `jouerAction` ; `rejoindre`
- * → `setPendingInteract(pending)` puis la marche du `plan` ; `marcher` → la marche du `plan` ; `dire` → `log` ;
+ * variante nomme les verbes que l'hôte joue : `interagir` → `interagirAvecLEntite` ; `jouer` → `jouerAction` ; `rejoindre`
+ * → `poserLInteraction(pending)` puis la marche du `plan` ; `marcher` → la marche du `plan` ; `dire` → `ecrireAuJournal` ;
  * `injoignable` → le refus qui nomme la case qu'aucun chemin n'atteint (`refuserGeste`) ; `annuler` (la case du groupe)
- * → rien que l'abandon du pending. Toute variante hors `rejoindre` pose d'abord `setPendingInteract(null)`.
+ * → rien que l'abandon du pending. Toute variante hors `rejoindre` pose d'abord `poserLInteraction(null)`.
  * `null` : rien ne se joue (hors exploration, dialogue ouvert, N offres à portée que la pastille sert, entité
  * utilisable injoignable), le pending et le survol restent.
  */
@@ -161,13 +161,13 @@ function seLeverDe(get: Get, set: Set, entityId: string): boolean {
   if (!placesDe(scene, entityId).length) return false;
   if (seatPoseOf(scene, occupant)?.propId !== entityId) return false;
   set({ scene: releaseSeat(scene, occupant) });
-  get().log(t('seating.stood'));
+  get().ecrireAuJournal(t('seating.stood'));
   bus.emit(EVT.SCENE_DIRTY);
   return true;
 }
 
 /** Le meneur prend place à CE meuble, ou lit la raison française du refus. SOURCE UNIQUE du geste
- *  d'assise : `interactEntity` l'ordonne parmi les autres affordances, `jouerAction` le joue NU
+ *  d'assise : `interagirAvecLEntite` l'ordonne parmi les autres affordances, `jouerAction` le joue NU
  *  quand le joueur a choisi l'offre `sasseoir`. */
 function sasseoirA(get: Get, set: Set, entityId: string): void {
   const { scene, partyPos } = get();
@@ -193,7 +193,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
       return { scene: res.scene };
     });
     if (gagnee.pose) {
-      get().log(t('seating.sat'));
+      get().ecrireAuJournal(t('seating.sat'));
       // POSE UNIQUE : le cap du GROUPE suit celui de la place — le corps, la vue subjective et tout
       // ce qui lit le regard d'exploration regardent la table, pas la direction d'où l'on venait.
       set((s) => ({ facing: poserCapDuGroupe(s.facing, gagnee.pose!.facing) }));
@@ -204,7 +204,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
   // UN SEUL message par situation : la place visée est partie (course perdue) ou toutes sont
   // prises → « occupé » ; il en reste une, mais pas sous les pieds → « rejoindre la place ».
   const apres = get().scene;
-  get().log(t(apres && placesLibres(apres, entityId).length ? 'seating.mustReachApproach' : 'seating.occupied'));
+  get().ecrireAuJournal(t(apres && placesLibres(apres, entityId).length ? 'seating.mustReachApproach' : 'seating.occupied'));
 }
 
 /** La fouille de la pièce : la scène et la pièce où le groupe se tient, ou le refus nommé. Le verbe `fouillerLaPiece`,
@@ -225,17 +225,17 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       const intention = intentionDuClicDExploration(get(), pt, entite ?? null);
       if (!intention) return;
       switch (intention.kind) {
-        case 'interagir': get().setPendingInteract(null); get().interactEntity(intention.id); return;
-        case 'jouer': get().setPendingInteract(null); get().jouerAction(intention.id, intention.actionId); return;
-        case 'rejoindre': get().setPendingInteract(intention.pending); marcherLeChemin(get, intention.plan.path); return;
-        case 'marcher': get().setPendingInteract(null); marcherLeChemin(get, intention.plan.path); return;
-        case 'dire': get().setPendingInteract(null); get().log(intention.message); return;
-        case 'injoignable': get().setPendingInteract(null); refuserGeste(get, set, intention.message); return;
-        case 'annuler': get().setPendingInteract(null); return;
+        case 'interagir': get().poserLInteraction(null); get().interagirAvecLEntite(intention.id); return;
+        case 'jouer': get().poserLInteraction(null); get().jouerAction(intention.id, intention.actionId); return;
+        case 'rejoindre': get().poserLInteraction(intention.pending); marcherLeChemin(get, intention.plan.path); return;
+        case 'marcher': get().poserLInteraction(null); marcherLeChemin(get, intention.plan.path); return;
+        case 'dire': get().poserLInteraction(null); get().ecrireAuJournal(intention.message); return;
+        case 'injoignable': get().poserLInteraction(null); refuserGeste(get, set, intention.message); return;
+        case 'annuler': get().poserLInteraction(null); return;
         default: return intention satisfies never;
       }
     },
-    interactEntity: (entityId) => {
+    interagirAvecLEntite: (entityId) => {
       const { scene, partyPos } = get();
       if (!scene) return;
       const ent = scene.entities.find((e) => e.id === entityId);
@@ -259,7 +259,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       const horsPortee = !aPorteeDe(partyPos, ent);
       // Trop loin ou autre étage : la portée se lit à la SOURCE UNIQUE (`exploreNav.aPorteeDe`, qui
       // compte l'étage). Ici, aucune des affordances de proximité ne s'ouvre ; le déplacement-puis-fouille
-      // est armé par l'UI (setPendingInteract).
+      // est armé par l'UI (poserLInteraction).
       if (!horsPortee) {
         const offres = actionsDe(scene, ent, get().flags).filter((o) => o.origine !== 'assise');
         // UNE offre → on la joue ; N → rien ici : le PANNEAU borné de la pastille les sert (« Que faire ? »),
@@ -271,7 +271,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       // Actions authorées toutes ÉPUISÉES et rien d'autre à offrir : on le dit (le halo, lui, s'est
       // déjà éteint). Le décor en PORTE (l'auteur en a posé), aucune n'est plus jouable.
       if (!horsPortee && ent.usable?.actions?.length && !actionsAuthorees(ent, get().flags).length)
-        get().log(t('store.searchedAlready', { what: nomDEntite(ent, presetDuNarratif(get().campaignNarratif)) ?? t('store.searchedFallback') }));
+        get().ecrireAuJournal(t('store.searchedAlready', { what: nomDEntite(ent, presetDuNarratif(get().campaignNarratif)) ?? t('store.searchedFallback') }));
     },
     /**
      * EXÉCUTEUR UNIQUE d'une offre d'exploration (#1687) : `actionsDe` DIT ce qui est offert, `jouerAction`
@@ -305,7 +305,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       const action = (ent.usable?.actions ?? []).find((a) => a.id === actionId);
       if (!action) return;
       const nom = nomDEntite(ent, presetDuNarratif(get().campaignNarratif));
-      get().log(t('store.actionJouee', { what: nom ?? t('store.searchPlaceFallback'), action: offre.label }));
+      get().ecrireAuJournal(t('store.actionJouee', { what: nom ?? t('store.searchPlaceFallback'), action: offre.label }));
       // Logique authorée (Flow) : butin → fenêtre d'attribution, test → geste à risque (modale).
       // CLÔTURES (#1508) : l'horloge (« tout est horodaté ») puis le sort du décor. L'horloge tire les
       // effets PROGRAMMÉS et les ticks — jouée devant un dé de chute, elle les tirerait sur des
@@ -321,15 +321,15 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       const fouille = fouilleOuverte(get());
       if ('refus' in fouille) return void refuserGeste(get, set, t(fouille.refus, fouille.vars));
       // La MÊME ligne qu'il y ait des portes ou non, qu'un Test échoue ou non : seule une réussite parle.
-      get().log(t('fouille.journal'));
+      get().ecrireAuJournal(t('fouille.journal'));
       cloturer(get, set, runFlow(get, set, fouilleDeLaPiece(fouille.scene, fouille.piece), t('eff.flowTitleDiscovery')), [
         { verbe: 'avancerHorloge', minutes: rule('fouille-piece-minutes') as number },
       ]);
     },
     /** Arme (ou annule via null) un déplacement-puis-interaction : l'UI le pose au clic d'un décor
-     *  éloigné AVEC la case d'arrivée du plan de marche, consommé par `moveParty` à CETTE case ;
+     *  éloigné AVEC la case d'arrivée du plan de marche, consommé par `deplacerLeGroupe` à CETTE case ;
      *  annulé sur tout autre clic. */
-    setPendingInteract: (pending) => set({ pendingInteract: pending }),
+    poserLInteraction: (pending) => set({ pendingInteract: pending }),
   } satisfies FabriqueDuNoyau;
 }
 

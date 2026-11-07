@@ -196,7 +196,7 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
   if (mode === 'battle') {
     for (const { c, m } of chutes) {
       if (m > 0) jouerFlowEntier(applyEffects(get, set, [{ type: 'fall', target: 'hero', heroId: c.id, metres: m, to: p.to }]));
-      else { placeCombatant(c, scene, p.to); get().log(t('fall.jumpSafe', { name: c.label })); }
+      else { placeCombatant(c, scene, p.to); get().ecrireAuJournal(t('fall.jumpSafe', { name: c.label })); }
     }
     return;
   }
@@ -205,9 +205,9 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
   // cibles et de `collapseStructure`) : la séquence compte d'emblée chaque dé de la chute.
   for (const { c, m } of chutes) {
     if (m > 0) {
-      get().log(t('eff.fallOuverte', { m, noms: c.label }));
+      get().ecrireAuJournal(t('eff.fallOuverte', { m, noms: c.label }));
       ouvrirChute(set, c, m);
-    } else get().log(t('fall.jumpSafe', { name: c.label }));
+    } else get().ecrireAuJournal(t('fall.jumpSafe', { name: c.label }));
   }
 }
 

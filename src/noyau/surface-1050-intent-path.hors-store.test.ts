@@ -8,7 +8,7 @@
  *  - opposition de cible (`jetResister('opposition')`/`jetValider('opposition')`) : la cible d'un Sort opposé pouvait
  *    jeter mais pas appliquer ;
  *  - hotbar (`jouerLOffre('attaque')`) : rendue dès `controlsCombatant`, clic invité = no-op silencieux ;
- *  - Tir rapide (`armerLeTirPreventif`/`preemptRangedShot`, Talent « Tir rapide ») : pendant la pause de début
+ *  - Tir rapide (`armerLeTirPreventif`/`declencherLeTirPreventif`, Talent « Tir rapide ») : pendant la pause de début
  *    de Round il n'y a AUCUN combattant actif, donc le repli universel rendait l'hôte ;
  *  - Résistance (Menace) d'une étape de cascade (`jetResister('cascade')`).
  */
@@ -190,9 +190,9 @@ describe('#1050 — Tir rapide (Talent) : l’invité arme sa visée et tire pen
     expect(pa?.interrupt, 'le tir hors de l’ordre d’Initiative').toBe(true);
   });
 
-  it('preemptRangedShot est la machinerie du clic (#3370) : hors allowlist, même pour le tireur', () => {
+  it('declencherLeTirPreventif est la machinerie du clic (#3370) : hors allowlist, même pour le tireur', () => {
     pause();
-    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'preemptRangedShot', ['h2', 'e1']), `siège ${seat}`).toBe('hors-allowlist');
+    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'declencherLeTirPreventif', ['h2', 'e1']), `siège ${seat}`).toBe('hors-allowlist');
     expect(banc.getState().pendingAttack).toBeNull();
   });
 

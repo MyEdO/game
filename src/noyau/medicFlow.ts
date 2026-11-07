@@ -311,7 +311,7 @@ function appliquerLaPasse(get: Get, set: Set): void {
   }
   // Passe intermédiaire : cumule (medic.surgery), journalise, et RÉOUVRE la passe suivante (FLOWS.surgery).
   set({ medic: { ...m, surgery: { ...sg, cumDR: cum, last: { roll: garanti(ps.roll, ps.healerId, 'jet de la passe'), sl: ps.sl } } }, pendingSurgery: null, ...touchActors(get()) });
-  get().log(log[0]);
+  get().ecrireAuJournal(log[0]);
   ouvrirLaChirurgie(get, set);
 }
 
@@ -324,7 +324,7 @@ function abandonnerLOperation(get: Get, set: Set): void {
   if (!m || !sg) { set({ pendingSurgery: null }); return; }
   if (!sg.last && sg.paidCost && m.patientId) distributeCredit(get, set, toMoney(sg.paidCost)); // remboursé au groupe (payeur), symétrique du débit `payFromGroup`
   set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
-  if (sg.last) get().log(t('medic.interrupted', { healer: sg.healerName }));
+  if (sg.last) get().ecrireAuJournal(t('medic.interrupted', { healer: sg.healerName }));
 }
 
 export function creerActionsDuMedecin(get: Get, set: Set) {

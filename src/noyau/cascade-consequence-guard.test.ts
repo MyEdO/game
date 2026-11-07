@@ -187,7 +187,7 @@ describe('composeur — CONTENU des conséquences : re-print roll/target hors ra
 
 /**
  * VOLET ISSUE (#1262 V3 Lj) — le canal de l'ISSUE d'un jet. Le murage par export est impossible
- * (`get().log` sert le narratif légitime, `describeX` sert AUSSI l'affichage des fenêtres de
+ * (`get().ecrireAuJournal` sert le narratif légitime, `describeX` sert AUSSI l'affichage des fenêtres de
  * l'hôte) : la police est un LINT D'IMPORT AST (mur `murs/canal-issue`, `oxlint.config.mjs`, patron
  * `ownsLocal`), borné par ses `files` hors tests, joué sur l'arbre par la gate `lint`, et
  * MESURÉ ici sur la config RÉELLE (lanceur Oxlint, jamais une copie de règle : une regex maison laissait

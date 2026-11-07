@@ -47,11 +47,11 @@ export function openEmbrigadementRecovery(
   r: { lost: number; ransomCO: number; extraLoss: number; gossipDiff: Difficulty; stealthDiff: Difficulty },
 ): void {
   const before = get().vessel?.crewLost ?? 0;
-  for (const l of applyVesselCrewLoss(get, set, r.lost)) get().log(l);
+  for (const l of applyVesselCrewLoss(get, set, r.lost)) get().ecrireAuJournal(l);
   const recover = (get().vessel?.crewLost ?? 0) - before; // marins RÉELLEMENT enlevés (perte plafonnée au nominal)
   if (recover <= 0) return; // rien à récupérer
   const lead = ragotLead(get);
-  if (!lead) { get().log([SANS_MENEUR]); return; }
+  if (!lead) { get().ecrireAuJournal([SANS_MENEUR]); return; }
   openChoice(get, set, {
     title: 'Embrigadement', icon: 'nav/dice', purpose: 'test',
     id: 'embrig-decision', kind: 'embrigadementDecision', actorId: lead.actor.id,

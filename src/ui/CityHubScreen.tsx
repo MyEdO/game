@@ -6,7 +6,6 @@ import type { Scene } from '../noyau/monde/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { restServicePrice, type RestPlaces } from '../noyau/restFlow';
-import { libelleOuAbsence } from '../data';
 import { findCargoEntryById } from '../engine/cargo';
 import { innGatherInfoMinutes } from '../noyau/innFlow';
 import { ScreenShell } from './ScreenShell';
@@ -115,7 +114,7 @@ export function CityHubScreen({
           porteur={porteurSvc}
           actions={
             <>
-              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => ouvrirLeRepos({ places: svc.rest, lieu: libelleOuAbsence(place, 'lieu', place.id), quality: rest?.quality })}>Dormir</button>}
+              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => ouvrirLeRepos()}>Dormir</button>}
               <button type="button" className="btn btn-primary" onClick={recueillirLesRumeurs}>
                 Recueillir des informations (≈{Math.round(innGatherInfoMinutes() / 60)} h)
               </button>

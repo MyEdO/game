@@ -15,7 +15,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  *  les deux ; `poserLApparence` (loadout, héros seul) ne lit/écrit que `party` (via mutLoadout). Le `set`
  *  fonctionnel de Zustand est miroité (merge du partiel renvoyé). */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {
-  let state = { party, possessions, campaignNarratif: emptyNarratif(), log: () => {} } as unknown as JeuDuNoyau;
+  let state = { party, possessions, campaignNarratif: emptyNarratif(), ecrireAuJournal: () => {} } as unknown as JeuDuNoyau;
   const get: Get = () => state;
   const set: Set = (p) => { state = { ...state, ...(typeof p === 'function' ? p(state) : p) }; };
   return { get, set };

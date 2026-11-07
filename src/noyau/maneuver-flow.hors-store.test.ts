@@ -20,8 +20,8 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -46,7 +46,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   }
 
   it('Souffle : ouvrir n’ouvre PAS de jet (result===null) ; Lancer→Appliquer dépense 2 Av, Action préservée, Dégâts', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90; // touche déterministe vs Esquive
@@ -71,7 +71,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   });
 
   it('Hurlement : reste IMMÉDIAT (pas de pendingManeuver) — jets SUBIS au feed', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'hurlement-fantomatique' }];
     H.characteristics.initiative = 40;
@@ -85,7 +85,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   });
 
   it('Étreinte : manœuvre-Action → jetValider@maneuver pose `acted`', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'etreinte-glaciale' }];
     H.characteristics['capacite-de-combat'] = 90;
@@ -102,7 +102,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   });
 
   it('Regard : Avantage variable → réglage maneuver.avantage à 2 ajoute +2 DR à la marge (Pétrifié)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'regard-petrifiant' }];
     H.characteristics['capacite-de-tir'] = 95;
@@ -134,7 +134,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   });
 
   it('Résilience : forceSuccess garantit la réussite du jet d’attaquant (touche puis Dégâts)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 1; // raterait sans Résilience
@@ -151,7 +151,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   });
 
   it('orientation : une manœuvre CIBLÉE tourne l’attaquant vers sa cible avant l’animation', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90;
@@ -165,7 +165,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   });
 
   it('orientation : cible choisie MORTE avant la résolution → l’attaquant vise le centre RECENTRÉ, pas le clic périmé', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90;

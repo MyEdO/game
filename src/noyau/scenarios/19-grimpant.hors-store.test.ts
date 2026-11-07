@@ -14,8 +14,8 @@ const scenarioConstruit = scenario.construire();
  */
 function startGrimpant(): { spider: import('../../engine/types').Combatant } {
   banc.setState({ party: scenario.construire().party });
-  banc.getState().startScene(scenarioConstruit.scene);
-  banc.getState().startCombat('enc-grimpant');
+  banc.getState().lancerLaScene(scenarioConstruit.scene);
+  banc.getState().lancerLeCombat('enc-grimpant');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;

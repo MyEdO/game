@@ -2,7 +2,7 @@
 /**
  * Beat d'ouverture du combat — il dit la surprise RÉELLEMENT résolue (LDB 13 l.52-81). Son animation
  * ne se joue qu'au montage : monté pendant la cascade de Surprise, il jouerait « COMBAT ! » sous la
- * fenêtre et l'embuscade ne serait jamais dite. Mesuré sur le chemin RÉEL (`startCombat` d'une
+ * fenêtre et l'embuscade ne serait jamais dite. Mesuré sur le chemin RÉEL (`lancerLeCombat` d'une
  * rencontre `surprise: 'party'`, aucun pending forgé).
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
@@ -33,8 +33,8 @@ function ouvrir(surprise?: 'party') {
   // Guetteur aveugle : l'opposition de Surprise est perdue quel que soit le dé.
   const guetteur = { ...hero, skills: [], characteristics: { ...hero.characteristics, initiative: 1 } };
   useGame.setState({ party: [guetteur] });
-  useGame.getState().startScene({ ...testScene(), encounters: testScene().encounters.map((e) => ({ ...e, surprise })) });
-  act(() => { useGame.getState().startCombat('enc-mutants'); });
+  useGame.getState().lancerLaScene({ ...testScene(), encounters: testScene().encounters.map((e) => ({ ...e, surprise })) });
+  act(() => { useGame.getState().lancerLeCombat('enc-mutants'); });
 }
 
 beforeEach(() => {

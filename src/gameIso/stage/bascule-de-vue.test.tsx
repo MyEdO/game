@@ -140,7 +140,7 @@ const HUB = parseProject(
   areneProjet,
 ).scenes.find((sc) => sc.id === 'arene-hub')!;
 
-/** Le poste de départ authored du groupe (`heroStart`) — la même lecture que `store.startScene`. */
+/** Le poste de départ authored du groupe (`heroStart`) — la même lecture que `store.lancerLaScene`. */
 const DEPART = { ...(HUB.entities.find((e) => e.kind === 'heroStart')!.pos) };
 
 /** Le hub monté, groupé à son départ authored, décor SERVI. */

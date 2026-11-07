@@ -69,7 +69,7 @@ function scèneDeFalaise(climb: WallClimb): Scene {
 
 function poser(party: Combatant[], sc: Scene, pos?: { x: number; y: number }) {
   banc.setState({ party, scene: null, mode: 'exploration', journal: [], battle: null, dialogue: null, pendingInteract: null });
-  banc.getState().startScene(sc);
+  banc.getState().lancerLaScene(sc);
   if (pos) banc.setState({ partyPos: { ...pos } });
 }
 
@@ -100,7 +100,7 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
     expect(capDuGroupe(banc.getState())).toBe('E'); // pas latéral : cap PRÉSERVÉ
   });
 
-  it('MARCHE : `moveParty` oriente le cap du groupe le long du pas', () => {
+  it('MARCHE : `deplacerLeGroupe` oriente le cap du groupe le long du pas', () => {
     banc.setState({ facing: {}, partyPos: { x: 5, y: 5 } });
     poserLeGroupe(banc.getState, banc.setState, { x: 6, y: 5 });
     expect(capDuGroupe(banc.getState())).toBe('E');
@@ -116,7 +116,7 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
   });
 
   it("ASSISE : c'est le meneur debout qui prend place, et le cap du groupe suit la place", () => {
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     const pose = seatPoseOf(banc.getState().scene!, MENEUR);
     expect(pose).toMatchObject({ propId: PROP });
     expect(capDuGroupe(banc.getState())).toBe(pose!.facing);
@@ -165,7 +165,7 @@ describe('le cap du GROUPE traverse le combat', () => {
     const heros = banc.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } }));
     const orc = combattantDeTest({ id: 'orc', label: 'Orc', kind: 'enemy', wounds: blessuresDeBase(8), conditions: [], pos: { x: 5, y: 1 } });
     banc.setState({ battle: { combatants: [...heros, orc] } as never });
-    banc.getState().faceAtCombatStart();
+    banc.getState().orienterLesCombattants();
 
     const f = banc.getState().facing;
     expect(f.a, 'un héros POSÉ face à un adversaire reçoit son cap individuel').toBe('E');
@@ -178,7 +178,7 @@ describe('le cap du GROUPE traverse le combat', () => {
     banc.getState().pivoterLeGroupe(1); // cap de groupe ≠ 'S'
     const heros = banc.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } }));
     banc.setState({ battle: { combatants: heros } as never }); // aucun adversaire POSÉ
-    banc.getState().faceAtCombatStart();
+    banc.getState().orienterLesCombattants();
 
     const f = banc.getState().facing;
     expect(Object.keys(f), 'aucun cap individuel écrit : le combat n’a personne à viser').toEqual([CAP_GROUPE]);
@@ -192,7 +192,7 @@ describe('le cap du GROUPE traverse le combat', () => {
     banc.getState().pivoterLeGroupe(1);
     const capAvant = capDuGroupe(banc.getState());
     banc.setState({ battle: { combatants: banc.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } })) } as never });
-    banc.getState().faceAtCombatStart();
+    banc.getState().orienterLesCombattants();
     banc.setState({ battle: null, mode: 'exploration' });
     expect(capDuGroupe(banc.getState())).toBe(capAvant);
   });
