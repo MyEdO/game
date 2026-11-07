@@ -472,6 +472,32 @@ describe('l’éditeur de carte par le pont, la scène', () => {
     expect(() => boutonDe(retire, 'scene/drapeau/pont-leve')).toThrow();
     expect(erreurDe(appel('editer', { type: 'drapeau', args: [' '] })).categorie).toBe('validation');
   });
+
+  it('la validation relève le défaut que l’édition pose ; « Y aller » le suit en surcouche, à l’outil de sélection ; corrigé, il s’efface', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const defaut = (e: Edition) => e.surcouche.zones.filter((z) => z.sorte === 'defaut');
+    const releve = (e: Edition, rang: number) => (e.vue.zones['editeur.validation'][rang] as Ligne).texte;
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    expect(releve(ouverte, 0)).toMatch(/^Validation : aucun défaut détecté/);
+
+    const porte = { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } };
+    presser(boutonDe(presser(boutonDe(ouverte, 'outil/wall')), 'arete/door'));
+    jouer({ geste: 'appui', point: porte });
+    const isolee = jouer({ geste: 'relache', point: porte });
+    expect(isolee.vue.zones['editeur.validation'].map((el) => el.id)).toEqual(['validation', 'validation/0', 'validation/0/aller']);
+    expect(releve(isolee, 1)).toMatch(/^Avertissement : Porte posée sur une arête isolée — la porte N de \(1,1\)/);
+    expect(defaut(isolee), 'aucun défaut suivi avant « Y aller »').toEqual([]);
+
+    const suivie = presser(boutonDe(isolee, 'validation/0/aller'));
+    expect(boutonDe(suivie, 'outil/select').presse).toBe(true);
+    expect(defaut(suivie)).toEqual([{ sorte: 'defaut', nom: 'Défaut', cases: [{ x: 1, y: 1, z: 0 }], choisi: true }]);
+
+    const corrigee = presser(boutonDe(suivie, 'annuler'));
+    expect(releve(corrigee, 0)).toMatch(/^Validation : aucun défaut détecté/);
+    expect(defaut(corrigee), 'le défaut corrigé ne se suit plus').toEqual([]);
+  });
 });
 
 describe('l’éditeur de carte par le pont, le combat et l’ameublement', () => {

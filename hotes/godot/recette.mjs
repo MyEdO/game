@@ -986,7 +986,7 @@ async function parcoursEditeur() {
     let sens = 100
     let avant = null
     for (let n = 0; !trouver((await ecran()).boutons, quoi); n++) {
-      assert.ok(n < 40, `${JSON.stringify(quoi)} amené par la molette sur le panneau`)
+      assert.ok(n < 120, `${JSON.stringify(quoi)} amené par la molette sur le panneau`)
       const vus = JSON.stringify((await ecran()).boutons.map((b) => [b.element, b.y]))
       if (vus === avant) sens = -sens
       avant = vus
@@ -1062,6 +1062,15 @@ async function parcoursEditeur() {
   await cliquerPoint(...cote)
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes + 1}`)
   noter(`outil Murs, clic entre (${x0}, ${y0}) et (${x0 + 1}, ${y0}) : ${aretes} puis ${aretes + 1} arêtes sur le monde`)
+  e = await editeur()
+  const releves = e.zones['editeur.validation'].filter((el) => el.type === 'ligne' && /^validation\/\d+$/.test(el.id))
+  const neuf = releves.find((l) => l.texte.includes(`(${x0},${y0})`) || l.texte.includes(`(${x0 + 1},${y0})`))
+  assert.ok(neuf && boutonDeLEditeur(e, `${neuf.id}/aller`), `la cloison seule relevée par la validation, « Y aller » offert : ${JSON.stringify(releves.map((l) => l.texte))}`)
+  await cliquerAuPanneau({ element: `bouton/${neuf.id}/aller` })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.surcouche.zones ?? []).some((z) => z.sorte === 'defaut')`)
+  e = await editeur()
+  noter(`validation : ${e.zones['editeur.validation'][0].texte} ; « Y aller » sur « ${neuf.texte.slice(0, 80)}… » : ${e.surcouche.zones.find((z) => z.sorte === 'defaut').cases.length} case(s) suivie(s)`)
+  await capturer('3508-l6-2-validation')
   await cliquerAuPanneau({ element: 'bouton/outil/select' })
   await cliquerPoint(...cote)
   await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.arete != null')

@@ -19,6 +19,8 @@ import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stai
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
+import { architectureSelectionForWarning, validateScene, type Warning } from '../validateScene';
+import { planDefectKey, planFocusAt, planFocusTiles } from '../planDefects';
 import { annuler, historiqueDe, poser, retablir, type Historique } from './historique';
 import { appuyer, glisser, relacher, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type GesteEnCours, type PointDeCarte } from './pointeur';
 import type { CalibProgress } from './calage';
@@ -65,6 +67,51 @@ export interface PatchDeScene {
   toiture?: Partial<SceneRoofDefaults>;
   repos?: { lieux?: PatchDeZone['lieux']; pietre?: boolean };
   drapeaux?: Record<string, boolean | null>;
+}
+
+/** Les avertissements de la validation (`validateScene`) qui concernent la scène éditée de la session `s`, ceux de la
+ *  carte du monde compris. */
+export function avertissementsDeLaSession(s: SessionDEdition): Warning[] {
+  const { scenes, worldMap, narratif } = s.projet;
+  return validateScene(scenes.map((sc) => (sc.id === s.sceneId ? sceneEditee(s) : sc)), worldMap, narratif)
+    .filter((w) => w.sceneId === s.sceneId || w.scope === 'worldMap');
+}
+
+/** L'avertissement `w` désigne-t-il un fautif de la carte : un défaut de plan, un ouvrage d'architecture, une entité ou
+ *  un déclencheur ? Les autres se corrigent hors de la carte. */
+export const versLaFautive = (w: Warning): boolean =>
+  !!w.plan || !!architectureSelectionForWarning(w) || (!!w.refId && (w.scope === 'entity' || w.scope === 'trigger'));
+
+/** Les cases du défaut de plan que suit la session `s`, tant que la validation le relève ; aucune sinon. */
+export function casesDuDefaut(s: SessionDEdition): { x: number; y: number; z: number }[] {
+  const at = planFocusAt(avertissementsDeLaSession(s), s.defaut);
+  return at ? planFocusTiles(at) : [];
+}
+
+/** La session `s` amenée au fautif de l'avertissement `w` de sa scène `scene`, à sa couche : un défaut de plan, suivi,
+ *  à l'outil de sélection, sa zone d'effet sélectionnée s'il en vise une ; un ouvrage d'architecture sélectionné à
+ *  l'outil d'architecture ; une entité ou un déclencheur sélectionné à l'outil de sélection. */
+function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): SessionDEdition {
+  const vers = (z: number | undefined, sel: Sel, outil: OutilDeLEditeur, defaut: string | null = null): SessionDEdition => ({
+    ...s, z: z !== undefined && scene.layers.some((l) => l.z === z) ? z : s.z, sel, outil, defaut, geste: null, volee: [], brouillon: null,
+  });
+  if (w.plan) {
+    const at = w.plan.at;
+    const idx = at.kind === 'zone' ? (scene.effectZones ?? []).findIndex((z) => z.id === at.zoneId) : -1;
+    return vers(at.z, idx >= 0 ? { type: 'effectZone', idx } : null, { mode: 'select' }, planDefectKey(w.plan));
+  }
+  const archi = architectureSelectionForWarning(w);
+  if (archi) {
+    const corps = scene.architecture?.find((c) => c.id === (archi.type === 'architectureBody' ? archi.id : archi.bodyId));
+    const z = archi.type === 'architectureStorey' ? corps?.storeys.find((e) => e.id === archi.id)?.z
+      : archi.type === 'architecturePart' ? corps?.storeys.find((e) => e.id === archi.storeyId)?.z
+        : archi.type === 'facadeSection' ? corps?.facades.find((f) => f.id === archi.id)?.z
+          : archi.type === 'roofSection' ? corps?.masses.find((m) => m.id === archi.id)?.z
+            : corps?.storeys[0]?.z;
+    return vers(z, archi, { mode: 'architecture', action: 'select' });
+  }
+  if (w.scope === 'entity') return vers(scene.entities.find((e) => e.id === w.refId)?.z, { type: 'entity', id: w.refId! }, { mode: 'select' });
+  return vers(scene.triggers.find((t) => t.id === w.refId)?.rect.z, { type: 'trigger', id: w.refId! }, { mode: 'select' });
 }
 
 /** La scène `scene` où `patch` s'écrit. */
@@ -180,6 +227,8 @@ export interface SessionDEdition {
   calques: CalquesDuProjet;
   /** Le calage du calque de la couche éditée : `idle` hors du calage. */
   calage: CalibProgress;
+  /** Le défaut de plan suivi depuis la validation (`planDefectKey`), `null` sans lui. */
+  defaut: string | null;
   /** La couche dont l'hôte charge la planche, `null` sans chargement en cours. */
   chargement: { sceneId: string; z: number } | null;
   /** Les calques que l'hôte gardait étaient d'un autre format, retirés à l'ouverture. */
@@ -216,6 +265,7 @@ export type GesteDEdition =
   | { geste: 'architecture'; patch: PatchDArchitecture }
   | { geste: 'baie'; id: string | null; patch: PatchDOuverture | null }
   | { geste: 'scene'; patch: PatchDeScene }
+  | { geste: 'avertissement'; rang: number }
   | { geste: 'nommer'; nom?: string }
   | { geste: 'identifier'; id: string }
   | { geste: 'entree'; z: number }
@@ -246,7 +296,7 @@ export function ouvrirLEdition(projet: Omit<ProjectDoc, 'schema'>, duDepot: bool
   return {
     projet, sceneId: scene.id, historique: historiqueDe(scene), outil: { mode: 'select' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
     depot: duDepot ? { enregistree: scene, enCours: null } : null,
-    calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null,
+    calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null, defaut: null,
   };
 }
 
@@ -561,6 +611,10 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return ecrireSurLaSelection(s, architecturePatchee(scene, s.sel, g.patch), (sc) => sc.architecture);
     case 'baie':
       return ecrireSurLaSelection(s, ouverturePosee(scene, s.sel, g.id, g.patch), (sc) => sc.architecture);
+    case 'avertissement': {
+      const w = avertissementsDeLaSession(s)[g.rang];
+      return w && versLaFautive(w) ? versLAvertissement(s, scene, w) : s;
+    }
     case 'scene': {
       const patchee = scenePatchee(scene, g.patch);
       return patchee === scene ? s : ecrire(s, patchee, s.sel);
