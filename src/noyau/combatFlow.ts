@@ -21,7 +21,7 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
-import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, defenseValueModParts, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
+import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, defenseValueModParts, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree, attackTestOf } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
@@ -37,7 +37,7 @@ import { effectifAuContact } from './combat/surnombre';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed, ciblesDeLEffet, flowOffert, type TriggerCtx } from './triggeredEffects';
-import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, reloadDRBonus, arcaneDomainIdOf, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
+import { reloadGrantsAssessAdvantage, hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, arcaneDomainIdOf, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
   flyMeters, runMultiplier,
@@ -113,10 +113,10 @@ import {
 } from '../engine/miscast';
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleBrute, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
-import { testValue, type SupportDetail, type TestDesigne } from '../engine/skills';
+import { testValue, soutienDetail, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
-import { endShanty, monterLesVagues, resolveShipUnits } from './shipCrew';
+import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
@@ -125,6 +125,8 @@ import { actorIn, inBattleId } from './monde/combatants';
 import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
+import { posteHullOf } from './siegePush';
+import { progresDeRecharge } from './progresEtendu';
 import { touchActors, windsMagicModOf, seaMagicContext, ventsAnnonces } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
@@ -177,7 +179,7 @@ import { sweepDismountDeaths, mountedAttackMods, defenseDodgeMods, mountMovement
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
-import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf } from './monde/shipPostes';
+import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf, rechargeDuTour } from './monde/shipPostes';
 import { isVehicle, profilNavalDe, estNavire } from '../engine/coque';
 import { targetArc, headingToBear } from './monde/fireArc';
 import { bearingPostes, mostArmedSide } from './monde/shipBattery';
@@ -7922,6 +7924,48 @@ export function markActed(get: Get, set: SetFn): BattleState {
   return { ...garanti(get().battle, 'battle', 'markActed'), acted: true }; // RE-LU après le scellement : ce qu'il a écrit ne se réverte pas
 }
 
+/** Le jet de recharge de `arme` par `porteur`, avant le dé : l'arme bakée par l'effectif de la pièce qu'elle est
+ *  (`mannedPoste`), le Soutien de son équipage, le cumul déjà fait. Lu par `rechargerLArme` et le tour de l'IA.
+ *  LDB 62 l.335 ; MDG 12 l.448-462 ; LDB 12 l.187-200 */
+export function jetDeRecharge(porteur: Combatant, arme: Weapon, combatants: Combatant[]): PendingReload {
+  const piece = porteur.mannedPoste?.item.uid === arme.uid ? porteur.mannedPoste : undefined;
+  const present = piece ? servingCrewPresent(porteur, combatants) : undefined;
+  const w = present != null ? crewedFireWeapon(arme, present) : arme;
+  const equipage = (piece?.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c);
+  const sout = soutienDetail(equipage, porteur, attackTestOf(porteur, w, 'ranged'), porteur.pos ? (c) => !!c.pos && combatDistance(porteur, c) <= 1 : undefined);
+  const soutien = sout.bonus ? sout : undefined;
+  const skillValue = combatValue(porteur, 'ranged', w) + sout.bonus;
+  const ligne = rollLine({ actor: porteur, difficulty: 'intermediaire', valeur: skillValue, soutien, combat: { kind: 'ranged', weapon: w } });
+  return {
+    actorId: porteur.id, actorName: porteur.label, weaponUid: w.uid ?? '',
+    reload: reloadDRTarget(w), progressBefore: reloadProgressOf(porteur, arme),
+    skillValue, difficulty: 'intermediaire', roll: null, ligne, ...cibleMesuree(ligne), sl: 0, success: false, soutien,
+  };
+}
+
+/** Applique le jet de recharge `pr` jeté sur `arme` : cumul du Test étendu dans son registre, Avantage d'Évaluer, et
+ *  l'Action du porteur dépensée (celle du Tour s'il est l'actif ; sinon son engagement du Round), son équipage engagé.
+ *  Lu par `jetValider('reload')` et le tour de l'IA. LDB 62 l.335 ; LDB 13 l.106 (arbitrage #3595) ; AA 13 l.9/90 ;
+ *  MDG 14 l.37 */
+export function appliquerLaRecharge(get: Get, set: SetFn, pr: PendingReload, arme: Weapon): void {
+  const battle = get().battle;
+  const porteur = battle && inBattleId(battle, pr.actorId);
+  if (!battle || !porteur) return;
+  porteur.aiming = false;
+  const { total, done } = progresDeRecharge(pr, porteur);
+  if (done) loadWeapon(porteur, arme);
+  else setReloadProgress(porteur, arme, total);
+  if (pr.success && reloadGrantsAssessAdvantage(porteur)) campGain(get, porteur, 1);
+  const issue = FLOWS.reload.apply(get, { p: pr, ctx: { after: total, weapon: arme.label } });
+  const piece = porteur.mannedPoste?.item.uid === arme.uid ? porteur.mannedPoste : undefined;
+  const coque = piece && posteHullOf(piece, battle.combatants);
+  const b = activeCombatant(battle)?.id === porteur.id ? markActed(get, set) : get().battle!;
+  set({ battle: { ...b, action: null,
+    crewActed: piece && coque ? withCrewActed(b.crewActed, coque.id, piece.crewIds ?? []) : b.crewActed,
+    log: [...b.log, ...evLines(issue, 'reload', porteur.id)] } });
+  bus.emit(EVT.SCENE_DIRTY);
+}
+
 /** Un Test de Psychologie de combat DÛ (cumul `prevDR` = 0 sauf Peur étendue), allégé par Sans Peur
  *  (`sansPeurFace`) face à une source neuve. */
 type PsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
@@ -8453,6 +8497,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // ... et MÊME boucle pour « Briser l'Empoignade » (LDB 14 l.161) : Briser est GRATUIT (par le Mouvement) et
   // n'épuise PAS l'Action → l'ennemi libéré RE-DÉCIDE et joue sa vraie action (tir/cast/charge) le même tour.
   // Multi-Empoignade : chaque tour de boucle dénoue UN lien ; `grapplingWith` se vide → la garde ne re-fire plus.
+  let pieceServie = false;
   for (let safety = 8; safety > 0; safety--) {
     if (action.kind === 'spendResource') {
       const before = stacks(enemy, action.id);
@@ -8465,6 +8510,16 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       clearGrapple(enemy, foe);
       removeCondition(enemy, COND.empetre, stacks(enemy, COND.empetre)); // se défait de l'*Empêtré* lié (LDB 14 l.161)
       battle.log.push(ev('dodge', tr('cs.grappleBreak', { name: enemy.label, foe: foe.label }), enemy.id, foe.id));
+      set({ battle: { ...battle } });
+      bus.emit(EVT.SCENE_DIRTY);
+    } else if (action.kind === 'manPoste') {
+      // Servir la pièce : Action gratuite (LDB 13 l.106, arbitrage #3595), puis l'IA re-décide.
+      const { hullId, posteUid } = action; // capture AVANT la closure (narrowing perdu sur un `let` réassigné)
+      const poste = inBattleId(battle, hullId)?.postes?.find((p) => p.item.uid === posteUid);
+      if (!poste || pieceServie || (poste.crewIds ?? []).includes(enemy.id)) break;
+      pieceServie = true;
+      serveAtPoste(enemy, poste, battle.combatants);
+      battle.log.push(ev('detail', tr('cs.manPoste', { name: enemy.label, weapon: poste.item.label }), enemy.id));
       set({ battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
     } else break;
@@ -8499,6 +8554,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   switch (action.kind) {
     case 'end':
       return advanceTurn(get, set);
+    case 'manPoste':
     case 'spendResource':
       // La boucle de dépense ci-dessus n'a PAS pu déverrouiller (dépense inopérante — l'acteur reste
       // verrouillé) : il n'a aucune autre action légale ce tour → il passe la main (terminal anti-boucle).
@@ -8562,26 +8618,14 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       return;
     }
     case 'reload': {
-      // Recharge (Test étendu de Projectiles, LDB 62 l.335) : résolution INLINE (pas de modale ni de Chance —
-      // l'IA n'en a pas), MÊME cumul de DR vers l'Indice que le flux joueur (jetValider('reload')). Interrompu →
-      // recommence à zéro (géré à la prise de Blessure, applyAttackResult). Coûte l'Action ; calque de `recover`.
+      // Sans fenêtre ni Chance : le jet de `rechargerLArme`, jeté sur place. LDB 62 l.335
       if (!canAct) return advanceTurn(get, set);
       const rw = enemy.weapons.find((w) => w.type === 'ranged');
-      if (!rw || (rw.reload ?? 0) <= 0 || weaponLoaded(enemy, rw)) return advanceTurn(get, set); // rien à recharger
-      const reloadTarget = reloadDRTarget(rw);
-      const progressBefore = reloadProgressOf(enemy, rw);
-      const skillValue = combatValue(enemy, 'ranged', rw); // CT + avances Projectiles
-      const test = rollSansPilote(get, enemy, skillValue, 'intermediaire', battleRng());
-      const drBonus = test.success ? reloadDRBonus(enemy, rw) : 0; // Rechargement rapide / Artilleur (LDB 10)
-      const progress = Math.max(0, progressBefore + test.sl + drBonus); // Test étendu : cumul, plancher 0
-      if (progress >= reloadTarget) loadWeapon(enemy, rw); // MÊME couture que le flux joueur : état de charge + munition capturée
-      else setReloadProgress(enemy, rw, progress);
-      // ISSUE dérivée par le MÊME goulot que le flux joueur (`FLOWS.reload.apply`, canal COMBAT) : la voie
-      // IA n'ouvre aucune fenêtre, elle FOURNIT son pending — même déclaration, même ligne.
-      const pr: PendingReload = { actorId: enemy.id, actorName: enemy.label, weaponUid: rw.uid ?? '', reload: reloadTarget, progressBefore, skillValue, difficulty: 'intermediaire', ligne: rollLine({ actor: enemy, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: rw } }), roll: test.roll, target: test.target, sl: test.sl, success: test.success };
-      const aiReloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: rw.label } });
-      set({ battle: { ...markActed(get, set), log: [...get().battle!.log, ...evLines(aiReloadIssue, 'reload', enemy.id)] } });
-      bus.emit(EVT.SCENE_DIRTY);
+      const recharge = rw && rechargeDuTour(enemy, battle, rw.uid);
+      if (!recharge) return advanceTurn(get, set);
+      const jet = jetDeRecharge(recharge.porteur, recharge.arme, battle.combatants);
+      const test = rollSansPilote(get, recharge.porteur, jet.skillValue, 'intermediaire', battleRng());
+      appliquerLaRecharge(get, set, { ...jet, roll: test.roll, target: test.target, sl: test.sl, success: test.success }, recharge.arme);
       armerLaSuite(get, set, enemy, { kind: 'avancer' }, beatHold(get, 'afterMove'));
       return;
     }
@@ -8640,20 +8684,6 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       bus.emit(EVT.SCENE_DIRTY);
       checkBattleOver(get, set);
       armerLaSuite(get, set, enemy, { kind: 'avancer' }, beatHold(get, 'postAttack'));
-      return;
-    }
-    case 'manPoste': {
-      // « Servir cette pièce » (MDG 12) : rejoindre un poste de siège adjacent (chef si non servi, sinon support) —
-      // MÊME mutation KIND-AGNOSTIQUE (`serveAtPoste`) que l'action joueur et l'author-time. Coûte l'Action. Re-garde
-      // la staleness : disparu, ou déjà rejoint pendant la décision → passe la main (pas de double-ajout).
-      if (!canAct) return advanceTurn(get, set);
-      const hull = inBattleId(battle, action.hullId);
-      const poste = hull?.postes?.find((p) => p.item.uid === action.posteUid);
-      if (!poste || (poste.crewIds ?? []).includes(enemy.id)) return advanceTurn(get, set);
-      serveAtPoste(enemy, poste, battle.combatants);
-      set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('detail', tr('cs.manPoste', { name: enemy.label, weapon: poste.item.label }), enemy.id)] } });
-      bus.emit(EVT.SCENE_DIRTY);
-      armerLaSuite(get, set, enemy, { kind: 'avancer' }, beatHold(get, 'afterMove'));
       return;
     }
     case 'move': {

@@ -8,13 +8,18 @@ import { estJete, extendedTestStep, extendedTestSteps } from '../engine/tests';
 import { reloadDRBonus } from '../engine/combatFeatures/dispatch';
 import { pasDePeur } from '../engine/psychology';
 import { dispelOwnSpellDR } from '../engine/magic';
-import type { Combatant } from '../engine/types';
+import type { Combatant, Weapon } from '../engine/types';
+
+/** L'arme que recharge `pr` aux mains de son `tireur` (`weaponUid` vide : l'arme sans objet, LDB 62 l.335). */
+export function armeDuJetDeRecharge(pr: PendingReload, tireur: Combatant): Weapon | undefined {
+  return tireur.weapons.find((w) => (w.uid ?? '') === pr.weaponUid);
+}
 
 /** Progrès d'un Rechargement après son jet : DR du jet + `reloadDRBonus` du tireur, vers la cible
  *  BAKÉE du pending (`pr.reload`). Lu par `jetValider('reload')` (arme et poste) et par la fenêtre.
  *  LDB 62 l.335 ; LDB 12 l.170-185 ; MDG 12 l.462 */
 export function progresDeRecharge(pr: PendingReload, tireur: Combatant | undefined): ReturnType<typeof extendedTestStep> {
-  const talent = pr.success && tireur ? reloadDRBonus(tireur, tireur.weapons.find((w) => w.uid === pr.weaponUid)) : 0;
+  const talent = pr.success && tireur ? reloadDRBonus(tireur, armeDuJetDeRecharge(pr, tireur)) : 0;
   return extendedTestStep(pr.progressBefore, { success: pr.success, sl: pr.sl + talent }, pr.reload);
 }
 

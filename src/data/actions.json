@@ -866,11 +866,10 @@
     "surface": "grille",
     "gate": [
       "vehicule",
-      "piece-dechargee"
+      "arme-a-recharger"
     ],
-    "run": "rechargerLaPiece",
-    "coutAction": "gratuit",
-    "maison": "tâche d’équipage PARALLÈLE : elle occupe l’équipage, pas le tour du navire — arbitrage maison (l’acte exige pourtant un Test).",
+    "run": "rechargerLArme",
+    "coutAction": "action",
     "rule": {
       "id": "recharge",
       "type": "quality"

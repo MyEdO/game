@@ -18,7 +18,8 @@ import { GameStage3D, setStageRendererFactory } from '../stage/GameStage3D';
 import { BancRenderer, brancherArdoise, caméras, scènes, viderCaptures } from '../stage/banc-volumique';
 import { hasSpritePicker } from '../stage/spritePicker';
 import { battreStageFrames } from '../stage/stageFrames';
-import { EYE_H, farTilesOf } from './camera';
+import { farTilesOf } from './camera';
+import { EYE_H } from '../../noyau/monde/iso';
 import { MondeDeCampagne } from '../stage/MondeDeCampagne';
 
 /**

@@ -1,11 +1,13 @@
-## Le plateau du jeu : sur le monde de la scène (`Monde`), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
-## ses nappes de toit, levées sur le groupe (`toitsLeves`), et ses couronnes crénelées, tombées avec leur mur
-## (`couronnesAbattues`, `Monde.cacher_les_nappes`),
+## Le plateau du jeu : sur le monde de la scène (`Monde`), sous le regard du plateau (`vue.plateau.regard`,
+## `Monde.regarder`), sa caméra à la suite de l'actif du combat, sinon du groupe (`Monde.suivre`), ou l'œil du meneur
+## (`Immersion`, dont chaque case jouée part en clic), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
+## ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
+## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
 ## corps (`vue.corps`, aucun sous son `refus`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
-## pointeur jusqu'au clic, chacun sur le sol de sa case. Il ne rend que la case cliquée : celle que le monde désigne sous
-## le pointeur.
+## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion. Il ne rend que la
+## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise.
 class_name Plateau
 extends Node3D
 
@@ -17,6 +19,7 @@ signal habille
 
 @onready var _monde: Monde = $Monde
 @onready var _combattants: Node3D = $Combattants
+@onready var _immersion: Immersion = $Immersion
 
 var _modeles: Dictionary = {}
 var _vue: Dictionary = {}
@@ -25,15 +28,13 @@ var _survol: Variant = null
 
 func _ready() -> void:
 	_monde.cadrage_change.connect(func() -> void: _survoler(_monde.case_sous(get_viewport().get_mouse_position())))
+	_immersion.case_jouee.connect(case_cliquee.emit)
 
 
 ## Montre la vue ; chaque ligne de `journal` qui nomme un acteur et sa cible tourne l'acteur vers elle et l'anime, et
 ## la cible accuse le coup.
 func montrer(vue: Dictionary, journal: Array) -> void:
 	_vue = vue
-	if vue.plateau != null:
-		_monde.poser_les_aretes(vue.plateau.aretes)
-		_monde.cacher_les_nappes(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues)
 	var combat: Variant = vue.projection.combat
 	var exploration: Variant = vue.projection.exploration
 	var actif: Variant = null if combat == null or combat.actif == null else combat.actif.id
@@ -43,6 +44,15 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	elif exploration != null:
 		dessines = exploration.heros.slice(0, 1)
 		_nommer_les_entites(exploration.entites.liste)
+	if vue.plateau != null:
+		_monde.regarder(vue.plateau.regard)
+		_monde.poser_les_aretes(vue.plateau.aretes)
+		_monde.cacher_le_bati(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues, vue.plateau.aretesDegagees)
+		_combattants.visible = vue.plateau.regard != "immersion"
+		var suivi: Array = dessines.filter(func(c: Dictionary) -> bool: return c.pos != null and (actif == null or c.id == actif))
+		if not suivi.is_empty():
+			_monde.suivre(_lieu(suivi[0].pos))
+	_immersion.montrer(vue)
 	for c in dessines:
 		if c.pos == null:
 			continue

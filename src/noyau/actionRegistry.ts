@@ -29,7 +29,6 @@ import { desengagementSansAction, refusDEsquiveDeDesengagement } from './combat/
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { isVehicle, estNavire } from '../engine/coque';
 import { compatibleAmmo, activeLoadout } from '../engine/items';
-import { aRecharger } from '../engine/weaponLoad';
 import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { actorHasSkill } from '../engine/skills';
@@ -47,7 +46,7 @@ import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { activeCombatant, placingZoneOf, STANCE_BLOCK } from './combatFlow';
 import { canMove, mountablesNear } from './mount';
 import { refusActionDepensee, refusCoque, refusDeCharge, refusDeCourse, refusHorsDEtatDAgir, refusMouvementEntame, refusPriereImposee, refusSansMouvement } from './refusDuTour';
-import { servablePostes, crewPosteOf, shipOfCrew, posteARecharger } from './monde/shipPostes';
+import { servablePostes, crewPosteOf, shipOfCrew, rechargeDuTour } from './monde/shipPostes';
 import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ShipPoste } from '../engine/types';
 import { pushSlot } from './siegePush';
@@ -279,23 +278,15 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     (pushSlot(active, battle.combatants).undercrew ? no(t('agate.pushUndercrew')) : ok),
   'navire-action': ({ battle }) => (battle.acted ? no(t('agate.vesselActionSpent')) : ok),
   // ── PRÉALABLES DE DISPATCHER : le prédicat même que lit le dispatcher, pour que l'offre refuse ce qu'il refuse.
-  /** L'arme de la case (`args.weaponUid`), ou à défaut l'une des armes du porteur, a un cycle de charge à faire
-   *  (`aRecharger`, lu par `rechargerLArme`). */
-  'arme-a-recharger': ({ active, args }) => {
-    const armes = args?.weaponUid ? active.weapons.filter((w) => w.uid === args.weaponUid) : active.weapons;
-    return armes.some((w) => aRecharger(active, w)) ? ok : no(t('agate.nothingToReload'));
-  },
+  /** L'arme de la case (`args.weaponUid`), ou à défaut une arme du Tour, est à recharger par un porteur à l'Action
+   *  libre (`rechargeDuTour`, lu par `rechargerLArme`). */
+  'arme-a-recharger': ({ active, battle, args }) =>
+    (rechargeDuTour(active, battle, args?.weaponUid) ? ok : no(t('agate.nothingToReload'))),
   /** Chant de marin (MDG 09 l.32-40) : le quart n'a pas eu sa chanson (`quartChante`) et un chanteur est libre
    *  (`chanteurDuNavire`) — les prédicats de `chanterLaChanson`. */
   'chanteur-disponible': ({ active, battle, gameTime }) => {
     if (quartChante(active, gameTime)) return no(t('agate.shantyQuartSung'));
     return chanteurDuNavire(active, battle) ? ok : no(t('agate.noShantySinger'));
-  },
-  /** La pièce de la case (`args.posteUid`) est déchargée et son chef libre ce Round (`posteARecharger`, lu par
-   *  `rechargerLaPiece`). LDB 62 l.335. */
-  'piece-dechargee': ({ active, battle, args }) => {
-    const poste = active.postes?.find((p) => p.item.uid === args?.posteUid);
-    return poste && posteARecharger(active, poste, battle) ? ok : no(t('agate.noPosteToReload'));
   },
   /** Une pièce du navire est prête à faire feu (`postesPretsAFaireFeu`, lu par `battleShipBattery` via `batteryBlock`). */
   'pieces-au-navire': ({ active }) => (postesPretsAFaireFeu(active).length > 0 ? ok : no(t('agate.noLoadedPostes'))),
@@ -605,7 +596,6 @@ export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
   manoeuvrerLeNavire: corps((get, ctx) => { if (ctx.crewId) get().manoeuvrerLeNavire(ctx.crewId); }),
   eprouverLEquipage: corps((get, ctx) => { if (ctx.shipId && ctx.crewTestId) get().eprouverLEquipage(ctx.shipId, ctx.crewTestId); }),
   chanterLaChanson: corps((get, ctx) => { if (ctx.shipId) get().chanterLaChanson(ctx.shipId); }),
-  rechargerLaPiece: corps((get, ctx) => { if (ctx.shipId && ctx.posteUid) get().rechargerLaPiece(ctx.shipId, ctx.posteUid); }),
   prendreLaPanoplie: corps((get, ctx) => { const a = actif(get); if (a && ctx.loadoutId) get().prendreLaPanoplie(a.id, ctx.loadoutId); }),
   /** FIN DU TOUR — porte unique de la plaque de sortie de la console ET de la touche. Le garde-fou
    *  « tour gâché » (spec §1c-bis COIN) est la POLITIQUE DE CETTE ENTRÉE : finir avec l'Action intacte

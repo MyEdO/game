@@ -20,7 +20,7 @@
 import { clicDuCombattant, creerPont, type Suite } from '../pont/pont';
 import { CLIC_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type Element, type Formulaire, type GesteDeLaCreation, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type Formulaire, type GesteDeLaCreation, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
 import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 
@@ -233,6 +233,12 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('récit de voyage, arrivée', s);
   s = voyage.jouer('jouer', enFocus(s));
   figer('écran du lieu, ses services et ses trajets', s);
+  const forgeron = s.vue.zones['fenetre.corps'].find((e): e is Entite => e.id === 'service/forgeron')!;
+  s = voyage.jouer('jouer', (forgeron.elements[0] as Bouton).jeu);
+  figer('échoppe : l’étal et ses prix, le panier vide, les possessions à vendre', s);
+  const article = s.vue.zones['fenetre.corps'].filter((e): e is Entite => e.id.startsWith('etal/')).flatMap((f) => f.elements as Bouton[]).find((b) => !b.refus)!;
+  s = voyage.jouer('jouer', article.jeu);
+  figer('échoppe : un article au panier, son total à payer', s);
   voyage.fermer();
 
   const repit = unPont([]);
@@ -261,6 +267,28 @@ export function figerVuesDeLEcran(): VueFigee[] {
   }
   figer('entre deux aventures, l’ouvrage et le dépôt du forgeron', s);
   forge.fermer();
+
+  /** Le marché du scénario `scenario`, entré par le seul service de son lieu ; ses dés tombés, il montre la bourse. */
+  const auMarche = (scenario: string) => {
+    const p = unPont([]);
+    let m = viderLesFenetres(p.jouer, p.jouer('demarrer', { scenario, graine: 7 }));
+    m = p.jouer('jouer', m.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Le lieu')!.jeu);
+    m = p.jouer('jouer', (m.vue.zones['fenetre.corps'].find((e): e is Entite => e.id.startsWith('service/'))!.elements[0] as Bouton).jeu);
+    for (let pas = 0; !m.vue.zones['fenetre.corps'].some((e) => e.id === 'bourse'); pas++) {
+      if (pas > 12) throw new Error(`aucun marché après ${pas} gestes : ${JSON.stringify(m.vue.zones['fenetre.titre'])}`);
+      m = p.jouer('jouer', presse(m));
+    }
+    return { p, m };
+  };
+  const halle = auMarche('commerce-fluvial');
+  figer('halle : chaque offre, son prix par Enc et son achat', halle.m);
+  const achat = halle.m.vue.zones['fenetre.corps'].flatMap((e) => (e.type === 'entite' ? e.elements : [])).find((x): x is Formulaire => x.id === 'acheter')!;
+  const valeurDe = (c: Saisie) => (c.type === 'saisieChoix' ? c.valeurs.find((v) => v.presse)!.valeur : c.type === 'fixe' || c.type === 'saisieNombre' ? c.valeur : null);
+  figer('halle : un lot acheté, sa vente, son bradage, son transfert', halle.p.jouer('jouer', { type: achat.verbe, args: achat.champs.map(valeurDe) }));
+  halle.p.fermer();
+  const port = auMarche('voyage-maritime');
+  figer('escale maritime : la bourse et la cale du navire', port.m);
+  port.p.fermer();
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],

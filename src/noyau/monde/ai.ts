@@ -99,7 +99,7 @@ export type EnemyAction =
   | { kind: 'recover'; state: 'empetre' | 'en-flammes' } // se libérer / se rouler au sol (LDB 16 l.66/84)
   | { kind: 'spendResource'; resource: 'resolve'; via: 'removeCondition'; id: string } // dépense PROACTIVE de Détermination pour retirer un État verrouillant (Brisé) et se ressaisir (LDB 17 l.57-61)
   | { kind: 'grapple'; targetId: string; resolution: 'break' | 'test' } // Empoigné à son tour (LDB 14 l.161) : son Action EST le Test opposé de Force, OU « Briser » (Avantage supérieur) pour regagner sa liberté d'action puis re-décider
-  | { kind: 'manPoste'; hullId: string; posteUid: string } // « Servir cette pièce » (MDG 12) : devenir chef d'un poste de siège NON servi adjacent (l'arme de siège est octroyée) — coûte l'Action
+  | { kind: 'manPoste'; hullId: string; posteUid: string } // « Servir cette pièce » (MDG 12) : devenir chef d'un poste de siège NON servi adjacent (l'arme de siège est octroyée) — Action gratuite, LDB 13 l.106
   | { kind: 'selfManeuver'; maneuverId: string } // capacité SUR SOI (forme de combat lycanthrope, op transform) — coûte l'Action (2ᵉ via loseTurn)
   | { kind: 'end' }; // rien à faire, passe la main
 
@@ -482,7 +482,7 @@ const TIER = {
   shoot: 4, // tir à distance
   melee: 5, // attaque de mêlée
   move: 6, // approche / repositionnement
-  manPoste: 7, // servir une pièce de siège (préparation : l'arme tire au tour suivant) — faute de mieux
+  manPoste: 7, // servir une pièce de siège (préparation) — faute de mieux
 } as const;
 
 /**
@@ -1139,7 +1139,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   }
 
   // SERVIR UNE PIÈCE DE SIÈGE (MDG 12) : un combattant adjacent à un emplacement/coque portant un poste NON
-  // servi peut en devenir le chef (l'arme de siège lui est octroyée, elle tirera au tour SUIVANT). La liste des
+  // servi peut en devenir le chef (l'arme de siège lui est octroyée ; Action gratuite, LDB 13 l.106, puis l'IA re-décide). La liste des
   // postes servables est surfacée par l'appelant impur (`servablePostes`, KIND-AGNOSTIQUE) ; absente/vide (toute
   // fixture sans emplacement) → aucun candidat (parité golden). Utilité NEUTRE (0) : c'est une PRÉPARATION (comme
   // Recharger), choisie SEULEMENT faute d'attaque/approche jouable ce tour. Les tactiques fines (QUAND servir)

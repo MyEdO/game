@@ -114,4 +114,11 @@ describe('le pied d’une arête', () => {
     expect(piedDeLArete(s, { x: 1, y: 0, side: 'E', z: 1 }), 'le vide à l’est').toBe(4);
     expect(piedDeLArete(s, { x: 0, y: 0, side: 'E', z: 1 }), 'le vide est sa propre case').toBe(4);
   });
+
+  it('au bord d’une trémie, sans sol de part et d’autre, du plus bas plancher de son étage', () => {
+    const s = emptyScene('pied', 3, 2);
+    s.layers.push({ z: 1, tiles: ['plancher', 'plancher', 'plancher', 'vide', 'vide', 'vide'], height: [4, 5, 4, 0, 0, 0] });
+    expect(piedDeLArete(s, { x: 0, y: 2, side: 'N', z: 1 }), 'le pourtour au-dessus de la trémie').toBe(4);
+    expect(piedDeLArete(s, { x: 0, y: 1, side: 'E', z: 1 }), 'la cloison dans la trémie').toBe(4);
+  });
 });

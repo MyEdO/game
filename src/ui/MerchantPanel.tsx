@@ -6,7 +6,7 @@ import { isRepairable } from '../engine/repair';
 import { Row } from './Layout';
 import { verdictDeVente } from '../noyau/flowOutcomes';
 import { compareEquip } from '../engine/equipCompare';
-import { itemFromTrappingById, isWeaponActive, isShieldTrapping } from '../engine/items';
+import { itemFromTrappingById, isWeaponActive } from '../engine/items';
 import { MERCHANT_COL_RENDERERS } from '../noyau/colonnesDuMarchand';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
@@ -27,18 +27,12 @@ import { Tabs } from './composites/Tabs';
 import { SpeakerBanner } from './SpeakerBanner';
 import { TradeTable, type TradeColumn, type TradeGroup } from './TradeTable';
 import { QtyStepper } from './QtyStepper';
-import { AVAILABILITIES } from '../engine/types';
+import { familleDeLArticle, rangDeRarete } from '../noyau/marchandEnVue';
 import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
 
-/** Rang de rareté d'une ligne de catalogue = son INDICE dans le canon ordonné ; hors canon (« ND »,
- *  absence) → après le dernier palier. */
-function availRank(id: string): number {
-  const i = (AVAILABILITIES as readonly string[]).indexOf(catalogEntryOf(id)?.availability ?? '');
-  return i < 0 ? AVAILABILITIES.length : i;
-}
 
 
 /** 7 familles de présentation du stock (`merchantFamilies.json`, ordre d'affichage = ordre du fichier).
@@ -48,22 +42,6 @@ const FAMILIES: { key: string; label: string }[] = merchantFamilies.map((f) => (
 const FAMILY_COLS: Record<string, { label: string; get: (id: string) => string; emph?: boolean }[]> = Object.fromEntries(
   merchantFamilies.map((f) => [f.id, f.columns.map((c, i) => ({ ...MERCHANT_COL_RENDERERS[c], emph: i === 0 ? true : undefined }))]),
 );
-
-const UNIT_FAMILY = merchantFamilies.find((f) => f.match.unit)?.id ?? 'divers';
-const SHIELD_FAMILY = merchantFamilies.find((f) => f.match.shield)?.id ?? 'divers';
-const FALLBACK_FAMILY = merchantFamilies.find((f) => !f.match.categorie && !f.match.shield && !f.match.unit)?.id ?? 'divers';
-const FAMILY_BY_TRAPPING_CATEGORIE = new Map(merchantFamilies.filter((f) => f.match.categorie).map((f) => [f.match.categorie as string, f.id]));
-
-/** Famille d'une ligne de stock — `catalogEntryOf` (SOURCE UNIQUE, `noyau/merchantFlow.ts`) tranche
- *  d'abord si c'est une UNITÉ (#619 Lot A) avant de retomber sur la classification trapping. Priorité
- *  de SPÉCIFICITÉ (dérivée de `merchantFamilies.json:match`) : unit → shield → categorie → fallback. */
-function familyOf(id: string): string {
-  if (catalogEntryOf(id)?.unit) return UNIT_FAMILY;
-  const t = findTrappingById(id);
-  if (!t) return FALLBACK_FAMILY;
-  if (isShieldTrapping(id)) return SHIELD_FAMILY;
-  return FAMILY_BY_TRAPPING_CATEGORIE.get(t.categorie) ?? FALLBACK_FAMILY;
-}
 
 const TREND_CLASS: Record<string, string> = { up: 'cmp-up', down: 'cmp-down', same: '' };
 const TREND_SYM: Record<string, string> = { up: '▲', down: '▼', same: '' };
@@ -140,8 +118,8 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   const labelOf = (id: string) => catalogEntryOf(id)?.label ?? id;
   const inStock = merchant.stock.filter((l) => l.qty > 0);
   const byFamily: Record<string, { id: string; qty: number }[]> = {};
-  for (const l of inStock) (byFamily[familyOf(l.id)] ??= []).push(l);
-  for (const k of Object.keys(byFamily)) byFamily[k].sort((a, b) => availRank(a.id) - availRank(b.id) || labelOf(a.id).localeCompare(labelOf(b.id)));
+  for (const l of inStock) (byFamily[familleDeLArticle(l.id)] ??= []).push(l);
+  for (const k of Object.keys(byFamily)) byFamily[k].sort((a, b) => rangDeRarete(a.id) - rangDeRarete(b.id) || labelOf(a.id).localeCompare(labelOf(b.id)));
 
   const cart = merchant.cart ?? [];
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);

@@ -80,7 +80,6 @@ export const MAISON_MASQUEES = [
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["select-ammo","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["select-attack","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["self-maneuver","maison","",""]', occurrence: 1 },
-  { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["ship-reload","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["sing-shanty","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["teleport-place","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/actions.json', ref: '["undo-move","maison","",""]', occurrence: 1 },
