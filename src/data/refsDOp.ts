@@ -56,6 +56,7 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   rollMutation: [{ field: 'table', ds: 'mutationTables', label: 'Table de Corruption', required: true }],
   summon: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],
   polymorph: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],
+  scheduleRespawn: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],
   exposeDisease: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }],
   contractDisease: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }],
   reduceDiseaseDays: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: false }],
