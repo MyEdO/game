@@ -1,9 +1,9 @@
 /**
  * #3610 — le refus d'un verbe de la barre est une fonction pure du geste (`refusDuGeste`), dont l'offre est la projection
  * sur ses candidats. Garde de PROPRIÉTÉ sur chaque scénario de test, à chaque tour d'un actif que pilote le siège :
- *  - le geste de chaque offre ouverte est admis, et celui d'une offre fermée, seule entrée pertinente de son verbe, est
- *    refusé de la raison même de l'offre (`Offre.gate`) ;
- *  - un verbe appelé sans son argument optionnel est jugé comme le candidat que son corps prend par défaut.
+ *  - le geste de chaque offre ouverte est admis par SON entrée, celui d'une offre fermée est refusé ;
+ *  - un verbe appelé sans son argument omissible est jugé comme le candidat que son corps prend par défaut ;
+ *  - un argument hors de tout candidat (id inconnu, combattant de l'autre camp) est refusé.
  */
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
@@ -11,7 +11,7 @@ import { lancerLeScenario } from './lancementDeScenario';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
 import { advanceTurn } from './combatFlow';
-import { estVerbeDeLaBarre, etatDeLaBarre, offresDeLActif, refusDuGeste } from './actionRegistry';
+import { armeADistanceParDefaut, estVerbeDeLaBarre, etatDeLaBarre, offresDeLActif, refusDuGeste } from './actionRegistry';
 import { seedBattleRng } from './battleRng';
 import { mountablesNear } from './mount';
 import { rechargeDuTour, servablePostes } from './monde/shipPostes';
@@ -22,19 +22,39 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 import type { BattleState, Jeu } from './etat';
 import type { GesteDuNoyau, VerbesDeLaBarre } from './actionsDuNoyau';
 
-/** Le candidat que le CORPS de chaque verbe à argument optionnel prend quand il est omis (`combatSlice.ts`), en argument
- *  du verbe : la même fonction que lit le corps. */
-const DEFAUT_DU_CORPS: { readonly [V in keyof VerbesDeLaBarre]?: (a: Combatant, b: BattleState) => unknown } = {
-  rechargerLArme: (a, b) => rechargeDuTour(a, b, undefined)?.arme.uid,
-  aspergerDEau: (a, b) => waterSprayCandidates(a, b.combatants.filter((c) => c.kind === a.kind))[0]?.id,
-  faireUnBattement: (a, b) => battementFoes(a, b)[0]?.id,
-  tenterDeDistraire: (a, b) => distraireFoes(a, b)[0]?.id,
-  monterEnSelle: (a, b) => mountablesNear(b, a)[0]?.id,
+/** Pour chaque verbe à argument omissible, l'appel qui l'omet et celui qui désigne le candidat que son CORPS prend alors
+ *  (`combatSlice.ts`), lu aux fonctions mêmes que lit le corps. */
+const CAS_DU_CORPS: { readonly [V in keyof VerbesDeLaBarre]?: (a: Combatant, b: BattleState) => { omis: unknown[]; designe: unknown }[] } = {
+  rechargerLArme: (a, b) => [{ omis: [], designe: rechargeDuTour(a, b, undefined)?.arme.uid }],
+  aspergerDEau: (a, b) => [{ omis: [], designe: waterSprayCandidates(a, b.combatants.filter((c) => c.kind === a.kind))[0]?.id }],
+  faireUnBattement: (a, b) => [{ omis: [], designe: battementFoes(a, b)[0]?.id }],
+  tenterDeDistraire: (a, b) => [{ omis: [], designe: distraireFoes(a, b)[0]?.id }],
+  monterEnSelle: (a, b) => [{ omis: [], designe: mountablesNear(b, a)[0]?.id }],
   servirLePoste: (a, b) => {
     const sp = servablePostes(a, b.combatants)[0];
-    return sp && { hullId: sp.hull.id, posteUid: sp.poste.item.uid };
+    return [{ omis: [], designe: sp && { hullId: sp.hull.id, posteUid: sp.poste.item.uid } }];
   },
+  chanterLaChanson: (a) => [{ omis: [], designe: a.id }],
+  manoeuvrerLeNavire: (a) => [{ omis: [], designe: a.id }],
+  // La munition se désigne toujours ; l'arme omise est la première arme à distance du porteur.
+  approvisionnerLArme: (a) => (a.items ?? []).filter((i) => i.kind === 'ammo').map((m) => ({ omis: [m.uid], designe: [m.uid, armeADistanceParDefaut(a)?.uid] })),
 };
+
+/** Des arguments HORS de tout candidat, par verbe : un id que rien ne porte, et, pour une cible ou une coque, un
+ *  combattant de l'autre camp. */
+function horsCandidat(a: Combatant, b: BattleState): GesteDuNoyau[] {
+  const X = 'id-etranger';
+  const autre = b.combatants.find((c) => c.kind !== a.kind)?.id ?? X;
+  const munition = (a.items ?? []).find((i) => i.kind === 'ammo')?.uid ?? X;
+  const gestes: [string, unknown[]][] = [
+    ['armerLAttaque', [X]], ['lancerLAttaqueDeZone', [X]], ['rechargerLArme', [X]], ['approvisionnerLArme', [X]],
+    ['approvisionnerLArme', [munition, X]], ['aspergerDEau', [X]], ['aspergerDEau', [autre]], ['gagnerLAvantage', [X]],
+    ['faireUnBattement', [X]], ['tenterDeDistraire', [X]], ['manoeuvrerSurSoi', [X]], ['monterEnSelle', [X]],
+    ['servirLePoste', [{ hullId: X, posteUid: X }]], ['ramasserLObjet', [X, X]], ['manoeuvrerLeNavire', [autre]],
+    ['chanterLaChanson', [autre]], ['chanterLaChanson', [X]],
+  ];
+  return gestes.map(([verbe, args]) => ({ verbe, args }) as GesteDuNoyau);
+}
 
 /** Les écarts du tour de l'actif de `s`, barre ouverte. */
 function ecartsDuTour(s: Jeu, ou: string): string[] {
@@ -45,18 +65,23 @@ function ecartsDuTour(s: Jeu, ou: string): string[] {
   for (const o of offres) {
     if (!o.geste || !estVerbeDeLaBarre(o.geste.verbe)) continue;
     const v = refusDuGeste(s, o.geste);
-    if (o.gate.ok && 'refus' in v) ecarts.push(`${ou} ${o.actionId} ${JSON.stringify(o.geste)} ouverte, refusée : ${v.refus}`);
-    const memeVerbe = offres.filter((x) => x.def.run === o.def.run).map((x) => x.actionId);
-    if (!o.gate.ok && new Set(memeVerbe).size === 1 && !('refus' in v && v.refus === o.gate.reason)) {
-      ecarts.push(`${ou} ${o.actionId} ${JSON.stringify(o.geste)} fermée (${o.gate.reason}), jugée ${JSON.stringify('refus' in v ? v.refus : v.def.id)}`);
+    const jugee = JSON.stringify('refus' in v ? v.refus : v.def.id);
+    if (o.gate.ok && ('refus' in v || v.def.id !== o.actionId)) ecarts.push(`${ou} ${o.actionId} ${JSON.stringify(o.geste)} ouverte, jugée ${jugee}`);
+    if (!o.gate.ok && !('refus' in v)) ecarts.push(`${ou} ${o.actionId} ${JSON.stringify(o.geste)} fermée (${o.gate.reason}), admise par ${jugee}`);
+  }
+  for (const [verbe, cas] of Object.entries(CAS_DU_CORPS)) {
+    for (const { omis, designe } of cas!(barre.active, barre.battle)) {
+      const vOmis = refusDuGeste(s, { verbe, args: omis } as GesteDuNoyau);
+      const args = Array.isArray(designe) ? designe : [designe];
+      const vDesigne = args.includes(undefined) ? undefined : refusDuGeste(s, { verbe, args } as GesteDuNoyau);
+      const attendu = vDesigne && !('refus' in vDesigne) ? vDesigne.def.id : null;
+      const obtenu = 'refus' in vOmis ? null : vOmis.def.id;
+      if (obtenu !== attendu) ecarts.push(`${ou} ${verbe}(${JSON.stringify(omis)}) admis par ${obtenu}, défaut du corps ${JSON.stringify(designe)} admis par ${attendu}`);
     }
   }
-  for (const [verbe, defaut] of Object.entries(DEFAUT_DU_CORPS)) {
-    const candidat = defaut!(barre.active, barre.battle);
-    const omis = refusDuGeste(s, { verbe, args: [] } as GesteDuNoyau);
-    const designe = candidat === undefined ? undefined : refusDuGeste(s, { verbe, args: [candidat] } as GesteDuNoyau);
-    const attendu = designe ? !('refus' in designe) : false;
-    if (!('refus' in omis) !== attendu) ecarts.push(`${ou} ${verbe}() ${'refus' in omis ? `refusé (${omis.refus})` : 'admis'}, défaut du corps ${JSON.stringify(candidat)} ${attendu ? 'admis' : 'refusé'}`);
+  for (const g of horsCandidat(barre.active, barre.battle)) {
+    const v = refusDuGeste(s, g);
+    if (!('refus' in v)) ecarts.push(`${ou} ${JSON.stringify(g)} hors candidat, admis par ${v.def.id}`);
   }
   return ecarts;
 }

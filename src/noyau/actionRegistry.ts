@@ -249,12 +249,12 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   /** Battement (`LDB 10 l.103` · `AA 13 l.11-17` · `LDB 13 l.114`) : la case porte le prédicat du
    *  verbe (`battementFoes`, `combatManeuvers.ts`) — offerte si et seulement si `faireUnBattement`
    *  a un adversaire à traiter, sinon refusée AVEC sa raison. */
-  'battement-cible-eligible': ({ active, battle }) =>
-    battementFoes(active, battle).length > 0 ? ok : no(t('agate.noBattementTarget')),
+  'battement-cible-eligible': ({ active, battle, args }) =>
+    battementFoes(active, battle).some((f) => !args?.targetId || f.id === args.targetId) ? ok : no(t('agate.noBattementTarget')),
   /** Distraire (`LDB 10 l.364` · `AA 13 l.46-51`) : même prédicat que le verbe (`distraireFoes`) —
    *  offerte si et seulement si `tenterDeDistraire` a un adversaire à traiter. */
-  'distraire-cible-eligible': ({ active, battle }) =>
-    distraireFoes(active, battle).length > 0 ? ok : no(t('agate.noDistraireTarget')),
+  'distraire-cible-eligible': ({ active, battle, args }) =>
+    distraireFoes(active, battle).some((f) => !args?.targetId || f.id === args.targetId) ? ok : no(t('agate.noDistraireTarget')),
   /** Focalisation (`LDB 46` — fiche `regles/focalisation-etendue`) : le SORT visé vient des ARGS de
    *  l'alvéole (le geste secondaire de la case d'un sort), et le verdict porte donc sur CE sort.
    *  MÊMES prédicats que le verbe `focaliserLeSort` (`isArcaneSpell`, `castBlockedBy`) et que
@@ -294,10 +294,6 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   },
   /** Une pièce du navire est prête à faire feu (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee` via `batteryBlock`). */
   'pieces-au-navire': ({ active }) => (postesPretsAFaireFeu(active).length > 0 ? ok : no(t('agate.noLoadedPostes'))),
-  /** L'attaque de la case (`args.attackId`, l'arme à défaut) est une des attaques disponibles (`availableAttacks`), celle
-   *  qu'arme `armerLAttaque`. */
-  'attaque-disponible': ({ active, battle, args }) =>
-    (availableAttacks(active, battle).some((a) => a.id === (args?.attackId ?? 'arme')) ? ok : no(t('agate.attackUnavailable'))),
   // ── PERTINENCE (#2911) : l'entrée a-t-elle lieu d'être offerte à CE porteur (`GATES_DE_PERTINENCE`) ?
   fantassin,
   /** Déjà en joue : Viser n'a pas lieu d'être offert (`LDB 14 l.61`). */
@@ -328,6 +324,11 @@ export const GATES_DE_PERTINENCE: ReadonlySet<string> = new Set([
   'fantassin', 'set-de-melee', 'tireur', 'arme-de-repousse', 'engage', 'battement-connu', 'distraire-connu',
   'frenesie-possible', 'equipe-a-aider', 'monte', 'pas-deja-en-joue', 'poste-servi', 'a-la-barre', 'navire', 'vehicule', 'pause-de-round', GATE_ETAT_PORTE,
 ]);
+
+/** L'arme à distance que prend `approvisionnerLArme` sans arme désignée : la première du porteur. */
+export function armeADistanceParDefaut(active: Combatant) {
+  return active.weapons.find((w) => w.type === 'ranged');
+}
 
 /** Les armes à distance du porteur — population du sélecteur `armes-a-distance` et du gate `tireur`. */
 function armesADistance(active: Combatant) {
@@ -614,60 +615,77 @@ function sansFinAbsente(args: readonly unknown[]): unknown[] {
 /** L'id du combattant actif, que l'offre d'un porteur prend pour porteur. */
 const idDeLActif = (o: OffreAJouer): IdDeCombattant => garanti(o.active, o.def.id, 'actif de l’offre').id;
 
-/** Ce que porte une position d'argument d'un verbe de la barre : une clé du contexte de la case ; pour un argument
- *  objet, la clé que porte chacun de ses champs (`champs`) ; ou la valeur qu'un champ déclaré de l'ENTRÉE lui donne
- *  (`entree`), qui désigne l'entrée elle-même. */
+/** Le candidat que le CORPS d'un verbe prend pour une position omise, dans le combat de l'actif : l'argument même qu'il
+ *  recevrait, lu aux fonctions que lit le corps. */
+type DefautDuCorps = (b: { active: Combatant; battle: BattleState }) => unknown;
+
+/** Ce que porte une position d'argument d'un verbe de la barre :
+ *  - une clé du contexte de la case (`cle`), ou, pour un argument objet, la clé de chacun de ses champs (`champs`) ;
+ *    `defaut` est le candidat que le corps prend quand elle est omise, et `omissible` dit que la signature l'admet
+ *    (l'offre ne l'écrit alors pas) ;
+ *  - ou la valeur qu'un champ déclaré de l'ENTRÉE lui donne (`entree`), qui désigne l'entrée elle-même. */
 type ArgumentDuVerbe =
-  | keyof ContexteDOffre
-  | { readonly champs: Readonly<Record<string, keyof ContexteDOffre>> }
+  | { readonly cle: keyof ContexteDOffre; readonly defaut?: DefautDuCorps; readonly omissible?: true }
+  | { readonly champs: Readonly<Record<string, keyof ContexteDOffre>>; readonly defaut?: DefautDuCorps; readonly omissible?: true }
   | { readonly entree: (def: ActionDef) => unknown };
 
 /** LA LECTURE D'UN VERBE DE LA BARRE (#3610), une déclaration lue dans les deux sens : l'offre en tire son geste (le
  *  contexte de sa case vers les arguments, `gesteDuVerbeDeLaBarre`), le verbe son contexte (les arguments vers le candidat,
- *  `contexteDuGeste`).
+ *  `contexteDesArguments`), défauts du corps compris.
  *  - `args` : ce que porte chaque position ;
- *  - `requis` : les clés sans lesquelles la case attend son paramètre, que la surface choisit (geste `null`) ;
- *  - `defaut` : la valeur que le corps prend pour la première position omise, l'id de l'actif (`'actif'`) ou une
- *    valeur ; posée, elle se lit comme omise. */
+ *  - `requis` : les clés sans lesquelles la case attend son paramètre, que la surface choisit (geste `null`). */
 interface LectureDuVerbe {
   args?: readonly ArgumentDuVerbe[];
   requis?: readonly (keyof ContexteDOffre)[];
-  defaut?: 'actif' | { valeur: unknown };
 }
 
+/** L'actif, que le corps prend pour sa coque ou son barreur. */
+const lActif: DefautDuCorps = ({ active }) => active.id;
+
 /** La lecture de chaque verbe de la barre (`VerbesDeLaBarre`), entrée des offres qui le déclarent par leur `run` : un
- *  verbe de la barre sans lecture ne compile pas. */
+ *  verbe de la barre sans lecture ne compile pas. Chaque clé d'argument d'une entrée se désigne par les candidats de son
+ *  porteur, par un PRÉALABLE qui la lit (`CLES_DES_PREALABLES`) ou par son défaut : sinon le registre lève au chargement
+ *  (`CLES_DESIGNABLES`). */
 const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuVerbe } = {
   armerLIntention: { args: [{ entree: (def) => def.id }] },
   armerLeMode: { args: [{ entree: (def) => def.armed }] },
-  armerLAttaque: { args: ['attackId'], defaut: { valeur: 'arme' } },
-  lancerLAttaqueDeZone: { args: ['attackKind'], requis: ['attackKind'] },
+  armerLAttaque: { args: [{ cle: 'attackId', defaut: () => 'arme' }] },
+  lancerLAttaqueDeZone: { args: [{ cle: 'attackKind' }], requis: ['attackKind'] },
   prendreLaVisee: {},
-  rechargerLArme: { args: ['weaponUid'] },
-  approvisionnerLArme: { args: ['ammoUid', 'weaponUid'], requis: ['ammoUid'] },
+  rechargerLArme: { args: [{ cle: 'weaponUid', defaut: ({ active, battle }) => rechargeDuTour(active, battle)?.arme.uid, omissible: true }] },
+  approvisionnerLArme: {
+    args: [{ cle: 'ammoUid' }, { cle: 'weaponUid', defaut: ({ active }) => armeADistanceParDefaut(active)?.uid, omissible: true }],
+    requis: ['ammoUid'],
+  },
   basculerLaRepousse: {},
   basculerLaPosture: { args: [{ entree: (def) => def.stance }] },
-  aspergerDEau: { args: ['targetId'] },
+  aspergerDEau: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind))[0]?.id, omissible: true }] },
   prendreLaDefensive: {},
   rompreLEngagement: {},
-  gagnerLAvantage: { args: ['skillId'], requis: ['skillId'] },
+  gagnerLAvantage: { args: [{ cle: 'skillId' }], requis: ['skillId'] },
   // L'État traité est celui que l'ENTRÉE déclare : aucun paramètre de case ne le porte.
   seRemettreDeLEtat: { args: [{ entree: etatDeclare }] },
   seRelever: {},
-  faireUnBattement: { args: ['targetId'] },
-  tenterDeDistraire: { args: ['targetId'] },
+  faireUnBattement: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => battementFoes(active, battle)[0]?.id, omissible: true }] },
+  tenterDeDistraire: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => distraireFoes(active, battle)[0]?.id, omissible: true }] },
   entrerEnFrenesie: {},
-  manoeuvrerSurSoi: { args: ['maneuverId'], requis: ['maneuverId'] },
-  monterEnSelle: { args: ['targetId'] },
+  manoeuvrerSurSoi: { args: [{ cle: 'maneuverId' }], requis: ['maneuverId'] },
+  monterEnSelle: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => mountablesNear(battle, active)[0]?.id, omissible: true }] },
   mettrePiedATerre: {},
-  servirLePoste: { args: [{ champs: { hullId: 'shipId', posteUid: 'posteUid' } }] },
+  servirLePoste: {
+    args: [{
+      champs: { hullId: 'shipId', posteUid: 'posteUid' },
+      defaut: ({ active, battle }) => { const sp = servablePostes(active, battle.combatants)[0]; return sp && { hullId: sp.hull.id, posteUid: sp.poste.item.uid }; },
+      omissible: true,
+    }],
+  },
   quitterLePoste: {},
   pousserLEngin: {},
   aiderLEquipe: {},
-  ramasserLObjet: { args: ['entityId', 'pickKey'], requis: ['entityId', 'pickKey'] },
+  ramasserLObjet: { args: [{ cle: 'entityId' }, { cle: 'pickKey' }], requis: ['entityId', 'pickKey'] },
   // La barre : le barreur la tient, ou la coque elle-même (`manoeuvrerLeNavire` accepte l'un ou l'autre).
-  manoeuvrerLeNavire: { args: ['crewId'], defaut: 'actif' },
-  chanterLaChanson: { args: ['shipId'], defaut: 'actif' },
+  manoeuvrerLeNavire: { args: [{ cle: 'crewId', defaut: lActif }] },
+  chanterLaChanson: { args: [{ cle: 'shipId', defaut: lActif }] },
   annulerLeDeplacement: {},
   terminerLeTour: {},
 };
@@ -677,48 +695,58 @@ export function estVerbeDeLaBarre(verbe: string): verbe is keyof VerbesDeLaBarre
   return Object.prototype.hasOwnProperty.call(ARGUMENTS_DE_LA_BARRE, verbe);
 }
 
-/** La valeur que le corps prend pour la première position omise du verbe lu par `lecture`, l'actif étant `active`. */
-function valeurParDefaut(lecture: LectureDuVerbe, active: Combatant | undefined): unknown {
-  if (!lecture.defaut) return undefined;
-  return lecture.defaut === 'actif' ? active?.id : lecture.defaut.valeur;
+/** Les clés du contexte de case qu'une position porte. */
+const clesDe = (a: ArgumentDuVerbe): (keyof ContexteDOffre)[] => ('cle' in a ? [a.cle] : 'champs' in a ? Object.values(a.champs) : []);
+
+/** L'argument d'une position, tiré du contexte `ctx` (`undefined` quand il n'y est pas). */
+function argumentDuContexte(a: ArgumentDuVerbe, def: ActionDef, ctx: ContexteDOffre, i: number): unknown {
+  if ('entree' in a) return garanti(a.entree(def), def.id, `argument ${i} déclaré par l’entrée`);
+  if ('cle' in a) return ctx[a.cle];
+  const champs = Object.entries(a.champs);
+  return champs.every(([, cle]) => ctx[cle] !== undefined) ? Object.fromEntries(champs.map(([champ, cle]) => [champ, ctx[cle]])) : undefined;
+}
+
+/** Les arguments du verbe lu par `lecture` que le contexte `ctx` de l'entrée `def` déclare. */
+function argumentsDuContexte(lecture: LectureDuVerbe, def: ActionDef, ctx: ContexteDOffre): unknown[] {
+  return sansFinAbsente((lecture.args ?? []).map((a, i) => argumentDuContexte(a, def, ctx, i)));
 }
 
 /** Sens CANDIDAT → ARGUMENTS : le geste du verbe de la barre `verbe` qu'une offre déclare, ou `null` quand sa case attend
- *  son paramètre (`requis`). */
+ *  son paramètre (`requis`). Une position que la signature exige (non `omissible`) prend le défaut du corps. */
 function gesteDuVerbeDeLaBarre(verbe: keyof VerbesDeLaBarre, o: OffreAJouer): GesteDuNoyau | null {
   const lecture = ARGUMENTS_DE_LA_BARRE[verbe];
   if ((lecture.requis ?? []).some((cle) => o.args[cle] === undefined)) return null;
-  const args = (lecture.args ?? []).map((a, i) => {
-    if (typeof a === 'string') return o.args[a] ?? (i === 0 && lecture.defaut ? (lecture.defaut === 'actif' ? idDeLActif(o) : lecture.defaut.valeur) : undefined);
-    if ('entree' in a) return garanti(a.entree(o.def), o.def.id, `argument ${i} de ${verbe} déclaré par l’entrée`);
-    const champs = Object.entries(a.champs);
-    return champs.every(([, cle]) => o.args[cle] !== undefined) ? Object.fromEntries(champs.map(([champ, cle]) => [champ, o.args[cle]])) : undefined;
-  });
-  return { verbe, args: sansFinAbsente(args) };
+  const ctx: Record<string, unknown> = { ...o.args };
+  for (const a of lecture.args ?? []) {
+    if ('entree' in a || a.omissible || !a.defaut || argumentDuContexte(a, o.def, o.args, 0) !== undefined) continue;
+    Object.assign(ctx, versLeContexte(a, a.defaut({ active: garanti(o.active, o.def.id, 'actif de l’offre'), battle: garanti(o.etat.battle, o.def.id, 'combat de l’offre') })));
+  }
+  return { verbe, args: argumentsDuContexte(lecture, o.def, ctx as ContexteDOffre) };
 }
 
-/** Sens ARGUMENTS → CANDIDAT : le contexte de case que les arguments `args` du verbe lu par `lecture` désignent, l'actif
- *  étant `active`. Un argument omis (`undefined`, ou `null` qu'un hôte JSON écrit pour omettre), ou égal à la valeur par
- *  défaut du corps, ne pose rien. */
-function contexteDuGeste(lecture: LectureDuVerbe, args: readonly unknown[], active: Combatant): ContexteDOffre {
-  const ctx: Record<string, unknown> = {};
-  (lecture.args ?? []).forEach((a, i) => {
-    const v = args[i];
-    if (v === undefined || v === null || (i === 0 && v === valeurParDefaut(lecture, active))) return;
-    if (typeof a === 'string') ctx[a] = v;
-    else if ('champs' in a && typeof v === 'object') {
-      for (const [champ, cle] of Object.entries(a.champs)) {
-        const x = (v as Record<string, unknown>)[champ];
-        if (x !== undefined && x !== null) ctx[cle] = x;
-      }
-    }
-  });
-  return ctx as ContexteDOffre;
+/** Les clés de contexte qu'un argument `v` de la position `a` pose. */
+function versLeContexte(a: ArgumentDuVerbe, v: unknown): Record<string, unknown> {
+  if (v === undefined || v === null || 'entree' in a) return {};
+  if ('cle' in a) return { [a.cle]: v };
+  if (typeof v !== 'object') return {};
+  return Object.fromEntries(Object.entries(a.champs).flatMap(([champ, cle]) => {
+    const x = (v as Record<string, unknown>)[champ];
+    return x === undefined || x === null ? [] : [[cle, x]];
+  }));
+}
+
+/** Sens ARGUMENTS → CANDIDAT : le contexte de case que les arguments `args` du verbe lu par `lecture` désignent, dans le
+ *  combat `b`. Un argument omis (`undefined`, ou `null` qu'un hôte JSON écrit pour omettre) prend le défaut du corps. */
+function contexteDesArguments(lecture: LectureDuVerbe, args: readonly unknown[], b: { active: Combatant; battle: BattleState }): ContexteDOffre {
+  return Object.assign({}, ...(lecture.args ?? []).map((a, i) => {
+    const pose = args[i] ?? undefined;
+    return versLeContexte(a, pose === undefined && !('entree' in a) && a.defaut ? a.defaut(b) : pose);
+  })) as ContexteDOffre;
 }
 
 /** L'entrée `def` est-elle celle que désignent les arguments `args` de son verbe (positions `entree` de sa lecture) ? */
 function entreeDesignee(lecture: LectureDuVerbe, def: ActionDef, args: readonly unknown[]): boolean {
-  return (lecture.args ?? []).every((a, i) => typeof a === 'string' || !('entree' in a) || a.entree(def) === args[i]);
+  return (lecture.args ?? []).every((a, i) => !('entree' in a) || a.entree(def) === args[i]);
 }
 
 /** L'ENTRÉE d'une offre (#3610) : le geste qui la joue (`null` : sa case attend son paramètre), et sa place. `barre` :
@@ -824,22 +852,63 @@ export function refusDeLOffreHorsDuTour(s: Jeu, actionId: string): string | null
   return gate.ok ? null : garanti(gate.reason, actionId, 'raison du refus de l’offre');
 }
 
-/** La raison qui refuse la DÉSIGNATION du contexte `args` par l'entrée `def`, ou `null`. Une entrée qui s'offre par
- *  candidat (`ACTION_PORTEURS`) les énumère comme l'offre (`offresDeLActif`) : un argument posé doit en désigner un, et,
- *  omis, un candidat doit exister (le corps prend le défaut) ; une entrée à sélecteur sans porteur exige un candidat. */
-function refusDeDesignation(def: ActionDef, ctx: ActionSelectorCtx, args: ContexteDOffre): string | null {
+/** Le candidat `candidat` (les arguments que son porteur déclare) est-il celui que désigne le contexte `poses` ? Chacun de
+ *  ses arguments y est repris. Règle UNIQUE de la désignation : le verdict d'un geste (`refusDuGeste`) et la case qui se
+ *  reconnaît parmi les offres (`offreDesignee`). */
+function designe(candidat: ContexteDOffre, poses: ContexteDOffre): boolean {
+  const voulus = poses as Record<string, unknown>;
+  return Object.entries(candidat).every(([k, v]) => voulus[k] === v);
+}
+
+/** Les clés de case que lit chaque PRÉALABLE DE VERBE : un argument qu'il lit est jugé par lui. */
+const CLES_DES_PREALABLES: Readonly<Record<string, readonly (keyof ContexteDOffre)[]>> = {
+  'arme-a-recharger': ['weaponUid'],
+  'battement-cible-eligible': ['targetId'],
+  'distraire-cible-eligible': ['targetId'],
+};
+
+/** Les clés de case que l'entrée `def` désigne par un candidat (son porteur) ou par un préalable qui les lit. */
+function clesJugees(def: ActionDef): { porteur: boolean; prealables: ReadonlySet<keyof ContexteDOffre> } {
+  return {
+    porteur: !!def.candidates && !!ACTION_PORTEURS[def.candidates],
+    prealables: new Set([def.gate].flat().flatMap((g) => CLES_DES_PREALABLES[g] ?? [])),
+  };
+}
+
+/** Le verrou de chargement : chaque clé d'argument de chaque entrée d'un verbe de la barre se désigne (porteur, préalable
+ *  ou défaut du corps). Une entrée qui prendrait un argument sans pouvoir dire ses candidats lève ici, en la nommant. */
+const CLES_DESIGNABLES = ACTIONS.flatMap((def) => {
+  if (!def.run || !estVerbeDeLaBarre(def.run)) return [];
+  const { porteur, prealables } = clesJugees(def);
+  for (const a of ARGUMENTS_DE_LA_BARRE[def.run].args ?? []) {
+    if ('entree' in a || a.defaut || porteur) continue;
+    const orpheline = clesDe(a).find((k) => !prealables.has(k));
+    if (orpheline) throw new Error(`entrée ${def.id} : l’argument ${orpheline} de ${def.run} ne désigne aucun candidat (porteur, préalable ou défaut du corps)`);
+  }
+  return [def.id];
+});
+void CLES_DESIGNABLES;
+
+/** La raison qui refuse la DÉSIGNATION du contexte `args` (défauts du corps posés) par l'entrée `def`, ou `null`.
+ *  - Une clé requise absente : aucun candidat.
+ *  - Une entrée à sélecteur : un candidat existe ; avec un porteur, l'un d'eux est désigné (`designe`), comme l'offre les
+ *    énumère (`offresDeLActif`).
+ *  - Toute autre clé posée est lue par un préalable de l'entrée, ou vaut le défaut du corps : son seul candidat. */
+function refusDeDesignation(def: ActionDef, lecture: LectureDuVerbe, ctx: ActionSelectorCtx, args: ContexteDOffre): string | null {
+  if ((lecture.requis ?? []).some((cle) => args[cle] === undefined)) return t('offre.sansCandidat');
   const selecteur = def.candidates ? ACTION_CANDIDATES[def.candidates] : undefined;
-  if (!selecteur) return null;
-  const candidats = selecteur(ctx);
-  const porteur = ACTION_PORTEURS[def.candidates!];
-  const porteurs = porteur ? candidats.flatMap((c) => { const p = porteur(c); return p ? [p] : []; }) : candidats;
-  if (!porteurs.length) return t('offre.sansCandidat');
-  if (!porteur) return null;
+  const porteur = def.candidates ? ACTION_PORTEURS[def.candidates] : undefined;
+  const candidats = selecteur ? selecteur(ctx) : [];
+  const porteurs = porteur ? candidats.flatMap((c) => { const p = porteur(c); return p ? [p] : []; }) : [];
+  if (selecteur && !(porteur ? porteurs : candidats).length) return t('offre.sansCandidat');
+  if (porteur && !porteurs.some((p) => designe(p.args, args))) return t('offre.sansCandidatDuContexte');
+  const parLesCandidats = new Set(porteurs.flatMap((p) => Object.keys(p.args)));
+  const { prealables } = clesJugees(def);
+  const defauts = contexteDesArguments({ args: (lecture.args ?? []).filter((a) => !('entree' in a) && a.defaut) }, [], ctx);
   const poses = args as Record<string, unknown>;
-  const cles = new Set((porteurs as ActionPorteur[]).flatMap((p) => Object.keys(p.args)));
-  const designees = Object.keys(poses).filter((k) => cles.has(k));
-  const designe = (porteurs as ActionPorteur[]).some((p) => designees.every((k) => (p.args as Record<string, unknown>)[k] === poses[k]));
-  return designe ? null : t('offre.sansCandidatDuContexte');
+  const horsCandidat = Object.keys(poses).some((k) => !parLesCandidats.has(k) && !prealables.has(k as keyof ContexteDOffre)
+    && poses[k] !== (defauts as Record<string, unknown>)[k]);
+  return horsCandidat ? t('offre.sansCandidatDuContexte') : null;
 }
 
 /**
@@ -865,12 +934,12 @@ export function refusDuGeste(s: Jeu, g: GesteDuNoyau): { def: ActionDef; args: C
   if (!defs.length) return { refus: t('offre.sansEntree') };
   const pertinentes = defs.filter((def) => pertinente(def, base));
   if (!pertinentes.length) return { refus: garanti(actionGate(defs[0].id, base).reason, defs[0].id, 'raison de la pertinence') };
-  const args = contexteDuGeste(lecture, g.args, barre.active);
+  const args = contexteDesArguments(lecture, g.args, barre);
   let refusDeRegle: string | undefined;
   let refusDeCandidat: string | undefined;
   for (const def of pertinentes) {
     const gate = actionGate(def.id, { ...base, args });
-    const designation = refusDeDesignation(def, base, args);
+    const designation = refusDeDesignation(def, lecture, base, args);
     if (gate.ok && !designation) return { def, args };
     if (!gate.ok) refusDeRegle ??= garanti(gate.reason, def.id, 'raison du refus du geste');
     refusDeCandidat ??= designation ?? undefined;
@@ -899,7 +968,8 @@ export function creerVerbesDeLaBarre(get: Get<JeuDuNoyau>, set: Set, corps: Corp
     const verdict = refusDuGeste(get(), { verbe, args });
     if ('refus' in verdict) return void refuserGesteDuSiege(get, set, verdict.refus);
     armerLOffre(get, verdict.def);
-    corpsDe(verbe)?.(...args);
+    // Le corps reçoit le candidat que le verdict a désigné, défauts du corps compris.
+    corpsDe(verbe)?.(...argumentsDuContexte(ARGUMENTS_DE_LA_BARRE[verbe], verdict.def, verdict.args));
   }])) as unknown as VerbesDeLaBarre;
   return {
     ...verbes,
@@ -986,8 +1056,7 @@ export function offresDeLActif(ctx: ActionSelectorCtx & { state: Jeu }): Offre[]
  *  `args`. Une offre par candidat se reconnaît à ses arguments (le sort, l'arme, l'attaque) ; une offre unique, sans
  *  argument, à son seul id. La console y reconnaît ses cases, l'hôte texte le geste qu'il joue. */
 export function offreDesignee(offres: readonly Offre[], actionId: string, args: ContexteDOffre = {}): Offre | undefined {
-  const voulus = args as Record<string, unknown>;
-  return offres.find((o) => o.actionId === actionId && Object.entries(o.args).every(([k, v]) => voulus[k] === v));
+  return offres.find((o) => o.actionId === actionId && designe(o.args, args));
 }
 
 /** Les offres d'une SURFACE qui offre par candidat (pastilles du champ, gestes secondaires d'une alvéole),

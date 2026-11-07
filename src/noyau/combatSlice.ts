@@ -6,7 +6,7 @@
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
-import { ACTION_GATES, actionGate, refusDeLOffreHorsDuTour, type ContexteDOffre, type BattleActionMode } from './actionRegistry';
+import { ACTION_GATES, actionGate, armeADistanceParDefaut, refusDeLOffreHorsDuTour, type ContexteDOffre, type BattleActionMode } from './actionRegistry';
 import type { CounterParticipant, CounterDeclaration, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
@@ -1290,7 +1290,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!active) return;
       const rw = weaponUid
         ? active.weapons.find((w) => w.uid === weaponUid && w.type === 'ranged')
-        : active.weapons.find((w) => w.type === 'ranged');
+        : armeADistanceParDefaut(active);
       if (!rw) return; // aucune arme à distance : rien à choisir
       // Chef qui SERT cette pièce : le cycle de charge vit sur la PIÈCE — la bascule doit la décharger ELLE.
       choisirLaMunition(active, rw, uid, active.mannedPoste?.item.uid === rw.uid ? active.mannedPoste : undefined);

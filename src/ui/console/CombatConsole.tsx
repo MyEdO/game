@@ -801,10 +801,10 @@ export function CombatConsole() {
     // case, mêmes arguments (`manoeuvrerLeNavire` accepte l'un ou l'autre, `combatSlice.ts:1363`).
     cellFor('maneuver-ship', 'geste', { args: { crewId: active.id } }),
     // NAVIRE (échelle Mer) : au tour de la coque, ses Tests d'équipage sont les gestes de la travée —
-    // les MÊMES cases du registre, pas une 2ᵉ barre. Bordée et Rude épreuve dépensent l'Action du navire
+    // les MÊMES cases du registre, pas une 2ᵉ barre. La bordée dépense l'Action du navire
     // (gate `navire-action`) ; chant et recharge sont des tâches parallèles, fermées par leurs gates de préalable
     // (`chanteur-disponible`, `arme-a-recharger` : l'Action du chef de pièce), sans Action du navire.
-    // Recharge : LDB 62 l.335 ; bordée, Rude épreuve, chant : MDG 14.
+    // Recharge : LDB 62 l.335 ; bordée, chant : MDG 14.
     cellFor('battery', 'attaque'),
     cellFor('sing-shanty', 'geste', { args: { shipId: active.id } }),
     cellFor('ship-reload', 'geste', { args: { weaponUid: reloadable?.uid } }),
