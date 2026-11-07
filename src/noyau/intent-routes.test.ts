@@ -80,8 +80,13 @@ describe('#1051 — les familles de routes sont DISJOINTES (invariant verrouill�
 describe('#1051 — frontière table ⇄ REPLI universel', () => {
   it('le repli n’est PAS une entrée de la table : il porte les gestes routés au propriétaire de ce qu’ils touchent', () => {
     const repli = [...GUEST_INTENTS].filter((a) => !ROUTES.has(a)).sort();
-    expect(repli, 'population du repli universel : chacun se route au propriétaire du tour actif (`effacerLApercu`, `desarmerLeMode`), de son porteur (`utiliserLObjet`, `prendreLaPanoplie`, `depenserLaDetermination`), du mobile (`franchirLArete`) ou de la fenêtre `medic` (`soignerLePatient`, `ouvrirLaChirurgie`) ; un geste qui entre au repli ou en sort se nomme ici').toEqual([
-      'depenserLaDetermination', 'desarmerLeMode', 'effacerLApercu', 'franchirLArete', 'ouvrirLaChirurgie', 'prendreLaPanoplie', 'soignerLePatient', 'utiliserLObjet',
+    expect(repli, 'population du repli universel : chacun se route au propriétaire du tour actif (`effacerLApercu`, `desarmerLeMode`, les verbes de la barre de l’actif), de son porteur (`utiliserLObjet`, `prendreLaPanoplie`, `depenserLaDetermination`), du mobile (`franchirLArete`) ou de la fenêtre `medic` (`soignerLePatient`, `ouvrirLaChirurgie`) ; un geste qui entre au repli ou en sort se nomme ici').toEqual([
+      'aiderLEquipe', 'annulerLeDeplacement', 'approvisionnerLArme', 'armerLAttaque', 'armerLeMode', 'aspergerDEau', 'basculerLaPosture',
+      'basculerLaRepousse', 'chanterLaChanson', 'depenserLaDetermination', 'desarmerLeMode', 'effacerLApercu', 'entrerEnFrenesie', 'eprouverLEquipage',
+      'faireUnBattement', 'franchirLArete', 'gagnerLAvantage', 'lancerLAttaqueDeZone', 'manoeuvrerLeNavire', 'manoeuvrerSurSoi', 'mettrePiedATerre',
+      'monterEnSelle', 'ouvrirLaChirurgie', 'pousserLEngin', 'prendreLaDefensive', 'prendreLaPanoplie', 'prendreLaVisee', 'quitterLePoste',
+      'ramasserLObjet', 'rechargerLArme', 'rompreLEngagement', 'seRelever', 'seRemettreDeLEtat', 'servirLePoste', 'soignerLePatient',
+      'tenterDeDistraire', 'terminerLeTour', 'utiliserLObjet',
     ]);
     expect(ROUTES.has('armerLeMode'), 'un geste de tour ordinaire ne se route pas').toBe(false);
   });
