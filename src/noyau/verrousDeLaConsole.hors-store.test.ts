@@ -201,8 +201,8 @@ describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refu
       const ctx = contexte(partie);
       expect(actionGate('sing-shanty', { ...ctx, args: { shipId: ctx.active.id } }).reason).toBe(t('agate.noShantySinger'));
       const poste = ctx.active.postes![0];
-      expect(poste.loaded, 'témoin : la pièce est déchargée').not.toBe(false);
-      expect(actionGate('ship-reload', { ...ctx, args: { shipId: ctx.active.id, posteUid: poste.item.uid } }).reason).toBe(t('agate.noPosteToReload'));
+      expect(poste.loaded, 'témoin : la pièce est chargée').not.toBe(false);
+      expect(actionGate('ship-reload', { ...ctx, args: { weaponUid: poste.item.uid } }).reason).toBe(t('agate.nothingToReload'));
     } finally {
       partie.fermer();
     }

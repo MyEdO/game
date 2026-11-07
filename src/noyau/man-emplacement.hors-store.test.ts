@@ -1,9 +1,9 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { servablePostes, serveAtPoste, leaveChef, isPosteManned, applyShipPostes, servingCrewPresent, serveTargetPoste, posteCrewSplit, isCrewQualified } from './monde/shipPostes';
-import { firedWeapon, resolveAttack, buildAiInput } from './combatFlow';
+import { firedWeapon, resolveAttack, buildAiInput, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { availableAttacks } from './combatManeuvers';
 import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';
-import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
+import { itemFromTrappingById, recomputeLoadout, unarmedWeapon } from '../engine/items';
 import { addCondition } from '../engine/conditions';
 import { crewedPenalty } from '../engine/crewedWeapon';
 import { seedBattleRng } from './battleRng';
@@ -201,6 +201,17 @@ describe('(D) Affordance joueur — store `servirLePoste` / `quitterLePoste`', (
     expect(hero.weapons.some((w) => w.uid === poste.item.uid)).toBe(false);
     expect(st.battle!.acted).toBe(false); // LDB 13 l.106
   });
+
+  it('Engagé, le héros prend puis quitte la pièce, toujours sans Action (LDB 13 l.106, arbitrage #3595 du 2026-11-07)', () => {
+    const { poste } = setup();
+    const st0 = banc.getState().battle!;
+    st0.combatants.find((c) => c.id === 'hero')!.engagedWith = ['s1'];
+    banc.getState().servirLePoste();
+    expect(banc.getState().battle!.combatants.find((c) => c.id === 'hero')!.mannedPoste?.item.uid).toBe(poste.item.uid);
+    banc.getState().quitterLePoste();
+    expect(banc.getState().battle!.combatants.find((c) => c.id === 'hero')!.mannedPoste).toBeUndefined();
+    expect(banc.getState().battle!.acted).toBe(false);
+  });
 });
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
@@ -240,6 +251,25 @@ describe('(E) Affordance IA — un combattant IA adjacent PEUT servir', () => {
     const action = chooseEnemyAction(input(enemy, [far], { servablePostes: [{ hullId: 'emplacement', posteUid: 'baliste-x' }] }));
     expect(action.kind).toBe('manPoste');
     expect(action).toMatchObject({ hullId: 'emplacement', posteUid: 'baliste-x' });
+  });
+
+  it('le tour de l’IA prend la pièce sans dépenser l’Action, puis re-décide (LDB 13 l.106, arbitrage #3595)', () => {
+    const poste = mkPoste('baliste');
+    const enemy = mkActor('e', 'enemy', { x: 5, y: 6 });
+    enemy.movement = 0; // immobile → aucune approche
+    enemy.weapons = [unarmedWeapon()]; // à mains nues → aucune attaque à portée
+    const hero = mkEnemyTarget('hero', 5, 10);
+    hero.kind = 'hero' as never;
+    hero.weapons = [unarmedWeapon()];
+    const all = [mkEmplacement(poste), enemy, hero];
+    banc.setState({
+      battle: { combatants: all, order: ['e', 'emplacement', 'hero'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
+      party: [hero], partyPos: { x: 0, y: 0 }, facing: {}, scene: groundScene() as never, gameTime: 0, lightLevel: 1,
+    });
+    clearAiTurnLog();
+    runEnemyAI(banc.getState, banc.setState, 'e');
+    expect(poste.crewIds![0]).toBe('e'); // chef de la pièce
+    expect(aiTurnLog()[aiTurnLog().length - 1]?.action).not.toMatch(/^manPoste/); // l'Action reste à jouer : l'IA a re-décidé
   });
 
   it('sans poste servable, le même ennemi immobile/désarmé passe la main (pas de candidat fantôme)', () => {

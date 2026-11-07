@@ -3931,7 +3931,6 @@ export const fr = {
   'agate.alreadyAiming': 'déjà en joue',
   'agate.shantyQuartSung': 'ce quart a déjà eu sa chanson',
   'agate.noShantySinger': 'aucun chanteur libre à bord',
-  'agate.noPosteToReload': 'aucune pièce déchargée dont le chef soit libre',
   'agate.noLoadedPostes': 'aucune pièce chargée à bord',
   // PERTINENCE d'une entrée (`GATES_DE_PERTINENCE`, #2911) : ce que le porteur n'a pas pour que l'offre ait lieu d'être.
   'agate.noMeleeSet': 'le set au poing n’ouvre aucun corps à corps',
