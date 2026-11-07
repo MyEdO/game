@@ -41,7 +41,7 @@ function freshSea() {
     party: makePregens().slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null,
-    pendingCrewTest: null, pendingRest: null, pendingSteamSave: null,
+    pendingRest: null, pendingSteamSave: null,
     gameTime: 8 * 60, lastUpkeepDay: 0,
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     journal: [], net: { ...banc.getState().net, mode: 'local' },

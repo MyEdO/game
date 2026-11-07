@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyCriticalToTarget } from './combatFlow';
+import { applyCriticalToTarget, advanceTurn } from './combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
@@ -70,7 +70,7 @@ describe('entretien de fin de Round — partition héros/ennemis (spec coop §4b
       battle: { ...st.battle!, order: [H.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingRoundStart: null,
     });
-    banc.getState().terminerLeTour(); // seul dans l'ordre → franchit le Round
+    advanceTurn(banc.getState, banc.setState); // seul dans l'ordre → franchit le Round
     banc.avancer(3000);
   };
 

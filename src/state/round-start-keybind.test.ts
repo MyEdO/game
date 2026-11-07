@@ -2,7 +2,7 @@
  * Le passage au Round suivant (pause d'initiative `pendingRoundStart`, LDB 17 l.25) doit être
  * jouable au CLAVIER/MANETTE — sinon un joueur sans souris reste bloqué à chaque frontière de Round.
  * Le binding `round-start` (Espace/Entrée, partagé par la manette via runBindingById) joue l'offre
- * `round-start` (`jouerLOffre`), et n'est actif QUE pendant la pause.
+ * `round-start` par le verbe qu'elle déclare (`fenetreValider`), et n'est actif QUE pendant la pause.
  */
 import { describe, it, expect } from 'vitest';
 import { KEYBINDINGS, runBindingById } from './clavier/keybindings';
@@ -12,7 +12,7 @@ const binding = () => KEYBINDINGS.find((k) => k.id === 'round-start')!;
 
 /** État minimal (combat en cours) — `pendingRoundStart` posé ou non selon le cas. */
 const fake = (over: Partial<GameState> = {}): GameState =>
-  ({ mode: 'battle', battle: { over: null }, pendingRoundStart: null, net: { mode: 'local', mySeat: 0 }, ...over }) as never;
+  ({ mode: 'battle', battle: { over: null, order: [], turn: -1, combatants: [] }, pendingRoundStart: null, net: { mode: 'local', mySeat: 0 }, ...over }) as never;
 
 describe('binding round-start', () => {
   it('existe et est inactif HORS pause', () => {
@@ -27,9 +27,9 @@ describe('binding round-start', () => {
 
   it('run joue l’offre de la pause', () => {
     const appels: unknown[] = [];
-    const get = () => fake({ pendingRoundStart: { round: 2 } as never, jouerLOffre: (id: unknown) => { appels.push(id); } } as never);
+    const get = () => fake({ pendingRoundStart: { round: 2 } as never, fenetreValider: (cle: unknown) => { appels.push(cle); } } as never);
     binding().run(get);
-    expect(appels).toEqual(['round-start']);
+    expect(appels).toEqual(['roundStart']);
   });
 
   it('inactif hors combat (pas de battle)', () => {
@@ -38,7 +38,7 @@ describe('binding round-start', () => {
 
   it('runBindingById n’exécute PAS round-start sans pause', () => {
     let called = 0;
-    const get = () => fake({ pendingRoundStart: null, jouerLOffre: () => { called++; } } as never);
+    const get = () => fake({ pendingRoundStart: null, fenetreValider: () => { called++; } } as never);
     runBindingById('round-start', get);
     expect(called).toBe(0);
   });

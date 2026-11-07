@@ -14,7 +14,7 @@ import { libelleDeRangee, libelleDeRole } from '../noyau/jetsEnVue';
 
 /**
  * SOURCE UNIQUE des rangées-participants d'une modale MULTI (#328) : `CascadeModal` batch,
- * `CrewTestModal`, `ShipBatteryModal`, `ShipManeuverModal`, `ForceDoorModal`, `DisengageModal`.
+ * `ShipBatteryModal`, `ShipManeuverModal`, `ForceDoorModal`, `DisengageModal`.
  * Chaque modale ne fournit QUE la PRÉSENTATION de sa rangée (`row`, propre à son vocabulaire de
  * données) + son bundle d'actions de flux.
  *
@@ -130,8 +130,8 @@ export function buildParticipantRows<P extends ParticipantRow>(
   });
 }
 
-/** PRÉSENTATION d'une rangée de Test d'équipage par rôle (MDG 14) — les trois modales navales
- *  (`CrewTestModal`, `ShipBatteryModal`, `ShipManeuverModal`). Une rangée dont le rôle est non tentable
+/** PRÉSENTATION d'une rangée de Test d'équipage par rôle (MDG 14) — les modales navales
+ *  (`ShipBatteryModal`, `ShipManeuverModal`). Une rangée dont le rôle est non tentable
  *  (`ligneDuRole`, la source que lit `rollCrewRole`) MONTRE son refus, dé jeté ou non : `CrewRoleValue`
  *  interdit sa valeur, il n'y a donc ni valeur 0 ni dé contre une cible (LDB 09 l.30 ; #2588 Q1). Sinon,
  *  un dé déjà JETÉ s'affiche tel qu'il est tombé, contre sa cible. Manque de bras : MDG 14 l.53. */

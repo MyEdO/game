@@ -410,8 +410,9 @@ d'une **Rude épreuve** réduisent le Moral d'autant.
 
 **Implémente :** [État calculé](../implemente.generated.md#4ecombat-navalmoral-du-navire)
 
-**État du code.** ✅ Moral 75 par défaut, bande de DR au Test d'équipage, pont campagne→combat. ⬜ évolution du
-Moral en combat (Rude épreuve, mutinerie).
+**État du code.** ✅ Moral 75 par défaut, bande de DR au Test d'équipage, pont campagne→combat. ✅ Rude épreuve :
+Test d'équipage de voyage (`MDG 15 l.27`), jouée par la traversée rapide (`seaVoyageFlow.ts`, `startFastVoyage`),
+jamais une action de combat ; le Moral qu'elle réduit est celui du voyage. ⬜ mutinerie.
 
 ---
 

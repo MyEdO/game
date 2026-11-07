@@ -19,7 +19,6 @@ import { RunModal } from './RunModal';
 import { FallModal } from './FallModal';
 import { ShipManeuverModal } from './ShipManeuverModal';
 import { ShipBatteryModal } from './ShipBatteryModal';
-import { CrewTestModal } from './CrewTestModal';
 import { ShantyModal } from './ShantyModal';
 import { ApproachModal } from './ApproachModal';
 import { WardModal } from './WardModal';
@@ -48,7 +47,7 @@ const COMPONENT: Record<ModalKey, () => JSX.Element | null> = {
   designationHeros: DesignationHerosModal,
   fateSave: FateSaveModal, renounce: RenounceModal,
   battement: BattementModal, distraire: DistraireModal, maneuver: ManeuverModal,
-  mountTarget: MountTargetModal, frenzy: FrenzyModal, auContact: AuContactModal, grapple: GrappleModal, approach: ApproachModal, ward: WardModal, run: RunModal, fall: FallModal, shipManeuver: ShipManeuverModal, shipBattery: ShipBatteryModal, crewTest: CrewTestModal, shanty: ShantyModal, focus: FocusModal, dispel: DispelModal,
+  mountTarget: MountTargetModal, frenzy: FrenzyModal, auContact: AuContactModal, grapple: GrappleModal, approach: ApproachModal, ward: WardModal, run: RunModal, fall: FallModal, shipManeuver: ShipManeuverModal, shipBattery: ShipBatteryModal, shanty: ShantyModal, focus: FocusModal, dispel: DispelModal,
   medic: MedicModal, rest: RestModal, council: CouncilModal, heal: HealModal, cascade: CascadeModal, reload: ReloadModal, handGate: HandGateModal, stateRecovery: StateRecoveryModal, steamSave: SteamSaveModal,
   corruption: CorruptionModal, activity: ActivityModal,
 };

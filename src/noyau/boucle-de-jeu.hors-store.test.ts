@@ -19,7 +19,7 @@ import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance, type Weapon } 
 import { isOutOfAction } from '../engine/conditions';
 import { CAP_GROUPE, capDuGroupe } from './monde/combatants';
 import { fleeBackstab, fleeTouche } from './pendings';
-import { applyAttackResult, computeMoveReach } from './combatFlow';
+import { applyAttackResult, computeMoveReach, advanceTurn } from './combatFlow';
 import { mountUp } from './mount';
 import { combatValue, resolveMeleePassive } from '../engine/combat';
 import { seedBattleRng } from './battleRng';
@@ -64,7 +64,7 @@ function seedBourse(m: Money, id = 'h') {
 
 function reset() {
   banc.setState({
-    screen: 'menu',
+    screen: 'campaign',
     party: [],
     scene: null,
     mode: 'exploration',
@@ -138,7 +138,7 @@ describe('Boucle de jeu (store)', () => {
     const order = [...enemyIds, heroId];
     banc.setState({ battle: { ...b, combatants, order, turn: order.length - 2 } });
 
-    banc.getState().terminerLeTour(); // → advanceTurn → prochain acteur = héros → checkBattleOver → cascade de fin de combat
+    advanceTurn(banc.getState, banc.setState); // → advanceTurn → prochain acteur = héros → checkBattleOver → cascade de fin de combat
     drainCombatEndCascade(); // mutants Corrompus → Test `influences-corruptrices` influençable AVANT victoire → on le résout
 
     const st = banc.getState();
@@ -455,7 +455,7 @@ describe('Boucle de jeu (store)', () => {
     const enemyIds = b.combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
     const order = [...enemyIds, h.id]; // héros en dernier
     banc.setState({ battle: { ...b, order, turn: order.length - 2 } }); // tour juste avant le héros
-    banc.getState().terminerLeTour(); // → advanceTurn → héros : Action perdue consommée
+    advanceTurn(banc.getState, banc.setState); // → advanceTurn → héros : Action perdue consommée
     const st = banc.getState();
     const after = st.battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.loseNextAction).toBeFalsy();
@@ -555,7 +555,7 @@ describe('Boucle de jeu (store)', () => {
     h.actLastNextRound = true;
     const base = [...(b.baseOrder ?? b.order)];
     banc.setState({ battle: { ...b, turn: b.order.length - 1 } }); // au dernier tour → prochain endTurn franchit le Round
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     let st = banc.getState();
     expect(st.battle!.order[st.battle!.order.length - 1]).toBe(h.id); // héros repoussé en dernier ce Round
     expect(st.battle!.combatants.find((c) => c.id === h.id)!.actLastNextRound).toBeFalsy(); // flag purgé
@@ -564,7 +564,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('roundStart');
     const b2 = banc.getState().battle!;
     banc.setState({ battle: { ...b2, turn: b2.order.length - 1 } });
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     st = banc.getState();
     expect(st.battle!.order).toEqual(base);
   });
@@ -591,7 +591,7 @@ describe('Boucle de jeu (store)', () => {
     const combatants = b.combatants.map((c) => (c.kind === 'hero' ? c : { ...c, dead: true }));
     const order = [...combatants.filter((c) => c.kind === 'enemy').map((c) => c.id), h.id];
     banc.setState({ battle: { ...b, combatants, order, turn: order.length - 2 } });
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     drainCombatEndCascade(); // mutants Corrompus → cascade de fin de combat AVANT victoire
     expect(banc.getState().battle?.over).toBe('victory');
     expect(banc.getState().party[0].items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
@@ -803,7 +803,7 @@ describe('Boucle de jeu (store)', () => {
       pendingDefense: null,
       pendingRoundStart: null, // on pilote le combat → la pause d'ouverture est levée (sinon l'IA est gelée)
     });
-    banc.getState().terminerLeTour(); // H finit son tour → advanceTurn → E actif → IA
+    advanceTurn(banc.getState, banc.setState); // H finit son tour → advanceTurn → E actif → IA
     banc.avancer(2000); // laisse tourner les setTimeout de l'IA (450 + 350)
     st = banc.getState();
     expect(st.pendingDefense).not.toBeNull();
@@ -838,7 +838,7 @@ describe('Boucle de jeu (store)', () => {
       pendingDefense: null,
       pendingRoundStart: null,
     });
-    banc.getState().terminerLeTour(); // H finit → E (cavalier) actif → IA attaque
+    advanceTurn(banc.getState, banc.setState); // H finit → E (cavalier) actif → IA attaque
     banc.avancer(2000);
     st = banc.getState();
     expect(st.pendingDefense).not.toBeNull();
@@ -884,7 +884,7 @@ describe('Boucle de jeu (store)', () => {
       battle: { ...st.battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingDefense: null,
     });
-    banc.getState().terminerLeTour(); // H finit → E actif → IA : Sonné → renonce
+    advanceTurn(banc.getState, banc.setState); // H finit → E actif → IA : Sonné → renonce
     banc.avancer(2000);
     st = banc.getState();
     expect(st.pendingDefense).toBeNull(); // aucune attaque → aucune modale de défense
@@ -2320,7 +2320,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
 
   it('fin du dernier tour du Round : on suspend (fenêtre d’initiative, pendingRoundStart)', () => {
     endOfRoundBattle(1);
-    banc.getState().terminerLeTour(); // H (dernier de l'ordre) finit → bascule au Round 2
+    advanceTurn(banc.getState, banc.setState); // H (dernier de l'ordre) finit → bascule au Round 2
     const st = banc.getState();
     expect(st.pendingRoundStart).not.toBeNull();
     expect(st.pendingRoundStart!.round).toBe(2);
@@ -2329,7 +2329,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
 
   it('même sans Chance : on suspend quand même en début de Round (la fenêtre d’initiative est systématique)', () => {
     endOfRoundBattle(0);
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     const st = banc.getState();
     expect(st.pendingRoundStart).not.toBeNull();
     expect(st.pendingRoundStart!.round).toBe(2);
@@ -2337,7 +2337,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
 
   it('la pause de début de Round GÈLE l’IA ennemie jusqu’à « Commencer le round »', () => {
     endOfRoundBattle(0); // ordre [E, H] : l'ennemi est en tête du Round 2
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     banc.reprendreLesEnAttente(); // aucun timer d'IA ne doit être en attente pendant la pause
     expect(banc.getState().pendingRoundStart).not.toBeNull(); // l'ennemi n'a pas joué : on attend la confirmation
     banc.getState().fenetreValider('roundStart');
@@ -2346,7 +2346,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
 
   it('promouvoirLeCombattant place le héros en tête et dépense 1 Chance', () => {
     const { H } = endOfRoundBattle(2);
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     banc.getState().promouvoirLeCombattant(H.id);
     const st = banc.getState();
     expect(st.battle!.order[0]).toBe(H.id);
@@ -2355,7 +2355,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
 
   it('la validation de la pause (`fenetreValider(\'roundStart\')`) ferme la modale et active le héros promu en premier', () => {
     const { H } = endOfRoundBattle(1);
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     banc.getState().promouvoirLeCombattant(H.id);
     banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
@@ -2369,7 +2369,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
     rangedOf(H).loaded = true; H.movement = 4; H.pos = { x: 0, y: 0 };
     E.pos = { x: 2, y: 0 }; // à portée, ligne de vue dégagée (scène vide)
-    banc.getState().terminerLeTour(); // → Round 2, pendingRoundStart
+    advanceTurn(banc.getState, banc.setState); // → Round 2, pendingRoundStart
     const orderBefore = [...banc.getState().battle!.order];
     seedBattleRng(1);
     banc.getState().declencherLeTirPreventif(H.id, E.id);
@@ -2399,7 +2399,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     E.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
     rangedOf(E).loaded = true; E.pos = { x: 2, y: 0 };
     H.pos = { x: 0, y: 0 };
-    banc.getState().terminerLeTour(); // → Round 2, pendingRoundStart
+    advanceTurn(banc.getState, banc.setState); // → Round 2, pendingRoundStart
     // H en tête de l'ordre : le tour NORMAL de l'ennemi n'ouvre pas immédiatement → sa dette de tour
     // (posée par le Tir rapide) PERSISTE et reste observable (sinon `lancerLeRound` la consommerait aussitôt).
     banc.setState({ battle: { ...banc.getState().battle!, order: [H.id, E.id] } });
@@ -2503,7 +2503,7 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
     const { H, E } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 0 }); // BE=3, pas de Destin → mort directe
     banc.setState({ battle: { ...banc.getState().battle!, order: [E.id, H.id], turn: 1 } }); // H dernier → terminerLeTour franchit le Round
     banc.getState().ensemencerLeTirage(1);
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.dead).toBe(true);
     expect(isOutOfAction(h)).toBe(true);
@@ -2530,7 +2530,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
   it('mort lente d’un héros à Destin → suspend (pendingFateSave source=slow), pas mort', () => {
     combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 }); // fate=1, BE=3
     banc.getState().ensemencerLeTirage(1);
-    banc.getState().terminerLeTour(); // H dernier → franchit le Round
+    advanceTurn(banc.getState, banc.setState); // H dernier → franchit le Round
     const st = banc.getState();
     expect(st.pendingFateSave).not.toBeNull();
     expect(st.pendingFateSave!.source).toBe('slow');
@@ -2540,7 +2540,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
   it('« Meurs un autre jour » : éjecté vivant, Destin −1, le Round reprend', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 2 });
     banc.getState().ensemencerLeTirage(1);
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.dead ?? false).toBe(false);
@@ -2552,7 +2552,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
   it('« Accepter le sort » : mort', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 });
     banc.getState().ensemencerLeTirage(1);
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     banc.getState().fenetreChoisir('fateSave', 'issue', 'accept');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.dead).toBe(true);
   });
@@ -2560,7 +2560,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
   it('héros SANS Destin : mort lente directe, pas de pause', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 0 });
     banc.getState().ensemencerLeTirage(1);
-    banc.getState().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     expect(banc.getState().pendingFateSave).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.dead).toBe(true);
   });
@@ -3128,7 +3128,7 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
     const b = banc.getState().battle!;
     b.combatants.forEach((c) => { c.fortune = 0; }); // neutralise la pré-emption Chance
     banc.setState({ battle: { ...b, turn: b.order.length - 1 }, gameTime: campaignStart() });
-    banc.getState().terminerLeTour(); // dernier tour → advanceTurn franchit le Round
+    advanceTurn(banc.getState, banc.setState); // dernier tour → advanceTurn franchit le Round
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.combatRound);
   });
 

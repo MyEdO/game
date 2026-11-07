@@ -63,7 +63,7 @@ const CONSOLE_KEYS = [
   ...keysFrom(CONSOLE_SRC, /data-action="([^"]+)"()/g),
   // La console EXÉCUTE aussi des entrées sans alvéole (vignette de set, geste du bandeau de pause) :
   // son appel au registre est la surface, au même titre qu'une case.
-  ...keysFrom(CONSOLE_SRC, /jouerLOffre\(\s*'([^']+)'()/g),
+  ...keysFrom(CONSOLE_SRC, /jouerLOffreDeLEcran\([^,]+,\s*'([^']+)'()/g),
 ];
 
 /** La FRISE d'initiative est une surface d'accueil du registre (spec §1d : `raise-hand` y vit) : elle

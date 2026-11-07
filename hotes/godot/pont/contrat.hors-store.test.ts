@@ -114,20 +114,21 @@ describe('le pont et sa partie', () => {
     expect(e.message).toContain(`verbe inconnu : confirmRound ; gestes de la fenêtre ${fenetre.cle} : ${fenetre.gestes.map(cleDuGeste).join(', ')}`);
     const g = fenetre.gestes[0];
     expect(erreurDe(appel('jouer', { type: g.verbe, args: [...(g.flux ? [g.flux] : []), 1, 1, 1] })).categorie).toBe('validation');
-    expect(erreurDe(appel('jouer', { offre: 'end-turn', type: 'x' })).message).toBe('jouer : type hors de l’entrée (clés : offre, ctx)');
+    expect(erreurDe(appel('jouer', { suite: [], type: 'x' })).message).toBe('jouer : type hors de l’entrée (clés : suite)');
+    expect(erreurDe(appel('jouer', { offre: 'end-turn' })).message, 'une offre se joue par le verbe qu’elle déclare').toBe('jouer : offre hors de l’entrée (clés : type, args, siege)');
   });
 
   it('chaque catégorie d’un geste refusé : `validation`, `permission`, `regle`', { timeout: 120_000 }, () => {
     drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['roundStart'] }));
-    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 0 })).categorie).toBe('validation');
-    expect(erreurDe(appel('jouer', { type: 'jouerLOffre', args: ['end-turn'], siege: 1 })).categorie).toBe('permission');
-    expect(erreurDe(appel('jouer', { offre: 'disengage' })).categorie).toBe('regle');
+    expect(erreurDe(appel('jouer', { type: 'armerLIntention', args: ['charge'], siege: 0 })).categorie).toBe('validation');
+    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 1 })).categorie).toBe('permission');
+    expect(erreurDe(appel('jouer', { type: 'rompreLEngagement', args: [] })).categorie).toBe('regle');
   });
 
   it('un jeton déjà repris se refuse en `validation`', { timeout: 120_000 }, () => {
     // Les tours des héros finis jusqu'au premier qui programme une suite (le tour adverse) ; ses jetons repris.
-    let fin = appel('jouer', { offre: 'end-turn' });
-    for (let tours = 0; !suiteDe(fin).programmes.length && tours < 8; tours++) fin = appel('jouer', { offre: 'end-turn' });
+    let fin = appel('jouer', { type: 'terminerLeTour', args: [] });
+    for (let tours = 0; !suiteDe(fin).programmes.length && tours < 8; tours++) fin = appel('jouer', { type: 'terminerLeTour', args: [] });
     const [jeton] = suiteDe(fin).programmes;
     expect(jeton, 'une fin de tour programme la suite du round').toBeDefined();
     drainer(appel, fin);

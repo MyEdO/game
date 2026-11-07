@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useGame } from '../state/store';
+import { jouerLOffreDeLEcran } from '../state/registreOffres';
 import { actFirstIds, freeActFirst } from '../noyau/turnEconomy';
 import { preemptShooterIds } from '../noyau/targeting';
 import { findActionById } from '../data/index';
@@ -364,7 +365,7 @@ export function CampaignView() {
                 reason: handVerdict.ok ? undefined : handVerdict.reason,
                 label: <><Icon id={handDef.icon as IconIdInput} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
                 ariaLabel: `${handRaised ? `${handDef.label} : retirer ma demande` : handDef.label}${autresMains > 0 ? ` — déjà demandée par ${autresMains} autre${autresMains > 1 ? 's' : ''} joueur${autresMains > 1 ? 's' : ''}` : ''}`,
-                onToggle: () => useGame.getState().jouerLOffre(handDef.id),
+                onToggle: () => jouerLOffreDeLEcran(useGame.getState(), handDef.id),
               }}
             />
           )}

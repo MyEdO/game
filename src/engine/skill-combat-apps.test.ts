@@ -33,10 +33,10 @@ describe('Applications de combat — cumuler l’Avantage (LDB 09 l.305-308)', (
   it('une Compétence sans application « Avantage » → 0', () => {
     expect(skillAdvantageCap(mk(), 'corps-a-corps')).toBe(0);
   });
-  it('combatAdvantageSkills liste les Compétences possédées éligibles', () => {
-    const c = mk({ skills: [{ id: 'intuition', advances: 0 } as never, { id: 'savoir', advances: 2 } as never] });
+  it('combatAdvantageSkills liste les Compétences possédées éligibles, Compétences de base non inscrites comprises', () => {
+    const c = mk({ skills: [{ id: 'savoir', advances: 2 } as never] });
     const ids = combatAdvantageSkills(c).map((s) => s.skillId).sort();
-    expect(ids).toEqual(['intuition', 'savoir']);
+    expect(ids).toEqual(['intuition', 'savoir', 'survie-en-exterieur']);
   });
 });
 

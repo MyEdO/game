@@ -21,7 +21,7 @@ import type { Possession } from '../engine/possession';
 import type { MerchantState, MerchantStocks } from './merchantFlow';
 import type { FinDeSeance } from './partyFlow';
 import type * as tavernFlow from './tavernFlow';
-import type { PendingVictory, PendingLoot, PendingTest, PendingSteamSave, PendingReload, PendingStateRecovery, PendingBargain, PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel, PendingFrenzy, PendingRenounce, PendingDefense, PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingDesignationHeros, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption, PendingCastOpposition, PendingCascade, ScheduledEffect, EtatDialogue } from './pendings';
+import type { PendingVictory, PendingLoot, PendingTest, PendingSteamSave, PendingReload, PendingStateRecovery, PendingBargain, PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel, PendingFrenzy, PendingRenounce, PendingDefense, PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingDesignationHeros, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption, PendingCastOpposition, PendingCascade, ScheduledEffect, EtatDialogue } from './pendings';
 import type { MedicState } from './medicFlow';
 import type { PendingRest } from './restFlow';
 import type { PendingCouncil } from './shipCrew';
@@ -540,8 +540,6 @@ export interface EtatDeJeu {
   pendingShipManeuver: PendingShipManeuver | null;
   /** Tir de batterie en cours (MDG 14 : Test d'équipage des Artilleurs → volée sur la cible). */
   pendingShipBattery: PendingShipBattery | null;
-  /** Test d'équipage GÉNÉRIQUE en cours (MDG 14 — Rude épreuve : total négatif → perte de Moral, l.110). */
-  pendingCrewTest: PendingCrewTest | null;
   /** Chanson de marin en cours (Talent, MDG 09 l.32-40 : choix de la chanson + Test de Divertissement (Chant)). */
   pendingShanty: PendingShanty | null;
   /** Approche d'une source de Peur en cours (Test différant le clic — LDB 21 l.27). */

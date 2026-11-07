@@ -180,7 +180,7 @@ describe('RollShell — coquille de jet unifiée', () => {
 
   it('(h) garde : actions NEUTRES (cancel/rollAll/confirm) passent pour tout flux', () => {
     expect(() =>
-      render(<RollShell flowKey="crewTest" title="T" rows={[rolledRow()]} rolled actions={[act('cancel'), act('rollAll'), act('confirm')]} />),
+      render(<RollShell flowKey="shipManeuver" title="T" rows={[rolledRow()]} rolled actions={[act('cancel'), act('rollAll'), act('confirm')]} />),
     ).not.toThrow();
   });
 
@@ -197,7 +197,7 @@ describe('RollShell — coquille de jet unifiée', () => {
     ).toThrow(/hors vocabulaire/);
     // clé inventée sur un flux qui ne la déclare pas.
     expect(() =>
-      render(<RollShell flowKey="crewTest" title="T" rows={[rolledRow()]} rolled actions={[act('zorglub')]} />),
+      render(<RollShell flowKey="shipManeuver" title="T" rows={[rolledRow()]} rolled actions={[act('zorglub')]} />),
     ).toThrow(/hors vocabulaire/);
   });
 

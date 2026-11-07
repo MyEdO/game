@@ -91,7 +91,7 @@ import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
-import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
+import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
 import { provisioningManifest } from '../engine/provisions';
 import { toMoney, canAfford, type Money } from '../engine/money';
@@ -655,6 +655,7 @@ export function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEt
     ...(stake ? { stake } : {}),
     ...(opts.contexte ? { contexte: opts.contexte } : {}),
     meta: {
+      crewTestType: testTypeId,
       aggregateSuccessRule: CREW_TEST_SUCCESS_RULE,
       ...(flatDR ? { aggregateFlatDR: flatDR } : {}),
       ...(undercrew.capSuccesMinime ? { aggregateCapTo: SUCCES_MINIME_CAP } : {}), // l.55
@@ -1125,6 +1126,20 @@ export function dureeDeTraversee(km: number, m: number): number {
   return Math.max(1, joursDeMer(km, m));
 }
 
+/** Le Moral d'un Test d'équipage RÉSOLU : un type de Test dont le total négatif coûte du Moral (`moraleOnNegativeDR`,
+ *  la Rude épreuve) le retire au navire de campagne, où que le Test se joue (traversée rapide, nœud de Flow).
+ *  MDG 14 l.110 */
+function moralDuTestDEquipage(get: Get, set: Set, step: CascadeStep): void {
+  const ship = get().travelPlan?.vehicle;
+  const type = typeof step.meta?.crewTestType === 'string' ? findCrewTestTypeById(step.meta.crewTestType) : undefined;
+  if (!ship || !step.result || !type?.moraleOnNegativeDR) return;
+  const j = applyShipMoraleDelta(get, set, ship, rudeEpreuveMoraleDelta(step.result.sl));
+  if (j.length) noteSeaLine(get, set, j);
+}
+
+/** Le Test d'équipage de la traversée rapide : la Rude épreuve (MDG 15 l.27). */
+const TEST_DU_VOYAGE_RAPIDE = 'rude-epreuve';
+
 /** Appareille en TRAVERSÉE RAPIDE (l.21-37) : construit un plan `sea.fast` (jamais la boucle jour par
  *  jour), estime la durée (distance / vitesse moyenne, l.25) puis ouvre l'UNIQUE Test d'équipage de
  *  Rude épreuve (modale existante). Sans équipage apte : palier au DR 0, résolution immédiate. `false`
@@ -1140,7 +1155,7 @@ export function startFastVoyage(
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
   const to = get().worldMap ? placeById(get().worldMap!, toPlaceId) : undefined;
   log(get, set, [t('sv.departFast', { ship: plan.vehicle!.label, to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
-  const st = buildVoyageCrewStep(get, 'rude-epreuve', 'voyage-rapide');
+  const st = buildVoyageCrewStep(get, TEST_DU_VOYAGE_RAPIDE, 'voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'travel/wave', purpose: 'test', steps: [st] }); return true; }
   computeFastPalier(get, set, 0); // aucun équipage apte au Test → DR 0
   finalizeFastVoyage(get, set);
@@ -1278,7 +1293,7 @@ export function runSeaDay(get: Get, set: Set): void {
   const plan = get().travelPlan;
   // Une cascade est déjà active (ou suspendue derrière un combat) : l'arbitre la montre, rien à faire —
   // `reprendreLeVoyage` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c).
-  if (!plan?.sea || plan.interrupted || get().pendingCrewTest || get().pendingSteamSave || get().pendingCascade) return;
+  if (!plan?.sea || plan.interrupted || get().pendingSteamSave || get().pendingCascade) return;
   const sea = plan.sea;
   // VOYAGE RAPIDE (MDG 15 l.21-37) : ce plan ne déroule JAMAIS la journée par étape — le palier
   // calculé s'applique en un bloc (`finalizeFastVoyage`, ré-entrant après un abordage ancré).
@@ -2600,6 +2615,7 @@ export const TABLES = {
      *  le DR du Flow qui l'a ouverte. MDG 14 l.13 */
     flowCrewTest: (get, set, step) => {
       if (!step.result) return;
+      moralDuTestDEquipage(get, set, step);
       const branche = (step.result.success ? step.meta?.onSuccess : step.meta?.onFail) ?? EMPTY_FLOW;
       jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
       return { consequences: freeCons([]) };
@@ -2740,6 +2756,7 @@ export const TABLES = {
      *  ancrée éventuelle d'abord, jamais raconté avant — `finalizeFastVoyage` est RÉ-ENTRANT). */
     'voyage-rapide': (get, set, step) => {
       if (!step.result) return;
+      moralDuTestDEquipage(get, set, step);
       computeFastPalier(get, set, step.result.sl);
       finalizeFastVoyage(get, set);
     },

@@ -21,7 +21,7 @@ describe('le verrou du lexique des verbes (#3371 §3.4)', () => {
     // @ts-expect-error famille de fenêtre hors de ses trois actions
     const fenetreManuscrite: VerrouDuLexique<Verbes | 'fenetreAnnuler'> = true;
     // @ts-expect-error action de la seule machinerie : un verbe ne la prend pas
-    const deLaMachinerie: VerrouDuLexique<Verbes | 'aiderLEquipe'> = true;
+    const deLaMachinerie: VerrouDuLexique<Verbes | 'sauter'> = true;
     verdicts.push(anglais, exclu, jetManuscrit, fenetreManuscrite, deLaMachinerie);
 
     expect(verdicts).toEqual([true, true, true, true, true, true]);

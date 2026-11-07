@@ -12,6 +12,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { offresDeLActif } from './actionRegistry';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -68,6 +69,25 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     expect(h2.advantage).toBe(1); // 3 − 2
     expect(e2.wounds.current).toBeLessThan(before);
     expect(st.battle!.acted).toBe(false); // gratuite : l’Action reste
+  });
+
+  it('#3642 — depuis la barre, le Souffle s’arme par sa case, puis sa résolution touche la cible (LDB 85 l.322)', () => {
+    banc.getState().ensemencerLeTirage(2);
+    const { H, E } = setup();
+    H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
+    H.characteristics['capacite-de-tir'] = 90;
+    H.advantage = 3;
+    const before = E.wounds.current;
+    const s = banc.getState();
+    const offre = offresDeLActif({ active: H, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s })
+      .find((o) => o.args.attackId === 'souffle' || o.args.attackKind === 'souffle')!;
+    expect(offre.gate.ok, 'la case du Souffle est fermée').toBe(true);
+    banc.jouerLaCase(offre.actionId, offre.args);
+    cliquerSurLeCombattant(banc.getState, E.id);
+    expect(banc.getState().pendingManeuver?.kind, 'le Souffle de la barre n’a ouvert aucune attaque').toBe('souffle');
+    banc.getState().jetLancer('maneuver');
+    banc.getState().jetValider('maneuver');
+    expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.wounds.current).toBeLessThan(before);
   });
 
   it('Hurlement : reste IMMÉDIAT (pas de pendingManeuver) — jets SUBIS au feed', () => {

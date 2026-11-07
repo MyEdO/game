@@ -78,7 +78,7 @@ function fraisMer(): void {
     party: makePregens().slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null,
-    pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [],
+    pendingRest: null, pendingCascade: null, suspendedCascades: [],
     gameTime: 8 * 60, lastUpkeepDay: 0,
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     journal: [],

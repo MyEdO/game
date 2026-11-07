@@ -12,7 +12,6 @@ import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type NomDeVerbeDeJet, type RollVerb } from './flowVerbs';
-import { lieuDeLOffre } from './actionRegistry';
 import type { ActionDeClasse } from './intentionsDeSiege';
 import type { PendingKey } from './stateFields';
 import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
@@ -621,11 +620,6 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
         return dep ? seatOwns(s, seat, dep.heroId) : false; // dépôt inconnu → personne
       },
     }],
-    // L'offre du registre (#3371), par son lieu (`lieuDeLOffre`) : un CORPS se joue chez l'hôte au droit de tout geste du
-    // combat (le repli universel) ; un RELAIS ou une pure intention se joue chez l'émetteur, dont le verbe voyage avec sa
-    // propre route : sous ce nom, il ne voyage pas, et l'hôte ne joue pas un relais qu'il lirait dans SON état. Une offre
-    // inconnue : personne.
-    ['jouerLOffre', { rule: (_s, _seat, [id]) => (lieuDeLOffre(id) === 'hote' ? null : false) }],
     // Les gestes d'un LANCEUR, en combat comme hors combat : le siège du lanceur (1ᵉʳ argument).
     ['incanterLeSort', PAR_ARG0],
     ['focaliserLeSort', PAR_ARG0],

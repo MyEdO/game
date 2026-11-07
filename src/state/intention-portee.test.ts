@@ -52,7 +52,7 @@ const vueDuChamp = (): HighlightsView =>
 describe('(a) la portée AFFICHÉE est celle du moteur', () => {
   it('Course armée → la ZONE DE COURSE du champ s’allume, et rien n’est peint deux fois', () => {
     setup();
-    get().jouerLOffre('course');
+    get().armerLIntention('course');
     expect(get().localIntent).toEqual({ actionId: 'course' });
     // Depuis la spec HUD § ARBITRAGE 2026-08-19, cette zone n'est plus peinte d'office : elle EST
     // l'affordance de l'intention. Son porteur reste la nature `run` du champ (`HighlightsView.runReach`)
@@ -79,7 +79,7 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
     ];
     for (const [actionId, mesure] of peintures) {
       setup();
-      get().jouerLOffre(actionId);
+      get().armerLIntention(actionId);
       const v = vueDuChamp();
       expect(
         mesure(v),
@@ -101,7 +101,7 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
 describe('(b) annulation', () => {
   it('Échap (registre clavier `intent-cancel`) dissout l’intention armée', () => {
     setup();
-    get().jouerLOffre('charge');
+    get().armerLIntention('charge');
     expect(get().localIntent).not.toBeNull();
     runBindingById('intent-cancel', get);
     expect(get().localIntent).toBeNull();

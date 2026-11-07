@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { advanceTurn } from './combatFlow';
 import { statblockToCombatant } from './monde/spawn';
 import { attackModifiers } from '../engine/combat';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -96,7 +97,7 @@ function startNuee(scene: Scene) {
 /** Franchit le Round par le geste de fin de tour, depuis le dernier index de l'ordre. */
 function franchirLeRound(battle: ReturnType<typeof startNuee>['battle']) {
   banc.setState({ battle: { ...battle, turn: battle.order.length - 1, action: null, acted: false, movementUsed: 0 } });
-  banc.getState().terminerLeTour();
+  advanceTurn(banc.getState, banc.setState);
   return banc.getState().battle!;
 }
 

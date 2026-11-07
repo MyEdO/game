@@ -11,7 +11,7 @@ import { scenesDuRegistre } from './monde/registreDesScenes';
 import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
 import {
-  ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, crewTestTypes, findConditionById, findCreatureById, findSeaShantyById,
+  ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, findConditionById, findCreatureById, findSeaShantyById,
   findTrappingById, maneuvers, pregens, profilsStandard, shipStations, skills, spells, talents, trappingsInstanciables,
 } from '../data';
 import { ACTIVITIES, entrainementOptions, qualitesDArtisanat } from '../engine/activities';
@@ -90,8 +90,8 @@ export type IdDePorte = string;
 export type IdDIndice = string;
 /** Un pré-tiré de la donnée (`pregens.json`), par son `id`. */
 export type IdDePretire = string;
-/** Une offre du registre des actions (`actions.json`), par son `id`. */
-export type IdDOffre = string;
+/** Une offre du registre des actions qui arme une intention (`run: armerLIntention`, `actions.json`), par son `id`. */
+export type IdDIntention = string;
 /** Un article du stock du marchand ouvert, par l'id de son entrée de catalogue (`catalogEntryOf`, `merchantFlow.ts`). */
 export type IdDArticle = string;
 /** Une ligne du butin ouvert (`pendingLoot`, `pendingVictory`), par son `uid` (`LootGear`). */
@@ -168,8 +168,6 @@ export type IdDAttaque = string;
 /** Un objet que le décor d'une entité de la scène courante donne à ramasser, par sa clé (`entityPickables`,
  *  `combatEffects.ts`). */
 export type IdDObjetRamassable = string;
-/** Un Test d'équipage du catalogue (`crew-test-types.json`). MDG 13 */
-export type IdDeTestDEquipage = string;
 /** Un stade qu'un indice du carnet a franchi (`ClueState.historique`), son stade courant compris. */
 export type IdDeStadeDIndice = string;
 /** Un Trait psychologique porté par un héros du groupe, par sa clé d'instance (`traitsPsyChoisissables`,
@@ -267,7 +265,7 @@ export const DESIGNATIONS = {
   },
   IdDePorte: { mot: 'id de porte', lire: (s) => ids(portesDuMobile(s)), nom: () => null },
   IdDePretire: { mot: 'id de pré-tiré', lire: () => ids(pregens), nom: (_s, id) => labelParmi(pregens, id) },
-  IdDOffre: { mot: 'id d’offre', lire: () => ids(ACTIONS), nom: (_s, id) => labelParmi(ACTIONS, id) },
+  IdDIntention: { mot: 'id d’intention', lire: () => ids(ACTIONS.filter((a) => a.run === 'armerLIntention')), nom: (_s, id) => labelParmi(ACTIONS, id) },
   IdDArticle: { mot: 'id d’article', lire: (s) => (s.merchant?.stock ?? []).map((l) => l.id), nom: (_s, id) => catalogEntryOf(id)?.label ?? null },
   IdDeLigneDeButin: { mot: 'id de ligne de butin', lire: (s) => lignesDuButin(s).map((g) => g.uid), nom: (s, uid) => lignesDuButin(s).find((g) => g.uid === uid)?.label ?? null },
   IdDeLigneDeRepartition: {
@@ -353,7 +351,6 @@ export const DESIGNATIONS = {
     lire: (s) => lesRamassables(s).map((p) => p.key),
     nom: (s, cle) => lesRamassables(s).find((p) => p.key === cle)?.label ?? null,
   },
-  IdDeTestDEquipage: { mot: 'id de Test d’équipage', lire: () => ids(crewTestTypes), nom: (_s, id) => labelParmi(crewTestTypes, id) },
   IdDeStadeDIndice: {
     mot: 'id de stade d’indice',
     lire: (s) => sansDoublon(Object.values(s.clues).flatMap((c) => [c.stadeCourant, ...c.historique.map((h) => h.stade)])),

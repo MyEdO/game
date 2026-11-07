@@ -178,7 +178,6 @@
       "src/engine/crewMorale.ts",
       "src/engine/warMachineCrew.ts",
       "src/noyau/stations.ts",
-      "src/ui/CrewTestModal.tsx",
       "src/ui/ShipRolesPanel.tsx"
     ],
     "etat": "complet",

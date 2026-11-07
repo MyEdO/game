@@ -305,6 +305,12 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
 }
 
 
+/** L'attaque se résout-elle SUR-LE-CHAMP, sans cible ni placement ? Sa manœuvre vise tous ceux d'alentour ou tous les
+ *  ennemis (`ManeuverDef.targeting`, le Hurlement, LDB 85 l.170) ; toute autre se désigne (une cible, un point). */
+export function attaqueImmediate(a: AttackOption): boolean {
+  return a.def?.targeting === 'allAround' || a.def?.targeting === 'allFoes';
+}
+
 /** Résout l'`AttackOption` à exécuter/prévisualiser : l'attaque ARMÉE (`selectedAttack`, défaut 'arme',
  *  repli sur 'arme' si périmée). `undefined` = mode
  *  non-attaque (cast/heal/focus/…) ou aucune attaque abordable. SOURCE UNIQUE partagée par le clic (store)

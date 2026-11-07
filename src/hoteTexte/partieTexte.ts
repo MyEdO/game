@@ -16,8 +16,6 @@ import { tableTotale } from '../lib/tableTotale';
 /** Les pistes de lecture de l'hôte texte : l'appel de `lire` qui montre la suite d'un refus. */
 export const PISTES_DU_TEXTE: PistesDeLecture = {
   vue: ` (${appelEcrit('lire', { quoi: 'vue' })})`,
-  offres: ` (${appelEcrit('lire', { quoi: 'offres', toutes: true })})`,
-  offre: (id) => ` (${appelEcrit('lire', { quoi: 'offres', id })})`,
   verbe: (id) => ` (${appelEcrit('lire', { quoi: 'verbes', id })})`,
 };
 
@@ -79,8 +77,8 @@ function absorber(r: PartieRejouee, resultat: ResultatDeLAppel, pas: number): vo
  *  est une erreur de validation, `refusee` une erreur de permission ; un verbe qui lève est une erreur de validation. Le
  *  geste écrit est le geste contrôlé. Rend les lignes de journal du geste. */
 export function jouerUnGeste(r: PartieRejouee, lu: Geste): LigneNumerotee[] {
-  const geste = 'offre' in lu ? lu : gesteDuVerbe(r.partie.etat(), lu, PISTES_DU_TEXTE);
-  const intention = intentionDuGeste(r.partie.etat(), geste, PISTES_DU_TEXTE);
+  const geste = gesteDuVerbe(r.partie.etat(), lu, PISTES_DU_TEXTE);
+  const intention = intentionDuGeste(r.partie.etat(), geste);
   // Le moteur mute en place (combattants, scène) : l'empreinte se prend AVANT l'appel, jamais sur l'état d'avant relu après.
   const avant = r.partie.etat();
   const faitsAvant = empreinteDesFaits(avant);

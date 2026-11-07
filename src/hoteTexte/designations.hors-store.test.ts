@@ -1,8 +1,7 @@
 /**
  * LES IDS QU'UN VERBE DÉSIGNE (#2898), joués par l'hôte texte (`hote.testkit.ts`) : un id que la table du noyau
  * (`DESIGNATIONS`, src/noyau/designations.ts) ne rend pas se refuse en `validation`, en nommant les ids valides, et rien
- * ne s'écrit ; un id que le refus nomme passe le contrôle. Un champ du contexte d'une offre que ni l'offre ni ses
- * candidats ne lisent se refuse de même.
+ * ne s'écrit ; un id que le refus nomme passe le contrôle. Le verbe d'une offre désigne de même ce que sa case lit.
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { fermerLaTable, partie, table, verbe, type table as Table } from './hote.testkit';
@@ -103,20 +102,11 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   });
 });
 
-describe('un champ du contexte d’une offre que rien ne lit se refuse en `validation`', () => {
-  it('`charge` ne lit pas `targetId` : la cible se choisit après l’offre', { timeout: 120_000 }, () => {
-    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
-    const avant = t.fichier();
-    const r = t.jouer({ offre: 'charge', ctx: { targetId: 'enemy-enc-dome-1' } });
-    const texte = r.texte.split('\n  ').join(' ');
-    expect(r.erreur, texte).toBe('validation');
-    expect(texte).toMatch(/charge ne lit pas targetId du contexte \(champs acceptés : aucun\) ; la cible de cette offre se choisit après elle, par le clic de son combattant/);
-    expect(t.fichier()).toBe(avant);
+describe('le verbe d’une offre désigne ce que sa case lit', () => {
+  it('un id d’attaque que l’état ne désigne pas se refuse, en nommant les ids valides', { timeout: 120_000 }, () => {
+    refuseLId(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'nobody'), /armerLAttaque : id : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
   });
-  it('un id du contexte que l’état ne désigne pas se refuse, en nommant les ids valides', { timeout: 120_000 }, () => {
-    refuseLId(partie('dome', verbe('fenetreValider', 'roundStart')), { offre: 'attaque', ctx: { attackId: 'nobody' } }, /ctx\.attackId : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
-  });
-  it('un champ que la porte de l’offre lit passe le contrôle', { timeout: 120_000 }, () => {
-    passeLeControle(partie('dome', verbe('fenetreValider', 'roundStart')), { offre: 'attaque', ctx: { attackId: 'arme' } });
+  it('l’id que le refus nomme passe le contrôle', { timeout: 120_000 }, () => {
+    passeLeControle(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'arme'));
   });
 });

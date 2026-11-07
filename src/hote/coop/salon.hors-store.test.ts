@@ -219,7 +219,7 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
   });
 });
 
-describe('salon — l’offre d’un invité (`jouerLOffre`) : le corps part, le relais se joue chez lui, l’attaque s’arme avant', () => {
+describe('salon — le verbe de l’offre d’un invité : il part, l’attaque s’arme avant', () => {
   /** Le duel du héros `h1` de l'invité (siège 0 de la table) contre `e1`, à son tour. */
   function duel(): void {
     const h = makePregens()[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
@@ -232,32 +232,23 @@ describe('salon — l’offre d’un invité (`jouerLOffre`) : le corps part, le
     });
   }
 
-  it('un corps (`end-turn`) part tel quel et ne se joue pas chez l’émetteur', () => {
+  it('un verbe de la barre (`terminerLeTour`) part tel quel et ne se joue pas chez l’émetteur', () => {
     duel();
     const local = vi.fn();
     const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'jouerLOffre', local, envoyer, ['end-turn']);
-    expect(envoyer.mock.calls).toEqual([['jouerLOffre', ['end-turn']]]);
+    emettreIntentInvite(banc.getState, 'terminerLeTour', local, envoyer, []);
+    expect(envoyer.mock.calls).toEqual([['terminerLeTour', []]]);
     expect(local).not.toHaveBeenCalled();
     expect(banc.getState().localIntent).toBeNull();
   });
 
-  it('un relais (`raise-hand`) se joue chez l’émetteur : rien ne part', () => {
-    duel();
-    const local = vi.fn();
-    const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'jouerLOffre', local, envoyer, ['raise-hand']);
-    expect(local).toHaveBeenCalledWith('raise-hand');
-    expect(envoyer).not.toHaveBeenCalled();
-  });
-
-  it('`attaque`, jouée chez l’hôte : son intention s’arme chez l’émetteur AVANT l’envoi', () => {
+  it('`armerLAttaque`, joué chez l’hôte : son intention s’arme chez l’émetteur AVANT l’envoi', () => {
     duel();
     const local = vi.fn();
     const armeeALEnvoi: (string | null)[] = [];
     const envoyer = vi.fn(() => { armeeALEnvoi.push(banc.getState().localIntent?.actionId ?? null); });
-    emettreIntentInvite(banc.getState, 'jouerLOffre', local, envoyer, ['attaque']);
-    expect(envoyer.mock.calls).toEqual([['jouerLOffre', ['attaque']]]);
+    emettreIntentInvite(banc.getState, 'armerLAttaque', local, envoyer, ['arme']);
+    expect(envoyer.mock.calls).toEqual([['armerLAttaque', ['arme']]]);
     expect(armeeALEnvoi, 'l’intention n’était pas armée quand l’offre est partie').toEqual(['attaque']);
     expect(local, 'le corps s’est joué chez l’émetteur').not.toHaveBeenCalled();
   });

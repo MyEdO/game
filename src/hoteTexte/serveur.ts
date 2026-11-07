@@ -50,17 +50,17 @@ export interface EntreesDeLire {
   ligne?: number;
   toutes?: boolean;
 }
-export type GesteDeLAgent = { offre: string; ctx?: Record<string, unknown> } | { verbe: string; args?: unknown[]; siege?: number };
+export interface GesteDeLAgent { verbe: string; args?: unknown[]; siege?: number }
 export interface EntreesDeJouer {
   gestes: GesteDeLAgent[];
   partie?: string;
 }
 
-/** Le geste lu d'un geste de l'agent : une offre, ou un verbe et ses arguments, que `jouerUnGeste` contrôle. */
-const gesteLu = (g: GesteDeLAgent): Geste => lireGeste('offre' in g ? g : { type: g.verbe, args: g.args ?? [], siege: g.siege });
+/** Le geste lu d'un geste de l'agent : un verbe et ses arguments, que `jouerUnGeste` contrôle. */
+const gesteLu = (g: GesteDeLAgent): Geste => lireGeste({ type: g.verbe, args: g.args ?? [], siege: g.siege });
 
 /** Le nom d'un geste dans une réponse. */
-const nomDuGeste = (g: Geste): string => ('offre' in g ? `offre ${g.offre}` : g.type);
+const nomDuGeste = (g: Geste): string => g.type;
 
 /** Une erreur structurée, rendue : son texte borné et sa catégorie. */
 const reponseDErreur = (e: ErreurDeGeste): Reponse => ({
