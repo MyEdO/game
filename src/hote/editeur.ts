@@ -211,10 +211,11 @@ function ligneDeLaSelection(s: SessionDEdition): Ligne[] {
   return zone ? [ligne('zone', t('ecran.editeur.zone.choisie', { sorte: t(`ecran.editeur.zone.sorte.${zone.sorte}`), nom: zone.nom, ...zone.rect, z: zone.z }))] : [];
 }
 
-/** Le formulaire qui nomme la sélection de la session `s` (`{ geste: 'nommer', nom }`), son champ prérempli de `nom`. */
-const formulaireDuNom = (nom: string, optionnel: boolean): Formulaire => ({
+/** Le formulaire qui nomme la sélection de la session `s` (`{ geste: 'nommer', nom }`), son champ prérempli de `nom`,
+ *  vide sans nom d'auteur. */
+const formulaireDuNom = (nom: string | undefined, optionnel: boolean): Formulaire => ({
   type: 'formulaire', id: 'nommer', libelle: t('ecran.editeur.entite.nommer'), verbe: 'nommer', focus: false, refus: null,
-  champs: [{ type: 'saisieTexte', id: 'nommer/nom', ton: 'neutre', nom: 'nom', optionnel, libelle: t('ecran.editeur.entite.nom'), valeur: nom }],
+  champs: [{ type: 'saisieTexte', id: 'nommer/nom', ton: 'neutre', nom: 'nom', optionnel, libelle: t('ecran.editeur.entite.nom'), valeur: nom ?? '' }],
 });
 
 /** Le formulaire qui change l'identifiant `id` de la zone d'effet sélectionnée. */
@@ -254,7 +255,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
   const cap = capDeLEntite(ent);
   return [
-    formulaireDuNom(ent.label ?? '', true),
+    formulaireDuNom(ent.label, true),
     ...(types.length ? [choix('entite/type', t(ent.kind === 'prop' ? 'ecran.editeur.entite.type' : 'ecran.editeur.entite.fiche'),
       types.map((o) => bouton(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, ent.ref === o.id)), 'liste')] : []),
     choix('entite/cap', t('ecran.editeur.entite.cap'), capsOfferts(ent).map((c) => bouton(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
@@ -457,7 +458,7 @@ function inspecteurDArchitecture(s: SessionDEdition): (Choix | Ligne | Bouton | 
   if (sel?.type === 'architectureBody' && corps) {
     const styles = Object.values(buildingsMeta());
     return [
-      formulaireDuNom(corps.label ?? '', true),
+      formulaireDuNom(corps.label, true),
       choix('corps/style', t('ecran.editeur.corps.style'), [
         bouton('corps/style/aucun', t('ecran.editeur.corps.style.aucun'), { geste: 'architecture', patch: { style: null } }, corps.style === undefined),
         ...styles.map((m) => bouton(`corps/style/${m.id}`, m.label, { geste: 'architecture', patch: { style: m.id } }, corps.style === m.id)),
