@@ -15,8 +15,8 @@
  */
 import type { Combatant } from './types';
 import { WATER_EXPOSURE, type WaterExposureMode, type WaterExposureModifier } from '../data';
-import { facesDuDe, findTableEntry } from './tables';
-import { parseDiceRequired, rollDice, type RNG } from './dice';
+import { deDeLaTableTiree, facesDuDe, findTableEntry } from './tables';
+import { rollDice, type RNG } from './dice';
 
 /** Le personnage est-il « blessé » (PB courants < max) ? Gate du reroll « Relancez si le Personnage
  *  n'est pas blessé » (Infection mineure / Blessure Purulente, MSRC 16 l.63). */
@@ -65,8 +65,8 @@ export function sourceExposureMod(sourceId: string | undefined): { label: string
  *  tirage non-blessé, on garde la dernière entrée NON gatée en re-balayant la table (déterministe). */
 export function drawWaterDisease(negativeSL: number, wounded: boolean, rng: RNG): { roll: number; modified: number; disease: string; rerolled: number } {
   const mod = WATER_EXPOSURE.rollModPerNegativeSL * Math.max(0, negativeSL);
-  const { die, entries } = WATER_EXPOSURE.diseases;
-  const de = parseDiceRequired(die, 'water-exposure › diseases.die');
+  const { entries } = WATER_EXPOSURE.diseases;
+  const de = deDeLaTableTiree(WATER_EXPOSURE.diseases);
   let rerolled = 0;
   for (;;) {
     const roll = rollDice(de, rng);

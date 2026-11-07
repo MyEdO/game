@@ -15,7 +15,7 @@ const doc = document(
     rand: z.number(),
   },
   {
-    rand: { label: 'Seuil aléatoire (d100)' },
+    rand: { label: 'Borne haute de la bande', hint: 'Bandes 1-2 … 9-10 imprimées par le livre (ADE II 03 l.504-512)' },
   },
   {
     codex: { keys: ['celestialHouses'] },

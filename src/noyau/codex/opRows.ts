@@ -14,7 +14,7 @@ import { humanizeOp, humanizeFormula, humanizePerSL, causePersistante, replieCau
 import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
 import { traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
-import { facesDuDe, fourchette } from '../../engine/tables';
+import { deDeLaTableTiree, facesDuDe, fourchette } from '../../engine/tables';
 import { statName } from '../../engine/statEntry';
 import {
   conditionLabel, psychologyLabel, diseaseLabel, symptomLabel, creatureLabel,
@@ -209,7 +209,7 @@ const MAX_TABLE_DEPTH = 1;
  *  rangée passées par la MÊME humanisation récursive). SOURCE UNIQUE, composée par la catégorie Codex
  *  « Tables d'effets » (`registry.ts`) ET par l'expansion générique de l'op `rollTable` ci-dessous. */
 export function tableRows(table: { die: string; entries: { min: number; max: number; label?: string; ops: GameOp[] }[] }, depth = 0, ctx?: OpRowCtx): CodexRow[] {
-  const faces = facesDuDe(table.die);
+  const faces = facesDuDe(deDeLaTableTiree(table));
   return table.entries.flatMap((r): CodexRow[] => [
     { t: 'sub', label: tableRowRange(r, faces) },
     ...r.ops.flatMap((o) => opRowsForOp(o, depth, ctx)),
