@@ -550,7 +550,7 @@ describe('Inspector — l’identifiant affiché est celui de la zone SÉLECTION
           otherScenes={[]}
           worldMap={null}
           setScene={() => undefined}
-          sel={{ type: 'effectZone', idx }}
+          sel={{ type: 'effectZone', id: scene.effectZones![idx].id }}
           setSel={() => undefined}
           enemyCreatures={[]}
           openLogic={() => undefined}
@@ -653,7 +653,7 @@ describe('Inspector — l’appareil mécanique d’une zone suit ce que la zone
           otherScenes={[]}
           worldMap={null}
           setScene={() => undefined}
-          sel={{ type: 'effectZone', idx }}
+          sel={{ type: 'effectZone', id: scene.effectZones![idx].id }}
           setSel={() => undefined}
           enemyCreatures={[]}
           openLogic={() => undefined}
