@@ -255,7 +255,24 @@ const DECLARATIONS_D_OPS = {
     aggravation: nommerChamps(z.strictObject({ de: formulaSchema, seuil: z.number().int(), meteo: meteoImposeeSchema }), { de: { label: "dé de chaque matin" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, seuil: { label: "seuil" }, meteo: { label: "météo aggravée" } }).optional(),
   }).refine((v) => v.meteo !== undefined || v.ventInverse !== undefined, { message: 'meteoImposee VIDE : nommer « meteo » (axes imposés) ou « ventInverse ».' }), { op: { label: "opération"  }, jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, meteo: { label: "météo imposée" }, ventInverse: { label: "vent inversé" }, aggravation: { label: "aggravation" } }),
   /** `cargaison` — MDG 15 l.209-210, l.224-225 */
-  cargaison: nommerChamps(z.strictObject({ op: z.literal('cargaison'), enc: formulaSchema }), { op: { label: "opération"  }, enc: { label: "Encombrement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  cargaison: z.union([
+    nommerChamps(z.strictObject({ op: z.literal('cargaison'), enc: formulaSchema }), { op: { label: "opération"  }, enc: { label: "Encombrement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('cargaison'), perteAuDechargement: formulaSchema }), { op: { label: "opération"  }, perteAuDechargement: { label: "perte au déchargement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  ], {
+    error: (iss) => {
+      const v = (iss.input ?? {}) as { enc?: unknown; perteAuDechargement?: unknown };
+      return (v.enc === undefined) === (v.perteAuDechargement === undefined)
+        ? 'Cargaison EXCLUSIVE : « enc » (cargaison trouvée) OU « perteAuDechargement » (Enc perdus au prochain déchargement) — exactement un des deux.'
+        : undefined;
+    },
+  }),
+  /** `equipage` — MDG 15 l.202-204, l.213-218, l.258 */
+  equipage: nommerChamps(z.strictObject({
+    op: z.literal('equipage'),
+    delta: formulaSchema,
+    role: ref('crewRole').optional(),
+    sansSolde: z.literal('jusquAuPort').optional(),
+  }), { op: { label: "opération"  }, delta: { label: "variation" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, role: { label: "rôle" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, sansSolde: { label: "sans solde" } }),
   /** `provisions` : jours de vivres gagnés (`jours`) OU part gâtée (`gateesPct`), exclusifs. MDG 15 l.169-170, l.235-236 */
   provisions: z.union([
     nommerChamps(z.strictObject({ op: z.literal('provisions'), jours: formulaSchema }), { op: { label: "opération"  }, jours: { label: "jours de vivres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),

@@ -21,6 +21,8 @@ import type { Combatant } from '../engine/types';
 import { itemFromTrappingById } from '../engine/items';
 import { shipboardSouls } from './shipCrew';
 import { t } from '../i18n';
+import { weeklyCrewWageBrass } from '../engine/crewMorale';
+import type { GameOp } from '../engine/ops';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -424,5 +426,111 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
     expect(get().vessel!.provisions).toBeUndefined();
     expect(get().journal).toContain(t('eff.provisionsSansSuivi'));
     expect(get().vessel!.morale.score).toBeGreaterThan(75);
+  });
+});
+
+describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs maison du 2026-11-07)', () => {
+  beforeEach(etatFrais);
+  afterEach(() => resetData());
+
+  function jour(evenement: string): void {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
+    runSeaDay(get, set);
+  }
+  const consequence = (id: string, table: 'boardEvents' | 'portEvents' = 'boardEvents') => (table === 'boardEvents' ? BOARD_EVENTS : PORT_EVENTS).find((e) => e.id === id)?.consequence;
+  const surLeNavire = (ops: unknown[]): Effect => ({ type: 'ops', on: 'navire', ops } as never);
+  const perdus = (n: number) => set({ vessel: { ...get().vessel!, crewLost: n } });
+  /** Lance le Test ouvert par le flux, en pose l'issue, puis le valide. */
+  const joueLeTest = (reussi: boolean) => {
+    get().jetLancer('test');
+    set({ pendingTest: { ...get().pendingTest!, roll: reussi ? 1 : 99, success: reussi, sl: reussi ? 1 : -3 } });
+    get().jetValider('test');
+  };
+
+  it('Message dans une bouteille : secourir le naufragé, un marin de plus (l.202-204)', () => {
+    perdus(3);
+    jour('message-dans-une-bouteille');
+    avanceEtapeCascade(get, undefined, () => 'yes');
+    expect(get().vessel!.crewLost).toBe(2);
+  });
+
+  it('Message dans une bouteille : renoncer ne change rien', () => {
+    perdus(3);
+    jour('message-dans-une-bouteille');
+    avanceEtapeCascade(get, undefined, () => 'no');
+    expect(get().vessel!.crewLost).toBe(3);
+  });
+
+  it('un recueilli ne dépasse pas l’effectif nominal, et le journal le dit', () => {
+    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: 1 }])]);
+    expect(get().vessel!.crewLost ?? 0).toBe(0);
+    expect(get().journal).toContain(t('eff.equipageComplet'));
+  });
+
+  it('une perte d’équipage retire des marins à l’effectif', () => {
+    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: -2 }])]);
+    expect(get().vessel!.crewLost).toBe(2);
+  });
+
+  it('Canot de sauvetage : la donnée porte les rescapés du livre et leur rôle maison (l.213-218)', () => {
+    const c = consequence('canot-de-sauvetage') as Extract<Flow, { kind: 'choice' }>;
+    expect(c.prompt).toBe('Recueillir les rescapés');
+    const table = (c.yes as Extract<Flow, { kind: 'do' }>).effect.ops[0] as Extract<GameOp, { op: 'rollTable'; entries: unknown }>;
+    expect(table.die).toBe('1d10');
+    expect(table.entries.map((r) => [r.min, r.max, r.ops])).toEqual([
+      [1, 3, [{ op: 'equipage', delta: 2 }]],
+      [4, 6, [{ op: 'equipage', delta: 1 }]],
+      [7, 7, [{ op: 'equipage', delta: 1 }]],
+      [8, 8, [{ op: 'equipage', delta: 1, role: { id: 'navigateur' }, sansSolde: 'jusquAuPort' }]],
+      [9, 9, [{ op: 'equipage', delta: 1, role: { id: 'chirurgien' }, sansSolde: 'jusquAuPort' }]],
+      [10, 10, [{ op: 'narrative', text: 'un chat de navire' }]],
+    ]);
+  });
+
+  it('une table d’ops de navire se tire à la portée du navire (l.213-218)', () => {
+    perdus(5);
+    applyEffects(get, set, [surLeNavire([{ op: 'rollTable', die: '1d10', entries: [{ min: 1, max: 10, ops: [{ op: 'equipage', delta: 2 }] }] }])]);
+    expect(get().vessel!.crewLost).toBe(3);
+  });
+
+  it('Canot : le rescapé au rôle sert sans solde jusqu’au prochain port, puis rejoint l’équipage payé (l.216-217)', () => {
+    perdus(2);
+    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: 1, role: { id: 'navigateur' }, sansSolde: 'jusquAuPort' }])]);
+    expect(get().vessel!.recueillisSansSolde).toEqual([{ roleId: 'navigateur', count: 1 }]);
+    expect(weeklyCrewWageBrass(get().vessel!.crew)).toBe(0);
+    finalizePortArrivalTo(get, set, carte.places[1], true);
+    expect(get().vessel!.recueillisSansSolde).toBeUndefined();
+    expect(get().vessel!.crew).toEqual([{ roleId: 'navigateur', count: 1 }]);
+    expect(weeklyCrewWageBrass(get().vessel!.crew)).toBeGreaterThan(0);
+  });
+
+  it('Passager clandestin repéré (Perception Complexe réussie) : le garder à bord l’engage (l.258)', () => {
+    perdus(2);
+    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id, label, desc }) => ({ min, max, id, label, desc, consequence: consequence('passager-clandestin', 'portEvents') })) as never);
+    finalizePortArrivalTo(get, set, carte.places[1], true);
+    joueLeTest(true);
+    expect(get().lieu).toBe('A');
+    avanceEtapeCascade(get, undefined, () => 'yes');
+    expect(get().vessel!.crewLost).toBe(1);
+    expect(get().lieu).toBe('B');
+  });
+
+  it('Passager clandestin non repéré : il rejoint l’équipage quand même (l.258)', () => {
+    perdus(2);
+    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id, label, desc }) => ({ min, max, id, label, desc, consequence: consequence('passager-clandestin', 'portEvents') })) as never);
+    finalizePortArrivalTo(get, set, carte.places[1], true);
+    joueLeTest(false);
+    expect(get().vessel!.crewLost).toBe(1);
+    expect(get().lieu).toBe('B');
+  });
+
+  it('Gangs des quais : 2d10 Enc perdus au prochain déchargement, levés à l’accostage suivant (l.250)', () => {
+    expect(consequence('gangs-des-quais', 'portEvents')).toEqual({ kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'cargaison', perteAuDechargement: { dice: { n: 2, sides: 10 } } }] } });
+    applyEffects(get, set, [surLeNavire([{ op: 'cargaison', perteAuDechargement: 7 }])]);
+    expect(get().vessel!.perteAuDechargement).toBe(7);
+    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id, label, desc }) => ({ min, max, id, label, desc })) as never);
+    finalizePortArrivalTo(get, set, carte.places[1], true);
+    expect(get().vessel!.perteAuDechargement).toBeUndefined();
   });
 });

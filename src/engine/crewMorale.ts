@@ -267,6 +267,12 @@ export interface CrewHire {
   count: number;
 }
 
+/** `n` de plus au rôle `roleId` d'un roster. PUR. */
+export const ajouterAuRoster = (roster: readonly CrewHire[] | undefined, roleId: string, n: number): CrewHire[] =>
+  (roster ?? []).some((h) => h.roleId === roleId)
+    ? (roster ?? []).map((h) => (h.roleId === roleId ? { ...h, count: h.count + n } : h))
+    : [...(roster ?? []), { roleId, count: n }];
+
 /** Solde HEBDOMADAIRE due par un roster salarié (Σ count × coût hebdomadaire du rôle), en sous de
  *  cuivre (MDG 14 l.293-302). Un rôle sans barème (`wage` absent) ne coûte rien. PUR. #216 */
 export function weeklyCrewWageBrass(crew: CrewHire[] | undefined): number {

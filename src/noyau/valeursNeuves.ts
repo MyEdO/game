@@ -206,6 +206,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'meteoImposee': return { op: 'meteoImposee', jours: { dice: { n: 1, sides: 10 } }, meteo: { vent: 'calme-plat' } };
     case 'cargaison': return { op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } };
     case 'provisions': return { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } };
+    case 'equipage': return { op: 'equipage', delta: 1 };
     default: return { op: 'wounds', amount: 5 };
   }
 }

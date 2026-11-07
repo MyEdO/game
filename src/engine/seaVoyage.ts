@@ -43,7 +43,6 @@ export interface ManannFactor { id: string; label: string; effect: EffetSigne }
 
 /** Climat imposé par un événement : les seuls axes qu'il fixe. MDG 15 l.189, l.199, l.219, l.226, l.248, l.257 */
 type MeteoImposee = Partial<SeaWeather>;
-type TirageListe = { roll: QuantiteTiree; contents: string[] };
 type IssueDuTriton = { min: number; max: number };
 type SansParametre = Record<string, never>;
 
@@ -83,9 +82,7 @@ interface ParametresDeBord {
   collision: SansParametre;
   'vaisseau-pestifere': { cargoCrates: QuantiteTiree; biscuitDays: QuantiteTiree; waterBarrels: QuantiteTiree; co: QuantiteTiree; resistDifficulty: Difficulty };
   rien: SansParametre;
-  bouteille: SansParametre;
   'autres-voyageurs': SansParametre;
-  'canot-sauvetage': TirageListe;
   'ile-inconnue': SansParametre;
   'vents-favorables': { mMod: number };
   marsouin: { days: QuantiteTiree };
@@ -97,13 +94,11 @@ interface ParametresDePort {
   'pretre-manann': { blessingCO: QuantiteTiree; blessingSilverPerSize: number; manann: EffetSigne };
   'controle-a-quai': { taxPct: number; bribeDifficulty: Difficulty; bribeCO: QuantiteTiree };
   'port-desert': { maxSize: number; moral: EffetSigne };
-  'gangs-des-quais': { lostEnc: QuantiteTiree };
   'tache-noire': SansParametre;
   penuries: SansParametre;
   rien: SansParametre;
   'constructeur-itinerant': { metier: Record<string, number>; daysPerJob: QuantiteTiree };
   'offre-suspecte': { maxEnc: number; discountPct: number };
-  'passager-clandestin': { perceptionDifficulty: Difficulty; discoverDays: QuantiteTiree; roll: QuantiteTiree; contents: string[] };
   'rumeurs-commerciales': { gossipDifficulty: Difficulty; demandBonus: number; days: QuantiteTiree };
   'offre-mission': { rewardCO: number };
   'bonne-peche': { rationPriceBronze: number };

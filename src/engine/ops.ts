@@ -27,7 +27,7 @@ import { hullShipSize } from './shipBuild';
 import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
 import type { SeaWeather } from './seaWeather';
 import { ALL_MAGIC, type CastPenalty } from './types';
-import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type Id, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
@@ -1224,8 +1224,14 @@ export type GameOp =
    *  MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
   | { op: 'meteoImposee'; jours: Formula; meteo?: Partial<SeaWeather>; ventInverse?: true; aggravation?: AggravationMeteo }
   /** CARGAISON chargée dans la cale du navire : `enc` Enc d'une cargaison tirée au hasard pour la saison, à
-   *  son prix de base. Op de NAVIRE. MDG 15 l.209-210, l.224-225 */
-  | { op: 'cargaison'; enc: Formula }
+   *  son prix de base ; OU `perteAuDechargement` Enc perdus du prochain lot déchargé dans ce port. Op de
+   *  NAVIRE. MDG 15 l.209-210, l.224-225, l.250 */
+  | { op: 'cargaison'; enc: Formula; perteAuDechargement?: never }
+  | { op: 'cargaison'; perteAuDechargement: Formula; enc?: never }
+  /** ÉQUIPAGE du navire : `delta` marins (négatif : perdus ; positif : recueillis, dans la limite de
+   *  l'effectif nominal) ; le recueilli qui tient un rôle d'équipage (`role`) entre au rôle, sans solde
+   *  jusqu'au prochain port (`sansSolde`). Op de NAVIRE. MDG 15 l.202-204, l.213-218, l.258 */
+  | { op: 'equipage'; delta: Formula; role?: { id: Id<'crewRole'> }; sansSolde?: 'jusquAuPort' }
   /** PROVISIONS de bord : `jours` jours de vivres de l'équipage gagnés, OU `gateesPct` % des provisions à
    *  bord gâtées (cale et rations des héros), exclusifs. Op de NAVIRE. MDG 15 l.169-170, l.235-236 */
   | { op: 'provisions'; jours: Formula; gateesPct?: never }
@@ -1236,7 +1242,7 @@ export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<S
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
-export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions'] as const satisfies readonly GameOp['op'][];
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage'] as const satisfies readonly GameOp['op'][];
 export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
 export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
 
@@ -2954,6 +2960,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'meteoImposee':
       case 'cargaison':
       case 'provisions':
+      case 'equipage':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la

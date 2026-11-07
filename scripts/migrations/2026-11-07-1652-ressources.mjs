@@ -1,6 +1,6 @@
 /**
- * Migration #1652 lot 3 — ressources de bord : quatre rangées de bord de `sea-events.json` passent de leur
- * genre (`kind` + `params`) à leur `consequence` en grammaire (`Flow`, joué par `runFlow`).
+ * Migration #1652 lot 3 — ressources de bord : six rangées de bord et deux d'escale de `sea-events.json`
+ * passent de leur genre (`kind` + `params`) à leur `consequence` en grammaire (`Flow`, joué par `runFlow`).
  *
  *   genre (rangée)          consequence (dérivée des `params` de la rangée)
  *   `debris-cargaison`      `choice` repêcher : ops navire `cargaison` (`cargoEnc`)              MDG 15 l.209-210
@@ -8,6 +8,17 @@
  *   `penurie-nourriture`    ops navire `provisions` (`gateesPct` = `spoilPct`)                   MDG 15 l.169-170
  *   `manne`                 ops navire `provisions` 1d10 jours, `shipMorale` +2d10 (`params` vide :
  *                           les valeurs sont celles du livre)                                    MDG 15 l.235-236
+ *   `bouteille`             `choice` secourir : ops navire `equipage` +1                         MDG 15 l.202-204
+ *   `canot-sauvetage`       `choice` recueillir : table navire (`roll`) des rescapés, `equipage`  MDG 15 l.213-218
+ *   `passager-clandestin`   `test` de Perception (`perceptionDifficulty`) ; réussite : `choice`
+ *                           le garder ; échec : il reste. Table navire (`roll`), `equipage`      MDG 15 l.258
+ *   `gangs-des-quais`       ops navire `cargaison` perte au déchargement (`lostEnc`)             MDG 15 l.250
+ *
+ * Correspondance MAISON d'un rescapé à un rôle d'équipage (`crew-roles.json`), sur la consigne de
+ * l'utilisateur du 2026-11-07 (« met ce qui te semble juste ») : Mousse → `mousse`, Nautonier →
+ * `navigateur` (MDG 09, « Vous guidez les navires »), Médecin de bord → `chirurgien` ; Marin, Officier et
+ * Mercenaire expérimenté, sans rôle au catalogue, accroissent l'effectif anonyme. Les rescapés du canot à
+ * un rôle servent sans solde jusqu'au prochain port (l.216-217).
  *
  * Les Infestations (`infestation`, MDG 15 l.159-164, l.174-178) ne sont pas des entrées de cette migration.
  *
@@ -24,7 +35,26 @@ import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const SEA = join(ROOT, 'src/data/sea-events.json');
-const GENRES_MIGRES = new Set(['debris-cargaison', 'epave-cargaison', 'penurie-nourriture', 'manne']);
+const GENRES_MIGRES = new Set(['debris-cargaison', 'epave-cargaison', 'penurie-nourriture', 'manne', 'bouteille', 'canot-sauvetage', 'passager-clandestin', 'gangs-des-quais']);
+
+const equipage = (delta, role, sansSolde) => ({ op: 'equipage', delta, ...(role ? { role: { id: role } } : {}), ...(sansSolde ? { sansSolde: 'jusquAuPort' } : {}) });
+/** Rangées MAISON (rôle) sur le verbatim du livre : `[min, max, ops]`. */
+const RESCAPES_DU_CANOT = [
+  [1, 3, [equipage(2)]],
+  [4, 6, [equipage(1)]],
+  [7, 7, [equipage(1)]],
+  [8, 8, [equipage(1, 'navigateur', true)]],
+  [9, 9, [equipage(1, 'chirurgien', true)]],
+  [10, 10, [{ op: 'narrative', text: 'un chat de navire' }]],
+];
+const PASSAGERS = [
+  [1, 3, [equipage(1, 'mousse')]],
+  [4, 6, [equipage(1)]],
+  [7, 7, [equipage(1)]],
+  [8, 8, [equipage(1, 'navigateur')]],
+  [9, 9, [equipage(1, 'chirurgien')]],
+  [10, 10, [equipage(1)]],
+];
 
 const arrets = [];
 
@@ -53,6 +83,27 @@ function consequenceDe(e, ou) {
       cles(['spoilPct']);
       if (!Number.isInteger(p.spoilPct) || p.spoilPct < 1 || p.spoilPct > 100) arrets.push(`${ou} : params.spoilPct « ${p.spoilPct} » hors de 1-100`);
       return surLeNavire([{ op: 'provisions', gateesPct: p.spoilPct }]);
+    case 'bouteille':
+      cles([]);
+      return { kind: 'choice', prompt: 'Secourir le naufragé', yes: surLeNavire([equipage(1)]) };
+    case 'canot-sauvetage':
+      cles(['roll', 'contents']);
+      return { kind: 'choice', prompt: 'Recueillir les rescapés', yes: surLeNavire([table(p.roll, RESCAPES_DU_CANOT, ou)]) };
+    case 'passager-clandestin': {
+      cles(['perceptionDifficulty', 'discoverDays', 'roll', 'contents']);
+      if (typeof p.perceptionDifficulty !== 'string') arrets.push(`${ou} : params.perceptionDifficulty absent`);
+      const rejoint = surLeNavire([table(p.roll, PASSAGERS, ou)]);
+      return {
+        kind: 'test',
+        test: { skill: { id: 'perception' }, difficulty: p.perceptionDifficulty, stake: { key: { dataset: 'voyage', kind: 'sea-passager-clandestin', entryId: e.id, entryCategory: 'seaPortEvents' } } },
+        success: { kind: 'choice', prompt: 'Garder le passager à bord', yes: rejoint },
+        fail: rejoint,
+      };
+    }
+    case 'gangs-des-quais':
+      cles(['lostEnc']);
+      if (!estTirage(p.lostEnc)) arrets.push(`${ou} : params.lostEnc hors de la forme {dice}`);
+      return surLeNavire([{ op: 'cargaison', perteAuDechargement: { dice: p.lostEnc?.dice } }]);
     case 'manne':
       cles([]);
       return surLeNavire([
@@ -61,6 +112,12 @@ function consequenceDe(e, ou) {
       ]);
   }
   throw new Error(`genre « ${e.kind} » hors de GENRES_MIGRES`);
+}
+
+/** Table navire au dé `roll` (un d10) et aux rangées `rangees`. */
+function table(roll, rangees, ou) {
+  if (!estTirage(roll) || roll.dice.n !== 1 || roll.dice.sides !== 10) arrets.push(`${ou} : params.roll n'est pas 1d10`);
+  return { op: 'rollTable', die: '1d10', entries: rangees.map(([min, max, ops]) => ({ min, max, ops })) };
 }
 
 /** Remplace `kind` par `consequence` au même rang, et retire `params`. */

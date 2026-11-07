@@ -92,7 +92,7 @@ import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
-import { crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
+import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
 import { provisioningManifest } from '../engine/provisions';
 import { toMoney, canAfford, type Money } from '../engine/money';
@@ -2482,12 +2482,36 @@ function trancherLaRelache(get: Get, set: Set, allow: boolean): void {
  *  propre cascade) puis arrivée au lieu (`arriverAuLieu`). SOURCE UNIQUE des deux gestes enchaînés,
  *  partagée par `trancherLaRelache` (inline) et la clôture de cascade surfacée (`dispatchCascadeDone`). */
 export function finalizePortArrivalTo(get: Get, set: Set, to: MapPlace, allow: boolean): void {
+  const accostage = accosterLeNavire(get, set);
+  if (accostage.length) log(get, set, accostage);
   const avant = get().pendingCascade;
   resolvePortArrival(get, set, to.port, battleRng(), allow);
   const ouverte = get().pendingCascade;
   // L'événement a SUSPENDU sur sa propre cascade (Test, choix) : l'arrivée au lieu attend sa clôture.
   if (ouverte && ouverte !== avant) { set({ pendingCascade: { ...ouverte, portArrival: { toPlaceId: to.id, allow, evenementJoue: true } } }); return; }
   arriverAuLieu(set, to);
+}
+
+/** À l'ACCOSTAGE : les recueillis sans solde rejoignent l'équipage pour une paie normale, et la perte au
+ *  déchargement de l'escale précédente est levée. MDG 15 l.213-218, l.250 */
+function accosterLeNavire(get: Get, set: Set): string[] {
+  const vessel = get().vessel;
+  if (!vessel || (!vessel.recueillisSansSolde?.length && vessel.perteAuDechargement === undefined)) return [];
+  const recueillis = vessel.recueillisSansSolde ?? [];
+  const crew = recueillis.reduce((roster, h) => ajouterAuRoster(roster, h.roleId, h.count), vessel.crew ?? []);
+  const { recueillisSansSolde: _r, perteAuDechargement: _p, ...reste } = vessel;
+  set({ vessel: { ...reste, ...(recueillis.length ? { crew } : {}) } });
+  const n = recueillis.reduce((s, h) => s + h.count, 0);
+  return n ? [t('eff.recueillisEngages', { n })] : [];
+}
+
+
+/** L'accostage `arrival` qu'une cascade FERMÉE sans clôture portait : il passe à la cascade que sa branche
+ *  a ouverte, sinon il se finalise. */
+export function poursuivreLAccostage(get: Get, set: Set, arrival: NonNullable<PendingCascade['portArrival']>): void {
+  const ouverte = get().pendingCascade;
+  if (ouverte) set({ pendingCascade: { ...ouverte, portArrival: arrival } });
+  else finalizePortArrival(get, set, arrival);
 }
 
 /** Clôture d'une cascade `portArrival` (désertion à la relâche surfacée, #387) : résout le lieu par id

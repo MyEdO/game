@@ -587,7 +587,10 @@ export function humanizeOp(o: GameOp): string {
       meteo: [...(o.meteo ? [seaWeatherLabel(o.meteo)] : []), ...(o.ventInverse ? [t('codex.op.meteoImposee.ventInverse')] : [])].join(', '),
       n: humanizeFormula(o.jours),
     });
-    case 'cargaison': return t('codex.op.cargaison', { enc: humanizeFormula(o.enc) });
+    case 'cargaison': return o.perteAuDechargement !== undefined
+      ? t('codex.op.cargaison.perte', { enc: humanizeFormula(o.perteAuDechargement) })
+      : t('codex.op.cargaison', { enc: humanizeFormula(o.enc) });
+    case 'equipage': return `${t('codex.op.equipage', { delta: humanizeFormula(o.delta) })}${o.role ? t('codex.op.equipage.role', { role: refLabel('crewRoles', o.role) }) : ''}${o.sansSolde ? t('codex.op.equipage.sansSolde') : ''}`;
     case 'provisions': return o.gateesPct !== undefined
       ? t('codex.op.provisions.gatees', { pct: o.gateesPct })
       : t('codex.op.provisions.jours', { n: humanizeFormula(o.jours) });

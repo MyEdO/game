@@ -135,6 +135,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   meteoImposee: 'Météo imposée au navire',
   cargaison: 'Cargaison trouvée',
   provisions: 'Provisions de bord',
+  equipage: 'Équipage du navire',
 };
 
 /** Champ d'une op portant une RÉFÉRENCE de registre : `ds` = dataset où elle doit résoudre,
@@ -190,6 +191,7 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   contractDisease: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }],
   reduceDiseaseDays: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: false }],
   giveTrapping: [{ field: 'trappingId', ds: 'trappings', label: 'Possession', required: false }],
+  equipage: [{ field: 'role.id', ds: 'crewRoles', label: 'Rôle d’équipage', required: false }],
   manann: [{ field: 'factorId', ds: 'seaManannFactors', label: 'Facteur de l’Humeur de Manann', required: true, sauf: 'delta' }],
 };
 

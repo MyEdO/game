@@ -1224,8 +1224,23 @@
         "id": "message-dans-une-bouteille",
         "label": "Message dans une bouteille",
         "desc": "Message dans une bouteille. Quelqu'un aperçoit une bouteille en verre ballottée par la houle près du navire. Elle contient un message d'un marin coincé sur une île déserte. S'il est trouvé et secouru, il se montre reconnaissant envers ses sauveurs et, une fois qu'il a récupéré physiquement, il jure de servir comme fidèle membre de l'équipage pendant un an sans paie.",
-        "kind": "bouteille",
-        "params": {},
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Secourir le naufragé",
+          "yes": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "equipage",
+                  "delta": 1
+                }
+              ]
+            }
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 132,
@@ -1335,22 +1350,92 @@
         "id": "canot-de-sauvetage",
         "label": "Canot de sauvetage",
         "desc": "Canot de sauvetage. Vous voyez une petite embarcation flottant sur l'océan. Si vous la récupérez, lancez 1d10 pour déterminer ce qu'elle contient (1 à 3 : deux Marins ; 4 à 6 : un Marin ; 7 : un Officier ; 8 : un Nautonier ; 9 : un Médecin de bord ; 10 : un chat de navire). Ces rescapés venant d'un vaisseau qui a sombré seront très reconnaissants s'ils sont sauvés. Ils serviront parmi l'équipage gratuitement jusqu'à ce que le bateau arrive au prochain port, après quoi ils seront prêts à rejoindre l'équipage pour une paie normale (ou en échange d'un petit poisson et d'une soucoupe d'eau douce une fois par jour dans le cas du chat).",
-        "kind": "canot-sauvetage",
-        "params": {
-          "roll": {
-            "dice": {
-              "n": 1,
-              "sides": 10
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Recueillir les rescapés",
+          "yes": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "rollTable",
+                  "die": "1d10",
+                  "entries": [
+                    {
+                      "min": 1,
+                      "max": 3,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 2
+                        }
+                      ]
+                    },
+                    {
+                      "min": 4,
+                      "max": 6,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 1
+                        }
+                      ]
+                    },
+                    {
+                      "min": 7,
+                      "max": 7,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 1
+                        }
+                      ]
+                    },
+                    {
+                      "min": 8,
+                      "max": 8,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 1,
+                          "role": {
+                            "id": "navigateur"
+                          },
+                          "sansSolde": "jusquAuPort"
+                        }
+                      ]
+                    },
+                    {
+                      "min": 9,
+                      "max": 9,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 1,
+                          "role": {
+                            "id": "chirurgien"
+                          },
+                          "sansSolde": "jusquAuPort"
+                        }
+                      ]
+                    },
+                    {
+                      "min": 10,
+                      "max": 10,
+                      "ops": [
+                        {
+                          "op": "narrative",
+                          "text": "un chat de navire"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
-          },
-          "contents": [
-            "1 à 3 : deux Marins",
-            "4 à 6 : un Marin",
-            "7 : un Officier",
-            "8 : un Nautonier",
-            "9 : un Médecin de bord",
-            "10 : un chat de navire"
-          ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -1857,13 +1942,22 @@
         "id": "gangs-des-quais",
         "label": "Gangs des quais",
         "desc": "Gangs des quais. Les dockers locaux font beaucoup de contrebande. Si vous avez de la cargaison à faire décharger ici, 2d10 Enc disparaissent.",
-        "kind": "gangs-des-quais",
-        "params": {
-          "lostEnc": {
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "cargaison",
+                "perteAuDechargement": {
+                  "dice": {
+                    "n": 2,
+                    "sides": 10
+                  }
+                }
+              }
+            ]
           }
         },
         "source": {
@@ -1999,29 +2093,194 @@
         "id": "passager-clandestin",
         "label": "Passager clandestin",
         "desc": "Passager clandestin. Quelqu'un se faufile discrètement à bord de votre navire. Si vous réussissez un Test de Perception Complexe (–10), vous le repérez avant de repartir, sinon, vous découvrez sa présence après 1d10 jours passés à voyager. Le MJ détermine de qui il s'agit et pourquoi il cherche à se cacher à bord. Lancez 1d10 pour savoir comment il pourrait aider l'équipage (1 à 3 : Mousse ; 4 à 6 : Marin ; 7 : Mercenaire expérimenté ; 8 : Nautonier ; 9 : Médecin de bord ; 10 : Officier).",
-        "kind": "passager-clandestin",
-        "params": {
-          "perceptionDifficulty": "complexe",
-          "discoverDays": {
-            "dice": {
-              "n": 1,
-              "sides": 10
+        "consequence": {
+          "kind": "test",
+          "test": {
+            "skill": {
+              "id": "perception"
+            },
+            "difficulty": "complexe",
+            "stake": {
+              "key": {
+                "dataset": "voyage",
+                "kind": "sea-passager-clandestin",
+                "entryId": "passager-clandestin",
+                "entryCategory": "seaPortEvents"
+              }
             }
           },
-          "roll": {
-            "dice": {
-              "n": 1,
-              "sides": 10
+          "success": {
+            "kind": "choice",
+            "prompt": "Garder le passager à bord",
+            "yes": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "navire",
+                "ops": [
+                  {
+                    "op": "rollTable",
+                    "die": "1d10",
+                    "entries": [
+                      {
+                        "min": 1,
+                        "max": 3,
+                        "ops": [
+                          {
+                            "op": "equipage",
+                            "delta": 1,
+                            "role": {
+                              "id": "mousse"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "min": 4,
+                        "max": 6,
+                        "ops": [
+                          {
+                            "op": "equipage",
+                            "delta": 1
+                          }
+                        ]
+                      },
+                      {
+                        "min": 7,
+                        "max": 7,
+                        "ops": [
+                          {
+                            "op": "equipage",
+                            "delta": 1
+                          }
+                        ]
+                      },
+                      {
+                        "min": 8,
+                        "max": 8,
+                        "ops": [
+                          {
+                            "op": "equipage",
+                            "delta": 1,
+                            "role": {
+                              "id": "navigateur"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "min": 9,
+                        "max": 9,
+                        "ops": [
+                          {
+                            "op": "equipage",
+                            "delta": 1,
+                            "role": {
+                              "id": "chirurgien"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "min": 10,
+                        "max": 10,
+                        "ops": [
+                          {
+                            "op": "equipage",
+                            "delta": 1
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
             }
           },
-          "contents": [
-            "1 à 3 : Mousse",
-            "4 à 6 : Marin",
-            "7 : Mercenaire expérimenté",
-            "8 : Nautonier",
-            "9 : Médecin de bord",
-            "10 : Officier"
-          ]
+          "fail": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "rollTable",
+                  "die": "1d10",
+                  "entries": [
+                    {
+                      "min": 1,
+                      "max": 3,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 1,
+                          "role": {
+                            "id": "mousse"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "min": 4,
+                      "max": 6,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 1
+                        }
+                      ]
+                    },
+                    {
+                      "min": 7,
+                      "max": 7,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 1
+                        }
+                      ]
+                    },
+                    {
+                      "min": 8,
+                      "max": 8,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 1,
+                          "role": {
+                            "id": "navigateur"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "min": 9,
+                      "max": 9,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 1,
+                          "role": {
+                            "id": "chirurgien"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "min": 10,
+                      "max": 10,
+                      "ops": [
+                        {
+                          "op": "equipage",
+                          "delta": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
         },
         "source": {
           "book": "mer-des-griffes",

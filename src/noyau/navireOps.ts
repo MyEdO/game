@@ -6,19 +6,22 @@
  */
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
-import { tirerSigne } from '../engine/dice';
+import { rollDice, tirerSigne, type RNG } from '../engine/dice';
+import { findTableEntry } from '../engine/tables';
+import { deDeTirageDe } from '../data/rangees';
 import { MINUTES_PER_DAY, toDate } from '../engine/clock';
 import { estOpDuNavire, nomDeSource, resolveFormula, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
 import type { EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo } from '../engine/seaVoyage';
+import { ajouterAuRoster } from '../engine/crewMorale';
 import { seasonOfMonth } from '../engine/travelStages';
 import { isRation } from '../engine/provisions';
 import { newUid } from '../engine/items';
 import { rollShipCritical } from '../engine/shipCritical';
-import { voyageStakeRef } from '../data';
+import { dataLabel, findCrewRoleById, voyageStakeRef } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { applyShipMoraleDelta, shipboardSouls } from './shipCrew';
+import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
 import { applyVesselCritical, buildVoyageCrewStep, coqueDuNavireDeCampagne, localisationAleatoire, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
 import { applyLeafOps, OPS_DIFFEREES } from './combatEffects';
 import { startCascade } from './cascade';
@@ -91,6 +94,11 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     }
     case 'cargaison': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      if (o.perteAuDechargement !== undefined) {
+        const perte = Math.max(0, Math.round(resolveFormula(o.perteAuDechargement, coque, ctx.rng)));
+        set({ vessel: { ...vessel, perteAuDechargement: perte } });
+        return [t('eff.perteAuDechargement', { enc: perte })];
+      }
       const enc = Math.max(0, Math.round(resolveFormula(o.enc, coque, ctx.rng)));
       const season = seasonOfMonth(toDate(get().gameTime).month);
       const cargo = rollRandomCargo(season, ctx.rng);
@@ -99,7 +107,22 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     }
     case 'provisions':
       return o.gateesPct !== undefined ? gaterLesProvisions(get, set, o.gateesPct) : ajouterDesVivres(get, set, joursTires(o.jours, coque, ctx));
+    case 'equipage':
+      return changerLEquipage(get, set, Math.round(resolveFormula(o.delta, coque, ctx.rng)), o.role?.id, o.sansSolde);
   }
+}
+
+/** Change l'effectif de `delta` marins (`applyVesselCrewLoss`, borné à l'effectif nominal) ; un recueilli au
+ *  rôle `roleId` entre au roster `crew`, ou à `recueillisSansSolde` jusqu'au prochain port. MDG 15 l.202-204,
+ *  l.213-218, l.258 ; MDG 14 l.293-302 */
+function changerLEquipage(get: Get, set: Set, delta: number, roleId: string | undefined, sansSolde: 'jusquAuPort' | undefined): string[] {
+  const lignes = applyVesselCrewLoss(get, set, -delta);
+  if (delta > 0 && !lignes.length) lignes.push(t('eff.equipageComplet'));
+  if (delta <= 0 || roleId === undefined) return lignes;
+  const vessel = garanti(get().vessel, 'equipage', 'navire de campagne de la coque visée');
+  const champ = sansSolde ? 'recueillisSansSolde' : 'crew';
+  set({ vessel: { ...vessel, [champ]: ajouterAuRoster(vessel[champ], roleId, delta) } });
+  return [...lignes, t('eff.equipageRole', { n: delta, role: dataLabel(garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage').label), sansSolde: sansSolde ? t('eff.equipageSansSolde') : '' })];
 }
 
 /** Gâte `pct` % des provisions à bord : les vivres de la cale (`vessel.provisions`) et les rations de chaque
@@ -152,6 +175,16 @@ export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { 
   return true;
 }
 
+type TableEnLigne = Extract<GameOp, { op: 'rollTable'; entries: unknown }>;
+
+/** Une table à rangées en ligne dont une rangée porte une op de NAVIRE : elle se tire à la portée du navire,
+ *  où ses ops se résolvent ; `applyOps` les laisserait inertes. MDG 15 l.213-218, l.258 */
+const estTableDuNavire = (o: GameOp): o is TableEnLigne =>
+  o.op === 'rollTable' && 'entries' in o && o.entries.some((r) => r.ops.some((x) => estOpDuNavire(x) || estTableDuNavire(x)));
+
+/** La rangée tirée d'une table de navire : son dé, `mod` compris. */
+const rangeeTiree = (o: TableEnLigne, rng: RNG) => findTableEntry(o.entries, rollDice(deDeTirageDe(o), rng) + (o.mod ?? 0));
+
 /** Applique la feuille `e` (`on: 'navire'`) au navire de campagne, ops dans l'ordre authoré ; rend les
  *  lignes du journal (aussi posées au recap du jour en mer). */
 export function appliquerAuNavire(get: Get, set: Set, e: EffectOp, base: OpsCtx): string[] {
@@ -169,7 +202,10 @@ export function appliquerAuNavire(get: Get, set: Set, e: EffectOp, base: OpsCtx)
     pures = [];
     persister();
   };
-  for (const o of e.ops) {
+  const file = [...e.ops];
+  while (file.length) {
+    const o = file.shift()!;
+    if (estTableDuNavire(o)) { file.unshift(...rangeeTiree(o, ctx.rng).ops); continue; }
     if (!estOpDuNavire(o)) { pures.push(o); continue; }
     viderLesPures();
     lignes.push(...appliquerOpDuNavire(get, set, coque, o, ctx));
