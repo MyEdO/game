@@ -78,7 +78,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     nommeLEtat('après', att);
   });
 
-  // Le Sonné n'a pas d'Action, donc pas d'entrée en Frénésie (LDB 21 l.31, LDB 16 l.125) : l'État nommé est Exténué.
+  // LDB 21 l.31, LDB 16 l.125
   it('Frénésie', () => {
     const { H } = heroFaceAUnEnnemi(); H.conditions = [{ id: 'extenue', value: 3 }]; H.traits = [{ id: 'frenesie' }];
     g().entrerEnFrenesie();
