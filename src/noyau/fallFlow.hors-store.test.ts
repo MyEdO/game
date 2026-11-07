@@ -17,8 +17,7 @@ import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
  * Câblage de la chute VOLONTAIRE (LDB 15 l.82 ; EDO 01 l.231) : `fallAcross` ouvre une étape À
  * PARTICIPANTS — une rangée par TOMBANT (le groupe en exploration, l'actif en combat), chacune DÉCLARE
  * (`jetRegler('fall', 'suspendre' | 'tenter', …, id)`). Toutes sautent sans Test → résolution IMMÉDIATE ; sinon « Appliquer »
- * (`jetConfirm('fall')`). Chaque tombant subit SA hauteur ; réduite à 0 m ou moins → AUCUN Dégât. Le sous-titre que la
- * fenêtre de cascade rend aux dés de chute se joue en `src/state/fallFlow.test.ts`.
+ * (`jetConfirm('fall')`). Chaque tombant subit SA hauteur ; réduite à 0 m ou moins → AUCUN Dégât.
  */
 
 // Falaise de 4 m entre le sommet (2,0) à 4 m et le pied (2,1) à 0 m — AUCUNE arête `climb`.

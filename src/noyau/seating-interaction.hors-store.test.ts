@@ -1,8 +1,7 @@
 /**
  * INTERACTION D'ASSISE — le meneur s'assoit et se relève par le MÊME `interactEntity` (aucune route
  * `sit`/`seat`, aucun second pending). Ce que ces tests tiennent : la BASCULE, la condition d'abord
- * EXACT, l'unicité de l'occupant sur la dernière place, et les libérations de la marche. Le halo du meuble que
- * peint l'écran se joue en `src/state/seating-interaction.test.ts`.
+ * EXACT, l'unicité de l'occupant sur la dernière place, et les libérations de la marche.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -141,6 +140,15 @@ describe('meuble à places ET fouillable — les deux affordances restent atteig
     banc.getState().interactEntity(PROP); // fouille épuisée → la place prend le relais
     expect(poseDuMeneur()).toMatchObject({ slotId: 'place-1' });
     expect(dernierJournal()).toContain('Vous prenez place');
+  });
+
+  it('assis à un meuble fouillable : le clic du meuble occupé RELÈVE, quoi que porte le meuble', () => {
+    posrFouillable(ABORD_NORD);
+    banc.getState().interactEntity(PROP); // fouille consommée
+    banc.getState().interactEntity(PROP); // place prise
+    expect(poseDuMeneur()).not.toBeNull();
+    banc.getState().interactEntity(PROP);
+    expect(poseDuMeneur()).toBeNull();
   });
 
   it('TABLE PLEINE : la fouille reste atteignable (elle n’est jamais avalée par l’assise)', () => {

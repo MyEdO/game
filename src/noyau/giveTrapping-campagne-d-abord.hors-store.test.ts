@@ -1,6 +1,5 @@
 /**
- * `giveTrapping` résout l'objet dans la couche de campagne chargée d'abord (#767). La lecture de cette couche par les
- * lecteurs du web (`presetPnjById`) se joue en `src/state/campaignData.test.ts`.
+ * `giveTrapping` résout l'objet dans la couche de campagne chargée d'abord (#767).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyNarratif } from './monde/campaignNarratif';
