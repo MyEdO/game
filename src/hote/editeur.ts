@@ -2,9 +2,10 @@
  * L'ÉDITEUR DE CARTE À L'ÉCRAN D'UN HÔTE (#3508) : ses zones et leurs éléments (`elements.ts`), lus de la session
  * d'édition du noyau (`SessionDEdition`). Les outils, les options de l'outil actif (pinceau, terrains, hauteurs, sorte
  * et structure d'une arête, étage rejoint et plan d'une volée, engin d'un emplacement de siège), les couches de la scène, l'historique, la presse,
- * l'enregistrement au dépôt, la case pointée et la sélection, l'inspecteur de l'entité, de l'entrée ou de l'arête sélectionnée et le calque de
- * référence de la couche ; chaque geste porte le geste d'édition qu'il joue (`{ edition }`), prêt à envoyer. Ce que le
- * pointeur trace sur la carte en cours de geste, le tracé de la volée et l'arête sélectionnée, vont à la surcouche (`surcoucheDeLEdition`),
+ * l'enregistrement au dépôt, la case pointée et la sélection, l'inspecteur de l'entité, de l'entrée, de la zone ou de l'arête sélectionnée et le
+ * calque de référence de la couche ; chaque geste porte le geste d'édition qu'il joue (`{ edition }`), prêt à envoyer. Ce que le
+ * pointeur trace sur la carte en cours de geste, le tracé de la volée, l'arête sélectionnée, les zones de la couche et la poignée de la
+ * sélection, vont à la surcouche (`surcoucheDeLEdition`),
  * que l'hôte pose sur le monde, et le calque de la couche, à l'affichage du calque (`calqueAffiche`), avec la planche
  * qu'il garde (`cheminDeLaPlanche`) et ce qu'il garde des calques (`memoireDesCalques`).
  */
@@ -14,7 +15,9 @@ import {
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type Scene, type SessionDEdition, type WallPaint,
+  effectZoneRect, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
+  type WallPaint, ZONE_VARIANTS,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
@@ -47,13 +50,28 @@ export interface RepereDeLEdition {
   choisi: boolean;
 }
 
+/** Les sortes de zone de l'éditeur : un déclencheur, une zone de repos, une pièce (`isRoomZone`), toute autre zone
+ *  d'effet. */
+export type SorteDeZone = 'declencheur' | 'repos' | 'piece' | 'zone';
+
+/** Une zone de la couche éditée sur la carte : sa sorte, son nom, ses cases et si elle est sélectionnée. */
+export interface ZoneDeLEdition {
+  sorte: SorteDeZone;
+  nom: string;
+  cases: { x: number; y: number; z: number }[];
+  choisi: boolean;
+}
+
 /** Les cases que le geste en cours trace sur la carte, chacune sur sa couche : le rectangle tiré, ou les cases que le
  *  pinceau a couvertes, que le monde ne montre qu'au relâché, puis le tracé de la volée ; l'arête sélectionnée, sur
- *  la couche éditée ; et les repères de cette couche. */
+ *  la couche éditée ; les repères et les zones de cette couche ; la case de la poignée qui redimensionne la sélection
+ *  (`poigneeDeLaSelection`), `null` sans elle. */
 export interface SurcoucheDeLEdition {
   cases: { x: number; y: number; z: number }[];
   arete: AreteDessinee | null;
   reperes: RepereDeLEdition[];
+  zones: ZoneDeLEdition[];
+  poignee: { x: number; y: number; z: number } | null;
 }
 
 /** Le calque de la couche éditée tel que l'hôte le pose sur le monde : la planche qu'il garde (`cheminDeLaPlanche`),
@@ -96,12 +114,17 @@ function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bou
 }
 
 /** Les options de l'outil actif : la taille du pinceau (et le rectangle du terrain), puis les terrains, les hauteurs ou
- *  la structure du parapet, ou la gomme de sa marque ; la sorte et le matériau d'une arête ; la volée. La gomme n'en a
- *  aucune : elle efface la chose de la case. */
+ *  la structure du parapet, ou la gomme de sa marque ; la sorte et le matériau d'une arête ; la volée ; la sorte de
+ *  zone à tracer ; le sens du pinceau d'emprise et sa fin. La gomme n'en a aucune : elle efface la chose de la case. */
 function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const outil = s.outil;
   if (outil.mode === 'select' || outil.mode === 'erase' || outil.mode === 'entry' || (outil.mode === 'entity' && outil.kind === 'heroStart')) return [];
   if (outil.mode === 'stair') return optionsDeLaVolee(s, outil.toZ);
+  if (outil.mode === 'zone') {
+    return [choix('zones', t('ecran.editeur.zones'),
+      ZONE_VARIANTS.map((zone) => bouton(`zone/${zone}`, t(`ecran.editeur.zone.${zone}`), { geste: 'outil', outil: { mode: 'zone', zone } }, outil.zone === zone)))];
+  }
+  if (outil.mode === 'zoneTiles') return [...emprise(outil.zoneId, outil), bouton('emprise/finir', t('ecran.editeur.zone.emprise.finir'), { geste: 'outil', outil: { mode: 'select' } })];
   if (outil.mode === 'emplacement') {
     return [choix('engins', t('ecran.editeur.engins'),
       siegeEngines().map((e) => bouton(`engin/${e.id}`, e.label, { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
@@ -159,12 +182,15 @@ function entreeDeLaSelection(s: SessionDEdition): { nom: string; x: number; y: n
   return pos && s.sel?.type === 'entry' ? { nom: s.sel.id, x: pos.x, y: pos.y, z: pos.z ?? 0 } : undefined;
 }
 
-/** La ligne de l'entité ou de l'entrée sélectionnée de la session `s` : sa sorte, son nom, sa case et sa couche. */
+/** La ligne de l'entité, de l'entrée ou de la zone sélectionnée de la session `s` : sa sorte, son nom, sa case (le
+ *  rectangle d'une zone) et sa couche. */
 function ligneDeLaSelection(s: SessionDEdition): Ligne[] {
   const ent = entiteDeLaSelection(sceneEditee(s), s.sel);
   if (ent) return [ligne('entite', t('ecran.editeur.entite', { sorte: t(`ecran.editeur.entite.${ent.kind}`), nom: nomALEcran(s, ent), x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 }))];
   const entree = entreeDeLaSelection(s);
-  return entree ? [ligne('entree', t('ecran.editeur.entree', entree))] : [];
+  if (entree) return [ligne('entree', t('ecran.editeur.entree', entree))];
+  const zone = zonesLues(sceneEditee(s)).find((z) => sameSel(z.sel, s.sel));
+  return zone ? [ligne('zone', t('ecran.editeur.zone.choisie', { sorte: t(`ecran.editeur.zone.sorte.${zone.sorte}`), nom: zone.nom, ...zone.rect, z: zone.z }))] : [];
 }
 
 /** Le formulaire qui nomme la sélection de la session `s` (`{ geste: 'nommer', nom }`), son champ prérempli de `nom`. */
@@ -328,6 +354,82 @@ function inspecteurDEntree(s: SessionDEdition, entree: { nom: string; z: number 
   ];
 }
 
+/** Les lieux de repos qu'une zone de repos offre. */
+const LIEUX = ['auberge', 'maison', 'camp'] as const;
+
+type Rect = { x: number; y: number; w: number; h: number };
+
+/** Les cases du rectangle `r`, ligne à ligne. */
+const casesDuRect = (r: Rect): { x: number; y: number }[] =>
+  Array.from({ length: r.w * r.h }, (_, i) => ({ x: r.x + (i % r.w), y: r.y + Math.floor(i / r.w) }));
+
+/** Une zone de la scène telle que l'éditeur la lit : sa sélection, sa sorte, son nom (l'id d'un déclencheur, le
+ *  libellé d'une zone d'effet), son rectangle, sa couche et ses cases (`sceneZoneTiles` d'une zone d'effet). */
+interface ZoneLue {
+  sel: Sel;
+  sorte: SorteDeZone;
+  nom: string;
+  rect: Rect;
+  z: number;
+  cases: { x: number; y: number }[];
+}
+
+/** Les zones de la scène `scene` : ses déclencheurs, ses zones de repos, puis ses zones d'effet. */
+function zonesLues(scene: Scene): ZoneLue[] {
+  return [
+    ...scene.triggers.map((tr) => ({ sel: { type: 'trigger' as const, id: tr.id }, sorte: 'declencheur' as const, nom: tr.id, rect: tr.rect, z: tr.rect.z ?? 0, cases: casesDuRect(tr.rect) })),
+    ...(scene.restZones ?? []).map((r, idx) => ({
+      sel: { type: 'restZone' as const, idx }, sorte: 'repos' as const, nom: t('ecran.editeur.zone.sorte.repos'), rect: r.rect, z: r.rect.z ?? 0, cases: casesDuRect(r.rect),
+    })),
+    ...(scene.effectZones ?? []).map((ez, idx) => ({
+      sel: { type: 'effectZone' as const, idx }, sorte: isRoomZone(ez) ? 'piece' as const : 'zone' as const, nom: ez.label, rect: effectZoneRect(ez.area), z: ez.z ?? 0, cases: sceneZoneTiles(ez),
+    })),
+  ];
+}
+
+/** L'emprise au pinceau de la zone d'effet `zoneId` : y ajouter des cases, en retirer (l'outil d'emprise armé dans ce
+ *  sens, pressé). */
+function emprise(zoneId: string, outil: SessionDEdition['outil']): Choix[] {
+  const sens = outil.mode === 'zoneTiles' && outil.zoneId === zoneId ? outil.paint : null;
+  return [choix('emprise', t('ecran.editeur.zone.emprise'), (['add', 'remove'] as const).map((paint) =>
+    bouton(`emprise/${paint}`, t(`ecran.editeur.zone.emprise.${paint}`), { geste: 'outil', outil: { mode: 'zoneTiles', zoneId, paint } }, sens === paint)))];
+}
+
+/** L'inspecteur de la zone sélectionnée `zone` de la session `s` : la poignée qui la redimensionne ; d'une zone d'effet,
+ *  son nom, sa nature, sa forme, son emprise au pinceau et toute son aire rendue ; sa couche ; d'un déclencheur, s'il
+ *  ne joue qu'une fois ; d'une zone de repos, ses lieux et sa qualité ; la supprimer. */
+function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | Bouton | Formulaire)[] {
+  const scene = sceneEditee(s);
+  const sur = (patch: PatchDeZone): GesteDEdition => ({ geste: 'zone', patch });
+  const sel = zone.sel;
+  const propre: (Choix | Ligne | Bouton | Formulaire)[] = [];
+  if (sel?.type === 'effectZone') {
+    const ez = scene.effectZones![sel.idx];
+    propre.push(
+      formulaireDuNom(ez.label, false),
+      choix('zone/nature', t('ecran.editeur.zone.nature'), ([null, 'interior', 'exterior'] as const).map((n) =>
+        bouton(`zone/nature/${n ?? 'aucune'}`, t(`ecran.editeur.zone.nature.${n ?? 'aucune'}`), sur({ presentation: n }), (ez.presentation ?? null) === n))),
+      choix('zone/forme', t('ecran.editeur.zone.forme'), (['rect', 'disc'] as const).map((f) =>
+        bouton(`zone/forme/${f}`, t(`ecran.editeur.zone.forme.${f}`), sur({ forme: f }), ez.area.kind === f))),
+      ...emprise(ez.id, s.outil),
+      bouton('zone/pleine', t('ecran.editeur.zone.emprise.pleine'), sur({ pleine: true }), false, ez.tiles ? null : t('ecran.editeur.zone.emprise.dejaPleine')),
+    );
+  }
+  propre.push(choixDeLaCouche(s, 'zone/couche', zone.z, (z) => sur({ z })));
+  if (sel?.type === 'trigger') {
+    const once = !!scene.triggers.find((tr) => tr.id === sel.id)?.once;
+    propre.push(bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !once }), once));
+  }
+  if (sel?.type === 'restZone') {
+    const repos = scene.restZones![sel.idx];
+    propre.push(
+      choix('zone/lieux', t('ecran.editeur.zone.lieux'), LIEUX.map((l) => bouton(`zone/lieux/${l}`, t(`ecran.editeur.zone.lieu.${l}`), sur({ lieux: { [l]: !repos.places[l] } }), !!repos.places[l]))),
+      bouton('zone/pietre', t('ecran.editeur.zone.pietre'), sur({ pietre: repos.quality !== 'pietre' }), repos.quality === 'pietre'),
+    );
+  }
+  return [ligne('zone/poignee', t('ecran.editeur.zone.poignee')), ...propre, bouton('zone/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' })];
+}
+
 /** Copier l'entité sélectionnée de la session `s`, la coller sur la case pointée, la dupliquer. */
 function presse(s: SessionDEdition): Bouton[] {
   const choisie = entiteDeLaSelection(sceneEditee(s), s.sel) ? null : t('ecran.editeur.presse.aucune');
@@ -445,12 +547,13 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   return elements;
 }
 
-/** L'inspecteur de la sélection de la session `s` : de l'arête, de l'entité ou de l'entrée sélectionnée ; vide sans
- *  elle. */
+/** L'inspecteur de la sélection de la session `s` : de l'entité, de l'entrée, de la zone ou de l'arête sélectionnée ;
+ *  vide sans elle. */
 function inspecteur(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
   const ent = entiteDeLaSelection(sceneEditee(s), s.sel);
   const entree = entreeDeLaSelection(s);
-  return ent ? inspecteurDEntite(s, ent) : entree ? inspecteurDEntree(s, entree) : inspecteurDArete(s);
+  const zone = zonesLues(sceneEditee(s)).find((z) => sameSel(z.sel, s.sel));
+  return ent ? inspecteurDEntite(s, ent) : entree ? inspecteurDEntree(s, entree) : zone ? inspecteurDeZone(s, zone) : inspecteurDArete(s);
 }
 
 /** La ligne du parapet crénelé de la case pointée de la session `s`, sa structure ; aucune sans parapet. */
@@ -545,6 +648,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     bouton('outil/emplacement', t('ecran.editeur.outil.emplacement'), { geste: 'outil', outil: { mode: 'emplacement', trappingId: outil.mode === 'emplacement' ? outil.trappingId : siegeEngines()[0].id } }, outil.mode === 'emplacement'),
     bouton('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entity', kind: 'heroStart' } }, s.outil.mode === 'entity' && s.outil.kind === 'heroStart'),
     bouton('outil/entry', t('ecran.editeur.outil.entry'), { geste: 'outil', outil: { mode: 'entry' } }, s.outil.mode === 'entry'),
+    bouton('outil/zone', t('ecran.editeur.outil.zone'), { geste: 'outil', outil: { mode: 'zone', zone: outil.mode === 'zone' ? outil.zone : ZONE_VARIANTS[0] } }, outil.mode === 'zone'),
     bouton('outil/erase', t('ecran.editeur.outil.erase'), { geste: 'outil', outil: { mode: 'erase' } }, s.outil.mode === 'erase'),
   ];
   const couches = etages.map((z) => bouton(`couche/${z}`, t('ecran.editeur.couche', { z }), { geste: 'couche', z }, s.z === z));
@@ -587,14 +691,22 @@ function reperes(s: SessionDEdition): RepereDeLEdition[] {
   ];
 }
 
-/** La surcouche du geste en cours de la session `s`, sur sa couche éditée, et ses repères. */
+/** La surcouche du geste en cours de la session `s`, sur sa couche éditée, ses repères, ses zones et la poignée de la
+ *  sélection. */
 export function surcoucheDeLEdition(s: SessionDEdition): SurcoucheDeLEdition {
+  const scene = sceneEditee(s);
   const g = s.geste;
-  const cases = g?.sorte === 'trait' ? g.trace
-    : g?.sorte === 'rectangle' ? Array.from({ length: g.rect.w * g.rect.h }, (_, i) => ({ x: g.rect.x + (i % g.rect.w), y: g.rect.y + Math.floor(i / g.rect.w) }))
-    : [];
-  const seg = segmentDeLaSelection(sceneEditee(s), s.sel);
-  return { cases: [...cases, ...s.volee].map((c) => ({ x: c.x, y: c.y, z: s.z })), arete: seg ? areteDessinee(sceneEditee(s), seg) : null, reperes: reperes(s) };
+  const cases = g?.sorte === 'trait' ? g.trace : g?.sorte === 'rectangle' ? casesDuRect(g.rect) : [];
+  const seg = segmentDeLaSelection(scene, s.sel);
+  const poignee = poigneeDeLaSelection(scene, s.sel, s.z);
+  const aLaCouche = (c: { x: number; y: number }) => ({ x: c.x, y: c.y, z: s.z });
+  return {
+    cases: [...cases, ...s.volee].map(aLaCouche),
+    arete: seg ? areteDessinee(scene, seg) : null,
+    reperes: reperes(s),
+    zones: zonesLues(scene).filter((z) => z.z === s.z).map((z) => ({ sorte: z.sorte, nom: z.nom, cases: z.cases.map(aLaCouche), choisi: sameSel(z.sel, s.sel) })),
+    poignee: poignee && aLaCouche(poignee),
+  };
 }
 
 /** Le bouton des zones `z` qui joue le geste d'édition `edition`, un qui l'offre sans refus d'abord ; `undefined` si

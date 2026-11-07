@@ -1,3 +1,4 @@
+// CLASSEMENT DU DÉTECTEUR (#2969) : ce module voyage avec le détecteur de la porte des comptes (`scripts/guards/lib/corpusDesComptes.mts`).
 import { descendre } from './descente';
 import { conceptDeLaClasse, conceptDuNoeud, conceptsPoses, poseDuConcept, type IdConceptPose, type Pose } from './interne/concepts';
 import './interne/poses';
