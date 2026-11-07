@@ -597,7 +597,7 @@ function openManeuverDefenseCascade(
 
 /** Le défenseur choisit sa meilleure réaction : Parade (Corps à corps) ou Esquive (Agilité + avances,
  *  pénalité d'Encombrement incluse) — la plus haute valeur. Vit ICI (feuille) : SOURCE UNIQUE,
- *  importée par combatFlow/rollFlows sans cycle.
+ *  importée par combatFlow/rollFlowSpecs sans cycle.
  *  Bestial (LDB 85 l.59) : « En défense, elle peut seulement utiliser la Compétence Esquive. » */
 export function bestDefenseMode(defender: Combatant): 'parade' | 'esquive' {
   if (isBestial(defender.traits)) return 'esquive';

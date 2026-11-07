@@ -36,7 +36,8 @@ import { garanti } from '../lib/garanti';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
-import { cleDeBillet } from './worldMap';
+import { cleDeBillet, lieuDuGroupe, placeServiceMerchantId, placeServices, type ResolvedPlaceService } from './worldMap';
+import { sceneDuRegistre } from './monde/registreDesScenes';
 import { addPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
 import { refuserGeste } from './refusVisible';
@@ -390,11 +391,20 @@ export function openMerchant(get: Get, set: Set, entityId: string): void {
   openMerchantByArchetype(get, set, entityId, ent.merchant.archetype, ent);
 }
 
-/** Marchand de LIEU (#369) — ouvre le système marchand EXISTANT pour un service de catalogue sans
- *  `SceneEntity` (forgeron du hub de ville…) : même `openMerchantByArchetype`, keyé sur l'id virtuel
+/** Les services à échoppe (`merchantArchetype`) du lieu où se tient le groupe (`lieuDuGroupe`). */
+export function echoppesDuLieu(s: Jeu): ResolvedPlaceService[] {
+  const ici = lieuDuGroupe(s);
+  return ici ? placeServices(ici, sceneDuRegistre(ici.scene)).filter((svc) => svc.merchantArchetype) : [];
+}
+
+/** Marchand de LIEU (#369) — ouvre le système marchand EXISTANT pour l'échoppe `serviceId` du lieu du groupe
+ *  (`echoppesDuLieu`, forgeron du hub de ville…) : même `openMerchantByArchetype`, keyé sur l'id virtuel
  *  `placeServiceMerchantId` (stock persistant propre au lieu+service). Extension du général, pas un fork. */
-export function ouvrirLaBoutique(get: Get, set: Set, entityId: string, archetype: string, backdrop?: string): void {
-  openMerchantByArchetype(get, set, entityId, archetype, undefined, backdrop);
+export function ouvrirLaBoutique(get: Get, set: Set, serviceId: string): void {
+  const ici = lieuDuGroupe(get());
+  const svc = echoppesDuLieu(get()).find((x) => x.id === serviceId);
+  if (!ici || !svc?.merchantArchetype) return;
+  openMerchantByArchetype(get, set, placeServiceMerchantId(ici.id, svc.id), svc.merchantArchetype, undefined, svc.backdrop);
 }
 
 /** Kind d'étape de cascade du Test de Ragot de recherche active (#273) : le jet passe par la porte
@@ -869,7 +879,7 @@ export function appraiseRefus(party: Combatant[], mode: 'evaluate' | 'detect' = 
 }
 
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
- *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (rollFlows.appraise). */
+ *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (`FLOWS.appraise`, `rollFlowSpecs.ts`). */
 function openAppraise(
   get: Get, set: Set,
   target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
@@ -998,7 +1008,7 @@ function acquitterLEvaluation(get: Get, set: Set): void {
 export function creerActionsDuMarchand(get: Get, set: Set) {
   return {
     openMerchant: (entityId) => openMerchant(get, set, entityId),
-    ouvrirLaBoutique: (entityId, archetype, backdrop) => ouvrirLaBoutique(get, set, entityId, archetype, backdrop),
+    ouvrirLaBoutique: (serviceId) => ouvrirLaBoutique(get, set, serviceId),
     chercherLaDisponibilite: () => chercherLaDisponibilite(get, set),
     refuserLeMarche: (mode) => refuserLeMarche(get, set, mode),
     payerLesAchats: () => payerLesAchats(get, set),

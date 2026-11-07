@@ -10,7 +10,7 @@ export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu, type NetState }
 export type { Get, Set } from './flowTypes';
 export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
-export { argsAvecVerdictLocal, porteesDuTour } from './localIntent';
+export { argsAvecVerdictLocal, porteesDuTour, preparerLIntentLocal } from './localIntent';
 export { previewAttack, activeCombatant } from './combatFlow';
 export { DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, type Difficulty } from '../engine/types';
 export { formatMoney } from '../engine/money';

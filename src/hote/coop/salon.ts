@@ -14,7 +14,7 @@
  */
 import {
   appliquerLIntentionDUnSiege, argsAvecVerdictLocal, attribuerLEmplacement, attribuerLeHeros, buildDeLaCoop, fermerLeSiege,
-  initialNet, instantaneDeLaCoop, intentEluLocalement, poserLeSiegeMJ, refusDAttribuerLEmplacement, refusDAttribuerLeHeros,
+  initialNet, instantaneDeLaCoop, intentEluLocalement, poserLeSiegeMJ, preparerLIntentLocal, refusDAttribuerLEmplacement, refusDAttribuerLeHeros,
   refusDuSiegeMJ, refuserGesteDuSiege, type Get, type NetState, type Set,
 } from '../../noyau/index';
 import { t } from '../../i18n';
@@ -64,7 +64,8 @@ export interface PortsDuSalon extends PortsDuRelais {
  *  - ÉLECTION LOCALE (`intentEluLocalement`) : le clic n'ouvre qu'un CHOIX D'ÉCRAN — le paramètre borné qui reste à
  *    demander — et se joue ENTIER chez le client, par son action locale. Rien ne part : le porteur élu est hors
  *    instantané, l'exécuter chez l'hôte y ferait naître un panneau étranger et n'en montrerait aucun à l'émetteur ;
- *  - sinon l'intent PART, avec le VERDICT D'ARMEMENT calculé ICI, chez l'émetteur (`argsAvecVerdictLocal`) :
+ *  - sinon l'émetteur PRÉPARE chez lui ce que l'hôte ne pose pas (`preparerLIntentLocal` : l'intention qu'arme une
+ *    offre jouée chez l'hôte), puis l'intent PART, avec le VERDICT D'ARMEMENT calculé ICI (`argsAvecVerdictLocal`) :
  *    l'intention est locale au client, l'hôte ne peut pas la relire dans son propre état.
  */
 export function emettreIntentInvite(
@@ -78,6 +79,7 @@ export function emettreIntentInvite(
     local(...args);
     return;
   }
+  preparerLIntentLocal(get, name, args);
   envoyer(name, argsAvecVerdictLocal(get, name, args));
 }
 

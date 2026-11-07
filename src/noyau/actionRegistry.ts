@@ -663,7 +663,7 @@ const ENTREE_DE_L_ACTION: ReadonlyMap<string, EntreeDOffre> = new Map(ACTIONS.fl
   def.run ? [[def.id, garanti(Object.prototype.hasOwnProperty.call(OFFRES_PAR_RUN, def.run) ? OFFRES_PAR_RUN[def.run] : undefined, def.run, `dispatcher de l’offre ${def.id}`)] as const] : []));
 
 /** L'entrée du registre d'id `id`, ou `undefined`. */
-const offreDeId = (id: unknown): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
+export const offreDeId = (id: unknown): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
 
 /** Le LIEU de l'offre `id` (#3371) : celui de son entrée d'`OFFRES_PAR_RUN`, ou `emetteur` pour une pure intention (une
  *  offre sans `run` ne fait qu'armer l'état local de l'émetteur) ; `undefined` pour un id inconnu. */
@@ -703,6 +703,13 @@ export function refusDeLOffre(s: Jeu, actionId: string, args: ContexteDOffre = {
   return gate.ok ? null : garanti(gate.reason, actionId, 'raison du refus de l’offre');
 }
 
+/** Arme l'intention que l'offre `def` déclare (`ActionDef.intent`) : l'armement est l'état LOCAL de l'émetteur
+ *  (`localIntent`), jamais posé chez l'hôte au nom d'un siège. `jouerLOffre` l'arme où il se joue ; l'invité qui envoie
+ *  une offre jouée chez l'hôte l'arme avant l'envoi (`INTENT_PREPARATION_LOCALE`, `localIntent.ts`). */
+export function armerLOffre(get: Get<JeuDuNoyau>, def: ActionDef): void {
+  if (def.intent && !unSiegeAgit()) get().armerLIntention(def.id);
+}
+
 /** Le verbe de l'offre (#2898, #3371) : `jouerLOffre`, et `desarmerLeMode`, la sortie gratuite de ce qu'une offre arme. */
 export function creerActionsDuRegistre(get: Get<JeuDuNoyau>, set: Set) {
   return {
@@ -710,8 +717,7 @@ export function creerActionsDuRegistre(get: Get<JeuDuNoyau>, set: Set) {
       const refus = refusDeLOffre(get(), actionId, ctx);
       if (refus) return void refuserGesteDuSiege(get, set, refus);
       const def = garanti(offreDeId(actionId), actionId, 'offre du registre');
-      // L'armement est l'état LOCAL de l'émetteur (`localIntent`) : jamais posé chez l'hôte au nom d'un siège.
-      if (def.intent && !unSiegeAgit()) get().armerLIntention(def.id);
+      armerLOffre(get, def);
       ENTREE_DE_L_ACTION.get(def.id)?.jouer(get, ctx, def);
     },
     desarmerLeMode: () => {

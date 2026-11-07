@@ -8,8 +8,8 @@
  * case), et son annulation est GRATUITE par construction — aucune ressource n'est engagée à l'armement.
  *
  * COOP : `localIntent` vit à la RACINE du store, HORS `battle` — le mode est LOCAL au client (aucun
- * intent réseau à l'armement, seul le COMMIT du geste part), et `appliquerLInstantane` (`noyau/coop.ts`) le
- * préserve. Les POSTURES, elles, sont du JEU : elles vivent dans `battle`.
+ * intent réseau à l'armement, seul le COMMIT du geste part), et `appliquerLInstantane` le préserve
+ * (`LOCALES_AU_CLIENT`, `coop.ts`). Les POSTURES, elles, sont du JEU : elles vivent dans `battle`.
  *
  * Chaque action du registre qui arme une intention déclare, en donnée (`intent` de `actions.json`),
  * l'id de la PORTÉE que le champ doit peindre ; le code de cette portée vit ici, jamais en JSON.
@@ -20,6 +20,7 @@ import { findActionById } from '../data/index';
 import { unSiegeAgit } from './netOwnership';
 import type { Jeu } from './etat';
 import type { ActionDeClasse } from './intentionsDeSiege';
+import { armerLOffre, offreDeId, refusDeLOffre, type ContexteDOffre } from './actionRegistry';
 
 /** Le mode d'intention ARMÉ (un seul à la fois) : l'id d'action du registre qui l'a posé. */
 export interface LocalIntent {
@@ -116,6 +117,27 @@ export const INTENT_VERDICT_ARGS: Readonly<Record<string, VerdictJoint>> = {
   cliquerLaCase: (get, [pt, entite, opts]) =>
     [pt, entite, { ...(opts as object | undefined), ...(entite ? { approche: chargeArmee(get) } : { courseArmee: courseArmee(get) }) }],
 } satisfies { readonly [A in ActionDeClasse<'invité'>]?: VerdictJoint };
+
+/**
+ * CE QUE L'ÉMETTEUR PRÉPARE CHEZ LUI AVANT D'ENVOYER UN INTENT, par action de la classe invité.
+ *
+ * L'armement d'une intention est LOCAL au client (hors snapshot) : l'hôte qui joue l'offre d'un invité ne l'arme pas
+ * (`armerLOffre`). Une offre jouée chez l'hôte qui arme une intention (`attaque`) s'arme donc chez l'émetteur, au
+ * geste, sur le verdict de son état (`refusDeLOffre`), comme `jouerLOffre` l'arme où il se joue. Une offre jouée chez
+ * l'émetteur (`INTENT_ELECTION_LOCALE`) n'envoie rien : `jouerLOffre` l'arme lui-même.
+ */
+type PreparationLocale = (get: Get, args: readonly unknown[]) => void;
+export const INTENT_PREPARATION_LOCALE: Readonly<Record<string, PreparationLocale>> = {
+  jouerLOffre: (get, [id, ctx]) => {
+    const def = offreDeId(id);
+    if (def && !refusDeLOffre(get(), def.id, (ctx ?? {}) as ContexteDOffre)) armerLOffre(get, def);
+  },
+} satisfies { readonly [A in ActionDeClasse<'invité'>]?: PreparationLocale };
+
+/** Prépare chez l'émetteur l'intent `action` qu'il envoie (`INTENT_PREPARATION_LOCALE`). */
+export function preparerLIntentLocal(get: Get, action: string, args: readonly unknown[]): void {
+  INTENT_PREPARATION_LOCALE[action]?.(get, args);
+}
 
 /** Args d'un intent, enrichis du verdict d'armement LOCAL quand l'action en demande un. */
 export function argsAvecVerdictLocal(get: Get<Jeu>, action: string, args: readonly unknown[]): unknown[] {

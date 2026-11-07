@@ -33,7 +33,7 @@ import { garanti } from '../lib/garanti';
 import { propulsionDuNavire, milieuDuVoyage } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
-import { unloadWeapon, setAmmoChoice } from '../engine/items';
+import { choisirLaMunition } from '../engine/items';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
@@ -590,18 +590,11 @@ export function creerActionsDeLEquipage(get: Get, set: SetFn) {
       const poste = ship?.postes?.find((p) => p.item.uid === posteUid);
       if (!b || !poste) return;
       // Le poste est PARTAGÉ par référence avec `mannedPoste` du chef (serveChef) → muter la même instance
-      // suffit ; le `set` re-render (pattern combat : mutation + refresh).
-      // La munition se fixe au CHARGEMENT — arbitrage utilisateur 2026-08-16 par AskUserQuestion, verbatim de la demande qui
-      // l'ouvre : « on doit pouvoir choisir ses munitions avec nos armes de tir facilement depuis sa barre
-      // d'action ». Changer celle d'une pièce CHARGÉE la DÉCHARGE — Test étendu de
-      // recharge à refaire (LDB 62 l.335) ; re-sélectionner la même est sans effet ; rien n'est détruit (décompte
-      // au tir). Le CHEF qui la sert perd aussi son gate de tir : la pièce n'a plus de coup.
-      if (poste.loaded !== false && (poste.loadedAmmoUid ?? poste.ammoUid) !== (ammoUid ?? undefined)) {
-        const chef = poste.crewIds?.[0] ? inBattleId(b, poste.crewIds[0]) : undefined;
-        const gun = chef?.mannedPoste === poste ? chef.weapons.find((w) => w.uid === poste.item.uid) : undefined;
-        unloadWeapon(gun ? chef : undefined, gun, poste); // couture UNIQUE : la pièce, et l'arme dérivée du chef
-      }
-      setAmmoChoice(undefined, undefined, ammoUid ?? undefined, poste); // écrivain UNIQUE de la sélection
+      // suffit ; le `set` re-render (pattern combat : mutation + refresh). Le CHEF qui la sert lit la pièce par son
+      // arme : la décharge lui ôte aussi son coup (`choisirLaMunition`).
+      const chef = poste.crewIds?.[0] ? inBattleId(b, poste.crewIds[0]) : undefined;
+      const gun = chef?.mannedPoste === poste ? chef.weapons.find((w) => w.uid === poste.item.uid) : undefined;
+      choisirLaMunition(gun ? chef : undefined, gun, ammoUid ?? undefined, poste);
       set({ battle: { ...b } });
     },
   } satisfies FabriqueDuNoyau;

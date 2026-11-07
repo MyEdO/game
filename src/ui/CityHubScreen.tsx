@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useGame } from '../state/store';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
-import { placeServices, produitsDuProfil, lieuAUnPlan, placeServiceMerchantId, serviceIcon, poiIcon, type ResolvedPlaceService, type MapPlace } from '../noyau/worldMap';
+import { placeServices, produitsDuProfil, lieuAUnPlan, serviceIcon, poiIcon, type ResolvedPlaceService, type MapPlace } from '../noyau/worldMap';
 import type { Scene } from '../noyau/monde/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
@@ -191,7 +191,7 @@ export function CityHubScreen({
           actions={
             <button
               type="button" className="btn btn-primary"
-              onClick={() => enter(() => ouvrirLaBoutique(placeServiceMerchantId(place.id, svc.id), svc.merchantArchetype!, svc.backdrop))}
+              onClick={() => enter(() => ouvrirLaBoutique(svc.id))}
             >
               Entrer chez le forgeron
             </button>

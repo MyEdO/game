@@ -3,7 +3,7 @@
  * FLOWS.battement/FLOWS.distraire → resolveBattement/resolveDistraire produit bien l'effet RAW :
  *  - Battement (LDB 10 l.103) : Action, Test de CC non opposé → retire de l'Avantage adverse ;
  *  - Distraire (LDB 10 l.364) : Mouvement, Test opposé Athlétisme vs Calme → pose `distractedRounds`.
- * On pilote le VRAI flux (battleX → jetLancer(flux) → jetValider(flux)), avec des Caractéristiques rendant l'issue
+ * On pilote le VRAI flux (`faireUnBattement`/`tenterDeDistraire` → jetLancer(flux) → jetValider(flux)), avec des Caractéristiques rendant l'issue
  * déterministe, et on vérifie l'effet + le coût (Action pour Battement, Mouvement pour Distraire).
  */
 import { describe, it, expect, beforeEach } from 'vitest';

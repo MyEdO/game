@@ -11,7 +11,7 @@
  *
  * La fabrique centralise la plomberie commune (gardes, dépense de Chance/Résilience, drapeau
  * `rerolled`, patch de re-rendu) ; chaque flux ne déclare QUE sa partie métier via `RollFlowSpec`
- * (cf. `rollFlows.ts`). Le corps de « Appliquer » (`CloturesDuJet`, joué par `jetValider(flux)`) reste écrit à la
+ * (cf. `rollFlowSpecs.ts`). Le corps de « Appliquer » (`CloturesDuJet`, joué par `jetValider(flux)`) reste écrit à la
  * main : ses effets sont tous différents — c'est la règle, pas la plomberie.
  *
  * Garde-fou : les primitives de résolution (RNG, moteur) ne sont appelées QUE par `resolve`/

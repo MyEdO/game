@@ -314,14 +314,14 @@ export interface EtatDeJeu {
   facing: Record<string, Dir8>;
   /** INTENTION LOCALE armée depuis l'interface (case de console) : le geste que le prochain clic du
    *  champ commettra, avec SA portée peinte d'avance (`localIntent.ts`, spec HUD zone 4). LOCAL au
-   *  client : hors `battle`, hors allowlist d'intents, préservé par `applyHostSnapshot` — seul le
+   *  client : hors `battle`, hors allowlist d'intents, préservé par `appliquerLInstantane` — seul le
    *  COMMIT du geste part en réseau. null = aucune intention (gestes par défaut du grid, inchangés). */
   localIntent: LocalIntent | null;
   /** PORTEUR élu du mode Dissiper (`DISPEL_MODE`, spec HUD §1d) : le clic-token l'a choisi, il reste
    *  à choisir LEQUEL de ses Sorts permanents dissiper — c'est le paramètre que le panneau borné de
    *  la console demande. LOCAL au client au même titre que `localIntent` (aucune ressource engagée,
    *  hors `battle`, hors snapshot). L'élection se joue donc chez l'ÉMETTEUR du clic
-   *  (`netFlow.emettreIntentInvite`, table `targetingModes.INTENT_ELECTION_LOCALE`) : elle ne part
+   *  (`emettreIntentInvite`, `hote/coop/salon.ts` ; table `targetingModes.INTENT_ELECTION_LOCALE`) : elle ne part
    *  JAMAIS en intent — l'exécuter dans le store de l'hôte y ferait naître un panneau étranger, et
    *  l'invité n'en verrait aucun (le snapshot efface ce champ).
    *  null = aucun porteur élu — avant le clic-token, ou après la fermeture du panneau. */

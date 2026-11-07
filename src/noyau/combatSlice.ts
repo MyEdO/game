@@ -60,8 +60,8 @@ import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, calmeDeLAnimositeAcquise, ciblesDAnimositeAcquise } from '../engine/psychology';
-import { reloadProgressOf, aRecharger, chambrePleine } from '../engine/weaponLoad';
-import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
+import { reloadProgressOf, aRecharger } from '../engine/weaponLoad';
+import { recomputeLoadout, giveTrappingLabel, loadWeapon, unloadWeapon, setReloadProgress, choisirLaMunition, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback, reloadDRTarget } from '../engine/qualities/dispatch';
 import { talentFearIndice, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
@@ -1390,13 +1390,8 @@ export function createCombatSlice(get: Get, set: Set) {
         },
       });
     },
-    // La munition se fixe au CHARGEMENT — arbitrage utilisateur 2026-08-16 par AskUserQuestion, verbatim de la demande qui
-    // l'ouvre : « on doit pouvoir choisir ses munitions avec nos armes de tir facilement depuis sa barre
-    // d'action ». Sur une arme à Recharge DÉJÀ chargée, changer de munition la
-    // DÉCHARGE — le Test étendu de rechargement est à refaire (LDB 62 l.335), et le chargeur d'une arme À
-    // Répétition se vide avec (conséquence assumée de l'arbitrage). Re-choisir la munition déjà chargée est
-    // sans effet. Rien n'est détruit : le stock n'est décompté qu'au tir (`consumeAmmo`).
-    // `weaponUid` DÉSIGNE l'arme concernée (deux armes à distance = deux munitions) ; absent → la 1re.
+    // La munition de `weaponUid` (absent → la 1re arme à distance), deux armes à distance portant chacune la sienne :
+    // `choisirLaMunition` en dit la règle.
     approvisionnerLArme: (uid: string, weaponUid?: string) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const { battle } = get();
@@ -1408,10 +1403,7 @@ export function createCombatSlice(get: Get, set: Set) {
         : active.weapons.find((w) => w.type === 'ranged');
       if (!rw) return; // aucune arme à distance : rien à choisir
       // Chef qui SERT cette pièce : le cycle de charge vit sur la PIÈCE — la bascule doit la décharger ELLE.
-      const poste = active.mannedPoste?.item.uid === rw.uid ? active.mannedPoste : undefined;
-      const swapsLoadedShot = chambrePleine(active, rw) && loadedAmmo(active, rw)?.uid !== uid;
-      setAmmoChoice(active, rw, uid, poste); // écrivain UNIQUE : la sélection vit sur CETTE arme (ou sur la pièce servie)
-      if (swapsLoadedShot) unloadWeapon(active, rw, poste); // couture UNIQUE : l'arme (et la pièce servie)
+      choisirLaMunition(active, rw, uid, active.mannedPoste?.item.uid === rw.uid ? active.mannedPoste : undefined);
       set({ battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
     },
