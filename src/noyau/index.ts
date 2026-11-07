@@ -59,7 +59,7 @@ export { labelEmplacement, seatSlotsOf, type SeatOccupant } from './monde/seatin
 export { assoirALaPlace, type PatchDeZone } from './sceneEdit';
 export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
-export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, type AreteDessinee } from './monde/aretes';
+export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type AreteDessinee, type Regard } from './monde/aretes';
 export type { Scene } from './monde/scene';
 export { couronnesDuMonde, toitsDuMonde, volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';

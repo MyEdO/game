@@ -1313,8 +1313,6 @@ describe('#1652 — chaque événement lit SES paramètres en donnée (MDG 15 l.
   afterEach(() => resetData());
 
   const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
-  const deBord = (id: string, params: object) =>
-    setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === id ? { ...e, params: { ...e.params, ...params } } : e)) as never);
   const dEscale = (id: string, params: object) =>
     setDataset('seaPortEvents', PORT_EVENTS.map((e) => (e.id === id ? { ...e, params: { ...e.params, ...params } } : e)) as never);
   function jourForce(id: string): void {
@@ -1322,15 +1320,6 @@ describe('#1652 — chaque événement lit SES paramètres en donnée (MDG 15 l.
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: id } } });
     runSeaDay(get, set);
   }
-
-  it('Débris marins : `cargoEnc` Enc d’une cargaison tirée, à son prix de base (MDG 15 l.209-210 « une cargaison choisie au hasard »)', () => {
-    deBord('debris-marins', { cargoEnc: 37 });
-    jourForce('debris-marins');
-    const cargo = get().vessel!.cargo!;
-    const lot = cargo[cargo.length - 1];
-    expect(lot.enc).toBe(37);
-    expect(lot.basePriceGold).toBeGreaterThan(0);
-  });
 
   it('Bonne humeur : sa `consequence` fait bouger le Moral (MDG 15 l.220 « Gagnez 2d10 Moral »)', () => {
     const moral = (delta: object) => ({ kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'shipMorale', delta }] } });

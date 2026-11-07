@@ -1,6 +1,9 @@
 ## Le monde 3D d'une scène, que le plateau du jeu et l'éditeur de carte instancient tous deux : le volume du monde
 ## (`monde`, `CONTRAT.md`, section « Monde ») à l'échelle d'une unité par case, rendu et touché des deux côtés, sa lumière,
-## et la caméra pivotante (Q/E, par quart de tour) et zoomable (molette) centrée sur lui. Il rend la case du triangle que
+## et ses caméras (`regarder`) : celle des regards `tactique` et `plateau`, pivotante (Q/E, par quart de tour), zoomable
+## (molette), centrée sur lui puis sur le lieu qu'elle suit (`suivre`), de biais en tactique, à la verticale et sans
+## perspective au plateau ; et l'œil du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le
+## sol touché sous lui (`sol_sous`). Il rend la case du triangle que
 ## le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
 ## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes
 ## (`KIT`) que l'arête nomme, l'arête choisie, les nappes de toit, chacune levée quand le groupe est dessous, les
@@ -13,6 +16,10 @@ extends Node3D
 signal cadrage_change
 
 const DUREE_QUART_S := 0.25
+## Le tangage de la caméra au regard `tactique`, plongeante de biais.
+const TANGAGE_TACTIQUE := -0.9
+## Une hauteur sous tout monde, où finit le rayon qui cherche le sol sous un lieu.
+const SOUS_LE_MONDE := -1000.0
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
 ## Les items de `surbrillances`.
@@ -43,7 +50,9 @@ const KIT := "res://kit/kit.glb"
 @onready var _toits: Node3D = $Volume/Toits
 @onready var _couronnes: Node3D = $Volume/Couronnes
 @onready var _pivot: Node3D = $Pivot
+@onready var _inclinaison: Node3D = $Pivot/Inclinaison
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
+@onready var _oeil: Camera3D = $Oeil
 @onready var _surbrillance: Node3D = $Surbrillance
 @onready var _aretes: Node3D = $Aretes
 @onready var _etiquettes: Node3D = $Etiquettes
@@ -57,6 +66,10 @@ var _sols: Dictionary = {}
 var _lacet := 0.0
 ## Les arêtes posées (`poser_les_aretes`).
 var _aretes_posees: Array = []
+## Les clés des couronnes abattues, et les crans de caméra sous lesquels tombe chaque arête dégagée, par clé
+## (`cacher_le_bati`).
+var _couronnes_abattues: Array = []
+var _aretes_degagees: Dictionary = {}
 ## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
 var _matieres := {}
 ## Le kit des arêtes, caché sous le monde, `null` sans kit au projet.
@@ -66,6 +79,9 @@ var _noms := {}
 ## Les mètres d'une case du dernier monde posé.
 var _metres_par_case := 1.0
 var _pivotement: Tween
+var _suivi: Tween
+## Le regard posé (`regarder`).
+var _regard := "tactique"
 
 
 func _ready() -> void:
@@ -109,10 +125,26 @@ func poser_les_nappes(toits: Array, couronnes: Array) -> void:
 
 
 ## Chaque nappe de toit cachée si `toits_leves` la nomme (`plateau.toitsLeves`), chaque couronne si `couronnes_abattues`
-## la nomme (`plateau.couronnesAbattues`), montrées sinon.
-func cacher_les_nappes(toits_leves: Array, couronnes_abattues: Array) -> void:
+## la nomme (`plateau.couronnesAbattues`), et chaque arête que le groupe dégage (`aretes_degagees`,
+## `plateau.aretesDegagees`) abattue avec sa couronne sous le regard de la caméra (`_abattre_les_aretes`) ; montrées sinon.
+func cacher_le_bati(toits_leves: Array, couronnes_abattues: Array, aretes_degagees: Array) -> void:
 	_cacher_sous(_toits, toits_leves)
-	_cacher_sous(_couronnes, couronnes_abattues)
+	_couronnes_abattues = couronnes_abattues
+	_aretes_degagees.clear()
+	for a in aretes_degagees:
+		_aretes_degagees[a.cle] = a.abattueSous
+	_abattre_les_aretes()
+
+
+## Les arêtes dégagées qui tombent sous le cran de la caméra (`MiseEnPage.rotation_iso`) cachées avec leur couronne, et
+## les couronnes abattues ; le reste montré.
+func _abattre_les_aretes() -> void:
+	var cran := int(MiseEnPage.rotation_iso(_camera.global_basis.z))
+	var abattues := _aretes_degagees.keys().filter(func(cle: String) -> bool: return _aretes_degagees[cle].has(cran))
+	_cacher_sous(_aretes, abattues)
+	var couronnes := _couronnes_abattues.duplicate()
+	couronnes.append_array(abattues)
+	_cacher_sous(_couronnes, couronnes)
 
 
 ## Les nappes `nappes` sous `parent`, chacune son maillage nommé par sa `cle`, à la place des précédentes.
@@ -198,14 +230,15 @@ func lieu(case: Vector2i, z := 0) -> Vector3:
 	return MiseEnPage.centre_de_case(case, sol(case, z))
 
 
-## Le point de l'écran du centre du sol de chaque case de la couche `z`, par sa clé `x,y`.
+## Le point de l'écran du centre du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y`.
 func points(z := 0) -> Dictionary:
 	var points := {}
 	var t := taille()
 	for y in t.y:
 		for x in t.x:
-			var point := a_l_ecran(lieu(Vector2i(x, y), z))
-			points["%d,%d" % [x, y]] = [point.x, point.y]
+			var point: Variant = a_l_ecran(lieu(Vector2i(x, y), z))
+			if point != null:
+				points["%d,%d" % [x, y]] = [point.x, point.y]
 	return points
 
 
@@ -224,8 +257,8 @@ func peindre(plaques: Dictionary) -> void:
 		_surbrillance.add_child(plaque)
 
 
-## Les noms `noms` (par case `Vector3i(x, y, z)`, le texte), chacun au-dessus du sol de sa case, toujours devant la scène,
-## à la place des précédents.
+## Les noms `noms` (par case `Vector3i(x, y, z)`, le texte), chacun au-dessus du sol de sa case, devant la scène hors de
+## l'immersion, où les murs les cachent, à la place des précédents.
 func etiqueter(noms: Dictionary) -> void:
 	for etiquette in _etiquettes.get_children():
 		_etiquettes.remove_child(etiquette)
@@ -235,7 +268,7 @@ func etiqueter(noms: Dictionary) -> void:
 		var nom := Label3D.new()
 		nom.text = noms[c]
 		nom.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		nom.no_depth_test = true
+		nom.no_depth_test = _regard != "immersion"
 		nom.position = MiseEnPage.au_dessus_de_la_case(Vector2i(c.x, c.y), sol(Vector2i(c.x, c.y), c.z))
 		_etiquettes.add_child(nom)
 		_noms["%d,%d,%d" % [c.x, c.y, c.z]] = noms[c]
@@ -256,7 +289,10 @@ func poser_les_aretes(aretes: Array) -> void:
 		_aretes.remove_child(arete)
 		arete.free()
 	for a in aretes:
-		_aretes.add_child(_piece(a))
+		var piece := _piece(a)
+		piece.set_meta("cle", a.cle)
+		_aretes.add_child(piece)
+	_abattre_les_aretes()
 
 
 ## La pièce de l'arête `a`, debout à son pied (`a.pied`) : celle du kit, `<famille>--<pièce>`, étirée à la longueur de
@@ -336,20 +372,32 @@ func calque_pose() -> bool:
 	return _calque.visible
 
 
-## Le point de l'écran du lieu `lieu` du monde.
-func a_l_ecran(lieu: Vector3) -> Vector2:
-	return _camera.unproject_position(lieu)
+## Le point de l'écran du lieu `lieu` du monde, sous la caméra du regard ; `null` derrière elle.
+func a_l_ecran(lieu: Vector3) -> Variant:
+	var camera := get_viewport().get_camera_3d()
+	return null if camera.is_position_behind(lieu) else camera.unproject_position(lieu)
 
 
-## Ce que le rayon de la caméra par `point` touche le premier : `{ case, f }`, la case de son triangle et sa couche
-## (`Vector3i(x, y, z)`), et le point de la carte touché (`MiseEnPage.point_de_carte_du_lieu`), `null` hors du monde.
+## Ce que le rayon de la caméra du regard par `point` touche le premier (`_toucher`), `null` hors du monde.
 func touche_sous(point: Vector2) -> Variant:
-	var rayon := PhysicsRayQueryParameters3D.create(_camera.project_ray_origin(point), _camera.project_position(point, _camera.far))
-	var touche := get_world_3d().direct_space_state.intersect_ray(rayon)
+	var camera := get_viewport().get_camera_3d()
+	return _toucher(camera.project_ray_origin(point), camera.project_position(point, camera.far))
+
+
+## Le sol que touche le premier un rayon tombé à la verticale de `lieu` (`_toucher`), `null` hors du monde.
+func sol_sous(lieu: Vector3) -> Variant:
+	return _toucher(lieu, Vector3(lieu.x, SOUS_LE_MONDE, lieu.z))
+
+
+## Ce que le rayon de `origine` à `fin` touche le premier : `{ case, f, lieu }`, la case de son triangle et sa couche
+## (`Vector3i(x, y, z)`), le point de la carte touché (`MiseEnPage.point_de_carte_du_lieu`) et le lieu touché, `null`
+## hors du monde.
+func _toucher(origine: Vector3, fin: Vector3) -> Variant:
+	var touche := get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(origine, fin))
 	if touche.is_empty():
 		return null
 	var case: Array = _cases_des_triangles[touche.face_index]
-	return {case = Vector3i(int(case[0]), int(case[1]), int(case[2])), f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position))}
+	return {case = Vector3i(int(case[0]), int(case[1]), int(case[2])), f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position)), lieu = touche.position}
 
 
 ## La case du triangle du monde et sa couche (`Vector3i(x, y, z)`) que le rayon de la caméra par `point` touche le premier,
@@ -359,7 +407,47 @@ func case_sous(point: Vector2) -> Variant:
 	return null if touche == null else touche.case
 
 
+## Le regard `regard` (`plateau.regard`, `CONTRAT.md`, section « Vue ») : en tactique, la caméra de biais et en
+## perspective ; au plateau, à la verticale, sans perspective, les bords du plateau droits à l'écran ; en immersion,
+## l'œil, et les noms cachés par les murs. Les arêtes dégagées suivent le cran de la caméra.
+func regarder(regard: String) -> void:
+	if regard == _regard:
+		return
+	_regard = regard
+	_oeil.current = regard == "immersion"
+	_camera.current = regard != "immersion"
+	var plateau := regard == "plateau"
+	_inclinaison.rotation.x = MiseEnPage.TANGAGE_DU_PLATEAU if plateau else TANGAGE_TACTIQUE
+	_camera.projection = Camera3D.PROJECTION_ORTHOGONAL if plateau else Camera3D.PROJECTION_PERSPECTIVE
+	_camera.size = _camera.position.z
+	_pivot.rotation.y = MiseEnPage.lacet_du_plateau(_lacet) if plateau else _lacet
+	for nom: Label3D in _etiquettes.get_children():
+		nom.no_depth_test = regard != "immersion"
+	_abattre_les_aretes()
+	cadrage_change.emit()
+
+
+## La caméra des regards `tactique` et `plateau` glisse jusqu'au lieu `lieu`, qu'elle suit.
+func suivre(lieu: Vector3) -> void:
+	if lieu.is_equal_approx(_pivot.position):
+		return
+	if _suivi != null:
+		_suivi.kill()
+	_suivi = create_tween()
+	_suivi.tween_property(_pivot, "position", lieu, DUREE_QUART_S)
+	_suivi.tween_callback(cadrage_change.emit)
+
+
+## L'œil du regard `immersion` au lieu `lieu`, tourné du lacet `lacet` et du tangage `tangage`.
+func poser_l_oeil(lieu: Vector3, lacet: float, tangage: float) -> void:
+	_oeil.global_position = lieu
+	_oeil.rotation = Vector3(tangage, lacet, 0.0)
+	cadrage_change.emit()
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if _regard == "immersion":
+		return
 	if event.is_action_pressed("pivoter_gauche"):
 		_pivoter(1.0)
 	elif event.is_action_pressed("pivoter_droite"):
@@ -378,10 +466,12 @@ func _pivoter(sens: float) -> void:
 	if _pivotement != null:
 		_pivotement.kill()
 	_pivotement = create_tween()
-	_pivotement.tween_property(_pivot, "rotation:y", _lacet, DUREE_QUART_S)
+	_pivotement.tween_property(_pivot, "rotation:y", MiseEnPage.lacet_du_plateau(_lacet) if _regard == "plateau" else _lacet, DUREE_QUART_S)
+	_pivotement.tween_callback(_abattre_les_aretes)
 	_pivotement.tween_callback(cadrage_change.emit)
 
 
 func _zoomer(sens: float) -> void:
 	_camera.position.z = MiseEnPage.distance_zoomee(_camera.position.z, sens, DISTANCE_MIN, DISTANCE_MAX)
+	_camera.size = _camera.position.z
 	cadrage_change.emit()

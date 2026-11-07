@@ -22,7 +22,7 @@ func _recetter() -> void:
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
 	monde._metres_par_case = METRES_PAR_CASE
-	var arete := {milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = PIED_M, hauteurM = HAUTEUR_M, piece = "mur"}
+	var arete := {cle = "mur", milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = PIED_M, hauteurM = HAUTEUR_M, piece = "mur"}
 	monde.poser_les_aretes([arete.merged({famille = "colombage"}), arete.merged({famille = null})])
 	var aretes := monde.get_node("Aretes")
 	_verifier("pièce du kit", _boite_de(aretes.get_child(0)), PIED_M / METRES_PAR_CASE, (PIED_M + HAUTEUR_M) / METRES_PAR_CASE)

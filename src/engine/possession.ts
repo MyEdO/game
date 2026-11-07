@@ -52,6 +52,8 @@ export interface NavalPossessionState {
   lastVoyageMilles?: number;
   crewLost?: number;
   wagesOwed?: number;
+  recueillisSansSolde?: CrewHire[];
+  perteAuDechargement?: number;
 }
 
 /** CORPS — union discriminée : zéro champ étranger à sa nature. */
