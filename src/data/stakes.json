@@ -1009,7 +1009,7 @@
     "label": "Présage divin — Prière à Manann",
     "cascade": "voyage",
     "cle": "sea-priere",
-    "template": "Le présage se joue sur ce Test : {manann} d'Humeur de Manann et {moral} de Moral — un présage favorable ne s'obtient qu'en réussissant, un présage funeste ne s'évite qu'ainsi.",
+    "template": "Le présage se joue sur ce Test : un présage favorable ne s'obtient qu'en réussissant, un présage funeste ne s'évite qu'ainsi.",
     "form": "descripteur",
     "rule": {
       "id": "priere",

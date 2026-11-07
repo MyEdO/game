@@ -11,9 +11,9 @@ import { revealToStep } from './revealStep';
 import { Combatant, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
-import { d10, d100, roll as rollDice } from '../engine/dice';
+import { d10, d100 } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
-import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL,
+import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire,
   type OpsCtx, type DemandeDe, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
@@ -42,8 +42,7 @@ import { contractDisease, applyContraction, diseaseDefs } from '../engine/diseas
 import { memoParVersion } from '../data/versionDataset';
 import { HEAL_SKILL, type HealMode } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
-import { activeSeaPrecipitation, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
-import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoyage';
+import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
@@ -69,13 +68,14 @@ import { bus, EVT } from './bus';
 import { combatDistance } from './monde/footprint';
 import { type CascadeApplier, pushStep, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
 import { exposureWaveBand } from './nightBands';
-import { freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openSequence, pousseSi, pushDie } from './rollSeam';
+import { freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { actorIn, coqueParId, ecrireActeur, inBattleId } from './monde/combatants';
+import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde } from './monde/combatants';
+import { appliquerAuNavire } from './navireOps';
 import { garanti } from '../lib/garanti';
 import { addPossession } from './possessionsFlow';
 import { possessionLabel, type Possession, type PossessionInput } from '../engine/possession';
@@ -733,8 +733,8 @@ export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: strin
 }
 
 /**
- * VOCABULAIRE DE CIBLAGE d'un Effet de SCÈNE : une scène vise le GROUPE, ou UN héros désigné par son
- * `heroId` (`on` absent = `party`). `target`/`caster` sont ceux du DÉCLENCHÉ — cible et lanceur résolus
+ * VOCABULAIRE DE CIBLAGE d'un Effet de SCÈNE : une scène vise le GROUPE, UN héros désigné par son
+ * `heroId` (`on` absent = `party`), ou le NAVIRE de campagne (`noyau/navireOps.ts`). `target`/`caster` sont ceux du DÉCLENCHÉ — cible et lanceur résolus
  * par sa porte (`routeTriggeredTest`, `combat/triggeredTest.ts`) —, que le marcheur de scène ne connaît
  * pas. SOURCE UNIQUE de la LEVÉE du handler `ops`, de sa VALIDATION (`refs`, lue par `validateScene`)
  * et de l'entrée `scene` de `CIBLES_PAR_RACINE`.
@@ -742,6 +742,7 @@ export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: strin
 export const CIBLES_D_EFFET_DE_SCENE = [
   { on: 'party', label: 'Tout le groupe' },
   { on: 'hero', label: 'Un héros' },
+  { on: 'navire', label: 'Le navire' },
 ] as const;
 export type CibleDEffetDeScene = (typeof CIBLES_D_EFFET_DE_SCENE)[number]['on'];
 
@@ -757,7 +758,9 @@ export type CibleDEffetDeScene = (typeof CIBLES_D_EFFET_DE_SCENE)[number]['on'];
  *    `applyHullCriticalToTarget` et `openCombatEndCascade` (`combatFlow.ts`) ;
  *  - `maladie` : `spellOps(node.fail, 'target')` (`engine/disease.ts`, `opsDeLEchec`) ;
  *  - `consommable` : `bakeConsumableFlow` réécrit toute feuille sur le buveur (`engine/consumables.ts`) ;
- *  - `critiqueDeCoque` : `bandeTriggeredTest` sur les marins touchés (`engine/shipCritical.ts`, `applyCrewHit`).
+ *  - `critiqueDeCoque` : `bandeTriggeredTest` sur les marins touchés (`engine/shipCritical.ts`, `applyCrewHit`) ;
+ *  - `evenementDeMer` : `runFlow` sur la `consequence` d'une rangée de `sea-events.json` (`resolveBoardEvent`,
+ *    `resolvePortArrival`, `seaVoyageFlow.ts`) — le marcheur de scène, donc sa table.
  */
 export const CIBLES_PAR_RACINE = {
   scene: CIBLES_D_EFFET_DE_SCENE,
@@ -767,6 +770,7 @@ export const CIBLES_PAR_RACINE = {
   maladie: [{ on: 'target', label: 'Le malade' }],
   consommable: [{ on: 'target', label: 'Le buveur' }],
   critiqueDeCoque: [{ on: 'target', label: 'Le marin touché' }],
+  evenementDeMer: CIBLES_D_EFFET_DE_SCENE,
 } as const;
 export type RacineDEffet = keyof typeof CIBLES_PAR_RACINE;
 export type RacineDeCatalogue = Exclude<RacineDEffet, 'scene'>;
@@ -784,7 +788,15 @@ export function estCibleDeScene(on: string | undefined): on is CibleDEffetDeScen
 export function messageCibleHorsScene(e: { label?: string; on?: string }, on: string): string {
   return `Effet ${e.label ? `« ${e.label} » ` : ''}à « on: ${on} » : ce vocabulaire est celui d'un effet DÉCLENCHÉ `
     + '(cible et lanceur résolus par sa porte, `routeTriggeredTest`), que le marcheur de scène ne connaît pas. '
-    + 'Une scène vise `party` ou `hero` (+ `heroId`).';
+    + 'Une scène vise `party`, `hero` (+ `heroId`) ou `navire`.';
+}
+
+/** Le refus d'une op de NAVIRE posée sur une autre cible que `navire` : elle n'y aurait aucun effet. */
+export function messageOpDuNavireHorsNavire(e: { on?: string; ops: readonly GameOp[] }): string | undefined {
+  const ops = e.ops.filter(estOpDuNavire).map((o) => o.op);
+  return ops.length && (e.on ?? 'party') !== 'navire'
+    ? t('eff.opDuNavireHorsNavire', { on: e.on ?? 'party', ops: ops.join(', ') })
+    : undefined;
 }
 
 /** Ouvre la modale d'un Test de compétence — SOURCE UNIQUE (le nœud Flow `test` ET `Effect.test` y
@@ -1023,11 +1035,38 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
         if (!openSkillTest(get, set, node.test, node.success, node.fail, after)) return runFlow(get, set, after, label, sl);
         return undefined;
       }
+      case 'choice': {
+        if (flush()) return confier(node);
+        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
+        if (ouvrirLeChoixDuFlow(get, set, node, after, label, sl)) return undefined;
+        stack.unshift(node.no ?? EMPTY_FLOW, after);
+        break;
+      }
     }
   }
   // Vidange FINALE : la pile est vide, il n'y a plus de suite à confier — le signal est rendu tel quel
   // à l'appelant, à qui de décider (c'est lui qui sait s'il enchaîne quelque chose).
   return flush();
+}
+
+/**
+ * Ouvre la DÉCISION d'un nœud `choice` d'un Flow de scène (`runFlow`) : une étape de choix `flowChoice`
+ * au MENEUR du groupe, oui / renoncer, dont l'applier joue la branche puis `after`. L'auto-pilote prend
+ * « oui » (`defaultChoice`), comme la décision automatique d'un choix de combat (`resolveFlowChoice`).
+ * `false` quand le nœud n'est pas offert : un coût d'Avantage hors combat (LDB 14 l.219), ou aucun
+ * meneur pour décider — la branche « non » se joue alors.
+ */
+function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: 'choice' }>, after: Flow, label: string, sl?: number): boolean {
+  const decideur = meneurDeboutDuMonde(get()) ?? meneurDuMonde(get());
+  if (node.advantageCost != null || !decideur) return false;
+  openChoice(get, set, {
+    title: label, purpose: 'test', icon: node.icon ?? 'ui/think',
+    id: `flowChoice-${node.prompt}`, kind: 'flowChoice', actorId: decideur.id, label: dataLabel(node.prompt),
+    options: [{ key: 'yes', label: dataLabel(node.prompt) }, { key: 'no', label: t('opt.renoncer') }],
+    defaultChoice: 'yes',
+    meta: { choiceYes: node.yes, choiceNo: node.no ?? EMPTY_FLOW, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) },
+  });
+  return true;
 }
 
 /** REPRISE de la suite qu'un GESTE JOUEUR (handler `suspensif`) a portée jusqu'à sa clôture — rien ne
@@ -1502,13 +1541,17 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // + programmation des ops `delayed`.
       const on = e.on ?? 'party';
       if (!estCibleDeScene(on)) throw new Error(messageCibleHorsScene(e, on));
+      const horsNavire = messageOpDuNavireHorsNavire(e);
+      if (horsNavire) throw new Error(horsNavire);
+      const base = { rng: battleRng(), sl: env.sl };
+      if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, base).forEach((l) => env.log(l)); return; }
       const targets = env.targets(on, e.heroId);
       if (!targets.length) return;
       // Une cible dont la feuille part à la PORTE (#1508) n'a pas de ligne ICI : sa conséquence se dit
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, e, { rng: battleRng(), sl: env.sl, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
+        const issue = applyLeafOps(env.get, env.set, c, e, { ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));
@@ -1518,7 +1561,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     // que la levée du marcheur.
     refs: (e) => {
       const on = e.on ?? 'party';
-      return estCibleDeScene(on) ? [] : [{ level: 'error', message: messageCibleHorsScene(e, on) }];
+      if (!estCibleDeScene(on)) return [{ level: 'error', message: messageCibleHorsScene(e, on) }];
+      const horsNavire = messageOpDuNavireHorsNavire(e);
+      return horsNavire ? [{ level: 'error', message: horsNavire }] : [];
     },
   },
   zoneBlast: {
@@ -1915,29 +1960,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       return [];
     },
   },
-  adjustManann: {
-    group: 'Navigation', label: libelleEffet('adjustManann'), icon: 'travel/anchor',
-    make: () => ({ type: 'adjustManann', delta: { flat: 5, d10: 0, sign: 1 } }),
-    apply: (e, env) => {
-      const vessel = env.get().vessel;
-      if (!vessel) { env.log(t('eff.manannNoVessel')); return; }
-      const mood = vesselManann(vessel);
-      if (e.factorId) {
-        const already = mood.applied.includes(e.factorId);
-        const { mood: next, delta, label } = applyManannFactor(mood, e.factorId, battleRng());
-        if (already) { env.log(t('eff.manannAlready', { factor: label ?? e.factorId })); return; }
-        env.set({ vessel: { ...vessel, manann: next } });
-        env.log(t('eff.manannFactor', { delta: `${delta >= 0 ? '+' : ''}${delta}`, factor: label ?? e.factorId }));
-        return;
-      }
-      if (e.delta) {
-        const rolled = e.delta.sign * (e.delta.flat + (e.delta.d10 > 0 ? rollDice(e.delta.d10, 10, battleRng()) : 0));
-        env.set({ vessel: { ...vessel, manann: addManann(mood, rolled) } });
-        env.log(t('eff.manannRolled', { delta: `${rolled >= 0 ? '+' : ''}${rolled}` }));
-      }
-    },
-    refs: (e) => (e.factorId && !findManannFactor(e.factorId)) ? [{ level: 'error', message: `Effet → facteur Manann inexistant « ${e.factorId} »` }] : [],
-  },
   adjustVessel: {
     group: 'Navigation', label: libelleEffet('adjustVessel'), icon: 'travel/anchor',
     make: () => ({ type: 'adjustVessel' }),
@@ -2228,7 +2250,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'opsDe', 'chuteDe'] as const;
+export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'opsDe', 'chuteDe', 'flowChoice'] as const;
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
 export const GENRES_HOTES = ['sceneTestJet'] as const;
@@ -2267,6 +2289,14 @@ export const TABLES = {
       // La suite confiée à cette étape est rejouée par le GOULOT (`cascade.commitStep`), une fois cette
       // conséquence journalisée (`jouerLesClotures`).
       return { consequences: freeCons(journal) };
+    },
+    /** Décision d'un nœud `choice` de `runFlow` (`ouvrirLeChoixDuFlow`) : la branche choisie, puis la
+     *  continuation du Flow, sous le libellé et le DR du Flow qui l'a ouverte. */
+    flowChoice: (get, set, step) => {
+      if (step.chosen !== 'yes' && step.chosen !== 'no') return;
+      const branche = (step.chosen === 'yes' ? step.meta?.choiceYes : step.meta?.choiceNo) ?? EMPTY_FLOW;
+      jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
+      return { consequences: freeCons([]) };
     },
     chuteDe: (get, set, step, hero) => {
       const metres = step.meta?.chuteMetres;

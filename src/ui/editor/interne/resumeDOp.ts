@@ -13,7 +13,8 @@ import { libelleDeValeur } from '../../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, contexteDeTestSchema, exposureLevelSchema } from '../../../data/schemas/grammaire/valeurs';
 import { zoneShapeSchema } from '../../../data/schemas/grammaire/mecanique';
 import { CHAR_LABELS } from '../../../engine/types';
-import { formatDice, parseDiceRequired } from '../../../engine/dice';
+import { formatDice, formatEffetSigne, parseDiceRequired } from '../../../engine/dice';
+import { shipLocationLabel } from '../../../engine/shipCritical';
 import { deElide } from '../../../i18n';
 import { giveTrappingLabel } from '../../../engine/items';
 import { formatWardSave, traitLisible } from '../../../engine/traits/dispatch';
@@ -159,6 +160,9 @@ export function opSummary(o: GameOp): string {
     case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${formatDice(parseDiceRequired(o.die, 'rollTable.die'))} → ${o.entries.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
     case 'rollMutation': return `mutation ← « ${o.table} »${o.duration === 'permanent' ? ' (perm.)' : ''}`;
     case 'narrative': return o.text ? `« ${coupeAuMot(o.text, 40)} »` : '(vide)';
+    case 'shipMorale': return `Moral ${formatEffetSigne(o.delta)}`;
+    case 'manann': return o.factorId !== undefined ? `facteur « ${refLabel('seaManannFactors', { id: o.factorId })} »` : `Humeur ${formatEffetSigne(o.delta)}`;
+    case 'shipCritical': return `${formulaSummary(o.count)} Critique(s) — ${o.location === 'aleatoire' ? 'Localisation aléatoire' : shipLocationLabel(o.location)}`;
     default: return `${(o as GameOp).op}`;
   }
 }

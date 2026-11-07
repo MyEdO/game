@@ -391,8 +391,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[]', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].members[]', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=choice', occurrence: 1 },
-  { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=do.effect|type=adjustManann', occurrence: 1 },
-  { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=do.effect|type=adjustManann.delta', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=do.effect|type=adjustVessel', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=do.effect|type=adjustVessel.crew[]', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].onVictory|kind=do.effect|type=ambitionLost', occurrence: 1 },

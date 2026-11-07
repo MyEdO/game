@@ -27,7 +27,7 @@ import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { ShipCritKey } from '../data/shipCriticals';
 import type { SeaWeather } from './seaWeather';
-import type { TestExige } from './flowCore';
+import type { Flow, TestExige } from './flowCore';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
@@ -58,14 +58,12 @@ interface ParametresDeBord {
   vortex: SansParametre;
   nemesis: SansParametre;
   'navire-hostile': { ship: string; crew: number; crewRef: string; chefRef?: string; greatGuns?: number };
-  'coup-critique': { crits: number; critLocation: ShipCritKey | 'aleatoire' };
   culte: { allegianceRoll: QuantiteTiree; initiatesRoll: QuantiteTiree };
   infestation: {
     testType: string; difficulty: Difficulty; targetDR: number; spoilEncPerNight: QuantiteTiree;
     diseaseChancePct: number; ratAttacks: QuantiteTiree; ratCC: number; ratWeapon: number;
   };
   'penurie-nourriture': { spoilPct: number };
-  presage: { prayerDifficulty?: Difficulty; manann?: EffetSigne; moral?: EffetSigne };
   collision: SansParametre;
   'crabes-boxeurs': { mMod: number; manDR: number };
   'choix-vaisseau-fantome': { detourMMod: number; detourDays: number; moral: EffetSigne };
@@ -73,7 +71,6 @@ interface ParametresDeBord {
   'vaisseau-pestifere': { cargoCrates: QuantiteTiree; biscuitDays: QuantiteTiree; waterBarrels: QuantiteTiree; co: QuantiteTiree; resistDifficulty: Difficulty };
   'vents-inhabituels': { days: QuantiteTiree };
   bruine: VerrouMeteo;
-  usure: { wounds: QuantiteTiree };
   rien: SansParametre;
   bouteille: SansParametre;
   'autres-voyageurs': SansParametre;
@@ -81,7 +78,6 @@ interface ParametresDeBord {
   'rafale-ghyran': { days: QuantiteTiree; drBonus: number; skills: string[]; specs: Record<string, string> };
   'canot-sauvetage': TirageListe;
   'beau-temps': VerrouMeteo;
-  'bonne-humeur': { moral: EffetSigne };
   'ile-inconnue': SansParametre;
   'epave-cargaison': CargaisonRepechee;
   'ciel-degage': VerrouMeteo;
@@ -107,17 +103,22 @@ interface ParametresDePort {
   'beau-temps': VerrouMeteo;
   'passager-clandestin': { perceptionDifficulty: Difficulty; discoverDays: QuantiteTiree; roll: QuantiteTiree; contents: string[] };
   'rumeurs-commerciales': { gossipDifficulty: Difficulty; demandBonus: number; days: QuantiteTiree };
-  'fete-manann': { manann: EffetSigne };
   'offre-mission': { rewardCO: number };
   'bonne-peche': { rationPriceBronze: number };
   saturation: SansParametre;
 }
 
-type EvenementDe<P> = { [K in keyof P & string]: BandeOuverte & { id: string; label: string; desc: string; kind: K; params: P[K] } }[keyof P & string];
-/** Un Événement de bord : son `kind` et les paramètres que CE genre lit. */
-export type EvenementDeBord = EvenementDe<ParametresDeBord>;
-/** Un Événement d'escale : son `kind` et les paramètres que CE genre lit. */
-export type EvenementDePort = EvenementDe<ParametresDePort>;
+/** Ce que toute rangée porte. `relache` : la rangée ne se joue qu'avec la relâche à terre accordée
+ *  (`resolvePortArrival`). MDG 15 l.245, l.260 */
+type Rangee = BandeOuverte & { id: string; label: string; desc: string; relache?: true };
+type EvenementDe<P> = { [K in keyof P & string]: Rangee & { kind: K; params: P[K]; consequence?: never } }[keyof P & string];
+/** Une rangée en GRAMMAIRE : sa suite mécanique est un `Flow` (`runFlow`), sans genre ; sans `consequence`,
+ *  narrative. #1652 */
+export type RangeeEnGrammaire = Rangee & { consequence?: Flow; kind?: never; params?: never };
+/** Un Événement de bord : son `kind` et les paramètres que CE genre lit, ou sa `consequence`. */
+export type EvenementDeBord = EvenementDe<ParametresDeBord> | RangeeEnGrammaire;
+/** Un Événement d'escale : son `kind` et les paramètres que CE genre lit, ou sa `consequence`. */
+export type EvenementDePort = EvenementDe<ParametresDePort> | RangeeEnGrammaire;
 export type SeaEventDef = EvenementDeBord | EvenementDePort;
 
 /** Palier du VOYAGE RAPIDE (l.33-37) : cran du dé de sa table, conséquences en % + Coups Critiques. */
@@ -251,10 +252,10 @@ export function rollDaysToNextEvent(rng: RNG): number {
 export const seaBoardEventById = (idOrKind: string): EvenementDeBord | undefined =>
   BOARD_EVENTS.find((e) => e.id === idOrKind) ?? BOARD_EVENTS.find((e) => e.kind === idOrKind);
 
-type DuGenre<E extends SeaEventDef, K extends E['kind']> = Extract<E, { kind: K }>;
+type DuGenre<E extends SeaEventDef, K extends NonNullable<E['kind']>> = Extract<E, { kind: K }>;
 
 /** L'événement de bord `id`, de genre `kind` — porté par une étape ou un état qui l'a nommé. */
-export function evenementDeBord<K extends EvenementDeBord['kind']>(id: string, kind: K): DuGenre<EvenementDeBord, K> {
+export function evenementDeBord<K extends NonNullable<EvenementDeBord['kind']>>(id: string, kind: K): DuGenre<EvenementDeBord, K> {
   const e = BOARD_EVENTS.find((x) => x.id === id);
   if (e?.kind !== kind) throw new Error(`sea-events.json › boardEvents : « ${id} » n'est pas un événement de genre « ${kind} »`);
   return e as DuGenre<EvenementDeBord, K>;
@@ -262,13 +263,13 @@ export function evenementDeBord<K extends EvenementDeBord['kind']>(id: string, k
 
 /** L'UNIQUE événement de la table qui porte ce genre : l'état qui en dure (`vessel.crabs`, le choix du
  *  Prêtre) n'en garde que le genre. */
-function seulDuGenre<E extends SeaEventDef, K extends E['kind']>(table: E[], nom: string, kind: K): DuGenre<E, K> {
+function seulDuGenre<E extends SeaEventDef, K extends NonNullable<E['kind']>>(table: E[], nom: string, kind: K): DuGenre<E, K> {
   const trouves = table.filter((e) => e.kind === kind);
   if (trouves.length !== 1) throw new Error(`sea-events.json › ${nom} : ${trouves.length} événement(s) de genre « ${kind} », un seul attendu`);
   return trouves[0] as DuGenre<E, K>;
 }
-export const seulEvenementDeBord = <K extends EvenementDeBord['kind']>(kind: K) => seulDuGenre(BOARD_EVENTS, 'boardEvents', kind);
-export const seulEvenementDePort = <K extends EvenementDePort['kind']>(kind: K) => seulDuGenre(PORT_EVENTS, 'portEvents', kind);
+export const seulEvenementDeBord = <K extends NonNullable<EvenementDeBord['kind']>>(kind: K) => seulDuGenre(BOARD_EVENTS, 'boardEvents', kind);
+export const seulEvenementDePort = <K extends NonNullable<EvenementDePort['kind']>>(kind: K) => seulDuGenre(PORT_EVENTS, 'portEvents', kind);
 
 /** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) au dé de sa table, ±1 selon le signe de l'Humeur ;
  *  il « se produit dans les 2d10 heures après accostage ». PUR. */

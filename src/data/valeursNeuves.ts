@@ -50,6 +50,7 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'has': return cond.kind === 'has' ? cond : { kind: 'has', who: ACTEUR, what: 'group', value: '' };
     case 'casterChaosDomain': return cond.kind === 'casterChaosDomain' ? cond : { kind: 'casterChaosDomain', is: 'nurgle' };
     case 'skill': return cond.kind === 'skill' ? cond : { kind: 'skill', id: '', who: HEROS };
+    case 'talent': return cond.kind === 'talent' ? cond : { kind: 'talent', id: '', who: HEROS };
     case 'career': return cond.kind === 'career' ? cond : { kind: 'career', id: '', who: HEROS };
     case 'species': return cond.kind === 'species' ? cond : { kind: 'species', id: '', who: HEROS };
     case 'status': return cond.kind === 'status' ? cond : { kind: 'status', atLeast: 'Bronze 1', who: HEROS };

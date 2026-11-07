@@ -22,6 +22,7 @@ const RACINE_PAR_CHAMP: readonly { racine: RacineDeCatalogue; champ: RegExp; fic
   { racine: 'sort', champ: /^(\.variants\[\d+\])?\.effects[.[]/, fichier: 'spells.json' },
   { racine: 'critique', champ: /^\.entries\[\d+\]\.(test|escalation\.onNextCritWhileCondition\.test)[.[]/, fichier: 'criticals.json' },
   { racine: 'declenche', champ: /^\.(effects|onHitEffects)\[\d+\]\.flow[.[]/ },
+  { racine: 'evenementDeMer', champ: /^\.(boardEvents|portEvents)\.entries\[\d+\]\.consequence[.[]/, fichier: 'sea-events.json' },
 ];
 
 /** `blocs` = les nœuds de Flow qui ENGLOBENT la feuille, du plus haut au plus proche (`kind` + chemin). */

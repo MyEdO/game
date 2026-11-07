@@ -79,6 +79,7 @@ export const GAMEOP_FIELD_TARGETS = {
   'grantNaturalWeapon.qualities': { registry: 'qualities' },
   'grantNaturalWeapon.subType': { registry: 'weaponGroups' },
   'rollMutation.table': { registry: 'mutationTables' },
+  'manann.factorId': { registry: 'seaManannFactors' },
   // Tons de lumière (lightTones.json) — APPARENCE d'une source, résolue au bord du rendu.
   // Absent = `flamme`.
   'light.tone': { registry: 'lightTones' },

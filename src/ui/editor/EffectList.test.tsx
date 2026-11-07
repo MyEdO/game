@@ -426,9 +426,9 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
     expect(effectSummary(f, ctxDeCatalogue('maladie'))).toMatch(/^Le malade : /);
   });
 
-  it('racine SCÈNE : deux options, groupe et héros', () => {
+  it('racine SCÈNE : trois options, groupe, héros et navire', () => {
     const [sel] = selectsDeCible(monte({ type: 'ops', on: 'party', ops: [] }, 'scene'));
-    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['party', 'hero']);
+    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['party', 'hero', 'navire']);
   });
 
   it('effectSummary dit la cible de la racine, et nomme un `on` hors de son vocabulaire', () => {

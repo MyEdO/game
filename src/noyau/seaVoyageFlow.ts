@@ -54,7 +54,7 @@ import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, find
 import { profilNavalDe } from '../engine/coque';
 import { installCost, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
-import { deMonde, formatDice, formatEffetSigne, roll as rollDice, tirer, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
+import { deMonde, formatDice, roll as rollDice, tirer, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
@@ -100,16 +100,16 @@ import { toMoney, canAfford, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
-import { drainPendingLog } from './combatEffects';
+import { drainPendingLog, jouerFlowEntier, runFlow } from './combatEffects';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
 import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef, type ContexteDeTest } from '../engine/types';
-import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings';
+import type { PendingSteamSave, PendingCascade, CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { CampaignVessel, Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
-import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
+import { openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';
 import { checkPartyWiped } from './partyWipe';
@@ -353,7 +353,7 @@ export function syncHullWoundsFromVessel(hull: Combatant, vessel: Pick<CampaignV
 }
 
 /** Le navire de campagne, ses données de type et sa COQUE de trajet (Blessures PERSISTÉES, #30). */
-function voyageShip(get: Get<Jeu>): { vessel: CampaignVessel; hull: Combatant } | null {
+export function voyageShip(get: Get<Jeu>): { vessel: CampaignVessel; hull: Combatant } | null {
   const vessel = get().vessel;
   if (!vessel) return null;
   const v = findVehicleById(vessel.vehicleId);
@@ -1241,8 +1241,8 @@ function finalizeFastVoyage(get: Get, set: Set): void {
 // ── Boucle jour par jour (#275 Ronde 2 cran 3 — pipeline cascade) ───────────────────────────────
 
 /** Événement de bord tous les 1d10 jours (ch.15 l.89) — résolu AVANT la cascade du jour (ne dépend
- *  d'aucune Progression). La Prière d'un Présage (`sea-priere`) et l'Ouragan (`sea-ouragan-affaler`,
- *  applier ci-dessous) peuvent SURFACER leur propre mini-cascade (`purpose:'test'`) — renvoie `true` si
+ *  d'aucune Progression). La `consequence` d'un événement (Test, choix : `runFlow`) et l'Ouragan
+ *  (`sea-ouragan-affaler`, applier ci-dessous) peuvent SURFACER leur propre mini-cascade (`purpose:'test'`) — renvoie `true` si
  *  c'est le cas ; sa clôture reprend `runSeaDay` par la couture canonique `dispatchCascadeDone`. */
 function resolveSeaDayEvent(get: Get, set: Set, rng: RNG): boolean {
   const plan = get().travelPlan!;
@@ -2087,7 +2087,7 @@ function openPirateHail(get: Get, set: Set, event: Extract<EvenementDeBord, { ki
  *  Le coup à l'ÉQUIPAGE de la rangée (MDG 13 l.763) s'applique ICI, en voyage comme en combat :
  *  conséquence certaine appliquée, ÉPREUVE ouverte par la PORTE canonique (bande pour les héros
  *  tenus, voie inline sinon), sur les personnes exposées à bord (#1657 B3-2). */
-function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved): void {
+export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved): void {
   const vessel = get().vessel;
   if (vessel) set({ vessel: { ...vessel, criticals: [...(vessel.criticals ?? []), crit.note] } });
   tell(get, set, [`${crit.log}`, `→ ${crit.note}`]);
@@ -2111,10 +2111,10 @@ function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved): vo
   if (lignes.length) { set({ party: [...get().party] }); tell(get, set, lignes); }
 }
 
-// ── Événements de bord (ch.15 l.132-236) — application MÉCANIQUE par `kind` ─────────────────────
+// ── Événements de bord (ch.15 l.132-236) — application MÉCANIQUE par `consequence` ou par `kind` ──
 
 /** Localisation TIRÉE d'un Coup Critique de coque (MDG 15 l.153, MDG 15 l.33-37). */
-function localisationAleatoire(rng: RNG): ShipCritKey {
+export function localisationAleatoire(rng: RNG): ShipCritKey {
   const locs: ShipCritKey[] = ['greement', 'coque', 'avirons', 'equipements', 'cargaison'];
   return locs[rng.int(0, locs.length - 1)];
 }
@@ -2125,23 +2125,13 @@ function localisationAleatoire(rng: RNG): ShipCritKey {
  *  du ressort des sites qui les produisent (`tell`), comme ailleurs dans ce flux. */
 function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG, roll?: number): string {
   const ligne = noteEvent(get, set, { title: event.label, text: event.desc, roll });
+  if (event.kind === undefined) {
+    if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
+    return ligne;
+  }
   const vessel = get().vessel;
   const ship = get().travelPlan?.vehicle;
   switch (event.kind) {
-    case 'usure': {
-      if (!ship) break;
-      const w = tirer(event.params.wounds, rng);
-      damageVesselHull(get, set, ship, w);
-      tell(get, set, [`${ship.label} perd ${w} Blessures (usure).`]);
-      break;
-    }
-    case 'coup-critique': {
-      const { crits, critLocation } = event.params;
-      for (let i = 0; i < crits; i++) {
-        applyVesselCritical(get, set, rollShipCritical(critLocation === 'aleatoire' ? localisationAleatoire(rng) : critLocation, rng));
-      }
-      break;
-    }
     case 'ouragan': {
       // Kind d'étape DISTINCT `sea-ouragan-affaler` (jamais `KINDS_SOUS_ORDRES` — une URGENCE interrompt
       // TOUJOURS, `voyageCadence.ts`), toujours en cascade INTERACTIVE (jamais l'auto-pilote) ; l'étape
@@ -2171,35 +2161,6 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
       }
       set({ party: [...get().party] });
       tell(get, set, [t('sv.rationsSpoiled', { n: spoiled })]);
-      break;
-    }
-    case 'presage': {
-      const { manann, moral, prayerDifficulty: pd } = event.params;
-      // Garde IDENTIQUE à l'ancienne (« un prêtre existe-t-il ? ») — la porte résoudra ELLE-MÊME
-      // l'acteur/la valeur soutenue via `partyBest` ; ce simple test d'existence ne duplique pas ce
-      // calcul (mandat coordinateur : le call-site ne calcule plus la VALEUR, juste la CONDITION RAW).
-      if (pd && partyAssisted(get().party, { skill: { id: 'priere' } })) {
-        // seam de jet (#275 Ronde 1) : le prêtre agit. La logique de présage
-        // (bon/mauvais présage, `tellManann`/`applyShipMoraleDelta`) migre dans l'applier `sea-priere`
-        // via `meta` SÉRIALISABLE (coop) — TOUJOURS `return` : surfacé → suspend ; inline → l'applier a
-        // déjà tout appliqué (rien à refaire ici).
-        openPartyTest(get, set, {
-          skill: { id: 'priere' },
-          actionLabel: t('sv.prayer'),
-          difficulty: pd,
-          // Le SIGNE des dés dit de quel présage il s'agit : favorable, il ne s'obtient qu'en
-          // réussissant ; funeste, il ne s'évite qu'ainsi (applier `sea-priere`).
-          stake: voyageStakeRef('sea-priere', { manann: manann ? formatEffetSigne(manann) : '', moral: moral ? formatEffetSigne(moral) : '' }),
-        }, 'sea-priere', { evenement: event.id });
-        return ligne;
-      }
-      // Pas de Test de Prière requis, ou aucun prêtre : bon/mauvais présage s'applique d'office
-      // (MDG 15 l.197-198 / l.231-232 : « sauf si … réussit un Test de Prière »).
-      appliquerPresage(get, set, event, rng);
-      break;
-    }
-    case 'bonne-humeur': {
-      if (ship) for (const l of applyShipMoraleDelta(get, set, ship, tirerSigne(event.params.moral, rng))) tell(get, set, [l]);
       break;
     }
     case 'calme-plat':
@@ -2313,14 +2274,6 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
       break; // narratif : le desc verbatim au journal suffit — rien d'inventé
   }
   return ligne;
-}
-
-/** Présage (MDG 15 l.180, l.198, l.231-232) : son effet sur l'Humeur de Manann et le Moral. */
-function appliquerPresage(get: Get, set: Set, event: Extract<EvenementDeBord, { kind: 'presage' }>, rng: RNG): void {
-  const { manann, moral } = event.params;
-  if (manann) tellManann(get, set, manann);
-  const ship = get().travelPlan?.vehicle;
-  if (moral && ship) for (const l of applyShipMoraleDelta(get, set, ship, tirerSigne(moral, rng))) tell(get, set, [l]);
 }
 
 /** Échec d'Affaler sous l'Ouragan (MDG 15 l.145) : les Critiques que l'événement chiffre. */
@@ -2474,14 +2427,14 @@ export function openPortAt(get: Get, set: Set, to: MapPlace): void {
     set({ pendingShoreLeave: { to: structuredClone(to) } }); // #2097
     return;
   }
-  resolvePortArrival(get, set, to.port, battleRng(), true);
-  arriverAuLieu(set, to);
+  finalizePortArrivalTo(get, set, to, true);
 }
 
 /** ÉVÉNEMENT DE PORT (2d10 ± Humeur, ch.15 l.127-129 + Tableau l.239-263). `shoreLeave` = permission de
- *  faire relâche à terre accordée par le capitaine (`fenetreChoisir('shoreLeave', 'accorder', …)`, MDG 15 l.245) : gate DEUX entrées
- *  de la table qui la référencent nommément — Embrigadement (l.245, « cet événement n'a pas lieu » si
- *  refusée) et Fête de Manann (l.260, le bonus d'Humeur suppose « le capitaine autorise… à faire relâche »).
+ *  faire relâche à terre accordée par le capitaine (`fenetreChoisir('shoreLeave', 'accorder', …)`, MDG 15 l.245) : gate les
+ *  rangées `relache` — les DEUX entrées de la table qui la référencent nommément, Embrigadement (l.245,
+ *  « cet événement n'a pas lieu » si refusée) et Fête de Manann (l.260, le bonus d'Humeur suppose « le
+ *  capitaine autorise… à faire relâche »).
  *  Les 19 autres entrées (Prêtre de Manann, Contrôle à quai, Tempête, Port désert, Gangs des quais, La
  *  tache noire, Pénuries, Pas d'événement, Constructeur itinérant, Trop beau pour être vrai, Beau temps,
  *  Passager clandestin, Rumeurs commerciales, Offre de mission, Bonne pêche, Saturation de produits…) ne
@@ -2495,13 +2448,12 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
   // le lire ici renverrait TOUJOURS `undefined`. La coque se reconstruit depuis l'état PERSISTANT
   // (`get().vessel`, comme `buildSeaPlan`/`effectiveSeaM` le font via `voyageShip`).
   const ship = voyageShip(get)?.hull;
+  if (event.relache && !shoreLeave) { log(get, set, [t('sv.relacheRefusee', { label: event.label })]); return; }
+  if (event.kind === undefined) {
+    if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
+    return;
+  }
   switch (event.kind) {
-    case 'fete-manann':
-      // MDG 15 l.260 : le bonus d'Humeur suppose la relâche autorisée ET l'équipage sincèrement
-      // joint aux festivités — modélisé par la même permission que l'Embrigadement (l.245).
-      if (!shoreLeave) { log(get, set, [t('sv.shoreLeaveRefusedManann')]); break; }
-      if (vessel) set({ vessel: { ...vessel, manann: addManann(mood, tirerSigne(event.params.manann, rng)) } });
-      break;
     case 'pretre-manann': {
       // MDG 15 l.246 : choix du joueur entre payer et réduire l'Humeur — `fenetreChoisir('manannPriest', 'payer', …)`.
       if (vessel) {
@@ -2518,9 +2470,6 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
       for (const l of applyShipMoraleDelta(get, set, ship, tirerSigne(event.params.moral, rng))) log(get, set, [l]);
       break;
     case 'embrigadement': {
-      // « Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement
-      // n'a pas lieu » (MDG 15 l.245) — gate sur la décision `fenetreChoisir('shoreLeave', 'accorder', …)`.
-      if (!shoreLeave) { log(get, set, [t('sv.shoreLeaveRefusedPress')]); break; }
       // « Vous perdez 2d10 membres d'équipage » (MDG 15 l.245) : perte PERSISTÉE puis SÉQUENCE de
       // recouvrement (Ragot Intermédiaire → rançon 2d10 CO OU Discrétion Complexe ; échec → 1d10 de
       // plus) — cascade influençable dans `embrigadementFlow`. Difficultés en donnée (`sea-events.json`).
@@ -2608,15 +2557,21 @@ function trancherLaRelache(get: Get, set: Set, allow: boolean): void {
  *  propre cascade) puis arrivée au lieu (`arriverAuLieu`). SOURCE UNIQUE des deux gestes enchaînés,
  *  partagée par `trancherLaRelache` (inline) et la clôture de cascade surfacée (`dispatchCascadeDone`). */
 export function finalizePortArrivalTo(get: Get, set: Set, to: MapPlace, allow: boolean): void {
+  const avant = get().pendingCascade;
   resolvePortArrival(get, set, to.port, battleRng(), allow);
+  const ouverte = get().pendingCascade;
+  // L'événement a SUSPENDU sur sa propre cascade (Test, choix) : l'arrivée au lieu attend sa clôture.
+  if (ouverte && ouverte !== avant) { set({ pendingCascade: { ...ouverte, portArrival: { toPlaceId: to.id, allow, evenementJoue: true } } }); return; }
   arriverAuLieu(set, to);
 }
 
 /** Clôture d'une cascade `portArrival` (désertion à la relâche surfacée, #387) : résout le lieu par id
  *  puis finalise l'accostage. Appelée par `dispatchCascadeDone` — `pendingCascade` est DÉJÀ null. */
-export function finalizePortArrival(get: Get, set: Set, arrival: { toPlaceId: string; allow: boolean }): void {
+export function finalizePortArrival(get: Get, set: Set, arrival: NonNullable<PendingCascade['portArrival']>): void {
   const to = placeById(get().worldMap as WorldMap, arrival.toPlaceId);
-  if (to) finalizePortArrivalTo(get, set, to, arrival.allow);
+  if (!to) return;
+  if (arrival.evenementJoue) arriverAuLieu(set, to);
+  else finalizePortArrivalTo(get, set, to, arrival.allow);
 }
 
 /** Les choix du port (`CorpsDesChoix`, MDG 15 l.245-246) : la bénédiction du Prêtre de Manann, la relâche à terre. */
@@ -2637,7 +2592,7 @@ export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = [
-  SEA_BOARD_EVENT_KIND, 'sea-force-pace', 'sea-priere', 'sea-scorbut', 'sea-mal-de-mer',
+  SEA_BOARD_EVENT_KIND, 'sea-force-pace', 'sea-scorbut', 'sea-mal-de-mer',
   'sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-epuisement', 'progression', 'sea-overspeed',
   'sea-salissures', 'affaler', 'sea-ouragan-affaler', 'orientation', 'phare', 'embuscade',
   'sea-progression-choice', 'sea-progression-nav', 'poursuite', 'tourbillon', 'extermination',
@@ -2681,21 +2636,6 @@ export const TABLES = {
       noteManieurs(get, set, step);
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
       const j = [t('sv.stepIssue', { label: String(step.label), issue: won ? t('sv.paceWon', { m: forcePace }) : t('sv.paceLost') })];
-      noteSeaLine(get, set, j);
-      return { consequences: freeCons(j) };
-    },
-    /** Prière d'un Présage (MDG 15 l.197-198 albatros / l.231-232 feu bleu) : bon
-     *  présage → il faut RÉUSSIR pour l'appliquer ; mauvais présage → RÉUSSIR l'évite (`manannD >= 0 ? success : !success`, logique
-     *  inchangée). `tell()` pour la même raison recap que `sea-force-pace` ci-dessus. La reprise du jour à
-     *  la fermeture est portée par `dispatchCascadeDone` (purpose `test` en mer → `runSeaDay`), pas ici. */
-    'sea-priere': (get, set, step) => {
-      if (!step.result) return;
-      const event = evenementDeBord(String(step.meta?.evenement), 'presage');
-      const success = step.result.success;
-      // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
-      const j = [t('sv.stepIssue', { label: String(step.label), issue: success ? t('sv.prayerOk') : t('sv.prayerKo') })];
-      const favorable = (event.params.manann ?? event.params.moral)?.sign !== -1;
-      if (favorable ? success : !success) appliquerPresage(get, set, event, battleRng());
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },

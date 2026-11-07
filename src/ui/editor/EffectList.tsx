@@ -22,7 +22,6 @@ import { useId } from 'react';
 import { ObjetDonneField } from './ObjetDonneField';
 import { type Effect } from '../../data/schemas/defs-scenes/effets';
 import type { FamilleMecanique } from '../../data/schemas/grammaire/mecanique';
-import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
 import { FlowEditor } from './FlowEditor';
 import { newEffect } from '../../noyau/valeursNeuves';
@@ -301,9 +300,6 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       if (e.crew?.length) parts.push(`équipage ${e.crew.reduce((s: number, h: { count: number }) => s + h.count, 0)}`);
       return `Ajuster le navire : ${parts.length ? parts.join(', ') : '(aucun champ)'}`;
     }
-    case 'adjustManann': return e.factorId
-      ? `Manann : facteur « ${findManannFactor(e.factorId)?.label ?? e.factorId} »`
-      : `Manann : ${e.delta ? `${e.delta.sign < 0 ? '−' : '+'}${e.delta.flat}${e.delta.d10 ? `+${e.delta.d10}d10` : ''}` : '?'}`;
     case 'startDialogue': return `Dialogue : ${e.dialogue || '?'}`;
     case 'openMerchant': return `Boutique : ${e.entityId || '?'}`;
     case 'openPort': return `Port : ${e.placeId || '?'}`;
@@ -724,29 +720,6 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <label className="dr">Eau douce L (vide = inchangée) <NumberField variant="nu" label="Eau douce (litres)" min={0} vide value={e.waterLitres} onChange={(n) => upd({ waterLitres: n ?? undefined })} /></label>
             </div>
             <CrewRosterFields e={e} upd={upd} />
-          </>
-        )}
-        {effect.type === 'adjustManann' && (
-          <>
-            <select
-              value={e.factorId ?? '__delta'}
-              onChange={(ev) => upd(ev.target.value === '__delta'
-                ? { factorId: undefined, delta: e.delta ?? { flat: 5, d10: 0, sign: 1 } }
-                : { factorId: ev.target.value, delta: undefined })}
-            >
-              <option value="__delta">— delta libre (événement narratif hors-tableau) —</option>
-              {MANANN_FACTORS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-            </select>
-            {!e.factorId && (
-              <div className="tf-row">
-                <select value={e.delta?.sign ?? 1} onChange={(ev) => upd({ delta: { ...(e.delta ?? { flat: 0, d10: 0, sign: 1 }), sign: Number(ev.target.value) as 1 | -1 } })}>
-                  <option value={1}>+</option>
-                  <option value={-1}>−</option>
-                </select>
-                <label className="dr">Fixe <NumberField variant="nu" label="Part fixe" min={0} value={e.delta?.flat ?? 0} onChange={(flat) => upd({ delta: { ...(e.delta ?? { flat: 0, d10: 0, sign: 1 }), flat } })} /></label>
-                <label className="dr">d10 <NumberField variant="nu" label="Nombre de d10" min={0} value={e.delta?.d10 ?? 0} onChange={(d10) => upd({ delta: { ...(e.delta ?? { flat: 0, d10: 0, sign: 1 }), d10 } })} /></label>
-              </div>
-            )}
           </>
         )}
         {effect.type === 'giveMoney' && (

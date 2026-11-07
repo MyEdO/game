@@ -1769,6 +1769,9 @@ export interface CascadeStepMeta {
   choiceYes?: Flow;
   /** Branche NON d'une étape `triggeredChoice` (décision refusée — défaut = renoncer). */
   choiceNo?: Flow;
+  /** Libellé et DR du Flow de SCÈNE qu'une étape `flowChoice` reprend (`combatEffects.ouvrirLeChoixDuFlow`). */
+  flowLabel?: string;
+  flowSl?: number;
   /** Coût d'Avantage d'une étape `triggeredChoice` (dépensé sur OUI si payable) — absent = gratuit. */
   choiceCost?: number;
   /** Trait psy qu'acquiert le porteur d'une étape `cibleAcquise` (ADE II 09 l.9, l.15), envers la Cible choisie
@@ -2392,8 +2395,10 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  (choix `shoreLeave.accorder`), surfacée au siège MJ (`travelPlan` déjà nul à l'accostage, hors de la branche
    *  générique `purpose:'test' && travelPlan.sea`). La clôture (`dispatchCascadeDone`) enchaîne
    *  `finalizePortArrival` — `resolvePortArrival` peut ouvrir SA propre cascade (`openEmbrigadementRecovery`)
-   *  sans garde de synchro puisque `pendingCascade` est DÉJÀ null post-`advanceCascade` (#387, patron #383). */
-  portArrival?: { toPlaceId: string; allow: boolean };
+   *  sans garde de synchro puisque `pendingCascade` est DÉJÀ null post-`advanceCascade` (#387, patron #383).
+   *  `evenementJoue` : la cascade est CELLE de l'événement de port (sa `consequence` a suspendu,
+   *  `finalizePortArrivalTo`) — sa clôture fait seulement l'arrivée au lieu. */
+  portArrival?: { toPlaceId: string; allow: boolean; evenementJoue?: boolean };
   /** Repos MULTI-JOURS authoré (#347, `noyau/restFlow.ts`) : nuits ENCORE à enchaîner après CETTE
    *  cascade + le contexte de repos (couchage/pitance par héros) nécessaire pour reconstruire la nuit
    *  suivante. La clôture ('night' purpose) enchaîne `continueRestNights` tant que `nightsLeft > 0` —
