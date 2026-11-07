@@ -38,7 +38,7 @@ import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { actorHasSkill } from '../engine/skills';
 import { isConsumable } from '../engine/consumables';
-import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, type AttackOption } from './combatManeuvers';
+import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, attaqueImmediate, type AttackOption } from './combatManeuvers';
 import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { healableTargets, modesDOuverture } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -415,11 +415,11 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
    *  dessinée fermée avec sa raison — une seule source, jamais un filtre muet doublé d'un gate. */
   'competences-avantage': ({ active }) =>
     [...new Map(combatAdvantageSkills(active).map((s) => [s.skillId, s])).values()],
-  /** Attaques de TRAIT qui ARMENT le clic (`select-attack`) et attaques de ZONE immédiates (`maneuver-area`) :
-   *  l'attaque d'ARME est le geste du conduit (`attaque`), jamais une case de la grille. Le tri se lit au
-   *  discriminant `kind` et au `targeting` de `AttackOption`. */
-  'attaques-de-trait': ({ active, battle }) => availableAttacks(active, battle).filter((a) => a.kind !== 'arme' && a.targeting !== 'zone'),
-  'attaques-de-zone': ({ active, battle }) => availableAttacks(active, battle).filter((a) => a.kind !== 'arme' && a.targeting === 'zone'),
+  /** Attaques de TRAIT qui ARMENT le clic, une cible ou un point à désigner (`select-attack`), et attaques IMMÉDIATES,
+   *  sans cible (`maneuver-area`) : le tri se lit à la forme de ciblage de leur manœuvre (`attaqueImmediate`). L'attaque
+   *  d'ARME est le geste du conduit (`attaque`), jamais une case de la grille. */
+  'attaques-de-trait': ({ active, battle }) => availableAttacks(active, battle).filter((a) => a.kind !== 'arme' && !attaqueImmediate(a)),
+  'attaques-de-zone': ({ active, battle }) => availableAttacks(active, battle).filter((a) => a.kind !== 'arme' && attaqueImmediate(a)),
   'sorts-du-heros': ({ active }) => active.spells ?? [],
   /** Les États PORTÉS : la réserve de Détermination est le verdict d'offre (`determination-en-reserve`), qui dit son refus. */
   'etats-retirables': ({ active }) => active.conditions,
