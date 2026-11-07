@@ -68,6 +68,7 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
     { field: 'chef.id', ds: 'creatures', label: 'Chef', required: false },
   ],
   manann: [{ field: 'factorId', ds: 'seaManannFactors', label: 'Facteur de l’Humeur de Manann', required: true, sauf: 'delta' }],
+  infestation: [{ field: 'crewTestType.id', ds: 'crewTestTypes', label: 'Test d’équipage', required: true }],
 };
 
 /** Réfs REQUISES non élues d'UNE op (champ absent ou vide) — sans récursion. PURE. */

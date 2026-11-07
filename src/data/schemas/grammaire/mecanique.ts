@@ -256,16 +256,17 @@ const DECLARATIONS_D_OPS = {
     ventInverse: z.literal(true).optional(),
     aggravation: nommerChamps(z.strictObject({ de: formulaSchema, seuil: z.number().int(), meteo: meteoImposeeSchema }), { de: { label: "dé de chaque matin" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, seuil: { label: "seuil" }, meteo: { label: "météo aggravée" } }).optional(),
   }).refine((v) => v.meteo !== undefined || v.ventInverse !== undefined, { message: 'meteoImposee VIDE : nommer « meteo » (axes imposés) ou « ventInverse ».' }), { op: { label: "opération"  }, jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, meteo: { label: "météo imposée" }, ventInverse: { label: "vent inversé" }, aggravation: { label: "aggravation" } }),
-  /** `cargaison` — MDG 15 l.209-210, l.224-225, l.250, l.33-36 */
+  /** `cargaison` — MDG 15 l.209-210, l.224-225, l.250, l.33-36, l.159-164, l.174-178 */
   cargaison: z.union([
     nommerChamps(z.strictObject({ op: z.literal('cargaison'), enc: formulaSchema }), { op: { label: "opération"  }, enc: { label: "Encombrement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
     nommerChamps(z.strictObject({ op: z.literal('cargaison'), perteAuDechargement: formulaSchema }), { op: { label: "opération"  }, perteAuDechargement: { label: "perte au déchargement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
     nommerChamps(z.strictObject({ op: z.literal('cargaison'), perduePct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, perduePct: { label: "part perdue (%)" } }),
+    nommerChamps(z.strictObject({ op: z.literal('cargaison'), perdueEnc: formulaSchema }), { op: { label: "opération"  }, perdueEnc: { label: "Encombrement perdu" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
-      const v = (iss.input ?? {}) as { enc?: unknown; perteAuDechargement?: unknown; perduePct?: unknown };
-      return [v.enc, v.perteAuDechargement, v.perduePct].filter((x) => x !== undefined).length !== 1
-        ? 'Cargaison EXCLUSIVE : « enc » (cargaison trouvée), « perteAuDechargement » (Enc perdus au prochain déchargement) OU « perduePct » (part de la cale perdue) — exactement un des trois.'
+      const v = (iss.input ?? {}) as { enc?: unknown; perteAuDechargement?: unknown; perduePct?: unknown; perdueEnc?: unknown };
+      return [v.enc, v.perteAuDechargement, v.perduePct, v.perdueEnc].filter((x) => x !== undefined).length !== 1
+        ? 'Cargaison EXCLUSIVE : « enc » (cargaison trouvée), « perteAuDechargement » (Enc perdus au prochain déchargement), « perduePct » (part de la cale perdue) OU « perdueEnc » (Enc de la cale perdus) — exactement un des quatre.'
         : undefined;
     },
   }),
@@ -309,15 +310,26 @@ const DECLARATIONS_D_OPS = {
     grandsCanons: z.number().int().min(1).optional(),
     exigence: z.literal('fouille').optional(),
   }), { op: { label: "opération"  }, navire: { label: "navire" , texte: { regime: "technique"} }, equipage: { label: "équipage" }, chef: { label: "chef" , texte: { regime: "technique"} }, grandsCanons: { label: "grands canons" }, exigence: { label: "exigence" } }),
-  /** `provisions` : jours de vivres gagnés (`jours`) OU part gâtée (`gateesPct`), exclusifs. MDG 15 l.169-170, l.235-236 */
+  /** `infestation` — MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
+  infestation: nommerChamps(z.strictObject({
+    op: z.literal('infestation'),
+    crewTestType: ref('crewTestType'),
+    difficulty: difficultySchema,
+    ...cibleEtendueSchema.shape,
+    chaqueNuit: z.lazy(() => flowSchema),
+  }), { op: { label: "opération"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique"} }, difficulty: { label: "difficulté" }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), chaqueNuit: { label: "chaque nuit" } }),
+  /** `provisions` : jours de vivres gagnés (`jours`), part gâtée (`gateesPct`), rations de mer (`rations`) OU tonneaux
+   *  d'eau (`eauTonneaux`), exclusifs. MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242 */
   provisions: z.union([
     nommerChamps(z.strictObject({ op: z.literal('provisions'), jours: formulaSchema }), { op: { label: "opération"  }, jours: { label: "jours de vivres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
     nommerChamps(z.strictObject({ op: z.literal('provisions'), gateesPct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, gateesPct: { label: "part gâtée (%)" } }),
+    nommerChamps(z.strictObject({ op: z.literal('provisions'), rations: formulaSchema }), { op: { label: "opération"  }, rations: { label: "rations" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('provisions'), eauTonneaux: formulaSchema }), { op: { label: "opération"  }, eauTonneaux: { label: "tonneaux d’eau" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
-      const v = (iss.input ?? {}) as { jours?: unknown; gateesPct?: unknown };
-      return (v.jours === undefined) === (v.gateesPct === undefined)
-        ? 'Provisions EXCLUSIVES : « jours » (vivres gagnés) OU « gateesPct » (part gâtée) — exactement un des deux.'
+      const v = (iss.input ?? {}) as { jours?: unknown; gateesPct?: unknown; rations?: unknown; eauTonneaux?: unknown };
+      return [v.jours, v.gateesPct, v.rations, v.eauTonneaux].filter((x) => x !== undefined).length !== 1
+        ? 'Provisions EXCLUSIVES : « jours » (vivres gagnés), « gateesPct » (part gâtée), « rations » (rations de mer) OU « eauTonneaux » (tonneaux d’eau) — exactement un des quatre.'
         : undefined;
     },
   }),
@@ -1244,6 +1256,10 @@ export const stageOutcomeSchema = z.enum([
  *  feuille `ops` de scène (`EffectOp.on`, `CibleDeRole`). MSRC 07 l.86 ; MDG 15 l.233 */
 export const cibleDeRoleSchema = nommerChamps(z.strictObject({ role: ref('crewRole') }), { role: { label: "rôle" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} } });
 
+/** Les héros qui CHOISISSENT d'être visés, chacun à son siège (`prompt`) : cible d'une feuille `ops` de scène
+ *  (`EffectOp.on`, `CibleDeVolontaires`). MDG 15 l.196 */
+export const cibleDeVolontairesSchema = nommerChamps(z.strictObject({ volontaires: z.string().min(1) }), { volontaires: { label: "volontaires" , texte: { regime: "designation"} } });
+
 export const crewTargetSchema = z.union([
   nommerChamps(z.strictObject({ poste: z.literal(true) }), { poste: { label: "poste" } }),
   nommerChamps(z.strictObject({ stations: refs('shipStation', { min: 1 }) }), { stations: { label: "présences" , texte: { regime: "technique"} } }),
@@ -1286,7 +1302,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   sbBonus: '+Bonus de Force aux Dégâts',
   endPsych: 'Fin d’un état psychologique',
   beginPsych: 'Entrée dans un état psychologique',
-  exposeDisease: 'Exposer à une Maladie (Test post-combat)',
+  exposeDisease: 'Exposer à une Maladie (Test de Contraction)',
   contractDisease: 'Contracter une Maladie (immédiat)',
   kill: 'Mort directe (Point de Destin sauve)',
   removeShipPoste: 'Retirer un poste de navire (Canon perdu)',
@@ -1395,6 +1411,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   equipage: 'Équipage du navire',
   perilDeMer: 'Péril de mer',
   navireHostile: 'Navire hostile',
+  infestation: 'Infestation du navire',
 };
 
 /** Payloads d'une famille, chacun nommé par le libellé de son op (`OP_LABEL`) : une FORME se ferme en `z.strictObject`,
@@ -1491,7 +1508,7 @@ function construire(regimes: Regimes) {
   const effectOp = marquerProduit(nommerChamps(z.strictObject({
     type: z.literal('ops'),
     ops: executeesDe(gameOp),
-    on: z.union([z.enum(['party', 'hero', 'navire', 'caster', 'target']), cibleDeRoleSchema]).optional(),
+    on: z.union([z.enum(['party', 'hero', 'navire', 'membreAuHasard', 'caster', 'target']), cibleDeRoleSchema, cibleDeVolontairesSchema]).optional(),
     heroId: z.string().optional(),
     untilTime: z.number().optional(),
     label: z.string().optional(),

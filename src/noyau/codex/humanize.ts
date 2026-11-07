@@ -21,7 +21,7 @@ import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, tablesDeC
 import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
-import { CHAR_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } from '../../engine/types';
+import { CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } from '../../engine/types';
 import { formatWardSave, traitLabelById, traitLisible } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
 import { traumaLabelOf } from '../../engine/trauma';
@@ -606,13 +606,19 @@ export function humanizeOp(o: GameOp): string {
       ? t('codex.op.cargaison.perte', { enc: humanizeFormula(o.perteAuDechargement) })
       : o.perduePct !== undefined
         ? t('codex.op.cargaison.perduePct', { pct: o.perduePct })
-        : t('codex.op.cargaison', { enc: humanizeFormula(o.enc) });
+        : o.perdueEnc !== undefined
+          ? t('codex.op.cargaison.perdueEnc', { enc: humanizeFormula(o.perdueEnc) })
+          : t('codex.op.cargaison', { enc: humanizeFormula(o.enc) });
     case 'equipage': return o.perdusPct !== undefined
       ? t('codex.op.equipage.perdusPct', { pct: o.perdusPct })
       : `${t('codex.op.equipage', { delta: humanizeFormula(o.delta) })}${o.role ? t('codex.op.equipage.role', { role: refLabel('crewRoles', o.role) }) : ''}${o.sansSolde ? t('codex.op.equipage.sansSolde') : ''}`;
     case 'provisions': return o.gateesPct !== undefined
       ? t('codex.op.provisions.gatees', { pct: o.gateesPct })
-      : t('codex.op.provisions.jours', { n: humanizeFormula(o.jours) });
+      : o.rations !== undefined
+        ? t('codex.op.provisions.rations', { n: humanizeFormula(o.rations) })
+        : o.eauTonneaux !== undefined
+          ? t('codex.op.provisions.eau', { n: humanizeFormula(o.eauTonneaux) })
+          : t('codex.op.provisions.jours', { n: humanizeFormula(o.jours) });
     case 'perilDeMer': return o.collision !== undefined
       ? t('codex.op.perilDeMer.collision', { peril: findSeaHazard(o.collision.id)?.label ?? o.collision.id })
       : t('codex.op.perilDeMer.tourbillon', { tourbillon: findWhirlpool(o.tourbillon.id)?.label ?? o.tourbillon.id });
@@ -620,6 +626,11 @@ export function humanizeOp(o: GameOp): string {
       + `${o.chef ? t('codex.op.navireHostile.chef', { chef: creatureLabel(o.chef.id) }) : ''}`
       + `${o.grandsCanons ? t('codex.op.navireHostile.canons', { n: o.grandsCanons }) : ''}`
       + `${o.exigence === 'fouille' ? t('codex.op.navireHostile.fouille') : ''}`;
+    case 'infestation': return t('codex.op.infestation', {
+      test: testSkillLabel({ crewTestType: o.crewTestType.id }) ?? o.crewTestType.id,
+      difficulte: DIFFICULTY_LABELS[o.difficulty], dr: o.targetDR,
+      nuit: humanizeFlow(o.chaqueNuit, []),
+    });
   }
   return assertNever(o);
 }
@@ -651,7 +662,8 @@ export function humanizeFlow(f: Flow, etats: readonly EtatDeclare[]): string {
     }
     case 'test': {
       const who = testSkillLabel(f.test) ?? t('codex.flow.unTest');
-      return t(f.test.opposed ? 'codex.flow.jetOppose' : 'codex.flow.jet', { sujet: deElide(who), ok: humanizeFlow(f.success, etats), ko: humanizeFlow(f.fail, etats) });
+      const sujet = `${deElide(who)}${f.test.gate ? t('codex.flow.jetGate', { cond: humanizeCondition(f.test.gate, etats) }) : ''}`;
+      return t(f.test.opposed ? 'codex.flow.jetOppose' : 'codex.flow.jet', { sujet, ok: humanizeFlow(f.success, etats), ko: humanizeFlow(f.fail, etats) });
     }
     case 'choice': {
       const cout = coutAvantageTexte(f.advantageCost);

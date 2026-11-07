@@ -717,26 +717,75 @@
         "id": "infestation-de-rats-geants",
         "label": "Infestation de rats géants",
         "desc": "Infestation de rats géants. Des nuisibles anormalement grands sont repérés dans les entrailles du bateau. Jusqu'à ce que l'équipage réussisse un Test d'équipage étendu d'Extermination des nuisibles Complexe (–10) pour un total de 25 DR, les rats gâtent 3d10 Enc de cargaison chaque nuit, et vous avez 30 % de chances qu'un membre d'équipage doive entreprendre un Test pour éviter de contracter la fièvre du rongeur (voir page 186 de WFJDR). Si n'importe laquelle des étapes du Test d'Extermination des nuisibles génère un résultat de DR négatif, un membre d'équipage choisi au hasard est attaqué par les rats ; il subit 1d10 attaques avec CC 35 et le Trait Arme +5. Quiconque est blessé par une telle attaque doit effectuer un Test pour éviter de contracter la fièvre du rongeur.",
-        "kind": "infestation",
-        "params": {
-          "testType": "extermination-nuisibles",
-          "difficulty": "complexe",
-          "targetDR": 25,
-          "spoilEncPerNight": {
-            "dice": {
-              "n": 3,
-              "sides": 10
-            }
-          },
-          "diseaseChancePct": 30,
-          "ratAttacks": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "ratCC": 35,
-          "ratWeapon": 5
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "infestation",
+                "crewTestType": {
+                  "id": "extermination-nuisibles"
+                },
+                "difficulty": "complexe",
+                "targetDR": 25,
+                "chaqueNuit": {
+                  "kind": "seq",
+                  "steps": [
+                    {
+                      "kind": "do",
+                      "effect": {
+                        "type": "ops",
+                        "on": "navire",
+                        "ops": [
+                          {
+                            "op": "cargaison",
+                            "perdueEnc": {
+                              "dice": {
+                                "n": 3,
+                                "sides": 10
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "do",
+                      "effect": {
+                        "type": "ops",
+                        "on": "membreAuHasard",
+                        "ops": [
+                          {
+                            "op": "rollTable",
+                            "die": "1d100",
+                            "entries": [
+                              {
+                                "min": 1,
+                                "max": 30,
+                                "ops": [
+                                  {
+                                    "op": "exposeDisease",
+                                    "disease": "fievre-du-rongeur"
+                                  }
+                                ]
+                              },
+                              {
+                                "min": 31,
+                                "max": 100,
+                                "ops": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -838,26 +887,75 @@
         "id": "infestation-de-rats",
         "label": "Infestation de rats",
         "desc": "Infestation de rats. Les rats prolifèrent dans les recoins sombres du bateau. Jusqu'à ce que l'équipage réussisse un Test d'équipage étendu d'Extermination des nuisibles Intermédiaire (+0) pour un total de 10 DR, les rats gâtent 1d10 Enc de cargaison chaque nuit, et vous avez 15 % de chances qu'un membre d'équipage doive entreprendre un Test pour éviter de contracter la fièvre du rongeur (voir page 186 de WFJDR). Si n'importe laquelle des étapes du Test d'Extermination des nuisibles génère un résultat de DR négatif, un membre d'équipage choisi au hasard est attaqué par les rats ; il subit 1d10 attaques avec CC 25 et le Trait Arme +4.",
-        "kind": "infestation",
-        "params": {
-          "testType": "extermination-nuisibles",
-          "difficulty": "intermediaire",
-          "targetDR": 10,
-          "spoilEncPerNight": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "diseaseChancePct": 15,
-          "ratAttacks": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "ratCC": 25,
-          "ratWeapon": 4
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "infestation",
+                "crewTestType": {
+                  "id": "extermination-nuisibles"
+                },
+                "difficulty": "intermediaire",
+                "targetDR": 10,
+                "chaqueNuit": {
+                  "kind": "seq",
+                  "steps": [
+                    {
+                      "kind": "do",
+                      "effect": {
+                        "type": "ops",
+                        "on": "navire",
+                        "ops": [
+                          {
+                            "op": "cargaison",
+                            "perdueEnc": {
+                              "dice": {
+                                "n": 1,
+                                "sides": 10
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "do",
+                      "effect": {
+                        "type": "ops",
+                        "on": "membreAuHasard",
+                        "ops": [
+                          {
+                            "op": "rollTable",
+                            "die": "1d100",
+                            "entries": [
+                              {
+                                "min": 1,
+                                "max": 15,
+                                "ops": [
+                                  {
+                                    "op": "exposeDisease",
+                                    "disease": "fievre-du-rongeur"
+                                  }
+                                ]
+                              },
+                              {
+                                "min": 16,
+                                "max": 100,
+                                "ops": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -1040,33 +1138,91 @@
         "id": "vaisseau-de-pestiferes",
         "label": "Vaisseau de pestiférés",
         "desc": "Vaisseau de pestiférés. Vous repérez une cogue apparemment abandonnée dérivant sur les flots. Si vous l'abordez, elle contient du butin composé de 2d10 caisses d'une cargaison choisie au hasard, d'1d100 jours de rations de biscuits de mer, de 2d10 tonneaux d'eau et de 3d10 CO. Quelques membres d'équipage sont également encore présents à bord, mais ils ne sont qu'à moitié conscients, car ils subissent un stade avancé de la peste noire (voir page 187 de WFJDR). Quiconque monte à bord du bateau est mordu par des puces et doit effectuer un Test de Résistance Accessible (+20) pour éviter de contracter la maladie.",
-        "kind": "vaisseau-pestifere",
-        "params": {
-          "cargoCrates": {
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
-          },
-          "biscuitDays": {
-            "dice": {
-              "n": 1,
-              "sides": 100
-            }
-          },
-          "waterBarrels": {
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
-          },
-          "co": {
-            "dice": {
-              "n": 3,
-              "sides": 10
-            }
-          },
-          "resistDifficulty": "accessible"
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Aborder la cogue",
+          "yes": {
+            "kind": "seq",
+            "steps": [
+              {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "navire",
+                  "ops": [
+                    {
+                      "op": "cargaison",
+                      "enc": {
+                        "dice": {
+                          "n": 2,
+                          "sides": 10
+                        }
+                      }
+                    },
+                    {
+                      "op": "provisions",
+                      "rations": {
+                        "dice": {
+                          "n": 1,
+                          "sides": 100
+                        }
+                      }
+                    },
+                    {
+                      "op": "provisions",
+                      "eauTonneaux": {
+                        "dice": {
+                          "n": 2,
+                          "sides": 10
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "party",
+                  "ops": [
+                    {
+                      "op": "money",
+                      "montant": {
+                        "brass": {
+                          "times": {
+                            "of": {
+                              "dice": {
+                                "n": 3,
+                                "sides": 10
+                              }
+                            },
+                            "factor": 240
+                          }
+                        }
+                      },
+                      "groupe": true
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": {
+                    "volontaires": "Monter à bord"
+                  },
+                  "ops": [
+                    {
+                      "op": "exposeDisease",
+                      "disease": "peste-noire"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -1132,6 +1288,11 @@
                   "entryId": "presage-divin-albatros",
                   "entryCategory": "seaBoardEvents"
                 }
+              },
+              "gate": {
+                "kind": "talent",
+                "id": "beni",
+                "spec": "manann"
               }
             },
             "success": {
@@ -1742,6 +1903,11 @@
                   "entryId": "presage-divin-feu-bleu",
                   "entryCategory": "seaBoardEvents"
                 }
+              },
+              "gate": {
+                "kind": "talent",
+                "id": "beni",
+                "spec": "manann"
               }
             },
             "success": {

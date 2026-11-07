@@ -26,7 +26,7 @@ import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
 import type { SeaWeather } from './seaWeather';
-import { ALL_MAGIC, type CastPenalty } from './types';
+import { ALL_MAGIC, type CastPenalty, type Difficulty } from './types';
 import { refCouvre, type Id, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -66,7 +66,7 @@ import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } 
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
 // dispatché par `noyau/triggeredEffects` (pas ici).
-import type { TriggeredEffect, FlowTest } from './flowCore';
+import type { TriggeredEffect, FlowTest, Flow } from './flowCore';
 import {
   ActiveEffect,
   EffectSource,
@@ -739,7 +739,7 @@ export type GameOp =
   /** Aide Médicale : lève l'escalade en attente et les verrous d'État « par Aide Médicale » (LDB 18 l.308-311). */
   | { op: 'aideMedicale' }
   /** EXPOSE la cible à une Maladie (`disease` = id de `maladies.json`) → Test de Contraction au bilan de
-   *  fin de combat (LDB 20 l.25/51). Op GÉNÉRIQUE : Infecté → 'blessure-purulente', trait Maladie →
+   *  fin de combat, ou tout de suite hors combat (`ouvrirLesContagions`) (LDB 20 l.25/51). Op GÉNÉRIQUE : Infecté → 'blessure-purulente', trait Maladie →
    *  l'`arg` (ex. 'fievre-du-rongeur' pour les rats/skavens). Cumule sans doublon dans `diseaseExposure`
    *  (double exposition à la même maladie → on garde la PIRE : shift le plus dur, `instant` si l'une
    *  l'impose). Contagieux (Type), EDO App.2 l.228-230 : `difficultyShift: -2` (« le Test est de 2
@@ -1252,10 +1252,12 @@ export type GameOp =
   | { op: 'meteoImposee'; jours: Formula; meteo?: Partial<SeaWeather>; ventInverse?: true; aggravation?: AggravationMeteo }
   /** CARGAISON chargée dans la cale du navire : `enc` Enc d'une cargaison tirée au hasard pour la saison, à
    *  son prix de base ; OU `perteAuDechargement` Enc perdus du prochain lot déchargé dans ce port ; OU
-   *  `perduePct` % de l'Enc de la cale perdus. Op de NAVIRE. MDG 15 l.209-210, l.224-225, l.250, l.33-36 */
-  | { op: 'cargaison'; enc: Formula; perteAuDechargement?: never; perduePct?: never }
-  | { op: 'cargaison'; perteAuDechargement: Formula; enc?: never; perduePct?: never }
-  | { op: 'cargaison'; perduePct: number; enc?: never; perteAuDechargement?: never }
+   *  `perduePct` % de l'Enc de la cale perdus ; OU `perdueEnc` Enc de la cale perdus. Op de NAVIRE.
+   *  MDG 15 l.209-210, l.224-225, l.250, l.33-36, l.159-164, l.174-178 */
+  | { op: 'cargaison'; enc: Formula; perteAuDechargement?: never; perduePct?: never; perdueEnc?: never }
+  | { op: 'cargaison'; perteAuDechargement: Formula; enc?: never; perduePct?: never; perdueEnc?: never }
+  | { op: 'cargaison'; perduePct: number; enc?: never; perteAuDechargement?: never; perdueEnc?: never }
+  | { op: 'cargaison'; perdueEnc: Formula; enc?: never; perteAuDechargement?: never; perduePct?: never }
   /** ÉQUIPAGE du navire : `delta` marins (négatif : perdus ; positif : recueillis, dans la limite de
    *  l'effectif nominal) ; le recueilli qui tient un rôle d'équipage (`role`) entre au rôle, sans solde
    *  jusqu'au prochain port (`sansSolde`). OU `perdusPct` % des PNJ de l'équipage à bord perdus. Op de
@@ -1263,9 +1265,12 @@ export type GameOp =
   | { op: 'equipage'; delta: Formula; role?: { id: Id<'crewRole'> }; sansSolde?: 'jusquAuPort'; perdusPct?: never }
   | { op: 'equipage'; perdusPct: number; delta?: never; role?: never; sansSolde?: never }
   /** PROVISIONS de bord : `jours` jours de vivres de l'équipage gagnés, OU `gateesPct` % des provisions à
-   *  bord gâtées (cale et rations des héros), exclusifs. Op de NAVIRE. MDG 15 l.169-170, l.235-236 */
-  | { op: 'provisions'; jours: Formula; gateesPct?: never }
-  | { op: 'provisions'; gateesPct: number; jours?: never }
+   *  bord gâtées (cale et rations des héros), OU `rations` rations de mer, OU `eauTonneaux` tonneaux d'eau
+   *  douce, exclusifs. Op de NAVIRE. MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242 */
+  | { op: 'provisions'; jours: Formula; gateesPct?: never; rations?: never; eauTonneaux?: never }
+  | { op: 'provisions'; gateesPct: number; jours?: never; rations?: never; eauTonneaux?: never }
+  | { op: 'provisions'; rations: Formula; jours?: never; gateesPct?: never; eauTonneaux?: never }
+  | { op: 'provisions'; eauTonneaux: Formula; jours?: never; gateesPct?: never; rations?: never }
   /** PÉRIL DE MER : le navire heurte le péril `collision` (`sea-perils.json` hazards), OU un tourbillon
    *  (`tourbillon`) l'aspire à la périphérie de sa zone. Op de NAVIRE. MDG 15 l.140-141, l.146, l.181-183 ;
    *  MDG 13 l.446, l.475-499, l.514-537 */
@@ -1274,14 +1279,18 @@ export type GameOp =
   /** NAVIRE HOSTILE en vue : la coque `navire`, son `equipage` (créature type, effectif total), son `chef`, ses
    *  `grandsCanons` ; s'il juge le navire vulnérable il approche, et exige de fouiller la cale (`fouille`), sinon
    *  il attaque. Op de NAVIRE. MDG 15 l.150-151, l.171-173 */
-  | { op: 'navireHostile'; navire: { id: string }; equipage: { id: string; nombre: number }; chef?: { id: string }; grandsCanons?: number; exigence?: 'fouille' };
+  | { op: 'navireHostile'; navire: { id: string }; equipage: { id: string; nombre: number }; chef?: { id: string }; grandsCanons?: number; exigence?: 'fouille' }
+  /** INFESTATION du navire : jusqu'à ce que l'équipage cumule `targetDR` DR au Test d'équipage étendu
+   *  `crewTestType` (`difficulty`, un Test par jour en mer), `chaqueNuit` se joue chaque nuit. Op de NAVIRE.
+   *  MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
+  | { op: 'infestation'; crewTestType: { id: string }; difficulty: Difficulty; targetDR: number; chaqueNuit: Flow };
 
 /** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
 export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<SeaWeather> }
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
-export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile'] as const satisfies readonly GameOp['op'][];
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation'] as const satisfies readonly GameOp['op'][];
 export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
 export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
 
@@ -3007,6 +3016,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'equipage':
       case 'perilDeMer':
       case 'navireHostile':
+      case 'infestation':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la
