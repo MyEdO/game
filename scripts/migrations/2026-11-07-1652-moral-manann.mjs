@@ -139,8 +139,8 @@ else {
       if (GENRES_A_RELACHE.has(e.kind) && e.relache !== true) arrets.push(`${ou} : relache absente`);
     }
   }
-  const aRelache = ['boardEvents', 'portEvents'].flatMap((t) => sea[t]?.entries ?? []).filter((e) => e.relache === true).map((e) => e.id).sort();
-  if (aRelache.join() !== 'embrigadement,fete-de-manann') arrets.push(`sea-events.json : rangées à relâche « ${aRelache.join(', ')} » ≠ embrigadement, fete-de-manann`);
+  const horsRelache = ['boardEvents', 'portEvents'].flatMap((t) => sea[t]?.entries ?? []).filter((e) => e.relache === true && !['embrigadement', 'fete-de-manann'].includes(e.id)).map((e) => e.id);
+  if (horsRelache.length) arrets.push(`sea-events.json : relache sur « ${horsRelache.join(', ')} », hors embrigadement et fete-de-manann`);
 }
 
 // ── projet Loup et Saumure ───────────────────────────────────────────────────────────────────────
