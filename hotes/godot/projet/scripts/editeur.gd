@@ -49,7 +49,9 @@ func _ready() -> void:
 		(defilement as ScrollContainer).get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier_l_ecran())
 	get_tree().node_added.connect(func(noeud: Node) -> void:
 		if noeud is LineEdit and _interface.is_ancestor_of(noeud):
-			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: _publier_l_ecran()))
+			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: _publier_l_ecran())
+		elif noeud is TextEdit and _interface.is_ancestor_of(noeud):
+			(noeud as TextEdit).text_changed.connect(_publier_l_ecran))
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	var campagne := _pont.parametre("campagne")

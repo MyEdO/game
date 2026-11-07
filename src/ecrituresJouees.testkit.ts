@@ -25,7 +25,8 @@ const GESTES_AU_PLUS = 400;
 function valeurSaisie(s: Formulaire['champs'][number]): unknown {
   switch (s.type) {
     case 'saisieNombre': return s.valeur + s.pas <= s.max ? s.valeur + s.pas : s.valeur - s.pas;
-    case 'saisieTexte': return 'texte joué';
+    case 'saisieTexte':
+    case 'saisieMultiligne': return 'texte joué';
     default: return [];
   }
 }

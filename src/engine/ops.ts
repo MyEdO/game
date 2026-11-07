@@ -1283,14 +1283,18 @@ export type GameOp =
   /** INFESTATION du navire : jusqu'à ce que l'équipage cumule `targetDR` DR au Test d'équipage étendu
    *  `crewTestType` (`difficulty`, un Test par jour en mer), `chaqueNuit` se joue chaque nuit. Op de NAVIRE.
    *  MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
-  | { op: 'infestation'; crewTestType: { id: string }; difficulty: Difficulty; targetDR: number; chaqueNuit: Flow };
+  | { op: 'infestation'; crewTestType: { id: string }; difficulty: Difficulty; targetDR: number; chaqueNuit: Flow }
+  /** COMBAT EN MER contre `adversaire.nombre` créatures (Traits facultatifs `optionals` posés) sur le pont du
+   *  navire ; chacune est repoussée à `repousseAPct` % de ses Blessures de départ ou moins, et `victoire` se joue
+   *  quand le combat est gagné. Op de NAVIRE. MDG 15 l.136-139, l.142-143, l.165-168 */
+  | { op: 'combatEnMer'; adversaire: { id: string; nombre: number; optionals?: TraitPose[] }; repousseAPct?: number; victoire?: Flow };
 
 /** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
 export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<SeaWeather> }
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
-export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation'] as const satisfies readonly GameOp['op'][];
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer'] as const satisfies readonly GameOp['op'][];
 export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
 export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
 
@@ -3017,6 +3021,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'perilDeMer':
       case 'navireHostile':
       case 'infestation':
+      case 'combatEnMer':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la

@@ -5,7 +5,7 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
-import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, portCareenVessel, runSeaDay } from './seaVoyageFlow';
+import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, portCareenVessel, runSeaDay, vesselManann } from './seaVoyageFlow';
 import { rollShipCritical } from '../engine/shipCritical';
 import { makeRNG } from '../engine/dice';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
@@ -28,6 +28,7 @@ import { applyOps, type GameOp } from '../engine/ops';
 import { toBrass } from '../engine/money';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { checkBattleOver } from './combatFlow';
+import { humanizeFlow } from './codex/humanize';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -1029,5 +1030,129 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     avanceEtapeCascade(get, undefined, () => 'no');
     expect(get().vessel!.cargo ?? []).toEqual([]);
     expect(get().pendingCascade).toBeNull();
+  });
+});
+
+describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l.165-168)', () => {
+  beforeEach(etatFrais);
+  afterEach(resetData);
+
+  const consequence = (id: string) => BOARD_EVENTS.find((e) => e.id === id)?.consequence;
+  const surLeNavire = (ops: unknown[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'navire', ops } as never });
+  const d = (n: number, sides: number) => ({ dice: { n, sides } });
+  /** En mer, sur la route `r1` : la coque de campagne porte le pont. */
+  const enMer = () => set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })! });
+  const ennemis = () => get().battle!.combatants.filter((c) => c.kind === 'enemy');
+  const aDemi = (c: Combatant) => { c.wounds = { ...c.wounds, current: Math.floor(c.wounds.max / 2) }; };
+  const log = () => JSON.stringify(get().battle!.log);
+
+  it('la donnée porte la RAW : Triton et son issue au 1d10, les monstres du livre repoussés à la moitié de leurs Blessures', () => {
+    const combat = (id: string, nombre = 1, extra: object = {}) => ({ op: 'combatEnMer', adversaire: { id, nombre, ...extra }, repousseAPct: 50 });
+    expect(consequence('triton')).toEqual(surLeNavire([{ // l.136-139
+      op: 'combatEnMer', adversaire: { id: 'triton', nombre: 1 },
+      victoire: surLeNavire([{ op: 'rollTable', die: '1d10', entries: [
+        { min: 1, max: 5, ops: [{ op: 'manann', delta: { sign: 1, ...d(2, 10) } }] },
+        { min: 6, max: 10, ops: [{ op: 'manann', delta: { sign: -1, ...d(2, 10) } }] },
+      ] }]),
+    }]));
+    expect(consequence('puissant-monstre-marin')).toEqual(surLeNavire([{ op: 'rollTable', die: '1d10', entries: [ // l.142-143
+      { min: 1, max: 3, ops: [combat('hydre-d-os')] },
+      { min: 4, max: 5, ops: [combat('sangsue-des-abysses')] },
+      { min: 6, max: 9, ops: [combat('gargantuan')] },
+      { min: 10, max: 10, ops: [combat('leviathan-noir')] },
+    ] }]));
+    expect(consequence('monstre-marin')).toEqual(surLeNavire([{ op: 'rollTable', die: '1d10', entries: [ // l.165-168
+      { min: 1, max: 3, ops: [combat('kharibde')] },
+      { min: 4, max: 5, ops: [combat('anguille-macheprise', 1, { optionals: [{ id: 'nuee' }] })] },
+      { min: 6, max: 9, ops: [combat('syrene-bleue', 3)] },
+      { min: 10, max: 10, ops: [combat('wyrm-des-mers')] },
+    ] }]));
+  });
+
+  it('Triton : le combat s’ouvre sur le pont, la traversée s’interrompt (l.136-137)', () => {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: 'triton' } } });
+    runSeaDay(get, set);
+    expect(ennemis().map((c) => c.creatureId)).toEqual(['triton']);
+    expect(get().battle!.victoryCondition).toBeUndefined();
+    expect(get().travelPlan!.interrupted).toBe(true);
+  });
+
+  it('Triton vaincu : 1d10, l’Humeur de Manann gagne ou perd 2d10 (l.137-139)', () => {
+    enMer();
+    const avant = vesselManann(get().vessel!).score;
+    jouerFlowEntier(runFlow(get, set, consequence('triton')!, 'Triton !'));
+    for (const c of ennemis()) c.dead = true;
+    expect(checkBattleOver(get, set)).toBe(true);
+    draineCascade(get);
+    expect(get().battle!.over).toBe('victory');
+    const ecart = Math.abs(get().vessel!.manann!.score - avant);
+    expect(ecart).toBeGreaterThanOrEqual(2);
+    expect(ecart).toBeLessThanOrEqual(20);
+    expect(get().journal.join('\n')).toContain('Humeur');
+  });
+
+  it('Triton non vaincu (défaite) : l’Humeur ne bouge pas', () => {
+    enMer();
+    const avant = vesselManann(get().vessel!).score;
+    jouerFlowEntier(runFlow(get, set, consequence('triton')!, 'Triton !'));
+    for (const c of get().battle!.combatants.filter((x) => x.kind === 'hero')) c.dead = true;
+    expect(checkBattleOver(get, set)).toBe(true);
+    expect(get().battle!.over).toBe('defeat');
+    expect(vesselManann(get().vessel!).score).toBe(avant);
+  });
+
+  it('3 syrènes bleues : chacune est repoussée à la moitié de ses Blessures, la victoire vient quand aucune ne reste (l.166-168)', () => {
+    enMer();
+    jouerFlowEntier(runFlow(get, set, surLeNavire([{ op: 'combatEnMer', adversaire: { id: 'syrene-bleue', nombre: 3 }, repousseAPct: 50 }]), 'Monstre marin'));
+    const [a, b, c] = ennemis();
+    expect([a, b, c].map((x) => x.creatureId)).toEqual(['syrene-bleue', 'syrene-bleue', 'syrene-bleue']);
+    aDemi(a);
+    expect(checkBattleOver(get, set)).toBe(false);
+    expect(a.outOfRencontre).toBe(true);
+    expect(a.exitReason).toBe('repousse');
+    expect(b.outOfRencontre).toBeFalsy();
+    expect(log()).toContain(t('cf.repousse', { name: a.label }));
+    aDemi(b);
+    c.dead = true;
+    expect(checkBattleOver(get, set)).toBe(true);
+    draineCascade(get);
+    expect(get().battle!.over).toBe('victory');
+  });
+
+  it('une créature au-dessus de la moitié de ses Blessures reste au combat', () => {
+    enMer();
+    jouerFlowEntier(runFlow(get, set, surLeNavire([{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 }, repousseAPct: 50 }]), 'Monstre marin'));
+    const [k] = ennemis();
+    k.wounds = { ...k.wounds, current: Math.floor(k.wounds.max / 2) + 1 };
+    expect(checkBattleOver(get, set)).toBe(false);
+    expect(k.outOfRencontre).toBeFalsy();
+  });
+
+  it('nuée d’anguilles mâcheprises : le Trait facultatif Nuée est posé (l.166 ; MDG 16 l.67)', () => {
+    enMer();
+    jouerFlowEntier(runFlow(get, set, surLeNavire([{ op: 'combatEnMer', adversaire: { id: 'anguille-macheprise', nombre: 1, optionals: [{ id: 'nuee' }] } }]), 'Monstre marin'));
+    const [anguille] = ennemis();
+    expect(anguille.traits?.some((x) => x.id === 'nuee')).toBe(true);
+  });
+
+  it('sans navire de campagne en mer, aucun combat ne s’ouvre et le journal le dit', () => {
+    jouerFlowEntier(runFlow(get, set, surLeNavire([{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 } }]), 'Monstre marin'));
+    expect(get().battle).toBeNull();
+    expect(get().journal.join('\n')).toContain(t('sv.combatEnMerSansPont', { label: 'Monstre marin' }));
+  });
+
+  it('la fiche Codex dit le combat, le repli et la suite de la victoire', () => {
+    const triton = humanizeFlow(consequence('triton')!, []);
+    expect(triton).toContain(t('codex.op.combatEnMer', { nombre: 1, adversaire: 'Triton' }));
+    expect(triton).toContain(t('codex.op.combatEnMer.victoire', { victoire: '' }).trim());
+    const monstre = humanizeFlow(consequence('monstre-marin')!, []);
+    expect(monstre).toContain(t('codex.op.combatEnMer.repousse', { pct: 50 }));
+    expect(monstre).toContain('Nuée');
+  });
+
+  it('`combatEnMer` est inerte dans `applyOps` (op de navire)', () => {
+    const h = get().party[0];
+    expect(applyOps(h, [{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 } }], { rng: makeRNG(1) })).toEqual([]);
   });
 });

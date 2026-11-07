@@ -105,12 +105,13 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 	return boutons
 
 
-## Les champs de texte à l'écran sous `racines` : chaque `LineEdit` éditable et visible qu'aucun défilement ne cache, son
-## texte, son centre, et l'élément que dessine le composant qui le porte (`Zone.META`) s'il en porte un.
+## Les champs de texte à l'écran sous `racines` : chaque `LineEdit` ou `TextEdit` éditable et visible qu'aucun
+## défilement ne cache, son texte, son centre, et l'élément que dessine le composant qui le porte (`Zone.META`) s'il en
+## porte un.
 static func saisies_a_l_ecran(racines: Array) -> Array:
 	var saisies := []
 	for racine in racines:
-		for champ in racine.find_children("*", "LineEdit", true, false):
+		for champ in racine.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n is LineEdit or n is TextEdit):
 			var centre: Vector2 = champ.get_global_rect().get_center()
 			if champ.is_visible_in_tree() and champ.editable and a_l_ecran(champ, centre):
 				var publie := {texte = champ.text, x = centre.x, y = centre.y}
