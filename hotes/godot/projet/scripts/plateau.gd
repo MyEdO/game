@@ -33,7 +33,7 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	_vue = vue
 	if vue.plateau != null:
 		_monde.poser_les_aretes(vue.plateau.aretes)
-		_monde.cacher_le_bati(vue.plateau.couvercle, vue.plateau.toitsLeves, vue.plateau.couronnesAbattues, vue.plateau.aretesDegagees)
+		_monde.cacher_le_bati(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues, vue.plateau.aretesDegagees)
 	var combat: Variant = vue.projection.combat
 	var exploration: Variant = vue.projection.exploration
 	var actif: Variant = null if combat == null or combat.actif == null else combat.actif.id

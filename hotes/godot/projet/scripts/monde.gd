@@ -13,10 +13,6 @@ extends Node3D
 signal cadrage_change
 
 const DUREE_QUART_S := 0.25
-## Les sommets d'un triangle du volume, et les flottants d'un sommet : position et normale, couleur.
-const SOMMETS_PAR_TRIANGLE := 3
-const COMPOSANTES_D_UN_VECTEUR := 3
-const CANAUX_D_UNE_COULEUR := 4
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
 ## Les items de `surbrillances`.
@@ -61,9 +57,6 @@ var _sols: Dictionary = {}
 var _lacet := 0.0
 ## Les arêtes posées (`poser_les_aretes`).
 var _aretes_posees: Array = []
-## Le volume du dernier monde posé (`poser`), et les clés `x,y,z` des cases de son couvercle retirées (`cacher_le_bati`).
-var _monde: Dictionary = {}
-var _couvercle: Array = []
 ## Les clés des couronnes abattues, et le pas de grille vers le dedans de chaque arête dégagée, par clé (`cacher_le_bati`).
 var _couronnes_abattues: Array = []
 var _aretes_degagees: Dictionary = {}
@@ -96,54 +89,19 @@ func poser(monde: Dictionary) -> void:
 	var echelle := MiseEnPage.echelle_metrique(monde.metresParCase)
 	_volume.scale = Vector3(echelle, echelle, echelle)
 	_volume.position = MiseEnPage.centre_de_case(Vector2i.ZERO, 0.0)
-	_monde = monde
-	_couvercle = []
-	_poser_le_volume()
-	_sols.clear()
-	for couche in monde.hauteurs:
-		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.metresParCase)))
-	_pivot.position = MiseEnPage.centre_du_plateau(taille())
-
-
-## Le maillage et la forme du volume posé (`_monde`), sans les triangles des cases du couvercle (`_couvercle`).
-func _poser_le_volume() -> void:
-	var volume := _sans_le_couvercle(_monde, _couvercle)
-	_maillage.mesh = _maillage_de(volume)
-	var sommets := PackedFloat32Array(volume.positions).to_byte_array().to_vector3_array()
+	_maillage.mesh = _maillage_de(monde)
+	var sommets := PackedFloat32Array(monde.positions).to_byte_array().to_vector3_array()
 	sommets.reverse()
-	_cases_des_triangles = volume.cases.duplicate()
+	_cases_des_triangles = monde.cases.duplicate()
 	_cases_des_triangles.reverse()
 	var forme := ConcavePolygonShape3D.new()
 	forme.set_faces(sommets)
 	forme.backface_collision = true
 	_forme.shape = forme
-
-
-## Le volume `monde` sans les triangles des cases de `couvercle` (clés `x,y,z`) : ses tableaux, ses cases et ses
-## surfaces resserrés sur les triangles gardés, une surface vidée retirée ; `monde` lui-même sans couvercle.
-static func _sans_le_couvercle(monde: Dictionary, couvercle: Array) -> Dictionary:
-	if couvercle.is_empty():
-		return monde
-	var retirees := {}
-	for cle: String in couvercle:
-		retirees[cle] = true
-	var reste := {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}
-	for surface: Dictionary in monde.surfaces:
-		var debut: int = reste.cases.size() * SOMMETS_PAR_TRIANGLE
-		for t in range(int(surface.debut) / SOMMETS_PAR_TRIANGLE, int(surface.fin) / SOMMETS_PAR_TRIANGLE):
-			var case: Array = monde.cases[t]
-			if retirees.has("%d,%d,%d" % [case[0], case[1], case[2]]):
-				continue
-			var vecteurs := SOMMETS_PAR_TRIANGLE * COMPOSANTES_D_UN_VECTEUR
-			var couleurs := SOMMETS_PAR_TRIANGLE * CANAUX_D_UNE_COULEUR
-			reste.positions.append_array(monde.positions.slice(t * vecteurs, (t + 1) * vecteurs))
-			reste.normales.append_array(monde.normales.slice(t * vecteurs, (t + 1) * vecteurs))
-			reste.couleurs.append_array(monde.couleurs.slice(t * couleurs, (t + 1) * couleurs))
-			reste.cases.append(case)
-		var fin: int = reste.cases.size() * SOMMETS_PAR_TRIANGLE
-		if fin > debut:
-			reste.surfaces.append(surface.merged({debut = debut, fin = fin}, true))
-	return reste
+	_sols.clear()
+	for couche in monde.hauteurs:
+		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.metresParCase)))
+	_pivot.position = MiseEnPage.centre_du_plateau(taille())
 
 
 ## Les nappes de toit (`toits`) et les couronnes crénelées des murs (`couronnes`) de la scène (`CONTRAT.md`, section
@@ -153,14 +111,10 @@ func poser_les_nappes(toits: Array, couronnes: Array) -> void:
 	_poser_sous(_couronnes, couronnes)
 
 
-## Le volume sans les cases du couvercle au-dessus de la tête du groupe (`couvercle`, `plateau.couvercle`), chaque nappe
-## de toit cachée si `toits_leves` la nomme (`plateau.toitsLeves`), chaque couronne si `couronnes_abattues` la nomme
-## (`plateau.couronnesAbattues`), et chaque arête que le groupe dégage (`aretes_degagees`, `plateau.aretesDegagees`)
-## abattue avec sa couronne sous le regard de la caméra (`_abattre_les_aretes`) ; montrés sinon.
-func cacher_le_bati(couvercle: Array, toits_leves: Array, couronnes_abattues: Array, aretes_degagees: Array) -> void:
-	if couvercle != _couvercle:
-		_couvercle = couvercle
-		_poser_le_volume()
+## Chaque nappe de toit cachée si `toits_leves` la nomme (`plateau.toitsLeves`), chaque couronne si `couronnes_abattues`
+## la nomme (`plateau.couronnesAbattues`), et chaque arête que le groupe dégage (`aretes_degagees`,
+## `plateau.aretesDegagees`) abattue avec sa couronne sous le regard de la caméra (`_abattre_les_aretes`) ; montrées sinon.
+func cacher_le_bati(toits_leves: Array, couronnes_abattues: Array, aretes_degagees: Array) -> void:
 	_cacher_sous(_toits, toits_leves)
 	_couronnes_abattues = couronnes_abattues
 	_aretes_degagees.clear()
