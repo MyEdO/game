@@ -15,6 +15,7 @@ export { argsAvecVerdictLocal, porteesDuTour, preparerLIntentLocal } from './loc
 export { previewAttack, activeCombatant } from './combatFlow';
 export { DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, type Difficulty } from '../engine/types';
 export { formatMoney } from '../engine/money';
+export { dayIndex, formatJourImperial } from '../engine/clock';
 export { conditionLabel, findVehicleById, lightLevels, lightTones, matieresCouvrantes, matieresDe, props, siegeEngines, structureAppearances } from '../data';
 export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 export { PARTS_RELIEF } from '../data/materials.types';

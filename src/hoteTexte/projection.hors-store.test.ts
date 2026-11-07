@@ -158,7 +158,7 @@ describe('le journal', () => {
     });
   });
   it('une entrée plus haute que la page se lit seule, par ses lignes (`ligne`), jusqu’à la dernière', () => {
-    const entree = (n: number, texte: string): LigneNumerotee => ({ n, pas: 1, ligne: { de: 'journal', texte }, differee: false });
+    const entree = (n: number, texte: string): LigneNumerotee => ({ n, pas: 1, ligne: { de: 'journal', texte, heure: 0 }, differee: false });
     const haute = Array.from({ length: 20 }, (_, i) => `l${i}`).join('\n');
     const journal = [entree(0, 'A'), entree(1, haute), entree(2, 'C')];
     expect(rendreLeJournal(journal, 0)).toEqual(['0 [pas 1] A', '+2 : `lire {"quoi":"journal","depuis":1}`']);
