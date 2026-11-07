@@ -64,7 +64,9 @@ export type TableDesClasses<S = ActionsDuNoyau, T = Table> = { [A in ActionManus
 /** Classe coop de chaque action manuscrite du noyau. */
 export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ═══ invité : COMBAT (le clic du champ, l'offre du registre, les OUVREURS de flux) ═══
-  battleClickEntity: 'invité', battleClickTile: 'invité', battleClearPreview: 'invité',
+  // Le clic du champ (`cliquerLaCase`) : en combat, routé par ce qu'il désigne ; hors combat, le geste du siège du monde
+  // (`netOwnership.ROUTES`).
+  cliquerLaCase: 'invité', battleClearPreview: 'invité',
   // L'offre du registre (`jouerLOffre`) : son corps se joue chez l'hôte, routé par le lieu de l'offre
   // (`lieuDeLOffre`, `netOwnership.ROUTES`) ; un relais ou une pure intention se joue chez l'émetteur.
   jouerLOffre: 'invité', desarmerLeMode: 'invité',
@@ -72,10 +74,9 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // (1ᵉʳ argument, `netOwnership.ROUTES`).
   incanterLeSort: 'invité', focaliserLeSort: 'invité', dissiperLeSort: 'invité', utiliserLObjet: 'invité',
   prendreLaPanoplie: 'invité', depenserLaDetermination: 'invité',
-  // Escalade d'une arête (capacité `escalade`) : jumeau de `fallAcross`, même possession (l'actif).
-  climbAcross: 'invité',
-  // Enjambement d'une croisée (capacité `fenetre`, #700) : même possession (l'actif), aucun jet.
-  windowAcross: 'invité',
+  // Le franchissement d'une arête (escalade, chute volontaire, enjambement d'une croisée #700) : la possession de l'actif
+  // (repli universel) ; la DÉCLARATION de rangée d'une chute est routée par le siège du tombant (`netOwnership`).
+  franchirLArete: 'invité',
   // Le réglage d'un jet en attente (`jetRegler`, `REGLAGES_DU_JET`) : routé par le porteur de son jet, ou par celui de
   // sa rangée ou de sa valeur quand le réglage le déclare, `netOwnership.ROUTES`.
   jetRegler: 'invité',
@@ -88,25 +89,20 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Le choix d'une fenêtre (`fenetreChoisir`) : routé sur la fenêtre de son 1ᵉʳ argument, par le siège que son choix
   // déclare (`CHOIX_DES_FENETRES`) ; le choix de l'hôte se refuse dans l'état d'un invité (`refusDuChoix`).
   fenetreChoisir: 'invité',
-  // Chute volontaire (ouverte par `battleClickTile`) : trajet, DÉCLARATION de rangée (routée par le siège
-  // du tombant, `netOwnership`).
-  fallAcross: 'invité',
   // Infirmerie (hors combat) : patients / actes / chirurgie — l'hôte valide.
   // Chirurgie : openSurgeryPass POSE la passe, les verbes de jet sur `surgery` l'influencent,
   // `jetConfirm('surgery')` applique, `jetCancel('surgery')` annule la passe, `fenetreChoisir('medic', 'abandon', true)`
   // l'opération.
   medicAct: 'invité', openSurgeryPass: 'invité',
-  // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument), et se dit prêt (`fenetreValider('rest')`).
-  restSet: 'invité',
   // (Psychologie de COMBAT et à la rencontre : passent par les verbes de jet de la cascade.)
   roundStartPromote: 'invité',
   // Tir rapide (Talent « Tir rapide ») pendant la pause de début de Round : ARMER la visée depuis la
   // frise, routé sur le TIREUR : pendant la pause il n'y a AUCUN combattant actif (`turn: -1`), donc le
-  // repli universel le refusait à tout siège invité. Le tir est le clic du combattant (`battleClickEntity`).
+  // repli universel le refusait à tout siège invité. Le tir est le clic du combattant (`cliquerLaCase`).
   armPreempt: 'invité',
-  // Demande de pause au prochain Round : POSER et RETIRER passent par le même chemin (interrupteur
+  // Demande de pause au prochain Round : POSER et RETIRER passent par le même verbe (interrupteur
   // de la frise) — une bascule dont un seul sens serait répliqué laisserait la table bloquée.
-  assignVictoryGear: 'invité', raiseHand: 'invité', lowerHand: 'invité',
+  leverLaMain: 'invité',
   // ═══ invité : GROUPE — composition (chaque siège SES emplacements, tranchée par `ROUTES`) et carnet
   // d'enquête (#670, `TOUJOURS` : épingle de groupe, nouveauté vue par siège). ═══
   partyAddHero: 'invité', partyRemoveHero: 'invité', partyReplaceHero: 'invité', toggleCluePin: 'invité',
@@ -130,8 +126,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   openWorldMap: 'hôte', ouvrirLeLieu: 'hôte', startTravel: 'hôte',
   startBilletBargain: 'hôte', resumeTravel: 'hôte',
   setVoyageCadence: 'hôte', transitionTo: 'hôte', fouillerLaPiece: 'hôte',
-  // Le groupe en exploration : clic de case, offre d'une entité (pastille), porte, pas et pivot du regard.
-  cliquerLaCase: 'hôte', jouerAction: 'hôte', actionnerLaPorte: 'hôte', stepPartyRelative: 'hôte', pivotParty: 'hôte',
+  // Le groupe en exploration : offre d'une entité (pastille), porte, pas et pivot du regard.
+  jouerAction: 'hôte', actionnerLaPorte: 'hôte', stepPartyRelative: 'hôte', pivotParty: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
   buyCharAdvance: 'hôte', buySkillAdvance: 'hôte', buyTalent: 'hôte', buySpell: 'hôte',
   changeCareer: 'hôte', designateCareerSlot: 'hôte', trainProsthesis: 'hôte', buySpellComponent: 'hôte',
@@ -143,14 +139,11 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   abandonPossession: 'hôte', renamePossession: 'hôte', retrievePossession: 'hôte',
   stablePossession: 'hôte', embark: 'hôte', disembark: 'hôte',
   // ── Bourse du groupe : marché terrestre, marchand, port ───────────────────────────────────────
-  addToCart: 'hôte', decFromCart: 'hôte', removeFromCart: 'hôte', clearCart: 'hôte', payCart: 'hôte',
-  addToSellCart: 'hôte', removeFromSellCart: 'hôte', clearSellCart: 'hôte', confirmSell: 'hôte',
-  setSellHalving: 'hôte', assignDistribution: 'hôte',
+  payCart: 'hôte', confirmSell: 'hôte',
   barterExchange: 'hôte', repairItem: 'hôte', searchAvailability: 'hôte', startBargain: 'hôte',
   refuseBargain: 'hôte', openPlaceMerchant: 'hôte', openLandMarket: 'hôte',
-  landBuyCargo: 'hôte', landSellCargo: 'hôte', landDumpCargo: 'hôte',
-  landEvalWine: 'hôte', moveCargo: 'hôte', openPort: 'hôte', portBuyCargo: 'hôte',
-  portSellCargo: 'hôte', portDumpCargo: 'hôte', portRepair: 'hôte', portCareen: 'hôte',
+  acheterLaCargaison: 'hôte', vendreLaCargaison: 'hôte', jeterLaCargaison: 'hôte',
+  landEvalWine: 'hôte', moveCargo: 'hôte', openPort: 'hôte', portRepair: 'hôte', portCareen: 'hôte',
   portInstallUpgrade: 'hôte', portHireCrew: 'hôte', portDismissCrew: 'hôte', gatherInnInfo: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────
   setShipRole: 'hôte', setShipStation: 'hôte', setTravelRole: 'hôte', setPosteAmmo: 'hôte',
@@ -160,7 +153,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   setMassBattleHero: 'hôte', massBattleAdvance: 'hôte', massBattleClash: 'hôte',
   massBattleHazard: 'hôte', massBattleRally: 'hôte', massBattleScene: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
-  openRest: 'hôte', assignLootGear: 'hôte', harvestCreature: 'hôte',
+  openRest: 'hôte', harvestCreature: 'hôte',
   // ── La Chance regagnée (règle optionnelle), la fin de séance ──
   restoreFortuneNow: 'hôte', ouvrirLaFinDeSeance: 'hôte',
   // Armement d'intention au clavier (registre `state/clavier/keybindings.ts`) : n'écrit que `localIntent`.
@@ -207,27 +200,27 @@ type Ouvreurs<C extends ClasseCoop> = readonly [ActionDeClasse<C>, ...ActionDeCl
  */
 export type Ouverture = { parInvite: Ouvreurs<'invité'>; interne?: SiteInterne } | { parHote: Ouvreurs<'hôte'> } | { interne: SiteInterne };
 const OUVERTURE_DES_FLUX = {
-  attack: { parInvite: ['battleClickEntity', 'jouerLOffre'] },
+  attack: { parInvite: ['cliquerLaCase', 'jouerLOffre'] },
   defense: { interne: 'réaction : combatFlow.maybeOpenDefense / openSurfacedDefense' },
-  cast: { parInvite: ['jouerLOffre', 'battleClickEntity', 'incanterLeSort'] },
+  cast: { parInvite: ['jouerLOffre', 'cliquerLaCase', 'incanterLeSort'] },
   disengage: { parInvite: ['jouerLOffre'] },
-  auContact: { parInvite: ['battleClickEntity'] }, // ciblage (targetingModes.attackClickCommit)
-  grapple: { parInvite: ['battleClickEntity'] }, // ciblage (targetingModes.attackClickCommit)
+  auContact: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
+  grapple: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
   battement: { parInvite: ['jouerLOffre'] },
   distraire: { parInvite: ['jouerLOffre'] },
-  maneuver: { parInvite: ['battleClickEntity'] }, // manœuvre de créature : ciblage (targetingModes.attackClickCommit)
-  run: { parInvite: ['battleClickTile'] }, // course armée (combatSlice.battleClickTile)
+  maneuver: { parInvite: ['cliquerLaCase'] }, // manœuvre de créature : ciblage (targetingModes.attackClickCommit)
+  run: { parInvite: ['cliquerLaCase'] }, // course armée (combatSlice.cliquerLaCaseDuCombat)
   reload: { parInvite: ['jouerLOffre'] },
   // Main ensanglantée (AA 07 l.117) : posé par l'ouverture d'attaque (interne) ET par la 2ᵉ frappe à
   // deux armes, que joue le clic du combattant.
-  handGate: { parInvite: ['battleClickEntity'], interne: 'combatFlow.openAttackCascade (Test par Action)' },
+  handGate: { parInvite: ['cliquerLaCase'], interne: 'combatFlow.openAttackCascade (Test par Action)' },
   recover: { parInvite: ['jouerLOffre'] },
   focus: { parInvite: ['jouerLOffre', 'focaliserLeSort'] },
   dispel: { parInvite: ['jouerLOffre', 'dissiperLeSort'] },
   frenzy: { parInvite: ['jouerLOffre'] },
-  approach: { parInvite: ['battleClickTile', 'battleClickEntity'] }, // gate de Peur (combatSlice.fearGateBlocks)
-  ward: { parInvite: ['battleClickEntity'] }, // ciblage (targetingModes.attackClickCommit)
-  heal: { parInvite: ['battleClickEntity', 'medicAct'] }, // ciblage (targetingModes) ; infirmerie
+  approach: { parInvite: ['cliquerLaCase'] }, // gate de Peur (combatSlice.fearGateBlocks)
+  ward: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
+  heal: { parInvite: ['cliquerLaCase', 'medicAct'] }, // ciblage (targetingModes) ; infirmerie
   surgery: { parInvite: ['openSurgeryPass'] },
   corruption: { interne: 'exposition/seuil : combatEffects (Effect) et corruptionFlow.gainCorruption' },
   test: { interne: 'combatEffects.openSkillTest (Effet de scène, dialogue, consommable)' },

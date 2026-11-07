@@ -158,11 +158,11 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
   it('port-sell-gossip : aucun acheteur, aucune recherche d’acheteur enchaînée (MDG 15 l.366-372)', () => {
     const PORT = { taille: 4, richesse: 4, production: [] } as unknown as PortProfile;
     banc.setState({
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois-mer', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
+      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
       port: { placeId: 'P', label: 'Port', port: PORT, offers: [] },
     } as never);
     const hero = banc.getState().party[0];
-    const out = appliquer(ragotSansJet('port-sell-gossip', hero, t('port.buyerSearch'), { cargoIndex: 0 }), hero);
+    const out = appliquer(ragotSansJet('port-sell-gossip', hero, t('port.buyerSearch'), { lotId: 'lot-1' }), hero);
     expect(ligneDe(out)).toBe(t('port.gossipSansJet', { name: 'Hilda', issue: t('port.gossipFail', { relation: t('port.produces') }) }));
     expect(banc.getState().pendingCascade).toBeNull();
   });

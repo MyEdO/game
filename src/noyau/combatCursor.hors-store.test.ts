@@ -63,7 +63,7 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
 describe('jouerLeClicDuCombattant / jouerLeClicDeCase — le geste du clic, lu dans l’état au moment du clic', () => {
   let banc: Banc;
   beforeEach(() => { banc = ouvrirLeBanc(); });
-  /** Les verbes du champ remplacés DANS L'ÉTAT, comme l'enrobage d'intention de l'invité coop (`state/netFlow.ts`). */
+  /** Le verbe du champ remplacé DANS L'ÉTAT, comme l'enrobage d'intention de l'invité coop (`state/netFlow.ts`). */
   function poser() {
     const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
     const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
@@ -73,43 +73,38 @@ describe('jouerLeClicDuCombattant / jouerLeClicDeCase — le geste du clic, lu d
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    const entite = vi.fn(), tuile = vi.fn();
-    banc.setState({ battle: battle as never, scene: arena(), party: [hero, ally], battleClickEntity: entite, battleClickTile: tuile });
-    return { entite, tuile };
+    const clic = vi.fn();
+    banc.setState({ battle: battle as never, scene: arena(), party: [hero, ally], cliquerLaCase: clic });
+    return clic;
   }
 
-  it('combattant qui agit → true, battleClickEntity(id, confirm)', () => {
-    const { entite, tuile } = poser();
+  it('combattant qui agit → true, cliquerLaCase(sa case, id, confirm)', () => {
+    const clic = poser();
     expect(jouerLeClicDuCombattant(banc.getState, 'e1', true)).toBe(true);
-    expect(entite.mock.calls).toEqual([['e1', { confirm: true }]]);
-    expect(tuile.mock.calls).toEqual([]);
+    expect(clic.mock.calls).toEqual([[{ x: 7, y: 10 }, 'e1', { confirm: true }]]);
   });
 
   it('combattant qui n’agit pas → false, aucun verbe', () => {
-    const { entite, tuile } = poser();
+    const clic = poser();
     expect(jouerLeClicDuCombattant(banc.getState, 'h2', false)).toBe(false);
-    expect(entite.mock.calls).toEqual([]);
-    expect(tuile.mock.calls).toEqual([]);
+    expect(clic.mock.calls).toEqual([]);
   });
 
   it('case occupée par un combattant qui agit → son clic, confirm transmis', () => {
-    const { entite, tuile } = poser();
+    const clic = poser();
     expect(jouerLeClicDeCase(banc.getState, { x: 7, y: 10 }, false)).toBe(true);
-    expect(entite.mock.calls).toEqual([['e1', { confirm: false }]]);
-    expect(tuile.mock.calls).toEqual([]);
+    expect(clic.mock.calls).toEqual([[{ x: 7, y: 10 }, 'e1', { confirm: false }]]);
   });
 
-  it('case libre → true, battleClickTile(pt, confirm)', () => {
-    const { entite, tuile } = poser();
+  it('case libre → true, cliquerLaCase(pt, sans entité, confirm)', () => {
+    const clic = poser();
     expect(jouerLeClicDeCase(banc.getState, { x: 12, y: 4 }, true)).toBe(true);
-    expect(tuile.mock.calls).toEqual([[{ x: 12, y: 4 }, { confirm: true }]]);
-    expect(entite.mock.calls).toEqual([]);
+    expect(clic.mock.calls).toEqual([[{ x: 12, y: 4 }, undefined, { confirm: true }]]);
   });
 
   it('intention nulle (allié non actionnable) → false, aucun verbe', () => {
-    const { entite, tuile } = poser();
+    const clic = poser();
     expect(jouerLeClicDeCase(banc.getState, { x: 5, y: 10 }, true)).toBe(false);
-    expect(entite.mock.calls).toEqual([]);
-    expect(tuile.mock.calls).toEqual([]);
+    expect(clic.mock.calls).toEqual([]);
   });
 });

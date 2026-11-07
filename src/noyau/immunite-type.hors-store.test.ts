@@ -23,6 +23,7 @@ import { evaluateMissile, type CastResult } from '../engine/magic';
 import { spellOps } from '../engine/flowCore';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -61,7 +62,7 @@ function souffler(H: Combatant, E: Combatant, type: string) {
   H.characteristics['capacite-de-tir'] = 90;
   H.advantage = 3;
   banc.getState().armerLAttaque('souffle');
-  banc.getState().battleClickEntity(E.id);
+  cliquerSurLeCombattant(banc.getState, E.id);
   banc.getState().jetRoll('maneuver');
   banc.getState().jetConfirm('maneuver');
 }

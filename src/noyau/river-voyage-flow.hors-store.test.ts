@@ -285,7 +285,7 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
     // #617/#618) — `partyCargoTotalEnc` la lit (#327).
     const ownerId = get().party[0].id;
     const possessions: Possession[] = [
-      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: cargoEnc > 0 ? [{ cargoId: 'vin-eau-de-vie', enc: cargoEnc, basePriceGold: 10 }] : [] },
+      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: cargoEnc > 0 ? [{ uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: cargoEnc, basePriceGold: 10 }] : [] },
     ];
     set({ possessions, travelPlan: plan, journal: [] });
     seedBattleRng(7);
@@ -319,7 +319,7 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
     launch();
     const ownerId = get().party[0].id;
     const possessions: Possession[] = [
-      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ cargoId: 'vin-eau-de-vie', enc: 30, basePriceGold: 10 }] },
+      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ uid: 'lot-2', cargoId: 'vin-eau-de-vie', enc: 30, basePriceGold: 10 }] },
     ];
     const detect = {
       id: 'river-peril-0', kind: 'riverPerilDetect' as const, actorId: ownerId, icon: 'nautical/tack', label: fixtureText('Détection'),
@@ -439,7 +439,7 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     get().startTravel('r-reik', 'barge');
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
-    for (const h of get().party) get().restSet(h.id, { food: 'repas' });
+    for (const h of get().party) get().fenetreChoisir('rest', 'pitance', 'repas', h.id);
     get().fenetreValider('rest');
     draineCascade(get);
     for (const h of get().party) {
@@ -455,7 +455,7 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     get().startTravel('r-reik', 'barge');
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
-    for (const h of get().party) get().restSet(h.id, { lodging: 'dehors', food: 'rien' });
+    for (const h of get().party) { get().fenetreChoisir('rest', 'couchage', 'dehors', h.id); get().fenetreChoisir('rest', 'pitance', 'rien', h.id); }
     get().fenetreValider('rest');
     draineCascade(get);
     for (const h of get().party) expect(h.hunger?.days ?? 0).toBe(1);

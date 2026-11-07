@@ -34,6 +34,7 @@ import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
+import type { IdDeLigneDeButin } from './designations';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -41,8 +42,10 @@ export type CrewRoleRoll = { roll: number; target: number; sl: number; sansJet?:
 
 /** Une ligne de butin d'équipement (giveTrapping) ATTRIBUABLE par portrait — partagée entre
  *  l'écran de victoire et la fenêtre de loot (fouille/Test/dialogue). `magic` = qualités cachées
- *  ou ajoutées, révélables par Évaluation. L'Effet d'origine est conservé tel quel. */
+ *  ou ajoutées, révélables par Évaluation. L'Effet d'origine est conservé tel quel. Elle se désigne par son `uid`,
+ *  posé à sa création (`gearFromEffects`). */
 export interface LootGear {
+  uid: IdDeLigneDeButin;
   label: string;
   magic: boolean;
   effect: Extract<Effect, { type: 'giveTrapping' }>;
@@ -351,7 +354,7 @@ export interface PendingAppraise {
   /** Objet d'un héros (uid d'inventaire)… */
   itemUid?: string;
   /** …ou ligne de butin ENCORE en fenêtre (loot/victoire) — révélation AVANT attribution. */
-  gear?: { scope: 'loot' | 'victory'; index: number };
+  gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin };
   itemName: string;
   /** 'evaluate' (défaut) = Évaluation marchande ; 'detect' = Détection d'artefact (Intuition). */
   mode?: 'evaluate' | 'detect';
@@ -589,7 +592,7 @@ export interface PendingRun {
   result: import('../engine/movement').IssueDeCourse | null;
   rerolled?: boolean;
 }
-/** Chute VOLONTAIRE en attente (LDB 15 l.82 ; EDO 01 l.231) : posée par `fallAcross` (case de départ en
+/** Chute VOLONTAIRE en attente (LDB 15 l.82 ; EDO 01 l.231) : posée par `franchirLArete` (case de départ en
  *  bordure d'une falaise, `noyau/fallMove.planFranchissement`) vers `to` (case d'atterrissage, couche
  *  comprise), hauteur RÉELLE `metres` (relief). Étape À PARTICIPANTS, patron Contre-sort
  *  (`CounterParticipant.declared`) : UNE rangée par TOMBANT, chacune déclare son choix pré-jet. La PHASE
@@ -728,7 +731,7 @@ export interface PendingApproach {
 /** Bénédiction de Protection (LDB 41 l.142 : « Les ennemis doivent effectuer un Test de Force Mentale
  *  Accessible (+20) pour attaquer votre cible […]. Sur un échec, ils doivent choisir une cible ou une
  *  Action différente. ») : la DÉCLARATION d'attaque d'un héros sur une cible bénie est DIFFÉRÉE derrière
- *  ce Test de FM. Succès → l'attaque est relancée (`battleClickEntity(targetId, {confirm, wardCleared})`) ;
+ *  ce Test de FM. Succès → l'attaque est relancée (`cliquerLeCombattant(targetId, {confirm, wardCleared})`) ;
  *  échec → l'attaque n'a pas lieu (rien n'est consommé). Modelé sur `PendingApproach` (gate pré-attaque). */
 export interface PendingWard {
   attackerId: string;

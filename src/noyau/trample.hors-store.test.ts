@@ -9,6 +9,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './etat';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 // ---------------------------------------------------------------------------
 // Piétinement — attaque gratuite de mêlée, OPPOSÉE (LDB 85 l.387 ; LDB 13 l.123)
@@ -80,7 +81,7 @@ describe('Piétinement en combat (store)', () => {
   /** Le héros joue le Piétinement par l'attaque gratuite CANONIQUE : option armée, clic-cible commis. */
   const pietiner = (cibleId: string): void => {
     banc.getState().armerLAttaque('pietinement');
-    banc.getState().battleClickEntity(cibleId, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, cibleId, { confirm: true });
   };
   const advDe = (id: string): number => banc.getState().battle!.combatants.find((c) => c.id === id)!.advantage;
 
@@ -107,7 +108,7 @@ describe('Piétinement en combat (store)', () => {
     H.traits = [{ id: 'morsure', value: 10 }];
     H.advantage = 2;
     banc.getState().armerLAttaque('morsure');
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     const pa = banc.getState().pendingAttack!;
     expect(H.weapons.some((w) => w.attackKind === 'morsure'), 'aucune arme tenue ne porte la Morsure').toBe(false);
@@ -217,7 +218,7 @@ describe('Piétinement en combat (store)', () => {
     H.traits = [...traits] as unknown as Combatant['traits'];
     H.advantage = 2;
     banc.getState().armerLAttaque(attaque);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     const paye = banc.getState();
     expect(paye.pendingAttack, 'la déclaration a ouvert le jet').toBeTruthy();
     expect(advDe(H.id) < 2 || paye.battle!.movementUsed > 0, 'la déclaration a PAYÉ').toBe(true);

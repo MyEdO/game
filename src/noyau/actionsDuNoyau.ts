@@ -2,7 +2,7 @@ import type { CharKey } from '../engine/types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ContexteDOffre } from './actionRegistry';
 import type { OptionDeDetermination } from './combatSlice';
-import type { BattleClickOpts, TileClickOpts } from './targetingModes';
+import type { OptionsDuClic } from './targetingModes';
 import type { IndiceAffiché } from './monde/clues';
 import type { HerosEngage } from './creation/engagement';
 import type { HealMode } from '../engine/healing';
@@ -12,11 +12,11 @@ import type { VerbeDeChoix } from './choixDesFenetres';
 import type * as tavernFlow from './tavernFlow';
 import type { MedicNpc } from './medicFlow';
 import type * as restFlow from './restFlow';
-import type { RestLodging, RestFood } from './restFlow';
 import type { Pt } from './monde/path';
 import type {
   IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
-  IdDEntiteDeScene, IdDeTireurRapide, IdDePorte, IdDIndice, IdDOffre,
+  IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDOffre, IdDeLigneDeButin,
+  IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
@@ -60,18 +60,14 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   markCluesSeen: (affichés: readonly IndiceAffiché[]) => void;
   /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */
   armPreempt: (heroId: IdDeTireurRapide | null) => void;
-  /** Attribue un objet d'équipement (giveTrapping) du butin de victoire au héros choisi. */
-  assignVictoryGear: (index: number, heroId: IdDeHeros) => void;
   /** Récolte « Précieuses Entrailles » (ZI) une créature vaincue, par id (Test de Savoir → pièces valuées). */
   harvestCreature: (creatureId: IdDeCreatureADepecer) => void;
-  /** Attribue une ligne de la fenêtre de loot au héros choisi. */
-  assignLootGear: (index: number, heroId: IdDeHeros) => void;
   /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10) d'une ligne de butin ENCORE en
    *  fenêtre (loot ou victoire) : révéler un objet AVANT de choisir qui l'emporte. */
-  appraiseGear: (scope: 'loot' | 'victory', index: number, mode?: 'evaluate' | 'detect') => void;
-  /** Coop : demande la pause du prochain début de Round (fenêtre Chance). */
-  raiseHand: () => void;
-  lowerHand: () => void;
+  appraiseGear: (scope: 'loot' | 'victory', uid: IdDeLigneDeButin, mode?: 'evaluate' | 'detect') => void;
+  /** Coop : pose (`levee`) ou retire la demande de pause du prochain début de Round (fenêtre Chance), du siège qui
+   *  joue le geste. */
+  leverLaMain: (levee: boolean) => void;
   /** « Acquitter une Faveur » (LDB 23 l.147/149) : consomme une Activité d'interlude du héros. */
   favorSettle: (heroId: IdDeHeros, favorId: string) => void;
   /** Rompt une Faveur — Niveau de Carrière −1 (min 0) si la rumeur se répand (LDB 23 l.141). */
@@ -152,20 +148,28 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Change de Carrière/Niveau (validation LDB 07 l.137 / LDB 08 : complétion, +100 hors Classe). */
   changeCareer: (heroId: IdDeHeros, newCareer: string, newLevel: number) => void;
   transitionTo: (sceneId: IdDeScene, entry?: string, pos?: Pt) => void;
-  /** Le clic de la case `pt` en exploration, sur l'entité `entite` que le geste désigne : ce qu'il joue est
-   *  `intentionDuClicDExploration` (interagir, jouer l'offre, rejoindre, marcher, dire, annuler). La marche se joue en
-   *  une passe, pas à pas, sauts compris (`marcherLeChemin`), et s'arrête au premier pas qui ne se joue plus. */
-  cliquerLaCase: (pt: Pt, entite?: IdDEntiteDeScene) => void;
+  /** Le clic de la case `pt`, sur ce que le geste y désigne (`entite`), le combat lu dans `battle`. En combat, un
+   *  combattant désigné se joue par `cliquerLeCombattant` (le mode de ciblage, le Tir rapide de la pause de Round), une
+   *  case libre par `cliquerLaCaseDuCombat` ; `opts` porte la confirmation et les verdicts d'armement (`OptionsDuClic`).
+   *  En exploration, sur l'entité de scène désignée, ce qu'il joue est `intentionDuClicDExploration` (interagir, jouer
+   *  l'offre, rejoindre, marcher, dire, annuler) ; la marche se joue en une passe, pas à pas, sauts compris
+   *  (`marcherLeChemin`), et s'arrête au premier pas qui ne se joue plus. */
+  cliquerLaCase: (pt: Pt, entite?: IdDuClic, opts?: OptionsDuClic) => void;
   /** Ouvre ou ferme la porte d'un accès que le mobile du monde emprunte (`portesDuMobile`) : en combat toute porte,
    *  en exploration une porte fermée. Rend `true` si la porte a bougé. */
   actionnerLaPorte: (porte: IdDePorte) => boolean;
-  /** ESCALADE d'une arête `WallSeg.climb` (LDB 15 l.53-57) : `from` (case basse, adjacente) → `to` (case
-   *  haute). Porteur = le mobile de `gesteDArete` (exploration : le meneur, le groupe suit ; combat : l'actif
-   *  que ce siège mène, héros ou ennemi mené par le siège MJ) ; tout refus est NOMMÉ (`refuserGeste`),
-   *  en combat le Test d'Escalade est celui du mobile. `ladder` monte d'office (pas de Test) au
-   *  coût du Mouvement à ½ vitesse ; `surface` déclenche un Test d'Escalade influençable (cascade RollShell)
-   *  dont l'échec fait chuter, et consomme l'Action en combat (LDB 13 l.86-88). Geste EXPLICITE (overlay). */
-  climbAcross: (from: Pt, to: Pt) => void;
+  /** FRANCHIT l'arête de `de` (case du mobile) vers `vers` (case cardinale d'en face), selon la capacité qu'elle
+   *  porte (`capaciteDuPas`, `aretes.ts`). Porteur = le mobile de `gesteDArete` (exploration : le meneur, le groupe
+   *  suit ; combat : l'actif que ce siège mène, héros ou ennemi mené par le siège MJ) ; tout refus est NOMMÉ
+   *  (`refuserGeste`).
+   *  - `escalade` (`WallSeg.climb`, LDB 15 l.53-57) : `ladder` monte d'office (pas de Test) au coût du Mouvement à
+   *    ½ vitesse ; `surface` déclenche un Test d'Escalade influençable (cascade RollShell) du mobile, dont l'échec
+   *    fait chuter, et consomme l'Action en combat (LDB 13 l.86-88).
+   *  - `chute` (LDB 15 l.82) : vers une case plus basse, croisée franchissable comprise, ouvre le choix pré-jet
+   *    (Sauter / Tenter le Test `chute`).
+   *  - `fenetre` (#700 ; LDB 15 l.55, allège `WallSeg.allege`) : enjamber une croisée de plain-pied ; exploration =
+   *    le pas du groupe ; combat = Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. */
+  franchirLArete: (de: Pt, vers: Pt) => void;
   /** POV : pivote le REGARD du meneur d'un cran de 45° (+1 = horaire/droite, -1 = anti-horaire/gauche) —
    *  aucun déplacement (donc pas de réorientation par `faceFromPath`). */
   pivotParty: (turn: 1 | -1) => void;
@@ -193,27 +197,13 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   playTavernGame: (opts: { gameId: string; challengerId: IdDeHeros; opponent: tavernFlow.TavernOpponent; stakeBrass?: number; allyProfil?: string; tablePlayers?: number }) => void;
   /** Troc (LDB 59 l.64-76) : céder N exemplaires d'un objet contre M exemplaires du stock, sans argent. */
   barterExchange: (opts: { giveHeroId: IdDeHeros; giveTrappingId: string; getStockId: string; getCount?: number }) => void;
-  /** « Baisse des prix » (LDB 59 l.60) : (dé)cale d'un cran le nombre de divisions de moitié consenties
-   *  à la vente d'une instance (améliore la Disponibilité de l'acheteur, réduit le gain). */
-  setSellHalving: (uid: IdDObjet, delta: number) => void;
-  /** Panier (#2) : ajoute / retire / vide. L'achat passe par le panier → `payCart` (UI). */
-  addToCart: (label: string) => void;
-  decFromCart: (label: string) => void;
-  removeFromCart: (label: string) => void;
-  clearCart: () => void;
   /** Refuse un marché NÉGOCIÉ (achat ou vente) : annule la négociation de ce côté + pose le VERROU PARTAGÉ
    *  (plus aucune négociation, achat NI vente, jusqu'au réassort). L'achat vide aussi le panier. */
   refuseBargain: (mode: 'buy' | 'sell') => void;
-  /** Paye le panier : débite le Total (prix listés × Marchandage), retire du stock, et met les objets
-   *  achetés EN ATTENTE DE RÉPARTITION (`pendingDistribution`) — « qui récupère quoi ». */
+  /** Paye le panier (`fenetreChoisir('marchand', …)`) : débite le Total (prix listés × Marchandage), retire du stock,
+   *  et met les objets achetés EN ATTENTE DE RÉPARTITION (`pendingDistribution`) — « qui récupère quoi ». */
   payCart: () => void;
-  /** Répartition : affecte l'objet acheté n°`index` à un héros, puis la validation de l'échoppe
-   *  (`fenetreValider('marchand')`) les range. */
-  assignDistribution: (index: number, heroId: IdDeHeros) => void;
-  /** Panier de VENTE (#22b, parité achat) : ajoute / retire / vide / conclut toute la vente d'un coup. */
-  addToSellCart: (uid: IdDObjet, heroId: IdDeHeros) => void;
-  removeFromSellCart: (uid: IdDObjet) => void;
-  clearSellCart: () => void;
+  /** Conclut d'un coup la vente du panier de VENTE (#22b, `fenetreChoisir('marchand', …)`). */
   confirmSell: () => void;
   /** Réparation chez l'artisan : remet damageTaken à 0 contre le coût unifié — armure 10 %/PA (LDB 63 l.64)
    *  ou arme 10 %/point de Dégâts (LDB 62 l.135). Arme improvisée = irréparable. */
@@ -231,29 +221,14 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   medicAct: (act: HealMode) => void;
   /** OUVRE le jet INFLUENÇABLE d'une passe de Chirurgie (pendingSurgery) depuis l'opération armée. */
   openSurgeryPass: () => void;
-  /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,
+  /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance, `fenetreChoisir('rest', …)`,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
   openRest: (opts: restFlow.OpenRestOpts) => void;
-  restSet: (heroId: IdDeHeros, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => void;
-  // Les OPTIONS de ces deux clics vivent avec leur consommateur (`targetingModes`) : les recopier ici
-  // en littéral les faisait diverger en silence — le champ `approche` (verdict d'armement de la
-  // Charge, spec § 2026-08-19) manquait déjà de cette copie, et TypeScript ne pouvait pas le dire.
-  battleClickTile: (pt: Pt, opts?: TileClickOpts) => void;
-  battleClickEntity: (id: IdDeCombattant, opts?: BattleClickOpts) => void;
   /** Retire l'aperçu armé par un premier clic (`battle.preview`). */
   battleClearPreview: () => void;
   /** Chance, 3e usage (LDB 17 l.25) : en début de Round, place un héros en tête de l'ordre
    *  contre 1 point de Chance (pré-emption d'initiative). */
   roundStartPromote: (heroId: IdDeCombattantPromouvable) => void;
-  /** Chute volontaire (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
-   *  basse, croisée franchissable comprise), ouvre le choix pré-jet (Sauter / Tenter le Test
-   *  `chute`). Porteur = le mobile de `gesteDArete` ; tout refus est NOMMÉ (`refuserGeste`). */
-  fallAcross: (from: Pt, to: Pt) => void;
-  /** ENJAMBER une croisée franchissable de plain-pied (#700 ; LDB 15 l.55, allège de la croisée
-   *  `WallSeg.allege`) : exploration = le pas du groupe (`moveParty`) ; combat = le mobile de
-   *  `gesteDArete`, Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. Tout refus
-   *  est NOMMÉ (`refuserGeste`). */
-  windowAcross: (from: Pt, to: Pt) => void;
   // (Psychologie de combat (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
   //  résolues par les verbes de jet de la cascade, applier 'combatPsych'.)
   openWorldMap: () => void;
@@ -296,12 +271,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   abandonPossession: (uid: IdDePossession) => void;
   /** Ouvre l'écran Port si le groupe est à un lieu portuaire de la carte avec un navire de campagne. */
   openPort: () => void;
-  /** Achète `enc` points d'une cargaison de l'escale (Type/Taille/Marchandage, MDG 15 l.319-349). */
-  portBuyCargo: (cargoId: string, enc: number) => void;
-  /** Vend un lot de la cale (Trouver un acheteur/Prix d'offre/Marchandage, MDG 15 l.351-397). */
-  portSellCargo: (cargoIndex: number) => void;
-  /** Brade un lot invendable (¼ du prix de base, MDG 15 l.399). */
-  portDumpCargo: (cargoIndex: number) => void;
   /** Répare la coque au chantier (1 CO/Blessure, MDG 13 l.643) — journalise le résultat. */
   portRepair: () => void;
   /** Carène en cale sèche (Salissures, MDG 13 l.150-159). */
@@ -314,15 +283,18 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   portDismissCrew: (roleId: string, count?: number) => void;
   /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`). */
   openLandMarket: () => void;
-  /** Achète `enc` d'une cargaison de l'étape (disponibilité 2 temps/Marchandage/lot partiel, MSRC 13 l.129-131) —
-   *  chargée sur le porteur de défaut du groupe dans la limite de sa Contenance (#327). */
-  landBuyCargo: (cargoId: string, enc: number) => void;
-  /** Vend un lot d'un porteur (Demande/Mise à prix/Marchandage, MSRC 13 l.133-160). */
-  landSellCargo: (carrierId: string, cargoIndex: number) => void;
-  /** Brade un lot invendable (½ du prix de base dans un Lieu de Commerce, MSRC 13 l.160). */
-  landDumpCargo: (carrierId: string, cargoIndex: number) => void;
-  /** Transfère `enc` d'une cargaison entre deux porteurs CO-LOCALISÉS (bête/véhicule/navire, #327). */
-  moveCargo: (fromId: string, toId: string, cargoId: string, enc: number) => void;
+  /** Achète `enc` points d'une offre du marché ouvert, chargés sur le porteur `porteurId` dans la limite de sa
+   *  Contenance (#327) : au port, le navire (Type/Taille/Marchandage, MDG 15 l.319-349) ; à la halle, un porteur de
+   *  vrac (disponibilité 2 temps/Marchandage/lot partiel, MSRC 13 l.129-131). */
+  acheterLaCargaison: (porteurId: IdDePorteurDeCargaison, cargoId: IdDOffreDeCargaison, enc: number) => void;
+  /** Vend le lot `lotId` au marché ouvert : au port, un lot de la cale (Trouver un acheteur/Prix d'offre/Marchandage,
+   *  MDG 15 l.351-397) ; à la halle, le lot d'un porteur (Demande/Mise à prix/Marchandage, MSRC 13 l.133-160). */
+  vendreLaCargaison: (lotId: IdDeCargaison) => void;
+  /** Brade le lot `lotId` au marché ouvert : ¼ du prix de base au port (MDG 15 l.399), ½ dans un Lieu de Commerce
+   *  (MSRC 13 l.160). */
+  jeterLaCargaison: (lotId: IdDeCargaison) => void;
+  /** Transfère `enc` du lot `lotId` vers le porteur CO-LOCALISÉ `toId` (bête/véhicule/navire, #327). */
+  moveCargo: (lotId: IdDeCargaison, toId: IdDePorteurDeCargaison, enc: number) => void;
   /** Évalue la qualité secrète d'un lot de Vin proposé (Test d'Évaluation, MSRC 13 l.95). */
   landEvalWine: (cargoId: string) => void;
   /** Ouvre le Test de Ragot de l'auberge du hub de ville (#352, Activité `recueillir-informations`
@@ -337,8 +309,6 @@ export interface GesteDuNoyau {
   args: unknown[];
 }
 
-/** Les clics du champ de bataille, par ce qu'ils désignent : un combattant (son id), une case (`Pt`). Un premier clic
- *  pose l'aperçu, le même clic le confirme (`battle.preview`). */
-export const CLICS_DU_CHAMP = { combattant: 'battleClickEntity', case: 'battleClickTile' } as const satisfies Record<string, keyof ActionsDuNoyau>;
-/** Le clic d'une case en exploration (`cliquerLaCase`). */
-export const CLICS_DE_L_EXPLORATION = { case: 'cliquerLaCase' } as const satisfies Record<string, keyof ActionsDuNoyau>;
+/** Le clic du champ, en combat comme en exploration : la case, et ce qu'elle porte. En combat, un premier clic pose
+ *  l'aperçu, le même clic le confirme (`battle.preview`). */
+export const CLIC_DU_CHAMP = 'cliquerLaCase' satisfies keyof ActionsDuNoyau;

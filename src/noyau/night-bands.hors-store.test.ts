@@ -298,7 +298,7 @@ describe('une bande par MALADIE', () => {
     const sick = contractDisease('verole-urticante', deFixe(1) as never, { incubation: 0, duration: 5 })!;
     set({ party: [h('m1', { diseases: [sick] }), h('s1'), h('s2')], scene: emptyScene('scene-test', 6, 6) } as never);
     get().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
-    for (const id of ['m1', 's1', 's2']) get().restSet(id, { food: 'rien' });
+    for (const id of ['m1', 's1', 's2']) get().fenetreChoisir('rest', 'pitance', 'rien', id);
     get().fenetreValider('rest');
 
     const cont = bandsOf('contagion');

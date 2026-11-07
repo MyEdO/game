@@ -1,6 +1,6 @@
 /**
  * Achat de cargaison terrestre jugé par le NOYAU (#3059, lot marchand) : `devisDAchatDeCargaison` rend le
- * refus que `landBuyCargo` applique et que l'écran du marché affiche — lot sous le minimum, sans porteur,
+ * refus que `acheterLaCargaison` applique à la halle et que l'écran du marché affiche — lot sous le minimum, sans porteur,
  * contenance dépassée. MSRC 13 l.129-131.
  */
 import { describe, it, expect } from 'vitest';
@@ -53,9 +53,9 @@ describe('#3059 — achat de cargaison : un seul refus pour l’écran et le ges
     const partie = ouvrir(true);
     try {
       const cargoId = offre(partie, minCargoEnc());
-      const devis = devisDAchatDeCargaison(partie.etat(), cargoId, minCargoEnc() - 1);
+      const devis = devisDAchatDeCargaison(partie.etat(), 'convoi', cargoId, minCargoEnc() - 1);
       expect(devis.refus).toEqual({ motif: 'lot-minimal', min: minCargoEnc() });
-      partie.envoyer({ type: 'landBuyCargo', args: [cargoId, minCargoEnc() - 1] });
+      partie.envoyer({ type: 'acheterLaCargaison', args: ['convoi', cargoId, minCargoEnc() - 1] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([]);
       expect(journalDit(partie, t('lm.lotMinimal', { min: minCargoEnc() }))).toBe(true);
     } finally {
@@ -67,7 +67,7 @@ describe('#3059 — achat de cargaison : un seul refus pour l’écran et le ges
     const partie = ouvrir(true, 5000);
     try {
       const cargoId = offre(partie, minCargoEnc() + 1);
-      const devis = devisDAchatDeCargaison(partie.etat(), cargoId, minCargoEnc());
+      const devis = devisDAchatDeCargaison(partie.etat(), 'convoi', cargoId, minCargoEnc());
       expect(devis.refus).toBeNull();
       expect(devis.plancherGold).toBeLessThanOrEqual(devis.estimationGold);
       expect(devis.partiel).toBe(true);
@@ -80,7 +80,7 @@ describe('#3059 — achat de cargaison : un seul refus pour l’écran et le ges
     const partie = ouvrir(false);
     try {
       const cargoId = offre(partie, minCargoEnc());
-      expect(devisDAchatDeCargaison(partie.etat(), cargoId, minCargoEnc()).refus).toEqual({ motif: 'sans-porteur' });
+      expect(devisDAchatDeCargaison(partie.etat(), 'convoi', cargoId, minCargoEnc()).refus).toEqual({ motif: 'sans-porteur' });
     } finally {
       partie.fermer();
     }
@@ -109,11 +109,11 @@ describe('#3059 — achat de cargaison : bourse sous le prix plancher au meilleu
       expect(hasBargainBonus(partie.etat().party[0]), 'fixture : le meneur n’est pas Négociateur').toBe(false);
       const fenetres = () => Object.entries(partie.etat()).filter(([k, v]) => k.startsWith('pending') && v).map(([k]) => k);
       const avant = fenetres();
-      partie.envoyer({ type: 'landBuyCargo', args: ['metal', 10] });
+      partie.envoyer({ type: 'acheterLaCargaison', args: ['convoi', 'metal', 10] });
       expect(fenetres()).toEqual(avant);
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([]);
       expect(journalDit(partie, t('cargo.bourseSousPlancher', { plancher: 90 }))).toBe(true);
-      expect(devisDAchatDeCargaison(partie.etat(), 'metal', 10)).toMatchObject({ estimationGold: 110, plancherGold: 90, refus: { motif: 'bourse', plancher: 90 } });
+      expect(devisDAchatDeCargaison(partie.etat(), 'convoi', 'metal', 10)).toMatchObject({ estimationGold: 110, plancherGold: 90, refus: { motif: 'bourse', plancher: 90 } });
     } finally {
       partie.fermer();
     }
@@ -122,13 +122,13 @@ describe('#3059 — achat de cargaison : bourse sous le prix plancher au meilleu
 
 describe('#3059 — siège invité : les gestes de la halle sur la bourse et la cale disent le refus de groupe', () => {
   it('vente, bradage, évaluation du vin et transfert refusés, cargaison intacte', () => {
-    const lot: CargoLot = { cargoId: 'metal', enc: 12, basePriceGold: 10 };
+    const lot: CargoLot = { uid: 'lot-1', cargoId: 'metal', enc: 12, basePriceGold: 10 };
     const partie = halleFixee('guest', [lot]);
     try {
-      partie.envoyer({ type: 'landSellCargo', args: ['convoi', 0] });
-      partie.envoyer({ type: 'landDumpCargo', args: ['convoi', 0] });
+      partie.envoyer({ type: 'vendreLaCargaison', args: ['lot-1'] });
+      partie.envoyer({ type: 'jeterLaCargaison', args: ['lot-1'] });
       partie.envoyer({ type: 'landEvalWine', args: ['metal'] });
-      partie.envoyer({ type: 'moveCargo', args: ['convoi', 'ailleurs', 'metal', 5] });
+      partie.envoyer({ type: 'moveCargo', args: ['lot-1', 'convoi', 5] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([lot]);
       expect(partie.etat().journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length).toBe(4);
     } finally {
@@ -139,11 +139,11 @@ describe('#3059 — siège invité : les gestes de la halle sur la bourse et la 
 
 describe('#3059 — bradage à la halle : refusé hors d’un Lieu ayant le Commerce en Produits (MSRC 13 l.160)', () => {
   it('siège local, Produits sans « commerce » : le geste dit le refus, la cargaison reste, la bourse aussi', () => {
-    const lot: CargoLot = { cargoId: 'metal', enc: 12, basePriceGold: 10 };
+    const lot: CargoLot = { uid: 'lot-2', cargoId: 'metal', enc: 12, basePriceGold: 10 };
     const partie = halleFixee('local', [lot], ['vivres', 'vin-eau-de-vie', 'metal']);
     try {
       const bourse = bourseOf(partie.etat().party[0]);
-      partie.envoyer({ type: 'landDumpCargo', args: ['convoi', 0] });
+      partie.envoyer({ type: 'jeterLaCargaison', args: ['lot-2'] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([lot]);
       expect(bourseOf(partie.etat().party[0])).toEqual(bourse);
       expect(journalDit(partie, 'Métal : ce lieu ne brade pas les cargaisons (pas de Commerce en Produits).')).toBe(true);

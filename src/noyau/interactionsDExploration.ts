@@ -220,7 +220,8 @@ export function fouilleOuverte(s: Jeu): { scene: Scene; piece: RoomFocus } | Ref
 
 export function creerActionsDInteraction(get: Get, set: Set) {
   return {
-    cliquerLaCase: (pt, entite) => {
+    cliquerLaCase: (pt, entite, opts) => {
+      if (get().battle) return void (entite ? get().cliquerLeCombattant(entite, opts) : get().cliquerLaCaseDuCombat(pt, opts));
       const intention = intentionDuClicDExploration(get(), pt, entite ?? null);
       if (!intention) return;
       switch (intention.kind) {

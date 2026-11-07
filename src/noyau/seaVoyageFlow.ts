@@ -60,7 +60,7 @@ import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleM
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
-import { buildWeapon } from '../engine/items';
+import { buildWeapon, newUid } from '../engine/items';
 import { applyOps, type GameOp, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
 import { itemCapability } from '../engine/capabilities';
@@ -2290,7 +2290,7 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
       const enc = tirer(event.params.cargoEnc, rng);
       const season = seasonOfMonth(toDate(get().gameTime).month);
       const cargo = rollRandomCargo(season, rng);
-      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, rng) }] } });
+      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { uid: newUid(), cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, rng) }] } });
       tell(get, set, [t('sv.cargoFished', { enc, cargo: cargo.label })]);
       break;
     }

@@ -11,7 +11,7 @@
  */
 import {
   DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
-  libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, REGLAGES_DU_REPOS, reposEnVue,
+  libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, reposEnVue,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
@@ -96,6 +96,8 @@ const duFlux = (flux: string, reglages?: readonly string[]) => (g: GesteDuJeu): 
   g.verbe === VERBE_DE_REGLAGE && g.flux === flux && (!reglages || reglages.includes(g.reglage ?? ''));
 /** Les gestes des verbes `verbes`. */
 const parmi = (verbes: readonly string[]) => (g: GesteDuJeu): boolean => verbes.includes(g.verbe);
+/** Les choix de la fenêtre ouverte (`fenetreChoisir`). */
+const sesChoix = (g: GesteDuJeu): boolean => g.verbe === VERBE_DE_CHOIX;
 
 /** Les réglages des flux de jet dont la lecture `lecture` nomme un réglage : elle règle le flux entier, et un réglage
  *  qu'elle ne nomme pas maintenant ne s'offre pas. */
@@ -114,12 +116,12 @@ const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle?: (g: GesteDuJ
   { lire: fenetreDIncantation, regle: duFlux('cast', ['discret', 'formeConjuree', 'effetCritique', 'ciblesSupplementaires', 'carte', ...Object.values(REGLAGE_DE_L_AXE)]) },
   { lire: fenetreDuSoin },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
-  // Le repos règle ses dormeurs dans son corps (`reposEnVue`) : il ne nomme aucun réglage, la fenêtre ne les redit pas.
-  { lire: reposEnVue, regle: parmi(REGLAGES_DU_REPOS) },
+  // Le repos règle ses dormeurs dans son corps (`reposEnVue`) : il ne nomme aucun réglage, la fenêtre ne redit pas ses choix.
+  { lire: reposEnVue, regle: sesChoix },
 ];
 
 /** Les réglages de la fenêtre `fenetre` : ceux que nomment les fenêtres lues ouvertes, l'étape de séquence courante et
- *  ses choix (`reglagesDesChoix`), et les gestes que ces fenêtres règlent. */
+ *  ses choix qu'aucune d'elles ne règle (`reglagesDesChoix`), et les gestes que ces fenêtres règlent. */
 function reglagesDeLaFenetre(etat: Jeu, fenetre: NonNullable<ReturnType<typeof fenetreDuJeu>>): { reglages: Reglage[]; regle: (g: GesteDuJeu) => boolean } {
   const { etape } = fenetre;
   const parEtape = etape ? VERBES_D_INTERACTION[stepInteraction(etape)].reglage?.(etape) : undefined;
@@ -127,9 +129,10 @@ function reglagesDeLaFenetre(etat: Jeu, fenetre: NonNullable<ReturnType<typeof f
     const lecture = l.lire(etat);
     return lecture === null ? [] : [{ lecture, regle: l.regle ?? fluxNommes(lecture) }];
   });
+  const regle = (g: GesteDuJeu): boolean => ouverts.some((l) => l.regle(g));
   return {
-    reglages: [...ouverts.flatMap((l) => reglagesDesElements(l.lecture)), ...(parEtape ? [parEtape] : []), ...reglagesDesChoix(etat, fenetre.gestes)],
-    regle: (g) => ouverts.some((l) => l.regle(g)),
+    reglages: [...ouverts.flatMap((l) => reglagesDesElements(l.lecture)), ...(parEtape ? [parEtape] : []), ...reglagesDesChoix(etat, fenetre.gestes.filter((g) => !regle(g)))],
+    regle,
   };
 }
 

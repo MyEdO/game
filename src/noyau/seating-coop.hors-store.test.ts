@@ -1,9 +1,9 @@
 /**
  * ASSISE EN COOP — le geste est le clic de la case (`cliquerLaCase`, décision de groupe, hôte/MJ) ; `interactEntity`
  * est sa machinerie (`MachinerieDuNoyau`, #3370) :
- * aucun intent `sit`/`seat` n'est créé. Ce que ces tests tiennent : les DEUX barrières de la défense en
- * profondeur (allowlist d'intents puis route de possession), l'unicité de l'occupant sur la dernière
- * place, et la parité hôte → invité par le snapshot.
+ * aucun intent `sit`/`seat` n'est créé. Ce que ces tests tiennent : le clic voyage (`GUEST_INTENTS`, combat compris,
+ * #3371) et sa route de possession le refuse à tout siège autre que celui du monde, l'unicité de l'occupant sur la
+ * dernière place, et la parité hôte → invité par le snapshot.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -49,7 +49,7 @@ function derniereePlaceLibre(): void {
   });
 }
 
-describe('route coop de l’assise — aucun intent dédié, deux barrières indépendantes', () => {
+describe('route coop de l’assise — aucun intent dédié, la route du clic tranche', () => {
   it('aucune route ni intent « sit »/« seat » n’existe : le geste reste `cliquerLaCase`', () => {
     for (const nom of ['sit', 'seat', 'sitAt', 'seatAt', 'standPartyFromSeat']) {
       expect(ROUTES.has(nom), `route « ${nom} »`).toBe(false);
@@ -59,16 +59,24 @@ describe('route coop de l’assise — aucun intent dédié, deux barrières ind
     expect(ROUTES.has('interactEntity'), 'la machinerie n’a pas de route').toBe(false);
   });
 
-  it('barrière 1 — `cliquerLaCase` n’est pas dans l’allowlist d’invité : l’intent ne part jamais', () => {
-    expect(GUEST_INTENTS.has('cliquerLaCase')).toBe(false);
+  it('le clic de la case voyage, sa machinerie jamais', () => {
+    expect(GUEST_INTENTS.has('cliquerLaCase')).toBe(true);
     expect(GUEST_INTENTS.has('interactEntity')).toBe(false);
   });
 
-  it('barrière 2 — la route refuse par elle-même tout siège autre que le MJ/hôte', () => {
+  it('la route refuse hors combat tout siège autre que celui du monde', () => {
     derniereePlaceLibre();
     const s = banc.getState();
     expect(intentAllowedFor(s, MJ, 'cliquerLaCase', [{ x: 5, y: 5 }, PROP])).toBe(true);
     expect(intentAllowedFor(s, INVITE, 'cliquerLaCase', [{ x: 5, y: 5 }, PROP])).toBe(false);
+  });
+
+  it('le siège du monde est celui du MJ (`gmSeat`), même hors de l’hôte : la route le lit, sans retomber au repli', () => {
+    derniereePlaceLibre();
+    banc.setState((s) => ({ net: { ...s.net, gmSeat: INVITE } }));
+    const s = banc.getState();
+    expect(intentAllowedFor(s, INVITE, 'cliquerLaCase', [{ x: 5, y: 5 }, PROP])).toBe(true);
+    expect(intentAllowedFor(s, MJ, 'cliquerLaCase', [{ x: 5, y: 5 }, PROP])).toBe(false);
   });
 });
 

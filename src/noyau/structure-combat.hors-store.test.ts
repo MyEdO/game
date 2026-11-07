@@ -25,6 +25,7 @@ import type { Weapon, Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { effectiveWeapon } from '../engine/weaponDamage';
 import { spawnEnemy } from './monde/spawn';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -431,8 +432,8 @@ describe('Structures de siège — Projectile magique (AA 10 l.114 ; LDB 18 l.17
   }
 });
 
-describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête → battleClickEntity → brèche)', () => {
-  it("cliquer la porte (battleClickEntity = le clic sur l'overlay d'arête) la martèle par le flux d'attaque NORMAL jusqu'à l'Effondrement et la BRÈCHE", () => {
+describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête → cliquerLaCase → brèche)', () => {
+  it("cliquer la porte (cliquerLaCase = le clic sur l'overlay d'arête) la martèle par le flux d'attaque NORMAL jusqu'à l'Effondrement et la BRÈCHE", () => {
     const { S, H } = start('porte', { seed: 7 });
     const seg = { x: 2, y: 2, side: 'E' as const, structure: 'porte' };
     // Héros au CONTACT de l'ancrage (2,2), arme de mêlée, Combat/Force élevés → traverse les 8 Bl (BE 2).
@@ -446,7 +447,7 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
     let aZeroEnJeu = false;
     while (!structureIsDown(banc.getState().scene!, seg) && guard++ < 400) {
       giveTurn();
-      banc.getState().battleClickEntity(S!.id, { confirm: true }); // = clic sur l'overlay d'arête de la structure
+      cliquerSurLeCombattant(banc.getState, S!.id, { confirm: true }); // = clic sur l'overlay d'arête de la structure
       if (banc.getState().pendingAttack) { banc.getState().jetRoll('attack'); banc.getState().jetConfirm('attack'); }
       draineCascade(banc.getState);
       const s = live(S!.id);

@@ -236,7 +236,7 @@ export interface MoveSnapshot {
   loseNextMovement: Record<string, boolean>;
 }
 
-/** Capture `MoveSnapshot` — SOURCE UNIQUE, réutilisée par `battleClickTile`/`moveAttack`/`pushCommitTile`
+/** Capture `MoveSnapshot` — SOURCE UNIQUE, réutilisée par `cliquerLaCaseDuCombat`/`moveAttack`/`pushCommitTile`
  *  pour que `annulerLeDeplacement` défasse TOUJOURS exactement ce qu'un premier segment a posé. */
 export function captureMoveSnapshot(battle: BattleState, facing: Record<string, Dir8>): MoveSnapshot {
   return {

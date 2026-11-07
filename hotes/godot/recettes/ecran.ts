@@ -17,8 +17,8 @@
  * ses zones, les lignes que le combat du dôme a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
-import { creerPont, type Suite } from '../pont/pont';
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
+import { clicDuCombattant, creerPont, type Suite } from '../pont/pont';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
 import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type Element, type Formulaire, type GesteDeLaCreation, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
 import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
@@ -139,7 +139,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = jouer('jouer', { offre: 'charge' });
   figer('charge armée', s);
   const [cible] = s.vue.projection.combat!.cibles.liste;
-  s = jouer('jouer', { type: CLICS_DU_CHAMP.combattant, args: [cible] });
+  s = jouer('jouer', clicDuCombattant(s.vue, cible)!);
   figer('fenêtre d’attaque', s);
   s = jouer('jouer', enFocus(s));
   figer('jet d’attaque tombé', s);
@@ -161,7 +161,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
       return g.some((b) => b.type === 'bouton' && b.focus) ? enFocus(s) : g.flatMap((x) => (x.type === 'choix' ? x.valeurs : [])).find((b) => !b.refus)!.jeu;
     }
     const offres = s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
-    return c.intention && c.cibles.liste.length ? { type: CLICS_DU_CHAMP.combattant, args: [c.cibles.liste[0]] }
+    return c.intention && c.cibles.liste.length ? clicDuCombattant(s.vue, c.cibles.liste[0])!
       : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu;
   };
   for (let pas = 0; s.vue.projection.fenetre?.etape?.genre !== 'critical'; pas++) {
@@ -197,7 +197,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
 
   const liasse = unPont([]);
   s = viderLesFenetres(liasse.jouer, liasse.jouer('demarrer', { scenario: 'documents-edo', graine: 7 }));
-  s = liasse.jouer('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [{ x: 2, y: 2 }] });
+  s = liasse.jouer('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 2, y: 2 }] });
   s = liasse.jouer('jouer', s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Liasse de documents : Parcourir la liasse')!.jeu);
   const reponse = (debut: string) => s.vue.zones['dialogue.reponses'].find((b) => b.libelle.startsWith(debut))!.jeu;
   s = liasse.jouer('jouer', reponse('Chapitre 1'));
@@ -207,11 +207,11 @@ export function figerVuesDeLEcran(): VueFigee[] {
 
   const magie = unPont([]);
   s = viderLesFenetres(magie.jouer, magie.jouer('demarrer', { scenario: 'magie', graine: 7 }));
-  s = viderLesFenetres(magie.jouer, magie.jouer('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [{ x: 16, y: 11 }] }));
+  s = viderLesFenetres(magie.jouer, magie.jouer('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 16, y: 11 }] }));
   const sorts = s.vue.zones['combat.offres'].find((c): c is Choix => c.id === 'offre/cast-spell')!;
   s = magie.jouer('jouer', sorts.valeurs.find((b) => b.libelle === 'Fléchette')!.jeu);
   figer('sort choisi parmi ceux de l’actif', s);
-  s = magie.jouer('jouer', { type: CLICS_DU_CHAMP.combattant, args: [s.vue.projection.combat!.cibles.liste[0]] });
+  s = magie.jouer('jouer', clicDuCombattant(s.vue, s.vue.projection.combat!.cibles.liste[0])!);
   figer('fenêtre d’incantation', s);
   s = magie.jouer('jouer', enFocus(s));
   figer('jet d’incantation tombé', s);

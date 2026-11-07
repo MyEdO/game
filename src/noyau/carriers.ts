@@ -118,14 +118,21 @@ export function primaryCargoCarrier(s: CarrierStateSlice): CargoCarrier | undefi
   return mostFree(vehicles) ?? mostFree(beasts);
 }
 
-/** Une référence à un lot de vrac (porteur + index) — pour lister/vendre/brader à travers tous les porteurs. */
-export interface CargoRef { carrierId: string; carrierLabel: string; index: number; lot: CargoLot; }
+/** Un lot de vrac et son porteur — pour lister/vendre/brader à travers tous les porteurs. */
+export interface CargoRef { carrierId: string; carrierLabel: string; lot: CargoLot; }
 
 /** Tous les lots de vrac du groupe, à plat (avec leur porteur) — surface de vente/bradage du marché. */
 export function bulkCargoRefs(s: CarrierStateSlice): CargoRef[] {
-  const out: CargoRef[] = [];
-  for (const c of bulkCarriers(s)) c.cargo.forEach((lot, index) => out.push({ carrierId: c.id, carrierLabel: c.label, index, lot }));
-  return out;
+  return bulkCarriers(s).flatMap((c) => c.cargo.map((lot) => ({ carrierId: c.id, carrierLabel: c.label, lot })));
+}
+
+/** Le lot de vrac `uid` et le porteur qui le tient, `undefined` hors des porteurs du groupe. */
+export function lotDeCargaison(s: CarrierStateSlice, uid: string): { porteur: CargoCarrier; lot: CargoLot } | undefined {
+  for (const porteur of bulkCarriers(s)) {
+    const lot = porteur.cargo.find((l) => l.uid === uid);
+    if (lot) return { porteur, lot };
+  }
+  return undefined;
 }
 
 /** Enc TOTAL de vrac transporté par le groupe (tous porteurs de vrac) — malus de renflouage (l.99), tuile Cale. */
@@ -152,7 +159,7 @@ export function partyLandCapacity(party: Combatant[], possessions: Possession[])
 }
 
 /** Choix d'un transfert de vrac : ids absents = premier choix offert ; `enc` absent = tout ce qui passe. */
-export interface ChoixDeTransfert { fromId?: string; toId?: string; cargoId?: string; enc?: number | null }
+export interface ChoixDeTransfert { fromId?: string; toId?: string; lotId?: string; enc?: number | null }
 
 /** Plan d'un transfert de vrac entre porteurs CO-LOCALISÉS (#327, décisions 5 et 8) : choix offerts,
  *  choix retenus, plafond (lot ∩ place libre de la cible) et refus (`null` : le transfert passe).
@@ -167,7 +174,7 @@ export function planDeTransfert(carriers: CargoCarrier[], choix: ChoixDeTransfer
   const from = sources.find((c) => c.id === choix.fromId) ?? sources[0];
   const dests = from ? carriers.filter((c) => c.id !== from.id && carriersColocated(from, c)) : [];
   const to = dests.find((c) => c.id === choix.toId) ?? dests[0];
-  const lot = from?.cargo.find((l) => l.cargoId === choix.cargoId) ?? from?.cargo[0];
+  const lot = from?.cargo.find((l) => l.uid === choix.lotId) ?? from?.cargo[0];
   const maxEnc = lot && to ? Math.min(lot.enc, carrierFreeEnc(to)) : 0;
   const enc = choix.enc == null ? maxEnc : Math.max(0, Math.min(Math.floor(choix.enc), maxEnc));
   const commun = { sources, dests, maxEnc, enc };
@@ -178,11 +185,12 @@ export function planDeTransfert(carriers: CargoCarrier[], choix: ChoixDeTransfer
   return { ...commun, from, to, lot, refus: null };
 }
 
-/** Plan du transfert DEMANDÉ (ids explicites) : son refus porte aussi un choix que le plan n'a pas retenu
- *  (porteur absent ou éloigné, lot absent). */
-export function planDuTransfertDemande(carriers: CargoCarrier[], fromId: string, toId: string, cargoId: string, enc: number): PlanDeTransfert {
-  const plan = planDeTransfert(carriers, { fromId, toId, cargoId, enc });
-  const retenu = plan.from?.id === fromId && plan.to?.id === toId && plan.lot?.cargoId === cargoId;
+/** Plan du transfert DEMANDÉ (le lot et la cible) : la source est le porteur du lot, et son refus porte aussi un
+ *  choix que le plan n'a pas retenu (lot absent, cible absente ou éloignée). */
+export function planDuTransfertDemande(carriers: CargoCarrier[], lotId: string, toId: string, enc: number): PlanDeTransfert {
+  const fromId = carriers.find((c) => c.cargo.some((l) => l.uid === lotId))?.id;
+  const plan = planDeTransfert(carriers, { fromId, toId, lotId, enc });
+  const retenu = fromId !== undefined && plan.from?.id === fromId && plan.to?.id === toId && plan.lot?.uid === lotId;
   return retenu ? plan : { ...plan, refus: t('cg.transfertNonRetenu') };
 }
 

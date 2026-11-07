@@ -50,6 +50,7 @@ import { poserLeGroupe } from './marcheDuGroupe';
 import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { blessuresPosees } from '../engine/characteristics';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => {
@@ -617,7 +618,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'flechette', acted: false } });
     // Flux par modale : cliquer la cible OUVRE l'incantation (jet différé), n'applique rien.
-    banc.getState().battleClickEntity(enemy.id);
+    cliquerSurLeCombattant(banc.getState, enemy.id);
     expect(banc.getState().pendingCast).not.toBeNull();
     expect(banc.getState().battle!.acted).toBe(false); // pas encore lancé
     banc.getState().jetRoll('cast'); // « Lancer » : fige le jet
@@ -648,7 +649,7 @@ describe('Boucle de jeu (store)', () => {
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'benediction-de-bataille', acted: false } });
-    banc.getState().battleClickEntity(heroC.id); // se cibler soi-même → ouvre la modale
+    cliquerSurLeCombattant(banc.getState, heroC.id); // se cibler soi-même → ouvre la modale
     banc.getState().jetRoll('cast'); // « Lancer »
     banc.getState().jetConfirm('cast'); // « Appliquer »
     st = banc.getState();
@@ -677,7 +678,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     const before = enemy.wounds.current;
-    banc.getState().battleClickEntity(enemy.id, { confirm: true }); // ouvre la modale d'attaque
+    cliquerSurLeCombattant(banc.getState, enemy.id, { confirm: true }); // ouvre la modale d'attaque
     banc.getState().jetRoll('attack'); // lance le jet
     banc.getState().jetConfirm('attack'); // applique le résultat
     st = banc.getState();
@@ -738,7 +739,7 @@ describe('Boucle de jeu (store)', () => {
     heroC.pos = { x: enemy.pos!.x - 1, y: enemy.pos!.y }; // adjacent
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(enemy.id, { confirm: true }); // ouvre la modale
+    cliquerSurLeCombattant(banc.getState, enemy.id, { confirm: true }); // ouvre la modale
     banc.getState().jetRoll('attack'); // le +1 Sonné s'applique AVANT le jet
     st = banc.getState();
     const heroAfter = st.battle!.combatants.find((c) => c.id === heroC.id)!;
@@ -860,7 +861,7 @@ describe('Boucle de jeu (store)', () => {
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y }; // adjacent : seul le Sonné bloque l'attaque
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack).toBeNull(); // Action refusée (Sonné)
     expect(computeMoveReach(banc.getState).size).toBeGreaterThan(0); // le déplacement reste permis (à demi-Mouvement)
   });
@@ -909,7 +910,7 @@ describe('Boucle de jeu (store)', () => {
     H.pos = { x: E.pos!.x - 1, y: E.pos!.y };
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
     st = banc.getState();
@@ -936,7 +937,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     banc.abandonner();
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : l'approche vers l'ennemi cliqué se DEMANDE.
-    banc.getState().battleClickEntity(E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, approche: true });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     st = banc.getState();
     const Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -960,7 +961,7 @@ describe('Boucle de jeu (store)', () => {
     E.pos = { x: 8, y: 10 };
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true }); // Engagé → pas de Charge (plan blocked)
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // Engagé → pas de Charge (plan blocked)
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0); // pas de charge
     expect(st.pendingAttack).toBeNull();
@@ -1004,7 +1005,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     // Clic confirmé sur la monture → la modale de choix s'ouvre (pas d'attaque encore).
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : le couple est hors d'Allonge, l'approche se demande.
-    banc.getState().battleClickEntity(mount.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, mount.id, { confirm: true, approche: true });
     st = banc.getState();
     // Le verdict voyage DANS le pending : le choix `mountTarget.cible` relance le clic, l'intention est déjà dissoute.
     expect(st.pendingMountTarget).toEqual({ riderId: rider.id, mountId: mount.id, approche: true });
@@ -1156,7 +1157,7 @@ describe('Boucle de jeu (store)', () => {
     E.advantage = 1; // force l'option B (Avantage non supérieur)
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
-    banc.getState().battleClickTile({ x: H.pos!.x - 1, y: H.pos!.y }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: H.pos!.x - 1, y: H.pos!.y }, undefined, { confirm: true });
     st = banc.getState();
     expect(st.pendingDisengage).not.toBeNull(); // routé vers le Désengagement
     expect(st.pendingDisengage!.phase).toBe('choice'); // clic-sol Engagé ouvre le menu de désengagement
@@ -1240,7 +1241,7 @@ describe('Boucle de jeu (store)', () => {
     // État après une tentative d'Esquive RATÉE : Action consommée (acted), héros toujours Engagé.
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: true }, pendingDisengage: null });
     const posBefore = { ...H.pos! };
-    banc.getState().battleClickTile({ x: posBefore.x - 1, y: posBefore.y }, { confirm: true }); // re-clic sol
+    banc.getState().cliquerLaCase({ x: posBefore.x - 1, y: posBefore.y }, undefined, { confirm: true }); // re-clic sol
     st = banc.getState();
     // Pas de NOUVELLE Esquive (l'Action est dépensée, LDB 15 l.49) : seule la Fuite, « coup dans le dos », reste
     // (LDB 15 l.49, l.61).
@@ -1306,7 +1307,7 @@ describe('Boucle de jeu (store)', () => {
     H.pos = { x: E.pos!.x - 1, y: E.pos!.y - 1 }; // DIAGONALE : Chebyshev 1, mais manhattan 2
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true }); // doit ouvrir la modale (Chebyshev, pas Manhattan)
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // doit ouvrir la modale (Chebyshev, pas Manhattan)
     st = banc.getState();
     expect(st.pendingAttack).not.toBeNull(); // attaque en diagonale autorisée
     expect(st.pendingAttack!.targetId).toBe(E.id);
@@ -1591,7 +1592,7 @@ describe('Fouille / butin par objet cherchable (store)', () => {
     expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Fiole', 'Lettre']);
     expect(st.scene!.entities.find((e) => e.id === 'coffre')).toBeUndefined(); // ramassé → disparaît
 
-    banc.getState().assignLootGear(0, 'a'); // attribution explicite par portrait
+    banc.getState().fenetreChoisir('loot', 'ligne', banc.getState().pendingLoot!.gear[0].uid, 'a'); // attribution explicite par portrait
     st = banc.getState();
     expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(['Fiole']);
     expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Lettre']);
@@ -1900,15 +1901,15 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   it('appraiseGear (Évaluation) : succès → la ligne est révélée, l’objet attribué arrive identifié', () => {
     lootScene();
     banc.getState().interactEntity('coffre');
-    banc.getState().appraiseGear('loot', 0);
+    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
-    expect(pa.gear).toEqual({ scope: 'loot', index: 0 });
+    expect(pa.gear).toEqual({ scope: 'loot', uid: banc.getState().pendingLoot!.gear[0].uid });
     expect(pa.skillLabel ?? 'Évaluation').toBe('Évaluation');
     banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
     banc.getState().jetConfirm('appraise');
     const line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.identified).toBeUndefined(); // révélé = champ absent
-    banc.getState().assignLootGear(0, 'a');
+    banc.getState().fenetreChoisir('loot', 'ligne', banc.getState().pendingLoot!.gear[0].uid, 'a');
     const it2 = banc.getState().party[0].items!.find((i) => i.label === 'Épée')!;
     expect(it2.identified).not.toBe(false);
     expect(it2.qualities.some((q) => q.id === 'de-plaies-atroces')).toBe(true); // id de qualité runtime
@@ -1919,7 +1920,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     // Le looter reçoit le Talent : le bouton/flux ne s'arme que pour un porteur (Intuition).
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     banc.getState().interactEntity('coffre');
-    banc.getState().appraiseGear('loot', 0, 'detect');
+    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
     let pa = banc.getState().pendingAppraise!;
     expect(pa.mode).toBe('detect');
     expect(pa.skillLabel).toBe('Intuition');
@@ -1930,11 +1931,11 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect(line.effect.detectTried).toBe(true);
     expect(line.effect.identified).toBe(false);
     // Une 2e tentative est refusée (« une seule fois par artefact »).
-    banc.getState().appraiseGear('loot', 0, 'detect');
+    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
     expect(banc.getState().pendingAppraise).toBeNull();
     // On force une nouvelle détection (autre ligne de vie du test) : succès DR 2 ≥ 1 règle → identifié.
     line.effect.detectTried = false;
-    banc.getState().appraiseGear('loot', 0, 'detect');
+    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
     pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
     banc.getState().jetConfirm('appraise');
@@ -1947,7 +1948,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     lootScene();
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac');
-    banc.getState().appraiseGear('loot', 0, 'detect');
+    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
     banc.getState().jetConfirm('appraise');
@@ -1959,17 +1960,17 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   it('anti-spam Évaluation : un échec verrouille l’objet pour la JOURNÉE (re-tentative demain)', () => {
     lootScene();
     banc.getState().interactEntity('coffre');
-    banc.getState().appraiseGear('loot', 0);
+    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 99, success: false, sl: -6 } });
     banc.getState().jetConfirm('appraise');
     expect(banc.getState().pendingLoot!.gear[0].effect.appraiseTriedDay).toBeDefined();
     // Même jour : la re-tentative est refusée (pas de modale).
-    banc.getState().appraiseGear('loot', 0);
+    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid);
     expect(banc.getState().pendingAppraise).toBeNull();
     // Le lendemain : on peut retenter.
     banc.getState().advanceTime(24 * 60);
-    banc.getState().appraiseGear('loot', 0);
+    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid);
     expect(banc.getState().pendingAppraise).not.toBeNull();
     banc.setState({ pendingAppraise: null });
   });
@@ -1981,6 +1982,10 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     const pl = banc.getState().pendingLoot!;
     expect(pl.title).toBe('Coffre de la garnison'); // la 1re fenêtre garde son titre
     expect(pl.gear.map((g) => g.label)).toEqual(['Épée', 'Dague']);
+    expect(new Set(pl.gear.map((g) => g.uid)).size, 'chaque ligne a son uid, posé à sa création').toBe(2);
+    banc.getState().fenetreChoisir('loot', 'ligne', pl.gear[1].uid, 'a');
+    expect(banc.getState().pendingLoot!.gear.map((g) => g.label), 'la Dague seule part').toEqual(['Épée']);
+    expect((banc.getState().party[0].items ?? []).filter((i) => i.trappingId !== 'bourse').map((i) => i.label)).toEqual(['Dague']);
   });
 });
 
@@ -2440,7 +2445,7 @@ describe('annulerLeDeplacement — annuler un déplacement décomposé tant qu�
     const H = moveSetup();
     const from = { ...H.pos! };
     const target = firstMoveTarget(from.x, from.y);
-    banc.getState().battleClickTile(target, { confirm: true });
+    banc.getState().cliquerLaCase(target, undefined, { confirm: true });
     let st = banc.getState();
     expect(st.battle!.movementUsed).toBeGreaterThan(0);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(target);
@@ -2455,7 +2460,7 @@ describe('annulerLeDeplacement — annuler un déplacement décomposé tant qu�
     const H = moveSetup();
     const from = { ...H.pos! };
     const target = firstMoveTarget(from.x, from.y);
-    banc.getState().battleClickTile(target, { confirm: true });
+    banc.getState().cliquerLaCase(target, undefined, { confirm: true });
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } }); // une Action a été prise
     banc.getState().annulerLeDeplacement();
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(target);
@@ -2613,7 +2618,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   it('tirer consomme 1 munition et décharge une arme à Recharge', () => {
     const { H, E } = archer();
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true }); // ouvre la modale d'attaque (chargé + munition OK)
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // ouvre la modale d'attaque (chargé + munition OK)
     expect(banc.getState().pendingAttack).not.toBeNull();
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
@@ -2625,7 +2630,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   it('arme déchargée : tir refusé (modale non ouverte)', () => {
     const { H, E } = archer();
     rangedOf(H).loaded = false;
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
@@ -2716,7 +2721,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   it('plus de munitions : tir refusé', () => {
     const { H, E } = archer();
     (H.items![0] as ItemInstance).qty = 0;
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
@@ -2756,7 +2761,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     h = swap('pist');
     expect(weaponLoaded(h, h.weapons.find((w) => w.uid === 'w-pist')!)).toBe(true);
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack, 'le pistolet chargé TIRE').not.toBeNull();
     banc.getState().jetCancel('attack');
     // (4) Retour à l'ARBALÈTE : elle est restée déchargée, avec SA progression intacte.
@@ -2876,7 +2881,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // La sélection change APRÈS le chargement : le coup déjà chargé, lui, ne change pas.
     rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).ammoUid = 'am1';
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -2891,7 +2896,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).loadedAmmoUid = 'am1';
     rangedOf(H).ammoUid = 'am2';
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -2911,7 +2916,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().approvisionnerLArme('fl2');
     expect(rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).loaded).toBe(true);
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -2928,7 +2933,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     H.items = [{ uid: 'fl1', label: 'Flèche', kind: 'ammo', qualities: [{ id: 'empaleuse' }], enc: 0, equipped: false, subType: 'Arc', qty: 5 } as ItemInstance];
     rangedOf(H).loaded = true;
     rangedOf(H).ammoUid = 'fl1';
-    banc.getState().battleClickEntity(E.id, { confirm: true }); // E à (4,0) → l'Arc (weapons[1]) doit s'employer, pas « hors de portée de mêlée »
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // E à (4,0) → l'Arc (weapons[1]) doit s'employer, pas « hors de portée de mêlée »
     expect(banc.getState().pendingAttack).not.toBeNull();
   });
 
@@ -2960,7 +2965,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // Difficulté du jet (#1153) au lieu de flotter en chip — on lit donc TOUT ce que la ligne nomme.
     banc.setState({ battle: { ...banc.getState().battle!, acted: false, action: null } });
     banc.getState().seedRng(2);
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetRoll('attack');
     const pa = banc.getState().pendingAttack!;
     const d = pa.result!.attackerDetail!;
@@ -3192,12 +3197,12 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     expect(banc.getState().party[0].items!.length).toBe(0);
   });
 
-  it('panier : addToCart → payCart débite le total + met en attente de répartition → confirm distribue', () => {
+  it('panier : ajouterAuPanier → payCart débite le total + met en attente de répartition → confirm distribue', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-    banc.getState().addToCart(id);
-    banc.getState().addToCart(id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     expect(banc.getState().merchant!.cart).toEqual([{ id, qty: 2 }]);
     const before = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().payCart();
@@ -3205,8 +3210,8 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // total débité
     expect(st.merchant!.cart).toEqual([]); // panier vidé
     expect(st.merchant!.pendingDistribution).toHaveLength(2); // 2 objets en attente de répartition
-    st.assignDistribution(0, 'h');
-    st.assignDistribution(1, 'h');
+    st.fenetreChoisir('marchand', 'repartition', st.merchant!.pendingDistribution![0].uid, 'h');
+    st.fenetreChoisir('marchand', 'repartition', st.merchant!.pendingDistribution![1].uid, 'h');
     st.fenetreValider('marchand');
     const st2 = banc.getState();
     expect(st2.merchant!.pendingDistribution).toBeNull();
@@ -3217,12 +3222,12 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty >= 2)!.id;
-    banc.getState().addToCart(id);
-    banc.getState().addToCart(id); // qty 2
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id); // qty 2
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } })); // négocié
-    banc.getState().addToCart(id); // bloqué
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id); // bloqué
     expect(banc.getState().merchant!.cart.find((c) => c.id === id)!.qty).toBe(2);
-    banc.getState().decFromCart(id); // retrait OK
+    banc.getState().fenetreChoisir('marchand', 'oterDuPanier', id); // retrait OK
     expect(banc.getState().merchant!.cart.find((c) => c.id === id)!.qty).toBe(1);
   });
 
@@ -3230,7 +3235,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-    banc.getState().addToCart(id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } })); // négocié
     banc.getState().fenetreFermer('marchand'); // quitte SANS payer
     banc.getState().openMerchant('pnj'); // réouverture (même réassort)
@@ -3243,7 +3248,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-    banc.getState().addToCart(id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } })); // négocié
     banc.getState().refuseBargain('buy');
     const st = banc.getState();
@@ -3283,7 +3288,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-    banc.getState().addToCart(id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } }));
     banc.getState().payCart(); // scelle le deal (paie)
     banc.getState().fenetreFermer('marchand');
@@ -3291,19 +3296,19 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     expect(banc.getState().merchant!.bargainLocked).toBe(false); // pas de pénalité
   });
 
-  it('panier : addToCart plafonne à la quantité en stock', () => {
+  it('panier : ajouterAuPanier plafonne à la quantité en stock', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const line = banc.getState().merchant!.stock.find((l) => l.qty > 0)!;
-    for (let i = 0; i < line.qty + 5; i++) banc.getState().addToCart(line.id);
+    for (let i = 0; i < line.qty + 5; i++) banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', line.id);
     expect(banc.getState().merchant!.cart.find((c) => c.id === line.id)!.qty).toBe(line.qty);
   });
 
-  it('addToCart : refuse une unité que la Bourse ne couvre pas (panier vide)', () => {
+  it('ajouterAuPanier : refuse une unité que la Bourse ne couvre pas (panier vide)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 0, silver: 0, brass: 1 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-    banc.getState().addToCart(id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     expect(banc.getState().merchant!.cart).toHaveLength(0);
   });
 
@@ -3311,7 +3316,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-    banc.getState().addToCart(id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState({ party: [withBourseMoney(banc.getState().party[0], { gold: 0, silver: 0, brass: 1 })] }); // la bourse fond entre le panier et le paiement
     banc.getState().payCart();
     const st = banc.getState();
@@ -3323,7 +3328,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-    banc.getState().addToCart(id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.getState().payCart();
     banc.getState().fenetreFermer('marchand'); // ferme sans confirmer → flush au sac du 1er héros
     expect(banc.getState().party[0].items!.some((i) => i.trappingId === id)).toBe(true);
@@ -3333,7 +3338,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     const h = hero(); h.items = [{ uid: 'x', trappingId: 'hallebarde', label: 'Hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false }] as any;
     banc.setState({ party: [h], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
-    banc.getState().addToSellCart('x', 'h');
+    banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', 'x');
     banc.getState().confirmSell();
     const st = banc.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'x')).toBeUndefined();
@@ -3422,7 +3427,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
       banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
       banc.getState().openMerchant('pnj');
       const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-      banc.getState().addToCart(id); // le Marchandage porte sur le panier déjà composé (LDB 59 l.43)
+      banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id); // le Marchandage porte sur le panier déjà composé (LDB 59 l.43)
       banc.setState({ merchant: { ...banc.getState().merchant!, bargainBuy: bargain } });
       const before = toBrass(partyMoneyTotal(banc.getState));
       banc.getState().payCart();
@@ -3442,7 +3447,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
       banc.getState().openMerchant('pnj');
       const m = banc.getState().merchant!;
       banc.setState({ merchant: { ...m, bargainSell } });
-      banc.getState().addToSellCart('x', 'h');
+      banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', 'x');
       banc.getState().confirmSell();
       return toBrass(partyMoneyTotal(banc.getState));
     };

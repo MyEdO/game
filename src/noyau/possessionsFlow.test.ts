@@ -164,7 +164,7 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     // barge → capacité 300 Enc (MDG 12) ; une charrette (véhicule) pèse 10 (own) + son cargo.
     const hostUid = addPossession(get, set, barge('h1'));
-    const idA = addPossession(get, set, vehicule('h1', 'charrette', [{ cargoId: 'grain', enc: 280, basePriceGold: 1 }]));
+    const idA = addPossession(get, set, vehicule('h1', 'charrette', [{ uid: 'lot-1', cargoId: 'grain', enc: 280, basePriceGold: 1 }]));
     embark(get, set, idA, hostUid);
     expect(get().possessions.find((p) => p.uid === idA)?.location).toEqual({ kind: 'embarquee', hostUid });
     const idB = addPossession(get, set, vehicule('h1', 'chariot-leger'));

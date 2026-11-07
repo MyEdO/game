@@ -19,7 +19,7 @@ import type { ModLine } from '../engine/combat';
 import { windsModLine } from '../engine/windsOfMagic';
 import type { Jeu } from './etat';
 import type { Get, PatchDeFlux } from './flowTypes';
-import { currentTargetingMode } from './targetingModes';
+import { currentTargetingMode, type OptionsDuClic } from './targetingModes';
 import { hoverTargeting } from './targeting';
 import { isOutOfAction } from '../engine/conditions';
 import type { SeaWind } from '../engine/domainAttributes';
@@ -103,19 +103,26 @@ export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): 
   return mode.candidates ? mode.candidates(get, active).some((c) => c.id === combatant.id) : true;
 }
 
-/**
- * LE clic d'un combattant — jeton, portrait de frise, structure frappée, occupant d'une case : s'il passe
- * `combatantClickActs`, joue `battleClickEntity` (`CLICS_DU_CHAMP.combattant`) et rend `true` ; sinon rien,
- * `false`. Le verbe se lit dans l'état AU MOMENT du clic (chez l'invité coop, il porte l'enrobage
- * d'intention, `state/netFlow.ts`). L'autorisation COOP (`controlsActive`) reste gardée par l'APPELANT.
- */
-export function jouerLeClicDuCombattant(get: Get, id: string, confirm: boolean): boolean {
-  if (!combatantClickActs(get, { id })) return false;
-  get().battleClickEntity(id, { confirm });
+/** Le clic du champ sur le combattant `id` : `cliquerLaCase` sur sa case, le combattant désigné, et `true` ; rien sans
+ *  case au combat, `false`. Le verbe se lit dans l'état AU MOMENT du clic (chez l'invité coop, il porte l'enrobage
+ *  d'intention, `state/netFlow.ts`). */
+export function cliquerSurLeCombattant(get: Get, id: string, opts?: OptionsDuClic): boolean {
+  const pos = inBattleId(get().battle, id)?.pos;
+  if (!pos) return false;
+  get().cliquerLaCase({ ...pos }, id, opts);
   return true;
 }
 
-/** Genres keyés comme `CLICS_DU_CHAMP` (`actionsDuNoyau.ts`) : ce qu'un clic de case désigne. */
+/**
+ * LE clic d'un combattant — jeton, portrait de frise, structure frappée, occupant d'une case : s'il passe
+ * `combatantClickActs`, le joue (`cliquerSurLeCombattant`) et rend `true` ; sinon rien, `false`. L'autorisation COOP
+ * (`controlsActive`) reste gardée par l'APPELANT.
+ */
+export function jouerLeClicDuCombattant(get: Get, id: string, confirm: boolean): boolean {
+  return combatantClickActs(get, { id }) && cliquerSurLeCombattant(get, id, { confirm });
+}
+
+/** Ce qu'un clic de case désigne en combat : un combattant (son id), une case libre. */
 type IntentionDuClicDeCase = { kind: 'combattant'; id: string } | { kind: 'case'; pt: Pt };
 
 /**
@@ -136,13 +143,13 @@ export function intentionDuClicDeCase(get: Get, tuile: Pt): IntentionDuClicDeCas
 /**
  * LE clic d'une CASE de combat, source unique du clic-sol (`useStagePointer.performClick`) et du commit du
  * curseur clavier/manette (`commitCursor`) : l'occupant se joue par `jouerLeClicDuCombattant`, une case libre
- * par `battleClickTile` (`CLICS_DU_CHAMP.case`), lu dans l'état AU MOMENT du clic. `false` si la case ne joue
+ * par `cliquerLaCase` sans entité, lu dans l'état AU MOMENT du clic. `false` si la case ne joue
  * rien (`intentionDuClicDeCase` nulle) : le refus éventuel appartient à l'appelant.
  */
 export function jouerLeClicDeCase(get: Get, tuile: Pt, confirm: boolean): boolean {
   const intention = intentionDuClicDeCase(get, tuile);
   if (!intention) return false;
   if (intention.kind === 'combattant') return jouerLeClicDuCombattant(get, intention.id, confirm);
-  get().battleClickTile(intention.pt, { confirm });
+  get().cliquerLaCase(intention.pt, undefined, { confirm });
   return true;
 }

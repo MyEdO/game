@@ -90,7 +90,7 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
     const hero = makePregens()[0] as Combatant;
     hero.items = [itemFromTrappingById('licence-de-guilde')!];
     banc.setState({ party: [hero], merchant: merchant([]) });
-    banc.getState().addToSellCart(hero.items[0].uid, hero.id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', hero.items[0].uid);
     expect(banc.getState().merchant!.sellCart ?? []).toHaveLength(0);
     expect(banc.getState().journal.join('\n')).toMatch(/Vente refusée.*Licence de Guilde/);
   });
@@ -99,7 +99,7 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
     const hero = makePregens()[0] as Combatant;
     hero.items = [itemFromTrappingById('hallebarde')!];
     banc.setState({ party: [hero], merchant: merchant([]) });
-    banc.getState().addToSellCart(hero.items[0].uid, hero.id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', hero.items[0].uid);
     expect(banc.getState().merchant!.sellCart ?? []).toHaveLength(1);
   });
 

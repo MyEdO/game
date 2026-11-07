@@ -23,7 +23,7 @@ const vessel = (): CampaignVessel => ({
   fouling: { level: 2, lastWeek: 0 },
   manann: { score: 9, applied: ['vaincre-stromfels', 'grand-sacrifice'] },
   saboteurDR: -2,
-  cargo: [{ cargoId: 'cereales', enc: 200, basePriceGold: 3 }],
+  cargo: [{ uid: 'lot-1', cargoId: 'cereales', enc: 200, basePriceGold: 3 }],
   criticals: ['Voie d’eau majeure : la coque prend l’eau.'],
   waterLitres: 290,
   lastVoyageMilles: 140,

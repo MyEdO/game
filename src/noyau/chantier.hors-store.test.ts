@@ -80,7 +80,7 @@ describe('#3059 — chantier naval : un seul devis pour l’écran et le geste',
 
 describe('#3059 — dossier du navire : composé des sources du noyau', () => {
   it('cale au-delà du plafond dur : le dossier porte le refus d’appareiller du départ en mer', () => {
-    const vessel = navire({ cargo: [{ cargoId: 'bois-mer', enc: 2 * COGUE.ship!.capacity, basePriceGold: 10 }], crewLost: 1 });
+    const vessel = navire({ cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 2 * COGUE.ship!.capacity, basePriceGold: 10 }], crewLost: 1 });
     const party = makePregens().slice(0, 2);
     const dossier = dossierDuNavire(vessel, party)!;
     expect(dossier.refusDAppareiller).toBe(raisonDuRefusDAppareiller(refusDAppareiller(vessel)!));
@@ -172,7 +172,7 @@ describe('#3059 — siège invité : les dépenses du chantier disent le refus d
 
 describe('#3059 — siège invité : vente, bradage, Conseil et Prêtre de Manann disent le refus de groupe', () => {
   it('vente et bradage au port, paie du Conseil, bénédiction de Manann : refusés, rien ne bouge', () => {
-    const lot = { cargoId: 'bois-mer', enc: 10, basePriceGold: 10 };
+    const lot = { uid: 'lot-2', cargoId: 'bois-mer', enc: 10, basePriceGold: 10 };
     const port = { taille: 4, richesse: 4, production: [] as string[] } as never;
     const partie = aQuai(navire({ cargo: [lot] }), { gold: 500, silver: 0, brass: 0 }, 'guest', {
       port: { placeId: 'P', label: 'Port', port, offers: [] },
@@ -181,8 +181,8 @@ describe('#3059 — siège invité : vente, bradage, Conseil et Prêtre de Manan
     });
     try {
       const avant = bourseDuGroupe(partie);
-      partie.envoyer({ type: 'portSellCargo', args: [0] });
-      partie.envoyer({ type: 'portDumpCargo', args: [0] });
+      partie.envoyer({ type: 'vendreLaCargaison', args: ['lot-2'] });
+      partie.envoyer({ type: 'jeterLaCargaison', args: ['lot-2'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['council', 'paie', 'paie-reguliere'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['manannPriest', 'payer', true] });
       const s = partie.etat();
@@ -200,14 +200,14 @@ describe('#3059 — siège invité : vente, bradage, Conseil et Prêtre de Manan
 
 describe('#3059 — bradage au port : refusé sans « commerce » ni Demande pour le lot (MDG 15 l.399)', () => {
   it('siège local, port sans « commerce » ni Demande : le geste dit le refus, la cale et la bourse restent', () => {
-    const lot = { cargoId: 'bois-mer', enc: 10, basePriceGold: 10 };
+    const lot = { uid: 'lot-3', cargoId: 'bois-mer', enc: 10, basePriceGold: 10 };
     const port = { taille: 4, richesse: 4, production: [] as string[] } as never;
     const partie = aQuai(navire({ cargo: [lot] }), { gold: 500, silver: 0, brass: 0 }, 'local', {
       port: { placeId: 'P', label: 'Port', port, offers: [] },
     });
     try {
       const avant = bourseDuGroupe(partie);
-      partie.envoyer({ type: 'portDumpCargo', args: [0] });
+      partie.envoyer({ type: 'jeterLaCargaison', args: ['lot-3'] });
       expect(partie.etat().vessel!.cargo).toEqual([lot]);
       expect(bourseDuGroupe(partie)).toBe(avant);
       expect(partie.etat().journal.some((l) => l.includes('Bois : ce port ne rachète pas les cargaisons à brader (ni « commerce » ni Demande).'))).toBe(true);

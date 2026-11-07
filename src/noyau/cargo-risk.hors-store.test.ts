@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
-const lot = (cargoId: string, enc: number): CargoLot => ({ cargoId, enc, basePriceGold: 2 });
+const lot = (cargoId: string, enc: number): CargoLot => ({ uid: `lot-${cargoId}`, cargoId, enc, basePriceGold: 2 });
 
 /** Coque du voyage de mer en cours (`travelPlan.vehicle`, posée par `buildSeaPlan`). */
 const coque = (vehicleId: string) => vehicleCombatant(findVehicleById(vehicleId)!)!;

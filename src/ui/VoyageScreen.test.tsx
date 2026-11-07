@@ -31,7 +31,7 @@ const vessel = (): CampaignVessel => ({
   morale: { score: 62, lastMoraleWeek: 0, factors: [] },
   wounds: { current: 8, max: 20 },
   provisions: 9,
-  cargo: [{ cargoId: 'cereales', enc: 200, basePriceGold: 3 }],
+  cargo: [{ uid: 'lot-1', cargoId: 'cereales', enc: 200, basePriceGold: 3 }],
 });
 
 const base = (): TravelPlan => ({ routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'mer', hoursPerDay: 24, km: 380, kmDone: 212, interrupted: false });

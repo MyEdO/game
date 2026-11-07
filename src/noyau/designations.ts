@@ -22,6 +22,10 @@ import { idsDuCoupleMonte } from './targetingModes';
 import { reponsesDuNoeud } from './dialogue';
 import { plaiesDeLOperation } from './medicFlow';
 import { seaActivitiesCatalog } from './seaActivities';
+import { catalogEntryOf, libelleDeLaRepartition } from './merchantFlow';
+import { bulkCarriers, lotDeCargaison } from './carriers';
+import { offresDeCargaison } from './cargaison';
+import { findCargoById } from '../engine/cargo';
 
 /** Un combattant : la file de combat et le groupe (`porteurParId`, `monde/combatants.ts`). */
 export type IdDeCombattant = string;
@@ -38,6 +42,8 @@ export type IdDObjet = string;
 export type IdDeScene = string;
 /** Une entité de la scène courante (`scene.entities`). */
 export type IdDEntiteDeScene = string;
+/** Ce que le clic d'une case désigne (`cliquerLaCase`) : en combat un combattant, hors combat une entité de la scène. */
+export type IdDuClic = string;
 /** Un combattant que `roundStartPromote` accepte (`actFirstIds`, `turnEconomy.ts`). */
 export type IdDeCombattantPromouvable = string;
 /** Un tireur que `armPreempt` et `preemptRangedShot` acceptent (`preemptShooterIds`, `targeting.ts`). */
@@ -70,6 +76,19 @@ export type IdDIndice = string;
 export type IdDePretire = string;
 /** Une offre du registre des actions (`actions.json`), par son `id`. */
 export type IdDOffre = string;
+/** Un article du stock du marchand ouvert, par l'id de son entrée de catalogue (`catalogEntryOf`, `merchantFlow.ts`). */
+export type IdDArticle = string;
+/** Une ligne du butin ouvert (`pendingLoot`, `pendingVictory`), par son `uid` (`LootGear`). */
+export type IdDeLigneDeButin = string;
+/** Une ligne de la répartition des achats payés (`MerchantState.pendingDistribution`), par son `uid`. */
+export type IdDeLigneDeRepartition = string;
+/** Un porteur de vrac du groupe (`bulkCarriers`, `carriers.ts`) : l'`uid` d'une bête ou d'un véhicule possédé, ou
+ *  `vessel`, le navire de campagne. */
+export type IdDePorteurDeCargaison = string;
+/** Un lot de vrac d'un porteur du groupe, par son `uid` (`CargoLot`). */
+export type IdDeCargaison = string;
+/** Une offre du marché ouvert, par l'id de sa cargaison (`offresDeCargaison`, `cargaison.ts`). */
+export type IdDOffreDeCargaison = string;
 
 /** Une désignation : son nom en mots, les ids valides qu'elle lit dans l'état, et le nom en mots du joueur de
  *  l'élément d'un id (`null` : l'élément n'a pas de nom). */
@@ -93,6 +112,7 @@ const formesConjurables = (s: Jeu): string[] => {
   return lanceur ? conjureFormOptions(lanceur).map((f) => f.weapon) : [];
 };
 const labelDePossession = (s: Jeu, uid: string): string | null => s.possessions.find((p) => p.uid === uid)?.label ?? null;
+const lignesDuButin = (s: Jeu) => [...(s.pendingLoot?.gear ?? []), ...(s.pendingVictory?.gear ?? [])];
 
 /** Les désignations, par NOM d'alias. `mot` est un littéral : le générateur des
  *  verbes le lit au source. */
@@ -115,6 +135,11 @@ export const DESIGNATIONS = {
     nom: (s, id) => labelParmi([...(s.scene ? [s.scene] : []), ...scenesDuRegistre()], id),
   },
   IdDEntiteDeScene: { mot: 'id d’entité de scène', lire: (s) => ids(s.scene?.entities ?? []), nom: (s, id) => labelParmi(s.scene?.entities ?? [], id) },
+  IdDuClic: {
+    mot: 'id de combattant ou d’entité de scène',
+    lire: (s) => (s.battle ? combattants(s) : ids(s.scene?.entities ?? [])),
+    nom: (s, id) => (s.battle ? nomDeCombattant(s, id) : labelParmi(s.scene?.entities ?? [], id)),
+  },
   IdDeCombattantPromouvable: { mot: 'id de combattant promouvable', lire: actFirstIds, nom: nomDeCombattant },
   IdDeTireurRapide: { mot: 'id de tireur rapide', lire: (s) => preemptShooterIds(() => s), nom: nomDeCombattant },
   IdDeChanson: { mot: 'id de chanson', lire: chansonsDuChanteur, nom: (_s, id) => findSeaShantyById(id)?.label ?? null },
@@ -134,5 +159,29 @@ export const DESIGNATIONS = {
   IdDePorte: { mot: 'id de porte', lire: (s) => ids(portesDuMobile(s)), nom: () => null },
   IdDePretire: { mot: 'id de pré-tiré', lire: () => ids(pregens), nom: (_s, id) => labelParmi(pregens, id) },
   IdDOffre: { mot: 'id d’offre', lire: () => ids(ACTIONS), nom: (_s, id) => labelParmi(ACTIONS, id) },
+  IdDArticle: { mot: 'id d’article', lire: (s) => (s.merchant?.stock ?? []).map((l) => l.id), nom: (_s, id) => catalogEntryOf(id)?.label ?? null },
+  IdDeLigneDeButin: { mot: 'id de ligne de butin', lire: (s) => lignesDuButin(s).map((g) => g.uid), nom: (s, uid) => lignesDuButin(s).find((g) => g.uid === uid)?.label ?? null },
+  IdDeLigneDeRepartition: {
+    mot: 'id de ligne de répartition',
+    lire: (s) => (s.merchant?.pendingDistribution ?? []).map((d) => d.uid),
+    nom: (s, uid) => {
+      const d = s.merchant?.pendingDistribution?.find((x) => x.uid === uid);
+      return d ? libelleDeLaRepartition(d) : null;
+    },
+  },
+  IdDePorteurDeCargaison: { mot: 'id de porteur de cargaison', lire: (s) => ids(bulkCarriers(s)), nom: (s, id) => labelParmi(bulkCarriers(s), id) },
+  IdDeCargaison: {
+    mot: 'id de cargaison',
+    lire: (s) => bulkCarriers(s).flatMap((c) => c.cargo.map((l) => l.uid)),
+    nom: (s, uid) => {
+      const lot = lotDeCargaison(s, uid)?.lot;
+      return lot ? findCargoById(lot.cargoId)?.label ?? null : null;
+    },
+  },
+  IdDOffreDeCargaison: {
+    mot: 'id d’offre de cargaison',
+    lire: (s) => offresDeCargaison(s).map((o) => o.cargoId),
+    nom: (s, id) => offresDeCargaison(s).find((o) => o.cargoId === id)?.label ?? null,
+  },
   IdDIndice: { mot: 'id d’indice', lire: (s) => Object.keys(s.clues), nom: (s, id) => s.campaignNarratif?.indices.find((i) => i.id === id)?.titre ?? null },
 } satisfies Record<string, Designation>;

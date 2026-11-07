@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { currentTargetingMode, spellAffinity, TILE_MODES, TARGETING_MODES } from './targetingModes';
-import { combatantClickActs, intentionDuClicDeCase, jouerLeClicDeCase } from './combatOrParty';
+import { combatantClickActs, intentionDuClicDeCase, jouerLeClicDeCase, cliquerSurLeCombattant } from './combatOrParty';
 import { t } from '../i18n';
 import { tilePreviewAt } from './targeting';
 import { flyReachable } from './monde/path';
@@ -283,7 +283,7 @@ describe('téléportation — les cases se lisent à la clé de `flyReachable`, 
       banc.getState().jouerLOffre('teleport-place');
       expect(banc.getState().battle!.action, 'la sortie doit désarmer la téléportation').toBeNull();
       const { hero: h2 } = armer(z);
-      banc.getState().battleClickTile({ x: 7, y: 6, ...(z ? { z } : {}) });
+      banc.getState().cliquerLaCase({ x: 7, y: 6, ...(z ? { z } : {}) });
       expect(h2.pos).toEqual({ x: 7, y: 6, ...(z ? { z } : {}) });
       expect(banc.getState().battle!.action).toBeNull();
       expect(hero.id).toBe(h2.id);
@@ -352,7 +352,7 @@ describe('DISPEL_MODE — le clic-token élit le PORTEUR, il n’attaque jamais'
     const { hero, e1 } = combat({ action: 'dispel' });
     hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
     porteur(e1, 2);
-    banc.getState().battleClickEntity('e1');
+    cliquerSurLeCombattant(banc.getState, 'e1');
     expect(banc.getState().dispelCarrierId, 'le porteur est élu — le SORT reste à choisir').toBe('e1');
     expect(banc.getState().pendingAttack, 'cliquer le porteur ne l’attaque JAMAIS en mode Dissiper').toBeNull();
     expect(banc.getState().pendingDispel, 'rien n’est engagé tant que le paramètre n’est pas choisi').toBeNull();
@@ -362,7 +362,7 @@ describe('DISPEL_MODE — le clic-token élit le PORTEUR, il n’attaque jamais'
     const { hero, e1 } = combat({ action: 'dispel' });
     hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
     porteur(e1, 1);
-    banc.getState().battleClickEntity('e1');
+    cliquerSurLeCombattant(banc.getState, 'e1');
     expect(banc.getState().dispelCarrierId, 'aucun paramètre à demander').toBeNull();
     expect(banc.getState().pendingDispel).toMatchObject({ spellId: 'sort-1', spellCasterId: 'e2', ni: 3 });
   });

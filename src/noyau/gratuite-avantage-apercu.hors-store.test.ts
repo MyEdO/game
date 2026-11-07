@@ -11,6 +11,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { reluDans } from './combatDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -43,7 +44,7 @@ function reticuleEtJet(attaque: string, H: Combatant, E: Combatant): { reticule:
   g().armerLAttaque(attaque);
   const ht = hoverTargeting(g, H, E);
   if (ht.kind !== 'ok' || ht.base == null || ht.mod == null) throw new Error(`réticule ${ht.kind}`);
-  g().battleClickEntity(E.id, { confirm: true });
+  cliquerSurLeCombattant(g, E.id, { confirm: true });
   g().jetRoll('attack');
   const d = g().pendingAttack!.result!.attackerDetail!;
   return { reticule: ht.base + ht.mod, jet: d.target, avantage: H.advantage };

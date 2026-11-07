@@ -15,6 +15,7 @@ import { traumaById, dechirureFractureFicheId, avecSequelles } from '../engine/t
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import type { MedicNpc } from './medicFlow';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -184,10 +185,10 @@ describe('battleHeal lit le filtre de combat', () => {
     const doc = banc.getState().battle!.combatants.find((c) => c.id === 'doc')!;
     expect(mode.candidates!(banc.getState, doc).map((c) => c.id).sort()).toEqual(['al']);
     expect(mode.affordance!(banc.getState, doc, banc.getState().battle!.combatants.find((c) => c.id === 'b')!)).toEqual({ kind: 'invalid', reason: 'sans-soin-de-combat' });
-    banc.getState().battleClickEntity('a');
+    cliquerSurLeCombattant(banc.getState, 'a');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus?.texte).toBe('A déjà reçu son soin de Blessures (une fois par rencontre)');
-    banc.getState().battleClickEntity('b');
+    cliquerSurLeCombattant(banc.getState, 'b');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus?.texte).toBe('Blessures au maximum');
   });

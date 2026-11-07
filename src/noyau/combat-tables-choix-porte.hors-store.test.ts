@@ -22,6 +22,7 @@ import type { CascadeStep } from './pendings';
 import { OPS_DIFFEREES } from './combatEffects';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -334,7 +335,7 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     banc.setState({ battle: { ...b, turn: b.order.indexOf(hero.id), action: null, movementUsed: 0, acted: false } } as never);
 
     banc.getState().armerLAttaque('pietinement');
-    banc.getState().battleClickEntity(cible.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, cible.id, { confirm: true });
 
     expect(banc.getState().pendingAttack?.freeKind, 'la donnée que la fenêtre rend').toBe('pietinement');
     const st = steps().find((s) => s.jet === 'attack')!;

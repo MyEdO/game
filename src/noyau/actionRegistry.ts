@@ -624,11 +624,10 @@ export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
    *  PRÊT — c'est le quorum (sièges requis) qui lance, jamais un client ; en solo, le quorum est ce siège. */
   roundStart: relais((get) => get().fenetreValider('roundStart')),
   /** Demande de pause au prochain Round — INTERRUPTEUR, lu dans l'état de l'émetteur : son siège l'a déjà posée, elle se
-   *  retire (`lowerHand`, annulation gratuite), sinon elle se pose. */
-  raiseHand: relais((get) => {
+   *  retire (annulation gratuite), sinon elle se pose. */
+  leverLaMain: relais((get) => {
     const s = get();
-    if ((s.battle?.handRaisedBy ?? []).includes(decidingSeat(s))) s.lowerHand();
-    else s.raiseHand();
+    s.leverLaMain(!(s.battle?.handRaisedBy ?? []).includes(decidingSeat(s)));
   }),
   // ── SORTIES D'INTERLUDE (`surface: 'interlude'`) : une enveloppe NOMMÉE par entrée, jamais un
   //    dispatcher mutualisé — deux interludes ne partagent ni leur verbe ni ses gardes (la sortie du
@@ -654,7 +653,7 @@ export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
    *  est un ARRIVAGE sur place — le même commit que le clic-sol, par la même porte. */
   teleportStay: relais((get) => {
     const active = actif(get);
-    if (active?.pos) get().battleClickTile({ ...active.pos });
+    if (active?.pos) get().cliquerLaCase({ ...active.pos });
   }),
 };
 

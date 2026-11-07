@@ -2,8 +2,8 @@
  * LES ARGUMENTS D'UNE FENÊTRE OUVERTE SE CHOISISSENT PARMI CE QUE LE VERBE ACCEPTE (#2937) : `fenetreADessiner` rend un
  * argument désigné (`DESIGNATIONS`) en `choix` des seuls éléments que la garde de son op accepte, chacun nommé. Fichier
  * à part de `gestes.hors-store.test.ts`, dont la table (`fenetres.testkit.ts`) tient le jeu branché. Un argument qui
- * désigne une ligne de l'état sans id (ligne de butin, Blessure Critique) se choisit parmi les valeurs que le lecteur de
- * sa fenêtre nomme (`fenetreDuButin`, `OUVERTS_DU_CHOIX`). Qui tient la main se dit par son genre
+ * désigne une ligne de l'état (ligne de butin, Blessure Critique) se choisit parmi les valeurs que le lecteur de sa
+ * fenêtre nomme (`fenetreDuButin`, `OUVERTS_DU_CHOIX`). Qui tient la main se dit par son genre
  * (`proprietaireDeLaFenetre`), en mots à l'hôte texte. Un verbe de jet que son flux ferme se dessine fermé, avec ce qui
  * le ferme (`fermeturesDeLaFenetre`, #2936).
  */
@@ -94,26 +94,26 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
   });
 });
 
-describe('un argument qui désigne une ligne sans id se choisit parmi les lignes que sa fenêtre nomme', () => {
+describe('un argument qui désigne une ligne se choisit parmi les lignes que sa fenêtre nomme', () => {
   const lignes = (a: ArgumentDuGeste) => [a.saisie, a.valeurs?.map((v) => [v.valeur, v.libelle])];
-  const gear = [{ label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee' } }, { label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier' } }] as never;
-  const nommees = ['choix', [[0, 'Épée'], [1, 'Bouclier']]];
+  const gear = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee' } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier' } }] as never;
+  const nommees = ['choix', [['L0', 'Épée'], ['L1', 'Bouclier']]];
 
   it('Victoire : attribuer et évaluer désignent une ligne du butin, l’évaluation porte sur la victoire', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
       const victoire: Jeu = { ...etat, pendingRoundStart: null, battle: { ...etat.battle!, over: 'victory' }, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] } };
-      expect(lignes(argumentDe(victoire, 'assignVictoryGear', 'index'))).toEqual(nommees);
-      expect(lignes(argumentDe(victoire, 'appraiseGear', 'index'))).toEqual(nommees);
+      expect(lignes(argumentDe(victoire, 'fenetreChoisir@victory#ligne', 'valeur'))).toEqual(nommees);
+      expect(lignes(argumentDe(victoire, 'appraiseGear', 'uid'))).toEqual(nommees);
       expect(lignes(argumentDe(victoire, 'appraiseGear', 'scope'))).toEqual(['choix', [['victory', t('valeur.victory')]]]);
       const sansLigne: Jeu = { ...victoire, pendingVictory: { ...victoire.pendingVictory!, gear: [] } };
-      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.verbe), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['assignVictoryGear', 'harvestCreature', 'appraiseGear']);
+      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.cle), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['fenetreChoisir@victory#ligne', 'harvestCreature', 'appraiseGear']);
     });
   });
 
   it('Butin hors combat : attribuer désigne une ligne du butin, l’évaluation porte sur le butin', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear } };
-      expect(lignes(argumentDe(butin, 'assignLootGear', 'index'))).toEqual(nommees);
+      expect(lignes(argumentDe(butin, 'fenetreChoisir@loot#ligne', 'valeur'))).toEqual(nommees);
       expect(lignes(argumentDe(butin, 'appraiseGear', 'scope'))).toEqual(['choix', [['loot', t('valeur.loot')]]]);
     });
   });
@@ -214,7 +214,7 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
     const { E, patch } = auContact(garde);
     const partie = creerPartie({ ...garde, ...patch }, ENTREES);
     try {
-      partie.envoyer({ type: 'battleClickEntity', args: [E.id, { confirm: true }] });
+      partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
       expect(geste(partie, 'jetRoll@attack')).toEqual({ ouvert: true, raison: null });
       expect(geste(partie, 'jetRegler@attack#localisation')).toEqual({ ouvert: true, raison: null });
       expect(geste(partie, 'jetSetForcedRoll@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });

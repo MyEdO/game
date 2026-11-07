@@ -124,13 +124,13 @@ describe('sauter par la croisée d’étage — exploration', () => {
   beforeEach(() => explorer(etage(), { ...dedans, z: 1 }));
 
   it('ouvre la modale de chute existante : 4 m, arrivée à la couche basse', () => {
-    banc.getState().fallAcross({ ...dedans, z: 1 }, dehors);
+    banc.getState().franchirLArete({ ...dedans, z: 1 }, dehors);
     expect(banc.getState().pendingFall).toMatchObject({ metres: 4, to: { x: 2, y: 1, z: 0 } });
     expect(phaseDeChute(banc.getState().pendingFall!)).toBe('choice');
   });
 
   it('« Sauter » : l’atterrissage passe par `moveParty` — le déclencheur de la rue joue', () => {
-    banc.getState().fallAcross({ ...dedans, z: 1 }, dehors);
+    banc.getState().franchirLArete({ ...dedans, z: 1 }, dehors);
     banc.getState().jetRegler('fall', 'tenter', false, banc.getState().party[0].id);
     draineCascade(banc.getState);
     expect(banc.getState().partyPos).toEqual({ x: 2, y: 1, z: 0 });
@@ -138,7 +138,7 @@ describe('sauter par la croisée d’étage — exploration', () => {
   });
 
   it('chute amortie à 0 m : l’atterrissage passe aussi par `moveParty`', () => {
-    banc.getState().fallAcross({ ...dedans, z: 1 }, dehors);
+    banc.getState().franchirLArete({ ...dedans, z: 1 }, dehors);
     const id = banc.getState().party[0].id;
     banc.getState().jetRegler('fall', 'tenter', true, id);
     const p = banc.getState().pendingFall!;
@@ -152,14 +152,14 @@ describe('sauter par la croisée d’étage — exploration', () => {
 describe('enjamber la croisée de plain-pied — exploration', () => {
   it('le pas du groupe passe par `moveParty` : position, déclencheur joué', () => {
     explorer(plainPied(), { ...dedans, z: 0 });
-    banc.getState().windowAcross({ ...dedans, z: 0 }, dehors);
+    banc.getState().franchirLArete({ ...dedans, z: 0 }, dehors);
     expect(banc.getState().partyPos).toEqual({ x: 2, y: 1, z: 0 });
     expect(banc.getState().flags.__trigger_rue).toBe(true);
   });
 
   it('croisée non franchissable → rien ne bouge', () => {
     explorer(plainPied(false), { ...dedans, z: 0 });
-    banc.getState().windowAcross({ ...dedans, z: 0 }, dehors);
+    banc.getState().franchirLArete({ ...dedans, z: 0 }, dehors);
     expect(banc.getState().partyPos).toEqual({ ...dedans, z: 0 });
   });
 
@@ -167,7 +167,7 @@ describe('enjamber la croisée de plain-pied — exploration', () => {
     const sc = plainPied();
     sc.walls = [{ x: 1, y: 1, side: 'E', window: true, crossable: true }];
     explorer(sc, { ...dedans, z: 0 });
-    banc.getState().windowAcross({ ...dedans, z: 0 }, dehors);
+    banc.getState().franchirLArete({ ...dedans, z: 0 }, dehors);
     expect(banc.getState().partyPos).toEqual({ ...dedans, z: 0 });
     expect(refusDit()).toBe(t('franchir.refus.muree'));
   });
@@ -176,7 +176,7 @@ describe('enjamber la croisée de plain-pied — exploration', () => {
     explorer(plainPied(), { ...dedans, z: 0 });
     const [h] = banc.getState().party;
     banc.setState({ party: [blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } })] });
-    banc.getState().windowAcross({ ...dedans, z: 0 }, dehors);
+    banc.getState().franchirLArete({ ...dedans, z: 0 }, dehors);
     expect(banc.getState().partyPos).toEqual({ ...dedans, z: 0 });
     expect(refusDit()).toBe(t('geste.refus.personne'));
   });
@@ -184,7 +184,7 @@ describe('enjamber la croisée de plain-pied — exploration', () => {
   it('dialogue ouvert → rien ne bouge (garde de `stepPartyDir`)', () => {
     explorer(plainPied(), { ...dedans, z: 0 });
     banc.setState({ dialogue: {} as never });
-    banc.getState().windowAcross({ ...dedans, z: 0 }, dehors);
+    banc.getState().franchirLArete({ ...dedans, z: 0 }, dehors);
     expect(banc.getState().partyPos).toEqual({ ...dedans, z: 0 });
     expect(banc.getState().flags.__trigger_rue).toBeUndefined();
     banc.setState({ dialogue: null });
@@ -211,7 +211,7 @@ describe('enjamber la croisée — combat', () => {
 
   it('Mouvement seul : coût = 1 case + allège de 1 m à ½ vitesse (2 m/case → 1), Action intacte, aucun Test', () => {
     const { H } = setup();
-    banc.getState().windowAcross(dedans, dehors);
+    banc.getState().franchirLArete(dedans, dehors);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 1 });
     expect(b.movementUsed).toBe(2);
@@ -222,7 +222,7 @@ describe('enjamber la croisée — combat', () => {
 
   it('le coût suit l’allège de CETTE croisée : 3 m à ½ vitesse (2 m/case → 3), soit 1 + 3 cases', () => {
     const { H } = setup(0, {}, plainPied(true, 3));
-    banc.getState().windowAcross(dedans, dehors);
+    banc.getState().franchirLArete(dedans, dehors);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 1 });
     expect(b.movementUsed).toBe(4);
@@ -230,7 +230,7 @@ describe('enjamber la croisée — combat', () => {
 
   it('Mouvement restant insuffisant → refus NOMMÉ, rien ne bouge', () => {
     const { H } = setup(3); // Marche 4 − 3 = 1 < 2
-    banc.getState().windowAcross(dedans, dehors);
+    banc.getState().franchirLArete(dedans, dehors);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 1, y: 1 });
     expect(b.movementUsed).toBe(3);
@@ -239,7 +239,7 @@ describe('enjamber la croisée — combat', () => {
 
   it('Mouvement → Action → enjamber : refus NOMMÉ (`canMove`, `gesteDArete`), rien ne bouge', () => {
     const { H } = setup(1, { acted: true, movedPreAction: true }); // Marche 4 − 1 = 3 ≥ 2 : seul l'entrelacement refuse
-    banc.getState().windowAcross(dedans, dehors);
+    banc.getState().franchirLArete(dedans, dehors);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 1, y: 1 });
     expect(b.movementUsed).toBe(1);
@@ -250,7 +250,7 @@ describe('enjamber la croisée — combat', () => {
     const { H, foe } = setup();
     foe.dead = false;
     placeCombatant(foe, banc.getState().scene, dehors);
-    banc.getState().windowAcross(dedans, dehors);
+    banc.getState().franchirLArete(dedans, dehors);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 1, y: 1 });
     expect(b.movementUsed).toBe(0);
@@ -268,7 +268,7 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
     explorer(sc, { ...dedans, z: 1 });
     const hero = banc.getState().party[0];
     const avant = hero.wounds.current;
-    banc.getState().fallAcross({ ...dedans, z: 1 }, dehors);
+    banc.getState().franchirLArete({ ...dedans, z: 1 }, dehors);
     banc.getState().jetRegler('fall', 'tenter', false, hero.id);
     draineCascade(banc.getState);
     const s = banc.getState();
@@ -290,7 +290,7 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
     const second = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'K', seed: 2 });
     banc.setState({ party: [...banc.getState().party, second] });
     const [a, b] = banc.getState().party;
-    banc.getState().fallAcross({ ...dedans, z: 1 }, dehors);
+    banc.getState().franchirLArete({ ...dedans, z: 1 }, dehors);
     banc.getState().jetRegler('fall', 'tenter', false, a.id);
     banc.getState().jetRegler('fall', 'tenter', false, b.id);
     draineCascade(banc.getState);
@@ -304,8 +304,8 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
 });
 
 describe('réseau', () => {
-  it('`windowAcross` est un intent d’invité (possession de l’actif, patron `climbAcross`)', () => {
-    expect(GUEST_INTENTS.has('windowAcross')).toBe(true);
-    expect(typeof banc.getState().windowAcross).toBe('function');
+  it('`franchirLArete` est un intent d’invité (possession de l’actif)', () => {
+    expect(GUEST_INTENTS.has('franchirLArete')).toBe(true);
+    expect(typeof banc.getState().franchirLArete).toBe('function');
   });
 });

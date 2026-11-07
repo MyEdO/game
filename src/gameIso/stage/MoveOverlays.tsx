@@ -32,7 +32,7 @@ export function mouvementLigne(battle: BattleState, active: Combatant | undefine
 /** Losange du CURSEUR clavier/manette : repère de case TOUJOURS visible tant qu'aucune modale de jet à
  *  cible n'est ouverte ET que hoverAim ne peint pas déjà un réticule (anti-doublon quand le curseur est
  *  aimanté sur une cible). Curseur = TOUTE l'empreinte du mobile actif (4 cases pour un cavalier sur
- *  monture 2×2), ancrée au coin NO de la case visée — c'est là que le bloc atterrira (battleClickTile). */
+ *  monture 2×2), ancrée au coin NO de la case visée — c'est là que le bloc atterrira (cliquerLaCase). */
 export function CursorOverlay({ tile, footN, dims, liftAt }: { tile: Pt; footN: number; dims: Dims; liftAt: (x: number, y: number, z?: number) => number }) {
   return (
     <g pointerEvents="none">

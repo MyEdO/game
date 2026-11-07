@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { openLandMarket, landSellCargo } from './landMarketFlow';
+import { openLandMarket, vendreALaHalle } from './landMarketFlow';
 import { persistCarriersCargo } from './carriers';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
@@ -88,7 +88,7 @@ function launchAtA(): void {
   set({ landMarket: null, tradeRumours: [], journal: [], possessions: [convoi(h.id)] });
 }
 
-const lot: CargoLot = { cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
+const lot: CargoLot = { uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
 const rumourB: TradeRumour = { placeId: 'B', biens: ['vin-eau-de-vie'], mult: 2, text: 'Le vin manque à Altdorf.', heardDay: 0 };
 
 /** Vend le lot 0 à Altdorf (place B) avec le board donné et renvoie le gain en brass. */
@@ -101,7 +101,7 @@ function sellAtB(board: TradeRumour[]): number {
     ...persistCarriersCargo(get(), [{ carrierId: CARRIER_ID, cargo: [{ ...lot }] }]),
   });
   seedBattleRng(3);
-  landSellCargo(get, set, CARRIER_ID, 0);
+  vendreALaHalle(get, set, lot.uid);
   // Le dé d'acheteur est un dé de MONDE : le siège qui possède le monde le LANCE dans sa fenêtre
   // (#1426). La vente se conclut donc au geste, jamais à l'appel.
   let g = 0;

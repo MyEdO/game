@@ -45,7 +45,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().addToCart('mule');
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'mule');
     banc.getState().payCart();
     const st = banc.getState();
     expect(st.possessions.length).toBe(0); // pas encore de possession : en attente de répartition
@@ -60,11 +60,11 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     banc.setState({ party: [hero('h1', 'H1'), hero('h2', 'H2')], scene: maquignonScene() });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
-    banc.getState().addToCart('mule');
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'mule');
     banc.getState().payCart();
-    const idx = banc.getState().merchant!.pendingDistribution!.findIndex((d) => 'unit' in d && d.unit.id === 'mule');
-    expect(idx).toBeGreaterThanOrEqual(0);
-    banc.getState().assignDistribution(idx, 'h2'); // réassigne au 2e héros (pas le défaut party[0])
+    const mule = banc.getState().merchant!.pendingDistribution!.find((d) => 'unit' in d && d.unit.id === 'mule');
+    expect(mule).toBeDefined();
+    banc.getState().fenetreChoisir('marchand', 'repartition', mule!.uid, 'h2'); // réassigne au 2e héros (pas le défaut party[0])
     banc.getState().fenetreValider('marchand');
     const st = banc.getState();
     const pos = st.possessions.find((p) => p.nature === 'bete' && 'id' in p.ref && p.ref.id === 'mule');
@@ -80,7 +80,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     banc.getState().openMerchant('pnj');
     const line = banc.getState().merchant!.stock.find((l) => l.id === 'selle-et-harnais');
     expect(line).toBeDefined();
-    banc.getState().addToCart('selle-et-harnais');
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'selle-et-harnais');
     banc.getState().payCart();
     const st = banc.getState();
     expect(st.merchant!.pendingDistribution).toBeTruthy(); // panier avec objet de sac → écran de répartition renseigné
@@ -93,16 +93,16 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     banc.setState({ party: [hero('h1', 'H1'), hero('h2', 'H2')], scene: maquignonScene() });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
-    banc.getState().addToCart('mule');
-    banc.getState().addToCart('selle-et-harnais');
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'mule');
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'selle-et-harnais');
     banc.getState().payCart();
     const dist = banc.getState().merchant!.pendingDistribution!;
-    const unitIdx = dist.findIndex((d) => 'unit' in d);
-    const itemIdx = dist.findIndex((d) => 'item' in d);
-    expect(unitIdx).toBeGreaterThanOrEqual(0);
-    expect(itemIdx).toBeGreaterThanOrEqual(0);
-    banc.getState().assignDistribution(unitIdx, 'h2');
-    banc.getState().assignDistribution(itemIdx, 'h1');
+    const unite = dist.find((d) => 'unit' in d);
+    const objet = dist.find((d) => 'item' in d);
+    expect(unite).toBeDefined();
+    expect(objet).toBeDefined();
+    banc.getState().fenetreChoisir('marchand', 'repartition', unite!.uid, 'h2');
+    banc.getState().fenetreChoisir('marchand', 'repartition', objet!.uid, 'h1');
     banc.getState().fenetreValider('marchand');
     const st = banc.getState();
     const pos = st.possessions.find((p) => p.nature === 'bete' && 'id' in p.ref && p.ref.id === 'mule');

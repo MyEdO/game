@@ -8,8 +8,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { corpsDe, drainer, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
-import type { Suite } from './pont';
-import { CLICS_DU_CHAMP } from '../../../src/noyau/index';
+import { clicDuCombattant, type Suite } from './pont';
+import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton, Choix, Jet, Ligne } from '../../../src/hote/elements';
 
 const { appel: appelNu } = table();
@@ -71,7 +71,7 @@ describe('un tour complet par le pont', () => {
     const heros = actifDe(suite);
     expect(heros.camp).toBe('hero');
     expect(suite.vue.projection.combat!.barre).toEqual({ forme: 'ouverte', raison: null });
-    expect(suite.vue.champ, 'la barre ouverte, le champ se clique en combat').toEqual(CLICS_DU_CHAMP);
+    expect(suite.vue.champ, 'la barre ouverte, le champ se clique en combat').toBe(CLIC_DU_CHAMP);
     const economie = (id: string) => suite.vue.zones['combat.offres'].find((o): o is Choix => o.type === 'choix' && o.valeurs.some((v) => v.id === id));
     expect(economie('charge'), 'la Charge se range sous le Mouvement qu’elle prend, nommé une fois').toMatchObject({ libelle: 'Mouvement' });
     expect(economie('charge')!.valeurs.find((v) => v.id === 'charge')?.libelle, 'chaque offre de la barre a son libellé, sans son coût').toBe('Charger');
@@ -84,7 +84,7 @@ describe('un tour complet par le pont', () => {
     const [cible] = suite.vue.projection.combat!.cibles.liste; // les cibles que le clic accepte, la Charge armée
     const nomDe = (id: string) => suite.vue.projection.combat!.voisins.liste.find((v) => v.id === id)!.nom;
     const nomDeLaCible = nomDe(cible);
-    ({ suite } = jouer({ type: CLICS_DU_CHAMP.combattant, args: [cible] }));
+    ({ suite } = jouer(clicDuCombattant(suite.vue, cible)!));
     expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'attackJet' } });
     expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attack');
     expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('jetRegler@attack#localisation');
@@ -124,10 +124,10 @@ describe('un tour complet par le pont', () => {
     const second = actifDe(suite);
     expect(second.id).not.toBe(heros.id);
     const vers = suite.vue.cases.find((c) => c.zone === 'marche' && c.cout === 1)!.case;
-    ({ suite } = jouer({ type: CLICS_DU_CHAMP.case, args: [vers] }));
+    ({ suite } = jouer({ type: CLIC_DU_CHAMP, args: [vers] }));
     expect(suite.vue.projection.combat!.apercu, 'le premier clic montre l’aperçu').toMatchObject({ genre: 'move', cible: null, case: [vers.x, vers.y, vers.z ?? 0] });
     expect(suite.vue.zones['combat.apercu'].map((l) => l.id), 'l’aperçu dit ce qu’il coûte').toEqual(['apercu']);
-    ({ suite } = jouer({ type: CLICS_DU_CHAMP.case, args: [vers] }));
+    ({ suite } = jouer({ type: CLIC_DU_CHAMP, args: [vers] }));
     expect(actifDe(suite).pos, 'le second clic déplace le héros').toEqual([vers.x, vers.y, vers.z ?? 0]);
     expect(suite.vue.occupants[`${vers.x},${vers.y},${vers.z ?? 0}`], 'la case porte son occupant').toBe(second.id);
 

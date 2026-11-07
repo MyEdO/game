@@ -14,6 +14,7 @@ import type { Combatant, ShipPoste, FireArc } from '../engine/types';
 import type { Scene } from './monde/scene';
 import { initialNet } from './etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -360,7 +361,7 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
     expect(posteA.crewIds ?? []).not.toContain('hero');
   });
 
-  it('battleClickEntity sur la pièce sert le héros actif (clic-token = action « Servir », via ATTACK_MODE)', () => {
+  it('cliquerLaCase sur la pièce sert le héros actif (clic-token = action « Servir », via ATTACK_MODE)', () => {
     const poste = mkPoste('baliste');
     const hull = mkEmplacement(poste, { x: 5, y: 5 });
     const hero = mkActor('hero', 'hero', { x: 5, y: 6 }, 80);
@@ -369,7 +370,7 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
       party: [hero], facing: {}, scene: groundScene() as never,
       pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null,
     });
-    banc.getState().battleClickEntity('emplacement');
+    cliquerSurLeCombattant(banc.getState, 'emplacement');
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'hero')!;
     expect(h.mannedPoste!.item.uid).toBe(poste.item.uid); // le clic-token a servi la pièce
     expect(poste.crewIds![0]).toBe('hero');

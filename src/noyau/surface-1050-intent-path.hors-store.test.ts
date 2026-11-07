@@ -25,6 +25,7 @@ import { cascadeDeTest } from './cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { cleDeFixture } from './noyau.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -180,9 +181,9 @@ describe('#1050 — Tir rapide (Talent) : l’invité arme sa visée et tire pen
   it('clic-token sous visée armée : le tir d’interruption s’ouvre pour le TIREUR, pas pour un tiers', () => {
     pause();
     expect(applyIntent(1, 'armPreempt', ['h2'])).toBe('appliquee');
-    expect(applyIntent(2, 'battleClickEntity', ['e1']), 'un tiers déclenchait le Tir rapide d’autrui').toBe('refusee');
+    expect(applyIntent(2, 'cliquerLaCase', [{ x: 3, y: 0 }, 'e1']), 'un tiers déclenchait le Tir rapide d’autrui').toBe('refusee');
     expect(banc.getState().pendingAttack).toBeNull();
-    expect(applyIntent(1, 'battleClickEntity', ['e1'])).toBe('appliquee');
+    expect(applyIntent(1, 'cliquerLaCase', [{ x: 3, y: 0 }, 'e1'])).toBe('appliquee');
     const pa = banc.getState().pendingAttack;
     expect(pa?.attackerId).toBe('h2');
     expect(pa?.targetId).toBe('e1');
@@ -205,7 +206,7 @@ describe('#1050 — Tir rapide (Talent) : l’invité arme sa visée et tire pen
     banc.setState({ pendingRoundStart: { round: 2 } as never });
     banc.getState().armPreempt('h2');
     expect(banc.getState().preemptAiming).toBe('h2');
-    banc.getState().battleClickEntity('e1');
+    cliquerSurLeCombattant(banc.getState, 'e1');
     expect(banc.getState().pendingAttack?.interrupt).toBe(true);
   });
 });

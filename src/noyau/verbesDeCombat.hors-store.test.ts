@@ -45,7 +45,7 @@ const envoyer = <K extends keyof ActionsDuNoyau>(partie: Partie, type: K, ...arg
 /** La Course, telle que l'hôte la joue : l'offre `course` arme sa portée, le clic confirmé sur `pt` la commet. */
 const courir = (partie: Partie, pt: { x: number; y: number }): void => {
   envoyer(partie, 'jouerLOffre', 'course');
-  envoyer(partie, 'battleClickTile', pt, { confirm: true });
+  envoyer(partie, 'cliquerLaCase', pt, undefined, { confirm: true });
 };
 
 /** L'état du duel ouvert, le tour au héros, H et E au contact sans être Engagés. */
@@ -92,7 +92,7 @@ describe('Course (LDB 15 l.41) : « la distance couverte vient en plus de celle 
   it('courir après avoir marché est permis, sans dépasser Mouvement restant + Course', () => {
     const { partie, H } = duel();
     try {
-      envoyer(partie, 'battleClickTile', laPlusLointaine(computeMoveReach(lire(partie))), { confirm: true });
+      envoyer(partie, 'cliquerLaCase', laPlusLointaine(computeMoveReach(lire(partie))), undefined, { confirm: true });
       const b0 = partie.etat().battle!;
       expect(b0.movementUsed, 'témoin : le héros a marché').toBeGreaterThan(0);
       expect(actionGate('course', contexte(partie))).toEqual({ ok: true });
@@ -219,7 +219,7 @@ describe('Clic d’attaque : les refus élémentaires du tour (`refusDuTour.ts`)
     const { partie, H, E } = duel();
     try {
       addCondition(H, 'brise');
-      envoyer(partie, 'battleClickEntity', E.id, { confirm: true });
+      envoyer(partie, 'cliquerLaCase', { ...E.pos! }, E.id, { confirm: true });
       expect(partie.etat().pendingAttack ?? null).toBeNull();
       expect(refusDit(partie)).toBe(refusVerrouDAction(H));
     } finally {
@@ -249,7 +249,7 @@ describe('Brisé en donnée (LDB 16 l.52, `restrictsAction`) : la Marche du verr
 
 /** Marche jusqu'au bout, puis l'Action : plus de Mouvement après l'Action (`canMove`). */
 function actionEtMouvementDepenses(partie: Partie): void {
-  envoyer(partie, 'battleClickTile', laPlusLointaine(computeMoveReach(lire(partie))), { confirm: true });
+  envoyer(partie, 'cliquerLaCase', laPlusLointaine(computeMoveReach(lire(partie))), undefined, { confirm: true });
   envoyer(partie, 'jouerLOffre', 'defend');
   expect(partie.etat().battle, 'témoin : Marche puis Action').toMatchObject({ acted: true, movedPreAction: true });
 }

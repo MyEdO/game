@@ -18,9 +18,9 @@ import { Icon } from './Icon';
 export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
   gear: LootGear[];
   assignable: Combatant[];
-  onAssign: (index: number, heroId: string) => void;
+  onAssign: (uid: string, heroId: string) => void;
   /** Absent = lecture seule (pas d'actions de révélation — ex. invité coop). */
-  onAppraise?: (index: number, mode: 'evaluate' | 'detect') => void;
+  onAppraise?: (uid: string, mode: 'evaluate' | 'detect') => void;
 }) {
   const party = useGame((s) => s.party);
   const today = useGame((s) => Math.floor(s.gameTime / MINUTES_PER_DAY));
@@ -58,7 +58,7 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
                     enabled={!refusEval}
                     {...raisonSi(refusEval)}
                     descOfferte="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain"
-                    onClick={() => onAppraise(i, 'evaluate')}
+                    onClick={() => onAppraise(g.uid, 'evaluate')}
                     primary={false}
                     btnClassName="gear-act"
                   />
@@ -70,7 +70,7 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
                     enabled={!refusDetect}
                     {...raisonSi(refusDetect)}
                     descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura — une seule tentative par objet"
-                    onClick={() => onAppraise(i, 'detect')}
+                    onClick={() => onAppraise(g.uid, 'detect')}
                     primary={false}
                     btnClassName="gear-act"
                   />
@@ -82,7 +82,7 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
                   choix du lanceur d'un Test et la cible montée) — clic = donner à ce héros. */}
               <PortraitPicker
                 choices={assignable.map((h) => ({ c: h, title: `Donner « ${g.label} » à ${h.label}` }))}
-                onPick={(id) => onAssign(i, id)}
+                onPick={(id) => onAssign(g.uid, id)}
               />
             </span>
           </li>

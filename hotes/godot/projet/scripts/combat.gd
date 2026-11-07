@@ -5,7 +5,7 @@
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
 ## (`Zone.geste` ; la fiche d'un héros, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la méthode
-## `creation`), ou un clic du champ (`vue.champ` : le verbe qui désigne un combattant, celui qui désigne une case ;
+## `creation`), ou un clic du champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ;
 ## `null`, le champ ne se clique pas), le combattant d'une case lu dans `vue.occupants`. Un refus se dit ; l'écran
 ## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
 ## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
@@ -127,13 +127,13 @@ func _publier_l_ecran() -> void:
 	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_ecran]), cases = _plateau.points(), corps = _plateau.corps()})
 
 
-## Un clic sur `case` : le clic du champ qui désigne son occupant s'il en a un, celui qui désigne la case sinon.
+## Un clic sur `case` : le clic du champ sur la case, et sur son occupant s'il en a un.
 func _cliquer(case: Vector3i) -> void:
 	var champ: Variant = _vue.get("champ")
 	if champ == null:
 		return
+	var args: Array = [{x = case.x, y = case.y} if case.z == 0 else {x = case.x, y = case.y, z = case.z}]
 	var occupant: Variant = _vue.occupants.get("%d,%d,%d" % [case.x, case.y, case.z])
 	if occupant != null:
-		_jouer({type = champ.combattant, args = [occupant]})
-	else:
-		_jouer({type = champ.case, args = [{x = case.x, y = case.y} if case.z == 0 else {x = case.x, y = case.y, z = case.z}]})
+		args.append(occupant)
+	_jouer({type = champ, args = args})

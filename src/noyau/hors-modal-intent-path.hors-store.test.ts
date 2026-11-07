@@ -7,10 +7,10 @@
  * `MODAL_DEFS`, donc leurs gestes retombaient sur `modalOwnerOf`, qui ne consulte QUE `MODAL_DEFS`.
  * Sous un `fateSave` (1ʳᵉ entrée du registre, priorité maximale) le repli désignait la VICTIME :
  * l'attaquant qui balaie était REFUSÉ à l'intent, et le clic de la victime — accepté — mourait dans
- * la garde `controlsCombatant` de `battleClickEntity` (combatSlice.ts:1014). Résultat mesuré :
+ * la garde `controlsCombatant` du clic du combattant (`combatSlice.cliquerLeCombattant`). Résultat mesuré :
  * PERSONNE ne poursuivait le balayage.
  *
- * Le geste RÉEL voyage par `battleClickEntity`/`battleClickTile` (dispatchés par
+ * Le geste RÉEL voyage par `cliquerLaCase`, sur un combattant ou une case libre (dispatchés par
  * `currentTargetingMode`) — `cleaveAttack`/`dualStrikeAttack` sont la machinerie que `targetingModes` appelle
  * (`MachinerieDuNoyau`, #3370), hors allowlist. Le clic et ce refus sont éprouvés ici ; la table `EMISSION` de
  * `src/state/hors-modal-intent-path.test.ts` empêche qu'une route porte de nouveau sur un verbe que personne n'émet.
@@ -27,6 +27,7 @@ import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 const NET0 = initialNet();
 const CHARS = { 'capacite-de-combat': 55, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -78,10 +79,10 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
   it('balayage sous fateSave : l’ATTAQUANT clique et enchaîne ; la victime et l’hôte sont refusés', () => {
     setup();
     banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'battleClickEntity', ['e2']), 'la victime pilotait le balayage d’autrui').toBe('refusee');
-    expect(applyIntent(0, 'battleClickEntity', ['e2']), 'l’hôte n’est pas le porteur du balayage').toBe('refusee');
+    expect(applyIntent(2, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2']), 'la victime pilotait le balayage d’autrui').toBe('refusee');
+    expect(applyIntent(0, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2']), 'l’hôte n’est pas le porteur du balayage').toBe('refusee');
     expect(banc.getState().pendingAttack).toBeNull();
-    expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliquee');
+    expect(applyIntent(1, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2'])).toBe('appliquee');
     const pa = banc.getState().pendingAttack;
     expect(pa?.attackerId, 'l’attaquant était REFUSÉ : personne ne poursuivait le balayage').toBe('h2');
     expect(pa?.targetId).toBe('e2');
@@ -91,16 +92,16 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
   it('témoin SANS fateSave : le clic de l’attaquant passait déjà (le repli tombait juste)', () => {
     setup();
     banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 } });
-    expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliquee');
+    expect(applyIntent(1, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2'])).toBe('appliquee');
     expect(banc.getState().pendingAttack?.cleave).toBe(true);
   });
 
   it('2ᵉ frappe sous fateSave : le clic appartient à l’attaquant, jamais à la victime', () => {
     setup();
     banc.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'battleClickEntity', ['e2'])).toBe('refusee');
+    expect(applyIntent(2, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2'])).toBe('refusee');
     expect(banc.getState().pendingAttack).toBeNull();
-    expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliquee');
+    expect(applyIntent(1, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2'])).toBe('appliquee');
     const pa = banc.getState().pendingAttack;
     expect(pa?.dualSecond).toBe(true);
     expect(pa?.weaponUid).toBe('o');
@@ -109,23 +110,23 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
   it('pilonnage indirect (`pendingSiegeAim`) : le clic-CASE appartient à l’ARTILLEUR (AA 10)', () => {
     setup();
     banc.setState({ pendingSiegeAim: { gunnerId: 'h2', weaponUid: 'm', radius: 1, rangeTiles: null }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'battleClickTile', [{ x: 3, y: 3 }])).toBe('refusee');
+    expect(applyIntent(2, 'cliquerLaCase', [{ x: 3, y: 3 }])).toBe('refusee');
     expect(banc.getState().pendingSiegeAim, 'la victime posait le point d’impact de l’artilleur').not.toBeNull();
-    expect(applyIntent(1, 'battleClickTile', [{ x: 3, y: 3 }])).toBe('appliquee');
+    expect(applyIntent(1, 'cliquerLaCase', [{ x: 3, y: 3 }])).toBe('appliquee');
     expect(banc.getState().pendingSiegeAim, 'l’artilleur pose son impact (le placeur se referme)').toBeNull();
   });
 
   it('AUCUN ciblage détenu : le clic universel garde ses règles (repli sur le combattant ACTIF)', () => {
     setup(); // tour de `h2` (siège 1), aucune fenêtre hors-modale ouverte
-    expect(intentAllowedFor(banc.getState(), 1, 'battleClickEntity', ['e2'])).toBe(true);
-    expect(intentAllowedFor(banc.getState(), 2, 'battleClickEntity', ['e2'])).toBe(false);
-    expect(intentAllowedFor(banc.getState(), 0, 'battleClickTile', [{ x: 3, y: 3 }])).toBe(false);
+    expect(intentAllowedFor(banc.getState(), 1, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2'])).toBe(true);
+    expect(intentAllowedFor(banc.getState(), 2, 'cliquerLaCase', [{ x: 0, y: 1 }, 'e2'])).toBe(false);
+    expect(intentAllowedFor(banc.getState(), 0, 'cliquerLaCase', [{ x: 3, y: 3 }])).toBe(false);
   });
 
   it('NON-RÉGRESSION SOLO : hors coop, le joueur clique et enchaîne son balayage comme avant', () => {
     setup({ mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
     banc.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 } });
-    banc.getState().battleClickEntity('e2');
+    cliquerSurLeCombattant(banc.getState, 'e2');
     expect(banc.getState().pendingAttack?.cleave).toBe(true);
   });
 });
@@ -165,8 +166,8 @@ describe('#1016 — hors détenteur, la route ne déplace AUCUN verdict (différ
       setup();
       banc.setState(e.etat as never);
       const attendu = [0, 1, 2].map(repli);
-      expect(trio('battleClickEntity', ['e2']), 'clic-token dévié hors détenteur').toEqual(attendu);
-      expect(trio('battleClickTile', [{ x: 3, y: 3 }]), 'clic-case dévié hors détenteur').toEqual(attendu);
+      expect(trio('cliquerLaCase', [{ x: 0, y: 1 }, 'e2']), 'clic-token dévié hors détenteur').toEqual(attendu);
+      expect(trio('cliquerLaCase', [{ x: 3, y: 3 }]), 'clic-case dévié hors détenteur').toEqual(attendu);
     });
   }
 });

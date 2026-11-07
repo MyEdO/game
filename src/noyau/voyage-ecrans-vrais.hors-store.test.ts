@@ -81,7 +81,7 @@ function poseMeteo(id: string): void {
 
 /** Les `kind` des étapes de la NUIT de halte, couchage dehors et sans repas. */
 function etapesDeLaNuit(): string[] {
-  get().restSet('h', { lodging: 'dehors', food: 'rien' });
+  get().fenetreChoisir('rest', 'couchage', 'dehors', 'h'); get().fenetreChoisir('rest', 'pitance', 'rien', 'h');
   get().fenetreValider('rest');
   return get().pendingCascade?.participants.map((s) => s.kind) ?? [];
 }

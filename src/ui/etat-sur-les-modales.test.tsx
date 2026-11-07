@@ -141,7 +141,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const hero = sonne(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }));
     const s = emptyScene('scene-test', 4, 4); s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null } as never);
-    g().fallAcross({ x: 2, y: 0 }, { x: 2, y: 1 });
+    g().franchirLArete({ x: 2, y: 0 }, { x: 2, y: 1 });
     g().jetRegler('fall', 'tenter', true, hero.id);
     const p = g().pendingFall!;
     const att = cible(hero, p.test, p.test.difficulty);

@@ -39,9 +39,9 @@ export function LandMarketView() {
   const rumours = useGame((s) => s.tradeRumours);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('marcheDeTerre');
-  const buy = useGame((s) => s.landBuyCargo);
-  const sell = useGame((s) => s.landSellCargo);
-  const dump = useGame((s) => s.landDumpCargo);
+  const buy = useGame((s) => s.acheterLaCargaison);
+  const sell = useGame((s) => s.vendreLaCargaison);
+  const dump = useGame((s) => s.jeterLaCargaison);
   const move = useGame((s) => s.moveCargo);
   const evalWine = useGame((s) => s.landEvalWine);
   const refusEval = appraiseRefus(party);
@@ -57,7 +57,8 @@ export function LandMarketView() {
   const target = useMemo(() => primaryCargoCarrier(slice), [slice]);
 
   if (!market) return null;
-  const devisDe = (cargoId: string) => devisDAchatDeCargaison({ ...slice, landMarket: market, net }, cargoId, buyEnc[cargoId]);
+  const porteurId = target?.id ?? '';
+  const devisDe = (cargoId: string) => devisDAchatDeCargaison({ ...slice, landMarket: market, net }, porteurId, cargoId, buyEnc[cargoId]);
   const cargoLabel = (id: string) => findCargoEntryById(id)?.label ?? id;
 
   const offerGroups: TradeGroup<Offer>[] = [{ key: 'offers', rows: market.offers }];
@@ -140,7 +141,7 @@ export function LandMarketView() {
                         enabled={refus == null}
                         {...raisonSi(refus)}
                         descOfferte="Estimation avant Marchandage"
-                        onClick={() => buy(o.cargoId, devis.enc)}
+                        onClick={() => buy(porteurId, o.cargoId, devis.enc)}
                         primary={false}
                         btnClassName="small"
                       />
@@ -156,7 +157,7 @@ export function LandMarketView() {
               <TradeTable
                 columns={[{ key: 'carrier', label: 'Porteur', render: (r) => r.carrierLabel }]}
                 groups={sellGroups}
-                rowKey={(r) => `${r.carrierId}-${r.index}`}
+                rowKey={(r) => r.lot.uid}
                 label={(r) => cargoLabel(r.lot.cargoId)}
                 enc={(r) => r.lot.enc}
                 priceLabel="Prix base/Enc"
@@ -164,14 +165,14 @@ export function LandMarketView() {
                 action={(r) => (
                   <div className="port-sell-actions">
                     <GatedAction
-                      id={`market-sell-${r.carrierId}-${r.index}`} label="Vendre" enabled={!refusHote} {...raisonSi(refusHote)}
+                      id={`market-sell-${r.lot.uid}`} label="Vendre" enabled={!refusHote} {...raisonSi(refusHote)}
                       descOfferte="Trouver un acheteur puis marchander"
-                      onClick={() => sell(r.carrierId, r.index)} primary={false} btnClassName="small"
+                      onClick={() => sell(r.lot.uid)} primary={false} btnClassName="small"
                     />
                     <GatedAction
-                      id={`market-dump-${r.carrierId}-${r.index}`} label="Brader" enabled={refusDeBradageALaHalle({ net, landMarket: market }, r.lot.cargoId) == null} {...raisonSi(refusDeBradageALaHalle({ net, landMarket: market }, r.lot.cargoId))}
+                      id={`market-dump-${r.lot.uid}`} label="Brader" enabled={refusDeBradageALaHalle({ net, landMarket: market }, r.lot.cargoId) == null} {...raisonSi(refusDeBradageALaHalle({ net, landMarket: market }, r.lot.cargoId))}
                       descOfferte="Brader à la moitié du prix de base"
-                      onClick={() => dump(r.carrierId, r.index)} primary={false} btnClassName="small ghost"
+                      onClick={() => dump(r.lot.uid)} primary={false} btnClassName="small ghost"
                     />
                   </div>
                 )}

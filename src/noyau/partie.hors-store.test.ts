@@ -36,7 +36,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
     try {
       // `etat` est un `Get` : un lecteur de la surface s'y branche sans cast.
       expect(previewAttack(partie.etat, combattant(partie, H.id), combattant(partie, E.id)).soak, 'l’aperçu ne lit pas la cible').toBeGreaterThan(0);
-      partie.envoyer({ type: 'battleClickEntity', args: [E.id, { confirm: true }] });
+      partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
       expect(partie.etat().pendingAttack, 'la déclaration n’a pas ouvert la fenêtre d’attaque').toMatchObject({ targetId: E.id, result: null });
       partie.envoyer({ type: 'jetRoll', args: ['attack'] });
       partie.envoyer({ type: 'jetSetForcedRoll', args: ['attack', 11] });
@@ -75,10 +75,10 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
     const partie = creerPartie({ ...garde, net: { ...garde.net, ownership: { [H.id]: 1 } } }, ENTREES);
     try {
       const loin = { x: H.pos!.x - 6, y: H.pos!.y };
-      const horsPossession = partie.envoyer({ type: 'battleClickTile', args: [loin, { confirm: true }], siege: 2 });
+      const horsPossession = partie.envoyer({ type: 'cliquerLaCase', args: [loin, undefined, { confirm: true }], siege: 2 });
       expect(horsPossession.issue, 'un siège qui ne possède pas l’acteur a passé la possession').toBe('refusee');
       expect(horsPossession.journal.map((l) => l.de), 'le refus n’a rien écrit au journal').toEqual(['journal']);
-      expect(partie.envoyer({ type: 'battleClickTile', args: [loin, { confirm: true }], siege: 1 }).issue).toBe('appliquee');
+      expect(partie.envoyer({ type: 'cliquerLaCase', args: [loin, undefined, { confirm: true }], siege: 1 }).issue).toBe('appliquee');
       expect(partie.etat().refus?.texte ?? '', 'témoin : le geste du siège a passé la possession, puis été refusé faute de verdict').toContain('Course');
       expect(partie.etat().localIntent, 'le clic du siège a dissous l’intention du propriétaire').toEqual({ actionId: 'course' });
       expect(partie.etat().pendingRun ?? partie.etat().pendingCascade, 'le siège a couru sur la case du propriétaire').toBeFalsy();

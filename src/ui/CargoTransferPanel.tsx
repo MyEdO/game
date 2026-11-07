@@ -17,18 +17,18 @@ import { NumberField } from './NumberField';
  */
 export function CargoTransferPanel({ carriers, onMove, labelOf, ...placement }: {
   carriers: CargoCarrier[];
-  onMove: (fromId: string, toId: string, cargoId: string, enc: number) => void;
+  onMove: (lotId: string, toId: string, enc: number) => void;
   labelOf: (cargoId: string) => string;
 } & Partial<typeof spanFull>) {
   const [rawFrom, setFrom] = useState('');
   const [rawTo, setTo] = useState('');
-  const [rawCargo, setCargo] = useState('');
+  const [rawLot, setLot] = useState('');
   const [encSaisi, setEncSaisi] = useState<number | null>(null);
   // Transférer touche la cale du groupe : refus d'invité lu au noyau, comme `moveCargo` le lit en tête.
   const refusHote = useGame(refusDeGesteSurLeGroupe);
   const disabled = refusHote != null;
 
-  const plan = planDeTransfert(carriers, { fromId: rawFrom, toId: rawTo, cargoId: rawCargo, enc: encSaisi });
+  const plan = planDeTransfert(carriers, { fromId: rawFrom, toId: rawTo, lotId: rawLot, enc: encSaisi });
   const { sources, from, dests, to, lot, maxEnc, enc: amount } = plan;
   if (!from || carriers.length < 2) return null;
 
@@ -46,8 +46,8 @@ export function CargoTransferPanel({ carriers, onMove, labelOf, ...placement }: 
               </select>
             </label>
             <label>Lot
-              <select value={lot?.cargoId ?? ''} disabled={disabled} onChange={(e) => setCargo(e.target.value)}>
-                {from.cargo.map((l, i) => <option key={i} value={l.cargoId}>{labelOf(l.cargoId)} ({l.enc} Enc)</option>)}
+              <select value={lot?.uid ?? ''} disabled={disabled} onChange={(e) => setLot(e.target.value)}>
+                {from.cargo.map((l) => <option key={l.uid} value={l.uid}>{labelOf(l.cargoId)} ({l.enc} Enc)</option>)}
               </select>
             </label>
             <label>Vers
@@ -64,7 +64,7 @@ export function CargoTransferPanel({ carriers, onMove, labelOf, ...placement }: 
             <GatedAction
               id="cargo-transfer" label="Transférer" primary={false} btnClassName="small"
               enabled={refusHote == null && plan.refus === null} {...raisonSi(refusHote ?? plan.refus)}
-              onClick={() => { if (plan.refus === null) { onMove(plan.from.id, plan.to.id, plan.lot.cargoId, amount); setEncSaisi(null); } }}
+              onClick={() => { if (plan.refus === null) { onMove(plan.lot.uid, plan.to.id, amount); setEncSaisi(null); } }}
             />
           </div>
         )}

@@ -11,6 +11,7 @@ import type { BattleState } from './etat';
 import { draineCascade } from './cascade.testkit';
 import { reluDans } from './combatDeTest.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -155,7 +156,7 @@ describe('Balayage en combat (store)', () => {
     banc.setState({ battle: { ...b, turn, action: null, movementUsed: 99, acted: false } });
 
     // Touche primaire sur E1 → balayage déclenché (héros plus grand).
-    banc.getState().battleClickEntity(E1.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E1.id, { confirm: true });
     banc.getState().jetRoll('attack');
     banc.getState().jetConfirm('attack');
     const pc = banc.getState().pendingCleave;
@@ -196,7 +197,7 @@ describe('Balayage en combat (store)', () => {
     banc.setState({ battle: { ...b, turn, action: null, movementUsed: 99, acted: false } });
 
     banc.getState().armerLAttaque('morsure');
-    banc.getState().battleClickEntity(E1.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E1.id, { confirm: true });
     expect(banc.getState().pendingAttack!.freeKind).toBe('morsure');
     banc.getState().jetRoll('attack');
     expect(banc.getState().pendingAttack!.result!.hit).toBe(true);

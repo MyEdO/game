@@ -169,11 +169,13 @@ describe('salon — l’invité', () => {
   });
 });
 
+const caseDe = (id: string) => ({ ...banc.getState().battle!.combatants.find((c) => c.id === id)!.pos! });
+
 describe('salon — l’action d’un invité part en intention, sauf l’élection locale', () => {
   it('Dissiper, porteur à 2 Sorts : l’élection se joue chez l’émetteur, rien ne part (LDB 46 l.158-162)', () => {
     banc.setState(tableDeDissipation('guest', { e1: 2 }));
     const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'battleClickEntity', banc.getState().battleClickEntity as never, envoyer, ['e1']);
+    emettreIntentInvite(banc.getState, 'cliquerLaCase', banc.getState().cliquerLaCase as never, envoyer, [caseDe('e1'), 'e1']);
     expect(banc.getState().dispelCarrierId, 'l’élection n’a pas eu lieu chez l’ÉMETTEUR').toBe('e1');
     expect(envoyer, 'l’élection est partie chez l’hôte').not.toHaveBeenCalled();
     expect(banc.getState().pendingDispel).toBeNull();
@@ -182,10 +184,10 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
   it('Dissiper, porteur à 1 Sort : rien à élire, le geste part avec son verdict d’armement', () => {
     banc.setState(tableDeDissipation('guest', { e1: 1 }));
     const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'battleClickEntity', banc.getState().battleClickEntity as never, envoyer, ['e1']);
+    emettreIntentInvite(banc.getState, 'cliquerLaCase', banc.getState().cliquerLaCase as never, envoyer, [caseDe('e1'), 'e1']);
     expect(banc.getState().dispelCarrierId).toBeNull();
     expect(banc.getState().pendingDispel, 'le commit s’est joué EN LOCAL').toBeNull();
-    expect(envoyer.mock.calls).toEqual([['battleClickEntity', ['e1', { approche: false }]]]);
+    expect(envoyer.mock.calls).toEqual([['cliquerLaCase', [caseDe('e1'), 'e1', { approche: false }]]]);
   });
 
   it('carnet : `markCluesSeen` part en intention et ne se joue pas localement (#2415)', () => {
@@ -210,9 +212,9 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
     });
     const local = vi.fn();
     const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'battleClickEntity', local, envoyer, ['e1', { confirm: true }]);
-    emettreIntentInvite(banc.getState, 'battleClickTile', local, envoyer, [{ x: 12, y: 4 }, { confirm: false }]);
-    expect(envoyer.mock.calls.map(([action]) => action)).toEqual(['battleClickEntity', 'battleClickTile']);
+    emettreIntentInvite(banc.getState, 'cliquerLaCase', local, envoyer, [{ x: 7, y: 10 }, 'e1', { confirm: true }]);
+    emettreIntentInvite(banc.getState, 'cliquerLaCase', local, envoyer, [{ x: 12, y: 4 }, undefined, { confirm: false }]);
+    expect(envoyer.mock.calls.map(([action]) => action)).toEqual(['cliquerLaCase', 'cliquerLaCase']);
     expect(local, 'le geste s’est joué en local au lieu de partir à l’hôte').not.toHaveBeenCalled();
   });
 });

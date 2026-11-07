@@ -10,7 +10,7 @@ import { itemFromTrappingById, isWeaponActive, isShieldTrapping } from '../engin
 import { MERCHANT_COL_RENDERERS } from '../noyau/colonnesDuMarchand';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
-import { sellGain, devisDeVente, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus, prixDeLigne, remiseDAchatPct, devisDuPanier, refusDAjout, coutDeReparation, refusDeReparation, optionsDeTroc, devisDeTroc, type DemandeDeTroc, type ContexteDAchat } from '../noyau/merchantFlow';
+import { libelleDeLaRepartition, sellGain, devisDeVente, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus, prixDeLigne, remiseDAchatPct, devisDuPanier, refusDAjout, coutDeReparation, refusDeReparation, optionsDeTroc, devisDeTroc, type DemandeDeTroc, type ContexteDAchat } from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
@@ -85,9 +85,9 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   onClearCart: () => void;
   onRefuse: (mode: 'buy' | 'sell') => void;
   onPay: () => void;
-  onAssignDist: (index: number, heroId: string) => void;
+  onAssignDist: (uid: string, heroId: string) => void;
   onConfirmDist: () => void;
-  onAddToSellCart: (uid: string, heroId: string) => void;
+  onAddToSellCart: (uid: string) => void;
   onRemoveSellCart: (uid: string) => void;
   onClearSellCart: () => void;
   onConfirmSell: () => void;
@@ -238,12 +238,12 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
         {(dist ?? []).map((d, i) => (
           <div className="dist-row" key={i}>
             <span className="merch-name">
-              {'item' in d ? d.item.label : (catalogEntryOf(d.unit.id)?.label ?? d.unit.id)}
+              {libelleDeLaRepartition(d)}
               {'unit' in d && <span className="hint"> (monture/véhicule)</span>}
             </span>
             <Row gap="sm" align="start">
               {party.map((h) => (
-                <CharFrame key={h.id} c={h} variant="identity" size="xs" selected={d.heroId === h.id} onClick={() => onAssignDist(i, h.id)} />
+                <CharFrame key={h.id} c={h} variant="identity" size="xs" selected={d.heroId === h.id} onClick={() => onAssignDist(d.uid, h.id)} />
               ))}
             </Row>
           </div>
@@ -513,7 +513,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
               ? <GatedAction id={`sell-${it.uid}`} label="+ Vendre" enabled={false} reason={refused} onClick={() => {}} primary={false} btnClassName="small" />
               : sellInCart(it.uid)
                 ? <button className="btn small" onClick={() => onRemoveSellCart(it.uid)} title="Retirer du panier de vente">✓ au panier</button>
-                : <button className="btn small" onClick={() => onAddToSellCart(it.uid, activeSellId)} title="Ajouter au panier de vente">+ Vendre</button>}
+                : <button className="btn small" onClick={() => onAddToSellCart(it.uid)} title="Ajouter au panier de vente">+ Vendre</button>}
           </div>
           );
         })}
@@ -685,24 +685,16 @@ export function MerchantPanel() {
   const money = partyMoneyTotal(useGame.getState); // affichage : somme des bourses (réactif via l'abonnement à `party`)
   const scene = useGame((s) => s.scene);
   const refusHote = useGame(refusDeGesteSurLeGroupe);
-  const addToCart = useGame((s) => s.addToCart);
-  const decFromCart = useGame((s) => s.decFromCart);
-  const removeFromCart = useGame((s) => s.removeFromCart);
-  const clearCart = useGame((s) => s.clearCart);
+  const choisir = useGame((s) => s.fenetreChoisir);
   const refuseBargain = useGame((s) => s.refuseBargain);
   const payCart = useGame((s) => s.payCart);
-  const assignDistribution = useGame((s) => s.assignDistribution);
   const valider = useGame((s) => s.fenetreValider);
-  const addToSellCart = useGame((s) => s.addToSellCart);
-  const removeFromSellCart = useGame((s) => s.removeFromSellCart);
-  const clearSellCart = useGame((s) => s.clearSellCart);
   const confirmSell = useGame((s) => s.confirmSell);
   const repairItem = useGame((s) => s.repairItem);
   const startBargain = useGame((s) => s.startBargain);
   const appraiseItem = useGame((s) => s.appraiseItem);
   const fermer = useGame((s) => s.fenetreFermer);
   const quitter = () => fermer('marchand');
-  const setSellHalving = useGame((s) => s.setSellHalving);
   const barterExchange = useGame((s) => s.barterExchange);
   const searchAvailability = useGame((s) => s.searchAvailability);
   if (!merchant) return null;
@@ -712,11 +704,13 @@ export function MerchantPanel() {
   return (
     <MerchantPanelView
       merchant={merchant} party={party} money={money} refusHote={refusHote} speakerEnt={speakerEnt} speakerName={speakerName} boniment={arch?.boniment}
-      onAddToCart={addToCart} onDecCart={decFromCart} onRemoveCart={removeFromCart} onClearCart={clearCart} onRefuse={refuseBargain} onPay={payCart}
-      onAssignDist={assignDistribution} onConfirmDist={() => valider('marchand')}
-      onAddToSellCart={addToSellCart} onRemoveSellCart={removeFromSellCart} onClearSellCart={clearSellCart} onConfirmSell={confirmSell}
+      onAddToCart={(id) => choisir('marchand', 'ajouterAuPanier', id)} onDecCart={(id) => choisir('marchand', 'oterDuPanier', id)}
+      onRemoveCart={(id) => choisir('marchand', 'retirerDuPanier', id)} onClearCart={() => choisir('marchand', 'viderLePanier', true)} onRefuse={refuseBargain} onPay={payCart}
+      onAssignDist={(uid, heroId) => choisir('marchand', 'repartition', uid, heroId)} onConfirmDist={() => valider('marchand')}
+      onAddToSellCart={(uid) => choisir('marchand', 'ajouterALaVente', uid)} onRemoveSellCart={(uid) => choisir('marchand', 'retirerDeLaVente', uid)}
+      onClearSellCart={() => choisir('marchand', 'viderLaVente', true)} onConfirmSell={confirmSell}
       onRepair={repairItem} onBargain={startBargain} onAppraise={appraiseItem} onClose={quitter}
-      onSellHalving={setSellHalving} onBarter={barterExchange} onSearchAvailability={searchAvailability}
+      onSellHalving={(uid, delta) => choisir('marchand', delta > 0 ? 'baisserLePrix' : 'releverLePrix', uid)} onBarter={barterExchange} onSearchAvailability={searchAvailability}
     />
   );
 }

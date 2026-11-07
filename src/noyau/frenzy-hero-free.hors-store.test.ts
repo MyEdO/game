@@ -3,6 +3,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -66,7 +67,7 @@ describe('Frénésie du héros — attaque de CC GRATUITE chaque Round (LDB 21 l
     const b = banc.getState().battle!;
     const turn = b.order.indexOf(H.id);
     banc.setState({ battle: { ...b, turn, action: null, acted: true } }); // Action déjà dépensée (Test de FM d'entrée)
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack).not.toBeNull(); // l'attaque libre s'ouvre malgré `acted`
   });
 });

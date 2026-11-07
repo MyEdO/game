@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { activeCombatant, combatDistance, mouvementDuTour, porteesDuTour, CLICS_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
+import { activeCombatant, combatDistance, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
 import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
 import { nouvelEntete, ouvrirLaPartie } from '../hote/partie';
 import type { Geste } from '../hote/geste';
@@ -92,7 +92,7 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
   it('l’étape-jet d’attaque nomme la pose du dé de son flux (`jetSetForcedRoll` sur `attack`)', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
       expect(projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@attack', 'jetConfirm@attack', 'jetSetForcedRoll@attack']));
-    }, { offre: 'charge' }, { type: 'battleClickEntity', args: ['enemy-enc-dome-1'] });
+    }, { offre: 'charge' }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] });
   });
 });
 
@@ -106,7 +106,7 @@ describe('le jet se lit avant sa confirmation', () => {
       expect(jet.lignes[0]).toMatchObject({ genre: 'test', jet: { d100: res.attackerDetail!.roll, dr: res.attackerDetail!.sl, reussi: res.attackerDetail!.success } });
       expect(jet.lignes).toHaveLength(res.defenderDetail ? 2 : 1);
       expect(rendreLaVue(p).join('\n')).toMatch(/^jet attack : .* · (gagne : \S+|égalité) · DR net [+-]?\d+$/m);
-    }, { offre: 'charge' }, { type: 'battleClickEntity', args: ['enemy-enc-dome-1'] }, { type: 'jetRoll', args: ['attack'] });
+    }, { offre: 'charge' }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] }, { type: 'jetRoll', args: ['attack'] });
   });
 });
 
@@ -114,7 +114,7 @@ describe('le champ et l’exploration se lisent', () => {
   it('l’aperçu du premier clic : sa case et son coût', { timeout: 120_000 }, () => {
     auPremierTour('siege-enceinte', (r) => {
       expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n')).toMatch(/^aperçu : move → \(12,44\) · coût 1/m);
-    }, { type: 'battleClickTile', args: [{ x: 12, y: 44 }] });
+    }, { type: 'cliquerLaCase', args: [{ x: 12, y: 44 }] });
   });
   it('les cases sont celles que le champ peint (`porteesDuTour`), et `cases` les borne', { timeout: 120_000 }, () => {
     auPremierTour('siege-enceinte', (r) => {
@@ -124,7 +124,7 @@ describe('le champ et l’exploration se lisent', () => {
       expect(rendreLesCases(cases).slice(0, 2)).toEqual([`zones : marche ${cases.length}`, expect.stringMatching(/^marche : \(\d+,\d+\)·\d/)]);
     });
   });
-  it('une Course armée : `cases` donne sa zone avant la marche, et la vue nomme les clics du champ qui la commettent', { timeout: 120_000 }, () => {
+  it('une Course armée : `cases` donne sa zone avant la marche, et la vue nomme le clic du champ qui la commet', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
       const etat = r.partie.etat();
       const cases = casesAtteignables(etat, true);
@@ -132,7 +132,7 @@ describe('le champ et l’exploration se lisent', () => {
       expect(cases[0].zone).toBe('course');
       expect(rendreLesCases(cases)[0]).toMatch(/^zones : course \d+ · marche \d+$/);
       const vue = rendreLaVue(projeter(etat, r.gestes.length, r.journal.length)).join(' ');
-      for (const clic of Object.values(CLICS_DU_CHAMP)) expect(vue).toContain(`${clic}(`);
+      expect(vue).toContain(`${CLIC_DU_CHAMP}(`);
       expect(vue).toMatch(/intention armée : course \(un clic du champ la commet\)/);
     }, { offre: 'course' });
   });

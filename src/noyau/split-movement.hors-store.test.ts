@@ -48,7 +48,7 @@ describe('Mouvement décomposable', () => {
     const { H } = setup();
     const M = effectiveMovement(H);
     const dest1 = pickAtDist(computeMoveReach(banc.getState), 2);
-    banc.getState().battleClickTile(dest1, { confirm: true });
+    banc.getState().cliquerLaCase(dest1, undefined, { confirm: true });
     let st = banc.getState();
     let h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.pos).toEqual(dest1);
@@ -58,7 +58,7 @@ describe('Mouvement décomposable', () => {
     const reach2 = computeMoveReach(banc.getState);
     expect(reach2.size).toBeGreaterThan(0);
     const dest2 = pickAtDist(reach2, 2);
-    banc.getState().battleClickTile(dest2, { confirm: true });
+    banc.getState().cliquerLaCase(dest2, undefined, { confirm: true });
     st = banc.getState();
     h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(st.battle!.movementUsed).toBe(4);
@@ -76,7 +76,7 @@ describe('Mouvement décomposable', () => {
     const reach1 = computeMoveReach(banc.getState);
     expect(reach1.size).toBeGreaterThan(0);
     const dest1 = pickAtDist(reach1, 1);
-    banc.getState().battleClickTile(dest1, { confirm: true });
+    banc.getState().cliquerLaCase(dest1, undefined, { confirm: true });
     expect(banc.getState().battle!.movementUsed).toBe(1);
     // 2e segment post-Action encore permis (Action puis Mouvement*, pas de M-A-M)
     const st = banc.getState();
@@ -89,7 +89,7 @@ describe('Mouvement décomposable', () => {
     const { H } = setup();
     // 1er Mouvement (avant l'Action) → marque movedPreAction
     const dest1 = pickAtDist(computeMoveReach(banc.getState), 1);
-    banc.getState().battleClickTile(dest1, { confirm: true });
+    banc.getState().cliquerLaCase(dest1, undefined, { confirm: true });
     expect(banc.getState().battle!.movedPreAction).toBe(true);
     expect(banc.getState().battle!.movementUsed).toBe(1);
     // L'Action est prise (p. ex. attaque résolue).
@@ -100,7 +100,7 @@ describe('Mouvement décomposable', () => {
     expect(computeMoveReach(banc.getState).size).toBe(0);
     // un clic de case ne déplace pas
     const before = banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos;
-    banc.getState().battleClickTile({ x: before!.x + 1, y: before!.y }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: before!.x + 1, y: before!.y }, undefined, { confirm: true });
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(before);
   });
 

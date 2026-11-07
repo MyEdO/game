@@ -65,7 +65,7 @@ import { restPlacesHere, sceneLieu } from '../noyau/restFlow';
 import { fouilleOuverte } from '../noyau/interactionsDExploration';
 import { hoverClickCommits } from './pointerCaps';
 import { controlsActive } from '../noyau/netOwnership';
-import { jouerLeClicDuCombattant } from '../noyau/combatOrParty';
+import { cliquerSurLeCombattant, jouerLeClicDuCombattant } from '../noyau/combatOrParty';
 import { useGamepad } from './useGamepad';
 import { lancerCampagne } from '../scenes/campaign';
 import { estNouveauPour } from '../noyau/monde/clues';
@@ -142,7 +142,6 @@ export function CampaignView() {
   const partyWiped = useGame((s) => s.partyWiped);
   const party = useGame((s) => s.party);
   const povActive = useGame((s) => s.povActive);
-  const battleClickEntity = useGame((s) => s.battleClickEntity);
   const netMode = useGame((s) => s.net.mode);
   const refusSave = useGame((s) => refusDeSauvegarde(s, s.net.mySeat));
   const openRest = useGame((s) => s.openRest);
@@ -245,16 +244,16 @@ export function CampaignView() {
   const isTargeting = controls && cibleDesEntites;
   // LDB 10.
   const onStripPortrait = (id: string) => {
-    // Tir rapide armé : router le clic vers `battleClickEntity` (source UNIQUE carte ⇄ frise) — il déclenche
+    // Tir rapide armé : router le clic vers `cliquerLaCase` (source UNIQUE carte ⇄ frise) — il déclenche
     // l'interruption sur un adversaire valide, même pendant la pause où il n'y a pas de combattant actif.
-    if (preemptAiming) { battleClickEntity(id); return; }
+    if (preemptAiming) { cliquerSurLeCombattant(useGame.getState, id); return; }
     // MÊME comportement que cliquer le token sur la carte (IsoStage) : action de combat si la cible est
     // actionnable ET qu'on contrôle l'actif (coop : ton tour) ; l'inspection est le geste SECONDAIRE du
     // portrait (`onInspect`). `jouerLeClicDuCombattant` = clic PARTAGÉ carte ⇄ frise.
     if (controls) jouerLeClicDuCombattant(useGame.getState, id, hoverClickCommits()); // desktop : un clic commet (cf. pointerCaps)
   };
   const onDockPortrait = (id: string) => {
-    if (isTargeting) { battleClickEntity(id, { confirm: hoverClickCommits() }); return; }
+    if (isTargeting) { cliquerSurLeCombattant(useGame.getState, id, { confirm: hoverClickCommits() }); return; }
     setSheetId(id);
   };
 

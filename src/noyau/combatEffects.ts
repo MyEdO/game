@@ -29,7 +29,8 @@ import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { grantPsychTrait } from '../engine/grantedTraits';
-import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, type TrappingResolver } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, newUid, type TrappingResolver } from '../engine/items';
+import type { IdDeLigneDeButin } from './designations';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
@@ -91,7 +92,7 @@ import { poserLeGroupe } from './marcheDuGroupe';
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
  * (setFlag/journal/dons/transitions/tests/soins…) + la brique de butin ATTRIBUABLE
- * (`gearFromEffects`/`applyEffectsLoot`/`assignGearAt`), les déclencheurs de zone
+ * (`gearFromEffects`/`applyEffectsLoot`/`attribuerLaLigne`), les déclencheurs de zone
  * (`checkTriggers`) et l'empilement des révélations en étapes d'affichage (`pushReveal`).
  * Module FEUILLE — n'importe RIEN de combatFlow.
  */
@@ -237,7 +238,7 @@ export function gearFromEffects(effects: Effect[], objetDe: TrappingResolver): {
   const gear: LootGear[] = [];
   const rest: Effect[] = [];
   for (const e of effects) {
-    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ label: giveTrappingLabel(e, objetDe), magic: !!e.qualities?.length || e.identified === false, effect: e });
+    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ uid: newUid(), label: giveTrappingLabel(e, objetDe), magic: !!e.qualities?.length || e.identified === false, effect: e });
     else rest.push(e);
   }
   return { gear, rest };
@@ -277,16 +278,17 @@ export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title:
   return undefined;
 }
 
-/** Attribue la ligne `index` du butin (`pendingLoot` ou `pendingVictory`) au héros choisi :
+/** Attribue la ligne `uid` du butin (`pendingLoot` ou `pendingVictory`) au héros choisi :
  *  l'Effet d'origine s'applique avec ce heroId (qualités/teinte/identification conservées), la
- *  ligne quitte la fenêtre. Source unique de l'attribution (victoire ET fenêtre de loot). */
-export function assignGearAt(get: Get, set: SetFn, key: 'pendingLoot' | 'pendingVictory', index: number, heroId: string) {
-  const bucket = get()[key];
-  if (!bucket?.gear || index < 0 || index >= bucket.gear.length) return;
+ *  ligne quitte la fenêtre. Source unique de l'attribution (victoire ET fenêtre de loot), corps des choix
+ *  `loot.ligne` et `victory.ligne`. */
+export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pendingVictory', uid: IdDeLigneDeButin, heroId: string) {
+  const bucket = garanti(get()[key], key, 'butin ouvert');
+  const ligne = garanti(bucket.gear?.find((g) => g.uid === uid), uid, 'ligne de butin');
   // Une ligne de butin est un `giveTrapping` par construction (`gearFromEffects`) : elle ne porte aucun
   // canal de dés, donc le retrait qui suit ne peut pas passer devant un dé (#1508).
-  nePeutPasDifferer(applyEffects(get, set, [{ ...bucket.gear[index].effect, heroId }]), 'assignGearAt');
-  const retrait: PatchDeFlux = { [key]: { ...bucket, gear: bucket.gear.filter((_, i) => i !== index) } };
+  nePeutPasDifferer(applyEffects(get, set, [{ ...ligne.effect, heroId }]), 'attribuerLaLigne');
+  const retrait: PatchDeFlux = { [key]: { ...bucket, gear: (bucket.gear ?? []).filter((g) => g.uid !== uid) } };
   set(retrait);
 }
 

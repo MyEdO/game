@@ -11,15 +11,15 @@
  * prix de ±`bargainPct` (`engine/bargain`). Les +DR de vendeur (`buySellerDR`
  * à l'achat, `sellChance.sellerDR` à la vente) s'ajoutent au DR de LEUR camp.
  *
- * VENTE (`portSellCargo`, dernier reliquat #275/#274) : CASCADE (`noyau/rollSeam.ts` `openRoll` +
+ * VENTE (`vendreAuPort`, dernier reliquat #275/#274) : CASCADE (`noyau/rollSeam.ts` `openRoll` +
  * `noyau/cascade.ts`) — Ragot (hero-test), recherche d'acheteur (dé de MONDE par `openWorldTest`,
  * porteur `WORLD_STEP_OWNER`), Marchandage opposé (hero-test pour le héros, le marchand roule via
  * `engine/seaVoyage.rollMerchantOpposition`, moteur pur) sont chacun une étape routée par la policy
  * M/V/I (`surfaceDeLEtape`) — chaque continuation ENCHAÎNE l'étape suivante depuis l'applier de la
  * précédente (patron `merchantFlow.ts` Ragot→réassort ; défère via `setTimeout` si la cascade est
- * encore EN COURS de commit, patron `seaVoyageFlow.ts` `sea-desertion`). ACHAT (`portBuyCargo`, #266)
+ * encore EN COURS de commit, patron `seaVoyageFlow.ts` `sea-desertion`). ACHAT (`acheterAuPort`, #266)
  * suit le MÊME patron : le Marchandage d'achat s'ouvre par `openRoll` (hero-test) — SURFACÉ comme la
- * vente, jamais un jet interne silencieux. Seul le BRADAGE (`portDumpCargo`) reste synchrone (¼ du prix,
+ * vente, jamais un jet interne silencieux. Seul le BRADAGE (`jeterAuPort`) reste synchrone (¼ du prix,
  * aucun Test de Marchandage au RAW, MDG 15 l.399).
  */
 import { battleRng } from './battleRng';
@@ -55,6 +55,9 @@ import { garanti } from '../lib/garanti';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
+import type { IdDeCargaison, IdDePorteurDeCargaison } from './designations';
+import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
+import { newUid } from '../engine/items';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
@@ -127,13 +130,13 @@ export function caleALEscale(vessel: Jeu['vessel']): { libre: number; embarquabl
  *  au meilleur Marchandage possible du groupe (`remiseMaximaleDeMarchandage`), entrée en surcharge
  *  (MDG 12 l.70-75), refus (`null` : le geste passe au Marchandage). Une bourse sous le plancher refuse avant
  *  le jet ; entre le plancher et le prix, elle se juge après le jet (`finalizePortBuy`). SOURCE UNIQUE de
- *  `portBuyCargo` et de l'écran du port. PUR. */
+ *  `acheterAuPort` et de l'écran du port. PUR. */
 export type DevisDAchatEnPort = { enc: number; max: number; estimationGold: number; plancherGold: number; surcharge: boolean } & (
   | { refus: null; offre: PortOffer }
   | { refus: string; offre?: PortOffer }
 );
 
-export function devisDAchatEnPort(s: Pick<Jeu, 'port' | 'vessel' | 'net' | 'party'>, cargoId: string, enc?: number): DevisDAchatEnPort {
+export function devisDAchatEnPort(s: Pick<Jeu, 'port' | 'vessel' | 'net' | 'party'>, porteurId: IdDePorteurDeCargaison, cargoId: string, enc?: number): DevisDAchatEnPort {
   const offre = s.port?.offers.find((o) => o.cargoId === cargoId);
   const libre = encLibreNominale(s.vessel);
   const max = offre ? Math.min(offre.enc, encEmbarquable(s.vessel)) : 0;
@@ -141,7 +144,8 @@ export function devisDAchatEnPort(s: Pick<Jeu, 'port' | 'vessel' | 'net' | 'part
   const want = Math.max(0, Math.min(Math.floor(voulu), max));
   const plancherGold = offre ? prixDuLotEnPort(want, offre.basePrice, -remiseMaximaleDeMarchandage(s.party)) : 0;
   const base = { enc: want, max, estimationGold: offre ? prixDuLotEnPort(want, offre.basePrice, 0) : 0, plancherGold, surcharge: want > libre, offre };
-  const refus = refusDeGesteSurLeGroupe(s) ?? (!offre || !s.vessel ? t('port.offreAbsente') : want <= 0 ? t('port.holdFull')
+  const refus = refusDeGesteSurLeGroupe(s) ?? (!offre || !s.vessel ? t('port.offreAbsente')
+    : porteurId !== CAMPAIGN_VESSEL_CARRIER_ID ? t('port.horsDuNavire') : want <= 0 ? t('port.holdFull')
     : !canAfford(totalDesBourses(s.party), toMoney({ gold: plancherGold })) ? t('cargo.bourseSousPlancher', { plancher: plancherGold })
     : null);
   return refus === null && offre ? { ...base, offre, refus } : { ...base, refus: refus ?? t('port.offreAbsente') };
@@ -216,7 +220,7 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
   const price = prixDuLotEnPort(enc, basePrice, pct);
   const cost = toMoney({ gold: price });
   if (!canAfford(partyMoneyTotal(get), cost)) return [t('cargo.purseShort', { price, label: offer.label, bargain: bargainLine })];
-  const cargo: CargoLot = { cargoId, enc, basePriceGold: basePrice };
+  const cargo: CargoLot = { uid: newUid(), cargoId, enc, basePriceGold: basePrice };
   const nextCargo = [...(vessel.cargo ?? []), cargo];
   payFromGroup(get, set, cost, { purpose: 'cargaison navire' });
   set({
@@ -236,10 +240,10 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
  *  Le marchand roule via `rollMerchantOpposition` (moteur pur, appelé par l'applier) ; le vendeur NPC porte
  *  ses +DR de lot partiel/Surplus (l.339-341). Sans marchandeur dans le groupe, l'achat se conclut au prix
  *  plein (aucun jet). Débité, ajouté à la cale plafonnée à 150 % (MDG 12 l.75). */
-export function portBuyCargo(get: Get, set: Set, cargoId: string, enc: number): void {
+export function acheterAuPort(get: Get, set: Set, porteurId: IdDePorteurDeCargaison, cargoId: string, enc: number): void {
   const st = get().port;
   if (!st) return;
-  const devis = devisDAchatEnPort(get(), cargoId, enc);
+  const devis = devisDAchatEnPort(get(), porteurId, cargoId, enc);
   if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return; }
   const { offre: offer, enc: want } = devis;
   const partial = want < offer.enc;
@@ -271,18 +275,25 @@ function bargainHeroTR(step: CascadeStep, r: CascadeRoll): TestResult {
 const PORT_BUY_BARGAIN_KIND = 'port-buy-bargain';
 
 
+/** Le lot `lotId` de la cale du navire, et le navire, au port ouvert. */
+function lotALaCale(get: Get, lotId: IdDeCargaison) {
+  const st = get().port;
+  const vessel = get().vessel;
+  const lot = vessel?.cargo?.find((l) => l.uid === lotId);
+  return st && vessel && lot ? { st, vessel, lot } : null;
+}
+
 /** Finalise la vente : gross = Enc × prix de base × Prix d'offre % × (1 + Marchandage %), retire le
  *  lot (ou la fraction vendue) de la cale, crédite la bourse. SOURCE UNIQUE du dénouement, partagée
  *  par le chemin SANS marchandeur (prix d'offre pris tel quel) et l'applier `PORT_SELL_BARGAIN_KIND`.
  *  Renvoie la ligne de journal (vide si l'état a changé entre-temps). */
-function finalizePortSale(get: Get, set: Set, cargoIndex: number, sellEnc: number, offerPct: number, bargainPctVal: number, bargainLine: string): string {
-  const st = get().port;
-  const vessel = get().vessel;
-  const lot = vessel?.cargo?.[cargoIndex];
-  if (!st || !vessel || !lot) return '';
+function finalizePortSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: number, offerPct: number, bargainPctVal: number, bargainLine: string): string {
+  const cale = lotALaCale(get, lotId);
+  if (!cale) return '';
+  const { vessel, lot } = cale;
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
   const gross = Math.max(0, Math.round(sellEnc * lot.basePriceGold * (offerPct / 100) * (1 + bargainPctVal / 100)));
-  const nextCargo = sellEnc >= lot.enc ? (vessel.cargo ?? []).filter((_, i) => i !== cargoIndex) : (vessel.cargo ?? []).map((l, i) => i === cargoIndex ? { ...l, enc: l.enc - sellEnc } : l);
+  const nextCargo = sellEnc >= lot.enc ? (vessel.cargo ?? []).filter((l) => l.uid !== lotId) : (vessel.cargo ?? []).map((l) => l.uid === lotId ? { ...l, enc: l.enc - sellEnc } : l);
   distributeCredit(get, set, fromBrass(gross * PA_PER_CO));
   set({ vessel: { ...vessel, cargo: nextCargo } });
   return t('port.sold', { enc: sellEnc, label, pct: offerPct, bargain: bargainLine, money: formatMoney(fromBrass(gross * PA_PER_CO)) });
@@ -291,18 +302,17 @@ function finalizePortSale(get: Get, set: Set, cargoIndex: number, sellEnc: numbe
 /** 3. Marchandage opposé (vendeur PJ +DR, l.387-397) — hero-test (`openRoll`) pour le héros ; le
  *  marchand roule via `rollMerchantOpposition` (moteur pur, appelé par l'applier). Sans marchandeur
  *  dans le groupe, la vente se conclut au prix d'offre pris tel quel (aucun jet). */
-function openPortSellBargainStep(get: Get, set: Set, cargoIndex: number, sellEnc: number): void {
-  const st = get().port;
-  const vessel = get().vessel;
-  const lot = vessel?.cargo?.[cargoIndex];
-  if (!st || !vessel || !lot) return;
+function openPortSellBargainStep(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: number): void {
+  const cale = lotALaCale(get, lotId);
+  if (!cale) return;
+  const { st, vessel, lot } = cale;
   const offerPct = offerPricePct(st.port, lot.cargoId);
   const best = partyAssisted(get().party, { skill: { id: 'marchandage' } });
   // Toujours tiré (même sans marchandeur) — préserve l'ordre des tirages RNG de l'ancienne résolution
   // synchrone (déterminisme seedé conservé, la porte du seam ne touche pas le rng).
   const merchant = rollMerchantSkill(!!st.port.cosmopolite, battleRng());
   if (!best) {
-    log(get, set, [finalizePortSale(get, set, cargoIndex, sellEnc, offerPct, 0, t('port.noBargainerSell'))]);
+    log(get, set, [finalizePortSale(get, set, lotId, sellEnc, offerPct, 0, t('port.noBargainerSell'))]);
     return;
   }
   const sellerDR = sellChance(st.port, lot.cargoId, vessel.lastVoyageMilles ?? 0).sellerDR;
@@ -311,25 +321,24 @@ function openPortSellBargainStep(get: Get, set: Set, cargoIndex: number, sellEnc
     actionLabel: t('port.actionSell'),
     difficulty: 'intermediaire',
     stake: combatStakeRef(PORT_SELL_BARGAIN_KIND, { values: { sellerDR: signedDR(sellerDR) } }),
-  }, PORT_SELL_BARGAIN_KIND, { cargoIndex, sellEnc, offerPct, merchantValue: merchant.value, merchantNegotiator: merchant.negotiator, sellerDR });
+  }, PORT_SELL_BARGAIN_KIND, { lotId, sellEnc, offerPct, merchantValue: merchant.value, merchantNegotiator: merchant.negotiator, sellerDR });
 }
 
 const PORT_SELL_BARGAIN_KIND = 'port-sell-bargain';
 
 /** 2. Trouver un acheteur (dé de MONDE par `openWorldTest`, MDG 15 l.362) : cible = `chance.target`.
  *  Échec sur la 1ʳᵉ tentative SANS Ragot préalable → 2ᵉ tentative sur la moitié du lot (`attempt:2`). */
-function openPortSellBuyerStep(get: Get, set: Set, cargoIndex: number, sellEnc: number, allowHalfRetry: boolean, attempt: 1 | 2): void {
-  const st = get().port;
-  const vessel = get().vessel;
-  const lot = vessel?.cargo?.[cargoIndex];
-  if (!st || !vessel || !lot) return;
+function openPortSellBuyerStep(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: number, allowHalfRetry: boolean, attempt: 1 | 2): void {
+  const cale = lotALaCale(get, lotId);
+  if (!cale) return;
+  const { st, vessel, lot } = cale;
   const milles = vessel.lastVoyageMilles ?? 0;
   const chance = sellChance(st.port, lot.cargoId, milles);
   openWorldTest(get, set, {
     actionLabel: t('port.buyerSearch'),
     cible: chance.target,
     verdict: { reussite: t('seuil.acheteurTrouve'), echec: t('seuil.aucunAcheteur') },
-  }, PORT_SELL_BUYER_KIND, { cargoIndex, sellEnc, retryHalf: allowHalfRetry, attempt });
+  }, PORT_SELL_BUYER_KIND, { lotId, sellEnc, retryHalf: allowHalfRetry, attempt });
 }
 
 const PORT_SELL_BUYER_KIND = 'port-sell-buyer';
@@ -342,13 +351,12 @@ const PORT_SELL_GOSSIP_KIND = 'port-sell-gossip';
  *  Prix d'offre (% du prix de base par Richesse+Taille+Demande), Marchandage opposé (vendeur PJ +DR).
  *  Retire le lot vendu de la cale, crédite la bourse. CASCADE (Ragot → acheteur → Marchandage) —
  *  chaque étape routée par la policy M/V/I (cf. docstring d'en-tête). */
-export function portSellCargo(get: Get, set: Set, cargoIndex: number): void {
+export function vendreAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
   if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
-  const st = get().port;
-  const vessel = get().vessel;
-  if (!st || !vessel) return;
-  const lot = (vessel.cargo ?? [])[cargoIndex];
-  if (!lot) return;
+  if (!get().port || !get().vessel) return;
+  const cale = lotALaCale(get, lotId);
+  if (!cale) { refuserGeste(get, set, t('port.horsDuNavire')); return; }
+  const { st, vessel, lot } = cale;
   const milles = vessel.lastVoyageMilles ?? 0;
   const chance = sellChance(st.port, lot.cargoId, milles);
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
@@ -364,32 +372,31 @@ export function portSellCargo(get: Get, set: Set, cargoIndex: number): void {
       actionLabel: t('port.buyerSearch'),
       difficulty: chance.gossip.difficulty,
       stake: combatStakeRef(PORT_SELL_GOSSIP_KIND),
-    }, PORT_SELL_GOSSIP_KIND, { cargoIndex });
+    }, PORT_SELL_GOSSIP_KIND, { lotId });
     return;
   }
-  openPortSellBuyerStep(get, set, cargoIndex, lot.enc, true, 1);
+  openPortSellBuyerStep(get, set, lotId, lot.enc, true, 1);
 }
 
 /** Refus de brader le lot `cargoId` au port ouvert : `refusDeGesteSurLeGroupe`, puis port qui ne rachète pas ce
- *  lot (`dumpingPricePct` nul, MDG 15 l.399) ; `null` sinon. Tombe dans `portDumpCargo`, lu par l'écran. */
+ *  lot (`dumpingPricePct` nul, MDG 15 l.399) ; `null` sinon. Tombe dans `jeterAuPort`, lu par l'écran. */
 export function refusDeBradageEnPort(s: Pick<Jeu, 'net' | 'port'>, cargoId: string): string | null {
   return refusDeGesteSurLeGroupe(s)
     ?? (s.port && dumpingPricePct(s.port.port, cargoId) == null ? t('port.dumpRefused', { label: findCargoById(cargoId)?.label ?? cargoId }) : null);
 }
 
 /** BRADER un lot (l.399) : ¼ du prix de base dans un port « commerce » ou en Demande — sinon refus. */
-export function portDumpCargo(get: Get, set: Set, cargoIndex: number): void {
-  const st = get().port;
-  const vessel = get().vessel;
-  if (!st || !vessel) return;
-  const lot = (vessel.cargo ?? [])[cargoIndex];
-  if (!lot) return;
+export function jeterAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
+  if (!get().port || !get().vessel) return;
+  const cale = lotALaCale(get, lotId);
+  if (!cale) { refuserGeste(get, set, t('port.horsDuNavire')); return; }
+  const { st, vessel, lot } = cale;
   const refus = refusDeBradageEnPort(get(), lot.cargoId);
   if (refus) { refuserGeste(get, set, refus); return; }
   const pct = garanti(dumpingPricePct(st.port, lot.cargoId), lot.cargoId, 'pourcentage de bradage');
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
   const gross = Math.max(0, Math.round(lot.enc * lot.basePriceGold * (pct / 100)));
-  const nextCargo = (vessel.cargo ?? []).filter((_, i) => i !== cargoIndex);
+  const nextCargo = (vessel.cargo ?? []).filter((l) => l.uid !== lotId);
   distributeCredit(get, set, fromBrass(gross * PA_PER_CO));
   set({ vessel: { ...vessel, cargo: nextCargo } });
   log(get, set, [t('port.dumped', { enc: lot.enc, label, pct, money: formatMoney(fromBrass(gross * PA_PER_CO)) })]);
@@ -458,9 +465,6 @@ export function sortiesDuPort(_get: Get, set: Set) {
 export function creerActionsDuPort(get: Get, set: Set) {
   return {
     openPort: () => openPort(get, set),
-    portBuyCargo: (cargoId, enc) => portBuyCargo(get, set, cargoId, enc),
-    portSellCargo: (cargoIndex) => portSellCargo(get, set, cargoIndex),
-    portDumpCargo: (cargoIndex) => portDumpCargo(get, set, cargoIndex),
     portHireCrew: (roleId, count) => portHireCrew(get, set, roleId, count),
     portDismissCrew: (roleId, count) => portDismissCrew(get, set, roleId, count),
   } satisfies FabriqueDuNoyau;
@@ -496,7 +500,7 @@ export const TABLES = {
     },
     [PORT_SELL_BARGAIN_KIND]: (get, set, step) => {
       if (!estJete(step.result)) return {};
-      const cargoIndex = Number(step.meta?.cargoIndex ?? -1);
+      const lotId = String(step.meta?.lotId ?? '');
       const sellEnc = Number(step.meta?.sellEnc ?? 0);
       const offerPct = Number(step.meta?.offerPct ?? 100);
       const merchantValue = Number(step.meta?.merchantValue ?? 0);
@@ -512,26 +516,25 @@ export const TABLES = {
       if (opp.winner === 'attacker') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(actor)); // le PJ monte le prix
       else if (opp.winner === 'defender') bargainPctVal = -bargainPct(true, netSL, merchantNegotiator); // l'acheteur le baisse
       const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDRSigned', { dr: `${sellerDR > 0 ? '+' : ''}${sellerDR}` }) : '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: `${bargainPctVal > 0 ? '+' : ''}${bargainPctVal}` }) });
-      return { consequences: freeCons([finalizePortSale(get, set, cargoIndex, sellEnc, offerPct, bargainPctVal, bargainLine)]) };
+      return { consequences: freeCons([finalizePortSale(get, set, lotId, sellEnc, offerPct, bargainPctVal, bargainLine)]) };
     },
     [PORT_SELL_BUYER_KIND]: (get, set, step) => {
       if (!estJete(step.result)) return {};
-      const cargoIndex = Number(step.meta?.cargoIndex ?? -1);
+      const lotId = String(step.meta?.lotId ?? '');
       const sellEnc = Number(step.meta?.sellEnc ?? 0);
       const retryHalf = !!step.meta?.retryHalf;
       const attempt = Number(step.meta?.attempt ?? 1);
-      const st = get().port;
-      const vessel = get().vessel;
-      const lot = vessel?.cargo?.[cargoIndex];
-      if (!st || !vessel || !lot) return {};
+      const cale = lotALaCale(get, lotId);
+      if (!cale) return {};
+      const { st, lot } = cale;
       const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
       if (step.result.success) {
-        chainStep(get, () => openPortSellBargainStep(get, set, cargoIndex, sellEnc));
+        chainStep(get, () => openPortSellBargainStep(get, set, lotId, sellEnc));
         return attempt === 2 ? { consequences: freeCons([t('port.halfLot', { label, enc: sellEnc })]) } : {};
       }
       if (attempt === 1 && retryHalf) {
         const half = Math.max(1, Math.floor(lot.enc / 2));
-        chainStep(get, () => openPortSellBuyerStep(get, set, cargoIndex, half, false, 2));
+        chainStep(get, () => openPortSellBuyerStep(get, set, lotId, half, false, 2));
         return {};
       }
       return { consequences: freeCons([t('port.noBuyer', { label, port: st.label, target: step.result.target })]) };
@@ -539,11 +542,10 @@ export const TABLES = {
     [PORT_SELL_GOSSIP_KIND]: (get, set, step) => {
       const jet = step.result;
       if (!jet) return {};
-      const cargoIndex = Number(step.meta?.cargoIndex ?? -1);
-      const st = get().port;
-      const vessel = get().vessel;
-      const lot = vessel?.cargo?.[cargoIndex];
-      if (!st || !vessel || !lot) return {};
+      const lotId = String(step.meta?.lotId ?? '');
+      const cale = lotALaCale(get, lotId);
+      if (!cale) return {};
+      const { st, lot } = cale;
       const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
       const actor = garanti(step.actorId ? actorIn(get(), step.actorId) : undefined, step.actorId, 'ragot au port');
       // Le Test de Ragot n'a pas de rangée propre : sa ligne se DÉRIVE (`traceLineOf`), jamais ré-imprimée à la main.
@@ -555,7 +557,7 @@ export const TABLES = {
       if (!jet.success) {
         return { consequences: gossip(t('port.gossipFail', { relation: sellRelation(st.port, lot.cargoId) === 'surplus' ? t('port.hasSurplus') : t('port.produces') })) };
       }
-      chainStep(get, () => openPortSellBuyerStep(get, set, cargoIndex, lot.enc, false, 1));
+      chainStep(get, () => openPortSellBuyerStep(get, set, lotId, lot.enc, false, 1));
       return { consequences: gossip(t('port.gossipOk')) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,

@@ -101,7 +101,7 @@ export interface EtatDeLAdaptateur {
    *  réseau), read-only : actif même hors de son tour. null = aucun survol de portrait. */
   hoverCombatantId: string | null;
   /** Curseur de combat CLAVIER/MANETTE : case visée (éventuellement aimantée à une cible). Il pilote le
-   *  réticule comme un survol souris et se commet via battleClickEntity/Tile. null = aucune navigation
+   *  réticule comme un survol souris et se commet via cliquerLaCase. null = aucune navigation
    *  clavier en cours (la souris a la main). Périmé par `curseurPerime`. */
   combatCursor: CombatCursor | null;
   /** Entité mise en évidence par le SURVOL — en combat le combattant (token carte OU portrait frise),

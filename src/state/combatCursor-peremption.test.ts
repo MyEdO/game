@@ -16,6 +16,7 @@ import { makePregens } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
+import { cliquerSurLeCombattant } from '../noyau/combatOrParty';
 
 const get = () => useGame.getState();
 const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
@@ -112,7 +113,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
 
   it('Tir rapide déclenché : le clic qui tire périme le curseur', () => {
     const { H, E } = pauseTirRapide();
-    get().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(get, E.id, { confirm: true });
     expect(get().pendingAttack?.attackerId, 'témoin : la modale de tir s’est ouverte').toBe(H.id);
     expect(get().combatCursor).toBeNull();
   });

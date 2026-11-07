@@ -65,14 +65,14 @@ describe('résolution canonique du déplacement', () => {
   it('réutilise au commit le chemin et le coût stockés au premier tap', () => {
     const active = setup();
     const dest = { x: active.pos!.x + 2, y: active.pos!.y };
-    banc.getState().battleClickTile(dest);
+    banc.getState().cliquerLaCase(dest);
     const preview = banc.getState().battle!.preview;
     expect(preview).toMatchObject({ kind: 'move', cost: 2 });
     if (!preview || preview.kind !== 'move') throw new Error('aperçu de Marche absent');
 
     let emittedPath: unknown;
     const unsubscribe = bus.on(EVT.ANIM_MOVE, (payload) => { emittedPath = payload.path; });
-    banc.getState().battleClickTile(dest);
+    banc.getState().cliquerLaCase(dest);
     unsubscribe();
 
     expect(emittedPath).toBe(preview.path);
@@ -83,12 +83,12 @@ describe('résolution canonique du déplacement', () => {
     const active = setup();
     const dest = { x: active.pos!.x + effectiveMovement(active) + 2, y: active.pos!.y };
     // Course ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : sans elle, le clic au-delà de la Marche refuse.
-    banc.getState().battleClickTile(dest, { courseArmee: true });
+    banc.getState().cliquerLaCase(dest, undefined, { courseArmee: true });
     const preview = banc.getState().battle!.preview;
     expect(preview?.kind).toBe('run');
     if (!preview || preview.kind !== 'run') throw new Error('aperçu de Course absent');
 
-    banc.getState().battleClickTile(dest, { courseArmee: true });
+    banc.getState().cliquerLaCase(dest, undefined, { courseArmee: true });
 
     expect(banc.getState().pendingRun?.path).toBe(preview.path);
     expect(banc.getState().pendingRun?.cost).toBe(preview.cost);
@@ -107,7 +107,7 @@ describe('résolution canonique du déplacement', () => {
     active.engagedWith = [enemy.id];
     enemy.engagedWith = [active.id];
 
-    banc.getState().battleClickTile({ x: active.pos!.x - 1, y: active.pos!.y });
+    banc.getState().cliquerLaCase({ x: active.pos!.x - 1, y: active.pos!.y });
 
     expect(banc.getState().pendingDisengage).not.toBeNull();
     expect(banc.getState().battle!.preview).toBeNull();

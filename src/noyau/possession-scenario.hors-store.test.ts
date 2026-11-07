@@ -30,8 +30,8 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 
 describe('scénario-étalon possessions — charrette + mule chargée (terrestre, §5)', () => {
   it('possessionTotalEnc survit à un round-trip snapshotSave → lireSave', () => {
-    const charretteUid = addPossession(get, set, { ...vehicule('charrette', [{ cargoId: 'grain', enc: 15, basePriceGold: 3 }]), location: { kind: 'au-lieu', placeId: 'ecurie' } });
-    const muleUid = addPossession(get, set, bete('mule', [{ cargoId: 'vin-eau-de-vie', enc: 4, basePriceGold: 8 }]));
+    const charretteUid = addPossession(get, set, { ...vehicule('charrette', [{ uid: 'lot-1', cargoId: 'grain', enc: 15, basePriceGold: 3 }]), location: { kind: 'au-lieu', placeId: 'ecurie' } });
+    const muleUid = addPossession(get, set, bete('mule', [{ uid: 'lot-2', cargoId: 'vin-eau-de-vie', enc: 4, basePriceGold: 8 }]));
 
     const before = get().possessions;
     const charretteBefore = before.find((p) => p.uid === charretteUid)!;

@@ -98,7 +98,7 @@ describe('fin de tour — l’Action intacte demande deux gestes, quelle que soi
     combat();
     runBindingById('end-turn', useGame.getState); // 1er geste : armement sur l'économie « 0 pas »
     expect(endTurnArmed(battle()), 'le 1er geste n’a rien armé').toBe(true);
-    act(() => { useGame.getState().battleClickTile({ x: 5, y: 4 }, { confirm: true }); }); // un VRAI pas
+    act(() => { useGame.getState().cliquerLaCase({ x: 5, y: 4 }, undefined, { confirm: true }); }); // un VRAI pas
     expect(battle().movementUsed, 'le pas n’a rien coûté : rien à annuler ensuite').toBeGreaterThan(0);
     expect(endTurnArmed(battle()), 'le pas n’a pas périmé l’armement').toBe(false);
     useGame.getState().jouerLOffre('undo-move');

@@ -42,7 +42,7 @@ describe('fenetreDAttaque — la modale d’attaque lue par la seule surface du 
   it('avant le jet : intitulé, Localisation, aperçu à jeter et défense annoncée ; après : le jet, l’opposition et l’issue', () => {
     const { H, E, partie } = duel();
     try {
-      partie.envoyer({ type: 'battleClickEntity', args: [E.id, { confirm: true }] });
+      partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
       const avant = vue(partie);
       expect(avant).toMatchObject({ intitule: 'Attaque', jete: false, bloque: null, issue: null, opposition: null, defenseAttendue: false });
       expect(avant.attaquantId).toBe(H.id);

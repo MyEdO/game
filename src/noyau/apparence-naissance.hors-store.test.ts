@@ -61,7 +61,7 @@ describe('la naissance est câblée aux flux réels', () => {
     const objet = attribution && 'item' in attribution ? attribution.item : undefined;
     expect(objet).toBeDefined();
     expect(objet).not.toHaveProperty('apparence');
-    banc.getState().assignDistribution(0, 'humain');
+    banc.getState().fenetreChoisir('marchand', 'repartition', attribution!.uid, 'humain');
     banc.getState().fenetreValider('marchand');
     expect(banc.getState().party[1].items?.find((i) => i.uid === objet?.uid)).not.toHaveProperty('apparence');
   });

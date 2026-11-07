@@ -31,7 +31,7 @@ describe('téléportation — un grand qui se téléporte dégage les plus petit
     return { H, enemies };
   }
 
-  it('battleClickTile en mode teleport : H 2×2 atterrit et déplace l\'ennemi petit de sous son empreinte', () => {
+  it('cliquerLaCase en mode teleport : H 2×2 atterrit et déplace l\'ennemi petit de sous son empreinte', () => {
     const { H, enemies } = setup();
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true)); // un seul ennemi actif
@@ -46,7 +46,7 @@ describe('téléportation — un grand qui se téléporte dégage les plus petit
       battle: { ...b, turn: b.order.indexOf(H.id), action: 'teleport', reachable: new Map([['8,10', 0]]) },
     });
 
-    banc.getState().battleClickTile({ x: 8, y: 10 });
+    banc.getState().cliquerLaCase({ x: 8, y: 10 });
 
     const after = banc.getState().battle!.combatants;
     const Ha = after.find((c) => c.id === H.id)!;

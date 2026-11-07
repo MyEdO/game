@@ -14,7 +14,7 @@ import { t } from '../i18n';
 import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /**
- * Câblage de la chute VOLONTAIRE (LDB 15 l.82 ; EDO 01 l.231) : `fallAcross` ouvre une étape À
+ * Câblage de la chute VOLONTAIRE (LDB 15 l.82 ; EDO 01 l.231) : `franchirLArete` ouvre une étape À
  * PARTICIPANTS — une rangée par TOMBANT (le groupe en exploration, l'actif en combat), chacune DÉCLARE
  * (`jetRegler('fall', 'suspendre' | 'tenter', …, id)`). Toutes sautent sans Test → résolution IMMÉDIATE ; sinon « Appliquer »
  * (`jetConfirm('fall')`). Chaque tombant subit SA hauteur ; réduite à 0 m ou moins → AUCUN Dégât.
@@ -52,7 +52,7 @@ function drainerChutes(): (readonly [string | undefined, unknown])[] {
   return [...vues.values()];
 }
 
-describe('fallAcross — exploration, un tombant', () => {
+describe('franchirLArete, chute — exploration, un tombant', () => {
   let H = '';
   beforeEach(() => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
@@ -61,7 +61,7 @@ describe('fallAcross — exploration, un tombant', () => {
   });
 
   it('ouvre l’étape : hauteur RÉELLE, une rangée non déclarée, phase dérivée `choice`', () => {
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     const p = g().pendingFall!;
     expect(p).toMatchObject({ metres: 4, initiateurId: H });
     expect(p.participants).toEqual([{ id: H, interactive: true, attempt: null, result: null }]);
@@ -69,14 +69,14 @@ describe('fallAcross — exploration, un tombant', () => {
   });
 
   it('« Tenter » fait AVANCER la phase dérivée de l’état : choice → roll (#1117)', () => {
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', true, H);
     expect(phaseDeChute(g().pendingFall!), 'la phase se lit sur l’état, jamais au site UI').toBe('roll');
   });
 
   it('geste inapplicable (pas une falaise descendante) → refus NOMMÉ (la raison du plan `none`)', () => {
     banc.setState({ partyPos: foot, journal: [] });
-    g().fallAcross(foot, top); // sens ascendant
+    g().franchirLArete(foot, top); // sens ascendant
     expect(g().pendingFall).toBeNull();
     const plan = planFranchissement(cliffScene(), foot, top);
     if (plan.kind !== 'none') throw new Error('le sens ascendant doit être un plan `none`');
@@ -85,7 +85,7 @@ describe('fallAcross — exploration, un tombant', () => {
 
   it('sans scène, le saut est refusé EN LE DISANT (porteur du geste, `gesteDArete`)', () => {
     banc.setState({ scene: null, journal: [] });
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     expect(g().pendingFall).toBeNull();
     expect(g().journal.slice(-1)[0]).toBe(t('geste.refus.aucuneScene'));
   });
@@ -95,7 +95,7 @@ describe('fallAcross — exploration, un tombant', () => {
     g().jetRegler('fall', 'tenter', true, H);
     expect(g().journal.slice(-1)[0], 'aucun saut en attente').toBe(t('jet.ferme.sansJet'));
 
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', true, 'etranger');
     expect(g().journal.slice(-1)[0], 'id hors des rangées, les tombants nommés avec leur id').toMatch(new RegExp(`^Déclaration refusée : etranger ne prend pas part à ce saut ; tombants : .*\\(${H}\\)`));
 
@@ -108,7 +108,7 @@ describe('fallAcross — exploration, un tombant', () => {
 
   it('« Sauter » (seule rangée) résout IMMÉDIATEMENT : chute PLEINE, le groupe atterrit au pied', () => {
     const before = g().party[0].wounds.current;
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', false, H);
     expect(g().pendingFall).toBeNull();
     expect(g().partyPos).toEqual({ ...foot, z: 0 });
@@ -119,7 +119,7 @@ describe('fallAcross — exploration, un tombant', () => {
   });
 
   it('« Tenter » ouvre le Test — aucune résolution avant `jetConfirm(\'fall\')`', () => {
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', true, H);
     expect(rangee(H)).toMatchObject({ attempt: true, result: null });
     g().jetConfirm('fall'); // sans jet : refusé
@@ -129,7 +129,7 @@ describe('fallAcross — exploration, un tombant', () => {
 
   it('Test réussi, réduction à 0 m ou moins → AUCUN Dégât (bypass, pas juste `applyFall(0,…)`)', () => {
     const before = g().party[0].wounds.current;
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', true, H);
     poserResultat(H, { success: true, roll: 5, target: 90, dr: 6, effectiveMetres: 0 });
     g().jetConfirm('fall');
@@ -141,7 +141,7 @@ describe('fallAcross — exploration, un tombant', () => {
   });
 
   it('Test réussi, réduction partielle → la chute de `effectiveMetres`, pas la hauteur pleine', () => {
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', true, H);
     poserResultat(H, { success: true, roll: 40, target: 90, dr: 2, effectiveMetres: 2 });
     g().jetConfirm('fall');
@@ -150,7 +150,7 @@ describe('fallAcross — exploration, un tombant', () => {
 
   it('jetRoll@fall résout via resolveDeliberateFall : effectiveMetres = max(0, metres − max(0,dr))', () => {
     g().seedRng(3);
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', true, H);
     g().jetRoll('fall', H);
     const r = rangee(H).result!;
@@ -158,20 +158,20 @@ describe('fallAcross — exploration, un tombant', () => {
   });
 
   it('jetRoll@fall AVANT la déclaration (attempt=null) : le flux gate sur `attempt`, aucun jet', () => {
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRoll('fall', H);
     expect(rangee(H).result).toBeNull();
   });
 
   it('jetCancel@fall : ferme la modale sans effet', () => {
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetCancel('fall');
     expect(g().pendingFall).toBeNull();
     expect(g().partyPos).toEqual(top);
   });
 });
 
-describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
+describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)', () => {
   let A = '';
   let B = '';
   beforeEach(() => {
@@ -184,7 +184,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
   afterEach(() => resetRule('chute-tombant-non-debout'));
 
   it('une rangée par tombant, le meneur en tête ; les jets restent verrouillés tant qu’une rangée n’a pas déclaré', () => {
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     expect(g().pendingFall!.participants.map((x) => x.id)).toEqual([A, B]);
     g().jetRegler('fall', 'tenter', true, A);
     expect(phaseDeChute(g().pendingFall!)).toBe('choice');
@@ -194,7 +194,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
 
   it('chacun est blessé selon SA déclaration : A saute (4 m pleins), B tente et réduit à 1 m', () => {
     const avant = g().party.map((h) => h.wounds.current);
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', false, A);
     expect(g().pendingFall, 'B n’a pas déclaré : l’étape reste ouverte').not.toBeNull();
     g().jetRegler('fall', 'tenter', true, B);
@@ -210,7 +210,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
 
   it('un tombant réduit à 0 m ne subit rien, l’autre subit sa chute', () => {
     const avant = g().party.map((h) => h.wounds.current);
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', true, A);
     g().jetRegler('fall', 'tenter', false, B);
     poserResultat(A, { success: true, roll: 5, target: 90, dr: 6, effectiveMetres: 0 });
@@ -222,7 +222,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
   });
 
   it('les deux sautent sans Test → résolution IMMÉDIATE, deux chutes pleines', () => {
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     g().jetRegler('fall', 'tenter', false, A);
     g().jetRegler('fall', 'tenter', false, B);
     expect(g().pendingFall).toBeNull();
@@ -231,7 +231,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
 
   it('maison `refus` (défaut) : un membre vivant non debout → refus NOMMÉ du geste', () => {
     banc.setState({ party: g().party.map((h) => (h.id === B ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) });
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     expect(g().pendingFall).toBeNull();
     expect(g().journal.slice(-1)[0]).toBe(t('fall.refus.nonDebout', { name: 'B' }));
     expect(g().partyPos).toEqual(top);
@@ -240,7 +240,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
   it('maison `chute-pleine` : le membre non debout est une rangée TÉMOIN qui tombe de toute la hauteur, sans Test', () => {
     setRule('chute-tombant-non-debout', 'chute-pleine');
     banc.setState({ party: g().party.map((h) => (h.id === B ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) });
-    g().fallAcross(top, foot);
+    g().franchirLArete(top, foot);
     expect(rangee(B)).toEqual({ id: B, interactive: false, attempt: false, result: null });
     g().jetRegler('fall', 'tenter', true, B);
     expect(rangee(B).attempt, 'une rangée témoin ne déclare pas').toBe(false);
@@ -250,7 +250,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
   });
 });
 
-describe('fallAcross — combat', () => {
+describe('franchirLArete, chute — combat', () => {
   beforeEach(() => {
     banc.setState({ battle: null });
   });
@@ -277,7 +277,7 @@ describe('fallAcross — combat', () => {
 
   it('« Sauter » (chute PLEINE) : le héros atterrit au pied, l’Action N’EST PAS consommée (pas de Test)', () => {
     const { H } = setup();
-    banc.getState().fallAcross(top, foot);
+    banc.getState().franchirLArete(top, foot);
     expect(banc.getState().pendingFall!.participants.map((x) => x.id), 'combat : un seul tombant, l’actif').toEqual([H.id]);
     banc.getState().jetRegler('fall', 'tenter', false, H.id);
     const b = banc.getState().battle!;
@@ -287,7 +287,7 @@ describe('fallAcross — combat', () => {
 
   it('« Tenter » : le Test consomme l’Action (LDB 13 l.86-88), une fois `jetConfirm(\'fall\')` appelé', () => {
     const { H } = setup();
-    banc.getState().fallAcross(top, foot);
+    banc.getState().franchirLArete(top, foot);
     banc.getState().jetRegler('fall', 'tenter', true, H.id);
     poserResultat(H.id, { success: true, roll: 40, target: 90, dr: 2, effectiveMetres: 2 });
     banc.getState().jetConfirm('fall');
@@ -299,7 +299,7 @@ describe('fallAcross — combat', () => {
   it('geste inapplicable (pas de falaise adjacente) → refus NOMMÉ, aucune modale', () => {
     setup(foot);
     banc.setState({ journal: [] });
-    banc.getState().fallAcross(foot, top); // ascendant depuis le pied
+    banc.getState().franchirLArete(foot, top); // ascendant depuis le pied
     expect(banc.getState().pendingFall).toBeNull();
     const plan = planFranchissement(cliffScene(), foot, top);
     if (plan.kind !== 'none') throw new Error('le sens ascendant doit être un plan `none`');

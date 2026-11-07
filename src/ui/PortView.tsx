@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { nomDuNavire } from '../noyau/carriers';
+import { CAMPAIGN_VESSEL_CARRIER_ID, nomDuNavire } from '../noyau/carriers';
 import { useGame } from '../state/store';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { findVehicleById, findNavalTrait, findNavalPortById, type NavalPortData } from '../data';
@@ -121,9 +121,9 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('port');
-  const buy = useGame((s) => s.portBuyCargo);
-  const sell = useGame((s) => s.portSellCargo);
-  const dump = useGame((s) => s.portDumpCargo);
+  const buy = useGame((s) => s.acheterLaCargaison);
+  const sell = useGame((s) => s.vendreLaCargaison);
+  const dump = useGame((s) => s.jeterLaCargaison);
   const repair = useGame((s) => s.portRepair);
   const careen = useGame((s) => s.portCareen);
   const install = useGame((s) => s.portInstallUpgrade);
@@ -139,7 +139,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const vd = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   const upgrades = vessel ? ameliorationsAuChantier(vessel, money, refusHote) : [];
   if (!port || !vessel || !vd?.ship) return null;
-  const devisDe = (cargoId: string) => devisDAchatEnPort({ port, vessel, net, party }, cargoId, buyEnc[cargoId]);
+  const devisDe = (cargoId: string) => devisDAchatEnPort({ port, vessel, net, party }, CAMPAIGN_VESSEL_CARRIER_ID, cargoId, buyEnc[cargoId]);
   const chantier = devisDeChantier(vessel, money, refusHote);
   const cale = caleALEscale(vessel);
   const { max: woundsMax, current: woundsCur, missing, lissage, reparationGold: repairCost, foulLevel, carenagePct: careenPct, carenageGold: careenCost } = chantier;
@@ -266,7 +266,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                           enabled={devis.refus === null}
                           {...raisonSi(devis.refus)}
                           descOfferte={devis.surcharge ? 'Embarquer en surcharge (pénalités d’assiette)' : 'Estimation avant Marchandage'}
-                          onClick={() => buy(o.cargoId, devis.enc)}
+                          onClick={() => buy(CAMPAIGN_VESSEL_CARRIER_ID, o.cargoId, devis.enc)}
                           primary={false}
                           btnClassName="small"
                         />
@@ -292,12 +292,12 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                       <GatedAction
                         id={`port-sell-${r.i}`} label="Vendre" enabled={!refusHote} {...raisonSi(refusHote)}
                         descOfferte="Trouver un acheteur puis marchander"
-                        onClick={() => sell(r.i)} primary={false} btnClassName="small"
+                        onClick={() => sell(r.lot.uid)} primary={false} btnClassName="small"
                       />
                       <GatedAction
                         id={`port-dump-${r.i}`} label="Brader" enabled={refusDeBradageEnPort({ net, port }, r.lot.cargoId) == null} {...raisonSi(refusDeBradageEnPort({ net, port }, r.lot.cargoId))}
                         descOfferte="Brader à ¼ du prix de base"
-                        onClick={() => dump(r.i)} primary={false} btnClassName="small ghost"
+                        onClick={() => dump(r.lot.uid)} primary={false} btnClassName="small ghost"
                       />
                     </div>
                   )}

@@ -121,7 +121,7 @@ afterEach(() => {
 
 /** UN PAS : la case logique du sujet est déjà la destination (le store commet AVANT l'animation), la
  *  marche rejoue le trajet depuis la case quittée — le contrat de `bus.emit(ANIM_MOVE)` des deux
- *  producteurs (`combatSlice.battleClickTile`, `cliquerLaCase`). */
+ *  producteurs (`cliquerLaCase`, en combat comme en exploration). */
 const CHEMIN = [{ x: 1, y: 2 }, { x: 2, y: 2 }];
 /** DEUX pas d'un seul trait : ce que le combat émet (chemin ENTIER, un seul événement). */
 const COURSE = [{ x: 4, y: 2 }, { x: 3, y: 2 }, { x: 2, y: 2 }];
