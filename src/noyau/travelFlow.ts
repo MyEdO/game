@@ -451,6 +451,9 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   if (mode === 'mer') {
     const seaOpts = { pace: opts.seaPace, cadence: opts.cadence };
     const billetEnMain = billetApresDepart(get().billetEnMain, routeId, mode);
+    // Le navire appareille : il n'est plus à quai (`escale`, posé à l'accostage).
+    const vessel = get().vessel;
+    if (vessel?.escale !== undefined) { const { escale: _quai, ...enMer } = vessel; set({ vessel: enMer }); }
     // Traversée RAPIDE (MDG 15 l.21-37) : un seul Test de Rude épreuve résout tout le trajet.
     if (opts.fast) {
       startFastVoyage(get, set, routeId, from.id, to.id, route, seaOpts);

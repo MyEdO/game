@@ -3,7 +3,7 @@ import {
   MANANN_BASE, applyManannFactor, addManann, rollPortEvent, rollDaysToNextEvent,
   rollRandomCargo, cargoBasePrice, rollCargoAvailability, rollMerchantSkill, buySellerDR,
   sellRelation, sellChance, offerPricePct, dumpingPricePct, opportunityTradePct,
-  cargoTotalEnc, removeCargo, resolveFastVoyage, type PortProfile,
+  cargoTotalEnc, removeCargo, resolveFastVoyage, profilDuMarche, alterationsDuPort, type PortProfile, type AlterationDuMarche,
 } from './seaVoyage';
 import type { RNG } from './dice';
 import { desDuTest, desEnSuite } from './dice.testkit';
@@ -47,7 +47,7 @@ describe('événements de bord & de port (MDG 15 l.89 + l.127-129)', () => {
     expect(e.hours).toBe(7);
     const f = rollPortEvent(15, seq(10, 10, 1, 1)); // 10+10+1 = 21 → Saturation
     expect(f.roll).toBe(21);
-    expect(f.event.kind).toBe('saturation');
+    expect(f.event.id).toBe('saturation-de-produits');
   });
 });
 
@@ -77,6 +77,35 @@ describe('longs voyages très rapides (MDG 15 l.21-37)', () => {
     expect(resolveFastVoyage(5, 0, 0, seq(1)).palier.id).toBe('sans-encombre');
     expect(resolveFastVoyage(-4, 0, 0, seq(5)).result).toBe(1); // 5 − 4 DR → éreintant [1,2]
     expect(resolveFastVoyage(-4, 0, 0, seq(5)).palier.id).toBe('ereintant');
+  });
+});
+
+describe('marché d’un port altéré (MDG 15 l.253, l.259, l.263)', () => {
+  const alteration = (a: Partial<AlterationDuMarche>): AlterationDuMarche => ({ placeId: 'P', label: 'x', jusqua: 'escale', ...a } as AlterationDuMarche);
+
+  it('Pénuries : la Production n’est plus disponible, le Surplus passe en Production, les marqueurs restent (l.253)', () => {
+    const p = profilDuMarche(salzenmund, [alteration({ colonnes: 'penurie' })]);
+    expect(p.production).toEqual(['commerce-mer', 'produits-de-luxe-mer']);
+    expect(p.surplus).toEqual({});
+    expect(p.demande).toEqual(salzenmund.demande);
+  });
+
+  it('Saturation : la Production passe en Surplus à +1, le Surplus double (l.263)', () => {
+    const p = profilDuMarche({ ...salzenmund, surplus: { 'produits-de-luxe-mer': 2 } }, [alteration({ colonnes: 'saturation' })]);
+    expect(p.production).toEqual(['commerce-mer']);
+    expect(p.surplus).toEqual({ 'bois-mer': 1, 'produits-de-luxe-mer': 4 });
+  });
+
+  it('Rumeurs commerciales : la Demande de la cargaison croît, absente elle naît (l.259)', () => {
+    const p = profilDuMarche(salzenmund, [alteration({ demande: { cargoId: 'armes', delta: 2 } }), alteration({ demande: { cargoId: 'sel', delta: 2 } })]);
+    expect(p.demande).toEqual({ armes: 3, cereales: 1, sel: 2 });
+    expect(sellChance(p, 'sel', 0).target).toBeGreaterThan(sellChance(salzenmund, 'sel', 0).target);
+  });
+
+  it('seules les altérations du port et encore actives comptent', () => {
+    const liste = [alteration({ colonnes: 'penurie' }), alteration({ placeId: 'Q', colonnes: 'saturation' }), alteration({ jusqua: 100, demande: { cargoId: 'sel', delta: 2 } })];
+    expect(alterationsDuPort(liste, 'P', 99)).toHaveLength(2);
+    expect(alterationsDuPort(liste, 'P', 100)).toEqual([liste[0]]);
   });
 });
 

@@ -25,7 +25,7 @@
 import { battleRng } from './battleRng';
 import type { RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
-import { lieuDuGroupe } from './worldMap';
+import { lieuDuGroupe, placeById } from './worldMap';
 import { partyAssisted } from '../engine/skills';
 import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
@@ -41,12 +41,15 @@ import { ajouterAuRoster, weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
   rollCargoAvailability, rollMerchantSkill, rollMerchantOpposition, buySellerDR, cargoBasePrice, rollRandomCargo,
   sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc,
-  cargoOverload, overloadMaxEnc, overloadHardCapPct,
-  type PortProfile, type CargoLot,
+  cargoOverload, overloadMaxEnc, overloadHardCapPct, alterationsDuPort, profilDuMarche,
+  type PortProfile, type CargoLot, type AlterationDuMarche,
 } from '../engine/seaVoyage';
+import { resolveFormula, type GameOp } from '../engine/ops';
+import type { Referent } from '../engine/formule';
+import type { Combatant } from '../engine/types';
 import { findCargoById, isTradeHubColumn } from '../engine/cargo';
 import { seasonOfMonth } from '../engine/travelStages';
-import { toDate } from '../engine/clock';
+import { MINUTES_PER_DAY, toDate } from '../engine/clock';
 import { chainStep } from './enchainerEtape';
 import type { CascadeStep, CascadeRoll } from './pendings';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
@@ -68,6 +71,9 @@ export interface PortOffer {
   label: string;
   enc: number;
   basePrice: number;
+  /** Remise du vendeur sur le prix de base (op `marcheDuPort`, `offre`) : le prix demandé, pas le prix de base du lot
+   *  embarqué. MDG 15 l.256 */
+  remisePct?: number;
   /** Cargaison en Surplus du port (MDG 15 l.341 — écart de camp ouvert en #1140). */
   surplus: boolean;
 }
@@ -87,11 +93,42 @@ const log = (get: Get, _set: Set, lines: string[]) => {
   if (lines.length) get().ecrireAuJournal(lines);
 };
 
-/** Lieu portuaire courant (place de la carte dont la scène EST la scène courante + `port`). */
+/** Lieu portuaire courant (place de la carte dont la scène EST la scène courante + `port`), son profil de marché
+ *  sous les altérations actives (`profilDuMarche`). */
 export function currentPort(get: Get): { placeId: string; label: string; ref?: string; port: PortProfile; cosmopolite: boolean } | null {
   const place = lieuDuGroupe(get());
   if (!place?.port) return null;
-  return { placeId: place.id, label: place.label, ref: place.port.ref, port: place.port, cosmopolite: !!place.port.cosmopolite };
+  const port = profilDuMarche(place.port, alterationsDuPort(get().alterationsDuMarche, place.id, get().gameTime));
+  return { placeId: place.id, label: place.label, ref: place.port.ref, port, cosmopolite: !!place.port.cosmopolite };
+}
+
+/** Résout l'op `marcheDuPort` sous la source `label`, ses quantités tirées sur `ref` ; rend les lignes du journal.
+ *  Le port de l'escale est le lieu où le navire est à quai (`vessel.escale`) ; la Demande vise un autre port de la
+ *  carte tiré au hasard. MDG 15 l.253, l.256, l.259, l.263 */
+export function alterLeMarche(get: Get, set: Set, o: Extract<GameOp, { op: 'marcheDuPort' }>, label: string, ref: Combatant | Referent, rng: RNG): string[] {
+  const now = get().gameTime;
+  const season = seasonOfMonth(toDate(now).month);
+  const escale = get().vessel?.escale;
+  const ici = escale && get().worldMap ? placeById(get().worldMap!, escale) : undefined;
+  const poser = (a: AlterationDuMarche): void => set({ alterationsDuMarche: [...(get().alterationsDuMarche ?? []).filter((x) => x.jusqua === 'escale' || x.jusqua > now), a] });
+  if (o.demande !== undefined) {
+    const ports = (get().worldMap?.places ?? []).filter((p) => p.port && p.id !== ici?.id);
+    if (!ports.length) return [t('eff.marcheSansAutrePort', { label })];
+    const port = ports[rng.int(0, ports.length - 1)];
+    const cargo = rollRandomCargo(season, rng);
+    const jours = Math.max(0, Math.round(resolveFormula(o.jours, ref, rng)));
+    poser({ placeId: port.id, label, jusqua: now + jours * MINUTES_PER_DAY, demande: { cargoId: cargo.id, delta: o.demande } });
+    return [t('eff.marcheDemande', { label, cargo: cargo.label, port: port.label, delta: `${o.demande >= 0 ? '+' : '−'}${Math.abs(o.demande)}`, n: jours })];
+  }
+  if (!ici?.port) return [t('eff.marcheHorsPort', { label })];
+  if (o.colonnes !== undefined) {
+    poser({ placeId: ici.id, label, jusqua: 'escale', colonnes: o.colonnes });
+    return [t(o.colonnes === 'penurie' ? 'eff.marchePenurie' : 'eff.marcheSaturation', { label, port: ici.label })];
+  }
+  const cargo = rollRandomCargo(season, rng);
+  const enc = Math.max(0, Math.round(resolveFormula(o.offre.enc, ref, rng)));
+  poser({ placeId: ici.id, label, jusqua: 'escale', offre: { cargoId: cargo.id, enc, remisePct: o.offre.remisePct } });
+  return [t('eff.marcheOffre', { label, enc, cargo: cargo.label, pct: o.offre.remisePct })];
 }
 
 
@@ -114,9 +151,9 @@ export function vesselMaxLoadEnc(get: Get): number {
   return encEmbarquable(get().vessel);
 }
 
-/** Prix d'un lot embarqué en CO (MDG 15 l.319-349) : `pct` = effet du Marchandage. */
-function prixDuLotEnPort(enc: number, basePrice: number, pct: number): number {
-  return Math.max(0, Math.round(enc * basePrice * (1 + pct / 100)));
+/** Prix d'un lot de l'offre `offre` en CO (MDG 15 l.319-349, l.256) : sa remise, puis `pct`, l'effet du Marchandage. */
+function prixDuLotEnPort(enc: number, offre: Pick<PortOffer, 'basePrice' | 'remisePct'>, pct: number): number {
+  return Math.max(0, Math.round(enc * offre.basePrice * (1 - (offre.remisePct ?? 0) / 100) * (1 + pct / 100)));
 }
 
 /** Cale du navire à l'escale : place libre nominale, Enc embarquable jusqu'au plafond dur, et ce plafond en %
@@ -142,8 +179,8 @@ export function devisDAchatEnPort(s: Pick<Jeu, 'port' | 'vessel' | 'net' | 'part
   const max = offre ? Math.min(offre.enc, encEmbarquable(s.vessel)) : 0;
   const voulu = enc ?? (offre ? Math.min(offre.enc, Math.max(libre, 1)) : 0);
   const want = Math.max(0, Math.min(Math.floor(voulu), max));
-  const plancherGold = offre ? prixDuLotEnPort(want, offre.basePrice, -remiseMaximaleDeMarchandage(s.party)) : 0;
-  const base = { enc: want, max, estimationGold: offre ? prixDuLotEnPort(want, offre.basePrice, 0) : 0, plancherGold, surcharge: want > libre, offre };
+  const plancherGold = offre ? prixDuLotEnPort(want, offre, -remiseMaximaleDeMarchandage(s.party)) : 0;
+  const base = { enc: want, max, estimationGold: offre ? prixDuLotEnPort(want, offre, 0) : 0, plancherGold, surcharge: want > libre, offre };
   const refus = refusDeGesteSurLeGroupe(s) ?? (!offre || !s.vessel ? t('port.offreAbsente')
     : porteurId !== CAMPAIGN_VESSEL_CARRIER_ID ? t('port.horsDuNavire') : want <= 0 ? t('port.holdFull')
     : !canAfford(totalDesBourses(s.party), toMoney({ gold: plancherGold })) ? t('cargo.bourseSousPlancher', { plancher: plancherGold })
@@ -183,10 +220,11 @@ function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) =>
     const draws = cur.cosmopolite ? 3 : 1;
     for (let i = 0; i < draws; i++) { phase(`Cargaison de commerce ${i + 1}`); ids.add(rollRandomCargo(season, rng).id); }
   }
+  const offres = alterationsDuPort(get().alterationsDuMarche, cur.placeId, get().gameTime).flatMap((a) => (a.offre ? [a.offre] : []));
   const offers: PortOffer[] = [];
   for (const cargoId of ids) {
     const cargo = findCargoById(cargoId);
-    if (!cargo) continue;
+    if (!cargo || offres.some((o) => o.cargoId === cargoId)) continue;
     phase(`Disponibilité — ${cargo.label}`);
     const avail = rollCargoAvailability(port, cargoId, rng);
     if (avail.enc <= 0) continue; // 1 sur le d10 → aucune de ce type (l.327)
@@ -195,6 +233,16 @@ function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) =>
       cargoId, label: cargo.label, enc: avail.enc,
       basePrice: cargoBasePrice(cargo, season, rng), // le Vin fige son 3d10 ici (l.436)
       surplus: (port.surplus?.[cargoId] ?? 0) > 0,
+    });
+  }
+  // MDG 15 l.256
+  for (const o of offres) {
+    const cargo = garanti(findCargoById(o.cargoId), o.cargoId, 'cargaison offerte');
+    if (o.enc <= 0) continue;
+    phase(`Prix de base — ${cargo.label}`);
+    offers.push({
+      cargoId: o.cargoId, label: t('port.offreRemisee', { label: cargo.label, pct: o.remisePct }), enc: o.enc,
+      basePrice: cargoBasePrice(cargo, season, rng), remisePct: o.remisePct, surplus: false,
     });
   }
   set({ port: { placeId: cur.placeId, label: cur.label, ref: cur.ref, port: structuredClone(port), offers } }); // #2097
@@ -217,7 +265,7 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
   if (!offer) return [];
   const enc = Math.max(0, Math.min(want, offer.enc, vesselMaxLoadEnc(get)));
   if (enc <= 0) return [t('port.holdFull')];
-  const price = prixDuLotEnPort(enc, basePrice, pct);
+  const price = prixDuLotEnPort(enc, { basePrice, remisePct: offer.remisePct }, pct);
   const cost = toMoney({ gold: price });
   if (!canAfford(partyMoneyTotal(get), cost)) return [t('cargo.purseShort', { price, label: offer.label, bargain: bargainLine })];
   const cargo: CargoLot = { uid: newUid(), cargoId, enc, basePriceGold: basePrice };
@@ -226,6 +274,9 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
   set({
     vessel: { ...vessel, cargo: nextCargo },
     port: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, enc: o.enc - enc } : o).filter((o) => o.enc > 0) },
+    // Le lot d'une offre d'escale s'épuise aussi dans son altération : l'étal regénéré ne le remet pas.
+    alterationsDuMarche: (get().alterationsDuMarche ?? []).map((a): AlterationDuMarche => (a.placeId === st.placeId && a.offre?.cargoId === cargoId
+      ? { placeId: a.placeId, label: a.label, jusqua: a.jusqua, offre: { ...a.offre, enc: a.offre.enc - enc } } : a)),
   });
   const lines = [t('port.loaded', { enc, label: offer.label, bargain: bargainLine, money: formatMoney(fromBrass(toBrass(cost))) })];
   // Surcharge de la cale (MDG 12 l.70-75) : au-delà de la Contenance nominale, avertir du palier d'assiette.

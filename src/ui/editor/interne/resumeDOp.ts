@@ -176,6 +176,7 @@ export function opSummary(o: GameOp): string {
     case 'navireHostile': return `${refLabel('vehicles', o.navire)} · ${o.equipage.nombre} × ${refLabel('creatures', o.equipage)}${o.exigence === 'fouille' ? ' · fouille' : ''}`;
     case 'infestation': return `${refLabel('crewTestTypes', o.crewTestType)} · ${o.targetDR} DR`;
     case 'combatEnMer': return `Combat : ${o.adversaire.nombre} × ${refLabel('creatures', o.adversaire)}${o.repousseAPct !== undefined ? ` · repoussé à ${o.repousseAPct} %` : ''}${o.victoire ? ' · sur la victoire' : ''}`;
+    case 'marcheDuPort': return o.colonnes !== undefined ? (o.colonnes === 'penurie' ? 'Pénurie au port' : 'Saturation au port') : o.offre !== undefined ? `Offre : ${formulaSummary(o.offre.enc)} Enc à −${o.offre.remisePct} %` : `Demande ${o.demande >= 0 ? '+' : ''}${o.demande} ailleurs · ${formulaSummary(o.jours)} j`;
     default: return `${(o as GameOp).op}`;
   }
 }

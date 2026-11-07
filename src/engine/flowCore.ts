@@ -26,7 +26,7 @@ import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
-import { estOpDeLaBourseDuGroupe, estOpDuNavire, opDemandeUnDe, valeurNonLiee, type Formula, type GameOp, type PairedSense } from './ops';
+import { estOpDeLaBourseDuGroupe, estOpDuMarche, estOpDuNavire, opDemandeUnDe, valeurNonLiee, type Formula, type GameOp, type PairedSense } from './ops';
 import type { CibleEnVue } from './psychology';
 import { refCouvre, type Id, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -864,9 +864,9 @@ export function flowHasTest<E = EffectOp>(flow: Flow<E>): boolean {
 const HOOK_BACKED_OPS = new Set(['grantFreeAttack', 'interruptFocus', 'breakBlade', 'delayed']);
 
 /** Op IMPURE : de `HOOK_BACKED_OPS`, de NAVIRE (`estOpDuNavire`), résolue sur la cible `navire` par
- *  `noyau/navireOps.ts`, ou de la BOURSE DU GROUPE (`estOpDeLaBourseDuGroupe`) — `applyOps` les laisse toutes
- *  inertes. */
-const estOpImpure = (o: GameOp): boolean => HOOK_BACKED_OPS.has(o.op) || estOpDuNavire(o) || estOpDeLaBourseDuGroupe(o);
+ *  `noyau/navireOps.ts`, de la BOURSE DU GROUPE (`estOpDeLaBourseDuGroupe`) ou du MARCHÉ D'UN PORT
+ *  (`estOpDuMarche`) — `applyOps` les laisse toutes inertes. */
+const estOpImpure = (o: GameOp): boolean => HOOK_BACKED_OPS.has(o.op) || estOpDuNavire(o) || estOpDeLaBourseDuGroupe(o) || estOpDuMarche(o);
 
 /** Le Flow porte-t-il une op IMPURE (cf. `estOpImpure`) ? Si oui, son exécution ne passe jamais par
  *  `runPureFlowLines`, qui l'avalerait. */
