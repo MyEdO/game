@@ -16,7 +16,7 @@ function jugerAvec(nom, porteur, lireDonnee) {
 
 describe('lireDeclaration', () => {
   it('accepte la déclaration de la base humanoïde', async () => {
-    assert.equal((await lireDeclaration(HUMANOIDE)).porteur.race, 'humain')
+    assert.equal((await lireDeclaration(HUMANOIDE)).porteur.espece, 'humain')
   })
 
   it('refuse une déclaration sans clip du rôle `walk`, en nommant le champ', async () => {
@@ -28,27 +28,31 @@ describe('lireDeclaration', () => {
     await assert.rejects(jugerAvec('taille', { taille: 'grande' }), /porteur\.taille grande, la donnée donne moyenne à la race humain/)
   })
 
-  it('refuse une race dont la donnée ne détermine pas la Taille, en nommant champ, déclaré et race', async () => {
-    await assert.rejects(jugerAvec('sans-espece', { race: 'orc' }), /porteur\.taille moyenne, Taille de la race orc indéterminée dans la donnée \(aucune espèce\)/)
+  it('refuse une espèce dont la donnée ne détermine pas la Taille de la race, en nommant champ, déclaré et race', async () => {
+    await assert.rejects(jugerAvec('sans-espece', { espece: 'orc' }), /porteur\.taille moyenne, Taille de la race orc indéterminée dans la donnée \(aucune espèce\)/)
   })
 
   it('refuse une race à plusieurs Tailles dans la donnée, en les nommant', async () => {
-    const donnee = { raceAppearance: [{ id: 'humain' }], planDeBestiaire: [{ id: 'humain', race: { id: 'humain' }, echelle: 1 }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne', 'grande'] }
-    await assert.rejects(jugerAvec('deux-tailles', { race: 'humain', gabarit: 'moyen' }, async () => donnee), /porteur\.taille moyenne, Taille de la race humain indéterminée dans la donnée \(moyenne, grande\)/)
+    const donnee = { planDeBestiaire: [{ id: 'humain', race: { id: 'humain' }, echelle: 1 }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne', 'grande'] }
+    await assert.rejects(jugerAvec('deux-tailles', { espece: 'humain', gabarit: 'moyen' }, async () => donnee), /porteur\.taille moyenne, Taille de la race humain indéterminée dans la donnée \(moyenne, grande\)/)
   })
 
   it('refuse une échelle d’art que la donnée ne donne pas à la race, en nommant champ, déclaré et donnée', async () => {
-    await assert.rejects(jugerAvec('echelle', { echelleDArt: 1.2 }), /porteur\.echelleDArt 1\.2, la donnée donne 1 à la race humain/)
+    await assert.rejects(jugerAvec('echelle', { echelleDArt: 1.2 }), /porteur\.echelleDArt 1\.2, la donnée donne 1 à l'espèce humain/)
   })
 
-  it('juge l’échelle d’art contre l’`echelle` de la race au plan de bestiaire', async () => {
-    const donnee = { raceAppearance: [{ id: 'humain' }], planDeBestiaire: [{ id: 'humain', race: { id: 'humain' }, echelle: 1.2 }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne'] }
-    await assert.rejects(jugerAvec('echelle-de-race', { race: 'humain', gabarit: 'moyen' }, async () => donnee), /porteur\.echelleDArt 1, la donnée donne 1\.2 à la race humain/)
+  it('juge l’échelle d’art contre l’`echelle` de l’espèce au plan de bestiaire', async () => {
+    const donnee = { planDeBestiaire: [{ id: 'humain', race: { id: 'humain' }, echelle: 1.2 }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne'] }
+    await assert.rejects(jugerAvec('echelle-d-espece', { espece: 'humain', gabarit: 'moyen' }, async () => donnee), /porteur\.echelleDArt 1, la donnée donne 1\.2 à l'espèce humain/)
+  })
+
+  it('refuse une espèce que le plan de bestiaire ne porte pas sur la base humanoïde, en nommant champ et déclaré', async () => {
+    await assert.rejects(jugerAvec('corps-de-creature', { espece: 'loup' }), /porteur\.espece loup, le plan de bestiaire ne la porte pas sur la base humanoïde/)
   })
 })
 
 describe('champsDeclares', () => {
-  const porteur = { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 }
+  const porteur = { espece: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 }
   const clips = { walk: 'Marche', idle: 'Repos', melee: 'Taille' }
 
   it('écrit au manifeste la base, le porteur et la table rôle → clip de la déclaration, et rien d’autre', () => {

@@ -100,7 +100,7 @@ export function reposerGabarit(gabarit: GabaritPose, jouer: () => void): void {
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
-export function appliquerGabarit(scene: Object3D, facteurs: GabaritResolu, manifeste: Pick<ManifesteDeBase, 'gabarit'> & Partial<Pick<ManifesteDeBase, 'appuis'>>, squeletteDeBase?: Skeleton): GabaritPose {
+export function appliquerGabarit(scene: Object3D, facteurs: GabaritResolu, manifeste: Required<Pick<ManifesteDeBase, 'gabarit'>> & Partial<Pick<ManifesteDeBase, 'appuis'>>, squeletteDeBase?: Skeleton): GabaritPose {
   const pose = poseDuGabarit(manifeste, facteurs);
   const racine = os(scene, pose.racine.os);
   const enfants = enfantsDuGabarit(pose, (nom) => os(scene, nom));
