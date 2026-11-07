@@ -188,7 +188,7 @@ describe('interruptions (mer) — la route commandée NE muselle PAS les crises'
 
   it('une Poursuite en cours force la cascade INTERACTIVE même en route COMMANDÉE (jamais auto-résolue)', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'commande' })!;
-    plan.sea!.crisis = { kind: 'poursuite', label: 'Nef corsaire', distance: 5, escapeAt: 100, foeM: 5, foeSkill: 50, desc: 'x' };
+    plan.sea!.crisis = { kind: 'poursuite', label: 'Nef corsaire', distance: 5, escapeAt: 100, foeM: 5, foeSkill: 50 };
     set({ travelPlan: plan } as never);
     runSeaDay(get, set);
     // Une crise en cours bascule la journée ENTIÈRE en cascade interactive (`seaDayAllRoutine`,

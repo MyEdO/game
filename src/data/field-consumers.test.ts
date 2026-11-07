@@ -403,7 +403,7 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
     'facteurGrandsTroublesMax', 'facteurGrandsTroublesMin', 'facteurZoneDangereuse', 'kind', 'largeurMaxM',
     'largeurMinM', 'prixSurcotePct', 'tarifBrassMax', 'tarifBrassMin',
   ],
-  SeaPerilsData: ['hazardsWeightNote', 'tourbillonSwim'],
+  SeaPerilsData: ['tourbillonSwim'],
   SeaWeatherData: ['encalmine'],
   SkillData: ['specsOpen'],
   StakeEntry: ['entryFromSource', 'form'],

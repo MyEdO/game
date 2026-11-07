@@ -38,7 +38,7 @@ const REGLE = 'règle de jeu bornée à la rencontre';
 /** Table TOTALE des champs de `Combatant` (#2312) : un champ ajouté au type sans classement ne compile pas. */
 export const REPORT_DE_COMBATTANT = {
   id: PERSISTE, label: PERSISTE, kind: PERSISTE, followsCharacterRules: PERSISTE, creatureId: PERSISTE, porteurDeFiche: PERSISTE,
-  crewIds: rencontre(COQUE), postes: rencontre(COQUE), saboteurDR: rencontre(COQUE), cargoEnc: rencontre(COQUE),
+  crewIds: rencontre(COQUE), reserveDAbordage: rencontre(COQUE), postes: rencontre(COQUE), saboteurDR: rencontre(COQUE), cargoEnc: rencontre(COQUE),
   lastShantyQuart: rencontre(COQUE), upgrades: rencontre(COQUE), mannedPoste: rencontre(COQUE),
   singingShanty: rencontre(REGLE), // MDG 09 l.38
   teamCommanderId: rencontre(REGLE), // AA 13 l.29-35

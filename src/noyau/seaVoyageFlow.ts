@@ -61,7 +61,7 @@ import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { buildWeapon } from '../engine/items';
-import { applyOps, resolveFormula, type PairedSense } from '../engine/ops';
+import { applyOps, resolveFormula, type GameOp, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
 import { itemCapability } from '../engine/capabilities';
 import { toDate, MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex } from '../engine/clock';
@@ -80,11 +80,11 @@ import { expireOnRespite, exposureTarget, exposureCoatMods, exposureFirstFailCha
 import { pursuitOutcome } from '../engine/pursuit';
 import { addCondition } from '../engine/conditions';
 import { effectiveChar, blessuresPosees } from '../engine/characteristics';
-import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
+import { findSeaHazard, findWhirlpool, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
   evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
-  seulEvenementDePort, meteosActives, modificateursAuCarenage, sommeDesModificateurs,
+  seulEvenementDePort, meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
   type CargoOverload, type EvenementDeBord, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
@@ -104,7 +104,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
 import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef, type ContexteDeTest } from '../engine/types';
-import type { PendingSteamSave, PendingCascade, CascadeStep, CascadeStepMeta } from './pendings';
+import type { PendingSteamSave, PendingCascade, CascadeStep } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { CampaignVessel, Jeu } from './etat';
@@ -122,7 +122,7 @@ import { defautsDeCompilation } from '../data';
 import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
 
 import { stepPrecision, idDansLaSequence } from './rollSeam';
-import { actorIn, equipageApte } from './monde/combatants';
+import { actorIn, equipageApte, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
@@ -141,12 +141,14 @@ export interface SeaBoarding {
   shipRef: string;
   crewRef: string;
   chefRef?: string;
+  /** Effectif TOTAL du navire hostile, chef compris (MDG 15 l.150, l.171). */
+  nombre: number;
   label: string;
 }
 
 /** Crise NAVALE en cours (un Test d'équipage par manche jusqu'à l'issue). */
 export type SeaCrisis =
-  | { kind: 'poursuite'; label: string; distance: number; escapeAt: number; foeM: number; foeSkill: number; desc: string }
+  | { kind: 'poursuite'; label: string; distance: number; escapeAt: number; foeM: number; foeSkill: number }
   | { kind: 'tourbillon'; label: string; whirlpoolId: string; need: number; progress: number };
 
 /** État NAVAL d'un TravelPlan (route `sea`) — persiste dans la save avec le plan. Un jour de voyage
@@ -180,9 +182,8 @@ export interface SeaVoyageState {
    *  la chronique d'un jour PASSÉ raconte ce que la journée a coûté à la coque, l'état COURANT restant
    *  lu sur la source vivante `vessel.wounds` (#296). */
   hullAtDayStart: number;
-  /** M EFFECTIF du jour ayant servi à la Progression (`effectiveSeaM`, avant que `applySeaProgress` ne
-   *  consomme `eventMMod` de la journée) — SOURCE du Test de survitesse (#443, `buildOverspeedStep`) :
-   *  un recalcul APRÈS coup manquerait le bonus d'un jour déjà consommé (« Vents favorables »). */
+  /** M EFFECTIF du jour ayant servi à la Progression (`effectiveSeaM`) — SOURCE du Test de survitesse (#443,
+   *  `buildOverspeedStep`) : un recalcul APRÈS coup lirait les modificateurs du navire levés depuis. */
   effMToday?: number;
   /** Mode de propulsion (`propulsionDuNavire`) ayant mû le navire AUJOURD'HUI et servi à `effMToday` —
    *  SOURCE du référent M de conception du Test de survitesse (#524, `buildOverspeedStep`) et de la
@@ -194,8 +195,6 @@ export interface SeaVoyageState {
   lighthouseDR?: number;
   /** Voiles affalées aujourd'hui (vents trop forts) : ancre jetée ou dérive à 25 % (ch.13 l.294). */
   sailsDown?: boolean;
-  /** M modifié par événement (Vents favorables +1 — appliqué au jour). */
-  eventMMod?: number;
   /** Infestation de rats ACTIVE (Test étendu d'Extermination, MDG 14 l.98 + événements ch.15). */
   infestation?: { label: string; testType: string; difficulty: Difficulty; need: number; progress: number; spoilPerNight: QuantiteTiree };
   /** ÉCHOUÉ sur un péril (Rocher/Bas-fonds, MDG 13 l.471-473/497/499, #444) : le navire s'arrête net,
@@ -205,7 +204,7 @@ export interface SeaVoyageState {
    *  étendu de Force (`hazard.freeTest`) n'a pas dégagé le navire — n'arrête PAS la Progression. */
   entangled?: { hazardId: string; label: string; need: number; progress: number; manDR: number; mMod: number; difficulty: Difficulty };
   crisis?: SeaCrisis;
-  /** Navire hostile en présence (événement `navire-hostile`/`nemesis`) — source de l'abordage dérivé. */
+  /** Navire hostile en présence (op `navireHostile`) — source de l'abordage dérivé. */
   boarding?: SeaBoarding;
   /** Embuscade authorée déjà ouverte sur CETTE traversée (#212) — anti-double-feu entre l'ancrage
    *  déterministe (`MapRoute.ambush.at`) et l'abordage de fin de Poursuite (`startChaseBoarding`). */
@@ -555,9 +554,9 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const overloadM = cargoOverload(cargoTotalEnc(vessel?.cargo ?? []), vd?.capacity ?? 0).mMod;
   // Empêtré dans des Débris marins (MDG 13 l.487-489, #444) : pénalité de M tant que non dégagé.
   const entangleM = sea.entangled?.mMod ?? 0;
-  // Modificateurs d'événement posés sur le navire (op `navireMod`) : MDG 15 l.184-185, l.187-188
+  // Modificateurs d'événement posés sur le navire (op `navireMod`) : MDG 15 l.184-185, l.187-188, l.228
   const modsM = sommeDesModificateurs(vessel?.modificateurs, get().gameTime, 'm');
-  const baseM = croisiere + fouling.mMod + (sea.eventMMod ?? 0) + modsM + pace + overloadM + entangleM;
+  const baseM = croisiere + fouling.mMod + modsM + pace + overloadM + entangleM;
   const aspect = windAspect(sea.heading, sea.windFrom);
   // Gréement de course (MSRC 12 l.137) « inclut un clinfoc … les avantages des deux ne sont pas cumulables »
   // → il PRIME sur le Clinfoc quand les deux sont présents.
@@ -1254,7 +1253,7 @@ function finalizeFastVoyage(get: Get, set: Set): void {
  *  d'aucune Progression). La `consequence` d'un événement (Test, Test d'équipage,
  *  choix : `runFlow`) peut SURFACER leur propre mini-cascade (`purpose:'test'`) — renvoie `true` si
  *  c'est le cas ; sa clôture reprend `runSeaDay` par la couture canonique `dispatchCascadeDone`. */
-function resolveSeaDayEvent(get: Get, set: Set, rng: RNG): boolean {
+function resolveSeaDayEvent(get: Get, set: Set): boolean {
   const plan = get().travelPlan!;
   const sea = plan.sea!;
   // Recette (#332) : événement NOMMÉ forcé (`forceEncounter`) — court-circuite le timer + le tirage.
@@ -1264,7 +1263,7 @@ function resolveSeaDayEvent(get: Get, set: Set, rng: RNG): boolean {
     if (forced) {
       // Hors cascade (recette `forceEncounter`) : personne ne journalise pour nous — la ligne rendue
       // par `resolveBoardEvent` s'écrit ICI, une fois.
-      log(get, set, [resolveBoardEvent(get, set, forced, rng)]);
+      log(get, set, [resolveBoardEvent(get, set, forced)]);
       return !!get().pendingCascade;
     }
   }
@@ -1318,7 +1317,6 @@ export function runSeaDay(get: Get, set: Set): void {
   // `reprendreLeVoyage` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c).
   if (!plan?.sea || plan.interrupted || get().pendingCrewTest || get().pendingSteamSave || get().pendingCascade) return;
   const sea = plan.sea;
-  const rng = battleRng();
   // VOYAGE RAPIDE (MDG 15 l.21-37) : ce plan ne déroule JAMAIS la journée par étape — le palier
   // calculé s'applique en un bloc (`finalizeFastVoyage`, ré-entrant après un abordage ancré).
   if (sea.fast) { if (sea.fast.pendingFinalize) finalizeFastVoyage(get, set); return; }
@@ -1326,7 +1324,7 @@ export function runSeaDay(get: Get, set: Set): void {
   // la CLÔTURE du jour précédent, `continueSeaDayAfterCascade` — décision 1 #275 Ronde 2 cran 3, aligné
   // sur le fluvial `tickRiverWindDay`/`finishRiverDay`) — cette ligne l'ANNONCE seulement.
   tell(get, set, [t('sv.weatherOfDay', { weather: seaWeatherLabel(sea.weather), from: sea.windFrom, heading: sea.heading })]);
-  if (resolveSeaDayEvent(get, set, rng)) return;
+  if (resolveSeaDayEvent(get, set)) return;
   const { steps, log: lines } = buildSeaDayCascade(get, set);
   for (const l of lines) log(get, set, [l]);
   jouerLesEtapesDuJour(get, set, steps);
@@ -1376,10 +1374,9 @@ function applySeaProgress(get: Get, set: Set, progressionDR: number): string[] {
   const eff = effectiveSeaM(get);
   if (eff.m == null || plan.sea!.sailsDown) { patchSea(get, set, { milesToday: 0 }); return []; }
   const miles = Math.round(seaMilesPerDay(eff.m, voguerDeNuit(), progressionDR));
-  // `eventMMod` consommé (« Vents favorables » : +1 M sur UNE journée de route) — `effMToday` PERSISTE le
-  // M effectif qui a servi à CETTE Progression, pour que le Test de survitesse (#443) le lise sans le
-  // recalculer après coup (un recalcul manquerait le bonus déjà consommé de la journée).
-  patchSea(get, set, { milesToday: miles, eventMMod: undefined, effMToday: eff.m, modeToday: eff.mode ?? undefined });
+  // `effMToday` PERSISTE le M effectif qui a servi à CETTE Progression, pour que le Test de survitesse (#443)
+  // le lise sans le recalculer après coup.
+  patchSea(get, set, { milesToday: miles, effMToday: eff.m, modeToday: eff.mode ?? undefined });
   return [t('sv.progressOfDay', { miles, dr: `${progressionDR >= 0 ? '+' : ''}${progressionDR}` })];
 }
 
@@ -1706,7 +1703,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   patchSea(get, set, {
     daysAtSea, lines: [], entries: [], events: [],
     weather, windFrom,
-    milesToday: 0, effMToday: undefined, modeToday: undefined, sailsDown: false, lighthouseDR: 0, eventMMod: sea.eventMMod, paceToday: undefined, manieursToday: undefined,
+    milesToday: 0, effMToday: undefined, modeToday: undefined, sailsDown: false, lighthouseDR: 0, paceToday: undefined, manieursToday: undefined,
     hullAtDayStart: hull.wounds.current,
   });
   set({ travelPlan: { ...get().travelPlan!, kmDone } });
@@ -1951,17 +1948,29 @@ function openAuthoredSeaAmbush(get: Get, set: Set, route: MapRoute | undefined, 
 /** Id de la Scène d'abordage GÉNÉRIQUE (construite à la volée, re-enregistrée à chaque abordage dérivé). */
 const BOARDING_SCENE_ID = 'sea-boarding-generic';
 
+/** Taille de la vague d'abordage : la règle maison `boardingWaveSize`. */
+const tailleDeVague = (): number => Math.max(1, Math.round(Number(rule('boardingWaveSize'))));
+
+/** Les marins du navire hostile, chef mis à part, et ceux de la première vague. MDG 15 l.150, l.171 */
+function premiereVague(b: SeaBoarding): { marins: number; vague: number } {
+  const marins = Math.max(0, b.nombre - (b.chefRef ? 1 : 0));
+  return { marins, vague: Math.min(tailleDeVague(), marins) };
+}
+
 /** Construit la Scène d'abordage GÉNÉRIQUE (ponts bord à bord) à partir du navire hostile de l'événement
  *  et de la coque de campagne — MÊME machinerie navale que les scènes authorées (`buildScene` + `enemies`
  *  terse : coque à PV + équipage exposé `crewIds`, cf. `16-embuscade-fluviale`/`ls-abordage-cogue`). La
- *  coque ennemie porte sa vague d'abordage (`boardingWaveSize` × `crewRef` + `chefRef`) comme équipage
- *  exposé (MDG 14) ; la coque de campagne est le camp allié (le groupe y EMBARQUE au `startCombat`). */
+ *  coque ennemie porte sa première vague d'abordage (`premiereVague`, + `chefRef`) comme équipage exposé
+ *  (MDG 14) ; la coque de campagne est le camp allié (le groupe y EMBARQUE au `startCombat`). */
+/** Id du combattant d'index `i` de la rencontre d'abordage générique (`buildEncounter`) : 0 est la coque
+ *  hostile, son équipage exposé suit. */
+const idDAbordage = (i: number): string => `enemy-enc-abordage-${i}`;
+
 function buildBoardingScene(playerHullRef: string, playerHullName: string, b: SeaBoarding): Scene {
-  const wave = Math.max(1, Math.round(Number(rule('boardingWaveSize'))));
+  const wave = premiereVague(b).vague;
   const chef = b.chefRef ? 1 : 0;
-  // Équipage EXPOSÉ de la coque ennemie = la vague (crew + chef) : ids déterministes `enemy-enc-abordage-<i>`
-  // (buildEncounter, index 0 = la coque elle-même → l'équipage commence à 1).
-  const crewIds = Array.from({ length: wave + chef }, (_, i) => `enemy-enc-abordage-${i + 1}`);
+  // Équipage EXPOSÉ de la coque ennemie = la vague (crew + chef).
+  const crewIds = Array.from({ length: wave + chef }, (_, i) => idDAbordage(i + 1));
   const enemies: AuthoredEnemy[] = [
     { ref: b.shipRef, pos: { x: 14, y: 6 }, label: b.label, crewIds },
     ...Array.from({ length: wave }, (_, i) => ({ ref: b.crewRef, pos: { x: 12, y: 3 + (i % 6) } })),
@@ -1996,14 +2005,23 @@ function openGenericBoarding(get: Get, set: Set, b: SeaBoarding, noSurprise = tr
   set({ travelPlan: { ...plan, interrupted: true, sea: { ...plan.sea, boarding: undefined } } });
   get().quitterLaScene(BOARDING_SCENE_ID, undefined);
   get().startCombat('enc-abordage', undefined, { noSurprise });
+  // Les marins hors de la première vague restent en RÉSERVE sur la coque hostile ; ils montent à bord par
+  // vagues (`monterLesVagues`, `shipCrew.ts`). MDG 15 l.150, l.171
+  const { marins, vague } = premiereVague(b);
+  const battle = get().battle;
+  const coque = inBattleId(battle, idDAbordage(0));
+  if (battle && coque && marins > vague) {
+    coque.reserveDAbordage = { ref: b.crewRef, restant: marins - vague, vague: tailleDeVague() };
+    set({ battle: { ...battle } });
+  }
   return true;
 }
 
 /** Rattrapé par un navire hostile → ABORDAGE (MDG 13 l.420). Priorité : embuscade AUTHORÉE de la route
  *  (SURCHARGE d'auteur, jamais une condition d'existence) ; à défaut, l'abordage se DÉRIVE de l'événement
  *  lui-même (le navire hostile `sea.boarding` engendre la rencontre GÉNÉRIQUE bord à bord). En dernier
- *  recours SEULEMENT — événement sans navire nommé (Némésis authorée manquante) ou coque de campagne
- *  inconnue — l'impossibilité est journalisée HONNÊTEMENT (rien d'inventé, pas de pseudo-récit). */
+ *  recours SEULEMENT — coque de campagne inconnue — l'impossibilité est journalisée HONNÊTEMENT (rien
+ *  d'inventé, pas de pseudo-récit). */
 function startChaseBoarding(get: Get, set: Set): void {
   const plan = get().travelPlan;
   const route = (get().worldMap as WorldMap | undefined)?.routes.find((r) => r.id === plan?.routeId);
@@ -2013,23 +2031,17 @@ function startChaseBoarding(get: Get, set: Set): void {
   tell(get, set, [t('sv.noBoardingData')]);
 }
 
-/** Fuite = COURSE-POURSUITE (ch.13 l.354) : le seuil d'évasion suit la visibilité du jour (l.364-370).
- *  PARTAGÉE par la Némésis et par la fuite choisie face à la Cogue pirate. */
-function startSeaPursuit(get: Get, set: Set, info: { label: string; desc: string }, foeM: number): void {
+/** Fuite = COURSE-POURSUITE (ch.13 l.354) devant le navire hostile `b`, à son M de conception : le seuil
+ *  d'évasion suit la visibilité du jour (l.364-370). */
+function startSeaPursuit(get: Get, set: Set, b: SeaBoarding): void {
   const sea = get().travelPlan!.sea!;
   const escapeAt = sea.weather.visibilite === 'degage' ? 100 : sea.weather.visibilite === 'brume' ? 50 : 10;
+  const foeM = garanti(propulsionDuNavire(b.shipRef, undefined, 'maritime'), b.shipRef, 'propulsion du navire hostile').m;
   patchSea(get, set, {
-    crisis: { kind: 'poursuite', label: info.label, distance: Math.floor(escapeAt / 2), escapeAt, foeM, foeSkill: 50, desc: info.desc },
+    crisis: { kind: 'poursuite', label: b.label, distance: Math.floor(escapeAt / 2), escapeAt, foeM, foeSkill: 50 },
   });
   // MDG 13 l.362-370
   tell(get, set, [t('sv.fleeChase', { start: Math.floor(escapeAt / 2), escapeAt })]);
-}
-
-/** Descripteur d'abordage DÉRIVÉ d'un événement de navire hostile : sa coque et son équipage type. La
- *  Némésis (bateau fétiche d'un boss) n'en a pas, elle est authorée. */
-function seaBoardingFromEvent(event: Extract<EvenementDeBord, { kind: 'navire-hostile' }>): SeaBoarding {
-  const p = event.params;
-  return { shipRef: p.ship, crewRef: p.crewRef, chefRef: p.chefRef, label: event.label };
 }
 
 /** PORTEUR d'une décision de BORD (interpellation pirate, tribut) : celui qui mènerait la manœuvre —
@@ -2041,32 +2053,33 @@ function seaDecider(get: Get): string {
   return partyAssisted(party, { skill: helm })?.actor.id ?? party.find((h) => !h.dead)?.id ?? '';
 }
 
-/** `meta` de l'étape `sea-pirate-hail` : l'événement de mer qui nomme le pirate. */
-interface CrisePirate { crisisLabel: string; crisisDesc: string }
-
-/** Lit la crise posée par `openPirateHail`, SEUL producteur de l'étape (#1906). */
-function lireCrise(meta: CascadeStepMeta | undefined): CrisePirate {
-  if (typeof meta?.crisisLabel !== 'string' || typeof meta.crisisDesc !== 'string')
-    throw new Error('[sea-pirate-hail] étape sans crise alors que `openPirateHail` la pose (#1906)');
-  return { crisisLabel: meta.crisisLabel, crisisDesc: meta.crisisDesc };
+/** NAVIRE HOSTILE en vue (op `navireHostile`) : il n'approche que s'il juge le navire de campagne vulnérable —
+ *  son effectif atteint `cibleVulnerablePct` % des âmes à bord, ou il aligne plus de grands canons (valeur
+ *  maison) ; sinon il passe son chemin. Rend les lignes. MDG 15 l.150-151, l.171-173 */
+export function navireHostileEnVue(get: Get, set: Set, coque: Combatant, o: Extract<GameOp, { op: 'navireHostile' }>, label: string): string[] {
+  const ames = shipboardSouls(get()).total;
+  const vulnerable = o.equipage.nombre * 100 >= ames * Number(rule('cibleVulnerablePct')) || (o.grandsCanons ?? 0) > (coque.postes?.length ?? 0);
+  if (!vulnerable) return [t('sv.hostilePasse', { label })];
+  openPirateHail(get, set, { shipRef: o.navire.id, crewRef: o.equipage.id, ...(o.chef ? { chefRef: o.chef.id } : {}), nombre: o.equipage.nombre, label }, o.exigence === 'fouille');
+  return [];
 }
 
-/** Interpellation de la Cogue pirate (A5.3 #327) : cascade AUTONOME (patron Ouragan `resolveSeaDayEvent`)
- *  d'une SEULE étape de CHOIX — fuir / combattre / se soumettre. L'applier `sea-pirate-hail` reprend
- *  `runSeaDay` à la fermeture. Le pillage (`piratePillagePct`) et le tribut à Stromfels sont RAW-mués
- *  (MDG 15 l.171-173 décrit l'extorsion sans la chiffrer) → paramètre maison + choix joueur. */
-function openPirateHail(get: Get, set: Set, event: Extract<EvenementDeBord, { kind: 'navire-hostile' }>): void {
-  const pillage = Number(rule('piratePillagePct'));
-  patchSea(get, set, { boarding: seaBoardingFromEvent(event) });
+/** Interpellation du navire hostile (A5.3 #327) : cascade AUTONOME (patron Ouragan `resolveSeaDayEvent`)
+ *  d'une SEULE étape de CHOIX — fuir / combattre, et se soumettre quand il exige de fouiller la cale
+ *  (`fouille`). L'applier `sea-pirate-hail` reprend `runSeaDay` à la fermeture. Le pillage
+ *  (`piratePillagePct`) et le tribut à Stromfels sont RAW-mués (MDG 15 l.171-173 décrit l'extorsion sans la
+ *  chiffrer) → paramètre maison + choix joueur. */
+function openPirateHail(get: Get, set: Set, b: SeaBoarding, fouille: boolean): void {
+  patchSea(get, set, { boarding: b });
   openChoice(get, set, {
-    title: 'Cogue pirate', icon: 'nautical/wind', purpose: 'test',
-    id: 'sea-pirate-hail', kind: 'sea-pirate-hail', actorId: seaDecider(get), label: dataLabel(event.label),
-    defaultChoice: 'fuir', meta: { crisisLabel: event.label, crisisDesc: event.desc } satisfies CrisePirate,
+    title: b.label, icon: 'nautical/wind', purpose: 'test',
+    id: 'sea-pirate-hail', kind: 'sea-pirate-hail', actorId: seaDecider(get), label: dataLabel(b.label),
+    defaultChoice: 'fuir',
     options: [
       // MDG 13 l.362-370
       { key: 'fuir', label: t('opt.fuir'), detail: t('sv.detailFuir') },
       { key: 'combattre', label: t('opt.combattre'), detail: t('sv.detailCombattre') },
-      { key: 'soumettre', label: t('opt.soumettre'), detail: t('sv.detailSoumettre', { pct: pillage }) },
+      ...(fouille ? [{ key: 'soumettre', label: t('opt.soumettre'), detail: t('sv.detailSoumettre', { pct: Number(rule('piratePillagePct')) }) }] : []),
     ],
   });
 }
@@ -2114,13 +2127,15 @@ export function localisationAleatoire(rng: RNG): ShipCritKey {
  *  `sea-events.json`) — son écriture appartient à l'appelant : conséquence d'étape sous cascade,
  *  `log` direct hors cascade. Les lignes MÉCANIQUES de la conséquence (dégâts, Moral, avarie) restent
  *  du ressort des sites qui les produisent (`tell`), comme ailleurs dans ce flux. */
-function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG, roll?: number): string {
+function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, roll?: number): string {
+  // MDG 15 l.89, l.228
+  const vessel = get().vessel;
+  if (vessel?.modificateurs?.some((m) => m.jusqua === 'evenementDeBord')) set({ vessel: { ...vessel, modificateurs: modificateursApresUnEvenement(vessel.modificateurs) } });
   const ligne = noteEvent(get, set, { title: event.label, text: event.desc, roll });
   if (event.kind === undefined) {
     if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
     return ligne;
   }
-  const ship = get().travelPlan?.vehicle;
   switch (event.kind) {
     case 'infestation': {
       const p = event.params;
@@ -2132,79 +2147,69 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
       });
       break;
     }
-    case 'vents-favorables':
-      patchSea(get, set, { eventMMod: (get().travelPlan?.sea?.eventMMod ?? 0) + event.params.mMod });
-      break;
-    case 'collision': {
-      // « Sans prévenir, le bateau se heurte à… » — le péril RENCONTRÉ (Iceberg/Débris marins/Rocher/
-      // Bas-fonds, ch.13 l.475-499, #444) est TIRÉ (`pickSeaHazard`, pondération MAISON) : Dégâts =
-      // IC du péril + M du navire, − BE de coque (formule inchangée, seul l'IC était en dur avant).
-      if (!ship) break;
-      const hazard = pickSeaHazard(rng);
-      const eff = effectiveSeaM(get);
-      const dmg = Math.max(0, hazard.ic + (eff.m ?? 1) - Math.floor(effectiveChar(ship, 'endurance') / 10));
-      damageVesselHull(get, set, ship, dmg);
-      // MDG 13 l.446/475-499
-      tell(get, set, [t('sv.collision', { dmg, hazard: hazard.label, ic: hazard.ic })]);
-      tell(get, set, spoilVesselCargoOnLeak(get, set)); // avarie de coque → voie d'eau (lot D #327)
-      // La DONNÉE du péril ouvre l'issue, jamais son id : `entangleChancePct` (l.485) côté empêtrement,
-      // `strandChancePct` (l.497/499) côté Échouage — et le garde passe AVANT le dé, symétriquement,
-      // pour qu'un péril sans chance n'en consomme aucun.
-      if (hazard.entangleChancePct != null) {
-        // Empêtrement (l.485-491) : pénalité de Man/M par Taille du bateau, Test étendu de Force pour se dégager.
-        const vehiculeId = get().vessel?.vehicleId ?? '';
-        const lengthM = findVehicleById(vehiculeId)?.ship?.lengthM;
-        // Un empêtrement se résout par la TAILLE du bateau : sans longueur, il n'y a pas de Taille —
-        // anomalie NOMMÉE, jamais un 0 qui rendrait « Minuscule » au premier trois-mâts venu.
-        if (lengthM == null) {
-          throw new Error(
-            `debrisEntangle : le navire « ${vehiculeId || '(aucun)'} » n'a pas de facette « ship » avec sa longueur — la pénalité d'empêtrement (MDG 13 l.485-491) se lit par Taille de bateau.`,
-          );
-        }
-        // Dé de conséquence d'un événement de bord DÉJÀ posé en table — porte du canal (`deMonde`).
-        const ent = debrisEntangleFor(hazard, shipSizeOfLength(lengthM), deMonde(rng));
-        if (ent.entangled) {
-          patchSea(get, set, {
-            entangled: {
-              hazardId: hazard.id, label: hazard.label,
-              need: hazard.freeTest?.targetDR ?? 10, progress: 0,
-              manDR: ent.manDR, mMod: ent.mMod,
-              difficulty: hazard.freeTest?.test.difficulty ?? 'accessible',
-            },
-          });
-          tell(get, set, [t('sv.entangledOn', { hazard: hazard.label })]);
-        }
-      } else if (hazard.strandChancePct != null && strandingOccurs(hazard, deMonde(rng))) {
-        // Échouage (l.471-473/497/499) : la pénalité se dérive au jet (`seaStrandingPenalty`).
-        patchSea(get, set, { stranded: { hazardId: hazard.id, label: hazard.label } });
-        // MDG 13 l.473
-        tell(get, set, [t('sv.strandedOn', { hazard: hazard.label })]);
-      }
-      break;
-    }
-    case 'maelstrom':
-    case 'vortex': {
-      const w = findWhirlpool(event.kind === 'maelstrom' ? 'maelstrom' : 'puissant-vortex')!;
-      patchSea(get, set, { crisis: { kind: 'tourbillon', label: event.label, whirlpoolId: w.id, need: w.evasion.targetDR, progress: 0 } });
-      // MDG 13 l.528
-      tell(get, set, [t('sv.whirlpoolEvasion', { label: w.label, dr: w.evasion.targetDR })]);
-      break;
-    }
-    case 'nemesis':
-      // Némésis : fuite forcée = COURSE-POURSUITE (ch.13 l.354), pas d'extorsion à négocier. Bateau fétiche
-      // d'un boss (Wulfrik…) = rencontre AUTHORÉE : pas de descripteur dérivable (clear anti-report périmé).
-      patchSea(get, set, { boarding: undefined });
-      startSeaPursuit(get, set, event, 6);
-      break;
-    case 'navire-hostile':
-      // Cogue pirate (MDG 15 l.171-173) : les forbans exigent de fouiller la cale — CHOIX joueur
-      // fuir / combattre / se soumettre (A5.3 #327), en cascade interactive avant la journée.
-      openPirateHail(get, set, event);
-      break;
     default:
       break; // narratif : le desc verbatim au journal suffit — rien d'inventé
   }
   return ligne;
+}
+
+/** Le navire HEURTE le péril `hazardId` (op `perilDeMer`) : Dégâts = Indice de Collision du péril + M du
+ *  navire − BE de coque, voie d'eau, puis empêtrement ou Échouage selon la donnée du péril ; un modificateur
+ *  du navire qui l'évite (`navireMod.evite`) l'écarte. Rend les lignes. MDG 13 l.446, l.471-499 ;
+ *  MDG 15 l.181-183, l.229 */
+export function heurterLePeril(get: Get, set: Set, coque: Combatant, hazardId: string, rng: RNG): string[] {
+  const hazard = garanti(findSeaHazard(hazardId), hazardId, 'péril en mer');
+  const evite = evitementDuPeril(get().vessel?.modificateurs, get().gameTime, hazard.id);
+  if (evite) return [t('sv.perilEvite', { hazard: hazard.label, label: evite.label })];
+  garanti(get().travelPlan?.sea, hazardId, 'navire en mer');
+  const eff = effectiveSeaM(get);
+  const dmg = Math.max(0, hazard.ic + (eff.m ?? 1) - Math.floor(effectiveChar(coque, 'endurance') / 10));
+  damageVesselHull(get, set, coque, dmg);
+  // MDG 13 l.446/475-499
+  const j = [t('sv.collision', { dmg, hazard: hazard.label, ic: hazard.ic }), ...spoilVesselCargoOnLeak(get, set)];
+  // La DONNÉE du péril ouvre l'issue, jamais son id : `entangleChancePct` (l.485) côté empêtrement,
+  // `strandChancePct` (l.497/499) côté Échouage — et le garde passe AVANT le dé, symétriquement,
+  // pour qu'un péril sans chance n'en consomme aucun.
+  if (hazard.entangleChancePct != null) {
+    // Empêtrement (l.485-491) : pénalité de Man/M par Taille du bateau, Test étendu de Force pour se dégager.
+    const vehiculeId = get().vessel?.vehicleId ?? '';
+    const lengthM = findVehicleById(vehiculeId)?.ship?.lengthM;
+    // Un empêtrement se résout par la TAILLE du bateau : sans longueur, il n'y a pas de Taille —
+    // anomalie NOMMÉE, jamais un 0 qui rendrait « Minuscule » au premier trois-mâts venu.
+    if (lengthM == null) {
+      throw new Error(
+        `debrisEntangle : le navire « ${vehiculeId || '(aucun)'} » n'a pas de facette « ship » avec sa longueur — la pénalité d'empêtrement (MDG 13 l.485-491) se lit par Taille de bateau.`,
+      );
+    }
+    const ent = debrisEntangleFor(hazard, shipSizeOfLength(lengthM), deMonde(rng));
+    if (ent.entangled) {
+      patchSea(get, set, {
+        entangled: {
+          hazardId: hazard.id, label: hazard.label,
+          need: hazard.freeTest?.targetDR ?? 10, progress: 0,
+          manDR: ent.manDR, mMod: ent.mMod,
+          difficulty: hazard.freeTest?.test.difficulty ?? 'accessible',
+        },
+      });
+      j.push(t('sv.entangledOn', { hazard: hazard.label }));
+    }
+  } else if (hazard.strandChancePct != null && strandingOccurs(hazard, deMonde(rng))) {
+    // Échouage (l.471-473/497/499) : la pénalité se dérive au jet (`seaStrandingPenalty`).
+    patchSea(get, set, { stranded: { hazardId: hazard.id, label: hazard.label } });
+    // MDG 13 l.473
+    j.push(t('sv.strandedOn', { hazard: hazard.label }));
+  }
+  return j;
+}
+
+/** Un TOURBILLON aspire le navire à la périphérie de sa zone (op `perilDeMer`) : la crise d'évasion s'ouvre,
+ *  nommée `label`. Rend les lignes. MDG 13 l.514-537 ; MDG 15 l.140-141, l.146 */
+export function entrerDansLeTourbillon(get: Get, set: Set, whirlpoolId: string, label: string): string[] {
+  const w = garanti(findWhirlpool(whirlpoolId), whirlpoolId, 'tourbillon');
+  garanti(get().travelPlan?.sea, whirlpoolId, 'navire en mer');
+  patchSea(get, set, { crisis: { kind: 'tourbillon', label, whirlpoolId: w.id, need: w.evasion.targetDR, progress: 0 } });
+  // MDG 13 l.528
+  return [t('sv.whirlpoolEvasion', { label: w.label, dr: w.evasion.targetDR })];
 }
 
 function tellManann(get: Get, set: Set, effet: EffetSigne): void {
@@ -2369,11 +2374,9 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
   const mood = vesselManann(vessel);
   const { roll, hours, event } = rollPortEvent(mood.score, rng);
   log(get, set, [t('sv.portEvent', { die: formatDice(deDesEvenementsDePort()), roll, label: event.label, hours }), event.desc]);
-  // #150 : `travelPlan` est déjà remis à `null` par `continueSeaDayAfterCascade` avant cet appel (l'arrivée l'annule) —
-  // le lire ici renverrait TOUJOURS `undefined`. La coque se reconstruit depuis l'état PERSISTANT
-  // (`get().vessel`, comme `buildSeaPlan`/`effectiveSeaM` le font via `voyageShip`).
-  const ship = voyageShip(get)?.hull;
   if (event.relache && !shoreLeave) { log(get, set, [t('sv.relacheRefusee', { label: event.label })]); return; }
+  // MDG 15 l.249
+  if (event.taillePortMax !== undefined && (port?.taille ?? Infinity) > event.taillePortMax) { log(get, set, [t('sv.portTropGrand', { label: event.label, taille: event.taillePortMax })]); return; }
   if (event.kind === undefined) {
     if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
     return;
@@ -2389,11 +2392,6 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
       }
       break;
     }
-    case 'port-desert':
-      // MDG 15 l.249
-      if (!ship || !port || port.taille > event.params.maxSize) break;
-      for (const l of applyShipMoraleDelta(get, set, ship, tirerSigne(event.params.moral, rng))) log(get, set, [l]);
-      break;
     case 'embrigadement': {
       // « Vous perdez 2d10 membres d'équipage » (MDG 15 l.245) : perte PERSISTÉE puis SÉQUENCE de
       // recouvrement (Ragot Intermédiaire → rançon 2d10 CO OU Discrétion Complexe ; échec → 1d10 de
@@ -2572,7 +2570,7 @@ export const TABLES = {
       // `CascadeModal`). Même patron que la Météo d'Étape (`travelFlow`, applier `stageWeather`), qui rend
       // sa ligne en conséquence au lieu de l'écrire à côté. La ligne de la TABLE, elle, reste l'issue de la
       // RANGÉE (`table.result.lines`) et ne se re-verse pas au journal : une seule voix par étape.
-      return { consequences: freeCons([resolveBoardEvent(get, set, event, rng, tiree.die)]) };
+      return { consequences: freeCons([resolveBoardEvent(get, set, event, tiree.die)]) };
     },
     /** Forcer le rythme (MDG 13 l.95-107) : pose `paceToday`, le +M du jour se lit ensuite par
      *  `effectiveSeaM`. Étape du TRONC de la cascade du jour (`buildForcePaceStep`, avant Progression) —
@@ -2878,7 +2876,7 @@ export const TABLES = {
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },
-    /** CHOIX face à la Cogue pirate (A5.3 #327). fuir → Poursuite ; combattre → abordage immédiat ;
+    /** CHOIX face au navire hostile (A5.3 #327). fuir → Poursuite ; combattre → abordage immédiat ;
      *  se soumettre → pillage `piratePillagePct` de la cale + CHOIX du tribut (étape insérée). */
     'sea-pirate-hail': (get, set, step) => {
       const j: string[] = [];
@@ -2902,8 +2900,7 @@ export const TABLES = {
         });
         return { consequences: freeCons(j), ...(tribut ? { insert: [tribut] } : {}) };
       } else {
-        const crise = lireCrise(step.meta);
-        startSeaPursuit(get, set, { label: crise.crisisLabel, desc: crise.crisisDesc }, 5);
+        startSeaPursuit(get, set, garanti(get().travelPlan?.sea?.boarding, 'sea-pirate-hail', 'navire hostile en vue'));
       }
       // La reprise du jour à la fermeture de cette cascade (`purpose:'test'` en mer) est portée par
       // `dispatchCascadeDone` → `runSeaDay` (couture canonique de clôture, jamais un `setTimeout` ad hoc).

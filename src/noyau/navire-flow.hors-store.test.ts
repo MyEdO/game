@@ -23,6 +23,8 @@ import { shipboardSouls } from './shipCrew';
 import { t } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
 import type { GameOp } from '../engine/ops';
+import { rule, setRule, resetRule } from '../engine/policy';
+import { checkBattleOver } from './combatFlow';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -532,5 +534,114 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
     setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id, label, desc }) => ({ min, max, id, label, desc })) as never);
     finalizePortArrivalTo(get, set, carte.places[1], true);
     expect(get().vessel!.perteAuDechargement).toBeUndefined();
+  });
+});
+
+describe('Périls et navires hostiles en grammaire (#1652 lot 4 — MDG 15, valeurs maison du 2026-11-07)', () => {
+  beforeEach(etatFrais);
+  afterEach(() => { resetData(); resetRule('cibleVulnerablePct'); resetRule('boardingWaveSize'); });
+
+  /** Un jour de traversée neuf où se joue `evenement` ; la conduite du jour précédent est abandonnée. */
+  function jour(evenement: string): void {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    set({ pendingCascade: null, travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
+    runSeaDay(get, set);
+  }
+  const consequence = (id: string) => BOARD_EVENTS.find((e) => e.id === id)?.consequence;
+  const surLeNavire = (ops: unknown[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'navire', ops } as never });
+  const hail = () => get().pendingCascade?.participants.find((s) => s.kind === 'sea-pirate-hail');
+  const journal = () => get().journal.join('\n');
+
+  it('la donnée porte la RAW : tourbillons, Rocher, équipages et grands canons, Vents favorables M +1, Marsouin 1d10 jours', () => {
+    expect(consequence('maelstrom')).toEqual(surLeNavire([{ op: 'perilDeMer', tourbillon: { id: 'maelstrom' } }])); // l.140-141
+    expect(consequence('puissant-vortex')).toEqual(surLeNavire([{ op: 'perilDeMer', tourbillon: { id: 'puissant-vortex' } }])); // l.146
+    expect(consequence('langskip-skaeling')).toEqual(surLeNavire([{ op: 'navireHostile', navire: { id: 'langskip' }, equipage: { id: 'humain', nombre: 45 } }])); // l.150-151
+    expect(consequence('cogue-pirate')).toEqual(surLeNavire([{ // l.171-173
+      op: 'navireHostile', navire: { id: 'cogue' }, equipage: { id: 'humain', nombre: 25 }, chef: { id: 'jaego-roth' }, grandsCanons: 6, exigence: 'fouille',
+    }]));
+    expect(consequence('nemesis')).toBeUndefined(); // l.148-149 : rencontre de scénario
+    expect(consequence('vents-favorables')).toEqual(surLeNavire([{ op: 'navireMod', m: 1, jusqua: 'evenementDeBord' }])); // l.228
+    expect(consequence('marsouin-amical')).toEqual(surLeNavire([{ op: 'navireMod', evite: ['rocher', 'bas-fonds'], jusqua: { jours: { dice: { n: 1, sides: 10 } } } }])); // l.229
+  });
+
+  it('Vents favorables : M +1, levé au prochain événement de bord (l.228)', () => {
+    jour('vents-favorables');
+    expect(get().vessel!.modificateurs).toEqual([expect.objectContaining({ m: 1, jusqua: 'evenementDeBord' })]);
+    jour('nemesis');
+    expect(get().vessel!.modificateurs ?? []).toEqual([]);
+  });
+
+  it('Marsouin amical : la Collision soudaine (Rocher) est évitée pendant 1d10 jours, puis ne l’est plus (l.229, l.181)', () => {
+    jour('marsouin-amical');
+    const [mod] = get().vessel!.modificateurs!;
+    expect(mod).toMatchObject({ evite: ['rocher', 'bas-fonds'] });
+    expect(mod.jusqua).toBeGreaterThan(get().gameTime);
+    expect(mod.jusqua).toBeLessThanOrEqual(get().gameTime + 10 * MINUTES_PER_DAY);
+    const blessures = () => get().vessel!.wounds;
+    const avant = blessures();
+    jour('collision-soudaine');
+    expect(journal()).toContain(t('sv.perilEvite', { hazard: 'Rocher', label: mod.label }));
+    expect(blessures()).toBe(avant);
+    set({ gameTime: (mod.jusqua as number) + 1 });
+    jour('collision-soudaine');
+    expect(blessures()).not.toBe(avant);
+  });
+
+  it('Marsouin amical : un péril qu’il ne nomme pas (Iceberg) n’est pas évité', () => {
+    jour('marsouin-amical');
+    setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === 'collision-soudaine' ? { ...e, consequence: surLeNavire([{ op: 'perilDeMer', collision: { id: 'iceberg' } }]) } : e)) as never);
+    jour('collision-soudaine');
+    expect(journal()).not.toContain('évité');
+    expect(journal()).toContain('Iceberg');
+  });
+
+  it.each([['maelstrom', 'maelstrom'], ['puissant-vortex', 'puissant-vortex']])('%s : la crise d’évasion du tourbillon s’ouvre (MDG 13 l.514-537)', (evenement, tourbillon) => {
+    jour(evenement);
+    expect(get().travelPlan!.sea!.crisis).toMatchObject({ kind: 'tourbillon', whirlpoolId: tourbillon, progress: 0 });
+  });
+
+  it('Cogue pirate : fuir, combattre ou se soumettre, fuir par défaut (l.171-173)', () => {
+    jour('cogue-pirate');
+    expect(hail()?.options?.map((o) => o.key)).toEqual(['fuir', 'combattre', 'soumettre']);
+    expect(hail()?.defaultChoice).toBe('fuir');
+  });
+
+  it('Langskip skaeling : aucune extorsion, fuir ou combattre (l.150-151)', () => {
+    jour('langskip-skaeling');
+    expect(hail()?.options?.map((o) => o.key)).toEqual(['fuir', 'combattre']);
+  });
+
+  it('navire hostile moins nombreux et moins armé : il passe son chemin (seuil `cibleVulnerablePct`, maison)', () => {
+    const ames = shipboardSouls(get()).total;
+    setRule('cibleVulnerablePct', Math.min(300, Math.ceil((45 * 100) / ames / 10) * 10 + 10));
+    jour('langskip-skaeling');
+    expect(hail()).toBeUndefined();
+    expect(journal()).toContain(t('sv.hostilePasse', { label: BOARD_EVENTS.find((e) => e.id === 'langskip-skaeling')!.label }));
+  });
+
+  it('navire hostile mieux armé en grands canons : il attaque quel que soit l’effectif (Cogue, 6 grands canons)', () => {
+    setRule('cibleVulnerablePct', 300);
+    jour('cogue-pirate');
+    expect(hail()).toBeDefined();
+  });
+
+  it('abordage : tout l’équipage RAW est en jeu, il monte par vagues de `boardingWaveSize` à mesure que le pont se dégage (l.171)', () => {
+    jour('cogue-pirate');
+    get().jetRegler('cascade', 'choix', 'combattre', 'sea-pirate-hail');
+    get().jetValider('cascade');
+    const coque = () => get().battle!.combatants.find((c) => c.id === 'enemy-enc-abordage-0')!;
+    const vague = Number(rule('boardingWaveSize'));
+    // 25 marins, Jaego Roth compris : 24 marins, dont une première vague à bord.
+    expect(coque().reserveDAbordage).toEqual({ ref: 'humain', restant: 24 - vague, vague });
+    const aBord = coque().crewIds!.length;
+    for (const id of coque().crewIds!) {
+      const c = get().battle!.combatants.find((x) => x.id === id);
+      if (c) c.dead = true;
+    }
+    expect(checkBattleOver(get, set)).toBe(false);
+    expect(coque().crewIds!.length).toBe(aBord + vague);
+    expect(coque().reserveDAbordage!.restant).toBe(24 - 2 * vague);
+    expect(coque().exitReason).toBeUndefined();
+    expect(JSON.stringify(get().battle!.log)).toContain(t('crew.vagueDAbordage', { ship: coque().label, n: vague, restant: 24 - 2 * vague }));
   });
 });

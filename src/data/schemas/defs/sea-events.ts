@@ -34,13 +34,15 @@ const feuilleDeParam = z.union([
 /** `SeaEventDef` (`src/engine/seaVoyage.ts`) — `consequence` = sa suite MÉCANIQUE en grammaire (`Flow`),
  *  jouée par `runFlow` ; sans elle ni genre, la rangée est narrative. `kind`/`params` = le genre d'une
  *  rangée dont la suite est codée (`ParametresDeBord`, `ParametresDePort`). `relache` : la rangée ne se
- *  joue qu'avec la relâche à terre accordée (MDG 15 l.245, l.260). #1652 */
+ *  joue qu'avec la relâche à terre accordée (MDG 15 l.245, l.260) ; `taillePortMax` : qu'à l'escale d'un port
+ *  de Taille au plus celle-ci (MDG 15 l.249). #1652 */
 const seaEventDef = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
   desc: z.string(),
   relache: z.literal(true).optional(),
+  taillePortMax: z.number().int().min(1).optional(),
   consequence: flowSchema.optional(),
   kind: z.string().optional(),
   params: z.record(z.string(), z.union([
@@ -56,6 +58,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   label: { label: 'Libellé' },
   desc: { label: 'Description' },
   relache: { label: 'Relâche à terre requise' },
+  taillePortMax: { label: 'Taille de port maximale' },
   consequence: { label: 'Conséquence' },
   kind: { label: 'Type' },
   params: { label: 'Paramètres' },

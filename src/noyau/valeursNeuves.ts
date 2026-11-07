@@ -207,6 +207,8 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'cargaison': return { op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } };
     case 'provisions': return { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } };
     case 'equipage': return { op: 'equipage', delta: 1 };
+    case 'perilDeMer': return { op: 'perilDeMer', collision: { id: '' } };
+    case 'navireHostile': return { op: 'navireHostile', navire: { id: '' }, equipage: { id: '', nombre: 1 } };
     default: return { op: 'wounds', amount: 5 };
   }
 }
