@@ -36,7 +36,7 @@ describe('#1595 — Fuite de vapeur sous ordres : un seul dénouement de la jour
     set({
       party: makePregens().slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], pendingSteamSave: null, gameTime: 8 * 60, lastUpkeepDay: 0, journal: [], partyWiped: false,
       vessel: { vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);

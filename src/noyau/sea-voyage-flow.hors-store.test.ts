@@ -67,7 +67,7 @@ const mjAuSiege1 = (net: NetState): NetState => poserLeSiegeMJ({ ...net, seatNam
  * VOYAGE MARITIME (7b) — la traversée jour par jour sur le navire de campagne (MDG 13/15), pilotée
  * par le pipeline CASCADE (#275 Ronde 2 cran 3) : un jour = `pendingCascade` `purpose:'travelDay'`,
  * Blessures de coque persistées sur `CampaignVessel` (#30), services portuaires. L'équipage hors
- * combat = les PJ (MDG 14 l.39). `pendingCrewTest` est réservé au combat (`crewTestModal` seul).
+ * combat = les PJ (MDG 14 l.39).
  */
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -94,7 +94,6 @@ function freshState() {
     lieu: 'A',
     travelPlan: null,
     travelRecap: null,
-    pendingCrewTest: null,
     pendingRest: null,
     pendingCascade: null,
     suspendedCascades: [],
@@ -483,7 +482,6 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
       lieu: 'A',
       travelPlan: null,
       travelRecap: null,
-      pendingCrewTest: null,
       pendingRest: null,
       pendingCascade: null,
       suspendedCascades: [],
@@ -715,7 +713,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     seedBattleRng(1); // RNG semé : le jour joué directement à l'étape 'embuscade' ne tire AUCUN événement de bord
     set({
       party: makePregens().slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
-      pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
+      pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
     get().chargerLeProjet({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap, projet: null });
@@ -993,7 +991,7 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     seedBattleRng(1);
     set({
       party: makePregens().slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
-      pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
+      pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
     get().chargerLeProjet({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap: abordageMap, projet: null });
@@ -2746,7 +2744,6 @@ describe('aucun PJ apte : la journée se joue au plancher de Manque de bras (MDG
 
     const journal = get().journal.join(' | ');
     expect(journal, 'la Progression du jour n’est pas journalisée au plancher').toMatch(/Progression du jour[^|]*DR d'équipage -2/);
-    expect(get().pendingCrewTest, 'un Test d’équipage a été posé sans personne pour le tenir').toBeNull();
     const etapes: CascadeStep[] = get().pendingCascade?.participants ?? [];
     expect(etapes.some((e) => e.kind === 'progression'), 'une étape de Progression a été posée sans PJ apte').toBe(false);
 

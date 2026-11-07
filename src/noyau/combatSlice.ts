@@ -81,12 +81,12 @@ import { ficheDEntite } from './monde/sceneNpc';
 import { applyShipPostes, autoFormCrews, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, rechargeDuTour } from './monde/shipPostes';
 import { posteHullOf, pushEligible, pushCrewOk, pushReachable } from './siegePush';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
-import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, quartChante, chanteurDuNavire, withCrewActed, chansonsDuChanteur } from './shipCrew';
+import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShantyToCrew, quartIndex, quartChante, chanteurDuNavire, withCrewActed, chansonsDuChanteur } from './shipCrew';
 import { actFirstIds, freeActFirst } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
 import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbut, continueSeaDayAfterExposure, continueSeaDayAfterExhaustion, runSeaDay, finalizePortArrival } from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
-import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
+import { resolveCrewTestByRoles, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
 import { acquerirLeTrait } from './cibleAcquise';
@@ -2666,26 +2666,6 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const bB = get().battle!;
       set({ battle: { ...bB, action: null, preview: null, crewActed: withCrewActed(bB.crewActed, p.shipId, p.participants.map((x) => x.id)) } }); // Artilleurs engagés ce Round
       if (!suspendu) checkBattleOver(get, set);
-      bus.emit(EVT.SCENE_DIRTY);
-    },
-    crewTest: () => {
-      const { battle, pendingCrewTest: p } = get();
-      if (!p) return;
-      if (!battle) return;
-      const ship = inBattleId(battle, p.shipId);
-      if (!ship) { set({ pendingCrewTest: null }); return; }
-      const total = maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR);
-      set({ pendingCrewTest: null });
-      const testType = findCrewTestTypeById(p.testTypeId);
-      const label = testType?.label ?? p.testTypeId;
-      get().ecrireAuJournal(t('cs.crewTest', { label, ship: ship.label, dr: total >= 0 ? `+${total}` : `${total}`, outcome: crewTestSuccess(total) ? t('cs.crewTestOk') : t('cs.crewTestKo') })); // MDG 14 l.13
-      // ISSUE PAR TYPE — le type de Test DÉCLARE que son total négatif coûte du Moral (MDG 14 l.110).
-      // Persiste sur le navire de campagne.
-      if (testType?.moraleOnNegativeDR) {
-        for (const l of applyShipMoraleDelta(get, set, ship, rudeEpreuveMoraleDelta(total))) get().ecrireAuJournal(l);
-      }
-      const bC = get().battle!;
-      set({ battle: { ...markActed(get, set), action: null, preview: null, crewActed: withCrewActed(bC.crewActed, p.shipId, p.participants.map((x) => x.id)) } }); // un jet = une Action ; marins engagés ce Round
       bus.emit(EVT.SCENE_DIRTY);
     },
     shanty: () => {

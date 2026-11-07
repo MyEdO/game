@@ -1279,7 +1279,7 @@ export function runSeaDay(get: Get, set: Set): void {
   const plan = get().travelPlan;
   // Une cascade est déjà active (ou suspendue derrière un combat) : l'arbitre la montre, rien à faire —
   // `reprendreLeVoyage` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c).
-  if (!plan?.sea || plan.interrupted || get().pendingCrewTest || get().pendingSteamSave || get().pendingCascade) return;
+  if (!plan?.sea || plan.interrupted || get().pendingSteamSave || get().pendingCascade) return;
   const sea = plan.sea;
   // VOYAGE RAPIDE (MDG 15 l.21-37) : ce plan ne déroule JAMAIS la journée par étape — le palier
   // calculé s'applique en un bloc (`finalizeFastVoyage`, ré-entrant après un abordage ancré).

@@ -31,7 +31,6 @@
     "src/ui/CoopLobby.tsx",
     "src/ui/CorruptionModal.tsx",
     "src/ui/CouncilModal.tsx",
-    "src/ui/CrewTestModal.tsx",
     "src/ui/DeterminationButton.tsx",
     "src/ui/DialogueBox.tsx",
     "src/ui/DialogueHistoryScreen.tsx",

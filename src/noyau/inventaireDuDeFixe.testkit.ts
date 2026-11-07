@@ -218,11 +218,6 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     pid: 'H',
     read: partRead((s) => P<{ participants: { result: { roll: number } }[] }>(s, 'pendingShipBattery').participants[0].result),
   },
-  crewTest: {
-    state: { pendingCrewTest: { participants: [part3()] } },
-    pid: 'H',
-    read: partRead((s) => P<{ participants: { result: { roll: number } }[] }>(s, 'pendingCrewTest').participants[0].result),
-  },
   disengage: opposedFixture('pendingDisengage', { moverId: 'H', foeId: 'E' }),
   auContact: opposedFixture('pendingAuContact', { moverId: 'H', foeId: 'E' }),
   grapple: opposedFixture('pendingGrapple', { actorId: 'H', targetId: 'E' }),

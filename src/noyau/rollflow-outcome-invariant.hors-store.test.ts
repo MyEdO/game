@@ -195,7 +195,6 @@ const SKIP: Record<string, string> = {
   fumble: 'Maladresse (LDB 14) — le flux n’a NI Chance NI Résilience (`verbs: [roll, confirm]`) : le tirage des Oups ! désigne une ligne de table, son `outcome` est scellé neutre.',
   shipManeuver: 'Test d’équipage par rôle (MDG 14) — fixture de rôle valide lourde ; `outcome` = `cleanRollOutcome` partagé (crewRoleFlowSpec), déjà exercé par la logique numérique de forceDoor',
   shipBattery: 'idem shipManeuver (MÊME crewRoleFlowSpec)',
-  crewTest: 'idem shipManeuver (MÊME crewRoleFlowSpec)',
 };
 
 beforeEach(() => {

@@ -51,7 +51,7 @@ function journeeDeMer(cadence: Cadence): void {
   set({
     party: makePregens().slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-    battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+    battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
     pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [], partyWiped: false,
   } as never);
@@ -100,7 +100,7 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
     set({
       party: makePregens().slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [], partyWiped: false,
     } as never);
@@ -136,7 +136,7 @@ describe('#1595 — relâche à terre résolue sur place : un groupe à terre n�
     set({
       party: makePregens().slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null, pendingShoreLeave: null,
+      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null, pendingShoreLeave: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 30, lastMoraleWeek: 0, factors: [] } }, journal: [], partyWiped: false,
     } as never);

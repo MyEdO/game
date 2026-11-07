@@ -743,7 +743,7 @@ function prepareJourMaritime(seed: number): void {
     party: makePregens().slice(0, 3),
     scene: scenePlate('monde-a') as never,
     battle: null, worldMap: carteMer, travelPlan: null, travelRecap: null,
-    pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [],
+    pendingRest: null, pendingCascade: null, suspendedCascades: [],
     gameTime: 8 * 60, lastUpkeepDay: 0, journal: [],
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   } as never);

@@ -391,7 +391,6 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   shanty: (s) => s.pendingShanty && vue('shanty', [ligne(s.pendingShanty.singerId, libelleDeTest('chant'), s.pendingShanty.result)]),
   shipManeuver: (s) => s.pendingShipManeuver && vue('shipManeuver', rangees(s.pendingShipManeuver.participants, (p) => ligne(p.id, libelleDeRole(p), jete(p.result)))),
   shipBattery: (s) => s.pendingShipBattery && vue('shipBattery', rangees(s.pendingShipBattery.participants, (p) => ligne(p.id, libelleDeRole(p), jete(p.result)))),
-  crewTest: (s) => s.pendingCrewTest && vue('crewTest', rangees(s.pendingCrewTest.participants, (p) => ligne(p.id, libelleDeRole(p), jete(p.result)))),
 };
 
 /** Les flux qu'une étape-JET de cascade héberge, dans l'ordre de sa fenêtre : le sien, puis ceux des fenêtres qu'elle

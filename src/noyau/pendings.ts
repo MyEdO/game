@@ -676,22 +676,6 @@ export interface PendingShipManeuver extends MultiPending<ShipManeuverParticipan
   /** Sabotage (MDG 14 l.45-47) : −1..−5 DR plats au total du Test d'équipage (`shipSaboteurDR`). */
   extraDR?: number;
 }
-/** TEST D'ÉQUIPAGE GÉNÉRIQUE en COMBAT (MDG 14, « Types de Test d'équipage ») — 3ᵉ jumeau de la
- *  manœuvre/bordée : chaque rôle tenu lance SON Test (multi-jets), DR sommés (essentiel ×2) + Moral +
- *  Manque de bras + sabotage. L'ISSUE dépend du type (`jetValider('crewTest')`) : **Rude épreuve** (l.106-114)
- *  → un total NÉGATIF réduit le Moral d'autant (l.110), PERSISTÉ sur `CampaignVessel.morale`. Les Tests
- *  d'équipage de VOYAGE (Progression, Poursuite, Perception, Orientation…) sont des ÉTAPES
- *  `CascadeStep` À PARTICIPANTS de la cascade du jour (#275 Ronde 2, `seaVoyageFlow.ts`) — CE
- *  pending sert UNIQUEMENT au combat (Rude épreuve, arme d'équipe). */
-export interface PendingCrewTest extends MultiPending<ShipManeuverParticipant> {
-  shipId: string;
-  /** Type de Test d'équipage (`crew-test-types.json`) — décide des rôles, du rôle essentiel et de l'issue. */
-  testTypeId: string;
-  essentialRoleId?: string;
-  moraleScore: number;
-  undercrew?: { dr: number; capSuccesMinime: boolean };
-  extraDR?: number;
-}
 /** CHANSON DE MARIN en attente (Talent, MDG 09 l.32-40) : le chanteur choisit sa chanson CONNUE (pré-jet,
  *  OptionChooser — specs du Talent) puis lance son Test de **Divertissement (Chant)** ; sur un succès,
  *  l'effet (`crewOps`/`captainOps` de `sea-shanties.json`) est posé sur TOUT l'équipage pour

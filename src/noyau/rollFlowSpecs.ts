@@ -11,7 +11,7 @@
  */
 import type { Jeu } from './etat';
 import type { IdDeRangee } from './designations';
-import type { PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, CascadeRoll, BatchParticipant } from './pendings';
+import type { PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, CascadeRoll, BatchParticipant } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
 import type { Combatant, ReverseQuery, Weapon } from '../engine/types';
@@ -344,10 +344,10 @@ export function creerVerbesDeJet(get: Get, set: Set, clotures: CloturesDuJet): V
 
 
 /** Spec PARTAGÉE des Tests d'équipage MULTI (MDG 14) : un jet PAR RÔLE tenu (`rollCrewRole`), Résilience
- *  = DR max du contributeur (`forceCrewRole`), Chance « +1 DR » sur SON jet. Consommée par les 3 flux jumeaux
- *  (manœuvre / bordée / Test d'équipage générique) — la spec n'est écrite qu'UNE fois. */
+ *  = DR max du contributeur (`forceCrewRole`), Chance « +1 DR » sur SON jet. Consommée par les flux jumeaux
+ *  (manœuvre / bordée) — la spec n'est écrite qu'UNE fois. */
 function crewRoleFlowSpec<P extends import('./rollFlowFactory').PendingBase & { participants: ShipManeuverParticipant[] }>(
-  key: 'pendingShipManeuver' | 'pendingShipBattery' | 'pendingCrewTest',
+  key: 'pendingShipManeuver' | 'pendingShipBattery',
 ): import('./rollFlowFactory').RollFlowSpec<P, ShipManeuverParticipant> {
   return {
     key,
@@ -1747,10 +1747,6 @@ export const FLOWS = paresseux({
    *  `jetValider('shipBattery')`. Forced (Résilience) = DR max du contributeur. */
   battery: () => makeRollFlow<PendingShipBattery, ShipBatteryParticipant>(crewRoleFlowSpec('pendingShipBattery')),
 
-  /** TEST D'ÉQUIPAGE GÉNÉRIQUE (MDG 14, « Types de Test d'équipage ») — 3ᵉ consommateur de la MÊME spec
-   *  de jet par rôle ; l'issue par type (Rude épreuve → Moral, l.110) vit dans `jetValider('crewTest')`. */
-  crewTest: () => makeRollFlow<PendingCrewTest, ShipManeuverParticipant>(crewRoleFlowSpec('pendingCrewTest')),
-
   /** Étape-PARTICIPANTS d'une CASCADE (batch multi, seam de jet #275 Décision 4 cran 1) : UNE rangée par
    *  contributeur GÉNÉRIQUE de l'étape COURANTE (`pendingCascade.participants[cursor].participants`,
    *  `BatchParticipant`) — chaque participant lance un Test « +0 » sur sa cible EFFECTIVE bakée à la
@@ -2438,7 +2434,7 @@ export const FLOW_HANDLERS = paresseux({
   heal: () => FLOWS.heal, surgery: () => FLOWS.surgery, corruption: () => FLOWS.corruption, test: () => FLOWS.test, steamSave: () => FLOWS.steamSave,
   activity: () => FLOWS.activity, bargain: () => FLOWS.bargain, appraise: () => FLOWS.appraise, shanty: () => FLOWS.shanty,
   counterspell: () => FLOWS.counterspell, cascade: () => FLOWS.cascade, opposition: () => FLOWS.castOpposition, extendedTest: () => FLOWS.extendedTest,
-  forceDoor: () => FLOWS.forceDoor, shipManeuver: () => FLOWS.shipManeuver, shipBattery: () => FLOWS.battery, crewTest: () => FLOWS.crewTest,
+  forceDoor: () => FLOWS.forceDoor, shipManeuver: () => FLOWS.shipManeuver, shipBattery: () => FLOWS.battery,
   cascadeBatch: () => FLOWS.cascadeBatch, etalLot: () => FLOWS.etalLot, cascadeTirage: () => FLOWS.cascadeTirage, fumble: () => FLOWS.fumble,
 } satisfies Record<FlowKey, () => RollFlowHandlers>);
 

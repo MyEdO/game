@@ -147,7 +147,7 @@ describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.
     banc.setState({
       party: makePregens().slice(0, 3).map((h) => ({ ...h, characteristics: tableTotale(Object.keys(h.characteristics), () => 99) })),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+      battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0, pendingSteamSave: null, journal: [],
       vessel: { vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);

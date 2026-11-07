@@ -770,20 +770,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/CrewTestModal.test.tsx",
-    motif: "désormais",
-    ancre: "VOYAGE sont désormais des étapes de la cascade du jour (#275 Ronde 2 cran 3, `CascadeModal`) — cette",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/CrewTestModal.tsx",
-    motif: "désormais",
-    ancre: "(hors combat) sont désormais des étapes de la cascade du jour (#275 Ronde 2 cran 3, `CascadeModal`) —",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/ui/RollShell.test.tsx",
     motif: "désormais",
     ancre: "(Le préfixe 🎲 est désormais l'icône <Icon id=\"nav/dice\"> — on vérifie le libellé texte.)",
