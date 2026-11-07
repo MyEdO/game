@@ -614,7 +614,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     // Charge (LDB 15 l.35-37) : se ruer au contact (portée de Course) puis attaquer — manœuvre
     // PLEINE (consomme tout le Mouvement). Combat monté : empreinte/Course de la MONTURE.
     // Undo PRÉ-JET (retour playtest) : capture l'état d'AVANT la charge pour pouvoir Annuler un misclic
-    // tant qu'aucun dé n'est lancé et que la cible n'a pas répondu (`jetCancel('attack')`) — positions, orientation,
+    // tant qu'aucun dé n'est lancé et que la cible n'a pas répondu (`jetAnnuler('attack')`) — positions, orientation,
     // Mouvement, Avantage, chargé.
     const chargeUndo = {
       pos: Object.fromEntries(battle.combatants.filter((c) => c.pos).map((c) => [c.id, { ...c.pos! }])),
@@ -833,7 +833,7 @@ const DISPEL_MODE: TargetingMode = {
   commitCombatant: (get, set, active, id) => {
     const porte = dispellableOnCarrier(get, id);
     if (porte.length === 0) return void refuserGeste(get, set, t('cs.refusSansSortDissipable'));
-    if (dispelParametreADemander(get, id)) { get().dispelSelectCarrier(id); return; }
+    if (dispelParametreADemander(get, id)) { get().designerLeSupport(id); return; }
     get().dissiperLeSort(active.id, porte[0].spellId, porte[0].casterId);
   },
 };

@@ -82,9 +82,9 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
     expect(capDuGroupe(banc.getState())).toBe(facing[CAP_GROUPE]);
   });
 
-  it('PIVOT (Q/E) : `pivotParty` tourne le cap du GROUPE, et rien d’autre', () => {
+  it('PIVOT (Q/E) : `pivoterLeGroupe` tourne le cap du GROUPE, et rien d’autre', () => {
     banc.setState({ facing: poserCapDuGroupe({}, 'N') });
-    banc.getState().pivotParty(1);
+    banc.getState().pivoterLeGroupe(1);
     expect(capDuGroupe(banc.getState())).toBe('NE');
     expect(Object.keys(banc.getState().facing)).toEqual([CAP_GROUPE]);
   });
@@ -94,7 +94,7 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
     const anims: string[] = [];
     const ecoute = (p: { id: string }) => anims.push(p.id);
     bus.on(EVT.ANIM_MOVE, ecoute as never);
-    banc.getState().stepPartyRelative('left');
+    banc.getState().avancerDUnPas('left');
     bus.off(EVT.ANIM_MOVE, ecoute as never);
     expect(anims).toEqual(['b']);
     expect(capDuGroupe(banc.getState())).toBe('E'); // pas latéral : cap PRÉSERVÉ
@@ -135,7 +135,7 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
 describe('le cap du GROUPE traverse le combat', () => {
   it('OUVERTURE : les héros reçoivent leur cap INDIVIDUEL, le cap du groupe reste intact', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
-    banc.getState().pivotParty(1);
+    banc.getState().pivoterLeGroupe(1);
     const capAvant = capDuGroupe(banc.getState());
     const heros = banc.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } }));
     const orc = combattantDeTest({ id: 'orc', label: 'Orc', kind: 'enemy', wounds: blessuresDeBase(8), conditions: [], pos: { x: 5, y: 1 } });
@@ -150,7 +150,7 @@ describe('le cap du GROUPE traverse le combat', () => {
 
   it('OUVERTURE : un héros SANS adversaire posé n’hérite d’aucun cap — il retombe au défaut sud, comme ses pairs', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
-    banc.getState().pivotParty(1); // cap de groupe ≠ 'S'
+    banc.getState().pivoterLeGroupe(1); // cap de groupe ≠ 'S'
     const heros = banc.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } }));
     banc.setState({ battle: { combatants: heros } as never }); // aucun adversaire POSÉ
     banc.getState().faceAtCombatStart();
@@ -164,7 +164,7 @@ describe('le cap du GROUPE traverse le combat', () => {
 
   it('SORTIE : le cap retrouvé est celui d’AVANT le combat', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
-    banc.getState().pivotParty(1);
+    banc.getState().pivoterLeGroupe(1);
     const capAvant = capDuGroupe(banc.getState());
     banc.setState({ battle: { combatants: banc.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } })) } as never });
     banc.getState().faceAtCombatStart();

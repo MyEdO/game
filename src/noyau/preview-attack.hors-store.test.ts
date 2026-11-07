@@ -530,7 +530,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
 
 /**
  * CHEMIN RÉEL DU BOUTON « +1 DR » (repro de recette #1153) — la modale d'attaque lance par
- * `jetRoll('attack')` (`combatSlice`) et influence par `jetBonusSL('attack')`, PAS par le `resolve` du flux. Le jet
+ * `jetLancer('attack')` (`combatSlice`) et influence par `jetAjouterUnDR('attack')`, PAS par le `resolve` du flux. Le jet
  * initial ne figeait pas l'arme RÉELLEMENT tirée : la re-dérivation repassait par le choix d'arme
  * (`pickAttackWeaponList`, `mount.ts` — la mêlée l'emporte dès qu'elle est à portée) et un tir au
  * contact devenait « Corps à corps » avec la base des mains nues, la Difficulté composée du TIR
@@ -550,14 +550,14 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
       pendingAttack: { attackerId: a.id, targetId: b.id, location: null, result: null, ...(weaponUid ? { weaponUid } : {}) },
     } as never);
     seedBattleRng(3);
-    banc.getState().jetRoll('attack');
+    banc.getState().jetLancer('attack');
     return banc.getState().pendingAttack!.result!.attackerDetail!;
   };
 
   it('arme CHOISIE (réglage `attack.arme`) : 2 clics « +1 DR » ne changent que le DR', () => {
     const avant = ouvrir('it-99');
     expect(avant.label, 'la fixture doit VRAIMENT résoudre un TIR').toBe('Projectiles');
-    for (let i = 0; i < 2; i++) banc.getState().jetBonusSL('attack');
+    for (let i = 0; i < 2; i++) banc.getState().jetAjouterUnDR('attack');
     const apres = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(apres.label, 'le tir ne devient pas une frappe').toBe(avant.label);
     expect(apres.base).toBe(avant.base);
@@ -573,7 +573,7 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
     // absence discrimine l'attaque naturelle (`attackWeaponOf`, #1026).
     expect(banc.getState().pendingAttack!.weapon?.uid, 'le jet fige l’arme réellement tirée').toBe('it-99');
     expect(banc.getState().pendingAttack!.weaponUid, 'l’uid du joueur n’est pas réécrit').toBeUndefined();
-    for (let i = 0; i < 2; i++) banc.getState().jetBonusSL('attack');
+    for (let i = 0; i < 2; i++) banc.getState().jetAjouterUnDR('attack');
     const apres = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(apres.label).toBe(avant.label);
     expect(apres.base).toBe(avant.base);
@@ -585,14 +585,14 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
    *  `pa.weaponUid` : dé CHOISI (Résilience, `LDB 17 l.68`) et Relance de Chance (`l.56`). */
   it('dé CHOISI et Relance : mêmes arme, base et Difficulté que le jet d’origine', () => {
     const avant = ouvrir('it-99');
-    banc.getState().jetSetForcedRoll('attack', 5);
+    banc.getState().jetImposerLeResultat('attack', 5);
     const force = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(force.label, 'le dé choisi ne re-choisit pas l’arme').toBe(avant.label);
     expect(force.base).toBe(avant.base);
     expect(force.difficulty).toBe(avant.difficulty);
     expect(inexplique({ base: force.base, mods: force.mods, target: force.target, difficulty: force.difficulty, difficultyCombined: force.difficultyCombined, clamped: force.clamped })).toBe(0);
 
-    banc.getState().jetReroll('attack');
+    banc.getState().jetRelancer('attack');
     const relance = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(relance.label).toBe(avant.label);
     expect(relance.base).toBe(avant.base);
@@ -621,11 +621,11 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
 
     seedBattleRng(3);
     const vues = ARME_INTROUVABLE.vues;
-    banc.getState().jetRoll('attack');
+    banc.getState().jetLancer('attack');
     expect(ARME_INTROUVABLE.vues, 'l’uid introuvable est CRIÉ, jamais absorbé en silence').toBeGreaterThan(vues);
     const avant = banc.getState().pendingAttack!.result!.attackerDetail!;
 
-    for (let i = 0; i < 2; i++) banc.getState().jetBonusSL('attack');
+    for (let i = 0; i < 2; i++) banc.getState().jetAjouterUnDR('attack');
     const apres = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(apres.label, 'le jet résolu ne change pas d’arme sous l’influence').toBe(avant.label);
     expect(apres.base).toBe(avant.base);
@@ -661,7 +661,7 @@ describe('TIR DÉFENDU : les influences ne transforment pas le tir en frappe (#1
       pendingAttack: { attackerId: a.id, targetId: b.id, location: null, result: null, weaponUid: 'it-99' },
     } as never);
     seedBattleRng(3);
-    banc.getState().jetRoll('attack');
+    banc.getState().jetLancer('attack');
     const res = banc.getState().pendingAttack!.result!;
     expect(res.defenderDetail, 'la fixture doit VRAIMENT ouvrir une défense au tir').toBeDefined();
     expect(res.attackerDetail!.label, 'et résoudre un TIR').toBe('Projectiles');
@@ -678,17 +678,17 @@ describe('TIR DÉFENDU : les influences ne transforment pas le tir en frappe (#1
 
   it('CHANCE « +1 DR » ×2 : la ligne résolue reste le MÊME tir', () => {
     const avant = ouvrir();
-    for (let i = 0; i < 2; i++) banc.getState().jetBonusSL('attack');
+    for (let i = 0; i < 2; i++) banc.getState().jetAjouterUnDR('attack');
     memeLigne(avant, banc.getState().pendingAttack!.result!.attackerDetail!, '+1 DR');
   });
 
   it('canaux FRÈRES sur le même tir défendu : dé choisi, Relance, Résilience', () => {
     const avant = ouvrir();
-    banc.getState().jetSetForcedRoll('attack', 5);
+    banc.getState().jetImposerLeResultat('attack', 5);
     memeLigne(avant, banc.getState().pendingAttack!.result!.attackerDetail!, 'dé choisi');
-    banc.getState().jetReroll('attack');
+    banc.getState().jetRelancer('attack');
     memeLigne(avant, banc.getState().pendingAttack!.result!.attackerDetail!, 'Relance');
-    banc.getState().jetForceSuccess('attack');
+    banc.getState().jetForcerLaReussite('attack');
     memeLigne(avant, banc.getState().pendingAttack!.result!.attackerDetail!, 'Résilience');
   });
 });

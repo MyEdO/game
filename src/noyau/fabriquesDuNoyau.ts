@@ -8,7 +8,7 @@ import type { JeuDuNoyau, MachinerieDuNoyau } from './machinerieDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import { creerReglageDuJet, creerVerbesDeJet, type CloturesDuJet } from './rollFlowSpecs';
 import type { CorpsDesReglages, VerbeDeReglage } from './reglagesDuJet';
-import type { NomDeVerbeDeJet } from './flowVerbs';
+import type { ActionDeJet, NomDeVerbeDeJet } from './flowVerbs';
 import type { Majuscule } from './intentionsDeSiege';
 import { choixDuCombat, cloturesDuCombat, createCombatSlice, reglagesDuCombat, sortiesDuCombat, validationsDuCombat } from './combatSlice';
 import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
@@ -63,9 +63,6 @@ type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'affronter' | 'app
   | 'quitter' | 'rallier' | 'ranger' | 'recruter' | 'recueillir' | 'recuperer' | 'refuser' | 'remiser'
   | 'remplacer' | 'renommer' | 'renvoyer' | 'reparer' | 'reprendre' | 'restaurer' | 'retirer' | 'rompre'
   | 'signaler' | 'soigner' | 'solder' | 'suivre' | 'supprimer' | 'transmettre' | 'troquer' | 'utiliser' | 'vendre';
-/** Les actions des verbes de jet, `jet<Action>…` (`VerbesDeJet`, `VerbeDeReglage`). */
-type ActionDeJet = 'lancer' | 'relancer' | 'ajouter' | 'pactiser' | 'forcer' | 'imposer' | 'resister' | 'depenser'
-  | 'annuler' | 'inverser' | 'valider' | 'regler';
 /** Les actions des verbes de fenêtre, `fenetre<Action>` (`VerbeDeChoix`, `fenetreValider`, `fenetreFermer`). */
 type ActionDeFenetre = 'choisir' | 'valider' | 'fermer';
 
@@ -74,40 +71,15 @@ type NomDeVerbe = ActionDuLexique | `${ActionDuLexique}${Majuscule}${string}`
   | Extract<NomDeVerbeDeJet | keyof VerbeDeReglage, `jet${Capitalize<ActionDeJet>}${string}`>
   | `fenetre${Capitalize<ActionDeFenetre>}`;
 
-/** Les verbes vivants hors lexique, chacun renommé par un lot de #3371 (§4). */
-type NomEnAttente =
-  'abandonPossession' | 'appraiseGear' | 'appraiseItem' | 'armPreempt' | 'barterExchange' | 'battleArmIntent'
-  | 'battleClearPreview' | 'buyCharAdvance' | 'buySkillAdvance' | 'buySpell' | 'buySpellComponent' | 'buyTalent'
-  | 'changeCareer' | 'choisirApparence' | 'confirmSell' | 'createLoadout' | 'deleteLoadout' | 'designateCareerSlot'
-  | 'disembark' | 'dispelSelectCarrier' | 'embark' | 'favorBreak' | 'favorSettle' | 'gatherInnInfo'
-  | 'harvestCreature' | 'interludeActivity' | 'interludeBank' | 'interludeCraftStart' | 'interludeEntrainement'
-  | 'interludeOrder' | 'interludeWithdraw' | 'jetBonusSL' | 'jetCancel' | 'jetConfirm' | 'jetDarkPact'
-  | 'jetDetermine' | 'jetForceSuccess' | 'jetReroll' | 'jetResist' | 'jetReverse' | 'jetRoll' | 'jetSetForcedRoll'
-  | 'landEvalWine' | 'markCluesSeen' | 'massBattleActivity' | 'massBattleAdvance' | 'massBattleClash'
-  | 'massBattleHazard' | 'massBattleRally' | 'massBattleScene' | 'medicAct' | 'moveCargo' | 'openLandMarket'
-  | 'openMedic' | 'openPlaceMerchant' | 'openPort' | 'openRest' | 'openSurgeryPass' | 'openTavernGames'
-  | 'openWorldMap' | 'partyAddHero' | 'partyRemoveHero' | 'partyReplaceHero' | 'payCart' | 'pivotParty'
-  | 'playTavernGame' | 'portCareen' | 'portDismissCrew' | 'portHireCrew' | 'portInstallUpgrade' | 'portRepair'
-  | 'refuseBargain' | 'removeSpellComponent' | 'renamePossession' | 'repairItem' | 'restoreFortuneNow'
-  | 'resumeTravel' | 'retrievePossession' | 'roundStartPromote' | 'searchAvailability' | 'setHeroBackground'
-  | 'setLoadoutSlot' | 'setMassBattleHero' | 'setPosteAmmo' | 'setShipRole' | 'setShipStation' | 'setTravelRole'
-  | 'setVoyageCadence' | 'stablePossession' | 'startBargain' | 'startBilletBargain' | 'startTravel'
-  | 'stepPartyRelative' | 'stowItem' | 'toggleCluePin' | 'toggleEquip' | 'trainProsthesis' | 'transferItem'
-  | 'transitionTo';
-
-/** Un nom de `Noms` ni du lexique ni en attente. */
-type HorsLexique<Noms extends string> = Exclude<Noms, NomDeVerbe | NomEnAttente>;
-/** Un nom en attente absent de `Noms`, ou déjà du lexique. */
-type AttenteMorte<Noms extends string> = Exclude<NomEnAttente, Noms> | Extract<NomEnAttente, NomDeVerbe>;
-/** `true` si et seulement si `Noms` est du lexique, `NomEnAttente` exceptés, et que chaque nom en attente y vit ; sinon,
- *  les noms en faute. */
-export type VerrouDuLexique<Noms extends string> = [HorsLexique<Noms> | AttenteMorte<Noms>] extends [never] ? true
-  : { horsLexique: HorsLexique<Noms>; attenteMorte: AttenteMorte<Noms> };
+/** Un nom de `Noms` hors du lexique. */
+type HorsLexique<Noms extends string> = Exclude<Noms, NomDeVerbe>;
+/** `true` si et seulement si `Noms` est du lexique ; sinon, les noms en faute. */
+export type VerrouDuLexique<Noms extends string> = [HorsLexique<Noms>] extends [never] ? true : { horsLexique: HorsLexique<Noms> };
 /** VERROU : tout verbe du noyau se nomme dans le lexique. */
 const verrouDuLexique: VerrouDuLexique<keyof ActionsDuNoyau> = true;
 void verrouDuLexique;
 
-/** Le corps de la clôture de chaque flux, que seul `jetConfirm(flux)` appelle : un flux sans clôture ne compile pas. */
+/** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */
 function cloturesDuJet(get: Get, set: SetDesClesReservees): CloturesDuJet {
   return {
     ...cloturesDuCombat(get, set),

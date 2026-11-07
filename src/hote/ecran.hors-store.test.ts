@@ -74,7 +74,7 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
         { id: 'victoire/xp', valeur: '+30' }, { id: 'victoire/argent', valeur: '5/–' },
         { id: 'victoire/vaincu/0', texte: 'Gobelin ×2' }, { id: 'victoire/vaincu/1', texte: 'Chef' }, { id: 'victoire/message/0', texte: 'La foule acclame.' },
       ]);
-      expect(zones['fenetre.gestes'].map((g) => g.id), 'un choix sans valeur ne se dessine pas').not.toContain('harvestCreature');
+      expect(zones['fenetre.gestes'].map((g) => g.id), 'un choix sans valeur ne se dessine pas').not.toContain('depecerLaCreature');
     } finally {
       partie.fermer();
     }
@@ -106,8 +106,8 @@ describe('le début du Round (`fenetre.gestes`)', () => {
       const debut = partie.etat();
       const gestes = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, null)['fenetre.gestes'].map((g) => g.id);
       expect(debut.pendingRoundStart, 'le combat du dôme s’ouvre sur la pause de Round').not.toBeNull();
-      expect(gestes(debut), 'seul : qui agit en premier, et le lancer').toEqual(['roundStartPromote', 'fenetreValider@roundStart']);
-      expect(gestes({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(['roundStartPromote', 'fenetreValider@roundStart']);
+      expect(gestes(debut), 'seul : qui agit en premier, et le lancer').toEqual(['promouvoirLeCombattant', 'fenetreValider@roundStart']);
+      expect(gestes({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(['promouvoirLeCombattant', 'fenetreValider@roundStart']);
     } finally {
       partie.fermer();
     }

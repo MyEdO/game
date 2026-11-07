@@ -114,7 +114,7 @@ function applyToggleEquip(items: ItemInstance[], uid: string, label: string): st
 /** Équipe/déséquipe un objet d'un PORTEUR (héros de `party` OU possession de `possessions`, doctrine
  *  « porteur unique » #614/#620) — un héros recalcule aussi ses armes/armure actives (`recomputeLoadout`,
  *  réservé aux Combatant : une possession n'a pas de loadout d'arme). */
-export function toggleEquip(get: Get, set: Set, carrierId: string, uid: string): void {
+export function equiperLObjet(get: Get, set: Set, carrierId: string, uid: string): void {
   if (refuseSi(get, set, refusDInventaire)) return;
   let msg = '';
   set((s) => {
@@ -163,8 +163,8 @@ function applyStow(items: ItemInstance[], uid: string, containerUid: string | nu
   return { msg, moved: true };
 }
 
-/** Même patron que `toggleEquip` (clone + recomputeLoadout réservé au héros) — porteur héros OU possession. */
-export function stowItem(get: Get, set: Set, carrierId: string, uid: string, containerUid: string | null): void {
+/** Même patron qu'`equiperLObjet` (clone + recomputeLoadout réservé au héros) — porteur héros OU possession. */
+export function rangerLObjet(get: Get, set: Set, carrierId: string, uid: string, containerUid: string | null): void {
   if (refuseSi(get, set, refusDInventaire)) return;
   let msg = '';
   set((s) => {
@@ -194,7 +194,7 @@ export function stowItem(get: Get, set: Set, carrierId: string, uid: string, con
   if (msg) get().log(msg);
 }
 
-/** Applique une mutation de loadout à un héros (clone + recompute), même pattern que toggleEquip. */
+/** Applique une mutation de loadout à un héros (clone + recompute), même pattern qu'equiperLObjet. */
 function mutLoadout(set: Set, heroId: string, fn: (c: Combatant) => void): void {
   set((s) => ecrireActeur(s, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -210,12 +210,12 @@ function gesteDeSet(get: Get, set: Set, heroId: string, fn: (c: Combatant) => vo
   mutLoadout(set, heroId, fn);
 }
 
-export function createLoadout(get: Get, set: Set, heroId: string): void {
+export function creerLaPanoplie(get: Get, set: Set, heroId: string): void {
   gesteDeSet(get, set, heroId, (c) => loadoutCreate(c));
 }
 /** Refus de supprimer le set `id` de `hero` : la raison affichée, ou `null`. Combat (`refusDInventaire`), set
  *  introuvable, set d'une arme invoquée (le sort le gère), dernier set (le héros en garde toujours un).
- *  Verdict UNIQUE de `deleteLoadout` et du bouton Supprimer d'`EquipmentPanel`. */
+ *  Verdict UNIQUE de `supprimerLaPanoplie` et du bouton Supprimer d'`EquipmentPanel`. */
 export function refusDeSupprimerSet(s: Pick<Jeu, 'battle'>, hero: Combatant, id: string): string | null {
   const verrou = refusDInventaire(s);
   if (verrou) return verrou;
@@ -225,14 +225,14 @@ export function refusDeSupprimerSet(s: Pick<Jeu, 'battle'>, hero: Combatant, id:
   return (hero.loadouts?.length ?? 0) > 1 ? null : t('pf.loadoutLast');
 }
 
-export function deleteLoadout(get: Get, set: Set, heroId: string, id: string): void {
+export function supprimerLaPanoplie(get: Get, set: Set, heroId: string, id: string): void {
   const hero = actorIn(get(), heroId);
   const refus = hero ? refusDeSupprimerSet(get(), hero, id) : t('pf.loadoutNotFound');
   if (refus) return void refuserGeste(get, set, refus);
   mutLoadout(set, heroId, (c) => loadoutDelete(c, id));
 }
 /** Refus de tenir `uid` (ou de vider l'emplacement, `null`) dans la main `slot` du set `loadoutId` : la
- *  raison affichée, ou `null`. Verdict UNIQUE du geste `setLoadoutSlot` et des deux écrans d'armes
+ *  raison affichée, ou `null`. Verdict UNIQUE du geste `garnirLaPanoplie` et des deux écrans d'armes
  *  (`EquipmentPanel`, `HandPicker`). `hero` = la copie que l'appelant lit (`actorIn`). LDB 14 l.138 */
 export function refusEmplacementDeMain(
   s: Pick<Jeu, 'battle'>, hero: Combatant, loadoutId: string, slot: 'main' | 'off', uid: string | null,
@@ -249,7 +249,7 @@ export function refusEmplacementDeMain(
   return slot === 'off' && !isOffHandEligible(it) ? t('pf.offHandIneligible') : null;
 }
 
-export function setLoadoutSlot(get: Get, set: Set, heroId: string, id: string, slot: 'main' | 'off', uid: string | null): void {
+export function garnirLaPanoplie(get: Get, set: Set, heroId: string, id: string, slot: 'main' | 'off', uid: string | null): void {
   const hero = actorIn(get(), heroId);
   if (!hero) return void refuserGeste(get, set, t('pf.loadoutNotFound'));
   const refus = refusEmplacementDeMain(get(), hero, id, slot, uid);
@@ -265,8 +265,8 @@ function carrierLabel(carrier: { kind: 'hero'; hero: Combatant } | { kind: 'poss
 /** Donne un objet d'un PORTEUR (héros ou possession) à un autre — #620 généralise le don héros→héros
  *  aux 4 combinaisons (héros↔héros, héros↔possession, possession↔possession). `recomputeLoadout`
  *  reste réservé aux Combatant (armes actives) — une possession n'a pas de loadout. En combat, rien ne
- *  change de mains (`refusDInventaire`) : un don à sa mule contournerait le verrou de `toggleEquip`. */
-export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: string, toCarrierId: string): void {
+ *  change de mains (`refusDInventaire`) : un don à sa mule contournerait le verrou d'`equiperLObjet`. */
+export function transmettreLObjet(get: Get, set: Set, uid: string, fromCarrierId: string, toCarrierId: string): void {
   if (refuseSi(get, set, refusDInventaire)) return;
   const state = get();
   const from = resolveCarrier(state, fromCarrierId);
@@ -326,7 +326,7 @@ export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: str
 }
 
 /** #2967 */
-export function choisirApparence(get: Get, set: Set, heroId: string, uid: string, apparence: string): void {
+export function poserLApparence(get: Get, set: Set, heroId: string, uid: string, apparence: string): void {
   const resolveTrapping = objetDuNarratif(get().campaignNarratif);
   mutLoadout(set, heroId, (c) => {
     const it = (c.items ?? []).find((i) => i.uid === uid);
@@ -355,7 +355,7 @@ export function depenserPx(get: Get, set: Set, heroId: string, depense: (h: Comb
   return true;
 }
 
-export function buyCharAdvance(get: Get, set: Set, heroId: string, char: CharKey): void {
+export function acheterLaCaracteristique(get: Get, set: Set, heroId: string, char: CharKey): void {
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -385,7 +385,7 @@ export function buyCharAdvance(get: Get, set: Set, heroId: string, char: CharKey
  *  emplacement « (Au choix) » libre DÉSIGNE l'emplacement (LDB 09 l.38 : la Spécialisation se
  *  choisit à l'allocation). Remise −5 PX si la Compétence est ajoutée par un talent ET déjà
  *  dans la carrière (LDB 10 Maître artisan…). */
-export function buySkillAdvance(get: Get, set: Set, heroId: string, skill: RefDesignee): void {
+export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: RefDesignee): void {
   const { id: skillId, spec } = skill;
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
@@ -434,7 +434,7 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skill: RefDe
 /** Désigne GRATUITEMENT un emplacement « (Au choix) » de la carrière courante sur une (id, spec)
  *  concrète (éventuellement déjà possédée via l'espèce) — il devient in-carrière et montable en
  *  PX. Arbitrage RAW : specs distinctes par carrière, désignations par carrière. */
-export function designateCareerSlot(get: Get, set: Set, heroId: string, slotKey: string, optionId: string, spec?: string): void {
+export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: string, optionId: string, spec?: string): void {
   let msg = '';
   set((s) => ecrireActeur(s, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -461,7 +461,7 @@ export function designateCareerSlot(get: Get, set: Set, heroId: string, slotKey:
  *  emplacement du niveau COURANT le couvre (LDB 07 l.103 ; explicite, désigné, ou libre → désignation
  *  automatique), ou un ajout de carrière ; hors carrière interdit (LDB 07 l.93) ; Maxi respecté (LDB 10). Applique les effets d'acquisition
  *  (+5 Caractéristique de départ, Véloce) et recale Blessures/Chance/Détermination. */
-export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, spec?: string): void {
+export function acheterLeTalent(get: Get, set: Set, heroId: string, talentId: string, spec?: string): void {
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -512,7 +512,7 @@ export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, 
  *  famille (engine/grimoire.spellCost) ; un sort de Magie du Chaos inflige AUSSI
  *  +1 Point de Corruption (« le Sort s'insinue dans votre esprit ») — appliqué par
  *  l'appelant store (seuil → mutation). */
-export function buySpell(get: Get, set: Set, heroId: string, spellId: string, opts: { discountXp?: number } = {}): { ok: boolean; chaos?: boolean } {
+export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: string, opts: { discountXp?: number } = {}): { ok: boolean; chaos?: boolean } {
   let msg = '';
   let result: { ok: boolean; chaos?: boolean } = { ok: false };
   if (!depenserPx(get, set, heroId, (h) => {
@@ -552,7 +552,7 @@ export function buySpell(get: Get, set: Set, heroId: string, spellId: string, op
  *  composant pour un Sort d'Arcane/Domaine CONNU du héros — coût = NI pistoles d'argent (l.113),
  *  prélevé sur la Bourse de l'incantateur. « acheté pour un Sort spécifique […], ne marche que pour ce
  *  Sort. » Le composant absorbe le contrecoup à l'incantation (consumé) — cf. applyMiscast. */
-export function buySpellComponent(get: Get, set: Set, heroId: string, spellId: string): void {
+export function acheterLaComposante(get: Get, set: Set, heroId: string, spellId: string): void {
   const hero = actorIn(get(), heroId);
   const refus = refusAchatDeComposant(hero, spellId);
   if (refus) return void refuserGeste(get, set, refus);
@@ -578,7 +578,7 @@ export function composantsOfferts(hero: Combatant): SpellData[] {
 }
 
 /** Refus d'acheter un composant pour `spellId` : la raison affichée, ou `null`. Verdict UNIQUE du geste
- *  `buySpellComponent` et de la fiche. LDB 46 l.107-113 */
+ *  `acheterLaComposante` et de la fiche. LDB 46 l.107-113 */
 export function refusAchatDeComposant(hero: Combatant | undefined, spellId: string): string | null {
   const sp = findSpellById(spellId);
   if (!hero || !sp) return t('pf.componentSpellNotFound');
@@ -590,7 +590,7 @@ export function refusAchatDeComposant(hero: Combatant | undefined, spellId: stri
 
 /** Édite la bio MUTABLE d'un héros (hors combat) : Motivation + Ambitions court/long terme (LDB 05).
  *  Mute `store.party` (→ persisté par la save) ET propage au roster s'il y est (`persisterLeHeros`). */
-export function setHeroBackground(get: Get, set: Set, heroId: string, patch: { motivation?: string; ambitionShort?: string; ambitionLong?: string }): void {
+export function ecrireLHistorique(get: Get, set: Set, heroId: string, patch: { motivation?: string; ambitionShort?: string; ambitionLong?: string }): void {
   if (refuseSi(get, set, refusDuBackground)) return;
   set((s) => ecrireActeur(s, heroId, (h) => ({
     ...h,
@@ -655,11 +655,11 @@ export function terminerLaSeance(get: Get, set: Set): void {
   }));
   for (const l of [...lines.values()].flat()) get().log(l);
   set({ finDeSeance: null });
-  get().restoreFortuneNow(); // Chance restaurée pour la prochaine séance (LDB 17 l.41)
+  get().restaurerLaFortune(); // Chance restaurée pour la prochaine séance (LDB 17 l.41)
 }
 
 /** Retire UN composant d'incantation possédé pour un Sort (sans remboursement). */
-export function removeSpellComponent(_get: Get, set: Set, heroId: string, spellId: string): void {
+export function retirerLaComposante(_get: Get, set: Set, heroId: string, spellId: string): void {
   set((s) => ecrireActeur(s, heroId, (h) => {
     const list = [...(h.componentSpells ?? [])];
     const i = list.indexOf(spellId);
@@ -672,7 +672,7 @@ export function removeSpellComponent(_get: Get, set: Set, heroId: string, spellI
 /** Rachat PX d'une prothèse (LDB 73) : les PALIERS sont DÉCLARÉS sur l'entrée de catalogue
  *  (`TrappingData.prosthesisTraining`) et joués dans l'ordre par `nextProsthesisTier` — ce flux ne nomme
  *  aucune prothèse. Fausse jambe : 100 PX (Mouvement) puis 200 PX (Esquive) ; Crochet : 400 PX (l.23). */
-export function trainProsthesis(get: Get, set: Set, heroId: string, uid: string): void {
+export function entrainerLaProthese(get: Get, set: Set, heroId: string, uid: string): void {
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -695,7 +695,7 @@ export function trainProsthesis(get: Get, set: Set, heroId: string, uid: string)
   if (msg) get().log(msg);
 }
 
-export function changeCareer(get: Get, set: Set, heroId: string, newCareer: string, newLevel: number): void {
+export function changerDeCarriere(get: Get, set: Set, heroId: string, newCareer: string, newLevel: number): void {
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -731,7 +731,7 @@ export function refusComposition(s: Pick<Jeu, 'battle'>): string | null {
 
 /** Raison du refus d'AJOUTER un héros au groupe pour `seat` : composition close (`refusComposition`),
  *  groupe plein (`PARTY_MAX`), héros déjà présent, quota d'emplacements du siège épuisé
- *  (`seatSlotsRemaining`) ; `null` s'il entre. Verdict UNIQUE de `partyAddHero` et des écrans qui
+ *  (`seatSlotsRemaining`) ; `null` s'il entre. Verdict UNIQUE de `recruterLeHeros` et des écrans qui
  *  l'offrent (`heroId` absent : l'offre d'un héros encore à choisir). */
 export function refusDAjoutAuGroupe(s: Pick<Jeu, 'battle' | 'party' | 'net'>, heroId: string | undefined, seat: number): string | null {
   const present = heroId === undefined ? undefined : s.party.find((h) => h.id === heroId);
@@ -743,7 +743,7 @@ export function refusDAjoutAuGroupe(s: Pick<Jeu, 'battle' | 'party' | 'net'>, he
 
 /** Raison du refus de RETIRER, REMPLACER ou MODIFIER le héros `heroId` pour `seat` : composition close
  *  (`refusComposition`), héros d'un autre siège (`seatOwns`) ; `null` s'il se compose. Verdict UNIQUE de
- *  `partyRemoveHero`, `partyReplaceHero`, de l'engagement en édition (`refusDEngagement`) et de l'écran d'équipe. */
+ *  `renvoyerLeHeros`, `remplacerLeHeros`, de l'engagement en édition (`refusDEngagement`) et de l'écran d'équipe. */
 export function refusDeComposerLeHeros(s: Pick<Jeu, 'battle' | 'net' | 'party'>, heroId: string, seat: number): string | null {
   return refusComposition(s) ?? (seatOwns(s, seat, heroId) ? null : t('pf.heroOfAnotherSeat'));
 }
@@ -768,7 +768,7 @@ export function partieEnCours(s: Pick<Jeu, 'scene' | 'pendingCampaign'>): boolea
  *  créateur), le héros bâti par le noyau de `heros` (`herosDeLEngagement`), refusé par `refusDAjoutAuGroupe` ou par
  *  le brouillon incomplet. La Richesse de carrière
  *  (LDB 05 l.578-583) crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531) — plus de bourse de groupe. */
-export function partyAddHero(get: Get, set: Set, heros: HerosEngage): void {
+export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
   const s = get();
   const seat = decidingSeat(s);
   const bati = herosDeLEngagement(heros);
@@ -786,7 +786,7 @@ export function partyAddHero(get: Get, set: Set, heros: HerosEngage): void {
 
 /**
  * Lève de leur place TOUS les emplacements du groupe — PURE, rend la scène à écrire. Le groupe
- * ENTIER quitte le lieu (`transitionTo`) : une scène quittée ne garde pas un héros absent, et le
+ * ENTIER quitte le lieu (`quitterLaScene`) : une scène quittée ne garde pas un héros absent, et le
  * revisit ne rassoit personne.
  *
  * La RECOMPOSITION du groupe (retrait, remplacement, permutation) ne passe PAS par ici : elle est
@@ -808,7 +808,7 @@ export function releaseHeroSeats<S extends Scene | null>(scene: S): S {
  *  idiome `party.filter(h => !h.dead)` du repo : un cadavre n'hérite pas). Aucun vivant restant
  *  (groupe vidé ou tout-morts) → repli : rien à hériter, la Bourse/les Possessions du partant
  *  restent SUR LUI (il quitte le groupe avec son bien, aucun héritier vivant à défausser dessus). */
-export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
+export function renvoyerLeHeros(get: Get, set: Set, heroId: string): void {
   if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), heroId, decidingSeat(get())))) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === heroId);
@@ -836,7 +836,7 @@ export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
  *  « Remplacer » du slot. Le remplaçant porte la Bourse du remplacé (un remplacement n'est pas un recrutement) ; un id
  *  déjà au groupe est refusé et dit. */
-export function partyReplaceHero(get: Get, set: Set, oldId: string, heros: HerosEngage): void {
+export function remplacerLeHeros(get: Get, set: Set, oldId: string, heros: HerosEngage): void {
   const bati = herosDeLEngagement(heros);
   if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())) ?? ('refus' in bati ? bati.refus : null)) || 'refus' in bati) return;
   const s = get();
@@ -888,24 +888,24 @@ export function sortiesDuGroupe(_get: Get, set: Set) {
 
 export function creerActionsDuGroupe(get: Get, set: Set) {
   return {
-    partyAddHero: (heros) => partyAddHero(get, set, heros),
-    partyRemoveHero: (heroId) => partyRemoveHero(get, set, heroId),
-    partyReplaceHero: (oldId, heros) => partyReplaceHero(get, set, oldId, heros),
-    toggleEquip: (heroId, uid) => toggleEquip(get, set, heroId, uid),
-    stowItem: (heroId, uid, containerUid) => stowItem(get, set, heroId, uid, containerUid),
-    createLoadout: (heroId) => createLoadout(get, set, heroId),
-    deleteLoadout: (heroId, id) => deleteLoadout(get, set, heroId, id),
-    setLoadoutSlot: (heroId, id, slot, uid) => setLoadoutSlot(get, set, heroId, id, slot, uid),
-    transferItem: (uid, fromHeroId, toHeroId) => transferItem(get, set, uid, fromHeroId, toHeroId),
-    choisirApparence: (heroId, uid, apparence) => choisirApparence(get, set, heroId, uid, apparence),
+    recruterLeHeros: (heros) => recruterLeHeros(get, set, heros),
+    renvoyerLeHeros: (heroId) => renvoyerLeHeros(get, set, heroId),
+    remplacerLeHeros: (oldId, heros) => remplacerLeHeros(get, set, oldId, heros),
+    equiperLObjet: (heroId, uid) => equiperLObjet(get, set, heroId, uid),
+    rangerLObjet: (heroId, uid, containerUid) => rangerLObjet(get, set, heroId, uid, containerUid),
+    creerLaPanoplie: (heroId) => creerLaPanoplie(get, set, heroId),
+    supprimerLaPanoplie: (heroId, id) => supprimerLaPanoplie(get, set, heroId, id),
+    garnirLaPanoplie: (heroId, id, slot, uid) => garnirLaPanoplie(get, set, heroId, id, slot, uid),
+    transmettreLObjet: (uid, fromHeroId, toHeroId) => transmettreLObjet(get, set, uid, fromHeroId, toHeroId),
+    poserLApparence: (heroId, uid, apparence) => poserLApparence(get, set, heroId, uid, apparence),
     grantXp: (heroId, amount) => grantXp(get, set, heroId, amount),
-    buyCharAdvance: (heroId, char) => buyCharAdvance(get, set, heroId, char),
-    buySkillAdvance: (heroId, skill) => buySkillAdvance(get, set, heroId, skill),
-    buyTalent: (heroId, talentId, spec) => buyTalent(get, set, heroId, talentId, spec),
-    designateCareerSlot: (heroId, slotKey, optionId, spec) => designateCareerSlot(get, set, heroId, slotKey, optionId, spec),
+    acheterLaCaracteristique: (heroId, char) => acheterLaCaracteristique(get, set, heroId, char),
+    acheterLaCompetence: (heroId, skill) => acheterLaCompetence(get, set, heroId, skill),
+    acheterLeTalent: (heroId, talentId, spec) => acheterLeTalent(get, set, heroId, talentId, spec),
+    designerLeCreneau: (heroId, slotKey, optionId, spec) => designerLeCreneau(get, set, heroId, slotKey, optionId, spec),
     /** Mémorise un sort (PX selon le Talent, LDB 46/10) ; un sort du Chaos corrompt (+1, seuil → mutation). */
-    buySpell: (heroId, spellId) => {
-      const r = buySpell(get, set, heroId, spellId);
+    acheterLeSort: (heroId, spellId) => {
+      const r = acheterLeSort(get, set, heroId, spellId);
       if (r.ok && r.chaos) {
         const hero = actorIn(get(), heroId);
         if (hero) {
@@ -914,21 +914,21 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
         }
       }
     },
-    buySpellComponent: (heroId, spellId) => buySpellComponent(get, set, heroId, spellId),
-    removeSpellComponent: (heroId, spellId) => removeSpellComponent(get, set, heroId, spellId),
-    setHeroBackground: (heroId, patch) => setHeroBackground(get, set, heroId, patch),
+    acheterLaComposante: (heroId, spellId) => acheterLaComposante(get, set, heroId, spellId),
+    retirerLaComposante: (heroId, spellId) => retirerLaComposante(get, set, heroId, spellId),
+    ecrireLHistorique: (heroId, patch) => ecrireLHistorique(get, set, heroId, patch),
     ouvrirLaFinDeSeance: () => {
       const refus = refusDeFinDeSeance(get());
       if (refus) refuserGeste(get, set, refus);
       else ouvrirLaFinDeSeance(set);
     },
-    trainProsthesis: (heroId, uid) => trainProsthesis(get, set, heroId, uid),
-    changeCareer: (heroId, newCareer, newLevel) => changeCareer(get, set, heroId, newCareer, newLevel),
+    entrainerLaProthese: (heroId, uid) => entrainerLaProthese(get, set, heroId, uid),
+    changerDeCarriere: (heroId, newCareer, newLevel) => changerDeCarriere(get, set, heroId, newCareer, newLevel),
     setParty: (p) => set({ party: p }),
     // Longues Séances de Jeu (LDB 17 l.47) : réutilise l'Effet `restoreFortune` (NE DUPLIQUE PAS la
     // logique — même case que le début de session, qui appelle `engine/fortune.restoreFortune`).
     // Corps de BLOC, retour CONSOMMÉ (#1508) : une flèche à corps expression typée `() => void` avale le
     // signal en silence. `restoreFortune` est une donnée LITTÉRALE sans canal de dés — d'où le fail-fast.
-    restoreFortuneNow: () => { nePeutPasDifferer(applyEffects(get, set, [{ type: 'restoreFortune' }]), 'partyFlow.restoreFortuneNow'); },
+    restaurerLaFortune: () => { nePeutPasDifferer(applyEffects(get, set, [{ type: 'restoreFortune' }]), 'partyFlow.restaurerLaFortune'); },
   } satisfies FabriqueDuNoyau;
 }

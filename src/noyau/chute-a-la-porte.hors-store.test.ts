@@ -156,15 +156,15 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   it('le dé POSÉ à chaque étape décide seul : Dégâts = 3×hauteur + d10 − BE', () => {
     ouvrir();
     const hauteur = banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 11, hauteur.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 11, hauteur.id);
+    banc.getState().jetValider('cascade');
     // La 2ᵉ étape (les Dégâts) n'a PAS été mintée d'avance : elle s'append à la résolution de la 1ʳᵉ.
     const p = banc.getState().pendingCascade!;
     const degats = p.participants[p.cursor];
     expect(degats.de!.spec).toEqual({ n: 1, sides: 10 });
     expect(gabier().wounds.current, 'toujours rien : le second dé n’est pas tombé').toBe(200);
-    banc.getState().jetSetForcedRoll('cascadeTirage', 4, degats.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 4, degats.id);
+    banc.getState().jetValider('cascade');
     expect(200 - gabier().wounds.current).toBe(3 * 11 + 4 - BE);
   });
 
@@ -190,8 +190,8 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     applyLeafOps(banc.getState, banc.setState, vigie, feuille(opsDeChute()), { rng: desDuTest, hull: coque() });
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.de!.spec).toEqual({ n: 1, sides: 10 });
-    banc.getState().jetSetForcedRoll('cascadeTirage', 6, st.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 6, st.id);
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade, 'un seul dé, une seule étape').toBeNull();
     const apres = banc.getState().party.find((c) => c.id === 'vigie')!;
     expect(200 - apres.wounds.current).toBe(3 * 25 + 6 - BE);
@@ -200,7 +200,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   it('la RANGÉE porte le dé et son unité — ce que la fenêtre montre EST le tirage', () => {
     ouvrir();
     const st = banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 9, st.id);
+    banc.getState().jetImposerLeResultat('cascadeTirage', 9, st.id);
     const pose = banc.getState().pendingCascade!.participants[0];
     expect(pose.de!.result).toEqual({ roll: 9, total: 9 });
     expect(pose.de!.unite, 'la hauteur se lit en mètres (MDG 13 l.684)').toBe('m');
@@ -275,8 +275,8 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
   it('le dé POSÉ décide : 3×4 m + d10 − BE, et l’État À Terre vient d’`applyFall`', () => {
     ouvrirChute(banc.setState, par('h1'), 4);
     const st = banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id);
+    banc.getState().jetValider('cascade');
     expect(200 - par('h1').wounds.current).toBe(3 * 4 + 8 - BE);
     expect(hasCondition(par('h1'), 'a-terre'), 'perte (17) > BE (3), LDB 15 l.84').toBe(true);
   });
@@ -293,8 +293,8 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     // Le tombant quitte le jeu pendant que sa fenêtre est ouverte (mort, fuite, scène close). L'applier
     // n'a plus de corps où poser les Blessures : il le NOMME au journal au lieu de rendre en silence.
     banc.setState({ party: banc.getState().party.filter((c) => c.id !== 'h1') } as never);
-    banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id);
+    banc.getState().jetValider('cascade');
     const lu = [...banc.getState().journal, ...draineCascade(banc.getState)].join(' | ');
     expect(lu, `la conséquence est morte en silence : ${lu}`).toMatch(/n’est plus en jeu/);
     expect(banc.getState().pendingCascade, 'la séquence se referme').toBeNull();
@@ -314,8 +314,8 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
       { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 50 }] } },
     ] } as unknown as Flow);
     const st = banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id); // 3×4 + 8 − BE 3 = 17
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id); // 3×4 + 8 − BE 3 = 17
+    banc.getState().jetValider('cascade');
     const j = banc.getState().journal;
     const iChute = j.findIndex((l) => l.includes('17 Blessure(s)'));
     const iSoin = j.findIndex((l) => l.includes('27 Blessure(s)'));
@@ -348,8 +348,8 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     expect(heros().wounds.current, 'rien du lot ne s’applique avant le dé').toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.kind).toBe('chuteDe');
-    banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id); // 3×4 + 8 − BE 3 = 17
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id); // 3×4 + 8 − BE 3 = 17
+    banc.getState().jetValider('cascade');
     // 190 − 17 = 173, puis +50 → plafond 200. Dans l'ORDRE INVERSE : 190 + 50 = 200 (40 perdus au
     // plafond) puis −17 = 183 — c'est ce 183 que l'ordre authoré interdit.
     expect(heros().wounds.current).toBe(200);
@@ -365,8 +365,8 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     runCombatFlow({ get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
     expect(heros().wounds.current, 'la suite de la pile attend le dé').toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 4, st.id); // nid-de-pie : 25 m entiers, dé = Dégâts
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 4, st.id); // nid-de-pie : 25 m entiers, dé = Dégâts
+    banc.getState().jetValider('cascade');
     // 190 − (3×25 + 4 − 3) = 114, puis +50 = 164. Ordre inverse : 190+50 → 200, puis −76 = 124.
     expect(heros().wounds.current).toBe(190 - (3 * 25 + 4 - BE) + 50);
   });
@@ -383,8 +383,8 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     runFlow(banc.getState, banc.setState, flow);
     expect(heros().wounds.current, 'la branche ne s’évalue même pas avant le dé').toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id);
+    banc.getState().jetValider('cascade');
     expect(heros().wounds.current).toBe(200);
   });
 
@@ -399,8 +399,8 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     expect(banc.getState().pendingTest, 'une modale de jet ouverte par-dessus un dé en vol').toBeNull();
     expect(heros().wounds.current).toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 8, st.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id);
+    banc.getState().jetValider('cascade');
     expect(heros().wounds.current, 'la chute s’est encaissée la première').toBe(190 - 17);
     expect(banc.getState().pendingTest, 'le nœud `test` a repris sa place en tête de la continuation').not.toBeNull();
   });
@@ -415,8 +415,8 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     runCombatFlow({ get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
     expect(heros().wounds.current, 'la branche attend le dé').toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 4, st.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 4, st.id);
+    banc.getState().jetValider('cascade');
     expect(heros().wounds.current).toBe(190 - (3 * 25 + 4 - BE) + 50);
   });
 });
@@ -436,8 +436,8 @@ describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte qu
     const parLaPorte = banc.getState().party[0];
     applyLeafOps(banc.getState, banc.setState, parLaPorte, feuille(ops()), { rng: makeRNG(4), ...CTX() });
     const st = banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 5, st.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 5, st.id);
+    banc.getState().jetValider('cascade');
     const apres = banc.getState().party.find((c) => c.id === 'porte')!;
     expect(200 - apres.wounds.current, '25 m × 3 + dé 5 − BE 3, PUIS les 7 Blessures d’Absorption').toBe(3 * 25 + 5 - BE + 7);
     expect(200 - apres.wounds.current, 'parité avec le chemin direct').toBe(200 - direct.wounds.current);
@@ -528,8 +528,8 @@ describe('(ix) FIN DE COMBAT : un dé en vol n’est pas piétiné par le teardo
     const enVol = banc.getState().pendingCascade!;
     expect(enVol.participants[0].actorId, 'le teardown n’a pas piétiné le dé en vol').toBe('h1');
     expect(banc.getState().suspendedCascades, 'la parquée est restée parquée').toHaveLength(1);
-    banc.getState().jetSetForcedRoll('cascadeTirage', 8, enVol.participants[0].id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 8, enVol.participants[0].id);
+    banc.getState().jetValider('cascade');
     expect(200 - par('h1').wounds.current, 'la chute s’est bien encaissée').toBe(3 * 4 + 8 - BE);
     expect(banc.getState().pendingCascade?.participants[0].actorId, 'la parquée reprend le slot libéré').toBe('h2');
     expect(banc.getState().suspendedCascades).toHaveLength(0);
@@ -804,7 +804,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       { label: 'Éboulement', chancePct: 100, effects: [{ type: 'fall', target: 'party', metres: 4 }] },
       { label: 'Trouvaille', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-2' }] },
     ], cleDeFixture('terre'));
-    banc.getState().jetRoll('cascade');
+    banc.getState().jetLancer('cascade');
     const p = banc.getState().pendingCascade!;
     expect(p.participants.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
     const j = banc.getState().journal;
@@ -858,7 +858,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     const interactif = etatFinal();
 
     monte(deuxChutes, cleDeFixture('terre'));
-    banc.getState().jetRoll('cascade');
+    banc.getState().jetLancer('cascade');
     const toutResoudre = etatFinal();
 
     seedBattleRng(3);
@@ -890,7 +890,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       ] },
       { label: 'Jamais joué', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-APRES-ARRET' }] },
     ], SEA_PERIL_INTERRUPT);
-    banc.getState().jetRoll('cascade');
+    banc.getState().jetLancer('cascade');
     const apresTroncature = banc.getState().pendingCascade!;
     const seqApres = apresTroncature.seq!;
     expect(apresTroncature.participants.length, 'le tableau a bien RACCOURCI').toBeLessThan(seqApres);
@@ -977,20 +977,20 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   };
 
   /**
-   * Joue le Test de la bande — le geste de la RANGÉE (`jetRoll('cascadeBatch')`, celui du kit de fenêtre) —
+   * Joue le Test de la bande — le geste de la RANGÉE (`jetLancer('cascadeBatch')`, celui du kit de fenêtre) —
    * puis valide l'étape. L'Athlétisme est COMPLEXE (−20) sur une Agilité 36 : la cible est 16, et le
    * rng SEEDÉ le rate. L'échec est ASSERTÉ, jamais supposé : c'est la prémisse du contrat.
    */
   const raterLeTest = (): void => {
     const p = banc.getState().pendingCascade!;
     const bande = p.participants[p.cursor];
-    for (const r of bande.participants ?? []) banc.getState().jetRoll('cascadeBatch', r.id);
+    for (const r of bande.participants ?? []) banc.getState().jetLancer('cascadeBatch', r.id);
     const jouee = banc.getState().pendingCascade!.participants[banc.getState().pendingCascade!.cursor];
     for (const r of jouee.participants ?? []) {
       expect(r.result, `la rangée ${r.id} a bien lancé`).not.toBeNull();
       expect(r.result!.success, `prémisse du contrat : ${r.id} RATE son Athlétisme`).toBe(false);
     }
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
   };
 
   const etape = () => {
@@ -998,8 +998,8 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
     return p.participants[p.cursor];
   };
   const poser = (v: number): void => {
-    banc.getState().jetSetForcedRoll('cascadeTirage', v, etape().id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', v, etape().id);
+    banc.getState().jetValider('cascade');
   };
 
   /** Monte la file de combat. `sieges` = qui le joueur TIENT (le party) : un PNJ enregistré au combat

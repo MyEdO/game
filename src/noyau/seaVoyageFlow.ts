@@ -1,7 +1,7 @@
 /**
  * VOYAGE MARITIME jour par jour (MDG 13 « Navigation maritime » + ch.15 « Longs voyages ») —
  * EXTENSION de la machinerie de voyage (`travelFlow`) : mêmes briques (TravelPlan, halte de nuit
- * `openRest`, entretien quotidien `runDailyUpkeep`, recap), la RÉSOLUTION du jour est navale.
+ * `ouvrirLeRepos`, entretien quotidien `runDailyUpkeep`, recap), la RÉSOLUTION du jour est navale.
  *
  * Une route MARITIME (`MapRoute.sea`) se voyage sur le NAVIRE DE CAMPAGNE (`state.vessel`) ; sa
  * distance `km` est en MILLES (les tables RAW sont en milles — ch.15 l.57-78). La journée en mer :
@@ -30,7 +30,7 @@
  */
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
-import { openRest } from './restFlow';
+import { ouvrirLeRepos } from './restFlow';
 import { arriverAuLieu } from './lieuFlow';
 import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
@@ -39,9 +39,9 @@ import type { BatchParticipant } from './pendings';
 import { crewTestContributors, equipageImplique, shipMoraleScore, applyShipMoraleDelta, shipSaboteurDR, applyVesselCrewLoss, resolveShoreLeaveDesertion, shipboardSouls, shipUndercrew } from './shipCrew';
 import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
 
-/** Id du protocole de reprise MARITIME (effets appliqués SUR-LE-CHAMP, `resumeTravel` rejoue). */
+/** Id du protocole de reprise MARITIME (effets appliqués SUR-LE-CHAMP, `reprendreLeVoyage` rejoue). */
 /** Id du PROTOCOLE de reprise maritime (`authorPerils`) : la mer applique les effets d'un péril
- *  interrupteur sur-le-champ (`resumeTravel` rejoue la traversée). Exporté pour être NOMMÉ par les
+ *  interrupteur sur-le-champ (`reprendreLeVoyage` rejoue la traversée). Exporté pour être NOMMÉ par les
  *  contrats, jamais recopié en littéral. */
 export const SEA_PERIL_INTERRUPT = 'voyage-mer';
 import type { Scene } from './monde/scene';
@@ -345,7 +345,7 @@ function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
 
 /** RECHARGE les Blessures du Combattant-coque de trajet depuis `vessel.wounds` — SOURCE UNIQUE (#296).
  *  Réutilisée au build du plan (`voyageShip`/`riverHull`, coque de trajet REPART de l'état sauvegardé)
- *  et à la reprise d'un voyage interrompu (`resumeTravel`, ex. combat naval : le writeback de
+ *  et à la reprise d'un voyage interrompu (`reprendreLeVoyage`, ex. combat naval : le writeback de
  *  `finalizeBattle` sur `vessel.wounds` doit se propager à la coque de trajet, sinon le prochain
  *  `persistHullWounds` l'écraserait avec sa valeur PRÉ-combat périmée — c'est le bug caché du #296). */
 export function syncHullWoundsFromVessel(hull: Combatant, vessel: Pick<CampaignVessel, 'wounds'>): void {
@@ -1296,7 +1296,7 @@ const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<
 }]]));
 
 /**
- * Boucle maritime — appelée par `runTravelDays`/`resumeTravel` (plan `sea`) et la reprise de nuit.
+ * Boucle maritime — appelée par `runTravelDays`/`reprendreLeVoyage` (plan `sea`) et la reprise de nuit.
  * UN JOUR = périls d'auteur (inline) → événement de bord (inline, peut surfacer) → la CASCADE du jour
  * (`buildSeaDayCascade`, purpose `travelDay`) → `continueSeaDayAfterCascade` à sa clôture (dénouement
  * du jour + halte/arrivée). La cascade EST le point de reprise (`pendingCascade`/`suspendedCascades`,
@@ -1305,7 +1305,7 @@ const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<
 export function runSeaDay(get: Get, set: Set): void {
   const plan = get().travelPlan;
   // Une cascade est déjà active (ou suspendue derrière un combat) : l'arbitre la montre, rien à faire —
-  // `resumeTravel` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c).
+  // `reprendreLeVoyage` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c).
   if (!plan?.sea || plan.interrupted || get().pendingCrewTest || get().pendingSteamSave || get().pendingCascade) return;
   const sea = plan.sea;
   const rng = battleRng();
@@ -1327,7 +1327,7 @@ export function runSeaDay(get: Get, set: Set): void {
 function jouerLesEtapesDuJour(get: Get, set: Set, steps: BuiltCascadeStep[]): void {
   // La construction du jour a pu ouvrir un ABORDAGE en plein vol (crise « caught » / embuscade ancrée
   // sans équipage à tester → `startChaseBoarding`/`openAuthoredSeaAmbush` posent `interrupted` + combat) :
-  // la traversée s'arrête là (reprise par `resumeTravel` après le combat), jamais de fin-de-jour en plein combat.
+  // la traversée s'arrête là (reprise par `reprendreLeVoyage` après le combat), jamais de fin-de-jour en plein combat.
   if (get().battle || get().travelPlan?.interrupted) return;
   // Journée sans jet : finalisée comme la cascade le ferait à sa clôture, défaite hors combat comprise.
   if (!steps.length) { if (!checkPartyWiped(get, set)) continueSeaDayAfterCascade(get, set); return; }
@@ -1737,7 +1737,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
  *  l.71), couchage unique et abrité — pas de tente sur l'eau. `travelDay` = le jour qu'elle clôt. */
 export function openSeaHalt(get: Get, set: Set, travelDay: TravelRecapDay): void {
   const vessel = garanti(get().vessel, get().travelPlan?.routeId, 'navire de campagne');
-  openRest(get, set, { places: { bord: true }, lieu: nomDuNavire(vessel), travelHalt: true, travelDay });
+  ouvrirLeRepos(get, set, { places: { bord: true }, lieu: nomDuNavire(vessel), travelHalt: true, travelDay });
 }
 
 // ── Appliers des Tests d'équipage de VOYAGE (#275 Ronde 2 cran 3 — PILOTE RÉEL,
@@ -1921,7 +1921,7 @@ function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
   });
 }
 
-/** Résout la sauvegarde d'Initiative d'une « Fuite de vapeur » (appelée par `jetConfirm('steamSave')`) : ÉCHEC →
+/** Résout la sauvegarde d'Initiative d'une « Fuite de vapeur » (appelée par `jetValider('steamSave')`) : ÉCHEC →
  *  ébouillanté (`scaldOps` déjà roulés), puis le RESTE de la journée reprend (la cascade `'progression'`
  *  s'était fermée SANS insérer la suite du jour, cf. son applier — `pendingSteamSave` suspendait). */
 export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void {
@@ -1952,7 +1952,7 @@ function openAuthoredSeaAmbush(get: Get, set: Set, route: MapRoute | undefined, 
   const plan = get().travelPlan;
   if (plan?.sea?.ambushFired || !(route?.ambush?.scene && route.ambush.encounter)) return false;
   set({ travelPlan: { ...plan!, interrupted: true, sea: { ...plan!.sea!, ambushFired: true } } });
-  get().transitionTo(route.ambush.scene, route.ambush.entry);
+  get().quitterLaScene(route.ambush.scene, route.ambush.entry);
   get().startCombat(route.ambush.encounter, undefined, { noSurprise });
   return true;
 }
@@ -2003,7 +2003,7 @@ function openGenericBoarding(get: Get, set: Set, b: SeaBoarding, noSurprise = tr
   const playerHullName = vessel ? nomDuNavire(vessel) : garanti(plan.vehicle, plan.routeId, 'navire du voyage').label;
   registerScene(buildBoardingScene(playerHullRef, playerHullName, b));
   set({ travelPlan: { ...plan, interrupted: true, sea: { ...plan.sea, boarding: undefined } } });
-  get().transitionTo(BOARDING_SCENE_ID, undefined);
+  get().quitterLaScene(BOARDING_SCENE_ID, undefined);
   get().startCombat('enc-abordage', undefined, { noSurprise });
   return true;
 }
@@ -2409,7 +2409,7 @@ export function portCareenVessel(get: Get, set: Set): string[] {
 
 /** Devis de POSE d'une Amélioration navale (MDG 12 l.195-364) : coût et poids par bande de Taille
  *  (`installCost`), et refus (`null` : la pose passe) contre la bourse `bourse` du groupe. SOURCE UNIQUE de
- *  `portInstallUpgrade` et de l'écran du port. PUR. */
+ *  `installerLAmelioration` et de l'écran du port. PUR. */
 export type DevisDAmelioration = { traitId: string; label: string; enc: number | null } & ({ refus: null; gold: number } | { refus: string; gold: number | null });
 
 export function devisDAmelioration(vessel: CampaignVessel | null, traitId: string, units: number, bourse: Money, refusHote: string | null): DevisDAmelioration {
@@ -2438,7 +2438,7 @@ export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, r
 
 /** POSE d'une Amélioration navale : le refus de `devisDAmelioration` tombe avant tout débit ; la réf rejoint
  *  `vessel.upgrades` (recopiée sur la coque à chaque départ). `units` = cabines multiples, etc. */
-export function portInstallUpgrade(get: Get, set: Set, traitId: string, units = 1): string[] {
+export function installerLAmelioration(get: Get, set: Set, traitId: string, units = 1): string[] {
   const vessel = get().vessel;
   const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()));
   if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return []; }
@@ -2629,9 +2629,9 @@ export function choixDuVoyageEnMer(get: Get, set: Set) {
 
 export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
   return {
-    portRepair: () => portRepairVessel(get, set).forEach((l) => get().log(l)),
-    portCareen: () => portCareenVessel(get, set).forEach((l) => get().log(l)),
-    portInstallUpgrade: (traitId, units) => portInstallUpgrade(get, set, traitId, units).forEach((l) => get().log(l)),
+    reparerLeNavire: () => portRepairVessel(get, set).forEach((l) => get().log(l)),
+    carenerLeNavire: () => portCareenVessel(get, set).forEach((l) => get().log(l)),
+    installerLAmelioration: (traitId, units) => installerLAmelioration(get, set, traitId, units).forEach((l) => get().log(l)),
   } satisfies FabriqueDuNoyau;
 }
 
@@ -3053,10 +3053,10 @@ export const TABLES = {
   interruptionsDePeril: {
     /** Périls d'AUTEUR de la route (`route.perils`) lus JOUR PAR JOUR — MÊME patron que le terrestre
      *  (travelFlow) : tirage à `chancePct` %, effets appliqués (butin attribué hors combat) ; un effet
-     *  `startCombat`/`transition` INTERROMPT la traversée (reprise via `resumeTravel`). Renvoie `true` si
+     *  `startCombat`/`transition` INTERROMPT la traversée (reprise via `reprendreLeVoyage`). Renvoie `true` si
      *  la traversée s'est arrêtée là (combat/transition d'auteur). */
     // PROTOCOLE DE REPRISE MARITIME : les effets d'un péril interrompant s'appliquent SUR-LE-CHAMP —
-    // `resumeTravel` rejoue la traversée après le combat/la transition. Déclaré au flux ; la chance de
+    // `reprendreLeVoyage` rejoue la traversée après le combat/la transition. Déclaré au flux ; la chance de
     // chaque péril, elle, est une étape de MONDE construite par la source unique (`authorPerils.ts`).
     [SEA_PERIL_INTERRUPT]: applyPerilEffectsNow,
   } satisfies PartDeTable<'interruptionsDePeril', typeof INTERRUPTIONS_DE_PERIL>,

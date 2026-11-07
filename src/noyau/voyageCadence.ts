@@ -25,7 +25,7 @@ export interface VoyageOrders {
 }
 
 /** Ordres par DÉFAUT d'un `TravelPlan` construit sans cadence explicite — SOURCE UNIQUE, consommée par
- *  `buildSeaPlan`, `buildRiverPlan`, `setVoyageCadence` et le sélecteur de départ de `WorldMapView` (aucune copie en dur du littéral ailleurs). */
+ *  `buildSeaPlan`, `buildRiverPlan`, `fixerLaCadence` et le sélecteur de départ de `WorldMapView` (aucune copie en dur du littéral ailleurs). */
 export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
 
 /**

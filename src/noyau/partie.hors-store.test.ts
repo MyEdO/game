@@ -28,7 +28,7 @@ function duel(garder: (etat: EtatDeJeu, duel: ReturnType<typeof auContact>) => E
 const combattant = (partie: Partie, id: string) => partie.etat().battle!.combatants.find((c) => c.id === id)!;
 
 describe('creerPartie — une attaque jouée par la seule surface du noyau', () => {
-  it('déclaration, jet, défense, critique, mise hors de combat, puis `jetConfirm@cascade` jusqu’à la clôture', () => {
+  it('déclaration, jet, défense, critique, mise hors de combat, puis `jetValider@cascade` jusqu’à la clôture', () => {
     const { H, E, partie } = duel((etat, { E }) => {
       E.wounds.current = 1;
       return etat;
@@ -38,14 +38,14 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       expect(previewAttack(partie.etat, combattant(partie, H.id), combattant(partie, E.id)).soak, 'l’aperçu ne lit pas la cible').toBeGreaterThan(0);
       partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
       expect(partie.etat().pendingAttack, 'la déclaration n’a pas ouvert la fenêtre d’attaque').toMatchObject({ targetId: E.id, result: null });
-      partie.envoyer({ type: 'jetRoll', args: ['attack'] });
-      partie.envoyer({ type: 'jetSetForcedRoll', args: ['attack', 11] });
+      partie.envoyer({ type: 'jetLancer', args: ['attack'] });
+      partie.envoyer({ type: 'jetImposerLeResultat', args: ['attack', 11] });
       const res = partie.etat().pendingAttack!.result!;
       expect(res.attackerRoll, 'le dé fixé de l’entrée n’a pas été posé').toBe(11);
       expect(res.defenderDetail, 'la défense du Mutant n’a pas été jouée').toBeTruthy();
       expect(res).toMatchObject({ hit: true, critical: true });
 
-      const confirmation = partie.envoyer({ type: 'jetConfirm', args: ['attack'] });
+      const confirmation = partie.envoyer({ type: 'jetValider', args: ['attack'] });
       expect(confirmation.issue).toBe('appliquee');
       expect(emis(confirmation)).toContain('anim_attack');
       expect(confirmation.journal.flatMap((l) => (l.de === 'combat' ? [l.evenement.kind] : [])), 'l’appel ne rend pas les lignes de combat qu’il a écrites').toEqual(expect.arrayContaining(['crit', 'death']));
@@ -56,7 +56,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       for (let pas = 0; partie.etat().pendingCascade && pas < 10; pas++) {
         const cascade = partie.etat().pendingCascade!;
         const rangee = cascade.participants[cascade.cursor]?.participants?.find((r) => !r.result);
-        fin.push(...emis(partie.envoyer(rangee ? { type: 'jetRoll', args: ['cascadeBatch', rangee.id] } : { type: 'jetConfirm', args: ['cascade'] })));
+        fin.push(...emis(partie.envoyer(rangee ? { type: 'jetLancer', args: ['cascadeBatch', rangee.id] } : { type: 'jetValider', args: ['cascade'] })));
       }
       expect(partie.etat().pendingCascade, 'la cascade de fin de combat ne s’est pas close').toBeNull();
       expect(partie.etat().battle!.over).toBe('victory');
@@ -68,7 +68,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
 
   it('une intention de siège sans verdict ne court pas et laisse l’intention armée du propriétaire', () => {
     const { H, partie: armee } = duel((etat, { H }) => ({ ...etat, net: { ...etat.net, mode: 'host', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } }));
-    armee.envoyer({ type: 'battleArmIntent', args: ['course'] });
+    armee.envoyer({ type: 'armerLIntention', args: ['course'] });
     expect(armee.etat().localIntent, 'témoin : le propriétaire a armé SA Course').toEqual({ actionId: 'course' });
     const garde = armee.etat();
     armee.fermer();
@@ -156,7 +156,7 @@ describe('creerPartie — le `set` du propriétaire', () => {
     const partie = creerPartie(etatAttable(), ENTREES);
     try {
       expect(rangsAssis(partie.etat().scene)).toEqual([1, 2]);
-      partie.envoyer({ type: 'partyRemoveHero', args: [BRUNA.id] });
+      partie.envoyer({ type: 'renvoyerLeHeros', args: [BRUNA.id] });
       expect(rangsAssis(partie.etat().scene), 'le retrait d’un héros n’a levé aucune chaise').toEqual([1]);
     } finally {
       partie.fermer();

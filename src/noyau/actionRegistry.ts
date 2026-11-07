@@ -711,11 +711,11 @@ export function creerActionsDuRegistre(get: Get<JeuDuNoyau>, set: Set) {
       if (refus) return void refuserGesteDuSiege(get, set, refus);
       const def = garanti(offreDeId(actionId), actionId, 'offre du registre');
       // L'armement est l'état LOCAL de l'émetteur (`localIntent`) : jamais posé chez l'hôte au nom d'un siège.
-      if (def.intent && !unSiegeAgit()) get().battleArmIntent(def.id);
+      if (def.intent && !unSiegeAgit()) get().armerLIntention(def.id);
       ENTREE_DE_L_ACTION.get(def.id)?.jouer(get, ctx, def);
     },
     desarmerLeMode: () => {
-      if (!unSiegeAgit()) get().battleArmIntent(null);
+      if (!unSiegeAgit()) get().armerLIntention(null);
       get().armerLeMode(null);
     },
   } satisfies FabriqueDuNoyau;

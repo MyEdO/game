@@ -11,7 +11,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
 import { emptyScene, type SceneEntity } from './monde/scene';
 import { ficheDEntite, FicheAbsente, sceneNpc } from './monde/sceneNpc';
-import { playTavernGame, tavernNpcOffers } from './tavernFlow';
+import { jouerALaTaverne, tavernNpcOffers } from './tavernFlow';
 import { activeSequence } from './sequenceCore';
 import { applyEffects } from './combatEffects';
 import type { Combatant } from '../engine/types';
@@ -45,7 +45,7 @@ describe('#1882 — un PNJ, une fiche, UN nom', () => {
     const taverne = sceneNpc(get().scene, 'gerta', presetPnjById)!;
     expect(combat.label).toBe('Gerta la Rusée');
     expect(taverne.label).toBe(combat.label);
-    playTavernGame(get, set, { gameId: 'dominos', challengerId: get().party[0].id, opponent: { kind: 'npc', id: 'gerta' } });
+    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: get().party[0].id, opponent: { kind: 'npc', id: 'gerta' } });
     expect(activeSequence<{ opponentName: string }>(get)!.payload.opponentName).toBe(combat.label);
   });
 
@@ -77,7 +77,7 @@ describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', ()
   it('taverne : le PNJ n’est pas offert, et la partie ne s’ouvre pas contre lui', () => {
     pose([MORT]);
     expect(tavernNpcOffers(get().scene, presetPnjById)).toEqual([]);
-    playTavernGame(get, set, { gameId: 'dominos', challengerId: get().party[0].id, opponent: { kind: 'npc', id: 'fantome' } });
+    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: get().party[0].id, opponent: { kind: 'npc', id: 'fantome' } });
     expect(activeSequence(get)).toBeFalsy();
   });
 

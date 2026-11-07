@@ -163,7 +163,7 @@ export interface ChoixDeTransfert { fromId?: string; toId?: string; lotId?: stri
 
 /** Plan d'un transfert de vrac entre porteurs CO-LOCALISÉS (#327, décisions 5 et 8) : choix offerts,
  *  choix retenus, plafond (lot ∩ place libre de la cible) et refus (`null` : le transfert passe).
- *  SOURCE UNIQUE de `moveCargo` et de la surface de transfert. PUR. */
+ *  SOURCE UNIQUE de `deplacerLaCargaison` et de la surface de transfert. PUR. */
 export type PlanDeTransfert = { sources: CargoCarrier[]; dests: CargoCarrier[]; maxEnc: number; enc: number } & (
   | { refus: null; from: CargoCarrier; to: CargoCarrier; lot: CargoLot }
   | { refus: string; from?: CargoCarrier; to?: CargoCarrier; lot?: CargoLot }

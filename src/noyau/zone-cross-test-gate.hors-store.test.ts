@@ -81,7 +81,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
         participants: p.participants.map((s) => (s.id === step.id ? { ...s, result: { roll: 99, target: step.target!, sl: -3, success: false } } : s)),
       },
     });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const H = banc.getState().battle!.combatants.find((c) => c.id === hero.id)!;
     expect(hasCondition(H, COND.hemorragique)).toBe(true);
     expect(hasCondition(H, COND.empetre)).toBe(true);
@@ -100,7 +100,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
         participants: p.participants.map((s) => (s.id === step.id ? { ...s, result: { roll: 1, target: step.target!, sl: 5, success: true } } : s)),
       },
     });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const H = banc.getState().battle!.combatants.find((c) => c.id === hero.id)!;
     expect(hasCondition(H, COND.hemorragique)).toBe(false);
     expect(hasCondition(H, COND.empetre)).toBe(false);
@@ -140,7 +140,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
         participants: p.participants.map((s) => (s.id === step.id ? { ...s, result: { roll: 99, target: step.target!, sl: -3, success: false } } : s)),
       },
     });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const H = banc.getState().battle!.combatants.find((c) => c.id === hero.id)!;
     const empetre = H.conditions.find((c) => c.id === COND.empetre)!;
     expect(empetre.escapeStrength).toBe(caster.characteristics['force-mentale']); // SA FM (60), pas celle du traverseur

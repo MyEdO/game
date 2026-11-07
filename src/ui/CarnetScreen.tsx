@@ -109,8 +109,8 @@ function ClueBand({ indice, clue, nouveau, documents, onTogglePin }: { indice: I
 export function CarnetScreen({ onClose }: { onClose: () => void }) {
   const campaignNarratif = useGame((s) => s.campaignNarratif);
   const clues = useGame((s) => s.clues);
-  const toggleCluePin = useGame((s) => s.toggleCluePin);
-  const markCluesSeen = useGame((s) => s.markCluesSeen);
+  const epinglerLIndice = useGame((s) => s.epinglerLIndice);
+  const marquerLesIndices = useGame((s) => s.marquerLesIndices);
   const mySeat = useGame((s) => s.net.mySeat);
   /** Nouveautés levées pendant CE montage : leur pastille reste lisible jusqu'à la fermeture du carnet. */
   const [vusIci, setVusIci] = useState<ReadonlySet<string>>(() => new Set());
@@ -177,8 +177,8 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
     const affichés = JSON.parse(àMarquer) as IndiceAffiché[];
     if (affichés.length === 0) return;
     setVusIci((avant) => new Set([...avant, ...affichés.map((a) => a.id)]));
-    markCluesSeen(affichés);
-  }, [àMarquer, markCluesSeen]);
+    marquerLesIndices(affichés);
+  }, [àMarquer, marquerLesIndices]);
 
   const detail = aucunIndice ? null : indicesDétail.length === 0 ? (
     <p className="empty">Sélectionnez une affaire pour consulter ses indices.</p>
@@ -187,7 +187,7 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
       {indicesDétail.map((i) => {
         const clue = clues[i.id];
         if (!clue) return null;
-        return <ClueBand key={i.id} indice={i} clue={clue} nouveau={estNouveau(i.id)} documents={documents} onTogglePin={toggleCluePin} />;
+        return <ClueBand key={i.id} indice={i} clue={clue} nouveau={estNouveau(i.id)} documents={documents} onTogglePin={epinglerLIndice} />;
       })}
     </Stack>
   );

@@ -41,7 +41,7 @@ describe('placeServices — composition des services d’un lieu au hub (#343)',
   });
 });
 
-describe('refusDEntrerAuPort — porte du bouton « Entrer au port », appliquée par openPort', () => {
+describe('refusDEntrerAuPort — porte du bouton « Entrer au port », appliquée par ouvrirLePort', () => {
   it('sans navire de campagne : refus nommé', () => {
     expect(refusDEntrerAuPort({ vessel: null })).toBe(t('port.sansNavire'));
   });

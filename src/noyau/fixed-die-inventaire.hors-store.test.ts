@@ -51,7 +51,7 @@ describe('socle du dé fixé — les flux passent TOUS par le même chemin', () 
     it(`${k} — un dé fixé PERDANT échoue, et la valeur appliquée est la valeur saisie`, () => {
       const f = FIXTURES[k]!;
       banc.setState(f.state as never);
-      jet('jetSetForcedRoll', k, f.pid, PERDANT);
+      jet('jetImposerLeResultat', k, f.pid, PERDANT);
       const got = f.read(banc.getState());
       expect(got.roll, `${k} : la valeur appliquée n'est pas la valeur saisie`).toBe(PERDANT);
       expect(got.success, `${k} : un dé PERDANT est devenu une réussite (réussite gratuite)`).toBe(false);
@@ -88,13 +88,13 @@ describe('socle du dé choisi (Résilience) — même chemin, politique en param
         battle: { combatants: [hero, foe], log: [], order: ['H', 'E'], turn: 0, round: 1 } as never,
       });
       banc.setState(f.state as never);
-      jet('jetForceSuccess', k, f.pid);
+      jet('jetForcerLaReussite', k, f.pid);
       const apres = banc.getState().battle!.combatants.find((c) => c.id === 'H')!.resilience;
       expect(apres, `${k} : la Résilience n'a pas été dépensée (le forçage n'a pas pris)`).toBe(2);
       const forced = f.read(banc.getState());
       expect(forced.success, `${k} : « Je ne faillirai pas ! » n'a pas produit de réussite`).toBe(true);
 
-      jet('jetSetForcedRoll', k, f.pid, CHOISI);
+      jet('jetImposerLeResultat', k, f.pid, CHOISI);
       const got = f.read(banc.getState());
       expect(got.roll, `${k} : le dé CHOISI n'est pas celui appliqué (jet relancé ou saisie ignorée)`).toBe(CHOISI);
       expect(got.success, `${k} : la réussite PAYÉE par le point de Résilience a été perdue`).toBe(true);

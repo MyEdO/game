@@ -19,7 +19,7 @@ export interface FenetreDuButin {
 }
 
 /** Les verbes que la fenêtre du butin règle (`fenetreDuButin`), comme ceux de l'attaque. */
-export const REGLAGES_DU_BUTIN = ['appraiseGear'] as const satisfies readonly (keyof ActionsDuNoyau)[];
+export const REGLAGES_DU_BUTIN = ['evaluerLeButin'] as const satisfies readonly (keyof ActionsDuNoyau)[];
 const [EVALUER] = REGLAGES_DU_BUTIN;
 
 /** Par fenêtre de butin, le pending qui porte ses lignes. */

@@ -1056,7 +1056,7 @@ export interface Trauma {
    *  `cancels: 'all'` annule toute la pénalité (Merveille d'ingénierie : « ignorer complètement la
    *  perte… d'une jambe » ; Nez doré ; Œil de verre…) ; `'movement'` rétablit le déplacement seul
    *  (Fausse jambe : « ignorer 1 Point de Mouvement perdu »). L'Esquive se réapprend SÉPARÉMENT pour 200 PX
-   *  (LDB 73) : `ItemInstance.prosthesisTrained` (posé par `trainProsthesis`, noyau/partyFlow.ts) élève l'effet
+   *  (LDB 73) : `ItemInstance.prosthesisTrained` (posé par `entrainerLaProthese`, noyau/partyFlow.ts) élève l'effet
    *  de CETTE prothèse à `'all'` pour `prosthesisCancels` (trauma.ts), sans changer `cancels` en donnée. */
   prosthesis?: import('zod').z.input<typeof import('../data/schemas/defs/traumas').protheseSchema>[];
   /** Nombre d'éléments perdus pour une séquelle CUMULATIVE par comptage (LDB 18) : doigts (−5/doigt, 4+ →
@@ -1587,7 +1587,7 @@ export interface Combatant {
   /** STATION à bord ÉPINGLÉE (`id` de `ship-stations.json` : pont/gréement/nid-de-pie/avirons/cale) — où
    *  ce membre se TROUVE quand un Critique de coque frappe une présence (`MDG 13 l.680/l.714/l.730/
    *  l.751`, `MSRC 07 l.78/l.82/l.94`). AUCUN défaut : sans épinglage, ce membre n'est visé par aucune
-   *  présence. Jamais inféré d'un rôle ni d'une Compétence ; le joueur l'épingle (`setShipStation`).
+   *  présence. Jamais inféré d'un rôle ni d'une Compétence ; le joueur l'épingle (`affecterALaStation`).
    *  Jumeau de `shipRole`, orthogonal à lui. */
   shipStation?: string;
   /** File transitoire d'attaques gratuites de créature restant à résoudre ce tour (kinds :

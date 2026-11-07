@@ -116,10 +116,10 @@ describe('ecrireActeur — chaque handler migré écrit là où le jeu lit (#231
     expect(auGroupe(hero.id).spells).toContain('sommeil');
   });
 
-  it('setShipRole en combat : le combattant ET le groupe portent le rôle', () => {
+  it('attribuerLeRoleABord en combat : le combattant ET le groupe portent le rôle', () => {
     const hero = poserGroupe();
     entrerEnCombat();
-    banc.getState().setShipRole(hero.id, 'vigie');
+    banc.getState().attribuerLeRoleABord(hero.id, 'vigie');
     expect(auCombat(hero.id).shipRole).toBe('vigie');
     expect(auGroupe(hero.id).shipRole).toBe('vigie');
   });

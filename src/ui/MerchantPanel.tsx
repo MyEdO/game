@@ -686,17 +686,17 @@ export function MerchantPanel() {
   const scene = useGame((s) => s.scene);
   const refusHote = useGame(refusDeGesteSurLeGroupe);
   const choisir = useGame((s) => s.fenetreChoisir);
-  const refuseBargain = useGame((s) => s.refuseBargain);
-  const payCart = useGame((s) => s.payCart);
+  const refuserLeMarche = useGame((s) => s.refuserLeMarche);
+  const payerLesAchats = useGame((s) => s.payerLesAchats);
   const valider = useGame((s) => s.fenetreValider);
-  const confirmSell = useGame((s) => s.confirmSell);
-  const repairItem = useGame((s) => s.repairItem);
-  const startBargain = useGame((s) => s.startBargain);
-  const appraiseItem = useGame((s) => s.appraiseItem);
+  const vendreLeLot = useGame((s) => s.vendreLeLot);
+  const reparerLObjet = useGame((s) => s.reparerLObjet);
+  const marchanderLePrix = useGame((s) => s.marchanderLePrix);
+  const evaluerLObjet = useGame((s) => s.evaluerLObjet);
   const fermer = useGame((s) => s.fenetreFermer);
   const quitter = () => fermer('marchand');
-  const barterExchange = useGame((s) => s.barterExchange);
-  const searchAvailability = useGame((s) => s.searchAvailability);
+  const troquerLesObjets = useGame((s) => s.troquerLesObjets);
+  const chercherLaDisponibilite = useGame((s) => s.chercherLaDisponibilite);
   if (!merchant) return null;
   const speakerEnt = scene?.entities.find((e) => e.id === merchant.entityId);
   const arch = findMerchantArchetypeById(merchant.archetype);
@@ -705,12 +705,12 @@ export function MerchantPanel() {
     <MerchantPanelView
       merchant={merchant} party={party} money={money} refusHote={refusHote} speakerEnt={speakerEnt} speakerName={speakerName} boniment={arch?.boniment}
       onAddToCart={(id) => choisir('marchand', 'ajouterAuPanier', id)} onDecCart={(id) => choisir('marchand', 'oterDuPanier', id)}
-      onRemoveCart={(id) => choisir('marchand', 'retirerDuPanier', id)} onClearCart={() => choisir('marchand', 'viderLePanier', true)} onRefuse={refuseBargain} onPay={payCart}
+      onRemoveCart={(id) => choisir('marchand', 'retirerDuPanier', id)} onClearCart={() => choisir('marchand', 'viderLePanier', true)} onRefuse={refuserLeMarche} onPay={payerLesAchats}
       onAssignDist={(uid, heroId) => choisir('marchand', 'repartition', uid, heroId)} onConfirmDist={() => valider('marchand')}
       onAddToSellCart={(uid) => choisir('marchand', 'ajouterALaVente', uid)} onRemoveSellCart={(uid) => choisir('marchand', 'retirerDeLaVente', uid)}
-      onClearSellCart={() => choisir('marchand', 'viderLaVente', true)} onConfirmSell={confirmSell}
-      onRepair={repairItem} onBargain={startBargain} onAppraise={appraiseItem} onClose={quitter}
-      onSellHalving={(uid, delta) => choisir('marchand', delta > 0 ? 'baisserLePrix' : 'releverLePrix', uid)} onBarter={barterExchange} onSearchAvailability={searchAvailability}
+      onClearSellCart={() => choisir('marchand', 'viderLaVente', true)} onConfirmSell={vendreLeLot}
+      onRepair={reparerLObjet} onBargain={marchanderLePrix} onAppraise={evaluerLObjet} onClose={quitter}
+      onSellHalving={(uid, delta) => choisir('marchand', delta > 0 ? 'baisserLePrix' : 'releverLePrix', uid)} onBarter={troquerLesObjets} onSearchAvailability={chercherLaDisponibilite}
     />
   );
 }

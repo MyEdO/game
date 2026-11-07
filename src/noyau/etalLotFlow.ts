@@ -61,7 +61,7 @@ const enRangee = (d: EtalDraw): EtalLotRow => ({
 });
 
 /**
- * DÉNOUEMENT du lot (`jetConfirm('etalLot')`) : rejoue le générateur avec les dés du lot,
+ * DÉNOUEMENT du lot (`jetValider('etalLot')`) : rejoue le générateur avec les dés du lot,
  * ferme la fenêtre, puis laisse venir ce qui suit l'étal. Le rejeu ne consomme AUCUN aléa vivant —
  * sauf débordement DIT (`lotRejoueur`) quand un dé posé ouvre une branche que le lot n'avait pas vue.
  */

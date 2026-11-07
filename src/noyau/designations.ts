@@ -25,6 +25,7 @@ import { seaActivitiesCatalog } from './seaActivities';
 import { catalogEntryOf, libelleDeLaRepartition } from './merchantFlow';
 import { bulkCarriers, lotDeCargaison } from './carriers';
 import { offresDeCargaison } from './cargaison';
+import { libelleDuDepot } from './interludeEnVue';
 import { findCargoById } from '../engine/cargo';
 
 /** Un combattant : la file de combat et le groupe (`porteurParId`, `monde/combatants.ts`). */
@@ -38,15 +39,15 @@ export type IdDePossession = string;
 /** Un objet porté (`ItemInstance.uid`) par un héros, un combattant ou une possession. */
 export type IdDObjet = string;
 /** Une scène que la partie rejoint : la scène courante et celles du registre (`scenesDuRegistre`), celui que lit
- *  `transitionTo`. */
+ *  `quitterLaScene`. */
 export type IdDeScene = string;
 /** Une entité de la scène courante (`scene.entities`). */
 export type IdDEntiteDeScene = string;
 /** Ce que le clic d'une case désigne (`cliquerLaCase`) : en combat un combattant, hors combat une entité de la scène. */
 export type IdDuClic = string;
-/** Un combattant que `roundStartPromote` accepte (`actFirstIds`, `turnEconomy.ts`). */
+/** Un combattant que `promouvoirLeCombattant` accepte (`actFirstIds`, `turnEconomy.ts`). */
 export type IdDeCombattantPromouvable = string;
-/** Un tireur que `armPreempt` et `preemptRangedShot` acceptent (`preemptShooterIds`, `targeting.ts`). */
+/** Un tireur qu'`armerLeTirPreventif` et `preemptRangedShot` acceptent (`preemptShooterIds`, `targeting.ts`). */
 export type IdDeTireurRapide = string;
 /** Une chanson que le réglage `shanty.chanson` accepte (`chansonsDuChanteur`, `shipCrew.ts`). */
 export type IdDeChanson = string;
@@ -54,7 +55,7 @@ export type IdDeChanson = string;
 export type IdDeFormeConjuree = string;
 /** Un choix de paie que le choix `council.paie` accepte (`choixDePaieOuverts`, `shipCrew.ts`). */
 export type IdDeChoixDePaie = string;
-/** Une créature que `harvestCreature` accepte (`creaturesADepecer`, `combatEffects.ts`). */
+/** Une créature que `depecerLaCreature` accepte (`creaturesADepecer`, `combatEffects.ts`). */
 export type IdDeCreatureADepecer = string;
 /** Un adversaire que le réglage `battement.adversaire` accepte (`adversairesDuBattement`, `combatManeuvers.ts`). */
 export type IdDAdversaireDuBattement = string;
@@ -89,6 +90,8 @@ export type IdDePorteurDeCargaison = string;
 export type IdDeCargaison = string;
 /** Une offre du marché ouvert, par l'id de sa cargaison (`offresDeCargaison`, `cargaison.ts`). */
 export type IdDOffreDeCargaison = string;
+/** Un dépôt en banque, par son `uid` (`BankDeposit`). */
+export type IdDeDepot = string;
 
 /** Une désignation : son nom en mots, les ids valides qu'elle lit dans l'état, et le nom en mots du joueur de
  *  l'élément d'un id (`null` : l'élément n'a pas de nom). */
@@ -182,6 +185,14 @@ export const DESIGNATIONS = {
     mot: 'id d’offre de cargaison',
     lire: (s) => offresDeCargaison(s).map((o) => o.cargoId),
     nom: (s, id) => offresDeCargaison(s).find((o) => o.cargoId === id)?.label ?? null,
+  },
+  IdDeDepot: {
+    mot: 'id de dépôt',
+    lire: (s) => s.bank.map((d) => d.uid),
+    nom: (s, uid) => {
+      const d = s.bank.find((x) => x.uid === uid);
+      return d ? libelleDuDepot(s, d) : null;
+    },
   },
   IdDIndice: { mot: 'id d’indice', lire: (s) => Object.keys(s.clues), nom: (s, id) => s.campaignNarratif?.indices.find((i) => i.id === id)?.titre ?? null },
 } satisfies Record<string, Designation>;

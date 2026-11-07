@@ -114,8 +114,8 @@ describe('VoyageScreen — hub de voyage paramétré par mode (#333)', () => {
     expect(cards[2].dayLabel).toBe('Jour 3');
   });
 
-  // Halte de nuit EN COURS : le jour qu'elle clôt est DÉJÀ le dernier de `plan.log` (`openRest` ou
-  // `resumeTravel` l'y range) — UNE carte sélectionnable pour lui, et `current` est la Nuit elle-même (#2533 : jamais
+  // Halte de nuit EN COURS : le jour qu'elle clôt est DÉJÀ le dernier de `plan.log` (`ouvrirLeRepos` ou
+  // `reprendreLeVoyage` l'y range) — UNE carte sélectionnable pour lui, et `current` est la Nuit elle-même (#2533 : jamais
   // deux cartes pour un même jour).
   it('chronique : une halte de nuit EN COURS — le jour clos a UNE carte, « Nuit » est la carte current', () => {
     const plan: TravelPlan = { ...seaPlan(), log: [

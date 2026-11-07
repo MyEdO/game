@@ -4,7 +4,7 @@
  *
  * RÉUTILISATION (pas de duplication de la machinerie de voyage) : ce flux est le PENDANT FLUVIAL de
  * `seaVoyageFlow` (mer, MDG). Comme lui, il s'appuie sur la machinerie de voyage EXISTANTE — halte de nuit
- * (`openRest`), entretien quotidien (`runDailyUpkeep`), coque de trajet PERSISTÉE au coup par coup
+ * (`ouvrirLeRepos`), entretien quotidien (`runDailyUpkeep`), coque de trajet PERSISTÉE au coup par coup
  * (`damageVesselHull`/`healVesselHull`, #296 — SOURCE UNIQUE `vessel.wounds`), récap du jour
  * (`TravelRecapDay`) — et n'écrit QUE la résolution navale du jour. Il ne réimplémente ni la boucle de
  * nuit, ni l'entretien, ni la persistance.
@@ -25,7 +25,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
 import { minutesUntilNext, duskMinute } from '../engine/clock';
 import { effectTargets, openWaterExposure } from './combatEffects';
-import { openRest, placesOfKind, routeLieu } from './restFlow';
+import { ouvrirLeRepos, placesOfKind, routeLieu } from './restFlow';
 import { placeById, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { arriverAuLieu } from './lieuFlow';
 import { damageVesselHull, healVesselHull, syncHullWoundsFromVessel, spoilVesselCargoOnLeak } from './seaVoyageFlow';
@@ -166,7 +166,7 @@ function riverHull(get: Get<Jeu>, route: MapRoute): { coque: Combatant } | null 
 
 /** Un « batelier » : un PJ vivant qui a augmenté la `competence` de Navigation du bateau (MSRC 5 l.11-17),
  *  Spécialisation sœur comprise (`possesses`, LDB 09 l.571). Sans batelier, on paie un passeur (repli
- *  transport payant côté `startTravel`). */
+ *  transport payant côté `partirEnVoyage`). */
 export function hasBatelier(party: Combatant[], competence: RefDesignee): boolean {
   return party.some((h) => !h.dead && aAugmente(h, competence));
 }
@@ -844,7 +844,7 @@ function finishRiverDay(get: Get, set: Set, to: MapPlace, kmDay: number, dayLine
   // Sur la rivière on peut mouiller le long de la berge : coucher À BORD (hamacs, MDG 03 l.71) offert
   // en plus du campement/de l'auberge de la halte — la belle étoile sur la berge reste possible.
   const places = { ...placesOfKind(route?.inns ? 'auberge' : 'camp'), ...(get().vessel ? { bord: true } : {}) };
-  openRest(get, set, { places, lieu: routeLieu(get().worldMap!, plan), travelHalt: true, travelDay: recapDay });
+  ouvrirLeRepos(get, set, { places, lieu: routeLieu(get().worldMap!, plan), travelHalt: true, travelDay: recapDay });
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

@@ -113,8 +113,8 @@ const SURFACING: { file: keyof typeof SRC; fn: string; pred: RegExp }[] = [
 const DEFENDER_ROLL_SITES = new Set([
   'resolveAttack',        // repli non surfacé seulement (`defenseSurfaced` → undefined / defense:'none')
   'maybeOpenDefense',     // OUVRE la fenêtre (chemin instantané : IA, gratuites, balayage)
-  'openSurfacedDefense',  // OUVRE la fenêtre (chemin piloté : jetConfirm('attack'))
-  'resolveDualSecond',    // repli non surfacé seulement (2ᵉ frappe, LDB 10 l.773 ; surfacé → `jetConfirm('attack')` interpose, #998)
+  'openSurfacedDefense',  // OUVRE la fenêtre (chemin piloté : jetValider('attack'))
+  'resolveDualSecond',    // repli non surfacé seulement (2ᵉ frappe, LDB 10 l.773 ; surfacé → `jetValider('attack')` interpose, #998)
 ]);
 /** Ouvertures de fenêtre attendues sur les chemins d'attaque INSTANTANÉS (le brief #989 : le balayage
  *  et les attaques gratuites ne roulent plus de défense en silence). */
@@ -290,7 +290,7 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     expect(get().pendingCascade, 'ennemi IA → jamais de cascade').toBeNull();
   });
 
-  it('la Maladresse d’un ENNEMI conduit (MJ) REMONTE en cascade via jetConfirm@attack (pas perdue — risque #2 du plan)', () => {
+  it('la Maladresse d’un ENNEMI conduit (MJ) REMONTE en cascade via jetValider@attack (pas perdue — risque #2 du plan)', () => {
     const { H, E } = freshCombat();
     E.pos = { x: 10, y: 10 }; H.pos = { x: 11, y: 10 }; // adjacents (mêlée)
     E.weapons = [buildWeapon({ label: 'Épée', attackKind: 'arme', damage: { plusBF: true, flat: 4 } })];
@@ -307,12 +307,12 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     seedBattleRng(seed);
     const r = resolveAttack(get, E, H)!; // résultat de Maladresse RÉEL (pas fabriqué)
     set({ pendingAttack: { attackerId: E.id, targetId: H.id, location: r.res.location ?? null, result: r.res, victimId: r.victim?.id, weaponUid: E.weapons[0].uid } });
-    get().jetConfirm('attack');
-    // La défense du héros est SURFACÉE (#989) : `jetConfirm('attack')` interpose SA fenêtre — le héros défend,
+    get().jetValider('attack');
+    // La défense du héros est SURFACÉE (#989) : `jetValider('attack')` interpose SA fenêtre — le héros défend,
     // PUIS l'application reprend et la Maladresse de l'ennemi conduit remonte au nom de l'ennemi.
     expect(get().pendingDefense?.defenderId, 'la défense du héros s’interpose').toBe(H.id);
-    get().jetRoll('defense');
-    get().jetConfirm('defense');
+    get().jetLancer('defense');
+    get().jetValider('defense');
     const c = get().pendingCascade;
     expect(c?.participants.some((s) => s.jet === 'fumble' && s.actorId === E.id), 'la Maladresse de l’ennemi conduit REMONTE au nom de l’ennemi').toBe(true);
   });

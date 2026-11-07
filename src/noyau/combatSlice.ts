@@ -226,7 +226,7 @@ function bordeeGunnersLine(get: Get, ship: Combatant, side: FireArc): string {
 }
 
 /**
- * APPLIQUE une bordée (MDG 14 l.128) — corps PARTAGÉ par le confirm JOUEUR (`jetConfirm('shipBattery')`) ET l'auto-pilote
+ * APPLIQUE une bordée (MDG 14 l.128) — corps PARTAGÉ par le confirm JOUEUR (`jetValider('shipBattery')`) ET l'auto-pilote
  * NAVIRE (`shipAutoBattery`). Chaque pièce du bord qui porte a fait feu : elle se décharge (LDB 62 l.335) ; chaque
  * coup, touché ou raté, passe ensuite par la couture du coup (`jouerLesTirsDeBordee` → `applyAttackResult`), qui
  * le résout selon sa cible et consomme la munition. NE touche PAS au pending ni à `crewActed`. Rend `true` quand
@@ -286,7 +286,7 @@ function applyNavalSurprisePosition(get: Get, set: Set, surprisedSide: 'party' |
 
 
 /** Le curseur de la séquence de COMBAT est-il posé sur une étape de défense ? Porte d'entrée de
- *  `jetConfirm('defense')`, et verdict de sa sortie (`quitterLaDefense`). */
+ *  `jetValider('defense')`, et verdict de sa sortie (`quitterLaDefense`). */
 function surLEtapeDeDefense(s: Jeu): boolean {
   const casc = s.pendingCascade;
   return casc?.purpose === 'combat' && casc.participants[casc.cursor]?.jet === 'defense';
@@ -522,14 +522,14 @@ function terminerLaCascade(get: Get, set: Set): void {
 }
 
 /** Valide l'étape courante de la cascade (`advanceCascade`) et joue le dénouement de la dernière : la clôture du flux
- *  `cascade` (`jetConfirm('cascade')`), et la suite d'un geste de combat qui rend la main au curseur. */
+ *  `cascade` (`jetValider('cascade')`), et la suite d'un geste de combat qui rend la main au curseur. */
 function validerLEtape(get: Get, set: Set): void {
   dispatchCascadeDone(get, set, advanceCascade(get, set));
 }
 
 /** Actions de combat inline du store — déplacées VERBATIM. Spreadées EN TÊTE du `create`. */
 /** La 2ᵉ frappe du Maniement de deux armes sur `targetId` (LDB 10 l.767-773) ; `testPasse` : le Test de main de
- *  l'Action est déjà passé (reprise de `jetConfirm('handGate')`). */
+ *  l'Action est déjà passé (reprise de `jetValider('handGate')`). */
 function frapperDeLaSeconde(get: Get, set: Set, targetId: string, testPasse: boolean): void {
   const { battle, pendingDualStrike: ds } = get();
   if (!battle || !ds) return;
@@ -684,7 +684,7 @@ export function createCombatSlice(get: Get, set: Set) {
         // pas des refus, ils n'ont rien à dire. Table locale à UN consommateur (ce site est le clic-sol).
         const dit = REFUS_DEPLACEMENT[movement.reason];
         if (dit) refuserGeste(get, set, dit(get, active));
-        get().battleClearPreview();
+        get().effacerLApercu();
         return;
       }
       // Peur (LDB 21 l.27) : `retenuParLaPeur`. L'intention rejoue le clic BRUT (`pt`) après le Test →
@@ -764,7 +764,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // commettra, et sa PORTÉE se peint aussitôt (`localIntent.ts` → `HighlightsView.intentReach`).
     // Purement locale : aucun intent réseau ne part d'ici (seul le COMMIT du geste en émet un).
     // Re-armer la MÊME action, ou passer `null` (Échap), la dissout.
-    battleArmIntent: (actionId: string | null) => {
+    armerLIntention: (actionId: string | null) => {
       const battle = get().battle;
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
@@ -853,7 +853,7 @@ export function createCombatSlice(get: Get, set: Set) {
 
     // ── Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant de
     //    l'Avantage adverse. Le jet passe par FLOWS.battement (Lancer/Chance/Pacte/Résilience) ;
-    //    « Appliquer » (`jetConfirm('battement')`) appelle `resolveBattement` et consomme l'Action. ──
+    //    « Appliquer » (`jetValider('battement')`) appelle `resolveBattement` et consomme l'Action. ──
     faireUnBattement: (foeId?: string) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const battle = get().battle;
@@ -920,12 +920,12 @@ export function createCombatSlice(get: Get, set: Set) {
         battle: { ...battle, action: null, preview: null },
       });
       // Auto-roule les TÉMOINS (marins PNJ) — leur jet initial est résolu sans influence (cf. makeRollFlow).
-      for (const part of opened.participants) if (!part.interactive) get().jetRoll('shipManeuver', part.id);
+      for (const part of opened.participants) if (!part.interactive) get().jetLancer('shipManeuver', part.id);
     },
 
     // ── BORDÉE (« Tir de batterie », MDG 14 l.128) — JUMEAU de la manœuvre : Test d'équipage MULTI des Artilleurs (★),
     //    dont le DR PARTAGÉ remplace le jet de chaque pièce du bord qui porte. `battleShipBattery(shipId, targetId)` ouvre
-    //    la modale (le bord est dérivé de la cible via `targetArc`) ; `jetConfirm('shipBattery')` résout la volée (`resolveVolley`). ──
+    //    la modale (le bord est dérivé de la cible via `targetArc`) ; `jetValider('shipBattery')` résout la volée (`resolveVolley`). ──
     battleShipBattery: (shipId: string, targetId: string) => {
       const battle = get().battle;
       if (!battle) return;
@@ -944,7 +944,7 @@ export function createCombatSlice(get: Get, set: Set) {
         pendingShipBattery: { shipId: ship.id, targetId: target.id, side, ...opened },
         battle: { ...battle, action: null, preview: null },
       });
-      for (const part of opened.participants) if (!part.interactive) get().jetRoll('shipBattery', part.id); // témoins (marins PNJ) auto-roulés
+      for (const part of opened.participants) if (!part.interactive) get().jetLancer('shipBattery', part.id); // témoins (marins PNJ) auto-roulés
     },
 
     // ── AUTO-PILOTE : bordée HEADLESS (aucun pending) — l'IA de coque (couche Mer) lâche une bordée sur un navire
@@ -995,7 +995,7 @@ export function createCombatSlice(get: Get, set: Set) {
         pendingCrewTest: { shipId: ship.id, testTypeId, ...opened },
         battle: { ...battle, action: null, preview: null },
       });
-      for (const part of opened.participants) if (!part.interactive) get().jetRoll('crewTest', part.id); // témoins auto-roulés
+      for (const part of opened.participants) if (!part.interactive) get().jetLancer('crewTest', part.id); // témoins auto-roulés
     },
 
     // ── CHANSON DE MARIN (Talent, MDG 09 l.32-40) : le chanteur (équipage doté du Talent) choisit une
@@ -1143,7 +1143,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...b, endTurnArmed: turnEconomyStamp(b) } });
     },
     /** Retire l'aperçu armé par un premier clic (`battle.preview`), celui que le second clic commettrait. */
-    battleClearPreview: () => {
+    effacerLApercu: () => {
       const b = get().battle;
       if (!b?.preview) return;
       set({ battle: { ...b, preview: null } });
@@ -1151,7 +1151,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
 
     // ── Chance, 3e usage : pré-emption d'initiative en début de Round (LDB 17 l.25) ──
-    roundStartPromote: (heroId: string) => {
+    promouvoirLeCombattant: (heroId: string) => {
       const battle = get().battle;
       if (!battle || !actFirstIds(get()).includes(heroId)) return;
       const hero = garanti(inBattleId(battle, heroId), heroId, 'héros promu');
@@ -1179,16 +1179,16 @@ export function createCombatSlice(get: Get, set: Set) {
       if (weapon.type !== 'ranged') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
       if (!inFiringBand(hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.outOfRange'));
       if (blocked) return void refuserGeste(get, set, t('cf.noLoSMasked'));
-      // Le tir se résout par la modale de jet NORMALE (jetRoll('attack')/jetConfirm('attack')) ; le tireur n'est PAS actif.
-      // `pendingAttack.interrupt` → jetConfirm('attack') applique le tir sans avancer le tour + épuise son tour normal.
+      // Le tir se résout par la modale de jet NORMALE (jetLancer('attack')/jetValider('attack')) ; le tireur n'est PAS actif.
+      // `pendingAttack.interrupt` → jetValider('attack') applique le tir sans avancer le tour + épuise son tour normal.
       // La modale d'attaque est rendue par la CASCADE (CascadeModal → useAttackJetProps), comme TOUTE attaque :
-      // on ouvre donc une cascade à une étape `jet:'attack'` pour le tireur (refermée par jetConfirm('attack')).
+      // on ouvre donc une cascade à une étape `jet:'attack'` pour le tireur (refermée par jetValider('attack')).
       // `heldGround: true` : l'interruption est un tir IMMOBILE d'office (elle coûte le Mouvement du tour) → pas
       // de pénalité « Tir en bougeant » (LDB 14), qui n'aurait aucun sens hors du tour du tireur.
       openAttackCascade(get, set, { attackerId: hero.id, targetId: target.id, location: null, result: null, interrupt: true, heldGround: true }, 'Tir rapide', 'action/shoot');
     },
     // ── Tir rapide : ARMER/DÉSARMER la visée d'un héros pendant la pause (badge de la frise → clic adversaire) ──
-    armPreempt: (heroId: string | null) => {
+    armerLeTirPreventif: (heroId: string | null) => {
       if (heroId === null || !preemptShooterIds(get).includes(heroId)) { set({ preemptAiming: null }); return; }
       set({ preemptAiming: get().preemptAiming === heroId ? null : heroId }); // bascule
     },
@@ -1327,7 +1327,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // RECHARGE D'UN POSTE DE NAVIRE (MDG 12 l.462 / LDB 62 l.333) — Test étendu de Projectiles du CHEF de
     // pièce, avec le SOUTIEN générique des autres servants (`soutienBonus`, LDB 12). Tâche d'équipage PARALLÈLE :
     // elle occupe les servants (`crewActed`) mais NE consomme PAS le tour du navire (≠ `acted`). Réutilise le flux
-    // `FLOWS.reload` (mono-jet) ; la branche d'application vit dans `jetConfirm('reload')` (cf. `pr.posteUid`).
+    // `FLOWS.reload` (mono-jet) ; la branche d'application vit dans `jetValider('reload')` (cf. `pr.posteUid`).
     rechargerLaPiece: (shipId: string, posteUid: string) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const battle = get().battle;
@@ -1482,12 +1482,12 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
 
-    // `jetCancel('attack')` (« Annuler » / défaire-charge) est GÉNÉRÉ par la fabrique
+    // `jetAnnuler('attack')` (« Annuler » / défaire-charge) est GÉNÉRÉ par la fabrique
     // (`FLOWS.attack.onCancel`, cf. la liste de verbes ci-dessus) — plus d'action bespoke ici.
     // PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : la case d'impact est déposée par le placeur
     // ('siege', commitPlacedZone). Ouvre la modale de tir de la pièce indirecte servie (`pendingAttack` siège) :
     // le JET de tir (DR) reste l'attaque NORMALE (Chance/Résilience par la cascade), mais la touche DÉTONE sur
-    // la case — l'Explosion frappe tout le rayon (résolution dans jetConfirm('attack')). Cible-repère = ennemi le plus
+    // la case — l'Explosion frappe tout le rayon (résolution dans jetValider('attack')). Cible-repère = ennemi le plus
     // proche de l'impact (bande de portée/DR) ; aucune dans le rayon → tir à vide annoncé, sans détonation.
     siegeAimCommit: (pt: Pt) => {
       const { battle, pendingSiegeAim: sa } = get();
@@ -1790,9 +1790,9 @@ export function createCombatSlice(get: Get, set: Set) {
 
     // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. noyau/medicFlow ──
 
-    // Chirurgie : jet INFLUENÇABLE d'une passe (le chirurgien peut être un héros) — jetConfirm('surgery') applique
-    // (medicFlow), jetCancel('surgery') annule la passe, `fenetreChoisir('medic', 'abandon', true)` l'opération.
-    // openSurgeryPass POSE la passe (`creerActionsDuMedecin`, noyau/medicFlow.ts).
+    // Chirurgie : jet INFLUENÇABLE d'une passe (le chirurgien peut être un héros) — jetValider('surgery') applique
+    // (medicFlow), jetAnnuler('surgery') annule la passe, `fenetreChoisir('medic', 'abandon', true)` l'opération.
+    // ouvrirLaChirurgie POSE la passe (`creerActionsDuMedecin`, noyau/medicFlow.ts).
 
 
     // ── Contre-mesure « Asperger d'eau » (MDG 16 l.19, #497) — Créature marine hors de l'eau ──
@@ -1866,7 +1866,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // Test Étendu SÉQUENTIEL (LDB 12) : chaque Round est un slot du flux multi (fabrique UNIQUE).
     // « Une situation = une modale » : le Test étendu EST une cascade à une étape `jet:'extended'`,
     // rendue par `CascadeModal` (via `useExtendedTestJetProps`). `pendingExtendedTest` coexiste comme
-    // porteur de données (les Rounds y vivent) ; `jetConfirm('extendedTest')` ferme les deux à la réussite.
+    // porteur de données (les Rounds y vivent) ; `jetValider('extendedTest')` ferme les deux à la réussite.
 
     // Incantation OPPOSÉE (multijet `FLOWS.castOpposition`) : chaque cible oppose son Test ; cible IA
     // = rangée témoin (jet auto-roulé à l'ouverture, cf. openCastOpposition). Mêmes 6 verbes que les autres flux.
@@ -1903,7 +1903,7 @@ export function createCombatSlice(get: Get, set: Set) {
     /** ÉLIT (ou oublie) le PORTEUR dont on va dissiper un Sort — porte UNIQUE de `dispelCarrierId` :
      *  le clic-token du mode Dissiper l'appelle, la fermeture du panneau-paramètre aussi. Aucun jet,
      *  aucune ressource : c'est un choix d'écran, annulable gratuitement. */
-    dispelSelectCarrier: (carrierId: string | null) => set({ dispelCarrierId: carrierId }),
+    designerLeSupport: (carrierId: string | null) => set({ dispelCarrierId: carrierId }),
     /** Dissipe le Sort permanent `spellId` que porte `porteurId` (LDB 46 l.158-160), pour l'Action de `lanceurId` :
      *  en combat comme hors combat, la règle n'étant pas bornée au combat (#461). Action RÉPÉTÉE chaque Round en combat
      *  (comme la Focalisation) ; le DR cumule sur `caster.dispel` jusqu'au NI. */
@@ -1942,7 +1942,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     // Psychologie de COMBAT (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
     // applier 'combatPsych', résolue par les verbes de jet de la cascade. La Détermination (LDB 17 l.59) est offerte
-    // sur la RANGÉE par `jetDetermine('cascadeBatch')`.
+    // sur la RANGÉE par `jetDepenserLaDetermination('cascadeBatch')`.
     // Psychologie À LA RENCONTRE (couture C, LDB 21) : cascade équivalente, applier 'encounterPsych',
     // ouverte par `openEncounterPsych` à l'entrée de scène.
 
@@ -1961,7 +1961,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // ── Cumuler l'Avantage par une Compétence (LDB 09 l.305-308 : Intuition/Savoir/Survie → Int, Prière → Soc) ──
     // « Chaque Round que vous passez à [observer/prier]… réussissant un Test… vous gagnez +1 Avantage »
     // → une ACTION dont la modale de Test STANDARD (cascade, `pendingTest`) octroie l'Avantage plafonné
-    // (`combatAdvantage` lu par `jetConfirm('test')`). Data-driven : l'action n'existe que si `skillAdvantageCap`
+    // (`combatAdvantage` lu par `jetValider('test')`). Data-driven : l'action n'existe que si `skillAdvantageCap`
     // (donnée `SkillData.combatAdvantage`) est > 0 — aucune Compétence nommée en dur.
     gagnerLAvantage: (skillId: string) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
@@ -2086,7 +2086,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
   };
   /**
    * DÉCLARATION d'une rangée de la fenêtre — PHASE 1 : contrer SEUL, s'UNIR au Test Soutenu
-   * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `jetConfirm('counterspell')` ci-dessous) ou
+   * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `jetValider('counterspell')` ci-dessous) ou
    * PASSER. Le MENEUR n'est pas un choix : il se DÉRIVE des rangées unies (`counterspellSoutenu`)
    * et se re-dérive à chaque déclaration. Chaque rangée choisit pour elle (mix libre : unis et
    * lanceurs seuls coexistent dans la MÊME fenêtre) — arbitrages utilisateur 2026-08-04
@@ -2104,11 +2104,11 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
     if (choice === 'soutenu' && !counterspellJoinable(s, pcs, pid)) return;
     set({ pendingCounterspell: { ...pcs, participants: pcs.participants.map((p) => (p.id === pid ? { ...p, declared: choice } : p)) } });
     // PORTE UNIQUE : la phase close SANS aucun lanceur (tout le monde passe) n'a plus rien à jouer —
-    // la fenêtre se referme par le résolveur CANONIQUE (`jetConfirm('counterspell')`, qui agrège et retombe
+    // la fenêtre se referme par le résolveur CANONIQUE (`jetValider('counterspell')`, qui agrège et retombe
     // sur le repli IA), jamais par un troisième chemin de fermeture.
     const fresh = get().pendingCounterspell;
     if (fresh && !counterspellDeclarePhase(fresh) && !fresh.participants.some((p) => counterspellRolls(get(), fresh, p))) {
-      get().jetConfirm('counterspell');
+      get().jetValider('counterspell');
     }
   };
   return {
@@ -2316,7 +2316,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         bus.emit(EVT.SCENE_DIRTY);
       },
       // ── « Fuir » (LDB 15 l.59-68) : OUVRE le flux MULTI `flee` — un slot par acteur (coup dans le dos
-      //    du FRAPPEUR, Test de la fiche `fuite` du FUYARD). Aucun jet ni aucune conséquence ici : `jetConfirm('flee')`
+      //    du FRAPPEUR, Test de la fiche `fuite` du FUYARD). Aucun jet ni aucune conséquence ici : `jetValider('flee')`
       //    applique tout. La modale s'ouvre dès qu'UN des deux acteurs est JOUÉ (symétrie). ──
       fuir: () => {
         const { battle, pendingDisengage: pd } = get();
@@ -2366,7 +2366,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         bus.emit(EVT.SCENE_DIRTY);
         // Rangée TÉMOIN auto-roulée à l'ouverture (précédent `eprouverLEquipage`) : le coup dans le dos d'un
         // frappeur non joué est résolu tout de suite ; celui d'un héros l'attend (il porte son cycle).
-        if (!played(foe)) get().jetRoll('flee', foe.id);
+        if (!played(foe)) get().jetLancer('flee', foe.id);
         // Aucune modale affichable (aucun des deux acteurs JOUÉ, combat fini, Destin en attente) →
         // résolution HEADLESS par LE MÊME flux (jamais un chemin de calcul parallèle). MÊME prédicat que
         // les rangées ci-dessus (`played`) — une fenêtre se joue exactement quand une rangée est
@@ -2377,11 +2377,11 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         }
         const pdOpen = get().pendingDisengage;
         if (!pdOpen?.fuir) return;
-        if (!fleeBackstab(pdOpen)?.result) get().jetRoll('flee', foe.id);
+        if (!fleeBackstab(pdOpen)?.result) get().jetLancer('flee', foe.id);
         const pdRolled = get().pendingDisengage;
-        if (pdRolled && fleeToucheDu(pdRolled) && !fleeTouche(pdRolled)?.jet) get().jetRoll('flee', mover.id);
+        if (pdRolled && fleeToucheDu(pdRolled) && !fleeTouche(pdRolled)?.jet) get().jetLancer('flee', mover.id);
         tracerLaFuite(get, set, mover, foe, { dos: true, touche: true });
-        get().jetConfirm('flee');
+        get().jetValider('flee');
       },
     },
     auContact: {
@@ -2495,7 +2495,7 @@ export function validationsDuCombat(get: Get, set: Set) {
   return { roundStart: () => lancerLeRound(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
-/** Les clôtures des flux du combat (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+/** Les clôtures des flux du combat (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
 export function cloturesDuCombat(get: Get, set: Set) {
   return {
     // Valider l'étape courante de la cascade, quelle que soit son interaction.
@@ -2578,9 +2578,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const res = garanti(fleeBackstab(pd)?.result, pd.moverId, 'coup dans le dos de la Fuite');
       const toucheSlot = fleeTouche(pd);
       if (fleeToucheDu(pd) && !toucheSlot?.jet) {
-        get().jetRoll('flee', mover.id); // fuyard non joué : sa rangée témoin se résout par le flux, puis on applique
+        get().jetLancer('flee', mover.id); // fuyard non joué : sa rangée témoin se résout par le flux, puis on applique
         tracerLaFuite(get, set, mover, foe, { dos: false, touche: true });
-        return get().jetConfirm('flee');
+        return get().jetValider('flee');
       }
       const seqBefore = get().pendingCascade;
       const stepsBefore = seqBefore?.participants.length ?? 0;
@@ -2941,7 +2941,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // 2ᵉ frappe « des deux armes » ratée : la 2ᵉ est renoncée (l'Action reste dépensée par la 1ʳᵉ frappe) →
       // on clôt le sous-flux dual et on reprend la cascade (calque `fenetreFermer('dualStrike')`).
       if (pg.pa.dualSecond) { set({ pendingDualStrike: null }); advanceCombatJet(get); return; }
-      // Héros PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (calque jetConfirm('reload')).
+      // Héros PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (calque jetValider('reload')).
       if (aiDriven(get(), attacker) && get().battle) resumeEnemyTurn(get, set);
     },
     recover: () => {
@@ -2970,7 +2970,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       resolveSteamSave(get, set, p); // échec → ébouillanté (scaldOps), puis la boucle maritime reprend
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `attack`) — Résilience (forceSuccess/setForcedRoll) plus bas.
-    // `cancel` = « Annuler » unifié (défaire-charge dans `FLOWS.attack.onCancel`) — regénère `jetCancel('attack')`.
+    // `cancel` = « Annuler » unifié (défaire-charge dans `FLOWS.attack.onCancel`) — regénère `jetAnnuler('attack')`.
     attack: () => {
       const { battle, pendingAttack: pa } = get();
       if (!battle || !pa) return;
@@ -2989,7 +2989,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const weapon = attacker && target ? attackWeaponOf(battle, attacker, target, pa) : undefined;
       // Défense SURFACÉE du défenseur (#989) : le jet d'attaquant est FINAL (influence jouée) — on interpose
       // SA fenêtre de défense AVANT toute application, dans la cascade d'attaque EN COURS (le curseur passe
-      // sur l'étape 'defense'). `jetConfirm('defense')` rend la main ICI avec le résultat opposé (`pa.defended`) →
+      // sur l'étape 'defense'). `jetValider('defense')` rend la main ICI avec le résultat opposé (`pa.defended`) →
       // un seul chemin d'application, l'interruption Tir rapide comprise (#997). Un tir DÉVIÉ (victime ≠
       // cible) et le pilonnage de zone n'opposent personne (LDB 14 l.116) : gardes portées par
       // `surfacedDefensePending`, prédicat PARTAGÉ avec l'affichage de la modale d'attaque (#1004).
@@ -3134,7 +3134,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       });
       /**
        * QUITTER L'ÉTAPE DE DÉFENSE (#1852) — SOURCE UNIQUE de « cette fenêtre a rendu sa donnée, le
-       * curseur n'a plus rien à y faire », pour les sorties de `jetConfirm('defense')`. Un slot
+       * curseur n'a plus rien à y faire », pour les sorties de `jetValider('defense')`. Un slot
        * `pendingDefense` REPOSÉ entre-temps appartient à l'étape SUIVANTE (la frappe d'après) : on
        * avance TOUJOURS, sans quoi la donnée neuve s'afficherait dans la fenêtre de la précédente.
        * Rend `false` quand l'étape courante n'est plus la défense (la Maladresse a ouvert SA séquence).
@@ -3145,9 +3145,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
         return true;
       };
       // Défense SURFACÉE d'une attaque PILOTÉE (#989, `openSurfacedDefense`) : l'issue OPPOSÉE rejoint le
-      // chemin d'application UNIQUE de l'attaque — `jetConfirm('attack')` reprend avec le résultat défendu. Le
+      // chemin d'application UNIQUE de l'attaque — `jetValider('attack')` reprend avec le résultat défendu. Le
       // curseur est TOUJOURS sur l'étape 'defense' de la MÊME cascade d'attaque : aucun tour n'avance ici
-      // (c'est `advanceCombatJet`, au bout d'`jetConfirm('attack')`, qui enchaîne le curseur).
+      // (c'est `advanceCombatJet`, au bout de `jetValider('attack')`, qui enchaîne le curseur).
       // CE QUE CETTE FENÊTRE FERA APRÈS LE COUP (#1858) : la DÉCLARATION de celui qui l'a ouverte, lue
       // ICI et nulle part ailleurs. Une sauvegarde « 1d10 ≥ Indice » (LDB 85 l.98) ou une Déviation
       // ouverte par l'application l'emporte dans SA charge (#1508) : c'est la reprise qui la joue.
@@ -3158,7 +3158,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const riposte = pd.riposte != null ? { riposte: pd.riposte } : {};
       if (suite.mode === 'pilotee' && attacker && defender) {
         set({ pendingAttack: { ...suite.pa, result: lance, location: lance.location ?? suite.pa.location, ...(reaction ? { reaction } : {}), ...riposte } });
-        get().jetConfirm('attack');
+        get().jetValider('attack');
         return;
       }
       // Le coup ENTIER (application + après-coup) : `true` = une fenêtre tient la main (sauvegarde,
@@ -3250,7 +3250,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const extras = castExtraTargets(get, pc);
       // OPPOSITION (`spec.opposed`) : un Sort réussi dont la/les cible(s) opposent leur Test (FM/Int) voit
       // son application DIFFÉRÉE — on ouvre d'abord le multijet d'opposition DANS la modale (GARDE pendingCast).
-      // `jetConfirm('opposition')` repose `opposedOutcome` puis reprend la chaîne (`resolveCastChain`, ce bloc est alors sauté).
+      // `jetValider('opposition')` repose `opposedOutcome` puis reprend la chaîne (`resolveCastChain`, ce bloc est alors sauté).
       if (openCastOppositionStep(get, set)) return;
       // FOLD : on ne ferme PLUS la cascade d'incantation ici — seulement le JET (CastModal disparaît).
       // La cascade `purpose:'combat'` (étape `jet:'cast'`) reste ACTIVE pour qu'un Critique de Sort
@@ -3371,12 +3371,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (res.isFumble) logLines.push(...applyMiscast(get, set, caster, 'majeure', { componentDowngrade: compUsed, domainId: spell.domainId ?? undefined }));
       finishPlayerAction(get, set, logLines, 'focus'); // sortie commune combat / hors combat (pose `acted:true`)
       // Lanceur ENNEMI (modale auto-pilotée) : le tour de l'IA était suspendu → reprise (calqué sur
-      // jetConfirm('cast')). No-op si une interaction bloquante s'est ouverte (Imparfaite/révélation) — elle
+      // jetValider('cast')). No-op si une interaction bloquante s'est ouverte (Imparfaite/révélation) — elle
       // reprendra elle-même (resumeSuspendedAI à la clôture).
       if (aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
     },
     // Dissipation COMMUNE combat/hors-combat (couture D, #461) : acteur via `actorIn`, sortie
-    // journal hors combat (calque `jetConfirm('focus')`).
+    // journal hors combat (calque `jetValider('focus')`).
     dispel: () => {
       const { pendingDispel: pd } = get();
       if (!pd) return;

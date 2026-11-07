@@ -35,7 +35,7 @@ function ouvrir(avecPorteur: boolean, bourseDuMeneur = 0): Partie {
     party, possessions, worldMap: carte, lieu: 'A', gameTime: 8 * 60,
     scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
   }, entrees);
-  partie.envoyer({ type: 'openLandMarket', args: [] });
+  partie.envoyer({ type: 'ouvrirLeMarche', args: [] });
   return partie;
 }
 
@@ -127,8 +127,8 @@ describe('#3059 — siège invité : les gestes de la halle sur la bourse et la 
     try {
       partie.envoyer({ type: 'vendreLaCargaison', args: ['lot-1'] });
       partie.envoyer({ type: 'jeterLaCargaison', args: ['lot-1'] });
-      partie.envoyer({ type: 'landEvalWine', args: ['metal'] });
-      partie.envoyer({ type: 'moveCargo', args: ['lot-1', 'convoi', 5] });
+      partie.envoyer({ type: 'evaluerLeVin', args: ['metal'] });
+      partie.envoyer({ type: 'deplacerLaCargaison', args: ['lot-1', 'convoi', 5] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([lot]);
       expect(partie.etat().journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length).toBe(4);
     } finally {

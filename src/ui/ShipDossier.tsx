@@ -54,7 +54,7 @@ export function ShipDossier({ onClose, initialTab }: { onClose: () => void; init
   const vessel = useGame((s) => s.vessel);
   const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
-  const move = useGame((s) => s.moveCargo);
+  const move = useGame((s) => s.deplacerLaCargaison);
   // Transfert navire ↔ porteur terrestre CO-LOCALISÉ (`carriersColocated` : avec le groupe, ou au même Lieu).
   // `bulkCarriers` réunit cale + bêtes/véhicules.
   const carriers = useMemo(() => bulkCarriers({ party, vessel, possessions }), [party, vessel, possessions]);

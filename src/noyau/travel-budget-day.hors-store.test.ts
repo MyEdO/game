@@ -53,11 +53,11 @@ describe('#340 / #2533 — budget d’heures PAR JOUR CALENDAIRE (LDB 51 l.195)'
     setup(16);
 
     // Trajet 1 (08:00 → 12:00) : cumul 4 h.
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     expect(get().travelDayHours.foot).toBeCloseTo(4, 1);
 
     // Trajet 2 : il RESTE 2 h au jour — le groupe marche 2 h (8 km) puis fait halte.
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     expect(get().travelDayHours.foot).toBeCloseTo(6, 1);
     expect(get().travelPlan?.kmDone).toBeCloseTo(8, 1);
     expect(get().travelDayHours.marched).toBe(false);
@@ -68,11 +68,11 @@ describe('#340 / #2533 — budget d’heures PAR JOUR CALENDAIRE (LDB 51 l.195)'
 
   it('case NON cochée, budget du jour déjà épuisé au DÉPART d’un tronçon : nuit sur place, aucun jour de 0 h', () => {
     setup(24);
-    get().startTravel('r1', 'pied'); // 24 km = 6 h : arrivée, budget du jour épuisé
+    get().partirEnVoyage('r1', 'pied'); // 24 km = 6 h : arrivée, budget du jour épuisé
     expect(get().travelDayHours.foot).toBeCloseTo(6, 1);
     const t0 = get().gameTime;
     const sceneArrivee = get().scene?.id;
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     expect(get().gameTime).toBe(t0); // aucune minute de marche
     expect(get().travelPlan).toBeNull(); // aucun « Étape 0 »
     expect(get().pendingCascade).toBeNull(); // ni météo ni péripétie d'un jour vide
@@ -87,16 +87,16 @@ describe('#340 / #2533 — budget d’heures PAR JOUR CALENDAIRE (LDB 51 l.195)'
   it('case COCHÉE : Test au-delà de 6 h CUMULÉES, un seul par jour', () => {
     setup(16);
     const forcee = maxHoursPerDay(get().worldMap); // ce que la case envoie (`WorldMapView`)
-    get().startTravel('r1', 'pied', { hoursPerDay: forcee }); // 4 h
+    get().partirEnVoyage('r1', 'pied', { hoursPerDay: forcee }); // 4 h
     expect(get().travelDayHours.marched).toBe(false);
 
     // Trajet 2 : cumul 8 h > 6 h → marche forcée TESTÉE, marquée pour le jour.
-    get().startTravel('r1', 'pied', { hoursPerDay: forcee });
+    get().partirEnVoyage('r1', 'pied', { hoursPerDay: forcee });
     expect(get().travelDayHours.foot).toBeCloseTo(8, 1);
     expect(get().travelDayHours.marched).toBe(true);
 
     // Trajet 3 : il reste 2 h à l'allure choisie → halte de nuit ; pas de second Test ce jour-là.
-    get().startTravel('r1', 'pied', { hoursPerDay: forcee });
+    get().partirEnVoyage('r1', 'pied', { hoursPerDay: forcee });
     expect(get().travelDayHours.foot).toBeCloseTo(forcee, 1);
     expect(get().pendingRest?.travelHalt).toBe(true);
     expect(get().pendingRest?.travelMarch ?? []).toEqual([]);
@@ -105,14 +105,14 @@ describe('#340 / #2533 — budget d’heures PAR JOUR CALENDAIRE (LDB 51 l.195)'
   it('le budget est remis à neuf au jour calendaire suivant', () => {
     setup(16);
     const forcee = maxHoursPerDay(get().worldMap);
-    get().startTravel('r1', 'pied', { hoursPerDay: forcee }); // 4 h
-    get().startTravel('r1', 'pied', { hoursPerDay: forcee }); // cumul 8 h, même jour
+    get().partirEnVoyage('r1', 'pied', { hoursPerDay: forcee }); // 4 h
+    get().partirEnVoyage('r1', 'pied', { hoursPerDay: forcee }); // cumul 8 h, même jour
     expect(get().travelDayHours.foot).toBeCloseTo(8, 1);
     const day0 = get().travelDayHours.day;
 
     // Une nuit jouée fait passer au jour suivant → l'accumulateur repart de zéro au prochain trajet.
     get().restParty(1);
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     expect(get().travelDayHours.day).toBe(dayIndex(get().gameTime));
     expect(get().travelDayHours.day).not.toBe(day0);
     expect(get().travelDayHours.foot).toBeCloseTo(4, 1); // seul le trajet du nouveau jour compte
@@ -123,7 +123,7 @@ describe('#340 — porte d’heure de départ (terre & fleuve, maison ON par dé
   it('départ à pied de nuit (23:00) → porte « Attendre l’aube » (aucun trajet lancé)', () => {
     setup(16);
     banc.setState({ gameTime: campaignStart() + 15 * 60 }); // 08:00 + 15 h = 23:00 (nuit)
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     expect(get().travelPlan).toBeNull();
     expect(get().pendingDeparture).not.toBeNull();
     expect(get().pendingDeparture!.mode).toBe('pied');
@@ -137,7 +137,7 @@ describe('#340 — porte d’heure de départ (terre & fleuve, maison ON par dé
 
   it('en plein jour (08:00) le départ passe la porte normalement', () => {
     setup(16);
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     expect(get().pendingDeparture).toBeNull();
     // trajet court d'un jour → arrivée (plus de plan) ou halte, mais jamais bloqué par la porte.
     expect(get().travelDayHours.foot).toBeGreaterThan(0);
@@ -147,7 +147,7 @@ describe('#340 — porte d’heure de départ (terre & fleuve, maison ON par dé
     setRule('travel-departure-gate', false);
     setup(16);
     banc.setState({ gameTime: campaignStart() + 15 * 60 });
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     expect(get().pendingDeparture).toBeNull();
   });
 });

@@ -4,7 +4,7 @@
  * `routesFrom`/`visiblePlaces` sont des LECTEURS : ils cadrent ce que l'écran propose. Le verrou, lui,
  * est aux deux coutures qui AGISSENT sur la carte, et il tient quel que soit l'appelant (devtools,
  * coop, reprise de sauvegarde, script de recette) :
- *  - `startTravel` refuse une route dont le `when` est faux — AU MÊME NIVEAU que le refus d'une route
+ *  - `partirEnVoyage` refuse une route dont le `when` est faux — AU MÊME NIVEAU que le refus d'une route
  *    prise à contresens (`from`), et la raison d'auteur (`MapRoute.refus`) part au journal ;
  *  - le naufrage n'échoue jamais le groupe sur un lieu que le récit n'a pas révélé (`MapPlace.when`) :
  *    le balayage du rivage passe par `visiblePlaces`, jamais par `map.places` brut.
@@ -72,24 +72,24 @@ function auDepart(flags: Record<string, boolean> = {}): void {
   set({ gameTime: campaignStart(), flags, journal: [] });
 }
 
-describe('`startTravel` — le trajet FERMÉ est refusé au départ, au même niveau que le sens interdit', () => {
+describe('`partirEnVoyage` — le trajet FERMÉ est refusé au départ, au même niveau que le sens interdit', () => {
   beforeEach(() => auDepart());
 
   it('route prise à CONTRESENS (`from`) : aucun voyage ne démarre, le refus se dit', () => {
-    get().startTravel('retour', 'pied');
+    get().partirEnVoyage('retour', 'pied');
     expect(get().travelPlan).toBeNull();
     expect(get().journal).toEqual(['Cette route ne se prend pas dans ce sens.']);
   });
 
   it('route FERMÉE par le récit (`when` faux) : aucun voyage ne démarre, la raison part au journal', () => {
     auDepart({ 'ch1-clos': true });
-    get().startTravel('jumelle-fermable', 'pied');
+    get().partirEnVoyage('jumelle-fermable', 'pied');
     expect(get().travelPlan).toBeNull();
     expect(get().journal).toEqual([REFUS]);
   });
 
   it('la MÊME route, chapitre ouvert : le départ a lieu (le refus vient du `when`, pas de la route)', () => {
-    get().startTravel('jumelle-fermable', 'pied');
+    get().partirEnVoyage('jumelle-fermable', 'pied');
     expect(get().journal.join('\n')).toContain('Altdorf');
     expect(get().journal.join('\n')).not.toContain(REFUS);
   });

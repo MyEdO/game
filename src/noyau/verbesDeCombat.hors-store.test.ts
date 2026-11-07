@@ -103,9 +103,9 @@ describe('Course (LDB 15 l.41) : « la distance couverte vient en plus de celle 
       courir(partie, laPlusLointaine(zone, computeMoveReach(lire(partie))));
       const pr = partie.etat().pendingRun;
       expect(pr, 'la Course après la Marche est refusée').toBeTruthy();
-      envoyer(partie, 'jetRoll', 'run');
+      envoyer(partie, 'jetLancer', 'run');
       const bonus = partie.etat().pendingRun!.result!.bonusCases;
-      envoyer(partie, 'jetConfirm', 'run');
+      envoyer(partie, 'jetValider', 'run');
       const b = partie.etat().battle!;
       expect(b.acted).toBe(true);
       expect(b.runBudget).toBe(mountMovement(b, H) + bonus);
@@ -164,7 +164,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
       for (let pas = 0; pas < 40 && !(activeCombatant(partie.etat().battle!)?.kind === 'hero'); pas++) {
         const e = partie.etat();
         const intentions: Intention[] = e.pendingDefense
-          ? [{ type: 'jetRoll', args: ['defense'] }, { type: 'jetConfirm', args: ['defense'] }]
+          ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }]
           : activeCombatant(e.battle!) ? [{ type: 'jouerLOffre', args: ['end-turn'] }] : [{ type: 'fenetreValider', args: ['roundStart'] }];
         for (const intention of intentions) jouer(partie, partie.envoyer(intention));
       }
@@ -177,7 +177,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
       R.resilience = 2;
       expect([mountMovement(b, R), runMovementBonus(R), runMovementBonus(monture)], 'témoin : cheval M7, cavalier Sprinter').toEqual([7, 1, 0]);
       courir(partie, laPlusLointaine(computeRunReach(lire(partie))));
-      envoyer(partie, 'jetForceSuccess', 'run');
+      envoyer(partie, 'jetForcerLaReussite', 'run');
       expect(partie.etat().pendingRun!.result!.bonusCases).toBe(16);
     } finally {
       partie.fermer();
@@ -263,7 +263,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
       expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
       envoyer(partie, 'jouerLOffre', 'disengage');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: false, refusEsquive: t('agate.unableToAct'), canFuir: true });
-      envoyer(partie, 'jetRoll', 'disengage');
+      envoyer(partie, 'jetLancer', 'disengage');
       expect(partie.etat().pendingDisengage, 'l’Esquive fermée s’est jouée').toMatchObject({ phase: 'choice', def: null });
     } finally {
       partie.fermer();

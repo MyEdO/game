@@ -38,7 +38,7 @@ import { ChipDeRefus } from './ChipDeRefus';
 
 /**
  * Écran d'équipe — solo ET coop. En coop, l'hôte attribue chaque SIÈGE (`net.slots`) ; chaque joueur
- * remplit LES SIENS (créer / roster local / pré-tiré) via `partyAddHero` — enveloppé en intent côté
+ * remplit LES SIENS (créer / roster local / pré-tiré) via `recruterLeHeros` — enveloppé en intent côté
  * invité, l'hôte reste autoritaire : le geste porte le brouillon ou l'id du pré-tiré, le noyau bâtit le héros.
  *
  * STRUCTURE (arbitrage user 2026-07-13) : l'écran de groupe = LA COMPAGNIE SEULE (aucune galerie de
@@ -70,9 +70,9 @@ export function PartyScreen() {
   const setScreen = useGame((s) => s.setScreen);
   const pendingCampaign = useGame((s) => s.pendingCampaign);
   const inProgress = useGame(partieEnCours);
-  const addHero = useGame((s) => s.partyAddHero);
-  const removeHero = useGame((s) => s.partyRemoveHero);
-  const replaceHero = useGame((s) => s.partyReplaceHero);
+  const addHero = useGame((s) => s.recruterLeHeros);
+  const removeHero = useGame((s) => s.renvoyerLeHeros);
+  const replaceHero = useGame((s) => s.remplacerLeHeros);
   const refusDeComposition = useGame(refusComposition);
   const refusDAjout = useGame((s) => refusDAjoutAuGroupe(s, undefined, s.net.mySeat));
   const setEditingHero = useGame((s) => s.setEditingHero);

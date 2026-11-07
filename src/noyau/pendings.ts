@@ -184,12 +184,12 @@ export interface PendingTest {
   /** Relance par Chance déjà effectuée (LDB 12 l.40 : 1 relance max par Test). */
   rerolled?: boolean;
   /** Ce Test EST le sous-Test d'un `onOwnTestFailed` (FM de palier 2 des Crampes routé en modale hors
-   *  combat, MSRC 16) : sa résolution NE ré-émet PAS le trigger (garde de ré-entrance, `jetConfirm('test')`). */
+   *  combat, MSRC 16) : sa résolution NE ré-émet PAS le trigger (garde de ré-entrance, `jetValider('test')`). */
   noOwnTestFailed?: boolean;
   /** Test SUBI (porte `routeTriggeredTest`) : sa branche parle le vocabulaire `target`/`caster`, que
    *  seul le marcheur d'ACTEUR honore (`runCombatFlow`, `combat/triggeredTest.ts`) ; le marcheur de
    *  SCÈNE parle `party`/`hero`+`heroId`, que `runCombatFlow` n'honore pas. Ce marqueur NOMME le
-   *  vocabulaire de la branche : `jetConfirm('test')` la confie à `reprendreTestSubi`, qui la rejoue sur le
+   *  vocabulaire de la branche : `jetValider('test')` la confie à `reprendreTestSubi`, qui la rejoue sur le
    *  sujet (`actorId`). Du SÉRIALISABLE seul, jamais de référence — un pending traverse JSON (save, coop).
    *  `casterId` = le porteur quand il DIFFÈRE du sujet ; `label` = le libellé de la source (lu par
    *  `nomDeSource`) ; `source` = l'entité porteuse. Jumeaux de `CascadeStepMeta.opsDeCtx` ; `label` et
@@ -208,12 +208,12 @@ export interface PendingTest {
   after?: Flow;
   /** Action de COMBAT « cumuler l'Avantage » (LDB 09 l.305-308 : Intuition/Savoir/Survie/Prière) : sur
    *  RÉUSSITE, octroie +1 Avantage au combattant `combatantId`, plafonné à `cap` (= Bonus de la
-   *  Caractéristique — Int pour Intuition/Savoir/Survie, Soc pour Prière). Appliqué par `jetConfirm('test')`
+   *  Caractéristique — Int pour Intuition/Savoir/Survie, Soc pour Prière). Appliqué par `jetValider('test')`
    *  (via `gainAdvantage`, qui respecte AUSSI le plafond général d'Avantage). Consomme l'Action, réussi
    *  ou non (« Chaque Round que vous passez à… »). Absent = Test ordinaire. */
   combatAdvantage?: { combatantId: string; cap: number };
   /** Avancée de DIALOGUE différée : quand le choix `dialogue.reponse` lance un `choice.flow` qui SUSPEND sur ce
-   *  Test, l'avancée (`choice.next` → nœud, ou clôture) est portée ici et appliquée par `jetConfirm('test')`
+   *  Test, l'avancée (`choice.next` → nœud, ou clôture) est portée ici et appliquée par `jetValider('test')`
    *  APRÈS la branche + continuation — sinon le nœud suivant coexiste sous la modale de jet. */
   dialogueNext?: DialogueTransition;
   /** Test initié en COMBAT (Cumuler l'Avantage…) : annulable pré-jet (« Annuler » referme la cascade ;
@@ -224,7 +224,7 @@ export interface PendingTest {
 /** Sauvegarde d'Initiative d'une PANNE DE VAPEUR « Fuite de vapeur » (MDG 12 l.326-328) : la personne
  *  qui s'occupe du moteur teste l'Initiative sous peine d'être ébouillantée. Modale INFLUENÇABLE
  *  (Chance/Résilience) — l'ÉCHEC applique `scaldOps` (déjà roulés : 1d10−5 Dégâts min 1, ignorent
- *  l'Armure) via `jetConfirm('steamSave')`, puis la boucle maritime reprend. */
+ *  l'Armure) via `jetValider('steamSave')`, puis la boucle maritime reprend. */
 export interface PendingSteamSave {
   actorId: string;
   actorName: string;
@@ -302,7 +302,7 @@ export interface PendingStateRecovery {
 }
 /** Ce que le Marchandage négocie : les prix d'un marchand (achat ou vente, LDB 59 l.43), ou un
  *  billet de passage (EDO 01 l.142), avec le titre de sa modale. La confirmation
- *  (`jetConfirm('bargain')`) y aiguille l'issue. */
+ *  (`jetValider('bargain')`) y aiguille l'issue. */
 export type ContrepartieDeMarchandage = { titre: PlayerText } & (
   | { kind: 'marchand'; mode: 'buy' | 'sell' }
   | { kind: 'billet'; routeId: string; vehicule: string; depuis: string }
@@ -328,7 +328,7 @@ export interface PendingBargain {
   support?: SupportDetail;
   /** NIVEAU DE COMPÉTENCE NU du négociateur (`LDB 09 l.17`) — la grandeur que `resolveOpposed`
    *  compare à DR égal (`LDB 12 l.160`). Posé à l'accesseur canon (`skillBaseValue`) par le site qui
-   *  SAIT quelle Compétence est testée (`merchantFlow.startBargain`), jamais reconstitué à partir de
+   *  SAIT quelle Compétence est testée (`merchantFlow.marchanderLePrix`), jamais reconstitué à partir de
    *  `playerSkill` : celle-ci porte le Soutien et TOUS les modificateurs de la valeur de Test
    *  (inventaire exhaustif : `skills.testValueParts`). */
   playerBase: number;
@@ -401,10 +401,10 @@ export interface PendingAttack {
   /** Undo PRÉ-JET d'une Charge (jeu vidéo : annuler un misclic comme on annule un déplacement/une attaque) :
    *  état d'AVANT la charge pour restaurer positions/orientation/Mouvement/Avantage/chargedThisTurn si on
    *  Annule AVANT tout jet (`result === null`). Une fois le dé lancé, la charge est engagée (RAW). Capturé à
-   *  la déclaration de charge (targetingModes), rejoué par `jetCancel('attack')`. */
+   *  la déclaration de charge (targetingModes), rejoué par `jetAnnuler('attack')`. */
   chargeUndo?: { pos: Record<string, Pt>; facing: Record<string, Dir8>; movedPreAction: boolean; movementUsed: number; advGained: number; gainedAdvBefore: boolean; chargedBefore: boolean; avecAvantageBefore: boolean };
   /** PRIX payé à la DÉCLARATION (`AttackOption.cost` : Avantage, Mouvement consommé), rendu par
-   *  `jetCancel('attack')` tant qu'aucun dé n'est lancé. LDB 85 l.387 ; LDB 85 l.314 */
+   *  `jetAnnuler('attack')` tant qu'aucun dé n'est lancé. LDB 85 l.387 ; LDB 85 l.314 */
   coutPaye?: { advantage: number; movement: number };
   /** Victime réelle si le tir a dévié dans la mêlée vers un allié (LDB 14 l.116) — sinon = targetId. */
   victimId?: string;
@@ -415,7 +415,7 @@ export interface PendingAttack {
    *  0 DR si le succès est dû au seul bonus. */
   intoCrowd?: boolean;
   /** Tir IMMOBILE (option de tir) : le héros décide de ne pas bouger ce Tour → annule la pénalité −10 « Tir
-   *  en bougeant » (LDB 14 l.70) MAIS consomme son Mouvement (cf. jetConfirm('attack')). Proposé seulement s'il
+   *  en bougeant » (LDB 14 l.70) MAIS consomme son Mouvement (cf. jetValider('attack')). Proposé seulement s'il
    *  n'a pas déjà bougé. */
   heldGround?: boolean;
   /** Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677) : le joueur choisit de tirer sans la
@@ -429,7 +429,7 @@ export interface PendingAttack {
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
   fixed?: boolean;
   /** Tir rapide (talent, LDB 10) : cette attaque est une INTERRUPTION hors de l'ordre (déclarée à
-   *  `pendingRoundStart`, tireur NON-actif). `jetConfirm('attack')` applique le tir mais ne fait PAS avancer le
+   *  `pendingRoundStart`, tireur NON-actif). `jetValider('attack')` applique le tir mais ne fait PAS avancer le
    *  tour ; il épuise le tour NORMAL du tireur (`loseNextAction` + `loseNextMovement`). */
   interrupt?: boolean;
   /** « Retenir ses coups » (Aux Armes 07 l.59-61) : déclaré AVANT le jet — maîtriser sans tuer. En
@@ -440,8 +440,8 @@ export interface PendingAttack {
    *  d'infliger des Dégâts », pose l'Empoignade (les deux) + l'État *Empêtré* (cible), sans Dégâts. MAINS
    *  NUES seulement (cf. `SuiteDeCoup.grapple`). */
   grapple?: boolean;
-  /** La défense SURFACÉE du défenseur a déjà été jouée (fenêtre `pendingDefense` refermée, `jetConfirm('defense')`
-   *  rend la main à `jetConfirm('attack')` avec le résultat OPPOSÉ) : l'interposition ne se repose pas. */
+  /** La défense SURFACÉE du défenseur a déjà été jouée (fenêtre `pendingDefense` refermée, `jetValider('defense')`
+   *  rend la main à `jetValider('attack')` avec le résultat OPPOSÉ) : l'interposition ne se repose pas. */
   defended?: boolean;
   /** Attaque-Action en mode « des deux armes » (main directrice) : chaîne une 2ᵉ frappe si elle touche (LDB 10 l.767-773). */
   dualMode?: boolean;
@@ -449,10 +449,10 @@ export interface PendingAttack {
   dualSecond?: boolean;
   /** Attaque GRATUITE de créature de mêlée (Morsure/Attaque caudale/Tentacules/Piétinement — trait ou
    *  Taille d'une créature qu'un héros joue) : ne consomme pas l'Action ; effets onHit propres à la
-   *  manœuvre appliqués à la confirmation (cf. jetConfirm('attack')). Plafond par tour : `plafondParTour`. */
+   *  manœuvre appliqués à la confirmation (cf. jetValider('attack')). Plafond par tour : `plafondParTour`. */
   freeKind?: AttackKind;
   /** Réaction de Porte-Bouclier déclarée par le défenseur SURFACÉ (`AA 13 l.84`) : la fenêtre de défense
-   *  la rend ici avec le résultat opposé, et `jetConfirm('attack')` la verse dans la `SuiteDeCoup`. */
+   *  la rend ici avec le résultat opposé, et `jetValider('attack')` la verse dans la `SuiteDeCoup`. */
   reaction?: 'damage' | 'push';
   /** Riposte refusée par le défenseur SURFACÉ (LDB 10 l.1037), rendue comme `reaction`. */
   riposte?: boolean;
@@ -461,7 +461,7 @@ export interface PendingAttack {
    *  directe « primaire » ni Critique par victime ; `targetId` n'est que la cible-REPÈRE de la bande de
    *  portée/du DR (l'ennemi le plus proche de l'impact). Absent → tir direct (STRICTEMENT inchangé). */
   center?: Pt;
-  /** Marqueur de pilonnage indirect (cf. `center`) — `jetConfirm('attack')` résout l'aire au lieu d'une touche directe. */
+  /** Marqueur de pilonnage indirect (cf. `center`) — `jetValider('attack')` résout l'aire au lieu d'une touche directe. */
   siege?: boolean;
 }
 /** Test de Dextérité (+20) PAR ACTION de « Main ensanglantée » (Aux Armes bras 46-50, l.2569), posé AVANT
@@ -666,7 +666,7 @@ export interface PendingShipBattery extends MultiPending<ShipBatteryParticipant>
 }
 /** Manœuvre navale en TEST D'ÉQUIPAGE (MDG 13-14) : chaque rôle tenu lance son Test, les DR sont sommés (rôle
  *  essentiel ×2) + la bande de Moral ; le total tient lieu de DR de Navigation. La direction (`turnSteps`, choisie
- *  au pré-jet OptionChooser) s'applique à la confirmation (`jetConfirm('shipManeuver')`). */
+ *  au pré-jet OptionChooser) s'applique à la confirmation (`jetValider('shipManeuver')`). */
 export interface PendingShipManeuver extends MultiPending<ShipManeuverParticipant> {
   shipId: string;
   /** Virage choisi : >0 tribord, <0 bâbord, 0 tout droit (crans d'octant — ±1 = 45°, ±2 = 90°). */
@@ -682,7 +682,7 @@ export interface PendingShipManeuver extends MultiPending<ShipManeuverParticipan
 }
 /** TEST D'ÉQUIPAGE GÉNÉRIQUE en COMBAT (MDG 14, « Types de Test d'équipage ») — 3ᵉ jumeau de la
  *  manœuvre/bordée : chaque rôle tenu lance SON Test (multi-jets), DR sommés (essentiel ×2) + Moral +
- *  Manque de bras + sabotage. L'ISSUE dépend du type (`jetConfirm('crewTest')`) : **Rude épreuve** (l.106-114)
+ *  Manque de bras + sabotage. L'ISSUE dépend du type (`jetValider('crewTest')`) : **Rude épreuve** (l.106-114)
  *  → un total NÉGATIF réduit le Moral d'autant (l.110), PERSISTÉ sur `CampaignVessel.morale`. Les Tests
  *  d'équipage de VOYAGE (Progression, Poursuite, Perception, Orientation…) sont des ÉTAPES
  *  `CascadeStep` À PARTICIPANTS de la cascade du jour (#275 Ronde 2, `seaVoyageFlow.ts`) — CE
@@ -832,7 +832,7 @@ export interface PendingCorruption {
   rerolled?: boolean;
   /** Menace du talent « Résistance (Menace) » (LDB 10) couverte par CE Test : `corruption` (exposition,
    *  l.23-75 — résister au GAIN de Points) ou `mutation` (seuil, l.70 — l'échec fait MUTER). Posé à
-   *  l'ouverture ; offre l'auto-succès via `jetResist('corruption')`. */
+   *  l'ouverture ; offre l'auto-succès via `jetResister('corruption')`. */
   menace?: MenaceId;
 }
 /** Contexte d'un Critique (qui l'inflige + l'arme/sort en libellé) — modale enrichie + B. de Sauvagerie.
@@ -1013,8 +1013,8 @@ export interface ToucheDeProjectile {
 /**
  * L'ENCHAÎNEMENT qui suit un coup appliqué (#1508) — une DÉCLARATION du site d'origine, jamais un
  * défaut muet : chaque site dit LEQUEL des balayages il a tranché, y compris « aucun ». Qui pose quoi :
- *  - `hero` : Frappe Mortelle du héros interactif (LDB 14 l.9), posée par `jetConfirm('attack')` (ni
- *    Maniement de deux armes, ni Maladresse de l'attaquant), par le coup dans le dos (`jetConfirm('flee')`), et par la gratuite de talent (`applyTalentFreeAttack`) d'un
+ *  - `hero` : Frappe Mortelle du héros interactif (LDB 14 l.9), posée par `jetValider('attack')` (ni
+ *    Maniement de deux armes, ni Maladresse de l'attaquant), par le coup dans le dos (`jetValider('flee')`), et par la gratuite de talent (`applyTalentFreeAttack`) d'un
  *    porteur que l'IA ne conduit pas. `wasChain` = ce coup était-il déjà un maillon d'un balayage en cours.
  *    Jugée sur la touche RÉELLE : l'enchaînement EXIGE une cible TUÉE, donc il se décide APRÈS le dé
  *    de sauvegarde, qui décide de la mort ;
@@ -1090,8 +1090,8 @@ export interface SuiteDeCoup {
 /**
  * CE QUI SUIT LA FERMETURE D'UNE FENÊTRE DE DÉFENSE (#1858) — union par SITE DE REPRISE, patron
  * `SuiteDeCoup`/#1508 : posée par celui qui OUVRE la fenêtre, dans le littéral même du pending, lue par
- * le SEUL `jetConfirm('defense')`. Deux reprises, donc deux variantes :
- *  - `pilotee` : l'attaque FIGÉE d'un siège humain (MJ ou héros) est rendue à `jetConfirm('attack')` avec le
+ * le SEUL `jetValider('defense')`. Deux reprises, donc deux variantes :
+ *  - `pilotee` : l'attaque FIGÉE d'un siège humain (MJ ou héros) est rendue à `jetValider('attack')` avec le
  *    résultat OPPOSÉ — le chemin d'application de l'attaque (balayage, gratuites onHit, Maladresse, tir
  *    immobile…) reste UNIQUE ; le forçage de l'attaquant (LDB 17 l.68) voyage sur cette attaque ;
  *  - `machine` : le coup est appliqué ICI, et sa `SuiteDeCoup` est celle que le producteur aurait passée
@@ -1297,7 +1297,7 @@ export interface PendingDisengage {
   /** « Fuir » (l.63-66) : les DEUX jets de la fuite, en slots du flux MULTI hétérogène `flee` —
    *  le coup dans le dos du FRAPPEUR (`backstab`) puis le Test de la fiche `fuite` du FUYARD (`touche`). Chaque
    *  slot porte son propre cycle d'influence et son `interactive` (le contrôleur de SON acteur).
-   *  `jetConfirm('flee')` applique le tout (attaque canonique + Brisé + libération/Course). */
+   *  `jetValider('flee')` applique le tout (attaque canonique + Brisé + libération/Course). */
   fuir?: { participants: FleeSlot[] };
   /** Relance par Chance de l'Esquive déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
@@ -1392,7 +1392,7 @@ export interface PendingCast {
   /** Incantation CRITIQUE (LDB 46 l.26-32) : choix du lanceur — Blessure Critique
    *  (Sort à Dégâts, `sortInfligeDesDegats`) / Puissance totale (lancé quel que soit le NI, dissipable) /
    *  Force inéluctable (indissipable). ÉCRIT avant toute application : par le lanceur (modale) ou par
-   *  le moteur pour un lanceur qu'il conduit (`jetRoll('cast')`) — les gardes ne lisent QUE ce champ. */
+   *  le moteur pour un lanceur qu'il conduit (`jetLancer('cast')`) — les gardes ne lisent QUE ce champ. */
   critChoice?: CritChoice;
   /** Forme choisie pour une arme invoquée à forme libre (Arme aethyrique, op `grantWeapon` +
    *  `chooseForm`) — le lanceur sélectionne la Compétence de Corps à corps/profil d'arme. Défaut
@@ -1422,9 +1422,9 @@ export interface PendingCast {
   zone?: { center: { x: number; y: number } | null; radius: number; r0m?: number; placing?: boolean;
     /** ZdE d'un lanceur IA : CENTRE auto-choisi par l'IA pure (sur un paquet de héros, `ai.ts`
      *  `castArea.center`), MÉMORISÉ tant que `center` reste null. C'est l'ÉQUIVALENT du curseur souris
-     *  d'un héros : `jetConfirm('cast')` (chemin PARTAGÉ) le lit pour poser la zone tout seul quand le lanceur
-     *  est `aiDriven` — exactement comme l'auto-combat fournit `jetRoll('cast')`/`jetConfirm('cast')`. La pose vit ainsi
-     *  dans le `jetConfirm('cast')` UNIQUE (gardée par `aiDriven`), pas dans un chemin spécial de Contre-sort.
+     *  d'un héros : `jetValider('cast')` (chemin PARTAGÉ) le lit pour poser la zone tout seul quand le lanceur
+     *  est `aiDriven` — exactement comme l'auto-combat fournit `jetLancer('cast')`/`jetValider('cast')`. La pose vit ainsi
+     *  dans le `jetValider('cast')` UNIQUE (gardée par `aiDriven`), pas dans un chemin spécial de Contre-sort.
      *  Absent = pose joueur classique (attend le clic réel). */
     autoCenter?: { x: number; y: number } };
   /** Lancé DEPUIS le grimoire porté (sort non mémorisé de son Domaine, LDB 47 l.21) :
@@ -1459,7 +1459,7 @@ export interface CounterParticipant extends RollParticipant {
  *  jet d'incantation FIGÉ vit dans `pendingCast` ; ce pending porte les contre-lanceurs recensés par
  *  `routeCounterspell` — rangée INTERACTIVE pour ceux qu'un siège possède (héros, ennemi sous siège
  *  MJ), rangée TÉMOIN pour les autres. PLUSIEURS peuvent chanter contre la même incantation (#1040,
- *  cf. `jetConfirm('counterspell')` dans `src/noyau/combatSlice.ts`), qui agrège les issues à l'application.
+ *  cf. `jetValider('counterspell')` dans `src/noyau/combatSlice.ts`), qui agrège les issues à l'application.
  *  « Laisser passer » = personne n'a chanté → repli sur le meilleur candidat IA s'il en reste un,
  *  sinon le Sort se résout tel quel. */
 export type PendingCounterspell = MultiPending<CounterParticipant>;
@@ -1481,7 +1481,7 @@ export interface OppositionParticipant extends RollParticipant {
 }
 /** Le Sort déclare une OPPOSITION (`spec.opposed`) : chaque cible oppose son Test (FM/Int/Bagarre) à
  *  l'incantation FIGÉE (`pendingCast.result`), avec son propre cycle Chance/Pacte/Résilience. L'agrégat
- *  (`jetConfirm('opposition')`) écrit `pendingCast.opposedOutcome` par cible, puis `jetConfirm('cast')` applique
+ *  (`jetValider('opposition')`) écrit `pendingCast.opposedOutcome` par cible, puis `jetValider('cast')` applique
  *  (cible résistante → aucune op ; sinon ops à la marge). « Réaction type défense » : cible IA = rangée
  *  témoin (jet auto + révélée dans la modale) ; cible héros = rangée interactive. */
 export interface PendingCastOpposition extends MultiPending<OppositionParticipant> {
@@ -1553,7 +1553,7 @@ export interface PendingEtalLot extends MultiPending<EtalLotRow> {
  *  depuis le début »). Flux multi SÉQUENTIEL : un Round à la fois (chacun son cycle Chance/Pacte/
  *  Résilience), le DR de chaque Round CUMULÉ — la réussite d'un Round DÉPEND du total des précédents.
  *  Ex. enfoncer une porte renforcée (DR cible 20). Le câblage par Round vit dans `FLOWS.extendedTest`,
- *  la progression (cumul + Round suivant + réussite) dans `jetConfirm('extendedTest')`. */
+ *  la progression (cumul + Round suivant + réussite) dans `jetValider('extendedTest')`. */
 export interface PendingExtendedTest extends PendingBase {
   actorId: string; // qui effectue le Test (solo)
   label: string; // « Enfoncer la porte »
@@ -1679,7 +1679,7 @@ export interface BladeTrapFreeze {
  * clôture qui serait une fonction ne survivrait ni à l'un ni à l'autre.
  */
 export type Cloture =
-  /** Avancée du dialogue (nœud suivant, ou fermeture) — la clôture du choix `dialogue.reponse`/de `jetConfirm('test')`. */
+  /** Avancée du dialogue (nœud suivant, ou fermeture) — la clôture du choix `dialogue.reponse`/de `jetValider('test')`. */
   | { verbe: 'dialogueSuivant'; transition: DialogueTransition }
   /** Avancée d'horloge d'un verbe (fouille, dialogue) : `advanceTime` (`avancerLHorloge`) en tire
    *  les effets PROGRAMMÉS et les ticks — donc APRÈS le dé, sur des Blessures encaissées. */
@@ -2111,7 +2111,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  `useDefenseJetProps`/`useTestJetProps`/`useExtendedTestJetProps`/`CastModal`/
    *  `DisengageModal`/`ForceDoorModal`) → une seule fenêtre. Les données vivent dans `pendingAttack`/
    *  `pendingDefense`/`pendingCast`/`pendingTest`/`pendingExtendedTest`/`pendingDisengage`/
-   *  `pendingForceDoor` (coexistants — comme l'attaque), résolus par leur `jetConfirm(flux)` qui ferme la cascade. */
+   *  `pendingForceDoor` (coexistants — comme l'attaque), résolus par leur `jetValider(flux)` qui ferme la cascade. */
   jet?: 'attack' | 'defense' | 'fumble' | 'cast' | 'test' | 'extended' | 'disengage' | 'forceDoor';
   /** Étape de GROUPE (action collective : enfoncer une porte à plusieurs) — l'arbitre coop lui donne
    *  l'owner '*' (chacun pilote ses héros) au lieu de `actorId` (une étape forceDoor n'a pas d'acteur
@@ -2223,9 +2223,9 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** Étape-JET « Maladresse » (LDB 14, Tableau des Oups !) : SOURCE UNIQUE de la maladresse — l'arme
    *  utilisée + le résultat tiré vivent ICI (l'acteur est `actorId`). Plus de `pendingFumble` top-level
    *  parallèle à désynchroniser : si l'étape existe la donnée existe, si la cascade ferme la maladresse
-   *  s'en va — orphelin structurellement impossible. Flux : `jetRoll('fumble')` (rollOups → result),
-   *  `jetConfirm('fumble')` (applyOups). `coup` = la queue du coup dont cette Maladresse est un temps
-   *  d'après-coup : `jetConfirm('fumble')` la reprend une fois la Maladresse appliquée. */
+   *  s'en va — orphelin structurellement impossible. Flux : `jetLancer('fumble')` (rollOups → result),
+   *  `jetValider('fumble')` (applyOups). `coup` = la queue du coup dont cette Maladresse est un temps
+   *  d'après-coup : `jetValider('fumble')` la reprend une fois la Maladresse appliquée. */
   fumble?: { weapon: Weapon; result: OupsResolved | null; coup?: QueueDuCoup };
   /** DÉCLARATION d'une BANDE de Psychologie À LA RENCONTRE (LDB 21) : l'entrée de règle mise en jeu
    *  — type psy + source + cible + Indice — face à laquelle les héros appelés à l'entrée de scène sont
@@ -2403,8 +2403,8 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
   restNights?: { p: import('./restFlow').PendingRest; nightsLeft: number };
 }
 
-/** Soin de Guérison en attente (LDB 09-Compétences) : flux modale — « Lancer » (jetRoll('heal')) → Chance
- *  (relance / +1 DR) → Résilience → « Appliquer » (jetConfirm('heal')). Soigneur/cible résolus par `actorIn`
+/** Soin de Guérison en attente (LDB 09-Compétences) : flux modale — « Lancer » (jetLancer('heal')) → Chance
+ *  (relance / +1 DR) → Résilience → « Appliquer » (jetValider('heal')). Soigneur/cible résolus par `actorIn`
  *  (combat ⇄ groupe, cf. combatOrParty). `intBonus` figé à l'ouverture. La CHIRURGIE n'est PLUS un
  *  mode de pendingHeal : c'est une opération « armée » sur l'infirmerie (noyau/medicFlow). */
 export interface PendingHeal {
@@ -2440,7 +2440,7 @@ export interface PendingHeal {
  *  dépense Chance/Pacte/Résilience sur SON jet (PNJ → `actorIn` introuvable → influence no-op, comme
  *  `PendingHeal`). Calque `PendingHeal` (jet du soigneur) + `PendingExtendedTest` (cumul du DR). Le cumul
  *  et la sélection patient/Critique vivent sur `medic.surgery` (état de setup) ; chaque passe inflige
- *  1d10 PB + 1 Hémorragie à la validation (`jetConfirm('surgery')`). `targetDR/cumDR` sont recopiés de
+ *  1d10 PB + 1 Hémorragie à la validation (`jetValider('surgery')`). `targetDR/cumDR` sont recopiés de
  *  `medic.surgery` à l'ouverture de la passe (affichage DrBar dans la modale). */
 export interface PendingSurgery extends PendingBase {
   healerId: string; // chirurgien (héros → influence ; PNJ → no-op)

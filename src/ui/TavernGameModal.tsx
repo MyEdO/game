@@ -49,13 +49,13 @@ function ChoixDeProfil({ titre, profils, choisi, onChoisir, fiche, game }: {
  * tient une modale, la table CÈDE (patron `CombatStartSplash.tsx:20-21`, `ActiveModal.tsx:66`). Le jeu présenté ici est celui du RÉGIME en vigueur
  * (`findTavernGameById` : complet, ou rapide sous la règle `tavern-games-rapides` — le formulaire
  * n'offre alors ni mise ni table, le jeu n'en portant plus). Affiche l'issue et la mise éventuelle. Ouverte via
- * `openTavernGames` (affordance montrée seulement si l'option `tavern-games` est active).
+ * `ouvrirLesJeux` (affordance montrée seulement si l'option `tavern-games` est active).
  */
 export function TavernGameModal() {
   const state = useGame((s) => s.tavernGames);
   const party = useGame((s) => s.party);
-  const play = useGame((s) => s.playTavernGame);
-  const replay = useGame((s) => s.openTavernGames);
+  const play = useGame((s) => s.jouerALaTaverne);
+  const replay = useGame((s) => s.ouvrirLesJeux);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('jeuxDeTaverne');
   // Manche EN COURS (jet du challenger surfacé par-dessus, cf. docstring) : masque le formulaire de

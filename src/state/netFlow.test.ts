@@ -81,7 +81,7 @@ describe('invité : son interface se remet comme chez l’hôte au changement de
     const enA = instantaneDeLaCoop(useGame.getState());
     useGame.getState().advanceTime(60);
     const enAPlusTard = instantaneDeLaCoop(useGame.getState());
-    useGame.getState().transitionTo('scene-b');
+    useGame.getState().quitterLaScene('scene-b');
     const enB = instantaneDeLaCoop(useGame.getState());
     useGame.getState().loadProject(projet);
     const partieNeuve = instantaneDeLaCoop(useGame.getState());

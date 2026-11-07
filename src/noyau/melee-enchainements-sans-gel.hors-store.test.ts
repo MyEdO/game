@@ -61,9 +61,9 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
     const cible = targetingHolder(s);
     if (cible && pickActiveModalKey(s) === 'cascade') doubleMain.push(`${cible} sur ${cur?.id}`);
     if (s.pendingRoundStart) { g().fenetreValider('roundStart'); continue; }
-    if (s.pendingFateSave) { g().fenetreChoisir('fateSave', 'issue', 'negate'); if (g().pendingFateSave) g().fenetreChoisir('fateSave', 'issue', 'survive'); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetRoll('handGate'); else g().jetConfirm('handGate'); continue; }
-    if (cur?.jet === 'defense' && s.pendingDefense && !s.pendingDefense.result) { g().jetRoll('defense'); continue; }
-    if (cur?.jet === 'defense' && s.pendingDefense?.result) { g().jetConfirm('defense'); continue; }
+    if (s.pendingFateSave) { g().fenetreChoisir('fateSave', 'issue', 'negate'); if (g().pendingFateSave) g().fenetreChoisir('fateSave', 'issue', 'survive'); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetLancer('handGate'); else g().jetValider('handGate'); continue; }
+    if (cur?.jet === 'defense' && s.pendingDefense && !s.pendingDefense.result) { g().jetLancer('defense'); continue; }
+    if (cur?.jet === 'defense' && s.pendingDefense?.result) { g().jetValider('defense'); continue; }
     if (cible === 'pendingDualStrike' && !s.pendingHandGate) {
       const a = s.battle.combatants.find((x) => x.id === s.pendingDualStrike!.attackerId)!;
       const t = s.battle.combatants.find((x) => x.kind !== a.kind && vivant(x) && adj(a, x));
@@ -78,7 +78,7 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
       if (!g().pendingAttack) g().fenetreFermer('cleave');
       continue;
     }
-    if (cur?.jet === 'attack' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetRoll('attack'); else g().jetConfirm('attack'); continue; }
+    if (cur?.jet === 'attack' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetLancer('attack'); else g().jetValider('attack'); continue; }
     if (cur?.jet === 'fumble') { avanceEtapeCascade(g); continue; }
     if (c && !cur?.jet) { avanceEtapeCascade(g); banc.avancer(50); continue; }
     if (actif && (actif.kind === 'hero' || s.net.gmSeat != null) && !ouverts().length && s.battle.turn >= 0) {

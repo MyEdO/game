@@ -31,7 +31,7 @@ beforeEach(() => {
   banc.getState().seedRng(13);
 });
 
-describe('Effet corruptionExposure → modale → jetConfirm@corruption', () => {
+describe('Effet corruptionExposure → modale → jetValider@corruption', () => {
   it('ouvre pendingCorruption sur le héros visé ; le gain suit corruptionGain (niveau + DR)', () => {
     const { a, party } = party2();
     banc.setState({ party });
@@ -39,12 +39,12 @@ describe('Effet corruptionExposure → modale → jetConfirm@corruption', () => 
     const pc = banc.getState().pendingCorruption;
     expect(pc).toBeTruthy();
     expect(pc!.heroId).toBe(a.id);
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     const rolled = banc.getState().pendingCorruption!;
     expect(rolled.roll).not.toBeNull();
     // On force l'échec pour un résultat déterministe (mineure + échec → +1).
     banc.setState({ pendingCorruption: { ...rolled, roll: 99, target: 30, sl: -7, success: false } });
-    banc.getState().jetConfirm('corruption');
+    banc.getState().jetValider('corruption');
     expect(banc.getState().pendingCorruption).toBeNull();
     expect(banc.getState().party.find((h) => h.id === a.id)!.corruption).toBe(1);
     expect(banc.getState().journal.join('\n')).toMatch(/Corruption/);
@@ -69,7 +69,7 @@ describe('Effet corruptionExposure → modale → jetConfirm@corruption', () => 
     banc.getState().jetRegler('corruption', 'nature', 'spirituelle'); // le joueur tranche
     expect(banc.getState().pendingCorruption!.nature).toBe('spirituelle');
     // Après le jet, plus de changement possible.
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     banc.getState().jetRegler('corruption', 'nature', 'physique');
     expect(banc.getState().pendingCorruption!.nature).toBe('spirituelle');
   });
@@ -108,7 +108,7 @@ describe('Effet corruptionExposure → modale → jetConfirm@corruption', () => 
 
     // Le seuil acquitté (réussite : Corruption contenue), la fenêtre passe à l'Exposition en file.
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 1, target: 40, sl: 4, success: true } });
-    banc.getState().jetConfirm('corruption');
+    banc.getState().jetValider('corruption');
     expect(banc.getState().pendingCorruption?.heroId, 'les deux fenêtres se succèdent').toBe(b.id);
     expect(banc.getState().pendingCorruption?.level).toBe('majeure');
     expect(banc.getState().corruptionQueue).toEqual([]);
@@ -118,9 +118,9 @@ describe('Effet corruptionExposure → modale → jetConfirm@corruption', () => 
     const { a, party } = party2();
     banc.setState({ party });
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'moderee', nature: 'spirituelle', heroId: a.id }]);
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 5, target: 45, sl: 4, success: true } });
-    banc.getState().jetConfirm('corruption');
+    banc.getState().jetValider('corruption');
     expect(banc.getState().party.find((h) => h.id === a.id)!.corruption ?? 0).toBe(0);
   });
 });
@@ -150,10 +150,10 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     expect(pc!.kind).toBe('seuil');
     expect(pc!.heroId).toBe(a.id);
     expect(a.mutations ?? []).toHaveLength(0); // rien n'est appliqué avant la résolution
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     // Échec forcé (déterministe) puis acquittement → mutation (−BFM) + révélation témoin.
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 30, sl: -7, success: false } });
-    banc.getState().jetConfirm('corruption');
+    banc.getState().jetValider('corruption');
     // Les dés de la mutation sont des étapes : elle tombe en les jouant, et la RÉVÉLATION est une
     // étape d'AFFICHAGE de la MÊME séquence — on la cueille au passage, avant la clôture.
     let reveal: RevealEntry | undefined;
@@ -179,9 +179,9 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     const pc = banc.getState().pendingCorruption!;
     expect(pc.kind).toBe('seuil');
     expect(pc.align).toBe('nurgle'); // l'alignement voyage source → modale
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 30, sl: -7, success: false } });
-    banc.getState().jetConfirm('corruption');
+    banc.getState().jetValider('corruption');
     draineCascade(banc.getState);
     const after = banc.getState().party.find((h) => h.id === a.id)!;
     expect(after.mutations?.length).toBe(1);
@@ -200,9 +200,9 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     a.corruption = 4;
     banc.setState({ party });
     gainCorruption(banc.getState, banc.setState, a, 1);
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 3, target: 30, sl: 2, success: true } });
-    banc.getState().jetConfirm('corruption');
+    banc.getState().jetValider('corruption');
     expect(banc.getState().party.find((h) => h.id === a.id)!.mutations ?? []).toHaveLength(0);
     expect(banc.getState().journal.join('\n')).toMatch(/contient sa Corruption/);
   });
@@ -215,9 +215,9 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     a.resilience = 1; // AVEC Résilience : la mutation est suspendue (« Je te renie ! ») → on choisit de SUBIR
     banc.setState({ party });
     gainCorruption(banc.getState, banc.setState, a, 1);
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 5, sl: -9, success: false } });
-    banc.getState().jetConfirm('corruption');
+    banc.getState().jetValider('corruption');
     expect(banc.getState().pendingRenounce).toBeTruthy();
     banc.getState().fenetreChoisir('renounce', 'renier', false); // subir la mutation
     draineCascade(banc.getState);
@@ -239,7 +239,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
 // « Vous pouvez décider de recevoir volontairement un Point de Corruption pour pouvoir relancer un
 // Test, même si un deuxième jet a déjà été effectué » (LDB 19 l.17).
 describe('Sombre Pacte (LDB 19 l.17)', () => {
-  it('Test de compétence raté : jetDarkPact@test relance SANS Chance, +1 Corruption, même déjà relancé', () => {
+  it('Test de compétence raté : jetPactiser@test relance SANS Chance, +1 Corruption, même déjà relancé', () => {
     const { a, party } = party2();
     a.fortune = 0; // aucune Chance — le Pacte marche quand même
     banc.setState({
@@ -251,7 +251,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
       } as never,
     });
     banc.getState().seedRng(1); // reseed JUSTE avant la relance → d100 déterministe (indépendant du setup)
-    banc.getState().jetDarkPact('test');
+    banc.getState().jetPactiser('test');
     const pt = banc.getState().pendingTest as { roll?: number } | null;
     expect(pt?.roll).not.toBe(95); // relancé (seed fixe → valeur stable ≠ 95)
     expect(banc.getState().party.find((h) => h.id === a.id)!.corruption).toBe(1);
@@ -269,7 +269,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
       } as never,
     });
     banc.getState().seedRng(1); // reseed JUSTE avant la relance → d100 déterministe
-    banc.getState().jetDarkPact('test');
+    banc.getState().jetPactiser('test');
     expect((banc.getState().pendingTest as { roll?: number }).roll, 'le Test réussi a été relancé').not.toBe(12);
     expect(banc.getState().party.find((h) => h.id === a.id)!.corruption).toBe(1);
   });
@@ -286,9 +286,9 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
       } as never,
     });
     banc.getState().seedRng(1);
-    banc.getState().jetDarkPact('test');
+    banc.getState().jetPactiser('test');
     const apres1 = (banc.getState().pendingTest as { roll?: number }).roll;
-    banc.getState().jetDarkPact('test');
+    banc.getState().jetPactiser('test');
     const apres2 = (banc.getState().pendingTest as { roll?: number }).roll;
     expect(apres2, 'le 2ᵉ Pacte a re-jeté').not.toBe(apres1);
     expect(banc.getState().party.find((h) => h.id === a.id)!.corruption, 'chaque usage corrompt').toBe(2);
@@ -314,9 +314,9 @@ describe('Effet ops { op: corruption } (gain direct via ops generiques)', () => 
     const pc = banc.getState().pendingCorruption!;
     expect(pc.kind).toBe('seuil');
     expect(pc.align).toBe('nurgle'); // l\'alignement voyage source -> modale
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 30, sl: -7, success: false } });
-    banc.getState().jetConfirm('corruption');
+    banc.getState().jetValider('corruption');
     draineCascade(banc.getState);
     const after = banc.getState().party.find((h) => h.id === a.id)!;
     expect(after.mutations?.length).toBe(1);

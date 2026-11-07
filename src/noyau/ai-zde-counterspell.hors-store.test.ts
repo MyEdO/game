@@ -3,14 +3,14 @@
  *
  * Une ZdE d'un lanceur IA (`case 'castArea'`) OUVRE la fenêtre de Contre-sort/Dissipation comme le missile
  * (via `routeCounterspell`/`pendingCounterspell`). La RÉSOLUTION passe par le chemin PARTAGÉ, commun à
- * l'IA et à la zone : `jetConfirm('counterspell')/jetCancel('counterspell') → jetConfirm('cast')` :
- *  - « Laisser passer » → `jetConfirm('cast')` POSE la zone sur le centre auto-choisi (`zone.autoCenter`, l'équivalent
+ * l'IA et à la zone : `jetValider('counterspell')/jetAnnuler('counterspell') → jetValider('cast')` :
+ *  - « Laisser passer » → `jetValider('cast')` POSE la zone sur le centre auto-choisi (`zone.autoCenter`, l'équivalent
  *    du curseur souris d'un héros) parce que le lanceur est `aiDriven` — exactement comme le héros manuel
  *    pose au clic ;
- *  - DISSIPATION → `jetConfirm('cast')` ne pose RIEN (zone non posée), pending fermé proprement (pas de soft-lock).
+ *  - DISSIPATION → `jetValider('cast')` ne pose RIEN (zone non posée), pending fermé proprement (pas de soft-lock).
  *
- * On vérifie aussi l'invariant de SYMÉTRIE : un héros MANUEL passé par `jetConfirm('cast')` sur une ZdE non posée
- * RESTE en pose (attend le clic réel) — `jetConfirm('cast')` n'auto-pose QUE pour un lanceur `aiDriven`.
+ * On vérifie aussi l'invariant de SYMÉTRIE : un héros MANUEL passé par `jetValider('cast')` sur une ZdE non posée
+ * RESTE en pose (attend le clic réel) — `jetValider('cast')` n'auto-pose QUE pour un lanceur `aiDriven`.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -23,7 +23,7 @@ import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTAGÉ jetConfirm@cast)', () => {
+describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTAGÉ jetValider@cast)', () => {
   beforeEach(() => {
     banc.getState().seedRng(17);
   });
@@ -71,11 +71,11 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     return { e, h1, h2 };
   }
 
-  it('« Laisser passer » (aucune Dissipation) → jetConfirm@cast POSE la zone sur autoCenter (caster aiDriven, pas de soft-lock, pas de mono-cible)', () => {
+  it('« Laisser passer » (aucune Dissipation) → jetValider@cast POSE la zone sur autoCenter (caster aiDriven, pas de soft-lock, pas de mono-cible)', () => {
     const { h1, h2 } = setupZoneAwaitingCounter();
     // Rangée DÉCLARÉE (#1042/#1059) : « Laisser passer » n'existe qu'une fois la composition arrêtée.
     banc.setState({ pendingCounterspell: { participants: [{ id: h1.id, interactive: true, declared: 'solo', result: null }] } as never });
-    banc.getState().jetCancel('counterspell'); // personne ne contre → jetConfirm('cast') pose la zone sur (8,8)
+    banc.getState().jetAnnuler('counterspell'); // personne ne contre → jetValider('cast') pose la zone sur (8,8)
     expect(banc.getState().pendingCounterspell).toBeNull();
     expect(banc.getState().pendingCast).toBeNull(); // pending fermé (zone posée → pas de soft-lock)
     const hp = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!.wounds;
@@ -84,17 +84,17 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     void h2;
   });
 
-  it('DISSIPATION (Contre-sort gagnant) → jetConfirm@cast NE POSE RIEN, pending fermé proprement (pas de soft-lock)', () => {
+  it('DISSIPATION (Contre-sort gagnant) → jetValider@cast NE POSE RIEN, pending fermé proprement (pas de soft-lock)', () => {
     const { h1, h2 } = setupZoneAwaitingCounter();
     // Force une issue de dissipation directement dans le participant (le moteur de Contre-sort la produit
-    // normalement ; ici on isole la ROUTE post-Contre-sort = le chemin PARTAGÉ jetConfirm('cast')).
+    // normalement ; ici on isole la ROUTE post-Contre-sort = le chemin PARTAGÉ jetValider('cast')).
     banc.setState({
       pendingCounterspell: {
         participants: [{ id: h1.id, interactive: true, declared: 'solo', result: { dispelled: true, counter: { sl: 5 }, log: 'Dissipé !' } }],
       } as never,
     });
     const hpBefore = banc.getState().battle!.combatants.find((c) => c.id === h2.id)!.wounds.current;
-    banc.getState().jetConfirm('counterspell');
+    banc.getState().jetValider('counterspell');
     expect(banc.getState().pendingCounterspell).toBeNull();
     expect(banc.getState().pendingCast).toBeNull(); // fermé proprement même dissipé (pas de soft-lock)
     // Sort dissipé → aucune zone appliquée : les cibles du paquet sont INTACTES.
@@ -102,11 +102,11 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     expect(banc.getState().battle!.combatants.find((c) => c.id === h2.id)!.wounds.current).toBe(hpBefore);
   });
 
-  it('ZdE IA SANS dissipeur (jetConfirm@cast direct) → la zone se pose toute seule sur autoCenter (le paquet est touché)', () => {
+  it('ZdE IA SANS dissipeur (jetValider@cast direct) → la zone se pose toute seule sur autoCenter (le paquet est touché)', () => {
     const { h1, h2 } = setupZoneAwaitingCounter();
-    // Aucun Contre-sort ouvert (aucun dissipeur) : `case 'castArea'` appelle directement jetConfirm('cast').
+    // Aucun Contre-sort ouvert (aucun dissipeur) : `case 'castArea'` appelle directement jetValider('cast').
     expect(banc.getState().pendingCounterspell).toBeNull();
-    banc.getState().jetConfirm('cast');
+    banc.getState().jetValider('cast');
     expect(banc.getState().pendingCast).toBeNull(); // posé → pending fermé
     const hp = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!.wounds;
     expect(hp('h1').current).toBeLessThan(hp('h1').max);
@@ -114,7 +114,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     void h1; void h2;
   });
 
-  it('SYMÉTRIE — héros MANUEL : jetConfirm@cast sur une ZdE non posée RESTE en pose (attend le clic, PAS d\'auto-pose)', () => {
+  it('SYMÉTRIE — héros MANUEL : jetValider@cast sur une ZdE non posée RESTE en pose (attend le clic, PAS d\'auto-pose)', () => {
     const spell = findSpellById('explosion')!;
     const w = dispeller(2, 2, 'wiz'); // héros lanceur (kind hero → non aiDriven en cadence manuelle)
     w.spells = [spell.id, ...(w.spells ?? [])];
@@ -133,7 +133,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
         zone: { center: null, radius: 1, r0m: 2 }, // PAS d'autoCenter (pose joueur)
       } as never,
     });
-    banc.getState().jetConfirm('cast'); // héros manuel → passe EN POSE, n'applique rien
+    banc.getState().jetValider('cast'); // héros manuel → passe EN POSE, n'applique rien
     const pc = banc.getState().pendingCast;
     expect(pc).not.toBeNull(); // pending vivant (attend le clic réel)
     expect(pc!.zone!.placing).toBe(true); // gabarit qui suit le curseur

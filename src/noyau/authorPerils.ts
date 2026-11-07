@@ -16,7 +16,7 @@
  *
  * DEUX PROTOCOLES DE REPRISE, un seul applier : le champ d'arrêt est le MÊME (`travelPlan.interrupted`)
  * ; seule diffère la manière dont le trajet reprendra ses effets — la mer les applique tout de suite
- * (`resumeTravel` rejoue la traversée), la terre les DIFFÈRE dans `travelPlan.land.interrupt` (le
+ * (`reprendreLeVoyage` rejoue la traversée), la terre les DIFFÈRE dans `travelPlan.land.interrupt` (le
  * `TravelThen` que `continueTravelDayAfterCascade` rejouera).
  *
  * Le protocole n'est PAS deviné depuis l'état (le `mode` d'un plan terrestre vaut « pied » ou
@@ -67,7 +67,7 @@ export function buildAuthorPerilSteps(route: MapRoute, destLabel: string, interr
   }));
 }
 
-/** Applique les effets d'un péril SUR-LE-CHAMP (protocole maritime : `resumeTravel` rejoue la traversée). */
+/** Applique les effets d'un péril SUR-LE-CHAMP (protocole maritime : `reprendreLeVoyage` rejoue la traversée). */
 export function applyPerilEffectsNow(get: Get, set: Set, effects: Effect[]): string[] {
   jouerFlowEntier(applyEffects(get, set, effects));
   return [];

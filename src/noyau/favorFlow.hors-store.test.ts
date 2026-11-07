@@ -53,7 +53,7 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     banc.getState().favorGrant(heroId, 'mineure', 'un aubergiste', 'Un service rendu');
     const favorId = banc.getState().favors[0].id;
     openInterlude(heroId, 3);
-    banc.getState().favorSettle(heroId, favorId);
+    banc.getState().solderLaFaveur(heroId, favorId);
     expect(banc.getState().favors).toHaveLength(0); // soldée, retirée
     expect(banc.getState().interlude!.perHero[heroId].left).toBe(2); // Activité consommée
   });
@@ -64,12 +64,12 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     const favorId = banc.getState().favors[0].id;
 
     openInterlude(heroId, 3);
-    banc.getState().favorSettle(heroId, favorId);
+    banc.getState().solderLaFaveur(heroId, favorId);
     expect(banc.getState().favors[0].progress).toBe(1);
     banc.getState().fenetreValider('interlude'); // consacré CET interlude → progression PRÉSERVÉE
 
     openInterlude(heroId, 3);
-    banc.getState().favorSettle(heroId, favorId);
+    banc.getState().solderLaFaveur(heroId, favorId);
     expect(banc.getState().favors).toHaveLength(0); // 2/2 → soldée
   });
 
@@ -79,7 +79,7 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     const favorId = banc.getState().favors[0].id;
 
     openInterlude(heroId, 3);
-    banc.getState().favorSettle(heroId, favorId);
+    banc.getState().solderLaFaveur(heroId, favorId);
     expect(banc.getState().favors[0].progress).toBe(1);
     banc.getState().fenetreValider('interlude');
 
@@ -95,7 +95,7 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     const favorId = banc.getState().favors[0].id;
 
     openInterlude(heroId, 3);
-    banc.getState().favorSettle(heroId, favorId);
+    banc.getState().solderLaFaveur(heroId, favorId);
     expect(banc.getState().favors[0].progress).toBe(1);
     banc.getState().fenetreValider('interlude');
 
@@ -105,7 +105,7 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
 
     // Et la chaîne reprend : l'interlude suivant l'achève.
     openInterlude(heroId, 3);
-    banc.getState().favorSettle(heroId, favorId);
+    banc.getState().solderLaFaveur(heroId, favorId);
     expect(banc.getState().favors, '2 Activités « consécutives » → soldée').toHaveLength(0);
   });
 
@@ -115,7 +115,7 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     const favorId = banc.getState().favors[0].id;
 
     openInterlude(heroId, 3);
-    banc.getState().favorSettle(heroId, favorId);
+    banc.getState().solderLaFaveur(heroId, favorId);
     banc.getState().fenetreValider('interlude');
 
     openInterlude(heroId, 0, 2); // 2 octroyés, 0 restant : consommés par d'AUTRES Activités
@@ -128,7 +128,7 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     banc.getState().favorGrant(heroId, 'importante', 'un seigneur', 'Éliminer un rival');
     const favorId = banc.getState().favors[0].id;
     openInterlude(heroId, 3);
-    banc.getState().favorSettle(heroId, favorId);
+    banc.getState().solderLaFaveur(heroId, favorId);
     expect(banc.getState().favors).toHaveLength(1);
     expect(banc.getState().favors[0].progress).toBe(0);
     expect(banc.getState().interlude!.perHero[heroId].left).toBe(3); // aucune Activité consommée
@@ -139,7 +139,7 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     banc.setState({ party: banc.getState().party.map((h) => (h.id === heroId ? { ...h, careerLevel: 1 } : h)) });
     banc.getState().favorGrant(heroId, 'mineure', 'un aubergiste', 'Un service rendu');
     const favorId = banc.getState().favors[0].id;
-    banc.getState().favorBreak(heroId, favorId);
+    banc.getState().rompreLaFaveur(heroId, favorId);
     expect(banc.getState().favors).toHaveLength(0);
     const hero = banc.getState().party.find((h) => h.id === heroId)!;
     expect(hero.careerLevel).toBe(0); // 1 − 1 = 0
@@ -147,7 +147,7 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     // Plancher 0 : rompre une seconde Faveur ne descend pas sous 0.
     banc.getState().favorGrant(heroId, 'mineure', 'un autre créancier', 'Un autre service');
     const favorId2 = banc.getState().favors[0].id;
-    banc.getState().favorBreak(heroId, favorId2);
+    banc.getState().rompreLaFaveur(heroId, favorId2);
     expect(banc.getState().party.find((h) => h.id === heroId)!.careerLevel).toBe(0);
   });
 
@@ -157,7 +157,7 @@ describe('Faveurs (LDB 23 l.139-151, #509)', () => {
     banc.setState({ party: banc.getState().party.map((h) => (h.id === heroId ? { ...h, careerLevel: 2 } : h)) });
     banc.getState().favorGrant(heroId, 'mineure', 'un aubergiste', 'Un service rendu');
     const favorId = banc.getState().favors[0].id;
-    banc.getState().favorBreak(heroId, favorId);
+    banc.getState().rompreLaFaveur(heroId, favorId);
     expect(banc.getState().party.find((h) => h.id === heroId)!.careerLevel).toBe(2);
   });
 });

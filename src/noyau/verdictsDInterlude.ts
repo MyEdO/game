@@ -6,7 +6,7 @@
 import { advancementBaseId, findCareerById, findSpellById, findTalentById, findTrappingById, levelsForCareer, libelleOuAbsence, refLabel } from '../data';
 import { interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { t, type MsgKey } from '../i18n';
-import type { IdDObjet } from './designations';
+import type { IdDeDepot, IdDObjet } from './designations';
 import { possesses, type TestDesigne } from '../engine/skills';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { buildWeapon } from '../engine/items';
@@ -66,15 +66,15 @@ export function refusDActivite(s: EtatDInterlude, heroId: string): string | null
     ?? ((s.interlude?.perHero[heroId]?.left ?? 0) <= 0 ? t('if.noActivityLeft', { name: nomDuHeros(s, heroId) }) : null);
 }
 
-/** Refus de retirer le dépôt `index` : la planque n'attend que le tirage, l'investissement consomme une
+/** Refus de retirer le dépôt `depotId` : la planque n'attend que le tirage, l'investissement consomme une
  *  Activité de son dépositaire, le Mécénat s'ouvre comme son Activité (`refusDOuvertureDActivite` : lieu
  *  et Test d'Évaluation tentable compris). Verdict UNIQUE de `bankWithdraw` et de l'écran ; `null` pour un
  *  dépôt absent, que le geste ignore. LDB 23 l.168-170, ACE 12 l.47-49 ; LDB 09 l.30 */
-export function refusDeRetrait(s: EtatDeDepot, index: number): string | null {
-  const dep = (s.bank ?? [])[index];
+export function refusDeRetrait(s: EtatDeDepot, depotId: IdDeDepot): string | null {
+  const dep = (s.bank ?? []).find((d) => d.uid === depotId);
   if (!dep) return null;
   const mecenat = dep.kind === 'mecenat' ? activiteDeMecenat() : undefined;
-  if (mecenat) return refusDOuvertureDActivite(s, dep.heroId, mecenat, { depositIndex: index });
+  if (mecenat) return refusDOuvertureDActivite(s, dep.heroId, mecenat, { depotId });
   return dep.kind === 'stash' ? refusDuTirage(s, dep.heroId) : refusDActivite(s, dep.heroId);
 }
 
@@ -253,7 +253,7 @@ function refusDeDepot(s: EtatDeDepot, heroId: string, kind: GenreDeDepot, montan
 
 /** Les cibles reçues par l'ouverture d'une Activité du catalogue : objet, sort, dépôt, Talent, instance de
  *  Trait psychologique. */
-export interface CiblesChoisies { itemUid?: IdDObjet; spellId?: string; depositIndex?: number; talentId?: string; traitPsy?: TraitPsyVise }
+export interface CiblesChoisies { itemUid?: IdDObjet; spellId?: string; depotId?: IdDeDepot; talentId?: string; traitPsy?: TraitPsyVise }
 
 /** Une instance de Trait psychologique visée : son type, et sa Cible si elle en porte une. */
 export interface TraitPsyVise { type: string; cible?: RefDeCible }
@@ -364,7 +364,7 @@ function refusDeCibleDuResolveur(s: EtatDInterlude, h: Combatant, def: ActivityD
     case 'identifyByResearch': return refusDeCible(h, cibles.artefacts.map((i) => i.uid), opts.itemUid, 'if.noArtefact', 'if.artefactNotTarget');
     case 'memorizeDiscount': return refusDeCible(h, cibles.sorts.map((x) => x.spell.id), opts.spellId, 'if.noSpellToMemorize', 'if.spellNotTarget');
     case 'mecenat': {
-      const dep = (s.bank ?? [])[opts.depositIndex ?? -1];
+      const dep = (s.bank ?? []).find((d) => d.uid === opts.depotId);
       return dep?.kind === 'mecenat' && dep.heroId === h.id ? null : t('if.mecenatDepotKo', { name: h.label });
     }
     case 'reputation': {
@@ -430,9 +430,9 @@ export function refusDAcquitterUneFaveur(s: EtatDeFaveur, heroId: string, favorI
 export interface ConfirmationDActivite { heroId: string; success?: boolean; talent?: string; tutorBrass?: number; costBrass?: number }
 
 /** Refus d'appliquer le jet d'Activité confirmé : Activité, Talent à apprendre (et, sur un succès, les PX
- *  de son achat : avec la liste du volet, les deux refus de `buyTalent`), puis ce que la confirmation
+ *  de son achat : avec la liste du volet, les deux refus d'`acheterLeTalent`), puis ce que la confirmation
  *  débite (tuteur d'Apprentissage, dépense de Réputation) hors de la bourse. Verdict UNIQUE de
- *  `jetConfirm('activity')`, avant tout débit. LDB 23 l.66-72, l.228-234 */
+ *  `jetValider('activity')`, avant tout débit. LDB 23 l.66-72, l.228-234 */
 export function refusDeConfirmerLActivite(s: EtatDInterlude, pa: ConfirmationDActivite): string | null {
   const refus = refusDActivite(s, pa.heroId);
   const h = herosDe(s, pa.heroId);

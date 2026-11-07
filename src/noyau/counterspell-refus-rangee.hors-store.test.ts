@@ -52,16 +52,16 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
   it('+1 DR de Chance après la dissipation par un AUTRE : refusé et dit, Chance inchangée', () => {
     const { A, B } = setup();
     poser([{ id: A.id, interactive: true, declared: 'solo', result: PRESQUE }, { id: B.id, interactive: true, declared: 'solo', result: DISSIPE }]);
-    banc.getState().jetBonusSL('counterspell', A.id);
+    banc.getState().jetAjouterUnDR('counterspell', A.id);
     expect(ressources(A.id)).toEqual({ chance: 2, resilience: 2, corruption: 0 });
     expect(part(A.id).result).toEqual(PRESQUE);
     expect(banc.getState().refus?.texte).toBe('Déjà dissipé par Bert');
   });
 
-  for (const verbe of ['jetRoll', 'jetReroll', 'jetDarkPact', 'jetForceSuccess'] as const) {
+  for (const verbe of ['jetLancer', 'jetRelancer', 'jetPactiser', 'jetForcerLaReussite'] as const) {
     it(`${verbe} sur le Contre-sort après la dissipation par un AUTRE : même refus, rien ne se dépense`, () => {
       const { A, B } = setup();
-      poser([{ id: A.id, interactive: true, declared: 'solo', result: verbe === 'jetRoll' ? null : RATE }, { id: B.id, interactive: true, declared: 'solo', result: DISSIPE }]);
+      poser([{ id: A.id, interactive: true, declared: 'solo', result: verbe === 'jetLancer' ? null : RATE }, { id: B.id, interactive: true, declared: 'solo', result: DISSIPE }]);
       banc.getState()[verbe]('counterspell', A.id);
       expect(ressources(A.id)).toEqual({ chance: 2, resilience: 2, corruption: 0 });
       expect(banc.getState().refus?.texte).toBe('Déjà dissipé par Bert');
@@ -71,7 +71,7 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
   it('dé fixé après la dissipation par un AUTRE : même refus, le jet ne bouge pas', () => {
     const { A, B } = setup();
     poser([{ id: A.id, interactive: true, declared: 'solo', result: RATE }, { id: B.id, interactive: true, declared: 'solo', result: DISSIPE }]);
-    banc.getState().jetSetForcedRoll('counterspell', 1, A.id);
+    banc.getState().jetImposerLeResultat('counterspell', 1, A.id);
     expect(part(A.id).result).toEqual(RATE);
     expect(banc.getState().refus?.texte).toBe('Déjà dissipé par Bert');
   });
@@ -79,7 +79,7 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
   it('la rangée qui a dissipé garde son propre cycle : son +1 DR passe', () => {
     const { A, B } = setup();
     poser([{ id: A.id, interactive: true, declared: 'solo', result: RATE }, { id: B.id, interactive: true, declared: 'solo', result: DISSIPE }]);
-    banc.getState().jetBonusSL('counterspell', B.id);
+    banc.getState().jetAjouterUnDR('counterspell', B.id);
     expect(cur(B.id).fortune).toBe(1);
     expect(part(B.id).result!.counter.sl).toBe(5);
   });
@@ -87,7 +87,7 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
   it('phase de déclaration ouverte : la Résilience d’une rangée déclarée est refusée et dite', () => {
     const { A, B } = setup();
     poser([{ id: A.id, interactive: true, declared: 'solo', result: null }, { id: B.id, interactive: true, result: null }]);
-    banc.getState().jetForceSuccess('counterspell', A.id);
+    banc.getState().jetForcerLaReussite('counterspell', A.id);
     expect(ressources(A.id)).toEqual({ chance: 2, resilience: 2, corruption: 0 });
     expect(part(A.id).result).toBeNull();
     expect(banc.getState().refus?.texte).toBe('En attente des déclarations de la fenêtre');
@@ -96,7 +96,7 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
   it('rangée qui passe : son jet est refusé et dit, sans consommer son essai du Round', () => {
     const { A, B } = setup();
     poser([{ id: A.id, interactive: true, declared: 'solo', result: null }, { id: B.id, interactive: true, declared: 'pass', result: null }]);
-    banc.getState().jetRoll('counterspell', B.id);
+    banc.getState().jetLancer('counterspell', B.id);
     expect(part(B.id).result).toBeNull();
     expect(cur(B.id).dispelledThisRound ?? false).toBe(false);
     expect(banc.getState().refus?.texte).toBe('Jet refusé : Bert ne lance pas le Contre-sort.');

@@ -143,7 +143,7 @@ describe('sauter par la croisée d’étage — exploration', () => {
     banc.getState().jetRegler('fall', 'tenter', true, id);
     const p = banc.getState().pendingFall!;
     banc.setState({ pendingFall: { ...p, participants: p.participants.map((x) => (x.id === id ? { ...x, result: { success: true, roll: 5, target: 90, dr: 6, effectiveMetres: 0 } } : x)) } });
-    banc.getState().jetConfirm('fall');
+    banc.getState().jetValider('fall');
     expect(banc.getState().partyPos).toEqual({ x: 2, y: 1, z: 0 });
     expect(banc.getState().flags.__trigger_rue).toBe(true);
   });

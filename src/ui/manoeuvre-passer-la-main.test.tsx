@@ -46,7 +46,7 @@ function souffleLance(gmSeat: number | undefined): Combatant {
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, acted: false } });
   useGame.getState().armerLAttaque('souffle');
   cliquerSurLeCombattant(useGame.getState, E.id);
-  useGame.getState().jetRoll('maneuver');
+  useGame.getState().jetLancer('maneuver');
   return E;
 }
 

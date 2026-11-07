@@ -1,6 +1,6 @@
 /**
  * Le Talent Haine confère le Trait Haine (LDB 10 l.548 ; LDB 21 l.39) sur le chemin réel : achat
- * (`buyTalent`, `partyFlow.ts`) puis entrée de scène (`startScene`, psychologie de rencontre).
+ * (`acheterLeTalent`, `partyFlow.ts`) puis entrée de scène (`startScene`, psychologie de rencontre).
  * Flagellant Niveau 2 : Haine (Hérétiques), LDB 08 l.1718.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -35,7 +35,7 @@ describe('Talent Haine (Hérétiques) : le Test de Haine est dû face à un cult
   it('le Talent acheté ouvre le Test de Haine à la rencontre', () => {
     const h = flagellant2();
     banc.setState({ party: [h] });
-    banc.getState().buyTalent(h.id, 'haine', 'heretiques');
+    banc.getState().acheterLeTalent(h.id, 'haine', 'heretiques');
     expect(banc.getState().party[0].talents, 'précondition : le Talent est acquis').toContainEqual(expect.objectContaining({ talentId: 'haine', spec: 'heretiques' }));
     banc.getState().startScene(scene('s1'));
     expect(banc.getState().pendingCascade?.participants[0].encounterPsych).toMatchObject({ kind: 'haine', sourceId: 'cultiste' });

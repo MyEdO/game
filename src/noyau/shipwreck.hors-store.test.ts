@@ -136,11 +136,11 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     const stepId = casc.participants[0].id;
     // Force un ÉCHEC sur l'étape courante (comme `cascade.hors-store.test.ts`) puis dépense la Chance : succès forcé.
     set({ pendingCascade: { ...casc, participants: [{ ...casc.participants[0], result: { roll: 88, target: casc.participants[0].target!, sl: -5, success: false } }] } });
-    get().jetReroll('cascade', stepId); // 1 Point de Chance dépensé (relance simple)
+    get().jetRelancer('cascade', stepId); // 1 Point de Chance dépensé (relance simple)
     expect(get().party[0].fortune).toBe(0);
-    get().jetForceSuccess('cascade', stepId); // Résilience — ici on force directement le succès pour clore le test
+    get().jetForcerLaReussite('cascade', stepId); // Résilience — ici on force directement le succès pour clore le test
     expect(get().pendingCascade!.participants[0].result!.success).toBe(true);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
 
     expect(get().pendingCascade).toBeNull();
     expect(get().party[0].dead).toBeFalsy(); // la Chance a transformé la noyade en survie
@@ -160,7 +160,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     // Jet POSÉ (aucun dé ambiant : l'issue du Test ne doit rien à la position du flux RNG du worker,
     // #1014) — succès : le rescapé s'échoue.
     set({ pendingCascade: { ...casc, participants: [swimSuccess(casc.participants[0])] } });
-    get().jetConfirm('cascade'); // UN SEUL geste : la dernière étape se valide et clôt la séquence
+    get().jetValider('cascade'); // UN SEUL geste : la dernière étape se valide et clôt la séquence
 
     expect(get().suspendedCascades).toHaveLength(0);
     expect(get().pendingCascade).toBeNull();
@@ -223,7 +223,7 @@ describe('#1262 V2 L4 — un jet NÉ ROULÉ sans pilote ne se force pas ; un jet
     expect(etape.result!.success, 'et il est RATÉ (Natation 1) — il y aurait donc de quoi forcer').toBe(false);
     const avant = { ...etape.result! };
 
-    get().jetForceSuccess('cascade', etape.id);
+    get().jetForcerLaReussite('cascade', etape.id);
 
     const apres = get().pendingCascade!.participants.find((s) => s.actorId === ia)!;
     expect(apres.result, 'le jet d’un slot PASSIF ne se force pas').toEqual(avant);
@@ -243,7 +243,7 @@ describe('#1262 V2 L4 — un jet NÉ ROULÉ sans pilote ne se force pas ; un jet
     set({ pendingCascade: { ...casc, participants: casc.participants.map((s) => (s.id === etape.id
       ? { ...s, result: { roll: 88, target: s.target!, sl: -5, success: false } } : s)) } });
 
-    get().jetForceSuccess('cascade', etape.id);
+    get().jetForcerLaReussite('cascade', etape.id);
 
     const apres = get().pendingCascade!.participants.find((s) => s.actorId === humain)!;
     expect(apres.result!.success, 'le verbe reste OUVERT sur un jet vivant').toBe(true);
@@ -272,13 +272,13 @@ describe('#1262 V2 L4 — un jet NÉ ROULÉ sans pilote ne se force pas ; un jet
 
     rate();
     setCadence('auto');
-    get().jetForceSuccess('cascade', etape.id);
+    get().jetForcerLaReussite('cascade', etape.id);
     expect(resultOf(), 'cadence AUTO : le jet posé est PASSIF — rien n’est retouché').toEqual({ roll: 97, target: 40, sl: -6, success: false });
     expect(get().party.find((h) => h.id === humain)!.resilience, 'et aucun point n’est débité').toBe(2);
 
     resetCadence();
     rate();
-    get().jetForceSuccess('cascade', etape.id);
+    get().jetForcerLaReussite('cascade', etape.id);
     expect(resultOf().success, 'cadence NORMALE : le même verbe, sur la même étape, force la réussite').toBe(true);
     expect(get().party.find((h) => h.id === humain)!.resilience, 'et débite SON point').toBe(1);
   });

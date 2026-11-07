@@ -99,12 +99,12 @@ export function AppraiseModalView({
 export function AppraiseModal() {
   const pa = useGame((s) => s.pendingAppraise);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetRoll', 'appraise');
-  const reroll = useGesteDeJet('jetReroll', 'appraise');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'appraise');
-  const darkPact = useGesteDeJet('jetDarkPact', 'appraise');
-  const confirm = useGesteDeJet('jetConfirm', 'appraise');
-  const cancel = useGesteDeJet('jetCancel', 'appraise');
+  const roll = useGesteDeJet('jetLancer', 'appraise');
+  const reroll = useGesteDeJet('jetRelancer', 'appraise');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'appraise');
+  const darkPact = useGesteDeJet('jetPactiser', 'appraise');
+  const confirm = useGesteDeJet('jetValider', 'appraise');
+  const cancel = useGesteDeJet('jetAnnuler', 'appraise');
   // COOP (#1017) : ABONNEMENT à `net` AVANT le retour anticipé — une ré-attribution de siège en cours
   // de fenêtre re-rend la modale (sinon `owned` reste figé sur le 1er rendu).
   useGame((s) => s.net);

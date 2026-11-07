@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { openLandMarket, vendreALaHalle } from './landMarketFlow';
+import { ouvrirLeMarche, vendreALaHalle } from './landMarketFlow';
 import { persistCarriersCargo } from './carriers';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
@@ -26,14 +26,14 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 /** Draine une cascade influençable (héros piloté-humain → modale, #274) — même patron que les autres
- *  suites (`jetRoll('cascade', id)`+`jetConfirm('cascade')`, ex. `river-voyage-flow.hors-store.test.ts`). */
+ *  suites (`jetLancer('cascade', id)`+`jetValider('cascade')`, ex. `river-voyage-flow.hors-store.test.ts`). */
 function drainCascade(): void {
   let g = 0;
   while (get().pendingCascade && g++ < 50) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
-    if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
-    else get().jetConfirm('cascade');
+    if (cur && cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
+    else get().jetValider('cascade');
   }
 }
 
@@ -107,8 +107,8 @@ function sellAtB(board: TradeRumour[]): number {
   let g = 0;
   while (get().pendingCascade && g++ < 5) {
     const p = get().pendingCascade!;
-    get().jetRoll('cascade', p.participants[p.cursor].id);
-    get().jetConfirm('cascade');
+    get().jetLancer('cascade', p.participants[p.cursor].id);
+    get().jetValider('cascade');
     banc.reprendreLesEnAttente();
   }
   return toBrass(partyMoneyTotal(get));
@@ -138,10 +138,10 @@ describe('#99 — génération au marché : la rumeur vise un AUTRE Lieu de la c
   it('un Test de Ragot réussi au marché A ajoute au board une rumeur ciblant le Lieu B', () => {
     launchAtA();
     seedBattleRng(7);
-    openLandMarket(get, set);
+    ouvrirLeMarche(get, set);
     // #1426 : les dés de l'étal s'offrent d'abord en FENÊTRE DE LOT (un siège tient le monde) ; ce qui
     // SUIT l'étal — le Test de Ragot — n'ouvre qu'à la validation.
-    get().jetConfirm('etalLot');
+    get().jetValider('etalLot');
     // #274 : le Test de Ragot est surfacé par la porte (`openRoll`, hero-test, héros piloté-humain →
     // modale) — drainer comme un jet joueur normal.
     drainCascade();

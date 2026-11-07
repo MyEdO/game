@@ -61,8 +61,8 @@ describe('changer de meneur ne change QUE le meneur — le cap n’est keyé par
   function entrerPuisPivoter() {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
     useGame.setState({ povActive: true });
-    useGame.getState().pivotParty(1);
-    useGame.getState().pivotParty(1);
+    useGame.getState().pivoterLeGroupe(1);
+    useGame.getState().pivoterLeGroupe(1);
   }
 
   it('le premier du roster tombe à 0 Blessure : le cap et le POV ne BOUGENT pas', () => {
@@ -87,18 +87,18 @@ describe('changer de meneur ne change QUE le meneur — le cap n’est keyé par
     expect(capPov()).toBe(capAvant);
   });
 
-  it('REMPLACEMENT du meneur par un héros d’id NEUF (`partyReplaceHero`) : cap intact', () => {
+  it('REMPLACEMENT du meneur par un héros d’id NEUF (`remplacerLeHeros`) : cap intact', () => {
     entrerPuisPivoter();
     const capAvant = capPov();
-    useGame.getState().partyReplaceHero('a', engage('a2'));
+    useGame.getState().remplacerLeHeros('a', engage('a2'));
     expect(meneurDuMonde(useGame.getState())?.id).toBe('a2');
     expect(capPov(), 'aucun id de héros ne keye le cap : le remplacement ne le perd pas').toBe(capAvant);
   });
 
-  it('AJOUT d’un héros (`partyAddHero`) puis chute des précédents : cap intact', () => {
+  it('AJOUT d’un héros (`recruterLeHeros`) puis chute des précédents : cap intact', () => {
     entrerPuisPivoter();
     const capAvant = capPov();
-    useGame.getState().partyAddHero(engage('c'));
+    useGame.getState().recruterLeHeros(engage('c'));
     useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'c' ? h : blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }))) }));
     expect(meneurDuMonde(useGame.getState())?.id).toBe('c');
     expect(capPov()).toBe(capAvant);
@@ -108,7 +108,7 @@ describe('changer de meneur ne change QUE le meneur — le cap n’est keyé par
     entrerPuisPivoter();
     useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) }));
     const capAvant = capPov()!;
-    useGame.getState().pivotParty(1);
+    useGame.getState().pivoterLeGroupe(1);
     expect(capPov()).toBe(rotateDir8(capAvant, 1));
   });
 });
@@ -130,8 +130,8 @@ describe('le RENDU du jeton de groupe lit la clé de cap PUBLIÉE, pas l’id du
 
   it('PIVOTS : le disque sert le cap du GROUPE', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
-    useGame.getState().pivotParty(1);
-    useGame.getState().pivotParty(1);
+    useGame.getState().pivoterLeGroupe(1);
+    useGame.getState().pivoterLeGroupe(1);
     const cap = capDuGroupe(useGame.getState());
     const { marque, capLuParLeDisque } = rendu();
     expect(marque.capKey, 'la marque du disque s’abonne à la clé de GROUPE').toBe(CAP_GROUPE);
@@ -147,7 +147,7 @@ describe('le RENDU du jeton de groupe lit la clé de cap PUBLIÉE, pas l’id du
 
   it('CHANGEMENT DE MENEUR : l’identité du jeton change, le regard NON', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
-    useGame.getState().pivotParty(1);
+    useGame.getState().pivoterLeGroupe(1);
     const avant = rendu();
     useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) }));
     const apres = rendu();

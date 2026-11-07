@@ -23,7 +23,7 @@ const doc = document(
     /** Bande d'ambiance par défaut du service (id du registre `src/ui/backdrops`). */
     backdrop: z.string().optional(),
     /** Archétype marchand ouvert par ce service (`src/data/merchants.json`, ex. `armurier` pour
-     *  le forgeron) — routage vers le système marchand EXISTANT via `openPlaceMerchant`, aucune donnée
+     *  le forgeron) — routage vers le système marchand EXISTANT via `ouvrirLaBoutique`, aucune donnée
      *  de commerce dupliquée ici (#369). */
     merchantArchetype: idDe('merchant').optional(),
     /** Écran plein-champ EXISTANT vers lequel ce service PORTE (routage app-interne, #369) : `port` =

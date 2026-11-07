@@ -69,7 +69,7 @@ function poseMeteo(id: string): void {
   const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'stageWeather')!;
   const saison = seasonOfMonth(toDate(get().gameTime).month);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
-  get().jetSetForcedRoll('cascadeTirage', rangee.min, meteo.id);
+  get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
 }
 
 beforeEach(() => { seedBattleRng(1); resetDesFixes(); resetCadence(); });
@@ -81,7 +81,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
     setRule('travel-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     poseMeteo('pluie-diluvienne');
     draineCascade(get);
     const jours = get().travelPlan!.recap!.days;
@@ -95,7 +95,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
 
   it('budget nul : le jour interrompu est le dernier du log, `recap` effacé, halte de route sans marche forcée', () => {
     const jour = jourInterrompu();
-    get().resumeTravel();
+    get().reprendreLeVoyage();
     const plan = get().travelPlan!;
     const halte = get().pendingRest!;
     expect(plan.log).toEqual([jour]);
@@ -111,7 +111,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
 describe('#2533 (4) — un jour, une carte', () => {
   it('halte : le jour clos vit dans `plan.log` seul — UNE carte pour lui, puis la Nuit', () => {
     setup(map());
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     const plan = get().travelPlan!;
     expect(plan.log).toHaveLength(1);
     const cards = voyageDayCards(plan, 'terre', 'Étape', true, [], !!get().pendingRest?.travelHalt);

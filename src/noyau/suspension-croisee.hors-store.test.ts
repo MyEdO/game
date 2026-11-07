@@ -169,7 +169,7 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
     g().jetRegler('fall', 'suspendre', false, B);
     g().jetRegler('fall', 'tenter', false, B);
     expect(phaseDeChute(g().pendingFall!)).toBe('roll');
-    g().jetRoll('fall', A);
+    g().jetLancer('fall', A);
     const r = g().pendingFall!.participants.find((x) => x.id === A)!.result!;
     expect(r.effectiveMetres).toBe(Math.max(0, 2 - Math.max(0, r.dr)));
   });

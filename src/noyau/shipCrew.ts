@@ -582,9 +582,9 @@ export function sortiesDeLEquipage(_get: Get, set: SetFn) {
 
 export function creerActionsDeLEquipage(get: Get, set: SetFn) {
   return {
-    setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
-    setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
-    setPosteAmmo: (shipId, posteUid, ammoUid) => {
+    attribuerLeRoleABord: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
+    affecterALaStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
+    approvisionnerLaPiece: (shipId, posteUid, ammoUid) => {
       const b = get().battle;
       const ship = inBattleId(b, shipId);
       const poste = ship?.postes?.find((p) => p.item.uid === posteUid);

@@ -272,12 +272,12 @@ describe('fenetreChoisir', () => {
       const { a } = tout(banc);
       const ligne = (uid: string, trappingId: string) => ({ uid, label: trappingId, magic: true, effect: { type: 'giveTrapping', trappingId, identified: false } });
       banc.setState({ pendingVictory: null, merchant: null, pendingRest: null, pendingLoot: { title: 'Coffre', gear: [ligne('L0', 'epee'), ligne('L1', 'dague')] } } as never);
-      banc.getState().appraiseGear('loot', 'L1');
+      banc.getState().evaluerLeButin('loot', 'L1');
       const pa = banc.getState().pendingAppraise!;
       expect(pa.gear).toEqual({ scope: 'loot', uid: 'L1' });
       banc.getState().fenetreChoisir('loot', 'ligne', 'L0', a);
       banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
-      banc.getState().jetConfirm('appraise');
+      banc.getState().jetValider('appraise');
       expect(banc.getState().pendingLoot?.gear.map((g) => [g.uid, g.effect.identified]), 'la dague, révélée').toEqual([['L1', undefined]]);
     });
 

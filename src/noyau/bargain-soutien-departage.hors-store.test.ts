@@ -248,19 +248,19 @@ function setupAmbulant(party: Combatant[]): void {
 function marchanderEgalite(): void {
   const { leader, helper } = pairAvecSoutien(40);
   setupAmbulant([leader, helper]);
-  get().startBargain('buy');
+  get().marchanderLePrix('buy');
   imposerLesD100(30, 20); // joueur 30 sur cible 50 → DR 2 ; marchand 20 sur cible 45 → DR 2
-  get().jetRoll('bargain');
+  get().jetLancer('bargain');
 }
 
 describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.160 / l.189-190)', () => {
   beforeEach(() => setRule('test-auto-bands', 'off'));
   afterEach(() => { vi.restoreAllMocks(); });
 
-  it('CÂBLAGE : `startBargain` fond le Soutien dans `playerSkill` et en porte le détail (`support`)', () => {
+  it('CÂBLAGE : `marchanderLePrix` fond le Soutien dans `playerSkill` et en porte le détail (`support`)', () => {
     const { leader, helper } = pairAvecSoutien(40);
     setupAmbulant([leader, helper]);
-    get().startBargain('buy');
+    get().marchanderLePrix('buy');
     const pb = get().pendingBargain!;
     expect(pb.support?.bonus).toBe(10); // 1 soutien éligible (l.189-190)
     expect(pb.playerSkill).toBe(50); // 40 (Compétence) + 10 (Soutien) — FONDU par `partyAssisted`
@@ -280,7 +280,7 @@ describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.
 
   it('CONSÉQUENCE : le marchandage conclu est PERDU — la visite ne porte aucune remise', () => {
     marchanderEgalite();
-    get().jetConfirm('bargain');
+    get().jetValider('bargain');
     expect(get().merchant!.bargainBuy!.won).toBe(false);
   });
 });

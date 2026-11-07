@@ -416,7 +416,7 @@ export const TABLES = {
   ],
 } satisfies FragmentDeTables;
 
-/** Les clôtures de la Corruption (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+/** Les clôtures de la Corruption (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
 export function cloturesDeCorruption(get: Get, set: Set) {
   return {
     /** Acquitte l'exposition (Points selon niveau + DR, puis seuil) OU le Test du SEUIL

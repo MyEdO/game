@@ -38,10 +38,10 @@ function attaqueForcee(current: number) {
   banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
   cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
   seedBattleRng(3);
-  banc.getState().jetRoll('attack');
+  banc.getState().jetLancer('attack');
   expect(banc.getState().pendingAttack!.result!.hit, 'la graine fait rater le jet').toBe(false);
-  banc.getState().jetForceSuccess('attack');
-  banc.getState().jetSetForcedRoll('attack', 21);
+  banc.getState().jetForcerLaReussite('attack');
+  banc.getState().jetImposerLeResultat('attack', 21);
   expect(banc.getState().pendingAttack!.result!.hit).toBe(true);
 }
 

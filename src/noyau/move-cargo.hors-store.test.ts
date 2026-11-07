@@ -12,7 +12,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * #327 lot C — transfert de cargaison entre porteurs CO-LOCALISÉS (`moveCargo` → `transferCargo` du tronc).
+ * #327 lot C — transfert de cargaison entre porteurs CO-LOCALISÉS (`deplacerLaCargaison` → `transferCargo` du tronc).
  * Les porteurs du groupe partagent le Lieu courant (co-localisés) ; le transfert route par le tronc PUR et
  * RE-PERSISTE les deux `Possession.cargo` (SOCLE POSSESSIONS #617/#618). Refus (moved 0) si la cible est
  * pleine (plafond dur v1).
@@ -38,11 +38,11 @@ function setup(muleCargo: CargoLot[], cartCargo: CargoLot[]) {
 
 const vin = (uid: string, enc: number, basePriceGold = 3): CargoLot => ({ uid, cargoId: 'vin-eau-de-vie', enc, basePriceGold });
 
-describe('moveCargo — transfert entre porteurs co-localisés', () => {
+describe('deplacerLaCargaison — transfert entre porteurs co-localisés', () => {
   beforeEach(() => setup([vin('lot-1', 10)], []));
 
   it('déplace du vrac d’un porteur à un autre et RE-PERSISTE les deux (source unique Possession.cargo)', () => {
-    get().moveCargo('lot-1', 'cart', 6);
+    get().deplacerLaCargaison('lot-1', 'cart', 6);
     expect(carrierById(get(), 'mule')!.cargo).toEqual([vin('lot-1', 4)]);
     const [part] = carrierById(get(), 'cart')!.cargo;
     expect(part).toMatchObject({ cargoId: 'vin-eau-de-vie', enc: 6, basePriceGold: 3 });
@@ -51,7 +51,7 @@ describe('moveCargo — transfert entre porteurs co-localisés', () => {
 
   it('deux lots du même bien : seul le lot désigné passe, l’autre et son prix restent', () => {
     setup([vin('lot-a', 4, 3), vin('lot-b', 5, 9)], []);
-    get().moveCargo('lot-b', 'cart', 5);
+    get().deplacerLaCargaison('lot-b', 'cart', 5);
     expect(carrierById(get(), 'mule')!.cargo).toEqual([vin('lot-a', 4, 3)]);
     expect(carrierById(get(), 'cart')!.cargo).toEqual([vin('lot-b', 5, 9)]);
   });
@@ -59,14 +59,14 @@ describe('moveCargo — transfert entre porteurs co-localisés', () => {
   it('REFUSE (moved 0) si le porteur cible est plein — plafond dur', () => {
     setup([vin('lot-1', 10)], [{ uid: 'lot-2', cargoId: 'sel', enc: 25, basePriceGold: 1 }]); // charrette pleine (25/25)
     const refus = t('cg.ciblePleine', { porteur: carrierById(get(), 'cart')!.label });
-    get().moveCargo('lot-1', 'cart', 6);
+    get().deplacerLaCargaison('lot-1', 'cart', 6);
     expect(carrierById(get(), 'mule')!.cargo).toEqual([vin('lot-1', 10)]); // inchangé
     expect(get().journal.some((l) => l.includes(refus)), 'la cible pleine est nommée').toBe(true);
   });
 
   it('porteur inconnu = no-op', () => {
     const before = carrierById(get(), 'mule')!.cargo;
-    get().moveCargo('lot-1', 'inconnu', 6);
+    get().deplacerLaCargaison('lot-1', 'inconnu', 6);
     expect(carrierById(get(), 'mule')!.cargo).toEqual(before);
   });
 

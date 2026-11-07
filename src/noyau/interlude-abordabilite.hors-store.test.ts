@@ -60,16 +60,16 @@ function viderLaBourse(banc: Banc, heroId: string): void {
 
 /** Lance le jet d'Activité ouvert, le pose réussi, puis le confirme. */
 function confirmerReussi(banc: Banc): void {
-  banc.actions.jetRoll('activity');
+  banc.actions.jetLancer('activity');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 3 } }));
-  banc.actions.jetConfirm('activity');
+  banc.actions.jetValider('activity');
 }
 
 describe('Apprentissage particulier — PX et tuteur', () => {
   it('PX insuffisants : refusé et dit, avant le tirage, rien consommé', () => {
     const { banc, heroId } = apresLeTirage(50, { gold: 20, silver: 0, brass: 0 });
     const avant = empreinte(banc);
-    const r = jouer(banc, () => banc.actions.interludeActivity(heroId, 'learn', { talentId: TALENT }));
+    const r = jouer(banc, () => banc.actions.pratiquerLActivite(heroId, 'learn', { talentId: TALENT }));
     expect(r.journal).toEqual(['Vétéran : PX insuffisants (100).']);
     expect(r.deRoule, 'le tuteur a été tiré').toBe(false);
     expect(empreinte(banc)).toBe(avant);
@@ -78,7 +78,7 @@ describe('Apprentissage particulier — PX et tuteur', () => {
   it('bourse sous le tuteur le moins cher : refusé et dit AVANT le tirage, le dé ne roule pas', () => {
     const { banc, heroId } = apresLeTirage(300, fromBrass(23));
     const avant = empreinte(banc);
-    const r = jouer(banc, () => banc.actions.interludeActivity(heroId, 'learn', { talentId: TALENT }));
+    const r = jouer(banc, () => banc.actions.pratiquerLActivite(heroId, 'learn', { talentId: TALENT }));
     expect(r.journal).toEqual(['Vétéran : la bourse ne couvre même pas le tuteur le moins cher (2/–).']);
     expect(r.deRoule, 'le tuteur a été tiré').toBe(false);
     expect(empreinte(banc)).toBe(avant);
@@ -87,7 +87,7 @@ describe('Apprentissage particulier — PX et tuteur', () => {
   it('bourse entre le minimum et le tuteur tiré : refusé et dit APRÈS le tirage, rien débité', () => {
     const { banc, heroId } = apresLeTirage(300, fromBrass(24));
     const avant = empreinte(banc);
-    const r = jouer(banc, () => banc.actions.interludeActivity(heroId, 'learn', { talentId: TALENT }));
+    const r = jouer(banc, () => banc.actions.pratiquerLActivite(heroId, 'learn', { talentId: TALENT }));
     expect(r.journal).toEqual(['Vétéran : le tuteur demande 12/–, la bourse ne suit pas.']);
     expect(r.deRoule, 'témoin : le tuteur est tiré').toBe(true);
     expect(empreinte(banc)).toBe(avant);
@@ -95,7 +95,7 @@ describe('Apprentissage particulier — PX et tuteur', () => {
 
   it('bourse vidée entre l’ouverture et la confirmation : refusé et dit, ni Talent ni PX ni Activité', () => {
     const { banc, heroId } = apresLeTirage(300, { gold: 20, silver: 0, brass: 0 });
-    banc.actions.interludeActivity(heroId, 'learn', { talentId: TALENT });
+    banc.actions.pratiquerLActivite(heroId, 'learn', { talentId: TALENT });
     const tuteur = banc.getState().pendingActivity?.tutorBrass;
     expect(tuteur, 'témoin : le tuteur tiré à l’ouverture (11 pa)').toBe(132);
     viderLaBourse(banc, heroId);
@@ -113,7 +113,7 @@ describe('Entraînement — PX et tuteur', () => {
     const { banc, heroId } = apresLeTirage(2000, fromBrass(0));
     const opt = entrainementOptions(banc.getState().party[0]).find((o) => o.kind === 'characteristic')!;
     const avant = empreinte(banc);
-    const r = jouer(banc, () => banc.actions.interludeEntrainement(heroId, opt.kind, opt.id, opt.spec));
+    const r = jouer(banc, () => banc.actions.suivreLEntrainement(heroId, opt.kind, opt.id, opt.spec));
     expect(r.journal).toEqual(['Vétéran : la bourse ne couvre même pas le tuteur le moins cher (1 sc).']);
     expect(r.deRoule, 'le tuteur a été tiré').toBe(false);
     expect(empreinte(banc)).toBe(avant);
@@ -123,7 +123,7 @@ describe('Entraînement — PX et tuteur', () => {
     const { banc, heroId } = apresLeTirage(0, { gold: 20, silver: 0, brass: 0 });
     const opt = entrainementOptions(banc.getState().party[0]).find((o) => o.kind === 'characteristic')!;
     const avant = empreinte(banc);
-    const r = jouer(banc, () => banc.actions.interludeEntrainement(heroId, opt.kind, opt.id, opt.spec));
+    const r = jouer(banc, () => banc.actions.suivreLEntrainement(heroId, opt.kind, opt.id, opt.spec));
     expect(r.journal).toEqual([`Vétéran : PX insuffisants (${opt.xpCost}).`]);
     expect(r.deRoule, 'le tuteur a été tiré').toBe(false);
     expect(empreinte(banc)).toBe(avant);
@@ -133,7 +133,7 @@ describe('Entraînement — PX et tuteur', () => {
 describe('Réputation — la dépense débitée à la confirmation', () => {
   it('bourse vidée entre l’ouverture et la confirmation : refusé et dit, ni Statut ni Activité', () => {
     const { banc, heroId } = apresLeTirage(0, { gold: 20, silver: 0, brass: 0 });
-    banc.actions.interludeActivity(heroId, 'reputation');
+    banc.actions.pratiquerLActivite(heroId, 'reputation');
     expect(banc.getState().pendingActivity?.costBrass, 'témoin : la dépense est chiffrée à l’ouverture').toBeGreaterThan(0);
     viderLaBourse(banc, heroId);
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party[0].activeEffects]);
@@ -150,7 +150,7 @@ describe('Apprentissage particulier — seul un Talent de la liste du volet s’
     const { banc, heroId } = apresLeTirage(5000, { gold: 20, silver: 0, brass: 0 });
     expect(learnableTalents(banc.getState().party[0]).some((o) => o.id === TALENT_AU_MAXI), 'témoin : hors de la liste').toBe(false);
     const avant = empreinte(banc);
-    const r = jouer(banc, () => banc.actions.interludeActivity(heroId, 'learn', { talentId: TALENT_AU_MAXI }));
+    const r = jouer(banc, () => banc.actions.pratiquerLActivite(heroId, 'learn', { talentId: TALENT_AU_MAXI }));
     expect(r.journal).toEqual(['Vétéran ne peut pas apprendre Affable par Apprentissage particulier (Talent de carrière, au Maxi, ou à spécialisation).']);
     expect(r.deRoule, 'le tuteur a été tiré').toBe(false);
     expect(empreinte(banc)).toBe(avant);
@@ -158,15 +158,15 @@ describe('Apprentissage particulier — seul un Talent de la liste du volet s’
 
   it('Talent devenu inapprenable avant la confirmation : refusé et dit, bourse, PX et Activité intacts', () => {
     const { banc, heroId } = apresLeTirage(5000, { gold: 20, silver: 0, brass: 0 });
-    banc.actions.interludeActivity(heroId, 'learn', { talentId: TALENT });
+    banc.actions.pratiquerLActivite(heroId, 'learn', { talentId: TALENT });
     expect(banc.getState().pendingActivity?.talent, 'témoin : le jet est ouvert').toBe(TALENT);
     banc.setState((s) => ({ party: s.party.map((h) => (h.id === heroId ? { ...h, talents: [...h.talents, { talentId: TALENT, times: 99 }] } : h)) }));
     const horsDuJet = () => JSON.stringify([banc.getState().interlude, banc.getState().party.map((h) => [h.xp, h.talents, bourseOf(h)])]);
     const avant = horsDuJet();
     const journal = banc.getState().journal.length;
-    banc.actions.jetRoll('activity');
+    banc.actions.jetLancer('activity');
     banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 3 } }));
-    banc.actions.jetConfirm('activity');
+    banc.actions.jetValider('activity');
     expect(banc.getState().journal.slice(journal)).toEqual(['Vétéran ne peut pas apprendre Chanceux par Apprentissage particulier (Talent de carrière, au Maxi, ou à spécialisation).']);
     expect(horsDuJet(), 'bourse, PX ou Activité dépensés').toBe(avant);
   });
@@ -175,7 +175,7 @@ describe('Apprentissage particulier — seul un Talent de la liste du volet s’
 describe('Apprentissage particulier — l’achat jugé avant tout débit', () => {
   it('PX dépensés entre l’ouverture et un succès : refusé et dit, bourse et Activité intactes', () => {
     const { banc, heroId } = apresLeTirage(300, { gold: 20, silver: 0, brass: 0 });
-    banc.actions.interludeActivity(heroId, 'learn', { talentId: TALENT });
+    banc.actions.pratiquerLActivite(heroId, 'learn', { talentId: TALENT });
     expect(banc.getState().pendingActivity?.talent, 'témoin : le jet est ouvert').toBe(TALENT);
     banc.setState((s) => ({ party: s.party.map((h) => (h.id === heroId ? { ...h, xp: 0 } : h)) }));
     const horsDuJet = () => JSON.stringify([banc.getState().interlude, banc.getState().party.map((h) => [h.xp, h.talents, bourseOf(h)])]);
@@ -191,7 +191,7 @@ describe('Mécénat — hors de son lieu', () => {
   it('refusé et dit, rien débité ni déposé, aucune Activité', () => {
     const { banc, heroId } = apresLeTirage(0, { gold: 20, silver: 0, brass: 0 });
     const avant = JSON.stringify([empreinte(banc), banc.getState().bank]);
-    const r = jouer(banc, () => banc.actions.interludeBank(heroId, 'mecenat', 1200));
+    const r = jouer(banc, () => banc.actions.deposerALaBanque(heroId, 'mecenat', 1200));
     expect(r.journal).toEqual(['Le Mécénat ne se pratique pas ici.']);
     expect(JSON.stringify([empreinte(banc), banc.getState().bank])).toBe(avant);
   });
@@ -204,15 +204,15 @@ describe('Réputation — le Standing gagné vaut pour la PROCHAINE aventure, pa
     banc.actions.startInterlude(3);
     draineCascade(banc.getState);
     expect(banc.getState().interlude?.perHero[h.id].left, 'témoin : trois Activités').toBe(3);
-    banc.actions.interludeActivity(h.id, 'reputation');
+    banc.actions.pratiquerLActivite(h.id, 'reputation');
     const coutDeCarriere = banc.getState().pendingActivity?.costBrass;
     confirmerReussi(banc);
     expect(banc.getState().interlude?.perHero[h.id].closeOps?.flatMap((l) => l.ops), 'témoin : +1 Standing retenu pour la clôture').toEqual([{ op: 'statusMod', amount: 1 }]);
-    banc.actions.interludeActivity(h.id, 'reputation');
+    banc.actions.pratiquerLActivite(h.id, 'reputation');
     expect(banc.getState().pendingActivity?.costBrass, 'la seconde Réputation coûte le Standing de carrière').toBe(coutDeCarriere);
     banc.setState({ pendingActivity: null });
     banc.actions.seedRng(GRAINE_DU_GESTE);
-    banc.actions.interludeActivity(h.id, 'revenus');
+    banc.actions.pratiquerLActivite(h.id, 'revenus');
     confirmerReussi(banc);
     expect(banc.getState().interlude?.perHero[h.id].revenueBrass, 'Revenus au Standing de carrière (Argent 1)').toBe(REVENUS_ARGENT_1);
   });
@@ -225,10 +225,10 @@ function apresUneReputation(success: boolean, sl: number): { banc: Banc; heroId:
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h] } });
   banc.actions.startInterlude(3);
   draineCascade(banc.getState);
-  banc.actions.interludeActivity(h.id, 'reputation');
-  banc.actions.jetRoll('activity');
+  banc.actions.pratiquerLActivite(h.id, 'reputation');
+  banc.actions.jetLancer('activity');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: success ? 10 : 99, success, sl } }));
-  banc.actions.jetConfirm('activity');
+  banc.actions.jetValider('activity');
   expect(actorStatus(banc.getState().party[0]), 'témoin : Argent 1 pendant l’interlude').toEqual({ tier: 'argent', standing: 1 });
   return { banc, heroId: h.id };
 }

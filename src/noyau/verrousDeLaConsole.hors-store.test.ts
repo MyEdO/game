@@ -35,7 +35,7 @@ function jusquAuTour(partie: Partie, tenu: (c: Combatant) => boolean): Combatant
     const actif = activeCombatant(partie.etat().battle!);
     if (actif && tenu(actif)) return actif;
     const e = partie.etat();
-    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetRoll', args: ['defense'] }, { type: 'jetConfirm', args: ['defense'] }] : [actif ? { type: 'jouerLOffre', args: ['end-turn'] } : { type: 'fenetreValider', args: ['roundStart'] }];
+    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }] : [actif ? { type: 'jouerLOffre', args: ['end-turn'] } : { type: 'fenetreValider', args: ['roundStart'] }];
     for (const i of intentions) jouer(partie, partie.envoyer(i));
   }
   throw new Error('témoin : le tour attendu n’est pas venu');

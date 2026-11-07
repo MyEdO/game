@@ -2,5 +2,5 @@
 {"type":"fenetreValider","args":["roundStart"]}
 {"offre":"charge"}
 {"type":"cliquerLaCase","args":[{"x":7,"y":5},"enemy-enc-dome-1"]}
-{"type":"jetRoll","args":["attack"]}
-{"type":"jetSetForcedRoll","args":["attack",11]}
+{"type":"jetLancer","args":["attack"]}
+{"type":"jetImposerLeResultat","args":["attack",11]}

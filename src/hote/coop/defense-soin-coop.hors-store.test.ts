@@ -72,8 +72,8 @@ describe('Défense et soin en coop : la même fenêtre des deux côtés', () => 
     combat(banc, [mk('e', 'enemy', { x: 1, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })], 0);
     const { guest, chezLInvite } = table(banc);
     openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attack');
-    banc.getState().jetRoll('attack');
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetLancer('attack');
+    banc.getState().jetValider('attack');
     const vueHote = fenetreDeDefense(banc.getState());
     expect(vueHote?.reaction, 'chemin : la Défense du héros de l’invité s’ouvre chez l’hôte').toBeTruthy();
     expect(auMasque(fenetreDeDefense(chezLInvite()))).toEqual(auMasque(vueHote));

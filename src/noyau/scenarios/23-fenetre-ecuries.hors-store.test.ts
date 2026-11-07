@@ -73,12 +73,12 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
     expect(pt.difficulty).toBe('complexe');
   });
 
-  it('le groupe démarre à l’ÉTAGE du départ authored (`startOf`), par `startScene` comme par `transitionTo`', () => {
+  it('le groupe démarre à l’ÉTAGE du départ authored (`startOf`), par `startScene` comme par `quitterLaScene`', () => {
     banc.setState({ party: scenario.construire().party });
     banc.getState().startScene(scene);
     expect(banc.getState().partyPos).toEqual({ x: 7, y: 6, z: 1 });
     banc.getState().startScene(emptyScene('depart-sans-etage'));
-    banc.getState().transitionTo(scene.id);
+    banc.getState().quitterLaScene(scene.id);
     expect(banc.getState().partyPos).toEqual({ x: 7, y: 6, z: 1 });
   });
 

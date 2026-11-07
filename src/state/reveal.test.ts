@@ -19,7 +19,7 @@ describe('révélation → étape d’affichage de cascade', () => {
     const step = useGame.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('mutation');
     expect(step.reveal).toEqual({ kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: ['a', 'b'], subjectId: 'h1' });
-    useGame.getState().jetConfirm('cascade'); // …et la séquence restaurée se dénoue normalement
+    useGame.getState().jetValider('cascade'); // …et la séquence restaurée se dénoue normalement
     expect(useGame.getState().pendingCascade).toBeNull();
   });
 });

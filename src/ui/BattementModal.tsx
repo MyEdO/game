@@ -20,22 +20,22 @@ import type { ReglagesDuJet } from '../noyau/reglagesDuJet';
 /**
  * Modale de Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant
  * de l'Avantage adverse. Même patron de jet MONO d'attaquant influençable que le Piétinement — la seule
- * différence métier est l'issue (`jetConfirm('battement')` → `resolveBattement`). Le picker de cible
+ * différence métier est l'issue (`jetValider('battement')` → `resolveBattement`). Le picker de cible
  * (`OptionChooser`) n'apparaît que si plusieurs adversaires sont éligibles (avant le jet).
  */
 export function BattementModal() {
   const pb = useGame((s) => s.pendingBattement);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetRoll', 'battement');
-  const reroll = useGesteDeJet('jetReroll', 'battement');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'battement');
-  const darkPact = useGesteDeJet('jetDarkPact', 'battement');
-  const force = useGesteDeJet('jetForceSuccess', 'battement');
-  const reverse = useGesteDeJet('jetReverse', 'battement'); // Inversion (LDB 12 l.42)
+  const roll = useGesteDeJet('jetLancer', 'battement');
+  const reroll = useGesteDeJet('jetRelancer', 'battement');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'battement');
+  const darkPact = useGesteDeJet('jetPactiser', 'battement');
+  const force = useGesteDeJet('jetForcerLaReussite', 'battement');
+  const reverse = useGesteDeJet('jetInverser', 'battement'); // Inversion (LDB 12 l.42)
   const regler = useGame((s) => s.jetRegler);
   const setFoe = (v: ReglagesDuJet['battement']['adversaire']) => regler('battement', 'adversaire', v);
-  const confirm = useGesteDeJet('jetConfirm', 'battement');
-  const cancel = useGesteDeJet('jetCancel', 'battement');
+  const confirm = useGesteDeJet('jetValider', 'battement');
+  const cancel = useGesteDeJet('jetAnnuler', 'battement');
   if (!pb || !battle) return null;
   const attacker = battle.combatants.find((c) => c.id === pb.attackerId);
   const foe = battle.combatants.find((c) => c.id === pb.foeId);

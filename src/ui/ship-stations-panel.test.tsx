@@ -32,7 +32,7 @@ afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; 
 function poserGroupe(): Combatant[] {
   const gunnar = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 }), id: 'gunnar' };
   const lise = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lise', seed: 8 }), id: 'lise' };
-  // L'équipage vit AUSSI dans la bataille en mer (`setShipStation` patche les deux) : la fixture
+  // L'équipage vit AUSSI dans la bataille en mer (`affecterALaStation` patche les deux) : la fixture
   // porte donc une file de combat, sans quoi le contrat ne mesurerait que la moitié de l'action.
   const battle = { combatants: [gunnar, lise], log: [], round: 1, turn: 0 } as unknown as BattleState;
   useGame.setState({ party: [gunnar, lise], battle, massBattle: null, interlude: null, journal: [] });
@@ -83,7 +83,7 @@ describe('ShipStationsPanel — le joueur ÉPINGLE une station (#1657 B3-2b-b)',
     expect(el.textContent).not.toContain('auto');
   });
 
-  it('3. le clic ÉPINGLE la station (party ET bataille — `setShipStation`), le portrait la DÉSÉPINGLE', () => {
+  it('3. le clic ÉPINGLE la station (party ET bataille — `affecterALaStation`), le portrait la DÉSÉPINGLE', () => {
     const [gunnar] = poserGroupe();
     const el = monter('barge-fluviale');
     const dans = (ou: 'party' | 'bataille') => (ou === 'party'

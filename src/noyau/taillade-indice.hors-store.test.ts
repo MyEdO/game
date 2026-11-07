@@ -79,7 +79,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const pc = banc.getState().pendingCascade!;
     const cur = pc.participants[pc.cursor];
     banc.getState().jetRegler('cascade', 'choix', key, cur.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
   }
 
   it('cimeterre (1A) : Hémorragique automatique + OFFRE de dépenser 1 Avantage, libellée « (1 Av) »', () => {

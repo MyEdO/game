@@ -190,14 +190,14 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
     expect(envoyer.mock.calls).toEqual([['cliquerLaCase', [caseDe('e1'), 'e1', { approche: false }]]]);
   });
 
-  it('carnet : `markCluesSeen` part en intention et ne se joue pas localement (#2415)', () => {
+  it('carnet : `marquerLesIndices` part en intention et ne se joue pas localement (#2415)', () => {
     banc.setState({ party: [heroDesIndices()] });
     banc.getState().loadProject({ scenes: [fixtureScene('scene-o')], entryId: 'scene-o', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     const envoyer = vi.fn();
     const vus = affichés(banc.getState().clues, ['ind-lettre']);
-    emettreIntentInvite(banc.getState, 'markCluesSeen', banc.getState().markCluesSeen as never, envoyer, [vus]);
-    expect(envoyer).toHaveBeenCalledWith('markCluesSeen', [vus]);
+    emettreIntentInvite(banc.getState, 'marquerLesIndices', banc.getState().marquerLesIndices as never, envoyer, [vus]);
+    expect(envoyer).toHaveBeenCalledWith('marquerLesIndices', [vus]);
     expect(banc.getState().clues['ind-lettre'].vuParSiège, 'le marquage s’est joué EN LOCAL').toBeUndefined();
   });
 

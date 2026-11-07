@@ -23,13 +23,13 @@ export function ForceDoorModal() {
   const party = useGame((s) => s.party);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
   const p = useGame((s) => s.pendingForceDoor);
-  const roll = useGesteDeJet('jetRoll', 'forceDoor');
-  const reroll = useGesteDeJet('jetReroll', 'forceDoor');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'forceDoor');
-  const darkPact = useGesteDeJet('jetDarkPact', 'forceDoor');
-  const force = useGesteDeJet('jetForceSuccess', 'forceDoor');
-  const confirm = useGesteDeJet('jetConfirm', 'forceDoor');
-  const cancel = useGesteDeJet('jetCancel', 'forceDoor');
+  const roll = useGesteDeJet('jetLancer', 'forceDoor');
+  const reroll = useGesteDeJet('jetRelancer', 'forceDoor');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'forceDoor');
+  const darkPact = useGesteDeJet('jetPactiser', 'forceDoor');
+  const force = useGesteDeJet('jetForcerLaReussite', 'forceDoor');
+  const confirm = useGesteDeJet('jetValider', 'forceDoor');
+  const cancel = useGesteDeJet('jetAnnuler', 'forceDoor');
   const regler = useGame((s) => s.jetRegler);
   if (!p) return null;
   const pool = battle?.combatants ?? party;

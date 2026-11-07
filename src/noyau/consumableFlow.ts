@@ -7,7 +7,7 @@
  *    étape de cascade INFLUENÇABLE ; cadence auto → jet inline) — la même voie que les sorts/triggers.
  *  - HORS COMBAT : walker de scène — un nœud `test` ouvre la modale de Test
  *    (`openSkillTest`) RESTREINTE AU BUVEUR (`actorId` : c'est LUI qui boit, pas le meilleur du groupe),
- *    branches + continuation reprises par `jetConfirm('test')`.
+ *    branches + continuation reprises par `jetValider('test')`.
  *
  * La DURÉE d'horloge (LDB 71/72 « Durée : … ») est résolue AU BOIRE (`consumableUntilTime`) puis BAKÉE
  * sur chaque feuille du Flow (`bakeConsumableFlow`) : une branche suspendue (sérialisée dans un pending)
@@ -42,7 +42,7 @@ function drinkerCtx(get: Get, hero: Combatant): ConditionCtx {
  *  BUVEUR via `applyLeafOps` (durée bakée + `delayed` programmées), `if` évalués avec sa vue d'acteur,
  *  `test` gaté (`exceptGroups` du Bonnet de fou…) puis ouvert RESTREINT à lui (`actorId`). Un nœud
  *  `choice` (aucun consommable n'en porte) prend sa branche `no` — défaut conservateur, pas de décision
- *  silencieuse. Les branches d'un `test` suspendu sont reprises par `jetConfirm('test')`→`runFlow` : leurs
+ *  silencieuse. Les branches d'un `test` suspendu sont reprises par `jetValider('test')`→`runFlow` : leurs
  *  feuilles BAKÉES (`on:'hero'` + untilTime) y retombent sur le handler `ops` (applyLeafOps). */
 function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flow, label: string, source?: EffectSource): void {
   const stack: Flow[] = [flow];

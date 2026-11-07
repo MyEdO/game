@@ -22,7 +22,7 @@ function launch(seed = 1) {
   seedBattleRng(seed);
   lancerLeScenario(get, banc.setState, lancementDuScenario(scen));
   // La carte d'ENTRÉE de zone est une étape d'AFFICHAGE de cascade (#942 L8) : comme toute fenêtre de
-  // cascade, elle gèle les actions du bord (`startTravel` compris) tant qu'elle n'est pas acquittée.
+  // cascade, elle gèle les actions du bord (`partirEnVoyage` compris) tant qu'elle n'est pas acquittée.
   // Le scénario l'acquitte donc, comme un joueur, AVANT d'appareiller.
   draineCascade(get);
 }
@@ -90,7 +90,7 @@ describe('Scénario Voyage maritime — durée bornée sur un échantillon de se
     for (let seed = 1; seed <= 15; seed++) {
       launch(seed);
       const t0 = get().gameTime;
-      get().startTravel('route-marienburg', 'mer');
+      get().partirEnVoyage('route-marienburg', 'mer');
       sailToPort(2000);
       days.push((get().gameTime - t0) / (24 * 60));
     }
@@ -128,7 +128,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
   it('appareille, enchaîne des jours de mer (Tests d’équipage + haltes) et ACCOSTE au Grand Port', () => {
     const t0 = get().gameTime;
     expect(get().scene?.id).toBe('test-mer-depart');
-    get().startTravel('route-marienburg', 'mer', { cadence: 'jour-par-jour' }); // mode MER : appareillage sur le navire de campagne
+    get().partirEnVoyage('route-marienburg', 'mer', { cadence: 'jour-par-jour' }); // mode MER : appareillage sur le navire de campagne
     expect(get().travelPlan?.mode).toBe('mer');
     expect(get().travelPlan?.sea).toBeTruthy();
 
@@ -148,7 +148,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
   });
 
   it('à quai : l’écran Port ouvre et propose réparation + offres de commerce', () => {
-    get().startTravel('route-marienburg', 'mer');
+    get().partirEnVoyage('route-marienburg', 'mer');
     sailToPort();
     expect(get().lieu).toBe('p-marienburg');
 
@@ -156,12 +156,12 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
     const woundsBefore = get().vessel!.wounds!.current;
     expect(woundsBefore).toBeLessThan(get().vessel!.wounds!.max);
     const goldBefore = partyMoneyTotal(get).gold;
-    get().portRepair();
+    get().reparerLeNavire();
     expect(get().vessel!.wounds!.current).toBe(get().vessel!.wounds!.max); // remise à neuf
     expect(partyMoneyTotal(get).gold).toBeLessThan(goldBefore); // 1 CO par Blessure
 
     // Écran Port : offres de commerce du grand port cosmopolite (Production + Surplus).
-    get().openPort();
+    get().ouvrirLePort();
     expect(get().port!.placeId).toBe('p-marienburg');
     expect(get().port!.offers.length).toBeGreaterThan(0);
   });

@@ -45,7 +45,7 @@ function reticuleEtJet(attaque: string, H: Combatant, E: Combatant): { reticule:
   const ht = hoverTargeting(g, H, E);
   if (ht.kind !== 'ok' || ht.base == null || ht.mod == null) throw new Error(`réticule ${ht.kind}`);
   cliquerSurLeCombattant(g, E.id, { confirm: true });
-  g().jetRoll('attack');
+  g().jetLancer('attack');
   const d = g().pendingAttack!.result!.attackerDetail!;
   return { reticule: ht.base + ht.mod, jet: d.target, avantage: H.advantage };
 }

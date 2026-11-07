@@ -9,7 +9,7 @@ import { tableTotale } from '../lib/tableTotale';
 /**
  * ENTRÉE EN SCÈNE (#2817 D5) : le noyau émet `EVT.ARRIVEE_EN_SCENE`, l'adaptateur remet son interface.
  * Une partie neuve (`startScene`) remet l'interface hors des préférences de vue et de touches ; un
- * changement de scène (`transitionTo`) ne remet que la caméra et les gestes, puis pose le point de
+ * changement de scène (`quitterLaScene`) ne remet que la caméra et les gestes, puis pose le point de
  * reprise chez le seul propriétaire de la sauvegarde.
  */
 
@@ -51,7 +51,7 @@ describe('entrée en scène — la remise de l’interface (#2817 D5)', () => {
   it('un changement de scène ne remet que la caméra, et sauvegarde le point de reprise chez l’hôte', () => {
     g().loadProject({ scenes: [scene('entree-a'), scene('entree-b')], entryId: 'entree-a', projet: null });
     salir();
-    g().transitionTo('entree-b');
+    g().quitterLaScene('entree-b');
     for (const k of CLES) expect(g()[k], `${k}`).toEqual((CAMERA as readonly string[]).includes(k) ? INIT[k] : sale(k));
     expect(saveDuStockage('auto')?.data.campaignSceneId, 'le point de reprise est la scène d’arrivée').toBe('entree-b');
   });
@@ -59,7 +59,7 @@ describe('entrée en scène — la remise de l’interface (#2817 D5)', () => {
   it('chez l’invité, le changement de scène ne sauvegarde rien : la sauvegarde vit chez l’hôte', () => {
     g().loadProject({ scenes: [scene('entree-a'), scene('entree-b')], entryId: 'entree-a', projet: null });
     useGame.setState({ net: { ...g().net, mode: 'guest', mySeat: 1 } });
-    g().transitionTo('entree-b');
+    g().quitterLaScene('entree-b');
     expect(g().campaignSceneId, 'témoin : la scène a changé').toBe('entree-b');
     expect(saveDuStockage('auto')).toBeNull();
     useGame.setState({ net: useGame.getInitialState().net });

@@ -81,7 +81,7 @@ describe('porte secrète — découverte à l’approche', () => {
     marcher(4, 2);
     expect(banc.getState().pendingTest?.sujet?.skill?.id).toBe('perception');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 1, success: true, sl: 3 } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(porteEnJeu(banc.getState().scene!, seg())).toBe(true);
     expect(banc.getState().journal).toContain(t('eff.porteSecreteTrouvee'));
   });
@@ -91,7 +91,7 @@ describe('porte secrète — découverte à l’approche', () => {
     marcher(4, 2);
     expect(banc.getState().pendingTest?.sujet?.skill?.id).toBe('perception');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false, sl: -3 } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(porteMasquee(banc.getState().scene!, seg())).toBe(true);
     expect(banc.getState().pendingTest).toBeNull();
     marcher(3, 2);

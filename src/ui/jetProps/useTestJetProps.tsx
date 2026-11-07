@@ -19,7 +19,7 @@ import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test de compétence de scène
  * (LDB 12). La situation « Test » est une cascade à une étape `jet:'test'`, rendue par `CascadeModal`
  * via ce hook (une seule fenêtre, comme l'attaque via `useAttackJetProps`). `pendingTest` reste le
- * porteur de données ; `jetConfirm('test')` (onConfirm) applique la branche réussite/échec ET ferme la cascade.
+ * porteur de données ; `jetValider('test')` (onConfirm) applique la branche réussite/échec ET ferme la cascade.
  *
  * Rendu calqué sur l'étape-jet de cascade : QUI tente le Test → PORTRAIT (jamais le nom en clair).
  *  - Plusieurs candidats : `PortraitPicker` (choix du lanceur par portrait, sélectionné mis en avant) ;
@@ -29,17 +29,17 @@ import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const pt = useGame((s) => s.pendingTest);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetRoll', 'test');
-  const reroll = useGesteDeJet('jetReroll', 'test');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'test');
-  const darkPact = useGesteDeJet('jetDarkPact', 'test');
-  const determination = useGesteDeJet('jetDetermine', 'test');
-  const forceSuccess = useGesteDeJet('jetForceSuccess', 'test');
-  const reverseVerb = useGesteDeJet('jetReverse', 'test');
+  const roll = useGesteDeJet('jetLancer', 'test');
+  const reroll = useGesteDeJet('jetRelancer', 'test');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'test');
+  const darkPact = useGesteDeJet('jetPactiser', 'test');
+  const determination = useGesteDeJet('jetDepenserLaDetermination', 'test');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'test');
+  const reverseVerb = useGesteDeJet('jetInverser', 'test');
   const regler = useGame((s) => s.jetRegler);
   const setActor = (v: ReglagesDuJet['test']['testeur']) => regler('test', 'testeur', v);
-  const resolve = useGesteDeJet('jetConfirm', 'test');
-  const cancel = useGesteDeJet('jetCancel', 'test');
+  const resolve = useGesteDeJet('jetValider', 'test');
+  const cancel = useGesteDeJet('jetAnnuler', 'test');
   if (!pt) return null;
   const rolled = pt.roll != null;
   const actor = party.find((c) => c.id === pt.actorId);

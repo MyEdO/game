@@ -404,7 +404,7 @@ export interface EtatDeJeu {
    *  les scènes + re-dérive `campaignNarratif` au chargement d'une save. null = aucun paquet chargé. */
   campaignDoc: CampaignDoc | null;
   /** Instances runtime de scène (#707) — delta capturé au départ (entités retirées, flags de porte/
-   *  structure) par `sceneId`, réappliqué au clone frais au revisit (`transitionTo`). SURVIT aux
+   *  structure) par `sceneId`, réappliqué au clone frais au revisit (`quitterLaScene`). SURVIT aux
    *  transitions (hors manifeste de reset `stateFields`, `resetOn: []`) ; vidé en nouvelle partie
    *  (`startScene`). Snapshotté via `stateFields` comme `campaignDoc`. */
   sceneInstances: Record<string, SceneMutation>;
@@ -448,17 +448,17 @@ export interface EtatDeJeu {
    *  enrôlés par `routeCounterspell`, chacun son jet (flux multi `FLOWS.counterspell`). Null = pas de réaction. */
   pendingCounterspell: PendingCounterspell | null;
   /** Test Étendu en cours (LDB 12 : DR cumulé vers une cible, ex. crochetage) : flux multi
-   *  SÉQUENTIEL — un Round à la fois (`FLOWS.extendedTest`), cumul dans `jetConfirm('extendedTest')`. */
+   *  SÉQUENTIEL — un Round à la fois (`FLOWS.extendedTest`), cumul dans `jetValider('extendedTest')`. */
   pendingExtendedTest: PendingExtendedTest | null;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2 : objet BE/B) : flux multi PARALLÈLE — chaque
-   *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `jetConfirm('forceDoor')`. */
+   *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `jetValider('forceDoor')`. */
   pendingForceDoor: PendingForceDoor | null;
   /** DÉSIGNATION d'un héros pour un état de campagne (Effet `designerHeros`, EDO 02 l.91). */
   pendingDesignationHeros: PendingDesignationHeros | null;
   /** LOT DE DÉS d'un étal (#1426) : les tirages d'ouverture d'un marché/port, posables d'un bloc. */
   pendingEtalLot: PendingEtalLot | null;
   /** CASCADE séquentielle influençable (jets de NUIT / VOYAGE) : une étape à la fois (`FLOWS.cascade`),
-   *  conséquence par `kind` + avancée du curseur dans `jetConfirm('cascade')` (`advanceCascade`, noyau/cascade.ts). */
+   *  conséquence par `kind` + avancée du curseur dans `jetValider('cascade')` (`advanceCascade`, noyau/cascade.ts). */
   pendingCascade: PendingCascade | null;
   /** Pile de cascades SUSPENDUES (`suspendActiveCascade`/`resumeSuspendedCascade`, noyau/cascade.ts) :
    *  quand un combat s'ouvre PENDANT une cascade active (ex. un abordage déclenché par l'applier d'une
@@ -479,8 +479,8 @@ export interface EtatDeJeu {
   sequence: EtatDeSequence | null;
   /** Incantation OPPOSÉE (`spec.opposed`) : chaque CIBLE oppose son Test (FM/Int) à l'incantation
    *  figée (`pendingCast.result`) — multijet DANS la modale de cast (cible IA = rangée témoin
-   *  auto-roulée, cible héros = interactive). `jetConfirm('opposition')` agrège → `pendingCast.opposedOutcome`
-   *  → `jetConfirm('cast')` applique (cible résistante = aucune op ; sinon ops à la marge). */
+   *  auto-roulée, cible héros = interactive). `jetValider('opposition')` agrège → `pendingCast.opposedOutcome`
+   *  → `jetValider('cast')` applique (cible résistante = aucune op ; sinon ops à la marge). */
   pendingCastOpposition: PendingCastOpposition | null;
   /** Télégraphe d'intention ENNEMI : réticule « qui l'adversaire vise » + manière (`kind`), montré
    *  ~0,85 s AVANT l'action. Alimente le réticule/la ligne sur la carte ET la bannière d'annonce. */

@@ -19,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * VENTE au port (`vendreLaCargaison`, dernier reliquat #275/#274) — la chaîne Ragot → acheteur →
  * Marchandage est désormais une CASCADE (`openRoll` par étape, enchaînée via `chainStep`,
  * `noyau/portFlow.ts`). Chaque test isole une branche via un `PortProfile`/parti CONTRÔLÉ (jamais un
- * `openPort` aléatoire) pour un déterminisme lisible.
+ * `ouvrirLePort` aléatoire) pour un déterminisme lisible.
  */
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
@@ -30,8 +30,8 @@ async function drain(): Promise<void> {
     const p = get().pendingCascade;
     if (p) {
       const cur = p.participants[p.cursor];
-      if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
-      get().jetConfirm('cascade');
+      if (cur && cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
+      get().jetValider('cascade');
     }
     await tick();
   }

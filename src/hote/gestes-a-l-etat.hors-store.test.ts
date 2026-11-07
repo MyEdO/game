@@ -45,14 +45,14 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
       const b = etat.battle!;
       expect(b.combatants.some((c) => c.kind !== 'hero'), 'témoin : le dome a des ennemis').toBe(true);
       const camp = (id: unknown) => b.combatants.find((c) => c.id === id)?.kind;
-      const promouvoir = argumentDe(etat, 'roundStartPromote', 'heroId');
+      const promouvoir = argumentDe(etat, 'promouvoirLeCombattant', 'heroId');
       expect(promouvoir.saisie).toBe('choix');
       expect(promouvoir.valeurs!.length, 'témoin : un héros peut agir en premier').toBeGreaterThan(0);
-      expect(promouvoir.valeurs!.map((v) => camp(v.valeur)), 'roundStartPromote offre un non-héros').toEqual(promouvoir.valeurs!.map(() => 'hero'));
+      expect(promouvoir.valeurs!.map((v) => camp(v.valeur)), 'promouvoirLeCombattant offre un non-héros').toEqual(promouvoir.valeurs!.map(() => 'hero'));
       expect(promouvoir.valeurs!.every((v) => v.libelle === b.combatants.find((c) => c.id === v.valeur)!.label)).toBe(true);
-      const preempter = argumentDe(etat, 'armPreempt', 'heroId');
+      const preempter = argumentDe(etat, 'armerLeTirPreventif', 'heroId');
       expect(preempter.saisie).toBe('choix');
-      expect(preempter.valeurs!.filter((v) => v.valeur !== null).map((v) => camp(v.valeur)), 'armPreempt offre un non-héros').toEqual(preempter.valeurs!.filter((v) => v.valeur !== null).map(() => 'hero'));
+      expect(preempter.valeurs!.filter((v) => v.valeur !== null).map((v) => camp(v.valeur)), 'armerLeTirPreventif offre un non-héros').toEqual(preempter.valeurs!.filter((v) => v.valeur !== null).map(() => 'hero'));
       expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'fenetreValider')!.rendu).toBe('bouton');
     });
   });
@@ -65,7 +65,7 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
         battle: { ...etat.battle!, over: 'victory' },
         pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }, { label: 'Humain', count: 1, creatureId: 'humain' }, { label: 'Pillard', count: 2 }], harvested: [] },
       };
-      const depecer = argumentDe(victoire, 'harvestCreature', 'creatureId');
+      const depecer = argumentDe(victoire, 'depecerLaCreature', 'creatureId');
       expect(depecer.saisie).toBe('choix');
       expect(depecer.valeurs!.map((v) => [v.valeur, v.libelle])).toEqual([['griffon', 'Griffon']]);
     });
@@ -103,10 +103,10 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
     auDebutDuRound((etat) => {
       const victoire: Jeu = { ...etat, pendingRoundStart: null, battle: { ...etat.battle!, over: 'victory' }, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] } };
       expect(lignes(argumentDe(victoire, 'fenetreChoisir@victory#ligne', 'valeur'))).toEqual(nommees);
-      expect(lignes(argumentDe(victoire, 'appraiseGear', 'uid'))).toEqual(nommees);
-      expect(lignes(argumentDe(victoire, 'appraiseGear', 'scope'))).toEqual(['choix', [['victory', t('valeur.victory')]]]);
+      expect(lignes(argumentDe(victoire, 'evaluerLeButin', 'uid'))).toEqual(nommees);
+      expect(lignes(argumentDe(victoire, 'evaluerLeButin', 'scope'))).toEqual(['choix', [['victory', t('valeur.victory')]]]);
       const sansLigne: Jeu = { ...victoire, pendingVictory: { ...victoire.pendingVictory!, gear: [] } };
-      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.cle), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['fenetreChoisir@victory#ligne', 'harvestCreature', 'appraiseGear']);
+      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.cle), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['fenetreChoisir@victory#ligne', 'depecerLaCreature', 'evaluerLeButin']);
     });
   });
 
@@ -114,7 +114,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
     auDebutDuRound((etat) => {
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear } };
       expect(lignes(argumentDe(butin, 'fenetreChoisir@loot#ligne', 'valeur'))).toEqual(nommees);
-      expect(lignes(argumentDe(butin, 'appraiseGear', 'scope'))).toEqual(['choix', [['loot', t('valeur.loot')]]]);
+      expect(lignes(argumentDe(butin, 'evaluerLeButin', 'scope'))).toEqual(['choix', [['loot', t('valeur.loot')]]]);
     });
   });
 
@@ -215,16 +215,16 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
     const partie = creerPartie({ ...garde, ...patch }, ENTREES);
     try {
       partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
-      expect(geste(partie, 'jetRoll@attack')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetLancer@attack')).toEqual({ ouvert: true, raison: null });
       expect(geste(partie, 'jetRegler@attack#localisation')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'jetSetForcedRoll@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
-      expect(geste(partie, 'jetConfirm@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
-      partie.envoyer({ type: 'jetRoll', args: ['attack'] });
-      expect(geste(partie, 'jetRoll@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
-      expect(geste(partie, 'jetCancel@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
+      expect(geste(partie, 'jetImposerLeResultat@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
+      expect(geste(partie, 'jetValider@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
+      partie.envoyer({ type: 'jetLancer', args: ['attack'] });
+      expect(geste(partie, 'jetLancer@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
+      expect(geste(partie, 'jetAnnuler@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
       expect(geste(partie, 'jetRegler@attack#localisation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
-      expect(geste(partie, 'jetSetForcedRoll@attack')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'jetConfirm@attack')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetImposerLeResultat@attack')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetValider@attack')).toEqual({ ouvert: true, raison: null });
     } finally {
       partie.fermer();
     }

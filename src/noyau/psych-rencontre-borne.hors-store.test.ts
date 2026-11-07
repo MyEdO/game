@@ -60,8 +60,8 @@ describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => 
 
     banc.getState().startScene(scene('s1', [ARAI('arai')]));
     expect(banc.getState().pendingCascade, 'précondition : la bande de Phobie s’ouvre').toBeTruthy();
-    banc.getState().jetRoll('cascadeBatch', id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascadeBatch', id);
+    banc.getState().jetValider('cascade');
     expect(banc.getState().party[0].psychState, 'précondition : le Test raté pose la Peur').toEqual([
       expect.objectContaining({ type: 'peur', sourceId: 'arai' }),
     ]);
@@ -76,8 +76,8 @@ describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => 
     banc.setState({ party: [phobique()] });
     const id = banc.getState().party[0].id;
     banc.getState().startScene(scene('s1', [ARAI('arai')]));
-    banc.getState().jetRoll('cascadeBatch', id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascadeBatch', id);
+    banc.getState().jetValider('cascade');
     const arai = C({ id: 'arai', kind: 'enemy', groups: ['bete'] });
     expect(psychDRAdjust(banc.getState().party[0], arai), 'précondition : la Peur mord dans SA rencontre').toBe(-1);
 
@@ -90,8 +90,8 @@ describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => 
     banc.setState({ party: [phobique()] });
     const id = banc.getState().party[0].id;
     banc.getState().startScene(scene('s1', [ARAI('arai')]));
-    banc.getState().jetRoll('cascadeBatch', id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascadeBatch', id);
+    banc.getState().jetValider('cascade');
     // Ré-ouverture de la porte SANS changer de rencontre (pas de startScene) : rien de neuf.
     const before = banc.getState().party[0].psychState;
     expect(before).toHaveLength(1);

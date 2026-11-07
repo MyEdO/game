@@ -1,4 +1,4 @@
-/** Entrée en scène : partie neuve (`startScene`, `loadProject`) et changement de scène (`transitionTo`). */
+/** Entrée en scène : partie neuve (`startScene`, `loadProject`) et changement de scène (`quitterLaScene`). */
 import { registerScene, sceneDuRegistre } from './monde/registreDesScenes';
 import { startOf } from './monde/scene';
 import { findFreeTile } from './monde/combatGeometry';
@@ -51,7 +51,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // Semis des Possessions de dotation (#617/#618) — ICI, jamais `loadGame` (qui restaure
       // `data.possessions` de la save) : `startScene` est le SEUL seam qui repart d'un registre
       // `possessions` vidé (le reset ci-dessus), pour toute partie neuve (créateur → campagne,
-      // devtools scenario()/campaign()) — `transitionTo`/`loadProject` (scène suivante d'un même
+      // devtools scenario()/campaign()) — `quitterLaScene`/`loadProject` (scène suivante d'un même
       // projet) n'y repassent pas, `party` déjà doté n'est jamais re-semé (garde de la fonction).
       possessionsFlow.seedStartingPossessions(get, set);
       bus.emit(EVT.SCENE_DIRTY);
@@ -82,7 +82,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
     },
     /** Transition vers une autre scène (conserve groupe, flags, inventaire, argent).
      *  `pos` force la case d'arrivée (utilisé par `transitionBack`). */
-    transitionTo: (sceneId, entry, pos) => {
+    quitterLaScene: (sceneId, entry, pos) => {
       const target = sceneDuRegistre(sceneId);
       if (!target) {
         get().log(t('store.sceneMissing', { scene: sceneId }));

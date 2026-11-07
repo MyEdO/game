@@ -47,7 +47,7 @@ function pauseTirRapide() {
   get().terminerLeTour();
   expect(get().pendingRoundStart, 'témoin : la pause de Round est ouverte').not.toBeNull();
   seedBattleRng(1);
-  get().armPreempt(H.id);
+  get().armerLeTirPreventif(H.id);
   get().snapCursorToTarget(1);
   expect(get().combatCursor?.snappedId, 'témoin : le curseur vise la cible du tireur').toBe(E.id);
   return { H, E };
@@ -120,7 +120,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
 
   it('visée Tir rapide désarmée : le changement de `preemptAiming` périme le curseur', () => {
     const { H } = pauseTirRapide();
-    get().armPreempt(H.id);
+    get().armerLeTirPreventif(H.id);
     expect(get().preemptAiming, 'témoin : la bascule a désarmé la visée').toBeNull();
     expect(get().combatCursor).toBeNull();
   });
@@ -130,7 +130,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     get().moveCursor('right');
     const pose = get().combatCursor;
     expect(pose, 'témoin : le curseur est posé').not.toBeNull();
-    get().battleArmIntent('course');
+    get().armerLIntention('course');
     useGame.setState({ battle: { ...get().battle!, movementUsed: 1 } });
     expect(get().combatCursor).toBe(pose);
   });

@@ -183,8 +183,8 @@ describe('Poursuite terrestre (#95)', () => {
     expect(band.groupOwner).toBe(true);
     const s = banc.getState();
     expect(modalOwnerOf(s)).toBe('*');
-    expect(intentAllowedFor(s, 1, 'jetRoll', ['cascadeBatch', b.id]), 'l’invité roule SA rangée').toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetRoll', ['cascadeBatch', a.id]), 'l’hôte roule la sienne').toBe(true);
+    expect(intentAllowedFor(s, 1, 'jetLancer', ['cascadeBatch', b.id]), 'l’invité roule SA rangée').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetLancer', ['cascadeBatch', a.id]), 'l’hôte roule la sienne').toBe(true);
   });
 
   it('manche gagnée par les poursuivis (poursuivants médiocres) → Distance grimpe jusqu’à l’évasion', () => {
@@ -209,7 +209,7 @@ describe('Poursuite terrestre (#95)', () => {
     expect(choix.options?.map((o) => o.key)).toEqual(['sacrifier', 'affronter']);
     // Voie « s'arrêter et les affronter » → rattrapage, poursuite close.
     banc.getState().jetRegler('cascade', 'choix', 'affronter', choix.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(pursuitOf(banc.getState())).toBeNull();
     expect(banc.getState().journal.some((l) => l.includes('Rattrapés'))).toBe(true);
   });
@@ -305,7 +305,7 @@ describe('Poursuite terrestre (#95)', () => {
     const bande = () => banc.getState().pendingCascade!.participants[0].participants!;
     const jouables = bande().filter((r) => r.interactive !== false);
     expect(jouables.length, 'deux héros, deux rangées à jouer').toBe(2);
-    banc.getState().jetRoll('cascadeBatch', jouables[0].id);
+    banc.getState().jetLancer('cascadeBatch', jouables[0].id);
     expect(sequenceAbandonOf(banc.getState)).toBeNull();
     banc.getState().jetRegler('cascade', 'abandon', true);
     expect(pursuitOf(banc.getState()), 'la poursuite continue').not.toBeNull();

@@ -113,7 +113,7 @@ describe('Poursuite — l’exemple canonique du Source (LDB 15 l.98-102)', () =
     const choix = banc.getState().pendingCascade!.participants[0];
     expect(choix.options?.map((o) => o.key)).toEqual([`arreter:${sigrid.id}`, `arreter:${eichengard.id}`, 'ignorer']);
     banc.getState().jetRegler('cascade', 'choix', `arreter:${sigrid.id}`, choix.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
 
     const p = pursuitOf(banc.getState())!;
     // (d) l'étape 3 rejouée sans le sacrifié : 2 − 3 = −1 sur la Distance d'AVANT la manche → 1.
@@ -146,7 +146,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
     closeSequenceRound(banc.getState, banc.setState, doneRound([{ id: a.id, sl: -6 }, { id: b.id, sl: 2 }, { id: c.id, sl: 3 }]));
     const choix = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetRegler('cascade', 'choix', 'sacrifier', choix.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
 
     const p = pursuitOf(banc.getState())!;
     expect(p.retires, 'le sacrifié quitte le pool des coureurs').toEqual([a.id]);
@@ -168,7 +168,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
     // le retrait du poursuivant arrêté observable dans l'état.
     closeSequenceRound(banc.getState, banc.setState, doneRound([{ id: a.id, sl: -6 }, { id: b.id, sl: 12 }, { id: c.id, sl: 13 }]));
     banc.getState().jetRegler('cascade', 'choix', 'sacrifier', banc.getState().pendingCascade!.participants[0].id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const p = pursuitOf(banc.getState())!;
     expect(p.foes.map((f) => f.label), 'le poursuivant le plus lent quitte la chasse').toEqual(['Cavalier vif']);
     expect(banc.getState().journal.some((l) => l.includes('Trainard s’arrête pour affronter Alix'))).toBe(true);
@@ -186,7 +186,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
     });
     closeSequenceRound(banc.getState, banc.setState, doneRound([{ id: a.id, sl: -6 }, { id: b.id, sl: 2 }, { id: c.id, sl: 3 }]));
     banc.getState().jetRegler('cascade', 'choix', 'sacrifier', banc.getState().pendingCascade!.participants[0].id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const p = pursuitOf(banc.getState())!;
     expect(p.foes, 'aucun poursuivant ne s’arrête pour un retardataire sans intérêt').toHaveLength(1);
     expect(p.retires).toEqual([a.id]);
@@ -210,7 +210,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
     const choix = banc.getState().pendingCascade!.participants[0];
     expect(choix.options?.map((o) => o.key)).toEqual([`arreter:${a.id}`, `arreter:${b.id}`, `arreter:${c.id}`, 'ignorer']);
     banc.getState().jetRegler('cascade', 'choix', `arreter:${b.id}`, choix.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const apres = pursuitOf(banc.getState())!;
     expect(apres.retires, 'le héros qui s’arrête quitte la course').toEqual([b.id]);
     expect(apres.foes.map((f) => f.label), 'le sacrifié quitte le pool des fuyards').toEqual(['Voleur agile']);

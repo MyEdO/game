@@ -57,8 +57,8 @@ describe('Incantation en coop : la même fenêtre des deux côtés, le choix au 
     guest.connect(b);
     castSpell(banc.getState, banc.setState, lanceurEnCombat, lanceurEnCombat, 'arme-aethyrique');
     expect(banc.getState().pendingCast, 'chemin : l’incantation du héros de l’invité s’ouvre chez l’hôte').toMatchObject({ casterId: L.id, result: null });
-    guest.sendIntent('jetRoll', ['cast']);
-    guest.sendIntent('jetSetForcedRoll', ['cast', 11]);
+    guest.sendIntent('jetLancer', ['cast']);
+    guest.sendIntent('jetImposerLeResultat', ['cast', 11]);
     expect(banc.getState().pendingCast!.result, 'chemin : le jet de l’invité est tombé chez l’hôte, au Critique').toMatchObject({ isCritical: true });
     host.broadcastSnapshot();
     const chezLInvite = appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('guest', 1, L.id) }).etat;

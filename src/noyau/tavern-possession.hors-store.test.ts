@@ -36,7 +36,7 @@ beforeEach(() => {
 describe('#1279 S1 — la manche héros-vs-héros appartient AUX DEUX sièges', () => {
   it('Bras de fer : une BANDE de deux rangées À JOUER, une fenêtre PARTAGÉE', () => {
     const [a, b] = deuxSieges();
-    g().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
+    g().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
 
     const step = g().pendingCascade!.participants[0];
     expect(step.kind).toBe('tavern-round');
@@ -55,7 +55,7 @@ describe('#1279 S1 — la manche héros-vs-héros appartient AUX DEUX sièges', 
 
   it('contre la SALLE (adversaire abstrait), la manche reste MONO : un seul porteur, un seul siège', () => {
     const [a] = deuxSieges();
-    g().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    g().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
 
     const step = g().pendingCascade!.participants[0];
     expect(step.participants, 'aucune bande : personne d’autre ne joue').toBeUndefined();

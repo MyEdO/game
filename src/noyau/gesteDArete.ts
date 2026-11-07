@@ -385,7 +385,7 @@ export function reglagesDeFranchissement(get: Get, set: Set) {
   } satisfies Pick<CorpsDesReglages, 'fall'>;
 }
 
-/** Les clôtures du franchissement (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+/** Les clôtures du franchissement (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
 export function cloturesDeFranchissement(get: Get, set: Set) {
   return {
     fall: () => settleFall(get, set, garanti(get().pendingFall, 'fall', 'chute ouverte')),

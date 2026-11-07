@@ -1,18 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import {
   addPossession,
-  renamePossession,
+  renommerLaPossession,
   transferPossession,
-  stablePossession,
-  retrievePossession,
-  embark,
-  disembark,
-  abandonPossession,
+  remiserLaPossession,
+  recupererLaPossession,
+  embarquer,
+  debarquer,
+  cederLaPossession,
   learnPossessionTrait,
   possessionsByOwner,
   possessionsByLocation,
 } from './possessionsFlow';
-import { partyRemoveHero } from './partyFlow';
+import { renvoyerLeHeros } from './partyFlow';
 import { creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import type { Possession } from '../engine/possession';
@@ -112,10 +112,10 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
     expect(uid3).toBe('pos-3'); // scanne le MAX (pos-2), pas un compteur qui réutiliserait pos-1
   });
 
-  it('renamePossession pose le label d’instance', () => {
+  it('renommerLaPossession pose le label d’instance', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
-    renamePossession(get, set, uid, 'Marguerite');
+    renommerLaPossession(get, set, uid, 'Marguerite');
     expect(get().possessions.find((p) => p.uid === uid)?.label).toBe('Marguerite');
   });
 
@@ -126,56 +126,56 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
     expect(get().possessions.find((p) => p.uid === uid)?.ownerId).toBe('h2');
   });
 
-  it('stablePossession → au-lieu, retrievePossession → avec-le-groupe', () => {
+  it('remiserLaPossession → au-lieu, recupererLaPossession → avec-le-groupe', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
-    stablePossession(get, set, uid);
+    remiserLaPossession(get, set, uid);
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'au-lieu', placeId: 'lieu-1' });
-    retrievePossession(get, set, uid);
+    recupererLaPossession(get, set, uid);
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'avec-le-groupe' });
   });
 
-  it('embark → embarquee sur hostUid, disembark → avec-le-groupe', () => {
+  it('embarquer → embarquee sur hostUid, debarquer → avec-le-groupe', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
     const hostUid = addPossession(get, set, barge('h1'));
-    embark(get, set, uid, hostUid);
+    embarquer(get, set, uid, hostUid);
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'embarquee', hostUid });
-    disembark(get, set, uid);
+    debarquer(get, set, uid);
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'avec-le-groupe' });
   });
 
-  it('embark refuse un hôte introuvable — no-op (registre incohérent)', () => {
+  it('embarquer refuse un hôte introuvable — no-op (registre incohérent)', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
-    embark(get, set, uid, 'pos-inexistant');
+    embarquer(get, set, uid, 'pos-inexistant');
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'avec-le-groupe' });
   });
 
-  it('embark refuse navire sur navire — nature incompatible (§5)', () => {
+  it('embarquer refuse navire sur navire — nature incompatible (§5)', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     const uidA = addPossession(get, set, barge('h1'));
     const uidB = addPossession(get, set, barge('h1'));
-    embark(get, set, uidA, uidB);
+    embarquer(get, set, uidA, uidB);
     expect(get().possessions.find((p) => p.uid === uidA)?.location).toEqual({ kind: 'avec-le-groupe' });
   });
 
-  it('embark refuse si la capacité libre de l’hôte est dépassée', () => {
+  it('embarquer refuse si la capacité libre de l’hôte est dépassée', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     // barge → capacité 300 Enc (MDG 12) ; une charrette (véhicule) pèse 10 (own) + son cargo.
     const hostUid = addPossession(get, set, barge('h1'));
     const idA = addPossession(get, set, vehicule('h1', 'charrette', [{ uid: 'lot-1', cargoId: 'grain', enc: 280, basePriceGold: 1 }]));
-    embark(get, set, idA, hostUid);
+    embarquer(get, set, idA, hostUid);
     expect(get().possessions.find((p) => p.uid === idA)?.location).toEqual({ kind: 'embarquee', hostUid });
     const idB = addPossession(get, set, vehicule('h1', 'chariot-leger'));
-    embark(get, set, idB, hostUid); // 290 (charrette 10+280) déjà + 30 (chariot-leger) > 300
+    embarquer(get, set, idB, hostUid); // 290 (charrette 10+280) déjà + 30 (chariot-leger) > 300
     expect(get().possessions.find((p) => p.uid === idB)?.location).toEqual({ kind: 'avec-le-groupe' });
   });
 
-  it('abandonPossession pose destroyed=true (la confirmation reste côté appelant)', () => {
+  it('cederLaPossession pose destroyed=true (la confirmation reste côté appelant)', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
-    abandonPossession(get, set, uid);
+    cederLaPossession(get, set, uid);
     expect(get().possessions.find((p) => p.uid === uid)?.destroyed).toBe(true);
   });
 
@@ -200,32 +200,32 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     const uid1 = addPossession(get, set, mule('h1'));
     addPossession(get, set, { ...mule('h1'), location: { kind: 'au-lieu', placeId: 'l1' } });
-    abandonPossession(get, set, uid1);
+    cederLaPossession(get, set, uid1);
     expect(possessionsByLocation(get, 'avec-le-groupe')).toHaveLength(0); // uid1 détruite, exclue
     expect(possessionsByLocation(get, 'au-lieu')).toHaveLength(1);
   });
 });
 
 describe('possessionsFlow — succession à la sortie de groupe (#615 §6/§19 décision №3)', () => {
-  it('partyRemoveHero transfère les possessions du partant au doyen restant', () => {
+  it('renvoyerLeHeros transfère les possessions du partant au doyen restant', () => {
     const h1 = makeHero('h1');
     const h2 = makeHero('h2');
     const { get, set } = makeHarness([h1, h2]);
     const uidA = addPossession(get, set, mule('h1'));
     const uidB = addPossession(get, set, mule('h1'));
-    partyRemoveHero(get, set, 'h1');
+    renvoyerLeHeros(get, set, 'h1');
     expect(get().possessions.find((p) => p.uid === uidA)?.ownerId).toBe('h2');
     expect(get().possessions.find((p) => p.uid === uidB)?.ownerId).toBe('h2');
     expect(get().party.map((h) => h.id)).toEqual(['h2']);
   });
 
-  it('partyRemoveHero transfère la Bourse du partant au doyen — jamais perdue', () => {
+  it('renvoyerLeHeros transfère la Bourse du partant au doyen — jamais perdue', () => {
     const h1 = makeHero('h1');
     const h2 = makeHero('h2');
     const { get, set } = makeHarness([h1, h2]);
     creditBourse(get, set, 'h1', { gold: 5, silver: 0, brass: 0 });
     creditBourse(get, set, 'h2', { gold: 1, silver: 0, brass: 0 });
-    partyRemoveHero(get, set, 'h1');
+    renvoyerLeHeros(get, set, 'h1');
     const heir = get().party.find((h) => h.id === 'h2')!;
     expect(bourseOf(heir)).toEqual({ gold: 6, silver: 0, brass: 0 });
   });
@@ -235,7 +235,7 @@ describe('possessionsFlow — succession à la sortie de groupe (#615 §6/§19 d
     const { get, set } = makeHarness([h1]);
     addPossession(get, set, mule('h1'));
     creditBourse(get, set, 'h1', { gold: 3, silver: 0, brass: 0 });
-    expect(() => partyRemoveHero(get, set, 'h1')).not.toThrow();
+    expect(() => renvoyerLeHeros(get, set, 'h1')).not.toThrow();
     expect(get().party).toHaveLength(0);
     // aucun héritier vivant : la possession du partant reste sur lui (pas d'orphelin fabriqué,
     // pas de perte silencieuse — le partant quitte le groupe avec son bien).
@@ -249,7 +249,7 @@ describe('possessionsFlow — succession à la sortie de groupe (#615 §6/§19 d
     const { get, set } = makeHarness([anna, bruno, victime]);
     const uid = addPossession(get, set, mule('victime'));
     creditBourse(get, set, 'victime', { gold: 4, silver: 0, brass: 0 });
-    partyRemoveHero(get, set, 'victime');
+    renvoyerLeHeros(get, set, 'victime');
     expect(get().possessions.find((p) => p.uid === uid)?.ownerId).toBe('bruno');
     const heirBruno = get().party.find((h) => h.id === 'bruno')!;
     const morteAnna = get().party.find((h) => h.id === 'anna')!;
@@ -263,7 +263,7 @@ describe('possessionsFlow — succession à la sortie de groupe (#615 §6/§19 d
     const { get, set } = makeHarness([anna, victime]);
     const uid = addPossession(get, set, mule('victime'));
     creditBourse(get, set, 'victime', { gold: 2, silver: 0, brass: 0 });
-    expect(() => partyRemoveHero(get, set, 'victime')).not.toThrow();
+    expect(() => renvoyerLeHeros(get, set, 'victime')).not.toThrow();
     expect(get().possessions.find((p) => p.uid === uid)?.ownerId).toBe('victime');
   });
 });

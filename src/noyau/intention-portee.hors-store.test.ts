@@ -178,7 +178,7 @@ describe('(d) COOP : l’intention est LOCALE au client', () => {
   });
 
   it('l’ARMEMENT n’est pas un intent réseau (seul le COMMIT du geste en est un)', () => {
-    expect(GUEST_INTENTS).not.toContain('battleArmIntent');
+    expect(GUEST_INTENTS).not.toContain('armerLIntention');
     // Le commit, lui, passe par les portes de clic déjà exposées.
     expect(GUEST_INTENTS).toContain('cliquerLaCase');
   });

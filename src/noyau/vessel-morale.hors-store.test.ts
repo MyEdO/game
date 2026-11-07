@@ -95,7 +95,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(toBrass({ gold: 5, silver: 0, brass: 0 })); // bourse intacte
   });
 
-  it('halte de nuit (openRest puis la validation du repos) franchissant la semaine → le bilan de paie ne se journalise QU’UNE FOIS', () => {
+  it('halte de nuit (ouvrirLeRepos puis la validation du repos) franchissant la semaine → le bilan de paie ne se journalise QU’UNE FOIS', () => {
     // Repro #216 : trois écritures indépendantes du MÊME bilan (upkeep.ts, buildNightCascade,
     // fenetreValider('rest')) écrivaient chacune le journal — l'Argent ne bougeait qu'une fois (garde hebdo
     // interne à `tickCampaignVesselWeek`), mais le texte apparaissait ×3 à l'écran.
@@ -105,7 +105,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
     });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 10, silver: 0, brass: 0 });
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
+    banc.getState().ouvrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().fenetreValider('rest');
     const wageLines = banc.getState().journal.filter((l) => l.includes('Solde hebdomadaire'));
     expect(wageLines).toHaveLength(1);

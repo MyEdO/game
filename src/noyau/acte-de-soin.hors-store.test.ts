@@ -1,5 +1,5 @@
 /**
- * ACTE DE SOIN DE L'INFIRMERIE (#3059 L3) : le geste `medicAct` lit en tête le verdict `refusDActeDeSoin`
+ * ACTE DE SOIN DE L'INFIRMERIE (#3059 L3) : le geste `soignerLePatient` lit en tête le verdict `refusDActeDeSoin`
  * (`medicFlow.ts`) — un acte qu'il refuse se DIT (`refuserGesteDuSiege`, journal hors combat), au siège
  * qui a agi ; un acte que le verdict ouvre s'arme ou pose son jet. Une raison par cas, oracle littéral.
  */
@@ -41,10 +41,10 @@ function poser(party: Combatant[], medic: Partial<{ npc: MedicNpc; surgery: unkn
 }
 const dernierRefus = () => banc.getState().journal[banc.getState().journal.length - 1];
 
-describe('medicAct lit refusDActeDeSoin', () => {
+describe('soignerLePatient lit refusDActeDeSoin', () => {
   it('Hémorragie verrouillée par Chirurgie, chirurgien présent : « Opérer » arme l’opération', () => {
     poser([chirurgien(), saignant({ conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })]);
-    banc.getState().medicAct('surgery');
+    banc.getState().soignerLePatient('surgery');
     expect(banc.getState().medic?.surgery?.kind).toBe('surgery');
     expect(banc.getState().medic?.surgery?.healerId).toBe('doc');
     expect(banc.getState().journal).toEqual([]);
@@ -52,71 +52,71 @@ describe('medicAct lit refusDActeDeSoin', () => {
 
   it('PNJ à 5 co, bourse vide : refusé, dit « Le groupe n’a pas assez d’argent pour cet acte. »', () => {
     poser([hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(12, 4) })], { npc: BARBIER });
-    banc.getState().medicAct('wounds');
+    banc.getState().soignerLePatient('wounds');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(dernierRefus()).toBe('Le groupe n’a pas assez d’argent pour cet acte.');
   });
 
   it('jet posé : refusé, dit « Un jet de soin est déjà posé. »', () => {
     poser([hero({ id: 'doc' }), saignant()]);
-    banc.getState().medicAct('bleed');
+    banc.getState().soignerLePatient('bleed');
     const pose = banc.getState().pendingHeal;
     expect(pose?.mode).toBe('bleed');
-    banc.getState().medicAct('bleed');
+    banc.getState().soignerLePatient('bleed');
     expect(banc.getState().pendingHeal).toBe(pose);
     expect(dernierRefus()).toBe('Un jet de soin est déjà posé.');
   });
 
   it('opération en cours : la Chirurgie refusée, dit « Une opération est en cours. »', () => {
     poser([chirurgien(), saignant({ conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })]);
-    banc.getState().medicAct('surgery');
+    banc.getState().soignerLePatient('surgery');
     const armee = banc.getState().medic?.surgery;
-    banc.getState().medicAct('surgery');
+    banc.getState().soignerLePatient('surgery');
     expect(banc.getState().medic?.surgery).toBe(armee);
     expect(dernierRefus()).toBe('Une opération est en cours.');
   });
 
   it('Rééducation sans Aide Médicale : refusée, dit « Aide Médicale requise avant de rééduquer le membre. »', () => {
     poser([hero({ id: 'doc' }), hero({ id: 'p', label: 'Patient', skills: [], traumas: [{ uid: 't1', label: 'Épaule luxée', location: 'brasD', targetDR: 6, awaitingMedicalAid: true, ops: [] }] })]);
-    banc.getState().medicAct('recovery');
+    banc.getState().soignerLePatient('recovery');
     expect(banc.getState().medic?.surgery).toBeUndefined();
     expect(dernierRefus()).toBe('Aide Médicale requise avant de rééduquer le membre.');
   });
 
   it('offre du PNJ absente : refusée, dit « Barbier ne propose pas cet acte. »', () => {
     poser([saignant()], { npc: BARBIER });
-    banc.getState().medicAct('bleed');
+    banc.getState().soignerLePatient('bleed');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(dernierRefus()).toBe('Barbier ne propose pas cet acte.');
   });
 
   it('aucun chirurgien au groupe : la Chirurgie refusée, dit « Aucun soigneur du groupe n’a le Talent Chirurgie. »', () => {
     poser([hero({ id: 'doc' }), saignant({ conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })]);
-    banc.getState().medicAct('surgery');
+    banc.getState().soignerLePatient('surgery');
     expect(banc.getState().medic?.surgery).toBeUndefined();
     expect(dernierRefus()).toBe('Aucun soigneur du groupe n’a le Talent Chirurgie.');
   });
 
   it('aucun soigneur au groupe : refusé, dit « Aucun membre du groupe ne peut tenter un Test de Guérison. »', () => {
     poser([saignant()]);
-    banc.getState().medicAct('bleed');
+    banc.getState().soignerLePatient('bleed');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(dernierRefus()).toBe('Aucun membre du groupe ne peut tenter un Test de Guérison.');
   });
 
   it('raison du patient : Blessures pleines, dit « Blessures au maximum »', () => {
     poser([hero({ id: 'doc' }), saignant()]);
-    banc.getState().medicAct('wounds');
+    banc.getState().soignerLePatient('wounds');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(dernierRefus()).toBe('Blessures au maximum');
   });
 
   it('passe de Chirurgie posée : Bander refusé, dit « Un jet de soin est déjà posé. »', () => {
     poser([chirurgien(), saignant({ wounds: blessuresDeBase(12, 6), conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })]);
-    banc.getState().medicAct('surgery');
-    banc.getState().openSurgeryPass();
+    banc.getState().soignerLePatient('surgery');
+    banc.getState().ouvrirLaChirurgie();
     expect(banc.getState().pendingSurgery).not.toBeNull();
-    banc.getState().medicAct('wounds');
+    banc.getState().soignerLePatient('wounds');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(dernierRefus()).toBe('Un jet de soin est déjà posé.');
   });
@@ -125,7 +125,7 @@ describe('medicAct lit refusDActeDeSoin', () => {
     const p = saignant({ wounds: blessuresDeBase(12, 4), conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] });
     poser([p], { npc: BARBIER });
     creditBourse(banc.getState, banc.setState, 'p', { gold: 5, silver: 0, brass: 0 });
-    banc.getState().medicAct('wounds');
+    banc.getState().soignerLePatient('wounds');
     expect(banc.getState().pendingHeal?.mode).toBe('wounds');
     banc.getState().jetRegler('heal', 'mode', 'bleed');
     banc.getState().jetRegler('heal', 'mode', 'surgery');
@@ -136,7 +136,7 @@ describe('medicAct lit refusDActeDeSoin', () => {
   it('coop : l’acte refusé d’un invité ne se dit pas au journal de l’hôte', () => {
     poser([hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(12, 4) })], { npc: BARBIER });
     banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { p: 1 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } } } as never);
-    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'medicAct', ['wounds'])).toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'soignerLePatient', ['wounds'])).toBe('appliquee');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().journal).toEqual([]);
   });

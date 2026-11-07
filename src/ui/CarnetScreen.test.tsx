@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /** Carnet d'enquête (#670) — contrats POSITIFS : un indice absent de `clues` reste caché, une fausse
- *  piste (`statut: 'réfuté'`) reste lisible avec son marqueur, l'épingle route vers `toggleCluePin`,
+ *  piste (`statut: 'réfuté'`) reste lisible avec son marqueur, l'épingle route vers `epinglerLIndice`,
  *  et l'état vide s'affiche sans indice découvert. */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
@@ -105,16 +105,16 @@ describe('CarnetScreen — rendu (#670)', () => {
     expect(txt).toContain('Fausse piste');
   });
 
-  it('le bouton d’épingle appelle `toggleCluePin` avec l’id de l’indice', async () => {
-    const toggleCluePin = vi.fn();
-    useGame.setState({ campaignNarratif: narratif, clues: cluesUnSeulRévélé, toggleCluePin });
+  it('le bouton d’épingle appelle `epinglerLIndice` avec l’id de l’indice', async () => {
+    const epinglerLIndice = vi.fn();
+    useGame.setState({ campaignNarratif: narratif, clues: cluesUnSeulRévélé, epinglerLIndice });
     await mount();
     const pin = Array.from(container.querySelectorAll('button.chip')).find((el) =>
       el.textContent?.includes('Épingler'),
     ) as HTMLButtonElement;
     expect(pin).toBeTruthy();
     await act(async () => pin.click());
-    expect(toggleCluePin).toHaveBeenCalledWith('ind-1');
+    expect(epinglerLIndice).toHaveBeenCalledWith('ind-1');
   });
 
   it('état vide : aucun indice découvert affiche le message dédié', async () => {

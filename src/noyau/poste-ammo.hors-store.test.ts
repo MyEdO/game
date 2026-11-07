@@ -83,7 +83,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     expect(volley[0].weapon.qualities.some((q) => q.id === 'percutante')).toBe(true); // munition bakée
   });
 
-  it('bordée jouable : la munition du poste est CONSOMMÉE au « Feu ! » (jetConfirm@shipBattery)', () => {
+  it('bordée jouable : la munition du poste est CONSOMMÉE au « Feu ! » (jetValider@shipBattery)', () => {
     seedBattleRng(7);
     const boulet = ammoItem('boulet', 'Boulet et poudre', 2);
     const poste = mkPoste([boulet], 'boulet');
@@ -97,8 +97,8 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     });
     banc.getState().battleShipBattery('ship', 'target');
     const p = banc.getState().pendingShipBattery!;
-    for (const part of p.participants) banc.getState().jetRoll('shipBattery', part.id);
-    banc.getState().jetConfirm('shipBattery');
+    for (const part of p.participants) banc.getState().jetLancer('shipBattery', part.id);
+    banc.getState().jetValider('shipBattery');
     expect(poste.ammo![0].qty).toBe(1); // 2 → 1 : un boulet parti avec la bordée
   });
 
@@ -126,7 +126,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     // doublé pour le rôle essentiel → Test d'équipage raté quels que soient le Moral et la graine.
     const p = banc.getState().pendingShipBattery!;
     banc.setState({ pendingShipBattery: { ...p, participants: p.participants.map((x) => ({ ...x, result: { roll: 95, target: 55, sl: -4 } })) } } as never);
-    banc.getState().jetConfirm('shipBattery');
+    banc.getState().jetValider('shipBattery');
 
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'target')!.wounds.current).toBe(before); // aucune Blessure
     expect(poste.loaded).toBe(false); // … mais la pièce a fait feu : déchargée
@@ -148,7 +148,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
       party: crew, facing: { ship: 'N' }, pendingShipBattery: null, pendingReload: null, scene: null as never,
     });
 
-  it('setPosteAmmo sur une pièce CHARGÉE la décharge (le chef perd son gate de tir), sans rien détruire', () => {
+  it('approvisionnerLaPiece sur une pièce CHARGÉE la décharge (le chef perd son gate de tir), sans rien détruire', () => {
     const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
     const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 3);
     const poste = mkPoste([boulet, mitraille], 'boulet');
@@ -158,7 +158,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     expect(poste.loadedAmmoUid).toBe('boulet');
     mkBattle(hull, [chef, mkCrew('aide')], ['ship']);
 
-    banc.getState().setPosteAmmo('ship', 'canon', 'mitraille');
+    banc.getState().approvisionnerLaPiece('ship', 'canon', 'mitraille');
 
     expect(poste.loaded).toBe(false);            // le coup au boulet n'est plus là
     expect(poste.loadedAmmoUid).toBeUndefined();
@@ -168,14 +168,14 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     expect(poste.ammoUid).toBe('mitraille');     // la sélection dit « à charger »
   });
 
-  it('setPosteAmmo sur la munition DÉJÀ chargée : sans effet (aucun rechargement imposé)', () => {
+  it('approvisionnerLaPiece sur la munition DÉJÀ chargée : sans effet (aucun rechargement imposé)', () => {
     const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     serveChef(chef, poste);
     mkBattle(mkHull(poste), [chef], ['ship']);
 
-    banc.getState().setPosteAmmo('ship', 'canon', 'boulet');
+    banc.getState().approvisionnerLaPiece('ship', 'canon', 'boulet');
 
     expect(poste.loaded).toBe(true);
     expect(poste.loadedAmmoUid).toBe('boulet');
@@ -200,7 +200,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     // Jet FORCÉ à la réussite franche (le dé n'est pas l'objet du test, la CAPTURE l'est) : le Test étendu aboutit.
     const pr = banc.getState().pendingReload!;
     banc.setState({ pendingReload: { ...pr, roll: 5, sl: 20, success: true } });
-    banc.getState().jetConfirm('reload');
+    banc.getState().jetValider('reload');
     expect(poste.loaded).toBe(true);
     expect(poste.loadedAmmoUid).toBe('mitraille');
 

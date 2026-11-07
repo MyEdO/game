@@ -152,9 +152,9 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
   });
 });
 
-// (D) RECHARGE — Test étendu (`rechargerLaPiece` → `jetConfirm('reload')`) recharge la pièce AU SOL, kind-agnostique,
+// (D) RECHARGE — Test étendu (`rechargerLaPiece` → `jetValider('reload')`) recharge la pièce AU SOL, kind-agnostique,
 //     sans coque ni merScale.
-describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (rechargerLaPiece/jetConfirm@reload)', () => {
+describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (rechargerLaPiece/jetValider@reload)', () => {
   const setup = () => {
     const item = itemFromTrappingById('baliste')!; // Recharge 3, Indice 2
     const poste: ShipPoste = { item, crewIds: ['chef', 's1'], loaded: false, reloadProgress: 2 };
@@ -183,8 +183,8 @@ describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (rech
     seedBattleRng(1); // CT 80 → réussite, DR ≥ 1 → 2 + DR ≥ 3 → rechargée
     const { item } = setup();
     banc.getState().rechargerLaPiece('emplacement', item.uid);
-    banc.getState().jetRoll('reload');
-    banc.getState().jetConfirm('reload');
+    banc.getState().jetLancer('reload');
+    banc.getState().jetValider('reload');
     const st = banc.getState();
     const poste = st.battle!.combatants.find((c) => c.id === 'emplacement')!.postes![0];
     expect(poste.loaded).toBe(true);

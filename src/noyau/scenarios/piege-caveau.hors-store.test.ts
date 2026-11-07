@@ -82,7 +82,7 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
     expect(lame!.qualities.map((q) => q.id)).toContain('precise');
     expect(lame!.identified).toBe(false);
     // tenue en main (loadout actif) → elle devient une arme JOUABLE, qualité Précise comprise
-    banc.getState().setLoadoutSlot(heroId, hero.activeLoadoutId!, 'main', lame!.uid);
+    banc.getState().garnirLaPanoplie(heroId, hero.activeLoadoutId!, 'main', lame!.uid);
     const armed = banc.getState().party.find((h) => h.id === heroId)!;
     const w = armed.weapons.find((x) => x.uid === lame!.uid);
     expect(w).toBeDefined();

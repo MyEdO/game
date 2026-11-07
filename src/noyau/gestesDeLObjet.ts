@@ -1,8 +1,8 @@
 /**
  * LES GESTES D'UN OBJET (#3328) — ce qu'un porteur peut faire d'un de ses objets depuis sa fiche, chaque geste écrit en
- * verbe du noyau, et ce qui le ferme maintenant : le porter (`toggleEquip`), le tenir dans une main du set actif
- * (`setLoadoutSlot`), le ranger dans un contenant ou l'en sortir (`stowItem`), le donner à un porteur à ses côtés
- * (`transferItem`), l'utiliser (`utiliserLObjet`), l'évaluer ou le détecter (`appraiseItem`). Chaque refus est le verdict
+ * verbe du noyau, et ce qui le ferme maintenant : le porter (`equiperLObjet`), le tenir dans une main du set actif
+ * (`garnirLaPanoplie`), le ranger dans un contenant ou l'en sortir (`rangerLObjet`), le donner à un porteur à ses côtés
+ * (`transmettreLObjet`), l'utiliser (`utiliserLObjet`), l'évaluer ou le détecter (`evaluerLObjet`). Chaque refus est le verdict
  * que le verbe applique. Lecteur PUR, lu par la fiche web (`ui/CarrierInventory`, `ui/CharacterSheet`) et par les
  * hôtes du noyau (`hote/ecran.ts`).
  */
@@ -74,20 +74,20 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
   const main = (slot: 'main' | 'off'): MainDuSet => {
     const tenue = set![slot] === uid;
     const vise = tenue ? null : uid;
-    return { tenue, geste: { verbe: 'setLoadoutSlot', args: [porteurId, set!.id, slot, vise] }, refus: refusEmplacementDeMain(s, hero!, set!.id, slot, vise) };
+    return { tenue, geste: { verbe: 'garnirLaPanoplie', args: [porteurId, set!.id, slot, vise] }, refus: refusEmplacementDeMain(s, hero!, set!.id, slot, vise) };
   };
   const inconnu = hero && it.identified === false;
   return {
-    porter: isWearable(it) && !consommable ? { ...sur('toggleEquip', [porteurId, uid]), porte: it.equipped } : null,
+    porter: isWearable(it) && !consommable ? { ...sur('equiperLObjet', [porteurId, uid]), porte: it.equipped } : null,
     mains: set ? { set: set.id, main: main('main'), off: main('off') } : null,
-    ranger: contenants.length ? { refus: verrou, choix: contenants.map((c) => ({ cible: c, libelle: itemLabel(c), geste: { verbe: 'stowItem', args: [porteurId, uid, c.uid] } })) } : null,
-    sortir: it.inside ? sur('stowItem', [porteurId, uid, null]) : null,
+    ranger: contenants.length ? { refus: verrou, choix: contenants.map((c) => ({ cible: c, libelle: itemLabel(c), geste: { verbe: 'rangerLObjet', args: [porteurId, uid, c.uid] } })) } : null,
+    sortir: it.inside ? sur('rangerLObjet', [porteurId, uid, null]) : null,
     donner: porteurs.length ? { refus: verrou, choix: porteurs.map((c) => {
       const [id, libelle] = porteurDit(c);
-      return { cible: c, libelle, geste: { verbe: 'transferItem', args: [uid, porteurId, id] } };
+      return { cible: c, libelle, geste: { verbe: 'transmettreLObjet', args: [uid, porteurId, id] } };
     }) } : null,
     utiliser: hero && consommable ? sur('utiliserLObjet', [porteurId, uid], refusDeConsommer(hero, it)) : null,
-    evaluer: inconnu && it.appraiseTriedDay !== gameDay(s) ? sur('appraiseItem', [uid, porteurId], appraiseRefus(s.party)) : null,
-    detecter: inconnu && !it.detectTried ? sur('appraiseItem', [uid, porteurId, 'detect'], appraiseRefus(s.party, 'detect')) : null,
+    evaluer: inconnu && it.appraiseTriedDay !== gameDay(s) ? sur('evaluerLObjet', [uid, porteurId], appraiseRefus(s.party)) : null,
+    detecter: inconnu && !it.detectTried ? sur('evaluerLObjet', [uid, porteurId, 'detect'], appraiseRefus(s.party, 'detect')) : null,
   };
 }

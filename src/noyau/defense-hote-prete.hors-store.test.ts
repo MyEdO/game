@@ -51,9 +51,9 @@ function setup(seed: number) {
 function jusquALaChaineDestabilisee(seed: number): boolean {
   const { tireur, ours } = setup(seed);
   if (!maybeOpenDefense(g, banc.setState, ours, tireur, undefined, undefined, ours.chargedThisTurn)) return false;
-  g().jetRoll('defense');
+  g().jetLancer('defense');
   if (!g().pendingDefense?.result?.hit) return false;
-  g().jetConfirm('defense');
+  g().jetValider('defense');
   const s = g();
   if (s.pendingDefense?.suite.mode !== 'machine' || s.pendingDefense.suite.coup.enchainement?.mode !== 'chaine') return false;
   return (s.pendingCascade?.participants ?? []).some((p) => p.kind === 'triggeredTest');
@@ -75,7 +75,7 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
       jusquALaDefense();
       expect(etapeCourante()?.jet, `graine ${seed}`).toBe('defense');
       const pd = g().pendingDefense;
-      g().jetConfirm('cascade');
+      g().jetValider('cascade');
       expect(g().pendingDefense, `graine ${seed} : la défense du maillon vit`).toBe(pd);
       expect(etapeCourante()?.jet, `graine ${seed} : le curseur reste sur la défense`).toBe('defense');
       expect(pickActiveModalKey(g()), `graine ${seed}`).toBe('cascade');
@@ -88,7 +88,7 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
     for (let seed = 1; seed <= 6; seed++) {
       if (!jusquALaChaineDestabilisee(seed)) continue;
       mesures++;
-      g().jetRoll('cascade');
+      g().jetLancer('cascade');
       expect(etapeCourante()?.jet, `graine ${seed} : le curseur s’arrête sur la défense`).toBe('defense');
       expect(etapeCourante()?.committed, `graine ${seed}`).toBeFalsy();
       expect(g().pendingDefense?.result, `graine ${seed} : la défense reste à jouer`).toBeNull();
@@ -102,11 +102,11 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
       if (!jusquALaChaineDestabilisee(seed)) continue;
       const avant = etapeCourante();
       if (avant?.jet === 'defense') continue;
-      g().jetRoll('defense');
+      g().jetLancer('defense');
       const pd = g().pendingDefense;
       if (!pd?.result) continue;
       mesures++;
-      g().jetConfirm('defense');
+      g().jetValider('defense');
       expect(g().pendingDefense, `graine ${seed} : la défense du maillon vit encore`).toBe(pd);
       expect(etapeCourante(), `graine ${seed} : le curseur n’a pas bougé`).toBe(avant);
       const c = g().pendingCascade!;

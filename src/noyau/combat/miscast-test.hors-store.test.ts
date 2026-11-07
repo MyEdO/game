@@ -110,7 +110,7 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     });
     // Valide toutes les étapes (révélation Imparfaite committée, PUIS l'étape de Test déjà résultée) → la
     // branche d'échec : Sonné, ET le palier `slThreshold ≤ −4` : Inconscient EN PLUS.
-    banc.getState().jetRoll('cascade');
+    banc.getState().jetLancer('cascade');
     const h = live(H.id);
     expect(hasCondition(h, 'sonne')).toBe(true);        // onFail : Sonné
     expect(hasCondition(h, 'inconscient')).toBe(true);  // onFailHard (slThreshold ≤ −4) : Inconscient EN PLUS

@@ -61,7 +61,7 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     banc.setState({
       pendingCascade: { ...p0, participants: p0.participants.map((s, k) => (k === idx ? { ...s, result: { roll: 99, target: step.base ?? 30, sl: -5, success: false } } : s)) },
     });
-    banc.getState().jetRoll('cascade');
+    banc.getState().jetLancer('cascade');
     return live(H.id);
   }
 

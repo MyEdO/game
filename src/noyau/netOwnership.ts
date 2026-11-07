@@ -509,7 +509,7 @@ const routeJet = (jet: JetOwnerRef): Route => ({
   },
 });
 
-/** La rangée (`pid`) d'un geste de jet : son dernier argument (`VerbesDeJet` : après le dé posé de `jetSetForcedRoll`). */
+/** La rangée (`pid`) d'un geste de jet : son dernier argument (`VerbesDeJet` : après le dé posé de `jetImposerLeResultat`). */
 const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => idArg(args[verbe === 'setForcedRoll' ? 2 : 1]);
 
 /**
@@ -595,29 +595,29 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // Levée de main : le siège pose ou retire la SIENNE. `leverLaMain` ne prend que le sens et lit son siège au
     // transport (`decidingSeat`) : il n'y a aucun siège à valider ici.
     ['leverLaMain', TOUJOURS],
-    // Carnet d'enquête (#670) : `toggleCluePin` annote l'épingle de GROUPE ; `markCluesSeen` marque la
+    // Carnet d'enquête (#670) : `epinglerLIndice` annote l'épingle de GROUPE ; `marquerLesIndices` marque la
     // nouveauté vue par le siège qui l'émet, lu au transport (`decidingSeat`).
-    ['toggleCluePin', TOUJOURS],
-    ['markCluesSeen', TOUJOURS],
+    ['epinglerLIndice', TOUJOURS],
+    ['marquerLesIndices', TOUJOURS],
     // Composition du groupe : tranchée par le geste, une fois — l'ajout par `refusDAjoutAuGroupe`, le retrait et le
     // remplacement par `refusDeComposerLeHeros` (`partyFlow.ts`).
-    ['partyAddHero', TOUJOURS],
-    ['partyRemoveHero', TOUJOURS],
-    ['partyReplaceHero', TOUJOURS],
+    ['recruterLeHeros', TOUJOURS],
+    ['renvoyerLeHeros', TOUJOURS],
+    ['remplacerLeHeros', TOUJOURS],
     // Activités d'interlude (audit M7) : le 1er argument est le héros visé — son propriétaire agit
-    // (`interludeActivity` = chemin UNIQUE des Activités à jet).
-    ['interludeActivity', PAR_ARG0],
-    ['interludeCraftStart', PAR_ARG0],
-    ['interludeOrder', PAR_ARG0],
-    ['interludeBank', PAR_ARG0],
-    ['interludeEntrainement', PAR_ARG0],
-    ['favorSettle', PAR_ARG0],
+    // (`pratiquerLActivite` = chemin UNIQUE des Activités à jet).
+    ['pratiquerLActivite', PAR_ARG0],
+    ['fabriquerLObjet', PAR_ARG0],
+    ['commanderLObjet', PAR_ARG0],
+    ['deposerALaBanque', PAR_ARG0],
+    ['suivreLEntrainement', PAR_ARG0],
+    ['solderLaFaveur', PAR_ARG0],
     // Préparation de bataille : le héros MENEUR est le 2ᵉ argument.
-    ['massBattleActivity', PAR_ARG1],
+    ['menerLActionDeBataille', PAR_ARG1],
     // Retrait bancaire : le dépôt appartient à un héros — son propriétaire retire.
-    ['interludeWithdraw', {
-      rule: (s, seat, args) => {
-        const dep = typeof args[0] === 'number' ? s.bank?.[args[0]] : undefined;
+    ['retirerDeLaBanque', {
+      rule: (s, seat, [depotId]) => {
+        const dep = s.bank?.find((d) => d.uid === depotId);
         return dep ? seatOwns(s, seat, dep.heroId) : false; // dépôt inconnu → personne
       },
     }],
@@ -633,17 +633,17 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['cliquerLaCase', CLIC_DU_CHAMP],
     // Pause de début de Round (`pendingRoundStart`) : la FENÊTRE est à tous ('*' — ready-check par
     // siège), ses gestes ne le sont pas.
-    //  - `roundStartPromote` dépense la Chance du héros promu (LDB 17 l.25) → routé par le prédicat des
+    //  - `promouvoirLeCombattant` dépense la Chance du héros promu (LDB 17 l.25) → routé par le prédicat des
     //    dépenses sur CE héros. Sans cette route, aucun `pending*` du registre des modales n'étant ouvert,
     //    le repli tombait sur le combattant ACTIF — inexistant pendant la pause (`turn: -1`, cf.
     //    `combatFlow.enterRoundStartPause`) : la promotion était refusée à TOUT siège invité, et la Chance
     //    du héros devenait indépensable en coop.
     //  - la validation de la pause (`fenetreValider('roundStart')`) lance le Round pour TOUS, au quorum : chaque siège
     //    marque le sien (`routeDuGesteDeFenetre`).
-    //  - Tir rapide : `armPreempt` vise le TIREUR par son 1ᵉʳ argument — même trou de repli que la
+    //  - Tir rapide : `armerLeTirPreventif` vise le TIREUR par son 1ᵉʳ argument — même trou de repli que la
     //    promotion (pas d'actif pendant la pause) ; le tir est le clic du combattant (`CLIC_ENTITE`).
-    ['roundStartPromote', { rule: (s, seat, args) => !!s.pendingRoundStart && seatInfluences(s, seat, idArg(args[0])) }],
-    ['armPreempt', PAUSE_DE_ROUND_PAR_ARG0],
+    ['promouvoirLeCombattant', { rule: (s, seat, args) => !!s.pendingRoundStart && seatInfluences(s, seat, idArg(args[0])) }],
+    ['armerLeTirPreventif', PAUSE_DE_ROUND_PAR_ARG0],
     // Le réglage d'un jet en attente (`routeDuReglage`).
     ['jetRegler', ROUTE_DU_REGLAGE],
     // La sortie et la validation d'une fenêtre, par ce que son registre déclare (`routeDuGesteDeFenetre`).

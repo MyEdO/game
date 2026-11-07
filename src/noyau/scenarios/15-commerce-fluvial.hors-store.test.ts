@@ -35,7 +35,7 @@ function drainCascade(): void {
   draineCascade(get, 200, undefined, () => 'forcer');
 }
 function bargeTo(routeId: string, destPlaceId: string, maxSteps = 60): void {
-  get().startTravel(routeId, 'barge');
+  get().partirEnVoyage(routeId, 'barge');
   for (let i = 0; i < maxSteps; i++) {
     if (!get().travelPlan && get().lieu === destPlaceId) return;
     // Les jets du JOUR fluvial (et l'exposition) sont une cascade influençable : la drainer.
@@ -71,7 +71,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     // Otto devient le plus agile du groupe : sans la porte `peutTenter`, sa Voile non augmentée l'élirait.
     banc.setState({ party: get().party.map((h) => (h.id === 'com-otto' ? { ...h, characteristics: { ...h.characteristics, agilite: 95 } } : h)) });
     drainCascade();
-    get().startTravel('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
     const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
     expect(barre?.actorId).toBe('com-gunnar');
   });
@@ -80,7 +80,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     drainCascade();
     const gunnar = get().party.find((h) => h.id === 'com-gunnar')!;
     expect(gunnar.skills.filter((k) => k.id === 'voile').map((k) => [k.spec, k.advances])).toEqual([['chaland', 40]]);
-    get().startTravel('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
     const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
     expect(barre?.base).toBe(gunnar.characteristics.agilite + 40);
   });
@@ -96,8 +96,8 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
 
     // ── ACHAT à Grünburg (R 2) ──
     seedBattleRng(7);
-    get().openLandMarket();
-    get().jetConfirm('etalLot'); // #1426 : la fenêtre de LOT s'ouvre d'abord ; l'étal se pose à sa validation
+    get().ouvrirLeMarche();
+    get().jetValider('etalLot'); // #1426 : la fenêtre de LOT s'ouvre d'abord ; l'étal se pose à sa validation
     drainCascade(); // #274 : le Test de Ragot est surfacé par la porte (héros piloté-humain → modale)
     const offers = get().landMarket!.offers;
     expect(offers.length).toBeGreaterThan(0);
@@ -122,8 +122,8 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
 
     // ── VENTE à Altdorf (Florissant R 5 → Mise à prix +10 %, l.156) ──
     seedBattleRng(3);
-    get().openLandMarket();
-    get().jetConfirm('etalLot');
+    get().ouvrirLeMarche();
+    get().jetValider('etalLot');
     drainCascade();
     const purseBeforeSell = toBrass(partyMoneyTotal(get));
     // Le dé d'acheteur est un dé de MONDE : le joueur le LANCE dans sa fenêtre (#1426), et la vente
@@ -152,7 +152,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
   function descendre(cadence?: 'jour-par-jour', decisions: string[] = []): string[] {
     drainCascade(); // l'entrée de scène du lanceur (affichage, aucun jet)
     const fenetres: string[] = [];
-    get().startTravel('r-grunburg-altdorf', 'barge', cadence ? { cadence } : undefined);
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge', cadence ? { cadence } : undefined);
     for (let i = 0; i < 40 && get().travelPlan; i++) {
       const p = get().pendingCascade;
       const cur = p?.participants[p.cursor];

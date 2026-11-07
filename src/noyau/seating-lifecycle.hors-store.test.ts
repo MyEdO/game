@@ -48,20 +48,20 @@ describe('composition du groupe — le corps qui sort quitte sa place', () => {
   it('party[0] REMPLACÉ : l’ancien meneur ne garde pas sa chaise', () => {
     meneurAssis([hero('h'), hero('b')]);
     expect(poseDe(1)).not.toBeNull();
-    banc.getState().partyReplaceHero('h', engage('neuf'));
+    banc.getState().remplacerLeHeros('h', engage('neuf'));
     expect(poseDe(1)).toBeNull(); // l'emplacement 1 est vide : ni l'ancien ni le remplaçant ne l'occupe
     expect(banc.getState().scene!.seatAssignments).toEqual({});
   });
 
   it('un remplacement À MÊME ID (édition en place) ne fait PAS lever le meneur', () => {
     meneurAssis([hero('h')]);
-    banc.getState().partyReplaceHero('h', engage('h', 'Retouché'));
+    banc.getState().remplacerLeHeros('h', engage('h', 'Retouché'));
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
   });
 
   it('héros RETIRÉ du groupe : sa place est rendue', () => {
     meneurAssis([hero('h'), hero('b')]);
-    banc.getState().partyRemoveHero('h');
+    banc.getState().renvoyerLeHeros('h');
     expect(poseDe(1)).toBeNull();
     expect(banc.getState().scene!.seatAssignments).toEqual({});
   });
@@ -69,7 +69,7 @@ describe('composition du groupe — le corps qui sort quitte sa place', () => {
   it('retirer un AUTRE héros ne touche pas la place du meneur, ni la référence de scène', () => {
     meneurAssis([hero('h'), hero('b')]);
     const avant = banc.getState().scene!;
-    banc.getState().partyRemoveHero('b');
+    banc.getState().renvoyerLeHeros('b');
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
     expect(banc.getState().scene).toBe(avant); // aucune écriture inutile
   });
@@ -87,10 +87,10 @@ describe('transition de scène — une scène quittée ne garde pas un héros ab
     banc.getState().interactEntity(PROP);
     expect(poseDe(1)).not.toBeNull();
 
-    banc.getState().transitionTo('scene-b');
+    banc.getState().quitterLaScene('scene-b');
     expect(banc.getState().scene!.id).toBe('scene-b');
     // Retour : la scène quittée a été capturée SANS le meneur assis.
-    banc.getState().transitionTo('scene-a');
+    banc.getState().quitterLaScene('scene-a');
     expect(poseDe(1)).toBeNull();
     expect(banc.getState().scene!.seatAssignments).toEqual({});
   });

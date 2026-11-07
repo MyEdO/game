@@ -30,8 +30,8 @@ export function VictoryScreen() {
   const party = useGame((s) => s.party);
   const net = useGame((s) => s.net);
   const choisir = useGame((s) => s.fenetreChoisir);
-  const harvest = useGame((s) => s.harvestCreature);
-  const appraiseGear = useGame((s) => s.appraiseGear);
+  const harvest = useGame((s) => s.depecerLaCreature);
+  const evaluerLeButin = useGame((s) => s.evaluerLeButin);
   const fermer = useGame((s) => s.fenetreFermer);
   const dismiss = () => fermer('victory');
   const state = useGame();
@@ -71,7 +71,7 @@ export function VictoryScreen() {
           gear={gear}
           assignable={assignable}
           onAssign={(uid, heroId) => choisir('victory', 'ligne', uid, heroId)}
-          onAppraise={net.mode === 'guest' ? undefined : (i, mode) => appraiseGear('victory', i, mode)}
+          onAppraise={net.mode === 'guest' ? undefined : (i, mode) => evaluerLeButin('victory', i, mode)}
         />
       ),
     });

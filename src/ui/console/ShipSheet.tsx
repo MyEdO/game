@@ -41,7 +41,7 @@ type Poste = NonNullable<Combatant['postes']>[number];
 /** Détail du poste SÉLECTIONNÉ (MDG 12) : son bord, son STOCK DE MUNITIONS (l.410-424, sélecteur qui persiste
  *  `ShipPoste.ammoUid`) et son équipage de pièce (PLUSIEURS servants possibles, ch.14 l.9) en portraits. */
 export function PosteDetail({ hull, poste, combatants, readOnly }: { hull: Combatant; poste: Poste; combatants: Combatant[]; readOnly?: boolean }) {
-  const setPosteAmmo = useGame((s) => s.setPosteAmmo);
+  const approvisionnerLaPiece = useGame((s) => s.approvisionnerLaPiece);
   const gun = (poste.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c);
   const stock = (poste.ammo ?? []).filter((a) => (a.qty ?? 0) > 0);
   // Ce qui est CHARGÉ = la munition capturée par le chargement (`loadedAmmoUid`), jamais la sélection du
@@ -61,7 +61,7 @@ export function PosteDetail({ hull, poste, combatants, readOnly }: { hull: Comba
           <span className="muted">Munition à charger</span>
           <select
             value={poste.ammoUid ?? stock[0].uid}
-            onChange={(e) => setPosteAmmo(hull.id, poste.item.uid, e.target.value)}
+            onChange={(e) => approvisionnerLaPiece(hull.id, poste.item.uid, e.target.value)}
           >
             {stock.map((a) => <option key={a.uid} value={a.uid}>{a.label} × {a.qty ?? 0}</option>)}
           </select>
@@ -150,7 +150,7 @@ export function PosteSheet({ combatantIds, initialHullId, onClose }: { combatant
   const battle = useGame((s) => s.battle);
   const scene = useGame((s) => s.scene);
   const partyZ = useGame((s) => s.partyPos.z ?? 0); // le plan suit l'étage du groupe
-  const setShipRole = useGame((s) => s.setShipRole);
+  const attribuerLeRoleABord = useGame((s) => s.attribuerLeRoleABord);
   const facing = useGame((s) => s.facing);
   const [pickedPosteUid, setSelectedPosteUid] = useState<string | null>(null);
   const [tab, setTab] = useState<'postes' | 'manoeuvre'>('postes');
@@ -221,7 +221,7 @@ export function PosteSheet({ combatantIds, initialHullId, onClose }: { combatant
         /* Le dossier montre l'équipage de la COQUE (PJ et marins PNJ, moins les servants de
            pièce) ; la carte du monde montre le GROUPE. Même roster, même règles, deux
            populations — la primitive les reçoit, elle ne les devine pas. */
-        <ShipRolesPanel crew={maneuverCrew} onSet={setShipRole} />
+        <ShipRolesPanel crew={maneuverCrew} onSet={attribuerLeRoleABord} />
       )}
     </Planche>
   );

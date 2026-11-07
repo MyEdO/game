@@ -17,7 +17,7 @@ export function LootModal() {
   const party = useGame((s) => s.party);
   const net = useGame((s) => s.net);
   const choisir = useGame((s) => s.fenetreChoisir);
-  const appraise = useGame((s) => s.appraiseGear);
+  const appraise = useGame((s) => s.evaluerLeButin);
   const fermer = useGame((s) => s.fenetreFermer);
   const dismiss = () => fermer('loot');
   const appraising = useGame((s) => !!s.pendingAppraise);

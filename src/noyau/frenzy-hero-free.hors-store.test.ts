@@ -38,7 +38,7 @@ describe('Frénésie du héros — attaque de CC GRATUITE chaque Round (LDB 21 l
     const { H, E } = setup();
     (H.psychState ??= []).push({ type: 'frenesie' });
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['arme']).toBe(1);
@@ -50,14 +50,14 @@ describe('Frénésie du héros — attaque de CC GRATUITE chaque Round (LDB 21 l
     (H.psychState ??= []).push({ type: 'frenesie' });
     H.freeAttacksThisTurn = { arme: 1 }; // attaque d'arme libre déjà utilisée ce Round (plafond atteint)
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     expect(banc.getState().battle!.acted).toBe(true);
   });
 
   it('héros NON frénétique → l’attaque consomme l’Action', () => {
     const { H, E } = setup();
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     expect(banc.getState().battle!.acted).toBe(true);
   });
 

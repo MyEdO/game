@@ -283,7 +283,7 @@ function coldExposureChill(hero: Combatant, coldSeason: boolean): string[] {
 
 export function creerActionsDesPostesDeVoyage(_get: Get, set: Set) {
   return {
-    setTravelRole: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
+    attribuerLeRoleDeMarche: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
   } satisfies FabriqueDuNoyau;
 }
 

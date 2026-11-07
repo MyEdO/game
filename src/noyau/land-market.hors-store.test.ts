@@ -43,8 +43,8 @@ function drainCascade(): void {
   while (get().pendingCascade && g++ < 50) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
-    if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
-    else get().jetConfirm('cascade');
+    if (cur && cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
+    else get().jetValider('cascade');
   }
 }
 
@@ -86,9 +86,9 @@ function vendre(lotId: string): void {
 describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
   beforeEach(() => freshState());
 
-  it('openLandMarket génère des offres d’achat (disponibilité 2 temps + Taille de cargaison)', () => {
+  it('ouvrirLeMarche génère des offres d’achat (disponibilité 2 temps + Taille de cargaison)', () => {
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
     const lm = get().landMarket;
     expect(lm).toBeTruthy();
     expect(lm!.offers.length).toBeGreaterThan(0);
@@ -98,7 +98,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
 
   it('acheterLaCargaison débite la bourse et charge le porteur de convoi (Possession.cargo)', () => {
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
     const offer = get().landMarket!.offers[0];
     const before = partyMoneyTotal(get).gold;
     get().acheterLaCargaison(CARRIER_ID, offer.cargoId, Math.min(30, offer.enc)); // ≤ Contenance 80
@@ -112,7 +112,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
   it('acheterLaCargaison charge le porteur DÉSIGNÉ, jamais un autre porteur du groupe', () => {
     banc.setState({ possessions: [...get().possessions, dili(get().party[0].id, 'convoi-2')] } as never);
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
     const offer = get().landMarket!.offers[0];
     get().acheterLaCargaison('convoi-2', offer.cargoId, Math.min(30, offer.enc));
     expect(carrierCargo(), 'le premier convoi n’était pas désigné').toEqual([]);
@@ -122,7 +122,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
   it('acheterLaCargaison REFUSE au-delà de la Contenance du porteur (plafond réel, #327)', () => {
     freshState(true); // Contenance 80
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
     const offer = get().landMarket!.offers[0];
     const before = partyMoneyTotal(get).gold;
     get().acheterLaCargaison(CARRIER_ID, offer.cargoId, 200); // > 80 → refusé
@@ -134,7 +134,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
   it('acheterLaCargaison REFUSE si le groupe n’a AUCUN porteur (bête/véhicule/navire)', () => {
     freshState(false); // aucun porteur
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
     const offer = get().landMarket!.offers[0];
     const before = partyMoneyTotal(get).gold;
     get().acheterLaCargaison(CARRIER_ID, offer.cargoId, 20);
@@ -214,7 +214,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
 
   it('acheterLaCargaison REFUSE un lot de moins de minCargoEnc (l.131)', () => {
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
     const offer = get().landMarket!.offers[0];
     const before = partyMoneyTotal(get).gold;
     get().acheterLaCargaison(CARRIER_ID, offer.cargoId, 5); // < 10 Enc → refusé
@@ -222,24 +222,24 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     expect(partyMoneyTotal(get).gold).toBe(before);
   });
 
-  it('landEvalWine révèle la qualité secrète d’un lot de Vin (Test d’Évaluation, l.95)', () => {
+  it('evaluerLeVin révèle la qualité secrète d’un lot de Vin (Test d’Évaluation, l.95)', () => {
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
     const wine = get().landMarket!.offers.find((o) => o.wine)!;
     expect(wine.wineTier).toBeUndefined();
-    get().landEvalWine(wine.cargoId);
+    get().evaluerLeVin(wine.cargoId);
     drainCascade();
     const after = get().landMarket!.offers.find((o) => o.cargoId === wine.cargoId)!;
     expect(WINE_QUALITY.map((w) => w.label)).toContain(after.wineTier);
     expect(typeof after.wineEvalOk).toBe('boolean');
   });
 
-  it('personne qui puisse tenter l’Évaluation (LDB 09 l.30) : landEvalWine journalise le refus NOMMÉ, aucun Test ouvert', () => {
+  it('personne qui puisse tenter l’Évaluation (LDB 09 l.30) : evaluerLeVin journalise le refus NOMMÉ, aucun Test ouvert', () => {
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
     const wine = get().landMarket!.offers.find((o) => o.wine)!;
     set({ party: get().party.map((h) => ({ ...h, skills: h.skills.filter((sk) => sk.id !== 'evaluation') })) });
-    get().landEvalWine(wine.cargoId);
+    get().evaluerLeVin(wine.cargoId);
     expect(get().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
     expect(get().pendingCascade).toBeNull();
     expect(get().landMarket!.offers.find((o) => o.cargoId === wine.cargoId)!.wineTier).toBeUndefined();

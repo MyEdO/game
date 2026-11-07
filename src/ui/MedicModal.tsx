@@ -53,8 +53,8 @@ export function MedicModal() {
   const choisir = useGame((s) => s.fenetreChoisir);
   const sortieFermee = useGame((s) => fermetureDeLaSortie(s, 'medic'));
   const refusDuPatient = useGame(useShallow((s) => Object.fromEntries(s.party.map((h) => [h.id, refusDuChoix(s, 'medic', 'patient', h.id)]))));
-  const act = useGame((s) => s.medicAct);
-  const openPass = useGame((s) => s.openSurgeryPass);
+  const act = useGame((s) => s.soignerLePatient);
+  const openPass = useGame((s) => s.ouvrirLaChirurgie);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('medic');
   const soin = useHealJetProps({ embedded: true });
@@ -115,7 +115,7 @@ export function MedicModal() {
             const plaies = plaiesNommees(useGame.getState());
             const acte = HEAL_ACT[sg.kind];
             // Le chirurgien n'est un `Combatant` que s'il est du GROUPE : un PNJ tarifé (`healerId`
-            // sentinelle, `medicFlow.medicAct`) n'a ni portrait ni fiche — son nom EST le titre de la
+            // sentinelle, `medicFlow.soignerLePatient`) n'a ni portrait ni fiche — son nom EST le titre de la
             // fenêtre (« Soins — <PNJ> »). Sans acteur, `VsHeader` n'a pas d'A→B à rendre (il tairait
             // aussi son `label`) : l'acte et le patient se disent alors en note.
             const surgeon = sg.healerId ? party.find((c) => c.id === sg.healerId) : undefined;
@@ -165,7 +165,7 @@ export function MedicModal() {
               // L'acte est SA propre porte de règle (#1078) : le bouton s'englobe dans `CodexRef wrap`,
               // dont la cible est le FOYER de l'enjeu de CE jet (`HEAL_STAKE`) et l'`instance` le nom de
               // l'acte. Un acte qui ARME une opération (`surgery`/`recovery`) n'a pas de cible au Codex avant
-              // l'armement, où naît la valeur de son enjeu (`targetDR`, `medicAct`) : le même `CodexRef`
+              // l'armement, où naît la valeur de son enjeu (`targetDR`, `soignerLePatient`) : le même `CodexRef`
               // reste monté, `category`/`id` absents, et ne s'ouvre que s'il a quelque chose à dire — la
               // raison d'un refus (`refus`), sinon rien.
               const stake = a === 'surgery' || a === 'recovery' ? undefined : flowStakeRef(HEAL_STAKE[a]);

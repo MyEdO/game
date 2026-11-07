@@ -21,12 +21,12 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function FrenzyModal() {
   const pf = useGame((s) => s.pendingFrenzy);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetRoll', 'frenzy');
-  const reroll = useGesteDeJet('jetReroll', 'frenzy');
-  const darkPact = useGesteDeJet('jetDarkPact', 'frenzy');
-  const force = useGesteDeJet('jetForceSuccess', 'frenzy');
-  const confirm = useGesteDeJet('jetConfirm', 'frenzy');
-  const cancel = useGesteDeJet('jetCancel', 'frenzy');
+  const roll = useGesteDeJet('jetLancer', 'frenzy');
+  const reroll = useGesteDeJet('jetRelancer', 'frenzy');
+  const darkPact = useGesteDeJet('jetPactiser', 'frenzy');
+  const force = useGesteDeJet('jetForcerLaReussite', 'frenzy');
+  const confirm = useGesteDeJet('jetValider', 'frenzy');
+  const cancel = useGesteDeJet('jetAnnuler', 'frenzy');
   if (!pf || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pf.combatantId);
   if (!c) return null;

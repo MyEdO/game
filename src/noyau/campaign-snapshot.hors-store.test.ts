@@ -22,7 +22,7 @@ import { campagneALancer, lancerCampagne, campagneDuJeu, diligenceCampaign } fro
 import { applyEffects } from './combatEffects';
 import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 
-/** Scène minimale (heroStart) chargeable par le chemin RÉEL (`loadProject`/`transitionTo`). */
+/** Scène minimale (heroStart) chargeable par le chemin RÉEL (`loadProject`/`quitterLaScene`). */
 function scene(id: string): Scene {
   const s = emptyScene('scene-test', 6, 6);
   s.id = id;
@@ -63,7 +63,7 @@ describe('loadProject — la scène d’entrée est une scène du paquet, ou le 
     expect(() => banc.getState().loadProject({ scenes: [...scenes], entryId: entree, projet: null })).toThrow(motif);
     expect(banc.getState().scene?.id).toBe('avant');
     expect(banc.getState().campaignDoc).toBe(docAvant);
-    banc.getState().transitionTo('sb');
+    banc.getState().quitterLaScene('sb');
     expect(banc.getState().scene?.id).toBe('avant');
   });
 });
@@ -74,7 +74,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     banc = ouvrirLeBanc();
   });
 
-  it('reload (registre vidé) : campaignDoc re-registre la scène B → transitionTo réussit', () => {
+  it('reload (registre vidé) : campaignDoc re-registre la scène B → quitterLaScene réussit', () => {
     // 1. Charge un projet MULTI-scènes par le chemin réel, puis sauve.
     banc.setState({ party: makePregens().slice(0, 1), battle: null });
     banc.getState().loadProject({ scenes: [scene('scene-a'), scene('scene-b')], entryId: 'scene-a', worldMap, narratif, projet: null });
@@ -86,7 +86,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     resetSceneRegistry();
     banc.setState({ party: makePregens().slice(0, 1) });
     banc.getState().loadProject({ scenes: [scene('scene-solo')], entryId: 'scene-solo', projet: null });
-    banc.getState().transitionTo('scene-b');
+    banc.getState().quitterLaScene('scene-b');
     expect(banc.getState().scene?.id).toBe('scene-solo'); // scene-b introuvable → transition ignorée
 
     // 3. Chargement de la save : re-registration des scènes du paquet + re-dérivation du narratif.
@@ -97,7 +97,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     expect(presetPnjById('snap-pnj')?.id).toBe('snap-pnj');
     expect(objetDuNarratif(banc.getState().campaignNarratif)(OBJET_ID)?.label).toBe('Lame maudite');
     // La preuve : scene-b, absente du registre reparti de zéro, l'est de nouveau → la transition réussit.
-    banc.getState().transitionTo('scene-b');
+    banc.getState().quitterLaScene('scene-b');
     expect(banc.getState().scene?.id).toBe('scene-b');
   });
 
@@ -112,7 +112,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     banc.setState(etatInitialDuJeu());
     chargerSurLeBanc(banc, save);
     expect(banc.getState().worldMap?.id).toBe(arene.worldMap?.id);
-    banc.getState().transitionTo('arene-hub');
+    banc.getState().quitterLaScene('arene-hub');
     expect(banc.getState().scene?.id).toBe('arene-hub');
   });
 });
