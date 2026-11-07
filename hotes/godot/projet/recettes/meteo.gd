@@ -8,7 +8,7 @@ const RECETTE_AUTONOME := true
 const METEO := {
 	pluie = {
 		averses = [{centre = [2.0, 9.0, 0.0], demiEtendue = [3.0, 0.0, 1.0], nombre = 12}, {centre = [4.0, 9.0, 2.0], demiEtendue = [1.0, 0.0, 1.0], nombre = 4}],
-		sens = {x = 0.0, y = -1.0, z = 0.0}, vitesseMs = 9.0, largeurM = 0.03, longueurM = 0.45, dureeS = 1.0,
+		sens = {x = 0.0, y = -1.0, z = 0.0}, vitesseMs = 9.0, largeurM = 0.03, traineeM = 0.45, dureeS = 1.0,
 		couleur = "#aebfd0", opacite = 0.45,
 	},
 	nappes = [{positions = [0.0, 0.6, 0.0, 2.0, 0.6, 0.0, 2.0, 0.6, 2.0], couleur = "#aab4bd", alpha = 0.3}],

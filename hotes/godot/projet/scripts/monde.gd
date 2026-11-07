@@ -168,7 +168,7 @@ func _averse(pluie: Dictionary, averse: Dictionary) -> CPUParticles3D:
 	particules.particle_flag_align_y = true
 	particules.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var goutte := BoxMesh.new()
-	goutte.size = Vector3(pluie.largeurM, pluie.longueurM, pluie.largeurM)
+	goutte.size = Vector3(pluie.largeurM, pluie.traineeM, pluie.largeurM)
 	var matiere := _translucide(pluie.couleur, pluie.opacite)
 	matiere.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
 	matiere.distance_fade_min_distance = PRES_DE_L_OEIL

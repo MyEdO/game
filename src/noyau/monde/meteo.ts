@@ -94,7 +94,7 @@ export interface PluieDuRegard {
   sens: { x: number; y: number; z: number };
   vitesseMs: number;
   largeurM: number;
-  longueurM: number;
+  traineeM: number;
   dureeS: number;
   couleur: string;
   opacite: number;
@@ -162,7 +162,7 @@ export function meteoDuRegard(scene: Scene, regard: Regard): MeteoDuRegard | nul
       sens: { x: precip.windMs.x / vitesse(precip), y: -precip.fallMs / vitesse(precip), z: precip.windMs.z / vitesse(precip) },
       vitesseMs: vitesse(precip),
       largeurM: precip.widthM,
-      longueurM: precip.lengthM,
+      traineeM: precip.lengthM,
       dureeS: (topGroundM + precip.ceilingM - groundM) / precip.fallMs,
       couleur: precip.color,
       opacite: precip.opacity,
