@@ -7,8 +7,7 @@
  * Ce module = TYPES + chargement + lookup ; ajouter/régler = éditer `tables.json`, jamais ce fichier.
  */
 import type { GameOp } from '../engine/ops';
-import type { DiceSpec } from '../engine/dice';
-import { tableOuverte, type BandeOuverte } from '../engine/tables';
+import { tableOuverte, type BandeOuverte, type DeDeTable } from '../engine/tables';
 import effectTablesJson from './tables.json';
 import { deDeTirageDe } from './rangees';
 import type * as tablesDEffets from './schemas/defs/tables';
@@ -50,6 +49,6 @@ export function findEffectTableById(id: string): EffectTable {
 }
 
 /** Le DÉ DE TIRAGE de la table d'effets `id` (`die`), lu VIVANT à l'appel (`deDeTirageDe`). */
-export function effectTableDie(id: string): DiceSpec {
+export function effectTableDie(id: string): DeDeTable {
   return deDeTirageDe<typeof tablesDEffets>(effectTablesJson, id);
 }

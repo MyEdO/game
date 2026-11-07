@@ -7,7 +7,7 @@ import { creatures, etats, trappings, gods, spells, species, findTraitById, find
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { datasetObject, setDataset } from '../../data/overrides';
 import { CHAR_KEYS } from '../../engine/types';
-import { facesDuDe } from '../../engine/tables';
+import { deDeLaTableTiree, facesDuDe } from '../../engine/tables';
 import { charAbr } from '../../data';
 import { MORALE_BANDS } from '../../engine/crewMorale';
 
@@ -226,6 +226,12 @@ describe('Codex registry — Bataille de masse (ADE II 8, #148)', () => {
     const hazards = categoryByKey('massBattleHazards')!.items;
     expect(hazards.map((i) => i.id)).toContain('tempete');
     expect(hazards.find((i) => i.id === 'tempete')!.desc).toMatch(/tempête se lève/);
+  });
+});
+
+describe('Codex registry — demeures célestes (ADE II 03)', () => {
+  it('chaque demeure porte sa bande imprimée, sans dé : aucune ne se tire (l.504-512, l.514)', () => {
+    expect(categoryByKey('celestialHouses')!.items.map((i) => i.sub)).toEqual(['1–2', '3–4', '5–6', '7–8', '9–10']);
   });
 });
 
@@ -473,7 +479,7 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
     const n = datasetObject('seaNavigation') as { orientation: { driftMajorBonus: number; changementDeCap: { die: string; entries: { max: number }[] } } };
     const sec = categoryByKey('seaNavigation')!.items[0].sections!.find((s) => s.title.startsWith('Changement de cap'))!;
     expect(sec.title.startsWith(`Changement de cap (1d10, +${n.orientation.driftMajorBonus} à DR `), sec.title).toBe(true);
-    expect(Math.max(...n.orientation.changementDeCap.entries.map((r) => r.max))).toBe(facesDuDe(n.orientation.changementDeCap.die) + n.orientation.driftMajorBonus);
+    expect(Math.max(...n.orientation.changementDeCap.entries.map((r) => r.max))).toBe(facesDuDe(deDeLaTableTiree(n.orientation.changementDeCap)) + n.orientation.driftMajorBonus);
   });
 
   it('la fiche « Périls en mer » (dataset-OBJET, MDG 13) projette Dangers flottants + Détroits + Tourbillons', () => {

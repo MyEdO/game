@@ -3,9 +3,9 @@ import type { FlowTestNode } from '../engine/flowCore';
 import type { Formula, GameOp, OpPassive } from '../engine/ops';
 import type { CibleEtendue, SourceRef } from './schemas/grammaire/valeurs';
 import type { DocumentARangees } from './schemas/grammaire/document';
-import type { DiceSpec } from '../engine/dice';
 import criticalsJson from './criticals.json';
 import { deDeTirageDe } from './rangees';
+import type { DeDeTable } from '../engine/tables';
 import type * as critiquesDef from './schemas/defs/criticals';
 
 /**
@@ -197,7 +197,7 @@ export function critiqueDoc(jeu: JeuDeCritique, key: CritTableKey): CritDoc {
 
 /** Le DÉ DE TIRAGE du tableau d'un (`jeu`, `localisation`) : le `die` VIVANT de son document
  *  (`deDeTirageDe`), lu à l'appel. */
-export function critiqueDie(jeu: JeuDeCritique, key: CritTableKey): DiceSpec {
+export function critiqueDie(jeu: JeuDeCritique, key: CritTableKey): DeDeTable {
   return deDeTirageDe<typeof critiquesDef>(criticalsJson, critiqueDoc(jeu, key).id);
 }
 

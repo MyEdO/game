@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
 import { difficultySchema, ecartsDeCouverture, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
-import { facesDuDe } from '../../../engine/tables';
+import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { parseDice, totalDuDe } from '../../../engine/dice';
 
 export const file = 'sea-navigation.json';
@@ -225,7 +225,7 @@ const doc = document(
         type Bande = { min?: number | null; max?: number | null };
         const d = v as Partial<SeaNavigationData>;
         const cap = d.orientation?.changementDeCap;
-        const deDuCap = cap ? parseDice(cap.die) : null;
+        const deDuCap = cap && parseDice(cap.die) ? deDeLaTableTiree(cap) : null;
         const tables: [string[], Bande[], number | 'ouverte', number | 'ouverte'][] = [
           [['vitesseMax', 'table'], d.vitesseMax?.table ?? [], (d.vitesseMax?.safeBonus ?? 0) + 1, 'ouverte'],
           [['orientation', 'reperes'], d.orientation?.reperes ?? [], 'ouverte', 'ouverte'],

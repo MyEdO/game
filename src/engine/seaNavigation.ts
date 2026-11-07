@@ -21,7 +21,7 @@
  *    approprié, effectuez un Test de Résistance pour le vaisseau. Pour chaque Test raté, ajoutez un
  *    niveau de Salissures » (max 5, tableau verbatim).
  *  - Orientation (MDG 13 l.307-331) : « un Test par jour de voyage » → tableau Repères ; dérive → tableau
- *    Changement de cap (d10 ; « –5 ou moins » y ajoute 2) ; côté de dérive 1-5 tribord / 6-10 bâbord.
+ *    Changement de cap (au dé de sa table ; « –5 ou moins » y ajoute 2) ; côté de dérive 1-5 tribord / 6-10 bâbord.
  *  - Phares (MDG 13 l.333-351) : Perception par distance (≤5 milles Facile +40 ; 5-10 Intermédiaire ;
  *    10-15 Difficile) ; +20 pour repérer un danger proche du phare ; clochers = +2 DR d'Orientation,
  *    distances divisées par 2.
@@ -32,9 +32,9 @@
  *    parcourue = mètres ÷ 10 (min 1) ±1/−2 selon la bande de DR ; M 3/2/1 → −1/−2/−3 DR.
  */
 import seaNavJson from '../data/sea-navigation.json';
-import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
+import { deDeLaTableTiree, findTableEntry, tableOuverte, type BandeOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, parseDiceRequired, rollDice, type RNG, type Tirage } from './dice';
+import { d10, rollDice, type RNG, type Tirage } from './dice';
 import { progressionMovement } from './shipNavigation';
 import type { Combatant, Difficulty } from './types';
 import { testValue } from './skills';
@@ -173,10 +173,13 @@ export interface CourseChangeResult {
   desc: string;
 }
 
+/** Le dé du tableau CHANGEMENT DE CAP, lu à l'appel. */
+export const deDuChangementDeCap = (): DeDeTable => deDeLaTableTiree(DATA.orientation.changementDeCap);
+
 /** Tirage du tableau CHANGEMENT DE CAP au dé de sa table (MDG 13 l.324-331) + côté de dérive (MDG 13 l.322 :
  *  « 1-5 tribord, 6-10 bâbord »). `bonus` = +2 d'une dérive majeure. PUR (RNG injecté). */
 export function rollCourseChange(rng: RNG, bonus = 0): CourseChangeResult {
-  const roll = rollDice(parseDiceRequired(DATA.orientation.changementDeCap.die, 'sea-navigation › orientation.changementDeCap.die'), rng) + bonus;
+  const roll = rollDice(deDuChangementDeCap(), rng) + bonus;
   const row = findTableEntry(tables().changementDeCap, roll);
   return {
     roll,

@@ -166,7 +166,7 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     // commerciales (MSRC 13 l.283) — la seconde ne serait jamais atteinte sans descente.
     ['land-cargo.json', landCargo, ['wineQuality']],
     ['land-cargo.json', landCargo, ['rumours']],
-    ['mass-battle.json', massBattle, ['hazards']],
+    ['mass-battle.json', massBattle, ['hazards', 'entries']],
     ['naval-progression.json', navalProgression],
     // Les deux tables du vent fluvial partagent le MÊME schéma de rangée (`bandRow`) : chacune
     // se mesure, une composition débranchée ne pouvant se cacher derrière la première rencontrée.
@@ -174,9 +174,9 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     ['river-navigation.json', riverNavigation, ['windDirections']],
     ['sea-events.json', seaEvents, ['boardEvents']],
     ['sea-events.json', seaEvents, ['portEvents']],
-    ['sea-events.json', seaEvents, ['fastVoyage', 'paliers']],
-    ['sea-weather.json', seaWeather, ['table']],
-    ['sea-weather.json', seaWeather, ['roseDesVents']],
+    ['sea-events.json', seaEvents, ['fastVoyage', 'entries']],
+    ['sea-weather.json', seaWeather, ['table', 'entries']],
+    ['sea-weather.json', seaWeather, ['roseDesVents', 'entries']],
     ['steam-breakdown.json', steamBreakdown],
   ];
 

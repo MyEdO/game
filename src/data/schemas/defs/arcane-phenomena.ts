@@ -1,9 +1,9 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** VDM 14. */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
+import { document, tableTiree } from '../grammaire/document';
 import { idDe } from '../grammaire/ref';
-import { deDeTirageSchema, diceSpecSchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
+import { diceSpecSchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
 
 export const file = 'arcane-phenomena.json';
 export const famille = 'config';
@@ -245,38 +245,28 @@ const doc = document(
     }),
   ),
   tables: z.array(
-    nommerChamps(z.strictObject({
-      id: z.string(),
-      label: z.string(),
-      die: deDeTirageSchema,
-      entries: z.array(
-        nommerChamps(z.strictObject({
-          ...plageSchema.shape,
-          label: z.string(),
+    tableTiree(
+      nommerChamps(z.strictObject({
+        ...plageSchema.shape,
+        label: z.string(),
 
-          domainIds: z.array(idDe('domain')).min(1).optional(),
+        domainIds: z.array(idDe('domain')).min(1).optional(),
 
-          chaosMagic: z.boolean().optional(),
+        chaosMagic: z.boolean().optional(),
 
-          maison: maisonSchema.optional(),
-        }), {
-          ...metaDesChamps(plageSchema, { exigees: true }),
-          label: { label: 'libellé' },
-          domainIds: { label: 'domaines' },
-          chaosMagic: { label: 'magie du Chaos' },
-          maison: { label: 'arbitrage maison' },
-        }),
-      ).min(1),
-      source: sourceRefSchema,
-      desc: z.string(),
-    }), {
-      id: { label: 'identifiant' },
-      label: { label: 'libellé' },
-      die: { label: 'dé de tirage' },
-      entries: { label: 'rangées' },
-      source: { label: 'source' },
-      desc: { label: 'texte' },
-    }),
+        maison: maisonSchema.optional(),
+      }), {
+        ...metaDesChamps(plageSchema, { exigees: true }),
+        label: { label: 'libellé' },
+        domainIds: { label: 'domaines' },
+        chaosMagic: { label: 'magie du Chaos' },
+        maison: { label: 'arbitrage maison' },
+      }),
+      {
+        champs: { id: z.string(), label: z.string(), source: sourceRefSchema, desc: z.string() },
+        meta: { id: { label: 'identifiant' }, label: { label: 'libellé' }, source: { label: 'source' }, desc: { label: 'texte' } },
+      },
+    ),
   ),
   },
   {
