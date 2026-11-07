@@ -57,7 +57,8 @@ var _sols: Dictionary = {}
 var _lacet := 0.0
 ## Les arêtes posées (`poser_les_aretes`).
 var _aretes_posees: Array = []
-## Les clés des couronnes abattues, et le pas de grille vers le dedans de chaque arête dégagée, par clé (`cacher_le_bati`).
+## Les clés des couronnes abattues, et les crans de caméra sous lesquels tombe chaque arête dégagée, par clé
+## (`cacher_le_bati`).
 var _couronnes_abattues: Array = []
 var _aretes_degagees: Dictionary = {}
 ## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
@@ -119,17 +120,19 @@ func cacher_le_bati(toits_leves: Array, couronnes_abattues: Array, aretes_degage
 	_couronnes_abattues = couronnes_abattues
 	_aretes_degagees.clear()
 	for a in aretes_degagees:
-		_aretes_degagees[a.cle] = a.dedans
+		_aretes_degagees[a.cle] = a.abattueSous
 	_abattre_les_aretes()
 
 
-## Les arêtes dégagées que le regard de la caméra abat (`MiseEnPage.arete_abattue`) cachées avec leur couronne, et les
-## couronnes abattues ; le reste montré.
+## Les arêtes dégagées qui tombent sous le cran de la caméra (`MiseEnPage.rotation_iso`) cachées avec leur couronne, et
+## les couronnes abattues ; le reste montré.
 func _abattre_les_aretes() -> void:
-	var regard := -_camera.global_basis.z
-	var abattues := _aretes_degagees.keys().filter(func(cle: String) -> bool: return MiseEnPage.arete_abattue(_aretes_degagees[cle], Vector2(regard.x, regard.z)))
+	var cran := int(MiseEnPage.rotation_iso(_camera.global_basis.z))
+	var abattues := _aretes_degagees.keys().filter(func(cle: String) -> bool: return _aretes_degagees[cle].has(cran))
 	_cacher_sous(_aretes, abattues)
-	_cacher_sous(_couronnes, _couronnes_abattues + abattues)
+	var couronnes := _couronnes_abattues.duplicate()
+	couronnes.append_array(abattues)
+	_cacher_sous(_couronnes, couronnes)
 
 
 ## Les nappes `nappes` sous `parent`, chacune son maillage nommé par sa `cle`, à la place des précédentes.

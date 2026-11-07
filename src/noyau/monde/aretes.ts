@@ -9,7 +9,8 @@ import { apparenceDArete, edgeKey, facadeEdges } from './facades';
 import type { Pt } from './path';
 import { METRES_PER_LEVEL } from './relief';
 import { casesDeFace, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
-import { coteDegage, cutawayOverhead, type ClearedSpace } from './volume/architectureVisibility';
+import type { Rot } from '../../geometry/iso';
+import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
 import { toitsLeves } from './volume/volume';
 
@@ -22,10 +23,12 @@ export type PieceDArete = 'mur' | 'porte-fermee' | 'porte-ouverte' | 'fenetre' |
  *  (`null` pour une apparence hors du catalogue), et sa hauteur en mètres (`wallHeightM`, sinon un étage). */
 export interface AreteDessinee { cle: string; case: Pt; milieu: Pt; sens: Pt; pied: number; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number }
 
-/** Une arête que le groupe dégage : sa clé (`edgeKey`) et, si elle borde l'espace dégagé (`coteDegage`), le pas de grille
- *  qui mène de sa case dehors à sa case dedans, que l'hôte abat quand sa caméra regarde dans ce sens ; `null` si l'une
- *  des cases qu'elle sépare est au-dessus de la tête d'un allié (`cutawayOverhead`) : elle tombe sous tout regard. */
-export interface AreteDegagee { cle: string; dedans: Pt | null }
+/** Une arête que le groupe dégage : sa clé (`edgeKey`) et les crans de caméra (`Rot`, `Dims.rot`) sous lesquels elle
+ *  tombe : tous si l'une des cases qu'elle sépare est au-dessus de la tête d'un allié (`cutawayOverhead`), sinon ceux
+ *  où elle se dresse entre la caméra et l'espace dégagé qu'elle borde (`frontFacadeCutaway`). */
+export interface AreteDegagee { cle: string; abattueSous: Rot[] }
+
+const CRANS: readonly Rot[] = [0, 1, 2, 3];
 
 const APPARENCES: ReadonlyMap<string, StructureAppearanceDef> = new Map(structureAppearances.map((a) => [a.id, a]));
 
@@ -74,12 +77,21 @@ function couronnesAbattues(scene: Scene): string[] {
  *  celles au-dessus de la tête d'un allié, et celles qui bordent l'espace où il se tient. */
 function aretesDegagees(scene: Scene, cleared: ClearedSpace): AreteDegagee[] {
   const facades = facadeEdges(scene);
+  const { w, h } = scene.dimensions;
   return (scene.walls ?? []).flatMap((seg): AreteDegagee[] => {
     const cle = edgeKey(seg);
-    if (casesDeFace(seg, 'les-deux').some((c) => cutawayOverhead({ ...c, z: seg.z }, cleared))) return [{ cle, dedans: null }];
-    const cote = coteDegage({ ...seg, roomZoneIds: facades.get(cle)?.roomZoneIds }, cleared);
-    return cote ? [{ cle, dedans: { x: cote.dedans.x - cote.dehors.x, y: cote.dedans.y - cote.dehors.y } }] : [];
+    const panneau = { ...seg, roomZoneIds: facades.get(cle)?.roomZoneIds };
+    const abattueSous = casesDeFace(seg, 'les-deux').some((c) => cutawayOverhead({ ...c, z: seg.z }, cleared))
+      ? [...CRANS]
+      : CRANS.filter((rot) => frontFacadeCutaway(panneau, cleared, { w, h, rot }));
+    return abattueSous.length ? [{ cle, abattueSous }] : [];
   });
+}
+
+/** Le couvercle au-dessus de la tête du groupe posé sur `allies` (`clearedSpace`, `overheadCells`) : les clés `x,y,z` de
+ *  ses cases. */
+export function couvercleDuGroupe(scene: Scene, allies: readonly Pt[]): ReadonlySet<string> {
+  return clearedSpace(scene, allies).overheadCells;
 }
 
 /** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les arêtes de toutes ses couches

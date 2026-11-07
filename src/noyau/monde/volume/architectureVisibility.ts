@@ -96,7 +96,7 @@ const adjacent: Record<'N' | 'E', [{ x: number; y: number }, { x: number; y: num
  *  par LA loi (`cutawayForSection`) : la pièce du panneau qui contient réellement cette case, celle des pièces dégagées
  *  pour un panneau qui n'en déclare aucune (un mur hors façade authorée), ou la case elle-même quand aucune pièce n'est
  *  déclarée. */
-export function coteDegage(panel: FacadePanel, cleared: ClearedSpace): { dedans: Pt; dehors: Pt } | null {
+function coteDegage(panel: FacadePanel, cleared: ClearedSpace): { dedans: Pt; dehors: Pt } | null {
   if (panel.side !== 'N' && panel.side !== 'E') return null;
   const z = panel.z ?? 0;
   const [a, b] = adjacent[panel.side].map((offset) => ({ x: panel.x + offset.x, y: panel.y + offset.y }));

@@ -103,12 +103,12 @@ describe('plateauDeLaScene — les arêtes que le groupe dégage (#3476)', () =>
     walls: [{ x: 1, y: 1, side: 'N' }, { x: 2, y: 3, side: 'N' }, { x: 0, y: 1, side: 'E' }, { x: 2, y: 2, side: 'E' }, { x: 3, y: 3, side: 'E' }],
     effectZones: [{ id: 'salle', label: 'Salle', presentation: 'interior', area: { kind: 'rect', x: 1, y: 1, w: 2, h: 2 } }],
   });
-  it('un mur qui borde la pièce du groupe, avec le pas de grille de son dehors à son dedans', () => {
+  it('un mur qui borde la pièce du groupe, sous les crans de caméra qui le voient du dehors', () => {
     expect(plateauDeLaScene(salle(), [{ x: 1, y: 1 }]).aretesDegagees).toEqual([
-      { cle: '1,1,N,0', dedans: { x: 0, y: 1 } },
-      { cle: '2,3,N,0', dedans: { x: 0, y: -1 } },
-      { cle: '0,1,E,0', dedans: { x: 1, y: 0 } },
-      { cle: '2,2,E,0', dedans: { x: -1, y: 0 } },
+      { cle: '1,1,N,0', abattueSous: [2, 3] },
+      { cle: '2,3,N,0', abattueSous: [0, 1] },
+      { cle: '0,1,E,0', abattueSous: [1, 2] },
+      { cle: '2,2,E,0', abattueSous: [0, 3] },
     ]);
   });
   it('aucune hors de la pièce, ni sans groupe', () => {
@@ -131,7 +131,7 @@ describe('plateauDeLaScene — le couvercle d’une pièce sous un étage (#3476
   it('l’emprise de la pièce à l’étage est au couvercle, et le mur d’étage qui la borde tombe sous tout regard', () => {
     const plateau = plateauDeLaScene(salleSousEtage(), [{ x: 1, y: 1 }]);
     expect(new Set(plateau.couvercle)).toEqual(new Set(['1,1,1', '2,1,1', '1,2,1', '2,2,1']));
-    expect(plateau.aretesDegagees.filter((a) => a.cle.endsWith(',1'))).toEqual([{ cle: '2,1,E,1', dedans: null }]);
+    expect(plateau.aretesDegagees.filter((a) => a.cle.endsWith(',1'))).toEqual([{ cle: '2,1,E,1', abattueSous: [0, 1, 2, 3] }]);
   });
   it('rien au couvercle pour le groupe à l’étage ou dehors', () => {
     expect(plateauDeLaScene(salleSousEtage(), [{ x: 1, y: 1, z: 1 }]).couvercle).toEqual([]);

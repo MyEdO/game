@@ -1,16 +1,17 @@
 extends SceneTree
 
-## Une arête que le groupe dégage tombe sous le regard de la caméra (#3476, `hotes/godot/pont/CONTRAT.md`, section
-## « Vue », `plateau.aretesDegagees`) : celle qui borde l'espace dégagé tombe quand elle se dresse entre la caméra et son
-## dedans, et reste debout de l'autre côté ; celle qui se dresse au-dessus d'une tête tombe sous tout regard, avec sa
-## couronne. Un demi-tour de la caméra relève le mur abattu et abat celui d'en face.
+## Une arête que le groupe dégage tombe sous les crans de caméra qui la nomment (#3476, `hotes/godot/pont/CONTRAT.md`,
+## section « Vue », `plateau.aretesDegagees`, `abattueSous`) : celle qui borde l'espace dégagé tombe quand la caméra la
+## voit du dehors, et reste debout de l'autre côté ; celle qui se dresse au-dessus d'une tête tombe sous tout regard, avec
+## sa couronne. Un demi-tour de la caméra relève le mur abattu et abat celui d'en face.
 
 const RECETTE_AUTONOME := true
-## Deux murs est-ouest de part et d'autre d'une pièce (y de 0 à 2, dedans vers le sud pour le premier, vers le nord pour
-## le second), et un troisième au-dessus d'une tête.
-const NORD := {cle = "nord", milieu = {x = 0.0, y = -0.5}, dedans = {x = 0.0, y = 1.0}}
-const SUD := {cle = "sud", milieu = {x = 0.0, y = 1.5}, dedans = {x = 0.0, y = -1.0}}
-const DESSUS := {cle = "dessus", milieu = {x = 3.0, y = -0.5}, dedans = null}
+## Deux murs est-ouest de part et d'autre d'une pièce (y de 0 à 2), abattus sous les crans que le noyau leur donne
+## (`aretes.test.ts`) : le premier, au nord, vu du nord-ouest et du nord-est ; le second, au sud, vu du sud-est et du
+## sud-ouest ; et un troisième au-dessus d'une tête.
+const NORD := {cle = "nord", milieu = {x = 0.0, y = -0.5}, abattueSous = [2, 3]}
+const SUD := {cle = "sud", milieu = {x = 0.0, y = 1.5}, abattueSous = [0, 1]}
+const DESSUS := {cle = "dessus", milieu = {x = 3.0, y = -0.5}, abattueSous = [0, 1, 2, 3]}
 var _fautes: Array[String] = []
 
 
@@ -25,7 +26,7 @@ func _recetter() -> void:
 	monde.poser_les_aretes([NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary:
 		return {cle = a.cle, milieu = a.milieu, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 2.0, piece = "mur", famille = null}))
 	monde.poser_les_nappes([], [{cle = "dessus", positions = [], normales = [], couleurs = [], surfaces = []}])
-	monde.cacher_le_bati([], [], [NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary: return {cle = a.cle, dedans = a.dedans}))
+	monde.cacher_le_bati([], [], [NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary: return {cle = a.cle, abattueSous = a.abattueSous}))
 	_verifier(monde, "de face")
 	var pivot: Node3D = monde.get_node("Pivot")
 	pivot.rotation.y += PI
