@@ -143,7 +143,11 @@ describe('(b) annulation', () => {
   it('le tour qui s’achève emporte l’intention', () => {
     setup();
     banc.jouerLaCase('charge');
+    const tour = get().battle!.turn;
+    get().terminerLeTour(); // l'Action intacte : le 1er geste arme la fin du tour, il ne la passe pas
+    expect(get().localIntent).toEqual({ actionId: 'charge' });
     get().terminerLeTour();
+    expect(get().battle!.turn).not.toBe(tour);
     expect(get().localIntent).toBeNull();
   });
 });

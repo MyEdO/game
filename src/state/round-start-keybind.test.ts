@@ -12,7 +12,7 @@ const binding = () => KEYBINDINGS.find((k) => k.id === 'round-start')!;
 
 /** État minimal (combat en cours) — `pendingRoundStart` posé ou non selon le cas. */
 const fake = (over: Partial<GameState> = {}): GameState =>
-  ({ mode: 'battle', battle: { over: null }, pendingRoundStart: null, net: { mode: 'local', mySeat: 0 }, ...over }) as never;
+  ({ mode: 'battle', battle: { over: null, order: [], turn: -1, combatants: [] }, pendingRoundStart: null, net: { mode: 'local', mySeat: 0 }, ...over }) as never;
 
 describe('binding round-start', () => {
   it('existe et est inactif HORS pause', () => {

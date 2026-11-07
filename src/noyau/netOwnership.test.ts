@@ -10,6 +10,7 @@ import { fermerLeSiege, seatOwns } from './sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { Jeu } from './etat';
 import { cascadeDeTest } from './cascade.testkit';
+import { GUEST_INTENTS } from './intentionsDeSiege';
 
 const base = (over: Partial<Jeu>): Jeu =>
   ({
@@ -244,7 +245,7 @@ describe('les verbes de la barre (#3610) : la route du combattant actif', () => 
     expect(intentAllowedFor(s, 0, 'terminerLeTour'), 'le siège de l’actif').toBe(true);
     expect(intentAllowedFor(s, 1, 'terminerLeTour'), 'un autre siège').toBe(false);
     expect(intentAllowedFor(s, 1, 'prendreLaVisee'), 'un autre siège').toBe(false);
-    expect(intentAllowedFor(s, 0, 'armerLIntention', ['course']), 'armée chez l’émetteur').toBe(false);
+    expect(GUEST_INTENTS.has('armerLIntention'), 'l’armement d’une intention, local à l’émetteur, n’est pas une intention de siège').toBe(false);
   });
 
   it('le relais de la levée de main émet `leverLaMain`, admis hors de son tour dans les deux sens', () => {

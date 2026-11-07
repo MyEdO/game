@@ -23,8 +23,9 @@ import type { Jeton } from './plateforme';
 import { gesteDeLOffre, offreDeId, type ContexteDOffre } from './actionRegistry';
 import { garanti } from '../lib/garanti';
 
-/** Les entrées d'un banc : l'état de départ fusionné à `etatInitialDuJeu()`, et les entrées de D8 (`EntreesDeLaPartie`),
- *  par défaut `ENTREES_DU_BANC`. */
+/** Les entrées d'un banc : l'état de départ fusionné à `etatInitialDuJeu()` sur l'écran de la campagne, où se joue la
+ *  partie (la barre de l'actif n'est ouverte que là, `etatDeLaBarre`), et les entrées de D8 (`EntreesDeLaPartie`), par
+ *  défaut `ENTREES_DU_BANC`. */
 export type EntreesDuBanc = Partial<EntreesDeLaPartie> & { etat?: Partial<EtatDeJeu> };
 
 export interface Banc {
@@ -94,7 +95,7 @@ function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
     proprietaire.reprendre(jeton);
     return [];
   });
-  const proprietaire = ouvrirLeProprietaire({ ...etatInitialDuJeu(), ...etat }, { ...ENTREES_DU_BANC, ...entrees }, (jeton, delai) => {
+  const proprietaire = ouvrirLeProprietaire({ ...etatInitialDuJeu(), screen: 'campaign', ...etat }, { ...ENTREES_DU_BANC, ...entrees }, (jeton, delai) => {
     const id = suivant++;
     jetons.set(id, jeton);
     horloge.armer([{ id, delai }]);

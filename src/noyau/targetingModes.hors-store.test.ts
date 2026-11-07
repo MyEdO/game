@@ -34,7 +34,7 @@ function combat(over: Record<string, unknown> = {}) {
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, ...over,
   } as never;
-  banc.setState({ battle, scene: arena(), party: [hero, ally], pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null, pendingSiegeAim: null, refus: null });
+  banc.setState({ battle, screen: 'campaign', scene: arena(), party: [hero, ally], pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null, pendingSiegeAim: null, refus: null });
   return { hero, ally, e1, e2 };
 }
 

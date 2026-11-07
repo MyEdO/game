@@ -115,12 +115,12 @@ describe('le pont et sa partie', () => {
     const g = fenetre.gestes[0];
     expect(erreurDe(appel('jouer', { type: g.verbe, args: [...(g.flux ? [g.flux] : []), 1, 1, 1] })).categorie).toBe('validation');
     expect(erreurDe(appel('jouer', { suite: [], type: 'x' })).message).toBe('jouer : type hors de l’entrée (clés : suite)');
-    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [] })).message, 'une offre se joue par le verbe qu’elle déclare').toBe('jouer : offre hors de l’entrée (clés : type, args, siege)');
+    expect(erreurDe(appel('jouer', { offre: 'end-turn' })).message, 'une offre se joue par le verbe qu’elle déclare').toBe('jouer : offre hors de l’entrée (clés : type, args, siege)');
   });
 
   it('chaque catégorie d’un geste refusé : `validation`, `permission`, `regle`', { timeout: 120_000 }, () => {
     drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['roundStart'] }));
-    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 0 })).categorie).toBe('validation');
+    expect(erreurDe(appel('jouer', { type: 'armerLIntention', args: ['charge'], siege: 0 })).categorie).toBe('validation');
     expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 1 })).categorie).toBe('permission');
     expect(erreurDe(appel('jouer', { type: 'rompreLEngagement', args: [] })).categorie).toBe('regle');
   });

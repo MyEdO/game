@@ -130,13 +130,15 @@ export function figerVuesDeLEcran(): VueFigee[] {
     if (!b) throw new Error(`aucun bouton que l’Entrée joue dans ${JSON.stringify(s.vue.zones['fenetre.gestes'].map((g) => g.id))}`);
     return b.jeu;
   };
+  /** Le geste que l'offre `id` de la barre déclare, tel que l'hôte le dessine. */
+  const offre = (s: Suite, id: string): Jeu => s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).find((b) => b.id === id)!.jeu;
 
   const { appeler, jouer, fermer } = unPont(lignes);
   let s = jouer('demarrer', { scenario: 'dome', graine: 7 });
   figer('début du round', s);
   s = jouer('jouer', enFocus(s));
   figer('barre de l’actif', s);
-  s = jouer('jouer', { type: 'armerLIntention', args: ['charge'] });
+  s = jouer('jouer', offre(s, 'charge'));
   figer('charge armée', s);
   const [cible] = s.vue.projection.combat!.cibles.liste;
   s = jouer('jouer', clicDuCombattant(s.vue, cible)!);
@@ -146,8 +148,8 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = jouer('jouer', enFocus(s));
   for (let tours = 0; s.vue.projection.fenetre?.etape?.genre !== 'defenseJet'; tours++) {
     if (tours > 4) throw new Error(`aucune Défense après ${tours} fins de tour : ${JSON.stringify(s.vue.projection.fenetre)}`);
-    s = jouer('jouer', { type: 'terminerLeTour', args: [] });
-    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', { type: 'terminerLeTour', args: [] });
+    s = jouer('jouer', offre(s, 'end-turn'));
+    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', offre(s, 'end-turn'));
   }
   figer('Défense', s);
   s = jouer('jouer', enFocus(s));

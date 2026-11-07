@@ -149,17 +149,17 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
 describe('#1050 — hotbar : le geste de l’invité sur SON héros actif atteint l’hôte', () => {
   it('l’offre `attaque` : le siège du combattant ACTIF arme son attaque ; un tiers est refusé', () => {
     setup(); // tour de `h2` (siège 1)
-    expect(applyIntent(2, 'armerLAttaque', ['arme-2']), 'un tiers pilotait le tour d’autrui').toBe('refusee');
-    expect(applyIntent(0, 'armerLAttaque', ['arme-2']), 'l’hôte ne possède pas le combattant actif').toBe('refusee');
+    expect(applyIntent(2, 'armerLAttaque', ['arme']), 'un tiers pilotait le tour d’autrui').toBe('refusee');
+    expect(applyIntent(0, 'armerLAttaque', ['arme']), 'l’hôte ne possède pas le combattant actif').toBe('refusee');
     expect(banc.getState().battle!.selectedAttack).toBeNull();
-    expect(applyIntent(1, 'armerLAttaque', ['arme-2'])).toBe('appliquee');
-    expect(banc.getState().battle!.selectedAttack, 'le geste s’exécutait chez l’invité puis mourait au snapshot').toBe('arme-2');
+    expect(applyIntent(1, 'armerLAttaque', ['arme'])).toBe('appliquee');
+    expect(banc.getState().battle!.selectedAttack, 'le geste s’exécutait chez l’invité puis mourait au snapshot').toBe('arme');
   });
 
   it('NON-RÉGRESSION SOLO : le joueur arme son attaque hors coop', () => {
     setup({ mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
-    banc.getState().armerLAttaque('arme-2');
-    expect(banc.getState().battle!.selectedAttack).toBe('arme-2');
+    banc.getState().armerLAttaque('arme');
+    expect(banc.getState().battle!.selectedAttack).toBe('arme');
   });
 });
 

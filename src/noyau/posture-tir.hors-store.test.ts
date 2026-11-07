@@ -114,7 +114,10 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     const { H } = setup();
     armer();
     expect(posturee(H.id)).toBe(true);
+    const tour = banc.getState().battle!.turn;
+    banc.getState().terminerLeTour(); // l'Action intacte : le 1er geste arme la fin du tour, le 2ᵉ la passe
     banc.getState().terminerLeTour();
+    expect(banc.getState().battle!.turn).not.toBe(tour);
     expect(banc.getState().battle!.stances?.[H.id]?.heldGround).toBeFalsy();
   });
 

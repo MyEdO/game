@@ -62,7 +62,7 @@ describe('les verbes des offres, en intention', () => {
     try {
       expect(actionGate('charge', contexte(partie)), 'témoin : la Charge est fermée').toEqual({ ok: true });
       expect(partie.etat().localIntent).toBeNull();
-      expect(partie.envoyer({ type: 'armerLIntention', args: ['charge'], siege: 0 }).issue).toBe('refusee');
+      expect(partie.envoyer({ type: 'armerLIntention', args: ['charge'], siege: 0 }).issue, 'l’armement d’une intention est local à l’émetteur (classe `local`), jamais une intention de siège').toBe('hors-allowlist');
       expect(partie.etat().localIntent, 'une intention envoyée au nom d’un siège a couru').toBeNull();
       expect(partie.envoyer({ type: 'armerLIntention', args: ['charge'] }).issue).toBe('appliquee');
       expect(partie.etat().localIntent).toEqual({ actionId: 'charge' });

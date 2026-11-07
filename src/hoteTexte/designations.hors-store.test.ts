@@ -104,7 +104,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
 
 describe('le verbe d’une offre désigne ce que sa case lit', () => {
   it('un id d’attaque que l’état ne désigne pas se refuse, en nommant les ids valides', { timeout: 120_000 }, () => {
-    refuseLId(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'nobody'), /attackId : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
+    refuseLId(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'nobody'), /armerLAttaque : id : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
   });
   it('l’id que le refus nomme passe le contrôle', { timeout: 120_000 }, () => {
     passeLeControle(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'arme'));

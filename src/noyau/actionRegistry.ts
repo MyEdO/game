@@ -548,10 +548,18 @@ interface OffreAJouer {
 /** Le geste du verbe `verbe` sur ses arguments, typés par sa signature : une offre ne déclare qu'un verbe du noyau, à ses
  *  paramètres. Les arguments omis en fin ne s'écrivent pas. */
 function geste<V extends keyof ActionsDuNoyau>(verbe: V, ...args: Parameters<ActionsDuNoyau[V]>): GesteDuNoyau {
-  return { verbe, args: sansFinOmise(args) };
+  return { verbe, args: sansFinAbsente(args) };
 }
 
-/** Les arguments sans ceux qui, omis (`undefined`, ou `null` qu'un hôte JSON écrit pour omettre), ferment la liste. */
+/** Les arguments sans les `undefined` qui ferment la liste ; un `null` déclaré reste une valeur (`jetRegler(…, null)`). */
+function sansFinAbsente(args: readonly unknown[]): unknown[] {
+  const ecrits = [...args];
+  while (ecrits.length && ecrits[ecrits.length - 1] === undefined) ecrits.pop();
+  return ecrits;
+}
+
+/** Les arguments sans ceux qui, omis (`undefined`, ou `null` qu'un hôte JSON écrit pour omettre), ferment la liste : la
+ *  forme sous laquelle deux gestes se comparent (`cleDesArguments`). */
 function sansFinOmise(args: readonly unknown[]): unknown[] {
   const ecrits = [...args];
   while (ecrits.length && (ecrits[ecrits.length - 1] === undefined || ecrits[ecrits.length - 1] === null)) ecrits.pop();
@@ -667,7 +675,7 @@ export const ENTREES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
     const lire = args as (o: OffreAJouer) => readonly unknown[] | null;
     return [verbe, duTour((o) => {
       const lus = lire(o);
-      return lus ? { verbe: verbe as keyof VerbesDeLaBarre, args: sansFinOmise(lus) } : null;
+      return lus ? { verbe: verbe as keyof VerbesDeLaBarre, args: sansFinAbsente(lus) } : null;
     })];
   })),
 };

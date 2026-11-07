@@ -6,7 +6,7 @@
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
-import { ACTION_GATES, actionGate, type ContexteDOffre, type BattleActionMode } from './actionRegistry';
+import { ACTION_GATES, actionGate, refusDeLOffre, type ContexteDOffre, type BattleActionMode } from './actionRegistry';
 import type { CounterParticipant, CounterDeclaration, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
@@ -1192,10 +1192,12 @@ export function createCombatSlice(get: Get, set: Set) {
      *  (le siège agissant quand l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — la
      *  demande d'un joueur ne peut pas être signée d'un autre. Le retrait est gratuit : tant que le Round n'a pas tourné,
      *  un joueur qui s'est ravisé rend la table à son enchaînement ; il ne retire QUE son siège, la pause tient tant
-     *  qu'un autre siège la demande. */
+     *  qu'un autre siège la demande. Refusée, et dite, au verdict de l'offre qui la déclare (`raise-hand`). */
     leverLaMain: (levee: boolean) => {
       const b = get().battle;
       if (!b) return;
+      const refus = refusDeLOffre(get(), 'raise-hand');
+      if (refus) return void refuserGesteDuSiege(get, set, refus);
       const seat = decidingSeat(get());
       const deja = b.handRaisedBy ?? [];
       if (deja.includes(seat) === levee) return;

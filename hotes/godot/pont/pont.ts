@@ -218,10 +218,15 @@ export function creerPont() {
   /** Une suite sans jeton ni journal : la vue d'un état du pont changé, la partie intacte. */
   const sansJeton = (o: NonNullable<typeof ouverte>): Suite => ({ vue: vueDe(o), programmes: [], journal: [], zones: { 'journal.lignes': [] } });
 
-  /** Un geste joué : un verbe et ses arguments, celui qu'une offre déclare compris. */
+  /** Un geste joué : un verbe et ses arguments, celui qu'une offre déclare compris. Le refus que le verbe dit (`refus`,
+   *  celui de l'offre qui le déclare, `verdictDuGeste`) est une erreur de règle, avec sa raison. */
   const jouerUnGeste = (o: NonNullable<typeof ouverte>, e: Record<string, unknown>): ResultatDeLAppel => {
     const etat = o.partie.etat();
-    const resultat = envoyerLIntention(o.partie, intentionDuGeste(etat, gesteDuVerbe(etat, e as { type: unknown }, SANS_PISTE)));
+    const intention = intentionDuGeste(etat, gesteDuVerbe(etat, e as { type: unknown }, SANS_PISTE));
+    const refusAvant = etat.refus?.nonce;
+    const resultat = envoyerLIntention(o.partie, intention);
+    const refus = o.partie.etat().refus;
+    if (refus && refus.nonce !== refusAvant) throw new ErreurDeGeste('regle', `${intention.type} : ${refus.texte}`);
     o.pas++;
     return resultat;
   };
