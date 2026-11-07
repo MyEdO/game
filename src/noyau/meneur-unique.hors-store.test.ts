@@ -3,8 +3,7 @@
  * Question tenue ici : héros 1 à 0 Blessure, héros 2 debout — qui pivote
  * à Q/E, qui le regard de première personne suit, qui s'assoit, qui porte la lampe, qui grimpe, qui
  * le plateau anime, à qui appartient le cap d'entrée de scène ? UN SEUL id, celui de `meneurDuMonde`
- * (`src/noyau/monde/combatants.ts`). Les REPLIS de l'élection vivent en `combatants.test.ts`. Le regard de première
- * personne et le jeton de groupe que dessine l'écran se jouent en `src/state/meneur-unique.test.ts`.
+ * (`src/noyau/monde/combatants.ts`). Les REPLIS de l'élection vivent en `combatants.test.ts`.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -16,7 +15,8 @@ import { bus, EVT } from './bus';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from './marcheDuGroupe';
-import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { engage } from './creation/engagement.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -132,6 +132,31 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
     expect(portees[0].srcId).toBe('b');
   });
 });
+describe('changer de meneur par la composition du groupe ne change QUE le meneur — le cap est celui du groupe', () => {
+  /** Le groupe entre, puis pivote deux fois : le regard quitte le cap d'entrée. */
+  function entrerPuisPivoter() {
+    poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
+    banc.getState().pivoterLeGroupe(1);
+    banc.getState().pivoterLeGroupe(1);
+    return capDuGroupe(banc.getState());
+  }
+
+  it('REMPLACEMENT du meneur par un héros d’id NEUF (`remplacerLeHeros`) : cap intact', () => {
+    const capAvant = entrerPuisPivoter();
+    banc.getState().remplacerLeHeros('a', engage('a2'));
+    expect(meneurDuMonde(banc.getState())?.id).toBe('a2');
+    expect(capDuGroupe(banc.getState())).toBe(capAvant);
+  });
+
+  it('AJOUT d’un héros (`recruterLeHeros`) qui devient meneur : cap intact', () => {
+    const capAvant = entrerPuisPivoter();
+    banc.getState().recruterLeHeros(engage('c'));
+    banc.setState({ party: banc.getState().party.map((h) => (h.id === 'c' ? h : blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }))) });
+    expect(meneurDuMonde(banc.getState())?.id).toBe('c');
+    expect(capDuGroupe(banc.getState())).toBe(capAvant);
+  });
+});
+
 describe('le cap du GROUPE traverse le combat', () => {
   it('OUVERTURE : les héros reçoivent leur cap INDIVIDUEL, le cap du groupe reste intact', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);

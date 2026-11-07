@@ -4,8 +4,7 @@
  * Gustav ouvre toujours `dlg-tablee` (`dialogueId` fixe) : le 2ᵉ passage se distingue par le `when`
  * de ses réponses. Contrats POSITIFS, un par passage, joués sur le banc du noyau par le verbe
  * (le choix `dialogue.reponse`) : le numéro est le RANG de la liste visible, la réponse masquée n'en consomme pas. Le 2ᵉ
- * passage naît de la FIN RÉELLE du 1ᵉʳ (le flag que la donnée pose), jamais d'un flag injecté. La touche du rang
- * (`dialogue-choice-N`, dispatcher RÉEL) se joue en `src/state/dialogue-multi-touches.test.ts`.
+ * passage naît de la FIN RÉELLE du 1ᵉʳ (le flag que la donnée pose), jamais d'un flag injecté.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';

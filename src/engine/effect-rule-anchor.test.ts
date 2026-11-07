@@ -12,7 +12,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattan
  * GARDE DE CLASSE — tout `ActiveEffect` posé doit porter un ANCRAGE DE RÈGLE.
  *
  * Une pastille d'effet n'informe le joueur que si elle est reliée à une règle (arbitrage user
- * 2026-07-18) : `chipCodex` (`src/gameIso/effectIcons.ts`) résout par id STABLE — `sourceSpellId`
+ * 2026-07-18) : `chipCodex` résout par id STABLE — `sourceSpellId`
  * (sort/prière source) ou `effectId` (identité de l'effet) — et ne fabrique AUCUN repli. Un effet
  * posé sans l'un des deux s'affiche donc NU : icône + libellé, sans fiche ni popover.
  *

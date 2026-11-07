@@ -10,8 +10,7 @@ import { poserLeGroupe } from './marcheDuGroupe';
 
 /**
  * FOUILLER LA PIÈCE (#700) — second déclencheur de la découverte d'une porte secrète : `EDO 08 l.404`,
- * `LDB 12 l.189`, `LDB 12 l.200` ; une tentative par porte, quel que soit le déclencheur, hors combat. La touche R se
- * joue en `src/state/porte-secrete-fouille.test.ts`.
+ * `LDB 12 l.189`, `LDB 12 l.200` ; une tentative par porte, quel que soit le déclencheur, hors combat.
  */
 
 let banc: Banc;

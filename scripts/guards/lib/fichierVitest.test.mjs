@@ -27,9 +27,9 @@ import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
 test('estFichierVitest : les deux formes JOUÉES sont des instruments', () => {
   for (const rel of [
     'src/data/index-vivant-guard.test.ts',
-    'src/ui/roll-display-contract.test.tsx',
-    'src/gameIso/stage/versionDataset.bench.ts',
-    'src/gameIso/stage/arete-dans-la-chaine.bench.ts',
+    'src/noyau/roll-display-contract.test.tsx',
+    'src/noyau/monde/versionDataset.bench.ts',
+    'src/noyau/monde/arete-dans-la-chaine.bench.ts',
     'banc.bench.tsx',
     'scripts/guards/lib/sourceCorpus.test.mjs',
     'scripts/qc/planche.test.mts',
@@ -43,8 +43,8 @@ test('estFichierVitest : les deux formes JOUÉES sont des instruments', () => {
 
 test('estFichierVitest : la production et ce qui RESSEMBLE à un instrument n’en sont pas', () => {
   for (const rel of [
-    'src/gameIso/stage/versionDataset.ts',
-    'src/gameIso/stage/versionDataset.fixture.ts',
+    'src/noyau/monde/versionDataset.ts',
+    'src/noyau/monde/versionDataset.fixture.ts',
     'src/data/index-vivant-guard.test.ts.bak',
     'src/engine/types.d.ts',
     'src/data/overrides.json',
@@ -65,9 +65,9 @@ test('EST_FICHIER_VITEST : la regexp exportée est sans état — deux appels re
 })
 
 test('estSuiteVitest : une SUITE oui, un BANC non — le sens « les tests seulement »', () => {
-  for (const rel of ['src/data/index-vivant-guard.test.ts', 'src/ui/a.test.tsx', 'scripts/g.test.mjs', 'p.test.mts'])
+  for (const rel of ['src/data/index-vivant-guard.test.ts', 'src/noyau/a.test.tsx', 'scripts/g.test.mjs', 'p.test.mts'])
     assert.equal(estSuiteVitest(rel), true, `suite : ${rel}`)
-  for (const rel of ['src/gameIso/stage/versionDataset.bench.ts', 'banc.bench.tsx', 'scripts/qc/planche.bench.mjs']) {
+  for (const rel of ['src/noyau/monde/versionDataset.bench.ts', 'banc.bench.tsx', 'scripts/qc/planche.bench.mjs']) {
     assert.equal(estSuiteVitest(rel), false, `un banc n’est pas une suite : ${rel}`)
     assert.equal(estFichierVitest(rel), true, `mais il reste un instrument : ${rel}`)
   }
@@ -101,9 +101,9 @@ test('les deux prédicats se DÉRIVENT des fragments exportés — une source, q
 })
 
 test('estKitDeTest : un KIT de test, ni une suite, ni sa déclaration, ni la production', () => {
-  for (const rel of ['src/scenes/partage.testkit.ts', 'src/ui/x.testkit.tsx', 'scripts/guards/lib/lint.testkit.mjs', 'k.testkit.mts'])
+  for (const rel of ['src/scenes/partage.testkit.ts', 'src/noyau/x.testkit.tsx', 'scripts/guards/lib/lint.testkit.mjs', 'k.testkit.mts'])
     assert.equal(estKitDeTest(rel), true, `kit : ${rel}`)
-  for (const rel of ['src/lib/detenteur.testkit.test.ts', 'scripts/guards/lib/lint.testkit.d.mts', 'src/state/exempleTestKit.ts', 'src/testkit.ts', 'src/a.testkit.ts.bak']) {
+  for (const rel of ['src/lib/detenteur.testkit.test.ts', 'scripts/guards/lib/lint.testkit.d.mts', 'src/noyau/exempleTestKit.ts', 'src/testkit.ts', 'src/a.testkit.ts.bak']) {
     assert.equal(estKitDeTest(rel), false, `pas un kit : ${rel}`)
   }
   assert.equal(estSuiteVitest('src/lib/detenteur.testkit.test.ts'), true)

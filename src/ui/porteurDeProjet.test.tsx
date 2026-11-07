@@ -26,7 +26,7 @@ import { addCondition } from '../engine/conditions';
 import { makePregens, makeShowcaseParty } from '../data/pregens';
 import { builtinCampaigns, campagneDuJeu, diligenceCampaign, documentDuJeu, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
 import { porteurDeProjet, porteurDuNarratif, porteurDeScene } from './porteurDeProjet';
-import { CHEMINS_ADRESSES } from './liage';
+import { CHEMINS_ADRESSES } from '../noyau/codex/chemins-adresses';
 import type { Porteur } from '../noyau/codex/porteur';
 import { Prose } from './Prose';
 import { CampaignOpeningScreen } from './CampaignOpeningScreen';

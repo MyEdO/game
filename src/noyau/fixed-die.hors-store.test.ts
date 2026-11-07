@@ -4,9 +4,8 @@
  * évalué au NATUREL (réussite, DR, double → Critique), contrairement au dé CHOISI de la Résilience
  * (LDB 17 l.68 : « au lieu de lancer les dés pour un Test, vous choisissez le résultat », qui garantit la
  * réussite). Deux affordances distinctes, UN seul sélecteur — et un seul prédicat de contrôle,
- * `canFixDie`, qui compose `pilotedByHuman`/`controlsCombatant`/`seatOwns`.
- * L'affordance de l'écran (`ui/forcedDieRow`, liée au store) et la préférence du web se jouent en
- * `src/state/fixed-die.test.ts`.
+ * `canFixDie`, qui compose `pilotedByHuman`/`controlsCombatant`/`seatOwns`. L'option gate l'affordance du siège
+ * local, jamais le verbe : le dé d'un siège émetteur s'applique chez l'hôte qui ne l'a pas.
  */
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -144,6 +143,22 @@ describe('contrôle — `canFixDie` décrit l’AFFORDANCE LOCALE (jamais le ges
     setupAttack();
     expect(canFixDie(banc.getState(), 'inconnu')).toBe(false);
   });
+
+  it('ennemi SANS siège MJ → aucune affordance (il est à l’IA)', () => {
+    setupAttack({ id: 'A', kind: 'enemy' }, { id: 'B', kind: 'hero' });
+    expect(canFixDie(banc.getState(), 'A')).toBe(false);
+  });
+});
+
+describe('option OFF — l’option gate l’AFFORDANCE de celui qui clique, pas le verbe', () => {
+  it('le dé d’un siège émetteur s’applique chez celui qui exécute sans l’option, avec sa provenance et sa ligne', () => {
+    setupAttack();
+    expect(canFixDie(banc.getState(), 'A'), 'précondition : option OFF, aucune affordance locale').toBe(false);
+    banc.getState().jetImposerLeResultat('attack', 33);
+    expect(attackRoll()).toBe(33);
+    expect(banc.getState().pendingAttack!.fixed).toBe(true);
+    expect(lignesDeCombat().join('\n')).toContain('dé fixé');
+  });
 });
 
 describe('Résilience — le choix du dé reste OFFERT sans l’option (deux affordances, un sélecteur)', () => {
@@ -176,6 +191,17 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
     expect(p.roll).toBe(55);
     expect(p.sl).toBe(Math.max(evaluateTest(55, 60).sl, 1));
     expect(p.success).toBe(true);
+  });
+
+  it('dé FIXÉ raté PUIS Résilience : la Résilience RE-TIRE le dé, la provenance « dé fixé » s’efface (LDB 17 l.68)', () => {
+    openHandGate();
+    setDesFixes(true);
+    banc.getState().jetImposerLeResultat('handGate', 95);
+    expect(banc.getState().pendingHandGate!.fixed).toBe(true);
+    expect(banc.getState().pendingHandGate!.success, 'évalué au naturel : 95 > 60').toBe(false);
+    banc.getState().jetForcerLaReussite('handGate');
+    const p = banc.getState().pendingHandGate!;
+    expect([p.forced, p.success, !!p.fixed]).toEqual([true, true, false]);
   });
 
   it('pending FERMÉ (post-Appliquer) : le verbe est inerte, aucun crash', () => {

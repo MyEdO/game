@@ -1,7 +1,7 @@
 /**
  * Moteur des AXES de forces/faiblesses (#409) — SOURCE UNIQUE de dérivation, partagée par le
  * mini-radar par personnage, le rail de composition du groupe (#417) et les « rôles » en toutes
- * lettres des cartes (`heroRoles`, `src/ui/CharCard.tsx`, réconcilié sur `dominantAxes`).
+ * lettres des cartes (`heroRoles`, réconcilié sur `dominantAxes`).
  *
  * Formule de normalisation (MAISON — aucune règle RAW ne stat un axe de forces, cf. `axes.json`
  * `source:'maison'`) — 2e reprise 2026-07-14 (réfutation utilisateur du plancher par Caractéristiques
@@ -114,7 +114,7 @@ export function partyCoverage(members: Combatant[], axes: AxisData[]): (AxisValu
 
 /** Les `n` axes DOMINANTS d'un Combattant (score décroissant, filtrés à `AXIS_QUALIFY_MIN` — une
  *  « force » affichée exige plus qu'une Caractéristique nue non formée, cf. tête de fichier). SOURCE
- *  UNIQUE des « rôles » en toutes lettres des cartes (`heroRoles`, `src/ui/CharCard.tsx`) ET du
+ *  UNIQUE des « rôles » en toutes lettres des cartes (`heroRoles`) ET du
  *  mini-radar. */
 export function dominantAxes(hero: Combatant, axes: AxisData[], n: number): AxisValue[] {
   return axesProfile(hero, axes)

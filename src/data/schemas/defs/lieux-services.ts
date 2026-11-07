@@ -20,7 +20,7 @@ const doc = document(
     /** Réplique de boniment (donnée d'auteur, saveur maison — pas de RAW à sourcer) affichée par le
      *  bandeau d'interlocuteur statique (`SpeakerBanner` variant `boniment`) du service. */
     hostLine: z.string().optional(),
-    /** Bande d'ambiance par défaut du service (id du registre `src/ui/backdrops`). */
+    /** Bande d'ambiance par défaut du service (id du registre des bandes d'ambiance). */
     backdrop: z.string().optional(),
     /** Archétype marchand ouvert par ce service (`src/data/merchants.json`, ex. `armurier` pour
      *  le forgeron) — routage vers le système marchand EXISTANT via `ouvrirLaBoutique`, aucune donnée

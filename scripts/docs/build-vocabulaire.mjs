@@ -9,7 +9,7 @@
 // Trois colonnes MESURÉES (jamais recopiées à la main) :
 //  1. « Résolution » — l'op a-t-elle un `case` dans le switch d'`applyOps` (AST) ? Sinon elle est
 //     laissée telle quelle par le moteur pur et résolue AILLEURS ; la colonne « Résolveurs » liste
-//     les modules de src/engine + src/state qui la nomment.
+//     les modules de src/engine + src/noyau qui la nomment.
 //  2. « Usage en donnée » — occurrences `op` dans src/data (JSON parcouru en profondeur, l'`id` de
 //     l'entrée porteuse la plus proche est remonté ; .ts manuscrits sourcés par motif `op: '…'`).
 //  3. « Concepts » — index inversé FR, du LEXIQUE ci-dessous appliqué au nom + au JSDoc de l'op.
@@ -34,7 +34,7 @@ function rendu() {
   const TOOL = 'build-vocabulaire'
 
   // Périmètre MESURÉ des colonnes « Résolveurs » et « Usage en donnée » (déclaré dans le .md).
-  const RESOLVER_ROOTS = ['src/engine', 'src/state', 'src/noyau']
+  const RESOLVER_ROOTS = ['src/engine', 'src/noyau']
   const DATA_ROOT = 'src/data'
 
   // ---------------------------------------------------------------------------
@@ -287,19 +287,19 @@ function rendu() {
   out += `**« inerte au switch » et « hors switch » ne veulent PAS dire « inutilisable ».** C'est le patron NORMAL de deux\n`
   out += `familles, que cette colonne ne distingue pas (elle ne mesure pas la sémantique) :\n\n`
   out += `- les effets **IMPURS** (grille, initiative, file d'horloge — \`summon\`, \`zone\`, \`push\`, \`teleport\`, \`delayed\`…),\n`
-  out += `  résolus par la couche \`src/state\` ;\n`
+  out += `  résolus par la couche \`src/noyau\` ;\n`
   out += `- les **PASSIFS** (\`weaponRollMod\`, \`incomingAttackMod\`, \`offTerrainMod\`…), jamais « lancés », LUS au point de\n`
   out += `  calcul par un collecteur.\n\n`
   out += `Le JSDoc de ces ops dit souvent « INERTE dans \`applyOps\` » : la phrase décrit le moteur pur, pas la capacité.\n`
   out += `La colonne « Résolveurs » dit où ça se joue vraiment — c'est elle qui tranche entre les deux familles.\n\n`
-  out += `**Colonne « Résolveurs »** — modules de \`src/engine\`/\`src/state\` (hors tests, hors \`ops.ts\`) qui nomment l'op.\n`
+  out += `**Colonne « Résolveurs »** — modules de \`src/engine\`/\`src/noyau\` (hors tests, hors \`ops.ts\`) qui nomment l'op.\n`
   out += `**Colonne « Donnée »** — occurrences dans \`src/data\` : \`fichier:id-de-l-entrée\`. Un **0** signale une op qu'AUCUNE donnée\n`
   out += `n'emploie — candidate au code mort, à instruire (elle peut être employée par du code, cf. « Résolveurs »).\n\n`
   out += `**Périmètre mesuré / angles morts** — la table des TROIS CANAUX est dérivée des déclarations de champs ;\n`
   out += `« Résolveurs » et « Donnée » sont des mesures TEXTUELLES bornées :\n`
-  out += `hors périmètre, donc invisibles ici, les ops construites dynamiquement dans \`src/engine\`/\`src/state\` (\`engine/miscast\`,\n`
-  out += `\`engine/polymorph\`… fabriquent des \`GameOp\` en code), les JSON de campagne hors \`src/data\`, les tests, et \`src/ui\`\n`
-  out += `(affichage, jamais résolution). Un **0** en « Donnée » n'est donc pas une preuve de mort : c'est une PISTE.\n\n`
+  out += `hors périmètre, donc invisibles ici, les ops construites dynamiquement dans \`src/engine\`/\`src/noyau\` (\`engine/miscast\`,\n`
+  out += `\`engine/polymorph\`… fabriquent des \`GameOp\` en code), les JSON de campagne hors \`src/data\` et les tests.\n`
+  out += `Un **0** en « Donnée » n'est donc pas une preuve de mort : c'est une PISTE.\n\n`
 
   out += `## Les trois canaux de mécanique en donnée\n\n`
   out += `\`GameOp\` est la langue de l'axe EFFET/MODIFICATEUR — une op s'APPLIQUE à une cible (\`applyOps(target, ops)\`).\n`

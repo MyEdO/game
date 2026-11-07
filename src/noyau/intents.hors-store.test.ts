@@ -1,8 +1,7 @@
 /**
  * Garde-fou de l'allowlist coop : chaque intent DOIT exister comme action du noyau (un
  * renommage d'action casse ici, pas en prod chez un invité) — et l'allowlist reste
- * combat-only (aucune action de persistance/économie n'y traîne). La table de l'adaptateur web, l'émission des écrans
- * et le nettoyage des arguments se jouent en `src/state/intents.test.ts`.
+ * combat-only (aucune action de persistance/économie n'y traîne).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -58,7 +57,7 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
   });
 });
 
-describe('allowlist coop (state/intents)', () => {
+describe('allowlist coop', () => {
   it('chaque intent correspond à une action existante du store', () => {
     const state = banc.getState() as unknown as Record<string, unknown>;
     const missing = [...GUEST_INTENTS].filter((name) => typeof state[name] !== 'function');

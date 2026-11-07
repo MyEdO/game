@@ -2,7 +2,7 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * CLIQUET AST DES ÉTAPES DE SÉQUENCE (#1279) — une étape de manche qui LANCE dit son ENJEU, et c'est
  * mesuré sur la FORME du programme, pas sur une baseline nominative. Jumeau structurel de
- * `cascade-step-stake-guard.test.ts` (qui scanne par expressions régulières `src/state`, `src/noyau` et `src/scenes`) : ici
+ * `cascade-step-stake-guard.test.ts` (qui scanne par expressions régulières les flux et `src/scenes`) : ici
  * le parcours est un ARBRE SYNTAXIQUE (API TypeScript), donc le scan voit la DÉCLARATION réelle —
  * un `stake` en dernière propriété, un raccourci, une propriété apportée par ÉPANDAGE ne le trompent
  * pas, et un littéral qui n'est pas le 1ᵉʳ argument d'un monteur ne l'excite pas.

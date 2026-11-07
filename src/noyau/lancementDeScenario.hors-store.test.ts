@@ -1,6 +1,6 @@
 /**
  * Le lancement d'un scénario de test (#1692, `lancerLeScenario`) lit la fiche ET le contenu construit, dont
- * `interludeWeeks` (ADE II 8 l.65). Le geste « Lancer » du menu des scénarios se joue en `src/state/scenarioFlow.test.tsx`.
+ * `interludeWeeks` (ADE II 8 l.65).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { seedBattleRng } from './battleRng';

@@ -1,6 +1,5 @@
 /**
- * Une coque routière n'est pas un navire (EDOC 07 l.334, MDG 13 l.656). Le refus du banc de recette `shipCrit` sur
- * une coque routière se joue en `src/state/coque-non-navire.test.ts`.
+ * Une coque routière n'est pas un navire (EDOC 07 l.334, MDG 13 l.656).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Combatant } from '../engine/types';

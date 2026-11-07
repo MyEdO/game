@@ -2633,14 +2633,14 @@ test('RELAIS dérivé : un paramètre qui alimente une lecture, à un puis deux 
     'scripts/lib/lister.mjs': "import { readdirSync } from 'node:fs'\nimport { join } from 'node:path'\n" +
       "export function listerArbre(dir) {\n  const marcher = (rel) => readdirSync(rel ? join(dir, rel) : dir)\n  return marcher('')\n}\n",
     'scripts/lib/corpus.mjs': "import { listerArbre } from './lister.mjs'\nimport { join } from 'node:path'\nexport const corpus = (racines) => racines.map((r) => listerArbre(join(r, 'sous')))\n",
-    'scripts/garde.test.mjs': "import { listerArbre } from './lib/lister.mjs'\nimport { corpus } from './lib/corpus.mjs'\nlisterArbre('src/ui')\ncorpus(['src/a', 'src/b'])\n",
+    'scripts/garde.test.mjs': "import { listerArbre } from './lib/lister.mjs'\nimport { corpus } from './lib/corpus.mjs'\nlisterArbre('src/noyau')\ncorpus(['src/a', 'src/b'])\n",
   }
   const evaluateur = evaluateurDe(modules)
   assert.deepEqual(evaluateur.sitesDe('scripts/lib/lister.mjs').map((s) => s.relais), [true])
   assert.deepEqual(evaluateur.sitesDe('scripts/lib/corpus.mjs').map((s) => s.relais), [true])
   assert.deepEqual(evaluateur.relaisExportes('scripts/lib/corpus.mjs'), ['corpus'])
   assert.deepEqual(racinesDe(modules, 'scripts/garde.test.mjs'), [
-    [couvert('corpus:src/ui', 'paramètre rel'), { chemin: 'src/ui' }],
+    [couvert('corpus:src/noyau', 'paramètre rel'), { chemin: 'src/noyau' }],
     [couvert('corpus:src/a/sous', 'paramètre rel'), couvert('corpus:src/b/sous', 'paramètre rel'), { chemin: 'src/a/sous' }, { chemin: 'src/b/sous' }],
   ])
 })
@@ -2670,19 +2670,19 @@ test('DOSSIER GIT : `gitDirDe(x)` vaut `<x>/.git` ; son homonyme hors `barriere-
 
 test('DÉSTRUCTURATION d’un objet rendu, champ par champ ; accès de propriété d’une constante', () => {
   const modules = {
-    'scripts/lib/lieux.mjs': "export function lieux() { return { donnees: 'src/data', autre: 'x' } }\nexport const PERIMETRE = { racines: ['src/state'] }\n",
+    'scripts/lib/lieux.mjs': "export function lieux() { return { donnees: 'src/data', autre: 'x' } }\nexport const PERIMETRE = { racines: ['src/hote'] }\n",
     'scripts/garde.test.mjs': "import { readdirSync } from 'node:fs'\nimport { lieux, PERIMETRE } from './lib/lieux.mjs'\nconst { donnees } = lieux()\nreaddirSync(donnees)\nreaddirSync(PERIMETRE.racines)\n",
   }
-  assert.deepEqual(racinesDe(modules, 'scripts/garde.test.mjs'), [[{ chemin: 'src/data' }], [{ chemin: 'src/state' }]])
+  assert.deepEqual(racinesDe(modules, 'scripts/garde.test.mjs'), [[{ chemin: 'src/data' }], [{ chemin: 'src/hote' }]])
 })
 
 test('PROJECTION : `map` et `flatMap` rendent les valeurs de leur rappel, élément du receveur lié', () => {
   const modules = {
     'scripts/lib/lister.mjs': "import { readdirSync } from 'node:fs'\nexport function listerArbre(dir) { return readdirSync(dir) }\n",
     'scripts/lib/corpus.mjs': ROOT + "import { listerArbre } from './lister.mjs'\nexport function lireCorpus(dirs) {\n  const bases = dirs.map((d) => join(ROOT, d))\n  return bases.flatMap((b) => listerArbre(b))\n}\n",
-    'scripts/garde.test.mjs': "import { lireCorpus } from './lib/corpus.mjs'\nlireCorpus(['src/ui', 'src/lib'])\n",
+    'scripts/garde.test.mjs': "import { lireCorpus } from './lib/corpus.mjs'\nlireCorpus(['src/noyau', 'src/lib'])\n",
   }
-  assert.deepEqual(racinesDe(modules, 'scripts/garde.test.mjs'), [[{ chemin: 'src/ui' }, { chemin: 'src/lib' }]])
+  assert.deepEqual(racinesDe(modules, 'scripts/garde.test.mjs'), [[{ chemin: 'src/noyau' }, { chemin: 'src/lib' }]])
 })
 
 test('BOUCLE déstructurée sur un tableau évaluable ; CHAMP absent d’un objet passé en argument : défaut du paramètre déstructuré', () => {
@@ -2696,8 +2696,8 @@ test('BOUCLE déstructurée sur un tableau évaluable ; CHAMP absent d’un obje
 })
 
 test('`join` de TABLEAU : `split(…).join(…)` rend son texte, seul le `join` du module de chemin joint', () => {
-  const texte = ROOT + "import path, { sep } from 'node:path'\nreaddirSync(join(ROOT, 'docs').split(sep).join('/'))\nreaddirSync(path.posix.join('src', 'ui'))\nreaddirSync(['a', 'b'].join('/'))\n"
-  assert.deepEqual(racinesDe({ 'scripts/x/t.test.mjs': texte }, 'scripts/x/t.test.mjs'), [[{ chemin: 'docs' }], [{ chemin: 'src/ui' }], [{ non: 'appel [\'a\', \'b\'].join' }]])
+  const texte = ROOT + "import path, { sep } from 'node:path'\nreaddirSync(join(ROOT, 'docs').split(sep).join('/'))\nreaddirSync(path.posix.join('src', 'noyau'))\nreaddirSync(['a', 'b'].join('/'))\n"
+  assert.deepEqual(racinesDe({ 'scripts/x/t.test.mjs': texte }, 'scripts/x/t.test.mjs'), [[{ chemin: 'docs' }], [{ chemin: 'src/noyau' }], [{ non: 'appel [\'a\', \'b\'].join' }]])
 })
 
 test('un dossier temporaire dépendant de l’environnement couvre le corpus', () => {
@@ -2817,19 +2817,19 @@ test('CYCLE ouvert aux mêmes arguments : un relais MUTUEL garde ses deux sites 
 test('CYCLE ouvert aux mêmes arguments : la valeur rendue par la récursion est un cycle nommé, aucun ancêtre inventé, jamais la racine du dépôt (CAS 2, I1, I2)', () => {
   const haut = {
     'scripts/lib/r.mjs': ENTETE + "export function haut(d) { return existsSync(d) ? d : dirname(haut(d)) }\n",
-    'scripts/t.test.mjs': "import { readdirSync } from 'node:fs'\nimport { haut } from './lib/r.mjs'\nreaddirSync(haut('src/ui/x'))\n",
+    'scripts/t.test.mjs': "import { readdirSync } from 'node:fs'\nimport { haut } from './lib/r.mjs'\nreaddirSync(haut('src/noyau/x'))\n",
   }
   assert.deepEqual(sitesDansLOrdre(haut, ['scripts/t.test.mjs']), [
-    ['scripts/t.test.mjs:3 readdirSync', false, ['{"chemin":"src/ui/x"}', '{"non":"cycle d\'appels haut"}']],
-    ['scripts/t.test.mjs:3 haut', false, ['{"chemin":"src/ui/x"}', '{"non":"cycle d\'appels haut"}']],
+    ['scripts/t.test.mjs:3 readdirSync', false, ['{"chemin":"src/noyau/x"}', '{"non":"cycle d\'appels haut"}']],
+    ['scripts/t.test.mjs:3 haut', false, ['{"chemin":"src/noyau/x"}', '{"non":"cycle d\'appels haut"}']],
   ])
   const mutuel = {
     'scripts/lib/r.mjs': ENTETE + "export function a(d) { return existsSync(d) ? d : dirname(b(d)) }\nexport function b(d) { return a(d) }\n",
-    'scripts/t.test.mjs': "import { readdirSync } from 'node:fs'\nimport { a } from './lib/r.mjs'\nreaddirSync(a('src/ui/x/y/z'))\n",
+    'scripts/t.test.mjs': "import { readdirSync } from 'node:fs'\nimport { a } from './lib/r.mjs'\nreaddirSync(a('src/noyau/x/y/z'))\n",
   }
   assert.deepEqual(sitesDansLOrdre(mutuel, ['scripts/t.test.mjs']), [
-    ['scripts/t.test.mjs:3 readdirSync', false, ['{"chemin":"src/ui/x/y/z"}', '{"non":"cycle d\'appels a, b"}']],
-    ['scripts/t.test.mjs:3 a', false, ['{"chemin":"src/ui/x/y/z"}', '{"non":"cycle d\'appels a, b"}']],
+    ['scripts/t.test.mjs:3 readdirSync', false, ['{"chemin":"src/noyau/x/y/z"}', '{"non":"cycle d\'appels a, b"}']],
+    ['scripts/t.test.mjs:3 a', false, ['{"chemin":"src/noyau/x/y/z"}', '{"non":"cycle d\'appels a, b"}']],
   ])
 })
 
@@ -2850,10 +2850,10 @@ test('une récursion qui CREUSE : aux mêmes arguments, cycle nommé dès la ré
   const modules = {
     'scripts/lib/q.mjs': ENTETE + "export function f(d) { readdirSync(d); return f(join(d, '..')) }\n" +
       "export function g(d) { return existsSync(d) ? d : join(g(d), 'x') }\n",
-    'scripts/t.test.mjs': "import { readdirSync } from 'node:fs'\nimport { f, g } from './lib/q.mjs'\nf('src/ui/a/b')\nreaddirSync(g('src'))\n",
+    'scripts/t.test.mjs': "import { readdirSync } from 'node:fs'\nimport { f, g } from './lib/q.mjs'\nf('src/noyau/a/b')\nreaddirSync(g('src'))\n",
   }
   const [deF, deG] = sitesDansLOrdre(modules, ['scripts/t.test.mjs'])
-  assert.deepEqual(deF, ['scripts/t.test.mjs:3 f', false, ['{"chemin":"src/ui/a"}', '{"chemin":"src/ui/a/b"}', '{"non":"cycle d\'appels f"}']])
+  assert.deepEqual(deF, ['scripts/t.test.mjs:3 f', false, ['{"chemin":"src/noyau/a"}', '{"chemin":"src/noyau/a/b"}', '{"non":"cycle d\'appels f"}']])
   assert.deepEqual(deG, ['scripts/t.test.mjs:4 readdirSync', false, ['{"chemin":"src"}', '{"non":"cycle d\'appels g"}']])
 })
 

@@ -1,7 +1,7 @@
 /**
  * Le CARNET D'INDICES dans le noyau (#670, #2415) : `revealClue`/`discreditClue` par `applyEffects`, survie à la
- * transition de scène, remise à zéro en nouvelle partie, nouveauté vue par siège, et la save du noyau. La liaison de
- * l'invité (l'action enrobée en intent) est dans `src/state/clues-invite.test.ts`.
+ * transition de scène, remise à zéro en nouvelle partie, nouveauté vue par siège, et la save du noyau. Le départ en
+ * intention chez l'invité : `src/hote/coop/salon.hors-store.test.ts`.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { estNouveauPour } from './clues';

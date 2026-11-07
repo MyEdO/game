@@ -422,8 +422,7 @@ export function tickCombatAuto(get: Get, set: Set): void {
 /**
  * Planifie un tick d'auto-cadence après un changement d'état : rien en mode manuel (défaut, zéro
  * overhead), sinon UN tick hors du cycle de `set`, coalescé sur son jeton tant que la plateforme le dit
- * en attente : un tick annulé par l'hôte n'en bloque aucun autre. L'hôte l'appelle à chaque écriture
- * (`initCombatAuto`, `src/state/store.ts`).
+ * en attente : un tick annulé par l'hôte n'en bloque aucun autre. L'hôte l'appelle à chaque écriture.
  */
 let tickPlanifie: Jeton | null = null;
 export function planifierLeTickAuto(get: Get, set: Set): void {

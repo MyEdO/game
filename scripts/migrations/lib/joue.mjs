@@ -61,7 +61,7 @@ export function depot(fichiers, copies = []) {
  * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les PDF (lourds,
  * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
  */
-const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/jsonCanonique.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];
+const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/jsonCanonique.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];
 
 /** Dépôt jetable sous `os.tmpdir()` portant une COPIE du `CORPUS` de l'arbre. REND sa racine. */
 export function copieDuCorpus() {

@@ -63,7 +63,7 @@ export interface MapPlace {
    *  coordonnées PLAN-LOCALES 0-100 (indépendantes de `pos`, qui reste la position du lieu sur la
    *  carte du MONDE). Absent/vide ⇒ le lieu n'offre pas d'onglet Plan. */
   poi?: PlacePoi[];
-  /** Bande d'ambiance du hub de ce lieu (id du registre `src/ui/backdrops`) — surcharge le défaut
+  /** Bande d'ambiance du hub de ce lieu (id du registre des fonds de l'hôte) — surcharge le défaut
    *  éventuel porté par le service (`lieux-services.json`, ex. auberge). Éditable dans `WorldMapEditor`. */
   backdrop?: string;
   /** Le lieu EXISTE-t-il sur la carte (algèbre `Condition`, cf. `evalCondition`) — axe NŒUD du gating
@@ -319,7 +319,7 @@ export interface ResolvedPlaceService {
   rest?: RestPlaces;
   /** Réplique de boniment (catalogue `lieux-services.json`) du bandeau d'interlocuteur statique. */
   hostLine?: string;
-  /** Bande d'ambiance par défaut (catalogue `lieux-services.json`, id du registre `src/ui/backdrops`). */
+  /** Bande d'ambiance par défaut (catalogue `lieux-services.json`, id du registre des fonds de l'hôte). */
   backdrop?: string;
   /** Archétype marchand (catalogue `lieux-services.json`, ex. `armurier` pour le forgeron) — porte vers
    *  le système marchand EXISTANT (`ouvrirLaBoutique`, #369), aucun système neuf. */
@@ -710,8 +710,7 @@ export function messageDeRefusJoueur(geste: GesteDuJoueur): string {
 }
 
 /** Message à afficher au JOUEUR quand une campagne de SA bibliothèque ne passe plus la porte
- *  `parseProject` au moment du `geste` — même frontière que `playerImportError`
- *  (`ui/CampaignLibraryScreen.tsx`). SOURCE UNIQUE des écrans qui la jouent ou l'exportent. */
+ *  `parseProject` au moment du `geste` — même frontière que `playerImportError`. SOURCE UNIQUE des écrans qui la jouent ou l'exportent. */
 export function playerEntryError(err: unknown, geste: GesteDuJoueur): string {
   return refusJoueur(
     err,
