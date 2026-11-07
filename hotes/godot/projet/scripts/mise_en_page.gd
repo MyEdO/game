@@ -65,6 +65,12 @@ static func centre_d_arete(milieu: Vector2, pied: float, metres_par_case: float,
 	return Vector3(milieu.x + DEMI_CASE, hauteur_au_plateau(pied, metres_par_case) + hauteur / 2.0, milieu.y + DEMI_CASE)
 
 
+## Le cran de caméra (`Rot` de `src/geometry/iso.ts`, 0 à 3) d'une caméra dont l'arrière (`global_basis.z`) est
+## `arriere` : 0 au sud-est du plateau, puis un cran par quart de tour vers le sud-ouest, le nord-ouest et le nord-est.
+static func rotation_iso(arriere: Vector3) -> float:
+	return fposmod(roundf((atan2(arriere.z, arriere.x) - QUART_DE_TOUR / 2.0) / QUART_DE_TOUR), 4.0)
+
+
 ## Le lacet d'une arête qui court selon `sens` sur le plateau.
 static func lacet_d_arete(sens: Vector2) -> float:
 	return atan2(-sens.y, sens.x)

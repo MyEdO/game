@@ -973,7 +973,8 @@ export function shelterSectionAt(field: ReadonlyMap<string, ShelterColumn>, x: n
  *  l'EMPRISE de la masse qui l'abrite, à l'un des niveaux qu'elle couvre.
  *
  *  Il dégage AUSSI le COUVERCLE (`overheadCells`) : les cases de toute masse dont l'emprise le
- *  surplombe, aux niveaux strictement au-dessus du sien. Une masse peut le coiffer sans qu'il en
+ *  surplombe, aux niveaux strictement au-dessus du sien, et l'emprise de sa pièce sur chaque couche
+ *  au-dessus de la sienne — l'étage posé sur une salle que nulle masse ne porte. Une masse peut le coiffer sans qu'il en
  *  occupe aucun niveau — mesuré sur La Diligence : sous le passage couvert (17,12,z0), la seule
  *  masse qui porte l'étage est `diligence-auto-z1-l1-0` (z=1, levels=1), et l'allié y était DEHORS
  *  pour la loi de dégagement : 0 nappe levée sur 76.
@@ -1001,12 +1002,19 @@ export function clearedSpace(
   const masses = effectiveArchitecture(scene).flatMap((body) =>
     body.masses.map((mass) => ({ mass, cells: massFootprintCells(mass.footprint) })));
   let openSky = false; // au moins un allié qui n'est enfermé dans aucun volume bâti
+  const tilesById = roomTilesById(scene); // les cases d'une pièce : UNE dérivation (`noyau/monde/rooms`)
+  const couches = scene.layers.map((layer) => layer.z);
   for (const ally of allies) {
     const x = Math.round(ally.x);
     const y = Math.round(ally.y);
     const z = ally.z ?? 0;
     const rooms = occupiedRoomIds(scene, [{ x, y, z }]);
     for (const id of rooms) zoneIds.add(id);
+    for (const id of rooms)
+      for (const key of tilesById.get(id) ?? []) {
+        const [rx, ry] = key.split(',');
+        for (const lz of couches) if (lz > z) overheadCells.add(`${rx},${ry},${lz}`);
+      }
     let dedans = rooms.size > 0;
     for (const { mass, cells } of masses) {
       if (!massCovers(mass, cells, x, y, z)) continue;
@@ -1018,7 +1026,6 @@ export function clearedSpace(
     }
     openSky ||= !dedans;
   }
-  const tilesById = roomTilesById(scene); // les cases d'une pièce : UNE dérivation (`noyau/monde/rooms`)
   for (const id of zoneIds) zoneCells.set(id, tilesById.get(id) ?? new Set<string>());
   const seenSections = sight
     ? new Set(openSky ? masses.filter(({ mass, cells }) => footInSight(mass.z, cells, sight)).map(({ mass }) => mass.id) : [])
