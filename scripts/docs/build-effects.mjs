@@ -32,7 +32,7 @@ function rendu() {
   out += `TypeScript de \`${SRC}\` : nom, champs, 1re phrase de JSDoc). Elle ne mesure NI où chaque \`Effect\` est réellement\n`
   out += `interprété (aucune colonne « Résolveurs », contrairement à \`docs/vocabulaire-mecanique.md\`) NI son usage réel dans\n`
   out += `une scène/campagne (aucune colonne « Donnée ») : un \`Effect\` listé ici peut être un type authorable sans handler\n`
-  out += `câblé côté \`src/state\`, ou n'être jamais posé dans aucun JSON de campagne — cette carte ne le dira pas.\n\n`
+  out += `câblé côté hôte, ou n'être jamais posé dans aucun JSON de campagne — cette carte ne le dira pas.\n\n`
   out += `| Effect (\`type\`) | Champs | Rôle |\n|---|---|---|\n`
   for (const r of merged) {
     out += `| \`${r.name}\` | ${renderFields(r.fieldGroups)} | ${r.role ?? '—'} |\n`

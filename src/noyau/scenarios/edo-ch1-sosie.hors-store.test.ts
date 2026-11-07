@@ -1,9 +1,7 @@
 /**
  * Le SOSIE de Kastor Lieberung, désigné par le joueur à la fouille du cadavre — EDO 02 l.91 ; #2219
  * c.6068818868. Puis les Documents 3 et 4 remis l'un après l'autre (EDO 02 l.93-95), et l'indice qui les garde
- * relisibles. Chemin RÉEL : l'action `fouiller` du paquet `la-diligence`, jouée sur le banc du noyau. Leur prose
- * nommée par l'identité du sosie (EDO 02 l.112-127, #686), lue dans la modale montée, se joue en
- * `src/state/edo-ch1-sosie-documents.test.tsx`.
+ * relisibles. Chemin RÉEL : l'action `fouiller` du paquet `la-diligence`, jouée sur le banc du noyau.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';

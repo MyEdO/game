@@ -14,7 +14,7 @@
  * box EST un enclos d'animaux — la migration nomme la bonne Structure, elle ne cherche pas un effet.
  *
  * L'APPARENCE EST CONSERVÉE : le dessin ne bouge pas d'un pixel (`wallApp` lit `seg.appearance` en
- * priorité, `src/gameIso/catalog/structures/index.ts:30-36`). Le PASSAGE non plus : une arête non
+ * priorité). Le PASSAGE non plus : une arête non
  * occultante reste infranchissable.
  *
  * CE QUE LE PROFIL AA CHANGE, MESURÉ (`mur-a-ossature-en-bois` → `cloture-en-clayonnage`) — quatre

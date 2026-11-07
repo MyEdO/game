@@ -12,8 +12,6 @@
  * la production. Retoucher une de ces entrées de catalogue sans le vouloir rougit donc ici, à la
  * phrase près — y compris sur un tiret cadratin, une espace ou un exposant.
  *
- * Les libellés du registre clavier (`keybindings.ts`) se jouent en `src/state/sequence-parite-catalogue.test.ts`.
- *
  * Ce test ne dit RIEN de la 2ᵉ langue : il verrouille la locale FR (la seule montée en v1). Une
  * locale ajoutée ne le fait pas mentir — elle ne passe simplement pas par lui.
  */

@@ -3,7 +3,7 @@
  *
  * `props.json` déclarait `cloture` en couvert MOYEN, et sa provenance affirmait « une clôture EST la
  * barrière en bois de l'étalon de couvert MOYEN (LDB 14 l.81) — même objet, aucune extrapolation ».
- * La def d'art (`src/gameIso/catalog/decor/defs/cloture.ts`) dessine quatre poteaux et deux lisses :
+ * La def d'art de `cloture` dessine quatre poteaux et deux lisses :
  * une clôture à CLAIRE-VOIE, pas la barrière PLEINE de l'étalon. « Même objet » était donc faux, et
  * c'est ce faux qui interdisait l'extrapolation. L'axe que les 32 autres `maison` de couvert de décor
  * suivent est la MATIÈRE et l'AJOUR ; à claire-voie, l'étalon est celui de la haie — couvert

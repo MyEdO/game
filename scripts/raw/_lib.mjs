@@ -45,9 +45,8 @@ export { estLivreExtrait }
 
 // ABRÉV → dossier Source, DÉRIVÉ de `books.json` (SOURCE UNIQUE des acronymes ET de l'ordre,
 // ref #585, #1825) : les entrées porteuses d'un `dir` (les livres couverts par l'Atlas RAW), dans
-// l'ORDRE DU FICHIER — le même que l'app sert au joueur (`src/data/index.ts` `books`,
-// `src/ui/compendium/DescRefField.tsx` par `estExtrait`, qui applique le même `estLivreExtrait`). C'est aussi l'ordre d'affichage des
-// rapports : un livre de plus est UNE entrée de `books.json`, zéro ligne ici.
+// l'ORDRE DU FICHIER — le même que l'app sert au joueur (`src/data/index.ts` `books`).
+// C'est aussi l'ordre d'affichage des rapports : un livre de plus est UNE entrée de `books.json`, zéro ligne ici.
 export const booksDe = (registre) => registre.filter(estLivreExtrait).map((b) => [b.abbr, b.dir])
 // Registre BRUT des livres, tel que `books.json` le porte — la lecture du fichier vit ICI et nulle
 // part ailleurs, pour que tout consommateur puisse recevoir un registre FIXTURE par injection.

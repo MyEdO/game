@@ -11,7 +11,7 @@ export type Get<E = JeuDuNoyau> = () => E;
 /** Les clés RÉSERVÉES : aucun flux ne les écrit par son patch. `journal` a pour écrivains `log`
  *  (`journal.ts`) et `startScene` (`entreeEnScene.ts`) (#319, #2724) ; `gameTime`, `avancerLHorloge`
  *  (`horloge.ts`, #668, #2817 D7). Tous passent par `SetDesClesReservees`, et le remplacement d'état par
- *  `RemplacerLEtat` (`src/state/store.ts`). */
+ *  `RemplacerLEtat`. */
 export type CleReservee = 'journal' | 'gameTime';
 /** Le patch d'un flux : aucune clé réservée n'y figure. */
 export type PatchDeFlux<E = Jeu> = Partial<Omit<E, CleReservee>> & { [K in CleReservee]?: never };

@@ -11,7 +11,6 @@ import { createHero } from '../engine/character';
  * POV (vue subjective) — MOVEMENT + STATE. `povStepDest` réutilise la connectivité 8-connexe UNIQUE
  * (`walkNeighbors`), et les actions du noyau (`pivotParty`/`stepPartyRelative`) tournent le cap MONDE du
  * GROUPE (une entrée, `CAP_GROUPE`) puis passent par le PIPELINE de pas EXISTANT (`moveParty`). Aucun système de mouvement parallèle.
- * La bascule de la vue (`togglePov`) se joue en `src/state/pov-move.test.ts`.
  */
 
 /** Rend une case non-marchable (vide) sur z0. `emptyScene` remplit d'herbe marchable partout. */

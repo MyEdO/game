@@ -1,6 +1,6 @@
 /**
  * Dérivation PURE « traits → équipement » (armes jouables + armure en PA) d'une créature/statbloc.
- * SOURCE UNIQUE, partagée par le SPAWN de combat (`noyau/monde/spawn`) ET le RENDU d'exploration (`gameIso`).
+ * SOURCE UNIQUE, partagée par le SPAWN de combat (`noyau/monde/spawn`) ET le RENDU d'exploration.
  * Vit dans `engine` (pur, ne dépend de rien d'en haut) → importable par le noyau ET par le rendu
  * (`scripts/guards/lib/couches.mjs`).
  */

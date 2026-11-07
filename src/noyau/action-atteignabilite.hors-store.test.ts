@@ -1,9 +1,7 @@
 /**
  * LE REGISTRE DES ACTIONS, côté noyau (spec HUD « Zone 12 », sondes du juge promues) : sa COHÉRENCE INTERNE (chaque id
  * de code déclaré à `actions.json` se résout, tout mode de ciblage a son action porteuse, `BattleState.action` se type
- * depuis le registre) et les sorties d'interlude, chacune par SON dispatcher. L'atteignabilité par une surface vivante,
- * la réciproque fail-closed de la console et la disposition data-driven se jouent en
- * `src/state/action-atteignabilite.test.ts`.
+ * depuis le registre) et les sorties d'interlude, chacune par SON dispatcher.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
