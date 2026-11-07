@@ -47,7 +47,7 @@ describe('Nuée — Trait Nuée (LDB 85 l.251-253)', () => {
 
 /**
  * Volet SCÈNE : la Nuée d'un statbloc d'AUTEUR (`SceneEntity.statblock`) enrôlée dans une rencontre,
- * spawnée par `startCombat`, puis jouée par le noyau — build, perte de 1 PB par Round aux Engagés,
+ * spawnée par `lancerLeCombat`, puis jouée par le noyau — build, perte de 1 PB par Round aux Engagés,
  * départ libre d'un Engagement (LDB 85 l.251-253). Scène CONSTRUITE pour ce banc.
  */
 const ENC_NUEE = 'enc-nuee';
@@ -86,8 +86,8 @@ function nueeScene(avecTrait = true): { scene: Scene; nueeId: string; temoinId: 
 function startNuee(scene: Scene) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], battle: null, pendingDisengage: null });
-  banc.getState().startScene(scene);
-  banc.getState().startCombat(ENC_NUEE);
+  banc.getState().lancerLaScene(scene);
+  banc.getState().lancerLeCombat(ENC_NUEE);
   banc.getState().fenetreValider('roundStart');
   banc.abandonner(); // les tours d'IA du Round sont différés : ce banc ne joue que ses propres gestes
   return { battle: banc.getState().battle!, heroId: hero.id };

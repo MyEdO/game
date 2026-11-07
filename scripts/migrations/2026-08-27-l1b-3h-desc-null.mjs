@@ -4,8 +4,7 @@
  * MOTIF MESURÉ : l'enveloppe de document déclare `desc: z.string().min(1).optional()`
  * (`src/data/schemas/grammaire/document.ts`) — une prose ABSENTE est une clé absente, pas une clé à
  * `null` ni une chaîne vide. Trois états pour un seul concept, c'est le troisième qui ment : la
- * chaîne vide est vue « présente » par `src/ui/compendium/search.ts` et « absente » par
- * `src/ui/compendium/CodexRef.tsx` ; `null` force chaque lecteur à un `?? undefined`.
+ * chaîne vide est vue « présente » par un lecteur et « absente » par un autre ; `null` force chaque lecteur à un `?? undefined`.
  *
  * ENTRÉES : les deux racines de documents — tout `src/data/*.json` et tout
  * `src/scenes/<campagne>/<campagne>-projet.json`. La purge est mesurée sur la DONNÉE, pas déclarée

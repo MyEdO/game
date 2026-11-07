@@ -26,7 +26,7 @@ export function ShipStationsPanel({ traits }: {
   traits: NavalTraitRef[];
 }) {
   const party = useGame((s) => s.party);
-  const setShipStation = useGame((s) => s.setShipStation);
+  const affecterALaStation = useGame((s) => s.affecterALaStation);
   const heroes = party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'hero');
   return (
     <PostesRoster
@@ -35,7 +35,7 @@ export function ShipStationsPanel({ traits }: {
       heroes={heroes}
       postes={shipStations.map(stationAsPoste)}
       pinnedOf={(h) => h.shipStation}
-      onSet={setShipStation}
+      onSet={affecterALaStation}
       codexCategory="shipStations"
       refusOf={(p) => {
         if (shipStationOuverte(traits, p.id)) return undefined;

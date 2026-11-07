@@ -8,7 +8,7 @@
  * l'horloge (1 Round ≈ TIME_COST.combatRound minute). En combat, c'est la frontière de Round qui s'en charge.
  *
  * Échapper à l'agonie par Hémorragie hors combat : Test de Guérison réussi retire l'État (LDB 09
- * l.261, LDB 16 l.107-109) — infirmerie hors combat (`openMedic`/`medicAct('bleed')`, `noyau/medicFlow.ts`,
+ * l.261, LDB 16 l.107-109) — infirmerie hors combat (`ouvrirLeMedecin`/`soignerLePatient('bleed')`, `noyau/medicFlow.ts`,
  * bouton « Soins » de `CharacterSheet.tsx`), n'avance pas le temps. Sans soigneur au Talent ni Destin,
  * l'agonie ci-dessus va à son terme.
  */

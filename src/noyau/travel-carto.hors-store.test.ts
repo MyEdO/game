@@ -4,12 +4,9 @@
  *  - le libellé de la rangée = la Compétence RÉELLEMENT utilisée, LABEL résolu AVEC sa spec
  *    (« Métier (Cartographe) »), jamais l'id brut (`metier`) ni `def.skills[0]` sans spec ;
  *  - la RANGÉE porte le contexte de test étendu (extendedDrDone/extendedDrTarget) → barre de DR
- *    ATTACHÉE à SA rangée (rendue par `RollRow`, site unique), persistante après validation.
+ *    ATTACHÉE à SA rangée, persistante après validation.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { buildStageSteps } from './travelPostes';
 import { applierDe } from './cascade';
@@ -56,16 +53,6 @@ describe('Voyage — poste Cartographie (Établir des cartes, test étendu)', ()
     expect(part.extendedDrDone).toBe(1); // = extendedProgress AVANT ce jet
   });
 
-  // VERROU (#329, arbitrage user 2026-07-11) : la barre de DR de RANGÉE d'un Test étendu a UN SEUL site
-  // de rendu (la primitive `RollRow`), alimenté par la DONNÉE `extendedDr` — jamais un `<DrBar>` recodé
-  // dans la modale de cascade ou le builder de rangées (ni une branche spécifique voyage).
-  it('la barre de DR de rangée a UN site de rendu unique (RollRow), pas dans CascadeModal/buildParticipantRows', () => {
-    const ui = (f: string) => readFileSync(fileURLToPath(new URL(`../ui/${f}`, import.meta.url)), 'utf8');
-    expect(ui('RollRow.tsx')).toMatch(/extendedDr && <DrBar/); // SITE unique de rendu de la barre de rangée
-    expect(ui('CascadeModal.tsx')).not.toMatch(/DrBar/); // la modale ne pose QUE la donnée, plus le composant
-    expect(ui('buildParticipantRows.tsx')).not.toMatch(/DrBar/);
-  });
-
   // PERSISTANCE post-validation : l'application du batch ne DÉTRUIT pas la donnée de barre de la rangée
   // (elle reste sur le participant → rangées témoins/bilan la re-rendent), et pose la conséquence SUR la rangée.
   it('après application du batch, la rangée cartographie GARDE sa donnée de DR étendu + porte sa conséquence', () => {
@@ -99,26 +86,5 @@ describe('Voyage — poste Cartographie (Établir des cartes, test étendu)', ()
     expect(nextBatch?.participants?.some((p) => p.id === 'h') ?? false).toBe(false);
     const done = next.find((s) => s.kind === 'stagePosteDone');
     expect(done?.outcome?.[0]?.text).toContain(`${drTarget}/${drTarget} DR`);
-  });
-
-  // VERROU RESSERRÉ (vague « lisibilité du voyage » 2/2, arbitrage user 2026-07-11) : `DrBar` n'est
-  // IMPORTÉ que par son site unique (`RollRow.tsx`) + les exceptions nommées ci-dessous, chacune avec
-  // sa raison. ActivityModal/FocusModal/DispelModal/ReloadModal/useExtendedTestJetProps sont CONVERGÉS
-  // sur `RollRow.extendedDr` (plus d'import direct) — toute réapparition d'un import fait échouer ce test.
-  it('DrBar : import limité au site unique RollRow + exceptions nommées', () => {
-    const importers: string[] = [];
-    for (const { rel, text } of readCorpus(['src/ui'], { tests: true })) {
-      const path = rel.slice('src/ui/'.length);
-      if (path === 'DrBar.tsx') continue; // le composant ne s'importe pas lui-même
-      // La VITRINE n'est pas un site de jeu : `src/ui/gallery/gallery-exhaustive.test.ts` y EXIGE un
-      // spécimen de toute primitive du manifeste.
-      if (path.startsWith('gallery/')) continue;
-      if (/from ['"].*\/DrBar['"]/.test(text)) importers.push(path);
-    }
-    // Exception nommée : `MedicModal.tsx` — état d'opération de Chirurgie ARMÉE, visible AVANT/ENTRE
-    // les passes (hors de toute rangée de jet ; `useSurgeryJetProps` n'a pas de rangée tant qu'aucune passe
-    // n'est ouverte) — pas la barre d'UN jet, le cumul PERSISTANT de l'opération.
-    const NAMED_EXCEPTIONS = new Set(['MedicModal.tsx']);
-    expect(new Set(importers)).toEqual(new Set(['RollRow.tsx', ...NAMED_EXCEPTIONS]));
   });
 });

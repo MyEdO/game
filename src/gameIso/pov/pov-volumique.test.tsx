@@ -18,7 +18,8 @@ import { GameStage3D, setStageRendererFactory } from '../stage/GameStage3D';
 import { BancRenderer, brancherArdoise, caméras, scènes, viderCaptures } from '../stage/banc-volumique';
 import { hasSpritePicker } from '../stage/spritePicker';
 import { battreStageFrames } from '../stage/stageFrames';
-import { EYE_H, farTilesOf } from './camera';
+import { farTilesOf } from './camera';
+import { EYE_H } from '../../noyau/monde/iso';
 import { MondeDeCampagne } from '../stage/MondeDeCampagne';
 
 /**
@@ -261,7 +262,7 @@ describe('POV volumique — le marcheur suivi et la cote sous l’œil (#1176 P3
     monter(<MondeDeCampagne />);
     expect(dernièreCaméra().position.z).toBeCloseTo(4 * mpt, 6);
 
-    // Le store émet la marche pour le meneur VALIDE (`meneurDuMonde`, `store.stepPartyRelative`) : ici
+    // Le store émet la marche pour le meneur VALIDE (`meneurDuMonde`, `store.avancerDUnPas`) : ici
     // le 2e héros, le premier étant mort.
     const meneur = meneurDuMonde(useGame.getState())!;
     expect(meneur.id).toBe(debout.id);

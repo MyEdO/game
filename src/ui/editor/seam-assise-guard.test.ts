@@ -266,10 +266,6 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
       expect(erreurs(editEntity(hostile(), 'table-1', { facing: 'SE' }))).toEqual([
         "entité « table-1 » › orientation : décor volumique « table-ronde-4-tabourets » au cap SE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
       ]);
-      // Un BILLBOARD au même cap reste licite : la règle est celle du catalogue, pas du `kind`.
-      const avecBillboard = hostile();
-      avecBillboard.entities = [...avecBillboard.entities, { id: 'brasero-1', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'brasero' }];
-      expect(erreurs(editEntity(avecBillboard, 'brasero-1', { facing: 'SE' }))).toEqual([]);
     });
   });
 });

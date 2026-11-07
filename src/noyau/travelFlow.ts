@@ -18,7 +18,7 @@
  * conséquences ; le recap final ne couvre que le DERNIER segment (plus de déroulé intégral).
  *
  * Une péripétie qui déclenche un combat/une transition INTERROMPT le voyage : `travelPlan` mémorise
- * la progression (`kmDone`) et la carte propose « Reprendre le voyage » (`resumeTravel`).
+ * la progression (`kmDone`) et la carte propose « Reprendre le voyage » (`reprendreLeVoyage`).
  */
 import { battleRng } from './battleRng';
 import { garanti } from '../lib/garanti';
@@ -26,8 +26,9 @@ import { buildAuthorPerilSteps } from './authorPerils';
 
 /** Id du protocole de reprise TERRESTRE (effets DIFFÉRÉS dans `travelPlan.land.interrupt`). */
 const LAND_PERIL_INTERRUPT = 'travel-land';
-import { openRest, placesOfKind, sceneLieu, routeLieu } from './restFlow';
+import { ouvrirLeRepos, placesOfKind, sceneLieu, routeLieu } from './restFlow';
 import type { Jeu } from './etat';
+import type { IdDeClasseDePassage } from './designations';
 import { arriverAuLieu, quitterLeLieu } from './lieuFlow';
 import { lieuDuGroupe, placeById, otherEnd, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { billetApresDepart, offreDePassage, type OffreDePassage } from './billetFlow';
@@ -94,9 +95,9 @@ export interface TravelRecapDay {
   kmTo: number;
   hours: number;
   /** Fatigue, péripéties narratives, entretien… Ligne STRUCTURÉE (#349) : `{ text, icon?, tone?,
-   *  phase? }`, rendue par le renderer partagé `ui/RecapLine.tsx` — `phase` (jour terrestre
+   *  phase? }`, rendue par le renderer partagé — `phase` (jour terrestre
    *  seulement) rattache la ligne à `DAY_PHASE_CATALOG` (`noyau/recapLine.ts`), même catalogue que
-   *  l'agenda du jour EN COURS (`ui/VoyageScreen.dayAgenda`) : le sectionnement des jours CLOS en
+   *  l'agenda du jour EN COURS : le sectionnement des jours CLOS en
    *  tombe GRATUITEMENT (dette 3). */
   lines: RecapLine[];
   /** Les JETS du jour (marche forcée, Survie, Perception…) en lignes de jet structurées —
@@ -163,7 +164,7 @@ export interface TravelPlan {
   vehicleLame?: boolean;
   km: number;
   kmDone: number;
-  /** Interrompu par une péripétie (combat/transition) — reprise via `resumeTravel`. */
+  /** Interrompu par une péripétie (combat/transition) — reprise via `reprendreLeVoyage`. */
   interrupted: boolean;
   /** ORDRES permanents de la traversée (couche `voyageCadence`) : cadence COMMANDÉE (routine auto-résolue,
    *  PV du jour) ou JOUR-PAR-JOUR (modale par jet). Consommé par la mer ET le fluvial. */
@@ -201,7 +202,7 @@ export interface TravelPlan {
    *  (EDOC 09 l.21, `declareArrivalDiseases`). */
   diseasesAtStart?: string[];
   /** CHRONIQUE du voyage (#333) : les journées/Étapes DÉJÀ closes, accumulées à leur halte de nuit
-   *  (`openRest` porte le `travelDay` finalisé). Alimente le journal de voyage de l'écran-hub
+   *  (`ouvrirLeRepos` porte le `travelDay` finalisé). Alimente le journal de voyage de l'écran-hub
    *  (`VoyageScreen`) — une carte par jour passé. Vidé avec le plan à l'arrivée. */
   log?: TravelRecapDay[];
 }
@@ -226,7 +227,7 @@ export interface LandDayContext {
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
-  if (lines.length) get().log(lines);
+  if (lines.length) get().ecrireAuJournal(lines);
 };
 
 /** Heures de voyage/jour SANS Test (RAW LDB 51 l.195, défaut 6) — paramétrable au niveau carte. */
@@ -242,7 +243,7 @@ export function maxHoursPerDay(map: WorldMap | null): number {
 
 /** Plafond dur d'une journée EN SELLE (heures) — endurance maximale d'une bête au pas (EDOC 07 l.142,
  *  12 h) : au-delà, le groupe DOIT haltE (les allures plus rapides s'épuisent plus tôt, gérées par
- *  `resolveMountedDay`). Plafonne l'allure en selle choisie au départ (`startTravel`, estimation de la carte). */
+ *  `resolveMountedDay`). Plafonne l'allure en selle choisie au départ (`partirEnVoyage`, estimation de la carte). */
 export const MOUNT_MAX_HOURS = 12;
 
 /** Heures de voyage DÉJÀ parcourues le jour calendaire COURANT (accumulateur unique, `store.travelDayHours`)
@@ -256,7 +257,7 @@ export function hoursTravelledToday(st: Pick<Jeu, 'gameTime' | 'travelDayHours'>
 }
 
 /** Heures de route qu'il RESTE au jour courant (LDB 51 l.195) : l'allure choisie `hoursPerDay` moins les
- *  heures déjà parcourues aujourd'hui dans ce mode. Lu par le flux (`runTravelDays`, `startTravel`) ET
+ *  heures déjà parcourues aujourd'hui dans ce mode. Lu par le flux (`runTravelDays`, `partirEnVoyage`) ET
  *  par l'estimation de la carte. Transport payé : `hoursPerDay` entier, valeur maison. */
 export function travelDayBudget(mode: TravelMode, hoursPerDay: number, prior: { foot: number; mount: number }): number {
   if (mode === 'pied') return Math.max(0, hoursPerDay - prior.foot);
@@ -265,7 +266,7 @@ export function travelDayBudget(mode: TravelMode, hoursPerDay: number, prior: { 
 }
 
 /** La route du jour est FAITE : plus une heure de budget (LDB 51 l.195) — le départ attend l'aube.
- *  Lu par la porte de `startTravel` ET par le panneau de départ de la carte, avant le clic. */
+ *  Lu par la porte de `partirEnVoyage` ET par le panneau de départ de la carte, avant le clic. */
 export function routeDuJourFaite(mode: TravelMode, hoursPerDay: number, prior: { foot: number; mount: number }): boolean {
   return travelDayBudget(mode, hoursPerDay, prior) < 1e-9;
 }
@@ -302,13 +303,13 @@ function attendreLAube(get: Get, set: Set): void {
   const pd = get().pendingDeparture;
   set({ pendingDeparture: null });
   if (!pd) return;
-  openRest(get, set, { places: placesOfKind('camp'), lieu: sceneLieu(get) });
+  ouvrirLeRepos(get, set, { places: placesOfKind('camp'), lieu: sceneLieu(get) });
 }
 
 /** Halte de NUIT sur la route (modale de Repos, voyage suspendu jusqu'au matin). `travelDay` = le
  *  jour qu'elle clôt. */
 function openRouteHalt(get: Get, set: Set, route: MapRoute, travelMarch: string[], travelDay?: TravelRecapDay): void {
-  openRest(get, set, {
+  ouvrirLeRepos(get, set, {
     places: placesOfKind(route.inns ? 'auberge' : 'camp'), lieu: routeLieu(get().worldMap!, get().travelPlan!),
     travelHalt: true, travelMarch, travelDay,
   });
@@ -321,7 +322,7 @@ function differerALAube(get: Get, set: Set, depart: Omit<NonNullable<Jeu['pendin
 
 /** Le départ de `route` en `mode` est-il un passage PAYANT — un billet (EDO 01 l.142 ; implicite,
  *  LDB 51 l.178) ? Ni la marche, ni la selle, ni le navire de campagne, ni la descente fluviale jouée
- *  (`descenteJouee`). Lu par l'écran de départ ET par `startTravel`. */
+ *  (`descenteJouee`). Lu par l'écran de départ ET par `partirEnVoyage`. */
 export function passagePayant(get: Get<Jeu>, route: MapRoute, mode: TravelMode): boolean {
   return mode !== 'pied' && mode !== 'monture' && mode !== 'mer' && !descenteJouee(get, route, mode);
 }
@@ -329,11 +330,11 @@ export function passagePayant(get: Get<Jeu>, route: MapRoute, mode: TravelMode):
 /** Réglages d'un départ choisis à la carte du monde : classe du billet, heures de route par jour, allure,
  *  rythme forcé et cadence en mer, traversée rapide. */
 export interface OptionsDeDepart {
-  classeId?: string; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean;
+  classeId?: IdDeClasseDePassage; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean;
   cadence?: import('./voyageCadence').VoyageCadence;
 }
 
-/** Devis d'un départ sur `route` depuis `fromId` en `mode` : SOURCE UNIQUE de `startTravel`, de
+/** Devis d'un départ sur `route` depuis `fromId` en `mode` : SOURCE UNIQUE de `partirEnVoyage`, de
  *  `refusDeDepart` et de l'estimation de la carte du monde (#3059). PUR. */
 export interface DevisDeTrajet {
   /** Heures de route par jour (LDB 51 l.195 ; en selle, EDOC 07 l.142). */
@@ -394,8 +395,8 @@ function trajetDIci(s: Jeu, routeId: string): { from: MapPlace; route: MapRoute;
   return { from, route, to };
 }
 
-/** Refus de partir sur `routeId` en `mode` (`null` : `startTravel` part, ou diffère à l'aube). Lu en tête
- *  par `startTravel` et par le bouton de départ de la carte du monde (#3059). La nuit (`departureGated`)
+/** Refus de partir sur `routeId` en `mode` (`null` : `partirEnVoyage` part, ou diffère à l'aube). Lu en tête
+ *  par `partirEnVoyage` et par le bouton de départ de la carte du monde (#3059). La nuit (`departureGated`)
  *  et la route du jour faite (`routeDuJourFaite`) DIFFÈRENT le départ, ils ne le refusent pas. */
 export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: OptionsDeDepart = {}): string | null {
   if (s.net.mode === 'guest') return t('wm.hoteDecide');
@@ -423,7 +424,7 @@ export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: O
 }
 
 /** Démarre un voyage depuis le lieu courant le long d'une route de la carte. */
-export function startTravel(get: Get, set: Set, routeId: string, mode: TravelMode, opts: OptionsDeDepart = {}): void {
+export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: TravelMode, opts: OptionsDeDepart = {}): void {
   if (refuseSi(get, set, (s) => refusDeDepart(s, routeId, mode, opts))) return;
   const { from, route, to } = trajetDIci(get(), routeId) as Exclude<ReturnType<typeof trajetDIci>, string>;
   const { party } = get();
@@ -515,7 +516,7 @@ export function startTravel(get: Get, set: Set, routeId: string, mode: TravelMod
 }
 
 /** Reprend un voyage interrompu (après une embuscade, par exemple). */
-export function resumeTravel(get: Get, set: Set): void {
+export function reprendreLeVoyage(get: Get, set: Set): void {
   const plan = get().travelPlan;
   if (!plan || get().battle) return;
   if (get().travelRecap?.then) return; // une embuscade ATTEND son acquittement — pas d'esquive
@@ -607,7 +608,7 @@ function runTravelDays(get: Get, set: Set): void {
     const today0 = dayIndex(get().gameTime);
     const prior = hoursTravelledToday(get());
     const budget = travelDayBudget(plan.mode, plan.hoursPerDay, prior);
-    // Budget du jour épuisé — la reprise d'un jour interrompu, clos au log par `resumeTravel` : la halte
+    // Budget du jour épuisé — la reprise d'un jour interrompu, clos au log par `reprendreLeVoyage` : la halte
     // de nuit, sans jour de 0 h (LDB 51 l.195).
     if (budget < 1e-9) {
       openRouteHalt(get, set, route, []);
@@ -645,7 +646,7 @@ function runTravelDays(get: Get, set: Set): void {
     // L'ENTRETIEN du jour (rations/faim, maladies, convalescence) n'est PAS roulé ici : il se résout
     // dans la cascade de la halte de nuit (`buildNightCascade`), APRÈS le repas — sinon la Faim
     // s'installerait avant que le groupe ne mange. À l'ARRIVÉE (pas de nuit), le prochain
-    // `runDailyUpkeep` (repos/advanceTime) le rattrape via la garde `lastUpkeepDay`.
+    // `runDailyUpkeep` (repos/avancerLeTemps) le rattrape via la garde `lastUpkeepDay`.
     const kmDone = Math.min(plan.km, plan.kmDone + (forced ? forced.km : hoursToday * kmh));
     set({ travelPlan: { ...get().travelPlan!, kmDone } });
     const recapDay: TravelRecapDay = {
@@ -827,7 +828,7 @@ function buildTravelDayCascade(
 /** Lignes STRUCTURÉES d'une étape de cascade DÉJÀ committée, phase-taguée (#349, dette 3) — un pas
  *  BATCH déplie ses PARTICIPANTS (chacun porte SA conséquence, `stagePosteBatch`/`weatherResistance`) ;
  *  un pas MONO lit `step.outcome`. `phaseOfKind` (catalogue PARTAGÉ, `noyau/recapLine.ts`, le MÊME que
- *  l'agenda du jour EN COURS `ui/VoyageScreen.dayAgenda`) rattache la ligne à sa phase — `undefined`
+ *  l'agenda du jour EN COURS) rattache la ligne à sa phase — `undefined`
  *  pour un `kind` hors catalogue (silencieux). */
 function stepRecapLines(step: CascadeStep): RecapLine[] {
   const phase = phaseOfKind(step.kind);
@@ -840,7 +841,7 @@ function stepRecapLines(step: CascadeStep): RecapLine[] {
  * fini de se JOUER (postes/exposition/péripéties validés) — reste à enchaîner. Roule la marche forcée
  * EAGER si le jour n'aboutit PAS sur une halte de nuit (arrivée/interruption : pas de nuit où la
  * présenter), sinon la DIFFÈRE à la cascade de nuit (`travelMarch`). Puis : interruption (péripétie) →
- * recap `interrupted` + suite différée ; arrivée au lieu (`arriverAuLieu`) ; sinon → halte de nuit (`openRest`).
+ * recap `interrupted` + suite différée ; arrivée au lieu (`arriverAuLieu`) ; sinon → halte de nuit (`ouvrirLeRepos`).
  * Efface le contexte transitoire du jour. Renvoie `true` (le segment est toujours clos ici).
  * `done` : la cascade `travelDay` FINALISÉE (`dispatchCascadeDone`, `combatSlice.ts`) — ses étapes
  * committées portent les lignes de récap phase-taguées (#349) ; absente quand `buildTravelDayCascade`
@@ -879,7 +880,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
   const arrived = (get().travelPlan?.km ?? 0) - (get().travelPlan?.kmDone ?? 0) < 1e-9;
 
   // Efface les contextes transitoires du jour ; le `recap` d'un jour INTERROMPU reste jusqu'à
-  // `resumeTravel`, qui le clôt au log (#2533, 2026-10-09 01:51).
+  // `reprendreLeVoyage`, qui le clôt au log (#2533, 2026-10-09 01:51).
   set({ travelPlan: { ...get().travelPlan!, land: undefined, stage: undefined, ...(ctx?.interrupt ? {} : { recap: undefined }) } });
 
   // Marche forcée du jour (LDB 51 l.195) : DIFFÉRÉE à la nuit si halte ; sinon roulée EAGER (arrivée/interruption).
@@ -1296,10 +1297,10 @@ function applyEreintant(get: Get, set: Set): string[] {
 
 export function creerActionsDuVoyage(get: Get, set: Set) {
   return {
-    openWorldMap: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
-    startTravel: (routeId, mode, opts) => startTravel(get, set, routeId, mode, opts),
-    resumeTravel: () => resumeTravel(get, set),
-    setVoyageCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },
+    ouvrirLaCarte: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
+    partirEnVoyage: (routeId, mode, opts) => partirEnVoyage(get, set, routeId, mode, opts),
+    reprendreLeVoyage: () => reprendreLeVoyage(get, set),
+    fixerLaCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },
   } satisfies FabriqueDuNoyau;
 }
 
@@ -1315,7 +1316,7 @@ export function sortiesDuVoyage(get: Get, set: Set) {
     departure: () => set({ pendingDeparture: null }),
     /** Acquitte le récit de voyage. Une EMBUSCADE différée (`recap.then`) se déclenche ICI :
      *  le joueur a lu ce qui lui arrive, le combat démarre — fermer la modale (bouton/Échap)
-     *  ne l'évite pas, et `resumeTravel` refuse tant qu'elle n'est pas acquittée. */
+     *  ne l'évite pas, et `reprendreLeVoyage` refuse tant qu'elle n'est pas acquittée. */
     recitDeVoyage: () => {
       const recap = get().travelRecap;
       set({ travelRecap: null });
@@ -1324,10 +1325,10 @@ export function sortiesDuVoyage(get: Get, set: Set) {
       if (then.kind === 'effects') {
         jouerFlowEntier(applyEffectsLoot(get, set, then.effects, t('eff.flowTitleDiscovery'))); // trouvaille d'étape de voyage → fenêtre aussi
       } else {
-        get().transitionTo(then.scene, then.entry);
-        get().startCombat(then.encounter, undefined, { noSurprise: then.noSurprise });
+        get().quitterLaScene(then.scene, then.entry);
+        get().lancerLeCombat(then.encounter, undefined, { noSurprise: then.noSurprise });
         // Vol terrestre (#327) : cette embuscade terrestre met la cargaison du convoi en jeu — la
-        // perte GRADUÉE se dénoue au teardown de combat. Posé APRÈS startCombat (le reset `combatStart`
+        // perte GRADUÉE se dénoue au teardown de combat. Posé APRÈS lancerLeCombat (le reset `combatStart`
         // n'efface donc pas le marqueur).
         if (get().battle) set({ cargoRaid: true });
       }

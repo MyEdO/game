@@ -1,6 +1,6 @@
 /** Champs ÉDITABLES de background — Motivation + Ambitions court/long terme (LDB 05 l.730-736).
  *  Primitive PARTAGÉE (source UNIQUE des libellés + hints de décision) : le créateur (étape Détails,
- *  liée au brouillon) et la fiche (onglet Background, liée au héros via `setHeroBackground`) la
+ *  liée au brouillon) et la fiche (onglet Background, liée au héros via `ecrireLHistorique`) la
  *  consomment tous deux — plus de markup dupliqué ni de hints qui divergent entre les deux surfaces.
  *  Bâtie sur la primitive de champ canonique `.field` (libellé au-dessus du contrôle). */
 export interface BackgroundValues {

@@ -29,7 +29,7 @@
  *
  * MARQUE PUREMENT TYPOLOGIQUE : `declare const` — aucune valeur à l'exécution, donc une étape marquée
  * traverse le JSON d'une sauvegarde sans rien perdre et `Object.getOwnPropertySymbols` la rend vide.
- * Le jumeau `BuiltRollRow` (`ui/rollRowBuild.ts`) DIVERGE sur ce point exact : son symbole existe à
+ * Le jumeau `BuiltRollRow` DIVERGE sur ce point exact : son symbole existe à
  * l'exécution (non exporté, non reproductible) pour garder `isBuiltRollRow` mesurable en vitest.
  */
 import type { CascadeStep } from './pendings';

@@ -28,7 +28,7 @@ test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur
   assert.equal(touchesDocSources(['README.md'], mesure), false)
   assert.equal(touchesDocSources(['public/galeries.html'], mesure), false)
   // Et les classes que la liste voyait déjà restent vues.
-  assert.equal(touchesDocSources(['src/ui/Prose.tsx'], mesure), true)
+  assert.equal(touchesDocSources(['src/noyau/rollSeam.ts'], mesure), true)
   assert.equal(touchesDocSources(['scripts\\raw\\_lib.mjs'], mesure), true)
   assert.equal(touchesDocSources(['docs/raw/4e/combat.md'], mesure), true)
 })

@@ -154,7 +154,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('coureur qu’aucun humain ne pilote (héros conduit par l’IA) : sa rangée est un TÉMOIN déjà roulé (#1246)', () => {
     const [a, b] = heroes();
     banc.setState({ party: [a, { ...b, aiControlled: true }] });
-    banc.getState().seedRng(21);
+    banc.getState().ensemencerLeTirage(21);
     startGroundPursuit(banc.getState, banc.setState, {
       partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }],
     });
@@ -169,7 +169,7 @@ describe('Poursuite terrestre (#95)', () => {
     const [a, b] = heroes();
     const net0 = banc.getState().net;
     banc.setState({ net: { ...net0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [b.id]: 1 } } as Jeu['net'] });
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     startGroundPursuit(banc.getState, banc.setState, {
       partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }],
     });
@@ -183,12 +183,12 @@ describe('Poursuite terrestre (#95)', () => {
     expect(band.groupOwner).toBe(true);
     const s = banc.getState();
     expect(modalOwnerOf(s)).toBe('*');
-    expect(intentAllowedFor(s, 1, 'jetRoll', ['cascadeBatch', b.id]), 'l’invité roule SA rangée').toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetRoll', ['cascadeBatch', a.id]), 'l’hôte roule la sienne').toBe(true);
+    expect(intentAllowedFor(s, 1, 'jetLancer', ['cascadeBatch', b.id]), 'l’invité roule SA rangée').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetLancer', ['cascadeBatch', a.id]), 'l’hôte roule la sienne').toBe(true);
   });
 
   it('manche gagnée par les poursuivis (poursuivants médiocres) → Distance grimpe jusqu’à l’évasion', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const party = heroes();
     banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 8, foes: [{ label: 'Bandit', movement: 4, skill: 1 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 6));
@@ -197,7 +197,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('manche gagnée par les poursuivants (proie lente) → Distance ≤ 0 : le camp poursuivi DÉCIDE (l.94)', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const party = heroes();
     banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 2, foes: [{ label: 'Cavalier', movement: 4, skill: 95 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, -6));
@@ -209,13 +209,13 @@ describe('Poursuite terrestre (#95)', () => {
     expect(choix.options?.map((o) => o.key)).toEqual(['sacrifier', 'affronter']);
     // Voie « s'arrêter et les affronter » → rattrapage, poursuite close.
     banc.getState().jetRegler('cascade', 'choix', 'affronter', choix.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(pursuitOf(banc.getState())).toBeNull();
     expect(banc.getState().journal.some((l) => l.includes('Rattrapés'))).toBe(true);
   });
 
   it('manche indécise → une nouvelle manche s’ouvre (la poursuite continue)', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const party = heroes();
     banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: 'Bandit', movement: 4, skill: 40 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 0));
@@ -305,7 +305,7 @@ describe('Poursuite terrestre (#95)', () => {
     const bande = () => banc.getState().pendingCascade!.participants[0].participants!;
     const jouables = bande().filter((r) => r.interactive !== false);
     expect(jouables.length, 'deux héros, deux rangées à jouer').toBe(2);
-    banc.getState().jetRoll('cascadeBatch', jouables[0].id);
+    banc.getState().jetLancer('cascadeBatch', jouables[0].id);
     expect(sequenceAbandonOf(banc.getState)).toBeNull();
     banc.getState().jetRegler('cascade', 'abandon', true);
     expect(pursuitOf(banc.getState()), 'la poursuite continue').not.toBeNull();
@@ -313,7 +313,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('poursuite JOUÉE de bout en bout via les bandes (rangées influençables) atteint une issue terminale', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     heroes();
     startGroundPursuit(banc.getState, banc.setState, {
       partyRole: 'fleeing', distance: 5, escapeAt: 8, skill: 'athletisme',
@@ -334,7 +334,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('MANCHE SUIVANTE : une manche indécise rouvre UNE bande neuve, jamais la précédente rejouée', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const party = heroes();
     banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: 'Bandit', movement: 4, skill: 40 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 0));

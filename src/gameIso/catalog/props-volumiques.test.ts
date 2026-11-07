@@ -8,7 +8,7 @@ import { estPropVolumique } from '../builders/types';
 import { type Face } from '../../noyau/monde/volume/types';
 import { bakeWorldGeometry, collectBillboards, wholeSceneBillboardEls } from '../backends/webgl/sceneMeshes';
 import { facePoly, fanTriangles, polyNormal, type Vec3 } from '../../noyau/monde/volume/worldTris';
-import { sceneMetresPerTile, type SceneEntity } from '../../noyau/monde/scene';
+import { sceneMetresPerTile } from '../../noyau/monde/scene';
 import { validateScene } from '../../noyau/validateScene';
 import { DIR4_ORDER } from '../../geometry/dir8';
 import { IDS, METRES_PAR_CASE, centroide, corpsEtSieges, propEntity, propsAvecPlaces, sceneWith } from '../../noyau/monde/volume/decorVolumique.testkit';
@@ -95,7 +95,7 @@ describe('décor volumique — sa vignette et son corps monde, émis et cuits', 
     }
   });
 
-  it('4. ÉMETTEUR : `buildProps` ne lève pas, le volumique en diagonale sort en billboard d’ERREUR, un billboard au même cap garde son art', () => {
+  it('4. ÉMETTEUR : `buildProps` ne lève pas, le volumique en diagonale sort en billboard d’ERREUR', () => {
     const scene = sceneWith(propEntity({ id: 'e-1', ref: 'table-ronde-4-tabourets', pos: { x: 2, y: 2 }, facing: 'N' }));
     const diagonale = { ...scene, entities: [{ ...scene.entities[0], facing: 'NE' as const }] };
     const [fautif] = buildProps(diagonale).filter((el) => el.entId === 'e-1');
@@ -105,9 +105,6 @@ describe('décor volumique — sa vignette et son corps monde, émis et cuits', 
     expect(validateScene([diagonale]).map((w) => w.message)).toContain(
       "entité « e-1 » › orientation : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
     );
-    const billboard = sceneWith({ ...propEntity({ id: 'e-2', ref: 'brasero', pos: { x: 2, y: 2 }, facing: 'N' }), facing: 'NE' } as SceneEntity);
-    const [braise] = buildProps(billboard).filter((el) => el.entId === 'e-2');
-    expect(braise.ref).toBe('brasero');
   });
 
   it.each(IDS)('%s : la cuisson du monde ne RETOURNE aucune de ses faces', (id) => {

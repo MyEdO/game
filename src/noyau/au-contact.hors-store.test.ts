@@ -25,8 +25,8 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -64,25 +64,25 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     expect(opts.some((o) => o.id === 'aucontact')).toBe(false);
   });
 
-  it('battleAuContact ouvre le pending ; le vainqueur HÉROS choisit « au contact » → état posé + Action consommée', () => {
+  it('ouvrirLAuContact ouvre le pending ; le vainqueur HÉROS choisit « au contact » → état posé + Action consommée', () => {
     const { H, enemies } = setup();
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     engageAndActivate(H, [E]);
 
-    banc.getState().battleAuContact(E.id);
+    banc.getState().ouvrirLAuContact(E.id);
     let pd = banc.getState().pendingAuContact;
     expect(pd?.phase).toBe('roll');
     expect(pd?.atk).not.toBeNull(); // jet du foe FIGÉ d'avance
 
-    banc.getState().jetRoll('auContact');
+    banc.getState().jetLancer('auContact');
     pd = banc.getState().pendingAuContact!;
     expect(pd.def).not.toBeNull();
     expect(pd.result).not.toBeNull();
 
     // Force l'issue « le mover l'emporte » (déterminisme), puis le héros tranche.
     banc.setState({ pendingAuContact: { ...pd, result: 'success' } });
-    banc.getState().jetConfirm('auContact');
+    banc.getState().jetValider('auContact');
     expect(banc.getState().pendingAuContact?.phase).toBe('choice');
     banc.getState().jetRegler('auContact', 'issue', 'contact');
 
@@ -98,16 +98,16 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     engageAndActivate(H, [E]);
-    banc.getState().battleAuContact(E.id);
-    banc.getState().jetCancel('auContact');
+    banc.getState().ouvrirLAuContact(E.id);
+    banc.getState().jetAnnuler('auContact');
     expect(banc.getState().pendingAuContact).toBeNull();
     expect(banc.getState().battle!.acted).toBe(false);
 
-    banc.getState().battleAuContact(E.id);
-    banc.getState().jetRoll('auContact');
+    banc.getState().ouvrirLAuContact(E.id);
+    banc.getState().jetLancer('auContact');
     const lance = banc.getState().pendingAuContact;
     expect(lance?.result).toBeTruthy();
-    banc.getState().jetCancel('auContact');
+    banc.getState().jetAnnuler('auContact');
     expect(banc.getState().pendingAuContact).toBe(lance);
     expect(banc.getState().refus?.texte).toBe(`Renoncement refusé : ${H.label} a déjà engagé son action, elle se joue jusqu’au bout.`);
   });
@@ -119,10 +119,10 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     engageAndActivate(H, [E]);
     setContact(live(H.id), live(E.id)); // déjà au contact
 
-    banc.getState().battleAuContact(E.id);
+    banc.getState().ouvrirLAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
     banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'success' } });
-    banc.getState().jetConfirm('auContact');
+    banc.getState().jetValider('auContact');
     banc.getState().jetRegler('auContact', 'issue', 'normal');
 
     expect(areInContact(live(H.id), live(E.id))).toBe(false);
@@ -136,10 +136,10 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     engageAndActivate(H, [E]); // H a une arme Longue
     live(E.id).weapons = [dagger]; // foe : arme Courte → il gagne à passer au contact
 
-    banc.getState().battleAuContact(E.id);
+    banc.getState().ouvrirLAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
     banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'failure' } }); // le foe l'emporte
-    banc.getState().jetConfirm('auContact'); // pas de phase de choix montrée — l'IA tranche
+    banc.getState().jetValider('auContact'); // pas de phase de choix montrée — l'IA tranche
 
     expect(banc.getState().pendingAuContact).toBeNull();
     expect(areInContact(live(H.id), live(E.id))).toBe(true);
@@ -155,10 +155,10 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     live(H.id).weapons = [simpleWeapon]; // H : Allonge Moyenne
     live(E.id).weapons = []; // foe : aucune arme de mêlée → Mains nues, Personnelle
 
-    banc.getState().battleAuContact(E.id);
+    banc.getState().ouvrirLAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
     banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'failure' } }); // le foe l'emporte
-    banc.getState().jetConfirm('auContact');
+    banc.getState().jetValider('auContact');
 
     expect(areInContact(live(H.id), live(E.id))).toBe(true);
   });

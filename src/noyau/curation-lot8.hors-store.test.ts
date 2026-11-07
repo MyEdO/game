@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const ok = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: 'lancé' });
 
 beforeEach(() => {
-  banc.getState().seedRng(51);
+  banc.getState().ensemencerLeTirage(51);
 });
 
 describe('désambiguïsation et classification', () => {

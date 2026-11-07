@@ -18,10 +18,10 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 /** Sème les Possessions de dotation (`{id, type}` des dotations de Classe/Carrière,
  *  #617/#618 SOCLE POSSESSIONS Lot 1) pour CHAQUE héros du groupe courant — SEAM = `noyau/entreeEnScene.ts`
- *  `startScene` (démarrage d'une partie neuve, seule couture qui repart d'un registre `possessions`
- *  vidé ; `loadGame`/`transitionTo` ne repassent JAMAIS ici, cf. §3 du brief Lot 1 — le registre
+ *  `lancerLaScene` (démarrage d'une partie neuve, seule couture qui repart d'un registre `possessions`
+ *  vidé ; `loadGame`/`quitterLaScene` ne repassent JAMAIS ici, cf. §3 du brief Lot 1 — le registre
  *  chargé d'une save fait foi, aucun re-semis). Garde anti-double-semis : un héros qui a déjà UNE
- *  possession au registre n'est pas re-semé (défensif — `startScene` vide déjà le registre avant
+ *  possession au registre n'est pas re-semé (défensif — `lancerLaScene` vide déjà le registre avant
  *  d'appeler ce seam, mais protège tout appelant futur). */
 export function seedStartingPossessions(get: Get, set: Set): void {
   for (const hero of get().party) {
@@ -33,13 +33,13 @@ export function seedStartingPossessions(get: Get, set: Set): void {
     // `battleRng()` : le semis n'est pas du combat (#370 exclusivité seam ; #663, duel-naval — un
     // tirage de semis ne doit PAS consommer le RNG de combat partagé).
     const rng = makeRNG(hashSeed(`possession-seed:${hero.id}`));
-    for (const grant of possessionGrantsFromRefs(refs, hero.id, rng)) addPossession(get, set, grant);
+    for (const grant of possessionGrantsFromRefs(refs, hero.id, rng)) ajouterLaPossession(get, set, grant);
   }
 }
 
 /** Attribue un `uid` `pos-N` par SCAN du registre (anti-collision — jamais un compteur-module, cf.
  *  `newUid`/`it-N` de `engine/items.ts` qui ne convient qu'aux items). Ajoute au registre, renvoie l'uid. */
-export function addPossession(get: Get, set: Set, p: PossessionInput): string {
+export function ajouterLaPossession(get: Get, set: Set, p: PossessionInput): string {
   const existing = get().possessions;
   const maxN = existing.reduce((max, cur) => {
     const m = /^pos-(\d+)$/.exec(cur.uid);
@@ -52,12 +52,12 @@ export function addPossession(get: Get, set: Set, p: PossessionInput): string {
 }
 
 /** Renomme l'instance (`label` — affichage pur, doctrine id/label). */
-export function renamePossession(_get: Get, set: Set, uid: string, label: string): void {
+export function renommerLaPossession(_get: Get, set: Set, uid: string, label: string): void {
   set((s) => ({ possessions: s.possessions.map((p) => (p.uid === uid ? { ...p, label } : p)) }));
 }
 
 /** Réaffecte le propriétaire (succession, don, vente). */
-export function transferPossession(_get: Get, set: Set, uid: string, newOwnerId: string): void {
+export function transmettreLaPossession(_get: Get, set: Set, uid: string, newOwnerId: string): void {
   set((s) => ({ possessions: s.possessions.map((p) => (p.uid === uid ? { ...p, ownerId: newOwnerId } : p)) }));
 }
 
@@ -181,35 +181,35 @@ function gesteDePossession(get: Get, set: Set, uid: string, geste: GesteDePosses
 }
 
 /** Dépose la possession au lieu courant du groupe (auberge, écurie…). */
-export function stablePossession(get: Get, set: Set, uid: string): void {
+export function remiserLaPossession(get: Get, set: Set, uid: string): void {
   gesteDePossession(get, set, uid, { kind: 'laisser' }, () => ({ kind: 'au-lieu', placeId: get().lieu! }));
 }
 
 /** Reprend une possession déposée — elle voyage de nouveau avec le groupe. */
-export function retrievePossession(get: Get, set: Set, uid: string): void {
+export function recupererLaPossession(get: Get, set: Set, uid: string): void {
   gesteDePossession(get, set, uid, { kind: 'reprendre' }, () => ({ kind: 'avec-le-groupe' }));
 }
 
 /** Embarque la possession sur un hôte (navire — `hostUid` d'une autre possession du registre) : nature ET
  *  capacité libre (`refusDEmbarquer`), hôte avec le groupe. */
-export function embark(get: Get, set: Set, uid: string, hostUid: string): void {
+export function embarquer(get: Get, set: Set, uid: string, hostUid: string): void {
   gesteDePossession(get, set, uid, { kind: 'embarquer', hostUid }, () => ({ kind: 'embarquee', hostUid }));
 }
 
 /** Débarque — la possession voyage de nouveau avec le groupe. */
-export function disembark(get: Get, set: Set, uid: string): void {
+export function debarquer(get: Get, set: Set, uid: string): void {
   gesteDePossession(get, set, uid, { kind: 'debarquer' }, () => ({ kind: 'avec-le-groupe' }));
 }
 
 /** Abandon (§6, décision №4) — pose `destroyed`, la CONFIRMATION reste côté appelant/UI. */
-export function abandonPossession(get: Get, set: Set, uid: string): void {
+export function cederLaPossession(get: Get, set: Set, uid: string): void {
   const refus = refusGestePossession(get(), uid, { kind: 'abandonner' });
   if (refus) return void refuserGeste(get, set, refus);
   set((s) => ({ possessions: s.possessions.map((p) => (p.uid === uid ? { ...p, destroyed: true } : p)) }));
 }
 
 /** Ajoute un trait appris (`learnedTraits`, nature `bete` uniquement — LDB 23 → LDB 85, dresse-*). */
-export function learnPossessionTrait(_get: Get, set: Set, uid: string, traitId: string): void {
+export function apprendreLeTrait(_get: Get, set: Set, uid: string, traitId: string): void {
   set((s) => ({
     possessions: s.possessions.map((p) => {
       if (p.uid !== uid || p.nature !== 'bete') return p;
@@ -235,14 +235,14 @@ export function possessionsByLocation(get: Get, location: PossessionLocation['ki
 
 export function creerActionsDesPossessions(get: Get, set: Set) {
   return {
-    addPossession: (p) => addPossession(get, set, p),
-    renamePossession: (uid, label) => renamePossession(get, set, uid, label),
-    transferPossession: (uid, newOwnerId) => transferPossession(get, set, uid, newOwnerId),
-    stablePossession: (uid) => stablePossession(get, set, uid),
-    retrievePossession: (uid) => retrievePossession(get, set, uid),
-    embark: (uid, hostUid) => embark(get, set, uid, hostUid),
-    disembark: (uid) => disembark(get, set, uid),
-    abandonPossession: (uid) => abandonPossession(get, set, uid),
-    learnPossessionTrait: (uid, traitId) => learnPossessionTrait(get, set, uid, traitId),
+    ajouterLaPossession: (p) => ajouterLaPossession(get, set, p),
+    renommerLaPossession: (uid, label) => renommerLaPossession(get, set, uid, label),
+    transmettreLaPossession: (uid, newOwnerId) => transmettreLaPossession(get, set, uid, newOwnerId),
+    remiserLaPossession: (uid) => remiserLaPossession(get, set, uid),
+    recupererLaPossession: (uid) => recupererLaPossession(get, set, uid),
+    embarquer: (uid, hostUid) => embarquer(get, set, uid, hostUid),
+    debarquer: (uid) => debarquer(get, set, uid),
+    cederLaPossession: (uid) => cederLaPossession(get, set, uid),
+    apprendreLeTrait: (uid, traitId) => apprendreLeTrait(get, set, uid, traitId),
   } satisfies FabriqueDuNoyau;
 }

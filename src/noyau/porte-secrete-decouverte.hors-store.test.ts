@@ -55,7 +55,7 @@ const heros = (aveugles = false) => ['A', 'B'].map((label, i) => {
 /** Exploration sur `scene`, groupe en `pos`, lumière pleine (ou noire, sans lumière portée). */
 function explorer(scene: Scene, pos: { x: number; y: number }, lightLevel = 1) {
   banc.setState({ party: heros(lightLevel === 0) });
-  banc.getState().startScene(scene);
+  banc.getState().lancerLaScene(scene);
   banc.setState({ partyPos: pos, lightLevel });
 }
 const marcher = (x: number, y: number) => poserLeGroupe(banc.getState, banc.setState, { x, y });
@@ -81,7 +81,7 @@ describe('porte secrète — découverte à l’approche', () => {
     marcher(4, 2);
     expect(banc.getState().pendingTest?.sujet?.skill?.id).toBe('perception');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 1, success: true, sl: 3 } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(porteEnJeu(banc.getState().scene!, seg())).toBe(true);
     expect(banc.getState().journal).toContain(t('eff.porteSecreteTrouvee'));
   });
@@ -91,7 +91,7 @@ describe('porte secrète — découverte à l’approche', () => {
     marcher(4, 2);
     expect(banc.getState().pendingTest?.sujet?.skill?.id).toBe('perception');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false, sl: -3 } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(porteMasquee(banc.getState().scene!, seg())).toBe(true);
     expect(banc.getState().pendingTest).toBeNull();
     marcher(3, 2);
@@ -130,7 +130,7 @@ describe('porte secrète — découverte à l’approche', () => {
     const s = plan();
     s.entities.push({ id: 'depart', kind: 'heroStart', pos: { x: 4, y: 2 } } as Scene['entities'][number]);
     banc.setState({ party: heros() });
-    banc.getState().startScene(s);
+    banc.getState().lancerLaScene(s);
     banc.setState({ lightLevel: 1 });
     expect(banc.getState().partyPos).toMatchObject({ x: 4, y: 2 });
     expect(banc.getState().pendingTest).toBeNull();
@@ -141,8 +141,8 @@ describe('porte secrète — découverte à l’approche', () => {
 describe('porte secrète — combat : aucune découverte', () => {
   it('un pas de combat dans la zone ne lance rien', () => {
     banc.setState({ party: [heros()[0]] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const sc = plan();
@@ -155,7 +155,7 @@ describe('porte secrète — combat : aucune découverte', () => {
       scene: sc, lightLevel: 1,
       battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed: 0, acted: false, movedPreAction: false, reachable: new Map(), preview: null },
     });
-    banc.getState().battleClickTile({ x: 4, y: 2 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 4, y: 2 }, undefined, { confirm: true });
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 4, y: 2 });
     expect(banc.getState().pendingTest).toBeNull();
     expect(porteTentee(banc.getState().scene!, seg())).toBe(false);

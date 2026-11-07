@@ -16,6 +16,7 @@ import { makePregens } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
+import { cliquerSurLeCombattant } from '../noyau/combatOrParty';
 
 const get = () => useGame.getState();
 const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
@@ -46,7 +47,7 @@ function pauseTirRapide() {
   get().terminerLeTour();
   expect(get().pendingRoundStart, 'témoin : la pause de Round est ouverte').not.toBeNull();
   seedBattleRng(1);
-  get().armPreempt(H.id);
+  get().armerLeTirPreventif(H.id);
   get().snapCursorToTarget(1);
   expect(get().combatCursor?.snappedId, 'témoin : le curseur vise la cible du tireur').toBe(E.id);
   return { H, E };
@@ -112,14 +113,14 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
 
   it('Tir rapide déclenché : le clic qui tire périme le curseur', () => {
     const { H, E } = pauseTirRapide();
-    get().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(get, E.id, { confirm: true });
     expect(get().pendingAttack?.attackerId, 'témoin : la modale de tir s’est ouverte').toBe(H.id);
     expect(get().combatCursor).toBeNull();
   });
 
   it('visée Tir rapide désarmée : le changement de `preemptAiming` périme le curseur', () => {
     const { H } = pauseTirRapide();
-    get().armPreempt(H.id);
+    get().armerLeTirPreventif(H.id);
     expect(get().preemptAiming, 'témoin : la bascule a désarmé la visée').toBeNull();
     expect(get().combatCursor).toBeNull();
   });
@@ -129,7 +130,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     get().moveCursor('right');
     const pose = get().combatCursor;
     expect(pose, 'témoin : le curseur est posé').not.toBeNull();
-    get().battleArmIntent('course');
+    get().armerLIntention('course');
     useGame.setState({ battle: { ...get().battle!, movementUsed: 1 } });
     expect(get().combatCursor).toBe(pose);
   });

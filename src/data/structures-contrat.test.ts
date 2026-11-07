@@ -649,12 +649,13 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
   it('les porteurs de `difficulty` se PARTITIONNENT en plage / identité / référence / sans sujet / sujet nommé, et « sujet nommé » EST le concept `test`', () => {
     const ID = new Set(CLES_IDENTITE as readonly string[]);
     // Le SUJET du Test : les clés que l'invariant de `flowTestSchema` exige (#1657 B3-3), lues au nœud
-    // canonique `sujetDuJetSchema` ; le lexique les DÉCLARE en `coPresence`, aucune autre graphie.
+    // canonique `sujetDuJetSchema`, ou son type de Test d'équipage exclusif (`crewTestType`, #1652) ; le
+    // lexique les DÉCLARE en `coPresence`, aucune autre graphie.
     const sujets = CONCEPTS.find((c) => c.id === 'test')?.coPresence ?? [];
     expect(
       [...sujets].sort(),
       'la `coPresence` du concept `test` est exactement le SUJET du nœud canonique.',
-    ).toEqual(Object.keys(sujetDuJetSchema.shape).sort());
+    ).toEqual([...Object.keys(sujetDuJetSchema.shape), 'crewTestType'].sort());
     const porteurs: { site: string; famille: string }[] = [];
     const intersections: Record<string, number> = { 'plage∩identité': 0, 'plage∩référence': 0, 'identité∩référence': 0 };
     const marche = (v: unknown, dataset: string, champ: string): void => {

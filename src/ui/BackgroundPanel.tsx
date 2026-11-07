@@ -16,17 +16,17 @@ import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
 /** Onglet « Background » de la fiche : bio en LECTURE SEULE (détails physiques + astrologie, LDB 05
  *  étape 6 — cosmétique) et les champs ÉDITABLES hors combat (Motivation + Ambitions court/long,
  *  LDB 05 l.730-736) — rendus par la primitive PARTAGÉE `BackgroundFields` (même markup/hints que le
- *  créateur). L'édition passe par `setHeroBackground` → persistée en save + roster. En combat, c'est
+ *  créateur). L'édition passe par `ecrireLHistorique` → persistée en save + roster. En combat, c'est
  *  refusé (`refusDuBackground`) : parité de l'écran d'avant, sans appui au Source. Les Faveurs dues (LDB 23
  *  l.139-153, #509) s'affichent ici — même famille narrative que Motivation/Ambitions. */
 export function BackgroundPanel({ hero }: { hero: Combatant }) {
-  const setHeroBackground = useGame((s) => s.setHeroBackground);
+  const ecrireLHistorique = useGame((s) => s.ecrireLHistorique);
   const battle = useGame((s) => s.battle);
-  // Verdicts du noyau, ceux que rendent `setHeroBackground` et `favorBreak`.
+  // Verdicts du noyau, ceux que rendent `ecrireLHistorique` et `rompreLaFaveur`.
   const refusBackground = refusDuBackground({ battle });
   const refusFaveur = refusDeRompreUneFaveur({ battle });
   const favors = useGame((s) => s.favors);
-  const favorBreak = useGame((s) => s.favorBreak);
+  const rompreLaFaveur = useGame((s) => s.rompreLaFaveur);
   const d = hero.details;
   const starLabel = hero.star ? (findStarById(hero.star)?.label ?? hero.star) : undefined;
 
@@ -63,7 +63,7 @@ export function BackgroundPanel({ hero }: { hero: Combatant }) {
           <div className="mini-title">Faveurs dues</div>
           <div className="bg-favors">
             {heroFavors.map((f) => (
-              <FavorRow key={f.id} favor={f} refus={refusFaveur} onBreak={() => favorBreak(hero.id, f.id)} />
+              <FavorRow key={f.id} favor={f} refus={refusFaveur} onBreak={() => rompreLaFaveur(hero.id, f.id)} />
             ))}
           </div>
         </>
@@ -74,7 +74,7 @@ export function BackgroundPanel({ hero }: { hero: Combatant }) {
       </div>
       <BackgroundFields
         values={{ motivation: hero.motivation ?? '', ambitionShort: d?.ambitionShort ?? '', ambitionLong: d?.ambitionLong ?? '' }}
-        onChange={(patch) => setHeroBackground(hero.id, patch)}
+        onChange={(patch) => ecrireLHistorique(hero.id, patch)}
         disabled={!!refusBackground}
       />
     </div>

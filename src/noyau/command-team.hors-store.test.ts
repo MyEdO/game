@@ -65,7 +65,7 @@ const groundScene = (): Scene =>
     layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
 const mkGet = (sc: Scene, combatants: Combatant[]): (() => Jeu) =>
-  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => Jeu;
+  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {} })) as unknown as () => Jeu;
 
 // ── (A) DRAPEAU DE TALENT ─────────────────────────────────────────────────────────────────────────
 describe('(A) hasCommandTeam — drapeau de Talent', () => {

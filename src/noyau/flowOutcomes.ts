@@ -185,7 +185,7 @@ export function verdictDeVente(o: BargainOutcome): string {
 }
 
 /** Évaluation / Détection d'artefact (LDB 59 l.41 / 10 l.310-312) : issue de la popin. La VALIDATION
- *  applique la révélation + l'estimation chiffrée à part (jetConfirm('appraise')). */
+ *  applique la révélation + l'estimation chiffrée à part (jetValider('appraise')). */
 export function describeAppraise(pa: PendingAppraise): string {
   if (pa.roll == null) return '';
   const detect = pa.mode === 'detect';
@@ -289,7 +289,7 @@ export function describeDisengage(pd: PendingDisengage): string {
 
 /** Désengagement — phase 'fuir' : issue du coup dans le dos + Test `fuite`, montrée INLINE (popin).
  *  Les deux jets sont INFLUENÇABLES (slots `backstab`/`touche`) ; l'État Brisé (LDB 15 l.66) est
- *  calculé ici pour la narration, appliqué par `jetConfirm('flee')`. Jet manquant → issue
+ *  calculé ici pour la narration, appliqué par `jetValider('flee')`. Jet manquant → issue
  *  indéterminée à ce stade (chaîne vide). */
 export function describeDisengageFlee(pd: PendingDisengage): string {
   const res = fleeBackstab(pd)?.result;

@@ -5,10 +5,10 @@
  * La DONNÉE vit dans `oups.json` (éditable, comme `creatures.json`), dé de tirage `die` compris ; ce
  * module = type + chargement. Ajouter/régler une entrée = éditer le JSON, jamais ce fichier.
  */
-import type { DiceSpec } from '../engine/dice';
 import { oups } from './index';
 import oupsJson from './oups.json';
 import { deDeTirageDe } from './rangees';
+import type { DeDeTable } from '../engine/tables';
 import type * as tableauDesOups from './schemas/defs/oups';
 import { memoParVersion } from './versionDataset';
 
@@ -26,4 +26,4 @@ export const oupsTable = memoParVersion('oups', () => oups.filter((e): e is Oups
 /** Entrée « Incident de Tir » (label DISPLAY-ONLY) — source UNIQUE, lue par `rollOups`. */
 export const oupsMisfire = memoParVersion('oups', () => oups.find((e): e is OupsMisfireEntry => e.kind === 'misfire')!);
 /** Le dé du Tableau des Oups !, lu à l'appel. */
-export const oupsDie = (): DiceSpec => deDeTirageDe<typeof tableauDesOups>(oupsJson);
+export const oupsDie = (): DeDeTable => deDeTirageDe<typeof tableauDesOups>(oupsJson);

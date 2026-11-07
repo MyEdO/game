@@ -9,6 +9,7 @@ import type { Jeu } from '../etat';
 import type { Intention } from '../partie';
 import type { RosterEntry } from '../persistance/roster';
 import type { IdDePretire } from '../designations';
+import type { HorsDesignation } from '../actionsDuNoyau';
 import { decidingSeat } from '../netOwnership';
 import { refusDAjoutAuGroupe, refusDeComposerLeHeros } from '../partyFlow';
 import { buildHero, draftWealth, stepIds, validateStep, type CreatorDraft } from './brouillon';
@@ -18,7 +19,7 @@ import { t } from '../../i18n';
 
 /** Ce qu'un siège engage au groupe : un brouillon de création, l'id du héros qu'il bâtit posé quand le roster du siège le
  *  garde (absent : un id neuf), ou un pré-tiré par son id. Le noyau en bâtit le héros (`herosDeLEngagement`). */
-export type HerosEngage = { brouillon: CreatorDraft; id?: string } | { pretire: IdDePretire };
+export type HerosEngage = { brouillon: HorsDesignation<CreatorDraft>; id?: HorsDesignation<string> } | { pretire: IdDePretire };
 
 /** La première étape invalide du brouillon `d` (`validateStep`) ; `null` s'il est complet. */
 const refusDuBrouillon = (d: CreatorDraft): string | null => stepIds().map((id) => validateStep(d, id)).find((e) => e !== null) ?? null;
@@ -56,5 +57,5 @@ export function engagement(d: CreatorDraft, heroId?: string): RosterEntry {
 
 /** L'intention qui engage au groupe le héros nouveau de `d`, pour un hôte sans roster. */
 export function intentionDEngagement(d: CreatorDraft): Intention {
-  return { type: 'partyAddHero', args: [{ brouillon: d }] };
+  return { type: 'recruterLeHeros', args: [{ brouillon: d }] };
 }

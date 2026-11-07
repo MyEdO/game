@@ -12,7 +12,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * #199 — « Annuler dépl. » sans effet sur la poussée d'un engin de siège crewé (bélier-porte). Cause
  * racine : `pushCommitTile` (targetingModes.ts) ne peuplait JAMAIS `battle.moveSnapshot` (seul
- * `battleClickTile` le faisait) → `annulerLeDeplacement` n'avait rien à restaurer. Fixé en mutualisant la capture
+ * `cliquerLaCase` le faisait) → `annulerLeDeplacement` n'avait rien à restaurer. Fixé en mutualisant la capture
  * (`captureMoveSnapshot`, combatGeometry.ts) entre les trois sites de premier segment.
  */
 
@@ -68,7 +68,7 @@ describe('#199 — annulerLeDeplacement défait une poussée d’engin de siège
     expect(banc.getState().battle!.action).toBe('push');
     expect(banc.getState().battle!.reachable.size).toBeGreaterThan(0);
     const dest = reachDest(chef.pos!);
-    banc.getState().battleClickTile(dest);
+    banc.getState().cliquerLaCase(dest);
     const st = banc.getState();
     const find = (id: string) => st.battle!.combatants.find((c) => c.id === id)!;
     expect(find(chef.id).pos).toEqual(dest);
@@ -83,7 +83,7 @@ describe('#199 — annulerLeDeplacement défait une poussée d’engin de siège
     const from = { chef: { ...chef.pos! }, hull: { ...hull.pos! }, s1: { ...s1.pos! }, s2: { ...s2.pos! } };
     banc.getState().pousserLEngin();
     const dest = reachDest(from.chef);
-    banc.getState().battleClickTile(dest);
+    banc.getState().cliquerLaCase(dest);
     // Précondition : la poussée a bien bougé tout le monde et posé loseNextMovement (sinon le test ne
     // vérifie rien) — voir le test précédent pour l'assertion détaillée.
     expect(banc.getState().battle!.combatants.find((c) => c.id === chef.id)!.pos).toEqual(dest);

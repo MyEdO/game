@@ -11,9 +11,7 @@ import { detenteur } from './lib/detenteur.testkit';
  * `get().scene`, `.push(`/`.splice(` mutants…) : toute mise à jour produit une NOUVELLE scène par
  * spread. Scan AST réelle (compilateur TypeScript) — TOLÉRANCE ZÉRO, aucune baseline.
  *
- * Portée GLOBALE (`src/**`, pas seulement `src/state/`) : l'invariant vaut pour tout porteur de la
- * scène du store, y compris hors `state/` (`src/gameIso/stage/useStagePointer.ts`,
- * `src/ui/editor/**` en manipulent aussi).
+ * Portée GLOBALE (`src/**`) : l'invariant vaut pour tout porteur de la scène du store, dans toute zone.
  *
  * Fixtures de test HORS SCOPE (une `scene` construite localement dans un test n'est jamais issue
  * du store) — d'où l'exclusion des fichiers `*.test.ts(x)`.
@@ -62,7 +60,7 @@ describe('garde-fou « immutabilité de la scène du store » (AST, tolérance z
 
   it('fail-closed : le scanner détecte une écriture SYNTHÉTIQUE du motif', () => {
     const regressed = 'function f(scene) { scene.entities = next; }';
-    expect(scanSceneMutation('src/state/x.ts', regressed).length).toBe(1);
+    expect(scanSceneMutation('src/noyau/x.ts', regressed).length).toBe(1);
   });
 
   it.each([
@@ -96,7 +94,7 @@ describe('garde-fou « immutabilité de la scène du store » (AST, tolérance z
       false,
     ],
   ] as const)('formulation « %s » — attendu détecté=%s', (_label, src, expected) => {
-    const detected = scanSceneMutation('src/state/x.ts', src).length > 0;
+    const detected = scanSceneMutation('src/noyau/x.ts', src).length > 0;
     expect(detected).toBe(expected);
   });
 });

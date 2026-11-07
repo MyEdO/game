@@ -33,8 +33,11 @@ import { garanti } from '../lib/garanti';
 import { propulsionDuNavire, milieuDuVoyage } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
-import { unloadWeapon, setAmmoChoice } from '../engine/items';
+import { choisirLaMunition } from '../engine/items';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
+import type { Scene } from './monde/scene';
+import { spawnEnemy } from './monde/spawn';
+import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /**
@@ -332,6 +335,33 @@ export function resolveShipUnits(combatants: Combatant[]): string[] {
 }
 
 /**
+ * VAGUES D'ABORDAGE : une coque dont tout l'équipage exposé (`crewIds`) est hors de combat et qui garde des
+ * marins en RÉSERVE (`reserveDAbordage`) en fait monter une vague neuve, placée près d'elle, inscrite à
+ * l'initiative après elle et rattachée à son équipage. Passe AVANT `resolveShipUnits`, qui sinon déclarerait
+ * la coque prise. Mute EN PLACE, renvoie le journal. Appelé par `checkBattleOver`. MDG 15 l.150, l.171
+ */
+export function monterLesVagues(battle: BattleState, scene: Scene): string[] {
+  const lines: string[] = [];
+  for (const hull of [...battle.combatants]) {
+    const r = hull.reserveDAbordage;
+    if (!r?.restant || !hull.pos || !hull.crewIds?.length || isOutOfAction(hull)) continue;
+    if (!hull.crewIds.every((id) => { const c = inBattleId(battle, id); return !c || isOutOfAction(c); })) continue;
+    const base = battle.combatants.length;
+    const montes = freeTilesNear(scene, battle, hull.pos, Math.min(r.vague, r.restant)).map((pos, i) => {
+      const c = spawnEnemy({ ref: r.ref }, `${hull.id}-vague-${base}-${i}`, pos);
+      c.kind = hull.kind;
+      return c;
+    });
+    if (!montes.length) continue;
+    for (const c of montes) inscrireEnBataille(battle, c, hull.id);
+    hull.crewIds = [...hull.crewIds, ...montes.map((c) => c.id)];
+    hull.reserveDAbordage = { ...r, restant: r.restant - montes.length };
+    lines.push(t('crew.vagueDAbordage', { ship: hull.label, n: montes.length, restant: r.restant - montes.length }));
+  }
+  return lines;
+}
+
+/**
  * Applique un DELTA de Moral au NAVIRE DE CAMPAGNE (MDG 14 — Rude épreuve l.110 : le Moral évolue en jeu,
  * pas seulement au recalc hebdomadaire) : PERSISTE sur `CampaignVessel.morale.score` quand la coque EST le
  * navire de campagne (sinon no-op : une coque adverse/transitoire ne suit pas de Moral). Renvoie les lignes
@@ -502,7 +532,7 @@ function arreterLaPaie(get: Get, set: SetFn, decision: string): void {
     vessel: out.vessel,
     pendingCouncil: { ...p, phase: 'bilan', decision, results: factorLedger(out.factorRolls), delta: out.delta, before: out.before, after: out.after },
   });
-  get().log(out.lines);
+  get().ecrireAuJournal(out.lines);
 }
 
 /** Les choix de paie que `fenetreChoisir('council', 'paie', …)` accepte : ceux du registre (`payChoices`) que la bourse du groupe couvre, le choix
@@ -529,11 +559,10 @@ export function chansonsDuChanteur(s: Jeu): string[] {
 }
 
 /**
- * Applique un DELTA d'effectif PNJ CUMULÉ du navire de CAMPAGNE (Embrigadement — MDG 15 l.245 : perte de
- * 2d10 membres d'équipage, recouvrable par Ragot puis rançon/Discrétion) : PERSISTE sur
- * `CampaignVessel.crewLost`, plafonné à `[0, nominal]` (`vehicles.json` ship.crew — même source que
- * `shipUndercrew`) dans les deux sens. `delta` positif = perte, négatif = recouvrement (séquence
- * Ragot/rançon/Discrétion : `openEmbrigadementRecovery`, `embrigadementFlow`). Renvoie le journal.
+ * Applique un DELTA d'effectif PNJ CUMULÉ du navire de CAMPAGNE (op de navire `equipage`, MDG 15 l.245) :
+ * PERSISTE sur `CampaignVessel.crewLost`, plafonné à `[0, nominal]` (`vehicles.json` ship.crew — même
+ * source que `shipUndercrew`) dans les deux sens. `delta` positif = perte, négatif = recouvrement. Renvoie
+ * le journal.
  */
 export function applyVesselCrewLoss(get: Get, set: SetFn, delta: number): string[] {
   const vessel = get().vessel;
@@ -582,26 +611,19 @@ export function sortiesDeLEquipage(_get: Get, set: SetFn) {
 
 export function creerActionsDeLEquipage(get: Get, set: SetFn) {
   return {
-    setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
-    setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
-    setPosteAmmo: (shipId, posteUid, ammoUid) => {
+    attribuerLeRoleABord: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
+    affecterALaStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
+    approvisionnerLaPiece: (shipId, posteUid, ammoUid) => {
       const b = get().battle;
       const ship = inBattleId(b, shipId);
       const poste = ship?.postes?.find((p) => p.item.uid === posteUid);
       if (!b || !poste) return;
       // Le poste est PARTAGÉ par référence avec `mannedPoste` du chef (serveChef) → muter la même instance
-      // suffit ; le `set` re-render (pattern combat : mutation + refresh).
-      // La munition se fixe au CHARGEMENT — arbitrage utilisateur 2026-08-16 par AskUserQuestion, verbatim de la demande qui
-      // l'ouvre : « on doit pouvoir choisir ses munitions avec nos armes de tir facilement depuis sa barre
-      // d'action ». Changer celle d'une pièce CHARGÉE la DÉCHARGE — Test étendu de
-      // recharge à refaire (LDB 62 l.335) ; re-sélectionner la même est sans effet ; rien n'est détruit (décompte
-      // au tir). Le CHEF qui la sert perd aussi son gate de tir : la pièce n'a plus de coup.
-      if (poste.loaded !== false && (poste.loadedAmmoUid ?? poste.ammoUid) !== (ammoUid ?? undefined)) {
-        const chef = poste.crewIds?.[0] ? inBattleId(b, poste.crewIds[0]) : undefined;
-        const gun = chef?.mannedPoste === poste ? chef.weapons.find((w) => w.uid === poste.item.uid) : undefined;
-        unloadWeapon(gun ? chef : undefined, gun, poste); // couture UNIQUE : la pièce, et l'arme dérivée du chef
-      }
-      setAmmoChoice(undefined, undefined, ammoUid ?? undefined, poste); // écrivain UNIQUE de la sélection
+      // suffit ; le `set` re-render (pattern combat : mutation + refresh). Le CHEF qui la sert lit la pièce par son
+      // arme : la décharge lui ôte aussi son coup (`choisirLaMunition`).
+      const chef = poste.crewIds?.[0] ? inBattleId(b, poste.crewIds[0]) : undefined;
+      const gun = chef?.mannedPoste === poste ? chef.weapons.find((w) => w.uid === poste.item.uid) : undefined;
+      choisirLaMunition(gun ? chef : undefined, gun, ammoUid ?? undefined, poste);
       set({ battle: { ...b } });
     },
   } satisfies FabriqueDuNoyau;

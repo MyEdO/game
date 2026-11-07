@@ -40,14 +40,14 @@ function drain(): void {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
     if (cur) {
-      if (cur.table && !cur.table.result) get().jetRoll('cascadeTirage', cur.id);
+      if (cur.table && !cur.table.result) get().jetLancer('cascadeTirage', cur.id);
       else if (cur.options && cur.chosen == null) get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
-      else if (cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
+      else if (cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
       else if (cur.participants?.some((r) => r.interactive !== false && !r.result)) {
-        for (const r of cur.participants) if (r.interactive !== false && !r.result) get().jetRoll('cascadeBatch', r.id);
+        for (const r of cur.participants) if (r.interactive !== false && !r.result) get().jetLancer('cascadeBatch', r.id);
       }
     }
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
   }
 }
 
@@ -92,7 +92,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
     for (const entree of TAVERN_GAMES) {
       const h = seul();
       const avant = toBrass(bourseOf(get().party[0]));
-      get().playTavernGame({ gameId: entree.id, challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, stakeBrass: 500 });
+      get().jouerALaTaverne({ gameId: entree.id, challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, stakeBrass: 500 });
       const ouverture = get().pendingCascade!;
       expect(ouverture.participants.map((s) => s.kind), `${entree.id} : la manche opposée ordinaire, rien d’autre`).toEqual(['tavern-round']);
       expect(ouverture.participants[0].difficulty, `${entree.id} : « Test opposé de Compétence Intermédiaire (+0) »`).toBe('intermediaire');
@@ -139,7 +139,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
   it('AL-ZAHR au régime rapide : une partie SANS MISE, tranchée en UNE manche par un Test opposé', () => {
     setRule(TAVERN_FAST_RULE, true);
     const h = seul();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, stakeBrass: 0 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, stakeBrass: 0 });
     // Le régime complet REFUSERAIT cette partie (« sans mise, aucune table ne s'ouvre ») : ici elle
     // s'ouvre, parce que le jeu rapide ne connaît ni mise ni pot.
     expect(get().sequence, 'la séquence est ouverte').toBeTruthy();
@@ -155,7 +155,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
   it('LES FLÉCHETTES au régime rapide : aucun passage de lancers — la partie tient en une manche', () => {
     setRule(TAVERN_FAST_RULE, true);
     const h = seul();
-    get().playTavernGame({ gameId: 'flechettes', challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne({ gameId: 'flechettes', challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     // Aucune étape de volée : c'est la manche opposée ordinaire qui s'ouvre.
     const kinds = get().pendingCascade!.participants.map((s) => s.kind);
     expect(kinds).toEqual(['tavern-round']);
@@ -166,7 +166,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
   it('LE CEREVIS au régime rapide : aucun Test combiné — la fenêtre n’annonce qu’une lecture', () => {
     setRule(TAVERN_FAST_RULE, true);
     const h = seul();
-    get().playTavernGame({ gameId: 'cerevis', challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne({ gameId: 'cerevis', challengerId: h.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const cur = get().pendingCascade!.participants[0];
     expect(cur.kind).toBe('tavern-round');
     expect(cur.second, 'le jeu rapide ne joue pas le Test combiné').toBeUndefined();

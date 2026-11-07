@@ -267,8 +267,8 @@ export const KEYBINDINGS: KeyBinding[] = [
     id, codes: [code], labelKey, section: 'pov', sharedBy: [isoId], when: exploringPov,
     run: (g) => demarrerMarche(g, { vue: 'pov', rel }), runUp: () => arreterMarche({ vue: 'pov', rel }),
   })),
-  { id: 'pov-turn-l', codes: ['KeyQ'], labelKey: 'key.povTurnL', section: 'pov', sharedBy: ['cam-left', 'editeur-rot-l'], when: exploringPov, unePression: true, run: (g) => g().pivotParty(-1) },
-  { id: 'pov-turn-r', codes: ['KeyE'], labelKey: 'key.povTurnR', section: 'pov', sharedBy: ['cam-right', 'editeur-rot-r'], when: exploringPov, unePression: true, run: (g) => g().pivotParty(1) },
+  { id: 'pov-turn-l', codes: ['KeyQ'], labelKey: 'key.povTurnL', section: 'pov', sharedBy: ['cam-left', 'editeur-rot-l'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(-1) },
+  { id: 'pov-turn-r', codes: ['KeyE'], labelKey: 'key.povTurnR', section: 'pov', sharedBy: ['cam-right', 'editeur-rot-r'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(1) },
   { id: 'toggle-pov', codes: ['KeyF'], labelKey: 'key.togglePov', section: 'pov', when: exploring, run: (g) => g().togglePov() },
   // `when` : l'ÉCRAN DE JEU. Le hook est monté au niveau application (tous les écrans) — la caméra du
   // jeu ne tourne donc pas depuis l'éditeur, qui a la sienne sur les mêmes touches physiques.
@@ -344,7 +344,7 @@ export const KEYBINDINGS: KeyBinding[] = [
       const shooters = preemptShooterIds(g);
       const i = g().preemptAiming ? shooters.indexOf(g().preemptAiming!) : -1;
       const next = i + 1 < shooters.length ? shooters[i + 1] : null; // tireur suivant, puis désarme après le dernier
-      g().armPreempt(next);
+      g().armerLeTirPreventif(next);
       if (next) g().snapCursorToTarget(1); else g().clearCursor(); // pose le curseur sur la cible la plus proche
     },
   },
@@ -389,12 +389,12 @@ export const KEYBINDINGS: KeyBinding[] = [
   {
     id: 'intent-cancel', codes: [CODE_ECHAP], labelKey: 'key.intentCancel', section: 'combat', sharedBy: ['cursor-cancel', 'clear-preview', 'toggle-menu', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.localIntent,
-    run: (g) => g().battleArmIntent(null),
+    run: (g) => g().armerLIntention(null),
   },
   {
     id: 'cursor-cancel', codes: [CODE_ECHAP], labelKey: 'key.cursorCancel', section: 'curseur', sharedBy: ['clear-preview', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.combatCursor || preemptCur(s), // armé sans cible en vue : Échap désarme quand même le Tir rapide
-    run: (g) => { if (g().preemptAiming) g().armPreempt(null); g().clearCursor(); if (g().battle?.preview) g().battleClearPreview(); },
+    run: (g) => { if (g().preemptAiming) g().armerLeTirPreventif(null); g().clearCursor(); if (g().battle?.preview) g().effacerLApercu(); },
   },
   {
     id: 'end-turn', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.endTurn', section: 'combat', notWhenControlFocused: true, sharedBy: ['round-start', 'cursor-commit', 'editeur-pan'],
@@ -405,7 +405,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   {
     id: 'clear-preview', codes: [CODE_ECHAP], labelKey: 'key.clearPreview', section: 'combat', sharedBy: ['cursor-cancel', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.battle?.preview,
-    run: (g) => g().battleClearPreview(),
+    run: (g) => g().effacerLApercu(),
   },
   // ANNULER LE DÉPLACEMENT du tour (`undo-move`) : la touche du geste adossé à la gouttière de
   // Mouvement de la console. Sa garde EST le gate du registre (`deplacement-annulable`) — la touche

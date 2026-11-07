@@ -16,8 +16,8 @@ describe('À Terre — se relever / pas de Course (LDB 16 l.37, 18 l.15)', () =>
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -51,12 +51,12 @@ describe('À Terre — se relever / pas de Course (LDB 16 l.37, 18 l.15)', () =>
     expect(hasCondition(h, 'a-terre')).toBe(true); // reste au sol
   });
 
-  it('À Terre → battleRun n’ouvre rien (pas de Course au sol)', () => {
+  it('À Terre → ouvrirLaCourse n’ouvre rien (pas de Course au sol)', () => {
     const { H } = setup();
     H.conditions = [{ id: 'a-terre', value: 1 }];
     H.wounds = blessuresDeBase(12, 5, H);
     banc.setState({ battle: { ...banc.getState().battle! }, pendingRun: null });
-    banc.getState().battleRun();
+    banc.getState().ouvrirLaCourse();
     expect(banc.getState().pendingRun).toBeNull();
   });
 });

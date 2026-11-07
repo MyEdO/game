@@ -250,7 +250,7 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     for (const cas of [champStatique, fabriqueInterModule, reexportRenomme, partitionParPredicat, lectureParMembre, aliasTypeObjet, fabriqueLocale, flecheDansLeType, appelDeModule]) {
       expect(indexFiges('src/engine/copie.ts', cas, parBinding), 'angle mort couvert : l’en-tête de ce fichier ne dit plus vrai').toEqual([]);
     }
-    expect(indexFiges('src/ui/copie.tsx', apostropheJsx, parBinding), 'angle mort couvert : l’en-tête de ce fichier ne dit plus vrai').toEqual([]);
+    expect(indexFiges('src/hote/copie.tsx', apostropheJsx, parBinding), 'angle mort couvert : l’en-tête de ce fichier ne dit plus vrai').toEqual([]);
   });
 
   it('CONTRÔLE POSITIF : l’IMPORT JSON DIRECT et son ALIAS NU sont du vocabulaire — mesuré sur un fichier RÉEL', () => {

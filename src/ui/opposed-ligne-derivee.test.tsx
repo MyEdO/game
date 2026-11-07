@@ -47,7 +47,7 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
   it('taverne contre la salle : la fenêtre lit « <adversaire> — Pari », dérivé de la STRUCTURE', () => {
     const [a] = makePregens().slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
-    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
 
     const opp = get().pendingCascade!.participants[0].meta!.opposed!;
     expect(opp.test, 'le flux fige la STRUCTURE du Test adverse').toEqual({ skill: { id: 'pari' } });
@@ -67,11 +67,11 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
     seedBattleRng(4);
     const [a] = makePregens().slice(0, 1) as [Combatant];
     useGame.setState({ party: [a], journal: [] });
-    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     const opp = step.meta!.opposed!;
-    act(() => { get().jetRoll('cascade', step.id); });
-    act(() => { get().jetConfirm('cascade'); });
+    act(() => { get().jetLancer('cascade', step.id); });
+    act(() => { get().jetValider('cascade'); });
 
     const journal = get().journal.join('\n');
     expect(journal, 'le challenger est nommé, avec son Test').toContain(`${a.label} — Pari :`);

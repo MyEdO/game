@@ -45,8 +45,8 @@ const FRAGMENT = [{
 
 const IMPORTE = "import { fragmentBlocs, scelle } from '../data/source/decoupe';\n";
 
-/** Les constructions reconnues dans un texte, par défaut un module de `src/ui/`. */
-const vu = (text: string, rel = 'src/ui/fixture.tsx') =>
+/** Les constructions reconnues dans un texte, par défaut un module de `src/noyau/`. */
+const vu = (text: string, rel = 'src/noyau/fixture.tsx') =>
   scanConstructionsReservees({ rel, text }, FRAGMENT).map((t) => t.construction);
 const VUE = [NOM];
 
@@ -82,6 +82,6 @@ describe('construction d’un fragment d’adresse (#1887)', () => {
     expect(vu('const o = { ...base, table, niveau };'), '`table` hors désignation').toEqual([]);
     expect(vu('const o = { total: 1, sum };'), 'empreinte sans recopie').toEqual([]);
     expect(vu("const f = { kind: 'blocs', sec, secOcc, b0, b1, sum: '' };", FOYER)).toEqual([]);
-    expect(vu("const f = { kind: 'blocs', sec, secOcc, b0, b1, sum: '' };", 'src/ui/fixture.test.tsx')).toEqual([]);
+    expect(vu("const f = { kind: 'blocs', sec, secOcc, b0, b1, sum: '' };", 'src/noyau/fixture.test.tsx')).toEqual([]);
   });
 });

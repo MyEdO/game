@@ -23,7 +23,7 @@ export interface CombatFeatureCtx {
  * Une capacité de combat/de jeu conférée par un TALENT (LDB 10) — registre `defs/` généré
  * (gen-registry.mjs), même patron que `engine/qualities`. Chaque champ décrit UN effet écrit de la
  * source ; les helpers de `dispatch.ts` les agrègent et les consommateurs (combat.ts, combatFlow,
- * rollFlows, store) les appellent aux moments de jeu. `level` = nombre de fois pris (times).
+ * rollFlowSpecs, store) les appellent aux moments de jeu. `level` = nombre de fois pris (times).
  *
  * Les talents de CRÉATION (+5 carac., compétence/talent ajouté aux carrières, Blessures/Chance/
  * Détermination/Mouvement) restent pilotés par les données via `talentEffects.ts` (ops `GameOp`) ;

@@ -5,9 +5,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, gestesDessines, table, type Reponse } from './pont.testkit';
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton, Choix } from '../../../src/hote/elements';
-import type { Suite } from './pont';
+import { clicDuCombattant, type Suite } from './pont';
 
 const { appel } = table();
 
@@ -29,7 +29,7 @@ const offre = (suite: Suite, id: string): Bouton => suite.vue.zones['combat.offr
 describe('le soin par le pont', () => {
   it('soigner un allié : le patient, l’acte et le Test en choix, chacun fermé avec sa raison', () => {
     jouer(appel('demarrer', { scenario: 'magie', graine: 7 }));
-    let suite = jouer(appel('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [{ x: 16, y: 11 }] }));
+    let suite = jouer(appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 16, y: 11 }] }));
     for (let tours = 0; suite.vue.zones['combat.actif'][0]?.nom !== 'Grunni Pierre-de-Fer'; tours++) {
       expect(tours, 'Grunni prend la main').toBeLessThan(5);
       suite = jouer(appel('jouer', offre(suite, 'end-turn').jeu));
@@ -39,7 +39,7 @@ describe('le soin par le pont', () => {
 
     ({ suite } = drainer(appel, appel('jouer', offre(suite, 'heal').jeu)));
     const [patient] = suite.vue.projection.combat!.cibles.liste;
-    ({ suite } = drainer(appel, appel('jouer', { type: CLICS_DU_CHAMP.combattant, args: [patient] })));
+    ({ suite } = drainer(appel, appel('jouer', clicDuCombattant(suite.vue, patient)!)));
     const corps = () => Object.fromEntries(suite.vue.zones['fenetre.corps'].map((e) => [e.id, e]));
     expect(corps().soin, 'le patient ; le soigneur tient la fenêtre et jette').toMatchObject({ texte: 'Patient : Aelindra, Haute Sorcière' });
 

@@ -48,7 +48,7 @@ describe('intentionDuClicDExploration — meuble à places', () => {
 
   it('déjà assis au meuble : interagir (le noyau arbitre se relever)', () => {
     poser([table({ assise: true })], { x: 5, y: 4 });
-    banc.getState().interactEntity('table-1');
+    banc.getState().interagirAvecLEntite('table-1');
     expect(clic(SUR, 'table-1')).toEqual({ kind: 'interagir', id: 'table-1' });
   });
 

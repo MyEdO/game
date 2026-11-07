@@ -11,7 +11,7 @@
  * COUVERTURE, et ses deux bords : (1) la marche ignore les lignes de COMMENTAIRE — une table du RAW
  * recopiée en JSDoc (`src/engine/travelStages.ts:74`, tableau de Météo EDOC 8) est une citation, pas
  * un libellé d'écran ; (2) elle ignore les fichiers de TEST, qui doivent pouvoir asserter le texte
- * RENDU — c'est là que les libellés attendus se vérifient (`src/ui/PlageField.test.tsx`).
+ * RENDU — c'est là que les libellés attendus se vérifient.
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';

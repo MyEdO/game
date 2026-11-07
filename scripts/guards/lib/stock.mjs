@@ -366,7 +366,7 @@ export function champsAveugles(stock, cle, champs, nombre) {
  * trou que le REFUS DU VIDE de `sourceCorpus.mjs`, une marche plus bas : le balayage peut être NON
  * vide et pourtant avoir perdu un GISEMENT entier (un des dossiers que le cliquet prétend juger) ou
  * le fichier même d'une entrée de stock — la moitié RATCHET du stock des dettes de libellé a vécu ainsi,
- * ses entrées `src/ui/**` hors du balayage et le verdict vert (#1723).
+ * les entrées d'une zone entière hors du balayage et le verdict vert (#1723).
  *
  * Non-vacuité par GISEMENT et non sur le total (patron `props-volumiques.test.ts`, `2639287cd`) :
  * sur un total agrégé, une moitié de balayage qui s'évapore reste muette derrière l'autre. Aucun
@@ -377,8 +377,8 @@ export function champsAveugles(stock, cle, champs, nombre) {
  * ratchet. Hors périmètre par nature, un balayage de contenu STAGÉ (hook pre-commit) : un commit ne
  * touche qu'une partie du corpus, et la porte de vérité d'une couverture est la SUITE.
  *
- * GRAPHIE des `gisements` : le séparateur est exigé (`src/ui` peuple sur `src/ui/…`, jamais sur
- * `src/uix/…`), et la comparaison est littérale — un gisement mal graphié (`'src/ui/'`, séparateur
+ * GRAPHIE des `gisements` : le séparateur est exigé (`src/noyau` peuple sur `src/noyau/…`, jamais sur
+ * `src/noyaux/…`), et la comparaison est littérale — un gisement mal graphié (`'src/noyau/'`, séparateur
  * Windows `\`) n'est peuplé par rien et sort ÉTERNELLEMENT muet. Fail-loud : le rouge nomme le
  * dossier, sa correction est sa graphie.
  *

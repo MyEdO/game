@@ -33,7 +33,7 @@ import { rollDice, type RNG } from './dice';
 import { compteDeLaDotation } from './possessionGrants';
 import { garanti } from '../lib/garanti';
 import { itemCapability } from './capabilities';
-import { loadRegister, objetSourceDeLArme, aRecharger, type WeaponLoadState } from './weaponLoad';
+import { loadRegister, objetSourceDeLArme, aRecharger, chambrePleine, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
 import { sequence } from './sequences';
 
@@ -1369,13 +1369,23 @@ export function setReloadProgress(c: Combatant | undefined, weapon: Weapon | und
   if (reg) reg.reloadProgress = Math.max(0, dr);
 }
 
-/** CHOIX de munition « à charger au prochain rechargement » (`ammoUid`) — écrivain UNIQUE : hotbar du
- *  joueur, sélecteur de pièce du navire (MDG 12). Ne touche NI l'état de charge NI le coup capturé :
- *  changer d'avis ne décharge rien par lui-même (c'est l'appelant qui décide de décharger).
- *  `docs/plans/2026-08-16-hud-combat.md` §1. Mute en place. */
-export function setAmmoChoice(c: Combatant | undefined, weapon: Weapon | undefined, uid: string | undefined, poste?: ShipPoste): void {
-  const reg: WeaponLoadState | undefined = poste ?? (c && weapon ? loadRegister(c, weapon) : undefined);
-  if (reg) reg.ammoUid = uid;
+/** CHOIX de munition « à charger au prochain rechargement » (`ammoUid`) — écrivain UNIQUE : hotbar du joueur
+ *  (`approvisionnerLArme`), sélecteur de pièce du navire (`approvisionnerLaPiece`, MDG 12 l.410-424). La munition se
+ *  fixe AU CHARGEMENT (arbitrage utilisateur 2026-08-16 par AskUserQuestion, verbatim de la demande qui l'ouvre : « on
+ *  doit pouvoir choisir ses munitions avec nos armes de tir facilement depuis sa barre d'action ») : changer celle d'une
+ *  arme ou d'une pièce CHARGÉE d'une autre la DÉCHARGE (`unloadWeapon`), le Test étendu de recharge est à refaire
+ *  (LDB 62 l.335) et le chargeur d'une arme À répétition se vide avec ; re-choisir la munition chargée est sans effet ;
+ *  rien n'est détruit (décompte au tir, `consumeAmmo`). L'arme `weapon` de `c` lit son registre (`loadRegister`, la
+ *  pièce qu'elle sert comprise) ; sans arme résolue, la pièce `poste` seule. `docs/plans/2026-08-16-hud-combat.md` §1.
+ *  Mute en place. */
+export function choisirLaMunition(c: Combatant | undefined, weapon: Weapon | undefined, uid: string | undefined, poste?: ShipPoste): void {
+  const arme = c && weapon ? { c, weapon } : undefined;
+  const reg: WeaponLoadState | undefined = poste ?? (arme ? loadRegister(arme.c, arme.weapon) : undefined);
+  if (!reg) return;
+  const chargee = arme ? chambrePleine(arme.c, arme.weapon) : reg.loaded !== false;
+  const coup = arme ? loadedAmmo(arme.c, arme.weapon)?.uid : reg.loadedAmmoUid ?? reg.ammoUid;
+  reg.ammoUid = uid;
+  if (chargee && coup !== uid) unloadWeapon(c, weapon, poste);
 }
 
 /** Consomme UN coup du chargeur d'une arme À répétition (Indice) (LDB 62 l.229/231) — écrivain UNIQUE de

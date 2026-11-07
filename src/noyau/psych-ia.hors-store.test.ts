@@ -31,8 +31,8 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -46,7 +46,7 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
   }
 
   it('un ennemi face à un héros Énorme (Terreur) gagne Brisé + une Peur en psychState', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.size = 'enorme'; // gap 2 → Terreur 2
     E.characteristics['force-mentale'] = 10; // Test de Calme raté → Brisé
@@ -58,7 +58,7 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
 
   /** L'ennemi (FM 10) face au héros Énorme (Terreur 2), règle allumée : rate son Calme et devient Brisé. */
   const ennemiTerrifie = (regles: boolean | undefined) => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.size = 'enorme';
     E.characteristics['force-mentale'] = 10;
@@ -89,7 +89,7 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
   });
 
   it('un héros sous contrôle de l’IA est un Personnage : sa Terreur subie se mémorise (ADE II 09 l.9)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'enorme';
     H.aiControlled = true;
@@ -126,7 +126,7 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
    * contre un membre de SON camp, avec plus d'Avantages que lui, gagne bien l'Immunité Psychologique.
    */
   it('Belliqueux : l’adversaire ENGAGÉ du même camp compte — plus d’Avantages que lui ⇒ immunité psy', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.size = 'enorme'; // Terreur 2 pour E s'il n'est pas immunisé
     E.characteristics['force-mentale'] = 10; // Calme raté à coup sûr

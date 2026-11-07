@@ -1,5 +1,5 @@
 /**
- * Types d'APPARENCE — couche NEUTRE partagée : l'éditeur/scène (`state`) AUTHORE `EntityAppearance`, le
+ * Types d'APPARENCE — couche NEUTRE partagée : l'éditeur/scène (`noyau`) AUTHORE `EntityAppearance`, le
  * Combattant (`engine`) PORTE l'override brut (`Combatant.appearanceOverride`) et l'apparence résolue
  * (`Combatant.appearance`). Vivent ici (moteur) pour qu'aucun consommateur n'inverse les couches
  * (#187, #2884). Structurels purs (aucune valeur de rendu).

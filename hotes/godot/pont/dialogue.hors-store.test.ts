@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
-import { CLICS_DE_L_EXPLORATION } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
 const { appel } = table();
@@ -16,7 +16,7 @@ describe('la conversation par le pont', () => {
     let { suite } = drainer(appel, appel('demarrer', { scenario: 'dialogue-multi', graine: 7 }));
     while (suite.vue.projection.fenetre) ({ suite } = drainer(appel, appel('jouer', suite.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu)));
     expect(suite.vue.zones['exploration.gestes'].map((b) => b.libelle), 'Gustav hors de portée : rien à lui dire').not.toContain('Gustav : Parler');
-    ({ suite } = drainer(appel, appel('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [{ x: 5, y: 4 }] })));
+    ({ suite } = drainer(appel, appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 5, y: 4 }] })));
     const parler = suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Gustav : Parler');
     expect(parler, 'à portée, l’offre de Gustav est un geste d’exploration').toBeDefined();
     expect(suite.vue.zones['dialogue.reponses'], 'aucune conversation avant de parler').toEqual([]);

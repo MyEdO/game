@@ -18,7 +18,7 @@ export const refusEnCombat = (cle: MsgKey): VerdictDeGeste => (s) => (s.battle ?
 
 /** Refus de toucher à un objet de la fiche (porter, ranger, donner, évaluer, utiliser, tenir une arme,
  *  gérer ses sets) : en combat, l'équipement se gère depuis la barre d'action. L'apparence d'un objet
- *  (`choisirApparence`), cosmétique et sans règle qui la ferme, ne l'est pas. */
+ *  (`poserLApparence`), cosmétique et sans règle qui la ferme, ne l'est pas. */
 export const refusDInventaire: VerdictDeGeste = refusEnCombat('pf.inventoryLocked');
 
 /** Refus de la surface de lancement de la fiche : en combat, le sort se lance depuis la console, où

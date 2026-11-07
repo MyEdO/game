@@ -1,8 +1,7 @@
 /**
  * COURSE DU SOLEIL EN JEU (#1176, #3476) : l'heure de l'horloge (`state.gameTime`, minutes) et le NORD de la scène
- * (`Scene.northDeg`) donnent sa direction. La lumière de la scène (`./lumiere`) le publie aux hôtes ; le rendu web le lit
- * aussi (`gameIso/stage/stageLights.ts`), à côté de son soleil de PLANCHE fixe (`SUN_AZIMUTH`/`sunRig`,
- * `gameIso/backends/webgl/sceneMeshes.ts`) qui ne bouge jamais.
+ * (`Scene.northDeg`) donnent sa direction. La lumière de la scène (`./lumiere`) le publie aux hôtes ; le rendu le lit
+ * aussi, à côté de son soleil de PLANCHE fixe (`SUN_AZIMUTH`/`sunRig`) qui ne bouge jamais.
  *
  * COURBE (MAISON, assumée) — aucune simulation astronomique : le canon est muet sur l'heure du lever
  * et du coucher (`engine/clock.ts`, `DAY_PHASES`). Une seule arche, symétrique autour de MIDI :

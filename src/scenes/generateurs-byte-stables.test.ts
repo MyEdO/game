@@ -16,7 +16,7 @@ import { listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/li
  * générateur découvert, soit déclaré NOMINATIVEMENT manuscrit (`PROJETS_MANUSCRITS`, `projetsLivres.mjs`).
  *
  * Réserve de convention : le générateur écrit `ambientLight: "auto"` EXPLICITE là où l'éditeur
- * SUPPRIME la clé sur « auto » (`src/ui/editor/Inspector.tsx`) — les deux formes sont équivalentes
+ * SUPPRIME la clé sur « auto » — les deux formes sont équivalentes
  * à la lecture (`src/noyau/monde/vision.ts`) ; cette garde juge la forme GÉNÉRATEUR.
  * Angle mort : elle ne voit pas un projet MANUSCRIT ajouté à la liste des manuscrits alors qu'un
  * générateur existe pour lui — la couverture prouve l'inclusion, pas la sincérité du motif.

@@ -99,12 +99,12 @@ export function StateRecoveryModalView({
 export function StateRecoveryModal() {
   const sr = useGame((s) => s.pendingStateRecovery);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetRoll', 'recover');
-  const reroll = useGesteDeJet('jetReroll', 'recover');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'recover');
-  const darkPact = useGesteDeJet('jetDarkPact', 'recover');
-  const confirm = useGesteDeJet('jetConfirm', 'recover');
-  const cancel = useGesteDeJet('jetCancel', 'recover');
+  const roll = useGesteDeJet('jetLancer', 'recover');
+  const reroll = useGesteDeJet('jetRelancer', 'recover');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'recover');
+  const darkPact = useGesteDeJet('jetPactiser', 'recover');
+  const confirm = useGesteDeJet('jetValider', 'recover');
+  const cancel = useGesteDeJet('jetAnnuler', 'recover');
   if (!sr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === sr.actorId);
   return (

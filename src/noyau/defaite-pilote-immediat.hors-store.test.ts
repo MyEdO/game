@@ -66,9 +66,9 @@ function journeeDeFleuve(cadence: Cadence): void {
   const g = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
   for (const [id, adv] of [['ramer', 50], ['voile', 45]] as const) g.skills.push({ id, characteristic: skillCharacteristicById(id), advances: adv } as never);
   const o = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
-  get().setParty([g, o]);
+  get().fixerLeGroupe([g, o]);
   const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] } as never);
-  get().loadProject({ scenes: [quai('quai-a', 'A'), quai('quai-b', 'B')], entryId: 'quai-a', worldMap: {
+  get().chargerLeProjet({ scenes: [quai('quai-a', 'A'), quai('quai-b', 'B')], entryId: 'quai-a', worldMap: {
     id: 'm', label: 'Reik',
     places: [{ id: 'A', label: 'A', pos: { x: 0, y: 0 }, scene: 'quai-a' }, { id: 'B', label: 'B', pos: { x: 90, y: 0 }, scene: 'quai-b' }],
     routes: [{ id: 'r-reik', a: 'A', b: 'B', km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 }],
@@ -107,7 +107,7 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0] as never, { cadence: 'commande' })!, party: aTerre(get().party) });
     const h = get().party[0];
     set({ pendingSteamSave: { actorId: h.id, actorName: h.label, skillValue: 40, target: 40, difficulty: 'intermediaire', scaldOps: [], roll: 5, success: true, sl: 3 } });
-    get().jetConfirm('steamSave');
+    get().jetValider('steamSave');
     expect(issue()).toEqual(DEFAITE);
     expect(get().party.flatMap((x) => x.diseases ?? []), 'la clôture du jour s’est jouée avant la défaite').toEqual([]);
   });

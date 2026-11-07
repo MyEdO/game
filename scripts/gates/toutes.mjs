@@ -231,10 +231,10 @@ export const ECRIT_LU = {
   },
   'comptes:plage': {
     ecrit: [],
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'docs/dossiers/', 'package.json', 'tsconfig.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'la porte des comptes (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
-      '`merge-base origin/main..HEAD`, et les images de `src/`, `Source/`, `scripts/`, `package.json` et `tsconfig.json` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
+      '`merge-base origin/main..HEAD`, et les images de `src/`, `Source/`, `docs/dossiers/`, `scripts/`, `package.json` et `tsconfig.json` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
       'et pose chacune une fois sous un `mkdtempSync` d’os.tmpdir(), effacé à la sortie du processus, ' +
       '`node_modules` lié (`lierDependances`) et ses cibles de code produites par SON `genererCode` dans un processus fils (cwd = l’image), ' +
       'puis, son `scripts/` retiré, la mesure deux fois : avec une COPIE de `scripts/`, `package.json` et `tsconfig.json` de l’arbre (le détecteur de la tête), ' +

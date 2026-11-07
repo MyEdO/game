@@ -273,7 +273,7 @@ export function useStagePointer({
     if (!sc || st.dialogue || !v || !t) return;
     // ARÊTE : elle a déjà tranché en tête de chaîne, son geste prime sur la case qu'elle borde et
     // consomme le clic — rien ne redescend au clic-sol, qui écraserait l'aperçu qu'une frappe vient de
-    // poser (`combatSlice.battleClickTile` réécrit `preview` à chaque sortie de déplacement).
+    // poser (`combatSlice.cliquerLaCaseDuCombat` réécrit `preview` à chaque sortie de déplacement).
     if (v.nature === 'arete') { activerArete(v.arete); return; }
     if (st.mode === 'battle') {
       if (!controlsActive(st)) return; // coop : tour du héros d'un AUTRE joueur — clics inertes

@@ -23,10 +23,10 @@ function priest(): Combatant {
 function castTarget(discreet: boolean): number {
   const p = priest();
   banc.setState({ battle: null, party: [p], journal: [], pendingCast: null, pendingCascade: null, gameTime: 8 * 60 });
-  banc.getState().seedRng(5);
+  banc.getState().ensemencerLeTirage(5);
   banc.getState().incanterLeSort(p.id, 'benediction-de-guerison', p.id);
   if (discreet) banc.getState().jetRegler('cast', 'discret', true);
-  banc.getState().jetRoll('cast');
+  banc.getState().jetLancer('cast');
   return banc.getState().pendingCast!.result!.target;
 }
 

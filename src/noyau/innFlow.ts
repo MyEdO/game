@@ -33,7 +33,7 @@ export function innGatherInfoMinutes(): number {
 
 /** Ouvre le Test de Ragot de l'auberge (activité `recueillir-informations`, contexte `auberge`). Silence
  *  attendu si aucun héros n'a la Compétence (`openRoll` : garde `partyBest` sans candidat, D3). */
-export function gatherInnInfo(get: Get, set: Set): void {
+export function recueillirLesRumeurs(get: Get, set: Set): void {
   const def = activityById(ACTIVITY_ID);
   const test = def?.tests?.[0];
   if (!def || !test?.skill) return;
@@ -47,7 +47,7 @@ export function gatherInnInfo(get: Get, set: Set): void {
 
 export function creerActionsDeLAuberge(get: Get, set: Set) {
   return {
-    gatherInnInfo: () => gatherInnInfo(get, set),
+    recueillirLesRumeurs: () => recueillirLesRumeurs(get, set),
   } satisfies FabriqueDuNoyau;
 }
 
@@ -58,7 +58,7 @@ export const GENRES_D_ETAPE = [INN_GOSSIP_KIND] as const;
 export const TABLES = {
   appliers: {
     [INN_GOSSIP_KIND]: (get, set, step, hero) => {
-      get().advanceTime(innGatherInfoMinutes()); // « tout est horodaté » : quelle que soit l'issue
+      get().avancerLeTemps(innGatherInfoMinutes()); // « tout est horodaté » : quelle que soit l'issue
       if (step.result?.success) {
         const placeId = get().lieu ?? '';
         generateTradeRumour(get, set, placeId, battleRng());

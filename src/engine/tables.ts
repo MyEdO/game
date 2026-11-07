@@ -1,4 +1,4 @@
-import { formatDice, parseDiceRequired, totalDuDe, type DiceSpec } from './dice';
+import { formatDice, parseDiceRequired, totalDuDe, type DiceSpec, type Tirage } from './dice';
 
 /**
  * Lookup PARTAGÉ d'une entrée de table d100 par fourchette `[min, max]` — SOURCE UNIQUE des tirages
@@ -62,22 +62,32 @@ export function fourchette(min: number | null, max: number | null, dieMax = 0): 
   return bas < 0 || haut < 0 ? `${borne(bas)} à ${borne(haut)}` : `${borne(bas)}–${borne(haut)}`;
 }
 
-/** Un dé de tirage : le `DiceSpec` lu sur son document (`deDeTirageDe`), ou l'expression écrite
- *  (`deDeTirageSchema`) d'une table qui n'en porte pas. */
-type DeDeTirage = DiceSpec | string;
-const specDe = (die: DeDeTirage): DiceSpec => (typeof die === 'string' ? parseDiceRequired(die, 'die') : die);
+declare const DE_DE_TABLE: unique symbol;
+/** Le dé d'une table tirée, LU SUR SA TABLE (#1667) : seul `deDeLaTableTiree` le forge, depuis le nœud
+ *  qui le porte. Le type refuse le dé nu (chaîne, `DiceSpec` littéral) ; le lint `murs/marques`
+ *  (`oxlint.config.mjs`) refuse le cast qui NOMME la marque. */
+export type DeDeTable = DiceSpec & { readonly [DE_DE_TABLE]: true };
 
-/** SOURCE UNIQUE du plus grand total d'un dé de tirage : `d10` → 10, `d100` → 100, `2d10` → 20. PUR. */
-export function facesDuDe(die: DeDeTirage): number {
-  const de = specDe(die);
+/** Le nœud qui porte le dé d'une table : la table elle-même (`die`, `deDeTirageSchema`), ou le `Tirage`
+ *  (`dice`, `tirageSchema`) qui départage ses rangées (`stars.json › sub`, `peripeties.json › tirageQuotidien`). */
+export type PorteurDeDe = { readonly die: string; readonly id?: string } | Tirage;
+
+/** LE constructeur du dé d'une table tirée : il le lit sur son nœud — FAIL-FAST sur une expression illisible. PUR. */
+export function deDeLaTableTiree(table: PorteurDeDe): DeDeTable {
+  const de = 'dice' in table ? table.dice : parseDiceRequired(table.die, `${table.id ?? 'table'}.die`);
+  // eslint-disable-next-line murs/marques -- #1667 : l'unique cast de ce module — forger la marque EST le corps de métier de `deDeLaTableTiree` (cf. JSDoc de `DeDeTable`).
+  return de as DeDeTable;
+}
+
+/** SOURCE UNIQUE du plus grand total du dé d'une table : `d10` → 10, `d100` → 100, `2d10` → 20. PUR. */
+export function facesDuDe(de: DeDeTable): number {
   return totalDuDe(de, de.n * de.sides);
 }
 
 /** GRAPHIE UNIQUE d'une bande précédée de son dé (« 1d100 01–35 », « 1d10 9–10 ») : libellé du dé
  *  par `formatDice`, bande par `fourchette` cadrée sur `facesDuDe`. docs/charte-ui.md,
  *  « Bande de table ». PUR. */
-export function bandeAuDe(die: DeDeTirage, min: number | null, max: number | null): string {
-  const de = specDe(die);
+export function bandeAuDe(de: DeDeTable, min: number | null, max: number | null): string {
   return `${formatDice(de)} ${fourchette(min, max, facesDuDe(de))}`;
 }
 

@@ -11,6 +11,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -19,8 +20,8 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -41,11 +42,11 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
    *  l'entité (point d'impact / victime) → la zone ouvre `pendingManeuver{targetId}` (1er clic, sans aperçu). */
   function activate(kind: string, targetId: string) {
     banc.getState().armerLAttaque(kind);
-    banc.getState().battleClickEntity(targetId);
+    cliquerSurLeCombattant(banc.getState, targetId);
   }
 
   it('Souffle : ouvrir n’ouvre PAS de jet (result===null) ; Lancer→Appliquer dépense 2 Av, Action préservée, Dégâts', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90; // touche déterministe vs Esquive
@@ -57,9 +58,9 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     expect(pm!.kind).toBe('souffle');
     expect(pm!.avantageSpent).toBe(2); // coût RAW (fixe)
     expect(pm!.result).toBeNull(); // rien n’est tiré avant Lancer
-    banc.getState().jetRoll('maneuver');
+    banc.getState().jetLancer('maneuver');
     expect(banc.getState().pendingManeuver!.result).toBeTruthy();
-    banc.getState().jetConfirm('maneuver');
+    banc.getState().jetValider('maneuver');
     const st = banc.getState();
     expect(st.pendingManeuver).toBeNull();
     const h2 = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -70,7 +71,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   });
 
   it('Hurlement : reste IMMÉDIAT (pas de pendingManeuver) — jets SUBIS au feed', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'hurlement-fantomatique' }];
     H.characteristics.initiative = 40;
@@ -83,8 +84,8 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0); // tous les Av dépensés
   });
 
-  it('Étreinte : manœuvre-Action → jetConfirm@maneuver pose `acted`', () => {
-    banc.getState().seedRng(2);
+  it('Étreinte : manœuvre-Action → jetValider@maneuver pose `acted`', () => {
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'etreinte-glaciale' }];
     H.characteristics['capacite-de-combat'] = 90;
@@ -93,15 +94,15 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     const pm = banc.getState().pendingManeuver;
     expect(pm!.kind).toBe('etreinte');
     expect(pm!.avantageSpent).toBe(2);
-    banc.getState().jetRoll('maneuver');
-    banc.getState().jetConfirm('maneuver');
+    banc.getState().jetLancer('maneuver');
+    banc.getState().jetValider('maneuver');
     const st = banc.getState();
     expect(st.battle!.acted).toBe(true); // Étreinte = Action (LDB 85 l.112)
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0); // 2 − 2
   });
 
   it('Regard : Avantage variable → réglage maneuver.avantage à 2 ajoute +2 DR à la marge (Pétrifié)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'regard-petrifiant' }];
     H.characteristics['capacite-de-tir'] = 95;
@@ -112,8 +113,8 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     expect(banc.getState().pendingManeuver!.avantageSpent).toBe(1); // défaut variable = 1
     banc.getState().jetRegler('maneuver', 'avantage', 6); // dépense tout → +6 DR
     expect(banc.getState().pendingManeuver!.avantageSpent).toBe(6);
-    banc.getState().jetRoll('maneuver');
-    banc.getState().jetConfirm('maneuver');
+    banc.getState().jetLancer('maneuver');
+    banc.getState().jetValider('maneuver');
     const st = banc.getState();
     expect(st.battle!.acted).toBe(true); // Regard = Action (l.238)
     const e2 = st.battle!.combatants.find((c) => c.id === E.id)!;
@@ -133,7 +134,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   });
 
   it('Résilience : forceSuccess garantit la réussite du jet d’attaquant (touche puis Dégâts)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 1; // raterait sans Résilience
@@ -141,16 +142,16 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     H.resilience = 1;
     const before = E.wounds.current;
     activate('souffle', E.id);
-    banc.getState().jetRoll('maneuver');
+    banc.getState().jetLancer('maneuver');
     expect(banc.getState().pendingManeuver!.result!.success).toBe(false); // jet raté
-    banc.getState().jetForceSuccess('maneuver');
+    banc.getState().jetForcerLaReussite('maneuver');
     expect(banc.getState().pendingManeuver!.result!.success).toBe(true); // forcé réussi
-    banc.getState().jetConfirm('maneuver');
+    banc.getState().jetValider('maneuver');
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.wounds.current).toBeLessThan(before);
   });
 
   it('orientation : une manœuvre CIBLÉE tourne l’attaquant vers sa cible avant l’animation', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90;
@@ -158,13 +159,13 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     E.pos = { x: 10, y: 9 }; // adjacente PLEIN NORD de l’attaquant (10,10)
     banc.setState({ facing: { [H.id]: 'S' } }); // dos tourné à la cible avant la manœuvre
     activate('souffle', E.id);
-    banc.getState().jetRoll('maneuver');
-    banc.getState().jetConfirm('maneuver');
+    banc.getState().jetLancer('maneuver');
+    banc.getState().jetValider('maneuver');
     expect(banc.getState().facing[H.id]).toBe('N');
   });
 
   it('orientation : cible choisie MORTE avant la résolution → l’attaquant vise le centre RECENTRÉ, pas le clic périmé', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90;
@@ -176,9 +177,9 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     E.pos = { x: 10, y: 9 }; // plein NORD : le seul ennemi encore debout à la résolution
     banc.setState({ facing: { [H.id]: 'O' } });
     activate('souffle', D.id);
-    banc.getState().jetRoll('maneuver');
+    banc.getState().jetLancer('maneuver');
     D.dead = true; // elle tombe avant que le souffle ne parte → la zone se recentre sur le plus proche vivant
-    banc.getState().jetConfirm('maneuver');
+    banc.getState().jetValider('maneuver');
     expect(banc.getState().facing[H.id]).toBe('N');
   });
 });

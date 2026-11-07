@@ -1,11 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { materials, matieresDe, findTeinteById, findCouleurById, structureAppearances } from '../../data/index';
-import { DOMAINES_MATIERE, type MaterialEntry } from '../../data/materials.types';
-import { propMaterial } from '../../noyau/monde/volume/matieres';
-import { roofMaterial } from '../../noyau/monde/volume/matieres';
-import { reliefMaterial } from '../../noyau/monde/volume/matieres';
-import { terrains } from '../../data/index';
+import { materials, matieresDe, findTeinteById, findCouleurById, structureAppearances, terrains } from './index';
+import { DOMAINES_MATIERE, type MaterialEntry } from './materials.types';
+import { propMaterial, roofMaterial, reliefMaterial } from '../noyau/monde/volume/matieres';
 
 /**
  * IDENTITÉ D'UNE MATIÈRE DU MONDE (#1686) — l'identité est le couple (DOMAINE, id), et l'id est
@@ -80,8 +77,8 @@ describe('identité des matières du monde — (domaine, id), id unique sur tout
  * CLIQUET DÉCROISSANT des collisions HORS du dataset des matières — dérivé des CINQ domaines de
  * `MaterialRef.domain`, pas des trois que `materials.json` porte. Ces homonymes vivent : aucun
  * lecteur ne s'y trompe aujourd'hui, parce que chacun résout dans le domaine de la FACE qu'il peint
- * (`src/noyau/monde/volume/matieres.ts:130` et `src/gameIso/authoring/floorsSvg.ts:62,73` pour
- * une face de relief, `src/noyau/monde/volume/profondeur.ts:35` pour une face de structure).
+ * (`src/noyau/monde/volume/matieres.ts:130` pour une face de relief,
+ * `src/noyau/monde/volume/profondeur.ts:35` pour une face de structure).
  * Le jour où ces deux catalogues rejoignent le document unique, ils cessent d'être séparables : le
  * stock ci-dessous ne peut donc que DÉCROÎTRE, et une collision de plus est rouge sous son nom.
  */

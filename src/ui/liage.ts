@@ -8,15 +8,11 @@
  * rien. Question à laquelle l'invariant répond (verbatim utilisateur 2026-08-18) : « ne pas avoir le
  * controle sur ce qu'on met en évidence est un soucis ».
  *
- * Module PUR : il lit le registre des proses nommées (`champs-prose-de-scene.ts`) et le schéma de
- * projet (`projetSchema`, pour ses entrées embarquées). Il portera en T1 le tokeniseur
- * partagé rapport/rendu. Ici il ne porte que les DEUX listes fermées que les gardes comparent au
- * code réel — `SITES_PROSE` (qui rend du markdown, et avec quel porteur) et `CHEMINS_ADRESSES`
- * (quels champs sont adressés).
+ * Module PUR : il ne porte que la liste fermée que les gardes comparent au code réel — `SITES_PROSE`
+ * (qui rend du markdown, et avec quel porteur). Les champs adressés : `CHEMINS_ADRESSES`
+ * (`src/noyau/codex/chemins-adresses.ts`).
  */
-import { champsProseDeScene, type CheminProseDeScene } from '../data/schemas/grammaire/champs-prose-de-scene';
-import { adressesDesEntreesEmbarquees } from '../data/schemas/grammaire/document';
-import { projetSchema } from '../data/schemas/defs-scenes/projet';
+import type { CheminProseDeScene } from '../data/schemas/grammaire/champs-prose-de-scene';
 
 /** D'où vient le texte d'un site qui rend du markdown. */
 export type OrigineProse =
@@ -128,7 +124,7 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/CarnetScreen.tsx#Prose.md#2', origine: 'S', porteur: 'projet.narratif.documents[].prose', paquet: ['narratif.documents[].prose'], note: 'document CROISÉ par le stade (`IndiceStade.documentId`, #679)' },
   { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'S', porteur: 'projet.narratif.documents[].prose', paquet: ['narratif.documents[].prose'], note: '`store.document.documentId`, posé par l’effet `document` (`src/noyau/combatEffects.ts`) ; la même surface rend le rapport de naufrage, texte RUNTIME sans `documentId` (`src/noyau/shipwreck.ts`) : nu, et `paquet` ne vaut que pour le document à `documentId`' },
   { cle: 'src/ui/DialogueBox.tsx#Prose.md#1', origine: 'S', paquet: ['dialogues[].nodes[].desc'], note: 'réplique du nœud courant de la scène : `dialogues[].nodes[].desc` est un sélecteur de charge, pas une adresse enracinée dans le document (#2684)' },
-  { cle: 'src/ui/MassBattleView.tsx#Prose.md#1', origine: 'S', paquet: ['massBattle.terrain'], note: '`massBattle.terrain` : `startMassBattle` recopie le texte de la spec dans l’état sans sa provenance (`src/noyau/massBattleFlow.ts`, `terrain: spec.terrain`) — l’effet qui le portait n’a pas d’adresse connaissable à l’écran. Un porteur à l’id faux serait pire que pas de porteur.' },
+  { cle: 'src/ui/MassBattleView.tsx#Prose.md#1', origine: 'S', paquet: ['massBattle.terrain'], note: '`massBattle.terrain` : `amorcerLaBataille` recopie le texte de la spec dans l’état sans sa provenance (`src/noyau/massBattleFlow.ts`, `terrain: spec.terrain`) — l’effet qui le portait n’a pas d’adresse connaissable à l’écran. Un porteur à l’id faux serait pire que pas de porteur.' },
   { cle: 'src/ui/editor/DialogueDetail.tsx#ProseField.lecture#1', origine: 'S', paquet: [], note: 'réplique d’un nœud de dialogue lue tant qu’elle adresse un passage (`descRef`) : `dialogues[].nodes[].desc` est un sélecteur de charge, pas une adresse enracinée dans le document (#2684)' },
   { cle: 'src/ui/editor/EffectList.tsx#ProseField.lecture#1', origine: 'S', paquet: [], note: 'ligne de l’effet `journal` lue tant qu’elle adresse un passage (`descRef`) : `journal.desc` est un sélecteur de charge, pas une adresse enracinée dans le document (#2684)' },
   { cle: 'src/ui/editor/NarratifEditor.tsx#ProseField.lecture#1', origine: 'S', paquet: [], note: 'description du profil d’un preset lue tant qu’elle adresse un passage (`profil.descRef`) : `ProjetEdite` ne porte pas l’id du document édité et `ProseField` ne prend pas de `porteur` (#2684)' },
@@ -157,33 +153,3 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/gallery/registry.tsx#ProseField.lecture#1', origine: 'S', paquet: [], note: 'démo de la réplique adressée, composée comme `DialogueDetail` et amorcée de `psychology.json#terreur` (`desc` + `descRef`) : nue comme le site qu’elle montre' },
 ];
 
-/**
- * Liste des couples `(type, chemin)` comparés aux porteurs émis par le registre du Codex.
- *
- * Les chemins de PROJET sont la projection du registre des proses nommées
- * (`champsProseDeScene`, `src/data/schemas/grammaire/champs-prose-de-scene.ts`), puis celle des clés
- * d'enveloppe de chaque entrée EMBARQUÉE (`adressesDesEntreesEmbarquees`). Leur présence ne dit pas
- * que le rendu porte une identité de liage : le terrain est rendu sans porteur.
- */
-const CHEMINS_D_ENVELOPPE = ['desc', 'maison'] as const;
-
-export const CHEMINS_ADRESSES: readonly { type: string; chemin: string }[] = [
-  // Enveloppe de document : les deux clés de prose de toute entrée (`champsProse` + `maison`).
-  ...CHEMINS_D_ENVELOPPE.map((chemin) => ({ type: '*', chemin })),
-  // Champs de prose EN RANGÉE (émis avec leur porteur par `registry.ts`).
-  { type: 'spells', chemin: 'ritual.type' },
-  { type: 'spells', chemin: 'ritual.components' },
-  { type: 'spells', chemin: 'ritual.conditions' },
-  { type: 'spells', chemin: 'ritual.sacrifices' },
-  { type: 'spells', chemin: 'ritual.consequences' },
-  { type: 'activities', chemin: 'outcomes[].note' },
-  { type: 'details', chemin: 'texts.age.bySpecies.<espèce>' },
-  { type: 'details', chemin: 'texts.taille.bySpecies.<espèce>' },
-  { type: 'details', chemin: 'texts.taille.all' },
-  { type: 'details', chemin: 'texts.nom.bySpecies.<espèce>' },
-  { type: 'characteristics', chemin: 'options[].desc' },
-  { type: 'creatures', chemin: 'harvest.uses' },
-  // Prose des documents de PROJET (scènes) — déclarée par la grammaire, pas ici.
-  ...champsProseDeScene().map((chemin) => ({ type: 'projet', chemin })),
-  ...adressesDesEntreesEmbarquees([projetSchema]).flatMap((a) => CHEMINS_D_ENVELOPPE.map((c) => ({ type: 'projet', chemin: `${a}.${c}` }))),
-];

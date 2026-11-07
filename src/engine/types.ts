@@ -275,7 +275,7 @@ export interface StructureData {
   /** RENDU (pas règle) : `true` = fortification de siège (rempart de PIERRE crénelé + ferré, brèche =
    *  gravats). `false`/absent = cloison ORDINAIRE (mur de maison texturé, sans créneaux). Découplé de
    *  `kind` : une `porte` fortifiée = corps de garde à herse ; un `mur` fortifié = courtine. Route le
-   *  rendu du `WallSeg` porteur (`gameIso/walls.ts::structureSeg`) — TOUJOURS destructible/brèchable. */
+   *  rendu du `WallSeg` porteur (`structureSeg`) — TOUJOURS destructible/brèchable. */
   fortified?: boolean;
   /** Profil à PV (calqué sur `VehicleData.hull.char`) — `BE` = Bonus d'Endurance (l'Endurance dérivée vaut
    *  `BE × 10`, posée par `structureCombatant`) ; `B` = Blessures (PV de la structure). ADE II donne le BE
@@ -706,9 +706,8 @@ export type EffectSourceKind =
   | 'miscastMinor' | 'miscastMajor' | 'miscastWrath';
 
 /** Catégorie Codex de CHAQUE nature de source — table TOTALE, SOURCE UNIQUE des deux consommateurs :
- *  le routage d'affichage d'une pastille (`chipCodex`, `src/gameIso/effectIcons.ts`) ET la descente de
- *  l'ENJEU d'un jet à l'entité qui l'exige (`src/state`, #1117). Elle vit ICI, à côté du vocabulaire
- *  qu'elle indexe, parce qu'`src/state` ne peut pas dépendre de `src/gameIso` : une copie côté state
+ *  le routage d'affichage d'une pastille (`chipCodex`) ET la descente de l'ENJEU d'un jet à l'entité qui
+ *  l'exige (#1117). Elle vit ICI, à côté du vocabulaire qu'elle indexe : une copie chez l'un des deux
  *  aurait fait DEUX vérités pour une seule question. */
 export const CATEGORY_BY_SOURCE_KIND: Record<EffectSourceKind, string> = {
   spell: 'spells', prayer: 'spells', talent: 'talents', trait: 'traits', trapping: 'trappings',
@@ -742,7 +741,7 @@ export interface ModLine {
   famille: ModFamille;
   value: number;
   /** La RÈGLE qui octroie ce modificateur, en ids STABLES (`RULE_REF`, ou une entité : État,
-   *  Domaine, qualité d'arme). L'affichage en fait une chip liée au Codex (`ui/RollLine.tsx`) ;
+   *  Domaine, qualité d'arme). L'affichage en fait une chip liée au Codex ;
    *  le moteur ne la lit jamais. */
   ref?: CodexTarget;
   /** Qui octroie ce modificateur, en STRUCTURE (les soutiens d'un Test de groupe) — jamais du
@@ -1056,7 +1055,7 @@ export interface Trauma {
    *  `cancels: 'all'` annule toute la pénalité (Merveille d'ingénierie : « ignorer complètement la
    *  perte… d'une jambe » ; Nez doré ; Œil de verre…) ; `'movement'` rétablit le déplacement seul
    *  (Fausse jambe : « ignorer 1 Point de Mouvement perdu »). L'Esquive se réapprend SÉPARÉMENT pour 200 PX
-   *  (LDB 73) : `ItemInstance.prosthesisTrained` (posé par `trainProsthesis`, noyau/partyFlow.ts) élève l'effet
+   *  (LDB 73) : `ItemInstance.prosthesisTrained` (posé par `entrainerLaProthese`, noyau/partyFlow.ts) élève l'effet
    *  de CETTE prothèse à `'all'` pour `prosthesisCancels` (trauma.ts), sans changer `cancels` en donnée. */
   prosthesis?: import('zod').z.input<typeof import('../data/schemas/defs/traumas').protheseSchema>[];
   /** Nombre d'éléments perdus pour une séquelle CUMULATIVE par comptage (LDB 18) : doigts (−5/doigt, 4+ →
@@ -1402,7 +1401,7 @@ export interface EntreeBarre {
  *  Record = laissé au pré-remplissage déduit. Objet creux, jamais un tableau à trous : le snapshot de
  *  partie sérialise en JSON, où un trou deviendrait `null` — donc « vidée ».
  *  UN modèle pour les trois zones — le set au poing n'est qu'une dimension de l'adresse de l'arsenal.
- *  Lecture/écriture : `src/state/dispositionConsole.ts` (validateur `poserDansBarre`). */
+ *  Lecture/écriture : le validateur `poserDansBarre` de l'hôte. */
 export interface DispositionConsole {
   /** Arsenal, par `WeaponLoadout.id` : commuter le set affiche SA disposition. */
   arsenal?: Record<string, Record<number, EntreeBarre | null>>;
@@ -1456,6 +1455,9 @@ export interface Combatant {
   /** Coque/navire (`bodyShape:'vehicule'`) : `id`s des Combattants d'ÉQUIPAGE exposés à bord (MDG 14).
    *  Un Critique « Équipage » et les Éclats reviennent à ces marins (Critiques de personnage / Dégâts). */
   crewIds?: string[];
+  /** Coque : les marins de la créature `ref` encore en RÉSERVE à bord, qui montent à l'abordage par vagues de
+   *  `vague` quand tout l'équipage exposé (`crewIds`) est hors de combat (`monterLesVagues`). MDG 15 l.150, l.171 */
+  reserveDAbordage?: { ref: string; restant: number; vague: number };
   /** Pièces d'artillerie MONTÉES sur ce Combattant-coque (source de vérité, MDG 12-13). Au spawn, chaque
    *  poste pose son arme sur le chef de pièce via `mannedPoste`. */
   postes?: ShipPoste[];
@@ -1587,7 +1589,7 @@ export interface Combatant {
   /** STATION à bord ÉPINGLÉE (`id` de `ship-stations.json` : pont/gréement/nid-de-pie/avirons/cale) — où
    *  ce membre se TROUVE quand un Critique de coque frappe une présence (`MDG 13 l.680/l.714/l.730/
    *  l.751`, `MSRC 07 l.78/l.82/l.94`). AUCUN défaut : sans épinglage, ce membre n'est visé par aucune
-   *  présence. Jamais inféré d'un rôle ni d'une Compétence ; le joueur l'épingle (`setShipStation`).
+   *  présence. Jamais inféré d'un rôle ni d'une Compétence ; le joueur l'épingle (`affecterALaStation`).
    *  Jumeau de `shipRole`, orthogonal à lui. */
   shipStation?: string;
   /** File transitoire d'attaques gratuites de créature restant à résoudre ce tour (kinds :
@@ -1634,7 +1636,7 @@ export interface Combatant {
   /** DISPOSITION de la console de combat, PAR ADRESSE de case (spec HUD zone 6 : la barre est
    *  éditable, la déduction ne fait que pré-remplir). Donnée du PORTEUR : elle voyage avec lui
    *  (save, roster, coop) sans table annexe ni clé de partie. Porte unique d'écriture :
-   *  `poserDansBarre` (`src/state/dispositionConsole.ts`). */
+   *  `poserDansBarre`, chez l'hôte. */
   barre?: DispositionConsole;
   /** Sorts/prières connus — `id` de `src/data/spells.json`, résolus par `findSpellById`. */
   spells?: string[];
@@ -1658,7 +1660,7 @@ export interface Combatant {
   /** Pénalités/blocages d'incantation temporisés (contrecoups des tables d'Imparfaites/Colère,
    *  LDB 46/40) : « Langue maladroite −10 », « pas de Test de Prière N Rounds », « DR de Prière
    *  plafonné à 0 une semaine »… `roundsLeft` décrémenté en fin de Round (combat + entretien hors
-   *  combat) ; `untilTime` purgé par l'horloge (advanceTime). Persisté. */
+   *  combat) ; `untilTime` purgé par l'horloge (avancerLeTemps). Persisté. */
   castPenalties?: CastPenalty[];
   /** Accumulateur de Focalisation : DR cumulé pour un sort d'Arcane/Domaine. */
   focus?: { spell: string; dr: number };
@@ -1668,7 +1670,7 @@ export interface Combatant {
   dispel?: { spellId: string; spellCasterId: string; total: number };
   /** Artisanat en cours (« Tout travail inachevé peut être conservé », LDB 23 l.102) — DONNÉE
    *  PERSISTÉE AU HÉROS (survit à la clôture d'un interlude — `InterludeState.perHero` est
-   *  reconstruit à neuf à CHAQUE ouverture, `startInterlude`). `trappingId` = id de l'objet
+   *  reconstruit à neuf à CHAQUE ouverture, `ouvrirLInterlude`). `trappingId` = id de l'objet
    *  fabriqué ; `atouts`/`defauts` = ids de qualité (runtime). */
   craft?: { trappingId: string; tier: import('./money').StatusTier; avail: Availability; atouts: string[]; defauts: string[]; drDone: number; drTarget: number; difficulty: Difficulty };
   /** Rituel en cours de Focalisation (Activité « Accomplir un Rituel », `VDM 02 l.777`) — DONNÉE
@@ -1779,7 +1781,7 @@ export interface Combatant {
    *  `suffocationTick` (`engine/suffocation.ts`) : à reposer chaque Round pour rester immunisé. */
   wateredThisRound?: boolean;
   /** A déjà bénéficié d'un soin de Blessures (Guérison) cette rencontre (LDB 09 l.260).
-   *  Réinitialisé au début de chaque combat (startCombat). N'affecte PAS l'arrêt d'Hémorragie. */
+   *  Réinitialisé au début de chaque combat (lancerLeCombat). N'affecte PAS l'arrêt d'Hémorragie. */
   soinRencontreUtilise?: boolean;
   /** Mort (résultat létal ou mort lente). Hors de combat définitif. */
   dead?: boolean;
@@ -1793,9 +1795,10 @@ export interface Combatant {
   /** MOTIF de sortie de rencontre (#237/#215/#471), pose le langage visuel de fin : `reddition` (seuil
    *  de dommage franchi), `prise` (coque amenée à l'abordage) → lus « rendu » (pavillon amené) ;
    *  `destin` (Meurs un autre jour), `naufrage` (passé par-dessus bord), `firstBlood` (Duel judiciaire,
-   *  premier sang, NADJ 06 l.175-177) → lus « hors-combat ». Absent = sortie générique (hors-combat).
+   *  premier sang, NADJ 06 l.175-177), `repousse` (créature repoussée au seuil de dommage, MDG 15 l.143)
+   *  → lus « hors-combat ». Absent = sortie générique (hors-combat).
    *  Seul champ distinguant `rendu` de `hors-combat`. */
-  exitReason?: 'reddition' | 'prise' | 'destin' | 'naufrage' | 'firstBlood';
+  exitReason?: 'reddition' | 'prise' | 'destin' | 'naufrage' | 'firstBlood' | 'repousse';
   /** Combattant INVOQUÉ par un Sort (champ `SpellSpec.summon` — Nécromancie, Hurlement du loup,
    *  Manifestation de démon…) : `byId` = le lanceur ; `expiresAtRound` = la créature se dissipe au
    *  franchissement de Round une fois ce numéro dépassé ; `despawnIfSummonerDown` = elle s'effondre

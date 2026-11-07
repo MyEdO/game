@@ -189,7 +189,7 @@ export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('
 
 /** Combat de masse / Puissance de Bataille : ouvre l'écran de bataille sur le
  *  `MassBattleSpec` AUTHORÉ (armées, Rounds prévus, situations de Scènes par Round, rencontres des
- *  Scènes de combat, modificateur permanent). Appliqué par le store `startMassBattle` (noyau/massBattleFlow). */
+ *  Scènes de combat, modificateur permanent). Appliqué par le store `amorcerLaBataille` (noyau/massBattleFlow). */
 /** ADE II 8 */
 export const startMassBattleSchema = nommerChamps(z.strictObject({ type: z.literal('startMassBattle'), battle: massBattleSpecSchema }), { type: { label: "type"  }, battle: { label: "bataille" } });
 
@@ -459,7 +459,7 @@ export const castSpellSchema = nommerChamps(z.strictObject({
 /** LDB 05 l.793-841 ; LDB 17 l.81 */
 export const sessionEndSchema = nommerChamps(z.strictObject({ type: z.literal('sessionEnd') }), { type: { label: "type"  } });
 
-/** CRÉATION DE PERSONNAGE (#83) : ouvre l'assistant EXISTANT (`src/ui/creator/`) pour un NOUVEAU héros
+/** CRÉATION DE PERSONNAGE (#83) : ouvre l'assistant de création EXISTANT pour un NOUVEAU héros
  *  (comme le bouton « + » de l'écran Groupe) — un remplaçant scénarisé, un compagnon rejoignant le groupe.
  *  Navigue vers l'écran `creator` (`setEditingHero(null)` + `setScreen('creator')`). */
 export const openCharacterCreatorSchema = nommerChamps(z.strictObject({ type: z.literal('openCharacterCreator') }), { type: { label: "type"  } });
@@ -513,18 +513,6 @@ export const setVesselSchema = nommerChamps(z.strictObject({
   crew: z.array(crewHireSchema).optional(),
 }), { type: { label: "type"  }, vehicleId: { label: "véhicule" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, provisions: { label: "provisions" }, crew: { label: "équipage" } });
 
-/** Fait varier l'HUMEUR DE MANANN du navire de campagne (`MDG 15 l.83-125`) — à poser sur une
- *  bénédiction de prêtre, un sacrifice ou tout événement narratif d'auteur. `factorId` = un facteur
- *  du tableau « EFFET SUR L'HUMEUR DE MANANN » (`sea-events.json`, appliqué UNE SEULE FOIS par
- *  navire — `applyManannFactor`, l.85) ; `delta` = un ajustement chiffré libre hors-tableau (ex.
- *  « Fête de Manann » 2d10) — mutuellement exclusifs, `factorId` prioritaire si les deux sont posés.
- *  Sans navire de campagne → no-op journalisé. */
-export const adjustManannSchema = nommerChamps(z.strictObject({
-  type: z.literal('adjustManann'),
-  factorId: z.string().optional(),
-  delta: nommerChamps(z.strictObject({ flat: z.number(), d10: z.number(), sign: z.union([z.literal(1), z.literal(-1)]) }), { flat: { label: "valeur fixe" }, d10: { label: "dés à dix faces" }, sign: { label: "signe" } }).optional(),
-}), { type: { label: "type"  }, factorId: { label: "facteur" , texte: { regime: "technique"} }, delta: { label: "variation" } });
-
 /** AJUSTE le navire de campagne EXISTANT (#233) — patch des SEULS champs fournis, contrairement à
  *  `setVessel` (remplacement total : effacerait Humeur de Manann/dégâts/Moral accumulés). À poser
  *  sur un événement narratif qui touche PARTIELLEMENT le navire (ex. démasquage d'un saboteur qui
@@ -550,7 +538,7 @@ export const endDialogueSchema = nommerChamps(z.strictObject({ type: z.literal('
  *  (date impériale absolue) > `afterDays` (« J+N », à `atHour:atMinute`, défaut minuit) >
  *  `afterMinutes` (compte à rebours relatif : mèche de bombe) > `atHour`/`atMinute` seuls (prochaine
  *  occurrence de cette heure du jour). Annulé si `cancelFlag` est posé avant l'échéance
- *  (désamorçage). Déclenché au FRANCHISSEMENT dans `advanceTime` (le temps avance par actions
+ *  (désamorçage). Déclenché au FRANCHISSEMENT dans `avancerLeTemps` (le temps avance par actions
  *  discrètes : un événement programmé entre deux pas se déclenche dès le pas qui le dépasse). */
 export const delayedEffectSchema = z.strictObject({
   type: z.literal('delayedEffect'),
@@ -652,7 +640,6 @@ export type Effect =
   | z.infer<typeof openTavernGamesSchema>
   | z.infer<typeof openWorldMapSchema>
   | z.infer<typeof setVesselSchema>
-  | z.infer<typeof adjustManannSchema>
   | z.infer<typeof adjustVesselSchema>
   | z.infer<typeof endDialogueSchema>;
 
@@ -723,7 +710,6 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
     openTavernGamesSchema,
     openWorldMapSchema,
     setVesselSchema,
-    adjustManannSchema,
     adjustVesselSchema,
     endDialogueSchema,
   ]),
@@ -785,7 +771,6 @@ nommerEffet(transitionSchema, "Transition de scène");
 nommerEffet(transitionBackSchema, "Retour à la scène précédente");
 nommerEffet(openWorldMapSchema, "Ouvrir la carte du monde");
 nommerEffet(setVesselSchema, "Doter le groupe d’un navire");
-nommerEffet(adjustManannSchema, "Humeur de Manann");
 nommerEffet(adjustVesselSchema, "Ajuster le navire");
 nommerEffet(startCombatSchema, "Démarrer un combat");
 nommerEffet(startPursuitSchema, "Poursuite terrestre");

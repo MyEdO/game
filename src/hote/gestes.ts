@@ -10,13 +10,14 @@
  * union d'objets), un texte JSON. Aucune règle ne se calcule ici : chaque valeur vient d'un lecteur du noyau ou du type.
  */
 import {
-  DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
-  libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, REGLAGES_DU_REPOS, reposEnVue,
+  DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuChoix, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
+  libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, reposEnVue,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
 import { garanti } from '../lib/garanti';
 import { proprietaireDeLaFenetre, type ProprietaireDeLaFenetre } from './projection';
+import type { Valeur } from './elements';
 import type { Forme, ParametreDeVerbe } from './formes';
 import { parametresDeLAxe } from './geste';
 import { VERBES } from './verbes.generated';
@@ -26,9 +27,12 @@ const PARAMETRE_DESIGNE = 'pid';
 
 /** Les paramètres d'un geste (`VERBES`, ceux de son axe pour un réglage de jet ou un choix de fenêtre :
  *  `parametresDeLAxe`), hors la rangée (`pid`) d'un geste de jet qui n'en vise aucune (`viseUneRangee`) ou joue sa
- *  rangée omise (`toutes`), ou d'un réglage de la fenêtre entière ou joué sur sa rangée omise. */
+ *  rangée omise (`toutes`), ou d'un réglage ou d'un choix de la fenêtre entière ou joué sur sa rangée omise. */
 export function parametresDuGeste(g: GesteDuJeu): readonly ParametreDeVerbe[] {
-  if (g.axe) return parametresDeLAxe(VERBE_DE_CHOIX, g.fenetre, g.axe) ?? [];
+  if (g.axe) {
+    const deLaFenetre = declarationDuChoix(g.fenetre, g.axe)?.portee !== 'rangee';
+    return (parametresDeLAxe(VERBE_DE_CHOIX, g.fenetre, g.axe) ?? []).filter((p) => !(deLaFenetre && p.nom === PARAMETRE_DESIGNE));
+  }
   if (g.reglage) {
     const deLaFenetre = !!g.toutes || declarationDuReglage(g.flux, g.reglage)?.portee !== 'rangee';
     return (parametresDeLAxe(VERBE_DE_REGLAGE, g.flux, g.reglage) ?? []).filter((p) => !(deLaFenetre && p.nom === PARAMETRE_DESIGNE));
@@ -41,16 +45,17 @@ export function parametresDuGeste(g: GesteDuJeu): readonly ParametreDeVerbe[] {
 /** Au-delà de ce nombre de valeurs, un choix se rend en liste plutôt qu'en rangée de boutons. */
 export const CHOIX_EN_BOUTONS = 7;
 
-/** Un argument d'un geste : `fixe`, posé par la fenêtre (`valeur`) ; `choix` parmi `valeurs` ; `nombre`, entre ses
- *  `bornes` quand le réglage en pose ; `texte`, une chaîne ; `objet`, ses `champs` saisis chacun ; `json`, une valeur
- *  JSON. `valeur` est la valeur courante que le réglage dit (`null` sans réglage). */
+/** Un argument d'un geste : `fixe`, posé par la fenêtre (`valeur`) ; `choix` parmi `valeurs`, chacune ce qu'elle vaut,
+ *  son libellé et ce qui la refuse ; `nombre`, entre ses
+ *  `bornes` quand le réglage en pose ; `texte`, une chaîne ; `multiligne`, une chaîne sur plusieurs lignes ; `objet`,
+ *  ses `champs` saisis chacun ; `json`, une valeur JSON. `valeur` est la valeur courante que le réglage dit (`null` sans réglage). */
 export interface ArgumentDuGeste {
   nom: string;
   optionnel: boolean;
-  saisie: 'fixe' | 'choix' | 'nombre' | 'texte' | 'objet' | 'json';
+  saisie: 'fixe' | 'choix' | 'nombre' | 'texte' | 'multiligne' | 'objet' | 'json';
   libelle: string | null;
   valeur: unknown;
-  valeurs: ValeurDuReglage[] | null;
+  valeurs: Omit<Valeur, 'presse'>[] | null;
   bornes: Reglage['bornes'];
   note: string | null;
   champs: ArgumentDuGeste[] | null;
@@ -96,6 +101,8 @@ const duFlux = (flux: string, reglages?: readonly string[]) => (g: GesteDuJeu): 
   g.verbe === VERBE_DE_REGLAGE && g.flux === flux && (!reglages || reglages.includes(g.reglage ?? ''));
 /** Les gestes des verbes `verbes`. */
 const parmi = (verbes: readonly string[]) => (g: GesteDuJeu): boolean => verbes.includes(g.verbe);
+/** Les choix de la fenêtre ouverte (`fenetreChoisir`). */
+const sesChoix = (g: GesteDuJeu): boolean => g.verbe === VERBE_DE_CHOIX;
 
 /** Les réglages des flux de jet dont la lecture `lecture` nomme un réglage : elle règle le flux entier, et un réglage
  *  qu'elle ne nomme pas maintenant ne s'offre pas. */
@@ -114,12 +121,12 @@ const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle?: (g: GesteDuJ
   { lire: fenetreDIncantation, regle: duFlux('cast', ['discret', 'formeConjuree', 'effetCritique', 'ciblesSupplementaires', 'carte', ...Object.values(REGLAGE_DE_L_AXE)]) },
   { lire: fenetreDuSoin },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
-  // Le repos règle ses dormeurs dans son corps (`reposEnVue`) : il ne nomme aucun réglage, la fenêtre ne les redit pas.
-  { lire: reposEnVue, regle: parmi(REGLAGES_DU_REPOS) },
+  // Le repos règle ses dormeurs dans son corps (`reposEnVue`) : il ne nomme aucun réglage, la fenêtre ne redit pas ses choix.
+  { lire: reposEnVue, regle: sesChoix },
 ];
 
 /** Les réglages de la fenêtre `fenetre` : ceux que nomment les fenêtres lues ouvertes, l'étape de séquence courante et
- *  ses choix (`reglagesDesChoix`), et les gestes que ces fenêtres règlent. */
+ *  ses choix qu'aucune d'elles ne règle (`reglagesDesChoix`), et les gestes que ces fenêtres règlent. */
 function reglagesDeLaFenetre(etat: Jeu, fenetre: NonNullable<ReturnType<typeof fenetreDuJeu>>): { reglages: Reglage[]; regle: (g: GesteDuJeu) => boolean } {
   const { etape } = fenetre;
   const parEtape = etape ? VERBES_D_INTERACTION[stepInteraction(etape)].reglage?.(etape) : undefined;
@@ -127,9 +134,10 @@ function reglagesDeLaFenetre(etat: Jeu, fenetre: NonNullable<ReturnType<typeof f
     const lecture = l.lire(etat);
     return lecture === null ? [] : [{ lecture, regle: l.regle ?? fluxNommes(lecture) }];
   });
+  const regle = (g: GesteDuJeu): boolean => ouverts.some((l) => l.regle(g));
   return {
-    reglages: [...ouverts.flatMap((l) => reglagesDesElements(l.lecture)), ...(parEtape ? [parEtape] : []), ...reglagesDesChoix(etat, fenetre.gestes)],
-    regle: (g) => ouverts.some((l) => l.regle(g)),
+    reglages: [...ouverts.flatMap((l) => reglagesDesElements(l.lecture)), ...(parEtape ? [parEtape] : []), ...reglagesDesChoix(etat, fenetre.gestes.filter((g) => !regle(g)))],
+    regle,
   };
 }
 
@@ -181,7 +189,7 @@ function argument(etat: Jeu, verbe: string, p: { nom: string; optionnel: boolean
 }
 
 /** Le rendu d'un geste, d'après les arguments qu'il fait dire, et l'argument de son choix. */
-function renduDe(args: readonly ArgumentDuGeste[]): Pick<GesteDeLaFenetre, 'rendu' | 'aChoisir'> {
+export function renduDe(args: readonly ArgumentDuGeste[]): Pick<GesteDeLaFenetre, 'rendu' | 'aChoisir'> {
   const aDire = args.filter((a) => a.saisie !== 'fixe' && (!a.optionnel || a.saisie === 'choix'));
   if (!aDire.length) return { rendu: 'bouton', aChoisir: null };
   const [seul] = aDire;

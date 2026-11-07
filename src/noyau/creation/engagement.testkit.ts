@@ -1,6 +1,6 @@
 /**
  * ENGAGEMENTS DE BANC (#3370) : un brouillon complet de création, et son engagement sous un id posé, pour les bancs qui
- * composent le groupe par les gestes `partyAddHero` / `partyReplaceHero`, où le noyau bâtit le héros.
+ * composent le groupe par les gestes `recruterLeHeros` / `remplacerLeHeros`, où le noyau bâtit le héros.
  */
 import { newDraft, type CreatorDraft } from './brouillon';
 import { fillDraftDefaults } from './defauts';

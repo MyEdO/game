@@ -41,9 +41,9 @@ describe('flux `test` (LDB 23 l.218 « Observer une cible » — jeton sans `ski
     expect(FLOWS.test.reverseAvailable(banc.getState)).toBe(true);
   });
 
-  it('accepter (`jetReverse@test`) : permute le dé, consomme le jeton, transforme l’échec en réussite', () => {
+  it('accepter (`jetInverser@test`) : permute le dé, consomme le jeton, transforme l’échec en réussite', () => {
     setup();
-    banc.getState().jetReverse('test');
+    banc.getState().jetInverser('test');
     const pt = banc.getState().pendingTest!;
     const expected = evaluateTest(reverseRoll(82), 40);
     expect(pt.roll).toBe(reverseRoll(82));
@@ -55,23 +55,23 @@ describe('flux `test` (LDB 23 l.218 « Observer une cible » — jeton sans `ski
   it('un d100 INVERSÉ qui RATE encore reste un échec (l’issue tient au dé, LDB 12 l.90-94)', () => {
     setup({ roll: 54, success: false, sl: -1 }); // cible 40
     expect(reverseRoll(54)).toBe(45); // 45 > 40 : le dé renversé rate aussi
-    banc.getState().jetReverse('test');
+    banc.getState().jetInverser('test');
     const pt = banc.getState().pendingTest!;
     expect(pt.roll).toBe(45);
     expect(pt.sl).toBe(evaluateTest(45, 40).sl); // DR 0 — un DR nul n'est pas une réussite
     expect(pt.success).toBe(false);
   });
 
-  it('refuser (ne pas appeler `jetReverse@test`) : le jet raté ET le jeton restent intacts', () => {
+  it('refuser (ne pas appeler `jetInverser@test`) : le jet raté ET le jeton restent intacts', () => {
     setup();
     expect(banc.getState().pendingTest!.success).toBe(false);
     expect(banc.getState().party[0].activeEffects).toHaveLength(1); // jeton non dépensé
   });
 
-  it('sans jeton/Talent applicable pour cette Compétence : non disponible, `jetReverse@test` no-op', () => {
+  it('sans jeton/Talent applicable pour cette Compétence : non disponible, `jetInverser@test` no-op', () => {
     setup({ sujet: { skill: { id: 'commerage' } } }, false); // pas de jeton du tout
     expect(FLOWS.test.reverseAvailable(banc.getState)).toBe(false);
-    banc.getState().jetReverse('test');
+    banc.getState().jetInverser('test');
     expect(banc.getState().pendingTest!.roll).toBe(82); // inchangé
   });
 });
@@ -111,16 +111,16 @@ describe('flux `attack` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ic
     expect(FLOWS.attack.reverseAvailable(banc.getState)).toBe(true);
   });
 
-  it('PREUVE échoue sans la couture — sans appeler `jetReverse@attack`, l’attaque reste ratée et le jeton intact (aucun automatisme)', () => {
+  it('PREUVE échoue sans la couture — sans appeler `jetInverser@attack`, l’attaque reste ratée et le jeton intact (aucun automatisme)', () => {
     setup();
     expect(banc.getState().pendingAttack!.result!.hit).toBe(false);
     expect(banc.getState().pendingAttack!.result!.attackerDetail!.success).toBe(false);
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.activeEffects).toHaveLength(1);
   });
 
-  it('accepter (`jetReverse@attack`) : permute le dé attaquant, consomme le jeton, transforme le raté en touche', () => {
+  it('accepter (`jetInverser@attack`) : permute le dé attaquant, consomme le jeton, transforme le raté en touche', () => {
     setup();
-    banc.getState().jetReverse('attack');
+    banc.getState().jetInverser('attack');
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerDetail!.roll).toBe(reverseRoll(82));
     expect(res.attackerDetail!.success).toBe(true);
@@ -128,7 +128,7 @@ describe('flux `attack` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ic
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.activeEffects).toHaveLength(0);
   });
 
-  it('sans jeton (compétence non couverte) : non disponible, `jetReverse@attack` no-op', () => {
+  it('sans jeton (compétence non couverte) : non disponible, `jetInverser@attack` no-op', () => {
     const attacker = HERO({ id: 'A', label: 'Att' }); // aucun jeton
     const target = HERO({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 }, activeEffects: [] });
     banc.setState({
@@ -143,7 +143,7 @@ describe('flux `attack` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ic
       },
     });
     expect(FLOWS.attack.reverseAvailable(banc.getState)).toBe(false);
-    banc.getState().jetReverse('attack');
+    banc.getState().jetInverser('attack');
     expect(banc.getState().pendingAttack!.result!.attackerDetail!.roll).toBe(82);
   });
 });
@@ -175,9 +175,9 @@ describe('flux `defense` (LDB 23 l.209 — Parade = Corps à corps)', () => {
     expect(FLOWS.defense.reverseAvailable(banc.getState)).toBe(true);
   });
 
-  it('accepter (`jetReverse@defense`) : permute le dé du défenseur, consomme le jeton, pare le coup', () => {
+  it('accepter (`jetInverser@defense`) : permute le dé du défenseur, consomme le jeton, pare le coup', () => {
     setup();
-    banc.getState().jetReverse('defense');
+    banc.getState().jetInverser('defense');
     const pd = banc.getState().pendingDefense!;
     expect(pd.def!.roll).toBe(reverseRoll(82));
     expect(pd.def!.success).toBe(true);
@@ -185,7 +185,7 @@ describe('flux `defense` (LDB 23 l.209 — Parade = Corps à corps)', () => {
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'H')!.activeEffects).toHaveLength(0);
   });
 
-  it('refuser (ne pas appeler `jetReverse@defense`) : le jet raté ET le jeton restent intacts', () => {
+  it('refuser (ne pas appeler `jetInverser@defense`) : le jet raté ET le jeton restent intacts', () => {
     setup();
     expect(banc.getState().pendingDefense!.def!.success).toBe(false);
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'H')!.activeEffects).toHaveLength(1);
@@ -199,7 +199,7 @@ describe('flux `defense` (LDB 23 l.209 — Parade = Corps à corps)', () => {
  * « Observer une cible » (LDB 23 l.218, sans `skill` — couvre tout Test) sur le MÊME jet raté.
  */
 describe('Talent + jeton simultanément applicables (LDB 10 Sociable + LDB 23 l.218) : le Talent gratuit prime, le jeton reste intact', () => {
-  it('`jetReverse@test` consomme le Talent (illimité), préserve le jeton', () => {
+  it('`jetInverser@test` consomme le Talent (illimité), préserve le jeton', () => {
     const actor = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', fortune: 0, resilience: 0, talents: [{ talentId: 'sociable', times: 1 }] });
     applyOps(actor, [{ op: 'grantReverseToken' }], { rng: desDuTest, label: 'Observer une cible' }); // sans `skill` = tout Test
     banc.setState({
@@ -210,7 +210,7 @@ describe('Talent + jeton simultanément applicables (LDB 10 Sociable + LDB 23 l.
       } as any,
     });
     expect(FLOWS.test.reverseAvailable(banc.getState)).toBe(true);
-    banc.getState().jetReverse('test');
+    banc.getState().jetInverser('test');
     const pt = banc.getState().pendingTest!;
     const expected = evaluateTest(reverseRoll(82), 40);
     expect(pt.roll).toBe(reverseRoll(82));
@@ -244,7 +244,7 @@ describe('Jeton sur un Test DÉJÀ réussi (LDB 23 l.209/218 — libre) : améli
     expect(FLOWS.test.reverseAvailable(banc.getState)).toBe(true);
   });
 
-  it('accepter (`jetReverse@test`) : permute le dé, améliore le DR, le Test reste réussi', () => {
+  it('accepter (`jetInverser@test`) : permute le dé, améliore le DR, le Test reste réussi', () => {
     const actor = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', fortune: 0, resilience: 0 });
     applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' } }], { rng: desDuTest, label: 'Observer une cible' });
     const roll = 32; const target = 40;
@@ -258,7 +258,7 @@ describe('Jeton sur un Test DÉJÀ réussi (LDB 23 l.209/218 — libre) : améli
         requireSL: 0, target, roll, success: true, sl: before.sl,
       } as any,
     });
-    banc.getState().jetReverse('test');
+    banc.getState().jetInverser('test');
     const pt = banc.getState().pendingTest!;
     expect(pt.roll).toBe(reverseRoll(roll));
     expect(pt.success).toBe(true); // reste réussi

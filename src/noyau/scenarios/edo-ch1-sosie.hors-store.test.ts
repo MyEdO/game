@@ -1,9 +1,7 @@
 /**
  * Le SOSIE de Kastor Lieberung, désigné par le joueur à la fouille du cadavre — EDO 02 l.91 ; #2219
  * c.6068818868. Puis les Documents 3 et 4 remis l'un après l'autre (EDO 02 l.93-95), et l'indice qui les garde
- * relisibles. Chemin RÉEL : l'action `fouiller` du paquet `la-diligence`, jouée sur le banc du noyau. Leur prose
- * nommée par l'identité du sosie (EDO 02 l.112-127, #686), lue dans la modale montée, se joue en
- * `src/state/edo-ch1-sosie-documents.test.tsx`.
+ * relisibles. Chemin RÉEL : l'action `fouiller` du paquet `la-diligence`, jouée sur le banc du noyau.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
@@ -24,10 +22,10 @@ const get = () => banc.getState();
 const heros = (label: string, seed: number) => ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
 
 beforeEach(() => {
-  get().setParty([heros('Vivant', 1), { ...heros('Tombé', 2), dead: true }, heros('Autre', 3)]);
+  get().fixerLeGroupe([heros('Vivant', 1), { ...heros('Tombé', 2), dead: true }, heros('Autre', 3)]);
   expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   get().fenetreValider('ouverture');
-  get().transitionTo('route-principale-virage');
+  get().quitterLaScene('route-principale-virage');
   poserLeGroupe(get, banc.setState, { x: 36, y: 3 });
   get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
 });
@@ -61,7 +59,7 @@ describe('EDO 02 l.91 — la fouille du cadavre ouvre la désignation du sosie',
   });
 
   it('la désignation ne s’annule pas : elle survit au changement de scène', () => {
-    get().transitionTo('altdorf-porte-sud');
+    get().quitterLaScene('altdorf-porte-sud');
     expect(get().pendingDesignationHeros?.etat).toBe(SOSIE);
   });
 
@@ -78,10 +76,10 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie, l’indice 
   const naine = () => ({ ...createHero({ speciesId: 'nains', careerId: 'soldat', label: 'Naine', seed: 9, apparence: { sex: 'F' } }), id: 'h-9' });
 
   beforeEach(() => {
-    get().setParty([heros('Vivant', 1), naine()]);
-    get().loadProject({ scenes: paquet.scenes, entryId: paquet.scenes[0].id, worldMap: paquet.worldMap, narratif: paquet.narratif, projet: { id: paquet.id } });
+    get().fixerLeGroupe([heros('Vivant', 1), naine()]);
+    get().chargerLeProjet({ scenes: paquet.scenes, entryId: paquet.scenes[0].id, worldMap: paquet.worldMap, narratif: paquet.narratif, projet: { id: paquet.id } });
     get().fenetreValider('ouverture');
-    get().transitionTo('route-principale-virage');
+    get().quitterLaScene('route-principale-virage');
     poserLeGroupe(get, banc.setState, { x: 36, y: 3 });
     get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
     get().fenetreChoisir('designationHeros', 'heros', 'h-9');

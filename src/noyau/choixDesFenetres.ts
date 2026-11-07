@@ -9,7 +9,11 @@
  * `jetRegler` (`ReglagesDuJet`) : aucune clé n'a les deux.
  */
 import type { FateSaveOption } from '../engine/fortune';
-import type { IdDActiviteEnMer, IdDeChoixDePaie, IdDeHeros, IdDePlaieDeLOperation, IdDeReponseDeDialogue, IdDuCoupleMonte } from './designations';
+import type {
+  IdDActiviteEnMer, IdDArticle, IdDeChoixDePaie, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDeReponseDeDialogue,
+  IdDObjet, IdDuCoupleMonte,
+} from './designations';
+import type { RestFood, RestLodging } from './restFlow';
 import type { FlowKey } from './flowVerbs';
 import type { CleDeRegistre } from './modalArbiter';
 import type { EffetDuChoix, PorteeDuReglage } from './reglagesDuJet';
@@ -36,10 +40,6 @@ export interface ChoixDesFenetres {
   council: {
     paie: IdDeChoixDePaie;
   };
-  manannPriest: {
-    /** MDG 15 l.246 ; `false` : l'Humeur de Manann. */
-    payer: boolean;
-  };
   shoreLeave: {
     /** MDG 15 l.245 */
     accorder: boolean;
@@ -65,6 +65,40 @@ export interface ChoixDesFenetres {
     investir: number;
     /** MDG 15 l.292 */
     cacher: number;
+  };
+  marchand: {
+    /** Une unité de l'article au panier d'achat. */
+    ajouterAuPanier: IdDArticle;
+    /** Une unité de l'article ôtée du panier d'achat. */
+    oterDuPanier: IdDArticle;
+    /** L'article retiré du panier d'achat. */
+    retirerDuPanier: IdDArticle;
+    viderLePanier: true;
+    /** L'objet au panier de vente. */
+    ajouterALaVente: IdDObjet;
+    /** L'objet retiré du panier de vente. */
+    retirerDeLaVente: IdDObjet;
+    viderLaVente: true;
+    /** LDB 59 l.60 */
+    baisserLePrix: IdDObjet;
+    /** LDB 59 l.60 */
+    releverLePrix: IdDObjet;
+    /** L'achat payé que prend le héros de la rangée. */
+    repartition: IdDeLigneDeRepartition;
+  };
+  loot: {
+    /** La ligne du butin que prend le héros de la rangée. */
+    ligne: IdDeLigneDeButin;
+  };
+  victory: {
+    /** La ligne du butin que prend le héros de la rangée. */
+    ligne: IdDeLigneDeButin;
+  };
+  rest: {
+    /** LDB 66 */
+    couchage: RestLodging;
+    /** LDB 66 */
+    pitance: RestFood;
   };
   finDeSeance: {
     /** LDB 05 l.837 */
@@ -107,8 +141,8 @@ const clot = { effet: 'clot', portee: 'fenetre', qui: 'proprietaire' } as const;
 const clotParLHote = { effet: 'clot', portee: 'fenetre', qui: 'hote' } as const;
 const reprenable = { effet: 'reprenable', portee: 'fenetre', qui: 'proprietaire' } as const;
 const duHeros = { effet: 'reprenable', portee: 'rangee', qui: 'proprietaire' } as const;
-const coche = { effet: 'reprenable', portee: 'fenetre', qui: 'hote' } as const;
-const cocheDuHeros = { effet: 'reprenable', portee: 'rangee', qui: 'hote' } as const;
+const reprenableParLHote = { effet: 'reprenable', portee: 'fenetre', qui: 'hote' } as const;
+const duHerosParLHote = { effet: 'reprenable', portee: 'rangee', qui: 'hote' } as const;
 
 /** La déclaration de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
 export const CHOIX_DES_FENETRES = {
@@ -116,13 +150,22 @@ export const CHOIX_DES_FENETRES = {
   renounce: { renier: clot },
   mountTarget: { cible: clot },
   council: { paie: clotParLHote },
-  manannPriest: { payer: clotParLHote },
   shoreLeave: { accorder: clotParLHote },
   medic: { patient: reprenable, abandon: clot, plaie: reprenable },
   dialogue: { reponse: clot },
   designationHeros: { heros: clot },
   seaActivities: { activite: duHeros, investir: duHeros, cacher: duHeros },
-  finDeSeance: { ambitionCourte: coche, ambitionLongue: coche, ambitionPersonnelleCourte: cocheDuHeros, ambitionPersonnelleLongue: cocheDuHeros, motivation: cocheDuHeros },
+  // Le panier et la vente se composent au siège du propriétaire de l'échoppe (l'hôte), et dans l'état d'un invité (#3059) ;
+  // la répartition des achats payés est à l'hôte.
+  marchand: {
+    ajouterAuPanier: reprenable, oterDuPanier: reprenable, retirerDuPanier: reprenable, viderLePanier: reprenable,
+    ajouterALaVente: reprenable, retirerDeLaVente: reprenable, viderLaVente: reprenable,
+    baisserLePrix: reprenable, releverLePrix: reprenable, repartition: duHerosParLHote,
+  },
+  loot: { ligne: duHerosParLHote },
+  victory: { ligne: duHeros },
+  rest: { couchage: duHeros, pitance: duHeros },
+  finDeSeance: { ambitionCourte: reprenableParLHote, ambitionLongue: reprenableParLHote, ambitionPersonnelleCourte: duHerosParLHote, ambitionPersonnelleLongue: duHerosParLHote, motivation: duHerosParLHote },
 } as const satisfies { [F in FenetreAChoix]: { [A in AxeDe<F>]: DeclarationDuChoix } };
 
 /** La fenêtre `fenetre` (une donnée de frontière) a-t-elle des choix ? */

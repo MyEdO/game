@@ -104,7 +104,7 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
     ({ id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', base: 55, target: 55, result: null });
 
   it('pilote IMMÉDIAT (aucune fenêtre) : l’étape MONO reçoit SA ligne de dé, dérivée', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const h = hero();
     runCascadeImmediate(banc.getState, banc.setState, [step('s1', h.id)]);
     const traces = banc.getState().journal.filter((l) => /^Brawn — Résistance : \d+\/55 → (réussi|échec) \(DR [+-]\d+\)\.$/.test(l));
@@ -112,10 +112,10 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
   });
 
   it('« Tout lancer » (modale ouverte sur le BILAN, chaque rangée montre son dé) : AUCUNE ligne de dé', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const h = hero();
     startCascade(banc.getState, banc.setState, { title: 'Nuit', purpose: 'test', steps: [step('s1', h.id)] });
-    banc.getState().jetRoll('cascade');
+    banc.getState().jetLancer('cascade');
     expect(banc.getState().journal.filter((l) => /Résistance : \d+\/55/.test(l))).toEqual([]);
   });
 
@@ -136,7 +136,7 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
       target: 50, roll: 12, success: true, sl: 3, isDouble: false, base: 50, mods: [], requireSL: 0,
     } as unknown as PendingTest;
     banc.setState({ pendingTest: pt });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     const issues = banc.getState().journal.filter((l) => l.includes('Brawn réussit.'));
     expect(issues, `journal:\n${banc.getState().journal.join('\n')}`).toHaveLength(1);
   });

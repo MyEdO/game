@@ -7,12 +7,14 @@ import { placeCombatant } from './monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 import { draineCascade } from './cascade.testkit';
 import { t } from '../i18n';
+import { planFranchissement } from './fallMove';
+import { REFUS_FRANCHISSEMENT } from './gesteDArete';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * Câblage de l'ESCALADE (LDB 15 l.53-57) à la géométrie z (#82) : `climbAcross` grimpe une arête
+ * Câblage de l'ESCALADE (LDB 15 l.53-57) à la géométrie z (#82) : `franchirLArete` grimpe une arête
  * `WallSeg.climb` — exploration (le groupe) et combat (le héros actif). Échelle = sans Test, coût de
  * Mouvement (½ vitesse) ; paroi = Test d'Escalade (échec → chute) consommant l'Action (LDB 13 l.86-88) ;
  * paroi exigeant Grimpeur, Talent absent = refus.
@@ -31,20 +33,20 @@ function cliffScene(climb: WallClimb): Scene {
 const foot = { x: 2, y: 1 };
 const top = { x: 2, y: 0 };
 
-describe('climbAcross — aucun grimpeur (#1906)', () => {
+describe('franchirLArete, escalade — aucun grimpeur (#1906)', () => {
   it('seul héros à 0 PB, conscient : refus NOMMÉ au journal, le groupe ne bouge pas, rien ne lève', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.wounds.current = 0;
     for (const climb of [{ kind: 'surface', requiresGrimpeur: true }, { kind: 'ladder' }] as WallClimb[]) {
       banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene(climb), journal: [] });
-      expect(() => banc.getState().climbAcross(foot, top)).not.toThrow();
+      expect(() => banc.getState().franchirLArete(foot, top)).not.toThrow();
       expect(banc.getState().journal.slice(-1)[0]).toBe(t('geste.refus.personne'));
       expect(banc.getState().partyPos).toEqual(foot);
     }
   });
 });
 
-describe('climbAcross — exploration', () => {
+describe('franchirLArete, escalade — exploration', () => {
   beforeEach(() => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene({ kind: 'ladder' }) });
@@ -52,27 +54,29 @@ describe('climbAcross — exploration', () => {
 
   it('échelle : le groupe monte au sommet (z-transition, sans Test)', () => {
     banc.setState({ scene: cliffScene({ kind: 'ladder' }), partyPos: foot });
-    banc.getState().climbAcross(foot, top);
+    banc.getState().franchirLArete(foot, top);
     expect(banc.getState().partyPos).toEqual(top);
   });
 
   it('paroi exigeant Grimpeur, Talent absent : le groupe ne bouge pas (refus)', () => {
     banc.setState({ scene: cliffScene({ kind: 'surface', requiresGrimpeur: true }), partyPos: foot });
-    banc.getState().climbAcross(foot, top);
+    banc.getState().franchirLArete(foot, top);
     expect(banc.getState().partyPos).toEqual(foot);
   });
 
-  it('arête non grimpable : refus NOMMÉ, aucun effet', () => {
+  it('arête non grimpable : aucune capacité, le refus du pas est NOMMÉ, aucun effet', () => {
     const s = cliffScene({ kind: 'ladder' });
     s.walls = [{ x: 2, y: 1, side: 'N' }];
     banc.setState({ scene: s, partyPos: foot, journal: [] });
-    banc.getState().climbAcross(foot, top);
+    banc.getState().franchirLArete(foot, top);
     expect(banc.getState().partyPos).toEqual(foot);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('climb.pasGrimpable'));
+    const plan = planFranchissement(s, foot, top);
+    if (plan.kind !== 'none') throw new Error('le sens ascendant doit être un plan `none`');
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t(REFUS_FRANCHISSEMENT[plan.raison]));
   });
 });
 
-describe('climbAcross — combat', () => {
+describe('franchirLArete, escalade — combat', () => {
   beforeEach(() => {
     banc.setState({ battle: null });
   });
@@ -80,8 +84,8 @@ describe('climbAcross — combat', () => {
   function setup(climb: WallClimb, atPos = foot) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const sc = cliffScene(climb);
@@ -96,7 +100,7 @@ describe('climbAcross — combat', () => {
 
   it('échelle : le héros actif monte, le Mouvement est consommé, l’Action NON (pas de Test)', () => {
     const { H } = setup({ kind: 'ladder' });
-    banc.getState().climbAcross(foot, top);
+    banc.getState().franchirLArete(foot, top);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 0 });
     expect(b.movementUsed).toBeGreaterThan(0); // ½ vitesse sur 4 m (LDB 15 l.55)
@@ -105,7 +109,7 @@ describe('climbAcross — combat', () => {
 
   it('paroi : le héros monte ET l’Action est consommée (Test requis, LDB 13 l.86-88)', () => {
     const { H } = setup({ kind: 'surface' });
-    banc.getState().climbAcross(foot, top);
+    banc.getState().franchirLArete(foot, top);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 0 });
     expect(b.acted).toBe(true);
@@ -113,7 +117,7 @@ describe('climbAcross — combat', () => {
 
   it('paroi exigeant Grimpeur, Talent absent : le héros ne bouge pas', () => {
     const { H } = setup({ kind: 'surface', requiresGrimpeur: true });
-    banc.getState().climbAcross(foot, top);
+    banc.getState().franchirLArete(foot, top);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 1 });
     expect(b.acted).toBe(false);
@@ -125,7 +129,7 @@ describe('climbAcross — combat', () => {
     const { H } = setup({ kind: 'surface', requiresGrimpeur: true });
     H.traits = [{ id: 'grimpant' }];
     banc.setState({ battle: { ...banc.getState().battle! } });
-    banc.getState().climbAcross(foot, top);
+    banc.getState().franchirLArete(foot, top);
     const b = banc.getState().battle!;
     const hc = b.combatants.find((c) => c.id === H.id)!;
     expect(hc.pos).toMatchObject({ x: 2, y: 0 });

@@ -3,11 +3,14 @@
  * ses zones offrent et les gestes du pointeur, rend la surcouche du geste en cours, et le monde à l'ouverture, au
  * changement de couche et à chaque écriture finie, jamais pendant le geste. Ouverte du texte que sert le dépôt, la carte
  * s'y enregistre : `editer` rend le texte à écrire, et la tient pour enregistrée à l'issue réussie de l'écriture. Les
- * entités et les entrées de la couche éditée se repèrent en surcouche ; le formulaire de l'inspecteur les nomme.
+ * entités et les entrées de la couche éditée se repèrent en surcouche ; le formulaire de l'inspecteur les nomme. Le
+ * formulaire tiré du schéma écrit la condition d'entrée d'un déclencheur, le Test de traversée et les effets d'une zone d'effet (#3606).
+ * Les écrivains dédiés de la scène y passent aussi : sa musique, son message d'introduction saisi sur plusieurs lignes,
+ * ses ancres de bataille, ses groupes, et l'apparence d'une ouverture de façade (#3606).
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
-import type { AreteDessinee, VolumeDuMonde } from '../../../src/noyau/index';
+import type { AreteDessinee, Scene, VolumeDuMonde } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
@@ -25,7 +28,7 @@ interface Edition {
   depot?: { id: string; texte: string };
   calque: CalqueAffiche | null;
   planche?: { image: string };
-  memoire?: { calques: { version: string; calques: Record<string, Record<string, Record<string, unknown>>> }; oublier: string[] };
+  memoire?: { calques: { version: string; calques: Record<string, Record<string, Record<string, unknown>>> }; oublier: string[]; deplacer: { de: string; vers: string }[] };
 }
 
 /** L'édition d'une réponse réussie, ou l'échec qui dit la réponse. */
@@ -44,6 +47,13 @@ function boutonDe(e: Edition, id: string): Bouton {
 /** Les valeurs du choix d'id `id` des options de l'outil. */
 function valeursDe(e: Edition, id: string): Bouton[] {
   const c = e.vue.zones['editeur.options'].find((el) => el.id === id);
+  if (c?.type !== 'choix' && c?.type !== 'liste') throw new Error(`aucun choix ${id}`);
+  return c.valeurs;
+}
+
+/** Les valeurs du choix d'id `id` de l'inspecteur. */
+function valeursDeLInspecteur(e: Edition, id: string): Bouton[] {
+  const c = e.vue.zones['editeur.inspecteur'].find((el) => el.id === id);
   if (c?.type !== 'choix' && c?.type !== 'liste') throw new Error(`aucun choix ${id}`);
   return c.valeurs;
 }
@@ -135,7 +145,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const materiau = valeursDe(portes, 'structures')[1];
     presser(materiau);
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
-    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4 }]);
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4 }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     presser(boutonDe(posee, 'outil/select'));
@@ -193,6 +203,351 @@ describe('l’éditeur de carte par le pont, les entités', () => {
     expect(renommee.surcouche.reperes.find((r) => r.choisi)).toMatchObject({ sorte: 'entree', nom: 'cour-des-coches', x: 1, y: 1 });
     expect(renommee.vue.zones['editeur.pointee'].map((l) => l.texte)).toContain('Entrée « cour-des-coches » · case 1, 1 · couche 0');
     expect(nom).not.toBe('cour-des-coches');
+  });
+});
+
+describe('l’éditeur de carte par le pont, les zones', () => {
+  /** Une table ouverte sur la campagne, l'outil Zone pris à la sorte `sorte`, et la zone tracée du rectangle (2, 2)–(3, 3). */
+  function tracee(sorte: string) {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const outil = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/zone'));
+    expect(valeursDe(outil, 'zones').map((b) => b.id)).toEqual(['zone/room', 'zone/trigger', 'zone/rest', 'zone/effect']);
+    presser(boutonDe(outil, `zone/${sorte}`));
+    jouer({ geste: 'appui', point: point(2, 2) });
+    expect(jouer({ geste: 'glisse', point: point(3, 3) }).surcouche.cases, 'le rectangle tiré, en surcouche').toHaveLength(4);
+    return { appel, jouer, presser, posee: jouer({ geste: 'relache', point: point(3, 3) }) };
+  }
+
+  it('une pièce tracée au rectangle est sélectionnée, nommée en surcouche ; sa poignée la redimensionne, que l’annulation défait', () => {
+    const { jouer, presser, posee } = tracee('room');
+    const choisie = posee.surcouche.zones.filter((z) => z.choisi);
+    expect(choisie).toEqual([{ sorte: 'piece', nom: 'Pièce', cases: [{ x: 2, y: 2, z: 0 }, { x: 3, y: 2, z: 0 }, { x: 2, y: 3, z: 0 }, { x: 3, y: 3, z: 0 }], choisi: true }]);
+    expect(posee.surcouche.poignee, 'la poignée, au coin sud-est').toEqual({ x: 3, y: 3, z: 0 });
+    expect(posee.vue.zones['editeur.pointee'].map((l) => l.texte)).toContain('Pièce « Pièce » · 2 × 2 cases depuis 2, 2 · couche 0');
+    expect(boutonDe(posee, 'zone/nature/interior').presse).toBe(true);
+
+    presser(boutonDe(posee, 'outil/select'));
+    jouer({ geste: 'appui', point: point(3, 3) });
+    jouer({ geste: 'glisse', point: point(5, 4) });
+    const agrandie = jouer({ geste: 'relache', point: point(5, 4) });
+    expect(agrandie.vue.zones['editeur.pointee'].map((l) => l.texte)).toContain('Pièce « Pièce » · 4 × 3 cases depuis 2, 2 · couche 0');
+    expect(agrandie.surcouche.poignee).toEqual({ x: 5, y: 4, z: 0 });
+    expect(presser(boutonDe(agrandie, 'annuler')).surcouche.zones.find((z) => z.nom === 'Pièce')?.cases, 'annuler défait le redimensionnement').toHaveLength(4);
+  });
+
+  it('une zone d’effet : son nom, sa nature, sa forme, son emprise au pinceau puis toute son aire ; elle se supprime', () => {
+    const { appel, jouer, presser, posee } = tracee('effect');
+    expect(posee.surcouche.zones.find((z) => z.choisi)).toMatchObject({ sorte: 'zone', nom: 'Piège' });
+    const nommee = editionDe(appel('editer', { type: 'nommer', args: ['Fosse'] }));
+    expect(nommee.surcouche.zones.find((z) => z.choisi)?.nom).toBe('Fosse');
+    expect(boutonDe(nommee, 'zone/nature/aucune').presse).toBe(true);
+    expect(presser(boutonDe(nommee, 'zone/nature/exterior')).surcouche.zones.find((z) => z.choisi)?.sorte, 'un piège reste une zone, à ciel ouvert').toBe('zone');
+    expect(boutonDe(nommee, 'zone/pleine').refus).toBe('La zone occupe déjà toute son aire');
+
+    const pinceau = presser(boutonDe(nommee, 'emprise/remove'));
+    expect(boutonDe(pinceau, 'emprise/remove').presse).toBe(true);
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const decoupee = jouer({ geste: 'relache', point: point(2, 2) });
+    expect(decoupee.surcouche.zones.find((z) => z.choisi)?.cases, 'la case retirée de l’emprise').toHaveLength(3);
+    const pleine = presser(boutonDe(decoupee, 'zone/pleine'));
+    expect(pleine.surcouche.zones.find((z) => z.choisi)?.cases).toHaveLength(4);
+
+    const disque = presser(boutonDe(presser(boutonDe(pleine, 'emprise/finir')), 'zone/forme/disc'));
+    expect(boutonDe(disque, 'zone/forme/disc').presse).toBe(true);
+    const supprimee = presser(boutonDe(disque, 'zone/supprimer'));
+    expect(supprimee.surcouche.zones.some((z) => z.choisi)).toBe(false);
+    expect(supprimee.surcouche.poignee).toBeNull();
+  });
+
+  it('un déclencheur joue une fois, ou à chaque entrée ; une zone de repos offre ses lieux, piètre ; chacune change de couche', () => {
+    const declencheur = tracee('trigger');
+    expect(declencheur.posee.surcouche.zones.find((z) => z.choisi)?.sorte).toBe('declencheur');
+    expect(boutonDe(declencheur.posee, 'zone/uneFois').presse, 'un déclencheur naît à usage unique').toBe(true);
+    const rejouable = declencheur.presser(boutonDe(declencheur.posee, 'zone/uneFois'));
+    expect(boutonDe(rejouable, 'zone/uneFois').presse).toBe(false);
+    expect(boutonDe(declencheur.presser(boutonDe(rejouable, 'zone/uneFois')), 'zone/uneFois').presse).toBe(true);
+
+    const repos = tracee('rest');
+    expect(repos.posee.surcouche.zones.find((z) => z.choisi)).toMatchObject({ sorte: 'repos', nom: 'Zone de repos' });
+    const camp = boutonDe(repos.posee, 'zone/lieux/camp').presse;
+    const auberge = repos.presser(boutonDe(repos.posee, 'zone/lieux/auberge'));
+    expect([boutonDe(auberge, 'zone/lieux/auberge').presse, boutonDe(auberge, 'zone/lieux/camp').presse]).toEqual([true, camp]);
+    expect(boutonDe(repos.presser(boutonDe(auberge, 'zone/pietre')), 'zone/pietre').presse).toBe(true);
+
+    const etage = repos.presser(boutonDe(repos.presser(boutonDe(auberge, 'couche/ajouter')), 'couche/0'));
+    repos.presser(boutonDe(etage, 'outil/select'));
+    const reprise = repos.jouer({ geste: 'appui', point: point(2, 2) });
+    expect(reprise.surcouche.zones.find((z) => z.choisi)?.sorte, 'la sélection la reprend sur la carte').toBe('repos');
+    const montee = repos.presser(boutonDe(reprise, 'zone/couche/1'));
+    expect(montee.surcouche.zones.some((z) => z.choisi), 'montée d’une couche, elle quitte la surcouche du rez').toBe(false);
+    expect(montee.surcouche.poignee).toBeNull();
+    expect(etage.vue.couche).toBe(0);
+  });
+
+  it('une zone d’effet change d’identifiant, coupe la ligne de vue, barre le passage ; elle couvre une entrée de fiche, que sa pression retire', () => {
+    const { appel, presser, posee } = tracee('effect');
+    const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
+    const identifiee = editionDe(appel('editer', { type: 'identifier', args: ['fosse-aux-loups'] }));
+    expect(inspecteur(identifiee).find((el) => el.id === 'identifier')).toMatchObject({ type: 'formulaire', champs: [{ valeur: 'fosse-aux-loups' }] });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: [] })).categorie, 'sans identifiant saisi').toBe('validation');
+
+    const opaque = presser(boutonDe(identifiee, 'zone/blocksLoS'));
+    expect(boutonDe(opaque, 'zone/blocksLoS').presse).toBe(true);
+    const barree = presser(boutonDe(opaque, 'zone/barrier'));
+    expect([boutonDe(barree, 'zone/barrier').presse, boutonDe(presser(boutonDe(barree, 'zone/barrier')), 'zone/barrier').presse]).toEqual([true, false]);
+
+    expect(inspecteur(posee).find((el) => el.id === 'zone/couvre')).toMatchObject({ type: 'ligne', texte: 'Aucune entrée de fiche couverte.' });
+    const offerte = (inspecteur(barree).find((el) => el.id === 'zone/couvre/ajouter') as Choix).valeurs[0];
+    const couverte = presser(offerte);
+    const id = offerte.id.slice('zone/couvre/ajouter/'.length);
+    expect(inspecteur(couverte).find((el) => el.id === `zone/couvre/${id}`)).toMatchObject({ type: 'ligne', texte: `Couvre ${offerte.libelle}` });
+    expect((inspecteur(couverte).find((el) => el.id === 'zone/couvre/ajouter') as Choix).valeurs.some((v) => v.id === offerte.id), 'une entrée couverte ne s’offre plus').toBe(false);
+    expect(inspecteur(presser(boutonDe(couverte, `zone/couvre/retirer/${id}`))).find((el) => el.id === 'zone/couvre')?.type, 'retirée, la zone n’en couvre aucune').toBe('ligne');
+  });
+
+  it('un déclencheur se renomme, sous un nom libre seulement, et couvre une entrée de fiche', () => {
+    const { appel, presser, posee } = tracee('trigger');
+    const renomme = editionDe(appel('editer', { type: 'nommer', args: ['arrivee-au-relais'] }));
+    expect(renomme.surcouche.zones.find((z) => z.choisi)).toMatchObject({ sorte: 'declencheur', nom: 'arrivee-au-relais' });
+    const ancien = posee.surcouche.zones.find((z) => z.choisi)!.nom;
+    expect(renomme.surcouche.zones.some((z) => z.nom === ancien), 'le déclencheur ne garde pas son ancien nom').toBe(false);
+    const couvert = presser((renomme.vue.zones['editeur.inspecteur'].find((el) => el.id === 'zone/couvre/ajouter') as Choix).valeurs[0]);
+    expect((couvert.vue.zones['editeur.inspecteur'].find((el) => el.id === 'zone/couvre/retirer') as Choix).valeurs).toHaveLength(1);
+  });
+});
+
+describe('l’éditeur de carte par le pont, l’architecture', () => {
+  it('un corps bâti sur la case pointée se nomme et se type ; un étage au-dessus devient la couche éditée, où se bâtit une partie ; le dernier étage ne se supprime pas', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const outil = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture'));
+    expect(boutonDe(outil, 'batir/corps').refus).toBe('Appuyez d’abord sur une case de cette couche');
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const pointee = jouer({ geste: 'relache', point: point(2, 2) });
+    const bati = presser(boutonDe(pointee, 'batir/corps'));
+    const corps = valeursDe(bati, 'corps').find((b) => b.presse)!;
+    expect(bati.surcouche.zones.find((z) => z.sorte === 'partie')?.cases, 'sa partie de départ, la case pointée').toEqual([{ x: 2, y: 2, z: 0 }]);
+    const nomme = editionDe(appel('editer', { type: 'nommer', args: ['Relais'] }));
+    expect(valeursDe(nomme, 'corps').find((b) => b.presse)?.libelle).toBe('Relais');
+    const style = (nomme.vue.zones['editeur.inspecteur'].find((el) => el.id === 'corps/style') as Choix).valeurs[1];
+    expect(boutonDe(presser(style), style.id).presse).toBe(true);
+    expect(boutonDe(nomme, 'architecture/supprimer').refus).toBeNull();
+
+    const etage = presser(boutonDe(nomme, 'batir/etage'));
+    expect(etage.vue.couche).toBe(1);
+    expect(etage.vue.zones['editeur.inspecteur'].find((el) => el.id === 'etage')).toMatchObject({ type: 'ligne' });
+    expect(boutonDe(etage, 'batir/partie').refus, 'la case pointée est au rez').toBe('Appuyez d’abord sur une case de cette couche');
+    jouer({ geste: 'appui', point: point(4, 4) });
+    const partie = presser(boutonDe(jouer({ geste: 'relache', point: point(4, 4) }), 'batir/partie'));
+    expect(partie.surcouche.zones.find((z) => z.choisi)).toMatchObject({ sorte: 'partie', cases: [{ x: 4, y: 4, z: 1 }] });
+    expect(partie.surcouche.poignee).toEqual({ x: 4, y: 4, z: 1 });
+
+    const rez = presser(boutonDe(presser(boutonDe(partie, 'couche/0')), corps.id));
+    expect(rez.vue.zones['editeur.inspecteur'].find((el) => el.id === 'corps/etages')).toMatchObject({ texte: '2 étages' });
+  });
+
+  it('une façade posée sur l’arête appuyée : son apparence, une ouverture à sa sorte, à sa position, retirée', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture'));
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const bati = presser(boutonDe(jouer({ geste: 'relache', point: point(2, 2) }), 'batir/corps'));
+    presser(boutonDe(bati, 'architecture/facade'));
+    const posee = jouer({ geste: 'appui', point: { case: { x: 2, y: 2 }, f: { x: 2, y: 1.55 } } });
+    const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
+    expect(boutonDe(posee, 'architecture/select').presse, 'la façade posée, le clic revient à la sélection').toBe(true);
+    expect(inspecteur(posee).find((el) => el.id === 'facade/apparence')).toMatchObject({ type: 'liste' });
+    const apparence = (inspecteur(posee).find((el) => el.id === 'facade/apparence') as Choix).valeurs.find((v) => !v.presse)!;
+    expect(boutonDe(presser(apparence), apparence.id).presse).toBe(true);
+
+    const ouverte = presser(boutonDe(posee, 'baie/ajouter'));
+    const sorte = inspecteur(ouverte).find((el) => el.id.startsWith('baie/') && el.id.endsWith('/sorte')) as Choix;
+    const id = sorte.id.slice(0, -'/sorte'.length);
+    expect(inspecteur(ouverte).find((el) => el.id === `${id}/position`)).toMatchObject({ texte: 'Position : 50 % de l’arête (défaut)' });
+    const decalee = presser(boutonDe(ouverte, `${id}/position/plus`));
+    expect(inspecteur(decalee).find((el) => el.id === `${id}/position`)).toMatchObject({ texte: 'Position : 55 % de l’arête' });
+    const autre = sorte.valeurs.find((v) => !v.presse)!;
+    expect(boutonDe(presser(boutonDe(decalee, autre.id)), autre.id).presse).toBe(true);
+    const retiree = presser(boutonDe(decalee, `${id}/retirer`));
+    expect(inspecteur(retiree).some((el) => el.id.startsWith(`${id}/`))).toBe(false);
+  });
+
+  it('la toiture d’un corps : son profil, sa pente réglée puis suivie, sa couverture ; une exclusion tirée sur la couche, puis retirée', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture'));
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const bati = presser(boutonDe(jouer({ geste: 'relache', point: point(2, 2) }), 'batir/corps'));
+    expect(boutonDe(bati, 'toiture/profil/suit').presse, 'sans intention, le profil suit la portée').toBe(true);
+    expect(boutonDe(presser(boutonDe(bati, 'toiture/profil/shed')), 'toiture/egout/aucun').presse, 'un appentis déclare son égout').toBe(true);
+
+    const pente = (e: Edition) => inspecteur(e).find((el) => el.id === 'toiture/pente');
+    const avant = pente(bati);
+    const relevee = presser(boutonDe(bati, 'toiture/pente/plus'));
+    expect(pente(relevee)).not.toEqual(avant);
+    expect(boutonDe(relevee, 'toiture/pente/defaut').presse).toBe(false);
+    expect(pente(presser(boutonDe(relevee, 'toiture/pente/defaut')))).toEqual(avant);
+    const couverture = (inspecteur(bati).find((el) => el.id === 'toiture/couverture') as Choix).valeurs.find((v) => !v.presse && v.id !== 'toiture/couverture/suit')!;
+    const couverte = presser(couverture);
+    expect(boutonDe(couverte, couverture.id).presse).toBe(true);
+    expect(boutonDe(couverte, 'toiture/couverture/suit').presse).toBe(false);
+
+    presser(boutonDe(couverte, 'architecture/exclusion'));
+    jouer({ geste: 'appui', point: point(3, 3) });
+    jouer({ geste: 'glisse', point: point(4, 5) });
+    const exclue = jouer({ geste: 'relache', point: point(4, 5) });
+    expect(boutonDe(exclue, 'architecture/select').presse, 'l’exclusion tirée, le clic revient à la sélection').toBe(true);
+    expect(inspecteur(exclue).find((el) => el.id === 'toiture/exclusion/0')).toMatchObject({ texte: 'Exclusion de toiture : 2 × 3 cases depuis 3, 3 · couche 0' });
+    expect(inspecteur(presser(boutonDe(exclue, 'toiture/exclusion/0/retirer'))).some((el) => el.id.startsWith('toiture/exclusion/'))).toBe(false);
+  });
+
+  it('une masse bâtie sur la case pointée : ses niveaux bornés à un, son profil, son faîtage, sa pente', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture'));
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const bati = presser(boutonDe(jouer({ geste: 'relache', point: point(2, 2) }), 'batir/corps'));
+    const masse = presser(boutonDe(bati, 'batir/masse'));
+    expect(masse.surcouche.zones.find((z) => z.choisi)).toMatchObject({ sorte: 'masse', cases: [{ x: 2, y: 2, z: 0 }] });
+    expect(boutonDe(masse, 'masse/couche/0').presse).toBe(true);
+    expect(inspecteur(masse).find((el) => el.id === 'masse/niveaux')).toMatchObject({ texte: 'Niveaux : 1' });
+    expect(boutonDe(masse, 'masse/niveaux/moins').refus).toBe('Déjà au minimum');
+    const haute = presser(boutonDe(masse, 'masse/niveaux/plus'));
+    expect(inspecteur(haute).find((el) => el.id === 'masse/niveaux')).toMatchObject({ texte: 'Niveaux : 2' });
+    expect(boutonDe(presser(boutonDe(haute, 'masse/faitage/y')), 'masse/faitage/y').presse).toBe(true);
+    const appentis = presser(boutonDe(haute, 'masse/profil/shed'));
+    expect(boutonDe(appentis, 'masse/egout/aucun').presse).toBe(true);
+    expect(boutonDe(presser(boutonDe(appentis, 'masse/egout/S')), 'masse/egout/S').presse).toBe(true);
+    const pente = inspecteur(appentis).find((el) => el.id === 'masse/pente');
+    expect(inspecteur(presser(boutonDe(appentis, 'masse/pente/moins'))).find((el) => el.id === 'masse/pente')).not.toEqual(pente);
+  });
+
+  it('sans corps, la façade et les ouvrages d’un corps se refusent', () => {
+    const { appel } = table();
+    const outil = editionDe(appel('editer', boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture').jeu));
+    expect(boutonDe(outil, 'architecture/facade').refus).toBe('Aucun corps dans la scène');
+    expect(['etage', 'partie', 'masse'].map((o) => boutonDe(outil, `batir/${o}`).refus)).toEqual(Array(3).fill('Aucun corps dans la scène'));
+  });
+});
+
+describe('l’éditeur de carte par le pont, la scène', () => {
+  it('sans sélection, l’inspecteur règle la scène : son nom, sa description, sa grille, son nord, sa météo, son relief, sa toiture, son repos, ses drapeaux', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
+    const champ = (e: Edition, verbe: string) => (inspecteur(e).find((el) => el.type === 'formulaire' && el.verbe === verbe) as Formulaire).champs[0];
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const texte = (e: Edition, id: string) => (inspecteur(e).find((el) => el.id === id) as Ligne).texte;
+    const nombre = (e: Edition, id: string) => Number(/-?\d+/.exec(texte(e, id))![0]);
+    expect(champ(ouverte, 'nommer')).toMatchObject({ valeur: ouverte.vue.zones['editeur.titre'][0].texte });
+    expect(editionDe(appel('editer', { type: 'nommer', args: ['Relais de poste'] })).vue.zones['editeur.titre'][0]).toMatchObject({ texte: 'Relais de poste' });
+    expect(champ(editionDe(appel('editer', { type: 'decrire', args: ['Une note'] })), 'decrire')).toMatchObject({ valeur: 'Une note' });
+    expect(champ(editionDe(appel('editer', { type: 'decrire', args: [] })), 'decrire')).toMatchObject({ valeur: '' });
+
+    const large = presser(boutonDe(ouverte, 'scene/largeur/plus'));
+    expect(nombre(large, 'scene/largeur')).toBe(nombre(ouverte, 'scene/largeur') + 1);
+    expect(texte(large, 'scene/nord'), 'aucune scène livrée ne déclare son nord').toBe('Nord : vers le haut du plan');
+    const tourne = presser(boutonDe(large, 'scene/nord/plus'));
+    expect(texte(tourne, 'scene/nord')).toBe('Nord : 15° dans le sens horaire');
+    expect(boutonDe(presser(boutonDe(tourne, 'scene/nord/defaut')), 'scene/nord/defaut').presse).toBe(true);
+
+    const meteo = valeursDeLInspecteur(tourne, 'scene/meteo').find((b) => !b.presse && b.id !== 'scene/meteo/aucune')!;
+    expect(boutonDe(presser(meteo), meteo.id).presse).toBe(true);
+    const falaise = valeursDeLInspecteur(tourne, 'scene/relief/cliff').find((b) => !b.presse)!;
+    expect(boutonDe(presser(falaise), falaise.id).presse).toBe(true);
+    const pente = presser(boutonDe(tourne, 'scene/toiture/pente/plus'));
+    expect(nombre(pente, 'scene/toiture/pente')).toBe(nombre(tourne, 'scene/toiture/pente') + 5);
+    const camp = boutonDe(pente, 'scene/repos/camp');
+    expect(boutonDe(presser(camp), 'scene/repos/camp').presse).toBe(!camp.presse);
+
+    const drapeau = editionDe(appel('editer', { type: 'drapeau', args: ['pont-leve'] }));
+    expect(boutonDe(drapeau, 'scene/drapeau/pont-leve').presse).toBe(true);
+    expect(boutonDe(presser(boutonDe(drapeau, 'scene/drapeau/pont-leve')), 'scene/drapeau/pont-leve').presse).toBe(false);
+    const retire = presser(boutonDe(drapeau, 'scene/drapeau/retirer/pont-leve'));
+    expect(() => boutonDe(retire, 'scene/drapeau/pont-leve')).toThrow();
+    expect(erreurDe(appel('editer', { type: 'drapeau', args: [' '] })).categorie).toBe('validation');
+  });
+
+  it('la validation relève le défaut que l’édition pose ; « Y aller » le suit en surcouche, à l’outil de sélection ; corrigé, il s’efface', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const defaut = (e: Edition) => e.surcouche.zones.filter((z) => z.sorte === 'defaut');
+    const releve = (e: Edition, rang: number) => (e.vue.zones['editeur.validation'][rang] as Ligne).texte;
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    expect(releve(ouverte, 0)).toMatch(/^Validation : aucun défaut détecté/);
+
+    const porte = { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } };
+    presser(boutonDe(presser(boutonDe(ouverte, 'outil/wall')), 'arete/door'));
+    jouer({ geste: 'appui', point: porte });
+    const isolee = jouer({ geste: 'relache', point: porte });
+    expect(isolee.vue.zones['editeur.validation'].map((el) => el.id)).toEqual(['validation', 'validation/0', 'validation/0/aller']);
+    expect(releve(isolee, 1)).toMatch(/^Avertissement : Porte posée sur une arête isolée — la porte N de \(1,1\)/);
+    expect(defaut(isolee), 'aucun défaut suivi avant « Y aller »').toEqual([]);
+
+    const suivie = presser(boutonDe(isolee, 'validation/0/aller'));
+    expect(boutonDe(suivie, 'outil/select').presse).toBe(true);
+    expect(defaut(suivie)).toEqual([{ sorte: 'defaut', nom: 'Défaut', cases: [{ x: 1, y: 1, z: 0 }], choisi: true }]);
+
+    const corrigee = presser(boutonDe(suivie, 'annuler'));
+    expect(releve(corrigee, 0)).toMatch(/^Validation : aucun défaut détecté/);
+    expect(defaut(corrigee), 'le défaut corrigé ne se suit plus').toEqual([]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, les scènes du projet', () => {
+  it('chaque scène du projet s’édite à sa pression, ses changements gardés ; une scène s’ajoute vide, se duplique, se retire, se renomme', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const scenes = (e: Edition) => valeursDe({ ...e, vue: { ...e.vue, zones: { ...e.vue.zones, 'editeur.options': e.vue.zones['editeur.scenes'] } } }, 'scenes');
+    const titre = (e: Edition) => e.vue.zones['editeur.titre'][0].texte;
+    const derniere = (e: Edition) => scenes(e)[scenes(e).length - 1];
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const [premiere, seconde] = scenes(ouverte);
+    expect(scenes(ouverte).length, 'les scènes de la campagne, la première éditée').toBeGreaterThan(1);
+    expect([premiere.presse, seconde.presse]).toEqual([true, false]);
+
+    editionDe(appel('editer', { type: 'nommer', args: ['Relais de poste'] }));
+    const ailleurs = presser(seconde);
+    expect([titre(ailleurs), scenes(ailleurs)[0].libelle, scenes(ailleurs)[1].presse]).toEqual([seconde.libelle, 'Relais de poste', true]);
+    expect(boutonDe(ailleurs, 'annuler').refus, 'l’historique est celui de la scène éditée').toBe('Rien à annuler');
+    expect(titre(presser(scenes(ailleurs)[0])), 'revenue, la scène garde son nom').toBe('Relais de poste');
+
+    const neuve = presser(boutonDe(ailleurs, 'scenes/ajouter'));
+    expect([titre(neuve), scenes(neuve).length, derniere(neuve).id]).toEqual(['Nouvelle scène', scenes(ouverte).length + 1, 'scenes/scene-0']);
+    const copie = presser(boutonDe(neuve, 'scenes/dupliquer'));
+    expect([titre(copie), derniere(copie).id]).toEqual(['Nouvelle scène (copie)', 'scenes/scene-1']);
+    const retiree = presser(boutonDe(copie, 'scenes/retirer'));
+    expect([titre(retiree), scenes(retiree).length], 'la copie retirée, sa précédente éditée').toEqual(['Nouvelle scène', scenes(neuve).length]);
+
+    const renommee = editionDe(appel('editer', { type: 'identifier', args: ['cour'] }));
+    expect(derniere(renommee)).toMatchObject({ id: 'scenes/cour', presse: true });
+    expect(derniere(editionDe(appel('editer', { type: 'identifier', args: [premiere.id.slice('scenes/'.length)] }))).id, 'un identifiant déjà pris se refuse').toBe('scenes/cour');
+  });
+});
+
+describe('l’éditeur de carte par le pont, l’essai', () => {
+  it('« Tester la scène » met la scène éditée à l’essai : demarrer { essai } la joue, à jour, par le groupe vitrine', () => {
+    const { appel } = table();
+    expect(erreurDe(appel('demarrer', { essai: true })).message).toBe('demarrer : essai, aucune scène mise à l’essai par editer');
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const seconde = (ouverte.vue.zones['editeur.scenes'][0] as Choix).valeurs[1];
+    const ailleurs = editionDe(appel('editer', seconde.jeu));
+    editionDe(appel('editer', { type: 'nommer', args: ['Relais de poste'] }));
+    const testee = appel('editer', boutonDe(ailleurs, 'tester').jeu) as Reponse & { essai?: boolean };
+    expect(testee.essai).toBe(true);
+    const partie = appel('demarrer', { essai: true }) as Reponse & { vue?: { projection: { scene: { id: string } | null } } };
+    expect(partie.ok).toBe(true);
+    expect(partie.vue!.projection.scene, 'la partie s’ouvre sur la scène éditée, à jour').toEqual({ id: seconde.id.slice('scenes/'.length), nom: 'Relais de poste' });
+    expect(erreurDe(appel('demarrer', { essai: true })).message).toMatch(/^demarrer : une partie par page/);
   });
 });
 
@@ -283,7 +638,7 @@ describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {
     expect(inspecte('arete/suspendu')).toMatchObject({ texte: 'Chute si l’on se suspend d’abord : 0.5 m' });
 
     e = presser(boutonDe(e, 'arete/supprimer'));
-    expect(e.vue.zones['editeur.inspecteur'], 'l’arête supprimée, plus d’inspecteur').toEqual([]);
+    expect(e.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.startsWith('scene/') && !['nommer', 'identifier', 'decrire', 'introduire', 'drapeau'].includes(id)), 'l’arête supprimée, l’inspecteur de la scène').toEqual([]);
   });
 });
 
@@ -354,7 +709,18 @@ describe('l’éditeur de carte par le pont, le calque de référence', () => {
     expect(hg, 'le coin haut-gauche de l’image au coin de la case 0, 0').toEqual({ x: -0.5, y: -0.5 });
     expect([hd.y, bd.x - hd.x, bg.x, (hd.x - hg.x) / (bg.y - hg.y)], 'l’image droite, sans déformation').toEqual([-0.5, 0, -0.5, 2]);
     const sceneId = demande.planche!.image.split('/')[2];
-    expect(charge.memoire).toEqual({ calques: { version: expect.any(String), calques: { [sceneId]: { 0: expect.objectContaining({ largeur: 200, hauteur: 100 }) } } }, oublier: [] });
+    expect(charge.memoire).toEqual({ calques: { version: expect.any(String), calques: { [sceneId]: { 0: expect.objectContaining({ largeur: 200, hauteur: 100 }) } } }, oublier: [], deplacer: [] });
+  });
+
+  it('la scène renommée garde son calque : sa planche se déplace sous son nouvel identifiant ; la scène retirée l’oublie', () => {
+    const { appel, ouverte, jouer, presser } = ouvrirLaCarte();
+    presser(boutonDe(ouverte, 'calque/charger'));
+    const charge = jouer({ geste: 'chargement', image: { largeur: 200, hauteur: 100 } });
+    const renommee = editionDe(appel('editer', { type: 'identifier', args: ['cour'] }));
+    expect(renommee.calque?.image).toBe(`calques/${CAMPAGNE}/cour/0`);
+    expect(renommee.memoire).toEqual({ calques: { version: expect.any(String), calques: { cour: { 0: expect.objectContaining({ largeur: 200 }) } } }, oublier: [], deplacer: [{ de: charge.calque!.image, vers: `calques/${CAMPAGNE}/cour/0` }] });
+    const retiree = presser(boutonDe(renommee, 'scenes/retirer'));
+    expect(retiree.memoire).toEqual({ calques: { version: expect.any(String), calques: {} }, oublier: [`calques/${CAMPAGNE}/cour/0`], deplacer: [] });
   });
 
   it('caler par deux points : un point de l’image, son nœud, un second point, son nœud ; la planche se pose sur la grille', () => {
@@ -412,7 +778,7 @@ describe('l’éditeur de carte par le pont, le calque de référence', () => {
     for (const autre of [JSON.stringify({ ...charge.memoire!.calques, version: 'ancien' }), '{']) {
       const ecartee = ouvrirLaCarte(autre).ouverte;
       expect(ecartee.calque).toBeNull();
-      expect(ecartee.memoire, 'les calques retirés, à garder vides').toEqual({ calques: { version: charge.memoire!.calques.version, calques: {} }, oublier: [] });
+      expect(ecartee.memoire, 'les calques retirés, à garder vides').toEqual({ calques: { version: charge.memoire!.calques.version, calques: {} }, oublier: [], deplacer: [] });
       expect(lignes(ecartee)['calque/ecartes']).toBe('Calques d’un autre format : ils ont été retirés.');
     }
   });
@@ -426,7 +792,11 @@ describe('l’éditeur de carte par le pont, au dépôt', () => {
   it('ouverte du jeu, elle ne s’enregistre pas ; ouverte du dépôt, rien à enregistrer tant qu’elle n’a pas changé', () => {
     const { appel } = table();
     expect(boutonDe(editionDe(appel('editer', { ouvrir: servi.id })), 'enregistrer').refus).toBe('Ouverte du jeu, hors du dépôt : elle ne s’enregistre pas');
-    expect(boutonDe(editionDe(appel('editer', ouvrir())), 'enregistrer').refus).toBe('Rien à enregistrer');
+    const ouverte = editionDe(appel('editer', ouvrir()));
+    expect(boutonDe(ouverte, 'enregistrer').refus).toBe('Rien à enregistrer');
+    const scenes = ouverte.vue.zones['editeur.scenes'][0] as Choix;
+    if (scenes.valeurs.length > 1) expect(boutonDe(editionDe(appel('editer', scenes.valeurs[1].jeu)), 'enregistrer').refus, 'une autre scène éditée, rien de changé').toBe('Rien à enregistrer');
+    expect(boutonDe(editionDe(appel('editer', { edition: { geste: 'scenes', quoi: 'ajouter' } })), 'enregistrer').refus, 'une scène ajoutée est à enregistrer').toBeNull();
   });
 
   it('un projet servi illisible, d’un autre id ou refusé par la porte se refuse', () => {
@@ -467,5 +837,268 @@ describe('l’éditeur de carte par le pont, au dépôt', () => {
     rmSync(depot, { recursive: true, force: true });
     const relue = editionDe(rouvrir('editer', { edition: { geste: 'appui', point: point(1, 1) } }));
     expect(relue.vue.zones['editeur.pointee'][0].texte, 'rouverte, la case porte le terrain peint').toContain(` · ${autre.libelle} · `);
+  });
+});
+
+describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout', () => {
+  const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
+  const servi = lireProjetLivre(manuscrit) as { id: string; scenes: { id: string }[] };
+
+  it('une scène neuve reçoit les ouvrages de la Diligence ; enregistrée, rouverte du dépôt, sa validation ne dit aucune erreur', { timeout: 240_000 }, () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    const pres = (x: number, y: number, fx = x, fy = y) => ({ case: { x, y }, f: { x: fx, y: fy } });
+    const cliquer = (x: number, y: number, fx = x, fy = y) => { jouer({ geste: 'appui', point: pres(x, y, fx, fy) }); jouer({ geste: 'relache', point: pres(x, y, fx, fy) }); };
+    const tirer = (cases: [number, number][]) => {
+      jouer({ geste: 'appui', point: point(...cases[0]) });
+      for (const c of cases.slice(1)) jouer({ geste: 'glisse', point: point(...c) });
+      jouer({ geste: 'relache', point: point(...cases[cases.length - 1]) });
+    };
+    const pointee = () => e.vue.zones['editeur.pointee'].map((l) => (l as Ligne).texte);
+
+    const [ox, oy] = [3, 3];
+    const ici = (dx: number, dy: number) => ({ x: ox + dx, y: oy + dy });
+    const cliquerLaCase = (dx: number, dy: number) => cliquer(ox + dx, oy + dy);
+    /** Un clic sur la case (`dx`, `dy`), tout près de son côté qui la sépare de sa voisine (`vx`, `vy`). */
+    const cliquerLeCote = ([dx, dy]: [number, number], [vx, vy]: [number, number]) => cliquer(ox + dx, oy + dy, ox + dx + 0.45 * (vx - dx), oy + dy + 0.45 * (vy - dy));
+    const tirerPar = (chemin: [number, number][]) => tirer(chemin.map(([dx, dy]) => [ox + dx, oy + dy]));
+    const palier: [number, number][] = [[8, 0], [8, 1], [8, 2]];
+
+    presser('scenes/ajouter');
+    presser('couche/ajouter');
+    presser('outil/tile'); presser('pinceau/1'); presser('terrain/dalle');
+    for (const c of palier) cliquerLaCase(...c);
+    presser('outil/height'); presser('pinceau/1'); presser('hauteur/haute');
+    for (const c of palier) cliquerLaCase(...c);
+    presser('couche/0');
+
+    presser('outil/wall'); presser('structure/mur-a-ossature-en-bois');
+    for (const d of [0, 1, 2]) {
+      cliquerLeCote([d, 0], [d, -1]);
+      cliquerLeCote([d, 2], [d, 3]);
+      cliquerLeCote([0, d], [-1, d]);
+      cliquerLeCote([2, d], [3, d]);
+    }
+    presser('arete/door'); cliquerLeCote([1, 0], [1, -1]);
+    presser('outil/select'); cliquerLeCote([2, 2], [2, 3]); presser('arete/fenetre');
+    expect(pointee()[1]).toBe(`Arête ${ox + 2}, ${oy + 3} N · couche 0 · fenêtre · Mur à ossature en bois`);
+
+    presser('outil/zone'); presser('zone/room'); tirerPar([[0, 0], [1, 1], [2, 2]]);
+    presser('outil/architecture'); cliquerLaCase(0, 0); presser('batir/corps'); presser('batir/etage');
+    expect(e.vue.couche, 'l’étage bâti s’édite').toBe(1);
+    presser('couche/0'); presser('architecture/facade'); cliquerLeCote([2, 0], [2, -1]); presser('baie/ajouter');
+
+    presser('outil/stair'); presser('etage/1'); tirerPar([[4, 1], [5, 1], [6, 1], [7, 1]]);
+    expect(e.vue.zones['editeur.options'].filter((l) => l.type === 'ligne').map((l) => (l as Ligne).texte)).toEqual(['Tracé : 4 cases', '0 m → 4 m · cotes 1 · 2 · 3 · 4 m']);
+    presser('volee/poser');
+
+    presser('outil/prop'); cliquerLaCase(5, 4); presser('outil/select'); cliquerLaCase(5, 4); presser('entite/cap/E');
+    presser('outil/heroStart'); cliquerLaCase(3, 5);
+    presser('outil/zone'); presser('zone/trigger'); tirerPar([[6, 4], [7, 5], [8, 6]]);
+    expect((e.vue.zones['editeur.validation'][0] as Ligne).texte).toMatch(/^Validation : 0 erreur\(s\)/);
+    expect((appel('editer', boutonDe(e, 'tester').jeu) as Reponse & { essai?: boolean }).essai, 'la scène bâtie se met à l’essai').toBe(true);
+
+    const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
+    const projet = JSON.parse(enregistree.depot!.texte) as typeof servi;
+    const neuve = projet.scenes.find((sc) => !servi.scenes.some((d) => d.id === sc.id)) as unknown as Scene;
+    expect(neuve.layers.map((l) => l.z), 'deux couches').toEqual([0, 1]);
+    expect([4, 5, 6, 7].map((dx) => neuve.layers[0].height![(oy + 1) * neuve.dimensions.w + ox + dx]), 'la volée cotée de cran en cran').toEqual([1, 2, 3, 4]);
+    expect(neuve.walls!.filter((w) => w.structure === 'mur-a-ossature-en-bois'), 'onze murs à ossature en bois').toHaveLength(11);
+    expect(neuve.walls!.filter((w) => w.door).map((w) => [w.x, w.y, w.side])).toEqual([[ox + 1, oy, 'N']]);
+    expect(neuve.walls!.filter((w) => w.window).map((w) => [w.x, w.y, w.side])).toEqual([[ox + 2, oy + 3, 'N']]);
+    const [corps] = neuve.architecture!;
+    expect(corps.storeys.map((st) => st.z), 'un corps de deux étages').toEqual([0, 1]);
+    expect(corps.facades!.flatMap((f) => f.features ?? []).map((f) => f.kind), 'une façade et son ouverture').toEqual(['gable']);
+    expect(neuve.effectZones!.map((z) => [z.presentation, z.area]), 'la pièce').toEqual([['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]]);
+    expect(neuve.entities.map((en) => [en.kind, en.pos, en.facing])).toEqual([['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]]);
+    expect(neuve.triggers.map((tr) => [tr.rect, tr.flow]), 'le déclencheur tiré, au flux vide').toEqual([[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]]);
+
+    const { appel: rouvrir } = table();
+    const depot = mkdtempSync(join(tmpdir(), 'editeur-3508-'));
+    const fichier = join(dossierDesProjetsLivres(depot), manuscrit);
+    mkdirSync(dirname(fichier), { recursive: true });
+    writeFileSync(fichier, enregistree.depot!.texte);
+    const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
+    rmSync(depot, { recursive: true, force: true });
+    const relue = editionDe(rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu));
+    expect((relue.vue.zones['editeur.validation'][0] as Ligne).texte, 'rouverte du dépôt, la porte la lit et la validation ne dit aucune erreur').toMatch(/^Validation : 0 erreur\(s\)/);
+  });
+});
+
+describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#3606)', () => {
+  const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
+  const servi = lireProjetLivre(manuscrit) as { id: string };
+
+  it('la condition d’entrée d’un déclencheur, le Test de traversée et les listes d’ops d’une zone d’effet s’écrivent au formulaire, variante par variante, élément par élément ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    /** La valeur de libellé `libelle` du choix d'id `id` de l'inspecteur : le bouton qui la joue. */
+    const option = (id: string, libelle: string) => valeursDeLInspecteur(e, id).find((b) => b.libelle === libelle) ?? (() => { throw new Error(`aucune valeur ${libelle} sous ${id}`); })();
+    const choisir = (id: string, libelle: string) => (e = editionDe(appel('editer', option(id, libelle).jeu)));
+    const inspecteur = () => e.vue.zones['editeur.inspecteur'];
+    const formulaire = (id: string) => inspecteur().find((el): el is Formulaire => el.type === 'formulaire' && el.id === id) ?? (() => { throw new Error(`aucun formulaire ${id}`); })();
+    const saisir = (id: string, valeur: unknown) => {
+      const [porteur, chemin] = formulaire(id).champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
+      return (e = editionDe(appel('editer', { type: 'valeur', args: [porteur, chemin, valeur] })));
+    };
+    const tracer = (sorte: string, de: [number, number], a: [number, number]) => {
+      presser('outil/zone'); presser(`zone/${sorte}`);
+      jouer({ geste: 'appui', point: point(...de) });
+      jouer({ geste: 'relache', point: point(...a) });
+    };
+    const porteurDe = (id: string) => ((boutonDe(e, id).jeu as { edition: { porteur: { sorte: string; id: string } } }).edition.porteur);
+    const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
+    const sansErreur = /^Validation : (aucun défaut|0 erreur\(s\))/;
+    expect(validation()).toMatch(sansErreur);
+
+    presser('scenes/ajouter');
+    tracer('trigger', [0, 0], [1, 1]);
+    const declencheur = porteurDe('valeur/when/kind/aucune');
+    expect(declencheur.sorte).toBe('declencheur');
+    expect(boutonDe(e, 'valeur/when/kind/aucune').presse, 'sans condition d’entrée').toBe(true);
+    expect(inspecteur().some((el) => el.id.startsWith('valeur/flow')), 'le flux n’est pas au formulaire').toBe(false);
+    choisir('valeur/when/kind', 'TOUS (ET)');
+    expect(option('valeur/when/kind', 'TOUS (ET)').presse).toBe(true);
+    expect(inspecteur().some((el) => el.id.startsWith('valeur/when/of/0')), 'TOUS de « Toujours » : une liste vide').toBe(false);
+    presser('valeur/when/of/ajouter');
+    choisir('valeur/when/of/0/kind', 'Drapeaux');
+    saisir('valeur/when/of/0/expr', 'porte');
+    presser('valeur/when/of/ajouter');
+    choisir('valeur/when/of/1/kind', 'NON');
+    choisir('valeur/when/of/1/of/kind', 'Ennemi en Ligne de Vue');
+    expect(boutonDe(e, 'valeur/when/of/1/monter').libelle).toMatch(/^Monter/);
+    expect(inspecteur().some((el) => el.id === 'valeur/when/of/0/monter'), 'le premier ne monte pas').toBe(false);
+
+    tracer('effect', [2, 2], [3, 3]);
+    const zone = porteurDe('valeur/onCross/ajouter');
+    expect(zone.sorte).toBe('zone');
+    expect(option('valeur/onCross/0/op', 'Blessures (ignore BE/PA)').presse, 'la zone posée porte l’op de sa graine').toBe(true);
+    expect(inspecteur().find((el) => el.id === 'valeur/onCross/0/motif'), 'une op sans forme déclarée le dit').toMatchObject({ type: 'ligne' });
+    saisir('valeur/onCross/0', { op: 'wounds', amount: 3 });
+    expect(formulaire('valeur/onCross/0').champs[2], 'et se saisit en JSON').toMatchObject({ type: 'saisieJson', valeur: '{"op":"wounds","amount":3}' });
+    presser('valeur/onCross/0/retirer');
+    expect(inspecteur().some((el) => el.id === 'valeur/onCross'), 'vidée, la liste quitte la zone').toBe(false);
+    presser('valeur/crossTest/ajouter');
+    choisir('valeur/crossTest/characteristic', 'Force');
+    presser('valeur/onCross/ajouter');
+    choisir('valeur/onCross/0/op', 'Points de Corruption');
+    saisir('valeur/onCross/0/amount', 2);
+    presser('valeur/onCross/ajouter');
+    choisir('valeur/onCross/1/op', 'Modif. de caractéristique');
+    choisir('valeur/onCross/1/char', 'Agilité');
+    saisir('valeur/onCross/1/mod', -5);
+    presser('valeur/onCross/1/monter');
+    expect(option('valeur/onCross/0/op', 'Modif. de caractéristique').presse, 'montée, la seconde op passe première').toBe(true);
+    expect(option('valeur/onCross/1/op', 'Points de Corruption').presse).toBe(true);
+    expect(erreurDe(appel('editer', { type: 'valeur', args: [zone, ['label'], 'Fosse'] })).categorie, 'un champ que le formulaire n’offre pas').toBe('validation');
+    const horsSorte = erreurDe(appel('editer', { type: 'valeur', args: [zone, ['onCross', 0, 'mod'], 'cinq'] }));
+    expect([horsSorte.categorie, horsSorte.message], 'une valeur hors de la sorte de son champ, refusée avec sa raison').toEqual(['regle', expect.stringContaining('onCross/0/mod')]);
+    expect(validation()).toMatch(sansErreur);
+
+    const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
+    const depot = mkdtempSync(join(tmpdir(), 'editeur-3606-'));
+    const fichier = join(dossierDesProjetsLivres(depot), manuscrit);
+    mkdirSync(dirname(fichier), { recursive: true });
+    writeFileSync(fichier, enregistree.depot!.texte);
+    const { appel: rouvrir } = table();
+    const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
+    rmSync(depot, { recursive: true, force: true });
+    const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.id === zone.id))!;
+    expect(neuve.triggers.find((t) => t.id === declencheur.id)?.when).toEqual({ kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] });
+    expect(neuve.effectZones!.find((z) => z.id === zone.id)).toMatchObject({
+      crossTest: { characteristic: 'force' },
+      onCross: [{ op: 'charMod', char: 'agilite', mod: -5 }, { op: 'corruption', amount: 2 }],
+    });
+    rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu);
+    rouvrir('editer', { edition: { geste: 'appui', point: point(0, 0) } });
+    e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(0, 0) } }));
+    expect(option('valeur/when/kind', 'TOUS (ET)').presse, 'rouverte, la condition du déclencheur').toBe(true);
+    expect(option('valeur/when/of/1/of/kind', 'Ennemi en Ligne de Vue').presse).toBe(true);
+    expect(formulaire('valeur/when/of/0/expr').champs[2]).toMatchObject({ valeur: 'porte' });
+    rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
+    e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
+    expect(option('valeur/onCross/0/char', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
+    expect(formulaire('valeur/onCross/1/amount').champs[2]).toMatchObject({ valeur: 2 });
+    expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
+  });
+
+  it('la musique, le message d’introduction sur plusieurs lignes, les ancres de bataille, les groupes du lieu et l’apparence d’une ouverture s’écrivent par leurs écrivains dédiés ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    const inspecteur = () => e.vue.zones['editeur.inspecteur'];
+    const liste = (id: string) => valeursDeLInspecteur(e, id);
+    const choisir = (id: string, rang = 0) => (e = editionDe(appel('editer', liste(id).filter((b) => !b.presse)[rang].jeu)));
+    const message = () => (inspecteur().find((el): el is Formulaire => el.type === 'formulaire' && el.verbe === 'introduire') ?? (() => { throw new Error('aucun formulaire du message'); })()).champs[0];
+    const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
+    const sansErreur = /^Validation : (aucun défaut|0 erreur\(s\))/;
+    presser('scenes/ajouter');
+
+    const piste = liste('scene/musique/ambient').find((b) => !['scene/musique/ambient/auto', 'scene/musique/ambient/silence'].includes(b.id))!;
+    presser(piste.id);
+    presser('scene/musique/combat/silence');
+    expect([boutonDe(e, piste.id).presse, boutonDe(e, 'scene/musique/combat/silence').presse], 'ambiance choisie, combat au silence').toEqual([true, true]);
+    presser('scene/musique/ambient/auto');
+    presser('scene/musique/combat/auto');
+    expect([boutonDe(e, 'scene/musique/ambient/auto').presse, boutonDe(e, 'scene/musique/combat/auto').presse], 'retirées, les deux suivent le contexte').toEqual([true, true]);
+
+    expect(message(), 'le message d’introduction, une prose, se saisit sur plusieurs lignes').toMatchObject({ type: 'saisieMultiligne', valeur: '' });
+    const texte = 'Le relais est désert.\n\nUne lanterne bat au vent.';
+    e = editionDe(appel('editer', { type: 'introduire', args: ['Brouillon'] }));
+    e = editionDe(appel('editer', { type: 'introduire', args: [null] }));
+    expect(message(), 'vidé, il se retire').toMatchObject({ valeur: '' });
+    e = editionDe(appel('editer', { type: 'introduire', args: [texte] }));
+    expect(message()).toMatchObject({ valeur: texte });
+
+    expect(inspecteur().find((el) => el.id === 'scene/stations')).toMatchObject({ texte: 'Aucune ancre de bataille : les Scènes de Round s’étalent d’office.' });
+    choisir('scene/stations/ajouter');
+    choisir('scene/stations/ajouter', 1);
+    expect(boutonDe(e, 'scene/stations/0/pointee').refus, 'sans case pointée').toBe('Appuyez d’abord sur une case de la carte');
+    jouer({ geste: 'appui', point: point(1, 2) });
+    jouer({ geste: 'relache', point: point(1, 2) });
+    presser('scene/stations/1/pointee');
+    expect(inspecteur().find((el) => el.id === 'scene/stations/1/position')).toMatchObject({ texte: 'Ancre 2 : case (1, 2), couche 0' });
+    presser('scene/stations/0/retirer');
+    const ancre = liste('scene/stations/0').find((b) => b.presse)!;
+
+    choisir('scene/groupes/ajouter');
+    const groupe = (inspecteur().find((el) => el.id === 'scene/groupes/retirer') as Choix).valeurs[0].libelle;
+
+    presser('outil/architecture');
+    jouer({ geste: 'appui', point: point(2, 2) });
+    jouer({ geste: 'relache', point: point(2, 2) });
+    presser('batir/corps');
+    presser('architecture/facade');
+    jouer({ geste: 'appui', point: { case: { x: 2, y: 2 }, f: { x: 2, y: 1.55 } } });
+    presser('baie/ajouter');
+    const baie = inspecteur().find((el) => el.id.startsWith('baie/') && el.id.endsWith('/apparence'))!.id;
+    expect(boutonDe(e, `${baie}/defaut`).presse, 'sans apparence, le défaut du rendu').toBe(true);
+    choisir(baie);
+    const apparence = liste(baie).find((b) => b.presse)!;
+    expect(apparence.id).not.toBe(`${baie}/defaut`);
+    expect(validation()).toMatch(sansErreur);
+
+    const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
+    const depot = mkdtempSync(join(tmpdir(), 'editeur-3606-m0c-'));
+    const fichier = join(dossierDesProjetsLivres(depot), manuscrit);
+    mkdirSync(dirname(fichier), { recursive: true });
+    writeFileSync(fichier, enregistree.depot!.texte);
+    const { appel: rouvrir } = table();
+    const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
+    rmSync(depot, { recursive: true, force: true });
+    const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.architecture?.length && sc.startMessage)!;
+    expect(neuve.music, 'retirée, la musique quitte la scène').toBeUndefined();
+    expect(neuve.startMessage).toEqual({ texte });
+    expect(neuve.stations).toEqual([{ sceneId: ancre.id.split('/').pop(), pos: { x: 1, y: 2 } }]);
+    expect(neuve.groups).toEqual([groupe]);
+    expect(neuve.architecture![0].facades[0].features![0].appearance).toBe(apparence.id.split('/').pop());
+    e = editionDe(rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu));
+    expect(message(), 'rouverte du dépôt, le message sur ses lignes').toMatchObject({ type: 'saisieMultiligne', valeur: texte });
+    expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
   });
 });

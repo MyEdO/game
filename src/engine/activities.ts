@@ -418,12 +418,12 @@ export interface ActivityDef {
    *  favorable facilite le Test. */
   difficultyFrom?: BattleDifficultyFrom;
   /** Genre d'une Scène de Round ('bataille-round') : `test` (Test de Compétence des PJ, delta de Puissance
-   *  par l'issue) ; `combat` (rencontre tactique — `startCombat` — touches/kills nourrissent le delta) ;
+   *  par l'issue) ; `combat` (rencontre tactique — `lancerLeCombat` — touches/kills nourrissent le delta) ;
    *  `threat` (Scène MENACE qui s'IMPOSE et pénalise les autres Scènes tant qu'elle vit, Intrus l.219) ;
    *  `hold` (Tenez votre position l.161 : Test OPPOSÉ récurrent, Point de rupture entre Rounds) ;
    *  `rally` (Rassemblement l.122 : Test de Résistance qui soigne les héros). Absent = Activité ordinaire. */
   sceneKind?: 'test' | 'combat' | 'threat' | 'hold' | 'rally';
-  /** Scène 'combat'/'threat' : id de rencontre de la scène à démarrer (`startCombat`). */
+  /** Scène 'combat'/'threat' : id de rencontre de la scène à démarrer (`lancerLeCombat`). */
   encounter?: string;
   /** Durée max en Rounds de Combat (indicatif narratif, l.139/157/175…). */
   rounds?: number;
@@ -482,7 +482,7 @@ export function activityRolls(def: Pick<ActivityDef, 'tests' | 'freeSkill' | 're
 
 /** Ligne de mod du modificateur de SITUATION d'un Test d'Activité (Menace `ADE II 8 l.219`,
  *  Planification l.75) — SOURCE UNIQUE, partagée par le CALCUL de la cible (`massBattleFlow`,
- *  `rollFlowSpecs`) et par son RENDU (`ui/ActivityModal.tsx`) : trois littéraux du même fait
+ *  `rollFlowSpecs`) et par son RENDU : trois littéraux du même fait
  *  divergeaient sinon. Aucun mod ⇒ aucune ligne (jamais un « Modificateur +0 » inventé). PURE. */
 export function activityModLines(mod: number | undefined, modLabel: string | undefined): ModLine[] {
   return mod ? [{ label: modLabel ?? 'Modificateur', value: mod, famille: 'jet' as const }] : [];
@@ -989,7 +989,7 @@ export function tutorCostRange(talentXpCost: number): { minBrass: number; maxBra
 }
 
 export interface LearnOption {
-  /** `id` STABLE du Talent — clé de `learnFails` et `opts.talentId` d'`interludeActivity('learn')`. */
+  /** `id` STABLE du Talent — clé de `learnFails` et `opts.talentId` de `pratiquerLActivite('learn')`. */
   id: string;
   label: string;
   /** Coût PX de la PROCHAINE acquisition (talentCost × fois déjà prises). */

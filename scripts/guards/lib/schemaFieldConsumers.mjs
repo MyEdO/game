@@ -15,11 +15,15 @@ import { estDocumentARangees } from './documentARangees.mts'
 import { creerProvenanceFs } from './provenanceFs.mjs'
 
 const norm = p => p.replaceAll('\\', '/')
-/** Les PORTES d'un document-table (`src/data/rangees.ts`) : un appel lit son champ de la racine JSON qu'il
- *  reçoit (et, par id de document, d'un fichier qui en porte plusieurs). `rangeesDe` rend `entries` au type
- *  dérivé du schéma ; `deDeTirageDe` lit `die` et rend un `DiceSpec`, jamais une valeur JSON. */
-const MODULE_DES_PORTES = 'src/data/rangees.ts'
-const CHAMP_DE_LA_PORTE = { rangeesDe: 'entries', deDeTirageDe: 'die' }
+/** Les PORTES d'une table : un appel lit son champ du nœud JSON qu'il reçoit (et, par id de document, d'un
+ *  fichier qui en porte plusieurs). `rangeesDe` (`src/data/rangees.ts`) rend `entries` au type dérivé du
+ *  schéma ; `deDeTirageDe` (même module) lit `die`, et `deDeLaTableTiree` (`src/engine/tables.ts`) le `die`
+ *  du nœud, ou le `dice` d'un `Tirage` : tous deux rendent un `DeDeTable`, jamais une valeur JSON. */
+const PORTES = {
+  rangeesDe: { module: 'src/data/rangees.ts', champ: () => 'entries' },
+  deDeTirageDe: { module: 'src/data/rangees.ts', champ: () => 'die' },
+  deDeLaTableTiree: { module: 'src/engine/tables.ts', champ: (checker, type) => (parts(type).some((t) => checker.getPropertyOfType(t, 'dice')) ? 'dice' : 'die') },
+}
 const parts = type => type?.isUnionType() || type?.isIntersectionType() ? type.getTypes().flatMap(parts) : type ? [type] : []
 const step = (checker, types, key, node) => types.flatMap(type => parts(type).flatMap(t => {
   if (key === '[]') return checker.isArrayType(t) || checker.isTupleType(t) ? checker.getTypeArguments(t) : checker.getIndexInfosOfType(t).filter(i => i.keyType.flags & TypeFlags.NumberLike).map(i => i.valueType)
@@ -83,7 +87,7 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
   // Noms sous lesquels une porte peut être appelée : le sien, et ceux que lui donnent les `import`/`export
   // { … as … }` du Program, à point fixe. Un appel sous un autre nom ne la résout pas : le symbole n'est
   // demandé qu'aux appels qui portent l'un de ces noms.
-  const nomsDeLaPorte = new Set(Object.keys(CHAMP_DE_LA_PORTE))
+  const nomsDeLaPorte = new Set(Object.keys(PORTES))
   const renommages = program.getSourceFileNames().map(file => program.getSourceFile(file)).filter(sf => !sf.isDeclarationFile).flatMap(sf => sf.statements)
     .flatMap(n => (ts.isImportDeclaration(n) ? n.importClause?.namedBindings?.elements : ts.isExportDeclaration(n) ? n.exportClause?.elements : undefined) ?? [])
     .flatMap(e => e.propertyName ? [[e.propertyName.text, e.name.text]] : [])
@@ -145,10 +149,12 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
   const porteDuDocument = call => {
     const nom = !ts.isCallExpression(call) ? null : ts.isIdentifier(call.expression) ? call.expression.text : ts.isPropertyAccessExpression(call.expression) ? call.expression.name.text : null
     const fn = nomsDeLaPorte.has(nom) && resolvedSymbol(call.expression)?.declarations?.[0]?.resolve()
-    const champ = fn && ts.isFunctionDeclaration(fn) && Object.hasOwn(CHAMP_DE_LA_PORTE, fn.name?.text) ? CHAMP_DE_LA_PORTE[fn.name.text] : null
-    if (!champ || norm(resolve(fn.getSourceFile().fileName)) !== norm(resolve(root, MODULE_DES_PORTES))) return null
+    const porte = fn && ts.isFunctionDeclaration(fn) && Object.hasOwn(PORTES, fn.name?.text) ? PORTES[fn.name.text] : null
+    if (!porte || norm(resolve(fn.getSourceFile().fileName)) !== norm(resolve(root, porte.module))) return null
     const racine = origin(call.arguments[0])
-    return racine && { file: racine.file, path: [...racine.path, ...(call.arguments.length > 1 ? ['[]', champ] : [champ])], rendJson: champ === CHAMP_DE_LA_PORTE.rangeesDe }
+    if (!racine) return null
+    const champ = porte.champ(checker, checker.getTypeAtLocation(call.arguments[0]))
+    return { file: racine.file, path: [...racine.path, ...(call.arguments.length > 1 ? ['[]', champ] : [champ])], rendJson: porte === PORTES.rangeesDe }
   }
   const originCache = new Map()
   const origin = (node, seen = new Set()) => {

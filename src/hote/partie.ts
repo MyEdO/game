@@ -7,7 +7,7 @@
  */
 import {
   creerPartie, etatInitialDuJeu, preferenceDef, refusDesSurcharges, valeurDEntree,
-  type Cadence, type EntreesDeLaPartie, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
+  type Cadence, type EntreesDeLaPartie, type LancementDeScenario, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
 } from '../noyau/index';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
@@ -43,20 +43,28 @@ export interface Entete {
   desFixes: boolean;
 }
 
-/** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse ; cadence et dés fixés sont jugés par la table
- *  des préférences (`valeurDEntree`). */
-export function nouvelEntete(scenario: string, options: { graine?: number; cadence?: unknown; desFixes?: unknown; regles?: Record<string, unknown> }): Entete {
-  scenarioDeTest(scenario);
+/** Les entrées d'une partie, hors de son scénario. */
+export type EntreesDeLEntete = Omit<Entete, 'scenario'>;
+
+/** Les entrées d'une partie neuve, ou l'erreur de validation qui les refuse ; cadence et dés fixés sont jugés par la
+ *  table des préférences (`valeurDEntree`). */
+export function nouvellesEntrees(options: { graine?: number; cadence?: unknown; desFixes?: unknown; regles?: Record<string, unknown> }): EntreesDeLEntete {
   const graine = options.graine ?? 1;
   valider(Number.isInteger(graine), `graine non entière : ${graine}`);
   const regles = options.regles ?? {};
   const refus = refusDesSurcharges(regles);
   valider(refus.length === 0, `règles refusées : ${refus.map((r) => r.raison).join(' ; ')}`);
   return {
-    scenario, graine, regles,
+    graine, regles,
     cadence: preference('combat-cadence', options.cadence) as Cadence,
     desFixes: preference('des-fixes', options.desFixes) as boolean,
   };
+}
+
+/** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse (`nouvellesEntrees`). */
+export function nouvelEntete(scenario: string, options: Parameters<typeof nouvellesEntrees>[0]): Entete {
+  scenarioDeTest(scenario);
+  return { scenario, ...nouvellesEntrees(options) };
 }
 
 /** La valeur de la préférence `id` qu'une entrée `v` donne (`valeurDEntree`), ou l'erreur de validation qui la refuse. */
@@ -102,20 +110,26 @@ export interface PartieOuverte {
   lancement: ResultatDeLAppel;
 }
 
-/** Ouvre la partie de l'en-tête : la partie du noyau sur l'état initial (`creerPartie`), le héros persisté par le
- *  service `persisterLeHeros` de l'hôte (`EntreesDeLaPartie`), puis son scénario lancé par le constructeur unique du
- *  lancement (`lancementDuScenario`). Un lancement qui lève ferme la partie. */
+/** Ouvre la partie de l'en-tête : son scénario lancé par le constructeur unique du lancement (`lancementDuScenario`,
+ *  `ouvrirLeLancement`). */
 export function ouvrirLaPartie(entete: Entete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros']): PartieOuverte {
   const scenario = scenarioDeTest(entete.scenario);
+  return ouvrirLeLancement(entete, () => lancementDuScenario(scenario), persisterLeHeros);
+}
+
+/** Ouvre la partie des entrées `entrees` : la partie du noyau sur l'état initial (`creerPartie`), le héros persisté par
+ *  le service `persisterLeHeros` de l'hôte (`EntreesDeLaPartie`), puis le lancement que `lancement` construit, après
+ *  elle (ses séquences d'ids repartent de zéro), lancé. Un lancement qui lève ferme la partie. */
+export function ouvrirLeLancement(entrees: EntreesDeLEntete, lancement: () => LancementDeScenario, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros']): PartieOuverte {
   const partie = creerPartie(etatInitialDuJeu(), {
-    graine: entete.graine,
-    reglesMaison: entete.regles,
-    cadence: entete.cadence,
-    desFixes: entete.desFixes,
+    graine: entrees.graine,
+    reglesMaison: entrees.regles,
+    cadence: entrees.cadence,
+    desFixes: entrees.desFixes,
     persisterLeHeros,
   });
   try {
-    return { partie, jetons: tenueDesJetons(partie), lancement: partie.lancer(lancementDuScenario(scenario)) };
+    return { partie, jetons: tenueDesJetons(partie), lancement: partie.lancer(lancement()) };
   } catch (erreur) {
     partie.fermer();
     throw erreur;

@@ -1,10 +1,10 @@
 import structureCriticalsJson from './structure-criticals.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
 import type * as critiquesDeStructure from './schemas/defs/structure-criticals';
-import type { DiceSpec } from '../engine/dice';
+import type { DeDeTable } from '../engine/tables';
 
 /** Le dé AUTHORÉ des Critiques de Structure (`die`), lu VIVANT à l'appel. AA 10 l.112 */
-export const structureCriticalsDie = (): DiceSpec => deDeTirageDe<typeof critiquesDeStructure>(structureCriticalsJson);
+export const structureCriticalsDie = (): DeDeTable => deDeTirageDe<typeof critiquesDeStructure>(structureCriticalsJson);
 
 /**
  * Blessures critiques sur une STRUCTURE — Aux Armes « Tableau des Blessures critiques sur une Structure »

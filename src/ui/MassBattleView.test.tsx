@@ -21,6 +21,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { scenario } from '../scenes/test-scenarios/13-bataille-de-masse';
 import { MassBattleView } from './MassBattleView';
 import { addCondition } from '../engine/conditions';
+import { deDeLaTable, setDeDeTable } from '../data/overrides';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -29,7 +30,7 @@ let container: HTMLDivElement | null = null;
 afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; container = null; });
 
 /** Amorce la VRAIE bataille du scénario de test (même spec, même scène : les Scènes du Round sont
- *  posées sur le plan par leurs ancres authorées), par la porte du jeu `startMassBattle`. */
+ *  posées sur le plan par leurs ancres authorées), par la porte du jeu `amorcerLaBataille`. */
 beforeEach(() => {
   seedBattleRng(1234);
   const { party, scene, massBattle } = scenario.construire();
@@ -37,7 +38,7 @@ beforeEach(() => {
     party, scene, battle: null, interlude: null,
     journal: [], partyPos: { x: 3, y: 8 },
   });
-  useGame.getState().startMassBattle(massBattle!);
+  useGame.getState().amorcerLaBataille(massBattle!);
 });
 
 /** Monte l'écran ET sélectionne une Scène sur le plan : son détail (donc sa case) s'ouvre à droite.
@@ -136,5 +137,18 @@ describe('MassBattleView — affectation aux Scènes (ADE II 8)', () => {
     const rally = [...container.querySelectorAll('button')].find((b) => b.textContent === 'Rassemblement');
     expect(rally, 'le bouton est rendu').toBeDefined();
     expect(rally!.getAttribute('aria-disabled')).toBeNull();
+  });
+
+  it('7. « Tirer un facteur » nomme le dé de la table, lu sur la donnée à chaque rendu (ADE II 08 l.311)', () => {
+    const tirer = (el: HTMLElement) => [...el.querySelectorAll('button')].find((b) => b.textContent?.startsWith('Tirer un facteur'));
+    expect(tirer(monter())?.textContent).toBe('Tirer un facteur (1d10)');
+    const imprime = deDeLaTable('massBattleHazards')!;
+    try {
+      setDeDeTable('massBattleHazards', '1d12');
+      act(() => root?.unmount()); container?.remove();
+      expect(tirer(monter())?.textContent).toBe('Tirer un facteur (1d12)');
+    } finally {
+      setDeDeTable('massBattleHazards', imprime);
+    }
   });
 });

@@ -12,10 +12,10 @@ import { analyserCorpus } from '../guards/lib/dialecte.mjs';
  * mise à jour du .md.
  *
  * Lecture par AST (jamais un `import` runtime des scénarios) : le module `TestScenario` importe
- * transitivement `src/state/store.ts` (via `combatFlow.ts`…), dont l'évaluation crée le store et
- * branche le jeu entier (`brancherLeJeu`) — un générateur de doc ne monte pas le jeu pour lire une
- * donnée. On lit donc chaque fichier de scénario par AST, comme `jsdocUnion.mjs` lit les unions —
- * source de vérité identique (le fichier `.ts` lui-même), zéro effet de bord runtime.
+ * transitivement les données (`src/data`) et le noyau du monde (`buildScene`, `buildEncounters`) — un
+ * générateur de doc ne charge pas le jeu pour lire une donnée. On lit donc chaque fichier de scénario
+ * par AST, comme `jsdocUnion.mjs` lit les unions — source de vérité identique (le fichier `.ts`
+ * lui-même), zéro effet de bord runtime.
  *
  * Le reste du document (comment vérifier une feature, comment ajouter un scénario, les conventions)
  * est de l'INTENTION ÉDITORIALE non dérivable d'aucune donnée : elle vit ICI, en dur dans ce
@@ -187,7 +187,7 @@ function rendu() {
     "**Angle mort du catalogue, mesuré (recette #1852, 2026-09-21)** : AUCUN scénario n'isole « une",
     "créature à attaque gratuite face à un héros ». Tant qu'il n'existe pas, la composition MINIMALE qui",
     "la monte et OUVRE la fenêtre de Défense de la gratuite, au kit de recette (helpers de",
-    '`src/state/devtools.ts`, vérifiés au code) :',
+    '`window.__wfrp`, vérifiés au code) :',
     '',
     '```js',
     "await evaluate(session, `window.__wfrp.scenario('entrainement')`);        // terrain nu, groupe complet",
@@ -273,7 +273,7 @@ function rendu() {
   lines.push(
     '',
     'Un scénario peut embarquer **plusieurs scènes** (`extraScenes`) et une **carte du monde** (`worldMap`) :',
-    'il est alors chargé comme un projet (`loadProject`).',
+    'il est alors chargé comme un projet (`chargerLeProjet`).',
   )
 
   const out = lines.join('\n') + '\n'

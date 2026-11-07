@@ -14,17 +14,17 @@ import { useGesteDeJet } from './useGesteDeJet';
  * Sauvegarde d'Initiative d'une PANNE DE VAPEUR « Fuite de vapeur » (MDG 12 l.326-328) : la personne qui
  * s'occupe du moteur teste l'Initiative sous peine d'être ébouillantée (1d10−5 Dégâts min 1, ignorent
  * l'Armure). Modale INFLUENÇABLE (Chance/+1 DR/Pacte/Résilience) — l'ÉCHEC applique l'ébouillantage puis
- * la traversée reprend (`jetConfirm('steamSave')`). Jet PROPRE de l'acteur (aucun « Annuler » : la panne EST là).
+ * la traversée reprend (`jetValider('steamSave')`). Jet PROPRE de l'acteur (aucun « Annuler » : la panne EST là).
  */
 export function SteamSaveModal() {
   const p = useGame((s) => s.pendingSteamSave);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetRoll', 'steamSave');
-  const reroll = useGesteDeJet('jetReroll', 'steamSave');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'steamSave');
-  const darkPact = useGesteDeJet('jetDarkPact', 'steamSave');
-  const forceSuccess = useGesteDeJet('jetForceSuccess', 'steamSave');
-  const confirm = useGesteDeJet('jetConfirm', 'steamSave');
+  const roll = useGesteDeJet('jetLancer', 'steamSave');
+  const reroll = useGesteDeJet('jetRelancer', 'steamSave');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'steamSave');
+  const darkPact = useGesteDeJet('jetPactiser', 'steamSave');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'steamSave');
+  const confirm = useGesteDeJet('jetValider', 'steamSave');
   if (!p) return null;
   const actor = party.find((c) => c.id === p.actorId);
   const rolled = p.roll != null;

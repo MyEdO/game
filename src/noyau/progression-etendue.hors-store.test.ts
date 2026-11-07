@@ -30,10 +30,10 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
 
   /** Combat à un héros face à une source de Peur, Peur ENTAMÉE (`calmeDR`) sur l'Indice `indice`. */
   function peurEntamee(indice: number, calmeDR: number, sansPeur = false) {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -59,7 +59,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     return { H: actorIn(banc.getState(), H.id)!, E };
   }
 
-  /** Pose le dé de la rangée du héros (champ que `jetRoll('cascadeBatch')` écrit). */
+  /** Pose le dé de la rangée du héros (champ que `jetLancer('cascadeBatch')` écrit). */
   function jet(id: string, sl: number, success: boolean) {
     const pc = banc.getState().pendingCascade!;
     const participants = band().participants!.map((p) => (p.id === id ? { ...p, result: { roll: success ? 1 : 99, target: p.target, sl, success } } : p));
@@ -70,7 +70,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     const { H, E } = peurEntamee(5, 3);
     jet(H.id, -2, false);
     expect(cumulEtenduDeRangee(row(H.id), band().participants!)).toEqual({ cum: 1, target: 5 });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const peur = (heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === E.id)!;
     expect(peur.calmeDR).toBe(1);
     expect(peur.surmontee).toBeFalsy();
@@ -81,7 +81,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     expect(row(H.id).meta?.sansPeur).toBe(true);
     jet(H.id, 1, true);
     expect(cumulEtenduDeRangee(row(H.id), band().participants!)).toEqual({ cum: 4, target: 4 });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const peur = (heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === E.id)!;
     expect(peur.surmontee).toBe(true);
   });
@@ -100,17 +100,17 @@ describe('Poste servi à effectif COMPLET — la cible appliquée est celle anno
     const poste = { side: 'tribord', loaded: false, reloadProgress: 4, crewIds: crew,
       item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
         reload: 6, qualities: [{ id: 'recharge', value: 6 }, { id: 'arme-d-equipe', value: 3 }] } } as unknown as ShipPoste;
-    const ship = combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
+    const ship = combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
       crewIds: crew, postes: [poste], pos: { x: 5, y: 5 }, conditions: [], weapons: [unarmedWeapon()] });
     const servants = crew.map(servant);
     serveChef(servants[0], poste); // le chef sert la pièce : il en porte l'arme dérivée (`shipPostes.ts`)
     banc.setState({ battle: { combatants: [ship, ...servants], order: ['ship'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
       party: crew.map(servant), facing: { ship: 'N' }, pendingReload: null, scene: null as never });
-    banc.getState().rechargerLaPiece('ship', 'canon');
+    banc.getState().rechargerLArme('canon');
     const pr = banc.getState().pendingReload!;
     expect(pr.reload).toBe(6);
     banc.setState({ pendingReload: { ...pr, roll: 20, sl: 2, success: true } });
-    banc.getState().jetConfirm('reload');
+    banc.getState().jetValider('reload');
     const apres = banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0];
     expect(apres.loaded).toBe(true);
   });
@@ -125,7 +125,7 @@ describe('Règle optionnelle « DR 0 = ±1 » lue par le pas canonique (LDB 12 l
     const tireur = combattantDeTest({ id: 't', label: 'Tireur', kind: 'hero', weapons: [unarmedWeapon(), arbalete], pos: { x: 5, y: 5 } });
     banc.setState({ battle: { combatants: [tireur], order: ['t'], turn: 0, round: 1, acted: false, log: [] } as never, party: [tireur], scene: null as never,
       pendingReload: { actorId: 't', actorName: 'Tireur', weaponUid: 'arb', reload: 2, progressBefore: 0, skillValue: 50, difficulty: 'intermediaire', ligne: { base: 50, mods: [], target: 50, difficulty: 'intermediaire' }, roll: 45, target: 50, sl: 0, success: true } });
-    banc.getState().jetConfirm('reload');
+    banc.getState().jetValider('reload');
     const w = banc.getState().battle!.combatants[0].weapons.find((x) => x.uid === 'arb')!;
     expect(w.reloadProgress).toBe(1);
   });
@@ -137,7 +137,7 @@ describe('Focalisation — Test étendu, un échec cumule son DR négatif (LDB 4
     w.focus = { spell: 'manifestation-de-demon-mineur', dr: 3 };
     banc.setState({ party: [w] });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: false, sl: -2, isCritical: false, isFumble: false, roll: 87, target: 65, log: 'échec' } } });
-    banc.getState().jetConfirm('focus');
+    banc.getState().jetValider('focus');
     expect(banc.getState().party.find((h) => h.id === w.id)!.focus).toEqual({ spell: 'manifestation-de-demon-mineur', dr: 1 });
   });
 });

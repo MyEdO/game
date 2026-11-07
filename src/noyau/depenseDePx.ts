@@ -24,7 +24,7 @@ export function libelleAvecSpec(name: string, spec?: string): string {
 }
 
 /** Refus d'acquérir le Talent (id, spec) propre au Talent : Maxi atteint (LDB 10), puis Domaine
- *  arcanique refusé (`arcaneDomainGate`, LDB 46 l.177). Verdict UNIQUE de `buyTalent` et de la vue
+ *  arcanique refusé (`arcaneDomainGate`, LDB 46 l.177). Verdict UNIQUE d'`acheterLeTalent` et de la vue
  *  d'avancement ; le combat et les PX se refusent à part (`refusDepensePx`). */
 export function refusDAcquerirLeTalent(hero: Combatant, talentId: string, spec: string | undefined): string | null {
   const label = refLabel('talents', { id: talentId, spec });
@@ -52,7 +52,7 @@ export function contexteDeChangement(hero: Combatant, newCareer: string, newLeve
 }
 
 /** Refus de changer de Carrière : combat, cible fermée (`validateCareerChange`), puis PX — la raison que
- *  rend `changeCareer`, ou `null`. Verdict UNIQUE du geste et de la vue d'avancement. */
+ *  rend `changerDeCarriere`, ou `null`. Verdict UNIQUE du geste et de la vue d'avancement. */
 export function refusDeChangerDeCarriere(
   s: Pick<Jeu, 'battle'>, hero: Combatant, newCareer: string, newLevel: number, completed: boolean,
 ): string | null {

@@ -55,14 +55,14 @@ function porterUneTouche(attaquant: Combatant, victime: Combatant, weapon: Weapo
 
 describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 2ᵉ Hémorragique (AA 08 l.87)', () => {
   beforeEach(() => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
   });
 
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -79,7 +79,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const pc = banc.getState().pendingCascade!;
     const cur = pc.participants[pc.cursor];
     banc.getState().jetRegler('cascade', 'choix', key, cur.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
   }
 
   it('cimeterre (1A) : Hémorragique automatique + OFFRE de dépenser 1 Avantage, libellée « (1 Av) »', () => {
@@ -253,14 +253,14 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
  */
 describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libellé « (2 Av) »', () => {
   beforeEach(() => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
   });
 
   it('une touche avec un fléau d’armes ouvre le choix « Renverser (2 Av) »', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

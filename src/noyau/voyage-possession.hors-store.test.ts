@@ -1,10 +1,10 @@
 /**
- * #1262 V2 lot 2 — POSSESSION des flux de VOYAGE (mer, fleuve, route) et de l'Embrigadement. Même
+ * #1262 V2 lot 2 — POSSESSION des flux de VOYAGE (mer, fleuve, route). Même
  * défaut de fond que les lots V1, sur les quatre feuilles hors combat :
  *  - la BANDE d'équipage de mer (`contributors.map`) ne déclarait AUCUNE possession → `modalOwnerOf`
  *    `undefined`, c'est-à-dire fenêtre à l'HÔTE SEUL, qui jouait le Test du héros d'un invité
  *    (classe #1268) ;
- *  - les CHOIX collectifs (Progression du jour, interpellation pirate, décision d'Embrigadement)
+ *  - les CHOIX collectifs (Progression du jour, interpellation pirate)
  *    n'avaient pas de porteur → même fenêtre hôte-seul, et l'hôte tranchait pour autrui ;
  *  - les GATES d'insertion lisaient l'affordance LOCALE (`humanControlled` — « qui a la main devant
  *    CET écran ») au lieu de la SURFACE (`surfaceOf` — « un siège humain QUELCONQUE tient ce
@@ -21,26 +21,23 @@ import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { etatInitialDuJeu } from './etat';
 import { makePregens } from '../data/pregens';
-import { buildSeaPlan, runSeaDay, resolvePortArrival } from './seaVoyageFlow';
+import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
 import { buildStageSteps, buildWeatherResistanceSteps } from './travelPostes';
 import { startCascade } from './cascade';
 import { addCondition, COND } from '../engine/conditions';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
-import { type RNG } from '../engine/dice';
 import { modalOwnerOf } from './modalArbiter';
 import { humanControlled } from './netOwnership';
 import { seatOwns } from './sieges';
 import { WORLD_STEP_OWNER } from './pendings';
 import { surfaceOf } from './rollSeam';
-import { partyAssisted } from '../engine/skills';
 import { buildScene } from './mapSpec';
 import { setRule } from '../engine/policy';
 import { setCadence, resetCadence, cadenceAuto } from '../engine/cadence';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap, MapRouteTrace } from './worldMap';
-import { deMin } from '../engine/dice.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -48,7 +45,6 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 const NET0 = etatInitialDuJeu().net;
-const ones: RNG = deMin;
 const etapes = () => get().pendingCascade?.participants ?? [];
 const parKind = (k: string) => etapes().find((s) => s.kind === k);
 
@@ -107,7 +103,7 @@ describe('#1262 V2 — la journée en MER se possède (classe #1268)', () => {
     expect(seatOwns(get(), 0, modalOwnerOf(get()) as string), 'et plus à l’hôte').toBe(false);
 
     get().jetRegler('cascade', 'choix', 'crew', choix.id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     const bande = parKind('progression')!;
     expect(bande, 'la voie ÉQUIPAGE insère sa bande').toBeTruthy();
     // La possession se DÉDUIT du nombre de porteurs (`bandStep`) : `groupOwner` à plusieurs, le porteur
@@ -125,50 +121,6 @@ describe('#1262 V2 — la journée en MER se possède (classe #1268)', () => {
       expect(seatOwns(get(), 0, modalOwnerOf(get()) as string), 'et plus à l’hôte').toBe(false);
     }
     expect(modalOwnerOf(get()), 'jamais anonyme (c’était la fenêtre hôte-seul)').not.toBeUndefined();
-  });
-});
-
-// ── EMBRIGADEMENT ────────────────────────────────────────────────────────────────────────────────
-
-function fraisPort(): void {
-  seedBattleRng(1);
-  banc.setState({
-    party: makePregens().slice(0, 3),
-    scene: { ...emptyScene('port', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-    battle: null, pendingCascade: null, suspendedCascades: [],
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, manann: { score: -1, applied: [] } },
-    journal: [],
-  } as never);
-  creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
-}
-
-describe('#1262 V2 — la décision d’Embrigadement est au siège du MENEUR', () => {
-  beforeEach(fraisPort);
-
-  it('le meneur du Ragot porte la décision — la détourner DÉPLACE la fenêtre de siège', () => {
-    const [a, b] = get().party;
-    skill(a, 'ragot', 60); // meneur incontesté
-    deuxSieges(a.id); // A est à l'invité, B reste à l'hôte
-    resolvePortArrival(get, set, undefined, ones);
-
-    const decision = parKind('embrigadementDecision')!;
-    const meneur = partyAssisted(get().party.filter((h) => !h.dead), { skill: { id: 'ragot' } })!;
-    expect(meneur.actor.id, 'le meneur mesuré est bien A').toBe(a.id);
-    expect(decision.actorId, 'la décision porte le meneur de la tentative').toBe(a.id);
-    expect(modalOwnerOf(get())).toBe(a.id);
-    expect(seatOwns(get(), 1, a.id), 'la fenêtre s’ouvre au siège de l’invité, qui tient le meneur').toBe(true);
-    expect(seatOwns(get(), 0, a.id), 'et pas chez l’hôte').toBe(false);
-
-    // MENEUR DÉTOURNÉ : B devient le plus compétent → la même décision change de siège.
-    fraisPort();
-    const [a2, b2] = get().party;
-    skill(b2, 'ragot', 80);
-    deuxSieges(a2.id);
-    resolvePortArrival(get, set, undefined, ones);
-    expect(parKind('embrigadementDecision')!.actorId).toBe(b2.id);
-    expect(seatOwns(get(), 0, b2.id), 'B est à l’hôte : la fenêtre y revient').toBe(true);
-    expect(seatOwns(get(), 1, b2.id), 'et quitte le siège de l’invité').toBe(false);
-    void b;
   });
 });
 
@@ -194,14 +146,14 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     skill(gunnar, 'ramer', 50);
     skill(gunnar, 'voile', 45);
     const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
-    get().setParty([gunnar, otto]);
-    get().loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(), projet: null });
+    get().fixerLeGroupe([gunnar, otto]);
+    get().chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(), projet: null });
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
     deuxSieges(gunnar.id, otto.id); // tout le bord est à l'invité
     expect(humanControlled(get(), gunnar), 'chez l’hôte, il ne pilote pas le batelier de l’invité…').toBe(false);
     expect(surfaceOf(get, gunnar.id), '…mais un siège humain le tient').toBe(true);
 
-    get().startTravel('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge');
     const jour = etapes().filter((s) => s.target != null);
     expect(jour.length, 'la journée porte ses jets').toBeGreaterThan(0);
     // Chaque étape NOMME son jeteur (le mint le dérive de l'acteur déclaré) et la fenêtre suit son siège.
@@ -217,17 +169,17 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     seedBattleRng(7);
     const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
     skill(gunnar, 'ramer', 50);
-    get().setParty([gunnar]);
-    get().loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap({ riverPerils: [{ perilId: 'debris', chancePct: 100 }] }), projet: null });
+    get().fixerLeGroupe([gunnar]);
+    get().chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap({ riverPerils: [{ perilId: 'debris', chancePct: 100 }] }), projet: null });
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
     deuxSieges(gunnar.id);
     addCondition(get().party[0], COND.inconscient);
-    get().startTravel('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge');
     const jour = etapes();
     expect(jour.some((s) => s.kind === 'riverNav'), 'personne ne tient la barre : aucun Test de Navigation').toBe(false);
     const i = jour.findIndex((s) => s.kind === 'riverPerilCheck');
     expect(i, 'le pas de vérification du péril est dans la cascade du jour').toBeGreaterThanOrEqual(0);
-    for (let k = 0; k < i; k++) get().jetConfirm('cascade');
+    for (let k = 0; k < i; k++) get().jetValider('cascade');
     const pc = get().pendingCascade!;
     expect(pc.participants[pc.cursor].kind, 'la fenêtre est posée sur le pas de vérification').toBe('riverPerilCheck');
     expect(pc.participants[pc.cursor].actorId, 'aucun héros ne le porte').toBeUndefined();
@@ -246,7 +198,7 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
     const aide = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Aide', motivation: 'x', seed: 22, id: 't-aide' });
     skill(aide, 'conduite-d-attelage', 5);
     banc.setState({ party: [lead, aide], travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] } as never);
-    get().loadProject({
+    get().chargerLeProjet({
       scenes: [buildScene({ id: 'lieu-a', label: 'A', desc: '.', size: [8, 6], terrain: 'herbe', heroStart: [2, 3] }),
         buildScene({ id: 'lieu-b', label: 'B', desc: '.', size: [8, 6], terrain: 'herbe', heroStart: [2, 3] })],
       entryId: 'lieu-a',
@@ -260,7 +212,7 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
     deuxSieges(lead.id, aide.id); // l'attelage entier est conduit depuis le siège de l'invité
     expect(humanControlled(get(), lead), 'chez l’hôte, le conducteur de l’invité n’est pas « à la main »').toBe(false);
 
-    get().startTravel('r1', 'diligence', { allure: 'galop' });
+    get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
 
     const km = parKind('landForcedPace');
     expect(km, 'le Test de Conduite d’attelage s’OUVRE (le chemin synchrone le roulait sans fenêtre)').toBeTruthy();

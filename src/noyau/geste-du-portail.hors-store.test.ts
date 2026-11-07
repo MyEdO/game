@@ -1,7 +1,7 @@
 /**
  * LE GESTE D'UN ACCÈS (`gesteDuPortail`) : la porte fermée s'actionne, l'accès ouvert se franchit en marchant vers sa case
  * d'en face, la marche fermée (dialogue) n'ouvre aucun geste. Les gestes d'exploration (`gestesDExploration`) le lisent ;
- * l'activation de l'écran aussi (`gameIso/stage/useStagePointer.ts`, `activatePortal`).
+ * l'activation de l'écran aussi (`activatePortal`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -30,7 +30,7 @@ function couloir(): Scene {
 function enExploration(): { fermee: RoomPortal; ouverte: RoomPortal } {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [h], battle: null, journal: [] });
-  g().startScene(couloir());
+  g().lancerLaScene(couloir());
   banc.setState({ partyPos: { x: 1, y: 1 } });
   const s = g();
   const portails = aretesUtilisables({ scene: s.scene!, visible: computeStateVisible(s), controleur: s.partyPos, activeZ: 0 }).flatMap((a) => (a.portail ? [a.portail] : []));

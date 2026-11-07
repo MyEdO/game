@@ -90,17 +90,17 @@ test('IGNORES — la gate lint lit tout fichier de script suivi qu’arme un mur
 
   const L = 'export const a = setTimeout\n'
   const banc = new Map([
-    ['.gitignore', 'src/state/zz-plante-racine.ts\n'], ['src/state/.gitignore', 'zz-plante-imbrique.ts\n'],
-    ['.eslintignore', 'src/state/zz-plante-eslint-racine.ts\n'], ['src/state/.eslintignore', 'zz-plante-eslint-imbrique.ts\n'],
-    ['src/state/zz-plante-eslint-racine.ts', L], ['src/state/zz-plante-eslint-imbrique.ts', L],
-    ['src/state/zz-plante.ts', L], ['src/state/zz-plante.jsx', L],
-    ['src/state/zz-plante-racine.ts', L], ['src/state/zz-plante-imbrique.ts', L],
-    ['src/state/zz-plante-min.ts', L], ['src/state/zz-plante.min.ts', L], ['src/state/zz-plante_min.mjs', L],
-    ['src/state/zz-plante.vue', `<script>\n${L}</script>\n`],
+    ['.gitignore', 'src/noyau/zz-plante-racine.ts\n'], ['src/noyau/.gitignore', 'zz-plante-imbrique.ts\n'],
+    ['.eslintignore', 'src/noyau/zz-plante-eslint-racine.ts\n'], ['src/noyau/.eslintignore', 'zz-plante-eslint-imbrique.ts\n'],
+    ['src/noyau/zz-plante-eslint-racine.ts', L], ['src/noyau/zz-plante-eslint-imbrique.ts', L],
+    ['src/noyau/zz-plante.ts', L], ['src/noyau/zz-plante.jsx', L],
+    ['src/noyau/zz-plante-racine.ts', L], ['src/noyau/zz-plante-imbrique.ts', L],
+    ['src/noyau/zz-plante-min.ts', L], ['src/noyau/zz-plante.min.ts', L], ['src/noyau/zz-plante_min.mjs', L],
+    ['src/noyau/zz-plante.vue', `<script>\n${L}</script>\n`],
   ])
   const plantes = [...banc.keys()]
-  assert.deepEqual([...fichiersLus(RACINE_DEPOT, entreeDeLaGate(plantes.filter((rel) => rel.startsWith('src/state/zz-plante')), plantes), banc)].sort(parUnitesDeCode),
-    ['src/state/zz-plante.jsx', 'src/state/zz-plante.ts', 'src/state/zz-plante.vue'], 'la mesure voit les `.gitignore`, les `.eslintignore`, les ignores implicites et les dialectes lus')
+  assert.deepEqual([...fichiersLus(RACINE_DEPOT, entreeDeLaGate(plantes.filter((rel) => rel.startsWith('src/noyau/zz-plante')), plantes), banc)].sort(parUnitesDeCode),
+    ['src/noyau/zz-plante.jsx', 'src/noyau/zz-plante.ts', 'src/noyau/zz-plante.vue'], 'la mesure voit les `.gitignore`, les `.eslintignore`, les ignores implicites et les dialectes lus')
 
   const temoin = 'scripts/docs/build-all.mjs'
   const dossier = mkdtempSync(join(tmpdir(), 'lint-ignores-'))

@@ -12,8 +12,8 @@ describe('Entretien de Round en révélation (store)', () => {
   it('le début de combat MONTRE le champ (plan d’ensemble) — pas de modale d’Initiative (R2)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     const st = banc.getState();
     expect(st.pendingRoundStart?.round).toBe(1); // ouverture = pause du Round 1 : champ visible, IA gelée
     expect(st.battle!.turn).toBe(-1); // PERSONNE n'est actif pendant la pause (`lancerLeRound` posera le tour)
@@ -25,8 +25,8 @@ describe('Entretien de Round en révélation (store)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.conditions = [{ id: 'hemorragique', value: 2 }];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

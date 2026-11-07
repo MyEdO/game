@@ -1,11 +1,9 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** EDOC 8 */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
-import { charKeySchema, deDeTirageSchema, difficultySchema, ecartsDeCouverture, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { document, tableTiree } from '../grammaire/document';
+import { charKeySchema, difficultySchema, ecartsDuDeDeLaTable, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
-import { facesDuDe } from '../../../engine/tables';
-import { parseDice, totalDuDe } from '../../../engine/dice';
 
 export const file = 'weather.json';
 export const famille = 'config';
@@ -18,24 +16,16 @@ const doc = document(
   famille,
   {
   seasons: listeCle(
-    nommerChamps(z.strictObject({
-      id: z.string(),
-      label: z.string(),
-      die: deDeTirageSchema,
-      entries: z.array(
-        nommerChamps(z.strictObject({
-          ...plageSchema.shape,
-          weather: weatherIdSchema,
-        }), { ...metaDesChamps(plageSchema, { exigees: true }), weather: { label: 'Météo' } }),
-      ),
-      source: sourceRefSchema.optional(),
-    }), {
-      id: { label: 'Identifiant' },
-      label: { label: 'Libellé' },
-      die: { label: 'Dé de tirage' },
-      entries: { label: 'Plages' },
-      source: { label: 'Source' },
-    }),
+    tableTiree(
+      nommerChamps(z.strictObject({
+        ...plageSchema.shape,
+        weather: weatherIdSchema,
+      }), { ...metaDesChamps(plageSchema, { exigees: true }), weather: { label: 'Météo' } }),
+      {
+        champs: { id: z.string(), label: z.string(), source: sourceRefSchema.optional() },
+        meta: { id: { label: 'Identifiant' }, label: { label: 'Libellé' }, source: { label: 'Source' } },
+      },
+    ),
     'id',
   ),
   /** EDOC 8 l.82 */
@@ -121,9 +111,7 @@ const doc = document(
 
         const saisons = (v as { seasons: { id: string; die: string; entries: { min: number; max: number; weather: string }[] }[] }).seasons;
         for (const [i, s] of saisons.entries()) {
-          const de = parseDice(s.die);
-          if (!de) continue;
-          const ecarts = ecartsDeCouverture(s.entries, totalDuDe(de, de.n), facesDuDe(s.die), (r) => `« ${r.weather} » (${r.min}-${r.max})`);
+          const ecarts = ecartsDuDeDeLaTable(s, s.entries, (r) => `« ${r.weather} » (${r.min}-${r.max})`);
           if (ecarts.length) {
             ctx.addIssue({
               code: 'custom',

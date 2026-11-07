@@ -111,7 +111,7 @@ const MOTS_AVANT_VALEUR = /\b(return|typeof|instanceof|in|of|new|delete|void|cas
 function estDebutRegex(src, i) {
   // `/>` FERME une balise JSX auto-fermante (`<F attr={x} />`) : le `}` qui la précède attend
   // pourtant une valeur, et sans cette sortie le balayage sauterait la fin de la ligne,
-  // commentaire compris (site réel : src/ui/PlaqueRow.test.tsx). Un littéral `/>/`, lui, se balaie
+  // commentaire compris. Un littéral `/>/`, lui, se balaie
   // caractère à caractère comme du code ordinaire : sans guillemet, il n'a rien à désynchroniser.
   if (src[i + 1] === '>') return false;
   let j = i - 1;
@@ -558,9 +558,8 @@ const ALIBI_PERIMETRE = '(était|étaient) hors périmètre|hors périmètre le 
 // légitimes mesurés le 2026-09-02). Comme les familles ci-dessus, la forme LITTÉRALE n'est pas
 // écrite ici (elle mordrait sur ce commentaire même) : elle est plantée dans le test (#828).
 const ATTENTE_ARBITRAGE = 'en attente d' + APOS + '\\s*(un )?arbitrage';
-// Dette laissée à une LOCUTION D'ATTENTE qui NOMME la chose future (#1732, site
-// `src/gameIso/stage/AreteOverlay.tsx`, muet pendant deux revues) : le commentaire décrit un état à
-// venir au lieu de ce que le code rend — excuse au sens de 6b.
+// Dette laissée à une LOCUTION D'ATTENTE qui NOMME la chose future (#1732, muet pendant
+// deux revues) : le commentaire décrit un état à venir au lieu de ce que le code rend — excuse au sens de 6b.
 // CE QUE LE MOTIF FAIT, exactement : une des trois locutions d'attente (plantées en littéral dans le
 // test, #828 — ce module est scanné par sa propre garde) suivie, DANS LA MÊME PHRASE, d'un MARQUEUR DE
 // DETTE (`MARQUEUR_ATTENTE` ci-dessous) — la chose future est un artefact de chantier : une primitive,

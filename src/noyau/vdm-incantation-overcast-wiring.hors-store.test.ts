@@ -10,6 +10,7 @@ import { createHero } from '../engine/character';
 import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -26,15 +27,15 @@ function openCast() {
   W.spells = ['allure-demoniaque'];
   W.characteristics.sociabilite = 40;
   banc.setState({ party: [W] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
   const b = banc.getState().battle!;
   const heroC = b.combatants.find((c) => c.label === 'W')!;
   banc.setState({ battle: { ...b, turn: b.order.indexOf(heroC.id), action: 'cast', selectedSpellId: 'allure-demoniaque', acted: false } });
-  banc.getState().battleClickEntity(heroC.id);
+  cliquerSurLeCombattant(banc.getState, heroC.id);
   banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: critRes } }));
   banc.getState().jetRegler('cast', 'effetCritique', 'puissance');
 }

@@ -159,7 +159,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
 
   /**
    * EFFETS DE CAMPAGNE, relus par glob — chacun est une RÉFÉRENCE, jamais une valeur devinée :
-   * `adjustManann` porte un facteur du catalogue (`MANANN_FACTORS`, jamais un delta brut),
+   * l'op `manann` porte un facteur du catalogue (`MANANN_FACTORS`, jamais un delta brut),
    * `setVessel` un véhicule du catalogue et un roster de rôles réels en effectif non nul,
    * `setObjective` un id d'objectif non vide (la pile est keyée par id STABLE).
    */
@@ -167,8 +167,12 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     const doc = parseProject(lireProjetLivre(file));
     const fautifs: string[] = [];
     for (const { sceneId, eff } of effetsDuProjet(doc)) {
-      if (eff.type === 'adjustManann' && (!eff.factorId || !findManannFactor(eff.factorId)))
-        fautifs.push(`${sceneId} : adjustManann sans facteur du catalogue (« ${String(eff.factorId)} »)`);
+      if (eff.type === 'ops') {
+        for (const o of eff.ops) {
+          if (o.op === 'manann' && (!o.factorId || !findManannFactor(o.factorId)))
+            fautifs.push(`${sceneId} : op manann sans facteur du catalogue (« ${String(o.factorId)} »)`);
+        }
+      }
       if (eff.type === 'setVessel') {
         if (!findVehicleById(eff.vehicleId)) fautifs.push(`${sceneId} : setVessel « ${eff.vehicleId} » absent de vehicles.json`);
         for (const hire of eff.crew ?? []) {
@@ -190,8 +194,8 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
       for (const enc of sc.encounters) {
         const vc = enc.victoryCondition;
         if (vc?.type !== 'woundsThreshold') continue;
-        if (!ids.has(vc.targetId)) fautifs.push(`${sc.id}/${enc.id} : cible « ${vc.targetId} » absente de la scène`);
-        if (!(vc.belowPercent > 0 && vc.belowPercent <= 100)) fautifs.push(`${sc.id}/${enc.id} : seuil ${vc.belowPercent} % hors ]0,100]`);
+        if (vc.targetId !== undefined && !ids.has(vc.targetId)) fautifs.push(`${sc.id}/${enc.id} : cible « ${vc.targetId} » absente de la scène`);
+        if (!(vc.atOrBelowPercent > 0 && vc.atOrBelowPercent <= 100)) fautifs.push(`${sc.id}/${enc.id} : seuil ${vc.atOrBelowPercent} % hors ]0,100]`);
       }
     }
     expect(fautifs).toEqual([]);
@@ -203,7 +207,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
    */
   it.each(bundledFiles.map((f) => [f] as const))('%s : aucun jargon technique dans les textes joueur', (file) => {
     const doc = parseProject(lireProjetLivre(file));
-    const jargon = /`|INEXPRIMABLE|CONTOURN|\bstate\.|\bvessel\.|\bTODO\b|seaVoyageFlow|op:'testMod'|engine\/ops\.ts|adjustManann|adjustVessel|setVessel|setObjective|saboteurDR|factorId|woundsThreshold|[A-Z]{2,4} \d+ l\.\d/;
+    const jargon = /`|INEXPRIMABLE|CONTOURN|\bstate\.|\bvessel\.|\bTODO\b|seaVoyageFlow|op:'testMod'|engine\/ops\.ts|adjustVessel|setVessel|setObjective|saboteurDR|factorId|woundsThreshold|[A-Z]{2,4} \d+ l\.\d/;
     const fautifs: string[] = [];
     for (const sc of doc.scenes)
       for (const d of sc.dialogues)

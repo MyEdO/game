@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
 import { scanHardcode } from '../scripts/guards/lib/hardcode.mjs';
 import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 
@@ -34,7 +35,7 @@ import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVit
  */
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const SCAN_DIRS = ['src/engine', 'src/state', 'src/noyau'];
+const SCAN_DIRS = porteeDeGarde(['engine', 'noyau'], ['state']);
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel);
 
 /** Baseline gelée par fichier (recensement Lot 8, 2026-07-06 — total 12 sites sur 7 fichiers ;
@@ -90,8 +91,8 @@ const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel);
  *       masqué par la machinerie) : `engine/conditions.ts` (l.446, gate `isOutOfAction` coque —
  *       `hasCondition(c, 'naufrage')`), `engine/exposure.ts` (l.111, gate hypothermie), `engine/rest.ts`
  *       (5 sites revélés : l.97/112/113/141/155, instrumentation `stacks(c, 'extenue'/'inconscient'/
- *       'a-terre')` masquée derrière `const/let … = stacks(` ou `removeCondition`), `state/
- *       outOfCombatUpkeep.ts` (l.11, gate de veille), `noyau/travelFlow.ts` (l.687) et `state/
+ *       'a-terre')` masquée derrière `const/let … = stacks(` ou `removeCondition`), `noyau/
+ *       outOfCombatUpkeep.ts` (l.11, gate de veille), `noyau/travelFlow.ts` (l.687) et `noyau/
  *       travelPostes.ts` (l.278,308) — fatigue `extenue` par-nom en instrumentation de voyage. */
 const BASELINES: Record<string, number> = {
   'src/engine/traits/dispatch.ts': 2,

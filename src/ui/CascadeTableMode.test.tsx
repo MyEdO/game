@@ -254,14 +254,14 @@ describe('Mode table — les deux affordances d’une étape à table', () => {
     render();
     typeSlowly('9');
     const fige = useGame.getState().pendingCascade!.participants[0].table!.result;
-    act(() => { useGame.getState().jetConfirm('cascade'); }); // conséquence de s1 appliquée, curseur sur s2
+    act(() => { useGame.getState().jetValider('cascade'); }); // conséquence de s1 appliquée, curseur sur s2
     // Le champ à l'écran est celui de s2 : y saisir n'écrit PAS sur l'étape figée.
     typeSlowly('72');
     const parts = () => useGame.getState().pendingCascade!.participants;
     expect(parts()[0].table!.result, 'le dé d’une étape déjà subie ne se réécrit pas depuis l’étape suivante').toEqual(fige);
     expect(parts()[1].table!.result).toMatchObject({ roll: 72, id: 'haute' });
     // BILAN (« Tout lancer » → curseur en fin) : plus AUCUNE affordance de pose à l'écran.
-    act(() => { useGame.getState().jetConfirm('cascade'); });
+    act(() => { useGame.getState().jetValider('cascade'); });
     expect(useGame.getState().pendingCascade, 'la cascade se referme après la dernière étape').toBeNull();
   });
 
@@ -276,7 +276,7 @@ describe('Mode table — les deux affordances d’une étape à table', () => {
       steps: [{ ...tableStep(T), id: 's1' }, { ...tableStep(T), id: 's2' }],
     });
     render();
-    act(() => { useGame.getState().jetRoll('cascade'); });
+    act(() => { useGame.getState().jetLancer('cascade'); });
     const p = useGame.getState().pendingCascade!;
     expect(p.cursor).toBe(p.participants.length);
     expect(dieInput(), 'un champ au bilan proposerait de re-tirer une conséquence déjà subie').toBeNull();
@@ -426,7 +426,7 @@ describe('Mode table — plancher ≠ 1 : l’écran affiche le dé du RÉSOLVEU
       steps: [{ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: T11, mod: -20, clamp: true, forcedRoll: 15 }}],
     });
     render();
-    act(() => { useGame.getState().jetRoll('cascadeTirage', 'tm'); });
+    act(() => { useGame.getState().jetLancer('cascadeTirage', 'tm'); });
     render();
     expect(result(), 'le résolveur ne borne pas au plancher de la table').toMatchObject({ roll: 15, die: 11, id: 'basse' });
     const champ = host.querySelector('.rm-die-pick .hint')?.textContent ?? '';
@@ -508,7 +508,7 @@ describe('Après la pose — l’étape reste lisible à l’état résolu (verd
     // La prose de s1 n'existe qu'À LA VALIDATION (l'applier la produit) : elle ne pouvait apparaître
     // que dans la PILE des étapes validées — c'est exactement ce que la purge retire.
     const proseS1 = 'Sigmund — Événement';
-    act(() => { useGame.getState().jetConfirm('cascade'); }); // s1 validée → le corps passe à s2
+    act(() => { useGame.getState().jetValider('cascade'); }); // s1 validée → le corps passe à s2
     render();
     expect(useGame.getState().pendingCascade!.cursor).toBe(1);
     expect(host.textContent, 'la prose de s1 traîne encore sous le titre de s2').not.toContain(proseS1);
@@ -581,7 +581,7 @@ describe('bandes successives — le corps ne rend QUE la bande courante', () => 
     expect(host.textContent).toContain('Animosité-A1');
     expect(host.textContent).toContain('Animosité-A2');
     act(() => { rollBand(); });
-    act(() => { useGame.getState().jetConfirm('cascade'); });
+    act(() => { useGame.getState().jetValider('cascade'); });
     render();
     expect(useGame.getState().pendingCascade!.cursor).toBe(1);
     expect(host.textContent, 'le titre de la bande courante est bien celui de la 2ᵉ').toContain('Haine');
@@ -601,9 +601,9 @@ describe('BILAN — un tirage joué se VOIT, même sans conséquence écrite (#1
     // table que le socle a tirée pour un porteur qu'aucun siège ne tient n'aurait JAMAIS été vue.
     // L'applier-espion `uiTableSpy` ne rend aucune conséquence : l'étape n'a donc pas d'`outcome`.
     openTable();
-    act(() => { useGame.getState().jetRoll('cascadeTirage', 'tm'); });
+    act(() => { useGame.getState().jetLancer('cascadeTirage', 'tm'); });
     const tire = result()!;
-    act(() => { useGame.getState().jetRoll('cascade'); }); // COMMIT sans fermer → curseur en fin = BILAN
+    act(() => { useGame.getState().jetLancer('cascade'); }); // COMMIT sans fermer → curseur en fin = BILAN
     const casc = useGame.getState().pendingCascade!;
     expect(casc.cursor, 'prémisse : on est bien au bilan').toBe(casc.participants.length);
     expect(casc.participants[0].outcome ?? [], 'prémisse : aucune conséquence écrite').toHaveLength(0);
@@ -670,7 +670,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
   it('APRÈS le dé, MÊME fenêtre : la ligne de tirage en TÊTE, le Critique, puis les voies Dévier/Subir', () => {
     openCritique();
     const id = useGame.getState().pendingCascade!.participants[0].id;
-    act(() => { useGame.getState().jetRoll('cascadeTirage', id); });
+    act(() => { useGame.getState().jetLancer('cascadeTirage', id); });
     const apres = useGame.getState().pendingCascade!.participants[0];
     expect(apres.deviation?.crit, 'prémisse : le PLI post-dé a posé le Critique').toBeTruthy();
     render();
@@ -703,7 +703,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
   it('les voies sont rendues SANS branche par clé : « Dévier » est active, et une voie à `refus` porte sa cause', () => {
     openCritique();
     const id = useGame.getState().pendingCascade!.participants[0].id;
-    act(() => { useGame.getState().jetRoll('cascadeTirage', id); });
+    act(() => { useGame.getState().jetLancer('cascadeTirage', id); });
     render();
     const devier = boutonTexte('Dévier')!;
     expect(devier.getAttribute('aria-disabled'), '« Dévier » est rendue refusée alors que l’étape l’OFFRE.').not.toBe('true');
@@ -738,7 +738,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
     setDesFixes(true);
     openCritique();
     const id = useGame.getState().pendingCascade!.participants[0].id;
-    act(() => { useGame.getState().jetSetForcedRoll('cascadeTirage', 76, id); });
+    act(() => { useGame.getState().jetImposerLeResultat('cascadeTirage', 76, id); });
     const etape = () => useGame.getState().pendingCascade!.participants[0];
     expect(etape().options?.length, 'prémisse : l’étape porte bien ses voies').toBeGreaterThan(0);
     render();

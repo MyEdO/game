@@ -1,5 +1,5 @@
 /**
- * Composition d'équipe coop (partyAddHero/partyRemoveHero + emplacements `net.slots`) :
+ * Composition d'équipe coop (recruterLeHeros/renvoyerLeHeros + emplacements `net.slots`) :
  * point d'entrée unique de l'écran d'équipe — quota par siège, doublons, bourse, possession.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -30,50 +30,50 @@ function hero(id: string): Combatant {
 }
 
 describe('composition d’équipe (partyFlow + net.slots)', () => {
-  it('partyAddHero : le noyau bâtit le héros du brouillon, pose la possession du siège, crédite sa Richesse de départ', () => {
-    banc.getState().partyAddHero(engage('a', 'Anna'));
+  it('recruterLeHeros : le noyau bâtit le héros du brouillon, pose la possession du siège, crédite sa Richesse de départ', () => {
+    banc.getState().recruterLeHeros(engage('a', 'Anna'));
     const s = banc.getState();
     expect(s.party.map((h) => [h.id, h.label, h.career])).toEqual([['a', 'Anna', brouillonComplet().careerId]]);
     expect(s.net.ownership['a']).toBe(0);
     expect(toBrass(bourseOf(s.party[0]))).toBe(toBrass(draftWealth(brouillonComplet()).montant));
   });
 
-  it('partyAddHero : un brouillon incomplet est refusé par sa première étape invalide, rien n’entre', () => {
-    banc.getState().partyAddHero({ brouillon: newDraft(4242), id: 'a' });
+  it('recruterLeHeros : un brouillon incomplet est refusé par sa première étape invalide, rien n’entre', () => {
+    banc.getState().recruterLeHeros({ brouillon: newDraft(4242), id: 'a' });
     const { party, journal } = banc.getState();
     expect(party).toEqual([]);
     expect(journal[journal.length - 1]).toBe('Choisissez votre race.');
   });
 
-  it('partyAddHero : un pré-tiré se désigne par son id, le noyau le bâtit de la donnée', () => {
+  it('recruterLeHeros : un pré-tiré se désigne par son id, le noyau le bâtit de la donnée', () => {
     const [def] = pregens;
-    banc.getState().partyAddHero({ pretire: def.id });
+    banc.getState().recruterLeHeros({ pretire: def.id });
     expect(banc.getState().party.map((h) => [h.id, h.label])).toEqual([[`pregen-${def.seed}`, def.label]]);
   });
 
-  it('partyAddHero : refuse les doublons d’id et le groupe plein', () => {
+  it('recruterLeHeros : refuse les doublons d’id et le groupe plein', () => {
     const st = banc.getState();
-    st.partyAddHero(engage('a'));
-    st.partyAddHero(engage('a'));
+    st.recruterLeHeros(engage('a'));
+    st.recruterLeHeros(engage('a'));
     expect(banc.getState().party).toHaveLength(1);
-    for (const id of ['b', 'c', 'd', 'e']) banc.getState().partyAddHero(engage(id));
+    for (const id of ['b', 'c', 'd', 'e']) banc.getState().recruterLeHeros(engage(id));
     expect(banc.getState().party).toHaveLength(4); // 'e' refusé
   });
 
-  it('partyAddHero : respecte le quota d’emplacements du siège (hôte autoritaire)', () => {
+  it('recruterLeHeros : respecte le quota d’emplacements du siège (hôte autoritaire)', () => {
     banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 0, 1] } });
     const st = banc.getState();
-    withActingSeat(1, () => st.partyAddHero(engage('g1')));
-    withActingSeat(1, () => st.partyAddHero(engage('g2'))); // 1 seul slot au siège 1 → refusé
+    withActingSeat(1, () => st.recruterLeHeros(engage('g1')));
+    withActingSeat(1, () => st.recruterLeHeros(engage('g2'))); // 1 seul slot au siège 1 → refusé
     const s = banc.getState();
     expect(s.party.map((h) => h.id)).toEqual(['g1']);
     expect(s.net.ownership['g1']).toBe(1);
   });
 
-  it('partyRemoveHero : le siège retire SON héros et nettoie sa possession', () => {
+  it('renvoyerLeHeros : le siège retire SON héros et nettoie sa possession', () => {
     banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
-    withActingSeat(1, () => banc.getState().partyAddHero(engage('g1')));
-    withActingSeat(1, () => banc.getState().partyRemoveHero('g1'));
+    withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
+    withActingSeat(1, () => banc.getState().renvoyerLeHeros('g1'));
     const s = banc.getState();
     expect(s.party).toHaveLength(0);
     expect(s.net.ownership['g1']).toBeUndefined();
@@ -81,10 +81,10 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
 
   it('D4 — l’hôte ne retire, ne remplace ni ne modifie le héros d’un invité : refusé, le refus au journal', () => {
     banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
-    withActingSeat(1, () => banc.getState().partyAddHero(engage('g1')));
+    withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
     const journal = banc.getState().journal.length;
-    banc.getState().partyRemoveHero('g1');
-    banc.getState().partyReplaceHero('g1', engage('z'));
+    banc.getState().renvoyerLeHeros('g1');
+    banc.getState().remplacerLeHeros('g1', engage('z'));
     const s = banc.getState();
     expect(s.party.map((h) => h.id)).toEqual(['g1']);
     expect(s.net.ownership['g1']).toBe(1);
@@ -93,15 +93,15 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     expect(refusDeComposerLeHeros(s, 'g1', 1)).toBeNull();
   });
 
-  it('partyReplaceHero : substitution EN PLACE (index/ordre préservés), possession transférée, la Bourse du remplacé portée, aucune Richesse créditée', () => {
+  it('remplacerLeHeros : substitution EN PLACE (index/ordre préservés), possession transférée, la Bourse du remplacé portée, aucune Richesse créditée', () => {
     const st = banc.getState();
-    st.partyAddHero(engage('a'));
-    st.partyAddHero(engage('b'));
-    st.partyAddHero(engage('c'));
+    st.recruterLeHeros(engage('a'));
+    st.recruterLeHeros(engage('b'));
+    st.recruterLeHeros(engage('c'));
     const bourseDe = (id: string) => toBrass(bourseOf(banc.getState().party.find((h) => h.id === id)!));
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
     const bourseDeA = bourseDe('a');
-    banc.getState().partyReplaceHero('a', engage('z')); // remplace le 1er de 3
+    banc.getState().remplacerLeHeros('a', engage('z')); // remplace le 1er de 3
     const s = banc.getState();
     expect(s.party.map((h) => h.id)).toEqual(['z', 'b', 'c']); // longueur 3, ordre conservé, a→z en place
     expect(s.net.ownership['z']).toBe(0); // possession transférée au siège
@@ -111,20 +111,20 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore);
   });
 
-  it('partyReplaceHero : rejette un oldId inconnu, et un hero.id déjà présent en le disant', () => {
+  it('remplacerLeHeros : rejette un oldId inconnu, et un hero.id déjà présent en le disant', () => {
     const st = banc.getState();
-    st.partyAddHero(engage('a'));
-    st.partyAddHero(engage('b'));
-    banc.getState().partyReplaceHero('zzz', engage('z')); // ancien absent → no-op
+    st.recruterLeHeros(engage('a'));
+    st.recruterLeHeros(engage('b'));
+    banc.getState().remplacerLeHeros('zzz', engage('z')); // ancien absent → no-op
     expect(banc.getState().party.map((h) => h.id)).toEqual(['a', 'b']);
-    banc.getState().partyReplaceHero('a', engage('b'));
+    banc.getState().remplacerLeHeros('a', engage('b'));
     expect(banc.getState().party.map((h) => h.id)).toEqual(['a', 'b']);
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('pf.partyDuplicate', { name: 'Héros b' }));
   });
 
-  it('setHeroBackground : édite Motivation + Ambitions sur le héros du groupe (hors combat)', () => {
-    banc.getState().partyAddHero(engage('a'));
-    banc.getState().setHeroBackground('a', { motivation: 'Foi', ambitionShort: 'Survivre', ambitionLong: 'Régner' });
+  it('ecrireLHistorique : édite Motivation + Ambitions sur le héros du groupe (hors combat)', () => {
+    banc.getState().recruterLeHeros(engage('a'));
+    banc.getState().ecrireLHistorique('a', { motivation: 'Foi', ambitionShort: 'Survivre', ambitionLong: 'Régner' });
     const h = banc.getState().party.find((x) => x.id === 'a')!;
     expect(h.motivation).toBe('Foi');
     expect(h.details?.ambitionShort).toBe('Survivre');
@@ -136,25 +136,25 @@ const occupants = (b: Banc) => emplacementsDuGroupe(b.getState()).map((e) => e.h
 
 describe('le rang de chaque héros est un état du jeu (`net.rangs`, #3059 F10)', () => {
   it('solo : un héros retiré laisse son rang vide en place, le suivant recruté y entre', () => {
-    for (const id of ['a', 'b', 'c']) banc.getState().partyAddHero(engage(id));
-    banc.getState().partyRemoveHero('b');
+    for (const id of ['a', 'b', 'c']) banc.getState().recruterLeHeros(engage(id));
+    banc.getState().renvoyerLeHeros('b');
     expect(occupants(banc)).toEqual(['a', null, 'c', null]);
-    banc.getState().partyAddHero(engage('d'));
+    banc.getState().recruterLeHeros(engage('d'));
     expect(occupants(banc)).toEqual(['a', 'd', 'c', null]);
   });
 
   it('remplacer garde le rang ; le rang voyage dans l’état (`net.rangs`)', () => {
-    for (const id of ['a', 'b']) banc.getState().partyAddHero(engage(id));
-    banc.getState().partyRemoveHero('a');
-    banc.getState().partyReplaceHero('b', engage('z'));
+    for (const id of ['a', 'b']) banc.getState().recruterLeHeros(engage(id));
+    banc.getState().renvoyerLeHeros('a');
+    banc.getState().remplacerLeHeros('b', engage('z'));
     expect(occupants(banc)).toEqual([null, 'z', null, null]);
     expect(banc.getState().net.rangs).toEqual({ z: 1 });
   });
 
   it('coop : un héros ajouté par un siège entre dans un emplacement de CE siège ; fermer le siège garde son rang', () => {
     banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 1, 0] } });
-    withActingSeat(1, () => banc.getState().partyAddHero(engage('g1')));
-    banc.getState().partyAddHero(engage('h1'));
+    withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
+    banc.getState().recruterLeHeros(engage('h1'));
     expect(occupants(banc)).toEqual(['h1', null, 'g1', null]);
     banc.setState({ net: fermerLeSiege(banc.getState().net, 1) });
     expect(emplacementsDuGroupe(banc.getState())[2]).toEqual({ rang: 2, siege: 0, heroId: 'g1', proprietaire: 0 });
@@ -180,7 +180,7 @@ describe('lancer la partie : `refusDeLancer`, lu par `lancerCampagne` (#3059 F10
 
   it('un groupe dont chaque siège invité a rempli ses emplacements se lance', () => {
     banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
-    withActingSeat(1, () => banc.getState().partyAddHero(engage('g1')));
+    withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
     expect(refusDeLancer(banc.getState())).toBeNull();
   });
 });

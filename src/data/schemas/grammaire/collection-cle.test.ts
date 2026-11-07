@@ -67,6 +67,7 @@ describe('anti-perte — le seul détecteur du zéro SILENCIEUX', () => {
  */
 const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
   '.scenes[].effectZones[].onCross[]^summon.addTraits[]': 'références de Traits (traits.json)',
+  '.scenes[].effectZones[].onCross[]^combatEnMer.adversaire.optionals[]': 'références de Traits facultatifs (traits.json)',
   '.scenes[].effectZones[].onCross[]^suppressTalents.talents[]': 'références de Talents (talents.json)',
   '.scenes[].effectZones[].onCross[]^testMod.exceptSkills[]': 'références de Compétences (skills.json)',
   '.scenes[].triggers[].when.of[]': 'conditions composées : `id` d’un objet/talent désigné',

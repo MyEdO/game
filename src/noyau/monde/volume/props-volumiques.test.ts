@@ -2,7 +2,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { describe, expect, it } from 'vitest';
 import { scenarioEntities } from '../../../scenes/opera/furnished';
 import { buildOperaFloorplan } from '../../../scenes/opera/floorplan';
-import { findPropById, props } from '../../../data';
+import { findPropById } from '../../../data';
 import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, placesLocalesDuProp, PROP_CYLINDER_AXES, REPERE_D_AXE, type PropCylinderSides, type PropData, type PropPrimitive } from '../../../data/props.types';
 import { buildPropVolumes } from './propVolumes';
 import { facePoly, polyNormal } from './worldTris';
@@ -17,8 +17,8 @@ import { IDS, METRES_PAR_CASE, centroide, corpsEtSieges, emprise, propEntity, pr
 
 /**
  * LE DÉCOR VOLUMIQUE — les refs de `props.json` dont le corps MONDE est leur recette : son identité (recette + places),
- * son empreinte dérivée, sa population authorée et sa coquille. La vignette, l'émetteur et la cuisson de l'hôte web se
- * mesurent chez lui (`src/gameIso/catalog/props-volumiques.test.ts`, #3556). La liste (`IDS`) est DÉRIVÉE du
+ * son empreinte dérivée, sa population authorée et sa coquille. La vignette, l'émetteur et la cuisson se
+ * mesurent chez l'hôte. La liste (`IDS`) est DÉRIVÉE du
  * catalogue (`decorVolumique.testkit.ts`).
  */
 /** La seule scène écrite en TS — le second gisement d'instances authorées, invisible au corpus. */
@@ -152,7 +152,7 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
   /**
    * LE CONTRAT DU SOCLE, en ATTENDUS NOMINAUX : l'empreinte de chaque recette, à chacun de ses quatre
    * caps. C'est un GOLDEN voulu : l'intention de l'auteur, écrite une fois, contre laquelle se mesure
-   * ce que la dérivation rend — aucune recette ne porte de `foot` (refine `defs/props.ts`), et se
+   * ce que la dérivation rend — aucun décor ne déclare de cases (#3198), et se
    * comparer à ce que le code dérive lui-même ne rougirait jamais. La liste est CLOSE, et c'est la
    * COUVERTURE qui la ferme (ses clés sont EXACTEMENT le catalogue).
    *
@@ -195,7 +195,21 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
       'bureau', 'etabli',
       // #1343 — les décors organiques en volume sobre, chacun sur sa case à tous ses caps.
       'plante-pot', 'statue', 'colonne-brisee', 'lustre-opera', 'mannequin', 'mannequin-couturier',
+      // #3198 — le décor qui n'était dessiné qu'en SVG, modelé à son tour.
+      'feu-camp', 'brasero', 'chandelier', 'lampadaire', 'lanterne-de-poupe', 'marmite', 'foyer-de-forge',
+      'barriere', 'cloture', 'palissade', 'balustrade-loge', 'bastingage', 'escalier-bois', 'escalier-loge',
+      'gargouille', 'menhir', 'rocher', 'stalagmite', 'autel', 'arche-ruine', 'fontaine', 'puits',
+      'sarcophage', 'tombe', 'gibet', 'pilori', 'cage', 'cercle-runique', 'gravats',
+      'arbre', 'arbre-mort', 'souche', 'buisson', 'champignon', 'roseaux', 'nenuphars', 'tas-foin', 'terrier',
+      'cocon', 'toile', 'oeuf-dragon', 'cadavre', 'ossements', 'crane-monstre', 'trophee-cranes', 'mare-sang',
+      'detritus', 'banniere-chaos', 'etendard', 'rack-lances', 'tas-or', 'bourse', 'cle', 'lettre', 'panneau',
+      'pieu', 'grille', 'roue-dentee', 'enclume', 'cuve-brasserie', 'stalle-ecurie', 'rouleau-de-cordage',
+      'ecoutille', 'canon-de-pont', 'barre-de-navire', 'cabestan', 'mat-de-navire', 'ancre-de-navire',
     ], () => ({ ns: [1, 1], eo: [1, 1] })),
+    // #3198 — les grands décors gardent, par leur corps, les cases que leur billboard déclarait.
+    ...tableTotale(['abreuvoir', 'barque', 'lit', 'cheval-mort', 'passerelle-d-embarquement'], () => ({ ns: [2, 1], eo: [1, 2] })),
+    ...tableTotale(['idole-chaos', 'epave-carrosse', 'tente'], () => ({ ns: [2, 2], eo: [2, 2] })),
+    ...tableTotale(['tribune', 'balustrade-bois'], () => ({ ns: [3, 1], eo: [1, 3] })),
   };
 
   it('la liste des empreintes attendues couvre EXACTEMENT le catalogue des recettes', () => {
@@ -210,13 +224,6 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
       const [w, h] = facing === 'E' || facing === 'O' ? attendu.eo : attendu.ns;
       expect(empreinteDeriveeDuProp(findPropById(id)!, facing, METRES_PAR_CASE), `${id} cap ${facing}`).toEqual({ w, h });
     }
-  });
-
-  it('AUCUNE recette ne déclare de `foot` — c’est la vérité d’un BILLBOARD, et de lui seul (#1509)', () => {
-    expect(IDS.filter((id) => findPropById(id)!.foot !== undefined)).toEqual([]);
-    // Et le champ vit toujours, chez ceux à qui il appartient : sans cette moitié, le contrat
-    // ci-dessus passerait aussi sur un `foot` disparu du schéma.
-    expect(props.filter((p) => !p.volume && p.foot).length).toBeGreaterThan(0);
   });
 
   it.each(IDS)('%s : son CORPS (sièges exclus) tient dans son empreinte dérivée, à chacun de ses caps', (id) => {
@@ -304,7 +311,7 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
  *      montre (le panneau d'avertissements d'`Editor.tsx` est son seul consommateur) ;
  *   3. ÉDITEUR : le sélecteur d'orientation n'offre pas la diagonale (`Inspector.tsx`), et changer le
  *      type d'un décor fait retomber un cap refusé au cap d'identité (`changePropRef`) — testés chez eux ;
- *   4. ÉMETTEUR, chez l'hôte web (`src/gameIso/catalog/props-volumiques.test.ts`) : `buildProps` est TOTAL — une donnée fautive arrivée quand même (autosave, scène déjà
+ *   4. ÉMETTEUR, chez l'hôte : `buildProps` est TOTAL — une donnée fautive arrivée quand même (autosave, scène déjà
  *      chargée) sort en billboard d'ERREUR (#877), jamais dans l'art de son type, et le monde de
  *      l'éditeur survit pour que l'auteur lise la faute au validateur.
  */
@@ -320,8 +327,6 @@ describe('décor volumique — le cap DIAGONAL est refusé de bout en bout', () 
     expect(echec.success ? [] : echec.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`)).toEqual([
       "facing: décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
     ]);
-    // Un BILLBOARD au même cap passe : la règle vient du catalogue, pas du `kind`.
-    expect(sceneEntitySchema.safeParse(entiteBrute('brasero', 'NE')).success).toBe(true);
   });
 
   it('2. VALIDATEUR : `validateScene` signale l’entité, sans rien interdire', () => {

@@ -12,7 +12,7 @@
  *
  * La chaîne réparée : un Sort ennemi ouvre son étape en `groupOwner` (`combatFlow.openCastCascade`) →
  * `modalArbiter` rend l'owner `'*'` (pour que cible et contre-lanceurs voient la fenêtre) → sans route
- * par porteur, `intentAllowedFor` acceptait `jetForceSuccess('cast')` de N'IMPORTE quel siège.
+ * par porteur, `intentAllowedFor` acceptait `jetForcerLaReussite('cast')` de N'IMPORTE quel siège.
  *
  * LIMITE STRUCTURELLE (consigne de design, #1013) : la fixture `state()` ci-dessous POSE le pending
  * d'après la table elle-même (`[jet.pending]:{[jet.field]:…}`). Elle vérifie donc le ROUTAGE (le
@@ -211,7 +211,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
   /**
    * #1017 — l'ANNULATION d'un jet mono suit elle aussi le porteur. Sonde : le Test d'un héros du
    * siège 1 est l'étape COURANTE d'une cascade PARTAGÉE (`groupOwner` → owner de modale `'*'`, et
-   * `pendingTest` est un `covers` de cette entrée) ; hors route par porteur, `jetCancel('test')` retombait
+   * `pendingTest` est un `covers` de cette entrée) ; hors route par porteur, `jetAnnuler('test')` retombait
    * sur le repli `modalOwnerOf` et N'IMPORTE quel siège fermait le jet d'autrui.
    */
   it('(f) `cancel` : sur une fenêtre PARTAGÉE, seul le siège du porteur ferme le jet', () => {
@@ -244,12 +244,12 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     // Négociateur du siège HÔTE : le verdict s'inverse — l'hôte clôt, l'invité non (rien n'est ouvert
     // « à tous » par cette route).
     const h = state({ pending: 'pendingBargain', field: 'playerId' }, H_HOST, { pendingCascade: null } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(h, 0, 'jetConfirm', ['bargain'])).toBe(true);
-    expect(intentAllowedFor(h, 1, 'jetConfirm', ['bargain'])).toBe(false);
+    expect(intentAllowedFor(h, 0, 'jetValider', ['bargain'])).toBe(true);
+    expect(intentAllowedFor(h, 1, 'jetValider', ['bargain'])).toBe(false);
     // Évaluation : même contrat.
     const a = state({ pending: 'pendingAppraise', field: 'actorId' }, H_GUEST, { pendingCascade: null } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(a, 1, 'jetConfirm', ['appraise'])).toBe(true);
-    expect(intentAllowedFor(a, 0, 'jetConfirm', ['appraise'])).toBe(false);
+    expect(intentAllowedFor(a, 1, 'jetValider', ['appraise'])).toBe(true);
+    expect(intentAllowedFor(a, 0, 'jetValider', ['appraise'])).toBe(false);
   });
 
   it('SOLO (siège unique, aucune attribution) : le joueur garde ses propres dépenses', () => {

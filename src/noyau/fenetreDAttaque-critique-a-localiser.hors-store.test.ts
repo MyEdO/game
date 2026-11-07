@@ -11,6 +11,7 @@ import { createHero } from '../engine/character';
 import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => {
@@ -22,8 +23,8 @@ beforeEach(() => {
 function attaqueForcee(current: number) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -35,12 +36,12 @@ function attaqueForcee(current: number) {
   E.wounds = blessuresDeBase(30, current, E);
   E.talents = [{ talentId: 'chanceux', times: 1 }] as never; // AA 07 l.67 : hors Mort subite
   banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
-  banc.getState().battleClickEntity(E.id, { confirm: true });
+  cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
   seedBattleRng(3);
-  banc.getState().jetRoll('attack');
+  banc.getState().jetLancer('attack');
   expect(banc.getState().pendingAttack!.result!.hit, 'la graine fait rater le jet').toBe(false);
-  banc.getState().jetForceSuccess('attack');
-  banc.getState().jetSetForcedRoll('attack', 21);
+  banc.getState().jetForcerLaReussite('attack');
+  banc.getState().jetImposerLeResultat('attack', 21);
   expect(banc.getState().pendingAttack!.result!.hit).toBe(true);
 }
 

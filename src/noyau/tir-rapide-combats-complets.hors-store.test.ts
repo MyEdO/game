@@ -57,8 +57,8 @@ function deroule(main: boolean, pilote = main): Issue {
     if (s.pendingRoundStart) { g().fenetreValider('roundStart'); continue; }
     if (main) {
       const surDef = !s.pendingCascade || s.pendingCascade.participants[s.pendingCascade.cursor]?.jet === 'defense';
-      if (surDef && pd && !pd.result) { g().jetRoll('defense'); continue; }
-      if (surDef && pd?.result) { g().jetConfirm('defense'); continue; }
+      if (surDef && pd && !pd.result) { g().jetLancer('defense'); continue; }
+      if (surDef && pd?.result) { g().jetValider('defense'); continue; }
       if (s.pendingFateSave) { g().fenetreChoisir('fateSave', 'issue', 'negate'); if (g().pendingFateSave) g().fenetreChoisir('fateSave', 'issue', 'survive'); continue; }
       const c = s.battle.combatants.find((x) => x.id === s.battle!.order[s.battle!.turn]);
       if (c?.kind === 'hero' && !ouverts().length && s.battle.turn >= 0) { g().terminerLeTour(); banc.avancer(100); continue; }

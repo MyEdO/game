@@ -96,7 +96,7 @@ describe('option OFF — aucun sélecteur « dé fixé » nulle part, aucun effe
     // Le VERBE, lui, n'est pas gaté par l'option locale : c'est la seule façon qu'un geste d'invité
     // (dont l'option est ON chez LUI) aboutisse quand l'hôte l'applique — l'autorisation est portée
     // par le siège ÉMETTEUR (`intentAllowedFor`), pas par l'état local de celui qui exécute.
-    useGame.getState().jetSetForcedRoll('attack', 33);
+    useGame.getState().jetImposerLeResultat('attack', 33);
     expect(attackRoll()).toBe(33);
     expect(useGame.getState().pendingAttack!.fixed).toBe(true);
   });
@@ -162,11 +162,11 @@ describe('coop — le geste d’un INVITÉ sur SON héros ABOUTIT (jamais un rej
 
     // Côté HÔTE (siège 0) : la validation de possession accepte le geste du siège ÉMETTEUR…
     useGame.setState({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { A: 1 } } as never });
-    expect(intentAllowedFor(useGame.getState(), 1, 'jetSetForcedRoll', ['attack', 33])).toBe(true);
+    expect(intentAllowedFor(useGame.getState(), 1, 'jetImposerLeResultat', ['attack', 33])).toBe(true);
     // …et l'exécution ABOUTIT, même si l'hôte ne « contrôle » pas ce héros et n'a pas l'option.
     resetDesFixes();
     expect(canFixDie(useGame.getState(), 'A')).toBe(false);
-    useGame.getState().jetSetForcedRoll('attack', 33);
+    useGame.getState().jetImposerLeResultat('attack', 33);
     expect(attackRoll()).toBe(33);
     expect(useGame.getState().battle!.log.map((e) => e.text).join('\n'), 'combat ouvert : la ligne va au journal de combat (`journaliser`)').toContain('dé fixé');
   });
@@ -175,7 +175,7 @@ describe('coop — le geste d’un INVITÉ sur SON héros ABOUTIT (jamais un rej
 describe('Résilience — le choix du dé reste OFFERT sans l’option (deux affordances, un sélecteur)', () => {
   it('slot `forced` → sélecteur de Résilience (borné à la cible), option OFF', () => {
     setupAttack();
-    useGame.getState().jetForceSuccess('attack');
+    useGame.getState().jetForcerLaReussite('attack');
     const die = rowForcedDie(useGame.getState(), 'attack', { actor: useGame.getState().battle!.combatants[0], rolled: true } as never, true);
     expect(desFixes()).toBe(false);
     expect(die.forcedRoll).toBeDefined();
@@ -196,10 +196,10 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
   it('dé FIXÉ raté PUIS Résilience : la Résilience RE-TIRE le dé → la mention « dé fixé » s’efface', () => {
     openHandGate();
     setDesFixes(true);
-    useGame.getState().jetSetForcedRoll('handGate', 95);
+    useGame.getState().jetImposerLeResultat('handGate', 95);
     expect(useGame.getState().pendingHandGate!.fixed).toBe(true);
     expect(useGame.getState().pendingHandGate!.success).toBe(false); // évalué au naturel : 95 > 60
-    useGame.getState().jetForceSuccess('handGate');
+    useGame.getState().jetForcerLaReussite('handGate');
     const p = useGame.getState().pendingHandGate!;
     expect(p.forced).toBe(true);
     expect(p.success).toBe(true);

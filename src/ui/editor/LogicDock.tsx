@@ -492,7 +492,7 @@ function EncountersTab({
                   else if (t === 'destroyStructure') upd({ victoryCondition: { type: 'destroyStructure', edge: { x: 0, y: 0, side: 'N' } } });
                   else if (t === 'surviveRounds') upd({ victoryCondition: { type: 'surviveRounds', rounds: 3 } });
                   else if (t === 'reachZone') upd({ victoryCondition: { type: 'reachZone', rect: { x: 0, y: 0, w: 1, h: 1 } } });
-                  else if (t === 'woundsThreshold') upd({ victoryCondition: { type: 'woundsThreshold', targetId: members[0]?.entityId ?? '', belowPercent: 50 } });
+                  else if (t === 'woundsThreshold') upd({ victoryCondition: { type: 'woundsThreshold', ...(members[0] ? { targetId: members[0].entityId } : {}), atOrBelowPercent: 50 } });
                   else if (t === 'firstBlood') upd({ victoryCondition: { type: 'firstBlood', threshold: 3 } });
                 }}
               >
@@ -500,7 +500,7 @@ function EncountersTab({
                 <option value="destroyStructure">Détruire une structure (brèche)</option>
                 <option value="surviveRounds">Survivre N Rounds</option>
                 <option value="reachZone">Atteindre une zone</option>
-                <option value="woundsThreshold">Reddition à seuil de dommage</option>
+                <option value="woundsThreshold">Sortie à seuil de dommage</option>
                 <option value="firstBlood">Duel judiciaire — premier sang</option>
               </select>
             </label>
@@ -557,12 +557,13 @@ function EncountersTab({
           })()}
           {enc.victoryCondition?.type === 'woundsThreshold' && (() => {
             const vc = enc.victoryCondition!;
+            const seuil = (targetId: string | undefined, atOrBelowPercent: number) => upd({ victoryCondition: { type: 'woundsThreshold', ...(targetId ? { targetId } : {}), atOrBelowPercent } });
             return (
               <div className="enemy-mount">
-                <label title="Cible dont les Blessures sont surveillées : sous le seuil, elle amène son pavillon et sort du combat (reddition, #215).">
+                <label title="Cible dont les Blessures sont surveillées : au seuil, un navire amène son pavillon, une créature est repoussée, et elle sort du combat (#215). Chaque adversaire : chacun sort ainsi, la victoire vient quand aucun ne reste (MDG 15 l.143).">
                   Cible{' '}
-                  <select value={vc.targetId} onChange={(e) => upd({ victoryCondition: { type: 'woundsThreshold', targetId: e.target.value, belowPercent: vc.belowPercent } })}>
-                    <option value="">— aucune —</option>
+                  <select value={vc.targetId ?? ''} onChange={(e) => seuil(e.target.value || undefined, vc.atOrBelowPercent)}>
+                    <option value="">— chaque adversaire —</option>
                     {members.map((m) => (
                       <option key={m.entityId} value={m.entityId}>
                         {byId.get(m.entityId)?.label ?? byId.get(m.entityId)?.ref ?? m.entityId}
@@ -571,12 +572,12 @@ function EncountersTab({
                   </select>
                 </label>
                 <label>
-                  Sous{' '}
+                  À{' '}
                   <NumberField
-                    variant="nu" label="Seuil de Blessures (%)" min={1} max={99} value={vc.belowPercent}
-                    onChange={(belowPercent) => upd({ victoryCondition: { type: 'woundsThreshold', targetId: vc.targetId, belowPercent } })}
+                    variant="nu" label="Seuil de Blessures (%)" min={1} max={99} value={vc.atOrBelowPercent}
+                    onChange={(atOrBelowPercent) => seuil(vc.targetId, atOrBelowPercent)}
                   />
-                  % de ses Blessures
+                  % de ses Blessures ou moins
                 </label>
               </div>
             );

@@ -21,9 +21,9 @@ describe('combat-init-reroll — relance de l’Initiative par Round (LDB 13 l.4
   function openCombat() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     seedBattleRng(777);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
   }

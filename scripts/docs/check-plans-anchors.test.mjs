@@ -200,14 +200,14 @@ test('SENS 3 — un plan SUPPRIMÉ cité par son NOM NU, sans son dossier', () =
   const base = depot({
     'docs/plans/2026-01-01-vivant.md': PLAN_SAIN,
     'docs/plans/planche-defunte.html': '<!-- Ticket: #1 -->\n<p>maquette</p>\n',
-    'src/ui/Ecran.tsx': '// Étalon `planche-defunte.html`.\nexport const E = 1\n',
+    'src/noyau/Ecran.tsx': '// Étalon `planche-defunte.html`.\nexport const E = 1\n',
   })
   try {
     assert.equal(lancer(base).code, 0, 'le nom est vivant tant que le plan existe')
     tuerLePlan(base, 'docs/plans/planche-defunte.html')
     const { code, sortie } = lancer(base)
     assert.equal(code, 1, `nom nu d’un plan supprimé accepté : ${sortie}`)
-    assert.match(sortie, /src\/ui\/Ecran\.tsx:1\s+\[plan supprimé cité par son nom\]\s+cite « planche-defunte\.html » \(SUPPRIMÉ\)/)
+    assert.match(sortie, /src\/noyau\/Ecran\.tsx:1\s+\[plan supprimé cité par son nom\]\s+cite « planche-defunte\.html » \(SUPPRIMÉ\)/)
   } finally {
     rmSync(base, { recursive: true, force: true })
   }

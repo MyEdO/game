@@ -1,17 +1,17 @@
 import artilleryMisfireJson from './artillery-misfire.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
-import type { DiceSpec } from '../engine/dice';
+import type { DeDeTable } from '../engine/tables';
 import type * as incidentsDeSalve from './schemas/defs/artillery-misfire';
 
 /** La porte du dé authoré de la Salve (`authore`, lu en `de`) : un dé unique sans modificateur, sinon le chargement
  *  LÈVE. PURE. */
-export function deDeSalve(de: DiceSpec, authore: string): DiceSpec {
+function deDeSalve(de: DeDeTable, authore: string): DeDeTable {
   if (de.n !== 1 || (de.plus ?? 0) !== 0) throw new Error(`artillery-misfire.die exige un dé unique sans modificateur : ${authore}`);
   return de;
 }
 
 /** Le dé AUTHORÉ de la Salve (`die`), lu VIVANT à l'appel. AA 10 l.270-277 */
-export const artilleryMisfireDie = (): DiceSpec => deDeSalve(deDeTirageDe<typeof incidentsDeSalve>(artilleryMisfireJson), artilleryMisfireJson.die);
+export const artilleryMisfireDie = (): DeDeTable => deDeSalve(deDeTirageDe<typeof incidentsDeSalve>(artilleryMisfireJson), artilleryMisfireJson.die);
 
 /**
  * Incidents de Tir d'Artillerie par Salve — Aux Armes « Salve » (AA 10 l.270-277), transcrits

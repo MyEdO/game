@@ -92,12 +92,12 @@ export function ReloadModalView({
 export function ReloadModal() {
   const pr = useGame((s) => s.pendingReload);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetRoll', 'reload');
-  const reroll = useGesteDeJet('jetReroll', 'reload');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'reload');
-  const darkPact = useGesteDeJet('jetDarkPact', 'reload');
-  const confirm = useGesteDeJet('jetConfirm', 'reload');
-  const cancel = useGesteDeJet('jetCancel', 'reload');
+  const roll = useGesteDeJet('jetLancer', 'reload');
+  const reroll = useGesteDeJet('jetRelancer', 'reload');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'reload');
+  const darkPact = useGesteDeJet('jetPactiser', 'reload');
+  const confirm = useGesteDeJet('jetValider', 'reload');
+  const cancel = useGesteDeJet('jetAnnuler', 'reload');
   if (!pr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pr.actorId);
   return (

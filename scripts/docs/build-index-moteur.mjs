@@ -89,7 +89,6 @@ function rendu() {
   out += `sous le concept « ${esc(FILE_CONCEPTS.get('src/engine/creation.ts'))} ».\n\n`
 
   out += `## Périmètre mesuré et angles morts (non couverts, à dire pour ne pas se lire comme exhaustif)\n\n`
-  out += `- **\`src/state\`** est HORS périmètre de ce lot — le store/les flux ont leurs propres coutures, non indexées ici.\n`
   out += `- **Ré-exports** (\`export { x } from '…'\`, \`export * from '…'\`) et **exports par défaut anonymes** : pas de\n`
   out += `  déclaration nommée directe à ce niveau, donc pas de ligne/JSDoc à rapporter honnêtement — absents de la table.\n`
   out += `- **Déstructuration exportée** (\`export const { a, b } = …\`) : hors périmètre, même raison.\n`

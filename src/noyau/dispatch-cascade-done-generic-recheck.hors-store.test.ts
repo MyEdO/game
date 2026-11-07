@@ -52,8 +52,8 @@ describe('dispatchCascadeDone — re-check TOUT-PURPOSE de checkBattleOver (#345
     });
 
     // Clôture de la cascade PAR LES ACTIONS réelles (pas de `checkBattleOver` rappelé à la main) : le
-    // seul step est une « affichage », toujours prêt → `jetConfirm('cascade')` la ferme d'un coup.
-    get().jetConfirm('cascade');
+    // seul step est une « affichage », toujours prêt → `jetValider('cascade')` la ferme d'un coup.
+    get().jetValider('cascade');
 
     // Le re-check générique doit avoir statué : combat terminé, Victoire enchaînée (le dernier ennemi
     // était déjà mort AVANT l'ouverture de la cascade hypothétique).

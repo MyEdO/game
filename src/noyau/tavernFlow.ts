@@ -48,6 +48,7 @@ import { refuseSi } from './verrousDeFiche';
 import { refuserGeste } from './refusVisible';
 import { rule } from '../engine/policy';
 import type { Jeu } from './etat';
+import type { IdDEntiteDeScene, IdDeHeros, IdDeJeuDeTaverne, IdDeProfilStandard } from './designations';
 import { bourseOf } from '../engine/bourse';
 import {
   freeCons, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget, tableStep, displayStep,
@@ -85,9 +86,9 @@ import type { FragmentDeTables, PartDeTable } from './tablesPosees';
  *  · `profil` : un habitué sans entité de scène, au profil standard choisi (`pnjAuProfil`, `LDB 77 l.7`).
  */
 export type TavernOpponent =
-  | { kind: 'hero'; id: string }
-  | { kind: 'npc'; id: string }
-  | { kind: 'profil'; id: string };
+  | { kind: 'hero'; id: IdDeHeros }
+  | { kind: 'npc'; id: IdDEntiteDeScene }
+  | { kind: 'profil'; id: IdDeProfilStandard };
 
 /** Résultat de la dernière partie (affiché dans la modale). Étend l'issue moteur des libellés/mise. */
 export interface TavernGamesResult extends TavernGameResult {
@@ -195,7 +196,7 @@ export function refusDOuvrirLaTaverne(s: Pick<Jeu, 'net'>): string | null {
 
 /** OUVRE la table. `npcId` = le PNJ qui PROPOSE la partie (son dialogue vient de l'ouvrir) : la
  *  modale s'ouvre sur SON offre. GÉNÉRIQUE — tout PNJ à `tavernGame` en hérite, aucun n'est nommé. */
-export function openTavernGames(get: Get, set: Set, npcId?: string): void {
+export function ouvrirLesJeux(get: Get, set: Set, npcId?: string): void {
   if (refuseSi(get, set, refusDOuvrirLaTaverne)) return;
   set({ tavernGames: { result: null, ...(npcId ? { npcId } : {}) } });
 }
@@ -357,7 +358,7 @@ function potSeats(challenger: Combatant, opponentHero: Combatant | undefined, op
 /** Réglage d'une partie : le jeu, le challenger, son vis-à-vis, la mise unitaire (sous de cuivre),
  *  le coéquipier d'un jeu d'équipe, l'effectif d'une table de pot. */
 export interface ReglageDePartie {
-  gameId: string; challengerId: string; opponent: TavernOpponent; stakeBrass?: number; allyProfil?: string; tablePlayers?: number;
+  gameId: IdDeJeuDeTaverne; challengerId: IdDeHeros; opponent: TavernOpponent; stakeBrass?: number; allyProfil?: IdDeProfilStandard; tablePlayers?: number;
 }
 
 /** Partie prête à jouer : ses acteurs résolus et sa mise plafonnée à la bourse du challenger. */
@@ -381,7 +382,7 @@ export function refusDAdversaire(s: Jeu, gameId: string, challengerId: string, k
  * Résout le réglage d'une partie, ou dit pourquoi elle ne s'ouvre pas : table d'hôte
  * (`refusDeTableDHote`), séquence déjà active, jeu inconnu, challenger absent, coéquipier d'un jeu
  * d'équipe, genre de vis-à-vis non offert (`refusDAdversaire`), vis-à-vis absent, profil de coéquipier inconnu, mise absente d'un jeu de pot. SOURCE
- * UNIQUE de `refusDeJouer` et de `playTavernGame`.
+ * UNIQUE de `refusDeJouer` et de `jouerALaTaverne`.
  */
 function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus: string } {
   const refusHote = refusDeTableDHote(s);
@@ -414,7 +415,7 @@ function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus:
   return { game, challenger, opponentActor, allie, stakeBrass };
 }
 
-/** Pourquoi la partie réglée par `opts` ne s'ouvre pas, ou `null` — verdict UNIQUE de `playTavernGame`
+/** Pourquoi la partie réglée par `opts` ne s'ouvre pas, ou `null` — verdict UNIQUE de `jouerALaTaverne`
  *  et de la modale (`preparerLaPartie`). */
 export function refusDeJouer(s: Jeu, opts: ReglageDePartie): string | null {
   const p = preparerLaPartie(s, opts);
@@ -426,7 +427,7 @@ export function refusDeJouer(s: Jeu, opts: ReglageDePartie): string | null {
  * MISE UNITAIRE d'un jeu de pot, plafonnée à la bourse du challenger (`preparerLaPartie`) ; refusée,
  * la partie le DIT (`refusDeJouer`).
  */
-export function playTavernGame(get: Get, set: Set, opts: ReglageDePartie): void {
+export function jouerALaTaverne(get: Get, set: Set, opts: ReglageDePartie): void {
   const p = preparerLaPartie(get(), opts);
   if ('refus' in p) { refuserGeste(get, set, p.refus); return; }
   const { game, challenger, opponentActor, allie, stakeBrass } = p;
@@ -878,7 +879,7 @@ function tavernTeamRound(get: Get, seq: SequenceState<TavernPayload>): SequenceR
   return { title: titre, icon: 'nav/dice', steps, payload: { ...p, choices: {} } };
 }
 
-/** La partie et son challenger, validés par `playTavernGame` à l'ouverture : leur absence en cours de
+/** La partie et son challenger, validés par `jouerALaTaverne` à l'ouverture : leur absence en cours de
  *  séquence est un défaut, jamais un retour muet (#1906). */
 function partieEnCours(get: Get, p: TavernPayload, site: string): { game: TavernGame; challenger: Combatant } {
   return {
@@ -1315,7 +1316,7 @@ function potOuvreManche(get: Get, seq: SequenceState<TavernPayload>, game: Taver
   if (enJeu.length < 2) return potFin({ ...p, out, pot: 0, mises: {} }, [...log, t('tavern.potPlusDeJoueurs')]);
   // Le socle ne journalise le `log` d'une manche que si elle est résolue d'office : une sortie de
   // table doit rester au journal.
-  for (const ligne of log) get().log(ligne);
+  for (const ligne of log) get().ecrireAuJournal(ligne);
   // Le premier joueur d'une manche est celui du rang (chacun ouvre la sienne, l.17) ; s'il n'est pas
   // en jeu, le suivant dans l'ordre du tour ouvre à sa place.
   const depart = (manche - 1) % seats.length;
@@ -1549,7 +1550,7 @@ type FinDePot = 'issue' | 'abandon' | 'interruption';
 function potRendLesMises(get: Get, p: TavernPayload): Record<string, number> {
   let rendu = { ...(p.net ?? {}) };
   for (const seat of p.seats ?? []) rendu = potMouvement(rendu, seat, p.mises?.[seat.id] ?? 0);
-  if ((p.pot ?? 0) > 0) get().log(t('tavern.potRendu', { montant: formatMoney(fromBrass(p.pot ?? 0)) }));
+  if ((p.pot ?? 0) > 0) get().ecrireAuJournal(t('tavern.potRendu', { montant: formatMoney(fromBrass(p.pot ?? 0)) }));
   return rendu;
 }
 
@@ -2491,13 +2492,13 @@ function finalizeTavernGame(
   set({ tavernGames: { result } });
   const enjeu = netBrass > 0 ? t('tavern.enjeuGain', { montant: formatMoney(fromBrass(netBrass)) }) : netBrass < 0 ? t('tavern.enjeuPerte', { montant: formatMoney(fromBrass(-netBrass)) }) : '';
   const issue = t(winner === 'player' ? 'tavern.issueWon' : winner === 'opponent' ? 'tavern.issueLost' : 'tavern.issueTie');
-  get().log(t('tavern.finDePartie', { jeu: game.label, who: challenger.label, adversaire: opponentName, issue, texte, enjeu }));
+  get().ecrireAuJournal(t('tavern.finDePartie', { jeu: game.label, who: challenger.label, adversaire: opponentName, issue, texte, enjeu }));
 }
 
 export function creerActionsDeTaverne(get: Get, set: Set) {
   return {
-    openTavernGames: (npcId?: string) => openTavernGames(get, set, npcId),
-    playTavernGame: (opts) => playTavernGame(get, set, opts),
+    ouvrirLesJeux: (npcId?: string) => ouvrirLesJeux(get, set, npcId),
+    jouerALaTaverne: (opts) => jouerALaTaverne(get, set, opts),
   } satisfies FabriqueDuNoyau;
 }
 

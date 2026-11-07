@@ -1,8 +1,8 @@
 /**
  * LA CARTE DU MONDE EN VUE (#3328) — ce qu'un hôte montre de la carte qui tient la main : son plan, et sous chaque
  * lieu chaque trajet que la carte trace jusqu'à lui depuis le lieu du groupe (`routesCliquables`), sa longueur et chacun de ses modes
- * de voyage, écrit en verbe du noyau (`startTravel`) avec ce qui le ferme maintenant (`refusDeDepart`) et la durée que
- * son devis prévoit (`devisDeTrajet`) ; un voyage interrompu se reprend (`resumeTravel`). Lecteur PUR, lu par les hôtes
+ * de voyage, écrit en verbe du noyau (`partirEnVoyage`) avec ce qui le ferme maintenant (`refusDeDepart`) et la durée que
+ * son devis prévoit (`devisDeTrajet`) ; un voyage interrompu se reprend (`reprendreLeVoyage`). Lecteur PUR, lu par les hôtes
  * du noyau (`hote/ecran.ts`).
  */
 import type { Jeu } from './etat';
@@ -56,7 +56,7 @@ export function trajetsDepuis(s: Jeu, map: WorldMap, ici: MapPlace): TrajetEnVue
     modes: modesDuTrajet(s, route.modes).map((mode) => ({
       mode,
       libelle: garanti(libelles[mode], mode, 'mode de voyage'),
-      geste: { verbe: 'startTravel', args: [route.id, mode] },
+      geste: { verbe: 'partirEnVoyage', args: [route.id, mode] },
       refus: refusDeDepart(s, route.id, mode),
       jours: devisDeTrajet(s, route, ici.id, mode).plan?.days ?? null,
     })),
@@ -85,5 +85,5 @@ function planDepuis(s: Jeu, map: WorldMap, ici: MapPlace): PlanDeLaCarte {
 export function carteEnVue(s: Jeu): CarteEnVue | null {
   const ici = fenetreDuJeu(s)?.cle === 'carteDuMonde' ? lieuDuGroupe(s) : undefined;
   if (!s.worldMap || !ici) return null;
-  return { plan: planDepuis(s, s.worldMap, ici), reprendre: s.travelPlan?.interrupted ? { verbe: 'resumeTravel', args: [] } : null };
+  return { plan: planDepuis(s, s.worldMap, ici), reprendre: s.travelPlan?.interrupted ? { verbe: 'reprendreLeVoyage', args: [] } : null };
 }

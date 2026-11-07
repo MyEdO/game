@@ -41,20 +41,20 @@ describe('Chance et +1 DR : l’issue canonique du seam est celle d’`evaluateT
   it('97 contre 99 est un ÉCHEC : la relance de Chance est offerte (LDB 17 l.23)', () => {
     testPose(97, 99);
     expect(FLOW_HANDLERS.test.outcomeOf(get)?.won).toBe(false);
-    get().jetReroll('test');
+    get().jetRelancer('test');
     expect(get().party[0].fortune, 'un Point de Chance dépensé sur le Test raté').toBe(0);
   });
 
   it('03 contre 1 est une RÉUSSITE : la relance de Chance est refusée', () => {
     testPose(3, 1);
     expect(FLOW_HANDLERS.test.outcomeOf(get)?.won).toBe(true);
-    get().jetReroll('test');
+    get().jetRelancer('test');
     expect(get().party[0].fortune, 'aucun Point dépensé sur un Test réussi').toBe(1);
   });
 
   it('+1 DR sur 97 contre 99 ne fabrique pas de réussite', () => {
     testPose(97, 99);
-    get().jetBonusSL('test');
+    get().jetAjouterUnDR('test');
     expect(get().pendingTest!.success).toBe(false);
   });
 
@@ -98,11 +98,11 @@ describe('Taverne : le lancer de volée relit le verdict du d100 (NADJ 16 l.70)'
     const a = makePregens()[0] as Combatant;
     a.characteristics = { ...a.characteristics, 'capacite-de-tir': 95 };
     banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-    get().playTavernGame({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     let pc = get().pendingCascade!;
     const vise = pc.participants[pc.cursor];
     get().jetRegler('cascade', 'choix', '0', vise.id); // le nez : Très facile (+60)
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     pc = get().pendingCascade!;
     const idx = pc.participants.findIndex((s) => s.kind === 'tavern-throw');
     const band = pc.participants[idx];
@@ -112,7 +112,7 @@ describe('Taverne : le lancer de volée relit le verdict du d100 (NADJ 16 l.70)'
     const participants = [...pc.participants];
     participants[idx] = { ...band, participants: [{ ...row, result: { roll: 97, target: row.target!, sl: t.sl, success: t.success } }] };
     banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect((get().sequence?.payload as TavernPayload | undefined)?.volley?.gains.player).toEqual([0]);
   });
 });

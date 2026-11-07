@@ -1,10 +1,11 @@
 import { BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Raycaster, Vector2, Vector3, type Intersection } from 'three';
 import { describe, expect, it } from 'vitest';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
-import { findPropById, findPropMaterialById, props } from '../../../data';
+import { findPropById, findPropMaterialById } from '../../../data';
 import { buildWorldGeometry, wholeSceneBillboardEls, worldBakeDeps, type WorldGeometry } from './sceneMeshes';
 import { worldSurfaceMaterials } from './worldMaterials';
 import { pickNearestTarget, propEntityAtHit, type PickTarget, type PropVertexRange, type WorldPickMesh } from './spriteRaycast';
+import { REF_HORS_CATALOGUE } from '../../../noyau/monde/volume/decorVolumique.testkit';
 
 /**
  * PICKING PAR `entId` — un décor volumique est cuit dans la MASSE du monde : il n'a ni maillage propre
@@ -21,9 +22,8 @@ const NDC = { x: 0, y: 0 };
 const sceneWith = (...entities: SceneEntity[]): Scene => ({ ...emptyScene('scene-test', 8, 8), entities });
 const volumeEntity = (id: string): SceneEntity =>
   ({ id, kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S' }) as SceneEntity;
-/** Un décor encore BILLBOARD, DÉRIVÉ du catalogue : la vague volumique (#1343) convertit les refs lot
- *  par lot — une ref écrite en dur ferait rougir cette garde le jour de SA recette. */
-const REF_BILLBOARD = props.find((p) => !p.volume)!.id;
+/** Un décor servi en BILLBOARD : seul le repli d'ERREUR d'une ref hors catalogue en pose un (#877, #3198). */
+const REF_BILLBOARD = REF_HORS_CATALOGUE;
 const legacyEntity = (id: string): SceneEntity =>
   ({ id, kind: 'prop', pos: { x: 5, y: 5 }, ref: REF_BILLBOARD }) as SceneEntity;
 const figurant = (id: string): SceneEntity =>
@@ -88,13 +88,6 @@ describe('Cuisson d’un décor volumique — une seule voie, et son id de picki
     ]) expect(memesDeps(worldBakeDeps(inerte, 2), worldBakeDeps(base, 2))).toBe(true);
   });
 
-  it('le filet des fixtures billboard tient encore : au moins deux refs SANS recette au catalogue', () => {
-    expect(
-      props.filter((p) => !p.volume).length,
-      'la phase 4 de #1343 (mort du chemin billboard des props) fera tomber ce filet EXPRÈS : ces fixtures '
-      + 'devront alors être reformulées — il n’y aura plus de décor billboard à témoin.',
-    ).toBeGreaterThanOrEqual(2);
-  });
 
   /** La RECETTE elle-même est une dep : une retouche au Codex périme la cuisson sans que la scène bouge. */
   it('worldBakeDeps porte la recette ET ses matériaux, pas seulement la signature de placement', () => {

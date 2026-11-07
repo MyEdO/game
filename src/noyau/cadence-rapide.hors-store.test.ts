@@ -44,7 +44,7 @@ describe('Cadence Rapide — auto-résolution des cascades par le driver', () =>
   });
 
   it('rapide : auto-résout toute la cascade jusqu’au bilan, sans jet manuel', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     setCadence('rapide');
     const h = hero();
     startCascade(banc.getState, banc.setState, { title: 'Nuit', purpose: 'test', steps: [step('s1', h.id), step('s2', h.id)] });

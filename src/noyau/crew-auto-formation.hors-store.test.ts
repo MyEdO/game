@@ -10,7 +10,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * Verrouillage #210 résidu — `autoFormCrews` (shipPostes.ts) câblé au spawn (`combatSlice.startCombat`) :
+ * Verrouillage #210 résidu — `autoFormCrews` (shipPostes.ts) câblé au spawn (`combatSlice.lancerLeCombat`) :
  * un servant de poste terrestre CREWÉ dont la SceneEntity n'a reçu AUCUNE position propre (pos == celle de
  * la coque, défaut de qui ne place pas la formation à la main) atterrit sur une case de `crewFormationSlots`
  * (ADE II 8 l.258 — jamais l'avant, jamais sous l'empreinte). Une position AUTHORÉE distincte de la
@@ -45,8 +45,8 @@ function makeScene(): Scene {
 
 function start(): void {
   banc.setState({ party: pregenParty(PREGEN.soldat) });
-  banc.getState().startScene(makeScene());
-  banc.getState().startCombat(ENC_ID);
+  banc.getState().lancerLaScene(makeScene());
+  banc.getState().lancerLeCombat(ENC_ID);
 }
 
 describe('autoFormCrews — câblage au spawn (#210 résidu)', () => {

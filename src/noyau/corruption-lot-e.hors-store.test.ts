@@ -22,7 +22,7 @@ function hero(): Combatant {
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [], pendingCorruption: null, pendingRenounce: null });
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
 });
 
 describe('Âme pure (LDB 10) — seuil de Corruption +niveau', () => {
@@ -51,9 +51,9 @@ describe('« Je te renie ! » (LDB 17 l.67)', () => {
     banc.setState({ party: [h] });
     gainCorruption(banc.getState, banc.setState, lu(), 1);
     expect(banc.getState().pendingCorruption?.kind).toBe('seuil'); // le jet est VISIBLE
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 5, sl: -9, success: false } });
-    banc.getState().jetConfirm('corruption');
+    banc.getState().jetValider('corruption');
   }
   it('héros avec Résilience → la mutation est SUSPENDUE (pendingRenounce)', () => {
     const h = hero();

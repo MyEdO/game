@@ -71,7 +71,7 @@ describe('le groupe en exploration', () => {
 
   it('un geste qui part d’ailleurs à l’étage se donne avec le clic de la case qui mène le groupe jusqu’à lui (`cliquerLaCase`)', () => {
     const lointains = gestesDuTexte(ligneDuFichier(nouvelEntete('fenetre-ecuries', {}))).filter((g) => g.gestes.length === 2);
-    expect(lointains.map((g) => g.gestes.map((x) => x.verbe))).toContainEqual(['cliquerLaCase', 'fallAcross']);
+    expect(lointains.map((g) => g.gestes.map((x) => x.verbe))).toContainEqual(['cliquerLaCase', 'franchirLArete']);
   });
 
   it('le clic d’une case qu’aucun chemin n’atteint se refuse en la nommant, et rien ne s’écrit', () => {
@@ -84,11 +84,11 @@ describe('le groupe en exploration', () => {
   });
 
   it('la chute de groupe : le jet attend que chaque tombant ait déclaré, le refus les nomme, et le pid de la fenêtre est le prochain à déclarer', () => {
-    const [saut] = gestesDuTexte(fixture('croisee-ecuries.jsonl')).filter((g) => g.gestes.length === 1 && g.gestes[0].verbe === 'fallAcross');
+    const [saut] = gestesDuTexte(fixture('croisee-ecuries.jsonl')).filter((g) => g.gestes.length === 1 && g.gestes[0].verbe === 'franchirLArete');
     const t = table(fixture('croisee-ecuries.jsonl'));
     t.jouer(...saut.gestes.map((x) => verbe(x.verbe, ...x.args)));
     const pid = /pid (\S+)\)/.exec(t.lire('vue').texte)![1];
-    const r = t.jouer(verbe('jetRoll', 'fall', pid));
+    const r = t.jouer(verbe('jetLancer', 'fall', pid));
     expect(r.erreur, r.texte).toBe('regle');
     expect(r.texte.split('\n  ').join(' ')).toMatch(new RegExp(`chaque tombant déclare d’abord s’il tente le Test et s’il se suspend d’abord ; reste à déclarer : [^(]+ \\(${pid}\\)`));
     expect(t.jouer(verbe('jetRegler', 'fall', 'suspendre', false, pid), verbe('jetRegler', 'fall', 'tenter', false, pid)).erreur).toBeNull();

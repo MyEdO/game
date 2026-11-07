@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CRITIQUE_DOCS, critiqueDoc, critiqueTable, critiqueEntries, critTableKeyFor, type CritTableKey, type JeuDeCritique } from './criticals';
-import { facesDuDe, tableOuverte } from '../engine/tables';
+import { deDeLaTableTiree, facesDuDe, tableOuverte } from '../engine/tables';
 import type { HitLocation } from '../engine/types';
 
 /**
@@ -43,10 +43,10 @@ describe('collection de documents-tables — un document par jeu × famille de L
   });
 });
 
-describe.each(CRITIQUE_DOCS.map((d) => [d.id, d] as const))('espace de tirage d100 (%s)', (_id, doc) => {
-  it('couvre 1..100 sans trou ni chevauchement, bandes ouvertes comprises (AA 07 l.105, l.131, l.157, l.183)', () => {
+describe.each(CRITIQUE_DOCS.map((d) => [d.id, d] as const))('espace de tirage du dé de la table (%s)', (_id, doc) => {
+  it('couvre les faces de son dé sans trou ni chevauchement, bandes ouvertes comprises (AA 07 l.105, l.131, l.157, l.183)', () => {
     const bandes = tableOuverte(doc.entries);
-    for (let r = 1; r <= facesDuDe('d100'); r++) {
+    for (let r = 1; r <= facesDuDe(deDeLaTableTiree(doc)); r++) {
       const couvrantes = bandes.filter((e) => r >= e.min && r <= e.max).map((e) => e.id);
       expect(couvrantes, `roll ${r} sur ${doc.id}`).toHaveLength(1);
     }
@@ -54,7 +54,7 @@ describe.each(CRITIQUE_DOCS.map((d) => [d.id, d] as const))('espace de tirage d1
   it('exactement une entrée létale, au plafond (« 00 ») ou ouverte', () => {
     const letales = doc.entries.filter((e) => e.lethal);
     expect(letales.map((e) => e.id)).toHaveLength(1);
-    expect(letales[0].max).toBe(doc.jeu === 'aa' ? null : facesDuDe('d100')); // LDB 18 ; AA 07 l.105, l.131, l.157, l.183
+    expect(letales[0].max).toBe(doc.jeu === 'aa' ? null : facesDuDe(deDeLaTableTiree(doc))); // LDB 18 ; AA 07 l.105, l.131, l.157, l.183
   });
 });
 

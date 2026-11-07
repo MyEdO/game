@@ -330,12 +330,12 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
     // Le jet (roll/target) est DÉJÀ affiché par la rangée de la modale de Corruption — pas de
     // re-print au journal (#295 Lot 4).
     if (pc.success) {
-      get().log(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
+      get().ecrireAuJournal(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
     } else if ((hero.resilience ?? 0) > 0) {
-      get().log(resultLine(freeCons([t('cor.thresholdFail', { name: hero.label })])));
+      get().ecrireAuJournal(resultLine(freeCons([t('cor.thresholdFail', { name: hero.label })])));
       set({ pendingRenounce: { heroId: hero.id, testRoll: pc.roll, testTarget: pc.target ?? 0, align: pc.align } });
     } else {
-      for (const l of applyMutation(get, set, hero, { roll: pc.roll, target: pc.target ?? 0 }, pc.align)) get().log(l);
+      for (const l of applyMutation(get, set, hero, { roll: pc.roll, target: pc.target ?? 0 }, pc.align)) get().ecrireAuJournal(l);
     }
     set({ ...touchActors(get()) });
     return;
@@ -343,10 +343,10 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
   const gain = corruptionGain(pc.level ?? 'mineure', !!pc.success, pc.sl ?? 0);
   if (gain <= 0) {
     // Le jet est DÉJÀ affiché par la rangée de la modale de Corruption — pas de re-print (#295 Lot 5).
-    get().log(resultLine(freeCons([t('cor.repelled', { name: hero.label })])));
+    get().ecrireAuJournal(resultLine(freeCons([t('cor.repelled', { name: hero.label })])));
     return;
   }
-  for (const l of gainCorruption(get, set, hero, gain, pc.align)) get().log(l);
+  for (const l of gainCorruption(get, set, hero, gain, pc.align)) get().ecrireAuJournal(l);
   set({ ...touchActors(get()) });
 }
 
@@ -416,7 +416,7 @@ export const TABLES = {
   ],
 } satisfies FragmentDeTables;
 
-/** Les clôtures de la Corruption (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+/** Les clôtures de la Corruption (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
 export function cloturesDeCorruption(get: Get, set: Set) {
   return {
     /** Acquitte l'exposition (Points selon niveau + DR, puis seuil) OU le Test du SEUIL

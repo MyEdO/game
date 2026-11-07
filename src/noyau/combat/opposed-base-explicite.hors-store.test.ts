@@ -127,8 +127,8 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
   function scene() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -163,7 +163,7 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
       const aT = step.meta!.opposed!.aT;
       expect(aT.base, 'le pré-jet de l’attaquant porte sa Force NUE').toBe(skillBaseValue(wielder, { characteristic: 'force' }));
       expect(step.base, 'l’étape du défenseur porte sa Résistance NUE').toBe(55);
-      banc.getState().jetRoll('cascade', step.id);
+      banc.getState().jetLancer('cascade', step.id);
       const r = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
       const verdict = resolveOpposed(aT, { roll: r.roll, target: r.target, success: r.success, sl: r.sl, isDouble: false, base: step.base });
       if (verdict.decidedBy !== 'valeur') continue;
@@ -237,7 +237,7 @@ describe('G9 — « se libérer » d’Empêtré (`escapeStrength` FIGÉE) : nu 
       const pris = combatant({ id: 'pris', conditions: [{ id: 'empetre', value: 1, escapeStrength: 55 }] as never });
       setBattle([pris], 'pris');
       banc.getState().seRemettreDeLEtat('empetre');
-      banc.getState().jetRoll('recover');
+      banc.getState().jetLancer('recover');
     }
     expect(REPLIS_DEUX_CIBLES.count).toBe(avant);
   });

@@ -13,7 +13,7 @@ import { useGesteDeJet } from '../useGesteDeJet';
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test ÉTENDU (LDB 12 l.170-186).
  * La situation « Test étendu » est une cascade à une étape `jet:'extended'`, rendue par `CascadeModal`
  * via ce hook (une seule fenêtre, comme l'attaque). `pendingExtendedTest` reste le porteur de données
- * (les Rounds y vivent) ; « Round suivant » (`jetConfirm('extendedTest')`) CUMULE le DR et ouvre le Round
+ * (les Rounds y vivent) ; « Round suivant » (`jetValider('extendedTest')`) CUMULE le DR et ouvre le Round
  * suivant, ou ferme la cascade à la réussite (total ≥ cible). Total < 0 → recommence à 0.
  * L'ENJEU vit sur l'étape `extendedJet` : `CascadeModal` le passe à la coquille (`cur.stake`, #1117).
  *
@@ -25,14 +25,14 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const p = useGame((s) => s.pendingExtendedTest);
-  const roll = useGesteDeJet('jetRoll', 'extendedTest');
-  const reroll = useGesteDeJet('jetReroll', 'extendedTest');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'extendedTest');
-  const darkPact = useGesteDeJet('jetDarkPact', 'extendedTest');
-  const force = useGesteDeJet('jetForceSuccess', 'extendedTest');
-  const reverse = useGesteDeJet('jetReverse', 'extendedTest'); // Inversion (LDB 12 l.42)
-  const next = useGesteDeJet('jetConfirm', 'extendedTest');
-  const cancel = useGesteDeJet('jetCancel', 'extendedTest');
+  const roll = useGesteDeJet('jetLancer', 'extendedTest');
+  const reroll = useGesteDeJet('jetRelancer', 'extendedTest');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'extendedTest');
+  const darkPact = useGesteDeJet('jetPactiser', 'extendedTest');
+  const force = useGesteDeJet('jetForcerLaReussite', 'extendedTest');
+  const reverse = useGesteDeJet('jetInverser', 'extendedTest'); // Inversion (LDB 12 l.42)
+  const next = useGesteDeJet('jetValider', 'extendedTest');
+  const cancel = useGesteDeJet('jetAnnuler', 'extendedTest');
   if (!p) return null;
   const pool = battle?.combatants ?? party;
   const actor = pool.find((c) => c.id === p.actorId);

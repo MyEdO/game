@@ -50,8 +50,8 @@ export function lesChaines(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
-/** Une base asynchrone de documents : valeurs `V`, clés `K` (#3041). `accesBase` (`web/indexedDb.ts`) en rend
- *  l'implémentation web, un magasin par base. */
+/** Une base asynchrone de documents : valeurs `V`, clés `K` (#3041). Chaque hôte en rend
+ *  l'implémentation, un magasin par base. */
 export interface Base<V, K> {
   /** La valeur de `cle` ; `null` si absente. */
   lire(cle: K): Promise<V | null>;

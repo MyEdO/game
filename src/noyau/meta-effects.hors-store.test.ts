@@ -1,6 +1,6 @@
 /**
  * Méta-flux comme Effets de scène (#83) : `sessionEnd` ouvre la fin de séance (`finDeSeance`, aucune case cochée).
- * La liaison de `openCharacterCreator` à l'assistant du web vit en `src/state/meta-effects.test.ts`.
+ * `openCharacterCreator` : `combatEffects-heros-a-creer.hors-store.test.ts`.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';

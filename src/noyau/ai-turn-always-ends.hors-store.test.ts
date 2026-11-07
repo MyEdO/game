@@ -19,8 +19,8 @@ describe('un tour IA se termine TOUJOURS, même sans adversaire vivant et combat
 
   it('gobelin (dernier ennemi) mort, porte intacte : le tour du servant du bélier se clôt (advanceTurn), le combat continue', () => {
     banc.setState({ party: scenario.construire().party });
-    banc.getState().startScene(scenarioConstruit.scene);
-    banc.getState().startCombat('siege-belier');
+    banc.getState().lancerLaScene(scenarioConstruit.scene);
+    banc.getState().lancerLeCombat('siege-belier');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

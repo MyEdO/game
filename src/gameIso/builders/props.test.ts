@@ -3,21 +3,21 @@ import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity, type Wall
 import { buildProps, capDuFaite } from './props';
 import { buildWalls } from './walls';
 import { buildPropVolumes } from '../../noyau/monde/volume/propVolumes';
-import { findPropById, props } from '../../data';
+import { findPropById } from '../../data';
 import { capVolumique } from '../../data/props.types';
 import { missingPropSvg, propSvg } from '../catalog/decor';
 import { estPropVolumique, type BillboardPropEl, type PropEl, type VolumePropEl } from './types';
 import type { Dir8 } from '../../geometry/dir8';
 import { buildRoofs, fieldHeightAt, nappeKey, resolveNappes, ROOF_SLOPE_M } from '../../noyau/monde/volume/toits';
+import { REF_HORS_CATALOGUE } from '../../noyau/monde/volume/decorVolumique.testkit';
 
 /** Le décor BILLBOARD d'une sortie de builder : un décor VOLUMIQUE n'a ni empreinte de billboard, ni
  *  surélévation, ni feature de façade à juger — il porte des faces. */
 const buildBillboardProps = (...args: Parameters<typeof buildProps>): BillboardPropEl[] =>
   buildProps(...args).filter((el): el is BillboardPropEl => !estPropVolumique(el));
 
-/** Un décor encore BILLBOARD, DÉRIVÉ du catalogue : la vague volumique (#1343) convertit les refs lot
- *  par lot — une ref écrite en dur ferait rougir ces gardes le jour de SA recette. */
-const REF_BILLBOARD = props.find((p) => !p.volume)!.id;
+/** Un décor servi en BILLBOARD : seul le repli d'ERREUR d'une ref hors catalogue en pose un (#877, #3198). */
+const REF_BILLBOARD = REF_HORS_CATALOGUE;
 
 const volume = (el: PropEl): VolumePropEl => {
   if (!estPropVolumique(el)) throw new Error(`${el.ref} : attendu en volume`);
@@ -78,13 +78,6 @@ describe('buildProps — un décor à recette sort en faces monde', () => {
     expect(buildBillboardProps(scene).map((el) => el.entId)).toEqual(['t1']);
   });
 
-  it('le filet des fixtures billboard tient encore : au moins deux refs SANS recette au catalogue', () => {
-    expect(
-      props.filter((p) => !p.volume).length,
-      'la phase 4 de #1343 (mort du chemin billboard des props) fera tomber ce filet EXPRÈS : ces fixtures '
-      + 'devront alors être reformulées — il n’y aura plus de décor billboard à témoin.',
-    ).toBeGreaterThanOrEqual(2);
-  });
 });
 
 /** BUILDER de props : clés stables, overlays de terrain, géométrie d'empreinte, vérités de scène. */
@@ -95,18 +88,17 @@ describe('buildProps — éléments prop du pivot', () => {
     s.layers[0].tiles[3 * 6 + 4] = 'bois'; // (4,3) : overlay à DÉCOR (overlayProp → 'arbre')
     s.entities = [
       { id: 'p1', kind: 'prop', pos: { x: 1, y: 1 }, ref: REF_BILLBOARD },
-      { id: 'p2', kind: 'prop', pos: { x: 3, y: 2 }, ref: 'tente', facing: 'SE', usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] } }, // tente 2×2 au catalogue
+      { id: 'p2', kind: 'prop', pos: { x: 3, y: 2 }, ref: 'tente', facing: 'E', usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] } }, // tente 2×2 au catalogue
       { id: 'npc', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 } }, // pas un prop → ignoré
     ] as SceneEntity[];
     return s;
   };
 
-  it('émet un billboard de DÉCOR pour un terrain à overlayProp (bois→arbre) ; le mur PLEIN est un bloc de relief, pas un prop', () => {
-    const els = buildBillboardProps(scene());
+  it('émet le DÉCOR d’un terrain à overlayProp (bois→arbre), en volume ; le mur PLEIN est un bloc de relief, pas un prop', () => {
+    const els = buildProps(scene());
     const terrain = els.filter((e) => e.source === 'terrain');
     expect(terrain.map((e) => e.key)).toEqual(['ov:4,3,0']); // seul `bois` a un overlayProp
-    expect(terrain.map((e) => e.ref)).toEqual(['arbre']);  // rendu comme un prop d'entité (billboard partagé)
-    expect(terrain[0].foot).toEqual({ offX: 0, offY: 0, scale: 1 });
+    expect(terrain.every(estPropVolumique), 'l’arbre a sa recette (#3198)').toBe(true);
     expect(terrain[0].entId, 'un overlay de terrain n’est l’instance de personne').toBeUndefined();
     for (const t of terrain) expect(t.states.visible).toBe(true); // `visible` absent (éditeur/QC) → tout visible
     const props = els.filter((e) => e.source === 'entity');
@@ -114,9 +106,9 @@ describe('buildProps — éléments prop du pivot', () => {
   });
 
   it('un overlay de terrain suit le brouillard comme un prop (en vue → au-dessus du voile, cull LdV en POV sinon)', () => {
-    const seen = buildBillboardProps(scene(), new Set(['4,3,0'])).find((e) => e.key === 'ov:4,3,0')!;
+    const seen = buildProps(scene(), new Set(['4,3,0'])).find((e) => e.key === 'ov:4,3,0')!;
     expect(seen.states.visible).toBe(true); // sa tuile est en vue
-    const hidden = buildBillboardProps(scene(), new Set(['0,0,0'])).find((e) => e.key === 'ov:4,3,0')!;
+    const hidden = buildProps(scene(), new Set(['0,0,0'])).find((e) => e.key === 'ov:4,3,0')!;
     expect(hidden.states.visible).toBe(false); // mémorisé → sous le voile / culé en POV
   });
 
@@ -129,12 +121,9 @@ describe('buildProps — éléments prop du pivot', () => {
   });
 
   it('porte ref/facing/empreinte, et l’ID D’ENTITÉ — l’OFFRE, elle, n’est pas recopiée sur l’élément', () => {
-    const [p1, p2] = buildBillboardProps(scene()).filter((e) => e.source === 'entity');
-    expect(p1.ref).toBe(REF_BILLBOARD);
-    expect(p1.foot).toEqual({ offX: 0, offY: 0, scale: 1 });
-    expect(p2.ref).toBe('tente');
-    expect(p2.facing).toBe('SE');
-    expect(p2.foot).toEqual({ offX: 0.5, offY: 0.5, scale: 2 }); // décalage vers le centre + côté max
+    const [p1, p2] = buildProps(scene()).filter((e) => e.source === 'entity');
+    expect(estPropVolumique(p1) ? undefined : [p1.ref, p1.foot]).toEqual([REF_BILLBOARD, { offX: 0, offY: 0, scale: 1 }]);
+    expect(estPropVolumique(p2), 'la tente a sa recette (#3198)').toBe(true);
     expect(p2.span).toEqual({ w: 2, h: 2 });
     // L'élément de rendu porte l'IDENTITÉ de l'entité, et rien de son offre : c'est `actionsDe` qui
     // dit ce qu'elle offre, au moment du rendu, drapeaux en main (`estUtilisable`, `noyau/monde/usable.ts`).
@@ -143,7 +132,7 @@ describe('buildProps — éléments prop du pivot', () => {
   });
 
   it('tague `visible` un prop en vue, mémorisé sinon', () => {
-    const els = buildBillboardProps(scene(), new Set(['1,1,0']));
+    const els = buildProps(scene(), new Set(['1,1,0']));
     const p1 = els.find((e) => e.key === 'prop:p1')!;
     const p2 = els.find((e) => e.key === 'prop:p2')!;
     expect(p1.states.visible).toBe(true);
@@ -155,7 +144,7 @@ describe('buildProps — éléments prop du pivot', () => {
     s.layers.push({ z: 1, tiles: new Array(36).fill('vide') });
     (s.entities[1] as SceneEntity).z = 1; // p2 à l'étage
     const cles = (view?: Parameters<typeof buildProps>[2]) =>
-      buildBillboardProps(s, undefined, view).filter((e) => e.source === 'entity').map((e) => e.key);
+      buildProps(s, undefined, view).filter((e) => e.source === 'entity').map((e) => e.key);
     // La visibilité d'étage est la loi d'un ÉCRAN, appliquée APRÈS le builder (#1317) : le rez comme
     // l'étage sortent d'ici, et `activeZ` — que les sols et les jetons lisent encore — n'a AUCUN
     // lecteur dans ce builder.
@@ -171,7 +160,7 @@ describe('buildProps — éléments prop du pivot', () => {
     s.layers.push({ z: 1, tiles: new Array(36).fill('vide') });
     s.layers[1].tiles[3 * 6 + 4] = 'bois'; // (4,3) à l'étage 1
     const ovs = (view?: Parameters<typeof buildProps>[2]) =>
-      buildBillboardProps(s, undefined, view).filter((e) => e.source === 'terrain');
+      buildProps(s, undefined, view).filter((e) => e.source === 'terrain');
     expect(ovs().map((e) => e.key)).toEqual(['ov:4,3,0', 'ov:4,3,1']); // sans `view` : toutes les couches
     // L'étage actif ne retranche AUCUN overlay : l'écran juge, pas le builder (#1317).
     expect(ovs({ activeZ: 0, viewZ: null }).map((e) => e.key)).toEqual(['ov:4,3,0', 'ov:4,3,1']);
@@ -505,7 +494,7 @@ describe('buildProps — features de façade authorées', () => {
    * L'`appearance` d'une feature est AUTHORABLE (`data/schemas/defs-scenes/scene.ts`) et servait DEUX
    * lecteurs : le nom d'un décor pour `buildProps`, celui d'une apparence de MUR pour `buildWalls`.
    * Une enseigne à apparence authorée sortait donc en double. Le verrou est par CONSTRUCTION
-   * (`KINDS_DE_DECOR`, `builders/walls.ts`) : quoi que l'auteur pose, le plan du mur reste muet.
+   * (`KINDS_DE_DECOR`, `noyau/monde/facades`) : quoi que l'auteur pose, le plan du mur reste muet.
    */
   it.each([
     ['sans apparence authorée', undefined],

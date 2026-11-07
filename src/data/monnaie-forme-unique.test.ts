@@ -76,7 +76,11 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
       // gardes (`tables.json`). MÊME geste que L-monnaie-3 sur `giveMoney` : l'op cesse d'ÉTALER `brass`
       // parmi ses clés et porte sa charge sous `montant` (`OP_DEFS.money`, grammaire/mecanique.ts). La
       // valeur y est une `Formula`, pas un nombre — la sonde recense la SIGNATURE, pas le type.
-      brass: 3,
+      // #1652 lot 6 (2026-11-07) : +12 sur la bourse du GROUPE des escales (`sea-events.json`, MDG 15 l.245-247) —
+      // 6 `money.montant` (bénédiction, rançon, pot-de-vin, 3 droits de douane) et 6 seuils `atLeast` de la
+      // Condition `money` sur une valeur liée (`{brass: {tire}}`).
+      // #1652 lot 7 (2026-11-07) : +1, les 3d10 CO du Vaisseau de pestiférés (MDG 15 l.194).
+      brass: 16,
     });
 
     // AUCUN objet-ACTION n'étale de dénomination parmi ses propres clés : toute charge porte un NOM

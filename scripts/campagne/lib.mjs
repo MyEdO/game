@@ -189,7 +189,7 @@ export function projectDoc({ identite, scenes, worldMap, narratif = emptyNarrati
 }
 
 let propSeq = 0;
-/** Décor. `extra` : interact / anim / label… L'empreinte vient du catalogue (`PropData.foot`), jamais de
+/** Décor. `extra` : interact / anim / label… L'empreinte vient du catalogue (le corps de `PropData.volume`), jamais de
  *  l'instance. L'id est auto (réinitialisé par scène via resetIds). */
 export function P(x, y, ref, extra = {}) {
   return { id: `p${propSeq++}`, kind: 'prop', pos: { x, y }, ref, ...extra };

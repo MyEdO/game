@@ -1,6 +1,6 @@
 /**
  * runFlow — exécution de la logique authorée (Flow) : séquence d'effets, branche `if` sur l'état
- * VIVANT, et nœud `test` (ouvre la modale, SUSPEND, reprend branche + continuation à `jetConfirm('test')`).
+ * VIVANT, et nœud `test` (ouvre la modale, SUSPEND, reprend branche + continuation à `jetValider('test')`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -45,7 +45,7 @@ describe('runFlow — nœud test (suspension + continuation)', () => {
     return h;
   }
 
-  it('ouvre pendingTest ; jetConfirm@test joue la branche RÉUSSITE puis la continuation', () => {
+  it('ouvre pendingTest ; jetValider@test joue la branche RÉUSSITE puis la continuation', () => {
     banc.setState({ party: [hero()] });
     const flow: Flow = {
       kind: 'seq',
@@ -63,19 +63,19 @@ describe('runFlow — nœud test (suspension + continuation)', () => {
 
     // Force une réussite et acquitte → branche `success` + continuation.
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 5, success: true } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(banc.getState().flags.gagne).toBe(true);
     expect(banc.getState().flags.perd).toBeUndefined();
     expect(banc.getState().flags.apres).toBe(true); // continuation exécutée
     expect(banc.getState().pendingTest).toBeNull();
   });
 
-  it('jetConfirm@test joue la branche ÉCHEC sur un Test raté', () => {
+  it('jetValider@test joue la branche ÉCHEC sur un Test raté', () => {
     banc.setState({ party: [hero()] });
     const flow: Flow = { kind: 'test', test: { characteristic: 'force' }, success: setFlag('gagne'), fail: setFlag('perd') };
     runFlow(banc.getState, banc.setState, flow);
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(banc.getState().flags.perd).toBe(true);
     expect(banc.getState().flags.gagne).toBeUndefined();
   });

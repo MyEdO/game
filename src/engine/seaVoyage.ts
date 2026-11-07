@@ -9,8 +9,8 @@
  *    facteur appliqué UNE fois (registre `applied`).
  *  - Événements de bord (l.89) : « Tous les 1d10 jours … Les lancers dans ce tableau sont modifiés
  *    par le score actuel d'Humeur de Manann ».
- *  - Événements de port (l.127-129) : à l'accostage, 2d10 (« dans les 2d10 heures ») ; Humeur
- *    négative → −1 au 2d10, positive → +1.
+ *  - Événements de port (l.127-129) : à l'accostage, au dé de sa table (« dans les 2d10 heures ») ; Humeur
+ *    négative → −1 au jet, positive → +1.
  *  - Commerce maritime (l.309-399) : achat (Production/Surplus, taille du lot = (Taille + Richesse +
  *    Surplus) × 1d10 × 10, 1 sur le d10 = rien) ; vente (nombre visé selon la relation du port au
  *    bien, Prix d'offre par Richesse+Taille+Demande) ; brader à 25 % du prix de base (l.399).
@@ -20,14 +20,14 @@ import seaEventsJson from '../data/sea-events.json';
 import { t } from '../i18n';
 import seaCargoJson from '../data/sea-cargo.json';
 import type { SeaCargoData } from '../data/schemas/defs/sea-cargo';
-import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
+import { deDeLaTableTiree, findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, parseDiceRequired, tirerSigne, type DiceSpec, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
+import { d10, rollDice, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
-import type { ShipCritKey } from '../data/shipCriticals';
 import type { SeaWeather } from './seaWeather';
-import type { TestExige } from './flowCore';
+import type { AggravationMeteo } from './ops';
+import type { Flow, TestExige } from './flowCore';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
@@ -43,99 +43,77 @@ export interface ManannFactor { id: string; label: string; effect: EffetSigne }
 
 /** Climat imposé par un événement : les seuls axes qu'il fixe. MDG 15 l.189, l.199, l.219, l.226, l.248, l.257 */
 type MeteoImposee = Partial<SeaWeather>;
-type VerrouMeteo = { days: QuantiteTiree; weather: MeteoImposee };
-type CargaisonRepechee = { cargoEnc: QuantiteTiree };
-type TirageListe = { roll: QuantiteTiree; contents: string[] };
-type IssueDuTriton = { min: number; max: number };
 type SansParametre = Record<string, never>;
+
+/** Modificateur du navire posé par l'op `navireMod` : levé au carénage (`carenage`), au prochain événement de
+ *  bord (`evenementDeBord`) ou à son échéance d'horloge (minute `gameTime`). `evite` : les périls que le navire
+ *  ne heurte pas. MDG 15 l.184-185, l.187-188, l.228, l.229 */
+export interface ModificateurDuNavire { label: string; m?: number; manDR?: number; evite?: string[]; jusqua: 'carenage' | 'evenementDeBord' | number }
+/** Météo imposée au navire par l'op `meteoImposee`, jusqu'à son échéance d'horloge (minute `gameTime`).
+ *  MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
+export interface MeteoImposeeDuNavire { label: string; jusqua: number; meteo?: MeteoImposee; ventInverse?: true; aggravation?: AggravationMeteo }
+
+/** Les modificateurs encore actifs à la minute `now`. PUR. */
+export const modificateursActifs = (mods: readonly ModificateurDuNavire[] | undefined, now: number): ModificateurDuNavire[] =>
+  (mods ?? []).filter((m) => typeof m.jusqua !== 'number' || m.jusqua > now);
+/** Les modificateurs qui survivent à un événement de bord : il lève ceux qui tiennent « jusqu'au prochain ». PUR. */
+export const modificateursApresUnEvenement = (mods: readonly ModificateurDuNavire[] | undefined): ModificateurDuNavire[] =>
+  (mods ?? []).filter((m) => m.jusqua !== 'evenementDeBord');
+/** Le modificateur actif à la minute `now` qui fait éviter le péril `perilId`, s'il y en a un. PUR. */
+export const evitementDuPeril = (mods: readonly ModificateurDuNavire[] | undefined, now: number, perilId: string): ModificateurDuNavire | undefined =>
+  modificateursActifs(mods, now).find((m) => m.evite?.includes(perilId));
+/** Les modificateurs levés au carénage (« jusqu'à ce que la coque soit raclée », MDG 15 l.185). PUR. */
+export const modificateursAuCarenage = (mods: readonly ModificateurDuNavire[] | undefined): ModificateurDuNavire[] =>
+  (mods ?? []).filter((m) => m.jusqua === 'carenage');
+/** Somme d'un axe (`m`, `manDR`) des modificateurs actifs à la minute `now`. PUR. */
+export const sommeDesModificateurs = (mods: readonly ModificateurDuNavire[] | undefined, now: number, axe: 'm' | 'manDR'): number =>
+  modificateursActifs(mods, now).reduce((s, m) => s + (m[axe] ?? 0), 0);
+/** Les météos imposées encore actives à la minute `now`, dans leur ordre de pose. PUR. */
+export const meteosActives = (meteos: readonly MeteoImposeeDuNavire[] | undefined, now: number): MeteoImposeeDuNavire[] =>
+  (meteos ?? []).filter((m) => m.jusqua > now);
 
 /** Les paramètres que lit chaque genre d'Événement de bord (MDG 15 l.132-236). */
 interface ParametresDeBord {
-  triton: { victoryRoll: QuantiteTiree; impressed: IssueDuTriton; wrathful: IssueDuTriton; impressedManann: EffetSigne; wrathfulManann: EffetSigne };
-  maelstrom: SansParametre;
-  'monstre-puissant': { roll: QuantiteTiree; creatures: string[] };
-  ouragan: { testType: string; difficulty: Difficulty; failCrits: number; critLocation: ShipCritKey };
-  vortex: SansParametre;
-  nemesis: SansParametre;
-  'navire-hostile': { ship: string; crew: number; crewRef: string; chefRef?: string; greatGuns?: number };
-  'coup-critique': { crits: number; critLocation: ShipCritKey | 'aleatoire' };
   culte: { allegianceRoll: QuantiteTiree; initiatesRoll: QuantiteTiree };
-  infestation: {
-    testType: string; difficulty: Difficulty; targetDR: number; spoilEncPerNight: QuantiteTiree;
-    diseaseChancePct: number; ratAttacks: QuantiteTiree; ratCC: number; ratWeapon: number;
-  };
-  'penurie-nourriture': { spoilPct: number };
-  presage: { prayerDifficulty?: Difficulty; manann?: EffetSigne; moral?: EffetSigne };
-  collision: SansParametre;
-  'crabes-boxeurs': { mMod: number; manDR: number };
-  'choix-vaisseau-fantome': { detourMMod: number; detourDays: number; moral: EffetSigne };
-  'calme-plat': VerrouMeteo;
-  'vaisseau-pestifere': { cargoCrates: QuantiteTiree; biscuitDays: QuantiteTiree; waterBarrels: QuantiteTiree; co: QuantiteTiree; resistDifficulty: Difficulty };
-  'vents-inhabituels': { days: QuantiteTiree };
-  bruine: VerrouMeteo;
-  usure: { wounds: QuantiteTiree };
-  rien: SansParametre;
-  bouteille: SansParametre;
   'autres-voyageurs': SansParametre;
-  'debris-cargaison': CargaisonRepechee;
-  'rafale-ghyran': { days: QuantiteTiree; drBonus: number; skills: string[]; specs: Record<string, string> };
-  'canot-sauvetage': TirageListe;
-  'beau-temps': VerrouMeteo;
-  'bonne-humeur': { moral: EffetSigne };
   'ile-inconnue': SansParametre;
-  'epave-cargaison': CargaisonRepechee;
-  'ciel-degage': VerrouMeteo;
-  'vents-favorables': { mMod: number };
-  marsouin: { days: QuantiteTiree };
-  'chance-navigateur': { days: QuantiteTiree; talent: string };
-  manne: SansParametre;
 }
 
 /** Les paramètres que lit chaque genre d'Événement d'escale (MDG 15 l.243-263). */
 interface ParametresDePort {
-  embrigadement: { lostCrew: QuantiteTiree; gossipDifficulty: Difficulty; ransomCO: QuantiteTiree; stealthDifficulty: Difficulty; failExtraLostCrew: QuantiteTiree };
-  'pretre-manann': { blessingCO: QuantiteTiree; blessingSilverPerSize: number; manann: EffetSigne };
-  'controle-a-quai': { taxPct: number; bribeDifficulty: Difficulty; bribeCO: QuantiteTiree };
-  tempete: { days: QuantiteTiree; weather: MeteoImposee; escalation: { roll: QuantiteTiree; min: number; weather: MeteoImposee } };
-  'port-desert': { maxSize: number; moral: EffetSigne };
-  'gangs-des-quais': { lostEnc: QuantiteTiree };
   'tache-noire': SansParametre;
   penuries: SansParametre;
-  rien: SansParametre;
   'constructeur-itinerant': { metier: Record<string, number>; daysPerJob: QuantiteTiree };
   'offre-suspecte': { maxEnc: number; discountPct: number };
-  'beau-temps': VerrouMeteo;
-  'passager-clandestin': { perceptionDifficulty: Difficulty; discoverDays: QuantiteTiree; roll: QuantiteTiree; contents: string[] };
   'rumeurs-commerciales': { gossipDifficulty: Difficulty; demandBonus: number; days: QuantiteTiree };
-  'fete-manann': { manann: EffetSigne };
   'offre-mission': { rewardCO: number };
   'bonne-peche': { rationPriceBronze: number };
   saturation: SansParametre;
 }
 
-type EvenementDe<P> = { [K in keyof P & string]: BandeOuverte & { id: string; label: string; desc: string; kind: K; params: P[K] } }[keyof P & string];
-/** Un Événement de bord : son `kind` et les paramètres que CE genre lit. */
-export type EvenementDeBord = EvenementDe<ParametresDeBord>;
-/** Un Événement d'escale : son `kind` et les paramètres que CE genre lit. */
-export type EvenementDePort = EvenementDe<ParametresDePort>;
+/** Ce que toute rangée porte. `relache` : la rangée ne se joue qu'avec la relâche à terre accordée ;
+ *  `taillePortMax` : qu'à l'escale d'un port de Taille au plus celle-ci (`resolvePortArrival`). MDG 15 l.245,
+ *  l.249, l.260 */
+type Rangee = BandeOuverte & { id: string; label: string; desc: string; relache?: true; taillePortMax?: number };
+type EvenementDe<P> = { [K in keyof P & string]: Rangee & { kind: K; params: P[K]; consequence?: never } }[keyof P & string];
+/** Une rangée en GRAMMAIRE : sa suite mécanique est un `Flow` (`runFlow`), sans genre ; sans `consequence`,
+ *  narrative. #1652 */
+export type RangeeEnGrammaire = Rangee & { consequence?: Flow; kind?: never; params?: never };
+/** Un Événement de bord : son `kind` et les paramètres que CE genre lit, ou sa `consequence`. */
+export type EvenementDeBord = EvenementDe<ParametresDeBord> | RangeeEnGrammaire;
+/** Un Événement d'escale : son `kind` et les paramètres que CE genre lit, ou sa `consequence`. */
+export type EvenementDePort = EvenementDe<ParametresDePort> | RangeeEnGrammaire;
 export type SeaEventDef = EvenementDeBord | EvenementDePort;
 
-/** Palier du VOYAGE RAPIDE (l.33-37) : cran du d10, conséquences en % + Coups Critiques. */
-export interface FastVoyagePalier extends BandeOuverte {
-  id: string;
-  label: string;
-  desc: string;
-  crewLostPct: number;
-  cargoLostPct: number;
-  hullLostPct: number;
-  criticals: number;
-}
+/** Palier du VOYAGE RAPIDE (l.33-37) : cran du dé de sa table ; sa `consequence` (`runFlow`), absente pour un
+ *  palier sans perte. */
+export type FastVoyagePalier = BandeOuverte & { id: string; label: string; desc: string; consequence?: Flow };
 
 const EVENTS = seaEventsJson as unknown as {
   manann: { base: number; portEventMod: number; factors: ManannFactor[] };
   boardEvents: { die: string; entries: EvenementDeBord[] };
-  portEvents: EvenementDePort[];
-  fastVoyage: { paliers: FastVoyagePalier[] };
+  portEvents: { die: string; entries: EvenementDePort[] };
+  fastVoyage: { die: string; entries: FastVoyagePalier[] };
 };
 
 /** Palier de SURCHARGE de la cale (MDG 12 l.70-75) : `fromPct` = seuil strict (>) en % de la Contenance,
@@ -146,15 +124,19 @@ const CARGO = seaCargoJson as SeaCargoData;
 
 export const MANANN_FACTORS = EVENTS.manann.factors;
 export const BOARD_EVENTS = EVENTS.boardEvents.entries;
-export const PORT_EVENTS = EVENTS.portEvents;
-export const FAST_VOYAGE_PALIERS = EVENTS.fastVoyage.paliers;
+export const PORT_EVENTS = EVENTS.portEvents.entries;
+export const FAST_VOYAGE_PALIERS = EVENTS.fastVoyage.entries;
 /** Les tables d'événements et de paliers telles que `findTableEntry` les lit (`tableOuverte`) : leurs
  *  bandes extrêmes sont ouvertes (MDG 15). Mémoïsées sur leur dataset quand le Codex les édite. */
 export const evenementsDeBord = memoParVersion('seaBoardEvents', () => tableOuverte(BOARD_EVENTS));
 /** Le dé du Tableau des événements de bord, lu à l'appel. */
-export const deDesEvenementsDeBord = (): DiceSpec => parseDiceRequired(EVENTS.boardEvents.die, 'sea-events.json › boardEvents.die');
-const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(EVENTS.portEvents));
-const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(EVENTS.fastVoyage.paliers);
+export const deDesEvenementsDeBord = (): DeDeTable => deDeLaTableTiree(EVENTS.boardEvents);
+const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(PORT_EVENTS));
+/** Le dé du Tableau des événements d'escale, lu à l'appel. */
+export const deDesEvenementsDePort = (): DeDeTable => deDeLaTableTiree(EVENTS.portEvents);
+const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(FAST_VOYAGE_PALIERS);
+/** Le dé du tableau du Voyage rapide, lu à l'appel. */
+export const deDuVoyageRapide = (): DeDeTable => deDeLaTableTiree(EVENTS.fastVoyage);
 /** `test` exige `skill` et `difficulty` au parse (`exigerDuTest`, `defs/sea-cargo.ts`). */
 export const OPPORTUNITE = CARGO.opportunite as SeaCargoData['opportunite'] & { test: TestExige<'skill' | 'difficulty'> };
 /** La table du Prix d'offre telle que `findTableEntry` la lit (`tableOuverte`, tronc commun — sa
@@ -242,35 +224,14 @@ export function rollDaysToNextEvent(rng: RNG): number {
   return d10(rng);
 }
 
-/** Événement de bord NOMMÉ (par `id`, sinon par `kind` — plusieurs événements peuvent partager un kind,
- *  ex. `navire-hostile` = Langskip skaeling / Cogue pirate). Pour forcer un tirage en recette (#332). */
-export const seaBoardEventById = (idOrKind: string): EvenementDeBord | undefined =>
-  BOARD_EVENTS.find((e) => e.id === idOrKind) ?? BOARD_EVENTS.find((e) => e.kind === idOrKind);
+/** Événement de bord NOMMÉ par son `id`. Pour forcer un tirage en recette (#332). */
+export const seaBoardEventById = (id: string): EvenementDeBord | undefined => BOARD_EVENTS.find((e) => e.id === id);
 
-type DuGenre<E extends SeaEventDef, K extends E['kind']> = Extract<E, { kind: K }>;
-
-/** L'événement de bord `id`, de genre `kind` — porté par une étape ou un état qui l'a nommé. */
-export function evenementDeBord<K extends EvenementDeBord['kind']>(id: string, kind: K): DuGenre<EvenementDeBord, K> {
-  const e = BOARD_EVENTS.find((x) => x.id === id);
-  if (e?.kind !== kind) throw new Error(`sea-events.json › boardEvents : « ${id} » n'est pas un événement de genre « ${kind} »`);
-  return e as DuGenre<EvenementDeBord, K>;
-}
-
-/** L'UNIQUE événement de la table qui porte ce genre : l'état qui en dure (`vessel.crabs`, le choix du
- *  Prêtre) n'en garde que le genre. */
-function seulDuGenre<E extends SeaEventDef, K extends E['kind']>(table: E[], nom: string, kind: K): DuGenre<E, K> {
-  const trouves = table.filter((e) => e.kind === kind);
-  if (trouves.length !== 1) throw new Error(`sea-events.json › ${nom} : ${trouves.length} événement(s) de genre « ${kind} », un seul attendu`);
-  return trouves[0] as DuGenre<E, K>;
-}
-export const seulEvenementDeBord = <K extends EvenementDeBord['kind']>(kind: K) => seulDuGenre(BOARD_EVENTS, 'boardEvents', kind);
-export const seulEvenementDePort = <K extends EvenementDePort['kind']>(kind: K) => seulDuGenre(EVENTS.portEvents, 'portEvents', kind);
-
-/** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) : 2d10, ±1 selon le signe de l'Humeur ;
+/** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) au dé de sa table, ±1 selon le signe de l'Humeur ;
  *  il « se produit dans les 2d10 heures après accostage ». PUR. */
 export function rollPortEvent(manannScore: number, rng: RNG): { roll: number; hours: number; event: EvenementDePort } {
   const mod = manannScore < 0 ? -EVENTS.manann.portEventMod : manannScore > 0 ? EVENTS.manann.portEventMod : 0;
-  const roll = d10(rng) + d10(rng) + mod;
+  const roll = rollDice(deDesEvenementsDePort(), rng) + mod;
   return { roll, hours: d10(rng) + d10(rng), event: findTableEntry(evenementsDePort(), roll) };
 }
 
@@ -284,7 +245,7 @@ export function rollPortEvent(manannScore: number, rng: RNG): { roll: number; ho
 export function resolveFastVoyage(
   crewDR: number, manannScore: number, weeksAtSea: number, rng: RNG,
 ): { roll: number; manannTens: number; result: number; palier: FastVoyagePalier } {
-  const roll = d10(rng);
+  const roll = rollDice(deDuVoyageRapide(), rng);
   const manannTens = Math.trunc(manannScore / 10); // « la dizaine de l'Humeur de Manann » (l.26/l.28)
   const result = roll - Math.max(0, weeksAtSea) + manannTens + crewDR;
   return { roll, manannTens, result, palier: findTableEntry(PALIERS_DE_VOYAGE_RAPIDE, result) };

@@ -47,7 +47,7 @@ describe('Partie.lancer — le lancement d’un scénario est un appel de la par
       expect(lancement.journal.length, 'le lancement ne rend pas les lignes qu’il a écrites').toBeGreaterThan(0);
       expect(partie.etat().battle, 'le combat direct du scénario n’a pas démarré').toBeTruthy();
       expect(partie.etat().screen, 'sans bataille de masse, le lancement mène à la campagne').toBe('campaign');
-      const suivant = partie.envoyer({ type: 'lowerHand', args: [] });
+      const suivant = partie.envoyer({ type: 'leverLaMain', args: [false] });
       expect(emis(suivant), 'l’appel suivant rend les événements du lancement').toEqual([]);
       expect(suivant.journal, 'l’appel suivant rend les lignes du lancement').toEqual([]);
     } finally {

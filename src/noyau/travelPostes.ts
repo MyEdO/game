@@ -283,7 +283,7 @@ function coldExposureChill(hero: Combatant, coldSeason: boolean): string[] {
 
 export function creerActionsDesPostesDeVoyage(_get: Get, set: Set) {
   return {
-    setTravelRole: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
+    attribuerLeRoleDeMarche: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
   } satisfies FabriqueDuNoyau;
 }
 
@@ -376,7 +376,7 @@ export const TABLES = {
         const cons = applyPoste(get, set, hero, def, posting.freeSkill, part.result ?? null);
         const lines = resultLines(cons); // #349 : ligne STRUCTURÉE (tone dérivé de la Consequence)
         part.outcome = lines; // conséquence SUR SA rangée (le portrait attribue)
-        for (const l of lines) get().log(l.text); // + journal/recap (une ligne par héros, pas d'agrégat)
+        for (const l of lines) get().ecrireAuJournal(l.text); // + journal/recap (une ligne par héros, pas d'agrégat)
       }
       set({ party: [...get().party] });
       return { consequences: [] };
@@ -394,7 +394,7 @@ export const TABLES = {
         applyOps(hero, [op], { rng: battleRng() });
         const lines = resultLines([{ ops: [op] }]);
         part.outcome = lines;
-        for (const l of lines) get().log(l.text);
+        for (const l of lines) get().ecrireAuJournal(l.text);
       }
       set({ party: [...get().party] });
       return { consequences: [] };

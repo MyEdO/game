@@ -1,7 +1,6 @@
 /**
  * LE COMBAT DE `combatantClickActs` : deux héros prétirés et un ennemi adjacent au premier, sur une arène au sol de départ,
- * partagé par le test du noyau (`combatOrParty.hors-store.test.ts`) et celui de la liaison web
- * (`src/state/combatOrParty-inspection.test.ts`).
+ * celui du décideur au noyau (`combatOrParty.hors-store.test.ts`).
  */
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from './monde/spawn';

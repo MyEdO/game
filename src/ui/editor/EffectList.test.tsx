@@ -13,7 +13,7 @@ import { newEffect } from '../../noyau/valeursNeuves';
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
-import { talents } from '../../data';
+import { crewRoles, talents } from '../../data';
 import { DAY_PHASES } from '../../engine/clock';
 import { startMassBattleSchema, type Effect } from '../../data/schemas/defs-scenes/effets';
 
@@ -426,9 +426,46 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
     expect(effectSummary(f, ctxDeCatalogue('maladie'))).toMatch(/^Le malade : /);
   });
 
-  it('racine SCÈNE : deux options, groupe et héros', () => {
+  it('racine SCÈNE : six options, groupe, héros, navire, rôle d’équipage, membre au hasard et volontaires', () => {
     const [sel] = selectsDeCible(monte({ type: 'ops', on: 'party', ops: [] }, 'scene'));
-    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['party', 'hero']);
+    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['party', 'hero', 'navire', 'role', 'membreAuHasard', 'volontaires']);
+  });
+
+  it('racine SCÈNE : la cible « volontaires » s’édite par sa question, posée à chaque héros (MDG 15 l.196)', () => {
+    const c = monte({ type: 'ops', on: { volontaires: 'Monter à bord' }, ops: [] } as never, 'scene');
+    const [sel] = selectsDeCible(c);
+    expect(sel.value).toBe('volontaires');
+    expect(c.querySelector<HTMLInputElement>('input[aria-label="Question posée à chaque héros"]')?.value).toBe('Monter à bord');
+  });
+
+  it('cible « rôle d’équipage » : le rôle se choisit, la durée en jours se coche, le résumé dit les deux', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    let dernier: Effect = { type: 'ops', on: 'party', ops: [] };
+    function Controle() {
+      const [eff, setEff] = useState<Effect>(dernier);
+      return <EffectFields effect={eff} ctx={ctx} onChange={(n) => { dernier = n; setEff(n); }} />;
+    }
+    const choisir = async (sel: HTMLSelectElement, valeur: string) => {
+      await act(async () => { sel.value = valeur; sel.dispatchEvent(new Event('change', { bubbles: true })); });
+    };
+    try {
+      await act(async () => { root.render(<Controle />); });
+      await choisir(selectsDeCible(container)[0], 'role');
+      expect((dernier as { on?: unknown }).on).toEqual({ role: { id: crewRoles[0].id } });
+      const role = Array.from(container.querySelectorAll('label')).find((l) => l.textContent?.startsWith('Rôle'))!.querySelector('select')!;
+      await choisir(role, 'capitaine');
+      expect((dernier as { on?: unknown }).on).toEqual({ role: { id: 'capitaine' } });
+      const duree = Array.from(container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')).find((c) => c.parentElement?.textContent?.includes('durée en jours'))!;
+      await act(async () => { duree.click(); });
+      expect((dernier as { pendantJours?: unknown }).pendantJours).toBe(1);
+      expect(effectSummary({ type: 'ops', on: { role: { id: 'capitaine' } }, pendantJours: { dice: { n: 1, sides: 10 } }, ops: [] } as unknown as Effect, ctx))
+        .toMatch(/^Un rôle d’équipage \(Capitaine\) : .* · pendant 1d10 jour\(s\)$/);
+    } finally {
+      await act(async () => { root.unmount(); });
+      container.remove();
+    }
   });
 
   it('effectSummary dit la cible de la racine, et nomme un `on` hors de son vocabulaire', () => {

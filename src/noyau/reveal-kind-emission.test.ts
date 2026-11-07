@@ -9,7 +9,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * Garde-fou « kind de RevealEntry ↔ site d'émission » (#942, L0 puis L8). L'union `RevealEntry['kind']`
  * décrit ce que le jeu peut RÉVÉLER : chaque membre doit avoir un producteur dans les sources (hors
  * tests), et tout producteur doit citer un membre de l'union. Un membre orphelin laisse vivre son
- * câblage UI (icône `REVEAL_ICON`, libellé de table, branche de rendu de `ui/RevealBody.tsx`) pour un
+ * câblage UI (icône `REVEAL_ICON`, libellé de table, branche de rendu de la révélation) pour un
  * cas qui n'arrive jamais. `pushReveal` (forme 1) est l'ÉMETTEUR UNIQUE : toute révélation entre dans
  * la séquence par lui, y compris la carte d'entrée de zone (option `own`).
  */

@@ -7,7 +7,7 @@
  * spectaculaire de Puissance » NON opposé. Les Personnages influent sur l'issue via des Scènes
  * cinématiques (quelques Rounds de Combat OU un Test de Compétence) et un Discours inspirant.
  *
- * Moteur PUR (aucun import `state`, règle 3) + data-driven : les TABLES verbatim (estimation de
+ * Moteur PUR (aucun import de couche supérieure, règle 3) + data-driven : les TABLES verbatim (estimation de
  * Puissance, modificateurs, machines de guerre, structures, aléas environnementaux) vivent dans
  * `mass-battle.json` ; les ACTIVITÉS de préparation et les SCÈNES cinématiques sont des `ActivityDef`
  * (contextes 'bataille'/'bataille-round') dans `activities.json` — mécanique unifiée avec les Activités
@@ -266,7 +266,7 @@ export function isDestroyed(might: number): boolean {
 
 // ── Aléa de bataille (l.307-322) ─────────────────────────────────────────────────────────────────
 
-/** Facteur environnemental tiré/choisi (l.309, 1d10) — « vous pouvez faire un jet sur la table
+/** Facteur environnemental tiré/choisi (l.309-311) — « vous pouvez faire un jet sur la table
  *  ci-dessous, ou simplement choisir l'un des résultats ». */
 export function battleHazard(roll: number): HazardRow {
   return findTableEntry(BATTLE_HAZARDS, roll);

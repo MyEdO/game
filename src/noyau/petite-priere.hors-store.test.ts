@@ -33,7 +33,7 @@ describe('Petites Prières (LDB 25) — effet de scène', () => {
     setRule('prayer-petites', true);
     const p = laypersonSurePray();
     banc.setState({ party: [p], journal: [] });
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     applyEffects(banc.getState, banc.setState, [{ type: 'petitePriere', heroId: p.id, reward }]);
     expect(banc.getState().party[0].xp).toBe(50); // reward (giveXp) exécuté
     expect(banc.getState().journal.join('\n')).toMatch(/entendent/);

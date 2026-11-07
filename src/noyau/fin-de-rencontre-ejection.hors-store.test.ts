@@ -9,7 +9,7 @@
  * Le drapeau est posé en combat (Destin sacrifié, reddition, homme à la mer) ; le TEARDOWN
  * (`finalizeBattle`, writeback unique vers `party`) le remet à zéro. Sans ça, le héros éjecté restait
  * exclu de tout ce qui filtre le groupe hors combat — dont le QUORUM des ready-checks (nuit de repos)
- * et le carry-in du combat suivant (`startCombat`).
+ * et le carry-in du combat suivant (`lancerLeCombat`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';

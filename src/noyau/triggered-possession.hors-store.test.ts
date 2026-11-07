@@ -47,8 +47,8 @@ const g = () => banc.getState();
 function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Combatant; E: Combatant[] } {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;

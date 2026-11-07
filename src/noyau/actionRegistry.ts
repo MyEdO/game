@@ -18,7 +18,10 @@ import type { BattleState, Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau, JeuDuNoyau } from './machinerieDuNoyau';
 import type { AttackKind } from '../engine/creatureAttacks';
-import type { IdDeCombattant, IdDEntiteDeScene, IdDObjet } from './designations';
+import type {
+  IdDAttaque, IdDeCombattant, IdDeCompetence, IdDeCondition, IdDeManoeuvre, IdDEntiteDeScene, IdDeSort, IdDePanoplie, IdDeTestDEquipage, IdDObjet,
+  IdDObjetRamassable,
+} from './designations';
 import { refuserGesteDuSiege } from './refusVisible';
 import { entityPickables } from './combatEffects';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
@@ -29,7 +32,6 @@ import { desengagementSansAction, refusDEsquiveDeDesengagement } from './combat/
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { isVehicle, estNavire } from '../engine/coque';
 import { compatibleAmmo, activeLoadout } from '../engine/items';
-import { aRecharger } from '../engine/weaponLoad';
 import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { actorHasSkill } from '../engine/skills';
@@ -47,7 +49,7 @@ import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { activeCombatant, placingZoneOf, STANCE_BLOCK } from './combatFlow';
 import { canMove, mountablesNear } from './mount';
 import { refusActionDepensee, refusCoque, refusDeCharge, refusDeCourse, refusHorsDEtatDAgir, refusMouvementEntame, refusPriereImposee, refusSansMouvement } from './refusDuTour';
-import { servablePostes, crewPosteOf, shipOfCrew, posteARecharger } from './monde/shipPostes';
+import { servablePostes, crewPosteOf, shipOfCrew, rechargeDuTour } from './monde/shipPostes';
 import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ShipPoste } from '../engine/types';
 import { pushSlot } from './siegePush';
@@ -190,7 +192,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   'charge-possible': ({ active, battle }) => verdict(refusDeCharge(battle, active)),
   'mouvement-restant': ({ active, battle }) => (canMove(battle, active) ? ok : no(t('agate.noMovementLeft'))),
   desengagement: desengagementGate,
-  /** Course — verdict `refusDeCourse` (`refusDuTour.ts`, LDB 15 l.41), que lisent aussi `battleRun` et `computeRunReach`. */
+  /** Course — verdict `refusDeCourse` (`refusDuTour.ts`, LDB 15 l.41), que lisent aussi `ouvrirLaCourse` et `computeRunReach`. */
   'course-possible': ({ active, battle }) => verdict(refusDeCourse(battle, active)),
   /** Verdict `refusDeDetermination` (LDB 17 l.59-61, LDB 20 l.188), que lisent aussi `depenserLaDetermination` et `DeterminationButton`. */
   'determination-en-reserve': ({ active, args }) => verdict(refusDeDetermination(active, args?.conditionId) ?? null),
@@ -279,25 +281,17 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     (pushSlot(active, battle.combatants).undercrew ? no(t('agate.pushUndercrew')) : ok),
   'navire-action': ({ battle }) => (battle.acted ? no(t('agate.vesselActionSpent')) : ok),
   // ── PRÉALABLES DE DISPATCHER : le prédicat même que lit le dispatcher, pour que l'offre refuse ce qu'il refuse.
-  /** L'arme de la case (`args.weaponUid`), ou à défaut l'une des armes du porteur, a un cycle de charge à faire
-   *  (`aRecharger`, lu par `rechargerLArme`). */
-  'arme-a-recharger': ({ active, args }) => {
-    const armes = args?.weaponUid ? active.weapons.filter((w) => w.uid === args.weaponUid) : active.weapons;
-    return armes.some((w) => aRecharger(active, w)) ? ok : no(t('agate.nothingToReload'));
-  },
+  /** L'arme de la case (`args.weaponUid`), ou à défaut une arme du Tour, est à recharger par un porteur à l'Action
+   *  libre (`rechargeDuTour`, lu par `rechargerLArme`). */
+  'arme-a-recharger': ({ active, battle, args }) =>
+    (rechargeDuTour(active, battle, args?.weaponUid) ? ok : no(t('agate.nothingToReload'))),
   /** Chant de marin (MDG 09 l.32-40) : le quart n'a pas eu sa chanson (`quartChante`) et un chanteur est libre
    *  (`chanteurDuNavire`) — les prédicats de `chanterLaChanson`. */
   'chanteur-disponible': ({ active, battle, gameTime }) => {
     if (quartChante(active, gameTime)) return no(t('agate.shantyQuartSung'));
     return chanteurDuNavire(active, battle) ? ok : no(t('agate.noShantySinger'));
   },
-  /** La pièce de la case (`args.posteUid`) est déchargée et son chef libre ce Round (`posteARecharger`, lu par
-   *  `rechargerLaPiece`). LDB 62 l.335. */
-  'piece-dechargee': ({ active, battle, args }) => {
-    const poste = active.postes?.find((p) => p.item.uid === args?.posteUid);
-    return poste && posteARecharger(active, poste, battle) ? ok : no(t('agate.noPosteToReload'));
-  },
-  /** Une pièce du navire est prête à faire feu (`postesPretsAFaireFeu`, lu par `battleShipBattery` via `batteryBlock`). */
+  /** Une pièce du navire est prête à faire feu (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee` via `batteryBlock`). */
   'pieces-au-navire': ({ active }) => (postesPretsAFaireFeu(active).length > 0 ? ok : no(t('agate.noLoadedPostes'))),
   // ── PERTINENCE (#2911) : l'entrée a-t-elle lieu d'être offerte à CE porteur (`GATES_DE_PERTINENCE`) ?
   fantassin,
@@ -521,25 +515,25 @@ export interface ContexteDOffre {
   targetId?: IdDeCombattant;
   weaponUid?: IdDObjet;
   ammoUid?: IdDObjet;
-  spellId?: string;
+  spellId?: IdDeSort;
   /** Le PORTEUR du Sort à dissiper (`dissiperLeSort`). */
   casterId?: IdDeCombattant;
-  skillId?: string;
+  skillId?: IdDeCompetence;
   itemUid?: IdDObjet;
-  loadoutId?: string;
-  conditionId?: string;
-  maneuverId?: string;
-  attackId?: string;
-  attackKind?: string;
+  loadoutId?: IdDePanoplie;
+  conditionId?: IdDeCondition;
+  maneuverId?: IdDeManoeuvre;
+  attackId?: IdDAttaque;
+  attackKind?: AttackKind;
   entityId?: IdDEntiteDeScene;
-  pickKey?: string;
+  pickKey?: IdDObjetRamassable;
   /** COQUE visée (`hullId`) — bordée, chant, rechargement de pièce, service d'un poste. */
   shipId?: IdDeCombattant;
   /** MEMBRE D'ÉQUIPAGE qui agit sur la coque (`manoeuvrerLeNavire(crewId)`, `noyau/combatSlice.ts`) : c'est le
    *  barreur, pas le navire. Deux champs parce que ce sont deux entités — un seul mentait. */
   crewId?: IdDeCombattant;
   posteUid?: IdDObjet;
-  crewTestId?: string;
+  crewTestId?: IdDeTestDEquipage;
 }
 
 type Dispatcher = (get: Get<JeuDuNoyau>, ctx: ContexteDOffre, def: ActionDef) => void;
@@ -568,7 +562,7 @@ const actif = (get: Get<JeuDuNoyau>): Combatant | undefined => {
 export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
   armerLeMode: corps((get, _ctx, def) => get().armerLeMode((def.armed ?? null) as BattleActionMode | null)),
   armerLAttaque: corps((get, ctx) => get().armerLAttaque(ctx.attackId ?? 'arme')),
-  lancerLAttaqueDeZone: corps((get, ctx) => get().lancerLAttaqueDeZone(ctx.attackKind as AttackKind)),
+  lancerLAttaqueDeZone: corps((get, ctx) => { if (ctx.attackKind) get().lancerLAttaqueDeZone(ctx.attackKind); }),
   prendreLaVisee: corps((get) => get().prendreLaVisee()),
   rechargerLArme: corps((get, ctx) => get().rechargerLArme(ctx.weaponUid)),
   approvisionnerLArme: corps((get, ctx) => { if (ctx.ammoUid) get().approvisionnerLArme(ctx.ammoUid, ctx.weaponUid); }),
@@ -605,7 +599,6 @@ export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
   manoeuvrerLeNavire: corps((get, ctx) => { if (ctx.crewId) get().manoeuvrerLeNavire(ctx.crewId); }),
   eprouverLEquipage: corps((get, ctx) => { if (ctx.shipId && ctx.crewTestId) get().eprouverLEquipage(ctx.shipId, ctx.crewTestId); }),
   chanterLaChanson: corps((get, ctx) => { if (ctx.shipId) get().chanterLaChanson(ctx.shipId); }),
-  rechargerLaPiece: corps((get, ctx) => { if (ctx.shipId && ctx.posteUid) get().rechargerLaPiece(ctx.shipId, ctx.posteUid); }),
   prendreLaPanoplie: corps((get, ctx) => { const a = actif(get); if (a && ctx.loadoutId) get().prendreLaPanoplie(a.id, ctx.loadoutId); }),
   /** FIN DU TOUR — porte unique de la plaque de sortie de la console ET de la touche. Le garde-fou
    *  « tour gâché » (spec §1c-bis COIN) est la POLITIQUE DE CETTE ENTRÉE : finir avec l'Action intacte
@@ -622,24 +615,23 @@ export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
   /** PORTE UNIQUE de la pause d'initiative (LDB 17 l.25) : le bandeau de phase de la console ET la
    *  touche du registre (`keybindings.round-start`) passent ICI : la validation de la pause, qui marque le siège
    *  PRÊT — c'est le quorum (sièges requis) qui lance, jamais un client ; en solo, le quorum est ce siège. */
-  roundStart: relais((get) => get().fenetreValider('roundStart')),
+  lancerLeRound: relais((get) => get().fenetreValider('roundStart')),
   /** Demande de pause au prochain Round — INTERRUPTEUR, lu dans l'état de l'émetteur : son siège l'a déjà posée, elle se
-   *  retire (`lowerHand`, annulation gratuite), sinon elle se pose. */
-  raiseHand: relais((get) => {
+   *  retire (annulation gratuite), sinon elle se pose. */
+  leverLaMain: relais((get) => {
     const s = get();
-    if ((s.battle?.handRaisedBy ?? []).includes(decidingSeat(s))) s.lowerHand();
-    else s.raiseHand();
+    s.leverLaMain(!(s.battle?.handRaisedBy ?? []).includes(decidingSeat(s)));
   }),
   // ── SORTIES D'INTERLUDE (`surface: 'interlude'`) : une enveloppe NOMMÉE par entrée, jamais un
   //    dispatcher mutualisé — deux interludes ne partagent ni leur verbe ni ses gardes (la sortie du
   //    balayage clôt l'étape-jet de la cascade).
   fermerLeBalayage: relais((get) => get().fenetreFermer('cleave')),
   renoncerALaSecondeFrappe: relais((get) => get().fenetreFermer('dualStrike')),
-  castPickTargetsOff: relais((get) => get().jetRegler('cast', 'carte', null)),
+  renoncerALaCarte: relais((get) => get().jetRegler('cast', 'carte', null)),
   /** Sortie du placeur de zone, ROUTÉE PAR LA SOURCE que mesure `placingZoneOf` — symétrique de
    *  `commitPlacedZone` (même aiguilleur pour poser et pour renoncer) : un sort revient à sa modale,
    *  un pilonnage referme son placeur. Une seule entrée d'interlude pour le mode `placing-zone`. */
-  placingZoneOff: relais((get) => {
+  renoncerALaZone: relais((get) => {
     const pz = placingZoneOf(get());
     if (!pz) return;
     switch (pz.source) {
@@ -648,13 +640,13 @@ export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
       default: pz.source satisfies never;
     }
   }),
-  batterySelectNone: relais((get) => get().desarmerLeMode()),
+  desarmerLaBatterie: relais((get) => get().desarmerLeMode()),
   /** Téléportation (`combatFlow.ts:5381` : `action: 'teleport'` + `reachable` = `flyReachable` depuis
    *  la case du lanceur, qui contient donc SA case au coût 0, `path.ts:318`) : la sortie de l'interlude
    *  est un ARRIVAGE sur place — le même commit que le clic-sol, par la même porte. */
-  teleportStay: relais((get) => {
+  resterSurPlace: relais((get) => {
     const active = actif(get);
-    if (active?.pos) get().battleClickTile({ ...active.pos });
+    if (active?.pos) get().cliquerLaCase({ ...active.pos });
   }),
 };
 
@@ -664,7 +656,7 @@ const ENTREE_DE_L_ACTION: ReadonlyMap<string, EntreeDOffre> = new Map(ACTIONS.fl
   def.run ? [[def.id, garanti(Object.prototype.hasOwnProperty.call(OFFRES_PAR_RUN, def.run) ? OFFRES_PAR_RUN[def.run] : undefined, def.run, `dispatcher de l’offre ${def.id}`)] as const] : []));
 
 /** L'entrée du registre d'id `id`, ou `undefined`. */
-const offreDeId = (id: unknown): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
+export const offreDeId = (id: unknown): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
 
 /** Le LIEU de l'offre `id` (#3371) : celui de son entrée d'`OFFRES_PAR_RUN`, ou `emetteur` pour une pure intention (une
  *  offre sans `run` ne fait qu'armer l'état local de l'émetteur) ; `undefined` pour un id inconnu. */
@@ -704,6 +696,13 @@ export function refusDeLOffre(s: Jeu, actionId: string, args: ContexteDOffre = {
   return gate.ok ? null : garanti(gate.reason, actionId, 'raison du refus de l’offre');
 }
 
+/** Arme l'intention que l'offre `def` déclare (`ActionDef.intent`) : l'armement est l'état LOCAL de l'émetteur
+ *  (`localIntent`), jamais posé chez l'hôte au nom d'un siège. `jouerLOffre` l'arme où il se joue ; l'invité qui envoie
+ *  une offre jouée chez l'hôte l'arme avant l'envoi (`INTENT_PREPARATION_LOCALE`, `localIntent.ts`). */
+export function armerLOffre(get: Get<JeuDuNoyau>, def: ActionDef): void {
+  if (def.intent && !unSiegeAgit()) get().armerLIntention(def.id);
+}
+
 /** Le verbe de l'offre (#2898, #3371) : `jouerLOffre`, et `desarmerLeMode`, la sortie gratuite de ce qu'une offre arme. */
 export function creerActionsDuRegistre(get: Get<JeuDuNoyau>, set: Set) {
   return {
@@ -711,12 +710,11 @@ export function creerActionsDuRegistre(get: Get<JeuDuNoyau>, set: Set) {
       const refus = refusDeLOffre(get(), actionId, ctx);
       if (refus) return void refuserGesteDuSiege(get, set, refus);
       const def = garanti(offreDeId(actionId), actionId, 'offre du registre');
-      // L'armement est l'état LOCAL de l'émetteur (`localIntent`) : jamais posé chez l'hôte au nom d'un siège.
-      if (def.intent && !unSiegeAgit()) get().battleArmIntent(def.id);
+      armerLOffre(get, def);
       ENTREE_DE_L_ACTION.get(def.id)?.jouer(get, ctx, def);
     },
     desarmerLeMode: () => {
-      if (!unSiegeAgit()) get().battleArmIntent(null);
+      if (!unSiegeAgit()) get().armerLIntention(null);
       get().armerLeMode(null);
     },
   } satisfies FabriqueDuNoyau;

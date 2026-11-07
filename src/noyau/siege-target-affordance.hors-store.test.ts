@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * (même gate que l'IA). Le survol retombe alors sur le déplacement (monter au rempart) au lieu d'un
  * « hors de portée » fantôme. Une arme à Atout Siège, elle, la rend ciblable.
  *
- * On dépose un `WallSeg.structure` (Mur en pierre = Impénétrable) sur la scène de fixture puis `startCombat` —
+ * On dépose un `WallSeg.structure` (Mur en pierre = Impénétrable) sur la scène de fixture puis `lancerLeCombat` —
  * la structure devient un Combattant inerte ; le mode neutre (action null) = mode d'attaque.
  */
 const EDGE = { x: 2, y: 2, side: 'E' as const };
@@ -27,11 +27,11 @@ function sceneWithStructure(structId: string): Scene {
 }
 
 function start(structId: string, seed = 1) {
-  banc.getState().seedRng(seed);
+  banc.getState().ensemencerLeTirage(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(sceneWithStructure(structId));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(sceneWithStructure(structId));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;

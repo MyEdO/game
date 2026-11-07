@@ -42,7 +42,7 @@ function fautes(verbe: string, nom: string, f: Forme, ou: string): string[] {
 
 describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur', () => {
   it('le relevé couvre les verbes des fenêtres', () => {
-    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres, les réglages des jets en un seul (#3368), les validations et sorties des fenêtres en deux, leurs choix en un seul (#3369), les axes des flux en réglages (#3369 lot 3)').toBeGreaterThan(25);
+    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres, les réglages des jets en un seul (#3368), les validations et sorties des fenêtres en deux, leurs choix en un seul (#3369), les axes des flux en réglages (#3369 lot 3), les deux clics du champ en un seul (#3371 lot 3), butin, échoppe et repos en choix (#3371 lot 4)').toBeGreaterThan(21);
     expect([...VERBES_DES_FENETRES].filter((v) => !(v in VERBES)), 'verbe de fenêtre hors de VERBES').toEqual([]);
   });
 
@@ -63,9 +63,9 @@ describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur'
 
 describe('un argument qui désigne un élément de l’état se choisit parmi ses éléments nommés (#2937)', () => {
   it.each([
-    ['harvestCreature', 'creatureId', 'IdDeCreatureADepecer'],
-    ['roundStartPromote', 'heroId', 'IdDeCombattantPromouvable'],
-    ['armPreempt', 'heroId', 'IdDeTireurRapide'],
+    ['depecerLaCreature', 'creatureId', 'IdDeCreatureADepecer'],
+    ['promouvoirLeCombattant', 'heroId', 'IdDeCombattantPromouvable'],
+    ['armerLeTirPreventif', 'heroId', 'IdDeTireurRapide'],
   ])('%s.%s désigne %s', (verbe, nom, cle) => {
     const p = VERBES[verbe].find((x) => x.nom === nom)!;
     const membres = p.forme.genre === 'union' ? p.forme.membres : [p.forme];

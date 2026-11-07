@@ -6,7 +6,7 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  * renvois au Codex : `src/noyau/codex/codex-rule-refs.test.ts`.
  *
  * PÉRIMÈTRE (#1117 L5a) — TOUT `src/**` hors `*.test.*`, jamais une liste de fichiers producteurs :
- * une `ModLine` naît aussi bien dans une modale (`ui/FocusModal.tsx`) que dans le moteur, et un
+ * une `ModLine` naît aussi bien dans une modale que dans le moteur, et un
  * périmètre par fichiers ne mesurait qu'une PART du stock (13 sur 30 au moment de l'élargissement).
  * MÉCANIQUE — parseur AST réel (`typescript`, même patron que `src/name-field-guard.test.ts`), pas
  * une regex de texte : les libellés en gabarit (`` `Météo : ${…}` ``) et les littéraux multi-lignes

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 
 /**
  * GARDE — une étape de cascade QUI LANCE DIT sa Difficulté (#1112). Une étape-jet porte `base` et
@@ -12,7 +13,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * parcours d'accolades (sinon un `${…}` fausse l'appariement). ABSOLUE : aucun site.
  */
 
-const RACINES = ['src/state', 'src/noyau'];
+const RACINES = porteeDeGarde(['noyau'], ['state']);
 
 /** Neutralise commentaires, chaînes et gabarits (contenu remplacé par des espaces, sauts conservés) —
  *  les accolades d'un `${…}` ne doivent JAMAIS compter dans l'appariement du littéral. */

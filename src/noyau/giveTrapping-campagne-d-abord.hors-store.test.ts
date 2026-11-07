@@ -1,6 +1,5 @@
 /**
- * `giveTrapping` résout l'objet dans la couche de campagne chargée d'abord (#767). La lecture de cette couche par les
- * lecteurs du web (`presetPnjById`) se joue en `src/state/campaignData.test.ts`.
+ * `giveTrapping` résout l'objet dans la couche de campagne chargée d'abord (#767).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyNarratif } from './monde/campaignNarratif';
@@ -37,7 +36,7 @@ function hero(): Combatant {
   })) as unknown as Combatant;
 }
 
-/** Scène minimale (heroStart) pour un chargement de campagne par le CHEMIN RÉEL (`loadProject`). */
+/** Scène minimale (heroStart) pour un chargement de campagne par le CHEMIN RÉEL (`chargerLeProjet`). */
 function fixtureScene(id = 'camp-scene'): Scene {
   const s = emptyScene('scene-test', 6, 6);
   s.id = id;
@@ -48,7 +47,7 @@ function fixtureScene(id = 'camp-scene'): Scene {
 /** Charge la campagne fixture par le chemin RÉEL du noyau (pose `campaignNarratif`). */
 function loadCampaign(): void {
   banc.setState({ party: [hero()] });
-  banc.getState().loadProject({ scenes: [fixtureScene()], entryId: 'camp-scene', narratif, projet: null });
+  banc.getState().chargerLeProjet({ scenes: [fixtureScene()], entryId: 'camp-scene', narratif, projet: null });
 }
 
 beforeEach(() => {
@@ -66,7 +65,7 @@ describe('campaignData — câblage giveTrapping campagne-d’abord par le chemi
 
   it('sans couche chargée : le MÊME giveTrapping tombe sur un customTrapping (kind misc) — la clé est au bon site', () => {
     banc.setState({ party: [hero()], campaignNarratif: null });
-    banc.getState().startScene(fixtureScene('nu-scene'));
+    banc.getState().lancerLaScene(fixtureScene('nu-scene'));
     applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: LAME_CAMPAGNE, heroId: 'a' }]);
     const it = (banc.getState().party[0].items ?? []).find((i) => i.label === LAME_CAMPAGNE || i.trappingId === LAME_CAMPAGNE);
     expect(it).toBeTruthy();

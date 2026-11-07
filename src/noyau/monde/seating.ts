@@ -4,7 +4,7 @@
  * Le catalogue de décor (`props.json`) déclare les places d'un TYPE de meuble dans son repère local
  * (`PropSeatSlot`) ; une Scène déclare QUI les occupe (`Scene.seatAssignments`). Ce module fait le
  * pont, et lui seul : la persistance, l'interaction, l'éditeur et `MapSpec` le CONSOMMENT.
- * PUR — aucune écriture de store, aucun rendu, aucune caméra, aucune dépendance `gameIso`.
+ * PUR — aucune écriture de store, aucun rendu, aucune caméra.
  *
  * FORME PERSISTÉE : `propId → slotId → occupant`. Deux niveaux imbriqués (et non une clé composée)
  * pour que « les places de CE meuble » et « ce meuble n'a plus personne » soient des lectures et des
@@ -135,7 +135,7 @@ function placesPartielles(scene: Scene): PlacePartielle[] {
     const facing = ent.facing ?? 'S';
     const crans = cransDepuisCapIdentite(facing);
     const z = ent.z ?? 0;
-    // ALTITUDE : le PIED du décor, à sa case `ent.pos` — la même que `gameIso/builders/props.ts`
+    // ALTITUDE : le PIED du décor, à sa case `ent.pos` — la même que le rendu des décors
     // pose sous la recette (`solM`). C'est ce qui colle l'assise au tabouret DESSINÉ : la lire à la
     // case du siège l'en décollerait dès qu'une marche traverse l'empreinte. Le PLAN, lui, part de
     // l'ancre du décor — les deux ne répondent pas à la même question.
@@ -266,8 +266,7 @@ export function seatSlotsOf(scene: Scene, propId: string): ResolvedSeatSlot[] {
 /**
  * Les places JOUABLES du meuble `propId` — la MÊME géométrie que `seatSlotsOf`, GATÉE par
  * l'ACTIVATION de l'instance (`SceneEntity.usable`, #1687). SOURCE UNIQUE des lecteurs
- * d'INTERACTION : halo de place libre (`gameIso/builders/interactHalos`), clic de meuble
- * (`gameIso/stage/useStagePointer`), assise au clic (`store.interactEntity`).
+ * d'INTERACTION : halo de place libre, clic de meuble, assise au clic (`store.interagirAvecLEntite`).
  *
  * La GÉOMÉTRIE ne dépend d'aucune activation : `seatSlotsOf` reste inchangé et sert l'éditeur, le
  * placement d'un PNJ authoré assis, et la validation de document — un tabouret non activé

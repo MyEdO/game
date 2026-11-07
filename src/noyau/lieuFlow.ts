@@ -28,7 +28,7 @@ export function sortiesDuLieu(get: Get, set: Set) {
     ecranDuLieu: () => {
       const ici = lieuDuGroupe(get());
       set({ lieuOuvert: false });
-      if (ici && get().scene?.id !== ici.scene) get().transitionTo(ici.scene, ici.entry);
+      if (ici && get().scene?.id !== ici.scene) get().quitterLaScene(ici.scene, ici.entry);
     },
   } satisfies Partial<SortiesDeFenetre>;
 }

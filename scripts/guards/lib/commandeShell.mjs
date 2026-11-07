@@ -178,7 +178,7 @@ function tokenizeCommand(command, { powershell = false } = {}) {
     // rencontrée en PLEIN MILIEU d'un token à ce MÊME token (`-m"a b c"` → un seul token `-ma b c`,
     // `--message="a b c"` → `--message=a b c`) — jamais une coupure qui laisserait les mots du
     // message fuir en tokens séparés (les mots d'un message multi-mots devenaient alors autant de
-    // pathspecs parasites, #591 suite : le filtrage src/ui retombait à néant, JUGE silencieux).
+    // pathspecs parasites, #591 suite : le filtrage par pathspec retombait à néant, JUGE silencieux).
     let buf = ''
     const quotes = new Set()
     let nu = false

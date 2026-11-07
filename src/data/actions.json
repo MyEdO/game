@@ -866,11 +866,10 @@
     "surface": "grille",
     "gate": [
       "vehicule",
-      "piece-dechargee"
+      "arme-a-recharger"
     ],
-    "run": "rechargerLaPiece",
-    "coutAction": "gratuit",
-    "maison": "tâche d’équipage PARALLÈLE : elle occupe l’équipage, pas le tour du navire — arbitrage maison (l’acte exige pourtant un Test).",
+    "run": "rechargerLArme",
+    "coutAction": "action",
     "rule": {
       "id": "recharge",
       "type": "quality"
@@ -914,7 +913,7 @@
     "icon": "ui/round-start",
     "surface": "bandeau-de-phase",
     "gate": "pause-de-round",
-    "run": "roundStart",
+    "run": "lancerLeRound",
     "coutAction": "aucun",
     "maison": "ouverture du Round depuis la pause d’initiative — geste de table, aucun coût de jeu."
   },
@@ -925,7 +924,7 @@
     "icon": "ui/wait",
     "surface": "frise",
     "gate": "coop",
-    "run": "raiseHand",
+    "run": "leverLaMain",
     "coutAction": "aucun",
     "maison": "demande de pause au prochain début de Round — geste de table (coop), aucun coût de jeu.",
     "keys": [
@@ -984,7 +983,7 @@
     "icon": "action/aim",
     "surface": "interlude",
     "gate": "toujours",
-    "run": "castPickTargetsOff",
+    "run": "renoncerALaCarte",
     "mode": "overcast",
     "exitSafe": true,
     "role": "valide",
@@ -998,7 +997,7 @@
     "icon": "ui/undo",
     "surface": "interlude",
     "gate": "toujours",
-    "run": "placingZoneOff",
+    "run": "renoncerALaZone",
     "mode": "placing-zone",
     "exitSafe": true,
     "role": "renonce",
@@ -1012,7 +1011,7 @@
     "icon": "ui/undo",
     "surface": "interlude",
     "gate": "toujours",
-    "run": "batterySelectNone",
+    "run": "desarmerLaBatterie",
     "mode": "battery",
     "exitSafe": true,
     "role": "renonce",
@@ -1026,7 +1025,7 @@
     "icon": "ui/done",
     "surface": "interlude",
     "gate": "toujours",
-    "run": "teleportStay",
+    "run": "resterSurPlace",
     "mode": "teleport",
     "exitSafe": false,
     "role": "valide",

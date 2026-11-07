@@ -24,8 +24,8 @@ describe('Piétinement en combat (store)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene());
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLaScene(testScene());
+    useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
     const b = useGame.getState().battle!;
@@ -54,7 +54,7 @@ describe('Piétinement en combat (store)', () => {
 
   // LDB 85 l.387 ; LDB 13 l.123. La cible se tient au bord de l'empreinte Énorme (`sizes.json` footprintSide).
   it('héros Énorme : Tab puis Entrée déclarent le Piétinement — jet opposé, option consommée', () => {
-    useGame.getState().seedRng(2);
+    useGame.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.size = 'enorme';
     H.advantage = 3;
@@ -63,9 +63,9 @@ describe('Piétinement en combat (store)', () => {
     const pa = useGame.getState().pendingAttack;
     expect(pa?.freeKind, 'Entrée ouvre le jet du Piétinement').toBe('pietinement');
     expect(useGame.getState().pendingCascade, 'la modale s’ouvre').toBeTruthy();
-    useGame.getState().jetRoll('attack');
+    useGame.getState().jetLancer('attack');
     expect(useGame.getState().pendingAttack!.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
-    useGame.getState().jetConfirm('attack');
+    useGame.getState().jetValider('attack');
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
     expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement'), 'l’option disparaît').toBe(false);
@@ -78,7 +78,7 @@ describe('Piétinement en combat (store)', () => {
     E.pos = { x: 13, y: 10 };
     pietinerAuClavier();
     expect(advDe(H.id), 'le coût est débité au commit').toBe(2);
-    useGame.getState().jetCancel('attack');
+    useGame.getState().jetAnnuler('attack');
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.advantage).toBe(3);
     expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement')).toBe(true);

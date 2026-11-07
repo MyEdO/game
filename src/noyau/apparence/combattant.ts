@@ -8,16 +8,16 @@ import type { Combatant, HitLocation, ItemInstance } from '../../engine/types';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
 import { findTierEntry } from '../../engine/tables';
-import { findCreatureById, findGroupeDArmureById, findSpeciesById, findTenueDeCarriere, findTeteById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
+import { findCreatureById, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
 import { armesDuCombattant, emblemeDe } from '../equipementDessine';
 import { facteursDeComposition, porteesDeLaTenue, porteesDesObjets, teinteDeLObjet, type ObjetPorte, type Portee, type PorteeDeComposition } from './composition';
 import { pieceRacine } from './gardeRobe';
 
-/** La race de rendu d'une espèce : la race d'apparence d'une espèce jouable (`refChar`), sinon l'espèce si elle est une
- *  race de `raceAppearance.json`. */
+/** La race de rendu d'une espèce : celle que le plan de bestiaire (`findPlanDEspeceById`, #2993) donne à la race
+ *  d'apparence d'une espèce jouable (`refChar`), sinon à l'espèce ; aucune si l'espèce n'y porte pas la base humanoïde. */
 const raceDeRendu = (species: string | undefined) => {
-  const id = findSpeciesById(species)?.refChar ?? species;
-  return raceAppearance.find((r) => r.id === id);
+  const race = findPlanDEspeceById(findSpeciesById(species)?.refChar ?? species)?.race;
+  return race && raceAppearance.find((r) => r.id === race.id);
 };
 
 /** Le Groupe d'armure dont l'armure de statbloc a `pa` PA : son palier atteint (`findTierEntry`), le schéma de
@@ -74,7 +74,7 @@ function uneFoisParPiece(portees: readonly Portee[]): Portee[] {
   });
 }
 
-/** Ce que porte `c`, `null` si son espèce n'a aucune race de rendu (#2973) : sa tête, ses armes tenues puis rangées,
+/** Ce que porte `c`, `null` si son espèce n'a aucune race de rendu (#2993) : sa tête, ses armes tenues puis rangées,
  *  ses objets équipés qui revêtent des pièces (`piecesDeLObjet`), son armure (`armuresDuCombattant`), puis la tenue de
  *  sa carrière (`findTenueDeCarriere`) ; une pièce n'est portée qu'une fois, par le premier qui la revêt. */
 export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {

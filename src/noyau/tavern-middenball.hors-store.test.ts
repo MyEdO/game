@@ -47,7 +47,7 @@ function choisir(option: number): void {
     const cur = get().pendingCascade?.participants[get().pendingCascade!.cursor];
     if (!cur || cur.kind !== 'tavern-option') return;
     get().jetRegler('cascade', 'choix', String(option), cur.id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
   }
 }
 
@@ -65,7 +65,7 @@ function poseTour(drHeros: number, drFigurantMien: number, drFigurantSien: numbe
   const participants = [...pc.participants];
   participants[idx] = { ...band, participants: rows };
   banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
-  get().jetConfirm('cascade');
+  get().jetValider('cascade');
 }
 
 beforeEach(() => {
@@ -87,7 +87,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('le tour s’ouvre sur le CHOIX de chaque héros, PUIS la bande — jamais un Test tranché à sa place', () => {
     const party = equipe(2);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
 
     const pc = get().pendingCascade!;
     expect(pc.participants.map((s) => s.kind)).toEqual(['tavern-option', 'tavern-option']);
@@ -98,7 +98,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('la bande du tour porte 11 rangées par camp : les héros à jouer, les figurants en TÉMOINS déjà roulés', () => {
     const party = equipe(2);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0);
 
     const band = bande()!;
@@ -123,7 +123,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('l’OPTION choisie décide la Compétence ET la Difficulté de la rangée (Bagarre +20 vs Athlétisme +0)', () => {
     const party = equipe(1);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(1); // Athlétisme Intermédiaire (+0)
     const athle = bande()!.participants!.find((r) => r.id === party[0].id)!;
     expect(athle.skill).toEqual({ id: 'athletisme' });
@@ -132,7 +132,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
     banc.setState({ pendingCascade: null, sequence: null } as never);
     const party2 = equipe(1);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party2[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party2[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0); // Corps à corps (Bagarre) Accessible (+20)
     const bagarre = bande()!.participants!.find((r) => r.id === party2[0].id)!;
     // La Spécialisation de la DONNÉE voyage sur la rangée : sa ligne et sa requête d'inversion
@@ -145,7 +145,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('SOMME par équipe, BUT au-delà de 25, +1 Avantage au camp qui l’emporte (l.119)', () => {
     const party = equipe(2);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0);
     // 11 rangées à 3 DR = 33 (≥ 25) contre 11 rangées à 1 DR = 11.
     poseTour(3, 3, 1);
@@ -164,7 +164,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
    */
   it('deux tours gagnés d’affilée : Avantage 2, pour le héros comme pour les figurants de son camp (LDB 14 l.204-209)', () => {
     const party = equipe(1);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0);
     poseTour(3, 3, 1);
     choisir(0);
@@ -184,7 +184,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('le camp qui PERD le tour : ses héros perdent leur Avantage (LDB 14 l.219, l.119 « règles habituelles »)', () => {
     const party = equipe(2);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0);
     poseTour(3, 3, 1);
     for (const h of party) expect(get().party.find((x) => x.id === h.id)!.advantage).toBe(1);
@@ -195,7 +195,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('l’Avantage gagné entre dans la CIBLE du tour suivant — en Bagarre (Test de Combat) seulement', () => {
     const party = equipe(2);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0); // Bagarre
     const cibleT1 = bande()!.participants!.find((r) => r.id === party[0].id)!.target!;
     poseTour(3, 3, 1); // votre camp l'emporte : +1 Avantage
@@ -209,7 +209,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('l’Avantage n’entre PAS dans la cible d’un Athlétisme (ce n’est pas un Test de Combat)', () => {
     const party = equipe(2);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(1); // Athlétisme
     const cibleT1 = bande()!.participants!.find((r) => r.id === party[0].id)!.target!;
     poseTour(3, 3, 1);
@@ -225,7 +225,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
    *  camp le porte, sans quoi une équipe sans héros ne pourrait jamais rien gagner. */
   it('l’Avantage d’un camp s’applique AUSSI à ses figurants — les deux camps, symétriquement', () => {
     const party = equipe(1);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0);
     const figMien = () => bande()!.participants!.find((r) => r.id.startsWith('figurant-p-'))!;
     const figSien = () => bande()!.participants!.find((r) => r.id.startsWith('figurant-o-'))!;
@@ -245,7 +245,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('vos coéquipiers figurants jouent LEUR fiche (profil standard, LDB 77), jamais celle de l’adversaire', () => {
     const party = equipe(1);
-    get().playTavernGame({
+    get().jouerALaTaverne({
       gameId: 'middenball', challengerId: party[0].id,
       opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'nain',
     });
@@ -262,7 +262,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
    *  de 25 : seule celle qui l'emporte marque. */
   it('les DEUX camps au-dessus de 25 : SEUL le vainqueur marque', () => {
     const party = equipe(1);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0);
     poseTour(4, 4, 3); // 11×4 = 44 contre 11×3 = 33 : les deux ≥ 25
 
@@ -273,7 +273,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('total sous le seuil : l’équipe la plus haute gagne l’Avantage, mais AUCUN but', () => {
     const party = equipe(2);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0);
     poseTour(2, 2, 1); // 22 contre 11 : le plus haut, mais < 25
 
@@ -283,7 +283,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('la partie dure SIX tours (deux mi-temps de trois) et se dénoue sur le compte des buts', () => {
     const party = equipe(2);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     const tours: number[] = [];
     for (let i = 0; i < 8 && get().sequence; i++) {
       tours.push(get().sequence!.round);
@@ -302,7 +302,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
   it('le dénouement accorde ses unités au compte : 1 but', () => {
     const party = equipe(2);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0);
     poseTour(3, 3, 1);
     // Cinq tours nuls (11 contre 11) : la partie se dénoue au sixième.
@@ -318,14 +318,14 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
   it('GRAINE RÉELLE (aucun DR posé) : une partie entière se déroule, six tours, un vainqueur nommé', () => {
     seedBattleRng(11);
     const party = equipe(3);
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     for (let i = 0; i < 40 && get().pendingCascade; i++) {
       const cur = etape();
       if (cur.kind === 'tavern-option') get().jetRegler('cascade', 'choix', '0', cur.id);
       else if (cur.participants) {
-        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetRoll('cascadeBatch', row.id);
+        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeBatch', row.id);
       }
-      get().jetConfirm('cascade');
+      get().jetValider('cascade');
     }
     expect(get().sequence).toBeNull();
     const res = get().tavernGames!.result!;

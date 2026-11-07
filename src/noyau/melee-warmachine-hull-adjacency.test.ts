@@ -41,7 +41,7 @@ const scene = (): Scene =>
 
 const NET_LOCAL = { mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] };
 const mkGet = (combatants: Combatant[]): (() => JeuDuNoyau) =>
-  (() => ({ scene: scene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
+  (() => ({ scene: scene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
 
 describe('#210 — adjacence d\'une pièce de MÊLÉE servie = celle de la COQUE, jamais celle du chef', () => {
   it('(a) coque ADJACENTE à la porte, chef PAS adjacent (loin) : attaque DISPONIBLE', () => {

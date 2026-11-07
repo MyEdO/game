@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { enfantsDe } from './schemas/grammaire/descente';
 import { document } from './schemas/grammaire/document';
+import { executeesDe } from './schemas/grammaire/mecanique';
 import { nommerChamps, nommerNoeud } from './schemas/grammaire/meta';
 import { idDe, ref } from './schemas/grammaire/ref';
 import { formulaSinSchema } from './schemas/grammaire/valeurs';
@@ -87,6 +88,17 @@ describe('classes d’un nœud de site', () => {
       'L src/data#reglage :: .lignes[]',
       'L src/data#reglage :: .lignes[].sous',
       'L src/data#sonde :: .entries[].sous',
+    ]);
+  });
+
+  it('le reste d’un nœud PARTAGÉ de la grammaire n’est pas un site du document qui le compose ; celui d’un objet local en reste un (#1652)', () => {
+    const avecOps = (type: string) => z.array(z.strictObject({ id: z.string(), type: z.literal(type), ops: executeesDe(), local: z.looseObject({ n: z.number() }) }));
+    const auStock = classes([def('a.json', avecOps('a')), def('b.json', avecOps('b'))]).filter((c) => !c.startsWith('G '));
+    expect(auStock).toEqual([
+      'L src/data#a :: [].local',
+      'D5 src/data#a :: [].local.*',
+      'L src/data#b :: [].local',
+      'D5 src/data#b :: [].local.*',
     ]);
   });
 

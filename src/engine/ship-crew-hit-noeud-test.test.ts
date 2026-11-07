@@ -49,7 +49,7 @@ const coups = () =>
   );
 
 /** Les porteurs de coup RÉSOLUS par le producteur (dé FORCÉ sur le `min` de la rangée → c'est bien SA
- *  ligne qui sort), avec la Localisation qui les porte — la seule voie par laquelle `state` les voit. */
+ *  ligne qui sort), avec la Localisation qui les porte — la seule voie par laquelle le noyau les voit. */
 const coupsResolus = () =>
   JEUX.flatMap(([jeu, fichier]) =>
     Object.entries(jeu.tables).flatMap(([loc, rows]) => (rows ?? [])

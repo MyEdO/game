@@ -20,13 +20,13 @@ const hero = (p: Partial<Combatant>): Combatant =>
     traumas: [legSequela], items: [fausseJambe()], ...p,
   }) as Combatant);
 
-describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 l.23)', () => {
+describe('entrainerLaProthese — rachat PX en 2 paliers de la Fausse jambe (LDB 73 l.23)', () => {
   beforeEach(() => { banc.setState({ battle: null, mode: 'exploration' }); });
 
   it('100 PX (1er palier, Mouvement) : marque prosthesisMoveTrained, l’Esquive reste pénalisée', () => {
     const h = hero({ id: 'a', xp: 300 });
     banc.setState({ party: [h] });
-    banc.getState().trainProsthesis('a', 'fj');
+    banc.getState().entrainerLaProthese('a', 'fj');
     const p = banc.getState().party[0];
     expect(p.xp).toBe(200); // 300 − 100
     const it = p.items!.find((i) => i.uid === 'fj')!;
@@ -38,7 +38,7 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
   it('200 PX (2e palier, Esquive) : une fois le Mouvement déjà entraîné, rétablit AUSSI l’Esquive', () => {
     const h = hero({ id: 'a', xp: 250, items: [fausseJambe({ prosthesisMoveTrained: true })] });
     banc.setState({ party: [h] });
-    banc.getState().trainProsthesis('a', 'fj');
+    banc.getState().entrainerLaProthese('a', 'fj');
     const p = banc.getState().party[0];
     expect(p.xp).toBe(50); // 250 − 200
     expect(p.items!.find((i) => i.uid === 'fj')!.prosthesisTrained).toBe(true);
@@ -48,8 +48,8 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
   it('achats séquentiels : deux appels (100 PX puis 200 PX) mènent au plein entraînement', () => {
     const h = hero({ id: 'a', xp: 300 });
     banc.setState({ party: [h] });
-    banc.getState().trainProsthesis('a', 'fj'); // 1er palier : 100 PX
-    banc.getState().trainProsthesis('a', 'fj'); // 2e palier : 200 PX
+    banc.getState().entrainerLaProthese('a', 'fj'); // 1er palier : 100 PX
+    banc.getState().entrainerLaProthese('a', 'fj'); // 2e palier : 200 PX
     const p = banc.getState().party[0];
     expect(p.xp).toBe(0); // 300 − 100 − 200
     const it = p.items!.find((i) => i.uid === 'fj')!;
@@ -61,7 +61,7 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
   it('PX insuffisants pour le 1er palier (100 PX) : aucun changement', () => {
     const h = hero({ id: 'a', xp: 50 });
     banc.setState({ party: [h] });
-    banc.getState().trainProsthesis('a', 'fj');
+    banc.getState().entrainerLaProthese('a', 'fj');
     const p = banc.getState().party[0];
     expect(p.xp).toBe(50);
     expect(p.items!.find((i) => i.uid === 'fj')!.prosthesisMoveTrained).toBeFalsy();
@@ -70,7 +70,7 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
   it('PX insuffisants pour le 2e palier (200 PX) une fois le Mouvement acquis : aucun changement', () => {
     const h = hero({ id: 'a', xp: 150, items: [fausseJambe({ prosthesisMoveTrained: true })] });
     banc.setState({ party: [h] });
-    banc.getState().trainProsthesis('a', 'fj');
+    banc.getState().entrainerLaProthese('a', 'fj');
     const p = banc.getState().party[0];
     expect(p.xp).toBe(150);
     expect(p.items!.find((i) => i.uid === 'fj')!.prosthesisTrained).toBeFalsy();
@@ -79,14 +79,14 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
   it('déjà pleinement entraînée (200 PX) : nouvel appel ne fait rien', () => {
     const h = hero({ id: 'a', xp: 300, items: [fausseJambe({ prosthesisMoveTrained: true, prosthesisTrained: true })] });
     banc.setState({ party: [h] });
-    banc.getState().trainProsthesis('a', 'fj');
+    banc.getState().entrainerLaProthese('a', 'fj');
     expect(banc.getState().party[0].xp).toBe(300);
   });
 
   it('prothèse non portée : refus', () => {
     const h = hero({ id: 'a', xp: 300, items: [fausseJambe({ equipped: false })] });
     banc.setState({ party: [h] });
-    banc.getState().trainProsthesis('a', 'fj');
+    banc.getState().entrainerLaProthese('a', 'fj');
     expect(banc.getState().party[0].xp).toBe(300); // inchangé
   });
 
@@ -100,10 +100,10 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
     const h = hero({ id: 'a', xp: 500, traumas: [main], items: [crochet] });
     banc.setState({ party: [h] });
     expect(amputationCombatPenalty(banc.getState().party[0], arme)).toBe(-20); // avant tout rachat
-    banc.getState().trainProsthesis('a', 'cr'); // 1re tranche : 100 PX
+    banc.getState().entrainerLaProthese('a', 'cr'); // 1re tranche : 100 PX
     expect(banc.getState().party[0].xp).toBe(400);
     expect(amputationCombatPenalty(banc.getState().party[0], arme)).toBe(-15);
-    banc.getState().trainProsthesis('a', 'cr'); // 2e tranche
+    banc.getState().entrainerLaProthese('a', 'cr'); // 2e tranche
     expect(amputationCombatPenalty(banc.getState().party[0], arme)).toBe(-10);
   });
 
@@ -113,12 +113,12 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
     const h = hero({ id: 'a', xp: 500, traumas: [{ uid: 't1', label: 'Main', traumaId: 'main-bras-ampute', location: 'brasD', ops: [{ op: 'maxWeaponHands' as const, hands: 1 }] }], items: [crochet] });
     banc.setState({ party: [h] });
     expect(cannotWieldTwoHanded(banc.getState().party[0])).toBe(true); // avant : pas d'arme à 2 mains
-    for (let i = 0; i < 4; i++) banc.getState().trainProsthesis('a', 'cr');
+    for (let i = 0; i < 4; i++) banc.getState().entrainerLaProthese('a', 'cr');
     const p = banc.getState().party[0];
     expect(p.xp).toBe(100); // 500 − 4×100
     expect(amputationCombatPenalty(p, arme)).toBe(0); // pénalité entière rachetée
     expect(cannotWieldTwoHanded(p)).toBe(false); // crochet maîtrisé → 2 mains de nouveau possibles
-    banc.getState().trainProsthesis('a', 'cr'); // plus aucun palier : rien ne se passe
+    banc.getState().entrainerLaProthese('a', 'cr'); // plus aucun palier : rien ne se passe
     expect(banc.getState().party[0].xp).toBe(100);
   });
 });
