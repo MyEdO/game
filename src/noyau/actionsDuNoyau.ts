@@ -317,6 +317,9 @@ export interface GesteDuNoyau {
   args: unknown[];
 }
 
+/** Un geste du noyau et ce qui le ferme maintenant (`null` : il se joue). */
+export interface GesteFermable { geste: GesteDuNoyau; refus: string | null }
+
 /** Le clic du champ, en combat comme en exploration : la case, et ce qu'elle porte. En combat, un premier clic pose
  *  l'aperçu, le même clic le confirme (`battle.preview`). */
 export const CLIC_DU_CHAMP = 'cliquerLaCase' satisfies keyof ActionsDuNoyau;

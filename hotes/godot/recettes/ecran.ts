@@ -268,6 +268,28 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('entre deux aventures, l’ouvrage et le dépôt du forgeron', s);
   forge.fermer();
 
+  /** Le marché du scénario `scenario`, entré par le seul service de son lieu ; ses dés tombés, il montre la bourse. */
+  const auMarche = (scenario: string) => {
+    const p = unPont([]);
+    let m = viderLesFenetres(p.jouer, p.jouer('demarrer', { scenario, graine: 7 }));
+    m = p.jouer('jouer', m.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Le lieu')!.jeu);
+    m = p.jouer('jouer', (m.vue.zones['fenetre.corps'].find((e): e is Entite => e.id.startsWith('service/'))!.elements[0] as Bouton).jeu);
+    for (let pas = 0; !m.vue.zones['fenetre.corps'].some((e) => e.id === 'bourse'); pas++) {
+      if (pas > 12) throw new Error(`aucun marché après ${pas} gestes : ${JSON.stringify(m.vue.zones['fenetre.titre'])}`);
+      m = p.jouer('jouer', presse(m));
+    }
+    return { p, m };
+  };
+  const halle = auMarche('commerce-fluvial');
+  figer('halle : chaque offre, son prix par Enc et son achat', halle.m);
+  const achat = halle.m.vue.zones['fenetre.corps'].flatMap((e) => (e.type === 'entite' ? e.elements : [])).find((x): x is Formulaire => x.id === 'acheter')!;
+  const valeurDe = (c: Saisie) => (c.type === 'saisieChoix' ? c.valeurs.find((v) => v.presse)!.valeur : c.type === 'fixe' || c.type === 'saisieNombre' ? c.valeur : null);
+  figer('halle : un lot acheté, sa vente, son bradage, son transfert', halle.p.jouer('jouer', { type: achat.verbe, args: achat.champs.map(valeurDe) }));
+  halle.p.fermer();
+  const port = auMarche('voyage-maritime');
+  figer('escale maritime : la bourse et la cale du navire', port.m);
+  port.p.fermer();
+
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],

@@ -40,7 +40,7 @@ describe('l’échoppe par le pont', () => {
     const { suite } = echoppe();
     expect(suite.vue.disposition, 'l’échoppe a son écran').toBe('marchand');
     const c = corps(suite);
-    expect((c['marchand/bourse'] as Puce).valeur, 'la bourse du groupe').toMatch(/\d/);
+    expect((c['bourse'] as Puce).valeur, 'la bourse du groupe').toMatch(/\d/);
     const familles = Object.keys(c).filter((id) => id.startsWith('etal/'));
     expect(familles.length, 'l’étal rangé par famille').toBeGreaterThan(1);
     expect(boutons(c[familles[0]]).every((b) => / · /.test(b.libelle)), 'chaque article dit son prix').toBe(true);

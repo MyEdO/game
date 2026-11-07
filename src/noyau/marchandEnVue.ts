@@ -7,7 +7,7 @@
  * noyau (`hote/ecran.ts`).
  */
 import type { Jeu } from './etat';
-import type { GesteDuNoyau } from './actionsDuNoyau';
+import type { GesteDuNoyau, GesteFermable } from './actionsDuNoyau';
 import { AVAILABILITIES } from '../engine/types';
 import { formatMoney } from '../engine/money';
 import { isShieldTrapping } from '../engine/items';
@@ -17,9 +17,6 @@ import { totalDesBourses } from './bourseFlow';
 import { fenetreDuJeu } from './combatAuto';
 import { VERBE_DE_CHOIX, type AxeDe } from './choixDesFenetres';
 import { garanti } from '../lib/garanti';
-
-/** Un geste du noyau et ce qui le ferme maintenant (`null` : il se joue). */
-export interface GesteFermable { geste: GesteDuNoyau; refus: string | null }
 
 /** Un article de l'étal : son nom, sa quantité en stock, son prix dit (`null` : sans prix), ce que le panier en tient,
  *  et son ajout au panier. */
