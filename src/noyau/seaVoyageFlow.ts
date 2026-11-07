@@ -60,11 +60,10 @@ import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleM
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
-import { buildWeapon, newUid } from '../engine/items';
+import { buildWeapon } from '../engine/items';
 import { applyOps, resolveFormula, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
 import { itemCapability } from '../engine/capabilities';
-import { isRation } from '../engine/provisions';
 import { toDate, MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex } from '../engine/clock';
 import { seasonOfMonth } from '../engine/travelStages';
 import {
@@ -85,7 +84,7 @@ import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, de
 import {
   evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
-  seulEvenementDePort, rollRandomCargo, cargoBasePrice, meteosActives, modificateursAuCarenage, sommeDesModificateurs,
+  seulEvenementDePort, meteosActives, modificateursAuCarenage, sommeDesModificateurs,
   type CargoOverload, type EvenementDeBord, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
@@ -2121,7 +2120,6 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
     if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
     return ligne;
   }
-  const vessel = get().vessel;
   const ship = get().travelPlan?.vehicle;
   switch (event.kind) {
     case 'infestation': {
@@ -2132,17 +2130,6 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
           spoilPerNight: structuredClone(p.spoilEncPerNight), // #2097
         },
       });
-      break;
-    }
-    case 'penurie-nourriture': {
-      let spoiled = 0;
-      for (const h of get().party) {
-        const rations = (h.items ?? []).filter(isRation);
-        const toSpoil = Math.floor(rations.length * event.params.spoilPct / 100);
-        for (let i = 0; i < toSpoil; i++) { const idx = h.items!.findIndex(isRation); if (idx >= 0) { h.items!.splice(idx, 1); spoiled++; } }
-      }
-      set({ party: [...get().party] });
-      tell(get, set, [t('sv.rationsSpoiled', { n: spoiled })]);
       break;
     }
     case 'vents-favorables':
@@ -2214,17 +2201,6 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
       // fuir / combattre / se soumettre (A5.3 #327), en cascade interactive avant la journée.
       openPirateHail(get, set, event);
       break;
-    case 'debris-cargaison':
-    case 'epave-cargaison': {
-      // MDG 15 l.210, l.225
-      if (!vessel) break;
-      const enc = tirer(event.params.cargoEnc, rng);
-      const season = seasonOfMonth(toDate(get().gameTime).month);
-      const cargo = rollRandomCargo(season, rng);
-      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { uid: newUid(), cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, rng) }] } });
-      tell(get, set, [t('sv.cargoFished', { enc, cargo: cargo.label })]);
-      break;
-    }
     default:
       break; // narratif : le desc verbatim au journal suffit — rien d'inventé
   }

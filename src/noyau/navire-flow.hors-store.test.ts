@@ -18,6 +18,9 @@ import { BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
 import type { Flow } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../engine/types';
+import { itemFromTrappingById } from '../engine/items';
+import { shipboardSouls } from './shipCrew';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -334,5 +337,92 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
     jour('chance-du-navigateur');
     expect(get().party.some((h) => (h.activeEffects ?? []).some((e) => e.grantedTalent?.talentId === 'chanceux'))).toBe(false);
     expect(get().journal.some((l) => l.includes('Capitaine'))).toBe(true);
+  });
+});
+
+describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
+  beforeEach(etatFrais);
+  afterEach(() => resetData());
+
+  function jour(evenement: string): void {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
+    runSeaDay(get, set);
+  }
+  const consequence = (id: string) => BOARD_EVENTS.find((e) => e.id === id)?.consequence;
+  const consequenceDeBord = (id: string, c: Flow) =>
+    setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === id ? { ...e, consequence: c } : e)) as never);
+  const surLeNavire = (ops: unknown[]): Effect => ({ type: 'ops', on: 'navire', ops } as never);
+  const ration = (uid: string) => ({ ...itemFromTrappingById('ration')!, uid });
+  const rations = (h: Combatant): number => (h.items ?? []).filter((it) => it.trappingId === 'ration').length;
+
+  it('la donnée porte la RAW : débris 1d100, épave 2d100 sur décision ; pénurie la moitié ; manne 1d10 jours et +2d10 Moral', () => {
+    const navire = (ops: unknown[]) => ({ kind: 'do', effect: { type: 'ops', on: 'navire', ops } });
+    expect(consequence('debris-marins')).toEqual({ kind: 'choice', prompt: 'Repêcher les caisses', yes: navire([{ op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } }]) });
+    expect(consequence('vaisseau-fantome-figurativement')).toEqual({ kind: 'choice', prompt: 'Monter à bord', yes: navire([{ op: 'cargaison', enc: { dice: { n: 2, sides: 100 } } }]) });
+    expect(consequence('penurie-de-nourriture')).toEqual(navire([{ op: 'provisions', gateesPct: 50 }]));
+    expect(consequence('manne-de-manann')).toEqual(navire([
+      { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } },
+      { op: 'shipMorale', delta: { sign: 1, dice: { n: 2, sides: 10 } } },
+    ]));
+  });
+
+  it.each([['debris-marins'], ['vaisseau-fantome-figurativement']])('%s : repêcher charge une cargaison tirée, à son prix de base (l.209-210, l.224-225)', (id) => {
+    const c = consequence(id) as Extract<Flow, { kind: 'choice' }>;
+    consequenceDeBord(id, { ...c, yes: { kind: 'do', effect: surLeNavire([{ op: 'cargaison', enc: 37 }]) as never } });
+    jour(id);
+    expect(get().pendingCascade?.participants.some((s) => s.kind === 'flowChoice')).toBe(true);
+    expect(get().vessel!.cargo ?? []).toHaveLength(0);
+    avanceEtapeCascade(get, undefined, () => 'yes');
+    expect(get().vessel!.cargo).toEqual([expect.objectContaining({ enc: 37, basePriceGold: expect.any(Number) })]);
+    expect(get().vessel!.cargo![0].basePriceGold).toBeGreaterThan(0);
+  });
+
+  it('débris marins : renoncer ne charge rien (« Si vous les repêchez », l.209)', () => {
+    jour('debris-marins');
+    avanceEtapeCascade(get, undefined, () => 'no');
+    expect(get().vessel!.cargo ?? []).toHaveLength(0);
+  });
+
+  it('pénurie de nourriture : la moitié des provisions à bord, cale ET rations des héros, est gâtée (l.169-170)', () => {
+    const [a, b, c] = get().party;
+    set({
+      party: [{ ...a, items: [ration('r1'), ration('r2'), ration('r3'), ration('r4')] }, { ...b, items: [ration('r5'), ration('r6'), ration('r7')] }, { ...c, items: [] }],
+      vessel: { ...get().vessel!, provisions: 41 },
+    });
+    applyEffects(get, set, [surLeNavire([{ op: 'provisions', gateesPct: 50 }])]);
+    expect(get().vessel!.provisions).toBe(21);
+    expect(get().party.map(rations)).toEqual([2, 2, 0]);
+  });
+
+  it('pénurie de nourriture sans vivres d’équipage suivis : seules les rations des héros se gâtent', () => {
+    const [a, ...reste] = get().party;
+    set({ party: [{ ...a, items: [ration('r1'), ration('r2')] }, ...reste] });
+    applyEffects(get, set, [surLeNavire([{ op: 'provisions', gateesPct: 50 }])]);
+    expect(get().vessel!.provisions).toBeUndefined();
+    expect(rations(get().party[0])).toBe(1);
+  });
+
+  it('manne de Manann : de quoi nourrir l’équipage N jours, une ration par marin et par jour (l.235 ; MDG 14 l.238)', () => {
+    set({ vessel: { ...get().vessel!, provisions: 5 } });
+    const equipage = shipboardSouls(get()).crew;
+    expect(equipage).toBeGreaterThan(0);
+    applyEffects(get, set, [surLeNavire([{ op: 'provisions', jours: 3 }])]);
+    expect(get().vessel!.provisions).toBe(5 + 3 * equipage);
+  });
+
+  it('manne de Manann jouée en mer : vivres de la cale et Moral montent (l.235-236)', () => {
+    set({ vessel: { ...get().vessel!, provisions: 0 } });
+    jour('manne-de-manann');
+    const ligne = get().journal.find((l) => l.startsWith('Provisions de bord'));
+    expect(ligne).toBeDefined();
+    expect(get().vessel!.morale.score).toBeGreaterThan(75);
+  });
+
+  it('manne de Manann sans vivres d’équipage suivis : le journal le dit, le Moral monte quand même', () => {
+    jour('manne-de-manann');
+    expect(get().vessel!.provisions).toBeUndefined();
+    expect(get().journal).toContain(t('eff.provisionsSansSuivi'));
+    expect(get().vessel!.morale.score).toBeGreaterThan(75);
   });
 });

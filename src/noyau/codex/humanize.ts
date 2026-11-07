@@ -587,6 +587,10 @@ export function humanizeOp(o: GameOp): string {
       meteo: [...(o.meteo ? [seaWeatherLabel(o.meteo)] : []), ...(o.ventInverse ? [t('codex.op.meteoImposee.ventInverse')] : [])].join(', '),
       n: humanizeFormula(o.jours),
     });
+    case 'cargaison': return t('codex.op.cargaison', { enc: humanizeFormula(o.enc) });
+    case 'provisions': return o.gateesPct !== undefined
+      ? t('codex.op.provisions.gatees', { pct: o.gateesPct })
+      : t('codex.op.provisions.jours', { n: humanizeFormula(o.jours) });
   }
   return assertNever(o);
 }

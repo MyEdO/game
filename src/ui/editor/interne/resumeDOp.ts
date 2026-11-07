@@ -165,6 +165,8 @@ export function opSummary(o: GameOp): string {
     case 'shipCritical': return `${formulaSummary(o.count)} Critique(s) — ${o.location === 'aleatoire' ? 'Localisation aléatoire' : shipLocationLabel(o.location)}`;
     case 'navireMod': return `${[o.m !== undefined ? `M ${o.m >= 0 ? '+' : ''}${o.m}` : '', o.manDR !== undefined ? `Man ${o.manDR >= 0 ? '+' : ''}${o.manDR} DR` : ''].filter(Boolean).join(', ')} ${o.jusqua === 'carenage' ? '→ carénage' : `· ${formulaSummary(o.jusqua.jours)} j`}`;
     case 'meteoImposee': return `météo ${[...Object.values(o.meteo ?? {}), ...(o.ventInverse ? ['vent inversé'] : [])].join(', ')} · ${formulaSummary(o.jours)} j${o.aggravation ? ' (aggravation)' : ''}`;
+    case 'cargaison': return `${formulaSummary(o.enc)} Enc de cargaison tirée`;
+    case 'provisions': return o.gateesPct !== undefined ? `${o.gateesPct} % des provisions gâtées` : `+${formulaSummary(o.jours)} j de vivres`;
     default: return `${(o as GameOp).op}`;
   }
 }

@@ -7,15 +7,18 @@
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { tirerSigne } from '../engine/dice';
-import { MINUTES_PER_DAY } from '../engine/clock';
+import { MINUTES_PER_DAY, toDate } from '../engine/clock';
 import { estOpDuNavire, nomDeSource, resolveFormula, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
 import type { EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
-import { addManann, applyManannFactor, meteosActives, modificateursActifs } from '../engine/seaVoyage';
+import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo } from '../engine/seaVoyage';
+import { seasonOfMonth } from '../engine/travelStages';
+import { isRation } from '../engine/provisions';
+import { newUid } from '../engine/items';
 import { rollShipCritical } from '../engine/shipCritical';
 import { voyageStakeRef } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { applyShipMoraleDelta } from './shipCrew';
+import { applyShipMoraleDelta, shipboardSouls } from './shipCrew';
 import { applyVesselCritical, buildVoyageCrewStep, coqueDuNavireDeCampagne, localisationAleatoire, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
 import { applyLeafOps, OPS_DIFFEREES } from './combatEffects';
 import { startCascade } from './cascade';
@@ -86,7 +89,47 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       set({ vessel: { ...vessel, meteosImposees: [...meteosActives(vessel.meteosImposees, now), meteo] } });
       return [t('eff.meteoImposee', { label, n: jours })];
     }
+    case 'cargaison': {
+      const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      const enc = Math.max(0, Math.round(resolveFormula(o.enc, coque, ctx.rng)));
+      const season = seasonOfMonth(toDate(get().gameTime).month);
+      const cargo = rollRandomCargo(season, ctx.rng);
+      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { uid: newUid(), cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, ctx.rng) }] } });
+      return [t('eff.cargaison', { enc, cargo: cargo.label })];
+    }
+    case 'provisions':
+      return o.gateesPct !== undefined ? gaterLesProvisions(get, set, o.gateesPct) : ajouterDesVivres(get, set, joursTires(o.jours, coque, ctx));
   }
+}
+
+/** Gâte `pct` % des provisions à bord : les vivres de la cale (`vessel.provisions`) et les rations de chaque
+ *  héros, arrondi à l'entier inférieur. MDG 15 l.169-170 */
+function gaterLesProvisions(get: Get, set: Set, pct: number): string[] {
+  let jetees = 0;
+  const party = get().party.map((h) => {
+    let n = Math.floor((h.items ?? []).filter(isRation).length * pct / 100);
+    if (!n) return h;
+    jetees += n;
+    return { ...h, items: h.items!.filter((it) => !(isRation(it) && n-- > 0)) };
+  });
+  set({ party });
+  const lignes = [t('sv.rationsSpoiled', { n: jetees })];
+  const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
+  if (vessel.provisions == null) return lignes;
+  const perdues = Math.floor(vessel.provisions * pct / 100);
+  set({ vessel: { ...vessel, provisions: vessel.provisions - perdues } });
+  return [...lignes, t('eff.provisionsGatees', { perdues, total: vessel.provisions - perdues })];
+}
+
+/** Ajoute `jours` jours de vivres de l'équipage (une ration par marin et par jour) aux provisions de la
+ *  cale. MDG 15 l.235-236 ; MDG 14 l.238 */
+function ajouterDesVivres(get: Get, set: Set, jours: number): string[] {
+  const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
+  if (vessel.provisions == null) return [t('eff.provisionsSansSuivi')];
+  const equipage = shipboardSouls(get()).crew;
+  const rations = jours * equipage;
+  set({ vessel: { ...vessel, provisions: vessel.provisions + rations } });
+  return [t('eff.provisionsJours', { n: jours, equipage, rations, total: vessel.provisions + rations })];
 }
 
 const signe = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;

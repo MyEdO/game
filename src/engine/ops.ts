@@ -1222,14 +1222,21 @@ export type GameOp =
    *  souffle à l'opposé des dominants (`ventInverse`), et chaque matin `aggravation.de` ≥ `seuil` impose en
    *  plus `aggravation.meteo`. Posée sur le navire, elle vaut au départ d'un port. Op de NAVIRE.
    *  MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
-  | { op: 'meteoImposee'; jours: Formula; meteo?: Partial<SeaWeather>; ventInverse?: true; aggravation?: AggravationMeteo };
+  | { op: 'meteoImposee'; jours: Formula; meteo?: Partial<SeaWeather>; ventInverse?: true; aggravation?: AggravationMeteo }
+  /** CARGAISON chargée dans la cale du navire : `enc` Enc d'une cargaison tirée au hasard pour la saison, à
+   *  son prix de base. Op de NAVIRE. MDG 15 l.209-210, l.224-225 */
+  | { op: 'cargaison'; enc: Formula }
+  /** PROVISIONS de bord : `jours` jours de vivres de l'équipage gagnés, OU `gateesPct` % des provisions à
+   *  bord gâtées (cale et rations des héros), exclusifs. Op de NAVIRE. MDG 15 l.169-170, l.235-236 */
+  | { op: 'provisions'; jours: Formula; gateesPct?: never }
+  | { op: 'provisions'; gateesPct: number; jours?: never };
 
 /** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
 export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<SeaWeather> }
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
-export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee'] as const satisfies readonly GameOp['op'][];
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions'] as const satisfies readonly GameOp['op'][];
 export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
 export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
 
@@ -2945,6 +2952,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'shipCritical':
       case 'navireMod':
       case 'meteoImposee':
+      case 'cargaison':
+      case 'provisions':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la

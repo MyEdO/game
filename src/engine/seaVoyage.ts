@@ -43,7 +43,6 @@ export interface ManannFactor { id: string; label: string; effect: EffetSigne }
 
 /** Climat imposé par un événement : les seuls axes qu'il fixe. MDG 15 l.189, l.199, l.219, l.226, l.248, l.257 */
 type MeteoImposee = Partial<SeaWeather>;
-type CargaisonRepechee = { cargoEnc: QuantiteTiree };
 type TirageListe = { roll: QuantiteTiree; contents: string[] };
 type IssueDuTriton = { min: number; max: number };
 type SansParametre = Record<string, never>;
@@ -81,19 +80,15 @@ interface ParametresDeBord {
     testType: string; difficulty: Difficulty; targetDR: number; spoilEncPerNight: QuantiteTiree;
     diseaseChancePct: number; ratAttacks: QuantiteTiree; ratCC: number; ratWeapon: number;
   };
-  'penurie-nourriture': { spoilPct: number };
   collision: SansParametre;
   'vaisseau-pestifere': { cargoCrates: QuantiteTiree; biscuitDays: QuantiteTiree; waterBarrels: QuantiteTiree; co: QuantiteTiree; resistDifficulty: Difficulty };
   rien: SansParametre;
   bouteille: SansParametre;
   'autres-voyageurs': SansParametre;
-  'debris-cargaison': CargaisonRepechee;
   'canot-sauvetage': TirageListe;
   'ile-inconnue': SansParametre;
-  'epave-cargaison': CargaisonRepechee;
   'vents-favorables': { mMod: number };
   marsouin: { days: QuantiteTiree };
-  manne: SansParametre;
 }
 
 /** Les paramètres que lit chaque genre d'Événement d'escale (MDG 15 l.243-263). */

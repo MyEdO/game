@@ -133,6 +133,8 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   shipCritical: 'Coup critique au navire',
   navireMod: 'Modificateur du navire (M, Manœuvre)',
   meteoImposee: 'Météo imposée au navire',
+  cargaison: 'Cargaison trouvée',
+  provisions: 'Provisions de bord',
 };
 
 /** Champ d'une op portant une RÉFÉRENCE de registre : `ds` = dataset où elle doit résoudre,

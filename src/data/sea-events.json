@@ -740,9 +740,18 @@
         "id": "penurie-de-nourriture",
         "label": "Pénurie de nourriture",
         "desc": "Pénurie de nourriture. La nourriture a moisi ou a été infestée par de la vermine pendant le voyage. La moitié des provisions à bord sont gâtées.",
-        "kind": "penurie-nourriture",
-        "params": {
-          "spoilPct": 50
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "provisions",
+                "gateesPct": 50
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -1243,12 +1252,25 @@
         "id": "debris-marins",
         "label": "Débris marins",
         "desc": "Débris marins. Vous apercevez des caisses qui flottent dans l'eau. Si vous les repêchez, elles contiennent 1d100 points d'Encombrement d'une cargaison choisie au hasard.",
-        "kind": "debris-cargaison",
-        "params": {
-          "cargoEnc": {
-            "dice": {
-              "n": 1,
-              "sides": 100
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Repêcher les caisses",
+          "yes": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "cargaison",
+                  "enc": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 100
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -1420,12 +1442,25 @@
         "id": "vaisseau-fantome-figurativement",
         "label": "Vaisseau fantôme (figurativement)",
         "desc": "Vaisseau fantôme (figurativement). Vous apercevez un bateau qui dérive sans aucun signe de vie à bord. À vous de choisir si vous voulez monter à bord ou non. Vous y trouverez 2d100 points d'Encombrement d'une cargaison choisie au hasard.",
-        "kind": "epave-cargaison",
-        "params": {
-          "cargoEnc": {
-            "dice": {
-              "n": 2,
-              "sides": 100
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Monter à bord",
+          "yes": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "cargaison",
+                  "enc": {
+                    "dice": {
+                      "n": 2,
+                      "sides": 100
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -1619,8 +1654,34 @@
         "id": "manne-de-manann",
         "label": "Manne de Manann",
         "desc": "Manne de Manann. Un banc de stylets saute depuis les vagues et atterrit sur le pont du navire. L'équipage les attrape et en rassemble suffisamment pour se nourrir pendant 1d10 jours. Le Moral augmente de 2d10.",
-        "kind": "manne",
-        "params": {},
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "provisions",
+                "jours": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                }
+              },
+              {
+                "op": "shipMorale",
+                "delta": {
+                  "sign": 1,
+                  "dice": {
+                    "n": 2,
+                    "sides": 10
+                  }
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 132,
