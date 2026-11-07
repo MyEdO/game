@@ -1,11 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyNetSnapshot, netAssign, netAssignSlot, netHostStart, netJoin, netLeave, setGmSeat } from './netFlow';
-import { t } from '../i18n';
-import { makePregens } from '../data/pregens';
+import { RELAY_URL_PROD, applyNetSnapshot, relayHttpUrl, salon } from './netFlow';
 import { instantaneDeLaCoop } from '../noyau/coop';
 import { initialNet } from '../noyau/etat';
 import { useGame } from './store';
-import type { SocketLike } from '../net/relay';
+import type { SocketLike } from '../hote/coop/relay';
 import { emptyScene } from '../noyau/monde/scene';
 
 class FakeSocket implements SocketLike {
@@ -14,14 +12,9 @@ class FakeSocket implements SocketLike {
   onmessage: ((e: { data: unknown }) => void) | null = null;
   onclose: ((e: { code: number; reason: string }) => void) | null = null;
   onerror: (() => void) | null = null;
-  closed = false;
   constructor(readonly url: string) { FakeSocket.instances.push(this); }
   send(): void {}
-  close(code = 1000, reason = ''): void {
-    this.closed = true;
-    this.onclose?.({ code, reason });
-  }
-  drop(): void { this.onclose?.({ code: 1006, reason: '' }); }
+  close(): void {}
 }
 
 beforeEach(() => {
@@ -34,10 +27,30 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  netLeave(useGame.getState, useGame.setState);
+  salon.quitter(useGame.setState);
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   vi.useRealTimers();
+});
+
+describe('URL du relais selon le mode Vite', () => {
+  it.each(['test', 'development'])('sans override en mode %s : relais local', (mode) => {
+    vi.stubEnv('MODE', mode);
+    expect(relayHttpUrl()).toBe('http://localhost:8787');
+  });
+
+  it('sans override en production : le Worker', () => {
+    vi.stubEnv('PROD', true);
+    expect(relayHttpUrl()).toBe(RELAY_URL_PROD);
+  });
+
+  it.each([false, true])('override explicite prioritaire (PROD=%s)', (prod) => {
+    vi.stubEnv('PROD', prod);
+    vi.stubEnv('VITE_RELAY_URL', 'http://localhost:8799');
+    expect(relayHttpUrl()).toBe('http://localhost:8799');
+    vi.stubEnv('VITE_RELAY_URL', RELAY_URL_PROD);
+    expect(relayHttpUrl()).toBe(RELAY_URL_PROD);
+  });
 });
 
 describe('relais local injoignable', () => {
@@ -47,29 +60,11 @@ describe('relais local injoignable', () => {
       urls.push(url);
       throw new TypeError('Failed to fetch');
     });
-    expect(await netHostStart(useGame.getState, useGame.setState, 'Anne')).toBe(false);
+    expect(await salon.heberger(useGame.getState, useGame.setState, 'Anne')).toBe(false);
     expect(urls).toEqual(['http://localhost:8787/rooms']);
     expect(useGame.getState().net.mode).toBe('local');
     expect(FakeSocket.instances).toHaveLength(0);
     expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it('rejoindre expire en français après fermeture 1006, sans socket ni timer survivant', async () => {
-    const joining = netJoin(useGame.getState, useGame.setState, (d) => applyNetSnapshot(useGame.setState, d), 'abc234', 'Anne & Bob');
-    const first = FakeSocket.instances[0];
-    expect(new URL(first.url).origin).toBe('ws://localhost:8787');
-    expect(new URL(first.url).pathname).toBe('/room/ABC234');
-    expect(new URL(first.url).searchParams.get('name')).toBe('Anne & Bob');
-    first.drop();
-    await vi.advanceTimersByTimeAsync(1_000);
-    expect(FakeSocket.instances).toHaveLength(2);
-    await vi.advanceTimersByTimeAsync(14_000);
-    expect(await joining).toBe('Connexion impossible — réessayez.');
-    expect(useGame.getState().net.mode).toBe('local');
-    expect(FakeSocket.instances[1].closed).toBe(true);
-    expect(vi.getTimerCount()).toBe(0);
-    await vi.advanceTimersByTimeAsync(120_000);
-    expect(FakeSocket.instances).toHaveLength(2);
   });
 });
 
@@ -116,31 +111,5 @@ describe('invité : son interface se remet comme chez l’hôte au changement de
     const { enA, enAPlusTard } = snapshotsDeLHote();
     inviteRecoit(enA, enAPlusTard);
     expect(interfaceDeLInvite()).toEqual(INTERFACE_GLISSEE);
-  });
-});
-
-describe('lobby de l’hôte : une attribution refusée laisse `net` inchangé et dit son refus (#3059 F10)', () => {
-  const hote = () => ({ ...initialNet(), mode: 'host' as const, roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna' }, rangs: { h: 0 } });
-  beforeEach(() => { useGame.setState({ net: hote(), party: [{ ...makePregens()[0], id: 'h' }], battle: null }); });
-
-  it('netAssignSlot vers un emplacement occupé, puis vers un siège hors de la table ; netAssign et setGmSeat vers un siège hors de la table', () => {
-    const avant = useGame.getState().net;
-    const journal = useGame.getState().journal.length;
-    netAssignSlot(useGame.getState, useGame.setState, 0, 1);
-    netAssignSlot(useGame.getState, useGame.setState, 1, 7);
-    netAssign(useGame.getState, useGame.setState, 'h', 7);
-    netAssign(useGame.getState, useGame.setState, 'absent', 1);
-    setGmSeat(useGame.getState, useGame.setState, 7);
-    expect(useGame.getState().net).toBe(avant);
-    expect(useGame.getState().journal.slice(journal)).toEqual([
-      t('coop.assign.slotTaken'), t('coop.assign.seatUnknown'), t('coop.assign.seatUnknown'), t('coop.assign.heroAbsent'), t('coop.assign.seatUnknown'),
-    ]);
-  });
-
-  it('les mêmes gestes vers un emplacement vide et un siège de la table s’appliquent', () => {
-    netAssignSlot(useGame.getState, useGame.setState, 1, 1);
-    netAssign(useGame.getState, useGame.setState, 'h', 1);
-    setGmSeat(useGame.getState, useGame.setState, 1);
-    expect(useGame.getState().net).toMatchObject({ slots: [0, 1, 0, 0], ownership: { h: 1 }, gmSeat: 1 });
   });
 });

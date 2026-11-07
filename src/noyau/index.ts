@@ -6,7 +6,8 @@
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type LigneDuJournal } from './partie';
-export { etatInitialDuJeu, type EtatDeJeu, type Jeu } from './etat';
+export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu, type NetState } from './etat';
+export type { Get, Set } from './flowTypes';
 export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecVerdictLocal, porteesDuTour } from './localIntent';
@@ -41,7 +42,11 @@ export type { ModLine, RollBreakdown } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
 export { quiTientLaMain } from './netOwnership';
-export { siegeDe } from './sieges';
+export { attribuerLEmplacement, attribuerLeHeros, fermerLeSiege, poserLeSiegeMJ, refusDAttribuerLEmplacement, refusDAttribuerLeHeros, refusDuSiegeMJ, siegeDe } from './sieges';
+export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
+export { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
+export { intentEluLocalement } from './targetingModes';
+export { refuserGesteDuSiege } from './refusVisible';
 export { DESIGNATIONS } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLIC_DU_CHAMP, type GesteDuNoyau } from './actionsDuNoyau';
