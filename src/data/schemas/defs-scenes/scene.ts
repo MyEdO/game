@@ -439,7 +439,7 @@ export const architectureBodySchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string().optional(),
   /** TYPE de bâtiment du corps (`buildings.json`) : il porte la couverture de référence du type et
-   *  ses ornements d'identité (`buildingFeatures`, `gameIso/builders/props.ts`). ABSENT =
+   *  ses ornements d'identité (`buildingFeatures`). ABSENT =
    *  corps sans identité de bâtiment (un bourg, un hameau : plusieurs bâtiments sous UN corps) — la
    *  dérivation le coiffe, aucun ornement n'est émis. */
   style: typeDeBatimentSchema.optional(),
@@ -466,8 +466,8 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
    *  du bouton que le joueur clique, et l'archive de dialogue la stocke comme telle. */
   label: z.string(),
   /** Icône d'affordance (registre `src/data/icons/`, rendue par `<Icon>` dans `DialogueBox`) — jamais
-   *  un emoji collé au `label` (#290, doctrine anti-emoji). Id de string brute (couture UI hors de
-   *  `src/state`, cf. AGENTS.md : la logique reste pure, `<Icon>` valide l'id au rendu). */
+   *  un emoji collé au `label` (#290, doctrine anti-emoji). Id de string brute (cf. AGENTS.md : la
+   *  logique reste pure, `<Icon>` valide l'id au rendu). */
   icon: z.string().optional(),
   /** Condition d'AFFICHAGE du choix (algèbre `Condition`, cf. `evalCondition`). Absente = toujours visible. */
   when: conditionSchema.optional(),
@@ -813,7 +813,7 @@ export const sceneSchema = nommerChamps(z.strictObject({
   environment: z.enum(['rural', 'urbain', 'sauvage']).optional(),
   /** Météo (`LDB 14 l.68-82`) — l'ABSENCE est une VALEUR : temps non spécifié, aucun modificateur de
    *  combat et aucune ambiance de météo. Lue SANS REPLI par `noyau/monde/sceneRules.ts`
-   *  (`sceneCombatModifiers`) et par `gameIso/catalog/ambiance.ts`. */
+   *  (`sceneCombatModifiers`) et par l'ambiance de rendu. */
   weather: sceneWeatherSchema.optional(),
   /** Id d'un `lightLevels`, ou `'auto'`/absent = suit l'horloge via `ambiance`. */
   ambientLight: z.string().optional(),

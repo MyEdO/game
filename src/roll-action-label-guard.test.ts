@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
 import { skills } from './data';
 import { CHAR_LABELS } from './engine/types';
 import { fr } from './i18n/messages/fr';
@@ -108,7 +109,7 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
  * « Scorbut », « Tonneau contaminé » sont des situations — la ligne du jet, elle, dit « Résistance »
  * (précédent mesuré : `noyau/approach-fear.hors-store.test.ts`).
  *
- * MESURE : un `rollLabel` littéral de `src/state` ou de `src/noyau` (les `rollLabel` de `src/ui` sont le libellé du
+ * MESURE : un `rollLabel` littéral du code de règle (`situationSites` ; le `rollLabel` d'un écran est le libellé du
  * BOUTON « Lancer », `RollRowProps` — autre champ, hors périmètre) doit être un libellé du CATALOGUE
  * — compétence (`skills`), caractéristique (`CHAR_LABELS`), ou compétence + spécialisation entre
  * parenthèses (« Métier (Cartographe) ») — apostrophes normalisées (le catalogue écrit `'`, les sites
@@ -158,7 +159,7 @@ export function scanRollLabels(src: string): ActionLabelHit[] {
 describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#1109)', () => {
   const situationSites = (): string[] => {
     const out: string[] = [];
-    for (const { rel, text } of readCorpus(['src/state', 'src/noyau'])) {
+    for (const { rel, text } of readCorpus(porteeDeGarde(['noyau'], ['state']))) {
       for (const h of scanRollLabels(text)) out.push(`${rel}:${h.line} — « ${h.text} »`);
     }
     return out;
@@ -201,7 +202,7 @@ describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#11
 
 
 /**
- * VOLET 3 (#1112) — le LIBELLÉ D'UNE LIGNE DE JET fabriquée dans `src/state`, `src/noyau` ou `src/ui` (`RollBreakdown` d'une
+ * VOLET 3 (#1112) — le LIBELLÉ D'UNE LIGNE DE JET fabriquée par le code de règle ou d'écran (`RollBreakdown` d'une
  * modale, `NightEntry.d` d'un procès-verbal) nomme la COMPÉTENCE / la CARACTÉRISTIQUE lancée (Z5), et
  * JAMAIS une autre nomenclature : le rôle tenu, la situation, le nom de l'action. La provenance (rôle
  * d'équipage, poste) vit sur l'entrée, pas sur la ligne.
@@ -243,10 +244,10 @@ export function scanRollLineLabels(src: string): { line: number; text: string; c
 }
 
 describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lancée (#1112 volet 3)', () => {
-  // PÉRIMÈTRE ÉTENDU (#1117) : le FABRICANT de rangées-participants vit dans `src/ui`
-  // (`buildParticipantRows`) et dérivait son libellé d'un `part.label` CALCULÉ — il échappait donc au
-  // scan des littéraux de `src/state` et `src/noyau`. Le trou est celui-là : on scanne aussi `src/ui`.
-  const files = () => readCorpus(['src/state', 'src/noyau', 'src/ui']);
+  // PÉRIMÈTRE ÉTENDU (#1117) : le FABRICANT de rangées-participants (`buildParticipantRows`) vit dans le
+  // code d'écran et dérivait son libellé d'un `part.label` CALCULÉ — il échappait donc au scan des
+  // littéraux du code de règle. Le trou est celui-là : `files` balaie aussi le code d'écran.
+  const files = () => readCorpus(porteeDeGarde(['noyau'], ['state', 'ui']));
 
   it('aucun libellé de ligne LITTÉRAL qui ne soit une Compétence/Caractéristique du catalogue', () => {
     const bad: string[] = [];

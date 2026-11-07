@@ -33,7 +33,7 @@ export const competenceChiffreeSchema: z.ZodType<SkillRef> = refOuSpec('skill', 
 export const entreeDeFicheSchema = z.string().regex(ID_D_ENTREE, 'entrée de fiche : « <ABBR>-<NN>#<id> » attendu.');
 
 /** `couvre` (#2290) — les entrées de fiche de dossier de chapitre qu'un élément du paquet de campagne
- *  couvre, sans doublon. Posé par l'éditeur (`CouvreField`, `src/ui/editor/CouvreField.tsx`). */
+ *  couvre, sans doublon. Posé par l'éditeur. */
 export const couvreSchema = listeCle(entreeDeFicheSchema, { nom: 'entrée de fiche', scalaire: true });
 
 /** `CustomStatblock.spells` — ids de `spells.json` : la porte est la fabrique canonique (`refs('spell')`),

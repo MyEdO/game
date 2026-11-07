@@ -459,7 +459,7 @@ export const castSpellSchema = nommerChamps(z.strictObject({
 /** LDB 05 l.793-841 ; LDB 17 l.81 */
 export const sessionEndSchema = nommerChamps(z.strictObject({ type: z.literal('sessionEnd') }), { type: { label: "type"  } });
 
-/** CRÉATION DE PERSONNAGE (#83) : ouvre l'assistant EXISTANT (`src/ui/creator/`) pour un NOUVEAU héros
+/** CRÉATION DE PERSONNAGE (#83) : ouvre l'assistant de création EXISTANT pour un NOUVEAU héros
  *  (comme le bouton « + » de l'écran Groupe) — un remplaçant scénarisé, un compagnon rejoignant le groupe.
  *  Navigue vers l'écran `creator` (`setEditingHero(null)` + `setScreen('creator')`). */
 export const openCharacterCreatorSchema = nommerChamps(z.strictObject({ type: z.literal('openCharacterCreator') }), { type: { label: "type"  } });

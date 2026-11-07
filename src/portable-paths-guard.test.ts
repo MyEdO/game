@@ -6,8 +6,8 @@ import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
  * Garde-fou chemins PORTABLES — un chemin absolu de machine de dev (lecteur Windows, racine de
  * profil POSIX) écrit en dur dans une source est mort partout ailleurs que sur la machine qui l'a
  * écrit : sur la CI (ubuntu-latest) il rend ENOENT. La résolution se fait relativement au module :
- * `fileURLToPath(new URL('./styles/x.css', import.meta.url))` en environnement `node`
- * (patron de `src/ui/atelier-conformance.test.ts`) ; en environnement `jsdom`, `new URL(rel, base)`
+ * `fileURLToPath(new URL('./styles/x.css', import.meta.url))` en environnement `node` ; en environnement
+ * `jsdom`, `new URL(rel, base)`
  * est détourné vers la base du document, la résolution y passe donc par
  * `join(dirname(fileURLToPath(import.meta.url)), '..', 'styles', 'x.css')`, ou `resolve(__dirname, …)` dans un test
  * Vitest. Un `index` de `src/` ou son dossier ne se désigne pas par `new URL` : knip en ferait une entrée (garde
@@ -70,7 +70,7 @@ const DRIVE = 'C' + ':';
 
 describe('garde-fou chemins portables — aucun chemin absolu de machine dans le CODE', () => {
   it('cas planté : un chemin de lecteur Windows est détecté (preuve TDD)', () => {
-    const p = DRIVE + '/Users/' + 'dev' + '/projet/src/ui/styles/x.css';
+    const p = DRIVE + '/Users/' + 'dev' + '/projet/src/data/x.json';
     expect(absoluteMachinePathIn("readFileSync('" + p + "', 'utf8')")).not.toBeNull();
     expect(absoluteMachinePathIn("const d = '" + DRIVE + "\\projets\\jeu\\src';")).not.toBeNull();
     expect(absoluteMachinePathIn("const d = '" + DRIVE + "\\\\Users\\\\moi';"), 'barre doublée de source').not.toBeNull();

@@ -139,8 +139,8 @@ describe('couvertureDuBalayage — gisement muet, entrée de stock hors corpus, 
     couvertureDuBalayage({ nom: 'STOCK_TÉMOIN', stock: p.stock ?? [], balayes: p.balayes, gisements: p.gisements });
 
   it('un gisement PEUPLÉ ne dit rien ; un gisement sans un seul fichier balayé sort NOMMÉ', () => {
-    const c = appel({ balayes: ['src/engine/a.ts'], gisements: ['src/engine', 'src/state'] });
-    expect(c.gisementsMuets.join('\n')).toContain('src/state');
+    const c = appel({ balayes: ['src/engine/a.ts'], gisements: ['src/engine', 'src/noyau'] });
+    expect(c.gisementsMuets.join('\n')).toContain('src/noyau');
     expect(c.gisementsMuets.join('\n')).not.toContain('src/engine');
     expect(c.gisementsMuets).toHaveLength(1);
   });
@@ -154,11 +154,11 @@ describe('couvertureDuBalayage — gisement muet, entrée de stock hors corpus, 
   });
 
   it('PIÈGE DU PRÉFIXE : un dossier VOISIN de même préfixe ne PEUPLE pas le gisement (le séparateur est exigé)', () => {
-    // `src/uix/a.ts` commence par `src/ui` — un préfixe nu le compterait comme peuplant `src/ui`, et
-    // la disparition du vrai dossier resterait muette. Le gisement lui-même (`src/ui`, sans fichier
-    // sous `src/ui/`) n'est pas peuplé non plus par son propre nom.
-    const c = appel({ balayes: ['src/uix/a.ts', 'src/ui'], gisements: ['src/ui'] });
-    expect(c.gisementsMuets.join('\n')).toContain('src/ui');
+    // `src/hoteTexte/a.ts` commence par `src/hote` — un préfixe nu le compterait comme peuplant `src/hote`, et
+    // la disparition du vrai dossier resterait muette. Le gisement lui-même (`src/hote`, sans fichier
+    // sous `src/hote/`) n'est pas peuplé non plus par son propre nom.
+    const c = appel({ balayes: ['src/hoteTexte/a.ts', 'src/hote'], gisements: ['src/hote'] });
+    expect(c.gisementsMuets.join('\n')).toContain('src/hote');
   });
 
   it('l’appariement d’une entrée de stock est EXACT : un chemin voisin ne la couvre pas', () => {
@@ -167,7 +167,7 @@ describe('couvertureDuBalayage — gisement muet, entrée de stock hors corpus, 
   });
 
   it('un balayage COMPLET ne rend rien — les deux listes vides', () => {
-    const c = appel({ stock: ['src/state/b.ts'], balayes: ['src/engine/a.ts', 'src/state/b.ts'], gisements: ['src/engine', 'src/state'] });
+    const c = appel({ stock: ['src/noyau/b.ts'], balayes: ['src/engine/a.ts', 'src/noyau/b.ts'], gisements: ['src/engine', 'src/noyau'] });
     expect(c.gisementsMuets).toEqual([]);
     expect(c.entreesDeStockAbsentes).toEqual([]);
   });

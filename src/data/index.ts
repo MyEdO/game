@@ -274,7 +274,7 @@ export const ACTIVITY_STAKES = activitiesStakeJson as ActivityStakeEntry[];
 /** REGISTRE DES ACTIONS de combat (`actions.json`, spec HUD « Zone 12 ») : une entrée = un acte
  *  offert au joueur, avec son identité STABLE, son affichage, sa règle Codex, son coût et les IDS
  *  de code qui l'exécutent. Le CODE derrière ces ids vit dans `src/noyau/actionRegistry.ts` —
- *  `src/data` ne dépend jamais de `src/state` ni de `src/engine`. */
+ *  `src/data` n'en dépend jamais. */
 export interface ActionDef {
   id: string;
   label: string;
@@ -354,7 +354,7 @@ export interface CatalogStake {
  *  moteur : son enjeu voyage avec le document (JSON portable), il ne pointe aucun dataset app-owned —
  *  une réf de catalogue y serait pendante à la première campagne tierce.
  *
- *  RÉSERVÉ au contenu : `src/state`/`src/engine` n'en écrivent aucun (garde
+ *  RÉSERVÉ au contenu : `src/noyau`/`src/engine` n'en écrivent aucun (garde
  *  `cascade-step-stake-guard.test.ts`, volet « l'enjeu AUTHORÉ reste au contenu ») — c'est la porte
  *  ouverte par l'arbitrage, pas une amnistie du texte au call-site. Aucun foyer de règle : le
  *  document ne renvoie à aucune fiche Codex. */
@@ -2202,7 +2202,7 @@ export interface SpellData {
    * mécaniques appliqués à l'incantation (feuilles EffectOp `{type:'ops', on:'target'|'caster', ops}`).
    * Édité dans le Compendium (CodexEdit → FlowEditor), exécuté par `runCombatFlow`. SOURCE UNIQUE des
    * effets. Import TYPE seul (effacé à la compilation) → la couche data NE dépend PAS d'une valeur
-   * de `state` (pureté préservée). Absent = aucun effet mécanique (narratif).
+   * du code de règle (pureté préservée). Absent = aucun effet mécanique (narratif).
    */
   effects?: Flow;
   source: SourceRef;
@@ -2505,7 +2505,7 @@ export const matieresDe = <D extends MaterialDomain>(domain: D): MatiereDe<D>[] 
 
 /** Matières POSABLES sur une masse de toit : les entrées de domaine `roof` que la DONNÉE déclare
  *  couvrantes (`couverture`) — SOURCE UNIQUE du validateur de scène (`noyau/validateScene.ts`) et des
- *  sélecteurs de l'éditeur (`ui/editor/Inspector.tsx`), qui vivent dans deux couches et ne peuvent pas
+ *  sélecteurs de l'éditeur, qui vivent dans deux couches et ne peuvent pas
  *  s'importer l'une l'autre. Lecture VIVANTE, comme `matieresDe`. */
 export const matieresCouvrantes = (): RoofMaterialDef[] => matieresDe('roof').filter((m) => m.couverture);
 
@@ -2522,8 +2522,7 @@ export const matierePlan = (): RoofMaterialDef => {
 export const ambiance = ambianceJson as import('./ambiance.types').AmbianceDef;
 
 /** TEINTES DE JEU du terrain (surbrillances tactiques + identité d'unité), `id → #rrggbb` — donnée
- *  pure, servie aux peintres par les deux façades `gameIso/highlightTints.ts` et
- *  `gameIso/teamColors.ts` (schéma et invariants : `schemas/defs/teintesJeu.ts`). */
+ *  pure, servie aux peintres (schéma et invariants : `schemas/defs/teintesJeu.ts`). */
 export const teintesJeu: Record<import('./schemas/defs/teintesJeu').TeinteId, string> = teintesJeuJson.entries;
 
 /** Traits & Améliorations de navire (MDG 12) — catalogue app-owned éditable au Codex. La DONNÉE (`desc`
@@ -2654,7 +2653,7 @@ export interface LieuServiceData {
   desc?: string;
   /** Réplique de boniment (saveur maison) du bandeau d'interlocuteur statique (`SpeakerBanner`). */
   hostLine?: string;
-  /** Bande d'ambiance par défaut (id du registre `src/ui/backdrops`). */
+  /** Bande d'ambiance par défaut (id du registre des bandes d'ambiance). */
   backdrop?: string;
   /** Archétype marchand ouvert par ce service (`src/data/merchants.json`, #369). */
   merchantArchetype?: string;
@@ -2770,7 +2769,7 @@ export const findLightLevelById: (id: string) => LightLevelDef | undefined = niv
  *  d'intensité (facteur du calage anti-saturation du rendu, jamais une intensité absolue) et
  *  vacillement optionnel. Aucune conséquence de règle : le moteur ne connaît d'une source que son
  *  RAYON (LDB 74). Référencé par `tone` (prop, instance de scène, op `light`, `ActiveEffect.light`) ;
- *  absent = `flamme`. Résolu au bord du RENDU (`gameIso/stage/stagePointLights.ts`). */
+ *  absent = `flamme`. Résolu au bord du RENDU. */
 export interface LightToneDef { id: string; type: 'lightTones'; label: string; color: string; intensity: number; flicker?: { amplitude: number; hz: number } }
 export const lightTones = lightTonesJson as LightToneDef[];
 /** Lookup LIVE par BALAYAGE, et non par `indexParId` : à QUATRE entrées, l'index ne rachète pas son
@@ -2781,7 +2780,7 @@ export const findLightToneById = (id: string): LightToneDef | undefined => light
 /** Ton SERVI à une source qui n'en nomme aucun — le feu, le cas du monde (brasero, feu de camp). */
 export const DEFAULT_LIGHT_TONE_ID = 'flamme';
 /** Contrats NEUTRES du décor (type de prop, recette volumique, matériaux, places assises) — définis
- *  hors du chargeur pour rester importables par `src/state` et `src/gameIso` (cf. `props.types.ts`). */
+ *  hors du chargeur pour rester importables sans lui (cf. `props.types.ts`). */
 export type { PropData, PropMaterialData, PropMaterialId, PropPoint3, PropSize3, PropPrimitive, PropVolumeRecipe, PropSeatSlot } from './props.types';
 export { validatePropCatalog, propFootOf } from './props.types';
 export const props = propsJson as PropData[];
@@ -2790,13 +2789,12 @@ export const props = propsJson as PropData[];
 export const findPropById = indexParId('props', props);
 /** Un type de décor rend-il en VOLUME (recette authorée) plutôt qu'en billboard ? La sous-liste du
  *  marqueur `volume` (`defs/props.ts`), la MÊME que lit le schéma de scène (`defs-scenes/scene.ts`) :
- *  l'émetteur de décor (`gameIso/builders/props.ts`) et l'inspecteur la lisent ici. `ref` absente =
+ *  l'émetteur de décor et l'inspecteur la lisent ici. `ref` absente =
  *  aucun type résolu, donc aucun volume : la même absence qu'une ref hors registre (#877). */
 const decorVolumique = porteLeMarqueur('prop', 'volume');
 export const refEstVolumique = (ref: string | undefined): boolean => ref !== undefined && decorVolumique(ref);
 /** Matière de rendu d'une recette volumique de décor, par id — lecture VIVANTE du document (`matieresDe`),
- *  jamais un index cuit au chargement. Unicité des ids sur tout le périmètre des matières :
- *  `gameIso/catalog/materials-identite.test.ts` (#1686). */
+ *  jamais un index cuit au chargement. Unicité des ids sur tout le périmètre des matières (#1686). */
 export const findPropMaterialById = (id: string): PropMaterialData | undefined => matieresDe('prop').find((m) => m.id === id);
 /** Teinte d’objet par id — lecture vivante du catalogue, absence si l’id est inconnu. */
 export const findTeinteById = (id: string | undefined): TeinteDObjet | undefined => matieresDe('objet').find((m) => m.id === id);
@@ -3359,7 +3357,7 @@ export function findStarById(id: string | null | undefined): StarData | undefine
 
 /** Possession résolue par id STABLE parmi des `objets` d'abord (objets d'une campagne, #767), puis au
  *  catalogue (`findTrappingById`) — SEULE définition de la chaîne, lue par le jeu (`objetDuNarratif`,
- *  `noyau/monde/resolveursDuNarratif.ts`) et par l'éditeur (objets du projet édité, `ui/editor/EffectList.tsx`). */
+ *  `noyau/monde/resolveursDuNarratif.ts`) et par l'éditeur (objets du projet édité). */
 export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, TrappingData>, id: string): TrappingData | undefined {
   return objets.get(id) ?? findTrappingById(id);
 }
@@ -3377,7 +3375,7 @@ const qualiteParLabelMinuscule = indexParChamp('qualities', qualities, (q) => q.
 const qualiteParSlugDeLabel = indexParChamp('qualities', qualities, (q) => slugId(q.label));
 /** `id` STABLE d'une Qualité depuis un LIBELLÉ saisi à l'AUTHORING (« Solide », « solide »,
  *  « tir-de-zone ») — casse ignorée puis slug du libellé, `undefined` si hors catalogue. La couture
- *  label→id vit ICI, au chargement de la donnée, JAMAIS dans `src/engine`/`src/state`
+ *  label→id vit ICI, au chargement de la donnée, JAMAIS dans `src/engine`/`src/noyau`
  *  (AGENTS.md § Pour TOUT agent) : le moteur ne reçoit qu'un id, résolu par `findQualityById`. */
 export const qualityIdByLabel = (label: string): string | undefined => {
   const q = qualiteParLabelMinuscule(label.toLowerCase()) ?? qualiteParSlugDeLabel(slugId(label));

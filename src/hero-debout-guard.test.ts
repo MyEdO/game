@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
 import { scanHeroDebout } from '../scripts/guards/lib/heroDebout.mjs';
 import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 
@@ -31,7 +32,7 @@ import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVit
  * une garde dessus serait un stock, pas un invariant.
  */
 
-const SCAN_DIRS = ['src/state', 'src/noyau', 'src/ui', 'src/gameIso', 'src/engine', 'src/scenes', 'src/net', 'src/data', 'src/web'];
+const SCAN_DIRS = porteeDeGarde(['noyau', 'engine', 'scenes', 'data', 'hote', 'hoteTexte', 'hotes'], ['state', 'ui', 'gameIso', 'net', 'web']);
 const FOYER = 'src/noyau/monde/combatants.ts';
 
 /** Les NEUF graphies du même prédicat — une garde par graphie n'en voyait que deux. */

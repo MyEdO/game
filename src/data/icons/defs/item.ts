@@ -1,6 +1,6 @@
 import type { IconFamily } from '../types';
 
-/* Fallbacks d'objets (src/ui/ItemIcon.tsx) — charte : voir defs/action.ts. */
+/* Fallbacks d'objets — charte : voir defs/action.ts. */
 
 const K = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
 const KF = 'fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"';

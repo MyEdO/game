@@ -18,8 +18,7 @@
  *
  * CHARGE COMMUNE = ∅ : aucune clé n'est partagée par les cinq domaines — `detail` l'est par
  * `roof` et `relief`, `color` par `prop` et `couleur`, et par eux seuls. `N`/`E`/`S`/`O` (pentes de toit),
- * `face` (relief) et `palette` (teinte d’objet) portent des charges distinctes
- * (`src/gameIso/backends/webgl/faceColors.ts`).
+ * `face` (relief) et `palette` (teinte d’objet) portent des charges distinctes.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -172,7 +171,7 @@ const doc = document(
           });
       }),
     // Le PLAN vu du dessus est une entrée NOMMÉE par sa donnée, pas par un id littéral au call-site
-    // (`gameIso/authoring/roofsSvg.ts` la lit via `matierePlan()`) : le dataset en porte EXACTEMENT une.
+    // (lue via `matierePlan()`) : le dataset en porte EXACTEMENT une.
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         const plans = (v as { id: string; vueDeDessus?: true }[]).filter((e) => e.vueDeDessus);
