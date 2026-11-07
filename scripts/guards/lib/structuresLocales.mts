@@ -30,7 +30,9 @@
  * enveloppes, côtés d'un pipe —, puis, de proche en proche, les enfants de même segment de nœuds conjoints
  * (intersection implicite). Un point est UN site, de la classe la plus lourde de ses nœuds objets ou non validants
  * (`D5` > `L` > `G1` > `G`), d'empreinte les champs fusionnés de ses objets. Le reste (`.*`) d'un objet conjoint
- * n'est pas un site quand son point est déjà `D5` ou qu'un autre objet y ferme le reste (`catchall` `never`).
+ * n'est pas un site quand son point est déjà `D5`, qu'un autre objet y ferme le reste (`catchall` `never`), ou que son
+ * point est `G` : le reste d'un nœud PARTAGÉ de la grammaire est la dette de la grammaire, pas du document qui le
+ * compose (`gameOp`, porte `DETTE_OPS`, #1468).
  *
  * L'EMPREINTE d'un site (ses clés déclarées et le type zod de chaque enfant) vit dans la mesure, hors du
  * stock : la porte des comptes (`occurrencesStock.mjs`, `renommagesDeStructure`) apparie par elle un site
@@ -337,31 +339,34 @@ export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
       : (composeurs.get(n)?.size ?? 0) >= 2 || payloads.has(n);
     return partage ? 'G' : 'G1';
   };
+  /** La classe d'un point : la plus lourde de ses nœuds (`POIDS`). */
+  const classeDuPoint = (noeuds: readonly object[]): ClasseDeStructure => noeuds.map(classe).reduce((a, b) => (POIDS[b] > POIDS[a] ? b : a));
   const estDeSite = (n: object): boolean => defDe(n)!.type === 'object' || NON_VALIDANTS.has(defDe(n)!.type);
   const out: NoeudDeStructure[] = [];
   for (const { fichier, famille, rangees, chemins } of nommes) {
     const point = pointsConjoints(chemins);
     const membres = new Map<object, object[]>();
-    const parentDuReste = new Map<object, object>();
+    /** Les objets dont chaque nœud est le reste : une fabrique en partage un entre ses produits. */
+    const parentsDuReste = new Map<object, object[]>();
     for (const n of chemins.keys()) {
       if (estDeSite(n)) membres.set(point(n), [...(membres.get(point(n)) ?? []), n]);
-      for (const e of enfantsDe(n)) if (e.segment === '.*' && estNoeud(e.noeud)) parentDuReste.set(e.noeud, n);
+      for (const e of enfantsDe(n)) if (e.segment === '.*' && estNoeud(e.noeud)) parentsDuReste.set(e.noeud, [...(parentsDuReste.get(e.noeud) ?? []), n]);
     }
-    /** Le point est-il D5, ou un de ses objets ferme-t-il le reste (`catchall` `never`) ? */
+    /** Le point est-il D5 ou G, ou un de ses objets ferme-t-il le reste (`catchall` `never`) ? */
     const resteJuge = (p: readonly object[]): boolean =>
-      p.some((m) => NON_VALIDANTS.has(defDe(m)!.type) || defDe(enfantsDe(m).find((e) => e.segment === '.*')?.noeud)?.type === 'never');
+      ['D5', 'G'].includes(classeDuPoint(p)) || p.some((m) => defDe(enfantsDe(m).find((e) => e.segment === '.*')?.noeud)?.type === 'never');
     const parCle = new Map<string, object>();
     for (const [r, noeuds] of membres) {
       const { path } = chemins.get(noeuds[0])!;
       if (horsSite(path, famille, rangees)) continue;
-      const porteur = noeuds.map((n) => parentDuReste.get(n)).find((p) => p !== undefined && `${chemins.get(p)?.path}.*` === path);
+      const porteur = noeuds.flatMap((n) => parentsDuReste.get(n) ?? []).find((p) => `${chemins.get(p)?.path}.*` === path);
       if (porteur !== undefined && resteJuge(membres.get(point(porteur)) ?? [])) continue;
       const deja = parCle.get(path);
       if (deja !== undefined && deja !== r) throw new Error(`structures locales : deux nœuds à la même clé ${fichier} :: ${path}`);
       parCle.set(path, r);
       out.push(noeuds.length === 1
         ? { fichier, ref: path, noeud: noeuds[0], classe: classe(noeuds[0]), empreinte: empreinteDeSite(noeuds[0]) }
-        : { fichier, ref: path, noeud: noeuds[0], classe: noeuds.map(classe).reduce((a, b) => (POIDS[b] > POIDS[a] ? b : a)), empreinte: empreinteConjointe(noeuds) });
+        : { fichier, ref: path, noeud: noeuds[0], classe: classeDuPoint(noeuds), empreinte: empreinteConjointe(noeuds) });
     }
   }
   return out.sort((a, b) => parUnitesDeCode(a.fichier, b.fichier) || parUnitesDeCode(a.ref, b.ref));
