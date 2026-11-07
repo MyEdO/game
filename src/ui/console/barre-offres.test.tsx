@@ -83,7 +83,7 @@ const ATTENDU: Record<string, string[]> = {
 
 const enumeration = (battle: BattleState) => {
   const active = battle.combatants[0];
-  return offresDeLActif({ active, battle, netMode: 'local', gameTime: useGame.getState().gameTime }).map((o) => o.actionId);
+  return offresDeLActif({ active, battle, netMode: 'local', gameTime: useGame.getState().gameTime, state: useGame.getState() }).map((o) => o.actionId);
 };
 
 describe('l’énumérateur rend exactement les offres pertinentes du porteur', () => {

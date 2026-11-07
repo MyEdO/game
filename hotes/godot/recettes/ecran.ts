@@ -136,7 +136,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('début du round', s);
   s = jouer('jouer', enFocus(s));
   figer('barre de l’actif', s);
-  s = jouer('jouer', { offre: 'charge' });
+  s = jouer('jouer', { type: 'armerLIntention', args: ['charge'] });
   figer('charge armée', s);
   const [cible] = s.vue.projection.combat!.cibles.liste;
   s = jouer('jouer', clicDuCombattant(s.vue, cible)!);
@@ -146,8 +146,8 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = jouer('jouer', enFocus(s));
   for (let tours = 0; s.vue.projection.fenetre?.etape?.genre !== 'defenseJet'; tours++) {
     if (tours > 4) throw new Error(`aucune Défense après ${tours} fins de tour : ${JSON.stringify(s.vue.projection.fenetre)}`);
-    s = jouer('jouer', { offre: 'end-turn' });
-    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', { offre: 'end-turn' });
+    s = jouer('jouer', { type: 'terminerLeTour', args: [] });
+    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', { type: 'terminerLeTour', args: [] });
   }
   figer('Défense', s);
   s = jouer('jouer', enFocus(s));

@@ -41,7 +41,7 @@ describe('le serveur MCP de l’hôte texte', () => {
       expect(premier.getInstructions()).toMatch(/\.hote-texte\/<nom>\.jsonl/);
 
       const lignes = readFileSync(join(dossier, 'combat.jsonl'), 'utf8').trimEnd().split('\n').length;
-      const charge = await appeler(premier, 'jouer', { partie: 'combat', gestes: [{ offre: 'charge' }] });
+      const charge = await appeler(premier, 'jouer', { partie: 'combat', gestes: [{ verbe: 'armerLIntention', args: ['charge'] }] });
       expect(charge.isError, charge.content[0].text).toBeFalsy();
       expect(readFileSync(join(dossier, 'combat.jsonl'), 'utf8').trimEnd().split('\n'), 'la Charge appliquée n’est pas écrite').toHaveLength(lignes + 1);
 

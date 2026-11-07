@@ -27,7 +27,7 @@ import { milieuDuVoyage } from '../engine/shipBuild';
 import { losClear } from './monde/lineOfSight';
 import { smokeOf, captureMoveSnapshot, formationDeCombat, moveEnv } from './monde/combatGeometry';
 import { emitCombatEvent } from './combatEvents';
-import { turnEconomyStamp } from './endTurnGuard';
+import { endTurnArmed, turnEconomyStamp, wastesAction } from './endTurnGuard';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
@@ -760,14 +760,8 @@ export function createCombatSlice(get: Get, set: Set) {
     // INTENTION LOCALE (spec zone 4) : la case d'action ARME le geste que le prochain clic du champ
     // commettra, et sa PORTÉE se peint aussitôt (`localIntent.ts` → `HighlightsView.intentReach`).
     // Purement locale : aucun intent réseau ne part d'ici (seul le COMMIT du geste en émet un).
-    // Re-armer la MÊME action, ou passer `null` (Échap), la dissout.
-    armerLIntention: (actionId: string | null) => {
-      const battle = get().battle;
-      if (!battle || battle.over) return;
-      const active = activeCombatant(battle);
-      if (!active || !controlsCombatant(get(), active)) return;
-      const armed = get().localIntent;
-      set({ localIntent: !actionId || armed?.actionId === actionId ? null : { actionId } });
+    poserLIntention: (actionId: string | null) => {
+      set({ localIntent: actionId ? { actionId } : null });
       bus.emit(EVT.SCENE_DIRTY);
     },
     cliquerLeCombattant: (id: string, opts?: BattleClickOpts) => {
@@ -1126,14 +1120,19 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
 
+    // Le garde-fou « tour gâché » (spec §1c-bis COIN) : finir avec l'Action intacte ARME la fin, le geste suivant
+    // passe la main. L'IA et les flux internes passent, eux, par `advanceTurn`.
     terminerLeTour: () => {
       if (combatBusy(get())) return; // finir le tour sous un flux différé corromprait l'état
+      const s = get();
+      const b = s.battle;
+      const active = b ? activeCombatant(b) : undefined;
+      if (b && active && wastesAction(active, b, s.pendingCleave) && !endTurnArmed(b)) { s.armerLaFinDuTour(); return; }
       advanceTurn(get, set);
     },
     /** ARMEMENT du garde-fou « tour gâché » : le 1er geste de fin de tour EMPREINT l'économie du tour
      *  (`turnEconomyStamp`), le 2ᵉ passe la main. L'état vit dans `battle` — donc répliqué (l'invité
-     *  voit son propre armement revenir de l'hôte) et lisible par la plaque de sortie. La POLITIQUE
-     *  (quand armer) appartient à l'entrée de registre `end-turn`, porte unique des deux surfaces. */
+     *  voit son propre armement revenir de l'hôte) et lisible par la plaque de sortie. */
     armerLaFinDuTour: () => {
       const b = get().battle;
       if (!b || b.over || combatBusy(get())) return; // la fin du tour elle-même est close sous un flux différé

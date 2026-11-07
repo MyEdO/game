@@ -3,8 +3,8 @@
  * je modifie le moteur, je n ai pas à toucher ni au mcp, ni à l hôte, sauf si je dois inventer des nouveaux tools ». Garde
  * de classe : aucune chaîne du code d'un hôte du noyau (le dossier de chaque zone de `HOTES_DU_NOYAU`,
  * `scripts/guards/lib/couches.mjs`, TypeScript et GDScript, hors tests et cibles générées) ne nomme un verbe de la partie
- * (`VERBES`, lus du type du noyau) ni une clé de fenêtre (`CLES_DE_FENETRE`) ; un hôte les lit du noyau. Seule exception :
- * le verbe que le geste `offre` porte, son entrée dans le noyau. Et aucun script GDScript ne calcule une règle
+ * (`VERBES`, lus du type du noyau) ni une clé de fenêtre (`CLES_DE_FENETRE`) ; un hôte les lit du noyau, le verbe d'une
+ * offre compris (`OffreEnVue.geste`). Et aucun script GDScript ne calcule une règle
  * (`calculsDeRegle`, #2928) : il lit la vue ; l'arithmétique de la mise
  * en page vit dans un seul module, que sa structure désigne (`estMiseEnPage`).
  */
@@ -18,11 +18,6 @@ import { calculsDeRegle, estMiseEnPage } from '../../scripts/guards/lib/gdscript
 import { lexemesGdscript } from '../../scripts/guards/lib/gdscript.mjs';
 import { VERBES } from './verbes.generated';
 import { CLES_DE_FENETRE } from '../noyau/index';
-
-/** Les noms que l'hôte a le droit d'écrire, et pourquoi. */
-const EXCEPTIONS: Readonly<Record<string, string>> = {
-  jouerLOffre: 'l’entrée du noyau que le geste `offre` porte',
-};
 
 const RACINE = new URL('../../', import.meta.url);
 
@@ -60,7 +55,7 @@ const motsDesChainesGdscript = (code: string): { mot: string; ligne: number }[] 
 
 describe('l’hôte ne nomme aucun verbe ni aucune fenêtre en dur', () => {
   it('témoin : la garde voit le verbe d’une chaîne et la fenêtre d’un gabarit, pas ceux d’un commentaire, d’une interpolation, d’un chemin de module ni d’un mot plus long', () => {
-    const [verbe, autre] = Object.keys(VERBES).filter((v) => !EXCEPTIONS[v]);
+    const [verbe, autre] = Object.keys(VERBES);
     const mots = motsDesChaines(`// '${autre}'\nconst x = '${verbe}';\nconst y = \`fenêtre ${CLES_DE_FENETRE[0]} \${${autre}}\`;\nconst z = '${verbe}ée';\nimport { a } from './${autre}';`);
     expect(mots).toEqual(expect.arrayContaining([{ mot: verbe, ligne: 2 }, { mot: CLES_DE_FENETRE[0], ligne: 3 }]));
     expect(mots.map((m) => m.mot), 'ni le commentaire, ni le code interpolé, ni le chemin de module, ni le début d’un mot accentué').not.toContain(autre);
@@ -73,7 +68,7 @@ describe('l’hôte ne nomme aucun verbe ni aucune fenêtre en dur', () => {
     for (const d of DOSSIERS) expect(fichiers.some((f) => f.startsWith(`${d}/`)), `témoin : la garde lit ${d}`).toBe(true);
     expect(DOSSIERS, 'témoin : la garde lit le module commun et l’hôte texte').toEqual(expect.arrayContaining(['src/hote', 'src/hoteTexte']));
     expect(fichiers.some(estGdscript), 'témoin : la garde lit les scripts de l’hôte Godot').toBe(true);
-    const interdits = new Set([...Object.keys(VERBES), ...CLES_DE_FENETRE].filter((n) => !EXCEPTIONS[n]));
+    const interdits = new Set([...Object.keys(VERBES), ...CLES_DE_FENETRE]);
     const trouves = fichiers.flatMap((f) => {
       const code = readFileSync(new URL(f, RACINE), 'utf8');
       return (estGdscript(f) ? motsDesChainesGdscript(code) : motsDesChaines(code)).flatMap(({ mot, ligne }) => (interdits.has(mot) ? [`${f}:${ligne} ${mot}`] : []));

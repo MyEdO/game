@@ -37,7 +37,7 @@ describe.each(['ecuries-clayonnage', 'siege-enceinte'])('les bornes de sortie su
     tientSesBornes('cases', 'cases', t.lire('cases'));
     const actif = /^R1 tour \d+\/\d+ · actif (\S+) /.exec(vue.texte)![1];
     tientSesBornes('fiche', 'fiche', t.lire('fiche', { id: actif }));
-    tientSesBornes('offre end-turn', 'jouer', t.jouer({ offre: 'end-turn' }));
+    tientSesBornes('terminerLeTour', 'jouer', t.jouer(verbe('terminerLeTour')));
   });
 });
 

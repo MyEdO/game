@@ -39,7 +39,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     return { H, E };
   }
 
-  const armer = () => banc.getState().jouerLOffre('posture-tir');
+  const armer = () => banc.jouerLaCase('posture-tir');
   const posturee = (id: string) => !!banc.getState().battle!.stances?.[id]?.heldGround;
 
   it('l’entrée du registre est VIVANTE : dispatcher + champ de posture, aucune dette déclarée', () => {
@@ -121,7 +121,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
   it('MÊLÉE : une attaque au contact ne porte JAMAIS une posture de tir', () => {
     const { H, E } = setup();
     armer();
-    banc.getState().jouerLOffre('posture-tas'); // l'autre posture aussi, si le contexte l'offre
+    banc.jouerLaCase('posture-tas'); // l'autre posture aussi, si le contexte l'offre
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, uid: 'ep', qualities: [] } as never;
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     h.weapons = [...h.weapons, epee];
@@ -225,7 +225,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
     const cible = () => banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(foes.length, 'la rencontre doit fournir de quoi faire un groupe').toBeGreaterThanOrEqual(3);
 
-    banc.getState().jouerLOffre('posture-tas');
+    banc.jouerLaCase('posture-tas');
     expect(banc.getState().battle!.stances?.[H.id]?.intoCrowd).toBe(true);
     openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/shoot');
     const pa = banc.getState().pendingAttack!;
@@ -245,8 +245,8 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
    */
   it('un tir IMMOBILE ne désarme que SA posture : « Dans le tas » survit au coup', () => {
     const { H, E } = setup(true);
-    banc.getState().jouerLOffre('posture-tir');
-    banc.getState().jouerLOffre('posture-tas');
+    banc.jouerLaCase('posture-tir');
+    banc.jouerLaCase('posture-tas');
     const armees = () => banc.getState().battle!.stances?.[H.id] ?? {};
     expect(armees().heldGround, 'tir immobile armé').toBe(true);
     expect(armees().intoCrowd, '« Dans le tas » armée').toBe(true);
@@ -268,7 +268,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
 
   it('la posture se refuse hors contexte : sans groupe, le store ne l’arme pas', () => {
     const { H } = setup(false);
-    banc.getState().jouerLOffre('posture-tas');
+    banc.jouerLaCase('posture-tas');
     expect(banc.getState().battle!.stances?.[H.id]?.intoCrowd).toBeFalsy();
   });
 });

@@ -53,11 +53,11 @@ const valeurDe = (b: Bouton): unknown => ('args' in b.jeu ? b.jeu.args[b.jeu.arg
 
 const actifDe = (s: Suite) => s.vue.projection.combat!.actif!;
 
-/** La fin du tour par son offre, confirmée par la même offre quand la vue la dit armée (`finDeTourArmee`). */
+/** La fin du tour par le verbe de son offre, confirmée par le même verbe quand la vue la dit armée (`finDeTourArmee`). */
 function finirLeTour(): ReturnType<typeof jouer> {
-  const arme = jouer({ offre: 'end-turn' });
+  const arme = jouer({ type: 'terminerLeTour', args: [] });
   if (!arme.suite.vue.projection.combat!.finDeTourArmee) return arme;
-  const fin = jouer({ offre: 'end-turn' });
+  const fin = jouer({ type: 'terminerLeTour', args: [] });
   return { suite: fin.suite, journal: [...arme.journal, ...fin.journal], lignes: [...arme.lignes, ...fin.lignes] };
 }
 
@@ -78,7 +78,7 @@ describe('un tour complet par le pont', () => {
     expect(economie('end-turn'), 'la fin du tour, qui ne prend rien, se range sous le tour').toMatchObject({ libelle: 'Tour' });
     expect(suite.vue.zones['combat.actif'][0]?.nom, 'le panneau nomme l’actif').toBe(heros.nom);
     expect(suite.vue.zones['combat.ordre'].filter((p) => p.ton === 'alerte').map((p) => p.libelle), 'le bandeau de l’ordre met en avant celui qui joue, lui seul').toEqual([heros.nom]);
-    ({ suite } = jouer({ offre: 'charge' }));
+    ({ suite } = jouer({ type: 'armerLIntention', args: ['charge'] }));
     expect(suite.vue.projection.combat!.intention, 'l’offre arme son intention').toBe('charge');
     expect(suite.vue.zones['combat.offres'].flatMap((o) => o.valeurs).find((o) => o.presse)?.id, 'l’offre armée est pressée').toBe('charge');
     const [cible] = suite.vue.projection.combat!.cibles.liste; // les cibles que le clic accepte, la Charge armée

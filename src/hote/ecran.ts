@@ -519,22 +519,24 @@ function apercuDe(c: Combat): string | null {
   return cible ? t('ecran.apercu.cible', { cible }) : null;
 }
 
-/** Les offres de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand elle est armée, refusée avec sa
- *  raison quand elle est fermée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui
- *  la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. Une offre qui s'offre par candidat
- *  (le sort, l'arme, l'attaque de trait) est un choix à elle, sous sa part, en liste au-delà de `CHOIX_EN_BOUTONS`
- *  candidats : chaque candidat un bouton qui le nomme et joue l'offre sur son contexte. */
+/** Les offres de l'actif, chacune un bouton qui joue son geste (`Offre.geste`), pressée quand elle est armée, refusée
+ *  avec sa raison quand elle est fermée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un
+ *  choix qui la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. Une offre qui s'offre par
+ *  candidat (le sort, l'arme, l'attaque de trait) est un choix à elle, sous sa part, en liste au-delà de
+ *  `CHOIX_EN_BOUTONS` candidats : chaque candidat un bouton qui le nomme et joue son geste. Une offre sans geste, dont la
+ *  case attend un paramètre que seule la console choisit, n'a pas de bouton. */
 function offresDuCombat(c: Combat): Choix[] {
-  const offres = c.offres?.liste ?? [];
+  const offres = (c.offres?.liste ?? []).filter((o) => o.geste || o.candidats.some((k) => k.geste));
   const libelle = (o: (typeof offres)[number]): string => garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre');
+  const jeuDe = (g: GesteDuNoyau): Bouton['jeu'] => ({ type: g.verbe, args: g.args });
   const bouton = (o: (typeof offres)[number]): Bouton => ({
-    type: 'bouton', id: o.id, libelle: libelle(o), jeu: { offre: o.id }, presse: o.armee, focus: false, refus: o.refus,
+    type: 'bouton', id: o.id, libelle: libelle(o), jeu: jeuDe(garanti(o.geste, o.id, 'geste de l’offre')), presse: o.armee, focus: false, refus: o.refus,
   });
   const parCandidat = (o: (typeof offres)[number]): Choix => ({
     type: o.candidats.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: `offre/${o.id}`, ton: 'neutre', libelle: libelle(o), focus: false, refus: o.refus,
-    valeurs: o.candidats.map((k): Bouton => ({
-      type: 'bouton', id: `${o.id}/${Object.values(k.ctx).join('/')}`, libelle: k.nom, jeu: { offre: o.id, ctx: k.ctx }, presse: k.armee, focus: false, refus: k.refus,
-    })),
+    valeurs: o.candidats.flatMap((k): Bouton[] => (k.geste ? [{
+      type: 'bouton', id: `${o.id}/${Object.values(k.ctx).join('/')}`, libelle: k.nom, jeu: jeuDe(k.geste), presse: k.armee, focus: false, refus: k.refus,
+    }] : [])),
   });
   return [...new Set(offres.map((o) => o.economie))].flatMap((e): Choix[] => {
     const part = offres.filter((o) => o.economie === e);

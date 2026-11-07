@@ -57,7 +57,7 @@ function setup(opts: { peur?: boolean } = {}) {
 describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se commet à la relance', () => {
   it('Charge armée + Test de Calme d’approche RÉUSSI → le héros charge, sans « armez la Charge »', () => {
     const { H, E } = setup({ peur: true });
-    get().jouerLOffre('charge'); // le joueur ARME la case Charge, puis clique la cible
+    banc.jouerLaCase('charge'); // le joueur ARME la case Charge, puis clique la cible
     cliquerSurLeCombattant(get, E.id, { confirm: true });
     // Le gate de Peur s'ouvre : rien n'est commis, l'intention a été dissoute par ce clic.
     expect(get().pendingApproach, 'le Test de Calme d’approche ne s’est pas ouvert').not.toBeNull();
@@ -103,10 +103,10 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
 describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans les args', () => {
   it('l’intention armée du client entre dans les args de SON intent (clic-ennemi et clic-case)', () => {
     setup();
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     expect(argsAvecVerdictLocal(get, 'cliquerLaCase', [{ x: 11, y: 10 }, 'e1', { confirm: true }]))
       .toEqual([{ x: 11, y: 10 }, 'e1', { confirm: true, approche: true }]);
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     expect(argsAvecVerdictLocal(get, 'cliquerLaCase', [{ x: 1, y: 1 }, undefined, { confirm: true }]))
       .toEqual([{ x: 1, y: 1 }, undefined, { confirm: true, courseArmee: true }]);
   });
@@ -119,7 +119,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
 
   it('un intent SANS verdict à joindre voyage inchangé', () => {
     setup();
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     expect(argsAvecVerdictLocal(get, 'terminerLeTour', [])).toEqual([]);
   });
 
@@ -135,7 +135,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
 
   it('HÔTE armé : sa case NE DÉBLOQUE PAS le geste d’un invité qui n’a rien armé', () => {
     const { H, E } = setup();
-    get().jouerLOffre('charge'); // l'HÔTE arme SA case…
+    banc.jouerLaCase('charge'); // l'HÔTE arme SA case…
     expect(get().localIntent).toEqual({ actionId: 'charge' });
     cliquerSurLeCombattant(get, E.id, { confirm: true, approche: false }); // …mais l'invité a émis « non armé »
     expect(get().refus?.texte ?? '', 'le geste non armé de l’invité est passé').toContain('Charge');
@@ -146,7 +146,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
   it('MÊME loi pour le clic-case : l’hôte armé ne fait pas courir l’invité', () => {
     const { H } = setup();
     const loin = { x: 10 + 6, y: 10 }; // au-delà de la Marche (M4), dans la zone de Course
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     get().cliquerLaCase(loin, undefined, { confirm: true, courseArmee: false });
     expect(get().pendingRun ?? get().pendingCascade, 'la Course d’autrui est partie sur la case de l’hôte').toBeFalsy();
     expect(get().refus?.texte ?? '').toContain('Course');
@@ -159,7 +159,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
     const net0 = get().net;
     const { H } = setup();
     banc.setState({ pendingRun: null, net: { ...net0, mode: 'host', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } });
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     expect(get().localIntent, 'témoin : l’hôte a armé SA Course').toEqual({ actionId: 'course' });
     banc.setState({ net: { ...get().net, ownership: { [H.id]: 1 } } });
     return { H, net0 };

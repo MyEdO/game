@@ -90,8 +90,8 @@ export type IdDePorte = string;
 export type IdDIndice = string;
 /** Un pré-tiré de la donnée (`pregens.json`), par son `id`. */
 export type IdDePretire = string;
-/** Une offre du registre des actions (`actions.json`), par son `id`. */
-export type IdDOffre = string;
+/** Une offre du registre des actions qui arme une intention (`run: armerLIntention`, `actions.json`), par son `id`. */
+export type IdDIntention = string;
 /** Un article du stock du marchand ouvert, par l'id de son entrée de catalogue (`catalogEntryOf`, `merchantFlow.ts`). */
 export type IdDArticle = string;
 /** Une ligne du butin ouvert (`pendingLoot`, `pendingVictory`), par son `uid` (`LootGear`). */
@@ -267,7 +267,7 @@ export const DESIGNATIONS = {
   },
   IdDePorte: { mot: 'id de porte', lire: (s) => ids(portesDuMobile(s)), nom: () => null },
   IdDePretire: { mot: 'id de pré-tiré', lire: () => ids(pregens), nom: (_s, id) => labelParmi(pregens, id) },
-  IdDOffre: { mot: 'id d’offre', lire: () => ids(ACTIONS), nom: (_s, id) => labelParmi(ACTIONS, id) },
+  IdDIntention: { mot: 'id d’intention', lire: () => ids(ACTIONS.filter((a) => a.run === 'armerLIntention')), nom: (_s, id) => labelParmi(ACTIONS, id) },
   IdDArticle: { mot: 'id d’article', lire: (s) => (s.merchant?.stock ?? []).map((l) => l.id), nom: (_s, id) => catalogEntryOf(id)?.label ?? null },
   IdDeLigneDeButin: { mot: 'id de ligne de butin', lire: (s) => lignesDuButin(s).map((g) => g.uid), nom: (s, uid) => lignesDuButin(s).find((g) => g.uid === uid)?.label ?? null },
   IdDeLigneDeRepartition: {

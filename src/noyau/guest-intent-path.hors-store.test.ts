@@ -8,8 +8,8 @@
  * L'intent acceptée d'un invité sur son PROPRE héros agit : le pending est posé.
  *
  * Ce test exerce la chaîne de `appliquerLIntentionDUnSiege` (celle que `netFlow` appelle), sur DEUX
- * offres ouvreuses jouées par `jouerLOffre` : `battement` (`faireUnBattement`, exposé par #1017) et `disengage`
- * (`rompreLEngagement`, d'une autre famille — la même garde les sert, ce qui prouve que la CLASSE est fermée, pas un cas).
+ * verbes ouvreurs de la barre : `faireUnBattement` (offre `battement`, exposé par #1017) et `rompreLEngagement` (offre
+ * `disengage`, d'une autre famille — la même garde les sert, ce qui prouve que la CLASSE est fermée, pas un cas).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -67,7 +67,7 @@ const applyIntent = (seat: number, action: string, args: unknown[] = []) => appl
 describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’allowlist', () => {
   it('`battement` (ouvreur exposé par #1017) : le siège du héros OUVRE réellement le jet', () => {
     setup();
-    expect(applyIntent(1, 'jouerLOffre', ['battement'])).toBe('appliquee');
+    expect(applyIntent(1, 'faireUnBattement', [])).toBe('appliquee');
     const pb = banc.getState().pendingBattement;
     expect(pb, 'le pending est POSÉ (avant le socle : null, en silence)').toBeTruthy();
     expect(pb!.attackerId).toBe('h2');
@@ -76,13 +76,13 @@ describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’a
 
   it('`disengage` (intent HISTORIQUE) : la classe entière est fermée, pas le seul Battement', () => {
     setup();
-    expect(applyIntent(1, 'jouerLOffre', ['disengage'])).toBe('appliquee');
+    expect(applyIntent(1, 'rompreLEngagement', [])).toBe('appliquee');
     expect(banc.getState().pendingDisengage, 'le Désengagement s’ouvre aussi pour l’invité').toBeTruthy();
   });
 
   it('siège NON possesseur : l’intent est REFUSÉ en amont, et rien ne bouge', () => {
     setup();
-    expect(applyIntent(2, 'jouerLOffre', ['battement'])).toBe('refusee');
+    expect(applyIntent(2, 'faireUnBattement', [])).toBe('refusee');
     expect(banc.getState().pendingBattement).toBeNull();
   });
 
@@ -91,7 +91,7 @@ describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’a
     banc.getState().faireUnBattement(); // appel DIRECT (clic de l'hôte sur son propre écran)
     expect(banc.getState().pendingBattement, 'l’hôte n’ouvre pas le jet d’un héros distant').toBeNull();
     // …et le contexte est bien retombé après l'intent précédent (aucune fuite entre gestes).
-    expect(applyIntent(1, 'jouerLOffre', ['battement'])).toBe('appliquee');
+    expect(applyIntent(1, 'faireUnBattement', [])).toBe('appliquee');
     expect(banc.getState().pendingBattement).toBeTruthy();
     banc.setState({ pendingBattement: null });
     banc.getState().faireUnBattement();
@@ -117,7 +117,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
   it('hors possession : le refus va au journal, en libellé joueur', () => {
     setup();
     banc.setState({ journal: [] });
-    expect(applyIntent(2, 'jouerLOffre', ['battement'])).toBe('refusee');
+    expect(applyIntent(2, 'faireUnBattement', [])).toBe('refusee');
     expect(banc.getState().journal).toEqual(['Action refusée : elle ne revient pas au joueur qui l’a demandée.']);
   });
 
@@ -205,7 +205,7 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
 
   it('Désengagement : un siège tiers est refusé ; le siège du héros renonce et la cascade-hôte se ferme', () => {
     setup();
-    expect(applyIntent(1, 'jouerLOffre', ['disengage'])).toBe('appliquee');
+    expect(applyIntent(1, 'rompreLEngagement', [])).toBe('appliquee');
     expect(banc.getState().pendingCascade, 'l’étape hôte est ouverte').toBeTruthy();
     expect(applyIntent(2, 'jetAnnuler', ['disengage'])).toBe('refusee');
     expect(banc.getState().pendingDisengage, 'le choix d’autrui reste ouvert').toBeTruthy();
@@ -221,7 +221,7 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
     ['fuir', 'jetRegler', ['disengage', 'fuir', true]],
   ] as const)('Désengagement en phase %s : renoncer est refusé, visiblement, et ne change rien', (phase, geste, args) => {
     const { enemy } = setup();
-    expect(applyIntent(1, 'jouerLOffre', ['disengage'])).toBe('appliquee');
+    expect(applyIntent(1, 'rompreLEngagement', [])).toBe('appliquee');
     expect(applyIntent(1, geste, [...args])).toBe('appliquee');
     const avant = banc.getState();
     expect(avant.pendingDisengage?.phase).toBe(phase);
@@ -236,7 +236,7 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
 
   it('Désengagement en phase fuir, fenêtre PARTAGÉE (`groupOwner`) : un siège tiers est refusé par la possession', () => {
     setup();
-    expect(applyIntent(1, 'jouerLOffre', ['disengage'])).toBe('appliquee');
+    expect(applyIntent(1, 'rompreLEngagement', [])).toBe('appliquee');
     expect(applyIntent(1, 'jetRegler', ['disengage', 'fuir', true])).toBe('appliquee');
     const c = banc.getState().pendingCascade!;
     banc.setState({ pendingCascade: { ...c, participants: c.participants.map((p, i) => (i === c.cursor ? { ...p, groupOwner: true } : p)) } });

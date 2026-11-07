@@ -20,7 +20,7 @@ export const famille = 'entite';
  *   • `coin-de-tour` → le coin de fin de tour (`.cc-corner`), isolé des deux travées ;
  *   • `bandeau-de-phase` → le bandeau `.cc-phase` HORS ciblage : la pause d'initiative de Round ;
  *   • `interlude` → le MÊME bandeau, pendant un ciblage par la carte : l'action s'affiche tant que
- *     le mode courant (`currentTargetingMode`) est celui de son `mode`, et SON dispatcher est la
+ *     le mode courant (`currentTargetingMode`) est celui de son `mode`, et SON geste est la
  *     SORTIE de ce ciblage. Elle exige donc `mode`, `run` et `exitSafe` ;
  *   • `pastille-etat` → la PASTILLE de l'État concerné dans la niche d'États (`StateChips`, slot
  *     `action`) : la réaction que cet État ouvre vit sur LUI (arbitrage HUD 2026-08-16) ;
@@ -67,8 +67,8 @@ const doc = document(
     gate: z.union([z.string(), z.array(z.string()).min(2)]),
     /** Id de SÉLECTEUR impur enregistré dans `ACTION_CANDIDATES` (liste des cibles/objets offerts). */
     candidates: z.string().optional(),
-    /** Id de DISPATCHER d'`OFFRES_PAR_RUN` (`src/noyau/actionRegistry.ts`, un corps ou un relais), résolu au chargement
-     *  du registre. Absent = une pure intention, ou `blocked`. */
+    /** Id de l'ENTRÉE d'`ENTREES_PAR_RUN` (`src/noyau/actionRegistry.ts`) : le verbe qui joue l'offre et ses arguments,
+     *  résolu au chargement du registre. Absent = `blocked`. */
     run: z.string().optional(),
     /** Id de `TargetingMode` EXISTANT (`src/noyau/targetingModes.ts`) armé par cette action. */
     mode: z.string().optional(),
@@ -79,17 +79,17 @@ const doc = document(
     /** Valeur écrite dans `battle.action` quand l'action est ARMÉE (mode à bouton). */
     armed: z.string().optional(),
     /** POSTURE de tir pré-armée basculée par cette action (`BattleState.stances`, champ du
-     *  `PendingAttack` qu'elle pré-remplit) — exigée par le dispatcher `basculerLaPosture`. */
+     *  `PendingAttack` qu'elle pré-remplit) — exigée par le verbe `basculerLaPosture`. */
     stance: z.enum(['heldGround', 'intoCrowd']).optional(),
     coutAction: coutActionSchema,
     /** FOYER de la règle : l'entrée Codex qui la porte (jamais une phrase recomposée). */
     rule: foyerDeRegleSchema.optional(),
 
     keys: z.array(z.string()).optional(),
-    /** Dette BLOQUANTE : l'action est déclarée mais aucun dispatcher ne l'exécute encore. */
+    /** Dette BLOQUANTE : l'action est déclarée mais aucun verbe ne la joue encore. */
     blocked: blocageDeLivraison.optional(),
     /** SORTIE D'INTERLUDE ATTEIGNABLE À ÉCHAP (`surface: 'interlude'` uniquement) : `false` = son
-     *  dispatcher COMMET quelque chose (un renoncement, un placement) — la touche d'annulation ne
+     *  geste COMMET quelque chose (un renoncement, un placement) — la touche d'annulation ne
      *  doit jamais le déclencher, seul le clic explicite le fait. `true` = la sortie ne perd rien
      *  (retour à la modale, désarmement d'un mode). */
     exitSafe: z.boolean().optional(),
@@ -114,8 +114,8 @@ const doc = document(
     },
     candidates: { label: 'Sélecteur de cibles/objets', hint: 'Identifiant du sélecteur qui liste ce que l’action propose' },
     run: {
-      label: 'Dispatcher d’exécution',
-      hint: 'Identifiant de la méthode qui exécute l’action ; absent, l’action est en dette',
+      label: 'Geste d’exécution',
+      hint: 'Identifiant de l’entrée qui déclare le verbe jouant l’action ; absent, l’action est en dette',
     },
     mode: { label: 'Mode de ciblage', hint: 'Identifiant du mode de ciblage armé par l’action' },
     intent: { label: 'Portée d’intention', hint: 'Identifiant de portée peinte sur le champ tant que l’action est armée' },
@@ -130,7 +130,7 @@ const doc = document(
       label: 'Clés historiques de surface',
       hint: 'Anciennes clés de case couvertes par cette action (liste décroissante, en transition)',
     },
-    blocked: { label: 'Dette bloquante', hint: 'Action déclarée sans dispatcher qui l’exécute' },
+    blocked: { label: 'Dette bloquante', hint: 'Action déclarée sans verbe qui la joue' },
     exitSafe: { label: 'Sortie sans perte', hint: 'La touche d’annulation peut déclencher cette sortie sans rien commettre' },
     role: { label: 'Rôle de la sortie', hint: 'Valide le geste, ou y renonce — la proéminence du bouton s’en déduit' },
     hote: { label: 'Action hôte', hint: 'Action dont l’alvéole porte ce geste secondaire' },
@@ -151,17 +151,17 @@ const doc = document(
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const a = v as EntreeAction;
-    if (!a.run && !a.intent && !a.blocked) {
-      ctx.addIssue({ code: 'custom', message: `${a.id} : ni dispatcher (run), ni intention (intent), ni dette déclarée (blocked)` });
+    if (!a.run && !a.blocked) {
+      ctx.addIssue({ code: 'custom', message: `${a.id} : ni geste (run), ni dette déclarée (blocked)` });
     }
     if ((a.run === 'basculerLaPosture') !== !!a.stance) {
       ctx.addIssue({ code: 'custom', message: `${a.id} : la bascule de posture et le champ stance vont ensemble (run basculerLaPosture ⇔ stance)` });
     }
-    if ((a.run || a.intent) && a.blocked) {
-      ctx.addIssue({ code: 'custom', message: `${a.id} : dette déclarée alors que l’action s’exécute (run) ou s’arme (intent)` });
+    if (a.run && a.blocked) {
+      ctx.addIssue({ code: 'custom', message: `${a.id} : dette déclarée alors que l’action se joue (run)` });
     }
     if (a.surface === 'interlude' && (!a.mode || !a.run || a.exitSafe === undefined)) {
-      ctx.addIssue({ code: 'custom', message: `${a.id} : action d’interlude sans mode de ciblage, sans dispatcher de sortie ou sans exitSafe` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : action d’interlude sans mode de ciblage, sans geste de sortie ou sans exitSafe` });
     }
     if (a.exitSafe !== undefined && a.surface !== 'interlude') {
       ctx.addIssue({ code: 'custom', message: `${a.id} : exitSafe hors d’une action d’interlude (aucune touche d’annulation ne la vise)` });

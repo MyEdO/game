@@ -11,7 +11,7 @@
  */
 import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LancementDeScenario, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
-import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
+import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/hote/formes';
 import { fenetreADessiner } from '../../../src/hote/gestes';
@@ -93,8 +93,8 @@ const demandeUnHeros = (e: ResultatDeLAppel['evenements'][number]): boolean => e
 /** Godot dessine tout : aucune liste de la projection n'est bornée. */
 export const SANS_BORNE: BornesDeLaProjection = { autres: Infinity, offres: Infinity, cibles: Infinity, gestes: Infinity, entites: Infinity };
 
-/** Les clés de l'entrée d'un geste : celles d'une offre, ou celles d'un verbe (`Geste`). */
-const clesDuGeste = (e: Record<string, unknown>): readonly string[] => ('offre' in e ? ['offre', 'ctx'] : 'suite' in e ? ['suite'] : ['type', 'args', 'siege']);
+/** Les clés de l'entrée d'un geste : celles d'une suite, ou celles d'un verbe (`Geste`). */
+const clesDuGeste = (e: Record<string, unknown>): readonly string[] => ('suite' in e ? ['suite'] : ['type', 'args', 'siege']);
 
 /** La valeur de `lu`, le champ `champ` de l'entrée de `methode` lu par le noyau ; refusée en `validation`, chaque faute à
  *  son chemin. */
@@ -216,11 +216,10 @@ export function creerPont() {
   /** Une suite sans jeton ni journal : la vue d'un état du pont changé, la partie intacte. */
   const sansJeton = (o: NonNullable<typeof ouverte>): Suite => ({ vue: vueDe(o), programmes: [], journal: [], zones: { 'journal.lignes': [] } });
 
-  /** Un geste joué : une offre de l'actif, ou un verbe et ses arguments. */
+  /** Un geste joué : un verbe et ses arguments, celui qu'une offre déclare compris. */
   const jouerUnGeste = (o: NonNullable<typeof ouverte>, e: Record<string, unknown>): ResultatDeLAppel => {
     const etat = o.partie.etat();
-    const geste = 'offre' in e ? lireGeste(e) : gesteDuVerbe(etat, e as { type: unknown }, SANS_PISTE);
-    const resultat = envoyerLIntention(o.partie, intentionDuGeste(etat, geste, SANS_PISTE));
+    const resultat = envoyerLIntention(o.partie, intentionDuGeste(etat, gesteDuVerbe(etat, e as { type: unknown }, SANS_PISTE)));
     o.pas++;
     return resultat;
   };

@@ -62,7 +62,7 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
   it('Charge armée → la bande peinte EST `computeChargeReach`, de rayon `chargeReach` = 2×M', () => {
     const { H } = setup();
     const M = effectiveMovement(H);
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     const bande = intentReach(get);
     expect([...bande.keys()].sort()).toEqual([...computeChargeReach(get).keys()].sort());
     // La bande DÉBORDE la Marche : c'est tout l'objet du bouton (« difficile de connaître la distance »).
@@ -73,13 +73,13 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
 
   it('Mouvement armé → la bande peinte EST la portée de Marche affichée', () => {
     setup();
-    get().jouerLOffre('mouvement');
+    banc.jouerLaCase('mouvement');
     expect([...intentReach(get).keys()].sort()).toEqual([...displayedReach(get).keys()].sort());
   });
 
   it('Attaque armée → AUCUNE bande de cases : sa portée se lit aux bandes de tir existantes', () => {
     setup();
-    get().jouerLOffre('attaque', { attackId: 'arme' });
+    banc.jouerLaCase('attaque', { attackId: 'arme' });
     expect(armedIntentPortee(get)).toBe('portee-arme');
     expect(intentReach(get).size).toBe(0);
   });
@@ -92,7 +92,7 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
 
   it('Course armée → sa zone est `computeRunReach`, jamais une 2ᵉ bande d’intention (`porteesDuTour`)', () => {
     setup();
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     expect(get().localIntent).toEqual({ actionId: 'course' });
     const attendu = computeRunReach(get);
     expect(attendu.size).toBeGreaterThan(0);
@@ -109,7 +109,7 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
     ];
     for (const [actionId, mesure] of mesures) {
       setup();
-      get().jouerLOffre(actionId);
+      banc.jouerLaCase(actionId);
       const p = porteesDuTour(get, true);
       expect(mesure(p), `l’intention « ${actionId} » (${armedIntentPortee(get)}) est armée et ne peint RIEN — intention=${p.intention.size} course=${p.course.size}`).toBeGreaterThan(0);
     }
@@ -119,30 +119,30 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
 describe('(b) annulation', () => {
   it('re-clic de la MÊME case dissout l’intention (bascule)', () => {
     setup();
-    get().jouerLOffre('course');
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
+    banc.jouerLaCase('course');
     expect(get().localIntent).toBeNull();
   });
 
   it('armer une AUTRE intention remplace la première (une seule à la fois)', () => {
     setup();
-    get().jouerLOffre('course');
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('course');
+    banc.jouerLaCase('charge');
     expect(get().localIntent).toEqual({ actionId: 'charge' });
   });
 
-  it('désarmer (`armerLIntention(null)`) dissout l’intention et sa bande', () => {
+  it('désarmer (`desarmerLeMode`) dissout l’intention et sa bande', () => {
     setup();
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     expect(get().localIntent).not.toBeNull();
-    get().armerLIntention(null);
+    get().desarmerLeMode();
     expect(get().localIntent).toBeNull();
     expect(intentReach(get).size).toBe(0);
   });
 
   it('le tour qui s’achève emporte l’intention', () => {
     setup();
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     get().terminerLeTour();
     expect(get().localIntent).toBeNull();
   });
@@ -176,7 +176,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
   it('AVEC intention, le MÊME clic commet le geste et dissout l’intention', () => {
     const { H } = setup();
     const dest = pickAtDist(displayedReach(get), 2);
-    get().jouerLOffre('mouvement');
+    banc.jouerLaCase('mouvement');
     get().cliquerLaCase(dest); // pas de `confirm` : l'intention armée VAUT confirmation
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(dest);
     expect(get().localIntent, 'l’intention doit se dissoudre au commit').toBeNull();
@@ -188,7 +188,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
     const course = computeRunReach(get);
     const loin = [...course.keys()].find((k) => !marche.has(k))!;
     const [x, y] = loin.split(',').map(Number);
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     get().cliquerLaCase({ x, y });
     expect(get().pendingRun ?? get().pendingCascade, 'la Course réelle n’a pas démarré').toBeTruthy();
     expect(get().localIntent).toBeNull();
@@ -198,7 +198,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
 describe('(d) COOP : l’intention est LOCALE au client', () => {
   it('un snapshot de l’hôte NE TUE PAS l’intention armée', () => {
     setup();
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     const snap = JSON.parse(JSON.stringify({ ...instantaneDeLaCoop(get()) })) as Record<string, unknown>;
     banc.setState(appliquerLInstantane(snap, banc.getState()).etat);
     expect(get().localIntent, 'le snapshot a désarmé la case du client').toEqual({ actionId: 'charge' });
@@ -206,7 +206,7 @@ describe('(d) COOP : l’intention est LOCALE au client', () => {
 
   it('l’intention ne VOYAGE pas dans le snapshot (la case armée de l’hôte n’allume rien chez l’invité)', () => {
     setup();
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     expect('localIntent' in instantaneDeLaCoop(get())).toBe(false);
   });
 

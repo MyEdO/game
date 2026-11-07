@@ -108,7 +108,7 @@ describe('Marques de cases — l’écran DÉJÀ MONTÉ suit le store (#1411 P0-
     act(() => { useGame.getState().armerLIntention('charge'); });
     expect(useGame.getState().localIntent, 'l’intention n’est même pas armée').toEqual({ actionId: 'charge' });
     expect(marques('intent'), 'l’armement n’a peint AUCUNE case : la portée reste invisible').toBeGreaterThan(0);
-    act(() => { useGame.getState().armerLIntention(null); });
+    act(() => { useGame.getState().desarmerLeMode(); });
     expect(useGame.getState().localIntent).toBeNull();
     expect(marques('intent'), 'le désarmement laisse la portée à l’écran').toBe(0);
   });
