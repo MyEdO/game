@@ -451,9 +451,10 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   // Un jeu de taverne PORTE sa règle (sa fiche Codex la recopie verbatim) : c'est le foyer des effets
   // qu'une partie inflige (l'ivresse d'un jeu à boire, NADJ 16 l.90).
   tavernGames: (id) => (tavernGamesJson as { id: string }[]).some((g) => g.id === id),
-  // Un événement de bord PORTE sa `consequence` (sa fiche Codex l'affiche) : le foyer du Test qu'elle
-  // exige, que l'enjeu de la donnée nomme (`entryCategory`/`entryId`). MDG 15 l.197-198, l.230-232
+  // Un événement de bord ou d'escale PORTE sa `consequence` (sa fiche Codex l'affiche) : le foyer du Test
+  // qu'elle exige, que l'enjeu de la donnée nomme (`entryCategory`/`entryId`). MDG 15 l.197-198, l.230-232, l.258
   seaBoardEvents: (id) => entreeDeCategorie('seaBoardEvents', id) !== undefined,
+  seaPortEvents: (id) => entreeDeCategorie('seaPortEvents', id) !== undefined,
   // Catégories atteignables par l'ENTITÉ SOURCE d'un effet (`CATEGORY_BY_SOURCE_KIND`, engine/types) —
   // la table est TOTALE côté source, donc le pool l'est aussi : sans elles, un jet exigé par un objet
   // ou un Talent replierait en silence sur le foyer de son `kind`.
