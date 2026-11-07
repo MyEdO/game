@@ -97,7 +97,7 @@ export { carteEnVue, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';
 export { marchandEnVue } from './marchandEnVue';
 export { marcheEnVue } from './marcheEnVue';
-export { voyageEnVue, type VoyageEnVue } from './voyageEnVue';
+export { voyageEnVue } from './voyageEnVue';
 export { recitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
