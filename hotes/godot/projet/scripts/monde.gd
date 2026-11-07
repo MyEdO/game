@@ -269,7 +269,7 @@ func _piece(a: Dictionary) -> Node3D:
 		return boite
 	var sens := Vector2(a.sens.x, a.sens.y)
 	var piece := Node3D.new()
-	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, 0.0)
+	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, _metres_par_case, 0.0)
 	piece.rotation.y = MiseEnPage.lacet_d_arete(sens)
 	piece.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, _metres_par_case)
 	piece.add_child(_kit.get_node(nom).duplicate())
@@ -303,7 +303,7 @@ func choisir_l_arete(arete: Variant) -> void:
 func _poser_sur_l_arete(instance: MeshInstance3D, mesh: BoxMesh, a: Dictionary) -> void:
 	instance.mesh = mesh
 	var sens := Vector2(a.sens.x, a.sens.y)
-	instance.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, mesh.size.y)
+	instance.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, _metres_par_case, mesh.size.y)
 	instance.rotation.y = MiseEnPage.lacet_d_arete(sens)
 	instance.scale.x = MiseEnPage.longueur_d_arete(sens)
 
