@@ -287,7 +287,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'opposed|extended',
   'party|enemies',
   'party|hero',
-  'party|hero|navire|caster|target',
+  'party|hero|navire|membreAuHasard|caster|target',
   'pas|trot|galop',
   'pluie|averse|neige',
   'radius|diameter',

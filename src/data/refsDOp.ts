@@ -29,7 +29,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   sbBonus: '+Bonus de Force aux Dégâts',
   endPsych: 'Fin d’un état psychologique',
   beginPsych: 'Entrée dans un état psychologique',
-  exposeDisease: 'Exposer à une Maladie (Test post-combat)',
+  exposeDisease: 'Exposer à une Maladie (Test de Contraction)',
   contractDisease: 'Contracter une Maladie (immédiat)',
   kill: 'Mort directe (Point de Destin sauve)',
   removeShipPoste: 'Retirer un poste de navire (Canon perdu)',
@@ -138,6 +138,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   equipage: 'Équipage du navire',
   perilDeMer: 'Péril de mer',
   navireHostile: 'Navire hostile',
+  infestation: 'Infestation du navire',
 };
 
 /** Champ d'une op portant une RÉFÉRENCE de registre : `ds` = dataset où elle doit résoudre,
@@ -200,6 +201,7 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
     { field: 'chef.id', ds: 'creatures', label: 'Chef', required: false },
   ],
   manann: [{ field: 'factorId', ds: 'seaManannFactors', label: 'Facteur de l’Humeur de Manann', required: true, sauf: 'delta' }],
+  infestation: [{ field: 'crewTestType.id', ds: 'crewTestTypes', label: 'Test d’équipage', required: true }],
 };
 
 /** Réfs REQUISES non élues d'UNE op (champ absent ou vide) — sans récursion. PURE. */

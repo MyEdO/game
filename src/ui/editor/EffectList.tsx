@@ -251,6 +251,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       const cible = ctx.cibles.find((c) => c.on === on);
       const who = !cible ? `« on: ${on} » hors du vocabulaire de cette racine`
         : on === 'hero' ? `${cible.label} (${e.heroId || '1ᵉʳ'})`
+        : typeof e.on === 'object' && 'volontaires' in e.on ? `${cible.label} (${e.on.volontaires})`
         : typeof e.on === 'object' ? `${cible.label} (${crewRoles.find((r) => r.id === e.on.role.id)?.label ?? (e.on.role.id || '?')})`
         : cible.label;
       return `${who} : ${(e.ops ?? []).map(opSummary).join(', ') || '(aucune op)'}${e.pendantJours !== undefined ? ` · pendant ${formulaSummary(e.pendantJours)} jour(s)` : ''}`;
@@ -778,14 +779,17 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                 <label className="dr">
                   Cible
                   <select value={genreDeCible(e.on) ?? ctx.cibles[0].on}
-                    onChange={(ev) => upd({ on: ev.target.value === 'role' ? { role: { id: crewRoles[0].id } } : ev.target.value })}>
+                    onChange={(ev) => upd({ on: ev.target.value === 'role' ? { role: { id: crewRoles[0].id } } : ev.target.value === 'volontaires' ? { volontaires: '' } : ev.target.value })}>
                     {ctx.cibles.map((c) => <option key={c.on} value={c.on}>{c.label}</option>)}
                   </select>
                 </label>
                 {e.on === 'hero' && (
                   <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
                 )}
-                {typeof e.on === 'object' && (
+                {typeof e.on === 'object' && 'volontaires' in e.on && (
+                  <input aria-label="Question posée à chaque héros" placeholder="ex. Monter à bord" value={e.on.volontaires} onChange={(ev) => upd({ on: { volontaires: ev.target.value } })} />
+                )}
+                {typeof e.on === 'object' && 'role' in e.on && (
                   <label className="dr">
                     Rôle
                     <select value={e.on.role.id} onChange={(ev) => upd({ on: { role: { id: ev.target.value } } })}>

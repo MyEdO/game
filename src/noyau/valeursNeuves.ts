@@ -215,6 +215,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'equipage': return { op: 'equipage', delta: 1 };
     case 'perilDeMer': return { op: 'perilDeMer', collision: { id: '' } };
     case 'navireHostile': return { op: 'navireHostile', navire: { id: '' }, equipage: { id: '', nombre: 1 } };
+    case 'infestation': return { op: 'infestation', crewTestType: { id: '' }, difficulty: 'intermediaire', targetDR: 10, chaqueNuit: { kind: 'seq', steps: [] } };
     default: return { op: 'wounds', amount: 5 };
   }
 }
