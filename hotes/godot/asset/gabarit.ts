@@ -58,7 +58,7 @@ export interface PoseDuGabarit {
   readonly echelleDeVitesse: number;
 }
 
-export function poseDuGabarit({ gabarit, appuis }: Pick<ManifesteDeBase, 'gabarit'> & Partial<Pick<ManifesteDeBase, 'appuis'>>, facteurs: GabaritResolu): PoseDuGabarit {
+export function poseDuGabarit({ gabarit, appuis }: Required<Pick<ManifesteDeBase, 'gabarit'>> & Partial<Pick<ManifesteDeBase, 'appuis'>>, facteurs: GabaritResolu): PoseDuGabarit {
   const enfantsDe: Record<string, number> = {};
   const echellesDesOs: Record<string, readonly [number, number, number]> = {};
   for (const cle of CLES_DU_GABARIT) {

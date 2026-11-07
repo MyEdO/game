@@ -447,7 +447,7 @@ describe('importerPersonnage', () => {
       return d;
     }, /^\[glb-illisible\] GLB illisible : 10 octets, en-tête incomplet$/],
     ['un manifeste sans empreinte', () => dossierDeProduction((m) => { delete (m as { model_sha256?: string }).model_sha256; }), /, manifest\.json déclare undefined$/],
-    ['un chemin absolu laissé', () => dossierDeProduction((m) => { m.manifeste = { ...m.manifeste, porteur: { ...m.manifeste.porteur, race: '/home/x/humain' } }; }), /^\[chemin-absolu\] manifeste\.porteur\.race : \/home\/x\/humain$/],
+    ['un chemin absolu laissé', () => dossierDeProduction((m) => { m.manifeste = { ...m.manifeste, porteur: { ...m.manifeste.porteur, espece: '/home/x/humain' } }; }), /^\[chemin-absolu\] manifeste\.porteur\.espece : \/home\/x\/humain$/],
     ['un manifest.json sans manifeste', () => dossierDeProduction((m) => { delete (m as { manifeste?: unknown }).manifeste; }), /^\[manifeste-absent\] manifest\.json : manifeste, le manifeste d’une base ou d’un élément attendu$/],
     ['une licence d’en-tête que le pack n’annonce pas', () => dossierDeProduction((m) => {
       m.components.corps.asset.explicit_header = ['# license AGPL3'];
@@ -461,7 +461,7 @@ describe('importerPersonnage', () => {
       writeFileSync(join(d, 'LICENSE-Pack.txt'), 'Pack\nLicense: MIT\n');
       return d;
     }, /^\[licence-inconnue\] LICENSE-Pack\.txt : « MIT »$/],
-    ['une base schéma 4 dont le texte de licence du pack manque', () => {
+    ['une base dont le texte de licence du pack manque', () => {
       const d = productionDeTest(temporaire(), baseDeTest(), GLB_DE_BASE);
       rmSync(join(d, LICENCE_DE_PRODUCTION));
       return d;
