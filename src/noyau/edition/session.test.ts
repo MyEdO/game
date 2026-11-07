@@ -14,7 +14,7 @@ import { buildScene, type MapSpec } from '../mapSpec';
 import { editer, ouvrirLEdition, planDeLaVolee, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
 import { entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
 import { seatSlotsOf } from '../monde/seating';
-import { props, refEstVolumique } from '../../data';
+import { props } from '../../data';
 
 const ouverteSur = (scene: Scene, duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
@@ -96,17 +96,16 @@ describe('session d’édition', () => {
 
   it('les entités : posées sélectionnées, nommées puis rendues au nom de leur fiche, orientées parmi les caps de leur type, retypées, sur une autre couche', () => {
     const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
-    const volumique = props.find((p) => refEstVolumique(p.id))!;
-    const billboard = props.find((p) => !refEstVolumique(p.id))!;
-    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: billboard.id } }, { geste: 'appui', point: point(1, 1) });
+    const [decor, autre] = props;
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: decor.id } }, { geste: 'appui', point: point(1, 1) });
     const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel);
-    expect(ent(pose)).toMatchObject({ kind: 'prop', ref: billboard.id, pos: { x: 1, y: 1 }, label: billboard.label });
+    expect(ent(pose)).toMatchObject({ kind: 'prop', ref: decor.id, pos: { x: 1, y: 1 }, label: decor.label });
     expect(ent(jouer(pose, { geste: 'nommer', nom: 'Comptoir' }))?.label).toBe('Comptoir');
     expect(ent(jouer(pose, { geste: 'nommer' }))?.label, 'sans nom, il n’en porte plus').toBeUndefined();
-    const tourne = jouer(pose, { geste: 'entite', patch: { facing: 'NE' } });
-    expect([ent(tourne)?.facing, tourne.historique.passe.length]).toEqual(['NE', pose.historique.passe.length + 1]);
-    expect(jouer(tourne, { geste: 'entite', patch: { facing: 'NE' } }), 'rien ne change : aucun cran').toBe(tourne);
-    expect(ent(jouer(tourne, { geste: 'entite', patch: { ref: volumique.id } })), 'un décor volumique ne garde pas un cap diagonal').toMatchObject({ ref: volumique.id, facing: 'S' });
+    const tourne = jouer(pose, { geste: 'entite', patch: { facing: 'E' } });
+    expect([ent(tourne)?.facing, tourne.historique.passe.length]).toEqual(['E', pose.historique.passe.length + 1]);
+    expect(jouer(tourne, { geste: 'entite', patch: { facing: 'E' } }), 'rien ne change : aucun cran').toBe(tourne);
+    expect(ent(jouer(tourne, { geste: 'entite', patch: { ref: autre.id } })), 'retypé, il garde son cap cardinal').toMatchObject({ ref: autre.id, facing: 'E' });
     const etage = jouer(pose, { geste: 'ajouterCouche' }, { geste: 'couche', z: 0 }, { geste: 'appui', point: point(1, 1) }, { geste: 'entite', patch: { z: 1 } });
     expect(ent(etage)?.z).toBe(1);
     expect(ent(jouer(etage, { geste: 'entite', patch: { z: 0 } }))?.z).toBeUndefined();

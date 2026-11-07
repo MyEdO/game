@@ -99,7 +99,7 @@
 //   rend la précédente. Une seconde « Nouvelle scène » reçoit, dans un bloc de cases à l'écran, les ouvrages de la
 //   Diligence : une couche ajoutée, un palier peint en Dallage à 4 m ; douze côtés en Mur à ossature en bois autour de
 //   trois cases sur trois, une porte au nord, une fenêtre au sud ; la pièce tirée sur elles ; un corps, son étage, une
-//   façade au nord et son ouverture ; une volée de quatre cases tirée vers le palier, posée ; un décor tourné au nord-est,
+//   façade au nord et son ouverture ; une volée de quatre cases tirée vers le palier, posée ; un décor tourné à l’est,
 //   un départ, un déclencheur tiré : la validation ne dit aucune erreur. « Enregistrer » écrit au dépôt la scène et
 //   chacun de ces ouvrages ; « Tester la scène » ouvre le combat sur elle.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
@@ -1572,7 +1572,7 @@ async function parcoursEditeur() {
   await cliquerLaCase(5, 4)
   await presserTour('outil/select')
   await cliquerLaCase(5, 4)
-  await presserTour('entite/cap/NE')
+  await presserTour('entite/cap/E')
   await presserTour('outil/heroStart')
   await cliquerLaCase(3, 5)
   await presserTour('outil/zone', 'zone/trigger')
@@ -1581,7 +1581,7 @@ async function parcoursEditeur() {
   e = await editeur()
   const validation = e.zones['editeur.validation'][0].texte
   assert.match(validation, /^Validation : 0 erreur\(s\)/, 'la scène bâtie ne porte aucune erreur')
-  noter(`un décor tourné au nord-est, un départ, un déclencheur tiré sur trois cases sur trois : ${validation}`)
+  noter(`un décor tourné à l’est, un départ, un déclencheur tiré sur trois cases sur trois : ${validation}`)
   await capturer('3508-l7-1-batie')
   const avantLeBati = lus()
   await cliquerAuPanneau({ element: 'bouton/enregistrer' })
@@ -1598,7 +1598,7 @@ async function parcoursEditeur() {
   assert.deepEqual(batie.architecture[0].storeys.map((st) => st.z), [0, 1], 'un corps de deux étages')
   assert.equal(batie.architecture[0].facades.flatMap((f) => f.features ?? []).length, 1, 'une façade et son ouverture')
   assert.deepEqual(batie.effectZones.map((z) => [z.presentation, z.area]), [['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]], 'la pièce')
-  assert.deepEqual(batie.entities.map((en) => [en.kind, en.pos, en.facing]), [['prop', ici(5, 4), 'NE'], ['heroStart', ici(3, 5), undefined]], 'le décor tourné, le départ')
+  assert.deepEqual(batie.entities.map((en) => [en.kind, en.pos, en.facing]), [['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]], 'le décor tourné, le départ')
   assert.deepEqual(batie.triggers.map((tr) => [tr.rect, tr.flow]), [[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]], 'le déclencheur, au flux vide')
   noter(`« Enregistrer » : ${MANUSCRITS[ecrit]} porte la scène ${batie.id} : ${batie.layers.length} couches, ${batie.walls.length} arêtes, ${batie.architecture[0].storeys.length} étages, ${batie.effectZones.length} pièce, ${batie.entities.length} entités, ${batie.triggers.length} déclencheur`)
   await cliquerAuPanneau({ element: 'bouton/tester' })

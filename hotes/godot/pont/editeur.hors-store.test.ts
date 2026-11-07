@@ -892,7 +892,7 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
     expect(e.vue.zones['editeur.options'].filter((l) => l.type === 'ligne').map((l) => (l as Ligne).texte)).toEqual(['Tracé : 4 cases', '0 m → 4 m · cotes 1 · 2 · 3 · 4 m']);
     presser('volee/poser');
 
-    presser('outil/prop'); cliquerLaCase(5, 4); presser('outil/select'); cliquerLaCase(5, 4); presser('entite/cap/NE');
+    presser('outil/prop'); cliquerLaCase(5, 4); presser('outil/select'); cliquerLaCase(5, 4); presser('entite/cap/E');
     presser('outil/heroStart'); cliquerLaCase(3, 5);
     presser('outil/zone'); presser('zone/trigger'); tirerPar([[6, 4], [7, 5], [8, 6]]);
     expect((e.vue.zones['editeur.validation'][0] as Ligne).texte).toMatch(/^Validation : 0 erreur\(s\)/);
@@ -910,7 +910,7 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
     expect(corps.storeys.map((st) => st.z), 'un corps de deux étages').toEqual([0, 1]);
     expect(corps.facades!.flatMap((f) => f.features ?? []).map((f) => f.kind), 'une façade et son ouverture').toEqual(['gable']);
     expect(neuve.effectZones!.map((z) => [z.presentation, z.area]), 'la pièce').toEqual([['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]]);
-    expect(neuve.entities.map((en) => [en.kind, en.pos, en.facing])).toEqual([['prop', ici(5, 4), 'NE'], ['heroStart', ici(3, 5), undefined]]);
+    expect(neuve.entities.map((en) => [en.kind, en.pos, en.facing])).toEqual([['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]]);
     expect(neuve.triggers.map((tr) => [tr.rect, tr.flow]), 'le déclencheur tiré, au flux vide').toEqual([[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]]);
 
     const { appel: rouvrir } = table();
