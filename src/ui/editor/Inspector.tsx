@@ -51,21 +51,15 @@ import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../noyau/monde/facades';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
-import { allMusicDefs } from '../../audio/music';
+import { allMusicDefs } from '../../data/sons/musique';
 import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, siegeEngines, MERCHANT_ARCHETYPES } from '../../data';
 import { renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setNorthDeg, setSceneFlags, removeSceneFlag, setSceneScalaires, setSceneLabel, renameScene, editEntry, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, patchStartMessage, setReliefDefault, patchSceneRoofDefaults, setSceneRest, patchTrigger, patchRestZone, patchZone, replaceEffectZone, patchArchitectureBody, poseToitureDuCorps, addRoofExclusion, patchRoofExclusion, removeRoofExclusion, patchArchitectureStorey, patchArchitecturePart, patchFacadeSection, setFacadeSectionZ, patchBuildingMass, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE } from '../../noyau/sceneEdit';
-import { activitiesFor } from '../../engine/activities';
+import { ciblesDAncreDeBataille } from '../../noyau/massBattleFlow';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
 import { amateurSchema } from '../../data/schemas/grammaire/valeurs';
 import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneEffectZoneSchema, sceneSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
 
-/** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
- *  d'Activités (contexte `bataille-round`) — le SEUL espace d'ids que le consommateur sait résoudre
- *  (`noyau/stations.battleScenesToStations` → `battleSceneById`). Les Scènes du PROJET sont un autre
- *  espace : une ancre qui en nomme une est ignorée sans un mot (#841). */
-const battleAnchorTargets = (): { id: string; label: string }[] =>
-  activitiesFor('bataille-round').map((def) => ({ id: def.id, label: def.label }));
 import { ApparencesObjetsField, ArmeEquipeeField, ReglagesApparence } from './ReglagesApparence';
 import { armesDEntite, equipementDAuteurDe } from '../../noyau/equipementDessine';
 import { effectCtxOf } from './EffectList';
@@ -2004,8 +1998,7 @@ function SceneProps({
   const shown = filterByLabel(content, (row) => `${row.label} ${row.key}`, filter);
   const layerZs = sceneLayerZs(scene);
   const patchStationDe = (i: number, patch: Partial<SceneStationAnchor>) => setScene(patchStation(scene, i, patch));
-  // Cibles = Scènes de bataille du CATALOGUE (cf. `battleAnchorTargets`), jamais les Scènes du projet.
-  const anchorTargets = battleAnchorTargets();
+  const anchorTargets = ciblesDAncreDeBataille();
   const ajouterStation = () => setScene(addStation(scene, anchorTargets[0]!.id));
   const retirerStation = (i: number) => setScene(removeStation(scene, i));
   const [newFlagKey, setNewFlagKey] = useState('');

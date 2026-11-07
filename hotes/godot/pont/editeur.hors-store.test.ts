@@ -5,6 +5,8 @@
  * s'y enregistre : `editer` rend le texte à écrire, et la tient pour enregistrée à l'issue réussie de l'écriture. Les
  * entités et les entrées de la couche éditée se repèrent en surcouche ; le formulaire de l'inspecteur les nomme. Le
  * formulaire tiré du schéma écrit la condition d'entrée d'un déclencheur, le Test de traversée et les effets d'une zone d'effet (#3606).
+ * Les écrivains dédiés de la scène y passent aussi : sa musique, son message d'introduction saisi sur plusieurs lignes,
+ * ses ancres de bataille, ses groupes, et l'apparence d'une ouverture de façade (#3606).
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
@@ -636,7 +638,7 @@ describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {
     expect(inspecte('arete/suspendu')).toMatchObject({ texte: 'Chute si l’on se suspend d’abord : 0.5 m' });
 
     e = presser(boutonDe(e, 'arete/supprimer'));
-    expect(e.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.startsWith('scene/') && !['nommer', 'identifier', 'decrire', 'drapeau'].includes(id)), 'l’arête supprimée, l’inspecteur de la scène').toEqual([]);
+    expect(e.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.startsWith('scene/') && !['nommer', 'identifier', 'decrire', 'introduire', 'drapeau'].includes(id)), 'l’arête supprimée, l’inspecteur de la scène').toEqual([]);
   });
 });
 
@@ -1021,6 +1023,82 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
     expect(option('valeur/onCross/0/char', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
     expect(formulaire('valeur/onCross/1/amount').champs[2]).toMatchObject({ valeur: 2 });
+    expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
+  });
+
+  it('la musique, le message d’introduction sur plusieurs lignes, les ancres de bataille, les groupes du lieu et l’apparence d’une ouverture s’écrivent par leurs écrivains dédiés ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    const inspecteur = () => e.vue.zones['editeur.inspecteur'];
+    const liste = (id: string) => valeursDeLInspecteur(e, id);
+    const choisir = (id: string, rang = 0) => (e = editionDe(appel('editer', liste(id).filter((b) => !b.presse)[rang].jeu)));
+    const message = () => (inspecteur().find((el): el is Formulaire => el.type === 'formulaire' && el.verbe === 'introduire') ?? (() => { throw new Error('aucun formulaire du message'); })()).champs[0];
+    const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
+    const sansErreur = /^Validation : (aucun défaut|0 erreur\(s\))/;
+    presser('scenes/ajouter');
+
+    const piste = liste('scene/musique/ambient').find((b) => !['scene/musique/ambient/auto', 'scene/musique/ambient/silence'].includes(b.id))!;
+    presser(piste.id);
+    presser('scene/musique/combat/silence');
+    expect([boutonDe(e, piste.id).presse, boutonDe(e, 'scene/musique/combat/silence').presse], 'ambiance choisie, combat au silence').toEqual([true, true]);
+    presser('scene/musique/ambient/auto');
+    presser('scene/musique/combat/auto');
+    expect([boutonDe(e, 'scene/musique/ambient/auto').presse, boutonDe(e, 'scene/musique/combat/auto').presse], 'retirées, les deux suivent le contexte').toEqual([true, true]);
+
+    expect(message(), 'le message d’introduction, une prose, se saisit sur plusieurs lignes').toMatchObject({ type: 'saisieMultiligne', valeur: '' });
+    const texte = 'Le relais est désert.\n\nUne lanterne bat au vent.';
+    e = editionDe(appel('editer', { type: 'introduire', args: ['Brouillon'] }));
+    e = editionDe(appel('editer', { type: 'introduire', args: [null] }));
+    expect(message(), 'vidé, il se retire').toMatchObject({ valeur: '' });
+    e = editionDe(appel('editer', { type: 'introduire', args: [texte] }));
+    expect(message()).toMatchObject({ valeur: texte });
+
+    expect(inspecteur().find((el) => el.id === 'scene/stations')).toMatchObject({ texte: 'Aucune ancre de bataille : les Scènes de Round s’étalent d’office.' });
+    choisir('scene/stations/ajouter');
+    choisir('scene/stations/ajouter', 1);
+    expect(boutonDe(e, 'scene/stations/0/pointee').refus, 'sans case pointée').toBe('Appuyez d’abord sur une case de la carte');
+    jouer({ geste: 'appui', point: point(1, 2) });
+    jouer({ geste: 'relache', point: point(1, 2) });
+    presser('scene/stations/1/pointee');
+    expect(inspecteur().find((el) => el.id === 'scene/stations/1/position')).toMatchObject({ texte: 'Ancre 2 : case (1, 2), couche 0' });
+    presser('scene/stations/0/retirer');
+    const ancre = liste('scene/stations/0').find((b) => b.presse)!;
+
+    choisir('scene/groupes/ajouter');
+    const groupe = (inspecteur().find((el) => el.id === 'scene/groupes/retirer') as Choix).valeurs[0].libelle;
+
+    presser('outil/architecture');
+    jouer({ geste: 'appui', point: point(2, 2) });
+    jouer({ geste: 'relache', point: point(2, 2) });
+    presser('batir/corps');
+    presser('architecture/facade');
+    jouer({ geste: 'appui', point: { case: { x: 2, y: 2 }, f: { x: 2, y: 1.55 } } });
+    presser('baie/ajouter');
+    const baie = inspecteur().find((el) => el.id.startsWith('baie/') && el.id.endsWith('/apparence'))!.id;
+    expect(boutonDe(e, `${baie}/defaut`).presse, 'sans apparence, le défaut du rendu').toBe(true);
+    choisir(baie);
+    const apparence = liste(baie).find((b) => b.presse)!;
+    expect(apparence.id).not.toBe(`${baie}/defaut`);
+    expect(validation()).toMatch(sansErreur);
+
+    const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
+    const depot = mkdtempSync(join(tmpdir(), 'editeur-3606-m0c-'));
+    const fichier = join(dossierDesProjetsLivres(depot), manuscrit);
+    mkdirSync(dirname(fichier), { recursive: true });
+    writeFileSync(fichier, enregistree.depot!.texte);
+    const { appel: rouvrir } = table();
+    const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
+    rmSync(depot, { recursive: true, force: true });
+    const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.architecture?.length && sc.startMessage)!;
+    expect(neuve.music, 'retirée, la musique quitte la scène').toBeUndefined();
+    expect(neuve.startMessage).toEqual({ texte });
+    expect(neuve.stations).toEqual([{ sceneId: ancre.id.split('/').pop(), pos: { x: 1, y: 2 } }]);
+    expect(neuve.groups).toEqual([groupe]);
+    expect(neuve.architecture![0].facades[0].features![0].appearance).toBe(apparence.id.split('/').pop());
+    e = editionDe(rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu));
+    expect(message(), 'rouverte du dépôt, le message sur ses lignes').toMatchObject({ type: 'saisieMultiligne', valeur: texte });
     expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
   });
 });

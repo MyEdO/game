@@ -18,6 +18,7 @@ import {
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -235,24 +236,27 @@ const formulaireDeLIdentifiant = (id: string): Formulaire =>
 /** Par entrée des fiches commitées, son texte coupé au mot. */
 const COURT_DE_L_ENTREE = new Map(ENTREES_DE_DOSSIER.map((e) => [e.id, coupeAuMot(e.libelle, 70)]));
 
-/** Les entrées de fiche couvertes (`couvre`), à l'id `id` : une ligne par entrée, son texte coupé au mot, ou la ligne qui
- *  dit qu'il n'y en a aucune ; la liste des entrées couvertes, chacune retirée à son choix ; la liste des entrées des
- *  fiches commitées qui ne le sont pas, chacune ajoutée à son choix ; chaque article joue `jeu` des entrées couvertes
- *  après lui, `null` pour aucune. */
-function couverture(id: string, couvre: readonly string[] | undefined, jeu: (couvre: string[] | null) => GesteDEdition): (Choix | Ligne)[] {
-  const ids = couvre ?? [];
-  const reste = (sans: string) => ids.filter((e) => e !== sans);
+/** La liste d'ids `poses` à l'id `id`, tirés du catalogue `catalogue` (le texte de chaque id), dite par les textes
+ *  `ecran.editeur.<famille>.*` : une ligne par id posé, son texte, ou la ligne qui dit qu'il n'y en a aucun ; la liste
+ *  des ids posés, chacun retiré à son choix ; la liste des ids du catalogue qui ne le sont pas, chacun ajouté à son
+ *  choix ; chaque article joue `jeu` des ids posés après lui, `null` pour aucun. */
+function listeDIds(id: string, famille: 'zone.couvre' | 'scene.groupes', poses: readonly string[] = [], catalogue: ReadonlyMap<string, string>, jeu: (ids: string[] | null) => GesteDEdition): (Choix | Ligne)[] {
+  const reste = (sans: string) => poses.filter((e) => e !== sans);
   return [
-    ...(ids.length
+    ...(poses.length
       ? [
-        ...ids.map((e) => ligne(`${id}/${e}`, t('ecran.editeur.zone.couvre.entree', { id: e, texte: COURT_DE_L_ENTREE.get(e) ?? t('ecran.editeur.zone.couvre.introuvable') }))),
-        choix(`${id}/retirer`, t('ecran.editeur.zone.couvre.retirer'), ids.map((e) => bouton(`${id}/retirer/${e}`, e, jeu(reste(e).length ? reste(e) : null), false)), 'liste'),
+        ...poses.map((e) => ligne(`${id}/${e}`, t(`ecran.editeur.${famille}.entree`, { id: e, texte: catalogue.get(e) ?? t(`ecran.editeur.${famille}.introuvable`) }))),
+        choix(`${id}/retirer`, t(`ecran.editeur.${famille}.retirer`), poses.map((e) => bouton(`${id}/retirer/${e}`, e, jeu(reste(e).length ? reste(e) : null), false)), 'liste'),
       ]
-      : [ligne(id, t('ecran.editeur.zone.couvre.aucune'))]),
-    choix(`${id}/ajouter`, t('ecran.editeur.zone.couvre.ajouter'), ENTREES_DE_DOSSIER.filter((e) => !ids.includes(e.id)).map((e) =>
-      bouton(`${id}/ajouter/${e.id}`, `${e.id} — ${COURT_DE_L_ENTREE.get(e.id)}`, jeu([...ids, e.id]), false)), 'liste'),
+      : [ligne(id, t(`ecran.editeur.${famille}.aucune`))]),
+    choix(`${id}/ajouter`, t(`ecran.editeur.${famille}.ajouter`), [...catalogue].filter(([e]) => !poses.includes(e)).map(([e, texte]) =>
+      bouton(`${id}/ajouter/${e}`, `${e} — ${texte}`, jeu([...poses, e]), false)), 'liste'),
   ];
 }
+
+/** Les entrées de fiche couvertes (`couvre`), à l'id `id` (`listeDIds`), parmi les entrées des fiches commitées. */
+const couverture = (id: string, couvre: readonly string[] | undefined, jeu: (couvre: string[] | null) => GesteDEdition): (Choix | Ligne)[] =>
+  listeDIds(id, 'zone.couvre', couvre, COURT_DE_L_ENTREE, jeu);
 
 /** La rangée des couches de la scène éditée de `s`, la couche `z` pressée, chacune jouant `jeu`. */
 const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: number) => GesteDEdition): Choix =>
@@ -583,8 +587,9 @@ function reglagesDeLaMasse(corps: Corps, masse: Corps['masses'][number]): (Choix
 const PAS_D_OUVERTURE = 0.05;
 
 /** L'inspecteur de la façade `facade` du corps `corps` : son apparence en liste, son étage parmi ceux du corps, chacune
- *  de ses ouvertures (sa sorte ; sa position et sa largeur à la réglette, ou le défaut du rendu ; la retirer), en
- *  ajouter une (refusé sans arête), les pièces de son étage qu'elle révèle. */
+ *  de ses ouvertures (sa sorte ; sa position et sa largeur à la réglette, ou le défaut du rendu ; son apparence en
+ *  liste, le défaut du rendu ou l'une de celles que sa sorte nomme, `apparencesDeLOuverture` ; la retirer), en ajouter
+ *  une (refusé sans arête), les pièces de son étage qu'elle révèle. */
 function inspecteurDeFacade(scene: Scene, corps: NonNullable<ReturnType<typeof corpsActif>>, facade: NonNullable<ReturnType<typeof corpsActif>>['facades'][number]): (Choix | Ligne | Bouton)[] {
   const sur = (patch: Extract<GesteDEdition, { geste: 'architecture' }>['patch']): GesteDEdition => ({ geste: 'architecture', patch });
   const pieces = piecesDeLaCouche(scene, facade.z);
@@ -603,6 +608,10 @@ function inspecteurDeFacade(scene: Scene, corps: NonNullable<ReturnType<typeof c
       choix(`${id}/sorte`, t('ecran.editeur.baie', { id: o.id }), SORTES_D_OUVERTURE.map(([k, libelle]) => bouton(`${id}/sorte/${k}`, libelle, jeu({ sorte: k }), o.kind === k)), 'liste'),
       ...regler('offset', 'position'),
       ...regler('width', 'largeur'),
+      choix(`${id}/apparence`, t('ecran.editeur.baie.apparence'), [
+        bouton(`${id}/apparence/defaut`, t('ecran.editeur.baie.auDefaut'), jeu({ apparence: null }), o.appearance === undefined),
+        ...apparencesDeLOuverture(o.kind).map((a) => bouton(`${id}/apparence/${a.id}`, a.label, jeu({ apparence: a.id }), o.appearance === a.id)),
+      ], 'liste'),
       bouton(`${id}/retirer`, t('ecran.editeur.baie.retirer'), jeu(null)),
     ];
   });
@@ -642,21 +651,21 @@ function argumentDeValeur(f: FieldDesc, valeur: unknown): ArgumentDuGeste {
   const base = { nom: 'valeur', optionnel: false, libelle: f.label, valeur: valeur ?? null, valeurs: null, bornes: null, note: null, champs: null };
   if (choix) return { ...base, saisie: 'choix', valeurs: choix.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null })) };
   if (f.kind === 'number') return { ...base, saisie: 'nombre', bornes: { min: f.bornes?.min ?? SANS_BORNE.min, max: f.bornes?.max ?? SANS_BORNE.max, pas: f.bornes?.entier ? 1 : PAS_D_UN_REEL } };
-  return { ...base, saisie: f.kind === 'text' || f.kind === 'textarea' ? 'texte' : 'json' };
+  return { ...base, saisie: f.kind === 'text' ? 'texte' : f.kind === 'textarea' ? 'multiligne' : 'json' };
+}
+
+/** L'élément du geste d'id `cle`, de verbe `verbe` et d'arguments `args`, rendu par `renduDe` et dessiné par
+ *  `elementsDesGestes` (un choix, en liste au-delà de `CHOIX_EN_BOUTONS`, ou un formulaire), libellé `libelle` d'après
+ *  son rendu. */
+function elementDuGeste(cle: string, verbe: string, args: ArgumentDuGeste[], libelle: (rendu: GesteDeLaFenetre['rendu']) => string): Bouton | Choix | Formulaire {
+  const rendu = renduDe(args);
+  return elementsDesGestes([{ cle, verbe, libelle: libelle(rendu.rendu), arguments: args, ...rendu, attendu: false, ouvert: true, raison: null, reglage: false }])[0];
 }
 
 /** L'élément qui écrit au champ `f`, au chemin `chemin` du porteur `porteur`, la valeur de son argument `a` : le geste
- *  `valeur` qui pose le porteur et le chemin, rendu par `renduDe` et dessiné par `elementsDesGestes` (un choix, en
- *  liste au-delà de `CHOIX_EN_BOUTONS`, ou un formulaire). */
-function elementDeValeur(id: string, porteur: PorteurDeValeur, chemin: Segment[], f: FieldDesc, a: ArgumentDuGeste): Bouton | Choix | Formulaire {
-  const args = [fixe('porteur', porteur), fixe('chemin', chemin), a];
-  const rendu = renduDe(args);
-  const g: GesteDeLaFenetre = {
-    cle: id, verbe: 'valeur', libelle: rendu.rendu === 'formulaire' ? t('ecran.editeur.valeur.ecrire') : f.label, arguments: args, ...rendu,
-    attendu: false, ouvert: true, raison: null, reglage: false,
-  };
-  return elementsDesGestes([g])[0];
-}
+ *  `valeur` qui pose le porteur et le chemin (`elementDuGeste`). */
+const elementDeValeur = (id: string, porteur: PorteurDeValeur, chemin: Segment[], f: FieldDesc, a: ArgumentDuGeste): Bouton | Choix | Formulaire =>
+  elementDuGeste(id, 'valeur', [fixe('porteur', porteur), fixe('chemin', chemin), a], (rendu) => (rendu === 'formulaire' ? t('ecran.editeur.valeur.ecrire') : f.label));
 
 /** Le geste `valeur` qui écrit `v` au chemin `chemin` du porteur `porteur` (`v` absente : le champ se retire). */
 const ecrireLaValeur = (porteur: PorteurDeValeur, chemin: Segment[], v?: unknown): GesteDEdition => ({ geste: 'valeur', porteur, chemin, ...(v === undefined ? {} : { valeur: v }) });
@@ -912,7 +921,7 @@ function inspecteur(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[]
   if (zone) return inspecteurDeZone(s, zone);
   const architecture = inspecteurDArchitecture(s);
   if (architecture.length) return architecture;
-  return s.sel ? inspecteurDArete(s) : inspecteurDeScene(sceneEditee(s));
+  return s.sel ? inspecteurDArete(s) : inspecteurDeScene(s);
 }
 
 /** Les pas des réglettes de la grille, en cases, de l'échelle, en mètres par case, et du nord, en degrés. */
@@ -920,11 +929,54 @@ const PAS_DE_GRILLE: Pas = { pas: 1, unite: '', min: 5, max: Infinity };
 const PAS_D_ECHELLE: Pas = { pas: 1, unite: ' m', min: 1, max: Infinity };
 const PAS_DU_NORD: Pas = { pas: 15, unite: '°', min: 0, max: 345 };
 
-/** L'inspecteur de la scène `scene`, sans sélection : le formulaire qui la nomme, celui qui la décrit ; sa grille,
- *  largeur et hauteur à la réglette ; les entrées de fiche qu'elle couvre ; son ambiance, son échelle, sa lumière
- *  ambiante, son nord, son environnement et sa météo ; la matière de chaque partie de son relief ; sa toiture par
- *  défaut ; son repos sur place ; ses drapeaux de départ, et le formulaire qui en ajoute un. */
-function inspecteurDeScene(scene: Scene): (Choix | Ligne | Bouton | Formulaire)[] {
+/** Les pistes de la musique de la scène `scene`, chacune en liste : automatique, le silence ou chaque piste du
+ *  registre (`allMusicDefs`), la courante pressée. */
+const musiqueDeLaScene = (scene: Scene): Choix[] => (['ambient', 'combat'] as const).map((piste) => {
+  const v = scene.music?.[piste];
+  const sur = (id?: string | null): GesteDEdition => ({ geste: 'scene', patch: { musique: { piste, ...(id === undefined ? {} : { id }) } } });
+  return choix(`scene/musique/${piste}`, t(`ecran.editeur.scene.musique.${piste}`), [
+    bouton(`scene/musique/${piste}/auto`, t('ecran.editeur.scene.musique.auto'), sur(), v === undefined),
+    bouton(`scene/musique/${piste}/silence`, t('ecran.editeur.scene.musique.silence'), sur(null), v === null),
+    ...allMusicDefs().map((d) => bouton(`scene/musique/${piste}/${d.id}`, d.id, sur(d.id), v === d.id)),
+  ], 'liste');
+});
+
+/** Le formulaire du message d'introduction de la scène `scene` (`{ type: 'introduire', args: [texte] }`), sa saisie
+ *  tirée du schéma (`champDuMessage`), multiligne pour une prose, préremplie de son texte. */
+const formulaireDuMessage = (scene: Scene): Formulaire =>
+  elementDuGeste('introduire', 'introduire', [{ ...argumentDeValeur(champDuMessage(), scene.startMessage?.texte), nom: 'texte' }], () => t('ecran.editeur.scene.introduire')) as Formulaire;
+
+/** Les ancres de bataille de la scène éditée de la session `s` : la ligne qui dit qu'elle n'en a aucune, ou de chacune
+ *  sa Scène de Round en liste (`ciblesDAncreDeBataille`), sa case, la poser à la case pointée (refusé sans case
+ *  pointée), la retirer ; puis en liste, chaque Scène de Round à ancrer. */
+function ancresDeBataille(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
+  const stations = sceneEditee(s).stations ?? [];
+  const cibles = ciblesDAncreDeBataille();
+  const sur = (p: NonNullable<PatchDeScene['stations']>): GesteDEdition => ({ geste: 'scene', patch: { stations: p } });
+  const p = s.pointee;
+  return [
+    ligne('scene/stations', t(stations.length ? 'ecran.editeur.scene.stations' : 'ecran.editeur.scene.stations.aucune')),
+    ...stations.flatMap((st, rang) => {
+      const id = `scene/stations/${rang}`;
+      const n = rang + 1;
+      return [
+        choix(id, t('ecran.editeur.scene.station', { rang: n }), cibles.map((c) => bouton(`${id}/${c.id}`, c.label, sur({ rang, sceneId: c.id }), st.sceneId === c.id)), 'liste'),
+        ligne(`${id}/position`, t('ecran.editeur.scene.station.position', { rang: n, x: st.pos.x, y: st.pos.y, z: st.pos.z ?? 0 })),
+        bouton(`${id}/pointee`, t('ecran.editeur.scene.station.pointee', { rang: n }), sur({ rang, pos: p ? { x: p.x, y: p.y, ...(p.z ? { z: p.z } : {}) } : st.pos }), false, p ? null : t('ecran.editeur.scene.station.sansCase')),
+        bouton(`${id}/retirer`, t('ecran.editeur.scene.station.retirer', { rang: n }), sur({ retirer: rang })),
+      ];
+    }),
+    choix('scene/stations/ajouter', t('ecran.editeur.scene.stations.ajouter'), cibles.map((c) => bouton(`scene/stations/ajouter/${c.id}`, c.label, sur({ ajouter: c.id }))), 'liste'),
+  ];
+}
+
+/** L'inspecteur de la scène éditée de la session `s`, sans sélection : le formulaire qui la nomme, celui qui la décrit ;
+ *  sa grille, largeur et hauteur à la réglette ; les entrées de fiche qu'elle couvre ; les groupes du lieu
+ *  (`groupesDuLieu`) ; son ambiance, son échelle, sa lumière ambiante, son nord, son environnement et sa météo ; sa
+ *  musique ; le formulaire de son message d'introduction ; la matière de chaque partie de son relief ; sa toiture par
+ *  défaut ; son repos sur place ; ses drapeaux de départ, et le formulaire qui en ajoute un ; ses ancres de bataille. */
+function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
+  const scene = sceneEditee(s);
   const sur = (patch: PatchDeScene): GesteDEdition => ({ geste: 'scene', patch });
   const scalaire = (patch: NonNullable<PatchDeScene['scalaires']>) => sur({ scalaires: patch });
   const { w, h } = scene.dimensions;
@@ -939,6 +991,7 @@ function inspecteurDeScene(scene: Scene): (Choix | Ligne | Bouton | Formulaire)[
     ...reglette('scene/largeur', t('ecran.editeur.scene.largeur', { v: w }), w, PAS_DE_GRILLE, (v) => sur({ dimensions: { w: v, h } })),
     ...reglette('scene/hauteur', t('ecran.editeur.scene.hauteur', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v } })),
     ...couverture('scene/couvre', scene.couvre, (couvre) => scalaire({ couvre })),
+    ...listeDIds('scene/groupes', 'scene.groupes', scene.groups, new Map(groupesDuLieu().map((g) => [String(g.valeur), g.libelle])), (groups) => scalaire({ groups })),
     choix('scene/ambiance', t('ecran.editeur.scene.ambiance'), AMBIANCES.map((a) => bouton(`scene/ambiance/${a}`, t(`ecran.editeur.scene.ambiance.${a}`), scalaire({ ambiance: a }), (scene.ambiance ?? 'exterieur') === a))),
     ...reglette('scene/echelle', t('ecran.editeur.scene.echelle', { v: echelle }), echelle, PAS_D_ECHELLE, (v) => scalaire({ metresPerTile: v })),
     choix('scene/lumiere', t('ecran.editeur.scene.lumiere'), [
@@ -953,6 +1006,8 @@ function inspecteurDeScene(scene: Scene): (Choix | Ligne | Bouton | Formulaire)[
       bouton('scene/meteo/aucune', nonDit, scalaire({ weather: null }), scene.weather === undefined),
       ...METEOS.map(([m, libelle]) => bouton(`scene/meteo/${m}`, libelle, scalaire({ weather: m }), scene.weather === m)),
     ], 'liste'),
+    ...musiqueDeLaScene(scene),
+    formulaireDuMessage(scene),
     ...PARTS_RELIEF.map((part) => choix(`scene/relief/${part}`, t(`ecran.editeur.scene.relief.${part}`), matieresDe('relief').map((m) =>
       bouton(`scene/relief/${part}/${m.id}`, m.label, sur({ relief: { [part]: m.id } }), scene.reliefDefaults[part] === m.id)), 'liste')),
     ligne('scene/toiture', t('ecran.editeur.scene.toiture')),
@@ -966,6 +1021,7 @@ function inspecteurDeScene(scene: Scene): (Choix | Ligne | Bouton | Formulaire)[
       choix('scene/drapeau/retirer', t('ecran.editeur.scene.drapeau.retirer'), Object.keys(scene.flags).map((cle) => bouton(`scene/drapeau/retirer/${cle}`, cle, sur({ drapeaux: { [cle]: null } }))), 'liste'),
     ] : []),
     formulaireAUnChamp('drapeau', t('ecran.editeur.scene.drapeau.ajouter'), 'cle', t('ecran.editeur.scene.drapeau.cle'), '', false),
+    ...ancresDeBataille(s),
   ];
 }
 
@@ -1189,7 +1245,8 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
 /** Le geste du formulaire de l'inspecteur que portent les zones `z`, joué `{ type, args }` : celui qui nomme la
  *  sélection ou la scène (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ;
  *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }` ; celui
- *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ à la
+ *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui écrit le message d'introduction de
+ *  la scène, son texte tel quel, retiré s'il est laissé vide ; celui qui ajoute un drapeau de départ à la
  *  scène, vrai ; celui qui écrit une valeur d'un formulaire tiré du schéma (`elementDeValeur`), `args` son porteur,
  *  son chemin et la valeur saisie, `{ geste: 'valeur', porteur, chemin, valeur }`, quand un formulaire des zones porte
  *  ce porteur et ce chemin, ou qu'une valeur d'un de leurs choix joue ce geste même ; `undefined` si les zones ne
@@ -1207,13 +1264,14 @@ export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEditi
   }
   const [valeur, ...reste] = jeu.args as unknown[];
   const vide = valeur === undefined || valeur === null;
-  const optionnel = jeu.type === 'nommer' || jeu.type === 'decrire';
+  const optionnel = jeu.type === 'nommer' || jeu.type === 'decrire' || jeu.type === 'introduire';
   if (reste.length || !(typeof valeur === 'string' || (vide && optionnel))) return undefined;
   if (!formulaires.length) return undefined;
   const texte = typeof valeur === 'string' ? valeur : undefined;
   switch (jeu.type) {
     case 'identifier': return { geste: 'identifier', id: valeur as string };
     case 'decrire': return { geste: 'scene', patch: { scalaires: { desc: texte?.trim() || null } } };
+    case 'introduire': return { geste: 'scene', patch: { message: texte ?? '' } };
     case 'drapeau': return texte?.trim() ? { geste: 'scene', patch: { drapeaux: { [texte.trim()]: true } } } : undefined;
     default: return { geste: 'nommer', ...(texte !== undefined ? { nom: texte } : {}) };
   }
@@ -1227,7 +1285,7 @@ export function refusDeLaValeurDit(s: SessionDEdition, g: Extract<GesteDEdition,
 }
 
 /** Les verbes des formulaires de l'inspecteur. */
-const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'drapeau', 'valeur'];
+const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'introduire', 'drapeau', 'valeur'];
 
 /** Si `g` est l'issue de l'écriture d'un enregistrement au dépôt : `{ geste: 'enregistrement', reussi }`, rien de plus. */
 export function estLIssueDUnEnregistrement(g: unknown): g is Extract<GesteDEdition, { geste: 'enregistrement' }> {

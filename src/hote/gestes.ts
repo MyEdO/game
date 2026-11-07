@@ -47,12 +47,12 @@ export const CHOIX_EN_BOUTONS = 7;
 
 /** Un argument d'un geste : `fixe`, posé par la fenêtre (`valeur`) ; `choix` parmi `valeurs`, chacune ce qu'elle vaut,
  *  son libellé et ce qui la refuse ; `nombre`, entre ses
- *  `bornes` quand le réglage en pose ; `texte`, une chaîne ; `objet`, ses `champs` saisis chacun ; `json`, une valeur
- *  JSON. `valeur` est la valeur courante que le réglage dit (`null` sans réglage). */
+ *  `bornes` quand le réglage en pose ; `texte`, une chaîne ; `multiligne`, une chaîne sur plusieurs lignes ; `objet`,
+ *  ses `champs` saisis chacun ; `json`, une valeur JSON. `valeur` est la valeur courante que le réglage dit (`null` sans réglage). */
 export interface ArgumentDuGeste {
   nom: string;
   optionnel: boolean;
-  saisie: 'fixe' | 'choix' | 'nombre' | 'texte' | 'objet' | 'json';
+  saisie: 'fixe' | 'choix' | 'nombre' | 'texte' | 'multiligne' | 'objet' | 'json';
   libelle: string | null;
   valeur: unknown;
   valeurs: Omit<Valeur, 'presse'>[] | null;
