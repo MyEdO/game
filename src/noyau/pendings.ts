@@ -1736,6 +1736,9 @@ export interface CascadeStepMeta {
   /** Id du prédicat de SUCCÈS du total sommé (table `reglesDeSucces`, naval : `crew-test` →
    *  `crewTestSuccess`, MDG 14 l.13). Chaîne, jamais une closure : le pending est snapshoté en JSON. */
   aggregateSuccessRule?: RegleDeSucces;
+  /** Type de Test d'équipage (`crew-test-types.json`) d'une étape de voyage à participants (`buildVoyageCrewStep`) : ce
+   *  que sa résolution lit de son type (`moraleOnNegativeDR`). */
+  crewTestType?: string;
   /** Marge adverse soustraite du total (`aggregate:'opposed'` — contresort). */
   aggregateOpposeSl?: number;
   /** Branche de réussite d'une étape `triggeredTest` (exécutée via `applyTriggeredTestBranch`). */

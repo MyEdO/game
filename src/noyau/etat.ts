@@ -540,7 +540,6 @@ export interface EtatDeJeu {
   pendingShipManeuver: PendingShipManeuver | null;
   /** Tir de batterie en cours (MDG 14 : Test d'équipage des Artilleurs → volée sur la cible). */
   pendingShipBattery: PendingShipBattery | null;
-  /** Test d'équipage GÉNÉRIQUE en cours (MDG 14 — Rude épreuve : total négatif → perte de Moral, l.110). */
   /** Chanson de marin en cours (Talent, MDG 09 l.32-40 : choix de la chanson + Test de Divertissement (Chant)). */
   pendingShanty: PendingShanty | null;
   /** Approche d'une source de Peur en cours (Test différant le clic — LDB 21 l.27). */

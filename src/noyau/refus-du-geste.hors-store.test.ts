@@ -1,7 +1,8 @@
 /**
  * #3610 — le refus d'un verbe de la barre est une fonction pure du geste (`refusDuGeste`), dont l'offre est la projection
  * sur ses candidats. Garde de PROPRIÉTÉ sur chaque scénario de test, à chaque tour d'un actif que pilote le siège :
- *  - le geste de chaque offre ouverte est admis par SON entrée, celui d'une offre fermée est refusé ;
+ *  - le geste de chaque offre ouverte est admis par SON entrée, celui d'une offre fermée est refusé, et, seule entrée de
+ *    son verbe, de la raison même de l'offre (`Offre.gate`) ;
  *  - un verbe appelé sans son argument omissible est jugé comme le candidat que son corps prend par défaut ;
  *  - un argument hors de tout candidat (id inconnu, combattant de l'autre camp) est refusé.
  */
@@ -68,6 +69,8 @@ function ecartsDuTour(s: Jeu, ou: string): string[] {
     const jugee = JSON.stringify('refus' in v ? v.refus : v.def.id);
     if (o.gate.ok && ('refus' in v || v.def.id !== o.actionId)) ecarts.push(`${ou} ${o.actionId} ${JSON.stringify(o.geste)} ouverte, jugée ${jugee}`);
     if (!o.gate.ok && !('refus' in v)) ecarts.push(`${ou} ${o.actionId} ${JSON.stringify(o.geste)} fermée (${o.gate.reason}), admise par ${jugee}`);
+    const seuleEntree = new Set(offres.filter((x) => x.def.run === o.def.run).map((x) => x.actionId)).size === 1;
+    if (!o.gate.ok && seuleEntree && 'refus' in v && v.refus !== o.gate.reason) ecarts.push(`${ou} ${o.actionId} fermée (${o.gate.reason}), refusée d'une autre raison : ${v.refus}`);
   }
   for (const [verbe, cas] of Object.entries(CAS_DU_CORPS)) {
     for (const { omis, designe } of cas!(barre.active, barre.battle)) {

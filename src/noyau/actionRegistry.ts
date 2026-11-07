@@ -462,94 +462,106 @@ export interface ActionPorteur {
   label?: string;
 }
 
+/** Un PORTEUR déclaré : la fonction qui traduit un candidat en identité + arguments, et les CLÉS de case que ces
+ *  arguments portent (`cles`), que le registre lit sans candidat (verrou de chargement `CLES_DESIGNABLES`). */
+export type PorteurDeclare = ((candidat: unknown) => ActionPorteur | null) & { readonly cles: readonly (keyof ContexteDOffre)[] };
+
+/** Déclare un porteur sur ses clés `cles` : ses arguments n'en portent pas d'autre (vérifié à la compilation). */
+export function declarerPorteur<K extends keyof ContexteDOffre>(
+  cles: readonly K[], porter: (candidat: unknown) => (Omit<ActionPorteur, 'args'> & { args: Pick<ContexteDOffre, K> }) | null,
+): PorteurDeclare {
+  return Object.assign((c: unknown) => porter(c), { cles });
+}
+
+const porteurDArme = declarerPorteur(['weaponUid'], (c) => {
+  const w = c as { uid: string; label?: string };
+  return { porteurId: w.uid, args: { weaponUid: w.uid }, label: w.label };
+});
+
 /** Les PORTEURS, par id de SÉLECTEUR (`candidates`) : une enveloppe NOMMÉE par sélecteur, qui traduit
  *  SON candidat en identité + arguments de son geste. Même patron qu'`ENTREES_PAR_RUN` (une entrée = une
  *  forme, jamais un aiguillage par type de candidat écrit dans une surface). C'est ce qui remplace la
  *  DEVINETTE d'identité (`o?.id ?? o?.uid`) : le registre la DÉCLARE, les deux surfaces qui offrent
  *  des candidats (pastilles du champ, gestes secondaires de la console) la LISENT. Toute action dont
  *  la surface offre par candidat doit avoir la sienne — garde `action-atteignabilite`. */
-export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteur | null> = {
-  'montures-adjacentes': (c) => {
+export const ACTION_PORTEURS: Record<string, PorteurDeclare> = {
+  'montures-adjacentes': declarerPorteur(['targetId'], (c) => {
     const m = c as Combatant;
     return { porteurId: m.id, args: { targetId: m.id } };
-  },
-  'pieces-servables': (c) => {
+  }),
+  'pieces-servables': declarerPorteur(['shipId', 'posteUid'], (c) => {
     const sp = c as { hull: Combatant; poste: ShipPoste };
     return { porteurId: sp.hull.id, args: { shipId: sp.hull.id, posteUid: sp.poste.item.uid }, label: sp.poste.item.label };
-  },
-  'piece-poussable': (c) => {
+  }),
+  'piece-poussable': declarerPorteur([], (c) => {
     const sp = c as { hull: Combatant; poste: ShipPoste };
     return { porteurId: sp.hull.id, args: {}, label: sp.poste.item.label };
-  },
-  'objets-au-sol': (c) => {
+  }),
+  'objets-au-sol': declarerPorteur(['entityId', 'pickKey'], (c) => {
     const o = c as { entityId: string; key: string; label: string };
     return { porteurId: o.entityId, args: { entityId: o.entityId, pickKey: o.key }, label: o.label };
-  },
+  }),
   /** Un SORT du héros — le candidat EST son id (`Combatant.spells: string[]`) : c'est lui que porte
    *  l'alvéole du sort, et lui que le geste secondaire de Focalisation paramètre. */
-  'sorts-du-heros': (c) => {
+  'sorts-du-heros': declarerPorteur(['spellId'], (c) => {
     const id = c as string;
     return { porteurId: id, args: { spellId: id }, label: garanti(findSpellById(id), id, 'sort du héros').label };
-  },
+  }),
   /** Une ARME à distance : son `uid` porte le candidat (l'alvéole de recharge en est paramétrée). */
   'armes-a-distance': porteurDArme,
   'armes-a-recharge': porteurDArme,
   /** Une ATTAQUE de trait : son id porte le candidat, et c'est lui que `armerLAttaque` arme. */
-  'attaques-de-trait': (c) => {
+  'attaques-de-trait': declarerPorteur(['attackId'], (c) => {
     const a = c as AttackOption;
     return { porteurId: a.id, args: { attackId: a.id }, label: a.label };
-  },
+  }),
   /** Une MUNITION d'une arme à distance : la paire que `approvisionnerLArme` reçoit. */
-  'munitions-compatibles': (c) => {
+  'munitions-compatibles': declarerPorteur(['ammoUid', 'weaponUid'], (c) => {
     const { arme, munition } = c as { arme: Weapon; munition: ItemInstance };
     return { porteurId: munition.uid, args: { ammoUid: munition.uid, weaponUid: arme.uid }, label: munition.label };
-  },
+  }),
   /** Un allié à asperger (`aspergerDEau`) : une entité du champ. */
-  'cibles-aspersion': (c) => {
+  'cibles-aspersion': declarerPorteur(['targetId'], (c) => {
     const cible = c as Combatant;
     return { porteurId: cible.id, args: { targetId: cible.id } };
-  },
+  }),
   /** Une méthode d'Avantage : sa Compétence (`gagnerLAvantage`). */
-  'competences-avantage': (c) => {
+  'competences-avantage': declarerPorteur(['skillId'], (c) => {
     const { skillId } = c as { skillId: IdDeCompetence };
     return { porteurId: skillId, args: { skillId }, label: byId('skill', skillId)?.label };
-  },
+  }),
   /** Une manœuvre sur soi (`manoeuvrerSurSoi`). */
-  'manoeuvres-sur-soi': (c) => {
+  'manoeuvres-sur-soi': declarerPorteur(['maneuverId'], (c) => {
     const m = c as ManeuverDef;
     return { porteurId: m.id, args: { maneuverId: m.id }, label: m.label };
-  },
+  }),
   /** Un Sort à dissiper, par son lanceur (`dissiperLeSort`). */
-  'sorts-a-dissiper': (c) => {
+  'sorts-a-dissiper': declarerPorteur(['spellId', 'casterId'], (c) => {
     const d = c as DispellableSpell;
     return { porteurId: `${d.spellId}@${d.casterId}`, args: { spellId: d.spellId, casterId: d.casterId }, label: d.label };
-  },
+  }),
   /** Un consommable du porteur (`utiliserLObjet`). */
-  consommables: (c) => {
+  consommables: declarerPorteur(['itemUid'], (c) => {
     const objet = c as ItemInstance;
     return { porteurId: objet.uid, args: { itemUid: objet.uid }, label: objet.label };
-  },
+  }),
   /** Un set d'armes du porteur (`prendreLaPanoplie`). */
-  'sets-d-armes': (c) => {
+  'sets-d-armes': declarerPorteur(['loadoutId'], (c) => {
     const { set, label } = c as { set: WeaponLoadout; label: string };
     return { porteurId: set.id, args: { loadoutId: set.id }, label };
-  },
+  }),
   /** Un État porté (`depenserLaDetermination(…, 'retirerUnEtat', id)`) : la pastille de l'État. */
-  'etats-retirables': (c) => {
+  'etats-retirables': declarerPorteur(['conditionId'], (c) => {
     const etat = c as { id: IdDeCondition };
     return { porteurId: etat.id, args: { conditionId: etat.id }, label: findConditionById(etat.id)?.label };
-  },
+  }),
   /** Une attaque de ZONE : `lancerLAttaqueDeZone` la résout par son `kind`. */
-  'attaques-de-zone': (c) => {
+  'attaques-de-zone': declarerPorteur(['attackKind'], (c) => {
     const a = c as AttackOption;
     return { porteurId: a.id, args: { attackKind: a.kind }, label: a.label };
-  },
+  }),
 };
 
-function porteurDArme(c: unknown): ActionPorteur {
-  const w = c as { uid: string; label?: string };
-  return { porteurId: w.uid, args: { weaponUid: w.uid }, label: w.label };
-}
 
 /** L'offre de `def` sur `args` est-elle armée ? Son intention est celle que vise le siège (`localIntent`), ou le mode
  *  qu'elle arme (`armed`) est celui du combat, sur le sort élu (`selectedSpellId`) quand elle en désigne un. */
@@ -867,10 +879,11 @@ const CLES_DES_PREALABLES: Readonly<Record<string, readonly (keyof ContexteDOffr
   'distraire-cible-eligible': ['targetId'],
 };
 
-/** Les clés de case que l'entrée `def` désigne par un candidat (son porteur) ou par un préalable qui les lit. */
-function clesJugees(def: ActionDef): { porteur: boolean; prealables: ReadonlySet<keyof ContexteDOffre> } {
+/** Les clés de case que l'entrée `def` désigne par un candidat (celles que son porteur DÉCLARE) ou par un préalable qui
+ *  les lit. */
+function clesJugees(def: ActionDef): { porteur: ReadonlySet<keyof ContexteDOffre>; prealables: ReadonlySet<keyof ContexteDOffre> } {
   return {
-    porteur: !!def.candidates && !!ACTION_PORTEURS[def.candidates],
+    porteur: new Set(def.candidates ? ACTION_PORTEURS[def.candidates]?.cles ?? [] : []),
     prealables: new Set([def.gate].flat().flatMap((g) => CLES_DES_PREALABLES[g] ?? [])),
   };
 }
@@ -881,8 +894,8 @@ const CLES_DESIGNABLES = ACTIONS.flatMap((def) => {
   if (!def.run || !estVerbeDeLaBarre(def.run)) return [];
   const { porteur, prealables } = clesJugees(def);
   for (const a of ARGUMENTS_DE_LA_BARRE[def.run].args ?? []) {
-    if ('entree' in a || a.defaut || porteur) continue;
-    const orpheline = clesDe(a).find((k) => !prealables.has(k));
+    if ('entree' in a || a.defaut) continue;
+    const orpheline = clesDe(a).find((k) => !porteur.has(k) && !prealables.has(k));
     if (orpheline) throw new Error(`entrée ${def.id} : l’argument ${orpheline} de ${def.run} ne désigne aucun candidat (porteur, préalable ou défaut du corps)`);
   }
   return [def.id];
@@ -902,11 +915,10 @@ function refusDeDesignation(def: ActionDef, lecture: LectureDuVerbe, ctx: Action
   const porteurs = porteur ? candidats.flatMap((c) => { const p = porteur(c); return p ? [p] : []; }) : [];
   if (selecteur && !(porteur ? porteurs : candidats).length) return t('offre.sansCandidat');
   if (porteur && !porteurs.some((p) => designe(p.args, args))) return t('offre.sansCandidatDuContexte');
-  const parLesCandidats = new Set(porteurs.flatMap((p) => Object.keys(p.args)));
-  const { prealables } = clesJugees(def);
+  const { porteur: parLesCandidats, prealables } = clesJugees(def);
   const defauts = contexteDesArguments({ args: (lecture.args ?? []).filter((a) => !('entree' in a) && a.defaut) }, [], ctx);
   const poses = args as Record<string, unknown>;
-  const horsCandidat = Object.keys(poses).some((k) => !parLesCandidats.has(k) && !prealables.has(k as keyof ContexteDOffre)
+  const horsCandidat = (Object.keys(poses) as (keyof ContexteDOffre)[]).some((k) => !parLesCandidats.has(k) && !prealables.has(k)
     && poses[k] !== (defauts as Record<string, unknown>)[k]);
   return horsCandidat ? t('offre.sansCandidatDuContexte') : null;
 }
@@ -917,9 +929,10 @@ function refusDeDesignation(def: ActionDef, lecture: LectureDuVerbe, ctx: Action
  * invité aussi (`localIntent.ts`), et l'offre en est la projection sur ses candidats (`Offre.gate`).
  *  1. la barre est ouverte (`etatDeLaBarre`) ;
  *  2. les entrées de son verbe (`run`), celles que ses arguments désignent (`entree`), PERTINENTES pour l'actif ;
- *  3. ses arguments repris en contexte de case par la lecture du verbe (`contexteDuGeste`) ;
- *  4. une entrée qui s'offre par candidat exige qu'un argument posé en désigne un, et, omis, qu'un candidat existe (le
- *     corps prend le défaut) ;
+ *  3. ses arguments repris en contexte de case par la lecture du verbe (`contexteDesArguments`) : un argument omis prend
+ *     le défaut du corps ;
+ *  4. chaque clé posée désigne un candidat de l'entrée (`refusDeDesignation`) : parmi ceux de son porteur, par un
+ *     préalable qui la lit, ou en valant le défaut du corps, son seul candidat ;
  *  5. les gates de l'entrée sur ce contexte (`actionGate`), les PRÉALABLES DE VERBE compris.
  * La première entrée qui passe admet le geste ; sinon la raison est celle de la première entrée pertinente que ses gates
  * refusent, à défaut celle de sa désignation.

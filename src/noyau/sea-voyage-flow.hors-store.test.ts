@@ -5,7 +5,7 @@ import { makePregens } from '../data/pregens';
 import {
   buildSeaPlan, portRepairVessel, installerLAmelioration, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, damageVesselHull, healVesselHull,
-  buildOverspeedSteps, engineerOf, SEA_BOARD_EVENT_TABLE, type SeaVoyageState,
+  buildOverspeedSteps, buildVoyageCrewStep, engineerOf, SEA_BOARD_EVENT_TABLE, type SeaVoyageState,
 } from './seaVoyageFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
@@ -33,7 +33,7 @@ import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { applierDe, runCascadeImmediate, tableStepDef } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
-import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel } from '../data';
+import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand, rollLine } from './rollSeam';
 import { t } from '../i18n';
 import { checkBattleOver } from './combatFlow';
@@ -602,12 +602,14 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
     expect(get().travelPlan?.sea?.fast?.pendingFinalize).toBeFalsy();
   });
 
-  it('voyage-rapide : un total de Rude épreuve à −2 DR retire 2 points de Moral au navire, un total positif aucun (MDG 14 l.110, MDG 15 l.27)', () => {
+  it.each(['voyage-rapide', 'flowCrewTest'] as const)('%s : un total de Rude épreuve à −2 DR retire 2 points de Moral au navire, un total positif aucun (MDG 14 l.110, MDG 15 l.27)', (kind) => {
     const traverser = (sl: number): number => {
       set({ vessel: { ...get().vessel!, morale: { ...get().vessel!.morale, score: 75 } } });
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days: 3, weeks: 0 } } } });
-      apply('voyage-rapide', sl);
+      // L'étape que le voyage construit (traversée rapide, nœud `test` de Flow à `crewTestType`), son total posé.
+      const etape = buildVoyageCrewStep(get, 'rude-epreuve', kind, { stake: voyageStakeRef('voyage-rapide') })!;
+      applierDe(kind)!(get, set, { ...etape, result: { roll: 0, target: 0, sl, success: sl >= 1 } } as CascadeStep, undefined, { steps: [], index: 0 });
       return get().vessel!.morale.score;
     };
     expect(traverser(-2)).toBe(73);
