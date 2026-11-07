@@ -529,11 +529,13 @@ export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme
  *  à la BRÈCHE, indépendamment du sort des combattants. `surviveRounds` : victoire posée au début du
  *  Round `rounds + 1` (le groupe a tenu N Rounds complets). `reachZone` réutilise le rectangle de zone
  *  des `Trigger`/`SceneEffectZone` (`inRect`, `combatGeometry.ts`) — aucun 2e mécanisme de zone.
- *  `woundsThreshold` (#215) : REDDITION à seuil de dommage partiel — `targetId` référence l'id
- *  STABLE d'une entité de scène (`SceneEntity.id` = `Combatant.id` au spawn, identité unifiée).
- *  Le RAW ne chiffre AUCUN seuil de reddition (silence confirmé) ; seul précédent chiffré, la
- *  reddition d'un monstre marin à mi-Blessures (`MDG 15 l.143`, `l.166-168`). `belowPercent` reste
- *  une valeur ÉDITABLE par rencontre, sans seuil RAW imposé (AGENTS.md règle 7).
+ *  `woundsThreshold` (#215) : sortie à seuil de dommage partiel — une cible à `atOrBelowPercent` % de
+ *  ses Blessures de départ OU MOINS sort du combat : `targetId` référence l'id STABLE d'une entité de
+ *  scène (`SceneEntity.id` = `Combatant.id` au spawn, identité unifiée) ; absent, CHAQUE adversaire sort
+ *  ainsi, et la victoire vient quand aucun ne reste (`MDG 15 l.143`, `l.166-168`). Un navire amène son
+ *  pavillon, une créature est repoussée. Le RAW ne chiffre AUCUN seuil de reddition ; seul précédent
+ *  chiffré, le monstre marin à la moitié de ses Blessures (`MDG 15 l.143`, `l.166-168`).
+ *  `atOrBelowPercent` reste une valeur ÉDITABLE par rencontre (AGENTS.md règle 7).
  *  `firstBlood` (#471) : DUEL JUDICIAIRE — « le premier sang est la première attaque qui cause une
  *  perte de plus de 3 Blessures […] ; un adversaire est incapable de continuer lorsqu'il est réduit
  *  à 0 Blessure » (`NADJ 06 l.175-177`) — les DEUX fins restent actives en parallèle, la seconde étant
@@ -550,8 +552,8 @@ export const victoryConditionSchema = z.discriminatedUnion('type', [
     rect: architectureRectSchema,
     camp: campSchema.optional(),
   }), { type: { label: "type"  }, rect: { label: "rectangle" }, camp: { label: "camp"  } }),
-  /** Reddition à seuil de dommage partiel (#215) — `targetId` = `SceneEntity.id`. */
-  nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: z.string(), belowPercent: z.number() }), { type: { label: "type"  }, targetId: { label: "cible" , texte: { regime: "technique"} }, belowPercent: { label: "seuil en pourcentage" } }),
+  /** Sortie à seuil de dommage partiel (#215) — `targetId` = `SceneEntity.id`, absent = chaque adversaire. */
+  nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: z.string().optional(), atOrBelowPercent: z.number() }), { type: { label: "type"  }, targetId: { label: "cible" , texte: { regime: "technique"} }, atOrBelowPercent: { label: "seuil en pourcentage" } }),
   /** Duel judiciaire (`NADJ 06 l.175-177`) — `threshold` ÉDITABLE, défaut 3. */
   nommerChamps(z.strictObject({ type: z.literal('firstBlood'), threshold: z.number().optional() }), { type: { label: "type"  }, threshold: { label: "seuil" } }),
 ]);

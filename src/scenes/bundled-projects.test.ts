@@ -194,8 +194,8 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
       for (const enc of sc.encounters) {
         const vc = enc.victoryCondition;
         if (vc?.type !== 'woundsThreshold') continue;
-        if (!ids.has(vc.targetId)) fautifs.push(`${sc.id}/${enc.id} : cible « ${vc.targetId} » absente de la scène`);
-        if (!(vc.belowPercent > 0 && vc.belowPercent <= 100)) fautifs.push(`${sc.id}/${enc.id} : seuil ${vc.belowPercent} % hors ]0,100]`);
+        if (vc.targetId !== undefined && !ids.has(vc.targetId)) fautifs.push(`${sc.id}/${enc.id} : cible « ${vc.targetId} » absente de la scène`);
+        if (!(vc.atOrBelowPercent > 0 && vc.atOrBelowPercent <= 100)) fautifs.push(`${sc.id}/${enc.id} : seuil ${vc.atOrBelowPercent} % hors ]0,100]`);
       }
     }
     expect(fautifs).toEqual([]);

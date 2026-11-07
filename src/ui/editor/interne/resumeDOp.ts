@@ -175,6 +175,7 @@ export function opSummary(o: GameOp): string {
     case 'perilDeMer': return o.collision !== undefined ? `Collision : ${o.collision.id}` : `Tourbillon : ${o.tourbillon.id}`;
     case 'navireHostile': return `${refLabel('vehicles', o.navire)} · ${o.equipage.nombre} × ${refLabel('creatures', o.equipage)}${o.exigence === 'fouille' ? ' · fouille' : ''}`;
     case 'infestation': return `${refLabel('crewTestTypes', o.crewTestType)} · ${o.targetDR} DR`;
+    case 'combatEnMer': return `Combat : ${o.adversaire.nombre} × ${refLabel('creatures', o.adversaire)}${o.repousseAPct !== undefined ? ` · repoussé à ${o.repousseAPct} %` : ''}${o.victoire ? ' · sur la victoire' : ''}`;
     default: return `${(o as GameOp).op}`;
   }
 }

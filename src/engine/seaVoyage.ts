@@ -43,7 +43,6 @@ export interface ManannFactor { id: string; label: string; effect: EffetSigne }
 
 /** Climat imposé par un événement : les seuls axes qu'il fixe. MDG 15 l.189, l.199, l.219, l.226, l.248, l.257 */
 type MeteoImposee = Partial<SeaWeather>;
-type IssueDuTriton = { min: number; max: number };
 type SansParametre = Record<string, never>;
 
 /** Modificateur du navire posé par l'op `navireMod` : levé au carénage (`carenage`), au prochain événement de
@@ -75,8 +74,6 @@ export const meteosActives = (meteos: readonly MeteoImposeeDuNavire[] | undefine
 
 /** Les paramètres que lit chaque genre d'Événement de bord (MDG 15 l.132-236). */
 interface ParametresDeBord {
-  triton: { victoryRoll: QuantiteTiree; impressed: IssueDuTriton; wrathful: IssueDuTriton; impressedManann: EffetSigne; wrathfulManann: EffetSigne };
-  'monstre-puissant': { roll: QuantiteTiree; creatures: string[] };
   culte: { allegianceRoll: QuantiteTiree; initiatesRoll: QuantiteTiree };
   'autres-voyageurs': SansParametre;
   'ile-inconnue': SansParametre;

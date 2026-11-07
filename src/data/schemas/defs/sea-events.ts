@@ -47,7 +47,6 @@ const seaEventDef = nommerChamps(z.strictObject({
   kind: z.string().optional(),
   params: z.record(z.string(), z.union([
     feuilleDeParam,
-    effetSigneSchema,
     z.array(feuilleDeParam),
     z.record(z.string(), z.union([feuilleDeParam, z.record(z.string(), feuilleDeParam)])),
   ])).optional(),
