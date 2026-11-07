@@ -1,6 +1,6 @@
 /**
  * LECTURES de l'édition de scène — outil actif, calques, sélection, picking et emprise du pinceau. PURES,
- * Node-safe, sans `ui` ni `gameIso` : tout hôte qui embarque le noyau désigne par elles ce qu'il édite.
+ * Node-safe, sans import d'hôte : tout hôte qui embarque le noyau désigne par elles ce qu'il édite.
  * Les ÉCRIVAINS vivent dans `./sceneEdit`, le `BRIDGE_PATH` de `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
 import { type FaceDArete, type Scene, type SceneEntity, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
@@ -148,7 +148,7 @@ export function dansLaCarte(scene: Scene, p: Pt): boolean {
  *  directe (`entity`/`emplacement`) le partagent tous.
  *
  *  Un décor répond sur TOUTE son EMPREINTE (`noyau/monde/decorIndex.ts`, la même lecture que le picking du
- *  jeu, `gameIso/stage/pickResolve.ts`) et rend son entité, donc sa case d'ANCRAGE : sans elle, la
+ *  jeu) et rend son entité, donc sa case d'ANCRAGE : sans elle, la
  *  seconde case d'une table 2×1 ne se sélectionnait, ne s'effaçait et ne se déplaçait pas au canevas
  *  d'authoring, et un clic y posait une entité DANS le meuble. La pose EXACTE garde la priorité —
  *  un corps debout sur une case d'empreinte se désigne lui-même, pas le meuble sous ses pieds. */

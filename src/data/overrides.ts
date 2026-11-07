@@ -131,7 +131,7 @@ const ARRAYS = {
   materials,
   // Terrains du monde (#1690) : UN document, règle et rendu dans la même entrée. Ce binding EST le
   // seam de mutation en place, et c'est lui qui rend vivante la lecture de la façade `src/noyau/monde/terrain`
-  // et du catalogue `gameIso/catalog/terrain` — tous deux indexent le TABLEAU et revérifient son
+  // et du catalogue de rendu des terrains — tous deux indexent le TABLEAU et revérifient son
   // contenu à chaque accès (`indexDesTerrains`), un splice étant invisible à l'identité du tableau.
   terrains,
   // Types de bâtiment (#1715) : UN document, l'empreinte et la couverture offertes à la pose plus les

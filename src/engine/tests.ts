@@ -286,7 +286,7 @@ export function opposedTest(
 }
 
 /** Compteur DEV des départages retombés sur les CIBLES faute de nue (#1153) — sonde partagée, patron
- *  `ui/RollLine.ANONYMES` : un test ou un écran de recette y prouve qu'un chemin oppose bien deux nues.
+ *  `ANONYMES` de la ligne de jet : un test ou un écran de recette y prouve qu'un chemin oppose bien deux nues.
  *  Inerte en PROD. */
 export const REPLIS_DEUX_CIBLES = { count: 0 };
 
@@ -344,7 +344,7 @@ export function opposedBranchSuccess(o: OpposedResult, defenderMustWin?: boolean
 }
 
 /** RAISON du verdict d'un Test opposé, prête pour la LIGNE (Z5) du camp qui la porte — zone Z5c de
- *  `docs/charte-ui.md`. Donnée d'AFFICHAGE en ids STABLES : le texte FR est rendu par `ui/RollLine`,
+ *  `docs/charte-ui.md`. Donnée d'AFFICHAGE en ids STABLES : le texte FR est rendu par la ligne de jet,
  *  aucun verdict n'en dépend. `own`/`other` = les grandeurs comparées au départage (`own` = celle de
  *  la ligne porteuse), renseignées pour `valeur` seulement. */
 export interface VerdictReason {

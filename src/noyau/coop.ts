@@ -1,7 +1,7 @@
 /**
  * LA COOP sans hôte (#3041, L5-c) : le `build` comparé au `hello`, l'instantané qu'un hôte diffuse et son
  * application à l'état de jeu d'un invité. Le protocole, la session, le relay et la politique de session (salon) :
- * `hote/coop/` ; les implémentations de leurs ports et le store : la couture de chaque hôte (`state/netFlow.ts` au web).
+ * `hote/coop/` ; les implémentations de leurs ports et le store : la couture de chaque hôte.
  */
 import { OPTIONAL_RULES, loadRuleOverrides, ruleOverrides } from '../engine/policy';
 import { etatIdsConnus } from '../engine/conditions';

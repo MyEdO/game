@@ -6,8 +6,7 @@
  * exigent une Augmentation (`LDB 09 l.25/l.30`) — mesuré 25 `base` / 23 `avancée` sur 48 entrées.
  * C'est un ACCÈS, et c'est un DISCRIMINANT DE LOGIQUE : `engine/skillCombatApps.ts:32`
  * (`possesses`) et `engine/activities.ts:762` (coût de tuteur) y branchent. Un discriminant de
- * logique ne porte pas d'accent : la valeur passe en `avancee`, l'accent redevient de l'AFFICHAGE
- * (`ui/compendium/registry.ts`).
+ * logique ne porte pas d'accent : la valeur passe en `avancee`, l'accent redevient de l'AFFICHAGE.
  *
  * POSITION PRÉSERVÉE : `acces` prend la place exacte qu'occupait `type` dans l'entrée.
  *

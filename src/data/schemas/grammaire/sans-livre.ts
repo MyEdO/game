@@ -57,7 +57,7 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   merchants:
     'catalogue d’app (archétypes de marchand : taux de rachat, familles vendues, agglo par défaut) ; les VALEURS de règle vivent sourcées à leur foyer (`engine/disponibilite.ts`, `bargain.ts`) ; `resaleRate` reprend la revente de LDB 59 l.54, `bargainSkill` est chiffré par entrée sans `maison` (LDB 59 l.54 laisse le Marchandage au MJ), inventaire #1463',
   merchantFamilies:
-    'catalogue d’app — familles de PRÉSENTATION du stock marchand (onglets/colonnes de `ui/MerchantPanel.tsx`), mise en page, aucune valeur mécanique',
+    'catalogue d’app — familles de PRÉSENTATION du stock marchand (onglets/colonnes du panneau du marchand), mise en page, aucune valeur mécanique',
   'lieux-services':
     'catalogue d’app — id/label/icône de routage d’écran (hub de lieu) ; port et marché portent leur propre schéma sourcé',
   calendarPhases:

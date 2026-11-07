@@ -1,7 +1,6 @@
 /**
  * Atelier du Codex, moitié DONNÉE : routes d'édition d'une catégorie, validation d'une entrée éditée
- * et sa TRANSACTION d'enregistrement (#3059). Tout hôte les appelle ; l'écriture disque reste à l'hôte
- * (`web/fsPersist.ts` pour le web).
+ * et sa TRANSACTION d'enregistrement (#3059). Tout hôte les appelle ; l'écriture disque reste à l'hôte.
  */
 import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, deDeLaTable, setDeDeTable, type DatasetKey, type ObjectDatasetKey } from './overrides';
 import { deDeTirageSchema } from './schemas/grammaire/valeurs';

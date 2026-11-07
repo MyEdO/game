@@ -136,7 +136,7 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
  * Vérifie un PROJET (liste de scènes + carte du monde optionnelle) avant le runtime : réfs cassées
  * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte),
  * zones hors-carte, ids dupliqués. `pistesDeMusique` : les ids des pistes que l'hôte sait jouer (son
- * registre, `audio/music.ts` pour l'hôte web) ; sans elles, la musique d'une scène n'est pas jugée. PUR.
+ * registre) ; sans elles, la musique d'une scène n'est pas jugée. PUR.
  */
 export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock, pistesDeMusique?: ReadonlySet<string>): Warning[] {
   const presetDe = presetDuNarratif(narratif);

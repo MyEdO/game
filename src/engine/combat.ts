@@ -398,14 +398,13 @@ export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, 
 export type { ModLine } from './types';
 
 /** Degré de masquage d'une ligne de jet à l'écran — DÉFINITION UNIQUE, partagée par le jet RÉSOLU
- *  (`RollBreakdown`) et le pré-jet (`PendingRoll`). Rendu par le site unique `ui/RollLine.tsx`. */
+ *  (`RollBreakdown`) et le pré-jet (`PendingRoll`). Rendu par la ligne de jet. */
 export type RollMask = 'value' | 'roll';
 
 /**
  * SECONDE LECTURE d'une ligne de jet (Test COMBINÉ, `LDB 12 l.202-208`) — DÉFINITION UNIQUE, partagée
  * par le jet RÉSOLU (`RollBreakdown.second` : le verdict de la seconde valeur) et le pré-jet
- * (`PendingRoll.second` : sa seule cible, le dé n'étant pas tombé). Rendue par le site unique
- * `ui/RollLine.tsx`, sous la ligne qu'elle prolonge — un seul dé, deux lectures.
+ * (`PendingRoll.second` : sa seule cible, le dé n'étant pas tombé). Rendue sous la ligne qu'elle prolonge — un seul dé, deux lectures.
  */
 export interface SecondReadLine {
   label: string;
@@ -424,7 +423,7 @@ export interface RollBreakdown {
    *  il PORTE le verdict que la ligne rend, sans ✓±DR (#2389, `noyau/pendings.LectureDuDe`). Absent = Test. */
   seuil?: { reussite: string; echec: string };
   /** Difficulté du Test — NATURE du jet, pas un modificateur circonstanciel : elle se lit
-   *  sur la LIGNE (texte + valeur, `ui/RollLine.tsx`) et n'entre JAMAIS dans `mods` (#1072). Sa
+   *  sur la LIGNE (texte + valeur) et n'entre JAMAIS dans `mods` (#1072). Sa
    *  valeur reste comprise dans `modifier`/`target`. */
   difficulty?: Difficulty;
   /** Modificateur RÉEL des circonstances quand il ne tombe sur AUCUN cran de l'échelle
@@ -469,7 +468,7 @@ export interface RollBreakdown {
   mask?: RollMask;
   /** Z5c — RAISON du verdict de CETTE ligne quand la comparaison des DR ne le dit pas seule
    *  (départage d'un Test opposé, LDB 12 l.160). Posée par le résolveur du Test opposé sur la ligne
-   *  concernée ; `ui/RollLine.tsx` en rend la phrase. Absente = rien à expliquer. */
+   *  concernée ; la ligne de jet en rend la phrase. Absente = rien à expliquer. */
   decided?: VerdictReason;
   /** SECONDE LECTURE du MÊME dé — Test COMBINÉ (`LDB 12 l.202-208`, verbatim l.206 : « Faire un seul
    *  Test, en comparant donc un unique jet de pourcentage avec la valeur de ces deux Compétences »).
@@ -1362,7 +1361,7 @@ export function resolveMelee(
 
 /** Bande de portée applicable : la première rangée de `portee-d-une-arme` (`LDB 62 l.196-206`, `LDB 14
  *  l.50-86`) dont le plafond, en facteur de la Portée `rangeMeters`, contient la distance ; `undefined` au-delà.
- *  `metresPerTile` = échelle de la Scène (défaut 2 m/case, `LDB 15 l.12`, PUR — jamais lu depuis `state`). */
+ *  `metresPerTile` = échelle de la Scène (défaut 2 m/case, `LDB 15 l.12`, PUR — jamais lu depuis l'état de jeu). */
 function rangeBandAt(distanceTiles: number, rangeMeters: number, metresPerTile = 2): RangeeDeRegleData | undefined {
   const m = distanceTiles * metresPerTile;
   return rangeesDeRegle('portee-d-une-arme').find((b) => m <= rangeMeters * b.plafond!);

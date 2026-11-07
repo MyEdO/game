@@ -2,7 +2,7 @@
  * LA FENÊTRE DE DÉFENSE EN DONNÉES (#2928) — ce que la fenêtre de la Défense surfacée montre autour de ses lignes de
  * jet, lu de l'état : qui attaque qui et avec quelle arme, le Test de la réaction choisie et son jet avant le dé, ses
  * choix (la réaction, l'arme de parade, la réaction de Porte-Bouclier, la Riposte), chacun nommant le verbe qui le
- * règle (`reglages.ts`), et l'issue du coup. Lecteur PUR, partagé par l'écran web (`ui/jetProps/useDefenseJetProps.tsx`) et par tout hôte
+ * règle (`reglages.ts`), et l'issue du coup. Lecteur PUR, partagé par l'écran de défense et par tout hôte
  * qui lit la partie sans écran.
  */
 import type { Jeu } from './etat';

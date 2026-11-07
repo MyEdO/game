@@ -147,7 +147,7 @@ const FALL_TABLES = new Map(
 );
 
 /** Les tables de chute des jeux CHARGÉS, dans l'ordre de la donnée — CANDIDATS du champ `fall` de
- *  l'atelier (`ui/editor/GameOpEditor`). Dérivée du registre : un jeu qui en authore une l'y ajoute
+ *  l'atelier. Dérivée du registre : un jeu qui en authore une l'y ajoute
  *  sans une ligne de code de plus, et l'atelier ne code aucun id. */
 export const fallTables: FallHeightTable[] = [...FALL_TABLES.values()];
 

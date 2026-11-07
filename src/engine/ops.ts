@@ -1343,7 +1343,7 @@ export interface OpsCtx {
   /**
    * DÉS DÉJÀ POSÉS par la porte pour CES ops (#1508) — clé (`cleDeDe`) → valeur du dé, telle que
    * `demandesDeDes` l'a ANNONCÉE. C'est le CANAL op → applier : le moteur FABRIQUE la demande (quels
-   * dés, pour quoi), la couche `state` OUVRE la fenêtre (étape à dé nu, affichable/lançable/posable) et
+   * dés, pour quoi), la couche `noyau` OUVRE la fenêtre (étape à dé nu, affichable/lançable/posable) et
    * REVERSE ici ce qui est tombé. Le dé posé REMPLACE le tirage : aucun rng n'est consommé pour lui.
    *
    * Absent (pilote headless : moteur pur, test, résolveur inline) ⇒ l'op tire elle-même, au même
@@ -1545,7 +1545,7 @@ export function cleDeDe(rang: number, champ: string): string {
 }
 
 /**
- * DÉ QU'UNE OP DEMANDE À LA PORTE (#1508) — ce que le moteur FABRIQUE pour que la couche `state`
+ * DÉ QU'UNE OP DEMANDE À LA PORTE (#1508) — ce que le moteur FABRIQUE pour que la couche `noyau`
  * OUVRE : quels dés (`spec`), sous quelle clé les reverser (`cle`, cf. `cleDeDe`), ce qu'ils décident
  * (`libelle`) et dans quelle unité se lit leur total (`unite` — « m », affichage pur).
  *
@@ -1745,7 +1745,7 @@ export function gelerOpsCtx(ctx: OpsCtx): OpsCtxGele {
 /**
  * DÉS QUE CES OPS DEMANDENT À LA PORTE (#1508) — ÉNUMÉRATION PURE, ni tirage ni mutation : ce que
  * l'applier doit OUVRIR en étapes de dé avant d'appeler `applyOps`, et ce qu'il lui reversera dans
- * `ctx.des`. Le canal op → applier tient dans ce couple : le moteur FABRIQUE, `state` OUVRE (patron
+ * `ctx.des`. Le canal op → applier tient dans ce couple : le moteur FABRIQUE, `noyau` OUVRE (patron
  * `shipCritical.applyCrewHit`, qui REND son `testFlow` au lieu de le jouer).
  *
  * LÈVE sur donnée malformée (table de chute inconnue, coque absente…) AVANT qu'aucune op de la feuille

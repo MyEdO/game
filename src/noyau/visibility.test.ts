@@ -45,7 +45,7 @@ describe('FEUILLE — la loi partagée ne dépend de personne', () => {
 
   it('`visibility.ts` n’importe que le TYPE `Visibility`, d’une feuille de types qui n’importe rien', () => {
     // Angle mort ASSUMÉ : lecture TEXTUELLE des deux sources, pas du graphe de modules — la garde vaut pour
-    // ces deux fichiers seuls, exactement comme celle de `gameIso/stage/projection.test.ts`.
+    // ces deux fichiers seuls.
     expect(SRC.match(/^import\s.*$/gm)).toEqual(["import type { Visibility } from '../data/ambiance.types';"]);
     expect(TYPES.match(/^import\s/gm)).toBeNull();
     for (const src of [SRC, TYPES]) {

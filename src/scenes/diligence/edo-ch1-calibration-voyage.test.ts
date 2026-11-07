@@ -10,7 +10,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDe
  * CALIBRATION DE DONNÉE de la route du chapitre 1 de jeu : le paquet de campagne RÉEL est chargé, et la
  * durée de la CHAÎNE La Diligence → La route principale → Auberge des Sept Rayons → Altdorf est calculée
  * tronçon par tronçon par le chemin du moteur que consomme l'écran de carte (`travelSpeed` +
- * `travelPlanCalc` + `baseHoursPerDay`, cf. `ui/WorldMapView.tsx`).
+ * `travelPlanCalc` + `baseHoursPerDay`).
  *
  * Promesse : `EDO 01 l.13`, `EDO 01 l.17`. Primauté des temps de trajet d'une aventure publiée :
  * `LDB 51 l.208`.

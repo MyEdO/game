@@ -1,8 +1,8 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `merchantFamilies.json` — familles de PRÉSENTATION du stock marchand, miroir de
- * `MerchantFamilyData` (`src/data/index.ts`). Consommé par `ui/MerchantPanel.tsx` (`FAMILIES`,
- * `familyOf`, `FAMILY_COLS` dérivés) — ordre du tableau = ordre d'affichage des onglets.
+ * `MerchantFamilyData` (`src/data/index.ts`). Consommé par le panneau du marchand —
+ * ordre du tableau = ordre d'affichage des onglets.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

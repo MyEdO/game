@@ -1,6 +1,6 @@
 /**
  * `Scene` → grilles ASCII du format `MapSpec` (`noyau/mapSpec.ts`) — le sens INVERSE de `buildScene` :
- * l'utilisateur édite au clic dans l'éditeur (`ui/editor`), puis exporte le résultat en ASCII copiable
+ * l'utilisateur édite au clic dans l'éditeur, puis exporte le résultat en ASCII copiable
  * dans un fichier source (`*.ascii.ts`, cf. `scenes/opera/floorplan.ascii.ts`). PUR, aucun import UI.
  *
  * PORTÉE (round-trip GARANTI, cf. `sceneToAscii.test.ts`) : tuiles (`walled`/`legend`), murs/portes/

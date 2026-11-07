@@ -1,7 +1,7 @@
 /**
  * Harnais QC de cartes (#778) — helpers PURS transformant « chaque pièce accessible » (critère flou)
  * en assertions MÉCANIQUES générales, réutilisables par le test de N'IMPORTE QUELLE scène (`buildScene`).
- * Node-safe (ZÉRO import ui/gameIso). RÉFUTE (échoue si une pièce est murée) plutôt que certifier.
+ * Node-safe (aucun import d'hôte). RÉFUTE (échoue si une pièce est murée) plutôt que certifier.
  */
 import { walkReachableFrom } from './monde/path';
 import { isDescriptiveZone, isWalkable, porteAuteur, setDoorOpen, setDoorRevealed, type Scene, type SceneEffectZone } from './monde/scene';

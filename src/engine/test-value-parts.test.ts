@@ -13,7 +13,7 @@ import { t } from '../i18n';
  * GARDE DE CLÔTURE du décomposeur de `testValue` (#1153). L'écran n'a le droit d'annoncer une base NUE
  * (`LDB 09 l.17`, la grandeur qui départage à DR égal — `LDB 12 l.160`) que si TOUT l'écart avec la
  * valeur de Test se lit en composantes NOMMÉES : sinon on troque une divergence numérique contre une
- * chip anonyme « autres » (`ui/RollLine.tsx`), contraire à #1117.
+ * chip anonyme « autres », contraire à #1117.
  *
  * INVARIANT vérifié sur une GRILLE : nu, chaque poste SEUL, puis combinaisons —
  *     testValue(c, sujet) === skillBaseValue(c, sujet.skill?.id, sujet.skill?.spec, sujet.characteristic) + Σ testValueParts(…)

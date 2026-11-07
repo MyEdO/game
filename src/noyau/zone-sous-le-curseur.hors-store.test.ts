@@ -1,7 +1,7 @@
 /**
  * LE GABARIT DE ZONE SOUS LE CURSEUR au noyau (#3059) : `zoneSousLeCurseur` rend le rayon et la validité de la pose —
- * zone EN POSE (`placingZoneOf`) ou aperçu du sort de ZdE sélectionné — que le gabarit du stage peint
- * (`gameIso/stage/ZdeTemplate.tsx`). Portée et Ligne de Vue : LDB 46 l.121.
+ * zone EN POSE (`placingZoneOf`) ou aperçu du sort de ZdE sélectionné — que le gabarit du plateau peint.
+ * Portée et Ligne de Vue : LDB 46 l.121.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
