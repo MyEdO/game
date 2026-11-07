@@ -9,7 +9,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LancementDeScenario, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LancementDeScenario, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -152,7 +152,7 @@ function calquesGardes(texte: string): unknown {
 
 /** Le pont : ses méthodes, chacune appelée par `appeler`. */
 export function creerPont() {
-  let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; jour: number | null; fiche: FicheOuverte | null; creation: CreationOuverte | null; brouillons: number }) | null = null;
+  let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; jour: number | null; fiche: FicheOuverte | null; creation: CreationOuverte | null; brouillons: number; regard: Regard }) | null = null;
   const erreurs: ErreurGlobale[] = [];
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` et les corps de la vue lisent. */
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
@@ -191,7 +191,7 @@ export function creerPont() {
       disposition: fenetre?.disposition ?? null,
       zones: zonesDeLEcran(etat, projection, fenetre, o.fiche, o.creation),
       cases: casesAtteignables(etat),
-      plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat)) : null,
+      plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }) : null,
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
       occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]},${c.pos[2]}`, c.id]] : []))),
@@ -244,7 +244,7 @@ export function creerPont() {
         o = ouvrirLaPartie(entete, sansRoster);
         graine = entete.graine;
       }
-      ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, fiche: null, creation: null, brouillons: 0 };
+      ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, fiche: null, creation: null, brouillons: 0, regard: 'tactique' };
       return suite(ouverte, o.lancement);
     },
     vue(json) {
@@ -253,8 +253,10 @@ export function creerPont() {
     },
     monde(json) {
       entreeDe('monde', json, []);
-      const scene = demarree().partie.etat().scene;
-      return { monde: scene ? volumeDuMonde(scene) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDuMonde(scene) : [] };
+      const o = demarree();
+      const etat = o.partie.etat();
+      const scene = etat.scene;
+      return { monde: scene ? volumeDuRegard(scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDuMonde(scene) : [] };
     },
     jouer(json) {
       const o = demarree();
@@ -268,6 +270,13 @@ export function creerPont() {
         resultats.push(jouerUnGeste(o, g));
       }
       return suite(o, { issue: resultats[resultats.length - 1].issue, evenements: resultats.flatMap((r) => r.evenements), journal: resultats.flatMap((r) => r.journal) });
+    },
+    regarder(json) {
+      const o = demarree();
+      const e = entreeDe('regarder', json, ['regard']);
+      valider(REGARDS.includes(e.regard as Regard), `regarder : regard, l’un de ${REGARDS.join(', ')}`);
+      o.regard = e.regard as Regard;
+      return sansJeton(o);
     },
     fiche(json) {
       const o = demarree();

@@ -499,11 +499,10 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
  *  vide d'à côté ; celui qui borde une trémie, au niveau de son étage. */
 export function piedDeLArete(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z'>): number {
   const z = seg.z ?? 0;
-  const [dx, dy] = seg.side === 'N' ? [0, -1] : seg.side === 'E' ? [1, 0] : [0, 0];
   const solsDe = (cases: readonly Pt[]) => cases
     .filter(({ x, y }) => x >= 0 && y >= 0 && x < scene.dimensions.w && y < scene.dimensions.h && !estAbsent(tileAt(scene, x, y, z)))
     .map(({ x, y }) => heightAt(scene, x, y, z));
-  const bords = solsDe([{ x: seg.x, y: seg.y }, ...(dx || dy ? [{ x: seg.x + dx, y: seg.y + dy }] : [])]);
+  const bords = solsDe(casesDeFace(seg, 'les-deux'));
   if (bords.length) return Math.min(...bords);
   const { w, h } = scene.dimensions;
   const couche = solsDe(Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) })));
